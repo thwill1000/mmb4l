@@ -25,14 +25,14 @@ provisions:
 
 #include <time.h>
 #include <stdio.h>
-#include <windows.h>
-#include <wincon.h>
-#include <process.h>
-#include <tchar.h>
-#include <conio.h>
-#include <strsafe.h>
+//#include <windows.h>
+//#include <wincon.h>
+//#include <process.h>
+//#include <tchar.h>
+//#include <conio.h>
+//#include <strsafe.h>
 
-#include "..\..\Version.h"
+#include "../../Version.h"
 
 extern char CurrentFile[STRINGSIZE];
 
@@ -104,10 +104,12 @@ void fun_type(void) {
 }
 
 void fun_cmdline(void) {
+#if 0
     sret = GetTempStrMemory();  // this will last for the life of the command
     _bgetcmd(sret, MAXSTRLEN);
     CtoM(sret);
     targ = T_STR;
+#endif
 }
 
 void cmd_exitmmb(void) {
@@ -152,7 +154,11 @@ void cmd_colour(void) {
     DOSColour(fc, bc);
 }
 
-void cmd_settitle(void) { SetConsoleTitle(getCstring(cmdline)); }
+void cmd_settitle(void) {
+#if 0
+    SetConsoleTitle(getCstring(cmdline));
+#endif
+}
 
 void cmd_option(void) {
     char *tp;
@@ -238,6 +244,7 @@ void cmd_wedit(void) {
     char *p;
     FILE *f;
 
+#if 0
     if (CurrentLinePtr) error("Invalid in a program");
     if (*CurrentFile > 1) {
         strcpy(fname, CurrentFile);
@@ -279,4 +286,5 @@ void cmd_wedit(void) {
         SetConsoleTitle("MMBasic - Untitled");
         remove(fname);
     }
+#endif
 }

@@ -26,12 +26,14 @@ provisions:
 #if !defined(HARDWARE_INCLUDES_H)
     #define HARDWARE_INCLUDES_H
 
+    #include <errno.h>
     #include <stdio.h>
     #include <stdarg.h>
     #include "Configuration.h"
     #include "DOS_Includes.h"
     #include "DOS_Misc.h"
     #include "File_IO.h"
+    #include "../../MMBasic/VarTable.h"
     #include "Memory.h"
     #include "Editor.h"
 

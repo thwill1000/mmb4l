@@ -44,6 +44,8 @@ const struct s_tokentbl commandtbl[] = {
     #include "../Micromite/Hardware_Commands.h"
 #elif defined(MAXIMITE)
     #include "..\Maximite\Hardware_Commands.h"
+#elif defined(__linux__)
+    #include "../DOS/Source/Hardware_Commands.h"
 #elif defined(DOS)
     #include "..\DOS\Source\Hardware_Commands.h"
 #endif
@@ -65,6 +67,8 @@ const struct s_tokentbl tokentbl[] = {
     #include "../Micromite/Hardware_Commands.h"
 #elif defined(MAXIMITE)
     #include "..\Maximite\Hardware_Commands.h"
+#elif defined(__linux__)
+    #include "../DOS/Source/Hardware_Commands.h"
 #elif defined(DOS)
     #include "..\DOS\Source\Hardware_Commands.h"
 #endif
@@ -189,6 +193,8 @@ void MIPS16 InitBasic(void) {
 // this will continuously execute a program until the end (marked by TWO zero chars)
 // the argument p must point to the first line to be executed
 void ExecuteProgram(char *p) {
+    //printf("ExecuteProgram: %s\n\n", p);
+    //printf("%d\n", p[0]);
     int i, SaveLocalIndex = 0;
     skipspace(p);                                                   // just in case, skip any white space
     while(1) {
@@ -222,12 +228,16 @@ void ExecuteProgram(char *p) {
             if(*p && *p != '\'') {                                  // ignore a comment line
                 if(setjmp(ErrNext) == 0) {                          // return to the else leg of this if error and OPTION ERROR SKIP/IGNORE is in effect
                     SaveLocalIndex = LocalIndex;                    // save this if we need to cleanup after an error
+                    //printf("Here we are\n");
+                    //printf("p = %d, C_BASETOKEN = %d, CommandTableSize = %d\n", *p, C_BASETOKEN, CommandTableSize);
+                    //printf("%d\n", *(char*)p);
+                    //printf("%d\n", *(char*)p >= C_BASETOKEN);
                     if(*(char*)p >= C_BASETOKEN && *(char*)p - C_BASETOKEN < CommandTableSize - 1 && (commandtbl[*(char*)p - C_BASETOKEN].type & T_CMD)) {
                         cmdtoken = *(char*)p;
                         targ = T_CMD;
                         commandtbl[*(char*)p - C_BASETOKEN].fptr(); // execute the command
                     } else {
-                        if (!isnamestart(*p)) error("Invalid character: @", (int)(*p));
+                        if (!isnamestart(*p)) error("Invalid character: %", (int)(*p));
                         i = FindSubFun(p, false);                   // it could be a defined command
                         if(i >= 0) {                                // >= 0 means it is a user defined command
                             DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
@@ -689,6 +699,10 @@ void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, long long int *
 // if the arg console is true then do not add a line number
 
 void MIPS16 tokenise(int console) {
+
+    //printf("console = %d\n", console);
+    //printf("inpbuf = %s\n", inpbuf);
+
     char *p, *op, *tp;
     int i;
     int firstnonwhite;

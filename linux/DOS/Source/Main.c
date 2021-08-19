@@ -7,68 +7,71 @@ The startup code and essential functions for the DOS version of MMBasic.
 
 Copyright 2011 - 2020 Geoff Graham.  All Rights Reserved.
 
-This file and modified versions of this file are supplied to specific individuals or organisations under the following
-provisions:
+This file and modified versions of this file are supplied to specific
+individuals or organisations under the following provisions:
 
-- This file, or any files that comprise the MMBasic source (modified or not), may not be distributed or copied to any other
-  person or organisation without written permission.
+- This file, or any files that comprise the MMBasic source (modified or not),
+may not be distributed or copied to any other person or organisation without
+written permission.
 
-- Object files (.o and .hex files) generated using this file (modified or not) may not be distributed or copied to any other
-  person or organisation without written permission.
+- Object files (.o and .hex files) generated using this file (modified or not)
+may not be distributed or copied to any other person or organisation without
+written permission.
 
-- This file is provided in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+- This file is provided in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
 
 ************************************************************************************************************************/
 
 #include <stdio.h>
-#include <stdio.h>
-#include <conio.h>
-#include <direct.h>
+//#include <conio.h>
+//#include <direct.h>
 #include <signal.h>
 #include <time.h>
-#include <windows.h>
-#include <wincon.h>
-#include <process.h>
+//#include <windows.h>
+//#include <wincon.h>
+//#include <process.h>
 
-#include "..\..\Version.h"
+#include "../../Version.h"
 
 // the values returned by the standard control keys
-#define TAB       0x9
-#define BKSP      0x8
-#define ENTER     0xd
-#define ESC       0x1b
+#define TAB 0x9
+#define BKSP 0x8
+#define ENTER 0xd
+#define ESC 0x1b
 
 // the values returned by the function keys
-#define F1        0x91
-#define F2        0x92
-#define F3        0x93
-#define F4        0x94
-#define F5        0x95
-#define F6        0x96
-#define F7        0x97
-#define F8        0x98
-#define F9        0x99
-#define F10       0x9a
-#define F11       0x9b
-#define F12       0x9c
+#define F1 0x91
+#define F2 0x92
+#define F3 0x93
+#define F4 0x94
+#define F5 0x95
+#define F6 0x96
+#define F7 0x97
+#define F8 0x98
+#define F9 0x99
+#define F10 0x9a
+#define F11 0x9b
+#define F12 0x9c
 
 // the values returned by special control keys
-#define UP        0x80
-#define DOWN      0x81
-#define LEFT      0x82
-#define RIGHT     0x83
-#define INSERT    0x84
-#define DEL       0x7f
-#define HOME      0x86
-#define END       0x87
-#define PUP       0x88
-#define PDOWN     0x89
-#define NUM_ENT   ENTER
-#define SLOCK     0x8c
-#define ALT       0x8b
+#define UP 0x80
+#define DOWN 0x81
+#define LEFT 0x82
+#define RIGHT 0x83
+#define INSERT 0x84
+#define DEL 0x7f
+#define HOME 0x86
+#define END 0x87
+#define PUP 0x88
+#define PDOWN 0x89
+#define NUM_ENT ENTER
+#define SLOCK 0x8c
+#define ALT 0x8b
 
-// global variables used in MMBasic but must be maintained outside of the interpreter
+// global variables used in MMBasic but must be maintained outside of the
+// interpreter
 int ListCnt;
 int MMCharPos;
 long long int mSecTimer;
@@ -84,6 +87,11 @@ int ErrorInPrompt = false;
 
 void IntHandler(int signo);
 int LoadFile(char *prog);
+void dump_token_table(const struct s_tokentbl* tbl);
+
+void clear_screen(void) {
+    // system("CLS");
+}
 
 int main(int argc, char *argv[]) {
     static int PromptError = false;
@@ -100,17 +108,26 @@ int main(int argc, char *argv[]) {
     InitHeap();  // init memory allocation
 
     GetConsoleSize();
-    SetConsoleTitle("MMBasic - Untitled");
+    // LINUX TODO SetConsoleTitle("MMBasic - Untitled");
 
-    system("CLS");
+    clear_screen();
     MMPrintString(MES_SIGNON);  // print signon message
     MMPrintString(COPYRIGHT);   // print signon message
+    MMPrintString("Linux port by Thomas Hugo Williams, 2021");
     MMPrintString("\r\n");
     OptionErrorSkip = 0;
     InitBasic();
 
+    //printf("Commands\n--------\n");
+    //dump_token_table(commandtbl);
+    //printf("\n");
+    //printf("Tokens\n--------\n");
+    //dump_token_table(tokentbl);
+
+# if 0
     signal(SIGBREAK, IntHandler);  // CTRL-C handler
     signal(SIGINT, IntHandler);
+#endif
 
     mSecTimer = clock();  // used for TIMER
     srand(0);             // seed the random generator with zero
@@ -168,17 +185,21 @@ int main(int argc, char *argv[]) {
             tknbuf[0] = tknbuf[1] = tknbuf[2] =
                 ' ';            // convert the line number into spaces
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
+        //printf("tknbuf = %s\n", tknbuf);
         ExecuteProgram(tknbuf);  // execute the line straight away
     }
 }
 
 void IntHandler(int signo) {
+#if 0
     signal(SIGBREAK, IntHandler);
     signal(SIGINT, IntHandler);
+#endif
     MMAbort = true;
 }
 
 int LoadFile(char *prog) {
+#if 0
     FILE *f;
     char buf[STRINGSIZE];
     f = fopen(prog, "rb");
@@ -193,14 +214,17 @@ int LoadFile(char *prog) {
             return true;
         }
     }
+#endif
     return false;
 }
 
 void GetConsoleSize(void) {
+#if 0
     CONSOLE_SCREEN_BUFFER_INFO consoleinfo;
     GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &consoleinfo);
     Option.Height = consoleinfo.srWindow.Bottom - consoleinfo.srWindow.Top;
     Option.Width = consoleinfo.srWindow.Right - consoleinfo.srWindow.Left;
+#endif
 }
 
 char *GetEnvPath(char *env) {
@@ -215,6 +239,7 @@ char *GetEnvPath(char *env) {
 }
 
 void DOSCursor(int x, int y) {
+#if 0
     COORD coord;
     CONSOLE_SCREEN_BUFFER_INFO consoleinfo;
     if (x < 0 || y < 0) return;
@@ -228,20 +253,26 @@ void DOSCursor(int x, int y) {
         return;
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
     MMCharPos = x + 1;
+#endif
 }
 
 void DOSColour(int fc, int bc) {
+#if 0
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fc | bc << 4);
+#endif
 }
 
 void FlashWriteInit(char *p, int nbr) {
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
+#if 0
     SetConsoleTitle("MMBasic - Untitled");
     CurrentFile[0] = 0;
+#endif
 }
 
 // get a char from the DOS console and convert function keys to MMBasic keycodes
 int DOSgetch(void) {
+#if 0
     int c;
     char s;
     c = getch();   // get the first character of a possible multibyte function
@@ -284,16 +315,21 @@ int DOSgetch(void) {
             c = -1;
     }
     return c;
+#endif
+    return 0;
 }
 
 // get a character from the console
 // returns -1 if nothing there
 int MMInkey(void) {
+#if 0
     CheckAbort();
     if (kbhit())
         return DOSgetch();
     else
         return -1;
+#endif
+    return -1;
 }
 
 void CheckAbort(void) {
@@ -305,29 +341,43 @@ void CheckAbort(void) {
 // unless it was preceded by a cr and in that case throw away the char
 // so console end of line is always cr
 int MMgetchar(void) {
-    int c;
-    static char prevchar = 0;
-    DWORD mode;
-    GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &mode);
+//     int c;
+//     static char prevchar = 0;
+//     DWORD mode;
+//     GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &mode);
 
-loopback:
-    SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE),
-                   mode & ~ENABLE_PROCESSED_INPUT);
-    c = DOSgetch();
-    SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), mode);
-    if (c == 3) longjmp(mark, 1);  // jump back to the input prompt if CTRL-C
-    if (c == '\n' && prevchar == '\r') {
-        prevchar = 0;
-        goto loopback;
+// loopback:
+//     SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE),
+//                    mode & ~ENABLE_PROCESSED_INPUT);
+//     c = DOSgetch();
+//     SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), mode);
+//     if (c == 3) longjmp(mark, 1);  // jump back to the input prompt if CTRL-C
+//     if (c == '\n' && prevchar == '\r') {
+//         prevchar = 0;
+//         goto loopback;
+//     }
+//     prevchar = c;
+//     if (c == '\n') c = '\r';
+//     return c;
+
+    static char prevchar = 0;
+    int c;
+    for (;;) {
+        c = getc(stdin);
+        if (c == '\n' && prevchar == '\r') {
+            prevchar = 0;
+        } else {
+            break;
+        }
     }
     prevchar = c;
-    if (c == '\n') c = '\r';
-    return c;
+    return c == '\n' ? '\r' : c;
 }
 
 // put a character out to the operating system
 char MMputchar(char c) {
-    putch(c);
+    // putch(c);
+    putc(c, stdout);
     if (isprint(c)) MMCharPos++;
     if (c == '\r' || c == '\n') {
         MMCharPos = 1;
@@ -404,6 +454,8 @@ void MMgetline(int filenbr, char *p) {
         *p++ = c;                       // save our char
     }
     *p = 0;
+
+    //printf("%s", p);
 }
 
 // check if an interrupt has occured
@@ -447,4 +499,13 @@ void dump(char *p, int nbr) {
         MMPrintString(buf2);
     }
     MMPrintString("\r\n");
+}
+
+void dump_token_table(const struct s_tokentbl* tbl) {
+    int i = 0;
+    for (;;) {
+        printf("%3d:  %-15s, %5d, %5d, 0x%8lX\n", i, tbl[i].name, tbl[i].type, tbl[i].precedence, (unsigned long int) tbl[i].fptr);
+        if (*(tbl[i].name) == 0) break;
+        i++;
+    }
 }

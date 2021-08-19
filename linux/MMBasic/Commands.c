@@ -65,6 +65,7 @@ void cmd_null(void) {
 
 // the PRINT command
 void cmd_print(void) {
+    //printf("Entered cmd_print()\n");
     char *s, *p;
     MMFLOAT f;
     long long int i64;
