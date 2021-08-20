@@ -977,7 +977,9 @@ char *evaluate(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *ta, int 
 
     // check that the types match and convert them if we can
     if((*ta & T_NBR || *ta & T_INT) && t & T_STR) error("Expected a number");
-    if(*ta & T_STR && (t & T_NBR || t & T_INT)) error("Expected a string");
+    if(*ta & T_STR && (t & T_NBR || t & T_INT)) {
+        error("Expected a string");
+    }
     if(o != E_END) error("Argument count");
     if((*ta & T_NBR) && (t & T_INT)) *fa = *ia;
     if((*ta & T_INT) && (t & T_NBR)) *ia = FloatToInt64(*fa);

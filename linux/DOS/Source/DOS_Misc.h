@@ -42,6 +42,7 @@ provisions:
     void cmd_settitle(void);
 
     void fun_date(void);
+    void fun_peek(void);
     void fun_time(void);
     void fun_timer(void);
     void fun_type(void);
@@ -81,6 +82,7 @@ provisions:
 
     { "As",           T_NA,               0, op_invalid   },
     { "Date$",        T_FNA | T_STR,      0, fun_date     },
+    { "Peek(",        T_FUN | T_INT,      0, fun_peek     },
     { "Time$",        T_FNA | T_STR,      0, fun_time     },
     { "Timer",        T_FNA | T_INT,      0, fun_timer    },
     { "MM.HRes",      T_FNA | T_INT,      0, fun_hres     },
@@ -88,26 +90,4 @@ provisions:
     { "MM.Device$",   T_FNA | T_STR,      0, fun_type     },
     { "MM.CmdLine$",  T_FNA | T_STR,      0, fun_cmdline  },
 
-#endif
-
-
-#if !defined(INCLUDE_COMMAND_TABLE) && !defined(INCLUDE_TOKEN_TABLE)
-    // General definitions used by other modules
-
-    #ifndef DOS_MISC_HEADER
-    #define DOS_MISC_HEADER
-
-    struct option_s {
-        char Tab;
-        char Listcase;
-        int  Height;
-        int  Width;
-        int  ProgFlashSize;
-        int  Autorun;
-    };
-
-    extern struct option_s Option;
-
-
-#endif
 #endif

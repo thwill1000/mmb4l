@@ -42,6 +42,7 @@ provisions:
     void cmd_save(void);
     void fun_inputstr(void);
     void fun_cwd(void);
+    void fun_dir(void);
     void fun_eof(void);
     void fun_loc(void);
     void fun_lof(void);
@@ -82,6 +83,7 @@ provisions:
     { "Loc(",     T_FUN | T_INT,      0, fun_loc      },
     { "Lof(",     T_FUN | T_INT,      0, fun_lof      },
     { "Cwd$",     T_FNA | T_STR,      0, fun_cwd      },
+    { "Dir$(",     T_FUN | T_STR,      0, fun_dir      },
 
 #endif
 

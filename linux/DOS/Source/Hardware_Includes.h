@@ -36,8 +36,7 @@ provisions:
     #include "../../MMBasic/VarTable.h"
     #include "Memory.h"
     #include "Editor.h"
-
-
+    #include "option.h"
 
     // various debug macros
     #if defined(DEBUGMODE)

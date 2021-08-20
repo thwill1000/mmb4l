@@ -34,6 +34,8 @@ PARTICULAR PURPOSE.
 //#include <process.h>
 
 #include "../../Version.h"
+#include "console.h"
+#include "option.h"
 
 // the values returned by the standard control keys
 #define TAB 0x9
@@ -89,10 +91,6 @@ void IntHandler(int signo);
 int LoadFile(char *prog);
 void dump_token_table(const struct s_tokentbl* tbl);
 
-void clear_screen(void) {
-    // system("CLS");
-}
-
 int main(int argc, char *argv[]) {
     static int PromptError = false;
     int RunCommandLineProgram = false;
@@ -107,10 +105,10 @@ int main(int argc, char *argv[]) {
 
     InitHeap();  // init memory allocation
 
-    GetConsoleSize();
-    // LINUX TODO SetConsoleTitle("MMBasic - Untitled");
+    get_console_size();
+    set_console_title("MMBasic - Untitled");
 
-    clear_screen();
+    clear_console();
     MMPrintString(MES_SIGNON);  // print signon message
     MMPrintString(COPYRIGHT);   // print signon message
     MMPrintString("Linux port by Thomas Hugo Williams, 2021");
@@ -225,6 +223,8 @@ void GetConsoleSize(void) {
     Option.Height = consoleinfo.srWindow.Bottom - consoleinfo.srWindow.Top;
     Option.Width = consoleinfo.srWindow.Right - consoleinfo.srWindow.Left;
 #endif
+    Option.Height = 40;
+    Option.Width = 80;
 }
 
 char *GetEnvPath(char *env) {
@@ -264,10 +264,8 @@ void DOSColour(int fc, int bc) {
 
 void FlashWriteInit(char *p, int nbr) {
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
-#if 0
-    SetConsoleTitle("MMBasic - Untitled");
+    set_console_title("MMBasic - Untitled");
     CurrentFile[0] = 0;
-#endif
 }
 
 // get a char from the DOS console and convert function keys to MMBasic keycodes

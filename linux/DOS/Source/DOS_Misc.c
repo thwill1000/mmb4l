@@ -33,6 +33,11 @@ provisions:
 //#include <strsafe.h>
 
 #include "../../Version.h"
+#include "console.h"
+#include "option.h"
+
+// TODO: restrict this.
+#define PEEKRANGE(a) (a >= 0) && (a < ULONG_MAX)
 
 extern char CurrentFile[STRINGSIZE];
 
@@ -82,6 +87,103 @@ void fun_date(void) {
     targ = T_STR;
 }
 
+// utility function used by fun_peek() to validate an address
+unsigned int GetPeekAddr(char *p) {
+    unsigned int i;
+    i = getinteger(p);
+    if (!PEEKRANGE(i)) error("Address");
+    return i;
+}
+
+// Will return a byte within the PIC32 virtual memory space.
+void fun_peek(void) {
+    char *p;
+    int i, j;
+    void *pp;
+    getargs(&ep, 3, ",");
+    if ((p = checkstring(argv[0], "VARADDR"))) {
+        if (argc != 1) error("Syntax");
+        pp = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
+        iret = (unsigned int)pp;
+        targ = T_INT;
+        return;
+    }
+
+    // if ((p = checkstring(argv[0], "CFUNADDR"))) {
+    //     if (argc != 1) error("Syntax");
+    //     i = FindSubFun(p, true);  // search for a function first
+    //     if (i == -1)
+    //         i = FindSubFun(p, false);  // and if not found try for a subroutine
+    //     if (i == -1 || !(*subfun[i] == cmdCFUN || *subfun[i] == cmdCSUB))
+    //         error("Invalid argument");
+    //     // search through program flash and the library looking for a match to
+    //     // the function being called
+    //     j = GetCFunAddr((int *)CFunctionFlash, i);
+    //     if (!j) j = GetCFunAddr((int *)CFunctionLibrary, i);
+    //     if (!j) error("Internal fault (sorry)");
+    //     iret = (unsigned int)j;  // return the entry point
+    //     targ = T_INT;
+    //     return;
+    // }
+
+    if ((p = checkstring(argv[0], "BYTE"))) {
+        if (argc != 1) error("Syntax");
+        iret = *(unsigned char *)GetPeekAddr(p);
+        targ = T_INT;
+        return;
+    }
+
+    if ((p = checkstring(argv[0], "WORD"))) {
+        if (argc != 1) error("Syntax");
+        iret = *(unsigned int *)(GetPeekAddr(p) &
+                                 0b11111111111111111111111111111100);
+        targ = T_INT;
+        return;
+    }
+
+    if ((p = checkstring(argv[0], "INTEGER"))) {
+        if (argc != 1) error("Syntax");
+        iret = *(unsigned int *)(GetPeekAddr(p) &
+                                 0b11111111111111111111111111111100);
+        targ = T_INT;
+        return;
+    }
+
+    if ((p = checkstring(argv[0], "FLOAT"))) {
+        if (argc != 1) error("Syntax");
+        fret =
+            *(MMFLOAT *)(GetPeekAddr(p) & 0b11111111111111111111111111111100);
+        targ = T_NBR;
+        return;
+    }
+
+    if (argc != 3) error("Syntax");
+
+    if (checkstring(argv[0], "PROGMEM")) {
+        iret = *((char *)ProgMemory + (int)getinteger(argv[2]));
+        targ = T_INT;
+        return;
+    }
+
+    if (checkstring(argv[0], "VARTBL")) {
+        iret = *((char *)vartbl + (int)getinteger(argv[2]));
+        targ = T_INT;
+        return;
+    }
+
+    if ((p = checkstring(argv[0], "VAR"))) {
+        pp = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
+        iret = *((char *)pp + (int)getinteger(argv[2]));
+        targ = T_INT;
+        return;
+    }
+
+    // default action is the old syntax of  b = PEEK(hiaddr, loaddr)
+    iret =
+        *(char *)(((int)getinteger(argv[0]) << 16) + (int)getinteger(argv[2]));
+    targ = T_INT;
+}
+
 void fun_time(void) {
     time_t time_of_day;
     struct tm *tmbuf;
@@ -128,13 +230,14 @@ void cmd_system(void) {
 }
 
 void cmd_cls(void) {
-    int rc;
+    // int rc;
 
     checkend(cmdline);
-    rc = system("CLS");
-    if (rc != 0) {
-        error("Command could not be run");
-    }
+    clear_console();
+    // rc = system("CLS");
+    // if (rc != 0) {
+    //     error("Command could not be run");
+    // }
 }
 
 void cmd_cursor(void) {
@@ -155,9 +258,7 @@ void cmd_colour(void) {
 }
 
 void cmd_settitle(void) {
-#if 0
-    SetConsoleTitle(getCstring(cmdline));
-#endif
+    set_console_title(getCstring(cmdline));
 }
 
 void cmd_option(void) {
@@ -244,7 +345,6 @@ void cmd_wedit(void) {
     char *p;
     FILE *f;
 
-#if 0
     if (CurrentLinePtr) error("Invalid in a program");
     if (*CurrentFile > 1) {
         strcpy(fname, CurrentFile);
@@ -268,23 +368,22 @@ void cmd_wedit(void) {
         del = true;
     }
 
-    strcpy(b, "\"");
-    if (getenv("MMEDITOR") != NULL)
-        strcat(b, getenv("MMEDITOR"));
-    else
-        strcat(b, "Notepad");
-    strcat(b, " \"");
-    strcat(b, fname);
-    strcat(b, "\"\"");  //"
+    // Launch an external editor.
+    char *mmeditor = getenv("MMEDITOR");
+    mmeditor = mmeditor == NULL ? "code -w" : mmeditor;
+    snprintf(b, STRINGSIZE, "%s \"%s\"", mmeditor, fname);
     rc = system(b);
     if (rc != 0) {
         error("Editor could not be run");
     }
 
-    if (!FileLoadProgram(fname)) error("Could not read from $", fname);
+    // Reload the file.
+    void *quoted_fname = GetTempStrMemory();
+    snprintf(quoted_fname, STRINGSIZE, "\"%s\"", fname);
+    if (!FileLoadProgram(quoted_fname)) error("Could not read from $", fname);
+
     if (del) {
-        SetConsoleTitle("MMBasic - Untitled");
+        set_console_title("MMBasic - Untitled");
         remove(fname);
     }
-#endif
 }

@@ -3,6 +3,8 @@
 char *StartEditPoint = NULL;
 int StartEditChar = 0;
 
-void cmd_edit(void) {
+void cmd_wedit();
 
+void cmd_edit(void) {
+    cmd_wedit();
 }
