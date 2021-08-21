@@ -40,8 +40,11 @@ provisions:
     void cmd_cursor(void);
     void cmd_colour(void);
     void cmd_settitle(void);
+    void cmd_sort(void);
 
     void fun_date(void);
+    void fun_format(void);
+    void fun_info(void);
     void fun_peek(void);
     void fun_time(void);
     void fun_timer(void);
@@ -71,6 +74,7 @@ provisions:
     { "Colour",     T_CMD,                0, cmd_colour   },
     { "Color",      T_CMD,                0, cmd_colour   },
     { "SetTitle",   T_CMD,                0, cmd_settitle },
+    { "Sort",       T_CMD,                0, cmd_sort     },
 
 #endif
 
@@ -82,10 +86,12 @@ provisions:
 
     { "As",           T_NA,               0, op_invalid   },
     { "Date$",        T_FNA | T_STR,      0, fun_date     },
+    { "Format$(",     T_FUN | T_STR,      0, fun_format   },
     { "Peek(",        T_FUN | T_INT,      0, fun_peek     },
     { "Time$",        T_FNA | T_STR,      0, fun_time     },
     { "Timer",        T_FNA | T_INT,      0, fun_timer    },
     { "MM.HRes",      T_FNA | T_INT,      0, fun_hres     },
+    { "MM.Info(",	  	T_FUN | T_STR | T_INT | T_NBR,		0, fun_info },
     { "MM.VRes",      T_FNA | T_INT,      0, fun_vres     },
     { "MM.Device$",   T_FNA | T_STR,      0, fun_type     },
     { "MM.CmdLine$",  T_FNA | T_STR,      0, fun_cmdline  },
