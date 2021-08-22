@@ -70,7 +70,7 @@ PARTICULAR PURPOSE.
 // interpreter
 int ListCnt;
 int MMCharPos;
-long long int mSecTimer;
+struct timespec g_timer;
 int ExitMMBasicFlag = false;
 volatile int MMAbort = false;
 char *InterruptReturn = NULL;
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, IntHandler);
 #endif
 
-    mSecTimer = clock();  // used for TIMER
+    clock_gettime(CLOCK_REALTIME, &g_timer);
     srand(0);             // seed the random generator with zero
 
     // if there is something on the command line try to load it as a program, if

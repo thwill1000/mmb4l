@@ -45,13 +45,13 @@ provisions:
 
     void fun_choice(void);
     void fun_date(void);
+    void fun_device(void);
     void fun_format(void);
     void fun_info(void);
     void fun_lgetbyte(void);
     void fun_peek(void);
     void fun_time(void);
     void fun_timer(void);
-    void fun_type(void);
     void fun_cmdline(void);
     void fun_hres(void);
     void fun_vres(void);
@@ -97,7 +97,7 @@ provisions:
     { "MM.HRes",      T_FNA | T_INT,      0, fun_hres     },
     { "MM.Info(",     T_FUN | T_STR | T_INT | T_NBR, 0, fun_info },
     { "MM.VRes",      T_FNA | T_INT,      0, fun_vres     },
-    { "MM.Device$",   T_FNA | T_STR,      0, fun_type     },
+    { "MM.Device$",   T_FNA | T_STR,      0, fun_device   },
     { "MM.CmdLine$",  T_FNA | T_STR,      0, fun_cmdline  },
 
 #endif

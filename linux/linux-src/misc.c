@@ -66,11 +66,6 @@ void fun_format(void) {
     targ = T_STR;
 }
 
-void fun_timer(void) {
-    iret = (long long int)(clock() - mSecTimer);
-    targ = T_INT;
-}
-
 void fun_hres(void) {
     console_get_size();
     iret = Option.Width;
@@ -81,22 +76,6 @@ void fun_vres(void) {
     console_get_size();
     iret = Option.Height;
     targ = T_INT;
-}
-
-// this is invoked as a command (ie, TIMER = 0)
-// search through the line looking for the equals sign and step over it,
-// evaluate the rest of the command and save in the timer
-void cmd_timer(void) {
-    while (*cmdline && *cmdline != tokenEQUAL) cmdline++;
-    if (!*cmdline) error("Invalid syntax");
-    mSecTimer = clock() - getinteger(++cmdline);
-}
-
-void cmd_pause(void) {
-    int i;
-    i = clock() + getinteger(cmdline);
-    while (!MMAbort && clock() < i)
-        ;
 }
 
 void fun_date(void) {
@@ -122,14 +101,6 @@ void fun_time(void) {
     sprintf(sret, "%02d:%02d:%02d", tmbuf->tm_hour, tmbuf->tm_min,
             tmbuf->tm_sec);
     CtoM(sret);
-    targ = T_STR;
-}
-
-// function (which looks like a pre defined variable) to return the type of
-// platform
-void fun_type(void) {
-    sret = GetTempStrMemory();  // this will last for the life of the command
-    strcpy(sret, "\3DOS");
     targ = T_STR;
 }
 

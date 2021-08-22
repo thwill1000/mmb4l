@@ -103,5 +103,5 @@ extern void GetConsoleSize(void);
 extern void DOSColour(int fc, int bc);
 extern void DOSCursor(int x, int y);
 extern char *GetEnvPath(char *env);
-extern long long int mSecTimer;
 
+extern struct timespec g_timer;

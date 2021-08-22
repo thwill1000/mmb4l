@@ -1,10 +1,8 @@
 #include <stdint.h>
 
+#include "../common/global_aliases.h"
 #include "../common/utility.h"
 #include "../common/version.h"
-
-#define g_integer_return  iret
-#define g_return_type  targ
 
 // TODO: should validate the returned address is PEEKable.
 void *GetPeekAddr(char *p) {
@@ -16,8 +14,8 @@ void peek_byte(int argc, char **argv, char *p) {
     if (argc != 1) error("Syntax");
 
     void *addr = GetPeekAddr(p);
-    g_integer_return = *((char *) addr);
-    g_return_type = T_INT;
+    g_integer_rtn = *((char *) addr);
+    g_rtn_type = T_INT;
 }
 
 void peek_cfunaddr(int argc, char **argv, char *p) {
@@ -45,16 +43,16 @@ void peek_var(int argc, char **argv, char *p) {
 
     void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
     int64_t offset = getinteger(argv[2]);
-    g_integer_return = *((char *) pvar + offset);
-    g_return_type = T_INT;
+    g_integer_rtn = *((char *) pvar + offset);
+    g_rtn_type = T_INT;
 }
 
 /** PEEK(VARADDR var) */
 void peek_varaddr(int argc, char **argv, char *p) {
     if (argc != 1) error("Syntax");
     void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
-    g_integer_return = (int64_t) pvar;
-    g_return_type = T_INT;
+    g_integer_rtn = (int64_t) pvar;
+    g_rtn_type = T_INT;
 }
 
 void peek_vartbl(int argc, char **argv, char *p) {

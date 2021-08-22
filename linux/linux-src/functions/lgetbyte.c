@@ -22,6 +22,6 @@ void fun_lgetbyte(void) {
 
     int j = (g_var_tbl[g_current_var_idx ].dims[0] - OptionBase) * 8 - 1;
     int start = getint(argv[2], OptionBase, j - OptionBase);
-    g_integer_return = s[start - OptionBase];
-    g_return_type = T_INT;
+    g_integer_rtn = s[start - OptionBase];
+    g_rtn_type = T_INT;
 }
