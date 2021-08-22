@@ -12,20 +12,21 @@ set(MMBASIC_CORE_SOURCE_FILES
     MMBasic/Commands.c)
 
 set(MMBASIC_LINUX_SOURCE_FILES
-    DOS/Source/commands/inc.c
-    DOS/Source/commands/longstring.c
-    DOS/Source/commands/poke.c
-    DOS/Source/common/console.c
-    DOS/Source/common/utility.c
-    DOS/Source/functions/choice.c
-    DOS/Source/functions/info.c
-    DOS/Source/functions/lgetbyte.c
-    DOS/Source/functions/peek.c
-    DOS/Source/Main.c
-    DOS/Source/Memory.c
-    DOS/Source/DOS_Misc.c
-    DOS/Source/editor_stubs.c
-    DOS/Source/file_io_stubs.c)
+    linux-src/commands/inc.c
+    linux-src/commands/longstring.c
+    linux-src/commands/poke.c
+    linux-src/common/console.c
+    linux-src/common/utility.c
+    linux-src/functions/choice.c
+    linux-src/functions/dir.c
+    linux-src/functions/info.c
+    linux-src/functions/lgetbyte.c
+    linux-src/functions/peek.c
+    linux-src/editor.c
+    linux-src/file_io.c
+    linux-src/main.c
+    linux-src/memory.c
+    linux-src/misc.c)
 
 # add the executable
 add_executable(MMBasic ${MMBASIC_CORE_SOURCE_FILES} ${MMBASIC_LINUX_SOURCE_FILES})

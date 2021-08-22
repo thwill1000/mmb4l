@@ -22,20 +22,12 @@ provisions:
 ************************************************************************************************************************/
 
 #include <stdio.h>
-#include <stdio.h>
-#include <conio.h>
-#include <direct.h>
 #include <signal.h>
 #include <time.h>
-#include <windows.h>
-#include <wincon.h>
-#include <process.h>
 
-#include "..\..\Version.h"
-
+#include "common/version.h"
 
 #define CTRLKEY(a) (a & 0x1f)
-
 
 #define DISPLAY_CLS             1
 #define REVERSE_VIDEO           3
@@ -66,6 +58,13 @@ provisions:
 char *StartEditPoint = NULL;
 int StartEditChar = 0;
 
+void cmd_wedit();
+
+void cmd_edit(void) {
+    cmd_wedit();
+}
+
+#if 0
 
 /********************************************************************************************************************************************
  THE EDIT COMMAND
@@ -1261,3 +1260,4 @@ void ScrollDown(void) {
   //PositionCursor(txtp);
 }
 
+#endif

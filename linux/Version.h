@@ -69,7 +69,7 @@ provisions:
     #elif defined(__linux__)
         #define DOS
         #define __386__
-        #define MES_SIGNON  "Linux MMBasic Ver " VERSION "\r\n"
+        #define MES_SIGNON  "Linux x86_64 MMBasic Ver " VERSION "\r\n"
     #else
         #error This device is not supported
     #endif
@@ -119,6 +119,8 @@ provisions:
     #elif defined(MAXIMITE)
         #include "Maximite/Hardware_Includes.h"
         #include "Maximite/Source/Flash.h"
+    #elif defined(__linux__)
+        #include "linux-src/Hardware_Includes.h"
     #elif defined(DOS)
         #include "DOS/Source/Hardware_Includes.h"
     #endif

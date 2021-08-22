@@ -21,12 +21,7 @@ provisions:
 
 ************************************************************************************************************************/
 
-
-
-#include "DOS_Misc.h"
-#include "File_IO.h"
-#include "Memory.h"
-#include "Editor.h"
-
-
-
+#include "memory.h"
+#include "misc.h"
+#include "editor.h"
+#include "file_io.h"

@@ -1,5 +1,5 @@
-#include "../../../Version.h"
 #include "../common/utility.h"
+#include "../common/version.h"
 
 // utility function used by cmd_poke() to validate an address
 void *GetPokeAddr(void *p) {

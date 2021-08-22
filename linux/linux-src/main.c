@@ -24,18 +24,12 @@ PARTICULAR PURPOSE.
 
 ************************************************************************************************************************/
 
-#include <stdio.h>
-//#include <conio.h>
-//#include <direct.h>
 #include <signal.h>
+#include <stdio.h>
 #include <time.h>
-//#include <windows.h>
-//#include <wincon.h>
-//#include <process.h>
 
-#include "../../Version.h"
 #include "common/console.h"
-//#include "option.h"
+#include "common/version.h"
 
 // the values returned by the standard control keys
 #define TAB 0x9
@@ -105,10 +99,10 @@ int main(int argc, char *argv[]) {
 
     InitHeap();  // init memory allocation
 
-    get_console_size();
-    set_console_title("MMBasic - Untitled");
+    console_get_size();
+    console_set_title("MMBasic - Untitled");
 
-    clear_console();
+    console_clear();
     MMPrintString(MES_SIGNON);  // print signon message
     MMPrintString(COPYRIGHT);   // print signon message
     MMPrintString("Linux port by Thomas Hugo Williams, 2021");
@@ -264,7 +258,7 @@ void DOSColour(int fc, int bc) {
 
 void FlashWriteInit(char *p, int nbr) {
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
-    set_console_title("MMBasic - Untitled");
+    console_set_title("MMBasic - Untitled");
     CurrentFile[0] = 0;
 }
 

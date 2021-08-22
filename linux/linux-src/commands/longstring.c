@@ -1,4 +1,4 @@
-#include "../../../Version.h"
+#include "../common/version.h"
 
 void cmd_longstring(void) {
     char *tp;

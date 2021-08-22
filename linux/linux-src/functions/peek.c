@@ -1,7 +1,7 @@
 #include <stdint.h>
 
-#include "../../../Version.h"
 #include "../common/utility.h"
+#include "../common/version.h"
 
 #define g_integer_return  iret
 #define g_return_type  targ

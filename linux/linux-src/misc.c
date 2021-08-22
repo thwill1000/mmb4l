@@ -22,22 +22,14 @@ provisions:
 
 ************************************************************************************************************************/
 
-
-#include <time.h>
 #include <stdio.h>
-//#include <windows.h>
-//#include <wincon.h>
-//#include <process.h>
-//#include <tchar.h>
-//#include <conio.h>
-//#include <strsafe.h>
+#include <time.h>
 
-#include "../../Version.h"
 #include "common/console.h"
-//#include "option.h"
 #include "common/utility.h"
+#include "common/version.h"
 
-#define IsDigitinline(a)	( a >= '0' && a <= '9' )
+#define IsDigitinline(a)        ( a >= '0' && a <= '9' )
 
 extern char CurrentFile[STRINGSIZE];
 
@@ -80,13 +72,13 @@ void fun_timer(void) {
 }
 
 void fun_hres(void) {
-    GetConsoleSize();
+    console_get_size();
     iret = Option.Width;
     targ = T_INT;
 }
 
 void fun_vres(void) {
-    GetConsoleSize();
+    console_get_size();
     iret = Option.Height;
     targ = T_INT;
 }
@@ -170,7 +162,7 @@ void cmd_cls(void) {
     // int rc;
 
     checkend(cmdline);
-    clear_console();
+    console_clear();
     // rc = system("CLS");
     // if (rc != 0) {
     //     error("Command could not be run");
@@ -195,7 +187,7 @@ void cmd_colour(void) {
 }
 
 void cmd_settitle(void) {
-    set_console_title(getCstring(cmdline));
+    console_set_title(getCstring(cmdline));
 }
 
 void cmd_option(void) {
@@ -546,7 +538,7 @@ void cmd_wedit(void) {
     if (!FileLoadProgram(quoted_fname)) error("Could not read from $", fname);
 
     if (del) {
-        set_console_title("MMBasic - Untitled");
+        console_set_title("MMBasic - Untitled");
         remove(fname);
     }
 }

@@ -21,14 +21,7 @@ provisions:
 
 ************************************************************************************************************************/
 
-
-
-//#define INCLUDE_FUNCTION_DEFINES
-#if defined(__linux__)
-#include "../../Version.h"
-#else
-#include "..\..\Version.h"
-#endif
+#include "common/version.h"
 
 // allocate static memory for programs, variables and the heap
 // this is simple memory management because DOS has plenty of memory

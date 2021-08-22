@@ -22,8 +22,6 @@ provisions:
 
 ************************************************************************************************************************/
 
-
-
 /**********************************************************************************
  the C language function associated with commands, functions or operators should be
  declared here
@@ -60,9 +58,6 @@ provisions:
 
 #endif
 
-
-
-
 /**********************************************************************************
  All command tokens tokens (eg, PRINT, FOR, etc) should be inserted in this table
 **********************************************************************************/
@@ -86,22 +81,21 @@ provisions:
 
 #endif
 
-
 /**********************************************************************************
  All other tokens (keywords, functions, operators) should be inserted in this table
 **********************************************************************************/
 #ifdef INCLUDE_TOKEN_TABLE
 
     { "As",           T_NA,               0, op_invalid   },
-    { "Choice(",      T_FUN | T_STR | T_INT | T_NBR,		0, fun_choice	},
+    { "Choice(",      T_FUN | T_STR | T_INT | T_NBR, 0, fun_choice },
     { "Date$",        T_FNA | T_STR,      0, fun_date     },
     { "Format$(",     T_FUN | T_STR,      0, fun_format   },
-    { "LGetByte(",		T_FUN | T_INT,		  0, fun_lgetbyte },
+    { "LGetByte(",    T_FUN | T_INT, 0, fun_lgetbyte },
     { "Peek(",        T_FUN | T_INT,      0, fun_peek     },
     { "Time$",        T_FNA | T_STR,      0, fun_time     },
     { "Timer",        T_FNA | T_INT,      0, fun_timer    },
     { "MM.HRes",      T_FNA | T_INT,      0, fun_hres     },
-    { "MM.Info(",	  	T_FUN | T_STR | T_INT | T_NBR,		0, fun_info },
+    { "MM.Info(",     T_FUN | T_STR | T_INT | T_NBR, 0, fun_info },
     { "MM.VRes",      T_FNA | T_INT,      0, fun_vres     },
     { "MM.Device$",   T_FNA | T_STR,      0, fun_type     },
     { "MM.CmdLine$",  T_FNA | T_STR,      0, fun_cmdline  },

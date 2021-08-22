@@ -3,15 +3,15 @@
 #include "console.h"
 #include "option.h"
 
-void clear_console(void) {
+void console_clear(void) {
     // TODO
 }
 
-void set_console_title(const char *title) {
+void console_set_title(const char *title) {
     // TODO
 }
 
-void get_console_size(void) {
+void console_get_size(void) {
 #if 0
     CONSOLE_SCREEN_BUFFER_INFO consoleinfo;
     GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &consoleinfo);
