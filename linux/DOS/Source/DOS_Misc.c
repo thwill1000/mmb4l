@@ -33,11 +33,9 @@ provisions:
 //#include <strsafe.h>
 
 #include "../../Version.h"
-#include "console.h"
-#include "option.h"
-
-// TODO: restrict this.
-#define PEEKRANGE(a) (a >= 0) && (a < ULONG_MAX)
+#include "common/console.h"
+//#include "option.h"
+#include "common/utility.h"
 
 #define IsDigitinline(a)	( a >= '0' && a <= '9' )
 
@@ -122,103 +120,6 @@ void fun_date(void) {
     targ = T_STR;
 }
 
-// utility function used by fun_peek() to validate an address
-unsigned int GetPeekAddr(char *p) {
-    unsigned int i;
-    i = getinteger(p);
-    if (!PEEKRANGE(i)) error("Address");
-    return i;
-}
-
-// Will return a byte within the PIC32 virtual memory space.
-void fun_peek(void) {
-    char *p;
-    int i, j;
-    void *pp;
-    getargs(&ep, 3, ",");
-    if ((p = checkstring(argv[0], "VARADDR"))) {
-        if (argc != 1) error("Syntax");
-        pp = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
-        iret = (unsigned int)pp;
-        targ = T_INT;
-        return;
-    }
-
-    // if ((p = checkstring(argv[0], "CFUNADDR"))) {
-    //     if (argc != 1) error("Syntax");
-    //     i = FindSubFun(p, true);  // search for a function first
-    //     if (i == -1)
-    //         i = FindSubFun(p, false);  // and if not found try for a subroutine
-    //     if (i == -1 || !(*subfun[i] == cmdCFUN || *subfun[i] == cmdCSUB))
-    //         error("Invalid argument");
-    //     // search through program flash and the library looking for a match to
-    //     // the function being called
-    //     j = GetCFunAddr((int *)CFunctionFlash, i);
-    //     if (!j) j = GetCFunAddr((int *)CFunctionLibrary, i);
-    //     if (!j) error("Internal fault (sorry)");
-    //     iret = (unsigned int)j;  // return the entry point
-    //     targ = T_INT;
-    //     return;
-    // }
-
-    if ((p = checkstring(argv[0], "BYTE"))) {
-        if (argc != 1) error("Syntax");
-        iret = *(unsigned char *)GetPeekAddr(p);
-        targ = T_INT;
-        return;
-    }
-
-    if ((p = checkstring(argv[0], "WORD"))) {
-        if (argc != 1) error("Syntax");
-        iret = *(unsigned int *)(GetPeekAddr(p) &
-                                 0b11111111111111111111111111111100);
-        targ = T_INT;
-        return;
-    }
-
-    if ((p = checkstring(argv[0], "INTEGER"))) {
-        if (argc != 1) error("Syntax");
-        iret = *(unsigned int *)(GetPeekAddr(p) &
-                                 0b11111111111111111111111111111100);
-        targ = T_INT;
-        return;
-    }
-
-    if ((p = checkstring(argv[0], "FLOAT"))) {
-        if (argc != 1) error("Syntax");
-        fret =
-            *(MMFLOAT *)(GetPeekAddr(p) & 0b11111111111111111111111111111100);
-        targ = T_NBR;
-        return;
-    }
-
-    if (argc != 3) error("Syntax");
-
-    if (checkstring(argv[0], "PROGMEM")) {
-        iret = *((char *)ProgMemory + (int)getinteger(argv[2]));
-        targ = T_INT;
-        return;
-    }
-
-    if (checkstring(argv[0], "VARTBL")) {
-        iret = *((char *)vartbl + (int)getinteger(argv[2]));
-        targ = T_INT;
-        return;
-    }
-
-    if ((p = checkstring(argv[0], "VAR"))) {
-        pp = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
-        iret = *((char *)pp + (int)getinteger(argv[2]));
-        targ = T_INT;
-        return;
-    }
-
-    // default action is the old syntax of  b = PEEK(hiaddr, loaddr)
-    iret =
-        *(char *)(((int)getinteger(argv[0]) << 16) + (int)getinteger(argv[2]));
-    targ = T_INT;
-}
-
 void fun_time(void) {
     time_t time_of_day;
     struct tm *tmbuf;
@@ -241,6 +142,7 @@ void fun_type(void) {
 }
 
 void fun_cmdline(void) {
+    ERROR_UNIMPLEMENTED("file_io_stubs#fun_cmdline");
 #if 0
     sret = GetTempStrMemory();  // this will last for the life of the command
     _bgetcmd(sret, MAXSTRLEN);

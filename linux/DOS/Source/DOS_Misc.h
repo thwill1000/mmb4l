@@ -33,7 +33,10 @@ provisions:
     void cmd_exitmmb(void);
     void cmd_system(void);
     void cmd_cls(void);
+    void cmd_inc(void);
+    void cmd_longstring(void);
     void cmd_pause(void);
+    void cmd_poke(void);
     void cmd_timer(void);
     void cmd_option(void);
     void cmd_wedit(void);
@@ -42,9 +45,11 @@ provisions:
     void cmd_settitle(void);
     void cmd_sort(void);
 
+    void fun_choice(void);
     void fun_date(void);
     void fun_format(void);
     void fun_info(void);
+    void fun_lgetbyte(void);
     void fun_peek(void);
     void fun_time(void);
     void fun_timer(void);
@@ -67,12 +72,15 @@ provisions:
     { "System",     T_CMD,                0, cmd_system   },
     { "Option",     T_CMD,                0, cmd_option   },
     { "Cls",        T_CMD,                0, cmd_cls      },
+    { "Inc",        T_CMD,                0, cmd_inc      },
+    { "LongString", T_CMD,                0, cmd_longstring },
     { "Pause",      T_CMD,                0, cmd_pause    },
     { "Timer",      T_CMD | T_FUN,        0, cmd_timer    },
     { "WEdit",      T_CMD,                0, cmd_wedit    },
     { "Cursor",     T_CMD,                0, cmd_cursor   },
     { "Colour",     T_CMD,                0, cmd_colour   },
     { "Color",      T_CMD,                0, cmd_colour   },
+    { "Poke",       T_CMD,                0, cmd_poke     },
     { "SetTitle",   T_CMD,                0, cmd_settitle },
     { "Sort",       T_CMD,                0, cmd_sort     },
 
@@ -85,8 +93,10 @@ provisions:
 #ifdef INCLUDE_TOKEN_TABLE
 
     { "As",           T_NA,               0, op_invalid   },
+    { "Choice(",      T_FUN | T_STR | T_INT | T_NBR,		0, fun_choice	},
     { "Date$",        T_FNA | T_STR,      0, fun_date     },
     { "Format$(",     T_FUN | T_STR,      0, fun_format   },
+    { "LGetByte(",		T_FUN | T_INT,		  0, fun_lgetbyte },
     { "Peek(",        T_FUN | T_INT,      0, fun_peek     },
     { "Time$",        T_FNA | T_STR,      0, fun_time     },
     { "Timer",        T_FNA | T_INT,      0, fun_timer    },

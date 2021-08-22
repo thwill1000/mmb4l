@@ -34,8 +34,8 @@ PARTICULAR PURPOSE.
 //#include <process.h>
 
 #include "../../Version.h"
-#include "console.h"
-#include "option.h"
+#include "common/console.h"
+//#include "option.h"
 
 // the values returned by the standard control keys
 #define TAB 0x9

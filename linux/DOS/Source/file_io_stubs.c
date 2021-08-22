@@ -6,7 +6,8 @@
 #include <unistd.h>
 
 #include "../../Version.h"
-#include "console.h"
+#include "common/console.h"
+#include "common/utility.h"
 
 #define HANDLE unsigned int
 
@@ -61,19 +62,11 @@ int ErrorCheck(void) {
 }
 
 void CloseAllFiles(void) {
-
-}
-
-//  TODO: should 'src' and 'dst' be otherway round to match strcpy() ?
-/** Copies 'src' to 'dst' replacing '\' with '/'. */
-void sanitise_path(const char* src, char* dst) {
-    const char *psrc = src;
-    char *pdst = dst;
-    for (;;) {
-        *pdst = (*psrc == '\\') ? '/' : *psrc;
-        if (*psrc == 0) break;
-        psrc++;
-        pdst++;
+    for (int i = 0; i < MAXOPENFILES; i++) {
+        if (MMFilePtr[i] != NULL) fclose(MMFilePtr[i]);
+        // if (MMComPtr[i] != NULL) SerialClose(MMComPtr[i]);
+        MMComPtr[i] = NULL;
+        MMFilePtr[i] = NULL;
     }
 }
 
@@ -100,7 +93,7 @@ void cmd_close(void) {
 }
 
 void cmd_copy(void) {
-
+    ERROR_UNIMPLEMENTED("file_io_stubs#cmd_copy");
 }
 
 void cmd_files(void) {
@@ -117,7 +110,7 @@ void cmd_files(void) {
 }
 
 void cmd_kill(void) {
-
+    ERROR_UNIMPLEMENTED("file_io_stubs#cmd_kill");
 }
 
 void cmd_load(void) {
@@ -146,11 +139,17 @@ void cmd_load(void) {
 }
 
 void cmd_mkdir(void) {
-
+    // Get the directory name and convert to a C-string.
+    char *p = getCstring(cmdline);
+    char dir[STRINGSIZE];
+    sanitise_path(p, dir);
+    errno = 0;
+    mkdir(p);
+    ErrorCheck();
 }
 
 void cmd_name(void) {
-
+    ERROR_UNIMPLEMENTED("file_io_stubs#cmd_name");
 }
 
 void cmd_open(void) {
@@ -185,21 +184,21 @@ void cmd_open(void) {
             error("Invalid file access mode");
         if (*argv[4] == '#') argv[4]++;
         file_num = getinteger(argv[4]);
-        printf("%s\n", fname);
+        printf("[DEBUG] %s\n", fname);
         MMfopen(fname, mode, file_num);
     }
 }
 
 void cmd_rmdir(void) {
-
+    ERROR_UNIMPLEMENTED("file_io_stubs#cmd_rmdir");
 }
 
 void cmd_seek(void) {
-
+    ERROR_UNIMPLEMENTED("file_io_stubs#cmd_seek");
 }
 
 void cmd_save(void) {
-
+    ERROR_UNIMPLEMENTED("file_io_stubs#cmd_save");
 }
 
 /** Find the first available free file number. */
@@ -262,7 +261,24 @@ int FileLoadProgram(char *arg) {
 }
 
 void fun_inputstr(void) {
-
+    int nbr, fnbr;
+    char *p;
+    getargs(&ep, 3, ",");
+    if (argc != 3) error("Invalid syntax");
+    nbr = getinteger(argv[0]);
+    if (nbr < 1 || nbr > MAXSTRLEN) error("Number out of bounds");
+    if (*argv[2] == '#') argv[2]++;
+    fnbr = getinteger(argv[2]);
+    sret = GetTempStrMemory();  // this will last for the life of the command
+    p = sret + 1;               // point to the start of the char array
+    *sret = nbr;                // set the length of the returned string
+    while (nbr) {
+        if (MMfeof(fnbr)) break;
+        *p++ = MMfgetc(fnbr);  // get the char and save in our returned string
+        nbr--;
+    }
+    *sret -= nbr;  // correct if we get less than nbr chars
+    targ = T_STR;
 }
 
 void fun_cwd(void) {
@@ -409,11 +425,11 @@ void fun_eof(void) {
 }
 
 void fun_loc(void) {
-
+    ERROR_UNIMPLEMENTED("file_io_stubs#fun_loc");
 }
 
 void fun_lof(void) {
-
+    ERROR_UNIMPLEMENTED("file_io_stubs#fun_lof");
 }
 
 char *MMgetcwd(void) {

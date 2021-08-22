@@ -45,7 +45,8 @@ provisions:
 #define MAXOPENFILES        10                      // maximum number of open files
 #define MAXDIM              8                       // maximum nbr of dimensions to an array
 #define TRACE_BUFF_SIZE     128                     // capacity of the trace buffer
-#define MAXERRMSG           32                      // max error msg size (MM.ErrMsg$ is truncated to this)
+//#define MAXERRMSG           32                      // max error msg size (MM.ErrMsg$ is truncated to this)
+#define MAXERRMSG           128                     // max error msg size (MM.ErrMsg$ is truncated to this)
 
 
 // define the maximum number of arguments to PRINT, INPUT, WRITE, ON, DIM, ERASE, DATA and READ

@@ -1,6 +1,6 @@
 #include <sys/stat.h>
 
-#include "../../Version.h"
+#include "../../../Version.h"
 
 extern void sanitise_path(const char* src, char* dst);
 
