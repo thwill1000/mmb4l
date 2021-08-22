@@ -24,7 +24,8 @@ provisions:
 #if !defined(VERSION_INCLUDED)
     #define VERSION_INCLUDED
 
-    #define VERSION         "5.05.04"
+    // #define VERSION         "5.05.04"
+    #define VERSION         "5.something"
     #define YEAR            "2011-2021"
     #define COPYRIGHT       "Copyright " YEAR " Geoff Graham\r\n"
 

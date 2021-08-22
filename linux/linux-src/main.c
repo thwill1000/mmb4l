@@ -101,12 +101,12 @@ int main(int argc, char *argv[]) {
 
     console_get_size();
     console_set_title("MMBasic - Untitled");
-
     console_clear();
-    MMPrintString(MES_SIGNON);  // print signon message
-    MMPrintString(COPYRIGHT);   // print signon message
-    MMPrintString("Linux port by Thomas Hugo Williams, 2021");
-    MMPrintString("\r\n");
+
+    MMPrintString(MES_SIGNON);
+    MMPrintString(COPYRIGHT);
+    MMPrintString("Copyright 2021 Thomas Hugo Williams\r\n");
+
     OptionErrorSkip = 0;
     InitBasic();
 

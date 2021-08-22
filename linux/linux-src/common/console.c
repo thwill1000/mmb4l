@@ -18,6 +18,6 @@ void console_get_size(void) {
     Option.Height = consoleinfo.srWindow.Bottom - consoleinfo.srWindow.Top;
     Option.Width = consoleinfo.srWindow.Right - consoleinfo.srWindow.Left;
 #endif
-    Option.Height = 40;
-    Option.Width = 80;
+    Option.Height = 50;
+    Option.Width = 100;
 }

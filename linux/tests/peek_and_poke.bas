@@ -2,17 +2,12 @@ Option Explicit On
 Option Default None
 Option Base 0
 
-Dim ut.asserts_count%
-Dim ut.asserts_fails%
-
-test_peek_byte()
-test_peek_var()
-test_poke_byte()
-test_poke_var()
-
-Print "Num successes: " Str$(ut.asserts_count% - ut.asserts_fails%)
-Print "Num failures:  " Str$(ut.asserts_fails%)
-Print Choice(ut.asserts_fails% = 0, "[OK]", "[FAIL]")
+Sub run_tests()
+  test_peek_byte()
+  test_peek_var()
+  test_poke_byte()
+  test_poke_var()
+End Sub
 
 Sub test_peek_byte()
   Local num% = &h0102030405060708
@@ -73,6 +68,15 @@ Sub test_poke_var()
   assert_hex_equals(&h100F0E0D0C0B0A09, num%)
 End Sub
 
+ut.init()
+run_tests()
+ut.report()
+
+Sub ut.init()
+  Dim ut.asserts_count%
+  Dim ut.asserts_fails%
+End Sub
+
 Sub assert_hex_equals(expected%, actual%, chars%)
   Inc ut.asserts_count%
   If expected% <> actual% Then
@@ -85,4 +89,10 @@ End Sub
 Sub ut.add_failure(msg$)
   Inc ut.asserts_fails%
   Print "FAILURE [" Str$(ut.asserts_count%) "] " msg$
+End Sub
+
+Sub ut.report()
+  Print "Num successes: " Str$(ut.asserts_count% - ut.asserts_fails%)
+  Print "Num failures:  " Str$(ut.asserts_fails%)
+  Print Choice(ut.asserts_fails% = 0, "[OK]", "[FAIL]")
 End Sub
