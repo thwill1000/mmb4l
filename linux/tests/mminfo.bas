@@ -4,10 +4,29 @@ Option Base 0
 
 Sub run_tests()
   test_mm_device()
+  test_option_base()
+  test_option_break()
 End Sub
 
 Sub test_mm_device()
   assert_string_equals("Linux x86_64", Mm.Device$)
+End Sub
+
+Sub test_option_base()
+  assert_int_equals(0, Mm.Info(Option Base))
+  Option Base 1
+  assert_int_equals(1, Mm.Info(Option Base))
+  Option Base 0
+End Sub
+
+Sub test_option_break()
+  assert_int_equals(3, Mm.Info(Option Break))
+
+  Option Break 4
+  assert_int_equals(4, Mm.Info(Option Break));
+
+  Option Break 3
+  assert_int_equals(3, Mm.Info(Option Break))
 End Sub
 
 ut.init()
@@ -24,6 +43,15 @@ Sub assert_hex_equals(expected%, actual%, chars%)
   If expected% <> actual% Then
     Local s$ = "Assert equals failed, expected &h" + Hex$(expected%, chars%)
     s$ = s$ + " but actually &h" + Hex$(actual%, chars%)
+    ut.add_failure(s$)
+  EndIf
+End Sub
+
+Sub assert_int_equals(expected%, actual%)
+  Inc ut.asserts_count%
+  If expected% <> actual% Then
+    Local s$ = "Assert equals failed, expected " + Str$(expected%)
+    s$ = s$ + " but actually " + Str$(actual%)
     ut.add_failure(s$)
   EndIf
 End Sub

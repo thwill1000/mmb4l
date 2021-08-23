@@ -43,6 +43,7 @@ provisions:
     void cmd_settitle(void);
     void cmd_sort(void);
 
+    void fun_bound(void);
     void fun_choice(void);
     void fun_date(void);
     void fun_device(void);
@@ -66,6 +67,7 @@ provisions:
     { "Quit",       T_CMD,                0, cmd_exitmmb  },
     { "System",     T_CMD,                0, cmd_system   },
     { "Option",     T_CMD,                0, cmd_option   },
+    { "Cat",        T_CMD,                0, cmd_inc      }, // TODO: alias of INC
     { "Cls",        T_CMD,                0, cmd_cls      },
     { "Inc",        T_CMD,                0, cmd_inc      },
     { "LongString", T_CMD,                0, cmd_longstring },
@@ -87,11 +89,12 @@ provisions:
 #ifdef INCLUDE_TOKEN_TABLE
 
     { "As",           T_NA,               0, op_invalid   },
+    { "Bound(",       T_FUN | T_INT,      0, fun_bound    },
     { "Choice(",      T_FUN | T_STR | T_INT | T_NBR, 0, fun_choice },
     { "Date$",        T_FNA | T_STR,      0, fun_date     },
     { "Format$(",     T_FUN | T_STR,      0, fun_format   },
     { "LGetByte(",    T_FUN | T_INT, 0, fun_lgetbyte },
-    { "Peek(",        T_FUN | T_INT,      0, fun_peek     },
+    { "Peek(",        T_FUN | T_INT | T_NBR, 0, fun_peek  },
     { "Time$",        T_FNA | T_STR,      0, fun_time     },
     { "Timer",        T_FNA | T_INT,      0, fun_timer    },
     { "MM.HRes",      T_FNA | T_INT,      0, fun_hres     },

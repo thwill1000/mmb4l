@@ -76,6 +76,8 @@ provisions:
         extern void InitHeap(void);
         extern int FreeSpaceOnHeap(void);
 
+        void *get_poke_addr(void *p);
+        void *get_peek_addr(void *p);
 
         // RAM parameters
         // ==============

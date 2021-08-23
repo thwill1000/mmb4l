@@ -14,11 +14,14 @@ set(MMBASIC_CORE_SOURCE_FILES
 set(MMBASIC_LINUX_SOURCE_FILES
     linux-src/commands/inc.c
     linux-src/commands/longstring.c
+    linux-src/commands/memory_cmd.c
+    linux-src/commands/option.c
     linux-src/commands/pause.c
     linux-src/commands/poke.c
     linux-src/commands/timer_cmd.c
     linux-src/common/console.c
     linux-src/common/utility.c
+    linux-src/functions/bound.c
     linux-src/functions/choice.c
     linux-src/functions/device.c
     linux-src/functions/dir.c

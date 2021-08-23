@@ -29,6 +29,7 @@ PARTICULAR PURPOSE.
 #include <time.h>
 
 #include "common/console.h"
+#include "common/global_aliases.h"
 #include "common/version.h"
 
 // the values returned by the standard control keys
@@ -80,6 +81,8 @@ char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary, **FontTable;
 
 int ErrorInPrompt = false;
+
+char g_break_key = BREAK_KEY;
 
 void IntHandler(int signo);
 int LoadFile(char *prog);

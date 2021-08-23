@@ -50,61 +50,6 @@ void MBitsSet(void *addr, int bits);
 void *getheap(int size);
 unsigned int UsedHeap(void);
 
-
-
-
-
-/***********************************************************************************************************************
- MMBasic commands
-************************************************************************************************************************/
-
-
-void cmd_memory(void) {
-    int i, vcnt;
-    int pbytes, pm, pp, gm, gp;
-    char *p;
-
-    // calculate the number of variables
-    for(i = vcnt = 0; i < varcnt; i++) {
-        if(vartbl[i].type != T_NOTYPE) vcnt++;
-    }
-
-    // count the number of lines in the program
-    p = ProgMemory;
-    pbytes = i = 0;
-  while(1) {
-      while(*p) { p++; pbytes++; }                                  // look for the zero marking the start of an element
-      if(p[1] == 0) break;                                          // end of the program
-      if(p[1] == T_LINENBR) {
-          i++;
-          p += 3;                                                   // skip over the line number
-          pbytes += 3;
-      } else if(p[1] == T_NEWLINE) {
-          i++;
-          p += 1;                                                   // skip over the new line token
-          pbytes += 1;
-      }
-      p++;
-      pbytes++;
-      skipspace(p);
-      if(p[0] == T_LABEL) {
-          pbytes += p[1] + 2;
-          p += p[1] + 2;                                            // skip over the label
-      }
-    }
-    pm = (PROG_FLASH_SIZE + 512)/1024;       pp = ((PROG_FLASH_SIZE + 512) * 100)/PROG_FLASH_SIZE;
-    gm = (UsedHeap() + 512)/1024;  gp = ((UsedHeap() + 512) * 100)/HEAP_SIZE;
-
-  sprintf(inpbuf, "    Program:%4dK (%2d%%) used %3dK free (%d line%s)\r\n" , (pbytes + 512)/1024, (pbytes * 100)/PROG_FLASH_SIZE, (PROG_FLASH_SIZE - pbytes + 512)/1024, i, i == 1?"":"s");
-  MMPrintString(inpbuf);
-  sprintf(inpbuf, "  Variables:%4dK (%2d%%) used %3dK free (%d variables)\r\n", ((vcnt * sizeof(struct s_vartbl)) + 512) / 1024, (vcnt * 100)/MAXVARS, (((MAXVARS * sizeof(struct s_vartbl)) + 512) / 1024) - (((vcnt * sizeof(struct s_vartbl)) + 512) / 1024), vcnt);
-  MMPrintString(inpbuf);
-  sprintf(inpbuf, "General RAM:%4dK (%2d%%) used %3dK free\r\n", gm, gp, (HEAP_SIZE/1024) - gm);
-  MMPrintString(inpbuf);
-}
-
-
-
 /***********************************************************************************************************************
  Public memory management functions
 ************************************************************************************************************************/
@@ -298,3 +243,19 @@ void heapstats(char *m1) {
 }
 #endif
 
+// TODO: should validate the returned address is POKEable.
+void *get_poke_addr(void *p) {
+    return (void *) getinteger(p);
+
+    // TODO
+    // if ((i > (unsigned int)DOS_vartbl &&
+    //      i < (unsigned int)DOS_vartbl + sizeof(struct s_vartbl) * MAXVARS) ||
+    //     (i > (unsigned int)MMHeap && i < (unsigned int)MMHeap + HEAP_SIZE))
+    //     return i;
+    // else
+    //     error("Address");
+    // return 0;
+}
+void *get_peek_addr(void *p) {
+    return (void *) getinteger(p);
+}

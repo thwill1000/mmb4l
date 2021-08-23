@@ -1,36 +1,57 @@
+#include<stdint.h>
+
 #include "../common/utility.h"
 #include "../common/version.h"
 
-// utility function used by cmd_poke() to validate an address
-void *GetPokeAddr(void *p) {
-    return (void *) getinteger(p);
-
-    // TODO
-    // if ((i > (unsigned int)DOS_vartbl &&
-    //      i < (unsigned int)DOS_vartbl + sizeof(struct s_vartbl) * MAXVARS) ||
-    //     (i > (unsigned int)MMHeap && i < (unsigned int)MMHeap + HEAP_SIZE))
-    //     return i;
-    // else
-    //     error("Address");
-    // return 0;
-}
-
-/** POKE BYTE addr%, byte */
-void poke_byte(int argc, char** argv, char *p) {
+/** POKE BYTE addr%, byte% */
+static void poke_byte(int argc, char** argv, char *p) {
     if (argc != 3) error("Argument count");
 
-    void *addr = GetPokeAddr(p);
+    void *addr = get_poke_addr(p);
     int64_t value = getinteger(argv[2]);
 
-    *((char *)addr) = value;
+    *((uint8_t *) addr) = (uint8_t) value;
 }
 
-void poke_legacy(int argc, char** argv, char *p) {
+/** POKE FLOAT addr%, float! */
+static void poke_float(int argc, char** argv, char *p) {
+    if (argc != 3) error("Argument count");
+
+    void *addr = get_poke_addr(p);
+    if (((uintptr_t) addr) % 8) error("Address not divisible by 8");
+    MMFLOAT value = getnumber(argv[2]);
+
+    *((MMFLOAT *) addr) = value;
+}
+
+/** POKE INTEGER addr%, integer% */
+static void poke_integer(int argc, char** argv, char *p) {
+    if (argc != 3) error("Argument count");
+
+    void *addr = get_poke_addr(p);
+    if (((uintptr_t) addr) % 8) error("Address not divisible by 8");
+    int64_t value = getinteger(argv[2]);
+
+    *((uint64_t *) addr) = (uint64_t) value;
+}
+
+static void poke_legacy(int argc, char** argv, char *p) {
     ERROR_UNIMPLEMENTED("poke.c#poke_legacy");
 }
 
-/** POKE VAR var, offset, byte */
-void poke_var(int argc, char** argv, char *p) {
+/** POKE SHORT addr%, short% */
+static void poke_short(int argc, char** argv, char *p) {
+    if (argc != 3) error("Argument count");
+
+    void *addr = get_poke_addr(p);
+    if (((uintptr_t) addr) % 2) error("Address not divisible by 2");
+    int64_t value = getinteger(argv[2]);
+
+    *((uint16_t *) addr) = (uint16_t) value;
+}
+
+/** POKE VAR var, offset%, byte% */
+static void poke_var(int argc, char** argv, char *p) {
     void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
 
     if (vartbl[VarIndex].type & T_CONST) {
@@ -43,14 +64,20 @@ void poke_var(int argc, char** argv, char *p) {
     *((char *)pvar + offset) = value;
 }
 
-/** POKE VARTBL, offset, byte */
-void poke_vartbl(int argc, char** argv, char *p) {
+/** POKE VARTBL, offset%, byte% */
+static void poke_vartbl(int argc, char** argv, char *p) {
     ERROR_UNIMPLEMENTED("poke.c#poke_vartbl");
 }
 
 /** POKE WORD addr%, word% */
-void poke_word(int argc, char** argv, char *p) {
-    ERROR_UNIMPLEMENTED("poke.c#poke_word");
+static void poke_word(int argc, char** argv, char *p) {
+    if (argc != 3) error("Argument count");
+
+    void *addr = get_poke_addr(p);
+    if (((uintptr_t) addr) % 4) error("Address not divisible by 4");
+    int32_t value = getinteger(argv[2]);
+
+    *((uint32_t *) addr) = (uint32_t) value;
 }
 
 void cmd_poke(void) {
@@ -59,6 +86,12 @@ void cmd_poke(void) {
     char* p;
     if (p = checkstring(argv[0], "BYTE")) {
         poke_byte(argc, argv, p);
+    } else if (p = checkstring(argv[0], "FLOAT")) {
+        poke_float(argc, argv, p);
+    } else if (p = checkstring(argv[0], "INTEGER")) {
+        poke_integer(argc, argv, p);
+    } else if (p = checkstring(argv[0], "SHORT")) {
+        poke_short(argc, argv, p);
     } else if (p = checkstring(argv[0], "VAR")) {
         poke_var(argc, argv, p);
     } else if (p = checkstring(argv[0], "VARTBL")) {
@@ -71,7 +104,7 @@ void cmd_poke(void) {
 
     // if ((p = checkstring(argv[0], "WORD"))) {
     //     if (argc != 3) error("Argument count");
-    //     *(unsigned int *)(GetPokeAddr(p) & 0b11111111111111111111111111111100) =
+    //     *(unsigned int *)(get_poke_addr(p) & 0b11111111111111111111111111111100) =
     //         getinteger(argv[2]);
     //     return;
     // }

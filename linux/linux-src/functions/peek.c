@@ -4,16 +4,10 @@
 #include "../common/utility.h"
 #include "../common/version.h"
 
-// TODO: should validate the returned address is PEEKable.
-void *GetPeekAddr(char *p) {
-    void *addr = (void *) getinteger(p);
-    return addr;
-}
-
 void peek_byte(int argc, char **argv, char *p) {
     if (argc != 1) error("Syntax");
 
-    void *addr = GetPeekAddr(p);
+    void *addr = get_peek_addr(p);
     g_integer_rtn = *((char *) addr);
     g_rtn_type = T_INT;
 }
@@ -23,11 +17,21 @@ void peek_cfunaddr(int argc, char **argv, char *p) {
 }
 
 void peek_integer(int argc, char **argv, char *p) {
-    ERROR_UNIMPLEMENTED("peek.c#peek_integer");
+    if (argc != 1) error("Syntax");
+    g_integer_rtn =
+        *(uint64_t *)((uintptr_t)get_peek_addr(p) & 0xFFFFFFFFFFFFFFF8);
+    g_rtn_type = T_INT;
 }
 
 void peek_float(int argc, char **argv, char *p) {
-    ERROR_UNIMPLEMENTED("peek.c#peek_float");
+    // printf("a\n");
+    if (argc != 1) error("Syntax");
+    // printf("b\n");
+    g_float_rtn =
+        *(MMFLOAT *)((uintptr_t)get_peek_addr(p) & 0xFFFFFFFFFFFFFFF8);
+    // printf("c\n");
+    // printf("%g\n", g_float_rtn);
+    g_rtn_type = T_NBR;
 }
 
 void peek_legacy(int argc, char **argv, char *p) {
@@ -38,8 +42,15 @@ void peek_progmem(int argc, char **argv, char *p) {
     ERROR_UNIMPLEMENTED("peek.c#peek_progmem");
 }
 
+void peek_short(int argc, char **argv, char *p) {
+    if (argc != 1) error("Syntax");
+    g_integer_rtn =
+        *(unsigned short *)((uintptr_t)get_peek_addr(p) & 0xFFFFFFFFFFFFFFFE);
+    g_rtn_type = T_INT;
+}
+
 void peek_var(int argc, char **argv, char *p) {
-    if (argc != 3) error("Syntax - foo");
+    if (argc != 3) error("Syntax");
 
     void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
     int64_t offset = getinteger(argv[2]);
@@ -59,8 +70,12 @@ void peek_vartbl(int argc, char **argv, char *p) {
     ERROR_UNIMPLEMENTED("peek.c#peek_vartbl");
 }
 
+/** Peek(Word addr%) */
 void peek_word(int argc, char **argv, char *p) {
-    ERROR_UNIMPLEMENTED("peek.c#peek_word");
+    if (argc != 1) error("Syntax");
+    g_integer_rtn =
+        *(unsigned int *)((uintptr_t)get_peek_addr(p) & 0xFFFFFFFFFFFFFFFC);
+    g_rtn_type = T_INT;
 }
 
 // Will return a byte within the PIC32 virtual memory space.
@@ -78,6 +93,8 @@ void fun_peek(void) {
         peek_float(argc, argv, p);
     } else if (p = checkstring(argv[0], "PROGMEM")) {
         peek_progmem(argc, argv, p);
+    } else if (p = checkstring(argv[0], "SHORT")) {
+        peek_short(argc, argv, p);
     } else if (p = checkstring(argv[0], "VAR")) {
         peek_var(argc, argv, p);
     } else if (p = checkstring(argv[0], "VARADDR")) {
@@ -109,14 +126,14 @@ void fun_peek(void) {
 
     // if ((p = checkstring(argv[0], "BYTE"))) {
     //     if (argc != 1) error("Syntax");
-    //     iret = *(unsigned char *)GetPeekAddr(p);
+    //     iret = *(unsigned char *)get_peek_addr(p);
     //     targ = T_INT;
     //     return;
     // }
 
     // if ((p = checkstring(argv[0], "WORD"))) {
     //     if (argc != 1) error("Syntax");
-    //     iret = *(unsigned int *)(GetPeekAddr(p) &
+    //     iret = *(unsigned int *)(get_peek_addr(p) &
     //                              0b11111111111111111111111111111100);
     //     targ = T_INT;
     //     return;
@@ -124,7 +141,7 @@ void fun_peek(void) {
 
     // if ((p = checkstring(argv[0], "INTEGER"))) {
     //     if (argc != 1) error("Syntax");
-    //     iret = *(unsigned int *)(GetPeekAddr(p) &
+    //     iret = *(unsigned int *)(get_peek_addr(p) &
     //                              0b11111111111111111111111111111100);
     //     targ = T_INT;
     //     return;
@@ -133,7 +150,7 @@ void fun_peek(void) {
     // if ((p = checkstring(argv[0], "FLOAT"))) {
     //     if (argc != 1) error("Syntax");
     //     fret =
-    //         *(MMFLOAT *)(GetPeekAddr(p) & 0b11111111111111111111111111111100);
+    //         *(MMFLOAT *)(get_peek_addr(p) & 0b11111111111111111111111111111100);
     //     targ = T_NBR;
     //     return;
     // }
