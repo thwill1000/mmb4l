@@ -26,7 +26,9 @@ PARTICULAR PURPOSE.
 
 #include <signal.h>
 #include <stdio.h>
+#include <termios.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "common/console.h"
 #include "common/global_aliases.h"
@@ -88,6 +90,22 @@ void IntHandler(int signo);
 int LoadFile(char *prog);
 void dump_token_table(const struct s_tokentbl* tbl);
 
+static struct termios orig_termios;
+
+void disable_raw_mode() {
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+}
+
+void enable_raw_mode() {
+    tcgetattr(STDIN_FILENO, &orig_termios);
+    atexit(disable_raw_mode);
+    struct termios raw = orig_termios;
+    raw.c_lflag &= ~(ECHO | ICANON);
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 0; //;
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
 int main(int argc, char *argv[]) {
     static int PromptError = false;
     int RunCommandLineProgram = false;
@@ -101,6 +119,8 @@ int main(int argc, char *argv[]) {
     cmdCFUN = cmdCSUB = cmdIRET = 0xff;
 
     InitHeap();  // init memory allocation
+
+    enable_raw_mode();
 
     console_get_size();
     console_set_title("MMBasic - Untitled");
@@ -267,13 +287,14 @@ void FlashWriteInit(char *p, int nbr) {
 
 // get a char from the DOS console and convert function keys to MMBasic keycodes
 int DOSgetch(void) {
-#if 0
     int c;
     char s;
-    c = getch();   // get the first character of a possible multibyte function
+    c = getc(stdin);
+    // c = getch();   // get the first character of a possible multibyte function
                    // key
     if (c == 0) {  // keypress is a special key
-        s = getch();
+        s = getc(stdin);
+        // s = getch();
         if (s == 28)
             c = '\r';  // numeric enter key
         else if (s >= 0x3B && s <= 0x44)
@@ -310,21 +331,41 @@ int DOSgetch(void) {
             c = -1;
     }
     return c;
-#endif
-    return 0;
+}
+
+int mygetch() {
+    char ch;
+    ssize_t result = read(STDIN_FILENO, &ch, 1);
+    switch (result) {
+        case 0:
+            return -1;
+        case 1:
+            return ch;
+        default:
+            error("Unexpected result from read()");
+    }
 }
 
 // get a character from the console
 // returns -1 if nothing there
 int MMInkey(void) {
-#if 0
+    //CheckAbort();
+    // return kbhit() ? DOSgetch() : -1;
+    //return DOSgetch();
+
     CheckAbort();
-    if (kbhit())
-        return DOSgetch();
-    else
-        return -1;
-#endif
-    return -1;
+    char ch;
+    //printf("Going in\n");
+    ssize_t result = read(STDIN_FILENO, &ch, 1);
+    //printf("%d %d\n", result, ch);
+    switch (result) {
+        case 0:
+            return -1;
+        case 1:
+            return ch;
+        default:
+            error("Unexpected result from read()");
+    }
 }
 
 void CheckAbort(void) {
@@ -358,8 +399,11 @@ int MMgetchar(void) {
     static char prevchar = 0;
     int c;
     for (;;) {
-        c = getc(stdin);
-        if (c == '\n' && prevchar == '\r') {
+        c = mygetch();
+        //printf("\n0x%X\n", c);
+        if (c == -1) {
+
+        } else if (c == '\n' && prevchar == '\r') {
             prevchar = 0;
         } else {
             break;
@@ -373,6 +417,7 @@ int MMgetchar(void) {
 char MMputchar(char c) {
     // putch(c);
     putc(c, stdout);
+    fflush(stdout);
     if (isprint(c)) MMCharPos++;
     if (c == '\r' || c == '\n') {
         MMCharPos = 1;
