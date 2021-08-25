@@ -26,9 +26,7 @@ PARTICULAR PURPOSE.
 
 #include <signal.h>
 #include <stdio.h>
-#include <termios.h>
 #include <time.h>
-#include <unistd.h>
 
 #include "common/console.h"
 #include "common/global_aliases.h"
@@ -90,22 +88,6 @@ void IntHandler(int signo);
 int LoadFile(char *prog);
 void dump_token_table(const struct s_tokentbl* tbl);
 
-static struct termios orig_termios;
-
-void disable_raw_mode() {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
-}
-
-void enable_raw_mode() {
-    tcgetattr(STDIN_FILENO, &orig_termios);
-    atexit(disable_raw_mode);
-    struct termios raw = orig_termios;
-    raw.c_lflag &= ~(ECHO | ICANON);
-    raw.c_cc[VMIN] = 0;
-    raw.c_cc[VTIME] = 0; //;
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-}
-
 int main(int argc, char *argv[]) {
     static int PromptError = false;
     int RunCommandLineProgram = false;
@@ -120,8 +102,8 @@ int main(int argc, char *argv[]) {
 
     InitHeap();  // init memory allocation
 
-    enable_raw_mode();
-
+    console_enable_raw_mode();
+    atexit(console_disable_raw_mode);
     console_get_size();
     console_set_title("MMBasic - Untitled");
     console_clear();
@@ -333,19 +315,6 @@ int DOSgetch(void) {
     return c;
 }
 
-int mygetch() {
-    char ch;
-    ssize_t result = read(STDIN_FILENO, &ch, 1);
-    switch (result) {
-        case 0:
-            return -1;
-        case 1:
-            return ch;
-        default:
-            error("Unexpected result from read()");
-    }
-}
-
 // get a character from the console
 // returns -1 if nothing there
 int MMInkey(void) {
@@ -354,18 +323,9 @@ int MMInkey(void) {
     //return DOSgetch();
 
     CheckAbort();
-    char ch;
     //printf("Going in\n");
-    ssize_t result = read(STDIN_FILENO, &ch, 1);
-    //printf("%d %d\n", result, ch);
-    switch (result) {
-        case 0:
-            return -1;
-        case 1:
-            return ch;
-        default:
-            error("Unexpected result from read()");
-    }
+    int ch = console_getc();
+    return ch;
 }
 
 void CheckAbort(void) {
@@ -399,7 +359,7 @@ int MMgetchar(void) {
     static char prevchar = 0;
     int c;
     for (;;) {
-        c = mygetch();
+        c = console_getc();
         //printf("\n0x%X\n", c);
         if (c == -1) {
 
