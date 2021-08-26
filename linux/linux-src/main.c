@@ -32,41 +32,6 @@ PARTICULAR PURPOSE.
 #include "common/global_aliases.h"
 #include "common/version.h"
 
-// the values returned by the standard control keys
-#define TAB 0x9
-#define BKSP 0x8
-#define ENTER 0xd
-#define ESC 0x1b
-
-// the values returned by the function keys
-#define F1 0x91
-#define F2 0x92
-#define F3 0x93
-#define F4 0x94
-#define F5 0x95
-#define F6 0x96
-#define F7 0x97
-#define F8 0x98
-#define F9 0x99
-#define F10 0x9a
-#define F11 0x9b
-#define F12 0x9c
-
-// the values returned by special control keys
-#define UP 0x80
-#define DOWN 0x81
-#define LEFT 0x82
-#define RIGHT 0x83
-#define INSERT 0x84
-#define DEL 0x7f
-#define HOME 0x86
-#define END 0x87
-#define PUP 0x88
-#define PDOWN 0x89
-#define NUM_ENT ENTER
-#define SLOCK 0x8c
-#define ALT 0x8b
-
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
 int ListCnt;
@@ -104,7 +69,7 @@ int main(int argc, char *argv[]) {
 
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
-    console_get_size();
+    console_get_size(&Option.Height, &Option.Width);
     console_set_title("MMBasic - Untitled");
     console_clear();
 
@@ -158,7 +123,7 @@ int main(int argc, char *argv[]) {
     }
 
     while (1) {
-        GetConsoleSize();
+        console_get_size(&Option.Height, &Option.Width);
         MMAbort = false;
         LocalIndex = 0;     // this should not be needed but it ensures that all
                             // space will be cleared
@@ -216,14 +181,7 @@ int LoadFile(char *prog) {
 }
 
 void GetConsoleSize(void) {
-#if 0
-    CONSOLE_SCREEN_BUFFER_INFO consoleinfo;
-    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &consoleinfo);
-    Option.Height = consoleinfo.srWindow.Bottom - consoleinfo.srWindow.Top;
-    Option.Width = consoleinfo.srWindow.Right - consoleinfo.srWindow.Left;
-#endif
-    Option.Height = 40;
-    Option.Width = 80;
+    console_get_size(&Option.Height, &Option.Width);
 }
 
 char *GetEnvPath(char *env) {
@@ -265,54 +223,6 @@ void FlashWriteInit(char *p, int nbr) {
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
     console_set_title("MMBasic - Untitled");
     CurrentFile[0] = 0;
-}
-
-// get a char from the DOS console and convert function keys to MMBasic keycodes
-int DOSgetch(void) {
-    int c;
-    char s;
-    c = getc(stdin);
-    // c = getch();   // get the first character of a possible multibyte function
-                   // key
-    if (c == 0) {  // keypress is a special key
-        s = getc(stdin);
-        // s = getch();
-        if (s == 28)
-            c = '\r';  // numeric enter key
-        else if (s >= 0x3B && s <= 0x44)
-            c = F1 + (s - 0x3B);
-        else if (s == 0x57)
-            c = F11;
-        else if (s == 0x58)
-            c = F12;
-        else if (s == 0x35)
-            c = '/';
-        else if (s == 0x52)
-            c = INSERT;
-        else if (s == 0x47)
-            c = HOME;
-        else if (s == 0x4C)
-            c = 0x35;
-        else if (s == 0x4F)
-            c = END;
-        else if (s == 0x49)
-            c = PUP;
-        else if (s == 0x51)
-            c = PDOWN;
-        else if (s == 0x53)
-            c = DEL;
-        else if (s == 0x48)
-            c = UP;
-        else if (s == 0x50)
-            c = DOWN;
-        else if (s == 0x4B)
-            c = LEFT;
-        else if (s == 0x4D)
-            c = RIGHT;
-        else
-            c = -1;
-    }
-    return c;
 }
 
 // get a character from the console
