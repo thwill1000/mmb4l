@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -235,7 +236,9 @@ int console_getc(void) {
 }
 
 void console_set_title(const char *title) {
-    // TODO
+    char buf[256];
+    sprintf(buf, "\x1b]0;%s\x7", title);
+    write(STDOUT_FILENO, buf, strlen(buf));
 }
 
 void console_get_size(int *height, int *width) {
