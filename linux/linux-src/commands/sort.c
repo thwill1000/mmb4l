@@ -1,168 +1,6 @@
-/***********************************************************************************************************************
-MMBasic
+#include "../common/version.h"
 
-Misc.c
-
-Handles all the miscelaneous commands and functions in DOS MMBasic.  These are commands and functions that do not
-comfortably fit anywhere else.
-
-Copyright 2011 - 2020 Geoff Graham.  All Rights Reserved.
-
-This file and modified versions of this file are supplied to specific individuals or organisations under the following
-provisions:
-
-- This file, or any files that comprise the MMBasic source (modified or not), may not be distributed or copied to any other
-  person or organisation without written permission.
-
-- Object files (.o and .hex files) generated using this file (modified or not) may not be distributed or copied to any other
-  person or organisation without written permission.
-
-- This file is provided in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-************************************************************************************************************************/
-
-#include <stdio.h>
-#include <time.h>
-
-#include "common/console.h"
-#include "common/global_aliases.h"
-#include "common/utility.h"
-#include "common/version.h"
-
-#define IsDigitinline(a)        ( a >= '0' && a <= '9' )
-
-extern char CurrentFile[STRINGSIZE];
-
-void fun_format(void) {
-    char *p, *fmt;
-    int inspec;
-    getargs(&ep, 3, ",");
-    if (argc % 2 == 0) error("Invalid syntax");
-    if (argc == 3)
-        fmt = getCstring(argv[2]);
-    else
-        fmt = "%g";
-
-    // check the format string for errors that might crash the CPU
-    for (inspec = 0, p = fmt; *p; p++) {
-        if (*p == '%') {
-            inspec++;
-            if (inspec > 1) error("Only one format specifier (%) allowed");
-            continue;
-        }
-
-        if (inspec == 1 && (*p == 'g' || *p == 'G' || *p == 'f' || *p == 'e' ||
-                            *p == 'E' || *p == 'l'))
-            inspec++;
-
-        if (inspec == 1 && !(IsDigitinline(*p) || *p == '+' || *p == '-' ||
-                             *p == '.' || *p == ' '))
-            error("Illegal character in format specification");
-    }
-    if (inspec != 2) error("Format specification not found");
-    sret = GetTempStrMemory();  // this will last for the life of the command
-    sprintf(sret, fmt, getnumber(argv[0]));
-    CtoM(sret);
-    targ = T_STR;
-}
-
-void fun_hres(void) {
-    console_get_size(&Option.Height, &Option.Width);
-    g_integer_rtn = Option.Width;
-    g_rtn_type = T_INT;
-}
-
-void fun_vres(void) {
-    console_get_size(&Option.Height, &Option.Width);
-    g_integer_rtn = Option.Height;
-    g_rtn_type = T_INT;
-}
-
-void fun_date(void) {
-    time_t time_of_day;
-    struct tm *tmbuf;
-
-    time_of_day = time(NULL);
-    tmbuf = localtime(&time_of_day);
-    sret = GetTempStrMemory();  // this will last for the life of the command
-    sprintf(sret, "%02d-%02d-%04d", tmbuf->tm_mday, tmbuf->tm_mon + 1,
-            tmbuf->tm_year + 1900);
-    CtoM(sret);
-    targ = T_STR;
-}
-
-void fun_time(void) {
-    time_t time_of_day;
-    struct tm *tmbuf;
-
-    time_of_day = time(NULL);
-    tmbuf = localtime(&time_of_day);
-    sret = GetTempStrMemory();  // this will last for the life of the command
-    sprintf(sret, "%02d:%02d:%02d", tmbuf->tm_hour, tmbuf->tm_min,
-            tmbuf->tm_sec);
-    CtoM(sret);
-    targ = T_STR;
-}
-
-void fun_cmdline(void) {
-    ERROR_UNIMPLEMENTED("file_io_stubs#fun_cmdline");
-#if 0
-    sret = GetTempStrMemory();  // this will last for the life of the command
-    _bgetcmd(sret, MAXSTRLEN);
-    CtoM(sret);
-    targ = T_STR;
-#endif
-}
-
-void cmd_exitmmb(void) {
-    checkend(cmdline);
-    ExitMMBasicFlag = true;  // signal that we want out of here
-    longjmp(mark, 1);        // jump back to the input prompt
-}
-
-void cmd_system(void) {
-    int rc;
-
-    rc = system(getCstring(cmdline));
-    if (rc != 0) {
-        error("Command could not be run");
-    }
-}
-
-void cmd_cls(void) {
-    // int rc;
-
-    checkend(cmdline);
-    console_clear();
-    // rc = system("CLS");
-    // if (rc != 0) {
-    //     error("Command could not be run");
-    // }
-}
-
-void cmd_cursor(void) {
-    getargs(&cmdline, 3,
-            ",");  // getargs macro must be the first executable stmt in a block
-    if (argc != 3) error("Syntax");
-    DOSCursor(getinteger(argv[0]), getinteger(argv[2]));
-}
-
-void cmd_colour(void) {
-    int fc, bc;
-    getargs(&cmdline, 3,
-            ",");  // getargs macro must be the first executable stmt in a block
-    if (argc != 3) error("Syntax");
-    fc = getint(argv[0], 0, 0x0f);
-    bc = getint(argv[2], 0, 0x0f);
-    DOSColour(fc, bc);
-}
-
-void cmd_settitle(void) {
-    console_set_title(getCstring(cmdline));
-}
-
-void integersort(int64_t *iarray, int n, long long *index, int flags,
+static void integersort(int64_t *iarray, int n, long long *index, int flags,
                  int startpoint) {
     int i, j = n, s = 1;
     int64_t t;
@@ -205,7 +43,7 @@ void integersort(int64_t *iarray, int n, long long *index, int flags,
     }
 }
 
-void floatsort(MMFLOAT *farray, int n, long long *index, int flags,
+static void floatsort(MMFLOAT *farray, int n, long long *index, int flags,
                int startpoint) {
     int i, j = n, s = 1;
     int64_t t;
@@ -249,7 +87,7 @@ void floatsort(MMFLOAT *farray, int n, long long *index, int flags,
     }
 }
 
-void stringsort(unsigned char *sarray, int n, int offset, long long *index,
+static void stringsort(unsigned char *sarray, int n, int offset, long long *index,
                 int flags, int startpoint) {
     int ii, i, s = 1, isave;
     int k;
@@ -385,55 +223,5 @@ void cmd_sort(void) {
         if (a4int != NULL)
             for (i = 0; i < truesize + 1; i++) a4int[i] = i + OptionBase;
         stringsort(a3str, size + 1, maxsize + 1, a4int, flags, startpoint);
-    }
-}
-
-void cmd_wedit(void) {
-    int rc, del = false;
-    char b[STRINGSIZE];
-    char fname[STRINGSIZE];
-    char *p;
-    FILE *f;
-
-    if (CurrentLinePtr) error("Invalid in a program");
-    if (*CurrentFile > 1) {
-        strcpy(fname, CurrentFile);
-    } else {
-        strcpy(fname, getenv("TEMP"));
-        strcat(fname, "\\MMBasic.tmp");
-        f = fopen(fname, "wb");
-        if (errno) error("Cannot write to $", fname);
-
-        p = ProgMemory;
-        while (!(*p == 0 || *p == 0xff)) {  // this is a safety precaution
-            if (*p == T_LINENBR || *p == T_NEWLINE) {
-                p = llist(b, p);  // otherwise expand the line
-                if (!(p[0] == 0 && p[1] == 0)) strcat(b, "\r\n");
-                fwrite(b, strlen(b), 1, f);
-                if (errno) error("Cannot write to $", fname);
-                if (p[0] == 0 && p[1] == 0) break;  // end of the program ?
-            }
-        }
-        fclose(f);
-        del = true;
-    }
-
-    // Launch an external editor.
-    char *mmeditor = getenv("MMEDITOR");
-    mmeditor = mmeditor == NULL ? "code -w" : mmeditor;
-    snprintf(b, STRINGSIZE, "%s \"%s\"", mmeditor, fname);
-    rc = system(b);
-    if (rc != 0) {
-        error("Editor could not be run");
-    }
-
-    // Reload the file.
-    void *quoted_fname = GetTempStrMemory();
-    snprintf(quoted_fname, STRINGSIZE, "\"%s\"", fname);
-    if (!FileLoadProgram(quoted_fname)) error("Could not read from $", fname);
-
-    if (del) {
-        console_set_title("MMBasic - Untitled");
-        remove(fname);
     }
 }
