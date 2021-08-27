@@ -8,11 +8,22 @@
 #include <unistd.h>
 
 #include "console.h"
-#include "option.h"
+#include "global_aliases.h"
+//#include "option.h"
 
 void error(char *msg, ...);
+void CheckAbort(void);
+
+extern volatile int MMAbort;
+extern char g_break_key;
+
+#define true 1
+#define CONSOLE_RX_BUF_SIZE 256
 
 static struct termios orig_termios;
+static int console_rx_buf[CONSOLE_RX_BUF_SIZE];
+static int console_rx_buf_head = 0;
+static int console_rx_buf_tail = 0;
 
 void console_clear(void) {
     write(STDOUT_FILENO, "\x1b[2J", 4);   // Clear screen.
@@ -28,7 +39,7 @@ void console_enable_raw_mode(void) {
     tcgetattr(STDIN_FILENO, &orig_termios);
     // atexit(console_disable_raw_mode); - done in main.c
     struct termios raw = orig_termios;
-    raw.c_lflag &= ~(ECHO | ICANON);
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
     raw.c_cc[VMIN] = 0;
     raw.c_cc[VTIME] = 0; // 1;
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
@@ -36,20 +47,45 @@ void console_enable_raw_mode(void) {
     //fcntl(STDIN_FILENO, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
 }
 
-int console_getc_internal(void) {
+void console_buffer_input(void) {
     char ch;
     ssize_t result = read(STDIN_FILENO, &ch, 1);
     switch (result) {
-        //case -1:
-        //    if (errno == EAGAIN) return -1;
-        //    error("Unexpected result from read()");
         case 0:
-            return -1;
+            // Nothing to read.
+            return;
         case 1:
-            return ch;
+            // Read one character, drop out of the switch.
+            break;
         default:
             error("Unexpected result from read()");
+            break;
     }
+
+    console_rx_buf[console_rx_buf_head] = ch;
+    if (console_rx_buf[console_rx_buf_head] == g_break_key) {
+        // User wishes to stop the program.
+        // Set the abort flag so the interpreter will halt and empty the console buffer.
+        MMAbort = true;
+        console_rx_buf_head = console_rx_buf_tail;
+    } else {
+        // Advance the head, if the buffer overflows then throw away the oldest character.
+        console_rx_buf_head = (console_rx_buf_head + 1) % CONSOLE_RX_BUF_SIZE;
+        if (console_rx_buf_head == console_rx_buf_tail) {
+            console_rx_buf_tail = (console_rx_buf_tail + 1) % CONSOLE_RX_BUF_SIZE;
+        }
+    }
+}
+
+// get a char from the console input queue
+// will return immediately with -1 if there is no character waiting
+int console_get_buffered_char(void) {
+    console_buffer_input();
+    CheckAbort(/*0*/);
+    if (console_rx_buf_head == console_rx_buf_tail) return -1;
+    int ch = console_rx_buf[console_rx_buf_tail];
+    console_rx_buf_tail = (console_rx_buf_tail + 1) % CONSOLE_RX_BUF_SIZE;
+    return ch;
 }
 
 void console_key_to_string(int ch, char *buf) {
@@ -182,7 +218,7 @@ int console_getc(void) {
     int count = 0;
     int ch;
     for (;;) {
-        ch = console_getc_internal();
+        ch = console_get_buffered_char();
         if (ch == -1) break;
         chars[count++] = ch;
     }

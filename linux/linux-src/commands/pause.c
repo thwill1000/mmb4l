@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <time.h>
 
 #include "../common/version.h"
@@ -13,7 +14,9 @@ void cmd_pause(void) {
     //printf("Wakeup: %ld, %ld\n", wakeup.tv_sec, wakeup.tv_nsec);
     struct timespec now;
     int64_t ms;
-    while (!MMAbort) {
+    // while (!MMAbort) {
+    for (;;) {
+        CheckAbort();
         clock_gettime(CLOCK_REALTIME, &now);
         ms = (1000 * (wakeup.tv_sec - now.tv_sec))
              + ((wakeup.tv_nsec - now.tv_nsec) / 1000000);

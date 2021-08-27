@@ -232,13 +232,16 @@ int MMInkey(void) {
     // return kbhit() ? DOSgetch() : -1;
     //return DOSgetch();
 
-    CheckAbort();
+    // CheckAbort();
     //printf("Going in\n");
     int ch = console_getc();
+    CheckAbort();
+    // if (ch == 3) longjmp(mark, 1); // jump back to the input prompt if CTRL-C
     return ch;
 }
 
 void CheckAbort(void) {
+    console_buffer_input();
     if (MMAbort) longjmp(mark, 1);  // jump back to the input prompt
 }
 
@@ -273,6 +276,8 @@ int MMgetchar(void) {
         //printf("\n0x%X\n", c);
         if (c == -1) {
 
+        } else if (c == 3) {
+            longjmp(mark, 1); // jump back to the input prompt if CTRL-C
         } else if (c == '\n' && prevchar == '\r') {
             prevchar = 0;
         } else {
