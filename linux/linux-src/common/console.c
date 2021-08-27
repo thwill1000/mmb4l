@@ -16,6 +16,9 @@ void CheckAbort(void);
 
 extern volatile int MMAbort;
 extern char g_break_key;
+extern int g_key_complete;
+extern char *g_key_interrupt;
+extern int g_key_select;
 
 #define true 1
 #define CONSOLE_RX_BUF_SIZE 256
@@ -62,6 +65,13 @@ void console_buffer_input(void) {
             break;
     }
 
+    // Support for ON KEY ascii_code%, handler_sub().
+    // Note that 'ch' does not get added to the buffer.
+	if (ch == g_key_select && g_key_interrupt != NULL){
+		g_key_complete = true;
+		return;
+	}
+
     console_rx_buf[console_rx_buf_head] = ch;
     if (console_rx_buf[console_rx_buf_head] == g_break_key) {
         // User wishes to stop the program.
@@ -86,6 +96,12 @@ int console_get_buffered_char(void) {
     int ch = console_rx_buf[console_rx_buf_tail];
     console_rx_buf_tail = (console_rx_buf_tail + 1) % CONSOLE_RX_BUF_SIZE;
     return ch;
+}
+
+int console_kbhit(void) {
+	int i = console_rx_buf_head - console_rx_buf_tail;
+    if (i < 0) i += CONSOLE_RX_BUF_SIZE;
+    return i;
 }
 
 void console_key_to_string(int ch, char *buf) {

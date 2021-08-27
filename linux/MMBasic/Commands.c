@@ -1322,8 +1322,7 @@ void cmd_lineinput(void) {
     CtoM(vp);                                                       // convert to a MMBasic string
 }
 
-
-
+#if !defined(__linux__)
 void cmd_on(void) {
     int r;
     char ss[4];                                                     // this will be used to split up the argument line
@@ -1393,7 +1392,7 @@ void cmd_on(void) {
     }
     IgnorePIN = false;
 }
-
+#endif
 
 // utility routine used by DoDim() below and other places in the interpreter
 // checks if the type has been explicitly specified as in DIM FLOAT A, B, ... etc

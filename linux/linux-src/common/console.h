@@ -51,6 +51,10 @@ void console_enable_raw_mode(void);
 int console_getc(void);
 
 void console_get_size(int *height, int *width);
+
+/** Gets the number of characters waiting in the console input queue. */
+int console_kbhit(void);
+
 void console_set_title(const char *title);
 
 #endif

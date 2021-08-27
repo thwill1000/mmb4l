@@ -178,7 +178,7 @@ void MIPS16 InitBasic(void) {
 #endif
     cmdSUB = GetCommandValue("Sub");
     cmdFUN = GetCommandValue("Function");
-#if !defined(DOS)
+#if defined(__linux__) || !defined(DOS)
     cmdIRET = GetCommandValue("IReturn");
 #endif
 #if defined(MICROMITE)

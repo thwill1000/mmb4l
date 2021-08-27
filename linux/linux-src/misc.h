@@ -32,6 +32,7 @@ provisions:
     void cmd_system(void);
     void cmd_cls(void);
     void cmd_inc(void);
+    void cmd_ireturn(void);
     void cmd_longstring(void);
     void cmd_pause(void);
     void cmd_poke(void);
@@ -70,6 +71,7 @@ provisions:
     { "Cat",        T_CMD,                0, cmd_inc      }, // TODO: alias of INC
     { "Cls",        T_CMD,                0, cmd_cls      },
     { "Inc",        T_CMD,                0, cmd_inc      },
+    { "IReturn",		T_CMD,			        	0, cmd_ireturn 	},
     { "LongString", T_CMD,                0, cmd_longstring },
     { "Pause",      T_CMD,                0, cmd_pause    },
     { "Timer",      T_CMD | T_FUN,        0, cmd_timer    },

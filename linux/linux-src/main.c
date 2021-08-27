@@ -30,7 +30,10 @@ PARTICULAR PURPOSE.
 
 #include "common/console.h"
 #include "common/global_aliases.h"
+#include "common/interrupt.h"
 #include "common/version.h"
+
+extern int g_key_select;
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
@@ -63,7 +66,8 @@ int main(int argc, char *argv[]) {
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
     Option.ProgFlashSize = PROG_FLASH_SIZE;
     Option.Tab = 4;
-    cmdCFUN = cmdCSUB = cmdIRET = 0xff;
+    // cmdCFUN = cmdCSUB = cmdIRET = 0xff;
+    cmdCFUN = cmdCSUB = 0xff;
 
     InitHeap();  // init memory allocation
 
@@ -242,7 +246,11 @@ int MMInkey(void) {
 
 void CheckAbort(void) {
     console_buffer_input();
-    if (MMAbort) longjmp(mark, 1);  // jump back to the input prompt
+
+    if (MMAbort) {
+        g_key_select = 0;
+        longjmp(mark, 1);  // jump back to the input prompt
+    }
 }
 
 // get a keystroke.  Will wait forever for input
@@ -373,9 +381,10 @@ void MMgetline(int filenbr, char *p) {
     //printf("%s", p);
 }
 
-// check if an interrupt has occured
-// DOS does not use interrupts
-int check_interrupt(void) { return 0; }
+/** Checks if an interrupt has occurred. */
+int check_interrupt(void) {
+    return interrupt_check();
+}
 
 // dump a memory area to the console
 // for debugging
@@ -423,4 +432,24 @@ void dump_token_table(const struct s_tokentbl* tbl) {
         if (*(tbl[i].name) == 0) break;
         i++;
     }
+}
+
+/**
+ * Gets the address for a MMBasic interrupt.
+ *
+ * This will handle a line number, a label or a subroutine,
+ * all areas of MMBasic that can generate an interrupt use this function.
+ */
+char *GetIntAddress(char *p) {
+    int32_t i;
+    if (isnamestart(*p)) {     // if it starts with a valid name char
+        i = FindSubFun(p, 0);  // try to find a matching subroutine
+        if (i == -1)
+            return findlabel(p);  // if a subroutine was NOT found it must be a label
+        else
+            return subfun[i];  // if a subroutine was found, return the address
+                               // of the sub
+    }
+
+    return findline(getinteger(p), true);  // otherwise try for a line number
 }

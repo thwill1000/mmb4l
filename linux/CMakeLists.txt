@@ -17,8 +17,10 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cursor.c
     linux-src/commands/exitmmb.c
     linux-src/commands/inc.c
+    linux-src/commands/ireturn.c
     linux-src/commands/longstring.c
     linux-src/commands/memory_cmd.c
+    linux-src/commands/on_cmd.c
     linux-src/commands/option.c
     linux-src/commands/pause.c
     linux-src/commands/poke.c
@@ -48,6 +50,7 @@ set(MMBASIC_LINUX_SOURCE_FILES
     ${MMBASIC_LINUX_COMMANDS_SOURCE_FILES}
     ${MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES}
     linux-src/common/console.c
+    linux-src/common/interrupt.c
     linux-src/common/utility.c
     linux-src/editor.c
     linux-src/file_io.c

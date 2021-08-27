@@ -6,6 +6,9 @@
 
 volatile int MMAbort;
 char g_break_key;
+int g_key_complete = 0;
+char *g_key_interrupt = NULL;
+int g_key_select = 0;
 
 void CheckAbort(void) {}
 
