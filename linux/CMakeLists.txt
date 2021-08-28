@@ -18,6 +18,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/exitmmb.c
     linux-src/commands/inc.c
     linux-src/commands/ireturn.c
+    linux-src/commands/list.c
     linux-src/commands/longstring.c
     linux-src/commands/memory_cmd.c
     linux-src/commands/on_cmd.c

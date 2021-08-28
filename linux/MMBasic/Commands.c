@@ -174,8 +174,7 @@ void cmd_let(void) {
     checkend(p1);
 }
 
-
-
+#if !defined(__linux__)
 void MIPS16 cmd_list(void) {
   char *p;
 
@@ -187,7 +186,7 @@ void MIPS16 cmd_list(void) {
         checkend(cmdline);
     }
 }
-
+#endif
 
 void ListNewLine(int *ListCnt, int all) {
     MMPrintString("\r\n");
