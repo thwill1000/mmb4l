@@ -25,6 +25,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/option.c
     linux-src/commands/pause.c
     linux-src/commands/poke.c
+    linux-src/commands/reload.c
     linux-src/commands/settitle.c
     linux-src/commands/sort.c
     linux-src/commands/system.c
