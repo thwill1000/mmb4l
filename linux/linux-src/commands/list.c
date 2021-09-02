@@ -1,4 +1,7 @@
+#include "../common/utility.h"
 #include "../common/version.h"
+
+void ListNewLine(int *ListCnt, int all);
 
 /* qsort C-string comparison function */ 
 static int cstring_cmp(const void *a, const void *b)  {
@@ -55,7 +58,7 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, int
     MMPrintString(buf);
 }
 
-static void list_commands(char *p) {
+static void list_commands() {
     const char *secondary_commands[] = {
             "foo",
             "bar",
@@ -63,7 +66,7 @@ static void list_commands(char *p) {
     list_tokens("commands", commandtbl, CommandTableSize - 1, secondary_commands);
 }
 
-static void list_functions(char *p) {
+static void list_functions() {
     const char *secondary_functions[] = {
             "foo",
             "bar",
@@ -71,21 +74,73 @@ static void list_functions(char *p) {
     list_tokens("functions", tokentbl, TokenTableSize - 1, secondary_functions);
 }
 
-static void list_program(char *p, int all) {
+static void list_file(const char *filename, int all) {
+    //printf("list_file(%s, %d)\n", filename ? filename : "null", all);
+
+    if (!filename && CurrentFile[0] == '\0') {
+        MMPrintString("Nothing to list\r\n");
+        return;
+    }
+
+    char file_path[STRINGSIZE];
+    canonicalize_path(filename ? filename : CurrentFile, file_path, STRINGSIZE);
+
+    char line_buffer[STRINGSIZE];
+    int list_count = 1;
+    int file_num = FindFreeFileNbr();
+    MMfopen(file_path, "rb", file_num);
+    while (!MMfeof(file_num)) {
+        memset(line_buffer, 0, STRINGSIZE);
+        MMgetline(file_num, line_buffer);
+        for (size_t i = 0; i < strlen(line_buffer); i++) {
+            if (line_buffer[i] == TAB) line_buffer[i] = ' ';
+        }
+        MMPrintString(line_buffer);
+        list_count += strlen(line_buffer) / Option.Width;
+        ListNewLine(&list_count, all);
+    }
+    MMfclose(file_num);
+}
+
+static void list_flash(int all) {
+    printf("list_flash(%d)\n", all);
     ListProgram(ProgMemory, all);
 }
 
 void cmd_list(void) {
-    char *p;
-    if (p = checkstring(cmdline, "ALL")) {
-        list_program(p, true);
-    } else if (p = checkstring(cmdline, "COMMANDS")) {
-        list_commands(p);
-    } else if (p = checkstring(cmdline, "FUNCTIONS")) {
-        list_functions(p);
+    getargs(&cmdline, 3, " ,");
+
+    if (argc == 0) {
+        list_file(NULL, false);
+    } else if (checkstring(argv[0], "COMMANDS")) {
+        if (argc == 1) {
+            list_commands();
+        } else {
+            error("Syntax");
+        }
+    } else if (checkstring(argv[0], "FLASH")) {
+        if (argc == 1) {
+            list_flash(false);
+        } else if (argc == 3 && checkstring(argv[2], "ALL")) {
+            list_flash(true);
+        } else {
+            error("Syntax");
+        }
+    } else if (checkstring(argv[0], "FUNCTIONS")) {
+        if (argc == 1) {
+            list_functions();
+        } else {
+            error("Syntax");
+        }
     } else {
-        list_program(cmdline, false);
-        p = cmdline;
+        if (argc == 1 && checkstring(argv[0], "ALL")) {
+            list_file(NULL, true);
+        } else if (argc == 1) {
+            list_file(getCstring(argv[0]), false);
+        } else if (argc == 3 && checkstring(argv[0], "ALL")) {
+            list_file(getCstring(argv[2]), true);
+        } else {
+            error("Syntax");
+        }
     }
-    checkend(p);
 }

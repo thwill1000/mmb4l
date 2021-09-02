@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -9,7 +10,7 @@ void error(char *, ...); // MMBasic.c
 
 char *canonicalize_path(const char *path, char *canonical_path, size_t max_len) {
 
-    //printf("Before: %s\n", path);
+    //printf("Before: *%s*\n", path);
 
     // Convert '\' => '/', put result in 'canonical'.
     const char *psrc = path;
@@ -21,9 +22,13 @@ char *canonicalize_path(const char *path, char *canonical_path, size_t max_len) 
         pdst++;
     }
 
+    //printf("*%s*\n", canonical_path);
+
     // Convert to absolute/canonical form, put result in 'tmp'.
+    //errno = 0;
     char tmp[PATH_MAX + 1];
     if (!realpath(canonical_path, tmp)) {
+        //printf("%s\n", canonical_path);
         ErrorCheck();
     }
 
