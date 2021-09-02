@@ -17,6 +17,16 @@ void info_filesize(char *p) {
     g_rtn_type = T_INT;
 }
 
+static void info_fontheight(char *p) {
+	g_integer_rtn = 12;
+	g_rtn_type = T_INT;
+}
+
+static void info_fontwidth(char *p) {
+	g_integer_rtn = 8;
+	g_rtn_type = T_INT;
+}
+
 void info_option(char *p) {
     if (checkstring(p, "BASE")) {
         g_integer_rtn = (OptionBase == 1) ? 1 : 0;
@@ -24,6 +34,11 @@ void info_option(char *p) {
     } else if (checkstring(p, "BREAK")) {
 		g_integer_rtn = g_break_key;
 		g_rtn_type = T_INT;
+    } else if (checkstring(p, "CONSOLE")) {
+        g_string_rtn = GetTempStrMemory();
+        strcpy(g_string_rtn, "Serial");
+        CtoM(g_string_rtn);
+        g_rtn_type = T_STR;
     } else {
         error("Syntax");
     }
@@ -37,6 +52,10 @@ void fun_info(void) {
     char *p;
     if (p = checkstring(ep, "FILESIZE")) {
         info_filesize(p);
+    } else if (p = checkstring(ep, "FONTHEIGHT")) {
+        info_fontheight(p);
+    } else if (p = checkstring(ep, "FONTWIDTH")) {
+        info_fontwidth(p);
     } else if (p = checkstring(ep, "OPTION")) {
         info_option(p);
     } else {

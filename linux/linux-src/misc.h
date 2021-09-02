@@ -28,9 +28,11 @@ provisions:
 **********************************************************************************/
 #if !defined(INCLUDE_COMMAND_TABLE) && !defined(INCLUDE_TOKEN_TABLE)
 
+    void cmd_dummy(void);
     void cmd_exitmmb(void);
     void cmd_system(void);
     void cmd_cls(void);
+    void cmd_font(void);
     void cmd_inc(void);
     void cmd_ireturn(void);
     void cmd_longstring(void);
@@ -56,6 +58,7 @@ provisions:
     void fun_time(void);
     void fun_timer(void);
     void fun_cmdline(void);
+    void fun_rgb(void);
     void fun_hres(void);
     void fun_vres(void);
 
@@ -71,6 +74,7 @@ provisions:
     { "Option",     T_CMD,                0, cmd_option   },
     { "Cat",        T_CMD,                0, cmd_inc      }, // TODO: alias of INC
     { "Cls",        T_CMD,                0, cmd_cls      },
+    { "Font",       T_CMD,                0, cmd_dummy    },
     { "Inc",        T_CMD,                0, cmd_inc      },
     { "IReturn",		T_CMD,			        	0, cmd_ireturn 	},
     { "LongString", T_CMD,                0, cmd_longstring },
@@ -81,10 +85,13 @@ provisions:
     { "Cursor",     T_CMD,                0, cmd_cursor   },
     { "Colour",     T_CMD,                0, cmd_colour   },
     { "Color",      T_CMD,                0, cmd_colour   },
+    { "Mode",       T_CMD,                0, cmd_dummy    },
     { "Poke",       T_CMD,                0, cmd_poke     },
     { "Program",    T_CMD,                0, cmd_program  },
     { "SetTitle",   T_CMD,                0, cmd_settitle },
+    { "SetTick",    T_CMD,                0, cmd_dummy    },
     { "Sort",       T_CMD,                0, cmd_sort     },
+    { "Text",       T_CMD,                0, cmd_dummy    },
 
 #endif
 
@@ -98,8 +105,9 @@ provisions:
     { "Choice(",      T_FUN | T_STR | T_INT | T_NBR, 0, fun_choice },
     { "Date$",        T_FNA | T_STR,      0, fun_date     },
     { "Format$(",     T_FUN | T_STR,      0, fun_format   },
-    { "LGetByte(",    T_FUN | T_INT, 0, fun_lgetbyte },
+    { "LGetByte(",    T_FUN | T_INT,      0, fun_lgetbyte },
     { "Peek(",        T_FUN | T_INT | T_NBR, 0, fun_peek  },
+    { "Rgb(",         T_FUN | T_INT,      0, fun_rgb      },
     { "Time$",        T_FNA | T_STR,      0, fun_time     },
     { "Timer",        T_FNA | T_INT,      0, fun_timer    },
     { "MM.HRes",      T_FNA | T_INT,      0, fun_hres     },

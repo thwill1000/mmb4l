@@ -25,6 +25,10 @@ void option_case(char *p) {
     }
 }
 
+void option_console(char *p) {
+    // Allowed but ignored.
+}
+
 void option_default(char *p) {
     if (checkstring(p, "INTEGER")) {
         DefaultType = T_INT;
@@ -70,6 +74,8 @@ void cmd_option(void) {
         option_break(p);
     } else if (p = checkstring(cmdline, "CASE")) {
         option_case(p);
+    } else if (p = checkstring(cmdline, "CONSOLE")) {
+        option_console(p);
     } else if (p = checkstring(cmdline, "DEFAULT")) {
         option_default(p);
     } else if (p = checkstring(cmdline, "EXPLICIT")) {

@@ -31,6 +31,9 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, int
     // Copy primary items.
     for (int i = 0; i < num_primary; i++) {
         strcpy(tbl[i], primary[i].name);
+        if (primary[i].fptr == cmd_dummy) {
+            strcat(tbl[i], " (d)");
+        }
     }
 
     // Copy secondary items.

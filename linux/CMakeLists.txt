@@ -15,6 +15,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cls.c
     linux-src/commands/colour.c
     linux-src/commands/cursor.c
+    linux-src/commands/dummy.c
     linux-src/commands/exitmmb.c
     linux-src/commands/inc.c
     linux-src/commands/ireturn.c
@@ -46,6 +47,7 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/info.c
     linux-src/functions/lgetbyte.c
     linux-src/functions/peek.c
+    linux-src/functions/rgb.c
     linux-src/functions/time_fun.c
     linux-src/functions/timer_fun.c
     linux-src/functions/vres.c)

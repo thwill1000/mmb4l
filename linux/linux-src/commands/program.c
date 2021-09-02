@@ -135,6 +135,10 @@ int cmpstr(char *s1, char *s2) {
     return c1 - c2;
 }
 
+static void program_transform_line(char *line) {
+    STR_REPLACE(line,"MM.INFO$","MM.INFO");
+}
+
 // Tokenize the string in the edit buffer
 static void program_tokenise(const char *file_path, const char *edit_buf) {
     //const char *p = edit_buf;
@@ -164,6 +168,7 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
         memcpy(inpbuf, pstart, pend - pstart);
         //printf("%s\n", inpbuf);
 
+        program_transform_line(inpbuf);
         tokenise(false);
 
         //printf("* %s\n", tknbuf);
