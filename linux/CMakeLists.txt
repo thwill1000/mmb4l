@@ -25,6 +25,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/option.c
     linux-src/commands/pause.c
     linux-src/commands/poke.c
+    linux-src/commands/program.c
     linux-src/commands/reload.c
     linux-src/commands/settitle.c
     linux-src/commands/sort.c
@@ -36,6 +37,7 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/bound.c
     linux-src/functions/choice.c
     linux-src/functions/cmdline_fun.c
+    linux-src/functions/cwd.c
     linux-src/functions/date.c
     linux-src/functions/device.c
     linux-src/functions/dir.c

@@ -36,6 +36,7 @@ provisions:
     void cmd_longstring(void);
     void cmd_pause(void);
     void cmd_poke(void);
+    void cmd_program(void);
     void cmd_timer(void);
     void cmd_option(void);
     void cmd_wedit(void);
@@ -81,6 +82,7 @@ provisions:
     { "Colour",     T_CMD,                0, cmd_colour   },
     { "Color",      T_CMD,                0, cmd_colour   },
     { "Poke",       T_CMD,                0, cmd_poke     },
+    { "Program",    T_CMD,                0, cmd_program  },
     { "SetTitle",   T_CMD,                0, cmd_settitle },
     { "Sort",       T_CMD,                0, cmd_sort     },
 

@@ -1,8 +1,47 @@
 #if !defined(UTILITY_H)
 #define UTILITY_H
 
+#include <stdlib.h>
+
 #define ERROR_UNIMPLEMENTED(s)  error("Unimplemented: " s)
 
-void sanitise_path(const char* src, char* dst);
+/**
+ * Returns an absolute/canonical path, replacing any '\' with '/'.
+ *
+ * @param  path            the original path to be converted.
+ * @param  canonical_path  the canonical path is returned in this buffer.
+ * @param  max_len         the length of the 'canonical_path' buffer.
+ * @return                 the value of 'canonical_path'.
+ */
+char *canonicalize_path(const char *path, char *canonical_path, size_t max_len);
+
+/**
+ * Is the path absolute?
+ *
+ * @param  path  the path to check.
+ * @return       1 if the path is absolute, otherwise 0.
+ */
+int is_absolute_path(const char *path);
+
+/**
+ * Gets the parent of the given path.
+ *
+ * @param  path         the original path to get the parent of.
+ * @param  parent_path  the parent path.
+ * @param  max_len      the length of the 'parent_path' buffer.
+ * @return              the value of 'parent_path'.
+ */
+char *get_parent_path(const char *path, char *parent_path, size_t max_len);
+
+/**
+ * Appends one path to another.
+ *
+ * @param  head     the path being appended to.
+ * @param  tail     the path being appended.
+ * @param  result   the result buffer.
+ * @param  max_len  the length of the result buffer.
+ * @return          the value of 'new_path'.
+ */
+char *append_path(const char *head, const char *tail, char *result, size_t max_len);
 
 #endif

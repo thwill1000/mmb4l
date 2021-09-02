@@ -27,7 +27,8 @@ provisions:
 
 // these 3 represent most of the RAM used
 #define PROG_FLASH_SIZE   (512 * 1024)              // size of the program memory (in bytes)
-#define HEAP_SIZE         (512 * 1024)              // size of the heap memory (in bytes)
+// #define HEAP_SIZE         (512 * 1024)              // size of the heap memory (in bytes)
+#define HEAP_SIZE         (512 * 1024 * 2)          // size of the heap memory (in bytes)
 #define MAXVARS             500                     // 8 + MAXVARLEN + MAXDIM * 2  (ie, 56 bytes) - these do not incl array members
 
 // more static memory allocations (less important)

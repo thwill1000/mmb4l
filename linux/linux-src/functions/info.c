@@ -6,10 +6,10 @@
 
 void info_filesize(char *p) {
     char *path = getCstring(p);
-    char sane_path[STRINGSIZE];
-    sanitise_path(path, sane_path);
+    char canonical[STRINGSIZE];
+    canonicalize_path(path, canonical, STRINGSIZE - 1);
     struct stat st;
-    stat(sane_path, &st);
+    stat(canonical, &st);
 
     // TODO: error handling
 

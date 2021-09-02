@@ -42,9 +42,15 @@ HANDLE *MMComPtr[MAXOPENFILES];
 int OptionFileErrorAbort = true;
 char CurrentFile[STRINGSIZE];
 
-unsigned short int *ConvertToUTF16(char *p);
-char *ChangeToDir(char *p);
-char *MMgetcwd(void);
+/** Absolute path to directory containing last file opened with MMfopen(). */
+//char g_absolute_dir[FF_MAX_LFN];
+
+/** Absolute path to last file opened with MMfopen(). */
+//char g_absolute_file[FF_MAX_LFN];
+
+//unsigned short int *ConvertToUTF16(char *p);
+//char *ChangeToDir(char *p);
+//char *MMgetcwd(void);
 
 void SerialOpen(char *arg1, char *arg2);
 void SerialClose(HANDLE fd);
@@ -61,33 +67,10 @@ int SerialRxQueueSize(HANDLE fd);
 Text for the file related error messages reported by MMBasic
 ******************************************************************************************/
 
-int ErrorThrow(int e) {
-    // MMerrno = e;
-    // if (e > 0 && e < sys_nerr) {
-    //     error(strerror(e));
-    // }
-    // errno = 0;
-    // return e;
-
-    MMerrno = e;
-    errno = 0;
-    if (MMerrno != 0) {
-        error(strerror(MMerrno));
-    }
-    return MMerrno;
-}
-
 int ErrorCheck(void) {
-    // int e = errno;
-    // errno = 0;
-    // if (e < 1 || e > sys_nerr) return e;
-    // return ErrorThrow(e);
-
     MMerrno = errno;
     errno = 0;
-    if (MMerrno != 0) {
-        error(strerror(MMerrno));
-    }
+    if (MMerrno) error(strerror(MMerrno));
     return MMerrno;
 }
 
@@ -379,19 +362,18 @@ void fun_inputstr(void) {
 void cmd_mkdir(void) {
     // Get the directory name and convert to a C-string.
     char *p = getCstring(cmdline);
-    char dir[STRINGSIZE];
-    sanitise_path(p, dir);
+    char canonical[STRINGSIZE];
+    canonicalize_path(p, canonical, STRINGSIZE - 1);
     errno = 0;
     // TODO: check/validate mode/permissions.
-    mkdir(p, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir(canonical, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     ErrorCheck();
 }
 
 void cmd_rmdir(void) {
     char *p;
 
-    p = getCstring(
-        cmdline);  // get the directory name and convert to a standard C string
+    p = getCstring(cmdline);  // get the directory name and convert to a standard C string
     errno = 0;
     rmdir(p);
     ErrorCheck();
@@ -400,10 +382,10 @@ void cmd_rmdir(void) {
 void cmd_chdir(void) {
     // Get the directory name and convert to a standard C string.
     char *dir = getCstring(cmdline);
-    char sane_dir[STRINGSIZE];
-    sanitise_path(dir, sane_dir);
+    char canonical[STRINGSIZE];
+    canonicalize_path(dir, canonical, STRINGSIZE - 1);
     errno = 0;  // TODO: do we really need this? seems unlikely.
-    chdir(sane_dir);
+    chdir(canonical);
     ErrorCheck();
 }
 
@@ -415,25 +397,11 @@ void fun_eof(void) {
     iret = MMfeof(getinteger(argv[0]));
 }
 
-void fun_cwd(void) {
-    sret = CtoM(MMgetcwd());
-    targ = T_STR;
-}
-
 void cmd_kill(void) {
-    char *p;
-    int err;
-
-    p = getCstring(
-        cmdline);  // get the file name and convert to a standard C string
+    char *p = getCstring(cmdline);  // get the file name and convert to a standard C string
 
     errno = 0;
     remove(p);
-    if ((err = errno) != 0) {
-        ErrorThrow(err);
-        return;
-    }
-
     ErrorCheck();
 }
 
@@ -504,35 +472,30 @@ void MMfopen(char *fname, char *mode, int file_num) {
     }
     errno = 0;
 
-    // Convert '\' => '/'.
-    char clean_fname[STRINGSIZE];
-    char *psrc = fname;
-    char *pdest = clean_fname;
-    for (;;) {
-        *pdest = (*psrc == '\\') ? '/' : *psrc;
-        if (*psrc == 0) break;
-        psrc++;
-        pdest++;
-    }
+    char canonical[STRINGSIZE];
+    canonicalize_path(fname, canonical, STRINGSIZE - 1);
 
     // random writing is not allowed when a file is opened for append so open it
     // first for read+update and if that does not work open it for
     // writing+update.  This has the same effect as opening for append+update
     // but will allow writing
     if (*mode == 'x') {
-        MMFilePtr[file_num] = fopen(clean_fname, "rb+");
+        MMFilePtr[file_num] = fopen(canonical, "rb+");
         if (MMFilePtr[file_num] == 0) {
-            MMFilePtr[file_num] = fopen(clean_fname, "wb+");
+            MMFilePtr[file_num] = fopen(canonical, "wb+");
             if (ErrorCheck()) return;
         }
         fseek(MMFilePtr[file_num], 0, SEEK_END);
         if (ErrorCheck()) return;
     } else {
-        MMFilePtr[file_num] = fopen(clean_fname, mode);
+        MMFilePtr[file_num] = fopen(canonical, mode);
         if (ErrorCheck()) return;
     }
 
-    if (MMFilePtr[file_num] == NULL) ErrorThrow(9);
+    if (MMFilePtr[file_num] == NULL) {
+        errno = EBADF;
+        if (ErrorCheck()) return;
+    }
 }
 
 void MMfclose(int file_num) {
@@ -585,9 +548,7 @@ char MMfputc(char c, int file_num) {
     if (MMFilePtr[file_num] == NULL) error("File number is not open");
     errno = 0;
     if (fwrite(&c, 1, 1, MMFilePtr[file_num]) == 0) {
-        if (ErrorCheck() == 0) {
-            ErrorThrow(9);
-        }
+        if (errno = 0) errno = EBADF;
     }
     ErrorCheck();
     return c;
