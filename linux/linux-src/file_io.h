@@ -105,7 +105,6 @@ provisions:
     extern int FindFreeFileNbr(void);
     extern void CloseAllFiles(void);
     extern void MMgetline(int filenbr, char *p);
-    extern int FileLoadProgram(char *fname);
 
     extern int OptionFileErrorAbort;
     extern char CurrentFile[STRINGSIZE];

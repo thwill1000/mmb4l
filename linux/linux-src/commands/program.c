@@ -202,55 +202,55 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
 
 static void importfile(
         char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
-    int fnbr;
+    int file_num;
     char line_buffer[STRINGSIZE];
     char num[10];
     int importlines = 0;
     int ignore = 0;
-    char *fname, *sbuff, *op, *ip;
+    char *filename, *sbuff, *op, *ip;
     int c, f, slen, data;
-    fnbr = FindFreeFileNbr();
+    file_num = FindFreeFileNbr();
     char *q;
     if ((q = strchr(tp, 34)) == 0) error("Syntax");
     q++;
     if ((q = strchr(q, 34)) == 0) error("Syntax");
-    fname = getCstring(tp);
-    if (strchr(&fname[strlen(fname) - 4], '.') == NULL) strcat(fname, ".INC");
-    f = strlen(fname);
-    q = &fname[strlen(fname) - 4];
+    filename = getCstring(tp);
+    if (strchr(&filename[strlen(filename) - 4], '.') == NULL) strcat(filename, ".INC");
+    f = strlen(filename);
+    q = &filename[strlen(filename) - 4];
     if (strcasecmp(q, ".inc") != 0) error("must be a .inc file");
-    // if (!(fname[1] == ':' || fname[0] == 92 || fname[0] == 47)) {
+    // if (!(filename[1] == ':' || filename[0] == 92 || filename[0] == 47)) {
     //     strcpy(qq, parent_file);
-    //     strcat(qq, fname);
+    //     strcat(qq, filename);
     // } else
-    //     strcpy(qq, fname);
-    //      BasicFileOpen(qq, fnbr, FA_READ);
+    //     strcpy(qq, filename);
+    //      BasicFileOpen(qq, file_num, FA_READ);
 
     // Determine the absolute path to the included file.
     char file_path[FF_MAX_LFN];
-    if (is_absolute_path(fname)) {
-        canonicalize_path(fname, file_path, FF_MAX_LFN - 1);
+    if (is_absolute_path(filename)) {
+        canonicalize_path(filename, file_path, FF_MAX_LFN - 1);
     } else {
         char parent_dir[FF_MAX_LFN];
         //printf("parent_file = %s\n", parent_file);
         get_parent_path(parent_file, parent_dir, FF_MAX_LFN - 1);
         //printf("parent_dir = %s\n", parent_dir);
         char tmp[FF_MAX_LFN];
-        append_path(parent_dir, fname, tmp, FF_MAX_LFN - 1);
+        append_path(parent_dir, filename, tmp, FF_MAX_LFN - 1);
         //printf("tmp = %s\n", parent_dir);
         canonicalize_path(tmp, file_path, FF_MAX_LFN - 1);
     }
 
-    MMfopen(file_path, "rb", fnbr);
-    //    while(!FileEOF(fnbr)) {
-    while (!MMfeof(fnbr)) {
+    MMfopen(file_path, "rb", file_num);
+    //    while(!FileEOF(file_num)) {
+    while (!MMfeof(file_num)) {
         int toggle = 0, len = 0;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
             error("Not enough memory");
         //        mymemset(buff,0,256);
         memset(line_buffer, 0, STRINGSIZE);
-        MMgetline(fnbr, line_buffer);  // get the input line
+        MMgetline(file_num, line_buffer);  // get the input line
         data = 0;
         importlines++;
         LineCount++;
@@ -328,8 +328,8 @@ static void importfile(
             if (toggle) sbuff[len++] = 34;
             sbuff[len++] = 39;
             sbuff[len++] = '|';
-            memcpy(&sbuff[len], fname, f);
-            len += strlen(fname);
+            memcpy(&sbuff[len], filename, f);
+            len += strlen(filename);
             sbuff[len++] = ',';
             IntToStr(num, importlines, 10);
             strcpy(&sbuff[len], num);
@@ -354,13 +354,13 @@ static void importfile(
             }
         }
     }
-    //    FileClose(fnbr);
-    MMfclose(fnbr);
+    //    FileClose(file_num);
+    MMfclose(file_num);
 }
 
-// fname is a C-string.
-static int program_load_file(char *fname) {
-    int fnbr, size = 0;
+// filename is a C-string.
+static int program_load_file_internal(char *filename) {
+    int file_num, size = 0;
     char *p, *op, *ip, *edit_buffer, *sbuff; //, name[FF_MAX_LFN] = {0},
     char line_buffer[STRINGSIZE];
     //char pp[FF_MAX_LFN] = {0};
@@ -372,21 +372,23 @@ static int program_load_file(char *fname) {
     LineCount = 0;
     int i, importlines = 0, data;
     // if(mode){
-    //     strcpy(buff,getCstring(fname));
-    // } else strcpy(buff,fname);
-    strcpy(line_buffer, fname);
+    //     strcpy(buff,getCstring(filename));
+    // } else strcpy(buff,filename);
+    strcpy(line_buffer, filename);
     if (strchr(&line_buffer[strlen(line_buffer) - 4], '.') == NULL) {
         strcat(line_buffer, ".BAS");
     }
-    ClearProgram();  // clear any leftovers from the previous program
+
+    ClearProgram(); // Clear any leftovers from the previous program.
+
                      //    if(!InitSDCard()) return false;
-    fnbr = FindFreeFileNbr();
+    file_num = FindFreeFileNbr();
     char file_path[FF_MAX_LFN];
     canonicalize_path(line_buffer, file_path, FF_MAX_LFN - 1);
 
-    //    if(!BasicFileOpen(buff, fnbr, FA_READ)) return false;
-//    MMfopen(fname, "rb", fnbr);
-    MMfopen(file_path, "rb", fnbr);
+    //    if(!BasicFileOpen(buff, file_num, FA_READ)) return false;
+//    MMfopen(filename, "rb", file_num);
+    MMfopen(file_path, "rb", file_num);
 //    strcpy(name, g_absolute_file);
 
     // i = strlen(name) - 1;
@@ -397,16 +399,16 @@ static int program_load_file(char *fname) {
     p = edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);
     dlist = GetTempMemory(sizeof(a_dlist) * MAXDEFINES);
 
-    //    while(!FileEOF(fnbr)) {                                     // while
+    //    while(!FileEOF(file_num)) {                                     // while
     //    waiting for the end of file
-    while (!MMfeof(fnbr)) {
+    while (!MMfeof(file_num)) {
         int toggle = 0, len = 0, slen;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
             error("Not enough memory");
         //        mymemset(buff,0,256);
         memset(line_buffer, 0, STRINGSIZE);
-        MMgetline(fnbr, line_buffer);  // get the input line
+        MMgetline(file_num, line_buffer);  // get the input line
         data = 0;
         importlines++;
         LineCount++;
@@ -514,8 +516,8 @@ static int program_load_file(char *fname) {
         }
     }
     *p = 0;  // terminate the string in RAM
-             //    FileClose(fnbr);
-    MMfclose(fnbr);
+             //    FileClose(file_num);
+    MMfclose(file_num);
 
     program_tokenise(file_path, edit_buffer);
 
@@ -550,28 +552,27 @@ static int program_load_file(char *fname) {
     return true;
 }
 
-static void program_load(char *p) {
-    getargs(&p, 1, ",");
-    if (argc != 1) error("Syntax");
-    char *file_name = getCstring(argv[0]);
-
+int program_load_file(char *filename) {
     // Store the current token buffer incase we are at the command prompt.
     char tmp[STRINGSIZE];
     memcpy(tmp, tknbuf, STRINGSIZE);
 
-    program_load_file(file_name);
+    int result = program_load_file_internal(filename);
 
     // Restore the token buffer.
     memcpy(tknbuf, tmp, STRINGSIZE);
 
-    // if (ErrorCheck()) return;
     assert(errno == 0);
+    if (ErrorCheck()) result = false;
+
+    return result;
 }
 
 void cmd_program(void) {
-    char *p;
-    if (p = checkstring(cmdline, "LOAD")) {
-        program_load(p);
+    getargs(&cmdline, 3, " ,");
+    if (argc == 3 && checkstring(argv[0], "LOAD")) {
+        char *filename = getCstring(argv[2]);
+        program_load_file(filename);
     } else {
         error("Syntax");
     }

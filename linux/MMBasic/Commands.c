@@ -223,8 +223,7 @@ void MIPS16 ListProgram(char *p, int all) {
     }
 }
 
-
-
+#if !defined(__linux__)
 void MIPS16 cmd_run(void) {
 #if !defined(MX170)
     skipspace(cmdline);
@@ -247,8 +246,7 @@ void MIPS16 cmd_run(void) {
     if(*ProgMemory != T_NEWLINE) return;                            // no program to run
     nextstmt = ProgMemory;
 }
-
-
+#endif
 
 void MIPS16 cmd_continue(void) {
     if(*cmdline == tokenFOR) {

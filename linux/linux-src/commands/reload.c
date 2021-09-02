@@ -1,12 +1,13 @@
 #include "../common/version.h"
 
-int ErrorCheck(void);
+int program_load_file(char *filename);
 
 void cmd_reload(void) {
-    checkend(cmdline);
+    getargs(&cmdline, 0, " ,");
     if (CurrentLinePtr != NULL) error("Invalid in a program");
-    char buf[STRINGSIZE + 2];
-    sprintf(buf, "\"%s\"", CurrentFile);
-    if (!FileLoadProgram(buf)) return;
-    if (ErrorCheck()) return;
+    if (CurrentFile[0] == '\0') {
+        MMPrintString("Nothing to reload\r\n");
+    } else {
+        program_load_file(CurrentFile);
+    }
 }

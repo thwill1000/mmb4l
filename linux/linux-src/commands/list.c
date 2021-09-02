@@ -106,7 +106,6 @@ static void list_file(const char *filename, int all) {
 }
 
 static void list_flash(int all) {
-    printf("list_flash(%d)\n", all);
     ListProgram(ProgMemory, all);
 }
 

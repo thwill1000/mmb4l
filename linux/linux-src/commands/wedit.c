@@ -1,5 +1,8 @@
 #include "../common/version.h"
 
+void console_set_title(char *title);
+int program_load_file(char *filename);
+
 extern char CurrentFile[STRINGSIZE];
 
 void cmd_wedit(void) {
@@ -42,9 +45,7 @@ void cmd_wedit(void) {
     }
 
     // Reload the file.
-    void *quoted_fname = GetTempStrMemory();
-    snprintf(quoted_fname, STRINGSIZE, "\"%s\"", fname);
-    if (!FileLoadProgram(quoted_fname)) error("Could not read from $", fname);
+    if (!program_load_file(fname)) error("Could not read from $", fname);
 
     if (del) {
         console_set_title("MMBasic - Untitled");

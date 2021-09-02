@@ -86,6 +86,7 @@ provisions:
     { "Colour",     T_CMD,                0, cmd_colour   },
     { "Color",      T_CMD,                0, cmd_colour   },
     { "Mode",       T_CMD,                0, cmd_dummy    },
+    { "Play",       T_CMD,                0, cmd_dummy    },
     { "Poke",       T_CMD,                0, cmd_poke     },
     { "Program",    T_CMD,                0, cmd_program  },
     { "SetTitle",   T_CMD,                0, cmd_settitle },

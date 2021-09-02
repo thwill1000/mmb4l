@@ -20,6 +20,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/inc.c
     linux-src/commands/ireturn.c
     linux-src/commands/list.c
+    linux-src/commands/load.c
     linux-src/commands/longstring.c
     linux-src/commands/memory_cmd.c
     linux-src/commands/on_cmd.c
@@ -28,6 +29,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/poke.c
     linux-src/commands/program.c
     linux-src/commands/reload.c
+    linux-src/commands/run.c
     linux-src/commands/settitle.c
     linux-src/commands/sort.c
     linux-src/commands/system.c
