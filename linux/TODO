@@ -1,0 +1,33 @@
+TODO
+----
+
+Required for alpha 1
+--------------------
+
+Implement missing LONGSTRING commands/functions
+Implement CSUB for data-storage
+Implement MATH FFT
+Implement EDIT, by default using the "nano" editor.
+Remove SAVE
+Check other file-commands
+Update DIR$ to not return . and ..
+Implement command to identify symbolic links, e.g. MM.INFO(FILETYPE filename$)
+Sort out line spacing at command-line
+Recheck the TIMER code
+
+Not required for alpha 1
+------------------------
+
+Implement SEARCH PATH
+Implement command-line RUN shortcut, *
+Add timer to sptest when multiple tests are executed
+Ensure all Peter's "preprocessor tricks" implemented in programs and at command-line
+Implement MM.INFO$(ARCHITECTURE) to distinguish 32/64 bit and x86/ARM.
+Implement MM.INFO(ENVVAR name$)
+Allow program to be specified on Linux command-line when MMBasic is launched
+Implement variable/sub/function hash tables
+Make output from LS more like that of CMM2
+Implement command-line history
+Implement command-line editing
+Implement dynamic console resizing
+Have another look at the other settings recommended for raw console mode
