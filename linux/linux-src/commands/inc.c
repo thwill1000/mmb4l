@@ -1,7 +1,7 @@
 #include "../common/version.h"
 
 void cmd_inc(void) {
-    char *p;
+    char *p, *q;
     int vtype;
     getargs(&cmdline, 3, ",");
     if (argc == 1) {
@@ -20,7 +20,9 @@ void cmd_inc(void) {
         if (vartbl[VarIndex].type & T_CONST) error("Cannot change a constant");
         vtype = TypeMask(vartbl[VarIndex].type);
         if (vtype & T_STR) {
-            Mstrcat(p, getstring(argv[2]));
+            q = getstring(argv[2]);
+            if (*p + *q > MAXSTRLEN) error("String too long");
+            Mstrcat(p, q);
         } else if (vtype & T_NBR) {
             (*(MMFLOAT *)p) = (*(MMFLOAT *)p) + getnumber(argv[2]);
         } else if (vtype & T_INT) {
