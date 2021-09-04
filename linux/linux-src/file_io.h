@@ -65,7 +65,7 @@ provisions:
     { "Kill",         T_CMD,              0, cmd_kill     },
     { "Load",         T_CMD,              0, cmd_load     },
     { "Mkdir",        T_CMD,              0, cmd_mkdir    },
-    { "Name",         T_CMD,              0, cmd_name     },
+//    { "Name",         T_CMD,              0, cmd_name     },
     { "Open",         T_CMD,              0, cmd_open     },
     { "Reload",       T_CMD,              0, cmd_reload   },
     { "Rmdir",        T_CMD,              0, cmd_rmdir    },

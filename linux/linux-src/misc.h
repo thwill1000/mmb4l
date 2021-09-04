@@ -28,7 +28,9 @@ provisions:
 **********************************************************************************/
 #if !defined(INCLUDE_COMMAND_TABLE) && !defined(INCLUDE_TOKEN_TABLE)
 
+    void cmd_call(void);
     void cmd_dummy(void);
+    void cmd_execute(void);
     void cmd_exitmmb(void);
     void cmd_system(void);
     void cmd_cls(void);
@@ -48,12 +50,15 @@ provisions:
     void cmd_sort(void);
 
     void fun_bound(void);
+    void fun_call(void);
     void fun_choice(void);
     void fun_date(void);
     void fun_device(void);
     void fun_format(void);
     void fun_info(void);
     void fun_lgetbyte(void);
+    void fun_lgetstr(void);
+    void fun_llen(void);
     void fun_peek(void);
     void fun_time(void);
     void fun_timer(void);
@@ -69,6 +74,9 @@ provisions:
 **********************************************************************************/
 #if defined(INCLUDE_COMMAND_TABLE)
 
+    { "Call",       T_CMD,                0, cmd_call     },
+    { "Colour",     T_CMD,                0, cmd_dummy    },
+    { "Execute",    T_CMD,                0, cmd_execute  },
     { "Quit",       T_CMD,                0, cmd_exitmmb  },
     { "System",     T_CMD,                0, cmd_system   },
     { "Option",     T_CMD,                0, cmd_option   },
@@ -76,7 +84,7 @@ provisions:
     { "Cls",        T_CMD,                0, cmd_cls      },
     { "Font",       T_CMD,                0, cmd_dummy    },
     { "Inc",        T_CMD,                0, cmd_inc      },
-    { "IReturn",		T_CMD,			        	0, cmd_ireturn 	},
+    { "IReturn",    T_CMD,                0, cmd_ireturn  },
     { "LongString", T_CMD,                0, cmd_longstring },
     { "Ls",         T_CMD,                0, cmd_files    },
     { "Pause",      T_CMD,                0, cmd_pause    },
@@ -103,10 +111,13 @@ provisions:
 
     { "As",           T_NA,               0, op_invalid   },
     { "Bound(",       T_FUN | T_INT,      0, fun_bound    },
+    { "Call(",        T_FUN | T_STR | T_INT | T_NBR, 0, fun_call },
     { "Choice(",      T_FUN | T_STR | T_INT | T_NBR, 0, fun_choice },
     { "Date$",        T_FNA | T_STR,      0, fun_date     },
     { "Format$(",     T_FUN | T_STR,      0, fun_format   },
     { "LGetByte(",    T_FUN | T_INT,      0, fun_lgetbyte },
+    { "LGetStr$(",    T_FUN | T_STR,      0, fun_lgetstr  },
+    { "LLen(",        T_FUN | T_INT,      0, fun_llen     },
     { "Peek(",        T_FUN | T_INT | T_NBR, 0, fun_peek  },
     { "Rgb(",         T_FUN | T_INT,      0, fun_rgb      },
     { "Time$",        T_FNA | T_STR,      0, fun_time     },

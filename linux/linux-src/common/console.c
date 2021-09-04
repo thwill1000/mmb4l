@@ -67,10 +67,10 @@ void console_buffer_input(void) {
 
     // Support for ON KEY ascii_code%, handler_sub().
     // Note that 'ch' does not get added to the buffer.
-	if (ch == g_key_select && g_key_interrupt != NULL){
-		g_key_complete = true;
-		return;
-	}
+    if (ch == g_key_select && g_key_interrupt != NULL) {
+        g_key_complete = true;
+        return;
+    }
 
     console_rx_buf[console_rx_buf_head] = ch;
     if (console_rx_buf[console_rx_buf_head] == g_break_key) {
@@ -99,7 +99,7 @@ int console_get_buffered_char(void) {
 }
 
 int console_kbhit(void) {
-	int i = console_rx_buf_head - console_rx_buf_tail;
+    int i = console_rx_buf_head - console_rx_buf_tail;
     if (i < 0) i += CONSOLE_RX_BUF_SIZE;
     return i;
 }

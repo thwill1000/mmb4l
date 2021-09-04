@@ -708,8 +708,7 @@ void cmd_troff(void) {
     TraceOn = false;
 }
 
-
-
+#if !defined(__linux__)
 void cmd_trace(void) {
     if(checkstring(cmdline, "ON"))
         TraceOn = true;
@@ -738,8 +737,7 @@ void cmd_trace(void) {
     else
         error("Unknown command");
 }
-
-
+#endif
 
 // FOR command
 void cmd_for(void) {
@@ -1093,7 +1091,9 @@ void cmd_error(void) {
     char *s;
     if(*cmdline && *cmdline != '\'') {
         s = getCstring(cmdline);
-        CurrentLinePtr = NULL;                                      // suppress printing the line that caused the issue
+#if !defined(__linux__)
+        CurrentLinePtr = NULL; // suppress printing the line that caused the issue
+#endif
         error(s);
     }
     else

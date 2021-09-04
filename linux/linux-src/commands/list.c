@@ -3,13 +3,11 @@
 
 void ListNewLine(int *ListCnt, int all);
 
-/* qsort C-string comparison function */ 
+/* qsort C-string comparison function */
 static int cstring_cmp(const void *a, const void *b)  {
     const char **ia = (const char **)a;
     const char **ib = (const char **)b;
     return strcasecmp(*ia, *ib);
-	/* strcmp functions works exactly as expected from
-	comparison function */
 }
 
 static void list_tokens(const char *title, const struct s_tokentbl *primary, int num_primary, const char **secondary) {
@@ -46,7 +44,7 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, int
     // Sort the table.
     qsort(tbl, total, sizeof(char *), cstring_cmp);
 
-    int step = 5;
+    int step = 4;
     for (int i = 0; i < total; i += step) {
         for (int k = 0; k < step; k++) {
             if (i + k < total) {

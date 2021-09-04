@@ -188,7 +188,7 @@ void cmd_open(void) {
             error("Invalid file access mode");
         if (*argv[4] == '#') argv[4]++;
         file_num = getinteger(argv[4]);
-        printf("[DEBUG] %s\n", fname);
+
         MMfopen(fname, mode, file_num);
     }
 }
@@ -398,7 +398,7 @@ void MMfopen(char *fname, char *mode, int file_num) {
     errno = 0;
 
     char canonical[STRINGSIZE];
-    canonicalize_path(fname, canonical, STRINGSIZE - 1);
+    munge_path(fname, canonical, STRINGSIZE);
 
     // random writing is not allowed when a file is opened for append so open it
     // first for read+update and if that does not work open it for

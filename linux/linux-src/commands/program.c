@@ -149,15 +149,22 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
 
     strcpy(CurrentFile, file_path);
 
-    char *pend;
-    char *pstart = (char *) edit_buf;
     char *pmem = ProgMemory;
+
+    // First line in the program memory should be a comment containing the 'file_path'.
+    memset(inpbuf, 0, STRINGSIZE);
+    sprintf(inpbuf, "'%s", file_path);
+    tokenise(false);
+    memcpy(pmem, tknbuf, strlen(tknbuf) + 1);
+    pmem += strlen(tknbuf);
+    pmem++;
 
     // Loop while data
     // Read a line from edit_buf into tkn_buf
     // Tokenize the line.
     // Copy tokenized result into pmem
-
+    char *pend;
+    char *pstart = (char *) edit_buf;
     while (*pstart != '\0') {
 
         // Note that all lines in the edit buffer should just have a '\n' line-end.

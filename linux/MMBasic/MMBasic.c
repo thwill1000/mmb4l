@@ -707,6 +707,9 @@ void MIPS16 tokenise(int console) {
     int i;
     int firstnonwhite;
     int labelvalid;
+#if defined(__linux__)
+    int run_flag = 0;
+#endif
 
     // first, make sure that only printable characters are in the line
     p = inpbuf;
@@ -764,6 +767,16 @@ void MIPS16 tokenise(int console) {
             } while(*p);
             continue;
         }
+
+#if defined(__linux__)
+        // Once we've seen a RUN command we copy anything after a comma verbatim.
+        if (run_flag && *p == ',') {
+            do {
+                *op++ = *p++;
+            } while(*p);
+            continue;
+        }
+#endif
 
         // check for multiline separator (colon) and replace with a zero char
         if(*p == ':') {
@@ -839,6 +852,9 @@ void MIPS16 tokenise(int console) {
                 if(match_i + C_BASETOKEN == GetCommandValue("Rem")) // check if it is a REM command
                     while(*p) *op++ = *p++;                         // and in that case just copy everything
                 else {
+#if defined(__linux__)
+                    if(match_i + C_BASETOKEN == GetCommandValue("Run")) run_flag = 1;
+#endif
                     if(isalpha(*(p-1)) && *p == ' ')                // if the command is followed by a space
                         p++;                                        // skip over it (llist will restore the space)
                 }
@@ -1932,8 +1948,6 @@ void makeargs(char **p, int maxargs, char *argbuf, char *argv[], int *argc, char
     *op = 0;                                                        // terminate the last argument
 }
 
-
-
 // throw an error
 // displays the error message and aborts the program
 // the message can contain variable text which is indicated by a special character in the message string
@@ -1942,6 +1956,7 @@ void makeargs(char **p, int maxargs, char *argbuf, char *argv[], int *argc, char
 //  % = insert a number
 // the optional data to be inserted is the second argument to this function
 // this uses longjump to skip back to the command input and cleanup the stack
+#if !defined(__linux__)
 void MIPS16 error(char *msg, ...) {
     char *p, *tp, tstr[STRINGSIZE * 2];
     va_list ap;
@@ -2026,8 +2041,7 @@ void MIPS16 error(char *msg, ...) {
     MMPrintString("\r\n");
     longjmp(mark, 1);
 }
-
-
+#endif
 
 /**********************************************************************************************
  Routines to convert floats and integers to formatted strings

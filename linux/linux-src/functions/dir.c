@@ -1,5 +1,7 @@
 #include <dirent.h>
+#include <libgen.h>
 
+#include "../common/utility.h"
 #include "../common/version.h"
 
 int32_t dirflags;
@@ -85,9 +87,13 @@ void fun_dir(void) {
 
     if (argc != 0) {
         // This must be the first call eg:  DIR$("*.*", FILE)
+
         p = getCstring(argv[0]);
-        strcpy(pp, p);
-        dp = opendir(".");
+        char path[STRINGSIZE];
+        munge_path(p, path, STRINGSIZE);
+
+        strcpy(pp, basename(path));
+        dp = opendir(dirname(path));
         if (dp == NULL) {
             error("Unable to open directory");
         }
@@ -113,8 +119,8 @@ void fun_dir(void) {
         for (;;) {
             entry = readdir(dp); /* Get a directory item */
             if (!entry) break; /* Terminate if any error or end of directory */
-            if (pattern_matching(pp, entry->d_name, 0, 0) &&
-                (entry->d_type == DT_DIR))
+            if (pattern_matching(pp, entry->d_name, 0, 0)) // &&
+                //(entry->d_type == DT_DIR))
                 break; /* Test for the file name */
         }
     }

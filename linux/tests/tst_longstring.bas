@@ -5,6 +5,8 @@ Option Base 0
 Sub run_tests()
   test_append()
   test_lgetbyte()
+  test_lgetstr()
+  test_llen()
 End Sub
 
 Sub test_append()
@@ -38,6 +40,21 @@ Sub test_lgetbyte()
   assert_hex_equals(&h00,     LGetByte(ls%(), 11))
 End Sub
 
+Sub test_lgetstr()
+  Local ls%(1000)
+  LongString Append ls%(), "Hello World"
+
+  assert_string_equals("Hello", LGetStr$(ls%(), 1, 5))
+  assert_string_equals(" World", LGetStr$(ls%(), 6, 6))
+End Sub
+
+Sub test_llen()
+  Local ls%(1000)
+  LongString Append ls%(), "Hello World"
+
+  assert_int_equals(11, LLen(ls%()))
+End Sub
+
 ut.init()
 run_tests()
 ut.report()
@@ -55,6 +72,38 @@ Sub assert_hex_equals(expected%, actual%, chars%)
     ut.add_failure(s$)
   EndIf
 End Sub
+
+Sub assert_int_equals(expected%, actual%)
+  Inc ut.asserts_count%
+  If expected% <> actual% Then
+    Local s$ = "Assert equals failed, expected " + Str$(expected%)
+    s$ = s$ + " but actually " + Str$(actual%)
+    ut.add_failure(s$)
+  EndIf
+End Sub
+
+Sub assert_string_equals(expected_$, actual_$)
+  Inc ut.asserts_count%
+  If expected_$ <> actual_$ Then
+    Local expected$ = Chr$(34) + expected_$ + Chr$(34)
+    Local actual$ = Chr$(34) + actual_$ + Chr$(34)
+    If Len(expected_$) = 1 Then expected$ = "Chr$(" + Str$(Asc(expected_$)) + ")"
+    If Len(actual_$) = 1 Then actual$ = "Chr$(" + Str$(Asc(actual_$)) + ")"
+
+    Local s$ = "Assert equals failed, expected " + ut.sanitise_string$(expected$)
+    Inc s$, " but actually " + ut.sanitise_string$(actual$)
+    ut.add_failure(s$)
+  EndIf
+End Sub
+
+Function ut.sanitise_string$(s$)
+  Local c%, i%, s2$
+  For i% = 1 To Len(s$)
+    c% = Peek(Var s$, i%)
+    Inc s2$, Choice(c% < 32 Or c% > 126, "<" + Str$(c%) + ">", Chr$(c%))
+  Next
+  ut.sanitise_string$ = s2$
+End Function
 
 Sub ut.add_failure(msg$)
   Inc ut.asserts_fails%

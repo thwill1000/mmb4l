@@ -44,4 +44,17 @@ char *get_parent_path(const char *path, char *parent_path, size_t max_len);
  */
 char *append_path(const char *head, const char *tail, char *result, size_t max_len);
 
+/**
+ * Transforms path by:
+ *  - removing any DOS style drive specified, e.g. A:
+ *  - replacing any '\' with '/'
+ *
+ * @param  original_path  the path to be transformed.
+ * @param  new_path       buffer to holdthe transformed path.
+ * @param  new_path_sz    size of the buffer.
+ * @return                'new_path' on success,
+ *                        NULL on error, see 'errno' for details.
+ */
+char *munge_path(const char *original_path, char *new_path, size_t new_path_sz);
+
 #endif

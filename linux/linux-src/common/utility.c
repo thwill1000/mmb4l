@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -8,13 +9,53 @@
 int ErrorCheck(void); // file_io.c
 void error(char *, ...); // MMBasic.c
 
+char *munge_path(const char *original_path, char *new_path, size_t new_path_sz) {
+    const char *psrc = original_path;
+
+    // HACK! ignore any leading drive letter and colon in the 'original_path', e.g. "A:".
+    size_t len = strlen(psrc);
+    if (len >= 2 && isalpha(psrc[0]) && psrc[1] == ':') {
+        psrc += 2;
+        len -= 2;
+    }
+
+    if (new_path_sz <= len || new_path_sz <= 2) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    // Handle the case where 'original_path' was just a drive letter and colon.
+    if (!*psrc) {
+        new_path[0] = '/';
+        new_path[1] = '\0';
+        return new_path;
+    }
+
+    // Copy from 'original_path' to 'new_path' converting '\' => '/'.
+    char *pdst = new_path;
+    for (;;) {
+        *pdst = (*psrc == '\\') ? '/' : *psrc;
+        if (*psrc == '\0') break;
+        psrc++;
+        pdst++;
+    }
+
+    return new_path;
+}
+
 char *canonicalize_path(const char *path, char *canonical_path, size_t max_len) {
 
     //printf("Before: *%s*\n", path);
 
-    // Convert '\' => '/', put result in 'canonical'.
     const char *psrc = path;
     char *pdst = canonical_path;
+
+    // HACK! strip any leading drive letter and colon, e.g. "A:".
+    if (strlen(path) >= 2 && isalpha(path[0]) && path[1] == ':') {
+        psrc += 2;
+    }
+
+    // Convert '\' => '/', put result in 'canonical'.
     for (;;) {
         *pdst = (*psrc == '\\') ? '/' : *psrc;
         if (*psrc == 0) break;

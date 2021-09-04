@@ -1,13 +1,27 @@
 #include "../common/version.h"
 
+char run_cmdline[STRINGSIZE];
+
 int program_load_file(char *filename);
 
 void cmd_run(void) {
+
+    // Save the cmdline for later.
     skipspace(cmdline);
-    if (*cmdline && *cmdline != '\'') {
-        char *filename = getCstring(cmdline);
-        if (!program_load_file(filename)) return;
+    memset(run_cmdline, 0, STRINGSIZE);
+    memcpy(run_cmdline, cmdline, strlen(cmdline));
+
+    char *filename = NULL;
+    if (*cmdline != '\0') {
+        filename = getCstring(cmdline);
+    } else if (*CurrentFile != '\0') {
+        filename = CurrentFile;
+    } else {
+        MMPrintString("Nothing to run\r\n");
+        return;
     }
+
+    if (!program_load_file(filename)) return;
 
     ClearRuntime();
     WatchdogSet = false;

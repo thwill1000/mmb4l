@@ -35,6 +35,9 @@ PARTICULAR PURPOSE.
 
 extern int g_key_select;
 
+extern char error_buffer[STRINGSIZE];
+extern size_t error_buffer_pos;
+
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
 int ListCnt;
@@ -110,10 +113,16 @@ int main(int argc, char *argv[]) {
     if (setjmp(mark) != 0) {
         // we got here via a long jump which means an error or CTRL-C or the
         // program wants to exit to the command prompt
-        if (ExitMMBasicFlag)
-            return 0;  // program has executed an ExitMMBasic command
-        ContinuePoint =
-            nextstmt;  // in case the user wants to use the continue command
+        if (ExitMMBasicFlag) return 0;  // program has executed an ExitMMBasic command
+
+        if (error_buffer_pos) {
+            MMPrintString(error_buffer);
+            error_buffer_pos = 0;
+            memset(error_buffer, 0, STRINGSIZE);
+        }
+        MMPrintString("\r\n");
+
+        ContinuePoint = nextstmt;  // in case the user wants to use the continue command
         *tknbuf = 0;   // we do not want to run whatever is in the token buffer
         RunCommandLineProgram = false;  // nor the program on the command line
     }

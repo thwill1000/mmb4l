@@ -3,13 +3,35 @@ Option Default None
 Option Base 0
 
 Sub run_tests()
+  test_filesize()
   test_mm_device()
   test_option_base()
   test_option_break()
 End Sub
 
+Sub test_filesize()
+  ' Test when file does not exist.
+  assert_int_equals(-1, Mm.Info(FileSize "test_filesize.txt"))
+
+  ' Test when file is empty.
+  Open "test_filesize.txt" For Output As #1
+  Close #1
+  assert_int_equals(0, Mm.Info(FileSize "test_filesize.txt"))
+  Kill "test_filesize.txt"
+
+  ' Test when file is not empty.
+  Open "test_filesize.txt" For Output As #1
+  Print #1, "7 bytes";
+  Close #1
+  assert_int_equals(7, Mm.Info(FileSize "test_filesize.txt"))
+  Kill "test_filesize.txt"
+
+  ' Test when file is directory.
+  assert_int_equals(-2, Mm.Info(FileSize Mm.Info(Directory)))
+End Sub
+
 Sub test_mm_device()
-  assert_string_equals("Linux x86_64", Mm.Device$)
+  assert_string_equals("Linux", Mm.Device$)
 End Sub
 
 Sub test_option_base()

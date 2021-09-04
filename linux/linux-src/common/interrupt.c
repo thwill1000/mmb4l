@@ -33,7 +33,7 @@ int interrupt_check(void) {
     if (!InterruptUsed) return false;
 
     // Skip interrupt processing if we are already processing an interrupt or are in immediate mode.
-	if (InterruptReturn != NULL || CurrentLinePtr == NULL) return false;
+    if (InterruptReturn != NULL || CurrentLinePtr == NULL) return false;
 
     // Check for an ON KEY loc interrupt.
     if (OnKeyGOSUB && console_kbhit()) {
@@ -42,9 +42,9 @@ int interrupt_check(void) {
 
     // Check for an ON KEY ascii_code%, handler_sub() interrupt.
     if (g_key_interrupt != NULL && g_key_complete) {
-		g_key_complete = false;
-		return handle_interrupt(g_key_interrupt);
-	}
+        g_key_complete = false;
+        return handle_interrupt(g_key_interrupt);
+    }
 
     return false;
 }

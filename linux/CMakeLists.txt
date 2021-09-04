@@ -12,10 +12,12 @@ set(MMBASIC_CORE_SOURCE_FILES
     MMBasic/Commands.c)
 
 set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
+    linux-src/commands/call.c
     linux-src/commands/cls.c
     linux-src/commands/colour.c
     linux-src/commands/cursor.c
     linux-src/commands/dummy.c
+    linux-src/commands/execute.c
     linux-src/commands/exitmmb.c
     linux-src/commands/inc.c
     linux-src/commands/ireturn.c
@@ -34,20 +36,24 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/sort.c
     linux-src/commands/system.c
     linux-src/commands/timer_cmd.c
+    linux-src/commands/trace.c
     linux-src/commands/wedit.c)
 
 set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/bound.c
     linux-src/functions/choice.c
-    linux-src/functions/cmdline_fun.c
     linux-src/functions/cwd.c
     linux-src/functions/date.c
     linux-src/functions/device.c
     linux-src/functions/dir.c
     linux-src/functions/format.c
+    linux-src/functions/fun_call.c
     linux-src/functions/hres.c
     linux-src/functions/info.c
     linux-src/functions/lgetbyte.c
+    linux-src/functions/lgetstr.c
+    linux-src/functions/llen.c
+    linux-src/functions/mmcmdline.c
     linux-src/functions/peek.c
     linux-src/functions/rgb.c
     linux-src/functions/time_fun.c
@@ -57,6 +63,7 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
 set(MMBASIC_LINUX_SOURCE_FILES
     ${MMBASIC_LINUX_COMMANDS_SOURCE_FILES}
     ${MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES}
+    linux-src/common/error.c
     linux-src/common/console.c
     linux-src/common/interrupt.c
     linux-src/common/utility.c
