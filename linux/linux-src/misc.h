@@ -38,7 +38,7 @@ provisions:
     void cmd_inc(void);
     void cmd_ireturn(void);
     void cmd_longstring(void);
-    // void cmd_math(void);
+    void cmd_math(void);
     void cmd_pause(void);
     void cmd_poke(void);
     void cmd_program(void);
@@ -98,7 +98,7 @@ provisions:
     { "Cursor",     T_CMD,                0, cmd_cursor   },
     { "Colour",     T_CMD,                0, cmd_colour   },
     { "Color",      T_CMD,                0, cmd_colour   },
-    // { "Math",       T_CMD,                0, cmd_math     },
+    { "Math",       T_CMD,                0, cmd_math     },
     { "Mode",       T_CMD,                0, cmd_dummy    },
     { "Play",       T_CMD,                0, cmd_dummy    },
     { "Poke",       T_CMD,                0, cmd_poke     },

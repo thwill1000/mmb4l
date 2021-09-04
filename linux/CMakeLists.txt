@@ -14,6 +14,7 @@ set(MMBASIC_CORE_SOURCE_FILES
 set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/call.c
     linux-src/commands/cls.c
+    linux-src/commands/cmd_math.c
     linux-src/commands/colour.c
     linux-src/commands/cursor.c
     linux-src/commands/dummy.c
