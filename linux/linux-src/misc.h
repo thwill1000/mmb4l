@@ -38,6 +38,7 @@ provisions:
     void cmd_inc(void);
     void cmd_ireturn(void);
     void cmd_longstring(void);
+    // void cmd_math(void);
     void cmd_pause(void);
     void cmd_poke(void);
     void cmd_program(void);
@@ -54,11 +55,13 @@ provisions:
     void fun_choice(void);
     void fun_date(void);
     void fun_device(void);
+    void fun_field(void);
     void fun_format(void);
     void fun_info(void);
     void fun_lgetbyte(void);
     void fun_lgetstr(void);
     void fun_llen(void);
+    // void fun_math(void);
     void fun_peek(void);
     void fun_time(void);
     void fun_timer(void);
@@ -66,6 +69,8 @@ provisions:
     void fun_rgb(void);
     void fun_hres(void);
     void fun_vres(void);
+
+    void op_inv(void);
 
 #endif
 
@@ -93,6 +98,7 @@ provisions:
     { "Cursor",     T_CMD,                0, cmd_cursor   },
     { "Colour",     T_CMD,                0, cmd_colour   },
     { "Color",      T_CMD,                0, cmd_colour   },
+    // { "Math",       T_CMD,                0, cmd_math     },
     { "Mode",       T_CMD,                0, cmd_dummy    },
     { "Play",       T_CMD,                0, cmd_dummy    },
     { "Poke",       T_CMD,                0, cmd_poke     },
@@ -114,10 +120,13 @@ provisions:
     { "Call(",        T_FUN | T_STR | T_INT | T_NBR, 0, fun_call },
     { "Choice(",      T_FUN | T_STR | T_INT | T_NBR, 0, fun_choice },
     { "Date$",        T_FNA | T_STR,      0, fun_date     },
+    { "Field$(",      T_FUN | T_STR,      0, fun_field    },
     { "Format$(",     T_FUN | T_STR,      0, fun_format   },
+    { "Inv",          T_OPER | T_NBR,     3, op_inv       },
     { "LGetByte(",    T_FUN | T_INT,      0, fun_lgetbyte },
     { "LGetStr$(",    T_FUN | T_STR,      0, fun_lgetstr  },
     { "LLen(",        T_FUN | T_INT,      0, fun_llen     },
+    // { "Math(",        T_FUN | T_NBR,      0, fun_math     },
     { "Peek(",        T_FUN | T_INT | T_NBR, 0, fun_peek  },
     { "Rgb(",         T_FUN | T_INT,      0, fun_rgb      },
     { "Time$",        T_FNA | T_STR,      0, fun_time     },
@@ -127,5 +136,6 @@ provisions:
     { "MM.VRes",      T_FNA | T_INT,      0, fun_vres     },
     { "MM.Device$",   T_FNA | T_STR,      0, fun_device   },
     { "MM.CmdLine$",  T_FNA | T_STR,      0, fun_cmdline  },
+
 
 #endif

@@ -48,6 +48,7 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/dir.c
     linux-src/functions/format.c
     linux-src/functions/fun_call.c
+    linux-src/functions/fun_field.c
     linux-src/functions/hres.c
     linux-src/functions/info.c
     linux-src/functions/lgetbyte.c
@@ -58,7 +59,8 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/rgb.c
     linux-src/functions/time_fun.c
     linux-src/functions/timer_fun.c
-    linux-src/functions/vres.c)
+    linux-src/functions/vres.c
+    linux-src/operators/op_inv.c)
 
 set(MMBASIC_LINUX_SOURCE_FILES
     ${MMBASIC_LINUX_COMMANDS_SOURCE_FILES}

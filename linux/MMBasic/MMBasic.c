@@ -1165,6 +1165,27 @@ char *getvalue(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int 
         return p;                                                   // return straight away as we already have the next operator
     }
 
+#if defined(__linux__)
+    if(tokenfunction(*p) == op_inv) {
+        int ro;
+        p++; t = T_NOTYPE;
+        p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
+        if(t & T_NBR)
+            i64 = FloatToInt64(f);
+        else if(!(t & T_INT))
+            error("Expected a number");
+        i64 = ~i64;
+        t = T_INT;
+        skipspace(p);
+        *fa = f;                                                    // save what we have
+        *ia = i64;
+        *sa = s;
+        *ta = t;
+        *oo = ro;
+        return p;                                                   // return straight away as we already have the next operator
+    }
+#endif
+
     // special processing for the urinary - operator
     // just get the next value and negate it
     if(tokenfunction(*p) == op_subtract) {
