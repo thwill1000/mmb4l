@@ -6,7 +6,6 @@ Required for alpha 1
 
 Implement missing LONGSTRING commands/functions
 Implement CSUB for data-storage
-Implement MATH FFT
 Implement EDIT, by default using the "nano" editor.
 Remove SAVE
 Check other file-commands
