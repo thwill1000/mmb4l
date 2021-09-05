@@ -50,6 +50,8 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/format.c
     linux-src/functions/fun_call.c
     linux-src/functions/fun_field.c
+    linux-src/functions/fun_lcompare.c
+    linux-src/functions/fun_linstr.c
     linux-src/functions/hres.c
     linux-src/functions/info.c
     linux-src/functions/lgetbyte.c

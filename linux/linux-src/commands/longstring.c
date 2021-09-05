@@ -338,7 +338,8 @@ static void longstring_resize(char *tp) {
     } else
         error("Argument 1 must be integer array");
 
-    dest[0] = getint(argv[2], OptionBase, j - OptionBase) + 1;
+    // dest[0] = getint(argv[2], OptionBase, j - OptionBase) + 1;
+    dest[0] = getint(argv[2], 0, j);
 }
 
 static void longstring_right(char *tp) {

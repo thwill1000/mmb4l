@@ -4,7 +4,6 @@ TODO
 Required for alpha 1
 --------------------
 
-Implement missing LONGSTRING commands/functions
 Remove SAVE
 Check other file-commands
 Implement command to identify symbolic links, e.g. MM.INFO(FILETYPE filename$)

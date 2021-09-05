@@ -58,8 +58,10 @@ provisions:
     void fun_field(void);
     void fun_format(void);
     void fun_info(void);
+    void fun_lcompare(void);
     void fun_lgetbyte(void);
     void fun_lgetstr(void);
+    void fun_linstr(void);
     void fun_llen(void);
     // void fun_math(void);
     void fun_peek(void);
@@ -123,8 +125,10 @@ provisions:
     { "Field$(",      T_FUN | T_STR,      0, fun_field    },
     { "Format$(",     T_FUN | T_STR,      0, fun_format   },
     { "Inv",          T_OPER | T_NBR,     3, op_inv       },
+    { "LCompare(",    T_FUN | T_INT,      0, fun_lcompare },
     { "LGetByte(",    T_FUN | T_INT,      0, fun_lgetbyte },
     { "LGetStr$(",    T_FUN | T_STR,      0, fun_lgetstr  },
+    { "LInStr(",      T_FUN | T_INT,      0, fun_linstr   },
     { "LLen(",        T_FUN | T_INT,      0, fun_llen     },
     // { "Math(",        T_FUN | T_NBR,      0, fun_math     },
     { "Peek(",        T_FUN | T_INT | T_NBR, 0, fun_peek  },
