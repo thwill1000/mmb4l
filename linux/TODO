@@ -5,23 +5,25 @@ Required for alpha 1
 --------------------
 
 Implement missing LONGSTRING commands/functions
-Implement CSUB for data-storage
-Implement EDIT, by default using the "nano" editor.
 Remove SAVE
 Check other file-commands
-Update DIR$ to not return . and ..
 Implement command to identify symbolic links, e.g. MM.INFO(FILETYPE filename$)
+Update DIR$ to not return . and ..
+Implement CSUB for data-storage
+Implement EDIT, by default using the "nano" editor.
 Sort out line spacing at command-line
-Recheck the TIMER code
+Recheck/test the TIMER and PAUSE code
 
 Not required for alpha 1
 ------------------------
 
+Quash all compiler warnings
+Build on Raspberry Pi 32-bit
 Implement SEARCH PATH
-Implement command-line RUN shortcut, *
+Implement command-line RUN shortcut '*'
 Add timer to sptest when multiple tests are executed
 Ensure all Peter's "preprocessor tricks" implemented in programs and at command-line
-Implement MM.INFO$(ARCHITECTURE) to distinguish 32/64 bit and x86/ARM.
+Implement MM.INFO$(ARCHITECTURE) to distinguish 32/64 bit and x86/ARM
 Implement MM.INFO(ENVVAR name$)
 Allow program to be specified on Linux command-line when MMBasic is launched
 Implement variable/sub/function hash tables
@@ -30,3 +32,4 @@ Implement command-line history
 Implement command-line editing
 Implement dynamic console resizing
 Have another look at the other settings recommended for raw console mode
+Rename command files to 'cmd_xxx.c' and function files to 'fun_xxx.c'
