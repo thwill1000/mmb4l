@@ -207,8 +207,37 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     console_set_title(title);
 }
 
-static void importfile(
-        char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
+/**
+ * Gets the absolute canonical path to a .INC file.
+ *
+ * @param  parent_file  path to .BAS file that is including 'filename'.
+ * @param  filename     unprocessed filename.
+ * @param  file_path    absolute canonical path to file is returned in this buffer.
+ * @return              the value of 'file_path' on success,
+ *                      otherwise sets 'errno' and returns NULL.
+ */
+static char *program_get_inc_file(char *parent_file, char *filename, char *file_path) {
+
+    char tmp_path[STRINGSIZE];
+    if (!munge_path(filename, tmp_path, STRINGSIZE)) return NULL;
+
+    if (!is_absolute_path(tmp_path)) {
+        char parent_dir[STRINGSIZE];
+        if (!get_parent_path(parent_file, parent_dir, STRINGSIZE)) return NULL;
+
+        char tmp_string[STRINGSIZE];
+        if (!append_path(parent_dir, tmp_path, tmp_string, STRINGSIZE)) return NULL;
+
+        strcpy(tmp_path, tmp_string);
+    }
+
+    // TODO: If file does not exist try appending .inc or .INC to its name.
+
+    return canonicalize_path(tmp_path, file_path, STRINGSIZE);
+}
+
+static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
+
     int file_num;
     char line_buffer[STRINGSIZE];
     char num[10];
@@ -222,30 +251,22 @@ static void importfile(
     q++;
     if ((q = strchr(q, 34)) == 0) error("Syntax");
     filename = getCstring(tp);
-    if (strchr(&filename[strlen(filename) - 4], '.') == NULL) strcat(filename, ".INC");
-    f = strlen(filename);
-    q = &filename[strlen(filename) - 4];
-    if (strcasecmp(q, ".inc") != 0) error("must be a .inc file");
-    // if (!(filename[1] == ':' || filename[0] == 92 || filename[0] == 47)) {
-    //     strcpy(qq, parent_file);
-    //     strcat(qq, filename);
-    // } else
-    //     strcpy(qq, filename);
-    //      BasicFileOpen(qq, file_num, FA_READ);
 
-    // Determine the absolute path to the included file.
-    char file_path[FF_MAX_LFN];
-    if (is_absolute_path(filename)) {
-        canonicalize_path(filename, file_path, FF_MAX_LFN - 1);
-    } else {
-        char parent_dir[FF_MAX_LFN];
-        //printf("parent_file = %s\n", parent_file);
-        get_parent_path(parent_file, parent_dir, FF_MAX_LFN - 1);
-        //printf("parent_dir = %s\n", parent_dir);
-        char tmp[FF_MAX_LFN];
-        append_path(parent_dir, filename, tmp, FF_MAX_LFN - 1);
-        //printf("tmp = %s\n", parent_dir);
-        canonicalize_path(tmp, file_path, FF_MAX_LFN - 1);
+    char file_path[STRINGSIZE];
+    if (!program_get_inc_file(parent_file, filename, file_path)) {
+        MMerrno = errno;
+        errno = 0; // Is this necessary ?
+        switch (MMerrno) {
+            case ENOENT:
+                error("Include file not found");
+                break;
+            case ENAMETOOLONG:
+                error("Path too long");
+                break;
+            default:
+                error(strerror(MMerrno));
+                break;
+        }
     }
 
     MMfopen(file_path, "rb", file_num);
@@ -365,12 +386,57 @@ static void importfile(
     MMfclose(file_num);
 }
 
-// filename is a C-string.
+/**
+ * Gets the absolute canonical path to a .BAS program file.
+ *
+ * @param  filename   unprocessed filename.
+ * @param  file_path  absolute canonical path to file is returned in this buffer.
+ * @return            the value of 'file_path' on success,
+ *                    otherwise sets 'errno' and returns NULL.
+ */
+static char *program_get_bas_file(char *filename, char *file_path) {
+
+    char tmp_path[STRINGSIZE];
+    if (!munge_path(filename, tmp_path, STRINGSIZE)) return NULL;
+
+    if (CurrentLinePtr && !is_absolute_path(tmp_path)) {
+        // If we are in a running program then resolve path relative to the
+        // current program directory.
+        char current_dir[STRINGSIZE];
+        if (!get_parent_path(CurrentFile, current_dir, STRINGSIZE)) return NULL;
+
+        char tmp_string[STRINGSIZE];
+        if (!append_path(current_dir, tmp_path, tmp_string, STRINGSIZE)) return NULL;
+
+        strcpy(tmp_path, tmp_string);
+    }
+
+    // TODO: If file does not exist try appending .bas or .BAS to its name.
+
+    return canonicalize_path(tmp_path, file_path, STRINGSIZE);
+}
+
 static int program_load_file_internal(char *filename) {
-    int file_num, size = 0;
-    char *p, *op, *ip, *edit_buffer, *sbuff; //, name[FF_MAX_LFN] = {0},
+
+    char file_path[STRINGSIZE];
+    if (!program_get_bas_file(filename, file_path)) {
+        MMerrno = errno;
+        errno = 0; // Is this necessary ?
+        switch (MMerrno) {
+            case ENOENT:
+                error("Program file not found");
+                break;
+            case ENAMETOOLONG:
+                error("Path too long");
+                break;
+            default:
+                error(strerror(MMerrno));
+                break;
+        }
+    }
+
+    char *p, *op, *ip, *edit_buffer, *sbuff;
     char line_buffer[STRINGSIZE];
-    //char pp[FF_MAX_LFN] = {0};
     char num[10];
     int c;
     int convertdebug = 1;
@@ -378,29 +444,10 @@ static int program_load_file_internal(char *filename) {
     nDefines = 0;
     LineCount = 0;
     int i, importlines = 0, data;
-    // if(mode){
-    //     strcpy(buff,getCstring(filename));
-    // } else strcpy(buff,filename);
-    strcpy(line_buffer, filename);
-    if (strchr(&line_buffer[strlen(line_buffer) - 4], '.') == NULL) {
-        strcat(line_buffer, ".BAS");
-    }
 
-    ClearProgram(); // Clear any leftovers from the previous program.
-
-                     //    if(!InitSDCard()) return false;
-    file_num = FindFreeFileNbr();
-    char file_path[FF_MAX_LFN];
-    canonicalize_path(line_buffer, file_path, FF_MAX_LFN - 1);
-
-    //    if(!BasicFileOpen(buff, file_num, FA_READ)) return false;
-//    MMfopen(filename, "rb", file_num);
+    ClearProgram();
+    int file_num = FindFreeFileNbr();
     MMfopen(file_path, "rb", file_num);
-//    strcpy(name, g_absolute_file);
-
-    // i = strlen(name) - 1;
-    // while (i > 0 && !(name[i] == 92 || name[i] == 47)) i--;
-    // memcpy(pp, name, i + 1);
 
     // TODO: are these being properly released after a longjmp() ?
     p = edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);

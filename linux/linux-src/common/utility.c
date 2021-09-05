@@ -9,7 +9,7 @@
 int ErrorCheck(void); // file_io.c
 void error(char *, ...); // MMBasic.c
 
-char *munge_path(const char *original_path, char *new_path, size_t new_path_sz) {
+char *munge_path(const char *original_path, char *new_path, size_t sz) {
     const char *psrc = original_path;
 
     // HACK! ignore any leading drive letter and colon in the 'original_path', e.g. "A:".
@@ -19,7 +19,7 @@ char *munge_path(const char *original_path, char *new_path, size_t new_path_sz) 
         len -= 2;
     }
 
-    if (new_path_sz <= len || new_path_sz <= 2) {
+    if (sz <= len || sz <= 2) {
         errno = ENAMETOOLONG;
         return NULL;
     }
@@ -43,44 +43,26 @@ char *munge_path(const char *original_path, char *new_path, size_t new_path_sz) 
     return new_path;
 }
 
-char *canonicalize_path(const char *path, char *canonical_path, size_t max_len) {
+char *canonicalize_path(const char *path, char *canonical_path, size_t sz) {
 
-    //printf("Before: *%s*\n", path);
+    // printf("Before: *%s*\n", path);
 
-    const char *psrc = path;
-    char *pdst = canonical_path;
+    if (!munge_path(path, canonical_path, sz)) return NULL;
 
-    // HACK! strip any leading drive letter and colon, e.g. "A:".
-    if (strlen(path) >= 2 && isalpha(path[0]) && path[1] == ':') {
-        psrc += 2;
-    }
-
-    // Convert '\' => '/', put result in 'canonical'.
-    for (;;) {
-        *pdst = (*psrc == '\\') ? '/' : *psrc;
-        if (*psrc == 0) break;
-        psrc++;
-        pdst++;
-    }
-
-    //printf("*%s*\n", canonical_path);
+    // printf("*%s*\n", canonical_path);
 
     // Convert to absolute/canonical form, put result in 'tmp'.
-    //errno = 0;
-    char tmp[PATH_MAX + 1];
-    if (!realpath(canonical_path, tmp)) {
-        //printf("%s\n", canonical_path);
-        ErrorCheck();
+    char tmp_path[PATH_MAX + 1];
+    if (!realpath(canonical_path, tmp_path)) return NULL;
+
+    if (strlen(tmp_path) >= sz) {
+        errno = ENAMETOOLONG;
+        return NULL;
     }
 
-    if (strlen(tmp) > max_len) {
-        error("Path too long");
-    }
+    strcpy(canonical_path, tmp_path);
 
-    // Copy result into 'canonical'.
-    strcpy(canonical_path, tmp);
-
-    //printf("After: %s\n", canonical_path);
+    // printf("After: %s\n", canonical_path);
 
     return canonical_path;
 }
@@ -89,13 +71,20 @@ int is_absolute_path(const char *path) {
     return path[0] == '\\' || path[0] == '/';
 }
 
-char *get_parent_path(const char *path, char *parent_path, size_t max_len) {
+char *get_parent_path(const char *path, char *parent_path, size_t sz) {
     char *p = (char *) path + strlen(path) - 1;
     while ((p > path) && (*p == '\\' || *p == '/')) p--;
     while ((p > path) && (*p != '\\' && *p != '/')) p--;
 
-    if (p <= path) error("No parent path");
-    if (p - path > max_len) error("Path too long");
+    if (p <= path) {
+        errno = ENOENT;
+        return NULL;
+    }
+
+    if (p - path >= sz) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
 
     memcpy(parent_path, path, p - path);
     parent_path[p - path] = '\0';
@@ -103,8 +92,11 @@ char *get_parent_path(const char *path, char *parent_path, size_t max_len) {
     return parent_path;
 }
 
-char *append_path(const char *head, const char *tail, char *result, size_t max_len) {
-    if (strlen(head) + strlen(tail) + 1 > max_len) error("Path too long");
+char *append_path(const char *head, const char *tail, char *result, size_t sz) {
+    if (strlen(head) + strlen(tail) + 1 >= sz) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
     sprintf(result, "%s/%s", head, tail);
     return result;
 }
