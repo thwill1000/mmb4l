@@ -181,7 +181,7 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
         //printf("* %s\n", tknbuf);
 
         for (char *pbuf = tknbuf; !(pbuf[0] == 0 && pbuf[1] == 0); pmem++, pbuf++) {
-            if (pmem > ProgMemory + PROG_FLASH_SIZE - 3)
+            if (pmem > (char *) ProgMemory + PROG_FLASH_SIZE - 3)
                 error("Not enough memory");
             *pmem = *pbuf;
         }
