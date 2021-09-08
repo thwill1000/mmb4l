@@ -76,9 +76,10 @@ int main(int argc, char *argv[]) {
 
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
-    console_get_size(&Option.Height, &Option.Width);
     console_set_title("MMBasic - Untitled");
+    console_reset();
     console_clear();
+    console_show_cursor(1);
 
     MMPrintString(MES_SIGNON);
     MMPrintString(COPYRIGHT);
@@ -115,7 +116,13 @@ int main(int argc, char *argv[]) {
     if (setjmp(mark) != 0) {
         // we got here via a long jump which means an error or CTRL-C or the
         // program wants to exit to the command prompt
-        if (ExitMMBasicFlag) return 0;  // program has executed an ExitMMBasic command
+
+        console_show_cursor(1);
+        console_reset();
+
+        if (ExitMMBasicFlag) {
+            return 0;  // program has executed an ExitMMBasic command
+        }
 
         if (error_buffer_pos) {
             MMPrintString(error_buffer);
@@ -138,7 +145,6 @@ int main(int argc, char *argv[]) {
     }
 
     while (1) {
-        console_get_size(&Option.Height, &Option.Width);
         MMAbort = false;
         LocalIndex = 0;     // this should not be needed but it ensures that all
                             // space will be cleared
@@ -163,6 +169,7 @@ int main(int argc, char *argv[]) {
                 ' ';            // convert the line number into spaces
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
         //printf("tknbuf = %s\n", tknbuf);
+
         ExecuteProgram(tknbuf);  // execute the line straight away
     }
 }
@@ -195,10 +202,6 @@ int LoadFile(char *prog) {
     return false;
 }
 
-void GetConsoleSize(void) {
-    console_get_size(&Option.Height, &Option.Width);
-}
-
 char *GetEnvPath(char *env) {
     char *p;
     p = getenv(env);
@@ -208,30 +211,6 @@ char *GetEnvPath(char *env) {
         if (p[strlen(p) - 1] == '\"') p[strlen(p) - 1] = 0;
     }
     return p;
-}
-
-void DOSCursor(int x, int y) {
-#if 0
-    COORD coord;
-    CONSOLE_SCREEN_BUFFER_INFO consoleinfo;
-    if (x < 0 || y < 0) return;
-    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &consoleinfo);
-    Option.Height = consoleinfo.srWindow.Bottom - consoleinfo.srWindow.Top;
-    Option.Width = consoleinfo.srWindow.Right - consoleinfo.srWindow.Left;
-    coord.X = x + consoleinfo.srWindow.Left;
-    coord.Y = y + consoleinfo.srWindow.Top;
-    if (coord.X > consoleinfo.srWindow.Right ||
-        coord.Y > consoleinfo.srWindow.Bottom)
-        return;
-    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
-    MMCharPos = x + 1;
-#endif
-}
-
-void DOSColour(int fc, int bc) {
-#if 0
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fc | bc << 4);
-#endif
 }
 
 void FlashWriteInit(char *p, int nbr) {

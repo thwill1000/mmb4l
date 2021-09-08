@@ -69,24 +69,6 @@ extern char error_file[STRINGSIZE];
 #define FILENAME_LENGTH 12
 #define NBRERRMSG 17              // number of file error messages
 
-#define BLACK   0
-#define GRAY  8
-#define BLUE  1
-#define BBLUE   9
-#define GREEN   2
-#define BGREEN    10
-#define CYAN  3
-#define BCYAN   11
-#define RED   4
-#define BRED  12
-#define PURPLE    5
-#define BPURPLE 13
-#define YELLOW    6
-#define BYELLOW 14
-#define WHITE   7
-#define BWHITE    15
-
-
 // console related I/O
 int MMInkey(void);
 int MMgetchar(void);
@@ -100,7 +82,6 @@ extern char *GetIntAddress(char *p);
 extern int check_interrupt(void);
 extern void FlashWriteInit(char *p, int nbr);
 extern void dump(char *p, int nbr);
-extern void GetConsoleSize(void);
 extern void DOSColour(int fc, int bc);
 extern void DOSCursor(int x, int y);
 extern char *GetEnvPath(char *env);

@@ -14,12 +14,12 @@ set(MMBASIC_CORE_SOURCE_FILES
 set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/call.c
     linux-src/commands/cls.c
-    linux-src/commands/cmd_math.c
+    linux-src/commands/cmd_console.c
     linux-src/commands/cmd_edit.c
+    linux-src/commands/cmd_math.c
     linux-src/commands/cmd_memory.c
     linux-src/commands/cmd_on.c
     linux-src/commands/cmd_timer.c
-    linux-src/commands/colour.c
     linux-src/commands/cursor.c
     linux-src/commands/dummy.c
     linux-src/commands/execute.c
@@ -70,6 +70,7 @@ set(MMBASIC_LINUX_SOURCE_FILES
     linux-src/common/error.c
     linux-src/common/console.c
     linux-src/common/interrupt.c
+    linux-src/common/parse.c
     linux-src/common/utility.c
     linux-src/file_io.c
     linux-src/main.c

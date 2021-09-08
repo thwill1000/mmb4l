@@ -1,14 +1,17 @@
 // Copyright (c) 2021 Thomas Hugo Williams
 
+#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 #include "console.h"
 #include "global_aliases.h"
+#include "version.h"
 //#include "option.h"
 
 void error(char *msg, ...);
@@ -20,18 +23,22 @@ extern int g_key_complete;
 extern char *g_key_interrupt;
 extern int g_key_select;
 
-#define true 1
 #define CONSOLE_RX_BUF_SIZE 256
+#define WRITE_CODE(s)         write(STDOUT_FILENO, s, strlen(s))
+#define WRITE_CODE_2(s, len)  write(STDOUT_FILENO, s, len)
 
 static struct termios orig_termios;
 static int console_rx_buf[CONSOLE_RX_BUF_SIZE];
 static int console_rx_buf_head = 0;
 static int console_rx_buf_tail = 0;
 
+void console_bell(void) {
+    WRITE_CODE_2("\07", 1);
+}
+
 void console_clear(void) {
-    write(STDOUT_FILENO, "\x1b[2J", 4);   // Clear screen.
-    write(STDOUT_FILENO, "\x1b[H", 4);    // Move cursor home.
-    write(STDOUT_FILENO, "\x1b[?25h", 6); // Show cursor.
+    WRITE_CODE_2("\033[2J", 4); // Clear screen.
+    console_home_cursor();
 }
 
 void console_disable_raw_mode(void) {
@@ -290,16 +297,83 @@ int console_getc(void) {
 void console_set_title(const char *title) {
     char buf[256];
     sprintf(buf, "\x1b]0;%s\x7", title);
-    write(STDOUT_FILENO, buf, strlen(buf));
+    WRITE_CODE(buf);
 }
 
-void console_get_size(int *height, int *width) {
-#if 0
-    CONSOLE_SCREEN_BUFFER_INFO consoleinfo;
-    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &consoleinfo);
-    Option.Height = consoleinfo.srWindow.Bottom - consoleinfo.srWindow.Top;
-    Option.Width = consoleinfo.srWindow.Right - consoleinfo.srWindow.Left;
-#endif
-    *height = 50;
-    *width = 100;
+int console_get_cursor_pos(int *x, int *y) {
+    // Send escape code to report cursor position.
+    WRITE_CODE_2("\033[6n", 4);
+
+    // Discard input until we get ESC.
+    int ch = 0;
+    int result;
+    while (ch != 0x1B) {
+        if (read(STDIN_FILENO, &ch, 1) == -1) return 0;
+    }
+
+    // Collect output until we get R.
+    char buf[10] = {0};
+    buf[0] = ch;
+    for (int i = 1, ch = 0; ch != 'R'; i++) {
+        if (read(STDIN_FILENO, &ch, 1) == -1) return 0;
+        buf[i] = ch;
+    }
+
+    // Parse output.
+    sscanf(buf, "\033[%d;%dR", x, y);
+    *x--; // VT100 origin is (1,1) not (0,0).
+    *y--;
+}
+
+int console_get_size(int *width, int *height) {
+    struct winsize ws;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+        return 0;
+    } else {
+        *width = ws.ws_col;
+        *height = ws.ws_row;
+        return 1;
+    }
+}
+
+void console_home_cursor(void) {
+    write(STDOUT_FILENO, "\x1b[H", 4);
+}
+
+void console_set_cursor_pos(int x, int y) {
+    char buf[STRINGSIZE];
+    sprintf(buf, "\033[%d;%dH", y + 1, x + 1); // VT100 origin is (1,1) not (0,0).
+    WRITE_CODE(buf);
+}
+
+void console_background(int colour) {
+    char buf[STRINGSIZE];
+    sprintf(buf, "\033[%dm", colour + (colour < 10 ? 40 : 90));
+    WRITE_CODE(buf);
+}
+
+void console_foreground(int colour) {
+    char buf[STRINGSIZE];
+    sprintf(buf, "\033[%dm", colour + (colour < 10 ? 30 : 80));
+    WRITE_CODE(buf);
+}
+
+void console_invert(int invert) {
+    if (invert) {
+        WRITE_CODE_2("\033[7m", 4);
+    } else {
+        WRITE_CODE_2("\033[27m", 5);
+    }
+}
+
+void console_reset() {
+    WRITE_CODE_2("\033[0m", 4);
+}
+
+void console_show_cursor(int show) {
+    if (show) {
+        WRITE_CODE_2("\033[?25h", 6);
+    } else {
+        WRITE_CODE_2("\033[?25l", 6);
+    }
 }

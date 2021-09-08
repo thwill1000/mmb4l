@@ -38,10 +38,32 @@
 #define SLOCK 0x8c
 #define ALT 0x8b
 
+#define BLACK    0
+#define RED      1
+#define GREEN    2
+#define YELLOW   3
+#define BLUE     4
+#define MAGENTA  5
+#define CYAN     6
+#define WHITE    7
+#define BRIGHT_BLACK    10
+#define GREY            10
+#define GRAY            10
+#define BRIGHT_RED      11
+#define BRIGHT_GREEN    12
+#define BRIGHT_YELLOW   13
+#define BRIGHT_BLUE     14
+#define BRIGHT_MAGENTA  15
+#define BRIGHT_CYAN     16
+#define BRIGHT_WHITE    17
+
+void console_background(int colour);
+void console_bell();
 void console_buffer_input(void);
 void console_clear(void);
 void console_disable_raw_mode(void);
 void console_enable_raw_mode(void);
+void console_foreground(int colour);
 
 /**
  * Gets a character from the console without blocking.
@@ -50,11 +72,41 @@ void console_enable_raw_mode(void);
  */
 int console_getc(void);
 
-void console_get_size(int *height, int *width);
+/**
+ * Gets the cursor position.
+ *
+ * @param   x  on return holds the x-position.
+ * @param   y  on return holds the y-position.
+ * @return     1 on success, otherwise 0.
+ */
+int console_get_cursor_pos(int *x, int *y);
+
+/**
+ * Gets the console size.
+ *
+ * @param   width   on return holds the width in characters.
+ * @param   height  on return holds the height in characters.
+ * @return          1 on success, otherwise 0.
+ */
+int console_get_size(int *width, int *height);
+
+void console_home_cursor(void);
+void console_invert(int invert);
 
 /** Gets the number of characters waiting in the console input queue. */
 int console_kbhit(void);
 
+void console_reset(void);
+
+/**
+ * Sets the cursor position.
+ *
+ * @param  x  the new x-position.
+ * @param  y  the new y-position.
+ */
+void console_set_cursor_pos(int x, int y);
+
 void console_set_title(const char *title);
+void console_show_cursor(int show);
 
 #endif

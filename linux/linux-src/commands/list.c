@@ -1,3 +1,4 @@
+#include "../common/console.h"
 #include "../common/utility.h"
 #include "../common/version.h"
 
@@ -46,7 +47,7 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, int
     // Sort the table.
     qsort(tbl, total, sizeof(char *), cstring_cmp);
 
-    int step = 4;
+    int step = Option.Width / 20;
     for (int i = 0; i < total; i += step) {
         for (int k = 0; k < step; k++) {
             if (i + k < total) {
@@ -86,7 +87,7 @@ static void list_file(const char *filename, int all) {
     }
 
     char file_path[STRINGSIZE];
-    canonicalize_path(filename ? filename : CurrentFile, file_path, STRINGSIZE);
+    munge_path(filename ? filename : CurrentFile, file_path, STRINGSIZE);
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;
@@ -111,6 +112,9 @@ static void list_flash(int all) {
 
 void cmd_list(void) {
     getargs(&cmdline, 3, " ,");
+
+    // Use the current console dimensions for the output of the LIST command.
+    console_get_size(&Option.Width, &Option.Height);
 
     if (argc == 0) {
         list_file(NULL, false);

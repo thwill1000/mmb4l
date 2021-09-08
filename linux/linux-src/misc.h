@@ -29,6 +29,7 @@ provisions:
 #if !defined(INCLUDE_COMMAND_TABLE) && !defined(INCLUDE_TOKEN_TABLE)
 
     void cmd_call(void);
+    void cmd_console(void);
     void cmd_dummy(void);
     void cmd_edit(void);
     void cmd_execute(void);
@@ -46,7 +47,6 @@ provisions:
     void cmd_timer(void);
     void cmd_option(void);
     void cmd_cursor(void);
-    void cmd_colour(void);
     void cmd_settitle(void);
     void cmd_sort(void);
 
@@ -82,7 +82,9 @@ provisions:
 #if defined(INCLUDE_COMMAND_TABLE)
 
     { "Call",       T_CMD,                0, cmd_call     },
+    { "Color",      T_CMD,                0, cmd_dummy    },
     { "Colour",     T_CMD,                0, cmd_dummy    },
+    { "Console",    T_CMD,                0, cmd_console  },
     { "Execute",    T_CMD,                0, cmd_execute  },
     { "Quit",       T_CMD,                0, cmd_exitmmb  },
     { "System",     T_CMD,                0, cmd_system   },
@@ -98,8 +100,6 @@ provisions:
     { "Pause",      T_CMD,                0, cmd_pause    },
     { "Timer",      T_CMD | T_FUN,        0, cmd_timer    },
     { "Cursor",     T_CMD,                0, cmd_cursor   },
-    { "Colour",     T_CMD,                0, cmd_colour   },
-    { "Color",      T_CMD,                0, cmd_colour   },
     { "Math",       T_CMD,                0, cmd_math     },
     { "Mode",       T_CMD,                0, cmd_dummy    },
     { "Play",       T_CMD,                0, cmd_dummy    },
