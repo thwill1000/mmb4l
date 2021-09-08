@@ -110,37 +110,6 @@ nextstmt or execute longjmp(mark, 1) if it wants to abort the program.
 
 ********************************************************************************************/
 
-void cmd_save(void) {
-    char b[STRINGSIZE];
-    char *fname;
-    char *p;
-    FILE *f;
-
-    fname = getCstring(cmdline);
-    if (*fname == 0) error("Invalid file name");
-    if (strchr(fname, '.') == NULL) strcat(fname, ".bas");
-    errno = 0;
-    f = fopen(fname, "wb");
-    if (errno) error("Cannot write to $", fname);
-
-    p = ProgMemory;
-    while (!(*p == 0 || *p == 0xff)) {  // normally a LIST ends at the break so
-                                        // this is a safety precaution
-        if (*p == T_LINENBR || *p == T_NEWLINE) {
-            p = llist(b, p);  // otherwise expand the line
-            strcat(b, "\r\n");
-            fwrite(b, strlen(b), 1, f);
-            if (errno) error("Cannot write to $", fname);
-            if (p[0] == 0 && p[1] == 0) break;  // end of the program ?
-        }
-    }
-    fclose(f);
-    strcpy(CurrentFile, fname);
-    strcpy(b, "MMBasic - ");
-    strcat(b, CurrentFile);
-    console_set_title(b);
-}
-
 void cmd_files(void) {
     char b[STRINGSIZE] = "ls";
 

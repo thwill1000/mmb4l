@@ -40,7 +40,6 @@ provisions:
     void cmd_reload(void);
     void cmd_rmdir(void);
     void cmd_seek(void);
-    void cmd_save(void);
     void fun_inputstr(void);
     void fun_cwd(void);
     void fun_dir(void);
@@ -49,9 +48,6 @@ provisions:
     void fun_lof(void);
 
 #endif
-
-
-
 
 /**********************************************************************************
  All command tokens tokens (eg, PRINT, FOR, etc) should be inserted in this table
@@ -70,7 +66,6 @@ provisions:
     { "Reload",       T_CMD,              0, cmd_reload   },
     { "Rmdir",        T_CMD,              0, cmd_rmdir    },
     { "Seek",         T_CMD,              0, cmd_seek     },
-    { "Save",         T_CMD,              0, cmd_save     },
 
 #endif
 
