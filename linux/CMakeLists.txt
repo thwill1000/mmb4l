@@ -32,7 +32,6 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/pause.c
     linux-src/commands/poke.c
     linux-src/commands/program.c
-    linux-src/commands/reload.c
     linux-src/commands/run.c
     linux-src/commands/settitle.c
     linux-src/commands/sort.c

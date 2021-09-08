@@ -37,7 +37,6 @@ provisions:
     void cmd_mkdir(void);
     void cmd_name(void);
     void cmd_open(void);
-    void cmd_reload(void);
     void cmd_rmdir(void);
     void cmd_seek(void);
     void fun_inputstr(void);
@@ -63,7 +62,6 @@ provisions:
     { "Mkdir",        T_CMD,              0, cmd_mkdir    },
 //    { "Name",         T_CMD,              0, cmd_name     },
     { "Open",         T_CMD,              0, cmd_open     },
-    { "Reload",       T_CMD,              0, cmd_reload   },
     { "Rmdir",        T_CMD,              0, cmd_rmdir    },
     { "Seek",         T_CMD,              0, cmd_seek     },
 
