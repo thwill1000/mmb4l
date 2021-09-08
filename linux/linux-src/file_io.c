@@ -111,16 +111,17 @@ nextstmt or execute longjmp(mark, 1) if it wants to abort the program.
 ********************************************************************************************/
 
 void cmd_files(void) {
-    char b[STRINGSIZE] = "ls";
+    char command[STRINGSIZE];
 
     skipspace(cmdline);
-    if (!(*cmdline == 0 || *cmdline == '\'')) {
-        strcat(b, " \"");
-        strcat(b, getCstring(cmdline));
-        strcat(b, "\"");
+    if (*cmdline != '\0' && *cmdline != '\\') {
+        sprintf(command, "ls \"%s\"", getCstring(cmdline));
+    } else {
+        sprintf(command, "ls");
     }
 
-    system(b);
+    int result = system(command);
+    // if (result != 0) error("System command failed");
 }
 
 void cmd_open(void) {
@@ -276,10 +277,10 @@ void cmd_rmdir(void) {
 void cmd_chdir(void) {
     // Get the directory name and convert to a standard C string.
     char *dir = getCstring(cmdline);
-    char canonical[STRINGSIZE];
-    canonicalize_path(dir, canonical, STRINGSIZE - 1);
-    errno = 0;  // TODO: do we really need this? seems unlikely.
-    chdir(canonical);
+    char path[STRINGSIZE];
+    munge_path(dir, path, STRINGSIZE);
+    errno = 0;
+    int result = chdir(path);
     ErrorCheck();
 }
 
@@ -468,12 +469,11 @@ int MMfeof(int file_num) {
 }
 
 char *MMgetcwd(void) {
-    char *b;
-    b = GetTempStrMemory();
+    char *cwd = GetTempStrMemory();
     errno = 0;
-    getcwd(b, STRINGSIZE);
+    char *result = getcwd(cwd, STRINGSIZE);
     ErrorCheck();
-    return b;
+    return cwd;
 }
 
 /** Find the first available free file number. */
