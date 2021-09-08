@@ -2342,8 +2342,13 @@ void MIPS16 ClearRuntime(void) {
 void MIPS16 ClearProgram(void) {
     m_alloc(M_PROG, 0);                                             // init the variables for program memory - only effective in the Maximite
     ClearRuntime();
+#if defined(__linux__)
+    memset(error_file, 0, STRINGSIZE);
+    error_line = -1;
+#else
     StartEditPoint = NULL;
     StartEditChar = 0;
+#endif
     TraceOn = false;
 }
 

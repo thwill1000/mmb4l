@@ -244,7 +244,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     int importlines = 0;
     int ignore = 0;
     char *filename, *sbuff, *op, *ip;
-    int c, f, slen, data;
+    int c, slen, data;
     file_num = FindFreeFileNbr();
     char *q;
     if ((q = strchr(tp, 34)) == 0) error("Syntax");
@@ -356,7 +356,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
             if (toggle) sbuff[len++] = 34;
             sbuff[len++] = 39;
             sbuff[len++] = '|';
-            memcpy(&sbuff[len], filename, f);
+            memcpy(&sbuff[len], filename, strlen(filename));
             len += strlen(filename);
             sbuff[len++] = ',';
             IntToStr(num, importlines, 10);
@@ -366,8 +366,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
                 error("Line too long");
             }
             sbuff[len] = 0;
-            len = massage(
-                sbuff);  // can't risk crushing lines with a quote in them
+            len = massage(sbuff);  // can't risk crushing lines with a quote in them
             if ((sbuff[0] != 39) || (sbuff[0] == 39 && sbuff[1] == 39)) {
                 // if(Option.profile){
                 //     while(strlen(sbuff)<9){

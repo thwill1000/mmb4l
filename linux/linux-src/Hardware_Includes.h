@@ -34,7 +34,7 @@ provisions:
     #include "DOS_Includes.h"
     #include "../MMBasic/VarTable.h"
     #include "common/option.h"
-    #include "editor.h"
+    // #include "editor.h"
     #include "file_io.h"
     #include "misc.h"
     #include "memory.h"

@@ -1,6 +1,8 @@
 #include "../common/utility.h"
 #include "../common/version.h"
 
+#define TAB  0x9
+
 void ListNewLine(int *ListCnt, int all);
 
 /* qsort C-string comparison function */

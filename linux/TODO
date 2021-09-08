@@ -8,7 +8,6 @@ Check other file-commands
 Implement command to identify symbolic links, e.g. MM.INFO(FILETYPE filename$)
 Update DIR$ to not return . and ..
 Implement CSUB for data-storage
-Implement EDIT, by default using the "nano" editor.
 Sort out line spacing at command-line
 Recheck/test the TIMER and PAUSE code
 

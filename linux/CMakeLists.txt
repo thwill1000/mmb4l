@@ -15,6 +15,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/call.c
     linux-src/commands/cls.c
     linux-src/commands/cmd_math.c
+    linux-src/commands/cmd_edit.c
     linux-src/commands/colour.c
     linux-src/commands/cursor.c
     linux-src/commands/dummy.c
@@ -37,8 +38,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/sort.c
     linux-src/commands/system.c
     linux-src/commands/timer_cmd.c
-    linux-src/commands/trace.c
-    linux-src/commands/wedit.c)
+    linux-src/commands/trace.c)
 
 set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/bound.c
@@ -72,7 +72,6 @@ set(MMBASIC_LINUX_SOURCE_FILES
     linux-src/common/console.c
     linux-src/common/interrupt.c
     linux-src/common/utility.c
-    linux-src/editor.c
     linux-src/file_io.c
     linux-src/main.c
     linux-src/memory.c)

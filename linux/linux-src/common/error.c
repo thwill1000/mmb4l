@@ -2,8 +2,16 @@
 
 extern jmp_buf ErrNext;
 extern char MMErrMsg[MAXERRMSG];
+// extern char StartEditFile[STRINGSIZE];
+// extern int StartEditLine = 0;
 
-char error_buffer[STRINGSIZE] = {0};
+// File that the last error was reported from.
+char error_file[STRINGSIZE] = { 0 };
+
+// Line that the last error was reported from.
+int error_line = -1;
+
+char error_buffer[STRINGSIZE] = { 0 };
 size_t error_buffer_pos = 0;
 
 static void MMErrorString(const char *msg) {
@@ -18,6 +26,63 @@ void MMErrorChar(char c) {
     error_buffer[error_buffer_pos++] = c;
 }
 
+static void get_line_and_file(int *line, char *file_path) {
+
+    *line = -1;
+    memset(file_path, 0, STRINGSIZE);
+
+    if (!CurrentLinePtr) return;
+
+    if (CurrentLinePtr >= (char *) ProgMemory + PROG_FLASH_SIZE) return;
+
+    if (*CurrentLinePtr != T_NEWLINE) {
+        // normally CurrentLinePtr points to a T_NEWLINE token but in this
+        // case it does not so we have to search for the start of the line
+        // and set CurrentLinePtr to that
+        char *p = (char *) ProgMemory;
+        char *tp = p;
+        while (*p != 0xff) {
+            while (*p)
+                p++;  // look for the zero marking the start of an element
+            if (p >= CurrentLinePtr ||
+                p[1] == 0) {  // the previous line was the one that we wanted
+                CurrentLinePtr = tp;
+                break;
+            }
+            if (p[1] == T_NEWLINE) {
+                tp = ++p;  // save because it might be the line we want
+            }
+            p++;  // step over the zero marking the start of the element
+            skipspace(p);
+            if (p[0] == T_LABEL) p += p[1] + 2;  // skip over the label
+        }
+    }
+
+    if (CurrentLinePtr >= (char *) ProgMemory + PROG_FLASH_SIZE) return;
+
+    // We now have CurrentLinePtr pointing to the start of the line.
+    llist(tknbuf, CurrentLinePtr);
+    // p = tknbuf;
+    // skipspace(p);
+
+    char *pipe_pos = strchr(tknbuf, '|');
+    if (!pipe_pos) return;
+
+    char *comma_pos = strchr(pipe_pos, ',');
+    if (!comma_pos) {
+        pipe_pos++;
+        *line = atoi(pipe_pos);
+        strcpy(file_path, CurrentFile);
+        return;
+    }
+
+    pipe_pos++;
+    comma_pos++;
+    *line = atoi(comma_pos);
+    memcpy(file_path, pipe_pos, comma_pos - pipe_pos - 1);
+    file_path[comma_pos - pipe_pos] = '\0';
+}
+
 // throw an error
 // displays the error message and aborts the program
 // the message can contain variable text which is indicated by a special character in the message string
@@ -27,7 +92,6 @@ void MMErrorChar(char c) {
 // the optional data to be inserted is the second argument to this function
 // this uses longjump to skip back to the command input and cleanup the stack
 void error(char *msg, ...) {
-    char *cpos, *p, *tp;
     va_list ap;
     // ScrewUpTimer=0;
     if (MMerrno == 0) MMerrno = 16;  // indicate an error
@@ -44,63 +108,27 @@ void error(char *msg, ...) {
     // }
 
     if (MMCharPos > 1 && !OptionErrorSkip) MMErrorString("\r\n");
-    if (CurrentLinePtr) {
-        tp = p = (char *)ProgMemory;
-        if (*CurrentLinePtr != T_NEWLINE &&
-            CurrentLinePtr < ProgMemory + PROG_FLASH_SIZE) {
-            // normally CurrentLinePtr points to a T_NEWLINE token but in this
-            // case it does not so we have to search for the start of the line
-            // and set CurrentLinePtr to that
-            while (*p != 0xff) {
-                while (*p)
-                    p++;  // look for the zero marking the start of an element
-                if (p >= CurrentLinePtr ||
-                    p[1] ==
-                        0) {  // the previous line was the one that we wanted
-                    CurrentLinePtr = tp;
-                    break;
-                }
-                if (p[1] == T_NEWLINE) {
-                    tp = ++p;  // save because it might be the line we want
-                }
-                p++;  // step over the zero marking the start of the element
-                skipspace(p);
-                if (p[0] == T_LABEL) p += p[1] + 2;  // skip over the label
-            }
+
+    get_line_and_file(&error_line, error_file);
+
+    if (error_line > 0) {
+        char buf[STRINGSIZE * 2];
+        if (strcmp(error_file, CurrentFile) == 0) {
+            sprintf(buf, "Error in line %d: ", error_line);
+        } else {
+            sprintf(buf, "Error in %s line %d: ", error_file, error_line);
         }
-        // we now have CurrentLinePtr pointing to the start of the line
-        llist(tknbuf, CurrentLinePtr);
-        p = tknbuf;
-        skipspace(p);
-        if (CurrentLinePtr < ProgMemory + PROG_FLASH_SIZE) {
-            if (MMCharPos > 1) MMErrorString("\r\n");
-            MMErrorString("Error in ");
-            char *ename;
-            if ((cpos = strchr(tknbuf, '|')) != NULL) {
-                if ((ename = strchr(cpos, ',')) != NULL) {
-                    *ename = 0;
-                    cpos++;
-                    ename++;
-                    MMErrorString(cpos);
-                    MMErrorString(" line ");
-                    MMErrorString(ename);
-                } else {
-                    cpos++;
-                    MMErrorString("line ");
-                    IntToStr(inpbuf, atoi(cpos), 10);
-                    MMErrorString(inpbuf);
-                    if (!OptionErrorSkip) {
-                        // StartEditLine =  atoi(cpos)-1;
-                        // StartEditCharacter = 0;
-                    }
-                }
-                MMErrorString(": ");
-            }
-        }
+        MMErrorString(buf);
+    } else {
+        MMErrorString("Error: ");
     }
-    //    if(!OptionErrorSkip)MMErrorString("Error");
+
+    if (OptionErrorSkip) {
+        memset(error_file, 0, STRINGSIZE);
+        error_line = -1;
+    }
+
     if (*msg) {
-        //            if(!OptionErrorSkip)MMErrorString(": ");
         va_start(ap, msg);
         while (*msg) {
             if (*msg == '$')
@@ -122,19 +150,13 @@ void error(char *msg, ...) {
         }
         if (!OptionErrorSkip) MMErrorString("\r\n");
     }
+
     strcpy(MMErrMsg, error_buffer);
+
     if (OptionErrorSkip) {
-        // SCB_CleanInvalidateDCache();
         error_buffer_pos = 0;
         longjmp(ErrNext, 1);
     }
-    // int maxH=PageTable[WritePage].ymax;
-    // deferredcopy=0;
-    // if(Option.showstatus && CurrentY > maxH-(gui_font_height<<1)){
-    //         MX470PutS("\r\n",WHITE,BLACK);
-    //         CurrentY=maxH-(gui_font_height*2);
-    //         ShortScroll=Option.showstatus;
-    // }
-    // SCB_CleanInvalidateDCache();
+
     longjmp(mark, 1);
 }

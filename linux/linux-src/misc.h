@@ -30,6 +30,7 @@ provisions:
 
     void cmd_call(void);
     void cmd_dummy(void);
+    void cmd_edit(void);
     void cmd_execute(void);
     void cmd_exitmmb(void);
     void cmd_system(void);
@@ -44,7 +45,6 @@ provisions:
     void cmd_program(void);
     void cmd_timer(void);
     void cmd_option(void);
-    void cmd_wedit(void);
     void cmd_cursor(void);
     void cmd_colour(void);
     void cmd_settitle(void);
@@ -89,6 +89,7 @@ provisions:
     { "Option",     T_CMD,                0, cmd_option   },
     { "Cat",        T_CMD,                0, cmd_inc      }, // TODO: alias of INC
     { "Cls",        T_CMD,                0, cmd_cls      },
+    { "Edit",       T_CMD,                0, cmd_edit     },
     { "Font",       T_CMD,                0, cmd_dummy    },
     { "Inc",        T_CMD,                0, cmd_inc      },
     { "IReturn",    T_CMD,                0, cmd_ireturn  },
@@ -96,7 +97,6 @@ provisions:
     { "Ls",         T_CMD,                0, cmd_files    },
     { "Pause",      T_CMD,                0, cmd_pause    },
     { "Timer",      T_CMD | T_FUN,        0, cmd_timer    },
-    { "WEdit",      T_CMD,                0, cmd_wedit    },
     { "Cursor",     T_CMD,                0, cmd_cursor   },
     { "Colour",     T_CMD,                0, cmd_colour   },
     { "Color",      T_CMD,                0, cmd_colour   },

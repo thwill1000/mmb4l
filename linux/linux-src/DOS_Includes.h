@@ -48,7 +48,8 @@ extern int ExitMMBasicFlag;
 extern char *InterruptReturn;
 extern int WatchdogSet, IgnorePIN, InterruptUsed;
 extern int MMCharPos;
-
+extern int error_line;
+extern char error_file[STRINGSIZE];
 
 #define FONT_BUILTIN_NBR 0
 #define FONT_TABLE_SIZE 0
