@@ -16,6 +16,9 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cls.c
     linux-src/commands/cmd_math.c
     linux-src/commands/cmd_edit.c
+    linux-src/commands/cmd_memory.c
+    linux-src/commands/cmd_on.c
+    linux-src/commands/cmd_timer.c
     linux-src/commands/colour.c
     linux-src/commands/cursor.c
     linux-src/commands/dummy.c
@@ -26,8 +29,6 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/list.c
     linux-src/commands/load.c
     linux-src/commands/longstring.c
-    linux-src/commands/memory_cmd.c
-    linux-src/commands/on_cmd.c
     linux-src/commands/option.c
     linux-src/commands/pause.c
     linux-src/commands/poke.c
@@ -36,7 +37,6 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/settitle.c
     linux-src/commands/sort.c
     linux-src/commands/system.c
-    linux-src/commands/timer_cmd.c
     linux-src/commands/trace.c)
 
 set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
@@ -51,6 +51,8 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/fun_field.c
     linux-src/functions/fun_lcompare.c
     linux-src/functions/fun_linstr.c
+    linux-src/functions/fun_time.c
+    linux-src/functions/fun_timer.c
     linux-src/functions/hres.c
     linux-src/functions/info.c
     linux-src/functions/lgetbyte.c
@@ -59,8 +61,6 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/mmcmdline.c
     linux-src/functions/peek.c
     linux-src/functions/rgb.c
-    linux-src/functions/time_fun.c
-    linux-src/functions/timer_fun.c
     linux-src/functions/vres.c
     linux-src/operators/op_inv.c)
 
