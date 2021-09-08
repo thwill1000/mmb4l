@@ -57,13 +57,13 @@ provisions:
     void fun_device(void);
     void fun_field(void);
     void fun_format(void);
-    void fun_info(void);
     void fun_lcompare(void);
     void fun_lgetbyte(void);
     void fun_lgetstr(void);
     void fun_linstr(void);
     void fun_llen(void);
     // void fun_math(void);
+    void fun_mminfo(void);
     void fun_peek(void);
     void fun_time(void);
     void fun_timer(void);
@@ -136,7 +136,7 @@ provisions:
     { "Time$",        T_FNA | T_STR,      0, fun_time     },
     { "Timer",        T_FNA | T_INT,      0, fun_timer    },
     { "MM.HRes",      T_FNA | T_INT,      0, fun_hres     },
-    { "MM.Info(",     T_FUN | T_STR | T_INT | T_NBR, 0, fun_info },
+    { "MM.Info(",     T_FUN | T_STR | T_INT | T_NBR, 0, fun_mminfo },
     { "MM.VRes",      T_FNA | T_INT,      0, fun_vres     },
     { "MM.Device$",   T_FNA | T_STR,      0, fun_device   },
     { "MM.CmdLine$",  T_FNA | T_STR,      0, fun_cmdline  },

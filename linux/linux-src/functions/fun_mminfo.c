@@ -4,7 +4,7 @@
 #include "../common/utility.h"
 #include "../common/version.h"
 
-void info_current(char *p) {
+void mminfo_current(char *p) {
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
 
@@ -13,7 +13,7 @@ void info_current(char *p) {
     CtoM(g_string_rtn);
 }
 
-void info_directory(char *p) {
+void mminfo_directory(char *p) {
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
 
@@ -27,7 +27,7 @@ void info_directory(char *p) {
     CtoM(g_string_rtn);
 }
 
-void info_filesize(char *p) {
+void mminfo_filesize(char *p) {
     char *path = getCstring(p);
 
     char new_path[STRINGSIZE];
@@ -47,17 +47,17 @@ void info_filesize(char *p) {
     g_rtn_type = T_INT;
 }
 
-static void info_fontheight(char *p) {
+static void mminfo_fontheight(char *p) {
     g_integer_rtn = 12;
     g_rtn_type = T_INT;
 }
 
-static void info_fontwidth(char *p) {
+static void mminfo_fontwidth(char *p) {
     g_integer_rtn = 8;
     g_rtn_type = T_INT;
 }
 
-void info_option(char *p) {
+void mminfo_option(char *p) {
     if (checkstring(p, "BASE")) {
         g_integer_rtn = (OptionBase == 1) ? 1 : 0;
         g_rtn_type = T_INT;
@@ -74,34 +74,21 @@ void info_option(char *p) {
     }
 }
 
-void fun_info(void) {
-    // char *tp;
-    // sret = GetTempStrMemory();  // this will last for the life of the command
-    // char rettype = 'S';
-    // tp = checkstring(ep, "FILESIZE");
+void fun_mminfo(void) {
     char *p;
     if (p = checkstring(ep, "CURRENT")) {
-        info_current(p);
+        mminfo_current(p);
     } else if (p = checkstring(ep, "DIRECTORY")) {
-        info_directory(p);
+        mminfo_directory(p);
     }else if (p = checkstring(ep, "FILESIZE")) {
-        info_filesize(p);
+        mminfo_filesize(p);
     } else if (p = checkstring(ep, "FONTHEIGHT")) {
-        info_fontheight(p);
+        mminfo_fontheight(p);
     } else if (p = checkstring(ep, "FONTWIDTH")) {
-        info_fontwidth(p);
+        mminfo_fontwidth(p);
     } else if (p = checkstring(ep, "OPTION")) {
-        info_option(p);
+        mminfo_option(p);
     } else {
-        error("Unrecognised argument to Mm.Info");
+        error("Unrecognised argument to Mm.mminfo");
     }
-
-    // if (rettype == 'S') {
-    //     CtoM(sret);
-    //     targ = T_STR;
-    // } else if (rettype == 'N') {
-    //     targ = T_NBR;
-    // } else {
-    //     targ = T_INT;
-    // }
 }

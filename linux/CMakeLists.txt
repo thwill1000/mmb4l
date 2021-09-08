@@ -51,10 +51,10 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/fun_field.c
     linux-src/functions/fun_lcompare.c
     linux-src/functions/fun_linstr.c
+    linux-src/functions/fun_mminfo.c
     linux-src/functions/fun_time.c
     linux-src/functions/fun_timer.c
     linux-src/functions/hres.c
-    linux-src/functions/info.c
     linux-src/functions/lgetbyte.c
     linux-src/functions/lgetstr.c
     linux-src/functions/llen.c
