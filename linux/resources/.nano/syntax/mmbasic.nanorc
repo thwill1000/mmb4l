@@ -1,0 +1,165 @@
+## Syntax highlighting for nano for MMBasic (c) Thomas Hugo Williams 2021
+
+syntax "MMBasic" "\.(bas|BAS|inc|INC)$"
+
+comment "' "
+
+# Variable names
+
+icolor white "\<[A-Z_][A-Za-z0-9_]*(|\$|\%|\&|\||\(\))\>"
+
+# system vars
+icolor cyan "\<(CCSAPLID|CCSERR|CRSCOL|CRSLIN|CTIMER|ERR|FALSE)\>"
+icolor cyan "\<(GPS_ALT|GPS_LAT|GPS_LON|MOUSEK|MOUSES|MOUSEX|MOUSEY)\>"
+icolor cyan "\<(PC|PI|SP|STIMER|TIMER|TRUE)\>"
+
+# system string vars
+icolor cyan "\<(DATE|FILEEVENT|INKEY|TERMINALNAME|TIME|TRACE)\$"
+
+#special system vars
+icolor cyan "\<(ANDROID|GPIO|GPS|SENSOR|WIN32|UNIX)\?"
+
+# system array vars
+
+# regular functions
+
+icolor cyan "\<(ABS|ACOS|ACOSH|ADD|AND|ARG|ARRPTR|ASC|ASIN|ASINH|ATAN|ATANH|ATN)\("
+icolor cyan "\<(BCHG|BCLR|BSET|BTST|BYTE)\("
+icolor cyan "\<(CALL|CALLD|CARD|CBRT|CEIL|COLOR_RGB|COMBIN|CONJ|COS|COSH|CRC|CVD|CVF|CVI|CVL|CVS)\("
+icolor cyan "\<(DEG|DET|DEVICE|DIV|DPEEK)\("
+icolor cyan "\<(EOF|EVAL|EVEN|EXEC|EXIST|EXP|EXPM1)\("
+icolor cyan "\<(FACT|FIX|FLOOR|FORK|FORM_ALERT|FORM_CENTER|FORM_DIAL|FORM_DO|FRAC|FREEFILE)\("
+icolor cyan "\<(GAMMA|GASDEV|GCD|GET_COLOR|GLOB|GPIO|GRAY)\("
+icolor cyan "\<(HYPOT)\("
+icolor cyan "\<(IMAG|INODE|INP|INSTR|INT|INVERT|IOCTL)\("
+icolor cyan "\<(JULIAN)\("
+icolor cyan "\<(LCM|LEN|LGAMMA|LISTSELECT|LN|LOC|LOF|LOG|LOG10|LOG1P|LOGB|LPEEK|LTEXTLEN)\("
+icolor cyan "\<(MALLOC|MAX|MIN|MOD|MODE|MSHRINK|MUL)\("
+icolor cyan "\<(NEXTPRIME|NLINK|NOT)\("
+icolor cyan "\<(OBJC_DRAW|OBJC_FIND|OBJC_OFFSET|ODD|OR)\("
+icolor cyan "\<(PEEK|POINT|POWM|PRED|PTST)\("
+icolor cyan "\<(RAD|RAND|RANDOM|REAL|REALLOC|RINSTR|RND|ROL|ROOT|ROR|ROUND|RSRC_GADDR)\("
+icolor cyan "\<(SENSOR|SGN|SHL|SHM_ATTACH|SHM_MALLOC|SHR|SIN|SINH|SIZE|SQR|SQRT|SRAND|SUB|SUCC|SWAP|SYM_ADR)\("
+icolor cyan "\<(TALLY|TAN|TANH|TRUNC)\("
+icolor cyan "\<(UBOUND)\("
+icolor cyan "\<(VAL|VARIAT|VARPTR|VRFY)\("
+icolor cyan "\<(WORD|WORT_SEP)\("
+icolor cyan "\<(XOR)\("
+
+# question functions
+icolor cyan "\<(DIM|EVENT|INP|TYP|VAL)\?\("
+
+# special functions
+
+icolor cyan "\<(INP)\%\("
+icolor cyan "\<(INP)\&\("
+
+# string functions
+icolor cyan "\<(ARID|ARIE)\$\("
+icolor cyan "\<(BIN|BWTD|BWTE)\$\("
+icolor cyan "\<(CALL|CHR|COMPRESS)\$\("
+icolor cyan "\<(DECLOSE|DECRYPT|DIR)\$\("
+icolor cyan "\<(ENCLOSE|ENCRYPT|ENV|ERR)\$\("
+icolor cyan "\<(FSFIRST|FSNEXT)\$\("
+icolor cyan "\<(HASH|HEX)\$\("
+icolor cyan "\<(INLINE|INPUT)\$\("
+icolor cyan "\<(JULDATE)\$\("
+icolor cyan "\<(LEFT|LEFTOF|LINEINPUT|LOWER)\$\("
+icolor cyan "\<(MID|MKA|MKD|MKF|MKI|MKL|MKS|MTFD|MTFE)\$\("
+icolor cyan "\<(OCT)\$\("
+icolor cyan "\<(PARAM|PNGDECODE|PNGENCODE|PRG)\$\("
+icolor cyan "\<(REPLACE|REVERSE|RADIX|RIGHT|RIGHTOF|RLD|RLE)\$\("
+icolor cyan "\<(SIGN|SPACE|STR|STRING|SYSTEM)\$\("
+icolor cyan "\<(TERMINALNAME|TRIM)\$\("
+icolor cyan "\<(UCASE|UNCOMPRESS|UNIXDATE|UNIXTIME|UPPER|USING)\$\("
+icolor cyan "\<(WORD)\$\("
+icolor cyan "\<(XTRIM)\$\("
+
+# array functions
+
+icolor cyan "\<(0|1|CONVOLUT|CVA|FFT|INV|SMUL|SOLVE|TRANS)\("
+
+# special commands
+
+icolor cyan "(^|^[[:space:]]*)(DIM|LOCAL|LET)\>"
+icolor cyan "(^|^[[:space:]]*)DATA.*$"
+
+icolor cyan "(^|^[[:space:]]*)ENDFUNCTION\>"
+icolor cyan "(^|^[[:space:]]*)(RETURN|BREAK|CONTINUE|EXIT\ IF)\>"
+icolor cyan "(^|^[[:space:]]*)(FUNCTION|PROCEDURE|DEFFN)\>"
+
+icolor cyan "(^|^[[:space:]]*)(endselect|select|default|endif|else\ if|else|case|do|loop|next|for|if|while|wend|repeat|until|goto|gosub|spawn|void)\>"
+icolor cyan "(^|^[[:space:]]*)(END|QUIT|STOP|TRON|TROFF|ECHO|EDIT|NEW|RUN)\>"
+
+# regular commands
+
+icolor cyan "(^|^[[:space:]]*)(ABSOLUTE|ADD|AFTER|ALERT|ARRAYCOPY|ARRAYFILL)\>"
+icolor cyan "(^|^[[:space:]]*)(BEEP|BELL|BGET|BLOAD|BMOVE|BOTTOMW|BOUNDARY|BOX|BPUT|BSAVE)\>"
+icolor cyan "(^|^[[:space:]]*)(CALL|CHAIN|CHDIR|CHMOD|CIRCLE|CLEAR|CLEARW|CLIP|CLOSE|CLOSEW|CLR|CLS|COLOR|CONNECT|COPYAREA|CURVE)\>"
+icolor cyan "(^|^[[:space:]]*)(DEC|DEFFILL|DEFLINE|DEFMARK|DEFMOUSE|DEFTEXT|DELAY|DIV|DPOKE|DRAW|DUMP)\>"
+icolor cyan "(^|^[[:space:]]*)(ELLIPSE|ERASE|ERROR|EVAL|EVENT|EVERY|EXEC)\>"
+icolor cyan "(^|^[[:space:]]*)(FFT|FILESELECT|FILL|FIT|FIT_LINEAR|FIT_POLY|FLUSH|FREE|FULLW)\>"
+icolor cyan "(^|^[[:space:]]*)(GET|GET_GEOMETRY|GET_LOCATION|GET_SCREENSIZE|GPIO|GPRINT|GPS|GRAPHMODE)\>"
+icolor cyan "(^|^[[:space:]]*)(HELP|HIDEK|HIDEM|HOME)\>"
+icolor cyan "(^|^[[:space:]]*)(INC|INFOW|INPUT)\>"
+icolor cyan "(^|^[[:space:]]*)(KEYEVENT|KILL)\>"
+icolor cyan "(^|^[[:space:]]*)(LINE|LINEINPUT|LINK|LIST|LOAD|LOCATE|LPOKE|LTEXT)\>"
+icolor cyan "(^|^[[:space:]]*)(MEMDUMP|MENU|MENUDEF|MENUKILL|MENUSET|MERGE|MFREE|MKDIR|MOUSE|MOUSEEVENT|MOTIONEVENT|MOVEW|MSYNC|MUL)\>"
+icolor cyan "(^|^[[:space:]]*)(NOOP|NOP|NOROOTWINDOW)\>"
+icolor cyan "(^|^[[:space:]]*)(OBJC_ADD|OBJC_DELETE|ON|OPEN|OPENW|OUT)\>"
+icolor cyan "(^|^[[:space:]]*)(PAUSE|PBOX|PCIRCLE|PELLIPSE|PIPE|PLAYSOUND|PLAYSOUNDFILE|PLIST|PLOT|POKE|POLYFILL|POLYLINE|POLYMARK|PRBOX|PRINT|PUT|PUTBACK|PUT_BITMAP)\>"
+icolor cyan "(^|^[[:space:]]*)(RANDOMIZE|RBOX|READ|RECEIVE|RELSEEK|RENAME|RESTORE|RMDIR|ROOTWINDOW|RSRC_FREE|RSRC_LOAD)\>"
+icolor cyan "(^|^[[:space:]]*)(SAVE|SAVESCREEN|SAVEWINDOW|SCOPE|SCREEN|SEEK|SEND|SENSOR|SETFONT|SETMOUSE|SGET|SHELL|SHM_DETACH|SHM_FREE|SHOWK|SHOWM|SHOEPAGE|SIZEW|SORT|SOUND|SPEAK|SPLIT|SPUT|SUB|SWAP|SYSTEM)\>"
+icolor cyan "(^|^[[:space:]]*)(TEXT|TITLEW|TOPW|TOUCH)\>"
+icolor cyan "(^|^[[:space:]]*)(UNLINK|UNMAP|USEWINDOW)\>"
+icolor cyan "(^|^[[:space:]]*)(VERSION|VSYNC)\>"
+icolor cyan "(^|^[[:space:]]*)(WATCH|WAVE|WORT_SEP)\>"
+icolor cyan "(^|^[[:space:]]*)(XLOAD|XRUN)\>"
+
+## MMBasic additions
+icolor cyan "(^|^[[:space:]]*)(BASE|DEFAULT|OPTION|FLOAT|EXPLICIT|ON|CONSOLE|SETTITLE)\>"
+
+## commands with a blank in it
+
+icolor cyan "(^|^[[:space:]]*)(ON\ ERROR\ CONT)"
+icolor cyan "(^|^[[:space:]]*)(ON\ BREAK\ CONT)"
+icolor cyan "(^|^[[:space:]]*)(ECHO\ (ON|OFF))"
+
+## keywords
+icolor cyan "\<(and|or|not|to|xor|not|then|step|var|tab|using)\>"
+icolor cyan "\<(base|case|default|explicit|float|function|on|select)\>"
+icolor cyan "\<(getsize|reset|clear|background|setcursor|black|while|white)\>"
+icolor cyan "\<(choice|hidecursor)\>"
+
+## operators
+color white "[+*=\^]" "<" ">" "/" "-"
+color brightred "[@\~]" 
+
+## number constants
+icolor green "\b(([1-9][0-9]+)|0+)\.[0-9]+j?\b" "\b([1-9][0-9]*[Lj]?)\b" "\b0o?[0-7]*L?\b" "\b0x[1-9a-f][0-9a-f]*L?\b" "\b0b[01]+\b"
+icolor green "[\ ,\(]\#[1-9][0-9]*\b"
+
+## parentheses
+color white "[(){}]" "\[" "\]"
+
+# labels
+icolor white "(^|^[[:space:]]*)[^\ ^=.]*:"
+
+# Comments.
+color yellow "(^|^[[:space:]]*)'.*$"
+icolor yellow "(^|^[[:space:]]*)REM.*$"
+#color yellow "!.*$"
+
+icolor brightwhite,blue "(^|^[[:space:]]*)PROGRAM.*$"
+
+#shebang line
+#icolor brightwhite,green "^\#\!.*$"
+
+# Strings
+color brightmagenta ""(\\.|[^"])*""
+
+## trailing spaces
+color ,red "[[:space:]]+$"
+
+## reminders
+color brightwhite,yellow "(FIXME|TODO|XXX)"
