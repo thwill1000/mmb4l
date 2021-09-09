@@ -25,7 +25,7 @@ provisions:
     #define VERSION_INCLUDED
 
     // #define VERSION         "5.05.04"
-    #define VERSION         "5.something"
+    #define VERSION         "2021.0.0"
     #define YEAR            "2011-2021"
     #define COPYRIGHT       "Copyright " YEAR " Geoff Graham\r\n"
 
@@ -70,7 +70,7 @@ provisions:
     #elif defined(__linux__)
         #define DOS
         #define __386__
-        #define MES_SIGNON  "Linux x86_64 MMBasic Ver " VERSION "\r\n"
+        #define MES_SIGNON  "Linux x86_64 MMBasic Ver " VERSION "-a1\r\n"
     #else
         #error This device is not supported
     #endif
