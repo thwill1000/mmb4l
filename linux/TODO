@@ -4,12 +4,18 @@ TODO
 Required for alpha 1
 --------------------
 
-Check other file-commands
 Implement command to identify symbolic links, e.g. MM.INFO(FILETYPE filename$)
+Implement MM.INFO$(ARCHITECTURE) to distinguish 32/64 bit and x86/ARM
+Implement MM.INFO(ENVVAR name$)
+
+Check other file-commands
 Update DIR$ to not return . and ..
 Implement CSUB for data-storage
 Sort out line spacing at command-line
 Recheck/test the TIMER and PAUSE code
+LIST should reload file
+Use DOS (not ANSI) colour codes
+Don't print "Error:" before command-line errors (?)
 
 Not required for alpha 1
 ------------------------
@@ -20,10 +26,9 @@ Implement SEARCH PATH
 Implement command-line RUN shortcut '*'
 Add timer to sptest when multiple tests are executed
 Ensure all Peter's "preprocessor tricks" implemented in programs and at command-line
-Implement MM.INFO$(ARCHITECTURE) to distinguish 32/64 bit and x86/ARM
-Implement MM.INFO(ENVVAR name$)
 Allow program to be specified on Linux command-line when MMBasic is launched
 Implement variable/sub/function hash tables
 Make output from LS more like that of CMM2
 Have another look at the other settings recommended for raw console mode
 Rename command files to 'cmd_xxx.c' and function files to 'fun_xxx.c'
+Make all function keys reprogrammable
