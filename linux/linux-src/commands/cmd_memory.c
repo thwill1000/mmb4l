@@ -1,3 +1,4 @@
+#include "../common/error.h"
 #include "../common/utility.h"
 #include "../common/version.h"
 

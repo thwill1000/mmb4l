@@ -62,6 +62,13 @@ void dump_token_table(const struct s_tokentbl* tbl);
 void InsertLastcmd(char *s);  // common/prompt.c
 void prompt_get_input(void); // common/prompt.c
 
+void init_options() {
+    Option.ProgFlashSize = PROG_FLASH_SIZE;
+    Option.Tab = 4;
+    Option.console = SERIAL;
+    Option.resolution = CHARACTER;
+}
+
 int main(int argc, char *argv[]) {
     static int PromptError = false;
     int RunCommandLineProgram = false;
@@ -70,6 +77,7 @@ int main(int argc, char *argv[]) {
     // get things setup to act like the Micromite version
     vartbl = &DOS_vartbl;
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
+    init_options();
     Option.ProgFlashSize = PROG_FLASH_SIZE;
     Option.Tab = 4;
     // cmdCFUN = cmdCSUB = cmdIRET = 0xff;

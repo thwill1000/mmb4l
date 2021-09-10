@@ -32,6 +32,7 @@ provisions:
 #include <unistd.h>
 
 #include "common/console.h"
+#include "common/error.h"
 #include "common/utility.h"
 #include "common/version.h"
 
@@ -68,10 +69,7 @@ Text for the file related error messages reported by MMBasic
 ******************************************************************************************/
 
 int ErrorCheck(void) {
-    MMerrno = errno;
-    errno = 0;
-    if (MMerrno) error(strerror(MMerrno));
-    return MMerrno;
+    error_check();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////

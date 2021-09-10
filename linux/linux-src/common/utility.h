@@ -3,8 +3,6 @@
 
 #include <stdlib.h>
 
-#define ERROR_UNIMPLEMENTED(s)  error("Unimplemented: " s)
-
 /**
  * Returns an absolute/canonical path, replacing any '\' with '/'.
  *

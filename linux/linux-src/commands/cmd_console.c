@@ -147,6 +147,8 @@ void cmd_console(void) {
         cmd_console_hide_cursor(p);
     } else if (p = parse_check_string(cmdline, "HOME")) {
         cmd_console_home(p);
+    } else if (p = parse_check_string(cmdline, "INVERSE")) {
+        cmd_console_invert(p);
     } else if (p = parse_check_string(cmdline, "INVERT")) {
         cmd_console_invert(p);
     } else if (p = parse_check_string(cmdline, "RESET")) {

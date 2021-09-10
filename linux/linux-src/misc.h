@@ -54,7 +54,6 @@ provisions:
     void fun_call(void);
     void fun_choice(void);
     void fun_date(void);
-    void fun_device(void);
     void fun_field(void);
     void fun_format(void);
     void fun_lcompare(void);
@@ -63,11 +62,12 @@ provisions:
     void fun_linstr(void);
     void fun_llen(void);
     // void fun_math(void);
+    void fun_mmcmdline(void);
+    void fun_mmdevice(void);
     void fun_mminfo(void);
     void fun_peek(void);
     void fun_time(void);
     void fun_timer(void);
-    void fun_cmdline(void);
     void fun_rgb(void);
     void fun_hres(void);
     void fun_vres(void);
@@ -138,8 +138,8 @@ provisions:
     { "MM.HRes",      T_FNA | T_INT,      0, fun_hres     },
     { "MM.Info(",     T_FUN | T_STR | T_INT | T_NBR, 0, fun_mminfo },
     { "MM.VRes",      T_FNA | T_INT,      0, fun_vres     },
-    { "MM.Device$",   T_FNA | T_STR,      0, fun_device   },
-    { "MM.CmdLine$",  T_FNA | T_STR,      0, fun_cmdline  },
+    { "MM.Device$",   T_FNA | T_STR,      0, fun_mmdevice   },
+    { "MM.CmdLine$",  T_FNA | T_STR,      0, fun_mmcmdline  },
 
 
 #endif

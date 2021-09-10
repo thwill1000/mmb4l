@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+#include "../common/error.h"
 #include "../common/global_aliases.h"
 #include "../common/utility.h"
 #include "../common/version.h"

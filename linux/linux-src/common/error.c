@@ -160,3 +160,10 @@ void error(char *msg, ...) {
 
     longjmp(mark, 1);
 }
+
+int error_check(void) {
+    MMerrno = errno;
+    errno = 0;
+    if (MMerrno) error(strerror(MMerrno));
+    return MMerrno;
+}

@@ -1,10 +1,11 @@
 #include "../common/console.h"
+#include "../common/error.h"
+#include "../common/parse.h"
 #include "../common/utility.h"
 #include "../common/version.h"
 
-#define TAB  0x9
-
 void ListNewLine(int *ListCnt, int all);
+void option_list(char *p); // cmd_option.c
 
 /* qsort C-string comparison function */
 static int cstring_cmp(const void *a, const void *b)  {
@@ -58,8 +59,9 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, int
         }
         MMPrintString("\r\n");
     }
-    sprintf(buf, "Total of %d %s using %d slots\r\n", total, title, num_primary);
+    sprintf(buf, "Total of %d %s using %d slots\r\n\r\n", total, title, num_primary);
     MMPrintString(buf);
+    
 }
 
 static void list_commands() {
@@ -110,43 +112,46 @@ static void list_flash(int all) {
     ListProgram(ProgMemory, all);
 }
 
+static void list_options() {
+    option_list("");
+}
+
 void cmd_list(void) {
-    getargs(&cmdline, 3, " ,");
+    char *p;
+    skipspace(cmdline);
 
     // Use the current console dimensions for the output of the LIST command.
     console_get_size(&Option.Width, &Option.Height);
 
-    if (argc == 0) {
+    if (parse_is_end(cmdline)) {
         list_file(NULL, false);
-    } else if (checkstring(argv[0], "COMMANDS")) {
-        if (argc == 1) {
-            list_commands();
-        } else {
-            error("Syntax");
-        }
-    } else if (checkstring(argv[0], "FLASH")) {
-        if (argc == 1) {
+    } else if (p = checkstring(cmdline, "COMMANDS")) {
+        if (!parse_is_end(p)) ERROR_SYNTAX;
+        list_commands();
+    } else if (p = checkstring(cmdline, "FLASH")) {
+        if (parse_is_end(p)) {
             list_flash(false);
-        } else if (argc == 3 && checkstring(argv[2], "ALL")) {
+        } else if (p = checkstring(p, "ALL")) {
+            if (!parse_is_end(p)) ERROR_SYNTAX;
             list_flash(true);
         } else {
-            error("Syntax");
+            ERROR_SYNTAX;
         }
-    } else if (checkstring(argv[0], "FUNCTIONS")) {
-        if (argc == 1) {
-            list_functions();
-        } else {
-            error("Syntax");
-        }
+    } else if (p = checkstring(cmdline, "FUNCTIONS")) {
+        if (!parse_is_end(p)) ERROR_SYNTAX;
+        list_functions();
+    } else if (p = checkstring(cmdline, "OPTIONS")) {
+        if (!parse_is_end(p)) ERROR_SYNTAX;
+        list_options();
     } else {
-        if (argc == 1 && checkstring(argv[0], "ALL")) {
-            list_file(NULL, true);
-        } else if (argc == 1) {
-            list_file(getCstring(argv[0]), false);
-        } else if (argc == 3 && checkstring(argv[0], "ALL")) {
-            list_file(getCstring(argv[2]), true);
+        if (p = checkstring(cmdline, "ALL")) {
+            if (parse_is_end(p)) {
+                list_file(NULL, true);
+            } else {
+                list_file(getCstring(p), true);
+            }
         } else {
-            error("Syntax");
+            list_file(getCstring(cmdline), false);
         }
     }
 }
