@@ -67,10 +67,11 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
 set(MMBASIC_LINUX_SOURCE_FILES
     ${MMBASIC_LINUX_COMMANDS_SOURCE_FILES}
     ${MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES}
-    linux-src/common/error.c
     linux-src/common/console.c
+    linux-src/common/error.c
     linux-src/common/interrupt.c
     linux-src/common/parse.c
+    linux-src/common/prompt.c
     linux-src/common/utility.c
     linux-src/file_io.c
     linux-src/main.c

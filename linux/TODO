@@ -25,7 +25,5 @@ Implement MM.INFO(ENVVAR name$)
 Allow program to be specified on Linux command-line when MMBasic is launched
 Implement variable/sub/function hash tables
 Make output from LS more like that of CMM2
-Implement command-line history
-Implement command-line editing
 Have another look at the other settings recommended for raw console mode
 Rename command files to 'cmd_xxx.c' and function files to 'fun_xxx.c'

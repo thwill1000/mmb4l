@@ -59,6 +59,9 @@ void IntHandler(int signo);
 int LoadFile(char *prog);
 void dump_token_table(const struct s_tokentbl* tbl);
 
+void InsertLastcmd(char *s);  // common/prompt.c
+void prompt_get_input(void); // common/prompt.c
+
 int main(int argc, char *argv[]) {
     static int PromptError = false;
     int RunCommandLineProgram = false;
@@ -131,9 +134,10 @@ int main(int argc, char *argv[]) {
         }
         MMPrintString("\r\n");
 
-        ContinuePoint = nextstmt;  // in case the user wants to use the continue command
-        *tknbuf = 0;   // we do not want to run whatever is in the token buffer
+        ContinuePoint = nextstmt;       // in case the user wants to use the continue command
+        *tknbuf = 0;                    // we do not want to run whatever is in the token buffer
         RunCommandLineProgram = false;  // nor the program on the command line
+        memset(inpbuf, 0, STRINGSIZE);
     }
 
     if (RunCommandLineProgram) {
@@ -151,26 +155,30 @@ int main(int argc, char *argv[]) {
         ClearTempMemory();  // clear temp string space (might have been used by
                             // the prompt)
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
-        if (MMCharPos > 1)
+        if (MMCharPos > 1) {
             MMPrintString("\r\n");  // prompt should be on a new line
+        }
         PrepareProgram(false);
         if (!ErrorInPrompt && FindSubFun("MM.PROMPT", 0) >= 0) {
             ErrorInPrompt = true;
             ExecuteProgram("MM.PROMPT\0");
-        } else
+        } else {
             MMPrintString("> ");  // print the prompt
+        }
         ErrorInPrompt = false;
-        MMgetline(0, inpbuf);    // get the input
+
+        prompt_get_input();
+
         if (!*inpbuf) continue;  // ignore an empty line
         tokenise(true);          // turn into executable code
-        if (*tknbuf ==
-            T_LINENBR)  // don't let someone use line numbers at the prompt
-            tknbuf[0] = tknbuf[1] = tknbuf[2] =
-                ' ';            // convert the line number into spaces
+        if (*tknbuf == T_LINENBR)  // don't let someone use line numbers at the prompt
+            tknbuf[0] = tknbuf[1] = tknbuf[2] = ' '; // convert the line number into spaces
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
         //printf("tknbuf = %s\n", tknbuf);
 
         ExecuteProgram(tknbuf);  // execute the line straight away
+
+        memset(inpbuf, 0, STRINGSIZE);
     }
 }
 
