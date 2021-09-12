@@ -4,8 +4,6 @@ TODO
 Required for alpha 1
 --------------------
 
-Check other file-commands
-Update DIR$ to not return . and ..
 Sort out line spacing at command-line
 Recheck/test the TIMER and PAUSE code
 LIST should reload file
@@ -27,3 +25,4 @@ Make output from LS more like that of CMM2
 Have another look at the other settings recommended for raw console mode
 Make all function keys reprogrammable
 Implement OPTION persistence
+Mitigate 100% CPU usage

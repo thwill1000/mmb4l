@@ -1,6 +1,7 @@
 #include <dirent.h>
 #include <libgen.h>
 
+#include "../common/global_aliases.h"
 #include "../common/utility.h"
 #include "../common/version.h"
 
@@ -99,43 +100,28 @@ void fun_dir(void) {
         }
     }
 
-    if (dirflags == DT_DIR) {
-        for (;;) {
-            entry = readdir(dp); /* Get a directory item */
-            if (!entry) break; /* Terminate if any error or end of directory */
-            if (pattern_matching(pp, entry->d_name, 0, 0) &&
-                (entry->d_type == DT_DIR))
-                break; /* Test for the file name */
-        }
-    } else if (dirflags == DT_REG) {
-        for (;;) {
-            entry = readdir(dp); /* Get a directory item */
-            if (!entry) break; /* Terminate if any error or end of directory */
-            if (pattern_matching(pp, entry->d_name, 0, 0) &&
-                (entry->d_type == DT_REG))
-                break; /* Test for the file name */
-        }
-    } else {
-        for (;;) {
-            entry = readdir(dp); /* Get a directory item */
-            if (!entry) break; /* Terminate if any error or end of directory */
-            if (pattern_matching(pp, entry->d_name, 0, 0)) // &&
-                //(entry->d_type == DT_DIR))
-                break; /* Test for the file name */
+    for (;;) {
+        entry = readdir(dp);
+        if (!entry) break;
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+        if (pattern_matching(pp, entry->d_name, 0, 0)) {
+            if (dirflags) {
+                if (entry->d_type == dirflags) break;
+            } else {
+                break;
+            }
         }
     }
 
+    g_string_rtn = GetTempStrMemory();
+    g_rtn_type = T_STR;
+
     if (!entry) {
         closedir(dp);
-        sret =
-            GetTempStrMemory();  // this will last for the life of the command
-        sret[0] = 0;
-        CtoM(sret);  // convert to a MMBasic style string
+        g_string_rtn[0] = 0;
     } else {
-        sret =
-            GetTempStrMemory();  // this will last for the life of the command
         strcpy(sret, entry->d_name);
-        CtoM(sret);  // convert to a MMBasic style string
     }
-    targ = T_STR;
+
+    CtoM(g_string_rtn);
 }
