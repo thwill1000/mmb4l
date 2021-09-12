@@ -21,7 +21,7 @@ provisions:
 
 ************************************************************************************************************************/
 
-#include "common/version.h"
+#include "version.h"
 
 // allocate static memory for programs, variables and the heap
 // this is simple memory management because DOS has plenty of memory

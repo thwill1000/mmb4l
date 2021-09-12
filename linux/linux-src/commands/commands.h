@@ -20,6 +20,7 @@
     void cmd_load(void);
     void cmd_longstring(void);
     void cmd_math(void);
+    void cmd_memory(void);
     void cmd_mkdir(void);
     void cmd_open(void);
     void cmd_option(void);
@@ -70,6 +71,7 @@
     { "Timer",      T_CMD | T_FUN,      0, cmd_timer    },
     { "Cursor",     T_CMD,              0, cmd_cursor   },
     { "Math",       T_CMD,              0, cmd_math     },
+    { "Memory",     T_CMD,              0, cmd_memory },
     { "Mode",       T_CMD,              0, cmd_dummy    },
     { "Play",       T_CMD,              0, cmd_dummy    },
     { "Poke",       T_CMD,              0, cmd_poke     },

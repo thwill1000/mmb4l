@@ -21,8 +21,6 @@ provisions:
 
 ************************************************************************************************************************/
 
-
-
 #if !defined(HARDWARE_INCLUDES_H)
     #define HARDWARE_INCLUDES_H
 
@@ -34,10 +32,10 @@ provisions:
     #include "DOS_Includes.h"
     #include "../MMBasic/VarTable.h"
     #include "common/file.h"
+    #include "common/memory.h"
     #include "common/option.h"
     #include "commands/commands.h"
     #include "functions/functions.h"
-    #include "memory.h"
 
     // various debug macros
     #if defined(DEBUGMODE)

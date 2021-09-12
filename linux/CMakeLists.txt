@@ -80,20 +80,23 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
 set(MMBASIC_LINUX_OPERATORS_SOURCE_FILES
     linux-src/operators/op_inv.c)
 
-set(MMBASIC_LINUX_SOURCE_FILES
-    ${MMBASIC_LINUX_COMMANDS_SOURCE_FILES}
-    ${MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES}
-    ${MMBASIC_LINUX_OPERATORS_SOURCE_FILES}
+set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/console.c
     linux-src/common/error.c
     linux-src/common/file.c
     linux-src/common/interrupt.c
+    linux-src/common/memory.c
     linux-src/common/option.c
     linux-src/common/parse.c
     linux-src/common/prompt.c
-    linux-src/common/utility.c
-    linux-src/main.c
-    linux-src/memory.c)
+    linux-src/common/utility.c)
+
+set(MMBASIC_LINUX_SOURCE_FILES
+    ${MMBASIC_LINUX_COMMANDS_SOURCE_FILES}
+    ${MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES}
+    ${MMBASIC_LINUX_OPERATORS_SOURCE_FILES}
+    ${MMBASIC_LINUX_COMMON_SOURCE_FILES}
+    linux-src/main.c)
 
 # add the executable
 add_executable(MMBasic ${MMBASIC_CORE_SOURCE_FILES} ${MMBASIC_LINUX_SOURCE_FILES})
