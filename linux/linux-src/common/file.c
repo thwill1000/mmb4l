@@ -102,7 +102,7 @@ char MMfputc(char c, int file_num) {
     if (MMFilePtr[file_num] == NULL) error("File number is not open");
     errno = 0;
     if (fwrite(&c, 1, 1, MMFilePtr[file_num]) == 0) {
-        if (errno = 0) errno = EBADF;
+        if (errno == 0) errno = EBADF;
     }
     error_check();
     return c;

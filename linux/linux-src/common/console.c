@@ -323,6 +323,8 @@ int console_get_cursor_pos(int *x, int *y) {
     sscanf(buf, "\033[%d;%dR", x, y);
     *x--; // VT100 origin is (1,1) not (0,0).
     *y--;
+
+    return 1;
 }
 
 int console_get_size(int *width, int *height) {
