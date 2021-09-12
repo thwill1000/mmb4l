@@ -32,8 +32,8 @@ provisions:
     #include "common/file.h"
     #include "common/memory.h"
     #include "common/option.h"
-    #include "commands/commands.h"
-    #include "functions/functions.h"
+    #include "commands/mmb4l_commands.h"
+    #include "functions/mmb4l_functions.h"
 
     // various debug macros
     #if defined(DEBUGMODE)
