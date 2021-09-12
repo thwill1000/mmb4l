@@ -82,5 +82,3 @@ char *GetIntAddress(char *p);
 int check_interrupt(void);
 void FlashWriteInit(char *p, int nbr);
 void dump(char *p, int nbr);
-
-extern struct timespec g_timer;

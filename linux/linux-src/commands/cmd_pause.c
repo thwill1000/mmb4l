@@ -4,17 +4,18 @@
 #include "../common/version.h"
 
 void cmd_pause(void) {
+    struct timespec one_micro_second;
+    one_micro_second.tv_nsec = 1000;
+    one_micro_second.tv_sec = 0;
+
     struct timespec wakeup;
     clock_gettime(CLOCK_REALTIME, &wakeup);
-    //printf("%ld, %ld\n", wakeup.tv_sec, wakeup.tv_nsec);
     int64_t delay = getinteger(cmdline);
-    //printf("%ld\n", delay);
     wakeup.tv_sec += delay / 1000;
     wakeup.tv_nsec += 1000000 * (delay % 1000);
-    //printf("Wakeup: %ld, %ld\n", wakeup.tv_sec, wakeup.tv_nsec);
+
     struct timespec now;
     int64_t ms;
-    // while (!MMAbort) {
     for (;;) {
         CheckAbort();
         clock_gettime(CLOCK_REALTIME, &now);
@@ -22,5 +23,8 @@ void cmd_pause(void) {
              + ((wakeup.tv_nsec - now.tv_nsec) / 1000000);
         //printf("Now:    %ld, %ld, %ld\n", now.tv_sec, now.tv_nsec, ms);
         if (ms <= 0) break;
+
+        // A short sleep so we do not continue to thrash CPU when paused.
+        nanosleep(&one_micro_second, NULL);
     }
 }
