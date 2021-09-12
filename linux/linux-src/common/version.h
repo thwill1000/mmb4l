@@ -1,5 +1,5 @@
-#if !defined LINUX_VERSION_H
-#define LINUX_VERSION_H
+#if !defined MMB4L_VERSION_H
+#define MMB4L_VERSION_H
 
 #include "../../Version.h"
 

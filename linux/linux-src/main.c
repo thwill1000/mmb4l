@@ -57,6 +57,7 @@ int ErrorInPrompt = false;
 
 char g_break_key = BREAK_KEY;
 
+char *GetEnvPath(char *env);
 void IntHandler(int signo);
 int LoadFile(char *prog);
 void dump_token_table(const struct s_tokentbl* tbl);

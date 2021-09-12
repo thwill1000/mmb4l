@@ -24,9 +24,7 @@ provisions:
 #if !defined(HARDWARE_INCLUDES_H)
     #define HARDWARE_INCLUDES_H
 
-    #include <stdarg.h>
     #include <errno.h>
-    #include <stdio.h>
 
     #include "Configuration.h"
     #include "DOS_Includes.h"

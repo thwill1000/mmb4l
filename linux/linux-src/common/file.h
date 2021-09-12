@@ -2,6 +2,7 @@
 #define MMB4L_FILE
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "version.h"
 

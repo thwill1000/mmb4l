@@ -1,3 +1,5 @@
+#include <stdarg.h>
+
 #include "../common/version.h"
 
 extern jmp_buf ErrNext;

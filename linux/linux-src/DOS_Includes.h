@@ -78,12 +78,9 @@ void CheckAbort(void);
 extern char *CFunctionFlash, *CFunctionLibrary, **FontTable;
 
 // misc
-extern char *GetIntAddress(char *p);
-extern int check_interrupt(void);
-extern void FlashWriteInit(char *p, int nbr);
-extern void dump(char *p, int nbr);
-extern void DOSColour(int fc, int bc);
-extern void DOSCursor(int x, int y);
-extern char *GetEnvPath(char *env);
+char *GetIntAddress(char *p);
+int check_interrupt(void);
+void FlashWriteInit(char *p, int nbr);
+void dump(char *p, int nbr);
 
 extern struct timespec g_timer;
