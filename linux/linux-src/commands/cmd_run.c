@@ -2,7 +2,7 @@
 
 char run_cmdline[STRINGSIZE];
 
-int program_load_file(char *filename);
+int program_load_file(char *filename); // program.c
 
 void cmd_run(void) {
 
@@ -17,7 +17,7 @@ void cmd_run(void) {
     } else if (*CurrentFile != '\0') {
         filename = CurrentFile;
     } else {
-        MMPrintString("Nothing to run\r\n");
+        error("Nothing to run");
         return;
     }
 

@@ -6,21 +6,20 @@
 #include "../common/utility.h"
 #include "../common/version.h"
 
-//extern char* g_absolute_file;
-
 #define EDIT_BUFFER_SIZE  512 * 1024
 #define MAXDEFINES  256
 
-int nDefines = 0;
-int LineCount = 0;
+static int nDefines = 0;
+static int LineCount = 0;
 
 typedef struct sa_dlist {
     char from[STRINGSIZE];
     char to[STRINGSIZE];
 } a_dlist;
-a_dlist *dlist;
 
-void str_replace(char *target, const char *needle, const char *replacement) {
+static a_dlist *dlist;
+
+static void str_replace(char *target, const char *needle, const char *replacement) {
     char buffer[288] = {0};
     char *insert_point = &buffer[0];
     const char *tmp = target;
@@ -52,7 +51,7 @@ void str_replace(char *target, const char *needle, const char *replacement) {
     strcpy(target, buffer);
 }
 
-void STR_REPLACE(char *target, const char *needle, const char *replacement) {
+static void STR_REPLACE(char *target, const char *needle, const char *replacement) {
     char *ip = target;
     int toggle = 0;
     while (*ip) {
@@ -83,7 +82,7 @@ void STR_REPLACE(char *target, const char *needle, const char *replacement) {
     }
 }
 
-int massage(char *buff) {
+static int massage(char *buff) {
     int i = nDefines;
     while (i--) {
         char *p = dlist[i].from;
@@ -118,7 +117,7 @@ int massage(char *buff) {
     return strlen(buff);
 }
 
-int cmpstr(char *s1, char *s2) {
+static int cmpstr(char *s1, char *s2) {
     unsigned char *p1 = (unsigned char *)s1;
     unsigned char *p2 = (unsigned char *)s2;
     unsigned char c1, c2;
@@ -614,18 +613,7 @@ int program_load_file(char *filename) {
     // Restore the token buffer.
     memcpy(tknbuf, tmp, STRINGSIZE);
 
-    assert(errno == 0);
     if (error_check()) result = false;
 
     return result;
-}
-
-void cmd_program(void) {
-    getargs(&cmdline, 3, " ,");
-    if (argc == 3 && checkstring(argv[0], "LOAD")) {
-        char *filename = getCstring(argv[2]);
-        program_load_file(filename);
-    } else {
-        error("Syntax");
-    }
 }

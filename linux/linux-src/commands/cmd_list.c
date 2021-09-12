@@ -4,8 +4,9 @@
 #include "../common/utility.h"
 #include "../common/version.h"
 
-void ListNewLine(int *ListCnt, int all);
+void ListNewLine(int *ListCnt, int all); // MMBasic/Commands.c
 void option_list(char *p); // cmd_option.c
+int program_load_file(char *filename); // program.c
 
 /* qsort C-string comparison function */
 static int cstring_cmp(const void *a, const void *b)  {
@@ -81,15 +82,15 @@ static void list_functions() {
 }
 
 static void list_file(const char *filename, int all) {
-    //printf("list_file(%s, %d)\n", filename ? filename : "null", all);
-
     if (!filename && CurrentFile[0] == '\0') {
-        MMPrintString("Nothing to list\r\n");
+        error("Nothing to list");
         return;
     }
 
     char file_path[STRINGSIZE];
-    munge_path(filename ? filename : CurrentFile, file_path, STRINGSIZE);
+    if (!munge_path(filename ? filename : CurrentFile, file_path, STRINGSIZE)) {
+        if (error_check()) return;
+    }
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;
@@ -106,10 +107,23 @@ static void list_file(const char *filename, int all) {
         ListNewLine(&list_count, all);
     }
     MMfclose(file_num);
+
+    // Ensure listing is followed by an empty line.
+    if (strcmp(line_buffer, "") != 0) MMPrintString("\r\n");
 }
 
 static void list_flash(int all) {
+    if (CurrentFile[0] == '\0') {
+        error("Nothing to list");
+        return;
+    }
+
+    // Make sure we are looking at the latest (on disk) version of the program.
+    if (!program_load_file(CurrentFile)) return;
+
     ListProgram(ProgMemory, all);
+
+    MMPrintString("\r\n");
 }
 
 static void list_options() {

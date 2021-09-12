@@ -12,4 +12,6 @@ void cmd_files(void) {
 
     int result = system(command);
     // if (result != 0) error("System command failed");
+
+    MMPrintString("\r\n");
 }

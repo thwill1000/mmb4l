@@ -4,7 +4,7 @@
 #include "../common/utility.h"
 #include "../common/version.h"
 
-int program_load_file(char *filename);
+int program_load_file(char *filename); // program.c
 
 extern char CurrentFile[STRINGSIZE];
 extern char error_file[STRINGSIZE];

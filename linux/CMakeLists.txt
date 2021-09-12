@@ -38,7 +38,6 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_option.c
     linux-src/commands/cmd_pause.c
     linux-src/commands/cmd_poke.c
-    linux-src/commands/cmd_program.c
     linux-src/commands/cmd_rename.c
     linux-src/commands/cmd_rmdir.c
     linux-src/commands/cmd_run.c
@@ -88,6 +87,7 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/memory.c
     linux-src/common/option.c
     linux-src/common/parse.c
+    linux-src/common/program.c
     linux-src/common/prompt.c
     linux-src/common/utility.c)
 

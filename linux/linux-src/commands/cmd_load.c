@@ -1,6 +1,7 @@
+#include "../common/error.h"
 #include "../common/version.h"
 
-int program_load_file(char *filename);
+int program_load_file(char *filename); // program.c
 
 void cmd_load(void) {
     getargs(&cmdline, 1, " ,");
@@ -8,6 +9,6 @@ void cmd_load(void) {
         char *filename = getCstring(argv[0]);
         program_load_file(filename);
     } else {
-        error("Syntax");
+        ERROR_SYNTAX;
     }
 }

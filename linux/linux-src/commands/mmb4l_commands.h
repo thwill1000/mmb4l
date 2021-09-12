@@ -26,7 +26,6 @@
     void cmd_option(void);
     void cmd_pause(void);
     void cmd_poke(void);
-    void cmd_program(void);
     void cmd_rename(void);
     void cmd_rmdir(void);
     void cmd_seek(void);
@@ -75,7 +74,6 @@
     { "Mode",       T_CMD,              0, cmd_dummy    },
     { "Play",       T_CMD,              0, cmd_dummy    },
     { "Poke",       T_CMD,              0, cmd_poke     },
-    { "Program",    T_CMD,              0, cmd_program  },
     { "SetTitle",   T_CMD,              0, cmd_settitle },
     { "SetTick",    T_CMD,              0, cmd_dummy    },
     { "Sort",       T_CMD,              0, cmd_sort     },
