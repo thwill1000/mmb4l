@@ -22,4 +22,5 @@ provisions:
 ************************************************************************************************************************/
 
 #include "memory.h"
-#include "misc.h"
+#include "commands/commands.h"
+#include "functions/functions.h"

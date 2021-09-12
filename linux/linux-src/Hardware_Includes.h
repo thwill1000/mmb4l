@@ -33,11 +33,10 @@ provisions:
     #include "Configuration.h"
     #include "DOS_Includes.h"
     #include "../MMBasic/VarTable.h"
-    #include "common/option.h"
-    // #include "editor.h"
-    // #include "file_io.h"
     #include "common/file.h"
-    #include "misc.h"
+    #include "common/option.h"
+    #include "commands/commands.h"
+    #include "functions/functions.h"
     #include "memory.h"
 
     // various debug macros
