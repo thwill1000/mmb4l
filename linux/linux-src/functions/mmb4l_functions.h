@@ -29,14 +29,11 @@
     void fun_hres(void);
     void fun_vres(void);
 
-    void op_inv(void);
-
 #endif
 
 // Entries for the token table.
 #ifdef INCLUDE_TOKEN_TABLE
 
-    { "As",           T_NA,               0, op_invalid   },
     { "Bound(",       T_FUN | T_INT,      0, fun_bound    },
     { "Call(",        T_FUN | T_STR | T_INT | T_NBR, 0, fun_call },
     { "Choice(",      T_FUN | T_STR | T_INT | T_NBR, 0, fun_choice },
@@ -47,7 +44,6 @@
     { "Field$(",      T_FUN | T_STR,      0, fun_field    },
     { "Format$(",     T_FUN | T_STR,      0, fun_format   },
     { "Input$(",      T_FUN | T_STR,      0, fun_inputstr },
-    { "Inv",          T_OPER | T_NBR,     3, op_inv       },
     { "LCompare(",    T_FUN | T_INT,      0, fun_lcompare },
     { "LGetByte(",    T_FUN | T_INT,      0, fun_lgetbyte },
     { "LGetStr$(",    T_FUN | T_STR,      0, fun_lgetstr  },

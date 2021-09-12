@@ -34,6 +34,7 @@ provisions:
     #include "common/option.h"
     #include "commands/mmb4l_commands.h"
     #include "functions/mmb4l_functions.h"
+    #include "operators/mmb4l_operators.h"
 
     // various debug macros
     #if defined(DEBUGMODE)
