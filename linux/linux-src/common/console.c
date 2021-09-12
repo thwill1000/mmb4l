@@ -346,15 +346,19 @@ void console_set_cursor_pos(int x, int y) {
     WRITE_CODE(buf);
 }
 
+const int ANSI_COLOURS[] = { 0, 4, 2, 6, 1, 5, 3, 7, 10, 14, 12, 16, 11, 15, 13, 17 };
+
 void console_background(int colour) {
     char buf[STRINGSIZE];
-    sprintf(buf, "\033[%dm", colour + (colour < 10 ? 40 : 90));
+    int ansi_colour = ANSI_COLOURS[colour];
+    sprintf(buf, "\033[%dm", ansi_colour + (ansi_colour < 10 ? 40 : 90));
     WRITE_CODE(buf);
 }
 
 void console_foreground(int colour) {
     char buf[STRINGSIZE];
-    sprintf(buf, "\033[%dm", colour + (colour < 10 ? 30 : 80));
+    int ansi_colour = ANSI_COLOURS[colour];
+    sprintf(buf, "\033[%dm", ansi_colour + (ansi_colour < 10 ? 30 : 80));
     WRITE_CODE(buf);
 }
 

@@ -7,7 +7,6 @@ Required for alpha 1
 Sort out line spacing at command-line
 Recheck/test the TIMER and PAUSE code
 LIST should reload file
-Use DOS (not ANSI) colour codes
 Don't print "Error:" before command-line errors (?)
 Implement CSUB for data-storage
 

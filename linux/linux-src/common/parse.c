@@ -41,6 +41,8 @@ int parse_colour(char *p, int allow_bright) {
         return GREEN;
     } else if (p2 = parse_check_string(p, "MAGENTA")) {
         return MAGENTA;
+    } else if (p2 = parse_check_string(p, "PURPLE")) {
+        return MAGENTA;
     } else if (p2 = parse_check_string(p, "RED")) {
         return RED;
     } else if (p2 = parse_check_string(p, "WHITE")) {

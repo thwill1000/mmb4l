@@ -38,24 +38,25 @@
 #define SLOCK 0x8c
 #define ALT 0x8b
 
-#define BLACK    0
-#define RED      1
-#define GREEN    2
-#define YELLOW   3
-#define BLUE     4
-#define MAGENTA  5
-#define CYAN     6
-#define WHITE    7
-#define BRIGHT_BLACK    10
-#define GREY            10
-#define GRAY            10
-#define BRIGHT_RED      11
-#define BRIGHT_GREEN    12
-#define BRIGHT_YELLOW   13
-#define BRIGHT_BLUE     14
-#define BRIGHT_MAGENTA  15
-#define BRIGHT_CYAN     16
-#define BRIGHT_WHITE    17
+// Ordinals match those used by MMBasic for DOS and original CMM.
+#define BLACK           0
+#define BLUE            1
+#define GREEN           2
+#define CYAN            3
+#define RED             4
+#define MAGENTA         5
+#define YELLOW          6
+#define WHITE           7
+#define BRIGHT_BLACK    8
+#define GREY            8
+#define GRAY            8
+#define BRIGHT_BLUE     9
+#define BRIGHT_GREEN    10
+#define BRIGHT_CYAN     11
+#define BRIGHT_RED      12
+#define BRIGHT_MAGENTA  13
+#define BRIGHT_YELLOW   14
+#define BRIGHT_WHITE    15
 
 void console_background(int colour);
 void console_bell();
