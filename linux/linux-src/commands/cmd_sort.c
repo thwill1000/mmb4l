@@ -1,6 +1,6 @@
 #include "../common/version.h"
 
-static void integersort(int64_t *iarray, int n, long long *index, int flags,
+static void integersort(int64_t *iarray, int n, int64_t *index, int flags,
                  int startpoint) {
     int i, j = n, s = 1;
     int64_t t;
@@ -43,7 +43,7 @@ static void integersort(int64_t *iarray, int n, long long *index, int flags,
     }
 }
 
-static void floatsort(MMFLOAT *farray, int n, long long *index, int flags,
+static void floatsort(MMFLOAT *farray, int n, int64_t *index, int flags,
                int startpoint) {
     int i, j = n, s = 1;
     int64_t t;
@@ -87,7 +87,7 @@ static void floatsort(MMFLOAT *farray, int n, long long *index, int flags,
     }
 }
 
-static void stringsort(unsigned char *sarray, int n, int offset, long long *index,
+static void stringsort(unsigned char *sarray, int n, int offset, int64_t *index,
                 int flags, int startpoint) {
     int ii, i, s = 1, isave;
     int k;

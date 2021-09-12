@@ -16,7 +16,6 @@ Implement CSUB for data-storage
 Not required for alpha 1
 ------------------------
 
-Quash all compiler warnings
 Build on Raspberry Pi 32-bit
 Implement SEARCH PATH
 Implement command-line RUN shortcut '*'

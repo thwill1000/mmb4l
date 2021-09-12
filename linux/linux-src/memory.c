@@ -54,7 +54,6 @@ unsigned int UsedHeap(void);
  Public memory management functions
 ************************************************************************************************************************/
 
-
 // every time a variable is added this must be called to verify that enough memory is free
 void m_alloc(int type, int size) {
     if(type == M_VAR) {
@@ -63,14 +62,11 @@ void m_alloc(int type, int size) {
     }
 }
 
-
-
 // get some memory from the heap
 void *GetMemory(size_t msize) {
     TestStackOverflow();                                            // throw an error if we have overflowed the PIC32's stack
     return getheap(msize);                                          // allocate space
 }
-
 
 // Get a temporary buffer of any size, returns a pointer to the buffer
 // The space only lasts for the length of the command or in the case of a sub/fun until it has exited.
@@ -89,15 +85,11 @@ void *GetTempMemory(int NbrBytes) {
     return NULL;
 }
 
-
-
 // get a temporary string buffer
 // this is used by many BASIC string functions.  The space only lasts for the length of the command.
 void *GetTempStrMemory(void) {
     return GetTempMemory(STRINGSIZE);
 }
-
-
 
 // clear any temporary string spaces (these last for just the life of a command) and return the memory to the heap
 // this will not clear memory allocated with a local index less than LocalIndex, sub/funs will increment LocalIndex
@@ -114,8 +106,6 @@ void ClearTempMemory(void) {
     TempMemoryIsChanged = false;
 }
 
-
-
 void ClearSpecificTempMemory(void *addr) {
     int i;
 //dpIGClearSpecificTempMemory(%p)", addr);
@@ -128,20 +118,16 @@ void ClearSpecificTempMemory(void *addr) {
     }
 }
 
-
-
 void FreeMemory(void *addr) {
     int bits;
-//dp("FreeMemory(%p)", addr);
+    // dp("FreeMemory(%p)", addr);
     do {
-        if(addr < MMHeap || addr >= (void *)RAMEND) return;
+        if (addr < (void *) MMHeap || addr >= (void *) RAMEND) return;
         bits = MBitsGet(addr);
         MBitsSet(addr, 0);
         addr += PAGESIZE;
-    } while(bits != (PUSED | PLAST));
+    } while (bits != (PUSED | PLAST));
 }
-
-
 
 void InitHeap(void) {
     int i;
@@ -150,33 +136,27 @@ void InitHeap(void) {
     MBitsSet((unsigned char *)RAMEND, PUSED | PLAST);
 }
 
-
-
-
 /***********************************************************************************************************************
  Private memory management functions
 ************************************************************************************************************************/
 
-
 unsigned int MBitsGet(void *addr) {
     unsigned int i, *p;
-    addr -= (int)MMHeap;
-    p = &mmap[((unsigned int)addr/PAGESIZE) / PAGESPERWORD];        // point to the word in the memory map
-    i = ((((unsigned int)addr/PAGESIZE)) & (PAGESPERWORD - 1)) * PAGEBITS; // get the position of the bits in the word
-    return (*p >> i) & ((1 << PAGEBITS) -1);
+    // addr -= (int)MMHeap;
+    uintptr_t addrx = (uintptr_t)addr - (uintptr_t)MMHeap;
+    p = &mmap[(addrx / PAGESIZE) / PAGESPERWORD];  // point to the word in the memory map
+    i = (((addrx / PAGESIZE)) & (PAGESPERWORD - 1)) * PAGEBITS;  // get the position of the bits in the word
+    return (*p >> i) & ((1 << PAGEBITS) - 1);
 }
-
-
 
 void MBitsSet(void *addr, int bits) {
     unsigned int i, *p;
-    addr -= (int)MMHeap;
-    p = &mmap[((unsigned int)addr/PAGESIZE) / PAGESPERWORD];        // point to the word in the memory map
-    i = ((((unsigned int)addr/PAGESIZE)) & (PAGESPERWORD - 1)) * PAGEBITS; // get the position of the bits in the word
-    *p = (bits << i) | (*p & (~(((1 << PAGEBITS) -1) << i)));
+    // addr -= (int)MMHeap;
+    uintptr_t addrx = (uintptr_t)addr - (uintptr_t)MMHeap;
+    p = &mmap[(addrx / PAGESIZE) / PAGESPERWORD];  // point to the word in the memory map
+    i = (((addrx / PAGESIZE)) & (PAGESPERWORD - 1)) * PAGEBITS;  // get the position of the bits in the word
+    *p = (bits << i) | (*p & (~(((1 << PAGEBITS) - 1) << i)));
 }
-
-
 
 void *getheap(int size) {
     unsigned int j, n;
@@ -202,8 +182,6 @@ void *getheap(int size) {
     return NULL;                                                    // keep the compiler happy
 }
 
-
-
 int FreeSpaceOnHeap(void) {
     unsigned int nbr;
     unsigned char *addr;
@@ -213,8 +191,6 @@ int FreeSpaceOnHeap(void) {
     return nbr * PAGESIZE;
 }
 
-
-
 unsigned int UsedHeap(void) {
     unsigned int nbr;
     unsigned char *addr;
@@ -223,8 +199,6 @@ unsigned int UsedHeap(void) {
         if(MBitsGet(addr) & PUSED) nbr++;
     return nbr * PAGESIZE;
 }
-
-
 
 #ifdef __xDEBUG
 void heapstats(char *m1) {
@@ -256,6 +230,7 @@ void *get_poke_addr(void *p) {
     //     error("Address");
     // return 0;
 }
+
 void *get_peek_addr(void *p) {
     return (void *) getinteger(p);
 }

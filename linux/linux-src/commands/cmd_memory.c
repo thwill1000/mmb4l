@@ -2,6 +2,8 @@
 #include "../common/utility.h"
 #include "../common/version.h"
 
+unsigned int UsedHeap(void); // memory.c
+
 // Data type sizes:
 //   FLOAT   - 8 bytes
 //   INTEGER - 8 bytes
@@ -164,18 +166,28 @@ void memory_report(char *unused) {
     gm = (UsedHeap() + 512) / 1024;
     gp = ((UsedHeap() + 512) * 100) / HEAP_SIZE;
 
-    sprintf(inpbuf, "    Program:%4dK (%2d%%) used %3dK free (%d line%s)\r\n",
-            (pbytes + 512) / 1024, (pbytes * 100) / PROG_FLASH_SIZE,
-            (PROG_FLASH_SIZE - pbytes + 512) / 1024, i, i == 1 ? "" : "s");
+    sprintf(
+            inpbuf,
+            "    Program:%4dK (%2d%%) used %3dK free (%d line%s)\r\n",
+            (pbytes + 512) / 1024,
+            (pbytes * 100) / PROG_FLASH_SIZE,
+            (PROG_FLASH_SIZE - pbytes + 512) / 1024,
+            i,
+            i == 1 ? "" : "s");
     MMPrintString(inpbuf);
     sprintf(
-        inpbuf, "  Variables:%4dK (%2d%%) used %3dK free (%d variables)\r\n",
-        ((vcnt * sizeof(struct s_vartbl)) + 512) / 1024, (vcnt * 100) / MAXVARS,
-        (((MAXVARS * sizeof(struct s_vartbl)) + 512) / 1024) -
-            (((vcnt * sizeof(struct s_vartbl)) + 512) / 1024),
-        vcnt);
+            inpbuf,
+            "  Variables:%4ldK (%2d%%) used %3ldK free (%d variables)\r\n",
+            ((vcnt * sizeof(struct s_vartbl)) + 512) / 1024,
+            (vcnt * 100) / MAXVARS,
+            (((MAXVARS * sizeof(struct s_vartbl)) + 512) / 1024) - (((vcnt * sizeof(struct s_vartbl)) + 512) / 1024),
+            vcnt);
     MMPrintString(inpbuf);
-    sprintf(inpbuf, "General RAM:%4dK (%2d%%) used %3dK free\r\n", gm, gp,
+    sprintf(
+            inpbuf,
+            "General RAM:%4dK (%2d%%) used %3dK free\r\n",
+            gm,
+            gp,
             (HEAP_SIZE / 1024) - gm);
     MMPrintString(inpbuf);
 }

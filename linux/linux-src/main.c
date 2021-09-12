@@ -27,6 +27,7 @@ PARTICULAR PURPOSE.
 #include <signal.h>
 #include <stdio.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "common/console.h"
 #include "common/file.h"
@@ -76,7 +77,7 @@ int main(int argc, char *argv[]) {
     char *p;
 
     // get things setup to act like the Micromite version
-    vartbl = &DOS_vartbl;
+    vartbl = DOS_vartbl;
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
     init_options();
     Option.ProgFlashSize = PROG_FLASH_SIZE;
@@ -402,8 +403,8 @@ void dump(char *p, int nbr) {
     MMPrintString(
         "   addr    0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F    "
         "0123456789ABCDEF\r\n");
-    b1 += sprintf(b1, "%8x: ", (unsigned int)p);
-    for (pt = p; (unsigned int)pt % 16 != 0; pt--) {
+    b1 += sprintf(b1, "%8lx: ", (uintptr_t)p);
+    for (pt = p; (uintptr_t)pt % 16 != 0; pt--) {
         b1 += sprintf(b1, "   ");
         b2 += sprintf(b2, " ");
     }
@@ -412,19 +413,19 @@ void dump(char *p, int nbr) {
         b2 += sprintf(b2, "%c", (*p >= ' ' && *p < 0x7f) ? *p : '.');
         p++;
         nbr--;
-        if ((unsigned int)p % 16 == 0) {
+        if ((uintptr_t)p % 16 == 0) {
             MMPrintString(buf1);
             MMPrintString("   ");
             MMPrintString(buf2);
             b1 = buf1;
             b2 = buf2;
-            b1 += sprintf(b1, "\r\n%8x: ", (unsigned int)p);
+            b1 += sprintf(b1, "\r\n%8lx: ", (uintptr_t)p);
         }
     }
     if (b2 != buf2) {
         MMPrintString(buf1);
         MMPrintString("   ");
-        for (pt = p; (unsigned int)pt % 16 != 0; pt++) {
+        for (pt = p; (uintptr_t)pt % 16 != 0; pt++) {
             MMPrintString("   ");
         }
         MMPrintString(buf2);

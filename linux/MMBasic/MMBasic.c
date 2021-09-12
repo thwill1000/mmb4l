@@ -205,7 +205,7 @@ void ExecuteProgram(char *p) {
             TraceBuff[TraceBuffIndex] = p;                          // used by TRACE LIST
             if(++TraceBuffIndex >= TRACE_BUFF_SIZE) TraceBuffIndex = 0;
 #endif
-            if(TraceOn && p < ProgMemory + Option.ProgFlashSize) {
+            if(TraceOn && p < (char *) (ProgMemory + Option.ProgFlashSize)) {
                 inpbuf[0] = '[';
                 IntToStr(inpbuf + 1, CountLines(p), 10);
                 strcat(inpbuf, "]");
@@ -279,9 +279,9 @@ void MIPS16 PrepareProgram(int ErrAbort) {
 
     NbrFuncts = 0;
     CFunctionFlash = CFunctionLibrary = NULL;
-    if(Option.ProgFlashSize != PROG_FLASH_SIZE)
-        NbrFuncts = PrepareProgramExt(ProgMemory + Option.ProgFlashSize, 0, &CFunctionLibrary, ErrAbort);
-    PrepareProgramExt(ProgMemory, NbrFuncts, &CFunctionFlash, ErrAbort);
+    if (Option.ProgFlashSize != PROG_FLASH_SIZE)
+        NbrFuncts = PrepareProgramExt(ProgMemory + Option.ProgFlashSize, 0, (unsigned char **) &CFunctionLibrary, ErrAbort);
+    PrepareProgramExt(ProgMemory, NbrFuncts, (unsigned char **) &CFunctionFlash, ErrAbort);
 
     // check the sub/fun table for duplicates
     if(!ErrAbort) return;
@@ -1340,7 +1340,7 @@ char *findline(int nbr, int mustfind) {
     char *p;
     int i;
 
-    if(CurrentLinePtr >= ProgMemory + Option.ProgFlashSize)
+    if (CurrentLinePtr >= (char *) (ProgMemory + Option.ProgFlashSize))
         p = ProgMemory + Option.ProgFlashSize;
     else
         p = ProgMemory;
@@ -1401,7 +1401,7 @@ char *findlabel(char *labelptr) {
     label[0] = i - 1;                                               // the length byte
 
     // point to the main program memory or the library
-    if(CurrentLinePtr >= ProgMemory + Option.ProgFlashSize)
+    if (CurrentLinePtr >= (char *) (ProgMemory + Option.ProgFlashSize))
         p = ProgMemory + Option.ProgFlashSize;
     else {
         p = ProgMemory;

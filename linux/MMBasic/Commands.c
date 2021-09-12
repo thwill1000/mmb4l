@@ -1267,11 +1267,9 @@ search_again:
 
 
 
-
-
 void cmd_restore(void) {
     if(*cmdline == 0 || *cmdline == '\'') {
-        if(CurrentLinePtr >= ProgMemory + Option.ProgFlashSize)
+        if (CurrentLinePtr >= (char *) (ProgMemory + Option.ProgFlashSize))
             NextDataLine = ProgMemory + Option.ProgFlashSize;
         else
             NextDataLine = ProgMemory;
