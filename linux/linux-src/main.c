@@ -33,6 +33,7 @@ PARTICULAR PURPOSE.
 #include "common/file.h"
 #include "common/global_aliases.h"
 #include "common/interrupt.h"
+#include "common/utility.h"
 #include "common/version.h"
 
 extern int g_key_select;
@@ -292,7 +293,7 @@ int MMgetchar(void) {
         c = console_getc();
         //printf("\n0x%X\n", c);
         if (c == -1) {
-
+            nanosleep(&ONE_MILLISECOND, NULL);
         } else if (c == 3) {
             longjmp(mark, 1); // jump back to the input prompt if CTRL-C
         } else if (c == '\n' && prevchar == '\r') {

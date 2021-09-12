@@ -3,6 +3,9 @@
 
 #include <stdlib.h>
 
+extern const struct timespec ONE_MICROSECOND;
+extern const struct timespec ONE_MILLISECOND;
+
 /**
  * Returns an absolute/canonical path, replacing any '\' with '/'.
  *

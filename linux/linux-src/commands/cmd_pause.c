@@ -1,13 +1,10 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "../common/utility.h"
 #include "../common/version.h"
 
 void cmd_pause(void) {
-    struct timespec one_micro_second;
-    one_micro_second.tv_nsec = 1000;
-    one_micro_second.tv_sec = 0;
-
     struct timespec wakeup;
     clock_gettime(CLOCK_REALTIME, &wakeup);
     int64_t delay = getinteger(cmdline);
@@ -25,6 +22,6 @@ void cmd_pause(void) {
         if (ms <= 0) break;
 
         // A short sleep so we do not continue to thrash CPU when paused.
-        nanosleep(&one_micro_second, NULL);
+        nanosleep(&ONE_MICROSECOND, NULL);
     }
 }

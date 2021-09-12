@@ -6,8 +6,8 @@
 
 #include "utility.h"
 
-int ErrorCheck(void); // file_io.c
-void error(char *, ...); // MMBasic.c
+const struct timespec ONE_MICROSECOND = { 0, 1000 };
+const struct timespec ONE_MILLISECOND = { 0, 1000000 };
 
 char *munge_path(const char *original_path, char *new_path, size_t sz) {
     const char *psrc = original_path;

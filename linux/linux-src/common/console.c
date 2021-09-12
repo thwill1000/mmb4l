@@ -8,13 +8,13 @@
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <time.h>
 
 #include "console.h"
 #include "global_aliases.h"
+#include "utility.h"
 #include "version.h"
-//#include "option.h"
 
-void error(char *msg, ...);
 void CheckAbort(void);
 
 extern volatile int MMAbort;
