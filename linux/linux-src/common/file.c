@@ -7,7 +7,7 @@
 
 FILE *MMFilePtr[MAXOPENFILES];
 HANDLE *MMComPtr[MAXOPENFILES];
-int OptionFileErrorAbort = true;
+int OptionFileErrorAbort = true; // Appears to be unused.
 char CurrentFile[STRINGSIZE];
 
 /*******************************************************************************************

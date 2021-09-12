@@ -68,8 +68,6 @@ provisions:
         #define __386__
         #define MES_SIGNON  "Windows MMBasic Ver " VERSION "\r\n"
     #elif defined(__linux__)
-        #define DOS
-        #define __386__
         #define MES_SIGNON  "Linux x86_64 MMBasic Ver " VERSION "-a1\r\n"
     #else
         #error This device is not supported

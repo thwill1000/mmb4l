@@ -205,7 +205,7 @@ void MIPS16 ListProgram(char *p, int all) {
     char *pp;
     int ListCnt = 1;
 
-#if !defined(__linux__) && defined(__386__)
+#if defined(__386__)
   GetConsoleSize();                                                 // this allows the user to change screen size anytime
 #endif
 
