@@ -35,7 +35,8 @@ provisions:
     #include "../MMBasic/VarTable.h"
     #include "common/option.h"
     // #include "editor.h"
-    #include "file_io.h"
+    // #include "file_io.h"
+    #include "common/file.h"
     #include "misc.h"
     #include "memory.h"
 

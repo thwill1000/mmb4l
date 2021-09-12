@@ -15,12 +15,22 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/call.c
     linux-src/commands/cls.c
     linux-src/commands/cmd_console.c
+    linux-src/commands/cmd_copy.c
     linux-src/commands/cmd_edit.c
+    linux-src/commands/cmd_close.c
+    linux-src/commands/cmd_chdir.c
+    linux-src/commands/cmd_files.c
+    linux-src/commands/cmd_kill.c
     linux-src/commands/cmd_list.c
     linux-src/commands/cmd_math.c
     linux-src/commands/cmd_memory.c
+    linux-src/commands/cmd_mkdir.c
     linux-src/commands/cmd_on.c
+    linux-src/commands/cmd_open.c
     linux-src/commands/cmd_option.c
+    linux-src/commands/cmd_rename.c
+    linux-src/commands/cmd_rmdir.c
+    linux-src/commands/cmd_seek.c
     linux-src/commands/cmd_timer.c
     linux-src/commands/cursor.c
     linux-src/commands/dummy.c
@@ -47,10 +57,14 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/dir.c
     linux-src/functions/format.c
     linux-src/functions/fun_call.c
+    linux-src/functions/fun_eof.c
     linux-src/functions/fun_field.c
     linux-src/functions/fun_hres.c
+    linux-src/functions/fun_inputstr.c
     linux-src/functions/fun_lcompare.c
     linux-src/functions/fun_linstr.c
+    linux-src/functions/fun_loc.c
+    linux-src/functions/fun_lof.c
     linux-src/functions/fun_mmcmdline.c
     linux-src/functions/fun_mmdevice.c
     linux-src/functions/fun_mminfo.c
@@ -69,12 +83,12 @@ set(MMBASIC_LINUX_SOURCE_FILES
     ${MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES}
     linux-src/common/console.c
     linux-src/common/error.c
+    linux-src/common/file.c
     linux-src/common/interrupt.c
     linux-src/common/option.c
     linux-src/common/parse.c
     linux-src/common/prompt.c
     linux-src/common/utility.c
-    linux-src/file_io.c
     linux-src/main.c
     linux-src/memory.c)
 

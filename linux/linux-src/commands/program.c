@@ -2,10 +2,9 @@
 #include <stdint.h>
 
 #include "../common/console.h"
+#include "../common/error.h"
 #include "../common/utility.h"
 #include "../common/version.h"
-
-int ErrorCheck(void); // file_io.c
 
 //extern char* g_absolute_file;
 
@@ -616,7 +615,7 @@ int program_load_file(char *filename) {
     memcpy(tknbuf, tmp, STRINGSIZE);
 
     assert(errno == 0);
-    if (ErrorCheck()) result = false;
+    if (error_check()) result = false;
 
     return result;
 }

@@ -1,4 +1,5 @@
 #include "console.h"
+#include "file.h"
 #include "version.h"
 
 #define NBRPROGKEYS  12  // Number of programmable function keys.

@@ -29,6 +29,7 @@ PARTICULAR PURPOSE.
 #include <time.h>
 
 #include "common/console.h"
+#include "common/file.h"
 #include "common/global_aliases.h"
 #include "common/interrupt.h"
 #include "common/version.h"
