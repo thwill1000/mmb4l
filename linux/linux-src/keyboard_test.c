@@ -4,6 +4,8 @@
 #include "common/console.h"
 #include "common/global_aliases.h"
 
+void console_key_to_string(int ch, char *buf);
+
 volatile int MMAbort;
 char g_break_key;
 int g_key_complete = 0;
@@ -18,7 +20,13 @@ int main(int argc, char **argv) {
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
 
-    for (;;) {
-        int ch = console_getc();
+    int ch = 0;
+    char buf[10];
+    while (ch != 3) {
+        ch = console_getc();
+        if (ch != -1) {
+            console_key_to_string(ch, buf);
+            printf("%s\n", buf);
+        }
     }
 }
