@@ -1,8 +1,12 @@
-#if !defined(ERROR_H)
-#define ERROR_H
+#if !defined(MMB4L_ERROR_H)
+#define MMB4L_ERROR_H
+
+#include "../Configuration.h" // for STRINGSIZE
+
+extern char error_file[STRINGSIZE];
+extern int error_line;
 
 void error(char *msg, ...);
-
 int error_check();
 
 #define ERROR_ARGUMENT_COUNT           error("Argument count")

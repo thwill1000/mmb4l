@@ -1,5 +1,7 @@
 #include <stdarg.h>
 
+#include "../common/error.h"
+#include "../common/utility.h"
 #include "../common/version.h"
 
 extern jmp_buf ErrNext;
@@ -71,18 +73,24 @@ static void get_line_and_file(int *line, char *file_path) {
     if (!pipe_pos) return;
 
     char *comma_pos = strchr(pipe_pos, ',');
-    if (!comma_pos) {
+    if (comma_pos) {
+        // Line is from a #included file.
+        pipe_pos++;
+        comma_pos++;
+        *line = atoi(comma_pos);
+
+        if (!get_parent_path(CurrentFile, file_path, STRINGSIZE)) return;
+        // TODO: prevent buffer overflow.
+        int len = strlen(file_path);
+        file_path[len++] = '/';
+        memcpy(file_path + len, pipe_pos, comma_pos - pipe_pos - 1);
+        file_path[len + comma_pos - pipe_pos] = '\0';
+    } else {
+        // Line is from the main file.
         pipe_pos++;
         *line = atoi(pipe_pos);
         strcpy(file_path, CurrentFile);
-        return;
     }
-
-    pipe_pos++;
-    comma_pos++;
-    *line = atoi(comma_pos);
-    memcpy(file_path, pipe_pos, comma_pos - pipe_pos - 1);
-    file_path[comma_pos - pipe_pos] = '\0';
 }
 
 // throw an error

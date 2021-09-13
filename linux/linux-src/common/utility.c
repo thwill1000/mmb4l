@@ -72,6 +72,7 @@ int is_absolute_path(const char *path) {
 }
 
 char *get_parent_path(const char *path, char *parent_path, size_t sz) {
+    errno = 0;
     char *p = (char *) path + strlen(path) - 1;
     while ((p > path) && (*p == '\\' || *p == '/')) p--;
     while ((p > path) && (*p != '\\' && *p != '/')) p--;
