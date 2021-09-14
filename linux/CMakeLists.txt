@@ -3,6 +3,18 @@ cmake_minimum_required(VERSION 3.10)
 # set the project name
 project(MMBasic)
 
+# GoogleTest requires at least C++11
+set(CMAKE_CXX_STANDARD 11)
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
 add_definitions(-funsigned-char)
 
 set(MMBASIC_CORE_SOURCE_FILES
@@ -89,6 +101,7 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/parse.c
     linux-src/common/program.c
     linux-src/common/prompt.c
+    linux-src/common/rx_buf.c
     linux-src/common/utility.c)
 
 set(MMBASIC_LINUX_SOURCE_FILES
@@ -99,8 +112,26 @@ set(MMBASIC_LINUX_SOURCE_FILES
     linux-src/main.c)
 
 # add the executable
-add_executable(MMBasic ${MMBASIC_CORE_SOURCE_FILES} ${MMBASIC_LINUX_SOURCE_FILES})
+add_executable(mmbasic ${MMBASIC_CORE_SOURCE_FILES} ${MMBASIC_LINUX_SOURCE_FILES})
 
-add_executable(keyboard_test linux-src/keyboard_test.c linux-src/common/console.c linux-src/common/utility.c)
+add_executable(keyboard_test linux-src/keyboard_test.c linux-src/common/rx_buf.c linux-src/common/console.c linux-src/common/utility.c)
 
-target_link_libraries(MMBasic m)
+target_link_libraries(mmbasic m)
+
+# GoogleTest
+
+enable_testing()
+
+add_executable(
+  mmbasic_test
+  linux-src/common/rx_buf.c
+  linux-src/common/gtest/rx_buf_test.cxx
+)
+
+target_link_libraries(
+  mmbasic_test
+  gtest_main
+)
+
+include(GoogleTest)
+gtest_discover_tests(mmbasic_test)

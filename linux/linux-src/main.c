@@ -89,6 +89,7 @@ int main(int argc, char *argv[]) {
 
     InitHeap();  // init memory allocation
 
+    console_init();
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
     console_set_title("MMBasic - Untitled");

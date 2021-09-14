@@ -13,6 +13,7 @@
 #include "console.h"
 #include "global_aliases.h"
 #include "utility.h"
+#include "rx_buf.h"
 #include "version.h"
 
 void CheckAbort(void);
@@ -28,9 +29,15 @@ extern int g_key_select;
 #define WRITE_CODE_2(s, len)  write(STDOUT_FILENO, s, len)
 
 static struct termios orig_termios;
-static int console_rx_buf[CONSOLE_RX_BUF_SIZE];
-static int console_rx_buf_head = 0;
-static int console_rx_buf_tail = 0;
+static char console_rx_buf_data[CONSOLE_RX_BUF_SIZE];
+static RxBuf console_rx_buf;
+
+void console_init(void) {
+    rx_buf_init(
+            &console_rx_buf,
+            console_rx_buf_data,
+            sizeof(console_rx_buf_data));
+}
 
 void console_bell(void) {
     WRITE_CODE_2("\07", 1);
@@ -79,18 +86,14 @@ void console_buffer_input(void) {
         return;
     }
 
-    console_rx_buf[console_rx_buf_head] = ch;
-    if (console_rx_buf[console_rx_buf_head] == g_break_key) {
+    if (ch == g_break_key) {
         // User wishes to stop the program.
         // Set the abort flag so the interpreter will halt and empty the console buffer.
         MMAbort = true;
-        console_rx_buf_head = console_rx_buf_tail;
+        rx_buf_clear(&console_rx_buf);
     } else {
-        // Advance the head, if the buffer overflows then throw away the oldest character.
-        console_rx_buf_head = (console_rx_buf_head + 1) % CONSOLE_RX_BUF_SIZE;
-        if (console_rx_buf_head == console_rx_buf_tail) {
-            console_rx_buf_tail = (console_rx_buf_tail + 1) % CONSOLE_RX_BUF_SIZE;
-        }
+        // If the buffer is full then this will throw away ch.
+        rx_buf_put(&console_rx_buf, ch);
     }
 }
 
@@ -99,16 +102,11 @@ void console_buffer_input(void) {
 int console_get_buffered_char(void) {
     console_buffer_input();
     CheckAbort(/*0*/);
-    if (console_rx_buf_head == console_rx_buf_tail) return -1;
-    int ch = console_rx_buf[console_rx_buf_tail];
-    console_rx_buf_tail = (console_rx_buf_tail + 1) % CONSOLE_RX_BUF_SIZE;
-    return ch;
+    return rx_buf_get(&console_rx_buf);
 }
 
 int console_kbhit(void) {
-    int i = console_rx_buf_head - console_rx_buf_tail;
-    if (i < 0) i += CONSOLE_RX_BUF_SIZE;
-    return i;
+    return rx_buf_size(&console_rx_buf);
 }
 
 void console_key_to_string(int ch, char *buf) {
@@ -240,7 +238,7 @@ int console_getc(void) {
     int chars[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     int count = 0;
     int ch;
-    for (;;) {
+    for (int i = 0; i < 10; ++i) {
         ch = console_get_buffered_char();
         if (ch == -1) break;
         chars[count++] = ch;
