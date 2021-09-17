@@ -18,7 +18,7 @@
     void fun_llen(void);
     void fun_loc(void);
     void fun_lof(void);
-    // void fun_math(void);
+    void fun_math(void);
     void fun_mmcmdline(void);
     void fun_mmdevice(void);
     void fun_mminfo(void);
@@ -51,7 +51,7 @@
     { "LLen(",        T_FUN | T_INT,      0, fun_llen     },
     { "Loc(",         T_FUN | T_INT,      0, fun_loc      },
     { "Lof(",         T_FUN | T_INT,      0, fun_lof      },
-    // { "Math(",        T_FUN | T_NBR,      0, fun_math     },
+    { "Math(",        T_FUN | T_NBR,      0, fun_math     },
     { "Peek(",        T_FUN | T_INT | T_NBR, 0, fun_peek  },
     { "Rgb(",         T_FUN | T_INT,      0, fun_rgb      },
     { "Time$",        T_FNA | T_STR,      0, fun_time     },

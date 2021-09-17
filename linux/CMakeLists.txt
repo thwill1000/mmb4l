@@ -80,6 +80,7 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/fun_llen.c
     linux-src/functions/fun_loc.c
     linux-src/functions/fun_lof.c
+    linux-src/functions/fun_math.c
     linux-src/functions/fun_mmcmdline.c
     linux-src/functions/fun_mmdevice.c
     linux-src/functions/fun_mminfo.c
@@ -97,6 +98,7 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/error.c
     linux-src/common/file.c
     linux-src/common/interrupt.c
+    linux-src/common/maths.c
     linux-src/common/memory.c
     linux-src/common/option.c
     linux-src/common/parse.c
