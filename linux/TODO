@@ -4,7 +4,6 @@ TODO
 Required for alpha 1
 --------------------
 
-Implement CSUB for data-storage
 Test MAX, MIN
 Implement MATH { ADD | MAX | MIN | SCALE | V_NORMALISE }
 
@@ -24,3 +23,4 @@ Make all function keys reprogrammable
 Implement OPTION persistence
 Implement SWAP
 Rewrite pre-processor
+Review all uses of void*

@@ -1,12 +1,11 @@
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/parse.h"
+#include "../common/program.h"
 #include "../common/utility.h"
 #include "../common/version.h"
 
-void ListNewLine(int *ListCnt, int all); // MMBasic/Commands.c
 void option_list(char *p); // cmd_option.c
-int program_load_file(char *filename); // program.c
 
 /* qsort C-string comparison function */
 static int cstring_cmp(const void *a, const void *b)  {
@@ -126,6 +125,18 @@ static void list_flash(int all) {
     MMPrintString("\r\n");
 }
 
+static void list_csubs(int all) {
+    if (CurrentFile[0] == '\0') {
+        error("Nothing to list");
+        return;
+    }
+
+    // Make sure we are looking at the latest (on disk) version of the program.
+    if (!program_load_file(CurrentFile)) return;
+
+    program_list_csubs(all);
+}
+
 static void list_options() {
     option_list("");
 }
@@ -142,6 +153,15 @@ void cmd_list(void) {
     } else if (p = checkstring(cmdline, "COMMANDS")) {
         if (!parse_is_end(p)) ERROR_SYNTAX;
         list_commands();
+    } else if (p = checkstring(cmdline, "CSUBS")) {
+        if (parse_is_end(p)) {
+            list_csubs(false);
+        } else if (p = checkstring(p, "ALL")) {
+            if (!parse_is_end(p)) ERROR_SYNTAX;
+            list_csubs(true);
+        } else {
+            ERROR_SYNTAX;
+        }
     } else if (p = checkstring(cmdline, "FLASH")) {
         if (parse_is_end(p)) {
             list_flash(false);

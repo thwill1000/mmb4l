@@ -8,6 +8,7 @@
     void cmd_console(void);
     void cmd_copy(void);
     void cmd_cursor(void);
+    void cmd_cfunction(void);
     void cmd_dummy(void);
     void cmd_edit(void);
     void cmd_execute(void);
@@ -46,6 +47,8 @@
     { "Colour",     T_CMD,              0, cmd_dummy    },
     { "Copy",       T_CMD,              0, cmd_copy     },
     { "Console",    T_CMD,              0, cmd_console  },
+    { "CSub",       T_CMD,              0, cmd_cfunction },
+    { "End CSub",   T_CMD,              0, cmd_null     },
     { "Execute",    T_CMD,              0, cmd_execute  },
     { "Files",      T_CMD,              0, cmd_files    },
     { "Kill",       T_CMD,              0, cmd_kill     },

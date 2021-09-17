@@ -3,6 +3,7 @@
 
 #include "../common/console.h"
 #include "../common/error.h"
+#include "../common/program.h"
 #include "../common/utility.h"
 #include "../common/version.h"
 
@@ -10,7 +11,6 @@
 #define MAXDEFINES  256
 
 static int nDefines = 0;
-static int LineCount = 0;
 
 typedef struct sa_dlist {
     char from[STRINGSIZE];
@@ -191,18 +191,13 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     //printf("DONE\n");
 
     *pmem++ = 0;
-    *pmem = 0;  // two zeros terminate the program but as an extra just in case
+    *pmem++ = 0;  // two zeros terminate the program but add an extra just in case
 
-    // TODO: this is something to do with restoring the token buffer from what we were doing before the LOAD.
-    // memcpy(tknbuf, tmp, STRINGSIZE);
+    // We want CFunctionFlash to start on a 64-bit boundary.
+    while ((uintptr_t) pmem % 8 != 0) *pmem++ = 0;
+    CFunctionFlash = pmem;
 
-    // Does this happen, won't we have done a longjmp ?
     assert(!errno);
-    // if (errno) return false;
-
-    char title[STRINGSIZE + 10];
-    sprintf(title, "MMBasic - %s", CurrentFile);
-    console_set_title(title);
 }
 
 /**
@@ -279,7 +274,6 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
         MMgetline(file_num, line_buffer);  // get the input line
         data = 0;
         importlines++;
-        LineCount++;
         //        routinechecks(1);
         len = strlen(line_buffer);
         toggle = 0;
@@ -413,6 +407,171 @@ static char *program_get_bas_file(char *filename, char *file_path) {
     return canonicalize_path(tmp_path, file_path, STRINGSIZE);
 }
 
+// now we must scan the program looking for CFUNCTION/CSUB/DEFINEFONT
+// statements, extract their data and program it into the flash used by
+// CFUNCTIONs programs are terminated with two zero bytes and one or more
+// bytes of 0xff.  The CFunction area starts immediately after that.
+//
+// The format of a CFunction/CSub/Font in flash is:
+//
+//   uint64_t     - Address of the CFunction/CSub in program memory (points to
+//                  the token representing the "CFunction" keyword) or NULL if
+//                  it is a font.
+//   uint32_t     - The length of the CFunction/CSub/Font in bytes including
+//                  the Offset (see below) but not including any zero padding at
+//                  the end.
+//   uint32_t     - The Offset (in words) to the main() function (ie, the
+//                  entry point to the CFunction/CSub). Omitted in a font.
+//   word1..wordN - The CFunction/CSub/Font code (words are 32-bit).
+//                - Padding with zeroes to the next 64-bit boundary.
+//
+// The next CFunction/CSub/Font starts immediately following the last word
+// of the previous CFunction/CSub/Font
+static void program_process_csubs() {
+    char end_token = '\0';
+    uint32_t *flash_ptr = (uint32_t *) CFunctionFlash;
+    uint32_t *save_addr = NULL;
+    char *p = (char *) ProgMemory;  // start scanning program memory
+
+    while (*p != 0xff) {
+        if (*p == 0) p++;    // if it is at the end of an element skip the zero marker
+        if (*p == 0) break;  // end of the program
+        if (*p == T_NEWLINE) {
+            CurrentLinePtr = p;
+            p++;  // skip the newline token
+        }
+        if (*p == T_LINENBR) p += 3;  // step over the line number
+
+        skipspace(p);
+        if (*p == T_LABEL) {
+            p += p[1] + 2;  // skip over the label
+            skipspace(p);   // and any following spaces
+        }
+
+        if (*p == cmdCSUB) {
+
+            end_token = GetCommandValue("End CSub");
+            *((uint64_t *) flash_ptr) = (uint64_t) p;
+            flash_ptr += 2;
+            save_addr = flash_ptr; // Save where we are so that we can write the CSub size in here
+            flash_ptr ++;
+            p++;
+            skipspace(p);
+            if (!isnamestart(*p)) error("Function name");
+            do {
+                p++;
+            } while (isnamechar(*p));
+            skipspace(p);
+            if (!(isxdigit(p[0]) && isxdigit(p[1]) && isxdigit(p[2]))) {
+                skipelement(p);
+                p++;
+                if (*p == T_NEWLINE) {
+                    CurrentLinePtr = p;
+                    p++;  // skip the newline token
+                }
+                if (*p == T_LINENBR) p += 3;  // skip over a line number
+            }
+            do {
+                while (*p && *p != '\'') {
+                    skipspace(p);
+                    int n = 0;
+                    for (int i = 0; i < 8; i++) {
+                        if (!isxdigit(*p)) error("Invalid hex word");
+                        n = n << 4;
+                        if (*p <= '9')
+                            n |= (*p - '0');
+                        else
+                            n |= (toupper(*p) - 'A' + 10);
+                        p++;
+                    }
+                    if ((char *) flash_ptr >= (char *) ProgMemory + PROG_FLASH_SIZE - 9) error("Not enough memory");
+                    *flash_ptr = n;
+                    flash_ptr ++;
+                    skipspace(p);
+                }
+                // we are at the end of a embedded code line
+                while (*p)
+                    p++;  // make sure that we move to the end of the line
+                p++;      // step to the start of the next line
+                if (*p == 0) error("Missing END declaration");
+                if (*p == T_NEWLINE) {
+                    CurrentLinePtr = p;
+                    p++;  // skip the newline token
+                }
+                if (*p == T_LINENBR) p += 3;  // skip over the line number
+                skipspace(p);
+            } while (*p != end_token);
+
+            // Write back the size of the CSUB (in bytes) to the 32-bit slot reserved previously.
+            *save_addr = 4 * (flash_ptr - save_addr - 1);
+
+            // Pad to the next 64-bit boundary with zeroes.
+            while ((uintptr_t) flash_ptr % 2 != 0) *flash_ptr++ = 0;
+        }
+        while (*p) p++;  // look for the zero marking the start of the next element
+    }
+
+    // Mark the end of the CSUB data.
+    *((uint64_t *) flash_ptr) = 0xFFFFFFFFFFFFFFFF;
+}
+
+static void get_csub_name(char *p, char *buf) {
+    char *p2 = p;
+    skipspace(p2);
+    while (*p2 == '$' || *p2 == '%' || *p2 == '!' || isnamechar(*p2)) p2++;
+    memcpy(buf, p, p2 - p);
+    buf[p2 - p] = '\0';
+}
+
+static void print_line(char *buf, int* line_count, int all) {
+    MMPrintString(buf);
+    ListNewLine(line_count, all);
+}
+
+void program_list_csubs(int all) {
+    uint32_t *p = (uint32_t *) CFunctionFlash;
+    char name[64];
+    char buf[STRINGSIZE];
+    int line_count = 1;
+
+    while (*((uint64_t *) p) != 0xFFFFFFFFFFFFFFFF) {
+        if ((char *) p > (char *) CFunctionFlash) ListNewLine(&line_count, all);
+        uint64_t addr = *((uint64_t *) p);
+        p += 2;
+        get_csub_name((char *) addr + 1, name);
+        sprintf(buf, "CSUB %s()", name);
+        print_line(buf, &line_count, all);
+        sprintf(buf, "0x%016lX  name   = %s", addr, name);
+        print_line(buf, &line_count, all);
+        int size = *p++;
+        sprintf(buf, "0x%08X          size   = %d bytes = %d x 32-bit words", size, size, size / 4);
+        print_line(buf, &line_count, all);
+        int offset = *p++;
+        sprintf(buf, "0x%08X          offset = %d x 32-bit words", offset, offset);
+        print_line(buf, &line_count, all);
+        size /= 4;  // Convert size to 32-bit words.
+        size --;    // Skip the 'offset' word.
+        for (int i = 0; i < size; ++i) {
+            if (i % 4 == 0) {
+                memset(buf, 0, STRINGSIZE);
+            } else {
+                strcat(buf, ", ");
+            }
+            sprintf(name, "0x%08X", *p++);
+            strcat(buf, name);
+            if ((i + 1) % 4 == 0) print_line(buf, &line_count, all);
+        }
+        //if (size % 4 > 0) ListNewLine(&line_count, all);
+    }
+    if (strlen(buf) > 0) print_line(buf, &line_count, all);
+
+    print_line("", &line_count, all);
+    uint64_t end = *((uint64_t *) p);
+    sprintf(buf, "0x%016lX [%s]", end, end == 0xFFFFFFFFFFFFFFFF ? "OK" : "ERROR");
+    print_line(buf, &line_count, all);
+    print_line("", &line_count, all);
+}
+
 static int program_load_file_internal(char *filename) {
 
     char file_path[STRINGSIZE];
@@ -439,7 +598,6 @@ static int program_load_file_internal(char *filename) {
     int convertdebug = 1;
     int ignore = 0;
     nDefines = 0;
-    LineCount = 0;
     int i, importlines = 0, data;
 
     ClearProgram();
@@ -462,7 +620,6 @@ static int program_load_file_internal(char *filename) {
         MMgetline(file_num, line_buffer);  // get the input line
         data = 0;
         importlines++;
-        LineCount++;
         //        routinechecks(1);
         len = strlen(line_buffer);
         toggle = 0;
@@ -550,8 +707,7 @@ static int program_load_file_internal(char *filename) {
                 error("Line too long");
             }
             sbuff[len] = 0;
-            len = massage(
-                sbuff);  // can't risk crushing lines with a quote in them
+            len = massage(sbuff);  // can't risk crushing lines with a quote in them
             if ((sbuff[0] != 39) || (sbuff[0] == 39 && sbuff[1] == 39)) {
                 // if(Option.profile){
                 //     while(strlen(sbuff)<9){
@@ -567,38 +723,15 @@ static int program_load_file_internal(char *filename) {
         }
     }
     *p = 0;  // terminate the string in RAM
-             //    FileClose(file_num);
     MMfclose(file_num);
 
     program_tokenise(file_path, edit_buffer);
 
-#if 0
-    int load=0;
-    if(Option.ProgramStartCode>=0){
-        size=SaveProgramToMemory(buf, false, name);
-        uint32_t *top=(uint32_t *)((uint32_t)SDMemory+512*1024-4);
-        top--;
-        i=0;
-        ip=(char *)SDMemory;
-        op=(char *)ProgMemory;
-        while(i<size){
-            i++;
-            if(*ip != *op){
-                load=1;
-                break;
-            }
-            op++;
-            ip++;
-        }
-        while(*top-- == 0xFFFFFFFF){};
-        size=(uint32_t)top - (uint32_t)SDMemory+256;
-        FreeMemorySafe((void *)&SDMemory);
-    }
-    if(load || Option.ProgramStartCode<0)SaveProgramToFlash(buf, false, name, size);
-#endif
-
     ClearSpecificTempMemory(edit_buffer);
     ClearSpecificTempMemory(dlist);
+
+    program_process_csubs();
+    // program_list_csubs(1);
 
     return true;
 }
@@ -612,6 +745,11 @@ int program_load_file(char *filename) {
 
     // Restore the token buffer.
     memcpy(tknbuf, tmp, STRINGSIZE);
+
+    // Set the console window title.
+    char title[STRINGSIZE + 10];
+    sprintf(title, "MMBasic - %s", CurrentFile);
+    console_set_title(title);
 
     if (error_check()) result = false;
 

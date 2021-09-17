@@ -25,6 +25,7 @@ set(MMBASIC_CORE_SOURCE_FILES
 
 set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_call.c
+    linux-src/commands/cmd_cfunction.c
     linux-src/commands/cmd_chdir.c
     linux-src/commands/cmd_cls.c
     linux-src/commands/cmd_close.c

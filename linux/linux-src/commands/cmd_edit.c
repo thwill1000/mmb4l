@@ -2,10 +2,9 @@
 #include <sys/stat.h>
 
 #include "../common/error.h"
+#include "../common/program.h"
 #include "../common/utility.h"
 #include "../common/version.h"
-
-int program_load_file(char *filename); // program.c
 
 extern char CurrentFile[STRINGSIZE];
 

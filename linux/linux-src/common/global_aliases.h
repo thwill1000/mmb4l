@@ -10,6 +10,7 @@
 #define g_options          Option
 #define g_rtn_type         targ
 #define g_string_rtn       sret
+#define g_subfun           subfun
 #define g_var_tbl          vartbl
 
 #endif

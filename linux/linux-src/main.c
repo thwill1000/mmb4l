@@ -84,8 +84,6 @@ int main(int argc, char *argv[]) {
     init_options();
     Option.ProgFlashSize = PROG_FLASH_SIZE;
     Option.Tab = 4;
-    // cmdCFUN = cmdCSUB = cmdIRET = 0xff;
-    cmdCFUN = cmdCSUB = 0xff;
 
     InitHeap();  // init memory allocation
 

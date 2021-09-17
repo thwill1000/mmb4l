@@ -178,12 +178,19 @@ void MIPS16 InitBasic(void) {
 #endif
     cmdSUB = GetCommandValue("Sub");
     cmdFUN = GetCommandValue("Function");
-#if defined(__linux__) || !defined(DOS)
-    cmdIRET = GetCommandValue("IReturn");
-#endif
 #if defined(MICROMITE)
-    cmdCFUN = GetCommandValue("CFunction");
+    cmdIRET = GetCommandValue("IReturn");
     cmdCSUB = GetCommandValue("CSub");
+    cmdCFUN = GetCommandValue("CFunction");
+#elif defined(__linux__)
+    cmdIRET = GetCommandValue("IReturn");
+    cmdCSUB = GetCommandValue("CSub");
+    cmdCFUN = 0xFF;
+#elif defined(DOS)
+    cmdIRET = 0xFF;
+    cmdCSUB = 0xFF;
+#else
+    #error "Unknown target platform"
 #endif
 }
 
@@ -278,7 +285,9 @@ void MIPS16 PrepareProgram(int ErrAbort) {
         FontTable[i] = NULL;                                        // clear the font table
 
     NbrFuncts = 0;
+#if !defined(__linux__)    
     CFunctionFlash = CFunctionLibrary = NULL;
+#endif
     if (Option.ProgFlashSize != PROG_FLASH_SIZE)
         NbrFuncts = PrepareProgramExt(ProgMemory + Option.ProgFlashSize, 0, (unsigned char **) &CFunctionLibrary, ErrAbort);
     PrepareProgramExt(ProgMemory, NbrFuncts, (unsigned char **) &CFunctionFlash, ErrAbort);
