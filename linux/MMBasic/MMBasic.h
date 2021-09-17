@@ -173,9 +173,8 @@ extern const struct s_tokentbl tokentbl[];
 extern const struct s_tokentbl commandtbl[];
 
 // used for the trace function
-#define TRACE_BUFF_SIZE  128
 extern int TraceOn;
-extern char *TraceBuff[TRACE_BUFF_SIZE];
+extern char *TraceBuff[TRACE_BUFF_SIZE];        // TRACE_BUFF_SIZE defined in 'Configuration.h'
 extern int TraceBuffIndex;
 
 // used to store commonly used tokens for faster token checking
