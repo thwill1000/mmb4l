@@ -5,6 +5,8 @@ Required for alpha 1
 --------------------
 
 Implement CSUB for data-storage
+Test MAX, MIN
+Implement MATH { ADD | MAX | MIN | SCALE | V_NORMALISE }
 
 Not required for alpha 1
 ------------------------
@@ -20,3 +22,5 @@ Make output from LS more like that of CMM2
 Have another look at the other settings recommended for raw console mode
 Make all function keys reprogrammable
 Implement OPTION persistence
+Implement SWAP
+Rewrite pre-processor
