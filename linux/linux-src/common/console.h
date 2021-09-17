@@ -61,7 +61,7 @@
 void console_init();
 void console_background(int colour);
 void console_bell();
-void console_buffer_input(void);
+void console_pump_input(void);
 void console_clear(void);
 void console_disable_raw_mode(void);
 void console_enable_raw_mode(void);

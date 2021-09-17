@@ -11,10 +11,11 @@
 #include <time.h>
 
 #include "console.h"
+#include "error.h"
 #include "global_aliases.h"
 #include "utility.h"
 #include "rx_buf.h"
-#include "version.h"
+#include "../Configuration.h" // For STRINGSIZE
 
 void CheckAbort(void);
 
@@ -64,7 +65,7 @@ void console_enable_raw_mode(void) {
     //fcntl(STDIN_FILENO, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
 }
 
-void console_buffer_input(void) {
+void console_pump_input(void) {
     char ch;
     ssize_t result = read(STDIN_FILENO, &ch, 1);
     switch (result) {
@@ -82,14 +83,14 @@ void console_buffer_input(void) {
     // Support for ON KEY ascii_code%, handler_sub().
     // Note that 'ch' does not get added to the buffer.
     if (ch == g_key_select && g_key_interrupt != NULL) {
-        g_key_complete = true;
+        g_key_complete = 1;
         return;
     }
 
     if (ch == g_break_key) {
         // User wishes to stop the program.
         // Set the abort flag so the interpreter will halt and empty the console buffer.
-        MMAbort = true;
+        MMAbort = 1;
         rx_buf_clear(&console_rx_buf);
     } else {
         // If the buffer is full then this will throw away ch.
@@ -97,197 +98,129 @@ void console_buffer_input(void) {
     }
 }
 
-// get a char from the console input queue
-// will return immediately with -1 if there is no character waiting
-int console_get_buffered_char(void) {
-    console_buffer_input();
-    CheckAbort(/*0*/);
-    return rx_buf_get(&console_rx_buf);
-}
-
 int console_kbhit(void) {
     return rx_buf_size(&console_rx_buf);
 }
 
-void console_key_to_string(int ch, char *buf) {
-    char *key = NULL;
-    switch (ch) {
-        case 0x20:
-            key = "SPACE";
-            break;
-        case TAB:
-            key = "TAB";
-            break;
-        case BKSP:
-            key = "BKSP";
-            break;
-        case ENTER:
-            key = "ENTER";
-            break;
-        case ESC:
-            key = "ESC";
-            break;
-        case F1:
-            key = "F1";
-            break;
-        case F2:
-            key = "F2";
-            break;
-        case F3:
-            key = "F3";
-            break;
-        case F4:
-            key = "F4";
-            break;
-        case F5:
-            key = "F5";
-            break;
-        case F6:
-            key = "F6";
-            break;
-        case F7:
-            key = "F7";
-            break;
-        case F8:
-            key = "F8";
-            break;
-        case F9:
-            key = "F9";
-            break;
-        case F10:
-            key = "F10";
-            break;
-        case F11:
-            key = "F11";
-            break;
-        case F12:
-            key = "F12";
-            break;
-        case UP:
-            key = "UP";
-            break;
-        case DOWN:
-            key = "DOWN";
-            break;
-        case LEFT:
-            key = "LEFT";
-            break;
-        case RIGHT:
-            key = "RIGHT";
-            break;
-        case INSERT:
-            key = "INSERT";
-            break;
-        case DEL:
-            key = "DEL";
-            break;
-        case HOME:
-            key = "HOME";
-            break;
-        case END:
-            key = "END";
-            break;
-        case PUP:
-            key = "PUP";
-            break;
-        case PDOWN:
-            key = "PDOWN";
-            break;
-        case SLOCK:
-            key = "SLOCK";
-            break;
-        case ALT:
-            key = "ALT";
-            break;
-    }
+char KEY_TO_STRING_MAP[] = {
+    0x20,   'S', 'P',  'A',  'C',  'E', '\0', '\0',
+    TAB,    'T', 'A',  'B', '\0', '\0', '\0', '\0',
+    BKSP,   'B', 'K',  'S',  'P', '\0', '\0', '\0',
+    ENTER,  'E', 'N',  'T',  'E',  'R', '\0', '\0',
+    ESC,    'E', 'S',  'C', '\0', '\0', '\0', '\0',
+    F1,     'F', '1', '\0', '\0', '\0', '\0', '\0',
+    F2,     'F', '2', '\0', '\0', '\0', '\0', '\0',
+    F3,     'F', '3', '\0', '\0', '\0', '\0', '\0',
+    F4,     'F', '4', '\0', '\0', '\0', '\0', '\0',
+    F5,     'F', '5', '\0', '\0', '\0', '\0', '\0',
+    F6,     'F', '6', '\0', '\0', '\0', '\0', '\0',
+    F7,     'F', '7', '\0', '\0', '\0', '\0', '\0',
+    F8,     'F', '8', '\0', '\0', '\0', '\0', '\0',
+    F9,     'F', '9', '\0', '\0', '\0', '\0', '\0',
+    F10,    'F', '1',  '0', '\0', '\0', '\0', '\0',
+    F11,    'F', '1',  '1', '\0', '\0', '\0', '\0',
+    F12,    'F', '1',  '2', '\0', '\0', '\0', '\0',
+    UP,     'U', 'P', '\0', '\0', '\0', '\0', '\0',
+    DOWN,   'D', 'O',  'W',  'N', '\0', '\0', '\0',
+    LEFT,   'L', 'E',  'F',  'T', '\0', '\0', '\0',
+    RIGHT,  'R', 'I',  'G',  'H',  'T', '\0', '\0',
+    INSERT, 'I', 'N',  'S',  'E',  'R',  'T', '\0',
+    DEL,    'D', 'E',  'L', '\0', '\0', '\0', '\0',
+    HOME,   'H', 'O',  'M',  'E', '\0', '\0', '\0',
+    END,    'E', 'N',  'D', '\0', '\0', '\0', '\0',
+    PUP,    'P', 'U',  'P', '\0', '\0', '\0', '\0',
+    PDOWN,  'P', 'D',  'O',  'W',  'N', '\0', '\0',
+    SLOCK,  'S', 'L',  'O',  'C',  'K', '\0', '\0',
+    ALT,    'A', 'L',  'T', '\0', '\0', '\0', '\0',
+    0xFF
+};
 
-    if (key) {
-        sprintf(buf, "[%s]", key);
+void console_key_to_string(int ch, char *buf) {
+    char *p = KEY_TO_STRING_MAP;
+    while (*p != 0xFF) {
+        if (*p == ch) {
+            sprintf(buf, "[%s]", p + 1);
+            return;
+        }
+        p += 8;
+    }
+    sprintf(buf, "'%c'", ch);
+}
+
+void console_ungetc(char ch) {
+    rx_buf_unget(&console_rx_buf, ch);
+}
+
+int console_match_chars(char *pattern) {
+    if (*pattern == '\0') return 1;
+
+    if (rx_buf_size(&console_rx_buf) == 0) CheckAbort(); // Which calls console_pump_input();
+
+    int ch = rx_buf_get(&console_rx_buf);
+    if (ch == -1) {
+        return 0;
+    } else if (ch == *pattern && console_match_chars(++pattern)) {
+        return 1;
     } else {
-        sprintf(buf, "'%c'", ch);
+        console_ungetc(ch);
+        return 0;
     }
 }
 
-static int char_map[] = {
-        0x00, 0x00, 0x00, 0x00, ESC,
-        0x4F, 0x50, 0x00, 0x00, F1,
-        0x4F, 0x51, 0x00, 0x00, F2,
-        0x4F, 0x52, 0x00, 0x00, F3,
-        0x4F, 0x53, 0x00, 0x00, F4,
-        0x5B, 0x31, 0x35, 0x7E, F5,
-        0x5B, 0x31, 0x37, 0x7E, F6,
-        0x5B, 0x31, 0x38, 0x7E, F7,
-        0x5B, 0x31, 0x39, 0x7E, F8,
-        0x5B, 0x32, 0x30, 0x7E, F9,
-        // F10 - is captured by the Gnome WM
-        // F11 - is captured by the Gnome WM
-        0x5B, 0x32, 0x7E, 0x00, INSERT,
-        0x5B, 0x33, 0x7E, 0x00, DEL,
-        0x5B, 0x32, 0x34, 0x7E, F12,
-        0x5B, 0x35, 0x7E, 0x00, PUP,
-        0x5B, 0x36, 0x7E, 0x00, PDOWN,
-        0x5B, 0x41, 0x00, 0x00, UP,
-        0x5B, 0x42, 0x00, 0x00, DOWN,
-        0x5B, 0x43, 0x00, 0x00, RIGHT,
-        0x5B, 0x44, 0x00, 0x00, LEFT,
-        0x5B, 0x46, 0x00, 0x00, END,
-        0x5B, 0x48, 0x00, 0x00, HOME,
-        -1 };
+static char ESCAPE_MAP[] = {
+         'O',   'P', '\0', '\0', '\0', F1,
+         'O',   'Q', '\0', '\0', '\0', F2,
+         'O',   'R', '\0', '\0', '\0', F3,
+         'O',   'S', '\0', '\0', '\0', F4,
+         '[',   '1',  '5',  '~', '\0', F5,
+         '[',   '1',  '7',  '~', '\0', F6,
+         '[',   '1',  '8',  '~', '\0', F7,
+         '[',   '1',  '9',  '~', '\0', F8,
+         '[',   '2',  '0',  '~', '\0', F9,
+         // F10 - is captured by the Gnome WM
+         // F11 - is captured by the Gnome WM
+         '[',   '2',  '4',  '~', '\0', F12,
+         '[',   '2',  '~', '\0', '\0', INSERT,
+         '[',   '3',  '~', '\0', '\0', DEL,
+         '[',   '5',  '~', '\0', '\0', PUP,
+         '[',   '6',  '~', '\0', '\0', PDOWN,
+         '[',   'A', '\0', '\0', '\0', UP,
+         '[',   'B', '\0', '\0', '\0', DOWN,
+         '[',   'C', '\0', '\0', '\0', RIGHT,
+         '[',   'D', '\0', '\0', '\0', LEFT,
+         '[',   'F', '\0', '\0', '\0', END,
+         '[',   'H', '\0', '\0', '\0', HOME,
+         0xFF };
 
 int console_getc(void) {
-    int chars[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    int count = 0;
-    int ch;
-    for (int i = 0; i < 10; ++i) {
-        ch = console_get_buffered_char();
-        if (ch == -1) break;
-        chars[count++] = ch;
-    }
 
-    if (count == 0) return -1;
+    CheckAbort(); // Which calls console_pump_input();
+    int ch = rx_buf_get(&console_rx_buf);
 
-#if 0
-    printf("* ");
-    for (int i = 0; i < count; ++i) {
-        if (i > 0) printf(", ");
-        printf("0x%X", chars[i]);
-    }
-#endif
-
-    ch = -1;
-
-    switch (chars[0]) {
+    switch (ch) {
         case 0x0A:
             ch = ENTER;
             break;
-        case 0x1B: {
-            ch = -1;
-            int *p = char_map;
-            while (*p != -1) {
-                if (chars[1] == *p
-             && chars[2] == *(p + 1)
-             && chars[3] == *(p + 2)
-             && chars[4] == *(p + 3)) {
-         ch = *(p + 4);
-         break;
+
+        case ESC: {
+            char *p = ESCAPE_MAP;
+            while (*p != 0xFF) {
+                if (console_match_chars(p)) {
+                    ch = *(p + 5);
+                    break;
                 }
-                p += 5;
+                p += 6;
             }
             break;
         }
-        case 0x7F:
+
+        case DEL:
             ch = '\b';
             break;
+
         default:
-            ch = chars[0];
             break;
     }
-
-#if 0
-    char buf[255];
-    console_key_to_string(ch, buf);
-    printf(" %s\n", buf);
-#endif
 
     return ch;
 }

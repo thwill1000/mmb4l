@@ -243,20 +243,11 @@ void FlashWriteInit(char *p, int nbr) {
 // get a character from the console
 // returns -1 if nothing there
 int MMInkey(void) {
-    //CheckAbort();
-    // return kbhit() ? DOSgetch() : -1;
-    //return DOSgetch();
-
-    // CheckAbort();
-    //printf("Going in\n");
-    int ch = console_getc();
-    CheckAbort();
-    // if (ch == 3) longjmp(mark, 1); // jump back to the input prompt if CTRL-C
-    return ch;
+    return console_getc();
 }
 
 void CheckAbort(void) {
-    console_buffer_input();
+    if (!MMAbort) console_pump_input();
 
     if (MMAbort) {
         g_key_select = 0;
@@ -269,30 +260,10 @@ void CheckAbort(void) {
 // unless it was preceded by a cr and in that case throw away the char
 // so console end of line is always cr
 int MMgetchar(void) {
-//     int c;
-//     static char prevchar = 0;
-//     DWORD mode;
-//     GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &mode);
-
-// loopback:
-//     SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE),
-//                    mode & ~ENABLE_PROCESSED_INPUT);
-//     c = DOSgetch();
-//     SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), mode);
-//     if (c == 3) longjmp(mark, 1);  // jump back to the input prompt if CTRL-C
-//     if (c == '\n' && prevchar == '\r') {
-//         prevchar = 0;
-//         goto loopback;
-//     }
-//     prevchar = c;
-//     if (c == '\n') c = '\r';
-//     return c;
-
     static char prevchar = 0;
     int c;
     for (;;) {
         c = console_getc();
-        //printf("\n0x%X\n", c);
         if (c == -1) {
             nanosleep(&ONE_MILLISECOND, NULL);
         } else if (c == 3) {
@@ -309,7 +280,6 @@ int MMgetchar(void) {
 
 // put a character out to the operating system
 char MMputchar(char c) {
-    // putch(c);
     putc(c, stdout);
     fflush(stdout);
     if (isprint(c)) MMCharPos++;

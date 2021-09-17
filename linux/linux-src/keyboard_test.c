@@ -12,7 +12,7 @@ int g_key_complete = 0;
 char *g_key_interrupt = NULL;
 int g_key_select = 0;
 
-void CheckAbort(void) {}
+void CheckAbort(void) { console_pump_input(); }
 
 int main(int argc, char **argv) {
     printf("Press Keys\n");
