@@ -1,5 +1,5 @@
 #include "../common/error.h"
-#include "../common/file.h"
+#include "../common/version.h"
 
 void fun_loc(void) {
     int fnbr;

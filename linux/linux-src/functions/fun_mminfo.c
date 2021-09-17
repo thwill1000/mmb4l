@@ -1,4 +1,5 @@
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "../common/console.h"
 #include "../common/error.h"
@@ -10,8 +11,6 @@
 
 #define FONT_HEIGHT  12
 #define FONT_WIDTH   8
-
-char *MMgetcwd(void); // file_io.c
 
 extern char run_cmdline[STRINGSIZE];
 
@@ -78,16 +77,22 @@ static void mminfo_device(char *p) {
 
 static void mminfo_directory(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_string_rtn = GetTempStrMemory();
+
     g_rtn_type = T_STR;
+    g_string_rtn = GetTempStrMemory();
+
+    errno = 0;
+    char *result = getcwd(g_string_rtn, STRINGSIZE);
+    error_check();
+
+    // Add a trailing '/' if one is not already present.
     // TODO: error handling if path too long.
-    char *cwd = MMgetcwd();
-    strcpy(g_string_rtn, cwd);
     size_t len = strlen(g_string_rtn);
     if (g_string_rtn[len - 1] != '/') {
         g_string_rtn[len] = '/';
         g_string_rtn[len + 1] = '\0';
     }
+
     CtoM(g_string_rtn);
 }
 

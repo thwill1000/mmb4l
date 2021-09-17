@@ -127,8 +127,11 @@ enable_testing()
 
 add_executable(
   mmbasic_test
+  linux-src/common/file.c
   linux-src/common/rx_buf.c
+  linux-src/common/utility.c
   linux-src/common/gtest/rx_buf_test.cxx
+  linux-src/common/gtest/file_test.cxx
 )
 
 target_link_libraries(

@@ -1,4 +1,4 @@
-#include "../common/file.h"
+#include "../common/version.h"
 
 void cmd_close(void) {
     int i;

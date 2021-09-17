@@ -1,7 +1,7 @@
 #include <assert.h>
 
 #include "../common/error.h"
-#include "../common/file.h"
+#include "../common/version.h"
 
 void cmd_open(void) {
     int file_num;

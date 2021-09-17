@@ -32,22 +32,10 @@ static int create_empty_file(char *file_path) {
 
 static int delete_if_empty(char *file_path) {
     errno = 0;
-    struct stat st;
-    stat(file_path, &st);
-    if (st.st_size == 0) {
-        if (remove(file_path) != 0) return false;
+    if (file_exists(file_path) && file_is_empty(file_path)) {
+        return remove(file_path) == 0;
     }
-    return true;
-}
-
-static int file_exists(char *file_path) {
-    errno = 0;
-    FILE *f = fopen(file_path, "r");
-    if (f) {
-        fclose(f);
-        return true;
-    }
-    return false;
+    return 1;
 }
 
 void cmd_edit(void) {
@@ -112,8 +100,10 @@ void cmd_edit(void) {
         }
     }
 
-    // If we don't have a current file then try and load the one we've just edited.
-    if (*CurrentFile == '\0' && file_exists(file_path)) {
+    // If we have just edited a .BAS file then load it.
+    if (file_exists(file_path)
+            && file_is_regular(file_path)
+            && file_has_extension(file_path, ".BAS", 1)) {
         program_load_file(file_path);
     }
 }

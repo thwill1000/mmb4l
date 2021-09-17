@@ -1,9 +1,12 @@
 #include <assert.h>
+#include <errno.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "error.h"
 #include "file.h"
 #include "utility.h"
+#include "version.h"
 
 FILE *MMFilePtr[MAXOPENFILES];
 HANDLE *MMComPtr[MAXOPENFILES];
@@ -127,14 +130,6 @@ int MMfeof(int file_num) {
     return i;
 }
 
-char *MMgetcwd(void) {
-    char *cwd = GetTempStrMemory();
-    errno = 0;
-    char *result = getcwd(cwd, STRINGSIZE);
-    error_check();
-    return cwd;
-}
-
 /** Find the first available free file number. */
 int FindFreeFileNbr(void) {
     int i;
@@ -143,4 +138,36 @@ int FindFreeFileNbr(void) {
     }
     error("Too many files open");
     return 0;  // keep the compiler quiet
+}
+
+int file_exists(const char *path) {
+    struct stat st;
+    errno = 0;
+    return stat(path, &st) == 0;
+}
+
+int file_is_empty(const char *path) {
+    struct stat st;
+    errno = 0;
+    stat(path, &st);
+    return st.st_size == 0;
+}
+
+int file_is_regular(const char *path) {
+    struct stat st;
+    errno = 0;
+    return (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? 1 : 0;
+}
+
+int file_has_extension(const char *path, const char *extension, int case_insensitive) {
+    int start = strlen(path) - strlen(extension);
+    if (start < 0) return 0;
+    for (int i = 0; i < strlen(extension); ++i) {
+        if (case_insensitive) {
+            if (toupper(path[i + start]) != toupper(extension[i])) return 0;
+        } else {
+            if (path[i + start] != extension[i]) return 0;
+        }
+    }
+    return 1;
 }
