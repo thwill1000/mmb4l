@@ -285,7 +285,7 @@ void MIPS16 PrepareProgram(int ErrAbort) {
         FontTable[i] = NULL;                                        // clear the font table
 
     NbrFuncts = 0;
-#if !defined(__linux__)    
+#if !defined(__linux__)
     CFunctionFlash = CFunctionLibrary = NULL;
 #endif
     if (Option.ProgFlashSize != PROG_FLASH_SIZE)

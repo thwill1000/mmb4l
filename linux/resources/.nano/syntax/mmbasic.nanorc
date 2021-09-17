@@ -133,7 +133,7 @@ icolor cyan "\<(choice|hidecursor)\>"
 
 ## operators
 color white "[+*=\^]" "<" ">" "/" "-"
-color brightred "[@\~]" 
+color brightred "[@\~]"
 
 ## number constants
 icolor green "\b(([1-9][0-9]+)|0+)\.[0-9]+j?\b" "\b([1-9][0-9]*[Lj]?)\b" "\b0o?[0-7]*L?\b" "\b0x[1-9a-f][0-9a-f]*L?\b" "\b0b[01]+\b"

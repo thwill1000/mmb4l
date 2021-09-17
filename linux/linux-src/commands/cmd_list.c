@@ -61,7 +61,7 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, int
     }
     sprintf(buf, "Total of %d %s using %d slots\r\n\r\n", total, title, num_primary);
     MMPrintString(buf);
-    
+
 }
 
 static void list_commands() {
