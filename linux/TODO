@@ -4,13 +4,14 @@ TODO
 Required for alpha 1
 --------------------
 
-Test MAX, MIN
-Implement MATH { ADD | MAX | MIN | SCALE | V_NORMALISE }
+Finalise 'Nano' customisation
+Build on Raspberry Pi 32-bit
+Unit test MATH commands and functions
+Write README
 
 Not required for alpha 1
 ------------------------
 
-Build on Raspberry Pi 32-bit
 Implement SEARCH PATH
 Implement command-line RUN shortcut '*'
 Add timer to sptest when multiple tests are executed
