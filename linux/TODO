@@ -4,6 +4,8 @@ TODO
 Required for alpha 1
 --------------------
 
+Fix timing issues with CONSOLE GETCURSOR
+Fix clang compiler warnings
 Finalise 'Nano' customisation
 Build on Raspberry Pi 32-bit
 Unit test MATH commands and functions
@@ -12,6 +14,7 @@ Write README
 Not required for alpha 1
 ------------------------
 
+Build on Android and ChromeOS
 Implement SEARCH PATH
 Implement command-line RUN shortcut '*'
 Add timer to sptest when multiple tests are executed

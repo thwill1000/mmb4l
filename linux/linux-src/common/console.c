@@ -250,10 +250,10 @@ int console_get_cursor_pos(int *x, int *y) {
         buf[i] = ch;
     }
 
-    // Parse output.
-    sscanf(buf, "\033[%d;%dR", x, y);
-    *x--; // VT100 origin is (1,1) not (0,0).
-    *y--;
+    // Parse output, rows (y) then columns (x).
+    sscanf(buf, "\033[%d;%dR", y, x);
+    (*x)--; // VT100 origin is (1,1) not (0,0).
+    (*y)--;
 
     return 1;
 }

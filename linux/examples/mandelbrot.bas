@@ -52,6 +52,11 @@ Sub update_display()
   Print s$;
   Console SetCursor curs_x%, curs_y%
   Console ShowCursor
+
+  Local real_x%, real_y%
+  Console GetCursor real_x%, real_y%
+  If curs_x% <> real_x% Then Error "X-cursor pos inconsistent " + Str$(curs_x%) + " vs. " + Str$(real_x%)
+  If curs_y% <> real_y% Then Error "Y-cursor pos inconsistent " + Str$(curs_y%) + " vs. " + Str$(real_y%)
 End Sub
 
 Sub draw_mandelbrot()
