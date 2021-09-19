@@ -44,15 +44,15 @@ void memory_copy_word(char *p) {
 
 void memory_copy(char *p) {
     char *p2;
-    if (p2 = checkstring(p, "BYTE")) {
+    if ((p2 = checkstring(p, "BYTE"))) {
         memory_copy_byte(p2);
-    } else if (p2 = checkstring(p, "FLOAT")) {
+    } else if ((p2 = checkstring(p, "FLOAT"))) {
         memory_copy_float(p2);
-    } else if (p2 = checkstring(p, "INTEGER")) {
+    } else if ((p2 = checkstring(p, "INTEGER"))) {
         memory_copy_integer(p2);
-    } else if (p2 = checkstring(p, "SHORT")) {
+    } else if ((p2 = checkstring(p, "SHORT"))) {
         memory_copy_short(p2);
-    } else if (p2 = checkstring(p, "WORD")) {
+    } else if ((p2 = checkstring(p, "WORD"))) {
         memory_copy_word(p2);
     } else {
         // Assume BYTE.
@@ -109,15 +109,15 @@ void memory_set_word(char *p) {
 
 void memory_set(char *p) {
     char *p2;
-    if (p2 = checkstring(p, "BYTE")) {
+    if ((p2 = checkstring(p, "BYTE"))) {
         memory_set_byte(p2);
-    } else if (p2 = checkstring(p, "FLOAT")) {
+    } else if ((p2 = checkstring(p, "FLOAT"))) {
         memory_set_float(p2);
-    } else if (p2 = checkstring(p, "INTEGER")) {
+    } else if ((p2 = checkstring(p, "INTEGER"))) {
         memory_set_integer(p2);
-    } else if (p2 = checkstring(p, "SHORT")) {
+    } else if ((p2 = checkstring(p, "SHORT"))) {
         memory_set_short(p2);
-    } else if (p2 = checkstring(p, "WORD")) {
+    } else if ((p2 = checkstring(p, "WORD"))) {
         memory_set_word(p2);
     } else {
         // Assume BYTE.
@@ -199,9 +199,9 @@ void cmd_memory(void) {
     // }
     // printf("\n");
     char *p;
-    if (p = checkstring(cmdline, "COPY")) {
+    if ((p = checkstring(cmdline, "COPY"))) {
         memory_copy(p);
-    } else if (p = checkstring(cmdline, "SET")) {
+    } else if ((p = checkstring(cmdline, "SET"))) {
         memory_set(p);
     } else {
         memory_report(p);

@@ -27,27 +27,27 @@ int parse_bool(char *p) {
 
 int parse_colour(char *p, int allow_bright) {
     char *p2;
-    if (p2 = parse_check_string(p, "BLACK")) {
+    if ((p2 = parse_check_string(p, "BLACK"))) {
         return BLACK;
-    } else if (p2 = parse_check_string(p, "BLUE")) {
+    } else if ((p2 = parse_check_string(p, "BLUE"))) {
         return BLUE;
-    } else if (allow_bright && (p2 = parse_check_string(p, "BRIGHT"))) {
+    } else if (allow_bright && ((p2 = parse_check_string(p, "BRIGHT")))) {
         int colour = parse_colour(p2, 0);
         if (colour == -1) return -1;
         return colour + BRIGHT_BLACK;
-    } else if (p2 = parse_check_string(p, "CYAN")) {
+    } else if ((p2 = parse_check_string(p, "CYAN"))) {
         return CYAN;
-    } else if (p2 = parse_check_string(p, "GREEN")) {
+    } else if ((p2 = parse_check_string(p, "GREEN"))) {
         return GREEN;
-    } else if (p2 = parse_check_string(p, "MAGENTA")) {
+    } else if ((p2 = parse_check_string(p, "MAGENTA"))) {
         return MAGENTA;
-    } else if (p2 = parse_check_string(p, "PURPLE")) {
+    } else if ((p2 = parse_check_string(p, "PURPLE"))) {
         return MAGENTA;
-    } else if (p2 = parse_check_string(p, "RED")) {
+    } else if ((p2 = parse_check_string(p, "RED"))) {
         return RED;
-    } else if (p2 = parse_check_string(p, "WHITE")) {
+    } else if ((p2 = parse_check_string(p, "WHITE"))) {
         return WHITE;
-    } else if (p2 = parse_check_string(p, "YELLOW")) {
+    } else if ((p2 = parse_check_string(p, "YELLOW"))) {
         return YELLOW;
     } else {
         int colour = getint(p, BLACK, BRIGHT_WHITE);

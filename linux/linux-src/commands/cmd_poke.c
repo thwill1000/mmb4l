@@ -85,45 +85,21 @@ void cmd_poke(void) {
     getargs(&cmdline, 5, ",");
 
     char* p;
-    if (p = checkstring(argv[0], "BYTE")) {
+    if ((p = checkstring(argv[0], "BYTE"))) {
         poke_byte(argc, argv, p);
-    } else if (p = checkstring(argv[0], "FLOAT")) {
+    } else if ((p = checkstring(argv[0], "FLOAT"))) {
         poke_float(argc, argv, p);
-    } else if (p = checkstring(argv[0], "INTEGER")) {
+    } else if ((p = checkstring(argv[0], "INTEGER"))) {
         poke_integer(argc, argv, p);
-    } else if (p = checkstring(argv[0], "SHORT")) {
+    } else if ((p = checkstring(argv[0], "SHORT"))) {
         poke_short(argc, argv, p);
-    } else if (p = checkstring(argv[0], "VAR")) {
+    } else if ((p = checkstring(argv[0], "VAR"))) {
         poke_var(argc, argv, p);
-    } else if (p = checkstring(argv[0], "VARTBL")) {
+    } else if ((p = checkstring(argv[0], "VARTBL"))) {
         poke_vartbl(argc, argv, p);
-    } else if (p = checkstring(argv[0], "WORD")) {
+    } else if ((p = checkstring(argv[0], "WORD"))) {
         poke_word(argc, argv, p);
     } else {
         poke_legacy(argc, argv, p);
     }
-
-    // if ((p = checkstring(argv[0], "WORD"))) {
-    //     if (argc != 3) error("Argument count");
-    //     *(unsigned int *)(get_poke_addr(p) & 0b11111111111111111111111111111100) =
-    //         getinteger(argv[2]);
-    //     return;
-    // }
-
-    // if (argc != 5) error("Argument count");
-
-    // if (checkstring(argv[0], "VARTBL")) {
-    //     *((char *)vartbl + (unsigned int)getinteger(argv[2])) =
-    //         getinteger(argv[4]);
-    //     return;
-    // }
-    // if ((p = checkstring(argv[0], "VAR"))) {
-    //     pp = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
-    //     if (vartbl[VarIndex].type & T_CONST) error("Cannot change a constant");
-    //     *((char *)pp + (unsigned int)getinteger(argv[2])) = getinteger(argv[4]);
-    //     return;
-    // }
-    // // the default is the old syntax of:   POKE hiaddr, loaddr, byte
-    // *(char *)(((int)getinteger(argv[0]) << 16) + (int)getinteger(argv[2])) =
-    //     getinteger(argv[4]);
 }

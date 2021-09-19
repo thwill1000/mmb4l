@@ -96,9 +96,9 @@ void option_list(char *p) {
 
 static void option_resolution(char *p) {
     char *p2 = NULL;
-    if (p2 = checkstring(p, "CHARACTER")) {
+    if ((p2 = checkstring(p, "CHARACTER"))) {
         g_options.resolution = CHARACTER;
-    } else if (p2 = checkstring(p, "PIXEL")) {
+    } else if ((p2 = checkstring(p, "PIXEL"))) {
         g_options.resolution = PIXEL;
     }
 
@@ -121,23 +121,23 @@ static void option_tab(char *p) {
 
 void cmd_option(void) {
     char *p;
-    if (p = checkstring(cmdline, "BASE")) {
+    if ((p = checkstring(cmdline, "BASE"))) {
         option_base(p);
-    } else if (p = checkstring(cmdline, "BREAK")) {
+    } else if ((p = checkstring(cmdline, "BREAK"))) {
         option_break(p);
-    } else if (p = checkstring(cmdline, "CASE")) {
+    } else if ((p = checkstring(cmdline, "CASE"))) {
         option_case(p);
-    } else if (p = checkstring(cmdline, "CONSOLE")) {
+    } else if ((p = checkstring(cmdline, "CONSOLE"))) {
         option_console(p);
-    } else if (p = checkstring(cmdline, "DEFAULT")) {
+    } else if ((p = checkstring(cmdline, "DEFAULT"))) {
         option_default(p);
-    } else if (p = checkstring(cmdline, "EXPLICIT")) {
+    } else if ((p = checkstring(cmdline, "EXPLICIT"))) {
         option_explicit(p);
-    } else if (p = checkstring(cmdline, "LIST")) {
+    } else if ((p = checkstring(cmdline, "LIST"))) {
         option_list(p);
-    } else if (p = checkstring(cmdline, "RESOLUTION")) {
+    } else if ((p = checkstring(cmdline, "RESOLUTION"))) {
         option_resolution(p);
-    } else if (p = checkstring(cmdline, "TAB")) {
+    } else if ((p = checkstring(cmdline, "TAB"))) {
         option_tab(p);
     } else {
         ERROR_UNRECOGNISED_OPTION;

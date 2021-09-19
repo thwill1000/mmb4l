@@ -118,25 +118,25 @@ void fun_peek(void) {
     getargs(&ep, 3, ",");
 
     char* p;
-    if (p = checkstring(argv[0], "BYTE")) {
+    if ((p = checkstring(argv[0], "BYTE"))) {
         peek_byte(argc, argv, p);
-    } else if (p = checkstring(argv[0], "CFUNADDR")) {
+    } else if ((p = checkstring(argv[0], "CFUNADDR"))) {
         peek_cfunaddr(argc, argv, p);
-    } else if (p = checkstring(argv[0], "INTEGER")) {
+    } else if ((p = checkstring(argv[0], "INTEGER"))) {
         peek_integer(argc, argv, p);
-    } else if (p = checkstring(argv[0], "FLOAT")) {
+    } else if ((p = checkstring(argv[0], "FLOAT"))) {
         peek_float(argc, argv, p);
-    } else if (p = checkstring(argv[0], "PROGMEM")) {
+    } else if ((p = checkstring(argv[0], "PROGMEM"))) {
         peek_progmem(argc, argv, p);
-    } else if (p = checkstring(argv[0], "SHORT")) {
+    } else if ((p = checkstring(argv[0], "SHORT"))) {
         peek_short(argc, argv, p);
-    } else if (p = checkstring(argv[0], "VAR")) {
+    } else if ((p = checkstring(argv[0], "VAR"))) {
         peek_var(argc, argv, p);
-    } else if (p = checkstring(argv[0], "VARADDR")) {
+    } else if ((p = checkstring(argv[0], "VARADDR"))) {
         peek_varaddr(argc, argv, p);
-    } else if (p = checkstring(argv[0], "VARTBL")) {
+    } else if ((p = checkstring(argv[0], "VARTBL"))) {
         peek_vartbl(argc, argv, p);
-    } else if (p = checkstring(argv[0], "WORD")) {
+    } else if ((p = checkstring(argv[0], "WORD"))) {
         peek_word(argc, argv, p);
     } else {
         peek_legacy(argc, argv, p);

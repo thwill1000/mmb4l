@@ -39,7 +39,7 @@ void get_mmcmdline(char *cmdline) {
     }
 
     char *q;
-    if (q = strchr(p, '|')) {
+    if ((q = strchr(p, '|'))) {
         q--;
         *q = 0;
     }
@@ -157,11 +157,11 @@ static void mminfo_exists_symlink(char *p) {
 
 static void mminfo_exists(char *p) {
     char *p2;
-    if (p2 = checkstring(p, "DIR")) {
+    if ((p2 = checkstring(p, "DIR"))) {
         mminfo_exists_dir(p2);
-    } else if (p2 = checkstring(p, "FILE")) {
+    } else if ((p2 = checkstring(p, "FILE"))) {
         mminfo_exists_file(p2);
-    } else if (p2 = checkstring(p, "SYMLINK")) {
+    } else if ((p2 = checkstring(p, "SYMLINK"))) {
         mminfo_exists_symlink(p2);
     } else {
         char *path = get_path(p);
@@ -314,47 +314,47 @@ static void mminfo_vpos(char *p) {
 
 void fun_mminfo(void) {
     char *p;
-    if (p = checkstring(ep, "ARCH")) {
+    if ((p = checkstring(ep, "ARCH"))) {
         mminfo_architecture(p);
-    } else if (p = checkstring(ep, "ARCHITECTURE")) {
+    } else if ((p = checkstring(ep, "ARCHITECTURE"))) {
         mminfo_architecture(p);
-    } else if (p = checkstring(ep, "CMDLINE")) {
+    } else if ((p = checkstring(ep, "CMDLINE"))) {
         mminfo_cmdline(p);
-    } else if (p = checkstring(ep, "CURRENT")) {
+    } else if ((p = checkstring(ep, "CURRENT"))) {
         mminfo_current(p);
-    } else if (p = checkstring(ep, "DEVICE")) {
+    } else if ((p = checkstring(ep, "DEVICE"))) {
         mminfo_device(p);
-    } else if (p = checkstring(ep, "DIRECTORY")) {
+    } else if ((p = checkstring(ep, "DIRECTORY"))) {
         mminfo_directory(p);
-    } else if (p = checkstring(ep, "ENVVAR")) {
+    } else if ((p = checkstring(ep, "ENVVAR"))) {
         mminfo_envvar(p);
-    } else if (p = checkstring(ep, "ERRMSG")) {
+    } else if ((p = checkstring(ep, "ERRMSG"))) {
         mminfo_errmsg(p);
-    } else if (p = checkstring(ep, "ERRNO")) {
+    } else if ((p = checkstring(ep, "ERRNO"))) {
         mminfo_errno(p);
-    } else if (p = checkstring(ep, "EXISTS")) {
+    } else if ((p = checkstring(ep, "EXISTS"))) {
         mminfo_exists(p);
-    } else if (p = checkstring(ep, "FILESIZE")) {
+    } else if ((p = checkstring(ep, "FILESIZE"))) {
         mminfo_filesize(p);
-    } else if (p = checkstring(ep, "FONTHEIGHT")) {
+    } else if ((p = checkstring(ep, "FONTHEIGHT"))) {
         mminfo_fontheight(p);
-    } else if (p = checkstring(ep, "FONTWIDTH")) {
+    } else if ((p = checkstring(ep, "FONTWIDTH"))) {
         mminfo_fontwidth(p);
-    } else if (p = checkstring(ep, "HRES")) {
+    } else if ((p = checkstring(ep, "HRES"))) {
         mminfo_hres(p);
-    } else if (p = checkstring(ep, "HPOS")) {
+    } else if ((p = checkstring(ep, "HPOS"))) {
         mminfo_hpos(p);
-    } else if (p = checkstring(ep, "OPTION")) {
+    } else if ((p = checkstring(ep, "OPTION"))) {
         mminfo_option(p);
-    } else if (p = checkstring(ep, "PATH")) {
+    } else if ((p = checkstring(ep, "PATH"))) {
         mminfo_path(p);
-    } else if (p = checkstring(ep, "VER")) {
+    } else if ((p = checkstring(ep, "VER"))) {
         mminfo_version(p);
-    } else if (p = checkstring(ep, "VERSION")) {
+    } else if ((p = checkstring(ep, "VERSION"))) {
         mminfo_version(p);
-    } else if (p = checkstring(ep, "VRES")) {
+    } else if ((p = checkstring(ep, "VRES"))) {
         mminfo_vres(p);
-    } else if (p = checkstring(ep, "VPOS")) {
+    } else if ((p = checkstring(ep, "VPOS"))) {
         mminfo_vpos(p);
     } else {
         error("Unrecognised argument to Mm.Info()");

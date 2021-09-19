@@ -27,13 +27,13 @@ static void on_error_skip(char *p) {
 
 static void on_error(char *p) {
     char *p2;
-    if (p2 = checkstring(p, "ABORT")) {
+    if ((p2 = checkstring(p, "ABORT"))) {
         on_error_abort(p2);
-    } else if (p2 = checkstring(p, "CLEAR")) {
+    } else if ((p2 = checkstring(p, "CLEAR"))) {
         on_error_clear(p2);
-    } else if (p2 = checkstring(p, "IGNORE")) {
+    } else if ((p2 = checkstring(p, "IGNORE"))) {
         on_error_ignore(p2);
-    } else if (p2 = checkstring(p, "SKIP")) {
+    } else if ((p2 = checkstring(p, "SKIP"))) {
         on_error_skip(p2);
     } else {
         error("Syntax");
@@ -99,9 +99,9 @@ static void on_number(char *p) {
 
 void cmd_on(void) {
     char *p;
-    if (p = checkstring(cmdline, "ERROR")) {
+    if ((p = checkstring(cmdline, "ERROR"))) {
         on_error(p);
-    } else if (p = checkstring(cmdline, "KEY")) {
+    } else if ((p = checkstring(cmdline, "KEY"))) {
         on_key(p);
     } else {
         on_number(p);

@@ -131,33 +131,33 @@ static void cmd_console_show_cursor(char *p) {
 
 void cmd_console(void) {
     char *p;
-    if (p = parse_check_string(cmdline, "BACKGROUND")) {
+    if ((p = parse_check_string(cmdline, "BACKGROUND"))) {
         cmd_console_background(p);
-    } else if (p = parse_check_string(cmdline, "BELL")) {
+    } else if ((p = parse_check_string(cmdline, "BELL"))) {
         cmd_console_bell(p);
-    } else if (p = parse_check_string(cmdline, "CLEAR")) {
+    } else if ((p = parse_check_string(cmdline, "CLEAR"))) {
         cmd_console_clear(p);
-    } else if (p = parse_check_string(cmdline, "GETCURSOR")) {
+    } else if ((p = parse_check_string(cmdline, "GETCURSOR"))) {
         cmd_console_get_cursor(p);
-    } else if (p = parse_check_string(cmdline, "GETSIZE")) {
+    } else if ((p = parse_check_string(cmdline, "GETSIZE"))) {
         cmd_console_get_size(p);
-    } else if (p = parse_check_string(cmdline, "FOREGROUND")) {
+    } else if ((p = parse_check_string(cmdline, "FOREGROUND"))) {
         cmd_console_foreground(p);
-    } else if (p = parse_check_string(cmdline, "HIDECURSOR")) {
+    } else if ((p = parse_check_string(cmdline, "HIDECURSOR"))) {
         cmd_console_hide_cursor(p);
-    } else if (p = parse_check_string(cmdline, "HOME")) {
+    } else if ((p = parse_check_string(cmdline, "HOME"))) {
         cmd_console_home(p);
-    } else if (p = parse_check_string(cmdline, "INVERSE")) {
+    } else if ((p = parse_check_string(cmdline, "INVERSE"))) {
         cmd_console_invert(p);
-    } else if (p = parse_check_string(cmdline, "INVERT")) {
+    } else if ((p = parse_check_string(cmdline, "INVERT"))) {
         cmd_console_invert(p);
-    } else if (p = parse_check_string(cmdline, "RESET")) {
+    } else if ((p = parse_check_string(cmdline, "RESET"))) {
         cmd_console_reset(p);
-    } else if (p = parse_check_string(cmdline, "SETCURSOR")) {
+    } else if ((p = parse_check_string(cmdline, "SETCURSOR"))) {
         cmd_console_set_cursor(p);
-    } else if (p = parse_check_string(cmdline, "SETTITLE")) {
+    } else if ((p = parse_check_string(cmdline, "SETTITLE"))) {
         cmd_console_set_title(p);
-    } else if (p = parse_check_string(cmdline, "SHOWCURSOR")) {
+    } else if ((p = parse_check_string(cmdline, "SHOWCURSOR"))) {
         cmd_console_show_cursor(p);
     } else {
         ERROR_UNKNOWN_SUBCOMMAND;

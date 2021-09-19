@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+#include "../common/error.h"
 #include "../common/version.h"
 
 static void longstring_append(char *tp) {
@@ -458,38 +459,38 @@ void longstring_ucase(char *tp) {
 }
 
 void cmd_longstring(void) {
-    char *tp;
-    if (tp = checkstring(cmdline, "APPEND")) {
-        longstring_append(tp);
-    } else if (tp = checkstring(cmdline, "CLEAR")) {
-        longstring_clear(tp);
-    } else if (tp = checkstring(cmdline, "COPY")) {
-        longstring_copy(tp);
-    } else if (tp = checkstring(cmdline, "CONCAT")) {
-        longstring_concat(tp);
-    } else if (tp = checkstring(cmdline, "LCASE")) {
-        longstring_lcase(tp);
-    } else if (tp = checkstring(cmdline, "LEFT")) {
-        longstring_left(tp);
-    } else if (tp = checkstring(cmdline, "LOAD")) {
-        longstring_load(tp);
-    } else if (tp = checkstring(cmdline, "MID")) {
-        longstring_mid(tp);
-    } else if (tp = checkstring(cmdline, "PRINT")) {
-        longstring_print(tp);
-    } else if (tp = checkstring(cmdline, "REPLACE")) {
-        longstring_replace(tp);
-    } else if (tp = checkstring(cmdline, "RESIZE")) {
-        longstring_resize(tp);
-    } else if (tp = checkstring(cmdline, "RIGHT")) {
-        longstring_right(tp);
-    } else if (tp = checkstring(cmdline, "SETBYTE")) {
-        longstring_setbyte(tp);
-    } else if (tp = checkstring(cmdline, "TRIM")) {
-        longstring_trim(tp);
-    } else if (tp = checkstring(cmdline, "UCASE")) {
-        longstring_ucase(tp);
+    char *p;
+    if ((p = checkstring(cmdline, "APPEND"))) {
+        longstring_append(p);
+    } else if ((p = checkstring(cmdline, "CLEAR"))) {
+        longstring_clear(p);
+    } else if ((p = checkstring(cmdline, "COPY"))) {
+        longstring_copy(p);
+    } else if ((p = checkstring(cmdline, "CONCAT"))) {
+        longstring_concat(p);
+    } else if ((p = checkstring(cmdline, "LCASE"))) {
+        longstring_lcase(p);
+    } else if ((p = checkstring(cmdline, "LEFT"))) {
+        longstring_left(p);
+    } else if ((p = checkstring(cmdline, "LOAD"))) {
+        longstring_load(p);
+    } else if ((p = checkstring(cmdline, "MID"))) {
+        longstring_mid(p);
+    } else if ((p = checkstring(cmdline, "PRINT"))) {
+        longstring_print(p);
+    } else if ((p = checkstring(cmdline, "REPLACE"))) {
+        longstring_replace(p);
+    } else if ((p = checkstring(cmdline, "RESIZE"))) {
+        longstring_resize(p);
+    } else if ((p = checkstring(cmdline, "RIGHT"))) {
+        longstring_right(p);
+    } else if ((p = checkstring(cmdline, "SETBYTE"))) {
+        longstring_setbyte(p);
+    } else if ((p = checkstring(cmdline, "TRIM"))) {
+        longstring_trim(p);
+    } else if ((p = checkstring(cmdline, "UCASE"))) {
+        longstring_ucase(p);
     } else {
-        error("Syntax");
+        ERROR_SYNTAX;
     }
 }

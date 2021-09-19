@@ -150,35 +150,35 @@ void cmd_list(void) {
 
     if (parse_is_end(cmdline)) {
         list_file(NULL, false);
-    } else if (p = checkstring(cmdline, "COMMANDS")) {
+    } else if ((p = checkstring(cmdline, "COMMANDS"))) {
         if (!parse_is_end(p)) ERROR_SYNTAX;
         list_commands();
-    } else if (p = checkstring(cmdline, "CSUBS")) {
+    } else if ((p = checkstring(cmdline, "CSUBS"))) {
         if (parse_is_end(p)) {
             list_csubs(false);
-        } else if (p = checkstring(p, "ALL")) {
+        } else if ((p = checkstring(p, "ALL"))) {
             if (!parse_is_end(p)) ERROR_SYNTAX;
             list_csubs(true);
         } else {
             ERROR_SYNTAX;
         }
-    } else if (p = checkstring(cmdline, "FLASH")) {
+    } else if ((p = checkstring(cmdline, "FLASH"))) {
         if (parse_is_end(p)) {
             list_flash(false);
-        } else if (p = checkstring(p, "ALL")) {
+        } else if ((p = checkstring(p, "ALL"))) {
             if (!parse_is_end(p)) ERROR_SYNTAX;
             list_flash(true);
         } else {
             ERROR_SYNTAX;
         }
-    } else if (p = checkstring(cmdline, "FUNCTIONS")) {
+    } else if ((p = checkstring(cmdline, "FUNCTIONS"))) {
         if (!parse_is_end(p)) ERROR_SYNTAX;
         list_functions();
-    } else if (p = checkstring(cmdline, "OPTIONS")) {
+    } else if ((p = checkstring(cmdline, "OPTIONS"))) {
         if (!parse_is_end(p)) ERROR_SYNTAX;
         list_options();
     } else {
-        if (p = checkstring(cmdline, "ALL")) {
+        if ((p = checkstring(cmdline, "ALL"))) {
             if (parse_is_end(p)) {
                 list_file(NULL, true);
             } else {
