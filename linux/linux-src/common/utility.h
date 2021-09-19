@@ -2,6 +2,7 @@
 #define UTILITY_H
 
 #include <stdlib.h>
+#include <time.h>
 
 extern const struct timespec ONE_MICROSECOND;
 extern const struct timespec ONE_MILLISECOND;
