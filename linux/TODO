@@ -4,15 +4,20 @@ TODO
 Required for alpha 1
 --------------------
 
+MMDIR, MMBASIC_HOME_DIR and MMBASIC_CONFIG_DIR environment variables
+Check MEMORY report
+Check output from LIST CSUBS when there are no CSUBs
 Fix timing issues with CONSOLE GETCURSOR
 Finalise 'Nano' customisation
 Build on Raspberry Pi 32-bit
+ - check 64-bit address alignment for PEEK/POKE
+Review memory map code in memory.c
 Write README
 
-Not required for alpha 1
-------------------------
+Required for release
+--------------------
 
-Build on ChromeOS
+Build on Chrome OS
 Implement SEARCH PATH
 Implement command-line RUN shortcut '*'
 Add timer to sptest when multiple tests are executed
@@ -23,6 +28,22 @@ Make output from LS more like that of CMM2
 Have another look at the other settings recommended for raw console mode
 Make all function keys reprogrammable
 Implement OPTION persistence
-Implement SWAP
-Rewrite pre-processor
+Work through CMM2 manual implementing missing commands/functions
 Review all uses of void*
+Implement safety checks on PEEK/POKE calls
+ - should these be optional ?
+ - should address alignment of PEEK/POKE be optional ?
+Implement serial I/O
+Implement command-line shortcut for SYSTEM command, e.g. '!ls'
+Implement command-line path completion
+Implement support for ~ at start of paths
+Implement MM.INFO(EXITSTATUS) to retrieve exit code from SYSTEM command.
+
+To infinity and beyond
+----------------------
+
+Build on macOS
+Rewrite pre-processor
+Implement SWAP
+Integrate 'pigpio' with Raspberry Pi build
+High resolution graphics
