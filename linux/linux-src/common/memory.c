@@ -26,11 +26,13 @@ provisions:
 // allocate static memory for programs, variables and the heap
 // this is simple memory management because DOS has plenty of memory
 
+#define MMAP_SIZE  ((HEAP_SIZE / PAGESIZE) / PAGESPERWORD) + 1
+
 // memory for the program
 char ProgMemory[PROG_FLASH_SIZE];
 
 // memory for the memory map used in heap management
-unsigned int mmap[(HEAP_SIZE / PAGESIZE) / PAGESPERWORD];
+uint32_t mmap[MMAP_SIZE];
 
 // memory for the actual heap
 char MMHeap[HEAP_SIZE];
@@ -42,7 +44,6 @@ struct s_vartbl DOS_vartbl[MAXVARS];
 char *StrTmp[MAXTEMPSTRINGS];                                       // used to track temporary string space on the heap
 char StrTmpLocalIndex[MAXTEMPSTRINGS];                              // used to track the LocalIndex for each temporary string space on the heap
 int TempMemoryIsChanged = false;                                    // used to prevent unnecessary scanning of strtmp[]
-
 
 // global functions
 unsigned int MBitsGet(void *addr);
@@ -130,9 +131,17 @@ void FreeMemory(void *addr) {
 }
 
 void InitHeap(void) {
-    int i;
-    for(i = 0; i < (HEAP_SIZE / PAGESIZE) / PAGESPERWORD; i++) mmap[i] = 0;
-    for(i = 0; i < MAXTEMPSTRINGS; i++) StrTmp[i] = NULL;
+#if 0
+    printf("MMHeap = %lX\n", MMHeap);
+    printf("ProgMemory = %lX\n", ProgMemory);
+    printf("HEAP_SIZE = %ld\n", HEAP_SIZE);
+    printf("PAGESIZE = %ld\n", PAGESIZE);
+    printf("PAGESPERWORD = %ld\n", PAGESPERWORD);
+    printf("RAMEND = %lX\n", RAMEND);
+    printf("MMAP SIZE = %d\n", MMAP_SIZE);
+#endif
+    for (int i = 0; i < MMAP_SIZE; i++) mmap[i] = 0;
+    for (int i = 0; i < MAXTEMPSTRINGS; i++) StrTmp[i] = NULL;
     MBitsSet((char *) RAMEND, PUSED | PLAST);
 }
 
