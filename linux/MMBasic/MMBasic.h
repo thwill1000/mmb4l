@@ -185,8 +185,15 @@ extern char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
 // void error(char *msg) ;
 void MIPS16 error(char *, ...);
 void MIPS16 InitBasic(void);
+
+#if defined(__linux__)
+int32_t FloatToInt32(MMFLOAT x);
+int64_t FloatToInt64(MMFLOAT x);
+#else
 int FloatToInt32(MMFLOAT);
 long long int FloatToInt64(MMFLOAT x);
+#endif
+
 void makeargs(char **tp, int maxargs, char *argbuf, char *argv[], int *argc, char *delim);
 void *findvar(char *, int);
 void erasearray(char *n);

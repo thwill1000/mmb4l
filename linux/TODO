@@ -5,10 +5,8 @@ Required for alpha 1
 --------------------
 
 Fix timing issues with CONSOLE GETCURSOR
-Fix clang compiler warnings
 Finalise 'Nano' customisation
 Build on Raspberry Pi 32-bit
-Unit test MATH commands and functions
 Write README
 
 Not required for alpha 1

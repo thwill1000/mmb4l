@@ -2366,7 +2366,23 @@ void MIPS16 ClearProgram(void) {
 
 
 
+#if defined(__linux__)
+int32_t FloatToInt32(MMFLOAT x) {
+    if (x < (MMFLOAT) LONG_MIN - 0.5 || x > (MMFLOAT) LONG_MAX + 0.5)
+        error("Number too large");
+    return x >= 0 ? (int32_t)(x + 0.5) : (int32_t)(x - 0.5);
+}
 
+int64_t FloatToInt64(MMFLOAT x) {
+    if (x < (MMFLOAT) LLONG_MIN - 0.5 || x > (MMFLOAT) LLONG_MAX + 0.5)
+        error("Number too large");
+    if ((x < -FLOAT_ROUNDING_LIMIT) || (x > FLOAT_ROUNDING_LIMIT))
+        return (int64_t) x;
+    else
+        return x >= 0 ? (int64_t)(x + 0.5) : (int64_t)(x - 0.5);
+}
+
+#else
 // round a float to an integer
 int FloatToInt32(MMFLOAT x) {
     if(x < LONG_MIN - 0.5 || x > LONG_MAX + 0.5)
@@ -2384,6 +2400,7 @@ long long int FloatToInt64(MMFLOAT x) {
    else
        return (x >= 0 ? (long long int)(x + 0.5) : (long long int)(x - 0.5)) ;
 }
+#endif
 
 
 
