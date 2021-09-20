@@ -70,6 +70,6 @@ void *get_peek_addr(void *p);
 
 extern struct s_vartbl *vartbl;
 extern struct s_vartbl DOS_vartbl[MAXVARS];
-extern unsigned char ProgMemory[];
+extern char ProgMemory[];
 
 #endif

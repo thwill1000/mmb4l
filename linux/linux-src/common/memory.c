@@ -27,13 +27,13 @@ provisions:
 // this is simple memory management because DOS has plenty of memory
 
 // memory for the program
-unsigned char ProgMemory[PROG_FLASH_SIZE];
+char ProgMemory[PROG_FLASH_SIZE];
 
 // memory for the memory map used in heap management
 unsigned int mmap[(HEAP_SIZE / PAGESIZE) / PAGESPERWORD];
 
 // memory for the actual heap
-unsigned char MMHeap[HEAP_SIZE];
+char MMHeap[HEAP_SIZE];
 
 // memory for the variable table
 struct s_vartbl DOS_vartbl[MAXVARS];
@@ -133,7 +133,7 @@ void InitHeap(void) {
     int i;
     for(i = 0; i < (HEAP_SIZE / PAGESIZE) / PAGESPERWORD; i++) mmap[i] = 0;
     for(i = 0; i < MAXTEMPSTRINGS; i++) StrTmp[i] = NULL;
-    MBitsSet((unsigned char *)RAMEND, PUSED | PLAST);
+    MBitsSet((char *) RAMEND, PUSED | PLAST);
 }
 
 /***********************************************************************************************************************
@@ -160,9 +160,9 @@ void MBitsSet(void *addr, int bits) {
 
 void *getheap(int size) {
     unsigned int j, n;
-    unsigned char *addr;
+    char *addr;
     j = n = (size + PAGESIZE - 1)/PAGESIZE;                         // nbr of pages rounded up
-    for(addr = (unsigned char *)RAMEND -  PAGESIZE; addr > MMHeap; addr -= PAGESIZE) {
+    for(addr = (char *) RAMEND -  PAGESIZE; addr > MMHeap; addr -= PAGESIZE) {
         if(!(MBitsGet(addr) & PUSED)) {
             if(--n == 0) {                                          // found a free slot
                 j--;
@@ -184,18 +184,18 @@ void *getheap(int size) {
 
 int FreeSpaceOnHeap(void) {
     unsigned int nbr;
-    unsigned char *addr;
+    char *addr;
     nbr = 0;
-    for(addr = (unsigned char *)RAMEND -  PAGESIZE; addr > MMHeap; addr -= PAGESIZE)
+    for(addr = (char *) RAMEND -  PAGESIZE; addr > MMHeap; addr -= PAGESIZE)
         if(!(MBitsGet(addr) & PUSED)) nbr++;
     return nbr * PAGESIZE;
 }
 
 unsigned int UsedHeap(void) {
     unsigned int nbr;
-    unsigned char *addr;
+    char *addr;
     nbr = 0;
-    for(addr = (unsigned char *)RAMEND -  PAGESIZE; addr > MMHeap; addr -= PAGESIZE)
+    for(addr = (char *) RAMEND -  PAGESIZE; addr > MMHeap; addr -= PAGESIZE)
         if(MBitsGet(addr) & PUSED) nbr++;
     return nbr * PAGESIZE;
 }
@@ -203,9 +203,9 @@ unsigned int UsedHeap(void) {
 #ifdef __xDEBUG
 void heapstats(char *m1) {
     int blk, siz, fre, hol;
-    unsigned char *addr;
+    char *addr;
     blk = siz = fre = hol = 0;
-    for(addr = (unsigned char *)RAMEND - PAGESIZE; addr >= MMHeap; addr -= PAGESIZE) {
+    for(addr = (char *) RAMEND - PAGESIZE; addr >= MMHeap; addr -= PAGESIZE) {
         if(MBitsGet((void *)addr) & PUSED)
             {siz++; hol = fre;}
         else
