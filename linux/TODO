@@ -12,7 +12,7 @@ Write README
 Not required for alpha 1
 ------------------------
 
-Build on Android and ChromeOS
+Build on ChromeOS
 Implement SEARCH PATH
 Implement command-line RUN shortcut '*'
 Add timer to sptest when multiple tests are executed

@@ -18,7 +18,7 @@ static void mminfo_architecture(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
-    strcpy(g_string_rtn, "x86_64");
+    strcpy(g_string_rtn, MM_ARCH);
     CtoM(g_string_rtn);
 }
 
@@ -64,7 +64,7 @@ static void mminfo_current(char *p) {
 }
 
 void get_mmdevice(char *device) {
-    strcpy(device, "Linux");
+    strcpy(device, MM_DEVICE);
 }
 
 static void mminfo_device(char *p) {

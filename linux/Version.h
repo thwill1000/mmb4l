@@ -67,13 +67,20 @@ provisions:
         #define DOS
         #define __386__
         #define MES_SIGNON  "Windows MMBasic Ver " VERSION "\r\n"
-    #elif defined(__linux__)
-        #define MES_SIGNON  "Linux x86_64 MMBasic Ver " VERSION "-a1\r\n"
+    #elif defined(__ANDROID__) && defined(__aarch64__)
+        // Note that __linux__ is also defined if __ANDROID__ is defined.
+        #define MM_DEVICE  "Android"
+        #define MM_ARCH    "aarch64"
+    #elif defined(__linux__) && defined(__x86_64)
+        #define MM_DEVICE  "Linux"
+        #define MM_ARCH    "x86_64"
     #else
         #error This device is not supported
     #endif
 
-
+    #if defined(__linux__) // Which includes __ANDROID__
+        #define MES_SIGNON  MM_DEVICE " " MM_ARCH " MMBasic Ver " VERSION "-a1\r\n"
+    #endif
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // debugging options
