@@ -1,3 +1,5 @@
+set autoindent
+#set linenumbers
 set morespace
 set multibuffer
 #set nohelp            # perhaps comment out until comfortable
@@ -7,9 +9,9 @@ set smooth
 set suspend
 set tabsize 2
 
-unbind ^K main
 unbind ^U main
 unbind ^W main
+unbind M-Z main
 
 bind ^O insert main
 bind ^S savefile main
@@ -38,9 +40,11 @@ bind ^Y redo main
 bind M-A nohelp main
 bind M-L constantshow main
 
-bind M-Z suspend main
-
-bind F4 mark main
 bind ^/ comment main
 
-include ~/.nano/syntax/mmbasic.nanorc
+bind F1 exit main        # save and exit
+bind F2 savefile main    # save
+bind F3 findnext main
+bind F4 mark main
+
+include ~/.mmbasic/mmbasic.syntax.nanorc

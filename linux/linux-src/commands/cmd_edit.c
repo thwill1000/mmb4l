@@ -6,16 +6,39 @@
 #include "../common/utility.h"
 #include "../common/version.h"
 
-extern char CurrentFile[STRINGSIZE];
+static void get_mmbasic_nanorc(char *path) {
+    *path = '\0';
+    char *home = getenv("HOME");
+    if (!home) return;
+    sprintf(path, "%s/.mmbasic/mmbasic.nanorc", home);
+    if (!file_exists(path)) {
+        *path = '\0';
+    }
+}
 
 static int run_editor(char *file_path, int line) {
-    // char *mmeditor = getenv("MMEDITOR");
+     // char *mmeditor = getenv("MMEDITOR");
+
+    char nanorc[STRINGSIZE];
+    get_mmbasic_nanorc(nanorc);
 
     char command[STRINGSIZE * 2];
-    if (line > 0) {
-        snprintf(command, STRINGSIZE * 2, "nano -R +%d \"%s\"", line, file_path);
+    if (*nanorc == '\0') {
+        snprintf(
+                command,
+                STRINGSIZE * 2,
+                "nano -R +%d \"%s\"", line > 0 ? line : 1,
+                file_path);
     } else {
-        snprintf(command, STRINGSIZE * 2, "nano -R \"%s\"", file_path);
+        // Note early values or nano, such as the default version for Raspbian
+        // do not support the --rcfile flag.
+        snprintf(
+                command,
+                STRINGSIZE * 2,
+                "nano -R --rcfile=%s +%d \"%s\"",
+                nanorc,
+                line > 0 ? line : 1,
+                file_path);
     }
 
     errno = 0;

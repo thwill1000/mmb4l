@@ -1,4 +1,5 @@
 ## Syntax highlighting for nano for MMBasic (c) Thomas Hugo Williams 2021
+## Bit of a "dogs dinner" at the moment because derived from syntax for X11-Basic
 
 syntax "MMBasic" "\.(bas|BAS|inc|INC)$"
 
@@ -9,12 +10,12 @@ comment "' "
 icolor white "\<[A-Z_][A-Za-z0-9_]*(|\$|\%|\&|\||\(\))\>"
 
 # system vars
-icolor cyan "\<(CCSAPLID|CCSERR|CRSCOL|CRSLIN|CTIMER|ERR|FALSE)\>"
+icolor cyan "\<(CCSAPLID|CCSERR|CRSCOL|CRSLIN|CTIMER|FALSE)\>"
 icolor cyan "\<(GPS_ALT|GPS_LAT|GPS_LON|MOUSEK|MOUSES|MOUSEX|MOUSEY)\>"
 icolor cyan "\<(PC|PI|SP|STIMER|TIMER|TRUE)\>"
 
 # system string vars
-icolor cyan "\<(DATE|FILEEVENT|INKEY|TERMINALNAME|TIME|TRACE)\$"
+icolor cyan "\<(DATE|FILEEVENT|INKEY|MM.CMDLINE|TERMINALNAME|TIME|TRACE)\$"
 
 #special system vars
 icolor cyan "\<(ANDROID|GPIO|GPS|SENSOR|WIN32|UNIX)\?"
@@ -122,22 +123,31 @@ icolor cyan "(^|^[[:space:]]*)(BASE|DEFAULT|OPTION|FLOAT|EXPLICIT|ON|CONSOLE|SET
 ## commands with a blank in it
 
 icolor cyan "(^|^[[:space:]]*)(ON\ ERROR\ CONT)"
+icolor cyan "(^|^[[:space:]]*)(ON\ ERROR\ SKIP)"
 icolor cyan "(^|^[[:space:]]*)(ON\ BREAK\ CONT)"
 icolor cyan "(^|^[[:space:]]*)(ECHO\ (ON|OFF))"
+icolor cyan "(^|^[[:space:]]*)(EXIT\ DO)"
 
 ## keywords
 icolor cyan "\<(and|or|not|to|xor|not|then|step|var|tab|using)\>"
-icolor cyan "\<(base|case|default|explicit|float|function|on|select)\>"
+icolor cyan "\<(option base|case|default|explicit|float|function|on|select)\>"
 icolor cyan "\<(getsize|reset|clear|background|setcursor|black|while|white)\>"
-icolor cyan "\<(choice|hidecursor)\>"
+icolor cyan "\<(choice|elseif|hidecursor|else|const|mm.info|option|sub|inc|next|none|cat)\>"
+icolor cyan "\<(cfunaddr|csub|integer|mode|goto|for input as|for output as|error)\>"
+icolor cyan "#include"
+icolor cyan "\<(input|exit)\>"
+icolor cyan "\<(format)\$\("
+icolor cyan "\<(font|console|loop|mod|until|serial)\>"
 
 ## operators
 color white "[+*=\^]" "<" ">" "/" "-"
-color brightred "[@\~]"
+# color brightred "[@\~]"
 
 ## number constants
-icolor green "\b(([1-9][0-9]+)|0+)\.[0-9]+j?\b" "\b([1-9][0-9]*[Lj]?)\b" "\b0o?[0-7]*L?\b" "\b0x[1-9a-f][0-9a-f]*L?\b" "\b0b[01]+\b"
-icolor green "[\ ,\(]\#[1-9][0-9]*\b"
+#icolor green "\b(([1-9][0-9]+)|0+)\.[0-9]+j?\b" "\b([1-9][0-9]*[Lj]?)\b" "\b0o?[0-7]*L?\b" "\b0x[1-9a-f][0-9a-f]*L?\b" "\b0b[01]+\b"
+#icolor green "[\ ,\(]\#[1-9][0-9]*\b"
+icolor green "\<[-]?[1-9][0-9]*[.[0-9]*]?([Ee][+-]?[0-9]+)?\>"
+icolor green "\<[-]?[0](\.[0-9]+)?\>"
 
 ## parentheses
 color white "[(){}]" "\[" "\]"
@@ -145,18 +155,20 @@ color white "[(){}]" "\[" "\]"
 # labels
 icolor white "(^|^[[:space:]]*)[^\ ^=.]*:"
 
-# Comments.
-color yellow "(^|^[[:space:]]*)'.*$"
-icolor yellow "(^|^[[:space:]]*)REM.*$"
-#color yellow "!.*$"
+# Strings
+color brightmagenta ""(\\.|[^"])*""
 
-icolor brightwhite,blue "(^|^[[:space:]]*)PROGRAM.*$"
+# Comments.
+color yellow "'.*"
+icolor yellow "REM\ .*"
+
+# SPTrans directives.
+color red "'!.*"
+
+#icolor brightwhite,blue "(^|^[[:space:]]*)PROGRAM.*$"
 
 #shebang line
 #icolor brightwhite,green "^\#\!.*$"
-
-# Strings
-color brightmagenta ""(\\.|[^"])*""
 
 ## trailing spaces
 color ,red "[[:space:]]+$"
