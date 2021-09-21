@@ -5,7 +5,6 @@ Required for alpha 1
 --------------------
 
 MMDIR, MMBASIC_HOME_DIR and MMBASIC_CONFIG_DIR environment variables
-Check MEMORY report
 Fix timing issues with CONSOLE GETCURSOR
 Finalise 'Nano' customisation
 Build on Raspberry Pi 32-bit

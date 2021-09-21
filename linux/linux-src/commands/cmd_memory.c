@@ -125,56 +125,60 @@ void memory_set(char *p) {
     }
 }
 
-void memory_report(char *unused) {
+static void count_program_size_and_lines(int *num_bytes, int *num_lines) {
+    *num_bytes = 0;
+    *num_lines = 0;
 
-    int i, vcnt;
-    int pbytes, pm, pp, gm, gp;
-
-    // calculate the number of variables
-    for (i = vcnt = 0; i < varcnt; i++) {
-        if (vartbl[i].type != T_NOTYPE) vcnt++;
-    }
-
-    // count the number of lines in the program
     char *p = ProgMemory;
-    pbytes = i = 0;
     while (1) {
         while (*p) {
             p++;
-            pbytes++;
+            (*num_bytes)++;
         }  // look for the zero marking the start of an element
         if (p[1] == 0) break;  // end of the program
         if (p[1] == T_LINENBR) {
-            i++;
+            (*num_lines)++;
             p += 3;  // skip over the line number
-            pbytes += 3;
+            (*num_bytes) += 3;
         } else if (p[1] == T_NEWLINE) {
-            i++;
+            (*num_lines)++;
             p += 1;  // skip over the new line token
-            pbytes += 1;
+            (*num_bytes) += 1;
         }
         p++;
-        pbytes++;
+        (*num_bytes)++;
         skipspace(p);
         if (p[0] == T_LABEL) {
-            pbytes += p[1] + 2;
+            (*num_bytes) += p[1] + 2;
             p += p[1] + 2;  // skip over the label
         }
     }
-    pm = (PROG_FLASH_SIZE + 512) / 1024;
-    pp = ((PROG_FLASH_SIZE + 512) * 100) / PROG_FLASH_SIZE;
-    gm = (UsedHeap() + 512) / 1024;
-    gp = ((UsedHeap() + 512) * 100) / HEAP_SIZE;
+}
 
+static int count_variables() {
+    int vcnt = 0;
+    for (int i = 0; i < varcnt; i++) {
+        if (vartbl[i].type != T_NOTYPE) vcnt++;
+    }
+    return vcnt;
+}
+
+void memory_report(char *unused) {
+
+    int num_bytes = 0;
+    int num_lines = 0;
+    count_program_size_and_lines(&num_bytes, &num_lines);
     sprintf(
             inpbuf,
             "    Program:%4dK (%2d%%) used %3dK free (%d line%s)\r\n",
-            (pbytes + 512) / 1024,
-            (pbytes * 100) / PROG_FLASH_SIZE,
-            (PROG_FLASH_SIZE - pbytes + 512) / 1024,
-            i,
-            i == 1 ? "" : "s");
+            (num_bytes + 512) / 1024,
+            (num_bytes * 100) / PROG_FLASH_SIZE,
+            (PROG_FLASH_SIZE - num_bytes + 512) / 1024,
+            num_lines,
+            num_lines == 1 ? "" : "s");
     MMPrintString(inpbuf);
+
+    int vcnt = count_variables();
     sprintf(
             inpbuf,
             "  Variables:%4ldK (%2d%%) used %3ldK free (%d variables)\r\n",
@@ -183,12 +187,15 @@ void memory_report(char *unused) {
             (((MAXVARS * sizeof(struct s_vartbl)) + 512) / 1024) - (((vcnt * sizeof(struct s_vartbl)) + 512) / 1024),
             vcnt);
     MMPrintString(inpbuf);
+
+    int ram_used = (UsedHeap() + 512) / 1024;
+    int percent_used = ((UsedHeap() + 512) * 100) / HEAP_SIZE;
     sprintf(
             inpbuf,
             "General RAM:%4dK (%2d%%) used %3dK free\r\n",
-            gm,
-            gp,
-            (HEAP_SIZE / 1024) - gm);
+            ram_used,
+            percent_used,
+            (HEAP_SIZE / 1024) - ram_used);
     MMPrintString(inpbuf);
 }
 
