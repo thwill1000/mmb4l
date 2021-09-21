@@ -530,8 +530,8 @@ static void print_line(char *buf, int* line_count, int all) {
 
 void program_list_csubs(int all) {
     uint32_t *p = (uint32_t *) CFunctionFlash;
-    char name[64];
-    char buf[STRINGSIZE];
+    char name[64] = { 0 };
+    char buf[STRINGSIZE] = { 0 };
     int line_count = 1;
 
     while (*((uint64_t *) p) != 0xFFFFFFFFFFFFFFFF) {

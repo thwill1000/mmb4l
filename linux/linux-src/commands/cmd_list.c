@@ -153,7 +153,7 @@ void cmd_list(void) {
     } else if ((p = checkstring(cmdline, "COMMANDS"))) {
         if (!parse_is_end(p)) ERROR_SYNTAX;
         list_commands();
-    } else if ((p = checkstring(cmdline, "CSUBS"))) {
+    } else if ((p = checkstring(cmdline, "CSUB")) || (p = checkstring(cmdline, "CSUBS"))) {
         if (parse_is_end(p)) {
             list_csubs(false);
         } else if ((p = checkstring(p, "ALL"))) {
