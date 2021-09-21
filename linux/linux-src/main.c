@@ -58,7 +58,6 @@ int ErrorInPrompt = false;
 
 char g_break_key = BREAK_KEY;
 
-char *GetEnvPath(char *env);
 void IntHandler(int signo);
 int LoadFile(char *prog);
 void dump_token_table(const struct s_tokentbl* tbl);
@@ -71,6 +70,27 @@ void init_options() {
     Option.Tab = 4;
     Option.console = SERIAL;
     Option.resolution = CHARACTER;
+}
+
+void set_start_directory() {
+    char *p = getenv("MMDIR");
+    if (!p) return;
+
+    // Strip any quotes around the value.
+    if (*p == '\"') {
+        p++;
+        if (p[strlen(p) - 1] == '\"') p[strlen(p) - 1] = 0;
+    }
+
+    errno = 0;
+    if (chdir(p) != 0) {
+        MMPrintString("Error: MMDIR invalid, could not set starting directory '");
+        MMPrintString(p);
+        MMPrintString("'.\r\n");
+        MMPrintString(strerror(errno));
+        MMPrintString(".\r\n");
+        MMPrintString("\r\n");
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -125,7 +145,7 @@ int main(int argc, char *argv[]) {
     if (!RunCommandLineProgram)
         RunCommandLineProgram = LoadFile("C:\\AUTORUN.BAS");
 
-    if (getenv("MMDIR") != NULL) chdir(GetEnvPath("MMDIR"));
+    set_start_directory();
 
     if (setjmp(mark) != 0) {
         // we got here via a long jump which means an error or CTRL-C or the
@@ -219,17 +239,6 @@ int LoadFile(char *prog) {
     }
 #endif
     return false;
-}
-
-char *GetEnvPath(char *env) {
-    char *p;
-    p = getenv(env);
-    if (p == NULL) return NULL;
-    if (*p == '\"') {
-        p++;
-        if (p[strlen(p) - 1] == '\"') p[strlen(p) - 1] = 0;
-    }
-    return p;
 }
 
 void FlashWriteInit(char *p, int nbr) {
