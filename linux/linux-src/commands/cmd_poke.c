@@ -8,7 +8,7 @@
 static void poke_byte(int argc, char** argv, char *p) {
     if (argc != 3) error("Argument count");
 
-    void *addr = get_poke_addr(p);
+    uintptr_t addr = get_poke_addr(p);
     int64_t value = getinteger(argv[2]);
 
     *((uint8_t *) addr) = (uint8_t) value;
@@ -18,8 +18,8 @@ static void poke_byte(int argc, char** argv, char *p) {
 static void poke_float(int argc, char** argv, char *p) {
     if (argc != 3) error("Argument count");
 
-    void *addr = get_poke_addr(p);
-    if (((uintptr_t) addr) % 8) error("Address not divisible by 8");
+    uintptr_t addr = get_poke_addr(p);
+    if (addr % 8) error("Address not divisible by 8");
     MMFLOAT value = getnumber(argv[2]);
 
     *((MMFLOAT *) addr) = value;
@@ -29,8 +29,8 @@ static void poke_float(int argc, char** argv, char *p) {
 static void poke_integer(int argc, char** argv, char *p) {
     if (argc != 3) error("Argument count");
 
-    void *addr = get_poke_addr(p);
-    if (((uintptr_t) addr) % 8) error("Address not divisible by 8");
+    uintptr_t addr = get_poke_addr(p);
+    if (addr % 8) error("Address not divisible by 8");
     int64_t value = getinteger(argv[2]);
 
     *((uint64_t *) addr) = (uint64_t) value;
@@ -44,8 +44,8 @@ static void poke_legacy(int argc, char** argv, char *p) {
 static void poke_short(int argc, char** argv, char *p) {
     if (argc != 3) error("Argument count");
 
-    void *addr = get_poke_addr(p);
-    if (((uintptr_t) addr) % 2) error("Address not divisible by 2");
+    uintptr_t addr = get_poke_addr(p);
+    if (addr % 2) error("Address not divisible by 2");
     int64_t value = getinteger(argv[2]);
 
     *((uint16_t *) addr) = (uint16_t) value;
@@ -74,8 +74,8 @@ static void poke_vartbl(int argc, char** argv, char *p) {
 static void poke_word(int argc, char** argv, char *p) {
     if (argc != 3) error("Argument count");
 
-    void *addr = get_poke_addr(p);
-    if (((uintptr_t) addr) % 4) error("Address not divisible by 4");
+    uintptr_t addr = get_poke_addr(p);
+    if (addr % 4) error("Address not divisible by 4");
     int32_t value = getinteger(argv[2]);
 
     *((uint32_t *) addr) = (uint32_t) value;

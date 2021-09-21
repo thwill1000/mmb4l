@@ -39,8 +39,8 @@ void ClearSpecificTempMemory(void *addr);
 void FreeMemory(void *addr);
 void InitHeap(void);
 int FreeSpaceOnHeap(void);
-void *get_poke_addr(void *p);
-void *get_peek_addr(void *p);
+uintptr_t get_poke_addr(char *p);
+uintptr_t get_peek_addr(char *p);
 
 // RAM parameters
 // ==============

@@ -14,8 +14,8 @@ unsigned int UsedHeap(void); // memory.c
 void memory_copy_byte(char *p) {
     getargs(&p, 5, ",");
     if (argc != 5) error("Syntax");
-    void *src = get_peek_addr(argv[0]);
-    void *dst = get_poke_addr(argv[2]);
+    void *src = (void *) get_peek_addr(argv[0]);
+    void *dst = (void *) get_poke_addr(argv[2]);
     int64_t num = getinteger(argv[4]);
     if (num > 0) {
         memcpy(dst, src, num);
@@ -64,13 +64,11 @@ void memory_copy(char *p) {
 void memory_set_byte(char *p) {
     getargs(&p, 5, ",");
     if (argc != 5) error("Syntax");
-    //printf("%s\n", argv[0]);
-    void *to = get_poke_addr(argv[0]);
-    //printf("%ld\n", to);
+    uintptr_t to = get_poke_addr(argv[0]);
     int64_t value = getint(argv[2], 0, 255);
     int64_t num = getinteger(argv[4]);
     if (num > 0) {
-        memset(to, (int) value, (size_t) num);
+        memset((void *) to, (int) value, (size_t) num);
     }
 }
 
@@ -90,15 +88,13 @@ void memory_set_integer(char *p) {
 void memory_set_short(char *p) {
     getargs(&p, 5, ",");
     if (argc != 5) error("Syntax");
-    //printf("%s\n", argv[0]);
-    void *to = get_poke_addr(argv[0]);
-    if ((uint64_t) to % 2) error("Address not divisible by 2");
-    //printf("%ld\n", to);
+    uintptr_t to = get_poke_addr(argv[0]);
+    if ((uintptr_t) to % 2) error("Address not divisible by 2");
     // TODO: should we cope with -ve values ?
     int64_t value = getint(argv[2], 0, 65535);
     int64_t num = getinteger(argv[4]);
-    for (int64_t i = 0; i < num; ++i) {
-        memcpy(to + 2 * i, &value, 2);
+    for (int32_t i = 0; i < num; ++i) {
+        memcpy((void *) (to + 2 * i), &value, 2);
     }
 }
 

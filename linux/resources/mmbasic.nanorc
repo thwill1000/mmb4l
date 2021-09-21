@@ -40,7 +40,7 @@ bind ^Y redo main
 bind M-A nohelp main
 bind M-L constantshow main
 
-bind ^/ comment main
+# bind ^/ comment main   # binding ^/ not accepted on earlier versions of nano, default is M-3
 
 bind F1 exit main        # save and exit
 bind F2 savefile main    # save

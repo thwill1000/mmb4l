@@ -71,9 +71,16 @@ provisions:
         // Note that __linux__ is also defined if __ANDROID__ is defined.
         #define MM_DEVICE  "Android"
         #define MM_ARCH    "aarch64"
+        #define ENV64BIT
     #elif defined(__linux__) && defined(__x86_64)
         #define MM_DEVICE  "Linux"
         #define MM_ARCH    "x86_64"
+        #define ENV64BIT
+    #elif defined(__linux__) && defined(__arm__)
+        // Not sure about this as a way of detecting arm7l/Raspberry Pi
+        #define MM_DEVICE  "Linux"
+        #define MM_ARCH    "arm"
+        #define ENV32BIT
     #else
         #error This device is not supported
     #endif

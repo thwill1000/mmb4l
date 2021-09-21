@@ -8,7 +8,7 @@
 void peek_byte(int argc, char **argv, char *p) {
     if (argc != 1) ERROR_SYNTAX;
 
-    void *addr = get_peek_addr(p);
+    uintptr_t addr = get_peek_addr(p);
     g_integer_rtn = *((char *) addr);
     g_rtn_type = T_INT;
 }
@@ -48,24 +48,26 @@ void peek_cfunaddr(int argc, char **argv, char *p) {
     if (!addr) ERROR_INTERNAL_FAULT;
 
     g_rtn_type = T_INT;
-    g_integer_rtn = (int64_t) addr;
+    g_integer_rtn = (uintptr_t) addr;
 }
 
 void peek_integer(int argc, char **argv, char *p) {
     if (argc != 1) ERROR_SYNTAX;
-    g_integer_rtn =
-        *(uint64_t *)((uintptr_t) get_peek_addr(p) & 0xFFFFFFFFFFFFFFF8);
+#if defined(ENV32BIT)
+    g_integer_rtn = *(uint64_t *)(get_peek_addr(p) & 0xFFFFFFF8);
+#else
+    g_integer_rtn = *(uint64_t *)(get_peek_addr(p) & 0xFFFFFFFFFFFFFFF8);
+#endif
     g_rtn_type = T_INT;
 }
 
 void peek_float(int argc, char **argv, char *p) {
-    // printf("a\n");
     if (argc != 1) ERROR_SYNTAX;
-    // printf("b\n");
-    g_float_rtn =
-        *(MMFLOAT *)((uintptr_t) get_peek_addr(p) & 0xFFFFFFFFFFFFFFF8);
-    // printf("c\n");
-    // printf("%g\n", g_float_rtn);
+#if defined(ENV32BIT)
+    g_float_rtn = *(MMFLOAT *)(get_peek_addr(p) & 0xFFFFFFF8);
+#else
+    g_float_rtn = *(MMFLOAT *)(get_peek_addr(p) & 0xFFFFFFFFFFFFFFF8);
+#endif
     g_rtn_type = T_NBR;
 }
 
@@ -79,8 +81,11 @@ void peek_progmem(int argc, char **argv, char *p) {
 
 void peek_short(int argc, char **argv, char *p) {
     if (argc != 1) ERROR_SYNTAX;
-    g_integer_rtn =
-        *(unsigned short *)((uintptr_t) get_peek_addr(p) & 0xFFFFFFFFFFFFFFFE);
+#if defined(ENV32BIT)
+    g_integer_rtn = *(uint16_t *)(get_peek_addr(p) & 0xFFFFFFFE);
+#else
+    g_integer_rtn = *(uint16_t *)(get_peek_addr(p) & 0xFFFFFFFFFFFFFFFE);
+#endif
     g_rtn_type = T_INT;
 }
 
@@ -97,7 +102,7 @@ void peek_var(int argc, char **argv, char *p) {
 void peek_varaddr(int argc, char **argv, char *p) {
     if (argc != 1) ERROR_SYNTAX;
     void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
-    g_integer_rtn = (int64_t) pvar;
+    g_integer_rtn = (uintptr_t) pvar;
     g_rtn_type = T_INT;
 }
 
@@ -108,8 +113,11 @@ void peek_vartbl(int argc, char **argv, char *p) {
 /** Peek(Word addr%) */
 void peek_word(int argc, char **argv, char *p) {
     if (argc != 1) ERROR_SYNTAX;
-    g_integer_rtn =
-        *(unsigned int *)((uintptr_t) get_peek_addr(p) & 0xFFFFFFFFFFFFFFFC);
+#if defined(ENV32BIT)
+    g_integer_rtn = *(uint32_t *)(get_peek_addr(p) & 0xFFFFFFFC);
+#else
+    g_integer_rtn = *(uint32_t *)(get_peek_addr(p) & 0xFFFFFFFFFFFFFFFC);
+#endif
     g_rtn_type = T_INT;
 }
 

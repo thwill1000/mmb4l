@@ -227,8 +227,8 @@ void heapstats(char *m1) {
 #endif
 
 // TODO: should validate the returned address is POKEable.
-void *get_poke_addr(void *p) {
-    return (void *) getinteger(p);
+uintptr_t get_poke_addr(char *p) {
+    return (uintptr_t) getinteger(p);
 
     // TODO
     // if ((i > (unsigned int)DOS_vartbl &&
@@ -240,6 +240,6 @@ void *get_poke_addr(void *p) {
     // return 0;
 }
 
-void *get_peek_addr(void *p) {
-    return (void *) getinteger(p);
+uintptr_t get_peek_addr(char *p) {
+    return (uintptr_t) getinteger(p);
 }

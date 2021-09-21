@@ -451,7 +451,7 @@ static void program_process_csubs() {
         if (*p == cmdCSUB) {
 
             end_token = GetCommandValue("End CSub");
-            *((uint64_t *) flash_ptr) = (uint64_t) p;
+            *((uint64_t *) flash_ptr) = (uintptr_t) p;
             flash_ptr += 2;
             save_addr = flash_ptr; // Save where we are so that we can write the CSub size in here
             flash_ptr ++;
@@ -536,7 +536,7 @@ void program_list_csubs(int all) {
 
     while (*((uint64_t *) p) != 0xFFFFFFFFFFFFFFFF) {
         if ((char *) p > (char *) CFunctionFlash) ListNewLine(&line_count, all);
-        uint64_t addr = *((uint64_t *) p);
+        uintptr_t addr = *((uint64_t *) p);
         p += 2;
         get_csub_name((char *) addr + 1, name);
         sprintf(buf, "CSUB %s()", name);

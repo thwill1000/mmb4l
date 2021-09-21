@@ -5,8 +5,6 @@ Required for alpha 1
 --------------------
 
 Fix timing issues with CONSOLE GETCURSOR
-Build on Raspberry Pi 32-bit
- - check 64-bit address alignment for PEEK/POKE
 Review memory map code in memory.c
 Write README
 
