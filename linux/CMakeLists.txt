@@ -35,7 +35,6 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_dummy.c
     linux-src/commands/cmd_edit.c
     linux-src/commands/cmd_execute.c
-    linux-src/commands/cmd_exitmmb.c
     linux-src/commands/cmd_files.c
     linux-src/commands/cmd_inc.c
     linux-src/commands/cmd_ireturn.c
@@ -51,6 +50,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_option.c
     linux-src/commands/cmd_pause.c
     linux-src/commands/cmd_poke.c
+    linux-src/commands/cmd_quit.c
     linux-src/commands/cmd_rename.c
     linux-src/commands/cmd_rmdir.c
     linux-src/commands/cmd_run.c

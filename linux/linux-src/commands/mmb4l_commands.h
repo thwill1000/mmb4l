@@ -12,7 +12,6 @@
     void cmd_dummy(void);
     void cmd_edit(void);
     void cmd_execute(void);
-    void cmd_exitmmb(void);
     void cmd_files(void);
     void cmd_font(void);
     void cmd_inc(void);
@@ -27,6 +26,7 @@
     void cmd_option(void);
     void cmd_pause(void);
     void cmd_poke(void);
+    void cmd_quit(void);
     void cmd_rename(void);
     void cmd_rmdir(void);
     void cmd_seek(void);
@@ -55,10 +55,10 @@
     { "Load",       T_CMD,              0, cmd_load     },
     { "Mkdir",      T_CMD,              0, cmd_mkdir    },
     { "Open",       T_CMD,              0, cmd_open     },
+    { "Quit",       T_CMD,              0, cmd_quit     },
     { "Rename",     T_CMD,              0, cmd_rename   },
     { "Rmdir",      T_CMD,              0, cmd_rmdir    },
     { "Seek",       T_CMD,              0, cmd_seek     },
-    { "Quit",       T_CMD,              0, cmd_exitmmb  },
     { "System",     T_CMD,              0, cmd_system   },
     { "Option",     T_CMD,              0, cmd_option   },
     { "Cat",        T_CMD,              0, cmd_inc      }, // TODO: alias of INC
