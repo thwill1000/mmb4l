@@ -61,8 +61,6 @@ char g_break_key = BREAK_KEY;
 void IntHandler(int signo);
 int LoadFile(char *prog);
 void dump_token_table(const struct s_tokentbl* tbl);
-
-void InsertLastcmd(char *s);  // common/prompt.c
 void prompt_get_input(void); // common/prompt.c
 
 void init_options() {
@@ -94,16 +92,12 @@ void set_start_directory() {
 }
 
 int main(int argc, char *argv[]) {
-    static int PromptError = false;
-    int RunCommandLineProgram = false;
-    char *p;
+    // int RunCommandLineProgram = false;
 
     // get things setup to act like the Micromite version
     vartbl = DOS_vartbl;
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
     init_options();
-    Option.ProgFlashSize = PROG_FLASH_SIZE;
-    Option.Tab = 4;
 
     InitHeap();  // init memory allocation
 
@@ -138,12 +132,12 @@ int main(int argc, char *argv[]) {
     clock_gettime(CLOCK_REALTIME, &g_timer);
     srand(0);             // seed the random generator with zero
 
-    // if there is something on the command line try to load it as a program, if
+    // If there is something on the command line try to load it as a program, if
     // that fails try AUTORUN.BAS
-    if (argc > 1) RunCommandLineProgram = LoadFile(argv[1]);
-    if (!RunCommandLineProgram) RunCommandLineProgram = LoadFile("AUTORUN.BAS");
-    if (!RunCommandLineProgram)
-        RunCommandLineProgram = LoadFile("C:\\AUTORUN.BAS");
+    // if (argc > 1) RunCommandLineProgram = LoadFile(argv[1]);
+    // if (!RunCommandLineProgram) RunCommandLineProgram = LoadFile("AUTORUN.BAS");
+    // if (!RunCommandLineProgram)
+    //     RunCommandLineProgram = LoadFile("C:\\AUTORUN.BAS");
 
     set_start_directory();
 
@@ -167,17 +161,17 @@ int main(int argc, char *argv[]) {
 
         ContinuePoint = nextstmt;       // in case the user wants to use the continue command
         *tknbuf = 0;                    // we do not want to run whatever is in the token buffer
-        RunCommandLineProgram = false;  // nor the program on the command line
+        // RunCommandLineProgram = false;  // nor the program on the command line
         memset(inpbuf, 0, STRINGSIZE);
     }
 
-    if (RunCommandLineProgram) {
-        RunCommandLineProgram = false;
-        ClearRuntime();
-        PrepareProgram(true);
-        ExecuteProgram(ProgMemory);  // if AUTORUN.BAS or something is on the
-                                     // command line, run it
-    }
+    // if (RunCommandLineProgram) {
+    //     RunCommandLineProgram = false;
+    //     ClearRuntime();
+    //     PrepareProgram(true);
+    //     ExecuteProgram(ProgMemory);  // if AUTORUN.BAS or something is on the
+    //                                  // command line, run it
+    // }
 
     while (1) {
         MMAbort = false;
