@@ -24,8 +24,7 @@ provisions:
 #if !defined(VERSION_INCLUDED)
     #define VERSION_INCLUDED
 
-    // #define VERSION         "5.05.04"
-    #define VERSION         "2021.0.0"
+    #define VERSION         "5.05.04"
     #define YEAR            "2011-2021"
     #define COPYRIGHT       "Copyright " YEAR " Geoff Graham\r\n"
 
@@ -68,29 +67,27 @@ provisions:
         #define __386__
         #define MES_SIGNON  "Windows MMBasic Ver " VERSION "\r\n"
     #elif defined(__linux__)
+        #define MM_DEVICE  "MMB4L"
+        #undef VERSION
+        #define VERSION  "2021.01.0"
         #if defined(__ANDROID__)
-            #define MM_DEVICE  "Android"
-        #else
-            #define MM_DEVICE  "Linux"
-        #endif
-        #if defined(__x86_64)
-            #define MM_ARCH  "x86_64"
+            #define MM_ARCH  "Android aarch64"
+            #define ENV64BIT
+        #elif defined(__x86_64)
+            #define MM_ARCH  "Linux x86_64"
             #define ENV64BIT
         #elif defined(__aarch64__)
-            #define MM_ARCH  "aarch64"
+            #define MM_ARCH  "Linux aarch64"
             #define ENV64BIT
         #elif defined(__arm__)
-            #define MM_ARCH  "arm"
+            #define MM_ARCH  "Linux arm"
             #define ENV32BIT
         #else
             #error This architecture is not supported
         #endif
+        #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a1\r\n"
     #else
         #error This device is not supported
-    #endif
-
-    #if defined(__linux__) // Which includes __ANDROID__
-        #define MES_SIGNON  MM_DEVICE " " MM_ARCH " MMBasic Ver " VERSION "-a1\r\n"
     #endif
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
