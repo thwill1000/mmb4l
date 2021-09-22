@@ -1,6 +1,7 @@
 // Copyright (c) 2021 Thomas Hugo Williams
 
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -231,31 +232,66 @@ void console_set_title(const char *title) {
     WRITE_CODE(buf);
 }
 
+enum ReadCursorPositionState {
+        EXPECTING_ESCAPE,
+        EXPECTING_SQUARE_BRACKET,
+        EXPECTING_ROWS,
+        EXPECTING_COLS,
+        EXPECTING_FINISHED };
+
 int console_get_cursor_pos(int *x, int *y) {
+    rx_buf_clear(&console_rx_buf);
+
     // Send escape code to report cursor position.
     WRITE_CODE_2("\033[6n", 4);
 
-    // Discard input until we get ESC.
-    int ch = 0;
-    int result;
-    while (ch != 0x1B) {
-        if (read(STDIN_FILENO, &ch, 1) == -1) return 0;
+    // Read characters one at a time to match the expected pattern ESC[n;mR
+    // - fails if after 500 attempted reads the pattern has not been matched.
+    // - will sleep briefly if there is nothing to read.
+    int ch;
+    enum ReadCursorPositionState state = EXPECTING_ESCAPE;
+    char buf[32] = { 0 };
+    char *p = buf;
+    for (int count = 0; count < 500 && state != EXPECTING_FINISHED; ++count) {
+        if (state == EXPECTING_ESCAPE) p = buf;
+        ch = console_getc();
+        if (ch == -1) {
+            nanosleep(&ONE_MICROSECOND, NULL);
+            continue;
+        }
+        *(p++) = (char) ch;
+
+        switch (state) {
+            case EXPECTING_ESCAPE:
+                state = (ch == 0x1B ? EXPECTING_SQUARE_BRACKET : EXPECTING_ESCAPE);
+                break;
+            case EXPECTING_SQUARE_BRACKET:
+                state = (ch == '[' ? EXPECTING_ROWS : EXPECTING_ESCAPE);
+                break;
+            case EXPECTING_ROWS:
+                state = (ch == ';'
+                        ? EXPECTING_COLS
+                        : (isdigit(ch) ? EXPECTING_ROWS : EXPECTING_ESCAPE));
+                break;
+            case EXPECTING_COLS:
+                state = (ch == 'R'
+                        ? EXPECTING_FINISHED
+                        : (isdigit(ch) ? EXPECTING_COLS : EXPECTING_ESCAPE));
+        }
     }
 
-    // Collect output until we get R.
-    char buf[10] = {0};
-    buf[0] = ch;
-    for (int i = 1, ch = 0; ch != 'R'; i++) {
-        if (read(STDIN_FILENO, &ch, 1) == -1) return 0;
-        buf[i] = ch;
+    if (state == EXPECTING_FINISHED) {
+        // Parse output, rows (y) then columns (x).
+        *p++ = '\0';
+        sscanf(buf, "\033[%d;%dR", y, x);
+        (*x)--; // adjust to account for VT100 origin being (1,1) not (0,0).
+        (*y)--;
+        return 1;
+    } else {
+        *x = 0;
+        *y = 0;
+        return 0;
     }
-
-    // Parse output, rows (y) then columns (x).
-    sscanf(buf, "\033[%d;%dR", y, x);
-    (*x)--; // VT100 origin is (1,1) not (0,0).
-    (*y)--;
-
-    return 1;
 }
 
 int console_get_size(int *width, int *height) {

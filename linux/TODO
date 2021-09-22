@@ -4,14 +4,14 @@ TODO
 Required for alpha 1
 --------------------
 
-Fix timing issues with CONSOLE GETCURSOR
 Review memory map code in memory.c
 Write README
 
 Required for release
 --------------------
 
-Build on Chrome OS
+Add option to PAUSE controlling whether it nanosleeps or not
+ - or an OPTION to MMBasic controlling all sleep behaviour
 Implement SEARCH PATH
 Implement command-line RUN shortcut '*'
 Add timer to sptest when multiple tests are executed
@@ -31,7 +31,7 @@ Implement serial I/O
 Implement command-line shortcut for SYSTEM command, e.g. '!ls'
 Implement command-line path completion
 Implement support for ~ at start of paths
-Implement MM.INFO(EXITSTATUS) to retrieve exit code from SYSTEM command.
+Implement MM.INFO(EXITSTATUS) to retrieve exit code from SYSTEM command
 
 To infinity and beyond
 ----------------------
