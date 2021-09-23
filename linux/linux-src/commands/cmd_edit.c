@@ -24,21 +24,23 @@ static int run_editor(char *file_path, int line) {
 
     char command[STRINGSIZE * 2];
     if (*nanorc == '\0') {
-        snprintf(
+        int ret = snprintf(
                 command,
                 STRINGSIZE * 2,
                 "nano +%d \"%s\"", line > 0 ? line : 1,
                 file_path);
+        if (ret < 0) abort();
     } else {
         // Note early values or nano, such as the default version for Raspbian
         // do not support the --rcfile flag.
-        snprintf(
+        int ret = snprintf(
                 command,
                 STRINGSIZE * 2,
                 "nano --rcfile=%s +%d \"%s\"",
                 nanorc,
                 line > 0 ? line : 1,
                 file_path);
+        if (ret < 0) abort();
     }
 
     errno = 0;

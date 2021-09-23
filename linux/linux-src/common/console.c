@@ -27,8 +27,10 @@ extern char *g_key_interrupt;
 extern int g_key_select;
 
 #define CONSOLE_RX_BUF_SIZE 256
-#define WRITE_CODE(s)         write(STDOUT_FILENO, s, strlen(s))
-#define WRITE_CODE_2(s, len)  write(STDOUT_FILENO, s, len)
+
+// Jump through hoops so compiler doesn't complain about ignoring the return value.
+#define WRITE_CODE(s)         (void)(write(STDOUT_FILENO, s, strlen(s)) + 1)
+#define WRITE_CODE_2(s, len)  (void)(write(STDOUT_FILENO, s, len) + 1)
 
 static struct termios orig_termios;
 static char console_rx_buf_data[CONSOLE_RX_BUF_SIZE];
@@ -306,7 +308,7 @@ int console_get_size(int *width, int *height) {
 }
 
 void console_home_cursor(void) {
-    write(STDOUT_FILENO, "\x1b[H", 4);
+    WRITE_CODE_2("\x1b[H", 4);
 }
 
 void console_set_cursor_pos(int x, int y) {
