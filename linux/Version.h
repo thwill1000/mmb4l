@@ -69,7 +69,7 @@ provisions:
     #elif defined(__linux__)
         #define MM_DEVICE  "MMB4L"
         #undef VERSION
-        #define VERSION  "2021.01.0"
+        #define VERSION  "2021.01.00"
         #if defined(__ANDROID__)
             #define MM_ARCH  "Android aarch64"
             #define ENV64BIT
@@ -80,7 +80,7 @@ provisions:
             #define MM_ARCH  "Linux aarch64"
             #define ENV64BIT
         #elif defined(__arm__)
-            #define MM_ARCH  "Linux arm"
+            #define MM_ARCH  "Linux armv7l"
             #define ENV32BIT
         #else
             #error This architecture is not supported
