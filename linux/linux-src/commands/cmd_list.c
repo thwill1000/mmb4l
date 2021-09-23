@@ -14,7 +14,14 @@ static int cstring_cmp(const void *a, const void *b)  {
     return strcasecmp(*ia, *ib);
 }
 
-static void list_tokens(const char *title, const struct s_tokentbl *primary, int num_primary, const char **secondary) {
+static void list_tokens(const char *title, const struct s_tokentbl *primary, const char **secondary) {
+    int num_primary = 0;
+    struct s_tokentbl *ptok = (struct s_tokentbl *) primary;
+    while (ptok->name[0] != '\0') {
+        if (ptok->fptr != cmd_dummy) num_primary++;
+        ptok++;
+    }
+
     int num_secondary = 0;
     const char **ptr = secondary;
     while (*ptr++) num_secondary++;
@@ -31,15 +38,14 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, int
     }
 
     // Copy primary items.
-    for (int i = 0; i < num_primary; i++) {
-        strcpy(tbl[i], primary[i].name);
-        if (primary[i].fptr == cmd_dummy) {
-            strcat(tbl[i], " (d)");
-        }
+    ptok = (struct s_tokentbl *) primary;
+    for (int i = 0; ptok->name[0] != '\0'; ) {
+        if (ptok->fptr != cmd_dummy) strcpy(tbl[i++], ptok->name);
+        ptok++;
     }
 
     // Copy secondary items.
-    char buf[256];
+    char buf[STRINGSIZE];
     for (int i = num_primary; i < total; i++) {
         sprintf(buf, "%s (*)", secondary[i - num_primary]);
         strcpy(tbl[i], buf);
@@ -61,23 +67,22 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, int
     }
     sprintf(buf, "Total of %d %s using %d slots\r\n\r\n", total, title, num_primary);
     MMPrintString(buf);
-
 }
 
 static void list_commands() {
     const char *secondary_commands[] = {
-            "foo",
-            "bar",
-            NULL };
-    list_tokens("commands", commandtbl, CommandTableSize - 1, secondary_commands);
+            // "foo",
+            // "bar",
+            (char *) NULL };
+    list_tokens("commands", commandtbl, secondary_commands);
 }
 
 static void list_functions() {
     const char *secondary_functions[] = {
-            "foo",
-            "bar",
-            NULL };
-    list_tokens("functions", tokentbl, TokenTableSize - 1, secondary_functions);
+            // "foo",
+            // "bar",
+            (char *) NULL };
+    list_tokens("functions", tokentbl, secondary_functions);
 }
 
 static void list_file(const char *filename, int all) {
