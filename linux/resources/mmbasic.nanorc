@@ -26,9 +26,10 @@ bind ^L curpos main
 bind ^J gotoline main
 
 bind ^Space mark main
-bind ^X cut main
 bind ^C copy main
+bind ^K zap main
 bind ^V paste main
+bind ^X cut main
 
 bind ^F whereis main
 bind ^G findnext main
@@ -46,5 +47,6 @@ bind F1 exit main        # save and exit
 bind F2 savefile main    # save
 bind F3 findnext main
 bind F4 mark main
+bind F7 insert main
 
 include ~/.mmbasic/mmbasic.syntax.nanorc

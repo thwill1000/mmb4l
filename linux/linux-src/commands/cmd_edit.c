@@ -27,7 +27,7 @@ static int run_editor(char *file_path, int line) {
         snprintf(
                 command,
                 STRINGSIZE * 2,
-                "nano -R +%d \"%s\"", line > 0 ? line : 1,
+                "nano +%d \"%s\"", line > 0 ? line : 1,
                 file_path);
     } else {
         // Note early values or nano, such as the default version for Raspbian
@@ -35,7 +35,7 @@ static int run_editor(char *file_path, int line) {
         snprintf(
                 command,
                 STRINGSIZE * 2,
-                "nano -R --rcfile=%s +%d \"%s\"",
+                "nano --rcfile=%s +%d \"%s\"",
                 nanorc,
                 line > 0 ? line : 1,
                 file_path);
