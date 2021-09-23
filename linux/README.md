@@ -24,10 +24,10 @@ MMB4L is in the early alpha phase so there are no fancy installers yet:
     * For 32-bit Raspbian/Linux running on Raspberry Pi use the 'armv7l' distribution.
 
  2. Extract the archive into a temporary location:
-    * ```mkdir -p ~/tmp && tar -xf MMB4L-<version>.tar.gz --directory ~/tmp```
+    * ```mkdir -p ~/tmp && tar -xf mmb4l-<version>.tar.gz --directory ~/tmp```
 
  3. Copy the "mmbasic" executable to "/usr/local/bin":
-    * ```sudo cp ~/tmp/MMB4L-<version>/mmbasic /usr/local/bin```
+    * ```sudo cp ~/tmp/mmb4l-<version>/mmbasic /usr/local/bin```
 
  4. Check you have the "nano" editor installed, and determine the version:
     * ```nano --version```
@@ -36,20 +36,20 @@ MMB4L is in the early alpha phase so there are no fancy installers yet:
  4. Copy the nano resource files for MMB4L:
     * If you are running nano 4.8+:
         * ```mkdir -p ~/.mmbasic```
-        * ```cp ~/tmp/MMB4L-<version>/mmbasic.nanorc ~/.mmbasic```
-        * ```cp ~/tmp/MMB4L-<version>/mmbasic.syntax.nanorc ~/.mmbasic```
+        * ```cp ~/tmp/mmb4l-<version>/mmbasic.nanorc ~/.mmbasic```
+        * ```cp ~/tmp/mmb4l-<version>/mmbasic.syntax.nanorc ~/.mmbasic```
 
     * If you have an earlier version and are not using it for anything else:
         * ```mkdir -p ~/.nano```
-        * ```cp ~/tmp/MMB4L-<version>/mmbasic.syntax.nanorc ~/.nano```
-        * ```cp ~/tmp/MMB4L-<version>/mmbasic.nanorc ~/.nanorc```
+        * ```cp ~/tmp/mmb4l-<version>/mmbasic.syntax.nanorc ~/.nano```
+        * ```cp ~/tmp/mmb4l-<version>/mmbasic.nanorc ~/.nanorc```
         * Edit "~/.nanorc" and change last line to: ```include ~/.nano/mmbasic.syntax.nanorc```
 
     * If you are an existing nano user:
         * ```mkdir -p ~/.nano```
-        * ```cp ~/tmp/MMB4L-<version>/mmbasic.syntax.nanorc ~/.nano```
+        * ```cp ~/tmp/mmb4l-<version>/mmbasic.syntax.nanorc ~/.nano```
         * Edit "~/.nanorc" and append the line: ```include ~/.nano/mmbasic.syntax.nanorc```
-        * If desired incorporate settings/bindings from "~/tmp/MMB4L-<version>/mmbasic.nanorc" into your existing "~/.nanorc" file.
+        * If desired incorporate settings/bindings from "\~/tmp/mmb4l-\<version>/mmbasic.nanorc" into your existing "\~/.nanorc" file.
 
 ## How do I run it ?
 
