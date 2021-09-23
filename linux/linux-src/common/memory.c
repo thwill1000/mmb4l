@@ -41,9 +41,9 @@ char MMHeap[HEAP_SIZE];
 struct s_vartbl DOS_vartbl[MAXVARS];
 
 // arrays used to track temporary strings
-char *StrTmp[MAXTEMPSTRINGS];                                       // used to track temporary string space on the heap
-char StrTmpLocalIndex[MAXTEMPSTRINGS];                              // used to track the LocalIndex for each temporary string space on the heap
-int TempMemoryIsChanged = false;                                    // used to prevent unnecessary scanning of strtmp[]
+char *StrTmp[MAXTEMPSTRINGS];           // used to track temporary string space on the heap
+char StrTmpLocalIndex[MAXTEMPSTRINGS];  // used to track the LocalIndex for each temporary string space on the heap
+int TempMemoryIsChanged = false;        // used to prevent unnecessary scanning of strtmp[]
 
 // global functions
 unsigned int MBitsGet(void *addr);
@@ -191,6 +191,7 @@ void *getheap(int size) {
     return NULL;                                                    // keep the compiler happy
 }
 
+/** Counts the unused pages of heap and returns the result multiplied by PAGESIZE. */
 int FreeSpaceOnHeap(void) {
     unsigned int nbr;
     char *addr;
@@ -200,6 +201,7 @@ int FreeSpaceOnHeap(void) {
     return nbr * PAGESIZE;
 }
 
+/** Counts the used pages of heap and returns the result multiplied by PAGESIZE. */
 unsigned int UsedHeap(void) {
     unsigned int nbr;
     char *addr;

@@ -65,8 +65,8 @@ uintptr_t get_peek_addr(char *p);
 #define PUSED           1 //0b01                                    // flag that indicates that the page is in use
 #define PLAST           2 //0b10                                    // flag to show that this is the last page in a single allocation
 
-#define PAGESPERWORD    ((sizeof(unsigned int) * 8)/PAGEBITS)
-#define MRoundUp(a)     (((a) + (PAGESIZE - 1)) & (~(PAGESIZE - 1)))// round up to the nearest page size
+#define PAGESPERWORD    ((sizeof(uint32_t) * 8)/PAGEBITS)
+// #define MRoundUp(a)     (((a) + (PAGESIZE - 1)) & (~(PAGESIZE - 1)))// round up to the nearest page size
 
 extern struct s_vartbl *vartbl;
 extern struct s_vartbl DOS_vartbl[MAXVARS];
