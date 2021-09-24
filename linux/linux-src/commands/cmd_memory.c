@@ -174,13 +174,14 @@ void memory_report(char *unused) {
             num_lines == 1 ? "" : "s");
     MMPrintString(inpbuf);
 
-    int vcnt = count_variables();
+    int32_t vcnt = count_variables();
+    int32_t size = sizeof(struct s_vartbl);
     sprintf(
             inpbuf,
             "  Variables:%4dK (%2d%%) used %3dK free (%d variables)\r\n",
-            (int32_t) ((vcnt * sizeof(struct s_vartbl)) + 512) / 1024,
-            (vcnt * 100) / MAXVARS,
-            (int32_t) (((MAXVARS * sizeof(struct s_vartbl)) + 512) / 1024) - (((vcnt * sizeof(struct s_vartbl)) + 512) / 1024),
+            (int32_t) ((vcnt * size + 512) / 1024),
+            (int32_t) (vcnt * 100 / MAXVARS),
+            (int32_t) (((MAXVARS * size + 512) / 1024) - ((vcnt * size + 512) / 1024)),
             vcnt);
     MMPrintString(inpbuf);
 
