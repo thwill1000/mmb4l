@@ -82,6 +82,9 @@ provisions:
         #elif defined(__arm__)
             #define MM_ARCH  "Linux armv7l"
             #define ENV32BIT
+        #elif defined(__i686__)
+            #define MM_ARCH  "Linux i686"
+            #define ENV32BIT
         #else
             #error This architecture is not supported
         #endif

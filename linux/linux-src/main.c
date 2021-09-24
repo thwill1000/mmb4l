@@ -377,7 +377,11 @@ void dump(char *p, int nbr) {
     MMPrintString(
         "   addr    0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F    "
         "0123456789ABCDEF\r\n");
-    b1 += sprintf(b1, "%8lx: ", (uintptr_t)p);
+#if defined(ENV64BIT)
+    b1 += sprintf(b1, "%8lx: ", (uintptr_t) p);
+#else
+    b1 += sprintf(b1, "%8ix: ", (uintptr_t) p);
+#endif
     for (pt = p; (uintptr_t)pt % 16 != 0; pt--) {
         b1 += sprintf(b1, "   ");
         b2 += sprintf(b2, " ");
@@ -393,7 +397,11 @@ void dump(char *p, int nbr) {
             MMPrintString(buf2);
             b1 = buf1;
             b2 = buf2;
-            b1 += sprintf(b1, "\r\n%8lx: ", (uintptr_t)p);
+#if defined(ENV64BIT)
+            b1 += sprintf(b1, "\r\n%8lx: ", (uintptr_t) p);
+#else
+            b1 += sprintf(b1, "\r\n%8ix: ", (uintptr_t) p);
+#endif
         }
     }
     if (b2 != buf2) {

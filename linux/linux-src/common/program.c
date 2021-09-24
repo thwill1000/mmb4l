@@ -541,7 +541,7 @@ void program_list_csubs(int all) {
         get_csub_name((char *) addr + 1, name);
         sprintf(buf, "CSUB %s()", name);
         print_line(buf, &line_count, all);
-        sprintf(buf, "0x%016lX  name   = %s", addr, name);
+        sprintf(buf, "0x%016llX  name   = %s", (uint64_t) addr, name);
         print_line(buf, &line_count, all);
         int size = *p++;
         sprintf(buf, "0x%08X          size   = %d bytes = %d x 32-bit words", size, size, size / 4);
@@ -567,7 +567,7 @@ void program_list_csubs(int all) {
 
     print_line("", &line_count, all);
     uint64_t end = *((uint64_t *) p);
-    sprintf(buf, "0x%016lX [%s]", end, end == 0xFFFFFFFFFFFFFFFF ? "OK" : "ERROR");
+    sprintf(buf, "0x%016llX [%s]", end, end == 0xFFFFFFFFFFFFFFFF ? "OK" : "ERROR");
     print_line(buf, &line_count, all);
     print_line("", &line_count, all);
 }
