@@ -279,6 +279,10 @@ int console_get_cursor_pos(int *x, int *y) {
                 state = (ch == 'R'
                         ? EXPECTING_FINISHED
                         : (isdigit(ch) ? EXPECTING_COLS : EXPECTING_ESCAPE));
+                break;
+            case EXPECTING_FINISHED:
+                assert(0);  // Loop should have already exited.
+                break;
         }
     }
 
