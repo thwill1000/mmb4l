@@ -17,7 +17,7 @@ cp ../ChangeLog ${distrib}
 cp ../README.md ${distrib}
 tar -cvzf ${distrib}.tgz ${distrib}
 
-export mmb4l_dir=../../../MMB4L
+export mmb4l_dir=../../MMB4L
 cp ${distrib}.tgz ${mmb4l_dir}/binaries
 cp ../ChangeLog ${mmb4l_dir}
 cp ../README.md ${mmb4l_dir}
