@@ -1,10 +1,20 @@
 TODO
 ----
 
-Required for alpha 1
+Required for alpha 2
 --------------------
 
-Write README
+Find/fix prompt problem reported by @lizby
+Increase timeout for CONSOLE GETCURSOR
+Fix syntax highlighting for comments
+Implement support for ~ at start of paths
+Add exit code to error message from SYSTEM command
+Implement mechanism to retrieve exit code from SYSTEM command
+Implement JSON$()
+Implement SETTICK
+Implement *COMMAND* MID$()
+Add timer to sptest when multiple tests are executed
+Consider 'set zap' option to nano
 
 Required for release
 --------------------
@@ -13,7 +23,6 @@ Add option to PAUSE controlling whether it nanosleeps or not
  - or an OPTION to MMBasic controlling all sleep behaviour
 Implement SEARCH PATH
 Implement command-line RUN shortcut '*'
-Add timer to sptest when multiple tests are executed
 Ensure all Peter's "preprocessor tricks" implemented in programs and at command-line
 Allow program to be specified on Linux command-line when MMBasic is launched
 Implement variable/sub/function hash tables
@@ -29,8 +38,6 @@ Implement safety checks on PEEK/POKE calls
 Implement serial I/O
 Implement command-line shortcut for SYSTEM command, e.g. '!ls'
 Implement command-line path completion
-Implement support for ~ at start of paths
-Implement MM.INFO(EXITSTATUS) to retrieve exit code from SYSTEM command
 
 To infinity and beyond
 ----------------------

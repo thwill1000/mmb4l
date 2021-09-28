@@ -112,7 +112,6 @@ int main(int argc, char *argv[]) {
     MMPrintString(MES_SIGNON);
     MMPrintString(COPYRIGHT);
     // MMPrintString("Copyright 2016-2021 Peter Mather\r\n");
-    MMPrintString("Copyright 2021 Thomas Hugo Williams\r\n");
     MMPrintString("\r\n");
 
     OptionErrorSkip = 0;
