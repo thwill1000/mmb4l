@@ -78,8 +78,8 @@ MMB4L comes with resource files to configure nano to behave similarly to the Col
 
     Ctrl+A              Display the nano help text
     Ctrl+O or F7        Insert a file into current one
-    Ctrl+Q or F2        Exit the editor
-    Ctrl+S or F1        Save the current file
+    Ctrl+Q or F1        Exit the editor
+    Ctrl+S or F2        Save the current file
     
     Ctrl+P              Goto the previous word
     Ctrl+N              Goto the next word
@@ -132,7 +132,7 @@ Where not overridden by the above the [default nano keyboard bindings](https://w
 The principle difference between MMB4L and the Colour Maximite 2 is the lack of commands/functions for high-resolution graphics, sound or GPIO.
 
 * Unlike the CMM2 there is a ```LOAD program_file$``` command which updates the "current stored program".
-    * Note that commands that operate on the "current stored program" automatically reloads that program from disk before executing, i.e. ```LIST```, ```EDIT```, ```RUN``` - MMB4L should never operate on a program that differs from that on disk.
+    * Note that any command that operates on the "current stored program" automatically reloads that program from disk before executing, i.e. ```LIST```, ```EDIT```, ```RUN``` - MMB4L should never operate on a program that differs from that on disk.
     * As with the CMM2 there is no ```SAVE program_file$``` command.
 * By default the functions ```HRES```, ```VRES```, ```MM.INFO(HPOS)```, ```MM.INFO(HRES)```, ```MM.INFO(VPOS)```, ```MM.INFO(VRES)``` return values in character rather than pixel resolution.
     * ```OPTION CONSOLE PIXEL``` changes this to use pixel resolution based on a nominal 8x12 font.
@@ -217,6 +217,25 @@ The CONSOLE command manipulates the console/terminal using ANSI escape-codes:
      * Shows or hides the cursor - without any argument this shows the cursor.
 
 *\* Note that all PRINTing starts at and moves the current cursor position.*
+
+### MM.INFO
+
+The MM.INFO function on the MMB4L can return these additional pieces of information:
+
+ * ```MM.INFO$(ARCH)```
+     * What architecture/platform is MMB4L running on, currently one of:
+         * "Android aarch64"
+         * "Linux aarch64"
+         * "Linux armv7l"
+         * "Linux i686"
+         * "Linux x86_64"
+     * Note that ```MM.INFO$(DEVICE)``` will return "MMB4L" for all of these.
+
+ * ```MM.INFO(EXISTS path$)```
+      * Does the file / directory / device referred to by path$ exist ?
+
+ * ```MM.INFO(EXISTS SYMLINK path$)```
+      * Does path$ refer to a symbolic link ?
 
 ## Limitations
 
