@@ -94,10 +94,12 @@ set(MMBASIC_LINUX_OPERATORS_SOURCE_FILES
     linux-src/operators/op_inv.c)
 
 set(MMBASIC_LINUX_COMMON_SOURCE_FILES
+    linux-src/common/cjson.c
     linux-src/common/console.c
     linux-src/common/error.c
     linux-src/common/file.c
     linux-src/common/interrupt.c
+    linux-src/common/fun_json.c
     linux-src/common/maths.c
     linux-src/common/memory.c
     linux-src/common/option.c
