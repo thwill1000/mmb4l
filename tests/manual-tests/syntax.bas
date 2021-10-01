@@ -11,3 +11,5 @@ Print "4 squares in basic" : Print
 7 GoSub 9
 8 End
 9 Timer = 0:Print:I=0:For A=S To P
+
+Dim s$ = "foo ' bar" ' bar "foo"

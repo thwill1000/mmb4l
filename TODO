@@ -1,17 +1,6 @@
 TODO
 ====
 
-Required for alpha 2
---------------------
-
-Review and document use of --interactive in the ChangeLog/README
-Review ChangeLog
-Review all change-sets
-Re-run tests on CMM2
-Update README
-Build on x86_64, x86 and Pi Zero
-
-
 Required for alpha 3
 --------------------
 

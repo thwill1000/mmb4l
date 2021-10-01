@@ -65,6 +65,13 @@ Version 2021.01.00-a2 - ??-???-2021:
       - added 'set zap' so that [Delete] and [Backspace] erase all the selected
         text instead of just a single character.
       - either of these can be commented out with # if you prefer.
+  - Fixed issues with "mmbasic.syntax.nanorc":
+      - command keywords always highlighted, not just when they are the first
+        token on a line.
+      - hexadecimal and binary constants highlighted as numbers (green).
+      - comments correctly highlighted following string constants containing
+        apostrophes.
+      - highlighting of additional keywords.
   - Fixed timeout bugs with CONSOLE GETCURSOR:
       - increase the timeout to 10s.
       - correct the unsigned 64-bit arithmetic used in timing code.
