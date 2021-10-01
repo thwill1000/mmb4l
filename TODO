@@ -6,7 +6,6 @@ Required for alpha 2
 
 Fix syntax highlighting for comments
 Implement support for ~ at start of paths
-Implement JSON$()
 Implement SETTICK
 Implement and test missing MEMORY sub-commands
 

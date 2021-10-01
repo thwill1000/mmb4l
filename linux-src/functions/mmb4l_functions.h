@@ -11,6 +11,7 @@
     void fun_field(void);
     void fun_format(void);
     void fun_inputstr(void);
+    void fun_json(void);
     void fun_lcompare(void);
     void fun_lgetbyte(void);
     void fun_lgetstr(void);
@@ -44,6 +45,7 @@
     { "Field$(",      T_FUN | T_STR,      0, fun_field    },
     { "Format$(",     T_FUN | T_STR,      0, fun_format   },
     { "Input$(",      T_FUN | T_STR,      0, fun_inputstr },
+    { "Json$(",       T_FUN | T_STR,      0, fun_json     },
     { "LCompare(",    T_FUN | T_INT,      0, fun_lcompare },
     { "LGetByte(",    T_FUN | T_INT,      0, fun_lgetbyte },
     { "LGetStr$(",    T_FUN | T_STR,      0, fun_lgetstr  },

@@ -77,6 +77,7 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/fun_field.c
     linux-src/functions/fun_hres.c
     linux-src/functions/fun_inputstr.c
+    linux-src/functions/fun_json.c
     linux-src/functions/fun_lcompare.c
     linux-src/functions/fun_lgetbyte.c
     linux-src/functions/fun_lgetstr.c
@@ -100,6 +101,7 @@ set(MMBASIC_LINUX_OPERATORS_SOURCE_FILES
 set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/cmdline.c
     linux-src/common/console.c
+    linux-src/common/cJSON.c
     linux-src/common/error.c
     linux-src/common/file.c
     linux-src/common/interrupt.c
