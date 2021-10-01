@@ -8,8 +8,6 @@ Find/fix prompt problem reported by @lizby
 Increase timeout for CONSOLE GETCURSOR
 Fix syntax highlighting for comments
 Implement support for ~ at start of paths
-Add exit code to error message from SYSTEM command
-Implement mechanism to retrieve exit code from SYSTEM command
 Implement JSON$()
 Implement SETTICK
 Implement *COMMAND* MID$()

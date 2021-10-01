@@ -3,6 +3,8 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a2 - ??-???-2021:
+ - Changed SYSTEM command to set MM.ERRNO equal to the executed program's
+   exit code. Also changed error message to include this value.
  - Changed "mmbasic.nanorc" to make behaviour more like the CMM2 editor:
     - added 'set constantshow' so the cursor position display is always visible.
     - added 'set zap' so that [Delete] and [Backspace] erase all the selected
