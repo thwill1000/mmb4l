@@ -138,6 +138,7 @@ icolor cyan "#include"
 icolor cyan "\<(input|exit)\>"
 icolor cyan "\<(format)\$\("
 icolor cyan "\<(font|console|loop|mod|until|serial)\>"
+icolor cyan "\<(mm.device|mm.errmsg)\$"
 
 ## operators
 color white "[+*=\^]" "<" ">" "/" "-"

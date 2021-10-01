@@ -44,6 +44,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_longstring.c
     linux-src/commands/cmd_math.c
     linux-src/commands/cmd_memory.c
+    linux-src/commands/cmd_mid.c
     linux-src/commands/cmd_mkdir.c
     linux-src/commands/cmd_on.c
     linux-src/commands/cmd_open.c

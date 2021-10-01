@@ -3,6 +3,8 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a2 - ??-???-2021:
+ - Added MID$ command (as opposed to the already existing MID$() function) from
+   the CMM2.
  - Changed error handling so that the value of MM.ERRNO for most MMBasic
    errors is 1000, not 16. For MMB4L values are such that:
     - 0      : no error

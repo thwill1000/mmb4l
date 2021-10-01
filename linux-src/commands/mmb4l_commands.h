@@ -21,6 +21,7 @@
     void cmd_longstring(void);
     void cmd_math(void);
     void cmd_memory(void);
+    void cmd_mid(void);
     void cmd_mkdir(void);
     void cmd_open(void);
     void cmd_option(void);
@@ -53,6 +54,7 @@
     { "Files",      T_CMD,              0, cmd_files    },
     { "Kill",       T_CMD,              0, cmd_kill     },
     { "Load",       T_CMD,              0, cmd_load     },
+    { "Mid$(",      T_CMD | T_FUN,      0, cmd_mid      },
     { "Mkdir",      T_CMD,              0, cmd_mkdir    },
     { "Open",       T_CMD,              0, cmd_open     },
     { "Quit",       T_CMD,              0, cmd_quit     },
