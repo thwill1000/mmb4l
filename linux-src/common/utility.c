@@ -10,6 +10,7 @@ const struct timespec ONE_MICROSECOND = { 0, 1000 };
 const struct timespec ONE_MILLISECOND = { 0, 1000000 };
 
 char *munge_path(const char *original_path, char *new_path, size_t sz) {
+    errno = 0;
     const char *psrc = original_path;
 
     // HACK! ignore any leading drive letter and colon in the 'original_path', e.g. "A:".
@@ -31,8 +32,29 @@ char *munge_path(const char *original_path, char *new_path, size_t sz) {
         return new_path;
     }
 
-    // Copy from 'original_path' to 'new_path' converting '\' => '/'.
+    // Does the path begin with '~' ?
     char *pdst = new_path;
+    if (*psrc == '~') {
+        psrc++;
+
+        const char *home = getenv("HOME");
+        if (!home) return NULL; // Probably never happens.
+
+        if (!*psrc) {
+            // The path is just "~".
+            strcpy(new_path, home);
+            return new_path;
+        } else if (*psrc == '\\' || *psrc == '/') {
+            // The path begins "~/".
+            strcpy(new_path, home);
+            pdst += strlen(home);
+        } else {
+            // No special treatment for '~' in this case.
+            *pdst++ = '~';
+        }
+    }
+
+    // Copy from 'original_path' to 'new_path' converting '\' => '/'.
     for (;;) {
         *pdst = (*psrc == '\\') ? '/' : *psrc;
         if (*psrc == '\0') break;

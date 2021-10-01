@@ -26,6 +26,7 @@ add_test("test_loc")
 add_test("test_lof")
 add_test("test_rename")
 add_test("test_seek")
+add_test("test_tilde_expansion")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -211,4 +212,65 @@ Sub test_seek()
     assert_string_equals(CRLF$ + "Goodbye", s$)
 
     Close #1
+End Sub
+
+Sub test_tilde_expansion()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
+  Local original_dir$ = Cwd$
+
+  System "rm -Rf /tmp/test_tilde_expansion.dir"
+
+  ' Test CHDIR.
+  ChDir "~"
+  assert_string_equals(Mm.Info$(EnvVar "HOME"), Cwd$)
+
+  ChDir "~/../../tmp"
+  assert_string_equals("/tmp", Cwd$)
+
+  ' Test MKDIR.
+  Local my_test_dir$ = "~/../../tmp/test_tilde_expansion.dir"
+  MkDir my_test_dir$
+  assert_true(Mm.Info(Exists my_test_dir$))
+
+  ' Test OPEN.
+  Local my_test_file$ = my_test_dir$ + "/my_test_file.txt"
+  Open my_test_file$ For Output As #1
+  Print #1, "Hello World"
+  Close #1
+
+  Open my_test_file$ For Input As #1
+  Local s$
+  Line Input #1, s$
+  Close #1
+  assert_string_equals("Hello World", s$)
+
+  ' Test COPY.
+  Copy my_test_file$ To my_test_file$ + ".copy"
+  assert_true(Mm.Info(Exists my_test_file$ + ".copy"))
+
+  ' Test RENAME.
+  Rename my_test_file$ + ".copy" As my_test_file$ + ".copy2"
+  assert_false(Mm.Info(Exists my_test_file$ + ".copy"))
+  assert_true(Mm.Info(Exists my_test_file$ + ".copy2"))
+
+  ' Test DIR.
+  Local f$ = Dir$(my_test_dir$ + "/*", ALL)
+  assert_string_equals("my_test_file.txt", f$)
+  f$ = Dir$()
+  assert_string_equals("my_test_file.txt.copy2", f$)
+  f$ = Dir$()
+  assert_string_equals("", f$)
+
+  ' Test KILL.
+  Kill my_test_file$
+  assert_false(Mm.Info(Exists my_test_file$))
+  Kill my_test_file$ + ".copy2"
+  assert_false(Mm.Info(Exists my_test_file$ + ".copy2"))
+
+  ' Test RMDIR.
+  RmDir my_test_dir$
+  assert_false(Mm.Info(Exists my_test_dir$))
+
+  ChDir original_dir$
 End Sub

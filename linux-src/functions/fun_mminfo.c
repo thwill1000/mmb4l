@@ -124,12 +124,9 @@ static void mminfo_errno(char *p) {
 }
 
 static char *get_path(char *p) {
-    char *path = getCstring(p);
-    char tmp[STRINGSIZE];
-    if (!munge_path(path, tmp, STRINGSIZE)) {
-        error_check();
-    }
-    strcpy(path, tmp);
+    char *path = GetTempStrMemory();
+    munge_path(getCstring(p), path, STRINGSIZE);
+    error_check();
     return path;
 }
 

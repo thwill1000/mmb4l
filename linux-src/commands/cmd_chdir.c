@@ -5,13 +5,9 @@
 #include "../common/version.h"
 
 void cmd_chdir(void) {
-    // Get the directory name and convert to a standard C string.
-    char *dir = getCstring(cmdline);
-    char path[STRINGSIZE];
-    if (!munge_path(dir, path, STRINGSIZE)) {
-        if (error_check()) return;
-    }
-    errno = 0;
+    char *path = GetTempStrMemory();
+    munge_path(getCstring(cmdline), path, STRINGSIZE);
+    error_check();
     int result = chdir(path);
     error_check();
 }

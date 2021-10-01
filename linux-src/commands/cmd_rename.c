@@ -1,21 +1,20 @@
 #include "../common/error.h"
+#include "../common/utility.h"
 #include "../common/version.h"
 
 void cmd_rename(void) {
-    char *oldf, *newf, ss[2];
-    ss[0] = tokenAS;  // this will be used to split up the argument line
-    ss[1] = 0;
-    {
-        getargs(
-            &cmdline, 3,
-            ss);  // getargs macro must be the first executable stmt in a block
-        if (argc != 3) error("Invalid syntax");
-        oldf = getCstring(argv[0]);  // get the old file name and convert to a
-                                     // standard C string
-        newf = getCstring(argv[2]);  // get the new file name and convert to a
-                                     // standard C string
-        errno = 0;
-        rename(oldf, newf);
-        if (error_check()) return;
-    }
+    char ss[2] = { tokenAS, 0 };
+    getargs(&cmdline, 3, ss);  // must be first executable statement in block
+    if (argc != 3) ERROR_SYNTAX;
+
+    char *old_path = GetTempStrMemory();
+    munge_path(getCstring(argv[0]), old_path, STRINGSIZE);
+    error_check();
+
+    char *new_path = GetTempStrMemory();
+    munge_path(getCstring(argv[2]), new_path, STRINGSIZE);
+    error_check();
+
+    rename(old_path, new_path);
+    error_check();
 }

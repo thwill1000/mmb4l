@@ -19,6 +19,8 @@ Version 2021.01.00-a2 - ??-???-2021:
        - &b11 : return both "<null>" and "<missing>".
  - Added MID$ command (as opposed to the already existing MID$() function) from
    the CMM2.
+ - Added support for prefixing paths with '~' which is expanded to the
+   users home directory (the value of the HOME envrionment variable).
  - Changed CONSOLE SETCURSOR command to allow a maximum x, y of 1023
    (previously 255) and updated "examples/mandelbrot.bas" to support this.
  - Added optional integer argument (default 1) to ERROR command allowing an error

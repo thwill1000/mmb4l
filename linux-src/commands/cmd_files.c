@@ -5,7 +5,7 @@ void cmd_files(void) {
 
     skipspace(cmdline);
     if (*cmdline != '\0' && *cmdline != '\\') {
-        sprintf(command, "ls \"%s\"", getCstring(cmdline));
+        sprintf(command, "ls %s", getCstring(cmdline));
     } else {
         sprintf(command, "ls");
     }
