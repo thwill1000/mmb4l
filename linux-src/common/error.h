@@ -9,6 +9,8 @@ extern int error_line;
 void error(char *msg, ...);
 int error_check();
 
+#define ERRNO_UNCLASSIFIED  1000
+
 #define ERROR_ARGUMENT_COUNT           error("Argument count")
 #define ERROR_UNKNOWN_SUBCOMMAND       error("Unknown subcommand")
 #define ERROR_ARGUMENT_NOT_INTEGER(s)  error("Argument " s " must be an integer")

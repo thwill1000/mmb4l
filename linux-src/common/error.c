@@ -104,7 +104,7 @@ static void get_line_and_file(int *line, char *file_path) {
 void error(char *msg, ...) {
     va_list ap;
     // ScrewUpTimer=0;
-    if (MMerrno == 0) MMerrno = 16;  // indicate an error
+    if (MMerrno == 0) MMerrno = ERRNO_UNCLASSIFIED;
     memset(error_buffer, 0, STRINGSIZE);
     error_buffer_pos = 0;
     LoadOptions();  // make sure that the option struct is in a clean state

@@ -3,6 +3,14 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a2 - ??-???-2021:
+ - Changed error handling so that the value of MM.ERRNO for most MMBasic
+   errors is 1000, not 16. For MMB4L values are such that:
+    - 0      : no error
+    - 1-999  : standard error code from a C system/library call
+               (16 happens to be "Device or resource busy" on Ubuntu 20.)
+    - 1000+  : MMBasic specific errors
+    - error numbers from the SYSTEM command are an exception to this rule,
+      see the next entry.
  - Changed SYSTEM command to set MM.ERRNO equal to the executed program's
    exit code. Also changed error message to include this value.
  - Changed "mmbasic.nanorc" to make behaviour more like the CMM2 editor:
