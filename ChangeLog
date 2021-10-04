@@ -22,6 +22,7 @@ Version 2021.01.00-a2 - ??-???-2021:
       the date & time in UTC, not in the local timezone.
  - Added MID$ command (as opposed to the already existing MID$() function) from
    the CMM2.
+ - Added SETTICK command from the CMM2. Note 'SETTICK FAST' is not supported.
  - Added support for prefixing paths with '~' which is expanded to the
    users home directory (the value of the HOME envrionment variable).
  - Changed CONSOLE SETCURSOR command to allow a maximum x, y of 1023

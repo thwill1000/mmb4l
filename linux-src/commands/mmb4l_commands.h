@@ -31,6 +31,7 @@
     void cmd_rename(void);
     void cmd_rmdir(void);
     void cmd_seek(void);
+    void cmd_settick(void);
     void cmd_settitle(void);
     void cmd_sort(void);
     void cmd_system(void);
@@ -61,6 +62,7 @@
     { "Rename",     T_CMD,              0, cmd_rename   },
     { "Rmdir",      T_CMD,              0, cmd_rmdir    },
     { "Seek",       T_CMD,              0, cmd_seek     },
+    { "SetTick",    T_CMD,              0, cmd_settick  },
     { "System",     T_CMD,              0, cmd_system   },
     { "Option",     T_CMD,              0, cmd_option   },
     { "Cat",        T_CMD,              0, cmd_inc      }, // TODO: alias of INC
@@ -80,7 +82,6 @@
     { "Play",       T_CMD,              0, cmd_dummy    },
     { "Poke",       T_CMD,              0, cmd_poke     },
     { "SetTitle",   T_CMD,              0, cmd_settitle },
-    { "SetTick",    T_CMD,              0, cmd_dummy    },
     { "Sort",       T_CMD,              0, cmd_sort     },
     { "Text",       T_CMD,              0, cmd_dummy    },
 

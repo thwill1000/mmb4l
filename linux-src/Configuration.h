@@ -37,6 +37,7 @@ provisions:
 #define MAXGOSUB            1000                    // each entry uses 4 bytes
 #define MAX_MULTILINE_IF    20                      // each entry uses 8 bytes
 #define MAXTEMPSTRINGS      256                     // each entry takes up 4 bytes
+#define NBRSETTICKS         4                       // the number of SETTICK interrupts available
 #define MAXSUBFUN           512                     // each entry takes up 4 bytes
 
 // operating characteristics

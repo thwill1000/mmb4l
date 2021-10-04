@@ -183,6 +183,8 @@ Sub test_settick()
   SetTick  10, inc_t3, 3
   SetTick   2, inc_t4, 4
   Pause 1000
+'  Local t% = Timer
+'  Do While Timer - t% < 1000 : Loop
   SetTick 0, inc_t4, 4
   SetTick 0, inc_t3, 3
   SetTick 0, inc_t2, 2

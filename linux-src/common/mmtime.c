@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 
 #include "mmtime.h"
@@ -53,4 +54,10 @@ void mmtime_day_of_week(int64_t time_ns, char* buf) {
     time_t t = NANOSECONDS_TO_SECONDS(time_ns);
     struct tm *tmbuf = gmtime(&t);
     sprintf(buf, "%s", DAYS_OF_WEEK[tmbuf->tm_wday]);
+}
+
+void mmtime_sleep_ns(int64_t duration_ns) {
+    assert(duration_ns >= 0);
+    struct timespec t = { duration_ns / 1000000000, duration_ns % 1000000000 };
+    nanosleep(&t, NULL);
 }

@@ -44,4 +44,7 @@ void mmtime_time_string(int64_t time_ns, char *buf);
  */
 void mmtime_day_of_week(int64_t time_ns, char* buf);
 
+/** Sleeps for a given number of nanoseconds. */
+void mmtime_sleep_ns(int64_t duration_ns);
+
 #endif

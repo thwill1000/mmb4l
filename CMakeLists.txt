@@ -59,6 +59,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_rmdir.c
     linux-src/commands/cmd_run.c
     linux-src/commands/cmd_seek.c
+    linux-src/commands/cmd_settick.c
     linux-src/commands/cmd_settitle.c
     linux-src/commands/cmd_sort.c
     linux-src/commands/cmd_system.c
