@@ -1,25 +1,12 @@
 #include <stdio.h>
-#include <time.h>
 
 #include "../common/utility.h"
 #include "../common/version.h"
 
 void cmd_pause(void) {
-    struct timespec wakeup;
-    clock_gettime(CLOCK_REALTIME, &wakeup);
-    int64_t delay = getinteger(cmdline);
-    wakeup.tv_sec += delay / 1000;
-    wakeup.tv_nsec += 1000000 * (delay % 1000);
-
-    struct timespec now;
-    int64_t ms;
-    for (;;) {
+    uint64_t wakeup = time_now_ns() + 1000000UL * (uint64_t) getinteger(cmdline);
+    while (time_now_ns() < wakeup) {
         CheckAbort();
-        clock_gettime(CLOCK_REALTIME, &now);
-        ms = (1000 * (wakeup.tv_sec - now.tv_sec))
-             + ((wakeup.tv_nsec - now.tv_nsec) / 1000000);
-        //printf("Now:    %ld, %ld, %ld\n", now.tv_sec, now.tv_nsec, ms);
-        if (ms <= 0) break;
 
         // A short sleep so we do not continue to thrash CPU when paused.
         nanosleep(&ONE_MICROSECOND, NULL);

@@ -77,11 +77,13 @@ int console_getc(void);
 /**
  * Gets the cursor position.
  *
- * @param   x  on return holds the x-position.
- * @param   y  on return holds the y-position.
- * @return     1 on success, otherwise 0.
+ * @param   x           on return holds the x-position.
+ * @param   y           on return holds the y-position.
+ * @param   timeout_ms  how long (in milliseconds) to wait for a response
+ *                      from the terminal before reporting a failure.
+ * @return              1 on success, otherwise 0.
  */
-int console_get_cursor_pos(int *x, int *y);
+int console_get_cursor_pos(int *x, int *y, int timeout_ms);
 
 /**
  * Gets the console size.

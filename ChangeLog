@@ -22,6 +22,12 @@ Version 2021.01.00-a2 - ??-???-2021:
     - added 'set zap' so that [Delete] and [Backspace] erase all the selected
       text instead of just a single character.
     - either of these can be commented out with # if you prefer.
+ - Fixed timeout bugs with CONSOLE GETCURSOR:
+     - increase the timeout to 10s.
+     - correct the unsigned 64-bit arithmetic used in timing code.
+ - Fixed bug where navigating the command prompt history with up/down arrow
+   keys would show display artifacts when using PuTTY; though not sure why
+   the issue was not generally visible.
 
 Version 2021.01.00-a1 - 23-Sep-2021:
  - First alpha version.

@@ -5,11 +5,11 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <time.h>
 
 #include "console.h"
 #include "error.h"
@@ -241,22 +241,23 @@ enum ReadCursorPositionState {
         EXPECTING_COLS,
         EXPECTING_FINISHED };
 
-int console_get_cursor_pos(int *x, int *y) {
+int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
+
     rx_buf_clear(&console_rx_buf);
 
     // Send escape code to report cursor position.
     WRITE_CODE_2("\033[6n", 4);
 
     // Read characters one at a time to match the expected pattern ESC[n;mR
-    // - fails if after 500 attempted reads the pattern has not been matched.
+    // - fails if the pattern has not been matched within the timeout.
     // - will sleep briefly if there is nothing to read.
-    int ch;
+    uint64_t timeout_ns = time_now_ns() + 1000000UL * timeout_ms;
     enum ReadCursorPositionState state = EXPECTING_ESCAPE;
     char buf[32] = { 0 };
-    char *p = buf;
-    for (int count = 0; count < 500 && state != EXPECTING_FINISHED; ++count) {
+    char *p = NULL;
+    while (time_now_ns() < timeout_ns && state != EXPECTING_FINISHED) {
         if (state == EXPECTING_ESCAPE) p = buf;
-        ch = console_getc();
+        int ch = console_getc();
         if (ch == -1) {
             nanosleep(&ONE_MICROSECOND, NULL);
             continue;

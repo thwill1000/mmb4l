@@ -101,3 +101,9 @@ char *append_path(const char *head, const char *tail, char *result, size_t sz) {
     sprintf(result, "%s/%s", head, tail);
     return result;
 }
+
+uint64_t time_now_ns() {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    return (uint64_t) now.tv_sec * 1000000000UL + (uint64_t) now.tv_nsec;
+}

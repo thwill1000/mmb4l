@@ -216,7 +216,7 @@ void mminfo_hres(char *p) {
 static void mminfo_hpos(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int x, y;
-    if (!console_get_cursor_pos(&x, &y)) {
+    if (!console_get_cursor_pos(&x, &y, 10000)) {
         ERROR_COULD_NOT("determine cursor position");
     }
     int scale = g_options.resolution == PIXEL ? FONT_WIDTH : 1;
@@ -304,7 +304,7 @@ void mminfo_vres(char *p) {
 static void mminfo_vpos(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int x, y;
-    if (!console_get_cursor_pos(&x, &y)) {
+    if (!console_get_cursor_pos(&x, &y, 10000)) {
         ERROR_COULD_NOT("determine cursor position");
     }
     int scale = g_options.resolution == PIXEL ? FONT_HEIGHT : 1;

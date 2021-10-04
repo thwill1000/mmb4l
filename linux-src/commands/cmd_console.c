@@ -45,7 +45,7 @@ static void cmd_console_get_cursor(char *p) {
     }
 
     int x, y;
-    if (!console_get_cursor_pos(&x, &y)) {
+    if (!console_get_cursor_pos(&x, &y, 10000)) {
         ERROR_COULD_NOT("determine cursor position");
     }
 
