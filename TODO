@@ -4,7 +4,6 @@ TODO
 Required for alpha 2
 --------------------
 
-Find/fix prompt problem reported by @lizby
 Fix syntax highlighting for comments
 Implement support for ~ at start of paths
 Implement JSON$()
