@@ -71,8 +71,11 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/fun_choice.c
     linux-src/functions/fun_cwd.c
     linux-src/functions/fun_date.c
+    linux-src/functions/fun_datetime.c
+    linux-src/functions/fun_day.c
     linux-src/functions/fun_dir.c
     linux-src/functions/fun_eof.c
+    linux-src/functions/fun_epoch.c
     linux-src/functions/fun_format.c
     linux-src/functions/fun_field.c
     linux-src/functions/fun_hres.c

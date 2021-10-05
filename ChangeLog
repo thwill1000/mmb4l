@@ -17,6 +17,9 @@ Version 2021.01.00-a2 - ??-???-2021:
        - &b01 : return "<null>" for explicit null.
        - &b10 : return "<missing>" for missing value.
        - &b11 : return both "<null>" and "<missing>".
+ - Added DAY$(), DATETIME$() and EPOCH() functions from the CMM2:
+    - note that unlike DATE$ and TIME$ the DATETIME$(NOW) function will return
+      the date & time in UTC, not in the local timezone.
  - Added MID$ command (as opposed to the already existing MID$() function) from
    the CMM2.
  - Added support for prefixing paths with '~' which is expanded to the

@@ -5,6 +5,16 @@
 const struct timespec ONE_MICROSECOND = { 0, 1000 };
 const struct timespec ONE_MILLISECOND = { 0, 1000000 };
 
+const char *DAYS_OF_WEEK[] = {
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+};
+
 int64_t mmtime_base_ns;
 
 void mmtime_init(void) {
@@ -37,4 +47,10 @@ void mmtime_time_string(int64_t time_ns, char *buf) {
     struct tm *tmbuf;
     tmbuf = localtime(&t);
     sprintf(buf, "%02d:%02d:%02d", tmbuf->tm_hour, tmbuf->tm_min, tmbuf->tm_sec);
+}
+
+void mmtime_day_of_week(int64_t time_ns, char* buf) {
+    time_t t = NANOSECONDS_TO_SECONDS(time_ns);
+    struct tm *tmbuf = gmtime(&t);
+    sprintf(buf, "%s", DAYS_OF_WEEK[tmbuf->tm_wday]);
 }

@@ -6,8 +6,11 @@
     void fun_choice(void);
     void fun_cwd(void);
     void fun_date(void);
+    void fun_datetime(void);
+    void fun_day(void);
     void fun_dir(void);
     void fun_eof(void);
+    void fun_epoch(void);
     void fun_field(void);
     void fun_format(void);
     void fun_inputstr(void);
@@ -40,8 +43,11 @@
     { "Choice(",      T_FUN | T_STR | T_INT | T_NBR, 0, fun_choice },
     { "Cwd$",         T_FNA | T_STR,      0, fun_cwd      },
     { "Date$",        T_FNA | T_STR,      0, fun_date     },
+    { "DateTime$(",   T_FUN | T_STR,      0, fun_datetime },
+    { "Day$(",        T_FUN | T_STR,      0, fun_day      },
     { "Dir$(",        T_FUN | T_STR,      0, fun_dir      },
     { "Eof(",         T_FUN | T_INT,      0, fun_eof      },
+    { "Epoch(",       T_FUN | T_INT,      0, fun_epoch    },
     { "Field$(",      T_FUN | T_STR,      0, fun_field    },
     { "Format$(",     T_FUN | T_STR,      0, fun_format   },
     { "Input$(",      T_FUN | T_STR,      0, fun_inputstr },

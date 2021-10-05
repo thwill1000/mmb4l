@@ -38,4 +38,10 @@ void mmtime_date_string(int64_t time_ns, char *buf);
  */
 void mmtime_time_string(int64_t time_ns, char *buf);
 
+/**
+ * Converts nanoseconds elapsed since the epoch into a day
+ * in the GMT time zone.
+ */
+void mmtime_day_of_week(int64_t time_ns, char* buf);
+
 #endif
