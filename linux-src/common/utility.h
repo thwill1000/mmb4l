@@ -1,12 +1,7 @@
 #if !defined(UTILITY_H)
 #define UTILITY_H
 
-#include <stdint.h>
 #include <stdlib.h>
-#include <time.h>
-
-extern const struct timespec ONE_MICROSECOND;
-extern const struct timespec ONE_MILLISECOND;
 
 /**
  * Returns an absolute/canonical path, replacing any '\' with '/'.
@@ -62,11 +57,5 @@ char *append_path(const char *head, const char *tail, char *result, size_t sz);
  *                        otherwise sets 'errno' and returns NULL.
  */
 char *munge_path(const char *original_path, char *new_path, size_t sz);
-
-/**
- * Gets the number of nanoseconds elapsed since the epoch
- * ( 00:00:00 on January 1, 1970, Coordinated Universal Time.)
- */
-uint64_t time_now_ns();
 
 #endif

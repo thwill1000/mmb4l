@@ -6,9 +6,6 @@
 
 #include "utility.h"
 
-const struct timespec ONE_MICROSECOND = { 0, 1000 };
-const struct timespec ONE_MILLISECOND = { 0, 1000000 };
-
 char *munge_path(const char *original_path, char *new_path, size_t sz) {
     errno = 0;
     const char *psrc = original_path;
@@ -122,10 +119,4 @@ char *append_path(const char *head, const char *tail, char *result, size_t sz) {
     }
     sprintf(result, "%s/%s", head, tail);
     return result;
-}
-
-uint64_t time_now_ns() {
-    struct timespec now;
-    clock_gettime(CLOCK_REALTIME, &now);
-    return (uint64_t) now.tv_sec * 1000000000UL + (uint64_t) now.tv_nsec;
 }

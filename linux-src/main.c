@@ -27,7 +27,6 @@ PARTICULAR PURPOSE.
 #include <assert.h>
 #include <signal.h>
 #include <stdio.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "common/cmdline.h"
@@ -37,6 +36,7 @@ PARTICULAR PURPOSE.
 #include "common/file.h"
 #include "common/global_aliases.h"
 #include "common/interrupt.h"
+#include "common/mmtime.h"
 #include "common/utility.h"
 #include "common/version.h"
 
@@ -44,7 +44,6 @@ PARTICULAR PURPOSE.
 // interpreter
 int ListCnt;
 int MMCharPos;
-struct timespec g_timer;
 volatile int MMAbort = false;
 struct option_s Option;
 int WatchdogSet, IgnorePIN;
@@ -214,9 +213,8 @@ int main(int argc, char *argv[]) {
 #endif
 
     interrupt_init();
-    clock_gettime(CLOCK_REALTIME, &g_timer);
-    srand(0);             // seed the random generator with zero
-
+    mmtime_init();
+    srand(0);  // seed the random generator with zero
     set_start_directory();
     longjmp_handler();
 

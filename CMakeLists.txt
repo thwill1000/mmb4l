@@ -107,6 +107,7 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/interrupt.c
     linux-src/common/maths.c
     linux-src/common/memory.c
+    linux-src/common/mmtime.c
     linux-src/common/option.c
     linux-src/common/parse.c
     linux-src/common/program.c
@@ -124,7 +125,7 @@ set(MMBASIC_LINUX_SOURCE_FILES
 # add the executable
 add_executable(mmbasic ${MMBASIC_CORE_SOURCE_FILES} ${MMBASIC_LINUX_SOURCE_FILES})
 
-add_executable(keyboard_test linux-src/keyboard_test.c linux-src/common/rx_buf.c linux-src/common/console.c linux-src/common/utility.c)
+add_executable(keyboard_test linux-src/keyboard_test.c linux-src/common/rx_buf.c linux-src/common/console.c linux-src/common/mmtime.c linux-src/common/utility.c)
 
 target_link_libraries(mmbasic m)
 

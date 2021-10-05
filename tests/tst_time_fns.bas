@@ -29,21 +29,18 @@ Sub teardown_test()
 End Sub
 
 Sub test_pause_and_timer()
-  ' Save current timer.
   Local t% = Timer
-
-  Timer = 0
   Pause 10
-  assert_true(Abs(Timer - 10) < 2);
+  assert_true(Abs(Timer - t% - 10) < 2)
+'  assert_int_equals(Timer, t% + 10)
 
-  Timer = 0
+  t% = Timer
   Pause 100
-  assert_true(Abs(Timer - 100) < 2);
+  assert_true(Abs(Timer - t% - 100) < 2)
+'  assert_int_equals(Timer, t% + 100)
 
-  Timer = 0
+  t% = Timer
   Pause 1000
-  assert_true(Abs(Timer - 1000) < 2);
-
-  ' Restore timer - this test will be reported to have taken ~0s.
-  Timer = t%
+  assert_true(Abs(Timer - t% - 1000) < 2)
+'  assert_int_equals(Timer, t% + 1000)
 End Sub

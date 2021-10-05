@@ -15,6 +15,7 @@
 #include "error.h"
 #include "global_aliases.h"
 #include "interrupt.h"
+#include "mmtime.h"
 #include "utility.h"
 #include "rx_buf.h"
 #include "../Configuration.h" // For STRINGSIZE
@@ -249,11 +250,11 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
     // Read characters one at a time to match the expected pattern ESC[n;mR
     // - fails if the pattern has not been matched within the timeout.
     // - will sleep briefly if there is nothing to read.
-    uint64_t timeout_ns = time_now_ns() + 1000000UL * timeout_ms;
+    int64_t timeout_ns = mmtime_now_ns() + MILLISECONDS_TO_NANOSECONDS(timeout_ms);
     enum ReadCursorPositionState state = EXPECTING_ESCAPE;
     char buf[32] = { 0 };
     char *p = NULL;
-    while (time_now_ns() < timeout_ns && state != EXPECTING_FINISHED) {
+    while (mmtime_now_ns() < timeout_ns && state != EXPECTING_FINISHED) {
         if (state == EXPECTING_ESCAPE) p = buf;
         int ch = console_getc();
         if (ch == -1) {
