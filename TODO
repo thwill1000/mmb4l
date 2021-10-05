@@ -14,7 +14,6 @@ Implement JSON$()
 Implement SETTICK
 Implement *COMMAND* MID$()
 Add timer to sptest when multiple tests are executed
-Consider 'set zap' option to nano
 
 Required for release
 --------------------

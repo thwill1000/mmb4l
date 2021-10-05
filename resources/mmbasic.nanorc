@@ -9,6 +9,7 @@ set regexp
 set smooth
 set suspend
 set tabsize 2
+set zap
 
 unbind ^U main
 unbind ^W main

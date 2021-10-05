@@ -3,10 +3,11 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a2 - ??-???-2021:
- - Updated "mmbasic.nanorc" to include 'set constantshow' so that the default
-   is for the cursor position display to always be shown; comment the line
-   out with a # if you don't like it.
- - TODO
+ - Changed "mmbasic.nanorc" to make behaviour more like the CMM2 editor:
+    - added 'set constantshow' so the cursor position display is always visible.
+    - added 'set zap' so that [Delete] and [Backspace] erase all the selected
+      text instead of just a single character.
+    - either of these can be commented out with # if you prefer.
 
 Version 2021.01.00-a1 - 23-Sep-2021:
  - First alpha version.

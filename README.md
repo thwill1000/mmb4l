@@ -109,8 +109,7 @@ Where not overridden by the above the [default nano keyboard bindings](https://w
 **Gotchas:**
 
  1. Unlike other MMBasics there is no key to **Run** a program from the editor.
- 2. **Delete** only ever deletes a single character, not the current selection, use **Ctrl+K** instead.
- 3. If you rename a file whilst saving it MMB4L will not update its "current stored program" state and will still be using the previous file.
+ 2. If you rename a file whilst saving it MMB4L will not update its "current stored program" state and will still be using the previous file.
 
 ## Differences from MMBasic 5.05.04 for Windows/DOS
 
