@@ -23,6 +23,7 @@ uint8_t error_to_exit_code(int32_t error_code);
 #define ERROR_INTERNAL_FAULT           error("Internal fault (sorry)")
 #define ERROR_INVALID(s)               error("Invalid " s)
 #define ERROR_INVALID_ARGUMENT         ERROR_INVALID("Argument")
+#define ERROR_OUT_OF_MEMORY            error("Not enough memory")
 #define ERROR_SYNTAX                   error("Syntax")
 #define ERROR_UNIMPLEMENTED(s)         error("Unimplemented: " s)
 #define ERROR_UNRECOGNISED_OPTION      error("Unrecognised option")

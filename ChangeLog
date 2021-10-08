@@ -3,6 +3,14 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a2 - ??-???-2021:
+ - Added ability to specify on the Linux command-line a BASIC program that MMB4L
+   should RUN when it starts, e.g.
+       ./mmbasic myprogram.bas --foo --bar \"wom bat\"
+   will cause MMB4L to start and immediately execute the command:
+       RUN "myprogram.bas", --foo --bar "wom bat"
+   If the program ends without reporting an MMBasic ERROR or is interrupted with
+   Ctrl-C then MMB4L will immediately exit.
+ - Added JSON$() function from the CMM2.
  - Added MID$ command (as opposed to the already existing MID$() function) from
    the CMM2.
  - Changed CONSOLE SETCURSOR command to allow a maximum x, y of 1023

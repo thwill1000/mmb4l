@@ -70,13 +70,16 @@ void console_enable_raw_mode(void) {
 
 void console_pump_input(void) {
     char ch;
+    errno = 0;
     ssize_t result = read(STDIN_FILENO, &ch, 1);
     switch (result) {
         case 0:
             // Nothing to read.
+            if (!isatty(STDIN_FILENO)) exit(0);
             return;
         case 1:
             // Read one character, drop out of the switch.
+            // printf("<%d>", (int) ch);
             break;
         default:
             error("Unexpected result from read()");

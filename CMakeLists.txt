@@ -98,6 +98,7 @@ set(MMBASIC_LINUX_OPERATORS_SOURCE_FILES
     linux-src/operators/op_inv.c)
 
 set(MMBASIC_LINUX_COMMON_SOURCE_FILES
+    linux-src/common/cmdline.c
     linux-src/common/console.c
     linux-src/common/error.c
     linux-src/common/file.c
@@ -131,11 +132,13 @@ enable_testing()
 
 add_executable(
   mmbasic_test
+  linux-src/common/cmdline.c
   linux-src/common/file.c
   linux-src/common/rx_buf.c
   linux-src/common/utility.c
-  linux-src/common/gtest/rx_buf_test.cxx
+  linux-src/common/gtest/cmdline_test.cxx
   linux-src/common/gtest/file_test.cxx
+  linux-src/common/gtest/rx_buf_test.cxx
 )
 
 target_link_libraries(

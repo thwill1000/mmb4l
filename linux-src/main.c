@@ -30,6 +30,7 @@ PARTICULAR PURPOSE.
 #include <time.h>
 #include <unistd.h>
 
+#include "common/cmdline.h"
 #include "common/console.h"
 #include "common/error.h"
 #include "common/exit_codes.h"
@@ -53,15 +54,20 @@ int WatchdogSet, IgnorePIN, InterruptUsed;
 char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary, **FontTable;
 
-int ErrorInPrompt = false;
+// int ErrorInPrompt = false;
 
 char g_break_key = BREAK_KEY;
+CmdLineArgs mmb_args = { 0 };
 uint8_t mmb_exit_code = EX_OK;
 
 void IntHandler(int signo);
-int LoadFile(char *prog);
 void dump_token_table(const struct s_tokentbl* tbl);
 void prompt_get_input(void); // common/prompt.c
+
+void print_banner() {
+    MMPrintString(MES_SIGNON);
+    MMPrintString(COPYRIGHT);
+}
 
 void init_options() {
     Option.ProgFlashSize = PROG_FLASH_SIZE;
@@ -91,7 +97,8 @@ void set_start_directory() {
     }
 }
 
-void longjmp_handler(void) {
+/** Setup and handle return vai longjmp(). */
+void longjmp_handler(void ) {
     // Note that weird restrictions on setjmp() mean we cannot simply write:
     // int jmp_state = setjmp(mark);
     int jmp_state = 0;
@@ -123,26 +130,39 @@ void longjmp_handler(void) {
     console_reset();
     if (MMCharPos > 1) MMPrintString("\r\n");
 
+    int do_exit = false;
     switch (jmp_state) {
         case JMP_BREAK:
             mmb_exit_code = EX_BREAK;
+            do_exit = !mmb_args.interactive;
+            break;
+
+        case JMP_END:
+            do_exit = !mmb_args.interactive;
             break;
 
         case JMP_ERROR:
             MMPrintString(MMErrMsg);
             mmb_exit_code = error_to_exit_code(MMerrno);
+            do_exit = !mmb_args.interactive;
             break;
 
         case JMP_NEW:
             mmb_exit_code = EX_OK; // Probably not necessary.
+            do_exit = false;
             break;
 
         case JMP_QUIT:
-            exit(mmb_exit_code);
+            do_exit = true;
             break;
 
         default:
             break;
+    }
+
+    if (do_exit) {
+        printf("[%d]\n", mmb_exit_code);
+        exit(mmb_exit_code);
     }
 
     ContinuePoint = nextstmt;  // In case the user wants to use the continue command
@@ -151,9 +171,17 @@ void longjmp_handler(void) {
 }
 
 int main(int argc, char *argv[]) {
-    // int RunCommandLineProgram = false;
+    if (cmdline_parse(argc, (const char **) argv, &mmb_args) != 0) {
+        fprintf(stderr, "Invalid command line arguments");
+        exit(EX_FAIL);
+    }
 
-    // get things setup to act like the Micromite version
+    if (mmb_args.version) {
+        print_banner();
+        return 0;
+    }
+
+    // Get things setup to act like the Micromite version
     vartbl = DOS_vartbl;
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
     init_options();
@@ -163,15 +191,16 @@ int main(int argc, char *argv[]) {
     console_init();
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
-    console_set_title("MMBasic - Untitled");
-    console_reset();
-    console_clear();
-    console_show_cursor(1);
 
-    MMPrintString(MES_SIGNON);
-    MMPrintString(COPYRIGHT);
-    // MMPrintString("Copyright 2016-2021 Peter Mather\r\n");
-    MMPrintString("\r\n");
+    if (mmb_args.interactive) {
+        console_set_title("MMBasic - Untitled");
+        console_reset();
+        console_clear();
+        console_show_cursor(1);
+
+        print_banner();
+        MMPrintString("\r\n");
+    }
 
     OptionErrorSkip = 0;
     InitBasic();
@@ -190,23 +219,10 @@ int main(int argc, char *argv[]) {
     clock_gettime(CLOCK_REALTIME, &g_timer);
     srand(0);             // seed the random generator with zero
 
-    // If there is something on the command line try to load it as a program, if
-    // that fails try AUTORUN.BAS
-    // if (argc > 1) RunCommandLineProgram = LoadFile(argv[1]);
-    // if (!RunCommandLineProgram) RunCommandLineProgram = LoadFile("AUTORUN.BAS");
-    // if (!RunCommandLineProgram)
-    //     RunCommandLineProgram = LoadFile("C:\\AUTORUN.BAS");
-
     set_start_directory();
     longjmp_handler();
 
-    // if (RunCommandLineProgram) {
-    //     RunCommandLineProgram = false;
-    //     ClearRuntime();
-    //     PrepareProgram(true);
-    //     ExecuteProgram(ProgMemory);  // if AUTORUN.BAS or something is on the
-    //                                  // command line, run it
-    // }
+    int run_flag = mmb_args.run_cmd[0] != '\0';
 
     while (1) {
         MMAbort = false;
@@ -219,15 +235,26 @@ int main(int argc, char *argv[]) {
             MMPrintString("\r\n");  // prompt should be on a new line
         }
         PrepareProgram(false);
-        if (!ErrorInPrompt && FindSubFun("MM.PROMPT", 0) >= 0) {
-            ErrorInPrompt = true;
-            ExecuteProgram("MM.PROMPT\0");
-        } else {
+        // if (!ErrorInPrompt && FindSubFun("MM.PROMPT", 0) >= 0) {
+        //     ErrorInPrompt = true;
+        //     ExecuteProgram("MM.PROMPT\0");
+        // } else {
+        if (mmb_args.interactive) {
             MMPrintString("> ");  // print the prompt
         }
-        ErrorInPrompt = false;
+        // }
+        // ErrorInPrompt = false;
 
-        prompt_get_input();
+        if (run_flag) {
+            if (mmb_args.interactive) {
+                MMPrintString(mmb_args.run_cmd);
+                MMPrintString("\r\n");
+            }
+            strcpy(inpbuf, mmb_args.run_cmd);
+            run_flag = 0;
+        } else {
+            prompt_get_input();
+        }
 
         if (!*inpbuf) continue;  // ignore an empty line
         tokenise(true);          // turn into executable code
@@ -248,26 +275,6 @@ void IntHandler(int signo) {
     signal(SIGINT, IntHandler);
 #endif
     MMAbort = true;
-}
-
-int LoadFile(char *prog) {
-#if 0
-    FILE *f;
-    char buf[STRINGSIZE];
-    f = fopen(prog, "rb");
-    if (f != NULL) {
-        fclose(f);
-        buf[0] = '"';
-        strcpy(&buf[1], prog);
-        strcat(buf, "\"");
-        FileLoadProgram(buf);
-        if (*ProgMemory == T_NEWLINE ||
-            *ProgMemory == T_LINENBR) {  // is there a program to run?
-            return true;
-        }
-    }
-#endif
-    return false;
 }
 
 void FlashWriteInit(char *p, int nbr) {
@@ -303,7 +310,7 @@ int MMgetchar(void) {
         if (c == -1) {
             nanosleep(&ONE_MILLISECOND, NULL);
         // } else if (c == 3) {
-        //     longjmp(mark, 1); // jump back to the input prompt if CTRL-C
+        //     longjmp(mark, JMP_BREAK); // jump back to the input prompt if CTRL-C
         } else if (c == '\n' && prevchar == '\r') {
             prevchar = 0;
         } else {

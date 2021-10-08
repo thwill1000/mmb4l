@@ -8,6 +8,7 @@ Fix syntax highlighting for comments
 Implement support for ~ at start of paths
 Implement JSON$()
 Implement SETTICK
+Implement and test missing MEMORY sub-commands
 
 Required for release
 --------------------
@@ -17,7 +18,6 @@ Add option to PAUSE controlling whether it nanosleeps or not
 Implement SEARCH PATH
 Implement command-line RUN shortcut '*'
 Ensure all Peter's "preprocessor tricks" implemented in programs and at command-line
-Allow program to be specified on Linux command-line when MMBasic is launched
 Implement variable/sub/function hash tables
 Make output from LS more like that of CMM2
 Have another look at the other settings recommended for raw console mode

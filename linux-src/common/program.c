@@ -625,7 +625,7 @@ static int program_load_file_internal(char *filename) {
         int toggle = 0, len = 0, slen;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
-            error("Not enough memory");
+            ERROR_OUT_OF_MEMORY;
         //        mymemset(buff,0,256);
         memset(line_buffer, 0, STRINGSIZE);
         MMgetline(file_num, line_buffer);  // get the input line
@@ -733,8 +733,12 @@ static int program_load_file_internal(char *filename) {
             }
         }
     }
-    *p = 0;  // terminate the string in RAM
     MMfclose(file_num);
+
+    // Ensure every program has an END (and a terminating '\0').
+    if (p - edit_buffer > EDIT_BUFFER_SIZE - 5) ERROR_OUT_OF_MEMORY;
+    memcpy(p, "END\n", 5);
+    p += 5;
 
     program_tokenise(file_path, edit_buffer);
 

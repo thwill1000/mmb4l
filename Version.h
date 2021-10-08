@@ -73,6 +73,7 @@ provisions:
         #undef COPYRIGHT
         #define COPYRIGHT  "Copyright " YEAR " Geoff Graham\r\n" \
                            "Copyright 2021 Thomas Hugo Williams\r\n"
+                           // "Copyright 2016-2021 Peter Mather\r\n"
         #if defined(__ANDROID__)
             #define MM_ARCH  "Android aarch64"
             #define ENV64BIT

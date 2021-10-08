@@ -95,6 +95,11 @@ static void get_line_and_file(int *line, char *file_path) {
     }
 }
 
+void error_buffer_clear(void) {
+    error_buffer_pos = 0;
+    memset(error_buffer, 0, STRINGSIZE);
+}
+
 // throw an error
 // displays the error message and aborts the program
 // the message can contain variable text which is indicated by a special character in the message string
@@ -104,11 +109,9 @@ static void get_line_and_file(int *line, char *file_path) {
 // the optional data to be inserted is the second argument to this function
 // this uses longjump to skip back to the command input and cleanup the stack
 static void verror(int32_t error, char *msg, va_list argp) {
-        va_list ap;
     // ScrewUpTimer=0;
     MMerrno = error;
-    memset(error_buffer, 0, STRINGSIZE);
-    error_buffer_pos = 0;
+    error_buffer_clear();
     LoadOptions();  // make sure that the option struct is in a clean state
 
     // if((OptionConsole & 2) && !OptionErrorSkip) {
