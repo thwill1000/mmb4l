@@ -109,16 +109,19 @@ Sub test_errmsg()
 End Sub
 
 Sub test_errno()
+  Local expected% = Choice(Mm.Device$ = "MMB4L", 1, 16)
   On Error Skip 1
   Error "foo"
-  If Mm.Device$ = "MMB4L" Then
-    ' MMB4L uses different error codes.
-    assert_int_equals(1000, Mm.ErrNo);
-    assert_int_equals(1000, Mm.Info$(ErrNo));
-  Else
-    assert_int_equals(16, Mm.ErrNo);
-    assert_int_equals(16, Mm.Info$(ErrNo));
-  EndIf
+  assert_int_equals(expected%, Mm.ErrNo);
+  assert_int_equals(expected%, Mm.Info$(ErrNo));
+
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
+  On Error Skip 1
+  Error "foo", 201
+  assert_string_equals("Error in line", Left$(Mm.ErrMsg$, 13));
+  assert_string_equals("foo", Right$(Mm.ErrMsg$, 3));
+  assert_int_equals(201, Mm.ErrNo);
 End Sub
 
 Sub test_exists()

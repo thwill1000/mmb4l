@@ -7,13 +7,20 @@ Version 2021.01.00-a2 - ??-???-2021:
    the CMM2.
  - Changed CONSOLE SETCURSOR command to allow a maximum x, y of 1023
    (previously 255) and updated "examples/mandelbrot.bas" to support this.
- - Changed error handling so that the value of MM.ERRNO for most MMBasic
-   errors is 1000, not 16. For MMB4L values are such that:
-    - 0      : no error
-    - 1-999  : standard error code from a C system/library call
-               (16 happens to be "Device or resource busy" on Ubuntu 20.)
-    - 1000+  : MMBasic specific errors
-    - error numbers from the SYSTEM command are an exception to this rule,
+ - Added optional integer argument (default 1) to ERROR command allowing an error
+   code to be specified, this can be retrieved using MM.ERRNO, e.g.
+       ERROR "error message", 220
+   For MMB4L the values of MM.ERRNO are:
+    - 0        : no error.
+    - 1        : unclassified MMBasic error, also reported if a C library call
+                 reports the error EPERM (Operation not permitted).
+                 Note this differs from other versions of MMBasic which use the
+                 value of 16 for general errors, which would correspond to the
+                 EBUSY (Device or resource busy) error from a C library call.
+    - 2..150   : standard error numbers (errno) for C library calls.
+    - 151..200 : reserved for future classification of MMBasic errors.
+    - 201..255 : suggested range for program specific error codes.
+    - error codes from the SYSTEM command are an exception to this rule,
       see the next entry.
  - Changed SYSTEM command to set MM.ERRNO equal to the executed program's
    exit code. Also changed error message to include this value.

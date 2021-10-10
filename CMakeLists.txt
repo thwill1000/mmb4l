@@ -34,6 +34,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_cursor.c
     linux-src/commands/cmd_dummy.c
     linux-src/commands/cmd_edit.c
+    linux-src/commands/cmd_error.c
     linux-src/commands/cmd_execute.c
     linux-src/commands/cmd_files.c
     linux-src/commands/cmd_inc.c

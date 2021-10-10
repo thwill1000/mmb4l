@@ -1086,19 +1086,18 @@ void cmd_exit(void) {
 }
 
 
-
+#if !defined(__linux__)
 void cmd_error(void) {
     char *s;
     if(*cmdline && *cmdline != '\'') {
         s = getCstring(cmdline);
-#if !defined(__linux__)
         CurrentLinePtr = NULL; // suppress printing the line that caused the issue
-#endif
         error(s);
     }
     else
         error("");
 }
+#endif
 
 
 

@@ -1,15 +1,19 @@
 #if !defined(MMB4L_ERROR_H)
 #define MMB4L_ERROR_H
 
+#include <stdint.h>
+
 #include "../Configuration.h" // for STRINGSIZE
 
 extern char error_file[STRINGSIZE];
 extern int error_line;
 
 void error(char *msg, ...);
+void error_code(int32_t error, char *msg, ...);
+void error_system(int32_t error);
 int error_check();
 
-#define ERRNO_UNCLASSIFIED  1000
+#define ERRNO_DEFAULT  1
 
 #define ERROR_ARGUMENT_COUNT           error("Argument count")
 #define ERROR_UNKNOWN_SUBCOMMAND       error("Unknown subcommand")

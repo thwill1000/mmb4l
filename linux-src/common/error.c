@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdarg.h>
 
 #include "../common/error.h"
@@ -101,10 +102,10 @@ static void get_line_and_file(int *line, char *file_path) {
 //  % = insert a number
 // the optional data to be inserted is the second argument to this function
 // this uses longjump to skip back to the command input and cleanup the stack
-void error(char *msg, ...) {
-    va_list ap;
+static void verror(int32_t error, char *msg, va_list argp) {
+        va_list ap;
     // ScrewUpTimer=0;
-    if (MMerrno == 0) MMerrno = ERRNO_UNCLASSIFIED;
+    MMerrno = error;
     memset(error_buffer, 0, STRINGSIZE);
     error_buffer_pos = 0;
     LoadOptions();  // make sure that the option struct is in a clean state
@@ -139,19 +140,18 @@ void error(char *msg, ...) {
     }
 
     if (*msg) {
-        va_start(ap, msg);
         while (*msg) {
             if (*msg == '$')
-                MMErrorString(va_arg(ap, char *));
+                MMErrorString(va_arg(argp, char *));
             else if (*msg == '@')
-                MMErrorChar(va_arg(ap, int));
+                MMErrorChar(va_arg(argp, int));
             else if (*msg == '%' || *msg == '|') {
                 char buf[20];
-                IntToStr(buf, va_arg(ap, int), 10);
+                IntToStr(buf, va_arg(argp, int), 10);
                 MMErrorString(buf);
             } else if (*msg == '&') {
                 char buf[20];
-                IntToStr(buf, va_arg(ap, int), 16);
+                IntToStr(buf, va_arg(argp, int), 16);
                 MMErrorString(buf);
             } else {
                 MMErrorChar(*msg);
@@ -166,14 +166,39 @@ void error(char *msg, ...) {
     if (OptionErrorSkip) {
         error_buffer_pos = 0;
         longjmp(ErrNext, 1);
+    } else {
+        longjmp(mark, 1);
     }
+}
 
-    longjmp(mark, 1);
+void error(char *msg, ...) {
+    va_list argp;
+	va_start(argp, msg);
+	verror(MMerrno == 0 ? ERRNO_DEFAULT : MMerrno, msg, argp);
+    assert(0); // Don't expect to get here because of long_jmp().
+	va_end(argp);
+}
+
+void error_code(int32_t error, char *msg, ...) {
+    va_list argp;
+	va_start(argp, msg);
+	verror(error, msg, argp);
+    assert(0); // Don't expect to get here because of long_jmp().
+	va_end(argp);
+}
+
+void error_system(int32_t error) {
+    error_code(error, strerror(error));
 }
 
 int error_check(void) {
-    MMerrno = errno;
-    errno = 0;
-    if (MMerrno) error(strerror(MMerrno));
-    return MMerrno;
+    if (errno) {
+        int tmp = errno;
+        errno = 0;
+        error_system(tmp);
+        assert(0); // Don't expect to get here because of long_jmp().
+        return MMerrno;
+    } else {
+        return 0;
+    }
 }

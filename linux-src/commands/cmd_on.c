@@ -1,3 +1,4 @@
+#include "../common/error.h"
 #include "../common/version.h"
 
 int g_key_complete = 0;
@@ -14,14 +15,12 @@ static void on_error_clear(char *p) {
 }
 
 static void on_error_ignore(char *p) {
-    MMerrno = 0;
-    *MMErrMsg = 0;
+    on_error_clear(p);
     OptionErrorSkip = -1;
 }
 
 static void on_error_skip(char *p) {
-    MMerrno = 0;
-    *MMErrMsg = 0;
+    on_error_clear(p);
     OptionErrorSkip = (*p == 0 || *p == '\'') ? 2 : getint(p, 1, 10000) + 1;
 }
 
@@ -36,7 +35,7 @@ static void on_error(char *p) {
     } else if ((p2 = checkstring(p, "SKIP"))) {
         on_error_skip(p2);
     } else {
-        error("Syntax");
+        ERROR_SYNTAX;
     }
 }
 
