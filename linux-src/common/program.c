@@ -251,7 +251,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
         errno = 0; // Is this necessary ?
         switch (MMerrno) {
             case ENOENT:
-                error("Include file not found");
+                error("Include file '$' not found", filename);
                 break;
             case ENAMETOOLONG:
                 error("Path too long");
