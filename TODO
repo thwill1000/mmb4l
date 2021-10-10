@@ -10,7 +10,6 @@ Fix syntax highlighting for comments
 Implement support for ~ at start of paths
 Implement JSON$()
 Implement SETTICK
-Add timer to sptest when multiple tests are executed
 
 Required for release
 --------------------
