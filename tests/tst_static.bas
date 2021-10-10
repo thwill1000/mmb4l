@@ -6,13 +6,13 @@ Option Explicit On
 Option Default None
 Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 
-#Include "../src/splib/system.inc"
-#Include "../src/splib/array.inc"
-#Include "../src/splib/list.inc"
-#Include "../src/splib/string.inc"
-#Include "../src/splib/file.inc"
-#Include "../src/splib/vt100.inc"
-#Include "../src/sptest/unittest.inc"
+#Include "splib/system.inc"
+#Include "splib/array.inc"
+#Include "splib/list.inc"
+#Include "splib/string.inc"
+#Include "splib/file.inc"
+#Include "splib/vt100.inc"
+#Include "sptest/unittest.inc"
 
 add_test("test_static_given_fn_value")
 
