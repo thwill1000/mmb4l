@@ -1,10 +1,31 @@
 TODO
-----
+====
 
 Required for alpha 2
 --------------------
 
 Fix syntax highlighting for comments
+Fix bug with line numbers from errors reached by GOTO/GOSUB
+Failed array equality assertions should only list differing elements (maximum 10)
+
+
+Required for alpha 3
+--------------------
+
+Implement SEARCH PATH
+Implement command-line RUN shortcut '*'
+Implement command-line SYSTEM shortcut, e.g. '!ls'
+Make all function keys reprogrammable
+Implement OPTION persistence
+Implement CONSOLE TRANSLATE to automagically convert chars 128+ to Unicode
+Implement PRINT @
+
+
+Required for alpha 4
+--------------------
+
+Ensure all Peter's "preprocessor tricks" implemented in programs and at command-line
+Implement variable/sub/function hash tables
 
 
 Required for release
@@ -12,26 +33,21 @@ Required for release
 
 Add option to PAUSE controlling whether it nanosleeps or not
  - or an OPTION to MMBasic controlling all sleep behaviour
-Implement SEARCH PATH
-Implement command-line RUN shortcut '*'
-Ensure all Peter's "preprocessor tricks" implemented in programs and at command-line
-Implement variable/sub/function hash tables
 Make output from LS more like that of CMM2
 Have another look at the other settings recommended for raw console mode
-Make all function keys reprogrammable
-Implement OPTION persistence
 Work through CMM2 manual implementing missing commands/functions
 Review all uses of void*
 Implement safety checks on PEEK/POKE calls
  - should these be optional ?
  - should address alignment of PEEK/POKE be optional ?
 Implement serial I/O
-Implement command-line shortcut for SYSTEM command, e.g. '!ls'
 Implement command-line path completion
+
 
 To infinity and beyond
 ----------------------
 
+Implement FORK, WAIT and friends
 Build on macOS
 Rewrite pre-processor
 Implement SWAP
