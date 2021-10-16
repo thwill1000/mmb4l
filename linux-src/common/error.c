@@ -2,6 +2,7 @@
 #include <stdarg.h>
 
 #include "../common/error.h"
+#include "../common/exit_codes.h"
 #include "../common/utility.h"
 #include "../common/version.h"
 
@@ -199,5 +200,12 @@ int error_check(void) {
         return MMerrno;
     } else {
         return 0;
+    }
+}
+
+uint8_t error_to_exit_code(int32_t error_code) {
+    switch (error_code) {
+        default:
+            return EX_FAIL;
     }
 }

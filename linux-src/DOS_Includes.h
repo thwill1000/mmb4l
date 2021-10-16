@@ -24,6 +24,8 @@ provisions:
 #if !defined(MMB4L_DOS_INCLUDES_H)
 #define MMB4L_DOS_INCLUDES_H
 
+#include <stdint.h>
+
 // redefine the standard float routines used in MMBasic to their double versions
 //#if MMFLOAT == double
     #define powf pow
@@ -89,5 +91,8 @@ void dump(char *p, int nbr);
 #define JMP_ERROR  3
 #define JMP_NEW    4
 #define JMP_QUIT   5
+
+// Global variables specific to MMB4L
+extern uint8_t mmb_exit_code;
 
 #endif // #if !defined(MMB4L_DOS_INCLUDES_H)

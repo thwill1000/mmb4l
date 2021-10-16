@@ -31,6 +31,8 @@ PARTICULAR PURPOSE.
 #include <unistd.h>
 
 #include "common/console.h"
+#include "common/error.h"
+#include "common/exit_codes.h"
 #include "common/file.h"
 #include "common/global_aliases.h"
 #include "common/interrupt.h"
@@ -54,6 +56,7 @@ char *CFunctionFlash, *CFunctionLibrary, **FontTable;
 int ErrorInPrompt = false;
 
 char g_break_key = BREAK_KEY;
+uint8_t mmb_exit_code = EX_OK;
 
 void IntHandler(int signo);
 int LoadFile(char *prog);
@@ -104,35 +107,43 @@ void longjmp_handler(void) {
         case JMP_ERROR:
             jmp_state = JMP_ERROR;
             break;
-        case JMP_QUIT:
-            jmp_state = JMP_QUIT;
-            break;
         case JMP_NEW:
             jmp_state = JMP_NEW;
             break;
+        case JMP_QUIT:
+            jmp_state = JMP_QUIT;
+            break;
         default:
             fprintf(stderr, "Unexpected return value from setjmp()");
-            exit(EXIT_FAILURE);
+            exit(EX_FAIL);
             break;
     }
 
     console_show_cursor(1);
     console_reset();
+    if (MMCharPos > 1) MMPrintString("\r\n");
 
     switch (jmp_state) {
-        case JMP_QUIT:
-            exit(EXIT_SUCCESS);
+        case JMP_BREAK:
+            mmb_exit_code = EX_BREAK;
             break;
 
         case JMP_ERROR:
             MMPrintString(MMErrMsg);
+            mmb_exit_code = error_to_exit_code(MMerrno);
+            break;
+
+        case JMP_NEW:
+            mmb_exit_code = EX_OK; // Probably not necessary.
+            break;
+
+        case JMP_QUIT:
+            exit(mmb_exit_code);
             break;
 
         default:
             break;
     }
-
-    MMPrintString("\r\n");
 
     ContinuePoint = nextstmt;  // In case the user wants to use the continue command
     *tknbuf = 0;               // we do not want to run whatever is in the token buffer

@@ -171,6 +171,12 @@ static void mminfo_exists(char *p) {
     }
 }
 
+static void mminfo_exitcode(char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_rtn_type = T_INT;
+    g_integer_rtn = mmb_exit_code;
+}
+
 static void mminfo_filesize(char *p) {
     char *path = get_path(p);
 
@@ -334,6 +340,8 @@ void fun_mminfo(void) {
         mminfo_errno(p);
     } else if ((p = checkstring(ep, "EXISTS"))) {
         mminfo_exists(p);
+    } else if ((p = checkstring(ep, "EXITCODE"))) {
+        mminfo_exitcode(p);
     } else if ((p = checkstring(ep, "FILESIZE"))) {
         mminfo_filesize(p);
     } else if ((p = checkstring(ep, "FONTHEIGHT"))) {

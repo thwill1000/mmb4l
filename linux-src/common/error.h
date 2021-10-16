@@ -12,6 +12,7 @@ void error(char *msg, ...);
 void error_code(int32_t error, char *msg, ...);
 void error_system(int32_t error);
 int error_check();
+uint8_t error_to_exit_code(int32_t error_code);
 
 #define ERRNO_DEFAULT  1
 
