@@ -91,6 +91,32 @@ void set_start_directory() {
     }
 }
 
+void longjmp_handler(void) {
+    if (setjmp(mark) != 0) {
+        // we got here via a long jump which means an error or CTRL-C or the
+        // program wants to exit to the command prompt
+
+        console_show_cursor(1);
+        console_reset();
+
+        if (ExitMMBasicFlag) {
+            exit(EXIT_SUCCESS);  // program has executed an ExitMMBasic command
+        }
+
+        if (error_buffer_pos) {
+            MMPrintString(error_buffer);
+            error_buffer_pos = 0;
+            memset(error_buffer, 0, STRINGSIZE);
+        }
+        MMPrintString("\r\n");
+
+        ContinuePoint = nextstmt;       // in case the user wants to use the continue command
+        *tknbuf = 0;                    // we do not want to run whatever is in the token buffer
+        // RunCommandLineProgram = false;  // nor the program on the command line
+        memset(inpbuf, 0, STRINGSIZE);
+    }
+}
+
 int main(int argc, char *argv[]) {
     // int RunCommandLineProgram = false;
 
@@ -139,30 +165,7 @@ int main(int argc, char *argv[]) {
     //     RunCommandLineProgram = LoadFile("C:\\AUTORUN.BAS");
 
     set_start_directory();
-
-    if (setjmp(mark) != 0) {
-        // we got here via a long jump which means an error or CTRL-C or the
-        // program wants to exit to the command prompt
-
-        console_show_cursor(1);
-        console_reset();
-
-        if (ExitMMBasicFlag) {
-            return 0;  // program has executed an ExitMMBasic command
-        }
-
-        if (error_buffer_pos) {
-            MMPrintString(error_buffer);
-            error_buffer_pos = 0;
-            memset(error_buffer, 0, STRINGSIZE);
-        }
-        MMPrintString("\r\n");
-
-        ContinuePoint = nextstmt;       // in case the user wants to use the continue command
-        *tknbuf = 0;                    // we do not want to run whatever is in the token buffer
-        // RunCommandLineProgram = false;  // nor the program on the command line
-        memset(inpbuf, 0, STRINGSIZE);
-    }
+    longjmp_handler();
 
     // if (RunCommandLineProgram) {
     //     RunCommandLineProgram = false;
