@@ -16,8 +16,8 @@ char error_file[STRINGSIZE] = { 0 };
 // Line that the last error was reported from.
 int error_line = -1;
 
-char error_buffer[STRINGSIZE] = { 0 };
-size_t error_buffer_pos = 0;
+static char error_buffer[STRINGSIZE] = { 0 };
+static size_t error_buffer_pos = 0;
 
 static void MMErrorString(const char *msg) {
     char *src = (char *) msg;
@@ -164,10 +164,9 @@ static void verror(int32_t error, char *msg, va_list argp) {
     strcpy(MMErrMsg, error_buffer);
 
     if (OptionErrorSkip) {
-        error_buffer_pos = 0;
         longjmp(ErrNext, 1);
     } else {
-        longjmp(mark, 1);
+        longjmp(mark, JMP_ERROR);
     }
 }
 

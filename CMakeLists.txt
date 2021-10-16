@@ -34,6 +34,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_cursor.c
     linux-src/commands/cmd_dummy.c
     linux-src/commands/cmd_edit.c
+    linux-src/commands/cmd_end.c
     linux-src/commands/cmd_error.c
     linux-src/commands/cmd_execute.c
     linux-src/commands/cmd_files.c
@@ -47,6 +48,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_memory.c
     linux-src/commands/cmd_mid.c
     linux-src/commands/cmd_mkdir.c
+    linux-src/commands/cmd_new.c
     linux-src/commands/cmd_on.c
     linux-src/commands/cmd_open.c
     linux-src/commands/cmd_option.c

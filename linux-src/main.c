@@ -24,6 +24,7 @@ PARTICULAR PURPOSE.
 
 ************************************************************************************************************************/
 
+#include <assert.h>
 #include <signal.h>
 #include <stdio.h>
 #include <time.h>
@@ -38,15 +39,11 @@ PARTICULAR PURPOSE.
 
 extern int g_key_select;
 
-extern char error_buffer[STRINGSIZE];
-extern size_t error_buffer_pos;
-
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
 int ListCnt;
 int MMCharPos;
 struct timespec g_timer;
-int ExitMMBasicFlag = false;
 volatile int MMAbort = false;
 char *InterruptReturn = NULL;
 struct option_s Option;
@@ -92,29 +89,54 @@ void set_start_directory() {
 }
 
 void longjmp_handler(void) {
-    if (setjmp(mark) != 0) {
-        // we got here via a long jump which means an error or CTRL-C or the
-        // program wants to exit to the command prompt
-
-        console_show_cursor(1);
-        console_reset();
-
-        if (ExitMMBasicFlag) {
-            exit(EXIT_SUCCESS);  // program has executed an ExitMMBasic command
-        }
-
-        if (error_buffer_pos) {
-            MMPrintString(error_buffer);
-            error_buffer_pos = 0;
-            memset(error_buffer, 0, STRINGSIZE);
-        }
-        MMPrintString("\r\n");
-
-        ContinuePoint = nextstmt;       // in case the user wants to use the continue command
-        *tknbuf = 0;                    // we do not want to run whatever is in the token buffer
-        // RunCommandLineProgram = false;  // nor the program on the command line
-        memset(inpbuf, 0, STRINGSIZE);
+    // Note that weird restrictions on setjmp() mean we cannot simply write:
+    // int jmp_state = setjmp(mark);
+    int jmp_state = 0;
+    switch (setjmp(mark)) {
+        case 0:
+            return;
+        case JMP_BREAK:
+            jmp_state = JMP_BREAK;
+            break;
+        case JMP_END:
+            jmp_state = JMP_END;
+            break;
+        case JMP_ERROR:
+            jmp_state = JMP_ERROR;
+            break;
+        case JMP_QUIT:
+            jmp_state = JMP_QUIT;
+            break;
+        case JMP_NEW:
+            jmp_state = JMP_NEW;
+            break;
+        default:
+            fprintf(stderr, "Unexpected return value from setjmp()");
+            exit(EXIT_FAILURE);
+            break;
     }
+
+    console_show_cursor(1);
+    console_reset();
+
+    switch (jmp_state) {
+        case JMP_QUIT:
+            exit(EXIT_SUCCESS);
+            break;
+
+        case JMP_ERROR:
+            MMPrintString(MMErrMsg);
+            break;
+
+        default:
+            break;
+    }
+
+    MMPrintString("\r\n");
+
+    ContinuePoint = nextstmt;  // In case the user wants to use the continue command
+    *tknbuf = 0;               // we do not want to run whatever is in the token buffer
+    memset(inpbuf, 0, STRINGSIZE);
 }
 
 int main(int argc, char *argv[]) {
@@ -254,7 +276,7 @@ void CheckAbort(void) {
 
     if (MMAbort) {
         g_key_select = 0;
-        longjmp(mark, 1);  // jump back to the input prompt
+        longjmp(mark, JMP_BREAK);  // jump back to the input prompt
     }
 }
 
@@ -269,8 +291,8 @@ int MMgetchar(void) {
         c = console_getc();
         if (c == -1) {
             nanosleep(&ONE_MILLISECOND, NULL);
-        } else if (c == 3) {
-            longjmp(mark, 1); // jump back to the input prompt if CTRL-C
+        // } else if (c == 3) {
+        //     longjmp(mark, 1); // jump back to the input prompt if CTRL-C
         } else if (c == '\n' && prevchar == '\r') {
             prevchar = 0;
         } else {

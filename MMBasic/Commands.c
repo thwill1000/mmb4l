@@ -267,7 +267,7 @@ void MIPS16 cmd_continue(void) {
     nextstmt = ContinuePoint;
 }
 
-
+#if !defined(__linux__)
 void MIPS16 cmd_new(void) {
 //    if(CurrentLinePtr) error("Invalid in a program");
     checkend(cmdline);
@@ -279,7 +279,7 @@ void MIPS16 cmd_new(void) {
     SaveOptions();
     longjmp(mark, 1);                                               // jump back to the input prompt
 }
-
+#endif
 
 void cmd_clear(void) {
     checkend(cmdline);
@@ -471,11 +471,12 @@ void cmd_else(void) {
 }
 
 
-
+#if !defined(__linux__)
 void cmd_end(void) {
     checkend(cmdline);
     longjmp(mark, 1);                                               // jump back to the input prompt
 }
+#endif
 
 #if !defined(LITE)
 
