@@ -23,6 +23,9 @@ add_test("test_peek_short")
 add_test("test_peek_var")
 add_test("test_peek_word")
 add_test("test_peek_cfunaddr")
+add_test("test_peek_progmem")
+add_test("test_peek_vartbl")
+add_test("test_peek_varheader")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -175,3 +178,124 @@ CSub data2()
   0000000F 0000000E 0000000D 0000000C
   0000000B 0000000A
 End CSub
+
+Sub test_peek_progmem()
+  Local offset% = 0
+
+  assert_hex_equals(1, Peek(ProgMem, offset%))
+
+  ' Skip initial T_NEWLINE token (1)
+  Inc offset%
+
+  ' Skip comment giving location of file.
+  Do While Peek(ProgMem, offset%) <> 1
+    Inc offset%
+  Loop
+
+  ' Skip T_NEWLINE token (1)
+  Inc offset%
+
+  ' Accumulate first actual non-comment line of program in tokenised form.
+  Local s$
+  Do While Peek(ProgMem, offset%) <> 1)
+    Cat s$, Chr$(Peek(ProgMem, offset%))
+    Inc offset%
+  Loop
+
+  ' Different token ids for OPTION on different platforms.
+  If Mm.Device$ = "MMB4L" Then
+    assert_string_equals(Chr$(203) + "EXPLICIT ON'|5" + Chr$(0), s$)
+  Else
+    assert_string_equals(Chr$(197) + "EXPLICIT ON'|5" + Chr$(0), s$)
+  EndIf
+End Sub
+
+Sub test_peek_vartbl()
+  Local easy_to_find% = &h1122AABBCCDDEEFF
+  Local var_offset% = find_var_offset%("easy_to_find")
+  Local header%(array.new%(8)) ' 64-bytes
+  Local header_addr% = Peek(VarAddr header%())
+  Local i%
+  For i% = 0 To 64
+    Poke Byte header_addr% + i%, Peek(VarTbl, var_offset% + i%)
+  Next
+
+  check_header(header%())
+End Sub
+
+' Finds byte offset into the variable table for a named variable.
+Function find_var_offset%(needle$)
+  Local offset% = 0
+  Local name$
+  Local name_addr% = Peek(VarAddr name$)
+  Local ch%, done%, i%, j%
+  For i% = 0 To 1023
+    done% = 0
+    For j% = 1 To 32
+      ch% = Peek(VarTbl, offset%)
+      If ch% = 0 And Not done% Then
+        Poke Byte name_addr%, j% - 1
+        done% = 1
+      Else
+        Poke Byte name_addr% + j%, ch%
+      EndIf
+      Inc offset%
+    Next
+    ' If Len(name$) > 0 Then
+    '   Print "[" Str$(i%) "] " Chr$(34) name$ Chr$(34) ", " Str$(Len(name$))
+    ' EndIf
+    If name$ = UCase$(needle$) Then
+      find_var_offset% = offset% - 32
+      Exit For
+    EndIf
+    Inc offset%, 32
+  Next
+End Function
+
+Sub check_header(header%())
+  Local addr% = Peek(VarAddr header%())
+
+  assert_hex_equals(Asc("E"), Peek(Byte addr% + 0))
+  assert_hex_equals(Asc("A"), Peek(Byte addr% + 1))
+  assert_hex_equals(Asc("S"), Peek(Byte addr% + 2))
+  assert_hex_equals(Asc("Y"), Peek(Byte addr% + 3))
+  assert_hex_equals(Asc("_"), Peek(Byte addr% + 4))
+  assert_hex_equals(Asc("T"), Peek(Byte addr% + 5))
+  assert_hex_equals(Asc("O"), Peek(Byte addr% + 6))
+  assert_hex_equals(Asc("_"), Peek(Byte addr% + 7))
+  assert_hex_equals(Asc("F"), Peek(Byte addr% + 8))
+  assert_hex_equals(Asc("I"), Peek(Byte addr% + 9))
+  assert_hex_equals(Asc("N"), Peek(Byte addr% + 10))
+  assert_hex_equals(Asc("D"), Peek(Byte addr% + 11))
+  assert_hex_equals(0,        Peek(Byte addr% + 12))
+  assert_hex_equals(4,        Peek(Byte addr% + 32)) ' type
+  assert_hex_equals(3,        Peek(Byte addr% + 33)) ' level
+  Local i%
+  For i% = 34 To 49 ' 8 x 2 byte array dimensions
+    assert_hex_equals(0,      Peek(Byte addr% + i%))
+  Next
+  Local expected_size% = Choice(Mm.Device$ = "MMB4L", 255, 0)
+  assert_hex_equals(expected_size%, Peek(Byte addr% + 50)) ' string size
+  For i% = 51 To 55 ' 5 bytes of padding
+    assert_hex_equals(0,      Peek(Byte addr% + i%))
+  Next
+  assert_hex_equals(&hFF, Peek(Byte addr% + 56)) ' value (1st byte)
+  assert_hex_equals(&hEE, Peek(Byte addr% + 57)) ' value (2nd byte)
+  assert_hex_equals(&hDD, Peek(Byte addr% + 58)) ' value (3rd byte)
+  assert_hex_equals(&hCC, Peek(Byte addr% + 59)) ' value (4th byte)
+  assert_hex_equals(&hBB, Peek(Byte addr% + 60)) ' value (5th byte)
+  assert_hex_equals(&hAA, Peek(Byte addr% + 61)) ' value (6th byte)
+  assert_hex_equals(&h22, Peek(Byte addr% + 62)) ' value (7th byte)
+  assert_hex_equals(&h11, Peek(Byte addr% + 63)) ' value (8th byte)
+End Sub
+
+Sub test_peek_varheader()
+  Local easy_to_find% = &h1122AABBCCDDEEFF
+  Local src% = Peek(VarHeader easy_to_find%)
+  Local header%(array.new%(8)) ' 64-bytes
+  Local dst% = Peek(VarAddr header%())
+
+  Memory Copy src%, dst%, 64
+
+  check_header(header%())
+End Sub

@@ -22,6 +22,7 @@ add_test("test_poke_integer")
 add_test("test_poke_short")
 add_test("test_poke_var")
 add_test("test_poke_word")
+add_test("test_poke_vartbl")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -122,3 +123,48 @@ Sub test_poke_word()
   Poke Word num_addr% + 1, 42
   assert_raw_error("Address not divisible by 4")
 End Sub
+
+Sub test_poke_vartbl()
+  Local easy_to_find% = 0
+  Local offset% = find_var_offset%("easy_to_find")
+
+  Poke VarTbl, offset% + 56, &h01
+  Poke VarTbl, offset% + 57, &h23
+  Poke VarTbl, offset% + 58, &h45
+  Poke VarTbl, offset% + 59, &h67
+  Poke VarTbl, offset% + 60, &h89
+  Poke VarTbl, offset% + 61, &hAB
+  Poke VarTbl, offset% + 62, &hCD
+  Poke VarTbl, offset% + 63, &hEF
+
+  assert_hex_equals(&hEFCDAB8967452301, easy_to_find%)
+End Sub
+
+' Finds byte offset into the variable table for a named variable.
+Function find_var_offset%(needle$)
+  Local offset% = 0
+  Local name$
+  Local name_addr% = Peek(VarAddr name$)
+  Local ch%, done%, i%, j%
+  For i% = 0 To 1023
+    done% = 0
+    For j% = 1 To 32
+      ch% = Peek(VarTbl, offset%)
+      If ch% = 0 And Not done% Then
+        Poke Byte name_addr%, j% - 1
+        done% = 1
+      Else
+        Poke Byte name_addr% + j%, ch%
+      EndIf
+      Inc offset%
+    Next
+    ' If Len(name$) > 0 Then
+    '   Print "[" Str$(i%) "] " Chr$(34) name$ Chr$(34) ", " Str$(Len(name$))
+    ' EndIf
+    If name$ = UCase$(needle$) Then
+      find_var_offset% = offset% - 32
+      Exit For
+    EndIf
+    Inc offset%, 32
+  Next
+End Function

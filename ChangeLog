@@ -23,6 +23,16 @@ Version 2021.01.00-a2 - ??-???-2021:
  - Added MID$ command (as opposed to the already existing MID$() function) from
    the CMM2.
  - Added SETTICK command from the CMM2. Note 'SETTICK FAST' is not supported.
+ - Added missing MEMORY, PEEK and POKE sub-commands.
+   Now implements the same as the CMM2 (5.07.01) with the exception of the
+   undocumented/legacy:
+       PEEK(hiaddr, loaddr)
+       POKE hiaddr, loaddr, byte
+   And with the addition of:
+       MEMORY COPY BYTE src, dst, number_of_bytes
+         - which is equivalent to MEMORY COPY src, dst, number_of_bytes
+       MEMORY COPY SHORT src, dst, number_of_shorts
+       MEMORY COPY WORD src, dst, number_of_words
  - Added support for prefixing paths with '~' which is expanded to the
    users home directory (the value of the HOME envrionment variable).
  - Changed CONSOLE SETCURSOR command to allow a maximum x, y of 1023

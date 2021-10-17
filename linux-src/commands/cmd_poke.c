@@ -6,7 +6,7 @@
 
 /** POKE BYTE addr%, byte% */
 static void poke_byte(int argc, char** argv, char *p) {
-    if (argc != 3) error("Argument count");
+    if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
     int64_t value = getinteger(argv[2]);
@@ -16,7 +16,7 @@ static void poke_byte(int argc, char** argv, char *p) {
 
 /** POKE FLOAT addr%, float! */
 static void poke_float(int argc, char** argv, char *p) {
-    if (argc != 3) error("Argument count");
+    if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
     if (addr % 8) error("Address not divisible by 8");
@@ -27,7 +27,7 @@ static void poke_float(int argc, char** argv, char *p) {
 
 /** POKE INTEGER addr%, integer% */
 static void poke_integer(int argc, char** argv, char *p) {
-    if (argc != 3) error("Argument count");
+    if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
     if (addr % 8) error("Address not divisible by 8");
@@ -36,13 +36,9 @@ static void poke_integer(int argc, char** argv, char *p) {
     *((uint64_t *) addr) = (uint64_t) value;
 }
 
-static void poke_legacy(int argc, char** argv, char *p) {
-    ERROR_UNIMPLEMENTED("poke.c#poke_legacy");
-}
-
 /** POKE SHORT addr%, short% */
 static void poke_short(int argc, char** argv, char *p) {
-    if (argc != 3) error("Argument count");
+    if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
     if (addr % 2) error("Address not divisible by 2");
@@ -53,6 +49,8 @@ static void poke_short(int argc, char** argv, char *p) {
 
 /** POKE VAR var, offset%, byte% */
 static void poke_var(int argc, char** argv, char *p) {
+    if (argc != 5) ERROR_ARGUMENT_COUNT;
+
     void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
 
     if (vartbl[VarIndex].type & T_CONST) {
@@ -62,17 +60,22 @@ static void poke_var(int argc, char** argv, char *p) {
     int64_t offset = getinteger(argv[2]);
     int64_t value = getinteger(argv[4]);
 
-    *((char *)pvar + offset) = value;
+    *((char *)pvar + offset) = (uint8_t) value;
 }
 
 /** POKE VARTBL, offset%, byte% */
 static void poke_vartbl(int argc, char** argv, char *p) {
-    ERROR_UNIMPLEMENTED("poke.c#poke_vartbl");
+    if (argc != 5) ERROR_ARGUMENT_COUNT;
+
+    int64_t offset = getinteger(argv[2]);
+    int64_t value = getinteger(argv[4]);
+
+    *((char *) vartbl + offset) = (uint8_t) value;
 }
 
 /** POKE WORD addr%, word% */
 static void poke_word(int argc, char** argv, char *p) {
-    if (argc != 3) error("Argument count");
+    if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
     if (addr % 4) error("Address not divisible by 4");
@@ -100,6 +103,6 @@ void cmd_poke(void) {
     } else if ((p = checkstring(argv[0], "WORD"))) {
         poke_word(argc, argv, p);
     } else {
-        poke_legacy(argc, argv, p);
+        ERROR_SYNTAX;
     }
 }
