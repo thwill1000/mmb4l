@@ -126,17 +126,20 @@ Sub assert_int_array_equals(expected%(), actual%())
   EndIf
 
   If fail% Then
-    Local s$ = "Assert array equals failed, expected:" + sys.CRLF$ + "      "
+    ut.add_failure("Assert array equals failed, expected:")
+    Local width% = Len(Str$(Bound(expected%(), 1)))
     For i% = base% To Bound(expected%(), 1)
-      If i% <> base% Then Cat s$, ", "
-      Cat s$, Str$(expected%(i%))
+      LongString Append ut.failure_txt%(), sys.CRLF$
+      LongString Append ut.failure_txt%(), Format$(i%, "      [%" + Str$(width%) + ".0f] ")
+      LongString Append ut.failure_txt%(), Str$(expected%(i%))
     Next
-    Cat s$, sys.CRLF$ + "    but actually: " + sys.CRLF$ + "      "
-    For i% = base% To Bound(actual%(), 1)
-      If i% <> base% Then Cat s$, ", "
-      Cat s$, Str$(actual%(i%))
+    LongString Append ut.failure_txt%(), sys.CRLF$ + "    but actually:")
+    For i% = base% To Bound(expected%(), 1)
+      LongString Append ut.failure_txt%(), sys.CRLF$
+      LongString Append ut.failure_txt%(), Format$(i%, "      [%" + Str$(width%) + ".0f] ")
+      LongString Append ut.failure_txt%(), Str$(actual%(i%))
     Next
-    ut.add_failure(s$)
+    ut.update_failure()
   EndIf
 End Sub
 
@@ -158,17 +161,20 @@ Sub assert_float_array_equals(expected!(), actual!(), delta!())
   EndIf
 
   If fail% Then
-    Local s$ = "Assert array equals failed, expected:" + sys.CRLF$ + "      "
+    ut.add_failure("Assert array equals failed, expected:")
+    Local width% = Len(Str$(Bound(expected!(), 1)))
     For i% = base% To Bound(expected!(), 1)
-      If i% <> base% Then Cat s$, ", "
-      Cat s$, Str$(expected!(i%))
+      LongString Append ut.failure_txt%(), sys.CRLF$
+      LongString Append ut.failure_txt%(), Format$(i%, "      [%" + Str$(width%) + ".0f] ")
+      LongString Append ut.failure_txt%(), Str$(expected!(i%))
     Next
-    Cat s$, sys.CRLF$ + "    but actually: " + sys.CRLF$ + "      "
-    For i% = base% To Bound(actual!(), 1)
-      If i% <> base% Then Cat s$, ", "
-      Cat s$, Str$(actual!(i%))
+    LongString Append ut.failure_txt%(), sys.CRLF$ + "    but actually:")
+    For i% = base% To Bound(expected!(), 1)
+      LongString Append ut.failure_txt%(), sys.CRLF$
+      LongString Append ut.failure_txt%(), Format$(i%, "      [%" + Str$(width%) + ".0f] ")
+      LongString Append ut.failure_txt%(), Str$(actual!(i%))
     Next
-    ut.add_failure(s$)
+    ut.update_failure()
   EndIf
 End Sub
 
@@ -307,7 +313,7 @@ Function ut.run_single_test%(idx%)
   If ut.is_verbose%() Then
     If ut.asserts_count% = 0 Then
       ut.print_colour("magenta")
-      Print "NO TESTS";
+      Print "NO ASSERTIONS";
     Else If ut.failure_count% = 0 Then
       ut.print_colour("green")
       Print "PASS ("; Str$(ut.asserts_count%); "/"; Str$(ut.asserts_count%); ")";
