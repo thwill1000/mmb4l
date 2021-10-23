@@ -164,16 +164,30 @@ Sub test_timer()
 End Sub
 
 Sub test_pause()
-  Local t% = Timer
-  Pause 10
+  Local i%, t%
+
+  ' PAUSE is rather unpredictable on MMB4L because Linux is not a RTOS.
+  Local num_attempts% = Choice(Mm.Device$ = "MMB4L", 5, 1)
+
+  For i% = 1 To num_attempts%
+    t% = Timer
+    Pause 10
+    If Abs(Timer - t% - 10) <= 2 Then Exit For
+  Next
   assert_float_equals(Timer, t% + 10, 2)
 
-  t% = Timer
-  Pause 100
+  For i% = 1 To num_attempts%
+    t% = Timer
+    Pause 100
+    If Abs(Timer - t% - 100) <= 5 Then Exit For
+  Next
   assert_float_equals(Timer, t% + 100, 5)
 
-  t% = Timer
-  Pause 1000
+  For i% = 1 To num_attempts%
+    t% = Timer
+    Pause 1000
+    If Abs(Timer - t% - 1000) <= 10 Then Exit For
+  Next
   assert_float_equals(Timer, t% + 1000, 10)
 End Sub
 

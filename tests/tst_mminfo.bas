@@ -21,8 +21,6 @@ Const EXPECTED_ARCH$ = "Linux x86_64"
 Const EXPECTED_DEVICE$ = "MMB4L"
 ' Const EXPECTED_DEVICE$ = "Colour Maximite 2 G2"
 Const EXPECTED_HOME$ = "/home/thwill"
-Const EXPECTED_HPOS% = 53
-Const EXPECTED_HRES% = 80
 If EXPECTED_DEVICE$ = "MMB4L" Then
   Const EXPECTED_DIR$ = "/home/thwill/github/mmb4l-src/tests"
   Const EXPECTED_PATH$ = "/home/thwill/github/mmb4l-src/tests"
@@ -32,8 +30,6 @@ Else
   Const EXPECTED_PATH$ = "A:/SPTOOLS/FIRMWARE-TESTS"
   Const EXPECTED_VERSION! = 5.0701
 EndIf
-Const EXPECTED_VPOS% = 23
-Const EXPECTED_VRES% = 24
 
 add_test("test_architecture")
 add_test("test_current")
@@ -203,24 +199,37 @@ Sub test_hpos()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
   Option Resolution Character
+  Local old_x%, old_y%
+  Console GetCursor old_x%, old_y%
+  Console SetCursor 5, 10
+
   Local actual% = Mm.Info(HPos)
-  assert_int_equals(EXPECTED_HPOS%, actual%)
+  assert_int_equals(5, actual%)
 
   Option Resolution Pixel
-  assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.Info(HPos))
+  assert_int_equals(5 * EXPECTED_FONT_WIDTH%, Mm.Info(HPos))
+
+  Option Resolution Character
+  Console SetCursor old_x%, old_y%
 End Sub
 
 Sub test_hres()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Mm.Device$ = "MMB4L" Then
+    Option Resolution Character
+    Local actual% = Mm.Info(HRes)
+    System("tput cols > /tmp/hres.txt")
+    Open "/tmp/hres.txt" For Input As #1
+    Local s$
+    Line Input #1, s$
+    Close #1
+    Local expected_hres% = Val(s$)
+    assert_int_equals(expected_hres%, actual%)
+    assert_int_equals(actual%, Mm.HRes)
 
-  Option Resolution Character
-  Local actual% = Mm.Info(HRes)
-  assert_int_equals(EXPECTED_HRES%, actual%)
-  assert_int_equals(actual%, Mm.HRes)
-
-  Option Resolution Pixel
-  assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.Info(HRes))
-  assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.HRes)
+    Option Resolution Pixel
+    assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.Info(HRes))
+    assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.HRes)
+  EndIf
 End Sub
 
 Sub test_option_base()
@@ -355,21 +364,34 @@ Sub test_path()
 End Sub
 
 Sub test_vpos()
-  If Mm.Device$ = "MMB4L" Then
-    Option Resolution Character
-    Local actual% = Mm.Info(VPos)
-    assert_int_equals(EXPECTED_VPOS%, actual%)
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
 
-    Option Resolution Pixel
-    assert_int_equals(actual% * Mm.Info(FontHeight), Mm.Info(VPos))
-  EndIf
+  Option Resolution Character
+  Local old_x%, old_y%
+  Console GetCursor old_x%, old_y%
+  Console SetCursor 5, 10
+
+  Local actual% = Mm.Info(VPos)
+  assert_int_equals(10, actual%)
+
+  Option Resolution Pixel
+  assert_int_equals(10 * EXPECTED_FONT_HEIGHT%, Mm.Info(VPos))
+
+  Option Resolution Character
+  Console SetCursor old_x%, old_y%
 End Sub
 
 Sub test_vres()
   If Mm.Device$ = "MMB4L" Then
     Option Resolution Character
     Local actual% = Mm.Info(VRes)
-    assert_int_equals(EXPECTED_VRES%, actual%)
+    System("tput lines > /tmp/vres.txt")
+    Open "/tmp/vres.txt" For Input As #1
+    Local s$
+    Line Input #1, s$
+    Close #1
+    Local expected_vres% = Val(s$)
+    assert_int_equals(expected_vres%, actual%)
     assert_int_equals(actual%, Mm.VRes)
 
     Option Resolution Pixel
