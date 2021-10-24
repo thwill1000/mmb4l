@@ -8,9 +8,8 @@ void console_key_to_string(int ch, char *buf);
 
 volatile int MMAbort;
 char g_break_key;
-int g_key_complete = 0;
-char *g_key_interrupt = NULL;
-int g_key_select = 0;
+
+int interrupt_check_key_press(char ch) { return 0; }
 
 void CheckAbort(void) { console_pump_input(); }
 

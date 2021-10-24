@@ -40,17 +40,14 @@ PARTICULAR PURPOSE.
 #include "common/utility.h"
 #include "common/version.h"
 
-extern int g_key_select;
-
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
 int ListCnt;
 int MMCharPos;
 struct timespec g_timer;
 volatile int MMAbort = false;
-char *InterruptReturn = NULL;
 struct option_s Option;
-int WatchdogSet, IgnorePIN, InterruptUsed;
+int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary, **FontTable;
 
@@ -216,6 +213,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, IntHandler);
 #endif
 
+    interrupt_init();
     clock_gettime(CLOCK_REALTIME, &g_timer);
     srand(0);             // seed the random generator with zero
 
@@ -263,6 +261,7 @@ int main(int argc, char *argv[]) {
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
         //printf("tknbuf = %s\n", tknbuf);
 
+        interrupt_clear();
         ExecuteProgram(tknbuf);  // execute the line straight away
 
         memset(inpbuf, 0, STRINGSIZE);
@@ -293,7 +292,7 @@ void CheckAbort(void) {
     if (!MMAbort) console_pump_input();
 
     if (MMAbort) {
-        g_key_select = 0;
+        // g_key_select = 0;
         longjmp(mark, JMP_BREAK);  // jump back to the input prompt
     }
 }

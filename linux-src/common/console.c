@@ -14,6 +14,7 @@
 #include "console.h"
 #include "error.h"
 #include "global_aliases.h"
+#include "interrupt.h"
 #include "utility.h"
 #include "rx_buf.h"
 #include "../Configuration.h" // For STRINGSIZE
@@ -22,9 +23,6 @@ void CheckAbort(void);
 
 extern volatile int MMAbort;
 extern char g_break_key;
-extern int g_key_complete;
-extern char *g_key_interrupt;
-extern int g_key_select;
 
 #define CONSOLE_RX_BUF_SIZE 256
 
@@ -88,10 +86,7 @@ void console_pump_input(void) {
 
     // Support for ON KEY ascii_code%, handler_sub().
     // Note that 'ch' does not get added to the buffer.
-    if (ch == g_key_select && g_key_interrupt != NULL) {
-        g_key_complete = 1;
-        return;
-    }
+    if (interrupt_check_key_press(ch)) return;
 
     if (ch == g_break_key) {
         // User wishes to stop the program.
