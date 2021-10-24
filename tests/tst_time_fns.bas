@@ -39,12 +39,10 @@ End Sub
 
 Sub test_date()
   If Mm.Device$ = "MMB4L" Then
-    System "date '+%d-%m-%Y' > /tmp/test_date.txt"
-    Open "/tmp/test_date.txt" For Input As #1
-    Local s$
-    Line Input #1, s$
-    Close #1
-    assert_string_equals(s$, Date$)
+    Local out%(32);
+    System "date '+%d-%m-%Y'", out%()
+    Local expected$ = LGetStr$(out%(), 1, 10)
+    assert_string_equals(expected$, Date$)
   Else
     Local old_date$ = Date$
 
@@ -112,12 +110,10 @@ Sub test_epoch()
   assert_int_equals(-1000, Epoch("31-12-1969 23:43:20"))
 
   If Mm.Device$ = "MMB4L" Then
-    System "date '+%s' > /tmp/test_epoch.txt"
-    Open "/tmp/test_epoch.txt" For Input As #1
-    Local s$
-    Line Input #1, s$
-    Close #1
-    assert_int_equals(Val(s$), Epoch(Now))
+    Local out%(32);
+    System "date '+%s'", out%()
+    Local expected$ = LGetStr$(out%(), 1, 10)
+    assert_int_equals(Val(expected$), Epoch(Now))
   Else
     assert_int_equals(Epoch(DateTime$(Now)), Epoch(Now))
   EndIf
@@ -129,12 +125,10 @@ End Sub
 
 Sub test_time()
   If Mm.Device$ = "MMB4L" Then
-    System "date '+%H:%M:%S' > /tmp/test_time.txt"
-    Open "/tmp/test_time.txt" For Input As #1
-    Local s$
-    Line Input #1, s$
-    Close #1
-    assert_string_equals(s$, Time$)
+    Local out%(32);
+    System "date '+%H:%M:%S'", out%()
+    Local expected$ = LGetStr$(out%(), 1, 8)
+    assert_string_equals(expected$, Time$)
   Else
     Local old_time$ = Time$
 

@@ -33,6 +33,11 @@ Version 2021.01.00-a2 - ??-???-2021:
           - which is equivalent to MEMORY COPY src, dst, number_of_bytes
         MEMORY COPY SHORT src, dst, number_of_shorts
         MEMORY COPY WORD src, dst, number_of_words
+  - Added optional integer array parameter to SYSTEM command to allow any
+    standard output generated to be captured in a LONGSTRING, e.g.
+        DIM out%(100)
+        SYSTEM "ls", out%()
+        LONGSTRING PRINT out%()
   - Added support for prefixing paths with '~' which is expanded to the
     users home directory (the value of the HOME envrionment variable).
   - Changed CONSOLE SETCURSOR command to allow a maximum x, y of 1023

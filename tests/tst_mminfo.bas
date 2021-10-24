@@ -217,12 +217,9 @@ Sub test_hres()
   If Mm.Device$ = "MMB4L" Then
     Option Resolution Character
     Local actual% = Mm.Info(HRes)
-    System("tput cols > /tmp/hres.txt")
-    Open "/tmp/hres.txt" For Input As #1
-    Local s$
-    Line Input #1, s$
-    Close #1
-    Local expected_hres% = Val(s$)
+    Local out%(32);
+    System "tput cols", out%()
+    Local expected_hres% = Val(LGetStr$(out%(), 1, 255))
     assert_int_equals(expected_hres%, actual%)
     assert_int_equals(actual%, Mm.HRes)
 
@@ -385,12 +382,9 @@ Sub test_vres()
   If Mm.Device$ = "MMB4L" Then
     Option Resolution Character
     Local actual% = Mm.Info(VRes)
-    System("tput lines > /tmp/vres.txt")
-    Open "/tmp/vres.txt" For Input As #1
-    Local s$
-    Line Input #1, s$
-    Close #1
-    Local expected_vres% = Val(s$)
+    Local out%(32);
+    System "tput lines", out%()
+    Local expected_vres% = Val(LGetStr$(out%(), 1, 255))
     assert_int_equals(expected_vres%, actual%)
     assert_int_equals(actual%, Mm.VRes)
 
