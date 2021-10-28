@@ -2308,7 +2308,11 @@ void MIPS16 ClearStack(void) {
     gosubindex = 0;
     LocalIndex = 0;
     TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
+#if defined(__linux__)
+    interrupt_clear();
+#else
     InterruptReturn = NULL;
+#endif
 }
 
 

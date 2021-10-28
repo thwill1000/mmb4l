@@ -13,12 +13,10 @@ typedef struct {
     int64_t period_ns;
 } TickStruct;
 
-/** Accessed from outside this compilation-unit. */
-char *interrupt_return_stmt = NULL;
-
 static int interrupt_count = 0;
 static char *interrupt_any_key_addr = NULL;
 static bool interrupt_pause_flag = false;
+static char *interrupt_return_stmt = NULL;
 static int interrupt_specific_key = 0;
 static int interrupt_specific_key_pressed = false;
 static char *interrupt_specific_key_addr = NULL;

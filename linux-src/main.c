@@ -241,6 +241,13 @@ int main(int argc, char *argv[]) {
         // }
         // ErrorInPrompt = false;
 
+        // This will clear all the interrupts including ON KEY
+        // TODO: is this too drastic ? it means all interrupts will have been
+        //       lost if the user tries to CONTINUE a program that has halted
+        //       from CTRL-C or ERROR.
+        interrupt_clear();
+
+        memset(inpbuf, 0, STRINGSIZE);
         if (run_flag) {
             if (mmb_args.interactive) {
                 MMPrintString(mmb_args.run_cmd);
@@ -257,12 +264,8 @@ int main(int argc, char *argv[]) {
         if (*tknbuf == T_LINENBR)  // don't let someone use line numbers at the prompt
             tknbuf[0] = tknbuf[1] = tknbuf[2] = ' '; // convert the line number into spaces
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
-        //printf("tknbuf = %s\n", tknbuf);
 
-        interrupt_clear();
         ExecuteProgram(tknbuf);  // execute the line straight away
-
-        memset(inpbuf, 0, STRINGSIZE);
     }
 }
 

@@ -48,7 +48,6 @@ provisions:
 // global variables used in MMBasic but must be maintained outside of the interpreter
 extern char *StartEditPoint;
 extern int StartEditChar;
-extern char *interrupt_return_stmt;
 extern int WatchdogSet, IgnorePIN;
 extern int MMCharPos;
 extern int error_line;
@@ -58,7 +57,6 @@ extern char error_file[STRINGSIZE];
 #define FONT_TABLE_SIZE 0
 
 #define getConsole  MMInkey
-#define InterruptReturn  interrupt_return_stmt
 
 // functions not used in the DOS version... so make them go away
 #define SaveOptions()    {}
@@ -86,6 +84,7 @@ char *GetIntAddress(char *p);
 int check_interrupt(void);
 void FlashWriteInit(char *p, int nbr);
 void dump(char *p, int nbr);
+void interrupt_clear(void);
 
 #define JMP_BREAK  1
 #define JMP_END    2
