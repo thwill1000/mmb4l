@@ -230,7 +230,7 @@ int main(int argc, char *argv[]) {
         if (MMCharPos > 1) {
             MMPrintString("\r\n");  // prompt should be on a new line
         }
-        PrepareProgram(false);
+        //PrepareProgram(false); // This seems superflous so comment it out and see what breaks!
         // if (!ErrorInPrompt && FindSubFun("MM.PROMPT", 0) >= 0) {
         //     ErrorInPrompt = true;
         //     ExecuteProgram("MM.PROMPT\0");
