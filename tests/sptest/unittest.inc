@@ -10,6 +10,7 @@ If sys.err$ <> "" Then Error sys.err$
 
 Const ut.MAX_FAILURES% = 100
 Const ut.MAX_TESTS% = 100
+Const ut.MAX_ARRAY_DIFFS% = 5
 
 Dim ut.asserts_count%
 Dim ut.failure_count%
@@ -109,110 +110,124 @@ Function ut.sanitise_string$(s$)
 End Function
 
 Sub assert_int_array_equals(expected%(), actual%())
-  Local base% = Mm.Info(Option Base)
-  Local fail% = 0
-
   Inc ut.asserts_count%
 
-  If Bound(expected%(), 1) = Bound(actual%(), 1) Then
-    Local i%, lb%, ub%
-    lb% = base%
-    ub% = Bound(expected%(), 1)
-    For i% = lb% To ub%
-      If expected%(i%) <> actual%(i%) Then fail% = 1 : Exit For
-    Next
-  Else
-    fail% = 1
+  If Bound(expected%(), 1) <> Bound(actual%(), 1) Then
+    ut.add_array_size_failure(Bound(expected%(), 1), Bound(actual%(), 1))
+    Exit Sub
   EndIf
 
-  If fail% Then
-    ut.add_failure("Assert array equals failed, expected:")
-    Local width% = Len(Str$(Bound(expected%(), 1)))
-    For i% = base% To Bound(expected%(), 1)
-      LongString Append ut.failure_txt%(), sys.CRLF$
-      LongString Append ut.failure_txt%(), Format$(i%, "      [%" + Str$(width%) + ".0f] ")
-      LongString Append ut.failure_txt%(), Str$(expected%(i%))
-    Next
-    LongString Append ut.failure_txt%(), sys.CRLF$ + "    but actually:")
-    For i% = base% To Bound(expected%(), 1)
-      LongString Append ut.failure_txt%(), sys.CRLF$
-      LongString Append ut.failure_txt%(), Format$(i%, "      [%" + Str$(width%) + ".0f] ")
-      LongString Append ut.failure_txt%(), Str$(actual%(i%))
-    Next
-    ut.update_failure()
-  EndIf
+  Local count%, i%, j% = Mm.Info(Option Base)
+  Local indexes%(array.new%(ut.MAX_ARRAY_DIFFS%))
+  Local e$(array.new%(ut.MAX_ARRAY_DIFFS%))
+  Local a$(array.new%(ut.MAX_ARRAY_DIFFS%))
+
+  For i% = Bound(expected%(), 0) To Bound(expected%(), 1)
+    If expected%(i%) = actual%(i%) Then Continue For
+    Inc count%
+    If count% > ut.MAX_ARRAY_DIFFS% Then Continue For
+    indexes%(j%) = i%
+    e$(j%) = Str$(expected%(i%))
+    a$(j%) = Str$(actual%(i%))
+    Inc j%
+  Next
+
+  If count% > 0 Then ut.add_array_content_failure(count%, indexes%(), e$(), a$())
+End Sub
+
+Sub ut.add_array_size_failure(expected_size%, actual_size%)
+  Local msg$ = "Assert array equals failed, expected size "
+  Cat msg$, Str$(expected_size%)
+  Cat msg$, " but was "
+  Cat msg$, Str$(actual_size%)
+  ut.add_failure(msg$)
+End Sub
+
+Sub ut.add_array_content_failure(count%, indexes%(), e$(), a$())
+  Local i%, width%
+  For i% = Bound(indexes%(), 0) To Bound(indexes%(), 1)
+    width% = Max(width%, Len(Str$(indexes%(i%))))
+  Next
+
+  ut.add_failure("Assert array equals failed, expected:")
+  For i% = Bound(indexes%(), 0) To Bound(indexes%(), 1)
+    ut.array_diff(width%, indexes%(i%), e$(i%))
+  Next
+  ut.and_more(count%)
+
+  LongString Append ut.failure_txt%(), sys.CRLF$ + "    but actually:")
+  For i% = Bound(indexes%(), 0) To Bound(indexes%(), 1)
+    ut.array_diff(width%, indexes%(i%), a$(i%))
+  Next
+  ut.and_more(count%)
+
+  ut.update_failure()
+End Sub
+
+Sub ut.array_diff(width%, index%, value$)
+  LongString Append ut.failure_txt%(), sys.CRLF$
+  LongString Append ut.failure_txt%(), Format$(index%, "      [%" + Str$(width%) + ".0f] ")
+  LongString Append ut.failure_txt%(), value$
+End Sub
+
+Sub ut.and_more(count%)
+  If count% <= ut.MAX_ARRAY_DIFFS% Then Exit Sub
+  LongString Append ut.failure_txt%(), sys.CRLF$
+  LongString Append ut.failure_txt%(), "      ... and "
+  LongString Append ut.failure_txt%(), Str$(count% - ut.MAX_ARRAY_DIFFS%)
+  LongString Append ut.failure_txt%(), " more"
 End Sub
 
 Sub assert_float_array_equals(expected!(), actual!(), delta!())
-  Local base% = Mm.Info(Option Base)
-  Local fail% = 0
-
   Inc ut.asserts_count%
 
-  If Bound(expected!(), 1) = Bound(actual!(), 1) Then
-    Local i%, lb%, ub%
-    lb% = base%
-    ub% = Bound(expected!(), 1)
-    For i% = lb% To ub%
-      If Not equals_float%(expected!(i%), actual!(i%), delta!(i%)) Then fail% = 1 : Exit For
-    Next
-  Else
-    fail% = 1
+  If Bound(expected!(), 1) <> Bound(actual!(), 1) Then
+    ut.add_array_size_failure(Bound(expected!(), 1), Bound(actual!(), 1))
+    Exit Sub
   EndIf
 
-  If fail% Then
-    ut.add_failure("Assert array equals failed, expected:")
-    Local width% = Len(Str$(Bound(expected!(), 1)))
-    For i% = base% To Bound(expected!(), 1)
-      LongString Append ut.failure_txt%(), sys.CRLF$
-      LongString Append ut.failure_txt%(), Format$(i%, "      [%" + Str$(width%) + ".0f] ")
-      LongString Append ut.failure_txt%(), Str$(expected!(i%))
-    Next
-    LongString Append ut.failure_txt%(), sys.CRLF$ + "    but actually:")
-    For i% = base% To Bound(expected!(), 1)
-      LongString Append ut.failure_txt%(), sys.CRLF$
-      LongString Append ut.failure_txt%(), Format$(i%, "      [%" + Str$(width%) + ".0f] ")
-      LongString Append ut.failure_txt%(), Str$(actual!(i%))
-    Next
-    ut.update_failure()
-  EndIf
+  Local count%, i%, j% = Mm.Info(Option Base)
+  Local indexes%(array.new%(ut.MAX_ARRAY_DIFFS%))
+  Local e$(array.new%(ut.MAX_ARRAY_DIFFS%))
+  Local a$(array.new%(ut.MAX_ARRAY_DIFFS%))
+
+  For i% = Bound(expected!(), 0) To Bound(expected!(), 1)
+    If equals_float%(expected!(i%), actual!(i%), delta!(i%)) Then Continue For
+    Inc count%
+    If count% > ut.MAX_ARRAY_DIFFS% Then Continue For
+    indexes%(j%) = i%
+    e$(j%) = Str$(expected!(i%))
+    a$(j%) = Str$(actual!(i%))
+    Inc j%
+  Next
+
+  If count% > 0 Then ut.add_array_content_failure(count%, indexes%(), e$(), a$())
 End Sub
 
 Sub assert_string_array_equals(expected$(), actual$())
-  Local base% = Mm.Info(Option Base)
-  Local fail% = 0
-
   Inc ut.asserts_count%
 
-  If Bound(expected$(), 1) = Bound(actual$(), 1) Then
-    Local i%, lb%, ub%
-    lb% = base%
-    ub% = Bound(expected$(), 1)
-    For i% = lb% To ub%
-      If expected$(i%) <> actual$(i%) Then fail% = 1 : Exit For
-    Next
-  Else
-    fail% = 1
+  If Bound(expected$(), 1) <> Bound(actual$(), 1) Then
+    ut.add_array_size_failure(Bound(expected$(), 1), Bound(actual$(), 1))
+    Exit Sub
   EndIf
 
-  If fail% Then
-    ut.add_failure("Assert array equals failed, expected:")
-    Local width% = Len(Str$(Bound(expected$(), 1)))
-    For i% = base% To Bound(expected$(), 1)
-      If expected$(i%) = actual$(i%) Then Continue For
-      LongString Append ut.failure_txt%(), sys.CRLF$
-      LongString Append ut.failure_txt%(), Format$(i%, "      [%" + Str$(width%) + ".0f] ")
-      LongString Append ut.failure_txt%(), str.quote$(ut.sanitise_string$(expected$(i%))))
-    Next
-    LongString Append ut.failure_txt%(), sys.CRLF$ + "    but actually:")
-    For i% = base% To Bound(actual$(), 1)
-      If expected$(i%) = actual$(i%) Then Continue For
-      LongString Append ut.failure_txt%(), sys.CRLF$
-      LongString Append ut.failure_txt%(), Format$(i%, "      [%" + Str$(width%) + ".0f] ")
-      LongString Append ut.failure_txt%(), str.quote$(ut.sanitise_string$(actual$(i%))))
-    Next
-    ut.update_failure()
-  EndIf
+  Local count%, i%, j% = Mm.Info(Option Base)
+  Local indexes%(array.new%(ut.MAX_ARRAY_DIFFS%))
+  Local e$(array.new%(ut.MAX_ARRAY_DIFFS%))
+  Local a$(array.new%(ut.MAX_ARRAY_DIFFS%))
+
+  For i% = Bound(expected$(), 0) To Bound(expected$(), 1)
+    If expected$(i%) = actual$(i%) Then Continue For
+    Inc count%
+    If count% > ut.MAX_ARRAY_DIFFS% Then Continue For
+    indexes%(j%) = i%
+    e$(j%) = str.quote$(ut.sanitise_string$(expected$(i%)))
+    a$(j%) = str.quote$(ut.sanitise_string$(actual$(i%)))
+    Inc j%
+  Next
+
+  If count% > 0 Then ut.add_array_content_failure(count%, indexes%(), e$(), a$())
 End Sub
 
 Sub assert_no_error()

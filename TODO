@@ -6,7 +6,6 @@ Required for alpha 2
 
 Fix syntax highlighting for comments
 Fix bug with line numbers from errors reached by GOTO/GOSUB
-Failed array equality assertions should only list differing elements (maximum 10)
 
 
 Required for alpha 3
