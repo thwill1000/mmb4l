@@ -334,6 +334,27 @@ int MIPS16 PrepareProgramExt(char *p, int i, unsigned char **CFunPtr, int ErrAbo
                 i--;
                 continue;
             }
+
+#if defined(__linux__)
+            // I suspect all platforms should have this or something equivalent.
+            // Note that the name does not (appear to) include any trailing %, !
+            // or $ character.
+            {
+                int len = 0;
+                while (isnamechar(*p)) {
+                    // Do not call isnamechar(*p++)
+                    // because the macro will increment the pointer 3 times.
+                    len++;
+                    p++;
+                }
+                if (len > MAXVARLEN) {
+                    if (ErrAbort) error("Function name too long");
+                    i--;
+                    continue;
+                }
+            }
+#endif
+
         }
         while(*p) p++;                                              // look for the zero marking the start of the next element
     }
