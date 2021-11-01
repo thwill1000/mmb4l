@@ -378,7 +378,7 @@ End Sub
 
 Sub ut.run_first()
   Print "Building list of tests ..."
-  Open "/tmp/sptest.lst" For Output As #1
+  Open file.TMPDIR$ + "/sptest.lst" For Output As #1
   Print #1, Time$
   Local f$ = file.find$(Cwd$, "*st*.bas", "file")
   Local first$
@@ -435,7 +435,7 @@ End Function
 
 Sub ut.run_next()
   Local f$, start_time$
-  Open "/tmp/sptest.lst" For Input As #1
+  Open file.TMPDIR$ + "/sptest.lst" For Input As #1
   Line Input #1, start_time$
 
   Do

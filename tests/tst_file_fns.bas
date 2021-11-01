@@ -16,7 +16,6 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 
 Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
-Const TMP_DIR$ = "/tmp"
 
 add_test("test_chdir_mkdir_rmdir")
 add_test("test_copy")
@@ -41,13 +40,13 @@ End Sub
 Sub test_chdir_mkdir_rmdir()
     Local current_dir$ = Mm.Info$(Directory))
     Local new_dir$ = "test_chdir_mkdir_rmdir.tmpdir"
-    If file.exists%(TMP_DIR$ + "/" + new_dir$) Then RmDir(TMP_DIR$ + "/" + new_dir$)
+    If file.exists%(file.TMPDIR$ + "/" + new_dir$) Then RmDir(file.TMPDIR$ + "/" + new_dir$)
 
-    ChDir TMP_DIR$
+    ChDir file.TMPDIR$
     MkDir new_dir$
     ChDir new_dir$
 
-    Local expected$ = TMP_DIR$ + "/" + new_dir$ + "/"
+    Local expected$ = file.TMPDIR$ + "/" + new_dir$ + "/"
     If Mm.Device$ <> "MMB4L" Then expected$ = "A:" + UCase$(expected$)
     assert_string_equals(expected$, Mm.Info$(Directory))
 
@@ -61,8 +60,8 @@ Sub test_chdir_mkdir_rmdir()
 End Sub
 
 Sub test_copy()
-    Local f$ = TMP_DIR$ + "/test_copy.tmp"
-    Local f_copy$ = TMP_DIR$ + "/test_copy.tmp.copy"
+    Local f$ = file.TMPDIR$ + "/test_copy.tmp"
+    Local f_copy$ = file.TMPDIR$ + "/test_copy.tmp.copy"
     Local s$
 
     Open f$ For Output As #1
@@ -86,7 +85,7 @@ Sub test_copy()
 End Sub
 
 Sub test_dir()
-  Local tst_dir$ = TMP_DIR$ + "/test_dir.tmpdir"
+  Local tst_dir$ = file.TMPDIR$ + "/test_dir.tmpdir"
   If file.exists%(tst_dir$) Then RmDir tst_dir$
   MkDir tst_dir$
   Open tst_dir$ + "/file1" For Output As #1 : Close #1
@@ -114,7 +113,7 @@ Sub test_dir()
 End Sub
 
 Sub test_kill() {
-    Local f$ = TMP_DIR$ + "/test_kill.tmp"
+    Local f$ = file.TMPDIR$ + "/test_kill.tmp"
 
     Open f$ For Output As #1
     Print #1, "Hello World"
@@ -129,8 +128,8 @@ Sub test_kill() {
 End Sub
 
 Sub test_rename()
-    Local f$ = TMP_DIR$ + "/test_new.tmp"
-    Local f_new$ = TMP_DIR$ + "/test_new.tmp.new"
+    Local f$ = file.TMPDIR$ + "/test_new.tmp"
+    Local f_new$ = file.TMPDIR$ + "/test_new.tmp.new"
     Local s$
 
     Open f$ For Output As #1
@@ -152,7 +151,7 @@ Sub test_rename()
 End Sub
 
 Sub test_loc()
-    Local f$ = TMP_DIR + "/test_loc.tmp"
+    Local f$ = file.TMPDIR + "/test_loc.tmp"
 
     ' Start with an empty file.
     Open f$ For Output As #1
@@ -174,7 +173,7 @@ Sub test_loc()
 End Sub
 
 Sub test_lof()
-    Local f$ = TMP_DIR + "/test_lof.tmp"
+    Local f$ = file.TMPDIR + "/test_lof.tmp"
 
     Open f$ For Output As #1
     Print #1, "Hello World";
@@ -188,7 +187,7 @@ Sub test_lof()
 End Sub
 
 Sub test_seek()
-    Local f$ = TMP_DIR + "/test_seek.tmp"
+    Local f$ = file.TMPDIR + "/test_seek.tmp"
     Local s$
 
     Open f$ For Output As #1
@@ -219,17 +218,22 @@ Sub test_tilde_expansion()
 
   Local original_dir$ = Cwd$
 
-  System "rm -Rf /tmp/test_tilde_expansion.dir"
+  System "rm -Rf " + file.TMPDIR$ + "/test_tilde_expansion.dir"
 
   ' Test CHDIR.
   ChDir "~"
   assert_string_equals(Mm.Info$(EnvVar "HOME"), Cwd$)
 
-  ChDir "~/../../tmp"
-  assert_string_equals("/tmp", Cwd$)
+  ' Use SYSTEM with 'realpath' to determine relative path from HOME to TMPDIR.
+  Local ls%(50)
+  System "realpath --relative-to=$HOME " + file.TMPDIR$, ls%()
+  Local tmp_relative$ = "~/" + LGetStr$(ls%(), 1, LLen(ls%()) - 1)
+
+  ChDir tmp_relative$
+  assert_string_equals(file.TMPDIR$, Cwd$)
 
   ' Test MKDIR.
-  Local my_test_dir$ = "~/../../tmp/test_tilde_expansion.dir"
+  Local my_test_dir$ = tmp_relative$ + "/test_tilde_expansion.dir"
   MkDir my_test_dir$
   assert_true(Mm.Info(Exists my_test_dir$))
 

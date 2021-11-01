@@ -49,11 +49,11 @@ End Function
 
 ' Prior to 5.07.01 this would report an "Argument List" error from the Print #1 statement.
 Sub test_call_2()
-  Open "/tmp/tst_call.tmp" For Output As #1
+  Open file.TMPDIR$ + "/tst_call.tmp" For Output As #1
   Print #1, Call("int_fn%"), Call("float_fn!"), Call("string_fn$")
   Close #1
 
-  Open "/tmp/tst_call.tmp" For Input As #1
+  Open file.TMPDIR$ + "/tst_call.tmp" For Input As #1
   Local s$
   Line Input #1, s$
 

@@ -195,11 +195,11 @@ Sub test_print()
   Local array%(100)
   LongString Append array%(), "Hello World"
 
-  Open "/tmp/tst_longstring-test_print.txt" For Output As #1
+  Open file.TMPDIR$ + "/tst_longstring-test_print.txt" For Output As #1
   LongString Print #1, array%()
   Close #1
 
-  Open "/tmp/tst_longstring-test_print.txt" For Input As #1
+  Open file.TMPDIR$ + "/tst_longstring-test_print.txt" For Input As #1
   Local s$
   Line Input #1, s$
   assert_string_equals("Hello World", s$)

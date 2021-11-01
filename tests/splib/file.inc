@@ -11,6 +11,12 @@ If sys.err$ <> "" Then Error sys.err$
 
 Const file.PROG_DIR$ = file.get_parent$(Mm.Info$(Current))
 
+If Mm.Device$ = "MMB4L" Then
+  Const file.TMPDIR$ = Choice(Mm.Info$(EnvVar "TMPDIR") = "", "/tmp", Mm.Info$(EnvVar "TMPDIR"))
+Else
+  Const file.TMPDIR$ = "/tmp"
+EndIf
+
 ' Gets the number of files in directory d$ whose names match pattern$.
 '
 ' @param   d$        directory to process.
