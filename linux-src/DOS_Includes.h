@@ -91,6 +91,7 @@ void interrupt_clear(void);
 #define JMP_ERROR  3
 #define JMP_NEW    4
 #define JMP_QUIT   5
+#define JMP_UNEXPECTED  999
 
 // Global variables specific to MMB4L
 extern uint8_t mmb_exit_code;

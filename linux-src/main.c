@@ -60,6 +60,14 @@ void IntHandler(int signo);
 void dump_token_table(const struct s_tokentbl* tbl);
 void prompt_get_input(void); // common/prompt.c
 
+/**
+ * If 'true' then RUN program specified by 'mmb_args.run_cmd'.
+ * Only used within main() but cannot be a local variable (on the stack)
+ * because after a longjmp() it would be restored to its value when
+ * setjmp() was called - this is undesireable.
+ */
+static bool run_flag;
+
 void print_banner() {
     MMPrintString(MES_SIGNON);
     MMPrintString(COPYRIGHT);
@@ -93,34 +101,8 @@ void set_start_directory() {
     }
 }
 
-/** Setup and handle return vai longjmp(). */
-void longjmp_handler(void ) {
-    // Note that weird restrictions on setjmp() mean we cannot simply write:
-    // int jmp_state = setjmp(mark);
-    int jmp_state = 0;
-    switch (setjmp(mark)) {
-        case 0:
-            return;
-        case JMP_BREAK:
-            jmp_state = JMP_BREAK;
-            break;
-        case JMP_END:
-            jmp_state = JMP_END;
-            break;
-        case JMP_ERROR:
-            jmp_state = JMP_ERROR;
-            break;
-        case JMP_NEW:
-            jmp_state = JMP_NEW;
-            break;
-        case JMP_QUIT:
-            jmp_state = JMP_QUIT;
-            break;
-        default:
-            fprintf(stderr, "Unexpected return value from setjmp()");
-            exit(EX_FAIL);
-            break;
-    }
+/** Handle retun via longjmp(). */
+void longjmp_handler(int jmp_state) {
 
     console_show_cursor(1);
     console_reset();
@@ -153,6 +135,8 @@ void longjmp_handler(void ) {
             break;
 
         default:
+            fprintf(stderr, "Unexpected return value from setjmp()");
+            exit(EX_FAIL);
             break;
     }
 
@@ -216,9 +200,20 @@ int main(int argc, char *argv[]) {
     mmtime_init();
     srand(0);  // seed the random generator with zero
     set_start_directory();
-    longjmp_handler();
 
-    int run_flag = mmb_args.run_cmd[0] != '\0';
+    run_flag = mmb_args.run_cmd[0] != '\0';
+
+    // Note that weird restrictions on what you can do with the return value
+    // from setjmp() mean we cannot simply write longjmp_handler(setjmp(mark));
+    switch (setjmp(mark)) {
+        case 0: break;
+        case JMP_BREAK: longjmp_handler(JMP_BREAK); break;
+        case JMP_END:   longjmp_handler(JMP_END); break;
+        case JMP_ERROR: longjmp_handler(JMP_ERROR); break;
+        case JMP_NEW:   longjmp_handler(JMP_NEW); break;
+        case JMP_QUIT:  longjmp_handler(JMP_QUIT); break;
+        default:        longjmp_handler(JMP_UNEXPECTED); break;
+    }
 
     while (1) {
         MMAbort = false;
@@ -254,7 +249,7 @@ int main(int argc, char *argv[]) {
                 MMPrintString("\r\n");
             }
             strcpy(inpbuf, mmb_args.run_cmd);
-            run_flag = 0;
+            run_flag = false;
         } else {
             prompt_get_input();
         }
