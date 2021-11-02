@@ -18,17 +18,15 @@ Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
 Const EXPECTED_ARCH$ = "Linux x86_64"
-Const EXPECTED_DEVICE$ = "MMB4L"
-' Const EXPECTED_DEVICE$ = "Colour Maximite 2 G2"
 Const EXPECTED_HOME$ = "/home/thwill"
-If EXPECTED_DEVICE$ = "MMB4L" Then
+If Mm.Device$ = "MMB4L" Then
   Const EXPECTED_DIR$ = "/home/thwill/github/mmb4l-src/tests"
   Const EXPECTED_PATH$ = "/home/thwill/github/mmb4l-src/tests"
   Const EXPECTED_VERSION! = 2021.01
 Else
-  Const EXPECTED_DIR$ = "A:/SPTOOLS/FIRMWARE-TESTS"
-  Const EXPECTED_PATH$ = "A:/SPTOOLS/FIRMWARE-TESTS"
-  Const EXPECTED_VERSION! = 5.0701
+  Const EXPECTED_DIR$ = "A:/MMB4L-SRC/TESTS"
+  Const EXPECTED_PATH$ = "A:/MMB4L-SRC/TESTS"
+  Const EXPECTED_VERSION! = 5.0702
 EndIf
 
 add_test("test_architecture")
@@ -79,7 +77,11 @@ Sub test_current()
 End Sub
 
 Sub test_device()
-  assert_string_equals(EXPECTED_DEVICE$, Mm.Info(Device))
+  Local known% = 0
+  known% = known% Or (Mm.Device$ = "MMB4L")
+  known% = known% Or (Mm.Device$ = "Colour Maximite 2")
+  known% = known% Or (Mm.Device$ = "Colour Maximite 2 G2")
+  assert_true(known%)
   assert_string_equals(Mm.Info$(Device), Mm.Device$)
 End Sub
 
@@ -395,8 +397,8 @@ Sub test_vres()
 End Sub
 
 Sub test_version()
-  assert_float_equals(EXPECTED_VERSION!, Mm.Info(Version))
+  assert_float_equals(EXPECTED_VERSION!, Mm.Info(Version), 1e-10)
   If Mm.Device$ = "MMB4L" Then
-    assert_float_equals(Mm.Info(Version), Mm.Info(Ver))
+    assert_float_equals(Mm.Info(Version), Mm.Info(Ver), 1e-10)
   EndIf
 End Sub

@@ -6,6 +6,8 @@ Required for alpha 2
 
 Fix syntax highlighting for comments
 Fix bug with line numbers from errors reached by GOTO/GOSUB
+Review all change-sets
+Build on x86_64, x86 and Pi Zero
 
 
 Required for alpha 3

@@ -54,17 +54,21 @@ Sub test_json()
 
   ' Test explicit null value.
   assert_string_equals("",       Json$(data%(), "null-value"))
-  assert_string_equals("<null>", Json$(data%(), "null-value", &b01))
-  assert_string_equals("",       Json$(data%(), "null-value", &b10))
-  assert_string_equals("<null>", Json$(data%(), "null-value", &b11))
+  If Mm.Device$ = "MMB4L" Then
+    assert_string_equals("<null>", Json$(data%(), "null-value", &b01))
+    assert_string_equals("",       Json$(data%(), "null-value", &b10))
+    assert_string_equals("<null>", Json$(data%(), "null-value", &b11))
+  EndIf
 
   ' Test keys that do not exist.
   assert_string_equals("",          Json$(data%(), "does-not-exist"))
-  assert_string_equals("",          Json$(data%(), "does-not-exist", &b01))
-  assert_string_equals("<missing>", Json$(data%(), "does-not-exist", &b10))
-  assert_string_equals("<missing>", Json$(data%(), "does-not-exist", &b11))
-  assert_string_equals("",          Json$(data%(), "resolutions[3].width"))
-  assert_string_equals("",          Json$(data%(), "resolutions[3].width", &b01))
-  assert_string_equals("<missing>", Json$(data%(), "resolutions[3].width", &b10))
-  assert_string_equals("<missing>", Json$(data%(), "resolutions[3].width", &b11))
+  If Mm.Device$ = "MMB4L" Then
+    assert_string_equals("",          Json$(data%(), "does-not-exist", &b01))
+    assert_string_equals("<missing>", Json$(data%(), "does-not-exist", &b10))
+    assert_string_equals("<missing>", Json$(data%(), "does-not-exist", &b11))
+    assert_string_equals("",          Json$(data%(), "resolutions[3].width"))
+    assert_string_equals("",          Json$(data%(), "resolutions[3].width", &b01))
+    assert_string_equals("<missing>", Json$(data%(), "resolutions[3].width", &b10))
+    assert_string_equals("<missing>", Json$(data%(), "resolutions[3].width", &b11))
+  EndIf
 End Sub
