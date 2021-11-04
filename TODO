@@ -4,15 +4,26 @@ TODO
 Required for alpha 2
 --------------------
 
-Fix syntax highlighting for comments
 Fix bug with line numbers from errors reached by GOTO/GOSUB
+Stop printing exit code on exit, and make sure exit code properly documented
+Handle the situation where redirected input to MMBasic ends
+Review and document use of --interactive in the ChangeLog/README
+Review ChangeLog
 Review all change-sets
+Re-run tests on CMM2
+Update README
 Build on x86_64, x86 and Pi Zero
 
 
 Required for alpha 3
 --------------------
 
+Write a proper lexer and ensure all Peter's "preprocessor tricks" work in both
+  - programs, and
+  - the command-line
+Completely overhaul 'mmbasic.syntax.nanorc'
+  - can we fix syntax highlighting for "strings" inside comments ?
+Implement LOAD FONT and DEFINEFONT
 Implement SEARCH PATH
 Implement command-line RUN shortcut '*'
 Implement command-line SYSTEM shortcut, e.g. '!ls'
@@ -20,12 +31,14 @@ Make all function keys reprogrammable
 Implement OPTION persistence
 Implement CONSOLE TRANSLATE to automagically convert chars 128+ to Unicode
 Implement PRINT @
+Allow normal string (not just LONGSTRING) as second argument to SYSTEM
+  - also trim trailing whitespace
+Tidy up LED snake example
 
 
 Required for alpha 4
 --------------------
 
-Ensure all Peter's "preprocessor tricks" implemented in programs and at command-line
 Implement variable/sub/function hash tables
 
 
@@ -50,7 +63,9 @@ To infinity and beyond
 
 Implement FORK, WAIT and friends
 Build on macOS
-Rewrite pre-processor
+Extend preprocessor
 Implement SWAP
 Integrate 'pigpio' with Raspberry Pi build
 High resolution graphics
+Fix bug where TRACE will not log a line that you GOTO/GOSUB using a line number,
+  but will if you use a label.
