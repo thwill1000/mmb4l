@@ -1216,7 +1216,7 @@ char *getvalue(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int 
     }
 #endif
 
-    // special processing for the urinary - operator
+    // special processing for the unary - operator
     // just get the next value and negate it
     if(tokenfunction(*p) == op_subtract) {
         int ro;
@@ -1236,6 +1236,23 @@ char *getvalue(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int 
         *oo = ro;
         return p;                                                   // return straight away as we already have the next operator
     }
+
+#if defined(__linux__)
+    // unary + operator.
+    if (tokenfunction(*p) == op_add) {
+        int ro;
+        p++;
+        t = T_NOTYPE;
+        p = getvalue(p, &f, &i64, &s, &ro, &t);  // get the next value
+        skipspace(p);
+        *fa = f;  // save what we have
+        *ia = i64;
+        *sa = s;
+        *ta = t;
+        *oo = ro;
+        return p;  // return straight away as we already have the next operator
+    }
+#endif
 
     // if a function execute it and save the result
     if(tokentype(*p) & (T_FUN | T_FNA)) {
