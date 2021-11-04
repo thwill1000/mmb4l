@@ -71,6 +71,9 @@ Sub test_sinh()
   ' Test against Wikipedia definition of SINH
   Local x! = 3
   assert_float_equals((Exp(x!) - Exp(-x!)) / 2, Math(Sinh x!), 1e-10)
+
+  ' Having MATH's first operand in brackets was broken in MMBasic 5.07.01.
+  assert_float_equals((Exp(x!) - Exp(-x!)) / 2, Math(Sinh (x!)), 1e-10)
 End Sub
 
 Sub test_cosh()

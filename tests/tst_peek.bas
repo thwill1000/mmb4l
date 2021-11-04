@@ -49,6 +49,9 @@ Sub test_peek_byte()
   assert_hex_equals(&h03, Peek(Byte num_addr% + 5), 2)
   assert_hex_equals(&h02, Peek(Byte num_addr% + 6), 2)
   assert_hex_equals(&h01, Peek(Byte num_addr% + 7), 2)
+
+  ' Having PEEK's first operand in brackets was broken in MMBasic 5.07.01.
+  assert_hex_equals(&h01, Peek(Byte (num_addr% + 7)), 2)
 End Sub
 
 Sub test_peek_float()

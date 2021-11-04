@@ -2620,7 +2620,7 @@ void checkend(char *p) {
 char *checkstring(char *p, char *tkn) {
     skipspace(p);                                           // skip leading spaces
     while(*tkn && (toupper(*tkn) == toupper(*p))) { tkn++; p++; }   // compare the strings
-    if(*tkn == 0 && (*p == ' ' || *p == ',' || *p == '\'' || *p == 0)) {
+    if(*tkn == 0 && (*p == ' ' || *p == ',' || *p == '\'' || *p == '(' || *p == 0)) {
         skipspace(p);
         return p;                                                   // if successful return a pointer to the next non space character after the matched string
     }
