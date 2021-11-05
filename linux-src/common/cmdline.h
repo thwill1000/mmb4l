@@ -10,6 +10,6 @@ typedef struct {
 } CmdLineArgs;
 
 int cmdline_parse(int argc, const char *argv[], CmdLineArgs *result);
-void cmdline_print_usage(void (*println)(const char *));
+void cmdline_print_usage();
 
 #endif

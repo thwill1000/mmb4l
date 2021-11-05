@@ -14,7 +14,7 @@ TEST(CmdLineTest, Parse_GivenNoAdditionalArguments) {
     CmdLineArgs args = { 0 };
 
     EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
-    EXPECT_EQ(0, args.interactive);
+    EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -29,7 +29,7 @@ TEST(CmdLineTest, Parse_GivenHelpFlag) {
 
     EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(1, args.help);
-    EXPECT_EQ(0, args.interactive);
+    EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -39,7 +39,7 @@ TEST(CmdLineTest, Parse_GivenHelpFlag) {
 
     EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(1, args.help);
-    EXPECT_EQ(0, args.interactive);
+    EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -79,7 +79,7 @@ TEST(CmdLineTest, Parse_GivenVersionFlag) {
 
     EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
-    EXPECT_EQ(0, args.interactive);
+    EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(1, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -89,7 +89,7 @@ TEST(CmdLineTest, Parse_GivenVersionFlag) {
 
     EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
-    EXPECT_EQ(0, args.interactive);
+    EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(1, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -157,7 +157,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
 
     EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
-    EXPECT_EQ(0, args.interactive);
+    EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("some/directory", args.directory);
@@ -166,7 +166,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
     argv[2] = "foo/bar/wom bat";
 
     EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
-    EXPECT_EQ(0, args.interactive);
+    EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("foo/bar/wom bat", args.directory);
@@ -175,7 +175,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
     argv[1] = "-d=some/directory";
 
     EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
-    EXPECT_EQ(0, args.interactive);
+    EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("some/directory", args.directory);
@@ -183,7 +183,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
     argv[1] = "--directory=\"foo/bar/wom bat\"";
 
     EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
-    EXPECT_EQ(0, args.interactive);
+    EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("foo/bar/wom bat", args.directory);

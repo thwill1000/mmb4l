@@ -81,18 +81,20 @@ void init_options() {
 }
 
 void set_start_directory() {
-    char *p = getenv("MMDIR");
-    if (!p) return;
-
-    // Strip any quotes around the value.
-    if (*p == '\"') {
-        p++;
-        if (p[strlen(p) - 1] == '\"') p[strlen(p) - 1] = 0;
+    if (mmb_args.directory[0] == '\0') {
+        char *MMDIR = getenv("MMDIR");
+        if (MMDIR) {
+            snprintf(mmb_args.directory, 256, "%s", MMDIR);
+            mmb_args.directory[255] = '\0';
+        }
     }
+    char *p = mmb_args.directory;
+    unquote(p);
+    if (p[0] == '\0') return;
 
     errno = 0;
     if (chdir(p) != 0) {
-        MMPrintString("Error: MMDIR invalid, could not set starting directory '");
+        MMPrintString("Error: could not set starting directory '");
         MMPrintString(p);
         MMPrintString("'.\r\n");
         MMPrintString(strerror(errno));
@@ -152,13 +154,19 @@ void longjmp_handler(int jmp_state) {
 
 int main(int argc, char *argv[]) {
     if (cmdline_parse(argc, (const char **) argv, &mmb_args) != 0) {
-        fprintf(stderr, "Invalid command line arguments");
+        fprintf(stderr, "Invalid command line arguments\n");
+        cmdline_print_usage();
         exit(EX_FAIL);
+    }
+
+    if (mmb_args.help) {
+        cmdline_print_usage();
+        exit(EX_OK);
     }
 
     if (mmb_args.version) {
         print_banner();
-        return 0;
+        exit(EX_OK);
     }
 
     // Get things setup to act like the Micromite version

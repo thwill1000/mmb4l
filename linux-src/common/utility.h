@@ -58,4 +58,7 @@ char *append_path(const char *head, const char *tail, char *result, size_t sz);
  */
 char *munge_path(const char *original_path, char *new_path, size_t sz);
 
+/** If 'str' has leading and trailing double quotes then strips them off. */
+void unquote(char *str);
+
 #endif

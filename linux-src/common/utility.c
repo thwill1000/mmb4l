@@ -120,3 +120,13 @@ char *append_path(const char *head, const char *tail, char *result, size_t sz) {
     sprintf(result, "%s/%s", head, tail);
     return result;
 }
+
+void unquote(char *str) {
+    if (str[0] == '\"' && str[strlen(str) - 1] == '\"') {
+        int len = strlen(str);
+        for (int i = 0; i < len - 2; ++i) {
+            str[i] = str[i + 1];
+        }
+        str[len - 2] = '\0';
+    }
+}
