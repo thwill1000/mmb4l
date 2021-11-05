@@ -18,6 +18,8 @@ Const BASE% = Mm.Info(Option Base)
 
 add_test("test_unary_minus")
 add_test("test_unary_plus")
+add_test("test_error_correct_after_goto")
+add_test("test_error_correct_after_gosub")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -99,3 +101,35 @@ Sub test_unary_plus()
   assert_float_equals(-6.4, (-3.2 + -3.2))
   assert_float_equals(-6.4, +(y! + y!))
 End Sub
+
+Sub test_error_correct_after_goto()
+  Goto 30
+test_goto_label_1:
+  assert_raw_error("Error in line 117: foo1")
+  Goto 40
+test_goto_label_2:
+  assert_raw_error("Error in line 119: foo2")
+  On Error Skip
+  Error "foo3"
+  assert_raw_error("Error in line 113: foo3")
+End Sub
+
+30 On Error Skip : Error "foo1" : Goto test_goto_label_1
+40 On Error Skip
+Error "foo2"
+Goto test_goto_label_2
+
+Sub test_error_correct_after_gosub()
+  GoSub 60
+  assert_raw_error("Error in line 132: bar1")
+  GoSub 70
+  assert_raw_error("Error in line 134: bar2")
+  On Error Skip
+  Error "bar3"
+  assert_raw_error("Error in line 128: bar3")
+End Sub
+
+60 On Error Skip : Error "bar1" : Return
+70 On Error Skip
+Error "bar2"
+Return

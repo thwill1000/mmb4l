@@ -286,13 +286,14 @@ void cmd_clear(void) {
     ClearVars(0);
 }
 
-
 void cmd_goto(void) {
     if(isnamestart(*cmdline))
         nextstmt = findlabel(cmdline);                              // must be a label
     else
         nextstmt = findline(getinteger(cmdline), true);             // try for a line number
     IgnorePIN = false;
+
+    CurrentLinePtr = nextstmt;
 }
 
 
@@ -1148,6 +1149,8 @@ void cmd_gosub(void) {
     else
         nextstmt = findline(getinteger(cmdline), true);             // try for a line number
     IgnorePIN = false;
+
+    CurrentLinePtr = nextstmt;
 }
 
 
