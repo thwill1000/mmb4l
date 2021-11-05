@@ -143,7 +143,6 @@ void longjmp_handler(int jmp_state) {
     }
 
     if (do_exit) {
-        printf("[%d]\n", mmb_exit_code);
         exit(mmb_exit_code);
     }
 

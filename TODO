@@ -4,8 +4,6 @@ TODO
 Required for alpha 2
 --------------------
 
-Fix bug with line numbers from errors reached by GOTO/GOSUB
-Stop printing exit code on exit, and make sure exit code properly documented
 Handle the situation where redirected input to MMBasic ends
 Review and document use of --interactive in the ChangeLog/README
 Review ChangeLog

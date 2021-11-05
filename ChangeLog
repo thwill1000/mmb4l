@@ -3,13 +3,12 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a2 - ??-???-2021:
-  - Added ability to specify on the Linux command-line a BASIC program that
-    MMB4L should RUN when it starts, e.g.
-        ./mmbasic myprogram.bas --foo --bar \"wom bat\"
-    will cause MMB4L to start and immediately execute the command:
-        RUN "myprogram.bas", --foo --bar "wom bat"
-    If the program ends without reporting an MMBasic ERROR or is interrupted
-    with Ctrl-C then MMB4L will immediately exit.
+  - Added ability to specify at the Linux shell a BASIC program that MMB4L
+    should RUN when it starts, e.g.
+        ./mmbasic myprogram.bas arg1 arg2 arg3
+    see README for details.
+  - Added optional integer argument (default 0) to END and QUIT that can be
+    used to return an exit code to the Linux shell, see README for details.
   - Added JSON$() function from the CMM2:
     - MMB4L adds an optional 3rd parameter which is a 2 bit argument controlling
       how explicit nulls and missing values are handled in the JSON:
@@ -73,6 +72,5 @@ Version 2021.01.00-a2 - ??-???-2021:
     keys would show display artifacts when using PuTTY; though not sure why
     the issue was not generally visible.
  
->>>>>>> 02e7697... Reformat ChangeLog
 Version 2021.01.00-a1 - 23-Sep-2021:
   - First alpha version.
