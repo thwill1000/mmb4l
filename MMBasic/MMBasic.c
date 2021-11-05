@@ -213,10 +213,41 @@ void ExecuteProgram(char *p) {
             if(++TraceBuffIndex >= TRACE_BUFF_SIZE) TraceBuffIndex = 0;
 #endif
             if(TraceOn && p < (char *) (ProgMemory + Option.ProgFlashSize)) {
+#if defined(__linux__)
+                // Copied from the CMM2,
+                // looks like it has duplication with cmd_trace.c#TraceLines()
+                char buf[STRINGSIZE], buff[10];
+                MMPrintString("[");
+                memcpy(buf, p, STRINGSIZE);
+                char *ename, *cpos = NULL;
+                i = 0;
+                while (!(buf[i] == 0 && buf[i + 1] == 0)) i++;
+                while (i > 0) {
+                    if (buf[i] == '|') cpos = &buf[i];
+                    i--;
+                }
+                if (cpos != NULL) {
+                    if ((ename = strchr(cpos, ',')) != NULL) {
+                        *ename = 0;
+                        cpos++;
+                        ename++;
+                        if (*cpos == '\'') cpos++;
+                        MMPrintString(cpos);
+                        MMPrintString(":");
+                        MMPrintString(ename);
+                    } else {
+                        cpos++;
+                        IntToStr(buff, atoi(cpos), 10);
+                        MMPrintString(buff);
+                    }
+                }
+                MMPrintString("]");
+#else
                 inpbuf[0] = '[';
                 IntToStr(inpbuf + 1, CountLines(p), 10);
                 strcat(inpbuf, "]");
                 MMPrintString(inpbuf);
+#endif
                 uSec(1000);
             }
             p++;                                                    // and step over the token
