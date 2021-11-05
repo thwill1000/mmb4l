@@ -73,8 +73,6 @@ void console_pump_input(void) {
     ssize_t result = read(STDIN_FILENO, &ch, 1);
     switch (result) {
         case 0:
-            // Nothing to read.
-            if (!isatty(STDIN_FILENO)) exit(0);
             return;
         case 1:
             // Read one character, drop out of the switch.

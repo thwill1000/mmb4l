@@ -4,7 +4,6 @@ TODO
 Required for alpha 2
 --------------------
 
-Handle the situation where redirected input to MMBasic ends
 Review and document use of --interactive in the ChangeLog/README
 Review ChangeLog
 Review all change-sets
