@@ -17,14 +17,9 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
-Const EXPECTED_HOME$ = "/home/thwill"
 If Mm.Device$ = "MMB4L" Then
-  Const EXPECTED_DIR$ = "/home/thwill/github/mmb4l-src/tests"
-  Const EXPECTED_PATH$ = "/home/thwill/github/mmb4l-src/tests"
   Const EXPECTED_VERSION! = 2021.01
 Else
-  Const EXPECTED_DIR$ = "A:/MMB4L-SRC/TESTS"
-  Const EXPECTED_PATH$ = "A:/MMB4L-SRC/TESTS"
   Const EXPECTED_VERSION! = 5.0702
 EndIf
 
@@ -76,7 +71,15 @@ Sub test_architecture()
 End Sub
 
 Sub test_current()
-  assert_string_equals(EXPECTED_PATH$ + "/tst_mminfo.bas", Mm.Info(Current))
+  If Mm.Device$ = "MMB4L" Then
+    Local out%(32);
+    System "echo $HOME", out%()
+    Local expected_path$ = LGetStr$(out%(), 1, LLen(out%()) - 1) + "/github/mmb4l-src/tests/"
+  Else
+    Local expected_path$ = "A:/MMB4L-SRC/TESTS/"
+  EndIf
+
+  assert_string_equals(expected_path$ + "tst_mminfo.bas", Mm.Info(Current))
 End Sub
 
 Sub test_device()
@@ -89,15 +92,28 @@ Sub test_device()
 End Sub
 
 Sub test_directory()
+  If Mm.Device$ = "MMB4L" Then
+    Local out%(32);
+    System "pwd", out%()
+    Local expected_dir$ = LGetStr$(out%(), 1, LLen(out%()) - 1)
+  Else
+    Local expected_dir$ = "A:/MMB4L-SRC/TESTS"
+  EndIf
+
   Local actual$ = Mm.Info$(Directory)
-  assert_string_equals(EXPECTED_DIR$ + "/", actual$)
+
+  assert_string_equals(expected_dir$ + "/", actual$)
   assert_string_equals(Left$(actual$, Len(actual$) - 1), Cwd$)
 End Sub
 
 Sub test_envvar()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
-  assert_string_equals(EXPECTED_HOME$, Mm.Info$(ENVVAR "HOME"))
+  Local out%(32);
+  System "echo $HOME", out%()
+  Local expected_home$ = LGetStr$(out%(), 1, LLen(out%()) - 1)
+
+  assert_string_equals(expected_home$, Mm.Info$(ENVVAR "HOME"))
 End Sub
 
 Sub test_errmsg()
@@ -362,7 +378,15 @@ Sub test_option_tab()
 End Sub
 
 Sub test_path()
-  assert_string_equals(EXPECTED_PATH$ + "/", MM.Info$(Path))
+  If Mm.Device$ = "MMB4L" Then
+    Local out%(32);
+    System "echo $HOME", out%()
+    Local expected_path$ = LGetStr$(out%(), 1, LLen(out%()) - 1) + "/github/mmb4l-src/tests/"
+  Else
+    Local expected_path$ = "A:/MMB4L-SRC/TESTS/"
+  EndIf
+
+  assert_string_equals(expected_path$, MM.Info$(Path))
 End Sub
 
 Sub test_vpos()

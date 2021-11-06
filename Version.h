@@ -84,7 +84,7 @@ provisions:
             #define MM_ARCH  "Linux aarch64"
             #define ENV64BIT
         #elif defined(__arm__)
-            #define MM_ARCH  "Linux armv7l"
+            #define MM_ARCH  "Linux armv6l"
             #define ENV32BIT
         #elif defined(__i686__)
             #define MM_ARCH  "Linux i686"
