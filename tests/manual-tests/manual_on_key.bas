@@ -36,7 +36,7 @@ End Sub
 Sub test_on_key()
   Print
   Do While Inkey$ <> "" : Loop
-  
+
   On Key on_key_handler()
 
   Local keys$(9) = ("q", "w", "e", "r", "t", "y", "ESC", "F3", "PAGE UP", "RIGHT")

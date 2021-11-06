@@ -60,19 +60,19 @@ Sub matrix.wipe()
   Local i% = 0, set%, x%, y%
   Do While (i% < matrix_w% \ 2) And (i% < matrix_h% \ 2)
     For set% = 1 To 0 Step -1
-	    For x% = i% To matrix_w% - 1 - i%
-	      matrix_set(x%, i%, set%)
-	    Next
-	    For y% = 1 + i% To matrix_h% - 2 - i%
-	      matrix_set(i%, y%, set%)
-	      matrix_set(matrix_w% - 1 - i%, y%, set%)
-	    Next
-	    For x% = i% To matrix_w% - 1 - i%
-	      matrix_set(x%, matrix_h% - 1 - i%, set%)
-	    Next
-	    matrix.redraw% = 1
-	    If set% Then Pause 100
-	  Next set%
+      For x% = i% To matrix_w% - 1 - i%
+        matrix_set(x%, i%, set%)
+      Next
+      For y% = 1 + i% To matrix_h% - 2 - i%
+        matrix_set(i%, y%, set%)
+        matrix_set(matrix_w% - 1 - i%, y%, set%)
+      Next
+      For x% = i% To matrix_w% - 1 - i%
+        matrix_set(x%, matrix_h% - 1 - i%, set%)
+      Next
+      matrix.redraw% = 1
+      If set% Then Pause 100
+    Next set%
     Inc i%
   Loop
 End Sub

@@ -113,7 +113,7 @@ MMB4L comes with resource files to configure nano to behave similarly to the Col
     Ctrl+O or F7        Insert a file into current one
     Ctrl+Q or F1        Exit the editor
     Ctrl+S or F2        Save the current file
-    
+
     Ctrl+P              Goto the previous word
     Ctrl+N              Goto the next word
     Ctrl+B              Goto the first line

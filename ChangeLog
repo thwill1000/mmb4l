@@ -81,6 +81,6 @@ Version 2021.01.00-a2 - 6-Nov-2021:
     keys would show display artifacts when using PuTTY; though not sure why
     the issue was not generally visible.
   - Many other fixes and tweaks for minor issues encountered along the way.
- 
+
 Version 2021.01.00-a1 - 23-Sep-2021:
   - First alpha version.

@@ -176,18 +176,18 @@ static void verror(int32_t error, char *msg, va_list argp) {
 
 void error(char *msg, ...) {
     va_list argp;
-	va_start(argp, msg);
-	verror(MMerrno == 0 ? ERRNO_DEFAULT : MMerrno, msg, argp);
+    va_start(argp, msg);
+    verror(MMerrno == 0 ? ERRNO_DEFAULT : MMerrno, msg, argp);
     assert(0); // Don't expect to get here because of long_jmp().
-	va_end(argp);
+    va_end(argp);
 }
 
 void error_code(int32_t error, char *msg, ...) {
     va_list argp;
-	va_start(argp, msg);
-	verror(error, msg, argp);
+    va_start(argp, msg);
+    verror(error, msg, argp);
     assert(0); // Don't expect to get here because of long_jmp().
-	va_end(argp);
+    va_end(argp);
 }
 
 void error_system(int32_t error) {

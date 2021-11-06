@@ -51,7 +51,7 @@ void cmd_pause(void) {
         // Do nothing.
     } else if (duration_ns < 1500000) {
         // If less than 1.5ms do the pause right now and exit.
-		mmtime_sleep_ns(duration_ns);
+        mmtime_sleep_ns(duration_ns);
     } else if (interrupt_running()) {
         cmd_pause_in_interrupt(duration_ns);
     } else {
