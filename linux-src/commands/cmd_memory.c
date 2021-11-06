@@ -8,7 +8,11 @@ static int64_t getint64(char *p, int64_t min, int64_t max) {
     int64_t i = getinteger(p);
     if (i < min || i > max) {
         char buf[STRINGSIZE];
+#if defined(ENV64BIT)
         sprintf(buf, "%ld is invalid (valid is %ld to %ld)", i, min, max);
+#else
+        sprintf(buf, "%lld is invalid (valid is %lld to %lld)", i, min, max);
+#endif
         error(buf);
     }
     return i;

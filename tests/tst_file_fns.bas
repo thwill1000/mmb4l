@@ -259,12 +259,17 @@ Sub test_tilde_expansion()
   assert_true(Mm.Info(Exists my_test_file$ + ".copy2"))
 
   ' Test DIR.
+  Local actual_files$(array.new%(5))
   Local f$ = Dir$(my_test_dir$ + "/*", ALL)
-  assert_string_equals("my_test_file.txt", f$)
-  f$ = Dir$()
-  assert_string_equals("my_test_file.txt.copy2", f$)
-  f$ = Dir$()
-  assert_string_equals("", f$)
+  Local index%
+  Do While f$ <> ""
+    actual_files$(BASE% + index%) = f$
+    f$ = Dir$()
+    Inc index%
+  Loop
+  Sort actual_files$(),,,,index%
+  Local expected_files$(array.new%(5)) = ("my_test_file.txt", "my_test_file.txt.copy2", "", "", "")
+  assert_string_array_equals(expected_files$(), actual_files$())
 
   ' Test KILL.
   Kill my_test_file$

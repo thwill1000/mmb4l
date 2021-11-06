@@ -17,7 +17,6 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
-Const EXPECTED_ARCH$ = "Linux x86_64"
 Const EXPECTED_HOME$ = "/home/thwill"
 If Mm.Device$ = "MMB4L" Then
   Const EXPECTED_DIR$ = "/home/thwill/github/mmb4l-src/tests"
@@ -68,7 +67,11 @@ End Sub
 Sub test_architecture()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
-  assert_string_equals(EXPECTED_ARCH$, Mm.Info$(Arch))
+  Local out%(32);
+  System "uname -s -m", out%()
+  Local expected_arch$ = LGetStr$(out%(), 1, LLen(out%()) - 1)
+
+  assert_string_equals(expected_arch$, Mm.Info$(Arch))
   assert_string_equals(Mm.Info$(Arch), Mm.Info$(Architecture))
 End Sub
 
