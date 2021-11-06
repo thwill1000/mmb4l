@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export version="2021.01.00-a1"
+export version="2021.01.00-a2"
 export arch=`uname -m`
 export distrib=mmb4l-${version}-${arch}
 
@@ -17,8 +17,9 @@ cp ../ChangeLog ${distrib}
 cp ../README.md ${distrib}
 tar -cvzf ${distrib}.tgz ${distrib}
 
-export mmb4l_dir=../../MMB4L
-cp ${distrib}.tgz ${mmb4l_dir}/binaries
+export mmb4l_dir=../../mmb4l
+mkdir -p ${mmb4l_dir}/distributions/mmb4l-${version}
+cp ${distrib}.tgz ${mmb4l_dir}/distributions/mmb4l-${version}
 cp ../ChangeLog ${mmb4l_dir}
 cp ../README.md ${mmb4l_dir}
 cp ../examples/mandelbrot.bas ${mmb4l_dir}/examples
