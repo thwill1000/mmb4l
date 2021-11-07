@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export version="2021.01.00-a2"
+export version="2021.01.00-a3"
 export arch=`uname -m`
 export distrib=mmb4l-${version}-${arch}
 

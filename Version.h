@@ -92,7 +92,7 @@ provisions:
         #else
             #error This architecture is not supported
         #endif
-        #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a2\r\n"
+        #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a3\r\n"
     #else
         #error This device is not supported
     #endif
