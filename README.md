@@ -9,7 +9,7 @@ Specifically MMB4L is derived with permission from:
      * Copyright 2011-2021 Geoff Graham
      * Copyright 2016-2021 Peter Mather
 
-It also incorporates a small amount of code from the mothballed Pic**RO**mite (not to be confused with Pi**C**omite) project by Peter Mather.
+It also incorporates a small amount of code from the mothballed Pi-cromite (not to be confused with PicoMite) project by Peter Mather.
 
 What little MMB4L specific code there is, is Copyright 2021 Thomas Hugo Williams.
 
@@ -19,13 +19,13 @@ MMB4L is distributed FREE for use in BINARY form.
 
 MMB4L is in the early alpha phase so there are no fancy installers yet:
 
- 1. Download the latest .tar.gz for your platform from the [distributions](distributions) directory:
+ 1. Download the latest .tgz for your platform from the [distributions](distributions) directory:
     * For 64-bit Linux running on Intel/AMD use the 'x86_64' distribution.
     * For 32-bit Linux running on Intel/AMD use the 'i686' distribution.
     * For 32-bit Raspbian/Linux running on Raspberry Pi use the 'armv6l' distribution.
 
  2. Extract the archive into a temporary location:
-    * ```mkdir -p ~/tmp && tar -xf mmb4l-<version>.tar.gz --directory ~/tmp```
+    * ```mkdir -p ~/tmp && tar -xf mmb4l-<version>.tgz --directory ~/tmp```
 
  3. Copy the "mmbasic" executable to "/usr/local/bin":
     * ```sudo cp ~/tmp/mmb4l-<version>/mmbasic /usr/local/bin```
@@ -301,18 +301,18 @@ In MMB4L this function can return values for these additional properties:
      * Gets the value of the named environment variable, or the empty string if there is no such environment variable.
 
 * `MM.INFO(EXISTS path$)`
-      * Does the file / directory / device referred to by path$ exist ?
+     * Does the file / directory / device referred to by path$ exist ?
 
  * `MM.INFO(EXISTS SYMLINK path$)`
-      * Does path$ refer to a symbolic link ?
+     * Does path$ refer to a symbolic link ?
 
  * `MM.INFO(EXITCODE)`
-      * Gets the exit code "returned" by the last program run:
-          * If an `END` command is executed then this will be the optional exit code (default 0) specified to that command.
-          * If a program runs to its "natural end" without an explicit `END` command this will be 0.
-          * If a program is interrupted by the break key combination (default CTRL-C) this will be 130.
-          * If an unhandled `ERROR` occurs this will be 1 (this may change).
-          * If a ```NEW``` command is executed this will be 0.
+     * Gets the exit code "returned" by the last program run:
+         * If an `END` command is executed then this will be the optional exit code (default 0) specified to that command.
+         * If a program runs to its "natural end" without an explicit `END` command this will be 0.
+         * If a program is interrupted by the break key combination (default CTRL-C) this will be 130.
+         * If an unhandled `ERROR` occurs this will be 1 (this may change).
+         * If a ```NEW``` command is executed this will be 0.
 
 ### QUIT
 
