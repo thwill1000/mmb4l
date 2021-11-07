@@ -246,18 +246,17 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     filename = getCstring(tp);
 
     char file_path[STRINGSIZE];
+    errno = 0;
     if (!program_get_inc_file(parent_file, filename, file_path)) {
-        MMerrno = errno;
-        errno = 0; // Is this necessary ?
-        switch (MMerrno) {
+        switch (errno) {
             case ENOENT:
-                error("Include file not found");
+                error_code(errno, "Include file '$' not found", filename);
                 break;
             case ENAMETOOLONG:
-                error("Path too long");
+                error_code(errno, "Path too long");
                 break;
             default:
-                error(strerror(MMerrno));
+                error_system(errno);
                 break;
         }
     }
@@ -588,18 +587,17 @@ void program_list_csubs(int all) {
 static int program_load_file_internal(char *filename) {
 
     char file_path[STRINGSIZE];
+    errno = 0;
     if (!program_get_bas_file(filename, file_path)) {
-        MMerrno = errno;
-        errno = 0; // Is this necessary ?
-        switch (MMerrno) {
+        switch (errno) {
             case ENOENT:
-                error("Program file not found");
+                error_code(errno, "Program file not found");
                 break;
             case ENAMETOOLONG:
-                error("Path too long");
+                error_code(errno, "Path too long");
                 break;
             default:
-                error(strerror(MMerrno));
+                error_system(errno);
                 break;
         }
     }
@@ -627,7 +625,7 @@ static int program_load_file_internal(char *filename) {
         int toggle = 0, len = 0, slen;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
-            error("Not enough memory");
+            ERROR_OUT_OF_MEMORY;
         //        mymemset(buff,0,256);
         memset(line_buffer, 0, STRINGSIZE);
         MMgetline(file_num, line_buffer);  // get the input line
@@ -735,8 +733,12 @@ static int program_load_file_internal(char *filename) {
             }
         }
     }
-    *p = 0;  // terminate the string in RAM
     MMfclose(file_num);
+
+    // Ensure every program has an END (and a terminating '\0').
+    if (p - edit_buffer > EDIT_BUFFER_SIZE - 5) ERROR_OUT_OF_MEMORY;
+    memcpy(p, "END\n", 5);
+    p += 5;
 
     program_tokenise(file_path, edit_buffer);
 

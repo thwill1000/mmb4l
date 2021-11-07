@@ -267,7 +267,7 @@ void MIPS16 cmd_continue(void) {
     nextstmt = ContinuePoint;
 }
 
-
+#if !defined(__linux__)
 void MIPS16 cmd_new(void) {
 //    if(CurrentLinePtr) error("Invalid in a program");
     checkend(cmdline);
@@ -279,13 +279,12 @@ void MIPS16 cmd_new(void) {
     SaveOptions();
     longjmp(mark, 1);                                               // jump back to the input prompt
 }
-
+#endif
 
 void cmd_clear(void) {
     checkend(cmdline);
     ClearVars(0);
 }
-
 
 void cmd_goto(void) {
     if(isnamestart(*cmdline))
@@ -293,6 +292,8 @@ void cmd_goto(void) {
     else
         nextstmt = findline(getinteger(cmdline), true);             // try for a line number
     IgnorePIN = false;
+
+    CurrentLinePtr = nextstmt;
 }
 
 
@@ -471,11 +472,12 @@ void cmd_else(void) {
 }
 
 
-
+#if !defined(__linux__)
 void cmd_end(void) {
     checkend(cmdline);
     longjmp(mark, 1);                                               // jump back to the input prompt
 }
+#endif
 
 #if !defined(LITE)
 
@@ -1086,19 +1088,18 @@ void cmd_exit(void) {
 }
 
 
-
+#if !defined(__linux__)
 void cmd_error(void) {
     char *s;
     if(*cmdline && *cmdline != '\'') {
         s = getCstring(cmdline);
-#if !defined(__linux__)
         CurrentLinePtr = NULL; // suppress printing the line that caused the issue
-#endif
         error(s);
     }
     else
         error("");
 }
+#endif
 
 
 
@@ -1148,6 +1149,8 @@ void cmd_gosub(void) {
     else
         nextstmt = findline(getinteger(cmdline), true);             // try for a line number
     IgnorePIN = false;
+
+    CurrentLinePtr = nextstmt;
 }
 
 

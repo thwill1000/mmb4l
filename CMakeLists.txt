@@ -34,6 +34,8 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_cursor.c
     linux-src/commands/cmd_dummy.c
     linux-src/commands/cmd_edit.c
+    linux-src/commands/cmd_end.c
+    linux-src/commands/cmd_error.c
     linux-src/commands/cmd_execute.c
     linux-src/commands/cmd_files.c
     linux-src/commands/cmd_inc.c
@@ -44,7 +46,9 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_longstring.c
     linux-src/commands/cmd_math.c
     linux-src/commands/cmd_memory.c
+    linux-src/commands/cmd_mid.c
     linux-src/commands/cmd_mkdir.c
+    linux-src/commands/cmd_new.c
     linux-src/commands/cmd_on.c
     linux-src/commands/cmd_open.c
     linux-src/commands/cmd_option.c
@@ -55,6 +59,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_rmdir.c
     linux-src/commands/cmd_run.c
     linux-src/commands/cmd_seek.c
+    linux-src/commands/cmd_settick.c
     linux-src/commands/cmd_settitle.c
     linux-src/commands/cmd_sort.c
     linux-src/commands/cmd_system.c
@@ -67,12 +72,16 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/fun_choice.c
     linux-src/functions/fun_cwd.c
     linux-src/functions/fun_date.c
+    linux-src/functions/fun_datetime.c
+    linux-src/functions/fun_day.c
     linux-src/functions/fun_dir.c
     linux-src/functions/fun_eof.c
+    linux-src/functions/fun_epoch.c
     linux-src/functions/fun_format.c
     linux-src/functions/fun_field.c
     linux-src/functions/fun_hres.c
     linux-src/functions/fun_inputstr.c
+    linux-src/functions/fun_json.c
     linux-src/functions/fun_lcompare.c
     linux-src/functions/fun_lgetbyte.c
     linux-src/functions/fun_lgetstr.c
@@ -94,12 +103,15 @@ set(MMBASIC_LINUX_OPERATORS_SOURCE_FILES
     linux-src/operators/op_inv.c)
 
 set(MMBASIC_LINUX_COMMON_SOURCE_FILES
+    linux-src/common/cmdline.c
     linux-src/common/console.c
+    linux-src/common/cJSON.c
     linux-src/common/error.c
     linux-src/common/file.c
     linux-src/common/interrupt.c
     linux-src/common/maths.c
     linux-src/common/memory.c
+    linux-src/common/mmtime.c
     linux-src/common/option.c
     linux-src/common/parse.c
     linux-src/common/program.c
@@ -117,7 +129,7 @@ set(MMBASIC_LINUX_SOURCE_FILES
 # add the executable
 add_executable(mmbasic ${MMBASIC_CORE_SOURCE_FILES} ${MMBASIC_LINUX_SOURCE_FILES})
 
-add_executable(keyboard_test linux-src/keyboard_test.c linux-src/common/rx_buf.c linux-src/common/console.c linux-src/common/utility.c)
+add_executable(keyboard_test linux-src/keyboard_test.c linux-src/common/rx_buf.c linux-src/common/console.c linux-src/common/mmtime.c linux-src/common/utility.c)
 
 target_link_libraries(mmbasic m)
 
@@ -127,11 +139,13 @@ enable_testing()
 
 add_executable(
   mmbasic_test
+  linux-src/common/cmdline.c
   linux-src/common/file.c
   linux-src/common/rx_buf.c
   linux-src/common/utility.c
-  linux-src/common/gtest/rx_buf_test.cxx
+  linux-src/common/gtest/cmdline_test.cxx
   linux-src/common/gtest/file_test.cxx
+  linux-src/common/gtest/rx_buf_test.cxx
 )
 
 target_link_libraries(

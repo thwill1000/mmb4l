@@ -1,7 +1,8 @@
+#include "../common/exit_codes.h"
 #include "../common/version.h"
 
 void cmd_quit(void) {
-    checkend(cmdline);
-    ExitMMBasicFlag = true;  // signal that we want out of here
-    longjmp(mark, 1);        // jump back to the input prompt
+    getargs(&cmdline, 1, ",");
+    mmb_exit_code = (argc == 1) ? getint(argv[0], 0, 255) : EX_OK;
+    longjmp(mark, JMP_QUIT);
 }

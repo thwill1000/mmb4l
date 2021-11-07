@@ -213,10 +213,41 @@ void ExecuteProgram(char *p) {
             if(++TraceBuffIndex >= TRACE_BUFF_SIZE) TraceBuffIndex = 0;
 #endif
             if(TraceOn && p < (char *) (ProgMemory + Option.ProgFlashSize)) {
+#if defined(__linux__)
+                // Copied from the CMM2,
+                // looks like it has duplication with cmd_trace.c#TraceLines()
+                char buf[STRINGSIZE], buff[10];
+                MMPrintString("[");
+                memcpy(buf, p, STRINGSIZE);
+                char *ename, *cpos = NULL;
+                i = 0;
+                while (!(buf[i] == 0 && buf[i + 1] == 0)) i++;
+                while (i > 0) {
+                    if (buf[i] == '|') cpos = &buf[i];
+                    i--;
+                }
+                if (cpos != NULL) {
+                    if ((ename = strchr(cpos, ',')) != NULL) {
+                        *ename = 0;
+                        cpos++;
+                        ename++;
+                        if (*cpos == '\'') cpos++;
+                        MMPrintString(cpos);
+                        MMPrintString(":");
+                        MMPrintString(ename);
+                    } else {
+                        cpos++;
+                        IntToStr(buff, atoi(cpos), 10);
+                        MMPrintString(buff);
+                    }
+                }
+                MMPrintString("]");
+#else
                 inpbuf[0] = '[';
                 IntToStr(inpbuf + 1, CountLines(p), 10);
                 strcat(inpbuf, "]");
                 MMPrintString(inpbuf);
+#endif
                 uSec(1000);
             }
             p++;                                                    // and step over the token
@@ -334,6 +365,27 @@ int MIPS16 PrepareProgramExt(char *p, int i, unsigned char **CFunPtr, int ErrAbo
                 i--;
                 continue;
             }
+
+#if defined(__linux__)
+            // I suspect all platforms should have this or something equivalent.
+            // Note that the name does not (appear to) include any trailing %, !
+            // or $ character.
+            {
+                int len = 0;
+                while (isnamechar(*p)) {
+                    // Do not call isnamechar(*p++)
+                    // because the macro will increment the pointer 3 times.
+                    len++;
+                    p++;
+                }
+                if (len > MAXVARLEN) {
+                    if (ErrAbort) error("Function name too long");
+                    i--;
+                    continue;
+                }
+            }
+#endif
+
         }
         while(*p) p++;                                              // look for the zero marking the start of the next element
     }
@@ -1195,7 +1247,7 @@ char *getvalue(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int 
     }
 #endif
 
-    // special processing for the urinary - operator
+    // special processing for the unary - operator
     // just get the next value and negate it
     if(tokenfunction(*p) == op_subtract) {
         int ro;
@@ -1215,6 +1267,23 @@ char *getvalue(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int 
         *oo = ro;
         return p;                                                   // return straight away as we already have the next operator
     }
+
+#if defined(__linux__)
+    // unary + operator.
+    if (tokenfunction(*p) == op_add) {
+        int ro;
+        p++;
+        t = T_NOTYPE;
+        p = getvalue(p, &f, &i64, &s, &ro, &t);  // get the next value
+        skipspace(p);
+        *fa = f;  // save what we have
+        *ia = i64;
+        *sa = s;
+        *ta = t;
+        *oo = ro;
+        return p;  // return straight away as we already have the next operator
+    }
+#endif
 
     // if a function execute it and save the result
     if(tokentype(*p) & (T_FUN | T_FNA)) {
@@ -2308,7 +2377,11 @@ void MIPS16 ClearStack(void) {
     gosubindex = 0;
     LocalIndex = 0;
     TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
+#if defined(__linux__)
+    interrupt_clear();
+#else
     InterruptReturn = NULL;
+#endif
 }
 
 
@@ -2578,7 +2651,7 @@ void checkend(char *p) {
 char *checkstring(char *p, char *tkn) {
     skipspace(p);                                           // skip leading spaces
     while(*tkn && (toupper(*tkn) == toupper(*p))) { tkn++; p++; }   // compare the strings
-    if(*tkn == 0 && (*p == ' ' || *p == ',' || *p == '\'' || *p == 0)) {
+    if(*tkn == 0 && (*p == ' ' || *p == ',' || *p == '\'' || *p == '(' || *p == 0)) {
         skipspace(p);
         return p;                                                   // if successful return a pointer to the next non space character after the matched string
     }

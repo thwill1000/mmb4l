@@ -27,31 +27,31 @@ void MMfopen(char *fname, char *mode, int file_num) {
     if (MMFilePtr[file_num] != NULL || MMComPtr[file_num] != NULL) {
         error("File number is already open");
     }
-    errno = 0;
 
-    char canonical[STRINGSIZE];
-    munge_path(fname, canonical, STRINGSIZE);
+    char path[STRINGSIZE];
+    munge_path(fname, path, STRINGSIZE);
+    error_check();
 
     // random writing is not allowed when a file is opened for append so open it
     // first for read+update and if that does not work open it for
     // writing+update.  This has the same effect as opening for append+update
     // but will allow writing
     if (*mode == 'x') {
-        MMFilePtr[file_num] = fopen(canonical, "rb+");
+        MMFilePtr[file_num] = fopen(path, "rb+");
         if (MMFilePtr[file_num] == 0) {
-            MMFilePtr[file_num] = fopen(canonical, "wb+");
-            if (error_check()) return;
+            MMFilePtr[file_num] = fopen(path, "wb+");
+            error_check();
         }
         fseek(MMFilePtr[file_num], 0, SEEK_END);
-        if (error_check()) return;
+        error_check();
     } else {
-        MMFilePtr[file_num] = fopen(canonical, mode);
-        if (error_check()) return;
+        MMFilePtr[file_num] = fopen(path, mode);
+        error_check();
     }
 
     if (MMFilePtr[file_num] == NULL) {
         errno = EBADF;
-        if (error_check()) return;
+        error_check();
     }
 }
 
@@ -119,12 +119,10 @@ int MMfeof(int file_num) {
     // if (MMComPtr[file_num] != NULL) return SerialEOF(MMComPtr[file_num]);
     if (MMFilePtr[file_num] == NULL) error("File number is not open");
     errno = 0;
-    c = fgetc(
-        MMFilePtr[file_num]);  // the Watcom compiler will only set eof after
-                               // it has tried to read beyond the end of file
-    if (error_check()) return 0;
+    c = fgetc(MMFilePtr[file_num]);  // the Watcom compiler will only set eof after
+                                     // it has tried to read beyond the end of file
     i = (feof(MMFilePtr[file_num]) != 0) ? -1 : 0;
-    if (error_check()) return 0;
+    error_check();
     ungetc(c, MMFilePtr[file_num]);  // undo the Watcom bug fix
     error_check();
     return i;

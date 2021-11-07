@@ -24,44 +24,54 @@ PARTICULAR PURPOSE.
 
 ************************************************************************************************************************/
 
+#include <assert.h>
 #include <signal.h>
 #include <stdio.h>
-#include <time.h>
 #include <unistd.h>
 
+#include "common/cmdline.h"
 #include "common/console.h"
+#include "common/error.h"
+#include "common/exit_codes.h"
 #include "common/file.h"
 #include "common/global_aliases.h"
 #include "common/interrupt.h"
+#include "common/mmtime.h"
 #include "common/utility.h"
 #include "common/version.h"
-
-extern int g_key_select;
-
-extern char error_buffer[STRINGSIZE];
-extern size_t error_buffer_pos;
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
 int ListCnt;
 int MMCharPos;
-struct timespec g_timer;
-int ExitMMBasicFlag = false;
 volatile int MMAbort = false;
-char *InterruptReturn = NULL;
 struct option_s Option;
-int WatchdogSet, IgnorePIN, InterruptUsed;
+int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary, **FontTable;
 
-int ErrorInPrompt = false;
+// int ErrorInPrompt = false;
 
 char g_break_key = BREAK_KEY;
+CmdLineArgs mmb_args = { 0 };
+uint8_t mmb_exit_code = EX_OK;
 
 void IntHandler(int signo);
-int LoadFile(char *prog);
 void dump_token_table(const struct s_tokentbl* tbl);
 void prompt_get_input(void); // common/prompt.c
+
+/**
+ * If 'true' then RUN program specified by 'mmb_args.run_cmd'.
+ * Only used within main() but cannot be a local variable (on the stack)
+ * because after a longjmp() it would be restored to its value when
+ * setjmp() was called - this is undesireable.
+ */
+static bool run_flag;
+
+void print_banner() {
+    MMPrintString(MES_SIGNON);
+    MMPrintString(COPYRIGHT);
+}
 
 void init_options() {
     Option.ProgFlashSize = PROG_FLASH_SIZE;
@@ -71,18 +81,20 @@ void init_options() {
 }
 
 void set_start_directory() {
-    char *p = getenv("MMDIR");
-    if (!p) return;
-
-    // Strip any quotes around the value.
-    if (*p == '\"') {
-        p++;
-        if (p[strlen(p) - 1] == '\"') p[strlen(p) - 1] = 0;
+    if (mmb_args.directory[0] == '\0') {
+        char *MMDIR = getenv("MMDIR");
+        if (MMDIR) {
+            snprintf(mmb_args.directory, 256, "%s", MMDIR);
+            mmb_args.directory[255] = '\0';
+        }
     }
+    char *p = mmb_args.directory;
+    unquote(p);
+    if (p[0] == '\0') return;
 
     errno = 0;
     if (chdir(p) != 0) {
-        MMPrintString("Error: MMDIR invalid, could not set starting directory '");
+        MMPrintString("Error: could not set starting directory '");
         MMPrintString(p);
         MMPrintString("'.\r\n");
         MMPrintString(strerror(errno));
@@ -91,10 +103,72 @@ void set_start_directory() {
     }
 }
 
-int main(int argc, char *argv[]) {
-    // int RunCommandLineProgram = false;
+/** Handle retun via longjmp(). */
+void longjmp_handler(int jmp_state) {
 
-    // get things setup to act like the Micromite version
+    console_show_cursor(1);
+    console_reset();
+    if (MMCharPos > 1) MMPrintString("\r\n");
+
+    int do_exit = false;
+    switch (jmp_state) {
+        case JMP_BREAK:
+            mmb_exit_code = EX_BREAK;
+            do_exit = !mmb_args.interactive;
+            break;
+
+        case JMP_END:
+            do_exit = !mmb_args.interactive;
+            break;
+
+        case JMP_ERROR:
+            MMPrintString(MMErrMsg);
+            mmb_exit_code = error_to_exit_code(MMerrno);
+            do_exit = !mmb_args.interactive;
+            break;
+
+        case JMP_NEW:
+            mmb_exit_code = EX_OK; // Probably not necessary.
+            do_exit = false;
+            break;
+
+        case JMP_QUIT:
+            do_exit = true;
+            break;
+
+        default:
+            fprintf(stderr, "Unexpected return value from setjmp()");
+            exit(EX_FAIL);
+            break;
+    }
+
+    if (do_exit) {
+        exit(mmb_exit_code);
+    }
+
+    ContinuePoint = nextstmt;  // In case the user wants to use the continue command
+    *tknbuf = 0;               // we do not want to run whatever is in the token buffer
+    memset(inpbuf, 0, STRINGSIZE);
+}
+
+int main(int argc, char *argv[]) {
+    if (cmdline_parse(argc, (const char **) argv, &mmb_args) != 0) {
+        fprintf(stderr, "Invalid command line arguments\n");
+        cmdline_print_usage();
+        exit(EX_FAIL);
+    }
+
+    if (mmb_args.help) {
+        cmdline_print_usage();
+        exit(EX_OK);
+    }
+
+    if (mmb_args.version) {
+        print_banner();
+        exit(EX_OK);
+    }
+
+    // Get things setup to act like the Micromite version
     vartbl = DOS_vartbl;
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
     init_options();
@@ -104,16 +178,16 @@ int main(int argc, char *argv[]) {
     console_init();
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
-    console_set_title("MMBasic - Untitled");
-    console_reset();
-    console_clear();
-    console_show_cursor(1);
 
-    MMPrintString(MES_SIGNON);
-    MMPrintString(COPYRIGHT);
-    // MMPrintString("Copyright 2016-2021 Peter Mather\r\n");
-    MMPrintString("Copyright 2021 Thomas Hugo Williams\r\n");
-    MMPrintString("\r\n");
+    if (mmb_args.interactive) {
+        console_set_title("MMBasic - Untitled");
+        console_reset();
+        console_clear();
+        console_show_cursor(1);
+
+        print_banner();
+        MMPrintString("\r\n");
+    }
 
     OptionErrorSkip = 0;
     InitBasic();
@@ -129,49 +203,24 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, IntHandler);
 #endif
 
-    clock_gettime(CLOCK_REALTIME, &g_timer);
-    srand(0);             // seed the random generator with zero
-
-    // If there is something on the command line try to load it as a program, if
-    // that fails try AUTORUN.BAS
-    // if (argc > 1) RunCommandLineProgram = LoadFile(argv[1]);
-    // if (!RunCommandLineProgram) RunCommandLineProgram = LoadFile("AUTORUN.BAS");
-    // if (!RunCommandLineProgram)
-    //     RunCommandLineProgram = LoadFile("C:\\AUTORUN.BAS");
-
+    interrupt_init();
+    mmtime_init();
+    srand(0);  // seed the random generator with zero
     set_start_directory();
 
-    if (setjmp(mark) != 0) {
-        // we got here via a long jump which means an error or CTRL-C or the
-        // program wants to exit to the command prompt
+    run_flag = mmb_args.run_cmd[0] != '\0';
 
-        console_show_cursor(1);
-        console_reset();
-
-        if (ExitMMBasicFlag) {
-            return 0;  // program has executed an ExitMMBasic command
-        }
-
-        if (error_buffer_pos) {
-            MMPrintString(error_buffer);
-            error_buffer_pos = 0;
-            memset(error_buffer, 0, STRINGSIZE);
-        }
-        MMPrintString("\r\n");
-
-        ContinuePoint = nextstmt;       // in case the user wants to use the continue command
-        *tknbuf = 0;                    // we do not want to run whatever is in the token buffer
-        // RunCommandLineProgram = false;  // nor the program on the command line
-        memset(inpbuf, 0, STRINGSIZE);
+    // Note that weird restrictions on what you can do with the return value
+    // from setjmp() mean we cannot simply write longjmp_handler(setjmp(mark));
+    switch (setjmp(mark)) {
+        case 0: break;
+        case JMP_BREAK: longjmp_handler(JMP_BREAK); break;
+        case JMP_END:   longjmp_handler(JMP_END); break;
+        case JMP_ERROR: longjmp_handler(JMP_ERROR); break;
+        case JMP_NEW:   longjmp_handler(JMP_NEW); break;
+        case JMP_QUIT:  longjmp_handler(JMP_QUIT); break;
+        default:        longjmp_handler(JMP_UNEXPECTED); break;
     }
-
-    // if (RunCommandLineProgram) {
-    //     RunCommandLineProgram = false;
-    //     ClearRuntime();
-    //     PrepareProgram(true);
-    //     ExecuteProgram(ProgMemory);  // if AUTORUN.BAS or something is on the
-    //                                  // command line, run it
-    // }
 
     while (1) {
         MMAbort = false;
@@ -183,27 +232,42 @@ int main(int argc, char *argv[]) {
         if (MMCharPos > 1) {
             MMPrintString("\r\n");  // prompt should be on a new line
         }
-        PrepareProgram(false);
-        if (!ErrorInPrompt && FindSubFun("MM.PROMPT", 0) >= 0) {
-            ErrorInPrompt = true;
-            ExecuteProgram("MM.PROMPT\0");
-        } else {
+        //PrepareProgram(false); // This seems superflous so comment it out and see what breaks!
+        // if (!ErrorInPrompt && FindSubFun("MM.PROMPT", 0) >= 0) {
+        //     ErrorInPrompt = true;
+        //     ExecuteProgram("MM.PROMPT\0");
+        // } else {
+        if (mmb_args.interactive) {
             MMPrintString("> ");  // print the prompt
         }
-        ErrorInPrompt = false;
+        // }
+        // ErrorInPrompt = false;
 
-        prompt_get_input();
+        // This will clear all the interrupts including ON KEY
+        // TODO: is this too drastic ? it means all interrupts will have been
+        //       lost if the user tries to CONTINUE a program that has halted
+        //       from CTRL-C or ERROR.
+        interrupt_clear();
+
+        memset(inpbuf, 0, STRINGSIZE);
+        if (run_flag) {
+            if (mmb_args.interactive) {
+                MMPrintString(mmb_args.run_cmd);
+                MMPrintString("\r\n");
+            }
+            strcpy(inpbuf, mmb_args.run_cmd);
+            run_flag = false;
+        } else {
+            prompt_get_input();
+        }
 
         if (!*inpbuf) continue;  // ignore an empty line
         tokenise(true);          // turn into executable code
         if (*tknbuf == T_LINENBR)  // don't let someone use line numbers at the prompt
             tknbuf[0] = tknbuf[1] = tknbuf[2] = ' '; // convert the line number into spaces
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
-        //printf("tknbuf = %s\n", tknbuf);
 
         ExecuteProgram(tknbuf);  // execute the line straight away
-
-        memset(inpbuf, 0, STRINGSIZE);
     }
 }
 
@@ -213,26 +277,6 @@ void IntHandler(int signo) {
     signal(SIGINT, IntHandler);
 #endif
     MMAbort = true;
-}
-
-int LoadFile(char *prog) {
-#if 0
-    FILE *f;
-    char buf[STRINGSIZE];
-    f = fopen(prog, "rb");
-    if (f != NULL) {
-        fclose(f);
-        buf[0] = '"';
-        strcpy(&buf[1], prog);
-        strcat(buf, "\"");
-        FileLoadProgram(buf);
-        if (*ProgMemory == T_NEWLINE ||
-            *ProgMemory == T_LINENBR) {  // is there a program to run?
-            return true;
-        }
-    }
-#endif
-    return false;
 }
 
 void FlashWriteInit(char *p, int nbr) {
@@ -251,8 +295,8 @@ void CheckAbort(void) {
     if (!MMAbort) console_pump_input();
 
     if (MMAbort) {
-        g_key_select = 0;
-        longjmp(mark, 1);  // jump back to the input prompt
+        // g_key_select = 0;
+        longjmp(mark, JMP_BREAK);  // jump back to the input prompt
     }
 }
 
@@ -266,9 +310,16 @@ int MMgetchar(void) {
     for (;;) {
         c = console_getc();
         if (c == -1) {
+            if (!isatty(STDIN_FILENO)) {
+                // In this case there will never be anything to read.
+                if (MMCharPos > 1) MMPrintString("\r\n");
+                MMPrintString("Error: STDIN exhausted\r\n");
+                mmb_exit_code = 1;
+                longjmp(mark, JMP_QUIT);
+            }
             nanosleep(&ONE_MILLISECOND, NULL);
-        } else if (c == 3) {
-            longjmp(mark, 1); // jump back to the input prompt if CTRL-C
+        // } else if (c == 3) {
+        //     longjmp(mark, JMP_BREAK); // jump back to the input prompt if CTRL-C
         } else if (c == '\n' && prevchar == '\r') {
             prevchar = 0;
         } else {

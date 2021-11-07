@@ -1,4 +1,5 @@
 set autoindent
+set constantshow
 #set linenumbers
 set morespace
 set multibuffer
@@ -8,6 +9,7 @@ set regexp
 set smooth
 set suspend
 set tabsize 2
+set zap
 
 unbind ^U main
 unbind ^W main

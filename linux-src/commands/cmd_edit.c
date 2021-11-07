@@ -92,18 +92,17 @@ void cmd_edit(void) {
 
     int new_file = false;
     char file_path[STRINGSIZE];
+    errno = 0;
     if (!canonicalize_path(fname, file_path, STRINGSIZE)) {
-        MMerrno = errno;
-        errno = 0; // Is this necessary ?
-        switch (MMerrno) {
+        switch (errno) {
             case ENOENT:
                 new_file = true;
                 break;
             case ENAMETOOLONG:
-                error("Path too long");
+                error_code(errno, "Path too long");
                 break;
             default:
-                error(strerror(MMerrno));
+                error_system(errno);
                 break;
         }
     }

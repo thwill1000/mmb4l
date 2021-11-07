@@ -1,8 +1,8 @@
+#include "../common/error.h"
+#include "../common/interrupt.h"
 #include "../common/version.h"
 
 int g_key_complete = 0;
-char *g_key_interrupt = NULL;
-int g_key_select = 0;
 
 static void on_error_abort(char* p) {
     OptionErrorSkip = 0;
@@ -14,14 +14,12 @@ static void on_error_clear(char *p) {
 }
 
 static void on_error_ignore(char *p) {
-    MMerrno = 0;
-    *MMErrMsg = 0;
+    on_error_clear(p);
     OptionErrorSkip = -1;
 }
 
 static void on_error_skip(char *p) {
-    MMerrno = 0;
-    *MMErrMsg = 0;
+    on_error_clear(p);
     OptionErrorSkip = (*p == 0 || *p == '\'') ? 2 : getint(p, 1, 10000) + 1;
 }
 
@@ -36,7 +34,7 @@ static void on_error(char *p) {
     } else if ((p2 = checkstring(p, "SKIP"))) {
         on_error_skip(p2);
     } else {
-        error("Syntax");
+        ERROR_SYNTAX;
     }
 }
 
@@ -48,21 +46,19 @@ static void on_key(char *p) {
     getargs(&p, 3, ",");
     if (argc == 1) {
         if (*argv[0] == '0' && !isdigit(*(argv[0] + 1))) {
-            OnKeyGOSUB = NULL;  // the program wants to turn the interrupt off
+            interrupt_disable_any_key();
         } else {
-            OnKeyGOSUB = GetIntAddress(argv[0]);  // get a pointer to the interrupt routine
-            InterruptUsed = true;
+            interrupt_enable_any_key(GetIntAddress(argv[0]));
         }
     } else {
-        g_key_select = getint(argv[0], 0, 255);
-        if (g_key_select == 0) {
-            g_key_interrupt = NULL;  // the program wants to turn the interrupt off
+        int key = getint(argv[0], 0, 255);
+        if (key == 0) {
+            interrupt_disable_specific_key();
         } else {
             if (*argv[2] == '0' && !isdigit(*(argv[2] + 1))) {
-                g_key_interrupt = NULL;  // the program wants to turn the interrupt off
+                interrupt_disable_specific_key();
             } else {
-                g_key_interrupt = GetIntAddress(argv[2]);  // get a pointer to the interrupt routine
-                InterruptUsed = true;
+                interrupt_enable_specific_key(key, GetIntAddress(argv[2]));
             }
         }
     }

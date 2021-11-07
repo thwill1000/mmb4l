@@ -7,12 +7,12 @@ comment "' "
 
 # Variable names
 
-icolor white "\<[A-Z_][A-Za-z0-9_]*(|\$|\%|\&|\||\(\))\>"
+icolor white "\<[A-Z_][A-Za-z0-9_]*(|\$|\%|\||\(\))\>"
 
 # system vars
 icolor cyan "\<(CCSAPLID|CCSERR|CRSCOL|CRSLIN|CTIMER|FALSE)\>"
 icolor cyan "\<(GPS_ALT|GPS_LAT|GPS_LON|MOUSEK|MOUSES|MOUSEX|MOUSEY)\>"
-icolor cyan "\<(PC|PI|SP|STIMER|TIMER|TRUE)\>"
+icolor cyan "\<(PI|STIMER|TIMER|TRUE)\>"
 
 # system string vars
 icolor cyan "\<(DATE|FILEEVENT|INKEY|MM.CMDLINE|TERMINALNAME|TIME|TRACE)\$"
@@ -26,11 +26,11 @@ icolor cyan "\<(ANDROID|GPIO|GPS|SENSOR|WIN32|UNIX)\?"
 
 icolor cyan "\<(ABS|ACOS|ACOSH|ADD|AND|ARG|ARRPTR|ASC|ASIN|ASINH|ATAN|ATANH|ATN)\("
 icolor cyan "\<(BCHG|BCLR|BSET|BTST|BYTE)\("
-icolor cyan "\<(CALL|CALLD|CARD|CBRT|CEIL|COLOR_RGB|COMBIN|CONJ|COS|COSH|CRC|CVD|CVF|CVI|CVL|CVS)\("
+icolor cyan "\<(CALL|CALLD|CARD|CBRT|CEIL|COMBIN|CONJ|COS|COSH|CRC|CVD|CVF|CVI|CVL|CVS)\("
 icolor cyan "\<(DEG|DET|DEVICE|DIV|DPEEK)\("
 icolor cyan "\<(EOF|EVAL|EVEN|EXEC|EXIST|EXP|EXPM1)\("
 icolor cyan "\<(FACT|FIX|FLOOR|FORK|FORM_ALERT|FORM_CENTER|FORM_DIAL|FORM_DO|FRAC|FREEFILE)\("
-icolor cyan "\<(GAMMA|GASDEV|GCD|GET_COLOR|GLOB|GPIO|GRAY)\("
+icolor cyan "\<(GAMMA|GASDEV|GCD|GLOB|GPIO)\("
 icolor cyan "\<(HYPOT)\("
 icolor cyan "\<(IMAG|INODE|INP|INSTR|INT|INVERT|IOCTL)\("
 icolor cyan "\<(JULIAN)\("
@@ -48,7 +48,7 @@ icolor cyan "\<(WORD|WORT_SEP)\("
 icolor cyan "\<(XOR)\("
 
 # question functions
-icolor cyan "\<(DIM|EVENT|INP|TYP|VAL)\?\("
+icolor cyan "\<(EVENT|INP|TYP|VAL)\?\("
 
 # special functions
 
@@ -69,9 +69,9 @@ icolor cyan "\<(LEFT|LEFTOF|LINEINPUT|LOWER)\$\("
 icolor cyan "\<(MID|MKA|MKD|MKF|MKI|MKL|MKS|MTFD|MTFE)\$\("
 icolor cyan "\<(OCT)\$\("
 icolor cyan "\<(PARAM|PNGDECODE|PNGENCODE|PRG)\$\("
-icolor cyan "\<(REPLACE|REVERSE|RADIX|RIGHT|RIGHTOF|RLD|RLE)\$\("
+icolor cyan "\<(REVERSE|RADIX|RIGHT|RIGHTOF|RLD|RLE)\$\("
 icolor cyan "\<(SIGN|SPACE|STR|STRING|SYSTEM)\$\("
-icolor cyan "\<(TERMINALNAME|TRIM)\$\("
+icolor cyan "\<(TERMINALNAME)\$\("
 icolor cyan "\<(UCASE|UNCOMPRESS|UNIXDATE|UNIXTIME|UPPER|USING)\$\("
 icolor cyan "\<(WORD)\$\("
 icolor cyan "\<(XTRIM)\$\("
@@ -82,21 +82,21 @@ icolor cyan "\<(0|1|CONVOLUT|CVA|FFT|INV|SMUL|SOLVE|TRANS)\("
 
 # special commands
 
-icolor cyan "(^|^[[:space:]]*)(DIM|LOCAL|LET)\>"
+icolor cyan "(^|^[[:space:]]*)(LOCAL|LET)\>"
 icolor cyan "(^|^[[:space:]]*)DATA.*$"
 
 icolor cyan "(^|^[[:space:]]*)ENDFUNCTION\>"
-icolor cyan "(^|^[[:space:]]*)(RETURN|BREAK|CONTINUE|EXIT\ IF)\>"
+icolor cyan "(^|^[[:space:]]*)(BREAK|CONTINUE|EXIT\ IF)\>"
 icolor cyan "(^|^[[:space:]]*)(FUNCTION|PROCEDURE|DEFFN)\>"
 
-icolor cyan "(^|^[[:space:]]*)(endselect|select|default|endif|else\ if|else|case|do|loop|next|for|if|while|wend|repeat|until|goto|gosub|spawn|void)\>"
-icolor cyan "(^|^[[:space:]]*)(END|QUIT|STOP|TRON|TROFF|ECHO|EDIT|NEW|RUN)\>"
+icolor cyan "(^|^[[:space:]]*)(endselect|select|default|endif|else\ if|else|case|do|loop|next|while|wend|repeat|until|spawn|void)\>"
+icolor cyan "(^|^[[:space:]]*)(QUIT|STOP|TRON|TROFF|ECHO|EDIT|NEW|RUN)\>"
 
 # regular commands
 
 icolor cyan "(^|^[[:space:]]*)(ABSOLUTE|ADD|AFTER|ALERT|ARRAYCOPY|ARRAYFILL)\>"
 icolor cyan "(^|^[[:space:]]*)(BEEP|BELL|BGET|BLOAD|BMOVE|BOTTOMW|BOUNDARY|BOX|BPUT|BSAVE)\>"
-icolor cyan "(^|^[[:space:]]*)(CALL|CHAIN|CHDIR|CHMOD|CIRCLE|CLEAR|CLEARW|CLIP|CLOSE|CLOSEW|CLR|CLS|COLOR|CONNECT|COPYAREA|CURVE)\>"
+icolor cyan "(^|^[[:space:]]*)(CALL|CHAIN|CHMOD|CIRCLE|CLEAR|CLEARW|CLIP|CLOSEW|CLR|CLS|CONNECT|COPYAREA|CURVE)\>"
 icolor cyan "(^|^[[:space:]]*)(DEC|DEFFILL|DEFLINE|DEFMARK|DEFMOUSE|DEFTEXT|DELAY|DIV|DPOKE|DRAW|DUMP)\>"
 icolor cyan "(^|^[[:space:]]*)(ELLIPSE|ERASE|ERROR|EVAL|EVENT|EVERY|EXEC)\>"
 icolor cyan "(^|^[[:space:]]*)(FFT|FILESELECT|FILL|FIT|FIT_LINEAR|FIT_POLY|FLUSH|FREE|FULLW)\>"
@@ -108,36 +108,63 @@ icolor cyan "(^|^[[:space:]]*)(LINE|LINEINPUT|LINK|LIST|LOAD|LOCATE|LPOKE|LTEXT)
 icolor cyan "(^|^[[:space:]]*)(MEMDUMP|MENU|MENUDEF|MENUKILL|MENUSET|MERGE|MFREE|MKDIR|MOUSE|MOUSEEVENT|MOTIONEVENT|MOVEW|MSYNC|MUL)\>"
 icolor cyan "(^|^[[:space:]]*)(NOOP|NOP|NOROOTWINDOW)\>"
 icolor cyan "(^|^[[:space:]]*)(OBJC_ADD|OBJC_DELETE|ON|OPEN|OPENW|OUT)\>"
-icolor cyan "(^|^[[:space:]]*)(PAUSE|PBOX|PCIRCLE|PELLIPSE|PIPE|PLAYSOUND|PLAYSOUNDFILE|PLIST|PLOT|POKE|POLYFILL|POLYLINE|POLYMARK|PRBOX|PRINT|PUT|PUTBACK|PUT_BITMAP)\>"
-icolor cyan "(^|^[[:space:]]*)(RANDOMIZE|RBOX|READ|RECEIVE|RELSEEK|RENAME|RESTORE|RMDIR|ROOTWINDOW|RSRC_FREE|RSRC_LOAD)\>"
+icolor cyan "(^|^[[:space:]]*)(PAUSE|PBOX|PCIRCLE|PELLIPSE|PIPE|PLAYSOUND|PLAYSOUNDFILE|PLIST|PLOT|POKE|POLYFILL|POLYLINE|POLYMARK|PRBOX|PUT|PUTBACK|PUT_BITMAP)\>"
+icolor cyan "(^|^[[:space:]]*)(RANDOMIZE|RBOX|RECEIVE|RELSEEK|RENAME|RESTORE|RMDIR|ROOTWINDOW|RSRC_FREE|RSRC_LOAD)\>"
 icolor cyan "(^|^[[:space:]]*)(SAVE|SAVESCREEN|SAVEWINDOW|SCOPE|SCREEN|SEEK|SEND|SENSOR|SETFONT|SETMOUSE|SGET|SHELL|SHM_DETACH|SHM_FREE|SHOWK|SHOWM|SHOEPAGE|SIZEW|SORT|SOUND|SPEAK|SPLIT|SPUT|SUB|SWAP|SYSTEM)\>"
-icolor cyan "(^|^[[:space:]]*)(TEXT|TITLEW|TOPW|TOUCH)\>"
+icolor cyan "(^|^[[:space:]]*)(TITLEW|TOPW|TOUCH)\>"
 icolor cyan "(^|^[[:space:]]*)(UNLINK|UNMAP|USEWINDOW)\>"
 icolor cyan "(^|^[[:space:]]*)(VERSION|VSYNC)\>"
 icolor cyan "(^|^[[:space:]]*)(WATCH|WAVE|WORT_SEP)\>"
 icolor cyan "(^|^[[:space:]]*)(XLOAD|XRUN)\>"
 
 ## MMBasic additions
-icolor cyan "(^|^[[:space:]]*)(BASE|DEFAULT|OPTION|FLOAT|EXPLICIT|ON|CONSOLE|SETTITLE)\>"
+icolor cyan "(^|^[[:space:]]*)(BASE|DEFAULT|FLOAT|EXPLICIT|ON|CONSOLE|SETTITLE)\>"
 
 ## commands with a blank in it
 
 icolor cyan "(^|^[[:space:]]*)(ON\ ERROR\ CONT)"
-icolor cyan "(^|^[[:space:]]*)(ON\ ERROR\ SKIP)"
 icolor cyan "(^|^[[:space:]]*)(ON\ BREAK\ CONT)"
 icolor cyan "(^|^[[:space:]]*)(ECHO\ (ON|OFF))"
 icolor cyan "(^|^[[:space:]]*)(EXIT\ DO)"
 
 ## keywords
-icolor cyan "\<(and|or|not|to|xor|not|then|step|var|tab|using)\>"
-icolor cyan "\<(option base|case|default|explicit|float|function|on|select)\>"
-icolor cyan "\<(getsize|reset|clear|background|setcursor|black|while|white)\>"
-icolor cyan "\<(choice|elseif|hidecursor|else|const|mm.info|option|sub|inc|next|none|cat)\>"
-icolor cyan "\<(cfunaddr|csub|integer|mode|goto|for input as|for output as|error)\>"
-icolor cyan "#include"
-icolor cyan "\<(input|exit)\>"
-icolor cyan "\<(format)\$\("
-icolor cyan "\<(font|console|loop|mod|until|serial)\>"
+icolor cyan "\<(and|append|as)\>"
+icolor cyan "\<(background|black|blue|bound|bright|byte)\>"
+icolor cyan "\<(case|cat|chdir|clear|console|cfunaddr|choice|close|color|colour|const|csub|cyan)\>"
+icolor cyan "\<(default|din|dim|dout)\>"
+icolor cyan "\<(else|elseif|end|error|exit)\>"
+icolor cyan "\<(float|font|fontwidth|fontheight|for|foreground|function)\>"
+icolor cyan "\<(getcursor|getsize|gosub|goto|gray|green|grey)\>"
+icolor cyan "\<(hidecursor)\>"
+icolor cyan "\<(if|inc|input|integer)\>"
+icolor cyan "\<(length|lgetbyte|longstring|loop)\>"
+icolor cyan "\<(magenta|mm.info|mod|mode)\>"
+icolor cyan "\<(next|none|not)\>"
+icolor cyan "\<(option|or)\>"
+icolor cyan "\<(pause|peek|pin|poke|print|purple)\>"
+icolor cyan "\<(read|red|reset|return|rgb)\>"
+icolor cyan "\<(select|serial|setcursor|setpin|settick|showcursor|settitle|spi|static|step|sub)\>"
+icolor cyan "\<(tab|text|then|to|tron|troff)\>"
+icolor cyan "\<(until|using)\>"
+icolor cyan "\<(var|varaddr|version)\>"
+icolor cyan "\<(while|white)\>"
+icolor cyan "\<(xor)\>"
+icolor cyan "\<(yellow)\>"
+
+## preprocessor keywords
+icolor red "(^|^[[:space:]]*)\#include\>"
+
+## functions returning strings
+icolor cyan "\<(format|lcase|mm.info)\$\("
+
+## system variables
+icolor cyan "\<(cwd|mm.device|mm.errmsg)\$"
+
+## keywords containing blanks
+icolor cyan "\<(option console (both|serial|screen))\>"
+icolor cyan "\<(exit do|for input as|for output as|line input|memory copy)\>"
+icolor cyan "\<(memory set|on error skip|on key|option base|option explicit (on|off)|trace off)\>"
+icolor cyan "\<(trace on)\>"
 
 ## operators
 color white "[+*=\^]" "<" ">" "/" "-"
@@ -148,6 +175,8 @@ color white "[+*=\^]" "<" ">" "/" "-"
 #icolor green "[\ ,\(]\#[1-9][0-9]*\b"
 icolor green "\<[-]?[1-9][0-9]*[.[0-9]*]?([Ee][+-]?[0-9]+)?\>"
 icolor green "\<[-]?[0](\.[0-9]+)?\>"
+icolor green "&h[0-9a-f]+\b"
+icolor green "&b[0-1]+\b"
 
 ## parentheses
 color white "[(){}]" "\[" "\]"
@@ -155,12 +184,12 @@ color white "[(){}]" "\[" "\]"
 # labels
 icolor white "(^|^[[:space:]]*)[^\ ^=.]*:"
 
-# Strings
-color brightmagenta ""(\\.|[^"])*""
-
 # Comments.
 color yellow "'.*"
 icolor yellow "REM\ .*"
+
+# Strings
+color brightmagenta ""(\\.|[^"])*""
 
 # SPTrans directives.
 color red "'!.*"

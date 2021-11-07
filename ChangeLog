@@ -2,5 +2,85 @@
 ChangeLog
 ---------
 
+Version 2021.01.00-a2 - 6-Nov-2021:
+  - Added ability to specify at the Linux shell a BASIC program that MMB4L
+    should RUN when it starts, e.g.
+        ./mmbasic myprogram.bas arg1 arg2 arg3
+    see README for details.
+  - Added optional integer argument (default 0) to END and QUIT that can be
+    used to return an exit code to the Linux shell, see README for details.
+  - Added SETTICK command from the CMM2:
+    - SETTICK FAST is not supported.
+    - Be aware that Since Linux is not a Real Time Operating System all timing
+      commands such as PAUSE and SETTICK are subject to more error and variation
+      than on the microcontroller MMBasic implementations.
+  - Added JSON$() function from the CMM2:
+    - MMB4L adds an optional 3rd parameter which is a 2 bit argument controlling
+      how explicit nulls and missing values are handled in the JSON:
+        - &b00 : return empty strings for both.
+        - &b01 : return "<null>" for explicit null.
+        - &b10 : return "<missing>" for missing value.
+        - &b11 : return both "<null>" and "<missing>".
+  - Added DAY$(), DATETIME$() and EPOCH() functions from the CMM2:
+    - note that unlike DATE$ and TIME$ the DATETIME$(NOW) function will return
+      the date & time in UTC, not in the local timezone.
+  - Added missing MEMORY, PEEK and POKE sub-commands.
+    Now implements the same as the CMM2 (5.07.01) with the exception of the
+    undocumented/legacy:
+        PEEK(hiaddr, loaddr)
+        POKE hiaddr, loaddr, byte
+    And with the addition of:
+        MEMORY COPY BYTE src, dst, number_of_bytes
+          - which is equivalent to MEMORY COPY src, dst, number_of_bytes
+        MEMORY COPY SHORT src, dst, number_of_shorts
+        MEMORY COPY WORD src, dst, number_of_words
+  - Added optional integer array parameter to SYSTEM command to allow any
+    standard output generated to be captured in a LONGSTRING, e.g.
+        DIM out%(100)
+        SYSTEM "ls", out%()
+        LONGSTRING PRINT out%()
+  - Added support for prefixing paths with '~' which is expanded to the
+    users home directory (the value of the HOME environment variable).
+  - Added optional integer argument (default 1) to ERROR command allowing an
+    error code to be specified, this can be retrieved using MM.ERRNO, e.g.
+        ERROR "error message", 220
+    For MMB4L the values of MM.ERRNO are:
+      - 0        : no error.
+      - 1        : unclassified MMBasic error, also reported if a C library call
+                   reports the error EPERM (Operation not permitted).
+                   Note this differs from other versions of MMBasic which use
+                   the value of 16 for general errors, this would correspond to
+                   the EBUSY (Device or resource busy) error from a C library
+                   call.
+      - 2..150   : standard error numbers (errno) for C library calls.
+      - 151..200 : reserved for future classification of MMBasic errors.
+      - 201..255 : suggested range for program specific error codes.
+      - error codes from the SYSTEM command are an exception to this rule,
+        see the next entry.
+  - Changed SYSTEM command to set MM.ERRNO equal to the executed program's
+    exit code. Also changed error message to include this value.
+  - Changed CONSOLE SETCURSOR command to allow a maximum x, y of 1023
+    (previously 255) and updated "examples/mandelbrot.bas" to support this.
+  - Changed "mmbasic.nanorc" to make behaviour more like the CMM2 editor:
+      - added 'set constantshow' so the cursor position display is always
+        visible.
+      - added 'set zap' so that [Delete] and [Backspace] erase all the selected
+        text instead of just a single character.
+      - either of these can be commented out with # if you prefer.
+  - Fixed issues with "mmbasic.syntax.nanorc":
+      - command keywords always highlighted, not just when they are the first
+        token on a line.
+      - hexadecimal and binary constants highlighted as numbers (green).
+      - comments correctly highlighted following string constants containing
+        apostrophes.
+      - highlighting of additional keywords.
+  - Fixed timeout bugs with CONSOLE GETCURSOR:
+      - increase the timeout to 10s.
+      - correct the signed 64-bit arithmetic used in timing code.
+  - Fixed bug where navigating the command prompt history with up/down arrow
+    keys would show display artifacts when using PuTTY; though not sure why
+    the issue was not generally visible.
+  - Many other fixes and tweaks for minor issues encountered along the way.
+
 Version 2021.01.00-a1 - 23-Sep-2021:
- - First alpha version.
+  - First alpha version.

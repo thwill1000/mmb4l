@@ -13,7 +13,7 @@ struct s_vartbl {                                     // structure of the variab
         MMFLOAT *fa;                                  // pointer to the allocated memory if it is an array of floats
         long long int *ia;                            // pointer to the allocated memory if it is an array of integers
         char *s;                                      // pointer to the allocated memory if it is a string
-    } val;
+    } __attribute__ ((aligned (8))) val;
 };
 
 #endif

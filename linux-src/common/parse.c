@@ -1,4 +1,5 @@
 #include "console.h"
+#include "error.h"
 #include "version.h"
 
 int parse_is_end(char *p) {
@@ -31,14 +32,30 @@ int parse_colour(char *p, int allow_bright) {
         return BLACK;
     } else if ((p2 = parse_check_string(p, "BLUE"))) {
         return BLUE;
-    } else if (allow_bright && ((p2 = parse_check_string(p, "BRIGHT")))) {
-        int colour = parse_colour(p2, 0);
-        if (colour == -1) return -1;
-        return colour + BRIGHT_BLACK;
+    } else if ((p2 = parse_check_string(p, "BRIGHT"))) {
+        if (allow_bright) {
+            int colour = parse_colour(p2, 0);
+            if (colour == -1) return -1;
+            return colour + BRIGHT_BLACK;
+        } else {
+            ERROR_NOT_ALLOWED("BRIGHT");
+        }
     } else if ((p2 = parse_check_string(p, "CYAN"))) {
         return CYAN;
     } else if ((p2 = parse_check_string(p, "GREEN"))) {
         return GREEN;
+    } else if ((p2 = parse_check_string(p, "GRAY"))) {
+        if (allow_bright) {
+            return BRIGHT_BLACK;
+        } else {
+            ERROR_NOT_ALLOWED("GRAY");
+        }
+    } else if ((p2 = parse_check_string(p, "GREY"))) {
+        if (allow_bright) {
+            return BRIGHT_BLACK;
+        } else {
+            ERROR_NOT_ALLOWED("GREY");
+        }
     } else if ((p2 = parse_check_string(p, "MAGENTA"))) {
         return MAGENTA;
     } else if ((p2 = parse_check_string(p, "PURPLE"))) {
@@ -49,9 +66,9 @@ int parse_colour(char *p, int allow_bright) {
         return WHITE;
     } else if ((p2 = parse_check_string(p, "YELLOW"))) {
         return YELLOW;
-    } else {
-        int colour = getint(p, BLACK, BRIGHT_WHITE);
-        if (!allow_bright && colour > WHITE) colour = -1;
-        return colour;
     }
+
+    int colour = getint(p, BLACK, BRIGHT_WHITE);
+    if (!allow_bright && colour > WHITE) colour = -1;
+    return colour;
 }

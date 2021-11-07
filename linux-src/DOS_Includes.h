@@ -21,6 +21,10 @@ provisions:
 
 ************************************************************************************************************************/
 
+#if !defined(MMB4L_DOS_INCLUDES_H)
+#define MMB4L_DOS_INCLUDES_H
+
+#include <stdint.h>
 
 // redefine the standard float routines used in MMBasic to their double versions
 //#if MMFLOAT == double
@@ -44,9 +48,7 @@ provisions:
 // global variables used in MMBasic but must be maintained outside of the interpreter
 extern char *StartEditPoint;
 extern int StartEditChar;
-extern int ExitMMBasicFlag;
-extern char *InterruptReturn;
-extern int WatchdogSet, IgnorePIN, InterruptUsed;
+extern int WatchdogSet, IgnorePIN;
 extern int MMCharPos;
 extern int error_line;
 extern char error_file[STRINGSIZE];
@@ -82,3 +84,16 @@ char *GetIntAddress(char *p);
 int check_interrupt(void);
 void FlashWriteInit(char *p, int nbr);
 void dump(char *p, int nbr);
+void interrupt_clear(void);
+
+#define JMP_BREAK  1
+#define JMP_END    2
+#define JMP_ERROR  3
+#define JMP_NEW    4
+#define JMP_QUIT   5
+#define JMP_UNEXPECTED  999
+
+// Global variables specific to MMB4L
+extern uint8_t mmb_exit_code;
+
+#endif // #if !defined(MMB4L_DOS_INCLUDES_H)

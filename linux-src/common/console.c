@@ -5,15 +5,17 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <time.h>
 
 #include "console.h"
 #include "error.h"
 #include "global_aliases.h"
+#include "interrupt.h"
+#include "mmtime.h"
 #include "utility.h"
 #include "rx_buf.h"
 #include "../Configuration.h" // For STRINGSIZE
@@ -22,9 +24,6 @@ void CheckAbort(void);
 
 extern volatile int MMAbort;
 extern char g_break_key;
-extern int g_key_complete;
-extern char *g_key_interrupt;
-extern int g_key_select;
 
 #define CONSOLE_RX_BUF_SIZE 256
 
@@ -70,13 +69,14 @@ void console_enable_raw_mode(void) {
 
 void console_pump_input(void) {
     char ch;
+    errno = 0;
     ssize_t result = read(STDIN_FILENO, &ch, 1);
     switch (result) {
         case 0:
-            // Nothing to read.
             return;
         case 1:
             // Read one character, drop out of the switch.
+            // printf("<%d>", (int) ch);
             break;
         default:
             error("Unexpected result from read()");
@@ -85,10 +85,7 @@ void console_pump_input(void) {
 
     // Support for ON KEY ascii_code%, handler_sub().
     // Note that 'ch' does not get added to the buffer.
-    if (ch == g_key_select && g_key_interrupt != NULL) {
-        g_key_complete = 1;
-        return;
-    }
+    if (interrupt_check_key_press(ch)) return;
 
     if (ch == g_break_key) {
         // User wishes to stop the program.
@@ -241,22 +238,23 @@ enum ReadCursorPositionState {
         EXPECTING_COLS,
         EXPECTING_FINISHED };
 
-int console_get_cursor_pos(int *x, int *y) {
+int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
+
     rx_buf_clear(&console_rx_buf);
 
     // Send escape code to report cursor position.
     WRITE_CODE_2("\033[6n", 4);
 
     // Read characters one at a time to match the expected pattern ESC[n;mR
-    // - fails if after 500 attempted reads the pattern has not been matched.
+    // - fails if the pattern has not been matched within the timeout.
     // - will sleep briefly if there is nothing to read.
-    int ch;
+    int64_t timeout_ns = mmtime_now_ns() + MILLISECONDS_TO_NANOSECONDS(timeout_ms);
     enum ReadCursorPositionState state = EXPECTING_ESCAPE;
     char buf[32] = { 0 };
-    char *p = buf;
-    for (int count = 0; count < 500 && state != EXPECTING_FINISHED; ++count) {
+    char *p = NULL;
+    while (mmtime_now_ns() < timeout_ns && state != EXPECTING_FINISHED) {
         if (state == EXPECTING_ESCAPE) p = buf;
-        ch = console_getc();
+        int ch = console_getc();
         if (ch == -1) {
             nanosleep(&ONE_MICROSECOND, NULL);
             continue;

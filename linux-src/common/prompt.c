@@ -168,26 +168,20 @@ static void insert_history_item(PromptState *pstate) {
     // Update input buffer from the history.
     strcpy(inpbuf, get_history_item(pstate->history_idx));
 
-    // Backspace cursor until just after the prompt.
-    while (pstate->char_index) {
-        MMputchar('\b');
-        pstate->char_index--;
-    }
+    // Erase existing input from the console.
+    for (int i = 0; i < pstate->char_index; ++i) MMputchar('\b');
+    for (int i = 0; i < pstate->char_index; ++i) MMputchar(' ');
+    for (int i = 0; i < pstate->char_index; ++i) MMputchar('\b');
 
-    // Display the line.
+    // Display the new contents of the input buffer.
     MMPrintString(inpbuf);
 
-    // Handle the line being too long.
+    // Handle the new input buffer being too long.
     if (strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
         error("Line is too long to edit");
     }
 
-    // Erase everything else on the line.
-    int num_spaces = pstate->max_chars - pstate->start_line - strlen(inpbuf);
-    for (int i = 0; i < num_spaces; ++i) MMputchar(' ');
-    for (int i = 0; i < num_spaces - 1; ++i) MMputchar('\b');
-
-    // Update 'char_index' to reflect new line contents.
+    // Update 'char_index' to reflect new input buffer contents.
     pstate->char_index = strlen(inpbuf);
 }
 

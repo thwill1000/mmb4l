@@ -124,12 +124,9 @@ static void mminfo_errno(char *p) {
 }
 
 static char *get_path(char *p) {
-    char *path = getCstring(p);
-    char tmp[STRINGSIZE];
-    if (!munge_path(path, tmp, STRINGSIZE)) {
-        error_check();
-    }
-    strcpy(path, tmp);
+    char *path = GetTempStrMemory();
+    munge_path(getCstring(p), path, STRINGSIZE);
+    error_check();
     return path;
 }
 
@@ -169,6 +166,12 @@ static void mminfo_exists(char *p) {
         g_integer_rtn = (stat(path, &st) == 0);
         g_rtn_type = T_INT;
     }
+}
+
+static void mminfo_exitcode(char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_rtn_type = T_INT;
+    g_integer_rtn = mmb_exit_code;
 }
 
 static void mminfo_filesize(char *p) {
@@ -216,7 +219,7 @@ void mminfo_hres(char *p) {
 static void mminfo_hpos(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int x, y;
-    if (!console_get_cursor_pos(&x, &y)) {
+    if (!console_get_cursor_pos(&x, &y, 10000)) {
         ERROR_COULD_NOT("determine cursor position");
     }
     int scale = g_options.resolution == PIXEL ? FONT_WIDTH : 1;
@@ -304,7 +307,7 @@ void mminfo_vres(char *p) {
 static void mminfo_vpos(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int x, y;
-    if (!console_get_cursor_pos(&x, &y)) {
+    if (!console_get_cursor_pos(&x, &y, 10000)) {
         ERROR_COULD_NOT("determine cursor position");
     }
     int scale = g_options.resolution == PIXEL ? FONT_HEIGHT : 1;
@@ -334,6 +337,8 @@ void fun_mminfo(void) {
         mminfo_errno(p);
     } else if ((p = checkstring(ep, "EXISTS"))) {
         mminfo_exists(p);
+    } else if ((p = checkstring(ep, "EXITCODE"))) {
+        mminfo_exitcode(p);
     } else if ((p = checkstring(ep, "FILESIZE"))) {
         mminfo_filesize(p);
     } else if ((p = checkstring(ep, "FONTHEIGHT"))) {

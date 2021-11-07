@@ -42,8 +42,8 @@ Sub update_display()
 
   Local s$ = "Rows: " + Str$(height%) + ", Cols: " + Str$(width%)
   Cat s$, ", x: " + Str$(curs_x%) + ", y: " + Str$(curs_y%)
-  s$ = Left$(s$, width%)
-  s$ = s$ + Space$(Max(0, width% - Len(s$)))
+  s$ = Left$(s$, Min(width%, 255))
+  s$ = s$ + Space$(Max(0, Min(width%, 255) - Len(s$)))
 
   Console HideCursor
   Console SetCursor 0, height% - 1

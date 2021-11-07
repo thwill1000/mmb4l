@@ -70,6 +70,10 @@ provisions:
         #define MM_DEVICE  "MMB4L"
         #undef VERSION
         #define VERSION  "2021.01.00"
+        #undef COPYRIGHT
+        #define COPYRIGHT  "Copyright " YEAR " Geoff Graham\r\n" \
+                           "Copyright 2021 Thomas Hugo Williams\r\n"
+                           // "Copyright 2016-2021 Peter Mather\r\n"
         #if defined(__ANDROID__)
             #define MM_ARCH  "Android aarch64"
             #define ENV64BIT
@@ -80,7 +84,7 @@ provisions:
             #define MM_ARCH  "Linux aarch64"
             #define ENV64BIT
         #elif defined(__arm__)
-            #define MM_ARCH  "Linux armv7l"
+            #define MM_ARCH  "Linux armv6l"
             #define ENV32BIT
         #elif defined(__i686__)
             #define MM_ARCH  "Linux i686"
@@ -88,7 +92,7 @@ provisions:
         #else
             #error This architecture is not supported
         #endif
-        #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a1\r\n"
+        #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a2\r\n"
     #else
         #error This device is not supported
     #endif

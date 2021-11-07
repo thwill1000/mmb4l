@@ -45,7 +45,7 @@ static void cmd_console_get_cursor(char *p) {
     }
 
     int x, y;
-    if (!console_get_cursor_pos(&x, &y)) {
+    if (!console_get_cursor_pos(&x, &y, 10000)) {
         ERROR_COULD_NOT("determine cursor position");
     }
 
@@ -106,11 +106,14 @@ static void cmd_console_reset(char *p) {
     console_reset();
 }
 
+#define MAX_CURSOR_X  1024
+#define MAX_CURSOR_Y  1024
+
 static void cmd_console_set_cursor(char *p) {
     getargs(&p, 3, ",");
     if (argc != 3) ERROR_ARGUMENT_COUNT;
-    int x = getint(argv[0], 0, 255);
-    int y = getint(argv[2], 0, 255);
+    int x = getint(argv[0], 0, MAX_CURSOR_X);
+    int y = getint(argv[2], 0, MAX_CURSOR_Y);
     console_set_cursor_pos(x, y);
 }
 

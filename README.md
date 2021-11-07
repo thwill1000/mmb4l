@@ -19,9 +19,10 @@ MMB4L is distributed FREE for use in BINARY form.
 
 MMB4L is in the early alpha phase so there are no fancy installers yet:
 
- 1. Download the latest .tar.gz for your platform from the [binaries](binaries) directory:
+ 1. Download the latest .tar.gz for your platform from the [distributions](distributions) directory:
     * For 64-bit Linux running on Intel/AMD use the 'x86_64' distribution.
-    * For 32-bit Raspbian/Linux running on Raspberry Pi use the 'armv7l' distribution.
+    * For 32-bit Linux running on Intel/AMD use the 'i686' distribution.
+    * For 32-bit Raspbian/Linux running on Raspberry Pi use the 'armv6l' distribution.
 
  2. Extract the archive into a temporary location:
     * ```mkdir -p ~/tmp && tar -xf mmb4l-<version>.tar.gz --directory ~/tmp```
@@ -53,15 +54,47 @@ MMB4L is in the early alpha phase so there are no fancy installers yet:
 
 ## How do I run it ?
 
- * Type ```mmbasic``` at the Linux terminal command-line and it should show the start banner and display a BASIC command prompt:
+ * Type `mmbasic` at the Linux shell and it should show the start banner and display a BASIC command prompt:
 
     ![MMBasic prompt](resources/console-banner.png)
 
- * If you want MMB4L to start in a specific directory then set the MMDIR environment variable appropriately:
-     *  ```export MMDIR=~/mmbasic-workspace```
+ * To have MMB4L immediately run a program ...
+     * ... and exit when the program ends or reports an error:
+         * `mmbasic myprogram.bas arg1 arg2 arg3`
+     * ... and return to the BASIC command prompt when the program ends or reports an error use the `-i`, `--interactive` command-line option:
+         * `mmbasic -i myprogram.bas arg1 arg2 arg3`
+     * any command-line arguments to the BASIC program are retrievable using `MM.CMDLINE$`.
 
- * Use the ```QUIT``` command to exit from MMB4L
-     * ```Ctrl-C``` only interrupts the currently running BASIC program and returns control to the BASIC prompt.
+ * To start MMB4L in a specific directory then
+     * either use the `-d`, `--directory` command-line option:
+         *  `mmbasic -d ~/mmbasic-workspace`
+     * or set the MMDIR environment variable:
+         *  `export MMDIR=~/mmbasic-workspace`
+
+ * To see other MMB4L command-line options use the `-h`, `--help` command-line option:
+     * `mmbasic -h`
+
+ * Use the `QUIT` command to exit from MMB4L
+     * `Ctrl-C` only interrupts the currently running BASIC program and returns control to the BASIC prompt.
+
+### Start with a shebang #!
+
+You can use MMB4L to write executable scripts by starting them with a `#!` and the path to the `mmbasic` executable, e.g.
+
+Write "hello_world.bas":
+```
+#!/usr/local/bin/mmbasic
+Do
+  Print "Hello World"
+Loop
+```
+Make it executable:
+
+`chmod 755 "hello_world.bas"`
+
+And run it from the Linux shell:
+
+`./hello_world.bas`
 
 ## How do I use it ?
 
@@ -78,9 +111,9 @@ MMB4L comes with resource files to configure nano to behave similarly to the Col
 
     Ctrl+A              Display the nano help text
     Ctrl+O or F7        Insert a file into current one
-    Ctrl+Q or F2        Exit the editor
-    Ctrl+S or F1        Save the current file
-    
+    Ctrl+Q or F1        Exit the editor
+    Ctrl+S or F2        Save the current file
+
     Ctrl+P              Goto the previous word
     Ctrl+N              Goto the next word
     Ctrl+B              Goto the first line
@@ -109,8 +142,7 @@ Where not overridden by the above the [default nano keyboard bindings](https://w
 **Gotchas:**
 
  1. Unlike other MMBasics there is no key to **Run** a program from the editor.
- 2. **Delete** only ever deletes a single character, not the current selection, use **Ctrl+K** instead.
- 3. If you rename a file whilst saving it MMB4L will not update its "current stored program" state and will still be using the previous file.
+ 2. If you rename a file whilst saving it MMB4L will not update its "current stored program" state and will still be using the previous file.
 
 ## Differences from MMBasic 5.05.04 for Windows/DOS
 
@@ -132,7 +164,7 @@ Where not overridden by the above the [default nano keyboard bindings](https://w
 The principle difference between MMB4L and the Colour Maximite 2 is the lack of commands/functions for high-resolution graphics, sound or GPIO.
 
 * Unlike the CMM2 there is a ```LOAD program_file$``` command which updates the "current stored program".
-    * Note that commands that operate on the "current stored program" automatically reloads that program from disk before executing, i.e. ```LIST```, ```EDIT```, ```RUN``` - MMB4L should never operate on a program that differs from that on disk.
+    * Note that any command that operates on the "current stored program" automatically reloads that program from disk before executing, i.e. ```LIST```, ```EDIT```, ```RUN``` - MMB4L should never operate on a program that differs from that on disk.
     * As with the CMM2 there is no ```SAVE program_file$``` command.
 * By default the functions ```HRES```, ```VRES```, ```MM.INFO(HPOS)```, ```MM.INFO(HRES)```, ```MM.INFO(VPOS)```, ```MM.INFO(VRES)``` return values in character rather than pixel resolution.
     * ```OPTION CONSOLE PIXEL``` changes this to use pixel resolution based on a nominal 8x12 font.
@@ -218,16 +250,99 @@ The CONSOLE command manipulates the console/terminal using ANSI escape-codes:
 
 *\* Note that all PRINTing starts at and moves the current cursor position.*
 
+### END
+
+```END [exit_code%]```
+
+Ends the running program "returning" an optional exit code (default 0).
+ * If running interactively this returns to the MMB4L command prompt and the optional exit code (default 0) is retrievable via ```MM.INFO(EXITCODE)```.
+ * If running non-interactively this behaves the same as the [QUIT](#quit) command.
+ * For details about exit codes see the [QUIT](#quit) command.
+
+### ERROR
+
+`ERROR [error_msg$] [, errno%] `
+
+Forces an error and terminates the program. This is normally used in debugging or to trap events that should not occur.
+ * The value of the `error_msg$` (default "Unspecified error") can be retrieved with `MM.ERRMSG$`.
+ * The value of the `errno%` (default 1) can be retrieved with `MM.ERRNO`.
+    * 0 - no error.
+    * 1 - unclassified MMBasic error, also reported if a C library call reports the error EPERM (Operation not permitted). Note this differs from other versions of MMBasic which use the value of 16 for general errors, this would correspond to the EBUSY (Device or resource busy) error from a C library call.
+    * 2..150 - standard error numbers (errno) for C library calls.
+    * 151..200 - reserved for future classification of MMBasic errors.
+    * 201..255 - suggested range for program specific error codes.
+    * exception - if a program executed by the `SYSTEM` command fails then MM.ERRNO is set to the exit code returned by that program.
+
+### JSON$()
+
+`JSON$(array%(), string$ [, flags%])`
+
+Returns a string representing a specific item out of the JSON input stored in the longstring 'array%()'.
+ * The optional flags parameter (default 0) specifies how explicit nulls and missing values should be handled:
+     * &b00 - return empty strings for both.
+     * &b01 - return `"<null>"` for explicit null.
+     * &b10 - return `"<missing>"` for missing value.
+     * &b11 - return both `"<null>"` and `"<missing>"`.
+
+### MM.INFO()
+
+In MMB4L this function can return values for these additional properties:
+
+ * `MM.INFO$(ARCH)`
+     * What architecture/platform is MMB4L running on, currently one of:
+         * "Android aarch64"
+         * "Linux aarch64"
+         * "Linux armv6l"
+         * "Linux i686"
+         * "Linux x86_64"
+     * Note that `MM.INFO$(DEVICE)` will return "MMB4L" for all of these.
+
+* `MM.INFO$(ENVVAR name$)`
+     * Gets the value of the named environment variable, or the empty string if there is no such environment variable.
+
+* `MM.INFO(EXISTS path$)`
+      * Does the file / directory / device referred to by path$ exist ?
+
+ * `MM.INFO(EXISTS SYMLINK path$)`
+      * Does path$ refer to a symbolic link ?
+
+ * `MM.INFO(EXITCODE)`
+      * Gets the exit code "returned" by the last program run:
+          * If an `END` command is executed then this will be the optional exit code (default 0) specified to that command.
+          * If a program runs to its "natural end" without an explicit `END` command this will be 0.
+          * If a program is interrupted by the break key combination (default CTRL-C) this will be 130.
+          * If an unhandled `ERROR` occurs this will be 1 (this may change).
+          * If a ```NEW``` command is executed this will be 0.
+
+### QUIT
+
+`QUIT [exit_code%]`
+
+Exits MMB4L returning an optional exit code (default 0) to the shell.
+ * The exit code should be between 0 and 255.
+ * A value of 0 indicates success and a value of 1 indicates a general error.
+ * Linux has no hard standard for other values, but for some guidance see:
+     * [Advanced Bash Scripting Guide](https://tldp.org/LDP/abs/html/exitcodes.html)
+     * [sysexits - FreeBSD](https://www.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html)
+
+### SYSTEM
+
+`SYSTEM cmd$ [, output%()]`
+
+Executes the Linux operating system command in 'cmd$'. If the optional parameter is specified, the output from the system command will be directed to the long string 'output%()' otherwise output will appear on the console (stdout). Output can also be directed to a file using standard Linux notation.
+
+If the system command fails (returns non-zero) then `MM.ERRNO` will be set to the returned value.
+
 ## Limitations
 
  * No high-resolution graphics commands/functions.
  * No sound commands/functions.
  * No GPIO commands/functions; this is only applicable to Raspberry Pi.
- * No serial comms, XMODEM or AUTOSAVE commands/functions (COMING SOON - hopefully).
- * No JSON$() function (COMING SOON).
+ * No serial comms, `XMODEM` or `AUTOSAVE` commands/functions (COMING SOON - hopefully).
  * No programmable function keys (COMING SOON).
- * No SEARCH PATH option or command-line RUN shortcut '\*' (COMING SOON).
- * No AUTORUN command or other mechanism to specify a program to run on MMB4L startup (COMING SOON).
+ * No `SEARCH PATH` option or command-line `RUN` shortcut '\*' (COMING SOON).
+ * Supports `SETTICK` but not `SETTICK FAST`.
+ * Since Linux is not a Real Time Operating System all timing commands such as `PAUSE` and `SETTICK` are subject to more error and variation than on microcontroller MMBasic implementations.
  * Paths are limited to 255 characters.
  * Arbitrary limit of 1 MB of program code and 1 MB of variable/other RAM.
  * Other limitations the alpha testers haven't told me about yet ...

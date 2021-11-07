@@ -1,6 +1,7 @@
 #include <dirent.h>
 #include <libgen.h>
 
+#include "../common/error.h"
 #include "../common/global_aliases.h"
 #include "../common/utility.h"
 #include "../common/version.h"
@@ -89,9 +90,9 @@ void fun_dir(void) {
     if (argc != 0) {
         // This must be the first call eg:  DIR$("*.*", FILE)
 
-        p = getCstring(argv[0]);
-        char path[STRINGSIZE];
-        munge_path(p, path, STRINGSIZE);
+        char *path = GetTempStrMemory();
+        munge_path(getCstring(argv[0]), path, STRINGSIZE);
+        error_check();
 
         strcpy(pp, basename(path));
         dp = opendir(dirname(path));
