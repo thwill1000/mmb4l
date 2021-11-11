@@ -3,6 +3,9 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a3 - ?-???-2021:
+  - Added missing LIST FILES command:
+    - just another synonym for FILES and LS and only present for compatibility
+      with the CMM2.
   - Fixed bug with MM.INFO$(...) not being recognised in interactive mode:
     - synonym for MM.INFO(...).
     - interim fix pending rewrite of pre-processor and its use from interactive

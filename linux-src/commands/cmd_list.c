@@ -166,6 +166,9 @@ void cmd_list(void) {
         } else {
             ERROR_SYNTAX;
         }
+    } else if ((p = checkstring(cmdline, "FILES"))) {
+        void cmd_files_internal(char *);
+        cmd_files_internal(p);
     } else if ((p = checkstring(cmdline, "FLASH"))) {
         if (parse_is_end(p)) {
             list_flash(false);
