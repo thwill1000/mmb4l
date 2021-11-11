@@ -3,9 +3,10 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a3 - ?-???-2021:
-  - item 1
-  - item 2
-  - item 3
+  - Fixed bug with MM.INFO$(...) not being recognised in interactive mode:
+    - synonym for MM.INFO(...).
+    - interim fix pending rewrite of pre-processor and its use from interactive
+      mode.
 
 Version 2021.01.00-a2 - 6-Nov-2021:
   - Added ability to specify at the Linux shell a BASIC program that MMB4L
