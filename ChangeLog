@@ -3,6 +3,11 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a3 - ?-???-2021:
+   - Added PRINT @(x%, y%) expression:
+    - unlike the CMM2, x% & y% are obligatory and in character coordinates,
+      there is no mode parameter.
+    - equivalent to:
+        CONSOLE SETCURSOR x, y : PRINT expression
   - Added missing LIST FILES command:
     - just another synonym for FILES and LS and only present for compatibility
       with the CMM2.

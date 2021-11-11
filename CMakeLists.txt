@@ -67,6 +67,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_trace.c)
 
 set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
+    linux-src/functions/fun_at.c
     linux-src/functions/fun_bound.c
     linux-src/functions/fun_call.c
     linux-src/functions/fun_choice.c

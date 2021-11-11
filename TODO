@@ -8,7 +8,6 @@ Implement serial I/O
 Implement OPTION CODEPAGE
   - to automagically convert chars 128+ to Unicode
 Implement CONSOLE SETSIZE x%, y%
-Implement PRINT @
 Allow normal string (not just LONGSTRING) as second argument to SYSTEM
   - also trim trailing whitespace
 
@@ -63,8 +62,13 @@ Implement SWAP
 Integrate 'pigpio' with Raspberry Pi build
 High resolution graphics
 Fix bug where TRACE will not log a line that you GOTO/GOSUB using a line number,
+<<<<<<< HEAD
   but will if you use a label
 Extend OPTION CODEPAGE
   - Load codepage from file
   - Peek/Poke codepage
   - Save codepage to file
+=======
+  but will if you use a label.
+Can PRINT @(x,y) be implemented without using a function slot for @ ?
+>>>>>>> f239d1e... Implement PRINT @(x, y)
