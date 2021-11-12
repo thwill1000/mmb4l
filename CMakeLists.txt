@@ -54,6 +54,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_option.c
     linux-src/commands/cmd_pause.c
     linux-src/commands/cmd_poke.c
+    linux-src/commands/cmd_print.c
     linux-src/commands/cmd_quit.c
     linux-src/commands/cmd_rename.c
     linux-src/commands/cmd_rmdir.c

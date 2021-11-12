@@ -62,7 +62,7 @@ void cmd_null(void) {
   // do nothing (this is just a placeholder for commands that have no action)
 }
 
-
+#if !defined(__linux__)
 // the PRINT command
 void cmd_print(void) {
     //printf("Entered cmd_print()\n");
@@ -118,7 +118,7 @@ void cmd_print(void) {
     }
     if(docrlf) MMfputs("\2\r\n", fnbr);                             // print the terminating cr/lf unless it has been suppressed
 }
-
+#endif
 
 
 // the LET command
