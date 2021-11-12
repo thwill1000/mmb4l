@@ -72,6 +72,7 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/fun_bound.c
     linux-src/functions/fun_call.c
     linux-src/functions/fun_choice.c
+    linux-src/functions/fun_chr.c
     linux-src/functions/fun_cwd.c
     linux-src/functions/fun_date.c
     linux-src/functions/fun_datetime.c

@@ -3,7 +3,12 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a3 - ?-???-2021:
-   - Added PRINT @(x%, y%) expression:
+  - Added CHR$(UTF8 codepoint%) function:
+    - given a Unicode code-point returns the 1-4 character string encoding that
+      character in UTF-8 format.
+    - printing such characters is not compatible with OPTION CODEPAGE being
+      set.
+  - Added PRINT @(x%, y%) expression:
     - unlike the CMM2, x% & y% are obligatory and in character coordinates,
       there is no mode parameter.
     - equivalent to:

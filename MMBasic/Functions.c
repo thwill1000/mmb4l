@@ -93,7 +93,7 @@ void fun_atn(void) {
 }
 
 
-
+#if !defined(__linux__)
 // convert a number into a one character string
 // s$ = CHR$(nbr)
 void fun_chr(void) {
@@ -105,6 +105,7 @@ void fun_chr(void) {
   sret[1] = i;
     targ = T_STR;
 }
+#endif
 
 
 
