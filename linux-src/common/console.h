@@ -58,6 +58,9 @@
 #define BRIGHT_YELLOW   14
 #define BRIGHT_WHITE    15
 
+extern int ListCnt;
+extern int MMCharPos;
+
 void console_init();
 void console_background(int colour);
 void console_bell();
@@ -99,6 +102,9 @@ void console_invert(int invert);
 
 /** Gets the number of characters waiting in the console input queue. */
 int console_kbhit(void);
+
+/** Writes a character to the console. */
+char console_putc(char c);
 
 void console_reset(void);
 

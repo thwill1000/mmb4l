@@ -7,7 +7,7 @@ extern "C" {
 
 int error_check() { return errno; }
 int MMgetchar(void) { return -1; }
-char MMputchar(char c) { return c; }
+char console_putc(char c) { return c; }
 
 }
 

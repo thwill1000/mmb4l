@@ -35,6 +35,9 @@ static struct termios orig_termios;
 static char console_rx_buf_data[CONSOLE_RX_BUF_SIZE];
 static RxBuf console_rx_buf;
 
+int ListCnt = 0;
+int MMCharPos = 0;
+
 void console_init(void) {
     rx_buf_init(
             &console_rx_buf,
@@ -223,6 +226,17 @@ int console_getc(void) {
     }
 
     return ch;
+}
+
+char console_putc(char c) {
+    putc(c, stdout);
+    fflush(stdout);
+    if (isprint(c)) MMCharPos++;
+    if (c == '\r' || c == '\n') {
+        MMCharPos = 1;
+        ListCnt++;
+    }
+    return c;
 }
 
 void console_set_title(const char *title) {

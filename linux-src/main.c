@@ -42,8 +42,6 @@ PARTICULAR PURPOSE.
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
-int ListCnt;
-int MMCharPos;
 volatile int MMAbort = false;
 struct option_s Option;
 int WatchdogSet, IgnorePIN;
@@ -328,18 +326,6 @@ int MMgetchar(void) {
     }
     prevchar = c;
     return c == '\n' ? '\r' : c;
-}
-
-// put a character out to the operating system
-char MMputchar(char c) {
-    putc(c, stdout);
-    fflush(stdout);
-    if (isprint(c)) MMCharPos++;
-    if (c == '\r' || c == '\n') {
-        MMCharPos = 1;
-        ListCnt++;
-    }
-    return c;
 }
 
 // get a line from the keyboard or a file handle
