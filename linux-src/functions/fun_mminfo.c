@@ -1,6 +1,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "../common/codepage.h"
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/global_aliases.h"
@@ -237,6 +238,10 @@ static void mminfo_option(char *p) {
     } else if (checkstring(p, "CASE")) {
         g_string_rtn = GetTempStrMemory();
         option_list_case_to_string(g_options.Listcase, g_string_rtn);
+        g_rtn_type = T_STR;
+    } else if (checkstring(p, "CODEPAGE")) {
+        g_string_rtn = GetTempStrMemory();
+        if (FAILED(codepage_to_string(codepage_current, g_string_rtn))) ERROR_INTERNAL_FAULT;
         g_rtn_type = T_STR;
     } else if (checkstring(p, "CONSOLE")) {
         g_string_rtn = GetTempStrMemory();

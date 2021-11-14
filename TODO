@@ -5,8 +5,6 @@ Required for alpha 3
 --------------------
 
 Implement serial I/O
-Implement OPTION CODEPAGE
-  - to automagically convert chars 128+ to Unicode
 Implement CONSOLE SETSIZE x%, y%
 Allow normal string (not just LONGSTRING) as second argument to SYSTEM
   - also trim trailing whitespace

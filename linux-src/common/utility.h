@@ -3,6 +3,9 @@
 
 #include <stdlib.h>
 
+#define FAILED(x) (x != 0)
+#define SUCCEEDED(x) (x == 0)
+
 /**
  * Returns an absolute/canonical path, replacing any '\' with '/'.
  *

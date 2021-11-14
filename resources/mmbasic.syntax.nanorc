@@ -164,7 +164,7 @@ icolor cyan "\<(option resolution(| character| pixel))\>"
 icolor red "(^|^[[:space:]]*)\#include\>"
 
 ## functions returning strings
-icolor cyan "\<(format|lcase|lgetstr|mm.info)\$\("
+icolor cyan "\<(field|format|lcase|lgetstr|mm.info)\$\("
 
 ## system variables
 icolor cyan "\<(cwd|mm.device|mm.errmsg)\$"

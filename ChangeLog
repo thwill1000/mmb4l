@@ -3,6 +3,21 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a3 - ?-???-2021:
+  - Added OPTION CODEPAGE page$ command:
+    - causes character bytes in the range 128-255 to be translated to Unicode
+      (UTF-8) when printed to the *console* according to a given code page /
+      mapping.
+    - supported values of page$ are currently:
+      - "NONE"   : no mapping, characters 128-255 are written as-is.
+      - "CMM2"   : best effort mapping to the characters of the CMM2 font.
+      - "CP437"  : characters 128-255 of the original IBM PC code 437.
+                   Note this was a non-ANSI code page which also included
+                   characters 1-31 which are not available in this mapping,
+                   but see "MMB4L".
+      - "CP1252" : the classic Windows-1252 Latin alphabet code page.
+      - "MMB4L"  : as "CP437" but with characters 129-159 replaced by the
+                   original non-ANSI CP437 characters 1-31 and with additional
+                   "useful" characters in positions 128, 161-170 and 255.
   - Added CHR$(UTF8 codepoint%) function:
     - given a Unicode code-point returns the 1-4 character string encoding that
       character in UTF-8 format.

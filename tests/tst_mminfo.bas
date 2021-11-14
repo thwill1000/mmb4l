@@ -41,6 +41,7 @@ add_test("test_option_break")
 add_test("test_option_case")
 add_test("test_option_default")
 add_test("test_option_explicit")
+add_test("test_option_codepage")
 add_test("test_option_resolution")
 add_test("test_option_serial")
 add_test("test_option_tab")
@@ -113,7 +114,7 @@ Sub test_envvar()
   System "echo $HOME", out%()
   Local expected_home$ = LGetStr$(out%(), 1, LLen(out%()) - 1)
 
-  assert_string_equals(expected_home$, Mm.Info$(ENVVAR "HOME"))
+  assert_string_equals(expected_home$, Mm.Info$(EnvVar "HOME"))
 End Sub
 
 Sub test_errmsg()
@@ -317,6 +318,27 @@ Sub test_option_explicit()
   Option Explicit False
   Option Explicit
   assert_string_equals("On", Mm.Info(Option Explicit))
+End Sub
+
+Sub test_option_codepage()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
+  assert_string_equals("None", Mm.Info(Option CodePage))
+
+  Option CodePage "CMM2"
+  assert_string_equals("CMM2", Mm.Info(Option CodePage))
+
+  Option CodePage "CP437"
+  assert_string_equals("CP437", Mm.Info(Option CodePage))
+
+  Option CodePage "CP1252"
+  assert_string_equals("CP1252", Mm.Info(Option CodePage))
+
+  Option CodePage "MMB4L"
+  assert_string_equals("MMB4L", Mm.Info(Option CodePage))
+
+  Option CodePage "None"
+  assert_string_equals("None", Mm.Info(Option CodePage))
 End Sub
 
 Sub test_option_resolution()

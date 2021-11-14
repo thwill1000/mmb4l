@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
+#include "codepage.h"
 #include "console.h"
 #include "error.h"
 #include "global_aliases.h"
@@ -229,9 +230,18 @@ int console_getc(void) {
 }
 
 char console_putc(char c) {
-    putc(c, stdout);
+    if (codepage_current && c > 127) {
+        char *ptr = codepage_current + 4 * (c - 128);
+        putc(*ptr++, stdout);           // 1st byte.
+        if (ptr) putc(*ptr++, stdout);  // Optional 2nd byte.
+        if (ptr) putc(*ptr++, stdout);  // Optional 3rd byte.
+        if (ptr) putc(*ptr++, stdout);  // Optional 4th byte.
+        MMCharPos++;
+    } else {
+        putc(c, stdout);
+        if (isprint(c)) MMCharPos++;
+    }
     fflush(stdout);
-    if (isprint(c)) MMCharPos++;
     if (c == '\r' || c == '\n') {
         MMCharPos = 1;
         ListCnt++;

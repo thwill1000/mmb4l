@@ -1,7 +1,11 @@
+#include <stdbool.h>
+
+#include "../common/codepage.h"
 #include "../common/error.h"
 #include "../common/global_aliases.h"
 #include "../common/option.h"
 #include "../common/parse.h"
+#include "../common/utility.h"
 #include "../common/version.h"
 
 static void option_base(char *p) {
@@ -25,6 +29,20 @@ static void option_case(char *p) {
     }
 
     SaveOptions();
+}
+
+static void option_codepage(char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_SYNTAX;
+    char *codepage_name = getCstring(argv[0]);
+    bool found = false;
+    for (int i = 0; CODEPAGE_NAMES[i]; i++) {
+        if (SUCCEEDED(codepage_set(codepage_name))) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) ERROR_INVALID("codepage");
 }
 
 static void option_console(char *p) {
@@ -75,6 +93,9 @@ void option_list(char *p) {
 
     option_list_case_to_string(g_options.Listcase, buf);
     option_list_item("Case", buf);
+
+    if (FAILED(codepage_to_string(codepage_current, buf))) ERROR_INTERNAL_FAULT;
+    option_list_item("CodePage", buf);
 
     option_console_to_string(g_options.console, buf);
     option_list_item("Console", buf);
@@ -127,6 +148,8 @@ void cmd_option(void) {
         option_break(p);
     } else if ((p = checkstring(cmdline, "CASE"))) {
         option_case(p);
+    } else if ((p = checkstring(cmdline, "CODEPAGE"))) {
+        option_codepage(p);
     } else if ((p = checkstring(cmdline, "CONSOLE"))) {
         option_console(p);
     } else if ((p = checkstring(cmdline, "DEFAULT"))) {

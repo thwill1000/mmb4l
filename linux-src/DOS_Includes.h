@@ -84,6 +84,7 @@ extern char *CFunctionFlash, *CFunctionLibrary, **FontTable;
 char *GetIntAddress(char *p);
 int check_interrupt(void);
 void FlashWriteInit(char *p, int nbr);
+int codepage_set(const char *page_name);
 void dump(char *p, int nbr);
 void interrupt_clear(void);
 
