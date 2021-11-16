@@ -27,6 +27,7 @@ provisions:
  the C language function associated with commands, functions or operators should be
  declared here
 **********************************************************************************/
+#include "/home/pi/github/mmb4l-src/linux-src/Configuration.h"
 #if !defined(INCLUDE_COMMAND_TABLE) && !defined(INCLUDE_TOKEN_TABLE)
 // format:
 //      void cmd_???(void)

@@ -24,6 +24,7 @@
     void fun_mmdevice(void);
     void fun_mminfo(void);
     void fun_peek(void);
+    void fun_pin(void);
     void fun_time(void);
     void fun_timer(void);
     void fun_rgb(void);
@@ -45,7 +46,7 @@
     { "Field$(",      T_FUN | T_STR,      0, fun_field    },
     { "Format$(",     T_FUN | T_STR,      0, fun_format   },
     { "Input$(",      T_FUN | T_STR,      0, fun_inputstr },
-    { "JSON$",        T_FUN | T_STR,      0, fun_json     },
+    { "JSON$(",       T_FUN | T_STR,      0, fun_json     },
     { "LCompare(",    T_FUN | T_INT,      0, fun_lcompare },
     { "LGetByte(",    T_FUN | T_INT,      0, fun_lgetbyte },
     { "LGetStr$(",    T_FUN | T_STR,      0, fun_lgetstr  },
@@ -55,6 +56,7 @@
     { "Lof(",         T_FUN | T_INT,      0, fun_lof      },
     { "Math(",        T_FUN | T_NBR,      0, fun_math     },
     { "Peek(",        T_FUN | T_INT | T_NBR, 0, fun_peek  },
+    { "Pin(",         T_FUN | T_INT,      0, fun_pin      },
     { "Rgb(",         T_FUN | T_INT,      0, fun_rgb      },
     { "Time$",        T_FNA | T_STR,      0, fun_time     },
     { "Timer",        T_FNA | T_INT,      0, fun_timer    },

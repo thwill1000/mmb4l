@@ -3,7 +3,7 @@ MMBasic.h
 
 Include file that contains the globals and defines for MMBasic.c in MMBasic.
 
-Copyright 2011 - 2021 Geoff Graham.  All Rights Reserved.
+Copyright 2011 - 2018 Geoff Graham.  All Rights Reserved.
 
 This file and modified versions of this file are supplied to specific individuals or organisations under the following
 provisions:
@@ -18,11 +18,26 @@ provisions:
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 ************************************************************************************************************************/
+//#ifndef float
+//#define float MMFLOAT
+//#endif
 
-#include "/home/pi/github/mmb4l-src/linux-src/Configuration.h" // lb
-#include <stddef.h> // lb
-#include <setjmp.h> // lb
-#include <sys/types.h> // lb
+#include <stdlib.h>
+#include <stdint.h>
+#include <setjmp.h>
+#include <ctype.h>
+#include <string.h>
+#include <limits.h>
+#include <math.h>
+
+#if defined(MAXIMITE) || defined(UBW32) || defined(DUINOMITE) || defined(COLOUR)
+  #define MMFAMILY
+#endif
+#if defined MMFAMILY
+#include "../Maximite/configuration.h"                          // memory configuration defines for the particular hardware this is running on
+#else
+#include "Configuration.h"                          // memory configuration defines for the particular hardware this is running on
+#endif
 // Types used to define an item of data.  Often they are ORed together.
 // Used in tokens, variables and arguments to functions
 #define T_NOTYPE       0                            // type not set or discovered
@@ -45,11 +60,9 @@ provisions:
 
 #define C_BASETOKEN 0x80                            // the base of the token numbers
 
-// flags used in the program lines
-#define T_CMDEND    0                               // end of a command
-#define T_NEWLINE   1                               // Single byte indicating the start of a new line
-#define T_LINENBR   2                               // three bytes for a line number
-#define T_LABEL     3                               // variable length indicating a label
+#define T_CMDEND    0                               // flags used in the program lines
+#define T_LINENBR   1
+#define T_LABEL     2
 
 #define E_END       255                             // dummy last operator in an expression
 
@@ -70,15 +83,29 @@ provisions:
 // this flag is used to signal that automatic precision is to be used in FloatToStr()
 #define STR_AUTO_PRECISION  999
 
+struct s_vartbl {                               // structure of the variable table
+    char name[MAXVARLEN];                       // variable's name
+    char type;                                  // its type (T_NUM, T_INT or T_STR)
+    char level;                                 // its subroutine or function level (used to track local variables)
+    short int dims[MAXDIM];                     // the dimensions. it is an array if the first dimension is NOT zero
+    unsigned char size;                         // the number of chars to allocate for each element in a string array
+    union u_val {
+        MMFLOAT f;                              // the value if it is a float
+        long long int i;                        // the value if it is an integer
+        MMFLOAT *fa;                            // pointer to the allocated memory if it is an array of floats
+        long long int *ia;                      // pointer to the allocated memory if it is an array of integers
+        char *s;                                // pointer to the allocated memory if it is a string
+    } val;
+};
 extern struct s_vartbl *vartbl;
 
-extern int varcnt;                                    // number of variables defined (eg, largest index into the variable table)
-extern int VarIndex;                                  // index of the current variable.  set after the findvar() function has found/created a variable
-extern int LocalIndex;                                // used to track the level of local variables
+extern int varcnt;                              // number of variables defined (eg, largest index into the variable table)
+extern int VarIndex;                            // index of the current variable.  set after the findvar() function has found/created a variable
+extern int LocalIndex;                          // used to track the level of local variables
 
-extern int OptionBase;                                // value of OPTION BASE
-extern char OptionExplicit;                           // true if OPTION EXPLICIT has been used
-extern char DefaultType;                              // the default type if a variable is not specifically typed
+extern int OptionBase;                          // value of OPTION BASE
+extern char OptionExplicit;                     // true if OPTION EXPLICIT has been used
+extern char DefaultType;                        // the default type if a variable is not specifically typed
 
 
 //#if !defined(BOOL_ALREADY_DEFINED)
@@ -95,6 +122,7 @@ extern char DefaultType;                              // the default type if a v
 #endif
 
 #define MAXLINENBR          65001                                   // maximim acceptable line number
+#define NOLINENBR           (MAXLINENBR + 1)                        // dummy line number to indicate that a line number has not been used
 
 // skip whitespace
 // finishes with x pointing to the next non space char
@@ -106,8 +134,8 @@ extern char DefaultType;                              // the default type if a v
 
 // skip to the next line
 // skips text and and element separators until it is pointing to the zero char marking the start of a new line.
-// the next byte will be either the newline token or zero char if end of program
-#define skipline(x)     while(!(x[-1] == 0 && (x[0] == T_NEWLINE || x[0] == 0)))x++
+// the next byte will be either the line number token or zero char if end of program
+#define skipline(x)     while(!(x[-1] == 0 && (x[0] == T_LINENBR || x[0] == 0)))x++
 
 // find a token
 // finishes pointing to the token or zero char if not found in the line
@@ -158,13 +186,12 @@ extern char *cmdline;                           // Command line terminated with 
 extern char *nextstmt;                          // Pointer to the next statement to be executed.
 extern char *ep;                                // Pointer to the argument to a function
 
-extern int OptionErrorSkip;                     // value of OPTION ERROR
+extern int OptionErrorAbort;                    // value of OPTION ERROR
 extern int MMerrno;
-extern char MMErrMsg[MAXERRMSG];                // array holding the error msg
-
+extern char *MMErrMsg;
 extern char *subfun[];                          // Table of subroutines and functions built when the program starts running
 extern char CurrentSubFunName[MAXVARLEN + 1];   // the name of the current sub or fun
-extern char CurrentInterruptName[MAXVARLEN + 1];// the name of the current interrupt function
+
 
 struct s_tokentbl {                             // structure of the token table
     char *name;                                 // the string (eg, PRINT, FOR, ASC(, etc)
@@ -176,8 +203,9 @@ extern const struct s_tokentbl tokentbl[];
 extern const struct s_tokentbl commandtbl[];
 
 // used for the trace function
+#define TRACE_BUFF_SIZE  128
 extern int TraceOn;
-extern char *TraceBuff[TRACE_BUFF_SIZE];        // TRACE_BUFF_SIZE defined in 'Configuration.h'
+extern char *TraceBuff[TRACE_BUFF_SIZE];
 extern int TraceBuffIndex;
 
 // used to store commonly used tokens for faster token checking
@@ -188,15 +216,8 @@ extern char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
 // void error(char *msg) ;
 void MIPS16 error(char *, ...);
 void MIPS16 InitBasic(void);
-
-#if defined(__linux__)
-int32_t FloatToInt32(MMFLOAT x);
-int64_t FloatToInt64(MMFLOAT x);
-#else
 int FloatToInt32(MMFLOAT);
 long long int FloatToInt64(MMFLOAT x);
-#endif
-
 void makeargs(char **tp, int maxargs, char *argbuf, char *argv[], int *argc, char *delim);
 void *findvar(char *, int);
 void erasearray(char *n);

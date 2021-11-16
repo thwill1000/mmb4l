@@ -7,7 +7,7 @@
 #include "../common/utility.h"
 #include "../common/version.h"
 
-#define EDIT_BUFFER_SIZE  512 * 1024
+// LB #define EDIT_BUFFER_SIZE  512 * 1024
 #define MAXDEFINES  256
 
 static int nDefines = 0;
