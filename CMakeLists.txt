@@ -107,6 +107,7 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/console.c
     linux-src/common/cJSON.c
     linux-src/common/error.c
+    linux-src/common/external.c
     linux-src/common/file.c
     linux-src/common/interrupt.c
     linux-src/common/maths.c
@@ -131,7 +132,7 @@ add_executable(mmbasic ${MMBASIC_CORE_SOURCE_FILES} ${MMBASIC_LINUX_SOURCE_FILES
 
 add_executable(keyboard_test linux-src/keyboard_test.c linux-src/common/rx_buf.c linux-src/common/console.c linux-src/common/mmtime.c linux-src/common/utility.c)
 
-target_link_libraries(mmbasic m)
+target_link_libraries(mmbasic m gpiod)
 
 # GoogleTest
 
