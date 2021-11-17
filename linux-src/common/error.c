@@ -165,7 +165,9 @@ static void verror(int32_t error, char *msg, va_list argp) {
         if (!OptionErrorSkip) MMErrorString("\r\n");
     }
 
-    strcpy(MMErrMsg, error_buffer);
+    // Don't overflow MMErrMsg.
+    strncpy(MMErrMsg, error_buffer, MAXERRMSG - 1);
+    MMErrMsg[MAXERRMSG - 1] = '\0';
 
     if (OptionErrorSkip) {
         longjmp(ErrNext, 1);

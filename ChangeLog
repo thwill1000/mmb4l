@@ -35,6 +35,9 @@ Version 2021.01.00-a3 - ?-???-2021:
     - synonym for MM.INFO(...).
     - interim fix pending rewrite of pre-processor and its use from interactive
       mode.
+  - Fixed bug where error messages over 127 characters would overflow into
+    the storage for MM.CMDLINE$
+    - error messages are now truncated to 127 characters.
 
 Version 2021.01.00-a2 - 6-Nov-2021:
   - Added ability to specify at the Linux shell a BASIC program that MMB4L
