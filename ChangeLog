@@ -23,6 +23,10 @@ Version 2021.01.00-a3 - ?-???-2021:
       character in UTF-8 format.
     - printing such characters is not compatible with OPTION CODEPAGE being
       set.
+  - Added CONSOLE SETSIZE [ATLEAST] width%, height% command:
+    - sends an XTerm control sequence to set the terminal size.
+    - if the optional ATLEAST modifier is used then will not reduce the
+      terminal width or height.
   - Added PRINT @(x%, y%) expression:
     - unlike the CMM2, x% & y% are obligatory and in character coordinates,
       there is no mode parameter.

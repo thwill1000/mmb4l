@@ -93,7 +93,7 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms);
  *
  * @param   width   on return holds the width in characters.
  * @param   height  on return holds the height in characters.
- * @return          1 on success, otherwise 0.
+ * @return          1 on success, 0 on error.
  */
 int console_get_size(int *width, int *height);
 
@@ -116,7 +116,17 @@ void console_reset(void);
  */
 void console_set_cursor_pos(int x, int y);
 
+/**
+ * Resizes the console.
+ *
+ * @param   width   width in characters.
+ * @param   height  height in characters.
+ * @return  0 on success, -1 on error.
+ */
+int console_set_size(int width, int height);
+
 void console_set_title(const char *title);
 void console_show_cursor(int show);
+
 
 #endif

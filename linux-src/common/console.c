@@ -325,12 +325,12 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
 int console_get_size(int *width, int *height) {
     struct winsize ws;
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
-        return 0;
-    } else {
-        *width = ws.ws_col;
-        *height = ws.ws_row;
-        return 1;
+        return 0; // Error
     }
+
+    *width = ws.ws_col;
+    *height = ws.ws_row;
+    return 1; // Success
 }
 
 void console_home_cursor(void) {
@@ -341,6 +341,26 @@ void console_set_cursor_pos(int x, int y) {
     char buf[STRINGSIZE];
     sprintf(buf, "\033[%d;%dH", y + 1, x + 1); // VT100 origin is (1,1) not (0,0).
     WRITE_CODE(buf);
+}
+
+int console_set_size(int width, int height) {
+    char buf[STRINGSIZE];
+    sprintf(buf, "\033[8;%d;%dt", height, width);
+    WRITE_CODE(buf);
+
+    // Wait 250ms for the change to take effect.
+    // Note that if the requested height and width are not possible (e.g. too big)
+    // then console_get_size() can still briefly return the requested value even
+    // if it does not represent reality.
+    mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(250));
+
+    int new_height = 0;
+    int new_width = 0;
+    if (console_get_size(&new_width, &new_height)
+            && (new_width == width)
+            && (new_height == height)) return 0; // Success
+
+    return -1; // Failure
 }
 
 const int ANSI_COLOURS[] = { 0, 4, 2, 6, 1, 5, 3, 7, 10, 14, 12, 16, 11, 15, 13, 17 };
