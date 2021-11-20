@@ -748,7 +748,7 @@ static int program_load_file_internal(char *filename) {
     program_process_csubs();
     // program_list_csubs(1);
 
-    return true;
+    return 0; // Success
 }
 
 int program_load_file(char *filename) {
@@ -766,7 +766,7 @@ int program_load_file(char *filename) {
     sprintf(title, "MMBasic - %s", CurrentFile);
     console_set_title(title);
 
-    if (error_check()) result = false;
+    if (error_check()) result = -1; // Error
 
     return result;
 }

@@ -73,7 +73,7 @@ void console_foreground(int colour);
 /**
  * Gets a character from the console without blocking.
  *
- * @return  -1  if no character.
+ * @return  -1 if no character.
  */
 int console_getc(void);
 
@@ -84,7 +84,7 @@ int console_getc(void);
  * @param   y           on return holds the y-position.
  * @param   timeout_ms  how long (in milliseconds) to wait for a response
  *                      from the terminal before reporting a failure.
- * @return              1 on success, otherwise 0.
+ * @return  0 on success, -1 on error.
  */
 int console_get_cursor_pos(int *x, int *y, int timeout_ms);
 
@@ -93,7 +93,7 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms);
  *
  * @param   width   on return holds the width in characters.
  * @param   height  on return holds the height in characters.
- * @return          1 on success, 0 on error.
+ * @return  0 on success, -1 on error.
  */
 int console_get_size(int *width, int *height);
 

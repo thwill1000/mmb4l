@@ -2,7 +2,7 @@
 #include "error.h"
 #include "version.h"
 
-int parse_is_end(char *p) {
+bool parse_is_end(char *p) {
     return *p == '\0' || *p == '\'';
 }
 
@@ -16,13 +16,13 @@ char *parse_check_string(char *p, char *tkn) {
     return NULL;  // or NULL if not
 }
 
-int parse_bool(char *p) {
+bool parse_bool(char *p) {
     if (parse_check_string(p, "ON") || parse_check_string(p, "TRUE")) {
-        return 1;
+        return true;
     } else if (parse_check_string(p, "OFF") || parse_check_string(p, "FALSE")) {
-        return 0;
+        return false;
     } else {
-        return getint(p, 0, 1);
+        return getint(p, 0, 1) == 1;
     }
 }
 

@@ -164,12 +164,12 @@ void interrupt_enable_tick(int irq, int64_t period_ns, char *interrupt_addr) {
     //         interrupt_ticks[irq].interrupt_addr);
 }
 
-int interrupt_check_key_press(char ch) {
+bool interrupt_check_key_press(char ch) {
     if (ch == interrupt_specific_key && interrupt_specific_key_addr) {
         interrupt_specific_key_pressed = true;
-        return 1;
+        return true;
     } else {
-        return 0;
+        return false;
     }
 }
 

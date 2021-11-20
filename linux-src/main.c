@@ -150,7 +150,7 @@ void longjmp_handler(int jmp_state) {
 }
 
 int main(int argc, char *argv[]) {
-    if (cmdline_parse(argc, (const char **) argv, &mmb_args) != 0) {
+    if (FAILED(cmdline_parse(argc, (const char **) argv, &mmb_args))) {
         fprintf(stderr, "Invalid command line arguments\n");
         cmdline_print_usage();
         exit(EX_FAIL);

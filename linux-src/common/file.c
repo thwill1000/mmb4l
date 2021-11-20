@@ -138,34 +138,35 @@ int FindFreeFileNbr(void) {
     return 0;  // keep the compiler quiet
 }
 
-int file_exists(const char *path) {
+bool file_exists(const char *path) {
     struct stat st;
     errno = 0;
     return stat(path, &st) == 0;
 }
 
-int file_is_empty(const char *path) {
+bool file_is_empty(const char *path) {
     struct stat st;
     errno = 0;
     stat(path, &st);
     return st.st_size == 0;
 }
 
-int file_is_regular(const char *path) {
+bool file_is_regular(const char *path) {
     struct stat st;
     errno = 0;
-    return (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? 1 : 0;
+    return (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? true : false;
 }
 
-int file_has_extension(const char *path, const char *extension, int case_insensitive) {
+bool file_has_extension(
+        const char *path, const char *extension, bool case_insensitive) {
     int start = strlen(path) - strlen(extension);
     if (start < 0) return 0;
     for (int i = 0; i < strlen(extension); ++i) {
         if (case_insensitive) {
-            if (toupper(path[i + start]) != toupper(extension[i])) return 0;
+            if (toupper(path[i + start]) != toupper(extension[i])) return false;
         } else {
-            if (path[i + start] != extension[i]) return 0;
+            if (path[i + start] != extension[i]) return false;
         }
     }
-    return 1;
+    return true;
 }

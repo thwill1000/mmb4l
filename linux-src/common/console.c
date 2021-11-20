@@ -314,23 +314,23 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
         sscanf(buf, "\033[%d;%dR", y, x);
         (*x)--; // adjust to account for VT100 origin being (1,1) not (0,0).
         (*y)--;
-        return 1;
+        return 0; // Success
     } else {
         *x = 0;
         *y = 0;
-        return 0;
+        return -1; // Failure
     }
 }
 
 int console_get_size(int *width, int *height) {
     struct winsize ws;
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
-        return 0; // Error
+        return -1; // Failure
     }
 
     *width = ws.ws_col;
     *height = ws.ws_row;
-    return 1; // Success
+    return 0; // Success
 }
 
 void console_home_cursor(void) {
@@ -356,7 +356,7 @@ int console_set_size(int width, int height) {
 
     int new_height = 0;
     int new_width = 0;
-    if (console_get_size(&new_width, &new_height)
+    if (SUCCEEDED(console_get_size(&new_width, &new_height))
             && (new_width == width)
             && (new_height == height)) return 0; // Success
 

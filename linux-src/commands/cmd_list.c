@@ -122,7 +122,7 @@ static void list_flash(int all) {
     }
 
     // Make sure we are looking at the latest (on disk) version of the program.
-    if (!program_load_file(CurrentFile)) return;
+    if (FAILED(program_load_file(CurrentFile))) return;
 
     ListProgram(ProgMemory, all);
 
@@ -136,7 +136,7 @@ static void list_csubs(int all) {
     }
 
     // Make sure we are looking at the latest (on disk) version of the program.
-    if (!program_load_file(CurrentFile)) return;
+    if (FAILED(program_load_file(CurrentFile))) return;
 
     program_list_csubs(all);
 }
@@ -150,7 +150,7 @@ void cmd_list(void) {
     skipspace(cmdline);
 
     // Use the current console dimensions for the output of the LIST command.
-    console_get_size(&Option.Width, &Option.Height);
+    if (FAILED(console_get_size(&Option.Width, &Option.Height))) ERROR_INTERNAL_FAULT;
 
     if (parse_is_end(cmdline)) {
         list_file(NULL, false);

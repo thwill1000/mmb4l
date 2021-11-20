@@ -1,6 +1,7 @@
 #if !defined(MMB4L_FILE)
 #define MMB4L_FILE
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -23,15 +24,16 @@ void MMfopen(char *fname, char *mode, int file_num);
 char MMfputc(char c, int file_num);
 
 /** Does the file exist? */
-int file_exists(const char *path);
+bool file_exists(const char *path);
 
 /** Is the file empty? */
-int file_is_empty(const char *path);
+bool file_is_empty(const char *path);
 
 /** Is the file a regular file, or a symbolic link to a regular file? */
-int file_is_regular(const char *path);
+bool file_is_regular(const char *path);
 
 /** Does the filename have a given extension/suffix? */
-int file_has_extension(const char *path, const char *extension, int case_insensitive);
+bool file_has_extension(
+        const char *path, const char *extension, bool case_insensitive);
 
 #endif

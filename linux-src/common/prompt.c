@@ -1,12 +1,12 @@
 #include "console.h"
+#include "error.h"
 #include "file.h"
+#include "utility.h"
 #include "version.h"
 
 #define NBRPROGKEYS  12  // Number of programmable function keys.
 #define MAXKEYLEN    24  // Maximum length of programmable function keys.
 #define HISTORY_SIZE  4 * STRINGSIZE
-
-typedef int bool;
 
 typedef struct {
     char buf[MAXKEYLEN + 3];
@@ -292,7 +292,7 @@ static void handle_up(PromptState *pstate) {
 
 void prompt_get_input(void) {
     int width, height;
-    console_get_size(&width, &height); // TODO: check return value
+    if (FAILED(console_get_size(&width, &height))) ERROR_INTERNAL_FAULT;
 
     PromptState state = { 0 };
     state.char_index = strlen(inpbuf); // get the current cursor position in the line

@@ -48,7 +48,7 @@ void interrupt_enable_tick(int irq, int64_t period_ns, char *interrupt_addr);
  * Checks if the specified character matches that set for the 'ON KEY ASCIIcode'
  * interrupt.
  */
-int interrupt_check_key_press(char ch);
+bool interrupt_check_key_press(char ch);
 
 /**
  * Flags that a PAUSE has been interrupted.

@@ -127,7 +127,8 @@ void cmd_edit(void) {
     // If we have just edited a .BAS file then load it.
     if (file_exists(file_path)
             && file_is_regular(file_path)
-            && file_has_extension(file_path, ".BAS", 1)) {
-        program_load_file(file_path);
+            && file_has_extension(file_path, ".BAS", true)) {
+        // Never expected to return failure - reports its own ERROR and calls longjmp().
+        if (FAILED(program_load_file(file_path))) ERROR_INTERNAL_FAULT;
     }
 }

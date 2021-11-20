@@ -1,6 +1,7 @@
 #if !defined(UTILITY_H)
 #define UTILITY_H
 
+#include <stdbool.h>
 #include <stdlib.h>
 
 #define max(a,b) \
@@ -31,9 +32,9 @@ char *canonicalize_path(const char *path, char *canonical_path, size_t sz);
  * Is the path absolute?
  *
  * @param  path  path to check.
- * @return       1 if the path is absolute, otherwise 0.
+ * @return       true if the path is absolute, otherwise false.
  */
-int is_absolute_path(const char *path);
+bool is_absolute_path(const char *path);
 
 /**
  * Gets the parent of the given path.

@@ -209,7 +209,7 @@ static void mminfo_fontwidth(char *p) {
 void mminfo_hres(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int width, height;
-    if (!console_get_size(&width, &height)) {
+    if (FAILED(console_get_size(&width, &height))) {
         ERROR_COULD_NOT("determine console size");
     }
     int scale = g_options.resolution == PIXEL ? FONT_WIDTH : 1;
@@ -220,7 +220,7 @@ void mminfo_hres(char *p) {
 static void mminfo_hpos(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int x, y;
-    if (!console_get_cursor_pos(&x, &y, 10000)) {
+    if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
     int scale = g_options.resolution == PIXEL ? FONT_WIDTH : 1;
@@ -301,7 +301,7 @@ static void mminfo_version(char *p) {
 void mminfo_vres(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int width, height;
-    if (!console_get_size(&width, &height)) {
+    if (FAILED(console_get_size(&width, &height))) {
         ERROR_COULD_NOT("determine console size");
     }
     int scale = g_options.resolution == PIXEL ? FONT_HEIGHT : 1;
@@ -312,7 +312,7 @@ void mminfo_vres(char *p) {
 static void mminfo_vpos(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int x, y;
-    if (!console_get_cursor_pos(&x, &y, 10000)) {
+    if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
     int scale = g_options.resolution == PIXEL ? FONT_HEIGHT : 1;

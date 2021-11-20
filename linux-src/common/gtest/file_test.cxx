@@ -12,8 +12,8 @@ char console_putc(char c) { return c; }
 }
 
 TEST(FileTest, Exists) {
-    EXPECT_EQ(file_exists("/bin/vi"), 1);
-    EXPECT_EQ(file_exists("/bin/does-not-exist"), 0);
+    EXPECT_EQ(file_exists("/bin/vi"), true);
+    EXPECT_EQ(file_exists("/bin/does-not-exist"), false);
 }
 
 TEST(FileTest, IsEmpty) {
@@ -22,18 +22,18 @@ TEST(FileTest, IsEmpty) {
     char filename[] = "/tmp/is_empty_XXXXXX";
     int fd = mkstemp(filename);
     close(fd);
-    EXPECT_EQ(file_exists(filename), 1);
-    EXPECT_EQ(file_is_empty(filename), 1);
+    EXPECT_EQ(file_exists(filename), true);
+    EXPECT_EQ(file_is_empty(filename), true);
 }
 
 TEST(FileTest, IsRegular) {
-    EXPECT_EQ(file_is_regular("/bin/vi"), 1);
-    EXPECT_EQ(file_is_regular("/bin"), 0);
+    EXPECT_EQ(file_is_regular("/bin/vi"), true);
+    EXPECT_EQ(file_is_regular("/bin"), false);
 }
 
 TEST(FileTest, HasExtension) {
-    EXPECT_EQ(file_has_extension("foo.bas", ".bas", 0), 1);
-    EXPECT_EQ(file_has_extension("foo.bas", ".BAS", 0), 0);
-    EXPECT_EQ(file_has_extension("foo.bas", ".BAS", 1), 1);
-    EXPECT_EQ(file_has_extension("foo.bas", ".inc", 1), 0);
+    EXPECT_EQ(file_has_extension("foo.bas", ".bas", false), true);
+    EXPECT_EQ(file_has_extension("foo.bas", ".BAS", false), false);
+    EXPECT_EQ(file_has_extension("foo.bas", ".BAS", true), true);
+    EXPECT_EQ(file_has_extension("foo.bas", ".inc", true), false);
 }

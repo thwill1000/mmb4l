@@ -86,7 +86,7 @@ char *canonicalize_path(const char *path, char *canonical_path, size_t sz) {
     return canonical_path;
 }
 
-int is_absolute_path(const char *path) {
+bool is_absolute_path(const char *path) {
     return path[0] == '\\' || path[0] == '/';
 }
 
