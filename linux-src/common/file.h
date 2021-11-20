@@ -12,7 +12,6 @@
 extern FILE *MMFilePtr[MAXOPENFILES];
 extern HANDLE *MMComPtr[MAXOPENFILES];
 extern int OptionFileErrorAbort;
-extern char CurrentFile[STRINGSIZE];
 
 void CloseAllFiles(void);
 int FindFreeFileNbr(void);

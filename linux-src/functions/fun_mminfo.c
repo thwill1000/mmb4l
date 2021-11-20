@@ -7,6 +7,7 @@
 #include "../common/global_aliases.h"
 #include "../common/option.h"
 #include "../common/parse.h"
+#include "../common/program.h"
 #include "../common/utility.h"
 #include "../common/version.h"
 

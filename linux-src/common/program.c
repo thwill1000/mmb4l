@@ -9,6 +9,8 @@
 
 #define MAXDEFINES  256
 
+char CurrentFile[STRINGSIZE];
+
 static int nDefines = 0;
 
 typedef struct sa_dlist {

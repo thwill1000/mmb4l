@@ -11,7 +11,6 @@
 FILE *MMFilePtr[MAXOPENFILES];
 HANDLE *MMComPtr[MAXOPENFILES];
 int OptionFileErrorAbort = true; // Appears to be unused.
-char CurrentFile[STRINGSIZE];
 
 /*******************************************************************************************
 I/O related functions called from within MMBasic

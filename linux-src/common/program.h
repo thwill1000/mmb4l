@@ -1,7 +1,11 @@
 #if !defined(MMB4L_PROGRAM_H)
 #define MMB4L_PROGRAM_H
 
+#include "../Configuration.h"
+
 #define EDIT_BUFFER_SIZE  512 * 1024
+
+extern char CurrentFile[STRINGSIZE];
 
 void ListNewLine(int *ListCnt, int all); // MMBasic/Commands.c
 

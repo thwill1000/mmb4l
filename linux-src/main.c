@@ -37,6 +37,7 @@ PARTICULAR PURPOSE.
 #include "common/global_aliases.h"
 #include "common/interrupt.h"
 #include "common/mmtime.h"
+#include "common/program.h"
 #include "common/utility.h"
 #include "common/version.h"
 

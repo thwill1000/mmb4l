@@ -3,6 +3,7 @@
 
 #include "../common/error.h"
 #include "../common/exit_codes.h"
+#include "../common/program.h"
 #include "../common/utility.h"
 #include "../common/version.h"
 
