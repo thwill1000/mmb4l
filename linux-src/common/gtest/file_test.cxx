@@ -31,9 +31,20 @@ TEST(FileTest, IsRegular) {
     EXPECT_EQ(file_is_regular("/bin"), false);
 }
 
-TEST(FileTest, HasExtension) {
-    EXPECT_EQ(file_has_extension("foo.bas", ".bas", false), true);
-    EXPECT_EQ(file_has_extension("foo.bas", ".BAS", false), false);
-    EXPECT_EQ(file_has_extension("foo.bas", ".BAS", true), true);
-    EXPECT_EQ(file_has_extension("foo.bas", ".inc", true), false);
+TEST(FileTest, GetExtension) {
+    const char *filename = "foo.bas";
+    const char *empty = "";
+    const char *extension_only = ".bas";
+    const char *no_extension = "foo";
+    EXPECT_STREQ(file_get_extension(filename), ".bas");
+    EXPECT_STREQ(file_get_extension(empty), "");
+    EXPECT_STREQ(file_get_extension(extension_only), ".bas");
+    EXPECT_STREQ(file_get_extension(no_extension), "");
+}
+
+TEST(FileTest, HasSuffix) {
+    EXPECT_EQ(file_has_suffix("foo.bas", ".bas", false), true);
+    EXPECT_EQ(file_has_suffix("foo.bas", ".BAS", false), false);
+    EXPECT_EQ(file_has_suffix("foo.bas", ".BAS", true), true);
+    EXPECT_EQ(file_has_suffix("foo.bas", ".inc", true), false);
 }

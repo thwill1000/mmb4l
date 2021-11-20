@@ -32,8 +32,17 @@ bool file_is_empty(const char *path);
 /** Is the file a regular file, or a symbolic link to a regular file? */
 bool file_is_regular(const char *path);
 
-/** Does the filename have a given extension/suffix? */
-bool file_has_extension(
-        const char *path, const char *extension, bool case_insensitive);
+/**
+ * Gets the file-extension, if any from a path.
+ *
+ * @param   path  the path.
+ * @return  pointer to the start of the file-extension within 'path', or
+ *          pointer to '\0' at the end of 'path' if it has not file-extension.
+ */
+const char *file_get_extension(const char *path);
+
+/** Does the filename have a given suffix? */
+bool file_has_suffix(
+        const char *path, const char *suffix, bool case_insensitive);
 
 #endif

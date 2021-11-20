@@ -1,6 +1,7 @@
 // C-language functions to implement MMBasic commands.
 #if !defined(INCLUDE_COMMAND_TABLE) && !defined(INCLUDE_TOKEN_TABLE)
 
+    void cmd_autosave(void);
     void cmd_call(void);
     void cmd_chdir(void);
     void cmd_close(void);
@@ -42,6 +43,7 @@
 // Entries for the command table.
 #if defined(INCLUDE_COMMAND_TABLE)
 
+    { "AutoSave",   T_CMD,              0, cmd_autosave },
     { "Call",       T_CMD,              0, cmd_call     },
     { "Chdir",      T_CMD,              0, cmd_chdir    },
     { "Close",      T_CMD,              0, cmd_close    },

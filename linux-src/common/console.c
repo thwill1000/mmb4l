@@ -202,9 +202,9 @@ int console_getc(void) {
     int ch = rx_buf_get(&console_rx_buf);
 
     switch (ch) {
-        case 0x0A:
-            ch = ENTER;
-            break;
+        // case 0x0A:
+        //     ch = ENTER;
+        //     break;
 
         case ESC: {
             char *p = ESCAPE_MAP;

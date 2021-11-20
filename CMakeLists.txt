@@ -24,6 +24,7 @@ set(MMBASIC_CORE_SOURCE_FILES
     MMBasic/Commands.c)
 
 set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
+    linux-src/commands/cmd_autosave.c
     linux-src/commands/cmd_call.c
     linux-src/commands/cmd_cfunction.c
     linux-src/commands/cmd_chdir.c

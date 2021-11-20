@@ -23,6 +23,10 @@ Version 2021.01.00-a3 - ?-???-2021:
       character in UTF-8 format.
     - printing such characters is not compatible with OPTION CODEPAGE being
       set.
+  - Added AUTOSAVE file$ command:
+    - note that as with the CMM2 there is no CRUNCH option; AUTOSAVE writes to a
+      file and MMB4L always crunches the program automatically when it loads it
+      for execution.
   - Added CONSOLE SETSIZE [ATLEAST] width%, height% command:
     - sends an XTerm control sequence to set the terminal size.
     - if the optional ATLEAST modifier is used then will not reduce the

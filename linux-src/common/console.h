@@ -6,7 +6,7 @@
 // the values returned by the standard control keys
 #define TAB 0x9
 #define BKSP 0x8
-#define ENTER 0xd
+#define ENTER 0xa
 #define ESC 0x1b
 
 // the values returned by the function keys

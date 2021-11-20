@@ -157,15 +157,20 @@ bool file_is_regular(const char *path) {
     return (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? true : false;
 }
 
-bool file_has_extension(
-        const char *path, const char *extension, bool case_insensitive) {
-    int start = strlen(path) - strlen(extension);
+const char *file_get_extension(const char *path) {
+    char *p = strrchr(path, '.');
+    return p ? p : path + strlen(path);
+}
+
+bool file_has_suffix(
+        const char *path, const char *suffix, bool case_insensitive) {
+    int start = strlen(path) - strlen(suffix);
     if (start < 0) return 0;
-    for (int i = 0; i < strlen(extension); ++i) {
+    for (int i = 0; i < strlen(suffix); ++i) {
         if (case_insensitive) {
-            if (toupper(path[i + start]) != toupper(extension[i])) return false;
+            if (toupper(path[i + start]) != toupper(suffix[i])) return false;
         } else {
-            if (path[i + start] != extension[i]) return false;
+            if (path[i + start] != suffix[i]) return false;
         }
     }
     return true;

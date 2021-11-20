@@ -338,7 +338,7 @@ If the system command fails (returns non-zero) then `MM.ERRNO` will be set to th
  * No high-resolution graphics commands/functions.
  * No sound commands/functions.
  * No GPIO commands/functions; this is only applicable to Raspberry Pi.
- * No serial comms, `XMODEM` or `AUTOSAVE` commands/functions (COMING SOON - hopefully).
+ * No serial comms or `XMODEM` commands/functions (COMING SOON - hopefully).
  * No programmable function keys (COMING SOON).
  * No `SEARCH PATH` option or command-line `RUN` shortcut '\*' (COMING SOON).
  * Supports `SETTICK` but not `SETTICK FAST`.
