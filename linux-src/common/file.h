@@ -7,10 +7,20 @@
 
 #include "../Configuration.h"
 
-#define HANDLE uint64_t
+enum FileEntryType { fet_closed, fet_file, fet_serial };
 
-extern FILE *MMFilePtr[MAXOPENFILES];
-extern HANDLE *MMComPtr[MAXOPENFILES];
+typedef struct {
+    enum FileEntryType type;
+    union {
+        FILE *file_ptr;
+        int serial_fd;
+    };
+} FileEntry;
+
+//#define HANDLE uint64_t
+
+extern FileEntry file_table[MAXOPENFILES];
+//extern HANDLE *MMComPtr[MAXOPENFILES];
 
 void CloseAllFiles(void);
 int FindFreeFileNbr(void);

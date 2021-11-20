@@ -6,24 +6,33 @@
 #include "../common/version.h"
 
 void fun_lof(void) {
-    int fnbr, pos;
-    struct stat buf;
     targ = T_INT;
+
     skipspace(ep);
     if (*ep == '#') ep++;
-    fnbr = getinteger(ep) - 1;
-    if (fnbr < 0 || fnbr >= 10) error("Invalid file number");
-    if (MMComPtr[fnbr] != NULL) {
-        iret = 0;  // it is a serial I/O port and they are unbuffered
-    } else {
-        if (MMFilePtr[fnbr] == NULL) error("File number is not open");
-        pos = ftell(MMFilePtr[fnbr]);
-        if (error_check()) return;
-        fseek(MMFilePtr[fnbr], 0L, SEEK_END);
-        if (error_check()) return;
-        iret = ftell(MMFilePtr[fnbr]);
-        if (error_check()) return;
-        fseek(MMFilePtr[fnbr], pos, SEEK_SET);
-        if (error_check()) return;
+    int fnbr = getinteger(ep) - 1;
+    if (fnbr < 0 || fnbr >= 10) ERROR_INVALID("file number");
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ERROR_NOT_OPEN;
+            break;
+
+        case fet_file: {
+            int pos = ftell(file_table[fnbr].file_ptr);
+            FILE *f = file_table[fnbr].file_ptr;
+            error_check();
+            fseek(f, 0L, SEEK_END);
+            error_check();
+            iret = ftell(f);
+            error_check();
+            fseek(f, pos, SEEK_SET);
+            error_check();
+            break;
+        }
+
+        case fet_serial:
+            iret = 0; // Serial I/O ports are unbuffered.
+            break;
     }
 }

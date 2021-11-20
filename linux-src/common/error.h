@@ -28,6 +28,7 @@ uint8_t error_to_exit_code(int32_t error_code);
 #define ERROR_INVALID_IN_PROGRAM       ERROR_INVALID("in a program")
 #define ERROR_LINE_LENGTH              error("Line length")
 #define ERROR_NOT_ALLOWED(s)           error(s " not allowed")
+#define ERROR_NOT_OPEN                 error("File or device not open");
 #define ERROR_OUT_OF_MEMORY            error("Not enough memory")
 #define ERROR_SYNTAX                   error("Syntax")
 #define ERROR_UNIMPLEMENTED(s)         error("Unimplemented: " s)
