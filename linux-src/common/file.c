@@ -8,6 +8,7 @@
 #include "console.h"
 #include "error.h"
 #include "file.h"
+#include "serial.h"
 #include "utility.h"
 #include "version.h"
 
@@ -70,9 +71,7 @@ void file_close(int fnbr) {
             break;
 
         case fet_serial:
-            // SerialClose(MMComPtr[fnbr]);
-            file_table[fnbr].type = fet_closed;
-            file_table[fnbr].serial_fd = 0;
+            serial_close(fnbr);
             break;
     }
 }
@@ -99,11 +98,11 @@ int file_getc(int fnbr) {
                 ch = -1;
             }
             error_check();
-            return ch;
+            return (int) ch;
         }
 
         case fet_serial:
-            // return Serialgetc(MMComPtr[fnbr]);
+            return serial_getc(fnbr);
             break;
     }
 
@@ -127,8 +126,7 @@ int file_loc(int fnbr) {
             break;
 
         case fet_serial:
-            ERROR_UNIMPLEMENTED("LOC() function for serial ports");
-            // result = SerialRxQueueSize(MMComPtr[fnbr]);
+            return serial_rx_queue_size(fnbr);
             break;
     }
 
@@ -166,7 +164,7 @@ int file_lof(int fnbr) {
     return result;
 }
 
-char file_putc(char ch, int fnbr) {
+int file_putc(int ch, int fnbr) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
     if (fnbr == 0) return console_putc(ch);
 
@@ -181,11 +179,13 @@ char file_putc(char ch, int fnbr) {
                 if (errno == 0) errno = EBADF;
             }
             error_check();
-            return ch;
+            // TODO: Do I really want to be flushing every character ?
+            fflush(file_table[fnbr].file_ptr); // Can this fail ?
+            return (int) ch;
         }
 
         case fet_serial:
-            // return Serialputc(ch, MMComPtr[fnbr]);
+            return serial_putc(ch, fnbr);
             break;
     }
 
@@ -215,7 +215,7 @@ int file_eof(int fnbr) {
         }
 
         case fet_serial:
-            // return SerialEOF(MMComPtr[fnbr]);
+            return serial_eof(fnbr);
             break;
     }
 

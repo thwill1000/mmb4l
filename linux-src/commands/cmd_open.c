@@ -2,6 +2,7 @@
 
 #include "../common/error.h"
 #include "../common/parse.h"
+#include "../common/serial.h"
 #include "../common/version.h"
 
 static void cmd_open_file(int argc, char **argv) {
@@ -31,7 +32,12 @@ static void cmd_open_gps(int argc, char **argv) {
 }
 
 static void cmd_open_serial(int argc, char **argv) {
-    ERROR_UNIMPLEMENTED("OPEN comspec AS [#]fnbr");
+    char *comspec = getCstring(argv[0]);
+
+    int fnbr = parse_file_number(argv[2], false);
+    if (fnbr == -1) ERROR_INVALID_FILE_NUMBER;
+
+    serial_open(comspec, fnbr);
 }
 
 /**

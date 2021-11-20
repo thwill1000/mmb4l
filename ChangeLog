@@ -3,6 +3,10 @@ ChangeLog
 ---------
 
 Version 2021.01.00-a3 - ?-???-2021:
+  - Added serial port support, e.g.
+        OPEN "/dev/ttyS0: 115200" As #1
+    this is very preliminary and in need of extensive user testing,
+    see README for details.
   - Added OPTION CODEPAGE page$ command:
     - causes character bytes in the range 128-255 to be translated to Unicode
       (UTF-8) when printed to the *console* according to a given code page /

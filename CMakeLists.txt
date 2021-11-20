@@ -122,6 +122,7 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/program.c
     linux-src/common/prompt.c
     linux-src/common/rx_buf.c
+    linux-src/common/serial.c
     linux-src/common/utility.c)
 
 set(MMBASIC_LINUX_SOURCE_FILES

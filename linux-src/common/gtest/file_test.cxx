@@ -8,6 +8,11 @@ extern "C" {
 int error_check() { return errno; }
 int MMgetchar(void) { return -1; }
 char console_putc(char c) { return c; }
+void serial_close(int fnbr) { }
+int serial_eof(int fnbr) { return -1; }
+int serial_getc(int fnbr) { return -1; }
+int serial_putc(int ch, int fnbr) { return -1; }
+int serial_rx_queue_size(int fnbr) { return -1; }
 
 }
 

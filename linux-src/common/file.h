@@ -31,7 +31,7 @@ int file_eof(int fnbr);
 int file_getc(int fnbr);
 int file_loc(int fnbr);
 int file_lof(int fnbr);
-char file_putc(char ch, int fnbr);
+int file_putc(int ch, int fnbr);
 void file_seek(int fnbr, int idx);
 
 /** Does the file exist? */

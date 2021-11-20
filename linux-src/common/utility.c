@@ -130,3 +130,12 @@ void unquote(char *str) {
         str[len - 2] = '\0';
     }
 }
+
+char *strupr(char *s) {
+    char *p = s;
+    while (*p != '\0') {
+        *p = toupper(*p);
+        p++;
+    }
+    return s;
+}
