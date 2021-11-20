@@ -13,7 +13,7 @@ FileEntry file_table[MAXOPENFILES] = { 0 };
 /**
  * @param  fname  filename in C-string style, not MMBasic style.
  */
-void MMfopen(char *fname, char *mode, int fnbr) {
+void file_open(char *fname, char *mode, int fnbr) {
     if (fnbr < 1 || fnbr > 10) ERROR_INVALID("file number");
     fnbr--;
     if (file_table[fnbr].type != fet_closed) {
@@ -51,7 +51,7 @@ void MMfopen(char *fname, char *mode, int fnbr) {
     file_table[fnbr].file_ptr = f;
 }
 
-void MMfclose(int fnbr) {
+void file_close(int fnbr) {
     if (fnbr < 1 || fnbr > 10) ERROR_INVALID("file number");
     fnbr--;
 
@@ -76,7 +76,7 @@ void MMfclose(int fnbr) {
     }
 }
 
-void CloseAllFiles(void) {
+void file_close_all(void) {
     for (int fnbr = 0; fnbr < MAXOPENFILES; fnbr++) {
         switch (file_table[fnbr].type) {
             case fet_closed:
@@ -98,7 +98,7 @@ void CloseAllFiles(void) {
     }
 }
 
-int MMfgetc(int fnbr) {
+int file_getc(int fnbr) {
     if (fnbr < 0 || fnbr > 10) ERROR_INVALID("file number");
     if (fnbr == 0) return MMgetchar();
     fnbr--;
@@ -127,7 +127,7 @@ int MMfgetc(int fnbr) {
     return -1;
 }
 
-char MMfputc(char ch, int fnbr) {
+char file_putc(char ch, int fnbr) {
     if (fnbr < 0 || fnbr > 10) ERROR_INVALID("file number");
     if (fnbr == 0) return MMputchar(ch);
     fnbr--;
@@ -155,7 +155,7 @@ char MMfputc(char ch, int fnbr) {
     return -1;
 }
 
-int MMfeof(int fnbr) {
+int file_eof(int fnbr) {
     if (fnbr < 0 || fnbr > 10) ERROR_INVALID("file number");
     if (fnbr == 0) return 0;
     fnbr--;
@@ -186,8 +186,7 @@ int MMfeof(int fnbr) {
     return -1;
 }
 
-/** Find the first available free file number. */
-int FindFreeFileNbr(void) {
+int file_find_free(void) {
     for (int fnbr = 0; fnbr < MAXOPENFILES; fnbr++) {
         if (file_table[fnbr].type == fet_closed) return fnbr + 1;
     }

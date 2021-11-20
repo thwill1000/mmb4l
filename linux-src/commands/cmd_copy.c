@@ -1,3 +1,5 @@
+#include "../common/error.h"
+#include "../common/file.h"
 #include "../common/version.h"
 
 void cmd_copy(void) {  // thanks to Bryan Rentoul for the contribution
@@ -8,26 +10,26 @@ void cmd_copy(void) {  // thanks to Bryan Rentoul for the contribution
     ss[0] = tokenTO;  // this will be used to split up the argument line
     ss[1] = 0;
     {
-        getargs(
-            &cmdline, 3,
-            ss);  // getargs macro must be the first executable stmt in a block
-        if (argc != 3) error("Invalid syntax");
+        getargs(&cmdline, 3, ss);    // getargs macro must be the first executable stmt in a block
+        if (argc != 3) ERROR_SYNTAX;
         oldf = getCstring(argv[0]);  // get the old file name and convert to a
                                      // standard C string
         newf = getCstring(argv[2]);  // get the new file name and convert to a
                                      // standard C string
 
-        of = FindFreeFileNbr();
-        MMfopen(oldf, "r", of);
+        of = file_find_free();
+        file_open(oldf, "r", of);
 
-        nf = FindFreeFileNbr();
-        MMfopen(newf, "w", nf);  // We'll just overwrite any existing file
+        nf = file_find_free();
+        file_open(newf, "w", nf);  // We'll just overwrite any existing file
     }
+
     while (1) {
-        if (MMfeof(of)) break;
-        c = MMfgetc(of);
-        MMfputc(c, nf);
+        if (file_eof(of)) break;
+        c = file_getc(of);
+        file_putc(c, nf);
     }
-    MMfclose(of);
-    MMfclose(nf);
+
+    file_close(of);
+    file_close(nf);
 }

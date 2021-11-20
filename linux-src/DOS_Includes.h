@@ -56,8 +56,12 @@ extern char error_file[STRINGSIZE];
 #define FONT_BUILTIN_NBR 0
 #define FONT_TABLE_SIZE 0
 
-#define getConsole  MMInkey
-#define MMputchar   console_putc
+#define CloseAllFiles  file_close_all
+#define getConsole     MMInkey
+#define MMfeof         file_eof
+#define MMfgetc        file_getc
+#define MMfputc        file_putc
+#define MMputchar      console_putc
 
 // functions not used in the DOS version... so make them go away
 #define SaveOptions()    {}

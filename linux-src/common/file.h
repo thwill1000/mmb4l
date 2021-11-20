@@ -17,19 +17,19 @@ typedef struct {
     };
 } FileEntry;
 
-//#define HANDLE uint64_t
-
 extern FileEntry file_table[MAXOPENFILES];
-//extern HANDLE *MMComPtr[MAXOPENFILES];
 
-void CloseAllFiles(void);
-int FindFreeFileNbr(void);
-void MMfclose(int file_num);
-int MMfeof(int filenbr);
-int MMfgetc(int file_num);
-void MMgetline(int filenbr, char *p); // main.c
-void MMfopen(char *fname, char *mode, int file_num);
-char MMfputc(char c, int file_num);
+void MMgetline(int fnbr, char *p); // main.c
+
+/** Finds the first available free file number. */
+int file_find_free(void);
+
+void file_open(char *fname, char *mode, int fnbr);
+void file_close(int fnbr);
+void file_close_all(void);
+int file_eof(int fnbr);
+int file_getc(int fnbr);
+char file_putc(char ch, int fnbr);
 
 /** Does the file exist? */
 bool file_exists(const char *path);

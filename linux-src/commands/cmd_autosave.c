@@ -2,6 +2,7 @@
 
 #include "../common/console.h"
 #include "../common/error.h"
+#include "../common/file.h"
 #include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/utility.h"
@@ -80,13 +81,13 @@ cmd_autosave_read_exit:
 
 /** Writes out the file. */
 static void cmd_autosave_write_file(char *file_path, char *buf) {
-    int file_num = FindFreeFileNbr();
-    MMfopen(file_path, "wb", file_num);
+    int fnbr = file_find_free();
+    file_open(file_path, "wb", fnbr);
     char *p = buf;
     while (*p) {
-        MMfputc(*p++, file_num);
+        file_putc(*p++, fnbr);
     }
-    MMfclose(file_num);
+    file_close(fnbr);
 }
 
 void cmd_autosave(void) {

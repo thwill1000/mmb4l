@@ -1,5 +1,6 @@
 #include "../common/console.h"
 #include "../common/error.h"
+#include "../common/file.h"
 #include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/utility.h"
@@ -97,11 +98,11 @@ static void list_file(const char *filename, int all) {
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;
-    int file_num = FindFreeFileNbr();
-    MMfopen(file_path, "rb", file_num);
-    while (!MMfeof(file_num)) {
+    int fnbr = file_find_free();
+    file_open(file_path, "rb", fnbr);
+    while (!file_eof(fnbr)) {
         memset(line_buffer, 0, STRINGSIZE);
-        MMgetline(file_num, line_buffer);
+        MMgetline(fnbr, line_buffer);
         for (size_t i = 0; i < strlen(line_buffer); i++) {
             if (line_buffer[i] == TAB) line_buffer[i] = ' ';
         }
@@ -109,7 +110,7 @@ static void list_file(const char *filename, int all) {
         list_count += strlen(line_buffer) / Option.Width;
         ListNewLine(&list_count, all);
     }
-    MMfclose(file_num);
+    file_close(fnbr);
 
     // Ensure listing is followed by an empty line.
     if (strcmp(line_buffer, "") != 0) MMPrintString("\r\n");

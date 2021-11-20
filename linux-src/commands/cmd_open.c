@@ -20,7 +20,7 @@ static void cmd_open_file(int argc, char **argv) {
     if (*argv[4] == '#') argv[4]++;
     int fnbr = getinteger(argv[4]);
 
-    MMfopen(filename, mode, fnbr);
+    file_open(filename, mode, fnbr);
 }
 
 static void cmd_open_gps(int argc, char **argv) {

@@ -23,9 +23,9 @@ void fun_inputstr(void) {
         char *p = sret + 1;  // point to the start of the char array
         *sret = nbr;         // set the length of the returned string
         while (nbr) {
-            if (MMfeof(fnbr)) break;
+            if (file_eof(fnbr)) break;
             *p++ =
-                MMfgetc(fnbr);  // get the char and save in our returned string
+                file_getc(fnbr);  // get the char and save in our returned string
             nbr--;
         }
         *sret -= nbr;  // correct if we get less than nbr chars
