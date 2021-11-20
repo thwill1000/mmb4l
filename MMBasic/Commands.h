@@ -50,6 +50,7 @@ void cmd_subfun(void);
 void cmd_gosub(void);
 void cmd_goto(void);
 void cmd_if(void);
+void cmd_i2c(void);
 void cmd_input(void);
 void cmd_let(void);
 void cmd_lineinput(void);
@@ -119,6 +120,7 @@ void cmd_case(void);
   { "Function",   T_CMD,              0, cmd_subfun   },
   { "GoSub",      T_CMD,              0, cmd_gosub    },
   { "GoTo",       T_CMD,              0, cmd_goto     },
+  { "I2c",        T_CMD,              0, cmd_i2c      },
   { "If",         T_CMD,              0, cmd_if       },
   { "Line Input", T_CMD,              0, cmd_lineinput},
   { "Input",      T_CMD,              0, cmd_input    },

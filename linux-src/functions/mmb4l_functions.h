@@ -9,6 +9,7 @@
     void fun_datetime(void);
     void fun_day(void);
     void fun_dir(void);
+    void fun_ds18b20(void);
     void fun_eof(void);
     void fun_epoch(void);
     void fun_field(void);
@@ -47,6 +48,7 @@
     { "DateTime$(",   T_FUN | T_STR,      0, fun_datetime },
     { "Day$(",        T_FUN | T_STR,      0, fun_day      },
     { "Dir$(",        T_FUN | T_STR,      0, fun_dir      },
+    { "Ds18b20(",     T_FUN | T_STR,      0, fun_ds18b20  },
     { "Eof(",         T_FUN | T_INT,      0, fun_eof      },
     { "Epoch(",       T_FUN | T_INT,      0, fun_epoch    },
     { "Field$(",      T_FUN | T_STR,      0, fun_field    },

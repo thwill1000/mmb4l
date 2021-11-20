@@ -148,5 +148,9 @@ provisions:
 
     #include "MMBasic/MMBasic_Includes.h"
 
+// lb from Hardware_Includes.h for onewire.c
+    #define gofifo {    if(Option.Remote ==0){const struct sched_param priority1 = {99};    sched_setscheduler(0, SCHED_FIFO, &priority1);gpioSetTimerFunc(0, 10, NULL);}}
+    #define gonormal {    if(Option.Remote ==0){const struct sched_param priority0 = {0};    sched_setscheduler(0, SCHED_OTHER, &priority0); gpioSetTimerFunc(0, 10, T4Interrupt);}}
+
 #endif
 

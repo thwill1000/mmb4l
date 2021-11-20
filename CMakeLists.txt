@@ -109,11 +109,13 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/error.c
     linux-src/common/external.c
     linux-src/common/file.c
+    linux-src/common/i2c.c
     linux-src/common/interrupt.c
     linux-src/common/maths.c
     linux-src/common/memory.c
     linux-src/common/mmtime.c
     linux-src/common/option.c
+    linux-src/common/onewire.c
     linux-src/common/parse.c
     linux-src/common/program.c
     linux-src/common/prompt.c

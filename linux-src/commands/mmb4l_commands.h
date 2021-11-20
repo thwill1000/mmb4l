@@ -10,6 +10,7 @@
     void cmd_cursor(void);
     void cmd_cfunction(void);
     void cmd_dummy(void);
+    void cmd_ds18b20(void);
     void cmd_edit(void);
     void cmd_execute(void);
     void cmd_files(void);
@@ -23,6 +24,7 @@
     void cmd_memory(void);
     void cmd_mid(void);
     void cmd_mkdir(void);
+    void cmd_onewire(void);
     void cmd_open(void);
     void cmd_option(void);
     void cmd_pause(void);
@@ -52,6 +54,7 @@
     { "Copy",       T_CMD,              0, cmd_copy     },
     { "Console",    T_CMD,              0, cmd_console  },
     { "CSub",       T_CMD,              0, cmd_cfunction },
+    { "Ds18b20",    T_CMD,              0, cmd_ds18b20  },
     { "End CSub",   T_CMD,              0, cmd_null     },
     { "Execute",    T_CMD,              0, cmd_execute  },
     { "Files",      T_CMD,              0, cmd_files    },
@@ -81,6 +84,7 @@
     { "Math",       T_CMD,              0, cmd_math     },
     { "Memory",     T_CMD,              0, cmd_memory },
     { "Mode",       T_CMD,              0, cmd_dummy    },
+    { "Onewire",    T_CMD,              0, cmd_onewire  },
     { "Play",       T_CMD,              0, cmd_dummy    },
     { "Pin",        T_CMD,              0, cmd_pin      },
     { "Poke",       T_CMD,              0, cmd_poke     },

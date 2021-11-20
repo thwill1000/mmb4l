@@ -22,11 +22,13 @@ provisions:
 ************************************************************************************************************************/
 
 #define _SUPPRESS_PLIB_WARNING                      // required for XC1.33  Later compiler versions will need PLIB to be installed
-#include "/home/pi/github/mmb4l-src/MMBasic/MMBasic_Includes.h"
-#include "/home/pi/github/mmb4l-src/linux-src/Hardware_Includes.h"
-#include "/home/pi/github/mmb4l-src/linux-src/Configuration.h" 
+//#include "/home/pi/github/mmb4l-src/MMBasic/MMBasic_Includes.h"
+//#include "MMBasic_Includes.h"
+//#include "/home/pi/github/mmb4l-src/linux-src/Hardware_Includes.h"
+//#include "/home/pi/github/mmb4l-src/linux-src/Configuration.h" 
+#include "version.h"
 #include "IOPorts.h"
-#include "MM_Misc.h"
+//#include "MM_Misc.h"
 #include "external.h"
 #include <string.h> // lb from R-pi IOT in C
 #include <stdio.h> // lb from R-pi IOT in C

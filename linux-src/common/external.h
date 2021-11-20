@@ -106,6 +106,24 @@ extern char *InterruptReturn;
 extern int check_interrupt(void);
 // lb extern void ClearExternalIO(void);
 
+// lb copied from MM_Misc.h
+    extern char *InterruptReturn;
+    extern int check_interrupt(void);
+    extern char *GetIntAddress(char *p);
+
+    // struct for the interrupt configuration
+    #define T_LOHI   1
+    #define T_HILO   2
+    #define T_BOTH   3
+    struct s_inttbl {
+            int pin;                                   // the pin on which the $
+            int last;                                   // the last value of th$
+            char *intp;                                 // pointer to the inter$
+            int lohi;                                  // trigger condition (T_$
+    };
+    #define NBRINTERRUPTS           10                  // number of interrupts$
+    extern struct s_inttbl inttbl[NBRINTERRUPTS];
+// end of MM_Misc.h copy
 
 /****************************************************************************************************************************
 New, more portable, method of manipulating an I/O pin
