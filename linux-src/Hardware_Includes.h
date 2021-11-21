@@ -24,8 +24,6 @@ provisions:
 #if !defined(HARDWARE_INCLUDES_H)
     #define HARDWARE_INCLUDES_H
 
-    #include <errno.h>
-
     #include "Configuration.h"
     #include "DOS_Includes.h"
     #include "../MMBasic/VarTable.h"

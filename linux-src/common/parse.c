@@ -1,3 +1,5 @@
+#include <ctype.h>
+
 #include "console.h"
 #include "error.h"
 #include "version.h"

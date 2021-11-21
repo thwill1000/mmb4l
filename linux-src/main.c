@@ -25,8 +25,11 @@ PARTICULAR PURPOSE.
 ************************************************************************************************************************/
 
 #include <assert.h>
-#include <signal.h>
+#include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "common/cmdline.h"
@@ -48,8 +51,6 @@ struct option_s Option;
 int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary, **FontTable;
-
-// int ErrorInPrompt = false;
 
 char g_break_key = BREAK_KEY;
 CmdLineArgs mmb_args = { 0 };

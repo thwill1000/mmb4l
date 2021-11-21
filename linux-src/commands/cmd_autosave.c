@@ -1,4 +1,8 @@
+#include <ctype.h>
+#include <errno.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "../common/console.h"
 #include "../common/error.h"

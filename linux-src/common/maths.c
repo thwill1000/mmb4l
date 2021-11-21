@@ -20,6 +20,8 @@ provisions:
 ************************************************************************************************************************/
 #include <math.h>
 #include <complex.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "maths.h"
 #include "version.h"

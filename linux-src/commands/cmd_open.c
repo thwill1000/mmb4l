@@ -1,3 +1,5 @@
+#include <strings.h>
+
 #include "../common/error.h"
 #include "../common/parse.h"
 #include "../common/version.h"

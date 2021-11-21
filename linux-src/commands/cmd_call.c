@@ -1,3 +1,6 @@
+#include <ctype.h>
+#include <string.h>
+
 #include "../common/version.h"
 
 void cmd_call(void) {

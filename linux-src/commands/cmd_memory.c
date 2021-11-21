@@ -1,8 +1,9 @@
+#include <string.h>
+
 #include "../common/error.h"
+#include "../common/memory.h"
 #include "../common/utility.h"
 #include "../common/version.h"
-
-unsigned int UsedHeap(void); // memory.c
 
 static int64_t getint64(char *p, int64_t min, int64_t max) {
     int64_t i = getinteger(p);

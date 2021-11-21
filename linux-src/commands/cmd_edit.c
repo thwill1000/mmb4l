@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <errno.h>
+#include <string.h>
 #include <sys/stat.h>
 
 #include "../common/error.h"

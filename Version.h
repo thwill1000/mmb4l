@@ -32,14 +32,17 @@ provisions:
     // Uncomment the following line if you want the "Lite" version of the MX170 code
     // #define LITE
 
-
-    #include <stdlib.h>
     #include <setjmp.h>
+
+    #if !defined(NO_VERSION_STD_INCLUDES)
+    #include <errno.h>
+    #include <stdlib.h>
     #include <string.h>
     #include <ctype.h>
     #include <limits.h>
     #include <math.h>
     #include <float.h>
+    #endif
 
     // define the device/platform, include the appropriate hardware defines and set the startup message
     #if defined(__32MX170F256B__) || defined(__32MX270F256B__) || defined(__32MX170F256D__) || defined(__32MX270F256D__)

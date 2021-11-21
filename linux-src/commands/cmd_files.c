@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "../common/version.h"
 
 void cmd_files_internal(char *p) {

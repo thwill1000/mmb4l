@@ -21,6 +21,8 @@ provisions:
 
 ************************************************************************************************************************/
 
+#include <string.h>
+
 #include "version.h"
 
 // allocate static memory for programs, variables and the heap
@@ -49,7 +51,6 @@ int TempMemoryIsChanged = false;        // used to prevent unnecessary scanning 
 unsigned int MBitsGet(void *addr);
 void MBitsSet(void *addr, int bits);
 void *getheap(int size);
-unsigned int UsedHeap(void);
 
 /***********************************************************************************************************************
  Public memory management functions

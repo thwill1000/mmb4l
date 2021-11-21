@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "console.h"
 #include "error.h"
 #include "file.h"
