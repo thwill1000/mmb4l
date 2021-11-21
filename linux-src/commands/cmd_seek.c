@@ -12,15 +12,8 @@ void cmd_seek(void) {
     int fnbr = parse_file_number(argv[0], false);
     if (fnbr == -1) ERROR_INVALID_FILE_NUMBER;
 
-    int idx = getinteger(argv[2]) - 1;
-    if (idx < 0) ERROR_INVALID("seek position");
+    int idx = getinteger(argv[2]);
+    if (idx < 1) ERROR_INVALID("seek position");
 
-    fnbr--;
-    if (file_table[fnbr].type == fet_closed) ERROR_NOT_OPEN;
-    FILE *f = file_table[fnbr].file_ptr;
-
-    fflush(f);
-    fsync(fileno(f));
-    fseek(f, idx, SEEK_SET);
-    error_check();
+    file_seek(fnbr, idx);
 }

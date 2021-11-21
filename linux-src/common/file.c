@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "console.h"
 #include "error.h"
 #include "file.h"
 #include "utility.h"
@@ -14,7 +15,7 @@ FileEntry file_table[MAXOPENFILES] = { 0 };
  * @param  fname  filename in C-string style, not MMBasic style.
  */
 void file_open(char *fname, char *mode, int fnbr) {
-    if (fnbr < 1 || fnbr > 10) ERROR_INVALID("file number");
+    if (fnbr < 1 || fnbr > 10) ERROR_INVALID_FILE_NUMBER;
     fnbr--;
     if (file_table[fnbr].type != fet_closed) {
         error("File or device already open");
@@ -52,7 +53,7 @@ void file_open(char *fname, char *mode, int fnbr) {
 }
 
 void file_close(int fnbr) {
-    if (fnbr < 1 || fnbr > 10) ERROR_INVALID("file number");
+    if (fnbr < 1 || fnbr > 10) ERROR_INVALID_FILE_NUMBER;
     fnbr--;
 
     switch (file_table[fnbr].type) {
@@ -99,7 +100,7 @@ void file_close_all(void) {
 }
 
 int file_getc(int fnbr) {
-    if (fnbr < 0 || fnbr > 10) ERROR_INVALID("file number");
+    if (fnbr < 0 || fnbr > 10) ERROR_INVALID_FILE_NUMBER;
     if (fnbr == 0) return MMgetchar();
     fnbr--;
 
@@ -127,9 +128,66 @@ int file_getc(int fnbr) {
     return -1;
 }
 
+int file_loc(int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+
+    fnbr--;
+    int result = -1;
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ERROR_NOT_OPEN;
+            break;
+
+        case fet_file:
+            errno = 0;
+            result = ftell(file_table[fnbr].file_ptr) + 1;
+            error_check();
+            break;
+
+        case fet_serial:
+            ERROR_UNIMPLEMENTED("LOC() function for serial ports");
+            // result = SerialRxQueueSize(MMComPtr[fnbr]);
+            break;
+    }
+
+    return result;
+}
+
+int file_lof(int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+
+    fnbr--;
+    int result = -1;
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ERROR_NOT_OPEN;
+            break;
+
+        case fet_file: {
+            errno = 0;
+            FILE *f = file_table[fnbr].file_ptr;
+            int pos = ftell(f);
+            error_check();
+            fseek(f, 0L, SEEK_END);
+            error_check();
+            result = ftell(f);
+            error_check();
+            fseek(f, pos, SEEK_SET);
+            error_check();
+            break;
+        }
+
+        case fet_serial:
+            result = 0; // Serial I/O ports are unbuffered.
+            break;
+    }
+
+    return result;
+}
+
 char file_putc(char ch, int fnbr) {
-    if (fnbr < 0 || fnbr > 10) ERROR_INVALID("file number");
-    if (fnbr == 0) return MMputchar(ch);
+    if (fnbr < 0 || fnbr > 10) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr == 0) return console_putc(ch);
     fnbr--;
 
     switch (file_table[fnbr].type) {
@@ -156,7 +214,7 @@ char file_putc(char ch, int fnbr) {
 }
 
 int file_eof(int fnbr) {
-    if (fnbr < 0 || fnbr > 10) ERROR_INVALID("file number");
+    if (fnbr < 0 || fnbr > 10) ERROR_INVALID_FILE_NUMBER;
     if (fnbr == 0) return 0;
     fnbr--;
 
@@ -184,6 +242,22 @@ int file_eof(int fnbr) {
 
     assert(false);
     return -1;
+}
+
+void file_seek(int fnbr, int idx) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (idx < 1) ERROR_INVALID("seek position");
+
+    fnbr--;
+    idx--;
+
+    if (file_table[fnbr].type == fet_closed) ERROR_NOT_OPEN;
+    FILE *f = file_table[fnbr].file_ptr;
+
+    fflush(f);
+    fsync(fileno(f));
+    fseek(f, idx, SEEK_SET);
+    error_check();
 }
 
 int file_find_free(void) {

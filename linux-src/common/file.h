@@ -29,7 +29,10 @@ void file_close(int fnbr);
 void file_close_all(void);
 int file_eof(int fnbr);
 int file_getc(int fnbr);
+int file_loc(int fnbr);
+int file_lof(int fnbr);
 char file_putc(char ch, int fnbr);
+void file_seek(int fnbr, int idx);
 
 /** Does the file exist? */
 bool file_exists(const char *path);
