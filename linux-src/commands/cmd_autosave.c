@@ -31,7 +31,7 @@ static int cmd_autosave_read(char *buf) {
     char previous = '\0';
 
     for (;;) {
-        ch = MMInkey();
+        ch = console_getc();
 
         switch (ch) {
             case -1:

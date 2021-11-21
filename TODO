@@ -59,13 +59,12 @@ Implement SWAP
 Integrate 'pigpio' with Raspberry Pi build
 High resolution graphics
 Fix bug where TRACE will not log a line that you GOTO/GOSUB using a line number,
-<<<<<<< HEAD
   but will if you use a label
-Extend OPTION CODEPAGE
-  - Load codepage from file
-  - Peek/Poke codepage
-  - Save codepage to file
-=======
-  but will if you use a label.
 Can PRINT @(x,y) be implemented without using a function slot for @ ?
->>>>>>> f239d1e... Implement PRINT @(x, y)
+
+
+EDITOR issues
+-------------
+
+File numbers, e.g. #5 should be highlighted in green
+Should Ctrl-K delete to the end of the line instead of the entire line ?

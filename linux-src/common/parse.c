@@ -26,7 +26,7 @@ bool parse_bool(char *p) {
     }
 }
 
-int parse_colour(char *p, int allow_bright) {
+int parse_colour(char *p, bool allow_bright) {
     char *p2;
     if ((p2 = parse_check_string(p, "BLACK"))) {
         return BLACK;
@@ -71,4 +71,13 @@ int parse_colour(char *p, int allow_bright) {
     int colour = getint(p, BLACK, BRIGHT_WHITE);
     if (!allow_bright && colour > WHITE) colour = -1;
     return colour;
+}
+
+int parse_file_number(char *p, bool allow_zero) {
+    skipspace(p); // Do we need this ?
+    if (*p == '#') p++;
+    int fnbr = getinteger(p);
+    if (fnbr == 0 && !allow_zero) return -1;
+    if (fnbr < 0 || fnbr > MAXOPENFILES) return -1;
+    return fnbr;
 }

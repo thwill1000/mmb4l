@@ -18,14 +18,21 @@ Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
 
 add_test("test_chdir_mkdir_rmdir")
+add_test("test_close_errors")
 add_test("test_copy")
 add_test("test_dir")
+add_test("test_eof")
+add_test("test_inputstr")
 add_test("test_kill")
 add_test("test_loc")
+add_test("test_loc_errors")
 add_test("test_lof")
+add_test("test_lof_errors")
 add_test("test_rename")
 add_test("test_seek")
+add_test("test_seek_errors")
 add_test("test_tilde_expansion")
+add_test("test_open_errors")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -57,6 +64,23 @@ Sub test_chdir_mkdir_rmdir()
 
     ChDir current_dir$
     assert_string_equals(current_dir$, Mm.Info$(Directory))
+End Sub
+
+Sub test_close_errors()
+  ' Can't call on an unopened file.
+  On Error Skip 1
+  Close #1
+  assert_raw_error("File or device not open")
+
+  ' Can't call on file number #0.
+  On Error Skip 1
+  Close #0
+  assert_raw_error("Invalid file number")
+
+  ' Can't call on file number #11.
+  On Error Skip 1
+  Close #11
+  assert_raw_error("Invalid file number")
 End Sub
 
 Sub test_copy()
@@ -110,6 +134,77 @@ Sub test_dir()
   Kill tst_dir$ + "/abc"
   Kill tst_dir$ + "/file3"
   RmDir tst_dir$ + "/subdir"
+End Sub
+
+Sub test_eof()
+  Local f$ = file.TMPDIR$ + "/test_eof.tmp"
+
+  ' Write some test data.
+  Open f$ For Output As #1
+  Print #1, "Hello World"
+  Print #1, "Goodbye World"
+  Close #1
+
+  ' Simplest test.
+  Open f$ For Input As #1
+  assert_int_equals(0, Eof(#1))
+  Local s$ = Input$(255, #1)
+  assert_int_equals(-1, Eof(#1))
+  Close #1
+
+  ' Can't call on an unopened file.
+  On Error Skip 1
+  Local i% = Eof(#1)
+  assert_raw_error("File or device not open")
+
+  ' You can call on file number #0, it always returns 0.
+  assert_int_equals(0, Eof(#0))
+
+  ' Can call on file number #10.
+  Open f$ For Input As #10
+  assert_int_equals(0, Eof(#10))
+  s$ = Input$(255, #10)
+  assert_int_equals(-1, Eof(#10))
+  Close #10
+
+  ' Can't call on file number #11.
+  On Error Skip 1
+  i% = Eof(#11)
+  assert_raw_error("Invalid file number")
+End Sub
+
+Sub test_inputstr()
+  Local f$ = file.TMPDIR$ + "/test_inputstr.tmp"
+
+  ' Write some test data.
+  Open f$ For Output As #1
+  Print #1, "Hello World"
+  Print #1, "Goodbye World"
+  Close #1
+
+  ' Simplest test.
+  Open f$ For Input As #1
+  Local s$ = Input$(28, #1)
+  assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
+  Close #1
+
+  ' Can't call on an unopened file.
+  On Error Skip 1
+  s$ = Input$(28, #1)
+  assert_raw_error("File or device not open")
+
+  ' NOTE you can call on file number #0, but I can't automatically test this.
+
+  ' Can call on file number #10.
+  Open f$ For Input As #10
+  s$ = Input$(28, #10)
+  assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
+  Close #10
+
+  ' Can't call on file number #11.
+  On Error Skip 1
+  s$ = Input$(28, #11)
+  assert_raw_error("Invalid file number")
 End Sub
 
 Sub test_kill() {
@@ -172,6 +267,31 @@ Sub test_loc()
     Close #1
 End Sub
 
+Sub test_loc_errors()
+  ' Can't call on an unopened file.
+  On Error Skip 1
+  Local i% = Loc(#1)
+  assert_raw_error("File or device not open")
+
+  ' Can't call on file number #0.
+  On Error Skip 1
+  i% = Loc(#0)
+  assert_raw_error("Invalid file number")
+
+  ' Can call on file number #10.
+  Local f$ = file.TMPDIR + "/test_loc_errors.tmp"
+  Open f$ For Output As #10
+  Close #10
+  Open f$ For Random As #10
+  assert_int_equals(1, Loc(#10))
+  Close #10
+
+  ' Can't call on file number #11.
+  On Error Skip 1
+  i% = Loc(#11)
+  assert_raw_error("Invalid file number")
+End Sub
+
 Sub test_lof()
     Local f$ = file.TMPDIR + "/test_lof.tmp"
 
@@ -184,6 +304,32 @@ Sub test_lof()
     Open f$ For Random As #1
     assert_int_equals(11, Lof(#1))
     Close #1
+End Sub
+
+Sub test_lof_errors()
+  ' Can't call on an unopened file.
+  On Error Skip 1
+  Local i% = Lof(#1)
+  assert_raw_error("File or device not open")
+
+  ' Can't call on file number #0.
+  On Error Skip 1
+  i% = Lof(#0)
+  assert_raw_error("Invalid file number")
+
+  ' Can call on file number #10.
+  Local f$ = file.TMPDIR + "/test_lof_errors.tmp"
+  Open f$ For Output As #10
+  Print #10, "Hello World";
+  Close #10
+  Open f$ For Random As #10
+  assert_int_equals(11, Lof(#10))
+  Close #10
+
+  ' Can't call on file number #11.
+  On Error Skip 1
+  i% = Lof(#11)
+  assert_raw_error("Invalid file number")
 End Sub
 
 Sub test_seek()
@@ -211,6 +357,37 @@ Sub test_seek()
     assert_string_equals(CRLF$ + "Goodbye", s$)
 
     Close #1
+End Sub
+
+Sub test_seek_errors()
+  ' Can't call on an unopened file.
+  On Error Skip 1
+  Seek #1, 1
+  assert_raw_error("File or device not open")
+
+  ' Can't call on file number #0.
+  On Error Skip 1
+  Seek #0, 1
+  assert_raw_error("Invalid file number")
+
+  ' Can call on file number #10.
+  Local f$ = file.TMPDIR + "/test_lof_errors.tmp"
+  Open f$ For Output As #10
+  Print #10, "Hello World"
+  Print #10, "Goodbye World"
+  Close #10
+  Open f$ For Random As #10
+  Seek #10, 7
+  Local s$ = Input$(5, #10)
+  assert_string_equals("World", s$)
+  s$ = Input$(9, #10)
+  assert_string_equals(CRLF$ + "Goodbye", s$)
+  Close #10
+
+  ' Can't call on file number #11.
+  On Error Skip 1
+  Seek #11, 1
+  assert_raw_error("Invalid file number")
 End Sub
 
 Sub test_tilde_expansion()
@@ -282,4 +459,32 @@ Sub test_tilde_expansion()
   assert_false(Mm.Info(Exists my_test_dir$))
 
   ChDir original_dir$
+End Sub
+
+Sub test_open_errors()
+  Open file.TMPDIR$ + "/test_open_errors.txt" For Output As #1
+
+  ' Cannot use a file number that is already open.
+  On Error Skip 1
+  Open file.TMPDIR$ + "/test_open_errors.txt.2" For Output As #1
+  assert_raw_error("File or device already open")
+
+  ' But can use it after it is closed.
+  Close #1
+  Open file.TMPDIR$ + "/test_open_errors.txt.2" For Output As #1
+  Close #1
+
+  ' Can't open file number #0.
+  On Error Skip 1
+  Open file.TMPDIR$ + "/test_open_errors.txt" For Output As #0
+  assert_raw_error("Invalid file number")
+
+  ' Can use file number #10.
+  Open file.TMPDIR$ + "/test_open_errors.txt" For Output As #10
+  Close #10
+
+  ' Can't use file number #11.
+  On Error Skip 1
+  Open file.TMPDIR$ + "/test_open_errors.txt" For Output As #11
+  assert_raw_error("Invalid file number")
 End Sub

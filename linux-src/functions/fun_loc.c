@@ -1,14 +1,13 @@
 #include "../common/error.h"
+#include "../common/parse.h"
 #include "../common/version.h"
 
 void fun_loc(void) {
+    int fnbr = parse_file_number(ep, false);
+    if (fnbr == -1) ERROR_INVALID_FILE_NUMBER;
+
     targ = T_INT;
-
-    skipspace(ep);
-    if (*ep == '#') ep++;
-    int fnbr = getinteger(ep) - 1;
-    if (fnbr < 0 || fnbr >= 10) ERROR_INVALID("file number");
-
+    fnbr--;
     switch (file_table[fnbr].type) {
         case fet_closed:
             ERROR_NOT_OPEN;

@@ -1,22 +1,23 @@
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../common/parse.h"
 #include "../common/version.h"
 
 void fun_inputstr(void) {
     getargs(&ep, 3, ",");
     if (argc != 3) ERROR_SYNTAX;
+
     int nbr = getint(argv[0], 1, MAXSTRLEN);
-    if (*argv[2] == '#') argv[2]++;
-    sret = GetTempStrMemory();  // this will last for the life of the command
+    int fnbr = parse_file_number(argv[2], true);
+
     targ = T_STR;
-    int fnbr = getinteger(argv[2]);
+    sret = GetTempStrMemory();
 
     if (fnbr == 0) {  // accessing the console
         int i;
         for (i = 1; i <= nbr && console_kbhit(); i++) {
-            sret[i] = getConsole();  // get the char from the console input
-                                     // buffer and save in our returned string
+            sret[i] = console_getc();
         }
         *sret = i - 1;
     } else {
@@ -24,8 +25,7 @@ void fun_inputstr(void) {
         *sret = nbr;         // set the length of the returned string
         while (nbr) {
             if (file_eof(fnbr)) break;
-            *p++ =
-                file_getc(fnbr);  // get the char and save in our returned string
+            *p++ = file_getc(fnbr);
             nbr--;
         }
         *sret -= nbr;  // correct if we get less than nbr chars

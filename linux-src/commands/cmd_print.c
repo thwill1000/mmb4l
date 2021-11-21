@@ -1,6 +1,7 @@
 #include <stdbool.h>
 
 #include "../common/error.h"
+#include "../common/parse.h"
 #include "../common/version.h"
 
 #define PRINT_MMSTRING(s, fnbr)  MMfputs(s, fnbr)
@@ -15,13 +16,16 @@ void cmd_print(void) {
 
     getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ";,");               // this is a macro and must be the first executable stmt
 
-    if (argc > 0 && *argv[0] == '#') {                              // check if the first arg is a file number
-        argv[0]++;
-        fnbr = getinteger(argv[0]);                                 // get the number
+    if (argc > 0 && *argv[0] == '#') {
+        // First argument is a file number.
+        fnbr = parse_file_number(argv[0], true);
+        if (fnbr == -1) ERROR_INVALID_FILE_NUMBER;
+        // Set the next argument to be looked at.
         i = 1;
-        if (argc >= 2 && *argv[1] == ',') i = 2;                    // and set the next argument to be looked at
+        if (argc >= 2 && *argv[1] == ',') i = 2;
     } else {
-        fnbr = 0;                                                   // no file number so default to the standard output
+        // Use standard output.
+        fnbr = 0;
         i = 0;
     }
 

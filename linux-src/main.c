@@ -284,12 +284,6 @@ void FlashWriteInit(char *p, int nbr) {
     CurrentFile[0] = 0;
 }
 
-// get a character from the console
-// returns -1 if nothing there
-int MMInkey(void) {
-    return console_getc();
-}
-
 void CheckAbort(void) {
     if (!MMAbort) console_pump_input();
 
@@ -399,11 +393,6 @@ void MMgetline(int filenbr, char *p) {
     *p = 0;
 
     //printf("%s", p);
-}
-
-/** Checks if an interrupt has occurred. */
-int check_interrupt(void) {
-    return interrupt_check();
 }
 
 // dump a memory area to the console

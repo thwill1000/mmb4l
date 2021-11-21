@@ -25,6 +25,7 @@ uint8_t error_to_exit_code(int32_t error_code);
 #define ERROR_INTERNAL_FAULT           error("Internal fault (sorry)")
 #define ERROR_INVALID(s)               error("Invalid " s)
 #define ERROR_INVALID_ARGUMENT         ERROR_INVALID("argument")
+#define ERROR_INVALID_FILE_NUMBER      ERROR_INVALID("file number")
 #define ERROR_INVALID_IN_PROGRAM       ERROR_INVALID("in a program")
 #define ERROR_LINE_LENGTH              error("Line length")
 #define ERROR_NOT_ALLOWED(s)           error(s " not allowed")

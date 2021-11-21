@@ -1,4 +1,5 @@
 #include "../common/error.h"
+#include "../common/parse.h"
 #include "../common/version.h"
 
 static void cmd_open_file(int argc, char **argv) {
@@ -17,8 +18,8 @@ static void cmd_open_file(int argc, char **argv) {
     else
         ERROR_INVALID("file access mode");
 
-    if (*argv[4] == '#') argv[4]++;
-    int fnbr = getinteger(argv[4]);
+    int fnbr = parse_file_number(argv[4], false);
+    if (fnbr == -1) ERROR_INVALID_FILE_NUMBER;
 
     file_open(filename, mode, fnbr);
 }
