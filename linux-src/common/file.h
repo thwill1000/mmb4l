@@ -17,7 +17,7 @@ typedef struct {
     };
 } FileEntry;
 
-extern FileEntry file_table[MAXOPENFILES];
+extern FileEntry file_table[MAXOPENFILES + 1];
 
 void MMgetline(int fnbr, char *p); // main.c
 

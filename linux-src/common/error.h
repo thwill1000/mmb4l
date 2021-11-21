@@ -16,6 +16,7 @@ uint8_t error_to_exit_code(int32_t error_code);
 
 #define ERRNO_DEFAULT  1
 
+#define ERROR_ALREADY_OPEN             error("File or device already open")
 #define ERROR_ARGUMENT_COUNT           error("Argument count")
 #define ERROR_UNKNOWN_COMMAND          error("Unknown command")
 #define ERROR_UNKNOWN_SUBCOMMAND       error("Unknown subcommand")
