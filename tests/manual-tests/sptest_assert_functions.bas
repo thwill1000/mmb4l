@@ -2,13 +2,13 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 Option Default None
 Option Explicit On
 
-#include "../splib/system.inc"
-#include "../splib/array.inc"
-#include "../splib/file.inc"
-#include "../splib/list.inc"
-#include "../splib/string.inc"
-#include "../splib/vt100.inc"
-#include "../sptest/unittest.inc"
+#include "../../basic-src/splib/system.inc"
+#include "../../basic-src/splib/array.inc"
+#include "../../basic-src/splib/file.inc"
+#include "../../basic-src/splib/list.inc"
+#include "../../basic-src/splib/string.inc"
+#include "../../basic-src/splib/vt100.inc"
+#include "../../basic-src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
 

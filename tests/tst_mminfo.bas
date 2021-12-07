@@ -6,13 +6,13 @@ Option Explicit On
 Option Default None
 Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 
-#Include "splib/system.inc"
-#Include "splib/array.inc"
-#Include "splib/list.inc"
-#Include "splib/string.inc"
-#Include "splib/file.inc"
-#Include "splib/vt100.inc"
-#Include "sptest/unittest.inc"
+#Include "../basic-src/splib/system.inc"
+#Include "../basic-src/splib/array.inc"
+#Include "../basic-src/splib/list.inc"
+#Include "../basic-src/splib/string.inc"
+#Include "../basic-src/splib/file.inc"
+#Include "../basic-src/splib/vt100.inc"
+#Include "../basic-src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
