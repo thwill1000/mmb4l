@@ -142,19 +142,19 @@ icolor cyan "\<(magenta|mm.errno|mm.hres|mm.info|mm.vres|mod|mode)\>"
 icolor cyan "\<(next|none|not)\>"
 icolor cyan "\<(option|or)\>"
 icolor cyan "\<(path|pause|peek|pin|poke|print|purple)\>"
-icolor cyan "\<(read|red|reset|return|rgb)\>"
-icolor cyan "\<(select|serial|setcursor|setpin|settick|showcursor|settitle|spi|static|step|sub)\>"
+icolor cyan "\<(read|receive|red|reset|return|rgb)\>"
+icolor cyan "\<(select|send|serial|setcursor|setpin|settick|showcursor|settitle|spi|static|step|sub)\>"
 icolor cyan "\<(tab|text|then|to|tron|troff)\>"
 icolor cyan "\<(until|using)\>"
 icolor cyan "\<(var|varaddr|version|vpos|vres)\>"
 icolor cyan "\<(while|white)\>"
-icolor cyan "\<(xor)\>"
+icolor cyan "\<(xmodem|xor)\>"
 icolor cyan "\<(yellow)\>"
 
 ## options
 icolor cyan "\<(option base)\>"
 icolor cyan "\<(option codepage(| on| off))\>"
-icolor cyan "\<(option console (| both| serial| screen))\>"
+icolor cyan "\<(option console(| both| serial| screen))\>"
 icolor cyan "\<(option explicit(| on| off))\>"
 icolor cyan "\<(option resolution(| character| pixel))\>"
 
@@ -170,9 +170,10 @@ icolor cyan "\<(field|format|lcase|lgetstr|mm.info)\$\("
 icolor cyan "\<(cwd|mm.device|mm.errmsg)\$"
 
 ## keywords containing blanks
+icolor cyan "\<(continue\ do)\>"
 icolor cyan "\<(exists (dir|file|symlink))\>"
 icolor cyan "\<(exit do|for input as|for output as|line input|memory copy)\>"
-icolor cyan "\<(memory set|on error skip|on key|trace off)\>"
+icolor cyan "\<(memory set|on error (abort|ignore|skip)|on key|trace off)\>"
 icolor cyan "\<(trace on)\>"
 
 ## operators
