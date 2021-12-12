@@ -66,7 +66,8 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_sort.c
     linux-src/commands/cmd_system.c
     linux-src/commands/cmd_timer.c
-    linux-src/commands/cmd_trace.c)
+    linux-src/commands/cmd_trace.c
+    linux-src/commands/cmd_xmodem.c)
 
 set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/fun_at.c
@@ -123,7 +124,8 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/prompt.c
     linux-src/common/rx_buf.c
     linux-src/common/serial.c
-    linux-src/common/utility.c)
+    linux-src/common/utility.c
+    linux-src/common/xmodem.c)
 
 set(MMBASIC_LINUX_SOURCE_FILES
     ${MMBASIC_LINUX_COMMANDS_SOURCE_FILES}

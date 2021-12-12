@@ -7,6 +7,10 @@ Version 2021.01.00-a3 - ?-???-2021:
         OPEN "/dev/ttyS0: 115200" As #1
     this is very preliminary and in need of extensive user testing,
     see README for details.
+  - Added XMODEM {SEND|RECEIVE} file$, #fnbr command:
+    - #fnbr must first have been OPENed as a serial port.
+    - unlike other MMBasic ports cannot use XMODEM to send/receive to/from the
+      USB console.
   - Added OPTION CODEPAGE page$ command:
     - causes character bytes in the range 128-255 to be translated to Unicode
       (UTF-8) when printed to the *console* according to a given code page /

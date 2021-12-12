@@ -37,6 +37,7 @@
     void cmd_sort(void);
     void cmd_system(void);
     void cmd_timer(void);
+    void cmd_xmodem(void);
 
 #endif
 
@@ -86,5 +87,6 @@
     { "SetTitle",   T_CMD,              0, cmd_settitle },
     { "Sort",       T_CMD,              0, cmd_sort     },
     { "Text",       T_CMD,              0, cmd_dummy    },
+    { "XModem",     T_CMD,              0, cmd_xmodem   },
 
 #endif
