@@ -6,6 +6,7 @@ Const sys.VERSION$ = "2.0.0-a1"
 Const sys.NO_DATA$ = Chr$(&h7F)
 Const sys.CRLF$ = Chr$(13) + Chr$(10)
 
+Dim sys.break_flag%
 Dim sys.err$
 
 '!remove_if NO_INCLUDE_GUARDS
@@ -72,3 +73,23 @@ Function sys.firmware_version%(version$)
   Do While Len(s$) < 5 : s$ = s$ + "0" : Loop
   sys.firmware_version% = Val(s$)
 End Function
+
+Sub sys.override_break()
+  sys.break_flag% = 0
+  Option Break 4
+  On Key 3, sys.break_handler()
+End Sub
+
+Sub sys.break_handler()
+  Inc sys.break_flag%
+  If sys.break_flag% > 1 Then
+    sys.restore_break()
+    End
+  EndIf
+End Sub
+
+Sub sys.restore_break()
+  sys.break_flag% = 0
+  On Key 3, 0
+  Option Break 3
+End Sub

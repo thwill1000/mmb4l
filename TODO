@@ -12,7 +12,6 @@ Implement CONSOLE BLINK, BOLD, FAINT, ITALIC, REVERSE, STRIKE, UNDERLINE
 Required for alpha 5
 --------------------
 
-
 Write a proper lexer and ensure all Peter's "preprocessor tricks" work in both
   - programs, and
   - the command-line
