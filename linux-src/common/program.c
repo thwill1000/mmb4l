@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdint.h>
@@ -202,7 +201,7 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     while ((uintptr_t) pmem % 8 != 0) *pmem++ = 0;
     CFunctionFlash = pmem;
 
-    assert(!errno);
+    error_check();
 }
 
 /**

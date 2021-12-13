@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <string.h>
@@ -103,10 +102,9 @@ int file_getc(int fnbr) {
 
         case fet_serial:
             return serial_getc(fnbr);
-            break;
     }
 
-    assert(false);
+    ERROR_INTERNAL_FAULT;
     return -1;
 }
 
@@ -186,10 +184,9 @@ int file_putc(int ch, int fnbr) {
 
         case fet_serial:
             return serial_putc(ch, fnbr);
-            break;
     }
 
-    assert(false);
+    ERROR_INTERNAL_FAULT;
     return -1;
 }
 
@@ -216,10 +213,9 @@ int file_eof(int fnbr) {
 
         case fet_serial:
             return serial_eof(fnbr);
-            break;
     }
 
-    assert(false);
+    ERROR_INTERNAL_FAULT;
     return -1;
 }
 
