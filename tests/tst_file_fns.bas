@@ -402,9 +402,9 @@ Sub test_tilde_expansion()
   assert_string_equals(Mm.Info$(EnvVar "HOME"), Cwd$)
 
   ' Use SYSTEM with 'realpath' to determine relative path from HOME to TMPDIR.
-  Local ls%(50)
-  System "realpath --relative-to=$HOME " + file.TMPDIR$, ls%()
-  Local tmp_relative$ = "~/" + LGetStr$(ls%(), 1, LLen(ls%()) - 1)
+  Local s$
+  System "realpath --relative-to=$HOME " + file.TMPDIR$, s$
+  Local tmp_relative$ = "~/" + s$
 
   ChDir tmp_relative$
   assert_string_equals(file.TMPDIR$, Cwd$)
@@ -421,7 +421,6 @@ Sub test_tilde_expansion()
   Close #1
 
   Open my_test_file$ For Input As #1
-  Local s$
   Line Input #1, s$
   Close #1
   assert_string_equals("Hello World", s$)

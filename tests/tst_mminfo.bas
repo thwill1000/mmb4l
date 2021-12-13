@@ -63,9 +63,8 @@ End Sub
 Sub test_architecture()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
-  Local out%(32);
-  System "uname -s -m", out%()
-  Local expected_arch$ = LGetStr$(out%(), 1, LLen(out%()) - 1)
+  Local expected_arch$
+  System "uname -s -m", expected_arch$
 
   assert_string_equals(expected_arch$, Mm.Info$(Arch))
   assert_string_equals(Mm.Info$(Arch), Mm.Info$(Architecture))
@@ -73,9 +72,9 @@ End Sub
 
 Sub test_current()
   If Mm.Device$ = "MMB4L" Then
-    Local out%(32);
-    System "echo $HOME", out%()
-    Local expected_path$ = LGetStr$(out%(), 1, LLen(out%()) - 1) + "/github/mmb4l-src/tests/"
+    Local out$
+    System "echo $HOME", out$
+    Local expected_path$ = out$ + "/github/mmb4l-src/tests/"
   Else
     Local expected_path$ = "A:/MMB4L-SRC/TESTS/"
   EndIf
@@ -94,9 +93,8 @@ End Sub
 
 Sub test_directory()
   If Mm.Device$ = "MMB4L" Then
-    Local out%(32);
-    System "pwd", out%()
-    Local expected_dir$ = LGetStr$(out%(), 1, LLen(out%()) - 1)
+    Local expected_dir$
+    System "pwd", expected_dir$
   Else
     Local expected_dir$ = "A:/MMB4L-SRC/TESTS"
   EndIf
@@ -110,9 +108,8 @@ End Sub
 Sub test_envvar()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
-  Local out%(32);
-  System "echo $HOME", out%()
-  Local expected_home$ = LGetStr$(out%(), 1, LLen(out%()) - 1)
+  Local expected_home$
+  System "echo $HOME", expected_home$
 
   assert_string_equals(expected_home$, Mm.Info$(EnvVar "HOME"))
 End Sub
@@ -239,9 +236,9 @@ Sub test_hres()
   If Mm.Device$ = "MMB4L" Then
     Option Resolution Character
     Local actual% = Mm.Info(HRes)
-    Local out%(32);
-    System "tput cols", out%()
-    Local expected_hres% = Val(LGetStr$(out%(), 1, 255))
+    Local out$
+    System "tput cols", out$
+    Local expected_hres% = Val(out$)
     assert_int_equals(expected_hres%, actual%)
     assert_int_equals(actual%, Mm.HRes)
 
@@ -401,9 +398,9 @@ End Sub
 
 Sub test_path()
   If Mm.Device$ = "MMB4L" Then
-    Local out%(32);
-    System "echo $HOME", out%()
-    Local expected_path$ = LGetStr$(out%(), 1, LLen(out%()) - 1) + "/github/mmb4l-src/tests/"
+    Local out$
+    System "echo $HOME", out$
+    Local expected_path$ = out$ + "/github/mmb4l-src/tests/"
   Else
     Local expected_path$ = "A:/MMB4L-SRC/TESTS/"
   EndIf
@@ -433,9 +430,9 @@ Sub test_vres()
   If Mm.Device$ = "MMB4L" Then
     Option Resolution Character
     Local actual% = Mm.Info(VRes)
-    Local out%(32);
-    System "tput lines", out%()
-    Local expected_vres% = Val(LGetStr$(out%(), 1, 255))
+    Local out$
+    System "tput lines", out$
+    Local expected_vres% = Val(out$)
     assert_int_equals(expected_vres%, actual%)
     assert_int_equals(actual%, Mm.VRes)
 

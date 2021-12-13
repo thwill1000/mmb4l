@@ -39,6 +39,14 @@ Version 2021.01.00-a3 - ?-???-2021:
   - Added missing LIST FILES command:
     - just another synonym for FILES and LS and only present for compatibility
       with the CMM2.
+  - Changed SYSTEM command to allow standard output to be captured in a STRING
+    (as an alternative to existing functionality to capture it in a LONGSTRING),
+    e.g.
+        DIM out$
+        SYSTEM "echo `date`", out$
+        PRINT out$
+    Also any trailing whitespace, including CRLF is now trimmed from the
+    captured STRING or LONGSTRING output.
   - Fixed bug with MM.INFO$(...) not being recognised in interactive mode:
     - synonym for MM.INFO(...).
     - interim fix pending rewrite of pre-processor and its use from interactive

@@ -5,8 +5,6 @@ Required for alpha 3
 --------------------
 
 Implement serial I/O
-Allow normal string (not just LONGSTRING) as second argument to SYSTEM
-  - also trim trailing whitespace
 
 
 Required for alpha 4

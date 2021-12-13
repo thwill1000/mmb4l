@@ -39,16 +39,14 @@ End Sub
 
 Sub test_date()
   If Mm.Device$ = "MMB4L" Then
-    Local out%(32);
-    System "date '+%d-%m-%Y'", out%()
-    Local expected$ = LGetStr$(out%(), 1, 10)
+    Local expected$
+    System "date '+%d-%m-%Y'", expected$
     assert_string_equals(expected$, Date$)
   Else
     Local old_date$ = Date$
 
     Date$ = "01-02-24"
     assert_string_equals("01-02-2024", Date$)
-
 
     Date$ = "02-02-2024"
     assert_string_equals("02-02-2024", Date$)
@@ -65,9 +63,8 @@ End Sub
 
 Sub test_datetime()
   If Mm.Device$ = "MMB4L" Then
-    Local out%(32);
-    System "date -u '+%d-%m-%Y %H:%M:%S'", out%()
-    Local expected$ = LGetStr$(out%(), 1, 19)
+    Local expected$
+    System "date -u '+%d-%m-%Y %H:%M:%S'", expected$
     assert_string_equals(expected$, DateTime$(Now))
   Else
     Local t$ = Time$
@@ -110,9 +107,8 @@ Sub test_epoch()
   assert_int_equals(-1000, Epoch("31-12-1969 23:43:20"))
 
   If Mm.Device$ = "MMB4L" Then
-    Local out%(32);
-    System "date '+%s'", out%()
-    Local expected$ = LGetStr$(out%(), 1, 10)
+    Local expected$
+    System "date '+%s'", expected$
     assert_int_equals(Val(expected$), Epoch(Now))
   Else
     assert_int_equals(Epoch(DateTime$(Now)), Epoch(Now))
@@ -125,9 +121,8 @@ End Sub
 
 Sub test_time()
   If Mm.Device$ = "MMB4L" Then
-    Local out%(32);
-    System "date '+%H:%M:%S'", out%()
-    Local expected$ = LGetStr$(out%(), 1, 8)
+    Local expected$
+    System "date '+%H:%M:%S'", expected$
     assert_string_equals(expected$, Time$)
   Else
     Local old_time$ = Time$
