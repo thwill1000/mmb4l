@@ -207,7 +207,7 @@ Sub test_peek_progmem()
 
   ' Different token ids for OPTION on different platforms.
   If Mm.Device$ = "MMB4L" Then
-    assert_string_equals(Chr$(203) + "EXPLICIT ON'|5" + Chr$(0), s$)
+    assert_string_equals(Chr$(204) + "EXPLICIT ON'|5" + Chr$(0), s$)
   Else
     assert_string_equals(Chr$(197) + "EXPLICIT ON'|5" + Chr$(0), s$)
   EndIf
