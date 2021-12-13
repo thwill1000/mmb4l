@@ -327,8 +327,6 @@ void fun_mminfo(void) {
     char *p;
     if ((p = checkstring(ep, "ARCH"))) {
         mminfo_architecture(p);
-    } else if ((p = checkstring(ep, "ARCHITECTURE"))) {
-        mminfo_architecture(p);
     } else if ((p = checkstring(ep, "CMDLINE"))) {
         mminfo_cmdline(p);
     } else if ((p = checkstring(ep, "CURRENT"))) {
@@ -361,8 +359,6 @@ void fun_mminfo(void) {
         mminfo_option(p);
     } else if ((p = checkstring(ep, "PATH"))) {
         mminfo_path(p);
-    } else if ((p = checkstring(ep, "VER"))) {
-        mminfo_version(p);
     } else if ((p = checkstring(ep, "VERSION"))) {
         mminfo_version(p);
     } else if ((p = checkstring(ep, "VRES"))) {

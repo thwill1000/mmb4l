@@ -23,7 +23,7 @@ Else
   Const EXPECTED_VERSION! = 5.0702
 EndIf
 
-add_test("test_architecture")
+add_test("test_arch")
 add_test("test_current")
 add_test("test_device")
 add_test("test_directory")
@@ -60,14 +60,13 @@ End Sub
 Sub teardown_test()
 End Sub
 
-Sub test_architecture()
+Sub test_arch()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
   Local expected_arch$
   System "uname -s -m", expected_arch$
 
   assert_string_equals(expected_arch$, Mm.Info$(Arch))
-  assert_string_equals(Mm.Info$(Arch), Mm.Info$(Architecture))
 End Sub
 
 Sub test_current()
@@ -444,7 +443,4 @@ End Sub
 
 Sub test_version()
   assert_float_equals(EXPECTED_VERSION!, Mm.Info(Version), 1e-10)
-  If Mm.Device$ = "MMB4L" Then
-    assert_float_equals(Mm.Info(Version), Mm.Info(Ver), 1e-10)
-  EndIf
 End Sub
