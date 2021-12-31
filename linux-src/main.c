@@ -102,7 +102,13 @@ void set_start_directory() {
     }
 }
 
-/** Handle retun via longjmp(). */
+static void reset_console_title() {
+    char title[STRINGSIZE + 10];
+    sprintf(title, "MMBasic - %s", CurrentFile[0] == '\0' ? "Untitled" : CurrentFile);
+    console_set_title(title);
+}
+
+/** Handle return via longjmp(). */
 void longjmp_handler(int jmp_state) {
 
     console_show_cursor(1);
@@ -148,6 +154,8 @@ void longjmp_handler(int jmp_state) {
     ContinuePoint = nextstmt;  // In case the user wants to use the continue command
     *tknbuf = 0;               // we do not want to run whatever is in the token buffer
     memset(inpbuf, 0, STRINGSIZE);
+
+    reset_console_title();
 }
 
 int main(int argc, char *argv[]) {
@@ -179,7 +187,7 @@ int main(int argc, char *argv[]) {
     atexit(console_disable_raw_mode);
 
     if (mmb_args.interactive) {
-        console_set_title("MMBasic - Untitled");
+        reset_console_title();
         console_reset();
         console_clear();
         console_show_cursor(1);
