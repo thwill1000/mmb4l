@@ -26,13 +26,14 @@ Const gonzo.OUT_FNBR% = 5
 Dim gonzo.comspec$
 Dim gonzo.device_name$ = "DISCONNECTED"
 Dim gonzo.device% = gonzo.DEVICE_DISCONNECTED%
-Dim gonzo.logfile$ = "gonzo.log"
+Dim gonzo.logfile$ = file.PROG_DIR$ + "/gonzo.log"
 Dim gonzo.rx_buf$
 Dim gonzo.buf%(1000)
 Dim gonzo.exit_flag%
 
 Sub gonzo.connect(verbose%)
   con.println("Connecting to " + gonzo.comspec$ + " ...")
+  con.println("Press Ctrl-C to interrupt")
 
   On Error Skip 1
   Close #gonzo.LOG_FNBR%
@@ -124,25 +125,52 @@ Sub gonzo.cmd_break(cmd$, argc%, argv$())
   gonzo.read_until_prompt()
 End Sub
 
-Sub gonzo.cmd_connect(cmd$, argc%, argv$())
+Sub gonzo.cmd_chdir(cmd$, argc%, argv$())
+  If argc% <> 1 Then sys.err$ = gonzo.usage$(cmd$)
+  If sys.err$ <> "" Then Exit Sub
+
+  spsh.cmd_chdir(cmd$, argc%, argv$())
+End Sub
+
+Function gonzo.prompt_for_comspec$()
   Local history%(array.new%(128)), s$
   Local devices$(array.new%(5)) = ( "/dev/ttyS0", "/dev/ttyS1", "/dev/ttyACM0", "/dev/ttyACM1", "/dev/ttyACM2" )
   con.history_fill(history%(), devices$())
   con.print("Device? ")
   Local device$ = con.readln$("/dev/ttyS0", history%())
-  If sys.break_flag% Then Goto gonzo.cmd_connect_break:
+  If sys.break_flag% Then Exit Sub
 
   Local baud_rates$(array.new%(11)) = ( "9600", "19200", "28800", "38400", "57600", "76800", "115200", "230400", "460800", "576000", "921600" )
   con.history_fill(history%(), baud_rates$())
   con.print("Baud? ")
   Local baud$ = con.readln$("115200", history%())
+  If sys.break_flag% Then Exit Sub
 
-gonzo.cmd_connect_break:
+  gonzo.prompt_for_comspec$ = device$ + ": " + baud
+End Function
+
+Sub gonzo.cmd_connect(cmd$, argc%, argv$())
+  Local comspec$, i%
+
+  If argc% = 0 Then
+    comspec$ = gonzo.prompt_for_comspec$()
+  Else
+    If Left$(argv$(0), 8) = "/dev/tty" Then
+      comspec$ = argv$(0)
+    ElseIf Left$(argv$(0), 3) = "tty" Then
+      comspec$ = "/dev/" + argv$(0)
+    Else
+      comspec$ = "/dev/tty" + argv$(0)
+    EndIf
+    For i% = 1 To argc% - 1
+      Cat comspec$, "," + argv$(i%)
+    Next
+  EndIf
 
   If sys.break_flag% Then
     Print
   Else
-    gonzo.comspec$ = device$ + ": " + baud$
+    gonzo.comspec$ = comspec$
     gonzo.connect(1)
   EndIf
 End Sub
@@ -211,6 +239,13 @@ Sub gonzo.cmd_log(cmd$, argc%, argv$())
   Close #gonzo.IN_FNBR%
   con.println()
   con.foreground("default")
+End Sub
+
+Sub gonzo.cmd_pwd(cmd$, argc%, argv$())
+  If argc% <> 0 Then sys.err$ = gonzo.usage$(cmd$)
+  If sys.err$ <> "" Then Exit Sub
+
+  spsh.cmd_pwd(cmd$, argc%, argv$())
 End Sub
 
 Sub gonzo.cmd_rchdir(cmd$, argc%, argv$())
@@ -407,15 +442,15 @@ Sub gonzo.cmd_rtype(cmd$, argc%, argv$())
   Loop
 End Sub
 
-Sub gonzo.cmd_send(cmd$, argc%, argv$())
-  If gonzo.device% = gonzo.DEVICE_DISCONNECTED% Then sys.err$ = "Error: no connection"
-  If argc% <> 1 Then sys.err$ = gonzo.usage$(cmd$)
-  If sys.err$ <> "" Then Exit Sub
-  Local file$ = str.unquote$(argv$(0))
-  If Not file.exists%(file$) Then sys.err$ = "Error: file not found" : Exit Sub
+' Sends a file from the local to the remote using AUTOSAVE.
+Sub gonzo.send_file(in_file$, out_file$, verbose%)
+  If Not file.exists%(in_file$) Then
+    sys.err$ = "Error: file '" + in_file$ + "' not found"
+    Exit Sub
+  EndIf
 
   ' Open the file to send.
-  Open file$ For Input As #gonzo.IN_FNBR%
+  Open in_file$ For Input As #gonzo.IN_FNBR%
 
   ' Cleanup for a new command.
   gonzo.break()
@@ -423,7 +458,7 @@ Sub gonzo.cmd_send(cmd$, argc%, argv$())
 
   ' Send AUTOSAVE command.
   Local command$ = "Autosave"
-  If gonzo.device% = gonzo.DEVICE_CMM2% Then Cat command$, " " + str.quote$(file.get_name$(file$))
+  If gonzo.device% = gonzo.DEVICE_CMM2% Then Cat command$, " " + str.quote$(out_file$)
   gonzo.writeln(command$)
   gonzo.read_until_match("> " + command$)
   Local s$
@@ -432,8 +467,8 @@ Sub gonzo.cmd_send(cmd$, argc%, argv$())
     If sys.err$ <> "" Then Close #gonzo.IN_FNBR% : Exit Sub
   EndIf
 
-  Local file_size% = Mm.Info(FileSize file$)
-  con.println("Autosave sending " + Str$(file_size%) + " bytes ...")
+  Local file_size% = Mm.Info(FileSize in_file$)
+  If verbose% Then con.println("Autosave sending " + Str$(file_size%) + " bytes ...")
   Local t% = Timer
 
   ' Echo the file to the serial port.
@@ -443,7 +478,9 @@ Sub gonzo.cmd_send(cmd$, argc%, argv$())
     gonzo.writeln(s$)
     x% = gonzo.getln%(s$)
     Inc count%
-    con.println(Choice(count% > 1, Chr$(27) + "[1F", "") + "Sent " + Str$(count%) + " lines")
+    If verbose% Then
+      con.println(Choice(count% > 1, Chr$(27) + "[1F", "") + "Sent " + Str$(count%) + " lines")
+    EndIf
   Loop
   Close #gonzo.IN_FNBR%
 
@@ -455,13 +492,24 @@ Sub gonzo.cmd_send(cmd$, argc%, argv$())
 
   ' Except on the CMM2 send SAVE command to write from flash to disk.
   If (gonzo.device% <> gonzo.DEVICE_CMM2%) Then
-    command$ = "Save " + str.quote$(file.get_name$(file$))
+    command$ = "Save " + str.quote$(out_file$)
     gonzo.writeln(command$)
     gonzo.read_until_match("> " + command$)
     If (gonzo.getln%(s$)) Then sys.err$ = gonzo.extract_error$(s$)
   EndIf
 
-  If sys.err$ = "" Then con.println("OK, " + Str$((file_size% * 8000) / (Timer - t%), 0, 1) + " bit/s")
+  If verbose% And sys.err$ = "" Then
+    con.println("OK, " + Str$((file_size% * 8000) / (Timer - t%), 0, 1) + " bit/s")
+  EndIf
+End Sub
+
+Sub gonzo.cmd_send(cmd$, argc%, argv$())
+  If gonzo.device% = gonzo.DEVICE_DISCONNECTED% Then sys.err$ = "Error: no connection"
+  If argc% <> 1 Then sys.err$ = gonzo.usage$(cmd$)
+  If sys.err$ <> "" Then Exit Sub
+  Local in_file$ = str.unquote$(argv$(0))
+  Local out_file$ = file.get_name$(in_file$)
+  gonzo.send_file(in_file$, out_file$, 1)
 End Sub
 
 Sub gonzo.cmd_term(cmd$, argc%, argv$())
@@ -470,12 +518,13 @@ Sub gonzo.cmd_term(cmd$, argc%, argv$())
   If sys.err$ <> "" Then Exit Sub
 
   gonzo.update_title("TERMINAL")
+  con.foreground("white")
 
   Do While Inkey$ <> "" : Loop
 
   On Error Ignore
 
-  Local buf$, break_time%, ch%, s$
+  Local break_time%, ch%, s$
   Do
     ' On a Ctrl-C:
     '   - if it is more than 500 ms since the last Ctrl-C then send to remote,
@@ -490,14 +539,20 @@ Sub gonzo.cmd_term(cmd$, argc%, argv$())
       EndIf
     EndIf
 
+    ' Read from remote.
     ch% = gonzo.getc%(0)
     If ch% > 0 Then con.print(Chr$(ch%));
-    If Len(buf$) = 0 Then buf$ = Inkey$
-    If Len(buf$) > 0 Then
-      gonzo.write(buf$)
-      buf$ = ""
-    EndIf
+
+    ' Write to remote.
+    s$ = Inkey$
+    Select Case s$
+      Case "" ' Do nothing.
+      Case Chr$(&h0A) : gonzo.write(Chr$(&h0D)) ' Use CR '\r' to end lines.
+      Case Else : gonzo.write(s$)
+    End Select
   Loop While Mm.ErrNo = 0
+
+  con.foreground("yellow")
 
   Select Case Mm.ErrNo
     Case 0
@@ -557,7 +612,7 @@ Sub gonzo.cmd_xreceive(cmd$, argc%, argv$())
   If sys.err$ = "" Then
     ' Trim padding off received file.
     Open local_file$ For Input As #gonzo.IN_FNBR%
-    Local tmp_file$ = file.TMPDIR$ + "/" + local_file$
+    Local tmp_file$ = sys.string_prop$("tmpdir") + "/" + local_file$
     Open tmp_file$ For Output As #gonzo.OUT_FNBR%
     Local remaining% = file_size%
     Do While remaining% > 0
@@ -571,6 +626,33 @@ Sub gonzo.cmd_xreceive(cmd$, argc%, argv$())
   EndIf
 
   If sys.err$ = "" Then con.println("OK, " + Str$((file_size% * 8000) / (Timer - t%), 0, 1) + " bit/s")
+End Sub
+
+' Write, send and run 'rizzo.bas' to the remote to trim size of file.
+Sub gonzo.trim_remote_file(file$, size%)
+  Const rizzo_file$ = "/tmp/rizzo.bas"
+  Const tmp_file$ = "/tmp/" + file$
+  Open rizzo_file$ For Output As #gonzo.OUT_FNBR%
+  Print #gonzo.OUT_FNBR%, "Open " str.quote$(file$) " For Input As #1"
+  Print #gonzo.OUT_FNBR%, "Open " str.quote$(tmp_file$) " For Output As #2"
+  Print #gonzo.OUT_FNBR%, "Dim x% = " Str$(size%)
+  Print #gonzo.OUT_FNBR%, "Dim s$"
+  Print #gonzo.OUT_FNBR%, "Do While x% > 0"
+  Print #gonzo.OUT_FNBR%, "  s$ = Input$(Min(255, x%), #1)"
+  Print #gonzo.OUT_FNBR%, "  Print #2, s$;"
+  Print #gonzo.OUT_FNBR%, "  Inc x%, -Min(255, x%)"
+  Print #gonzo.OUT_FNBR%, "Loop"
+  Print #gonzo.OUT_FNBR%, "Close #2"
+  Print #gonzo.OUT_FNBR%, "Close #1"
+  Print #gonzo.OUT_FNBR%, "Copy " str.quote$(tmp_file$) " To " str.quote$(file$)
+  Print #gonzo.OUT_FNBR%, "End"
+  Close #gonzo.OUT_FNBR%
+
+  gonzo.send_file(rizzo_file$, rizzo_file$, 0)
+  If sys.err$ <> "" Then Exit Sub
+
+  gonzo.writeln("Run " + str.quote$(rizzo_file$))
+  gonzo.read_until_prompt()
 End Sub
 
 Sub gonzo.cmd_xsend(cmd$, argc%, argv$())
@@ -587,7 +669,7 @@ Sub gonzo.cmd_xsend(cmd$, argc%, argv$())
   gonzo.break()
   gonzo.read_until_prompt()
 
-  ' Send XMODEM RECEIVE command.
+  ' Send XMODEM RECEIVE command to remote.
   Local command$ = "XModem Receive " + str.quote$(remote_file$)
   gonzo.writeln(command$)
   gonzo.read_until_match("> " + command$)
@@ -597,43 +679,20 @@ Sub gonzo.cmd_xsend(cmd$, argc%, argv$())
     If sys.err$ <> "" Then Exit Sub
   EndIf
 
+  ' Perform XMODEM SEND.
   Local file_size% = Mm.Info(FileSize local_file$)
   con.println("XModem sending " + Str$(file_size%) + " bytes ...")
   Local t% = Timer
   XModem Send local_file$, #gonzo.SERIAL_FNBR%
 
-  If sys.err$ = "" Then
-    ' Send and run 'rizzo.bas' on the remote to remove padding from file.
-    gonzo.break()
-    gonzo.read_until_prompt()
-    command$ = "Autosave " + str.quote$("/tmp/rizzo.bas")
-    gonzo.writeln(command$)
-    gonzo.read_until_match("> " + command$)
+  ' Trim file on remote to remove padding.
+  gonzo.trim_remote_file(remote_file$, file_size%)
+  If sys.err$ <> "" Then Exit Sub
 
-    gonzo.writeln("Open " + str.quote$(remote_file$) + " For Input As #1")
-    gonzo.writeln("Open " + str.quote$("/tmp/" + remote_file$) + " For Output As #2")
-    gonzo.writeln("Dim x% = " + Str$(file_size%))
-    gonzo.writeln("Dim s$")
-    gonzo.writeln("Do While x% > 0")
-    gonzo.writeln("  s$ = Input$(Min(255, x%), #1)")
-    gonzo.writeln("  Print #2, s$;")
-    gonzo.writeln("  Inc x%, -Min(255, x%)")
-    gonzo.writeln("Loop")
-    gonzo.writeln("Close #2")
-    gonzo.writeln("Close #1")
-    gonzo.writeln("Copy " + str.quote$("/tmp/" + remote_file$) + " To " + str.quote$(remote_file$))
-
-    gonzo.write(Choice(gonzo.device% = gonzo.DEVICE_CMM2%, Chr$(27) + "[17~", Chr$(26)))
-    gonzo.read_until_prompt()
-
-    gonzo.writeln("Run " + str.quote$("/tmp/rizzo.bas"))
-    gonzo.read_until_prompt()
-  EndIf
-
-  If sys.err$ = "" Then con.println("OK, " + Str$((file_size% * 8000) / (Timer - t%), 0, 1) + " bit/s")
+  con.println("OK, " + Str$((file_size% * 8000) / (Timer - t%), 0, 1) + " bit/s")
 End Sub
 
-' Writes a Ctrl-C.
+' Sends a Ctrl-C to the remote.
 Sub gonzo.break()
   gonzo.write(Chr$(3))
 End Sub
@@ -651,7 +710,7 @@ Function gonzo.extract_error_ls$(buf%())
   Local en% = st%
   For en% = st% To LLen(buf%())
     Select Case LGetByte(buf%(), en%)
-      Case 10, 13 : Exit For
+      Case &h0A, &h0D : Exit For
     End Select
   Next
   gonzo.extract_error_ls$ = "Remote error: " + LGetStr$(buf%(), st%, en% - st% + 1)
@@ -668,7 +727,7 @@ Function gonzo.get_device$()
     con.println("Interrupted by user")
     gonzo.get_device$ = "DISCONNECTED"
   Else
-    gonzo.get_device$ = LGetStr$(gonzo.buf%(), 1, LInStr(gonzo.buf%(), Chr$(10)) - 1)
+    gonzo.get_device$ = LGetStr$(gonzo.buf%(), 1, LInStr(gonzo.buf%(), Chr$(&h0A)) - 1)
   EndIf
 End Function
 
@@ -716,12 +775,12 @@ Function gonzo.getln%(s$)
     ch% = gonzo.getc%(500)
     If ch% > -1 Then
       ' TODO: handle both CR and LF
-      If ch% = 10 Then
+      If ch% = &h0A Then
         s$ = gonzo.rx_buf$
         gonzo.rx_buf$ = ""
         gonzo.getln% = 1
         Exit Function
-      ElseIf ch% <> 13 Then
+      ElseIf ch% <> &h0D Then
         Cat gonzo.rx_buf$, Chr$(ch%)
       EndIf
     EndIf
@@ -800,10 +859,10 @@ Sub gonzo.write(s$)
 End Sub
 
 Sub gonzo.writeln(s$)
-  ' Note we only send a LF '\n' and not a CRLF this prevents the remote from
-  ' treating it as two characters and screwing up commands that show
-  ' "PRESS ANY KEY ..." prompts.
-  If Not sys.break_flag% Then Print #gonzo.SERIAL_FNBR%, s$ Chr$(&h0A);
+  ' Use CR '\r' as the end of line character. As strange as this may seem
+  ' to a Unix developer LF '\n' or a Windows developer CRLF '\r\n' this
+  ' is the default for serial comms.
+  If Not sys.break_flag% Then Print #gonzo.SERIAL_FNBR%, s$ Chr$(&h0D);
 End Sub
 
 Function gonzo.usage$(cmd$)
@@ -822,12 +881,14 @@ End Function
 
 gonzo_commands:
 Data "|break|",             "",                      "send a Ctrl-C to the remote"
+Data "|chdir|cd|",          "<directory>",           "change local directory"
 Data "|connect|",           "",                      "connect to remote"
 Data "|device|",            "",                      "report type of remote device"
 Data "|exit|quit|",         "",                      "exit the gonzo shell"
 Data "|files|dir|ls|",      "[<file|directory>]",    "list local directory contents"
 Data "|help|",              "[<command>]",           "display help text"
 Data "|log|",               "[clear]",               "show (or clear) receive log"
+Data "|pwd|",               "",                      "display current local directory"
 Data "|rchdir|rcd|",        "<directory>",           "change remote directory"
 Data "|rcopy|rcp|",         "<src-file> <dst-file>", "copy a remote file"
 Data "|rdelete|rkill|rrm|", "<file|directory>",      "delete a remote file or (empty) directory"

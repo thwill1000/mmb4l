@@ -10,6 +10,26 @@ If sys.err$ <> "" Then Error sys.err$
 
 Const spsh.MAX_FILES% = 200
 
+Sub spsh.cmd_chdir(cmd$, argc%, argv$())
+  If argc% <> 1 Then Error "expects 1 argument"
+
+  Local f$ = file.get_canonical$(argv$(0))
+  If f$ = "A:" Then ChDir(f$) : Exit Sub
+  Select Case Mm.Info(FileSize f$)
+    Case -2   : ChDir(f$)
+    Case -1   : spsh.error_no_such_file(argv$(0))
+    Case Else : spsh.error_not_a_directory(argv$(0))
+  End Select
+End Sub
+
+Sub spsh.error_no_such_file(f$)
+  sys.err$ = "Error: no such file or directory: " + f$
+End Sub
+
+Sub spsh.error_not_a_directory(f$)
+  sys.err$ = "Error: not a directory: " + f$
+End Sub
+
 Sub spsh.cmd_files(cmd$, argc%, argv$())
   If argc% > 1 Then Error "expects 0 or 1 arguments"
 
@@ -24,7 +44,7 @@ Sub spsh.cmd_files(cmd$, argc%, argv$())
     f$ = d$ + "/" + files$(i%)
     sz% = Mm.Info(FileSize f$)
     Select Case sz%
-      Case -2 : fg$ = "blue" ' Directory
+      Case -2 : fg$ = "bright blue" ' Directory
       Case Else
         Select Case LCase$(file.get_extension$(f$))
           Case ".bas" : fg$ = "green"
@@ -47,7 +67,7 @@ Function spsh.get_files$(f$, out$())
   If (f$ = "A:") Or (Mm.Info(FileSize f$) = -2) Then
     ' Directory
     out$(0) = file.get_name$(d$)
-    cmd.get_files$ = file.get_parent$(d$)
+    spsh.get_files$ = file.get_parent$(d$)
     Exit Function
   Else
     Local pattern$ = file.get_name$(d$)
@@ -56,3 +76,8 @@ Function spsh.get_files$(f$, out$())
   file.get_files(d$, pattern$, "all", out$())
   spsh.get_files$ = d$
 End Function
+
+Sub spsh.cmd_pwd(cmd$, argc%, argv$())
+  If argc% <> 0 Then Error "expects 0 arguments")
+  con.println(Cwd$)
+End Sub

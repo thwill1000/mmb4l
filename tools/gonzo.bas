@@ -1,4 +1,4 @@
-#!../build/mmbasic
+#!/home/thwill/bin/mmbasic -i
 
 ' Copyright (c) 2021-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
@@ -74,7 +74,7 @@ Sub main()
     cmd_line$ = con.readln$("", history%())
     If sys.break_flag% Then con.println() : Exit Do
     parse(cmd_line$)
-    con.foreground("default")
+    ' con.foreground("default")
     If cmd$ = "" Then Continue Do
   Loop Until gonzo.do_command%(cmd$, argc%, argv$())
 

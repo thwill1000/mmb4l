@@ -35,6 +35,7 @@ Sub con.foreground(fg$)
     Case "cyan"    : ? Chr$(27) "[36m";
     Case "white"   : ? Chr$(27) "[37m";
     Case "default", "reset" : ? Chr$(27) "[0m";
+    Case "bright blue"      : ? Chr$(27) "[94m";
     Case Else      : Error : "Unknown ANSI colour: " + fg$
   End Select
 End Sub
