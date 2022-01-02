@@ -25,7 +25,7 @@ provisions:
     #define VERSION_INCLUDED
 
     #define VERSION         "5.05.04"
-    #define YEAR            "2011-2021"
+    #define YEAR            "2011-2022"
     #define COPYRIGHT       "Copyright " YEAR " Geoff Graham\r\n"
 
 
@@ -72,10 +72,10 @@ provisions:
     #elif defined(__linux__)
         #define MM_DEVICE  "MMB4L"
         #undef VERSION
-        #define VERSION  "2021.01.00"
+        #define VERSION  "2022.01.00"
         #undef COPYRIGHT
         #define COPYRIGHT  "Copyright " YEAR " Geoff Graham\r\n" \
-                           "Copyright 2021 Thomas Hugo Williams\r\n"
+                           "Copyright 2021-2022 Thomas Hugo Williams\r\n"
                            // "Copyright 2016-2021 Peter Mather\r\n"
         #if defined(__ANDROID__)
             #define MM_ARCH  "Android aarch64"

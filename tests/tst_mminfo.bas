@@ -1,4 +1,4 @@
-' Copyright (c) 2021 Thomas Hugo Williams
+' Copyright (c) 2021-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For Colour Maximite 2, MMBasic 5.07
 
@@ -18,7 +18,7 @@ Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
 If Mm.Device$ = "MMB4L" Then
-  Const EXPECTED_VERSION! = 2021.01
+  Const EXPECTED_VERSION! = 2022.01
 Else
   Const EXPECTED_VERSION! = 5.0702
 EndIf
@@ -65,6 +65,7 @@ Sub test_arch()
 
   Local expected_arch$
   System "uname -s -m", expected_arch$
+  If expected_arch$ = "Linux armv7l" Then expected_arch$ = "Linux armv6l"
 
   assert_string_equals(expected_arch$, Mm.Info$(Arch))
 End Sub

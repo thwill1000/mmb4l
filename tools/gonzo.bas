@@ -1,8 +1,8 @@
 #!../build/mmbasic
 
-' Copyright (c) 2021 Thomas Hugo Williams
+' Copyright (c) 2021-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For Colour Maximite 2, MMBasic 5.07
+' For MMB4L 2022.01.00
 
 Option Base 0
 Option Default None

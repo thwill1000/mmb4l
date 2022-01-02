@@ -1,6 +1,6 @@
-' Copyright (c) 2021 Thomas Hugo Williams
+' Copyright (c) 2021-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For Colour Maximite 2, MMBasic 5.07
+' For MMB4L 2022.01.00
 
 On Error Skip 1 : Dim sys.VERSION$ = ""
 If sys.VERSION$ = "" Then Error "'system.inc' not included"
