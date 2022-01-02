@@ -33,7 +33,7 @@ static void memory_copy_internal(char *p, size_t element_size) {
     uintptr_t dst = get_poke_addr(argv[2]);
     if (dst % element_size) error("Destination address not divisible by %", element_size);
     size_t num = (size_t) getint64(argv[4], 0, UINT32_MAX);
-    memcpy((void *) dst, (void *) src, num * element_size);
+    memmove((void *) dst, (void *) src, num * element_size);
 }
 
 /** MEMORY COPY BYTE src, dst, number_of_bytes */

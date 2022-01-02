@@ -28,6 +28,7 @@ add_test("test_copy_short")
 add_test("test_copy_word")
 add_test("test_copy_integer")
 add_test("test_copy_float")
+add_test("test_copy_given_overlap")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -342,4 +343,55 @@ Sub test_copy_float()
   Else
     assert_raw_error("Address not divisible by 8")
   Endif
+End Sub
+
+Sub test_copy_given_overlap()
+  Local buf%(array.new%(4)) ' 32-bytes
+  Local pbuf% = Peek(VarAddr buf%())
+
+  buf%(BASE%)     = &h0
+  buf%(BASE% + 1) = &hFF01020304050607
+  buf%(BASE% + 2) = &h08090A0B0C0D0E0F
+  buf%(BASE% + 3) = &h0
+  assert_hex_equals(0, Peek(Integer pbuf%))
+  assert_hex_equals(&hFF01020304050607, Peek(Integer pbuf% + 8))
+  assert_hex_equals(&h08090A0B0C0D0E0F, Peek(Integer pbuf% + 16))
+  assert_hex_equals(0, Peek(Integer pbuf% + 24))
+
+  ' Copy onto itself.
+  Memory Copy pbuf%, pbuf%, 32
+
+  assert_hex_equals(0, Peek(Integer pbuf%))
+  assert_hex_equals(&hFF01020304050607, Peek(Integer pbuf% + 8))
+  assert_hex_equals(&h08090A0B0C0D0E0F, Peek(Integer pbuf% + 16))
+  assert_hex_equals(0, Peek(Integer pbuf% + 24))
+
+  buf%(BASE%)     = &h0
+  buf%(BASE% + 1) = &hFF01020304050607
+  buf%(BASE% + 2) = &h08090A0B0C0D0E0F
+  buf%(BASE% + 3) = &h0
+
+  ' Copy where pdst < psrc.
+  Memory Copy pbuf% + 8, pbuf% + 5, 16
+
+  assert_hex_equals(&h0506070000000000, Peek(Integer pbuf%))
+  assert_hex_equals(&h0D0E0FFF01020304, Peek(Integer pbuf% + 8))
+  assert_hex_equals(&h08090A08090A0B0C, Peek(Integer pbuf% + 16))
+  assert_hex_equals(&h0,                Peek(Integer pbuf% + 24))
+
+  buf%(BASE%)     = &h0
+  buf%(BASE% + 1) = &hFF01020304050607
+  buf%(BASE% + 2) = &h08090A0B0C0D0E0F
+  buf%(BASE% + 3) = &h0
+
+  If Mm.Device$ = "MMB4L" Then
+    ' Copy where pdst > psrc.
+    ' Colour Maximite 2 (and probably PicoMite) doesn't handle this correctly.
+    Memory Copy pbuf% + 8, pbuf% + 11, 16
+
+    assert_hex_equals(&h0,                Peek(Integer pbuf%))
+    assert_hex_equals(&h0304050607050607, Peek(Integer pbuf% + 8))
+    assert_hex_equals(&h0B0C0D0E0FFF0102, Peek(Integer pbuf% + 16))
+    assert_hex_equals(&h000000000008090A, Peek(Integer pbuf% + 24))
+  EndIf
 End Sub
