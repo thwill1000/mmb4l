@@ -204,7 +204,7 @@ int file_eof(int fnbr) {
             errno = 0;
             int ch = fgetc(f);  // the Watcom compiler will only set eof after
                                  // it has tried to read beyond the end of file
-            int i = (feof(f) != 0) ? -1 : 0;
+            int i = (feof(f) != 0) ? 1 : 0;
             error_check();
             ungetc(ch, f);  // undo the Watcom bug fix
             error_check();
@@ -216,7 +216,7 @@ int file_eof(int fnbr) {
     }
 
     ERROR_INTERNAL_FAULT;
-    return -1;
+    return 1;
 }
 
 void file_seek(int fnbr, int idx) {

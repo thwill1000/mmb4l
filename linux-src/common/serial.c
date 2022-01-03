@@ -269,7 +269,7 @@ int serial_eof(int fnbr) {
     if (FAILED(ioctl(file_table[fnbr].serial_fd, FIONREAD, &count))) {
         error_check();
     }
-    return count ? 0 : -1;
+    return count ? 0 : 1;
 }
 
 int serial_getc(int fnbr) {
