@@ -183,12 +183,11 @@ static void mminfo_filesize(char *p) {
 
     struct stat st;
     if (stat(path, &st) == 0) {
-        if (S_ISREG(st.st_mode)) {
-            g_integer_rtn = st.st_size; // File.
-        } else if (S_ISDIR(st.st_mode)) {
-            g_integer_rtn = -2; // Directory.
+        if (S_ISDIR(st.st_mode)) {
+            g_integer_rtn = -2; // TODO: this matches CMM2, but probably better
+                                // just to return st.st_size.
         } else {
-            error("Unexpected file type");
+            g_integer_rtn = st.st_size;
         }
     } else {
         g_integer_rtn = -1; // Does not exist.
