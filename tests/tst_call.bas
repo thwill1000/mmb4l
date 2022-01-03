@@ -15,6 +15,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 #Include "../basic-src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
+Const TMPDIR$ = sys.string_prop$("tmpdir")
 
 add_test("test_call_1")
 add_test("test_call_2")
@@ -49,11 +50,11 @@ End Function
 
 ' Prior to 5.07.01 this would report an "Argument List" error from the Print #1 statement.
 Sub test_call_2()
-  Open file.TMPDIR$ + "/tst_call.tmp" For Output As #1
+  Open TMPDIR$ + "/tst_call.tmp" For Output As #1
   Print #1, Call("int_fn%"), Call("float_fn!"), Call("string_fn$")
   Close #1
 
-  Open file.TMPDIR$ + "/tst_call.tmp" For Input As #1
+  Open TMPDIR$ + "/tst_call.tmp" For Input As #1
   Local s$
   Line Input #1, s$
 
@@ -67,4 +68,3 @@ Sub test_call_2()
   assert_true(Eof(#1))
   Close #1
 End Sub
-

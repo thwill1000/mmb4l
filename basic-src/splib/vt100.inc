@@ -15,15 +15,16 @@ End Function
 
 Function vt100.colour$(c$)
   Select Case LCase$(c$)
+    Case "black"   : vt100.colour$ = vt100$("30m")
     Case "red"     : vt100.colour$ = vt100$("31m")
     Case "green"   : vt100.colour$ = vt100$("32m")
     Case "yellow"  : vt100.colour$ = vt100$("33m")
     Case "blue"    : vt100.colour$ = vt100$("34m")
-    Case "magenta" : vt100.colour$ = vt100$("35m")
+    Case "magenta", "purple" : vt100.colour$ = vt100$("35m")
     Case "cyan"    : vt100.colour$ = vt100$("36m")
     Case "white"   : vt100.colour$ = vt100$("37m")
     Case "reset"   : vt100.colour$ = vt100$("0m")
-    Case Else      : "Unknown VT100 colour: " + c$
+    Case Else      : Error "Unknown VT100 colour: " + c$
   End Select
 End Function
 
