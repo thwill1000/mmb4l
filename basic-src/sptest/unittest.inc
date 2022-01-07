@@ -233,8 +233,11 @@ End Sub
 Sub assert_no_error()
   Inc ut.asserts_count%
   If sys.err$ <> "" Then
-    Local s$ = "Expected no error, but actually " + str.quote$(sys.err$)
-    ut.add_failure(s$)
+    ut.add_failure("Expected no error, but actually sys.err$ = " + str.quote$(sys.err$))
+  EndIf
+
+  If Mm.ErrMsg$ <> "" Then
+    ut.add_failure("Expected no error, but actually Mm.ErrMsg$ = " + str.quote$(Mm.ErrMsg$))
   EndIf
 End Sub
 
