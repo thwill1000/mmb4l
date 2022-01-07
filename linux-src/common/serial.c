@@ -18,17 +18,18 @@
 #define	COM_DEFAULT_BUF_SIZE   1024
 #define ERROR_COM_SPECIFICATION  error("COM specification")
 
+typedef enum { PARITY_NONE, PARITY_EVEN, PARITY_ODD } Parity;
+
 typedef struct {
     char device[STRINGSIZE];
     speed_t speed;
     int bufsize;
     bool b7;
-    int de;
     int ilevel;
-    bool inv;
-    bool oc;
-    int parity;
+    Parity parity;
+    bool rtscts;
     bool s2;
+    bool xonxoff;
     char *rx_interrupt;
     char *tx_interrupt;
 } ComSpec;
@@ -108,10 +109,6 @@ static int32_t serial_speed_to_int(speed_t s) {
 }
 
 static void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
-    // int baud, i, inv, oc, s2, de, parity, b7, bufsize, ilevel;
-    // char *interrupt, *TXinterrupt;
-    //GPIO_InitTypeDef GPIO_InitStruct;
-
     getargs((char **) &comspec_str, 21, ":,");
     if (argc != 2 && (argc & 0x01) == 0) ERROR_COM_SPECIFICATION;
 
@@ -123,47 +120,51 @@ static void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
     strcpy(comspec->device, argv[0]);
 
     for (int i = 0; i < 6; i++) {
-        if (str_equal(argv[argc - 1], "OC")) { // Open collector option.
-            comspec->oc = true;
+        if (strcasecmp(argv[argc - 1], "OC") == 0) { // Open collector option.
+            ERROR_UNSUPPORTED_FLAG("OC");
+        }
+
+        else if (strcasecmp(argv[argc - 1], "DEP") == 0) { // Data enable option.
+            ERROR_UNSUPPORTED_FLAG("DEP");
+        }
+
+        else if (strcasecmp(argv[argc - 1], "DEN") == 0) { // Data enable option.
+            ERROR_UNSUPPORTED_FLAG("DEN");
+        }
+
+        else if (strcasecmp(argv[argc - 1], "EVEN") == 0) { // Even parity.
+            if (comspec->parity != PARITY_NONE) ERROR_SYNTAX;
+            comspec->parity = PARITY_EVEN;
             argc -= 2;
         }
 
-        if (str_equal(argv[argc - 1], "DEP")) { // Data enable option.
-            if (comspec->de) ERROR_SYNTAX;
-            comspec->de = 1;
+        else if (strcasecmp(argv[argc - 1], "ODD") == 0) { // Odd parity.
+            if (comspec->parity != PARITY_NONE) ERROR_SYNTAX;
+            comspec->parity = PARITY_EVEN;
             argc -= 2;
         }
 
-        if (str_equal(argv[argc - 1], "DEN")) { // Data enable option.
-            if (comspec->de) ERROR_SYNTAX;
-            comspec->de = 2;
-            argc -= 2;
-        }
-
-        if (str_equal(argv[argc - 1], "EVEN")) { // Even parity.
-            if (comspec->parity) ERROR_SYNTAX;
-            comspec->parity = 1;
-            argc -= 2;
-        }
-
-        if (str_equal(argv[argc - 1], "ODD")) { // Odd parity.
-            if (comspec->parity) ERROR_SYNTAX;
-            comspec->parity = 2;
-            argc -= 2;
-        }
-
-        if (str_equal(argv[argc - 1], "S2")) { // Two stop bit option.
+        else if (strcasecmp(argv[argc - 1], "S2") == 0) { // Two stop bit option.
             comspec->s2 = true;
             argc -= 2;
         }
 
-        if (str_equal(argv[argc - 1], "7BIT")) { // 7 bit byte option.
+        else if (strcasecmp(argv[argc - 1], "7BIT") == 0) { // 7 bit byte option.
             comspec->b7 = true;
             argc -= 2;
         }
 
-        if (str_equal(argv[argc - 1], "INV")) { // Invert option.
-            comspec->inv = true;
+        else if (strcasecmp(argv[argc - 1], "INV") == 0) { // Invert option.
+            ERROR_UNSUPPORTED_FLAG("INV");
+        }
+
+        else if (strcasecmp(argv[argc - 1], "RTSCTS") == 0) { // Hardware flow control RTS/CTS option.
+            comspec->rtscts = true;
+            argc -= 2;
+        }
+
+        else if (strcasecmp(argv[argc - 1], "XONXOFF") == 0) { // Software flow control option.
+            comspec->xonxoff = true;
             argc -= 2;
         }
     }
@@ -174,7 +175,7 @@ static void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
     if (argc >= 3 && *argv[2]) {
         int64_t i = getinteger(argv[2]);
         comspec->speed = serial_int_to_speed(i);
-        if (!comspec->speed) error("unsupported serial speed '%'", i);
+        if (!comspec->speed) error("Unsupported baudrate: %", i);
     }
 
     // Buffer size as a number.
@@ -210,12 +211,11 @@ static void serial_dump_spec(ComSpec *comspec) {
     printf("Speed:        %d\n", serial_speed_to_int(comspec->speed));
     printf("Bufsize:      %d\n", comspec->bufsize);
     printf("B7:           %s\n", comspec->b7 ? "true" : "false");
-    printf("DE:           %d\n", comspec->de);
     printf("ILevel:       %d\n", comspec->ilevel);
-    printf("INV:          %s\n", comspec->inv ? "true" : "false");
-    printf("OC:           %s\n", comspec->oc ? "true" : "false");
     printf("Parity:       %d\n", comspec->parity);
+    printf("RTS/CTS:      %s\n", comspec->rtscts ? "true" : "false");
     printf("S2:           %s\n", comspec->s2 ? "true" : "false");
+    printf("XON/XOFF:     %s\n", comspec->xonxoff ? "true" : "false");
     printf("RX interrupt: 0x%lx\n", (uintptr_t) comspec->rx_interrupt);
     printf("TX interrupt: 0x%lx\n", (uintptr_t) comspec->tx_interrupt);
 }
@@ -230,24 +230,70 @@ void serial_open(const char *comspec_str, int fnbr) {
 
     errno = 0;
 
-    int fd = open(comspec.device, O_RDWR | O_NOCTTY | O_NDELAY);
+    int fd = open(comspec.device, O_RDWR | O_NOCTTY); //  | O_NDELAY);
     if (fd == -1) error("could not open serial device '$'", comspec.device);
     fcntl(fd, F_SETFL, 0);
+
     struct termios options;
     tcgetattr(fd, &options);
     cfmakeraw(&options);
     cfsetispeed(&options, comspec.speed);
     cfsetospeed(&options, comspec.speed);
-    options.c_cflag |= (CLOCAL | CREAD) ;
-    options.c_cflag &= ~PARENB ;
-    options.c_cflag &= ~CSTOPB ;
-    options.c_cflag &= ~CSIZE ;
-    options.c_cflag |= CS8 ;
-    options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG) ;
-    options.c_oflag &= ~OPOST ;
 
-    options.c_cc[VMIN]  = 0;
-    options.c_cc[VTIME] = 1; //deci-seconds ?
+    // Ignore modem lines and enable receiver.
+    options.c_cflag |= (CLOCAL | CREAD);
+
+    // Character size.
+    options.c_cflag &= ~CSIZE;
+    options.c_cflag |= (comspec.b7 ? CS7 : CS8);
+
+    // Parity.
+    switch (comspec.parity) {
+        case PARITY_NONE:
+            options.c_cflag &= ~PARENB;
+            break;
+        case PARITY_EVEN:
+            options.c_cflag |= PARENB;
+            options.c_cflag &= ~PARODD;
+            break;
+        case PARITY_ODD:
+            options.c_cflag |= PARENB;
+            options.c_cflag |= PARODD;
+            break;
+        default:
+            ERROR_INTERNAL_FAULT;
+            break;
+    }
+
+    // No parity checking of input (for the moment).
+    options.c_iflag &= ~INPCK;  // Disable parity checking.
+    options.c_iflag &= ~IGNPAR; // Don't ignore parity errors - irrelevant since no checking.
+    options.c_iflag &= ~PARMRK; // Don't 'mark' parity errors.
+    options.c_iflag &= ~ISTRIP; // Don't strip parity bits.
+
+    // Hardware flow control.
+    if (comspec.rtscts) {
+        options.c_cflag |= CRTSCTS;
+    } else {
+        options.c_cflag &= ~CRTSCTS;
+    }
+
+    // Stop bits.
+    if (comspec.s2) {
+        options.c_cflag |= CSTOPB;
+    } else {
+        options.c_cflag &= ~CSTOPB;
+    }
+
+    // Software flow control.
+    if (comspec.xonxoff) {
+        options.c_iflag |= (IXON | IXOFF | IXANY);
+    } else {
+        options.c_iflag &= ~(IXON | IXOFF | IXANY);
+    }
+
+    options.c_cc[VMIN]  = 0; // minimum number of characters to read.
+    options.c_cc[VTIME] = 0; // time to wait for a character, 10ths of a second.
     tcsetattr(fd, TCSANOW, &options);
 
     error_check();

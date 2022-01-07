@@ -36,5 +36,6 @@ uint8_t error_to_exit_code(int32_t error_code);
 #define ERROR_SYNTAX                   error("Syntax")
 #define ERROR_UNIMPLEMENTED(s)         error("Unimplemented: " s)
 #define ERROR_UNRECOGNISED_OPTION      error("Unrecognised option")
+#define ERROR_UNSUPPORTED_FLAG(s)      error("Unsupported flag: " s)
 
 #endif
