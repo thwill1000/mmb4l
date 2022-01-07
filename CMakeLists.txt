@@ -165,6 +165,8 @@ add_executable(
 target_link_libraries(
   mmbasic_test
   gtest_main
+  gmock
+  gmock_main
 )
 
 include(GoogleTest)
