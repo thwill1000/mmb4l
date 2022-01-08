@@ -63,4 +63,8 @@ void interrupt_pause(char *return_stmt);
  */
 bool interrupt_pause_needs_resuming(void);
 
+void interrupt_enable_serial_rx(int fnbr, int64_t count, char *interrupt_addr);
+
+void interrupt_disable_serial_rx(int fnbr);
+
 #endif

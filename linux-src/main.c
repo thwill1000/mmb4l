@@ -40,6 +40,7 @@ PARTICULAR PURPOSE.
 #include "common/interrupt.h"
 #include "common/mmtime.h"
 #include "common/program.h"
+#include "common/serial.h"
 #include "common/utility.h"
 #include "common/version.h"
 
@@ -292,8 +293,25 @@ void FlashWriteInit(char *p, int nbr) {
     CurrentFile[0] = 0;
 }
 
+/**
+ * Peforms "background" tasks:
+ *  - pump for console input
+ *  - pump for serial port input
+ */
+static void perform_background_tasks() {
+    // TODO: consolidate with pumping the serial port connections ?
+    console_pump_input();
+
+    // Pump all the serial port connections for input.
+    for (int i = 1; i <= MAXOPENFILES; ++i) {
+        if (file_table[i].type == fet_serial) {
+            serial_pump_input(i);
+        }
+    }
+}
+
 void CheckAbort(void) {
-    if (!MMAbort) console_pump_input();
+    if (!MMAbort) perform_background_tasks();
 
     if (MMAbort) {
         // g_key_select = 0;
@@ -338,8 +356,10 @@ void MMgetline(int filenbr, char *p) {
 
     while (1) {
         CheckAbort();                // jump right out if CTRL-C
-        if (MMfeof(filenbr)) break;  // end of file - stop collecting
-        c = MMfgetc(filenbr);
+
+        if ((file_table[filenbr].type == fet_file) && file_eof(filenbr)) break; // End of file.
+        c = file_getc(filenbr);
+        if (c == -1) continue;
 
         // if this is the console, check for a programmed function key and
         // insert the text
@@ -376,31 +396,38 @@ void MMgetline(int filenbr, char *p) {
         }
 
         if (c == '\n') {  // what to do with a newline
-            break;        // a newline terminates a line (for a file)
+            break;        // a newline terminates a line (for a file or serial)
         }
 
         if (c == '\r') {
             if (filenbr == 0) {
                 MMPrintString("\r\n");
-                break;  // on the console this meand the end of the line - stop
-                        // collecting
-            } else
-                continue;  // for files loop around looking for the following
-                           // newline
+                break;  // on the console this means the end of the line
+                        // - stop collecting
+            } else {
+                continue;  // for files and serial loop around looking for the
+                           // following newline
+            }
         }
 
-        if (isprint(c)) {
-            if (filenbr == 0)
-                MMputchar(c);  // The console requires that chars be echoed
+        if (isprint(c) && (filenbr == 0)) {
+            MMputchar(c);  // The console requires that chars be echoed
         }
 
-        if (++nbrchars > MAXSTRLEN)
-            error("Line is too long");  // stop collecting if maximum length
-        *p++ = c;                       // save our char
+        if (++nbrchars > MAXSTRLEN) error("Line is too long");  // stop collecting if maximum length
+
+        // TODO: because the line returned is currently treated by the callers
+        //       as a C-string it can't contain embedded '\0' characters. For
+        //       the moment replace them with '?'. In the future update this
+        //       method to return the number of chars and handle any '\0' in the
+        //       callers.
+        if (c == 0) {
+            *p++ = '?';
+        } else {
+            *p++ = c;  // save our char
+        }
     }
     *p = 0;
-
-    //printf("%s", p);
 }
 
 // dump a memory area to the console

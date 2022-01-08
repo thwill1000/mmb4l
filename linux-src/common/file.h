@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "../Configuration.h"
+#include "rx_buf.h"
 
 enum FileEntryType { fet_closed, fet_file, fet_serial };
 
@@ -15,6 +16,7 @@ typedef struct {
         FILE *file_ptr;
         int serial_fd;
     };
+    RxBuf rx_buf;
 } FileEntry;
 
 extern FileEntry file_table[MAXOPENFILES + 1];

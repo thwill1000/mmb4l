@@ -3,15 +3,21 @@
 #include "console.h"
 #include "interrupt.h"
 #include "mmtime.h"
+#include "serial.h"
 #include "version.h"
 
 #define skipelement(x)  while(*x) x++
 
 typedef struct {
     int64_t due_ns;
-    char* interrupt_addr;
+    char *interrupt_addr;
     int64_t period_ns;
 } TickStruct;
+
+typedef struct {
+    int64_t count;
+    char *interrupt_addr;
+} SerialRxStruct;
 
 static int interrupt_count = 0;
 static char *interrupt_any_key_addr = NULL;
@@ -21,6 +27,7 @@ static int interrupt_specific_key = 0;
 static int interrupt_specific_key_pressed = false;
 static char *interrupt_specific_key_addr = NULL;
 static TickStruct interrupt_ticks[NBRSETTICKS + 1];
+static SerialRxStruct interrupt_serial_rx[MAXOPENFILES + 1];
 
 void interrupt_init() {
     interrupt_clear();
@@ -34,10 +41,14 @@ void interrupt_clear() {
     interrupt_specific_key = 0;
     interrupt_specific_key_pressed = false;
     interrupt_specific_key_addr = NULL;
-    for (int i = 0; i < NBRSETTICKS + 1; ++i) {
+    for (int i = 0; i <= NBRSETTICKS; ++i) {
         interrupt_ticks[i].due_ns = 0;
         interrupt_ticks[i].interrupt_addr = NULL;
         interrupt_ticks[i].period_ns = 0;
+    }
+    for (int i = 0; i <= MAXOPENFILES; ++i) {
+        interrupt_serial_rx[i].count = 0;
+        interrupt_serial_rx[i].interrupt_addr = NULL;
     }
 }
 
@@ -98,6 +109,15 @@ bool interrupt_check(void) {
                 interrupt_ticks[i].due_ns += interrupt_ticks[i].period_ns;
                 return handle_interrupt(interrupt_ticks[i].interrupt_addr);
             }
+        }
+    }
+
+    // Check for serial port interrupts.
+    for (int i = 1; i <= MAXOPENFILES; ++i) {
+        SerialRxStruct *entry = &(interrupt_serial_rx[i]);
+        if (entry->interrupt_addr
+                && serial_rx_queue_size(i) >= entry->count) {
+            return handle_interrupt(entry->interrupt_addr);
         }
     }
 
@@ -183,4 +203,23 @@ bool interrupt_pause_needs_resuming(void) {
     bool result = interrupt_pause_flag;
     interrupt_pause_flag = false;
     return result;
+}
+
+void interrupt_enable_serial_rx(int fnbr, int64_t count, char *interrupt_addr) {
+    assert(fnbr > 0 && fnbr <= MAXOPENFILES);
+    assert(count > 0);
+    assert(interrupt_addr);
+    assert(!interrupt_serial_rx[fnbr].interrupt_addr);
+    interrupt_serial_rx[fnbr].count = count;
+    interrupt_serial_rx[fnbr].interrupt_addr = interrupt_addr;
+    interrupt_count++;
+}
+
+void interrupt_disable_serial_rx(int fnbr) {
+    assert(fnbr > 0 && fnbr <= MAXOPENFILES);
+    if (interrupt_serial_rx[fnbr].interrupt_addr) {
+        interrupt_serial_rx[fnbr].count = 0;
+        interrupt_serial_rx[fnbr].interrupt_addr = NULL;
+        interrupt_count--;
+    }
 }
