@@ -113,8 +113,13 @@ static void serial_dump_spec(ComSpec *comspec) {
     printf("Device:             %s\n", comspec->device);
     printf("Speed:              %d\n", serial_speed_to_int(comspec->speed));
     printf("Bufsize:            %d\n", comspec->bufsize);
-    printf("RX interrupt:       0x%lx\n", (uintptr_t) comspec->rx_interrupt_addr);
+#if defined(ENV64BIT)
+    printf("RX interrupt:       0x%8lx\n", (uintptr_t) comspec->rx_interrupt_addr);
+    printf("RX interrupt count: %ld\n", comspec->rx_interrupt_count);
+#else
+    printf("RX interrupt:       0x%8ix\n", (uintptr_t) comspec->rx_interrupt_addr);
     printf("RX interrupt count: %lld\n", comspec->rx_interrupt_count);
+#endif
     printf("B7:                 %s\n", comspec->b7 ? "true" : "false");
     printf("Parity:             %d\n", comspec->parity);
     printf("RTS/CTS:            %s\n", comspec->rtscts ? "true" : "false");

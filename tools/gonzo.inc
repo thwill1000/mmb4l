@@ -146,7 +146,7 @@ Function gonzo.prompt_for_comspec$()
   Local baud$ = con.readln$("115200", history%())
   If sys.break_flag% Then Exit Sub
 
-  gonzo.prompt_for_comspec$ = device$ + ": " + baud
+  gonzo.prompt_for_comspec$ = device$ + ": " + baud$
 End Function
 
 Sub gonzo.cmd_connect(cmd$, argc%, argv$())
