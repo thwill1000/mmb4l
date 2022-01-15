@@ -9,11 +9,11 @@ Version 2022.01.00-a3 - ?-???-2022:
     see README for details.
   - Added XMODEM {SEND|RECEIVE} file$, #fnbr command:
     - #fnbr must first have been OPENed as a serial port.
-    - unlike other MMBasic ports cannot use XMODEM to send/receive to/from the
-      USB console.
+    - unlike other MMBasic versions, MMB4L cannot use XMODEM to send to or
+      receive from the console.
   - Added OPTION CODEPAGE page$ command:
     - causes character bytes in the range 128-255 to be translated to Unicode
-      (UTF-8) when printed to the *console* according to a given code page /
+      (UTF-8) when printed to the console according to a given code page /
       mapping.
     - supported values of page$ are currently:
       - "NONE"   : no mapping, characters 128-255 are written as-is.
@@ -27,8 +27,8 @@ Version 2022.01.00-a3 - ?-???-2022:
                    original non-ANSI CP437 characters 1-31 and with additional
                    "useful" characters in positions 128, 161-170 and 255.
   - Added CHR$(UTF8 codepoint%) function:
-    - given a Unicode code-point returns the 1-4 character string encoding that
-      character in UTF-8 format.
+    - given a Unicode code-point this returns the 1-4 character string encoding
+      that character in UTF-8 format.
     - printing such characters is not compatible with OPTION CODEPAGE being
       set.
   - Added AUTOSAVE file$ command:
@@ -37,7 +37,7 @@ Version 2022.01.00-a3 - ?-???-2022:
       for execution.
   - Added CONSOLE SETSIZE [ATLEAST] width%, height% command:
     - sends an XTerm control sequence to set the terminal size.
-    - if the optional ATLEAST modifier is used then will not reduce the
+    - if the optional ATLEAST modifier is used then this will not reduce the
       terminal width or height.
   - Added PRINT @(x%, y%) expression:
     - unlike the CMM2, x% & y% are obligatory and in character coordinates,
