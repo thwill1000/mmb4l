@@ -229,7 +229,7 @@ void serial_open(const char *comspec_str, int fnbr) {
     errno = 0;
 
     int fd = open(comspec.device, O_RDWR | O_NOCTTY); //  | O_NDELAY);
-    if (fd == -1) error("could not open serial device '$'", comspec.device);
+    if (fd == -1) error_check();
     fcntl(fd, F_SETFL, 0);
 
     struct termios options;
