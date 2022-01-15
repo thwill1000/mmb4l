@@ -25,11 +25,14 @@ int rx_buf_get(RxBuf *buf) {
 }
 
 int rx_buf_put(RxBuf *buf, char ch) {
-    if ((buf->head + 1) % buf->data_sz == buf->tail) {
+    buf->data[buf->head++] = ch;
+    buf->head %= buf->data_sz;
+
+    // If the buffer has overflowed then discard the oldest character.
+    if (buf->head == buf->tail) {
+        buf->tail = (buf->tail + 1) % buf->data_sz;
         return -1;
     } else {
-        buf->data[buf->head++] = ch;
-        buf->head %= buf->data_sz;
         return 0;
     }
 }

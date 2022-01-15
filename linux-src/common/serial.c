@@ -308,8 +308,8 @@ void serial_open(const char *comspec_str, int fnbr) {
         interrupt_enable_serial_rx(fnbr, comspec.rx_interrupt_count, comspec.rx_interrupt_addr);
     }
 
-    char *data = GetMemory(comspec.bufsize + 1); // Should already be zeroed.
-    rx_buf_init(&(entry->rx_buf), data, comspec.bufsize + 1);
+    char *data = GetMemory(comspec.bufsize); // Should already be zeroed.
+    rx_buf_init(&(entry->rx_buf), data, comspec.bufsize);
 }
 
 void serial_close(int fnbr) {
