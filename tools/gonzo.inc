@@ -8,6 +8,7 @@ sys.requires("console", "file", "inifile", "map", "string", "spsh")
 sys.provides("gonzo")
 If sys.err$ <> "" Then Error sys.err$
 
+Const CRLF$ = Chr$(&h0D) + Chr$(&h0A)
 Const ECHO% = &h01
 Const COLLECT% = &h02
 Const SKIP_EMPTY% = &h04
@@ -475,7 +476,7 @@ Sub gonzo.send_file(in_file$, out_file$, verbose%)
   Local count% = 0, x%
   Do While Not Eof(#gonzo.IN_FNBR%) And Not sys.break_flag%
     Line Input #gonzo.IN_FNBR%, s$
-    gonzo.writeln(s$)
+    gonzo.writeln(s$, CRLF$)  ' Need CRLF on CMM2, what about other platforms ?
     x% = gonzo.getln%(s$)
     Inc count%
     If verbose% Then
@@ -858,11 +859,13 @@ Sub gonzo.write(s$)
   If Not sys.break_flag% Then Print #gonzo.SERIAL_FNBR%, s$;
 End Sub
 
-Sub gonzo.writeln(s$)
-  ' Use CR '\r' as the end of line character. As strange as this may seem
-  ' to a Unix developer LF '\n' or a Windows developer CRLF '\r\n' this
+Sub gonzo.writeln(s$, eol$)
+  If sys.break_flag% Then Exit Sub
+
+  ' By default use CR '\r' as the end of line character. As strange as this may
+  ' seem to a Unix developer LF '\n' or a Windows developer CRLF '\r\n' this
   ' is the default for serial comms.
-  If Not sys.break_flag% Then Print #gonzo.SERIAL_FNBR%, s$ Chr$(&h0D);
+  Print #gonzo.SERIAL_FNBR%, s$ Choice(eol$ = "", Chr$(&h0D), eol$);
 End Sub
 
 Function gonzo.usage$(cmd$)
