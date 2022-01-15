@@ -49,7 +49,7 @@ Sub gonzo.connect(verbose%)
   On Error Skip 1
   Open gonzo.comspec$ As #gonzo.SERIAL_FNBR%
   If Mm.ErrMsg$ <> "" Then
-    con.errorln("Failed to connect to: " + gonzo.comspec$)
+    con.errorln("Failed to connect:" + Mid$(Mm.ErrMsg$, InStr(Mm.ErrMsg$, ":") + 1))
     gonzo.device_name$ = "DISCONNECTED"
     On Error Clear
   Else
