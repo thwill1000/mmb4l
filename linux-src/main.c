@@ -355,11 +355,14 @@ void MMgetline(int filenbr, char *p) {
     char *tp;
 
     while (1) {
-        CheckAbort();                // jump right out if CTRL-C
+        CheckAbort();  // jump right out if CTRL-C
 
         if ((file_table[filenbr].type == fet_file) && file_eof(filenbr)) break; // End of file.
         c = file_getc(filenbr);
-        if (c == -1) continue;
+
+        // -1 - no character.
+        //  0 - the null character which we ignore.
+        if (c <= 0) continue;
 
         // if this is the console, check for a programmed function key and
         // insert the text
@@ -416,16 +419,14 @@ void MMgetline(int filenbr, char *p) {
 
         if (++nbrchars > MAXSTRLEN) error("Line is too long");  // stop collecting if maximum length
 
-        // TODO: because the line returned is currently treated by the callers
-        //       as a C-string it can't contain embedded '\0' characters. For
-        //       the moment replace them with '?'. In the future update this
-        //       method to return the number of chars and handle any '\0' in the
-        //       callers.
-        if (c == 0) {
-            *p++ = '?';
-        } else {
-            *p++ = c;  // save our char
-        }
+        // TODO: currently this function can return strings containing control
+        //       characters, i.e. c < 32.
+        //       Perhaps we should replace these with another character such as
+        //       '?' or with a hex code <02> or <0x02>.
+        //       The same might apply to c = 0 which we currently ignore.
+        //       Possibly the behaviour could be controlled by an OPTION.
+
+        *p++ = c;  // save our char
     }
     *p = 0;
 }
