@@ -7,7 +7,8 @@ Option Explicit On
 If Mm.Device$ = "PicoMite" Then
   Const DEVICE$ = "COM1"
 Else
-  Const DEVICE$ = "/dev/ttyUSB0"
+  Const DEVICE$ = "/dev/ttyS1"
+  ' Const DEVICE$ = "/dev/ttyUSB0"
 EndIf
 
 Dim BAUDS%(3) = (2400, 9600, 115200, 921600)
@@ -112,6 +113,7 @@ Sub receive(spec$, expected$)
 
   Print Choice(msg$ = expected_$, "OK", "FAIL: " + format_received$(msg$))
   send_ack()
+  Pause 100
   Close #1
 End Sub
 
@@ -161,6 +163,7 @@ Sub receive_with_interrupt(baud%, size%)
   If ok% Then Print "OK, " Str$(g_count%) " interrupts"
 
   send_ack()
+  Pause 100
   Close #1
 End Sub
 
@@ -189,10 +192,10 @@ End Sub
 Sub receive_ack()
   Print "Waiting for ACK"
   Local msg$, s$
-  Do While Left$(msg$, 3) <> "ACK"
+  Do While Not InStr(msg$, "ACK")
     Pause 100
     s$ = Input$(255, #1)
     Cat msg$, s$
   Loop
-  Print "Received ACK"
+  Print "Received ACK: " format_received$(msg$)
 End Sub
