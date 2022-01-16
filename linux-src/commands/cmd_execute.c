@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <string.h>
 
 #include "../common/version.h"
 

@@ -1,3 +1,5 @@
+#include <ctype.h>
+
 #include "../common/error.h"
 #include "../common/interrupt.h"
 #include "../common/version.h"

@@ -25,21 +25,24 @@ provisions:
     #define VERSION_INCLUDED
 
     #define VERSION         "5.05.04"
-    #define YEAR            "2011-2021"
+    #define YEAR            "2011-2022"
     #define COPYRIGHT       "Copyright " YEAR " Geoff Graham\r\n"
 
 
     // Uncomment the following line if you want the "Lite" version of the MX170 code
     // #define LITE
 
-
-    #include <stdlib.h>
     #include <setjmp.h>
+
+    #if !defined(NO_VERSION_STD_INCLUDES)
+    #include <errno.h>
+    #include <stdlib.h>
     #include <string.h>
     #include <ctype.h>
     #include <limits.h>
     #include <math.h>
     #include <float.h>
+    #endif
 
     // define the device/platform, include the appropriate hardware defines and set the startup message
     #if defined(__32MX170F256B__) || defined(__32MX270F256B__) || defined(__32MX170F256D__) || defined(__32MX270F256D__)
@@ -69,10 +72,10 @@ provisions:
     #elif defined(__linux__)
         #define MM_DEVICE  "MMB4L"
         #undef VERSION
-        #define VERSION  "2021.01.00"
+        #define VERSION  "2022.01.00"
         #undef COPYRIGHT
         #define COPYRIGHT  "Copyright " YEAR " Geoff Graham\r\n" \
-                           "Copyright 2021 Thomas Hugo Williams\r\n"
+                           "Copyright 2021-2022 Thomas Hugo Williams\r\n"
                            // "Copyright 2016-2021 Peter Mather\r\n"
         #if defined(__ANDROID__)
             #define MM_ARCH  "Android aarch64"
@@ -92,7 +95,7 @@ provisions:
         #else
             #error This architecture is not supported
         #endif
-        #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a2\r\n"
+        #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a3\r\n"
     #else
         #error This device is not supported
     #endif

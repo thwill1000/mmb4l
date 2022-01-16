@@ -24,6 +24,8 @@ provisions:
 #if !defined(MMB4L_MEMORY_H)
 #define MMB4L_MEMORY_H
 
+#include "../../MMBasic/VarTable.h"
+
 extern char *StrTmp[];                                      // used to track temporary string space on the heap
 extern int TempMemoryTop;                                   // this is the last index used for allocating temp memory
 extern int TempMemoryIsChanged;                             // used to prevent unnecessary scanning of strtmp[]
@@ -38,6 +40,7 @@ void ClearTempMemory(void);
 void ClearSpecificTempMemory(void *addr);
 void FreeMemory(void *addr);
 void InitHeap(void);
+unsigned int UsedHeap(void);
 int FreeSpaceOnHeap(void);
 uintptr_t get_poke_addr(char *p);
 uintptr_t get_peek_addr(char *p);

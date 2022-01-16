@@ -152,13 +152,14 @@ TEST(RxBufTest, PutGivenBufferFull) {
         EXPECT_EQ(rx_buf_put(&buf, i), 0);
     }
 
-    // Try to put a character in a full buffer.
-    EXPECT_EQ(-1, rx_buf_put(&buf, 0xED));
+    // Put a character in a full buffer.
+    EXPECT_EQ(rx_buf_put(&buf, 0xED), -1);
 
-   // Empty the buffer
-    for (int i = 1; i < 16; ++i) {
+    // Empty the buffer
+    for (int i = 2; i < 16; ++i) {
         EXPECT_EQ(rx_buf_get(&buf), i);
     }
+    EXPECT_EQ(rx_buf_get(&buf), 0xED);
 
     EXPECT_EQ(rx_buf_get(&buf), -1);
     EXPECT_EQ(rx_buf_size(&buf), 0);
@@ -172,15 +173,15 @@ TEST(RxBufTest, CircularBuffer) {
 
     for (int i = 1; i <= 255; ++i) {  // Fill the buffer
         if (i < 16) {
-            EXPECT_EQ(0, rx_buf_put(&buf, i));
+            EXPECT_EQ(rx_buf_put(&buf, i), 0);
         } else {
-            EXPECT_EQ(i + 1 - 16, rx_buf_get(&buf));
-            EXPECT_EQ(0, rx_buf_put(&buf, i));
+            EXPECT_EQ(rx_buf_get(&buf), i + 1 - 16);
+            EXPECT_EQ(rx_buf_put(&buf, i), 0);
         }
     }
 
     for (int i = 1; i < 16; ++i) {
-        EXPECT_EQ(i + 240, rx_buf_get(&buf));
+        EXPECT_EQ(rx_buf_get(&buf), i + 240);
     }
 
     EXPECT_EQ(rx_buf_size(&buf), 0);

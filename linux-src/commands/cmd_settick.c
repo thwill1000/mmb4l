@@ -1,3 +1,5 @@
+#include <limits.h>
+
 #include "../common/error.h"
 #include "../common/interrupt.h"
 #include "../common/mmtime.h"

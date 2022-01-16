@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #include "../common/error.h"
+#include "../common/parse.h"
 #include "../common/version.h"
 
 static void longstring_append(char *tp) {
@@ -262,18 +263,21 @@ static void longstring_print(char *tp) {
     char *q = NULL;
     int i, j, fnbr;
     getargs(&tp, 5, ",;");
-    if (argc < 1 || argc > 4) error("Argument count");
-    if (argc > 0 &&
-        *argv[0] == '#') {  // check if the first arg is a file number
-        argv[0]++;
-        fnbr = getinteger(argv[0]);  // get the number
+    if (argc < 1 || argc > 4) ERROR_ARGUMENT_COUNT;
+
+    if (argc > 0 && *argv[0] == '#') {
+        // First argument is a file number.
+        fnbr = parse_file_number(argv[0], true);
+        if (fnbr == -1) ERROR_INVALID_FILE_NUMBER;
+        // Set the next argument to be looked at.
         i = 1;
-        if (argc >= 2 && *argv[1] == ',')
-            i = 2;  // and set the next argument to be looked at
+        if (argc >= 2 && *argv[1] == ',') i = 2;
     } else {
-        fnbr = 0;  // no file number so default to the standard output
+        // Use standard output.
+        fnbr = 0;
         i = 0;
     }
+
     if (argc >= 1) {
         ptr1 = findvar(argv[i], V_FIND | V_EMPTY_OK);
         if (vartbl[VarIndex].type & T_INT) {

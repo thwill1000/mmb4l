@@ -6,7 +6,7 @@
 // the values returned by the standard control keys
 #define TAB 0x9
 #define BKSP 0x8
-#define ENTER 0xd
+#define ENTER 0xa
 #define ESC 0x1b
 
 // the values returned by the function keys
@@ -58,6 +58,9 @@
 #define BRIGHT_YELLOW   14
 #define BRIGHT_WHITE    15
 
+extern int ListCnt;
+extern int MMCharPos;
+
 void console_init();
 void console_background(int colour);
 void console_bell();
@@ -70,7 +73,7 @@ void console_foreground(int colour);
 /**
  * Gets a character from the console without blocking.
  *
- * @return  -1  if no character.
+ * @return  -1 if no character.
  */
 int console_getc(void);
 
@@ -81,7 +84,7 @@ int console_getc(void);
  * @param   y           on return holds the y-position.
  * @param   timeout_ms  how long (in milliseconds) to wait for a response
  *                      from the terminal before reporting a failure.
- * @return              1 on success, otherwise 0.
+ * @return  0 on success, -1 on error.
  */
 int console_get_cursor_pos(int *x, int *y, int timeout_ms);
 
@@ -90,7 +93,7 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms);
  *
  * @param   width   on return holds the width in characters.
  * @param   height  on return holds the height in characters.
- * @return          1 on success, otherwise 0.
+ * @return  0 on success, -1 on error.
  */
 int console_get_size(int *width, int *height);
 
@@ -99,6 +102,9 @@ void console_invert(int invert);
 
 /** Gets the number of characters waiting in the console input queue. */
 int console_kbhit(void);
+
+/** Writes a character to the console. */
+char console_putc(char c);
 
 void console_reset(void);
 
@@ -110,7 +116,17 @@ void console_reset(void);
  */
 void console_set_cursor_pos(int x, int y);
 
+/**
+ * Resizes the console.
+ *
+ * @param   width   width in characters.
+ * @param   height  height in characters.
+ * @return  0 on success, -1 on error.
+ */
+int console_set_size(int width, int height);
+
 void console_set_title(const char *title);
 void console_show_cursor(int show);
+
 
 #endif

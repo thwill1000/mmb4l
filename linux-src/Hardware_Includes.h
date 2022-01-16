@@ -24,12 +24,12 @@ provisions:
 #if !defined(HARDWARE_INCLUDES_H)
     #define HARDWARE_INCLUDES_H
 
-    #include <errno.h>
-
     #include "Configuration.h"
     #include "DOS_Includes.h"
     #include "../MMBasic/VarTable.h"
+    #include "common/console.h"
     #include "common/file.h"
+    #include "common/interrupt.h"
     #include "common/memory.h"
     #include "common/option.h"
     #include "commands/mmb4l_commands.h"

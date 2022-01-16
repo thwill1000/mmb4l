@@ -1,37 +1,61 @@
 #if !defined(MMB4L_FILE)
 #define MMB4L_FILE
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
 #include "../Configuration.h"
+#include "rx_buf.h"
 
-#define HANDLE uint64_t
+enum FileEntryType { fet_closed, fet_file, fet_serial };
 
-extern FILE *MMFilePtr[MAXOPENFILES];
-extern HANDLE *MMComPtr[MAXOPENFILES];
-extern int OptionFileErrorAbort;
-extern char CurrentFile[STRINGSIZE];
+typedef struct {
+    enum FileEntryType type;
+    union {
+        FILE *file_ptr;
+        int serial_fd;
+    };
+    RxBuf rx_buf;
+} FileEntry;
 
-void CloseAllFiles(void);
-int FindFreeFileNbr(void);
-void MMfclose(int file_num);
-int MMfeof(int filenbr);
-int MMfgetc(int file_num);
-void MMgetline(int filenbr, char *p); // main.c
-void MMfopen(char *fname, char *mode, int file_num);
-char MMfputc(char c, int file_num);
+extern FileEntry file_table[MAXOPENFILES + 1];
+
+void MMgetline(int fnbr, char *p); // main.c
+
+/** Finds the first available free file number. */
+int file_find_free(void);
+
+void file_open(char *fname, char *mode, int fnbr);
+void file_close(int fnbr);
+void file_close_all(void);
+int file_eof(int fnbr);
+int file_getc(int fnbr);
+int file_loc(int fnbr);
+int file_lof(int fnbr);
+int file_putc(int ch, int fnbr);
+void file_seek(int fnbr, int idx);
 
 /** Does the file exist? */
-int file_exists(const char *path);
+bool file_exists(const char *path);
 
 /** Is the file empty? */
-int file_is_empty(const char *path);
+bool file_is_empty(const char *path);
 
 /** Is the file a regular file, or a symbolic link to a regular file? */
-int file_is_regular(const char *path);
+bool file_is_regular(const char *path);
 
-/** Does the filename have a given extension/suffix? */
-int file_has_extension(const char *path, const char *extension, int case_insensitive);
+/**
+ * Gets the file-extension, if any from a path.
+ *
+ * @param   path  the path.
+ * @return  pointer to the start of the file-extension within 'path', or
+ *          pointer to '\0' at the end of 'path' if it has not file-extension.
+ */
+const char *file_get_extension(const char *path);
+
+/** Does the filename have a given suffix? */
+bool file_has_suffix(
+        const char *path, const char *suffix, bool case_insensitive);
 
 #endif

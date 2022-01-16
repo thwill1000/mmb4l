@@ -20,6 +20,8 @@ provisions:
 ************************************************************************************************************************/
 #include <math.h>
 #include <complex.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "maths.h"
 #include "version.h"
@@ -29,8 +31,6 @@ void MahonyQuaternionUpdate(MMFLOAT ax, MMFLOAT ay, MMFLOAT az, MMFLOAT gx, MMFL
 void MadgwickQuaternionUpdate(MMFLOAT ax, MMFLOAT ay, MMFLOAT az, MMFLOAT gx, MMFLOAT gy, MMFLOAT gz, MMFLOAT mx, MMFLOAT my, MMFLOAT mz, MMFLOAT beta, MMFLOAT deltat, MMFLOAT *pitch, MMFLOAT *yaw, MMFLOAT *roll);
 
 extern volatile unsigned int AHRSTimer;
-
-typedef int bool;
 
 MMFLOAT optionangle = 1.0;
 MMFLOAT PI;

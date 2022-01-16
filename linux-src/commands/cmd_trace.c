@@ -1,3 +1,6 @@
+#include <string.h>
+#include <stdlib.h>
+
 #include "../common/version.h"
 
 // count the number of lines up to and including the line pointed to by the argument

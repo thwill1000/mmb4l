@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,7 +10,7 @@ void console_key_to_string(int ch, char *buf);
 volatile int MMAbort;
 char g_break_key;
 
-int interrupt_check_key_press(char ch) { return 0; }
+bool interrupt_check_key_press(char ch) { return false; }
 
 void CheckAbort(void) { console_pump_input(); }
 

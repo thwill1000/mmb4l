@@ -24,6 +24,7 @@ set(MMBASIC_CORE_SOURCE_FILES
     MMBasic/Commands.c)
 
 set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
+    linux-src/commands/cmd_autosave.c
     linux-src/commands/cmd_call.c
     linux-src/commands/cmd_cfunction.c
     linux-src/commands/cmd_chdir.c
@@ -54,6 +55,7 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_option.c
     linux-src/commands/cmd_pause.c
     linux-src/commands/cmd_poke.c
+    linux-src/commands/cmd_print.c
     linux-src/commands/cmd_quit.c
     linux-src/commands/cmd_rename.c
     linux-src/commands/cmd_rmdir.c
@@ -64,12 +66,15 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_sort.c
     linux-src/commands/cmd_system.c
     linux-src/commands/cmd_timer.c
-    linux-src/commands/cmd_trace.c)
+    linux-src/commands/cmd_trace.c
+    linux-src/commands/cmd_xmodem.c)
 
 set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
+    linux-src/functions/fun_at.c
     linux-src/functions/fun_bound.c
     linux-src/functions/fun_call.c
     linux-src/functions/fun_choice.c
+    linux-src/functions/fun_chr.c
     linux-src/functions/fun_cwd.c
     linux-src/functions/fun_date.c
     linux-src/functions/fun_datetime.c
@@ -104,6 +109,7 @@ set(MMBASIC_LINUX_OPERATORS_SOURCE_FILES
 
 set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/cmdline.c
+    linux-src/common/codepage.c
     linux-src/common/console.c
     linux-src/common/cJSON.c
     linux-src/common/error.c
@@ -117,7 +123,9 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/program.c
     linux-src/common/prompt.c
     linux-src/common/rx_buf.c
-    linux-src/common/utility.c)
+    linux-src/common/serial.c
+    linux-src/common/utility.c
+    linux-src/common/xmodem.c)
 
 set(MMBASIC_LINUX_SOURCE_FILES
     ${MMBASIC_LINUX_COMMANDS_SOURCE_FILES}
@@ -129,7 +137,13 @@ set(MMBASIC_LINUX_SOURCE_FILES
 # add the executable
 add_executable(mmbasic ${MMBASIC_CORE_SOURCE_FILES} ${MMBASIC_LINUX_SOURCE_FILES})
 
-add_executable(keyboard_test linux-src/keyboard_test.c linux-src/common/rx_buf.c linux-src/common/console.c linux-src/common/mmtime.c linux-src/common/utility.c)
+add_executable(keyboard_test
+    linux-src/keyboard_test.c
+    linux-src/common/rx_buf.c
+    linux-src/common/codepage.c
+    linux-src/common/console.c
+    linux-src/common/mmtime.c
+    linux-src/common/utility.c)
 
 target_link_libraries(mmbasic m)
 
@@ -151,6 +165,8 @@ add_executable(
 target_link_libraries(
   mmbasic_test
   gtest_main
+  gmock
+  gmock_main
 )
 
 include(GoogleTest)

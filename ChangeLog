@@ -2,6 +2,71 @@
 ChangeLog
 ---------
 
+Version 2022.01.00-a3 - ?-???-2022:
+  - Added serial port support, e.g.
+        OPEN "/dev/ttyS0: 115200" As #1
+    this is very preliminary and in need of extensive user testing,
+    see README for details.
+  - Added XMODEM {SEND|RECEIVE} file$, #fnbr command:
+    - #fnbr must first have been OPENed as a serial port.
+    - unlike other MMBasic versions, MMB4L cannot use XMODEM to send to or
+      receive from the console.
+  - Added OPTION CODEPAGE page$ command:
+    - causes character bytes in the range 128-255 to be translated to Unicode
+      (UTF-8) when printed to the console according to a given code page /
+      mapping.
+    - supported values of page$ are currently:
+      - "NONE"   : no mapping, characters 128-255 are written as-is.
+      - "CMM2"   : best effort mapping to the characters of the CMM2 font.
+      - "CP437"  : characters 128-255 of the original IBM PC code 437.
+                   Note this was a non-ANSI code page which also included
+                   characters 1-31 which are not available in this mapping,
+                   but see "MMB4L".
+      - "CP1252" : the classic Windows-1252 Latin alphabet code page.
+      - "MMB4L"  : as "CP437" but with characters 129-159 replaced by the
+                   original non-ANSI CP437 characters 1-31 and with additional
+                   "useful" characters in positions 128, 161-170 and 255.
+  - Added CHR$(UTF8 codepoint%) function:
+    - given a Unicode code-point this returns the 1-4 character string encoding
+      that character in UTF-8 format.
+    - printing such characters is not compatible with OPTION CODEPAGE being
+      set.
+  - Added AUTOSAVE file$ command:
+    - note that as with the CMM2 there is no CRUNCH option; AUTOSAVE writes to a
+      file and MMB4L always crunches the program automatically when it loads it
+      for execution.
+  - Added CONSOLE SETSIZE [ATLEAST] width%, height% command:
+    - sends an XTerm control sequence to set the terminal size.
+    - if the optional ATLEAST modifier is used then this will not reduce the
+      terminal width or height.
+  - Added PRINT @(x%, y%) expression:
+    - unlike the CMM2, x% & y% are obligatory and in character coordinates,
+      there is no mode parameter.
+    - equivalent to:
+        CONSOLE SETCURSOR x, y : PRINT expression
+  - Added missing LIST FILES command:
+    - just another synonym for FILES and LS and only present for compatibility
+      with the CMM2.
+  - Changed SYSTEM command to allow standard output to be captured in a STRING
+    (as an alternative to existing functionality to capture it in a LONGSTRING),
+    e.g.
+        DIM out$
+        SYSTEM "echo `date`", out$
+        PRINT out$
+    Also any trailing whitespace, including CRLF is now trimmed from the
+    captured STRING or LONGSTRING output.
+  - Changed EOF() function to return 1 when at the end of file (like the CMM2),
+    previously it returned -1.
+  - Fixed bug so that MEMORY COPY command correctly handles overlapping source
+    and destination.
+  - Fixed bug with MM.INFO$(...) not being recognised in interactive mode:
+    - synonym for MM.INFO(...).
+    - interim fix pending rewrite of pre-processor and its use from interactive
+      mode.
+  - Fixed bug where error messages over 127 characters would overflow into
+    the storage for MM.CMDLINE$
+    - error messages are now truncated to 127 characters.
+
 Version 2021.01.00-a2 - 6-Nov-2021:
   - Added ability to specify at the Linux shell a BASIC program that MMB4L
     should RUN when it starts, e.g.

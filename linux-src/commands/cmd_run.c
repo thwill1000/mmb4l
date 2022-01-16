@@ -1,8 +1,10 @@
+#include <string.h>
+
+#include "../common/program.h"
+#include "../common/utility.h"
 #include "../common/version.h"
 
 char run_cmdline[STRINGSIZE];
-
-int program_load_file(char *filename); // program.c
 
 void cmd_run(void) {
 
@@ -21,7 +23,7 @@ void cmd_run(void) {
         return;
     }
 
-    if (!program_load_file(filename)) return;
+    if (FAILED(program_load_file(filename))) return;
 
     ClearRuntime();
     WatchdogSet = false;

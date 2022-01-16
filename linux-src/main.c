@@ -24,9 +24,11 @@ PARTICULAR PURPOSE.
 
 ************************************************************************************************************************/
 
-#include <assert.h>
-#include <signal.h>
+#include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "common/cmdline.h"
@@ -37,20 +39,18 @@ PARTICULAR PURPOSE.
 #include "common/global_aliases.h"
 #include "common/interrupt.h"
 #include "common/mmtime.h"
+#include "common/program.h"
+#include "common/serial.h"
 #include "common/utility.h"
 #include "common/version.h"
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
-int ListCnt;
-int MMCharPos;
 volatile int MMAbort = false;
 struct option_s Option;
 int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary, **FontTable;
-
-// int ErrorInPrompt = false;
 
 char g_break_key = BREAK_KEY;
 CmdLineArgs mmb_args = { 0 };
@@ -103,7 +103,13 @@ void set_start_directory() {
     }
 }
 
-/** Handle retun via longjmp(). */
+static void reset_console_title() {
+    char title[STRINGSIZE + 10];
+    sprintf(title, "MMBasic - %s", CurrentFile[0] == '\0' ? "Untitled" : CurrentFile);
+    console_set_title(title);
+}
+
+/** Handle return via longjmp(). */
 void longjmp_handler(int jmp_state) {
 
     console_show_cursor(1);
@@ -149,10 +155,12 @@ void longjmp_handler(int jmp_state) {
     ContinuePoint = nextstmt;  // In case the user wants to use the continue command
     *tknbuf = 0;               // we do not want to run whatever is in the token buffer
     memset(inpbuf, 0, STRINGSIZE);
+
+    reset_console_title();
 }
 
 int main(int argc, char *argv[]) {
-    if (cmdline_parse(argc, (const char **) argv, &mmb_args) != 0) {
+    if (FAILED(cmdline_parse(argc, (const char **) argv, &mmb_args))) {
         fprintf(stderr, "Invalid command line arguments\n");
         cmdline_print_usage();
         exit(EX_FAIL);
@@ -180,7 +188,7 @@ int main(int argc, char *argv[]) {
     atexit(console_disable_raw_mode);
 
     if (mmb_args.interactive) {
-        console_set_title("MMBasic - Untitled");
+        reset_console_title();
         console_reset();
         console_clear();
         console_show_cursor(1);
@@ -285,14 +293,25 @@ void FlashWriteInit(char *p, int nbr) {
     CurrentFile[0] = 0;
 }
 
-// get a character from the console
-// returns -1 if nothing there
-int MMInkey(void) {
-    return console_getc();
+/**
+ * Peforms "background" tasks:
+ *  - pump for console input
+ *  - pump for serial port input
+ */
+static void perform_background_tasks() {
+    // TODO: consolidate with pumping the serial port connections ?
+    console_pump_input();
+
+    // Pump all the serial port connections for input.
+    for (int i = 1; i <= MAXOPENFILES; ++i) {
+        if (file_table[i].type == fet_serial) {
+            serial_pump_input(i);
+        }
+    }
 }
 
 void CheckAbort(void) {
-    if (!MMAbort) console_pump_input();
+    if (!MMAbort) perform_background_tasks();
 
     if (MMAbort) {
         // g_key_select = 0;
@@ -330,27 +349,20 @@ int MMgetchar(void) {
     return c == '\n' ? '\r' : c;
 }
 
-// put a character out to the operating system
-char MMputchar(char c) {
-    putc(c, stdout);
-    fflush(stdout);
-    if (isprint(c)) MMCharPos++;
-    if (c == '\r' || c == '\n') {
-        MMCharPos = 1;
-        ListCnt++;
-    }
-    return c;
-}
-
 // get a line from the keyboard or a file handle
 void MMgetline(int filenbr, char *p) {
     int c, nbrchars = 0;
     char *tp;
 
     while (1) {
-        CheckAbort();                // jump right out if CTRL-C
-        if (MMfeof(filenbr)) break;  // end of file - stop collecting
-        c = MMfgetc(filenbr);
+        CheckAbort();  // jump right out if CTRL-C
+
+        if ((file_table[filenbr].type == fet_file) && file_eof(filenbr)) break; // End of file.
+        c = file_getc(filenbr);
+
+        // -1 - no character.
+        //  0 - the null character which we ignore.
+        if (c <= 0) continue;
 
         // if this is the console, check for a programmed function key and
         // insert the text
@@ -387,36 +399,36 @@ void MMgetline(int filenbr, char *p) {
         }
 
         if (c == '\n') {  // what to do with a newline
-            break;        // a newline terminates a line (for a file)
+            break;        // a newline terminates a line (for a file or serial)
         }
 
         if (c == '\r') {
             if (filenbr == 0) {
                 MMPrintString("\r\n");
-                break;  // on the console this meand the end of the line - stop
-                        // collecting
-            } else
-                continue;  // for files loop around looking for the following
-                           // newline
+                break;  // on the console this means the end of the line
+                        // - stop collecting
+            } else {
+                continue;  // for files and serial loop around looking for the
+                           // following newline
+            }
         }
 
-        if (isprint(c)) {
-            if (filenbr == 0)
-                MMputchar(c);  // The console requires that chars be echoed
+        if (isprint(c) && (filenbr == 0)) {
+            MMputchar(c);  // The console requires that chars be echoed
         }
 
-        if (++nbrchars > MAXSTRLEN)
-            error("Line is too long");  // stop collecting if maximum length
-        *p++ = c;                       // save our char
+        if (++nbrchars > MAXSTRLEN) error("Line is too long");  // stop collecting if maximum length
+
+        // TODO: currently this function can return strings containing control
+        //       characters, i.e. c < 32.
+        //       Perhaps we should replace these with another character such as
+        //       '?' or with a hex code <02> or <0x02>.
+        //       The same might apply to c = 0 which we currently ignore.
+        //       Possibly the behaviour could be controlled by an OPTION.
+
+        *p++ = c;  // save our char
     }
     *p = 0;
-
-    //printf("%s", p);
-}
-
-/** Checks if an interrupt has occurred. */
-int check_interrupt(void) {
-    return interrupt_check();
 }
 
 // dump a memory area to the console

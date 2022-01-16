@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <string.h>
+
 #include "../common/error.h"
 #include "../common/version.h"
 #include "../common/cJSON.h"

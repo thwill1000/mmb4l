@@ -1,5 +1,8 @@
+#include <string.h>
+
 #include "../common/console.h"
 #include "../common/error.h"
+#include "../common/file.h"
 #include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/utility.h"
@@ -97,11 +100,11 @@ static void list_file(const char *filename, int all) {
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;
-    int file_num = FindFreeFileNbr();
-    MMfopen(file_path, "rb", file_num);
-    while (!MMfeof(file_num)) {
+    int fnbr = file_find_free();
+    file_open(file_path, "rb", fnbr);
+    while (!file_eof(fnbr)) {
         memset(line_buffer, 0, STRINGSIZE);
-        MMgetline(file_num, line_buffer);
+        MMgetline(fnbr, line_buffer);
         for (size_t i = 0; i < strlen(line_buffer); i++) {
             if (line_buffer[i] == TAB) line_buffer[i] = ' ';
         }
@@ -109,7 +112,7 @@ static void list_file(const char *filename, int all) {
         list_count += strlen(line_buffer) / Option.Width;
         ListNewLine(&list_count, all);
     }
-    MMfclose(file_num);
+    file_close(fnbr);
 
     // Ensure listing is followed by an empty line.
     if (strcmp(line_buffer, "") != 0) MMPrintString("\r\n");
@@ -122,7 +125,7 @@ static void list_flash(int all) {
     }
 
     // Make sure we are looking at the latest (on disk) version of the program.
-    if (!program_load_file(CurrentFile)) return;
+    if (FAILED(program_load_file(CurrentFile))) return;
 
     ListProgram(ProgMemory, all);
 
@@ -136,7 +139,7 @@ static void list_csubs(int all) {
     }
 
     // Make sure we are looking at the latest (on disk) version of the program.
-    if (!program_load_file(CurrentFile)) return;
+    if (FAILED(program_load_file(CurrentFile))) return;
 
     program_list_csubs(all);
 }
@@ -150,7 +153,7 @@ void cmd_list(void) {
     skipspace(cmdline);
 
     // Use the current console dimensions for the output of the LIST command.
-    console_get_size(&Option.Width, &Option.Height);
+    if (FAILED(console_get_size(&Option.Width, &Option.Height))) ERROR_INTERNAL_FAULT;
 
     if (parse_is_end(cmdline)) {
         list_file(NULL, false);
@@ -166,6 +169,9 @@ void cmd_list(void) {
         } else {
             ERROR_SYNTAX;
         }
+    } else if ((p = checkstring(cmdline, "FILES"))) {
+        void cmd_files_internal(char *);
+        cmd_files_internal(p);
     } else if ((p = checkstring(cmdline, "FLASH"))) {
         if (parse_is_end(p)) {
             list_flash(false);

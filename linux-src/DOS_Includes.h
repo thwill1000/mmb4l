@@ -41,10 +41,6 @@ provisions:
     #define tanf tan
 //#endif
 
-#define forever 1
-#define true  1
-#define false   0
-
 // global variables used in MMBasic but must be maintained outside of the interpreter
 extern char *StartEditPoint;
 extern int StartEditChar;
@@ -56,7 +52,14 @@ extern char error_file[STRINGSIZE];
 #define FONT_BUILTIN_NBR 0
 #define FONT_TABLE_SIZE 0
 
-#define getConsole  MMInkey
+// Aliases for functions using "legacy" names in MMBasic core:
+#define check_interrupt  interrupt_check
+#define CloseAllFiles    file_close_all
+#define getConsole       console_getc
+#define MMfeof           file_eof
+#define MMfgetc          file_getc
+#define MMfputc          file_putc
+#define MMputchar        console_putc
 
 // functions not used in the DOS version... so make them go away
 #define SaveOptions()    {}
@@ -65,14 +68,9 @@ extern char error_file[STRINGSIZE];
 #define TestStackOverflow()  {}
 #define LoadOptions()   {}
 
-#define VCHARS  25                // nbr of lines in the DOS box (used in LIST)
 #define ClearExternalIO()         // same
 
-#define FILENAME_LENGTH 12
-#define NBRERRMSG 17              // number of file error messages
-
 // console related I/O
-int MMInkey(void);
 int MMgetchar(void);
 char MMputchar(char c);
 
@@ -81,8 +79,8 @@ extern char *CFunctionFlash, *CFunctionLibrary, **FontTable;
 
 // misc
 char *GetIntAddress(char *p);
-int check_interrupt(void);
 void FlashWriteInit(char *p, int nbr);
+int codepage_set(const char *page_name);
 void dump(char *p, int nbr);
 void interrupt_clear(void);
 

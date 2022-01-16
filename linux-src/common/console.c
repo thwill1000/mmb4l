@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
+#include "codepage.h"
 #include "console.h"
 #include "error.h"
 #include "global_aliases.h"
@@ -34,6 +35,9 @@ extern char g_break_key;
 static struct termios orig_termios;
 static char console_rx_buf_data[CONSOLE_RX_BUF_SIZE];
 static RxBuf console_rx_buf;
+
+int ListCnt = 0;
+int MMCharPos = 0;
 
 void console_init(void) {
     rx_buf_init(
@@ -198,9 +202,9 @@ int console_getc(void) {
     int ch = rx_buf_get(&console_rx_buf);
 
     switch (ch) {
-        case 0x0A:
-            ch = ENTER;
-            break;
+        // case 0x0A:
+        //     ch = ENTER;
+        //     break;
 
         case ESC: {
             char *p = ESCAPE_MAP;
@@ -223,6 +227,26 @@ int console_getc(void) {
     }
 
     return ch;
+}
+
+char console_putc(char c) {
+    if (codepage_current && c > 127) {
+        char *ptr = codepage_current + 4 * (c - 128);
+        putc(*ptr++, stdout);           // 1st byte.
+        if (ptr) putc(*ptr++, stdout);  // Optional 2nd byte.
+        if (ptr) putc(*ptr++, stdout);  // Optional 3rd byte.
+        if (ptr) putc(*ptr++, stdout);  // Optional 4th byte.
+        MMCharPos++;
+    } else {
+        putc(c, stdout);
+        if (isprint(c)) MMCharPos++;
+    }
+    fflush(stdout);
+    if (c == '\r' || c == '\n') {
+        MMCharPos = 1;
+        ListCnt++;
+    }
+    return c;
 }
 
 void console_set_title(const char *title) {
@@ -290,23 +314,23 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
         sscanf(buf, "\033[%d;%dR", y, x);
         (*x)--; // adjust to account for VT100 origin being (1,1) not (0,0).
         (*y)--;
-        return 1;
+        return 0; // Success
     } else {
         *x = 0;
         *y = 0;
-        return 0;
+        return -1; // Failure
     }
 }
 
 int console_get_size(int *width, int *height) {
     struct winsize ws;
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
-        return 0;
-    } else {
-        *width = ws.ws_col;
-        *height = ws.ws_row;
-        return 1;
+        return -1; // Failure
     }
+
+    *width = ws.ws_col;
+    *height = ws.ws_row;
+    return 0; // Success
 }
 
 void console_home_cursor(void) {
@@ -317,6 +341,26 @@ void console_set_cursor_pos(int x, int y) {
     char buf[STRINGSIZE];
     sprintf(buf, "\033[%d;%dH", y + 1, x + 1); // VT100 origin is (1,1) not (0,0).
     WRITE_CODE(buf);
+}
+
+int console_set_size(int width, int height) {
+    char buf[STRINGSIZE];
+    sprintf(buf, "\033[8;%d;%dt", height, width);
+    WRITE_CODE(buf);
+
+    // Wait 250ms for the change to take effect.
+    // Note that if the requested height and width are not possible (e.g. too big)
+    // then console_get_size() can still briefly return the requested value even
+    // if it does not represent reality.
+    mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(250));
+
+    int new_height = 0;
+    int new_width = 0;
+    if (SUCCEEDED(console_get_size(&new_width, &new_height))
+            && (new_width == width)
+            && (new_height == height)) return 0; // Success
+
+    return -1; // Failure
 }
 
 const int ANSI_COLOURS[] = { 0, 4, 2, 6, 1, 5, 3, 7, 10, 14, 12, 16, 11, 15, 13, 17 };

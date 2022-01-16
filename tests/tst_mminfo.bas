@@ -1,4 +1,4 @@
-' Copyright (c) 2021 Thomas Hugo Williams
+' Copyright (c) 2021-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For Colour Maximite 2, MMBasic 5.07
 
@@ -6,24 +6,24 @@ Option Explicit On
 Option Default None
 Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 
-#Include "splib/system.inc"
-#Include "splib/array.inc"
-#Include "splib/list.inc"
-#Include "splib/string.inc"
-#Include "splib/file.inc"
-#Include "splib/vt100.inc"
-#Include "sptest/unittest.inc"
+#Include "../basic-src/splib/system.inc"
+#Include "../basic-src/splib/array.inc"
+#Include "../basic-src/splib/list.inc"
+#Include "../basic-src/splib/string.inc"
+#Include "../basic-src/splib/file.inc"
+#Include "../basic-src/splib/vt100.inc"
+#Include "../basic-src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
 If Mm.Device$ = "MMB4L" Then
-  Const EXPECTED_VERSION! = 2021.01
+  Const EXPECTED_VERSION! = 2022.01
 Else
   Const EXPECTED_VERSION! = 5.0702
 EndIf
 
-add_test("test_architecture")
+add_test("test_arch")
 add_test("test_current")
 add_test("test_device")
 add_test("test_directory")
@@ -41,6 +41,7 @@ add_test("test_option_break")
 add_test("test_option_case")
 add_test("test_option_default")
 add_test("test_option_explicit")
+add_test("test_option_codepage")
 add_test("test_option_resolution")
 add_test("test_option_serial")
 add_test("test_option_tab")
@@ -59,22 +60,21 @@ End Sub
 Sub teardown_test()
 End Sub
 
-Sub test_architecture()
+Sub test_arch()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
-  Local out%(32);
-  System "uname -s -m", out%()
-  Local expected_arch$ = LGetStr$(out%(), 1, LLen(out%()) - 1)
+  Local expected_arch$
+  System "uname -s -m", expected_arch$
+  If expected_arch$ = "Linux armv7l" Then expected_arch$ = "Linux armv6l"
 
   assert_string_equals(expected_arch$, Mm.Info$(Arch))
-  assert_string_equals(Mm.Info$(Arch), Mm.Info$(Architecture))
 End Sub
 
 Sub test_current()
   If Mm.Device$ = "MMB4L" Then
-    Local out%(32);
-    System "echo $HOME", out%()
-    Local expected_path$ = LGetStr$(out%(), 1, LLen(out%()) - 1) + "/github/mmb4l-src/tests/"
+    Local out$
+    System "echo $HOME", out$
+    Local expected_path$ = out$ + "/github/mmb4l-src/tests/"
   Else
     Local expected_path$ = "A:/MMB4L-SRC/TESTS/"
   EndIf
@@ -93,9 +93,8 @@ End Sub
 
 Sub test_directory()
   If Mm.Device$ = "MMB4L" Then
-    Local out%(32);
-    System "pwd", out%()
-    Local expected_dir$ = LGetStr$(out%(), 1, LLen(out%()) - 1)
+    Local expected_dir$
+    System "pwd", expected_dir$
   Else
     Local expected_dir$ = "A:/MMB4L-SRC/TESTS"
   EndIf
@@ -109,11 +108,10 @@ End Sub
 Sub test_envvar()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
-  Local out%(32);
-  System "echo $HOME", out%()
-  Local expected_home$ = LGetStr$(out%(), 1, LLen(out%()) - 1)
+  Local expected_home$
+  System "echo $HOME", expected_home$
 
-  assert_string_equals(expected_home$, Mm.Info$(ENVVAR "HOME"))
+  assert_string_equals(expected_home$, Mm.Info$(EnvVar "HOME"))
 End Sub
 
 Sub test_errmsg()
@@ -238,9 +236,9 @@ Sub test_hres()
   If Mm.Device$ = "MMB4L" Then
     Option Resolution Character
     Local actual% = Mm.Info(HRes)
-    Local out%(32);
-    System "tput cols", out%()
-    Local expected_hres% = Val(LGetStr$(out%(), 1, 255))
+    Local out$
+    System "tput cols", out$
+    Local expected_hres% = Val(out$)
     assert_int_equals(expected_hres%, actual%)
     assert_int_equals(actual%, Mm.HRes)
 
@@ -319,6 +317,27 @@ Sub test_option_explicit()
   assert_string_equals("On", Mm.Info(Option Explicit))
 End Sub
 
+Sub test_option_codepage()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
+  assert_string_equals("None", Mm.Info(Option CodePage))
+
+  Option CodePage "CMM2"
+  assert_string_equals("CMM2", Mm.Info(Option CodePage))
+
+  Option CodePage "CP437"
+  assert_string_equals("CP437", Mm.Info(Option CodePage))
+
+  Option CodePage "CP1252"
+  assert_string_equals("CP1252", Mm.Info(Option CodePage))
+
+  Option CodePage "MMB4L"
+  assert_string_equals("MMB4L", Mm.Info(Option CodePage))
+
+  Option CodePage "None"
+  assert_string_equals("None", Mm.Info(Option CodePage))
+End Sub
+
 Sub test_option_resolution()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
@@ -379,9 +398,9 @@ End Sub
 
 Sub test_path()
   If Mm.Device$ = "MMB4L" Then
-    Local out%(32);
-    System "echo $HOME", out%()
-    Local expected_path$ = LGetStr$(out%(), 1, LLen(out%()) - 1) + "/github/mmb4l-src/tests/"
+    Local out$
+    System "echo $HOME", out$
+    Local expected_path$ = out$ + "/github/mmb4l-src/tests/"
   Else
     Local expected_path$ = "A:/MMB4L-SRC/TESTS/"
   EndIf
@@ -411,9 +430,9 @@ Sub test_vres()
   If Mm.Device$ = "MMB4L" Then
     Option Resolution Character
     Local actual% = Mm.Info(VRes)
-    Local out%(32);
-    System "tput lines", out%()
-    Local expected_vres% = Val(LGetStr$(out%(), 1, 255))
+    Local out$
+    System "tput lines", out$
+    Local expected_vres% = Val(out$)
     assert_int_equals(expected_vres%, actual%)
     assert_int_equals(actual%, Mm.VRes)
 
@@ -425,7 +444,4 @@ End Sub
 
 Sub test_version()
   assert_float_equals(EXPECTED_VERSION!, Mm.Info(Version), 1e-10)
-  If Mm.Device$ = "MMB4L" Then
-    assert_float_equals(Mm.Info(Version), Mm.Info(Ver), 1e-10)
-  EndIf
 End Sub

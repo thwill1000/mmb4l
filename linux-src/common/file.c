@@ -1,32 +1,26 @@
-#include <assert.h>
+#include <ctype.h>
 #include <errno.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "console.h"
 #include "error.h"
 #include "file.h"
+#include "serial.h"
 #include "utility.h"
 #include "version.h"
 
-FILE *MMFilePtr[MAXOPENFILES];
-HANDLE *MMComPtr[MAXOPENFILES];
-int OptionFileErrorAbort = true; // Appears to be unused.
-char CurrentFile[STRINGSIZE];
-
-/*******************************************************************************************
-I/O related functions called from within MMBasic
-********************************************************************************************/
+// We don't use the 0'th entry, but it makes things simpler since MMBasic
+// indexes file numbers from 1.
+FileEntry file_table[MAXOPENFILES + 1] = { 0 };
 
 /**
  * @param  fname  filename in C-string style, not MMBasic style.
  */
-void MMfopen(char *fname, char *mode, int file_num) {
-    int err;
-    if (file_num < 1 || file_num > 10) error("Invalid file number");
-    file_num--;
-    if (MMFilePtr[file_num] != NULL || MMComPtr[file_num] != NULL) {
-        error("File number is already open");
-    }
+void file_open(char *fname, char *mode, int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (file_table[fnbr].type != fet_closed) ERROR_ALREADY_OPEN;
 
     char path[STRINGSIZE];
     munge_path(fname, path, STRINGSIZE);
@@ -36,136 +30,250 @@ void MMfopen(char *fname, char *mode, int file_num) {
     // first for read+update and if that does not work open it for
     // writing+update.  This has the same effect as opening for append+update
     // but will allow writing
+    FILE *f = NULL;
     if (*mode == 'x') {
-        MMFilePtr[file_num] = fopen(path, "rb+");
-        if (MMFilePtr[file_num] == 0) {
-            MMFilePtr[file_num] = fopen(path, "wb+");
+        f = fopen(path, "rb+");
+        if (!f) {
+            f = fopen(path, "wb+");
             error_check();
         }
-        fseek(MMFilePtr[file_num], 0, SEEK_END);
+        fseek(f, 0, SEEK_END);
         error_check();
     } else {
-        MMFilePtr[file_num] = fopen(path, mode);
+        f = fopen(path, mode);
         error_check();
     }
 
-    if (MMFilePtr[file_num] == NULL) {
+    if (!f) {
         errno = EBADF;
         error_check();
     }
+
+    file_table[fnbr].type = fet_file;
+    file_table[fnbr].file_ptr = f;
 }
 
-void MMfclose(int file_num) {
-    if (file_num < 1 || file_num > 10) error("Invalid file number");
-    file_num--;
-    if (MMFilePtr[file_num] == NULL && MMComPtr[file_num] == NULL) {
-        error("File number is not open");
-    }
-    if (MMFilePtr[file_num] != NULL) {
-        errno = 0;
-        fclose(MMFilePtr[file_num]);
-        MMFilePtr[file_num] = NULL;
-        error_check();
-    } else {
-        assert(false);
-        // SerialClose(MMComPtr[file_num]);
-        MMComPtr[file_num] = NULL;
+void file_close(int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ERROR_NOT_OPEN;
+            break;
+
+        case fet_file:
+            errno = 0;
+            fclose(file_table[fnbr].file_ptr);
+            file_table[fnbr].type = fet_closed;
+            file_table[fnbr].file_ptr = NULL;
+            error_check();
+            break;
+
+        case fet_serial:
+            serial_close(fnbr);
+            break;
     }
 }
 
-void CloseAllFiles(void) {
-    for (int i = 0; i < MAXOPENFILES; i++) {
-        if (MMFilePtr[i] != NULL) fclose(MMFilePtr[i]);
-        // if (MMComPtr[i] != NULL) SerialClose(MMComPtr[i]);
-        MMComPtr[i] = NULL;
-        MMFilePtr[i] = NULL;
+void file_close_all(void) {
+    for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
+        if (file_table[fnbr].type != fet_closed) file_close(fnbr);
     }
 }
 
-int MMfgetc(int file_num) {
-    unsigned char ch;
-    if (file_num < 0 || file_num > 10) error("Invalid file number");
-    if (file_num == 0) return MMgetchar();
-    file_num--;
-    // if (MMComPtr[file_num] != NULL) return Serialgetc(MMComPtr[file_num]);
-    if (MMFilePtr[file_num] == NULL) error("File number is not open");
-    errno = 0;
-    if (fread(&ch, 1, 1, MMFilePtr[file_num]) == 0) {
-        ch = -1;
+int file_getc(int fnbr) {
+    if (fnbr < 0 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr == 0) return MMgetchar();
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ERROR_NOT_OPEN;
+            break;
+
+        case fet_file: {
+            errno = 0;
+            char ch;
+            if (fread(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
+                ch = -1;
+            }
+            error_check();
+            return (int) ch;
+        }
+
+        case fet_serial:
+            return serial_getc(fnbr);
     }
+
+    ERROR_INTERNAL_FAULT;
+    return -1;
+}
+
+int file_loc(int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+
+    int result = -1;
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ERROR_NOT_OPEN;
+            break;
+
+        case fet_file:
+            errno = 0;
+            result = ftell(file_table[fnbr].file_ptr) + 1;
+            error_check();
+            break;
+
+        case fet_serial:
+            return serial_rx_queue_size(fnbr);
+            break;
+    }
+
+    return result;
+}
+
+int file_lof(int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+
+    int result = -1;
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ERROR_NOT_OPEN;
+            break;
+
+        case fet_file: {
+            errno = 0;
+            FILE *f = file_table[fnbr].file_ptr;
+            int pos = ftell(f);
+            error_check();
+            fseek(f, 0L, SEEK_END);
+            error_check();
+            result = ftell(f);
+            error_check();
+            fseek(f, pos, SEEK_SET);
+            error_check();
+            break;
+        }
+
+        case fet_serial:
+            result = 0; // Serial I/O ports are unbuffered.
+            break;
+    }
+
+    return result;
+}
+
+int file_putc(int ch, int fnbr) {
+    if (fnbr < 0 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr == 0) return console_putc(ch);
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ERROR_NOT_OPEN;
+            break;
+
+        case fet_file: {
+            errno = 0;
+            if (fwrite(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
+                if (errno == 0) errno = EBADF;
+            }
+            error_check();
+            // TODO: Do I really want to be flushing every character ?
+            fflush(file_table[fnbr].file_ptr); // Can this fail ?
+            return (int) ch;
+        }
+
+        case fet_serial:
+            return serial_putc(ch, fnbr);
+    }
+
+    ERROR_INTERNAL_FAULT;
+    return -1;
+}
+
+int file_eof(int fnbr) {
+    if (fnbr < 0 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr == 0) return 0;
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ERROR_NOT_OPEN;
+            break;
+
+        case fet_file: {
+            FILE *f = file_table[fnbr].file_ptr;
+            errno = 0;
+            int ch = fgetc(f);  // the Watcom compiler will only set eof after
+                                 // it has tried to read beyond the end of file
+            int i = (feof(f) != 0) ? 1 : 0;
+            error_check();
+            ungetc(ch, f);  // undo the Watcom bug fix
+            error_check();
+            return i;
+        }
+
+        case fet_serial:
+            return serial_eof(fnbr);
+    }
+
+    ERROR_INTERNAL_FAULT;
+    return 1;
+}
+
+void file_seek(int fnbr, int idx) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (idx < 1) ERROR_INVALID("seek position");
+
+    if (file_table[fnbr].type == fet_closed) ERROR_NOT_OPEN;
+    FILE *f = file_table[fnbr].file_ptr;
+
+    fflush(f);
+    fsync(fileno(f));
+    fseek(f, idx - 1, SEEK_SET); // MMBasic indexes from 1, not 0.
     error_check();
-    return ch;
 }
 
-char MMfputc(char c, int file_num) {
-    if (file_num < 0 || file_num > 10) error("Invalid file number");
-    if (file_num == 0) return MMputchar(c);
-    file_num--;
-    // if (MMComPtr[file_num] != NULL) return Serialputc(c, MMComPtr[file_num]);
-    if (MMFilePtr[file_num] == NULL) error("File number is not open");
-    errno = 0;
-    if (fwrite(&c, 1, 1, MMFilePtr[file_num]) == 0) {
-        if (errno == 0) errno = EBADF;
+int file_find_free(void) {
+    for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
+        if (file_table[fnbr].type == fet_closed) return fnbr;
     }
-    error_check();
-    return c;
+    error("Too many open files");
+    return -1;
 }
 
-int MMfeof(int file_num) {
-    int i, c;
-    if (file_num < 0 || file_num > 10) error("Invalid file number");
-    if (file_num == 0) return 0;
-    file_num--;
-    // if (MMComPtr[file_num] != NULL) return SerialEOF(MMComPtr[file_num]);
-    if (MMFilePtr[file_num] == NULL) error("File number is not open");
-    errno = 0;
-    c = fgetc(MMFilePtr[file_num]);  // the Watcom compiler will only set eof after
-                                     // it has tried to read beyond the end of file
-    i = (feof(MMFilePtr[file_num]) != 0) ? -1 : 0;
-    error_check();
-    ungetc(c, MMFilePtr[file_num]);  // undo the Watcom bug fix
-    error_check();
-    return i;
-}
-
-/** Find the first available free file number. */
-int FindFreeFileNbr(void) {
-    int i;
-    for (i = 0; i < MAXOPENFILES; i++) {
-        if (MMFilePtr[i] == NULL && MMComPtr[i] == NULL) return i + 1;
-    }
-    error("Too many files open");
-    return 0;  // keep the compiler quiet
-}
-
-int file_exists(const char *path) {
+bool file_exists(const char *path) {
     struct stat st;
     errno = 0;
     return stat(path, &st) == 0;
 }
 
-int file_is_empty(const char *path) {
+bool file_is_empty(const char *path) {
     struct stat st;
     errno = 0;
     stat(path, &st);
     return st.st_size == 0;
 }
 
-int file_is_regular(const char *path) {
+bool file_is_regular(const char *path) {
     struct stat st;
     errno = 0;
-    return (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? 1 : 0;
+    return (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? true : false;
 }
 
-int file_has_extension(const char *path, const char *extension, int case_insensitive) {
-    int start = strlen(path) - strlen(extension);
+const char *file_get_extension(const char *path) {
+    char *p = strrchr(path, '.');
+    return p ? p : path + strlen(path);
+}
+
+bool file_has_suffix(
+        const char *path, const char *suffix, bool case_insensitive) {
+    int start = strlen(path) - strlen(suffix);
     if (start < 0) return 0;
-    for (int i = 0; i < strlen(extension); ++i) {
+    for (int i = 0; i < strlen(suffix); ++i) {
         if (case_insensitive) {
-            if (toupper(path[i + start]) != toupper(extension[i])) return 0;
+            if (toupper(path[i + start]) != toupper(suffix[i])) return false;
         } else {
-            if (path[i + start] != extension[i]) return 0;
+            if (path[i + start] != suffix[i]) return false;
         }
     }
-    return 1;
+    return true;
 }

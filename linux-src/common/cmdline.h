@@ -9,7 +9,9 @@ typedef struct {
     char directory[256];
 } CmdLineArgs;
 
+/** @return  0 on success, -1 on error. */
 int cmdline_parse(int argc, const char *argv[], CmdLineArgs *result);
+
 void cmdline_print_usage();
 
 #endif

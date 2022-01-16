@@ -233,8 +233,11 @@ End Sub
 Sub assert_no_error()
   Inc ut.asserts_count%
   If sys.err$ <> "" Then
-    Local s$ = "Expected no error, but actually " + str.quote$(sys.err$)
-    ut.add_failure(s$)
+    ut.add_failure("Expected no error, but actually sys.err$ = " + str.quote$(sys.err$))
+  EndIf
+
+  If Mm.ErrMsg$ <> "" Then
+    ut.add_failure("Expected no error, but actually Mm.ErrMsg$ = " + str.quote$(Mm.ErrMsg$))
   EndIf
 End Sub
 
@@ -378,7 +381,7 @@ End Sub
 
 Sub ut.run_first()
   Print "Building list of tests ..."
-  Open file.TMPDIR$ + "/sptest.lst" For Output As #1
+  Open sys.string_prop$("tmpdir") + "/sptest.lst" For Output As #1
   Print #1, Time$
   Local f$ = file.find$(Cwd$, "*st*.bas", "file")
   Local first$
@@ -435,7 +438,7 @@ End Function
 
 Sub ut.run_next()
   Local f$, start_time$
-  Open file.TMPDIR$ + "/sptest.lst" For Input As #1
+  Open sys.string_prop$("tmpdir") + "/sptest.lst" For Input As #1
   Line Input #1, start_time$
 
   Do

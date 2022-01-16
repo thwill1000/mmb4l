@@ -1,7 +1,21 @@
 #if !defined(UTILITY_H)
 #define UTILITY_H
 
+#include <stdbool.h>
 #include <stdlib.h>
+
+#define max(a,b) \
+    ({ __typeof__ (a) _a = (a); \
+        __typeof__ (b) _b = (b); \
+        _a > _b ? _a : _b; })
+
+#define min(a,b) \
+    ({ __typeof__ (a) _a = (a); \
+        __typeof__ (b) _b = (b); \
+        _a < _b ? _a : _b; })
+
+#define FAILED(x) (x != 0)
+#define SUCCEEDED(x) (x == 0)
 
 /**
  * Returns an absolute/canonical path, replacing any '\' with '/'.
@@ -18,9 +32,9 @@ char *canonicalize_path(const char *path, char *canonical_path, size_t sz);
  * Is the path absolute?
  *
  * @param  path  path to check.
- * @return       1 if the path is absolute, otherwise 0.
+ * @return       true if the path is absolute, otherwise false.
  */
-int is_absolute_path(const char *path);
+bool is_absolute_path(const char *path);
 
 /**
  * Gets the parent of the given path.
@@ -60,5 +74,8 @@ char *munge_path(const char *original_path, char *new_path, size_t sz);
 
 /** If 'str' has leading and trailing double quotes then strips them off. */
 void unquote(char *str);
+
+/** Converts C-string to upper-case inplace. */
+char *strupr(char *s);
 
 #endif

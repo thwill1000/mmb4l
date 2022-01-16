@@ -1,6 +1,9 @@
+#include <stdbool.h>
+
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/parse.h"
+#include "../common/utility.h"
 #include "../common/version.h"
 
 static void cmd_console_background(char *p) {
@@ -45,7 +48,7 @@ static void cmd_console_get_cursor(char *p) {
     }
 
     int x, y;
-    if (!console_get_cursor_pos(&x, &y, 10000)) {
+    if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
 
@@ -70,7 +73,7 @@ static void cmd_console_get_size(char *p) {
     }
 
     int width, height;
-    if (!console_get_size(&width, &height)) {
+    if (FAILED(console_get_size(&width, &height))) {
         ERROR_COULD_NOT("determine console size");
     }
 
@@ -106,8 +109,8 @@ static void cmd_console_reset(char *p) {
     console_reset();
 }
 
-#define MAX_CURSOR_X  1024
-#define MAX_CURSOR_Y  1024
+#define MAX_CURSOR_X  1023
+#define MAX_CURSOR_Y  1023
 
 static void cmd_console_set_cursor(char *p) {
     getargs(&p, 3, ",");
@@ -115,6 +118,35 @@ static void cmd_console_set_cursor(char *p) {
     int x = getint(argv[0], 0, MAX_CURSOR_X);
     int y = getint(argv[2], 0, MAX_CURSOR_Y);
     console_set_cursor_pos(x, y);
+}
+
+static void cmd_console_set_size(char *p) {
+    char *p2 = NULL;
+    bool at_least = false;
+    if ((p2 = parse_check_string(p, "ATLEAST"))) at_least = true;
+    if (!p2) p2 = p;
+
+    int width, height;
+    { // getargs() should be first executable statement in a block.
+        getargs(&p2, 3, ",");
+        if (argc != 3) ERROR_ARGUMENT_COUNT;
+        width = getint(argv[0], 0, MAX_CURSOR_X + 1);
+        height = getint(argv[2], 0, MAX_CURSOR_Y + 1);
+    }
+
+    if (at_least) {
+        int old_width = 0;
+        int old_height = 0;
+        if (FAILED(console_get_size(&old_width, &old_height))) {
+            ERROR_COULD_NOT("resize console");
+        }
+        width = max(width, old_width);
+        height = max(height, old_height);
+    }
+
+    if (FAILED(console_set_size(width, height))) {
+        ERROR_COULD_NOT("resize console");
+    }
 }
 
 static void cmd_console_set_title(char *p) {
@@ -156,8 +188,12 @@ void cmd_console(void) {
         cmd_console_invert(p);
     } else if ((p = parse_check_string(cmdline, "RESET"))) {
         cmd_console_reset(p);
+    } else if ((p = parse_check_string(cmdline, "RESIZE"))) {
+        cmd_console_set_size(p);
     } else if ((p = parse_check_string(cmdline, "SETCURSOR"))) {
         cmd_console_set_cursor(p);
+    } else if ((p = parse_check_string(cmdline, "SETSIZE"))) {
+        cmd_console_set_size(p);
     } else if ((p = parse_check_string(cmdline, "SETTITLE"))) {
         cmd_console_set_title(p);
     } else if ((p = parse_check_string(cmdline, "SHOWCURSOR"))) {

@@ -1,8 +1,10 @@
+#include <ctype.h>
+
 #include "console.h"
 #include "error.h"
 #include "version.h"
 
-int parse_is_end(char *p) {
+bool parse_is_end(char *p) {
     return *p == '\0' || *p == '\'';
 }
 
@@ -16,17 +18,17 @@ char *parse_check_string(char *p, char *tkn) {
     return NULL;  // or NULL if not
 }
 
-int parse_bool(char *p) {
+bool parse_bool(char *p) {
     if (parse_check_string(p, "ON") || parse_check_string(p, "TRUE")) {
-        return 1;
+        return true;
     } else if (parse_check_string(p, "OFF") || parse_check_string(p, "FALSE")) {
-        return 0;
+        return false;
     } else {
-        return getint(p, 0, 1);
+        return getint(p, 0, 1) == 1;
     }
 }
 
-int parse_colour(char *p, int allow_bright) {
+int parse_colour(char *p, bool allow_bright) {
     char *p2;
     if ((p2 = parse_check_string(p, "BLACK"))) {
         return BLACK;
@@ -71,4 +73,13 @@ int parse_colour(char *p, int allow_bright) {
     int colour = getint(p, BLACK, BRIGHT_WHITE);
     if (!allow_bright && colour > WHITE) colour = -1;
     return colour;
+}
+
+int parse_file_number(char *p, bool allow_zero) {
+    skipspace(p); // Do we need this ?
+    if (*p == '#') p++;
+    int fnbr = getinteger(p);
+    if (fnbr == 0 && !allow_zero) return -1;
+    if (fnbr < 0 || fnbr > MAXOPENFILES) return -1;
+    return fnbr;
 }

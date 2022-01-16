@@ -1,11 +1,15 @@
+#include <errno.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "../common/codepage.h"
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/global_aliases.h"
 #include "../common/option.h"
 #include "../common/parse.h"
+#include "../common/program.h"
 #include "../common/utility.h"
 #include "../common/version.h"
 
@@ -179,12 +183,11 @@ static void mminfo_filesize(char *p) {
 
     struct stat st;
     if (stat(path, &st) == 0) {
-        if (S_ISREG(st.st_mode)) {
-            g_integer_rtn = st.st_size; // File.
-        } else if (S_ISDIR(st.st_mode)) {
-            g_integer_rtn = -2; // Directory.
+        if (S_ISDIR(st.st_mode)) {
+            g_integer_rtn = -2; // TODO: this matches CMM2, but probably better
+                                // just to return st.st_size.
         } else {
-            error("Unexpected file type");
+            g_integer_rtn = st.st_size;
         }
     } else {
         g_integer_rtn = -1; // Does not exist.
@@ -208,7 +211,7 @@ static void mminfo_fontwidth(char *p) {
 void mminfo_hres(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int width, height;
-    if (!console_get_size(&width, &height)) {
+    if (FAILED(console_get_size(&width, &height))) {
         ERROR_COULD_NOT("determine console size");
     }
     int scale = g_options.resolution == PIXEL ? FONT_WIDTH : 1;
@@ -219,7 +222,7 @@ void mminfo_hres(char *p) {
 static void mminfo_hpos(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int x, y;
-    if (!console_get_cursor_pos(&x, &y, 10000)) {
+    if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
     int scale = g_options.resolution == PIXEL ? FONT_WIDTH : 1;
@@ -237,6 +240,10 @@ static void mminfo_option(char *p) {
     } else if (checkstring(p, "CASE")) {
         g_string_rtn = GetTempStrMemory();
         option_list_case_to_string(g_options.Listcase, g_string_rtn);
+        g_rtn_type = T_STR;
+    } else if (checkstring(p, "CODEPAGE")) {
+        g_string_rtn = GetTempStrMemory();
+        if (FAILED(codepage_to_string(codepage_current, g_string_rtn))) ERROR_INTERNAL_FAULT;
         g_rtn_type = T_STR;
     } else if (checkstring(p, "CONSOLE")) {
         g_string_rtn = GetTempStrMemory();
@@ -296,7 +303,7 @@ static void mminfo_version(char *p) {
 void mminfo_vres(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int width, height;
-    if (!console_get_size(&width, &height)) {
+    if (FAILED(console_get_size(&width, &height))) {
         ERROR_COULD_NOT("determine console size");
     }
     int scale = g_options.resolution == PIXEL ? FONT_HEIGHT : 1;
@@ -307,7 +314,7 @@ void mminfo_vres(char *p) {
 static void mminfo_vpos(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int x, y;
-    if (!console_get_cursor_pos(&x, &y, 10000)) {
+    if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
     int scale = g_options.resolution == PIXEL ? FONT_HEIGHT : 1;
@@ -318,8 +325,6 @@ static void mminfo_vpos(char *p) {
 void fun_mminfo(void) {
     char *p;
     if ((p = checkstring(ep, "ARCH"))) {
-        mminfo_architecture(p);
-    } else if ((p = checkstring(ep, "ARCHITECTURE"))) {
         mminfo_architecture(p);
     } else if ((p = checkstring(ep, "CMDLINE"))) {
         mminfo_cmdline(p);
@@ -353,8 +358,6 @@ void fun_mminfo(void) {
         mminfo_option(p);
     } else if ((p = checkstring(ep, "PATH"))) {
         mminfo_path(p);
-    } else if ((p = checkstring(ep, "VER"))) {
-        mminfo_version(p);
     } else if ((p = checkstring(ep, "VERSION"))) {
         mminfo_version(p);
     } else if ((p = checkstring(ep, "VRES"))) {

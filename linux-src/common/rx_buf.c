@@ -25,11 +25,14 @@ int rx_buf_get(RxBuf *buf) {
 }
 
 int rx_buf_put(RxBuf *buf, char ch) {
-    if ((buf->head + 1) % buf->data_sz == buf->tail) {
+    buf->data[buf->head++] = ch;
+    buf->head %= buf->data_sz;
+
+    // If the buffer has overflowed then discard the oldest character.
+    if (buf->head == buf->tail) {
+        buf->tail = (buf->tail + 1) % buf->data_sz;
         return -1;
     } else {
-        buf->data[buf->head++] = ch;
-        buf->head %= buf->data_sz;
         return 0;
     }
 }
@@ -59,7 +62,11 @@ void rx_buf_dump(RxBuf *buf) {
     printf("\n");
     for (int i = 0; i < buf->data_sz; ++i) {
         if (i > 0) printf(", ");
-        printf("%d", buf->data[i]);
+        if (buf->data[i] > 31 && buf->data[i] < 128) {
+            printf("'%c'", buf->data[i]);
+        } else {
+            printf("<0x%02X>", buf->data[i]);
+        }
         if (i == buf->head) printf("H");
         if (i == buf->tail) printf("T");
     }

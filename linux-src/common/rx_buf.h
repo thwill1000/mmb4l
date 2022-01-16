@@ -35,11 +35,12 @@ int rx_buf_get(RxBuf *buf);
 
 /**
  * Puts a character on the end of the buffer.
+ * If the buffer was full then the oldest character is discarded.
  *
  * @param  buf  pointer to the buffer.
  * @param  ch   the character.
- * @return      0 on success,
- *              -1 if the buffer was full, the character is not 'put''.
+ * @return      0 if the buffer was not full,
+ *              -1 if the buffer was full; the oldest character is discarded.
  */
 int rx_buf_put(RxBuf *buf, char ch);
 
@@ -56,10 +57,9 @@ int rx_buf_size(RxBuf *buf);
  *
  * @param  buf  pointer to the buffer.
  * @param  ch   the character.
- * @return      0 on success,
- *              -1 if the buffer was full, the last character 'put' in the
- *              buffer is discarded to make room and the character is still
- *              'ungot'.
+ * @return      0 if the buffer was not full,
+ *              -1 if the buffer was full; the newest character is discarded
+ *              to make way for the 'ungot' character.
  */
 int rx_buf_unget(RxBuf *buf, char ch);
 

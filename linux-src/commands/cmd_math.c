@@ -1,4 +1,6 @@
 #include <complex.h>
+#include <ctype.h>
+#include <math.h>
 #include <stdint.h>
 
 #include "../common/error.h"

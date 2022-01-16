@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "option.h"
 #include "version.h"
 

@@ -128,42 +128,52 @@ icolor cyan "(^|^[[:space:]]*)(ECHO\ (ON|OFF))"
 icolor cyan "(^|^[[:space:]]*)(EXIT\ DO)"
 
 ## keywords
-icolor cyan "\<(and|append|as)\>"
+icolor cyan "\<(and|append|arch|as)\>"
 icolor cyan "\<(background|black|blue|bound|bright|byte)\>"
 icolor cyan "\<(case|cat|chdir|clear|console|cfunaddr|choice|close|color|colour|const|csub|cyan)\>"
-icolor cyan "\<(default|din|dim|dout)\>"
-icolor cyan "\<(else|elseif|end|error|exit)\>"
-icolor cyan "\<(float|font|fontwidth|fontheight|for|foreground|function)\>"
+icolor cyan "\<(default|device|din|dim|directory|dout)\>"
+icolor cyan "\<(else|elseif|end|envvar|errno|error|exit|exists)\>"
+icolor cyan "\<(filesize|float|font|fontwidth|fontheight|for|foreground|function)\>"
 icolor cyan "\<(getcursor|getsize|gosub|goto|gray|green|grey)\>"
-icolor cyan "\<(hidecursor)\>"
+icolor cyan "\<(hidecursor|hpos|hres)\>"
 icolor cyan "\<(if|inc|input|integer)\>"
-icolor cyan "\<(length|lgetbyte|longstring|loop)\>"
-icolor cyan "\<(magenta|mm.info|mod|mode)\>"
+icolor cyan "\<(length|lgetbyte|llen|longstring|loop)\>"
+icolor cyan "\<(magenta|mm.errno|mm.hres|mm.info|mm.vres|mod|mode)\>"
 icolor cyan "\<(next|none|not)\>"
 icolor cyan "\<(option|or)\>"
-icolor cyan "\<(pause|peek|pin|poke|print|purple)\>"
-icolor cyan "\<(read|red|reset|return|rgb)\>"
-icolor cyan "\<(select|serial|setcursor|setpin|settick|showcursor|settitle|spi|static|step|sub)\>"
+icolor cyan "\<(path|pause|peek|pin|poke|print|purple)\>"
+icolor cyan "\<(read|receive|red|reset|return|rgb)\>"
+icolor cyan "\<(select|send|serial|setcursor|setpin|settick|showcursor|settitle|spi|static|step|sub)\>"
 icolor cyan "\<(tab|text|then|to|tron|troff)\>"
 icolor cyan "\<(until|using)\>"
-icolor cyan "\<(var|varaddr|version)\>"
+icolor cyan "\<(var|varaddr|version|vpos|vres)\>"
 icolor cyan "\<(while|white)\>"
-icolor cyan "\<(xor)\>"
+icolor cyan "\<(xmodem|xor)\>"
 icolor cyan "\<(yellow)\>"
+
+## options
+icolor cyan "\<(option base)\>"
+icolor cyan "\<(option codepage(| on| off))\>"
+icolor cyan "\<(option console(| both| serial| screen))\>"
+icolor cyan "\<(option explicit(| on| off))\>"
+icolor cyan "\<(option resolution(| character| pixel))\>"
+
+## mminfo sub-commands
 
 ## preprocessor keywords
 icolor red "(^|^[[:space:]]*)\#include\>"
 
 ## functions returning strings
-icolor cyan "\<(format|lcase|mm.info)\$\("
+icolor cyan "\<(field|format|lcase|lgetstr|mm.info)\$\("
 
 ## system variables
 icolor cyan "\<(cwd|mm.device|mm.errmsg)\$"
 
 ## keywords containing blanks
-icolor cyan "\<(option console (both|serial|screen))\>"
+icolor cyan "\<(continue\ do)\>"
+icolor cyan "\<(exists (dir|file|symlink))\>"
 icolor cyan "\<(exit do|for input as|for output as|line input|memory copy)\>"
-icolor cyan "\<(memory set|on error skip|on key|option base|option explicit (on|off)|trace off)\>"
+icolor cyan "\<(memory set|on error (abort|ignore|skip)|on key|trace off)\>"
 icolor cyan "\<(trace on)\>"
 
 ## operators

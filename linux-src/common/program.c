@@ -1,14 +1,18 @@
-#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "../common/console.h"
 #include "../common/error.h"
+#include "../common/file.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 #include "../common/version.h"
 
-#define EDIT_BUFFER_SIZE  512 * 1024
 #define MAXDEFINES  256
+
+char CurrentFile[STRINGSIZE];
 
 static int nDefines = 0;
 
@@ -197,7 +201,7 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     while ((uintptr_t) pmem % 8 != 0) *pmem++ = 0;
     CFunctionFlash = pmem;
 
-    assert(!errno);
+    error_check();
 }
 
 /**
@@ -231,14 +235,13 @@ static char *program_get_inc_file(char *parent_file, char *filename, char *file_
 
 static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
 
-    int file_num;
     char line_buffer[STRINGSIZE];
     char num[10];
     int importlines = 0;
     int ignore = 0;
     char *filename, *sbuff, *op, *ip;
     int c, slen, data;
-    file_num = FindFreeFileNbr();
+    int fnbr = file_find_free();
     char *q;
     if ((q = strchr(tp, 34)) == 0) error("Syntax");
     q++;
@@ -261,16 +264,16 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
         }
     }
 
-    MMfopen(file_path, "rb", file_num);
-    //    while(!FileEOF(file_num)) {
-    while (!MMfeof(file_num)) {
+    file_open(file_path, "rb", fnbr);
+    //    while(!FileEOF(fnbr)) {
+    while (!file_eof(fnbr)) {
         int toggle = 0, len = 0;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
             error("Not enough memory");
         //        mymemset(buff,0,256);
         memset(line_buffer, 0, STRINGSIZE);
-        MMgetline(file_num, line_buffer);  // get the input line
+        MMgetline(fnbr, line_buffer);  // get the input line
         data = 0;
         importlines++;
         //        routinechecks(1);
@@ -372,8 +375,8 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
             }
         }
     }
-    //    FileClose(file_num);
-    MMfclose(file_num);
+
+    file_close(fnbr);
 }
 
 /**
@@ -612,23 +615,21 @@ static int program_load_file_internal(char *filename) {
     int i, importlines = 0, data;
 
     ClearProgram();
-    int file_num = FindFreeFileNbr();
-    MMfopen(file_path, "rb", file_num);
+    int fnbr = file_find_free();
+    file_open(file_path, "rb", fnbr);
 
     // TODO: are these being properly released after a longjmp() ?
     p = edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);
     dlist = GetTempMemory(sizeof(a_dlist) * MAXDEFINES);
 
-    //    while(!FileEOF(file_num)) {                                     // while
-    //    waiting for the end of file
-    while (!MMfeof(file_num)) {
+    while (!file_eof(fnbr)) {
         int toggle = 0, len = 0, slen;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
             ERROR_OUT_OF_MEMORY;
         //        mymemset(buff,0,256);
         memset(line_buffer, 0, STRINGSIZE);
-        MMgetline(file_num, line_buffer);  // get the input line
+        MMgetline(fnbr, line_buffer);  // get the input line
         data = 0;
         importlines++;
         //        routinechecks(1);
@@ -733,7 +734,8 @@ static int program_load_file_internal(char *filename) {
             }
         }
     }
-    MMfclose(file_num);
+
+    file_close(fnbr);
 
     // Ensure every program has an END (and a terminating '\0').
     if (p - edit_buffer > EDIT_BUFFER_SIZE - 5) ERROR_OUT_OF_MEMORY;
@@ -748,7 +750,7 @@ static int program_load_file_internal(char *filename) {
     program_process_csubs();
     // program_list_csubs(1);
 
-    return true;
+    return 0; // Success
 }
 
 int program_load_file(char *filename) {
@@ -766,7 +768,7 @@ int program_load_file(char *filename) {
     sprintf(title, "MMBasic - %s", CurrentFile);
     console_set_title(title);
 
-    if (error_check()) result = false;
+    if (error_check()) result = -1; // Error
 
     return result;
 }

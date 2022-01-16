@@ -1,6 +1,7 @@
 // C-language functions to implement MMBasic functions and operators.
 #if !defined(INCLUDE_COMMAND_TABLE) && !defined(INCLUDE_TOKEN_TABLE)
 
+    void fun_at(void);
     void fun_bound(void);
     void fun_call(void);
     void fun_choice(void);
@@ -38,6 +39,7 @@
 // Entries for the token table.
 #ifdef INCLUDE_TOKEN_TABLE
 
+    { "@(",           T_FUN | T_STR,      0, fun_at       },
     { "Bound(",       T_FUN | T_INT,      0, fun_bound    },
     { "Call(",        T_FUN | T_STR | T_INT | T_NBR, 0, fun_call },
     { "Choice(",      T_FUN | T_STR | T_INT | T_NBR, 0, fun_choice },
@@ -66,6 +68,7 @@
     { "Timer",        T_FNA | T_INT,      0, fun_timer    },
     { "MM.HRes",      T_FNA | T_INT,      0, fun_hres     },
     { "MM.Info(",     T_FUN | T_STR | T_INT | T_NBR, 0, fun_mminfo },
+    { "MM.Info$(",    T_FUN | T_STR | T_INT | T_NBR, 0, fun_mminfo },
     { "MM.VRes",      T_FNA | T_INT,      0, fun_vres     },
     { "MM.Device$",   T_FNA | T_STR,      0, fun_mmdevice   },
     { "MM.CmdLine$",  T_FNA | T_STR,      0, fun_mmcmdline  },

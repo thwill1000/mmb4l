@@ -1,5 +1,6 @@
 #include <dirent.h>
 #include <libgen.h>
+#include <string.h>
 
 #include "../common/error.h"
 #include "../common/global_aliases.h"

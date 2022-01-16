@@ -1,6 +1,7 @@
 // C-language functions to implement MMBasic commands.
 #if !defined(INCLUDE_COMMAND_TABLE) && !defined(INCLUDE_TOKEN_TABLE)
 
+    void cmd_autosave(void);
     void cmd_call(void);
     void cmd_chdir(void);
     void cmd_close(void);
@@ -36,12 +37,14 @@
     void cmd_sort(void);
     void cmd_system(void);
     void cmd_timer(void);
+    void cmd_xmodem(void);
 
 #endif
 
 // Entries for the command table.
 #if defined(INCLUDE_COMMAND_TABLE)
 
+    { "AutoSave",   T_CMD,              0, cmd_autosave },
     { "Call",       T_CMD,              0, cmd_call     },
     { "Chdir",      T_CMD,              0, cmd_chdir    },
     { "Close",      T_CMD,              0, cmd_close    },
@@ -84,5 +87,6 @@
     { "SetTitle",   T_CMD,              0, cmd_settitle },
     { "Sort",       T_CMD,              0, cmd_sort     },
     { "Text",       T_CMD,              0, cmd_dummy    },
+    { "XModem",     T_CMD,              0, cmd_xmodem   },
 
 #endif

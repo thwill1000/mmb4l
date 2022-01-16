@@ -1,3 +1,5 @@
+#include <ctype.h>
+
 #include "../common/version.h"
 
 static void integersort(int64_t *iarray, int n, int64_t *index, int flags,
