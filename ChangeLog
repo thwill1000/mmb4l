@@ -2,7 +2,7 @@
 ChangeLog
 ---------
 
-Version 2022.01.00-a3 - ?-???-2022:
+Version 2022.01.00-a3 - 16-Jan-2022:
   - Added serial port support, e.g.
         OPEN "/dev/ttyS0: 115200" As #1
     this is very preliminary and in need of extensive user testing,
