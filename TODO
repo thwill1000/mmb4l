@@ -31,10 +31,14 @@ Completely overhaul 'mmbasic.syntax.nanorc'
   - can we fix syntax highlighting for "strings" inside comments ?
 Implement SEARCH PATH
 Implement command-line RUN shortcut '*'
-Implement command-line SYSTEM shortcut, e.g. '!ls'
+Implement command-line SYSTEM shortcut, e.g. '!cd', '!ls'
+  - can we get away without requiring the ! if at the BASIC prompt ?
+  - what about TAB completion of paths ?
 Make all function keys reprogrammable
 Implement OPTION persistence
 Implement variable/sub/function hash tables
+Implement user configurable editor via 'OPTION EDITOR'
+  - investigate using 'xed' as suggested by @robert.rozee
 
 
 Required for release
@@ -49,7 +53,6 @@ Review all uses of void*
 Implement safety checks on PEEK/POKE calls
  - should these be optional ?
  - should address alignment of PEEK/POKE be optional ?
-Implement command-line path completion
 
 
 To infinity and beyond
@@ -65,6 +68,7 @@ Fix bug where TRACE will not log a line that you GOTO/GOSUB using a line number,
   but will if you use a label
 Can PRINT @(x,y) be implemented without using a function slot for @ ?
 Implement line continuation character _
+Is it a good idea to add CD as an alias for CHDIR ?
 
 
 EDITOR issues
