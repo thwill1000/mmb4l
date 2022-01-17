@@ -4,6 +4,25 @@ TODO
 Required for alpha 4
 --------------------
 
+Reorder interrupt processing to match PicoMite, add this as a comment to the
+code:
+  1. ON KEY individual
+  2. ON KEY general
+  -- 3. GUI Int Down (not PicoMiteVGA)
+  -- 4. GUI Int Up (not PicoMiteVGA)
+  -- 5. ADC completion
+  -- 6. I2C Slave Rx
+  -- 7. I2C Slave Tx
+  -- 8. I2C2 Slave Rx
+  -- 9. I2C2 Slave Tx
+  -- 10. WAV Finished
+  11. COM1: Serial Port
+  12. COM2: Serial Port
+  -- 13. IR Receive
+  -- 14. Keypad
+  -- 15. Interrupt command/CSub Interrupt
+  -- 16. I/O Pin Interrupts in order of definition
+  17. Tick Interrupts (1 to 4 in that order)
 gonzo: Implement local LIST/TYPE command
 gonzo: Try to reconnect (using dmesg?) to device if we lose connection
   - i.e. when setting OPTIONs
