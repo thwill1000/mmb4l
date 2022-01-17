@@ -51,7 +51,7 @@ MMB4L is in the early alpha phase so there are no fancy installers yet:
  1. Download the latest .tgz for your platform from the [distributions](distributions) directory:
     * For 64-bit Linux running on Intel/AMD use the 'x86_64' distribution.
     * For 32-bit Linux running on Intel/AMD use the 'i686' distribution.
-    * For 32-bit Raspbian/Linux running on Raspberry Pi use the 'armv6l' distribution.
+    * For 32-bit Raspbian/Linux running on Raspberry Pi ("Buster") use the 'armv6l' distribution.
 
  2. Extract the archive into a temporary location:
     * ```mkdir -p ~/tmp && tar -xf mmb4l-<version>.tgz --directory ~/tmp```
