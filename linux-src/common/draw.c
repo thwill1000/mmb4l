@@ -21,10 +21,12 @@ provisions:
 
 ************************************************************************************************************************/
 
-
-#include "MMBasic_Includes.h"
-#include "Hardware_Includes.h"
+#include <ctype.h>
+#include <string.h>
 #include <unistd.h>
+
+#include "framebuffer.h"
+#include "version.h"
 
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -74,16 +76,26 @@ int CurrentX, CurrentY;                                             // the curre
 int DisplayHRes, DisplayVRes;                                       // the physical characteristics of the display
 int low_y, high_y, low_x, high_x;
 
+// Copied from PiCromite GUI.c
+int last_fcolour;
+int last_bcolour;
+int gui_font_width;
+int gui_font_height;
+
 // the MMBasic programming characteristics of the display
 // note that HRes == 0 is an indication that a display is not configured
 int HRes, VRes;
 
+void display_not_set(void) {
+    error("Display not configured");
+}
+
 // pointers to the drawing primitives
-void (*DrawRectangle)(int x1, int y1, int x2, int y2, int c) = (void (*)(int , int , int , int , int ))DisplayNotSet;
-void (*DrawBitmap)(int x1, int y1, int width, int height, int scale, int fc, int bc, char *bitmap) = (void (*)(int , int , int , int , int , int , int , char *))DisplayNotSet;
-void (*ScrollLCD) (int lines) = (void (*)(int ))DisplayNotSet;
-void (*DrawBuffer)(int x1, int y1, int x2, int y2, char *c) = (void (*)(int , int , int , int , char * ))DisplayNotSet;
-void (*ReadBuffer)(int x1, int y1, int x2, int y2, char *c) = (void (*)(int , int , int , int , char * ))DisplayNotSet;
+void (*DrawRectangle)(int x1, int y1, int x2, int y2, int c) = (void (*)(int , int , int , int , int )) display_not_set;
+void (*DrawBitmap)(int x1, int y1, int width, int height, int scale, int fc, int bc, char *bitmap) = (void (*)(int , int , int , int , int , int , int , char *)) display_not_set;
+void (*ScrollLCD) (int lines) = (void (*)(int )) display_not_set;
+void (*DrawBuffer)(int x1, int y1, int x2, int y2, char *c) = (void (*)(int , int , int , int , char * )) display_not_set;
+void (*ReadBuffer)(int x1, int y1, int x2, int y2, char *c) = (void (*)(int , int , int , int , char * )) display_not_set;
 void DrawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, int c, int fill);
 
 
@@ -97,6 +109,7 @@ void DrawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, int c, int fil
 // these are the GUI commands that are common to the MX170 and MX470 versions
 // in the case of the MX170 this function is called directly by MMBasic when the GUI command is used
 // in the case of the MX470 it is called by MX470GUI in GUI.c
+#if 0
 void cmd_guiMX170(void) {
     char *p;
 
@@ -176,9 +189,9 @@ void cmd_guiMX170(void) {
         strcpy(inpbuf, "Deviation X = "); IntToStr(inpbuf + strlen(inpbuf), brx, 10);
         strcat(inpbuf, ", Y = "); IntToStr(inpbuf + strlen(inpbuf), bry, 10); strcat(inpbuf, " (pixels)\r\n");
         MMPrintString(inpbuf);
-        if(!Option.DISPLAY_CONSOLE) {
-            GUIPrintString(0, 0, 0x11, JUSTIFY_LEFT, JUSTIFY_TOP, ORIENT_NORMAL, WHITE, BLACK, s);
-            GUIPrintString(0, 36, 0x11, JUSTIFY_LEFT, JUSTIFY_TOP, ORIENT_NORMAL, WHITE, BLACK, inpbuf);
+        if(!Option.display_console) {
+            GUIPrintString(0, 0, 0x11, JUSTIFY_LEFT, JUSTIFY_TOP, ORIENT_NORMAL, RGB_WHITE, RGB_BLACK, s);
+            GUIPrintString(0, 36, 0x11, JUSTIFY_LEFT, JUSTIFY_TOP, ORIENT_NORMAL, RGB_WHITE, RGB_BLACK, inpbuf);
         }
 
 
@@ -217,9 +230,9 @@ void cmd_guiMX170(void) {
 
     if((p = checkstring(cmdline, "RESET"))) {
         if((checkstring(p, "LCDPANEL"))) {
-            if(Option.DISPLAY_TYPE == HDMI) InitDisplayHDMI(false);
-            if(Option.DISPLAY_TYPE > SSD_PANEL && Option.DISPLAY_TYPE<= SPI_PANEL) InitDisplaySPI(false);
-            if(Option.DISPLAY_TYPE >= SSD1963_4 && Option.DISPLAY_TYPE <= SSD_PANEL)InitDisplaySSD(false);
+            if(Option.display_type == HDMI) InitDisplayHDMI(false);
+            if(Option.display_type > SSD_PANEL && Option.display_type<= SPI_PANEL) InitDisplaySPI(false);
+            if(Option.display_type >= SSD1963_4 && Option.display_type <= SSD_PANEL)InitDisplaySSD(false);
             if(Option.TOUCH_CS) {
                GetTouchValue(CMD_PENIRQ_ON);                                      // send the controller the command to turn on PenIRQ
                GetTouchAxis(CMD_MEASURE_X);
@@ -231,7 +244,7 @@ void cmd_guiMX170(void) {
 
     error("Invalid command");
 }
-
+#endif
 // get and decode the justify$ string used in TEXT and GUI CAPTION
 // the values are returned via pointers
 int GetJustification(char *p, int *jh, int *jv, int *jo) {
@@ -264,12 +277,15 @@ int GetJustification(char *p, int *jh, int *jv, int *jo) {
 
     return *p == 0;
 }
+
 #define SSD1963_WR_TOGGLE_PIN {gpioWrite_Bits_0_31_Clear(1<<12);gpioWrite_Bits_0_31_Set(1<<12);}
+
 void display_refresh(void){
     int t, i, j;
     uint32_t s1,c1, last_s1=0xFFFFFFFF;
     if(high_y>=low_y){
-        if(Option.DISPLAY_TYPE > SSD_PANEL && Option.DISPLAY_TYPE<= SPI_PANEL){
+#if 0
+        if(Option.display_type > SSD_PANEL && Option.display_type<= SPI_PANEL){
             gofifo
             DefineRegion(low_x, low_y, high_x, high_y, 1);
             PinSetBit(Option.LCD_CD, LATSET);                               //set CD high
@@ -281,7 +297,7 @@ void display_refresh(void){
             SpiCsHigh(Option.LCD_CS);                                       //set CS high
             low_y=480; high_y=0; low_x=800; high_x=0;
             gonormal
-        } else if(Option.DISPLAY_TYPE<=SSD_PANEL && Option.DISPLAY_TYPE>=SSD1963_4){
+        } else if(Option.display_type<=SSD_PANEL && Option.display_type>=SSD1963_4){
             gofifo
             SetAreaSSD1963(low_x, low_y, high_x, high_y);
             WriteSSD1963Command(CMD_WR_MEMSTART);
@@ -322,7 +338,9 @@ void display_refresh(void){
             }
             gonormal
             low_y=480; high_y=0; low_x=800; high_x=0;
-        } else if(Option.DISPLAY_TYPE == HDMI){
+        } else
+#endif
+        if (Option.display_type == HDMI){
             int spos=low_y * 4 * HRes;
             int tlen= (high_y-low_y+1)* 4 * HRes;
             lseek(fbfd,spos,SEEK_SET);
@@ -332,8 +350,9 @@ void display_refresh(void){
         } else error("Display not configured");
     }
 }
+
 void cmd_refresh(void){
-    if(Option.DISPLAY_TYPE==USER)error("Invalid command for display type USER");
+    if(Option.display_type==USER)error("Invalid command for display type USER");
     display_refresh();
 }
 
@@ -749,7 +768,9 @@ void cmd_rbox(void) {
 
 // read the contents of a PIXEL out of screen memory
 void fun_pixel(void) {
-    if((void *)ReadBuffer == (void *)DisplayNotSet) error("Invalid on this display");
+    if ((void *)ReadBuffer == (void *) display_not_set) {
+        error("Invalid on this display");
+    }
     int p;
     int x, y;
         getargs(&ep, 3, ",");
@@ -829,10 +850,10 @@ void cmd_cls(void) {
     char *tp;
     tp = checkstring(cmdline, "CONSOLE");
     if(tp) {
-        clear();
+        console_clear();
         return;
     }
-    HideAllControls();
+    // HideAllControls();
 
     skipspace(cmdline);
     if(!(*cmdline == 0 || *cmdline == '\''))
@@ -842,29 +863,29 @@ void cmd_cls(void) {
     CurrentX = CurrentY = 0;
 }
 
-
-
+// See fun_rgb.c
+#if 0
 void fun_rgb(void) {
     getargs(&ep, 5, ",");
     if(argc == 5)
         iret = rgb(getint(argv[0], 0, 255), getint(argv[2], 0, 255), getint(argv[4], 0, 255));
     else if(argc == 1) {
-            if(checkstring(argv[0], "WHITE"))        iret = WHITE;
-            else if(checkstring(argv[0], "BLACK"))   iret = BLACK;
-            else if(checkstring(argv[0], "BLUE"))    iret = BLUE;
-            else if(checkstring(argv[0], "GREEN"))   iret = GREEN;
-            else if(checkstring(argv[0], "CYAN"))    iret = CYAN;
-            else if(checkstring(argv[0], "RED"))     iret = RED;
-            else if(checkstring(argv[0], "MAGENTA")) iret = MAGENTA;
-            else if(checkstring(argv[0], "YELLOW"))  iret = YELLOW;
-            else if(checkstring(argv[0], "BROWN"))   iret = BROWN;
-            else if(checkstring(argv[0], "GRAY"))    iret = GRAY;
+            if(checkstring(argv[0], "WHITE"))        iret = RGB_WHITE;
+            else if(checkstring(argv[0], "BLACK"))   iret = RGB_BLACK;
+            else if(checkstring(argv[0], "BLUE"))    iret = RGB_BLUE;
+            else if(checkstring(argv[0], "GREEN"))   iret = RGB_GREEN;
+            else if(checkstring(argv[0], "CYAN"))    iret = RGB_CYAN;
+            else if(checkstring(argv[0], "RED"))     iret = RGB_RED;
+            else if(checkstring(argv[0], "MAGENTA")) iret = RGB_MAGENTA;
+            else if(checkstring(argv[0], "YELLOW"))  iret = RGB_YELLOW;
+            else if(checkstring(argv[0], "BROWN"))   iret = RGB_BROWN;
+            else if(checkstring(argv[0], "GRAY"))    iret = RGB_GRAY;
             else error("Invalid colour: $", argv[0]);
     } else
         error("Syntax");
     targ = T_INT;
 }
-
+#endif
 
 
 void fun_mmhres(void) {
@@ -1426,7 +1447,8 @@ void DrawBitmapUser(int x1, int y1, int width, int height, int scale, int fc, in
         strcat(callstr, ","); IntToStr(callstr + strlen(callstr), scale, 10);
         strcat(callstr, ","); IntToStr(callstr + strlen(callstr), fc, 10);
         strcat(callstr, ","); IntToStr(callstr + strlen(callstr), bc, 10);
-        strcat(callstr, ",&H"); IntToStr(callstr + strlen(callstr), (unsigned int)bitmap, 16);
+        strcat(callstr, ",&H"); IntToStr(callstr + strlen(callstr), (long long) bitmap, 16);
+        // strcat(callstr, ",&H"); IntToStr(callstr + strlen(callstr), (unsigned int)bitmap, 16);
         callstr[strlen(callstr)+1] = 0;                             // two NULL chars required to terminate the call
         LocalIndex++;
         ExecuteProgram(callstr);
@@ -1467,7 +1489,7 @@ void SetFont(int fnt) {
 
     gui_font_width = FontTable[fnt >> 4][0] * (fnt & 0b1111);
     gui_font_height = FontTable[fnt >> 4][1] * (fnt & 0b1111);
-    if(Option.DISPLAY_CONSOLE) {
+    if(Option.display_console) {
         Option.Height = VRes/gui_font_height;
         Option.Width = HRes/gui_font_width;
     }
@@ -1476,7 +1498,8 @@ void SetFont(int fnt) {
 }
 
 void setscroll4P(int t){
-    if((Option.DISPLAY_TYPE == SSD1963_4P)){
+    if((Option.display_type == SSD1963_4P)){
+#if 0
         if((Option.DISPLAY_ORIENTATION == RLANDSCAPE) || (Option.DISPLAY_ORIENTATION == PORTRAIT)){
             t=592-t;
             if(t<0)t+=864;
@@ -1484,17 +1507,15 @@ void setscroll4P(int t){
         WriteSSD1963Command(CMD_SET_SCROLL_START);
         WriteDataSSD1963(t >> 8);
         WriteDataSSD1963(t);
+#endif
     } else error("Function not supported on this display");
 }
 
-
 void ResetDisplay(void) {
-    if(!Option.DISPLAY_CONSOLE) {
-        SetFont(Option.DefaultFont);
-        gui_fcolour = Option.DefaultFC;
-        gui_bcolour = Option.DefaultBC;
+    if (!Option.display_console) {
+        SetFont(Option.default_font);
+        gui_fcolour = Option.default_fc;
+        gui_bcolour = Option.default_bc;
     }
-   ResetGUI();
-
+    // ResetGUI();
 }
-

@@ -10,6 +10,7 @@
     void fun_datetime(void);
     void fun_day(void);
     void fun_dir(void);
+//    void fun_ds18b20(void);
     void fun_eof(void);
     void fun_epoch(void);
     void fun_field(void);
@@ -28,12 +29,20 @@
     void fun_mmdevice(void);
     void fun_mminfo(void);
     void fun_peek(void);
+//    void fun_pin(void);
+//    void fun_spi(void);
     void fun_time(void);
     void fun_timer(void);
     void fun_rgb(void);
     void fun_hres(void);
     void fun_vres(void);
-
+// HTML for draw.c, framebuffer.c
+    void fun_pixel(void);
+    void fun_rgb(void);
+    void fun_mmhres(void);
+    void fun_mmvres(void);
+    void fun_mmcharwidth(void);
+    void fun_mmcharheight(void);
 #endif
 
 // Entries for the token table.
@@ -48,6 +57,7 @@
     { "DateTime$(",   T_FUN | T_STR,      0, fun_datetime },
     { "Day$(",        T_FUN | T_STR,      0, fun_day      },
     { "Dir$(",        T_FUN | T_STR,      0, fun_dir      },
+//    { "Ds18b20(",     T_FUN | T_STR,      0, fun_ds18b20  },
     { "Eof(",         T_FUN | T_INT,      0, fun_eof      },
     { "Epoch(",       T_FUN | T_INT,      0, fun_epoch    },
     { "Field$(",      T_FUN | T_STR,      0, fun_field    },
@@ -63,13 +73,19 @@
     { "Lof(",         T_FUN | T_INT,      0, fun_lof      },
     { "Math(",        T_FUN | T_NBR,      0, fun_math     },
     { "Peek(",        T_FUN | T_INT | T_NBR, 0, fun_peek  },
+//    { "Pin(",         T_FUN | T_INT,      0, fun_pin      },
+    { "Pixel(",       T_FUN | T_INT,      0, fun_pixel    },
     { "Rgb(",         T_FUN | T_INT,      0, fun_rgb      },
+//    { "Spi(",         T_FUN | T_INT,      0, fun_spi      },
     { "Time$",        T_FNA | T_STR,      0, fun_time     },
     { "Timer",        T_FNA | T_INT,      0, fun_timer    },
+    { "Mmhres",       T_FNA | T_INT,      0, fun_mmhres   },
     { "MM.HRes",      T_FNA | T_INT,      0, fun_hres     },
     { "MM.Info(",     T_FUN | T_STR | T_INT | T_NBR, 0, fun_mminfo },
-    { "MM.Info$(",    T_FUN | T_STR | T_INT | T_NBR, 0, fun_mminfo },
+    { "Mmvres",       T_FNA | T_INT,      0, fun_mmvres   },
     { "MM.VRes",      T_FNA | T_INT,      0, fun_vres     },
+    { "Mmcharwidth",  T_FNA | T_INT,      0, fun_mmcharwidth  },
+    { "Mmcharheight", T_FNA | T_INT,      0, fun_mmcharheight },
     { "MM.Device$",   T_FNA | T_STR,      0, fun_mmdevice   },
     { "MM.CmdLine$",  T_FNA | T_STR,      0, fun_mmcmdline  },
 

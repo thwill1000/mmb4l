@@ -57,3 +57,4 @@ provisions:
 
 #define BREAK_KEY            3
 
+#define MAXBLITBUF          51                       // the maximum number of BLIT buffers

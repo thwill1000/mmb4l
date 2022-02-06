@@ -21,16 +21,15 @@ provisions:
 
 ************************************************************************************************************************/
 
-#include "MMBasic_Includes.h"
-#include "Hardware_Includes.h"
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "framebuffer.h"
+#include "version.h"
+
 #include <fcntl.h>
 #include <linux/fb.h>
-#include <sys/mman.h>
+#include <string.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
+
 int fbfd = 0;
 struct fb_var_screeninfo vinfo;
 struct fb_fix_screeninfo finfo;
@@ -48,6 +47,8 @@ static union map
     unsigned char bbytes[3000];
     short params[1500];
 } message;
+
+char screenbuff[1920*1080*4];
 
 void process(uint8_t incoming, int reset){
     static int p=0;
@@ -135,6 +136,7 @@ void process(uint8_t incoming, int reset){
         }
     }
 }
+#if 0
 void WR4Check(void) {
     uint32_t j;
     int nibble=0;
@@ -178,6 +180,8 @@ void WR4Check(void) {
         }
     }
 }
+#endif
+#if 0
 void WR8Check(void){
     uint8_t incoming;
     int lastlevel=1;
@@ -210,6 +214,8 @@ void WR8Check(void){
         }
     }
 }
+#endif
+#if 0
 void InitRemote(void){
     if(Option.Remote==0)return;
 //    gpioCfgClock(1,Option.clock,0);
@@ -246,10 +252,11 @@ void InitRemote(void){
     if(Option.Remote == 8) WR8Check();
     else WR4Check();
 }
+#endif
 
 void InitDisplayHDMI(int fullinit){
     int i;
-    if(Option.DISPLAY_TYPE!=HDMI)return;
+    if(Option.display_type!=HDMI)return;
 
     if(fullinit){
         // Open the file for reading and writing
@@ -295,7 +302,7 @@ void InitDisplayHDMI(int fullinit){
     return;
 }
 void ConfigDisplayHDMI(char*p){
-    if(checkstring(p, "HDMI")) Option.DISPLAY_TYPE=HDMI;
+    if(checkstring(p, "HDMI")) Option.display_type=HDMI;
 }
 void DrawRectangleHDMI(int x1, int y1, int x2, int y2, int c){
     int i, j,  t;

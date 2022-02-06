@@ -36,6 +36,7 @@ PARTICULAR PURPOSE.
 #include "common/error.h"
 #include "common/exit_codes.h"
 #include "common/file.h"
+#include "common/framebuffer.h"
 #include "common/global_aliases.h"
 #include "common/interrupt.h"
 #include "common/mmtime.h"
@@ -50,7 +51,8 @@ volatile int MMAbort = false;
 struct option_s Option;
 int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
-char *CFunctionFlash, *CFunctionLibrary, **FontTable;
+char *CFunctionFlash;
+char *CFunctionLibrary;
 
 char g_break_key = BREAK_KEY;
 CmdLineArgs mmb_args = { 0 };
@@ -78,6 +80,7 @@ void init_options() {
     Option.Tab = 4;
     Option.console = SERIAL;
     Option.resolution = CHARACTER;
+    Option.display_type = HDMI;
 }
 
 void set_start_directory() {
@@ -229,6 +232,9 @@ int main(int argc, char *argv[]) {
         case JMP_QUIT:  longjmp_handler(JMP_QUIT); break;
         default:        longjmp_handler(JMP_UNEXPECTED); break;
     }
+
+    // Error handling needs to be setup before we can call this.
+    InitDisplayHDMI(true);
 
     while (1) {
         MMAbort = false;

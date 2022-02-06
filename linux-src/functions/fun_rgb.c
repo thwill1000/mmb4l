@@ -1,5 +1,7 @@
+#include "../common/error.h"
 #include "../common/version.h"
 
+#if 0
 #define RGB(red, green, blue, trans) (unsigned int) (((trans & 0b1111) << 24) | ((red & 0b11111111) << 16) | ((green  & 0b11111111) << 8) | (blue & 0b11111111))
 
 #define RGB_BLACK     RGB(   0,     0,     0,     0)
@@ -25,7 +27,47 @@ static int VideoColour = 8;
 static int rgb(int r, int g, int b, int t) {
     return RGB(r, g, b, t);
 }
+#endif
 
+// Version derived from PiCromite
+void fun_rgb(void) {
+    getargs(&ep, 5, ",");
+    if (argc == 5) {
+        iret = rgb(getint(argv[0], 0, 255), getint(argv[2], 0, 255),
+                   getint(argv[4], 0, 255));
+    } else if (argc == 1) {
+        if (checkstring(argv[0], "WHITE")) {
+            iret = RGB_WHITE;
+        } else if (checkstring(argv[0], "BLACK")) {
+            iret = RGB_BLACK;
+        } else if (checkstring(argv[0], "BLUE")) {
+            iret = RGB_BLUE;
+        } else if (checkstring(argv[0], "GREEN")) {
+            iret = RGB_GREEN;
+        } else if (checkstring(argv[0], "CYAN")) {
+            iret = RGB_CYAN;
+        } else if (checkstring(argv[0], "RED")) {
+            iret = RGB_RED;
+        } else if (checkstring(argv[0], "MAGENTA")) {
+            iret = RGB_MAGENTA;
+        } else if (checkstring(argv[0], "YELLOW")) {
+            iret = RGB_YELLOW;
+        } else if (checkstring(argv[0], "BROWN")) {
+            iret = RGB_BROWN;
+        } else if (checkstring(argv[0], "GRAY")) {
+            iret = RGB_GRAY;
+        } else {
+            error("Invalid colour: $", argv[0]);
+        }
+    } else {
+        ERROR_SYNTAX;
+    }
+
+    targ = T_INT;
+}
+
+#if 0
+// Version derived from CMM2
 void fun_rgb(void) {
     getargs(&ep, 7, ",");
     if (argc == 5) {
@@ -130,3 +172,4 @@ void fun_rgb(void) {
         error("Syntax");
     targ = T_INT;
 }
+#endif

@@ -49,8 +49,8 @@ extern int MMCharPos;
 extern int error_line;
 extern char error_file[STRINGSIZE];
 
-#define FONT_BUILTIN_NBR 0
-#define FONT_TABLE_SIZE 0
+// #define FONT_BUILTIN_NBR 0
+// #define FONT_TABLE_SIZE 0
 
 // Aliases for functions using "legacy" names in MMBasic core:
 #define check_interrupt  interrupt_check
@@ -75,7 +75,9 @@ int MMgetchar(void);
 char MMputchar(char c);
 
 void CheckAbort(void);
-extern char *CFunctionFlash, *CFunctionLibrary, **FontTable;
+extern char *CFunctionFlash;
+extern char *CFunctionLibrary;
+extern char *FontTable[];
 
 // misc
 char *GetIntAddress(char *p);

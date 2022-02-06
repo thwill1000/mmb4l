@@ -27,6 +27,7 @@ extern void ReadBufferHDMI(int x1, int y1, int x2, int y2, char* p);
 extern void DefineRegionHDMI(int xstart, int ystart, int xend, int yend, int rw);
 extern long int screensize;
 extern int fbfd;
+extern char screenbuff[1920*1080*4];
 
 #ifdef __cplusplus
 }

@@ -18,6 +18,14 @@ struct option_s {
     // Added for MMB4L
     enum option_console console;
     enum option_resolution resolution;
+
+    // Added for hi-res graphics support.
+    int default_bc;
+    int default_fc;
+    int default_font;
+    int display_console;
+    int display_type;
+    int refresh;
 };
 
 extern struct option_s Option;

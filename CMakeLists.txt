@@ -112,8 +112,10 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/codepage.c
     linux-src/common/console.c
     linux-src/common/cJSON.c
+    linux-src/common/draw.c
     linux-src/common/error.c
     linux-src/common/file.c
+    linux-src/common/framebuffer.c
     linux-src/common/interrupt.c
     linux-src/common/maths.c
     linux-src/common/memory.c

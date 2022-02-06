@@ -12,6 +12,9 @@
 #elif defined(__arm__)
         #define PROGMEM
         #define fontdatatype const char
+#else
+  #define PROGMEM
+  #define fontdatatype const char
 #endif
 
 fontdatatype ArialNumFontPlus[2204] PROGMEM={

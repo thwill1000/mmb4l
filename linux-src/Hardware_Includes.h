@@ -28,6 +28,7 @@ provisions:
     #include "DOS_Includes.h"
     #include "../MMBasic/VarTable.h"
     #include "common/console.h"
+    #include "common/draw.h"
     #include "common/file.h"
     #include "common/interrupt.h"
     #include "common/memory.h"
@@ -35,6 +36,31 @@ provisions:
     #include "commands/mmb4l_commands.h"
     #include "functions/mmb4l_functions.h"
     #include "operators/mmb4l_operators.h"
+
+    #define HDMI 0
+    #define SSD1963_4       1
+    #define SSD1963_5       2
+    #define SSD1963_5A      3
+    #define SSD1963_7       4
+    #define SSD1963_7A      5
+    #define SSD1963_8       6
+    #define SSD1963_4P      7
+    #define SSD_PANEL       7    // anything less than or equal to SSD_PANEL is handled by the SSD driver, anything more by the SPI driver
+
+    #define ILI9341         8
+    #define ILI9163         9
+    #define ST7735          10
+    #define ST7789          11
+    #define ILI9481         12
+    #define ILI9486         13
+    #define SPI_PANEL       13    // anything less than or equal to SSD_PANEL is handled by the SSD driver, anything more by the SPI driver
+    #define USER            14
+    #define VGA             15
+    #define LANDSCAPE       1
+    #define PORTRAIT        2
+    #define RLANDSCAPE      3
+    #define RPORTRAIT       4
+    #define DISPLAY_LANDSCAPE   (Option.DISPLAY_ORIENTATION & 1)
 
     // various debug macros
     #if defined(DEBUGMODE)

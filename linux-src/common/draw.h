@@ -129,17 +129,17 @@ void fun_mmcharheight(void);
     #define RGB(red, green, blue) (unsigned int) (((red & 0b11111111) << 16) | ((green  & 0b11111111) << 8) | (blue & 0b11111111))
     #define swap(a, b) {int t = a; a = b; b = t;}
 
-    #define BLACK               RGB(0,    0,      0)
-    #define BLUE                RGB(0,    0,      255)
-    #define GREEN               RGB(0,    255,    0)
-    #define CYAN                RGB(0,    255,    255)
-    #define RED                 RGB(255,  0,      0)
-    #define MAGENTA             RGB(255,  0,      255)
-    #define YELLOW              RGB(255,  255,    0)
-    #define BROWN               RGB(255,  128,    0)
-    #define GRAY                RGB(128,  128,    128)
-    #define LITEGRAY            RGB(210,  210,    210)
-    #define WHITE               RGB(255,  255,    255)
+    #define RGB_BLACK           RGB(0,    0,      0)
+    #define RGB_BLUE            RGB(0,    0,      255)
+    #define RGB_GREEN           RGB(0,    255,    0)
+    #define RGB_CYAN            RGB(0,    255,    255)
+    #define RGB_RED             RGB(255,  0,      0)
+    #define RGB_MAGENTA         RGB(255,  0,      255)
+    #define RGB_YELLOW          RGB(255,  255,    0)
+    #define RGB_BROWN           RGB(255,  128,    0)
+    #define RGB_GRAY            RGB(128,  128,    128)
+    #define RGB_LITEGRAY        RGB(210,  210,    210)
+    #define RGB_WHITE           RGB(255,  255,    255)
 
     #define JUSTIFY_LEFT        0
     #define JUSTIFY_CENTER      1
@@ -169,7 +169,7 @@ void fun_mmcharheight(void);
 
     #define FONT_BUILTIN_NBR     7              // the number of built in fonts
     #define FONT_TABLE_SIZE     16              // the total size of the font table (builtin + loadable)
-    extern char *FontTable[];
+    //extern char *FontTable[];
     extern char *blitbuffptr[MAXBLITBUF];
 
 
