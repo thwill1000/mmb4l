@@ -1,3 +1,5 @@
+#include "../common/option.h"
+#include "../common/utility.h"
 #include "../common/version.h"
 
 void cmd_new(void) {
@@ -8,6 +10,11 @@ void cmd_new(void) {
     ClearProgram();
     WatchdogSet = false;
     Option.Autorun = false;
-    SaveOptions();
+    int result = options_save(&Option, OPTIONS_FILE_NAME);
+    if (FAILED(result)) {
+        char buf[STRINGSIZE];
+        sprintf(buf, "Warning: failed to save options: %d", result);
+        MMPrintString(buf);
+    }
     longjmp(mark, JMP_NEW);
 }

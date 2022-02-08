@@ -54,7 +54,6 @@ Implement command-line SYSTEM shortcut, e.g. '!cd', '!ls'
   - can we get away without requiring the ! if at the BASIC prompt ?
   - what about TAB completion of paths ?
 Make all function keys reprogrammable
-Implement OPTION persistence
 Implement variable/sub/function hash tables
 Implement user configurable editor via 'OPTION EDITOR'
   - investigate using 'xed' as suggested by @robert.rozee

@@ -5,6 +5,7 @@
 
 #include "../common/error.h"
 #include "../common/exit_codes.h"
+#include "../common/option.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 #include "../common/version.h"
@@ -115,7 +116,7 @@ static void verror(int32_t error, char *msg, va_list argp) {
     // ScrewUpTimer=0;
     MMerrno = error;
     error_buffer_clear();
-    LoadOptions();  // make sure that the option struct is in a clean state
+    options_load(&Option, OPTIONS_FILE_NAME);  // make sure that the option struct is in a clean state
 
     // if((OptionConsole & 2) && !OptionErrorSkip) {
     //     SetFont(PromptFont);

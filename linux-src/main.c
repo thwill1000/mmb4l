@@ -78,6 +78,21 @@ void init_options() {
     Option.Tab = 4;
     Option.console = SERIAL;
     Option.resolution = CHARACTER;
+
+    OptionsResult result = options_load(&Option, OPTIONS_FILE_NAME);
+    if (FAILED(result)) {
+        if (result == kFileNotFound) {
+            // Ignore file not found, use default options.
+        } else {
+            print_banner();
+            if (result == kOtherIoError) {
+                fprintf(stderr, "\nFailed to load options: %s (%d)\n", strerror(errno), errno);
+            } else {
+                fprintf(stderr, "\nFailed to load options: %d\n", result);
+            }
+            exit(EX_FAIL);
+        }
+    }
 }
 
 void set_start_directory() {
@@ -176,7 +191,6 @@ int main(int argc, char *argv[]) {
         exit(EX_OK);
     }
 
-    // Get things setup to act like the Micromite version
     vartbl = DOS_vartbl;
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
     init_options();

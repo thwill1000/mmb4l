@@ -62,11 +62,9 @@ extern char error_file[STRINGSIZE];
 #define MMputchar        console_putc
 
 // functions not used in the DOS version... so make them go away
-#define SaveOptions()    {}
 #define ClearSavedVars()    {}
 #define uSec(a)  {}
 #define TestStackOverflow()  {}
-#define LoadOptions()   {}
 
 #define ClearExternalIO()         // same
 

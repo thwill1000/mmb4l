@@ -1,4 +1,6 @@
+#include <errno.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "../common/codepage.h"
 #include "../common/error.h"
@@ -7,6 +9,22 @@
 #include "../common/parse.h"
 #include "../common/utility.h"
 #include "../common/version.h"
+
+static void cmd_option_save() {
+    OptionsResult result = options_save(&Option, OPTIONS_FILE_NAME);
+    if (FAILED(result)) {
+        char buf[STRINGSIZE];
+        switch (result) {
+            case kOtherIoError:
+                sprintf(buf, "Warning: failed to save options: %s (%d)", strerror(errno), errno);
+                break;
+            default:
+                sprintf(buf, "Warning: failed to save options: %d)", result);
+                break;
+        }
+        MMPrintString(buf);
+    }
+}
 
 static void option_base(char *p) {
     if (DimUsed) error("Must be before DIM or LOCAL");
@@ -28,7 +46,7 @@ static void option_case(char *p) {
         ERROR_UNRECOGNISED_OPTION;
     }
 
-    SaveOptions();
+    cmd_option_save();
 }
 
 static void option_codepage(char *p) {
@@ -137,7 +155,7 @@ static void option_tab(char *p) {
         ERROR_UNRECOGNISED_OPTION;
     }
 
-    SaveOptions();
+    cmd_option_save();
 }
 
 void cmd_option(void) {

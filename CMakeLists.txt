@@ -155,12 +155,16 @@ add_executable(
   mmbasic_test
   linux-src/common/cmdline.c
   linux-src/common/file.c
+  linux-src/common/option.c
   linux-src/common/rx_buf.c
   linux-src/common/utility.c
   linux-src/common/gtest/cmdline_test.cxx
   linux-src/common/gtest/file_test.cxx
+  linux-src/common/gtest/option_test.cxx
   linux-src/common/gtest/rx_buf_test.cxx
 )
+
+target_compile_definitions(mmbasic_test PUBLIC OPTION_TESTS)
 
 target_link_libraries(
   mmbasic_test
