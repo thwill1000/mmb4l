@@ -31,7 +31,7 @@ provisions:
     #include "common/file.h"
     #include "common/interrupt.h"
     #include "common/memory.h"
-    #include "common/option.h"
+    #include "common/options.h"
     #include "commands/mmb4l_commands.h"
     #include "functions/mmb4l_functions.h"
     #include "operators/mmb4l_operators.h"

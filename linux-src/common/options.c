@@ -4,7 +4,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include "option.h"
+#include "options.h"
 #include "utility.h"
 #include "version.h"
 
@@ -172,9 +172,7 @@ static void options_report_error(int line_num, char *name, OptionsResult result)
 
 OptionsResult options_load(Options *options, const char *filename) {
     char path[STRINGSIZE];
-    if (!munge_path(filename, path, STRINGSIZE)) {
-        return kOtherIoError;
-    }
+    if (!munge_path(filename, path, STRINGSIZE)) return kOtherIoError;
 
     errno = 0;
     FILE *f = fopen(path, "r");
@@ -259,7 +257,7 @@ OptionsResult options_save(const Options *options, const char *filename) {
     FILE *f = fopen(path, "w");
     if (!f) return kOtherIoError;
     char buf[STRINGSIZE];
-    option_list_case_to_string(options->Listcase, buf);
+    options_list_case_to_string(options->list_case, buf);
     options_save_enum(f, "listcase", buf);
     options_save_int(f, "tab", options->tab);
 #if defined OPTION_TESTS
@@ -271,7 +269,7 @@ OptionsResult options_save(const Options *options, const char *filename) {
     return kOk;
 }
 
-void option_console_to_string(enum option_console console, char *buf) {
+void options_console_to_string(enum options_console console, char *buf) {
     switch (console) {
         case BOTH:   strcpy(buf, "Both"); break;
         case SCREEN: strcpy(buf, "Screen"); break;
@@ -280,11 +278,11 @@ void option_console_to_string(enum option_console console, char *buf) {
     }
 }
 
-void option_explicit_to_string(char explicit, char *buf) {
+void options_explicit_to_string(char explicit, char *buf) {
     strcpy(buf, explicit ? "On" : "Off");
 }
 
-void option_list_case_to_string(char list_case, char *buf) {
+void options_list_case_to_string(char list_case, char *buf) {
     switch (list_case) {
         case CONFIG_LOWER: strcpy(buf, "Lower"); break;
         case CONFIG_UPPER: strcpy(buf, "Upper"); break;
@@ -293,7 +291,7 @@ void option_list_case_to_string(char list_case, char *buf) {
     }
 }
 
-void option_resolution_to_string(enum option_resolution resolution, char *buf) {
+void options_resolution_to_string(enum options_resolution resolution, char *buf) {
     switch (resolution) {
         case CHARACTER: strcpy(buf, "Character"); break;
         case PIXEL:     strcpy(buf, "Pixel"); break;
@@ -301,7 +299,7 @@ void option_resolution_to_string(enum option_resolution resolution, char *buf) {
     }
 }
 
-void option_type_to_string(char type, char *buf) {
+void options_type_to_string(char type, char *buf) {
     switch (type) {
         case T_INT:    strcpy(buf, "Integer"); break;
         case T_NBR:    strcpy(buf, "Float"); break;

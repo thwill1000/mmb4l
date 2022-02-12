@@ -7,7 +7,7 @@
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/global_aliases.h"
-#include "../common/option.h"
+#include "../common/options.h"
 #include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/utility.h"
@@ -239,7 +239,7 @@ static void mminfo_option(char *p) {
         g_rtn_type = T_INT;
     } else if (checkstring(p, "CASE")) {
         g_string_rtn = GetTempStrMemory();
-        option_list_case_to_string(mmb_options.list_case, g_string_rtn);
+        options_list_case_to_string(mmb_options.list_case, g_string_rtn);
         g_rtn_type = T_STR;
     } else if (checkstring(p, "CODEPAGE")) {
         g_string_rtn = GetTempStrMemory();
@@ -247,19 +247,19 @@ static void mminfo_option(char *p) {
         g_rtn_type = T_STR;
     } else if (checkstring(p, "CONSOLE")) {
         g_string_rtn = GetTempStrMemory();
-        option_console_to_string(mmb_options.console, g_string_rtn);
+        options_console_to_string(mmb_options.console, g_string_rtn);
         g_rtn_type = T_STR;
     } else if (checkstring(p, "DEFAULT")) {
         g_string_rtn = GetTempStrMemory();
-        option_type_to_string(DefaultType, g_string_rtn);
+        options_type_to_string(DefaultType, g_string_rtn);
         g_rtn_type = T_STR;
     } else if (checkstring(p, "EXPLICIT")) {
         g_string_rtn = GetTempStrMemory();
-        option_explicit_to_string(OptionExplicit, g_string_rtn);
+        options_explicit_to_string(OptionExplicit, g_string_rtn);
         g_rtn_type = T_STR;
     } else if (checkstring(p, "RESOLUTION")) {
         g_string_rtn = GetTempStrMemory();
-        option_resolution_to_string(mmb_options.resolution, g_string_rtn);
+        options_resolution_to_string(mmb_options.resolution, g_string_rtn);
         g_rtn_type = T_STR;
     } else if (checkstring(p, "TAB")) {
         g_integer_rtn = mmb_options.tab;

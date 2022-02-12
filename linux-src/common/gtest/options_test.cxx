@@ -2,16 +2,16 @@
 
 extern "C" {
 
-#include "../option.h"
+#include "../options.h"
 #include "../utility.h"
 
 }
 
-static char option_test_buf[1024];
+static char options_test_buf[1024];
 
 static void write_line_to_buf(const char *line) {
-    strcat(option_test_buf, line);
-    strcat(option_test_buf, "\n");
+    strcat(options_test_buf, line);
+    strcat(options_test_buf, "\n");
 }
 
 TEST(OptionTest, Init) {
@@ -38,7 +38,7 @@ TEST(OptionTest, Save) {
     options.tab = 8;
     options.persistent_float = 3.142;
     strcpy(options.persistent_string, "foo bar");
-    const char *filename = "/tmp/option_test_save";
+    const char *filename = "/tmp/options_test_save";
 
     EXPECT_EQ(options_save(&options, filename), 0);
 
@@ -63,8 +63,8 @@ TEST(OptionTest, Save_GivenDirectoryDoesNotExist) {
     options.persistent_float = 3.142;
     strcpy(options.persistent_string, "foo bar");
 
-    const char *filename = "/tmp/option_test_save_dir/myfile.options";
-    const char *directory = "/tmp/option_test_save_dir";
+    const char *filename = "/tmp/options_test_save_dir/myfile.options";
+    const char *directory = "/tmp/options_test_save_dir";
     remove(filename);
     remove(directory);
 
@@ -90,7 +90,7 @@ TEST(OptionTest, Save_GivenDirectoryDoesNotExist) {
 }
 
 TEST(OptionTest, Load) {
-    const char *filename = "/tmp/option_test_load";
+    const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "listcase = Upper\n");
     fprintf(f, "tab = 8\n");
@@ -111,7 +111,7 @@ TEST(OptionTest, Load) {
 }
 
 TEST(OptionTest, Load_GivenAdditionalWhitespace) {
-    const char *filename = "/tmp/option_test_load";
+    const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "tab = 8  \n");                         // Trailing whitespace
     fprintf(f, "  persistent-bool = true\n");                      // Leading whitespace
@@ -130,7 +130,7 @@ TEST(OptionTest, Load_GivenAdditionalWhitespace) {
 }
 
 TEST(OptionTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
-    const char *filename = "/tmp/option_test_load";
+    const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "\n");
     fprintf(f, "persistent-bool = true\n");
@@ -153,7 +153,7 @@ TEST(OptionTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
 }
 
 TEST(OptionTest, Load_GivenHashComments) {
-    const char *filename = "/tmp/option_test_load";
+    const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "  # Hello World\n");
     fprintf(f, "persistent-bool = true # Trailing comment\n");
@@ -174,7 +174,7 @@ TEST(OptionTest, Load_GivenHashComments) {
 }
 
 TEST(OptionTest, Load_GivenSemicolonComments) {
-    const char *filename = "/tmp/option_test_load";
+    const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "  ; Hello World\n");
     fprintf(f, "persistent-bool = true ; Trailing comment\n");
@@ -195,7 +195,7 @@ TEST(OptionTest, Load_GivenSemicolonComments) {
 }
 
 TEST(OptionTest, Load_GivenErrors) {
-    const char *filename = "/tmp/option_test_load";
+    const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "foo = true\n");
     fprintf(f, "persistent-bool = 42\n");
@@ -207,7 +207,7 @@ TEST(OptionTest, Load_GivenErrors) {
     Options options;
     options_init(&options);
 
-    option_test_buf[0] = '\0';
+    options_test_buf[0] = '\0';
     options_load_error_callback = &write_line_to_buf;
     EXPECT_EQ(options_load(&options, filename), 0);
 
@@ -217,5 +217,5 @@ TEST(OptionTest, Load_GivenErrors) {
             "line 3: invalid integer value for option 'tab'.\n"
             "line 4: invalid float value for option 'persistent-float'.\n"
             "line 5: invalid string value for option 'persistent-string'.\n",
-            option_test_buf);
+            options_test_buf);
 }

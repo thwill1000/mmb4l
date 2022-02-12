@@ -73,7 +73,7 @@ void print_banner() {
     MMPrintString(COPYRIGHT);
 }
 
-void init_options() {
+static void init_options() {
     options_init(&Option);
 
     OptionsResult result = options_load(&Option, OPTIONS_FILE_NAME);

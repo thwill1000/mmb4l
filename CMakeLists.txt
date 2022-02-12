@@ -118,7 +118,7 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/maths.c
     linux-src/common/memory.c
     linux-src/common/mmtime.c
-    linux-src/common/option.c
+    linux-src/common/options.c
     linux-src/common/parse.c
     linux-src/common/program.c
     linux-src/common/prompt.c
@@ -155,12 +155,12 @@ add_executable(
   mmbasic_test
   linux-src/common/cmdline.c
   linux-src/common/file.c
-  linux-src/common/option.c
+  linux-src/common/options.c
   linux-src/common/rx_buf.c
   linux-src/common/utility.c
   linux-src/common/gtest/cmdline_test.cxx
   linux-src/common/gtest/file_test.cxx
-  linux-src/common/gtest/option_test.cxx
+  linux-src/common/gtest/options_test.cxx
   linux-src/common/gtest/rx_buf_test.cxx
 )
 

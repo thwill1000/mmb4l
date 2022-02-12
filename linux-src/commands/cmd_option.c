@@ -5,7 +5,7 @@
 #include "../common/codepage.h"
 #include "../common/error.h"
 #include "../common/global_aliases.h"
-#include "../common/option.h"
+#include "../common/options.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
 #include "../common/version.h"
@@ -109,22 +109,22 @@ void option_list(char *p) {
     sprintf(buf, "%d", g_break_key);
     option_list_item("Break", buf);
 
-    option_list_case_to_string(mmb_options.list_case, buf);
+    options_list_case_to_string(mmb_options.list_case, buf);
     option_list_item("Case", buf);
 
     if (FAILED(codepage_to_string(codepage_current, buf))) ERROR_INTERNAL_FAULT;
     option_list_item("CodePage", buf);
 
-    option_console_to_string(mmb_options.console, buf);
+    options_console_to_string(mmb_options.console, buf);
     option_list_item("Console", buf);
 
-    option_type_to_string(DefaultType, buf);
+    options_type_to_string(DefaultType, buf);
     option_list_item("Default", buf);
 
-    option_explicit_to_string(OptionExplicit, buf);
+    options_explicit_to_string(OptionExplicit, buf);
     option_list_item("Explicit", buf);
 
-    option_resolution_to_string(mmb_options.resolution, buf);
+    options_resolution_to_string(mmb_options.resolution, buf);
     option_list_item("Resolution", buf);
 
     sprintf(buf, "%d", mmb_options.tab);

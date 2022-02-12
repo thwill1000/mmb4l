@@ -1,7 +1,7 @@
-// Copyright (c) 2021 Thomas Hugo Williams
+// Copyright (c) 2021-2022 Thomas Hugo Williams
 
-#if !defined(OPTION_H)
-#define OPTION_H
+#if !defined(MMB4L_OPTION_H)
+#define MMB4L_OPTION_H
 
 #include <stdbool.h>
 
@@ -22,9 +22,9 @@ typedef enum {
     kOtherIoError
 } OptionsResult;
 
-enum option_console { BOTH, SCREEN, SERIAL };
+enum options_console { BOTH, SCREEN, SERIAL };
 
-enum option_resolution { CHARACTER, PIXEL };
+enum options_resolution { CHARACTER, PIXEL };
 
 typedef struct {
     char tab;
@@ -35,11 +35,12 @@ typedef struct {
     int  autorun;
 
     // Added for MMB4L
-    enum option_console console;
-    enum option_resolution resolution;
+    enum options_console console;
+    enum options_resolution resolution;
 
 #if defined OPTION_TESTS
     bool    persistent_bool;
+    int     persistent_int;
     MMFLOAT persistent_float;
     char    persistent_string[32];
 #endif
@@ -58,10 +59,10 @@ OptionsResult options_load(Options *options, const char *filename);
 /** Saves persistent options to a file. */
 OptionsResult options_save(const Options *options, const char *filename);
 
-void option_console_to_string(enum option_console console, char *buf);
-void option_explicit_to_string(char explicit_type, char *buf);
-void option_list_case_to_string(char list_case, char *buf);
-void option_resolution_to_string(enum option_resolution resolution, char *buf);
-void option_type_to_string(char type, char *buf);
+void options_console_to_string(enum options_console console, char *buf);
+void options_explicit_to_string(char explicit_type, char *buf);
+void options_list_case_to_string(char list_case, char *buf);
+void options_resolution_to_string(enum options_resolution resolution, char *buf);
+void options_type_to_string(char type, char *buf);
 
 #endif
