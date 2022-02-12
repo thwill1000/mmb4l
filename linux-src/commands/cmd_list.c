@@ -57,7 +57,7 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, con
     // Sort the table.
     qsort(tbl, total, sizeof(char *), cstring_cmp);
 
-    int step = Option.Width / 20;
+    int step = mmb_options.width / 20;
     for (int i = 0; i < total; i += step) {
         for (int k = 0; k < step; k++) {
             if (i + k < total) {
@@ -109,7 +109,7 @@ static void list_file(const char *filename, int all) {
             if (line_buffer[i] == TAB) line_buffer[i] = ' ';
         }
         MMPrintString(line_buffer);
-        list_count += strlen(line_buffer) / Option.Width;
+        list_count += strlen(line_buffer) / mmb_options.width;
         ListNewLine(&list_count, all);
     }
     file_close(fnbr);
@@ -153,7 +153,7 @@ void cmd_list(void) {
     skipspace(cmdline);
 
     // Use the current console dimensions for the output of the LIST command.
-    if (FAILED(console_get_size(&Option.Width, &Option.Height))) ERROR_INTERNAL_FAULT;
+    if (FAILED(console_get_size(&mmb_options.width, &mmb_options.height))) ERROR_INTERNAL_FAULT;
 
     if (parse_is_end(cmdline)) {
         list_file(NULL, false);

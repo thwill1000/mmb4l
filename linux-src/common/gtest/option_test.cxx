@@ -15,14 +15,14 @@ static void write_line_to_buf(const char *line) {
 }
 
 TEST(OptionTest, Init) {
-    struct option_s options;
+    Options options;
     options_init(&options);
 
-    EXPECT_EQ(4, options.Tab);
-    EXPECT_EQ(0, options.Listcase);
-    EXPECT_EQ(0, options.Height);
-    EXPECT_EQ(0, options.Width);
-    EXPECT_EQ(PROG_FLASH_SIZE, options.ProgFlashSize);
+    EXPECT_EQ(4, options.tab);
+    EXPECT_EQ(0, options.list_case);
+    EXPECT_EQ(0, options.height);
+    EXPECT_EQ(0, options.width);
+    EXPECT_EQ(PROG_FLASH_SIZE, options.prog_flash_size);
     EXPECT_EQ(SERIAL, options.console);
     EXPECT_EQ(CHARACTER, options.resolution);
     EXPECT_EQ(false, options.persistent_bool);
@@ -31,11 +31,11 @@ TEST(OptionTest, Init) {
 }
 
 TEST(OptionTest, Save) {
-    struct option_s options;
+    Options options;
     options_init(&options);
     options.persistent_bool = true;
-    options.Listcase = 1;
-    options.Tab = 8;
+    options.list_case = 1;
+    options.tab = 8;
     options.persistent_float = 3.142;
     strcpy(options.persistent_string, "foo bar");
     const char *filename = "/tmp/option_test_save";
@@ -55,10 +55,11 @@ TEST(OptionTest, Save) {
 }
 
 TEST(OptionTest, Save_GivenDirectoryDoesNotExist) {
-    struct option_s options;
+    Options options;
+    options_init(&options);
     options.persistent_bool = true;
-    options.Listcase = 1;
-    options.Tab = 8;
+    options.list_case = 1;
+    options.tab = 8;
     options.persistent_float = 3.142;
     strcpy(options.persistent_string, "foo bar");
 
@@ -98,12 +99,12 @@ TEST(OptionTest, Load) {
     fprintf(f, "persistent-string = \"foo bar\"\n");
     fclose(f);
 
-    struct option_s options;
+    Options options;
     options_init(&options);
 
     EXPECT_EQ(kOk, options_load(&options, filename));
-    EXPECT_EQ(2, options.Listcase);
-    EXPECT_EQ(8, options.Tab);
+    EXPECT_EQ(2, options.list_case);
+    EXPECT_EQ(8, options.tab);
     EXPECT_EQ(options.persistent_bool, true);
     EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
     EXPECT_STREQ(options.persistent_string, "foo bar");
@@ -115,14 +116,14 @@ TEST(OptionTest, Load_GivenAdditionalWhitespace) {
     fprintf(f, "tab = 8  \n");                         // Trailing whitespace
     fprintf(f, "  persistent-bool = true\n");                      // Leading whitespace
     fprintf(f, "persistent-float   =   3.142    \n");              // Whitespace around equals
-    fprintf(f, "\tpersistent-string\t \t=\t \t\"foo bar\"\t\n\t"); // Tab characters everywhere
+    fprintf(f, "\tpersistent-string\t \t=\t \t\"foo bar\"\t\n\t"); // tab characters everywhere
     fclose(f);
 
-    struct option_s options;
+    Options options;
     options_init(&options);
 
     EXPECT_EQ(options_load(&options, filename), 0);
-    EXPECT_EQ(8, options.Tab);
+    EXPECT_EQ(8, options.tab);
     EXPECT_EQ(options.persistent_bool, true);
     EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
     EXPECT_STREQ(options.persistent_string, "foo bar");
@@ -141,12 +142,12 @@ TEST(OptionTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
     fprintf(f, "persistent-string = \"foo bar\"\n");
     fclose(f);
 
-    struct option_s options;
+    Options options;
     options_init(&options);
 
     EXPECT_EQ(options_load(&options, filename), 0);
     EXPECT_EQ(options.persistent_bool, true);
-    EXPECT_EQ(8, options.Tab);
+    EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
     EXPECT_STREQ(options.persistent_string, "foo bar");
 }
@@ -162,12 +163,12 @@ TEST(OptionTest, Load_GivenHashComments) {
     fprintf(f, "persistent-string = \"foo bar\"\n");
     fclose(f);
 
-    struct option_s options;
+    Options options;
     options_init(&options);
 
     EXPECT_EQ(options_load(&options, filename), 0);
     EXPECT_EQ(options.persistent_bool, true);
-    EXPECT_EQ(8, options.Tab);
+    EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
     EXPECT_STREQ(options.persistent_string, "foo bar");
 }
@@ -183,12 +184,12 @@ TEST(OptionTest, Load_GivenSemicolonComments) {
     fprintf(f, "persistent-string = \"foo bar\"\n");
     fclose(f);
 
-    struct option_s options;
+    Options options;
     options_init(&options);
 
     EXPECT_EQ(options_load(&options, filename), 0);
     EXPECT_EQ(options.persistent_bool, true);
-    EXPECT_EQ(8, options.Tab);
+    EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
     EXPECT_STREQ(options.persistent_string, "foo bar");
 }
@@ -203,7 +204,7 @@ TEST(OptionTest, Load_GivenErrors) {
     fprintf(f, "persistent-string = 3.142\n");
     fclose(f);
 
-    struct option_s options;
+    Options options;
     options_init(&options);
 
     option_test_buf[0] = '\0';

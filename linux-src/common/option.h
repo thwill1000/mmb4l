@@ -26,13 +26,13 @@ enum option_console { BOTH, SCREEN, SERIAL };
 
 enum option_resolution { CHARACTER, PIXEL };
 
-struct option_s {
-    char Tab;
-    char Listcase;
-    int  Height;
-    int  Width;
-    int  ProgFlashSize;
-    int  Autorun;
+typedef struct {
+    char tab;
+    char list_case;
+    int  height;
+    int  width;
+    int  prog_flash_size;
+    int  autorun;
 
     // Added for MMB4L
     enum option_console console;
@@ -43,20 +43,20 @@ struct option_s {
     MMFLOAT persistent_float;
     char    persistent_string[32];
 #endif
-};
+} Options;
 
-extern struct option_s Option;
+extern Options mmb_options;
 
 extern void (*options_load_error_callback)(const char *);
 
 /** Initialises the options. */
-void options_init(struct option_s *options);
+void options_init(Options *options);
 
 /** Loads persistent options from a file. */
-OptionsResult options_load(struct option_s *options, const char *filename);
+OptionsResult options_load(Options *options, const char *filename);
 
 /** Saves persistent options to a file. */
-OptionsResult options_save(const struct option_s *options, const char *filename);
+OptionsResult options_save(const Options *options, const char *filename);
 
 void option_console_to_string(enum option_console console, char *buf);
 void option_explicit_to_string(char explicit_type, char *buf);

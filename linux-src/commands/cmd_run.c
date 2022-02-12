@@ -29,10 +29,10 @@ void cmd_run(void) {
     WatchdogSet = false;
     PrepareProgram(true);
     IgnorePIN = false;
-    if (Option.ProgFlashSize != PROG_FLASH_SIZE)
+    if (mmb_options.prog_flash_size != PROG_FLASH_SIZE)
         ExecuteProgram(
-            ProgMemory +
-            Option.ProgFlashSize);  // run anything that might be in the library
+                ProgMemory +
+                mmb_options.prog_flash_size);  // run anything that might be in the library
     if (*ProgMemory != T_NEWLINE) return;  // no program to run
     nextstmt = ProgMemory;
 }

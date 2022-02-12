@@ -47,7 +47,7 @@ PARTICULAR PURPOSE.
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
 volatile int MMAbort = false;
-struct option_s Option;
+Options mmb_options;
 int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary, **FontTable;
@@ -396,7 +396,7 @@ void MMgetline(int filenbr, char *p) {
                 if (++nbrchars > MAXSTRLEN) error("Line is too long");
                 *p++ = ' ';
                 if (filenbr == 0) MMputchar(' ');
-            } while (nbrchars % Option.Tab);
+            } while (nbrchars % mmb_options.tab);
             continue;
         }
 

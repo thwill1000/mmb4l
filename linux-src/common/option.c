@@ -12,12 +12,13 @@
 
 void (*options_load_error_callback)(const char *) = NULL;
 
-void options_init(struct option_s *options) {
-    memset(options, 0, sizeof(struct option_s));
-    options->ProgFlashSize = PROG_FLASH_SIZE;
-    options->Tab = 4;
+void options_init(Options *options) {
+    memset(options, 0, sizeof(Options));
     options->console = SERIAL;
+    options->list_case = CONFIG_TITLE;
+    options->prog_flash_size = PROG_FLASH_SIZE;
     options->resolution = CHARACTER;
+    options->tab = 4;
 }
 
 /**
@@ -124,13 +125,13 @@ static OptionsResult options_parse_tab(const char *value, char *tab) {
     return kOk;
 }
 
-static OptionsResult options_set(struct option_s *options, const char *name, const char *value) {
+static OptionsResult options_set(Options *options, const char *name, const char *value) {
     int result = kUnknownOption;
 
     if (strcasecmp(name, "listcase") == 0) {
-        result = options_parse_list_case(value, &(options->Listcase));
+        result = options_parse_list_case(value, &(options->list_case));
     } else if (strcasecmp(name, "tab") == 0) {
-        result = options_parse_tab(value, &(options->Tab));
+        result = options_parse_tab(value, &(options->tab));
 #if defined OPTION_TESTS
     } else if (strcasecmp(name, "persistent-bool") == 0) {
         result = options_parse_bool(value, &(options->persistent_bool));
@@ -169,7 +170,7 @@ static void options_report_error(int line_num, char *name, OptionsResult result)
     options_load_error_callback(buf);
 }
 
-OptionsResult options_load(struct option_s *options, const char *filename) {
+OptionsResult options_load(Options *options, const char *filename) {
     char path[STRINGSIZE];
     if (!munge_path(filename, path, STRINGSIZE)) {
         return kOtherIoError;
@@ -245,7 +246,7 @@ static OptionsResult options_create_parent_directory(const char *path) {
     return kOk;
 }
 
-OptionsResult options_save(const struct option_s *options, const char *filename) {
+OptionsResult options_save(const Options *options, const char *filename) {
     char path[STRINGSIZE];
     if (!munge_path(filename, path, STRINGSIZE)) {
         return kOtherIoError;
@@ -260,7 +261,7 @@ OptionsResult options_save(const struct option_s *options, const char *filename)
     char buf[STRINGSIZE];
     option_list_case_to_string(options->Listcase, buf);
     options_save_enum(f, "listcase", buf);
-    options_save_int(f, "tab", options->Tab);
+    options_save_int(f, "tab", options->tab);
 #if defined OPTION_TESTS
     options_save_bool(f, "persistent-bool", options->persistent_bool);
     options_save_float(f, "persistent-float", options->persistent_float);

@@ -214,7 +214,7 @@ void mminfo_hres(char *p) {
     if (FAILED(console_get_size(&width, &height))) {
         ERROR_COULD_NOT("determine console size");
     }
-    int scale = g_options.resolution == PIXEL ? FONT_WIDTH : 1;
+    int scale = mmb_options.resolution == PIXEL ? FONT_WIDTH : 1;
     g_integer_rtn = width * scale;
     g_rtn_type = T_INT;
 }
@@ -225,7 +225,7 @@ static void mminfo_hpos(char *p) {
     if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
-    int scale = g_options.resolution == PIXEL ? FONT_WIDTH : 1;
+    int scale = mmb_options.resolution == PIXEL ? FONT_WIDTH : 1;
     g_integer_rtn = x * scale;
     g_rtn_type = T_INT;
 }
@@ -239,7 +239,7 @@ static void mminfo_option(char *p) {
         g_rtn_type = T_INT;
     } else if (checkstring(p, "CASE")) {
         g_string_rtn = GetTempStrMemory();
-        option_list_case_to_string(g_options.Listcase, g_string_rtn);
+        option_list_case_to_string(mmb_options.list_case, g_string_rtn);
         g_rtn_type = T_STR;
     } else if (checkstring(p, "CODEPAGE")) {
         g_string_rtn = GetTempStrMemory();
@@ -247,7 +247,7 @@ static void mminfo_option(char *p) {
         g_rtn_type = T_STR;
     } else if (checkstring(p, "CONSOLE")) {
         g_string_rtn = GetTempStrMemory();
-        option_console_to_string(g_options.console, g_string_rtn);
+        option_console_to_string(mmb_options.console, g_string_rtn);
         g_rtn_type = T_STR;
     } else if (checkstring(p, "DEFAULT")) {
         g_string_rtn = GetTempStrMemory();
@@ -259,10 +259,10 @@ static void mminfo_option(char *p) {
         g_rtn_type = T_STR;
     } else if (checkstring(p, "RESOLUTION")) {
         g_string_rtn = GetTempStrMemory();
-        option_resolution_to_string(g_options.resolution, g_string_rtn);
+        option_resolution_to_string(mmb_options.resolution, g_string_rtn);
         g_rtn_type = T_STR;
     } else if (checkstring(p, "TAB")) {
-        g_integer_rtn = g_options.Tab;
+        g_integer_rtn = mmb_options.tab;
         g_rtn_type = T_INT;
     } else {
         ERROR_UNRECOGNISED_OPTION;
@@ -306,7 +306,7 @@ void mminfo_vres(char *p) {
     if (FAILED(console_get_size(&width, &height))) {
         ERROR_COULD_NOT("determine console size");
     }
-    int scale = g_options.resolution == PIXEL ? FONT_HEIGHT : 1;
+    int scale = mmb_options.resolution == PIXEL ? FONT_HEIGHT : 1;
     g_integer_rtn = height * scale;
     g_rtn_type = T_INT;
 }
@@ -317,7 +317,7 @@ static void mminfo_vpos(char *p) {
     if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
-    int scale = g_options.resolution == PIXEL ? FONT_HEIGHT : 1;
+    int scale = mmb_options.resolution == PIXEL ? FONT_HEIGHT : 1;
     g_integer_rtn = y * scale;
     g_rtn_type = T_INT;
 }

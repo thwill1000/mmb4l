@@ -313,7 +313,7 @@ void prompt_get_input(void) {
         ch = MMgetchar(); // MMgetchar(1);
         if (ch == TAB) {
             strcpy(state.buf, "        ");
-            switch (Option.Tab) {
+            switch (mmb_options.tab) {
                 case 2:
                     state.buf[2 - (state.char_index % 2)] = 0;
                     break;

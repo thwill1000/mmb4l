@@ -11,7 +11,7 @@
 #include "../common/version.h"
 
 static void cmd_option_save() {
-    OptionsResult result = options_save(&Option, OPTIONS_FILE_NAME);
+    OptionsResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);
     if (FAILED(result)) {
         char buf[STRINGSIZE];
         switch (result) {
@@ -37,11 +37,11 @@ static void option_break(char *p) {
 
 static void option_case(char *p) {
     if (checkstring(p, "LOWER")) {
-        Option.Listcase = CONFIG_LOWER;
+        mmb_options.list_case = CONFIG_LOWER;
     } else if (checkstring(p, "UPPER")) {
-        Option.Listcase = CONFIG_UPPER;
+        mmb_options.list_case = CONFIG_UPPER;
     } else if (checkstring(p, "TITLE")) {
-        Option.Listcase = CONFIG_TITLE;
+        mmb_options.list_case = CONFIG_TITLE;
     } else {
         ERROR_UNRECOGNISED_OPTION;
     }
@@ -109,13 +109,13 @@ void option_list(char *p) {
     sprintf(buf, "%d", g_break_key);
     option_list_item("Break", buf);
 
-    option_list_case_to_string(g_options.Listcase, buf);
+    option_list_case_to_string(mmb_options.list_case, buf);
     option_list_item("Case", buf);
 
     if (FAILED(codepage_to_string(codepage_current, buf))) ERROR_INTERNAL_FAULT;
     option_list_item("CodePage", buf);
 
-    option_console_to_string(g_options.console, buf);
+    option_console_to_string(mmb_options.console, buf);
     option_list_item("Console", buf);
 
     option_type_to_string(DefaultType, buf);
@@ -124,10 +124,10 @@ void option_list(char *p) {
     option_explicit_to_string(OptionExplicit, buf);
     option_list_item("Explicit", buf);
 
-    option_resolution_to_string(g_options.resolution, buf);
+    option_resolution_to_string(mmb_options.resolution, buf);
     option_list_item("Resolution", buf);
 
-    sprintf(buf, "%d", g_options.Tab);
+    sprintf(buf, "%d", mmb_options.tab);
     option_list_item("Tab", buf);
 
     MMPrintString("\r\n");
@@ -136,9 +136,9 @@ void option_list(char *p) {
 static void option_resolution(char *p) {
     char *p2 = NULL;
     if ((p2 = checkstring(p, "CHARACTER"))) {
-        g_options.resolution = CHARACTER;
+        mmb_options.resolution = CHARACTER;
     } else if ((p2 = checkstring(p, "PIXEL"))) {
-        g_options.resolution = PIXEL;
+        mmb_options.resolution = PIXEL;
     }
 
     if (!p2 || !parse_is_end(p2)) ERROR_UNRECOGNISED_OPTION;
@@ -146,11 +146,11 @@ static void option_resolution(char *p) {
 
 static void option_tab(char *p) {
     if (checkstring(p, "2")) {
-        Option.Tab = 2;
+        mmb_options.tab = 2;
     } else if (checkstring(p, "4")) {
-        Option.Tab = 4;
+        mmb_options.tab = 4;
     } else if (checkstring(p, "8")) {
-        Option.Tab = 8;
+        mmb_options.tab = 8;
     } else {
         ERROR_UNRECOGNISED_OPTION;
     }

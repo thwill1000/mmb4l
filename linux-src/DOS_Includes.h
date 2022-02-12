@@ -61,6 +61,14 @@ extern char error_file[STRINGSIZE];
 #define MMfputc          file_putc
 #define MMputchar        console_putc
 
+// Aliases for identifiers using "legacy" names in MMBasic core:
+#define Option           mmb_options
+#define Autorun          autorun
+#define Height           height
+#define Listcase         list_case
+#define ProgFlashSize    prog_flash_size
+#define Width            width
+
 // functions not used in the DOS version... so make them go away
 #define ClearSavedVars()    {}
 #define uSec(a)  {}
