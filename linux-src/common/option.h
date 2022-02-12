@@ -49,6 +49,9 @@ extern struct option_s Option;
 
 extern void (*options_load_error_callback)(const char *);
 
+/** Initialises the options. */
+void options_init(struct option_s *options);
+
 /** Loads persistent options from a file. */
 OptionsResult options_load(struct option_s *options, const char *filename);
 

@@ -12,6 +12,14 @@
 
 void (*options_load_error_callback)(const char *) = NULL;
 
+void options_init(struct option_s *options) {
+    memset(options, 0, sizeof(struct option_s));
+    options->ProgFlashSize = PROG_FLASH_SIZE;
+    options->Tab = 4;
+    options->console = SERIAL;
+    options->resolution = CHARACTER;
+}
+
 /**
  * Parses a single line expecting "name = value" format.
  *

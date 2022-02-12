@@ -14,8 +14,25 @@ static void write_line_to_buf(const char *line) {
     strcat(option_test_buf, "\n");
 }
 
+TEST(OptionTest, Init) {
+    struct option_s options;
+    options_init(&options);
+
+    EXPECT_EQ(4, options.Tab);
+    EXPECT_EQ(0, options.Listcase);
+    EXPECT_EQ(0, options.Height);
+    EXPECT_EQ(0, options.Width);
+    EXPECT_EQ(PROG_FLASH_SIZE, options.ProgFlashSize);
+    EXPECT_EQ(SERIAL, options.console);
+    EXPECT_EQ(CHARACTER, options.resolution);
+    EXPECT_EQ(false, options.persistent_bool);
+    EXPECT_EQ(0.0, options.persistent_float);
+    EXPECT_STREQ("", options.persistent_string);
+}
+
 TEST(OptionTest, Save) {
     struct option_s options;
+    options_init(&options);
     options.persistent_bool = true;
     options.Listcase = 1;
     options.Tab = 8;
@@ -82,6 +99,7 @@ TEST(OptionTest, Load) {
     fclose(f);
 
     struct option_s options;
+    options_init(&options);
 
     EXPECT_EQ(kOk, options_load(&options, filename));
     EXPECT_EQ(2, options.Listcase);
@@ -101,6 +119,7 @@ TEST(OptionTest, Load_GivenAdditionalWhitespace) {
     fclose(f);
 
     struct option_s options;
+    options_init(&options);
 
     EXPECT_EQ(options_load(&options, filename), 0);
     EXPECT_EQ(8, options.Tab);
@@ -123,6 +142,7 @@ TEST(OptionTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
     fclose(f);
 
     struct option_s options;
+    options_init(&options);
 
     EXPECT_EQ(options_load(&options, filename), 0);
     EXPECT_EQ(options.persistent_bool, true);
@@ -143,6 +163,7 @@ TEST(OptionTest, Load_GivenHashComments) {
     fclose(f);
 
     struct option_s options;
+    options_init(&options);
 
     EXPECT_EQ(options_load(&options, filename), 0);
     EXPECT_EQ(options.persistent_bool, true);
@@ -163,6 +184,7 @@ TEST(OptionTest, Load_GivenSemicolonComments) {
     fclose(f);
 
     struct option_s options;
+    options_init(&options);
 
     EXPECT_EQ(options_load(&options, filename), 0);
     EXPECT_EQ(options.persistent_bool, true);
@@ -182,6 +204,7 @@ TEST(OptionTest, Load_GivenErrors) {
     fclose(f);
 
     struct option_s options;
+    options_init(&options);
 
     option_test_buf[0] = '\0';
     options_load_error_callback = &write_line_to_buf;

@@ -74,10 +74,7 @@ void print_banner() {
 }
 
 void init_options() {
-    Option.ProgFlashSize = PROG_FLASH_SIZE;
-    Option.Tab = 4;
-    Option.console = SERIAL;
-    Option.resolution = CHARACTER;
+    options_init(&Option);
 
     OptionsResult result = options_load(&Option, OPTIONS_FILE_NAME);
     if (FAILED(result)) {
