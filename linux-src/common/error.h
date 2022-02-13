@@ -28,6 +28,7 @@ uint8_t error_to_exit_code(int32_t error_code);
 #define ERROR_INVALID_ARGUMENT         ERROR_INVALID("argument")
 #define ERROR_INVALID_FILE_NUMBER      ERROR_INVALID("file number")
 #define ERROR_INVALID_IN_PROGRAM       ERROR_INVALID("in a program")
+#define ERROR_INVALID_OPTION_VALUE     ERROR_INVALID("value for option")
 #define ERROR_LINE_LENGTH              error("Line length")
 #define ERROR_NOT_ALLOWED(s)           error(s " not allowed")
 #define ERROR_NOT_OPEN                 error("File or device not open");

@@ -55,8 +55,6 @@ Implement command-line SYSTEM shortcut, e.g. '!cd', '!ls'
   - what about TAB completion of paths ?
 Make all function keys reprogrammable
 Implement variable/sub/function hash tables
-Implement user configurable editor via 'OPTION EDITOR'
-  - investigate using 'xed' as suggested by @robert.rozee
 
 
 Required for release

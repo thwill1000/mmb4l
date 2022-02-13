@@ -14,10 +14,11 @@ static void write_line_to_buf(const char *line) {
     strcat(options_test_buf, "\n");
 }
 
-TEST(OptionTest, Init) {
+TEST(OptionsTest, Init) {
     Options options;
     options_init(&options);
 
+    EXPECT_STREQ("Nano", options.editor);
     EXPECT_EQ(4, options.tab);
     EXPECT_EQ(0, options.list_case);
     EXPECT_EQ(0, options.height);
@@ -30,12 +31,13 @@ TEST(OptionTest, Init) {
     EXPECT_STREQ("", options.persistent_string);
 }
 
-TEST(OptionTest, Save) {
+TEST(OptionsTest, Save) {
     Options options;
     options_init(&options);
-    options.persistent_bool = true;
+    strcpy(options.editor, "Vi");
     options.list_case = 1;
     options.tab = 8;
+    options.persistent_bool = true;
     options.persistent_float = 3.142;
     strcpy(options.persistent_string, "foo bar");
     const char *filename = "/tmp/options_test_save";
@@ -44,6 +46,7 @@ TEST(OptionTest, Save) {
 
     FILE *f = fopen(filename, "r");
     char line[256];
+    EXPECT_STREQ(fgets(line, 256, f), "editor = Vi\n");
     EXPECT_STREQ(fgets(line, 256, f), "listcase = Lower\n");
     EXPECT_STREQ(fgets(line, 256, f), "tab = 8\n");
     EXPECT_STREQ(fgets(line, 256, f), "persistent-bool = true\n");
@@ -54,12 +57,13 @@ TEST(OptionTest, Save) {
     fclose(f);
 }
 
-TEST(OptionTest, Save_GivenDirectoryDoesNotExist) {
+TEST(OptionsTest, Save_GivenDirectoryDoesNotExist) {
     Options options;
     options_init(&options);
-    options.persistent_bool = true;
+    strcpy(options.editor, "Vi");
     options.list_case = 1;
     options.tab = 8;
+    options.persistent_bool = true;
     options.persistent_float = 3.142;
     strcpy(options.persistent_string, "foo bar");
 
@@ -72,6 +76,7 @@ TEST(OptionTest, Save_GivenDirectoryDoesNotExist) {
 
     FILE *f = fopen(filename, "r");
     char line[256];
+    EXPECT_STREQ(fgets(line, 256, f), "editor = Vi\n");
     EXPECT_STREQ(fgets(line, 256, f), "listcase = Lower\n");
     EXPECT_STREQ(fgets(line, 256, f), "tab = 8\n");
     EXPECT_STREQ(fgets(line, 256, f), "persistent-bool = true\n");
@@ -89,9 +94,10 @@ TEST(OptionTest, Save_GivenDirectoryDoesNotExist) {
     }
 }
 
-TEST(OptionTest, Load) {
+TEST(OptionsTest, Load) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
+    fprintf(f, "editor = Vi\n");
     fprintf(f, "listcase = Upper\n");
     fprintf(f, "tab = 8\n");
     fprintf(f, "persistent-bool = true\n");
@@ -103,6 +109,7 @@ TEST(OptionTest, Load) {
     options_init(&options);
 
     EXPECT_EQ(kOk, options_load(&options, filename));
+    EXPECT_STREQ(options.editor, "Vi");
     EXPECT_EQ(2, options.list_case);
     EXPECT_EQ(8, options.tab);
     EXPECT_EQ(options.persistent_bool, true);
@@ -110,7 +117,7 @@ TEST(OptionTest, Load) {
     EXPECT_STREQ(options.persistent_string, "foo bar");
 }
 
-TEST(OptionTest, Load_GivenAdditionalWhitespace) {
+TEST(OptionsTest, Load_GivenAdditionalWhitespace) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "tab = 8  \n");                         // Trailing whitespace
@@ -129,7 +136,7 @@ TEST(OptionTest, Load_GivenAdditionalWhitespace) {
     EXPECT_STREQ(options.persistent_string, "foo bar");
 }
 
-TEST(OptionTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
+TEST(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "\n");
@@ -152,7 +159,7 @@ TEST(OptionTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
     EXPECT_STREQ(options.persistent_string, "foo bar");
 }
 
-TEST(OptionTest, Load_GivenHashComments) {
+TEST(OptionsTest, Load_GivenHashComments) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "  # Hello World\n");
@@ -173,7 +180,7 @@ TEST(OptionTest, Load_GivenHashComments) {
     EXPECT_STREQ(options.persistent_string, "foo bar");
 }
 
-TEST(OptionTest, Load_GivenSemicolonComments) {
+TEST(OptionsTest, Load_GivenSemicolonComments) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "  ; Hello World\n");
@@ -194,7 +201,7 @@ TEST(OptionTest, Load_GivenSemicolonComments) {
     EXPECT_STREQ(options.persistent_string, "foo bar");
 }
 
-TEST(OptionTest, Load_GivenErrors) {
+TEST(OptionsTest, Load_GivenErrors) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "foo = true\n");
@@ -218,4 +225,92 @@ TEST(OptionTest, Load_GivenErrors) {
             "line 4: invalid float value for option 'persistent-float'.\n"
             "line 5: invalid string value for option 'persistent-string'.\n",
             options_test_buf);
+}
+
+TEST(OptionsTest, EditorToString) {
+    char buf[STRINGSIZE];
+    options_editor_to_string("Default", buf);
+    EXPECT_STREQ("Default", buf);
+
+    options_editor_to_string("Geany", buf);
+    EXPECT_STREQ("Geany", buf);
+
+    options_editor_to_string("Gedit", buf);
+    EXPECT_STREQ("Gedit", buf);
+
+    options_editor_to_string("Leafpad", buf);
+    EXPECT_STREQ("Leafpad", buf);
+
+    options_editor_to_string("Nano", buf);
+    EXPECT_STREQ("Nano", buf);
+
+    options_editor_to_string("Vi", buf);
+    EXPECT_STREQ("Vi", buf);
+
+    options_editor_to_string("Vim", buf);
+    EXPECT_STREQ("Vim", buf);
+
+    options_editor_to_string("VSCode", buf);
+    EXPECT_STREQ("VSCode", buf);
+
+    options_editor_to_string("Xed", buf);
+    EXPECT_STREQ("Xed", buf);
+
+    options_editor_to_string("\"code -g ${file}:${line}\"", buf);
+    EXPECT_STREQ("\"code -g ${file}:${line}\"", buf);
+
+    // This is actually an invalid value, it should be quoted, but
+    // options_editor_to_string() doesn't care.
+    options_editor_to_string("code -g ${file}:${line}", buf);
+    EXPECT_STREQ("code -g ${file}:${line}", buf);
+}
+
+TEST(OptionsTest, Set_GivenEditor) {
+    Options options;
+    options_init(&options);
+    strcpy(options.editor, "");
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "atom"));
+    EXPECT_STREQ("Atom", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "code"));
+    EXPECT_STREQ("VSCode", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "default"));
+    EXPECT_STREQ("Nano", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "GEaNY"));
+    EXPECT_STREQ("Geany", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "GEDIT"));
+    EXPECT_STREQ("Gedit", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "leafPAD"));
+    EXPECT_STREQ("Leafpad", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "nano"));
+    EXPECT_STREQ("Nano", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "SUBlime"));
+    EXPECT_STREQ("Sublime", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "vi"));
+    EXPECT_STREQ("Vi", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "vim"));
+    EXPECT_STREQ("Vim", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "VSCODE"));
+    EXPECT_STREQ("VSCode", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "Xed"));
+    EXPECT_STREQ("Xed", options.editor);
+
+    EXPECT_EQ(kOk, options_set(&options, "editor", "\"code -g ${file}:${line}\""));
+    EXPECT_STREQ("\"code -g ${file}:${line}\"", options.editor);
+
+    // Invalid because the value isn't quoted.
+    strcpy(options.editor, "");
+    EXPECT_EQ(kInvalidValue, options_set(&options, "editor", "code -g ${file}:${line}"));
+    EXPECT_STREQ("", options.editor);
 }

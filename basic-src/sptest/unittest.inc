@@ -1,4 +1,4 @@
-' Copyright (c) 2020-2021 Thomas Hugo Williams
+' Copyright (c) 2020-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For Colour Maximite 2, MMBasic 5.07
 
@@ -94,9 +94,11 @@ Sub assert_string_equals(expected_$, actual_$)
     If Len(expected_$) = 1 Then expected$ = "Chr$(" + Str$(Asc(expected_$)) + ")"
     If Len(actual_$) = 1 Then actual$ = "Chr$(" + Str$(Asc(actual_$)) + ")"
 
-    Local s$ = "Assert equals failed, expected " + ut.sanitise_string$(expected$)
-    Cat s$, " but actually " + ut.sanitise_string$(actual$)
-    ut.add_failure(s$)
+    ut.add_failure("Assert equals failed, expected ")
+    LongString Append ut.failure_txt%(), ut.sanitise_string$(expected$)
+    LongString Append ut.failure_txt%(), " but actually "
+    LongString Append ut.failure_txt%(), ut.sanitise_string$(actual$)
+    ut.update_failure()
   EndIf
 End Sub
 

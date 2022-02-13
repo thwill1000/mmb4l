@@ -9,6 +9,27 @@
 
 #define INVALID_VALUE  "???"
 
+/**
+ * Note that user specification of 'code' and 'default' are always changed to
+ * and stored as 'VSCode' and 'Nano' respectively, hence their command field
+ * should be unused.
+ */
+OptionsEditor options_editors[] = {
+    { "atom",    "Atom",    "atom ${file}:${line}",             false },
+    { "code",    "VSCode",  "-- never used --",                 false },
+    { "default", "Nano",    "-- never used --",                 true  },
+    { "geany",   "Geany",   "geany --line=${line} ${file} &",   false },
+    { "gedit",   "Gedit",   "gedit ${file} +${line} &",         false },
+    { "leafpad", "Leafpad", "leafpad --jump=${line} ${file} &", false },
+    { "nano",    "Nano",    "nano +${line} ${file}",            true  },
+    { "sublime", "Sublime", "subl ${file}:${line}",             false },
+    { "vi",      "Vi",      "vi +${line} ${file}",              true  },
+    { "vim",     "Vim",     "vim +${line} ${file}",             true  },
+    { "vscode",  "VSCode",  "code -g ${file}:${line}",          false },
+    { "xed",     "Xed",     "xed +${line} ${file} &",           false },
+    { NULL, NULL, NULL }
+};
+
 void (*options_load_error_callback)(const char *) = NULL;
 
 void options_init(Options *options) {
@@ -18,6 +39,7 @@ void options_init(Options *options) {
     options->prog_flash_size = PROG_FLASH_SIZE;
     options->resolution = CHARACTER;
     options->tab = 4;
+    options_set(options, "editor", "default");
 }
 
 /**
@@ -29,7 +51,7 @@ void options_init(Options *options) {
  * @param[in]  line   line to parse.
  * @param[out] name   buffer to output the name in.
  * @param[out] value  buffer to output the value in.
- * @return 0 on success, -1 on error.
+ * @return TODO
  */
 static OptionsResult options_parse(const char *line, char *name, char *value) {
     // Check for empty or whitespace only line.
@@ -56,6 +78,8 @@ static OptionsResult options_parse(const char *line, char *name, char *value) {
     while (*p && *p != '#' && *p != ';') *value++ = *p++;
     *value = '\0';
     while(isspace(*--value)) *value = '\0'; // Trim trailing whitespace.
+
+    return kOk;
 }
 
 static OptionsResult options_parse_bool(const char *value, bool *out) {
@@ -99,6 +123,24 @@ static OptionsResult options_parse_string(const char *value, char *out) {
     return kOk;
 }
 
+static OptionsResult options_parse_editor(const char *value, char *editor) {
+    for (int i = 0; options_editors[i].id; ++i) {
+        if (strcasecmp(value, options_editors[i].id) == 0) {
+            // Standard editor.
+            strcpy(editor, options_editors[i].value);
+            return kOk;
+        }
+    }
+
+    if (value[0] == '\"' && value[strlen(value) - 1] == '\"') {
+        // Manually specified editor.
+        strcpy(editor, value);
+        return kOk;
+    }
+
+    return kInvalidValue;
+}
+
 static OptionsResult options_parse_list_case(const char *value, char *list_case) {
     if (strcasecmp(value, "title") == 0) {
         *list_case = CONFIG_TITLE;
@@ -107,7 +149,7 @@ static OptionsResult options_parse_list_case(const char *value, char *list_case)
     } else if (strcasecmp(value, "upper") == 0) {
         *list_case = CONFIG_UPPER;
     } else {
-        return kInvalidEnum;
+        return kInvalidValue;
     }
     return kOk;
 }
@@ -124,10 +166,12 @@ static OptionsResult options_parse_tab(const char *value, char *tab) {
     return kOk;
 }
 
-static OptionsResult options_set(Options *options, const char *name, const char *value) {
+OptionsResult options_set(Options *options, const char *name, const char *value) {
     int result = kUnknownOption;
 
-    if (strcasecmp(name, "listcase") == 0) {
+    if (strcasecmp(name, "editor") == 0) {
+        result = options_parse_editor(value, options->editor);
+    } else if (strcasecmp(name, "listcase") == 0) {
         result = options_parse_list_case(value, &(options->list_case));
     } else if (strcasecmp(name, "tab") == 0) {
         result = options_parse_tab(value, &(options->tab));
@@ -153,8 +197,8 @@ static void options_report_error(int line_num, char *name, OptionsResult result)
         case kInvalidBool:
             sprintf(buf, "line %d: invalid boolean value for option '%s'.", line_num, name);
             break;
-        case kInvalidEnum:
-            sprintf(buf, "line %d: invalid enum value for option '%s'.", line_num, name);
+        case kInvalidValue:
+            sprintf(buf, "line %d: invalid value for option '%s'.", line_num, name);
             break;
         case kInvalidFloat:
             sprintf(buf, "line %d: invalid float value for option '%s'.", line_num, name);
@@ -164,6 +208,9 @@ static void options_report_error(int line_num, char *name, OptionsResult result)
             break;
         case kInvalidString:
             sprintf(buf, "line %d: invalid string value for option '%s'.", line_num, name);
+            break;
+        default:
+            sprintf(buf, "line %d: unknown error for option '%s'.", line_num, name);
             break;
     }
     options_load_error_callback(buf);
@@ -256,6 +303,8 @@ OptionsResult options_save(const Options *options, const char *filename) {
     FILE *f = fopen(path, "w");
     if (!f) return kOtherIoError;
     char buf[STRINGSIZE];
+    options_editor_to_string(options->editor, buf);
+    options_save_enum(f, "editor", buf);
     options_list_case_to_string(options->list_case, buf);
     options_save_enum(f, "listcase", buf);
     options_save_int(f, "tab", options->tab);
@@ -275,6 +324,12 @@ void options_console_to_string(enum options_console console, char *buf) {
         case SERIAL: strcpy(buf, "Serial"); break;
         default:     strcpy(buf, INVALID_VALUE); break;
     }
+}
+
+void options_editor_to_string(const char *editor, char *buf) {
+    // Return 'editor' value verbatim, any invalid values should have been
+    // caught before this point.
+    strcpy(buf, editor);
 }
 
 void options_explicit_to_string(char explicit, char *buf) {

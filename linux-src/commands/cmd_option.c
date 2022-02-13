@@ -9,7 +9,7 @@
 #include "../common/parse.h"
 #include "../common/utility.h"
 
-static void cmd_option_save() {
+static void save_options() {
     OptionsResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);
     if (FAILED(result)) {
         char buf[STRINGSIZE];
@@ -45,7 +45,7 @@ static void option_case(char *p) {
         ERROR_UNRECOGNISED_OPTION;
     }
 
-    cmd_option_save();
+    save_options();
 }
 
 static void option_codepage(char *p) {
@@ -78,6 +78,42 @@ static void option_default(char *p) {
     } else {
         ERROR_UNRECOGNISED_OPTION;
     }
+}
+
+static void get_value(const char *pstart, char *value) {
+    char *p = (char *) pstart;
+    skipspace(p);
+    while (*p && *p != ' ' && *p != ',' && *p != '\'' && *p != '(') {
+        *value++ = *p++;
+    }
+    *value = '\0';
+}
+
+static void option_editor(char *p) {
+    // Is the editor value one of the standard literals ?
+    char value[STRINGSIZE];
+    get_value(p, value);
+    if (SUCCEEDED(options_set(&mmb_options, "editor", value))) {
+        save_options();
+        return;
+    }
+
+    // Is the editor value a string that evaluates to one of the standard literals ?
+    char *s = getCstring(p);
+    if (!s) ERROR_INVALID_OPTION_VALUE;
+    if (SUCCEEDED(options_set(&mmb_options, "editor", s))) {
+        save_options();
+        return;
+    }
+
+    // Is the editor value a string to treat as a system command to launch the editor ?
+    sprintf(value, "\"%s\"", s);
+    if (SUCCEEDED(options_set(&mmb_options, "editor", value))) {
+        save_options();
+        return;
+    }
+
+    ERROR_INVALID_OPTION_VALUE;
 }
 
 static void option_explicit(char *p) {
@@ -120,6 +156,9 @@ void option_list(char *p) {
     options_type_to_string(DefaultType, buf);
     option_list_item("Default", buf);
 
+    options_editor_to_string(mmb_options.editor, buf);
+    option_list_item("Editor", mmb_options.editor);
+
     options_explicit_to_string(OptionExplicit, buf);
     option_list_item("Explicit", buf);
 
@@ -154,7 +193,7 @@ static void option_tab(char *p) {
         ERROR_UNRECOGNISED_OPTION;
     }
 
-    cmd_option_save();
+    save_options();
 }
 
 void cmd_option(void) {
@@ -171,6 +210,8 @@ void cmd_option(void) {
         option_console(p);
     } else if ((p = checkstring(cmdline, "DEFAULT"))) {
         option_default(p);
+    } else if ((p = checkstring(cmdline, "EDITOR"))) {
+        option_editor(p);
     } else if ((p = checkstring(cmdline, "EXPLICIT"))) {
         option_explicit(p);
     } else if ((p = checkstring(cmdline, "LIST"))) {

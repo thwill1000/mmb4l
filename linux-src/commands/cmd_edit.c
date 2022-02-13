@@ -17,35 +17,41 @@ static void get_mmbasic_nanorc(char *path) {
     }
 }
 
-static int run_editor(char *file_path, int line) {
-     // char *mmeditor = getenv("MMEDITOR");
-
-    char nanorc[STRINGSIZE];
-    get_mmbasic_nanorc(nanorc);
-
-    char command[STRINGSIZE * 2];
-    if (*nanorc == '\0') {
-        int ret = snprintf(
-                command,
-                STRINGSIZE * 2,
-                "nano +%d \"%s\"", line > 0 ? line : 1,
-                file_path);
-        if (ret < 0) abort();
-    } else {
-        // Note early values or nano, such as the default version for Raspbian
-        // do not support the --rcfile flag.
-        int ret = snprintf(
-                command,
-                STRINGSIZE * 2,
-                "nano --rcfile=%s +%d \"%s\"",
-                nanorc,
-                line > 0 ? line : 1,
-                file_path);
-        if (ret < 0) abort();
+static int get_editor_command(char *file_path, int line, char *command, bool *blocking) {
+    *command = '\0';
+    *blocking = false;
+    for (int i = 0; options_editors[i].id; ++i) {
+        if (strcasecmp(mmb_options.editor, options_editors[i].id) == 0) {
+            strcpy(command, options_editors[i].command);
+            *blocking = options_editors[i].blocking;
+        }
     }
 
-    errno = 0;
-    return system(command) == 0;
+    // Special magic for Nano when we the 'mmbasic.nano.rc' file is installed.
+    // Note early values or nano, such as the default version for Raspbian
+    // do not support the --rcfile flag.
+    if (strcasecmp(mmb_options.editor, "nano") == 0) {
+        char nanorc[STRINGSIZE];
+        get_mmbasic_nanorc(nanorc);
+        if (*nanorc) sprintf(command, "nano --rcfile=%s +${line} ${file}", nanorc);
+    }
+
+    if (!*command
+            && mmb_options.editor[0] == '\"'
+            && mmb_options.editor[strlen(mmb_options.editor) - 1] == '\"') {
+        // Manually specified editor.
+        strncpy(command, mmb_options.editor + 1, strlen(mmb_options.editor) - 2);
+    }
+
+    if (!*command) return -1;
+
+    char replacement[STRINGSIZE + 2];
+    snprintf(replacement, STRINGSIZE + 2, "\"%s\"", file_path);
+    str_replace(command, "${file}", replacement);
+    snprintf(replacement, STRINGSIZE + 2, "%d", line);
+    str_replace(command, "${line}", replacement);
+
+    return 0;
 }
 
 static int create_empty_file(char *file_path) {
@@ -71,7 +77,6 @@ void cmd_edit(void) {
 
     char fname[STRINGSIZE] = { 0 };
     int current = false;
-    int line = -1;
     if (argc == 1) {
         if (checkstring(argv[0], "CURRENT")) {
             current = true;
@@ -80,6 +85,7 @@ void cmd_edit(void) {
         }
     }
 
+    int line = 1;
     if (*fname == '\0') {
         if (!current && *error_file != '\0') {
             strcpy(fname, error_file);
@@ -116,10 +122,17 @@ void cmd_edit(void) {
     }
 
     // Edit the file.
-    if (!run_editor(file_path, line)) error("Editor could not be run");
+    char command[STRINGSIZE * 2] = { 0 };
+    bool blocking = false;
+    if (FAILED(get_editor_command(file_path, line > 1 ? line : 1, command, &blocking))) {
+        error("Unknown editor '$'", mmb_options.editor);
+    }
+    errno = 0;
+    if (FAILED(system(command))) error("Editor could not be run");
 
-    // If we created a new file and it is still empty then delete it.
-    if (new_file) {
+    // If we created a new file and it is still empty after editing with an
+    // editor that blocks then delete it.
+    if (new_file && blocking) {
         if (!delete_if_empty(file_path)) {
             error("Temporary file could not be deleted");
         }

@@ -252,6 +252,10 @@ static void mminfo_option(char *p) {
         g_string_rtn = GetTempStrMemory();
         options_type_to_string(DefaultType, g_string_rtn);
         g_rtn_type = T_STR;
+    } else if (checkstring(p, "EDITOR")) {
+        g_string_rtn = GetTempStrMemory();
+        strcpy(g_string_rtn, mmb_options.editor);
+        g_rtn_type = T_STR;
     } else if (checkstring(p, "EXPLICIT")) {
         g_string_rtn = GetTempStrMemory();
         options_explicit_to_string(OptionExplicit, g_string_rtn);

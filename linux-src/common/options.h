@@ -15,18 +15,26 @@ typedef enum {
     kInvalidFormat,
     kUnknownOption,
     kInvalidBool,
-    kInvalidEnum,
     kInvalidFloat,
     kInvalidInt,
     kInvalidString,
+    kInvalidValue,
     kOtherIoError
 } OptionsResult;
+
+typedef struct {
+    char *id;      // Users specify these with OPTION EDITOR.
+    char *value;   // Internally we use this.
+    char *command; // Command to run for the given editor.
+    bool blocking; // Does the editor command block.
+} OptionsEditor;
 
 enum options_console { BOTH, SCREEN, SERIAL };
 
 enum options_resolution { CHARACTER, PIXEL };
 
 typedef struct {
+    char editor[STRINGSIZE];  // TODO: should probably be shorter
     char tab;
     char list_case;
     int  height;
@@ -47,7 +55,7 @@ typedef struct {
 } Options;
 
 extern Options mmb_options;
-
+extern OptionsEditor options_editors[];
 extern void (*options_load_error_callback)(const char *);
 
 /** Initialises the options. */
@@ -59,7 +67,10 @@ OptionsResult options_load(Options *options, const char *filename);
 /** Saves persistent options to a file. */
 OptionsResult options_save(const Options *options, const char *filename);
 
+OptionsResult options_set(Options *options, const char *name, const char *value);
+
 void options_console_to_string(enum options_console console, char *buf);
+void options_editor_to_string(const char *editor, char *buf);
 void options_explicit_to_string(char explicit_type, char *buf);
 void options_list_case_to_string(char list_case, char *buf);
 void options_resolution_to_string(enum options_resolution resolution, char *buf);

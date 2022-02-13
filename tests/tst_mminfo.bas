@@ -39,6 +39,7 @@ add_test("test_hres")
 add_test("test_option_base")
 add_test("test_option_break")
 add_test("test_option_case")
+add_test("test_option_editor")
 add_test("test_option_default")
 add_test("test_option_explicit")
 add_test("test_option_codepage")
@@ -275,6 +276,54 @@ Sub test_option_case()
 
   Option Case Title
   assert_string_equals("Title", Mm.Info(Option Case))
+End Sub
+
+Sub test_option_editor()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
+  Local original$ = Mm.Info(Option Editor)
+
+  Option Editor Atom
+  assert_string_equals("Atom", Mm.Info(Option Editor))
+
+  Option Editor Code
+  assert_string_equals("VSCode", Mm.Info(Option Editor))
+
+  Option Editor Default
+  assert_string_equals("Nano", Mm.Info(Option Editor))
+
+  Option Editor Geany
+  assert_string_equals("Geany", Mm.Info(Option Editor))
+
+  Option Editor Gedit
+  assert_string_equals("Gedit", Mm.Info(Option Editor))
+
+  Option Editor Leafpad
+  assert_string_equals("Leafpad", Mm.Info(Option Editor))
+
+  Option Editor Nano
+  assert_string_equals("Nano", Mm.Info(Option Editor))
+
+  Option Editor Sublime
+  assert_string_equals("Sublime", Mm.Info(Option Editor))
+
+  Option Editor Vi
+  assert_string_equals("Vi", Mm.Info(Option Editor))
+
+  Option Editor Vim
+  assert_string_equals("Vim", Mm.Info(Option Editor))
+
+  Option Editor VSCode
+  assert_string_equals("VSCode", Mm.Info(Option Editor))
+
+  Option Editor Xed
+  assert_string_equals("Xed", Mm.Info(Option Editor))
+
+  Option Editor "my custom editor ${file} ${line}"
+  assert_string_equals(Chr$(34) + "my custom editor ${file} ${line}" + Chr$(34), Mm.Info(Option Editor))
+
+  Option Editor original$
+  assert_string_equals(original$, Mm.Info(Option Editor))
 End Sub
 
 Sub test_option_default()

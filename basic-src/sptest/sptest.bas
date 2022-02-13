@@ -1,4 +1,6 @@
-' Copyright (c) 2020-2021 Thomas Hugo Williams
+#!/usr/local/bin/mmbasic -i
+
+' Copyright (c) 2020-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For Colour Maximite 2, MMBasic 5.07
 
