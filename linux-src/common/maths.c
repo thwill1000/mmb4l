@@ -18,13 +18,14 @@ provisions:
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 ************************************************************************************************************************/
+
 #include <math.h>
 #include <complex.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "mmb4l.h"
 #include "maths.h"
-#include "version.h"
 
 //void cmd_SensorFusion(char *passcmdline);
 void MahonyQuaternionUpdate(MMFLOAT ax, MMFLOAT ay, MMFLOAT az, MMFLOAT gx, MMFLOAT gy, MMFLOAT gz, MMFLOAT mx, MMFLOAT my, MMFLOAT mz, MMFLOAT Ki, MMFLOAT Kp, MMFLOAT deltat, MMFLOAT *yaw, MMFLOAT *pitch, MMFLOAT *roll);

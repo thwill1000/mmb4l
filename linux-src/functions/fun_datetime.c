@@ -1,5 +1,7 @@
+#include <stdio.h>
+
+#include "../common/mmb4l.h"
 #include "../common/mmtime.h"
-#include "../common/version.h"
 
 void fun_datetime(void) {
     time_t t;

@@ -1,8 +1,6 @@
-#include <string.h>
-
+#include "../common/mmb4l.h"
 #include "../common/program.h"
 #include "../common/utility.h"
-#include "../common/version.h"
 
 char run_cmdline[STRINGSIZE];
 

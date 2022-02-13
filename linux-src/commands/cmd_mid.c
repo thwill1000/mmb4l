@@ -1,7 +1,5 @@
-#include <string.h>
-
+#include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/version.h"
 
 void cmd_mid(void){
     getargs(&cmdline, 5, ",");

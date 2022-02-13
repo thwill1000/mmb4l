@@ -1,7 +1,6 @@
 #include <ctype.h>
-#include <string.h>
 
-#include "../common/version.h"
+#include "../common/mmb4l.h"
 
 void fun_call(void) {
     int i;

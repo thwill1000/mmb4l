@@ -1,4 +1,4 @@
-#include "../common/version.h"
+#include "../common/mmb4l.h"
 
 // return true if the char 'c' is contained in the string 'srch$'
 // used only by scan_for_delimiter()  below

@@ -1,4 +1,5 @@
-#include "../common/version.h"
+#include "../common/mmb4l.h"
+#include "../common/error.h"
 
 void cmd_cfunction(void) {
     int end_token = GetCommandValue("End CSub");  // this terminates a CSUB

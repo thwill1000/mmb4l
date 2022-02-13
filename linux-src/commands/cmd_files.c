@@ -1,6 +1,8 @@
+#include <stdio.h>
 #include <stdlib.h>
 
-#include "../common/version.h"
+#include "../common/mmb4l.h"
+#include "../common/memory.h"
 
 void cmd_files_internal(char *p) {
     char *command = GetTempStrMemory();

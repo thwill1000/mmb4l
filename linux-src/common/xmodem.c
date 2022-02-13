@@ -1,11 +1,11 @@
 #include <stddef.h>
-#include <string.h>
 
+#include "mmb4l.h"
 #include "error.h"
+#include "file.h"
 #include "mmtime.h"
 #include "serial.h"
 #include "xmodem.h"
-#include "version.h"
 
 /*
  * Derived from the work of Georges Menie (www.menie.org) Copyright 2001-2010

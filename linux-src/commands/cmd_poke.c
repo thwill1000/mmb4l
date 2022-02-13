@@ -1,8 +1,6 @@
-#include <stdint.h>
-
+#include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/utility.h"
-#include "../common/version.h"
 
 /** POKE BYTE addr%, byte% */
 static void poke_byte(int argc, char** argv, char *p) {

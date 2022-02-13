@@ -23,11 +23,8 @@ provisions:
 
 ************************************************************************************************************************/
 
-//#include <stdio.h>
-//#include <limits.h>
-//#include <stdarg.h>
-
-#include "../Version.h"
+#include "../Hardware_Includes.h"
+#include "MMBasic_Includes.h"
 
 extern int ListCnt;
 extern int MMCharPos;

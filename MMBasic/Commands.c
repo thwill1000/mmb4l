@@ -21,7 +21,8 @@ provisions:
 
 ************************************************************************************************************************/
 
-#include "../Version.h"
+#include "../Hardware_Includes.h"
+#include "MMBasic_Includes.h"
 
 void flist(int, int, int);
 void clearprog(void);

@@ -24,6 +24,10 @@ provisions:
 #if !defined(MMB4L_MEMORY_H)
 #define MMB4L_MEMORY_H
 
+#include <stddef.h>
+#include <stdint.h>
+
+#include "../Configuration.h"
 #include "../../MMBasic/VarTable.h"
 
 extern char *StrTmp[];                                      // used to track temporary string space on the heap

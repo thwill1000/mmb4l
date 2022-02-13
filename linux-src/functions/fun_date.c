@@ -1,5 +1,5 @@
+#include "../common/mmb4l.h"
 #include "../common/mmtime.h"
-#include "../common/version.h"
 
 void fun_date(void) {
     targ = T_STR;

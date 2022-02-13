@@ -1,8 +1,7 @@
-#include <stdint.h>
-
+#include "../common/mmb4l.h"
 #include "../common/error.h"
+#include "../common/file.h"
 #include "../common/parse.h"
-#include "../common/version.h"
 
 static void longstring_append(char *tp) {
     void *ptr1 = NULL;
@@ -291,7 +290,7 @@ static void longstring_print(char *tp) {
             error("Argument must be integer array");
         j = dest[0];
         while (j--) {
-            MMfputc(*q++, fnbr);
+            file_putc(*q++, fnbr);
         }
         i++;
     }

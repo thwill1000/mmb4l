@@ -1,30 +1,22 @@
-// Copyright (c) 2021 Thomas Hugo Williams
+// Copyright (c) 2021-2022 Thomas Hugo Williams
 
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <string.h>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 
+#include "mmb4l.h"
 #include "codepage.h"
 #include "console.h"
 #include "error.h"
-#include "global_aliases.h"
 #include "interrupt.h"
 #include "mmtime.h"
 #include "utility.h"
 #include "rx_buf.h"
-#include "../Configuration.h" // For STRINGSIZE
-
-void CheckAbort(void);
-
-extern volatile int MMAbort;
-extern char g_break_key;
 
 #define CONSOLE_RX_BUF_SIZE 256
 

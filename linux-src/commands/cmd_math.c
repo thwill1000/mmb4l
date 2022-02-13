@@ -1,11 +1,10 @@
 #include <complex.h>
 #include <ctype.h>
 #include <math.h>
-#include <stdint.h>
 
+#include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/maths.h"
-#include "../common/version.h"
 
 void cmd_math(void){
         char *tp;

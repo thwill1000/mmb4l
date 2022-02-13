@@ -1,5 +1,5 @@
+#include "../common/mmb4l.h"
 #include "../common/exit_codes.h"
-#include "../common/version.h"
 
 void cmd_quit(void) {
     getargs(&cmdline, 1, ",");

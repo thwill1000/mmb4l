@@ -1,4 +1,4 @@
-#include "../common/version.h"
+#include "../common/mmb4l.h"
 
 #define RGB(red, green, blue, trans) (unsigned int) (((trans & 0b1111) << 24) | ((red & 0b11111111) << 16) | ((green  & 0b11111111) << 8) | (blue & 0b11111111))
 

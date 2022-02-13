@@ -1,10 +1,10 @@
 #include <stdbool.h>
 
+#include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
-#include "../common/version.h"
 
 static void cmd_console_background(char *p) {
     if (parse_is_end(p)) ERROR_SYNTAX;

@@ -1,7 +1,7 @@
 #include <ctype.h>
-#include <string.h>
 
-#include "../common/version.h"
+#include "../common/mmb4l.h"
+#include "../common/error.h"
 
 void cmd_call(void) {
     int i;

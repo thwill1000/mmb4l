@@ -1,5 +1,4 @@
-#include "../common/global_aliases.h"
-#include "../common/version.h"
+#include "../common/mmb4l.h"
 
 void get_mmcmdline(char *cmdline); // fun_mminfo.c
 

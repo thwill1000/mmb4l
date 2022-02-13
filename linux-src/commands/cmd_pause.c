@@ -1,9 +1,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "../common/mmb4l.h"
 #include "../common/interrupt.h"
 #include "../common/mmtime.h"
-#include "../common/version.h"
+
 static void cmd_pause_in_interrupt(int64_t duration_ns) {
     int64_t wakeup = mmtime_now_ns() + duration_ns;
     while (mmtime_now_ns() < wakeup) {

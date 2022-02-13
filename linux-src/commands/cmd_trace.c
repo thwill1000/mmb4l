@@ -1,7 +1,6 @@
-#include <string.h>
 #include <stdlib.h>
 
-#include "../common/version.h"
+#include "../common/mmb4l.h"
 
 // count the number of lines up to and including the line pointed to by the argument
 // used for error reporting in programs that do not use line numbers
@@ -9,7 +8,7 @@ int TraceLines(char *target) {
     char *p;
     int i, cnt;
 
-    p = (char *)ProgMemory;
+    p = (char *) ProgMemory;
     cnt = 0;
     if (target == NULL) return cnt;
     while (1) {

@@ -1,4 +1,4 @@
-#include "../common/version.h"
+#include "../common/mmb4l.h"
 
 void cmd_inc(void) {
     char *p, *q;

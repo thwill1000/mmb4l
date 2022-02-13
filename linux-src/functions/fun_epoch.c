@@ -1,8 +1,8 @@
 #include <stdlib.h>
 
+#include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/mmtime.h"
-#include "../common/version.h"
 
 void fun_epoch(void) {
     if (checkstring(ep, "NOW")) {

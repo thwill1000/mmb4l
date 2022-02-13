@@ -1,16 +1,15 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
 
+#include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../common/memory.h"
 #include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/utility.h"
-#include "../common/version.h"
 
 /** Gets the path of the file to write to. */
 static void cmd_autosave_get_file_path(char *file_path) {

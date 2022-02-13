@@ -1,5 +1,4 @@
-#include "../common/global_aliases.h"
-#include "../common/version.h"
+#include "../common/mmb4l.h"
 
 void get_mmdevice(char *device); // fun_mminfo.c
 

@@ -1,8 +1,8 @@
 #include <ctype.h>
 
+#include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/interrupt.h"
-#include "../common/version.h"
 
 int g_key_complete = 0;
 

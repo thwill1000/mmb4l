@@ -1,8 +1,8 @@
 #include <stdbool.h>
 
+#include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/parse.h"
-#include "../common/version.h"
 
 #define PRINT_MMSTRING(s, fnbr)  MMfputs(s, fnbr)
 

@@ -1,8 +1,8 @@
+#include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/file.h"
 #include "../common/parse.h"
-#include "../common/version.h"
 
 void fun_inputstr(void) {
     getargs(&ep, 3, ",");

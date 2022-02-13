@@ -28,21 +28,19 @@ PARTICULAR PURPOSE.
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
+#include "common/mmb4l.h"
 #include "common/cmdline.h"
 #include "common/console.h"
 #include "common/error.h"
 #include "common/exit_codes.h"
 #include "common/file.h"
-#include "common/global_aliases.h"
 #include "common/interrupt.h"
 #include "common/mmtime.h"
 #include "common/program.h"
 #include "common/serial.h"
 #include "common/utility.h"
-#include "common/version.h"
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
@@ -395,7 +393,7 @@ void MMgetline(int filenbr, char *p) {
             do {
                 if (++nbrchars > MAXSTRLEN) error("Line is too long");
                 *p++ = ' ';
-                if (filenbr == 0) MMputchar(' ');
+                if (filenbr == 0) console_putc(' ');
             } while (nbrchars % mmb_options.tab);
             continue;
         }
@@ -425,7 +423,7 @@ void MMgetline(int filenbr, char *p) {
         }
 
         if (isprint(c) && (filenbr == 0)) {
-            MMputchar(c);  // The console requires that chars be echoed
+            console_putc(c);  // The console requires that chars be echoed
         }
 
         if (++nbrchars > MAXSTRLEN) error("Line is too long");  // stop collecting if maximum length

@@ -1,10 +1,9 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/global_aliases.h"
 #include "../common/parse.h"
-#include "../common/version.h"
 
 void fun_cwd(void) {
     g_rtn_type = T_STR;

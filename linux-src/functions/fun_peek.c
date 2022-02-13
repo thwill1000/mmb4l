@@ -1,9 +1,7 @@
-#include <stdint.h>
-
+#include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/global_aliases.h"
+#include "../common/memory.h"
 #include "../common/utility.h"
-#include "../common/version.h"
 
 /** PEEK(BYTE addr%) */
 static void peek_byte(int argc, char **argv, char *p) {

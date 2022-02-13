@@ -1,11 +1,11 @@
 #include <errno.h>
-#include <string.h>
 #include <sys/stat.h>
 
+#include "../common/mmb4l.h"
 #include "../common/error.h"
+#include "../common/file.h"
 #include "../common/program.h"
 #include "../common/utility.h"
-#include "../common/version.h"
 
 static void get_mmbasic_nanorc(char *path) {
     *path = '\0';

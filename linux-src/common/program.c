@@ -3,12 +3,12 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "../common/console.h"
-#include "../common/error.h"
-#include "../common/file.h"
-#include "../common/program.h"
-#include "../common/utility.h"
-#include "../common/version.h"
+#include "mmb4l.h"
+#include "console.h"
+#include "error.h"
+#include "file.h"
+#include "program.h"
+#include "utility.h"
 
 #define MAXDEFINES  256
 

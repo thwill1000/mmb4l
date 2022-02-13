@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "common/mmb4l.h"
 #include "common/console.h"
-#include "common/global_aliases.h"
 
 void console_key_to_string(int ch, char *buf);
 

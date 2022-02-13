@@ -1,10 +1,8 @@
-#include <string.h>
-
+#include "mmb4l.h"
 #include "console.h"
 #include "error.h"
 #include "file.h"
 #include "utility.h"
-#include "version.h"
 
 #define NBRPROGKEYS  12  // Number of programmable function keys.
 #define MAXKEYLEN    24  // Maximum length of programmable function keys.
@@ -135,14 +133,14 @@ static void handle_backspace(PromptState *pstate) {
         *p = *(p + 1);  // remove the char from inpbuf
     }
     while (pstate->char_index) {
-        MMputchar('\b');
+        console_putc('\b');
         pstate->char_index--;
     }  // go to the beginning of the line
     MMPrintString(inpbuf);
-    MMputchar(' ');
-    MMputchar('\b');  // display the line and erase the last char
+    console_putc(' ');
+    console_putc('\b');  // display the line and erase the last char
     for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
-        MMputchar('\b');  // return the cursor to the right position
+        console_putc('\b');  // return the cursor to the right position
     }
 }
 
@@ -155,14 +153,14 @@ static void handle_delete(PromptState *pstate) {
         *p = *(p + 1);  // remove the char from inpbuf
     }
     while (pstate->char_index) {
-        MMputchar('\b');
+        console_putc('\b');
         pstate->char_index--;
     }  // go to the beginning of the line
     MMPrintString(inpbuf);
-    MMputchar(' ');
-    MMputchar('\b');  // display the line and erase the last char
+    console_putc(' ');
+    console_putc('\b');  // display the line and erase the last char
     for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
-        MMputchar('\b');  // return the cursor to the right position
+        console_putc('\b');  // return the cursor to the right position
     }
 }
 
@@ -171,9 +169,9 @@ static void insert_history_item(PromptState *pstate) {
     strcpy(inpbuf, get_history_item(pstate->history_idx));
 
     // Erase existing input from the console.
-    for (int i = 0; i < pstate->char_index; ++i) MMputchar('\b');
-    for (int i = 0; i < pstate->char_index; ++i) MMputchar(' ');
-    for (int i = 0; i < pstate->char_index; ++i) MMputchar('\b');
+    for (int i = 0; i < pstate->char_index; ++i) console_putc('\b');
+    for (int i = 0; i < pstate->char_index; ++i) console_putc(' ');
+    for (int i = 0; i < pstate->char_index; ++i) console_putc('\b');
 
     // Display the new contents of the input buffer.
     MMPrintString(inpbuf);
@@ -198,7 +196,7 @@ static void handle_down(PromptState *pstate) {
 
 static void handle_end(PromptState *pstate) {
     while (pstate->char_index < strlen(inpbuf)) {
-        MMputchar(inpbuf[pstate->char_index++]);
+        console_putc(inpbuf[pstate->char_index++]);
     }
 }
 
@@ -217,7 +215,7 @@ static void handle_home(PromptState *pstate) {
     }
 
     while (pstate->char_index) {
-        MMputchar('\b');
+        console_putc('\b');
         pstate->char_index--;
     }
 }
@@ -232,7 +230,7 @@ static void handle_left(PromptState *pstate) {
     if (pstate->char_index == strlen(inpbuf)) {
         pstate->insert = true;
     }
-    MMputchar('\b');
+    console_putc('\b');
     pstate->char_index--;
 }
 
@@ -257,13 +255,13 @@ static void handle_other(PromptState *pstate) {
                                                       // the line
         pstate->char_index++;
         for (j = strlen(inpbuf); j > pstate->char_index; j--) {
-            MMputchar('\b');  // return the cursor to the right position
+            console_putc('\b');  // return the cursor to the right position
         }
     } else {
         inpbuf[strlen(inpbuf) + 1] = 0;  // incase we are adding to the end
                                          // of the string
         inpbuf[pstate->char_index++] = pstate->buf[0];  // overwrite the char
-        MMputchar(pstate->buf[0]);                      // display it
+        console_putc(pstate->buf[0]);                      // display it
         if (pstate->char_index + pstate->start_line >=
             pstate->max_chars) {  // has the input gone beyond the
                                   // end of the line?
@@ -279,7 +277,7 @@ static void handle_other(PromptState *pstate) {
 static void handle_right(PromptState *pstate) {
     if (pstate->char_index >= strlen(inpbuf)) return;
 
-    MMputchar(inpbuf[pstate->char_index]);
+    console_putc(inpbuf[pstate->char_index]);
     pstate->char_index++;
 }
 

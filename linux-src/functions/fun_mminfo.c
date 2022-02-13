@@ -1,17 +1,16 @@
 #include <errno.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "../common/mmb4l.h"
 #include "../common/codepage.h"
 #include "../common/console.h"
 #include "../common/error.h"
-#include "../common/global_aliases.h"
+#include "../common/memory.h"
 #include "../common/options.h"
 #include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/utility.h"
-#include "../common/version.h"
 
 #define FONT_HEIGHT  12
 #define FONT_WIDTH   8

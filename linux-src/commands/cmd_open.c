@@ -1,9 +1,10 @@
 #include <strings.h>
 
+#include "../common/mmb4l.h"
 #include "../common/error.h"
+#include "../common/file.h"
 #include "../common/parse.h"
 #include "../common/serial.h"
-#include "../common/version.h"
 
 static void cmd_open_file(int argc, char **argv) {
     char *filename = getCstring(argv[0]);

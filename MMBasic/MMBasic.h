@@ -19,7 +19,6 @@ provisions:
 
 ************************************************************************************************************************/
 
-
 // Types used to define an item of data.  Often they are ORed together.
 // Used in tokens, variables and arguments to functions
 #define T_NOTYPE       0                            // type not set or discovered

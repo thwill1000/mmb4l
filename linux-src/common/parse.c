@@ -1,8 +1,8 @@
 #include <ctype.h>
 
+#include "mmb4l.h"
 #include "console.h"
 #include "error.h"
-#include "version.h"
 
 bool parse_is_end(char *p) {
     return *p == '\0' || *p == '\'';

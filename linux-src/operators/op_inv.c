@@ -1,6 +1,6 @@
-#include "../common/version.h"
+#include "../common/error.h"
 
 void op_inv(void){
-    // don't do anything, just a place holder
-    error("Syntax error");
+    // Don't do anything, just a place holder.
+    ERROR_SYNTAX;
 }

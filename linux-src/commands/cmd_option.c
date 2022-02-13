@@ -1,14 +1,13 @@
 #include <errno.h>
 #include <stdbool.h>
-#include <string.h>
+#include <stdio.h>
 
+#include "../common/mmb4l.h"
 #include "../common/codepage.h"
 #include "../common/error.h"
-#include "../common/global_aliases.h"
 #include "../common/options.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
-#include "../common/version.h"
 
 static void cmd_option_save() {
     OptionsResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);

@@ -1,9 +1,9 @@
 #include <unistd.h>
 
+#include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/file.h"
 #include "../common/parse.h"
-#include "../common/version.h"
 
 void cmd_seek(void) {
     getargs(&cmdline, 3, ",");

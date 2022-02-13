@@ -1,6 +1,6 @@
+#include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/file.h"
-#include "../common/version.h"
 
 void cmd_copy(void) {  // thanks to Bryan Rentoul for the contribution
     char *oldf, *newf, ss[2];

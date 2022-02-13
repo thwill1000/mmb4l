@@ -1,12 +1,11 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/stat.h>
 
+#include "mmb4l.h"
 #include "options.h"
 #include "utility.h"
-#include "version.h"
 
 #define INVALID_VALUE  "???"
 

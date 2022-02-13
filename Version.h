@@ -19,8 +19,6 @@ provisions:
 
  ************************************************************************************************************************/
 
-
-
 #if !defined(VERSION_INCLUDED)
     #define VERSION_INCLUDED
 
@@ -31,18 +29,6 @@ provisions:
 
     // Uncomment the following line if you want the "Lite" version of the MX170 code
     // #define LITE
-
-    #include <setjmp.h>
-
-    #if !defined(NO_VERSION_STD_INCLUDES)
-    #include <errno.h>
-    #include <stdlib.h>
-    #include <string.h>
-    #include <ctype.h>
-    #include <limits.h>
-    #include <math.h>
-    #include <float.h>
-    #endif
 
     // define the device/platform, include the appropriate hardware defines and set the startup message
     #if defined(__32MX170F256B__) || defined(__32MX270F256B__) || defined(__32MX170F256D__) || defined(__32MX270F256D__)
@@ -137,19 +123,4 @@ provisions:
         #error "Lite version not valid"
     #endif
 
-    // define the device/platform, include the appropriate hardware defines
-    #if defined(MICROMITE)
-        #include "Micromite/Hardware_Includes.h"
-    #elif defined(MAXIMITE)
-        #include "Maximite/Hardware_Includes.h"
-        #include "Maximite/Source/Flash.h"
-    #elif defined(__linux__)
-        #include "linux-src/Hardware_Includes.h"
-    #elif defined(DOS)
-        #include "DOS/Source/Hardware_Includes.h"
-    #endif
-
-    #include "MMBasic/MMBasic_Includes.h"
-
 #endif
-

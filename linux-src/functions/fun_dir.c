@@ -1,11 +1,9 @@
 #include <dirent.h>
 #include <libgen.h>
-#include <string.h>
 
+#include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/global_aliases.h"
 #include "../common/utility.h"
-#include "../common/version.h"
 
 int32_t dirflags;
 

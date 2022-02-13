@@ -21,9 +21,9 @@ provisions:
 
 ************************************************************************************************************************/
 
-#include <string.h>
+#include <stdio.h>
 
-#include "version.h"
+#include "mmb4l.h"
 
 // allocate static memory for programs, variables and the heap
 // this is simple memory management because DOS has plenty of memory

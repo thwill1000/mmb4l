@@ -2,18 +2,17 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <termios.h>
 
+#include "mmb4l.h"
 #include "error.h"
 #include "file.h"
 #include "interrupt.h"
 #include "serial.h"
 #include "utility.h"
-#include "version.h"
 
 #define	COM_DEFAULT_SPEED            B9600
 #define	COM_DEFAULT_BUF_SIZE         4 * 1024

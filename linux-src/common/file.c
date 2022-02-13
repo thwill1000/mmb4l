@@ -1,15 +1,14 @@
 #include <ctype.h>
 #include <errno.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "mmb4l.h"
 #include "console.h"
 #include "error.h"
 #include "file.h"
 #include "serial.h"
 #include "utility.h"
-#include "version.h"
 
 // We don't use the 0'th entry, but it makes things simpler since MMBasic
 // indexes file numbers from 1.

@@ -1,5 +1,4 @@
-#include "../common/global_aliases.h"
-#include "../common/version.h"
+#include "../common/mmb4l.h"
 
 void fun_bound(void) {
     getargs(&ep, 3, ",");

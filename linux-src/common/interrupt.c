@@ -1,10 +1,10 @@
 #include <assert.h>
 
+#include "mmb4l.h"
 #include "console.h"
 #include "interrupt.h"
 #include "mmtime.h"
 #include "serial.h"
-#include "version.h"
 
 #define skipelement(x)  while(*x) x++
 

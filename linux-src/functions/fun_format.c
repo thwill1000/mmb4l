@@ -1,4 +1,6 @@
-#include "../common/version.h"
+#include <stdio.h>
+
+#include "../common/mmb4l.h"
 
 #define IsDigitinline(a) ( a >= '0' && a <= '9' )
 
