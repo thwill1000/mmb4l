@@ -72,9 +72,9 @@ void print_banner() {
 }
 
 static void init_options() {
-    options_init(&Option);
+    options_init(&mmb_options);
 
-    OptionsResult result = options_load(&Option, OPTIONS_FILE_NAME);
+    OptionsResult result = options_load(&mmb_options, OPTIONS_FILE_NAME);
     if (FAILED(result)) {
         if (result == kFileNotFound) {
             // Ignore file not found, use default options.

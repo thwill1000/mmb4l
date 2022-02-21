@@ -78,4 +78,13 @@ void unquote(char *str);
 /** Converts C-string to upper-case inplace. */
 char *strupr(char *s);
 
+/**
+ * @brief Replaces substrings in a C string.
+ *
+ * @param [in,out] target       string to apply replacements to.
+ * @param [in]     needle       replace this ...
+ * @param [in]     replacement  ... with this
+ */
+void str_replace(char *target, const char *needle, const char *replacement);
+
 #endif

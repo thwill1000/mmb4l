@@ -162,6 +162,7 @@ add_executable(
   linux-src/common/gtest/file_test.cxx
   linux-src/common/gtest/options_test.cxx
   linux-src/common/gtest/rx_buf_test.cxx
+  linux-src/common/gtest/utility_test.cxx
 )
 
 target_compile_definitions(mmbasic_test PUBLIC OPTION_TESTS)
