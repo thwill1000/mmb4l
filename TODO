@@ -4,6 +4,18 @@ TODO
 Required for alpha 4
 --------------------
 
+Implement SEARCH PATH
+Implement command-line RUN shortcut '*'
+Implement command-line SYSTEM shortcut, e.g. '!cd', '!ls'
+  - can we get away without requiring the ! if at the BASIC prompt ?
+  - what about TAB completion of paths ?
+Make all function keys reprogrammable
+Implement variable/sub/function hash tables
+
+
+Required for alpha 5
+--------------------
+
 Reorder interrupt processing to match PicoMite, add this as a comment to the
 code:
   1. ON KEY individual
@@ -40,7 +52,7 @@ Tidy up LED snake example
 Implement CONSOLE BLINK, BOLD, FAINT, ITALIC, REVERSE, STRIKE, UNDERLINE
 
 
-Required for alpha 5
+Required for alpha 6
 --------------------
 
 Write a proper lexer and ensure all Peter's "preprocessor tricks" work in both
@@ -48,13 +60,6 @@ Write a proper lexer and ensure all Peter's "preprocessor tricks" work in both
   - the command-line
 Completely overhaul 'mmbasic.syntax.nanorc'
   - can we fix syntax highlighting for "strings" inside comments ?
-Implement SEARCH PATH
-Implement command-line RUN shortcut '*'
-Implement command-line SYSTEM shortcut, e.g. '!cd', '!ls'
-  - can we get away without requiring the ! if at the BASIC prompt ?
-  - what about TAB completion of paths ?
-Make all function keys reprogrammable
-Implement variable/sub/function hash tables
 
 
 Required for release
@@ -84,7 +89,6 @@ Fix bug where TRACE will not log a line that you GOTO/GOSUB using a line number,
   but will if you use a label
 Can PRINT @(x,y) be implemented without using a function slot for @ ?
 Implement line continuation character _
-Is it a good idea to add CD as an alias for CHDIR ?
 
 
 EDITOR issues
