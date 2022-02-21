@@ -107,6 +107,7 @@ Version 2022.01.00-a4 - ??-???-2022:
     independent error states.
   - Fixed bug where MM.ERRMSG$ would contain trailing newline character after
     an uncaught ERROR.
+  - Fixed more issues with "mmbasic.syntax.nanorc".
 
 Version 2022.01.00-a3 - 16-Jan-2022:
   - Added serial port support, e.g.

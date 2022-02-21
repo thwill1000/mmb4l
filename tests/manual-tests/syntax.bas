@@ -17,3 +17,11 @@ Print "4 squares in basic" : Print
 9 Timer = 0:Print:I=0:For A=S To P
 
 Dim s$ = "foo ' bar" ' bar "foo"
+
+' # followed by number should be green.
+Open "foo" For Input As #1
+
+' decimals with no leading 0 should be green.
+Dim f1! = 0.5
+Dim f2! = .5
+Dim f3! = .5e7
