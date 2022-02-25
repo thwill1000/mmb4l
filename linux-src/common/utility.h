@@ -18,7 +18,10 @@
 #define SUCCEEDED(x) (x == 0)
 
 /**
- * Returns an absolute/canonical path, replacing any '\' with '/'.
+ * Gets the canonicalized absolute pathname.
+ *
+ * The last element of the path does not have to exist, but all intermediate elements do,
+ * otherwise will return NULL and set errno == ENOENT.
  *
  * @param  path            original path to be converted.
  * @param  canonical_path  canonical path is returned in this buffer.

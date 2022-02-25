@@ -63,27 +63,41 @@ char *munge_path(const char *original_path, char *new_path, size_t sz) {
 }
 
 char *canonicalize_path(const char *path, char *canonical_path, size_t sz) {
-
-    // printf("Before: *%s*\n", path);
+    errno = 0;
 
     if (!munge_path(path, canonical_path, sz)) return NULL;
 
-    // printf("*%s*\n", canonical_path);
+    // Use realpath() to convert to canonical absolute form putting the result in 'tmp_path'.
+    char tmp_path[PATH_MAX];
+    if (!realpath(canonical_path, tmp_path)) {
+        if (errno != ENOENT) return NULL;
 
-    // Convert to absolute/canonical form, put result in 'tmp'.
-    char tmp_path[PATH_MAX + 1];
-    if (!realpath(canonical_path, tmp_path)) return NULL;
+        // Path didn't exist, try again with immediate parent.
+        char *last = strrchr(canonical_path, '/');
+        if (last) {
+            *last = '\0';
+            if (!realpath(canonical_path, tmp_path)) return NULL;
+            *last = '/';
+        } else {
+            if (!realpath(".", tmp_path)) return NULL;
+            strcat(tmp_path, "/");
+            last = canonical_path;
+        }
+
+        // Immediate parent existed, copy the final path element into the result.
+        char *to = tmp_path + strlen(tmp_path);
+        while (*last) *to++ = *last++;
+        *to = '\0';
+    }
 
     if (strlen(tmp_path) >= sz) {
         errno = ENAMETOOLONG;
         return NULL;
+    } else {
+        strcpy(canonical_path, tmp_path);
+        errno = 0;
+        return canonical_path;
     }
-
-    strcpy(canonical_path, tmp_path);
-
-    // printf("After: %s\n", canonical_path);
-
-    return canonical_path;
 }
 
 bool is_absolute_path(const char *path) {
