@@ -8,6 +8,7 @@
 #include "../common/file.h"
 #include "../common/memory.h"
 #include "../common/parse.h"
+#include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
@@ -15,10 +16,10 @@
 static void cmd_autosave_get_file_path(char *file_path) {
     char *filename = getCstring(cmdline);
     errno = 0;
-    munge_path(filename, file_path, STRINGSIZE);
+    path_munge(filename, file_path, STRINGSIZE);
     error_check();
 
-    if (strlen(file_get_extension(file_path)) == 0) {
+    if (strlen(path_get_extension(file_path)) == 0) {
         if (strlen(file_path) > MAXSTRLEN - 4) {
             error_code(ENAMETOOLONG, "Path too long");
         }
@@ -104,7 +105,7 @@ void cmd_autosave(void) {
     int exit_key = cmd_autosave_read(buf);
     cmd_autosave_write_file(file_path, buf);
 
-    if (file_has_suffix(file_path, ".bas", true)) {
+    if (path_has_suffix(file_path, ".bas", true)) {
         program_load_file(file_path);
         if (exit_key == F2) {
             strcpy(inpbuf, "RUN\n");

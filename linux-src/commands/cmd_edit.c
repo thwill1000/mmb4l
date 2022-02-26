@@ -1,9 +1,10 @@
 #include <errno.h>
+#include <stdio.h>
 #include <sys/stat.h>
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/file.h"
+#include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
@@ -12,7 +13,7 @@ static void get_mmbasic_nanorc(char *path) {
     char *home = getenv("HOME");
     if (!home) return;
     sprintf(path, "%s/.mmbasic/mmbasic.nanorc", home);
-    if (!file_exists(path)) {
+    if (!path_exists(path)) {
         *path = '\0';
     }
 }
@@ -64,7 +65,7 @@ static int create_empty_file(char *file_path) {
 
 static int delete_if_empty(char *file_path) {
     errno = 0;
-    if (file_exists(file_path) && file_is_empty(file_path)) {
+    if (path_exists(file_path) && path_is_empty(file_path)) {
         return remove(file_path) == 0;
     }
     return 1;
@@ -100,7 +101,7 @@ void cmd_edit(void) {
     int new_file = false;
     char file_path[STRINGSIZE];
     errno = 0;
-    if (!canonicalize_path(fname, file_path, STRINGSIZE)) {
+    if (!path_get_canonical(fname, file_path, STRINGSIZE)) {
         switch (errno) {
             case ENOENT:
                 new_file = true;
@@ -139,9 +140,9 @@ void cmd_edit(void) {
     }
 
     // If we have just edited a .bas file then load it.
-    if (file_exists(file_path)
-            && file_is_regular(file_path)
-            && file_has_suffix(file_path, ".bas", true)) {
+    if (path_exists(file_path)
+            && path_is_regular(file_path)
+            && path_has_suffix(file_path, ".bas", true)) {
         // Never expected to return failure - reports its own ERROR and calls longjmp().
         if (FAILED(program_load_file(file_path))) ERROR_INTERNAL_FAULT;
     }

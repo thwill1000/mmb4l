@@ -1,0 +1,86 @@
+#if !defined(MMB4L_PATH_H)
+#define MMB4L_PATH_H
+
+#include <stdbool.h>
+
+/** Does the path exist? */
+bool path_exists(const char *path);
+
+/** Is the path empty? */
+bool path_is_empty(const char *path);
+
+/** Is the path a regular file, or a symbolic link to a regular file? */
+bool path_is_regular(const char *path);
+
+/** Does the filename have a given suffix? */
+bool path_has_suffix(
+        const char *path, const char *suffix, bool case_insensitive);
+
+/**
+ * Gets the canonicalized absolute pathname.
+ *
+ * The last element of the path does not have to exist, but all intermediate elements do,
+ * otherwise will return NULL and set errno == ENOENT.
+ *
+ * @param  path            original path to be converted.
+ * @param  canonical_path  canonical path is returned in this buffer.
+ * @param  sz              size of the 'canonical_path' buffer.
+ * @return                 the value of 'canonical_path' on success,
+ *                         otherwise sets 'errno' and returns NULL.
+ */
+char *path_get_canonical(const char *path, char *canonical_path, size_t sz);
+
+/**
+ * Is the path absolute?
+ *
+ * @param  path  path to check.
+ * @return       true if the path is absolute, otherwise false.
+ */
+bool path_is_absolute(const char *path);
+
+/**
+ * Gets the parent of the given path.
+ *
+ * @param  path         original path to get the parent of.
+ * @param  parent_path  parent path is returned in this buffer.
+ * @param  sz           size of the 'parent_path' buffer.
+ * @return              the value of 'parent_path' on success,
+ *                      otherwise sets 'errno' and returns NULL.
+ */
+char *path_get_parent(const char *path, char *parent_path, size_t sz);
+
+/**
+ * Appends one path to another.
+ *
+ * @param  head    path being appended to.
+ * @param  tail    path being appended.
+ * @param  result  result is returned in this buffer.
+ * @param  sz      size of the 'result' buffer.
+ * @return         the value of 'result' on success,
+ *                 otherwise sets 'errno' and returns NULL.
+ */
+char *path_append(const char *head, const char *tail, char *result, size_t sz);
+
+/**
+ * Transforms path by:
+ *  - removing any DOS style drive specified, e.g. A:
+ *  - replacing any '\' with '/'
+ *
+ * @param  original_path  path to be transformed.
+ * @param  new_path       transformed path is returned in this buffer.
+ * @param  sz             size of the 'new_path' buffer.
+ * @return                the value of 'new_path' on success,
+ *                        otherwise sets 'errno' and returns NULL.
+ */
+char *path_munge(const char *original_path, char *new_path, size_t sz);
+
+/**
+ * Gets the file-extension, if any from a path.
+ *
+ * @param   path  the path.
+ * @return  pointer to the start of the file-extension within 'path', or
+ *          pointer to '\0' at the end of 'path' if it has not file-extension.
+ */
+const char *path_get_extension(const char *path);
+
+#endif

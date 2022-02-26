@@ -7,6 +7,7 @@
 #include "../common/error.h"
 #include "../common/exit_codes.h"
 #include "../common/options.h"
+#include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
@@ -85,7 +86,7 @@ static void get_line_and_file(int *line, char *file_path) {
         comma_pos++;
         *line = atoi(comma_pos);
 
-        if (!get_parent_path(CurrentFile, file_path, STRINGSIZE)) return;
+        if (!path_get_parent(CurrentFile, file_path, STRINGSIZE)) return;
         // TODO: prevent buffer overflow.
         int len = strlen(file_path);
         file_path[len++] = '/';

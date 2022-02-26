@@ -7,6 +7,7 @@
 #include "console.h"
 #include "error.h"
 #include "file.h"
+#include "path.h"
 #include "program.h"
 #include "utility.h"
 
@@ -184,21 +185,21 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
 static char *program_get_inc_file(char *parent_file, char *filename, char *file_path) {
 
     char tmp_path[STRINGSIZE];
-    if (!munge_path(filename, tmp_path, STRINGSIZE)) return NULL;
+    if (!path_munge(filename, tmp_path, STRINGSIZE)) return NULL;
 
-    if (!is_absolute_path(tmp_path)) {
+    if (!path_is_absolute(tmp_path)) {
         char parent_dir[STRINGSIZE];
-        if (!get_parent_path(parent_file, parent_dir, STRINGSIZE)) return NULL;
+        if (!path_get_parent(parent_file, parent_dir, STRINGSIZE)) return NULL;
 
         char tmp_string[STRINGSIZE];
-        if (!append_path(parent_dir, tmp_path, tmp_string, STRINGSIZE)) return NULL;
+        if (!path_append(parent_dir, tmp_path, tmp_string, STRINGSIZE)) return NULL;
 
         strcpy(tmp_path, tmp_string);
     }
 
     // TODO: If file does not exist try appending .inc or .INC to its name.
 
-    return canonicalize_path(tmp_path, file_path, STRINGSIZE);
+    return path_get_canonical(tmp_path, file_path, STRINGSIZE);
 }
 
 static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
@@ -358,23 +359,23 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
 static char *program_get_bas_file(char *filename, char *file_path) {
 
     char tmp_path[STRINGSIZE];
-    if (!munge_path(filename, tmp_path, STRINGSIZE)) return NULL;
+    if (!path_munge(filename, tmp_path, STRINGSIZE)) return NULL;
 
-    if (CurrentLinePtr && !is_absolute_path(tmp_path)) {
+    if (CurrentLinePtr && !path_is_absolute(tmp_path)) {
         // If we are in a running program then resolve path relative to the
         // current program directory.
         char current_dir[STRINGSIZE];
-        if (!get_parent_path(CurrentFile, current_dir, STRINGSIZE)) return NULL;
+        if (!path_get_parent(CurrentFile, current_dir, STRINGSIZE)) return NULL;
 
         char tmp_string[STRINGSIZE];
-        if (!append_path(current_dir, tmp_path, tmp_string, STRINGSIZE)) return NULL;
+        if (!path_append(current_dir, tmp_path, tmp_string, STRINGSIZE)) return NULL;
 
         strcpy(tmp_path, tmp_string);
     }
 
     // TODO: If file does not exist try appending .bas or .BAS to its name.
 
-    return canonicalize_path(tmp_path, file_path, STRINGSIZE);
+    return path_get_canonical(tmp_path, file_path, STRINGSIZE);
 }
 
 // now we must scan the program looking for CFUNCTION/CSUB/DEFINEFONT

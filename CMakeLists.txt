@@ -120,6 +120,7 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/mmtime.c
     linux-src/common/options.c
     linux-src/common/parse.c
+    linux-src/common/path.c
     linux-src/common/program.c
     linux-src/common/prompt.c
     linux-src/common/rx_buf.c
@@ -137,7 +138,7 @@ set(MMBASIC_LINUX_SOURCE_FILES
 # add the executable
 add_executable(mmbasic ${MMBASIC_CORE_SOURCE_FILES} ${MMBASIC_LINUX_SOURCE_FILES})
 
-add_executable(keyboard_test
+add_executable(test_keyboard
     linux-src/keyboard_test.c
     linux-src/common/rx_buf.c
     linux-src/common/codepage.c
@@ -151,28 +152,54 @@ target_link_libraries(mmbasic m)
 
 enable_testing()
 
+include(GoogleTest)
+
+################################################################################
+# test_mmbasic
+################################################################################
+
 add_executable(
-  mmbasic_test
+  test_mmbasic
   linux-src/common/cmdline.c
-  linux-src/common/file.c
   linux-src/common/options.c
+  linux-src/common/path.c
   linux-src/common/rx_buf.c
   linux-src/common/utility.c
   linux-src/common/gtest/cmdline_test.cxx
-  linux-src/common/gtest/file_test.cxx
   linux-src/common/gtest/options_test.cxx
   linux-src/common/gtest/rx_buf_test.cxx
   linux-src/common/gtest/utility_test.cxx
 )
 
-target_compile_definitions(mmbasic_test PUBLIC OPTION_TESTS)
+target_compile_definitions(test_mmbasic PUBLIC OPTION_TESTS)
 
 target_link_libraries(
-  mmbasic_test
+  test_mmbasic
   gtest_main
   gmock
   gmock_main
 )
 
-include(GoogleTest)
-gtest_discover_tests(mmbasic_test)
+gtest_discover_tests(test_mmbasic)
+
+################################################################################
+# test_path
+################################################################################
+
+add_executable(
+  test_path
+  linux-src/common/path.c
+  linux-src/common/utility.c
+  linux-src/common/gtest/path_test.cxx
+)
+
+target_compile_definitions(test_path PUBLIC OPTION_TESTS)
+
+target_link_libraries(
+  test_path
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_path)

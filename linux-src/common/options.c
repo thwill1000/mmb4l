@@ -5,6 +5,7 @@
 
 #include "mmb4l.h"
 #include "options.h"
+#include "path.h"
 #include "utility.h"
 
 #define INVALID_VALUE  "???"
@@ -218,7 +219,7 @@ static void options_report_error(int line_num, char *name, OptionsResult result)
 
 OptionsResult options_load(Options *options, const char *filename) {
     char path[STRINGSIZE];
-    if (!munge_path(filename, path, STRINGSIZE)) return kOtherIoError;
+    if (!path_munge(filename, path, STRINGSIZE)) return kOtherIoError;
 
     errno = 0;
     FILE *f = fopen(path, "r");
@@ -276,7 +277,7 @@ static int options_save_enum(FILE *f, const char *name, const char *value) {
 /** Creates parent directory of 'filename' if it does not exist. */
 static OptionsResult options_create_parent_directory(const char *path) {
     char dir[STRINGSIZE];
-    if (!get_parent_path(path, dir, STRINGSIZE)) {
+    if (!path_get_parent(path, dir, STRINGSIZE)) {
         return kOtherIoError;
     }
 
@@ -292,7 +293,7 @@ static OptionsResult options_create_parent_directory(const char *path) {
 
 OptionsResult options_save(const Options *options, const char *filename) {
     char path[STRINGSIZE];
-    if (!munge_path(filename, path, STRINGSIZE)) {
+    if (!path_munge(filename, path, STRINGSIZE)) {
         return kOtherIoError;
     }
 

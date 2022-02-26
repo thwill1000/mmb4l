@@ -36,26 +36,4 @@ int file_lof(int fnbr);
 int file_putc(int ch, int fnbr);
 void file_seek(int fnbr, int idx);
 
-/** Does the file exist? */
-bool file_exists(const char *path);
-
-/** Is the file empty? */
-bool file_is_empty(const char *path);
-
-/** Is the file a regular file, or a symbolic link to a regular file? */
-bool file_is_regular(const char *path);
-
-/**
- * Gets the file-extension, if any from a path.
- *
- * @param   path  the path.
- * @return  pointer to the start of the file-extension within 'path', or
- *          pointer to '\0' at the end of 'path' if it has not file-extension.
- */
-const char *file_get_extension(const char *path);
-
-/** Does the filename have a given suffix? */
-bool file_has_suffix(
-        const char *path, const char *suffix, bool case_insensitive);
-
 #endif

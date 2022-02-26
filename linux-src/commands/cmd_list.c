@@ -3,6 +3,7 @@
 #include "../common/error.h"
 #include "../common/file.h"
 #include "../common/parse.h"
+#include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
@@ -93,7 +94,7 @@ static void list_file(const char *filename, int all) {
     }
 
     char file_path[STRINGSIZE];
-    munge_path(filename ? filename : CurrentFile, file_path, STRINGSIZE);
+    path_munge(filename ? filename : CurrentFile, file_path, STRINGSIZE);
     error_check();
 
     char line_buffer[STRINGSIZE];

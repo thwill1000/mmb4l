@@ -3,6 +3,7 @@
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
+#include "../common/path.h"
 #include "../common/utility.h"
 
 int32_t dirflags;
@@ -90,7 +91,7 @@ void fun_dir(void) {
         // This must be the first call eg:  DIR$("*.*", FILE)
 
         char *path = GetTempStrMemory();
-        munge_path(getCstring(argv[0]), path, STRINGSIZE);
+        path_munge(getCstring(argv[0]), path, STRINGSIZE);
         error_check();
 
         strcpy(pp, basename(path));

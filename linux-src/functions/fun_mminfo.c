@@ -9,6 +9,7 @@
 #include "../common/memory.h"
 #include "../common/options.h"
 #include "../common/parse.h"
+#include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
@@ -128,7 +129,7 @@ static void mminfo_errno(char *p) {
 
 static char *get_path(char *p) {
     char *path = GetTempStrMemory();
-    munge_path(getCstring(p), path, STRINGSIZE);
+    path_munge(getCstring(p), path, STRINGSIZE);
     error_check();
     return path;
 }
@@ -282,7 +283,7 @@ static void mminfo_path(char *p) {
     if (CurrentFile[0] == '\0') {
         strcpy(g_string_rtn, "NONE");
     } else {
-        if (!get_parent_path(CurrentFile, g_string_rtn, STRINGSIZE)) {
+        if (!path_get_parent(CurrentFile, g_string_rtn, STRINGSIZE)) {
             ERROR_COULD_NOT("determine path");
         }
         // TODO: error handling if path too long.

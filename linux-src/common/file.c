@@ -1,12 +1,12 @@
 #include <ctype.h>
 #include <errno.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "mmb4l.h"
 #include "console.h"
 #include "error.h"
 #include "file.h"
+#include "path.h"
 #include "serial.h"
 #include "utility.h"
 
@@ -22,7 +22,7 @@ void file_open(char *fname, char *mode, int fnbr) {
     if (file_table[fnbr].type != fet_closed) ERROR_ALREADY_OPEN;
 
     char path[STRINGSIZE];
-    munge_path(fname, path, STRINGSIZE);
+    path_munge(fname, path, STRINGSIZE);
     error_check();
 
     // random writing is not allowed when a file is opened for append so open it
@@ -237,42 +237,4 @@ int file_find_free(void) {
     }
     error("Too many open files");
     return -1;
-}
-
-bool file_exists(const char *path) {
-    struct stat st;
-    errno = 0;
-    return stat(path, &st) == 0;
-}
-
-bool file_is_empty(const char *path) {
-    struct stat st;
-    errno = 0;
-    stat(path, &st);
-    return st.st_size == 0;
-}
-
-bool file_is_regular(const char *path) {
-    struct stat st;
-    errno = 0;
-    return (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? true : false;
-}
-
-const char *file_get_extension(const char *path) {
-    char *p = strrchr(path, '.');
-    return p ? p : path + strlen(path);
-}
-
-bool file_has_suffix(
-        const char *path, const char *suffix, bool case_insensitive) {
-    int start = strlen(path) - strlen(suffix);
-    if (start < 0) return 0;
-    for (int i = 0; i < strlen(suffix); ++i) {
-        if (case_insensitive) {
-            if (toupper(path[i + start]) != toupper(suffix[i])) return false;
-        } else {
-            if (path[i + start] != suffix[i]) return false;
-        }
-    }
-    return true;
 }
