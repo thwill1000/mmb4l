@@ -17,6 +17,13 @@ FetchContent_MakeAvailable(googletest)
 
 add_definitions(-funsigned-char)
 
+SET(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
+SET(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
+
+SET(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
+SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
+SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
+
 set(MMBASIC_CORE_SOURCE_FILES
     MMBasic/MMBasic.c
     MMBasic/Operators.c
@@ -151,7 +158,7 @@ add_executable(test_keyboard
     linux-src/common/cstring.c
     linux-src/common/mmtime.c)
 
-target_link_libraries(mmbasic m)
+target_link_libraries(mmbasic m gcov)
 
 # GoogleTest
 
@@ -201,6 +208,7 @@ target_link_libraries(
   gtest_main
   gmock
   gmock_main
+  gcov
 )
 
 gtest_discover_tests(test_mmbasic)
@@ -221,6 +229,7 @@ target_link_libraries(
   gtest_main
   gmock
   gmock_main
+  gcov
 )
 
 gtest_discover_tests(test_path)
@@ -242,6 +251,7 @@ target_link_libraries(
   gtest_main
   gmock
   gmock_main
+  gcov
 )
 
 gtest_discover_tests(test_program)
