@@ -224,3 +224,24 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_path)
+
+################################################################################
+# test_program
+################################################################################
+
+add_executable(
+  test_program
+  linux-src/common/cstring.c
+  linux-src/common/path.c
+  linux-src/common/program.c
+  linux-src/common/gtest/program_test.cxx
+)
+
+target_link_libraries(
+  test_program
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_program)

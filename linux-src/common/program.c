@@ -1,7 +1,5 @@
 #include <ctype.h>
 #include <errno.h>
-#include <stdint.h>
-#include <string.h>
 
 #include "mmb4l.h"
 #include "console.h"
@@ -13,6 +11,9 @@
 #include "utility.h"
 
 #define MAXDEFINES  256
+
+static const char *BAS_FILE_EXTENSIONS[] = { ".bas", ".BAS", ".Bas" };
+static const char *INC_FILE_EXTENSIONS[] = { ".inc", ".INC", ".Inc" };
 
 char CurrentFile[STRINGSIZE];
 
@@ -174,16 +175,7 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     error_check();
 }
 
-/**
- * Gets the absolute canonical path to a .INC file.
- *
- * @param  parent_file  path to .BAS file that is including 'filename'.
- * @param  filename     unprocessed filename.
- * @param  file_path    absolute canonical path to file is returned in this buffer.
- * @return              the value of 'file_path' on success,
- *                      otherwise sets 'errno' and returns NULL.
- */
-static char *program_get_inc_file(char *parent_file, char *filename, char *file_path) {
+char *program_get_inc_file(const char *parent_file, const char *filename, char *out) {
 
     char tmp_path[STRINGSIZE];
     if (!path_munge(filename, tmp_path, STRINGSIZE)) return NULL;
@@ -198,9 +190,23 @@ static char *program_get_inc_file(char *parent_file, char *filename, char *file_
         strcpy(tmp_path, tmp_string);
     }
 
-    // TODO: If file does not exist try appending .inc or .INC to its name.
+    // If file does not have ".inc" extension then we add one, but we try to
+    // match up with existing file with ".inc", ".INC" or ".Inc" extensions in
+    // that order.
+    if (strcasecmp(path_get_extension(tmp_path), INC_FILE_EXTENSIONS[0]) != 0) {
+        size_t len = strlen(tmp_path);
+        for (size_t i = 0; i < sizeof(INC_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+            if (len + strlen(INC_FILE_EXTENSIONS[i]) >= sizeof(tmp_path)) {
+                errno = ENAMETOOLONG;
+                return NULL;
+            }
+            strcpy(tmp_path + len, INC_FILE_EXTENSIONS[i]);
+            if (path_exists(tmp_path)) break;
+        }
+        if (!path_exists(tmp_path)) strcpy(tmp_path + len, INC_FILE_EXTENSIONS[0]);
+    }
 
-    return path_get_canonical(tmp_path, file_path, STRINGSIZE);
+    return path_get_canonical(tmp_path, out, STRINGSIZE);
 }
 
 static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
@@ -349,15 +355,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     file_close(fnbr);
 }
 
-/**
- * Gets the absolute canonical path to a .BAS program file.
- *
- * @param  filename   unprocessed filename.
- * @param  file_path  absolute canonical path to file is returned in this buffer.
- * @return            the value of 'file_path' on success,
- *                    otherwise sets 'errno' and returns NULL.
- */
-static char *program_get_bas_file(char *filename, char *file_path) {
+char *program_get_bas_file(const char *filename, char *out) {
 
     char tmp_path[STRINGSIZE];
     if (!path_munge(filename, tmp_path, STRINGSIZE)) return NULL;
@@ -365,18 +363,33 @@ static char *program_get_bas_file(char *filename, char *file_path) {
     if (CurrentLinePtr && !path_is_absolute(tmp_path)) {
         // If we are in a running program then resolve path relative to the
         // current program directory.
-        char current_dir[STRINGSIZE];
-        if (!path_get_parent(CurrentFile, current_dir, STRINGSIZE)) return NULL;
-
-        char tmp_string[STRINGSIZE];
-        if (!path_append(current_dir, tmp_path, tmp_string, STRINGSIZE)) return NULL;
-
-        strcpy(tmp_path, tmp_string);
+        char resolved_path[STRINGSIZE];
+        if (!path_get_parent(CurrentFile, resolved_path, STRINGSIZE)) return NULL;
+        if (FAILED(cstring_cat(resolved_path, "/", STRINGSIZE))
+                || FAILED(cstring_cat(resolved_path, tmp_path, STRINGSIZE))) {
+            errno = ENAMETOOLONG;
+            return NULL;
+        }
+        strcpy(tmp_path, resolved_path);
     }
 
-    // TODO: If file does not exist try appending .bas or .BAS to its name.
+    // If file does not have ".bas" extension then we add one, but we try to
+    // match up with existing file with ".bas", ".BAS" or ".Bas" extensions in
+    // that order.
+    if (strcasecmp(path_get_extension(tmp_path), BAS_FILE_EXTENSIONS[0]) != 0) {
+        size_t len = strlen(tmp_path);
+        for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+            if (len + strlen(BAS_FILE_EXTENSIONS[i]) >= sizeof(tmp_path)) {
+                errno = ENAMETOOLONG;
+                return NULL;
+            }
+            strcpy(tmp_path + len, BAS_FILE_EXTENSIONS[i]);
+            if (path_exists(tmp_path)) break;
+        }
+        if (!path_exists(tmp_path)) strcpy(tmp_path + len, BAS_FILE_EXTENSIONS[0]);
+    }
 
-    return path_get_canonical(tmp_path, file_path, STRINGSIZE);
+    return path_get_canonical(tmp_path, out, STRINGSIZE);
 }
 
 // now we must scan the program looking for CFUNCTION/CSUB/DEFINEFONT

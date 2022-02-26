@@ -21,6 +21,14 @@ Version 2022.01.00-a4 - ??-???-2022:
           OPTION EDITOR "code -g ${file}:${line}"
       Note that ${file} is replaced by the filename/path to edit "in quotes"
       and ${line} the line number to set the initial cursor position to.
+  - Changed LOAD and RUN so that if a filename without a [.bas|.BAS|.Bas]
+    extension is not provided then one is automatically appended.
+      - unlike other MMBasic ports MMB4L has a case-sensitive file-system
+        and expects MMBasic program files to have one of three possible
+        extensions: .bas, .BAS, or .Bas.
+      - if no extension is specified then MMB4L will check for the existence
+        of a file with each extension in order, if no such file is found then
+        it assumes the .bas extension.
 
 Version 2022.01.00-a3 - 16-Jan-2022:
   - Added serial port support, e.g.
