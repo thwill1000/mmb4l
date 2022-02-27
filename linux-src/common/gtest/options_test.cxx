@@ -2,6 +2,7 @@
 
 extern "C" {
 
+#include "../cstring.h"
 #include "../options.h"
 #include "../utility.h"
 

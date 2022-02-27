@@ -1,8 +1,10 @@
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 
 #include "../common/mmb4l.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 #include "../common/path.h"
 #include "../common/program.h"
@@ -48,9 +50,9 @@ static int get_editor_command(char *file_path, int line, char *command, bool *bl
 
     char replacement[STRINGSIZE + 2];
     snprintf(replacement, STRINGSIZE + 2, "\"%s\"", file_path);
-    str_replace(command, "${file}", replacement);
+    cstring_replace(command, "${file}", replacement);
     snprintf(replacement, STRINGSIZE + 2, "%d", line);
-    str_replace(command, "${line}", replacement);
+    cstring_replace(command, "${line}", replacement);
 
     return 0;
 }

@@ -1,6 +1,7 @@
 #include <ctype.h>
 
 #include "../common/mmb4l.h"
+#include "../common/cstring.h"
 #include "../common/utility.h"
 
 void fun_call(void) {

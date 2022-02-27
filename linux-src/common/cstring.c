@@ -5,17 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "utility.h"
-
-void unquote(char *str) {
-    if (str[0] == '\"' && str[strlen(str) - 1] == '\"') {
-        int len = strlen(str);
-        for (int i = 0; i < len - 2; ++i) {
-            str[i] = str[i + 1];
-        }
-        str[len - 2] = '\0';
-    }
-}
+#include "cstring.h"
 
 int cstring_cat(char *dst, const char* src, size_t dst_sz) {
     assert(dst_sz > strlen(dst));
@@ -27,17 +17,8 @@ int cstring_cat(char *dst, const char* src, size_t dst_sz) {
     return *sp ? -1 : 0;
 }
 
-char *strupr(char *s) {
-    char *p = s;
-    while (*p != '\0') {
-        *p = toupper(*p);
-        p++;
-    }
-    return s;
-}
-
 // TODO: be smart and safe about not overrunning target.
-void str_replace(char *target, const char *needle, const char *replacement) {
+void cstring_replace(char *target, const char *needle, const char *replacement) {
     char buffer[288] = {0};
     char *insert_point = &buffer[0];
     const char *tmp = target;
@@ -67,4 +48,23 @@ void str_replace(char *target, const char *needle, const char *replacement) {
 
     // write altered string back to target
     strcpy(target, buffer);
+}
+
+char *cstring_toupper(char *s) {
+    char *p = s;
+    while (*p != '\0') {
+        *p = toupper(*p);
+        p++;
+    }
+    return s;
+}
+
+void cstring_unquote(char *str) {
+    if (str[0] == '\"' && str[strlen(str) - 1] == '\"') {
+        int len = strlen(str);
+        for (int i = 0; i < len - 2; ++i) {
+            str[i] = str[i + 1];
+        }
+        str[len - 2] = '\0';
+    }
 }

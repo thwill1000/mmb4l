@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "cmdline.h"
+#include "cstring.h"
 #include "utility.h"
 
 static int is_prefix(const char *pre, const char *str) {
@@ -43,7 +44,7 @@ int cmdline_parse(int argc, const char *argv[], CmdLineArgs *result) {
         }
     }
 
-    unquote(result->directory);
+    cstring_unquote(result->directory);
 
     // Any remaining arguments are the program to RUN.
     for (; i < argc; ++i) {

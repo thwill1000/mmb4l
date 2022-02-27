@@ -4,6 +4,7 @@
 
 #include "../common/mmb4l.h"
 #include "../common/console.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 #include "../common/file.h"
 #include "../common/memory.h"

@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"

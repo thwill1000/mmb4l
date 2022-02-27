@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "cstring.h"
 #include "path.h"
 #include "utility.h"
 

@@ -33,6 +33,7 @@ PARTICULAR PURPOSE.
 #include "common/mmb4l.h"
 #include "common/cmdline.h"
 #include "common/console.h"
+#include "common/cstring.h"
 #include "common/error.h"
 #include "common/exit_codes.h"
 #include "common/file.h"
@@ -99,7 +100,7 @@ void set_start_directory() {
         }
     }
     char *p = mmb_args.directory;
-    unquote(p);
+    cstring_unquote(p);
     if (p[0] == '\0') return;
 
     errno = 0;

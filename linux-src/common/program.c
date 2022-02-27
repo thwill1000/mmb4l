@@ -5,6 +5,7 @@
 
 #include "mmb4l.h"
 #include "console.h"
+#include "cstring.h"
 #include "error.h"
 #include "file.h"
 #include "path.h"
@@ -45,7 +46,7 @@ static void STR_REPLACE(char *target, const char *needle, const char *replacemen
         }
         ip++;
     }
-    str_replace(target, needle, replacement);
+    cstring_replace(target, needle, replacement);
     ip = target;
     while (*ip) {
         if (*ip == 0xFF) *ip = ' ';

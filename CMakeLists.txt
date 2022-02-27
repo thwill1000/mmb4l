@@ -21,7 +21,8 @@ set(MMBASIC_CORE_SOURCE_FILES
     MMBasic/MMBasic.c
     MMBasic/Operators.c
     MMBasic/Functions.c
-    MMBasic/Commands.c)
+    MMBasic/Commands.c
+)
 
 set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_autosave.c
@@ -67,7 +68,8 @@ set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
     linux-src/commands/cmd_system.c
     linux-src/commands/cmd_timer.c
     linux-src/commands/cmd_trace.c
-    linux-src/commands/cmd_xmodem.c)
+    linux-src/commands/cmd_xmodem.c
+)
 
 set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/fun_at.c
@@ -102,16 +104,19 @@ set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
     linux-src/functions/fun_rgb.c
     linux-src/functions/fun_time.c
     linux-src/functions/fun_timer.c
-    linux-src/functions/fun_vres.c)
+    linux-src/functions/fun_vres.c
+)
 
 set(MMBASIC_LINUX_OPERATORS_SOURCE_FILES
-    linux-src/operators/op_inv.c)
+    linux-src/operators/op_inv.c
+)
 
 set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/cmdline.c
     linux-src/common/codepage.c
     linux-src/common/console.c
     linux-src/common/cJSON.c
+    linux-src/common/cstring.c
     linux-src/common/error.c
     linux-src/common/file.c
     linux-src/common/interrupt.c
@@ -125,8 +130,8 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/prompt.c
     linux-src/common/rx_buf.c
     linux-src/common/serial.c
-    linux-src/common/utility.c
-    linux-src/common/xmodem.c)
+    linux-src/common/xmodem.c
+)
 
 set(MMBASIC_LINUX_SOURCE_FILES
     ${MMBASIC_LINUX_COMMANDS_SOURCE_FILES}
@@ -143,8 +148,8 @@ add_executable(test_keyboard
     linux-src/common/rx_buf.c
     linux-src/common/codepage.c
     linux-src/common/console.c
-    linux-src/common/mmtime.c
-    linux-src/common/utility.c)
+    linux-src/common/cstring.c
+    linux-src/common/mmtime.c)
 
 target_link_libraries(mmbasic m)
 
@@ -155,20 +160,38 @@ enable_testing()
 include(GoogleTest)
 
 ################################################################################
+# test_cstring
+################################################################################
+
+add_executable(
+  test_cstring
+  linux-src/common/cstring.c
+  linux-src/common/gtest/cstring_test.cxx
+)
+
+target_link_libraries(
+  test_cstring
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_cstring)
+
+################################################################################
 # test_mmbasic
 ################################################################################
 
 add_executable(
   test_mmbasic
   linux-src/common/cmdline.c
+  linux-src/common/cstring.c
   linux-src/common/options.c
   linux-src/common/path.c
   linux-src/common/rx_buf.c
-  linux-src/common/utility.c
   linux-src/common/gtest/cmdline_test.cxx
   linux-src/common/gtest/options_test.cxx
   linux-src/common/gtest/rx_buf_test.cxx
-  linux-src/common/gtest/utility_test.cxx
 )
 
 target_compile_definitions(test_mmbasic PUBLIC OPTION_TESTS)
@@ -188,12 +211,10 @@ gtest_discover_tests(test_mmbasic)
 
 add_executable(
   test_path
+  linux-src/common/cstring.c
   linux-src/common/path.c
-  linux-src/common/utility.c
   linux-src/common/gtest/path_test.cxx
 )
-
-target_compile_definitions(test_path PUBLIC OPTION_TESTS)
 
 target_link_libraries(
   test_path

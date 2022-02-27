@@ -8,6 +8,7 @@
 #include <termios.h>
 
 #include "mmb4l.h"
+#include "cstring.h"
 #include "error.h"
 #include "file.h"
 #include "interrupt.h"
@@ -203,7 +204,7 @@ void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
     // Received data interrupt location.
     if (argc >= 7) {
         // InterruptUsed = true;
-        argv[6] = strupr(argv[6]); // TODO: is this needed ?
+        argv[6] = cstring_toupper(argv[6]); // TODO: is this needed ?
         comspec->rx_interrupt_addr = GetIntAddress(argv[6]);
     }
 
