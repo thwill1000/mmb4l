@@ -22,7 +22,7 @@
 //         strcpy(fn, &q[1]);
 //         strcpy(fn, q);
 //         if (strchr(fn, '.') == NULL) {
-//             strcat(fn, ".BAS");
+//             cstring_cat(fn, ".BAS", STRINGSIZE);
 //         }
 //         if (!InitSDCard()) {
 //         };  // make sure the SDcard is there

@@ -1,6 +1,7 @@
 #include <ctype.h>
 
 #include "../common/mmb4l.h"
+#include "../common/utility.h"
 
 void fun_call(void) {
     int i;
@@ -21,8 +22,8 @@ void fun_call(void) {
     }
     if (*q == ',') q++;
     i = FindSubFun(p, true);  // it could be a defined function
-    strcat(p, " ");
-    strcat(p, q);
+    cstring_cat(p, " ", STRINGSIZE);
+    cstring_cat(p, q, STRINGSIZE);
     targ = T_NOTYPE;
     if (i >= 0) {  // >= 0 means it is a user defined function
         DefinedSubFun(true, p, i, &f, &i64, &s, &targ);

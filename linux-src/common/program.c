@@ -333,7 +333,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
             if ((sbuff[0] != 39) || (sbuff[0] == 39 && sbuff[1] == 39)) {
                 // if(Option.profile){
                 //     while(strlen(sbuff)<9){
-                //         strcat(sbuff," ");
+                //         cstring_cat(sbuff, " ", STRINGSIZE);
                 //         len++;
                 //     }
                 // }
@@ -533,10 +533,10 @@ void program_list_csubs(int all) {
             if (i % 4 == 0) {
                 memset(buf, 0, STRINGSIZE);
             } else {
-                strcat(buf, ", ");
+                cstring_cat(buf, ", ", STRINGSIZE);
             }
             sprintf(name, "0x%08X", *p++);
-            strcat(buf, name);
+            cstring_cat(buf, name, STRINGSIZE);
             if ((i + 1) % 4 == 0) print_line(buf, &line_count, all);
         }
         //if (size % 4 > 0) ListNewLine(&line_count, all);
@@ -692,7 +692,7 @@ static int program_load_file_internal(char *filename) {
             if ((sbuff[0] != 39) || (sbuff[0] == 39 && sbuff[1] == 39)) {
                 // if(Option.profile){
                 //     while(strlen(sbuff)<9){
-                //         strcat(sbuff," ");
+                //         cstring_cat(sbuff, " ", STRINGSIZE);
                 //         len++;
                 //     }
                 // }

@@ -48,13 +48,13 @@ int cmdline_parse(int argc, const char *argv[], CmdLineArgs *result) {
     // Any remaining arguments are the program to RUN.
     for (; i < argc; ++i) {
         if (result->run_cmd[0] == '\0') {
-            strcat(result->run_cmd, "RUN \"");
-            strcat(result->run_cmd, argv[i]);
-            strcat(result->run_cmd, "\"");
-            if (i != argc - 1) strcat(result->run_cmd, ",");
+            cstring_cat(result->run_cmd, "RUN \"", sizeof(result->run_cmd));
+            cstring_cat(result->run_cmd, argv[i], sizeof(result->run_cmd));
+            cstring_cat(result->run_cmd, "\"", sizeof(result->run_cmd));
+            if (i != argc - 1) cstring_cat(result->run_cmd, ",", sizeof(result->run_cmd));
         } else {
-            strcat(result->run_cmd, " ");
-            strcat(result->run_cmd, argv[i]);
+            cstring_cat(result->run_cmd, " ", sizeof(result->run_cmd));
+            cstring_cat(result->run_cmd, argv[i], sizeof(result->run_cmd));
         }
     }
 

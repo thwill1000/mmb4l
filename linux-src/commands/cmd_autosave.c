@@ -23,7 +23,7 @@ static void cmd_autosave_get_file_path(char *file_path) {
         if (strlen(file_path) > MAXSTRLEN - 4) {
             error_code(ENAMETOOLONG, "Path too long");
         }
-        strcat(file_path, ".bas");
+        cstring_cat(file_path, ".bas", STRINGSIZE);
     }
 }
 

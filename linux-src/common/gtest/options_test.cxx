@@ -10,8 +10,8 @@ extern "C" {
 static char options_test_buf[1024];
 
 static void write_line_to_buf(const char *line) {
-    strcat(options_test_buf, line);
-    strcat(options_test_buf, "\n");
+    cstring_cat(options_test_buf, line, sizeof(options_test_buf));
+    cstring_cat(options_test_buf, "\n", sizeof(options_test_buf));
 }
 
 TEST(OptionsTest, Init) {

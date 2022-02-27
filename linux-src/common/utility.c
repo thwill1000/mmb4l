@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
@@ -14,6 +15,16 @@ void unquote(char *str) {
         }
         str[len - 2] = '\0';
     }
+}
+
+int cstring_cat(char *dst, const char* src, size_t dst_sz) {
+    assert(dst_sz > strlen(dst));
+    const char *limit = dst + dst_sz - 1;
+    char *p = dst + strlen(dst);
+    char *sp = (char *) src;
+    while ((p < limit) && *sp) *p++ = *sp++;
+    *p = '\0';
+    return *sp ? -1 : 0;
 }
 
 char *strupr(char *s) {

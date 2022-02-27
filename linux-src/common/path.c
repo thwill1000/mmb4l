@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 
 #include "path.h"
+#include "utility.h"
 
 bool path_exists(const char *path) {
     struct stat st;
@@ -115,7 +116,7 @@ char *path_get_canonical(const char *path, char *canonical_path, size_t sz) {
             *last = '/';
         } else {
             if (!realpath(".", tmp_path)) return NULL;
-            strcat(tmp_path, "/");
+            cstring_cat(tmp_path, "/", PATH_MAX);
             last = canonical_path;
         }
 
