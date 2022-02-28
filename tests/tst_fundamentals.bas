@@ -16,6 +16,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 
 Const BASE% = Mm.Info(Option Base)
 
+add_test("test_inv")
 add_test("test_unary_minus")
 add_test("test_unary_plus")
 add_test("test_error_correct_after_goto")
@@ -29,6 +30,14 @@ Sub setup_test()
 End Sub
 
 Sub teardown_test()
+End Sub
+
+Sub test_inv()
+  assert_hex_equals(&hFFFFFFFFFFFFFFFF, Inv(&h0))
+  assert_hex_equals(&hFFFFFFFFFFFFFFFE, Inv(&h1))
+  assert_hex_equals(&h0,                Inv(&hFFFFFFFFFFFFFFFF))
+  assert_hex_equals(&h8000000000000000, Inv(&h7FFFFFFFFFFFFFFF))
+  assert_hex_equals(&h7FFFFFFFFFFFFFFF, Inv(&h8000000000000000))
 End Sub
 
 Sub test_unary_minus()
@@ -105,13 +114,13 @@ End Sub
 Sub test_error_correct_after_goto()
   Goto 30
 test_goto_label_1:
-  assert_raw_error("Error in line 117: foo1")
+  assert_raw_error("Error in line 126: foo1")
   Goto 40
 test_goto_label_2:
-  assert_raw_error("Error in line 119: foo2")
+  assert_raw_error("Error in line 128: foo2")
   On Error Skip
   Error "foo3"
-  assert_raw_error("Error in line 113: foo3")
+  assert_raw_error("Error in line 122: foo3")
 End Sub
 
 30 On Error Skip : Error "foo1" : Goto test_goto_label_1
@@ -121,12 +130,12 @@ Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
   GoSub 60
-  assert_raw_error("Error in line 132: bar1")
+  assert_raw_error("Error in line 141: bar1")
   GoSub 70
-  assert_raw_error("Error in line 134: bar2")
+  assert_raw_error("Error in line 143: bar2")
   On Error Skip
   Error "bar3"
-  assert_raw_error("Error in line 128: bar3")
+  assert_raw_error("Error in line 137: bar3")
 End Sub
 
 60 On Error Skip : Error "bar1" : Return

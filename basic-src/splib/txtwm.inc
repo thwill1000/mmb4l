@@ -539,7 +539,14 @@ Sub twm.enable_cursor(z%)
   Local s$ = LCase$(Mm.Info$(Option Console))
   Select Case s$
     Case "screen" : Exit Sub
-    Case "both"   : Option Console Serial
+    Case "both"
+      ' Note MMB4W cannot call OPTION CONSOLE SERIAL if it is on the same line
+      ' as a CASE clause. This is because in MMB4W this OPTION checks
+      ' 'CurrentLinePtr' to make sure it is only being used from within a
+      ' program. However due to a long-standing and gnarly bug in the MMBasic
+      ' core 'CurrentLinePtr' is not correctly set when processing a command on
+      ' the same line as a CASE clause.
+      Option Console Serial
   End Select
   Print Chr$(27) Choice(z%, "[?25h", "[?25l");
   If s$ = "both" Then Option Console Both
@@ -559,7 +566,9 @@ Sub twm.bell()
   Local s$ = LCase$(Mm.Info$(Option Console))
   Select Case s$
     Case "screen" : Exit Sub
-    Case "both"   : Option Console Serial
+    Case "both"
+      ' See comment in twm.enable_cursor()
+      Option Console Serial
   End Select
   Print Chr$(7);
   If s$ = "both" Then Option Console Both

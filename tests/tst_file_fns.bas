@@ -20,11 +20,14 @@ Const TMPDIR$ = sys.string_prop$("tmpdir")
 Const INVALID_FILE_NBR_ERR$ = Choice(Mm.Device$ = "MMB4L", "Invalid file number", "File number")
 Const FILE_ALREADY_OPEN_ERR$ = Choice(Mm.Device$ = "MMB4L", "File or device already open", "File number already open")
 Const FILE_NOT_OPEN_ERR$ = Choice(Mm.Device$ = "MMB4L", "File or device not open", "File number is not open")
+Const MAX_FILE_NBR% = Choice(Mm.Device$ = "MMBasic for Windows", 128, 10)
+Const SEPARATOR$ = sys.string_prop$("separator")
 
 add_test("test_chdir_mkdir_rmdir")
 add_test("test_close_errors")
 add_test("test_copy")
 add_test("test_dir")
+add_test("test_dir_given_no_matches")
 add_test("test_eof")
 add_test("test_inputstr")
 add_test("test_kill")
@@ -51,14 +54,17 @@ End Sub
 Sub test_chdir_mkdir_rmdir()
     Local current_dir$ = Mm.Info$(Directory))
     Local new_dir$ = "test_chdir_mkdir_rmdir.tmpdir"
-    If file.exists%(TMPDIR$ + "/" + new_dir$) Then RmDir(TMPDIR$ + "/" + new_dir$)
+    If file.exists%(TMPDIR$ + SEPARATOR$ + new_dir$) Then RmDir(TMPDIR$ + SEPARATOR$ + new_dir$)
 
     ChDir TMPDIR$
     MkDir new_dir$
     ChDir new_dir$
 
-    Local expected$ = TMPDIR$ + "/" + new_dir$ + "/"
-    If Mm.Device$ <> "MMB4L" Then expected$ = UCase$(expected$)
+    Local expected$ = TMPDIR$ + SEPARATOR$ + new_dir$ + SEPARATOR$
+    Select Case Mm.Device$
+      Case "MMB4L", "MMBasic for Windows" : ' Do nothing
+      Case Else : expected$ = UCase$(expected$)
+    End Select
     assert_string_equals(expected$, Mm.Info$(Directory))
 
     ChDir ".."
@@ -83,8 +89,13 @@ Sub test_close_errors()
 
   ' Can't call on file number #11.
   On Error Skip 1
-  Close #11
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", INVALID_FILE_NBR_ERR$, "11 is invalid"))
+  Close #(MAX_FILE_NBR + 1)
+  Local expected$
+  Select Case Mm.Device$
+    Case "MMB4L" : expected$ = INVALID_FILE_NBR_ERR$
+    Case "MMBasic for Windows" : expected$ = "129 is invalid (valid is 1 to 128)"
+    Case Else : expected$ = "11 is invalid"
+  End Select
 End Sub
 
 Sub test_copy()
@@ -113,7 +124,7 @@ Sub test_copy()
 End Sub
 
 Sub test_dir()
-  Local tst_dir$ = TMPDIR$ + "/test_dir.tmpdir"
+  Const tst_dir$ = TMPDIR$ + "\test_dir.tmpdir"
   If file.exists%(tst_dir$) Then RmDir tst_dir$
   MkDir tst_dir$
   Open tst_dir$ + "/file1" For Output As #1 : Close #1
@@ -138,6 +149,16 @@ Sub test_dir()
   Kill tst_dir$ + "/abc"
   Kill tst_dir$ + "/file3"
   RmDir tst_dir$ + "/subdir"
+  RmDir tst_dir$
+End Sub
+
+Sub test_dir_given_no_matches()
+  Const tst_dir$ = TMPDIR$ + "\test_dir_given_no_matches.tmpdir"
+  If file.exists%(tst_dir$) Then RmDir tst_dir$
+  MkDir tst_dir$
+  Local f$ = Dir$(tst_dir$ + "/*.non")
+  assert_string_equals("", f$)
+  RmDir tst_dir$
 End Sub
 
 Sub test_eof()
@@ -159,10 +180,19 @@ Sub test_eof()
   ' Can't call on an unopened file.
   On Error Skip 1
   Local i% = Eof(#1)
-  assert_raw_error(FILE_NOT_OPEN_ERR$)
+  Local expected$
+  Select Case Mm.Device$
+    Case "MMBasic for Windows" : expected$ = "File number 1 is not open"
+    Case Else : expected$ = FILE_NOT_OPEN_ERR$
+  End Select
 
   ' You can call on file number #0, it always returns 0 (for MMB4L).
-  assert_int_equals(Choice(Mm.Device$ = "MMB4L", 0, 1), Eof(#0))
+  Local expected_int%
+  Select Case Mm.Device$
+    Case "MMB4L", "MMBasic for Windows" : expected_int% = 0
+    Case Else : expected_int% = 1
+  End Select
+  assert_int_equals(expected_int%, Eof(#0))
 
   ' Can call on file number #10.
   Open f$ For Input As #10
@@ -491,11 +521,11 @@ Sub test_open_errors()
   assert_raw_error(INVALID_FILE_NBR_ERR$)
 
   ' Can use file number #10.
-  Open TMPDIR$ + "/test_open_errors.txt" For Output As #10
-  Close #10
+  Open TMPDIR$ + "/test_open_errors.txt" For Output As #(MAX_FILE_NBR)
+  Close #(MAX_FILE_NBR)
 
   ' Can't use file number #11.
   On Error Skip 1
-  Open TMPDIR$ + "/test_open_errors.txt" For Output As #11
+  Open TMPDIR$ + "/test_open_errors.txt" For Output As #(MAX_FILE_NBR + 1)
   assert_raw_error(INVALID_FILE_NBR_ERR$)
 End Sub

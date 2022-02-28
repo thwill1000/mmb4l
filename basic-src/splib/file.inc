@@ -1,6 +1,6 @@
-' Copyright (c) 2020-2021 Thomas Hugo Williams
+' Copyright (c) 2020-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For Colour Maximite 2, MMBasic 5.07
+' For MMBasic 5.07.03
 
 '!remove_if NO_INCLUDE_GUARDS
 On Error Skip 1 : Dim sys.VERSION$ = ""
@@ -40,8 +40,10 @@ Function file.exists%(f$)
   Local f_$ = file.get_canonical$(f$)
   If f_$ = "A:" Then
     file.exists% = 1
+  ElseIf Mm.Device$ = "MMB4L" Or Mm.Device$ = "MMBasic for Windows" Then
+    file.exists% = Mm.Info(Exists f$)
   Else
-    file.exists% = Mm.Info(FileSize f_$) <> -1
+    file.exists% = Mm.Info(Exists File f$) Or Mm.Info(Exists Dir f$)
   EndIf
 End Function
 
@@ -59,22 +61,22 @@ End Function
 '       file returned by the previous call and restarts the search from there, however
 '       that would be much slower and probably better implemented as a CSUB.
 Function file.find$(path$, pattern$, type$)
-  If Mm.Device$ = "MMB4L" Then
+  If Mm.Device$ = "MMB4L" Or Mm.Device$ = "MMBasic for Windows" Then
     Static stack$(1000) Length 255 ' ~256K workspace.
   Else
     Static stack$(1000) Length 128 ' ~128K workspace.
   EndIf
-  Static stack_ptr% = Bound(stack$(), 0)
+  Static stack_ptr%
   Static pattern_$
   Static type_$
   Local f$, is_dir%, lb%, name$, num%
 
   If path$ <> "" Then
+    stack_ptr% = Bound(stack$(), 0)
+    pattern_$ = Choice(pattern$ = "", "*", pattern$)
+    type_$ = Choice(type$ = "", "FILE", UCase$(type$))
     f$ = file.get_canonical$(path$)
     stack$(stack_ptr%) = f$ : Inc stack_ptr%
-    pattern_$ = pattern$
-    If pattern_$ = "" Then pattern_$ = "*"
-    type_$ = Choice(type$ = "", "FILE", UCase$(type$))
     If InStr("|ALL|DIR|FILE|", "|" + type_$ + "|") < 1 Then Error "unknown type: " + type_$
   EndIf
 
@@ -86,7 +88,7 @@ Function file.find$(path$, pattern$, type$)
     Loop Until name$ <> ".git" ' Doesn't recurse into .git directories.
 
     ' If it is a directory then expand it.
-    is_dir% = Choice(file.find$ = "A:", 1, Mm.Info(FileSize file.find$) = -2)
+    is_dir% = file.is_directory%(file.find$)
     If is_dir% Then
       lb% = stack_ptr%
       ' On Error Skip 1
@@ -185,45 +187,63 @@ End Function
 
 ' Gets the canonical path for file/directory 'f$'.
 Function file.get_canonical$(f$)
+  Local tmp$ = f$
 
-  Local f2$ = UCase$(f$), i%
-  If f2$ = "A:" Then
-    file.get_canonical$ = "A:"
-    Exit Function
-  ElseIf Left$(f2$, 3) = "A:\" Or Left$(f2$, 3) = "A:/" Then
-    f2$ = "A:"
-    i% = 4
-  ElseIf Left$(f2$, 1) = "\" Or Left$(f2$, 1) = "/" Then
-    f2$ = "A:"
-    i% = 2
-  ElseIf f2$ = "~" Then
-    file.get_canonical$ = sys.string_prop$("home")
-    Exit Function
-  ElseIf Left$(f2$, 2) = "~\" Or Left$(f2$, 2) = "~/" Then
-    f2$ = sys.string_prop$("home")
-    i% = 3
-  Else
-    f2$ = Left$(Mm.Info$(Directory), Len(Mm.Info$(Directory)) - 1)
-    i% = 1
-  EndIf
+  Select Case Left$(tmp$, 1)
+    Case "/", "\"
+      tmp$ = "A:" + tmp$
+    Case "~"
+      If tmp$ = "~" Then
+        tmp$ = sys.string_prop$("home")
+      ElseIf Left$(tmp$, 2) = "~/" Or Left$(tmp$, 2) = "~\" Then
+        tmp$ = sys.string_prop$("home") + Mid$(tmp$, 2)
+      Else
+        tmp$ = Mm.Info$(Directory) + tmp$
+      EndIf
+    Case "a" To "z", "A" To "Z"
+      If Mid$(tmp$, 2, 1) = ":" Then
+        ' Do nothing
+      Else
+        tmp$ = Mm.Info$(Directory) + tmp$
+      EndIf
+    Case Else
+      tmp$ = Mm.Info$(Directory) + tmp$
+  End Select
 
-  ' Copy characters from f$ into f2$:
-  '   - replace \ by /
-  '   - if encounter /./ replace with /
-  '   - if encounter /../ then backtrack to previous /
-  Local ch%, j%, s$ = "/"
-  For i% = i% To Len(f$)
-    ch% = Peek(Var f$, i%)
+  ' Convert backslash to slash to simplify algorithm.
+  ' On Windows we convert back to backslash before returning the result.
+  Local i%
+  For i% = 1 To Len(tmp$)
+    If Peek(Var tmp$, i%) = 92 Then Poke Var tmp$, i%, 47
+  Next
+
+  ' Capitalise first letter of a drive specification.
+  If Mid$(tmp$, 2, 1) = ":" Then Poke Var tmp$, 1, Asc(UCase$(Chr$(Peek(Var tmp$, 1))))
+
+  ' Ensure there is a trailing slash,
+  ' this helps with the next step and is ultimately stripped off.
+  If Right$(tmp$, 1) <> "/" Then Cat tmp$, "/"
+
+  ' Process dot, dot-dot and consecutive slash characters.
+  file.get_canonical$ = tmp$
+  tmp$ = ""
+  Local ch%, j%, s$ = ""
+  For i% = 1 To Len(file.get_canonical$) + 1
+    ch% = Peek(Var file.get_canonical$, i%)
     Select Case ch%
-      Case 47, 92 ' / or \
+      Case 47 ' /
         Select Case s$
-          Case "/." : ' Do nothing
+          Case "/", "/."
+            ' Do nothing
           Case "/.."
             ' Back track
-            For j% = Len(f2$) To 1 Step -1
-              If Peek(Var f2$, j%) = 47 Then Poke Var f2$, 0, j% - 1 : Exit For
+            For j% = Len(tmp$) To 1 Step -1
+              If Peek(Var tmp$, j%) = 47 Then
+                Poke Var tmp$, 0, j% - 1 : Exit For
+              EndIf
             Next
-          Case Else : Cat f2$, s$
+          Case Else
+            Cat tmp$, s$
         End Select
         s$ = "/"
       Case Else
@@ -231,19 +251,14 @@ Function file.get_canonical$(f$)
     End Select
   Next
 
-  Select Case s$
-    Case "/", "/."
-      ' Do nothing
-    Case "/.."
-      ' Back track
-      For j% = Len(f2$) To 1 Step -1
-        If Peek(Var f2$, j%) = 47 Then Poke Var f2$, 0, j% - 1 : Exit For
-      Next
-    Case Else
-      Cat f2$, s$
-  End Select
+  ' On Windows convert slash to backslash.
+  If Mm.Device$ = "MMBasic for Windows" Then
+    For i% = 1 To Len(tmp$)
+      If Peek(Var tmp$, i%) = 47 Then Poke Var tmp$, i%, 92
+    Next
+  EndIf
 
-  file.get_canonical$ = f2$
+  file.get_canonical$ = tmp$
 End Function
 
 ' Gets the dot file-extension, from filename f$.
@@ -325,12 +340,9 @@ Function file.is_absolute%(f$)
 End Function
 
 Function file.is_directory%(f$)
-  Local f_$ = file.get_canonical$(f$)
-  If f_$ = "A:" Then
-    file.is_directory% = 1
-  Else
-    file.is_directory% = Mm.Info(FileSize f_$) = -2
-  EndIf
+  ' TODO: handle ~ prefix
+  ' TODO: does this work on PicoMite
+  file.is_directory% = Mm.Info(Exists Dir f$)
 End Function
 
 ' Makes directory 'f$' if it does not already exist.

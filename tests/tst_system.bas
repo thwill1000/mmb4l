@@ -15,9 +15,9 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../basic-src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
-If Mm.Device$ <> "MMB4L" Then End
-
 Const EXPECTED_HOME$ = "/home/thwill"
+
+If Mm.Device$ = "MMB4L" Or Mm.Device$ = "MMBasic for Windows" Then
 
 add_test("test_system_no_capture")
 add_test("test_system_string_capture")
@@ -29,6 +29,8 @@ add_test("test_system_given_command_not_found", "test_system_command_not_found")
 add_test("test_system_getenv")
 add_test("test_system_setenv")
 add_test("test_system_setenv_given_longstring", "test_system_setenv_given_ls")
+
+EndIf
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -50,7 +52,12 @@ Sub test_system_string_capture()
 
   System "echo 'foo bar'", out$
 
-  assert_string_equals("foo bar", out$)
+  Local expected$
+  Select Case Mm.Device$
+    Case "MMB4L" : expected$ = "foo bar"
+    Case "MMBasic for Windows" : expected$ = "'foo bar'"
+  End Select
+  assert_string_equals(expected$, out$)
 End Sub
 
 Sub test_system_longstring_capture()
@@ -58,7 +65,12 @@ Sub test_system_longstring_capture()
 
   System "echo 'foo bar'", out%()
 
-  assert_string_equals("foo bar", LGetStr$(out%(), 1, LLen(out%())))
+  Local expected$
+  Select Case Mm.Device$
+    Case "MMB4L" : expected$ = "foo bar"
+    Case "MMBasic for Windows" : expected$ = "'foo bar'"
+  End Select
+  assert_string_equals(expected$, LGetStr$(out%(), 1, LLen(out%())))
 End Sub
 
 Sub test_system_given_too_long()
@@ -67,7 +79,12 @@ Sub test_system_given_too_long()
   System "echo '0123456789'", out%()
 
   ' Captured output is truncated.
-  assert_string_equals("01234567", LGetStr$(out%(), 1, LLen(out%())))
+  Local expected$
+  Select Case Mm.Device$
+    Case "MMB4L" : expected$ = "01234567"
+    Case "MMBasic for Windows" : expected$ = "'0123456"
+  End Select
+  assert_string_equals(expected$, LGetStr$(out%(), 1, LLen(out%())))
 End Sub
 
 Sub test_system_given_invalid_syntax()
@@ -75,19 +92,19 @@ Sub test_system_given_invalid_syntax()
 
   On Error Skip 1
   System "echo 'foo bar'", i%
-  assert_raw_error("Invalid 2nd argument; expected STRING or LONGSTRING")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Invalid 2nd argument; expected STRING or LONGSTRING", "Invalid variable"))
 
   On Error Skip 1
   System "echo 'foo bar'", f!
-  assert_raw_error("Invalid 2nd argument; expected STRING or LONGSTRING")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Invalid 2nd argument; expected STRING or LONGSTRING", "Syntax"))
 
   On Error Skip 1
   System "echo 'foo bar'", s$()
-  assert_raw_error("Invalid 2nd argument; expected STRING or LONGSTRING")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Invalid 2nd argument; expected STRING or LONGSTRING", "Invalid variable"))
 
   On Error Skip 1
   System "echo 'foo bar'", ia%()
-  assert_raw_error("Invalid 2nd argument; expected STRING or LONGSTRING")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Invalid 2nd argument; expected STRING or LONGSTRING", "Invalid variable"))
 
   On Error Skip 1
   System "echo 'foo bar'",
@@ -95,6 +112,8 @@ Sub test_system_given_invalid_syntax()
 End Sub
 
 Sub test_system_exit_status_arg()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
   Local s$, exit_status%
 
   System "echo 'foo'", s$, exit_status%
@@ -112,14 +131,23 @@ End Sub
 Sub test_system_command_not_found()
   Local s$, exit_status%
 
-  On Error Skip 1
-  System "foo", s$, exit_status%
-  assert_raw_error("Unknown system command")
-  assert_string_equals("sh: 1: foo: not found", s$)
-  assert_int_equals(127, exit_status%)
+  If Mm.Device$ = "MMB4L" Then
+    On Error Skip 1
+    System "foo", s$, exit_status%
+    assert_raw_error("Unknown system command")
+    assert_string_equals("sh: 1: foo: not found", s$)
+    assert_int_equals(127, exit_status%)
+  Else
+    On Error Skip 1
+    System "foo", s$
+    assert_raw_error("")
+    assert_string_equals("", s$)
+  EndIf
 End Sub
 
 Sub test_system_getenv()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
   Local i%, name$ = "HOME", value$, value_ls%(32)
 
   ' Given name is STRING literal and value is STRING variable.
@@ -161,6 +189,8 @@ Sub test_system_getenv()
 End Sub
 
 Sub test_system_setenv()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
   Local i%, ls%(32), s$, value$
 
   ' Given name is STRING literal and value is STRING literal.
@@ -222,6 +252,8 @@ Function int_function%()
 End Function
 
 Sub test_system_setenv_given_ls()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
   Local i%, ls_in%(100), ls_out%(100), s$
   For i% = 0 To 10
     LongString Append ls_in%(), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

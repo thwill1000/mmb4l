@@ -154,6 +154,8 @@ End Sub
 Sub test_peek_cfunaddr()
   Local ad%, i%, offset%
 
+  If Mm.Device$ = "MMBasic for Windows" Then Exit Sub
+
   ad% = Peek(CFunAddr data1())
   offset% = 0
   For i% = 1 To &hC
@@ -183,6 +185,8 @@ CSub data2()
 End CSub
 
 Sub test_peek_progmem()
+  If Mm.Device$ = "MMBasic for Windows" Then Exit Sub
+
   Local offset% = 0
 
   assert_hex_equals(1, Peek(ProgMem, offset%))

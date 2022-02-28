@@ -1,6 +1,6 @@
 ' Copyright (c) 2020-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For Colour Maximite 2, MMBasic 5.07
+' For MMBasic 5.07.03
 
 On Error Skip 1 : Dim sys.VERSION$ = ""
 If sys.VERSION$ = "" Then Error "'system.inc' not included"
@@ -8,7 +8,9 @@ sys.requires("array", "file", "list", "string", "vt100")
 sys.provides("unittest")
 If sys.err$ <> "" Then Error sys.err$
 
-Const ut.MAX_FAILURES% = 100
+If Mm.Device$ = "MMBasic for Windows" Then Option Console Both
+
+Const ut.MAX_FAILURES% = 20 ' Maximum number of failures reported per test method.
 Const ut.MAX_TESTS% = 100
 Const ut.MAX_ARRAY_DIFFS% = 5
 
@@ -30,14 +32,18 @@ End Sub
 
 Sub ut.add_failure(msg$)
   Inc ut.failure_count%
-  ut.failure_start%(ut.failure_count% + Mm.Info(Option Base) - 1) = LLen(ut.failure_txt%()) + 1
-  LongString Append ut.failure_txt%(), Str$(ut.asserts_count%) + ": " + msg$
-  ut.update_failure()
+  If ut.failure_count% <= ut.MAX_FAILURES% Then
+    ut.failure_start%(ut.failure_count% + Mm.Info(Option Base) - 1) = LLen(ut.failure_txt%()) + 1
+    LongString Append ut.failure_txt%(), Str$(ut.asserts_count%) + ": " + msg$
+    ut.update_failure()
+  EndIf
 End Sub
 
 Sub ut.update_failure()
-  Local i% = ut.failure_count% + Mm.Info(Option Base) - 1
-  ut.failure_len%(i%) = LLen(ut.failure_txt%()) - ut.failure_start%(i%) + 1
+  If ut.failure_count% <= ut.MAX_FAILURES% Then
+    Local i% = ut.failure_count% + Mm.Info(Option Base) - 1
+    ut.failure_len%(i%) = LLen(ut.failure_txt%()) - ut.failure_start%(i%) + 1
+  EndIf
 End Sub
 
 Sub assert_fail(msg$)
@@ -238,7 +244,8 @@ Sub assert_no_error()
     ut.add_failure("Expected no error, but actually sys.err$ = " + str.quote$(sys.err$))
   EndIf
 
-  If Mm.ErrMsg$ <> "" Then
+  ' CMM2 file operations set Mm.ErrMsg$ = "Success " including a space when they succeed.
+  If Mm.ErrNo <> 0 Then
     ut.add_failure("Expected no error, but actually Mm.ErrMsg$ = " + str.quote$(Mm.ErrMsg$))
   EndIf
 End Sub
@@ -253,6 +260,7 @@ End Sub
 
 Sub assert_raw_error(expected$)
   Inc ut.asserts_count%
+  If Mm.ErrMsg$ = expected$ Then Exit Sub
   If InStr(Mm.ErrMsg$, expected$) < 1 Then
     Local s$ = "Expected Error " + str.quote$(expected$)
     Cat s$, ", but actually " + str.quote$(Mm.ErrMsg$)
@@ -343,7 +351,7 @@ Function ut.run_single_test%(idx%)
       Print "FAIL ("; Str$(ut.failure_count%); "/"; Str$(ut.asserts_count%); ")";
       Local i%, j%
       Local lb% = Mm.Info(Option Base)
-      Local ub% = lb% + ut.failure_count% - 1
+      Local ub% = lb% + Min(ut.failure_count%, ut.MAX_FAILURES%) - 1
       For i% = lb% To ub%
         Print
         Print "    ";
@@ -353,6 +361,10 @@ Function ut.run_single_test%(idx%)
           Inc j%, Min(255, ut.failure_len%(i%))
         Loop While j% < ut.failure_len%(i%)
       Next
+      If ut.failure_count% > ut.MAX_FAILURES% Then
+        Print
+        Print "    +" Str$(ut.failure_count% - ut.MAX_FAILURES%) + " more";
+      EndIf
     EndIf
     ut.print_colour("reset")
     Print
@@ -390,7 +402,7 @@ Sub ut.run_first()
   Local first$
   Do While f$ <> ""
     If ut.is_test_file%(f$) Then
-      Print #1, f$
+      Print #1, file.get_canonical$(f$)
       If first$ = "" Then first$ = f$
     EndIf
     f$ = file.find$()
@@ -473,13 +485,16 @@ Sub ut.run_same(cmd$)
 End Sub
 
 Sub ut.print_colour(c$)
-  Option Console Serial
+  ' Serial / ANSI colour.
+  Local old_console$ = Mm.Info(Option Console)
+  If LCase$(old_console$) <> "serial" Then Option Console Serial
   Print vt100.colour$(c$);
+  Select Case LCase$(old_console$)
+    Case "both"   : Option Console Both
+    Case "screen" : Option Console Screen
+  End Select
 
-  ' TODO: Should really restore the previous value of "Option Console",
-  '       but currently that cannot be read.
-  Option Console Both
-
+  ' Screen / VGA colour.
   Select Case c$
     Case "green"   : Colour(RGB(Green))
     Case "magenta" : Colour(RGB(Magenta))

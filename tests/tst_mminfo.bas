@@ -18,9 +18,11 @@ Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
 If Mm.Device$ = "MMB4L" Then
-  Const EXPECTED_VERSION! = 2022.01
+  Const EXPECTED_VERSION$ = "2022.01"
+ElseIf Mm.Device$ = "MMBasic for Windows" Then
+  Const EXPECTED_VERSION$ = "5.0703"
 Else
-  Const EXPECTED_VERSION! = 5.0702
+  Const EXPECTED_VERSION$ = "5.0702"
 EndIf
 
 add_test("test_arch")
@@ -74,37 +76,42 @@ Sub test_arch()
 End Sub
 
 Sub test_current()
+  assert_string_equals(expected_path$() + "tst_mminfo.bas", Mm.Info(Current))
+End Sub
+
+Function expected_path$()
   If Mm.Device$ = "MMB4L" Then
     Local out$
     System "echo $HOME", out$
-    Local expected_path$ = out$ + "/github/mmb4l-src/tests/"
+    expected_path$ = out$ + "/github/mmb4l-src/tests/"
+  ElseIf Mm.Device$ = "MMBasic for Windows" Then
+    expected_path$ = "C:\home-thwill\git_sandbox\github\mmb4l-src\tests\"
   Else
-    Local expected_path$ = "A:/MMB4L-SRC/TESTS/"
+    expected_path$ = "A:/MMB4L-SRC/TESTS/"
   EndIf
-
-  assert_string_equals(expected_path$ + "tst_mminfo.bas", Mm.Info(Current))
-End Sub
+End Function
 
 Sub test_device()
   Local known% = 0
-  known% = known% Or (Mm.Device$ = "MMB4L")
   known% = known% Or (Mm.Device$ = "Colour Maximite 2")
   known% = known% Or (Mm.Device$ = "Colour Maximite 2 G2")
+  known% = known% Or (Mm.Device$ = "MMB4L")
+  known% = known% Or (Mm.Device$ = "MMBasic for Windows")
   assert_true(known%)
   assert_string_equals(Mm.Info$(Device), Mm.Device$)
 End Sub
 
 Sub test_directory()
+  Local expected_dir$ = "A:/MMB4L-SRC/TESTS"
   If Mm.Device$ = "MMB4L" Then
-    Local expected_dir$
     System "pwd", expected_dir$
-  Else
-    Local expected_dir$ = "A:/MMB4L-SRC/TESTS"
+  ElseIf Mm.Device$ = "MMBasic for Windows" Then
+    System "cd", expected_dir$
   EndIf
 
   Local actual$ = Mm.Info$(Directory)
 
-  assert_string_equals(expected_dir$ + "/", actual$)
+  assert_string_equals(expected_dir$ + sys.string_prop$("separator"), actual$)
   assert_string_equals(Left$(actual$, Len(actual$) - 1), Cwd$)
 End Sub
 
@@ -445,32 +452,56 @@ Sub test_option_resolution()
 End Sub
 
 Sub test_option_search_path()
+  If Mm.Device$ <> "MMB4L" And Mm.Device$ <> "MMBasic for Windows" Then Exit Sub
+
   Local original$ = Mm.Info$(Option Search Path)
 
   ' Set the SEARCH PATH to a directory that exists.
   Local path$ = Mm.Info$(Path)
   Option Search Path path$
-  ' Note we the trailing '/' will have been trimmed from the Search Path.
-  assert_string_equals(Left$(path$, Len(path$) - 1), Mm.Info$(Option Search Path))
+  If Mm.Device$ = "MMB4L" Then
+    ' Note we the trailing '/' will have been trimmed from the Search Path.
+    assert_string_equals(Left$(path$, Len(path$) - 1), Mm.Info$(Option Search Path))
+  Else
+    assert_string_equals(path$, Mm.Info$(Option Search Path))
+  EndIf
 
   ' Set the SEARCH PATH to a file that exists.
+  path$ = Mm.Info$(Current)
   On Error Skip
-  Option Search Path Mm.Info$(Current)
-  assert_raw_error("Not a directory")
+  Option Search Path path$
+  Select Case Mm.Device$
+    Case "MMB4L" :               assert_raw_error("No such file or directory")
+    Case "MMBasic for Windows" : assert_raw_error("Directory " + path$ + " does not exist")
+    Case Else :                  assert_raw_error("Directory not found")
+  End Select
 
   ' Set the SEARCH PATH to a path that does not exist.
   On Error Skip
   Option Search Path "/does/not/exist"
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "No such file or directory", "Directory not found"))
+  Select Case Mm.Device$
+    Case "MMB4L" :               assert_raw_error("No such file or directory")
+    Case "MMBasic for Windows" : assert_raw_error("Directory \does\not\exist does not exist")
+    Case Else :                  assert_raw_error("Directory not found")
+  End Select
 
   ' Set the SEARCH PATH to a path that is too long.
   On Error Skip
   Option Search Path String$(255, "a")
-  assert_raw_error("File name too long")
+  Select Case Mm.Device$
+    Case "MMB4L" :               assert_raw_error("File name too long")
+    Case "MMBasic for Windows" : assert_raw_error("Pathname too long")
+    Case Else :                  assert_raw_error("Pathname too long")
+  End Select
 
   ' Unset the SEARCH PATH.
   Option Search Path ""
-  assert_string_equals("", Mm.Info$(Option Search Path))
+  If Mm.Device$ = "MMB4L" Then
+    assert_string_equals("", Mm.Info$(Option Search Path))
+  Else
+    ' MMB4W 5.07.03b8: not what I would expect.
+    assert_string_equals(Cwd$ + sys.string_prop$("separator"), Mm.Info$(Option Search Path))
+  EndIf
 
   Option Search Path original$
   assert_string_equals(original$, Mm.Info$(Option Search Path))
@@ -495,6 +526,8 @@ Sub test_option_serial()
 
   Else
 
+    ' Note that on "MMBasic for Windows" the default is OPTION CONSOLE SCREEN,
+    ' but the unit-test framework sets OPTION CONSOLE BOTH.
     assert_string_equals("Both", Mm.Info(Option Console))
 
     Option Console Serial
@@ -525,15 +558,7 @@ Sub test_option_tab()
 End Sub
 
 Sub test_path()
-  If Mm.Device$ = "MMB4L" Then
-    Local out$
-    System "echo $HOME", out$
-    Local expected_path$ = out$ + "/github/mmb4l-src/tests/"
-  Else
-    Local expected_path$ = "A:/MMB4L-SRC/TESTS/"
-  EndIf
-
-  assert_string_equals(expected_path$, MM.Info$(Path))
+  assert_string_equals(expected_path$(), MM.Info$(Path))
 End Sub
 
 Sub test_vpos()
@@ -571,5 +596,5 @@ Sub test_vres()
 End Sub
 
 Sub test_version()
-  assert_float_equals(EXPECTED_VERSION!, Mm.Info(Version), 1e-10)
+  assert_string_equals(EXPECTED_VERSION$, Left$(Str$(Mm.Info(Version)), Len(EXPECTED_VERSION$)))
 End Sub

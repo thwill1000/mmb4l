@@ -24,6 +24,7 @@ add_test("test_day")
 add_test("test_epoch")
 add_test("test_time")
 add_test("test_timer")
+add_test("test_timer_given_large_value")
 add_test("test_pause")
 add_test("test_settick")
 
@@ -38,7 +39,9 @@ Sub teardown_test()
 End Sub
 
 Sub test_date()
-  If Mm.Device$ = "MMB4L" Then
+  If Mm.Device$ = "MMBasic for Windows" Then
+    ' TODO
+  ElseIf Mm.Device$ = "MMB4L" Then
     Local expected$
     System "date '+%d-%m-%Y'", expected$
     assert_string_equals(expected$, Date$)
@@ -82,7 +85,10 @@ Sub test_datetime()
   assert_string_equals("03-01-1974 19:36:36", DateTime$(126473796))
   assert_string_equals("01-01-2000 00:00:00", DateTime$(946684800))
   assert_string_equals("25-08-2015 12:12:12", DateTime$(1440504732))
-  assert_string_equals("31-12-1969 23:43:20", DateTime$(-1000))
+
+  If Mm.Device$ <> "MMBasic for Windows" Then
+    assert_string_equals("31-12-1969 23:43:20", DateTime$(-1000))
+  EndIf
 End Sub
 
 Sub test_day()
@@ -124,6 +130,12 @@ Sub test_time()
     Local expected$
     System "date '+%H:%M:%S'", expected$
     assert_string_equals(expected$, Time$)
+  ElseIf Mm.Device$ = "MMBasic for Windows" Then
+    Local ls%(256)
+    System "echo %time%", ls%()
+    Local expected$ = LGetStr$(ls%(), 1, 8)
+    If Left$(expected$, 1) = " " Then expected$ = "0" + Right$(expected$, 7)
+    assert_string_equals(expected$, Time$)
   Else
     Local old_time$ = Time$
 
@@ -148,6 +160,17 @@ Sub test_timer()
     Timer = i%
     assert_float_equals(i%, Timer, 1)
   Next
+
+  Timer = old_timer%
+End Sub
+
+Sub test_timer_given_large_value()
+  Local old_timer% = Timer
+
+  ' At a large enough value the TIMER will rollover,
+  ' but it shouldn't happen with 9e12.
+  Timer = 9e12
+  assert_float_equals(9e12, Timer, 1)
 
   Timer = old_timer%
 End Sub
