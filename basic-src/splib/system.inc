@@ -1,6 +1,6 @@
-' Copyright (c) 2020-2021 Thomas Hugo Williams
+' Copyright (c) 2020-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For Colour Maximite 2, MMBasic 5.07
+' For MMBasic 5.07.03
 
 Const sys.VERSION$ = "2.0.0-a1"
 Const sys.NO_DATA$ = Chr$(&h7F)
@@ -103,13 +103,25 @@ End Sub
 Function sys.string_prop$(key$)
   Select Case LCase$(key$)
     Case "home"
-      sys.string_prop$ = Choice(Mm.Device$ = "MMB4L", Mm.Info$(EnvVar "HOME"), "A:")
+      Select Case Mm.Device$
+        Case "MMB4L"
+          sys.string_prop$ = Mm.Info$(EnvVar "HOME")
+        Case "MMBasic for Windows"
+          sys.string_prop$ = Mm.Info$(EnvVar "HOMEDIR") + Mm.Info$(EnvVar "HOMEPATH")
+        Case Else
+          sys.string_prop$ = "A:"
+      End Select
+    Case "separator"
+      sys.string_prop$ = Choice(Mm.Device$ = "MMBasic for Windows", "\", "/")
     Case "tmpdir"
-      If Mm.Device$ = "MMB4L" Then
-        sys.string_prop$ = Choice(Mm.Info$(EnvVar "TMPDIR") = "", "/tmp", Mm.Info$(EnvVar "TMPDIR"))
-      Else
-        sys.string_prop$ = "A:/tmp"
-      EndIf
+      Select Case Mm.Device$
+        Case "MMB4L"
+          sys.string_prop$ = Choice(Mm.Info$(EnvVar "TMPDIR") = "", "/tmp", Mm.Info$(EnvVar "TMPDIR"))
+        Case "MMBasic for Windows"
+          sys.string_prop$ = Mm.Info$(EnvVar "TMP")
+        Case Else
+          sys.string_prop$ = "A:/tmp"
+      End Select
     Case Else
       Error "Unknown property: " + key$
   End Select

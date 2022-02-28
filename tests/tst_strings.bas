@@ -1,9 +1,6 @@
 ' Copyright (c) 2021 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For Colour Maximite 2, MMBasic 5.07.01
-'
-' Includes with permission tests derived from code by @Volhout on
-' https://www.thebackshed.com
+' For MMBasic 5.07.03
 
 Option Explicit On
 Option Default None
@@ -18,11 +15,17 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../basic-src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
+Const MAX_INT% = 9223372036854775807
+Const MIN_INT% = -9223372036854775808
 
+add_test("test_bin_function")
 add_test("test_chr_ascii")
 add_test("test_chr_utf8")
+add_test("test_hex_function")
 add_test("test_mid_function")
 add_test("test_mid_command")
+add_test("test_oct_function")
+add_test("test_str_function")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -32,6 +35,27 @@ Sub setup_test()
 End Sub
 
 Sub teardown_test()
+End Sub
+
+Sub test_bin_function()
+  assert_string_equals("0", Bin$(0))
+  assert_string_equals("1", Bin$(1))
+  assert_string_equals("1111111111111111111111111111111111111111111111111111111111111111", Bin$(-1))
+  assert_string_equals("111111111111111111111111111111111111111111111111111111111111111", Bin$(MAX_INT%))
+  assert_string_equals("1000000000000000000000000000000000000000000000000000000000000000", Bin$(MIN_INT%))
+
+  ' Value of 0 for second argument should give same result as not providing argument.
+  assert_string_equals("0", Bin$(0, 0))
+  assert_string_equals("1", Bin$(1, 0))
+  assert_string_equals("1111111111111111111111111111111111111111111111111111111111111111", Bin$(-1, 0))
+  assert_string_equals("111111111111111111111111111111111111111111111111111111111111111", Bin$(MAX_INT%, 0))
+  assert_string_equals("1000000000000000000000000000000000000000000000000000000000000000", Bin$(MIN_INT%, 0))
+
+  assert_string_equals("0000", Bin$(0, 4))
+  assert_string_equals("0001", Bin$(1, 4))
+  assert_string_equals("1111111111111111111111111111111111111111111111111111111111111111", Bin$(-1, 4))
+  assert_string_equals("111111111111111111111111111111111111111111111111111111111111111", Bin$(MAX_INT%, 4))
+  assert_string_equals("1000000000000000000000000000000000000000000000000000000000000000", Bin$(MIN_INT%, 4))
 End Sub
 
 Sub test_chr_ascii()
@@ -45,6 +69,8 @@ Sub test_chr_ascii()
 End Sub
 
 Sub test_chr_utf8()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
   ' 1-byte unicode = ASCII
   Local s$ = Chr$(Utf8 102)
   assert_int_equals(1, Peek(Byte Peek(VarAddr s$)))
@@ -72,6 +98,27 @@ Sub test_chr_utf8()
   assert_int_equals(&h93, Peek(Byte Peek(VarAddr s$) + 4))
 End Sub
 
+Sub test_hex_function()
+  assert_string_equals("0", Hex$(0))
+  assert_string_equals("1", Hex$(1))
+  assert_string_equals("FFFFFFFFFFFFFFFF", Hex$(-1))
+  assert_string_equals("7FFFFFFFFFFFFFFF", Hex$(MAX_INT%))
+  assert_string_equals("8000000000000000", Hex$(MIN_INT%))
+
+  ' Value of 0 for second argument should give same result as not providing argument.
+  assert_string_equals("0", Hex$(0, 0))
+  assert_string_equals("1", Hex$(1, 0))
+  assert_string_equals("FFFFFFFFFFFFFFFF", Hex$(-1, 0))
+  assert_string_equals("7FFFFFFFFFFFFFFF", Hex$(MAX_INT%, 0))
+  assert_string_equals("8000000000000000", Hex$(MIN_INT%, 0))
+
+  assert_string_equals("0000", Hex$(0, 4))
+  assert_string_equals("0001", Hex$(1, 4))
+  assert_string_equals("FFFFFFFFFFFFFFFF", Hex$(-1, 4))
+  assert_string_equals("7FFFFFFFFFFFFFFF", Hex$(MAX_INT%, 4))
+  assert_string_equals("8000000000000000", Hex$(MIN_INT%, 4))
+End Sub
+
 Sub test_mid_function()
   assert_string_equals("f", Mid$("foobar", 1, 1))
   assert_string_equals("oo", Mid$("foobar", 2, 2))
@@ -91,4 +138,46 @@ Sub test_mid_command()
   Mid$(a$, 1, 10) = "cccccccccc"
   Local expected$ = "10 is invalid (valid is 1 to 6)"
   assert_string_equals(expected$, Right$(Mm.ErrMsg$, Len(expected$)))
+End Sub
+
+Sub test_oct_function()
+  assert_string_equals("0", Oct$(0))
+  assert_string_equals("1", Oct$(1))
+  assert_string_equals("1777777777777777777777", Oct$(-1))
+  assert_string_equals("777777777777777777777", Oct$(MAX_INT%))
+  assert_string_equals("1000000000000000000000", Oct$(MIN_INT%))
+
+  ' Value of 0 for second argument should give same result as not providing argument.
+  assert_string_equals("0", Oct$(0, 0))
+  assert_string_equals("1", Oct$(1, 0))
+  assert_string_equals("1777777777777777777777", Oct$(-1, 0))
+  assert_string_equals("777777777777777777777", Oct$(MAX_INT%, 0))
+  assert_string_equals("1000000000000000000000", Oct$(MIN_INT%, 0))
+
+  assert_string_equals("0000", Oct$(0, 4))
+  assert_string_equals("0001", Oct$(1, 4))
+  assert_string_equals("1777777777777777777777", Oct$(-1, 4))
+  assert_string_equals("777777777777777777777", Oct$(MAX_INT%, 4))
+  assert_string_equals("1000000000000000000000", Oct$(MIN_INT%, 4))
+End Sub
+
+Sub test_str_function()
+  assert_string_equals("0", Str$(0))
+  assert_string_equals("1", Str$(1))
+  assert_string_equals("-1", Str$(-1))
+  assert_string_equals("9223372036854775807", Str$(MAX_INT%))
+  assert_string_equals("-9223372036854775808", Str$(MIN_INT%))
+
+  ' Value of 0 for second argument should give same result as not providing argument.
+  assert_string_equals("0", Str$(0, 0))
+  assert_string_equals("1", Str$(1, 0))
+  assert_string_equals("-1", Str$(-1, 0))
+  assert_string_equals("9223372036854775807", Str$(MAX_INT%, 0))
+  assert_string_equals("-9223372036854775808", Str$(MIN_INT%, 0))
+
+  assert_string_equals("   0", Str$(0, 4))
+  assert_string_equals("   1", Str$(1, 4))
+  assert_string_equals("  -1", Str$(-1, 4))
+  assert_string_equals("9223372036854775807", Str$(MAX_INT%, 4))
+  assert_string_equals("-9223372036854775808", Str$(MIN_INT%, 4))
 End Sub
