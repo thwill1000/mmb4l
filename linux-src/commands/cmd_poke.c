@@ -12,6 +12,14 @@ static void poke_byte(int argc, char** argv, char *p) {
     *((uint8_t *) addr) = (uint8_t) value;
 }
 
+/** POKE DATAPOS data_pos% */
+static void poke_datapos(int argc, char** argv, char *p) {
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    uint64_t data_pos = (uint64_t) getinteger(p);
+    NextDataLine = ProgMemory + (data_pos >> 32);
+    NextData = data_pos & 0xFFFFFFFF;
+}
+
 /** POKE FLOAT addr%, float! */
 static void poke_float(int argc, char** argv, char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
@@ -88,6 +96,8 @@ void cmd_poke(void) {
     char* p;
     if ((p = checkstring(argv[0], "BYTE"))) {
         poke_byte(argc, argv, p);
+    } else if ((p = checkstring(argv[0], "DATAPOS"))) {
+        poke_datapos(argc, argv, p);
     } else if ((p = checkstring(argv[0], "FLOAT"))) {
         poke_float(argc, argv, p);
     } else if ((p = checkstring(argv[0], "INTEGER"))) {

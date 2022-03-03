@@ -2378,6 +2378,8 @@ void MIPS16 ClearStack(void) {
     LocalIndex = 0;
     TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
 #if defined(__mmb4l__)
+    extern void cmd_read_clear_cache(void);
+    cmd_read_clear_cache();
     interrupt_clear();
 #else
     InterruptReturn = NULL;
@@ -2431,6 +2433,7 @@ void MIPS16 ClearProgram(void) {
 #if defined(__mmb4l__)
     memset(error_file, 0, STRINGSIZE);
     error_line = -1;
+
 #else
     StartEditPoint = NULL;
     StartEditChar = 0;

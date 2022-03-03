@@ -1175,7 +1175,7 @@ void cmd_endfun(void) {
 }
 
 
-
+#if !defined(__mmb4l__)
 void cmd_read(void) {
     int i, len;
     char *p, datatoken, *lineptr = NULL, *x;
@@ -1268,7 +1268,7 @@ search_again:
         }
     }
 }
-
+#endif
 
 
 void cmd_restore(void) {

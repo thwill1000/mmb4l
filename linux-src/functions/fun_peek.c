@@ -51,6 +51,16 @@ static void peek_cfunaddr(int argc, char **argv, char *p) {
     g_integer_rtn = (uintptr_t) addr;
 }
 
+#include <stdio.h>
+
+/** PEEK(DATAPOS) */
+static void peek_datapos(int argc, char **argv, char *p) {
+    if (argc != 1) ERROR_SYNTAX;
+    uint64_t data_pos = ((NextDataLine - ProgMemory) << 32) + NextData;
+    g_integer_rtn = data_pos;
+    g_rtn_type = T_INT;
+}
+
 /** PEEK(INTEGER addr%) */
 static void peek_integer(int argc, char **argv, char *p) {
     if (argc != 1) ERROR_SYNTAX;
@@ -147,6 +157,8 @@ void fun_peek(void) {
         peek_byte(argc, argv, p);
     } else if ((p = checkstring(argv[0], "CFUNADDR"))) {
         peek_cfunaddr(argc, argv, p);
+    } else if ((p = checkstring(argv[0], "DATAPOS"))) {
+        peek_datapos(argc, argv, p);
     } else if ((p = checkstring(argv[0], "INTEGER"))) {
         peek_integer(argc, argv, p);
     } else if ((p = checkstring(argv[0], "FLOAT"))) {
