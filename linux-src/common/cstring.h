@@ -1,6 +1,8 @@
 #if !defined(MMMB4L_CSTRING_H)
 #define MMMB4L_CSTRING_H
 
+#include <stdbool.h>
+
 /**
  * @brief  Safely concatenates strings.
  *
@@ -15,6 +17,26 @@
 int cstring_cat(char *dst, const char* src, size_t dst_sz);
 
 /**
+ * @brief Performs inplace double-quoting of a C-string.
+ *
+ * @param [in,out] s  The string to quote.
+ * @param [in]     n  The size of the buffer allocated to @p s.
+ * @return            0 on success, -1 if the string was NULL or the buffer too small.
+ */
+int cstring_enquote(char *s, size_t n);
+
+/**
+ * @brief Does a C-string have leading and trailing double-quotes.
+ *
+ * @param[in] s   The string to test.
+ * @return true   If @p s has both leading and trailing double-quotes.
+ * @return false  If @p s does not have both leading and trailing double-quotes.
+ */
+bool cstring_isquoted(const char *s);
+
+#define cstring_quote(s, n)  cstring_enquote(s, n)
+
+/**
  * @brief Replaces substrings in a C string.
  *
  * @param [in,out] target       string to apply replacements to.
@@ -23,10 +45,40 @@ int cstring_cat(char *dst, const char* src, size_t dst_sz);
  */
 void cstring_replace(char *target, const char *needle, const char *replacement);
 
-/** Converts C-string to upper-case inplace. */
+/**
+ * @brief Performs inplace conversion of a C-string to lower-case.
+ *
+ * @param [in,out] s  The string to convert.
+ * @return            The value of @p s.
+ */
+char *cstring_tolower(char *s);
+
+/**
+ * @brief Performs inplace conversion of a C-string to upper-case.
+ *
+ * @param [in,out] s  The string to convert.
+ * @return            The value of @p s.
+ */
 char *cstring_toupper(char *s);
 
-/** If 'str' has leading and trailing double quotes then strips them off. */
-void cstring_unquote(char *str);
+/**
+ * @brief Performs inplace trimming of leading and trailing whitespace
+ *        (as determined by @code{isspace()}) from a C-string.
+ *
+ * @param [in,out] s  The string to trim.
+ * @return            The value of @p s.
+ */
+char *cstring_trim(char *s);
+
+/**
+ * @brief Performs inplace removal of a single leading and trailing double-quote
+ *        from a C-string.
+ *
+ * If both leading and trailing double-quotes are not present then does nothing.
+ *
+ * @param [in,out] s  The string to unquote.
+ * @return            The value of @p s.
+ */
+char *cstring_unquote(char *s);
 
 #endif
