@@ -16,6 +16,12 @@ bool path_exists(const char *path) {
     return stat(path, &st) == 0;
 }
 
+bool path_is_directory(const char *path) {
+    struct stat st;
+    errno = 0;
+    return (stat(path, &st) == 0) && S_ISDIR(st.st_mode) ? true : false;
+}
+
 bool path_is_empty(const char *path) {
     struct stat st;
     errno = 0;

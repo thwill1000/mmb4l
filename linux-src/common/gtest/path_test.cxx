@@ -186,6 +186,13 @@ TEST_F(PathTest, Exists) {
     EXPECT_EQ(path_exists("/bin/does-not-exist"), false);
 }
 
+TEST_F(PathTest, IsDirectory) {
+    EXPECT_EQ(true, path_is_directory("/"));
+    EXPECT_EQ(true, path_is_directory("/bin"));
+    EXPECT_EQ(false, path_is_directory("/bin/vi"));
+    EXPECT_EQ(false, path_is_directory("/does-not-exist"));    
+}
+
 TEST_F(PathTest, IsEmpty) {
     EXPECT_EQ(path_is_empty("/bin/vi"), 0);
 

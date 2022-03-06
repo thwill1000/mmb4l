@@ -6,6 +6,9 @@
 /** Does the path exist? */
 bool path_exists(const char *path);
 
+/** Is the path a directory, or a symbolic link to a directory? */
+bool path_is_directory(const char *path);
+
 /** Is the path empty? */
 bool path_is_empty(const char *path);
 
