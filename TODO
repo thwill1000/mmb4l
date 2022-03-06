@@ -4,7 +4,6 @@ TODO
 Required for alpha 4
 --------------------
 
-Implement SEARCH PATH
 Implement command-line RUN shortcut '*'
 Implement command-line SYSTEM shortcut, e.g. '!cd', '!ls'
   - can we get away without requiring the ! if at the BASIC prompt ?

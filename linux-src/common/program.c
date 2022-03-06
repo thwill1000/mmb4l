@@ -1,11 +1,13 @@
 #include <ctype.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "mmb4l.h"
 #include "console.h"
 #include "cstring.h"
 #include "error.h"
 #include "file.h"
+#include "options.h"
 #include "path.h"
 #include "program.h"
 #include "utility.h"
@@ -355,41 +357,85 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     file_close(fnbr);
 }
 
+static bool program_path_exists(const char *root, const char *stem, const char *extension) {
+    char path[STRINGSIZE] = { '\0' };
+    if (FAILED(cstring_cat(path, root, STRINGSIZE))
+            || FAILED(cstring_cat(path, stem, STRINGSIZE))
+            || FAILED(cstring_cat(path, extension, STRINGSIZE))) {
+        return false;
+    }
+    return path_exists(path);
+}
+
 char *program_get_bas_file(const char *filename, char *out) {
 
-    char tmp_path[STRINGSIZE];
-    if (!path_munge(filename, tmp_path, STRINGSIZE)) return NULL;
+    char stem[STRINGSIZE] = { '\0' };
+    if (!path_munge(filename, stem, STRINGSIZE)) return NULL;
+    bool stem_has_extension = strcasecmp(path_get_extension(stem), BAS_FILE_EXTENSIONS[0]) == 0;
+    bool stem_is_relative = !path_is_absolute(stem);
 
-    if (CurrentLinePtr && !path_is_absolute(tmp_path)) {
-        // If we are in a running program then resolve path relative to the
-        // current program directory.
-        char resolved_path[STRINGSIZE];
-        if (!path_get_parent(CurrentFile, resolved_path, STRINGSIZE)) return NULL;
-        if (FAILED(cstring_cat(resolved_path, "/", STRINGSIZE))
-                || FAILED(cstring_cat(resolved_path, tmp_path, STRINGSIZE))) {
+    // Determine root to use for resolving relative paths.
+    char root[STRINGSIZE] = { '\0' };
+    if (stem_is_relative) {
+        if (CurrentLinePtr) {
+            if (!path_get_parent(CurrentFile, root, STRINGSIZE)) return NULL;
+        } else {
+            errno = 0;
+            if (!getcwd(root, STRINGSIZE)) return NULL;
+        }
+        if (FAILED(cstring_cat(root, "/", STRINGSIZE))) {
             errno = ENAMETOOLONG;
             return NULL;
         }
-        strcpy(tmp_path, resolved_path);
     }
 
-    // If file does not have ".bas" extension then we add one, but we try to
-    // match up with existing file with ".bas", ".BAS" or ".Bas" extensions in
-    // that order.
-    if (strcasecmp(path_get_extension(tmp_path), BAS_FILE_EXTENSIONS[0]) != 0) {
-        size_t len = strlen(tmp_path);
+    // Determine the extension to use if one isn't provided.
+    char extension[8] = { '\0' };
+    if (!stem_has_extension) {
         for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
-            if (len + strlen(BAS_FILE_EXTENSIONS[i]) >= sizeof(tmp_path)) {
-                errno = ENAMETOOLONG;
-                return NULL;
+            if (program_path_exists(root, stem, BAS_FILE_EXTENSIONS[i])) {
+                strcpy(extension, BAS_FILE_EXTENSIONS[i]);
+                break;
             }
-            strcpy(tmp_path + len, BAS_FILE_EXTENSIONS[i]);
-            if (path_exists(tmp_path)) break;
         }
-        if (!path_exists(tmp_path)) strcpy(tmp_path + len, BAS_FILE_EXTENSIONS[0]);
     }
 
-    return path_get_canonical(tmp_path, out, STRINGSIZE);
+    // If the stem is relative and we still can't find an existing file then check the SEARCH PATH.
+    if (stem_is_relative && *mmb_options.search_path && !program_path_exists(root, stem, extension)) {
+        char search_path[STRINGSIZE] = { '\0' };
+        if (FAILED(cstring_cat(search_path, mmb_options.search_path, STRINGSIZE))
+                || FAILED(cstring_cat(search_path, "/", STRINGSIZE))) {
+            errno = ENAMETOOLONG;
+            return NULL;
+        }
+        if (stem_has_extension) {
+            if (program_path_exists(search_path, stem, "")) {
+                strcpy(root, search_path);
+            }
+        } else {
+            for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+                if (program_path_exists(search_path, stem, BAS_FILE_EXTENSIONS[i])) {
+                    strcpy(root, search_path);
+                    strcpy(extension, BAS_FILE_EXTENSIONS[i]);
+                    break;
+                }
+            }
+        }
+    }
+
+    // If we still don't have an extension use the default.
+    if (!stem_has_extension && !*extension) strcpy(extension, BAS_FILE_EXTENSIONS[0]);
+
+    char path[STRINGSIZE] = { '\0' };
+    errno = ENAMETOOLONG;
+    if (FAILED(cstring_cat(path, root, STRINGSIZE))
+            || FAILED(cstring_cat(path, stem, STRINGSIZE))
+            || FAILED(cstring_cat(path, extension, STRINGSIZE))) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    return path_get_canonical(path, out, STRINGSIZE);
 }
 
 // now we must scan the program looking for CFUNCTION/CSUB/DEFINEFONT

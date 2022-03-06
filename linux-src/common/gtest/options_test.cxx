@@ -30,17 +30,20 @@ TEST(OptionsTest, Init) {
     EXPECT_EQ(false, options.persistent_bool);
     EXPECT_EQ(0.0, options.persistent_float);
     EXPECT_STREQ("", options.persistent_string);
+    EXPECT_STREQ("", options.search_path);
 }
 
 TEST(OptionsTest, Save) {
     Options options;
     options_init(&options);
     strcpy(options.editor, "Vi");
+    strcpy(options.search_path, "/foo/bar");
     options.list_case = 1;
     options.tab = 8;
     options.persistent_bool = true;
     options.persistent_float = 3.142;
     strcpy(options.persistent_string, "foo bar");
+    strcpy(options.search_path, "/foo/bar");
     const char *filename = "/tmp/options_test_save";
 
     EXPECT_EQ(options_save(&options, filename), 0);
@@ -53,6 +56,7 @@ TEST(OptionsTest, Save) {
     EXPECT_STREQ(fgets(line, 256, f), "persistent-bool = true\n");
     EXPECT_STREQ(fgets(line, 256, f), "persistent-float = 3.142\n");
     EXPECT_STREQ(fgets(line, 256, f), "persistent-string = \"foo bar\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "search-path = \"/foo/bar\"\n");
     EXPECT_FALSE(fgets(line, 256, f));
     EXPECT_TRUE(feof(f));
     fclose(f);
@@ -67,6 +71,7 @@ TEST(OptionsTest, Save_GivenDirectoryDoesNotExist) {
     options.persistent_bool = true;
     options.persistent_float = 3.142;
     strcpy(options.persistent_string, "foo bar");
+    strcpy(options.search_path, "/foo/bar");
 
     const char *filename = "/tmp/options_test_save_dir/myfile.options";
     const char *directory = "/tmp/options_test_save_dir";
@@ -83,6 +88,7 @@ TEST(OptionsTest, Save_GivenDirectoryDoesNotExist) {
     EXPECT_STREQ(fgets(line, 256, f), "persistent-bool = true\n");
     EXPECT_STREQ(fgets(line, 256, f), "persistent-float = 3.142\n");
     EXPECT_STREQ(fgets(line, 256, f), "persistent-string = \"foo bar\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "search-path = \"/foo/bar\"\n");
     EXPECT_FALSE(fgets(line, 256, f));
     EXPECT_TRUE(feof(f));
     fclose(f);

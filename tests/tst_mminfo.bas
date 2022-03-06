@@ -44,6 +44,7 @@ add_test("test_option_default")
 add_test("test_option_explicit")
 add_test("test_option_codepage")
 add_test("test_option_resolution")
+add_test("test_option_search_path")
 add_test("test_option_serial")
 add_test("test_option_tab")
 add_test("test_path")
@@ -395,6 +396,27 @@ Sub test_option_resolution()
 
   Option Resolution Character
   assert_string_equals("Character", Mm.Info(Option Resolution))
+End Sub
+
+Sub test_option_search_path()
+  Local original$ = Mm.Info$(Option Search Path)
+
+  On Error Skip
+  Option Search Path "/does/not/exist"
+  assert_raw_error("Directory not found")
+
+  ' Set the SEARCH PATH to an existing directory.
+  Local path$ = Mm.Info$(Path)
+  Option Search Path path$
+  ' Note we the trailing '/' will have been trimmed from the Search Path.
+  assert_string_equals(Left$(path$, Len(path$) - 1), Mm.Info$(Option Search Path))
+
+  ' Unset the SEARCH PATH.
+  Option Search Path ""
+  assert_string_equals("", Mm.Info$(Option Search Path))
+
+  Option Search Path original$
+  assert_string_equals(original$, Mm.Info$(Option Search Path))
 End Sub
 
 Sub test_option_serial()

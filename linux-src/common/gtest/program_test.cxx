@@ -4,6 +4,7 @@
 
 extern "C" {
 
+#include "../options.h"
 #include "../program.h"
 #include "../utility.h"
 
@@ -13,6 +14,7 @@ char *CurrentLinePtr = NULL;
 char inpbuf[STRINGSIZE] = { '\0' };
 char ProgMemory[PROG_FLASH_SIZE] = { '\0' } ;
 char tknbuf[STRINGSIZE] = { '\0' };
+Options mmb_options = { 0 };
 
 char *checkstring(char *p, char *tkn) { return NULL; }
 void ClearProgram(void) { }
@@ -67,6 +69,9 @@ protected:
     }
 
     void RemoveRecursively(const char *dir_path) {
+        struct stat st = { 0 };
+        if (stat(dir_path, &st) == -1) return; // Does not exist.
+
         DIR *dir = opendir(dir_path);
         struct dirent *next_file;
         char file_path[PATH_MAX];
@@ -97,7 +102,17 @@ protected:
 
 protected:
 
+    void RemoveTemporaryFiles() {
+        RemoveRecursively(PROGRAM_TEST_DIR);
+        RemoveDir("bar");
+        RemoveFile("foo");
+        RemoveFile("foo.bas");
+        RemoveFile("foo.BAS");
+        RemoveFile("foo.Bas");
+    }
+
     void SetUp() override {
+        RemoveTemporaryFiles();
         MakeDir(PROGRAM_TEST_DIR);
         MakeDir(PROGRAM_TEST_DIR "/bar");
         MakeDir("bar");
@@ -108,12 +123,7 @@ protected:
     }
 
     void TearDown() override {
-        RemoveRecursively(PROGRAM_TEST_DIR);
-        RemoveDir("bar");
-        RemoveFile("foo");
-        RemoveFile("foo.bas");
-        RemoveFile("foo.BAS");
-        RemoveFile("foo.Bas");
+        RemoveTemporaryFiles();
     }
 };
 
@@ -213,6 +223,34 @@ TEST_F(ProgramTest, GetBasFile_GivenRunningProgram_AndRelativePath) {
     char *result;
 
     TEST_PROGRAM_GET_BAS_FILE("foo.bas", PROGRAM_TEST_DIR "/foo.bas");
+}
+
+TEST_F(ProgramTest, GetBasFile_GivenOnlyInSearchPath) {
+    char out[STRINGSIZE] = { '\0' };
+    char *result;
+    MakeEmptyFile(PROGRAM_TEST_DIR "/foo.bas");
+
+    // Given no search path, expect to resolve to file in CWD.
+    strcpy(mmb_options.search_path, "");
+    TEST_PROGRAM_GET_BAS_FILE("foo.bas", PathToFileInCwd("foo.bas").c_str());
+
+    // Given search path contains file, expect to resolve to file in search path.
+    strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
+    TEST_PROGRAM_GET_BAS_FILE("foo.bas", PROGRAM_TEST_DIR "/foo.bas");
+
+    // Given extension is not an exact match, expect to resolve to file in CWD.
+    strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
+    TEST_PROGRAM_GET_BAS_FILE("foo.BAS", PathToFileInCwd("foo.BAS").c_str());
+
+    // Given no extension, expect to resolve to file in search path.
+    strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
+    TEST_PROGRAM_GET_BAS_FILE("foo", PROGRAM_TEST_DIR "/foo.bas");
+
+    // Given file in CWD and search path, expect to resolve to file in CWD.
+    MakeEmptyFile("foo.bas");
+    TEST_PROGRAM_GET_BAS_FILE("foo.bas", PathToFileInCwd("foo.bas").c_str());
+    TEST_PROGRAM_GET_BAS_FILE("foo.BAS", PathToFileInCwd("foo.BAS").c_str());
+    TEST_PROGRAM_GET_BAS_FILE("foo",     PathToFileInCwd("foo.bas").c_str());
 }
 
 #define TEST_PROGRAM_GET_INC_FILE(filename, expected) \

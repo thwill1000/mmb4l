@@ -23,6 +23,7 @@ uint8_t error_to_exit_code(int32_t error_code);
 #define ERROR_ARGUMENT_NOT_INTEGER(s)  error("Argument " s " must be an integer")
 #define ERROR_ARGUMENT_NOT_INTEGER_ARRAY(s)  error("Argument " s " must be an integer array")
 #define ERROR_COULD_NOT(s)             error("Could not " s)
+#define ERROR_DIRECTORY_NOT_FOUND      error("Directory not found")
 #define ERROR_INTERNAL_FAULT           error("Internal fault (sorry)")
 #define ERROR_INVALID(s)               error("Invalid " s)
 #define ERROR_INVALID_ARGUMENT         ERROR_INVALID("argument")
@@ -34,6 +35,7 @@ uint8_t error_to_exit_code(int32_t error_code);
 #define ERROR_NOT_OPEN                 error("File or device not open");
 #define ERROR_NOT_SERIAL_PORT          error("Not a serial port");
 #define ERROR_OUT_OF_MEMORY            error("Not enough memory")
+#define ERROR_STRING_TOO_LONG          error("String too long");
 #define ERROR_SYNTAX                   error("Syntax")
 #define ERROR_UNIMPLEMENTED(s)         error("Unimplemented: " s)
 #define ERROR_UNRECOGNISED_OPTION      error("Unrecognised option")

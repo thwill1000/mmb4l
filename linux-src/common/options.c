@@ -156,6 +156,25 @@ static OptionsResult options_parse_list_case(const char *value, char *list_case)
     return kOk;
 }
 
+static OptionsResult options_parse_search_path(const char *value, char *search_path) {
+    char tmp[STRINGSIZE];
+    OptionsResult result = options_parse_string(value, tmp);
+    if (SUCCEEDED(result)) {
+        if (*tmp) {
+            char canonical_path[STRINGSIZE];
+            if (path_get_canonical(tmp, canonical_path, STRINGSIZE)
+                    && path_is_directory(canonical_path)) {
+                strcpy(search_path, canonical_path);
+            } else {
+                result = kFileNotFound;
+            }
+        } else {
+            strcpy(search_path, "");
+        }
+    }
+    return result;
+}
+
 static OptionsResult options_parse_tab(const char *value, char *tab) {
     int tmp = 0;
     OptionsResult result = options_parse_int(value, &tmp);
@@ -175,6 +194,8 @@ OptionsResult options_set(Options *options, const char *name, const char *value)
         result = options_parse_editor(value, options->editor);
     } else if (strcasecmp(name, "listcase") == 0) {
         result = options_parse_list_case(value, &(options->list_case));
+    } else if (strcasecmp(name, "search-path") == 0) {
+        result = options_parse_search_path(value, options->search_path);
     } else if (strcasecmp(name, "tab") == 0) {
         result = options_parse_tab(value, &(options->tab));
 #if defined OPTION_TESTS
@@ -315,6 +336,7 @@ OptionsResult options_save(const Options *options, const char *filename) {
     options_save_float(f, "persistent-float", options->persistent_float);
     options_save_string(f, "persistent-string", options->persistent_string);
 #endif
+    options_save_string(f, "search-path", options->search_path);
     fclose(f);
     return kOk;
 }

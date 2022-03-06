@@ -4,6 +4,7 @@
 
 #include "../common/mmb4l.h"
 #include "../common/codepage.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 #include "../common/options.h"
 #include "../common/parse.h"
@@ -136,7 +137,7 @@ static void option_list_item(char *name, char *value) {
 void option_list(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
 
-    char buf[STRINGSIZE];
+    char buf[STRINGSIZE + 2];
 
     sprintf(buf, "%d", OptionBase);
     option_list_item("Base", buf);
@@ -165,6 +166,9 @@ void option_list(char *p) {
     options_resolution_to_string(mmb_options.resolution, buf);
     option_list_item("Resolution", buf);
 
+    sprintf(buf, "\"%s\"", mmb_options.search_path);
+    option_list_item("Search Path", buf);
+
     sprintf(buf, "%d", mmb_options.tab);
     option_list_item("Tab", buf);
 
@@ -180,6 +184,28 @@ static void option_resolution(char *p) {
     }
 
     if (!p2 || !parse_is_end(p2)) ERROR_UNRECOGNISED_OPTION;
+}
+
+static void option_search_path(char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_SYNTAX;
+    char *path = getCstring(argv[0]);
+
+    // Wrap the path in quotes for calling options_set() with.
+    if (FAILED(cstring_enquote(path, STRINGSIZE))) ERROR_STRING_TOO_LONG;
+
+    OptionsResult result = options_set(&mmb_options, "search-path", path);
+    switch (result) {
+        case kOk:
+            save_options();
+            break;
+        case kFileNotFound:
+            ERROR_DIRECTORY_NOT_FOUND;
+            break;
+        default:
+            ERROR_INVALID_OPTION_VALUE;
+            break;
+    }
 }
 
 static void option_tab(char *p) {
@@ -218,6 +244,8 @@ void cmd_option(void) {
         option_list(p);
     } else if ((p = checkstring(cmdline, "RESOLUTION"))) {
         option_resolution(p);
+    } else if ((p = checkstring(cmdline, "SEARCH PATH"))) {
+        option_search_path(p);
     } else if ((p = checkstring(cmdline, "TAB"))) {
         option_tab(p);
     } else {

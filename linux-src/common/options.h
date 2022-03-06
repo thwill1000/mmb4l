@@ -46,6 +46,8 @@ typedef struct {
     enum options_console console;
     enum options_resolution resolution;
 
+    char search_path[STRINGSIZE];
+
 #if defined OPTION_TESTS
     bool    persistent_bool;
     int     persistent_int;

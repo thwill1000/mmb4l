@@ -266,6 +266,10 @@ static void mminfo_option(char *p) {
         g_string_rtn = GetTempStrMemory();
         options_resolution_to_string(mmb_options.resolution, g_string_rtn);
         g_rtn_type = T_STR;
+    } else if (checkstring(p, "SEARCH PATH")) {
+        g_string_rtn = GetTempStrMemory();
+        strcpy(g_string_rtn, mmb_options.search_path);
+        g_rtn_type = T_STR;
     } else if (checkstring(p, "TAB")) {
         g_integer_rtn = mmb_options.tab;
         g_rtn_type = T_INT;
