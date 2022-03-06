@@ -39,6 +39,7 @@ PARTICULAR PURPOSE.
 #include "common/file.h"
 #include "common/interrupt.h"
 #include "common/mmtime.h"
+#include "common/parse.h"
 #include "common/program.h"
 #include "common/serial.h"
 #include "common/utility.h"
@@ -298,6 +299,8 @@ int main(int argc, char *argv[]) {
             run_flag = false;
         } else {
             prompt_get_input();
+            MmResult result = parse_transform_input_buffer(inpbuf);
+            if (FAILED(result)) error_system(result);
         }
 
         if (!*inpbuf) continue;  // ignore an empty line

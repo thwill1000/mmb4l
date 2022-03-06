@@ -13,6 +13,7 @@ typedef enum {
     kOk            = 0,
     kFileNotFound  = ENOENT,
     kError         = 256,
+    kInternalFault,
     kStringTooLong,
     kInvalidFormat,
     kUnknownOption,

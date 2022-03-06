@@ -10,6 +10,7 @@ const char *mmresult_to_string(MmResult result) {
     switch (result) {
         case kOk:            return "No error";
         case kError:         return "MMBasic error";
+        case kInternalFault: return "Internal fault (sorry)";
         case kStringTooLong: return "String too long";
         case kInvalidFormat: return "Invalid format";
         case kUnknownOption: return "Unknown option";

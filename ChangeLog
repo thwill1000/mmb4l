@@ -22,6 +22,11 @@ Version 2022.01.00-a4 - ??-???-2022:
       Note that ${file} is replaced by the filename/path to edit "in quotes"
       and ${line} the line number to set the initial cursor position to.
   - Added OPTION SEARCH PATH <path> command.
+  - Added * command which may be used at the MMBasic prompt (but not within
+    programs) as a short-cut for RUN, e.g.
+        *foo --bar "wombat"
+    is translated to:
+        RUN "foo", --bar "wombat"
   - Changed LOAD and RUN so that if a filename without a [.bas|.BAS|.Bas]
     extension is not provided then one is automatically appended.
       - unlike other MMBasic ports MMB4L has a case-sensitive file-system

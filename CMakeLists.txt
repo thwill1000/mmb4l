@@ -215,6 +215,27 @@ target_link_libraries(
 gtest_discover_tests(test_mmbasic)
 
 ################################################################################
+# test_parse
+################################################################################
+
+add_executable(
+  test_parse
+  linux-src/common/cstring.c
+  linux-src/common/parse.c
+  linux-src/common/gtest/parse_test.cxx
+)
+
+target_link_libraries(
+  test_parse
+  gtest_main
+  gmock
+  gmock_main
+  gcov
+)
+
+gtest_discover_tests(test_parse)
+
+################################################################################
 # test_path
 ################################################################################
 

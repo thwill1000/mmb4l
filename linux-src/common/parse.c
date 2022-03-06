@@ -1,7 +1,9 @@
 #include <ctype.h>
+#include <stdio.h>
 
 #include "mmb4l.h"
 #include "console.h"
+#include "cstring.h"
 #include "error.h"
 
 bool parse_is_end(char *p) {
@@ -82,4 +84,77 @@ int parse_file_number(char *p, bool allow_zero) {
     if (fnbr == 0 && !allow_zero) return -1;
     if (fnbr < 0 || fnbr > MAXOPENFILES) return -1;
     return fnbr;
+}
+
+/**
+ * @brief Transforms input beginning with * into a corresponding RUN command.
+ */
+static MmResult parse_transform_star_command(char *input) {
+    char *src = input;
+    while (isspace(*src)) src++; // Skip whitespace.
+    if (*src != '*') return kInternalFault;
+    src++;
+
+    // Trim any trailing whitespace from the input.
+    char *end = input + strlen(input) - 1;
+    while (isspace(*end)) *end-- = '\0';
+
+    char tmp[STRINGSIZE + 32] = "RUN"; // Allocate extra space to avoid string overrun.
+    char *dst = tmp + 3;
+
+    if (*src == '"') {
+        // Everything before the second quote is the name of the file to RUN.
+        *dst++ = ' ';
+        *dst++ = *src++; // Leading quote.
+        while (*src && *src != '"') *dst++ = *src++;
+        if (*src == '"') *dst++ = *src++; // Trailing quote.
+    } else {
+        // Everything before the first space is the name of the file to RUN.
+        int count = 0;
+        while (*src && !isspace(*src)) {
+            if (++count == 1) {
+                *dst++ = ' ';
+                *dst++ = '\"';
+            }
+            *dst++ = *src++;
+        }
+        if (count) *dst++ = '\"';
+    }
+
+    while (isspace(*src)) src++; // Skip whitespace.
+
+    // Everything after is arguments.
+    if (*src) {
+        *dst++ = ',';
+        *dst++ = ' ';
+        strcpy(dst, src);
+    }
+
+    if (dst >= tmp + STRINGSIZE) return kStringTooLong;
+
+    // Copy transformed string back into the input buffer.
+    strncpy(input, tmp, STRINGSIZE - 1);
+    input[STRINGSIZE - 1] = '\0';
+
+    return kOk;
+}
+
+/**
+ * @brief Transforms input beginning with ! into a corresponding SYSTEM command.
+ */
+static MmResult parse_transform_bang_command(char *input) {
+    return kError;
+}
+
+MmResult parse_transform_input_buffer(char *input) {
+    char *p = input;
+    while (isspace(*p)) p++; // Skip whitespace.
+    switch (*p) {
+        case '*':
+            return parse_transform_star_command(input);
+        case '!':
+            return parse_transform_bang_command(input);
+        default:
+            return kOk;
+    }
 }
