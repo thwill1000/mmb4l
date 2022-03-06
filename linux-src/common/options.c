@@ -32,8 +32,6 @@ OptionsEditor options_editors[] = {
     { NULL, NULL, NULL }
 };
 
-void (*options_load_error_callback)(const char *) = NULL;
-
 void options_init(Options *options) {
     memset(options, 0, sizeof(Options));
     options->console = SERIAL;
@@ -211,9 +209,15 @@ OptionsResult options_set(Options *options, const char *name, const char *value)
     return result;
 }
 
-static void options_report_error(int line_num, char *name, OptionsResult result) {
+static void options_report_warning(int line_num, char *name, OptionsResult result, OPTIONS_WARNING_CB warning_cb) {
     char buf[256];
     switch (result) {
+        case kFileNotFound:
+            sprintf(buf, "line %d: file or directory not found for option '%s'.", line_num, name);
+            break;
+        case kInvalidFormat:
+            sprintf(buf, "line %d: invalid option format.", line_num);
+            break;
         case kUnknownOption:
             sprintf(buf, "line %d: unknown option '%s'.", line_num, name);
             break;
@@ -236,10 +240,10 @@ static void options_report_error(int line_num, char *name, OptionsResult result)
             sprintf(buf, "line %d: unknown error for option '%s'.", line_num, name);
             break;
     }
-    options_load_error_callback(buf);
+    warning_cb(buf);
 }
 
-OptionsResult options_load(Options *options, const char *filename) {
+OptionsResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb) {
     char path[STRINGSIZE];
     if (!path_munge(filename, path, STRINGSIZE)) return kOtherIoError;
 
@@ -260,20 +264,16 @@ OptionsResult options_load(Options *options, const char *filename) {
     while (!feof(f) && fgets(line, 256, f)) {
         line_num++;
         result = options_parse(line, name, value);
-        if (!SUCCEEDED(result)) return result;
-        if (!*name) continue; // Skip empty lines.
-        result = options_set(options, name, value);
+        if (SUCCEEDED(result)) {
+            if (!*name) continue; // Skip empty lines.
+            result = options_set(options, name, value);
+        }
         if (!SUCCEEDED(result)) {
-            if (options_load_error_callback) {
-                options_report_error(line_num, name, result);
-            } else {
-                fclose(f);
-                return result;
-            }
+            if (warning_cb) options_report_warning(line_num, name, result, warning_cb);
         }
     }
     fclose(f);
-    return errno ? kOtherIoError : kOk;
+    return kOk;
 }
 
 static int options_save_bool(FILE *f, const char *name, bool value) {

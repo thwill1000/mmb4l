@@ -118,7 +118,7 @@ static void verror(int32_t error, char *msg, va_list argp) {
     // ScrewUpTimer=0;
     MMerrno = error;
     error_buffer_clear();
-    options_load(&mmb_options, OPTIONS_FILE_NAME);  // make sure that the option struct is in a clean state
+    options_load(&mmb_options, OPTIONS_FILE_NAME, NULL);  // make sure that the option struct is in a clean state
 
     // if((OptionConsole & 2) && !OptionErrorSkip) {
     //     SetFont(PromptFont);

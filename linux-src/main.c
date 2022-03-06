@@ -72,23 +72,47 @@ void print_banner() {
     MMPrintString(COPYRIGHT);
 }
 
+static void init_options_cb(const char *msg) {
+    static int count = 0;
+
+    if (strcmp(msg, "END") == 0) {
+        if (count > 0) MMPrintString("\r\n");
+        return;
+    }
+
+    if (count == 0) {
+        MMPrintString("Warnings in '");
+        MMPrintString(OPTIONS_FILE_NAME);
+        MMPrintString("':\r\n");
+    }
+
+    MMPrintString((char *)msg);
+    MMPrintString("\r\n");
+
+    count++;
+}
+
 static void init_options() {
     options_init(&mmb_options);
 
-    OptionsResult result = options_load(&mmb_options, OPTIONS_FILE_NAME);
-    if (FAILED(result)) {
-        if (result == kFileNotFound) {
-            // Ignore file not found, use default options.
-        } else {
-            print_banner();
-            if (result == kOtherIoError) {
-                fprintf(stderr, "\nFailed to load options: %s (%d)\n", strerror(errno), errno);
-            } else {
-                fprintf(stderr, "\nFailed to load options: %d\n", result);
-            }
+    OptionsResult result = options_load(&mmb_options, OPTIONS_FILE_NAME, init_options_cb);
+    switch (result) {
+        case kOk:
+            // Options loaded, but may still have output warnings.
+            break;
+        case kFileNotFound:
+            // Ignore and use default options.
+            break;
+        case kOtherIoError:
+            fprintf(stderr, "\nFailed to load options: %s (%d)\n", strerror(errno), errno);
             exit(EX_FAIL);
-        }
+            break;
+        default:
+            fprintf(stderr, "\nFailed to load options: %d\n", result);
+            exit(EX_FAIL);
+            break;
     }
+    init_options_cb("END");
 }
 
 void set_start_directory() {
@@ -189,7 +213,6 @@ int main(int argc, char *argv[]) {
 
     vartbl = DOS_vartbl;
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
-    init_options();
 
     InitHeap();  // init memory allocation
 
@@ -206,6 +229,8 @@ int main(int argc, char *argv[]) {
         print_banner();
         MMPrintString("\r\n");
     }
+
+    init_options();
 
     OptionErrorSkip = 0;
     InitBasic();

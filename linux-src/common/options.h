@@ -56,15 +56,16 @@ typedef struct {
 #endif
 } Options;
 
+typedef void (*OPTIONS_WARNING_CB) (const char *);
+
 extern Options mmb_options;
 extern OptionsEditor options_editors[];
-extern void (*options_load_error_callback)(const char *);
 
 /** Initialises the options. */
 void options_init(Options *options);
 
 /** Loads persistent options from a file. */
-OptionsResult options_load(Options *options, const char *filename);
+OptionsResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb);
 
 /** Saves persistent options to a file. */
 OptionsResult options_save(const Options *options, const char *filename);

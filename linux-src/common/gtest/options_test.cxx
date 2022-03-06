@@ -115,7 +115,7 @@ TEST(OptionsTest, Load) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kOk, options_load(&options, filename));
+    EXPECT_EQ(kOk, options_load(&options, filename, NULL));
     EXPECT_STREQ(options.editor, "Vi");
     EXPECT_EQ(2, options.list_case);
     EXPECT_EQ(8, options.tab);
@@ -136,7 +136,7 @@ TEST(OptionsTest, Load_GivenAdditionalWhitespace) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename), 0);
+    EXPECT_EQ(options_load(&options, filename, NULL), 0);
     EXPECT_EQ(8, options.tab);
     EXPECT_EQ(options.persistent_bool, true);
     EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
@@ -159,7 +159,7 @@ TEST(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename), 0);
+    EXPECT_EQ(options_load(&options, filename, NULL), 0);
     EXPECT_EQ(options.persistent_bool, true);
     EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
@@ -180,7 +180,7 @@ TEST(OptionsTest, Load_GivenHashComments) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename), 0);
+    EXPECT_EQ(options_load(&options, filename, NULL), 0);
     EXPECT_EQ(options.persistent_bool, true);
     EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
@@ -201,37 +201,63 @@ TEST(OptionsTest, Load_GivenSemicolonComments) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(options_load(&options, filename), 0);
+    EXPECT_EQ(options_load(&options, filename, NULL), 0);
     EXPECT_EQ(options.persistent_bool, true);
     EXPECT_EQ(8, options.tab);
     EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
     EXPECT_STREQ(options.persistent_string, "foo bar");
 }
 
-TEST(OptionsTest, Load_GivenErrors) {
+TEST(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
-    fprintf(f, "foo = true\n");
-    fprintf(f, "persistent-bool = 42\n");
-    fprintf(f, "tab = \"Hello World\"\n");
-    fprintf(f, "persistent-float = true\n");
-    fprintf(f, "persistent-string = 3.142\n");
+    fprintf(f,
+            "foo = true\n"
+            "persistent-bool = 42\n"
+            "# comment\n"
+            "tab = \"Hello World\"\n"
+            "persistent-float = true\n"
+            "persistent-string = 3.142\n"
+            "search-path = \"/does/not/exist\"\n"
+            "bar");
     fclose(f);
 
+    options_test_buf[0] = '\0';
     Options options;
     options_init(&options);
 
-    options_test_buf[0] = '\0';
-    options_load_error_callback = &write_line_to_buf;
-    EXPECT_EQ(options_load(&options, filename), 0);
-
+    EXPECT_EQ(0, options_load(&options, filename, &write_line_to_buf));
     EXPECT_STREQ(
             "line 1: unknown option 'foo'.\n"
             "line 2: invalid boolean value for option 'persistent-bool'.\n"
-            "line 3: invalid integer value for option 'tab'.\n"
-            "line 4: invalid float value for option 'persistent-float'.\n"
-            "line 5: invalid string value for option 'persistent-string'.\n",
+            "line 4: invalid integer value for option 'tab'.\n"
+            "line 5: invalid float value for option 'persistent-float'.\n"
+            "line 6: invalid string value for option 'persistent-string'.\n"
+            "line 7: file or directory not found for option 'search-path'.\n"
+            "line 8: invalid option format.\n",
             options_test_buf);
+}
+
+TEST(OptionsTest, Load_GivenWarnings_AndCallbackNotProvided) {
+    const char *filename = "/tmp/options_test_load";
+    FILE *f = fopen(filename, "w");
+    fprintf(f,
+            "foo = true\n"
+            "persistent-bool = 42\n"
+            "# comment"
+            "tab = \"Hello World\"\n"
+            "persistent-float = true\n"
+            "persistent-string = 3.142\n"
+            "search-path = \"/does/not/exist\"\n"
+            "bar");
+    fclose(f);
+
+    options_test_buf[0] = '\0';
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(0, options_load(&options, filename, NULL));
+    EXPECT_STREQ("", options_test_buf);
 }
 
 TEST(OptionsTest, EditorToString) {
