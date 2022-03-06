@@ -139,11 +139,107 @@ static MmResult parse_transform_star_command(char *input) {
     return kOk;
 }
 
+static MmResult parse_transform_bang_cd_command(char *input, char *src) {
+    // Allocate extra space to avoid string overrun.
+    char tmp[STRINGSIZE + 32] = "CHDIR ";
+    char *dst = tmp + 6;
+    while (isspace(*src)) *src++;
+
+    if (!*src) {
+        // Special handling for 'cd' on its own.
+        strcpy(input, "CHDIR \"~\"");
+        return kOk;
+    }
+
+    // Start the command with a double quote unless the input started with one.
+    if (*src != '\"') *dst++ = '\"';
+
+    // Copy from src to dst.
+    while (*src) {
+        *dst++ = *src++;
+        if (dst > tmp + STRINGSIZE - 1) return kStringTooLong;
+    }
+
+    // End the command with a double quote unless the input ended with one.
+    if (*(src - 1) != '\"') *dst++ = '\"';
+
+    // Copy transformed string back into the input buffer.
+    strncpy(input, tmp, STRINGSIZE - 1);
+    input[STRINGSIZE - 1] = '\0';
+
+    *dst = '\0';
+
+    return kOk;
+}
+
 /**
  * @brief Transforms input beginning with ! into a corresponding SYSTEM command.
  */
 static MmResult parse_transform_bang_command(char *input) {
-    return kError;
+    char *src = input;
+    while (isspace(*src)) src++; // Skip whitespace.
+    if (*src != '!') return kInternalFault;
+    src++;
+
+    // Trim any whitespace after the bang.
+    while (isspace(*src)) *src++;
+
+    // Trim any trailing whitespace from the input.
+    char *end = input + strlen(input) - 1;
+    while (isspace(*end)) *end-- = '\0';
+
+    if (!*src) {
+        // Special case when it's just bang; this will be reported as a syntax error.
+        strcpy(input, "SYSTEM");
+        return kOk;
+    }
+
+    if (memcmp(src, "cd", 2) == 0
+            && (*(src + 2) == '\0' || isblank(*(src + 2)))
+            && !strstr(src, ";")
+            && !strstr(src, "&&")
+            && !strstr(src, "||")) {
+        // Special case for the 'cd' command unless there are multiple commands.
+        return parse_transform_bang_cd_command(input, src + 2);
+    }
+
+    // Allocate extra space to avoid string overrun.
+    char tmp[STRINGSIZE + 32] = "SYSTEM ";
+    char *dst = tmp + 7;
+
+    // Start the command with a double quote unless the input started with one.
+    if (*src != '\"') *dst++ = '\"';
+
+    // Copy from src to dst replacing any quotes with Chr$(34).
+    while (*src) {
+        if (*src == '"') {
+            if (dst > tmp + 7) {
+                memcpy(dst, "\" + ", 4);
+                dst += 4;
+            }
+            memcpy(dst, "Chr$(34)", 8);
+            dst += 8;
+            if (*(src + 1)) {
+                memcpy(dst, " + \"", 4);
+                dst += 4;
+            }
+            src++;
+        } else {
+            *dst++ = *src++;
+        }
+        if (dst > tmp + STRINGSIZE - 2) return kStringTooLong;
+    }
+
+    // End the command with a double quote unless the input ended with one.
+    if (memcmp(dst - 8, "Chr$(34)", 8) != 0) *dst++ = '\"';
+
+    *dst = '\0';
+
+    // Copy transformed string back into the input buffer.
+    strncpy(input, tmp, STRINGSIZE - 1);
+    input[STRINGSIZE - 1] = '\0';
+
+    return kOk;
 }
 
 MmResult parse_transform_input_buffer(char *input) {

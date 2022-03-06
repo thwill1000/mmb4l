@@ -27,6 +27,18 @@ Version 2022.01.00-a4 - ??-???-2022:
         *foo --bar "wombat"
     is translated to:
         RUN "foo", --bar "wombat"
+  - Added ! command which may be used at the MMBasic prompt (but not within
+    programs) as a short-cut for SYSTEM (usually), e.g.
+        !cp foo bar
+    is translated to:
+        SYSTEM "cp foo bar"
+    Note that !cd is treated as a special case, e.g.
+        !cd foo
+    is translated to:
+        CHDIR "foo"
+    This is required because "!cd foo" would otherwise appear to do nothing
+    because each SYSTEM command is run in the context of a separate forked
+    process instead of the MMBasic process itself.
   - Changed LOAD and RUN so that if a filename without a [.bas|.BAS|.Bas]
     extension is not provided then one is automatically appended.
       - unlike other MMBasic ports MMB4L has a case-sensitive file-system

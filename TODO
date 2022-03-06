@@ -4,10 +4,8 @@ TODO
 Required for alpha 4
 --------------------
 
-Implement command-line SYSTEM shortcut, e.g. '!cd', '!ls'
-  - can we get away without requiring the ! if at the BASIC prompt ?
-  - what about TAB completion of paths ?
-Implement tab completion of paths
+Implement SETENV var$, value$
+Implement tab completion of paths at MMBasic prompt
 Make all function keys reprogrammable
 Implement variable/sub/function hash tables
 
