@@ -126,7 +126,7 @@ Sub test_errmsg()
 End Sub
 
 Sub test_errno()
-  Local expected% = Choice(Mm.Device$ = "MMB4L", 1, 16)
+  Local expected% = Choice(Mm.Device$ = "MMB4L", 256, 16)
   On Error Skip 1
   Error "foo"
   assert_int_equals(expected%, Mm.ErrNo);

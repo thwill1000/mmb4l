@@ -129,6 +129,7 @@ set(MMBASIC_LINUX_COMMON_SOURCE_FILES
     linux-src/common/interrupt.c
     linux-src/common/maths.c
     linux-src/common/memory.c
+    linux-src/common/mmresult.c
     linux-src/common/mmtime.c
     linux-src/common/options.c
     linux-src/common/parse.c

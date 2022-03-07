@@ -6,21 +6,9 @@
 #include <stdbool.h>
 
 #include "../Configuration.h"
+#include "mmresult.h"
 
 #define OPTIONS_FILE_NAME  "~/.mmbasic/mmbasic.options"
-
-typedef enum {
-    kOk = 0,
-    kFileNotFound,
-    kInvalidFormat,
-    kUnknownOption,
-    kInvalidBool,
-    kInvalidFloat,
-    kInvalidInt,
-    kInvalidString,
-    kInvalidValue,
-    kOtherIoError
-} OptionsResult;
 
 typedef struct {
     char *id;      // Users specify these with OPTION EDITOR.
@@ -65,12 +53,12 @@ extern OptionsEditor options_editors[];
 void options_init(Options *options);
 
 /** Loads persistent options from a file. */
-OptionsResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb);
+MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb);
 
 /** Saves persistent options to a file. */
-OptionsResult options_save(const Options *options, const char *filename);
+MmResult options_save(const Options *options, const char *filename);
 
-OptionsResult options_set(Options *options, const char *name, const char *value);
+MmResult options_set(Options *options, const char *name, const char *value);
 
 void options_console_to_string(enum options_console console, char *buf);
 void options_editor_to_string(const char *editor, char *buf);

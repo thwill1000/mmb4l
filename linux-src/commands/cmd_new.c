@@ -12,10 +12,10 @@ void cmd_new(void) {
     ClearProgram();
     WatchdogSet = false;
     mmb_options.autorun = false;
-    OptionsResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+    MmResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);
     if (FAILED(result)) {
         char buf[STRINGSIZE];
-        sprintf(buf, "Warning: failed to save options: %d", result);
+        sprintf(buf, "Warning: failed to save options: %s", mmresult_to_string(result));
         MMPrintString(buf);
     }
     longjmp(mark, JMP_NEW);

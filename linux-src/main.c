@@ -95,7 +95,7 @@ static void init_options_cb(const char *msg) {
 static void init_options() {
     options_init(&mmb_options);
 
-    OptionsResult result = options_load(&mmb_options, OPTIONS_FILE_NAME, init_options_cb);
+    MmResult result = options_load(&mmb_options, OPTIONS_FILE_NAME, init_options_cb);
     switch (result) {
         case kOk:
             // Options loaded, but may still have output warnings.
@@ -103,12 +103,8 @@ static void init_options() {
         case kFileNotFound:
             // Ignore and use default options.
             break;
-        case kOtherIoError:
-            fprintf(stderr, "\nFailed to load options: %s (%d)\n", strerror(errno), errno);
-            exit(EX_FAIL);
-            break;
         default:
-            fprintf(stderr, "\nFailed to load options: %d\n", result);
+            fprintf(stderr, "\nFailed to load options: %s\n", mmresult_to_string(result));
             exit(EX_FAIL);
             break;
     }

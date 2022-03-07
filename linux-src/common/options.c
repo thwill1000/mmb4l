@@ -53,7 +53,7 @@ void options_init(Options *options) {
  * @param[out] value  buffer to output the value in.
  * @return TODO
  */
-static OptionsResult options_parse(const char *line, char *name, char *value) {
+static MmResult options_parse(const char *line, char *name, char *value) {
     // Check for empty or whitespace only line.
     char *p = (char *) line;
     while (isspace(*p)) p++;
@@ -82,7 +82,7 @@ static OptionsResult options_parse(const char *line, char *name, char *value) {
     return kOk;
 }
 
-static OptionsResult options_parse_bool(const char *value, bool *out) {
+static MmResult options_parse_bool(const char *value, bool *out) {
     if (strcasecmp(value, "0") == 0 || strcasecmp(value, "false") == 0) {
         *out = false;
         return kOk;
@@ -94,7 +94,7 @@ static OptionsResult options_parse_bool(const char *value, bool *out) {
     }
 }
 
-static OptionsResult options_parse_int(const char *value, int *out) {
+static MmResult options_parse_int(const char *value, int *out) {
     char *endptr;
     int i = strtol(value, &endptr, 10);
     if (*endptr) {
@@ -105,7 +105,7 @@ static OptionsResult options_parse_int(const char *value, int *out) {
     }
 }
 
-static OptionsResult options_parse_float(const char *value, MMFLOAT *out) {
+static MmResult options_parse_float(const char *value, MMFLOAT *out) {
     char *endptr;
     MMFLOAT f = strtod(value, &endptr);
     if (*endptr) {
@@ -116,14 +116,14 @@ static OptionsResult options_parse_float(const char *value, MMFLOAT *out) {
     }
 }
 
-static OptionsResult options_parse_string(const char *value, char *out) {
+static MmResult options_parse_string(const char *value, char *out) {
     if (*value != '"' || *(value + strlen(value) - 1) != '"') return kInvalidString;
     strncpy(out, value + 1, strlen(value) - 2);
     *(out + strlen(value) - 2) = '\0';
     return kOk;
 }
 
-static OptionsResult options_parse_editor(const char *value, char *editor) {
+static MmResult options_parse_editor(const char *value, char *editor) {
     for (int i = 0; options_editors[i].id; ++i) {
         if (strcasecmp(value, options_editors[i].id) == 0) {
             // Standard editor.
@@ -141,7 +141,7 @@ static OptionsResult options_parse_editor(const char *value, char *editor) {
     return kInvalidValue;
 }
 
-static OptionsResult options_parse_list_case(const char *value, char *list_case) {
+static MmResult options_parse_list_case(const char *value, char *list_case) {
     if (strcasecmp(value, "title") == 0) {
         *list_case = CONFIG_TITLE;
     } else if (strcasecmp(value, "lower") == 0) {
@@ -154,9 +154,9 @@ static OptionsResult options_parse_list_case(const char *value, char *list_case)
     return kOk;
 }
 
-static OptionsResult options_parse_search_path(const char *value, char *search_path) {
+static MmResult options_parse_search_path(const char *value, char *search_path) {
     char tmp[STRINGSIZE];
-    OptionsResult result = options_parse_string(value, tmp);
+    MmResult result = options_parse_string(value, tmp);
     if (SUCCEEDED(result)) {
         if (*tmp) {
             char canonical_path[STRINGSIZE];
@@ -173,9 +173,9 @@ static OptionsResult options_parse_search_path(const char *value, char *search_p
     return result;
 }
 
-static OptionsResult options_parse_tab(const char *value, char *tab) {
+static MmResult options_parse_tab(const char *value, char *tab) {
     int tmp = 0;
-    OptionsResult result = options_parse_int(value, &tmp);
+    MmResult result = options_parse_int(value, &tmp);
     if (FAILED(result)) return result;
     if (tmp == 2 || tmp == 4 || tmp == 8) {
         *tab = (char) tmp;
@@ -185,7 +185,7 @@ static OptionsResult options_parse_tab(const char *value, char *tab) {
     return kOk;
 }
 
-OptionsResult options_set(Options *options, const char *name, const char *value) {
+MmResult options_set(Options *options, const char *name, const char *value) {
     int result = kUnknownOption;
 
     if (strcasecmp(name, "editor") == 0) {
@@ -209,7 +209,7 @@ OptionsResult options_set(Options *options, const char *name, const char *value)
     return result;
 }
 
-static void options_report_warning(int line_num, char *name, OptionsResult result, OPTIONS_WARNING_CB warning_cb) {
+static void options_report_warning(int line_num, char *name, MmResult result, OPTIONS_WARNING_CB warning_cb) {
     char buf[256];
     switch (result) {
         case kFileNotFound:
@@ -243,18 +243,13 @@ static void options_report_warning(int line_num, char *name, OptionsResult resul
     warning_cb(buf);
 }
 
-OptionsResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb) {
+MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb) {
     char path[STRINGSIZE];
-    if (!path_munge(filename, path, STRINGSIZE)) return kOtherIoError;
+    if (!path_munge(filename, path, STRINGSIZE)) return errno;
 
     errno = 0;
     FILE *f = fopen(path, "r");
-    if (!f) {
-        switch (errno) {
-            case ENOENT: return kFileNotFound;
-            default:     return kOtherIoError;
-        }
-    }
+    if (!f) return errno;
 
     char line[256];
     char name[128];
@@ -297,34 +292,29 @@ static int options_save_enum(FILE *f, const char *name, const char *value) {
 }
 
 /** Creates parent directory of 'filename' if it does not exist. */
-static OptionsResult options_create_parent_directory(const char *path) {
+static MmResult options_create_parent_directory(const char *path) {
     char dir[STRINGSIZE];
-    if (!path_get_parent(path, dir, STRINGSIZE)) {
-        return kOtherIoError;
-    }
+    if (!path_get_parent(path, dir, STRINGSIZE)) return errno;
 
     struct stat st = {0};
     if (FAILED(stat(dir, &st))) {
-        if (FAILED(mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) {
-            return kOtherIoError;
-        }
+        if (FAILED(mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) return errno;
     }
 
     return kOk;
 }
 
-OptionsResult options_save(const Options *options, const char *filename) {
+MmResult options_save(const Options *options, const char *filename) {
     char path[STRINGSIZE];
-    if (!path_munge(filename, path, STRINGSIZE)) {
-        return kOtherIoError;
-    }
+    if (!path_munge(filename, path, STRINGSIZE)) return errno;
 
-    OptionsResult result = options_create_parent_directory(path);
+    MmResult result = options_create_parent_directory(path);
     if (FAILED(result)) return result;
 
     errno = 0;
     FILE *f = fopen(path, "w");
-    if (!f) return kOtherIoError;
+    if (!f) return errno;
+
     char buf[STRINGSIZE];
     options_editor_to_string(options->editor, buf);
     options_save_enum(f, "editor", buf);

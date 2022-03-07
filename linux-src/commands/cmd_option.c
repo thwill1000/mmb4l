@@ -11,17 +11,10 @@
 #include "../common/utility.h"
 
 static void save_options() {
-    OptionsResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+    MmResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);
     if (FAILED(result)) {
         char buf[STRINGSIZE];
-        switch (result) {
-            case kOtherIoError:
-                sprintf(buf, "Warning: failed to save options: %s (%d)", strerror(errno), errno);
-                break;
-            default:
-                sprintf(buf, "Warning: failed to save options: %d)", result);
-                break;
-        }
+        sprintf(buf, "Warning: failed to save options: %s", mmresult_to_string(result));
         MMPrintString(buf);
     }
 }
@@ -194,7 +187,7 @@ static void option_search_path(char *p) {
     // Wrap the path in quotes for calling options_set() with.
     if (FAILED(cstring_enquote(path, STRINGSIZE))) ERROR_STRING_TOO_LONG;
 
-    OptionsResult result = options_set(&mmb_options, "search-path", path);
+    MmResult result = options_set(&mmb_options, "search-path", path);
     switch (result) {
         case kOk:
             save_options();

@@ -30,6 +30,15 @@ Version 2022.01.00-a4 - ??-???-2022:
       - if no extension is specified then MMB4L will check for the existence
         of a file with each extension in order, if no such file is found then
         it assumes the .bas extension.
+  - Changed assignment of values to MM.ERRNO, they are now:
+           0      : no error.
+       1  ..  255 : standard error numbers (errno) for C library calls.
+          256     : unclassified MMBasic error.
+      257 .. 1023 : reserved for specific MMBasic errors.
+         1024+    : reserved for program specific errors.
+    Error codes from the SYSTEM command are an exception to this rule; if
+    SYSTEM fails then MM.ERRNO is set equal to the executed program's
+    exit code.
 
 Version 2022.01.00-a3 - 16-Jan-2022:
   - Added serial port support, e.g.

@@ -4,15 +4,16 @@
 #include <stdint.h>
 
 #include "../Configuration.h" // for STRINGSIZE
+#include "mmresult.h"
 
 extern char error_file[STRINGSIZE];
 extern int error_line;
 
 void error(char *msg, ...);
-void error_code(int32_t error, char *msg, ...);
-void error_system(int32_t error);
-int error_check();
-uint8_t error_to_exit_code(int32_t error_code);
+void error_code(MmResult error, const char *msg, ...);
+void error_system(MmResult error);
+MmResult error_check();
+uint8_t error_to_exit_code(MmResult error);
 
 #define ERRNO_DEFAULT  1
 

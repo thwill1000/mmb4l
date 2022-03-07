@@ -114,7 +114,7 @@ void error_buffer_clear(void) {
 //  % = insert a number
 // the optional data to be inserted is the second argument to this function
 // this uses longjump to skip back to the command input and cleanup the stack
-static void verror(int32_t error, char *msg, va_list argp) {
+static void verror(MmResult error, const char *msg, va_list argp) {
     // ScrewUpTimer=0;
     MMerrno = error;
     error_buffer_clear();
@@ -185,12 +185,12 @@ static void verror(int32_t error, char *msg, va_list argp) {
 void error(char *msg, ...) {
     va_list argp;
     va_start(argp, msg);
-    verror(MMerrno == 0 ? ERRNO_DEFAULT : MMerrno, msg, argp);
+    verror(MMerrno == 0 ? kError : MMerrno, msg, argp);
     assert(0); // Don't expect to get here because of long_jmp().
     va_end(argp);
 }
 
-void error_code(int32_t error, char *msg, ...) {
+void error_code(MmResult error, const char *msg, ...) {
     va_list argp;
     va_start(argp, msg);
     verror(error, msg, argp);
@@ -198,11 +198,11 @@ void error_code(int32_t error, char *msg, ...) {
     va_end(argp);
 }
 
-void error_system(int32_t error) {
-    error_code(error, strerror(error));
+void error_system(MmResult error) {
+    error_code(error, mmresult_to_string(error));
 }
 
-int error_check(void) {
+MmResult error_check(void) {
     if (errno) {
         int tmp = errno;
         errno = 0;
@@ -214,8 +214,8 @@ int error_check(void) {
     }
 }
 
-uint8_t error_to_exit_code(int32_t error_code) {
-    switch (error_code) {
+uint8_t error_to_exit_code(MmResult error) {
+    switch (error) {
         default:
             return EX_FAIL;
     }
