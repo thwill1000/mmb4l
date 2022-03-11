@@ -20,6 +20,7 @@ const char *mmresult_to_string(MmResult result) {
         case kInvalidInt:    return "Invalid int value";
         case kInvalidString: return "Invalid string value";
         case kInvalidValue:  return "Invalid value";
+        case kUnknownSystemCommand: return "Unknown system command";
         default:             return "Unknown result code";
     }
 }

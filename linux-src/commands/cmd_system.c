@@ -1,11 +1,14 @@
+#include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "../common/mmb4l.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 #include "../common/parse.h"
+#include "../common/utility.h"
 
 /**
  * @brief  Reads value of an environment variable into a buffer.
@@ -117,69 +120,49 @@ static void cmd_system_setenv(char *p) {
     if (result != kOk) error_system(result);
 }
 
-static int cmd_system_simple(char *cmd) {
-    return system(cmd);
-}
-
 /**
- * Executes a system command and captures its STDOUT in a buffer.
+ * @brief  Executes a system command potentially capturing its STDOUT in a buffer.
  *
- * @param  cmd  system command to execute.
- * @param  buf  buffer to capture output in, this will not be '\0' terminated.
- * @param  sz   on entry size of buffer,
- *              on return number of characters in buffer.
- * @return      exit code of the executed system command.
+ * @param[in]       cmd          System command to execute.
+ * @param[out]      buf          Buffer to capture output in.
+ *                               Note that this will not be '\0' terminated.
+ *                               If NULL then output is not captured but instead printed on STDOUT.
+ * @param[in, out]  sz           On entry the size of buffer.
+ *                               On exit the number of characters in the buffer.
+ * @param[out]      exit_status  On exit the exit status of the executed system command.
  */
-static int cmd_system_capture(char *cmd, char *buf, size_t *sz) {
-    FILE *f = popen(cmd, "r");
-    error_check();
+static MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_status) {
 
-    int i;
-    for (i = 0; i < *sz; ++i) {
-        int ch = fgetc(f);
-        if (ch == EOF) break;
-        buf[i] = (char) ch;
+    if (!buf) {
+        // Special handling when we are not capturing the output.
+        *exit_status = system(cmd);
+    } else {
+        FILE *f = popen(cmd, "r");
+        if (!f) return errno;
+
+        int i;
+        for (i = 0; i < *sz; ++i) {
+            int ch = fgetc(f);
+            if (ch == EOF) break;
+            buf[i] = (char) ch;
+        }
+
+        // Trim any trailing CRLF.
+        i--;
+        if (i > -1 && buf[i] == '\n') i--;
+        if (i > -1 && buf[i] == '\r') i--;
+        *sz = i + 1;
+
+        *exit_status = pclose(f);
     }
 
-    // Trim trailing whitespace and non-ASCII garbage.
-    while (buf[i] < 33 || buf[i] > 126) i--;
-
-    *sz = i + 1;
-
-    return pclose(f);
-}
-
-static int cmd_system_capture_output_in_string(char *cmd, char *var_ptr) {
-    size_t sz = MAXSTRLEN;
-    int result = cmd_system_capture(cmd, var_ptr + 1, &sz);
-    *var_ptr = sz;
-    return result;
-}
-
-static int cmd_system_capture_output_in_long_string(char *cmd, char *var_ptr) {
-    size_t sz = (vartbl[VarIndex].dims[0] - OptionBase) * 8;
-    char *buf = (char *) var_ptr + 8;
-    int result = cmd_system_capture(cmd, buf, &sz);
-    *((int64_t *) var_ptr) = sz;
-    return result;
-}
-
-int cmd_system_capture_output(char *cmd, char *variable) {
-    char *var_ptr = findvar(variable, V_FIND | V_EMPTY_OK);
-
-    if (vartbl[VarIndex].type & T_STR) {
-        if (vartbl[VarIndex].dims[0] == 0) {
-            return cmd_system_capture_output_in_string(cmd, var_ptr);
-        }
-    } else if (vartbl[VarIndex].type & T_INT) {
-        if ((vartbl[VarIndex].dims[0] > 0)
-                && (vartbl[VarIndex].dims[1] == 0)) {
-            return cmd_system_capture_output_in_long_string(cmd, var_ptr);
-        }
+    if (*exit_status == -1) {
+        return errno;
+    } else {
+        // TODO: WEXITSTATUS() is only valid if the child-process terminated normally.
+        *exit_status = WEXITSTATUS(*exit_status);
+        return kOk;
     }
-
-    ERROR_INVALID("2nd argument; expected string or long string");
-    return -1;
 }
 
 /**
@@ -188,24 +171,64 @@ int cmd_system_capture_output(char *cmd, char *variable) {
  * SYSTEM command$ [, output$   [, exit_code%]]
  * SYSTEM command$ [, output%() [, exit_code%]]
  */
-void cmd_system_execute(char *p) {
-    getargs(&p, 3, ",");
-    int result = 0;
-    errno = 0;
-    switch (argc) {
-        case 1:
-            result = cmd_system_simple(getCstring(argv[0]));
-            break;
-        case 3:
-            result = cmd_system_capture_output(getCstring(argv[0]), argv[2]);
-            break;
-        default:
-            ERROR_SYNTAX;
+static void cmd_system_execute(char *p) {
+    getargs(&p, 5, ",");
+    if (argc != 1 && argc != 3 && argc != 5) ERROR_SYNTAX;
+
+    // System command to run.
+    char *command = getCstring(argv[0]);
+
+    // Redirect STDERR to STDOUT so it can be captured.
+    // TODO: What if the command already contains redirection ?
+    if (FAILED(cstring_cat(command, " 2>&1", STRINGSIZE))) ERROR_STRING_TOO_LONG;
+
+    // Determine where to store the output.
+    char *output_var_ptr = NULL;
+    char *buf = NULL;
+    size_t buf_sz = 0;
+    if (argc >= 3 && strlen(argv[2]) > 0) {
+        output_var_ptr = findvar(argv[2], V_FIND | V_EMPTY_OK);
+
+        if ((vartbl[VarIndex].type & T_STR)
+                && (vartbl[VarIndex].dims[0] == 0)) {
+            // Capture output in STRING variable.
+            buf = output_var_ptr + 1;
+            buf_sz = STRINGSIZE - 1;
+        } else if ((vartbl[VarIndex].type & T_INT)
+                && (vartbl[VarIndex].dims[0] > 0)
+                && (vartbl[VarIndex].dims[1] == 0)) {
+            // Capture output in LONGSTRING variable.
+            buf = (char *) output_var_ptr + 8;
+            buf_sz = (vartbl[VarIndex].dims[0] - OptionBase) * 8;
+        } else {
+            ERROR_INVALID("2nd argument; expected STRING or LONGSTRING");
+        }
     }
 
-    error_check();
-    if (result != 0) {
-        error_code(result, "System command failed, exit code [%]", result);
+    // Determine where to store the exit status.
+    int64_t exit_status = 0;
+    int64_t *exit_status_ptr = &exit_status;
+    if (argc == 5) {
+        char *exit_status_var_ptr = findvar(argv[4], V_FIND);
+        if (!((vartbl[VarIndex].type & T_INT) && (vartbl[VarIndex].dims[0] == 0))) ERROR_SYNTAX;
+        exit_status_ptr = (int64_t *) exit_status_var_ptr;
+    }
+
+    MmResult result = cmd_system_to_buf(command, buf, &buf_sz, exit_status_ptr);
+
+    if (result == kOk) {
+        if (!buf) {
+            // We didn't capture the output.
+        } else if (buf == output_var_ptr + 1) {
+            // Set size of STRING variable.
+            *output_var_ptr = buf_sz;
+        } else {
+            // Set size of LONGSTRING variable.
+            *((int64_t *) output_var_ptr) = buf_sz;
+        }
+        if (*exit_status_ptr == 127) error_system(kUnknownSystemCommand);
+    } else {
+        error_system(result);
     }
 }
 

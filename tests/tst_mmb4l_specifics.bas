@@ -19,11 +19,13 @@ If Mm.Device$ <> "MMB4L" Then End
 
 Const EXPECTED_HOME$ = "/home/thwill"
 
-'add_test("test_system_no_capture")
+add_test("test_system_no_capture")
 add_test("test_system_string_capture")
-add_test("test_system_long_string_capture")
-add_test("test_system_given_too_long")
-add_test("test_system_given_errors")
+add_test("test_system_longstring_capture")
+add_test("test_system_longstring_capture_given_too_long", "test_system_given_too_long")
+add_test("test_system_given_invalid_syntax")
+add_test("test_system_given_exit_status_arg", "test_system_exit_status_arg")
+add_test("test_system_given_command_not_found", "test_system_command_not_found");
 add_test("test_system_getenv")
 add_test("test_system_setenv")
 add_test("test_system_setenv_given_longstring", "test_system_setenv_given_ls")
@@ -51,18 +53,12 @@ Sub test_system_string_capture()
   assert_string_equals("foo bar", out$)
 End Sub
 
-Sub test_system_long_string_capture()
+Sub test_system_longstring_capture()
   Local out%(array.new%(32));
 
   System "echo 'foo bar'", out%()
 
   assert_string_equals("foo bar", LGetStr$(out%(), 1, LLen(out%())))
-
-  Local short%(array.new%(2))
-
-  System "echo '0123456789'", short%()
-
-  assert_string_equals("01234567", LGetStr$(short%(), 1, LLen(short%())))
 End Sub
 
 Sub test_system_given_too_long()
@@ -74,28 +70,53 @@ Sub test_system_given_too_long()
   assert_string_equals("01234567", LGetStr$(out%(), 1, LLen(out%())))
 End Sub
 
-Sub test_system_given_errors()
+Sub test_system_given_invalid_syntax()
   Local i%, f!, s$(10), ia%(10, 10)
 
   On Error Skip 1
   System "echo 'foo bar'", i%
-  assert_raw_error("Invalid 2nd argument; expected string or long string")
+  assert_raw_error("Invalid 2nd argument; expected STRING or LONGSTRING")
 
   On Error Skip 1
   System "echo 'foo bar'", f!
-  assert_raw_error("Invalid 2nd argument; expected string or long string")
+  assert_raw_error("Invalid 2nd argument; expected STRING or LONGSTRING")
 
   On Error Skip 1
   System "echo 'foo bar'", s$()
-  assert_raw_error("Invalid 2nd argument; expected string or long string")
+  assert_raw_error("Invalid 2nd argument; expected STRING or LONGSTRING")
 
   On Error Skip 1
   System "echo 'foo bar'", ia%()
-  assert_raw_error("Invalid 2nd argument; expected string or long string")
+  assert_raw_error("Invalid 2nd argument; expected STRING or LONGSTRING")
 
   On Error Skip 1
   System "echo 'foo bar'",
   assert_raw_error("Syntax")
+End Sub
+
+Sub test_system_exit_status_arg()
+  Local s$, exit_status%
+
+  System "echo 'foo'", s$, exit_status%
+  assert_string_equals("foo", s$)
+  assert_int_equals(0, exit_status%)
+
+  System "ls /does-not-exist", s$, exit_status%
+  assert_string_equals("ls: cannot access '/does-not-exist': No such file or directory", s$)
+  assert_int_equals(2, exit_status%)
+
+  System "ls /does-not-exist", , exit_status%
+  assert_int_equals(2, exit_status%)
+End Sub
+
+Sub test_system_command_not_found()
+  Local s$, exit_status%
+
+  On Error Skip 1
+  System "foo", s$, exit_status%
+  assert_raw_error("Unknown system command")
+  assert_string_equals("sh: 1: foo: not found", s$)
+  assert_int_equals(127, exit_status%)
 End Sub
 
 Sub test_system_getenv()

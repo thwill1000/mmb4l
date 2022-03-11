@@ -308,6 +308,7 @@ End Sub
 
 ' @return 1 if the test passes, 0 if it fails.
 Function ut.run_single_test%(idx%)
+  On Error Clear
   Local catch_errors% = ut.is_catch_errors%()
 
   If ut.is_verbose%() Then

@@ -22,7 +22,8 @@ typedef enum {
     kInvalidFloat,
     kInvalidInt,
     kInvalidString,
-    kInvalidValue
+    kInvalidValue,
+    kUnknownSystemCommand
 } MmResultCode;
 
 /**
