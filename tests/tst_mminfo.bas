@@ -43,6 +43,7 @@ add_test("test_option_editor")
 add_test("test_option_default")
 add_test("test_option_explicit")
 add_test("test_option_codepage")
+add_test("test_option_fn_key")
 add_test("test_option_resolution")
 add_test("test_option_search_path")
 add_test("test_option_serial")
@@ -386,6 +387,34 @@ Sub test_option_codepage()
 
   Option CodePage "None"
   assert_string_equals("None", Mm.Info(Option CodePage))
+End Sub
+
+Sub test_option_fn_key()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
+  Const CRLF$ = Chr$(&h0D) + Chr$(&h0A)
+  assert_string_equals("FILES" + CRLF$, Mm.Info(Option F1))
+  assert_string_equals("RUN"   + CRLF$, Mm.Info(Option F2))
+  assert_string_equals("LIST"  + CRLF$, Mm.Info(Option F3))
+  assert_string_equals("EDIT"  + CRLF$, Mm.Info(Option F4))
+
+  Const QUOTES$ = Chr$(&h22) + Chr$(&h22) + Chr$(&h82)
+  assert_string_equals("AUTOSAVE "       + QUOTES$, Mm.Info(Option F5))
+  assert_string_equals("XMODEM RECEIVE " + QUOTES$, Mm.Info(Option F6))
+  assert_string_equals("XMODEM SEND "    + QUOTES$, Mm.Info(Option F7))
+  assert_string_equals("EDIT "           + QUOTES$, Mm.Info(Option F8))
+  assert_string_equals("LIST "           + QUOTES$, Mm.Info(Option F9))
+  assert_string_equals("RUN "            + QUOTES$, Mm.Info(Option F10))
+  assert_string_equals("", Mm.Info(Option F11))
+  assert_string_equals("", Mm.Info(Option F12))
+
+  Option F11 "FOO " + CRLF$
+  assert_string_equals("FOO " + CRLF$,  Mm.Info(Option F11))
+  Option F11 ""
+
+  Option F12 "BAR " + QUOTES$
+  assert_string_equals("BAR " + QUOTES$,  Mm.Info(Option F12))
+  Option F12 ""
 End Sub
 
 Sub test_option_resolution()

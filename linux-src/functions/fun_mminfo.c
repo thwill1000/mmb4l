@@ -1,4 +1,6 @@
+#include <ctype.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -231,6 +233,25 @@ static void mminfo_hpos(char *p) {
     g_rtn_type = T_INT;
 }
 
+/** Handle MM.INFO(OPTION F1..12) */
+static void mminfo_option_fn_key(char *p) {
+    char buf[8];
+    int f = 1;
+    while (f != 13) {
+        sprintf(buf, "F%d", f);
+        if (checkstring(p, buf)) break;
+        f++;
+    }
+
+    if (f == 13) ERROR_UNKNOWN_OPTION;
+
+    g_string_rtn = GetTempStrMemory();
+    strcpy(g_string_rtn, mmb_options.fn_keys[f - 1]);
+    g_rtn_type = T_STR;
+
+    // Note this should be converted from C-string to MMString by caller.
+}
+
 static void mminfo_option(char *p) {
     if (checkstring(p, "BASE")) {
         g_integer_rtn = mmb_options.base;
@@ -273,8 +294,10 @@ static void mminfo_option(char *p) {
     } else if (checkstring(p, "TAB")) {
         g_integer_rtn = mmb_options.tab;
         g_rtn_type = T_INT;
+    } else if (toupper(*p) == 'F' && isdigit(*(p + 1))) {
+        mminfo_option_fn_key(p);
     } else {
-        ERROR_UNRECOGNISED_OPTION;
+        ERROR_UNKNOWN_OPTION;
     }
 
     if (g_rtn_type == T_STR) CtoM(g_string_rtn);

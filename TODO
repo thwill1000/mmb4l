@@ -5,7 +5,6 @@ Required for alpha 4
 --------------------
 
 Implement tab completion of paths at MMBasic prompt
-Make all function keys reprogrammable
 Implement variable/sub/function hash tables
 
 

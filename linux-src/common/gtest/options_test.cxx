@@ -15,42 +15,70 @@ static void write_line_to_buf(const char *line) {
     cstring_cat(options_test_buf, "\n", sizeof(options_test_buf));
 }
 
+static void expect_options_have_defaults(Options *options) {
+    EXPECT_EQ(0, options->autorun);
+    EXPECT_EQ(0, options->base);
+    EXPECT_EQ(3, options->break_key);
+    EXPECT_EQ(NULL, options->codepage);
+    EXPECT_EQ(kSerial, options->console);
+    EXPECT_EQ(0x1, options->default_type); // 0x1 = T_NBR
+    EXPECT_STREQ("Nano", options->editor);
+    EXPECT_EQ(false, options->explicit_type);
+    EXPECT_STREQ("FILES\r\n", options->fn_keys[0]);
+    EXPECT_STREQ("RUN\r\n", options->fn_keys[1]);
+    EXPECT_STREQ("LIST\r\n", options->fn_keys[2]);
+    EXPECT_STREQ("EDIT\r\n", options->fn_keys[3]);
+    EXPECT_STREQ("AUTOSAVE \"\"\202", options->fn_keys[4]);
+    EXPECT_STREQ("XMODEM RECEIVE \"\"\202", options->fn_keys[5]);
+    EXPECT_STREQ("XMODEM SEND \"\"\202", options->fn_keys[6]);
+    EXPECT_STREQ("EDIT \"\"\202", options->fn_keys[7]);
+    EXPECT_STREQ("LIST \"\"\202", options->fn_keys[8]);
+    EXPECT_STREQ("RUN \"\"\202", options->fn_keys[9]);
+    EXPECT_STREQ("", options->fn_keys[10]);
+    EXPECT_STREQ("", options->fn_keys[11]);
+    EXPECT_EQ(0, options->height);
+    EXPECT_EQ(kTitle, options->list_case);
+    EXPECT_EQ(PROG_FLASH_SIZE, options->prog_flash_size);
+    EXPECT_EQ(kCharacter, options->resolution);
+    EXPECT_STREQ("", options->search_path);
+    EXPECT_EQ(4, options->tab);
+    EXPECT_EQ(0, options->width);
+    EXPECT_EQ(true, options->zboolean);
+    EXPECT_EQ(2.71828, options->zfloat);
+    EXPECT_EQ(1945, options->zinteger);
+    EXPECT_STREQ("wombat", options->zstring);
+}
+
 TEST(OptionsTest, Init) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(0, options.autorun);
-    EXPECT_EQ(0, options.base);
-    EXPECT_EQ(3, options.break_key);
-    EXPECT_EQ(NULL, options.codepage);
-    EXPECT_EQ(kSerial, options.console);
-    EXPECT_EQ(0x1, options.default_type); // 0x1 = T_NBR
-    EXPECT_STREQ("Nano", options.editor);
-    EXPECT_EQ(false, options.explicit_type);
-    EXPECT_EQ(0, options.height);
-    EXPECT_EQ(0, options.list_case);
-    EXPECT_EQ(PROG_FLASH_SIZE, options.prog_flash_size);
-    EXPECT_EQ(kCharacter, options.resolution);
-    EXPECT_STREQ("", options.search_path);
-    EXPECT_EQ(4, options.tab);
-    EXPECT_EQ(0, options.width);
-    EXPECT_EQ(true, options.zboolean);
-    EXPECT_EQ(2.71828, options.zfloat);
-    EXPECT_EQ(1945, options.zinteger);
-    EXPECT_STREQ("wombat", options.zstring);
+    expect_options_have_defaults(&options);
 }
 
 static void expect_saved_content(const char *filename) {
     FILE *f = fopen(filename, "r");
     char line[256];
     EXPECT_STREQ(fgets(line, 256, f), "editor = Vi\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f1 = \"FILES\\r\\n\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f2 = \"RUN\\r\\n\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f3 = \"LIST\\r\\n\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f4 = \"EDIT\\r\\n\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f5 = \"AUTOSAVE \\\"\\\"\\202\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f6 = \"XMODEM RECEIVE \\\"\\\"\\202\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f7 = \"XMODEM SEND \\\"\\\"\\202\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f8 = \"EDIT \\\"\\\"\\202\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f9 = \"LIST \\\"\\\"\\202\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f10 = \"RUN \\\"\\\"\\202\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f11 = \"\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "f12 = \"\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "listcase = Lower\n");
+    EXPECT_STREQ(fgets(line, 256, f), "search-path = \"/foo/bar\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "tab = 8\n");
     EXPECT_STREQ(fgets(line, 256, f), "zboolean = false\n");
     EXPECT_STREQ(fgets(line, 256, f), "zfloat = 3.142\n");
     EXPECT_STREQ(fgets(line, 256, f), "zinteger = 42\n");
     EXPECT_STREQ(fgets(line, 256, f), "zstring = \"snafu\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "search-path = \"/foo/bar\"\n");
     EXPECT_FALSE(fgets(line, 256, f));
     EXPECT_TRUE(feof(f));
     fclose(f);
@@ -260,6 +288,19 @@ TEST(OptionsTest, Load_GivenWarnings_AndCallbackNotProvided) {
     EXPECT_STREQ("", options_test_buf);
 }
 
+TEST(OptionsTest, Load_GivenLoadSaveRoundtrip) {
+    const char *filename = "/tmp/options_test_load_save_roundtrip";
+    options_test_buf[0] = '\0';
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_save(&options, filename));
+    EXPECT_EQ(kOk, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_STREQ("", options_test_buf);
+
+    expect_options_have_defaults(&options);
+}
+
 TEST(OptionsTest, EditorToString) {
     char buf[STRINGSIZE];
     options_editor_to_string("Default", buf);
@@ -346,4 +387,214 @@ TEST(OptionsTest, Set_GivenEditor) {
     strcpy(options.editor, "");
     EXPECT_EQ(kInvalidValue, options_set(&options, "editor", "code -g ${file}:${line}"));
     EXPECT_STREQ("", options.editor);
+}
+
+TEST(OptionsTest, Set_GivenFnKey) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set(&options, "f1", "\"foo\""));
+    EXPECT_STREQ("foo", options.fn_keys[0]);
+
+    EXPECT_EQ(kOk, options_set(&options, "F2", "\"\"foo\"\r\n\""));
+    EXPECT_STREQ("\"foo\"\r\n", options.fn_keys[1]);
+
+    EXPECT_EQ(kUnknownOption, options_set(&options, "f0", "\"foo\""));
+    EXPECT_EQ(kUnknownOption, options_set(&options, "f13", "\"foo\""));
+}
+
+TEST(OptionsTest, FnKeyToString) {
+    Options options;
+    options_init(&options);
+    char buf[STRINGSIZE];
+
+    options_fn_key_to_string(options.fn_keys[0], buf);
+    EXPECT_STREQ("FILES\\r\\n", buf);
+
+    options_fn_key_to_string(options.fn_keys[4], buf);
+    EXPECT_STREQ("AUTOSAVE \\\"\\\"\\202", buf);
+}
+
+TEST(OptionsTest, EncodeString) {
+    char encoded[STRINGSIZE];
+
+    EXPECT_EQ(kOk, options_encode_string("Hello World", encoded));
+    EXPECT_STREQ("Hello World", encoded);
+
+    EXPECT_EQ(kOk, options_encode_string("\\", encoded));
+    EXPECT_STREQ("\\\\", encoded);
+
+    EXPECT_EQ(kOk, options_encode_string("\"", encoded));
+    EXPECT_STREQ("\\\"", encoded);
+
+    EXPECT_EQ(kOk, options_encode_string("\r", encoded));
+    EXPECT_STREQ("\\r", encoded);
+
+    EXPECT_EQ(kOk, options_encode_string("\n", encoded));
+    EXPECT_STREQ("\\n", encoded);
+
+    EXPECT_EQ(kOk, options_encode_string("\x01", encoded));
+    EXPECT_STREQ("\\001", encoded);
+
+    EXPECT_EQ(kOk, options_encode_string("\x1f", encoded));
+    EXPECT_STREQ("\\037", encoded);
+
+    EXPECT_EQ(kOk, options_encode_string("\x20", encoded));
+    EXPECT_STREQ(" ", encoded);
+
+    EXPECT_EQ(kOk, options_encode_string("\x7E", encoded));
+    EXPECT_STREQ("~", encoded);
+
+    EXPECT_EQ(kOk, options_encode_string("\x7F", encoded));
+    EXPECT_STREQ("\\177", encoded);
+
+    // Unencoded string is STRINGSIZE.
+    {
+        char encoded[STRINGSIZE] = { 0 };
+        char unencoded[STRINGSIZE] = { 0 };
+        memset(unencoded, '*', STRINGSIZE - 1);
+
+        EXPECT_EQ(kOk, options_encode_string(unencoded, encoded));
+        char expected[STRINGSIZE] = { 0 };
+        memset(expected, '*', STRINGSIZE - 1);
+        EXPECT_STREQ(expected, encoded);
+    }
+}
+
+TEST(OptionsTest, EncodeString_GivenEncodedStringTooLong) {
+    // Unencoded string is longer that STRINGSIZE.
+    {
+        char encoded[STRINGSIZE] = { 0 };
+        char unencoded[STRINGSIZE + 1] = { 0 };
+        memset(unencoded, '*', STRINGSIZE);
+
+        EXPECT_EQ(kStringTooLong, options_encode_string(unencoded, encoded));
+        char expected[STRINGSIZE] = { 0 };
+        memset(expected, '*', STRINGSIZE - 1);
+        EXPECT_STREQ(expected, encoded);
+    }
+
+    // Unencoded string is STRINGSIZE
+    // but contains 1 character that will encode to 2 characters.
+    char replace_with_2[] = { '\\', '\"', '\r', '\n', '\0' };
+    for (char *p = replace_with_2; *p  != '\0'; ++p) {
+        char encoded[STRINGSIZE] = { 0 };
+        char unencoded[STRINGSIZE] = { 0 };
+        memset(unencoded, '*', STRINGSIZE - 2);
+        unencoded[STRINGSIZE - 2] = *p;
+
+        EXPECT_EQ(kStringTooLong, options_encode_string(unencoded, encoded));
+        char expected[STRINGSIZE] = { 0 };
+        memset(expected, '*', STRINGSIZE - 2);
+        EXPECT_STREQ(expected, encoded);
+    }
+
+    // Unencoded string is 3 characters shorter than STRINGSIZE,
+    // but contains 1 character that will encode to 4 characters.
+    char replace_with_4[] = { '\x01', '\x1F', '\x7F', '\xFF', '\0' };
+    for (char *p = replace_with_4; *p  != '\0'; ++p) {
+        char encoded[STRINGSIZE] = { 0 };
+        char unencoded[STRINGSIZE] = { 0 };
+        memset(unencoded, '*', STRINGSIZE - 4);
+        unencoded[STRINGSIZE - 4] = *p;
+
+        EXPECT_EQ(kStringTooLong, options_encode_string(unencoded, encoded));
+        char expected[STRINGSIZE] = { 0 };
+        memset(expected, '*', STRINGSIZE - 4);
+        EXPECT_STREQ(expected, encoded);
+    }
+}
+
+TEST(OptionsTest, DecodeString) {
+    char decoded[STRINGSIZE];
+
+    EXPECT_EQ(kOk, options_decode_string("Hello World", decoded));
+    EXPECT_STREQ("Hello World", decoded);
+
+    EXPECT_EQ(kOk, options_decode_string("\\\\", decoded));
+    EXPECT_STREQ("\\", decoded);
+
+    EXPECT_EQ(kOk, options_decode_string("\\\"", decoded));
+    EXPECT_STREQ("\"", decoded);
+
+    EXPECT_EQ(kOk, options_decode_string("\\r", decoded));
+    EXPECT_STREQ("\r", decoded);
+
+    EXPECT_EQ(kOk, options_decode_string("\\n", decoded));
+    EXPECT_STREQ("\n", decoded);
+
+    EXPECT_EQ(kOk, options_decode_string("\\001", decoded));
+    EXPECT_STREQ("\x01", decoded);
+
+    EXPECT_EQ(kOk, options_decode_string("\\037", decoded));
+    EXPECT_STREQ("\x1f", decoded);
+
+    EXPECT_EQ(kOk, options_decode_string(" ", decoded));
+    EXPECT_STREQ("\x20", decoded);
+
+    EXPECT_EQ(kOk, options_decode_string("~", decoded));
+    EXPECT_STREQ("\x7E", decoded);
+
+    EXPECT_EQ(kOk, options_decode_string("\\177", decoded));
+    EXPECT_STREQ("\x7F", decoded);
+
+    // Encoded string is STRINGSIZE.
+    {
+        char encoded[STRINGSIZE] = { 0 };
+        memset(encoded, '*', STRINGSIZE - 1);
+        char decoded[STRINGSIZE] = { 0 };
+
+        EXPECT_EQ(kOk, options_decode_string(encoded, decoded));
+        char expected[STRINGSIZE] = { 0 };
+        memset(expected, '*', STRINGSIZE - 1);
+        EXPECT_STREQ(expected, decoded);
+    }
+}
+
+TEST(OptionsTest, DecodeString_GivenDecodedStringTooLong) {
+    // Encoded string is longer than STRINGSIZE.
+    {
+        char encoded[STRINGSIZE + 1] = { 0 };
+        memset(encoded, '*', STRINGSIZE);
+        char decoded[STRINGSIZE] = { 0 };
+
+        EXPECT_EQ(kStringTooLong, options_decode_string(encoded, decoded));
+        char expected[STRINGSIZE] = { 0 };
+        memset(expected, '*', STRINGSIZE - 1);
+        EXPECT_STREQ(expected, decoded);
+    }
+
+    // Encoded string is 1 character longer than STRINGSIZE,
+    // but contains 2 characters that will decode to 1 character.
+    {
+        char encoded[STRINGSIZE + 1] = { 0 };
+        memset(encoded, '*', STRINGSIZE - 1); // 0..253 = 254 stars
+        encoded[STRINGSIZE - 2] = '\\';       // 254    = backslash
+        encoded[STRINGSIZE - 1] = '\\';       // 255    = backslash
+        char decoded[STRINGSIZE] = { 0 };
+
+        EXPECT_EQ(kOk, options_decode_string(encoded, decoded));
+        char expected[STRINGSIZE] = { 0 };
+        memset(expected, '*', STRINGSIZE - 2); // 0..253 = 254 stars
+        expected[STRINGSIZE - 2] = '\\';       // 254    = backslash
+        EXPECT_STREQ(expected, decoded);
+    }
+
+    // Encoded string is 3 characters longer than STRINGSIZE,
+    // but contains 4 characters that will decode to 1 character.
+    {
+        char encoded[STRINGSIZE + 4] = { 0 };
+        memset(encoded, '*', STRINGSIZE - 1); // 0..253 = 254 stars
+        encoded[STRINGSIZE - 2] = '\\';       // 254    = backslash
+        encoded[STRINGSIZE - 1] = '0';        // 255    = backslash
+        encoded[STRINGSIZE + 0] = '0';        // 256    = backslash
+        encoded[STRINGSIZE + 1] = '1';        // 257    = backslash
+        char decoded[STRINGSIZE] = { 0 };
+
+        EXPECT_EQ(kOk, options_decode_string(encoded, decoded));
+        char expected[STRINGSIZE] = { 0 };
+        memset(expected, '*', STRINGSIZE - 2); // 0..253 = 254 stars
+        expected[STRINGSIZE - 2] = '\001';     // 254    = 0x01
+        EXPECT_STREQ(expected, decoded);
+    }
 }

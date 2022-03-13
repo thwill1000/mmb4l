@@ -44,6 +44,12 @@ Version 2022.01.00-a4 - ??-???-2022:
     - SYSTEM SETENV name$, {value$ | value%()}
     This supplements MM.INFO$(ENVVAR) because it allows values > 255 characters
     to be read into a LONGSTRING.
+  - Added OPTION F<num> string$ sub-commands to define the strings that will be
+    generated when pressing function keys at the MMBasic prompt.
+    - all of F1-F12 can be programmed and the options are persistent.
+    - OPTION F<num> CLEAR will reset a function key to its default.
+    - beware that some function keys may be captured by the Linux window manager
+      and never passed on to MMBasic.
   - Changed SYSTEM execute command to have a 3rd optional argument to capture the
     exit status of the executed command, e.g.
         SYSTEM command$, out$, exit_status%
@@ -206,7 +212,7 @@ Version 2021.01.00-a2 - 6-Nov-2021:
   - Fixed timeout bugs with CONSOLE GETCURSOR:
       - increase the timeout to 10s.
       - correct the signed 64-bit arithmetic used in timing code.
-  - Fixed bug where navigating the command prompt history with up/down arrow
+  - Fixed bug where navigating the MMBasic prompt history with up/down arrow
     keys would show display artifacts when using PuTTY; though not sure why
     the issue was not generally visible.
   - Many other fixes and tweaks for minor issues encountered along the way.

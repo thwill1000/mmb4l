@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -36,7 +37,7 @@ static void option_case(char *p) {
     } else if (checkstring(p, "UPPER")) {
         mmb_options.list_case = kUpper;
     } else {
-        ERROR_UNRECOGNISED_OPTION;
+        ERROR_UNKNOWN_OPTION;
     }
 
     save_options();
@@ -70,7 +71,7 @@ static void option_default(char *p) {
     } else if (checkstring(p, "NONE")) {
         mmb_options.default_type = T_NOTYPE;
     } else {
-        ERROR_UNRECOGNISED_OPTION;
+        ERROR_UNKNOWN_OPTION;
     }
 }
 
@@ -119,6 +120,33 @@ static void option_explicit(char *p) {
     }
 }
 
+/** Handle OPTION F1..12 value$ */
+static void option_fn_key(char *p) {
+    char buf[8];
+    int f = 1;
+    while (f != 13) {
+        sprintf(buf, "F%d", f);
+        if (checkstring(p, buf)) break;
+        f++;
+    }
+
+    if (f == 13) ERROR_UNKNOWN_OPTION;
+
+    // Skip the 'F' and the number.
+    p += (f < 10) ? 2 : 3;
+    char *value = getCstring(p);
+    MmResult result = cstring_enquote(value, STRINGSIZE);
+    if (FAILED(result)) error_system(result);
+    sprintf(buf, "f%d", f);
+
+    result = options_set(&mmb_options, buf, value);
+    if (SUCCEEDED(result)) {
+        save_options();
+    } else {
+        error_system(result);
+    }
+}
+
 static void option_list_item(char *name, char *value) {
     MMPrintString("Option ");
     MMPrintString(name);
@@ -156,6 +184,13 @@ void option_list(char *p) {
     options_explicit_to_string(mmb_options.explicit_type, buf);
     option_list_item("Explicit", buf);
 
+    for (int i = 0; i < OPTIONS_NUM_FN_KEYS; ++i) {
+        char option[8];
+        sprintf(option, "F%d", i + 1);
+        options_fn_key_to_string(mmb_options.fn_keys[i], buf);
+        option_list_item(option, buf);
+    }
+
     options_resolution_to_string(mmb_options.resolution, buf);
     option_list_item("Resolution", buf);
 
@@ -176,7 +211,7 @@ static void option_resolution(char *p) {
         mmb_options.resolution = kPixel;
     }
 
-    if (!p2 || !parse_is_end(p2)) ERROR_UNRECOGNISED_OPTION;
+    if (!p2 || !parse_is_end(p2)) ERROR_UNKNOWN_OPTION;
 }
 
 static void option_search_path(char *p) {
@@ -209,7 +244,7 @@ static void option_tab(char *p) {
     } else if (checkstring(p, "8")) {
         mmb_options.tab = 8;
     } else {
-        ERROR_UNRECOGNISED_OPTION;
+        ERROR_UNKNOWN_OPTION;
     }
 
     save_options();
@@ -241,7 +276,9 @@ void cmd_option(void) {
         option_search_path(p);
     } else if ((p = checkstring(cmdline, "TAB"))) {
         option_tab(p);
+    } else if (toupper(*cmdline) == 'F' && isdigit(*(cmdline + 1))) {
+        option_fn_key(cmdline);
     } else {
-        ERROR_UNRECOGNISED_OPTION;
+        ERROR_UNKNOWN_OPTION;
     }
 }

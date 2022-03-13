@@ -2,14 +2,13 @@
 #include "console.h"
 #include "error.h"
 #include "file.h"
+#include "options.h"
 #include "utility.h"
 
-#define NBRPROGKEYS  12  // Number of programmable function keys.
-#define MAXKEYLEN    24  // Maximum length of programmable function keys.
 #define HISTORY_SIZE  4 * STRINGSIZE
 
 typedef struct {
-    char buf[MAXKEYLEN + 3];
+    char buf[OPTIONS_MAX_FN_KEY_LEN + 3];
     int char_index;
     bool buf_edited;
     int history_idx;
@@ -19,25 +18,7 @@ typedef struct {
     bool save_line;
 } PromptState;
 
-char FunKey[NBRPROGKEYS][MAXKEYLEN + 1] =
-    {                   // data storage for the function keys
-        {"FILES\r\n"},  // Run immediately
-        {"RUN\r\n"},
-        {"LIST\r\n"},
-        {"EDIT\r\n"},
-        //
-        {"AUTOSAVE \"\"\x82"},  // Position cursor inside pair of double quotes
-        {"XMODEM RECEIVE \"\"\x82"},
-        {"XMODEM SEND \"\"\x82"},
-        {"EDIT \"\"\x82"},
-        {"LIST \"\"\x82"},
-        {"RUN \"\"\x82"},
-        {""},
-        {""}};
-
-static char history[HISTORY_SIZE]; // used to store the last command in case it is
-                                          // needed by the EDIT command
-
+static char history[HISTORY_SIZE];
 static const char NO_ITEM[] = "";
 
 /** Displays the contents of the 'history' buffer. */
@@ -201,9 +182,8 @@ static void handle_end(PromptState *pstate) {
 }
 
 static void handle_function_key(PromptState *pstate) {
-    if (*FunKey[pstate->buf[0] - 0x91]) {
-        // Copy a function key string into the buffer.
-        strcpy(&pstate->buf[1], (char *)FunKey[pstate->buf[0] - 0x91]);
+    if (pstate->buf[0] >= F1 && pstate->buf[0] <= F12) {
+        strcpy(pstate->buf + 1, mmb_options.fn_keys[pstate->buf[0] - F1]);
     }
 }
 
@@ -371,18 +351,18 @@ void prompt_get_input(void) {
                     handle_end(&state);
                     break;
 
-                case 0x91:
-                case 0x92:
-                case 0x93:
-                case 0x94:
-                case 0x95:
-                case 0x96:
-                case 0x97:
-                case 0x98:
-                case 0x99:
-                case 0x9a:
-                case 0x9b:
-                case 0x9c:
+                case F1:
+                case F2:
+                case F3:
+                case F4:
+                case F5:
+                case F6:
+                case F7:
+                case F8:
+                case F9:
+                case F10:
+                case F11:
+                case F12:
                     handle_function_key(&state);
                     break;
 
@@ -403,9 +383,8 @@ void prompt_get_input(void) {
 
             if (state.save_line) goto saveline;
 
-            for (int i = 0; i < MAXKEYLEN + 1; i++) {
-                state.buf[i] = state.buf[i + 1];  // shuffle down the buffer to get the next char
-            }
+            // Shuffle down the buffer to get the next character.
+            memmove(state.buf, state.buf + 1, sizeof(state.buf) - 1);
         } while (*state.buf);
 
         if (state.char_index == strlen(inpbuf)) {

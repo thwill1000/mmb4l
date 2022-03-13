@@ -43,12 +43,29 @@ void options_init(Options *options) {
     options->default_type = 0x1; // T_NBR
     options_set(options, "editor", "default");
     options->explicit_type = false;
+
+    // Note that character 0202 (octal) is used as the mapping for the left cursor key
+    // (see 'console.h') so it moves the insertion point to between the quotes.
+    strcpy(options->fn_keys[0],  "FILES\r\n");
+    strcpy(options->fn_keys[1],  "RUN\r\n");
+    strcpy(options->fn_keys[2],  "LIST\r\n");
+    strcpy(options->fn_keys[3],  "EDIT\r\n");
+    strcpy(options->fn_keys[4],  "AUTOSAVE \"\"\202");
+    strcpy(options->fn_keys[5],  "XMODEM RECEIVE \"\"\202");
+    strcpy(options->fn_keys[6],  "XMODEM SEND \"\"\202");
+    strcpy(options->fn_keys[7],  "EDIT \"\"\202");
+    strcpy(options->fn_keys[8],  "LIST \"\"\202");
+    strcpy(options->fn_keys[9],  "RUN \"\"\202");
+    strcpy(options->fn_keys[10], "");
+    strcpy(options->fn_keys[11], "");
+
     options->height = 0;
     options->list_case = kTitle;
     options->prog_flash_size = PROG_FLASH_SIZE;
     options->resolution = kCharacter;
     options->tab = 4;
     options->width = 0;
+
 #if defined OPTION_TESTS
     options->zboolean = true;
     options->zfloat = 2.71828;
@@ -133,9 +150,10 @@ static MmResult options_parse_float(const char *value, MMFLOAT *out) {
 
 static MmResult options_parse_string(const char *value, char *out) {
     if (*value != '"' || *(value + strlen(value) - 1) != '"') return kInvalidString;
-    strncpy(out, value + 1, strlen(value) - 2);
-    *(out + strlen(value) - 2) = '\0';
-    return kOk;
+    char tmp[STRINGSIZE];
+    strncpy(tmp, value + 1, strlen(value) - 2);
+    *(tmp + strlen(value) - 2) = '\0';
+    return options_decode_string(tmp, out);
 }
 
 static MmResult options_parse_editor(const char *value, char *editor) {
@@ -200,30 +218,42 @@ static MmResult options_parse_tab(const char *value, char *tab) {
     return kOk;
 }
 
-MmResult options_set(Options *options, const char *name, const char *value) {
-    int result = kUnknownOption;
+static MmResult options_parse_fn_key(Options *options, const char *name, const char *value) {
+    char buf[STRINGSIZE];
+    int f = 1;
+    while (f < 13) {
+        sprintf(buf, "f%d", f);
+        if (strcasecmp(name, buf) == 0) break;
+        f++;
+    }
+    if (f == 13) return kUnknownOption;
+    return options_parse_string(value, options->fn_keys[f - 1]);
+}
 
+MmResult options_set(Options *options, const char *name, const char *value) {
     if (strcasecmp(name, "editor") == 0) {
-        result = options_parse_editor(value, options->editor);
+        return options_parse_editor(value, options->editor);
     } else if (strcasecmp(name, "listcase") == 0) {
-        result = options_parse_list_case(value, &(options->list_case));
+        return options_parse_list_case(value, &(options->list_case));
     } else if (strcasecmp(name, "search-path") == 0) {
-        result = options_parse_search_path(value, options->search_path);
+        return options_parse_search_path(value, options->search_path);
     } else if (strcasecmp(name, "tab") == 0) {
-        result = options_parse_tab(value, &(options->tab));
+        return options_parse_tab(value, &(options->tab));
 #if defined OPTION_TESTS
     } else if (strcasecmp(name, "zboolean") == 0) {
-        result = options_parse_boolean(value, &(options->zboolean));
+        return options_parse_boolean(value, &(options->zboolean));
     } else if (strcasecmp(name, "zfloat") == 0) {
-        result = options_parse_float(value, &(options->zfloat));
+        return options_parse_float(value, &(options->zfloat));
     } else if (strcasecmp(name, "zinteger") == 0) {
-        result = options_parse_integer(value, &(options->zinteger));
+        return options_parse_integer(value, &(options->zinteger));
     } else if (strcasecmp(name, "zstring") == 0) {
-        result = options_parse_string(value, options->zstring);
+        return options_parse_string(value, options->zstring);
 #endif
+    } else if (toupper(name[0]) == 'F' && isdigit(name[1])) { // f1-12
+        return options_parse_fn_key(options, name, value);
+    } else {
+        return kUnknownOption;
     }
-
-    return result;
 }
 
 static void options_report_warning(int line_num, char *name, MmResult result, OPTIONS_WARNING_CB warning_cb) {
@@ -332,11 +362,18 @@ MmResult options_save(const Options *options, const char *filename) {
     FILE *f = fopen(path, "w");
     if (!f) return errno;
 
-    char buf[STRINGSIZE];
-    options_editor_to_string(options->editor, buf);
-    options_save_enum(f, "editor", buf);
-    options_list_case_to_string(options->list_case, buf);
-    options_save_enum(f, "listcase", buf);
+    char name[32];
+    char value[STRINGSIZE];
+    options_editor_to_string(options->editor, value);
+    options_save_enum(f, "editor", value);
+    for (int i = 0; i < 12; ++i) {
+        sprintf(name, "f%d", i + 1);
+        options_fn_key_to_string(options->fn_keys[i], value);
+        options_save_string(f, name, value);
+    }
+    options_list_case_to_string(options->list_case, value);
+    options_save_enum(f, "listcase", value);
+    options_save_string(f, "search-path", options->search_path);
     options_save_integer(f, "tab", options->tab);
 #if defined OPTION_TESTS
     options_save_boolean(f, "zboolean", options->zboolean);
@@ -344,7 +381,6 @@ MmResult options_save(const Options *options, const char *filename) {
     options_save_integer(f, "zinteger", options->zinteger);
     options_save_string(f, "zstring", options->zstring);
 #endif
-    options_save_string(f, "search-path", options->search_path);
     fclose(f);
     return kOk;
 }
@@ -354,7 +390,7 @@ void options_console_to_string(OptionsConsole console, char *buf) {
         case kBoth:   strcpy(buf, "Both"); break;
         case kScreen: strcpy(buf, "Screen"); break;
         case kSerial: strcpy(buf, "Serial"); break;
-        default:     strcpy(buf, INVALID_VALUE); break;
+        default:      strcpy(buf, INVALID_VALUE); break;
     }
 }
 
@@ -368,12 +404,16 @@ void options_explicit_to_string(char explicit, char *buf) {
     strcpy(buf, explicit ? "On" : "Off");
 }
 
+void options_fn_key_to_string(const char *fn_key, char *buf) {
+    options_encode_string(fn_key, buf);
+}
+
 void options_list_case_to_string(OptionsListCase list_case, char *buf) {
     switch (list_case) {
         case kTitle: strcpy(buf, "Title"); break;
         case kLower: strcpy(buf, "Lower"); break;
         case kUpper: strcpy(buf, "Upper"); break;
-        default:           strcpy(buf, INVALID_VALUE); break;
+        default:     strcpy(buf, INVALID_VALUE); break;
     }
 }
 
@@ -393,4 +433,97 @@ void options_type_to_string(char type, char *buf) {
         case T_NOTYPE: strcpy(buf, "None"); break;
         default:       strcpy(buf, INVALID_VALUE); break;
     }
+}
+
+MmResult options_decode_string(const char *encoded, char *decoded) {
+    const char *src = encoded;
+    char *dst = decoded;
+    while (*src) {
+        if (dst - decoded >= STRINGSIZE - 1) return kStringTooLong;
+        if (*src == '\\') {
+            switch (*(src + 1)) {
+                case '\0':
+                    return kInvalidString;
+                case '\\':
+                    *dst++ = '\\';
+                    src += 2;
+                    break;
+                case '\"':
+                    *dst++ = '\"';
+                    src += 2;
+                    break;
+                case 'r':
+                    *dst++ = '\r';
+                    src += 2;
+                    break;
+                case 'n':
+                    *dst++ = '\n';
+                    src += 2;
+                    break;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9': {
+                    if (!isdigit(*(src + 2)) || !isdigit(*(src + 3))) return kInvalidString;
+                    *dst++ = 64 * (*(src + 1) - '0') + 8 * (*(src + 2) - '0') + (*(src + 3) - '0');
+                    src += 4;
+                    break;
+                }
+                default:
+                    return kInvalidString;
+            }
+        } else {
+            *dst++ = *src++;
+        }
+    }
+    *dst = '\0';
+    return kOk;
+}
+
+MmResult options_encode_string(const char *unencoded, char *encoded) {
+    const char *src = unencoded;
+    char *dst = encoded;
+    while (*src) {
+        switch (*src) {
+            case '\\':
+                if (dst - encoded >= STRINGSIZE - 2) return kStringTooLong;
+                sprintf(dst, "\\\\");
+                dst += 2;
+                break;
+            case '"':
+                if (dst - encoded >= STRINGSIZE - 2) return kStringTooLong;
+                sprintf(dst, "\\\"");
+                dst += 2;
+                break;
+            case '\r':
+                if (dst - encoded >= STRINGSIZE - 2) return kStringTooLong;
+                sprintf(dst, "\\r");
+                dst += 2;
+                break;
+            case '\n':
+                if (dst - encoded >= STRINGSIZE - 2) return kStringTooLong;
+                sprintf(dst, "\\n");
+                dst += 2;
+                break;
+            default:
+                if (*src < 32 || *src > 126) {
+                    if (dst - encoded >= STRINGSIZE - 4) return kStringTooLong;
+                    sprintf(dst, "\\%03o", *src);
+                    dst += 4;
+                } else {
+                    if (dst - encoded >= STRINGSIZE - 1) return kStringTooLong;
+                    *dst++ = *src;
+                }
+                break;
+        }
+        src++;
+    }
+    *dst = '\0';
+    return kOk;
 }
