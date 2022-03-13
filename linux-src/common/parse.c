@@ -86,6 +86,21 @@ int parse_file_number(char *p, bool allow_zero) {
     return fnbr;
 }
 
+bool parse_matches_longstring_pattern(const char *s) {
+    char *p = (char *) s;
+    skipspace(p);
+    if (!isnamestart(*p)) return false;
+    p++;
+    while (isnamechar(*p)) p++;
+    if (*p == '%') p++;
+    skipspace(p);
+    if (*p++ != '(') return false;
+    skipspace(p);
+    if (*p++ != ')') return false;
+    skipspace(p);
+    return *p == '\0' ? true : false;
+}
+
 /**
  * @brief Transforms input beginning with * into a corresponding RUN command.
  */

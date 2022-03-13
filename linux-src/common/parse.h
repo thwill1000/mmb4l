@@ -12,6 +12,11 @@ int parse_colour(char *p, bool allow_bright);
 int parse_file_number(char *p, bool allow_zero);
 
 /**
+ * @brief  Does the string match the pattern for a LONGSTRING, i.e. name%() or name().
+ */
+bool parse_matches_longstring_pattern(const char *s);
+
+/**
  * @brief Transforms star '*' and bang '!' commands in the input buffer
  *        to standard MMBasic commands.
  *

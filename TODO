@@ -4,7 +4,6 @@ TODO
 Required for alpha 4
 --------------------
 
-Implement SETENV var$, value$
 Implement tab completion of paths at MMBasic prompt
 Make all function keys reprogrammable
 Implement variable/sub/function hash tables

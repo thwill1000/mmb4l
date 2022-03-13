@@ -14,6 +14,7 @@ typedef enum {
     kFileNotFound  = ENOENT,
     kError         = 256,
     kInternalFault,
+    kSyntax,
     kStringTooLong,
     kInvalidFormat,
     kUnknownOption,

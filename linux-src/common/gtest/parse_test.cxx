@@ -22,6 +22,14 @@ protected:
     }
 };
 
+TEST_F(ParseTest, ParseMatchesLongStringPattern) {
+    EXPECT_TRUE(parse_matches_longstring_pattern("foo%()"));
+    EXPECT_TRUE(parse_matches_longstring_pattern("foo()"));
+    EXPECT_TRUE(parse_matches_longstring_pattern(" foo  (   ) "));
+    EXPECT_FALSE(parse_matches_longstring_pattern("foo%"));
+    EXPECT_FALSE(parse_matches_longstring_pattern("foo$()"));
+}
+
 TEST_F(ParseTest, ParseTransformInputBuffer_GivenStarCommand) {
     char input[STRINGSIZE];
     char expected[STRINGSIZE];
