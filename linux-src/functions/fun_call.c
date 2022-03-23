@@ -6,7 +6,7 @@
 
 void fun_call(void) {
     int i;
-    long long int i64 = 0;
+    MMINTEGER i64 = 0;
     char *s = NULL;
     MMFLOAT f;
     char *q;

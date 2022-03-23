@@ -7,10 +7,10 @@
 #include "../common/maths.h"
 
 void cmd_math(void){
-        char *tp;
+    char *tp;
     int t = T_NBR;
     MMFLOAT f;
-    long long int i64;
+    MMINTEGER i64;
     char *s;
 
         skipspace(cmdline);

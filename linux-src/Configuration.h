@@ -22,6 +22,8 @@ provisions:
 #define MIPS16                                      // don't use mips16 attribute on functions
 
 #define MMFLOAT double                              // precision of all floating point operations
+#define MMINTEGER int64_t
+#define UNSIGNED_MMINTEGER uint64_t
 #define STR_SIG_DIGITS 9                            // number of significant digits to use when converting MMFLOAT to a string
 #define FLOAT_ROUNDING_LIMIT 0x7fffff               // used to limit rounding for large numbers in FloatToInt64()
 

@@ -2,7 +2,7 @@
 
 void fun_choice(void) {
     MMFLOAT f = 0;
-    long long int i64 = 0;
+    MMINTEGER i64 = 0;
     char *s = NULL;
     int t = T_NOTYPE;
     getargs(&ep, 5, ",");

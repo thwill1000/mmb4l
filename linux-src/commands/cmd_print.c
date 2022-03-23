@@ -10,7 +10,7 @@ void cmd_print(void) {
 
     char *s, *p;
     MMFLOAT f;
-    long long int i64;
+    MMINTEGER i64;
     int i, t, fnbr;
     bool docrlf = true;                                             // this is used to suppress the cr/lf if needed
 

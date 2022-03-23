@@ -107,7 +107,7 @@ int OptionBase;                                                     // track the
 //
 int targ;                                                           // the type of the returned value
 MMFLOAT farg1, farg2, fret;                                         // the two float arguments and returned value
-long long int iarg1, iarg2, iret;                                   // the two integer arguments and returned value
+MMINTEGER iarg1, iarg2, iret;                                   // the two integer arguments and returned value
 char *sarg1, *sarg2, *sret;                                         // the two string arguments and returned value
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -131,7 +131,7 @@ char *ContinuePoint;                                                // Where to 
 //
 void getexpr(char *);
 void checktype(int *, int);
-char *getvalue(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int *ta);
+char *getvalue(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta);
 
 char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP, tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
 char cmdIF, cmdENDIF, cmdEND_IF, cmdELSEIF, cmdELSE_IF, cmdELSE, cmdSELECT_CASE, cmdCASE, cmdCASE_ELSE, cmdEND_SELECT;
@@ -444,7 +444,7 @@ int FindSubFun(char *p, int type) {
 //   cmd      = pointer to the command name used by the caller (in program memory)
 //   index    = index into subfun[i] which points to the definition of the sub or funct
 //   fa, i64a, sa and typ are pointers to where the return value is to be stored (used by functions only)
-void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, long long int *i64a, char **sa, int *typ) {
+void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a, char **sa, int *typ) {
     char *p, *s, *tp, *ttp, tcmdtoken;
     char *CallersLinePtr, *SubLinePtr = NULL;
     char *argbuf1; char **argv1; int argc1;
@@ -454,10 +454,10 @@ void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, long long int *
     int ArgType, FunType;
     int *argtype;
     union u_argval {
-      MMFLOAT f;                                                  // the value if it is a float
-        long long int i;                                            // the value if it is an integer
+        MMFLOAT f;                                                  // the value if it is a float
+        MMINTEGER i;                                                // the value if it is an integer
         MMFLOAT *fa;                                                // pointer to the allocated memory if it is an array of floats
-        long long int *ia;                                          // pointer to the allocated memory if it is an array of integers
+        MMINTEGER *ia;                                              // pointer to the allocated memory if it is an array of integers
         char *s;                                                    // pointer to the allocated memory if it is a string
     } *argval;
     int *argVarIndex;
@@ -606,7 +606,7 @@ void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, long long int *
 
             // if argument is present and is not a pointer to a variable then evaluate it as an expression
             if(argtype[i] == 0) {
-                long long int ia;
+                MMINTEGER ia;
                 evaluate(argv1[i], &argval[i].f, &ia, &s, &argtype[i], false);   // get the value and type of the argument
                 if(argtype[i] & T_INT)
                     argval[i].i = ia;
@@ -655,7 +655,7 @@ void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, long long int *
             if(vartbl[argVarIndex[i]].type & T_PTR) {
                 argval[i].i = *vartbl[argVarIndex[i]].val.ia;       // get the value if the supplied argument is a pointer
             } else {
-                argval[i].i = *(long long int *)argval[i].s;        // get the value if the supplied argument is an ordinary variable
+                argval[i].i = *(MMINTEGER *)argval[i].s;        // get the value if the supplied argument is an ordinary variable
             }
             argtype[i] &= ~T_PTR;                                   // and remove the pointer flag
         }
@@ -737,7 +737,7 @@ void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, long long int *
     if(FunType & T_NBR)
         *fa = *(MMFLOAT *)tp;
     else if(FunType & T_INT)
-        *i64a = *(long long int *)tp;
+        *i64a = *(MMINTEGER *)tp;
     else
         *sa = tp;                                                   // for a string we just need to return the local memory
     *typ = FunType;                                                 // save the function type for the caller
@@ -1025,7 +1025,7 @@ void MIPS16 tokenise(int console) {
 // this will check that the expression is terminated correctly and throw an error if not
 void *DoExpression(char *p, int *t) {
     static MMFLOAT f;
-    static long long int i64;
+    static MMINTEGER i64;
     static char *s;
 
     evaluate(p, &f, &i64, &s, t, false);
@@ -1045,7 +1045,7 @@ void *DoExpression(char *p, int *t) {
 //  if *t = T_STR or T_NBR or T_INT will throw an error if the result is not the correct type
 //  if *t = T_NOTYPE it will not throw an error and will return the type found in *t
 // this will check that the expression is terminated correctly and throw an error if not.  flags & E_NOERROR will suppress that check
-char *evaluate(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *ta, int flags) {
+char *evaluate(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int flags) {
     int o;
     int t = *ta;
     char *s;
@@ -1077,7 +1077,7 @@ char *evaluate(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *ta, int 
 MMFLOAT getnumber(char *p) {
     int t = T_NBR;
     MMFLOAT f;
-    long long int i64;
+    MMINTEGER i64;
     char *s;
 
     evaluate(p, &f, &i64, &s, &t, false);
@@ -1087,10 +1087,10 @@ MMFLOAT getnumber(char *p) {
 
 
 // evaluate an expression and return a 64 bit integer
-long long int getinteger(char *p) {
+MMINTEGER getinteger(char *p) {
     int t = T_INT;
     MMFLOAT f;
-    long long int i64;
+    MMINTEGER i64;
     char *s;
 
     evaluate(p, &f, &i64, &s, &t, false);
@@ -1104,7 +1104,7 @@ long long int getinteger(char *p) {
 // this will throw an error is the integer is outside a specified range
 // this will correctly round the number if it is a fraction of an integer
 int getint(char *p, int min, int max) {
-    long long int i;
+    MMINTEGER i;
     i = getinteger(p);
     if(i < min || i > max) error("% is invalid (valid is % to %)", (int)i, min, max);
     return i;
@@ -1116,7 +1116,7 @@ int getint(char *p, int min, int max) {
 char *getstring(char *p) {
     int t = T_STR;
     MMFLOAT f;
-    long long int i64;
+    MMINTEGER i64;
     char *s;
 
     evaluate(p, &f, &i64, &s, &t, false);
@@ -1138,9 +1138,9 @@ char *getCstring(char *p) {
 
 
 // recursively evaluate an expression observing the rules of operator precedence
-char *doexpr(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int *ta) {
+char *doexpr(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta) {
     MMFLOAT fa1, fa2;
-    long long int ia1, ia2;
+    MMINTEGER ia1, ia2;
     int o1, o2;
     int t1, t2;
     char *sa1, *sa2;
@@ -1194,9 +1194,9 @@ char *doexpr(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int *t
 
 // get a value, either from a constant, function or variable
 // also returns the next operator to the right of the value or E_END if no operator
-char *getvalue(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int *ta) {
+char *getvalue(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta) {
     MMFLOAT f = 0;
-    long long int i64 = 0;
+    MMINTEGER i64 = 0;
     char *s = NULL;
     int t = T_NOTYPE;
     char *tp, *p1, *p2;
@@ -1328,7 +1328,7 @@ char *getvalue(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int 
             s = (char *)findvar(p, V_FIND);                         // if it is a string then the string pointer is automatically set
             t = TypeMask(vartbl[VarIndex].type);
             if(t & T_NBR) f = (*(MMFLOAT *)s);
-            if(t & T_INT) i64 = (*(long long int *)s);
+            if(t & T_INT) i64 = (*(MMINTEGER *)s);
         }
         p = skipvar(p, false);
     }
@@ -1659,7 +1659,7 @@ void *findvar(char *p, int action) {
             if(dnbr > MAXDIM) error("Dimensions");
             for(i = 0; i < argc; i += 2) {
                 MMFLOAT f;
-                long long int in;
+                MMINTEGER in;
                 char *s;
                 int targ = T_NOTYPE;
                 evaluate(argv[i], &f, &in, &s, &targ, false);       // get the value and type of the argument
@@ -1779,7 +1779,7 @@ void *findvar(char *p, int action) {
             return vartbl[vindex].val.s + (nbr * sizeof(MMFLOAT));
         else
             if(vartbl[vindex].type & T_INT)
-                return vartbl[vindex].val.s + (nbr * sizeof(long long int));
+                return vartbl[vindex].val.s + (nbr * sizeof(MMINTEGER));
             else
                 return vartbl[vindex].val.s + (nbr * (vartbl[vindex].size + 1));
     }
@@ -1901,7 +1901,7 @@ void *findvar(char *p, int action) {
         mptr = GetMemory(nbr * sizeof(MMFLOAT));
     else
         if(vtype & T_INT)
-            mptr = GetMemory(nbr * sizeof(long long int));
+            mptr = GetMemory(nbr * sizeof(MMINTEGER));
         else
             mptr = GetMemory(nbr * (size + 1));
 
@@ -2155,11 +2155,10 @@ void MIPS16 error(char *msg, ...) {
 // sum is the number to be converted
 // base is the numbers base radix (10 = decimal, 16 = hex, etc)
 // if base 10 the number will be signed otherwise it will be unsigned
-void IntToStr(char *strr, long long int nbr, unsigned int base) {
+void IntToStr(char *strr, MMINTEGER nbr, unsigned int base) {
     int i, negative;
     unsigned char digit;
-    unsigned long long int sum;
-    extern long long int llabs (long long int n);
+    UNSIGNED_MMINTEGER sum;
 
     unsigned char str[IntToStrBufSize];
 
@@ -2170,7 +2169,7 @@ void IntToStr(char *strr, long long int nbr, unsigned int base) {
         negative = false;
 
     // this generates the digits in reverse order
-    sum = (unsigned long long int) nbr;
+    sum = (UNSIGNED_MMINTEGER) nbr;
     i = 0;
     do {
         digit = sum % base;
@@ -2197,7 +2196,7 @@ void IntToStr(char *strr, long long int nbr, unsigned int base) {
 // radix is the base of the number.  Base 10 is signed, all others are unsigned
 // Special case (used by FloatToStr() only):
 //     if padch is negative and nbr is zero prefix the number with the - sign
-void IntToStrPad(char *p, long long int nbr, signed char padch, int maxch, int radix) {
+void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix) {
     int i, j;
     char sign, buf[IntToStrBufSize];
 
@@ -2467,13 +2466,13 @@ int FloatToInt32(MMFLOAT x) {
 
 
 
-long long int FloatToInt64(MMFLOAT x) {
+MMINTEGER FloatToInt64(MMFLOAT x) {
     if(x < (-(0x7fffffffffffffffLL) -1) - 0.5 || x > 0x7fffffffffffffffLL + 0.5)
         error("Number too large");
    if ((x < -FLOAT_ROUNDING_LIMIT) || (x > FLOAT_ROUNDING_LIMIT))
-       return (long long int)(x);
+       return (MMINTEGER)(x);
    else
-       return (x >= 0 ? (long long int)(x + 0.5) : (long long int)(x - 0.5)) ;
+       return (x >= 0 ? (MMINTEGER)(x + 0.5) : (MMINTEGER)(x - 0.5)) ;
 }
 #endif
 
@@ -2923,9 +2922,9 @@ struct s_vartbl {                               // structure of the variable tab
     unsigned char size;                         // the number of chars to allocate for each element in a string array
     union u_val {
         MMFLOAT f;                              // the value if it is a MMFLOAT
-        long long int i;                        // the value if it is an integer
+        MMINTEGER i;                            // the value if it is an integer
         MMFLOAT *fa;                            // pointer to the allocated memory if it is an array of floats
-        long long int *ia;                      // pointer to the allocated memory if it is an array of integers
+        MMINTEGER *ia;                          // pointer to the allocated memory if it is an array of integers
         char *s;                                // pointer to the allocated memory if it is a string
     } val;
 };

@@ -51,7 +51,7 @@ provisions:
 void fun_abs(void) {
     char *p, *s;
     MMFLOAT f;
-    long long int i64;
+    MMINTEGER i64;
 
     targ = T_INT;
     p = evaluate(ep, &f, &i64, &s, &targ, false);                   // get the value and type of the argument
@@ -135,13 +135,13 @@ void fun_exp(void) {
 
 // utility function used by HEX$(), OCT$() and BIN$()
 void DoHexOctBin(int base) {
-    unsigned long long int i;
+    UNSIGNED_MMINTEGER i;
     int j = 1;
     getargs(&ep, 3, ",");
-    i = (unsigned long long int)getinteger(argv[0]);                  // get the number
-    if(argc == 3) j = getint(argv[2], 0, MAXSTRLEN);                // get the optional number of chars to return
-    sret = GetTempStrMemory();                                        // this will last for the life of the command
-    IntToStrPad(sret, (signed long long int)i, '0', j, base);
+    i = (UNSIGNED_MMINTEGER) getinteger(argv[0]);                  // get the number
+    if(argc == 3) j = getint(argv[2], 0, MAXSTRLEN);               // get the optional number of chars to return
+    sret = GetTempStrMemory();                                     // this will last for the life of the command
+    IntToStrPad(sret, (MMINTEGER) i, '0', j, base);
     CtoM(sret);
     targ = T_STR;
 }
@@ -487,7 +487,7 @@ void fun_space(void) {
 void fun_str(void) {
     char *s;
     MMFLOAT f;
-    long long int i64;
+    MMINTEGER i64;
     int t;
     int m, n;
     char ch, *p;
@@ -542,7 +542,7 @@ void fun_string(void) {
         if(!*(char *)p) error("Argument value: $", argv[2]);
         j = *((char *)p + 1);
     } else if(t & T_INT)
-        j = *(long long int *)p;
+        j = *(MMINTEGER *)p;
     else
         j = FloatToInt32(*((MMFLOAT *)p));
     if(j < 0 || j > 255) error("Argument value: $", argv[2]);

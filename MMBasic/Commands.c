@@ -69,7 +69,7 @@ void cmd_print(void) {
     //printf("Entered cmd_print()\n");
     char *s, *p;
     MMFLOAT f;
-    long long int i64;
+    MMINTEGER i64;
     int i, t, fnbr;
     int docrlf;                                                     // this is used to suppress the cr/lf if needed
 
@@ -129,7 +129,7 @@ void cmd_print(void) {
 void cmd_let(void) {
     int t, size;
     MMFLOAT f;
-    long long int i64;
+    MMINTEGER i64;
     char *s;
     char *p1, *p2;
 
@@ -168,9 +168,9 @@ void cmd_let(void) {
         t = T_INT;
         p1 = evaluate(p1, &f, &i64, &s, &t, false);
         if(t & T_INT)
-            (*(long long int *)p2) = i64;
+            (*(MMINTEGER *)p2) = i64;
         else
-            (*(long long int *)p2) = FloatToInt64(f);
+            (*(MMINTEGER *)p2) = FloatToInt64(f);
     }
     checkend(p1);
 }
@@ -487,7 +487,7 @@ void cmd_select(void) {
     char *p, *rp = NULL, *SaveCurrentLinePtr;
     void *v;
     MMFLOAT f = 0;
-    long long int i64 = 0;
+    MMINTEGER i64 = 0;
     char s[STRINGSIZE];
 
     // these are the tokens that we will be searching for
@@ -497,7 +497,7 @@ void cmd_select(void) {
     v = DoExpression(cmdline, &type);                               // evaluate the select case value
     type = TypeMask(type);
     if(type & T_NBR) f = *(MMFLOAT *)v;
-    if(type & T_INT) i64 = *(long long int *)v;
+    if(type & T_INT) i64 = *(MMINTEGER *)v;
     if(type & T_STR) Mstrcpy(s, (char *)v);
 
     // now search through the program looking for a matching CASE statement
@@ -513,7 +513,7 @@ void cmd_select(void) {
         if(*p == cmdCASE && i == 1) {
             int t;
             MMFLOAT ft, ftt;
-            long long int i64t, i64tt;
+            MMINTEGER i64t, i64tt;
             char *st, *stt;
 
             CurrentLinePtr = rp;                                    // and report errors at the line we are on
@@ -688,7 +688,7 @@ void cmd_input(void) {
             CtoM(tp);                                               // convert to a MMBasic string
         } else
             if(vartbl[VarIndex].type & T_INT) {
-            *((long long int *)tp) = strtoll(s, &sp, 10);           // convert to an integer
+            *((MMINTEGER *)tp) = strtoll(s, &sp, 10);           // convert to an integer
         }
         else
             *((MMFLOAT *)tp) = (MMFLOAT)atof(s);
@@ -809,7 +809,7 @@ void cmd_for(void) {
             else
                 forstack[forindex - 1].stepvalue.f = 1.0;           // default is +1
         } else {
-            *(long long int *)vptr = getinteger(argv[2]);           // get the starting value for an integer and save
+            *(MMINTEGER *)vptr = getinteger(argv[2]);           // get the starting value for an integer and save
             forstack[forindex - 1].tovalue.i = getinteger(argv[4]); // get the to value and save
             if(argc == 7)
                 forstack[forindex - 1].stepvalue.i = getinteger(argv[6]);// get the step value for an integer and save
@@ -841,7 +841,7 @@ void cmd_for(void) {
 
           // test the loop value at the start
           if(forstack[forindex].vartype & T_INT)
-              test = (forstack[forindex].stepvalue.i >= 0 && *(long long int *)vptr > forstack[forindex].tovalue.i) || (forstack[forindex].stepvalue.i < 0 && *(long long int *)vptr < forstack[forindex].tovalue.i) ;
+              test = (forstack[forindex].stepvalue.i >= 0 && *(MMINTEGER *)vptr > forstack[forindex].tovalue.i) || (forstack[forindex].stepvalue.i < 0 && *(MMINTEGER *)vptr < forstack[forindex].tovalue.i) ;
           else
               test = (forstack[forindex].stepvalue.f >= 0 && *(MMFLOAT *)vptr > forstack[forindex].tovalue.f) || (forstack[forindex].stepvalue.f < 0 && *(MMFLOAT *)vptr < forstack[forindex].tovalue.f) ;
 
@@ -897,8 +897,8 @@ void cmd_next(void) {
     // found a match
     // apply the STEP value to the variable and test against the TO value
     if(forstack[i].vartype & T_INT) {
-        *(long long int *)forstack[i].var += forstack[i].stepvalue.i;
-        test = (forstack[i].stepvalue.i >= 0 && *(long long int *)forstack[i].var > forstack[i].tovalue.i) || (forstack[i].stepvalue.i < 0 && *(long long int *)forstack[i].var < forstack[i].tovalue.i) ;
+        *(MMINTEGER *)forstack[i].var += forstack[i].stepvalue.i;
+        test = (forstack[i].stepvalue.i >= 0 && *(MMINTEGER *)forstack[i].var > forstack[i].tovalue.i) || (forstack[i].stepvalue.i < 0 && *(MMINTEGER *)forstack[i].var < forstack[i].tovalue.i) ;
     } else {
         *(MMFLOAT *)forstack[i].var += forstack[i].stepvalue.f;
         test = (forstack[i].stepvalue.f >= 0 && *(MMFLOAT *)forstack[i].var > forstack[i].tovalue.f) || (forstack[i].stepvalue.f < 0 && *(MMFLOAT *)forstack[i].var < forstack[i].tovalue.f) ;
@@ -1259,7 +1259,7 @@ search_again:
                 CtoM(vtbl[vidx]);                                   // convert to a MMBasic string
             }
             else if(vtype[vidx] & T_INT)
-                *((long long int *)vtbl[vidx]) = getinteger(argv[NextData]); // much easier if integer variable
+                *((MMINTEGER *)vtbl[vidx]) = getinteger(argv[NextData]); // much easier if integer variable
             else
                 *((MMFLOAT *)vtbl[vidx]) = getnumber(argv[NextData]);      // same for numeric variable
 
@@ -1416,7 +1416,7 @@ char *CheckIfTypeSpecified(char *p, int *type, int AllowDefaultType) {
 
 char *SetValue(char *p, int t, void *v) {
     MMFLOAT f;
-    long long int i64;
+    MMINTEGER i64;
     char *s, TempCurrentSubFunName[MAXVARLEN + 1];
 
     strcpy(TempCurrentSubFunName, CurrentSubFunName);               // save the current sub/fun name
@@ -1433,9 +1433,9 @@ char *SetValue(char *p, int t, void *v) {
     } else {
         p = evaluate(p, &f, &i64, &s, &t, false);
         if(t & T_INT)
-            (*(long long int *)v) = i64;
+            (*(MMINTEGER *)v) = i64;
         else
-            (*(long long int *)v) = FloatToInt64(f);
+            (*(MMINTEGER *)v) = FloatToInt64(f);
     }
     strcpy(CurrentSubFunName, TempCurrentSubFunName);               // restore the current sub/fun name
     return p;
@@ -1520,7 +1520,7 @@ void MIPS16 cmd_dim(void) {
                             p = SetValue(p, type, v);
                             if(type & T_STR) v = (char *)v + vartbl[VIndexSave].size + 1;
                             if(type & T_NBR) v = (char *)v + sizeof(MMFLOAT);
-                            if(type & T_INT) v = (char *)v + sizeof(long long int);
+                            if(type & T_INT) v = (char *)v + sizeof(MMINTEGER);
                             skipspace(p); j--;
                         } while(j > 0 && *p == ',');
                         if(*p != ')') error("Number of initialising values");
@@ -1578,7 +1578,7 @@ void MIPS16 cmd_const(void) {
         if(TypeMask(vartbl[VarIndex].type) != TypeMask(type)) error("Invalid constant");
         else {
             if(type & T_NBR) vartbl[VarIndex].val.f = *(MMFLOAT *)v; // and set its value
-            if(type & T_INT) vartbl[VarIndex].val.i = *(long long int *)v;
+            if(type & T_INT) vartbl[VarIndex].val.i = *(MMINTEGER *)v;
             if(type & T_STR) Mstrcpy(vartbl[VarIndex].val.s, (char *)v);
         }
     }

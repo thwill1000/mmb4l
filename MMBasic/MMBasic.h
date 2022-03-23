@@ -148,7 +148,7 @@ extern char tknbuf[];                           // used to store the tokenised r
 extern char lastcmd[];                          // used to store the command history in case the user uses the up arrow at the command prompt
 
 extern MMFLOAT farg1, farg2, fret;              // Global floating point variables used by operators
-extern long long int iarg1, iarg2, iret;        // Global integer variables used by operators
+extern MMINTEGER iarg1, iarg2, iret;            // Global integer variables used by operators
 extern char *sarg1, *sarg2, *sret;              // Global string pointers used by operators
 extern int targ;                                // Global type of argument (string or MMFLOAT) returned by an operator
 
@@ -190,11 +190,10 @@ void MIPS16 InitBasic(void);
 
 #if defined(__mmb4l__)
 int32_t FloatToInt32(MMFLOAT x);
-int64_t FloatToInt64(MMFLOAT x);
 #else
 int FloatToInt32(MMFLOAT);
-long long int FloatToInt64(MMFLOAT x);
 #endif
+MMINTEGER FloatToInt64(MMFLOAT x);
 
 void makeargs(char **tp, int maxargs, char *argbuf, char *argv[], int *argc, char *delim);
 void *findvar(char *, int);
@@ -204,10 +203,10 @@ void MIPS16 ClearStack(void);
 void MIPS16 ClearRuntime(void);
 void MIPS16 ClearProgram(void);
 void *DoExpression(char *p, int *t);
-char *evaluate(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *ta, int noerror);
-char *doexpr(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int *t);
+char *evaluate(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int noerror);
+char *doexpr(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *t);
 MMFLOAT getnumber(char *p);
-long long int getinteger(char *p);
+MMINTEGER getinteger(char *p);
 int getint(char *p, int min, int max);
 char *getstring(char *p);
 void MIPS16 tokenise(int console);
@@ -236,13 +235,13 @@ char *getCstring(char *p);
 int IsValidLine(int line);
 void InsertLastcmd(char *s);
 int MIPS16 CountLines(char *target);
-void DefinedSubFun(int iscmd, char *cmd, int index, MMFLOAT *fa, long long int *i64, char **sa, int *t);
+void DefinedSubFun(int iscmd, char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64, char **sa, int *t);
 int FindSubFun(char *p, int type);
 void MIPS16 PrepareProgram(int);
 void MMPrintString(char* s);
 void MMfputs(char *p, int filenbr);
-void IntToStrPad(char *p, long long int nbr, signed char padch, int maxch, int radix);
-void IntToStr(char *strr, long long int nbr, unsigned int base);
+void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix);
+void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
 int str_equal(const char *s1, const char *s2);
 int  strncasecmp (const char *s1, const char *s2, size_t n);
