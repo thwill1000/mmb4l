@@ -41,7 +41,7 @@ const struct s_tokentbl commandtbl[] = {
     #include "../Micromite/Hardware_Commands.h"
 #elif defined(MAXIMITE)
     #include "..\Maximite\Hardware_Commands.h"
-#elif defined(__linux__)
+#elif defined(__mmb4l__)
     #include "../linux-src/Hardware_Commands.h"
 #elif defined(DOS)
     #include "..\DOS\Source\Hardware_Commands.h"
@@ -64,7 +64,7 @@ const struct s_tokentbl tokentbl[] = {
     #include "../Micromite/Hardware_Commands.h"
 #elif defined(MAXIMITE)
     #include "..\Maximite\Hardware_Commands.h"
-#elif defined(__linux__)
+#elif defined(__mmb4l__)
     #include "../linux-src/Hardware_Commands.h"
 #elif defined(DOS)
     #include "..\DOS\Source\Hardware_Commands.h"
@@ -80,7 +80,7 @@ struct s_vartbl *vartbl;                                            // this tabl
 int varcnt;                                                         // number of variables
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 char OptionExplicit;                                                // used to force the declaration of variables before their use
 char DefaultType;                                                   // the default type if a variable is not specifically typed
 #endif
@@ -96,7 +96,7 @@ char tknbuf[STRINGSIZE];                                            // used to s
 
 int NextData;                                                       // used to track the next item to read in DATA & READ stmts
 char *NextDataLine;                                                 // used to track the next line to read in DATA & READ stmts
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 int OptionBase;                                                     // track the state of OPTION BASE
 #endif
 
@@ -183,7 +183,7 @@ void MIPS16 InitBasic(void) {
     cmdIRET = GetCommandValue("IReturn");
     cmdCSUB = GetCommandValue("CSub");
     cmdCFUN = GetCommandValue("CFunction");
-#elif defined(__linux__)
+#elif defined(__mmb4l__)
     cmdIRET = GetCommandValue("IReturn");
     cmdCSUB = GetCommandValue("CSub");
     cmdCFUN = 0xFF;
@@ -214,7 +214,7 @@ void ExecuteProgram(char *p) {
             if(++TraceBuffIndex >= TRACE_BUFF_SIZE) TraceBuffIndex = 0;
 #endif
             if(TraceOn && p < (char *) (ProgMemory + Option.ProgFlashSize)) {
-#if defined(__linux__)
+#if defined(__mmb4l__)
                 // Copied from the CMM2,
                 // looks like it has duplication with cmd_trace.c#TraceLines()
                 char buf[STRINGSIZE], buff[10];
@@ -317,7 +317,7 @@ void MIPS16 PrepareProgram(int ErrAbort) {
         FontTable[i] = NULL;                                        // clear the font table
 
     NbrFuncts = 0;
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
     CFunctionFlash = CFunctionLibrary = NULL;
 #endif
     if (Option.ProgFlashSize != PROG_FLASH_SIZE)
@@ -367,7 +367,7 @@ int MIPS16 PrepareProgramExt(char *p, int i, unsigned char **CFunPtr, int ErrAbo
                 continue;
             }
 
-#if defined(__linux__)
+#if defined(__mmb4l__)
             // I suspect all platforms should have this or something equivalent.
             // Note that the name does not (appear to) include any trailing %, !
             // or $ character.
@@ -769,7 +769,7 @@ void MIPS16 tokenise(int console) {
     int i;
     int firstnonwhite;
     int labelvalid;
-#if defined(__linux__)
+#if defined(__mmb4l__)
     int run_flag = 0;
 #endif
 
@@ -830,7 +830,7 @@ void MIPS16 tokenise(int console) {
             continue;
         }
 
-#if defined(__linux__)
+#if defined(__mmb4l__)
         // Once we've seen a RUN command we copy anything after a comma verbatim.
         if (run_flag && *p == ',') {
             do {
@@ -914,7 +914,7 @@ void MIPS16 tokenise(int console) {
                 if(match_i + C_BASETOKEN == GetCommandValue("Rem")) // check if it is a REM command
                     while(*p) *op++ = *p++;                         // and in that case just copy everything
                 else {
-#if defined(__linux__)
+#if defined(__mmb4l__)
                     if(match_i + C_BASETOKEN == GetCommandValue("Run")) run_flag = 1;
 #endif
                     if(isalpha(*(p-1)) && *p == ' ')                // if the command is followed by a space
@@ -1227,7 +1227,7 @@ char *getvalue(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int 
         return p;                                                   // return straight away as we already have the next operator
     }
 
-#if defined(__linux__)
+#if defined(__mmb4l__)
     if(tokenfunction(*p) == op_inv) {
         int ro;
         p++; t = T_NOTYPE;
@@ -1269,7 +1269,7 @@ char *getvalue(char *p, MMFLOAT *fa, long long int *ia, char **sa, int *oo, int 
         return p;                                                   // return straight away as we already have the next operator
     }
 
-#if defined(__linux__)
+#if defined(__mmb4l__)
     // unary + operator.
     if (tokenfunction(*p) == op_add) {
         int ro;
@@ -2056,7 +2056,7 @@ void makeargs(char **p, int maxargs, char *argbuf, char *argv[], int *argc, char
 //  % = insert a number
 // the optional data to be inserted is the second argument to this function
 // this uses longjump to skip back to the command input and cleanup the stack
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 void MIPS16 error(char *msg, ...) {
     char *p, *tp, tstr[STRINGSIZE * 2];
     va_list ap;
@@ -2378,7 +2378,7 @@ void MIPS16 ClearStack(void) {
     gosubindex = 0;
     LocalIndex = 0;
     TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
-#if defined(__linux__)
+#if defined(__mmb4l__)
     interrupt_clear();
 #else
     InterruptReturn = NULL;
@@ -2402,7 +2402,7 @@ void MIPS16 ClearRuntime(void) {
     ClearVars(0);
     OptionExplicit = false;
     DefaultType = T_NBR;
-#if defined(__linux__)
+#if defined(__mmb4l__)
     Option.resolution = CHARACTER;
     codepage_set(&mmb_options, "NONE");
 #endif
@@ -2429,7 +2429,7 @@ void MIPS16 ClearRuntime(void) {
 void MIPS16 ClearProgram(void) {
     m_alloc(M_PROG, 0);                                             // init the variables for program memory - only effective in the Maximite
     ClearRuntime();
-#if defined(__linux__)
+#if defined(__mmb4l__)
     memset(error_file, 0, STRINGSIZE);
     error_line = -1;
 #else
@@ -2441,7 +2441,7 @@ void MIPS16 ClearProgram(void) {
 
 
 
-#if defined(__linux__)
+#if defined(__mmb4l__)
 int32_t FloatToInt32(MMFLOAT x) {
     if (x < (MMFLOAT) LONG_MIN - 0.5 || x > (MMFLOAT) LONG_MAX + 0.5)
         error("Number too large");

@@ -56,13 +56,7 @@ provisions:
         #define __386__
         #define MES_SIGNON  "Windows MMBasic Ver " VERSION "\r\n"
     #elif defined(__linux__)
-        #define MM_DEVICE  "MMB4L"
-        #undef VERSION
-        #define VERSION  "2022.01.00"
-        #undef COPYRIGHT
-        #define COPYRIGHT  "Copyright " YEAR " Geoff Graham\r\n" \
-                           "Copyright 2021-2022 Thomas Hugo Williams\r\n"
-                           // "Copyright 2016-2021 Peter Mather\r\n"
+        #define __mmb4l__
         #if defined(__ANDROID__)
             #define MM_ARCH  "Android aarch64"
             #define ENV64BIT
@@ -81,9 +75,23 @@ provisions:
         #else
             #error This architecture is not supported
         #endif
-        #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a4\r\n"
+    #elif defined(__riscos__)
+        #define __mmb4l__
+        #define MM_ARCH "RISC OS"
+        #define ENV32BIT
     #else
         #error This device is not supported
+    #endif
+
+    #if defined(__mmb4l__)
+        #define MM_DEVICE  "MMB4L"
+        #undef VERSION
+        #define VERSION  "2022.01.00"
+        #undef COPYRIGHT
+        #define COPYRIGHT  "Copyright " YEAR " Geoff Graham\r\n" \
+                           "Copyright 2021-2022 Thomas Hugo Williams\r\n"
+                           // "Copyright 2016-2021 Peter Mather\r\n"
+        #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a4\r\n"
     #endif
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

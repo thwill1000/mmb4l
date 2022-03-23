@@ -138,7 +138,7 @@ void cmd_case(void);
   { "Run",        T_CMD,              0, cmd_run      },
   { "Static",     T_CMD,              0, cmd_dim      },
   { "Sub",        T_CMD,              0, cmd_subfun   },
-#if defined(__linux__)
+#if defined(__mmb4l__)
   { "TrOff",      T_CMD,              0, cmd_troff    },
   { "TrOn",       T_CMD,              0, cmd_tron     },
 #else

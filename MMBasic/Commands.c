@@ -63,7 +63,7 @@ void cmd_null(void) {
   // do nothing (this is just a placeholder for commands that have no action)
 }
 
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 // the PRINT command
 void cmd_print(void) {
     //printf("Entered cmd_print()\n");
@@ -175,7 +175,7 @@ void cmd_let(void) {
     checkend(p1);
 }
 
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 void MIPS16 cmd_list(void) {
   char *p;
 
@@ -224,7 +224,7 @@ void MIPS16 ListProgram(char *p, int all) {
     }
 }
 
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 void MIPS16 cmd_run(void) {
 #if !defined(MX170)
     skipspace(cmdline);
@@ -268,7 +268,7 @@ void MIPS16 cmd_continue(void) {
     nextstmt = ContinuePoint;
 }
 
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 void MIPS16 cmd_new(void) {
 //    if(CurrentLinePtr) error("Invalid in a program");
     checkend(cmdline);
@@ -473,7 +473,7 @@ void cmd_else(void) {
 }
 
 
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 void cmd_end(void) {
     checkend(cmdline);
     longjmp(mark, 1);                                               // jump back to the input prompt
@@ -711,7 +711,7 @@ void cmd_troff(void) {
     TraceOn = false;
 }
 
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 void cmd_trace(void) {
     if(checkstring(cmdline, "ON"))
         TraceOn = true;
@@ -1089,7 +1089,7 @@ void cmd_exit(void) {
 }
 
 
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 void cmd_error(void) {
     char *s;
     if(*cmdline && *cmdline != '\'') {
@@ -1321,7 +1321,7 @@ void cmd_lineinput(void) {
     CtoM(vp);                                                       // convert to a MMBasic string
 }
 
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 void cmd_on(void) {
     int r;
     char ss[4];                                                     // this will be used to split up the argument line

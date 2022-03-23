@@ -87,7 +87,7 @@ void fun_atn(void) {
 }
 
 
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 // convert a number into a one character string
 // s$ = CHR$(nbr)
 void fun_chr(void) {

@@ -72,7 +72,7 @@ extern int varcnt;                                    // number of variables def
 extern int VarIndex;                                  // index of the current variable.  set after the findvar() function has found/created a variable
 extern int LocalIndex;                                // used to track the level of local variables
 
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 extern int OptionBase;                                // value of OPTION BASE
 extern char OptionExplicit;                           // true if OPTION EXPLICIT has been used
 extern char DefaultType;                              // the default type if a variable is not specifically typed
@@ -132,7 +132,7 @@ extern int CommandTableSize, TokenTableSize;
 
 extern volatile int MMAbort;
 extern jmp_buf mark;                            // longjump to recover from an error
-#if !defined(__linux__)
+#if !defined(__mmb4l__)
 extern char BreakKey;                           // console break key (defaults to CTRL-C)
 #endif
 
@@ -188,7 +188,7 @@ extern char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
 void MIPS16 error(char *, ...);
 void MIPS16 InitBasic(void);
 
-#if defined(__linux__)
+#if defined(__mmb4l__)
 int32_t FloatToInt32(MMFLOAT x);
 int64_t FloatToInt64(MMFLOAT x);
 #else
