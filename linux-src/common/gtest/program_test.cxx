@@ -29,8 +29,6 @@ int file_find_free(void) { return 1; }
 void file_open(char *fname, char *mode, int fnbr) { }
 int GetCommandValue(char *n) { return 0; }
 char *getCstring(char *p) { return NULL; }
-long long int getinteger(char *p) { return 0; }
-char *getstring(char *p) { return NULL; }
 void *GetTempMemory(int NbrBytes) { return NULL; }
 void IntToStr(char *strr, long long int nbr, unsigned int base) { }
 void ListNewLine(int *ListCnt, int all) { }

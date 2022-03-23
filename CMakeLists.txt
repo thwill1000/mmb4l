@@ -168,6 +168,27 @@ enable_testing()
 include(GoogleTest)
 
 ################################################################################
+# test_cmdline
+################################################################################
+
+add_executable(
+  test_cmdline
+  linux-src/common/cmdline.c
+  linux-src/common/cstring.c
+  linux-src/common/gtest/cmdline_test.cxx
+)
+
+target_link_libraries(
+  test_cmdline
+  gtest_main
+  gmock
+  gmock_main
+  gcov
+)
+
+gtest_discover_tests(test_cmdline)
+
+################################################################################
 # test_cstring
 ################################################################################
 
@@ -187,32 +208,28 @@ target_link_libraries(
 gtest_discover_tests(test_cstring)
 
 ################################################################################
-# test_mmbasic
+# test_options
 ################################################################################
 
 add_executable(
-  test_mmbasic
-  linux-src/common/cmdline.c
+  test_options
   linux-src/common/cstring.c
   linux-src/common/options.c
   linux-src/common/path.c
-  linux-src/common/rx_buf.c
-  linux-src/common/gtest/cmdline_test.cxx
   linux-src/common/gtest/options_test.cxx
-  linux-src/common/gtest/rx_buf_test.cxx
 )
 
-target_compile_definitions(test_mmbasic PUBLIC OPTION_TESTS)
+target_compile_definitions(test_options PUBLIC OPTION_TESTS)
 
 target_link_libraries(
-  test_mmbasic
+  test_options
   gtest_main
   gmock
   gmock_main
   gcov
 )
 
-gtest_discover_tests(test_mmbasic)
+gtest_discover_tests(test_options)
 
 ################################################################################
 # test_parse
@@ -277,3 +294,23 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_program)
+
+################################################################################
+# test_rx_buf
+################################################################################
+
+add_executable(
+  test_rx_buf
+  linux-src/common/rx_buf.c
+  linux-src/common/gtest/rx_buf_test.cxx
+)
+
+target_link_libraries(
+  test_rx_buf
+  gtest_main
+  gmock
+  gmock_main
+  gcov
+)
+
+gtest_discover_tests(test_rx_buf)
