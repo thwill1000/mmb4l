@@ -2400,7 +2400,7 @@ void MIPS16 ClearRuntime(void) {
     DefaultType = T_NBR;
 #if defined(__linux__)
     Option.resolution = CHARACTER;
-    codepage_set("NONE");
+    codepage_set(&mmb_options, "NONE");
 #endif
 #if defined(MICROMITE) && !defined(LITE)
     ds18b20Timers = NULL;                                           // InitHeap() will recover the memory allocated to this array

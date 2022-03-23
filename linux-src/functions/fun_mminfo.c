@@ -244,7 +244,7 @@ static void mminfo_option(char *p) {
         g_rtn_type = T_STR;
     } else if (checkstring(p, "CODEPAGE")) {
         g_string_rtn = GetTempStrMemory();
-        if (FAILED(codepage_to_string(codepage_current, g_string_rtn))) ERROR_INTERNAL_FAULT;
+        if (FAILED(codepage_to_string(mmb_options.codepage, g_string_rtn))) ERROR_INTERNAL_FAULT;
         g_rtn_type = T_STR;
     } else if (checkstring(p, "CONSOLE")) {
         g_string_rtn = GetTempStrMemory();

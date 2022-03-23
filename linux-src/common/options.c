@@ -34,6 +34,8 @@ OptionsEditor options_editors[] = {
 
 void options_init(Options *options) {
     memset(options, 0, sizeof(Options));
+
+    options->codepage = NULL;
     options->console = SERIAL;
     options->list_case = CONFIG_TITLE;
     options->prog_flash_size = PROG_FLASH_SIZE;

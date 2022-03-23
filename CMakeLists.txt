@@ -157,7 +157,9 @@ add_executable(test_keyboard
     linux-src/common/codepage.c
     linux-src/common/console.c
     linux-src/common/cstring.c
-    linux-src/common/mmtime.c)
+    linux-src/common/mmtime.c
+    linux-src/common/options.c
+    linux-src/common/path.c)
 
 target_link_libraries(mmbasic m gcov)
 

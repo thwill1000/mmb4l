@@ -222,8 +222,8 @@ int console_getc(void) {
 }
 
 char console_putc(char c) {
-    if (codepage_current && c > 127) {
-        char *ptr = codepage_current + 4 * (c - 128);
+    if (mmb_options.codepage && c > 127) {
+        char *ptr = mmb_options.codepage + 4 * (c - 128);
         putc(*ptr++, stdout);           // 1st byte.
         if (ptr) putc(*ptr++, stdout);  // Optional 2nd byte.
         if (ptr) putc(*ptr++, stdout);  // Optional 3rd byte.

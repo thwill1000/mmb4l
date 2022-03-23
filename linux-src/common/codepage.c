@@ -538,19 +538,17 @@ static char CODEPAGE_MMB4L_UTF8[] = {
     0xE2, 0x8C, 0x82, 0x00,
 };
 
-char *codepage_current = NULL;
-
-int codepage_set(const char *page_name) {
+int codepage_set(Options *options, const char *page_name) {
     if (strcasecmp(page_name, "NONE") == 0) {
-        codepage_current = NULL;
+        options->codepage = NULL;
     } else if (strcasecmp(page_name, "CMM2") == 0) {
-        codepage_current = CODEPAGE_CMM2_UTF8;
+        options->codepage = CODEPAGE_CMM2_UTF8;
     } else if (strcasecmp(page_name, "CP437") == 0) {
-        codepage_current = CODEPAGE_CP437_UTF8;
+        options->codepage = CODEPAGE_CP437_UTF8;
     } else if (strcasecmp(page_name, "CP1252") == 0) {
-        codepage_current = CODEPAGE_CP1252_UTF8;
+        options->codepage = CODEPAGE_CP1252_UTF8;
     } else if (strcasecmp(page_name, "MMB4L") == 0) {
-        codepage_current = CODEPAGE_MMB4L_UTF8;
+        options->codepage = CODEPAGE_MMB4L_UTF8;
     } else {
         return -1; // Error
     }

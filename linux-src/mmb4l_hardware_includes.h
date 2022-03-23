@@ -89,7 +89,7 @@ extern char error_file[STRINGSIZE];
 #define ClearExternalIO()         // same
 
 void CheckAbort(void);
-int codepage_set(const char *page_name);
+int codepage_set(Options *options, const char *page_name);
 int MMgetchar(void);
 
 extern char *CFunctionFlash;

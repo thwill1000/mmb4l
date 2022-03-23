@@ -48,7 +48,7 @@ static void option_codepage(char *p) {
     char *codepage_name = getCstring(argv[0]);
     bool found = false;
     for (int i = 0; CODEPAGE_NAMES[i]; i++) {
-        if (SUCCEEDED(codepage_set(codepage_name))) {
+        if (SUCCEEDED(codepage_set(&mmb_options, codepage_name))) {
             found = true;
             break;
         }
@@ -141,7 +141,7 @@ void option_list(char *p) {
     options_list_case_to_string(mmb_options.list_case, buf);
     option_list_item("Case", buf);
 
-    if (FAILED(codepage_to_string(codepage_current, buf))) ERROR_INTERNAL_FAULT;
+    if (FAILED(codepage_to_string(mmb_options.codepage, buf))) ERROR_INTERNAL_FAULT;
     option_list_item("CodePage", buf);
 
     options_console_to_string(mmb_options.console, buf);
