@@ -48,7 +48,7 @@ void fun_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                    j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                    j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                     if(j)card1 *= j;
                                 }
                                 a1float = (MMFLOAT *)ptr1;
@@ -56,7 +56,7 @@ void fun_math(void){
                     } else if(vartbl[VarIndex].type & T_INT) {
                             card1=1;
                             for(i=0;i<MAXDIM;i++){
-                                    j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                    j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                     if(j)card1 *= j;
                             }
                         a1int = (int64_t *)ptr1;
@@ -66,7 +66,7 @@ void fun_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card2=1;
                                 for(i=0;i<MAXDIM;i++){
-                                    j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                    j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                     if(j)card2 *= j;
                                 }
                                 a2float = (MMFLOAT *)ptr2;
@@ -74,7 +74,7 @@ void fun_math(void){
                     } else if(vartbl[VarIndex].type & T_INT) {
                             card2=1;
                             for(i=0;i<MAXDIM;i++){
-                                    j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                    j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                     if(j)card2 *= j;
                             }
                         a2int = (int64_t *)ptr2;
@@ -135,8 +135,8 @@ void fun_math(void){
                                         if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                                 error("Argument 1 must be a numerical 2D array");
                                         }
-                                        numcols=vartbl[VarIndex].dims[0] - OptionBase;
-                                        numrows=vartbl[VarIndex].dims[1] - OptionBase;
+                                        numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
+                                        numrows=vartbl[VarIndex].dims[1] - mmb_options.base;
                                         a1float = (MMFLOAT *)ptr1;
                                         if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                                 } else if(ptr1 && vartbl[VarIndex].type & T_INT) {
@@ -147,8 +147,8 @@ void fun_math(void){
                                         if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                                 error("Argument 1 must be a numerical 2D array");
                                         }
-                                        numcols=vartbl[VarIndex].dims[0] - OptionBase;
-                                        numrows=vartbl[VarIndex].dims[1] - OptionBase;
+                                        numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
+                                        numrows=vartbl[VarIndex].dims[1] - mmb_options.base;
                                         a1int = (int64_t *)ptr1;
                                         if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                                 } else error("Argument 1 must be a numerical 2D array");
@@ -227,7 +227,7 @@ void fun_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 1 must be a floating point array");
@@ -237,7 +237,7 @@ void fun_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 2 must be a floating point array");
                                 }
-                                if((vartbl[VarIndex].dims[0] - OptionBase) != numcols)error("Array size mismatch");
+                                if((vartbl[VarIndex].dims[0] - mmb_options.base) != numcols)error("Array size mismatch");
                                 a2float = (MMFLOAT *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 2 must be a floating point array");
@@ -276,8 +276,8 @@ void fun_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a numerical 2D array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
-                                numrows=vartbl[VarIndex].dims[1] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
+                                numrows=vartbl[VarIndex].dims[1] - mmb_options.base;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else        error("Argument 1 must be a numerical 2D array");
@@ -308,7 +308,7 @@ void fun_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1float = (MMFLOAT *)ptr1;
@@ -316,7 +316,7 @@ void fun_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1int = (int64_t *)ptr1;
@@ -349,7 +349,7 @@ void fun_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1float = (MMFLOAT *)ptr1;
@@ -357,7 +357,7 @@ void fun_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1int = (int64_t *)ptr1;
@@ -393,7 +393,7 @@ void fun_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 1 must be a floating point array");
@@ -419,7 +419,7 @@ void fun_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1float = (MMFLOAT *)ptr1;
@@ -427,7 +427,7 @@ void fun_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1int = (int64_t *)ptr1;
@@ -455,7 +455,7 @@ void fun_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card2=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card2 *= j;
                                 }
                                 a2float = (MMFLOAT *)ptr2;
@@ -463,7 +463,7 @@ void fun_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card2=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card2 *= j;
                                 }
                                 a2int = (int64_t *)ptr2;
@@ -506,7 +506,7 @@ void fun_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1float = a2float = (MMFLOAT *)ptr1;
@@ -514,7 +514,7 @@ void fun_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1int = a2int = (int64_t *)ptr1;
@@ -554,7 +554,7 @@ void fun_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1float = (MMFLOAT *)ptr1;
@@ -562,7 +562,7 @@ void fun_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1int = (int64_t *)ptr1;

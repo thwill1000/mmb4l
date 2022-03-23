@@ -22,7 +22,7 @@ static void longstring_append(char *tp) {
         q += dest[0];
     } else
         error("Argument 1 must be integer array");
-    j = (vartbl[VarIndex].dims[0] - OptionBase);
+    j = (vartbl[VarIndex].dims[0] - mmb_options.base);
     p = getstring(argv[2]);
     nbr = i = *p++;
     if (j * 8 < dest[0] + i) error("Integer array too small");
@@ -67,7 +67,7 @@ static void longstring_copy(char *tp) {
         q = (char *)&dest[1];
     } else
         error("Argument 1 must be integer array");
-    j = (vartbl[VarIndex].dims[0] - OptionBase);
+    j = (vartbl[VarIndex].dims[0] - mmb_options.base);
     ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
         if (vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
@@ -104,7 +104,7 @@ static void longstring_concat(char *tp) {
         q = (char *)&dest[1];
     } else
         error("Argument 1 must be integer array");
-    j = (vartbl[VarIndex].dims[0] - OptionBase);
+    j = (vartbl[VarIndex].dims[0] - mmb_options.base);
     ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
         if (vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
@@ -165,7 +165,7 @@ static void longstring_left(char *tp) {
         q = (char *)&dest[1];
     } else
         error("Argument 1 must be integer array");
-    j = (vartbl[VarIndex].dims[0] - OptionBase);
+    j = (vartbl[VarIndex].dims[0] - mmb_options.base);
     ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
         if (vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
@@ -204,7 +204,7 @@ static void longstring_load(char *tp) {
         q = (char *)&dest[1];
     } else
         error("Argument 1 must be integer array");
-    j = (vartbl[VarIndex].dims[0] - OptionBase);
+    j = (vartbl[VarIndex].dims[0] - mmb_options.base);
     p = getstring(argv[4]);
     if (nbr > *p) nbr = *p;
     p++;
@@ -233,7 +233,7 @@ static void longstring_mid(char *tp) {
         q = (char *)&dest[1];
     } else
         error("Argument 1 must be integer array");
-    j = (vartbl[VarIndex].dims[0] - OptionBase);
+    j = (vartbl[VarIndex].dims[0] - mmb_options.base);
     ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
         if (vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
@@ -337,12 +337,12 @@ static void longstring_resize(char *tp) {
         if (vartbl[VarIndex].dims[0] <= 0) {  // Not an array
             error("Argument 1 must be integer array");
         }
-        j = (vartbl[VarIndex].dims[0] - OptionBase) * 8;
+        j = (vartbl[VarIndex].dims[0] - mmb_options.base) * 8;
         dest = (int64_t *)ptr1;
     } else
         error("Argument 1 must be integer array");
 
-    // dest[0] = getint(argv[2], OptionBase, j - OptionBase) + 1;
+    // dest[0] = getint(argv[2], mmb_options.base, j - mmb_options.base) + 1;
     dest[0] = getint(argv[2], 0, j);
 }
 
@@ -365,7 +365,7 @@ static void longstring_right(char *tp) {
         q = (char *)&dest[1];
     } else
         error("Argument 1 must be integer array");
-    j = (vartbl[VarIndex].dims[0] - OptionBase);
+    j = (vartbl[VarIndex].dims[0] - mmb_options.base);
     ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
         if (vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
@@ -401,14 +401,14 @@ void longstring_setbyte(char *tp) {
         if (vartbl[VarIndex].dims[0] <= 0) {  // Not an array
             error("Argument 1 must be integer array");
         }
-        j = (vartbl[VarIndex].dims[0] - OptionBase) * 8 - 1;
+        j = (vartbl[VarIndex].dims[0] - mmb_options.base) * 8 - 1;
         dest = (int64_t *)ptr1;
         q = (uint8_t *)&dest[1];
     } else
         error("Argument 1 must be integer array");
-    p = getint(argv[2], OptionBase, j - OptionBase);
+    p = getint(argv[2], mmb_options.base, j - mmb_options.base);
     nbr = getint(argv[4], 0, 255);
-    q[p - OptionBase] = nbr;
+    q[p - mmb_options.base] = nbr;
     return;
 }
 

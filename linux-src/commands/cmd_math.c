@@ -30,7 +30,7 @@ void cmd_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1float = (MMFLOAT *)ptr1;
@@ -38,7 +38,7 @@ void cmd_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1int = (int64_t *)ptr1;
@@ -65,7 +65,7 @@ void cmd_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1float = (MMFLOAT *)ptr1;
@@ -73,7 +73,7 @@ void cmd_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1int = (int64_t *)ptr1;
@@ -86,7 +86,7 @@ void cmd_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card2=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card2 *= j;
                                 }
                                 a2float = (MMFLOAT *)ptr2;
@@ -94,7 +94,7 @@ void cmd_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card2=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card2 *= j;
                                 }
                                 a2int = (int64_t *)ptr2;
@@ -142,9 +142,9 @@ void cmd_math(void){
                                         error("Argument 1 must be a 2D or more numerical array");
                                 }
                                 for(i=0;i<MAXDIM;i++){
-                                        if(vartbl[VarIndex].dims[i]-OptionBase>0){
+                                        if(vartbl[VarIndex].dims[i]-mmb_options.base>0){
                                                 dimcount++;
-                                                dim[i]=vartbl[VarIndex].dims[i]-OptionBase;
+                                                dim[i]=vartbl[VarIndex].dims[i]-mmb_options.base;
                                         } else dim[i]=0;
                                 }
                                 a1int = (int64_t *)ptr1;
@@ -152,7 +152,7 @@ void cmd_math(void){
                         } else error("Argument 1 must be a 2D or more numerical array");
                         if(((argc-1)/2-1)!=dimcount)error("Argument count");
                         for(i=0; i<dimcount;i++ ){
-                                if(*argv[i*2 +2]) pos[i]=getint(argv[i*2 +2],OptionBase,dim[i]+OptionBase)-OptionBase;
+                                if(*argv[i*2 +2]) pos[i]=getint(argv[i*2 +2],mmb_options.base,dim[i]+mmb_options.base)-mmb_options.base;
                                 else {
                                         if(target!=-1)error("Only one index can be omitted");
                                         target=i;
@@ -165,7 +165,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Target must be 1D a numerical point array");
                                 }
-                                toarray=vartbl[VarIndex].dims[0]-OptionBase;
+                                toarray=vartbl[VarIndex].dims[0]-mmb_options.base;
                                 a2int = (int64_t *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Target must be 1D a numerical point array");
@@ -210,8 +210,8 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a 2D floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
-                                numrows=vartbl[VarIndex].dims[1] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
+                                numrows=vartbl[VarIndex].dims[1] - mmb_options.base;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 1 must be a 2D floating point array");
@@ -221,7 +221,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 2 must be a floating point array");
                                 }
-                                if((vartbl[VarIndex].dims[0] - OptionBase) != numcols)error("Array size mismatch");
+                                if((vartbl[VarIndex].dims[0] - mmb_options.base) != numcols)error("Array size mismatch");
                                 a2float = a2sfloat = (MMFLOAT *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 2 must be a floating point array");
@@ -231,7 +231,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 3 must be a floating point array");
                                 }
-                                if((vartbl[VarIndex].dims[0] - OptionBase) != numrows)error("Array size mismatch");
+                                if((vartbl[VarIndex].dims[0] - mmb_options.base) != numrows)error("Array size mismatch");
                                 a3float = (MMFLOAT *)ptr3;
                                 if ((char *) ptr3 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 3 must be a floating point array");
@@ -263,7 +263,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a floating point array");
                                 }
-                                numrows=vartbl[VarIndex].dims[0] - OptionBase;
+                                numrows=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 a1float = a1sfloat = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 1 must be a floating point array");
@@ -273,7 +273,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 2 must be a floating point array");
                                 }
-                                if((vartbl[VarIndex].dims[0] - OptionBase) != numrows)error("Array size mismatch");
+                                if((vartbl[VarIndex].dims[0] - mmb_options.base) != numrows)error("Array size mismatch");
                                 a2float = (MMFLOAT *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 2 must be a floating point array");
@@ -305,7 +305,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a 3 element floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 if(numcols!=2)error("Argument 1 must be a 3 element floating point array");
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
@@ -316,7 +316,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 2 must be a floating point array");
                                 }
-                                if((vartbl[VarIndex].dims[0] - OptionBase) != numcols)error("Array size mismatch");
+                                if((vartbl[VarIndex].dims[0] - mmb_options.base) != numcols)error("Array size mismatch");
                                 a2float = (MMFLOAT *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 2 must be a floating point array");
@@ -326,7 +326,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 3 must be a floating point array");
                                 }
-                                if((vartbl[VarIndex].dims[0] - OptionBase) != numcols)error("Array size mismatch");
+                                if((vartbl[VarIndex].dims[0] - mmb_options.base) != numcols)error("Array size mismatch");
                                 a3float = (MMFLOAT *)ptr3;
                                 if ((char *) ptr3 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 3 must be a floating point array");
@@ -354,7 +354,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a numerical array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else if(ptr1 && vartbl[VarIndex].type & T_INT) {
@@ -362,7 +362,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a numerical array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 a1int = (int64_t *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 1 must be a numerical array");
@@ -398,8 +398,8 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a numerical 2D array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
-                                numrows=vartbl[VarIndex].dims[1] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
+                                numrows=vartbl[VarIndex].dims[1] - mmb_options.base;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else        error("Argument 1 must be a numerical 2D array");
@@ -412,8 +412,8 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 2 must be a numerical 2D array");
                                 }
-                                if(numcols!=vartbl[VarIndex].dims[0] - OptionBase)error("array size mismatch");
-                                if(numrows!=vartbl[VarIndex].dims[1] - OptionBase)error("array size mismatch");
+                                if(numcols!=vartbl[VarIndex].dims[0] - mmb_options.base)error("array size mismatch");
+                                if(numrows!=vartbl[VarIndex].dims[1] - mmb_options.base)error("array size mismatch");
                                 a2float = (MMFLOAT *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else        error("Argument 2 must be a numerical 2D array");
@@ -461,8 +461,8 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a 2D floating point array");
                                 }
-                                numcols1=numrows2=vartbl[VarIndex].dims[0] - OptionBase;
-                                numrows1=numcols2=vartbl[VarIndex].dims[1] - OptionBase;
+                                numcols1=numrows2=vartbl[VarIndex].dims[0] - mmb_options.base;
+                                numrows1=numcols2=vartbl[VarIndex].dims[1] - mmb_options.base;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 1 must be a 2D floating point array");
@@ -475,8 +475,8 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 2 must be 2D floating point array");
                                 }
-                                if(numcols2 !=(vartbl[VarIndex].dims[0] - OptionBase))error("Array size mismatch");
-                                if(numrows2 !=(vartbl[VarIndex].dims[1] - OptionBase))error("Array size mismatch");
+                                if(numcols2 !=(vartbl[VarIndex].dims[0] - mmb_options.base))error("Array size mismatch");
+                                if(numrows2 !=(vartbl[VarIndex].dims[1] - mmb_options.base))error("Array size mismatch");
                                 a2float = (MMFLOAT *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 2 must be a 2D floating point array");
@@ -524,8 +524,8 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a 2D floating point array");
                                 }
-                                numcols1=numrows2=vartbl[VarIndex].dims[0] - OptionBase + 1;
-                                numrows1=vartbl[VarIndex].dims[1] - OptionBase + 1;
+                                numcols1=numrows2=vartbl[VarIndex].dims[0] - mmb_options.base + 1;
+                                numrows1=vartbl[VarIndex].dims[1] - mmb_options.base + 1;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 1 must be a 2D floating point array");
@@ -538,8 +538,8 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 2 must be a 2D floating point array");
                                 }
-                                numcols2=vartbl[VarIndex].dims[0] - OptionBase + 1;
-                                numrows2=vartbl[VarIndex].dims[1] - OptionBase + 1;
+                                numcols2=vartbl[VarIndex].dims[0] - mmb_options.base + 1;
+                                numrows2=vartbl[VarIndex].dims[1] - mmb_options.base + 1;
                                 if(numrows2 !=numcols1)error("Input array size mismatch");
                                 a2float = (MMFLOAT *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
@@ -553,8 +553,8 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 3 must be a 2D floating point array");
                                 }
-                                numcols3=vartbl[VarIndex].dims[0] - OptionBase + 1;
-                                numrows3=vartbl[VarIndex].dims[1] - OptionBase + 1;
+                                numcols3=vartbl[VarIndex].dims[0] - mmb_options.base + 1;
+                                numrows3=vartbl[VarIndex].dims[1] - mmb_options.base + 1;
                                 if(numcols3 !=numcols2 || numrows3 !=numrows1)error("Output array size mismatch");
                                 a3float = (MMFLOAT *)ptr3;
                                 if ((char *) ptr3 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
@@ -611,8 +611,8 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a numerical 2D array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
-                                numrows=vartbl[VarIndex].dims[1] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
+                                numrows=vartbl[VarIndex].dims[1] - mmb_options.base;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else if(ptr1 && vartbl[VarIndex].type & T_INT) {
@@ -623,8 +623,8 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a numerical 2D array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
-                                numrows=vartbl[VarIndex].dims[1] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
+                                numrows=vartbl[VarIndex].dims[1] - mmb_options.base;
                                 a1int = (int64_t *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 1 must be a numerical 2D array");
@@ -678,7 +678,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a 5 element floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 if(numcols!=4)error("Argument 1 must be a 5 element floating point array");
                                 q = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
@@ -689,7 +689,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 2 must be a 5 element floating point array");
                                 }
-                                if((vartbl[VarIndex].dims[0] - OptionBase) != numcols)error("Array size mismatch");
+                                if((vartbl[VarIndex].dims[0] - mmb_options.base) != numcols)error("Array size mismatch");
                                 n = (MMFLOAT *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 2 must be a 5 element floating point array");
@@ -714,7 +714,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 4 must be a 5 element floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 if(numcols!=4)error("Argument 4 must be a 5 element floating point array");
                                 q = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
@@ -744,7 +744,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 4 must be a 5 element floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 if(numcols!=4)error("Argument 4 must be a 5 element floating point array");
                                 q = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
@@ -781,7 +781,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a 5 element floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 if(numcols!=4)error("Argument 1 must be a 5 element floating point array");
                                 q = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
@@ -815,7 +815,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a 5 element floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 if(numcols!=4)error("Argument 1 must be a 5 element floating point array");
                                 q1 = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
@@ -826,7 +826,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 2 must be a 5 element floating point array");
                                 }
-                                if((vartbl[VarIndex].dims[0] - OptionBase) != numcols)error("Array size mismatch");
+                                if((vartbl[VarIndex].dims[0] - mmb_options.base) != numcols)error("Array size mismatch");
                                 q2 = (MMFLOAT *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 2 must be a 5 element floating point array");
@@ -836,7 +836,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 3 must be a 5 element floating point array");
                                 }
-                                if((vartbl[VarIndex].dims[0] - OptionBase) != numcols)error("Array size mismatch");
+                                if((vartbl[VarIndex].dims[0] - mmb_options.base) != numcols)error("Array size mismatch");
                                 n = (MMFLOAT *)ptr3;
                                 if ((char *) ptr3 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Argument 3 must be a 5 element floating point array");
@@ -861,7 +861,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 1 must be a 5 element floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 if(numcols!=4)error("Argument 1 must be a 5 element floating point array");
                                 q1 = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
@@ -872,7 +872,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 2 must be a 5 element floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 if(numcols!=4)error("Argument 2 must be a 5 element floating point array");
                                 v1 = (MMFLOAT *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
@@ -883,7 +883,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Argument 3 must be a 5 element floating point array");
                                 }
-                                numcols=vartbl[VarIndex].dims[0] - OptionBase;
+                                numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 if(numcols!=4)error("Argument 3 must be a 5 element floating point array");
                                 n = (MMFLOAT *)ptr3;
                                 if ((char *) ptr3 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
@@ -908,7 +908,7 @@ void cmd_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1float = (MMFLOAT *)ptr1;
@@ -916,7 +916,7 @@ void cmd_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1int = (int64_t *)ptr1;
@@ -929,7 +929,7 @@ void cmd_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card2=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card2 *= j;
                                 }
                                 a2float = (MMFLOAT *)ptr2;
@@ -937,7 +937,7 @@ void cmd_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card2=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card2 *= j;
                                 }
                                 a2int = (int64_t *)ptr2;
@@ -981,7 +981,7 @@ void cmd_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1float = (MMFLOAT *)ptr1;
@@ -989,7 +989,7 @@ void cmd_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card1=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card1 *= j;
                                 }
                                 a1int = (int64_t *)ptr1;
@@ -1002,7 +1002,7 @@ void cmd_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card2=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card2 *= j;
                                 }
                                 a2float = (MMFLOAT *)ptr2;
@@ -1010,7 +1010,7 @@ void cmd_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card2=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card2 *= j;
                                 }
                                 a2int = (int64_t *)ptr2;
@@ -1020,7 +1020,7 @@ void cmd_math(void){
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card3=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card3 *= j;
                                 }
                                 a3float = (MMFLOAT *)ptr3;
@@ -1028,7 +1028,7 @@ void cmd_math(void){
                         } else if(vartbl[VarIndex].type & T_INT) {
                                 card3=1;
                                 for(i=0;i<MAXDIM;i++){
-                                        j=(vartbl[VarIndex].dims[i] - OptionBase+1);
+                                        j=(vartbl[VarIndex].dims[i] - mmb_options.base+1);
                                         if(j)card3 *= j;
                                 }
                                 a3int = (int64_t *)ptr3;
@@ -1074,9 +1074,9 @@ void cmd_math(void){
                                         error("Argument 1 must be a 2D or more numerical array");
                                 }
                                 for(i=0;i<MAXDIM;i++){
-                                        if(vartbl[VarIndex].dims[i]-OptionBase>0){
+                                        if(vartbl[VarIndex].dims[i]-mmb_options.base>0){
                                                 dimcount++;
-                                                dim[i]=vartbl[VarIndex].dims[i]-OptionBase;
+                                                dim[i]=vartbl[VarIndex].dims[i]-mmb_options.base;
                                         } else dim[i]=0;
                                 }
                                 a1int = (int64_t *)ptr1;
@@ -1084,7 +1084,7 @@ void cmd_math(void){
                         } else error("Argument 1 must be a 2D or more numerical array");
                         if(((argc-1)/2-1)!=dimcount)error("Argument count");
                         for(i=0; i<dimcount;i++ ){
-                                if(*argv[i*2 +2]) pos[i]=getint(argv[i*2 +2],OptionBase,dim[i]+OptionBase)-OptionBase;
+                                if(*argv[i*2 +2]) pos[i]=getint(argv[i*2 +2],mmb_options.base,dim[i]+mmb_options.base)-mmb_options.base;
                                 else {
                                         if(target!=-1)error("Only one index can be omitted");
                                         target=i;
@@ -1097,7 +1097,7 @@ void cmd_math(void){
                                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
                                         error("Source must be 1D a numerical point array");
                                 }
-                                toarray=vartbl[VarIndex].dims[0]-OptionBase;
+                                toarray=vartbl[VarIndex].dims[0]-mmb_options.base;
                                 a2int = (int64_t *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else error("Source must be 1D a numerical point array");

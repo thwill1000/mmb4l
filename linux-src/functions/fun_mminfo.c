@@ -233,10 +233,10 @@ static void mminfo_hpos(char *p) {
 
 static void mminfo_option(char *p) {
     if (checkstring(p, "BASE")) {
-        g_integer_rtn = OptionBase;
+        g_integer_rtn = mmb_options.base;
         g_rtn_type = T_INT;
     } else if (checkstring(p, "BREAK")) {
-        g_integer_rtn = g_break_key;
+        g_integer_rtn = mmb_options.break_key;
         g_rtn_type = T_INT;
     } else if (checkstring(p, "CASE")) {
         g_string_rtn = GetTempStrMemory();
@@ -252,7 +252,7 @@ static void mminfo_option(char *p) {
         g_rtn_type = T_STR;
     } else if (checkstring(p, "DEFAULT")) {
         g_string_rtn = GetTempStrMemory();
-        options_type_to_string(DefaultType, g_string_rtn);
+        options_type_to_string(mmb_options.default_type, g_string_rtn);
         g_rtn_type = T_STR;
     } else if (checkstring(p, "EDITOR")) {
         g_string_rtn = GetTempStrMemory();
@@ -260,7 +260,7 @@ static void mminfo_option(char *p) {
         g_rtn_type = T_STR;
     } else if (checkstring(p, "EXPLICIT")) {
         g_string_rtn = GetTempStrMemory();
-        options_explicit_to_string(OptionExplicit, g_string_rtn);
+        options_explicit_to_string(mmb_options.explicit_type, g_string_rtn);
         g_rtn_type = T_STR;
     } else if (checkstring(p, "RESOLUTION")) {
         g_string_rtn = GetTempStrMemory();

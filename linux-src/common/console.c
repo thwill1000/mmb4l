@@ -83,7 +83,7 @@ void console_pump_input(void) {
     // Note that 'ch' does not get added to the buffer.
     if (interrupt_check_key_press(ch)) return;
 
-    if (ch == g_break_key) {
+    if (ch == mmb_options.break_key) {
         // User wishes to stop the program.
         // Set the abort flag so the interpreter will halt and empty the console buffer.
         MMAbort = 1;

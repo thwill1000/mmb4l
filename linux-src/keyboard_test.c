@@ -8,10 +8,6 @@
 void console_key_to_string(int ch, char *buf);
 
 volatile int MMAbort;
-char BreakKey = 0;
-char DefaultType = 0x01; // T_NBR
-int OptionBase = 0;
-char OptionExplicit = false;
 Options mmb_options;
 
 bool interrupt_check_key_press(char ch) { return false; }
@@ -22,6 +18,7 @@ int main(int argc, char **argv) {
     printf("Press Keys\n");
 
     options_init(&mmb_options);
+    mmb_options.break_key = 0; // So that it isn't caught.
     console_init();
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);

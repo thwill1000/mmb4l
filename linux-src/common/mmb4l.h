@@ -23,7 +23,6 @@
 #define TestStackOverflow()  {}
 
 // Aliases for MMBasic's global variables, all prefixed with g_
-#define g_break_key        BreakKey
 #define g_current_var_idx  VarIndex
 #define g_float_rtn        fret
 #define g_integer_rtn      iret

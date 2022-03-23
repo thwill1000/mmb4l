@@ -57,7 +57,7 @@ static void cmd_system_getenv(char *p) {
             && (vartbl[VarIndex].dims[1] == 0)) {
         // Capture value in LONGSTRING variable.
         buf = (char *) value_var_ptr + 8;
-        buf_sz = (vartbl[VarIndex].dims[0] - OptionBase) * 8;
+        buf_sz = (vartbl[VarIndex].dims[0] - mmb_options.base) * 8;
     } else {
         ERROR_INVALID("2nd argument; expected STRING or LONGSTRING");
     }
@@ -199,7 +199,7 @@ static void cmd_system_execute(char *p) {
                 && (vartbl[VarIndex].dims[1] == 0)) {
             // Capture output in LONGSTRING variable.
             buf = (char *) output_var_ptr + 8;
-            buf_sz = (vartbl[VarIndex].dims[0] - OptionBase) * 8;
+            buf_sz = (vartbl[VarIndex].dims[0] - mmb_options.base) * 8;
         } else {
             ERROR_INVALID("2nd argument; expected STRING or LONGSTRING");
         }

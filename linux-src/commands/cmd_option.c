@@ -21,11 +21,11 @@ static void save_options() {
 
 static void option_base(char *p) {
     if (DimUsed) error("Must be before DIM or LOCAL");
-    OptionBase = getint(p, 0, 1);
+    mmb_options.base = getint(p, 0, 1);
 }
 
 static void option_break(char *p) {
-    g_break_key = getinteger(p);
+    mmb_options.break_key = getinteger(p);
 }
 
 static void option_case(char *p) {
@@ -62,13 +62,13 @@ static void option_console(char *p) {
 
 static void option_default(char *p) {
     if (checkstring(p, "INTEGER")) {
-        DefaultType = T_INT;
+        mmb_options.default_type = T_INT;
     } else if (checkstring(p, "FLOAT")) {
-        DefaultType = T_NBR;
+        mmb_options.default_type = T_NBR;
     } else if (checkstring(p, "STRING")) {
-        DefaultType = T_STR;
+        mmb_options.default_type = T_STR;
     } else if (checkstring(p, "NONE")) {
-        DefaultType = T_NOTYPE;
+        mmb_options.default_type = T_NOTYPE;
     } else {
         ERROR_UNRECOGNISED_OPTION;
     }
@@ -113,9 +113,9 @@ static void option_editor(char *p) {
 static void option_explicit(char *p) {
     getargs(&p, 1, ",");
     if (argc == 1) {
-        OptionExplicit = parse_bool(argv[0]);
+        mmb_options.explicit_type = parse_bool(argv[0]);
     } else {
-        OptionExplicit = true;
+        mmb_options.explicit_type = true;
     }
 }
 
@@ -132,10 +132,10 @@ void option_list(char *p) {
 
     char buf[STRINGSIZE + 2];
 
-    sprintf(buf, "%d", OptionBase);
+    sprintf(buf, "%d", mmb_options.base);
     option_list_item("Base", buf);
 
-    sprintf(buf, "%d", g_break_key);
+    sprintf(buf, "%d", mmb_options.break_key);
     option_list_item("Break", buf);
 
     options_list_case_to_string(mmb_options.list_case, buf);
@@ -147,13 +147,13 @@ void option_list(char *p) {
     options_console_to_string(mmb_options.console, buf);
     option_list_item("Console", buf);
 
-    options_type_to_string(DefaultType, buf);
+    options_type_to_string(mmb_options.default_type, buf);
     option_list_item("Default", buf);
 
     options_editor_to_string(mmb_options.editor, buf);
     option_list_item("Editor", mmb_options.editor);
 
-    options_explicit_to_string(OptionExplicit, buf);
+    options_explicit_to_string(mmb_options.explicit_type, buf);
     option_list_item("Explicit", buf);
 
     options_resolution_to_string(mmb_options.resolution, buf);

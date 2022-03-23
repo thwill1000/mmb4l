@@ -80,8 +80,10 @@ struct s_vartbl *vartbl;                                            // this tabl
 int varcnt;                                                         // number of variables
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables
+#if !defined(__linux__)
 char OptionExplicit;                                                // used to force the declaration of variables before their use
 char DefaultType;                                                   // the default type if a variable is not specifically typed
+#endif
 
 char *subfun[MAXSUBFUN];                                            // table used to locate all subroutines and functions
 char CurrentSubFunName[MAXVARLEN + 1];                              // the name of the current sub or fun
@@ -94,7 +96,9 @@ char tknbuf[STRINGSIZE];                                            // used to s
 
 int NextData;                                                       // used to track the next item to read in DATA & READ stmts
 char *NextDataLine;                                                 // used to track the next line to read in DATA & READ stmts
+#if !defined(__linux__)
 int OptionBase;                                                     // track the state of OPTION BASE
+#endif
 
 
 

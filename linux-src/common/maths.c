@@ -318,7 +318,7 @@ void maths_fft(char *pp) {
                 a3float = (MMFLOAT *)ptr1;
                         if ((char *) ptr1 != vartbl[VarIndex].val.s)error("Syntax");
             } else error("Argument 1 must be a floating point array");
-            size=(vartbl[VarIndex].dims[0] - OptionBase);
+            size=(vartbl[VarIndex].dims[0] - mmb_options.base);
             ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
             if(vartbl[VarIndex].type & T_NBR) {
                  if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
@@ -328,7 +328,7 @@ void maths_fft(char *pp) {
                  a4float = (MMFLOAT *)ptr2;
                          if ((char *) ptr2 != vartbl[VarIndex].val.s)error("Syntax");
             } else error("Argument 2 must be a floating point array");
-            if((vartbl[VarIndex].dims[0] - OptionBase) !=size)error("Array size mismatch");
+            if((vartbl[VarIndex].dims[0] - mmb_options.base) !=size)error("Array size mismatch");
             for(i=1;i<65536;i*=2){
                     if(size==i-1)powerof2=1;
             }
@@ -353,7 +353,7 @@ void maths_fft(char *pp) {
                 a3float = (MMFLOAT *)ptr1;
                         if ((char *) ptr1 != vartbl[VarIndex].val.s)error("Syntax");
             } else error("Argument 1 must be a floating point array");
-            size=(vartbl[VarIndex].dims[0] - OptionBase);
+            size=(vartbl[VarIndex].dims[0] - mmb_options.base);
             ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
             if(vartbl[VarIndex].type & T_NBR) {
                  if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
@@ -363,7 +363,7 @@ void maths_fft(char *pp) {
                  a4float = (MMFLOAT *)ptr2;
                          if ((char *) ptr2 != vartbl[VarIndex].val.s)error("Syntax");
             } else error("Argument 2 must be a floating point array");
-            if((vartbl[VarIndex].dims[0] - OptionBase) !=size)error("Array size mismatch");
+            if((vartbl[VarIndex].dims[0] - mmb_options.base) !=size)error("Array size mismatch");
             for(i=1;i<65536;i*=2){
                     if(size==i-1)powerof2=1;
             }
@@ -383,13 +383,13 @@ void maths_fft(char *pp) {
             if(vartbl[VarIndex].type & T_NBR) {
                 if(vartbl[VarIndex].dims[1] <= 0) error("Invalid variable");
                 if(vartbl[VarIndex].dims[2] != 0) error("Invalid variable");
-                if(vartbl[VarIndex].dims[0] - OptionBase != 1) {                // Not an array
+                if(vartbl[VarIndex].dims[0] - mmb_options.base != 1) {                // Not an array
                         error("Argument 1 must be a 2D floating point array");
                 }
                 a1cplx = (cplx *)ptr1;
                         if ((char *) ptr1 != vartbl[VarIndex].val.s)error("Syntax");
             } else error("Argument 1 must be a 2D floating point array");
-            size=(vartbl[VarIndex].dims[1] - OptionBase);
+            size=(vartbl[VarIndex].dims[1] - mmb_options.base);
             ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
             if(vartbl[VarIndex].type & T_NBR) {
                  if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
@@ -399,7 +399,7 @@ void maths_fft(char *pp) {
                  a3float = (MMFLOAT *)ptr2;
                          if ((char *) ptr2 != vartbl[VarIndex].val.s)error("Syntax");
             } else error("Argument 2 must be a floating point array");
-            if((vartbl[VarIndex].dims[0] - OptionBase) !=size)error("Array size mismatch");
+            if((vartbl[VarIndex].dims[0] - mmb_options.base) !=size)error("Array size mismatch");
             for(i=1;i<65536;i*=2){
                     if(size==i-1)powerof2=1;
             }
@@ -423,18 +423,18 @@ void maths_fft(char *pp) {
         a3float = (MMFLOAT *)ptr1;
                 if ((char *) ptr1 != vartbl[VarIndex].val.s)error("Syntax");
     } else error("Argument 1 must be a floating point array");
-    size=(vartbl[VarIndex].dims[0] - OptionBase);
+    size=(vartbl[VarIndex].dims[0] - mmb_options.base);
     ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
     if(vartbl[VarIndex].type & T_NBR) {
          if(vartbl[VarIndex].dims[1] <= 0) error("Invalid variable");
          if(vartbl[VarIndex].dims[2] != 0) error("Invalid variable");
-         if(vartbl[VarIndex].dims[0] - OptionBase != 1) {                // Not an array
+         if(vartbl[VarIndex].dims[0] - mmb_options.base != 1) {                // Not an array
                  error("Argument 2 must be a 2D floating point array");
          }
          a2cplx = (cplx *)ptr2;
                  if ((char *) ptr2 != vartbl[VarIndex].val.s)error("Syntax");
     } else error("Argument 2 must be a 2D floating point array");
-    if((vartbl[VarIndex].dims[1] - OptionBase) !=size)error("Array size mismatch");
+    if((vartbl[VarIndex].dims[1] - mmb_options.base) !=size)error("Array size mismatch");
     for(i=1;i<65536;i*=2){
             if(size==i-1)powerof2=1;
     }

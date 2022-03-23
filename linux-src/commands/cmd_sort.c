@@ -187,7 +187,7 @@ void cmd_sort(void) {
     //if ((uint32_t)ptr1 != (uint32_t)vartbl[VarIndex].val.s)
     if (ptr1 != vartbl[VarIndex].val.s)
         error("Argument 1 must be array");
-    truesize = size = (vartbl[VarIndex].dims[0] - OptionBase);
+    truesize = size = (vartbl[VarIndex].dims[0] - mmb_options.base);
     if (argc >= 3 && *argv[2]) {
         ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
         if (vartbl[VarIndex].type & T_INT) {
@@ -198,7 +198,7 @@ void cmd_sort(void) {
             a4int = (int64_t *)ptr2;
         } else
             error("Argument 2 must be integer array");
-        if ((vartbl[VarIndex].dims[0] - OptionBase) != size)
+        if ((vartbl[VarIndex].dims[0] - mmb_options.base) != size)
             error("Arrays should be the same size");
         // if ((uint32_t)ptr2 != (uint32_t)vartbl[VarIndex].val.s)
         if (ptr2 != vartbl[VarIndex].val.s)
@@ -206,24 +206,24 @@ void cmd_sort(void) {
     }
     if (argc >= 5 && *argv[4]) flags = getint(argv[4], 0, 3);
     if (argc >= 7 && *argv[6])
-        startpoint = getint(argv[6], OptionBase, size + OptionBase);
+        startpoint = getint(argv[6], mmb_options.base, size + mmb_options.base);
     size -= startpoint;
-    if (argc == 9) size = getint(argv[8], 1, size + 1 + OptionBase) - 1;
-    if (startpoint) startpoint -= OptionBase;
+    if (argc == 9) size = getint(argv[8], 1, size + 1 + mmb_options.base) - 1;
+    if (startpoint) startpoint -= mmb_options.base;
     if (a3float != NULL) {
         a3float += startpoint;
         if (a4int != NULL)
-            for (i = 0; i < truesize + 1; i++) a4int[i] = i + OptionBase;
+            for (i = 0; i < truesize + 1; i++) a4int[i] = i + mmb_options.base;
         floatsort(a3float, size + 1, a4int, flags, startpoint);
     } else if (a3int != NULL) {
         a3int += startpoint;
         if (a4int != NULL)
-            for (i = 0; i < truesize + 1; i++) a4int[i] = i + OptionBase;
+            for (i = 0; i < truesize + 1; i++) a4int[i] = i + mmb_options.base;
         integersort(a3int, size + 1, a4int, flags, startpoint);
     } else if (a3str != NULL) {
         a3str += ((startpoint) * (maxsize + 1));
         if (a4int != NULL)
-            for (i = 0; i < truesize + 1; i++) a4int[i] = i + OptionBase;
+            for (i = 0; i < truesize + 1; i++) a4int[i] = i + mmb_options.base;
         stringsort(a3str, size + 1, maxsize + 1, a4int, flags, startpoint);
     }
 }

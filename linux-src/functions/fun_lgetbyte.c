@@ -19,8 +19,8 @@ void fun_lgetbyte(void) {
         error("Argument 1 must be integer array");
     }
 
-    int j = (g_var_tbl[g_current_var_idx ].dims[0] - OptionBase) * 8 - 1;
-    int start = getint(argv[2], OptionBase, j - OptionBase);
-    g_integer_rtn = s[start - OptionBase];
+    int j = (g_var_tbl[g_current_var_idx ].dims[0] - mmb_options.base) * 8 - 1;
+    int start = getint(argv[2], mmb_options.base, j - mmb_options.base);
+    g_integer_rtn = s[start - mmb_options.base];
     g_rtn_type = T_INT;
 }

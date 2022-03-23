@@ -18,7 +18,7 @@ void fun_lgetstr(void) {
         s = (char *)&src[1];
     } else
         error("Argument 1 must be integer array");
-    j = (vartbl[VarIndex].dims[0] - OptionBase) * 8;
+    j = (vartbl[VarIndex].dims[0] - mmb_options.base) * 8;
     start = getint(argv[2], 1, j);
     nbr = getinteger(argv[4]);
     if (nbr < 1 || nbr > MAXSTRLEN) error("Number out of bounds");

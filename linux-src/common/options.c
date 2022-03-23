@@ -35,8 +35,12 @@ OptionsEditor options_editors[] = {
 void options_init(Options *options) {
     memset(options, 0, sizeof(Options));
 
+    options->base = 0;
+    options->break_key = 3; // Ctrl-C
     options->codepage = NULL;
     options->console = SERIAL;
+    options->default_type = 0x1; // T_NBR
+    options->explicit_type = false;
     options->list_case = CONFIG_TITLE;
     options->prog_flash_size = PROG_FLASH_SIZE;
     options->resolution = CHARACTER;

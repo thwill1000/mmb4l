@@ -75,10 +75,13 @@ extern char error_file[STRINGSIZE];
 #define MMputchar        console_putc
 
 // Aliases for identifiers using "legacy" names in MMBasic core:
-#define Option           mmb_options
 #define Autorun          autorun
+#define DefaultType      mmb_options.default_type
 #define Height           height
 #define Listcase         list_case
+#define Option           mmb_options
+#define OptionBase       mmb_options.base
+#define OptionExplicit   mmb_options.explicit_type
 #define ProgFlashSize    prog_flash_size
 #define Width            width
 

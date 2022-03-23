@@ -72,10 +72,11 @@ extern int varcnt;                                    // number of variables def
 extern int VarIndex;                                  // index of the current variable.  set after the findvar() function has found/created a variable
 extern int LocalIndex;                                // used to track the level of local variables
 
+#if !defined(__linux__)
 extern int OptionBase;                                // value of OPTION BASE
 extern char OptionExplicit;                           // true if OPTION EXPLICIT has been used
 extern char DefaultType;                              // the default type if a variable is not specifically typed
-
+#endif
 
 //#if !defined(BOOL_ALREADY_DEFINED)
 //    #define BOOL_ALREADY_DEFINED
@@ -131,7 +132,9 @@ extern int CommandTableSize, TokenTableSize;
 
 extern volatile int MMAbort;
 extern jmp_buf mark;                            // longjump to recover from an error
+#if !defined(__linux__)
 extern char BreakKey;                           // console break key (defaults to CTRL-C)
+#endif
 
 extern int ProgMemSize;
 

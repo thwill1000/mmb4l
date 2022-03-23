@@ -22,8 +22,12 @@ enum options_console { BOTH, SCREEN, SERIAL };
 enum options_resolution { CHARACTER, PIXEL };
 
 typedef struct {
+    int base;
+    char break_key;
     char *codepage; // Pointer to one of the arrays/maps declared in 'codepage.c'
+    char default_type;
     char editor[STRINGSIZE];  // TODO: should probably be shorter
+    char explicit_type;
     char tab;
     char list_case;
     int  height;

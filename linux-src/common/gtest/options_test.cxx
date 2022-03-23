@@ -19,8 +19,12 @@ TEST(OptionsTest, Init) {
     Options options;
     options_init(&options);
 
+    EXPECT_EQ(0, options.base);
+    EXPECT_EQ(3, options.break_key);
     EXPECT_EQ(NULL, options.codepage);
+    EXPECT_EQ(0x1, options.default_type); // 0x1 = T_NBR
     EXPECT_STREQ("Nano", options.editor);
+    EXPECT_EQ(false, options.explicit_type);
     EXPECT_EQ(4, options.tab);
     EXPECT_EQ(0, options.list_case);
     EXPECT_EQ(0, options.height);

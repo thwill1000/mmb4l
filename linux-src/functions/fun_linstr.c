@@ -23,7 +23,7 @@ void fun_linstr(void) {
         str = (char *)&dest[0];
     } else
         error("Argument 1 must be integer array");
-    j = (vartbl[VarIndex].dims[0] - OptionBase);
+    j = (vartbl[VarIndex].dims[0] - mmb_options.base);
     srch = getstring(argv[2]);
     slen = *srch;
     iret = 0;
