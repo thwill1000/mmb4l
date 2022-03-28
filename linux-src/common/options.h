@@ -17,35 +17,34 @@ typedef struct {
     bool blocking; // Does the editor command block.
 } OptionsEditor;
 
-enum options_console { BOTH, SCREEN, SERIAL };
+typedef enum { kBoth, kScreen, kSerial } OptionsConsole;
 
-enum options_resolution { CHARACTER, PIXEL };
+typedef enum { kTitle, kLower, kUpper } OptionsListCase;
+
+typedef enum { kCharacter, kPixel } OptionsResolution;
 
 typedef struct {
+    int autorun;
     int base;
     char break_key;
     char *codepage; // Pointer to one of the arrays/maps declared in 'codepage.c'
+    OptionsConsole console;
     char default_type;
     char editor[STRINGSIZE];  // TODO: should probably be shorter
     char explicit_type;
-    char tab;
-    char list_case;
     int  height;
-    int  width;
+    OptionsListCase list_case;
     int  prog_flash_size;
-    int  autorun;
-
-    // Added for MMB4L
-    enum options_console console;
-    enum options_resolution resolution;
-
+    OptionsResolution resolution;
     char search_path[STRINGSIZE];
+    char tab;
+    int  width;
 
 #if defined OPTION_TESTS
-    bool    persistent_bool;
-    int     persistent_int;
-    MMFLOAT persistent_float;
-    char    persistent_string[32];
+    bool    zboolean;
+    MMFLOAT zfloat;
+    int     zinteger;
+    char    zstring[32];
 #endif
 } Options;
 
@@ -65,11 +64,11 @@ MmResult options_save(const Options *options, const char *filename);
 
 MmResult options_set(Options *options, const char *name, const char *value);
 
-void options_console_to_string(enum options_console console, char *buf);
+void options_console_to_string(OptionsConsole console, char *buf);
 void options_editor_to_string(const char *editor, char *buf);
 void options_explicit_to_string(char explicit_type, char *buf);
-void options_list_case_to_string(char list_case, char *buf);
-void options_resolution_to_string(enum options_resolution resolution, char *buf);
+void options_list_case_to_string(OptionsListCase list_case, char *buf);
+void options_resolution_to_string(OptionsResolution resolution, char *buf);
 void options_type_to_string(char type, char *buf);
 
 #endif

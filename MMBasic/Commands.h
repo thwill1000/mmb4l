@@ -215,9 +215,11 @@ extern void MIPS16 ListProgram(char *p, int all);
 extern char MIPS16 *llist(char *b, char *p);
 extern char *CheckIfTypeSpecified(char *p, int *type, int AllowDefaultType);
 
+#if !defined(__mmb4l__)
 #define CONFIG_TITLE      0
 #define CONFIG_LOWER      1
 #define CONFIG_UPPER      2
+#endif
 
 extern unsigned int BusSpeed;
 extern char *OnKeyGOSUB;

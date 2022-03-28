@@ -35,17 +35,26 @@ OptionsEditor options_editors[] = {
 void options_init(Options *options) {
     memset(options, 0, sizeof(Options));
 
+    options->autorun = 0;
     options->base = 0;
     options->break_key = 3; // Ctrl-C
     options->codepage = NULL;
-    options->console = SERIAL;
+    options->console = kSerial;
     options->default_type = 0x1; // T_NBR
-    options->explicit_type = false;
-    options->list_case = CONFIG_TITLE;
-    options->prog_flash_size = PROG_FLASH_SIZE;
-    options->resolution = CHARACTER;
-    options->tab = 4;
     options_set(options, "editor", "default");
+    options->explicit_type = false;
+    options->height = 0;
+    options->list_case = kTitle;
+    options->prog_flash_size = PROG_FLASH_SIZE;
+    options->resolution = kCharacter;
+    options->tab = 4;
+    options->width = 0;
+#if defined OPTION_TESTS
+    options->zboolean = true;
+    options->zfloat = 2.71828;
+    options->zinteger = 1945;
+    strcpy(options->zstring, "wombat");
+#endif
 }
 
 /**
@@ -88,7 +97,7 @@ static MmResult options_parse(const char *line, char *name, char *value) {
     return kOk;
 }
 
-static MmResult options_parse_bool(const char *value, bool *out) {
+static MmResult options_parse_boolean(const char *value, bool *out) {
     if (strcasecmp(value, "0") == 0 || strcasecmp(value, "false") == 0) {
         *out = false;
         return kOk;
@@ -100,7 +109,7 @@ static MmResult options_parse_bool(const char *value, bool *out) {
     }
 }
 
-static MmResult options_parse_int(const char *value, int *out) {
+static MmResult options_parse_integer(const char *value, int *out) {
     char *endptr;
     int i = strtol(value, &endptr, 10);
     if (*endptr) {
@@ -147,13 +156,13 @@ static MmResult options_parse_editor(const char *value, char *editor) {
     return kInvalidValue;
 }
 
-static MmResult options_parse_list_case(const char *value, char *list_case) {
+static MmResult options_parse_list_case(const char *value, OptionsListCase *list_case) {
     if (strcasecmp(value, "title") == 0) {
-        *list_case = CONFIG_TITLE;
+        *list_case = kTitle;
     } else if (strcasecmp(value, "lower") == 0) {
-        *list_case = CONFIG_LOWER;
+        *list_case = kLower;
     } else if (strcasecmp(value, "upper") == 0) {
-        *list_case = CONFIG_UPPER;
+        *list_case = kUpper;
     } else {
         return kInvalidValue;
     }
@@ -181,7 +190,7 @@ static MmResult options_parse_search_path(const char *value, char *search_path) 
 
 static MmResult options_parse_tab(const char *value, char *tab) {
     int tmp = 0;
-    MmResult result = options_parse_int(value, &tmp);
+    MmResult result = options_parse_integer(value, &tmp);
     if (FAILED(result)) return result;
     if (tmp == 2 || tmp == 4 || tmp == 8) {
         *tab = (char) tmp;
@@ -203,12 +212,14 @@ MmResult options_set(Options *options, const char *name, const char *value) {
     } else if (strcasecmp(name, "tab") == 0) {
         result = options_parse_tab(value, &(options->tab));
 #if defined OPTION_TESTS
-    } else if (strcasecmp(name, "persistent-bool") == 0) {
-        result = options_parse_bool(value, &(options->persistent_bool));
-    } else if (strcasecmp(name, "persistent-float") == 0) {
-        result = options_parse_float(value, &(options->persistent_float));
-    } else if (strcasecmp(name, "persistent-string") == 0) {
-        result = options_parse_string(value, options->persistent_string);
+    } else if (strcasecmp(name, "zboolean") == 0) {
+        result = options_parse_boolean(value, &(options->zboolean));
+    } else if (strcasecmp(name, "zfloat") == 0) {
+        result = options_parse_float(value, &(options->zfloat));
+    } else if (strcasecmp(name, "zinteger") == 0) {
+        result = options_parse_integer(value, &(options->zinteger));
+    } else if (strcasecmp(name, "zstring") == 0) {
+        result = options_parse_string(value, options->zstring);
 #endif
     }
 
@@ -277,11 +288,11 @@ MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB
     return kOk;
 }
 
-static int options_save_bool(FILE *f, const char *name, bool value) {
+static int options_save_boolean(FILE *f, const char *name, bool value) {
     return fprintf(f, "%s = %s\n", name, value ? "true" : "false") > 0 ? 0 : -1;
 }
 
-static int options_save_int(FILE *f, const char *name, int value) {
+static int options_save_integer(FILE *f, const char *name, int value) {
     return fprintf(f, "%s = %d\n", name, value) > 0 ? 0 : -1;
 }
 
@@ -326,22 +337,23 @@ MmResult options_save(const Options *options, const char *filename) {
     options_save_enum(f, "editor", buf);
     options_list_case_to_string(options->list_case, buf);
     options_save_enum(f, "listcase", buf);
-    options_save_int(f, "tab", options->tab);
+    options_save_integer(f, "tab", options->tab);
 #if defined OPTION_TESTS
-    options_save_bool(f, "persistent-bool", options->persistent_bool);
-    options_save_float(f, "persistent-float", options->persistent_float);
-    options_save_string(f, "persistent-string", options->persistent_string);
+    options_save_boolean(f, "zboolean", options->zboolean);
+    options_save_float(f, "zfloat", options->zfloat);
+    options_save_integer(f, "zinteger", options->zinteger);
+    options_save_string(f, "zstring", options->zstring);
 #endif
     options_save_string(f, "search-path", options->search_path);
     fclose(f);
     return kOk;
 }
 
-void options_console_to_string(enum options_console console, char *buf) {
+void options_console_to_string(OptionsConsole console, char *buf) {
     switch (console) {
-        case BOTH:   strcpy(buf, "Both"); break;
-        case SCREEN: strcpy(buf, "Screen"); break;
-        case SERIAL: strcpy(buf, "Serial"); break;
+        case kBoth:   strcpy(buf, "Both"); break;
+        case kScreen: strcpy(buf, "Screen"); break;
+        case kSerial: strcpy(buf, "Serial"); break;
         default:     strcpy(buf, INVALID_VALUE); break;
     }
 }
@@ -356,20 +368,20 @@ void options_explicit_to_string(char explicit, char *buf) {
     strcpy(buf, explicit ? "On" : "Off");
 }
 
-void options_list_case_to_string(char list_case, char *buf) {
+void options_list_case_to_string(OptionsListCase list_case, char *buf) {
     switch (list_case) {
-        case CONFIG_LOWER: strcpy(buf, "Lower"); break;
-        case CONFIG_UPPER: strcpy(buf, "Upper"); break;
-        case CONFIG_TITLE: strcpy(buf, "Title"); break;
+        case kTitle: strcpy(buf, "Title"); break;
+        case kLower: strcpy(buf, "Lower"); break;
+        case kUpper: strcpy(buf, "Upper"); break;
         default:           strcpy(buf, INVALID_VALUE); break;
     }
 }
 
-void options_resolution_to_string(enum options_resolution resolution, char *buf) {
+void options_resolution_to_string(OptionsResolution resolution, char *buf) {
     switch (resolution) {
-        case CHARACTER: strcpy(buf, "Character"); break;
-        case PIXEL:     strcpy(buf, "Pixel"); break;
-        default:        strcpy(buf, INVALID_VALUE); break;
+        case kCharacter: strcpy(buf, "Character"); break;
+        case kPixel:     strcpy(buf, "Pixel"); break;
+        default:         strcpy(buf, INVALID_VALUE); break;
     }
 }
 

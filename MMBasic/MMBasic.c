@@ -2402,7 +2402,7 @@ void MIPS16 ClearRuntime(void) {
     OptionExplicit = false;
     DefaultType = T_NBR;
 #if defined(__mmb4l__)
-    Option.resolution = CHARACTER;
+    Option.resolution = kCharacter;
     codepage_set(&mmb_options, "NONE");
 #endif
 #if defined(MICROMITE) && !defined(LITE)

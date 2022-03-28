@@ -76,6 +76,8 @@ extern char error_file[STRINGSIZE];
 
 // Aliases for identifiers using "legacy" names in MMBasic core:
 #define Autorun          autorun
+#define CONFIG_LOWER     kLower
+#define CONFIG_UPPER     kUpper
 #define DefaultType      mmb_options.default_type
 #define Height           height
 #define Listcase         list_case

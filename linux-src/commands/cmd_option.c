@@ -29,12 +29,12 @@ static void option_break(char *p) {
 }
 
 static void option_case(char *p) {
-    if (checkstring(p, "LOWER")) {
-        mmb_options.list_case = CONFIG_LOWER;
+    if (checkstring(p, "TITLE")) {
+        mmb_options.list_case = kTitle;
+    } else if (checkstring(p, "LOWER")) {
+        mmb_options.list_case = kLower;
     } else if (checkstring(p, "UPPER")) {
-        mmb_options.list_case = CONFIG_UPPER;
-    } else if (checkstring(p, "TITLE")) {
-        mmb_options.list_case = CONFIG_TITLE;
+        mmb_options.list_case = kUpper;
     } else {
         ERROR_UNRECOGNISED_OPTION;
     }
@@ -171,9 +171,9 @@ void option_list(char *p) {
 static void option_resolution(char *p) {
     char *p2 = NULL;
     if ((p2 = checkstring(p, "CHARACTER"))) {
-        mmb_options.resolution = CHARACTER;
+        mmb_options.resolution = kCharacter;
     } else if ((p2 = checkstring(p, "PIXEL"))) {
-        mmb_options.resolution = PIXEL;
+        mmb_options.resolution = kPixel;
     }
 
     if (!p2 || !parse_is_end(p2)) ERROR_UNRECOGNISED_OPTION;

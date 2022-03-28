@@ -13,10 +13,6 @@
 #include "options.h"
 #include "memory.h"
 
-#define CONFIG_TITLE      0
-#define CONFIG_LOWER      1
-#define CONFIG_UPPER      2
-
 #define PI_VALUE  3.14159265358979323
 
 #define ClearSavedVars()    {}

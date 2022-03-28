@@ -215,7 +215,7 @@ void mminfo_hres(char *p) {
     if (FAILED(console_get_size(&width, &height))) {
         ERROR_COULD_NOT("determine console size");
     }
-    int scale = mmb_options.resolution == PIXEL ? FONT_WIDTH : 1;
+    int scale = mmb_options.resolution == kPixel ? FONT_WIDTH : 1;
     g_integer_rtn = width * scale;
     g_rtn_type = T_INT;
 }
@@ -226,7 +226,7 @@ static void mminfo_hpos(char *p) {
     if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
-    int scale = mmb_options.resolution == PIXEL ? FONT_WIDTH : 1;
+    int scale = mmb_options.resolution == kPixel ? FONT_WIDTH : 1;
     g_integer_rtn = x * scale;
     g_rtn_type = T_INT;
 }
@@ -315,7 +315,7 @@ void mminfo_vres(char *p) {
     if (FAILED(console_get_size(&width, &height))) {
         ERROR_COULD_NOT("determine console size");
     }
-    int scale = mmb_options.resolution == PIXEL ? FONT_HEIGHT : 1;
+    int scale = mmb_options.resolution == kPixel ? FONT_HEIGHT : 1;
     g_integer_rtn = height * scale;
     g_rtn_type = T_INT;
 }
@@ -326,7 +326,7 @@ static void mminfo_vpos(char *p) {
     if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
-    int scale = mmb_options.resolution == PIXEL ? FONT_HEIGHT : 1;
+    int scale = mmb_options.resolution == kPixel ? FONT_HEIGHT : 1;
     g_integer_rtn = y * scale;
     g_rtn_type = T_INT;
 }

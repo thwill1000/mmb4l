@@ -19,64 +19,71 @@ TEST(OptionsTest, Init) {
     Options options;
     options_init(&options);
 
+    EXPECT_EQ(0, options.autorun);
     EXPECT_EQ(0, options.base);
     EXPECT_EQ(3, options.break_key);
     EXPECT_EQ(NULL, options.codepage);
+    EXPECT_EQ(kSerial, options.console);
     EXPECT_EQ(0x1, options.default_type); // 0x1 = T_NBR
     EXPECT_STREQ("Nano", options.editor);
     EXPECT_EQ(false, options.explicit_type);
-    EXPECT_EQ(4, options.tab);
-    EXPECT_EQ(0, options.list_case);
     EXPECT_EQ(0, options.height);
-    EXPECT_EQ(0, options.width);
+    EXPECT_EQ(0, options.list_case);
     EXPECT_EQ(PROG_FLASH_SIZE, options.prog_flash_size);
-    EXPECT_EQ(SERIAL, options.console);
-    EXPECT_EQ(CHARACTER, options.resolution);
-    EXPECT_EQ(false, options.persistent_bool);
-    EXPECT_EQ(0.0, options.persistent_float);
-    EXPECT_STREQ("", options.persistent_string);
+    EXPECT_EQ(kCharacter, options.resolution);
     EXPECT_STREQ("", options.search_path);
+    EXPECT_EQ(4, options.tab);
+    EXPECT_EQ(0, options.width);
+    EXPECT_EQ(true, options.zboolean);
+    EXPECT_EQ(2.71828, options.zfloat);
+    EXPECT_EQ(1945, options.zinteger);
+    EXPECT_STREQ("wombat", options.zstring);
 }
 
-TEST(OptionsTest, Save) {
-    Options options;
-    options_init(&options);
-    strcpy(options.editor, "Vi");
-    strcpy(options.search_path, "/foo/bar");
-    options.list_case = 1;
-    options.tab = 8;
-    options.persistent_bool = true;
-    options.persistent_float = 3.142;
-    strcpy(options.persistent_string, "foo bar");
-    strcpy(options.search_path, "/foo/bar");
-    const char *filename = "/tmp/options_test_save";
-
-    EXPECT_EQ(options_save(&options, filename), 0);
-
+static void expect_saved_content(const char *filename) {
     FILE *f = fopen(filename, "r");
     char line[256];
     EXPECT_STREQ(fgets(line, 256, f), "editor = Vi\n");
     EXPECT_STREQ(fgets(line, 256, f), "listcase = Lower\n");
     EXPECT_STREQ(fgets(line, 256, f), "tab = 8\n");
-    EXPECT_STREQ(fgets(line, 256, f), "persistent-bool = true\n");
-    EXPECT_STREQ(fgets(line, 256, f), "persistent-float = 3.142\n");
-    EXPECT_STREQ(fgets(line, 256, f), "persistent-string = \"foo bar\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "zboolean = false\n");
+    EXPECT_STREQ(fgets(line, 256, f), "zfloat = 3.142\n");
+    EXPECT_STREQ(fgets(line, 256, f), "zinteger = 42\n");
+    EXPECT_STREQ(fgets(line, 256, f), "zstring = \"snafu\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "search-path = \"/foo/bar\"\n");
     EXPECT_FALSE(fgets(line, 256, f));
     EXPECT_TRUE(feof(f));
     fclose(f);
 }
 
+TEST(OptionsTest, Save) {
+    Options options;
+    options_init(&options);
+    strcpy(options.editor, "Vi");
+    options.list_case = kLower;
+    strcpy(options.search_path, "/foo/bar");
+    options.tab = 8;
+    options.zboolean = false;
+    options.zfloat = 3.142;
+    options.zinteger = 42;
+    strcpy(options.zstring, "snafu");
+
+    const char *filename = "/tmp/options_test_save";
+    EXPECT_EQ(options_save(&options, filename), 0);
+    expect_saved_content(filename);
+}
+
 TEST(OptionsTest, Save_GivenDirectoryDoesNotExist) {
     Options options;
     options_init(&options);
     strcpy(options.editor, "Vi");
-    options.list_case = 1;
-    options.tab = 8;
-    options.persistent_bool = true;
-    options.persistent_float = 3.142;
-    strcpy(options.persistent_string, "foo bar");
+    options.list_case = kLower;
     strcpy(options.search_path, "/foo/bar");
+    options.tab = 8;
+    options.zboolean = false;
+    options.zfloat = 3.142;
+    options.zinteger = 42;
+    strcpy(options.zstring, "snafu");
 
     const char *filename = "/tmp/options_test_save_dir/myfile.options";
     const char *directory = "/tmp/options_test_save_dir";
@@ -84,19 +91,7 @@ TEST(OptionsTest, Save_GivenDirectoryDoesNotExist) {
     remove(directory);
 
     EXPECT_EQ(0, options_save(&options, filename));
-
-    FILE *f = fopen(filename, "r");
-    char line[256];
-    EXPECT_STREQ(fgets(line, 256, f), "editor = Vi\n");
-    EXPECT_STREQ(fgets(line, 256, f), "listcase = Lower\n");
-    EXPECT_STREQ(fgets(line, 256, f), "tab = 8\n");
-    EXPECT_STREQ(fgets(line, 256, f), "persistent-bool = true\n");
-    EXPECT_STREQ(fgets(line, 256, f), "persistent-float = 3.142\n");
-    EXPECT_STREQ(fgets(line, 256, f), "persistent-string = \"foo bar\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "search-path = \"/foo/bar\"\n");
-    EXPECT_FALSE(fgets(line, 256, f));
-    EXPECT_TRUE(feof(f));
-    fclose(f);
+    expect_saved_content(filename);
 
     if (FAILED(remove(filename))) {
         perror("Save_GivenDirectoryDoesNotExist");
@@ -112,9 +107,9 @@ TEST(OptionsTest, Load) {
     fprintf(f, "editor = Vi\n");
     fprintf(f, "listcase = Upper\n");
     fprintf(f, "tab = 8\n");
-    fprintf(f, "persistent-bool = true\n");
-    fprintf(f, "persistent-float = 3.142\n");
-    fprintf(f, "persistent-string = \"foo bar\"\n");
+    fprintf(f, "zboolean = true\n");
+    fprintf(f, "zfloat = 3.142\n");
+    fprintf(f, "zstring = \"foo bar\"\n");
     fclose(f);
 
     Options options;
@@ -124,18 +119,18 @@ TEST(OptionsTest, Load) {
     EXPECT_STREQ(options.editor, "Vi");
     EXPECT_EQ(2, options.list_case);
     EXPECT_EQ(8, options.tab);
-    EXPECT_EQ(options.persistent_bool, true);
-    EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
-    EXPECT_STREQ(options.persistent_string, "foo bar");
+    EXPECT_EQ(options.zboolean, true);
+    EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
+    EXPECT_STREQ(options.zstring, "foo bar");
 }
 
 TEST(OptionsTest, Load_GivenAdditionalWhitespace) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "tab = 8  \n");                         // Trailing whitespace
-    fprintf(f, "  persistent-bool = true\n");                      // Leading whitespace
-    fprintf(f, "persistent-float   =   3.142    \n");              // Whitespace around equals
-    fprintf(f, "\tpersistent-string\t \t=\t \t\"foo bar\"\t\n\t"); // tab characters everywhere
+    fprintf(f, "  zboolean = true\n");                      // Leading whitespace
+    fprintf(f, "zfloat   =   3.142    \n");              // Whitespace around equals
+    fprintf(f, "\tzstring\t \t=\t \t\"foo bar\"\t\n\t"); // tab characters everywhere
     fclose(f);
 
     Options options;
@@ -143,74 +138,74 @@ TEST(OptionsTest, Load_GivenAdditionalWhitespace) {
 
     EXPECT_EQ(options_load(&options, filename, NULL), 0);
     EXPECT_EQ(8, options.tab);
-    EXPECT_EQ(options.persistent_bool, true);
-    EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
-    EXPECT_STREQ(options.persistent_string, "foo bar");
+    EXPECT_EQ(options.zboolean, true);
+    EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
+    EXPECT_STREQ(options.zstring, "foo bar");
 }
 
 TEST(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "\n");
-    fprintf(f, "persistent-bool = true\n");
+    fprintf(f, "zboolean = true\n");
     fprintf(f, "    \n");
     fprintf(f, "tab = 8\n");
     fprintf(f, "\r\n");
-    fprintf(f, "persistent-float = 3.142\n");
+    fprintf(f, "zfloat = 3.142\n");
     fprintf(f, "  \t  \t \n");
-    fprintf(f, "persistent-string = \"foo bar\"\n");
+    fprintf(f, "zstring = \"foo bar\"\n");
     fclose(f);
 
     Options options;
     options_init(&options);
 
     EXPECT_EQ(options_load(&options, filename, NULL), 0);
-    EXPECT_EQ(options.persistent_bool, true);
+    EXPECT_EQ(options.zboolean, true);
     EXPECT_EQ(8, options.tab);
-    EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
-    EXPECT_STREQ(options.persistent_string, "foo bar");
+    EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
+    EXPECT_STREQ(options.zstring, "foo bar");
 }
 
 TEST(OptionsTest, Load_GivenHashComments) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "  # Hello World\n");
-    fprintf(f, "persistent-bool = true # Trailing comment\n");
-    fprintf(f, "# Leading comment persistent-bool = false\n");
+    fprintf(f, "zboolean = true # Trailing comment\n");
+    fprintf(f, "# Leading comment zboolean = false\n");
     fprintf(f, "tab = 8\n");
-    fprintf(f, "persistent-float = 3.142\n");
-    fprintf(f, "persistent-string = \"foo bar\"\n");
+    fprintf(f, "zfloat = 3.142\n");
+    fprintf(f, "zstring = \"foo bar\"\n");
     fclose(f);
 
     Options options;
     options_init(&options);
 
     EXPECT_EQ(options_load(&options, filename, NULL), 0);
-    EXPECT_EQ(options.persistent_bool, true);
+    EXPECT_EQ(options.zboolean, true);
     EXPECT_EQ(8, options.tab);
-    EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
-    EXPECT_STREQ(options.persistent_string, "foo bar");
+    EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
+    EXPECT_STREQ(options.zstring, "foo bar");
 }
 
 TEST(OptionsTest, Load_GivenSemicolonComments) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "  ; Hello World\n");
-    fprintf(f, "persistent-bool = true ; Trailing comment\n");
-    fprintf(f, "; Leading comment persistent-bool = false\n");
+    fprintf(f, "zboolean = true ; Trailing comment\n");
+    fprintf(f, "; Leading comment zboolean = false\n");
     fprintf(f, "tab = 8\n");
-    fprintf(f, "persistent-float = 3.142\n");
-    fprintf(f, "persistent-string = \"foo bar\"\n");
+    fprintf(f, "zfloat = 3.142\n");
+    fprintf(f, "zstring = \"foo bar\"\n");
     fclose(f);
 
     Options options;
     options_init(&options);
 
     EXPECT_EQ(options_load(&options, filename, NULL), 0);
-    EXPECT_EQ(options.persistent_bool, true);
+    EXPECT_EQ(options.zboolean, true);
     EXPECT_EQ(8, options.tab);
-    EXPECT_DOUBLE_EQ(options.persistent_float, 3.142);
-    EXPECT_STREQ(options.persistent_string, "foo bar");
+    EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
+    EXPECT_STREQ(options.zstring, "foo bar");
 }
 
 TEST(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
@@ -218,11 +213,11 @@ TEST(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
     FILE *f = fopen(filename, "w");
     fprintf(f,
             "foo = true\n"
-            "persistent-bool = 42\n"
+            "zboolean = 42\n"
             "# comment\n"
             "tab = \"Hello World\"\n"
-            "persistent-float = true\n"
-            "persistent-string = 3.142\n"
+            "zfloat = true\n"
+            "zstring = 3.142\n"
             "search-path = \"/does/not/exist\"\n"
             "bar");
     fclose(f);
@@ -234,10 +229,10 @@ TEST(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
     EXPECT_EQ(0, options_load(&options, filename, &write_line_to_buf));
     EXPECT_STREQ(
             "line 1: unknown option 'foo'.\n"
-            "line 2: invalid boolean value for option 'persistent-bool'.\n"
+            "line 2: invalid boolean value for option 'zboolean'.\n"
             "line 4: invalid integer value for option 'tab'.\n"
-            "line 5: invalid float value for option 'persistent-float'.\n"
-            "line 6: invalid string value for option 'persistent-string'.\n"
+            "line 5: invalid float value for option 'zfloat'.\n"
+            "line 6: invalid string value for option 'zstring'.\n"
             "line 7: file or directory not found for option 'search-path'.\n"
             "line 8: invalid option format.\n",
             options_test_buf);
@@ -248,11 +243,11 @@ TEST(OptionsTest, Load_GivenWarnings_AndCallbackNotProvided) {
     FILE *f = fopen(filename, "w");
     fprintf(f,
             "foo = true\n"
-            "persistent-bool = 42\n"
+            "zboolean = 42\n"
             "# comment"
             "tab = \"Hello World\"\n"
-            "persistent-float = true\n"
-            "persistent-string = 3.142\n"
+            "zfloat = true\n"
+            "zstring = 3.142\n"
             "search-path = \"/does/not/exist\"\n"
             "bar");
     fclose(f);
