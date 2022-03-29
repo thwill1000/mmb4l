@@ -135,11 +135,9 @@ static void option_fn_key(char *p) {
     // Skip the 'F' and the number.
     p += (f < 10) ? 2 : 3;
     char *value = getCstring(p);
-    MmResult result = cstring_enquote(value, STRINGSIZE);
-    if (FAILED(result)) error_system(result);
     sprintf(buf, "f%d", f);
 
-    result = options_set(&mmb_options, buf, value);
+    MmResult result = options_set(&mmb_options, buf, value);
     if (SUCCEEDED(result)) {
         save_options();
     } else {
@@ -218,9 +216,6 @@ static void option_search_path(char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) ERROR_SYNTAX;
     char *path = getCstring(argv[0]);
-
-    // Wrap the path in quotes for calling options_set() with.
-    if (FAILED(cstring_enquote(path, STRINGSIZE))) ERROR_STRING_TOO_LONG;
 
     MmResult result = options_set(&mmb_options, "search-path", path);
     switch (result) {

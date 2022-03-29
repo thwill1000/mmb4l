@@ -144,10 +144,10 @@ MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEG
 /** @brief Gets the C-string value for the given option. */
 MmResult options_get_string_value(const Options *options, OptionsId id, char *svalue);
 
-/** Loads persistent options from a file. */
+/** @brief Loads persistent options from a file. */
 MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb);
 
-/** Saves persistent options to a file. */
+/** @brief Saves persistent options to a file. */
 MmResult options_save(const Options *options, const char *filename);
 
 /** @brief Sets the value for the given option from an MMFLOAT. */

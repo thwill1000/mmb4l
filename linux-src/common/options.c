@@ -7,6 +7,7 @@
 
 #include "mmb4l.h"
 #include "codepage.h"
+#include "cstring.h"
 #include "options.h"
 #include "path.h"
 #include "utility.h"
@@ -137,18 +138,32 @@ static MmResult options_parse(const char *line, char *name, char *value) {
     if (!pos) return kInvalidFormat;
 
     // Extract name.
-    p = (char *) line;
-    while (isspace(*p)) p++; // Trim leading whitespace.
-    while (p < pos) *name++ = *p++;
-    *name = '\0';
-    while (isspace(*--name)) *name = '\0'; // Trim trailing whitespace.
+    {
+        char *dst = name;
+        p = (char *) line;
+        while (isspace(*p)) p++; // Trim leading whitespace.
+        while (p < pos) {
+            *dst++ = (*p == '-' ? ' ' : *p);
+            p++;
+        }
+        *dst = '\0';
+        while (isspace(*--dst)) *dst = '\0'; // Trim trailing whitespace.
+    }
 
     // Extract value.
-    p = pos + 1;
-    while (isspace(*p)) p++; // Trim leading whitespace.
-    while (*p && *p != '#' && *p != ';') *value++ = *p++;
-    *value = '\0';
-    while(isspace(*--value)) *value = '\0'; // Trim trailing whitespace.
+    {
+        char *dst = value;
+        p = pos + 1;
+        while (isspace(*p)) p++; // Trim leading whitespace.
+        while (*p && *p != '#' && *p != ';') *dst++ = *p++;
+        *dst = '\0';
+        while(isspace(*--dst)) *dst = '\0'; // Trim trailing whitespace.
+        cstring_unquote(value);
+        char unencoded[STRINGSIZE];
+        MmResult result = options_decode_string(value, unencoded);
+        if (FAILED(result)) return result;
+        strcpy(value, unencoded);
+    }
 
     return kOk;
 }
@@ -192,11 +207,7 @@ static MmResult options_parse_float(const char *value, MMFLOAT *out) {
 }
 
 static MmResult options_parse_string(const char *value, char *out) {
-    if (*value != '"' || *(value + strlen(value) - 1) != '"') return kInvalidString;
-    char tmp[STRINGSIZE];
-    strncpy(tmp, value + 1, strlen(value) - 2);
-    *(tmp + strlen(value) - 2) = '\0';
-    return options_decode_string(tmp, out);
+    return options_decode_string(value, out);
 }
 
 static MmResult options_parse_editor(const char *value, char *editor) {
@@ -276,7 +287,7 @@ static MmResult options_parse_fn_key(Options *options, const char *name, const c
 MmResult options_set(Options *options, const char *name, const char *value) {
     if (strcasecmp(name, "editor") == 0) {
         return options_parse_editor(value, options->editor);
-    } else if (strcasecmp(name, "listcase") == 0) {
+    } else if (strcasecmp(name, "case") == 0) {
         return options_parse_list_case(value, &(options->list_case));
     } else if (strcasecmp(name, "search-path") == 0) {
         return options_parse_search_path(value, options->search_path);
@@ -355,14 +366,16 @@ MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB
     char line[256];
     char name[128];
     char value[128];
-    int result = 0;
+    MmResult result = kOk;
     int line_num = 0;
     while (!feof(f) && fgets(line, 256, f)) {
         line_num++;
         result = options_parse(line, name, value);
         if (SUCCEEDED(result)) {
             if (!*name) continue; // Skip empty lines.
-            result = options_set(options, name, value);
+            OptionsDefinition *def = NULL;
+            result = options_get_definition(name, &def);
+            if (SUCCEEDED(result)) result = options_set_string_value(options, def->id, value);
         }
         if (!SUCCEEDED(result)) {
             if (warning_cb) options_report_warning(line_num, name, result, warning_cb);
@@ -370,26 +383,6 @@ MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB
     }
     fclose(f);
     return kOk;
-}
-
-static int options_save_boolean(FILE *f, const char *name, bool value) {
-    return fprintf(f, "%s = %s\n", name, value ? "true" : "false") > 0 ? 0 : -1;
-}
-
-static int options_save_integer(FILE *f, const char *name, int value) {
-    return fprintf(f, "%s = %d\n", name, value) > 0 ? 0 : -1;
-}
-
-static int options_save_float(FILE *f, const char *name, MMFLOAT value) {
-    return fprintf(f, "%s = %g\n", name, value) > 0 ? 0 : -1;
-}
-
-static int options_save_string(FILE *f, const char *name, const char *value) {
-    return fprintf(f, "%s = \"%s\"\n", name, value);
-}
-
-static int options_save_enum(FILE *f, const char *name, const char *value) {
-    return fprintf(f, "%s = %s\n", name, value);
 }
 
 /** Creates parent directory of 'filename' if it does not exist. */
@@ -405,6 +398,39 @@ static MmResult options_create_parent_directory(const char *path) {
     return kOk;
 }
 
+static void options_get_save_name(const OptionsDefinition *def, char *svalue) {
+    const char *src = def->name;
+    char *dst = svalue;
+    while (*src) {
+        if (*src == ' ') {
+            *dst++ = '-';
+        } else {
+            *dst++ = tolower(*src);
+        }
+        src++;
+    }
+    *dst = '\0';
+}
+
+static MmResult options_get_save_value(const Options *options, OptionsId id, char *svalue) {
+    if (options_definitions[id].type == kOptionTypeBoolean) {
+        MMINTEGER ivalue = 0;
+        MmResult result = options_get_integer_value(options, id, &ivalue);
+        if (SUCCEEDED(result)) strcpy(svalue, ivalue ? "true" : "false");
+        return result;
+    }
+
+    char tmp[STRINGSIZE];
+    MmResult result = options_get_string_value(options, id, tmp);
+    if (FAILED(result)) return result;
+    result = options_encode_string(tmp, svalue);
+    if (FAILED(result)) return result;
+    if (options_definitions[id].type == kOptionTypeString) {
+        result = SUCCEEDED(cstring_enquote(svalue, STRINGSIZE)) ? kOk : kStringTooLong;
+    }
+    return result;
+}
+
 MmResult options_save(const Options *options, const char *filename) {
     char path[STRINGSIZE];
     if (!path_munge(filename, path, STRINGSIZE)) return errno;
@@ -416,27 +442,17 @@ MmResult options_save(const Options *options, const char *filename) {
     FILE *f = fopen(path, "w");
     if (!f) return errno;
 
-    char name[32];
-    char value[STRINGSIZE];
-    options_editor_to_string(options->editor, value);
-    options_save_enum(f, "editor", value);
-    for (int i = 0; i < 12; ++i) {
-        sprintf(name, "f%d", i + 1);
-        options_fn_key_to_string(options->fn_keys[i], value);
-        options_save_string(f, name, value);
+    char tmp[STRINGSIZE];
+    for (OptionsDefinition *def = options_definitions; def->name; def++) {
+        if (!def->saved) continue;
+        options_get_save_name(def, tmp);
+        fprintf(f, "%s = ", tmp);
+        result = options_get_save_value(options, def->id, tmp);
+        if (FAILED(result)) break;
+        fprintf(f, "%s\n", tmp);
     }
-    options_list_case_to_string(options->list_case, value);
-    options_save_enum(f, "listcase", value);
-    options_save_string(f, "search-path", options->search_path);
-    options_save_integer(f, "tab", options->tab);
-#if defined OPTION_TESTS
-    options_save_boolean(f, "zboolean", options->zboolean);
-    options_save_float(f, "zfloat", options->zfloat);
-    options_save_integer(f, "zinteger", options->zinteger);
-    options_save_string(f, "zstring", options->zstring);
-#endif
     fclose(f);
-    return kOk;
+    return result;
 }
 
 void options_console_to_string(OptionsConsole console, char *buf) {

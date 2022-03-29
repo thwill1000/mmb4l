@@ -60,7 +60,8 @@ TEST(OptionsTest, Init) {
 static void expect_saved_content(const char *filename) {
     FILE *f = fopen(filename, "r");
     char line[256];
-    EXPECT_STREQ(fgets(line, 256, f), "editor = Vi\n");
+    EXPECT_STREQ(fgets(line, 256, f), "case = \"Lower\"\n");
+    EXPECT_STREQ(fgets(line, 256, f), "editor = \"Vi\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "f1 = \"FILES\\r\\n\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "f2 = \"RUN\\r\\n\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "f3 = \"LIST\\r\\n\"\n");
@@ -73,7 +74,6 @@ static void expect_saved_content(const char *filename) {
     EXPECT_STREQ(fgets(line, 256, f), "f10 = \"RUN \\\"\\\"\\202\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "f11 = \"\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "f12 = \"\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "listcase = Lower\n");
     EXPECT_STREQ(fgets(line, 256, f), "search-path = \"/foo/bar\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "tab = 8\n");
     EXPECT_STREQ(fgets(line, 256, f), "zboolean = false\n");
@@ -133,8 +133,8 @@ TEST(OptionsTest, Save_GivenDirectoryDoesNotExist) {
 TEST(OptionsTest, Load) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
+    fprintf(f, "case = Upper\n");
     fprintf(f, "editor = Vi\n");
-    fprintf(f, "listcase = Upper\n");
     fprintf(f, "tab = 8\n");
     fprintf(f, "zboolean = true\n");
     fprintf(f, "zfloat = 3.142\n");
@@ -146,7 +146,7 @@ TEST(OptionsTest, Load) {
 
     EXPECT_EQ(kOk, options_load(&options, filename, NULL));
     EXPECT_STREQ(options.editor, "Vi");
-    EXPECT_EQ(2, options.list_case);
+    EXPECT_EQ(kUpper, options.list_case);
     EXPECT_EQ(8, options.tab);
     EXPECT_EQ(options.zboolean, true);
     EXPECT_DOUBLE_EQ(options.zfloat, 3.142);
@@ -261,8 +261,7 @@ TEST(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
             "line 2: invalid value for option 'zboolean'.\n"
             "line 4: invalid value for option 'tab'.\n"
             "line 5: invalid value for option 'zfloat'.\n"
-            "line 6: invalid string value for option 'zstring'.\n"
-            "line 7: file or directory not found for option 'search-path'.\n"
+            "line 7: file or directory not found for option 'search path'.\n"
             "line 8: invalid option format.\n",
             options_test_buf);
 }
@@ -394,14 +393,14 @@ TEST(OptionsTest, Set_GivenFnKey) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(kOk, options_set(&options, "f1", "\"foo\""));
+    EXPECT_EQ(kOk, options_set(&options, "f1", "foo"));
     EXPECT_STREQ("foo", options.fn_keys[0]);
 
-    EXPECT_EQ(kOk, options_set(&options, "F2", "\"\"foo\"\r\n\""));
+    EXPECT_EQ(kOk, options_set(&options, "F2", "\"foo\"\r\n"));
     EXPECT_STREQ("\"foo\"\r\n", options.fn_keys[1]);
 
-    EXPECT_EQ(kUnknownOption, options_set(&options, "f0", "\"foo\""));
-    EXPECT_EQ(kUnknownOption, options_set(&options, "f13", "\"foo\""));
+    EXPECT_EQ(kUnknownOption, options_set(&options, "f0", "foo"));
+    EXPECT_EQ(kUnknownOption, options_set(&options, "f13", "foo"));
 }
 
 TEST(OptionsTest, FnKeyToString) {
