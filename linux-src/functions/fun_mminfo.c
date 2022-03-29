@@ -233,74 +233,37 @@ static void mminfo_hpos(char *p) {
     g_rtn_type = T_INT;
 }
 
-/** Handle MM.INFO(OPTION F1..12) */
-static void mminfo_option_fn_key(char *p) {
-    char buf[8];
-    int f = 1;
-    while (f != 13) {
-        sprintf(buf, "F%d", f);
-        if (checkstring(p, buf)) break;
-        f++;
-    }
-
-    if (f == 13) ERROR_UNKNOWN_OPTION;
-
-    g_string_rtn = GetTempStrMemory();
-    strcpy(g_string_rtn, mmb_options.fn_keys[f - 1]);
-    g_rtn_type = T_STR;
-
-    // Note this should be converted from C-string to MMString by caller.
-}
-
 static void mminfo_option(char *p) {
-    if (checkstring(p, "BASE")) {
-        g_integer_rtn = mmb_options.base;
-        g_rtn_type = T_INT;
-    } else if (checkstring(p, "BREAK")) {
-        g_integer_rtn = mmb_options.break_key;
-        g_rtn_type = T_INT;
-    } else if (checkstring(p, "CASE")) {
-        g_string_rtn = GetTempStrMemory();
-        options_list_case_to_string(mmb_options.list_case, g_string_rtn);
-        g_rtn_type = T_STR;
-    } else if (checkstring(p, "CODEPAGE")) {
-        g_string_rtn = GetTempStrMemory();
-        if (FAILED(codepage_to_string(mmb_options.codepage, g_string_rtn))) ERROR_INTERNAL_FAULT;
-        g_rtn_type = T_STR;
-    } else if (checkstring(p, "CONSOLE")) {
-        g_string_rtn = GetTempStrMemory();
-        options_console_to_string(mmb_options.console, g_string_rtn);
-        g_rtn_type = T_STR;
-    } else if (checkstring(p, "DEFAULT")) {
-        g_string_rtn = GetTempStrMemory();
-        options_type_to_string(mmb_options.default_type, g_string_rtn);
-        g_rtn_type = T_STR;
-    } else if (checkstring(p, "EDITOR")) {
-        g_string_rtn = GetTempStrMemory();
-        strcpy(g_string_rtn, mmb_options.editor);
-        g_rtn_type = T_STR;
-    } else if (checkstring(p, "EXPLICIT")) {
-        g_string_rtn = GetTempStrMemory();
-        options_explicit_to_string(mmb_options.explicit_type, g_string_rtn);
-        g_rtn_type = T_STR;
-    } else if (checkstring(p, "RESOLUTION")) {
-        g_string_rtn = GetTempStrMemory();
-        options_resolution_to_string(mmb_options.resolution, g_string_rtn);
-        g_rtn_type = T_STR;
-    } else if (checkstring(p, "SEARCH PATH")) {
-        g_string_rtn = GetTempStrMemory();
-        strcpy(g_string_rtn, mmb_options.search_path);
-        g_rtn_type = T_STR;
-    } else if (checkstring(p, "TAB")) {
-        g_integer_rtn = mmb_options.tab;
-        g_rtn_type = T_INT;
-    } else if (toupper(*p) == 'F' && isdigit(*(p + 1))) {
-        mminfo_option_fn_key(p);
-    } else {
-        ERROR_UNKNOWN_OPTION;
+    OptionsDefinition *def = NULL;
+    for (def = options_definitions; def->name; def++) {
+        if (checkstring(p, (char *) def->name)) break;
     }
 
-    if (g_rtn_type == T_STR) CtoM(g_string_rtn);
+    if (!def->name) ERROR_UNKNOWN_OPTION;
+
+    MmResult result = kInternalFault;
+
+    switch (def->type) {
+        case kOptionTypeFloat:
+            g_rtn_type = T_NBR;
+            result = options_get_float_value(&mmb_options, def->id, &g_float_rtn);
+            break;
+
+        case kOptionTypeInteger:
+        case kOptionTypeBoolean:
+            g_rtn_type = T_INT;
+            result = options_get_integer_value(&mmb_options, def->id, &g_integer_rtn);
+            break;
+
+        case kOptionTypeString:
+            g_rtn_type = T_STR;
+            g_string_rtn = GetTempStrMemory();
+            result = options_get_string_value(&mmb_options, def->id, g_string_rtn);
+            if (SUCCEEDED(result)) CtoM(g_string_rtn);
+            break;
+    }
+
+    if (FAILED(result)) error_system(result);
 }
 
 static void mminfo_path(char *p) {

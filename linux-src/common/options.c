@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -5,6 +6,7 @@
 #include <sys/stat.h>
 
 #include "mmb4l.h"
+#include "codepage.h"
 #include "options.h"
 #include "path.h"
 #include "utility.h"
@@ -30,6 +32,67 @@ OptionsEditor options_editors[] = {
     { "vscode",  "VSCode",  "code -g ${file}:${line}",          false },
     { "xed",     "Xed",     "xed +${line} ${file} &",           false },
     { NULL, NULL, NULL }
+};
+
+static const NameOrdinalPair options_console_map[] = {
+    { "Both",    kBoth },
+    { "Screen",  kScreen },
+    { "Serial" , kSerial },
+    { NULL,      -1 }
+};
+
+static const NameOrdinalPair options_default_type_map[] = {
+    { "None",    T_NOTYPE },
+    { "Float",   T_NBR },
+    { "String",  T_STR },
+    { "Integer", T_INT },
+    { NULL,      -1 }
+};
+
+static const NameOrdinalPair options_list_case_map[] = {
+    { "Title", kTitle },
+    { "Lower", kLower },
+    { "Upper", kUpper },
+    { NULL,    -1 }
+};
+
+static const NameOrdinalPair options_resolution_map[] = {
+    { "Character", kCharacter },
+    { "Pixel",     kPixel },
+    { NULL,    -1 }
+};
+
+OptionsDefinition options_definitions[] = {
+    { "Base",        kOptionBase,         kOptionTypeInteger, false, "0",                       NULL },
+    { "Break",       kOptionBreakKey,     kOptionTypeInteger, false, "3" /* Ctrl-C */,          NULL },
+    { "Case",        kOptionListCase,     kOptionTypeString,  true,  "Title",                   options_list_case_map },
+    { "CodePage",    kOptionCodePage,     kOptionTypeString,  false, "None",                    NULL },
+    { "Console",     kOptionConsole,      kOptionTypeString,  false, "Serial",                  options_console_map },
+    { "Default",     kOptionDefaultType,  kOptionTypeString,  false, "Float",                   options_default_type_map },
+    { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Default",                 NULL },
+    { "Explicit",    kOptionExplicitType, kOptionTypeString,  false, "Off",                     NULL },
+    { "F1",          kOptionF1,           kOptionTypeString,  true,  "FILES\r\n",               NULL },
+    { "F2",          kOptionF2,           kOptionTypeString,  true,  "RUN\r\n",                 NULL },
+    { "F3",          kOptionF3,           kOptionTypeString,  true,  "LIST\r\n",                NULL },
+    { "F4",          kOptionF4,           kOptionTypeString,  true,  "EDIT\r\n",                NULL },
+    { "F5",          kOptionF5,           kOptionTypeString,  true,  "AUTOSAVE \"\"\202",       NULL },
+    { "F6",          kOptionF6,           kOptionTypeString,  true,  "XMODEM RECEIVE \"\"\202", NULL },
+    { "F7",          kOptionF7,           kOptionTypeString,  true,  "XMODEM SEND \"\"\202",    NULL },
+    { "F8",          kOptionF8,           kOptionTypeString,  true,  "EDIT \"\"\202",           NULL },
+    { "F9",          kOptionF9,           kOptionTypeString,  true,  "LIST \"\"\202",           NULL },
+    { "F10",         kOptionF10,          kOptionTypeString,  true,  "RUN \"\"\202",            NULL },
+    { "F11",         kOptionF11,          kOptionTypeString,  true,  "",                        NULL },
+    { "F12",         kOptionF12,          kOptionTypeString,  true,  "",                        NULL },
+    { "Resolution",  kOptionResolution,   kOptionTypeString,  false, "Character",               options_resolution_map },
+    { "Search Path", kOptionSearchPath,   kOptionTypeString,  true,  "",                        NULL },
+    { "Tab",         kOptionTab,          kOptionTypeInteger, true,  "4",                       NULL },
+#if defined(OPTION_TESTS)
+    { "ZBoolean",    kOptionZBoolean,     kOptionTypeBoolean, true,  "true",                    NULL },
+    { "ZFloat",      kOptionZFloat,       kOptionTypeFloat,   true,  "2.71828",                 NULL },
+    { "ZInteger",    kOptionZInteger,     kOptionTypeInteger, true,  "1945",                    NULL },
+    { "ZString",     kOptionZString,      kOptionTypeString,  true,  "wombat",                  NULL },
+#endif
+    { NULL, -1, -1, false, "" }
 };
 
 void options_init(Options *options) {
@@ -290,6 +353,17 @@ static void options_report_warning(int line_num, char *name, MmResult result, OP
     warning_cb(buf);
 }
 
+MmResult options_get_definition(const char *name, OptionsDefinition **definition) {
+    for (OptionsDefinition *def = options_definitions; def->name; def++) {
+        if (strcasecmp(def->name, name) == 0) {
+            *definition = def;
+            return kOk;
+        }
+    }
+    *definition = NULL;
+    return kUnknownOption;
+}
+
 MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb) {
     char path[STRINGSIZE];
     if (!path_munge(filename, path, STRINGSIZE)) return errno;
@@ -526,4 +600,178 @@ MmResult options_encode_string(const char *unencoded, char *encoded) {
     }
     *dst = '\0';
     return kOk;
+}
+
+MmResult options_get_float_value(const Options *options, OptionsId id, MMFLOAT *fvalue) {
+    MmResult result = kOk;
+    switch (id) {
+#if defined(OPTION_TESTS)
+        case kOptionZFloat:
+            *fvalue = options->zfloat;
+            break;
+#endif
+        default:
+            result = kInternalFault;
+            break;
+    }
+    return result;
+}
+
+MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEGER *ivalue) {
+    MmResult result = kOk;
+    switch (id) {
+        case kOptionBase:
+            *ivalue = options->base;
+            break;
+        case kOptionBreakKey:
+            *ivalue = options->break_key;
+            break;
+        case kOptionTab:
+            *ivalue = options->tab;
+            break;
+#if defined(OPTION_TESTS)
+        case kOptionZBoolean:
+            *ivalue = options->zboolean;
+            break;
+        case kOptionZInteger:
+            *ivalue = options->zinteger;
+            break;
+#endif
+        default:
+            result = kInternalFault;
+            break;
+    }
+    return result;
+}
+
+/**
+ * @brief Gets the {@param name} corresponding to an {@param ordinal}
+ *        by lookup in a NameOrdinalPair array/map.
+ */
+static void options_ordinal_to_name(const NameOrdinalPair *map, int ordinal, char *name) {
+    if (map[ordinal].ordinal == ordinal) {
+        // The simple case, the ordinals are equal to the array indexes.
+        strcpy(name, map[ordinal].name);
+        return;
+    } else {
+        // The complex case, the ordinals are different to the array indexes.
+        for (const NameOrdinalPair *entry = map; entry->name; entry++) {
+            if (entry->ordinal == ordinal) {
+                strcpy(name, entry->name);
+                return;
+            }
+        }
+    }
+    strcpy(name, INVALID_VALUE);
+}
+
+MmResult options_get_string_value(const Options *options, OptionsId id, char *svalue) {
+    MmResult result = kOk;
+
+    // Note there is no protection for overrunning 'svalue';
+    // it is assumed to be STRINGSIZE and all the stored string values are
+    // assumed to have already been validated that size or less.
+
+    switch (options_definitions[id].type) {
+        case kOptionTypeBoolean: {
+            MMINTEGER ivalue;
+            result = options_get_integer_value(options, id, &ivalue);
+            if (SUCCEEDED(result)) sprintf(svalue, "%s", ivalue ? "On" : "Off");
+            return result;
+        }
+
+        case kOptionTypeInteger: {
+            MMINTEGER ivalue;
+            result = options_get_integer_value(options, id, &ivalue);
+            if (SUCCEEDED(result)) sprintf(svalue, "%ld", ivalue);
+            return result;
+        }
+
+        case kOptionTypeFloat:
+            MMFLOAT fvalue;
+            result = options_get_float_value(options, id, &fvalue);
+            if (SUCCEEDED(result)) sprintf(svalue, "%g", fvalue);
+            return result;
+    }
+
+    switch (id) {
+
+        case kOptionCodePage:
+            if (FAILED(codepage_to_string(options->codepage, svalue))) {
+                strcpy(svalue, INVALID_VALUE);
+            }
+            break;
+
+        case kOptionConsole:
+            assert(options->console >= kBoth && options->console <= kSerial);
+            options_ordinal_to_name(
+                    options_definitions[kOptionConsole].enum_map,
+                    options->console,
+                    svalue);
+            break;
+
+        case kOptionDefaultType:
+            assert(options->default_type == T_INT
+                    || options->default_type == T_NBR
+                    || options->default_type == T_STR
+                    || options->default_type == T_NOTYPE);
+            options_ordinal_to_name(
+                    options_definitions[kOptionDefaultType].enum_map,
+                    options->default_type,
+                    svalue);
+            break;
+
+        case kOptionEditor:
+            strcpy(svalue, options->editor);
+            break;
+
+        case kOptionExplicitType:
+            strcpy(svalue, options->explicit_type ? "On" : "Off");
+            break;
+
+        case kOptionF1:
+        case kOptionF2:
+        case kOptionF3:
+        case kOptionF4:
+        case kOptionF5:
+        case kOptionF6:
+        case kOptionF7:
+        case kOptionF8:
+        case kOptionF9:
+        case kOptionF10:
+        case kOptionF11:
+        case kOptionF12:
+            strcpy(svalue, options->fn_keys[id - kOptionF1]);
+            break;
+
+        case kOptionListCase:
+            assert(options->list_case >= kTitle && options->list_case <= kUpper);
+            options_ordinal_to_name(
+                    options_definitions[kOptionListCase].enum_map,
+                    options->list_case,
+                    svalue);
+            break;
+
+        case kOptionResolution:
+            assert(options->resolution >= kCharacter && options->resolution <= kPixel);
+            options_ordinal_to_name(
+                    options_definitions[kOptionResolution].enum_map,
+                    options->resolution,
+                    svalue);
+            break;
+
+        case kOptionSearchPath:
+            strcpy(svalue, options->search_path);
+            break;
+
+#if defined(OPTION_TESTS)
+        case kOptionZString:
+            strcpy(svalue, options->zstring);
+            break;
+#endif
+
+        default:
+            result = kInternalFault;
+    }
+    return result;
 }

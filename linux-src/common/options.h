@@ -16,6 +16,59 @@
 /** Maximum length of string that can be assigned to a programmable function key. */
 #define OPTIONS_MAX_FN_KEY_LEN  64
 
+typedef enum {
+    kOptionBase = 0,
+    kOptionBreakKey,
+    kOptionListCase, // Alphabetically ordered as if it were kOptionCase.
+    kOptionCodePage,
+    kOptionConsole,
+    kOptionDefaultType,
+    kOptionEditor,
+    kOptionExplicitType,
+    kOptionF1,
+    kOptionF2,
+    kOptionF3,
+    kOptionF4,
+    kOptionF5,
+    kOptionF6,
+    kOptionF7,
+    kOptionF8,
+    kOptionF9,
+    kOptionF10,
+    kOptionF11,
+    kOptionF12,
+    kOptionResolution,
+    kOptionSearchPath,
+    kOptionTab,
+#if defined(OPTION_TESTS)
+    kOptionZBoolean,
+    kOptionZFloat,
+    kOptionZInteger,
+    kOptionZString
+#endif
+} OptionsId;
+
+typedef enum {
+    kOptionTypeFloat   = 0x01, // Same as T_NBR
+    kOptionTypeString  = 0x02, // Same as T_STR
+    kOptionTypeInteger = 0x04, // Same as T_INT
+    kOptionTypeBoolean = 0x40
+} OptionsType;
+
+typedef struct {
+    const char *name;
+    int ordinal;
+} NameOrdinalPair;
+
+typedef struct {
+    const char *name;
+    OptionsId id;
+    OptionsType type;
+    bool saved;
+    const char *default_value;
+    const NameOrdinalPair *enum_map;
+} OptionsDefinition;
+
 typedef struct {
     char *id;      // Users specify these with OPTION EDITOR.
     char *value;   // Internally we use this.
@@ -58,6 +111,7 @@ typedef struct {
 typedef void (*OPTIONS_WARNING_CB) (const char *);
 
 extern Options mmb_options;
+extern OptionsDefinition options_definitions[];
 extern OptionsEditor options_editors[];
 
 /** Initialises the options. */
@@ -77,6 +131,18 @@ MmResult options_decode_string(const char *encoded, char *decoded);
  * where ### is the 3-digit octal ASCII code
  */
 MmResult options_encode_string(const char *unencoded, char *encoded);
+
+/** @brief Gets the OptionsDefinition for a named option. */
+MmResult options_get_definition(const char *name, OptionsDefinition **definition);
+
+/** @brief Gets the MMFLOAT value for the given option. */
+MmResult options_get_float_value(const Options *options, OptionsId id, MMFLOAT *fvalue);
+
+/** @brief Gets the MMINTEGER value for the given option. */
+MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEGER *ivalue);
+
+/** @brief Gets the C-string value for the given option. */
+MmResult options_get_string_value(const Options *options, OptionsId id, char *svalue);
 
 /** Loads persistent options from a file. */
 MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb);

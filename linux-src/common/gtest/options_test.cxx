@@ -2,6 +2,7 @@
 
 extern "C" {
 
+#include "../codepage.h"
 #include "../cstring.h"
 #include "../options.h"
 #include "../utility.h"
@@ -155,8 +156,8 @@ TEST(OptionsTest, Load) {
 TEST(OptionsTest, Load_GivenAdditionalWhitespace) {
     const char *filename = "/tmp/options_test_load";
     FILE *f = fopen(filename, "w");
-    fprintf(f, "tab = 8  \n");                         // Trailing whitespace
-    fprintf(f, "  zboolean = true\n");                      // Leading whitespace
+    fprintf(f, "tab = 8  \n");                           // Trailing whitespace
+    fprintf(f, "  zboolean = true\n");                   // Leading whitespace
     fprintf(f, "zfloat   =   3.142    \n");              // Whitespace around equals
     fprintf(f, "\tzstring\t \t=\t \t\"foo bar\"\t\n\t"); // tab characters everywhere
     fclose(f);
@@ -597,4 +598,374 @@ TEST(OptionsTest, DecodeString_GivenDecodedStringTooLong) {
         expected[STRINGSIZE - 2] = '\001';     // 254    = 0x01
         EXPECT_STREQ(expected, decoded);
     }
+}
+
+TEST(OptionsTest, GetDefinition) {
+    OptionsDefinition *lookup;
+    for (const OptionsDefinition *def = options_definitions; def->name; ++def) {
+        EXPECT_EQ(kOk, options_get_definition(def->name, &lookup));
+        EXPECT_EQ(def, lookup);
+    }
+
+    EXPECT_EQ(kOk, options_get_definition("seaRCH paTH", &lookup));
+    EXPECT_EQ(kOptionSearchPath, lookup->id);
+
+    EXPECT_EQ(kUnknownOption, options_get_definition("unknown", &lookup));
+}
+
+TEST(OptionsTest, GetFloatValue_ForZFloat) {
+    Options options;
+    options_init(&options);
+    MMFLOAT fvalue = 0.0;
+
+    EXPECT_EQ(kOk, options_get_float_value(&options, kOptionZFloat, &fvalue));
+    EXPECT_EQ(2.71828, fvalue);
+}
+
+TEST(OptionsTest, GetFloatValue_ForNonFloat) {
+    Options options;
+    options_init(&options);
+    MMFLOAT fvalue = 0.0;
+
+    EXPECT_EQ(kInternalFault, options_get_float_value(&options, kOptionZInteger, &fvalue));
+    EXPECT_EQ(0.0, fvalue);
+    EXPECT_EQ(kInternalFault, options_get_float_value(&options, kOptionZString, &fvalue));
+    EXPECT_EQ(0.0, fvalue);
+}
+
+TEST(OptionsTest, GetIntegerValue_ForBase) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    options.base = 0;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionBase, &ivalue));
+    EXPECT_EQ(0, ivalue);
+
+    options.base = 1;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionBase, &ivalue));
+    EXPECT_EQ(1, ivalue);
+}
+
+TEST(OptionsTest, GetIntegerValue_ForBreakKey) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    options.break_key = 3;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionBreakKey, &ivalue));
+    EXPECT_EQ(3, ivalue);
+
+    options.break_key = 4;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionBreakKey, &ivalue));
+    EXPECT_EQ(4, ivalue);
+}
+
+TEST(OptionsTest, GetIntegerValue_ForTab) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    options.tab = 2;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionTab, &ivalue));
+    EXPECT_EQ(2, ivalue);
+
+    options.tab = 8;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionTab, &ivalue));
+    EXPECT_EQ(8, ivalue);
+}
+
+TEST(OptionsTest, GetIntegerValue_ForZBoolean) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionZBoolean, &ivalue));
+    EXPECT_EQ(true, (bool) ivalue);
+}
+
+TEST(OptionsTest, GetIntegerValue_ForZInteger) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionZInteger, &ivalue));
+    EXPECT_EQ(1945, ivalue);
+}
+
+TEST(OptionsTest, GetIntegerValue_ForNonInteger) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    EXPECT_EQ(kInternalFault, options_get_integer_value(&options, kOptionZFloat, &ivalue));
+    EXPECT_EQ(0, ivalue);
+    EXPECT_EQ(kInternalFault, options_get_integer_value(&options, kOptionZString, &ivalue));
+    EXPECT_EQ(0, ivalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForBase) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE] = { 0 };
+
+    options.base = 0;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionBase, svalue));
+    EXPECT_STREQ("0", svalue);
+
+    options.base = 1;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionBase, svalue));
+    EXPECT_STREQ("1", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForBreakKey) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE] = { 0 };
+
+    options.break_key = 3;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionBreakKey, svalue));
+    EXPECT_STREQ("3", svalue);
+
+    options.break_key = 4;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionBreakKey, svalue));
+    EXPECT_STREQ("4", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForCodePage) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    for (char **codepage_name = (char **) CODEPAGE_NAMES; *codepage_name != NULL; ++codepage_name) {
+        codepage_set(&options, *codepage_name);
+        EXPECT_EQ(kOk, options_get_string_value(&options, kOptionCodePage, svalue));
+        if (strcasecmp(*codepage_name, "NONE") == 0) {
+            EXPECT_STREQ("None", svalue);
+        } else {
+            EXPECT_STREQ(*codepage_name, svalue);
+        }
+    }
+
+    char tmp[] = "foo";
+    options.codepage = tmp; // Invalid value.
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionCodePage, svalue));
+    EXPECT_STREQ("???", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForConsole) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.console = kBoth;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionConsole, svalue));
+    EXPECT_STREQ("Both", svalue);
+
+    options.console = kScreen;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionConsole, svalue));
+    EXPECT_STREQ("Screen", svalue);
+
+    options.console = kSerial;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionConsole, svalue));
+    EXPECT_STREQ("Serial", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForDefaultType) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.default_type = 0x00; // T_NOTYPE;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionDefaultType, svalue));
+    EXPECT_STREQ("None", svalue);
+
+    options.default_type = 0x01; // T_NBR
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionDefaultType, svalue));
+    EXPECT_STREQ("Float", svalue);
+
+    options.default_type = 0x02; // T_STR;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionDefaultType, svalue));
+    EXPECT_STREQ("String", svalue);
+
+    options.default_type = 0x04; // T_INT
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionDefaultType, svalue));
+    EXPECT_STREQ("Integer", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForEditor) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    for (OptionsEditor *editor = options_editors; editor->id; ++editor) {
+        strcpy(options.editor, editor->value);
+        EXPECT_EQ(kOk, options_get_string_value(&options, kOptionEditor, svalue));
+        EXPECT_STREQ(editor->value, svalue);
+    }
+
+    strcpy(options.editor, "myeditor ${file}:${line}");
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionEditor, svalue));
+    EXPECT_STREQ("myeditor ${file}:${line}", svalue);
+
+    strcpy(options.editor, "");
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionEditor, svalue));
+    EXPECT_STREQ("", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForExplicitType) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.explicit_type = 0;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionExplicitType, svalue));
+    EXPECT_STREQ("Off", svalue);
+
+    options.explicit_type = 1;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionExplicitType, svalue));
+    EXPECT_STREQ("On", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForFunctionKeys) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE] = { 0 };
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF1, svalue));
+    EXPECT_STREQ("FILES\r\n", svalue);
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF2, svalue));
+    EXPECT_STREQ("RUN\r\n", svalue);
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF3, svalue));
+    EXPECT_STREQ("LIST\r\n", svalue);
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF4, svalue));
+    EXPECT_STREQ("EDIT\r\n", svalue);
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF5, svalue));
+    EXPECT_STREQ("AUTOSAVE \"\"\202", svalue);
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF6, svalue));
+    EXPECT_STREQ("XMODEM RECEIVE \"\"\202", svalue);
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF7, svalue));
+    EXPECT_STREQ("XMODEM SEND \"\"\202", svalue);
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF8, svalue));
+    EXPECT_STREQ("EDIT \"\"\202", svalue);
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF9, svalue));
+    EXPECT_STREQ("LIST \"\"\202", svalue);
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF10, svalue));
+    EXPECT_STREQ("RUN \"\"\202", svalue);
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF11, svalue));
+    EXPECT_STREQ("", svalue);
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionF12, svalue));
+    EXPECT_STREQ("", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForListCase) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.list_case = kTitle;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionListCase, svalue));
+    EXPECT_STREQ("Title", svalue);
+
+    options.list_case = kLower;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionListCase, svalue));
+    EXPECT_STREQ("Lower", svalue);
+
+    options.list_case = kUpper;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionListCase, svalue));
+    EXPECT_STREQ("Upper", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForResolution) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.resolution = kCharacter;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionResolution, svalue));
+    EXPECT_STREQ("Character", svalue);
+
+    options.resolution = kPixel;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionResolution, svalue));
+    EXPECT_STREQ("Pixel", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForSearchPath) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    strcpy(options.search_path, "");
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
+    EXPECT_STREQ("", svalue);
+
+    strcpy(options.search_path, "/home/thwill/foo");
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
+    EXPECT_STREQ("/home/thwill/foo", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForTab) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE] = { 0 };
+
+    options.tab = 2;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionTab, svalue));
+    EXPECT_STREQ("2", svalue);
+
+    options.tab = 8;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionTab, svalue));
+    EXPECT_STREQ("8", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForZBoolean) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE] = { 0 };
+
+    options.zboolean = true;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionZBoolean, svalue));
+    EXPECT_STREQ("On", svalue);
+
+    options.zboolean = false;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionZBoolean, svalue));
+    EXPECT_STREQ("Off", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForZFloat) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE] = { 0 };
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionZFloat, svalue));
+    EXPECT_STREQ("2.71828", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForZInteger) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE] = { 0 };
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionZInteger, svalue));
+    EXPECT_STREQ("1945", svalue);
+}
+
+TEST(OptionsTest, GetStringValue_ForZString) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE] = { 0 };
+
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionZString, svalue));
+    EXPECT_STREQ("wombat", svalue);
 }

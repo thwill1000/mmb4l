@@ -215,6 +215,7 @@ gtest_discover_tests(test_cstring)
 
 add_executable(
   test_options
+  linux-src/common/codepage.c
   linux-src/common/cstring.c
   linux-src/common/options.c
   linux-src/common/path.c
