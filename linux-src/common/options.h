@@ -114,7 +114,7 @@ extern Options mmb_options;
 extern OptionsDefinition options_definitions[];
 extern OptionsEditor options_editors[];
 
-/** Initialises the options. */
+/** @brief Initialises the options. */
 void options_init(Options *options);
 
 /** @brief Decodes a C-string that has been encoded using options_encode_string(). */
@@ -149,6 +149,15 @@ MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB
 
 /** Saves persistent options to a file. */
 MmResult options_save(const Options *options, const char *filename);
+
+/** @brief Sets the value for the given option from an MMFLOAT. */
+MmResult options_set_float_value(Options *options, OptionsId id, MMFLOAT fvalue);
+
+/** @brief Sets the value for the given option from an MMINTEGER. */
+MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER ivalue);
+
+/** @brief Sets the value for the given option from a C-string. */
+MmResult options_set_string_value(Options *options, OptionsId id, const char *svalue);
 
 MmResult options_set(Options *options, const char *name, const char *value);
 

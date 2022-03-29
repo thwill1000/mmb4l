@@ -98,43 +98,19 @@ OptionsDefinition options_definitions[] = {
 void options_init(Options *options) {
     memset(options, 0, sizeof(Options));
 
+    // TODO: Do these even belong in options?
     options->autorun = 0;
-    options->base = 0;
-    options->break_key = 3; // Ctrl-C
-    options->codepage = NULL;
-    options->console = kSerial;
-    options->default_type = 0x1; // T_NBR
-    options_set(options, "editor", "default");
-    options->explicit_type = false;
-
-    // Note that character 0202 (octal) is used as the mapping for the left cursor key
-    // (see 'console.h') so it moves the insertion point to between the quotes.
-    strcpy(options->fn_keys[0],  "FILES\r\n");
-    strcpy(options->fn_keys[1],  "RUN\r\n");
-    strcpy(options->fn_keys[2],  "LIST\r\n");
-    strcpy(options->fn_keys[3],  "EDIT\r\n");
-    strcpy(options->fn_keys[4],  "AUTOSAVE \"\"\202");
-    strcpy(options->fn_keys[5],  "XMODEM RECEIVE \"\"\202");
-    strcpy(options->fn_keys[6],  "XMODEM SEND \"\"\202");
-    strcpy(options->fn_keys[7],  "EDIT \"\"\202");
-    strcpy(options->fn_keys[8],  "LIST \"\"\202");
-    strcpy(options->fn_keys[9],  "RUN \"\"\202");
-    strcpy(options->fn_keys[10], "");
-    strcpy(options->fn_keys[11], "");
-
     options->height = 0;
-    options->list_case = kTitle;
     options->prog_flash_size = PROG_FLASH_SIZE;
-    options->resolution = kCharacter;
-    options->tab = 4;
     options->width = 0;
 
-#if defined OPTION_TESTS
-    options->zboolean = true;
-    options->zfloat = 2.71828;
-    options->zinteger = 1945;
-    strcpy(options->zstring, "wombat");
-#endif
+    for (OptionsDefinition *def = options_definitions; def->name; def++) {
+        MmResult result = options_set_string_value(options, def->id, def->default_value);
+        if (FAILED(result)) {
+            fprintf(stderr, "%s\n", mmresult_to_string(result));
+            exit(EXIT_FAILURE);
+        }
+    }
 }
 
 /**
@@ -178,14 +154,18 @@ static MmResult options_parse(const char *line, char *name, char *value) {
 }
 
 static MmResult options_parse_boolean(const char *value, bool *out) {
-    if (strcasecmp(value, "0") == 0 || strcasecmp(value, "false") == 0) {
+    if (strcasecmp(value, "0") == 0
+            || strcasecmp(value, "false") == 0
+            || strcasecmp(value, "off") == 0) {
         *out = false;
         return kOk;
-    } else if (strcasecmp(value, "1") == 0 || strcasecmp(value, "true") == 0) {
+    } else if (strcasecmp(value, "1") == 0
+            || strcasecmp(value, "true") == 0
+            || strcasecmp(value, "on") == 0) {
         *out = true;
         return kOk;
     } else {
-        return kInvalidBool;
+        return kInvalidValue;
     }
 }
 
@@ -193,7 +173,7 @@ static MmResult options_parse_integer(const char *value, int *out) {
     char *endptr;
     int i = strtol(value, &endptr, 10);
     if (*endptr) {
-        return kInvalidInt;
+        return kInvalidValue;
     } else {
         *out = i;
         return kOk;
@@ -204,7 +184,7 @@ static MmResult options_parse_float(const char *value, MMFLOAT *out) {
     char *endptr;
     MMFLOAT f = strtod(value, &endptr);
     if (*endptr) {
-        return kInvalidFloat;
+        return kInvalidValue;
     } else {
         *out = f;
         return kOk;
@@ -774,4 +754,229 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
             result = kInternalFault;
     }
     return result;
+}
+
+static MmResult options_set_base(Options *options, int ivalue) {
+    if (ivalue == 0 || ivalue == 1) {
+        options->base = ivalue;
+        return kOk;
+    } else {
+        return kInvalidValue;
+    }
+}
+
+static MmResult options_set_break_key(Options *options, int ivalue) {
+    if (ivalue > 0 && ivalue < 256) {
+        options->break_key = ivalue;
+        return kOk;
+    } else {
+        return kInvalidValue;
+    }
+}
+
+static MmResult options_set_codepage(Options *options, const char *svalue) {
+    return SUCCEEDED(codepage_set(options, svalue)) ? kOk : kInvalidValue;
+}
+
+static MmResult options_set_console(Options *options, const char *svalue) {
+    for (const NameOrdinalPair *entry = options_console_map; entry->name; ++entry) {
+        if (strcasecmp(svalue, entry->name) == 0) {
+            options->console = entry->ordinal;
+            return kOk;
+        }
+    }
+    return kInvalidValue;
+}
+
+static MmResult options_set_default_type(Options *options, const char *svalue) {
+    for (const NameOrdinalPair *entry = options_default_type_map; entry->name; ++entry) {
+        if (strcasecmp(svalue, entry->name) == 0) {
+            options->default_type = entry->ordinal;
+            return kOk;
+        }
+    }
+    return kInvalidValue;
+}
+
+static MmResult options_set_editor(Options *options, const char *svalue) {
+    if (svalue[0] == '\0') return kInvalidValue;
+    if (strlen(svalue) >= STRINGSIZE) return kStringTooLong;
+
+    if (strcasecmp(svalue, "code") == 0) {
+        strcpy(options->editor, "VSCode");
+    } else if (strcasecmp(svalue, "default") == 0) {
+        strcpy(options->editor, "Nano");
+    } else {
+        // Convert to standard capitalisation for standard editor values.
+        options->editor[0] = '\0';
+        for (const OptionsEditor *editor = options_editors; editor->id; ++editor) {
+            if (strcasecmp(svalue, editor->id) == 0) {
+                strcpy(options->editor, editor->value);
+            }
+        }
+        if (options->editor[0] == '\0') strcpy(options->editor, svalue);
+    }
+    return kOk;
+}
+
+static MmResult options_set_explicit_type(Options *options, const char *svalue) {
+    bool zvalue = false;
+    MmResult result = options_parse_boolean(svalue, &zvalue);
+    if (FAILED(result)) return result;
+    options->explicit_type = zvalue;
+    return kOk;
+}
+
+static MmResult options_set_fn_key(Options *options, OptionsId id, const char *svalue) {
+    if (id < kOptionF1 || id > kOptionF12) return kInternalFault;
+    if (strlen(svalue) >= STRINGSIZE) return kStringTooLong;
+    strcpy(options->fn_keys[id - kOptionF1], svalue);
+    return kOk;
+}
+
+static MmResult options_set_list_case(Options *options, const char *svalue) {
+    for (const NameOrdinalPair *entry = options_list_case_map; entry->name; ++entry) {
+        if (strcasecmp(svalue, entry->name) == 0) {
+            options->list_case = entry->ordinal;
+            return kOk;
+        }
+    }
+    return kInvalidValue;
+}
+
+static MmResult options_set_resolution(Options *options, const char *svalue) {
+    for (const NameOrdinalPair *entry = options_resolution_map; entry->name; ++entry) {
+        if (strcasecmp(svalue, entry->name) == 0) {
+            options->resolution = entry->ordinal;
+            return kOk;
+        }
+    }
+    return kInvalidValue;
+}
+
+static MmResult options_set_search_path(Options *options, const char *svalue) {
+    if (svalue[0] == '\0') {
+        strcpy(options->search_path, "");
+        return kOk;
+    }
+
+    // TODO: generate kStringTooLong error when appropriate ?
+    char canonical_path[STRINGSIZE];
+    if (path_get_canonical(svalue, canonical_path, STRINGSIZE)
+            && path_is_directory(canonical_path)) {
+        strcpy(options->search_path, canonical_path);
+        return kOk;
+    } else {
+        return kFileNotFound;
+    }
+}
+
+static MmResult options_set_tab(Options *options, int ivalue) {
+    if (ivalue == 2 || ivalue == 4 || ivalue == 8) {
+        options->tab = (char) ivalue;
+        return kOk;
+    } else {
+        return kInvalidValue;
+    }
+}
+
+MmResult options_set_float_value(Options *options, OptionsId id, MMFLOAT fvalue) {
+    switch (id) {
+
+#if defined(OPTION_TESTS)
+        case kOptionZFloat:
+            options->zfloat = fvalue;
+            return kOk;
+#endif
+
+        default: return kInternalFault;
+    }
+}
+
+MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER ivalue) {
+    switch (id) {
+        case kOptionBase:     return options_set_base(options, ivalue);
+        case kOptionBreakKey: return options_set_break_key(options, ivalue);
+        case kOptionTab:      return options_set_tab(options, ivalue);
+
+#if defined(OPTION_TESTS)
+        case kOptionZBoolean:
+            if (ivalue == 0 || ivalue == 1) {
+                options->zboolean = ivalue;
+                return kOk;
+            } else {
+                return kInvalidValue;
+            }
+        case kOptionZInteger:
+            options->zinteger = ivalue;
+            return kOk;
+#endif
+
+        default: return kInternalFault;
+    }
+}
+
+MmResult options_set_string_value(Options *options, OptionsId id, const char *svalue) {
+
+    switch (options_definitions[id].type) {
+        case kOptionTypeBoolean: {
+            bool zvalue = false;
+            MmResult result = options_parse_boolean(svalue, &zvalue);
+            if (FAILED(result)) return result;
+            return options_set_integer_value(options, id, (MMINTEGER) zvalue);
+        }
+
+        case kOptionTypeFloat: {
+            MMFLOAT fvalue = 0.0;
+            MmResult result = options_parse_float(svalue, &fvalue);
+            if (FAILED(result)) return result;
+            return options_set_float_value(options, id, fvalue);
+        }
+
+        case kOptionTypeInteger: {
+            int ivalue = 0;
+            MmResult result = options_parse_integer(svalue, &ivalue);
+            if (FAILED(result)) return result;
+            return options_set_integer_value(options, id, ivalue);
+        }
+
+        case kOptionTypeString:
+            // Nothing to do, svalue is already initialised.
+            break;
+
+        default:
+            return kInternalFault;
+    }
+
+    switch (id) {
+        case kOptionCodePage:     return options_set_codepage(options, svalue);
+        case kOptionConsole:      return options_set_console(options, svalue);
+        case kOptionDefaultType:  return options_set_default_type(options, svalue);
+        case kOptionEditor:       return options_set_editor(options, svalue);
+        case kOptionExplicitType: return options_set_explicit_type(options, svalue);
+        case kOptionF1:
+        case kOptionF2:
+        case kOptionF3:
+        case kOptionF4:
+        case kOptionF5:
+        case kOptionF6:
+        case kOptionF7:
+        case kOptionF8:
+        case kOptionF9:
+        case kOptionF10:
+        case kOptionF11:
+        case kOptionF12:          return options_set_fn_key(options, id, svalue);
+        case kOptionListCase:     return options_set_list_case(options, svalue);
+        case kOptionResolution:   return options_set_resolution(options, svalue);
+        case kOptionSearchPath:   return options_set_search_path(options, svalue);
+
+#if defined(OPTION_TESTS)
+        case kOptionZString:
+            if (strlen(svalue) >= STRINGSIZE) return kStringTooLong;
+            strcpy(options->zstring, svalue);
+            return kOk;
+#endif
+
+        default: return kUnknownOption;
+    }
 }

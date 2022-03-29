@@ -157,6 +157,7 @@ add_executable(test_keyboard
     linux-src/common/codepage.c
     linux-src/common/console.c
     linux-src/common/cstring.c
+    linux-src/common/mmresult.c
     linux-src/common/mmtime.c
     linux-src/common/options.c
     linux-src/common/path.c)
@@ -218,6 +219,7 @@ add_executable(
   linux-src/common/codepage.c
   linux-src/common/cstring.c
   linux-src/common/options.c
+  linux-src/common/mmresult.c
   linux-src/common/path.c
   linux-src/common/gtest/options_test.cxx
 )

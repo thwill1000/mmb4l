@@ -258,9 +258,9 @@ TEST(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
     EXPECT_EQ(0, options_load(&options, filename, &write_line_to_buf));
     EXPECT_STREQ(
             "line 1: unknown option 'foo'.\n"
-            "line 2: invalid boolean value for option 'zboolean'.\n"
-            "line 4: invalid integer value for option 'tab'.\n"
-            "line 5: invalid float value for option 'zfloat'.\n"
+            "line 2: invalid value for option 'zboolean'.\n"
+            "line 4: invalid value for option 'tab'.\n"
+            "line 5: invalid value for option 'zfloat'.\n"
             "line 6: invalid string value for option 'zstring'.\n"
             "line 7: file or directory not found for option 'search-path'.\n"
             "line 8: invalid option format.\n",
@@ -968,4 +968,413 @@ TEST(OptionsTest, GetStringValue_ForZString) {
 
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionZString, svalue));
     EXPECT_STREQ("wombat", svalue);
+}
+
+TEST(OptionsTest, SetFloatValue_ForZFloat) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_float_value(&options, kOptionZFloat, 1.2345));
+    EXPECT_EQ(1.2345, options.zfloat);
+}
+
+TEST(OptionsTest, SetFloatValue_ForNonFloat) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kInternalFault, options_set_float_value(&options, kOptionZInteger, 1.2345));
+    EXPECT_EQ(kInternalFault, options_set_float_value(&options, kOptionZString, 1.2345));
+}
+
+TEST(OptionsTest, SetIntegerValue_ForBase) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionBase, 0));
+    EXPECT_EQ(0, options.base);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionBase, 1));
+    EXPECT_EQ(1, options.base);
+
+    EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionBase, 2));
+}
+
+TEST(OptionsTest, SetIntegerValue_ForBreakKey) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionBreakKey, 5));
+    EXPECT_EQ(5, options.break_key);
+
+    EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionBreakKey, 0));
+    EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionBreakKey, 256));
+}
+
+TEST(OptionsTest, SetIntegerValue_ForTab) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionTab, 2));
+    EXPECT_EQ(2, options.tab);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionTab, 8));
+    EXPECT_EQ(8, options.tab);
+
+    EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionTab, 3));
+}
+
+TEST(OptionsTest, SetIntegerValue_ForZBoolean) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionZBoolean, 0));
+    EXPECT_EQ(false, options.zboolean);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionZBoolean, 1));
+    EXPECT_EQ(true, options.zboolean);
+
+    EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionZBoolean, 2));
+}
+
+
+TEST(OptionsTest, SetIntegerValue_ForZInteger) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionZInteger, 43));
+    EXPECT_EQ(43, options.zinteger);
+}
+
+TEST(OptionsTest, SetIntegerValue_ForNonInteger) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kInternalFault, options_set_integer_value(&options, kOptionZFloat, 42));
+    EXPECT_EQ(kInternalFault, options_set_integer_value(&options, kOptionZString, 42));
+}
+
+TEST(OptionsTest, SetStringValue_ForBase) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionBase, "0"));
+    EXPECT_EQ(0, options.base);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionBase, "1"));
+    EXPECT_EQ(1, options.base);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionBase, "2"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionBase, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForBreakKey) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionBreakKey, "42"));
+    EXPECT_EQ(42, options.break_key);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionBreakKey, "0"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionBreakKey, "256"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionBreakKey, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForCodePage) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    for (char **codepage_name = (char **) CODEPAGE_NAMES; *codepage_name; ++codepage_name) {
+        EXPECT_EQ(kOk, options_set_string_value(&options, kOptionCodePage, *codepage_name));
+        EXPECT_EQ(0, codepage_to_string(options.codepage, svalue));
+        EXPECT_STREQ(*codepage_name, svalue);
+    }
+
+    // Test case-insensitivity.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionCodePage, "mMb4L"));
+    EXPECT_EQ(0, codepage_to_string(options.codepage, svalue));
+    EXPECT_STREQ("MMB4L", svalue);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionCodePage, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForConsole) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionConsole, "Both"));
+    EXPECT_EQ(kBoth, options.console);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionConsole, "Screen"));
+    EXPECT_EQ(kScreen, options.console);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionConsole, "Serial"));
+    EXPECT_EQ(kSerial, options.console);
+
+    // Test case-insensitivity.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionConsole, "boTH"));
+    EXPECT_EQ(kBoth, options.console);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionConsole, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForDefaultType) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionDefaultType, "None"));
+    EXPECT_EQ(0x00, options.default_type);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionDefaultType, "Float"));
+    EXPECT_EQ(0x01, options.default_type);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionDefaultType, "String"));
+    EXPECT_EQ(0x02, options.default_type);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionDefaultType, "Integer"));
+    EXPECT_EQ(0x04, options.default_type);
+
+    // Test case-insensitivity.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionDefaultType, "STRing"));
+    EXPECT_EQ(0x02, options.default_type);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionDefaultType, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForEditor) {
+    Options options;
+    options_init(&options);
+
+    // Test standard editors.
+    for (OptionsEditor *editor = options_editors; editor->id; ++editor) {
+        EXPECT_EQ(kOk, options_set_string_value(&options, kOptionEditor, editor->id));
+        EXPECT_STREQ(editor->value, options.editor);
+    }
+
+    // Test custom editor.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionEditor, "myeditor ${file}:${line}"));
+    EXPECT_STREQ("myeditor ${file}:${line}", options.editor);
+
+    // Test case-insensitivity.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionEditor, "vsCODE"));
+    EXPECT_STREQ("VSCode", options.editor);
+
+    // Empty string.
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionEditor, ""));
+
+    // String at the size limit.
+    char svalue[STRINGSIZE + 1] = { 0 };
+    memset(svalue, '*', STRINGSIZE - 1);
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionEditor, svalue));
+    EXPECT_STREQ(svalue, options.editor);
+
+    // String just beyond the size limit.
+    memset(svalue, '*', STRINGSIZE);
+    EXPECT_EQ(kStringTooLong, options_set_string_value(&options, kOptionEditor, svalue));
+}
+
+TEST(OptionsTest, SetStringValue_ForExplicitType) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionExplicitType, "0"));
+    EXPECT_EQ(false, options.explicit_type);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionExplicitType, "1"));
+    EXPECT_EQ(true, options.explicit_type);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionExplicitType, "false"));
+    EXPECT_EQ(false, options.explicit_type);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionExplicitType, "true"));
+    EXPECT_EQ(true, options.explicit_type);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionExplicitType, "Off"));
+    EXPECT_EQ(false, options.explicit_type);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionExplicitType, "On"));
+    EXPECT_EQ(true, options.explicit_type);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionExplicitType, "OFF"));
+    EXPECT_EQ(false, options.explicit_type);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionExplicitType, "TRUE"));
+    EXPECT_EQ(true, options.explicit_type);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionExplicitType, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForFunctionKeys) {
+    Options options;
+    options_init(&options);
+
+    for (int f = 1; f <= 12; ++f) {
+        EXPECT_EQ(kOk, options_set_string_value(&options, (OptionsId) (kOptionF1 + f - 1), "wombat"));
+        EXPECT_STREQ("wombat", options.fn_keys[f - 1]);
+    }
+
+    // Empty string.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionF1, ""));
+    EXPECT_STREQ("", options.fn_keys[0]);
+
+    // String at the size limit.
+    char svalue[STRINGSIZE + 1] = { 0 };
+    memset(svalue, '*', STRINGSIZE - 1);
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionF1, svalue));
+    EXPECT_STREQ(svalue, options.fn_keys[0]);
+
+    // String just beyond the size limit.
+    memset(svalue, '*', STRINGSIZE);
+    EXPECT_EQ(kStringTooLong, options_set_string_value(&options, kOptionF1, svalue));
+}
+
+TEST(OptionsTest, SetStringValue_ForListCase) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionListCase, "Title"));
+    EXPECT_EQ(kTitle, options.list_case);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionListCase, "Lower"));
+    EXPECT_EQ(kLower, options.list_case);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionListCase, "Upper"));
+    EXPECT_EQ(kUpper, options.list_case);
+
+    // Test case-insensitivity.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionListCase, "LOWer"));
+    EXPECT_EQ(kLower, options.list_case);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionListCase, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForResolution) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionResolution, "Character"));
+    EXPECT_EQ(kCharacter, options.resolution);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionResolution, "Pixel"));
+    EXPECT_EQ(kPixel, options.resolution);
+
+    // Test case-insensitivity.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionResolution, "CHARacter"));
+    EXPECT_EQ(kCharacter, options.resolution);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionResolution, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForSearchPath) {
+    Options options;
+    options_init(&options);
+
+    // Empty path.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, ""));
+    EXPECT_STREQ("", options.search_path);
+
+    // Path that exists.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, "/usr/bin"));
+    EXPECT_STREQ("/usr/bin", options.search_path);
+
+    // Path that does not exist.
+    EXPECT_EQ(kFileNotFound, options_set_string_value(&options, kOptionSearchPath, "/does/not/exist"));
+}
+
+TEST(OptionsTest, SetStringValue_ForTab) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionTab, "2"));
+    EXPECT_EQ(2, options.tab);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionTab, "4"));
+    EXPECT_EQ(4, options.tab);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionTab, "8"));
+    EXPECT_EQ(8, options.tab);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionTab, "3"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionTab, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForZBoolean) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZBoolean, "false"));
+    EXPECT_EQ(false, options.zboolean);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZBoolean, "true"));
+    EXPECT_EQ(true, options.zboolean);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZBoolean, "Off"));
+    EXPECT_EQ(false, options.zboolean);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZBoolean, "On"));
+    EXPECT_EQ(true, options.zboolean);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZBoolean, "0"));
+    EXPECT_EQ(false, options.zboolean);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZBoolean, "1"));
+    EXPECT_EQ(true, options.zboolean);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZBoolean, "FALSE"));
+    EXPECT_EQ(false, options.zboolean);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZBoolean, "ON"));
+    EXPECT_EQ(true, options.zboolean);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionZBoolean, "2"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionZBoolean, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForZFloat) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZFloat, "1.234"));
+    EXPECT_EQ(1.234, options.zfloat);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZFloat, "-1.51e17"));
+    EXPECT_EQ(-1.51e17, options.zfloat);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZFloat, "42"));
+    EXPECT_EQ(42.0, options.zfloat);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionZFloat, "true"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionZFloat, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForZInteger) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZInteger, "99"));
+    EXPECT_EQ(99, options.zinteger);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZInteger, "-123456"));
+    EXPECT_EQ(-123456, options.zinteger);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionZInteger, "1.234"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionZInteger, "true"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionZInteger, "wombat"));
+}
+
+TEST(OptionsTest, SetStringValue_ForZString) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZString, ""));
+    EXPECT_STREQ("", options.zstring);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZString, "wombat"));
+    EXPECT_STREQ("wombat", options.zstring);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZString, "\"foo\""));
+    EXPECT_STREQ("\"foo\"", options.zstring);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionZString, "\r\n"));
+    EXPECT_STREQ("\r\n", options.zstring);
 }

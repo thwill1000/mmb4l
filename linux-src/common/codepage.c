@@ -6,7 +6,7 @@
 #include "codepage.h"
 
 const char * const CODEPAGE_NAMES[] = {
-    "NONE",
+    "None",
     "CMM2",
     "CP437",
     "CP1252",
