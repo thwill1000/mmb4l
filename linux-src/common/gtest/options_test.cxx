@@ -612,6 +612,133 @@ TEST(OptionsTest, GetDefinition) {
     EXPECT_EQ(kUnknownOption, options_get_definition("unknown", &lookup));
 }
 
+TEST(OptionsTest, GetDisplayValue) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionBase, svalue));
+    EXPECT_STREQ("0", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionBreakKey, svalue));
+    EXPECT_STREQ("3", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionListCase, svalue));
+    EXPECT_STREQ("Title", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionCodePage, svalue));
+    EXPECT_STREQ("None", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionConsole, svalue));
+    EXPECT_STREQ("Serial", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionDefaultType, svalue));
+    EXPECT_STREQ("Float", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionEditor, svalue));
+    EXPECT_STREQ("Nano", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionExplicitType, svalue));
+    EXPECT_STREQ("Off", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF1, svalue));
+    EXPECT_STREQ("FILES<crlf>", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF5, svalue));
+    EXPECT_STREQ("AUTOSAVE \"\"<left>", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
+    EXPECT_STREQ("<unset>", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionResolution, svalue));
+    EXPECT_STREQ("Character", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionSearchPath, svalue));
+    EXPECT_STREQ("<unset>", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionTab, svalue));
+    EXPECT_STREQ("4", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionZBoolean, svalue));
+    EXPECT_STREQ("On", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionZFloat, svalue));
+    EXPECT_STREQ("2.71828", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionZInteger, svalue));
+    EXPECT_STREQ("1945", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionZString, svalue));
+    EXPECT_STREQ("wombat", svalue);
+}
+
+TEST(OptionsTest, GetDisplayValue_GivenNonAscii) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    strcpy(options.fn_keys[10], "foo\r\n");
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
+    EXPECT_STREQ("foo<crlf>", svalue);
+
+    strcpy(options.fn_keys[10], "foo\r");
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
+    EXPECT_STREQ("foo<cr>", svalue);
+
+    strcpy(options.fn_keys[10], "foo\n");
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
+    EXPECT_STREQ("foo<lf>", svalue);
+
+    strcpy(options.fn_keys[10], "foo\x82 bar");
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
+    EXPECT_STREQ("foo<left> bar", svalue);
+
+    strcpy(options.fn_keys[10], "  foo  bar  ");
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
+    EXPECT_STREQ("  foo  bar<20><20>", svalue);
+
+    strcpy(options.fn_keys[10], "\x10 foo\xFD");
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
+    EXPECT_STREQ("<10> foo<fd>", svalue);
+}
+
+TEST(OptionsTest, GetDisplayValue_GivenTooLong) {
+    Options options;
+    options_init(&options);
+    char expected[STRINGSIZE];
+    char in[STRINGSIZE];
+    char out[STRINGSIZE];
+
+    memset(in, '\0', STRINGSIZE);
+    memset(in, '*', STRINGSIZE - 1);
+    strcpy(options.fn_keys[10], in);
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, out));
+    EXPECT_EQ(STRINGSIZE - 1, strlen(out));
+    strcpy(expected, in);
+    EXPECT_STREQ(expected, out);
+
+    memset(in, '\0', STRINGSIZE);
+    memset(in, '*', STRINGSIZE - 5);
+    strcat(in + STRINGSIZE - 5, "\r");
+    strcpy(options.fn_keys[10], in);
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, out));
+    EXPECT_EQ(STRINGSIZE - 1, strlen(out));
+    memset(expected, '\0', STRINGSIZE);
+    memset(expected, '*', STRINGSIZE - 5);
+    strcpy(expected + STRINGSIZE - 5, "<cr>");
+    EXPECT_STREQ(expected, out);
+
+    memset(in, '\0', STRINGSIZE);
+    memset(in, '*', STRINGSIZE - 4);
+    strcat(in + STRINGSIZE - 4, "\r");
+    strcpy(options.fn_keys[10], in);
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, out));
+    EXPECT_EQ(STRINGSIZE - 4, strlen(out));
+    memset(expected, '\0', STRINGSIZE);
+    memset(expected, '*', STRINGSIZE - 4);
+    EXPECT_STREQ(expected, out);
+}
+
 TEST(OptionsTest, GetFloatValue_ForZFloat) {
     Options options;
     options_init(&options);

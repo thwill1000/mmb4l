@@ -145,58 +145,21 @@ static void option_fn_key(char *p) {
     }
 }
 
-static void option_list_item(char *name, char *value) {
-    MMPrintString("Option ");
-    MMPrintString(name);
-    MMPrintString(" ");
-    MMPrintString(value);
-    MMPrintString("\r\n");
-}
-
 void option_list(char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
 
-    char buf[STRINGSIZE + 2];
+    MmResult result;
+    char buf[STRINGSIZE];
 
-    sprintf(buf, "%d", mmb_options.base);
-    option_list_item("Base", buf);
-
-    sprintf(buf, "%d", mmb_options.break_key);
-    option_list_item("Break", buf);
-
-    options_list_case_to_string(mmb_options.list_case, buf);
-    option_list_item("Case", buf);
-
-    if (FAILED(codepage_to_string(mmb_options.codepage, buf))) ERROR_INTERNAL_FAULT;
-    option_list_item("CodePage", buf);
-
-    options_console_to_string(mmb_options.console, buf);
-    option_list_item("Console", buf);
-
-    options_type_to_string(mmb_options.default_type, buf);
-    option_list_item("Default", buf);
-
-    options_editor_to_string(mmb_options.editor, buf);
-    option_list_item("Editor", mmb_options.editor);
-
-    options_explicit_to_string(mmb_options.explicit_type, buf);
-    option_list_item("Explicit", buf);
-
-    for (int i = 0; i < OPTIONS_NUM_FN_KEYS; ++i) {
-        char option[8];
-        sprintf(option, "F%d", i + 1);
-        options_fn_key_to_string(mmb_options.fn_keys[i], buf);
-        option_list_item(option, buf);
+    for (OptionsDefinition *def = options_definitions; def->name; def++) {
+        result = options_get_display_value(&mmb_options, def->id, buf);
+        if (FAILED(result)) error_system(result);
+        MMPrintString("Option ");
+        MMPrintString((char *) def->name);
+        MMPrintString(" ");
+        MMPrintString(buf);
+        MMPrintString("\r\n");
     }
-
-    options_resolution_to_string(mmb_options.resolution, buf);
-    option_list_item("Resolution", buf);
-
-    sprintf(buf, "\"%s\"", mmb_options.search_path);
-    option_list_item("Search Path", buf);
-
-    sprintf(buf, "%d", mmb_options.tab);
-    option_list_item("Tab", buf);
 
     MMPrintString("\r\n");
 }

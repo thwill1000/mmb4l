@@ -135,6 +135,9 @@ MmResult options_encode_string(const char *unencoded, char *encoded);
 /** @brief Gets the OptionsDefinition for a named option. */
 MmResult options_get_definition(const char *name, OptionsDefinition **definition);
 
+/** @brief Gets the C-string value to be displayed by OPTION LIST for the given option. */
+MmResult options_get_display_value(const Options *options, OptionsId id, char *svalue);
+
 /** @brief Gets the MMFLOAT value for the given option. */
 MmResult options_get_float_value(const Options *options, OptionsId id, MMFLOAT *fvalue);
 

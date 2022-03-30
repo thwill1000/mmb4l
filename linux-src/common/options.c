@@ -598,6 +598,64 @@ MmResult options_encode_string(const char *unencoded, char *encoded) {
     return kOk;
 }
 
+MmResult options_get_display_value(const Options *options, OptionsId id, char *svalue) {
+    char tmp[STRINGSIZE];
+    MmResult result = options_get_string_value(options, id, tmp);
+    if (FAILED(result)) return result;
+
+    // 'end' points at the last non-space character.
+    char *end = tmp + strlen(tmp) - 1;
+    while (end > tmp && *end == ' ') end--;
+
+    char *src = tmp;
+    char *dst = svalue;
+    char append[8];
+    while (*src) {
+        switch (*src) {
+            case ' ':
+               if (src > end) {
+                    sprintf(append, "<%02x>", *src);
+               } else {
+                    sprintf(append, "%c", *src);
+               }
+               break;
+            case '\n':
+                strcpy(append, "<lf>");
+                break;
+            case '\r':
+                if (*(src + 1)) {
+                    strcpy(append, "<crlf>");
+                    src++;
+                } else {
+                    strcpy(append, "<cr>");
+                }
+                break;
+            case 0x82:
+                strcpy(append, "<left>");
+                break;
+            default:
+                if (*src < 32 || *src > 126) {
+                    sprintf(append, "<%02x>", *src);
+                } else {
+                    sprintf(append, "%c", *src);
+                }
+                break;
+        }
+        src++;
+
+        // If the string will be too long then truncate it rather than reporting an error.
+        if (dst - svalue + strlen(append) >= STRINGSIZE) break;
+
+        strcpy(dst, append);
+        dst += strlen(append);
+    }
+    *dst = '\0';
+
+    if (svalue[0] == '\0') strcpy(svalue, "<unset>");
+
+    return result;
+}
+
 MmResult options_get_float_value(const Options *options, OptionsId id, MMFLOAT *fvalue) {
     MmResult result = kOk;
     switch (id) {
