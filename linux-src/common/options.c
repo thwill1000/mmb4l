@@ -50,6 +50,23 @@ static const NameOrdinalPair options_default_type_map[] = {
     { NULL,      -1 }
 };
 
+// Note that at the moment the ordinal is unused in this map.
+static const NameOrdinalPair options_editor_map[] = {
+    { "Atom",    0 },
+    { "Code",    0 },
+    { "Default", 0 },
+    { "Geany",   0 },
+    { "Gedit",   0 },
+    { "Leafpad", 0 },
+    { "Nano",    0 },
+    { "Sublime", 0 },
+    { "Vi",      0 },
+    { "Vim",     0 },
+    { "VSCode",  0 },
+    { "Xed",     0 },
+    { NULL,      -1 }
+};
+
 static const NameOrdinalPair options_list_case_map[] = {
     { "Title", kTitle },
     { "Lower", kLower },
@@ -70,7 +87,7 @@ OptionsDefinition options_definitions[] = {
     { "CodePage",    kOptionCodePage,     kOptionTypeString,  false, "None",                    NULL },
     { "Console",     kOptionConsole,      kOptionTypeString,  false, "Serial",                  options_console_map },
     { "Default",     kOptionDefaultType,  kOptionTypeString,  false, "Float",                   options_default_type_map },
-    { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Default",                 NULL },
+    { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Default",                 options_editor_map },
     { "Explicit",    kOptionExplicitType, kOptionTypeString,  false, "Off",                     NULL },
     { "F1",          kOptionF1,           kOptionTypeString,  true,  "FILES\r\n",               NULL },
     { "F2",          kOptionF2,           kOptionTypeString,  true,  "RUN\r\n",                 NULL },
@@ -206,110 +223,6 @@ static MmResult options_parse_float(const char *value, MMFLOAT *out) {
     }
 }
 
-static MmResult options_parse_string(const char *value, char *out) {
-    return options_decode_string(value, out);
-}
-
-static MmResult options_parse_editor(const char *value, char *editor) {
-    for (int i = 0; options_editors[i].id; ++i) {
-        if (strcasecmp(value, options_editors[i].id) == 0) {
-            // Standard editor.
-            strcpy(editor, options_editors[i].value);
-            return kOk;
-        }
-    }
-
-    if (value[0] == '\"' && value[strlen(value) - 1] == '\"') {
-        // Manually specified editor.
-        strcpy(editor, value);
-        return kOk;
-    }
-
-    return kInvalidValue;
-}
-
-static MmResult options_parse_list_case(const char *value, OptionsListCase *list_case) {
-    if (strcasecmp(value, "title") == 0) {
-        *list_case = kTitle;
-    } else if (strcasecmp(value, "lower") == 0) {
-        *list_case = kLower;
-    } else if (strcasecmp(value, "upper") == 0) {
-        *list_case = kUpper;
-    } else {
-        return kInvalidValue;
-    }
-    return kOk;
-}
-
-static MmResult options_parse_search_path(const char *value, char *search_path) {
-    char tmp[STRINGSIZE];
-    MmResult result = options_parse_string(value, tmp);
-    if (SUCCEEDED(result)) {
-        if (*tmp) {
-            char canonical_path[STRINGSIZE];
-            if (path_get_canonical(tmp, canonical_path, STRINGSIZE)
-                    && path_is_directory(canonical_path)) {
-                strcpy(search_path, canonical_path);
-            } else {
-                result = kFileNotFound;
-            }
-        } else {
-            strcpy(search_path, "");
-        }
-    }
-    return result;
-}
-
-static MmResult options_parse_tab(const char *value, char *tab) {
-    int tmp = 0;
-    MmResult result = options_parse_integer(value, &tmp);
-    if (FAILED(result)) return result;
-    if (tmp == 2 || tmp == 4 || tmp == 8) {
-        *tab = (char) tmp;
-    } else {
-        return kInvalidInt;
-    }
-    return kOk;
-}
-
-static MmResult options_parse_fn_key(Options *options, const char *name, const char *value) {
-    char buf[STRINGSIZE];
-    int f = 1;
-    while (f < 13) {
-        sprintf(buf, "f%d", f);
-        if (strcasecmp(name, buf) == 0) break;
-        f++;
-    }
-    if (f == 13) return kUnknownOption;
-    return options_parse_string(value, options->fn_keys[f - 1]);
-}
-
-MmResult options_set(Options *options, const char *name, const char *value) {
-    if (strcasecmp(name, "editor") == 0) {
-        return options_parse_editor(value, options->editor);
-    } else if (strcasecmp(name, "case") == 0) {
-        return options_parse_list_case(value, &(options->list_case));
-    } else if (strcasecmp(name, "search-path") == 0) {
-        return options_parse_search_path(value, options->search_path);
-    } else if (strcasecmp(name, "tab") == 0) {
-        return options_parse_tab(value, &(options->tab));
-#if defined OPTION_TESTS
-    } else if (strcasecmp(name, "zboolean") == 0) {
-        return options_parse_boolean(value, &(options->zboolean));
-    } else if (strcasecmp(name, "zfloat") == 0) {
-        return options_parse_float(value, &(options->zfloat));
-    } else if (strcasecmp(name, "zinteger") == 0) {
-        return options_parse_integer(value, &(options->zinteger));
-    } else if (strcasecmp(name, "zstring") == 0) {
-        return options_parse_string(value, options->zstring);
-#endif
-    } else if (toupper(name[0]) == 'F' && isdigit(name[1])) { // f1-12
-        return options_parse_fn_key(options, name, value);
-    } else {
-        return kUnknownOption;
-    }
-}
-
 static void options_report_warning(int line_num, char *name, MmResult result, OPTIONS_WARNING_CB warning_cb) {
     char buf[256];
     switch (result) {
@@ -322,17 +235,8 @@ static void options_report_warning(int line_num, char *name, MmResult result, OP
         case kUnknownOption:
             sprintf(buf, "line %d: unknown option '%s'.", line_num, name);
             break;
-        case kInvalidBool:
-            sprintf(buf, "line %d: invalid boolean value for option '%s'.", line_num, name);
-            break;
         case kInvalidValue:
             sprintf(buf, "line %d: invalid value for option '%s'.", line_num, name);
-            break;
-        case kInvalidFloat:
-            sprintf(buf, "line %d: invalid float value for option '%s'.", line_num, name);
-            break;
-        case kInvalidInt:
-            sprintf(buf, "line %d: invalid integer value for option '%s'.", line_num, name);
             break;
         case kInvalidString:
             sprintf(buf, "line %d: invalid string value for option '%s'.", line_num, name);
@@ -453,56 +357,6 @@ MmResult options_save(const Options *options, const char *filename) {
     }
     fclose(f);
     return result;
-}
-
-void options_console_to_string(OptionsConsole console, char *buf) {
-    switch (console) {
-        case kBoth:   strcpy(buf, "Both"); break;
-        case kScreen: strcpy(buf, "Screen"); break;
-        case kSerial: strcpy(buf, "Serial"); break;
-        default:      strcpy(buf, INVALID_VALUE); break;
-    }
-}
-
-void options_editor_to_string(const char *editor, char *buf) {
-    // Return 'editor' value verbatim, any invalid values should have been
-    // caught before this point.
-    strcpy(buf, editor);
-}
-
-void options_explicit_to_string(char explicit, char *buf) {
-    strcpy(buf, explicit ? "On" : "Off");
-}
-
-void options_fn_key_to_string(const char *fn_key, char *buf) {
-    options_encode_string(fn_key, buf);
-}
-
-void options_list_case_to_string(OptionsListCase list_case, char *buf) {
-    switch (list_case) {
-        case kTitle: strcpy(buf, "Title"); break;
-        case kLower: strcpy(buf, "Lower"); break;
-        case kUpper: strcpy(buf, "Upper"); break;
-        default:     strcpy(buf, INVALID_VALUE); break;
-    }
-}
-
-void options_resolution_to_string(OptionsResolution resolution, char *buf) {
-    switch (resolution) {
-        case kCharacter: strcpy(buf, "Character"); break;
-        case kPixel:     strcpy(buf, "Pixel"); break;
-        default:         strcpy(buf, INVALID_VALUE); break;
-    }
-}
-
-void options_type_to_string(char type, char *buf) {
-    switch (type) {
-        case T_INT:    strcpy(buf, "Integer"); break;
-        case T_NBR:    strcpy(buf, "Float"); break;
-        case T_STR:    strcpy(buf, "String"); break;
-        case T_NOTYPE: strcpy(buf, "None"); break;
-        default:       strcpy(buf, INVALID_VALUE); break;
-    }
 }
 
 MmResult options_decode_string(const char *encoded, char *decoded) {

@@ -9,7 +9,7 @@
 #include "../common/program.h"
 #include "../common/utility.h"
 
-void option_list(char *p); // cmd_option.c
+void cmd_option_list(char *p); // cmd_option.c
 
 /* qsort C-string comparison function */
 static int cstring_cmp(const void *a, const void *b)  {
@@ -146,7 +146,7 @@ static void list_csubs(int all) {
 }
 
 static void list_options() {
-    option_list("");
+    cmd_option_list("");
 }
 
 void cmd_list(void) {

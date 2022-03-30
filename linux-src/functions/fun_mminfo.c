@@ -6,7 +6,6 @@
 #include <unistd.h>
 
 #include "../common/mmb4l.h"
-#include "../common/codepage.h"
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/memory.h"

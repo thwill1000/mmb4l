@@ -162,14 +162,4 @@ MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER iva
 /** @brief Sets the value for the given option from a C-string. */
 MmResult options_set_string_value(Options *options, OptionsId id, const char *svalue);
 
-MmResult options_set(Options *options, const char *name, const char *value);
-
-void options_console_to_string(OptionsConsole console, char *buf);
-void options_editor_to_string(const char *editor, char *buf);
-void options_explicit_to_string(char explicit_type, char *buf);
-void options_fn_key_to_string(const char *fn_key, char *buf);
-void options_list_case_to_string(OptionsListCase list_case, char *buf);
-void options_resolution_to_string(OptionsResolution resolution, char *buf);
-void options_type_to_string(char type, char *buf);
-
 #endif

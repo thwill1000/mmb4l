@@ -15,12 +15,10 @@ const char *mmresult_to_string(MmResult result) {
         case kStringTooLong: return "String too long";
         case kInvalidFormat: return "Invalid format";
         case kUnknownOption: return "Unknown option";
-        case kInvalidBool:   return "Invalid boolean value";
-        case kInvalidFloat:  return "Invalid float value";
-        case kInvalidInt:    return "Invalid int value";
         case kInvalidString: return "Invalid string value";
         case kInvalidValue:  return "Invalid value";
         case kUnknownSystemCommand: return "Unknown system command";
+        case kUnimplemented: return "Unimplemented function";
         default:             return "Unknown result code";
     }
 }

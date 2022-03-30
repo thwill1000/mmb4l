@@ -322,7 +322,7 @@ Sub test_option_editor()
   assert_string_equals("Xed", Mm.Info(Option Editor))
 
   Option Editor "my custom editor ${file} ${line}"
-  assert_string_equals(Chr$(34) + "my custom editor ${file} ${line}" + Chr$(34), Mm.Info(Option Editor))
+  assert_string_equals("my custom editor ${file} ${line}", Mm.Info(Option Editor))
 
   Option Editor original$
   assert_string_equals(original$, Mm.Info(Option Editor))
