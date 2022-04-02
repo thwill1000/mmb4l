@@ -1285,12 +1285,27 @@ TEST(OptionsTest, SetStringValue_ForSearchPath) {
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, ""));
     EXPECT_STREQ("", options.search_path);
 
-    // Path that exists.
+    // Path to a directory that exists.
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, "/usr/bin"));
     EXPECT_STREQ("/usr/bin", options.search_path);
 
+    // Path to a file that exists.
+    EXPECT_EQ(
+            kNotADirectory,
+            options_set_string_value(&options, kOptionSearchPath, "/usr/bin/vi"));
+
     // Path that does not exist.
-    EXPECT_EQ(kFileNotFound, options_set_string_value(&options, kOptionSearchPath, "/does/not/exist"));
+    EXPECT_EQ(
+            kFileNotFound,
+            options_set_string_value(&options, kOptionSearchPath, "/does/not/exist"));
+
+    // Path that is too long.
+    char svalue[STRINGSIZE + 1] = { 0 };
+    svalue[0] = '/';
+    memset(svalue + 1, 'a', STRINGSIZE - 1);
+    EXPECT_EQ(
+            kFilenameTooLong,
+            options_set_string_value(&options, kOptionSearchPath, svalue));
 }
 
 TEST(OptionsTest, SetStringValue_ForTab) {

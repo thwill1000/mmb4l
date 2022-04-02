@@ -10,9 +10,11 @@
 typedef int32_t MmResult;
 
 typedef enum {
-    kOk            = 0,
-    kFileNotFound  = ENOENT,
-    kError         = 256,
+    kOk              = 0,
+    kFileNotFound    = ENOENT,
+    kNotADirectory   = ENOTDIR,
+    kFilenameTooLong = ENAMETOOLONG,
+    kError           = 256,
     kInternalFault,
     kSyntax,
     kStringTooLong,

@@ -430,15 +430,26 @@ End Sub
 Sub test_option_search_path()
   Local original$ = Mm.Info$(Option Search Path)
 
-  On Error Skip
-  Option Search Path "/does/not/exist"
-  assert_raw_error("Directory not found")
-
-  ' Set the SEARCH PATH to an existing directory.
+  ' Set the SEARCH PATH to a directory that exists.
   Local path$ = Mm.Info$(Path)
   Option Search Path path$
   ' Note we the trailing '/' will have been trimmed from the Search Path.
   assert_string_equals(Left$(path$, Len(path$) - 1), Mm.Info$(Option Search Path))
+
+  ' Set the SEARCH PATH to a file that exists.
+  On Error Skip
+  Option Search Path Mm.Info$(Current)
+  assert_raw_error("Not a directory")
+
+  ' Set the SEARCH PATH to a path that does not exist.
+  On Error Skip
+  Option Search Path "/does/not/exist"
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "No such file or directory", "Directory not found"))
+
+  ' Set the SEARCH PATH to a path that is too long.
+  On Error Skip
+  Option Search Path String$(255, "a")
+  assert_raw_error("File name too long")
 
   ' Unset the SEARCH PATH.
   Option Search Path ""

@@ -789,20 +789,23 @@ static MmResult options_set_resolution(Options *options, const char *svalue) {
 }
 
 static MmResult options_set_search_path(Options *options, const char *svalue) {
+    MmResult result = kOk;
+    char canonical_path[STRINGSIZE];
+    errno = 0;
+
     if (svalue[0] == '\0') {
         strcpy(options->search_path, "");
-        return kOk;
+    } else if (!path_get_canonical(svalue, canonical_path, STRINGSIZE)) {
+        result = errno;
+    } else if (!path_exists(canonical_path)) {
+        result = kFileNotFound;
+    } else if (path_is_directory(canonical_path)) {
+        strcpy(options->search_path, canonical_path);
+    } else {
+        result = kNotADirectory;
     }
 
-    // TODO: generate kStringTooLong error when appropriate ?
-    char canonical_path[STRINGSIZE];
-    if (path_get_canonical(svalue, canonical_path, STRINGSIZE)
-            && path_is_directory(canonical_path)) {
-        strcpy(options->search_path, canonical_path);
-        return kOk;
-    } else {
-        return kFileNotFound;
-    }
+    return result;
 }
 
 static MmResult options_set_tab(Options *options, int ivalue) {

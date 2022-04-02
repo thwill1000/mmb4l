@@ -24,7 +24,6 @@ uint8_t error_to_exit_code(MmResult error);
 #define ERROR_ARGUMENT_NOT_INTEGER(s)  error("Argument " s " must be an integer")
 #define ERROR_ARGUMENT_NOT_INTEGER_ARRAY(s)  error("Argument " s " must be an integer array")
 #define ERROR_COULD_NOT(s)             error("Could not " s)
-#define ERROR_DIRECTORY_NOT_FOUND      error("Directory not found")
 #define ERROR_INTERNAL_FAULT           error("Internal fault (sorry)")
 #define ERROR_INVALID(s)               error("Invalid " s)
 #define ERROR_INVALID_ARGUMENT         ERROR_INVALID("argument")

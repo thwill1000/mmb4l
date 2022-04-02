@@ -103,7 +103,6 @@ static void cmd_option_set(char *p) {
             result = kInternalFault;
     }
 
-    if (result == kFileNotFound && def->id == kOptionSearchPath) ERROR_DIRECTORY_NOT_FOUND;
     if (FAILED(result)) error_system(result);
     if (def->saved) cmd_option_save();
 }
