@@ -17,12 +17,15 @@ FetchContent_MakeAvailable(googletest)
 
 add_definitions(-funsigned-char)
 
-SET(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
-SET(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
+if (MMB4L_COVERAGE)
+    set(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
+    set(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
+    set(GCOV_LINK_LIBRARY          gcov)
+endif()
 
-SET(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
-SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
-SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
+set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
 
 set(MMBASIC_CORE_SOURCE_FILES
     MMBasic/MMBasic.c
@@ -162,7 +165,11 @@ add_executable(test_keyboard
     linux-src/common/options.c
     linux-src/common/path.c)
 
-target_link_libraries(mmbasic m gcov)
+target_link_libraries(
+    mmbasic
+    m
+    ${GCOV_LINK_LIBRARY}
+)
 
 # GoogleTest
 
@@ -186,7 +193,7 @@ target_link_libraries(
   gtest_main
   gmock
   gmock_main
-  gcov
+  ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_cmdline)
@@ -231,7 +238,7 @@ target_link_libraries(
   gtest_main
   gmock
   gmock_main
-  gcov
+  ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_options)
@@ -252,7 +259,7 @@ target_link_libraries(
   gtest_main
   gmock
   gmock_main
-  gcov
+  ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_parse)
@@ -273,7 +280,7 @@ target_link_libraries(
   gtest_main
   gmock
   gmock_main
-  gcov
+  ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_path)
@@ -295,7 +302,7 @@ target_link_libraries(
   gtest_main
   gmock
   gmock_main
-  gcov
+  ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_program)
@@ -315,7 +322,7 @@ target_link_libraries(
   gtest_main
   gmock
   gmock_main
-  gcov
+  ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_rx_buf)
