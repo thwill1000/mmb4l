@@ -132,36 +132,33 @@ void options_init(Options *options) {
 }
 
 /**
- * Parses a single line expecting "name = value" format.
+ * @brief Parses a single line expecting "name = value" format.
  *
- * If the line is empty, or whitespace only then returns success
- * and an empty name.
+ * If the line is empty, or whitespace only then returns kOk and an empty name.
  *
  * @param[in]  line   line to parse.
  * @param[out] name   buffer to output the name in.
  * @param[out] value  buffer to output the value in.
- * @return TODO
  */
 static MmResult options_parse(const char *line, char *name, char *value) {
     // Check for empty or whitespace only line.
-    const char *p = line;
-    while (isspace(*p)) p++;
-    if (!*p || *p == '#' || *p == ';') {
+    const char *src = line;
+    while (isspace(*src)) src++;
+    if (!*src || *src == '#' || *src == ';') {
         *name = '\0';
         return 0;
     }
 
-    const char *pos = strchr(line, '=');
-    if (!pos) return kInvalidFormat;
+    const char *equals = strchr(line, '=');
+    if (!equals) return kInvalidFormat;
 
     // Extract name.
     {
         char *dst = name;
-        p = line;
-        while (isspace(*p)) p++; // Trim leading whitespace.
-        while (p < pos) {
-            *dst++ = (*p == '-' ? ' ' : *p);
-            p++;
+        src = line;
+        while (isspace(*src)) src++; // Ignore leading whitespace.
+        for (; src < equals; ++src) {
+            *dst++ = (*src == '-' ? ' ' : *src);
         }
         *dst = '\0';
         while (isspace(*--dst)) *dst = '\0'; // Trim trailing whitespace.
@@ -170,11 +167,11 @@ static MmResult options_parse(const char *line, char *name, char *value) {
     // Extract value.
     {
         char *dst = value;
-        p = pos + 1;
-        while (isspace(*p)) p++; // Trim leading whitespace.
-        while (*p && *p != '#' && *p != ';') *dst++ = *p++;
+        src = equals + 1;
+        while (isspace(*src)) src++; // Ignore leading whitespace.
+        while (*src && *src != '#' && *src != ';') *dst++ = *src++;
         *dst = '\0';
-        while(isspace(*--dst)) *dst = '\0'; // Trim trailing whitespace.
+        while (isspace(*--dst)) *dst = '\0'; // Trim trailing whitespace.
         cstring_unquote(value);
         char unencoded[STRINGSIZE];
         MmResult result = options_decode_string(value, unencoded);
@@ -267,12 +264,12 @@ MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB
     FILE *f = fopen(path, "r");
     if (!f) return errno;
 
-    char line[256];
-    char name[128];
-    char value[128];
+    char line[STRINGSIZE * 2];
+    char name[STRINGSIZE];
+    char value[STRINGSIZE];
     MmResult result = kOk;
     int line_num = 0;
-    while (!feof(f) && fgets(line, 256, f)) {
+    while (!feof(f) && fgets(line, STRINGSIZE * 2, f)) {
         line_num++;
         result = options_parse(line, name, value);
         if (SUCCEEDED(result)) {
@@ -285,7 +282,9 @@ MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB
             if (warning_cb) options_report_warning(line_num, name, result, warning_cb);
         }
     }
+
     fclose(f);
+
     return kOk;
 }
 
@@ -355,7 +354,9 @@ MmResult options_save(const Options *options, const char *filename) {
         if (FAILED(result)) break;
         fprintf(f, "%s\n", tmp);
     }
+
     fclose(f);
+
     return result;
 }
 
