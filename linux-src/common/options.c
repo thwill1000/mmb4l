@@ -141,6 +141,10 @@ void options_init(Options *options) {
  * @param[out] value  buffer to output the value in.
  */
 static MmResult options_parse(const char *line, char *name, char *value) {
+    // Clear name and value to avoid erroneous result being reported on error.
+    name[0] = '\0';
+    value[0] = '\0';
+
     // Check for empty or whitespace only line.
     const char *src = line;
     while (isspace(*src)) src++;
@@ -222,25 +226,12 @@ static MmResult options_parse_float(const char *value, MMFLOAT *out) {
 
 static void options_report_warning(int line_num, char *name, MmResult result, OPTIONS_WARNING_CB warning_cb) {
     char buf[256];
-    switch (result) {
-        case kFileNotFound:
-            sprintf(buf, "line %d: file or directory not found for option '%s'.", line_num, name);
-            break;
-        case kInvalidFormat:
-            sprintf(buf, "line %d: invalid option format.", line_num);
-            break;
-        case kUnknownOption:
-            sprintf(buf, "line %d: unknown option '%s'.", line_num, name);
-            break;
-        case kInvalidValue:
-            sprintf(buf, "line %d: invalid value for option '%s'.", line_num, name);
-            break;
-        case kInvalidString:
-            sprintf(buf, "line %d: invalid string value for option '%s'.", line_num, name);
-            break;
-        default:
-            sprintf(buf, "line %d: unknown error for option '%s'.", line_num, name);
-            break;
+    if (name[0] == '\0') {
+        sprintf(buf, "line %d: %s for option.", line_num, mmresult_to_string(result));
+    } else if (result == kUnknownOption) {
+        sprintf(buf, "line %d: %s '%s'.", line_num, mmresult_to_string(result), name);
+    } else {
+        sprintf(buf, "line %d: %s for option '%s'.", line_num, mmresult_to_string(result), name);
     }
     warning_cb(buf);
 }

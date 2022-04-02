@@ -257,12 +257,12 @@ TEST(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
 
     EXPECT_EQ(0, options_load(&options, filename, &write_line_to_buf));
     EXPECT_STREQ(
-            "line 1: unknown option 'foo'.\n"
-            "line 2: invalid value for option 'zboolean'.\n"
-            "line 4: invalid value for option 'tab'.\n"
-            "line 5: invalid value for option 'zfloat'.\n"
-            "line 7: file or directory not found for option 'search path'.\n"
-            "line 8: invalid option format.\n",
+            "line 1: Unknown option 'foo'.\n"
+            "line 2: Invalid value for option 'zboolean'.\n"
+            "line 4: Invalid value for option 'tab'.\n"
+            "line 5: Invalid value for option 'zfloat'.\n"
+            "line 7: No such file or directory for option 'search path'.\n"
+            "line 8: Invalid format for option.\n",
             options_test_buf);
 }
 
