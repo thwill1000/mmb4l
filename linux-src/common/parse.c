@@ -158,7 +158,7 @@ static MmResult parse_transform_bang_cd_command(char *input, char *src) {
     // Allocate extra space to avoid string overrun.
     char tmp[STRINGSIZE + 32] = "CHDIR ";
     char *dst = tmp + 6;
-    while (isspace(*src)) *src++;
+    while (isspace(*src)) src++;
 
     if (!*src) {
         // Special handling for 'cd' on its own.
@@ -197,7 +197,7 @@ static MmResult parse_transform_bang_command(char *input) {
     src++;
 
     // Trim any whitespace after the bang.
-    while (isspace(*src)) *src++;
+    while (isspace(*src)) src++;
 
     // Trim any trailing whitespace from the input.
     char *end = input + strlen(input) - 1;

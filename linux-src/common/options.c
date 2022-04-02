@@ -595,11 +595,16 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
             return result;
         }
 
-        case kOptionTypeFloat:
+        case kOptionTypeFloat: {
             MMFLOAT fvalue;
             result = options_get_float_value(options, id, &fvalue);
             if (SUCCEEDED(result)) sprintf(svalue, "%g", fvalue);
             return result;
+        }
+
+        default:
+            // Include default clause to keep clang happy.
+            break;
     }
 
     switch (id) {
