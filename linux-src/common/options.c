@@ -122,7 +122,7 @@ void options_init(Options *options) {
     options->prog_flash_size = PROG_FLASH_SIZE;
     options->width = 0;
 
-    for (OptionsDefinition *def = options_definitions; def->name; def++) {
+    for (const OptionsDefinition *def = options_definitions; def->name; def++) {
         MmResult result = options_set_string_value(options, def->id, def->default_value);
         if (FAILED(result)) {
             fprintf(stderr, "%s\n", mmresult_to_string(result));
@@ -144,20 +144,20 @@ void options_init(Options *options) {
  */
 static MmResult options_parse(const char *line, char *name, char *value) {
     // Check for empty or whitespace only line.
-    char *p = (char *) line;
+    const char *p = line;
     while (isspace(*p)) p++;
     if (!*p || *p == '#' || *p == ';') {
         *name = '\0';
         return 0;
     }
 
-    char *pos = strchr(line, '=');
+    const char *pos = strchr(line, '=');
     if (!pos) return kInvalidFormat;
 
     // Extract name.
     {
         char *dst = name;
-        p = (char *) line;
+        p = line;
         while (isspace(*p)) p++; // Trim leading whitespace.
         while (p < pos) {
             *dst++ = (*p == '-' ? ' ' : *p);
@@ -458,10 +458,10 @@ MmResult options_get_display_value(const Options *options, OptionsId id, char *s
     if (FAILED(result)) return result;
 
     // 'end' points at the last non-space character.
-    char *end = tmp + strlen(tmp) - 1;
+    const char *end = tmp + strlen(tmp) - 1;
     while (end > tmp && *end == ' ') end--;
 
-    char *src = tmp;
+    const char *src = tmp;
     char *dst = svalue;
     char append[8];
     while (*src) {
