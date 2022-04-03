@@ -18,12 +18,20 @@ static void cmd_option_save() {
 }
 
 void cmd_option_list(char *p) {
+    bool all = false;
+    char *p2 = p;
+    if ((p2 = checkstring(p2, "ALL")))  {
+        all = true;
+        p = p2;
+    }
     if (!parse_is_end(p)) ERROR_SYNTAX;
 
     MmResult result;
     char buf[STRINGSIZE];
+    size_t count = 0;
 
     for (OptionsDefinition *def = options_definitions; def->name; def++) {
+        if (!all && options_has_default_value(&mmb_options, def->id)) continue;
         result = options_get_display_value(&mmb_options, def->id, buf);
         if (FAILED(result)) error_system(result);
         MMPrintString("Option ");
@@ -31,7 +39,10 @@ void cmd_option_list(char *p) {
         MMPrintString(" ");
         MMPrintString(buf);
         MMPrintString("\r\n");
+        count++;
     }
+
+    if (count == 0) MMPrintString("All options at default values; try OPTION LIST ALL\r\n");
 
     MMPrintString("\r\n");
 }

@@ -146,6 +146,9 @@ MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEG
 /** @brief Gets the C-string value for the given option. */
 MmResult options_get_string_value(const Options *options, OptionsId id, char *svalue);
 
+/** @brief Does the given option have its default value? */
+bool options_has_default_value(const Options *options, OptionsId id);
+
 /** @brief Loads persistent options from a file. */
 MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb);
 

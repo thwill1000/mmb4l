@@ -57,6 +57,45 @@ TEST(OptionsTest, Init) {
     expect_options_have_defaults(&options);
 }
 
+static void given_non_default_options(Options *options) {
+    strcpy(options->editor, "Vi");
+    options->list_case = kLower;
+    strcpy(options->search_path, "/foo/bar");
+    options->tab = 8;
+    options->zboolean = false;
+    options->zfloat = 3.142;
+    options->zinteger = 42;
+    strcpy(options->zstring, "snafu");
+}
+
+TEST(OptionsTest, HasDefaultValue) {
+    Options options;
+    options_init(&options);
+
+    for (const OptionsDefinition *def = options_definitions; def->name; ++def) {
+        EXPECT_EQ(true, options_has_default_value(&options, def->id));
+    }
+
+    given_non_default_options(&options);
+    for (const OptionsDefinition *def = options_definitions; def->name; ++def) {
+        switch (def->id) {
+            case kOptionListCase:
+            case kOptionEditor:
+            case kOptionSearchPath:
+            case kOptionTab:
+            case kOptionZBoolean:
+            case kOptionZFloat:
+            case kOptionZInteger:
+            case kOptionZString:
+                EXPECT_EQ(false, options_has_default_value(&options, def->id));
+                break;
+            default:
+                EXPECT_EQ(true, options_has_default_value(&options, def->id));
+                break;
+        }
+    }
+}
+
 static void expect_saved_content(const char *filename) {
     FILE *f = fopen(filename, "r");
     char line[256];
@@ -88,14 +127,7 @@ static void expect_saved_content(const char *filename) {
 TEST(OptionsTest, Save) {
     Options options;
     options_init(&options);
-    strcpy(options.editor, "Vi");
-    options.list_case = kLower;
-    strcpy(options.search_path, "/foo/bar");
-    options.tab = 8;
-    options.zboolean = false;
-    options.zfloat = 3.142;
-    options.zinteger = 42;
-    strcpy(options.zstring, "snafu");
+    given_non_default_options(&options);
 
     const char *filename = "/tmp/options_test_save";
     EXPECT_EQ(options_save(&options, filename), 0);
@@ -105,14 +137,7 @@ TEST(OptionsTest, Save) {
 TEST(OptionsTest, Save_GivenDirectoryDoesNotExist) {
     Options options;
     options_init(&options);
-    strcpy(options.editor, "Vi");
-    options.list_case = kLower;
-    strcpy(options.search_path, "/foo/bar");
-    options.tab = 8;
-    options.zboolean = false;
-    options.zfloat = 3.142;
-    options.zinteger = 42;
-    strcpy(options.zstring, "snafu");
+    given_non_default_options(&options);
 
     const char *filename = "/tmp/options_test_save_dir/myfile.options";
     const char *directory = "/tmp/options_test_save_dir";

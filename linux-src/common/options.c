@@ -80,7 +80,7 @@ OptionsDefinition options_definitions[] = {
     { "CodePage",    kOptionCodePage,     kOptionTypeString,  false, "None",                    codepage_name_to_ordinal_map },
     { "Console",     kOptionConsole,      kOptionTypeString,  false, "Serial",                  options_console_map },
     { "Default",     kOptionDefaultType,  kOptionTypeString,  false, "Float",                   options_default_type_map },
-    { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Default",                 options_editor_map },
+    { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Nano",                    options_editor_map },
     { "Explicit",    kOptionExplicitType, kOptionTypeString,  false, "Off",                     NULL },
     { "F1",          kOptionF1,           kOptionTypeString,  true,  "FILES\r\n",               NULL },
     { "F2",          kOptionF2,           kOptionTypeString,  true,  "RUN\r\n",                 NULL },
@@ -98,7 +98,7 @@ OptionsDefinition options_definitions[] = {
     { "Search Path", kOptionSearchPath,   kOptionTypeString,  true,  "",                        NULL },
     { "Tab",         kOptionTab,          kOptionTypeInteger, true,  "4",                       NULL },
 #if defined(OPTION_TESTS)
-    { "ZBoolean",    kOptionZBoolean,     kOptionTypeBoolean, true,  "true",                    NULL },
+    { "ZBoolean",    kOptionZBoolean,     kOptionTypeBoolean, true,  "On",                      NULL },
     { "ZFloat",      kOptionZFloat,       kOptionTypeFloat,   true,  "2.71828",                 NULL },
     { "ZInteger",    kOptionZInteger,     kOptionTypeInteger, true,  "1945",                    NULL },
     { "ZString",     kOptionZString,      kOptionTypeString,  true,  "wombat",                  NULL },
@@ -316,6 +316,13 @@ static MmResult options_get_save_value(const Options *options, OptionsId id, cha
         result = SUCCEEDED(cstring_enquote(svalue, STRINGSIZE)) ? kOk : kStringTooLong;
     }
     return result;
+}
+
+bool options_has_default_value(const Options *options, OptionsId id) {
+    char buf[STRINGSIZE];
+    MmResult result = options_get_string_value(options, id, buf);
+    if (FAILED(result)) return false;
+    return strcmp(buf, options_definitions[id].default_value) == 0;
 }
 
 MmResult options_save(const Options *options, const char *filename) {

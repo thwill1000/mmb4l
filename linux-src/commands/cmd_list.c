@@ -145,8 +145,8 @@ static void list_csubs(int all) {
     program_list_csubs(all);
 }
 
-static void list_options() {
-    cmd_option_list("");
+static void list_options(char *p) {
+    cmd_option_list(p);
 }
 
 void cmd_list(void) {
@@ -186,8 +186,7 @@ void cmd_list(void) {
         if (!parse_is_end(p)) ERROR_SYNTAX;
         list_functions();
     } else if ((p = checkstring(cmdline, "OPTIONS"))) {
-        if (!parse_is_end(p)) ERROR_SYNTAX;
-        list_options();
+        list_options(p);
     } else {
         if ((p = checkstring(cmdline, "ALL"))) {
             if (parse_is_end(p)) {
