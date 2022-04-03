@@ -358,23 +358,17 @@ MmResult options_decode_string(const char *encoded, char *decoded) {
         if (dst - decoded >= STRINGSIZE - 1) return kStringTooLong;
         if (*src == '\\') {
             switch (*(src + 1)) {
-                case '\0':
-                    return kInvalidString;
                 case '\\':
                     *dst++ = '\\';
-                    src += 2;
                     break;
                 case '\"':
                     *dst++ = '\"';
-                    src += 2;
                     break;
                 case 'r':
                     *dst++ = '\r';
-                    src += 2;
                     break;
                 case 'n':
                     *dst++ = '\n';
-                    src += 2;
                     break;
                 case '0':
                 case '1':
@@ -388,12 +382,13 @@ MmResult options_decode_string(const char *encoded, char *decoded) {
                 case '9': {
                     if (!isdigit(*(src + 2)) || !isdigit(*(src + 3))) return kInvalidString;
                     *dst++ = 64 * (*(src + 1) - '0') + 8 * (*(src + 2) - '0') + (*(src + 3) - '0');
-                    src += 4;
+                    src += 2;
                     break;
                 }
                 default:
                     return kInvalidString;
             }
+            src += 2;
         } else {
             *dst++ = *src++;
         }
@@ -405,40 +400,36 @@ MmResult options_decode_string(const char *encoded, char *decoded) {
 MmResult options_encode_string(const char *unencoded, char *encoded) {
     const char *src = unencoded;
     char *dst = encoded;
+    char append[8];
     while (*src) {
         switch (*src) {
             case '\\':
-                if (dst - encoded >= STRINGSIZE - 2) return kStringTooLong;
-                sprintf(dst, "\\\\");
-                dst += 2;
+                strcpy(append, "\\\\");
                 break;
             case '"':
-                if (dst - encoded >= STRINGSIZE - 2) return kStringTooLong;
-                sprintf(dst, "\\\"");
-                dst += 2;
+                strcpy(append, "\\\"");
                 break;
             case '\r':
-                if (dst - encoded >= STRINGSIZE - 2) return kStringTooLong;
-                sprintf(dst, "\\r");
-                dst += 2;
+                strcpy(append, "\\r");
                 break;
             case '\n':
-                if (dst - encoded >= STRINGSIZE - 2) return kStringTooLong;
-                sprintf(dst, "\\n");
-                dst += 2;
+                strcpy(append, "\\n");
                 break;
             default:
                 if (*src < 32 || *src > 126) {
-                    if (dst - encoded >= STRINGSIZE - 4) return kStringTooLong;
-                    sprintf(dst, "\\%03o", *src);
-                    dst += 4;
+                    sprintf(append, "\\%03o", *src);
                 } else {
-                    if (dst - encoded >= STRINGSIZE - 1) return kStringTooLong;
-                    *dst++ = *src;
+                    sprintf(append, "%c", *src);
                 }
                 break;
         }
         src++;
+
+        // If the string will be too long then truncate it rather than reporting an error.
+        if (dst - encoded + strlen(append) >= STRINGSIZE) return kStringTooLong;
+
+        strcpy(dst, append);
+        dst += strlen(append);
     }
     *dst = '\0';
     return kOk;
