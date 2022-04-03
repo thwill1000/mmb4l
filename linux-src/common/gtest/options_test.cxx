@@ -810,10 +810,10 @@ TEST(OptionsTest, GetStringValue_ForEditor) {
     options_init(&options);
     char svalue[STRINGSIZE];
 
-    for (OptionsEditor *editor = options_editors; editor->id; ++editor) {
-        strcpy(options.editor, editor->value);
+    for (OptionsEditor *editor = options_editors; editor->name; ++editor) {
+        strcpy(options.editor, editor->name);
         EXPECT_EQ(kOk, options_get_string_value(&options, kOptionEditor, svalue));
-        EXPECT_STREQ(editor->value, svalue);
+        EXPECT_STREQ(editor->name, svalue);
     }
 
     strcpy(options.editor, "myeditor ${file}:${line}");
@@ -1158,9 +1158,9 @@ TEST(OptionsTest, SetStringValue_ForEditor) {
     options_init(&options);
 
     // Test standard editors.
-    for (OptionsEditor *editor = options_editors; editor->id; ++editor) {
-        EXPECT_EQ(kOk, options_set_string_value(&options, kOptionEditor, editor->id));
-        EXPECT_STREQ(editor->value, options.editor);
+    for (OptionsEditor *editor = options_editors; editor->name; ++editor) {
+        EXPECT_EQ(kOk, options_set_string_value(&options, kOptionEditor, editor->name));
+        EXPECT_STREQ(editor->name, options.editor);
     }
 
     // Test custom editor.

@@ -14,25 +14,18 @@
 
 #define INVALID_VALUE  "???"
 
-/**
- * Note that user specification of 'code' and 'default' are always changed to
- * and stored as 'VSCode' and 'Nano' respectively, hence their command field
- * should be unused.
- */
 OptionsEditor options_editors[] = {
-    { "atom",    "Atom",    "atom ${file}:${line}",             false },
-    { "code",    "VSCode",  "-- never used --",                 false },
-    { "default", "Nano",    "-- never used --",                 true  },
-    { "geany",   "Geany",   "geany --line=${line} ${file} &",   false },
-    { "gedit",   "Gedit",   "gedit ${file} +${line} &",         false },
-    { "leafpad", "Leafpad", "leafpad --jump=${line} ${file} &", false },
-    { "nano",    "Nano",    "nano +${line} ${file}",            true  },
-    { "sublime", "Sublime", "subl ${file}:${line}",             false },
-    { "vi",      "Vi",      "vi +${line} ${file}",              true  },
-    { "vim",     "Vim",     "vim +${line} ${file}",             true  },
-    { "vscode",  "VSCode",  "code -g ${file}:${line}",          false },
-    { "xed",     "Xed",     "xed +${line} ${file} &",           false },
-    { NULL, NULL, NULL }
+    { "Atom",    "atom ${file}:${line}",             false },
+    { "Geany",   "geany --line=${line} ${file} &",   false },
+    { "Gedit",   "gedit ${file} +${line} &",         false },
+    { "Leafpad", "leafpad --jump=${line} ${file} &", false },
+    { "Nano",    "nano +${line} ${file}",            true  },
+    { "Sublime", "subl ${file}:${line}",             false },
+    { "Vi",      "vi +${line} ${file}",              true  },
+    { "Vim",     "vim +${line} ${file}",             true  },
+    { "VSCode",  "code -g ${file}:${line}",          false },
+    { "Xed",     "xed +${line} ${file} &",           false },
+    { NULL, NULL, false }
 };
 
 static const NameOrdinalPair options_console_map[] = {
@@ -723,11 +716,11 @@ static MmResult options_set_editor(Options *options, const char *svalue) {
     } else if (strcasecmp(svalue, "default") == 0) {
         strcpy(options->editor, "Nano");
     } else {
-        // Convert to standard capitalisation for standard editor values.
+        // Convert to standard capitalisation for standard editor names.
         options->editor[0] = '\0';
-        for (const OptionsEditor *editor = options_editors; editor->id; ++editor) {
-            if (strcasecmp(svalue, editor->id) == 0) {
-                strcpy(options->editor, editor->value);
+        for (const OptionsEditor *editor = options_editors; editor->name; ++editor) {
+            if (strcasecmp(svalue, editor->name) == 0) {
+                strcpy(options->editor, editor->name);
             }
         }
         if (options->editor[0] == '\0') strcpy(options->editor, svalue);

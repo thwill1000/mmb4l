@@ -70,8 +70,7 @@ typedef struct {
 } OptionsDefinition;
 
 typedef struct {
-    char *id;      // Users specify these with OPTION EDITOR.
-    char *value;   // Internally we use this.
+    char *name;
     char *command; // Command to run for the given editor.
     bool blocking; // Does the editor command block.
 } OptionsEditor;

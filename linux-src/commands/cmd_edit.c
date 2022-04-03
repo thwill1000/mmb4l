@@ -23,10 +23,10 @@ static void get_mmbasic_nanorc(char *path) {
 static int get_editor_command(char *file_path, int line, char *command, bool *blocking) {
     *command = '\0';
     *blocking = false;
-    for (int i = 0; options_editors[i].id; ++i) {
-        if (strcasecmp(mmb_options.editor, options_editors[i].id) == 0) {
-            strcpy(command, options_editors[i].command);
-            *blocking = options_editors[i].blocking;
+    for (const OptionsEditor *editor = options_editors; editor->name; ++editor) {
+        if (strcasecmp(mmb_options.editor, editor->name) == 0) {
+            strcpy(command, editor->command);
+            *blocking = editor->blocking;
         }
     }
 
@@ -39,14 +39,10 @@ static int get_editor_command(char *file_path, int line, char *command, bool *bl
         if (*nanorc) sprintf(command, "nano --rcfile=%s +${line} ${file}", nanorc);
     }
 
-    if (!*command
-            && mmb_options.editor[0] == '\"'
-            && mmb_options.editor[strlen(mmb_options.editor) - 1] == '\"') {
+    if (!*command) {
         // Manually specified editor.
-        strncpy(command, mmb_options.editor + 1, strlen(mmb_options.editor) - 2);
+        strcpy(command, mmb_options.editor);
     }
-
-    if (!*command) return -1;
 
     char replacement[STRINGSIZE + 2];
     snprintf(replacement, STRINGSIZE + 2, "\"%s\"", file_path);
