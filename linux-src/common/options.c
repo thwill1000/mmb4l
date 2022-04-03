@@ -339,6 +339,7 @@ MmResult options_save(const Options *options, const char *filename) {
     char tmp[STRINGSIZE];
     for (OptionsDefinition *def = options_definitions; def->name; def++) {
         if (!def->saved) continue;
+        if (options_has_default_value(options, def->id)) continue;
         options_get_save_name(def, tmp);
         fprintf(f, "%s = ", tmp);
         result = options_get_save_value(options, def->id, tmp);

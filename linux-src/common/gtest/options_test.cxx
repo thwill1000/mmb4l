@@ -96,23 +96,28 @@ TEST(OptionsTest, HasDefaultValue) {
     }
 }
 
-static void expect_saved_content(const char *filename) {
+TEST(OptionsTest, Save_GivenAllOptionsAtDefaults) {
+    Options options;
+    options_init(&options);
+
+    const char *filename = "/tmp/options_test_save_give_all_options_at_defaults";
+    EXPECT_EQ(kOk, options_save(&options, filename));
+
+    // Expect an empty file.
+    FILE *f = fopen(filename, "r");
+    char line[256];
+    EXPECT_TRUE(f);
+    EXPECT_STREQ(NULL, fgets(line, 256, f));
+    EXPECT_TRUE(feof(f));
+    fclose(f);
+}
+
+// Note only non-default values are saved.
+static void expect_saved_content_for_non_default_options(const char *filename) {
     FILE *f = fopen(filename, "r");
     char line[256];
     EXPECT_STREQ(fgets(line, 256, f), "case = \"Lower\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "editor = \"Vi\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f1 = \"FILES\\r\\n\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f2 = \"RUN\\r\\n\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f3 = \"LIST\\r\\n\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f4 = \"EDIT\\r\\n\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f5 = \"AUTOSAVE \\\"\\\"\\202\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f6 = \"XMODEM RECEIVE \\\"\\\"\\202\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f7 = \"XMODEM SEND \\\"\\\"\\202\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f8 = \"EDIT \\\"\\\"\\202\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f9 = \"LIST \\\"\\\"\\202\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f10 = \"RUN \\\"\\\"\\202\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f11 = \"\"\n");
-    EXPECT_STREQ(fgets(line, 256, f), "f12 = \"\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "search-path = \"/foo/bar\"\n");
     EXPECT_STREQ(fgets(line, 256, f), "tab = 8\n");
     EXPECT_STREQ(fgets(line, 256, f), "zboolean = false\n");
@@ -124,17 +129,17 @@ static void expect_saved_content(const char *filename) {
     fclose(f);
 }
 
-TEST(OptionsTest, Save) {
+TEST(OptionsTest, Save_GivenNonDefaultOptions) {
     Options options;
     options_init(&options);
     given_non_default_options(&options);
 
     const char *filename = "/tmp/options_test_save";
     EXPECT_EQ(options_save(&options, filename), 0);
-    expect_saved_content(filename);
+    expect_saved_content_for_non_default_options(filename);
 }
 
-TEST(OptionsTest, Save_GivenDirectoryDoesNotExist) {
+TEST(OptionsTest, Save_GivenNonDefaultOptions_GivenDirectoryDoesNotExist) {
     Options options;
     options_init(&options);
     given_non_default_options(&options);
@@ -145,7 +150,7 @@ TEST(OptionsTest, Save_GivenDirectoryDoesNotExist) {
     remove(directory);
 
     EXPECT_EQ(0, options_save(&options, filename));
-    expect_saved_content(filename);
+    expect_saved_content_for_non_default_options(filename);
 
     if (FAILED(remove(filename))) {
         perror("Save_GivenDirectoryDoesNotExist");
