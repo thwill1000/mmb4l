@@ -387,6 +387,23 @@ Sub test_option_codepage()
 
   Option CodePage "None"
   assert_string_equals("None", Mm.Info(Option CodePage))
+
+  ' Should also work without quotes
+  Option CodePage CMM2
+  assert_string_equals("CMM2", Mm.Info(Option CodePage))
+
+  Option CodePage CP437
+  assert_string_equals("CP437", Mm.Info(Option CodePage))
+
+  Option CodePage CP1252
+  assert_string_equals("CP1252", Mm.Info(Option CodePage))
+
+  Option CodePage MMB4L
+  assert_string_equals("MMB4L", Mm.Info(Option CodePage))
+
+  Option CodePage None
+  assert_string_equals("None", Mm.Info(Option CodePage))
+
 End Sub
 
 Sub test_option_fn_key()

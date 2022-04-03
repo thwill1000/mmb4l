@@ -10,7 +10,6 @@
 #include <sys/ioctl.h>
 
 #include "mmb4l.h"
-#include "codepage.h"
 #include "console.h"
 #include "error.h"
 #include "interrupt.h"
@@ -223,7 +222,7 @@ int console_getc(void) {
 
 char console_putc(char c) {
     if (mmb_options.codepage && c > 127) {
-        char *ptr = mmb_options.codepage + 4 * (c - 128);
+        const char *ptr = mmb_options.codepage + 4 * (c - 128);
         putc(*ptr++, stdout);           // 1st byte.
         if (ptr) putc(*ptr++, stdout);  // Optional 2nd byte.
         if (ptr) putc(*ptr++, stdout);  // Optional 3rd byte.

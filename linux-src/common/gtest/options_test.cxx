@@ -749,14 +749,10 @@ TEST(OptionsTest, GetStringValue_ForCodePage) {
     options_init(&options);
     char svalue[STRINGSIZE];
 
-    for (char **codepage_name = (char **) CODEPAGE_NAMES; *codepage_name != NULL; ++codepage_name) {
-        codepage_set(&options, *codepage_name);
+    for (const NameOrdinalPair *entry = codepage_data_to_ordinal_map; entry->name; ++entry) {
+        options.codepage = entry->name;
         EXPECT_EQ(kOk, options_get_string_value(&options, kOptionCodePage, svalue));
-        if (strcasecmp(*codepage_name, "NONE") == 0) {
-            EXPECT_STREQ("None", svalue);
-        } else {
-            EXPECT_STREQ(*codepage_name, svalue);
-        }
+        EXPECT_STREQ(codepage_name_to_ordinal_map[entry->ordinal].name, svalue);
     }
 
     char tmp[] = "foo";
@@ -1094,18 +1090,15 @@ TEST(OptionsTest, SetStringValue_ForBreakKey) {
 TEST(OptionsTest, SetStringValue_ForCodePage) {
     Options options;
     options_init(&options);
-    char svalue[STRINGSIZE];
 
-    for (char **codepage_name = (char **) CODEPAGE_NAMES; *codepage_name; ++codepage_name) {
-        EXPECT_EQ(kOk, options_set_string_value(&options, kOptionCodePage, *codepage_name));
-        EXPECT_EQ(0, codepage_to_string(options.codepage, svalue));
-        EXPECT_STREQ(*codepage_name, svalue);
+    for (const NameOrdinalPair *entry = codepage_name_to_ordinal_map; entry->name; ++entry) {
+        EXPECT_EQ(kOk, options_set_string_value(&options, kOptionCodePage, entry->name));
+        EXPECT_EQ(codepage_data_to_ordinal_map[entry->ordinal].name, options.codepage);
     }
 
     // Test case-insensitivity.
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionCodePage, "mMb4L"));
-    EXPECT_EQ(0, codepage_to_string(options.codepage, svalue));
-    EXPECT_STREQ("MMB4L", svalue);
+    EXPECT_EQ(codepage_data_to_ordinal_map[kCodepageMMB4L].name, options.codepage);
 
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionCodePage, "wombat"));
 }

@@ -85,7 +85,7 @@ typedef struct {
     int autorun;
     int base;
     char break_key;
-    char *codepage; // Pointer to one of the arrays/maps declared in 'codepage.c'
+    const char *codepage; // Pointer to one of the arrays/maps declared in 'codepage.h'
     OptionsConsole console;
     char default_type;
     char editor[STRINGSIZE];  // TODO: should probably be shorter

@@ -77,7 +77,7 @@ OptionsDefinition options_definitions[] = {
     { "Base",        kOptionBase,         kOptionTypeInteger, false, "0",                       NULL },
     { "Break",       kOptionBreakKey,     kOptionTypeInteger, false, "3" /* Ctrl-C */,          NULL },
     { "Case",        kOptionListCase,     kOptionTypeString,  true,  "Title",                   options_list_case_map },
-    { "CodePage",    kOptionCodePage,     kOptionTypeString,  false, "None",                    NULL },
+    { "CodePage",    kOptionCodePage,     kOptionTypeString,  false, "None",                    codepage_name_to_ordinal_map },
     { "Console",     kOptionConsole,      kOptionTypeString,  false, "Serial",                  options_console_map },
     { "Default",     kOptionDefaultType,  kOptionTypeString,  false, "Float",                   options_default_type_map },
     { "Editor",      kOptionEditor,       kOptionTypeString,  true,  "Default",                 options_editor_map },
@@ -549,6 +549,19 @@ static void options_ordinal_to_name(const NameOrdinalPair *map, int ordinal, cha
     strcpy(name, INVALID_VALUE);
 }
 
+static MmResult options_get_codepage(const Options *options, char *page_name) {
+    for (const NameOrdinalPair *entry = codepage_data_to_ordinal_map;
+            entry->ordinal != -1;
+            ++entry) {
+        if (entry->name == options->codepage) {
+            strcpy(page_name, codepage_name_to_ordinal_map[entry->ordinal].name);
+            return kOk;
+        }
+    }
+
+    return kInternalFault;
+}
+
 MmResult options_get_string_value(const Options *options, OptionsId id, char *svalue) {
     MmResult result = kOk;
 
@@ -586,7 +599,7 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
     switch (id) {
 
         case kOptionCodePage:
-            if (FAILED(codepage_to_string(options->codepage, svalue))) {
+            if (FAILED(options_get_codepage(options, svalue))) {
                 strcpy(svalue, INVALID_VALUE);
             }
             break;
@@ -683,8 +696,14 @@ static MmResult options_set_break_key(Options *options, int ivalue) {
     }
 }
 
-static MmResult options_set_codepage(Options *options, const char *svalue) {
-    return SUCCEEDED(codepage_set(options, svalue)) ? kOk : kInvalidValue;
+static MmResult options_set_codepage(Options *options, const char *page_name) {
+    for (const NameOrdinalPair *entry = codepage_name_to_ordinal_map; entry->name; ++entry) {
+        if (strcasecmp(page_name, entry->name) == 0) {
+            options->codepage = codepage_data_to_ordinal_map[entry->ordinal].name;
+            return kOk;
+        }
+    }
+    return kInvalidValue;
 }
 
 static MmResult options_set_console(Options *options, const char *svalue) {
