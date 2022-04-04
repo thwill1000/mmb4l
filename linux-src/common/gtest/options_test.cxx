@@ -9,6 +9,25 @@ extern "C" {
 
 }
 
+#define OPTIONS_TEST_DIR  "/tmp/OptionsTest"
+
+class OptionsTest : public ::testing::Test {
+
+protected:
+
+    void SetUp() override {
+        struct stat st = { 0 };
+        if (stat(OPTIONS_TEST_DIR, &st) == -1) {
+            mkdir(OPTIONS_TEST_DIR, 0775);
+        }
+    }
+
+    void TearDown() override {
+        system("rm -rf " OPTIONS_TEST_DIR);
+    }
+
+};
+
 static char options_test_buf[1024];
 
 static void write_line_to_buf(const char *line) {
@@ -50,7 +69,7 @@ static void expect_options_have_defaults(Options *options) {
     EXPECT_STREQ("wombat", options->zstring);
 }
 
-TEST(OptionsTest, Init) {
+TEST_F(OptionsTest, Init) {
     Options options;
     options_init(&options);
 
@@ -68,7 +87,7 @@ static void given_non_default_options(Options *options) {
     strcpy(options->zstring, "snafu");
 }
 
-TEST(OptionsTest, HasDefaultValue) {
+TEST_F(OptionsTest, HasDefaultValue) {
     Options options;
     options_init(&options);
 
@@ -96,11 +115,11 @@ TEST(OptionsTest, HasDefaultValue) {
     }
 }
 
-TEST(OptionsTest, Save_GivenAllOptionsAtDefaults) {
+TEST_F(OptionsTest, Save_GivenAllOptionsAtDefaults) {
     Options options;
     options_init(&options);
 
-    const char *filename = "/tmp/options_test_save_give_all_options_at_defaults";
+    const char *filename = OPTIONS_TEST_DIR "/save_give_all_options_at_defaults";
     EXPECT_EQ(kOk, options_save(&options, filename));
 
     // Expect an empty file.
@@ -129,39 +148,61 @@ static void expect_saved_content_for_non_default_options(const char *filename) {
     fclose(f);
 }
 
-TEST(OptionsTest, Save_GivenNonDefaultOptions) {
+TEST_F(OptionsTest, Save_GivenNonDefaultOptions) {
     Options options;
     options_init(&options);
     given_non_default_options(&options);
 
-    const char *filename = "/tmp/options_test_save";
+    const char *filename = OPTIONS_TEST_DIR "/save_given_non_default_options";
     EXPECT_EQ(options_save(&options, filename), 0);
     expect_saved_content_for_non_default_options(filename);
 }
 
-TEST(OptionsTest, Save_GivenNonDefaultOptions_GivenDirectoryDoesNotExist) {
+TEST_F(OptionsTest, Save_GivenNonDefaultOptions_GivenDirectoryDoesNotExist) {
     Options options;
     options_init(&options);
     given_non_default_options(&options);
 
-    const char *filename = "/tmp/options_test_save_dir/myfile.options";
-    const char *directory = "/tmp/options_test_save_dir";
-    remove(filename);
-    remove(directory);
-
-    EXPECT_EQ(0, options_save(&options, filename));
-    expect_saved_content_for_non_default_options(filename);
-
-    if (FAILED(remove(filename))) {
-        perror("Save_GivenDirectoryDoesNotExist");
-    }
-    if (FAILED(remove(directory))) {
-        perror("Save_GivenDirectoryDoesNotExist");
-    }
+    const char *filename = OPTIONS_TEST_DIR "/save_given_dir/myfile.options";
+    EXPECT_EQ(kFileNotFound, options_save(&options, filename));
 }
 
-TEST(OptionsTest, Load) {
-    const char *filename = "/tmp/options_test_load";
+TEST_F(OptionsTest, Save_GivenPathIsDirectory) {
+    Options options;
+    options_init(&options);
+    given_non_default_options(&options);
+    system("mkdir " OPTIONS_TEST_DIR "/save_given_path_is_directory");
+
+    const char *filename = OPTIONS_TEST_DIR "/save_given_path_is_directory";
+    EXPECT_EQ(kIsADirectory, options_save(&options, filename));
+}
+
+TEST_F(OptionsTest, Save_GivenInvalidPath) {
+    Options options;
+    options_init(&options);
+    given_non_default_options(&options);
+
+    const char *filename = OPTIONS_TEST_DIR "/subdir/save_given_path_is_directory";
+    EXPECT_EQ(kFileNotFound, options_save(&options, filename));
+}
+
+#define SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE  OPTIONS_TEST_DIR "/save_given_path_is_existing_read_only_file"
+
+TEST_F(OptionsTest, Save_GivenPathIsExistingReadOnlyFile) {
+    Options options;
+    options_init(&options);
+    given_non_default_options(&options);
+    system("touch " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
+    system("chmod 444 " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
+
+    const char *filename = SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE;
+    EXPECT_EQ(kPermissionDenied, options_save(&options, filename));
+
+    system("chmod 644 " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
+}
+
+TEST_F(OptionsTest, Load) {
+    const char *filename = OPTIONS_TEST_DIR "/load";
     FILE *f = fopen(filename, "w");
     fprintf(f, "case = Upper\n");
     fprintf(f, "editor = Vi\n");
@@ -183,8 +224,8 @@ TEST(OptionsTest, Load) {
     EXPECT_STREQ(options.zstring, "foo bar");
 }
 
-TEST(OptionsTest, Load_GivenAdditionalWhitespace) {
-    const char *filename = "/tmp/options_test_load";
+TEST_F(OptionsTest, Load_GivenAdditionalWhitespace) {
+    const char *filename = OPTIONS_TEST_DIR "/load_given_additional_whitespace";
     FILE *f = fopen(filename, "w");
     fprintf(f, "tab = 8  \n");                           // Trailing whitespace
     fprintf(f, "  zboolean = true\n");                   // Leading whitespace
@@ -202,8 +243,8 @@ TEST(OptionsTest, Load_GivenAdditionalWhitespace) {
     EXPECT_STREQ(options.zstring, "foo bar");
 }
 
-TEST(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
-    const char *filename = "/tmp/options_test_load";
+TEST_F(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
+    const char *filename = OPTIONS_TEST_DIR "/load_given_empty_and_whitespace_only_lines";
     FILE *f = fopen(filename, "w");
     fprintf(f, "\n");
     fprintf(f, "zboolean = true\n");
@@ -225,8 +266,8 @@ TEST(OptionsTest, Load_GivenEmptyAndWhitespaceOnlyLines) {
     EXPECT_STREQ(options.zstring, "foo bar");
 }
 
-TEST(OptionsTest, Load_GivenHashComments) {
-    const char *filename = "/tmp/options_test_load";
+TEST_F(OptionsTest, Load_GivenHashComments) {
+    const char *filename = OPTIONS_TEST_DIR "/load_given_hash_comments";
     FILE *f = fopen(filename, "w");
     fprintf(f, "  # Hello World\n");
     fprintf(f, "zboolean = true # Trailing comment\n");
@@ -246,8 +287,8 @@ TEST(OptionsTest, Load_GivenHashComments) {
     EXPECT_STREQ(options.zstring, "foo bar");
 }
 
-TEST(OptionsTest, Load_GivenSemicolonComments) {
-    const char *filename = "/tmp/options_test_load";
+TEST_F(OptionsTest, Load_GivenSemicolonComments) {
+    const char *filename = OPTIONS_TEST_DIR "/load_given_semicolon_comments";
     FILE *f = fopen(filename, "w");
     fprintf(f, "  ; Hello World\n");
     fprintf(f, "zboolean = true ; Trailing comment\n");
@@ -267,8 +308,8 @@ TEST(OptionsTest, Load_GivenSemicolonComments) {
     EXPECT_STREQ(options.zstring, "foo bar");
 }
 
-TEST(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
-    const char *filename = "/tmp/options_test_load";
+TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
+    const char *filename = OPTIONS_TEST_DIR "/load_given_warnings_and_callback_provided";
     FILE *f = fopen(filename, "w");
     fprintf(f,
             "foo = true\n"
@@ -285,7 +326,7 @@ TEST(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(0, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_EQ(kOk, options_load(&options, filename, &write_line_to_buf));
     EXPECT_STREQ(
             "line 1: Unknown option 'foo'.\n"
             "line 2: Invalid value for option 'zboolean'.\n"
@@ -296,8 +337,8 @@ TEST(OptionsTest, Load_GivenWarnings_AndCallbackProvided) {
             options_test_buf);
 }
 
-TEST(OptionsTest, Load_GivenWarnings_AndCallbackNotProvided) {
-    const char *filename = "/tmp/options_test_load";
+TEST_F(OptionsTest, Load_GivenWarnings_AndCallbackNotProvided) {
+    const char *filename = OPTIONS_TEST_DIR "/load_given_warnings_and_callback_not_provided";
     FILE *f = fopen(filename, "w");
     fprintf(f,
             "foo = true\n"
@@ -314,12 +355,12 @@ TEST(OptionsTest, Load_GivenWarnings_AndCallbackNotProvided) {
     Options options;
     options_init(&options);
 
-    EXPECT_EQ(0, options_load(&options, filename, NULL));
+    EXPECT_EQ(kUnknownOption, options_load(&options, filename, NULL));
     EXPECT_STREQ("", options_test_buf);
 }
 
-TEST(OptionsTest, Load_GivenLoadSaveRoundtrip) {
-    const char *filename = "/tmp/options_test_load_save_roundtrip";
+TEST_F(OptionsTest, LoadSaveRoundtrip) {
+    const char *filename = OPTIONS_TEST_DIR "/load_save_roundtrip";
     options_test_buf[0] = '\0';
     Options options;
     options_init(&options);
@@ -331,7 +372,31 @@ TEST(OptionsTest, Load_GivenLoadSaveRoundtrip) {
     expect_options_have_defaults(&options);
 }
 
-TEST(OptionsTest, EncodeString) {
+TEST_F(OptionsTest, Load_GivenFileDoesNotExist) {
+    const char *filename = OPTIONS_TEST_DIR "/load_given_file_does_not_exist";
+    options_test_buf[0] = '\0';
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kFileNotFound, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_STREQ("", options_test_buf);
+
+    expect_options_have_defaults(&options);
+}
+
+TEST_F(OptionsTest, Load_GivenDirectory) {
+    const char *filename = "/usr/bin";
+    options_test_buf[0] = '\0';
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kIsADirectory, options_load(&options, filename, &write_line_to_buf));
+    EXPECT_STREQ("", options_test_buf);
+
+    expect_options_have_defaults(&options);
+}
+
+TEST_F(OptionsTest, EncodeString) {
     char encoded[STRINGSIZE];
 
     EXPECT_EQ(kOk, options_encode_string("Hello World", encoded));
@@ -377,7 +442,7 @@ TEST(OptionsTest, EncodeString) {
     }
 }
 
-TEST(OptionsTest, EncodeString_GivenEncodedStringTooLong) {
+TEST_F(OptionsTest, EncodeString_GivenEncodedStringTooLong) {
     // Unencoded string is longer that STRINGSIZE.
     {
         char encoded[STRINGSIZE] = { 0 };
@@ -421,7 +486,7 @@ TEST(OptionsTest, EncodeString_GivenEncodedStringTooLong) {
     }
 }
 
-TEST(OptionsTest, DecodeString) {
+TEST_F(OptionsTest, DecodeString) {
     char decoded[STRINGSIZE];
 
     EXPECT_EQ(kOk, options_decode_string("Hello World", decoded));
@@ -467,7 +532,7 @@ TEST(OptionsTest, DecodeString) {
     }
 }
 
-TEST(OptionsTest, DecodeString_GivenDecodedStringTooLong) {
+TEST_F(OptionsTest, DecodeString_GivenDecodedStringTooLong) {
     // Encoded string is longer than STRINGSIZE.
     {
         char encoded[STRINGSIZE + 1] = { 0 };
@@ -515,7 +580,7 @@ TEST(OptionsTest, DecodeString_GivenDecodedStringTooLong) {
     }
 }
 
-TEST(OptionsTest, GetDefinition) {
+TEST_F(OptionsTest, GetDefinition) {
     OptionsDefinition *lookup;
     for (const OptionsDefinition *def = options_definitions; def->name; ++def) {
         EXPECT_EQ(kOk, options_get_definition(def->name, &lookup));
@@ -528,7 +593,7 @@ TEST(OptionsTest, GetDefinition) {
     EXPECT_EQ(kUnknownOption, options_get_definition("unknown", &lookup));
 }
 
-TEST(OptionsTest, GetDisplayValue) {
+TEST_F(OptionsTest, GetDisplayValue) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE];
@@ -588,7 +653,7 @@ TEST(OptionsTest, GetDisplayValue) {
     EXPECT_STREQ("wombat", svalue);
 }
 
-TEST(OptionsTest, GetDisplayValue_GivenNonAscii) {
+TEST_F(OptionsTest, GetDisplayValue_GivenNonAscii) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE];
@@ -618,7 +683,7 @@ TEST(OptionsTest, GetDisplayValue_GivenNonAscii) {
     EXPECT_STREQ("<10> foo<fd>", svalue);
 }
 
-TEST(OptionsTest, GetDisplayValue_GivenTooLong) {
+TEST_F(OptionsTest, GetDisplayValue_GivenTooLong) {
     Options options;
     options_init(&options);
     char expected[STRINGSIZE];
@@ -655,7 +720,7 @@ TEST(OptionsTest, GetDisplayValue_GivenTooLong) {
     EXPECT_STREQ(expected, out);
 }
 
-TEST(OptionsTest, GetFloatValue_ForZFloat) {
+TEST_F(OptionsTest, GetFloatValue_ForZFloat) {
     Options options;
     options_init(&options);
     MMFLOAT fvalue = 0.0;
@@ -664,7 +729,7 @@ TEST(OptionsTest, GetFloatValue_ForZFloat) {
     EXPECT_EQ(2.71828, fvalue);
 }
 
-TEST(OptionsTest, GetFloatValue_ForNonFloat) {
+TEST_F(OptionsTest, GetFloatValue_ForNonFloat) {
     Options options;
     options_init(&options);
     MMFLOAT fvalue = 0.0;
@@ -675,7 +740,7 @@ TEST(OptionsTest, GetFloatValue_ForNonFloat) {
     EXPECT_EQ(0.0, fvalue);
 }
 
-TEST(OptionsTest, GetIntegerValue_ForBase) {
+TEST_F(OptionsTest, GetIntegerValue_ForBase) {
     Options options;
     options_init(&options);
     MMINTEGER ivalue = 0;
@@ -689,7 +754,7 @@ TEST(OptionsTest, GetIntegerValue_ForBase) {
     EXPECT_EQ(1, ivalue);
 }
 
-TEST(OptionsTest, GetIntegerValue_ForBreakKey) {
+TEST_F(OptionsTest, GetIntegerValue_ForBreakKey) {
     Options options;
     options_init(&options);
     MMINTEGER ivalue = 0;
@@ -703,7 +768,7 @@ TEST(OptionsTest, GetIntegerValue_ForBreakKey) {
     EXPECT_EQ(4, ivalue);
 }
 
-TEST(OptionsTest, GetIntegerValue_ForTab) {
+TEST_F(OptionsTest, GetIntegerValue_ForTab) {
     Options options;
     options_init(&options);
     MMINTEGER ivalue = 0;
@@ -717,7 +782,7 @@ TEST(OptionsTest, GetIntegerValue_ForTab) {
     EXPECT_EQ(8, ivalue);
 }
 
-TEST(OptionsTest, GetIntegerValue_ForZBoolean) {
+TEST_F(OptionsTest, GetIntegerValue_ForZBoolean) {
     Options options;
     options_init(&options);
     MMINTEGER ivalue = 0;
@@ -726,7 +791,7 @@ TEST(OptionsTest, GetIntegerValue_ForZBoolean) {
     EXPECT_EQ(true, (bool) ivalue);
 }
 
-TEST(OptionsTest, GetIntegerValue_ForZInteger) {
+TEST_F(OptionsTest, GetIntegerValue_ForZInteger) {
     Options options;
     options_init(&options);
     MMINTEGER ivalue = 0;
@@ -735,7 +800,7 @@ TEST(OptionsTest, GetIntegerValue_ForZInteger) {
     EXPECT_EQ(1945, ivalue);
 }
 
-TEST(OptionsTest, GetIntegerValue_ForNonInteger) {
+TEST_F(OptionsTest, GetIntegerValue_ForNonInteger) {
     Options options;
     options_init(&options);
     MMINTEGER ivalue = 0;
@@ -746,7 +811,7 @@ TEST(OptionsTest, GetIntegerValue_ForNonInteger) {
     EXPECT_EQ(0, ivalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForBase) {
+TEST_F(OptionsTest, GetStringValue_ForBase) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE] = { 0 };
@@ -760,7 +825,7 @@ TEST(OptionsTest, GetStringValue_ForBase) {
     EXPECT_STREQ("1", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForBreakKey) {
+TEST_F(OptionsTest, GetStringValue_ForBreakKey) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE] = { 0 };
@@ -774,7 +839,7 @@ TEST(OptionsTest, GetStringValue_ForBreakKey) {
     EXPECT_STREQ("4", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForCodePage) {
+TEST_F(OptionsTest, GetStringValue_ForCodePage) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE];
@@ -791,7 +856,7 @@ TEST(OptionsTest, GetStringValue_ForCodePage) {
     EXPECT_STREQ("???", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForConsole) {
+TEST_F(OptionsTest, GetStringValue_ForConsole) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE];
@@ -809,7 +874,7 @@ TEST(OptionsTest, GetStringValue_ForConsole) {
     EXPECT_STREQ("Serial", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForDefaultType) {
+TEST_F(OptionsTest, GetStringValue_ForDefaultType) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE];
@@ -831,7 +896,7 @@ TEST(OptionsTest, GetStringValue_ForDefaultType) {
     EXPECT_STREQ("Integer", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForEditor) {
+TEST_F(OptionsTest, GetStringValue_ForEditor) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE];
@@ -851,7 +916,7 @@ TEST(OptionsTest, GetStringValue_ForEditor) {
     EXPECT_STREQ("", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForExplicitType) {
+TEST_F(OptionsTest, GetStringValue_ForExplicitType) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE];
@@ -865,7 +930,7 @@ TEST(OptionsTest, GetStringValue_ForExplicitType) {
     EXPECT_STREQ("On", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForFunctionKeys) {
+TEST_F(OptionsTest, GetStringValue_ForFunctionKeys) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE] = { 0 };
@@ -907,7 +972,7 @@ TEST(OptionsTest, GetStringValue_ForFunctionKeys) {
     EXPECT_STREQ("", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForListCase) {
+TEST_F(OptionsTest, GetStringValue_ForListCase) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE];
@@ -925,7 +990,7 @@ TEST(OptionsTest, GetStringValue_ForListCase) {
     EXPECT_STREQ("Upper", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForResolution) {
+TEST_F(OptionsTest, GetStringValue_ForResolution) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE];
@@ -939,7 +1004,7 @@ TEST(OptionsTest, GetStringValue_ForResolution) {
     EXPECT_STREQ("Pixel", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForSearchPath) {
+TEST_F(OptionsTest, GetStringValue_ForSearchPath) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE];
@@ -953,7 +1018,7 @@ TEST(OptionsTest, GetStringValue_ForSearchPath) {
     EXPECT_STREQ("/home/thwill/foo", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForTab) {
+TEST_F(OptionsTest, GetStringValue_ForTab) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE] = { 0 };
@@ -967,7 +1032,7 @@ TEST(OptionsTest, GetStringValue_ForTab) {
     EXPECT_STREQ("8", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForZBoolean) {
+TEST_F(OptionsTest, GetStringValue_ForZBoolean) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE] = { 0 };
@@ -981,7 +1046,7 @@ TEST(OptionsTest, GetStringValue_ForZBoolean) {
     EXPECT_STREQ("Off", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForZFloat) {
+TEST_F(OptionsTest, GetStringValue_ForZFloat) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE] = { 0 };
@@ -990,7 +1055,7 @@ TEST(OptionsTest, GetStringValue_ForZFloat) {
     EXPECT_STREQ("2.71828", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForZInteger) {
+TEST_F(OptionsTest, GetStringValue_ForZInteger) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE] = { 0 };
@@ -999,7 +1064,7 @@ TEST(OptionsTest, GetStringValue_ForZInteger) {
     EXPECT_STREQ("1945", svalue);
 }
 
-TEST(OptionsTest, GetStringValue_ForZString) {
+TEST_F(OptionsTest, GetStringValue_ForZString) {
     Options options;
     options_init(&options);
     char svalue[STRINGSIZE] = { 0 };
@@ -1008,7 +1073,7 @@ TEST(OptionsTest, GetStringValue_ForZString) {
     EXPECT_STREQ("wombat", svalue);
 }
 
-TEST(OptionsTest, SetFloatValue_ForZFloat) {
+TEST_F(OptionsTest, SetFloatValue_ForZFloat) {
     Options options;
     options_init(&options);
 
@@ -1016,7 +1081,7 @@ TEST(OptionsTest, SetFloatValue_ForZFloat) {
     EXPECT_EQ(1.2345, options.zfloat);
 }
 
-TEST(OptionsTest, SetFloatValue_ForNonFloat) {
+TEST_F(OptionsTest, SetFloatValue_ForNonFloat) {
     Options options;
     options_init(&options);
 
@@ -1024,7 +1089,7 @@ TEST(OptionsTest, SetFloatValue_ForNonFloat) {
     EXPECT_EQ(kInternalFault, options_set_float_value(&options, kOptionZString, 1.2345));
 }
 
-TEST(OptionsTest, SetIntegerValue_ForBase) {
+TEST_F(OptionsTest, SetIntegerValue_ForBase) {
     Options options;
     options_init(&options);
 
@@ -1037,7 +1102,7 @@ TEST(OptionsTest, SetIntegerValue_ForBase) {
     EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionBase, 2));
 }
 
-TEST(OptionsTest, SetIntegerValue_ForBreakKey) {
+TEST_F(OptionsTest, SetIntegerValue_ForBreakKey) {
     Options options;
     options_init(&options);
 
@@ -1048,7 +1113,7 @@ TEST(OptionsTest, SetIntegerValue_ForBreakKey) {
     EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionBreakKey, 256));
 }
 
-TEST(OptionsTest, SetIntegerValue_ForTab) {
+TEST_F(OptionsTest, SetIntegerValue_ForTab) {
     Options options;
     options_init(&options);
 
@@ -1061,7 +1126,7 @@ TEST(OptionsTest, SetIntegerValue_ForTab) {
     EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionTab, 3));
 }
 
-TEST(OptionsTest, SetIntegerValue_ForZBoolean) {
+TEST_F(OptionsTest, SetIntegerValue_ForZBoolean) {
     Options options;
     options_init(&options);
 
@@ -1075,7 +1140,7 @@ TEST(OptionsTest, SetIntegerValue_ForZBoolean) {
 }
 
 
-TEST(OptionsTest, SetIntegerValue_ForZInteger) {
+TEST_F(OptionsTest, SetIntegerValue_ForZInteger) {
     Options options;
     options_init(&options);
 
@@ -1083,7 +1148,7 @@ TEST(OptionsTest, SetIntegerValue_ForZInteger) {
     EXPECT_EQ(43, options.zinteger);
 }
 
-TEST(OptionsTest, SetIntegerValue_ForNonInteger) {
+TEST_F(OptionsTest, SetIntegerValue_ForNonInteger) {
     Options options;
     options_init(&options);
 
@@ -1091,7 +1156,7 @@ TEST(OptionsTest, SetIntegerValue_ForNonInteger) {
     EXPECT_EQ(kInternalFault, options_set_integer_value(&options, kOptionZString, 42));
 }
 
-TEST(OptionsTest, SetStringValue_ForBase) {
+TEST_F(OptionsTest, SetStringValue_ForBase) {
     Options options;
     options_init(&options);
 
@@ -1105,7 +1170,7 @@ TEST(OptionsTest, SetStringValue_ForBase) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionBase, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForBreakKey) {
+TEST_F(OptionsTest, SetStringValue_ForBreakKey) {
     Options options;
     options_init(&options);
 
@@ -1117,7 +1182,7 @@ TEST(OptionsTest, SetStringValue_ForBreakKey) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionBreakKey, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForCodePage) {
+TEST_F(OptionsTest, SetStringValue_ForCodePage) {
     Options options;
     options_init(&options);
 
@@ -1133,7 +1198,7 @@ TEST(OptionsTest, SetStringValue_ForCodePage) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionCodePage, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForConsole) {
+TEST_F(OptionsTest, SetStringValue_ForConsole) {
     Options options;
     options_init(&options);
 
@@ -1153,7 +1218,7 @@ TEST(OptionsTest, SetStringValue_ForConsole) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionConsole, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForDefaultType) {
+TEST_F(OptionsTest, SetStringValue_ForDefaultType) {
     Options options;
     options_init(&options);
 
@@ -1176,7 +1241,7 @@ TEST(OptionsTest, SetStringValue_ForDefaultType) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionDefaultType, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForEditor) {
+TEST_F(OptionsTest, SetStringValue_ForEditor) {
     Options options;
     options_init(&options);
 
@@ -1208,7 +1273,7 @@ TEST(OptionsTest, SetStringValue_ForEditor) {
     EXPECT_EQ(kStringTooLong, options_set_string_value(&options, kOptionEditor, svalue));
 }
 
-TEST(OptionsTest, SetStringValue_ForExplicitType) {
+TEST_F(OptionsTest, SetStringValue_ForExplicitType) {
     Options options;
     options_init(&options);
 
@@ -1239,7 +1304,7 @@ TEST(OptionsTest, SetStringValue_ForExplicitType) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionExplicitType, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForFunctionKeys) {
+TEST_F(OptionsTest, SetStringValue_ForFunctionKeys) {
     Options options;
     options_init(&options);
 
@@ -1263,7 +1328,7 @@ TEST(OptionsTest, SetStringValue_ForFunctionKeys) {
     EXPECT_EQ(kStringTooLong, options_set_string_value(&options, kOptionF1, svalue));
 }
 
-TEST(OptionsTest, SetStringValue_ForListCase) {
+TEST_F(OptionsTest, SetStringValue_ForListCase) {
     Options options;
     options_init(&options);
 
@@ -1283,7 +1348,7 @@ TEST(OptionsTest, SetStringValue_ForListCase) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionListCase, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForResolution) {
+TEST_F(OptionsTest, SetStringValue_ForResolution) {
     Options options;
     options_init(&options);
 
@@ -1300,7 +1365,7 @@ TEST(OptionsTest, SetStringValue_ForResolution) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionResolution, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForSearchPath) {
+TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
     Options options;
     options_init(&options);
 
@@ -1331,7 +1396,7 @@ TEST(OptionsTest, SetStringValue_ForSearchPath) {
             options_set_string_value(&options, kOptionSearchPath, svalue));
 }
 
-TEST(OptionsTest, SetStringValue_ForTab) {
+TEST_F(OptionsTest, SetStringValue_ForTab) {
     Options options;
     options_init(&options);
 
@@ -1348,7 +1413,7 @@ TEST(OptionsTest, SetStringValue_ForTab) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionTab, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForZBoolean) {
+TEST_F(OptionsTest, SetStringValue_ForZBoolean) {
     Options options;
     options_init(&options);
 
@@ -1380,7 +1445,7 @@ TEST(OptionsTest, SetStringValue_ForZBoolean) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionZBoolean, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForZFloat) {
+TEST_F(OptionsTest, SetStringValue_ForZFloat) {
     Options options;
     options_init(&options);
 
@@ -1397,7 +1462,7 @@ TEST(OptionsTest, SetStringValue_ForZFloat) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionZFloat, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForZInteger) {
+TEST_F(OptionsTest, SetStringValue_ForZInteger) {
     Options options;
     options_init(&options);
 
@@ -1412,7 +1477,7 @@ TEST(OptionsTest, SetStringValue_ForZInteger) {
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionZInteger, "wombat"));
 }
 
-TEST(OptionsTest, SetStringValue_ForZString) {
+TEST_F(OptionsTest, SetStringValue_ForZString) {
     Options options;
     options_init(&options);
 

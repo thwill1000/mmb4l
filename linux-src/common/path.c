@@ -182,3 +182,36 @@ const char *path_get_extension(const char *path) {
     char *p = strrchr(path, '.');
     return p ? p : path + strlen(path);
 }
+
+static MmResult path_mkdir_internal(const char *path) {
+    if (path[0] == '\0') return kOk;
+
+    if (path_exists(path)) {
+        return path_is_directory(path) ? kOk : kNotADirectory;
+    }
+
+    errno = 0;
+    if (FAILED(mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) return errno;
+
+    return kOk;
+}
+
+MmResult path_mkdir(const char *path) {
+    char tmp_path[PATH_MAX];
+    if (!path_munge(path, tmp_path, PATH_MAX)) return errno;
+
+    // Make intermediate elements of the path.
+    char *end = strchr(tmp_path, '/');
+    MmResult result = kOk;
+    while (end) {
+        *end = '\0';
+        result = path_mkdir_internal(tmp_path);
+        if (FAILED(result)) return result;
+        *end = '/';
+        end = strchr(end + 1, '/');
+    }
+
+    // Make final element of the path.
+    result = path_mkdir_internal(tmp_path);
+    return result == kNotADirectory ? kFileExists : result;
+}

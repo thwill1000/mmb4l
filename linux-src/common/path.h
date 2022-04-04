@@ -3,6 +3,16 @@
 
 #include <stdbool.h>
 
+#include "mmresult.h"
+
+/**
+ * @brief Creates a directory including any intermediate directories.
+ *
+ * @param  path  path to the directory to be created.
+ * @return       kOk on success, including if it is a pre-existing directory.
+ */
+MmResult path_mkdir(const char *path);
+
 /** Does the path exist? */
 bool path_exists(const char *path);
 

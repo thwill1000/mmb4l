@@ -28,9 +28,7 @@ protected:
     }
 
     void TearDown() override {
-        if (FAILED(rmdir("bar"))) perror("rmdir(\"bar\") failed");
-        if (FAILED(rmdir(PATH_TEST_DIR "/bar"))) perror("rmdir(\"" PATH_TEST_DIR "/bar\") failed");
-        if (FAILED(rmdir(PATH_TEST_DIR))) perror("rmdir(\"" PATH_TEST_DIR "\") failed");
+        system("rm -rf " PATH_TEST_DIR);
     }
 
 };
@@ -213,4 +211,30 @@ TEST_F(PathTest, HasSuffix) {
     EXPECT_EQ(path_has_suffix("foo.bas", ".BAS", false), false);
     EXPECT_EQ(path_has_suffix("foo.bas", ".BAS", true), true);
     EXPECT_EQ(path_has_suffix("foo.bas", ".inc", true), false);
+}
+
+TEST_F(PathTest, MkDir) {
+    EXPECT_EQ(kOk, path_mkdir(PATH_TEST_DIR "/ab/cd/ef"));
+
+    EXPECT_TRUE(path_exists(PATH_TEST_DIR));
+    EXPECT_TRUE(path_exists(PATH_TEST_DIR "/ab"));
+    EXPECT_TRUE(path_exists(PATH_TEST_DIR "/ab/cd"));
+    EXPECT_TRUE(path_exists(PATH_TEST_DIR "/ab/cd/ef"));
+    EXPECT_TRUE(path_is_directory(PATH_TEST_DIR "/ab/cd/ef"));
+}
+
+TEST_F(PathTest, MkDir_GivenExistingDirectory) {
+    system("mkdir " PATH_TEST_DIR "/existing-dir");
+
+    EXPECT_EQ(kOk, path_mkdir(PATH_TEST_DIR "/existing-dir"));
+
+    EXPECT_TRUE(path_exists(PATH_TEST_DIR "/existing-dir"));
+    EXPECT_TRUE(path_is_directory(PATH_TEST_DIR "/existing-dir"));
+}
+
+TEST_F(PathTest, MkDir_GivenExistingFile) {
+    system("touch " PATH_TEST_DIR "/existing-file");
+
+    EXPECT_EQ(kFileExists, path_mkdir(PATH_TEST_DIR "/existing-file"));
+    EXPECT_EQ(kNotADirectory, path_mkdir(PATH_TEST_DIR "/existing-file/foo"));
 }

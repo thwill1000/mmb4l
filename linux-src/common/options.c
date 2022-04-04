@@ -243,6 +243,7 @@ MmResult options_get_definition(const char *name, OptionsDefinition **definition
 MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb) {
     char path[STRINGSIZE];
     if (!path_munge(filename, path, STRINGSIZE)) return errno;
+    if (path_is_directory(path)) return kIsADirectory;
 
     errno = 0;
     FILE *f = fopen(path, "r");
@@ -262,27 +263,16 @@ MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB
             result = options_get_definition(name, &def);
             if (SUCCEEDED(result)) result = options_set_string_value(options, def->id, value);
         }
-        if (!SUCCEEDED(result)) {
-            if (warning_cb) options_report_warning(line_num, name, result, warning_cb);
+        if (FAILED(result)) {
+            if (!warning_cb) break;
+            options_report_warning(line_num, name, result, warning_cb);
+            result = kOk;
         }
     }
 
     fclose(f);
 
-    return kOk;
-}
-
-/** Creates parent directory of 'filename' if it does not exist. */
-static MmResult options_create_parent_directory(const char *path) {
-    char dir[STRINGSIZE];
-    if (!path_get_parent(path, dir, STRINGSIZE)) return errno;
-
-    struct stat st = {0};
-    if (FAILED(stat(dir, &st))) {
-        if (FAILED(mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) return errno;
-    }
-
-    return kOk;
+    return result;
 }
 
 static void options_get_save_name(const OptionsDefinition *def, char *svalue) {
@@ -329,13 +319,11 @@ MmResult options_save(const Options *options, const char *filename) {
     char path[STRINGSIZE];
     if (!path_munge(filename, path, STRINGSIZE)) return errno;
 
-    MmResult result = options_create_parent_directory(path);
-    if (FAILED(result)) return result;
-
     errno = 0;
     FILE *f = fopen(path, "w");
     if (!f) return errno;
 
+    MmResult result = kOk;
     char tmp[STRINGSIZE];
     for (OptionsDefinition *def = options_definitions; def->name; def++) {
         if (!def->saved) continue;

@@ -8,15 +8,6 @@
 #include "../common/parse.h"
 #include "../common/utility.h"
 
-static void cmd_option_save() {
-    MmResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);
-    if (FAILED(result)) {
-        char buf[STRINGSIZE];
-        sprintf(buf, "Warning: failed to save options: %s", mmresult_to_string(result));
-        MMPrintString(buf);
-    }
-}
-
 void cmd_option_list(char *p) {
     bool all = false;
     char *p2 = p;
@@ -45,6 +36,24 @@ void cmd_option_list(char *p) {
     if (count == 0) MMPrintString("All options at default values; try OPTION LIST ALL\r\n");
 
     MMPrintString("\r\n");
+}
+
+void cmd_option_load(char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_SYNTAX;
+
+    const char *filename = getCstring(argv[0]);
+    MmResult result = options_load(&mmb_options, filename, NULL);
+    if FAILED(result) error_system(result);
+}
+
+void cmd_option_save(char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_SYNTAX;
+
+    const char *filename = getCstring(argv[0]);
+    MmResult result = options_save(&mmb_options, filename);
+    if FAILED(result) error_system(result);
 }
 
 static MmResult cmd_option_set_integer(char *p, const OptionsDefinition *def) {
@@ -115,13 +124,25 @@ static void cmd_option_set(char *p) {
     }
 
     if (FAILED(result)) error_system(result);
-    if (def->saved) cmd_option_save();
+
+    if (def->saved) {
+        result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+        if (FAILED(result)) {
+            MMPrintString("Warning: failed to save options: ");
+            MMPrintString((char *) mmresult_to_string(result));
+            MMPrintString("\r\n");
+        }
+    }
 }
 
 void cmd_option(void) {
     char *p;
     if ((p = checkstring(cmdline, "LIST"))) {
         cmd_option_list(p);
+    } else if ((p = checkstring(cmdline, "LOAD"))) {
+        cmd_option_load(p);
+    } else if ((p = checkstring(cmdline, "SAVE"))) {
+        cmd_option_save(p);
     } else {
         cmd_option_set(cmdline);
     }

@@ -40,6 +40,7 @@ PARTICULAR PURPOSE.
 #include "common/interrupt.h"
 #include "common/mmtime.h"
 #include "common/parse.h"
+#include "common/path.h"
 #include "common/program.h"
 #include "common/serial.h"
 #include "common/utility.h"
@@ -56,6 +57,8 @@ char g_break_key = BREAK_KEY;
 CmdLineArgs mmb_args = { 0 };
 uint8_t mmb_exit_code = EX_OK;
 
+static const char mmbasic_dir[] = "~/.mmbasic";
+
 void IntHandler(int signo);
 void dump_token_table(const struct s_tokentbl* tbl);
 void prompt_get_input(void); // common/prompt.c
@@ -71,6 +74,18 @@ static bool run_flag;
 void print_banner() {
     MMPrintString(MES_SIGNON);
     MMPrintString(COPYRIGHT);
+}
+
+static void init_mmbasic_config_dir() {
+    MmResult result = path_mkdir(mmbasic_dir);
+    if (FAILED(result)) {
+        fprintf(
+            stderr,
+            "\nFailed to create directory '%s': %s\n",
+            mmbasic_dir,
+            mmresult_to_string(result));
+        exit(EX_FAIL);
+    }
 }
 
 static void init_options_cb(const char *msg) {
@@ -227,6 +242,7 @@ int main(int argc, char *argv[]) {
         MMPrintString("\r\n");
     }
 
+    init_mmbasic_config_dir();
     init_options();
 
     OptionErrorSkip = 0;
