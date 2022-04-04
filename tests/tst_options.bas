@@ -15,8 +15,9 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../basic-src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
+Const CRLF$ = Chr$(13) + Chr$(10)
+Const HOME$ = sys.string_prop$("home")
 Const TMP$ = sys.string_prop$("tmpdir")
-Dim fn_backup$(12)
 
 If Mm.Device$ = "MMB4L" Then
 add_test("test_option_load")
@@ -26,6 +27,11 @@ add_test("test_option_load_given_invalid_format", "test_option_load_given_invali
 add_test("test_option_save")
 add_test("test_option_save_given_invalid_path", "test_option_save_given_invalid")
 add_test("test_option_save_given_directory", "test_option_save_given_directory")
+add_test("test_option_reset")
+add_test("test_option_reset_given_non_persistent", "test_option_reset_non_persistent")
+add_test("test_option_reset_given_unknown")
+add_test("test_option_reset_all")
+add_test("test_option_reset_syntax_errors")
 EndIf
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
@@ -33,33 +39,13 @@ If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 End
 
 Sub setup_test()
-  fn_backup$(1) = Mm.Info$(Option F1)
-  fn_backup$(2) = Mm.Info$(Option F2)
-  fn_backup$(3) = Mm.Info$(Option F3)
-  fn_backup$(4) = Mm.Info$(Option F4)
-  fn_backup$(5) = Mm.Info$(Option F5)
-  fn_backup$(6) = Mm.Info$(Option F6)
-  fn_backup$(7) = Mm.Info$(Option F7)
-  fn_backup$(8) = Mm.Info$(Option F8)
-  fn_backup$(9) = Mm.Info$(Option F9)
-  fn_backup$(10) = Mm.Info$(Option F10)
-  fn_backup$(11) = Mm.Info$(Option F11)
-  fn_backup$(12) = Mm.Info$(Option F12)
+  ' Only saves options that are not at their defaults.
+  Option Save TMP$ + "/mmbasic.options.bak"
 End Sub
 
 Sub teardown_test()
-  Option F1 fn_backup$(1)
-  Option F2 fn_backup$(2)
-  Option F3 fn_backup$(3)
-  Option F4 fn_backup$(4)
-  Option F5 fn_backup$(5)
-  Option F6 fn_backup$(6)
-  Option F7 fn_backup$(7)
-  Option F8 fn_backup$(8)
-  Option F9 fn_backup$(9)
-  Option F10 fn_backup$(10)
-  Option F11 fn_backup$(11)
-  Option F12 fn_backup$(12)
+  Option Reset All
+  Option Load TMP$ + "/mmbasic.options.bak"
 End Sub
 
 Sub test_option_load()
@@ -148,4 +134,130 @@ Sub test_option_save_given_directory()
   On Error Skip
   Option Save TMP$
   assert_raw_error("Is a directory")
+End Sub
+
+Sub test_option_reset()
+  Option Case "Upper"
+  Option Editor "Vi"
+  Option F4 "four"
+  Option Search Path "~"
+  Option Tab 8
+
+  assert_string_equals("Upper",        Mm.Info$(Option Case))
+  assert_string_equals("Vi",           Mm.Info$(Option Editor))
+  assert_string_equals("four",         Mm.Info$(Option F4))
+  assert_string_equals(HOME$,          Mm.Info$(Option Search Path))
+  assert_int_equals(8,                 Mm.Info(Option Tab))
+
+  Option Reset Case
+
+  assert_string_equals("Title",        Mm.Info$(Option Case))
+  assert_string_equals("Vi",           Mm.Info$(Option Editor))
+  assert_string_equals("four",         Mm.Info$(Option F4))
+  assert_string_equals(HOME$,          Mm.Info$(Option Search Path))
+  assert_int_equals(8,                 Mm.Info(Option Tab))
+
+  Option Reset Editor
+
+  assert_string_equals("Title",        Mm.Info$(Option Case))
+  assert_string_equals("Nano",         Mm.Info$(Option Editor))
+  assert_string_equals("four",         Mm.Info$(Option F4))
+  assert_string_equals(HOME$,          Mm.Info$(Option Search Path))
+  assert_int_equals(8,                 Mm.Info(Option Tab))
+
+  Option Reset F4
+
+  assert_string_equals("Title",        Mm.Info$(Option Case))
+  assert_string_equals("Nano",         Mm.Info$(Option Editor))
+  assert_string_equals("EDIT" + CRLF$, Mm.Info$(Option F4))
+  assert_string_equals(HOME$,          Mm.Info$(Option Search Path))
+  assert_int_equals(8,                 Mm.Info(Option Tab))
+
+  Option Reset Search Path
+
+  assert_string_equals("Title",        Mm.Info$(Option Case))
+  assert_string_equals("Nano",         Mm.Info$(Option Editor))
+  assert_string_equals("EDIT" + CRLF$, Mm.Info$(Option F4))
+  assert_string_equals("",             Mm.Info$(Option Search Path))
+  assert_int_equals(8,                 Mm.Info(Option Tab))
+
+  Option Reset Tab
+
+  assert_string_equals("Title",        Mm.Info$(Option Case))
+  assert_string_equals("Nano",         Mm.Info$(Option Editor))
+  assert_string_equals("EDIT" + CRLF$, Mm.Info$(Option F4))
+  assert_string_equals("",             Mm.Info$(Option Search Path))
+  assert_int_equals(4,                 Mm.Info(Option Tab))
+End Sub
+
+Sub test_option_reset_non_persistent()
+  On Error Skip
+  Option Reset Break
+  assert_raw_error("Invalid for non-persistent option")
+End Sub
+
+Sub test_option_reset_given_unknown()
+  On Error Skip
+  Option Reset Unknown
+  assert_raw_error("Unknown option")
+End Sub
+
+Sub test_option_reset_all()
+  Option Case "Upper"
+  Option Editor "Vi"
+  Option F1 "one"
+  Option F2 "two"
+  Option F3 "three"
+  Option F4 "four"
+  Option F5 "five"
+  Option F6 "six"
+  Option F7 "seven"
+  Option F8 "eight"
+  Option F9 "nine"
+  Option F10 "ten"
+  Option F11 "eleven"
+  Option F12 "twelve"
+  Option Search Path "~"
+  Option Tab 8
+
+  Option Reset All
+
+  Const quotes$ = " " + Chr$(34) + Chr$(34) + Chr$(130)
+  assert_string_equals("Title",                    Mm.Info$(Option Case))
+  assert_string_equals("Nano",                     Mm.Info$(Option Editor))
+  assert_string_equals("FILES" + CRLF$,            Mm.Info$(Option F1))
+  assert_string_equals("RUN" + CRLF$,              Mm.Info$(Option F2))
+  assert_string_equals("LIST" + CRLF$,             Mm.Info$(Option F3))
+  assert_string_equals("EDIT" + CRLF$,             Mm.Info$(Option F4))
+  assert_string_equals("AUTOSAVE" + quotes$,       Mm.Info$(Option F5))
+  assert_string_equals("XMODEM RECEIVE" + quotes$, Mm.Info$(Option F6))
+  assert_string_equals("XMODEM SEND" + quotes$,    Mm.Info$(Option F7))
+  assert_string_equals("EDIT" + quotes$,           Mm.Info$(Option F8))
+  assert_string_equals("LIST" + quotes$,           Mm.Info$(Option F9))
+  assert_string_equals("RUN" + quotes$,            Mm.Info$(Option F10))
+  assert_string_equals("",                         Mm.Info$(Option F11))
+  assert_string_equals("",                         Mm.Info$(Option F12))
+  assert_string_equals("",                         Mm.Info$(Option Search Path))
+  assert_int_equals(4,                             Mm.Info(Option Tab))
+
+  ' Non-persistent options should not have been reset.
+  assert_int_equals(BASE%,                         Mm.Info(Option Base))
+End Sub
+
+Sub test_option_reset_syntax_errors()
+  On Error Skip
+  Option Reset All Case
+  assert_raw_error("Syntax")
+
+  On Error Skip
+  Option Reset Case Editor
+  assert_raw_error("Syntax")
+
+  On Error Skip
+  Option Reset Search Path Editor
+  assert_raw_error("Syntax")
+
+  On Error Skip
+  Option Reset
+  assert_raw_error("Syntax")
 End Sub

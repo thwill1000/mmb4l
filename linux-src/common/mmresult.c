@@ -18,6 +18,7 @@ const char *mmresult_to_string(MmResult result) {
         case kInvalidString: return "Invalid string value";
         case kInvalidValue:  return "Invalid value";
         case kUnknownSystemCommand: return "Unknown system command";
+        case kNotPersistent: return "Invalid for non-persistent option";
         case kUnimplemented: return "Unimplemented function";
         default:             return "Unknown result code";
     }

@@ -47,6 +47,59 @@ void cmd_option_load(char *p) {
     if FAILED(result) error_system(result);
 }
 
+static MmResult cmd_option_reset_all(char *p) {
+    if (!parse_is_end(p)) return kSyntax;
+
+    MmResult result = kInternalFault;
+
+    for (const OptionsDefinition *def = options_definitions; def->name; def++) {
+        if (!def->saved) continue;
+        result = options_set_string_value(&mmb_options, def->id, def->default_value);
+        if (FAILED(result)) break;
+    }
+
+    if (SUCCEEDED(result)) result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+
+    return result;
+}
+
+static MmResult cmd_option_reset_one(char *p) {
+    if (parse_is_end(p)) return kSyntax;
+
+    MmResult result = kUnknownOption;
+    char *p2;
+
+    for (const OptionsDefinition *def = options_definitions; def->name; def++) {
+        if ((p2 = checkstring(p, (char *) def->name))) {
+            if (parse_is_end(p2)) {
+                result = def->saved
+                        ? options_set_string_value(&mmb_options, def->id, def->default_value)
+                        : kNotPersistent;
+            } else {
+                result = kSyntax;
+            }
+            break;
+        }
+    }
+
+    if (SUCCEEDED(result)) result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+
+    return result;
+}
+
+void cmd_option_reset(char *p) {
+    MmResult result = kOk;
+    char *p2;
+
+    if ((p2 = checkstring(p, "ALL")))  {
+        result = cmd_option_reset_all(p2);
+    } else {
+        result = cmd_option_reset_one(p);
+    }
+
+    if (FAILED(result)) error_system(result);
+}
+
 void cmd_option_save(char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) ERROR_SYNTAX;
@@ -137,10 +190,14 @@ static void cmd_option_set(char *p) {
 
 void cmd_option(void) {
     char *p;
-    if ((p = checkstring(cmdline, "LIST"))) {
+    if ((p = checkstring(cmdline, "CLEAR"))) {
+        cmd_option_reset(p);
+    } else if ((p = checkstring(cmdline, "LIST"))) {
         cmd_option_list(p);
     } else if ((p = checkstring(cmdline, "LOAD"))) {
         cmd_option_load(p);
+    } else if ((p = checkstring(cmdline, "RESET"))) {
+        cmd_option_reset(p);
     } else if ((p = checkstring(cmdline, "SAVE"))) {
         cmd_option_save(p);
     } else {
