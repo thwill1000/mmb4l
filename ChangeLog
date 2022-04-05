@@ -3,25 +3,6 @@ ChangeLog
 ---------
 
 Version 2022.01.00-a4 - ??-???-2022:
-  - Added OPTION EDITOR <editor> command to change the EDITor;
-    <editor> is one of:
-    - ATOM
-    - CODE - synonym for VSCODE
-    - DEFAULT - synonym for NANO
-    - GEANY
-    - GEDIT
-    - LEAFPAD
-    - NANO
-    - SUBLIME
-    - VI
-    - VIM
-    - VSCODE
-    - XED - untested because I couldn't get a version for Ubuntu 21.
-    - or a string specifying a command to run, e.g.
-          OPTION EDITOR "code -g ${file}:${line}"
-      Note that ${file} is replaced by the filename/path to edit "in quotes"
-      and ${line} the line number to set the initial cursor position to.
-  - Added OPTION SEARCH PATH <path> command.
   - Added * command which may be used at the MMBasic prompt (but not within
     programs) as a short-cut for RUN, e.g.
         *foo --bar "wombat"
@@ -40,31 +21,63 @@ Version 2022.01.00-a4 - ??-???-2022:
     because each SYSTEM command is run in the context of a separate forked
     process instead of the MMBasic process itself.
   - Added SYSTEM sub-commands for getting and setting environment variables:
-    - SYSTEM GETENV name$, {value$ | value%()}
-    - SYSTEM SETENV name$, {value$ | value%()}
+        - SYSTEM GETENV name$, {value$ | value%()}
+        - SYSTEM SETENV name$, {value$ | value%()}
     This supplements MM.INFO$(ENVVAR) because it allows values > 255 characters
     to be read into a LONGSTRING.
+  - Added option persistence to file "~/.mmbasic/mmbasic.options" for all
+    options except for BASE, BREAK, CASE, CODEPAGE, CONSOLE, EXPLICIT and
+    RESOLUTION:
+        - only options that differ from their defaults are saved to this file.
+  - Added OPTION EDITOR <editor> command to change the EDITor;
+    <editor> is one of:
+        - ATOM
+        - CODE     (synonym for VSCODE)
+        - DEFAULT  (synonym for NANO)
+        - GEANY
+        - GEDIT
+        - LEAFPAD
+        - NANO
+        - SUBLIME
+        - VI
+        - VIM
+        - VSCODE
+        - XED      (untested because I couldn't get a version for Ubuntu 21.)
+        - or a string specifying a command to run, e.g.
+              OPTION EDITOR "code -g ${file}:${line}"
+          ${file} is replaced by the filename to edit "in quotes" and
+          ${line} the line number to set the initial cursor position to.
   - Added OPTION F<num> string$ sub-commands to define the strings that will be
-    generated when pressing function keys at the MMBasic prompt.
-    - all of F1-F12 can be programmed and the options are persistent.
-    - OPTION F<num> CLEAR will reset a function key to its default.
-    - beware that some function keys may be captured by the Linux window manager
-      and never passed on to MMBasic.
-  - Changed SYSTEM execute command to have a 3rd optional argument to capture the
-    exit status of the executed command, e.g.
+    generated when pressing function keys at the MMBasic prompt:
+        - all of F1-F12 can be programmed.
+        - beware that some function keys may be captured by the Linux window
+          manager and never passed on to MMBasic.
+  - Added OPTION SEARCH PATH <path> command as per CMM2.
+  - Added OPTION [SAVE | LOAD] <filename> command.
+  - Added OPTION RESET [ALL | <option>] command.
+  - Changed OPTION LIST to only show options that differ from their defaults:
+         - use OPTION LIST ALL to list all options.
+  - Changed OPTION <option> <value> command so that for all options with
+    enumerated values the value can now be supplied as a string, e.g.
+        OPTION CODEPAGE NONE
+        OPTION CODEPAGE "NONE"
+        DIM none$ = "NONE"
+        OPTION CODEPAGE none$
+  - Changed SYSTEM execute command to have a 3rd optional argument to capture
+    the exit status of the executed command, e.g.
         SYSTEM command$, out$, exit_status%
         SYSTEM command$, out%(), exit_status%
     The SYSTEM command now only reports an error if it cannot run the command.
     If the command runs but fails then no error is reported but the failure
     code will be captured in exit_status%.
   - Changed LOAD and RUN so that if a filename without a [.bas|.BAS|.Bas]
-    extension is not provided then one is automatically appended.
-      - unlike other MMBasic ports MMB4L has a case-sensitive file-system
-        and expects MMBasic program files to have one of three possible
-        extensions: .bas, .BAS, or .Bas.
-      - if no extension is specified then MMB4L will check for the existence
-        of a file with each extension in order, if no such file is found then
-        it assumes the .bas extension.
+    extension is not provided then one is automatically appended:
+        - unlike other MMBasic ports MMB4L has a case-sensitive file-system
+          and expects MMBasic program files to have one of three possible
+          extensions: .bas, .BAS, or .Bas.
+        - if no extension is specified then MMB4L will check for the existence
+          of a file with each extension in order, if no such file is found then
+          it assumes the .bas extension.
   - Changed assignment of values to MM.ERRNO, they are now:
            0      : no error.
        1  ..  255 : standard error numbers (errno) for C library calls.
