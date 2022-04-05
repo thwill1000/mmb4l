@@ -75,7 +75,6 @@
     { "Inc",        T_CMD,              0, cmd_inc      },
     { "IReturn",    T_CMD,              0, cmd_ireturn  },
     { "LongString", T_CMD,              0, cmd_longstring },
-    { "Ls",         T_CMD,              0, cmd_files    },
     { "Pause",      T_CMD,              0, cmd_pause    },
     { "Timer",      T_CMD | T_FUN,      0, cmd_timer    },
     { "Cursor",     T_CMD,              0, cmd_cursor   },
