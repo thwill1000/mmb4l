@@ -496,12 +496,7 @@ Sub test_option_search_path()
 
   ' Unset the SEARCH PATH.
   Option Search Path ""
-  If Mm.Device$ = "MMB4L" Then
-    assert_string_equals("", Mm.Info$(Option Search Path))
-  Else
-    ' MMB4W 5.07.03b8: not what I would expect.
-    assert_string_equals(Cwd$ + sys.string_prop$("separator"), Mm.Info$(Option Search Path))
-  EndIf
+  assert_string_equals("", Mm.Info$(Option Search Path))
 
   Option Search Path original$
   assert_string_equals(original$, Mm.Info$(Option Search Path))
