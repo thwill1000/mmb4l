@@ -24,6 +24,8 @@ add_test("test_floats")
 add_test("test_strings")
 add_test("test_mixed_types")
 add_test("test_restore_with_label")
+add_test("test_data_save_and_restore")
+add_test("test_data_save_and_restore_errors", "test_data_save_and_restore_err")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -182,3 +184,49 @@ Sub test_restore_with_label()
   assert_int_equals(255, i%)
 End Sub
 
+Sub test_data_save_and_restore()
+  Local actual$(BASE% + 15)
+  Local expected$(BASE% + 15) = ("mm", "nn", "oo", "pp", "ii", "jj", "kk", "ll", "ee", "ff", "gg", "hh", "aa", "bb", "cc", "dd")
+  Local i%, j%, idx% = BASE%
+
+  For i% = 1 To 4
+    Restore "save_and_restore_data_" + Str$(i%)
+    If i% <> 4 Then Read Save
+  Next
+
+  For i% = 1 To 4
+    For j% = 1 To 4
+      Read actual$(idx%)
+      Inc idx%
+    Next
+    If i% <> 4 Then Read Restore
+  Next
+
+  assert_string_array_equals(expected$(), actual$())
+End Sub
+
+Sub test_data_save_and_restore_err()
+  ' Pop when the stack is empty.
+  On Error Skip
+  Read Restore
+  assert_raw_error("Nothing to restore")
+
+  Local i%
+  For i% = 1 To 49 : Read Save : Next
+
+  On Error Skip
+  Read Save
+  assert_raw_error("Too many saves")
+End Sub
+
+save_and_restore_data_1:
+Data "aa", "bb", "cc", "dd"
+
+save_and_restore_data_2:
+Data "ee", "ff", "gg", "hh"
+
+save_and_restore_data_3:
+Data "ii", "jj", "kk", "ll"
+
+save_and_restore_data_4:
+Data "mm", "nn", "oo", "pp"
