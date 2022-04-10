@@ -4,9 +4,6 @@ TODO
 Required for alpha 4
 --------------------
 
- - Improve unit-test coverage for EOF, LOC and LOF
-   - what does LOF return when partway through reading a file ?
-   - what does LOF return when writing a file ?
  - Implement READ [SAVE|RESTORE]
  - Add unit-tests for using CSUB as a data store
  - Does parse_is_end() duplicate checkend() ?
