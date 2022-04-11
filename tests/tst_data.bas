@@ -185,6 +185,8 @@ Sub test_restore_with_label()
 End Sub
 
 Sub test_data_save_and_restore()
+  If Mm.Device$ <> "MMBasic for Windows" Then Exit Sub
+
   Local actual$(BASE% + 15)
   Local expected$(BASE% + 15) = ("mm", "nn", "oo", "pp", "ii", "jj", "kk", "ll", "ee", "ff", "gg", "hh", "aa", "bb", "cc", "dd")
   Local i%, j%, idx% = BASE%
@@ -206,6 +208,8 @@ Sub test_data_save_and_restore()
 End Sub
 
 Sub test_data_save_and_restore_err()
+  If Mm.Device$ <> "MMBasic for Windows" Then Exit Sub
+
   ' Pop when the stack is empty.
   On Error Skip
   Read Restore

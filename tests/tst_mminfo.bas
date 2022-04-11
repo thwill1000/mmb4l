@@ -87,7 +87,7 @@ Function expected_path$()
   ElseIf Mm.Device$ = "MMBasic for Windows" Then
     expected_path$ = "C:\home-thwill\git_sandbox\github\mmb4l-src\tests\"
   Else
-    expected_path$ = "A:/MMB4L-SRC/TESTS/"
+    expected_path$ = "A:/MMB4L-SRC/tests/"
   EndIf
 End Function
 
@@ -102,12 +102,12 @@ Sub test_device()
 End Sub
 
 Sub test_directory()
-  Local expected_dir$ = "A:/MMB4L-SRC/TESTS"
-  If Mm.Device$ = "MMB4L" Then
-    System "pwd", expected_dir$
-  ElseIf Mm.Device$ = "MMBasic for Windows" Then
-    System "cd", expected_dir$
-  EndIf
+  Local expected_dir$
+  Select Case Mm.Device$
+    Case "MMB4L"               : System "pwd", expected_dir$
+    Case "MMBasic for Windows" : System "cd", expected_dir$
+    Case Else                  : expected_dir$ = Cwd$
+  End Select
 
   Local actual$ = Mm.Info$(Directory)
 
