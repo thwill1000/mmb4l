@@ -94,6 +94,25 @@ jmp_buf ErrNext;                                                    // longjump 
 char inpbuf[STRINGSIZE];                                            // used to store user keystrokes until we have a line
 char tknbuf[STRINGSIZE];                                            // used to store the tokenised representation of the users input line
 
+const char DIGIT_CHARS[256] = {
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0x10
+        0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0, //0x20
+        1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0, //0x30
+        0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0, //0x40
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0x50
+        0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0, //0x60
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0x70
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0x80
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0x90
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0xA0
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0xB0
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0xC0
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0xD0
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0xE0
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  //0xF0
+};
+
 int NextData;                                                       // used to track the next item to read in DATA & READ stmts
 char *NextDataLine;                                                 // used to track the next line to read in DATA & READ stmts
 #if !defined(__mmb4l__)
@@ -1194,7 +1213,7 @@ char *doexpr(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta) {
 
 // get a value, either from a constant, function or variable
 // also returns the next operator to the right of the value or E_END if no operator
-char *getvalue(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta) {
+char *getvalue(char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* oo, int* ta) {
     MMFLOAT f = 0;
     MMINTEGER i64 = 0;
     char *s = NULL;
@@ -1202,214 +1221,233 @@ char *getvalue(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta)
     char *tp, *p1, *p2;
     int i;
 
-    TestStackOverflow();                                            // throw an error if we have overflowed the PIC32's stack
-
     skipspace(p);
-
-    // special processing for the NOT operator
-    // just get the next value and invert its logical value
-    if(tokenfunction(*p) == op_not) {
-        int ro;
-        p++; t = T_NOTYPE;
-        p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
-        if(t &T_NBR)
-            f = (MMFLOAT)((f != 0)?0:1);                            // invert the value returned
-        else if(t & T_INT)
-            i64 = ((i64 != 0)?0:1);
-       else
-            error("Expected a number");
-        skipspace(p);
-        *fa = f;                                                    // save what we have
-        *ia = i64;
-        *sa = s;
-        *ta = t;
-        *oo = ro;
-        return p;                                                   // return straight away as we already have the next operator
-    }
-
-#if defined(__mmb4l__)
-    if(tokenfunction(*p) == op_inv) {
-        int ro;
-        p++; t = T_NOTYPE;
-        p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
-        if(t & T_NBR)
-            i64 = FloatToInt64(f);
-        else if(!(t & T_INT))
-            error("Expected a number");
-        i64 = ~i64;
-        t = T_INT;
-        skipspace(p);
-        *fa = f;                                                    // save what we have
-        *ia = i64;
-        *sa = s;
-        *ta = t;
-        *oo = ro;
-        return p;                                                   // return straight away as we already have the next operator
-    }
-#endif
-
-    // special processing for the unary - operator
-    // just get the next value and negate it
-    if(tokenfunction(*p) == op_subtract) {
-        int ro;
-        p++; t = T_NOTYPE;
-        p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
-        if(t & T_NBR)
-            f = -f;                                                 // negate the MMFLOAT returned
-        else if(t & T_INT)
-            i64 = -i64;                                             // negate the integer returned
-       else
-            error("Expected a number");
-        skipspace(p);
-        *fa = f;                                                    // save what we have
-        *ia = i64;
-        *sa = s;
-        *ta = t;
-        *oo = ro;
-        return p;                                                   // return straight away as we already have the next operator
-    }
-
-#if defined(__mmb4l__)
-    // unary + operator.
-    if (tokenfunction(*p) == op_add) {
-        int ro;
-        p++;
-        t = T_NOTYPE;
-        p = getvalue(p, &f, &i64, &s, &ro, &t);  // get the next value
-        skipspace(p);
-        *fa = f;  // save what we have
-        *ia = i64;
-        *sa = s;
-        *ta = t;
-        *oo = ro;
-        return p;  // return straight away as we already have the next operator
-    }
-#endif
-
-    // if a function execute it and save the result
-    if(tokentype(*p) & (T_FUN | T_FNA)) {
-        int tmp;
-        tp = p;
-        // if it is a function with arguments we need to locate the closing bracket and copy the argument to
-        // a temporary variable so that functions like getarg() will work.
-        if(tokentype(*p) & T_FUN) {
-            p1 = p + 1;
-            p = getclosebracket(p);                                 // find the closing bracket
-            p2 = ep = GetTempStrMemory();                           // this will last for the life of the command
-            while(p1 != p) *p2++ = *p1++;
-        }
-        p++;                                                        // point to after the function (without argument) or after the closing bracket
-        tmp = targ = TypeMask(tokentype(*tp));                      // set the type of the function (which might need to know this)
-        tokenfunction(*tp)();                                       // execute the function
-        if((tmp & targ) == 0) error("Internal fault (sorry)");      // as a safety check the function must return a type the same as set in the header
-        t = targ;                                                   // save the type of the function
-        f = fret; i64 = iret; s = sret;                             // save the result
-    }
-    // if opening bracket then first evaluate the contents of the bracket
-    else if(*p == '(') {
-        p++;                                                        // step over the bracket
-        p = evaluate(p, &f, &i64, &s, &t, true);                    // recursively get the contents
-        if(*p != ')') error("No closing bracket");
-        ++p;                                                        // step over the closing bracket
-    }
-    // if it is a variable or a defined function, find it and get its value
-    else if(isnamestart(*p)) {
-        // first check if it is terminated with a bracket
-        tp = p + 1;
-        while(isnamechar(*tp)) tp++;                                // search for the end of the identifier
-        if(*tp == '$' || *tp == '%' || *tp == '!') tp++;
-        i = -1;
-        if(*tp == '(') i = FindSubFun(p, 1);                        // if terminated with a bracket it could be a function
-        if(i >= 0) {                                                // >= 0 means it is a user defined function
-            char *SaveCurrentLinePtr = CurrentLinePtr;              // in case the code in DefinedSubFun messes with this
-            DefinedSubFun(true, p, i, &f, &i64, &s, &t);
-            CurrentLinePtr = SaveCurrentLinePtr;
-        } else {
-            s = (char *)findvar(p, V_FIND);                         // if it is a string then the string pointer is automatically set
-            t = TypeMask(vartbl[VarIndex].type);
-            if(t & T_NBR) f = (*(MMFLOAT *)s);
-            if(t & T_INT) i64 = (*(MMINTEGER *)s);
-        }
-        p = skipvar(p, false);
-    }
-    // if it is a string constant, return a pointer to that.  Note: tokenise() guarantees that strings end with a quote
-    else if(*p == '"') {
-        p++;                                                        // step over the quote
-        p1 = s = GetTempStrMemory();                                // this will last for the life of the command
-        tp = strchr(p, '"');
-        while(p != tp) *p1++ = *p++;
-        p++;
-        CtoM(s);                                                    // convert to a MMBasic string
-        t = T_STR;
-    }
-    // if it is a numeric constant starting with the & character then get its base and convert to an integer
-    else if(*p == '&') {
-        p++; i64 = 0;
-        switch(toupper(*p++)) {
-            case 'H':   while(isxdigit(*p)) {
-                            i64 = (i64 << 4) | ((toupper(*p) >= 'A') ? toupper(*p) - 'A' + 10 : *p - '0');
-                            p++;
-                        } break;
-            case 'O':   while(*p >= '0' && *p <= '7') {
-                            i64 = (i64 << 3) | (*p++ - '0');
-                        } break;
-            case 'B':   while(*p == '0' || *p == '1') {
-                            i64 = (i64 << 1) | (*p++ - '0');
-                        } break;
-            default:    error("Type prefix");
-        }
-        t = T_INT;
-    }
-    // is it an ordinary numeric constant?  get its value if yes
-    // a leading + or - might have been converted to a token so we need to check for them also
-    else if(isdigit(*p) || *p == '+' || (tokenfunction(*p) == op_subtract) || *p == '-' || (tokenfunction(*p) == op_add) || *p == '+' || *p == '.') {
-        char ts[21], *tsp;
-        int isi64 = true;
-        tsp = ts;
-
-        // copy the first digit of the string to a temporary place
-        if(tokenfunction(*p) == op_add) {
-            *tsp++ = '+'; p++;
-        } else if(tokenfunction(*p) == op_subtract) {
-            *tsp++ = '-'; p++;
-        } else {
-            if(*p == '.') isi64 = false;
-            *tsp++ = *p++;
-        }
-
-        // now concatenate the remaining digits
-        while(((*p >= '0' && *p <= '9') || toupper(*p) == 'E' || *p == '-' || *p == '+' || *p == '.') && (tsp - ts) < 20) {
-            if(toupper(*p) == 'E' || *p == '.') isi64 = false;
-            *tsp++ = *p++;                                          // copy the string to a temporary place
-        }
-        *tsp = 0;                                                   // terminate it
-        if(isi64) {
-            i64 = strtoll(ts, &tsp, 10);                            // and convert to an integer
+    if (*p >= C_BASETOKEN) { //don't waste time if not a built-in function
+        // special processing for the NOT operator
+        // just get the next value and invert its logical value
+        if (tokenfunction(*p) == op_inv) {
+            int ro;
+            uint64_t ut;
+            p++; t = T_NOTYPE;
+            p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
+            if (t & T_NBR)
+                i64 = FloatToInt64(f);
+            else if (!(t & T_INT))
+                error("Expected a number");
+            ut = ~(uint64_t)i64;
+            i64 = (int64_t)ut;
             t = T_INT;
-        } else {
-            f = (MMFLOAT)strtod(ts, &tsp);                          // and convert to a MMFLOAT
-            t = T_NBR;
+            skipspace(p);
+            *fa = f;                                                    // save what we have
+            *ia = i64;
+            *sa = s;
+            *ta = t;
+            *oo = ro;
+            return p;                                                   // return straight away as we already have the next operator
+        }
+        if (tokenfunction(*p) == op_not) {
+            int ro;
+            p++; t = T_NOTYPE;
+            p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
+            if (t & T_NBR)
+                f = (MMFLOAT)((f != 0) ? 0 : 1);                        // invert the value returned
+            else if (t & T_INT)
+                i64 = ((i64 != 0) ? 0 : 1);
+            else
+                error("Expected a number");
+            skipspace(p);
+            *fa = f;                                                    // save what we have
+            *ia = i64;
+            *sa = s;
+            *ta = t;
+            *oo = ro;
+            return p;                                                   // return straight away as we already have the next operator
+        }
+
+
+        // special processing for the unary - operator
+        // just get the next value and negate it
+        if (tokenfunction(*p) == op_subtract) {
+            int ro;
+            p++; t = T_NOTYPE;
+            p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
+            if (t & T_NBR)
+                f = -f;                                                 // negate the MMFLOAT returned
+            else if (t & T_INT)
+                i64 = -i64;                                             // negate the integer returned
+            else
+                error("Expected a number");
+            skipspace(p);
+            *fa = f;                                                    // save what we have
+            *ia = i64;
+            *sa = s;
+            *ta = t;
+            *oo = ro;
+            return p;                                                   // return straight away as we already have the next operator
+        }
+        if (tokenfunction(*p) == op_add) {
+            int ro;
+            p++; t = T_NOTYPE;
+            p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
+            skipspace(p);
+            *fa = f;                                                    // save what we have
+            *ia = i64;
+            *sa = s;
+            *ta = t;
+            *oo = ro;
+            return p;                                                   // return straight away as we already have the next operator
+        }
+
+
+        // if a function execute it and save the result
+        if (tokentype(*p) & (T_FUN | T_FNA)) {
+            int tmp;
+            tp = p;
+            // if it is a function with arguments we need to locate the closing bracket and copy the argument to
+            // a temporary variable so that functions like getarg() will work.
+            if (tokentype(*p) & T_FUN) {
+                p1 = p + 1;
+                p = getclosebracket(p);                                 // find the closing bracket
+                p2 = ep = (char *) GetTempMemory(STRINGSIZE);           // this will last for the life of the command
+                while (p1 != p) *p2++ = *p1++;
+            }
+            p++;                                                        // point to after the function (without argument) or after the closing bracket
+
+            targ = TypeMask(tokentype(*tp));                            // set the type of the function (which might need to know this)
+            tmp = targ;
+            tokenfunction(*tp)();                                       // execute the function
+            if ((tmp & targ) == 0) error("Internal fault (sorry)");     // as a safety check the function must return a type the same as set in the header
+            t = targ;                                                   // save the type of the function
+            f = fret; i64 = iret; s = sret;                             // save the result
         }
     }
-    else
-        error("Syntax");
+    else {
+        // if it is a variable or a defined function, find it and get its value
+        if (isnamestart(*p)) {
+            // first check if it is terminated with a bracket
+            tp = p + 1;
+            while (isnamechar(*tp)) tp++;                               // search for the end of the identifier
+            if (*tp == '$' || *tp == '%' || *tp == '!') tp++;
+            i = -1;
+            if (*tp == '(') i = FindSubFun(p, 1);                       // if terminated with a bracket it could be a function
+            if (i >= 0) {                                               // >= 0 means it is a user defined function
+                char *SaveCurrentLinePtr = CurrentLinePtr;              // in case the code in DefinedSubFun messes with this
+                DefinedSubFun(true, p, i, &f, &i64, &s, &t);
+                CurrentLinePtr = SaveCurrentLinePtr;
+            }
+            else {
+                s = (char *) findvar(p, V_FIND);                        // if it is a string then the string pointer is automatically set
+                t = TypeMask(vartbl[VarIndex].type);
+                if (t & T_NBR) f = (*(MMFLOAT*)s);
+                if (t & T_INT) i64 = (*(MMINTEGER *)s);
+            }
+            p = skipvar(p, false);
+        }
+        // is it an ordinary numeric constant?  get its value if yes
+        // a leading + or - might have been converted to a token so we need to check for them also
+        else if (isdigit(*p) || *p == '.') {
+            char ts[31], * tsp;
+            int isi64 = true;
+            tsp = ts;
+            int isf = true;
+            MMINTEGER scale = 0;
+            // copy the first digit of the string to a temporary place
+            if (*p == '.') {
+                isi64 = false;
+                scale = 1;
+            }
+            else if (isdigit(*p)) {
+                i64 = (*p - '0');
+            }
+            *tsp++ = *p++;
 
+            // now concatenate the remaining digits
+            while ((DIGIT_CHARS[(uint8_t)*p]) && (tsp - ts) < 30) {
+                if (*p >= '0' && *p <= '9') {
+                    i64 = i64 * 10 + (*p - '0');
+                    if (scale)scale *= 10;
+                }
+                else {
+                    if ((*p) == '.') {
+                        isi64 = false;
+                        scale = 1;
+                    }
+                    else {
+                        if (toupper(*p) == 'E' || *p == '-' || *p == '+') {
+                            isi64 = false;
+                            isf = false;
+                        }
+                    }
+                }
+                *tsp++ = *p++;                                          // copy the string to a temporary place
+            }
+            *tsp = 0;                                                   // terminate it
+            if (isi64) {
+                t = T_INT;
+            }
+            else if (isf && (tsp - ts) < 18) {
+                f = (MMFLOAT)i64 / (MMFLOAT)scale;
+                t = T_NBR;
+            }
+            else {
+                f = (MMFLOAT)strtod(ts, &tsp);                          // and convert to a MMFLOAT
+                t = T_NBR;
+            }
+        }
+
+
+        // if it is a numeric constant starting with the & character then get its base and convert to an integer
+        else if (*p == '&') {
+            p++; i64 = 0;
+            switch (toupper(*p++)) {
+            case 'H':   while (isxdigit(*p)) {
+                i64 = (i64 << 4) | ((toupper(*p) >= 'A') ? toupper(*p) - 'A' + 10 : *p - '0');
+                p++;
+            } break;
+            case 'O':   while (*p >= '0' && *p <= '7') {
+                i64 = (i64 << 3) | (*p++ - '0');
+            } break;
+            case 'B':   while (*p == '0' || *p == '1') {
+                i64 = (i64 << 1) | (*p++ - '0');
+            } break;
+            default:    error("Type prefix");
+            }
+            t = T_INT;
+        }
+        // if opening bracket then first evaluate the contents of the bracket
+        else if (*p == '(') {
+            p++;                                                        // step over the bracket
+            p = evaluate(p, &f, &i64, &s, &t, true);                    // recursively get the contents
+            if (*p != ')') error("No closing bracket");
+            ++p;                                                        // step over the closing bracket
+        }
+        // if it is a string constant, return a pointer to that.  Note: tokenise() guarantees that strings end with a quote
+        else if (*p == '"') {
+            p++;                                                        // step over the quote
+            p1 = s = (char *) GetTempMemory(STRINGSIZE);                // this will last for the life of the command
+            tp = strchr(p, '"');
+            while (p != tp) *p1++ = *p++;
+            p++;
+            CtoM(s);                                                    // convert to a MMBasic string
+            t = T_STR;
+        }
+        else
+            error("Syntax");
+    }
     skipspace(p);
-    *fa = f;                                                        // save what we have
+    *fa = f;                                                            // save what we have
     *ia = i64;
     *sa = s;
     *ta = t;
 
     // get the next operator, if there is not an operator set the operator to end of expression (E_END)
-    if(tokentype(*p) & T_OPER)
+    if (tokentype(*p) & T_OPER)
         *oo = *p++ - C_BASETOKEN;
     else
         *oo = E_END;
 
     return p;
 }
-
-
 
 
 
@@ -1542,7 +1580,7 @@ int MIPS16 CountLines(char *target) {
             return cnt;
 
         if(*p == T_NEWLINE) {
-            p++;                                                 // and step over the line number
+            p++;                                                    // and step over the line number
             cnt++;
             if(p >= target) return cnt;
             continue;
