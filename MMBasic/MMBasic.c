@@ -2235,33 +2235,31 @@ void IntToStr(char *strr, MMINTEGER nbr, unsigned int base) {
 // Special case (used by FloatToStr() only):
 //     if padch is negative and nbr is zero prefix the number with the - sign
 void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix) {
-    int i, j;
-    char sign, buf[IntToStrBufSize];
-
-    sign = 0; i = 0;
-    if((nbr < 0 && radix == 10)|| padch < 0) {                      // if the number is negative or we are forced to use a - symbol
+    char sign = 0;
+    if ((nbr < 0 && radix == 10 && nbr!=0x8000000000000000)         // if the number is negative or we are forced to use a - symbol
+            || padch < 0) {
         sign = '-';                                                 // set the sign
         nbr *= -1;                                                  // convert to a positive nbr
         padch = abs(padch);
-    } else {
-        if(nbr >= 0 && maxch < 0 && radix == 10)                    // should we display the + sign?
+    }
+    else {
+        if (nbr >= 0 && maxch < 0 && radix == 10)                   // should we display the + sign?
             sign = '+';
     }
 
+    char buf[IntToStrBufSize];
     IntToStr(buf, nbr, radix);
-    j = abs(maxch) - strlen(buf);                                   // calc padding required
-    if(j <= 0)
-        j = 0;
-    else
-        memset(p, padch, abs(maxch));                               // fill the buffer with the padding char
-        if(sign != 0) {                                                 // if we need a sign
-                if(j == 0) j = 1;                                           // make space if necessary
-            if(padch == '0')
-                p[0] = sign;                                            // for 0 padding the sign is before the padding
-            else
-                p[j - 1] = sign;                                        // for anything else the padding is before the sign
-         }
-    strcpy(&p[j], buf) ;
+    int j = abs(maxch) - strlen(buf);                                   // calc padding required
+    if (j <= 0) j = 0;
+    else memset(p, padch, abs(maxch));                              // fill the buffer with the padding char
+    if (sign != 0) {                                                // if we need a sign
+        if (j == 0) j = 1;                                          // make space if necessary
+        if (padch == '0')
+            p[0] = sign;                                            // for 0 padding the sign is before the padding
+        else
+            p[j - 1] = sign;                                        // for anything else the padding is before the sign
+    }
+    strcpy(&p[j], buf);
 }
 
 
