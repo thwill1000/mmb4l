@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
@@ -49,15 +50,44 @@ bool path_has_suffix(
     return true;
 }
 
+typedef enum {
+    kPathStateStart,
+    kPathStateStartDot,
+    kPathStateStartDotDot,
+    kPathStateDefault,
+    kPathStateSlash,
+    kPathStateSlashDot,
+    kPathStateSlashDotDot,
+} PathState;
+
+static char *path_unwind(char *new_path, char *pdst) {
+    if (pdst == new_path
+        || ((pdst == new_path + 2) && memcmp(pdst - 2, "..", 2) == 0)
+        || (memcmp(pdst - 3, "/..", 3) == 0)) {
+        // Can't unwind any further.
+        return pdst;
+    } else {
+        char *p = pdst;
+        while (--p >= new_path) {
+            if (*p == '/' || p == new_path) {
+                return p;
+            }
+        }
+        assert(false);
+    }
+}
+
 char *path_munge(const char *original_path, char *new_path, size_t sz) {
     errno = 0;
     const char *psrc = original_path;
+    bool absolute = original_path[0] == '\\' || original_path[0] == '/';
 
     // HACK! ignore any leading drive letter and colon in the 'original_path', e.g. "A:".
     size_t len = strlen(psrc);
     if (len >= 2 && isalpha(psrc[0]) && psrc[1] == ':') {
         psrc += 2;
         len -= 2;
+        absolute = true;
     }
 
     if (sz <= len || sz <= 2) {
@@ -65,42 +95,143 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
         return NULL;
     }
 
-    // Handle the case where 'original_path' was just a drive letter and colon.
-    if (!*psrc) {
-        new_path[0] = '/';
-        new_path[1] = '\0';
-        return new_path;
-    }
-
     // Does the path begin with '~' ?
     char *pdst = new_path;
+    *pdst = '\0';
     if (*psrc == '~') {
         psrc++;
-
         const char *home = getenv("HOME");
         if (!home) return NULL; // Probably never happens.
-
-        if (!*psrc) {
-            // The path is just "~".
-            strcpy(new_path, home);
-            return new_path;
-        } else if (*psrc == '\\' || *psrc == '/') {
-            // The path begins "~/".
+        if (!*psrc || *psrc == '\\' || *psrc == '/') {
+            // The path is just '~' or begins "~/".
             strcpy(new_path, home);
             pdst += strlen(home);
         } else {
             // No special treatment for '~' in this case.
             *pdst++ = '~';
         }
+        absolute = new_path[0] == '\\' || new_path[0] == '/';
     }
 
-    // Copy from 'original_path' to 'new_path' converting '\' => '/'.
-    for (;;) {
-        *pdst = (*psrc == '\\') ? '/' : *psrc;
-        if (*psrc == '\0') break;
-        psrc++;
-        pdst++;
-    }
+    PathState state = kPathStateStart;
+    do {
+        switch (*psrc) {
+
+            case '\0':
+                switch (state) {
+                    case kPathStateStartDotDot:
+                        *pdst++ = '.';
+                        *pdst++ = '.';
+                        break;
+                    case kPathStateSlashDotDot:
+                        char *p = path_unwind(new_path, pdst);
+                        if (p == pdst) {
+                            *pdst++ = '/';
+                            *pdst++ = '.';
+                            *pdst++ = '.';
+                        } else {
+                            pdst = p;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+                // Empty absolute path is '/'
+                if (absolute && pdst == new_path) *pdst++ = '/';
+
+                *pdst++ = *psrc; // Copies the '/0'
+                break;
+
+            case '.':
+                switch (state) {
+                    case kPathStateStart:
+                        state = kPathStateStartDot;
+                        break;
+                    case kPathStateStartDot:
+                        state = kPathStateStartDotDot;
+                        break;
+                    case kPathStateSlash:
+                        state = kPathStateSlashDot;
+                        break;
+                    case kPathStateSlashDot:
+                        state = kPathStateSlashDotDot;
+                        break;
+                    default:
+                        *pdst++ = '.';
+                        break;
+                }
+                break;
+
+            case '\\':
+            case '/':
+                switch (state) {
+                    case kPathStateStartDot:
+                        // Ignore ./
+                        state = kPathStateDefault;
+                        break;
+                    case kPathStateStartDotDot:
+                        *pdst++ = '.';
+                        *pdst++ = '.';
+                        state = kPathStateSlash;
+                        break;
+                    case kPathStateSlash:
+                        // Ignore repeated slashes.
+                        break;
+                    case kPathStateSlashDot:
+                        // Treat /./ as /
+                        state = kPathStateSlash;
+                        break;
+                    case kPathStateSlashDotDot: {
+                        char *p = path_unwind(new_path, pdst);
+                        if (p == pdst) {
+                            *pdst++ = '/';
+                            *pdst++ = '.';
+                            *pdst++ = '.';
+                            state = kPathStateSlash;
+                        } else {
+                            state = *p == '/' ? kPathStateSlash : kPathStateDefault;
+                            pdst = p;
+                        }
+                        break;
+                    }
+                    default:
+                        state = kPathStateSlash;
+                        break;
+                }
+                break;
+
+            default:
+                switch (state) {
+                    case kPathStateStartDot:
+                        *pdst++ = '.';
+                        break;
+                    case kPathStateStartDotDot:
+                        *pdst++ = '.';
+                        *pdst++ = '.';
+                        break;
+                    case kPathStateSlash:
+                        *pdst++ = '/';
+                        break;
+                    case kPathStateSlashDot:
+                        *pdst++ = '/';
+                        *pdst++ = '.';
+                        break;
+                    case kPathStateSlashDotDot:
+                        *pdst++ = '/';
+                        *pdst++ = '.';
+                        *pdst++ = '.';
+                        break;
+                    default:
+                        break;
+                }
+                state = kPathStateDefault;
+                *pdst++ = *psrc;
+                break;
+
+        } // select
+
+    } while (*psrc++);
 
     return new_path;
 }
@@ -133,7 +264,15 @@ char *path_get_canonical(const char *path, char *canonical_path, size_t sz) {
         *to = '\0';
     }
 
-    if (strlen(tmp_path) >= sz) {
+    size_t len = strlen(tmp_path);
+
+    // Remove trailing slash.
+    if (tmp_path[len - 1] == '/') {
+        tmp_path[len - 1] = '\0';
+        len--;
+    }
+
+    if (len >= sz) {
         errno = ENAMETOOLONG;
         return NULL;
     } else {

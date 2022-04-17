@@ -34,6 +34,82 @@ protected:
 
 };
 
+#define TEST_MUNGE(path, expected)  memset(out, '\0', 256); \
+        result = path_munge(path, out, 256); \
+        EXPECT_STREQ(expected, result); \
+        EXPECT_STREQ(expected, out)
+
+#define HOME_DIR "/home/thwill"
+
+TEST_F(PathTest, Munge) {
+    char out[256];
+    errno = 0;
+    char *result;
+
+    // Absolute paths.
+    TEST_MUNGE("a:",              "/");
+    TEST_MUNGE("A:",              "/");
+    TEST_MUNGE("c:",              "/");
+    TEST_MUNGE("C:",              "/");
+    TEST_MUNGE("a:/",             "/");
+    TEST_MUNGE("A:/",             "/");
+    TEST_MUNGE("c:/",             "/");
+    TEST_MUNGE("C:/",             "/");
+    TEST_MUNGE("/",               "/");
+    TEST_MUNGE("//",              "/");
+    TEST_MUNGE("///",             "/");
+    TEST_MUNGE("/.",              "/");
+    TEST_MUNGE("/..",             "/..");
+    TEST_MUNGE("/./..",           "/..");
+    TEST_MUNGE("/./foo",          "/foo");
+    TEST_MUNGE("/foo/.",          "/foo");
+    TEST_MUNGE("/foo/..",         "/");
+    TEST_MUNGE("/foo/../bar",     "/bar");
+    TEST_MUNGE("/foo/../bar.bas", "/bar.bas");
+    TEST_MUNGE("/foo/.bar",       "/foo/.bar");
+    TEST_MUNGE("/foo/..bar",      "/foo/..bar");
+    TEST_MUNGE("/foo../bar",      "/foo../bar");
+    TEST_MUNGE("/foo../..",       "/");
+    TEST_MUNGE("/foo../../bar",   "/bar");
+    TEST_MUNGE("/foo//bar",       "/foo/bar");
+
+    // Relative paths.
+    TEST_MUNGE(".",               "");
+    TEST_MUNGE("..",              "..");
+    TEST_MUNGE("./..",            "..");
+    TEST_MUNGE("./foo",           "foo");
+    TEST_MUNGE("foo/.",           "foo");
+    TEST_MUNGE("foo/..",          "");
+    TEST_MUNGE("foo/../bar",      "bar");
+    TEST_MUNGE("foo/../bar.bas",  "bar.bas");
+    TEST_MUNGE("foo/.bar",        "foo/.bar");
+    TEST_MUNGE("foo/..bar",       "foo/..bar");
+    TEST_MUNGE("foo../bar",       "foo../bar");
+    TEST_MUNGE("foo../..",        "");
+    TEST_MUNGE("foo../../bar",    "bar");
+    TEST_MUNGE("foo//bar",        "foo/bar");
+    TEST_MUNGE("../foo",          "../foo");
+    TEST_MUNGE("../../foo",       "../../foo");
+    TEST_MUNGE("../../../foo",    "../../../foo");
+
+    // HOME relative paths.
+    TEST_MUNGE("~",               HOME_DIR);
+    TEST_MUNGE("~/",              HOME_DIR);
+    TEST_MUNGE("~/.",             HOME_DIR);
+    TEST_MUNGE("~/../foo",        "/home/foo");
+    TEST_MUNGE("~/.mmbasic",      HOME_DIR "/.mmbasic");
+    TEST_MUNGE("~/../../tmp",     "/tmp");
+
+    // Test with backslashes.
+    TEST_MUNGE("a:\\",            "/");
+    TEST_MUNGE("\\",              "/");
+    TEST_MUNGE("\\.",             "/");
+    TEST_MUNGE("\\..",            "/..");
+    TEST_MUNGE("~\\..\\foo",      "/home/foo");
+    TEST_MUNGE("foo\\bar",        "foo/bar");
+    TEST_MUNGE("..\\..\\..\\foo", "../../../foo");
+}
+
 TEST_F(PathTest, GetCanonical_GivenAbsolutePath) {
     char out[256] = { '\0' };
     errno = 0;
