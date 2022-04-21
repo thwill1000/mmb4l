@@ -52,6 +52,9 @@ Sub test_peek_byte()
 
   ' Having PEEK's first operand in brackets was broken in MMBasic 5.07.01.
   assert_hex_equals(&h01, Peek(Byte (num_addr% + 7)), 2)
+
+  num% = 255
+  assert_int_equals(255, Peek(Byte num_addr%))
 End Sub
 
 Sub test_peek_float()
@@ -132,6 +135,10 @@ Sub test_peek_var()
   assert_hex_equals(&h03, Peek(Var num%, 5), 2)
   assert_hex_equals(&h02, Peek(Var num%, 6), 2)
   assert_hex_equals(&h01, Peek(Var num%, 7), 2)
+
+  ' This incorrectly returned -1 with a MMB4W 5.07.03b9 build.
+  num% = 255
+  assert_int_equals(255, Peek(Var num%, 0))
 End Sub
 
 Sub test_peek_word()
