@@ -65,6 +65,6 @@ Sub test_call_2()
     assert_string_equals(" 3   3.12 foo", s$)
   EndIf
 
-  assert_true(Eof(#1))
+  assert_int_equals(1, Eof(#1))
   Close #1
 End Sub

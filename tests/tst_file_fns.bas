@@ -120,13 +120,13 @@ Sub test_copy()
   Open f$ For Input As #1
   s$ = Input$(28, #1)
   assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
-  assert_true(Eof(#1))
+  assert_int_equals(1, Eof(#1))
   Close #1
 
   Open f_copy$ For Input As #1
   s$ = Input$(28, #1)
   assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
-  assert_true(Eof(#1))
+  assert_int_equals(1, Eof(#1))
   Close #1
 End Sub
 
@@ -181,12 +181,10 @@ Sub test_eof()
   Close #1
 
   ' Test on file file number #0.
-  Local expected_int%
   Select Case Mm.Device$
-    Case "MMB4L", "MMBasic for Windows" : expected_int% = 0
-    Case Else :                           expected_int% = 1
+    Case "MMB4L" : assert_int_equals(0, Eof(#0)) ' TODO
+    Case Else    : assert_int_equals(1, Eof(#0))
   End Select
-  assert_int_equals(expected_int%, Eof(#0))
 
   ' Test when file opened for OUTPUT.
   Open f$ For Output As #1
@@ -195,9 +193,9 @@ Sub test_eof()
     i% = Eof(#1)
     assert_raw_error(BAD_FILE_DESCRIPTOR_ERR$)
   Else
-    assert_int_equals(expected_int%, Eof(#1))
+    assert_int_equals(1, Eof(#1))
     Print #1, "Hello World"
-    assert_int_equals(expected_int%, Eof(#1))
+    assert_int_equals(1, Eof(#1))
   EndIf
   Close #1
 
@@ -208,9 +206,9 @@ Sub test_eof()
     i% = Eof(#1)
     assert_raw_error(BAD_FILE_DESCRIPTOR_ERR$)
   Else
-    assert_int_equals(expected_int%, Eof(#1))
+    assert_int_equals(1, Eof(#1))
     Print #1, "Goodbye World"
-    assert_int_equals(expected_int%, Eof(#1))
+    assert_int_equals(1, Eof(#1))
   EndIf
   Close #1
 
@@ -318,7 +316,7 @@ Sub test_rename()
     Open f_new$ For Input As #1
     s$ = Input$(28, #1)
     assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
-    assert_true(Eof(#1))
+    assert_int_equals(1, Eof(#1))
     Close #1
 End Sub
 

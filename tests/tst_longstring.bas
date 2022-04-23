@@ -203,7 +203,7 @@ Sub test_print()
   Local s$
   Line Input #1, s$
   assert_string_equals("Hello World", s$)
-  assert_true(Eof(#1))
+  assert_int_equals(1, Eof(#1))
   Close #1
 End Sub
 
