@@ -88,6 +88,7 @@ Version 2022.01.00-a4 - ??-???-2022:
         - LS was a non-standard aberration inherited from the CMM2.
         - use !ls instead to execute the 'ls' Linux shell command with all its
           power and with no requirement to enquote its arguments.
+  - Fixed bug where could not open non-existing file for RANDOM access.
 
 Version 2022.01.00-a3 - 16-Jan-2022:
   - Added serial port support, e.g.

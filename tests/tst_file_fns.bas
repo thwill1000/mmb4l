@@ -332,14 +332,12 @@ Sub test_loc()
     Kill f$
 
     ' Test when non-existing file opened for RANDOM.
-    If Mm.Device$ <> "MMB4L" Then
-      Open f$ For Random As #1
-      assert_int_equals(1, Loc(#1))
-      Print #1, "foo";
-      assert_int_equals(4, Loc(#1))
-      Close #1
-      Kill f$
-    EndIf
+    Open f$ For Random As #1
+    assert_int_equals(1, Loc(#1))
+    Print #1, "foo";
+    assert_int_equals(4, Loc(#1))
+    Close #1
+    Kill f$
 
     ' Test when existing empty file opened for RANDOM.
     Open f$ For Output As #1

@@ -31,21 +31,19 @@ void file_open(char *fname, char *mode, int fnbr) {
     // but will allow writing
     FILE *f = NULL;
     if (*mode == 'x') {
+        errno = 0;
         f = fopen(path, "rb+");
         if (!f) {
+            errno = 0;
             f = fopen(path, "wb+");
-            error_check();
+            if (!f) error_system(errno);
         }
-        fseek(f, 0, SEEK_END);
-        error_check();
+        errno = 0;
+        if FAILED(fseek(f, 0, SEEK_END)) error_system(errno);
     } else {
+        errno = 0;
         f = fopen(path, mode);
-        error_check();
-    }
-
-    if (!f) {
-        errno = EBADF;
-        error_check();
+        if (!f) error_system(errno);
     }
 
     file_table[fnbr].type = fet_file;
