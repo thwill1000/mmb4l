@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "cstring.h"
 #include "path.h"
@@ -238,48 +239,38 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
 
 char *path_get_canonical(const char *path, char *canonical_path, size_t sz) {
     errno = 0;
-
-    if (!path_munge(path, canonical_path, sz)) return NULL;
-
-    // Use realpath() to convert to canonical absolute form putting the result in 'tmp_path'.
     char tmp_path[PATH_MAX];
-    if (!realpath(canonical_path, tmp_path)) {
-        if (errno != ENOENT) return NULL;
+    if (!path_munge(path, tmp_path, PATH_MAX)) return NULL;
 
-        // Path didn't exist, try again with immediate parent.
-        char *last = strrchr(canonical_path, '/');
-        if (last) {
-            *last = '\0';
-            if (!realpath(canonical_path, tmp_path)) return NULL;
-            *last = '/';
-        } else {
-            if (!realpath(".", tmp_path)) return NULL;
-            cstring_cat(tmp_path, "/", PATH_MAX);
-            last = canonical_path;
+    if (tmp_path[0] == '/') {
+        if (strlen(tmp_path) >= sz) {
+            errno = ENAMETOOLONG;
+            return NULL;
         }
-
-        // Immediate parent existed, copy the final path element into the result.
-        char *to = tmp_path + strlen(tmp_path);
-        while (*last) *to++ = *last++;
-        *to = '\0';
-    }
-
-    size_t len = strlen(tmp_path);
-
-    // Remove trailing slash.
-    if (tmp_path[len - 1] == '/') {
-        tmp_path[len - 1] = '\0';
-        len--;
-    }
-
-    if (len >= sz) {
-        errno = ENAMETOOLONG;
-        return NULL;
-    } else {
         strcpy(canonical_path, tmp_path);
         errno = 0;
         return canonical_path;
     }
+
+    errno = 0;
+    if (!getcwd(canonical_path, sz)) {
+        assert(errno != 0);
+        return NULL;
+    }
+
+    if (tmp_path[0] == '\0') return canonical_path;
+
+    if (FAILED(cstring_cat(canonical_path, "/", sz))) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    if (FAILED(cstring_cat(canonical_path, tmp_path, sz))) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    return canonical_path;
 }
 
 bool path_is_absolute(const char *path) {
