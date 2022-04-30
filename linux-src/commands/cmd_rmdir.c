@@ -7,8 +7,7 @@
 
 void cmd_rmdir(void) {
     char *path = GetTempStrMemory();
-    path_munge(getCstring(cmdline), path, STRINGSIZE);
-    error_check();
-    rmdir(path);
-    error_check();
+    if (!path_munge(getCstring(cmdline), path, STRINGSIZE)) error_system(errno);
+    errno = 0;
+    if (FAILED(rmdir(path))) error_system(errno);
 }

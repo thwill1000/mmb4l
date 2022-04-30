@@ -12,7 +12,6 @@ extern int error_line;
 void error(char *msg, ...);
 void error_code(MmResult error, const char *msg, ...);
 void error_system(MmResult error);
-MmResult error_check();
 uint8_t error_to_exit_code(MmResult error);
 
 #define ERRNO_DEFAULT  1

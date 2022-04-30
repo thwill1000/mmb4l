@@ -174,7 +174,7 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     while ((uintptr_t) pmem % 8 != 0) *pmem++ = 0;
     CFunctionFlash = pmem;
 
-    error_check();
+    if (errno != 0) error_system(errno); // Is this really necessary?
 }
 
 char *program_get_inc_file(const char *parent_file, const char *filename, char *out) {
@@ -797,7 +797,7 @@ int program_load_file(char *filename) {
     sprintf(title, "MMBasic - %s", CurrentFile);
     console_set_title(title);
 
-    if (error_check()) result = -1; // Error
+    if (errno != 0) error_system(errno); // Is this really necessary?
 
     return result;
 }

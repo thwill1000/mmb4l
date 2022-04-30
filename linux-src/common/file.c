@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <unistd.h>
@@ -22,8 +23,7 @@ void file_open(char *fname, char *mode, int fnbr) {
     if (file_table[fnbr].type != fet_closed) ERROR_ALREADY_OPEN;
 
     char path[STRINGSIZE];
-    path_munge(fname, path, STRINGSIZE);
-    error_check();
+    if (!path_munge(fname, path, STRINGSIZE)) error_system(errno);
 
     // random writing is not allowed when a file is opened for append so open it
     // first for read+update and if that does not work open it for
@@ -58,13 +58,14 @@ void file_close(int fnbr) {
             ERROR_NOT_OPEN;
             break;
 
-        case fet_file:
+        case fet_file: {
             errno = 0;
-            fclose(file_table[fnbr].file_ptr);
+            int result = fclose(file_table[fnbr].file_ptr);
             file_table[fnbr].type = fet_closed;
             file_table[fnbr].file_ptr = NULL;
-            error_check();
+            if (FAILED(result)) error_system(errno);
             break;
+        }
 
         case fet_serial:
             serial_close(fnbr);
@@ -91,9 +92,12 @@ int file_getc(int fnbr) {
             errno = 0;
             char ch;
             if (fread(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
-                ch = -1;
+                if (ferror(file_table[fnbr].file_ptr) == 0) {
+                    ch = -1;
+                } else {
+                    error_system(errno);
+                }
             }
-            error_check();
             return (int) ch;
         }
 
@@ -108,16 +112,17 @@ int file_getc(int fnbr) {
 int file_loc(int fnbr) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
 
-    int result = -1;
     switch (file_table[fnbr].type) {
         case fet_closed:
             ERROR_NOT_OPEN;
+            assert(false);
             break;
 
         case fet_file:
             errno = 0;
-            result = ftell(file_table[fnbr].file_ptr) + 1;
-            error_check();
+            long int result = ftell(file_table[fnbr].file_ptr);
+            if (result == -1L) error_system(errno);
+            return (int) (result + 1);
             break;
 
         case fet_serial:
@@ -125,38 +130,37 @@ int file_loc(int fnbr) {
             break;
     }
 
-    return result;
+    return -1;
 }
 
 int file_lof(int fnbr) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
 
-    int result = -1;
     switch (file_table[fnbr].type) {
         case fet_closed:
             ERROR_NOT_OPEN;
+            assert(false);
             break;
 
         case fet_file: {
             errno = 0;
             FILE *f = file_table[fnbr].file_ptr;
-            int pos = ftell(f);
-            error_check();
-            fseek(f, 0L, SEEK_END);
-            error_check();
-            result = ftell(f);
-            error_check();
-            fseek(f, pos, SEEK_SET);
-            error_check();
+            long int current = ftell(f);
+            if (current == -1L) error_system(errno);
+            if (FAILED(fseek(f, 0L, SEEK_END))) error_system(errno);
+            long int result = ftell(f);
+            if (result == -1L) error_system(errno);
+            if (FAILED(fseek(f, current, SEEK_SET))) error_system(errno);
+            return result;
             break;
         }
 
         case fet_serial:
-            result = 0; // Serial I/O ports are unbuffered.
+            return 0; // Serial I/O ports are unbuffered.
             break;
     }
 
-    return result;
+    return -1;
 }
 
 int file_putc(int ch, int fnbr) {
@@ -171,11 +175,11 @@ int file_putc(int ch, int fnbr) {
         case fet_file: {
             errno = 0;
             if (fwrite(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
-                if (errno == 0) errno = EBADF;
+                if (ferror(file_table[fnbr].file_ptr)) error_system(errno);
+                assert(false); // Always expect ferror to have been set.
             }
-            error_check();
             // TODO: Do I really want to be flushing every character ?
-            fflush(file_table[fnbr].file_ptr); // Can this fail ?
+            if (FAILED(fflush(file_table[fnbr].file_ptr))) error_system(errno);
             return (int) ch;
         }
 
@@ -199,13 +203,13 @@ int file_eof(int fnbr) {
         case fet_file: {
             FILE *f = file_table[fnbr].file_ptr;
             errno = 0;
-            int ch = fgetc(f);  // the Watcom compiler will only set eof after
-                                 // it has tried to read beyond the end of file
-            int i = (feof(f) != 0) ? 1 : 0;
-            error_check();
-            ungetc(ch, f);  // undo the Watcom bug fix
-            error_check();
-            return i;
+            int ch = fgetc(f); // Try to read beyond the end of the file.
+            if (ch == EOF) {
+                if (ferror(f)) error_system(errno);
+            } else {
+                if (ungetc(ch, f) == EOF) error_system(errno);
+            }
+            return ch == EOF;
         }
 
         case fet_serial:
@@ -223,10 +227,10 @@ void file_seek(int fnbr, int idx) {
     if (file_table[fnbr].type == fet_closed) ERROR_NOT_OPEN;
     FILE *f = file_table[fnbr].file_ptr;
 
-    fflush(f);
-    fsync(fileno(f));
-    fseek(f, idx - 1, SEEK_SET); // MMBasic indexes from 1, not 0.
-    error_check();
+    errno = 0;
+    if (FAILED(fflush(f))) error_system(errno);
+    if (FAILED(fsync(fileno(f)))) error_system(errno);
+    if (FAILED(fseek(f, idx - 1, SEEK_SET))) error_system(errno); // MMBasic indexes from 1, not 0.
 }
 
 int file_find_free(void) {

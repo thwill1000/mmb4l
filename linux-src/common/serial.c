@@ -227,13 +227,13 @@ void serial_open(const char *comspec_str, int fnbr) {
     // serial_dump_spec(&comspec);
 
     errno = 0;
-
     int fd = open(comspec.device, O_RDWR | O_NOCTTY); //  | O_NDELAY);
-    if (fd == -1) error_check();
-    fcntl(fd, F_SETFL, 0);
+    if (fd == -1) error_system(errno);
+
+    if (fcntl(fd, F_SETFL, 0) == -1) error_system(errno);
 
     struct termios options;
-    tcgetattr(fd, &options);
+    if (FAILED(tcgetattr(fd, &options))) error_system(errno);
     cfmakeraw(&options);
     cfsetispeed(&options, comspec.speed);
     cfsetospeed(&options, comspec.speed);
@@ -294,13 +294,11 @@ void serial_open(const char *comspec_str, int fnbr) {
     options.c_cc[VTIME] = 0; // time to wait for a character, 10ths of a second.
 
     // Apply changes after all output transmitted and discard all input.
-    tcsetattr(fd, TCSAFLUSH, &options);
-    error_check();
+    if (FAILED(tcsetattr(fd, TCSAFLUSH, &options))) error_system(errno);
 
     // May be necessary, the jury is still out.
     // mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(1000));
-    // tcflush(fd, TCIOFLUSH);
-    // error_check();
+    // if (FAILED(tcflush(fd, TCIOFLUSH))) error_system(errno);
 
     entry->type = fet_serial;
     entry->serial_fd = fd;
@@ -328,7 +326,7 @@ void serial_pump_input(int fnbr) {
     char tmp[256];
     errno = 0;
     ssize_t count = read(file_table[fnbr].serial_fd, tmp, 256);
-    if (FAILED(count)) error_check();
+    if (count == -1) error_system(errno);
     
     if (count > 0) {
         for (ssize_t i = 0; i < count; ++i) {
@@ -343,10 +341,9 @@ int serial_eof(int fnbr) {
     return (rx_buf_size(&file_table[fnbr].rx_buf) > 0) ? 0 : 1;
 
     // Alternative:
+    // errno = 0;
     // int count;
-    // if (FAILED(ioctl(file_table[fnbr].serial_fd, FIONREAD, &count))) {
-    //     error_check();
-    // }
+    // if (ioctl(file_table[fnbr].serial_fd, FIONREAD, &count) == -1) error_system(errno);
     // return count ? 0 : 1;
 }
 
@@ -363,9 +360,17 @@ int serial_putc(int ch, int fnbr) {
     assert(file_table[fnbr].type == fet_serial);
     errno = 0;
     ssize_t count = write(file_table[fnbr].serial_fd, &ch, 1);
-    if (FAILED(count)) error_check();
-    if (count != 1) error_system(EBADF);
-    return count;
+    switch (count) {
+        case -1:
+            error_system(errno);
+            break;
+        case 1:
+            return 1;
+            break;
+        default:
+            error_system(EBADF);
+            break;
+    }
 }
 
 int serial_rx_queue_size(int fnbr) {

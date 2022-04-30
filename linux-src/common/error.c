@@ -202,18 +202,6 @@ void error_system(MmResult error) {
     error_code(error, mmresult_to_string(error));
 }
 
-MmResult error_check(void) {
-    if (errno) {
-        int tmp = errno;
-        errno = 0;
-        error_system(tmp);
-        assert(0); // Don't expect to get here because of long_jmp().
-        return MMerrno;
-    } else {
-        return 0;
-    }
-}
-
 uint8_t error_to_exit_code(MmResult error) {
     switch (error) {
         default:

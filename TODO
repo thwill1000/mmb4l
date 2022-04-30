@@ -14,8 +14,6 @@ Required for alpha 4
  - When RUNning a program from another program should a relative path be
    resolved relative to CWD$ or the directory containing the currently running
    program ?
- - Fix error handling in file_eof()
-   - and other places using errno / error_check()
  - String literals should not be passed to non-const char * parameters
  - Remove OPTION CLEAR command
  - Add Peter to MMB4L startup banner (?)

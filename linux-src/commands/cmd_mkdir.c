@@ -7,9 +7,8 @@
 
 void cmd_mkdir(void) {
     char *path = GetTempStrMemory();
-    path_munge(getCstring(cmdline), path, STRINGSIZE);
-    error_check();
+    if (!path_munge(getCstring(cmdline), path, STRINGSIZE)) error_system(errno);
     // TODO: check/validate mode/permissions.
-    mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    error_check();
+    errno = 0;
+    if FAILED(mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) error_system(errno);
 }
