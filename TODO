@@ -25,9 +25,11 @@ Required for alpha 4
 Required for alpha 5
 --------------------
 
+ - Don't fake/support drive specifications, e.g. A:/
  - Implement tab completion of paths at MMBasic prompt
  - Implement variable/sub/function hash tables
  - Replace bang ! command with *, or allow both ?
+ - Implement SAVE command (?)
 
 
 Required for alpha 6
