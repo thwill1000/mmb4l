@@ -88,7 +88,7 @@ static void mminfo_directory(char *p) {
     g_string_rtn = GetTempStrMemory();
 
     errno = 0;
-    if (!getcwd(g_string_rtn, STRINGSIZE)) error_system(errno);
+    if (!getcwd(g_string_rtn, STRINGSIZE)) error_throw(errno);
 
     // Add a trailing '/' if one is not already present.
     // TODO: error handling if path too long.
@@ -130,7 +130,7 @@ static void mminfo_errno(char *p) {
 
 static char *get_path(char *p) {
     char *path = GetTempStrMemory();
-    if (!path_munge(getCstring(p), path, STRINGSIZE)) error_system(errno);
+    if (!path_munge(getCstring(p), path, STRINGSIZE)) error_throw(errno);
     return path;
 }
 
@@ -260,7 +260,7 @@ static void mminfo_option(char *p) {
             break;
     }
 
-    if (FAILED(result)) error_system(result);
+    if (FAILED(result)) error_throw(result);
 }
 
 static void mminfo_path(char *p) {

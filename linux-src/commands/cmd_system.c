@@ -78,7 +78,7 @@ static void cmd_system_getenv(char *p) {
             error("Environment variable value too long");
             break;
         default:
-            error_system(result);
+            error_throw(result);
             break;
     }
 }
@@ -117,7 +117,7 @@ static void cmd_system_setenv(char *p) {
         result = setenv(name, value, 1);
     }
 
-    if (result != kOk) error_system(result);
+    if (result != kOk) error_throw(result);
 }
 
 /**
@@ -226,9 +226,9 @@ static void cmd_system_execute(char *p) {
             // Set size of LONGSTRING variable.
             *((int64_t *) output_var_ptr) = buf_sz;
         }
-        if (*exit_status_ptr == 127) error_system(kUnknownSystemCommand);
+        if (*exit_status_ptr == 127) error_throw(kUnknownSystemCommand);
     } else {
-        error_system(result);
+        error_throw(result);
     }
 }
 

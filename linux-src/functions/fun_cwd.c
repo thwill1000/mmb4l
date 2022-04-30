@@ -10,7 +10,7 @@ void fun_cwd(void) {
     g_string_rtn = GetTempStrMemory();
 
     errno = 0;
-    if (!getcwd(g_string_rtn, STRINGSIZE)) error_system(errno);
+    if (!getcwd(g_string_rtn, STRINGSIZE)) error_throw(errno);
 
     CtoM(g_string_rtn);
 }

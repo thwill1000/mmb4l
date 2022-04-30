@@ -96,7 +96,7 @@ static void list_file(const char *filename, int all) {
     }
 
     char file_path[STRINGSIZE];
-    if (!path_munge(filename ? filename : CurrentFile, file_path, STRINGSIZE)) error_system(errno);
+    if (!path_munge(filename ? filename : CurrentFile, file_path, STRINGSIZE)) error_throw(errno);
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;

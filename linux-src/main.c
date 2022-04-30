@@ -316,7 +316,7 @@ int main(int argc, char *argv[]) {
         } else {
             prompt_get_input();
             MmResult result = parse_transform_input_buffer(inpbuf);
-            if (FAILED(result)) error_system(result);
+            if (FAILED(result)) error_throw(result);
         }
 
         if (!*inpbuf) continue;  // ignore an empty line

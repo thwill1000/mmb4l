@@ -16,7 +16,7 @@
 /** Gets the path of the file to write to. */
 static void cmd_autosave_get_file_path(char *file_path) {
     char *filename = getCstring(cmdline);
-    if (!path_munge(filename, file_path, STRINGSIZE)) error_system(errno);
+    if (!path_munge(filename, file_path, STRINGSIZE)) error_throw(errno);
 
     if (strlen(path_get_extension(file_path)) == 0) {
         if (strlen(file_path) > MAXSTRLEN - 4) {

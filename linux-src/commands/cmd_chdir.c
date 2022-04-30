@@ -7,7 +7,7 @@
 
 void cmd_chdir(void) {
     char *path = GetTempStrMemory();
-    if (!path_munge(getCstring(cmdline), path, STRINGSIZE)) error_system(errno);
+    if (!path_munge(getCstring(cmdline), path, STRINGSIZE)) error_throw(errno);
     errno = 0;
-    if (FAILED(chdir(path))) error_system(errno);
+    if (FAILED(chdir(path))) error_throw(errno);
 }

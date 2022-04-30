@@ -198,7 +198,7 @@ void error_code(MmResult error, const char *msg, ...) {
     va_end(argp);
 }
 
-void error_system(MmResult error) {
+void error_throw(MmResult error) {
     error_code(error, mmresult_to_string(error));
 }
 

@@ -23,7 +23,7 @@ void file_open(char *fname, char *mode, int fnbr) {
     if (file_table[fnbr].type != fet_closed) ERROR_ALREADY_OPEN;
 
     char path[STRINGSIZE];
-    if (!path_munge(fname, path, STRINGSIZE)) error_system(errno);
+    if (!path_munge(fname, path, STRINGSIZE)) error_throw(errno);
 
     // random writing is not allowed when a file is opened for append so open it
     // first for read+update and if that does not work open it for
@@ -36,14 +36,14 @@ void file_open(char *fname, char *mode, int fnbr) {
         if (!f) {
             errno = 0;
             f = fopen(path, "wb+");
-            if (!f) error_system(errno);
+            if (!f) error_throw(errno);
         }
         errno = 0;
-        if FAILED(fseek(f, 0, SEEK_END)) error_system(errno);
+        if FAILED(fseek(f, 0, SEEK_END)) error_throw(errno);
     } else {
         errno = 0;
         f = fopen(path, mode);
-        if (!f) error_system(errno);
+        if (!f) error_throw(errno);
     }
 
     file_table[fnbr].type = fet_file;
@@ -63,7 +63,7 @@ void file_close(int fnbr) {
             int result = fclose(file_table[fnbr].file_ptr);
             file_table[fnbr].type = fet_closed;
             file_table[fnbr].file_ptr = NULL;
-            if (FAILED(result)) error_system(errno);
+            if (FAILED(result)) error_throw(errno);
             break;
         }
 
@@ -95,7 +95,7 @@ int file_getc(int fnbr) {
                 if (ferror(file_table[fnbr].file_ptr) == 0) {
                     ch = -1;
                 } else {
-                    error_system(errno);
+                    error_throw(errno);
                 }
             }
             return (int) ch;
@@ -121,7 +121,7 @@ int file_loc(int fnbr) {
         case fet_file:
             errno = 0;
             long int result = ftell(file_table[fnbr].file_ptr);
-            if (result == -1L) error_system(errno);
+            if (result == -1L) error_throw(errno);
             return (int) (result + 1);
             break;
 
@@ -146,11 +146,11 @@ int file_lof(int fnbr) {
             errno = 0;
             FILE *f = file_table[fnbr].file_ptr;
             long int current = ftell(f);
-            if (current == -1L) error_system(errno);
-            if (FAILED(fseek(f, 0L, SEEK_END))) error_system(errno);
+            if (current == -1L) error_throw(errno);
+            if (FAILED(fseek(f, 0L, SEEK_END))) error_throw(errno);
             long int result = ftell(f);
-            if (result == -1L) error_system(errno);
-            if (FAILED(fseek(f, current, SEEK_SET))) error_system(errno);
+            if (result == -1L) error_throw(errno);
+            if (FAILED(fseek(f, current, SEEK_SET))) error_throw(errno);
             return result;
             break;
         }
@@ -175,11 +175,11 @@ int file_putc(int ch, int fnbr) {
         case fet_file: {
             errno = 0;
             if (fwrite(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
-                if (ferror(file_table[fnbr].file_ptr)) error_system(errno);
+                if (ferror(file_table[fnbr].file_ptr)) error_throw(errno);
                 assert(false); // Always expect ferror to have been set.
             }
             // TODO: Do I really want to be flushing every character ?
-            if (FAILED(fflush(file_table[fnbr].file_ptr))) error_system(errno);
+            if (FAILED(fflush(file_table[fnbr].file_ptr))) error_throw(errno);
             return (int) ch;
         }
 
@@ -205,9 +205,9 @@ int file_eof(int fnbr) {
             errno = 0;
             int ch = fgetc(f); // Try to read beyond the end of the file.
             if (ch == EOF) {
-                if (ferror(f)) error_system(errno);
+                if (ferror(f)) error_throw(errno);
             } else {
-                if (ungetc(ch, f) == EOF) error_system(errno);
+                if (ungetc(ch, f) == EOF) error_throw(errno);
             }
             return ch == EOF;
         }
@@ -228,9 +228,9 @@ void file_seek(int fnbr, int idx) {
     FILE *f = file_table[fnbr].file_ptr;
 
     errno = 0;
-    if (FAILED(fflush(f))) error_system(errno);
-    if (FAILED(fsync(fileno(f)))) error_system(errno);
-    if (FAILED(fseek(f, idx - 1, SEEK_SET))) error_system(errno); // MMBasic indexes from 1, not 0.
+    if (FAILED(fflush(f))) error_throw(errno);
+    if (FAILED(fsync(fileno(f)))) error_throw(errno);
+    if (FAILED(fseek(f, idx - 1, SEEK_SET))) error_throw(errno); // MMBasic indexes from 1, not 0.
 }
 
 int file_find_free(void) {

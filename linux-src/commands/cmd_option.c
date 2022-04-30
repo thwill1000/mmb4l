@@ -24,7 +24,7 @@ void cmd_option_list(char *p) {
     for (OptionsDefinition *def = options_definitions; def->name; def++) {
         if (!all && options_has_default_value(&mmb_options, def->id)) continue;
         result = options_get_display_value(&mmb_options, def->id, buf);
-        if (FAILED(result)) error_system(result);
+        if (FAILED(result)) error_throw(result);
         MMPrintString("Option ");
         MMPrintString((char *) def->name);
         MMPrintString(" ");
@@ -44,7 +44,7 @@ void cmd_option_load(char *p) {
 
     const char *filename = getCstring(argv[0]);
     MmResult result = options_load(&mmb_options, filename, NULL);
-    if FAILED(result) error_system(result);
+    if FAILED(result) error_throw(result);
 }
 
 static MmResult cmd_option_reset_all(char *p) {
@@ -97,7 +97,7 @@ void cmd_option_reset(char *p) {
         result = cmd_option_reset_one(p);
     }
 
-    if (FAILED(result)) error_system(result);
+    if (FAILED(result)) error_throw(result);
 }
 
 void cmd_option_save(char *p) {
@@ -106,7 +106,7 @@ void cmd_option_save(char *p) {
 
     const char *filename = getCstring(argv[0]);
     MmResult result = options_save(&mmb_options, filename);
-    if FAILED(result) error_system(result);
+    if FAILED(result) error_throw(result);
 }
 
 static MmResult cmd_option_set_integer(char *p, const OptionsDefinition *def) {
@@ -176,7 +176,7 @@ static void cmd_option_set(char *p) {
             result = kInternalFault;
     }
 
-    if (FAILED(result)) error_system(result);
+    if (FAILED(result)) error_throw(result);
 
     if (def->saved) {
         result = options_save(&mmb_options, OPTIONS_FILE_NAME);

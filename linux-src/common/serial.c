@@ -228,12 +228,12 @@ void serial_open(const char *comspec_str, int fnbr) {
 
     errno = 0;
     int fd = open(comspec.device, O_RDWR | O_NOCTTY); //  | O_NDELAY);
-    if (fd == -1) error_system(errno);
+    if (fd == -1) error_throw(errno);
 
-    if (fcntl(fd, F_SETFL, 0) == -1) error_system(errno);
+    if (fcntl(fd, F_SETFL, 0) == -1) error_throw(errno);
 
     struct termios options;
-    if (FAILED(tcgetattr(fd, &options))) error_system(errno);
+    if (FAILED(tcgetattr(fd, &options))) error_throw(errno);
     cfmakeraw(&options);
     cfsetispeed(&options, comspec.speed);
     cfsetospeed(&options, comspec.speed);
@@ -294,11 +294,11 @@ void serial_open(const char *comspec_str, int fnbr) {
     options.c_cc[VTIME] = 0; // time to wait for a character, 10ths of a second.
 
     // Apply changes after all output transmitted and discard all input.
-    if (FAILED(tcsetattr(fd, TCSAFLUSH, &options))) error_system(errno);
+    if (FAILED(tcsetattr(fd, TCSAFLUSH, &options))) error_throw(errno);
 
     // May be necessary, the jury is still out.
     // mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(1000));
-    // if (FAILED(tcflush(fd, TCIOFLUSH))) error_system(errno);
+    // if (FAILED(tcflush(fd, TCIOFLUSH))) error_throw(errno);
 
     entry->type = fet_serial;
     entry->serial_fd = fd;
@@ -326,7 +326,7 @@ void serial_pump_input(int fnbr) {
     char tmp[256];
     errno = 0;
     ssize_t count = read(file_table[fnbr].serial_fd, tmp, 256);
-    if (count == -1) error_system(errno);
+    if (count == -1) error_throw(errno);
     
     if (count > 0) {
         for (ssize_t i = 0; i < count; ++i) {
@@ -343,7 +343,7 @@ int serial_eof(int fnbr) {
     // Alternative:
     // errno = 0;
     // int count;
-    // if (ioctl(file_table[fnbr].serial_fd, FIONREAD, &count) == -1) error_system(errno);
+    // if (ioctl(file_table[fnbr].serial_fd, FIONREAD, &count) == -1) error_throw(errno);
     // return count ? 0 : 1;
 }
 
@@ -362,13 +362,13 @@ int serial_putc(int ch, int fnbr) {
     ssize_t count = write(file_table[fnbr].serial_fd, &ch, 1);
     switch (count) {
         case -1:
-            error_system(errno);
+            error_throw(errno);
             break;
         case 1:
             return 1;
             break;
         default:
-            error_system(EBADF);
+            error_throw(EBADF);
             break;
     }
 }

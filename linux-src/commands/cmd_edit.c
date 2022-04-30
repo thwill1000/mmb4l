@@ -108,7 +108,7 @@ void cmd_edit(void) {
                 error_code(errno, "Path too long");
                 break;
             default:
-                error_system(errno);
+                error_throw(errno);
                 break;
         }
     }
