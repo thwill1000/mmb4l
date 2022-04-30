@@ -8,7 +8,8 @@ extern "C" {
 
 }
 
-#define PATH_TEST_DIR  "/tmp/PathTest"
+#define PATH_TEST_DIR     "/tmp/PathTest"
+#define FILE_THAT_EXISTS  "/bin/cp"
 
 class PathTest : public ::testing::Test {
 
@@ -180,19 +181,19 @@ TEST_F(PathTest, GetExtension) {
 }
 
 TEST_F(PathTest, Exists) {
-    EXPECT_EQ(path_exists("/bin/vi"), true);
+    EXPECT_EQ(path_exists(FILE_THAT_EXISTS), true);
     EXPECT_EQ(path_exists("/bin/does-not-exist"), false);
 }
 
 TEST_F(PathTest, IsDirectory) {
     EXPECT_EQ(true, path_is_directory("/"));
     EXPECT_EQ(true, path_is_directory("/bin"));
-    EXPECT_EQ(false, path_is_directory("/bin/vi"));
+    EXPECT_EQ(false, path_is_directory(FILE_THAT_EXISTS));
     EXPECT_EQ(false, path_is_directory("/does-not-exist"));    
 }
 
 TEST_F(PathTest, IsEmpty) {
-    EXPECT_EQ(path_is_empty("/bin/vi"), 0);
+    EXPECT_EQ(path_is_empty(FILE_THAT_EXISTS), 0);
 
     char filename[] = "/tmp/is_empty_XXXXXX";
     int fd = mkstemp(filename);
@@ -202,7 +203,7 @@ TEST_F(PathTest, IsEmpty) {
 }
 
 TEST_F(PathTest, IsRegular) {
-    EXPECT_EQ(path_is_regular("/bin/vi"), true);
+    EXPECT_EQ(path_is_regular(FILE_THAT_EXISTS), true);
     EXPECT_EQ(path_is_regular("/bin"), false);
 }
 
