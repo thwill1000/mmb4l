@@ -19,9 +19,7 @@ static void cmd_autosave_get_file_path(char *file_path) {
     if (!path_munge(filename, file_path, STRINGSIZE)) error_throw(errno);
 
     if (strlen(path_get_extension(file_path)) == 0) {
-        if (strlen(file_path) > MAXSTRLEN - 4) {
-            error_code(ENAMETOOLONG, "Path too long");
-        }
+        if (strlen(file_path) > MAXSTRLEN - 4) ERROR_PATH_TOO_LONG;
         cstring_cat(file_path, ".bas", STRINGSIZE);
     }
 }

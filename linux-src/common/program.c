@@ -231,10 +231,10 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     if (!program_get_inc_file(parent_file, filename, file_path)) {
         switch (errno) {
             case ENOENT:
-                error_code(errno, "Include file '$' not found", filename);
+                error_throw_ex(errno, "Include file '$' not found", filename);
                 break;
             case ENAMETOOLONG:
-                error_code(errno, "Path too long");
+                ERROR_PATH_TOO_LONG;
                 break;
             default:
                 error_throw(errno);
@@ -623,10 +623,10 @@ static int program_load_file_internal(char *filename) {
     if (!program_get_bas_file(filename, file_path)) {
         switch (errno) {
             case ENOENT:
-                error_code(errno, "Program file not found");
+                error_throw_ex(errno, "Program file not found");
                 break;
             case ENAMETOOLONG:
-                error_code(errno, "Path too long");
+                ERROR_PATH_TOO_LONG;
                 break;
             default:
                 error_throw(errno);

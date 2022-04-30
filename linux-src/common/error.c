@@ -190,7 +190,7 @@ void error(char *msg, ...) {
     va_end(argp);
 }
 
-void error_code(MmResult error, const char *msg, ...) {
+void error_throw_ex(MmResult error, const char *msg, ...) {
     va_list argp;
     va_start(argp, msg);
     verror(error, msg, argp);
@@ -199,7 +199,7 @@ void error_code(MmResult error, const char *msg, ...) {
 }
 
 void error_throw(MmResult error) {
-    error_code(error, mmresult_to_string(error));
+    error_throw_ex(error, mmresult_to_string(error));
 }
 
 uint8_t error_to_exit_code(MmResult error) {

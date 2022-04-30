@@ -105,7 +105,7 @@ void cmd_edit(void) {
                 new_file = true;
                 break;
             case ENAMETOOLONG:
-                error_code(errno, "Path too long");
+                ERROR_PATH_TOO_LONG;
                 break;
             default:
                 error_throw(errno);

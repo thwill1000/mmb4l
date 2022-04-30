@@ -17,7 +17,7 @@ void cmd_error(void) {
             char *s = getCstring(argv[0]);
             int32_t i = getint(argv[2], INT32_MIN, INT32_MAX);
             if (i == 0) ERROR_INVALID("error code");
-            error_code(i, s);
+            error_throw_ex(i, s);
             break;
         }
         default:

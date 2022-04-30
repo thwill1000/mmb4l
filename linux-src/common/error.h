@@ -10,8 +10,8 @@ extern char error_file[STRINGSIZE];
 extern int error_line;
 
 void error(char *msg, ...);
-void error_code(MmResult error, const char *msg, ...);
 void error_throw(MmResult error);
+void error_throw_ex(MmResult error, const char *msg, ...);
 uint8_t error_to_exit_code(MmResult error);
 
 #define ERRNO_DEFAULT  1
@@ -31,10 +31,11 @@ uint8_t error_to_exit_code(MmResult error);
 #define ERROR_INVALID_OPTION_VALUE     ERROR_INVALID("value for option")
 #define ERROR_LINE_LENGTH              error("Line length")
 #define ERROR_NOT_ALLOWED(s)           error(s " not allowed")
-#define ERROR_NOT_OPEN                 error("File or device not open");
-#define ERROR_NOT_SERIAL_PORT          error("Not a serial port");
+#define ERROR_NOT_OPEN                 error("File or device not open")
+#define ERROR_NOT_SERIAL_PORT          error("Not a serial port")
 #define ERROR_OUT_OF_MEMORY            error("Not enough memory")
-#define ERROR_STRING_TOO_LONG          error("String too long");
+#define ERROR_PATH_TOO_LONG            error_throw_ex(ENAMETOOLONG, "Path too long")
+#define ERROR_STRING_TOO_LONG          error("String too long")
 #define ERROR_SYNTAX                   error("Syntax")
 #define ERROR_UNIMPLEMENTED(s)         error("Unimplemented: " s)
 #define ERROR_UNKNOWN_OPTION           error("Unknown option")
