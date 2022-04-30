@@ -1,4 +1,5 @@
 #include "../common/mmb4l.h"
+#include "../common/error.h"
 
 void fun_choice(void) {
     MMFLOAT f = 0;
@@ -6,7 +7,7 @@ void fun_choice(void) {
     char *s = NULL;
     int t = T_NOTYPE;
     getargs(&ep, 5, ",");
-    if (argc != 5) error("Syntax");
+    if (argc != 5) ERROR_SYNTAX;
     int which = getnumber(argv[0]);
     if (which) {
         evaluate(argv[2], &f, &i64, &s, &t, false);
@@ -26,6 +27,7 @@ void fun_choice(void) {
         Mstrcpy(sret, s);  // copy the string
         targ = T_STR;
         return;
-    } else
-        error("Syntax");
+    } else {
+        ERROR_SYNTAX;
+    }
 }

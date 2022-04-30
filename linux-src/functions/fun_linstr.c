@@ -1,4 +1,5 @@
 #include "../common/mmb4l.h"
+#include "../common/error.h"
 
 void fun_linstr(void) {
     void *ptr1 = NULL;
@@ -7,7 +8,7 @@ void fun_linstr(void) {
     char *str = NULL;
     int slen, found = 0, i, j, n;
     getargs(&ep, 5, ",");
-    if (argc < 3 || argc > 5) error("Argument count");
+    if (argc < 3 || argc > 5) ERROR_ARGUMENT_COUNT;
     int64_t start;
     if (argc == 5)
         start = getinteger(argv[4]) - 1;
@@ -15,14 +16,11 @@ void fun_linstr(void) {
         start = 0;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
-        if (vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-        if (vartbl[VarIndex].dims[0] <= 0) {  // Not an array
-            error("Argument 1 must be integer array");
-        }
+        if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+        if (vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_INTEGER_ARRAY(1);
         dest = (int64_t *)ptr1;
         str = (char *)&dest[0];
-    } else
-        error("Argument 1 must be integer array");
+    } else ERROR_ARG_NOT_INTEGER_ARRAY(1);
     j = (vartbl[VarIndex].dims[0] - mmb_options.base);
     srch = getstring(argv[2]);
     slen = *srch;

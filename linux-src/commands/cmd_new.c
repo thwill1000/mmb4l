@@ -5,7 +5,7 @@
 #include "../common/utility.h"
 
 void cmd_new(void) {
-//    if(CurrentLinePtr) error("Invalid in a program");
+//    if(CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
     checkend(cmdline);
     ClearSavedVars();
     FlashWriteInit(ProgMemory, mmb_options.prog_flash_size);

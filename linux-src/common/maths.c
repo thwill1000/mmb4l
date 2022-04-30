@@ -25,7 +25,11 @@ provisions:
 #include <string.h>
 
 #include "mmb4l.h"
+#include "error.h"
 #include "maths.h"
+
+#define ERROR_FAILED_TO_ALLOCATE_FLOAT_ARRAY(i)  error_throw_ex(kError, "Failed to allocate memory for %D float array!")
+#define ERROR_ARRAY_SIZE_MUST_BE_POWER_OF_2      error_throw_ex(kError, "Array size must be power of 2")
 
 //void cmd_SensorFusion(char *passcmdline);
 void MahonyQuaternionUpdate(MMFLOAT ax, MMFLOAT ay, MMFLOAT az, MMFLOAT gx, MMFLOAT gy, MMFLOAT gz, MMFLOAT mx, MMFLOAT my, MMFLOAT mz, MMFLOAT Ki, MMFLOAT Kp, MMFLOAT deltat, MMFLOAT *yaw, MMFLOAT *pitch, MMFLOAT *roll);
@@ -137,7 +141,7 @@ MMFLOAT *alloc1df(int n)
 //    int i;
     MMFLOAT* array;
     if ((array = (MMFLOAT*) GetMemory(n * sizeof(MMFLOAT))) == NULL) {
-        error("Unable to allocate memory for 1D float array...\n");
+        ERROR_FAILED_TO_ALLOCATE_FLOAT_ARRAY(1);
         exit(0);
     }
 
@@ -153,7 +157,7 @@ MMFLOAT **alloc2df(int m, int n)
     int i;
     MMFLOAT** array;
     if ((array = (MMFLOAT **) GetMemory(m * sizeof(MMFLOAT*))) == NULL) {
-        error("Unable to allocate memory for 2D float array...\n");
+        ERROR_FAILED_TO_ALLOCATE_FLOAT_ARRAY(2);
         exit(0);
     }
 
@@ -310,29 +314,25 @@ void maths_fft(char *pp) {
         if(tp) {
                 getargs(&tp,3,",");
             ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
-            if(vartbl[VarIndex].type & T_NBR) {
-                if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-                if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
-                        error("Argument 1 must be a floating point array");
-                }
+            if (vartbl[VarIndex].type & T_NBR) {
+                if(vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+                if(vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_FLOAT_ARRAY(1);
                 a3float = (MMFLOAT *)ptr1;
-                        if ((char *) ptr1 != vartbl[VarIndex].val.s)error("Syntax");
-            } else error("Argument 1 must be a floating point array");
+                if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
+            } else ERROR_ARG_NOT_FLOAT_ARRAY(1);
             size=(vartbl[VarIndex].dims[0] - mmb_options.base);
             ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
             if(vartbl[VarIndex].type & T_NBR) {
-                 if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-                 if(vartbl[VarIndex].dims[0] <= 0 ) {                // Not an array
-                         error("Argument 2 must be a floating point array");
-                 }
+                 if(vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+                 if(vartbl[VarIndex].dims[0] <= 0 ) ERROR_ARG_NOT_FLOAT_ARRAY(2);
                  a4float = (MMFLOAT *)ptr2;
-                         if ((char *) ptr2 != vartbl[VarIndex].val.s)error("Syntax");
-            } else error("Argument 2 must be a floating point array");
-            if((vartbl[VarIndex].dims[0] - mmb_options.base) !=size)error("Array size mismatch");
+                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
+            } else ERROR_ARG_NOT_FLOAT_ARRAY(2);
+            if((vartbl[VarIndex].dims[0] - mmb_options.base) !=size) ERROR_ARRAY_SIZE_MISMATCH;
             for(i=1;i<65536;i*=2){
                     if(size==i-1)powerof2=1;
             }
-            if(!powerof2)error("array size must be a power of 2");
+            if (!powerof2) ERROR_ARRAY_SIZE_MUST_BE_POWER_OF_2;
         a1cplx=(cplx *)GetTempMemory((size+1)*16);
         a5float=(MMFLOAT *)a1cplx;
         for(i=0;i<=size;i++){a5float[i*2]=a3float[i];a5float[i*2+1]=0;}
@@ -346,28 +346,24 @@ void maths_fft(char *pp) {
                 getargs(&tp,3,",");
             ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
             if(vartbl[VarIndex].type & T_NBR) {
-                if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-                if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
-                        error("Argument 1 must be a floating point array");
-                }
+                if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+                if (vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_FLOAT_ARRAY(1);
                 a3float = (MMFLOAT *)ptr1;
-                        if ((char *) ptr1 != vartbl[VarIndex].val.s)error("Syntax");
-            } else error("Argument 1 must be a floating point array");
+                if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
+            } else ERROR_ARG_NOT_FLOAT_ARRAY(1);
             size=(vartbl[VarIndex].dims[0] - mmb_options.base);
             ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
             if(vartbl[VarIndex].type & T_NBR) {
-                 if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-                 if(vartbl[VarIndex].dims[0] <= 0 ) {                // Not an array
-                         error("Argument 2 must be a floating point array");
-                 }
+                 if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+                 if (vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_FLOAT_ARRAY(2);
                  a4float = (MMFLOAT *)ptr2;
-                         if ((char *) ptr2 != vartbl[VarIndex].val.s)error("Syntax");
-            } else error("Argument 2 must be a floating point array");
-            if((vartbl[VarIndex].dims[0] - mmb_options.base) !=size)error("Array size mismatch");
+                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
+            } else ERROR_ARG_NOT_FLOAT_ARRAY(2);
+            if((vartbl[VarIndex].dims[0] - mmb_options.base) !=size) ERROR_ARRAY_SIZE_MISMATCH;
             for(i=1;i<65536;i*=2){
                     if(size==i-1)powerof2=1;
             }
-            if(!powerof2)error("array size must be a power of 2");
+            if (!powerof2) ERROR_ARRAY_SIZE_MUST_BE_POWER_OF_2;
         a1cplx=(cplx *)GetTempMemory((size+1)*16);
         a5float=(MMFLOAT *)a1cplx;
         for(i=0;i<=size;i++){a5float[i*2]=a3float[i];a5float[i*2+1]=0;}
@@ -381,29 +377,25 @@ void maths_fft(char *pp) {
                 getargs(&tp,3,",");
             ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
             if(vartbl[VarIndex].type & T_NBR) {
-                if(vartbl[VarIndex].dims[1] <= 0) error("Invalid variable");
-                if(vartbl[VarIndex].dims[2] != 0) error("Invalid variable");
-                if(vartbl[VarIndex].dims[0] - mmb_options.base != 1) {                // Not an array
-                        error("Argument 1 must be a 2D floating point array");
-                }
+                if (vartbl[VarIndex].dims[1] <= 0) ERROR_INVALID_VARIABLE;
+                if (vartbl[VarIndex].dims[2] != 0) ERROR_INVALID_VARIABLE;
+                if (vartbl[VarIndex].dims[0] - mmb_options.base != 1) ERROR_ARG_NOT_2D_FLOAT_ARRAY(1);
                 a1cplx = (cplx *)ptr1;
-                        if ((char *) ptr1 != vartbl[VarIndex].val.s)error("Syntax");
-            } else error("Argument 1 must be a 2D floating point array");
+                if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
+            } else ERROR_ARG_NOT_2D_FLOAT_ARRAY(1);
             size=(vartbl[VarIndex].dims[1] - mmb_options.base);
             ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
             if(vartbl[VarIndex].type & T_NBR) {
-                 if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-                 if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
-                         error("Argument 2 must be a floating point array");
-                 }
+                 if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+                 if (vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_FLOAT_ARRAY(2);
                  a3float = (MMFLOAT *)ptr2;
-                         if ((char *) ptr2 != vartbl[VarIndex].val.s)error("Syntax");
-            } else error("Argument 2 must be a floating point array");
-            if((vartbl[VarIndex].dims[0] - mmb_options.base) !=size)error("Array size mismatch");
+                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
+            } else ERROR_ARG_NOT_FLOAT_ARRAY(2);
+            if((vartbl[VarIndex].dims[0] - mmb_options.base) != size) ERROR_ARRAY_SIZE_MISMATCH;
             for(i=1;i<65536;i*=2){
                     if(size==i-1)powerof2=1;
             }
-            if(!powerof2)error("array size must be a power of 2");
+            if (!powerof2) ERROR_ARRAY_SIZE_MUST_BE_POWER_OF_2;
         a2cplx=(cplx *)GetTempMemory((size+1)*16);
             memcpy(a2cplx,a1cplx,(size+1)*16);
             for(i=0;i<=size;i++)a2cplx[i]=conj(a2cplx[i]);
@@ -416,29 +408,25 @@ void maths_fft(char *pp) {
         getargs(&pp,3,",");
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
     if(vartbl[VarIndex].type & T_NBR) {
-        if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-        if(vartbl[VarIndex].dims[0] <= 1) {                // Not an array
-                error("Argument 1 must be a floating point array");
-        }
+        if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+        if (vartbl[VarIndex].dims[0] <= 1) ERROR_ARG_NOT_FLOAT_ARRAY(1);
         a3float = (MMFLOAT *)ptr1;
-                if ((char *) ptr1 != vartbl[VarIndex].val.s)error("Syntax");
-    } else error("Argument 1 must be a floating point array");
+        if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
+    } else ERROR_ARG_NOT_FLOAT_ARRAY(1);
     size=(vartbl[VarIndex].dims[0] - mmb_options.base);
     ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
     if(vartbl[VarIndex].type & T_NBR) {
-         if(vartbl[VarIndex].dims[1] <= 0) error("Invalid variable");
-         if(vartbl[VarIndex].dims[2] != 0) error("Invalid variable");
-         if(vartbl[VarIndex].dims[0] - mmb_options.base != 1) {                // Not an array
-                 error("Argument 2 must be a 2D floating point array");
-         }
+         if (vartbl[VarIndex].dims[1] <= 0) ERROR_INVALID_VARIABLE;
+         if (vartbl[VarIndex].dims[2] != 0) ERROR_INVALID_VARIABLE;
+         if (vartbl[VarIndex].dims[0] - mmb_options.base != 1) ERROR_ARG_NOT_2D_FLOAT_ARRAY(2);
          a2cplx = (cplx *)ptr2;
-                 if ((char *) ptr2 != vartbl[VarIndex].val.s)error("Syntax");
-    } else error("Argument 2 must be a 2D floating point array");
-    if((vartbl[VarIndex].dims[1] - mmb_options.base) !=size)error("Array size mismatch");
+         if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
+    } else ERROR_ARG_NOT_2D_FLOAT_ARRAY(2);
+    if((vartbl[VarIndex].dims[1] - mmb_options.base) !=size) ERROR_ARRAY_SIZE_MISMATCH;
     for(i=1;i<65536;i*=2){
             if(size==i-1)powerof2=1;
     }
-    if(!powerof2)error("array size must be a power of 2");
+    if (!powerof2) ERROR_ARRAY_SIZE_MUST_BE_POWER_OF_2;
     a4float=(MMFLOAT *)a2cplx;
     for(i=0;i<=size;i++){a4float[i*2]=a3float[i];a4float[i*2+1]=0;}
 //    fft((MMFLOAT *)a2cplx,size+1);
@@ -449,7 +437,7 @@ void maths_fft(char *pp) {
 //     char *p;
 //     if((p = checkstring(passcmdline, "MADGWICK")) != NULL) {
 //     getargs(&p, 25,",");
-//     if(argc < 23) error("Incorrect number of parameters");
+//     if(argc < 23) ERROR_ARGUMENT_COUNT;
 //         MMFLOAT t;
 //         MMFLOAT *pitch, *yaw, *roll;
 //         MMFLOAT ax; MMFLOAT ay; MMFLOAT az; MMFLOAT gx; MMFLOAT gy; MMFLOAT gz; MMFLOAT mx; MMFLOAT my; MMFLOAT mz; MMFLOAT beta;
@@ -463,11 +451,11 @@ void maths_fft(char *pp) {
 //         my=getnumber(argv[14]);
 //         mz=getnumber(argv[16]);
 //         pitch = findvar(argv[18], V_FIND);
-//         if(!(vartbl[VarIndex].type & T_NBR)) error("Invalid variable");
+//         if(!(vartbl[VarIndex].type & T_NBR)) ERROR_INVALID_VARIABLE;
 //         roll = findvar(argv[20], V_FIND);
-//         if(!(vartbl[VarIndex].type & T_NBR)) error("Invalid variable");
+//         if(!(vartbl[VarIndex].type & T_NBR)) ERROR_INVALID_VARIABLE;
 //         yaw = findvar(argv[22], V_FIND);
-//         if(!(vartbl[VarIndex].type & T_NBR)) error("Invalid variable");
+//         if(!(vartbl[VarIndex].type & T_NBR)) ERROR_INVALID_VARIABLE;
 //         beta = 0.5;
 //         if(argc == 25) beta=getnumber(argv[24]);
 //         t=(MMFLOAT)AHRSTimer/1000.0;
@@ -478,7 +466,7 @@ void maths_fft(char *pp) {
 //     }
 //     if((p = checkstring(passcmdline, "MAHONY")) != NULL) {
 //     getargs(&p, 27,",");
-//     if(argc < 23) error("Incorrect number of parameters");
+//     if(argc < 23) ERROR_INVALID_ARGUMENT_COUNT;
 //         MMFLOAT t;
 //         MMFLOAT *pitch, *yaw, *roll;
 //         MMFLOAT Kp, Ki;
@@ -493,11 +481,11 @@ void maths_fft(char *pp) {
 //         my=getnumber(argv[14]);
 //         mz=getnumber(argv[16]);
 //         pitch = findvar(argv[18], V_FIND);
-//         if(!(vartbl[VarIndex].type & T_NBR)) error("Invalid variable");
+//         if(!(vartbl[VarIndex].type & T_NBR)) ERROR_INVALID_VARIABLE;
 //         roll = findvar(argv[20], V_FIND);
-//         if(!(vartbl[VarIndex].type & T_NBR)) error("Invalid variable");
+//         if(!(vartbl[VarIndex].type & T_NBR)) ERROR_INVALID_VARIABLE;
 //         yaw = findvar(argv[22], V_FIND);
-//         if(!(vartbl[VarIndex].type & T_NBR)) error("Invalid variable");
+//         if(!(vartbl[VarIndex].type & T_NBR)) ERROR_INVALID_VARIABLE;
 //         Kp=10.0 ; Ki=0.0;
 //         if(argc >= 25)Kp=getnumber(argv[24]);
 //         if(argc == 27)Ki=getnumber(argv[26]);
@@ -507,7 +495,7 @@ void maths_fft(char *pp) {
 //         MahonyQuaternionUpdate(ax, ay, az, gx, gy, gz, mx, my, mz, Ki, Kp, t, yaw, pitch, roll) ;
 //         return;
 //     }
-//     error("Invalid command");
+//     ERROR_UNKNOWN_SUBCOMMAND;
 // }
 
 void MadgwickQuaternionUpdate(MMFLOAT ax, MMFLOAT ay, MMFLOAT az, MMFLOAT gx, MMFLOAT gy, MMFLOAT gz, MMFLOAT mx, MMFLOAT my, MMFLOAT mz, MMFLOAT beta, MMFLOAT deltat, MMFLOAT *pitch, MMFLOAT *yaw, MMFLOAT *roll)

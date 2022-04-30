@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "../common/mmb4l.h"
+#include "../common/error.h"
 #include "../common/interrupt.h"
 #include "../common/mmtime.h"
 
@@ -47,7 +48,7 @@ static void cmd_pause_in_main_program(int64_t duration_ns) {
 void cmd_pause(void) {
     int64_t duration_ns = (int64_t) (getnumber(cmdline) * 1000000.0);
     if (duration_ns < 0) {
-        error("Number out of bounds");
+        ERROR_NUMBER_OUT_OF_BOUNDS;
     } else if (duration_ns < 50000) {
         // Do nothing.
     } else if (duration_ns < 1500000) {

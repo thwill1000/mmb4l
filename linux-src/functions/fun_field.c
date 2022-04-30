@@ -1,4 +1,5 @@
 #include "../common/mmb4l.h"
+#include "../common/error.h"
 
 // return true if the char 'c' is contained in the string 'srch$'
 // used only by scan_for_delimiter()  below
@@ -36,7 +37,7 @@ void fun_field(void) {
     char *p, *delims = "\1,", *quotes = "\0";
     int fnbr, i, j, k;
     getargs(&ep, 7, ",");
-    if (!(argc == 3 || argc == 5 || argc == 7)) error("Syntax");
+    if (!(argc == 3 || argc == 5 || argc == 7)) ERROR_SYNTAX;
     p = getstring(argv[0]);                // the string containing the fields
     fnbr = getint(argv[2], 1, MAXSTRLEN);  // field nbr to return
     if (argc > 3 && *argv[4])

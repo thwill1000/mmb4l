@@ -2,6 +2,8 @@
 #include "../common/error.h"
 #include "../common/utility.h"
 
+#define ERROR_ADDRESS_NOT_DIVISIBLE_BY(i)  error_throw_ex(kError, "Address not divisible by %", i)
+
 /** POKE BYTE addr%, byte% */
 static void poke_byte(int argc, char** argv, char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
@@ -25,7 +27,7 @@ static void poke_float(int argc, char** argv, char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
-    if (addr % 8) error("Address not divisible by 8");
+    if (addr % 8) ERROR_ADDRESS_NOT_DIVISIBLE_BY(8);
     MMFLOAT value = getnumber(argv[2]);
 
     *((MMFLOAT *) addr) = value;
@@ -36,7 +38,7 @@ static void poke_integer(int argc, char** argv, char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
-    if (addr % 8) error("Address not divisible by 8");
+    if (addr % 8) ERROR_ADDRESS_NOT_DIVISIBLE_BY(8);
     int64_t value = getinteger(argv[2]);
 
     *((uint64_t *) addr) = (uint64_t) value;
@@ -47,7 +49,7 @@ static void poke_short(int argc, char** argv, char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
-    if (addr % 2) error("Address not divisible by 2");
+    if (addr % 2) ERROR_ADDRESS_NOT_DIVISIBLE_BY(2);
     int64_t value = getinteger(argv[2]);
 
     *((uint16_t *) addr) = (uint16_t) value;
@@ -59,9 +61,7 @@ static void poke_var(int argc, char** argv, char *p) {
 
     void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
 
-    if (vartbl[VarIndex].type & T_CONST) {
-        error("Cannot change a constant");
-    }
+    if (vartbl[VarIndex].type & T_CONST) ERROR_CANNOT_CHANGE_A_CONSTANT;
 
     int64_t offset = getinteger(argv[2]);
     int64_t value = getinteger(argv[4]);
@@ -84,7 +84,7 @@ static void poke_word(int argc, char** argv, char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
-    if (addr % 4) error("Address not divisible by 4");
+    if (addr % 4) ERROR_ADDRESS_NOT_DIVISIBLE_BY(4);
     int32_t value = getinteger(argv[2]);
 
     *((uint32_t *) addr) = (uint32_t) value;

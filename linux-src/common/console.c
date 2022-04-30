@@ -17,6 +17,8 @@
 #include "utility.h"
 #include "rx_buf.h"
 
+#define ERROR_UNEXPECTED_READ_RESULT  error_throw_ex(kError, "Unexpected result from read()")
+
 #define CONSOLE_RX_BUF_SIZE 256
 
 // Jump through hoops so compiler doesn't complain about ignoring the return value.
@@ -74,7 +76,7 @@ void console_pump_input(void) {
             // printf("<%d>", (int) ch);
             break;
         default:
-            error("Unexpected result from read()");
+            ERROR_UNEXPECTED_READ_RESULT;
             break;
     }
 

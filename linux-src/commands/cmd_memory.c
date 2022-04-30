@@ -4,6 +4,10 @@
 #include "../common/error.h"
 #include "../common/utility.h"
 
+#define ERROR_ADDRESS_NOT_DIVISIBLE_BY(i)      error_throw_ex(kError, "Address not divisible by %", i)
+#define ERROR_DST_ADDRESS_NOT_DIVISIBLE_BY(i)  error_throw_ex(kError, "Destination address not divisible by %", i)
+#define ERROR_SRC_ADDRESS_NOT_DIVISIBLE_BY(i)  error_throw_ex(kError, "Source address not divisible by %", i)
+
 static int64_t getint64(char *p, int64_t min, int64_t max) {
     int64_t i = getinteger(p);
     if (i < min || i > max) {
@@ -13,7 +17,7 @@ static int64_t getint64(char *p, int64_t min, int64_t max) {
 #else
         sprintf(buf, "%lld is invalid (valid is %lld to %lld)", i, min, max);
 #endif
-        error(buf);
+        error_throw_ex(kError, buf);
     }
     return i;
 }
@@ -28,9 +32,9 @@ static void memory_copy_internal(char *p, size_t element_size) {
     getargs(&p, 5, ",");
     if (argc != 5) ERROR_SYNTAX;
     uintptr_t src = get_poke_addr(argv[0]);
-    if (src % element_size) error("Source address not divisible by %", element_size);
+    if (src % element_size) ERROR_SRC_ADDRESS_NOT_DIVISIBLE_BY(element_size);
     uintptr_t dst = get_poke_addr(argv[2]);
-    if (dst % element_size) error("Destination address not divisible by %", element_size);
+    if (dst % element_size) ERROR_DST_ADDRESS_NOT_DIVISIBLE_BY(element_size);
     size_t num = (size_t) getint64(argv[4], 0, UINT32_MAX);
     memmove((void *) dst, (void *) src, num * element_size);
 }
@@ -82,7 +86,7 @@ static void memory_set_internal(char *p, size_t element_size, int64_t min, int64
     getargs(&p, 5, ",");
     if (argc != 5) ERROR_SYNTAX;
     uintptr_t to = get_poke_addr(argv[0]);
-    if ((uintptr_t) to % element_size) error("Address not divisible by %", element_size);
+    if ((uintptr_t) to % element_size) ERROR_ADDRESS_NOT_DIVISIBLE_BY(element_size);
     int64_t value = getint64(argv[2], min, max);
     int64_t num = getint64(argv[4], 0, UINT32_MAX);
     if (element_size == 1) {
@@ -104,7 +108,7 @@ static void memory_set_float(char *p) {
     getargs(&p, 5, ",");
     if (argc != 5) ERROR_SYNTAX;
     uintptr_t to = get_poke_addr(argv[0]);
-    if ((uintptr_t) to % 8) error("Address not divisible by 8");
+    if ((uintptr_t) to % 8) ERROR_ADDRESS_NOT_DIVISIBLE_BY(8);
     MMFLOAT value = getnumber(argv[2]);
     int64_t num = getint64(argv[4], 0, UINT32_MAX);
     for (int32_t i = 0; i < num; ++i) {

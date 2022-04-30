@@ -9,6 +9,8 @@
 #include "../common/program.h"
 #include "../common/utility.h"
 
+#define ERROR_NOTHING_TO_LIST  error_throw_ex(kError, "Nothing to list")
+
 void cmd_option_list(char *p); // cmd_option.c
 
 /* qsort C-string comparison function */
@@ -91,7 +93,7 @@ static void list_functions() {
 
 static void list_file(const char *filename, int all) {
     if (!filename && CurrentFile[0] == '\0') {
-        error("Nothing to list");
+        ERROR_NOTHING_TO_LIST;
         return;
     }
 
@@ -120,7 +122,7 @@ static void list_file(const char *filename, int all) {
 
 static void list_flash(int all) {
     if (CurrentFile[0] == '\0') {
-        error("Nothing to list");
+        ERROR_NOTHING_TO_LIST;
         return;
     }
 
@@ -134,7 +136,7 @@ static void list_flash(int all) {
 
 static void list_csubs(int all) {
     if (CurrentFile[0] == '\0') {
-        error("Nothing to list");
+        ERROR_NOTHING_TO_LIST;
         return;
     }
 

@@ -4,6 +4,8 @@
 #include "../common/error.h"
 #include "../common/cJSON.h"
 
+#define ERROR_NOT_AN_ITEM  error_throw_ex(kError, "Not an item")
+
 #define REPORT_NULL_FLAG  0x01
 #define REPORT_MISSING_FLAG  0x02
 
@@ -58,7 +60,7 @@ static void fun_json_internal(void *varptr, char *key, int64_t flags) {
 
     if (cJSON_IsObject(root) || cJSON_IsInvalid(root)) {
         cJSON_Delete(parse);
-        error("Not an item");
+        ERROR_NOT_AN_ITEM;
     } else if (cJSON_IsNull(root)) {
         strcpy(sret, flags & REPORT_NULL_FLAG ? "<null>" : "");
         cJSON_Delete(parse);
@@ -93,9 +95,9 @@ void fun_json(void) {
 
     // First argument should be a LONGSTRING, aka. a 1D integer array.
     void *varptr = findvar(argv[0], V_FIND | V_EMPTY_OK);
-    if (!(vartbl[VarIndex].type & T_INT)) ERROR_ARGUMENT_NOT_INTEGER_ARRAY("1");
-    if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID("variable");
-    if (vartbl[VarIndex].dims[0] <= 0) ERROR_ARGUMENT_NOT_INTEGER_ARRAY("1");
+    if (!(vartbl[VarIndex].type & T_INT)) ERROR_ARG_NOT_INTEGER_ARRAY(1);
+    if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+    if (vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_INTEGER_ARRAY(1);
 
     // Second argument is the key to lookup in the JSON.
     char *key = getCstring(argv[2]);

@@ -1,4 +1,8 @@
 #include "../common/mmb4l.h"
+#include "../common/error.h"
+
+#define ERROR_INVALID_COLOUR(s)     error_throw_ex(kError, "Invalid colour: $", s)
+#define ERROR_INVALID_TRANSPARENCY  error_throw_ex(kError, "Transparency not valid for this mode")
 
 #define RGB(red, green, blue, trans) (unsigned int) (((trans & 0b1111) << 24) | ((red & 0b11111111) << 16) | ((green  & 0b11111111) << 8) | (blue & 0b11111111))
 
@@ -71,11 +75,11 @@ void fun_rgb(void) {
         else if (checkstring(argv[0], "BEIGE"))
             iret = RGB_BEIGE;
         else
-            error("Invalid colour: $", argv[0]);
+            ERROR_INVALID_COLOUR(argv[0]);
         if (VideoColour != 32) iret &= 0xFFFFFFF;
     } else if (argc == 3) {
         if (VideoColour == 8 || VideoColour == 16)
-            error("Transparency not valid for this mode");
+            ERROR_INVALID_TRANSPARENCY;
         if (checkstring(argv[0], "WHITE"))
             iret = RGB_WHITE;
         else if (checkstring(argv[0], "BLACK"))
@@ -115,18 +119,19 @@ void fun_rgb(void) {
         else if (checkstring(argv[0], "BEIGE"))
             iret = RGB_BEIGE;
         else
-            error("Invalid colour: $", argv[0]);
+            ERROR_INVALID_COLOUR(argv[0]);
         iret &= 0xFFFFFF;
         if (VideoColour == 12) iret |= (getint(argv[2], 0, 15) << 24);
         if (VideoColour == 32) iret |= (getint(argv[2], 0, 255) << 24);
     } else if (argc == 7) {
         if (VideoColour == 8 || VideoColour == 16)
-            error("Transparency not valid for this mode");
+            ERROR_INVALID_TRANSPARENCY;
         iret = rgb(getint(argv[0], 0, 255), getint(argv[2], 0, 255),
                    getint(argv[4], 0, 255),
                    (VideoColour == 12 ? getint(argv[6], 0, 15)
                                       : getint(argv[6], 0, 255)));
-    } else
-        error("Syntax");
+    } else {
+        ERROR_SYNTAX;
+    }
     targ = T_INT;
 }

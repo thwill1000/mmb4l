@@ -12,6 +12,14 @@
 #include "program.h"
 #include "utility.h"
 
+#define ERROR_CANNOT_INCLUDE_FROM_INCLUDE  error_throw_ex(kError, "Can't import from an import")
+#define ERROR_FUNCTION_NAME                error_throw_ex(kError, "Function name")
+#define ERROR_INCLUDE_FILE_NOT_FOUND(s)    error_throw_ex(kFileNotFound, "Include file '$' not found", s)
+#define ERROR_INVALID_HEX                  ERROR_INVALID("hex word")
+#define ERROR_MISSING_END                  error_throw_ex(kError, "Missing END declaration")
+#define ERROR_PROGRAM_FILE_NOT_FOUND       error_throw_ex(kFileNotFound, "Program file not found")
+#define ERROR_TOO_MANY_DEFINES             error_throw_ex(kError, "Too many #DEFINE statements")
+
 #define MAXDEFINES  256
 
 static const char *BAS_FILE_EXTENSIONS[] = { ".bas", ".BAS", ".Bas" };
@@ -145,7 +153,7 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
         // Note that all lines in the edit buffer should just have a '\n' line-end.
         pend = pstart;
         while (*pend != '\n') pend++;
-        if (pend - pstart > STRINGSIZE - 1) error("Line too long"); // TODO: what cleans up the edit buffer ?
+        if (pend - pstart > STRINGSIZE - 1) ERROR_LINE_TOO_LONG; // TODO: what cleans up the edit buffer ?
         memset(inpbuf, 0, STRINGSIZE);
         memcpy(inpbuf, pstart, pend - pstart);
         //printf("%s\n", inpbuf);
@@ -156,8 +164,7 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
         //printf("* %s\n", tknbuf);
 
         for (char *pbuf = tknbuf; !(pbuf[0] == 0 && pbuf[1] == 0); pmem++, pbuf++) {
-            if (pmem > (char *) ProgMemory + PROG_FLASH_SIZE - 3)
-                error("Not enough memory");
+            if (pmem > (char *) ProgMemory + PROG_FLASH_SIZE - 3) ERROR_OUT_OF_MEMORY;
             *pmem = *pbuf;
         }
         *pmem++ = 0;  // write the terminating zero char
@@ -221,9 +228,9 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     int c, slen, data;
     int fnbr = file_find_free();
     char *q;
-    if ((q = strchr(tp, 34)) == 0) error("Syntax");
+    if ((q = strchr(tp, 34)) == 0) ERROR_SYNTAX;
     q++;
-    if ((q = strchr(q, 34)) == 0) error("Syntax");
+    if ((q = strchr(q, 34)) == 0) ERROR_SYNTAX;
     filename = getCstring(tp);
 
     char file_path[STRINGSIZE];
@@ -231,7 +238,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     if (!program_get_inc_file(parent_file, filename, file_path)) {
         switch (errno) {
             case ENOENT:
-                error_throw_ex(errno, "Include file '$' not found", filename);
+                ERROR_INCLUDE_FILE_NOT_FOUND(filename);
                 break;
             case ENAMETOOLONG:
                 ERROR_PATH_TOO_LONG;
@@ -247,8 +254,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     while (!file_eof(fnbr)) {
         int toggle = 0, len = 0;  // while waiting for the end of file
         sbuff = line_buffer;
-        if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
-            error("Not enough memory");
+        if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
         //        mymemset(buff,0,256);
         memset(line_buffer, 0, STRINGSIZE);
         MMgetline(fnbr, line_buffer);  // get the input line
@@ -309,9 +315,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
             char *tp = checkstring(&sbuff[1], "DEFINE");
             if (tp) {
                 getargs(&tp, 3, ",");
-                if (nDefines >= MAXDEFINES) {
-                    error("Too many #DEFINE statements");
-                }
+                if (nDefines >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;
                 strcpy(dlist[nDefines].from, getCstring(argv[0]));
                 strcpy(dlist[nDefines].to, getCstring(argv[2]));
                 nDefines++;
@@ -320,9 +324,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
                 if (cmpstr("COMMENT START", &sbuff[1]) == 0) ignore = 1;
                 if (cmpstr("MMDEBUG ON", &sbuff[1]) == 0) convertdebug = 0;
                 if (cmpstr("MMDEBUG OFF", &sbuff[1]) == 0) convertdebug = 1;
-                if (cmpstr("INCLUDE ", &sbuff[1]) == 0) {
-                    error("Can't import from an import");
-                }
+                if (cmpstr("INCLUDE ", &sbuff[1]) == 0) ERROR_CANNOT_INCLUDE_FROM_INCLUDE;
             }
         } else {
             if (toggle) sbuff[len++] = 34;
@@ -334,9 +336,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
             IntToStr(num, importlines, 10);
             strcpy(&sbuff[len], num);
             len += strlen(num);
-            if (len > 254) {
-                error("Line too long");
-            }
+            if (len > 254) ERROR_LINE_TOO_LONG;
             sbuff[len] = 0;
             len = massage(sbuff);  // can't risk crushing lines with a quote in them
             if ((sbuff[0] != 39) || (sbuff[0] == 39 && sbuff[1] == 39)) {
@@ -488,7 +488,7 @@ static void program_process_csubs() {
             flash_ptr ++;
             p++;
             skipspace(p);
-            if (!isnamestart(*p)) error("Function name");
+            if (!isnamestart(*p)) ERROR_FUNCTION_NAME;
             do {
                 p++;
             } while (isnamechar(*p));
@@ -507,7 +507,7 @@ static void program_process_csubs() {
                     skipspace(p);
                     int n = 0;
                     for (int i = 0; i < 8; i++) {
-                        if (!isxdigit(*p)) error("Invalid hex word");
+                        if (!isxdigit(*p)) ERROR_INVALID_HEX;
                         n = n << 4;
                         if (*p <= '9')
                             n |= (*p - '0');
@@ -515,7 +515,7 @@ static void program_process_csubs() {
                             n |= (toupper(*p) - 'A' + 10);
                         p++;
                     }
-                    if ((char *) flash_ptr >= (char *) ProgMemory + PROG_FLASH_SIZE - 9) error("Not enough memory");
+                    if ((char *) flash_ptr >= (char *) ProgMemory + PROG_FLASH_SIZE - 9) ERROR_OUT_OF_MEMORY;
                     *flash_ptr = n;
                     flash_ptr ++;
                     skipspace(p);
@@ -524,7 +524,7 @@ static void program_process_csubs() {
                 while (*p)
                     p++;  // make sure that we move to the end of the line
                 p++;      // step to the start of the next line
-                if (*p == 0) error("Missing END declaration");
+                if (*p == 0) ERROR_MISSING_END;
                 if (*p == T_NEWLINE) {
                     CurrentLinePtr = p;
                     p++;  // skip the newline token
@@ -623,7 +623,7 @@ static int program_load_file_internal(char *filename) {
     if (!program_get_bas_file(filename, file_path)) {
         switch (errno) {
             case ENOENT:
-                error_throw_ex(errno, "Program file not found");
+                ERROR_PROGRAM_FILE_NOT_FOUND;
                 break;
             case ENAMETOOLONG:
                 ERROR_PATH_TOO_LONG;
@@ -708,9 +708,7 @@ static int program_load_file_internal(char *filename) {
             char *tp = checkstring(&sbuff[1], "DEFINE");
             if (tp) {
                 getargs(&tp, 3, ",");
-                if (nDefines >= MAXDEFINES) {
-                    error("Too many #DEFINE statements");
-                }
+                if (nDefines >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;
                 strcpy(dlist[nDefines].from, getCstring(argv[0]));
                 strcpy(dlist[nDefines].to, getCstring(argv[2]));
                 nDefines++;
@@ -744,9 +742,7 @@ static int program_load_file_internal(char *filename) {
             IntToStr(num, importlines, 10);
             strcpy(&sbuff[len], num);
             len += strlen(num);
-            if (len > 254) {
-                error("Line too long");
-            }
+            if (len > 254) ERROR_LINE_TOO_LONG;
             sbuff[len] = 0;
             len = massage(sbuff);  // can't risk crushing lines with a quote in them
             if ((sbuff[0] != 39) || (sbuff[0] == 39 && sbuff[1] == 39)) {

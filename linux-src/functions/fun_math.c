@@ -28,7 +28,7 @@ void fun_math(void){
                 tp = checkstring(ep, "COSH");
                 if(tp) {
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         fret=cosh(getnumber(argv[0]));
                         targ=T_NBR;
                         return;
@@ -43,7 +43,7 @@ void fun_math(void){
                     MMFLOAT axb=0, a2=0, b2=0;
                     int64_t *a1int=NULL, *a2int=NULL;
                     getargs(&tp, 3,",");
-                    if(!(argc == 3)) error("Argument count");
+                    if(!(argc == 3)) ERROR_ARGUMENT_COUNT;
                     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
@@ -61,7 +61,7 @@ void fun_math(void){
                             }
                         a1int = (int64_t *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                    } else error("Argument 1 must be numerical");
+                    } else ERROR_ARG_NOT_NUMBER(1);
                     ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card2=1;
@@ -79,8 +79,8 @@ void fun_math(void){
                             }
                         a2int = (int64_t *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                    } else error("Argument 2 must be numerical");
-                        if(card1!=card2)error("Array size mismatch");
+                    } else ERROR_ARG_NOT_NUMBER(2);
+                        if (card1 != card2) ERROR_ARRAY_SIZE_MISMATCH;
                         a3float=GetTempMemory(card1*sizeof(MMFLOAT));
                         a4float=GetTempMemory(card1*sizeof(MMFLOAT));
                         if(a1float!=NULL){
@@ -125,33 +125,25 @@ void fun_math(void){
                         int64_t *a1int=NULL;
                         {
                                 getargs(&tp, 1,",");
-                                if(!(argc == 1)) error("Argument count");
+                                if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                                 ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                                 if(vartbl[VarIndex].type & T_NBR) {
-                                        if(vartbl[VarIndex].dims[2] != 0) error("Invalid variable");
-                                        if(vartbl[VarIndex].dims[1] <= 0) {                // Not an array
-                                                error("Argument 1 must be a numerical 2D array");
-                                        }
-                                        if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
-                                                error("Argument 1 must be a numerical 2D array");
-                                        }
+                                        if(vartbl[VarIndex].dims[2] != 0) ERROR_INVALID_VARIABLE;
+                                        if(vartbl[VarIndex].dims[1] <= 0) ERROR_ARG_NOT_2D_NUMBER_ARRAY(1);
+                                        if(vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_2D_NUMBER_ARRAY(1);
                                         numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                         numrows=vartbl[VarIndex].dims[1] - mmb_options.base;
                                         a1float = (MMFLOAT *)ptr1;
                                         if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                                 } else if(ptr1 && vartbl[VarIndex].type & T_INT) {
-                                        if(vartbl[VarIndex].dims[2] != 0) error("Invalid variable");
-                                        if(vartbl[VarIndex].dims[1] <= 0) {                // Not an array
-                                                error("Argument 1 must be a numerical 2D array");
-                                        }
-                                        if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
-                                                error("Argument 1 must be a numerical 2D array");
-                                        }
+                                        if(vartbl[VarIndex].dims[2] != 0) ERROR_INVALID_VARIABLE;
+                                        if(vartbl[VarIndex].dims[1] <= 0) ERROR_ARG_NOT_2D_NUMBER_ARRAY(1);
+                                        if(vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_2D_NUMBER_ARRAY(1);
                                         numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                         numrows=vartbl[VarIndex].dims[1] - mmb_options.base;
                                         a1int = (int64_t *)ptr1;
                                         if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                                } else error("Argument 1 must be a numerical 2D array");
+                                } else ERROR_ARG_NOT_2D_NUMBER_ARRAY(1);
                                 df=numcols*numrows;
                                 numcols++;
                                 numrows++;
@@ -220,27 +212,23 @@ void fun_math(void){
                         MMFLOAT *a1float=NULL, *a2float=NULL;
                         // need two arrays with same cardinality
                         getargs(&tp, 3,",");
-                        if(!(argc == 3)) error("Argument count");
+                        if(!(argc == 3)) ERROR_ARGUMENT_COUNT;
                         ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
-                                if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-                                if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
-                                        error("Argument 1 must be a floating point array");
-                                }
+                                if(vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+                                if(vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_FLOAT_ARRAY(1);
                                 numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                        } else error("Argument 1 must be a floating point array");
+                        } else ERROR_ARG_NOT_FLOAT_ARRAY(1);
                         ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
-                                if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-                                if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
-                                        error("Argument 2 must be a floating point array");
-                                }
-                                if((vartbl[VarIndex].dims[0] - mmb_options.base) != numcols)error("Array size mismatch");
+                                if(vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+                                if(vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_FLOAT_ARRAY(2);
+                                if((vartbl[VarIndex].dims[0] - mmb_options.base) != numcols) ERROR_ARRAY_SIZE_MISMATCH;
                                 a2float = (MMFLOAT *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                        } else error("Argument 2 must be a floating point array");
+                        } else ERROR_ARG_NOT_FLOAT_ARRAY(2);
                         numcols++;
                         fret=0;
                         for(i=0;i<numcols;i++){
@@ -253,7 +241,7 @@ void fun_math(void){
                 tp = checkstring(ep, "LOG10");
                 if(tp) {
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         fret=log10(getnumber(argv[0]));
                         targ=T_NBR;
                         return;
@@ -266,22 +254,18 @@ void fun_math(void){
                         int i, j, n, numcols=0, numrows=0;
                         MMFLOAT *a1float=NULL;
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
-                                if(vartbl[VarIndex].dims[2] != 0) error("Invalid variable");
-                                if(vartbl[VarIndex].dims[1] <= 0) {                // Not an array
-                                        error("Argument 1 must be a numerical 2D array");
-                                }
-                                if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
-                                        error("Argument 1 must be a numerical 2D array");
-                                }
+                                if(vartbl[VarIndex].dims[2] != 0) ERROR_INVALID_VARIABLE;
+                                if(vartbl[VarIndex].dims[1] <= 0) ERROR_ARG_NOT_2D_NUMBER_ARRAY(1);
+                                if(vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_2D_NUMBER_ARRAY(1);
                                 numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 numrows=vartbl[VarIndex].dims[1] - mmb_options.base;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                        } else        error("Argument 1 must be a numerical 2D array");
-                        if(numcols!=numrows)error("Array must be square");
+                        } else  ERROR_ARG_NOT_2D_NUMBER_ARRAY(1);
+                        if (numcols != numrows) ERROR_ARRAY_NOT_SQUARE;
                         n=numrows+1;
                         MMFLOAT **matrix=alloc2df(n,n);
                         for(i=0;i<n;i++){ //load the matrix
@@ -303,7 +287,7 @@ void fun_math(void){
                         MMFLOAT *a1float=NULL, max=-3.0e+38;
                         int64_t *a1int=NULL;
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
@@ -321,7 +305,7 @@ void fun_math(void){
                                 }
                                 a1int = (int64_t *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                        } else error("Argument 1 must be numerical");
+                        } else ERROR_ARG_NOT_NUMBER(1);
                         if(a1float!=NULL){
                                 for(i=0; i< card1;i++){
                                         if((*a1float)>max)max=(*a1float);
@@ -344,7 +328,7 @@ void fun_math(void){
                         MMFLOAT *a1float=NULL, min=3.0e+38;
                         int64_t *a1int=NULL;
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
@@ -362,7 +346,7 @@ void fun_math(void){
                                 }
                                 a1int = (int64_t *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                        } else error("Argument 1 must be numerical");
+                        } else ERROR_ARG_NOT_NUMBER(1);
                         if(a1float!=NULL){
                                 for(i=0; i< card1;i++){
                                         if((*a1float)<min)min=(*a1float);
@@ -386,17 +370,15 @@ void fun_math(void){
                         MMFLOAT *a1float=NULL;
                         MMFLOAT mag=0.0;
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
-                                if(vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-                                if(vartbl[VarIndex].dims[0] <= 0) {                // Not an array
-                                        error("Argument 1 must be a floating point array");
-                                }
+                                if(vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+                                if(vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_FLOAT_ARRAY(1);
                                 numcols=vartbl[VarIndex].dims[0] - mmb_options.base;
                                 a1float = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                        } else error("Argument 1 must be a floating point array");
+                        } else ERROR_ARG_NOT_FLOAT_ARRAY(1);
                         numcols++;
                         for(i=0;i<numcols;i++){
                                 mag = mag + ((*a1float) * (*a1float));
@@ -414,7 +396,7 @@ void fun_math(void){
                         MMFLOAT *a1float=NULL, mean=0;
                         int64_t *a1int=NULL;
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
@@ -432,7 +414,7 @@ void fun_math(void){
                                 }
                                 a1int = (int64_t *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                        } else error("Argument 1 must be numerical");
+                        } else ERROR_ARG_NOT_NUMBER(1);
                         if(a1float!=NULL){
                                 for(i=0; i< card1;i++)mean+= (*a1float++);
                         } else {
@@ -450,7 +432,7 @@ void fun_math(void){
                         MMFLOAT *a1float=NULL, *a2float=NULL;
                         int64_t *a2int=NULL;
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         ptr2 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card2=1;
@@ -468,7 +450,7 @@ void fun_math(void){
                                 }
                                 a2int = (int64_t *)ptr2;
                                 if ((char *) ptr2 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                        } else error("Argument 1 must be numerical");
+                        } else ERROR_ARG_NOT_NUMBER(1);
                         card1=card2;
                         card2=(card2-1)/2;
                         a1float=GetTempMemory(card1*sizeof(MMFLOAT));
@@ -488,7 +470,7 @@ void fun_math(void){
                 tp = checkstring(ep, "SINH");
                 if(tp) {
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         fret=sinh(getnumber(argv[0]));
                         targ=T_NBR;
                         return;
@@ -501,7 +483,7 @@ void fun_math(void){
                         MMFLOAT *a2float=NULL, *a1float=NULL, mean=0, var=0, deviation;
                         int64_t *a2int=NULL, *a1int=NULL;
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
@@ -519,7 +501,7 @@ void fun_math(void){
                                 }
                                 a1int = a2int = (int64_t *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                        } else error("Argument 1 must be numerical");
+                        } else ERROR_ARG_NOT_NUMBER(1);
                         if(a2float!=NULL){
                                 for(i=0; i< card1;i++)mean+= (*a2float++);
                         } else {
@@ -549,7 +531,7 @@ void fun_math(void){
                         MMFLOAT *a1float=NULL, sum=0;
                         int64_t *a1int=NULL;
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if(vartbl[VarIndex].type & T_NBR) {
                                 card1=1;
@@ -567,7 +549,7 @@ void fun_math(void){
                                 }
                                 a1int = (int64_t *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
-                        } else error("Argument 1 must be numerical");
+                        } else ERROR_ARG_NOT_NUMBER(1);
                         if(a1float!=NULL){
                                 for(i=0; i< card1;i++)sum+= (*a1float++);
                         } else {
@@ -582,11 +564,11 @@ void fun_math(void){
                 tp = checkstring(ep, "TANH");
                 if(tp) {
                         getargs(&tp, 1,",");
-                        if(!(argc == 1)) error("Argument count");
+                        if(!(argc == 1)) ERROR_ARGUMENT_COUNT;
                         fret=tanh(getnumber(argv[0]));
                         targ=T_NBR;
                         return;
                 }
         }
-        error("Syntax");
+        ERROR_SYNTAX;
 }

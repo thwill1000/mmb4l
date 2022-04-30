@@ -18,7 +18,9 @@
 #define	COM_DEFAULT_SPEED            B9600
 #define	COM_DEFAULT_BUF_SIZE         4 * 1024
 #define	COM_DEFAULT_INTERRUPT_COUNT  1
-#define ERROR_COM_SPECIFICATION  error("COM specification")
+
+#define ERROR_COM_SPECIFICATION        error_throw_ex(kError, "COM specification")
+#define ERROR_UNSUPPORTED_BAUDRATE(i)  error_throw_ex(kError, "Unsupported baudrate: %", i)
 
 typedef enum { PARITY_NONE, PARITY_EVEN, PARITY_ODD } Parity;
 
@@ -193,7 +195,7 @@ void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
     if (argc >= 3 && *argv[2]) {
         int64_t i = getinteger(argv[2]);
         comspec->speed = serial_int_to_speed(i);
-        if (!comspec->speed) error("Unsupported baudrate: %", i);
+        if (!comspec->speed) ERROR_UNSUPPORTED_BAUDRATE(i);
     }
 
     // Buffer size as a number.

@@ -5,6 +5,8 @@
 #include "../common/error.h"
 #include "../common/utility.h"
 
+#define ERROR_UNKNOWN_SUBROUTINE  error_throw_ex(kError, "Unknown user subroutine")
+
 void cmd_call(void) {
     int i;
     char *q;
@@ -27,6 +29,6 @@ void cmd_call(void) {
     if (i >= 0) {  // >= 0 means it is a user defined command
         DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
     } else {
-        error("Unknown user subroutine");
+        ERROR_UNKNOWN_SUBROUTINE;
     }
 }

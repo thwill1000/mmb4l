@@ -2,7 +2,10 @@
 
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
+#include "../common/error.h"
 #include "../common/utility.h"
+
+#define ERROR_UNKNOWN_USER_FUNCTION  error_throw_ex(kError, "Unknown user function")
 
 void fun_call(void) {
     int i;
@@ -28,8 +31,9 @@ void fun_call(void) {
     targ = T_NOTYPE;
     if (i >= 0) {  // >= 0 means it is a user defined function
         DefinedSubFun(true, p, i, &f, &i64, &s, &targ);
-    } else
-        error("Unknown user function");
+    } else {
+        ERROR_UNKNOWN_USER_FUNCTION;
+    }
     if (targ & T_STR) {
         sret = GetTempStrMemory();
         Mstrcpy(sret, s);  // if it is a string then save it

@@ -4,6 +4,8 @@
 #include "../common/error.h"
 #include "../common/interrupt.h"
 
+#define ERROR_TOO_MANY_NESTED_GOSUB  error_throw_ex(kError, "Too many nested GOSUB")
+
 int g_key_complete = 0;
 
 static void on_error_abort(char* p) {
@@ -72,8 +74,8 @@ static void on_number(char *p) {
     char ss[4] = {tokenGOTO, tokenGOSUB, ',', 0};
     {  // start a new block
         getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ss);  // getargs macro must be the first executable stmt in a block
-        if (argc < 3 || !(*argv[1] == ss[0] || *argv[1] == ss[1])) error("Syntax");
-        if (argc % 2 == 0) error("Syntax");
+        if (argc < 3 || !(*argv[1] == ss[0] || *argv[1] == ss[1])) ERROR_SYNTAX;
+        if (argc % 2 == 0) ERROR_SYNTAX;
 
         r = getint(argv[0], 0, 255);  // evaluate the expression controlling the statement
         if (r == 0 || r > argc / 2) return;  // microsoft say that we just go on to the next line
@@ -81,7 +83,7 @@ static void on_number(char *p) {
         if (*argv[1] == ss[1]) {
             // this is a GOSUB, same as a GOTO but we need to first push the
             // return pointer
-            if (gosubindex >= MAXGOSUB) error("Too many nested GOSUB");
+            if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_NESTED_GOSUB;
             errorstack[gosubindex] = CurrentLinePtr;
             gosubstack[gosubindex++] = nextstmt;
             LocalIndex++;

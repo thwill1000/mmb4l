@@ -237,6 +237,6 @@ int file_find_free(void) {
     for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
         if (file_table[fnbr].type == fet_closed) return fnbr;
     }
-    error("Too many open files");
+    ERROR_TOO_MANY_OPEN_FILES;
     return -1;
 }

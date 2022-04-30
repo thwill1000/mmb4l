@@ -8,6 +8,8 @@
 #include "../common/parse.h"
 #include "../common/utility.h"
 
+#define ERROR_INVALID_OPTION_BASE  error_throw_ex(kError, "Must be before DIM or LOCAL")
+
 void cmd_option_list(char *p) {
     bool all = false;
     char *p2 = p;
@@ -110,7 +112,7 @@ void cmd_option_save(char *p) {
 }
 
 static MmResult cmd_option_set_integer(char *p, const OptionsDefinition *def) {
-    if (def->id == kOptionBase && DimUsed) error("Must be before DIM or LOCAL");
+    if (def->id == kOptionBase && DimUsed) ERROR_INVALID_OPTION_BASE;
     return options_set_integer_value(&mmb_options, def->id, getinteger(p));
 }
 

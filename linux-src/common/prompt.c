@@ -6,6 +6,7 @@
 #include "utility.h"
 
 #define HISTORY_SIZE  4 * STRINGSIZE
+#define ERROR_LINE_TOO_LONG_TO_EDIT  error_throw_ex(kStringTooLong, "Line is too long to edit")
 
 typedef struct {
     char buf[OPTIONS_MAX_FN_KEY_LEN + 3];
@@ -159,7 +160,7 @@ static void insert_history_item(PromptState *pstate) {
 
     // Handle the new input buffer being too long.
     if (strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
-        error("Line is too long to edit");
+        ERROR_LINE_TOO_LONG_TO_EDIT;
     }
 
     // Update 'char_index' to reflect new input buffer contents.
@@ -283,7 +284,7 @@ void prompt_get_input(void) {
     MMPrintString(inpbuf);  // display the contents of the input buffer (if any)
 
     if (strlen(inpbuf) >= state.max_chars) {
-        error("Line is too long to edit");
+        ERROR_LINE_TOO_LONG_TO_EDIT;
     }
 
     int ch;

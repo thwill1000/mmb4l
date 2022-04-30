@@ -1,6 +1,9 @@
 #include <ctype.h>
 
 #include "../common/mmb4l.h"
+#include "../common/error.h"
+
+#define ERROR_MULTIPLE_STATEMENTS  error_throw_ex(kError, "Only single statements allowed")
 
 // char execute_buffer[STRINGSIZE] = { 0 };
 
@@ -54,7 +57,7 @@ void execute_other() {
                 toggle = 0;
         }
         if (!toggle) {
-            if (inpbuf[i] == ':') error("Only single statements allowed");
+            if (inpbuf[i] == ':') ERROR_MULTIPLE_STATEMENTS;
             // inpbuf[i] = toupper(inpbuf[i]);
         }
         i++;

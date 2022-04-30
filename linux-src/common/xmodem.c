@@ -29,10 +29,10 @@
 #define DLY_1S 1000
 #define MAXRETRANS 25
 
-#define ERROR_CANCELLED  error("Cancelled by remote")
-#define ERROR_CLOSING  error("Error closing")
-#define ERROR_NO_RESPONSE  error("Remote did not respond")
-#define ERROR_TOO_MANY_ERRORS  error("Too many errors")
+#define ERROR_CANCELLED         error_throw_ex(kError, "Cancelled by remote")
+#define ERROR_CLOSING           error_throw_ex(kError, "Error closing")
+#define ERROR_NO_RESPONSE       error_throw_ex(kError, "Remote did not respond")
+#define ERROR_TOO_MANY_ERRORS   error_throw_ex(kError, "Too many errors")
 
 static int xmodem_check(const unsigned char *buf, int sz) {
     unsigned char cks = 0;

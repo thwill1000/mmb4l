@@ -6,6 +6,9 @@
 #include "../common/path.h"
 #include "../common/utility.h"
 
+#define ERROR_INVALID_FLAG_SPECIFICATION  error_throw_ex(kError, "Invalid flag specification")
+#define ERROR_UNABLE_TO_OPEN_DIRECTORY    error_throw_ex(kError, "Unable to open directory")
+
 int32_t dirflags;
 
 static char get_achar(/* Get a character and advances ptr 1 or 2 */
@@ -74,7 +77,7 @@ void fun_dir(void) {
     static char pp[32];
     getargs(&ep, 3, ",");
     if (argc != 0) dirflags = DT_REG; // 0 ?
-    if (argc > 3) error("Syntax");
+    if (argc > 3) ERROR_SYNTAX;
 
     if (argc == 3) {
         if (checkstring(argv[2], "DIR"))
@@ -84,7 +87,7 @@ void fun_dir(void) {
         else if (checkstring(argv[2], "ALL"))
             dirflags = 0;
         else
-            error("Invalid flag specification");
+            ERROR_INVALID_FLAG_SPECIFICATION;
     }
 
     if (argc != 0) {
@@ -95,9 +98,7 @@ void fun_dir(void) {
 
         strcpy(pp, basename(path));
         dp = opendir(dirname(path));
-        if (dp == NULL) {
-            error("Unable to open directory");
-        }
+        if (dp == NULL) ERROR_UNABLE_TO_OPEN_DIRECTORY;
     }
 
     for (;;) {

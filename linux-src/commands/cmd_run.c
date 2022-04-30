@@ -1,6 +1,9 @@
 #include "../common/mmb4l.h"
+#include "../common/error.h"
 #include "../common/program.h"
 #include "../common/utility.h"
+
+#define ERROR_NOTHING_TO_RUN  error_throw_ex(kError, "Nothing to run")
 
 char run_cmdline[STRINGSIZE];
 
@@ -17,7 +20,7 @@ void cmd_run(void) {
     } else if (*CurrentFile != '\0') {
         filename = CurrentFile;
     } else {
-        error("Nothing to run");
+        ERROR_NOTHING_TO_RUN;
         return;
     }
 

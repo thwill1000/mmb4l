@@ -2,9 +2,13 @@
 
 #include "mmb4l.h"
 #include "console.h"
+#include "error.h"
 #include "interrupt.h"
 #include "mmtime.h"
 #include "serial.h"
+
+#define ERROR_NOT_AN_INTERRUPT  error_throw_ex(kError, "Not in interrupt")
+#define ERROR_TOO_MANY_SUBS     error_throw_ex(kError, "Too many SUBs for interrupt")
 
 #define skipelement(x)  while(*x) x++
 
@@ -65,7 +69,7 @@ static int handle_interrupt(char *interrupt_address) {
     if  (*interrupt_address == cmdSUB) {
         rti[0] = cmdIRET;                                           // setup a dummy IRETURN command
         rti[1] = 0;
-        if (gosubindex >= MAXGOSUB) error("Too many SUBs for interrupt");
+        if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_SUBS;
         errorstack[gosubindex] = CurrentLinePtr;
         gosubstack[gosubindex++] = rti;                             // return from the subroutine to the dummy IRETURN command
         LocalIndex++;                                               // return from the subroutine will decrement LocalIndex
@@ -125,7 +129,7 @@ bool interrupt_check(void) {
 }
 
 void interrupt_return(void) {
-    if (interrupt_return_stmt == NULL) error("Not in interrupt");
+    if (interrupt_return_stmt == NULL) ERROR_NOT_AN_INTERRUPT;
     checkend(cmdline);
     nextstmt = interrupt_return_stmt;
     if (LocalIndex) ClearVars(LocalIndex--);  // delete any local variables

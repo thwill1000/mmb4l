@@ -1,6 +1,7 @@
 #include <ctype.h>
 
 #include "../common/mmb4l.h"
+#include "../common/error.h"
 
 static void integersort(int64_t *iarray, int n, int64_t *index, int flags,
                  int startpoint) {
@@ -164,45 +165,32 @@ void cmd_sort(void) {
     getargs(&cmdline, 9, ",");
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
     if (vartbl[VarIndex].type & T_NBR) {
-        if (vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-        if (vartbl[VarIndex].dims[0] <= 0) {  // Not an array
-            error("Argument 1 must be array");
-        }
+        if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+        if (vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_ARRAY(1);
         a3float = (MMFLOAT *)ptr1;
     } else if (vartbl[VarIndex].type & T_INT) {
-        if (vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-        if (vartbl[VarIndex].dims[0] <= 0) {  // Not an array
-            error("Argument 1 must be array");
-        }
+        if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+        if (vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_ARRAY(1);
         a3int = (int64_t *)ptr1;
     } else if (vartbl[VarIndex].type & T_STR) {
-        if (vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-        if (vartbl[VarIndex].dims[0] <= 0) {  // Not an array
-            error("Argument 1 must be array");
-        }
+        if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+        if (vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_ARRAY(1);
         a3str = (unsigned char *)ptr1;
         maxsize = vartbl[VarIndex].size;
-    } else
-        error("Argument 1 must be array");
+    } else ERROR_ARG_NOT_ARRAY(1);
     //if ((uint32_t)ptr1 != (uint32_t)vartbl[VarIndex].val.s)
-    if (ptr1 != vartbl[VarIndex].val.s)
-        error("Argument 1 must be array");
+    if (ptr1 != vartbl[VarIndex].val.s) ERROR_ARG_NOT_ARRAY(1);
     truesize = size = (vartbl[VarIndex].dims[0] - mmb_options.base);
     if (argc >= 3 && *argv[2]) {
         ptr2 = findvar(argv[2], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
         if (vartbl[VarIndex].type & T_INT) {
-            if (vartbl[VarIndex].dims[1] != 0) error("Invalid variable");
-            if (vartbl[VarIndex].dims[0] <= 0) {  // Not an array
-                error("Argument 2 must be integer array");
-            }
+            if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+            if (vartbl[VarIndex].dims[0] <= 0) ERROR_ARG_NOT_INTEGER_ARRAY(2);
             a4int = (int64_t *)ptr2;
-        } else
-            error("Argument 2 must be integer array");
-        if ((vartbl[VarIndex].dims[0] - mmb_options.base) != size)
-            error("Arrays should be the same size");
+        } else ERROR_ARG_NOT_INTEGER_ARRAY(2);
+        if ((vartbl[VarIndex].dims[0] - mmb_options.base) != size) ERROR_ARRAY_SIZE_MISMATCH;
         // if ((uint32_t)ptr2 != (uint32_t)vartbl[VarIndex].val.s)
-        if (ptr2 != vartbl[VarIndex].val.s)
-            error("Argument 2 must be array");
+        if (ptr2 != vartbl[VarIndex].val.s) ERROR_ARG_NOT_INTEGER_ARRAY(2);
     }
     if (argc >= 5 && *argv[4]) flags = getint(argv[4], 0, 3);
     if (argc >= 7 && *argv[6])

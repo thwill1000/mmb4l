@@ -6,11 +6,11 @@ void cmd_error(void) {
 
     switch (argc) {
         case 0:
-            error("Unspecified error");
+            ERROR_UNKNOWN_USER_ERROR;
             break;
         case 1: {
             char *s = getCstring(argv[0]);
-            error(s);
+            error_throw_ex(kError, s);
             break;
         }
         case 3: {

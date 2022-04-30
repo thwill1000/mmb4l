@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "../common/mmb4l.h"
+#include "../common/error.h"
 
 // count the number of lines up to and including the line pointed to by the argument
 // used for error reporting in programs that do not use line numbers
@@ -81,6 +82,6 @@ void cmd_trace(void) {
             if (++i >= TRACE_BUFF_SIZE) i = 0;
         }
     } else {
-        error("Unknown command");
+        ERROR_UNKNOWN_SUBCOMMAND;
     }
 }

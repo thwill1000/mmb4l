@@ -105,9 +105,7 @@ static void mminfo_envvar(char *p) {
     char *name = getCstring(p);
     char *value = getenv(name);
     if (!value) value = "";
-    if (strlen(value) >= STRINGSIZE) {
-        error("Environment variable value too long");
-    }
+    if (strlen(value) >= STRINGSIZE) ERROR_ENV_VAR_TOO_LONG;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
     strcpy(g_string_rtn, value);
@@ -357,6 +355,6 @@ void fun_mminfo(void) {
     } else if ((p = checkstring(ep, "VPOS"))) {
         mminfo_vpos(p);
     } else {
-        error("Unrecognised argument to Mm.Info()");
+        ERROR_UNKNOWN_ARGUMENT;
     }
 }

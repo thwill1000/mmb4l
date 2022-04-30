@@ -432,7 +432,7 @@ void MMgetline(int filenbr, char *p) {
 
         if (c == '\t') {  // expand tabs to spaces
             do {
-                if (++nbrchars > MAXSTRLEN) error("Line is too long");
+                if (++nbrchars > MAXSTRLEN) ERROR_LINE_TOO_LONG;
                 *p++ = ' ';
                 if (filenbr == 0) console_putc(' ');
             } while (nbrchars % mmb_options.tab);
@@ -467,7 +467,7 @@ void MMgetline(int filenbr, char *p) {
             console_putc(c);  // The console requires that chars be echoed
         }
 
-        if (++nbrchars > MAXSTRLEN) error("Line is too long");  // stop collecting if maximum length
+        if (++nbrchars > MAXSTRLEN) ERROR_LINE_TOO_LONG;  // stop collecting if maximum length
 
         // TODO: currently this function can return strings containing control
         //       characters, i.e. c < 32.

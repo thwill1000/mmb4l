@@ -24,6 +24,7 @@ provisions:
 #include <stdio.h>
 
 #include "mmb4l.h"
+#include "error.h"
 
 // allocate static memory for programs, variables and the heap
 // this is simple memory management because DOS has plenty of memory
@@ -60,7 +61,7 @@ void *getheap(int size);
 void m_alloc(int type, int size) {
     if(type == M_VAR) {
         vartbl = (struct s_vartbl *)DOS_vartbl;
-        if(size >= MAXVARS * sizeof(struct s_vartbl)) error("Not enough memory");
+        if(size >= MAXVARS * sizeof(struct s_vartbl)) ERROR_OUT_OF_MEMORY;
     }
 }
 
@@ -83,7 +84,7 @@ void *GetTempMemory(int NbrBytes) {
             TempMemoryIsChanged = true;
             return StrTmp[i];
         }
-    error("Not enough memory");
+    ERROR_OUT_OF_MEMORY;
     return NULL;
 }
 
@@ -188,7 +189,7 @@ void *getheap(int size) {
     // out of memory
     LocalIndex = 0;
     ClearTempMemory();                                              // hopefully this will give us enough to print the prompt
-    error("Not enough memory");
+    ERROR_OUT_OF_MEMORY;
     return NULL;                                                    // keep the compiler happy
 }
 
@@ -239,7 +240,7 @@ uintptr_t get_poke_addr(char *p) {
     //     (i > (unsigned int)MMHeap && i < (unsigned int)MMHeap + HEAP_SIZE))
     //     return i;
     // else
-    //     error("Address");
+    //     ERROR_INVALID_ADDRESS;
     // return 0;
 }
 

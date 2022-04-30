@@ -15,7 +15,7 @@ void cmd_files_internal(char *p) {
     }
 
     int result = system(command);
-    // if (result != 0) error("System command failed");
+    // if (result != 0) ERROR_SYSTEM_COMMAND_FAILED;
 
     MMPrintString("\r\n");
 }

@@ -6,6 +6,7 @@ extern "C" {
 #include "../utility.h"
 #include "../../Configuration.h"
 
+void error_throw_ex(MmResult error, char *msg, ...) { }
 long long int getinteger(char *p) { return 0; }
 int getint(char *p, int min, int max) { return 0; }
 

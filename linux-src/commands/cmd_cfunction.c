@@ -1,12 +1,14 @@
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 
+#define ERROR_MISSING_END  error_throw_ex(kError, "Missing END statement")
+
 void cmd_cfunction(void) {
     int end_token = GetCommandValue("End CSub");  // this terminates a CSUB
     char *p = cmdline;
     while (*p != 0xff) {
         if (*p == 0) p++;  // if it is at the end of an element skip the zero marker
-        if (*p == 0) error("Missing END statement");  // end of the program
+        if (*p == 0) ERROR_MISSING_END;  // end of the program
         if (*p == T_NEWLINE) p++;     // skip over the newline token
         if (*p == T_LINENBR) p += 3;  // skip over the line number
         skipspace(p);

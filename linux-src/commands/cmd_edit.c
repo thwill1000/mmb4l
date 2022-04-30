@@ -10,6 +10,12 @@
 #include "../common/program.h"
 #include "../common/utility.h"
 
+#define ERROR_EDITOR_FAILED              error_throw_ex(kError, "Editor could not be run")
+#define ERROR_FAILED_TO_DELETE_TMP_FILE  error_throw_ex(kError, "Temporary file could not be deleted")
+#define ERROR_FILE_COULD_NOT_BE_CREATED  error_throw_ex(kError, "File could not be created")
+#define ERROR_NOTHING_TO_EDIT            error_throw_ex(kError, "Nothing to edit")
+#define ERROR_UNKNOWN_EDITOR(s)          error_throw_ex(kError, "Unknown editor '$'", s)
+
 static void get_mmbasic_nanorc(char *path) {
     *path = '\0';
     char *home = getenv("HOME");
@@ -72,7 +78,7 @@ static int delete_if_empty(char *file_path) {
 void cmd_edit(void) {
     getargs(&cmdline, 1, ",");
 
-    if (CurrentLinePtr) error("Invalid in a program");
+    if (CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
 
     char fname[STRINGSIZE] = { 0 };
     int current = false;
@@ -90,7 +96,7 @@ void cmd_edit(void) {
             strcpy(fname, error_file);
             line = error_line;
         } else if (*CurrentFile == '\0') {
-            error("Nothing to edit");
+            ERROR_NOTHING_TO_EDIT;
         } else {
             strcpy(fname, CurrentFile);
         }
@@ -115,25 +121,23 @@ void cmd_edit(void) {
 
     // If necessary create a new file.
     if (new_file) {
-        if (!create_empty_file(file_path)) {
-            error("File could not be created");
-        }
+        if (!create_empty_file(file_path)) ERROR_FILE_COULD_NOT_BE_CREATED;
     }
 
     // Edit the file.
     char command[STRINGSIZE * 2] = { 0 };
     bool blocking = false;
     if (FAILED(get_editor_command(file_path, line > 1 ? line : 1, command, &blocking))) {
-        error("Unknown editor '$'", mmb_options.editor);
+        ERROR_UNKNOWN_EDITOR(mmb_options.editor);
     }
     errno = 0;
-    if (FAILED(system(command))) error("Editor could not be run");
+    if (FAILED(system(command))) ERROR_EDITOR_FAILED;
 
     // If we created a new file and it is still empty after editing with an
     // editor that blocks then delete it.
     if (new_file && blocking) {
         if (!delete_if_empty(file_path)) {
-            error("Temporary file could not be deleted");
+            ERROR_FAILED_TO_DELETE_TMP_FILE;
         }
     }
 

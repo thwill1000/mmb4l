@@ -21,8 +21,8 @@ void ClearProgram(void) { }
 void ClearSpecificTempMemory(void *addr) { }
 void console_set_title(const char *title) { }
 int error_check(void) { return 0; }
-void error_throw(int32_t error) { }
-void error_throw_ex(int32_t error, char *msg, ...) { }
+void error_throw(MmResult error) { }
+void error_throw_ex(MmResult error, char *msg, ...) { }
 void file_close(int fnbr) { }
 int file_eof(int fnbr) { return 0; }
 int file_find_free(void) { return 1; }

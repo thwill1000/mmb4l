@@ -38,13 +38,13 @@ static void cmd_console_get_cursor(char *p) {
     void *px = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (!(vartbl[VarIndex].type & T_INT)
             || vartbl[VarIndex].dims[0] != 0) {
-        ERROR_ARGUMENT_NOT_INTEGER("X");
+        ERROR_ARG_NOT_INTEGER(1);
     }
 
     void *py = findvar(argv[2], V_FIND | V_EMPTY_OK);
     if (!(vartbl[VarIndex].type & T_INT)
             || vartbl[VarIndex].dims[0] != 0) {
-        ERROR_ARGUMENT_NOT_INTEGER("Y");
+        ERROR_ARG_NOT_INTEGER(2);
     }
 
     int x, y;
@@ -63,13 +63,13 @@ static void cmd_console_get_size(char *p) {
     void *pwidth = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (!(vartbl[VarIndex].type & T_INT)
             || vartbl[VarIndex].dims[0] != 0) {
-        ERROR_ARGUMENT_NOT_INTEGER("WIDTH");
+        ERROR_ARG_NOT_INTEGER(1);
     }
 
     void *pheight = findvar(argv[2], V_FIND | V_EMPTY_OK);
     if (!(vartbl[VarIndex].type & T_INT)
             || vartbl[VarIndex].dims[0] != 0) {
-        ERROR_ARGUMENT_NOT_INTEGER("HEIGHT");
+        ERROR_ARG_NOT_INTEGER(2);
     }
 
     int width, height;

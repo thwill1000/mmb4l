@@ -75,7 +75,7 @@ static void cmd_system_getenv(char *p) {
             }
             break;
         case kStringTooLong:
-            error("Environment variable value too long");
+            ERROR_ENV_VAR_TOO_LONG;
             break;
         default:
             error_throw(result);
