@@ -37,7 +37,8 @@ protected:
 #define TEST_MUNGE(path, expected)  memset(out, '\0', 256); \
         result = path_munge(path, out, 256); \
         EXPECT_STREQ(expected, result); \
-        EXPECT_STREQ(expected, out)
+        EXPECT_STREQ(expected, out); \
+        EXPECT_EQ(0, errno)
 
 #define HOME_DIR "/home/thwill"
 
@@ -110,138 +111,85 @@ TEST_F(PathTest, Munge) {
     TEST_MUNGE("..\\..\\..\\foo", "../../../foo");
 }
 
+#define TEST_GET_CANONICAL(path, expected)  memset(out, '\0', 256); \
+        result = path_get_canonical(path, out, 256); \
+        EXPECT_STREQ(expected, result); \
+        EXPECT_STREQ(expected, out); \
+        EXPECT_EQ(0, errno)
+
 TEST_F(PathTest, GetCanonical_GivenAbsolutePath) {
-    char out[256] = { '\0' };
+    char out[256];
     errno = 0;
+    char *result;
 
     // Simple (non-existing) absolute path.
-    char *result = path_get_canonical(PATH_TEST_DIR "/foo.bas", out, 256);
-
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas", result);
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas", out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/foo.bas", PATH_TEST_DIR "/foo.bas");
 
     // Intermediate slash dot dot.
-    result = path_get_canonical(PATH_TEST_DIR "/bar/../foo.bas", out, 256);
-
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas", result);
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas", out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/bar/../foo.bas", PATH_TEST_DIR "/foo.bas");
 
     // Intermediate slash dot.
-    result = path_get_canonical(PATH_TEST_DIR "/./foo.bas", out, 256);
-
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas", result);
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas", out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/./foo.bas", PATH_TEST_DIR "/foo.bas");
 
     // Multiple slashes.
-    result = path_get_canonical(PATH_TEST_DIR "//foo.bas", out, 256);
-
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas", result);
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas", out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL(PATH_TEST_DIR "//foo.bas", PATH_TEST_DIR "/foo.bas");
 
     // Trailing dot.
-    result = path_get_canonical(PATH_TEST_DIR "/foo.bas.", out, 256);
-
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas.", result);
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas.", out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/foo.bas.", PATH_TEST_DIR "/foo.bas.");
 
     // Trailing dot dot.
-    result = path_get_canonical(PATH_TEST_DIR "/foo.bas..", out, 256);
-
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas..", result);
-    EXPECT_STREQ(PATH_TEST_DIR "/foo.bas..", out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/foo.bas..", PATH_TEST_DIR "/foo.bas..");
 
     // Trailing slash dot.
-    result = path_get_canonical(PATH_TEST_DIR "/bar/.", out, 256);
-
-    EXPECT_STREQ(PATH_TEST_DIR "/bar", result);
-    EXPECT_STREQ(PATH_TEST_DIR "/bar", out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/bar/.", PATH_TEST_DIR "/bar");
 
     // Trailing slash dot dot.
-    result = path_get_canonical(PATH_TEST_DIR "/bar/..", out, 256);
-
-    EXPECT_STREQ(PATH_TEST_DIR, result);
-    EXPECT_STREQ(PATH_TEST_DIR, out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/bar/..", PATH_TEST_DIR);
 }
 
 TEST_F(PathTest, GetCanonical_GivenRelativePath) {
-    char out[256] = { '\0' };
+    char out[256];
     errno = 0;
-
-    // Simple (non-existing) relative path.
-    char *result = path_get_canonical("foo.bas", out, 256);
+    char *result;
+    char expected[PATH_MAX + 256];
 
     char cwd[PATH_MAX];
     if (!getcwd(cwd, sizeof(cwd))) {
         perror("getcwd() error");
         return;
     }
-    char expected[PATH_MAX + 256];
+
+    // Simple (non-existing) relative path.
     sprintf(expected, "%s/foo.bas", cwd);
-    EXPECT_STREQ(expected, result);
-    EXPECT_STREQ(expected, out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL("foo.bas", expected);
 
     // Intermediate slash dot dot.
-    result = path_get_canonical("bar/../foo.bas", out, 256);
-
-    EXPECT_STREQ(expected, result);
-    EXPECT_STREQ(expected, out);
-    EXPECT_EQ(0, errno);
+    sprintf(expected, "%s/foo.bas", cwd);
+    TEST_GET_CANONICAL("bar/../foo.bas", expected);
 
     // Intermediate slash dot.
-    result = path_get_canonical("bar/./foo.bas", out, 256);
-
     sprintf(expected, "%s/bar/foo.bas", cwd);
-    EXPECT_STREQ(expected, result);
-    EXPECT_STREQ(expected, out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL("bar/./foo.bas", expected);
 
      // Multiple slashes.
-    result = path_get_canonical("bar//foo.bas", out, 256);
-
-    EXPECT_STREQ(expected, result);
-    EXPECT_STREQ(expected, out);
-    EXPECT_EQ(0, errno);
+    sprintf(expected, "%s/bar/foo.bas", cwd);
+    TEST_GET_CANONICAL("bar//foo.bas", expected);
 
     // Trailing dot.
-    result = path_get_canonical("foo.bas.", out, 256);
-
     sprintf(expected, "%s/foo.bas.", cwd);
-    EXPECT_STREQ(expected, result);
-    EXPECT_STREQ(expected, out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL("foo.bas.", expected);
 
     // Trailing dot dot.
-    result = path_get_canonical("foo.bas..", out, 256);
-
     sprintf(expected, "%s/foo.bas..", cwd);
-    EXPECT_STREQ(expected, result);
-    EXPECT_STREQ(expected, out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL("foo.bas..", expected);
 
     // Trailing slash dot.
-    result = path_get_canonical("bar/.", out, 256);
-
     sprintf(expected, "%s/bar", cwd);
-    EXPECT_STREQ(expected, result);
-    EXPECT_STREQ(expected, out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL("bar/.", expected);
 
-    // Trailing slash dot.
-    result = path_get_canonical("bar/..", out, 256);
-
+    // Trailing slash dot dot.
     sprintf(expected, "%s", cwd);
-    EXPECT_STREQ(expected, result);
-    EXPECT_STREQ(expected, out);
-    EXPECT_EQ(0, errno);
+    TEST_GET_CANONICAL("bar/..", expected);
 }
 
 TEST_F(PathTest, GetExtension) {
