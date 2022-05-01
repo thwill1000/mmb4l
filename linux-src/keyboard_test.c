@@ -6,6 +6,7 @@
 #include "common/console.h"
 
 void console_key_to_string(int ch, char *buf);
+void error_throw(MmResult error) {}
 void error_throw_ex(MmResult error, const char *msg, ...) {}
 
 volatile int MMAbort;

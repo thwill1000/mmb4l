@@ -17,8 +17,6 @@
 #include "utility.h"
 #include "rx_buf.h"
 
-#define ERROR_UNEXPECTED_READ_RESULT  error_throw_ex(kError, "Unexpected result from read()")
-
 #define CONSOLE_RX_BUF_SIZE 256
 
 // Jump through hoops so compiler doesn't complain about ignoring the return value.
@@ -69,6 +67,8 @@ void console_pump_input(void) {
     errno = 0;
     ssize_t result = read(STDIN_FILENO, &ch, 1);
     switch (result) {
+        case -1:
+            error_throw(errno);
         case 0:
             return;
         case 1:
@@ -76,7 +76,7 @@ void console_pump_input(void) {
             // printf("<%d>", (int) ch);
             break;
         default:
-            ERROR_UNEXPECTED_READ_RESULT;
+            assert(false);
             break;
     }
 
