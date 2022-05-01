@@ -9,9 +9,9 @@
 extern char error_file[STRINGSIZE];
 extern int error_line;
 
-void error(char *msg, ...);
 void error_throw(MmResult error);
 void error_throw_ex(MmResult error, const char *msg, ...);
+void error_throw_legacy(const char *msg, ...);
 uint8_t error_to_exit_code(MmResult error);
 
 #define ERROR_ALREADY_OPEN                error_throw_ex(kError, "File or device already open")

@@ -36,6 +36,7 @@ provisions:
 
 #include "Configuration.h"
 #include "common/console.h"
+#include "common/error.h"
 #include "common/file.h"
 #include "common/interrupt.h"
 #include "common/memory.h"
@@ -73,6 +74,7 @@ extern char error_file[STRINGSIZE];
 #define MMfgetc          file_getc
 #define MMfputc          file_putc
 #define MMputchar        console_putc
+#define error            error_throw_legacy
 
 // Aliases for identifiers using "legacy" names in MMBasic core:
 #define Autorun          autorun

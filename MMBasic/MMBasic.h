@@ -184,8 +184,9 @@ extern char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP, tok
 extern char cmdIF, cmdENDIF, cmdEND_IF, cmdELSEIF, cmdELSE_IF, cmdELSE, cmdSELECT_CASE, cmdCASE, cmdCASE_ELSE, cmdEND_SELECT;
 extern char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
 
-// void error(char *msg) ;
+#if !defined(__mmb4l__)
 void MIPS16 error(char *, ...);
+#endif
 void MIPS16 InitBasic(void);
 
 #if defined(__mmb4l__)

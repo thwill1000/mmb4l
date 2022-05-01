@@ -182,10 +182,10 @@ static void verror(MmResult error, const char *msg, va_list argp) {
     }
 }
 
-void error(char *msg, ...) {
+void error_throw_legacy(const char *msg, ...) {
     va_list argp;
     va_start(argp, msg);
-    verror(MMerrno == 0 ? kError : MMerrno, msg, argp);
+    verror(kError, msg, argp);
     assert(0); // Don't expect to get here because of long_jmp().
     va_end(argp);
 }
