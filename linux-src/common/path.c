@@ -124,7 +124,7 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
                         *pdst++ = '.';
                         *pdst++ = '.';
                         break;
-                    case kPathStateSlashDotDot:
+                    case kPathStateSlashDotDot: {
                         char *p = path_unwind(new_path, pdst);
                         if (p == pdst) {
                             *pdst++ = '/';
@@ -134,6 +134,7 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
                             pdst = p;
                         }
                         break;
+                    }
                     default:
                         break;
                 }
