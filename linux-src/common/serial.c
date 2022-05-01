@@ -371,6 +371,9 @@ int serial_putc(int ch, int fnbr) {
             error_throw(EBADF);
             break;
     }
+
+    assert(false);
+    return -1;
 }
 
 int serial_rx_queue_size(int fnbr) {
