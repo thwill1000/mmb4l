@@ -218,10 +218,20 @@ End Sub
 
 Sub test_fontheight()
   assert_int_equals(EXPECTED_FONT_HEIGHT%, Mm.Info(FontHeight))
+
+  ' Expect error if there is a space between FONT and HEIGHT.
+  On Error Skip
+  Local i% = Mm.Info(Font Height)
+  assert_raw_error("Unknown argument")
 End Sub
 
 Sub test_fontwidth()
   assert_int_equals(EXPECTED_FONT_WIDTH%, Mm.Info(FontWidth))
+
+  ' Expect error if there is a space between FONT and HEIGHT.
+  On Error Skip
+  Local i% = Mm.Info(Font Height)
+  assert_raw_error("Unknown argument")
 End Sub
 
 Sub test_hpos()
