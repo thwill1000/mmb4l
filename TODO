@@ -15,7 +15,6 @@ Required for alpha 4
    program ?
  - String literals should not be passed to non-const char * parameters
  - Remove OPTION CLEAR command
- - Add Peter to MMB4L startup banner (?)
  - Syntax highlighting of decimals with no leading zero
 
 
