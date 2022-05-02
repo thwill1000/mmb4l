@@ -13,7 +13,6 @@ Required for alpha 4
    resolved relative to CWD$ or the directory containing the currently running
    program ?
  - String literals should not be passed to non-const char * parameters
- - Remove OPTION CLEAR command
  - Syntax highlighting of decimals with no leading zero
 
 

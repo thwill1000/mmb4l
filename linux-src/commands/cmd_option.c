@@ -192,9 +192,7 @@ static void cmd_option_set(char *p) {
 
 void cmd_option(void) {
     char *p;
-    if ((p = checkstring(cmdline, "CLEAR"))) {
-        cmd_option_reset(p);
-    } else if ((p = checkstring(cmdline, "LIST"))) {
+    if ((p = checkstring(cmdline, "LIST"))) {
         cmd_option_list(p);
     } else if ((p = checkstring(cmdline, "LOAD"))) {
         cmd_option_load(p);
