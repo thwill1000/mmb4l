@@ -6,7 +6,6 @@ Required for alpha 4
 
  - Implement READ [SAVE|RESTORE]
  - Add unit-tests for using CSUB as a data store
- - Does parse_is_end() duplicate checkend() ?
  - Update header comments
  - Move MMBasic/ => linux-src/core/
  - Move linux-src/ => src/
