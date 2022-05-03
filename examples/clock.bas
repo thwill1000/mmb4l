@@ -1,5 +1,6 @@
-' Copyright (c) 2021 Thomas Hugo Williams
-' For MMB4L 2021.01
+' Copyright (c) 2021-2022 Thomas Hugo Williams
+' License MIT <https://opensource.org/licenses/MIT>
+' For MMB4L 2022.01
 
 ' LED scrolling text demo.
 

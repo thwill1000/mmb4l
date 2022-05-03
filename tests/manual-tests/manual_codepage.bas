@@ -1,3 +1,7 @@
+' Copyright (c) 2021-2022 Thomas Hugo Williams
+' License MIT <https://opensource.org/licenses/MIT>
+' For MMB4L 2022.01
+
 Option Explicit On
 Option Default None
 Option Base 0

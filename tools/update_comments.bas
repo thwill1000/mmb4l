@@ -1,3 +1,7 @@
+' Copyright (c) 2022 Thomas Hugo Williams
+' License MIT <https://opensource.org/licenses/MIT>
+' For MMBasic 5.07
+
 ' Updates license comments for MMB4L source files.
 
 Option Base 0

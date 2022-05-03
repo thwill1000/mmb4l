@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021-2022 Thomas Hugo Williams
+ * License MIT <https://opensource.org/licenses/MIT>
+ */
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

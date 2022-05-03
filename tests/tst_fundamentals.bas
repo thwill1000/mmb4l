@@ -1,8 +1,9 @@
-' Copyright (c) 2021 Thomas Hugo Williams
+' Copyright (c) 2021-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For Colour Maximite 2, MMBasic 5.07
+' For MMBasic 5.07
 
 Option Explicit On
+
 Option Default None
 Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 
@@ -114,13 +115,13 @@ End Sub
 Sub test_error_correct_after_goto()
   Goto 30
 test_goto_label_1:
-  assert_raw_error("Error in line 126: foo1")
+  assert_raw_error("Error in line 127: foo1")
   Goto 40
 test_goto_label_2:
-  assert_raw_error("Error in line 128: foo2")
+  assert_raw_error("Error in line 129: foo2")
   On Error Skip
   Error "foo3"
-  assert_raw_error("Error in line 122: foo3")
+  assert_raw_error("Error in line 123: foo3")
 End Sub
 
 30 On Error Skip : Error "foo1" : Goto test_goto_label_1
@@ -130,12 +131,12 @@ Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
   GoSub 60
-  assert_raw_error("Error in line 141: bar1")
+  assert_raw_error("Error in line 142: bar1")
   GoSub 70
-  assert_raw_error("Error in line 143: bar2")
+  assert_raw_error("Error in line 144: bar2")
   On Error Skip
   Error "bar3"
-  assert_raw_error("Error in line 137: bar3")
+  assert_raw_error("Error in line 138: bar3")
 End Sub
 
 60 On Error Skip : Error "bar1" : Return

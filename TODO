@@ -5,7 +5,6 @@ Required for alpha 4
 --------------------
 
  - Implement READ [SAVE|RESTORE]
- - Update header comments
  - Move MMBasic/ => linux-src/core/
  - Move linux-src/ => src/
  - When RUNning a program from another program should a relative path be

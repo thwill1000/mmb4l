@@ -1,3 +1,7 @@
+' Copyright (c) 2021-2022 Thomas Hugo Williams
+' License MIT <https://opensource.org/licenses/MIT>
+' For MMBasic 5.07
+
 Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 Option Default None
 Option Explicit On

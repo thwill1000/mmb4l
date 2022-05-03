@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021-2022 Thomas Hugo Williams
+ * License MIT <https://opensource.org/licenses/MIT>
+ */
+
 #include <gtest/gtest.h>
 #include <climits>
 #include <dirent.h>

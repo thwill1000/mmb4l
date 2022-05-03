@@ -1,3 +1,6 @@
+# Copyright (c) 2021-2022 Thomas Hugo Williams
+# License MIT <https://opensource.org/licenses/MIT>
+
 cmake_minimum_required(VERSION 3.14)
 
 # set the project name

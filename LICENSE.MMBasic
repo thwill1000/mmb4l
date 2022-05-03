@@ -1,8 +1,5 @@
-/*-*****************************************************************************
-
 MMBasic for Linux (MMB4L)
-
-fun_choice.c
+=========================
 
 Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -39,39 +36,3 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-*******************************************************************************/
-
-#include "../common/mmb4l.h"
-#include "../common/error.h"
-
-void fun_choice(void) {
-    MMFLOAT f = 0;
-    MMINTEGER i64 = 0;
-    char *s = NULL;
-    int t = T_NOTYPE;
-    getargs(&ep, 5, ",");
-    if (argc != 5) ERROR_SYNTAX;
-    int which = getnumber(argv[0]);
-    if (which) {
-        evaluate(argv[2], &f, &i64, &s, &t, false);
-    } else {
-        evaluate(argv[4], &f, &i64, &s, &t, false);
-    }
-    if (t & T_INT) {
-        iret = i64;
-        targ = T_INT;
-        return;
-    } else if (t & T_NBR) {
-        fret = f;
-        targ = T_NBR;
-        return;
-    } else if (t & T_STR) {
-        sret = GetTempStrMemory();
-        Mstrcpy(sret, s);  // copy the string
-        targ = T_STR;
-        return;
-    } else {
-        ERROR_SYNTAX;
-    }
-}
