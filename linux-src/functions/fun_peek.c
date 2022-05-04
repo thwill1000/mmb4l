@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/utility.h"
 
 /** PEEK(BYTE addr%) */
-static void peek_byte(int argc, char **argv, char *p) {
+static void peek_byte(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
 
     uintptr_t addr = get_peek_addr(p);
@@ -56,7 +56,7 @@ static void peek_byte(int argc, char **argv, char *p) {
     g_rtn_type = T_INT;
 }
 
-static char *GetCFunAddr(char *p, int i) {
+static char *GetCFunAddr(const char *p, int i) {
     uint32_t *ip = (uint32_t *) p;
     uint32_t size = 0;
     while (*((uint64_t *) ip) != 0xFFFFFFFFFFFFFFFF) {
@@ -77,7 +77,7 @@ static char *GetCFunAddr(char *p, int i) {
 }
 
 /** PEEK(CFUNADDR cfun) */
-static void peek_cfunaddr(int argc, char **argv, char *p) {
+static void peek_cfunaddr(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
     int idx = FindSubFun(p, true);  // search for a function first
     if (idx == -1)
@@ -98,7 +98,7 @@ static void peek_cfunaddr(int argc, char **argv, char *p) {
 #include <stdio.h>
 
 /** PEEK(DATAPOS) */
-static void peek_datapos(int argc, char **argv, char *p) {
+static void peek_datapos(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
     uint64_t data_pos = ((NextDataLine - ProgMemory) << 32) + NextData;
     g_integer_rtn = data_pos;
@@ -106,7 +106,7 @@ static void peek_datapos(int argc, char **argv, char *p) {
 }
 
 /** PEEK(INTEGER addr%) */
-static void peek_integer(int argc, char **argv, char *p) {
+static void peek_integer(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
 #if defined(ENV32BIT)
     g_integer_rtn = *(uint64_t *)(get_peek_addr(p) & 0xFFFFFFF8);
@@ -117,7 +117,7 @@ static void peek_integer(int argc, char **argv, char *p) {
 }
 
 /** PEEK(FLOAT addr%) */
-static void peek_float(int argc, char **argv, char *p) {
+static void peek_float(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
 #if defined(ENV32BIT)
     g_float_rtn = *(MMFLOAT *)(get_peek_addr(p) & 0xFFFFFFF8);
@@ -128,7 +128,7 @@ static void peek_float(int argc, char **argv, char *p) {
 }
 
 /** PEEK(PROGMEM, offset) */
-static void peek_progmem(int argc, char **argv, char *p) {
+static void peek_progmem(int argc, char **argv, const char *p) {
     if (argc != 3) ERROR_SYNTAX;
 
     int64_t offset = getinteger(argv[2]);
@@ -137,7 +137,7 @@ static void peek_progmem(int argc, char **argv, char *p) {
 }
 
 /** PEEK(SHORT addr%) */
-static void peek_short(int argc, char **argv, char *p) {
+static void peek_short(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
 #if defined(ENV32BIT)
     g_integer_rtn = *(uint16_t *)(get_peek_addr(p) & 0xFFFFFFFE);
@@ -148,7 +148,7 @@ static void peek_short(int argc, char **argv, char *p) {
 }
 
 /** PEEK(VAR, offset) */
-static void peek_var(int argc, char **argv, char *p) {
+static void peek_var(int argc, char **argv, const char *p) {
     if (argc != 3) ERROR_SYNTAX;
 
     void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
@@ -158,7 +158,7 @@ static void peek_var(int argc, char **argv, char *p) {
 }
 
 /** PEEK(VARADDR var) */
-static void peek_varaddr(int argc, char **argv, char *p) {
+static void peek_varaddr(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
     void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
     g_rtn_type = T_INT;
@@ -166,7 +166,7 @@ static void peek_varaddr(int argc, char **argv, char *p) {
 }
 
 /** PEEK(VARHEADER var) */
-static void peek_varheader(int argc, char **argv, char *p) {
+static void peek_varheader(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
     void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
     g_rtn_type = T_INT;
@@ -174,7 +174,7 @@ static void peek_varheader(int argc, char **argv, char *p) {
 }
 
 /** PEEK(VARTBL, offset) */
-static void peek_vartbl(int argc, char **argv, char *p) {
+static void peek_vartbl(int argc, char **argv, const char *p) {
     if (argc != 3) ERROR_SYNTAX;
 
     int64_t offset = getinteger(argv[2]);
@@ -183,7 +183,7 @@ static void peek_vartbl(int argc, char **argv, char *p) {
 }
 
 /** PEEK(WORD addr%) */
-static void peek_word(int argc, char **argv, char *p) {
+static void peek_word(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
 #if defined(ENV32BIT)
     g_integer_rtn = *(uint32_t *)(get_peek_addr(p) & 0xFFFFFFFC);
@@ -196,7 +196,7 @@ static void peek_word(int argc, char **argv, char *p) {
 void fun_peek(void) {
     getargs(&ep, 3, ",");
 
-    char* p;
+    const char* p;
     if ((p = checkstring(argv[0], "BYTE"))) {
         peek_byte(argc, argv, p);
     } else if ((p = checkstring(argv[0], "CFUNADDR"))) {

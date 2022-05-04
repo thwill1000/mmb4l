@@ -55,7 +55,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define ERROR_NOTHING_TO_LIST  error_throw_ex(kError, "Nothing to list")
 
-void cmd_option_list(char *p); // cmd_option.c
+void cmd_files_internal(const char *);  // cmd_files.c
+void cmd_option_list(const char *);     // cmd_option.c
 
 /* qsort C-string comparison function */
 static int cstring_cmp(const void *a, const void *b)  {
@@ -190,12 +191,12 @@ static void list_csubs(int all) {
     program_list_csubs(all);
 }
 
-static void list_options(char *p) {
+static void list_options(const char *p) {
     cmd_option_list(p);
 }
 
 void cmd_list(void) {
-    char *p;
+    const char *p;
     skipspace(cmdline);
 
     // Use the current console dimensions for the output of the LIST command.
@@ -216,7 +217,6 @@ void cmd_list(void) {
             ERROR_SYNTAX;
         }
     } else if ((p = checkstring(cmdline, "FILES"))) {
-        void cmd_files_internal(char *);
         cmd_files_internal(p);
     } else if ((p = checkstring(cmdline, "FLASH"))) {
         if (parse_is_end(p)) {

@@ -51,9 +51,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/serial.h"
 
 static void cmd_open_file(int argc, char **argv) {
-    char *filename = getCstring(argv[0]);
+    const char *filename = getCstring(argv[0]);
 
-    char *mode = NULL;
+    const char *mode = NULL;
     if (str_equal(argv[2], "OUTPUT"))
         mode = "wb";  // binary mode so that we do not have lf to cr/lf
                       // translation

@@ -112,9 +112,9 @@ typedef struct {
 } OptionsDefinition;
 
 typedef struct {
-    char *name;
-    char *command; // Command to run for the given editor.
-    bool blocking; // Does the editor command block.
+    const char *name;
+    const char *command; // Command to run for the given editor.
+    bool blocking;       // Does the editor command block.
 } OptionsEditor;
 
 typedef enum { kBoth, kScreen, kSerial } OptionsConsole;

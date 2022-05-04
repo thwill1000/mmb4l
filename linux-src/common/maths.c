@@ -325,11 +325,11 @@ bool Fft_transformRadix2(double complex vec[], size_t n, bool inverse) {
 }
 
 
-void maths_fft(char *pp) {
+void maths_fft(const char *pp) {
     void *ptr1 = NULL;
     void *ptr2 = NULL;
-    char *tp;
-        PI = atan2(1, 1) * 4;
+    const char *tp;
+    PI = atan2(1, 1) * 4;
     cplx *a1cplx=NULL, *a2cplx=NULL;
     MMFLOAT *a3float=NULL, *a4float=NULL, *a5float;
     int i, size, powerof2=0;

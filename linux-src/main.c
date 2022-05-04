@@ -420,7 +420,7 @@ int MMgetchar(void) {
 // get a line from the keyboard or a file handle
 void MMgetline(int filenbr, char *p) {
     int c, nbrchars = 0;
-    char *tp;
+    const char *tp;
 
     while (1) {
         CheckAbort();  // jump right out if CTRL-C
@@ -561,7 +561,7 @@ void dump_token_table(const struct s_tokentbl* tbl) {
  * This will handle a line number, a label or a subroutine,
  * all areas of MMBasic that can generate an interrupt use this function.
  */
-char *GetIntAddress(char *p) {
+const char *GetIntAddress(const char *p) {
     int32_t i;
     if (isnamestart(*p)) {     // if it starts with a valid name char
         i = FindSubFun(p, 0);  // try to find a matching subroutine

@@ -52,27 +52,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int g_key_complete = 0;
 
-static void on_error_abort(char* p) {
+static void on_error_abort(const char* p) {
     OptionErrorSkip = 0;
 }
 
-static void on_error_clear(char *p) {
+static void on_error_clear(const char *p) {
     MMerrno = 0;
     *MMErrMsg = 0;
 }
 
-static void on_error_ignore(char *p) {
+static void on_error_ignore(const char *p) {
     on_error_clear(p);
     OptionErrorSkip = -1;
 }
 
-static void on_error_skip(char *p) {
+static void on_error_skip(const char *p) {
     on_error_clear(p);
     OptionErrorSkip = (*p == 0 || *p == '\'') ? 2 : getint(p, 1, 10000) + 1;
 }
 
-static void on_error(char *p) {
-    char *p2;
+static void on_error(const char *p) {
+    const char *p2;
     if ((p2 = checkstring(p, "ABORT"))) {
         on_error_abort(p2);
     } else if ((p2 = checkstring(p, "CLEAR"))) {
@@ -90,7 +90,7 @@ static void on_error(char *p) {
  * ON KEY target
  * ON KEY ASCIIcode, target
  */
-static void on_key(char *p) {
+static void on_key(const char *p) {
     getargs(&p, 3, ",");
     if (argc == 1) {
         if (*argv[0] == '0' && !isdigit(*(argv[0] + 1))) {
@@ -113,7 +113,7 @@ static void on_key(char *p) {
 }
 
 /** ON nbr GOTO | GOSUB target[,target, target,...] */
-static void on_number(char *p) {
+static void on_number(const char *p) {
     int r;
     char ss[4] = {tokenGOTO, tokenGOSUB, ',', 0};
     {  // start a new block
@@ -142,7 +142,7 @@ static void on_number(char *p) {
 }
 
 void cmd_on(void) {
-    char *p;
+    const char *p;
     if ((p = checkstring(cmdline, "ERROR"))) {
         on_error(p);
     } else if ((p = checkstring(cmdline, "KEY"))) {

@@ -70,7 +70,7 @@ void MMgetline(int fnbr, char *p); // main.c
 /** Finds the first available free file number. */
 int file_find_free(void);
 
-void file_open(char *fname, char *mode, int fnbr);
+void file_open(const char *fname, const char *mode, int fnbr);
 void file_close(int fnbr);
 void file_close_all(void);
 int file_eof(int fnbr);

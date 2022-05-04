@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/file.h"
 #include "../common/parse.h"
 
-static void longstring_append(char *tp) {
+static void longstring_append(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
     char *p = NULL;
@@ -71,7 +71,7 @@ static void longstring_append(char *tp) {
     dest[0] += nbr;
 }
 
-static void longstring_clear(char *tp) {
+static void longstring_clear(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
     getargs(&tp, 1, ",");
@@ -85,7 +85,7 @@ static void longstring_clear(char *tp) {
     dest[0] = 0;
 }
 
-static void longstring_copy(char *tp) {
+static void longstring_copy(const char *tp) {
     void *ptr1 = NULL;
     void *ptr2 = NULL;
     int64_t *dest = NULL, *src = NULL;
@@ -116,7 +116,7 @@ static void longstring_copy(char *tp) {
     dest[0] = src[0];
 }
 
-static void longstring_concat(char *tp) {
+static void longstring_concat(const char *tp) {
     void *ptr1 = NULL;
     void *ptr2 = NULL;
     int64_t *dest = NULL, *src = NULL;
@@ -148,7 +148,7 @@ static void longstring_concat(char *tp) {
     dest[0] += src[0];
 }
 
-static void longstring_lcase(char *tp) {
+static void longstring_lcase(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
     char *q = NULL;
@@ -169,7 +169,7 @@ static void longstring_lcase(char *tp) {
     }
 }
 
-static void longstring_left(char *tp) {
+static void longstring_left(const char *tp) {
     void *ptr1 = NULL;
     void *ptr2 = NULL;
     int64_t *dest = NULL, *src = NULL;
@@ -200,7 +200,7 @@ static void longstring_left(char *tp) {
     dest[0] = nbr;
 }
 
-static void longstring_load(char *tp) {
+static void longstring_load(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
     char *p;
@@ -228,7 +228,7 @@ static void longstring_load(char *tp) {
     return;
 }
 
-static void longstring_mid(char *tp) {
+static void longstring_mid(const char *tp) {
     void *ptr1 = NULL;
     void *ptr2 = NULL;
     int64_t *dest = NULL, *src = NULL;
@@ -264,7 +264,7 @@ static void longstring_mid(char *tp) {
     dest[0] = nbr;
 }
 
-static void longstring_print(char *tp) {
+static void longstring_print(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
     char *q = NULL;
@@ -315,7 +315,7 @@ static void longstring_print(char *tp) {
     MMfputs("\2\r\n", fnbr);
 }
 
-static void longstring_replace(char *tp) {
+static void longstring_replace(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
     char *p = NULL;
@@ -337,7 +337,7 @@ static void longstring_replace(char *tp) {
     while (i--) *q++ = *p++;
 }
 
-static void longstring_resize(char *tp) {
+static void longstring_resize(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
     int j = 0;
@@ -355,7 +355,7 @@ static void longstring_resize(char *tp) {
     dest[0] = getint(argv[2], 0, j);
 }
 
-static void longstring_right(char *tp) {
+static void longstring_right(const char *tp) {
     void *ptr1 = NULL;
     void *ptr2 = NULL;
     int64_t *dest = NULL, *src = NULL;
@@ -389,7 +389,7 @@ static void longstring_right(char *tp) {
     dest[0] = nbr;
 }
 
-void longstring_setbyte(char *tp) {
+void longstring_setbyte(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
     int p = 0;
@@ -412,7 +412,7 @@ void longstring_setbyte(char *tp) {
     return;
 }
 
-void longstring_trim(char *tp) {
+void longstring_trim(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
     uint32_t trim;
@@ -434,7 +434,7 @@ void longstring_trim(char *tp) {
     dest[0] -= trim;
 }
 
-void longstring_ucase(char *tp) {
+void longstring_ucase(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
     char *q = NULL;
@@ -456,7 +456,7 @@ void longstring_ucase(char *tp) {
 }
 
 void cmd_longstring(void) {
-    char *p;
+    const char *p;
     if ((p = checkstring(cmdline, "APPEND"))) {
         longstring_append(p);
     } else if ((p = checkstring(cmdline, "CLEAR"))) {

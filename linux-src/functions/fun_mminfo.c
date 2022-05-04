@@ -64,7 +64,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern char run_cmdline[STRINGSIZE];
 
-static void mminfo_architecture(char *p) {
+static void mminfo_architecture(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
@@ -97,7 +97,7 @@ void get_mmcmdline(char *cmdline) {
     strcpy(cmdline, p);
 }
 
-static void mminfo_cmdline(char *p) {
+static void mminfo_cmdline(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
@@ -105,7 +105,7 @@ static void mminfo_cmdline(char *p) {
     CtoM(g_string_rtn);
 }
 
-static void mminfo_current(char *p) {
+static void mminfo_current(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
@@ -117,7 +117,7 @@ void get_mmdevice(char *device) {
     strcpy(device, MM_DEVICE);
 }
 
-static void mminfo_device(char *p) {
+static void mminfo_device(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
@@ -125,7 +125,7 @@ static void mminfo_device(char *p) {
     CtoM(g_string_rtn);
 }
 
-static void mminfo_directory(char *p) {
+static void mminfo_directory(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
 
     g_rtn_type = T_STR;
@@ -145,9 +145,9 @@ static void mminfo_directory(char *p) {
     CtoM(g_string_rtn);
 }
 
-static void mminfo_envvar(char *p) {
-    char *name = getCstring(p);
-    char *value = getenv(name);
+static void mminfo_envvar(const char *p) {
+    const char *name = getCstring(p);
+    const char *value = getenv(name);
     if (!value) value = "";
     if (strlen(value) >= STRINGSIZE) ERROR_ENV_VAR_TOO_LONG;
     g_string_rtn = GetTempStrMemory();
@@ -156,7 +156,7 @@ static void mminfo_envvar(char *p) {
     CtoM(g_string_rtn);
 }
 
-static void mminfo_errmsg(char *p) {
+static void mminfo_errmsg(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
@@ -164,33 +164,33 @@ static void mminfo_errmsg(char *p) {
     CtoM(g_string_rtn);
 }
 
-static void mminfo_errno(char *p) {
+static void mminfo_errno(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_integer_rtn = MMerrno;
     g_rtn_type = T_INT;
 }
 
-static char *get_path(char *p) {
+static char *get_path(const char *p) {
     char *path = GetTempStrMemory();
     if (!path_munge(getCstring(p), path, STRINGSIZE)) error_throw(errno);
     return path;
 }
 
-static void mminfo_exists_dir(char *p) {
+static void mminfo_exists_dir(const char *p) {
     char *path = get_path(p);
     struct stat st;
     g_integer_rtn = (stat(path, &st) == 0) && S_ISDIR(st.st_mode) ? 1 : 0;
     g_rtn_type = T_INT;
 }
 
-static void mminfo_exists_file(char *p) {
+static void mminfo_exists_file(const char *p) {
     char *path = get_path(p);
     struct stat st;
     g_integer_rtn = (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? 1 : 0;
     g_rtn_type = T_INT;
 }
 
-static void mminfo_exists_symlink(char *p) {
+static void mminfo_exists_symlink(const char *p) {
     char *path = get_path(p);
     struct stat st;
     // Note use of lstat() rather than stat(), the latter would follow the symbolic link.
@@ -198,8 +198,8 @@ static void mminfo_exists_symlink(char *p) {
     g_rtn_type = T_INT;
 }
 
-static void mminfo_exists(char *p) {
-    char *p2;
+static void mminfo_exists(const char *p) {
+    const char *p2;
     if ((p2 = checkstring(p, "DIR"))) {
         mminfo_exists_dir(p2);
     } else if ((p2 = checkstring(p, "FILE"))) {
@@ -207,20 +207,20 @@ static void mminfo_exists(char *p) {
     } else if ((p2 = checkstring(p, "SYMLINK"))) {
         mminfo_exists_symlink(p2);
     } else {
-        char *path = get_path(p);
+        const char *path = get_path(p);
         struct stat st;
         g_integer_rtn = (stat(path, &st) == 0);
         g_rtn_type = T_INT;
     }
 }
 
-static void mminfo_exitcode(char *p) {
+static void mminfo_exitcode(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
     g_integer_rtn = mmb_exit_code;
 }
 
-static void mminfo_filesize(char *p) {
+static void mminfo_filesize(const char *p) {
     char *path = get_path(p);
 
     struct stat st;
@@ -238,19 +238,19 @@ static void mminfo_filesize(char *p) {
     g_rtn_type = T_INT;
 }
 
-static void mminfo_fontheight(char *p) {
+static void mminfo_fontheight(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_integer_rtn = FONT_HEIGHT;
     g_rtn_type = T_INT;
 }
 
-static void mminfo_fontwidth(char *p) {
+static void mminfo_fontwidth(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_integer_rtn = FONT_WIDTH;
     g_rtn_type = T_INT;
 }
 
-void mminfo_hres(char *p) {
+void mminfo_hres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int width, height;
     if (FAILED(console_get_size(&width, &height))) {
@@ -261,7 +261,7 @@ void mminfo_hres(char *p) {
     g_rtn_type = T_INT;
 }
 
-static void mminfo_hpos(char *p) {
+static void mminfo_hpos(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int x, y;
     if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
@@ -272,7 +272,7 @@ static void mminfo_hpos(char *p) {
     g_rtn_type = T_INT;
 }
 
-static void mminfo_option(char *p) {
+static void mminfo_option(const char *p) {
     OptionsDefinition *def = NULL;
     for (def = options_definitions; def->name; def++) {
         if (checkstring(p, (char *) def->name)) break;
@@ -305,7 +305,7 @@ static void mminfo_option(char *p) {
     if (FAILED(result)) error_throw(result);
 }
 
-static void mminfo_path(char *p) {
+static void mminfo_path(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
@@ -325,7 +325,7 @@ static void mminfo_path(char *p) {
     CtoM(g_string_rtn);
 }
 
-static void mminfo_version(char *p) {
+static void mminfo_version(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     char *endptr;
     g_float_rtn = (MMFLOAT) strtol(VERSION, &endptr, 10);
@@ -334,7 +334,7 @@ static void mminfo_version(char *p) {
     g_rtn_type = T_NBR;
 }
 
-void mminfo_vres(char *p) {
+void mminfo_vres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int width, height;
     if (FAILED(console_get_size(&width, &height))) {
@@ -345,7 +345,7 @@ void mminfo_vres(char *p) {
     g_rtn_type = T_INT;
 }
 
-static void mminfo_vpos(char *p) {
+static void mminfo_vpos(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int x, y;
     if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
@@ -357,7 +357,7 @@ static void mminfo_vpos(char *p) {
 }
 
 void fun_mminfo(void) {
-    char *p;
+    const char *p;
     if ((p = checkstring(ep, "ARCH"))) {
         mminfo_architecture(p);
     } else if ((p = checkstring(ep, "CMDLINE"))) {

@@ -73,9 +73,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void CheckAbort(void);
 void FlashWriteInit(char *p, int nbr);
-char *GetIntAddress(char *p);
+const char *GetIntAddress(const char *p);
 void ListProgram(char *p, int all);
-char *llist(char *b, char *p);
+char *llist(char *b, const char *p);
 int MMgetchar(void);
 void cmd_dummy(void);
 void op_equal(void);
@@ -92,9 +92,9 @@ extern Options mmb_options;
 
 extern char *CFunctionFlash;
 extern char DimUsed;
-extern char *errorstack[MAXGOSUB];
+extern const char *errorstack[MAXGOSUB];
 extern int gosubindex;
-extern char *gosubstack[MAXGOSUB];
+extern const char *gosubstack[MAXGOSUB];
 extern int IgnorePIN;
 extern int MMCharPos;
 extern int WatchdogSet;

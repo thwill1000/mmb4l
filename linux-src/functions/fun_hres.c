@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-void mminfo_hres(char *unused); // fun_mminfo.c
+void mminfo_hres(const char *unused); // fun_mminfo.c
 
 void fun_hres(void) {
     mminfo_hres("");

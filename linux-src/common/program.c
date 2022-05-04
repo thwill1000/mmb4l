@@ -146,7 +146,7 @@ static int massage(char *buff) {
     return strlen(buff);
 }
 
-static int cmpstr(char *s1, char *s2) {
+static int cmpstr(const char *s1, const char *s2) {
     unsigned char *p1 = (unsigned char *)s1;
     unsigned char *p2 = (unsigned char *)s2;
     unsigned char c1, c2;
@@ -356,7 +356,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
             }
         }
         if (sbuff[0] == '#') {
-            char *tp = checkstring(&sbuff[1], "DEFINE");
+            const char *tp = checkstring(&sbuff[1], "DEFINE");
             if (tp) {
                 getargs(&tp, 3, ",");
                 if (nDefines >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;
@@ -598,7 +598,7 @@ static void get_csub_name(char *p, char *buf) {
     buf[p2 - p] = '\0';
 }
 
-static void print_line(char *buf, int* line_count, int all) {
+static void print_line(const char *buf, int* line_count, int all) {
     MMPrintString(buf);
     ListNewLine(line_count, all);
 }
@@ -749,7 +749,7 @@ static int program_load_file_internal(char *filename) {
         }
         slen = len;
         if (sbuff[0] == '#') {
-            char *tp = checkstring(&sbuff[1], "DEFINE");
+            const char *tp = checkstring(&sbuff[1], "DEFINE");
             if (tp) {
                 getargs(&tp, 3, ",");
                 if (nDefines >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;

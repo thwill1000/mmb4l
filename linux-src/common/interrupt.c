@@ -58,22 +58,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef struct {
     int64_t due_ns;
-    char *interrupt_addr;
+    const char *interrupt_addr;
     int64_t period_ns;
 } TickStruct;
 
 typedef struct {
     int64_t count;
-    char *interrupt_addr;
+    const char *interrupt_addr;
 } SerialRxStruct;
 
 static int interrupt_count = 0;
-static char *interrupt_any_key_addr = NULL;
+static const char *interrupt_any_key_addr = NULL;
 static bool interrupt_pause_flag = false;
-static char *interrupt_return_stmt = NULL;
+static const char *interrupt_return_stmt = NULL;
 static int interrupt_specific_key = 0;
 static int interrupt_specific_key_pressed = false;
-static char *interrupt_specific_key_addr = NULL;
+static const char *interrupt_specific_key_addr = NULL;
 static TickStruct interrupt_ticks[NBRSETTICKS + 1];
 static SerialRxStruct interrupt_serial_rx[MAXOPENFILES + 1];
 
@@ -104,7 +104,7 @@ bool interrupt_running() {
     return interrupt_return_stmt != NULL;
 }
 
-static int handle_interrupt(char *interrupt_address) {
+static int handle_interrupt(const char *interrupt_address) {
     static char rti[2]; // TODO: does this really need to be static ?
 
     LocalIndex++;                                                   // IRETURN will decrement this
@@ -189,7 +189,7 @@ void interrupt_disable_any_key() {
     }
 }
 
-void interrupt_enable_any_key(char *interrupt_addr) {
+void interrupt_enable_any_key(const char *interrupt_addr) {
     if (!interrupt_any_key_addr) interrupt_count++;
     interrupt_any_key_addr = interrupt_addr;
 }
@@ -201,7 +201,7 @@ void interrupt_disable_specific_key() {
     }
 }
 
-void interrupt_enable_specific_key(int key, char *interrupt_addr) {
+void interrupt_enable_specific_key(int key, const char *interrupt_addr) {
     if (!interrupt_specific_key_addr) interrupt_count++;
     interrupt_specific_key = key;
     interrupt_specific_key_addr = interrupt_addr;
@@ -217,7 +217,7 @@ void interrupt_disable_tick(int irq) {
     }
 }
 
-void interrupt_enable_tick(int irq, int64_t period_ns, char *interrupt_addr) {
+void interrupt_enable_tick(int irq, int64_t period_ns, const char *interrupt_addr) {
     assert(irq >= 0 && irq < NBRSETTICKS);
     assert(period_ns > 0);
     assert(interrupt_addr);
@@ -241,7 +241,7 @@ bool interrupt_check_key_press(char ch) {
     }
 }
 
-void interrupt_pause(char *return_stmt) {
+void interrupt_pause(const char *return_stmt) {
     assert(!interrupt_pause_flag);
     interrupt_return_stmt = return_stmt;
     interrupt_pause_flag = true;
@@ -253,7 +253,7 @@ bool interrupt_pause_needs_resuming(void) {
     return result;
 }
 
-void interrupt_enable_serial_rx(int fnbr, int64_t count, char *interrupt_addr) {
+void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_addr) {
     assert(fnbr > 0 && fnbr <= MAXOPENFILES);
     assert(count > 0);
     assert(interrupt_addr);

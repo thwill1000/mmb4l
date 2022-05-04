@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // TODO: Disable and restore break key ?
 
 void cmd_xmodem(void) {
-    char *p;
+    const char *p;
     bool receive;
     if ((p = checkstring(cmdline, "RECEIVE"))) {
         receive = true;

@@ -65,7 +65,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                     On exit the number of characters read into the buffer.
  */
 static MmResult cmd_system_getenv_to_buf(const char *name, char *buf, size_t *sz) {
-    char *value = getenv(name);
+    const char *value = getenv(name);
     if (!value) value = "";
     size_t len = strlen(value);
     if (len > *sz) return kStringTooLong;
@@ -80,7 +80,7 @@ static MmResult cmd_system_getenv_to_buf(const char *name, char *buf, size_t *sz
  * SYSTEM GETENV name$, value$
  * SYSTEM GETENV name$, value%()
  */
-static void cmd_system_getenv(char *p) {
+static void cmd_system_getenv(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 3) ERROR_SYNTAX;
 
@@ -133,7 +133,7 @@ static void cmd_system_getenv(char *p) {
  * SYSTEM SETENV name$, value$
  * SYSTEM SETENV name$, value%()
  */
-static void cmd_system_setenv(char *p) {
+static void cmd_system_setenv(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 3) ERROR_SYNTAX;
 
@@ -215,7 +215,7 @@ static MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exi
  * SYSTEM command$ [, output$   [, exit_code%]]
  * SYSTEM command$ [, output%() [, exit_code%]]
  */
-static void cmd_system_execute(char *p) {
+static void cmd_system_execute(const char *p) {
     getargs(&p, 5, ",");
     if (argc != 1 && argc != 3 && argc != 5) ERROR_SYNTAX;
 
@@ -277,7 +277,7 @@ static void cmd_system_execute(char *p) {
 }
 
 void cmd_system(void) {
-    char* p;
+    const char* p;
 
     if ((p = checkstring(cmdline, "GETENV"))) {
         cmd_system_getenv(p);

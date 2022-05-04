@@ -52,7 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void cmd_print(void) {
 
-    char *s, *p;
+    char *s;
+    const char *p;
     MMFLOAT f;
     MMINTEGER i64;
     int i, t, fnbr;

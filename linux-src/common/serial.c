@@ -77,7 +77,7 @@ typedef struct {
     bool rtscts;
     bool s2;
     bool xonxoff;
-    char *rx_interrupt_addr;
+    const char *rx_interrupt_addr;
     int64_t rx_interrupt_count;
 } ComSpec;
 
@@ -174,7 +174,7 @@ static void serial_dump_spec(ComSpec *comspec) {
 }
 
 void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
-    getargs((char **) &comspec_str, 21, ":,");
+    getargs(&comspec_str, 21, ":,");
     if (argc != 2 && (argc & 0x01) == 0) ERROR_COM_SPECIFICATION;
 
     memset(comspec, 0, sizeof(ComSpec));

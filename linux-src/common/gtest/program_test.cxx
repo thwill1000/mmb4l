@@ -21,7 +21,7 @@ char ProgMemory[PROG_FLASH_SIZE] = { '\0' } ;
 char tknbuf[STRINGSIZE] = { '\0' };
 Options mmb_options = { 0 };
 
-char *checkstring(char *p, char *tkn) { return NULL; }
+const char *checkstring(const char *p, char *tkn) { return NULL; }
 void ClearProgram(void) { }
 void ClearSpecificTempMemory(void *addr) { }
 void console_set_title(const char *title) { }

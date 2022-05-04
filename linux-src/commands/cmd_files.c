@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/memory.h"
 
-void cmd_files_internal(char *p) {
+void cmd_files_internal(const char *p) {
     char *command = GetTempStrMemory();
 
     skipspace(p);

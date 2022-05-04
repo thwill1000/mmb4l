@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmtime.h"
 
 void cmd_settick(void) {
-    char *p = checkstring(cmdline, "FAST");
+    const char *p = checkstring(cmdline, "FAST");
     if (p) {
         ERROR_UNIMPLEMENTED("SETTICK FAST");
         // cmd_fasttick(p);

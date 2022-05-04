@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ERROR_NO_DATA                     error_throw_ex(kError, "No DATA to read")
 #define ERROR_RESTORE_CALLED_BEFORE_SAVE  error_throw_ex(kError, "READ RESTORE called before READ SAVE")
 
-static char *cmd_read_cached_next_data_line = NULL;
+static const char *cmd_read_cached_next_data_line = NULL;
 static int cmd_read_cached_next_data = 0;
 
 void cmd_read_clear_cache() {
@@ -71,7 +71,7 @@ static void cmd_read_restore(void) {
 
 void cmd_read_data(void) {
     int i, len;
-    char *p, datatoken, *lineptr = NULL, *x;
+    const char *p, *lineptr = NULL, *x;
     char *vtbl[MAX_ARG_COUNT];
     int vtype[MAX_ARG_COUNT];
     int vsize[MAX_ARG_COUNT];
@@ -96,7 +96,7 @@ void cmd_read_data(void) {
 
     // setup for a search through the whole memory
     vidx = 0;
-    datatoken = GetCommandValue("Data");
+    int datatoken = GetCommandValue("Data");
     p = lineptr = NextDataLine;
     if (*p == 0xff) ERROR_NO_DATA;  // error if there is no program
 

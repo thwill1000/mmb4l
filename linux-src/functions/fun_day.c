@@ -54,7 +54,7 @@ void fun_day(void) {
     if (checkstring(ep, "NOW")) {
         time = mmtime_now_ns();
     } else {
-        char *arg = getCstring(ep);
+        const char *arg = getCstring(ep);
         getargs(&arg, 5, "-/");  // this is a macro and must be the first
                                  // executable stmt in a block
         if (argc != 5) ERROR_SYNTAX;

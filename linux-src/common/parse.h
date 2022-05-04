@@ -49,11 +49,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmresult.h"
 
-bool parse_is_end(char *p);
-char *parse_check_string(char *p, char *tkn);
-int parse_bool(char *p);
-int parse_colour(char *p, bool allow_bright);
-int parse_file_number(char *p, bool allow_zero);
+bool parse_is_end(const char *p);
+const char *parse_check_string(const char *p, const char *tkn);
+int parse_bool(const char *p);
+int parse_colour(const char *p, bool allow_bright);
+int parse_file_number(const char *p, bool allow_zero);
 
 /**
  * @brief  Does the string match the pattern for a LONGSTRING, i.e. name%() or name().

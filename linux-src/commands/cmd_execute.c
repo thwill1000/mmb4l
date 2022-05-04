@@ -111,16 +111,16 @@ void execute_other() {
     tknbuf[strlen(tknbuf)] = 0;
     tknbuf[strlen(tknbuf) + 1] = 0;
 
-    char *ttp = nextstmt;  // save the globals used by commands
+    const char *nextstmt_cache = nextstmt;  // save the globals used by commands
     // ScrewUpTimer = 1000;
     ExecuteProgram(tknbuf);  // execute the function's code
     // ScrewUpTimer = 0;
     // TempMemoryIsChanged = true;                                     //
     // signal that temporary memory should be checked
-    nextstmt = ttp;
+    nextstmt = nextstmt_cache;
 }
 
-void execute(char *mycmd) {
+void execute(const char *mycmd) {
     skipspace(mycmd);
     strcpy(inpbuf, getCstring(mycmd));
     execute_other();

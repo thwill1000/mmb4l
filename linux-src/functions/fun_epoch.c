@@ -55,7 +55,7 @@ void fun_epoch(void) {
         return;
     }
 
-    char *arg = getCstring(ep);
+    const char *arg = getCstring(ep);
     getargs(&arg, 11, "-/ :");
     if (argc != 11) ERROR_SYNTAX;
 

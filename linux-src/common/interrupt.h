@@ -80,13 +80,13 @@ void interrupt_disable_specific_key(void);
 void interrupt_disable_tick(int irq);
 
 /** Enables the 'ON KEY' interrupt. */
-void interrupt_enable_any_key(char *interrupt_addr);
+void interrupt_enable_any_key(const char *interrupt_addr);
 
 /** Enables the 'ON KEY ASCIIcode' interrupt. */
-void interrupt_enable_specific_key(int key, char *interrupt_addr);
+void interrupt_enable_specific_key(int key, const char *interrupt_addr);
 
 /** Enables the specified 'SETTICK' interrupt. */
-void interrupt_enable_tick(int irq, int64_t period_ns, char *interrupt_addr);
+void interrupt_enable_tick(int irq, int64_t period_ns, const char *interrupt_addr);
 
 /**
  * Checks if the specified character matches that set for the 'ON KEY ASCIIcode'
@@ -99,7 +99,7 @@ bool interrupt_check_key_press(char ch);
  *
  * @param return_stmt  the PAUSE statement that execution should be resumed at.
  */
-void interrupt_pause(char *return_stmt);
+void interrupt_pause(const char *return_stmt);
 
 /**
  * Returns 'true' if a PAUSE statement was interrupted and should be resumed.
@@ -107,7 +107,7 @@ void interrupt_pause(char *return_stmt);
  */
 bool interrupt_pause_needs_resuming(void);
 
-void interrupt_enable_serial_rx(int fnbr, int64_t count, char *interrupt_addr);
+void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_addr);
 
 void interrupt_disable_serial_rx(int fnbr);
 

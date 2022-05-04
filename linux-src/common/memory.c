@@ -254,7 +254,7 @@ void heapstats(char *m1) {
 #endif
 
 // TODO: should validate the returned address is POKEable.
-uintptr_t get_poke_addr(char *p) {
+uintptr_t get_poke_addr(const char *p) {
     return (uintptr_t) getinteger(p);
 
     // TODO
@@ -267,6 +267,6 @@ uintptr_t get_poke_addr(char *p) {
     // return 0;
 }
 
-uintptr_t get_peek_addr(char *p) {
+uintptr_t get_peek_addr(const char *p) {
     return (uintptr_t) getinteger(p);
 }

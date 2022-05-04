@@ -67,7 +67,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ERROR_TARGET_NOT_1D_NUMERICAL_ARRAY            error_throw_ex(kError,  "Target must be a 1D numerical array")
 
 void cmd_math(void){
-    char *tp;
+    const char *tp;
     int t = T_NBR;
     MMFLOAT f;
     MMINTEGER i64;

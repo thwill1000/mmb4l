@@ -162,9 +162,9 @@ extern char BreakKey;                           // console break key (defaults t
 extern int ProgMemSize;
 
 extern int NextData;                            // used to track the next item to read in DATA & READ stmts
-extern char *NextDataLine;                      // used to track the next line to read in DATA & READ stmts
-extern char *CurrentLinePtr;                    // pointer to the current line being executed
-extern char *ContinuePoint;                     // Where to continue from if using the continue statement
+extern const char *NextDataLine;                // used to track the next line to read in DATA & READ stmts
+extern const char *CurrentLinePtr;              // pointer to the current line being executed
+extern const char *ContinuePoint;               // Where to continue from if using the continue statement
 
 extern char inpbuf[];                           // used to store user keystrokes until we have a line
 extern char tknbuf[];                           // used to store the tokenised representation of the users input line
@@ -176,20 +176,20 @@ extern char *sarg1, *sarg2, *sret;              // Global string pointers used b
 extern int targ;                                // Global type of argument (string or MMFLOAT) returned by an operator
 
 extern int cmdtoken;                            // Token number of the command
-extern char *cmdline;                           // Command line terminated with a zero char and trimmed of spaces
-extern char *nextstmt;                          // Pointer to the next statement to be executed.
-extern char *ep;                                // Pointer to the argument to a function
+extern const char *cmdline;                     // Command line terminated with a zero char and trimmed of spaces
+extern const char *nextstmt;                    // Pointer to the next statement to be executed.
+extern const char *ep;                          // Pointer to the argument to a function
 
 extern int OptionErrorSkip;                     // value of OPTION ERROR
 extern int MMerrno;
 extern char MMErrMsg[MAXERRMSG];                // array holding the error msg
 
-extern char *subfun[];                          // Table of subroutines and functions built when the program starts running
+extern const char *subfun[];                    // Table of subroutines and functions built when the program starts running
 extern char CurrentSubFunName[MAXVARLEN + 1];   // the name of the current sub or fun
 extern char CurrentInterruptName[MAXVARLEN + 1];// the name of the current interrupt function
 
 struct s_tokentbl {                             // structure of the token table
-    char *name;                                 // the string (eg, PRINT, FOR, ASC(, etc)
+    const char *name;                           // the string (eg, PRINT, FOR, ASC(, etc)
     char type;                                  // the type returned (T_NBR, T_STR, T_INT)
     char precedence;                            // precedence used by operators only.  operators with equal precedence are processed left to right.
     void (*fptr)(void);                         // pointer to the function that will interpret that token
@@ -199,7 +199,7 @@ extern const struct s_tokentbl commandtbl[];
 
 // used for the trace function
 extern int TraceOn;
-extern char *TraceBuff[TRACE_BUFF_SIZE];        // TRACE_BUFF_SIZE defined in 'Configuration.h'
+extern const char *TraceBuff[TRACE_BUFF_SIZE];  // TRACE_BUFF_SIZE defined in 'Configuration.h'
 extern int TraceBuffIndex;
 
 // used to store commonly used tokens for faster token checking
@@ -219,54 +219,54 @@ int FloatToInt32(MMFLOAT);
 #endif
 MMINTEGER FloatToInt64(MMFLOAT x);
 
-void makeargs(char **tp, int maxargs, char *argbuf, char *argv[], int *argc, char *delim);
-void *findvar(char *, int);
+void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc, const char *delim);
+void *findvar(const char *, int);
 void erasearray(char *n);
 void MIPS16 ClearVars(int level);
 void MIPS16 ClearStack(void);
 void MIPS16 ClearRuntime(void);
 void MIPS16 ClearProgram(void);
-void *DoExpression(char *p, int *t);
-char *evaluate(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int noerror);
-char *doexpr(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *t);
-MMFLOAT getnumber(char *p);
-MMINTEGER getinteger(char *p);
-int getint(char *p, int min, int max);
-char *getstring(char *p);
+void *DoExpression(const char *p, int *t);
+const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int noerror);
+const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *t);
+MMFLOAT getnumber(const char *p);
+MMINTEGER getinteger(const char *p);
+int getint(const char *p, int min, int max);
+char *getstring(const char *p);
 void MIPS16 tokenise(int console);
-void ExecuteProgram(char *);
+void ExecuteProgram(const char *);
 void MIPS16 SaveProgramToFlash(char *pm, int msg);
 //void AddProgramLine(int append);
 char *findline(int, int);
-char *findlabel(char *labelptr);
-char *skipvar(char *p, int noerror);
+const char *findlabel(const char *labelptr);
+const char *skipvar(const char *p, int noerror);
 char *skipexpression(char *p);
-char *GetNextCommand(char *p, char **CLine, char *EOFMsg);
+const char *GetNextCommand(const char *p, const char **CLine, const char *EOFMsg);
 int FunctionType(char *p);
-char *getclosebracket(char *p);
+const char *getclosebracket(const char *p);
 void makeupper(char *p);
-void checkend(char *p);
-int GetCommandValue(char *n);
-int GetTokenValue(char *n);
-char *checkstring(char *p, char *tkn);
+void checkend(const char *p);
+int GetCommandValue(const char *n);
+int GetTokenValue(const char *n);
+const char *checkstring(const char *p, const char *tkn);
 int GetLineLength(char *p);
 char *MtoC(char *p);
 char *CtoM(char *p);
-void Mstrcpy(char *dest, char *src);
-void Mstrcat(char *dest, char *src);
-int Mstrcmp(char *s1, char *s2);
-char *getCstring(char *p);
+void Mstrcpy(char *dest, const char *src);
+void Mstrcat(char *dest, const char *src);
+int Mstrcmp(const char *s1, const char *s2);
+char *getCstring(const char *p);
 int IsValidLine(int line);
 void InsertLastcmd(char *s);
 int MIPS16 CountLines(char *target);
-void DefinedSubFun(int iscmd, char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64, char **sa, int *t);
-int FindSubFun(char *p, int type);
+void DefinedSubFun(int iscmd, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64, char **sa, int *t);
+int FindSubFun(const char *p, int type);
 void MIPS16 PrepareProgram(int);
-void MMPrintString(char* s);
-void MMfputs(char *p, int filenbr);
+void MMPrintString(const char* s);
+void MMfputs(const char *p, int filenbr);
 void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix);
 void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
 int str_equal(const char *s1, const char *s2);
-int  strncasecmp (const char *s1, const char *s2, size_t n);
-int mem_equal(char *s1, char *s2, int i);
+int strncasecmp (const char *s1, const char *s2, size_t n);
+int mem_equal(const char *s1, const char *s2, int i);

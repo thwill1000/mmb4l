@@ -72,7 +72,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // return the absolute value of a number (ie, without the sign)
 // a = ABS(nbr)
 void fun_abs(void) {
-    char *p, *s;
+    const char *p;
+    char *s;
     MMFLOAT f;
     MMINTEGER i64;
 
@@ -513,7 +514,8 @@ void fun_str(void) {
     MMINTEGER i64;
     int t;
     int m, n;
-    char ch, *p;
+    char ch;
+    const char *p;
 
     getargs(&ep, 7, ",");
     if((argc & 1) != 1) error("Syntax");

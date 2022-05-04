@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ERROR_ADDRESS_NOT_DIVISIBLE_BY(i)  error_throw_ex(kError, "Address not divisible by %", i)
 
 /** POKE BYTE addr%, byte% */
-static void poke_byte(int argc, char** argv, char *p) {
+static void poke_byte(int argc, char** argv, const char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
@@ -59,7 +59,7 @@ static void poke_byte(int argc, char** argv, char *p) {
 }
 
 /** POKE DATAPOS data_pos% */
-static void poke_datapos(int argc, char** argv, char *p) {
+static void poke_datapos(int argc, char** argv, const char *p) {
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     uint64_t data_pos = (uint64_t) getinteger(p);
     NextDataLine = ProgMemory + (data_pos >> 32);
@@ -67,7 +67,7 @@ static void poke_datapos(int argc, char** argv, char *p) {
 }
 
 /** POKE FLOAT addr%, float! */
-static void poke_float(int argc, char** argv, char *p) {
+static void poke_float(int argc, char** argv, const char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
@@ -78,7 +78,7 @@ static void poke_float(int argc, char** argv, char *p) {
 }
 
 /** POKE INTEGER addr%, integer% */
-static void poke_integer(int argc, char** argv, char *p) {
+static void poke_integer(int argc, char** argv, const char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
@@ -89,7 +89,7 @@ static void poke_integer(int argc, char** argv, char *p) {
 }
 
 /** POKE SHORT addr%, short% */
-static void poke_short(int argc, char** argv, char *p) {
+static void poke_short(int argc, char** argv, const char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
@@ -100,7 +100,7 @@ static void poke_short(int argc, char** argv, char *p) {
 }
 
 /** POKE VAR var, offset%, byte% */
-static void poke_var(int argc, char** argv, char *p) {
+static void poke_var(int argc, char** argv, const char *p) {
     if (argc != 5) ERROR_ARGUMENT_COUNT;
 
     void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
@@ -114,7 +114,7 @@ static void poke_var(int argc, char** argv, char *p) {
 }
 
 /** POKE VARTBL, offset%, byte% */
-static void poke_vartbl(int argc, char** argv, char *p) {
+static void poke_vartbl(int argc, char** argv, const char *p) {
     if (argc != 5) ERROR_ARGUMENT_COUNT;
 
     int64_t offset = getinteger(argv[2]);
@@ -124,7 +124,7 @@ static void poke_vartbl(int argc, char** argv, char *p) {
 }
 
 /** POKE WORD addr%, word% */
-static void poke_word(int argc, char** argv, char *p) {
+static void poke_word(int argc, char** argv, const char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uintptr_t addr = get_poke_addr(p);
@@ -137,7 +137,7 @@ static void poke_word(int argc, char** argv, char *p) {
 void cmd_poke(void) {
     getargs(&cmdline, 5, ",");
 
-    char* p;
+    const char* p;
     if ((p = checkstring(argv[0], "BYTE"))) {
         poke_byte(argc, argv, p);
     } else if ((p = checkstring(argv[0], "DATAPOS"))) {

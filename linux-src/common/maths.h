@@ -66,6 +66,6 @@ void PIntComma(int64_t n);
 void Q_Invert(MMFLOAT *q, MMFLOAT *n);
 void Q_Mult(MMFLOAT *q1, MMFLOAT *q2, MMFLOAT *n);
 
-void maths_fft(char *pp);
+void maths_fft(const char *pp);
 
 #endif

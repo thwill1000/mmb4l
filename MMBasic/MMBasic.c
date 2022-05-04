@@ -108,7 +108,7 @@ char OptionExplicit;                                                // used to f
 char DefaultType;                                                   // the default type if a variable is not specifically typed
 #endif
 
-char *subfun[MAXSUBFUN];                                            // table used to locate all subroutines and functions
+const char *subfun[MAXSUBFUN];                                      // table used to locate all subroutines and functions
 char CurrentSubFunName[MAXVARLEN + 1];                              // the name of the current sub or fun
 char CurrentInterruptName[MAXVARLEN + 1];                           // the name of the current interrupt function
 
@@ -137,7 +137,7 @@ const char DIGIT_CHARS[256] = {
 };
 
 int NextData;                                                       // used to track the next item to read in DATA & READ stmts
-char *NextDataLine;                                                 // used to track the next line to read in DATA & READ stmts
+const char *NextDataLine;                                           // used to track the next line to read in DATA & READ stmts
 #if !defined(__mmb4l__)
 int OptionBase;                                                     // track the state of OPTION BASE
 #endif
@@ -149,23 +149,23 @@ int OptionBase;                                                     // track the
 //
 int targ;                                                           // the type of the returned value
 MMFLOAT farg1, farg2, fret;                                         // the two float arguments and returned value
-MMINTEGER iarg1, iarg2, iret;                                   // the two integer arguments and returned value
+MMINTEGER iarg1, iarg2, iret;                                       // the two integer arguments and returned value
 char *sarg1, *sarg2, *sret;                                         // the two string arguments and returned value
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Global information used by functions
 // functions use targ, fret and sret as defined for operators (above)
-char *ep;                                                           // pointer to the argument to the function terminated with a zero byte.
+const char *ep;                                                     // pointer to the argument to the function terminated with a zero byte.
                                                                     // it is NOT trimmed of spaces
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Global information used by commands
 //
 int cmdtoken;                                                       // Token number of the command
-char *cmdline;                                                      // Command line terminated with a zero char and trimmed of spaces
-char *nextstmt;                                                     // Pointer to the next statement to be executed.
-char *CurrentLinePtr;                                               // Pointer to the current line (used in error reporting)
-char *ContinuePoint;                                                // Where to continue from if using the continue statement
+const char *cmdline;                                                // Command line terminated with a zero char and trimmed of spaces
+const char *nextstmt;                                               // Pointer to the next statement to be executed.
+const char *CurrentLinePtr;                                         // Pointer to the current line (used in error reporting)
+const char *ContinuePoint;                                          // Where to continue from if using the continue statement
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -173,7 +173,7 @@ char *ContinuePoint;                                                // Where to 
 //
 void getexpr(char *);
 void checktype(int *, int);
-char *getvalue(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta);
+const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta);
 
 char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP, tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
 char cmdIF, cmdENDIF, cmdEND_IF, cmdELSEIF, cmdELSE_IF, cmdELSE, cmdSELECT_CASE, cmdCASE, cmdCASE_ELSE, cmdEND_SELECT;
@@ -242,7 +242,7 @@ void MIPS16 InitBasic(void) {
 // run a program
 // this will continuously execute a program until the end (marked by TWO zero chars)
 // the argument p must point to the first line to be executed
-void ExecuteProgram(char *p) {
+void ExecuteProgram(const char *p) {
     //printf("ExecuteProgram: %s\n\n", p);
     //printf("%d\n", p[0]);
     int i, SaveLocalIndex = 0;
@@ -351,9 +351,9 @@ void ExecuteProgram(char *p) {
 // This pre processing speeds up the program when using defined subroutines and functions
 // this routine also looks for embedded fonts and adds them to the font table
 void MIPS16 PrepareProgram(int ErrAbort) {
-    int MIPS16 PrepareProgramExt(char *, int, unsigned char **, int);
+    int MIPS16 PrepareProgramExt(const char *, int, unsigned char **, int);
     int i, j, NbrFuncts;
-    char *p1, *p2;
+    const char *p1, *p2;
 
     for(i = FONT_BUILTIN_NBR; i < FONT_TABLE_SIZE; i++)
         FontTable[i] = NULL;                                        // clear the font table
@@ -391,7 +391,7 @@ void MIPS16 PrepareProgram(int ErrAbort) {
 
 // This scans one area (main program or the library area) for user defined subroutines and functions.
 // It is only used by PrepareProgram() above.
-int MIPS16 PrepareProgramExt(char *p, int i, unsigned char **CFunPtr, int ErrAbort) {
+int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int ErrAbort) {
     unsigned int *cfp;
     while(*p != 0xff) {
         p = GetNextCommand(p, &CurrentLinePtr, NULL);
@@ -456,8 +456,8 @@ int MIPS16 PrepareProgramExt(char *p, int i, unsigned char **CFunPtr, int ErrAbo
 // searches the subfun[] table to locate a defined sub or fun
 // returns with the index of the sub/function in the table or -1 if not found
 // if type = 0 then look for a sub otherwise a function
-int FindSubFun(char *p, int type) {
-    char *p1, *p2;
+int FindSubFun(const char *p, int type) {
+    const char *p1, *p2;
     int i;
 
     for(i = 0;  i < MAXSUBFUN && subfun[i] != NULL; i++) {
@@ -486,9 +486,11 @@ int FindSubFun(char *p, int type) {
 //   cmd      = pointer to the command name used by the caller (in program memory)
 //   index    = index into subfun[i] which points to the definition of the sub or funct
 //   fa, i64a, sa and typ are pointers to where the return value is to be stored (used by functions only)
-void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a, char **sa, int *typ) {
-    char *p, *s, *tp, *ttp, tcmdtoken;
-    char *CallersLinePtr, *SubLinePtr = NULL;
+void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a, char **sa, int *typ) {
+    const char *p;
+    const char *ttp;
+    char *s;
+    const char *CallersLinePtr, *SubLinePtr = NULL;
     char *argbuf1; char **argv1; int argc1;
     char *argbuf2; char **argv2; int argc2;
     char fun_name[MAXVARLEN + 1];
@@ -513,21 +515,23 @@ void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a
     // copy the sub/fun name from the definition into temp storage and terminate
     // p is left pointing to the end of the name (ie, start of the argument list in the definition)
     CurrentLinePtr = SubLinePtr;                                    // report errors at the definition
-    tp = fun_name;
-    *tp++ = *p++; while(isnamechar(*p)) *tp++ = *p++;
-    if(*p == '$' || *p == '%' || *p == '!') {
-        if(!isfun) {
-            error("Type specification is invalid: @", (int)(*p));
+    {
+        char *tp = fun_name;
+        *tp++ = *p++; while(isnamechar(*p)) *tp++ = *p++;
+        if(*p == '$' || *p == '%' || *p == '!') {
+            if(!isfun) {
+                error("Type specification is invalid: @", (int)(*p));
+            }
+            *tp++ = *p++;
         }
-        *tp++ = *p++;
+        *tp = 0;
     }
-    *tp = 0;
 
     if(isfun && *p != '(' && (*SubLinePtr != cmdCFUN)) error("Function definition");
 
     // find the end of the caller's identifier, tp is left pointing to the start of the caller's argument list
     CurrentLinePtr = CallersLinePtr;                                // report errors at the caller
-    tp = cmd + 1;
+    const char *tp = cmd + 1;
     while(isnamechar(*tp)) tp++;
     if(*tp == '$' || *tp == '%' || *tp == '!') {
         if(!isfun) error("Type specification");
@@ -664,17 +668,21 @@ void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a
     // for each one we create the local variable and compare its type to that supplied in the callers list
     CurrentLinePtr = SubLinePtr;                                    // any errors must be at the definition
     LocalIndex++;
+    char *tp2;                                                      // temporary non-const char *
+                                                                    // it will be pointing into the items of argv2[] which we know
+                                                                    // are not constants so we can cast away const-ness as necessary
+                                                                    // to remove warnings.
     for(i = 0; i < argc2; i += 2) {                                 // count through the arguments in the definition of the sub/fun
         ArgType = T_NOTYPE;
-        tp = skipvar(argv2[i], false);                              // point to after the variable
-        skipspace(tp);
-        if(*tp == tokenAS) {                                        // are we using Microsoft syntax (eg, AS INTEGER)?
-            *tp++ = 0;                                              // terminate the string and step over the AS token
-            tp = CheckIfTypeSpecified(tp, &ArgType, true);          // and get the type
+        tp2 = (char *) skipvar(argv2[i], false);                    // point to after the variable
+        skipspace(tp2);
+        if (*tp2 == tokenAS) {                                      // are we using Microsoft syntax (eg, AS INTEGER)?
+            *tp2 ='\0';                                             // terminate the string and step over the AS token
+            tp2 = (char *) CheckIfTypeSpecified(tp2, &ArgType, true);  // and get the type
             if(!(ArgType & T_IMPLIED)) error("Variable type");
         }
         ArgType |= (V_FIND | V_DIM_VAR | V_LOCAL | V_EMPTY_OK);
-        tp = findvar(argv2[i], ArgType);                            // declare the local variable
+        (void) findvar(argv2[i], ArgType);                          // declare the local variable
         if(vartbl[VarIndex].dims[0] > 0) error("Argument list");    // if it is an array it must be an empty array
 
         CurrentLinePtr = CallersLinePtr;                            // report errors at the caller
@@ -697,7 +705,7 @@ void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a
             if(vartbl[argVarIndex[i]].type & T_PTR) {
                 argval[i].i = *vartbl[argVarIndex[i]].val.ia;       // get the value if the supplied argument is a pointer
             } else {
-                argval[i].i = *(MMINTEGER *)argval[i].s;        // get the value if the supplied argument is an ordinary variable
+                argval[i].i = *(MMINTEGER *)argval[i].s;            // get the value if the supplied argument is an ordinary variable
             }
             argtype[i] &= ~T_PTR;                                   // and remove the pointer flag
         }
@@ -753,35 +761,36 @@ void DefinedSubFun(int isfun, char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a
     //   - When that returns we need to restore the global variables
     //   - Get the variable's value and save that in the return value globals (fret or sret)
     //   - Return to the expression parser
-    tp = findvar(fun_name, FunType | V_FUNCT);                      // declare the local variable
+    char *pvar = findvar(fun_name, FunType | V_FUNCT);              // declare the local variable
     FunType = vartbl[VarIndex].type;
     if(FunType & T_STR) {
         FreeMemory(vartbl[VarIndex].val.s);                         // free the memory if it is a string
         vartbl[VarIndex].type |= T_PTR;
         LocalIndex--;                                               // allocate the memory at the previous level
-        vartbl[VarIndex].val.s = tp = GetTempMemory(STRINGSIZE);    // and use our own memory
+        vartbl[VarIndex].val.s = GetTempMemory(STRINGSIZE);         // and use our own memory
+        pvar = vartbl[VarIndex].val.s;
         LocalIndex++;
     }
     skipelement(p);                                                 // point to the body of the function
 
-    ttp = nextstmt;                                                 // save the globals used by commands
-    tcmdtoken = cmdtoken;
-    s = cmdline;
+    const char *cached_nextstmt = nextstmt;                         // save the globals used by commands
+    int cached_cmdtoken = cmdtoken;
+    const char *cached_cmdline = cmdline;
 
     ExecuteProgram(p);                                              // execute the function's code
     CurrentLinePtr = CallersLinePtr;                                // report errors at the caller
 
-    cmdline = s;                                                    // restore the globals
-    cmdtoken = tcmdtoken;
-    nextstmt = ttp;
+    cmdline = cached_cmdline;                                       // restore the globals
+    cmdtoken = cached_cmdtoken;
+    nextstmt = cached_nextstmt;
 
     // return the value of the function's variable to the caller
     if(FunType & T_NBR)
-        *fa = *(MMFLOAT *)tp;
+        *fa = *(MMFLOAT *) pvar;
     else if(FunType & T_INT)
-        *i64a = *(MMINTEGER *)tp;
+        *i64a = *(MMINTEGER *) pvar;
     else
-        *sa = tp;                                                   // for a string we just need to return the local memory
+        *sa = pvar;                                                 // for a string we just need to return the local memory
     *typ = FunType;                                                 // save the function type for the caller
   ClearVars(LocalIndex--);                                          // delete any local variables
     TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
@@ -807,7 +816,7 @@ void MIPS16 tokenise(int console) {
     //printf("console = %d\n", console);
     //printf("inpbuf = %s\n", inpbuf);
 
-    char *p, *op, *tp;
+    char *p, *op;
     int i;
     int firstnonwhite;
     int labelvalid;
@@ -829,17 +838,21 @@ void MIPS16 tokenise(int console) {
     if(!console) *op++ = T_NEWLINE;
 
     // get the line number if it exists
-    tp = p;
-    skipspace(tp);
-    for(i = 0; i < 8; i++) if(!isxdigit(tp[i])) break;              // test if this is eight hex digits
-    if(isdigit(*tp) && i < 8) {                                     // if it a digit and not an 8 digit hex number (ie, it is CFUNCTION data) then try for a line number
-        i = strtol(tp, &tp, 10);
-        if(!console && i > 0 && i <= MAXLINENBR) {
-            *op++ = T_LINENBR;
-            *op++ = (i>>8);
-            *op++ = (i & 0xff);
+    {
+        char *tp = p;
+        skipspace(tp);
+        for(i = 0; i < 8; i++) if(!isxdigit(tp[i])) break;  // test if this is eight hex digits
+        if(isdigit(*tp) && i < 8) {                         // if it a digit and not an 8 digit hex number (ie, it is CFUNCTION data) then try for a line number
+            char *endptr;
+            i = strtol(tp, &endptr, 10);
+            tp = endptr;
+            if(!console && i > 0 && i <= MAXLINENBR) {
+                *op++ = T_LINENBR;
+                *op++ = (i>>8);
+                *op++ = (i & 0xff);
+            }
+            p = tp;
         }
-        p = tp;
     }
 
     // process the rest of the line
@@ -925,6 +938,7 @@ void MIPS16 tokenise(int console) {
                 // this works by scanning the entire table looking for the match with the longest command name
                 // this is needed because we need to differentiate between END and END SUB for example.
                 // without looking for the longest match we might think that we have a match when we found just END.
+                const char *tp;
                 for(i = 0 ; i < CommandTableSize - 1; i++) {
                     tp2 = p;
                     tp = commandtbl[i].name;
@@ -969,6 +983,7 @@ void MIPS16 tokenise(int console) {
 
             // next test if it is a label
             if(labelvalid && isnamestart(*p)) {
+                const char *tp;
                 for(i = 0, tp = p + 1; i < MAXVARLEN - 1; i++, tp++)
                     if(!isnamechar(*tp)) break;                     // search for the first invalid char
                 if(*tp == ':') {                                    // Yes !!  It is a label
@@ -982,6 +997,7 @@ void MIPS16 tokenise(int console) {
             }
         } else {
             // check to see if it is a function or keyword
+            const char *tp;
             char *tp2 = NULL;
             for(i = 0 ; i < TokenTableSize - 1; i++) {
                 tp2 = p;
@@ -1013,7 +1029,7 @@ void MIPS16 tokenise(int console) {
         // try for a variable name which could be a user defined subroutine or an implied let
         if(isnamestart(*p)) {                                       // valid chars at the start of a variable name
             if(firstnonwhite) {                                     // first entry on the line?
-                tp = skipvar(p, true);                              // find the char after the variable
+                const char *tp = skipvar(p, true);                  // find the char after the variable
                 skipspace(tp);
                 if(*tp == '=')                                      // is it an implied let?
                     *op++ = GetCommandValue("Let");                 // find let's token value and copy into memory
@@ -1028,7 +1044,7 @@ void MIPS16 tokenise(int console) {
         // we search back to see if the previous non space char was the end of an identifier and, if it is, we remove any spaces following the identifier
         // this enables the programmer to put spaces after a function name or array identifier without causing a confusing error
         if(*p == '(') {
-            tp = op - 1;
+            char *tp = op - 1;
             if(*tp == ' ') {
                 while(*tp == ' ') tp--;
                 if(isnameend(*tp)) op = tp + 1;
@@ -1065,7 +1081,7 @@ void MIPS16 tokenise(int console) {
 //         if *t = T_NOTYPE it will not throw an error and will return the type found in *t
 // it returns with a void pointer to a float, integer or string depending on the value returned in *t
 // this will check that the expression is terminated correctly and throw an error if not
-void *DoExpression(char *p, int *t) {
+void *DoExpression(const char *p, int *t) {
     static MMFLOAT f;
     static MMINTEGER i64;
     static char *s;
@@ -1087,7 +1103,7 @@ void *DoExpression(char *p, int *t) {
 //  if *t = T_STR or T_NBR or T_INT will throw an error if the result is not the correct type
 //  if *t = T_NOTYPE it will not throw an error and will return the type found in *t
 // this will check that the expression is terminated correctly and throw an error if not.  flags & E_NOERROR will suppress that check
-char *evaluate(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int flags) {
+const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int flags) {
     int o;
     int t = *ta;
     char *s;
@@ -1116,7 +1132,7 @@ char *evaluate(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int flag
 
 
 // evaluate an expression to get a number
-MMFLOAT getnumber(char *p) {
+MMFLOAT getnumber(const char *p) {
     int t = T_NBR;
     MMFLOAT f;
     MMINTEGER i64;
@@ -1129,7 +1145,7 @@ MMFLOAT getnumber(char *p) {
 
 
 // evaluate an expression and return a 64 bit integer
-MMINTEGER getinteger(char *p) {
+MMINTEGER getinteger(const char *p) {
     int t = T_INT;
     MMFLOAT f;
     MMINTEGER i64;
@@ -1145,7 +1161,7 @@ MMINTEGER getinteger(char *p) {
 // evaluate an expression and return an integer
 // this will throw an error is the integer is outside a specified range
 // this will correctly round the number if it is a fraction of an integer
-int getint(char *p, int min, int max) {
+int getint(const char *p, int min, int max) {
     MMINTEGER i;
     i = getinteger(p);
     if(i < min || i > max) error("% is invalid (valid is % to %)", (int)i, min, max);
@@ -1155,7 +1171,7 @@ int getint(char *p, int min, int max) {
 
 
 // evaluate an expression to get a string
-char *getstring(char *p) {
+char *getstring(const char *p) {
     int t = T_STR;
     MMFLOAT f;
     MMINTEGER i64;
@@ -1169,7 +1185,7 @@ char *getstring(char *p) {
 
 // evaluate an expression to get a string using the C style for a string
 // as against the MMBasic style returned by getstring()
-char *getCstring(char *p) {
+char *getCstring(const char *p) {
     char *tp;
     tp = GetTempStrMemory();                                        // this will last for the life of the command
     Mstrcpy(tp, getstring(p));                                      // get the string and save in a temp place
@@ -1180,7 +1196,7 @@ char *getCstring(char *p) {
 
 
 // recursively evaluate an expression observing the rules of operator precedence
-char *doexpr(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta) {
+const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta) {
     MMFLOAT fa1, fa2;
     MMINTEGER ia1, ia2;
     int o1, o2;
@@ -1236,12 +1252,12 @@ char *doexpr(char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta) {
 
 // get a value, either from a constant, function or variable
 // also returns the next operator to the right of the value or E_END if no operator
-char *getvalue(char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* oo, int* ta) {
+const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* oo, int* ta) {
     MMFLOAT f = 0;
     MMINTEGER i64 = 0;
     char *s = NULL;
     int t = T_NOTYPE;
-    char *tp, *p1, *p2;
+    const char *tp;
     int i;
 
     skipspace(p);
@@ -1329,9 +1345,10 @@ char *getvalue(char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* oo, int* ta)
             // if it is a function with arguments we need to locate the closing bracket and copy the argument to
             // a temporary variable so that functions like getarg() will work.
             if (tokentype(*p) & T_FUN) {
-                p1 = p + 1;
+                const char *p1 = p + 1;
                 p = getclosebracket(p);                                 // find the closing bracket
-                p2 = ep = (char *) GetTempMemory(STRINGSIZE);           // this will last for the life of the command
+                char *p2 = (char *) GetTempMemory(STRINGSIZE);          // this will last for the life of the command
+                ep = p2;
                 while (p1 != p) *p2++ = *p1++;
             }
             p++;                                                        // point to after the function (without argument) or after the closing bracket
@@ -1354,7 +1371,7 @@ char *getvalue(char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* oo, int* ta)
             i = -1;
             if (*tp == '(') i = FindSubFun(p, 1);                       // if terminated with a bracket it could be a function
             if (i >= 0) {                                               // >= 0 means it is a user defined function
-                char *SaveCurrentLinePtr = CurrentLinePtr;              // in case the code in DefinedSubFun messes with this
+                const char *SaveCurrentLinePtr = CurrentLinePtr;        // in case the code in DefinedSubFun messes with this
                 DefinedSubFun(true, p, i, &f, &i64, &s, &t);
                 CurrentLinePtr = SaveCurrentLinePtr;
             }
@@ -1447,7 +1464,7 @@ char *getvalue(char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* oo, int* ta)
         // if it is a string constant, return a pointer to that.  Note: tokenise() guarantees that strings end with a quote
         else if (*p == '"') {
             p++;                                                        // step over the quote
-            p1 = s = (char *) GetTempMemory(STRINGSIZE);                // this will last for the life of the command
+            char *p1 = s = (char *) GetTempMemory(STRINGSIZE);          // this will last for the life of the command
             tp = strchr(p, '"');
             while (p != tp) *p1++ = *p++;
             p++;
@@ -1522,8 +1539,8 @@ char *findline(int nbr, int mustfind) {
 // search through program memory looking for a label.
 // returns a pointer to the T_NEWLINE token or throws an error if not found
 // non cached version
-char *findlabel(char *labelptr) {
-    char *p, *lastp = ProgMemory + 1;
+const char *findlabel(const char *labelptr) {
+    const char *p, *lastp = ProgMemory + 1;
     int i;
     char label[MAXVARLEN + 1];
 
@@ -1654,7 +1671,7 @@ routines for storing and manipulating variables
 // storage of the variable's data:
 //      if it is type T_NBR or T_INT the value is held in the variable slot
 //      for T_STR a block of memory of MAXSTRLEN size (or size determined by the LENGTH keyword) will be malloc'ed and the pointer stored in the variable slot.
-void *findvar(char *p, int action) {
+void *findvar(const char *p, int action) {
     char name[MAXVARLEN + 1];
     int i, j, size, ifree, nbr, vtype, vindex, namelen, tmp;
     char *s, *x;
@@ -1705,7 +1722,7 @@ void *findvar(char *p, int action) {
 
     // check if this is an array
     if(*p == '(') {
-        char *pp = p + 1;
+        const char *pp = p + 1;
         skipspace(pp);
         if(action & V_EMPTY_OK && *pp == ')')                       // if this is an empty array.  eg  ()
             dnbr = -1;                                              // flag this
@@ -1860,7 +1877,7 @@ void *findvar(char *p, int action) {
     // now scan the sub/fun table to make sure that there is not a sub/fun with the same name
     if(!(action & V_FUNCT)) {                                       // don't do this if we are defining the local variable for a function name
         for(i = 0;  i < MAXSUBFUN && subfun[i] != NULL; i++) {
-            x = subfun[i];                                          // point to the command token
+            const char *x = subfun[i];                              // point to the command token
             x++; skipspace(x);                                      // point to the identifier
             s = name;                                               // point to the new variable
             if(*s != toupper(*x)) continue;                         // quick first test
@@ -1890,8 +1907,9 @@ void *findvar(char *p, int action) {
                 } while(i);
             }
             skipspace(p);
-            if((s = checkstring(p, "LENGTH")) != NULL)
-                size = getint(s, 1, MAXSTRLEN) ;
+            const char *p2;
+            if ((p2 = checkstring(p, "LENGTH")) != NULL)
+                size = getint(p2, 1, MAXSTRLEN) ;
             else
                 if(!(*p == ',' || *p == 0 || tokenfunction(*p) == op_equal || tokenfunction(*p) == op_invalid)) error("Unexpected text: $", p);
         }
@@ -2000,14 +2018,13 @@ void *findvar(char *p, int action) {
 //   pointer to an integer that will contain (after the function has returned) the number of arguments found
 //   pointer to a string that contains the characters to be used in spiting up the line.  If the first char of that
 //       string is an opening bracket '(' this function will expect the arg list to be enclosed in brackets.
-void makeargs(char **p, int maxargs, char *argbuf, char *argv[], int *argc, char *delim) {
+void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc, const char *delim) {
     char *op;
     int inarg, expect_cmd, expect_bracket, then_tkn, else_tkn;
-    char *tp;
 
     TestStackOverflow();                                            // throw an error if we have overflowed the PIC32's stack
 
-    tp = *p;
+    const char *tp = *p;
     op = argbuf;
     *argc = 0;
     inarg = false;
@@ -2550,7 +2567,7 @@ void makeupper(char *p) {
 
 
 // find the value of a command token given its name
-int GetCommandValue(char *n) {
+int GetCommandValue(const char *n) {
     int i;
     for(i = 0; i < CommandTableSize - 1; i++)
         if(str_equal(n, commandtbl[i].name))
@@ -2563,7 +2580,7 @@ int GetCommandValue(char *n) {
 
 
 // find the value of a token given its name
-int GetTokenValue(char *n) {
+int GetTokenValue(const char *n) {
     int i;
     for(i = 0; i < TokenTableSize - 1; i++)
         if(str_equal(n, tokentbl[i].name))
@@ -2576,8 +2593,9 @@ int GetTokenValue(char *n) {
 
 
 // skip to the end of a variable
-char *skipvar(char *p, int noerror) {
-    char *pp, *tp;
+const char *skipvar(const char *p, int noerror) {
+    const char *pp;
+    const char *tp;
     int i;
     int inquote = false;
 
@@ -2651,7 +2669,7 @@ char *skipexpression(char *p) {
 // CLine is a pointer to a char pointer which in turn points to the start of the current line for error reporting (if NULL it will be ignored)
 // EOFMsg is the error message to use if the end of the program is reached
 // returns a pointer to the next command
-char *GetNextCommand(char *p, char **CLine, char *EOFMsg) {
+const char *GetNextCommand(const char *p, const char **CLine, const char *EOFMsg) {
     do {
         if(*p != T_NEWLINE) {                                       // if we are not already at the start of a line
             while(*p) p++;                                          // look for the zero marking the start of an element
@@ -2680,7 +2698,7 @@ char *GetNextCommand(char *p, char **CLine, char *EOFMsg) {
 // scans text looking for the matching closing bracket
 // it will handle nested strings, brackets and functions
 // it expects to be called pointing at the opening bracket or a function token
-char *getclosebracket(char *p) {
+const char *getclosebracket(const char *p) {
     int i = 0;
     int inquote = false;
 
@@ -2699,7 +2717,7 @@ char *getclosebracket(char *p) {
 
 // check that there is no excess text following an element
 // will skip spaces and abort if a zero char is not found
-void checkend(char *p) {
+void checkend(const char *p) {
     skipspace(p);
     if(*p == '\'') return;
     if(*p)
@@ -2711,7 +2729,7 @@ void checkend(char *p) {
 // leading white space is skipped and the string must be terminated with a valid terminating
 // character (space, null, comma or comment). Returns a pointer a pointer to the next
 // non space character after the matched string if found or NULL if not
-char *checkstring(char *p, char *tkn) {
+const char *checkstring(const char *p, const char *tkn) {
     skipspace(p);                                           // skip leading spaces
     while(*tkn && (toupper(*tkn) == toupper(*p))) { tkn++; p++; }   // compare the strings
     if(*tkn == 0 && (*p == ' ' || *p == ',' || *p == '\'' || *p == '(' || *p == 0)) {
@@ -2742,7 +2760,7 @@ A couple of I/O routines that do not belong anywhere else
 
 
 // print a string to the console interfaces
-void MMPrintString(char* s) {
+void MMPrintString(const char* s) {
   while(*s) {
       MMputchar(*s);
       s++;
@@ -2752,7 +2770,7 @@ void MMPrintString(char* s) {
 
 // output a string to a file
 // the string must be a MMBasic string
-void MMfputs(char *p, int filenbr) {
+void MMfputs(const char *p, int filenbr) {
   int i;
   i = *p++;
   while(i--) MMfputc(*p++, filenbr);
@@ -2800,7 +2818,7 @@ char *CtoM(char *p) {
 
 
 // copy a MMBasic string to a new location
-void Mstrcpy(char *dest, char *src) {
+void Mstrcpy(char *dest, const char *src) {
     int i;
     i = *src + 1;
     while(i--) *dest++ = *src++;
@@ -2809,7 +2827,7 @@ void Mstrcpy(char *dest, char *src) {
 
 
 // concatenate two MMBasic strings
-void Mstrcat(char *dest, char *src) {
+void Mstrcat(char *dest, const char *src) {
     int i;
     i = *src;
     *dest += i;
@@ -2821,9 +2839,9 @@ void Mstrcat(char *dest, char *src) {
 
 // compare two MMBasic style strings
 // returns 1 if s1 > s2  or  0 if s1 = s2  or  -1 if s1 < s2
-int Mstrcmp(char *s1, char *s2) {
+int Mstrcmp(const char *s1, const char *s2) {
     register int i;
-    register char *p1, *p2;
+    register const char *p1, *p2;
 
     // get the smaller length
     i = *s1 < *s2 ? *s1 : *s2;
@@ -2962,10 +2980,10 @@ int str_equal(const char *s1, const char *s2) {
 
 // Compare two areas of memory, ignoring case differences.
 // Returns true if they are equal (ignoring case) otherwise returns false.
-int mem_equal(char *s1, char *s2, int i) {
-    if(charmap[*(unsigned char *)s1] != charmap[*(unsigned char *)s2]) return 0;
+int mem_equal(const char *s1, const char *s2, int i) {
+    if(charmap[*(const unsigned char *)s1] != charmap[*(const unsigned char *)s2]) return 0;
     while (--i) {
-        if(charmap[*(unsigned char *)++s1] != charmap[*(unsigned char *)++s2])
+        if(charmap[*(const unsigned char *)++s1] != charmap[*(const unsigned char *)++s2])
             return 0;
     }
     return 1;

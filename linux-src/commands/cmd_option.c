@@ -54,9 +54,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define ERROR_INVALID_OPTION_BASE  error_throw_ex(kError, "Must be before DIM or LOCAL")
 
-void cmd_option_list(char *p) {
+void cmd_option_list(const char *p) {
     bool all = false;
-    char *p2 = p;
+    const char *p2 = p;
     if ((p2 = checkstring(p2, "ALL")))  {
         all = true;
         p = p2;
@@ -84,7 +84,7 @@ void cmd_option_list(char *p) {
     MMPrintString("\r\n");
 }
 
-void cmd_option_load(char *p) {
+void cmd_option_load(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) ERROR_SYNTAX;
 
@@ -93,7 +93,7 @@ void cmd_option_load(char *p) {
     if FAILED(result) error_throw(result);
 }
 
-static MmResult cmd_option_reset_all(char *p) {
+static MmResult cmd_option_reset_all(const char *p) {
     if (!parse_is_end(p)) return kSyntax;
 
     MmResult result = kInternalFault;
@@ -109,11 +109,11 @@ static MmResult cmd_option_reset_all(char *p) {
     return result;
 }
 
-static MmResult cmd_option_reset_one(char *p) {
+static MmResult cmd_option_reset_one(const char *p) {
     if (parse_is_end(p)) return kSyntax;
 
     MmResult result = kUnknownOption;
-    char *p2;
+    const char *p2;
 
     for (const OptionsDefinition *def = options_definitions; def->name; def++) {
         if ((p2 = checkstring(p, (char *) def->name))) {
@@ -133,9 +133,9 @@ static MmResult cmd_option_reset_one(char *p) {
     return result;
 }
 
-void cmd_option_reset(char *p) {
+void cmd_option_reset(const char *p) {
     MmResult result = kOk;
-    char *p2;
+    const char *p2;
 
     if ((p2 = checkstring(p, "ALL")))  {
         result = cmd_option_reset_all(p2);
@@ -146,7 +146,7 @@ void cmd_option_reset(char *p) {
     if (FAILED(result)) error_throw(result);
 }
 
-void cmd_option_save(char *p) {
+void cmd_option_save(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) ERROR_SYNTAX;
 
@@ -155,12 +155,12 @@ void cmd_option_save(char *p) {
     if FAILED(result) error_throw(result);
 }
 
-static MmResult cmd_option_set_integer(char *p, const OptionsDefinition *def) {
+static MmResult cmd_option_set_integer(const char *p, const OptionsDefinition *def) {
     if (def->id == kOptionBase && DimUsed) ERROR_INVALID_OPTION_BASE;
     return options_set_integer_value(&mmb_options, def->id, getinteger(p));
 }
 
-static MmResult cmd_option_set_string(char *p, const OptionsDefinition *def) {
+static MmResult cmd_option_set_string(const char *p, const OptionsDefinition *def) {
     getargs(&p, 1, ",");
 
     // Some hacked behaviour.
@@ -182,7 +182,7 @@ static MmResult cmd_option_set_string(char *p, const OptionsDefinition *def) {
     // First try looking up unquoted token in the options enum map.
     const char *svalue = NULL;
     if (def->enum_map) {
-        char *p2;
+        const char *p2;
         for (const NameOrdinalPair *entry = def->enum_map; entry->name; ++entry) {
             if ((p2 = checkstring(argv[0], (char *) entry->name))) {
                 svalue = entry->name;
@@ -197,9 +197,9 @@ static MmResult cmd_option_set_string(char *p, const OptionsDefinition *def) {
     return options_set_string_value(&mmb_options, def->id, svalue);
 }
 
-static void cmd_option_set(char *p) {
+static void cmd_option_set(const char *p) {
     const OptionsDefinition *def = NULL;
-    char *p2;
+    const char *p2;
     for (def = options_definitions; def->name; ++def) {
         if ((p2 = checkstring(p, (char *) def->name))) break;
     }
@@ -235,7 +235,7 @@ static void cmd_option_set(char *p) {
 }
 
 void cmd_option(void) {
-    char *p;
+    const char *p;
     if ((p = checkstring(cmdline, "LIST"))) {
         cmd_option_list(p);
     } else if ((p = checkstring(cmdline, "LOAD"))) {

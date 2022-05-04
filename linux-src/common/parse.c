@@ -50,11 +50,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "error.h"
 
-bool parse_is_end(char *p) {
+bool parse_is_end(const char *p) {
     return *p == '\0' || *p == '\'';
 }
 
-char *parse_check_string(char *p, char *tkn) {
+const char *parse_check_string(const char *p, const char *tkn) {
     skipspace(p);  // skip leading spaces
     while(*tkn && (toupper(*tkn) == toupper(*p))) { tkn++; p++; }  // compare the strings
     if(*tkn == 0 && (*p == ' ' || *p == ',' || *p == '\'' || *p == '(' || *p == 0)) {
@@ -64,7 +64,7 @@ char *parse_check_string(char *p, char *tkn) {
     return NULL;  // or NULL if not
 }
 
-bool parse_bool(char *p) {
+bool parse_bool(const char *p) {
     if (parse_check_string(p, "ON") || parse_check_string(p, "TRUE")) {
         return true;
     } else if (parse_check_string(p, "OFF") || parse_check_string(p, "FALSE")) {
@@ -74,8 +74,8 @@ bool parse_bool(char *p) {
     }
 }
 
-int parse_colour(char *p, bool allow_bright) {
-    char *p2;
+int parse_colour(const char *p, bool allow_bright) {
+    const char *p2;
     if ((p2 = parse_check_string(p, "BLACK"))) {
         return BLACK;
     } else if ((p2 = parse_check_string(p, "BLUE"))) {
@@ -121,7 +121,7 @@ int parse_colour(char *p, bool allow_bright) {
     return colour;
 }
 
-int parse_file_number(char *p, bool allow_zero) {
+int parse_file_number(const char *p, bool allow_zero) {
     skipspace(p); // Do we need this ?
     if (*p == '#') p++;
     int fnbr = getinteger(p);

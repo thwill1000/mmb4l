@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/maths.h"
 
 void fun_math(void){
-        char *tp, *tp1;
+        const char *tp, *tp1;
         skipspace(ep);
         if(toupper(*ep)=='A'){
                 tp = checkstring(ep, "ATAN3");

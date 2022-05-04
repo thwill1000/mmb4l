@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void cmd_cfunction(void) {
     int end_token = GetCommandValue("End CSub");  // this terminates a CSUB
-    char *p = cmdline;
+    const char *p = cmdline;
     while (*p != 0xff) {
         if (*p == 0) p++;  // if it is at the end of an element skip the zero marker
         if (*p == 0) ERROR_MISSING_END;  // end of the program

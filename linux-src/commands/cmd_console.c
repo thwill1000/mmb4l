@@ -50,32 +50,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/parse.h"
 #include "../common/utility.h"
 
-static void cmd_console_background(char *p) {
+static void cmd_console_background(const char *p) {
     if (parse_is_end(p)) ERROR_SYNTAX;
     int colour = parse_colour(p, 0);
     if (colour == -1) ERROR_INVALID("background colour");
     console_background(colour);
 }
 
-static void cmd_console_bell(char *p) {
+static void cmd_console_bell(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     console_bell();
 }
 
-static void cmd_console_clear(char *p) {
+static void cmd_console_clear(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 0) ERROR_SYNTAX;
     console_clear();
 }
 
-static void cmd_console_foreground(char *p) {
+static void cmd_console_foreground(const char *p) {
     if (parse_is_end(p)) ERROR_SYNTAX;
     int colour = parse_colour(p, 1);
     if (colour == -1) ERROR_INVALID("foreground colour");
     console_foreground(colour);
 }
 
-static void cmd_console_get_cursor(char *p) {
+static void cmd_console_get_cursor(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
@@ -100,7 +100,7 @@ static void cmd_console_get_cursor(char *p) {
     *((int64_t *) py) = y;
 }
 
-static void cmd_console_get_size(char *p) {
+static void cmd_console_get_size(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
@@ -125,7 +125,7 @@ static void cmd_console_get_size(char *p) {
     *((int64_t *) pheight) = height;
 }
 
-static void cmd_console_hide_cursor(char *p) {
+static void cmd_console_hide_cursor(const char *p) {
     getargs(&p, 1, ",");
     int hide = 1;
     if (argc == 1) {
@@ -134,12 +134,12 @@ static void cmd_console_hide_cursor(char *p) {
     console_show_cursor(hide == 1 ? 0 : 1);
 }
 
-static void cmd_console_home(char *p) {
+static void cmd_console_home(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     console_home_cursor();
 }
 
-static void cmd_console_invert(char *p) {
+static void cmd_console_invert(const char *p) {
     getargs(&p, 1, ",");
     int invert = 1;
     if (argc == 1) {
@@ -148,7 +148,7 @@ static void cmd_console_invert(char *p) {
     console_invert(invert);
 }
 
-static void cmd_console_reset(char *p) {
+static void cmd_console_reset(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     console_reset();
 }
@@ -156,7 +156,7 @@ static void cmd_console_reset(char *p) {
 #define MAX_CURSOR_X  1023
 #define MAX_CURSOR_Y  1023
 
-static void cmd_console_set_cursor(char *p) {
+static void cmd_console_set_cursor(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 3) ERROR_ARGUMENT_COUNT;
     int x = getint(argv[0], 0, MAX_CURSOR_X);
@@ -164,8 +164,8 @@ static void cmd_console_set_cursor(char *p) {
     console_set_cursor_pos(x, y);
 }
 
-static void cmd_console_set_size(char *p) {
-    char *p2 = NULL;
+static void cmd_console_set_size(const char *p) {
+    const char *p2 = NULL;
     bool at_least = false;
     if ((p2 = parse_check_string(p, "ATLEAST"))) at_least = true;
     if (!p2) p2 = p;
@@ -193,13 +193,13 @@ static void cmd_console_set_size(char *p) {
     }
 }
 
-static void cmd_console_set_title(char *p) {
+static void cmd_console_set_title(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     console_set_title(getCstring(argv[0]));
 }
 
-static void cmd_console_show_cursor(char *p) {
+static void cmd_console_show_cursor(const char *p) {
     getargs(&p, 1, ",");
     int show = 1;
     if (argc == 1) {
@@ -209,7 +209,7 @@ static void cmd_console_show_cursor(char *p) {
 }
 
 void cmd_console(void) {
-    char *p;
+    const char *p;
     if ((p = parse_check_string(cmdline, "BACKGROUND"))) {
         cmd_console_background(p);
     } else if ((p = parse_check_string(cmdline, "BELL"))) {

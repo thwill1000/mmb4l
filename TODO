@@ -10,7 +10,6 @@ Required for alpha 4
  - When RUNning a program from another program should a relative path be
    resolved relative to CWD$ or the directory containing the currently running
    program ?
- - String literals should not be passed to non-const char * parameters
  - Syntax highlighting of decimals with no leading zero
 
 

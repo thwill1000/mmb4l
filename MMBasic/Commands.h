@@ -196,8 +196,8 @@ void cmd_case(void);
 #if !defined(INCLUDE_COMMAND_TABLE) && !defined(INCLUDE_TOKEN_TABLE)
 
 struct s_forstack {
-    char *forptr;                           // pointer to the FOR command in program memory
-    char *nextptr;                          // pointer to the NEXT command in program memory
+    const char *forptr;                     // pointer to the FOR command in program memory
+    const char *nextptr;                    // pointer to the NEXT command in program memory
     void *var;                              // value of the FOR variable
     char vartype;                           // type of the variable
     char level;                             // the sub/function level that the loop was created
@@ -215,25 +215,25 @@ extern struct s_forstack forstack[MAXFORLOOPS + 1] ;
 extern int forindex;
 
 struct s_dostack {
-    char *evalptr;                          // pointer to the expression to be evaluated
-    char *loopptr;                          // pointer to the loop statement
-    char *doptr;                            // pointer to the DO statement
+    const char *evalptr;                    // pointer to the expression to be evaluated
+    const char *loopptr;                    // pointer to the loop statement
+    const char *doptr;                      // pointer to the DO statement
     char level;                             // the sub/function level that the loop was created
 };
 
 extern struct s_dostack dostack[MAXDOLOOPS];
 extern int doindex;
 
-extern char *gosubstack[MAXGOSUB];
-extern char *errorstack[MAXGOSUB];
+extern const char *gosubstack[MAXGOSUB];
+extern const char *errorstack[MAXGOSUB];
 extern int gosubindex;
 extern char DimUsed;
 
-//extern char *GetFileName(char* CmdLinePtr, char *LastFilePtr);
-//extern void mergefile(char *fname, char *MemPtr);
-extern void MIPS16 ListProgram(char *p, int all);
-extern char MIPS16 *llist(char *b, char *p);
-extern char *CheckIfTypeSpecified(char *p, int *type, int AllowDefaultType);
+// char *GetFileName(char* CmdLinePtr, char *LastFilePtr);
+// void mergefile(char *fname, char *MemPtr);
+void MIPS16 ListProgram(char *p, int all);
+char MIPS16 *llist(char *b, char *p);
+const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType);
 
 #if !defined(__mmb4l__)
 #define CONFIG_TITLE      0

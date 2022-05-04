@@ -67,8 +67,8 @@ void FreeMemory(void *addr);
 void InitHeap(void);
 unsigned int UsedHeap(void);
 int FreeSpaceOnHeap(void);
-uintptr_t get_poke_addr(char *p);
-uintptr_t get_peek_addr(char *p);
+uintptr_t get_poke_addr(const char *p);
+uintptr_t get_peek_addr(const char *p);
 
 // RAM parameters
 // ==============

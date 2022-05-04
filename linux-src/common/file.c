@@ -62,7 +62,7 @@ FileEntry file_table[MAXOPENFILES + 1] = { 0 };
 /**
  * @param  fname  filename in C-string style, not MMBasic style.
  */
-void file_open(char *fname, char *mode, int fnbr) {
+void file_open(const char *fname, const char *mode, int fnbr) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
     if (file_table[fnbr].type != fet_closed) ERROR_ALREADY_OPEN;
 

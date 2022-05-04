@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 
-static void fun_chr_ascii(char *p) {
+static void fun_chr_ascii(const char *p) {
     int i = getint(p, 0, 0xFF);
     sret = GetTempStrMemory();
     targ = T_STR;
@@ -52,7 +52,7 @@ static void fun_chr_ascii(char *p) {
     sret[1] = i;
 }
 
-static void fun_chr_utf8(char *p) {
+static void fun_chr_utf8(const char *p) {
     int utf = getint(p, 0, 0x10FFFF);
     targ = T_STR;
     sret = GetTempStrMemory();
@@ -89,7 +89,7 @@ static void fun_chr_utf8(char *p) {
 }
 
 void fun_chr(void) {
-    char* p;
+    const char* p;
     if ((p = checkstring(ep, "UTF8"))) {
         fun_chr_utf8(p);
     } else {

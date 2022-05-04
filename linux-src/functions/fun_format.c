@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define IsDigitinline(a) ( a >= '0' && a <= '9' )
 
 void fun_format(void) {
-    char *p, *fmt;
+    const char *p, *fmt;
     int inspec;
     getargs(&ep, 3, ",");
     if (argc % 2 == 0) ERROR_SYNTAX;

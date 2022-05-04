@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // return true if the char 'c' is contained in the string 'srch$'
 // used only by scan_for_delimiter()  below
 // Note: this operates on MMBasic strings
-static int MInStr(char *srch, char c) {
+static int MInStr(const char *srch, char c) {
     int i;
     for (i = 1; i <= *(unsigned char *)srch; i++)
         if (c == srch[i]) return true;
@@ -59,7 +59,7 @@ static int MInStr(char *srch, char c) {
 // this will skip any quoted text (quote delimiters in quotes)
 // used only by fun_field() below
 // Note: this operates on MMBasic strings
-static int scan_for_delimiter(int start, char *p, char *delims, char *quotes) {
+static int scan_for_delimiter(int start, const char *p, const char *delims, const char *quotes) {
     int i;
     char qidx;
     for (i = start; i <= *(unsigned char *)p && !MInStr(delims, p[i]); i++) {
@@ -78,7 +78,7 @@ static int scan_for_delimiter(int start, char *p, char *delims, char *quotes) {
 //          if string3 is present any chars quoted by chars in string3 will not be searched for delimiters
 // Note: this operates on MMBasic strings
 void fun_field(void) {
-    char *p, *delims = "\1,", *quotes = "\0";
+    const char *p, *delims = "\1,", *quotes = "\0";
     int fnbr, i, j, k;
     getargs(&ep, 7, ",");
     if (!(argc == 3 || argc == 5 || argc == 7)) ERROR_SYNTAX;

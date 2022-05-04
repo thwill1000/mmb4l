@@ -52,26 +52,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ERROR_UNKNOWN_SUBROUTINE  error_throw_ex(kError, "Unknown user subroutine")
 
 void cmd_call(void) {
-    int i;
-    char *q;
-    char *p = getCstring(cmdline);  // get the command we want to call
-    q = p;
-    while (*q) {  // convert to upper case for the match
-        *q = toupper(*q);
-        q++;
-    }
-    q = cmdline;
+    char *cmd = getCstring(cmdline);  // get the command we want to call
+    cstring_toupper(cmd);
+    const char *q = cmdline;
     while (*q) {
         if (*q == ',' || *q == '\'') break;
         q++;
     }
     if (*q == ',') q++;
-    i = FindSubFun(p, false);  // it could be a defined command
-    cstring_cat(p, " ", STRINGSIZE);
-    cstring_cat(p, q, STRINGSIZE);
+    int i = FindSubFun(cmd, false);  // it could be a defined command
+    cstring_cat(cmd, " ", STRINGSIZE);
+    cstring_cat(cmd, q, STRINGSIZE);
     // MMPrintString(p);PRet();
     if (i >= 0) {  // >= 0 means it is a user defined command
-        DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
+        DefinedSubFun(false, cmd, i, NULL, NULL, NULL, NULL);
     } else {
         ERROR_UNKNOWN_SUBROUTINE;
     }

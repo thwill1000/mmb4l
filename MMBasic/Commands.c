@@ -65,15 +65,15 @@ int doindex;                                                        // counts th
 
 
 // stack to keep track of GOSUBs, SUBs and FUNCTIONs
-char *gosubstack[MAXGOSUB];
-char *errorstack[MAXGOSUB];
+const char *gosubstack[MAXGOSUB];
+const char *errorstack[MAXGOSUB];
 int gosubindex;
 
 char DimUsed = false;                                               // used to catch OPTION BASE after DIM has been used
 
 int TraceOn;                                                        // used to track the state of TRON/TROFF
 #if !defined(MX170)
-  char *TraceBuff[TRACE_BUFF_SIZE];
+  const char *TraceBuff[TRACE_BUFF_SIZE];
   int TraceBuffIndex;                                               // used for listing the contents of the trace buffer
 #endif
 
@@ -154,21 +154,20 @@ void cmd_let(void) {
     MMFLOAT f;
     MMINTEGER i64;
     char *s;
-    char *p1, *p2;
 
-    p1 = cmdline;
+    const char *p1 = cmdline;
 
     // search through the line looking for the equals sign
     while(*p1 && tokenfunction(*p1) != op_equal) p1++;
     if(!*p1) error("Unknown command");
 
     // check that we have a straight forward variable
-    p2 = skipvar(cmdline, false);
+    const char *p2 = skipvar(cmdline, false);
     skipspace(p2);
-    if(p1 != p2) error("Syntax");
+    if (p1 != p2) error("Syntax");
 
     // create the variable and get the length if it is a string
-    p2 = findvar(cmdline, V_FIND);
+    char *pvar = findvar(cmdline, V_FIND);
     size = vartbl[VarIndex].size;
     if(vartbl[VarIndex].type & T_CONST) error("Cannot change a constant");
 
@@ -178,22 +177,22 @@ void cmd_let(void) {
         t = T_STR;
         p1 = evaluate(p1, &f, &i64, &s, &t, false);
         if(*s > size) error("String too long");
-        Mstrcpy(p2, s);
+        Mstrcpy(pvar, s);
     }
     else if(vartbl[VarIndex].type & T_NBR) {
         t = T_NBR;
         p1 = evaluate(p1, &f, &i64, &s, &t, false);
         if(t & T_NBR)
-            (*(MMFLOAT *)p2) = f;
+            (*(MMFLOAT *)pvar) = f;
         else
-            (*(MMFLOAT *)p2) = (MMFLOAT)i64;
+            (*(MMFLOAT *)pvar) = (MMFLOAT)i64;
     } else {
         t = T_INT;
         p1 = evaluate(p1, &f, &i64, &s, &t, false);
         if(t & T_INT)
-            (*(MMINTEGER *)p2) = i64;
+            (*(MMINTEGER *)pvar) = i64;
         else
-            (*(MMINTEGER *)p2) = FloatToInt64(f);
+            (*(MMINTEGER *)pvar) = FloatToInt64(f);
     }
     checkend(p1);
 }
@@ -324,8 +323,8 @@ void cmd_goto(void) {
 void cmd_if(void) {
     int r, i, testgoto, testelseif;
     char ss[3];                                                     // this will be used to split up the argument line
-    char *p, *tp;
-    char *rp = NULL;
+    const char *p, *tp;
+    const char *rp = NULL;
 
     ss[0] = tokenTHEN;
     ss[1] = tokenELSE;
@@ -468,7 +467,7 @@ void cmd_if(void) {
 
 void cmd_else(void) {
     int i;
-    char *p, *tp;
+    const char *p, *tp;
 
     // search for the next ENDIF and pass control to the following line
     i = 1; p = nextstmt;
@@ -507,7 +506,7 @@ void cmd_end(void) {
 
 void cmd_select(void) {
     int i, type;
-    char *p, *rp = NULL, *SaveCurrentLinePtr;
+    const char *p, *rp = NULL, *SaveCurrentLinePtr;
     void *v;
     MMFLOAT f = 0;
     MMINTEGER i64 = 0;
@@ -631,7 +630,7 @@ void cmd_select(void) {
 // if we have hit a CASE or CASE ELSE we must search for a END SELECT at this level and resume at that point
 void cmd_case(void) {
     int i;
-    char *p;
+    const char *p;
 
     // search through the program looking for a END SELECT statement
     // i tracks the nesting level of any nested SELECT CASE commands
@@ -769,7 +768,7 @@ void cmd_trace(void) {
 void cmd_for(void) {
     int i, t, vlen, test;
     char ss[4];                                                     // this will be used to split up the argument line
-    char *p, *tp, *xp;
+    const char *p, *tp, *xp;
     void *vptr;
     char *vname, vtype;
     static char fortoken, nexttoken;
@@ -884,7 +883,7 @@ void cmd_next(void) {
     int i, vindex, test;
     void *vtbl[MAXFORLOOPS];
     int vcnt;
-    char *p;
+    const char *p;
     getargs(&cmdline, MAXFORLOOPS * 2, ",");                        // getargs macro must be the first executable stmt in a block
 
     vindex = 0;                                                     // keep lint happy
@@ -962,7 +961,7 @@ void cmd_next(void) {
 
 void cmd_do(void) {
     int i, whileloop;
-    char *p, *tp, *evalp;
+    const char *p, *tp, *evalp;
     char looptoken, whiletoken;
 
     whiletoken = GetCommandValue("While");
@@ -1046,7 +1045,7 @@ void cmd_do(void) {
 
 
 void cmd_loop(void) {
-    char *p;
+    const char *p;
     int tst = 0;                                                    // initialise tst to stop the compiler from complaining
     int i;
 
@@ -1138,7 +1137,9 @@ void cmd_randomize(void) {
 // this is the Sub or Fun command
 // it simply skips over text until it finds the end of it
 void cmd_subfun(void) {
-    char *p, returntoken, errtoken;
+    const char *p;
+    int returntoken;
+    int errtoken;
 
     if(gosubindex != 0) error("No matching END declaration");       // we have hit a SUB/FUN while in another SUB or FUN
     if(cmdtoken == cmdSUB) {
@@ -1418,8 +1419,8 @@ void cmd_on(void) {
 
 // utility routine used by DoDim() below and other places in the interpreter
 // checks if the type has been explicitly specified as in DIM FLOAT A, B, ... etc
-char *CheckIfTypeSpecified(char *p, int *type, int AllowDefaultType) {
-    char *tp;
+const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType) {
+    const char *tp;
 
     if((tp = checkstring(p, "INTEGER")) != NULL)
         *type = T_INT | T_IMPLIED;
@@ -1437,7 +1438,7 @@ char *CheckIfTypeSpecified(char *p, int *type, int AllowDefaultType) {
 
 
 
-char *SetValue(char *p, int t, void *v) {
+const char *SetValue(const char *p, int t, void *v) {
     MMFLOAT f;
     MMINTEGER i64;
     char *s, TempCurrentSubFunName[MAXVARLEN + 1];
@@ -1471,26 +1472,30 @@ char *SetValue(char *p, int t, void *v) {
 // LOCAL also uses this function the routines only differ in that LOCAL can only be used in a sub/fun
 void MIPS16 cmd_dim(void) {
     int i, j, k, type, typeSave, ImpliedType = 0, VIndexSave, StaticVar = false;
-    char *p, chSave, *chPosit;
+    char chSave, *chPosit;
     char VarName[(MAXVARLEN * 2) + 1];
     void *v, *tv;
 
-    if(*cmdline == tokenAS) cmdline++;                              // this means that we can use DIM AS INTEGER a, b, etc
-    p = CheckIfTypeSpecified(cmdline, &type, true);                 // check for DIM FLOAT A, B, ...
+    if (*cmdline == tokenAS) cmdline++;                             // this means that we can use DIM AS INTEGER a, b, etc
+    const char *pconst = CheckIfTypeSpecified(cmdline, &type, true);  // check for DIM FLOAT A, B, ...
     ImpliedType = type;
     {                                                               // getargs macro must be the first executable stmt in a block
-        getargs(&p, (MAX_ARG_COUNT * 2) - 1, ",");
+        getargs(&pconst, (MAX_ARG_COUNT * 2) - 1, ",");
         if((argc & 0x01) == 0) error("Syntax");
 
+        // 'p' will be pointing into the items of argv[] which we know are not
+        // constants so we can cast away const-ness as necessary to remove
+        // warnings.
+        char *p;
         for(i = 0; i < argc; i += 2) {
-            p = skipvar(argv[i], false);                            // point to after the variable
+            p = (char *) skipvar(argv[i], false);                   // point to after the variable
             while(!(*p == 0 || *p == tokenAS || *p == '\'' || *p == tokenEQUAL))
                 p++;                                                // skip over a LENGTH keyword if there and see if we can find "AS"
             chSave = *p; chPosit = p; *p = 0;                       // save the char then terminate the string so that LENGTH is evaluated correctly
             if(chSave == tokenAS) {                                 // are we using Microsoft syntax (eg, AS INTEGER)?
                 if(ImpliedType & T_IMPLIED) error("Type specified twice");
                 p++;                                                // step over the AS token
-                p = CheckIfTypeSpecified(p, &type, true);           // and get the type
+                p = (char *) CheckIfTypeSpecified(p, &type, true);  // and get the type
                 if(!(type & T_IMPLIED)) error("Variable type");
             }
 
@@ -1540,7 +1545,7 @@ void MIPS16 cmd_dim(void) {
                         }
                         do {
                             p++;                                    // step over the opening bracket or terminating comma
-                            p = SetValue(p, type, v);
+                            p = (char *) SetValue(p, type, v);
                             if(type & T_STR) v = (char *)v + vartbl[VIndexSave].size + 1;
                             if(type & T_NBR) v = (char *)v + sizeof(MMFLOAT);
                             if(type & T_INT) v = (char *)v + sizeof(MMINTEGER);
@@ -1579,7 +1584,7 @@ void MIPS16 cmd_dim(void) {
 
 
 void MIPS16 cmd_const(void) {
-    char *p;
+    const char *p;
     void *v;
     int i, type;
 
@@ -1674,7 +1679,7 @@ utility functions used by the various commands
 
 // utility function used by llist() below
 // it copys a command or function honouring the case selected by the user
-void strCopyWithCase(char *d, char *s) {
+void strCopyWithCase(char *d, const char *s) {
     if(Option.Listcase == CONFIG_LOWER) {
         while(*s) *d++ = tolower(*s++);
     } else if(Option.Listcase == CONFIG_UPPER) {
