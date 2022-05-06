@@ -50,10 +50,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <string.h>
 
-#include "../../Version.h"
+#include "../Version.h"
 #include "../Configuration.h"
-#include "../../MMBasic/MMBasic.h"
-#include "../../MMBasic/VarTable.h"
+#include "../core/MMBasic.h"
+#include "../core/VarTable.h"
 #include "options.h"
 #include "memory.h"
 

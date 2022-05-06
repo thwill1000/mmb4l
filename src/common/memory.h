@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 
 #include "../Configuration.h"
-#include "../../MMBasic/VarTable.h"
+#include "../core/VarTable.h"
 
 extern char *StrTmp[];                                      // used to track temporary string space on the heap
 extern int TempMemoryTop;                                   // this is the last index used for allocating temp memory

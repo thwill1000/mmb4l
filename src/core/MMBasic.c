@@ -65,7 +65,7 @@ const struct s_tokentbl commandtbl[] = {
 #elif defined(MAXIMITE)
     #include "..\Maximite\Hardware_Commands.h"
 #elif defined(__mmb4l__)
-    #include "../linux-src/Hardware_Commands.h"
+    #include "../Hardware_Commands.h"
 #elif defined(DOS)
     #include "..\DOS\Source\Hardware_Commands.h"
 #endif
@@ -88,7 +88,7 @@ const struct s_tokentbl tokentbl[] = {
 #elif defined(MAXIMITE)
     #include "..\Maximite\Hardware_Commands.h"
 #elif defined(__mmb4l__)
-    #include "../linux-src/Hardware_Commands.h"
+    #include "../Hardware_Commands.h"
 #elif defined(DOS)
     #include "..\DOS\Source\Hardware_Commands.h"
 #endif

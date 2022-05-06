@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 # set the project name
-project(MMBasic)
+project(MMB4L)
 
 # GoogleTest requires at least C++11
 set(CMAKE_CXX_STANDARD 11)
@@ -30,144 +30,144 @@ set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -Wwrite-strin
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -Wwrite-strings")
 set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
 
-set(MMBASIC_CORE_SOURCE_FILES
-    MMBasic/MMBasic.c
-    MMBasic/Operators.c
-    MMBasic/Functions.c
-    MMBasic/Commands.c
+set(MMB4L_CORE_SOURCE_FILES
+    src/core/MMBasic.c
+    src/core/Operators.c
+    src/core/Functions.c
+    src/core/Commands.c
 )
 
-set(MMBASIC_LINUX_COMMANDS_SOURCE_FILES
-    linux-src/commands/cmd_autosave.c
-    linux-src/commands/cmd_call.c
-    linux-src/commands/cmd_cfunction.c
-    linux-src/commands/cmd_chdir.c
-    linux-src/commands/cmd_cls.c
-    linux-src/commands/cmd_close.c
-    linux-src/commands/cmd_console.c
-    linux-src/commands/cmd_copy.c
-    linux-src/commands/cmd_cursor.c
-    linux-src/commands/cmd_dummy.c
-    linux-src/commands/cmd_edit.c
-    linux-src/commands/cmd_end.c
-    linux-src/commands/cmd_error.c
-    linux-src/commands/cmd_execute.c
-    linux-src/commands/cmd_files.c
-    linux-src/commands/cmd_inc.c
-    linux-src/commands/cmd_ireturn.c
-    linux-src/commands/cmd_kill.c
-    linux-src/commands/cmd_list.c
-    linux-src/commands/cmd_load.c
-    linux-src/commands/cmd_longstring.c
-    linux-src/commands/cmd_math.c
-    linux-src/commands/cmd_memory.c
-    linux-src/commands/cmd_mid.c
-    linux-src/commands/cmd_mkdir.c
-    linux-src/commands/cmd_new.c
-    linux-src/commands/cmd_on.c
-    linux-src/commands/cmd_open.c
-    linux-src/commands/cmd_option.c
-    linux-src/commands/cmd_pause.c
-    linux-src/commands/cmd_poke.c
-    linux-src/commands/cmd_print.c
-    linux-src/commands/cmd_quit.c
-    linux-src/commands/cmd_read.c
-    linux-src/commands/cmd_rename.c
-    linux-src/commands/cmd_rmdir.c
-    linux-src/commands/cmd_run.c
-    linux-src/commands/cmd_seek.c
-    linux-src/commands/cmd_settick.c
-    linux-src/commands/cmd_settitle.c
-    linux-src/commands/cmd_sort.c
-    linux-src/commands/cmd_system.c
-    linux-src/commands/cmd_timer.c
-    linux-src/commands/cmd_trace.c
-    linux-src/commands/cmd_xmodem.c
+set(MMB4L_COMMANDS_SOURCE_FILES
+    src/commands/cmd_autosave.c
+    src/commands/cmd_call.c
+    src/commands/cmd_cfunction.c
+    src/commands/cmd_chdir.c
+    src/commands/cmd_cls.c
+    src/commands/cmd_close.c
+    src/commands/cmd_console.c
+    src/commands/cmd_copy.c
+    src/commands/cmd_cursor.c
+    src/commands/cmd_dummy.c
+    src/commands/cmd_edit.c
+    src/commands/cmd_end.c
+    src/commands/cmd_error.c
+    src/commands/cmd_execute.c
+    src/commands/cmd_files.c
+    src/commands/cmd_inc.c
+    src/commands/cmd_ireturn.c
+    src/commands/cmd_kill.c
+    src/commands/cmd_list.c
+    src/commands/cmd_load.c
+    src/commands/cmd_longstring.c
+    src/commands/cmd_math.c
+    src/commands/cmd_memory.c
+    src/commands/cmd_mid.c
+    src/commands/cmd_mkdir.c
+    src/commands/cmd_new.c
+    src/commands/cmd_on.c
+    src/commands/cmd_open.c
+    src/commands/cmd_option.c
+    src/commands/cmd_pause.c
+    src/commands/cmd_poke.c
+    src/commands/cmd_print.c
+    src/commands/cmd_quit.c
+    src/commands/cmd_read.c
+    src/commands/cmd_rename.c
+    src/commands/cmd_rmdir.c
+    src/commands/cmd_run.c
+    src/commands/cmd_seek.c
+    src/commands/cmd_settick.c
+    src/commands/cmd_settitle.c
+    src/commands/cmd_sort.c
+    src/commands/cmd_system.c
+    src/commands/cmd_timer.c
+    src/commands/cmd_trace.c
+    src/commands/cmd_xmodem.c
 )
 
-set(MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES
-    linux-src/functions/fun_at.c
-    linux-src/functions/fun_bound.c
-    linux-src/functions/fun_call.c
-    linux-src/functions/fun_choice.c
-    linux-src/functions/fun_chr.c
-    linux-src/functions/fun_cwd.c
-    linux-src/functions/fun_date.c
-    linux-src/functions/fun_datetime.c
-    linux-src/functions/fun_day.c
-    linux-src/functions/fun_dir.c
-    linux-src/functions/fun_eof.c
-    linux-src/functions/fun_epoch.c
-    linux-src/functions/fun_format.c
-    linux-src/functions/fun_field.c
-    linux-src/functions/fun_hres.c
-    linux-src/functions/fun_inputstr.c
-    linux-src/functions/fun_json.c
-    linux-src/functions/fun_lcompare.c
-    linux-src/functions/fun_lgetbyte.c
-    linux-src/functions/fun_lgetstr.c
-    linux-src/functions/fun_linstr.c
-    linux-src/functions/fun_llen.c
-    linux-src/functions/fun_loc.c
-    linux-src/functions/fun_lof.c
-    linux-src/functions/fun_math.c
-    linux-src/functions/fun_mmcmdline.c
-    linux-src/functions/fun_mmdevice.c
-    linux-src/functions/fun_mminfo.c
-    linux-src/functions/fun_peek.c
-    linux-src/functions/fun_rgb.c
-    linux-src/functions/fun_time.c
-    linux-src/functions/fun_timer.c
-    linux-src/functions/fun_vres.c
+set(MMB4L_FUNCTIONS_SOURCE_FILES
+    src/functions/fun_at.c
+    src/functions/fun_bound.c
+    src/functions/fun_call.c
+    src/functions/fun_choice.c
+    src/functions/fun_chr.c
+    src/functions/fun_cwd.c
+    src/functions/fun_date.c
+    src/functions/fun_datetime.c
+    src/functions/fun_day.c
+    src/functions/fun_dir.c
+    src/functions/fun_eof.c
+    src/functions/fun_epoch.c
+    src/functions/fun_format.c
+    src/functions/fun_field.c
+    src/functions/fun_hres.c
+    src/functions/fun_inputstr.c
+    src/functions/fun_json.c
+    src/functions/fun_lcompare.c
+    src/functions/fun_lgetbyte.c
+    src/functions/fun_lgetstr.c
+    src/functions/fun_linstr.c
+    src/functions/fun_llen.c
+    src/functions/fun_loc.c
+    src/functions/fun_lof.c
+    src/functions/fun_math.c
+    src/functions/fun_mmcmdline.c
+    src/functions/fun_mmdevice.c
+    src/functions/fun_mminfo.c
+    src/functions/fun_peek.c
+    src/functions/fun_rgb.c
+    src/functions/fun_time.c
+    src/functions/fun_timer.c
+    src/functions/fun_vres.c
 )
 
-set(MMBASIC_LINUX_OPERATORS_SOURCE_FILES
-    linux-src/operators/op_inv.c
+set(MMB4L_OPERATORS_SOURCE_FILES
+    src/operators/op_inv.c
 )
 
-set(MMBASIC_LINUX_COMMON_SOURCE_FILES
-    linux-src/common/cmdline.c
-    linux-src/common/codepage.c
-    linux-src/common/console.c
-    linux-src/common/cJSON.c
-    linux-src/common/cstring.c
-    linux-src/common/error.c
-    linux-src/common/file.c
-    linux-src/common/interrupt.c
-    linux-src/common/maths.c
-    linux-src/common/memory.c
-    linux-src/common/mmresult.c
-    linux-src/common/mmtime.c
-    linux-src/common/options.c
-    linux-src/common/parse.c
-    linux-src/common/path.c
-    linux-src/common/program.c
-    linux-src/common/prompt.c
-    linux-src/common/rx_buf.c
-    linux-src/common/serial.c
-    linux-src/common/xmodem.c
+set(MMB4L_COMMON_SOURCE_FILES
+    src/common/cmdline.c
+    src/common/codepage.c
+    src/common/console.c
+    src/common/cJSON.c
+    src/common/cstring.c
+    src/common/error.c
+    src/common/file.c
+    src/common/interrupt.c
+    src/common/maths.c
+    src/common/memory.c
+    src/common/mmresult.c
+    src/common/mmtime.c
+    src/common/options.c
+    src/common/parse.c
+    src/common/path.c
+    src/common/program.c
+    src/common/prompt.c
+    src/common/rx_buf.c
+    src/common/serial.c
+    src/common/xmodem.c
 )
 
-set(MMBASIC_LINUX_SOURCE_FILES
-    ${MMBASIC_LINUX_COMMANDS_SOURCE_FILES}
-    ${MMBASIC_LINUX_FUNCTIONS_SOURCE_FILES}
-    ${MMBASIC_LINUX_OPERATORS_SOURCE_FILES}
-    ${MMBASIC_LINUX_COMMON_SOURCE_FILES}
-    linux-src/main.c)
+set(MMB4L_SOURCE_FILES
+    ${MMB4L_COMMANDS_SOURCE_FILES}
+    ${MMB4L_FUNCTIONS_SOURCE_FILES}
+    ${MMB4L_OPERATORS_SOURCE_FILES}
+    ${MMB4L_COMMON_SOURCE_FILES}
+    src/main.c)
 
 # add the executable
-add_executable(mmbasic ${MMBASIC_CORE_SOURCE_FILES} ${MMBASIC_LINUX_SOURCE_FILES})
+add_executable(mmbasic ${MMB4L_CORE_SOURCE_FILES} ${MMB4L_SOURCE_FILES})
 
 add_executable(test_keyboard
-    linux-src/keyboard_test.c
-    linux-src/common/rx_buf.c
-    linux-src/common/codepage.c
-    linux-src/common/console.c
-    linux-src/common/cstring.c
-    linux-src/common/mmresult.c
-    linux-src/common/mmtime.c
-    linux-src/common/options.c
-    linux-src/common/path.c)
+    src/keyboard_test.c
+    src/common/rx_buf.c
+    src/common/codepage.c
+    src/common/console.c
+    src/common/cstring.c
+    src/common/mmresult.c
+    src/common/mmtime.c
+    src/common/options.c
+    src/common/path.c)
 
 target_link_libraries(
     mmbasic
@@ -187,9 +187,9 @@ include(GoogleTest)
 
 add_executable(
   test_cmdline
-  linux-src/common/cmdline.c
-  linux-src/common/cstring.c
-  linux-src/common/gtest/cmdline_test.cxx
+  src/common/cmdline.c
+  src/common/cstring.c
+  src/common/gtest/cmdline_test.cxx
 )
 
 target_link_libraries(
@@ -208,8 +208,8 @@ gtest_discover_tests(test_cmdline)
 
 add_executable(
   test_cstring
-  linux-src/common/cstring.c
-  linux-src/common/gtest/cstring_test.cxx
+  src/common/cstring.c
+  src/common/gtest/cstring_test.cxx
 )
 
 target_link_libraries(
@@ -227,12 +227,12 @@ gtest_discover_tests(test_cstring)
 
 add_executable(
   test_options
-  linux-src/common/codepage.c
-  linux-src/common/cstring.c
-  linux-src/common/options.c
-  linux-src/common/mmresult.c
-  linux-src/common/path.c
-  linux-src/common/gtest/options_test.cxx
+  src/common/codepage.c
+  src/common/cstring.c
+  src/common/options.c
+  src/common/mmresult.c
+  src/common/path.c
+  src/common/gtest/options_test.cxx
 )
 
 target_compile_definitions(test_options PUBLIC OPTION_TESTS)
@@ -253,9 +253,9 @@ gtest_discover_tests(test_options)
 
 add_executable(
   test_parse
-  linux-src/common/cstring.c
-  linux-src/common/parse.c
-  linux-src/common/gtest/parse_test.cxx
+  src/common/cstring.c
+  src/common/parse.c
+  src/common/gtest/parse_test.cxx
 )
 
 target_link_libraries(
@@ -274,9 +274,9 @@ gtest_discover_tests(test_parse)
 
 add_executable(
   test_path
-  linux-src/common/cstring.c
-  linux-src/common/path.c
-  linux-src/common/gtest/path_test.cxx
+  src/common/cstring.c
+  src/common/path.c
+  src/common/gtest/path_test.cxx
 )
 
 target_link_libraries(
@@ -295,10 +295,10 @@ gtest_discover_tests(test_path)
 
 add_executable(
   test_program
-  linux-src/common/cstring.c
-  linux-src/common/path.c
-  linux-src/common/program.c
-  linux-src/common/gtest/program_test.cxx
+  src/common/cstring.c
+  src/common/path.c
+  src/common/program.c
+  src/common/gtest/program_test.cxx
 )
 
 target_link_libraries(
@@ -317,8 +317,8 @@ gtest_discover_tests(test_program)
 
 add_executable(
   test_rx_buf
-  linux-src/common/rx_buf.c
-  linux-src/common/gtest/rx_buf_test.cxx
+  src/common/rx_buf.c
+  src/common/gtest/rx_buf_test.cxx
 )
 
 target_link_libraries(
