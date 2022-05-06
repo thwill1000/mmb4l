@@ -5,9 +5,6 @@ Required for alpha 4
 --------------------
 
  - Implement READ [SAVE|RESTORE]
- - When RUNning a program from another program should a relative path be
-   resolved relative to CWD$ or the directory containing the currently running
-   program ?
  - Syntax highlighting of decimals with no leading zero
 
 

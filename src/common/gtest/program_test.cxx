@@ -225,7 +225,9 @@ TEST_F(ProgramTest, GetBasFile_GivenRunningProgram_AndRelativePath) {
     strcpy(CurrentFile, PROGRAM_TEST_DIR "/current.bas");
     char *result;
 
-    TEST_PROGRAM_GET_BAS_FILE("foo.bas", PROGRAM_TEST_DIR "/foo.bas");
+    // Contrary to my original belief the file should be is resolved relative
+    // to CWD and not to the directory containing the currently running program.
+    TEST_PROGRAM_GET_BAS_FILE("foo.bas", PathToFileInCwd("foo.bas").c_str());
 }
 
 TEST_F(ProgramTest, GetBasFile_GivenOnlyInSearchPath) {

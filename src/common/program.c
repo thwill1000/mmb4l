@@ -418,15 +418,11 @@ char *program_get_bas_file(const char *filename, char *out) {
     bool stem_has_extension = strcasecmp(path_get_extension(stem), BAS_FILE_EXTENSIONS[0]) == 0;
     bool stem_is_relative = !path_is_absolute(stem);
 
-    // Determine root to use for resolving relative paths.
+    // The root for resolving relative paths is always the current working directory.
     char root[STRINGSIZE] = { '\0' };
     if (stem_is_relative) {
-        if (CurrentLinePtr) {
-            if (!path_get_parent(CurrentFile, root, STRINGSIZE)) return NULL;
-        } else {
-            errno = 0;
-            if (!getcwd(root, STRINGSIZE)) return NULL;
-        }
+        errno = 0;
+        if (!getcwd(root, STRINGSIZE)) return NULL;
         if (FAILED(cstring_cat(root, "/", STRINGSIZE))) {
             errno = ENAMETOOLONG;
             return NULL;

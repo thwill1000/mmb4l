@@ -89,6 +89,9 @@ Version 2022.01.00-a4 - ??-???-2022:
         - use !ls instead to execute the 'ls' Linux shell command with all its
           power and with no requirement to enquote its arguments.
   - Fixed bug where could not open non-existing file for RANDOM access.
+  - Fixed bug where when one program tried to RUN another it would resolve the
+    path to the new program from the current program directory instead of from
+    the current working directory.
 
 Version 2022.01.00-a3 - 16-Jan-2022:
   - Added serial port support, e.g.
