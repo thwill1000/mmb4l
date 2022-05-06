@@ -6,8 +6,8 @@ Option Base 0
 Option Default None
 Option Explicit On
 
-#Include "../basic-src/splib/system.inc"
-#Include "../basic-src/splib/string.inc"
+#Include "../sptools/src/splib/system.inc"
+#Include "../sptools/src/splib/string.inc"
 
 Const LF$ = Chr$(10)
 

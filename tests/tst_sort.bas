@@ -6,13 +6,13 @@ Option Explicit On
 Option Default None
 Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 
-#Include "../basic-src/splib/system.inc"
-#Include "../basic-src/splib/array.inc"
-#Include "../basic-src/splib/list.inc"
-#Include "../basic-src/splib/string.inc"
-#Include "../basic-src/splib/file.inc"
-#Include "../basic-src/splib/vt100.inc"
-#Include "../basic-src/sptest/unittest.inc"
+#Include "../sptools/src/splib/system.inc"
+#Include "../sptools/src/splib/array.inc"
+#Include "../sptools/src/splib/list.inc"
+#Include "../sptools/src/splib/string.inc"
+#Include "../sptools/src/splib/file.inc"
+#Include "../sptools/src/splib/vt100.inc"
+#Include "../sptools/src/sptest/unittest.inc"
 
 Const base% = Mm.Info(Option Base)
 

@@ -8,16 +8,16 @@ Option Base 0
 Option Default None
 Option Explicit On
 
-#Include "../basic-src/splib/system.inc"
-#Include "../basic-src/splib/file.inc"
-#Include "../basic-src/splib/string.inc"
+#Include "../sptools/src/splib/system.inc"
+#Include "../sptools/src/splib/file.inc"
+#Include "../sptools/src/splib/string.inc"
 
 Const SEP$ = "/"
 Const C_TEMPLATE$ = Mm.Info$(Path) + "/" + "c_copyright.template"
 Const C_MIT_TEMPLATE$ = Mm.Info$(Path) + "/" + "c_mit_copyright.template"
 Const BAS_TEMPLATE$ = Mm.Info$(Path) + "/" + "bas_copyright.template"
 
-Dim IGNORED$(4) = ("/build/", "/build-clang/", "/build-distrib/", "/basic-src/splib/", "/basic-src/sptest/")
+Dim IGNORED$(4) = ("/build/", "/build-clang/", "/build-distrib/", "/sptools/src/splib/", "/sptools/src/sptest/")
 
 update_comments(".c", C_TEMPLATE$)
 update_comments(".h", C_TEMPLATE$)

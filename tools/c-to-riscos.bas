@@ -6,8 +6,8 @@ Option Base 0
 Option Default None
 Option Explicit On
 
-#Include "../basic-src/splib/system.inc"
-#Include "../basic-src/splib/file.inc"
+#Include "../sptools/src/splib/system.inc"
+#Include "../sptools/src/splib/file.inc"
 
 Const SEP$ = "/"
 
