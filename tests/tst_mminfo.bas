@@ -80,15 +80,17 @@ Sub test_current()
 End Sub
 
 Function expected_path$()
-  If Mm.Device$ = "MMB4L" Then
-    Local out$
-    System "echo $HOME", out$
-    expected_path$ = out$ + "/github/mmb4l-src/tests/"
-  ElseIf Mm.Device$ = "MMBasic for Windows" Then
-    expected_path$ = "C:\home-thwill\git_sandbox\github\mmb4l-src\tests\"
-  Else
-    expected_path$ = "A:/MMB4L-SRC/tests/"
-  EndIf
+  Select Case Mm.Device$
+    Case "MMB4L"
+      Local out$
+      System "echo $HOME", out$
+      expected_path$ = out$ + "/github/mmb4l-src/tests/"
+    Case "MMBasic for Windows"
+      expected_path$ = "C:\home-thwill\git_sandbox\github\mmb4l-src\tests\"
+    Case Else
+      expected_path$ = "A:/MMB4L-SRC/tests/"
+      If Cwd$ + "/" = UCase$(expected_path$) Then expected_path$ = UCase$(expected_path$)
+  End Select
 End Function
 
 Sub test_device()
