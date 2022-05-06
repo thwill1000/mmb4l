@@ -1294,7 +1294,7 @@ search_again:
 }
 #endif
 
-
+#if !defined(__mmb4l__)
 void cmd_restore(void) {
     if(*cmdline == 0 || *cmdline == '\'') {
         if (CurrentLinePtr >= (char *) (ProgMemory + Option.ProgFlashSize))
@@ -1310,6 +1310,7 @@ void cmd_restore(void) {
         NextData = 0;
     }
 }
+#endif
 
 
 

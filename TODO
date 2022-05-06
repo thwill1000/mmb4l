@@ -16,6 +16,7 @@ Required for alpha 5
  - Implement variable/sub/function hash tables
  - Replace bang ! command with *, or allow both ?
  - Implement SAVE command (?)
+ - Make sense of or eliminate mmb_options.prog_flash_size
 
 
 Required for alpha 6
