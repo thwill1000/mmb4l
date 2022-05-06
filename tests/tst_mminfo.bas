@@ -219,19 +219,29 @@ End Sub
 Sub test_fontheight()
   assert_int_equals(EXPECTED_FONT_HEIGHT%, Mm.Info(FontHeight))
 
-  ' Expect error if there is a space between FONT and HEIGHT.
-  On Error Skip
-  Local i% = Mm.Info(Font Height)
-  assert_raw_error("Unknown argument")
+  If Mm.Device$ = "MMB4L" Then
+    ' Expect error if there is a space between FONT and HEIGHT.
+    On Error Skip
+    Local i% = Mm.Info(Font Height)
+    assert_raw_error("Unknown argument")
+  Else
+    ' Incorrectly reports result of MM.INFO(FONT).
+    assert_int_equals(1, Mm.Info(Font Height))
+  EndIf
 End Sub
 
 Sub test_fontwidth()
   assert_int_equals(EXPECTED_FONT_WIDTH%, Mm.Info(FontWidth))
 
-  ' Expect error if there is a space between FONT and HEIGHT.
-  On Error Skip
-  Local i% = Mm.Info(Font Height)
-  assert_raw_error("Unknown argument")
+  If Mm.Device$ = "MMB4L" Then
+    ' Expect error if there is a space between FONT and WIDTH.
+    On Error Skip
+    Local i% = Mm.Info(Font Width)
+    assert_raw_error("Unknown argument")
+  Else
+    ' Incorrectly reports result of MM.INFO(FONT).
+    assert_int_equals(1, Mm.Info(Font Width))
+  EndIf
 End Sub
 
 Sub test_hpos()

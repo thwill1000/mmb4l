@@ -16,7 +16,9 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 
 Const BASE% = Mm.Info(Option Base)
 
-add_test("test_csub_as_data")
+If Mm.Device$ <> "MMBasic for Windows" Then
+  add_test("test_csub_as_data")
+EndIf
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
