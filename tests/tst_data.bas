@@ -23,7 +23,11 @@ add_test("test_base16")
 add_test("test_floats")
 add_test("test_strings")
 add_test("test_mixed_types")
-add_test("test_restore_with_label")
+add_test("test_restore_with_line_number",       "test_restore_lineno")
+add_test("test_restore_with_string_literal",    "test_restore_strlit")
+add_test("test_restore_with_string_expression", "test_restore_strexp")
+add_test("test_restore_with_int_expression",    "test_restore_intexp")
+add_test("test_restore_with_float_expression",  "test_restore_floatexp")
 add_test("test_data_save_and_restore")
 add_test("test_data_save_and_restore_errors", "test_data_save_and_restore_err")
 
@@ -131,57 +135,158 @@ strings_data:
 Data "", "foo", "bar", "wombat", "snafu"
 
 Sub test_mixed_types()
-  Local i%, f!, s$
+  Local i1%, i2%, i3%, i4%, f!, s$
+
   Restore mixed_types_data
+  Read i1%, i2%, i3%, i4%, f!, s$
 
-  Read i%
-  assert_int_equals(12, i%)
-
-  Read i%
-  assert_int_equals(668, i%)
-
-  Read i%
-  assert_int_equals(-376, i%)
-
-  Read i%
-  assert_int_equals(43981, i%)
-
-  Read f!
+  assert_int_equals(12, i1%)
+  assert_int_equals(668, i2%)
+  assert_int_equals(-376, i3%)
+  assert_int_equals(43981, i4%)
   assert_float_equals(3.142, f!)
-
-  Read s$
   assert_string_equals("foobar", s$)
 End Sub
 
 mixed_types_data:
 Data &b1100, &o1234, -376, &hABCD, 3.142, "foobar"
 
-Sub test_restore_with_label()
+Sub test_restore_lineno()
   Local i%, f!, s$
 
-  Restore strings_data
-  Read s$ : Read s$ : Read s$ ' s$ = 3rd item of data
-  assert_string_equals("bar", s$)
+  Restore 999
+  Read i%, f!, s$
 
-  Restore floats_data
-  Read f! : Read f! : Read f! ' f! = 3rd item of data
-  assert_float_equals(-1.1, f!)
+  assert_int_equals(42, i%)
+  assert_float_equals(3.142, f!, 1e-6)
+  assert_string_equals("Hello World", s$)
 
-  Restore base16_data
-  Read i% : Read i% : Read i% ' i% = 3rd item of data
-  assert_int_equals(4294901760, i%)
+  Restore &h3E7
+  Read i%, f!, s$
 
-  Restore base10_data
-  Read i% : Read i% : Read i% ' i% = 3rd item of data
-  assert_int_equals(-1, i%)
+  assert_int_equals(42, i%)
+  assert_float_equals(3.142, f!, 1e-6)
+  assert_string_equals("Hello World", s$)
 
-  Restore base8_data
-  Read i% : Read i% : Read i% ' i% = 3rd item of data
-  assert_int_equals(5349, i%)
+  Restore &o1747
+  Read i%, f!, s$
 
-  Restore base2_data
-  Read i% : Read i% : Read i% : Read i% ' i% = 4th item of data
-  assert_int_equals(255, i%)
+  assert_int_equals(42, i%)
+  assert_float_equals(3.142, f!, 1e-6)
+  assert_string_equals("Hello World", s$)
+
+  Restore &b1111100111
+  Read i%, f!, s$
+
+  assert_int_equals(42, i%)
+  assert_float_equals(3.142, f!, 1e-6)
+  assert_string_equals("Hello World", s$)
+End Sub
+
+999 Data 42, 3.142, "Hello World"
+
+Sub test_restore_strlit()
+  Local i1%, i2%, i3%, i4%, f!, s$
+
+  Restore "mixed_types_data"
+  Read i1%, i2%, i3%, i4%, f!, s$
+
+  assert_int_equals(12, i1%)
+  assert_int_equals(668, i2%)
+  assert_int_equals(-376, i3%)
+  assert_int_equals(43981, i4%)
+  assert_float_equals(3.142, f!)
+  assert_string_equals("foobar", s$)
+End Sub
+
+Sub test_restore_strexp()
+  Local i1%, i2%, i3%, i4%, f!, s$
+
+  s$ = "types"
+  Restore "mixed_" + s$ + "_data"
+  Read i1%, i2%, i3%, i4%, f!, s$
+
+  assert_int_equals(12, i1%)
+  assert_int_equals(668, i2%)
+  assert_int_equals(-376, i3%)
+  assert_int_equals(43981, i4%)
+  assert_float_equals(3.142, f!)
+  assert_string_equals("foobar", s$)
+
+  s$ = "mixed_types"
+  Restore s$ + "_data"
+  Read i1%, i2%, i3%, i4%, f!, s$
+
+  assert_int_equals(12, i1%)
+  assert_int_equals(668, i2%)
+  assert_int_equals(-376, i3%)
+  assert_int_equals(43981, i4%)
+  assert_float_equals(3.142, f!)
+  assert_string_equals("foobar", s$)
+End Sub
+
+Sub test_restore_intexp()
+  Local i%, f!, s$
+
+  i% = 900
+  Restore i% + 99
+  Read i%, f!, s$
+
+  assert_int_equals(42, i%)
+  assert_float_equals(3.142, f!, 1e-6)
+  assert_string_equals("Hello World", s$)
+
+  i% = 900
+  Restore 99 + i%
+  Read i%, f!, s$
+
+  assert_int_equals(42, i%)
+  assert_float_equals(3.142, f!, 1e-6)
+  assert_string_equals("Hello World", s$)
+
+  i% = 900
+  Restore &h63 + i%
+  Read i%, f!, s$
+
+  assert_int_equals(42, i%)
+  assert_float_equals(3.142, f!, 1e-6)
+  assert_string_equals("Hello World", s$)
+
+  i% = 900
+  Restore &o143 + i%
+  Read i%, f!, s$
+
+  assert_int_equals(42, i%)
+  assert_float_equals(3.142, f!, 1e-6)
+  assert_string_equals("Hello World", s$)
+
+  i% = 900
+  Restore &b1100011 + i%
+  Read i%, f!, s$
+
+  assert_int_equals(42, i%)
+  assert_float_equals(3.142, f!, 1e-6)
+  assert_string_equals("Hello World", s$)
+End Sub
+
+Sub test_restore_floatexp()
+  Local i%, f!, s$
+
+  f! = 900.0
+  Restore f! + 99.0
+  Read i%, f!, s$
+
+  assert_int_equals(42, i%)
+  assert_float_equals(3.142, f!, 1e-6)
+  assert_string_equals("Hello World", s$)
+
+  f! = 900.0
+  Restore 99.0 + f!
+  Read i%, f!, s$
+
+  assert_int_equals(42, i%)
+  assert_float_equals(3.142, f!, 1e-6)
+  assert_string_equals("Hello World", s$)
 End Sub
 
 Sub test_data_save_and_restore()

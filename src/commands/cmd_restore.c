@@ -47,18 +47,56 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 
+/**
+ * RESTORE label
+ * RESTORE <string expression>
+ * RESTORE <number expression>
+ */
 void cmd_restore(void) {
-    if(*cmdline == 0 || *cmdline == '\'') {
+    if (*cmdline == 0 || *cmdline == '\'') {
         if (CurrentLinePtr >= (char *) (ProgMemory + mmb_options.prog_flash_size))
             NextDataLine = ProgMemory + mmb_options.prog_flash_size;
         else
             NextDataLine = ProgMemory;
         NextData = 0;
-    } else {
-        if(isnamestart(*cmdline))
-            NextDataLine = findlabel(cmdline);                      // must be a label
-        else
-            NextDataLine = findline(getinteger(cmdline), true);     // try for a line number
-        NextData = 0;
+    }
+    else {
+        skipspace(cmdline);
+        if (*cmdline == '"') {
+            // Restore target starts with a literal string.
+            NextDataLine = findlabel(getCstring(cmdline));
+            NextData = 0;
+        }
+        else if (isdigit(*cmdline)
+                || *cmdline == GetTokenValue("+")
+                || *cmdline == GetTokenValue("-")
+                || *cmdline == '.'
+                || *cmdline == '&') {
+            // Restore target starts with a number.
+            NextDataLine = findline(getinteger(cmdline), true);
+            NextData = 0;
+        }
+        else {
+            void *ptr = findvar(cmdline, V_NOFIND_NULL);
+            if (ptr) {
+                // Restore target starts with a variable.
+                if (vartbl[VarIndex].type & T_NBR) {
+                    if (vartbl[VarIndex].dims[0] > 0) ERROR_SYNTAX;  // must be scalar
+                    NextDataLine = findline(getinteger(cmdline), true);
+                }
+                else if (vartbl[VarIndex].type & T_INT) {
+                    if (vartbl[VarIndex].dims[0] > 0) ERROR_SYNTAX;  // must be scalar
+                    NextDataLine = findline(getinteger(cmdline), true);
+                }
+                else {
+                    NextDataLine = findlabel(getCstring(cmdline));
+                }
+            }
+            else if (isnamestart(*cmdline)) {
+                // Restore target is a label.
+                NextDataLine = findlabel(cmdline);
+            }
+            NextData = 0;
+        }
     }
 }
