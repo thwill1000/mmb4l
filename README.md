@@ -19,8 +19,11 @@
     * [MM.INFO()](#mminfo)
     * [OPEN](#open)
     * [OPTION CODEPAGE](#option-codepage)
+    * [PEEK](#peek)
+    * [POKE](#poke)
     * [PRINT](#print)
     * [QUIT](#quit)
+    * [READ](#read)
     * [SYSTEM](#system)
     * [XMODEM](#xmodem)
 9. [Limitations](#9-limitations)
@@ -431,6 +434,18 @@ Supported values of `page$` are:
  * "CP1252" - the classic Windows-1252 Latin alphabet code page.
  * "MMB4L" - as "CP437" but with characters 129-159 replaced by the original non-ANSI CP437 characters 1-31 and with additional "useful" characters in positions 128, 161-170 and 255.
 
+### PEEK
+
+`pos% = PEEK(DATAPTR)`
+
+Gets the current value of the "virtual pointer" used to track where the [READ](#read) command reads `DATA` from. Note that this value is opaque and whilst it can be stored it should not be manipulated other than passing it to the `POKE DATAPTR ptr%` command.
+
+### POKE
+
+`POKE DATAPTR ptr%`
+
+Sets the value of the "virtual pointer" used to track where the [READ](#read) command reads `DATA` from. Only values of `ptr%` previously retrieved by calling `PEEK(DATAPTR)` should be passed to this command.
+
 ### PRINT
 
 `Print @(x%, y%) expression`
@@ -448,6 +463,34 @@ Exits MMB4L returning an optional exit code (default 0) to the shell.
  * Linux has no hard standard for other values, but for some guidance see:
      * [Advanced Bash Scripting Guide](https://tldp.org/LDP/abs/html/exitcodes.html)
      * [sysexits - FreeBSD](https://www.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html)
+
+### READ
+
+`READ SAVE`
+`READ RESTORE`
+
+The standard behaviour of the `READ variable [, variable] ...` command is to read data from a global "virtual pointer". When a program starts this pointer is initialised to point at the first item of the program's first `DATA` statement and can be reset using the `RESTORE` command.
+
+Because there is only a single pointer a subroutine or function that wants to safely access its own `DATA` without interfering with data reads being performed by its caller should use the `READ SAVE` and `READ RESTORE` commands to save and restore the value of the pointer. In MMB4L 50 levels of nested `READ SAVE` and `READ RESTORE` are allowed.
+
+e.g.
+
+```
+SUB foo()
+  READ SAVE     ' Save the current value of the pointer.
+  LOCAL i%, f!, s$
+  RESTORE foo_data
+  READ i%, f!, s$
+  READ RESTORE  ' Restore the pointer to the previously saved value.
+END SUB
+
+foo_data:
+DATA 42, 3.142, "Hello World"
+```
+
+_Note: this extension to the `READ` command is expected to become standard in MMBasic 5.03.04 implementations._
+
+Also see: [PEEK(DATAPTR)](#peek) and [POKE DATAPTR ptr%](#poke).
 
 ### SYSTEM
 

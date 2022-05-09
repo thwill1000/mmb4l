@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/memory.h"
@@ -97,11 +99,12 @@ static void peek_cfunaddr(int argc, char **argv, const char *p) {
 
 #include <stdio.h>
 
-/** PEEK(DATAPOS) */
-static void peek_datapos(int argc, char **argv, const char *p) {
+/** PEEK(DATAPTR) */
+static void peek_dataptr(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
-    uint64_t data_pos = ((NextDataLine - ProgMemory) << 32) + NextData;
-    g_integer_rtn = data_pos;
+    assert(sizeof(DataReadPointer) == sizeof(MMINTEGER));
+    ((DataReadPointer *) &g_integer_rtn)->next_line_offset = NextDataLine - ProgMemory;
+    ((DataReadPointer *) &g_integer_rtn)->next_data = NextData;
     g_rtn_type = T_INT;
 }
 
@@ -201,8 +204,8 @@ void fun_peek(void) {
         peek_byte(argc, argv, p);
     } else if ((p = checkstring(argv[0], "CFUNADDR"))) {
         peek_cfunaddr(argc, argv, p);
-    } else if ((p = checkstring(argv[0], "DATAPOS"))) {
-        peek_datapos(argc, argv, p);
+    } else if ((p = checkstring(argv[0], "DATAPTR"))) {
+        peek_dataptr(argc, argv, p);
     } else if ((p = checkstring(argv[0], "INTEGER"))) {
         peek_integer(argc, argv, p);
     } else if ((p = checkstring(argv[0], "FLOAT"))) {

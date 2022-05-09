@@ -30,6 +30,7 @@ add_test("test_restore_with_int_expression",    "test_restore_intexp")
 add_test("test_restore_with_float_expression",  "test_restore_floatexp")
 add_test("test_data_save_and_restore")
 add_test("test_data_save_and_restore_errors", "test_data_save_and_restore_err")
+add_test("test_peek_poke_dataptr")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -290,8 +291,6 @@ Sub test_restore_floatexp()
 End Sub
 
 Sub test_data_save_and_restore()
-  If Mm.Device$ <> "MMBasic for Windows" Then Exit Sub
-
   Local actual$(BASE% + 15)
   Local expected$(BASE% + 15) = ("mm", "nn", "oo", "pp", "ii", "jj", "kk", "ll", "ee", "ff", "gg", "hh", "aa", "bb", "cc", "dd")
   Local i%, j%, idx% = BASE%
@@ -313,8 +312,6 @@ Sub test_data_save_and_restore()
 End Sub
 
 Sub test_data_save_and_restore_err()
-  If Mm.Device$ <> "MMBasic for Windows" Then Exit Sub
-
   ' Pop when the stack is empty.
   On Error Skip
   Read Restore
@@ -339,3 +336,33 @@ Data "ii", "jj", "kk", "ll"
 
 save_and_restore_data_4:
 Data "mm", "nn", "oo", "pp"
+
+Sub test_peek_poke_dataptr()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
+  Local s1$, s2$
+
+  Restore save_and_restore_data_1
+  Read s1$, s2$
+  assert_string_equals("aa", s1$)
+  assert_string_equals("bb", s2$)
+
+  Local ptr1% = Peek(DataPtr)
+
+  Restore save_and_restore_data_2
+  Read s1$, s2$
+  assert_string_equals("ee", s1$)
+  assert_string_equals("ff", s2$)
+
+  Local ptr2% = Peek(DataPtr)
+
+  Poke DataPtr ptr1%
+  Read s1$, s2$
+  assert_string_equals("cc", s1$)
+  assert_string_equals("dd", s2$)
+
+  Poke DataPtr ptr2%
+  Read s1$, s2$
+  assert_string_equals("gg", s1$)
+  assert_string_equals("hh", s2$)
+End Sub

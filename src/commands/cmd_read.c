@@ -42,31 +42,39 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 
-#define ERROR_NO_DATA                     error_throw_ex(kError, "No DATA to read")
-#define ERROR_RESTORE_CALLED_BEFORE_SAVE  error_throw_ex(kError, "READ RESTORE called before READ SAVE")
+#define ERROR_NO_DATA             error_throw_ex(kError, "No DATA to read")
+#define ERROR_NOTHING_TO_RESTORE  error_throw_ex(kError, "Nothing to restore")
+#define ERROR_TOO_MANY_SAVES      error_throw_ex(kError, "Too many saves")
 
-static const char *cmd_read_cached_next_data_line = NULL;
-static int cmd_read_cached_next_data = 0;
+// This odd number allows us to match the behavious of MMB4W.
+#define READ_STACK_SIZE  49
+
+static DataReadPointer cmd_read_stack[READ_STACK_SIZE] = { 0 };
+static DataReadPointer* cmd_read_sp = cmd_read_stack;
 
 void cmd_read_clear_cache() {
-    cmd_read_cached_next_data_line = NULL;
-    cmd_read_cached_next_data = 0;
+    assert(sizeof(DataReadPointer) == sizeof(MMINTEGER));
+    memset(cmd_read_stack, 0, sizeof(cmd_read_stack));
+    cmd_read_sp = cmd_read_stack;
 }
 
 static void cmd_read_save(void) {
-    cmd_read_cached_next_data_line = NextDataLine;
-    cmd_read_cached_next_data = NextData;
+    if (cmd_read_sp == cmd_read_stack + READ_STACK_SIZE) ERROR_TOO_MANY_SAVES;
+    cmd_read_sp->next_line_offset = NextDataLine - ProgMemory;
+    cmd_read_sp->next_data = NextData;
+    cmd_read_sp++;
 }
 
 static void cmd_read_restore(void) {
-    if (!cmd_read_cached_next_data_line && !cmd_read_cached_next_data) {
-        ERROR_RESTORE_CALLED_BEFORE_SAVE;
-    }
-    NextDataLine = cmd_read_cached_next_data_line;
-    NextData = cmd_read_cached_next_data;
+    if (cmd_read_sp == cmd_read_stack) ERROR_NOTHING_TO_RESTORE;
+    cmd_read_sp--;
+    NextDataLine = ProgMemory + cmd_read_sp->next_line_offset;
+    NextData = cmd_read_sp->next_data;
 }
 
 void cmd_read_data(void) {

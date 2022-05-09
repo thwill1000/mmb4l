@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/utility.h"
@@ -58,12 +60,13 @@ static void poke_byte(int argc, char** argv, const char *p) {
     *((uint8_t *) addr) = (uint8_t) value;
 }
 
-/** POKE DATAPOS data_pos% */
-static void poke_datapos(int argc, char** argv, const char *p) {
+/** POKE DATAPTR ptr% */
+static void poke_dataptr(int argc, char** argv, const char *p) {
     if (argc != 1) ERROR_ARGUMENT_COUNT;
-    uint64_t data_pos = (uint64_t) getinteger(p);
-    NextDataLine = ProgMemory + (data_pos >> 32);
-    NextData = data_pos & 0xFFFFFFFF;
+    assert(sizeof(DataReadPointer) == sizeof(MMINTEGER));
+    MMINTEGER i = getinteger(p);
+    NextDataLine = ProgMemory + ((DataReadPointer *) &i)->next_line_offset;
+    NextData = ((DataReadPointer *) &i)->next_data;
 }
 
 /** POKE FLOAT addr%, float! */
@@ -140,8 +143,8 @@ void cmd_poke(void) {
     const char* p;
     if ((p = checkstring(argv[0], "BYTE"))) {
         poke_byte(argc, argv, p);
-    } else if ((p = checkstring(argv[0], "DATAPOS"))) {
-        poke_datapos(argc, argv, p);
+    } else if ((p = checkstring(argv[0], "DATAPTR"))) {
+        poke_dataptr(argc, argv, p);
     } else if ((p = checkstring(argv[0], "FLOAT"))) {
         poke_float(argc, argv, p);
     } else if ((p = checkstring(argv[0], "INTEGER"))) {

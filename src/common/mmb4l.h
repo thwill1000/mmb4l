@@ -99,4 +99,9 @@ extern int IgnorePIN;
 extern int MMCharPos;
 extern int WatchdogSet;
 
+typedef struct {
+    uint32_t next_line_offset;
+    uint32_t next_data;
+} DataReadPointer;
+
 #endif
