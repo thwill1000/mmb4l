@@ -54,8 +54,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Configuration.h"
 #include "../core/MMBasic.h"
 #include "../core/VarTable.h"
-#include "options.h"
+#include "error.h"
 #include "memory.h"
+#include "options.h"
 
 #define PI_VALUE  3.14159265358979323
 
@@ -89,6 +90,7 @@ void op_equal(void);
 
 extern uint8_t mmb_exit_code;
 extern Options mmb_options;
+extern ErrorState mmb_error_state;
 
 extern char *CFunctionFlash;
 extern char DimUsed;

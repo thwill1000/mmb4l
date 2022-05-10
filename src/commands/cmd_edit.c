@@ -136,9 +136,9 @@ void cmd_edit(void) {
 
     int line = 1;
     if (*fname == '\0') {
-        if (!current && *error_file != '\0') {
-            strcpy(fname, error_file);
-            line = error_line;
+        if (!current && *mmb_error_state.file != '\0') {
+            strcpy(fname, mmb_error_state.file);
+            line = mmb_error_state.line;
         } else if (*CurrentFile == '\0') {
             ERROR_NOTHING_TO_EDIT;
         } else {

@@ -84,8 +84,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Global variables used in MMBasic but must be maintained outside of the interpreter
 extern int IgnorePIN;
-extern int error_line;
-extern char error_file[STRINGSIZE];
 
 #define FONT_BUILTIN_NBR 0
 #define FONT_TABLE_SIZE 0
@@ -105,10 +103,15 @@ extern char error_file[STRINGSIZE];
 #define CONFIG_LOWER     kLower
 #define CONFIG_UPPER     kUpper
 #define DefaultType      mmb_options.default_type
+#define error_file       mmb_error_state.file
+#define error_line       mmb_error_state.line
 #define Height           height
 #define Listcase         list_case
+#define MMErrMsg         mmb_error_state.message
+#define MMerrno          mmb_error_state.code
 #define Option           mmb_options
 #define OptionBase       mmb_options.base
+#define OptionErrorSkip  mmb_error_state.skip
 #define OptionExplicit   mmb_options.explicit_type
 #define ProgFlashSize    prog_flash_size
 #define Width            width

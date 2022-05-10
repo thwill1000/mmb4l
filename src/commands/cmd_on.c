@@ -53,22 +53,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int g_key_complete = 0;
 
 static void on_error_abort(const char* p) {
-    OptionErrorSkip = 0;
+    // Historically does not clear the error state, is this a bug or a feature?
+    mmb_error_state.skip = 0;
 }
 
 static void on_error_clear(const char *p) {
-    MMerrno = 0;
-    *MMErrMsg = 0;
+    error_init(&mmb_error_state);
 }
 
 static void on_error_ignore(const char *p) {
-    on_error_clear(p);
-    OptionErrorSkip = -1;
+    error_init(&mmb_error_state);
+    mmb_error_state.skip = -1;
 }
 
 static void on_error_skip(const char *p) {
-    on_error_clear(p);
-    OptionErrorSkip = (*p == 0 || *p == '\'') ? 2 : getint(p, 1, 10000) + 1;
+    error_init(&mmb_error_state);
+    mmb_error_state.skip = (*p == 0 || *p == '\'') ? 2 : getint(p, 1, 10000) + 1;
 }
 
 static void on_error(const char *p) {

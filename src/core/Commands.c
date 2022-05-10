@@ -77,9 +77,11 @@ int TraceOn;                                                        // used to t
   int TraceBuffIndex;                                               // used for listing the contents of the trace buffer
 #endif
 
+#if !defined(__mmb4l__)
 int OptionErrorSkip;                                                // how to handle an error
 int MMerrno;                                                        // the error number
 char MMErrMsg[MAXERRMSG];                                           // the error message
+#endif
 
 
 void cmd_null(void) {

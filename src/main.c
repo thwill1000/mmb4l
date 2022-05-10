@@ -66,6 +66,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
 volatile int MMAbort = false;
+ErrorState mmb_error_state;
 Options mmb_options;
 int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
@@ -193,8 +194,8 @@ void longjmp_handler(int jmp_state) {
             break;
 
         case JMP_ERROR:
-            MMPrintString(MMErrMsg);
-            mmb_exit_code = error_to_exit_code(MMerrno);
+            MMPrintString(mmb_error_state.message);
+            mmb_exit_code = error_to_exit_code(mmb_error_state.code);
             do_exit = !mmb_args.interactive;
             break;
 
@@ -262,8 +263,8 @@ int main(int argc, char *argv[]) {
 
     init_mmbasic_config_dir();
     init_options();
+    error_init(&mmb_error_state);
 
-    OptionErrorSkip = 0;
     InitBasic();
 
     //printf("Commands\n--------\n");

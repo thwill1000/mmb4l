@@ -180,9 +180,11 @@ extern const char *cmdline;                     // Command line terminated with 
 extern const char *nextstmt;                    // Pointer to the next statement to be executed.
 extern const char *ep;                          // Pointer to the argument to a function
 
+#if !defined(__mmb4l__)
 extern int OptionErrorSkip;                     // value of OPTION ERROR
 extern int MMerrno;
 extern char MMErrMsg[MAXERRMSG];                // array holding the error msg
+#endif
 
 extern const char *subfun[];                    // Table of subroutines and functions built when the program starts running
 extern char CurrentSubFunName[MAXVARLEN + 1];   // the name of the current sub or fun

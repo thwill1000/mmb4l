@@ -50,9 +50,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Configuration.h" // for STRINGSIZE
 #include "mmresult.h"
 
-extern char error_file[STRINGSIZE];
-extern int error_line;
+typedef struct {
+   int code;
+   char file[STRINGSIZE];   // File that error was reported from.
+   int line;                // Line that error was reported from.
+   char message[MAXERRMSG];
+   int skip;                // How to handle error.
+} ErrorState;
 
+extern ErrorState mmb_error_state;
+
+void error_init(ErrorState *error_state);
 void error_throw(MmResult error);
 void error_throw_ex(MmResult error, const char *msg, ...);
 void error_throw_legacy(const char *msg, ...);
