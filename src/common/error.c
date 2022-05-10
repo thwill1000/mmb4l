@@ -159,11 +159,11 @@ void error_buffer_clear(void) {
 // this uses longjump to skip back to the command input and cleanup the stack
 static void verror(MmResult error, const char *msg, va_list argp) {
     // ScrewUpTimer=0;
-    mmb_error_state.code = error;
+    mmb_error_state_ptr->code = error;
     error_buffer_clear();
     options_load(&mmb_options, OPTIONS_FILE_NAME, NULL);  // make sure that the option struct is in a clean state
 
-    // if((OptionConsole & 2) && !mmb_error_state.skip) {
+    // if((OptionConsole & 2) && !mmb_error_state_ptr->skip) {
     //     SetFont(PromptFont);
     //     gui_fcolour = PromptFC;
     //     gui_bcolour = PromptBC;
@@ -171,25 +171,25 @@ static void verror(MmResult error, const char *msg, va_list argp) {
     //     message should be on a new line
     // }
 
-    if (MMCharPos > 1 && !mmb_error_state.skip) MMErrorString("\r\n");
+    if (MMCharPos > 1 && !mmb_error_state_ptr->skip) MMErrorString("\r\n");
 
-    get_line_and_file(&mmb_error_state.line, mmb_error_state.file);
+    get_line_and_file(&mmb_error_state_ptr->line, mmb_error_state_ptr->file);
 
-    if (mmb_error_state.line > 0) {
+    if (mmb_error_state_ptr->line > 0) {
         char buf[STRINGSIZE * 2];
-        if (strcmp(mmb_error_state.file, CurrentFile) == 0) {
-            sprintf(buf, "Error in line %d: ", mmb_error_state.line);
+        if (strcmp(mmb_error_state_ptr->file, CurrentFile) == 0) {
+            sprintf(buf, "Error in line %d: ", mmb_error_state_ptr->line);
         } else {
-            sprintf(buf, "Error in %s line %d: ", mmb_error_state.file, mmb_error_state.line);
+            sprintf(buf, "Error in %s line %d: ", mmb_error_state_ptr->file, mmb_error_state_ptr->line);
         }
         MMErrorString(buf);
     } else {
         MMErrorString("Error: ");
     }
 
-    if (mmb_error_state.skip) {
-        *mmb_error_state.file = '\0';
-        mmb_error_state.line = -1;
+    if (mmb_error_state_ptr->skip) {
+        *mmb_error_state_ptr->file = '\0';
+        mmb_error_state_ptr->line = -1;
     }
 
     if (*msg) {
@@ -211,14 +211,14 @@ static void verror(MmResult error, const char *msg, va_list argp) {
             }
             msg++;
         }
-        if (!mmb_error_state.skip) MMErrorString("\r\n");
+        if (!mmb_error_state_ptr->skip) MMErrorString("\r\n");
     }
 
-    // Don't overflow mmb_error_state.message.
-    strncpy(mmb_error_state.message, error_buffer, MAXERRMSG - 1);
-    mmb_error_state.message[MAXERRMSG - 1] = '\0';
+    // Don't overflow mmb_error_state_ptr->message.
+    strncpy(mmb_error_state_ptr->message, error_buffer, MAXERRMSG - 1);
+    mmb_error_state_ptr->message[MAXERRMSG - 1] = '\0';
 
-    if (mmb_error_state.skip) {
+    if (mmb_error_state_ptr->skip) {
         longjmp(ErrNext, 1);
     } else {
         longjmp(mark, JMP_ERROR);

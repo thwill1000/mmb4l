@@ -54,21 +54,21 @@ int g_key_complete = 0;
 
 static void on_error_abort(const char* p) {
     // Historically does not clear the error state, is this a bug or a feature?
-    mmb_error_state.skip = 0;
+    mmb_error_state_ptr->skip = 0;
 }
 
 static void on_error_clear(const char *p) {
-    error_init(&mmb_error_state);
+    error_init(mmb_error_state_ptr);
 }
 
 static void on_error_ignore(const char *p) {
-    error_init(&mmb_error_state);
-    mmb_error_state.skip = -1;
+    error_init(mmb_error_state_ptr);
+    mmb_error_state_ptr->skip = -1;
 }
 
 static void on_error_skip(const char *p) {
-    error_init(&mmb_error_state);
-    mmb_error_state.skip = (*p == 0 || *p == '\'') ? 2 : getint(p, 1, 10000) + 1;
+    error_init(mmb_error_state_ptr);
+    mmb_error_state_ptr->skip = (*p == 0 || *p == '\'') ? 2 : getint(p, 1, 10000) + 1;
 }
 
 static void on_error(const char *p) {

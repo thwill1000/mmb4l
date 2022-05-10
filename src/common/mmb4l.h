@@ -90,7 +90,6 @@ void op_equal(void);
 
 extern uint8_t mmb_exit_code;
 extern Options mmb_options;
-extern ErrorState mmb_error_state;
 
 extern char *CFunctionFlash;
 extern char DimUsed;

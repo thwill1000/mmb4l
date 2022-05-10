@@ -58,7 +58,8 @@ typedef struct {
    int skip;                // How to handle error.
 } ErrorState;
 
-extern ErrorState mmb_error_state;
+extern ErrorState *mmb_error_state_ptr;
+extern ErrorState mmb_error_state_normal;
 
 void error_init(ErrorState *error_state);
 void error_throw(MmResult error);

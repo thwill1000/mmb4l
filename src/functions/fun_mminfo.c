@@ -160,13 +160,13 @@ static void mminfo_errmsg(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
-    strcpy(g_string_rtn, mmb_error_state.message);
+    strcpy(g_string_rtn, mmb_error_state_ptr->message);
     CtoM(g_string_rtn);
 }
 
 static void mminfo_errno(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_integer_rtn = mmb_error_state.code;
+    g_integer_rtn = mmb_error_state_ptr->code;
     g_rtn_type = T_INT;
 }
 
