@@ -76,6 +76,7 @@ static int interrupt_specific_key_pressed = false;
 static const char *interrupt_specific_key_addr = NULL;
 static TickStruct interrupt_ticks[NBRSETTICKS + 1];
 static SerialRxStruct interrupt_serial_rx[MAXOPENFILES + 1];
+static ErrorState interrupt_error_state;
 
 void interrupt_init() {
     interrupt_clear();
@@ -108,6 +109,8 @@ static int handle_interrupt(const char *interrupt_address) {
     static char rti[2]; // TODO: does this really need to be static ?
 
     LocalIndex++;                                                   // IRETURN will decrement this
+    mmb_error_state_ptr = &interrupt_error_state;                   // swap to the interrupt error state
+    error_init(mmb_error_state_ptr);                                // and clear it
     interrupt_return_stmt = nextstmt;                               // for when IRETURN is executed
     // if the interrupt is pointing to a SUB token we need to call a subroutine
     if  (*interrupt_address == cmdSUB) {
@@ -180,6 +183,8 @@ void interrupt_return(void) {
     TempMemoryIsChanged = true;  // signal that temporary memory should be checked
     *CurrentInterruptName = 0;
     interrupt_return_stmt = NULL;
+    mmb_error_state_ptr = &mmb_normal_error_state; // swap back to the normal error state
+    if (mmb_error_state_ptr->skip > 0) mmb_error_state_ptr->skip++;
 }
 
 void interrupt_disable_any_key() {

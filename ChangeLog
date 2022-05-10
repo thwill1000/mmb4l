@@ -58,7 +58,7 @@ Version 2022.01.00-a4 - ??-???-2022:
   - Added PEEK(DATAPTR) function and POKE DATAPTR ptr% command for getting
     and setting the DATA read pointer.
   - Added READ {RESTORE | SAVE} command for pushing and popping the DATA read
-    position to an internal stack as per MMB4W.
+    position to an internal stack as per PicoMite.
   - Changed OPTION LIST to only show options that differ from their defaults:
          - use OPTION LIST ALL to list all options.
   - Changed OPTION <option> <value> command so that for all options with
@@ -98,6 +98,9 @@ Version 2022.01.00-a4 - ??-???-2022:
   - Fixed bug where when one program tried to RUN another it would resolve the
     path to the new program from the current program directory instead of from
     the current working directory.
+  - Fixed bugs in interaction between ON ERROR and interrupts.
+    The normal thread of execution and the execution of interrupts now maintain
+    independent error states.
 
 Version 2022.01.00-a3 - 16-Jan-2022:
   - Added serial port support, e.g.

@@ -2489,9 +2489,14 @@ void MIPS16 ClearRuntime(void) {
     CloseAllFiles();
     findlabel(NULL);                                                // clear the label cache
     ClearExternalIO();                                              // this MUST come before InitHeap()
+#if defined(__mmb4l__)
+    mmb_error_state_ptr = &mmb_normal_error_state;
+    error_init(mmb_error_state_ptr);
+#else
     OptionErrorSkip = 0;
     MMerrno = 0;                                                    // clear the error flags
     *MMErrMsg = 0;
+#endif
     InitHeap();
     m_alloc(M_VAR, 0);
     varcnt = 0;

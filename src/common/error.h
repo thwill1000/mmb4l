@@ -56,10 +56,13 @@ typedef struct {
    int line;                // Line that error was reported from.
    char message[MAXERRMSG];
    int skip;                // How to handle error.
+                            //   0 = abort
+                            //  -1 = ignore
+                            //  >0 = skip errors from this many statements
 } ErrorState;
 
 extern ErrorState *mmb_error_state_ptr;
-extern ErrorState mmb_error_state_normal;
+extern ErrorState mmb_normal_error_state;
 
 void error_init(ErrorState *error_state);
 void error_throw(MmResult error);
