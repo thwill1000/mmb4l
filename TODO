@@ -4,7 +4,6 @@ TODO
 Required for alpha 4
 --------------------
 
- - Integration test SEEK #1, 0 and SEEK #1, -1
  - Syntax highlighting of decimals with no leading zero
  - File numbers, e.g. #5 should be highlighted in green
  - Should Ctrl-K delete to the end of the line instead of the entire line ?

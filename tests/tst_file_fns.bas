@@ -498,6 +498,9 @@ Sub test_seek()
 End Sub
 
 Sub test_seek_errors()
+  Local f$ = TMPDIR$ + "/test_seek_errors.tmp"
+  Local s$
+
   ' Test on an unopened file.
   On Error Skip 1
   Seek #1, 1
@@ -512,14 +515,13 @@ Sub test_seek_errors()
   End Select
 
   ' Test on file number #10.
-  Local f$ = TMPDIR$ + "/test_lof_errors.tmp"
   Open f$ For Output As MAX_FILE_NBR%
   Print #MAX_FILE_NBR%, "Hello World"
   Print #MAX_FILE_NBR%, "Goodbye World"
   Close MAX_FILE_NBR%
   Open f$ For Random As MAX_FILE_NBR%
   Seek MAX_FILE_NBR%, 7
-  Local s$ = Input$(5, MAX_FILE_NBR%)
+  s$ = Input$(5, MAX_FILE_NBR%)
   assert_string_equals("World", s$)
   s$ = Input$(9, MAX_FILE_NBR%)
   assert_string_equals(CRLF$ + "Goodbye", s$)
@@ -532,6 +534,24 @@ Sub test_seek_errors()
     Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
     Case Else :    assert_raw_error("File number")
   End Select
+
+  given_test_file(f$)
+
+  ' Test SEEK to 0th position - the first position is 1.
+  Open f$ For Random As #1
+  On Error Skip 1
+  Seek #1, 0
+  assert_raw_error("Invalid seek position")
+  assert_int_equals(29, Loc(#1))
+  Close #1
+
+  ' Test SEEK to -ve position.
+  Open f$ For Random As #1
+  On Error Skip 1
+  Seek #1, -1
+  assert_raw_error("Invalid seek position")
+  assert_int_equals(29, Loc(#1))
+  Close #1
 End Sub
 
 Sub test_tilde_expansion()
