@@ -3,6 +3,10 @@ ChangeLog
 ---------
 
 Version 2022.01.00-a4 - ??-???-2022:
+  - MMB4L is now open source and licensed under a modified 4-clause BSD license
+    similar to that or the PicoMite firmware and MMBasic for Windows. See the
+    LICENSE file for details. My thanks to Geoff and Peter for allowing this to
+    be possible.
   - Added * command which may be used at the MMBasic prompt (but not within
     programs) as a short-cut for RUN, e.g.
         *foo --bar "wombat"
