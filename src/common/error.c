@@ -171,21 +171,19 @@ static void verror(MmResult error, const char *msg, va_list argp) {
     //     message should be on a new line
     // }
 
-    if (MMCharPos > 1 && !mmb_error_state_ptr->skip) MMErrorString("\r\n");
-
     get_line_and_file(&mmb_error_state_ptr->line, mmb_error_state_ptr->file);
 
+    MMErrorString("Error");
     if (mmb_error_state_ptr->line > 0) {
         char buf[STRINGSIZE * 2];
         if (strcmp(mmb_error_state_ptr->file, CurrentFile) == 0) {
-            sprintf(buf, "Error in line %d: ", mmb_error_state_ptr->line);
+            sprintf(buf, " in line %d", mmb_error_state_ptr->line);
         } else {
-            sprintf(buf, "Error in %s line %d: ", mmb_error_state_ptr->file, mmb_error_state_ptr->line);
+            sprintf(buf, " in %s line %d", mmb_error_state_ptr->file, mmb_error_state_ptr->line);
         }
         MMErrorString(buf);
-    } else {
-        MMErrorString("Error: ");
     }
+    MMErrorString(": ");
 
     if (mmb_error_state_ptr->skip) {
         *mmb_error_state_ptr->file = '\0';
@@ -211,7 +209,6 @@ static void verror(MmResult error, const char *msg, va_list argp) {
             }
             msg++;
         }
-        if (!mmb_error_state_ptr->skip) MMErrorString("\r\n");
     }
 
     // Don't overflow mmb_error_state_ptr->message.

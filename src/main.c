@@ -196,6 +196,7 @@ void longjmp_handler(int jmp_state) {
 
         case JMP_ERROR:
             MMPrintString(mmb_error_state_ptr->message);
+            MMPrintString("\r\n");
             mmb_exit_code = error_to_exit_code(mmb_error_state_ptr->code);
             do_exit = !mmb_args.interactive;
             break;

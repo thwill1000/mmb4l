@@ -4,7 +4,6 @@ TODO
 Required for alpha 4
 --------------------
 
- - Fix aberrant newlines in output when ERROR reported in immediate mode
  - Investigate error reported by test_option_fn_key but only when running
    as part of a top-level *sptest of all my MMBasic code
  - Integration test SEEK #1, 0 and SEEK #1, -1
