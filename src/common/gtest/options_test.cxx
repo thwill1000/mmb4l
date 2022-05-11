@@ -5,6 +5,8 @@
 
 #include <gtest/gtest.h>
 
+#include "test_config.h"
+
 extern "C" {
 
 #include "../codepage.h"
@@ -14,7 +16,7 @@ extern "C" {
 
 }
 
-#define OPTIONS_TEST_DIR  "/tmp/OptionsTest"
+#define OPTIONS_TEST_DIR  TMP_DIR "/OptionsTest"
 
 class OptionsTest : public ::testing::Test {
 
@@ -390,7 +392,7 @@ TEST_F(OptionsTest, Load_GivenFileDoesNotExist) {
 }
 
 TEST_F(OptionsTest, Load_GivenDirectory) {
-    const char *filename = "/usr/bin";
+    const char *filename = BIN_DIR;
     options_test_buf[0] = '\0';
     Options options;
     options_init(&options);
@@ -1018,9 +1020,9 @@ TEST_F(OptionsTest, GetStringValue_ForSearchPath) {
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
     EXPECT_STREQ("", svalue);
 
-    strcpy(options.search_path, "/home/thwill/foo");
+    strcpy(options.search_path, HOME_DIR "/foo");
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
-    EXPECT_STREQ("/home/thwill/foo", svalue);
+    EXPECT_STREQ(HOME_DIR "/foo", svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForTab) {
@@ -1379,13 +1381,13 @@ TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
     EXPECT_STREQ("", options.search_path);
 
     // Path to a directory that exists.
-    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, "/usr/bin"));
-    EXPECT_STREQ("/usr/bin", options.search_path);
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, BIN_DIR));
+    EXPECT_STREQ(BIN_DIR, options.search_path);
 
     // Path to a file that exists.
     EXPECT_EQ(
             kNotADirectory,
-            options_set_string_value(&options, kOptionSearchPath, "/usr/bin/vi"));
+            options_set_string_value(&options, kOptionSearchPath, BIN_DIR "/cp"));
 
     // Path that does not exist.
     EXPECT_EQ(

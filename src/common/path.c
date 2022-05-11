@@ -107,8 +107,8 @@ typedef enum {
 
 static char *path_unwind(char *new_path, char *pdst) {
     if (pdst == new_path
-        || ((pdst == new_path + 2) && memcmp(pdst - 2, "..", 2) == 0)
-        || (memcmp(pdst - 3, "/..", 3) == 0)) {
+            || ((pdst == new_path + 2) && memcmp(pdst - 2, "..", 2) == 0)
+            || (memcmp(pdst - 3, "/..", 3) == 0)) {
         // Can't unwind any further.
         return pdst;
     } else {
@@ -118,8 +118,10 @@ static char *path_unwind(char *new_path, char *pdst) {
                 return p;
             }
         }
-        assert(false);
     }
+
+    assert(false);
+    return NULL;
 }
 
 char *path_munge(const char *original_path, char *new_path, size_t sz) {

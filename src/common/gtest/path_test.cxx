@@ -6,6 +6,8 @@
 #include <climits>
 #include <gtest/gtest.h>
 
+#include "test_config.h"
+
 extern "C" {
 
 #include "../path.h"
@@ -13,8 +15,13 @@ extern "C" {
 
 }
 
-#define PATH_TEST_DIR     "/tmp/PathTest"
-#define FILE_THAT_EXISTS  "/bin/cp"
+#if defined(__ANDROID__)
+#define HOME_PARENT       TERMUX_FILES
+#else
+#define HOME_PARENT       "/home"
+#endif
+#define FILE_THAT_EXISTS  BIN_DIR "/cp"
+#define PATH_TEST_DIR     TMP_DIR "/PathTest"
 
 class PathTest : public ::testing::Test {
 
@@ -44,8 +51,6 @@ protected:
         EXPECT_STREQ(expected, result); \
         EXPECT_STREQ(expected, out); \
         EXPECT_EQ(0, errno)
-
-#define HOME_DIR "/home/thwill"
 
 TEST_F(PathTest, Munge) {
     char out[256];
@@ -102,16 +107,20 @@ TEST_F(PathTest, Munge) {
     TEST_MUNGE("~",               HOME_DIR);
     TEST_MUNGE("~/",              HOME_DIR);
     TEST_MUNGE("~/.",             HOME_DIR);
-    TEST_MUNGE("~/../foo",        "/home/foo");
+    TEST_MUNGE("~/../foo",        HOME_PARENT "/foo");
     TEST_MUNGE("~/.mmbasic",      HOME_DIR "/.mmbasic");
-    TEST_MUNGE("~/../../tmp",     "/tmp");
+#if defined(__ANDROID__)
+    TEST_MUNGE("~/../../tmp",     TERMUX_ROOT "/tmp");
+#else
+    TEST_MUNGE("~/../../tmp",     TMP_DIR);
+#endif
 
     // Test with backslashes.
     TEST_MUNGE("a:\\",            "/");
     TEST_MUNGE("\\",              "/");
     TEST_MUNGE("\\.",             "/");
     TEST_MUNGE("\\..",            "/..");
-    TEST_MUNGE("~\\..\\foo",      "/home/foo");
+    TEST_MUNGE("~\\..\\foo",      HOME_PARENT "/foo");
     TEST_MUNGE("foo\\bar",        "foo/bar");
     TEST_MUNGE("..\\..\\..\\foo", "../../../foo");
 }
@@ -224,7 +233,7 @@ TEST_F(PathTest, IsDirectory) {
 TEST_F(PathTest, IsEmpty) {
     EXPECT_EQ(path_is_empty(FILE_THAT_EXISTS), 0);
 
-    char filename[] = "/tmp/is_empty_XXXXXX";
+    char filename[] = TMP_DIR "/is_empty_XXXXXX";
     int fd = mkstemp(filename);
     close(fd);
     EXPECT_EQ(path_exists(filename), true);

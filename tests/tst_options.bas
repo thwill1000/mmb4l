@@ -18,6 +18,11 @@ Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
 Const HOME$ = sys.string_prop$("home")
 Const TMP$ = sys.string_prop$("tmpdir")
+If Mm.Device$ = "MMB4L" Then
+  Const IS_ANDROID% = Mm.Info$(Arch) = "Android aarch64"
+Else
+  Const IS_ANDROID% = 0
+EndIf
 
 If Mm.Device$ = "MMB4L" Then
 add_test("test_option_load")
@@ -66,8 +71,10 @@ Sub test_option_load()
 End Sub
 
 Sub test_option_load_given_directory()
+  Local dir$ = Choice(IS_ANDROID%, "/data/data/com.termux/files/usr/bin", "/usr/bin")
+
   On Error Skip
-  Option Load "/usr/bin"
+  Option Load dir$
   assert_raw_error("Is a directory")
 End Sub
 

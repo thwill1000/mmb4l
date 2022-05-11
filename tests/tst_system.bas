@@ -15,7 +15,12 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
-Const EXPECTED_HOME$ = "/home/thwill"
+If Mm.Device$ = "MMB4L" Then
+  Const IS_ANDROID% = Mm.Info$(Arch) = "Android aarch64"
+Else
+  Const IS_ANDROID% = 0
+EndIf
+Const EXPECTED_HOME$ = Choice(IS_ANDROID%, "/data/data/com.termux/files/home", "/home/thwill")
 
 If Mm.Device$ = "MMB4L" Or Mm.Device$ = "MMBasic for Windows" Then
 
@@ -135,7 +140,7 @@ Sub test_system_command_not_found()
     On Error Skip 1
     System "foo", s$, exit_status%
     assert_raw_error("Unknown system command")
-    assert_string_equals("sh: 1: foo: not found", s$)
+    assert_string_equals(Choice(IS_ANDROID%, "sh: foo: not found", "sh: 1: foo: not found"), s$)
     assert_int_equals(127, exit_status%)
   Else
     On Error Skip 1

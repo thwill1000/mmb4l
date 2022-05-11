@@ -7,6 +7,8 @@
 #include <climits>
 #include <dirent.h>
 
+#include "test_config.h"
+
 extern "C" {
 
 #include "../options.h"
@@ -44,7 +46,7 @@ void tokenise(int console) { }
 
 }
 
-#define PROGRAM_TEST_DIR  "/tmp/ProgramTest"
+#define PROGRAM_TEST_DIR  TMP_DIR "/ProgramTest"
 
 class ProgramTest : public ::testing::Test {
 
