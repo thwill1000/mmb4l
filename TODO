@@ -4,8 +4,6 @@ TODO
 Required for alpha 4
 --------------------
 
- - Investigate error reported by test_option_fn_key but only when running
-   as part of a top-level *sptest of all my MMBasic code
  - Integration test SEEK #1, 0 and SEEK #1, -1
  - Syntax highlighting of decimals with no leading zero
  - File numbers, e.g. #5 should be highlighted in green

@@ -15,6 +15,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
+Const TMP$ = sys.string_prop$("tmpdir")
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
 If Mm.Device$ = "MMB4L" Then
@@ -438,6 +439,10 @@ End Sub
 Sub test_option_fn_key()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
+  ' Save current options and switch to defaults.
+  Option Save TMP$ + "/mmbasic.options.bak"
+  Option Reset All
+
   Const CRLF$ = Chr$(&h0D) + Chr$(&h0A)
   assert_string_equals("FILES" + CRLF$, Mm.Info(Option F1))
   assert_string_equals("RUN"   + CRLF$, Mm.Info(Option F2))
@@ -456,11 +461,13 @@ Sub test_option_fn_key()
 
   Option F11 "FOO " + CRLF$
   assert_string_equals("FOO " + CRLF$,  Mm.Info(Option F11))
-  Option F11 ""
 
   Option F12 "BAR " + QUOTES$
   assert_string_equals("BAR " + QUOTES$,  Mm.Info(Option F12))
-  Option F12 ""
+
+  ' Restore old options.
+  Option Reset All
+  Option Load TMP$ + "/mmbasic.options.bak"
 End Sub
 
 Sub test_option_resolution()
