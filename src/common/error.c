@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 #include "../common/mmb4l.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 #include "../common/exit_codes.h"
 #include "../common/options.h"
@@ -58,27 +59,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern jmp_buf ErrNext;
 
-static char error_buffer[STRINGSIZE] = { 0 };
-static size_t error_buffer_pos = 0;
-
 void error_init(ErrorState *error_state) {
     error_state->code = 0;
     *error_state->file = '\0';
     error_state->line = -1;
     *error_state->message = '\0';
     error_state->skip = 0;
-}
-
-static void MMErrorString(const char *msg) {
-    char *src = (char *) msg;
-    char *dst = error_buffer + error_buffer_pos;
-    while (*src) *dst++ = *src++;
-    error_buffer_pos += strlen(msg);
-    error_buffer[error_buffer_pos] = '\0';
-}
-
-void MMErrorChar(char c) {
-    error_buffer[error_buffer_pos++] = c;
 }
 
 static void get_line_and_file(int *line, char *file_path) {
@@ -144,11 +130,6 @@ static void get_line_and_file(int *line, char *file_path) {
     }
 }
 
-void error_buffer_clear(void) {
-    error_buffer_pos = 0;
-    memset(error_buffer, 0, STRINGSIZE);
-}
-
 // throw an error
 // displays the error message and aborts the program
 // the message can contain variable text which is indicated by a special character in the message string
@@ -158,64 +139,49 @@ void error_buffer_clear(void) {
 // the optional data to be inserted is the second argument to this function
 // this uses longjump to skip back to the command input and cleanup the stack
 static void verror(MmResult error, const char *msg, va_list argp) {
-    // ScrewUpTimer=0;
-    mmb_error_state_ptr->code = error;
-    error_buffer_clear();
     options_load(&mmb_options, OPTIONS_FILE_NAME, NULL);  // make sure that the option struct is in a clean state
 
-    // if((OptionConsole & 2) && !mmb_error_state_ptr->skip) {
-    //     SetFont(PromptFont);
-    //     gui_fcolour = PromptFC;
-    //     gui_bcolour = PromptBC;
-    //     if(CurrentX != 0) MMErrorString("\r\n");                   // error
-    //     message should be on a new line
-    // }
-
+    mmb_error_state_ptr->code = error;
     get_line_and_file(&mmb_error_state_ptr->line, mmb_error_state_ptr->file);
 
-    MMErrorString("Error");
-    if (mmb_error_state_ptr->line > 0) {
-        char buf[STRINGSIZE * 2];
-        if (strcmp(mmb_error_state_ptr->file, CurrentFile) == 0) {
-            sprintf(buf, " in line %d", mmb_error_state_ptr->line);
-        } else {
-            sprintf(buf, " in %s line %d", mmb_error_state_ptr->file, mmb_error_state_ptr->line);
-        }
-        MMErrorString(buf);
+    char buf[STRINGSIZE * 2];
+
+    if (mmb_error_state_ptr->line <= 0) {
+        sprintf(buf, "Error: ");
+    } else if (strcmp(mmb_error_state_ptr->file, CurrentFile) == 0) {
+        sprintf(buf, "Error in line %d: ", mmb_error_state_ptr->line);
+    } else {
+        sprintf(buf, "Error in %s line %d: ", mmb_error_state_ptr->file, mmb_error_state_ptr->line);
     }
-    MMErrorString(": ");
+
+    assert(msg);
+    char tmp[20];
+    while (*msg) {
+        if (*msg == '$') {
+            (void) cstring_cat(buf, va_arg(argp, char *), STRINGSIZE * 2);
+        } else if (*msg == '@') {
+            sprintf(tmp, "%c", (char) va_arg(argp, int));
+            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
+        } else if (*msg == '%' || *msg == '|') {
+            IntToStr(tmp, va_arg(argp, int), 10);
+            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
+        } else if (*msg == '&') {
+            IntToStr(tmp, va_arg(argp, int), 16);
+            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
+        } else {
+            sprintf(tmp, "%c", *msg);
+            (void) cstring_cat(buf, tmp, STRINGSIZE * 2);
+        }
+        msg++;
+    }
+
+    // Don't overflow mmb_error_state_ptr->message.
+    strncpy(mmb_error_state_ptr->message, buf, MAXERRMSG - 1);
+    mmb_error_state_ptr->message[MAXERRMSG - 1] = '\0';
 
     if (mmb_error_state_ptr->skip) {
         *mmb_error_state_ptr->file = '\0';
         mmb_error_state_ptr->line = -1;
-    }
-
-    if (*msg) {
-        while (*msg) {
-            if (*msg == '$')
-                MMErrorString(va_arg(argp, char *));
-            else if (*msg == '@')
-                MMErrorChar(va_arg(argp, int));
-            else if (*msg == '%' || *msg == '|') {
-                char buf[20];
-                IntToStr(buf, va_arg(argp, int), 10);
-                MMErrorString(buf);
-            } else if (*msg == '&') {
-                char buf[20];
-                IntToStr(buf, va_arg(argp, int), 16);
-                MMErrorString(buf);
-            } else {
-                MMErrorChar(*msg);
-            }
-            msg++;
-        }
-    }
-
-    // Don't overflow mmb_error_state_ptr->message.
-    strncpy(mmb_error_state_ptr->message, error_buffer, MAXERRMSG - 1);
-    mmb_error_state_ptr->message[MAXERRMSG - 1] = '\0';
-
-    if (mmb_error_state_ptr->skip) {
         longjmp(ErrNext, 1);
     } else {
         longjmp(mark, JMP_ERROR);
