@@ -162,22 +162,26 @@ Sub test_restore_lineno()
   assert_float_equals(3.142, f!, 1e-6)
   assert_string_equals("Hello World", s$)
 
-  Restore &h3E7
-  Read i%, f!, s$
+  If Mm.Device$ = "MMB4L" Then
 
-  assert_int_equals(42, i%)
-  assert_float_equals(3.142, f!, 1e-6)
-  assert_string_equals("Hello World", s$)
+    Restore &h3E7
+    Read i%, f!, s$
 
-  Restore &o1747
-  Read i%, f!, s$
+    assert_int_equals(42, i%)
+    assert_float_equals(3.142, f!, 1e-6)
+    assert_string_equals("Hello World", s$)
 
-  assert_int_equals(42, i%)
-  assert_float_equals(3.142, f!, 1e-6)
-  assert_string_equals("Hello World", s$)
+    Restore &o1747
+    Read i%, f!, s$
 
-  Restore &b1111100111
-  Read i%, f!, s$
+    assert_int_equals(42, i%)
+    assert_float_equals(3.142, f!, 1e-6)
+    assert_string_equals("Hello World", s$)
+
+    Restore &b1111100111
+    Read i%, f!, s$
+
+  EndIf
 
   assert_int_equals(42, i%)
   assert_float_equals(3.142, f!, 1e-6)
@@ -245,25 +249,29 @@ Sub test_restore_intexp()
   assert_float_equals(3.142, f!, 1e-6)
   assert_string_equals("Hello World", s$)
 
-  i% = 900
-  Restore &h63 + i%
-  Read i%, f!, s$
+  If Mm.Device$ = "MMB4L" Then
 
-  assert_int_equals(42, i%)
-  assert_float_equals(3.142, f!, 1e-6)
-  assert_string_equals("Hello World", s$)
+    i% = 900
+    Restore &h63 + i%
+    Read i%, f!, s$
 
-  i% = 900
-  Restore &o143 + i%
-  Read i%, f!, s$
+    assert_int_equals(42, i%)
+    assert_float_equals(3.142, f!, 1e-6)
+    assert_string_equals("Hello World", s$)
 
-  assert_int_equals(42, i%)
-  assert_float_equals(3.142, f!, 1e-6)
-  assert_string_equals("Hello World", s$)
+    i% = 900
+    Restore &o143 + i%
+    Read i%, f!, s$
 
-  i% = 900
-  Restore &b1100011 + i%
-  Read i%, f!, s$
+    assert_int_equals(42, i%)
+    assert_float_equals(3.142, f!, 1e-6)
+    assert_string_equals("Hello World", s$)
+
+    i% = 900
+    Restore &b1100011 + i%
+    Read i%, f!, s$
+
+  EndIf
 
   assert_int_equals(42, i%)
   assert_float_equals(3.142, f!, 1e-6)

@@ -541,7 +541,11 @@ Sub test_seek_errors()
   Open f$ For Random As #1
   On Error Skip 1
   Seek #1, 0
-  assert_raw_error("Invalid seek position")
+  If Mm.Device$ = "MMB4L" Then
+    assert_raw_error("Invalid seek position")
+  Else
+    assert_raw_error("0 is invalid (valid is 1 to 2147483647)")
+  EndIf
   assert_int_equals(29, Loc(#1))
   Close #1
 
@@ -549,7 +553,11 @@ Sub test_seek_errors()
   Open f$ For Random As #1
   On Error Skip 1
   Seek #1, -1
-  assert_raw_error("Invalid seek position")
+  If Mm.Device$ = "MMB4L" Then
+    assert_raw_error("Invalid seek position")
+  Else
+    assert_raw_error("-1 is invalid (valid is 1 to 2147483647)")
+  EndIf
   assert_int_equals(29, Loc(#1))
   Close #1
 End Sub

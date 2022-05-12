@@ -15,6 +15,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
+Const EXPECTED_ERROR_CODE% = Choice(Mm.Device$ = "MMB4L", 256, 16)
 
 Dim interrupt_called% = 0
 
@@ -46,8 +47,8 @@ Sub test_error_normal()
   Pause 20
 
   assert_true(interrupt_called%)
-  assert_int_equals(256, Mm.ErrNo)
-  assert_string_equals("Error in line 44: foo", Mm.ErrMsg$)
+  assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
+  assert_string_equals("Error in line 45: foo", Mm.ErrMsg$)
 End Sub
 
 Sub interrupt1()
@@ -73,8 +74,8 @@ Sub interrupt2()
   interrupt_called% = 1
   On Error Skip 1
   Error "foo"
-  assert_int_equals(256, Mm.ErrNo)
-  assert_string_equals("Error in line 75: foo", Mm.ErrMsg$)
+  assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
+  assert_string_equals("Error in line 76: foo", Mm.ErrMsg$)
   SetTick 0, interrupt2
 End Sub
 
@@ -87,8 +88,8 @@ Sub test_interrupt_not_swallow()
     On Error Skip 1
     Error "foo" ' Should always be skipped
   Next
-  assert_int_equals(256, Mm.ErrNo)
-  assert_string_equals("Error in line 88: foo", Mm.ErrMsg$)
+  assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
+  assert_string_equals("Error in line 89: foo", Mm.ErrMsg$)
   SetTick 0, interrupt3
 End Sub
 
@@ -121,8 +122,8 @@ Sub test_on_error_skip_2()
     Error "bar" ' Should always be skipped
     ' Error "wombat"
   Next
-  assert_int_equals(256, Mm.ErrNo)
-  assert_string_equals("Error in line 121: bar", Mm.ErrMsg$)
+  assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
+  assert_string_equals("Error in line 122: bar", Mm.ErrMsg$)
   SetTick 0, interrupt3
 End Sub
 
