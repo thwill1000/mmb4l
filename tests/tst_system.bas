@@ -16,11 +16,16 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 
 Const BASE% = Mm.Info(Option Base)
 If Mm.Device$ = "MMB4L" Then
-  Const IS_ANDROID% = Mm.Info$(Arch) = "Android aarch64"
-Else
-  Const IS_ANDROID% = 0
+  Select Case Mm.Info$(Arch)
+    Case "Android aarch64"
+      Const IS_ANDROID% = 1
+      Const EXPECTED_HOME$ = "/data/data/com.termux/files/home"
+    Case "Linux armv6l"
+      Const EXPECTED_HOME$ = "/home/pi"
+  End Select
 EndIf
-Const EXPECTED_HOME$ = Choice(IS_ANDROID%, "/data/data/com.termux/files/home", "/home/thwill")
+On Error Skip 1 : Const IS_ANDROID% = 0
+On Error Skip 1 : Const EXPECTED_HOME$ = "/home/thwill"
 
 If Mm.Device$ = "MMB4L" Or Mm.Device$ = "MMBasic for Windows" Then
 

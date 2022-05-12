@@ -6,20 +6,26 @@
 #if !defined(MMB4L_TEST_CONFIG_H)
 #define MMB4L_TEST_CONFIG_H
 
+#define BIN_DIR           "/bin"
+#define TMP_DIR           "/tmp"
+#define HOME_DIR          "/home/thwill"
+
 #if defined(__ANDROID__)
 
 #define TERMUX_ROOT       "/data/data/com.termux"
 #define TERMUX_FILES      TERMUX_ROOT  "/files"
+#undef  BIN_DIR
 #define BIN_DIR           TERMUX_FILES "/usr/bin"
-#define HOME_DIR          TERMUX_FILES "/home"
+#undef  TMP_DIR
 #define TMP_DIR           TERMUX_FILES "/usr/tmp"
+#undef  HOME_DIR
+#define HOME_DIR          TERMUX_FILES "/home"
 
-#else
+#elif defined(__arm__)
 
-#define BIN_DIR           "/bin"
-#define HOME_DIR          "/home/thwill"
-#define TMP_DIR           "/tmp"
+#undef  HOME_DIR
+#define HOME_DIR          "/home/pi"
 
 #endif
 
-#endif
+#endif // MMB4L_TEST_CONFIG_H
