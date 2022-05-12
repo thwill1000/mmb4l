@@ -620,7 +620,11 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
         case kOptionTypeInteger: {
             MMINTEGER ivalue;
             result = options_get_integer_value(options, id, &ivalue);
+#if defined(ENV64BIT)
             if (SUCCEEDED(result)) sprintf(svalue, "%ld", ivalue);
+#else
+            if (SUCCEEDED(result)) sprintf(svalue, "%lld", ivalue);
+#endif
             return result;
         }
 

@@ -73,6 +73,7 @@ Sub test_arch()
   System "uname -o -m", expected_arch$
   Select Case expected_arch$
     Case "aarch64 Android"  : expected_arch$ = "Android aarch64"
+    Case "i686 GNU/Linux"   : expected_arch$ = "Linux i686"
     Case "x86_64 GNU/Linux" : expected_arch$ = "Linux x86_64"
     Case "armv6l GNU/Linux" : expected_arch$ = "Linux armv6l"
     Case "armv7l GNU/Linux" : expected_arch$ = "Linux armv6l"
