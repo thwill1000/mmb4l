@@ -191,6 +191,8 @@ End Sub
 999 Data 42, 3.142, "Hello World"
 
 Sub test_restore_strlit()
+  If InStr(Mm.Device$, "Colour Maximite 2") Then Exit Sub
+
   Local i1%, i2%, i3%, i4%, f!, s$
 
   Restore "mixed_types_data"
@@ -205,6 +207,8 @@ Sub test_restore_strlit()
 End Sub
 
 Sub test_restore_strexp()
+  If InStr(Mm.Device$, "Colour Maximite 2") Then Exit Sub
+
   Local i1%, i2%, i3%, i4%, f!, s$
 
   s$ = "types"
@@ -299,6 +303,8 @@ Sub test_restore_floatexp()
 End Sub
 
 Sub test_data_save_and_restore()
+  If InStr(Mm.Device$, "Colour Maximite 2") Then Exit Sub
+
   Local actual$(BASE% + 15)
   Local expected$(BASE% + 15) = ("mm", "nn", "oo", "pp", "ii", "jj", "kk", "ll", "ee", "ff", "gg", "hh", "aa", "bb", "cc", "dd")
   Local i%, j%, idx% = BASE%
@@ -320,6 +326,8 @@ Sub test_data_save_and_restore()
 End Sub
 
 Sub test_data_save_and_restore_err()
+  If InStr(Mm.Device$, "Colour Maximite 2") Then Exit Sub
+
   ' Pop when the stack is empty.
   On Error Skip
   Read Restore
