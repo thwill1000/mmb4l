@@ -70,7 +70,7 @@ void error_init(ErrorState *error_state) {
 static void get_line_and_file(int *line, char *file_path) {
 
     *line = -1;
-    memset(file_path, 0, STRINGSIZE);
+    *file_path = '\0';
 
     if (!CurrentLinePtr) return;
 
@@ -116,12 +116,14 @@ static void get_line_and_file(int *line, char *file_path) {
         comma_pos++;
         *line = atoi(comma_pos);
 
-        if (!path_get_parent(CurrentFile, file_path, STRINGSIZE)) return;
+        char tmp_path[STRINGSIZE];
+        if (!path_get_parent(CurrentFile, tmp_path, STRINGSIZE)) return;
         // TODO: prevent buffer overflow.
-        int len = strlen(file_path);
-        file_path[len++] = '/';
-        memcpy(file_path + len, pipe_pos, comma_pos - pipe_pos - 1);
-        file_path[len + comma_pos - pipe_pos] = '\0';
+        int len = strlen(tmp_path);
+        tmp_path[len++] = '/';
+        memcpy(tmp_path + len, pipe_pos, comma_pos - pipe_pos - 1);
+        tmp_path[len + comma_pos - pipe_pos - 1] = '\0';
+        (void)! path_munge(tmp_path, file_path, STRINGSIZE);
     } else {
         // Line is from the main file.
         pipe_pos++;

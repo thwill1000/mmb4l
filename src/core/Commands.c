@@ -1171,6 +1171,7 @@ void cmd_gosub(void) {
     errorstack[gosubindex] = CurrentLinePtr;
     gosubstack[gosubindex++] = nextstmt;
     LocalIndex++;
+    printf("cmd_gosub,1: %d\n", LocalIndex);
     if(isnamestart(*cmdline))
         nextstmt = findlabel(cmdline);                              // must be a label
     else
@@ -1186,6 +1187,7 @@ void cmd_return(void) {
     checkend(cmdline);
     if(gosubindex == 0 || gosubstack[gosubindex - 1] == NULL) error("Nothing to return to");
     ClearVars(LocalIndex--);                                        // delete any local variables
+    printf("cmd_return,1: %d\n", LocalIndex);
     TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
     nextstmt = gosubstack[--gosubindex];                            // return to the caller
     CurrentLinePtr = errorstack[gosubindex];
@@ -1409,6 +1411,7 @@ void cmd_on(void) {
               errorstack[gosubindex] = CurrentLinePtr;
             gosubstack[gosubindex++] = nextstmt;
             LocalIndex++;
+            printf("cmd_on,1: %d\n", LocalIndex);
         }
 
         if(isnamestart(*argv[r*2]))

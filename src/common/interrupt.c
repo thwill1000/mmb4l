@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <assert.h>
+#include <stdio.h>
 
 #include "mmb4l.h"
 #include "console.h"
@@ -106,9 +107,11 @@ bool interrupt_running() {
 }
 
 static int handle_interrupt(const char *interrupt_address) {
+    printf("handle_interrupt,0: %d\n", LocalIndex);
     static char rti[2]; // TODO: does this really need to be static ?
 
     LocalIndex++;                                                   // IRETURN will decrement this
+    printf("handle_interrupt,1: %d\n", LocalIndex);
     mmb_error_state_ptr = &interrupt_error_state;                   // swap to the interrupt error state
     error_init(mmb_error_state_ptr);                                // and clear it
     interrupt_return_stmt = nextstmt;                               // for when IRETURN is executed
@@ -120,6 +123,7 @@ static int handle_interrupt(const char *interrupt_address) {
         errorstack[gosubindex] = CurrentLinePtr;
         gosubstack[gosubindex++] = rti;                             // return from the subroutine to the dummy IRETURN command
         LocalIndex++;                                               // return from the subroutine will decrement LocalIndex
+        printf("handle_interrupt,2: %d\n", LocalIndex);
         skipelement(interrupt_address);                             // point to the body of the subroutine
     }
 
@@ -180,11 +184,13 @@ void interrupt_return(void) {
     checkend(cmdline);
     nextstmt = interrupt_return_stmt;
     if (LocalIndex) ClearVars(LocalIndex--);  // delete any local variables
+    printf("interrupt_return,1: %d\n", LocalIndex);
     TempMemoryIsChanged = true;  // signal that temporary memory should be checked
     *CurrentInterruptName = 0;
     interrupt_return_stmt = NULL;
     mmb_error_state_ptr = &mmb_normal_error_state; // swap back to the normal error state
     if (mmb_error_state_ptr->skip > 0) mmb_error_state_ptr->skip++;
+    printf("interrupt_return,2: %d\n", LocalIndex);
 }
 
 void interrupt_disable_any_key() {

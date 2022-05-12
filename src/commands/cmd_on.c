@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <ctype.h>
+#include <stdio.h>
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
@@ -131,6 +132,7 @@ static void on_number(const char *p) {
             errorstack[gosubindex] = CurrentLinePtr;
             gosubstack[gosubindex++] = nextstmt;
             LocalIndex++;
+            printf("on_number,1: %d\n", LocalIndex);
         }
 
         if (isnamestart(*argv[r * 2]))

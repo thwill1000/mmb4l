@@ -21,10 +21,10 @@ Dim interrupt_called% = 0
 
 If InStr(Mm.Device$, "Colour Maximite 2") Then Goto skip_tests
 
-add_test("test_error_normal")
-add_test("test_error_in_interrupt")
+'add_test("test_error_normal")
+'add_test("test_error_in_interrupt")
 add_test("test_interrupt_does_not_swallow_skip", "test_interrupt_not_swallow")
-add_test("test_on_error_skip_2")
+'add_test("test_on_error_skip_2")
 ' Can't keep these tests enabled as they are designed to throw uncaught ERRORs.
 ' add_test("test_interrupt_does_not_ignore", "test_interrupt_not_ignore")
 ' add_test("test_editor_opens_correctly")
@@ -86,18 +86,22 @@ End Sub
 ' Test that a skip in the normal thread of execution is not swallowed by
 ' an interrupt.
 Sub test_interrupt_not_swallow()
+  ? "#### TEST_INTERRUPT_NOT_SWALLOW"
   SetTick 1, interrupt3
   Local i%
   For i% = 1 To 1000
+'    ? "#### FOO"
     On Error Skip 1
     Error "foo" ' Should always be skipped
   Next
+  SetTick 0, interrupt3
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
   assert_string_equals("Error in line 93: foo", Mm.ErrMsg$)
-  SetTick 0, interrupt3
+'  SetTick 0, interrupt3
 End Sub
 
 Sub interrupt3()
+  ? "#### INTERRUPT3"
   Local z% = 0 ' Any single statement
 End Sub
 

@@ -308,6 +308,7 @@ void ExecuteProgram(const char *p) {
             skipelement(nextstmt);
             if(*p && *p != '\'') {                                  // ignore a comment line
                 if(setjmp(ErrNext) == 0) {                          // return to the else leg of this if error and OPTION ERROR SKIP/IGNORE is in effect
+                    printf("[%3d %10s] ExecuteProgram,1: %d, %d\n", *(char*)p, commandtbl[*(char*)p - C_BASETOKEN].name, SaveLocalIndex, LocalIndex);
                     SaveLocalIndex = LocalIndex;                    // save this if we need to cleanup after an error
                     //printf("Here we are\n");
                     //printf("p = %d, C_BASETOKEN = %d, CommandTableSize = %d\n", *p, C_BASETOKEN, CommandTableSize);
@@ -327,6 +328,7 @@ void ExecuteProgram(const char *p) {
                             error("Unknown command");
                     }
                 } else {
+                    printf("[%3d %10s] ExecuteProgram,2: %d, %d\n", *(char*)p, commandtbl[*(char*)p - C_BASETOKEN].name, SaveLocalIndex, LocalIndex);
                     LocalIndex = SaveLocalIndex;                    // restore so that we can clean up any memory leaks
                     ClearTempMemory();
                 }
@@ -487,6 +489,8 @@ int FindSubFun(const char *p, int type) {
 //   index    = index into subfun[i] which points to the definition of the sub or funct
 //   fa, i64a, sa and typ are pointers to where the return value is to be stored (used by functions only)
 void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a, char **sa, int *typ) {
+    printf("CMD: %s\n", cmd);
+
     const char *p;
     const char *ttp;
     char *s;
@@ -668,6 +672,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     // for each one we create the local variable and compare its type to that supplied in the callers list
     CurrentLinePtr = SubLinePtr;                                    // any errors must be at the definition
     LocalIndex++;
+    printf("DefinedSubFun,1: %d\n", LocalIndex);
     char *tp2;                                                      // temporary non-const char *
                                                                     // it will be pointing into the items of argv2[] which we know
                                                                     // are not constants so we can cast away const-ness as necessary
@@ -767,9 +772,11 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         FreeMemory(vartbl[VarIndex].val.s);                         // free the memory if it is a string
         vartbl[VarIndex].type |= T_PTR;
         LocalIndex--;                                               // allocate the memory at the previous level
+        printf("DefinedSubFun,2: %d\n", LocalIndex);
         vartbl[VarIndex].val.s = GetTempMemory(STRINGSIZE);         // and use our own memory
         pvar = vartbl[VarIndex].val.s;
         LocalIndex++;
+        printf("DefinedSubFun,3: %d\n", LocalIndex);
     }
     skipelement(p);                                                 // point to the body of the function
 
@@ -793,6 +800,8 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         *sa = pvar;                                                 // for a string we just need to return the local memory
     *typ = FunType;                                                 // save the function type for the caller
   ClearVars(LocalIndex--);                                          // delete any local variables
+    printf("DefinedSubFun,4: %d\n", LocalIndex);
+
     TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
   gosubindex--;
 }
@@ -1764,6 +1773,7 @@ void *findvar(const char *p, int action) {
     //
     // In either case              ifree         will contain the index of a free slot which can be used if we need to create the variable
 
+//    printf("Local index = %d\n", LocalIndex);
     for(tmp = -1, i = 0; i < varcnt; i++) {
         if(vartbl[i].type == T_NOTYPE)
             ifree = i;
@@ -1777,6 +1787,7 @@ void *findvar(const char *p, int action) {
             unsigned int *ip, *tp;
             ip=(unsigned int *)name;
             tp=(unsigned int *)vartbl[i].name;
+//            if (vartbl[i].level > 0) printf("*** %s, %d\n", vartbl[i].name, vartbl[i].level);
             if(*ip++ != *tp++) continue;                            // preliminary quick check on first 4 chars
             j = namelen-4;
             while(j > 0 && *ip == *tp) {                            // compare 4 chars at a time
