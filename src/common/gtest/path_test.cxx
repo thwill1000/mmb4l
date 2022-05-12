@@ -41,7 +41,7 @@ protected:
     }
 
     void TearDown() override {
-        system("rm -rf " PATH_TEST_DIR);
+        (void)! system("rm -rf " PATH_TEST_DIR);
     }
 
 };
@@ -263,7 +263,7 @@ TEST_F(PathTest, MkDir) {
 }
 
 TEST_F(PathTest, MkDir_GivenExistingDirectory) {
-    system("mkdir " PATH_TEST_DIR "/existing-dir");
+    (void)! system("mkdir " PATH_TEST_DIR "/existing-dir");
 
     EXPECT_EQ(kOk, path_mkdir(PATH_TEST_DIR "/existing-dir"));
 
@@ -272,7 +272,7 @@ TEST_F(PathTest, MkDir_GivenExistingDirectory) {
 }
 
 TEST_F(PathTest, MkDir_GivenExistingFile) {
-    system("touch " PATH_TEST_DIR "/existing-file");
+    (void)! system("touch " PATH_TEST_DIR "/existing-file");
 
     EXPECT_EQ(kFileExists, path_mkdir(PATH_TEST_DIR "/existing-file"));
     EXPECT_EQ(kNotADirectory, path_mkdir(PATH_TEST_DIR "/existing-file/foo"));

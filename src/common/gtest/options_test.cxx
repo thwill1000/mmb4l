@@ -30,7 +30,7 @@ protected:
     }
 
     void TearDown() override {
-        system("rm -rf " OPTIONS_TEST_DIR);
+        (void)! system("rm -rf " OPTIONS_TEST_DIR);
     }
 
 };
@@ -178,7 +178,7 @@ TEST_F(OptionsTest, Save_GivenPathIsDirectory) {
     Options options;
     options_init(&options);
     given_non_default_options(&options);
-    system("mkdir " OPTIONS_TEST_DIR "/save_given_path_is_directory");
+    (void)! system("mkdir " OPTIONS_TEST_DIR "/save_given_path_is_directory");
 
     const char *filename = OPTIONS_TEST_DIR "/save_given_path_is_directory";
     EXPECT_EQ(kIsADirectory, options_save(&options, filename));
@@ -199,13 +199,13 @@ TEST_F(OptionsTest, Save_GivenPathIsExistingReadOnlyFile) {
     Options options;
     options_init(&options);
     given_non_default_options(&options);
-    system("touch " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
-    system("chmod 444 " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
+    (void)! system("touch " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
+    (void)! system("chmod 444 " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
 
     const char *filename = SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE;
     EXPECT_EQ(kPermissionDenied, options_save(&options, filename));
 
-    system("chmod 644 " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
+    (void)! system("chmod 644 " SAVE_GIVEN_PATH_IS_EXISTING_READ_ONLY_FILE);
 }
 
 TEST_F(OptionsTest, Load) {
