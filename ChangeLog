@@ -2,8 +2,8 @@
 ChangeLog
 ---------
 
-Version 2022.01.00-a4 - ??-???-2022:
-  - MMB4L is now open source and licensed under a modified 4-clause BSD license
+Version 2022.01.00-a4 - 15-May-2022:
+  - MMB4L is now open-source and licensed under a modified 4-clause BSD license
     similar to that or the PicoMite firmware and MMBasic for Windows. See the
     LICENSE file for details. My thanks to Geoff and Peter for allowing this to
     be possible.
@@ -13,17 +13,17 @@ Version 2022.01.00-a4 - ??-???-2022:
     is translated to:
         RUN "foo", --bar "wombat"
   - Added ! command which may be used at the MMBasic prompt (but not within
-    programs) as a short-cut for SYSTEM (usually), e.g.
+    programs) as a short-cut for SYSTEM, e.g.
         !cp foo bar
     is translated to:
         SYSTEM "cp foo bar"
-    Note that !cd is treated as a special case, e.g.
+    An exception is !cd, e.g.
         !cd foo
     is translated to:
         CHDIR "foo"
     This is required because "!cd foo" would otherwise appear to do nothing
-    because each SYSTEM command is run in the context of a separate forked
-    process instead of the MMBasic process itself.
+    due to the fact that each SYSTEM command is run in the context of a separate
+    forked process instead of the MMBasic process itself.
   - Added SYSTEM sub-commands for getting and setting environment variables:
         - SYSTEM GETENV name$, {value$ | value%()}
         - SYSTEM SETENV name$, {value$ | value%()}
@@ -49,8 +49,10 @@ Version 2022.01.00-a4 - ??-???-2022:
         - XED      (untested because I couldn't get a version for Ubuntu 21.)
         - or a string specifying a command to run, e.g.
               OPTION EDITOR "code -g ${file}:${line}"
-          ${file} is replaced by the filename to edit "in quotes" and
-          ${line} the line number to set the initial cursor position to.
+          ${file} is a placeholder for the filename to edit, this will
+                  automatically have "quotes" put around it.
+          ${line} is a placeholder for the line number to set the initial
+                  cursor position to.
   - Added OPTION F<num> string$ sub-commands to define the strings that will be
     generated when pressing function keys at the MMBasic prompt:
         - all of F1-F12 can be programmed.
@@ -78,7 +80,7 @@ Version 2022.01.00-a4 - ??-???-2022:
         SYSTEM command$, out$, exit_status%
         SYSTEM command$, out%(), exit_status%
     The SYSTEM command now only reports an error if it cannot run the command.
-    If the command runs but fails then no error is reported but the failure
+    If the command runs but fails then no error is reported and the failure
     code will be captured in exit_status%.
   - Changed LOAD and RUN so that if a filename without a [.bas|.BAS|.Bas]
     extension is not provided then one is automatically appended:
@@ -92,8 +94,8 @@ Version 2022.01.00-a4 - ??-???-2022:
            0      : no error.
        1  ..  255 : standard error numbers (errno) for C library calls.
           256     : unclassified MMBasic error.
-      257 .. 1023 : reserved for specific MMBasic errors.
-         1024+    : reserved for program specific errors.
+      257 .. 1023 : other standard MMBasic errors.
+         1024+    : recommended range for program specific errors.
   - Removed LS as an alias of FILES:
         - LS was a non-standard aberration inherited from the CMM2.
         - use !ls instead to execute the 'ls' Linux shell command with all its
