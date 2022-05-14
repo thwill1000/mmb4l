@@ -1,5 +1,6 @@
-' Copyright (c) 2020 Thomas Hugo Williams
-' For Maximite BASIC v4.5C
+' Copyright (c) 2020-2022 Thomas Hugo Williams
+' License MIT <https://opensource.org/licenses/MIT>
+' For MMBasic 5.07
 
 ' LED matrix manipulation library.
 

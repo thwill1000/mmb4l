@@ -37,3 +37,4 @@ IndentWidth: 4
 
 #CommentPragmas: '(@copydoc)'
 
+ColumnLimit: 100

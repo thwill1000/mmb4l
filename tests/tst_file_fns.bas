@@ -1,31 +1,36 @@
 ' Copyright (c) 2020-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For Colour Maximite 2, MMBasic 5.07
+' For MMBasic 5.07
 
 Option Explicit On
 Option Default None
 Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 
-#Include "../basic-src/splib/system.inc"
-#Include "../basic-src/splib/array.inc"
-#Include "../basic-src/splib/list.inc"
-#Include "../basic-src/splib/string.inc"
-#Include "../basic-src/splib/file.inc"
-#Include "../basic-src/splib/vt100.inc"
-#Include "../basic-src/sptest/unittest.inc"
+#Include "../sptools/src/splib/system.inc"
+#Include "../sptools/src/splib/array.inc"
+#Include "../sptools/src/splib/list.inc"
+#Include "../sptools/src/splib/string.inc"
+#Include "../sptools/src/splib/file.inc"
+#Include "../sptools/src/splib/vt100.inc"
+#Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
 Const TMPDIR$ = sys.string_prop$("tmpdir")
-Const INVALID_FILE_NBR_ERR$ = Choice(Mm.Device$ = "MMB4L", "Invalid file number", "File number")
+Const BAD_FILE_DESCRIPTOR_ERR$ = "Bad file descriptor"
 Const FILE_ALREADY_OPEN_ERR$ = Choice(Mm.Device$ = "MMB4L", "File or device already open", "File number already open")
 Const FILE_NOT_OPEN_ERR$ = Choice(Mm.Device$ = "MMB4L", "File or device not open", "File number is not open")
+Const INVALID_FILE_NBR_ERR$ = "Invalid file number"
+Const MAX_FILE_NBR% = Choice(Mm.Device$ = "MMBasic for Windows", 128, 10)
+Const SEPARATOR$ = sys.string_prop$("separator")
 
 add_test("test_chdir_mkdir_rmdir")
 add_test("test_close_errors")
 add_test("test_copy")
 add_test("test_dir")
+add_test("test_dir_given_no_matches")
 add_test("test_eof")
+add_test("test_eof_errors")
 add_test("test_inputstr")
 add_test("test_kill")
 add_test("test_loc")
@@ -37,6 +42,7 @@ add_test("test_seek")
 add_test("test_seek_errors")
 add_test("test_tilde_expansion")
 add_test("test_open_errors")
+add_test("test_append_eof_bug")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -51,14 +57,17 @@ End Sub
 Sub test_chdir_mkdir_rmdir()
     Local current_dir$ = Mm.Info$(Directory))
     Local new_dir$ = "test_chdir_mkdir_rmdir.tmpdir"
-    If file.exists%(TMPDIR$ + "/" + new_dir$) Then RmDir(TMPDIR$ + "/" + new_dir$)
+    If file.exists%(TMPDIR$ + SEPARATOR$ + new_dir$) Then RmDir(TMPDIR$ + SEPARATOR$ + new_dir$)
 
     ChDir TMPDIR$
     MkDir new_dir$
     ChDir new_dir$
 
-    Local expected$ = TMPDIR$ + "/" + new_dir$ + "/"
-    If Mm.Device$ <> "MMB4L" Then expected$ = UCase$(expected$)
+    Local expected$ = TMPDIR$ + SEPARATOR$ + new_dir$ + SEPARATOR$
+    Select Case Mm.Device$
+      Case "MMB4L", "MMBasic for Windows" : ' Do nothing
+      Case Else : expected$ = UCase$(expected$)
+    End Select
     assert_string_equals(expected$, Mm.Info$(Directory))
 
     ChDir ".."
@@ -83,37 +92,46 @@ Sub test_close_errors()
 
   ' Can't call on file number #11.
   On Error Skip 1
-  Close #11
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", INVALID_FILE_NBR_ERR$, "11 is invalid"))
+  Close (MAX_FILE_NBR% + 1
+  Local expected$
+  Select Case Mm.Device$
+    Case "MMB4L" :               expected$ = INVALID_FILE_NBR_ERR$
+    Case "MMBasic for Windows" : expected$ = "129 is invalid (valid is 1 to 128)"
+    Case Else :                  expected$ = "11 is invalid"
+  End Select
+End Sub
+
+Sub given_test_file(f$)
+  Open f$ For Output As #1
+  Print #1, "Hello World"
+  Print #1, "Goodbye World"
+  Close #1
 End Sub
 
 Sub test_copy()
-    Local f$ = TMPDIR$ + "/test_copy.tmp"
-    Local f_copy$ = TMPDIR$ + "/test_copy.tmp.copy"
-    Local s$
+  Local f$ = TMPDIR$ + "/test_copy.tmp"
+  Local f_copy$ = TMPDIR$ + "/test_copy.tmp.copy"
+  Local s$
 
-    Open f$ For Output As #1
-    Print #1, "Hello World"
-    Print #1, "Goodbye World"
-    Close #1
+  given_test_file(f$)
 
-    Copy f$ To f_copy$
+  Copy f$ To f_copy$
 
-    Open f$ For Input As #1
-    s$ = Input$(28, #1)
-    assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
-    assert_true(Eof(#1))
-    Close #1
+  Open f$ For Input As #1
+  s$ = Input$(28, #1)
+  assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
+  assert_int_equals(1, Eof(#1))
+  Close #1
 
-    Open f_copy$ For Input As #1
-    s$ = Input$(28, #1)
-    assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
-    assert_true(Eof(#1))
-    Close #1
+  Open f_copy$ For Input As #1
+  s$ = Input$(28, #1)
+  assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
+  assert_int_equals(1, Eof(#1))
+  Close #1
 End Sub
 
 Sub test_dir()
-  Local tst_dir$ = TMPDIR$ + "/test_dir.tmpdir"
+  Const tst_dir$ = TMPDIR$ + "\test_dir.tmpdir"
   If file.exists%(tst_dir$) Then RmDir tst_dir$
   MkDir tst_dir$
   Open tst_dir$ + "/file1" For Output As #1 : Close #1
@@ -138,86 +156,142 @@ Sub test_dir()
   Kill tst_dir$ + "/abc"
   Kill tst_dir$ + "/file3"
   RmDir tst_dir$ + "/subdir"
+  RmDir tst_dir$
+End Sub
+
+Sub test_dir_given_no_matches()
+  Const tst_dir$ = TMPDIR$ + "\test_dir_given_no_matches.tmpdir"
+  If file.exists%(tst_dir$) Then RmDir tst_dir$
+  MkDir tst_dir$
+  Local f$ = Dir$(tst_dir$ + "/*.non")
+  assert_string_equals("", f$)
+  RmDir tst_dir$
 End Sub
 
 Sub test_eof()
   Local f$ = TMPDIR$ + "/test_eof.tmp"
+  Local i%
 
-  ' Write some test data.
-  Open f$ For Output As #1
-  Print #1, "Hello World"
-  Print #1, "Goodbye World"
-  Close #1
-
-  ' Simplest test.
+  ' Test when file opened for INPUT.
+  given_test_file(f$)
   Open f$ For Input As #1
   assert_int_equals(0, Eof(#1))
   Local s$ = Input$(255, #1)
   assert_int_equals(1, Eof(#1))
   Close #1
 
-  ' Can't call on an unopened file.
+  ' Test on file file number #0.
+  Select Case Mm.Device$
+    Case "MMB4L" : assert_int_equals(0, Eof(#0)) ' TODO
+    Case Else    : assert_int_equals(1, Eof(#0))
+  End Select
+
+  ' Test when file opened for OUTPUT.
+  Open f$ For Output As #1
+  If Mm.Device$ = "MMB4L" Then
+    On Error Skip 1
+    i% = Eof(#1)
+    assert_raw_error(BAD_FILE_DESCRIPTOR_ERR$)
+  Else
+    assert_int_equals(1, Eof(#1))
+    Print #1, "Hello World"
+    assert_int_equals(1, Eof(#1))
+  EndIf
+  Close #1
+
+  ' Test when file opened for APPEND.
+  Open f$ For Append As #1
+  If Mm.Device$ = "MMB4L" Then
+    On Error Skip 1
+    i% = Eof(#1)
+    assert_raw_error(BAD_FILE_DESCRIPTOR_ERR$)
+  Else
+    assert_int_equals(1, Eof(#1))
+    Print #1, "Goodbye World"
+    assert_int_equals(1, Eof(#1))
+  EndIf
+  Close #1
+
+  ' Test when file opened for RANDOM.
+  given_test_file(f$)
+  Open f$ For Random As #1
+  assert_int_equals(1, Eof(#1)) ' File opens with pointer at end.
+  Seek #1, 1                    ' The first byte is numbered 1.
+  assert_int_equals(0, Eof(#1))
+  Seek #1, Mm.Info(FileSize f$)
+  assert_int_equals(0, Eof(#1)) ' We're at the end of the file, why does this not return 1 ?
+  Seek #1, Mm.Info(FileSize f$) + 1
+  assert_int_equals(1, Eof(#1))
+  Close #1
+End Sub
+
+Sub test_eof_errors()
+  Local f$ = TMPDIR$ + "/test_eof_errors.tmp"
+  Local i%, s$
+
+  ' Test on an unopened file.
   On Error Skip 1
-  Local i% = Eof(#1)
-  assert_raw_error(FILE_NOT_OPEN_ERR$)
+  i% = Eof(#1)
+  Select Case Mm.Device$
+    Case "MMB4L" :               assert_raw_error("File or device not open")
+    Case "MMBasic for Windows" : assert_raw_error("File number 1 is not open")
+    Case Else :                  assert_raw_error("File number is not open")
+  End Select
 
-  ' You can call on file number #0, it always returns 0 (for MMB4L).
-  assert_int_equals(Choice(Mm.Device$ = "MMB4L", 0, 1), Eof(#0))
+  ' Test on file number #10.
+  given_test_file(f$)
+  Open f$ For Input As MAX_FILE_NBR%
+  assert_int_equals(0, Eof(MAX_FILE_NBR%))
+  s$ = Input$(255, MAX_FILE_NBR%)
+  assert_int_equals(1, Eof(MAX_FILE_NBR%))
+  Close MAX_FILE_NBR%
 
-  ' Can call on file number #10.
-  Open f$ For Input As #10
-  assert_int_equals(0, Eof(#10))
-  s$ = Input$(255, #10)
-  assert_int_equals(1, Eof(#10))
-  Close #10
-
-  ' Can't call on file number #11.
+  ' Test on file number #11.
   On Error Skip 1
-  i% = Eof(#11)
-  assert_raw_error(INVALID_FILE_NBR_ERR$)
+  i% = Eof(MAX_FILE_NBR% + 1)
+  Select Case Mm.Device$
+    Case "MMB4L" :               assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Case "MMBasic for Windows" : assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Case Else :                  assert_raw_error("File number")
+  End Select
 End Sub
 
 Sub test_inputstr()
   Local f$ = TMPDIR$ + "/test_inputstr.tmp"
 
-  ' Write some test data.
-  Open f$ For Output As #1
-  Print #1, "Hello World"
-  Print #1, "Goodbye World"
-  Close #1
-
-  ' Simplest test.
+  ' Test on file opened for INPUT.
+  given_test_file(f$)
   Open f$ For Input As #1
   Local s$ = Input$(28, #1)
   assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
   Close #1
 
-  ' Can't call on an unopened file.
+  ' Test on unopened file.
   On Error Skip 1
   s$ = Input$(28, #1)
   assert_raw_error(FILE_NOT_OPEN_ERR$)
 
   ' NOTE you can call on file number #0, but I can't automatically test this.
 
-  ' Can call on file number #10.
-  Open f$ For Input As #10
-  s$ = Input$(28, #10)
+  ' Test on file number #10.
+  Open f$ For Input As MAX_FILE_NBR%
+  s$ = Input$(28, MAX_FILE_NBR%)
   assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
-  Close #10
+  Close MAX_FILE_NBR%
 
-  ' Can't call on file number #11.
+  ' Test on file number #11.
   On Error Skip 1
-  s$ = Input$(28, #11)
-  assert_raw_error(INVALID_FILE_NBR_ERR$)
+  s$ = Input$(28, MAX_FILE_NBR% + 1)
+  Select Case Mm.Device$
+    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Case Else :    assert_raw_error("File number")
+  End Select
 End Sub
 
 Sub test_kill() {
     Local f$ = TMPDIR$ + "/test_kill.tmp"
 
-    Open f$ For Output As #1
-    Print #1, "Hello World"
-    Print #1, "Goodbye World"
-    Close #1
+    given_test_file(f$)
 
     assert_true(file.exists%(f$))
 
@@ -231,10 +305,7 @@ Sub test_rename()
     Local f_new$ = TMPDIR$ + "/test_new.tmp.new"
     Local s$
 
-    Open f$ For Output As #1
-    Print #1, "Hello World"
-    Print #1, "Goodbye World"
-    Close #1
+    given_test_file(f$)
 
     ' CMM2 will not RENAME over an existing file.
     If file.exists%(f_new$) Then Kill f_new$
@@ -245,113 +316,168 @@ Sub test_rename()
     Open f_new$ For Input As #1
     s$ = Input$(28, #1)
     assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
-    assert_true(Eof(#1))
+    assert_int_equals(1, Eof(#1))
     Close #1
 End Sub
 
 Sub test_loc()
     Local f$ = TMPDIR$ + "/test_loc.tmp"
 
-    ' Start with an empty file.
+    ' Test when file opened for INPUT.
     Open f$ For Output As #1
-    Close #1
-
-    ' Should be opened with r/w pointer at position 1.
-    Open f$ For Random As #1
     assert_int_equals(1, Loc(#1))
-
-    ' Printing 3 characters should move r/w pointer to position 4.
     Print #1, "foo";
     assert_int_equals(4, Loc(#1))
     Close #1
+    Kill f$
 
-    ' Should be opened with r/w pointer at one past the end.
+    ' Test when non-existing file opened for RANDOM.
     Open f$ For Random As #1
+    assert_int_equals(1, Loc(#1))
+    Print #1, "foo";
     assert_int_equals(4, Loc(#1))
     Close #1
+    Kill f$
+
+    ' Test when existing empty file opened for RANDOM.
+    Open f$ For Output As #1
+    Close #1
+    Open f$ For Random As #1
+    assert_int_equals(1, Loc(#1))
+    Print #1, "foo";
+    assert_int_equals(4, Loc(#1))
+    Close #1
+    Kill f$
+
+    ' Test when existing non-empty file opened for RANDOM,
+    ' starts with r/w pointer one past the end.
+    given_test_file(f$)
+    Open f$ For Random As #1
+    assert_int_equals(29, Loc(#1))
+    Close #1
+    Kill f$
+
+    ' Test when existing non-empty file opened for INPUT.
+    given_test_file(f$)
+    Open f$ For Input As #1
+    assert_int_equals(1, Loc(#1))
+    Close #1
+    Kill f$
+
+    ' Test when existing non-empty file opened for APPEND.
+    given_test_file(f$)
+    Open f$ For Append As #1
+    Select Case Mm.Device$
+      Case "MMBasic for Windows" : assert_int_equals(1, Loc(#1))
+      Case Else :                  assert_int_equals(29, Loc(#1))
+    End Select
+    Close #1
+    Kill f$
 End Sub
 
 Sub test_loc_errors()
-  ' Can't call on an unopened file.
+  ' Test on an unopened file.
   On Error Skip 1
   Local i% = Loc(#1)
   assert_raw_error(FILE_NOT_OPEN_ERR$)
 
-  ' Can't call on file number #0.
+  ' Test on file number #0.
   On Error Skip 1
   i% = Loc(#0)
-  If Mm.Device$ = "MMB4L" Then
-    assert_raw_error(INVALID_FILE_NBR_ERR$)
-  Else
-    assert_int_equals(0, Mm.ErrNo)
-  EndIf
+  Select Case Mm.Device$
+    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Case Else :    assert_int_equals(0, Mm.ErrNo)
+  End Select
 
-  ' Can call on file number #10.
+  ' Test on file number #10.
   Local f$ = TMPDIR$ + "/test_loc_errors.tmp"
-  Open f$ For Output As #10
-  Close #10
-  Open f$ For Random As #10
-  assert_int_equals(1, Loc(#10))
-  Close #10
+  Open f$ For Output As MAX_FILE_NBR%
+  Close MAX_FILE_NBR%
+  Open f$ For Random As MAX_FILE_NBR%
+  assert_int_equals(1, Loc(MAX_FILE_NBR%))
+  Close MAX_FILE_NBR%
 
-  ' Can't call on file number #11.
+  ' Test on file number #11.
   On Error Skip 1
-  i% = Loc(#11)
-  assert_raw_error(INVALID_FILE_NBR_ERR$)
+  i% = Loc(MAX_FILE_NBR% + 1)
+  Select Case Mm.Device$
+    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Case Else :    assert_raw_error("File number")
+  End Select
 End Sub
 
 Sub test_lof()
-    Local f$ = TMPDIR$ + "/test_lof.tmp"
+  Local f$ = TMPDIR$ + "/test_lof.tmp"
 
-    Open f$ For Output As #1
-    Print #1, "Hello World";
+  ' Test when writing a file.
+  Open f$ For Output As #1
+  Print #1, "Hello World"
+  assert_int_equals(13, Lof(#1))
+  Close #1
 
-    assert_int_equals(11, Lof(#1))
-    Close #1
+  ' Test when file opened for INPUT.
+  Open f$ For Input As #1
+  assert_int_equals(13, Lof(#1))
+  Local s$ = Input$(5, #1)
+  assert_string_equals("Hello", s$)
+  assert_int_equals(13, Lof(#1))
+  Close #1
 
-    Open f$ For Random As #1
-    assert_int_equals(11, Lof(#1))
-    Close #1
+  ' Test when file opened for APPEND.
+  Open f$ For Append As #1
+  assert_int_equals(13, Lof(#1))
+  Print #1, "Goodbye World"
+  assert_int_equals(28, Lof(#1))
+  Close #1
+
+  ' Test when file opened for RANDOM.
+  Open f$ For Random As #1
+  assert_int_equals(28, Lof(#1))
+  Seek #1, 10
+  assert_int_equals(28, Lof(#1))
+  Seek #1, Lof(#1) + 1
+  Print #1, "And there's more"
+  assert_int_equals(46, Lof(#1))
+  Close #1
 End Sub
 
 Sub test_lof_errors()
-  ' Can't call on an unopened file.
+  ' Test on an unopened file.
   On Error Skip 1
   Local i% = Lof(#1)
   assert_raw_error(FILE_NOT_OPEN_ERR$)
 
-  ' Can't call on file number #0.
+  ' Test on file number #0.
   On Error Skip 1
   i% = Lof(#0)
-  If Mm.Device$ = "MMB4L" Then
-    assert_raw_error(INVALID_FILE_NBR_ERR$)
-  Else
-    assert_int_equals(0, Mm.ErrNo)
-  EndIf
+  Select Case Mm.Device$
+    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Case Else :    assert_int_equals(0, Mm.ErrNo)
+  End Select
 
-  ' Can call on file number #10.
+  ' Test on file number #10.
   Local f$ = TMPDIR$ + "/test_lof_errors.tmp"
-  Open f$ For Output As #10
-  Print #10, "Hello World";
-  Close #10
-  Open f$ For Random As #10
-  assert_int_equals(11, Lof(#10))
-  Close #10
+  Open f$ For Output As MAX_FILE_NBR%
+  Print #MAX_FILE_NBR%, "Hello World";
+  Close MAX_FILE_NBR%
+  Open f$ For Random As MAX_FILE_NBR%
+  assert_int_equals(11, Lof(MAX_FILE_NBR%))
+  Close MAX_FILE_NBR%
 
-  ' Can't call on file number #11.
+  ' Test on file number #11.
   On Error Skip 1
-  i% = Lof(#11)
-  assert_raw_error(INVALID_FILE_NBR_ERR$)
+  i% = Lof(MAX_FILE_NBR% + 1)
+  Select Case Mm.Device$
+    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Case Else :    assert_raw_error("File number")
+  End Select
 End Sub
 
 Sub test_seek()
     Local f$ = TMPDIR$ + "/test_seek.tmp"
     Local s$
 
-    Open f$ For Output As #1
-    Print #1, "Hello World"
-    Print #1, "Goodbye World"
-    Close #1
+    given_test_file(f$)
 
     Open f$ For Random As #1
 
@@ -372,34 +498,78 @@ Sub test_seek()
 End Sub
 
 Sub test_seek_errors()
-  ' Can't call on an unopened file.
+  Local f$ = TMPDIR$ + "/test_seek_errors.tmp"
+  Local s$
+
+  ' Test on an unopened file.
   On Error Skip 1
   Seek #1, 1
   assert_raw_error(Choice(Mm.Device$ = "MMB4L", FILE_NOT_OPEN_ERR$, "File number"))
 
-  ' Can't call on file number #0.
+  ' Test on file number #0.
   On Error Skip 1
   Seek #0, 1
-  assert_raw_error(INVALID_FILE_NBR_ERR$)
+  Select Case Mm.Device$
+    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Case Else :    assert_raw_error("File number")
+  End Select
 
-  ' Can call on file number #10.
-  Local f$ = TMPDIR$ + "/test_lof_errors.tmp"
-  Open f$ For Output As #10
-  Print #10, "Hello World"
-  Print #10, "Goodbye World"
-  Close #10
-  Open f$ For Random As #10
-  Seek #10, 7
-  Local s$ = Input$(5, #10)
+  ' Test on file number #10.
+  Open f$ For Output As MAX_FILE_NBR%
+  Print #MAX_FILE_NBR%, "Hello World"
+  Print #MAX_FILE_NBR%, "Goodbye World"
+  Close MAX_FILE_NBR%
+  Open f$ For Random As MAX_FILE_NBR%
+  Seek MAX_FILE_NBR%, 7
+  s$ = Input$(5, MAX_FILE_NBR%)
   assert_string_equals("World", s$)
-  s$ = Input$(9, #10)
+  s$ = Input$(9, MAX_FILE_NBR%)
   assert_string_equals(CRLF$ + "Goodbye", s$)
-  Close #10
+  Close MAX_FILE_NBR%
 
-  ' Can't call on file number #11.
+  ' Test on file number #11.
   On Error Skip 1
-  Seek #11, 1
-  assert_raw_error(INVALID_FILE_NBR_ERR$)
+  Seek MAX_FILE_NBR% + 1, 1
+  Select Case Mm.Device$
+    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Case Else :    assert_raw_error("File number")
+  End Select
+
+  given_test_file(f$)
+
+  ' Test SEEK to 0th position - the first position is 1.
+  Open f$ For Random As #1
+  On Error Skip 1
+  Seek #1, 0
+  Select Case Mm.Device$
+    Case "MMB4L"
+      assert_raw_error("Invalid seek position")
+      assert_int_equals(29, Loc(#1))
+    Case "MMBasic for Windows"
+      assert_raw_error("0 is invalid (valid is 1 to 2147483647)")
+      assert_int_equals(29, Loc(#1))
+    Case Else
+      assert_no_error()
+      assert_int_equals(1, Loc(#1))
+  End Select
+  Close #1
+
+  ' Test SEEK to -ve position.
+  Open f$ For Random As #1
+  On Error Skip 1
+  Seek #1, -1
+  Select Case Mm.Device$
+    Case "MMB4L"
+      assert_raw_error("Invalid seek position")
+      assert_int_equals(29, Loc(#1))
+    Case "MMBasic for Windows"
+      assert_raw_error("-1 is invalid (valid is 1 to 2147483647)")
+      assert_int_equals(29, Loc(#1))
+    Case Else
+      assert_no_error()
+      assert_int_equals(1, Loc(#1))
+  End Select
+  Close #1
 End Sub
 
 Sub test_tilde_expansion()
@@ -488,14 +658,39 @@ Sub test_open_errors()
   ' Can't open file number #0.
   On Error Skip 1
   Open TMPDIR$ + "/test_open_errors.txt" For Output As #0
-  assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Select Case Mm.Device$
+    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Case Else :    assert_raw_error("File number")
+  End Select
 
   ' Can use file number #10.
-  Open TMPDIR$ + "/test_open_errors.txt" For Output As #10
-  Close #10
+  Open TMPDIR$ + "/test_open_errors.txt" For Output As MAX_FILE_NBR%
+  Close MAX_FILE_NBR%
 
   ' Can't use file number #11.
   On Error Skip 1
-  Open TMPDIR$ + "/test_open_errors.txt" For Output As #11
-  assert_raw_error(INVALID_FILE_NBR_ERR$)
+  Open TMPDIR$ + "/test_open_errors.txt" For Output As MAX_FILE_NBR% + 1
+    Select Case Mm.Device$
+    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
+    Case Else :    assert_raw_error("File number")
+  End Select
+End Sub
+
+Sub test_append_eof_bug()
+  Local filename$ = TMPDIR + "/test_append_eof_bug.txt"
+
+  If file.exists%(filename$) Then Kill filename$
+
+  Open filename$ For Append As #1
+  Print #1, "Goodbye World"
+  If Mm.Device$ = "MMB4L" Then On Error Skip
+  Local i% = Eof(#1)
+  If Mm.Device$ = "MMB4L" Then assert_raw_error(BAD_FILE_DESCRIPTOR_ERR$)
+  Close #1
+
+  Open filename$ For Input As #1
+  Local s$ = Input$(255, #1)
+  Close #1
+
+  assert_int_equals(15, Len(s$))
 End Sub

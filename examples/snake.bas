@@ -1,5 +1,6 @@
-' Copyright (c) 2020 Thomas Hugo Williams
-' For Maximite BASIC v4.5C
+' Copyright (c) 2020-2022 Thomas Hugo Williams
+' License MIT <https://opensource.org/licenses/MIT>
+' For MMBasic 5.07
 
 ' LED "Snake" game.
 
@@ -17,7 +18,7 @@ Const CMD_SELECT% = 10, CMD_START% = 20, CMD_DEMO% = 30
 Console HideCursor
 
 Cls
-Print "LED SNAKE - Tom Williams 2020-2021"
+Print "LED SNAKE - Tom Williams 2020-2022"
 Print "Cursor keys to move"
 Print "[S] to START"
 Print "[D] to SELECT difficulty"

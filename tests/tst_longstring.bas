@@ -1,18 +1,18 @@
-' Copyright (c) 2021 Thomas Hugo Williams
+' Copyright (c) 2021-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For Colour Maximite 2, MMBasic 5.07
+' For MMBasic 5.07
 
 Option Explicit On
 Option Default None
 Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 
-#Include "../basic-src/splib/system.inc"
-#Include "../basic-src/splib/array.inc"
-#Include "../basic-src/splib/list.inc"
-#Include "../basic-src/splib/string.inc"
-#Include "../basic-src/splib/file.inc"
-#Include "../basic-src/splib/vt100.inc"
-#Include "../basic-src/sptest/unittest.inc"
+#Include "../sptools/src/splib/system.inc"
+#Include "../sptools/src/splib/array.inc"
+#Include "../sptools/src/splib/list.inc"
+#Include "../sptools/src/splib/string.inc"
+#Include "../sptools/src/splib/file.inc"
+#Include "../sptools/src/splib/vt100.inc"
+#Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
 
@@ -203,7 +203,7 @@ Sub test_print()
   Local s$
   Line Input #1, s$
   assert_string_equals("Hello World", s$)
-  assert_true(Eof(#1))
+  assert_int_equals(1, Eof(#1))
   Close #1
 End Sub
 

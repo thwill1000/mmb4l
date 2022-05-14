@@ -1,15 +1,72 @@
 TODO
 ====
 
-Required for alpha 4
+
+Required for alpha 5
 --------------------
 
-gonzo: Implement local LIST/TYPE command
-gonzo: Try to reconnect (using dmesg?) to device if we lose connection
-  - i.e. when setting OPTIONs
-gonzo: Timeout on and retry connections at least once
-  - first connection to PicoMite always seems to fail on my {X}Ubuntu VMs
-gonzo: Implement progress reporting for XMODEM SEND and RECEIVE
+ - 'path.h' and 'program.h' functions should return MmResult instead of setting
+   errno
+ - Don't fake/support drive specifications, e.g. A:/
+ - Implement tab completion of paths at MMBasic prompt
+ - Implement variable/sub/function hash tables
+ - Replace bang ! command with *, or allow both ?
+   - also allow use of dot because it is usually available on virtual keyboard
+     without requiring a modifier key to be pressed.
+ - Implement SAVE command (?)
+ - Make sense of or eliminate mmb_options.prog_flash_size
+ - Don't include line number and filename in error message string; still show
+   them at prompt where appropriate and make them available via MM.INFO()
+ - What should behaviour be when a command at the MMBasic prompt goes onto a
+   second line ?
+ - Make default output from FILES more like that of CMM2
+ - Find fix for this bug:
+
+    ' This will sometimes run forever,
+    ' and occasionally do nothing because the interrupt never fires.
+
+    Option Console Both
+    Option Base 0
+    Option Default None
+    Option Explicit Off
+
+    Timer = 0
+
+    SetTick 5, my_interrupt
+    Pause 10
+    End
+
+    Sub my_interrupt()
+      ? "Interrupt entered"
+      Print Timer
+      Local i%
+      For i% = 1 To 100000 : Next
+      ? "Interrupt exited"
+    End Sub
+
+
+Required for alpha 6
+--------------------
+
+Reorder interrupt processing to match PicoMite, add this as a comment to the
+code:
+  1. ON KEY individual
+  2. ON KEY general
+  -- 3. GUI Int Down (not PicoMiteVGA)
+  -- 4. GUI Int Up (not PicoMiteVGA)
+  -- 5. ADC completion
+  -- 6. I2C Slave Rx
+  -- 7. I2C Slave Tx
+  -- 8. I2C2 Slave Rx
+  -- 9. I2C2 Slave Tx
+  -- 10. WAV Finished
+  11. COM1: Serial Port
+  12. COM2: Serial Port
+  -- 13. IR Receive
+  -- 14. Keypad
+  -- 15. Interrupt command/CSub Interrupt
+  -- 16. I/O Pin Interrupts in order of definition
+  17. Tick Interrupts (1 to 4 in that order)
 Consider options for handling of control characters in MMgetline()
 Read from serial ports directly into RxBuf
   - i.e. not via a temporary buffer
@@ -21,7 +78,7 @@ Tidy up LED snake example
 Implement CONSOLE BLINK, BOLD, FAINT, ITALIC, REVERSE, STRIKE, UNDERLINE
 
 
-Required for alpha 5
+Required for alpha 7
 --------------------
 
 Write a proper lexer and ensure all Peter's "preprocessor tricks" work in both
@@ -29,12 +86,6 @@ Write a proper lexer and ensure all Peter's "preprocessor tricks" work in both
   - the command-line
 Completely overhaul 'mmbasic.syntax.nanorc'
   - can we fix syntax highlighting for "strings" inside comments ?
-Implement SEARCH PATH
-Implement command-line RUN shortcut '*'
-Implement command-line SYSTEM shortcut, e.g. '!ls'
-Make all function keys reprogrammable
-Implement OPTION persistence
-Implement variable/sub/function hash tables
 
 
 Required for release
@@ -42,14 +93,12 @@ Required for release
 
 Add option to PAUSE controlling whether it nanosleeps or not
  - or an OPTION to MMBasic controlling all sleep behaviour
-Make output from LS more like that of CMM2
 Have another look at the other settings recommended for raw console mode
-Work through CMM2 manual implementing missing commands/functions
+Work through other MMBasic manuals implementing missing commands/functions
 Review all uses of void*
 Implement safety checks on PEEK/POKE calls
  - should these be optional ?
  - should address alignment of PEEK/POKE be optional ?
-Implement command-line path completion
 
 
 To infinity and beyond
@@ -65,10 +114,3 @@ Fix bug where TRACE will not log a line that you GOTO/GOSUB using a line number,
   but will if you use a label
 Can PRINT @(x,y) be implemented without using a function slot for @ ?
 Implement line continuation character _
-
-
-EDITOR issues
--------------
-
-File numbers, e.g. #5 should be highlighted in green
-Should Ctrl-K delete to the end of the line instead of the entire line ?

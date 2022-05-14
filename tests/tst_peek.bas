@@ -1,18 +1,18 @@
-' Copyright (c) 2020-2021 Thomas Hugo Williams
+' Copyright (c) 2020-2022 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For Colour Maximite 2, MMBasic 5.07
+' For MMBasic 5.07
 
 Option Explicit On
 Option Default None
 Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 
-#Include "../basic-src/splib/system.inc"
-#Include "../basic-src/splib/array.inc"
-#Include "../basic-src/splib/list.inc"
-#Include "../basic-src/splib/string.inc"
-#Include "../basic-src/splib/file.inc"
-#Include "../basic-src/splib/vt100.inc"
-#Include "../basic-src/sptest/unittest.inc"
+#Include "../sptools/src/splib/system.inc"
+#Include "../sptools/src/splib/array.inc"
+#Include "../sptools/src/splib/list.inc"
+#Include "../sptools/src/splib/string.inc"
+#Include "../sptools/src/splib/file.inc"
+#Include "../sptools/src/splib/vt100.inc"
+#Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
 
@@ -52,6 +52,9 @@ Sub test_peek_byte()
 
   ' Having PEEK's first operand in brackets was broken in MMBasic 5.07.01.
   assert_hex_equals(&h01, Peek(Byte (num_addr% + 7)), 2)
+
+  num% = 255
+  assert_int_equals(255, Peek(Byte num_addr%))
 End Sub
 
 Sub test_peek_float()
@@ -132,6 +135,10 @@ Sub test_peek_var()
   assert_hex_equals(&h03, Peek(Var num%, 5), 2)
   assert_hex_equals(&h02, Peek(Var num%, 6), 2)
   assert_hex_equals(&h01, Peek(Var num%, 7), 2)
+
+  ' This incorrectly returned -1 with a MMB4W 5.07.03b9 build.
+  num% = 255
+  assert_int_equals(255, Peek(Var num%, 0))
 End Sub
 
 Sub test_peek_word()
@@ -153,6 +160,8 @@ End Sub
 
 Sub test_peek_cfunaddr()
   Local ad%, i%, offset%
+
+  If Mm.Device$ = "MMBasic for Windows" Then Exit Sub
 
   ad% = Peek(CFunAddr data1())
   offset% = 0
@@ -183,6 +192,8 @@ CSub data2()
 End CSub
 
 Sub test_peek_progmem()
+  If Mm.Device$ = "MMBasic for Windows" Then Exit Sub
+
   Local offset% = 0
 
   assert_hex_equals(1, Peek(ProgMem, offset%))

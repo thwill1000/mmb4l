@@ -1,0 +1,26 @@
+MMBasic for Linux (MMB4L)
+=========================
+
+As a whole MMB4L is covered by a modified 4-clause BSD license,
+see LICENSE.MMBasic.
+
+Most unit-tests, integration-tests, examples and some utility code are
+dual-licensed with the MIT License, see LICENSE.MIT. Such source files can be
+identified by their file header comments.
+
+Individual source files may contain other attributions and license variations,
+none of which *are believed to* impact the overall statement presented in
+LICENSE.MMBasic.
+
+Note that MMB4L is derived from earlier MMBasic versions that are:
+
+  Copyright 2011-2021 Geoff Graham
+  Copyright 2016-2021 Peter Mather
+
+Historically these versions were available only under a more restrictive
+non-"open source" license but with Geoff and Peter's kind permission
+MMBasic has been relicensed for MMB4L and also for these recent versions
+maintained by Peter Mather:
+
+  MMBasic for PicoMite: https://github.com/UKTailwind/PicoMite
+  MMBasic for Windows:  https://github.com/UKTailwind/MMB4W
