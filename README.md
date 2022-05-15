@@ -69,10 +69,10 @@ MMB4L is an open-source project distributed under a modified 4-clause BSD licens
 
 MMB4L is in the early alpha phase so there are no fancy installers yet:
 
- 1. Download the latest .tgz for your platform from the [distributions](distributions) directory:
-    * For 64-bit Linux running on Intel/AMD use the 'x86_64' distribution.
-    * For 32-bit Linux running on Intel/AMD use the 'i686' distribution.
-    * For 32-bit Raspbian/Linux running on Raspberry Pi ("Buster") use the 'armv6l' distribution.
+ 1. Download the .tgz for the desired platform from the [latest release](https://github.com/thwill1000/mmb4l/releases/latest):
+    * For 64-bit Linux running on Intel/AMD use the 'x86_64' build.
+    * For 32-bit Linux running on Intel/AMD use the 'i686' build.
+    * For 32-bit Raspbian/Linux running on Raspberry Pi ("Buster") use the 'armv6l' build.
 
  2. Extract the archive into a temporary location:
     * ```mkdir -p ~/tmp && tar -xf mmb4l-<version>.tgz --directory ~/tmp```
@@ -106,7 +106,7 @@ MMB4L is in the early alpha phase so there are no fancy installers yet:
      * `mmbasic -h`
 
  * Use the `QUIT` command to exit from MMB4L
-     * `Ctrl-C` only interrupts the currently running BASIC program and returns control to the BASIC prompt.
+     * `Ctrl-C` does not exit MMB4L; it instead interrupts the currently running BASIC program and returns control to the BASIC prompt.
 
 ### Start with a shebang #!
 
@@ -136,7 +136,7 @@ Perhaps one day there will be a user manual specific to MMB4L, until then you ar
 
 ## 5. The EDITor
 
-Unlike other MMBasic platforms the ```EDIT``` command for MMB4L does not use a bespoke editor but instead relies on a third-party editor being installed. By default this is [GNU nano](https://www.nano-editor.org/), but this can be changed using the the [OPTION EDITOR](#option-editor)) command.
+Unlike other MMBasic platforms the ```EDIT``` command for MMB4L does not use a bespoke editor but instead relies on a third-party editor being installed. By default this is [GNU nano](https://www.nano-editor.org/), but this can be changed using the the [OPTION EDITOR](#option-editor) command.
 
 ### Configuring GNU nano
 
@@ -144,10 +144,10 @@ Unlike other MMBasic platforms the ```EDIT``` command for MMB4L does not use a b
     * ```nano --version```
     * If nano is not installed then [install it](https://phoenixnap.com/kb/use-nano-text-editor-commands-linux).
 
- 2. The "mmb4l-<version>.tgz" file contains resource files to configure nano to behave similarly to the Colour Maximite 2's integrated editor:
+ 2. The "mmb4l-\<version>.tgz" file contains resource files to configure nano to behave similarly to the Colour Maximite 2's integrated editor:
     * If you are running nano 4.8+:
       * ```
-        mkdir -p ~/.mmbasic```
+        mkdir -p ~/.mmbasic
         cp ~/tmp/mmb4l-<version>/mmbasic.nanorc ~/.mmbasic
         cp ~/tmp/mmb4l-<version>/mmbasic.syntax.nanorc ~/.mmbasic
         ```
@@ -206,7 +206,7 @@ Where not overridden by the above the [default nano keyboard bindings](https://w
 
 **Gotchas:**
 
- 1. Unlike other MMBasic version there is no key to **Run** a program from the editor.
+ 1. Unlike other MMBasic version there is no key combination to automatically **Run** a program from the editor.
  2. If you rename a file whilst saving it MMB4L will not update its "current stored program" state and will still be using the previous file.
 
 ## 6. Differences from MMBasic 5.07.03 for the Colour Maximite 2
@@ -214,20 +214,21 @@ Where not overridden by the above the [default nano keyboard bindings](https://w
 The principle difference between MMB4L and the Colour Maximite 2 is the lack of commands/functions for high-resolution graphics, sound and GPIO.
 
 * Unlike the CMM2 there is a ```LOAD program_file$``` command which updates the "current stored program".
-    * Note that any command that operates on the "current stored program" automatically reloads that program from disk before executing, i.e. ```LIST```, ```EDIT```, ```RUN``` - MMB4L should never operate on a program that differs from that on disk.
-    * As with the CMM2 there is no ```SAVE program_file$``` command.
-* By default the functions ```HRES```, ```VRES```, ```MM.INFO(HPOS)```, ```MM.INFO(HRES)```, ```MM.INFO(VPOS)```, ```MM.INFO(VRES)``` return values in character rather than pixel resolution.
-    * ```OPTION CONSOLE PIXEL``` changes this to use pixel resolution based on a nominal 8x12 font.
-    * ```OPTION CONSOLE CHARACTER``` returns to using character resolution.
-* When the source of an error is in a .INC file the ```EDIT``` command will open that file instead of the current .BAS file.
-     * To explicitly open the current .BAS file use ```EDIT CURRENT```.
-* The ```RUN``` command accepts a string expression, e.g. ```RUN s1$ + s2$```.
-     * However any optional command-line is still passed verbatim / without evaluation to ```MM.CMDLINE$```,
-         * e.g. ```RUN "foo.bas", this_is_passed_verbatim$```;
-         * as on the CMM2 the ```EXECUTE``` command can be used to workaround this limitation.
-* As is the default for most BASICs the `FILES` command lists the contents of the current directory; the CMM2 is non-standard in this respect and instead shows a TUI file manager.
+    * Note that any command that operates on the "current stored program" automatically reloads that program from disk before executing, i.e. `LIST`, `EDIT`, `RUN`. MMB4L never operates on a program that differs from that on disk.
+    * As with the CMM2 there is no `SAVE program_file` command.
+* By default the functions `HRES`, `VRES`, `MM.INFO(HPOS)`, `MM.INFO(HRES)`, `MM.INFO(VPOS)` and `MM.INFO(VRES)` return values in character rather than pixel resolution.
+    * `OPTION CONSOLE PIXEL` changes this to use pixel resolution based on a nominal 8x12 font.
+    * `OPTION CONSOLE CHARACTER` returns to using character resolution.
+* When the source of an error is in a .INC file the `EDIT` command will open that file instead of the current .BAS file.
+     * To explicitly open the current .BAS file use `EDIT CURRENT`
+* The `RUN` command accepts a string expression, e.g. `RUN s1$ + s2`
+     * However any optional command-line is still passed verbatim / without evaluation to `MM.CMDLINE`
+         * e.g. `RUN "foo.bas", this_expression$ + will% + not_be_evaluated!`
+         * as on the CMM2 the `EXECUTE` command can be used to workaround this limitation.
+* As is the default for most BASICs the `FILES` command lists the contents of the current directory.
+     * The CMM2 is "non-standard" in this respect and instead shows a TUI file manager.
 * There is no `LS` command, use `FILES` or for more flexibility `!ls`.
-* Also see [Limitations](#limitations).
+* Also see [Limitations](#8-limitations).
 
 ## 7. MMB4L specific extensions to MMBasic
 
@@ -261,7 +262,7 @@ _Note that the command string is passed verbatim as the first argument to the `S
 
 `CHR$(UTF8 codepoint%)`
 
-Given a Unicode code point this extension to the CHR$() function will return the 1-4 character string encoding that character in UTF-8 format.
+Given a Unicode code point this extension to the CHR$() function will return a 1-4 character string encoding that character in UTF-8 format.
     
 _Note that printing such characters is not compatible with `OPTION CODEPAGE` being set.__
 
@@ -270,7 +271,7 @@ _Note that printing such characters is not compatible with `OPTION CODEPAGE` bei
 The CONSOLE command manipulates the console/terminal using ANSI escape-codes:
 
  * `CONSOLE BACKGROUND {<colour_name>|colour%} `
-     * Sets the background colour for future PRINT statements.
+     * Sets the background colour for future `PRINT` commands.
      * Allowed colours and equivalent integers are:
          * 0 = Black
          * 1 = Blue
@@ -289,15 +290,15 @@ The CONSOLE command manipulates the console/terminal using ANSI escape-codes:
      * This is synonymous with the top-level `CLS` command.
 
  * `CONSOLE GETCURSOR x%, y%`
-     * Reads the cursor position into the x% and y% variables.
-     * x% and y% are character coordinates with origin (0, 0).
+     * Reads the cursor position into the `x%` and `y%` variables.
+     * `x%` and `y%` are character coordinates with origin (0, 0).
 
  * `CONSOLE GETSIZE width%, height%`
-     * Reads the current console size into the width% and height% variables.
-     * width% and size% are in characters.
+     * Reads the current console size into the `width%` and `height%` variables.
+     * `width%` and `size%` are in characters.
 
  * `CONSOLE FOREGROUND {[BRIGHT] <colour_name> | colour%}`
-     * Sets the foreground colour for future PRINT statements.
+     * Sets the foreground colour for future `PRINT` commands.
      * Allowed colours are the same as for `CONSOLE BACKGROUND` but with an optional `BRIGHT` attribute:
          * 8 = Grey (Bright Black)
          * 9 = Bright Blue
@@ -309,7 +310,7 @@ The CONSOLE command manipulates the console/terminal using ANSI escape-codes:
          * 15 = Bright White
 
  * `CONSOLE HIDECURSOR [ON | TRUE | OFF | FALSE | z%]`
-     * Hides or shows the cursor, without any argument this hides the cursor.
+     * Hides or shows the cursor; without any argument this hides the cursor.
 
  * `CONSOLE HOME`
      * Moves the cursor to the origin (0, 0) *.
@@ -321,9 +322,8 @@ The CONSOLE command manipulates the console/terminal using ANSI escape-codes:
      * Resets the foreground, background and invert attributes.
 
  * `CONSOLE SETCURSOR x%, y%`
-     * Moves the cursor to (x%, y%) *.
-     * x% and y% are character coordinates with origin (0, 0).
-     * This is synonymous with the top-level `CURSOR` command.
+     * Moves the cursor to (`x%`, `y%`) *.
+     * `x%` and `y%` are character coordinates with origin (0, 0).
 
  * `CONSOLE SETSIZE [ATLEAST] width%, height%`
     * Sets the console size.
@@ -332,10 +332,9 @@ The CONSOLE command manipulates the console/terminal using ANSI escape-codes:
 
  * `CONSOLE SETTITLE title$`
      * Sets the console title.
-     * This is synonymous with the top-level `SETTITLE` command.
 
  * `CONSOLE SHOWCURSOR [ON | TRUE | OFF | FALSE | z%]`
-     * Shows or hides the cursor - without any argument this shows the cursor.
+     * Shows or hides the cursor; without any argument this shows the cursor.
 
 _\* Note that all PRINTing starts at and moves the current cursor position._
 
@@ -344,13 +343,13 @@ _\* Note that all PRINTing starts at and moves the current cursor position._
 ```END [exit_code%]```
 
 Ends the running program "returning" an optional exit code (default 0).
- * If running interactively this returns to the MMB4L command prompt and the optional exit code (default 0) is retrievable via ```MM.INFO(EXITCODE)```.
+ * If running interactively this returns to the BASIC command prompt and the optional exit code (default 0) is retrievable via ```MM.INFO(EXITCODE)```.
  * If running non-interactively this behaves the same as the [QUIT](#quit) command.
  * For details about exit codes see the [QUIT](#quit) command.
 
 ### ERROR
 
-`ERROR [error_msg$] [, errno%] `
+`ERROR [error_msg$ [, errno%]]`
 
 Forces an error and terminates the program. This is normally used in debugging or to trap events that should not occur.
  * The value of `error_msg$` (default "Unspecified error") can be retrieved with `MM.ERRMSG$`.
@@ -365,7 +364,7 @@ Forces an error and terminates the program. This is normally used in debugging o
 
 `JSON$(array%(), string$ [, flags%])`
 
-Returns a string representing a specific item out of the JSON input stored in the longstring 'array%()'.
+Returns a string representing a specific item out of the JSON input stored in the longstring `array%()`.
  * The optional flags parameter (default 0) specifies how explicit nulls and missing values should be handled:
      * &b00 - return empty strings for both.
      * &b01 - return `"<null>"` for explicit null.
@@ -389,10 +388,10 @@ In MMB4L this function can return values for these additional properties:
      * Gets the value of the named environment variable, or the empty string if there is no such environment variable.
 
  * `MM.INFO(EXISTS path$)`
-     * Does the file / directory / device referred to by path$ exist ?
+     * Does the file / directory / device referred to by `path$` exist ?
 
  * `MM.INFO(EXISTS SYMLINK path$)`
-     * Does path$ refer to a symbolic link ?
+     * Does `path$` refer to a symbolic link ?
 
  * `MM.INFO(EXITCODE)`
      * Gets the exit code "returned" by the last program run:
@@ -407,7 +406,7 @@ In MMB4L this function can return values for these additional properties:
 
 ### OPEN
 
-_WARNING! at the time of writing (for alpha 4) MMB4L serial communications are a still a work in progress and as a result a bit slow and flakey._
+_WARNING! MMB4L serial communications are still very much a work in progress and are known to be unnecessarily slow and flakey._
 
 `OPEN comspec$ AS [#]fnbr`
 
@@ -446,7 +445,7 @@ The following flags be specified in any order.
  * RTSCTS - enable RTS/CTS hardware flow control.
      * *At least in theory, this is untested.*
  * XONXOFF - enable XON/XOFF software flow control.
-     * *At least in theory, this is untested.*
+     * _WARNING! not currently working._
 
 MMB4L does not support the following CMM2 flags: DEP, DEN, INV or OC.
 
@@ -464,7 +463,7 @@ Note that this change requires the user to logout and then login again to take e
 
 Causes character bytes in the range 128-255 to be translated to Unicode (UTF-8) when printed to the console according to a given code page / mapping.
 
-Supported values of `<page>` are:
+Supported code pages are:
  * NONE - no mapping, characters 128-255 are written as-is.
  * CMM2 - best effort mapping to the characters of the CMM2 font.
  * CP437 - characters 128-255 of the original IBM PC code 437. Note this was a non-ANSI code page which also included characters 1-31 which are not available in this mapping, but see "MMB4L".
@@ -477,7 +476,7 @@ Supported values of `<page>` are:
 
 Controls which editor is used by the EDIT command.
 
-Where `<editor>` is one of:
+Supported editors are:
  * ATOM
  * CODE     (synonym for VSCODE)
  * DEFAULT  (synonym for NANO)
@@ -491,20 +490,20 @@ Where `<editor>` is one of:
  * VSCODE
  * XED
 
-Alternatively a string expression can be provided which either evaluates to one of the given values or explicitly specifies an edit command to execute, e.g.
+Alternatively a string expression can be provided which either evaluates to one of the editors listed above or explicitly specifies a Linux shell command to execute to launch an editor, e.g.
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`OPTION EDITOR "code -g ${file}:${line}"`
 
 Where:
- * `${file}` is a placeholder for the filename to edit, this will automatically have "quotes" put around it.
+ * `${file}` is a placeholder for the filename to edit, the filename will be automatically enclosed in double-quotes.
  * `${line}` is a placeholder for the line number to set the initial cursor position to.
 
 ### OPTION F\<num>
 
 `OPTION {F1 .. F12} string$`
 
-Defines the string that will be generated when the given function key is pressed at the command prompt.
-   * Unlike the CMM2 all of F1-F12 may be user defined.
+Defines the string that will be generated when the given function key is pressed at the BASIC command prompt.
+   * Unlike the CMM2 all of F1-F12 may be redefined by the user.
    * _WARNING! depending on the window manager being used some function key presses may be captured and not passed on to MMBasic._
 
 ### OPTION LIST
@@ -540,17 +539,19 @@ Saves permanent options that have been changed from their default values to the 
 
 `pos% = PEEK(DATAPTR)`
 
-Gets the current value of the "virtual pointer" used to track where the [READ](#read) command reads `DATA` from. Note that this value is opaque and whilst it can be stored it should not be manipulated other than passing it to the `POKE DATAPTR ptr%` command.
+Gets the current value of the "virtual pointer" used to track where the [READ](#read) command reads `DATA` from.
+ * This value is opaque and whilst it can be stored it should not be manipulated other than passing it to the `POKE DATAPTR ptr%` command.
 
 ### POKE
 
 `POKE DATAPTR ptr%`
 
-Sets the value of the "virtual pointer" used to track where the [READ](#read) command reads `DATA` from. Only values of `ptr%` previously retrieved by calling `PEEK(DATAPTR)` should be passed to this command.
+Sets the value of the "virtual pointer" used to track where the [READ](#read) command reads `DATA` from.
+ * Only values of `ptr%` previously retrieved by calling `PEEK(DATAPTR)` should be passed to this command.
 
 ### PRINT
 
-`Print @(x%, y%) expression`
+`PRINT @(x%, y%) expression`
 
 Outputs text to the console/terminal at a given character position followed by a carriage return/newline pair.
  * Unlike the CMM2 `x%` and `y%` are both obligatory and in character (not pixel) coordinates. There is no `mode` parameter.
@@ -563,7 +564,7 @@ Outputs text to the console/terminal at a given character position followed by a
 Exits MMB4L returning an optional exit code (default 0) to the shell.
  * The exit code should be between 0 and 255.
  * A value of 0 indicates success and a value of 1 indicates a general error.
- * Linux has no hard standard for other values, but for some guidance see:
+ * Linux has no hard standard for other values, but for guidance see:
      * [Advanced Bash Scripting Guide](https://tldp.org/LDP/abs/html/exitcodes.html)
      * [sysexits - FreeBSD](https://www.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html)
 
@@ -573,7 +574,7 @@ Exits MMB4L returning an optional exit code (default 0) to the shell.
 
 The standard behaviour of the `READ variable [, variable] ...` command is to read data from a global "virtual pointer". When a program starts this pointer is initialised to point at the first item of the program's first `DATA` statement and can be reset using the `RESTORE` command.
 
-Because this pointer is global a subroutine or function that wishes to safely access its own `DATA` without interfering with data reads being performed by its caller should use the `READ SAVE` and `READ RESTORE` commands to save and restore the value of the pointer before and after doing so. In MMB4L 50 levels of nested `READ SAVE` and `READ RESTORE` are allowed.
+Because this pointer is global, a subroutine or function that wishes to safely access its own `DATA` without interfering with data reads being performed by its caller should use the `READ SAVE` and `READ RESTORE` commands to save and restore the value of the pointer before and after doing so. In MMB4L 50 levels of nested `READ SAVE` and `READ RESTORE` are allowed.
 
 e.g.
 
@@ -616,12 +617,12 @@ Executes the Linux operating system command specified by `cmd$`.
 
 `SYSTEM GETENV name$, {value$ | value%()}`
 
-Gets the value of an environment variable `name$` into either a string `value$` or long string `output%()` parameter.
+Gets the value of an environment variable `name$` into either a string `value$` or long string `value%()` parameter.
  * This supplements `MM.INFO$(ENVVAR)` because it allows values > 255 characters to be read into a long string.
 
 `SYSTEM SETENV name$, {value$ | value%()}`
 
-Sets the value of an environment variable `name$` from either a string `value$` or long string `output%()` parameter.
+Sets the value of an environment variable `name$` from either a string `value$` or long string `value%()` parameter.
 
 ### XMODEM
 
