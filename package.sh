@@ -17,9 +17,9 @@ cp ../ChangeLog ${distrib}
 cp ../README.md ${distrib}
 tar -cvzf ${distrib}.tgz ${distrib}
 
-export mmb4l_dir=../../mmb4l
-mkdir -p ${mmb4l_dir}/distributions/mmb4l-${version}
-cp ${distrib}.tgz ${mmb4l_dir}/distributions/mmb4l-${version}
-cp ../ChangeLog ${mmb4l_dir}
-cp ../README.md ${mmb4l_dir}
-cp ../examples/mandelbrot.bas ${mmb4l_dir}/examples
+#export mmb4l_dir=../../mmb4l
+#mkdir -p ${mmb4l_dir}/distributions/mmb4l-${version}
+#cp ${distrib}.tgz ${mmb4l_dir}/distributions/mmb4l-${version}
+#cp ../ChangeLog ${mmb4l_dir}
+#cp ../README.md ${mmb4l_dir}
+#cp ../examples/mandelbrot.bas ${mmb4l_dir}/examples
