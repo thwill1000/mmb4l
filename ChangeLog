@@ -1,10 +1,9 @@
-
 ChangeLog
 ---------
 
 Version 2022.01.00-a4 - 15-May-2022:
   - MMB4L is now open-source and licensed under a modified 4-clause BSD license
-    similar to that or the PicoMite firmware and MMBasic for Windows. See the
+    similar to that for the PicoMite firmware and MMBasic for Windows. See the
     LICENSE file for details. My thanks to Geoff and Peter for allowing this to
     be possible.
   - Added * command which may be used at the MMBasic prompt (but not within
@@ -33,8 +32,8 @@ Version 2022.01.00-a4 - 15-May-2022:
     options except for BASE, BREAK, CASE, CODEPAGE, CONSOLE, EXPLICIT and
     RESOLUTION:
         - only options that differ from their defaults are saved to this file.
-  - Added OPTION EDITOR <editor> command to change the EDITor;
-    <editor> is one of:
+  - Added OPTION EDITOR <editor> command to change the EDITor.
+    Supported editors are:
         - ATOM
         - CODE     (synonym for VSCODE)
         - DEFAULT  (synonym for NANO)
@@ -49,18 +48,18 @@ Version 2022.01.00-a4 - 15-May-2022:
         - XED      (untested because I couldn't get a version for Ubuntu 21.)
         - or a string specifying a command to run, e.g.
               OPTION EDITOR "code -g ${file}:${line}"
-          ${file} is a placeholder for the filename to edit, this will
-                  automatically have "quotes" put around it.
+          ${file} is a placeholder for the filename to edit, the filename will
+                  be automatically enclosed in double-quoted.
           ${line} is a placeholder for the line number to set the initial
                   cursor position to.
   - Added OPTION F<num> string$ sub-commands to define the strings that will be
     generated when pressing function keys at the MMBasic prompt:
-        - all of F1-F12 can be programmed.
+        - all of F1-F12 can be redefined.
         - beware that some function keys may be captured by the Linux window
           manager and never passed on to MMBasic.
   - Added OPTION SEARCH PATH <path> command as per CMM2.
   - Added OPTION {SAVE | LOAD} <filename> command.
-  - Added OPTION RESET [ALL | <option>] command.
+  - Added OPTION RESET {ALL | <option>} command.
   - Added PEEK(DATAPTR) function and POKE DATAPTR ptr% command for getting
     and setting the DATA read pointer.
   - Added READ {RESTORE | SAVE} command for pushing and popping the DATA read
