@@ -114,7 +114,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         #define COPYRIGHT  "Copyright " YEAR " Geoff Graham\r\n" \
                            "Copyright 2016-2022 Peter Mather\r\n" \
                            "Copyright 2021-2022 Thomas Hugo Williams\r\n"
-        #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a4\r\n"
+        #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a5\r\n"
     #endif
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

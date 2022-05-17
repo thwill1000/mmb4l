@@ -1,6 +1,9 @@
 ChangeLog
 ---------
 
+Version 2022.01.00-a5 - ??-???-2022:
+  - First change here.
+
 Version 2022.01.00-a4 - 15-May-2022:
   - MMB4L is now open-source and licensed under a modified 4-clause BSD license
     similar to that for the PicoMite firmware and MMBasic for Windows. See the
