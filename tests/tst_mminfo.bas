@@ -92,11 +92,11 @@ Function expected_path$()
     Case "MMB4L"
       Local out$
       System "echo $HOME", out$
-      expected_path$ = out$ + "/github/mmb4l-src/tests/"
+      expected_path$ = out$ + "/github/mmb4l/tests/"
     Case "MMBasic for Windows"
-      expected_path$ = "C:\home-thwill\git_sandbox\github\mmb4l-src\tests\"
+      expected_path$ = "C:\home-thwill\git_sandbox\github\mmb4l\tests\"
     Case Else
-      expected_path$ = "A:/MMB4L-SRC/tests/"
+      expected_path$ = "A:/MMB4L/tests/"
       If Cwd$ + "/" = UCase$(expected_path$) Then expected_path$ = UCase$(expected_path$)
   End Select
 End Function
