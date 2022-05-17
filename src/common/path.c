@@ -293,29 +293,24 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
  * to resolve symbolic links.
  */
 static char *path_make_absolute(const char *path, char *absolute_path, size_t sz) {
-    if (path[0] == '/') {
-        if (strlen(path) >= sz) {
+    assert(sz > 0);
+    absolute_path[0] = '\0';
+
+    // Copy current working directory to 'absolute_path' if necessary.
+    if (path[0] != '/') {
+        errno = 0;
+        if (!getcwd(absolute_path, sz)) {
+            assert(errno != 0);
+            return NULL;
+        }
+        if (path[0] != '\0'
+                && FAILED(cstring_cat(absolute_path, "/", sz))) {
             errno = ENAMETOOLONG;
             return NULL;
         }
-        strcpy(absolute_path, path);
-        errno = 0;
-        return absolute_path;
     }
 
-    errno = 0;
-    if (!getcwd(absolute_path, sz)) {
-        assert(errno != 0);
-        return NULL;
-    }
-
-    if (path[0] == '\0') return absolute_path;
-
-    if (FAILED(cstring_cat(absolute_path, "/", sz))) {
-        errno = ENAMETOOLONG;
-        return NULL;
-    }
-
+    // Append 'path' to 'absolute_path'.
     if (FAILED(cstring_cat(absolute_path, path, sz))) {
         errno = ENAMETOOLONG;
         return NULL;
