@@ -284,36 +284,53 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
     return new_path;
 }
 
+/**
+ * If \p path begins with '/' then copies \p path into \p absolute_path, otherwise
+ * copies the current working directory followed by '\' into \p absolute_path and
+ * then appends \p path.
+ *
+ * Does not do anything special with '.', '..' or repeated '/' and does not try
+ * to resolve symbolic links.
+ */
+static char *path_make_absolute(const char *path, char *absolute_path, size_t sz) {
+    if (path[0] == '/') {
+        if (strlen(path) >= sz) {
+            errno = ENAMETOOLONG;
+            return NULL;
+        }
+        strcpy(absolute_path, path);
+        errno = 0;
+        return absolute_path;
+    }
+
+    errno = 0;
+    if (!getcwd(absolute_path, sz)) {
+        assert(errno != 0);
+        return NULL;
+    }
+
+    if (path[0] == '\0') return absolute_path;
+
+    if (FAILED(cstring_cat(absolute_path, "/", sz))) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    if (FAILED(cstring_cat(absolute_path, path, sz))) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    return absolute_path;
+}
+
 char *path_get_canonical(const char *path, char *canonical_path, size_t sz) {
     errno = 0;
     char tmp_path[PATH_MAX];
     if (!path_munge(path, tmp_path, PATH_MAX)) return NULL;
 
-    if (tmp_path[0] == '/') {
-        if (strlen(tmp_path) >= sz) {
-            errno = ENAMETOOLONG;
-            return NULL;
-        }
-        strcpy(canonical_path, tmp_path);
-        errno = 0;
-        return canonical_path;
-    }
-
-    errno = 0;
-    if (!getcwd(canonical_path, sz)) {
-        assert(errno != 0);
-        return NULL;
-    }
-
-    if (tmp_path[0] == '\0') return canonical_path;
-
-    if (FAILED(cstring_cat(canonical_path, "/", sz))) {
-        errno = ENAMETOOLONG;
-        return NULL;
-    }
-
-    if (FAILED(cstring_cat(canonical_path, tmp_path, sz))) {
-        errno = ENAMETOOLONG;
+    if (!path_make_absolute(tmp_path, canonical_path, sz)) {
+        // errno should have been set appropriately.
         return NULL;
     }
 
