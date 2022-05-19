@@ -6,7 +6,7 @@
 #if !defined(MMB4L_TEST_CONFIG_H)
 #define MMB4L_TEST_CONFIG_H
 
-#define BIN_DIR           "/bin"
+#define BIN_DIR           "/usr/bin"
 #define TMP_DIR           "/tmp"
 #define HOME_DIR          "/home/thwill"
 
