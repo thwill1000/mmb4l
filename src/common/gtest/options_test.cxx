@@ -1381,6 +1381,8 @@ TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
     EXPECT_STREQ("", options.search_path);
 
     // Path to a directory that exists.
+    // Note: this will set the SEARCH PATH property to the canonical path
+    // corresponding to the value supplied.
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, BIN_DIR));
     EXPECT_STREQ(BIN_DIR, options.search_path);
 

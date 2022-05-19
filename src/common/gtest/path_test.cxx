@@ -23,7 +23,18 @@ extern "C" {
 #define FILE_THAT_EXISTS  BIN_DIR "/cp"
 #define PATH_TEST_DIR     TMP_DIR "/PathTest"
 
+// Used like a macro so named like a macro.
+static void SYSTEM_CALL(const char *cmd) {
+    errno = 0;
+    int exit_status = system(cmd);
+    if (exit_status != 0) FAIL() << "system(\"" << cmd << "\" failed: " << exit_status;
+}
+
 class PathTest : public ::testing::Test {
+
+private:
+
+    std::string m_cwd;
 
 protected:
 
@@ -32,19 +43,74 @@ protected:
         if (stat(PATH_TEST_DIR, &st) == -1) {
             mkdir(PATH_TEST_DIR, 0775);
         }
-        if (stat(PATH_TEST_DIR "/bar", &st) == -1) {
-            mkdir(PATH_TEST_DIR "/bar", 0775);
-        }
-        if (stat("bar", &st) == -1) {
-            mkdir("bar", 0775);
-        }
+
+        // Cache current working directory.
+        char *cwd = getcwd(NULL, 0);
+        m_cwd = cwd;
+        free(cwd);
     }
 
     void TearDown() override {
-        (void)! system("rm -rf " PATH_TEST_DIR);
+        SYSTEM_CALL("rm -rf " PATH_TEST_DIR);
+
+        // Restore current working directory.
+        errno = 0;
+        if (FAILED(chdir(m_cwd.c_str()))) {
+            fprintf(stderr, "chdir() failed.");
+            exit(EXIT_FAILURE);
+        }
     }
 
 };
+
+extern "C" {
+char *path_unwind(char *new_path, char *pdst);
+}
+
+TEST_F(PathTest, Unwind) {
+    char path[256];
+    char *p;
+
+    strcpy(path, "");
+    p = path_unwind(path, path + strlen(path));
+    EXPECT_STREQ("", p);
+
+    strcpy(path, "/foo/..");
+    p = path_unwind(path, path + strlen(path));
+    EXPECT_STREQ("", p);  // trailing .. prevents unwinding.
+
+    strcpy(path, "/foo..");
+    p = path_unwind(path, path + strlen(path));
+    EXPECT_STREQ("/foo..", p);
+
+    strcpy(path, "/foo/bar");
+    p = path_unwind(path, path + strlen(path));
+    EXPECT_STREQ("/bar", p);
+
+    strcpy(path, "/foo/bar");
+    p = path_unwind(path, path + 4);
+    EXPECT_STREQ("/foo/bar", p);
+
+    strcpy(path, "/foo");
+    p = path_unwind(path, path + strlen(path));
+    EXPECT_STREQ("/foo", p);
+
+    strcpy(path, "foo");
+    p = path_unwind(path, path + strlen(path));
+    EXPECT_STREQ("foo", p);
+
+    strcpy(path, "..");
+    p = path_unwind(path, path + strlen(path));
+    EXPECT_STREQ("", p); // trailing .. prevents unwinding.
+
+    strcpy(path, "...");
+    p = path_unwind(path, path + strlen(path));
+    EXPECT_STREQ("...", p);
+
+    strcpy(path, "../foo");
+    p = path_unwind(path, path + strlen(path));
+    EXPECT_STREQ("/foo", p);
+}
 
 #define TEST_MUNGE(path, expected)  memset(out, '\0', 256); \
         result = path_munge(path, out, 256); \
@@ -70,11 +136,14 @@ TEST_F(PathTest, Munge) {
     TEST_MUNGE("//",              "/");
     TEST_MUNGE("///",             "/");
     TEST_MUNGE("/.",              "/");
-    TEST_MUNGE("/..",             "/..");
-    TEST_MUNGE("/./..",           "/..");
+    TEST_MUNGE("/..",             "/");
+    TEST_MUNGE("/./..",           "/");
+    TEST_MUNGE("/../..",          "/");
+    TEST_MUNGE("/foo/..",         "/");
+    TEST_MUNGE("/foo/../..",      "/");
+    TEST_MUNGE("/foo",            "/foo");
     TEST_MUNGE("/./foo",          "/foo");
     TEST_MUNGE("/foo/.",          "/foo");
-    TEST_MUNGE("/foo/..",         "/");
     TEST_MUNGE("/foo/../bar",     "/bar");
     TEST_MUNGE("/foo/../bar.bas", "/bar.bas");
     TEST_MUNGE("/foo/.bar",       "/foo/.bar");
@@ -83,6 +152,9 @@ TEST_F(PathTest, Munge) {
     TEST_MUNGE("/foo../..",       "/");
     TEST_MUNGE("/foo../../bar",   "/bar");
     TEST_MUNGE("/foo//bar",       "/foo/bar");
+    TEST_MUNGE("/foo//bar",       "/foo/bar");
+    TEST_MUNGE("/~/foo",          "/~/foo");
+    TEST_MUNGE("/~foo/bar",       "/~foo/bar");
 
     // Relative paths.
     TEST_MUNGE(".",               "");
@@ -119,7 +191,7 @@ TEST_F(PathTest, Munge) {
     TEST_MUNGE("a:\\",            "/");
     TEST_MUNGE("\\",              "/");
     TEST_MUNGE("\\.",             "/");
-    TEST_MUNGE("\\..",            "/..");
+    TEST_MUNGE("\\..",            "/");
     TEST_MUNGE("~\\..\\foo",      HOME_PARENT "/foo");
     TEST_MUNGE("foo\\bar",        "foo/bar");
     TEST_MUNGE("..\\..\\..\\foo", "../../../foo");
@@ -135,6 +207,12 @@ TEST_F(PathTest, GetCanonical_GivenAbsolutePath) {
     char out[256];
     errno = 0;
     char *result;
+
+    // Root path.
+    TEST_GET_CANONICAL("/", "/");
+
+    // The parent of root is still root.
+    TEST_GET_CANONICAL("/..", "/");
 
     // Simple (non-existing) absolute path.
     TEST_GET_CANONICAL(PATH_TEST_DIR "/foo.bas", PATH_TEST_DIR "/foo.bas");
@@ -168,10 +246,11 @@ TEST_F(PathTest, GetCanonical_GivenRelativePath) {
     char expected[PATH_MAX + 256];
 
     char cwd[PATH_MAX];
-    if (!getcwd(cwd, sizeof(cwd))) {
-        perror("getcwd() error");
-        return;
-    }
+    ASSERT_TRUE(getcwd(cwd, sizeof(cwd))) << "getcwd() returned NULL";
+
+    // Empty path.
+    sprintf(expected, "%s", cwd);
+    TEST_GET_CANONICAL("", expected);
 
     // Simple (non-existing) relative path.
     sprintf(expected, "%s/foo.bas", cwd);
@@ -204,6 +283,118 @@ TEST_F(PathTest, GetCanonical_GivenRelativePath) {
     // Trailing slash dot dot.
     sprintf(expected, "%s", cwd);
     TEST_GET_CANONICAL("bar/..", expected);
+}
+
+TEST_F(PathTest, GetCanonical_GivenTilde) {
+    char out[256];
+    errno = 0;
+    char *result;
+    char expected[PATH_MAX + 256];
+
+    char cwd[PATH_MAX];
+    ASSERT_TRUE(getcwd(cwd, sizeof(cwd))) << "getcwd() returned NULL";
+
+    const char *home = getenv("HOME");
+    ASSERT_TRUE(home) << "getenv(\"HOME\") returned NULL";
+
+    TEST_GET_CANONICAL("~", home);
+    TEST_GET_CANONICAL("/~", "/~");
+    TEST_GET_CANONICAL("\\~", "/~");
+    TEST_GET_CANONICAL("~/", home);
+    TEST_GET_CANONICAL("~\\", home);
+
+    sprintf(expected, "%s/~foo", cwd);
+    TEST_GET_CANONICAL("~foo", expected);
+
+    sprintf(expected, "%s/foo~", cwd);
+    TEST_GET_CANONICAL("foo~", expected);
+}
+
+TEST_F(PathTest, GetCanonical_GivenDosDrivePrefix) {
+    char out[256];
+    errno = 0;
+    char *result;
+
+    TEST_GET_CANONICAL("A:", "/");
+    TEST_GET_CANONICAL("A:/", "/");
+    TEST_GET_CANONICAL("A:\\", "/");
+    TEST_GET_CANONICAL("A:/foo", "/foo");
+    TEST_GET_CANONICAL("A:\\foo", "/foo");
+    TEST_GET_CANONICAL("C:", "/");
+    TEST_GET_CANONICAL("C:/", "/");
+    TEST_GET_CANONICAL("C:\\", "/");
+    TEST_GET_CANONICAL("C:/foo", "/foo");
+    TEST_GET_CANONICAL("C:\\foo", "/foo");
+}
+
+TEST_F(PathTest, GetCanonical_ResolvesSymbolicLinks) {
+    char out[256];
+    char *result;
+
+    // ${PATH_TEST_DIR}/
+    //   bar/
+    //     foo.bas
+    //     foolink.bas             -> ${PATH_TEST_DIR}/bar/foo.bas
+    //     foolink2.bas            -> ${PATH_TEST_DIR}/bar/foolink.bas
+    //     missinglink.bas         -> ${PATH_TEST_DIR}/bar/missing.bas (which does not exist)
+    //     relativelink.bas        -> ../bar/foo.bas
+    //   barlink                   -> ${PATH_TEST_DIR}/bar
+    //   missinglink               -> ${PATH_TEST_DIR}/missing
+    //   rootlink                  -> /
+    //   homelink                  -> ~
+    //   wtflink                   -> /..
+
+    SYSTEM_CALL("mkdir " PATH_TEST_DIR "/bar");
+    SYSTEM_CALL("touch " PATH_TEST_DIR "/bar/foo.bas");
+    SYSTEM_CALL("ln -s " PATH_TEST_DIR "/bar/foo.bas "      PATH_TEST_DIR "/bar/foolink.bas");
+    SYSTEM_CALL("ln -s " PATH_TEST_DIR "/bar/foolink.bas "  PATH_TEST_DIR "/bar/foolink2.bas");
+    SYSTEM_CALL("ln -s " "../bar/foo.bas "                  PATH_TEST_DIR "/bar/relativelink.bas");
+    SYSTEM_CALL("ln -s " PATH_TEST_DIR "/bar/missing.bas "  PATH_TEST_DIR "/bar/missinglink.bas");
+    SYSTEM_CALL("ln -s " PATH_TEST_DIR "/bar "              PATH_TEST_DIR "/barlink");
+    SYSTEM_CALL("ln -s " PATH_TEST_DIR "/missing "          PATH_TEST_DIR "/missinglink");
+    SYSTEM_CALL("ln -s / "                                  PATH_TEST_DIR "/rootlink");
+    SYSTEM_CALL("ln -s ~ "                                  PATH_TEST_DIR "/homelink");
+    SYSTEM_CALL("ln -s /.. "                                PATH_TEST_DIR "/wtflink");
+
+    // Absolute paths.
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/bar/foolink.bas",             PATH_TEST_DIR "/bar/foo.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/bar/missing.bas",             PATH_TEST_DIR "/bar/missing.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/bar/missinglink.bas",         PATH_TEST_DIR "/bar/missing.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/barlink/foolink.bas",         PATH_TEST_DIR "/bar/foo.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/barlink/foolink2.bas",        PATH_TEST_DIR "/bar/foo.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/barlink/relativelink.bas",    PATH_TEST_DIR "/bar/foo.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/barlink/missinglink.bas",     PATH_TEST_DIR "/bar/missing.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/missing/foolink.bas",         PATH_TEST_DIR "/missing/foolink.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/missinglink/foolink.bas",     PATH_TEST_DIR "/missing/foolink.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/missing/missinglink.bas",     PATH_TEST_DIR "/missing/missinglink.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/missinglink/missinglink.bas", PATH_TEST_DIR "/missing/missinglink.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/rootlink",                    "/");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/rootlink/foo.bas",            "/foo.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/homelink",                    HOME_DIR);
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/homelink/foo.bas",            HOME_DIR "/foo.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/wtflink",                     "/");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/wtflink/foo.bas",             "/foo.bas");
+
+    // Relative paths.
+    SYSTEM_CALL("mkdir " PATH_TEST_DIR "/wombat");
+    ASSERT_TRUE(SUCCEEDED(chdir(PATH_TEST_DIR "/wombat"))) << "chdir() failed";
+    TEST_GET_CANONICAL("../bar/foolink.bas",             PATH_TEST_DIR "/bar/foo.bas");
+    TEST_GET_CANONICAL("../bar/missing.bas",             PATH_TEST_DIR "/bar/missing.bas");
+    TEST_GET_CANONICAL("../bar/missinglink.bas",         PATH_TEST_DIR "/bar/missing.bas");
+    TEST_GET_CANONICAL("../barlink/foolink.bas",         PATH_TEST_DIR "/bar/foo.bas");
+    TEST_GET_CANONICAL("../barlink/foolink2.bas",        PATH_TEST_DIR "/bar/foo.bas");
+    TEST_GET_CANONICAL("../barlink/relativelink.bas",    PATH_TEST_DIR "/bar/foo.bas");
+    TEST_GET_CANONICAL("../barlink/missinglink.bas",     PATH_TEST_DIR "/bar/missing.bas");
+    TEST_GET_CANONICAL("../missing/foolink.bas",         PATH_TEST_DIR "/missing/foolink.bas");
+    TEST_GET_CANONICAL("../missinglink/foolink.bas",     PATH_TEST_DIR "/missing/foolink.bas");
+    TEST_GET_CANONICAL("../missing/missinglink.bas",     PATH_TEST_DIR "/missing/missinglink.bas");
+    TEST_GET_CANONICAL("../missinglink/missinglink.bas", PATH_TEST_DIR "/missing/missinglink.bas");
+    TEST_GET_CANONICAL("../rootlink",                    "/");
+    TEST_GET_CANONICAL("../rootlink/foo.bas",            "/foo.bas");
+    TEST_GET_CANONICAL("../homelink",                    HOME_DIR);
+    TEST_GET_CANONICAL("../homelink/foo.bas",            HOME_DIR "/foo.bas");
+    TEST_GET_CANONICAL("../wtflink",                     "/");
+    TEST_GET_CANONICAL("../wtflink/foo.bas",             "/foo.bas");
 }
 
 TEST_F(PathTest, GetExtension) {
@@ -263,7 +454,7 @@ TEST_F(PathTest, MkDir) {
 }
 
 TEST_F(PathTest, MkDir_GivenExistingDirectory) {
-    (void)! system("mkdir " PATH_TEST_DIR "/existing-dir");
+    SYSTEM_CALL("mkdir " PATH_TEST_DIR "/existing-dir");
 
     EXPECT_EQ(kOk, path_mkdir(PATH_TEST_DIR "/existing-dir"));
 
@@ -272,7 +463,7 @@ TEST_F(PathTest, MkDir_GivenExistingDirectory) {
 }
 
 TEST_F(PathTest, MkDir_GivenExistingFile) {
-    (void)! system("touch " PATH_TEST_DIR "/existing-file");
+    SYSTEM_CALL("touch " PATH_TEST_DIR "/existing-file");
 
     EXPECT_EQ(kFileExists, path_mkdir(PATH_TEST_DIR "/existing-file"));
     EXPECT_EQ(kNotADirectory, path_mkdir(PATH_TEST_DIR "/existing-file/foo"));

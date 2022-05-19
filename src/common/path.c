@@ -56,6 +56,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "path.h"
 #include "utility.h"
 
+// Shouldn't be necessary, but VSCode can't find the defintion of PATH_AX and
+// highlights it as undefined.
+#if !defined(PATH_MAX)
+#define PATH_MAX  4096
+#endif
+
 bool path_exists(const char *path) {
     struct stat st;
     errno = 0;
@@ -105,7 +111,14 @@ typedef enum {
     kPathStateSlashDotDot,
 } PathState;
 
-static char *path_unwind(char *new_path, char *pdst) {
+/**
+ * @brief Searches through \p new_path backwards from \p pdst looking for a '/'
+ *        or the start of \p new_path.
+ *
+ * @return  pointer to the first '/' encountered or to \p new_path if there
+ *          were none.
+ */
+/*static*/ char *path_unwind(char *new_path, char *pdst) {
     if (pdst == new_path
             || ((pdst == new_path + 2) && memcmp(pdst - 2, "..", 2) == 0)
             || (memcmp(pdst - 3, "/..", 3) == 0)) {
@@ -137,29 +150,14 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
         absolute = true;
     }
 
+    // TODO: better checking for buffer overrun.
     if (sz <= len || sz <= 2) {
         errno = ENAMETOOLONG;
         return NULL;
     }
 
-    // Does the path begin with '~' ?
     char *pdst = new_path;
     *pdst = '\0';
-    if (*psrc == '~') {
-        psrc++;
-        const char *home = getenv("HOME");
-        if (!home) return NULL; // Probably never happens.
-        if (!*psrc || *psrc == '\\' || *psrc == '/') {
-            // The path is just '~' or begins "~/".
-            strcpy(new_path, home);
-            pdst += strlen(home);
-        } else {
-            // No special treatment for '~' in this case.
-            *pdst++ = '~';
-        }
-        absolute = new_path[0] == '\\' || new_path[0] == '/';
-    }
-
     PathState state = kPathStateStart;
     do {
         switch (*psrc) {
@@ -174,8 +172,10 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
                         char *p = path_unwind(new_path, pdst);
                         if (p == pdst) {
                             *pdst++ = '/';
-                            *pdst++ = '.';
-                            *pdst++ = '.';
+                            if (!absolute) {
+                                *pdst++ = '.';
+                                *pdst++ = '.';
+                            }
                         } else {
                             pdst = p;
                         }
@@ -184,9 +184,6 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
                     default:
                         break;
                 }
-
-                // Empty absolute path is '/'
-                if (absolute && pdst == new_path) *pdst++ = '/';
 
                 *pdst++ = *psrc; // Copies the '/0'
                 break;
@@ -234,8 +231,10 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
                         char *p = path_unwind(new_path, pdst);
                         if (p == pdst) {
                             *pdst++ = '/';
-                            *pdst++ = '.';
-                            *pdst++ = '.';
+                            if (!absolute) {
+                                *pdst++ = '.';
+                                *pdst++ = '.';
+                            }
                             state = kPathStateSlash;
                         } else {
                             state = *p == '/' ? kPathStateSlash : kPathStateDefault;
@@ -248,6 +247,25 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
                         break;
                 }
                 break;
+
+            case '~':
+                if (state == kPathStateStart) {
+                    psrc++;
+                    if (*psrc == '\0' || *psrc == '\\' || *psrc == '/' ) {
+                        const char *home = getenv("HOME");
+                        if (!home) return NULL; // Probably never happens.
+                        while (*home != '\0') {
+                            *pdst++ = *home++;
+                        }
+                    } else {
+                        *pdst++ = '~';
+                    }
+                    psrc--;
+                    state = kPathStateDefault;
+                    break;
+                } else {
+                    // Fall through to the default case.
+                }
 
             default:
                 switch (state) {
@@ -281,54 +299,139 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
 
     } while (*psrc++);
 
+    // Empty absolute path is '/'
+    if (absolute && *new_path == '\0') {
+        new_path[0] = '/';
+        new_path[1] = '\0';
+    }
+
     return new_path;
 }
 
 /**
- * If \p path begins with '/' then copies \p path into \p absolute_path, otherwise
- * copies the current working directory followed by '\' into \p absolute_path and
- * then appends \p path.
+ * @brief Resolves symbolic links in \p src writing the resolved path into \p dst.
  *
- * Does not do anything special with '.', '..' or repeated '/' and does not try
- * to resolve symbolic links.
+ * @param src  source path.
+ * @param dst  buffer for destination path.
+ * @param sz   size of buffer.
+ * @return     kOk on success.
  */
-static char *path_make_absolute(const char *path, char *absolute_path, size_t sz) {
-    assert(sz > 0);
-    absolute_path[0] = '\0';
+static MmResult path_resolve_symlinks(const char *src, char *dst, size_t sz) {
 
-    // Copy current working directory to 'absolute_path' if necessary.
-    if (path[0] != '/') {
+    // TODO: Handle 'dst' buffer overrun.
+
+    size_t count = 0;
+    const char *psrc = src;
+    char *pdst = dst;
+    char buf[PATH_MAX];
+    do {
+        if (*psrc == '/' || *psrc == '\0') {
+try_again:
+            *pdst = '\0';
+            size_t num = readlink(dst, buf, PATH_MAX);
+            if (num != -1) {
+                // On success replace 'dst' with target of link.
+                // On failure leave contents of 'dst' intact.
+
+                if (buf[0] == '/') {
+                    // Handle absolute symbolic link.
+                    pdst = dst;
+                } else {
+                    // Handle relative symbolic link.
+                    memcpy(pdst, "/../", 4);
+                    pdst += 4;
+                }
+
+                count++;
+                if (count >= 32) return kTooManySymbolicLinks;  // TODO: test this case
+
+                memcpy(pdst, buf, num);
+                pdst += num;
+                *pdst = '\0';
+                assert(path_munge(dst, buf, PATH_MAX));
+                strcpy(dst, buf);
+                pdst = dst + strlen(dst);
+
+                goto try_again;  // Handle symbolic links to symbolic links.
+            }
+
+            // Handle edge case of a symbolic link to root.
+            if (*psrc == '/' && *(pdst - 1) == '/') pdst--;
+        }
+        *pdst++ = *psrc;
+    } while (*psrc++ != '\0');
+    return kOk;
+}
+
+char *path_get_canonical(const char *path, char *canonical_path, size_t sz) {
+    bool absolute = (path[0] == '\\' || path[0] == '/');
+
+    const char *prefix = "";
+    if ((path[0] == '~') && (path[1] == '\0' || path[1] == '\\' || path[1] == '/')) {
+
+        // Replace '~' prefix with the user's HOME directory.
         errno = 0;
-        if (!getcwd(absolute_path, sz)) {
+        prefix = getenv("HOME");
+        if (!prefix) return NULL; // Probably never happens.
+        absolute = (prefix[0] == '\\' || prefix[0] == '/');
+        path++; // Skip the '~'.
+
+    } else if (isalpha(path[0]) && path[1] == ':') {
+
+        // Replace DOS drive prefix with root dir;
+        // Any repeated '/' will be dealt with by the later call to path_munge().
+        prefix = "/";
+        absolute = true;
+        path += 2; // Skip the drive prefix.
+
+    }
+
+    char tmp_path[PATH_MAX];
+    tmp_path[0] = '\0';
+
+    // If the 'path' is not absolute then copy the current working directory
+    // into 'tmp_path'.
+    if (!absolute) {
+        errno = 0;
+        if (!getcwd(tmp_path, PATH_MAX)) {
             assert(errno != 0);
             return NULL;
         }
-        if (path[0] != '\0'
-                && FAILED(cstring_cat(absolute_path, "/", sz))) {
+        if (FAILED(cstring_cat(tmp_path, "/", PATH_MAX))) {
             errno = ENAMETOOLONG;
             return NULL;
         }
     }
 
-    // Append 'path' to 'absolute_path'.
-    if (FAILED(cstring_cat(absolute_path, path, sz))) {
+    // Append 'prefix', which may be empty.
+    if (FAILED(cstring_cat(tmp_path, prefix, PATH_MAX))) {
         errno = ENAMETOOLONG;
         return NULL;
     }
 
-    return absolute_path;
-}
-
-char *path_get_canonical(const char *path, char *canonical_path, size_t sz) {
-    errno = 0;
-    char tmp_path[PATH_MAX];
-    if (!path_munge(path, tmp_path, PATH_MAX)) return NULL;
-
-    if (!path_make_absolute(tmp_path, canonical_path, sz)) {
-        // errno should have been set appropriately.
+    // Append 'path'.
+    if (FAILED(cstring_cat(tmp_path, path, PATH_MAX))) {
+        errno = ENAMETOOLONG;
         return NULL;
     }
 
+    // Munge 'tmp_path' into 'canonical_path' to deal with any
+    // repeated slashes, slash-dots, slash-dot-dots, or back-slashes.
+    if (!path_munge(tmp_path, canonical_path, sz)) return NULL;
+
+    // Resolve symbolic links into 'tmp_path'.
+    MmResult result = path_resolve_symlinks(canonical_path, tmp_path, PATH_MAX);
+    if (FAILED(result)) {
+        errno = result;
+        return NULL;
+    }
+    if (strlen(tmp_path) >= sz) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+    strcpy(canonical_path, tmp_path);
+
+    errno = 0;
     return canonical_path;
 }
 
