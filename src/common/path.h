@@ -76,16 +76,12 @@ bool path_has_suffix(
 /**
  * Gets the canonicalized absolute pathname.
  *
- * The last element of the path does not have to exist, but all intermediate elements do,
- * otherwise will return NULL and set errno == ENOENT.
- *
  * @param  path            original path to be converted.
  * @param  canonical_path  canonical path is returned in this buffer.
  * @param  sz              size of the 'canonical_path' buffer.
- * @return                 the value of 'canonical_path' on success,
- *                         otherwise sets 'errno' and returns NULL.
+ * @return                 kOk on success.
  */
-char *path_get_canonical(const char *path, char *canonical_path, size_t sz);
+MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz);
 
 /**
  * Is the path absolute?

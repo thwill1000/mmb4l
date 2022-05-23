@@ -363,7 +363,7 @@ try_again:
     return kOk;
 }
 
-char *path_get_canonical(const char *path, char *canonical_path, size_t sz) {
+MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
     bool absolute = (path[0] == '\\' || path[0] == '/');
 
     const char *prefix = "";
@@ -372,7 +372,7 @@ char *path_get_canonical(const char *path, char *canonical_path, size_t sz) {
         // Replace '~' prefix with the user's HOME directory.
         errno = 0;
         prefix = getenv("HOME");
-        if (!prefix) return NULL; // Probably never happens.
+        if (!prefix) return errno; // Probably never happens.
         absolute = (prefix[0] == '\\' || prefix[0] == '/');
         path++; // Skip the '~'.
 
@@ -386,53 +386,33 @@ char *path_get_canonical(const char *path, char *canonical_path, size_t sz) {
 
     }
 
-    char tmp_path[PATH_MAX];
-    tmp_path[0] = '\0';
+    char tmp_path[PATH_MAX] = { 0 };
 
     // If the 'path' is not absolute then copy the current working directory
     // into 'tmp_path'.
     if (!absolute) {
         errno = 0;
-        if (!getcwd(tmp_path, PATH_MAX)) {
-            assert(errno != 0);
-            return NULL;
-        }
-        if (FAILED(cstring_cat(tmp_path, "/", PATH_MAX))) {
-            errno = ENAMETOOLONG;
-            return NULL;
-        }
+        if (!getcwd(tmp_path, PATH_MAX)) return errno;
+        if (FAILED(cstring_cat(tmp_path, "/", PATH_MAX))) return kFilenameTooLong;
     }
 
     // Append 'prefix', which may be empty.
-    if (FAILED(cstring_cat(tmp_path, prefix, PATH_MAX))) {
-        errno = ENAMETOOLONG;
-        return NULL;
-    }
+    if (FAILED(cstring_cat(tmp_path, prefix, PATH_MAX))) return kFilenameTooLong;
 
     // Append 'path'.
-    if (FAILED(cstring_cat(tmp_path, path, PATH_MAX))) {
-        errno = ENAMETOOLONG;
-        return NULL;
-    }
+    if (FAILED(cstring_cat(tmp_path, path, PATH_MAX))) return kFilenameTooLong;
 
     // Munge 'tmp_path' into 'canonical_path' to deal with any
     // repeated slashes, slash-dots, slash-dot-dots, or back-slashes.
-    if (!path_munge(tmp_path, canonical_path, sz)) return NULL;
+    if (!path_munge(tmp_path, canonical_path, sz)) return errno;
 
     // Resolve symbolic links into 'tmp_path'.
     MmResult result = path_resolve_symlinks(canonical_path, tmp_path, PATH_MAX);
-    if (FAILED(result)) {
-        errno = result;
-        return NULL;
-    }
-    if (strlen(tmp_path) >= sz) {
-        errno = ENAMETOOLONG;
-        return NULL;
-    }
+    if (FAILED(result)) return result;
+    if (strlen(tmp_path) >= sz) return kFilenameTooLong;
     strcpy(canonical_path, tmp_path);
 
-    errno = 0;
-    return canonical_path;
+    return kOk;
 }
 
 bool path_is_absolute(const char *path) {
