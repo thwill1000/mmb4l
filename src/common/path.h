@@ -109,10 +109,9 @@ char *path_get_parent(const char *path, char *parent_path, size_t sz);
  * @param  tail    path being appended.
  * @param  result  result is returned in this buffer.
  * @param  sz      size of the 'result' buffer.
- * @return         the value of 'result' on success,
- *                 otherwise sets 'errno' and returns NULL.
+ * @return         kOk on success.
  */
-char *path_append(const char *head, const char *tail, char *result, size_t sz);
+MmResult path_append(const char *head, const char *tail, char *result, size_t sz);
 
 /**
  * Transforms path by:

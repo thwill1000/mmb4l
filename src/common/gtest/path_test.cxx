@@ -461,3 +461,24 @@ TEST_F(PathTest, MkDir_GivenExistingFile) {
     EXPECT_EQ(kFileExists, path_mkdir(PATH_TEST_DIR "/existing-file"));
     EXPECT_EQ(kNotADirectory, path_mkdir(PATH_TEST_DIR "/existing-file/foo"));
 }
+
+TEST_F(PathTest, Append) {
+    char out[32];
+
+    EXPECT_EQ(kOk, path_append("foo", "bar", out, 32));
+    EXPECT_STREQ("foo/bar", out);
+
+    EXPECT_EQ(kOk, path_append("", "bar", out, 32));
+    EXPECT_STREQ("/bar", out);
+
+    EXPECT_EQ(kOk, path_append("foo", "", out, 32));
+    EXPECT_STREQ("foo/", out);
+
+    EXPECT_EQ(kOk, path_append("", "", out, 32));
+    EXPECT_STREQ("/", out);
+
+    EXPECT_EQ(kOk, path_append("0123456789012345", "01234567890123", out, 32));
+    EXPECT_STREQ("0123456789012345/01234567890123", out);
+
+    EXPECT_EQ(kFilenameTooLong, path_append("0123456789012345", "012345678901234", out, 32));
+}

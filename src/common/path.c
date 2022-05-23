@@ -441,13 +441,12 @@ char *path_get_parent(const char *path, char *parent_path, size_t sz) {
     return parent_path;
 }
 
-char *path_append(const char *head, const char *tail, char *result, size_t sz) {
-    if (strlen(head) + strlen(tail) + 1 >= sz) {
-        errno = ENAMETOOLONG;
-        return NULL;
-    }
-    sprintf(result, "%s/%s", head, tail);
-    return result;
+MmResult path_append(const char *head, const char *tail, char *result, size_t sz) {
+    result[0] = '\0';
+    if (FAILED(cstring_cat(result, head, sz))
+            || FAILED(cstring_cat(result, "/", sz))
+            || FAILED(cstring_cat(result, tail, sz))) return kFilenameTooLong;
+    return kOk;
 }
 
 const char *path_get_extension(const char *path) {
