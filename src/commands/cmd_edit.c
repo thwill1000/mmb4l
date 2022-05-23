@@ -148,19 +148,20 @@ void cmd_edit(void) {
 
     int new_file = false;
     char file_path[STRINGSIZE];
-    errno = 0;
-    if (!path_get_canonical(fname, file_path, STRINGSIZE)) {
-        switch (errno) {
-            case ENOENT:
-                new_file = true;
-                break;
-            case ENAMETOOLONG:
-                ERROR_PATH_TOO_LONG;
-                break;
-            default:
-                error_throw(errno);
-                break;
-        }
+    MmResult result = path_get_canonical(fname, file_path, STRINGSIZE);
+    switch (result) {
+        case kOk:
+            // Nothing to see here, move along.
+            break;
+        case kFileNotFound:
+            new_file = true;
+            break;
+        case kFilenameTooLong:
+            ERROR_PATH_TOO_LONG;
+            break;
+        default:
+            error_throw(result);
+            break;
     }
 
     // If necessary create a new file.

@@ -259,7 +259,9 @@ char *program_get_inc_file(const char *parent_file, const char *filename, char *
         if (!path_exists(tmp_path)) strcpy(tmp_path + len, INC_FILE_EXTENSIONS[0]);
     }
 
-    return path_get_canonical(tmp_path, out, STRINGSIZE);
+    MmResult result = path_get_canonical(tmp_path, out, STRINGSIZE);
+    errno = FAILED(result) ? result : kOk;
+    return out;
 }
 
 static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
@@ -475,7 +477,9 @@ char *program_get_bas_file(const char *filename, char *out) {
         return NULL;
     }
 
-    return path_get_canonical(path, out, STRINGSIZE);
+    MmResult result = path_get_canonical(path, out, STRINGSIZE);
+    errno = FAILED(result) ? result : kOk;
+    return out;
 }
 
 // now we must scan the program looking for CFUNCTION/CSUB/DEFINEFONT

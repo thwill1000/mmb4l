@@ -827,23 +827,19 @@ static MmResult options_set_resolution(Options *options, const char *svalue) {
 }
 
 static MmResult options_set_search_path(Options *options, const char *svalue) {
-    MmResult result = kOk;
-    char canonical_path[STRINGSIZE];
-    errno = 0;
-
     if (svalue[0] == '\0') {
         strcpy(options->search_path, "");
-    } else if (!path_get_canonical(svalue, canonical_path, STRINGSIZE)) {
-        result = errno;
-    } else if (!path_exists(canonical_path)) {
-        result = kFileNotFound;
-    } else if (path_is_directory(canonical_path)) {
-        strcpy(options->search_path, canonical_path);
-    } else {
-        result = kNotADirectory;
+        return kOk;
     }
 
-    return result;
+    char canonical_path[STRINGSIZE];
+    MmResult result = path_get_canonical(svalue, canonical_path, STRINGSIZE);
+    if (FAILED(result)) return result;
+    if (!path_exists(canonical_path)) return kFileNotFound;
+    if (!path_is_directory(canonical_path)) return kNotADirectory;
+
+    strcpy(options->search_path, canonical_path);
+    return kOk;
 }
 
 static MmResult options_set_tab(Options *options, int ivalue) {

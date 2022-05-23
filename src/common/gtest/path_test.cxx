@@ -199,14 +199,12 @@ TEST_F(PathTest, Munge) {
 
 #define TEST_GET_CANONICAL(path, expected)  memset(out, '\0', 256); \
         result = path_get_canonical(path, out, 256); \
-        EXPECT_STREQ(expected, result); \
-        EXPECT_STREQ(expected, out); \
-        EXPECT_EQ(0, errno)
+        EXPECT_EQ(kOk, result); \
+        EXPECT_STREQ(expected, out)
 
 TEST_F(PathTest, GetCanonical_GivenAbsolutePath) {
     char out[256];
-    errno = 0;
-    char *result;
+    MmResult result;
 
     // Root path.
     TEST_GET_CANONICAL("/", "/");
@@ -241,8 +239,7 @@ TEST_F(PathTest, GetCanonical_GivenAbsolutePath) {
 
 TEST_F(PathTest, GetCanonical_GivenRelativePath) {
     char out[256];
-    errno = 0;
-    char *result;
+    MmResult result;
     char expected[PATH_MAX + 256];
 
     char cwd[PATH_MAX];
@@ -287,8 +284,7 @@ TEST_F(PathTest, GetCanonical_GivenRelativePath) {
 
 TEST_F(PathTest, GetCanonical_GivenTilde) {
     char out[256];
-    errno = 0;
-    char *result;
+    MmResult result;
     char expected[PATH_MAX + 256];
 
     char cwd[PATH_MAX];
@@ -312,8 +308,7 @@ TEST_F(PathTest, GetCanonical_GivenTilde) {
 
 TEST_F(PathTest, GetCanonical_GivenDosDrivePrefix) {
     char out[256];
-    errno = 0;
-    char *result;
+    MmResult result;
 
     TEST_GET_CANONICAL("A:", "/");
     TEST_GET_CANONICAL("A:/", "/");
@@ -329,7 +324,7 @@ TEST_F(PathTest, GetCanonical_GivenDosDrivePrefix) {
 
 TEST_F(PathTest, GetCanonical_ResolvesSymbolicLinks) {
     char out[256];
-    char *result;
+    MmResult result;
 
     // ${PATH_TEST_DIR}/
     //   bar/
