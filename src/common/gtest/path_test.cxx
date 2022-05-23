@@ -114,14 +114,12 @@ TEST_F(PathTest, Unwind) {
 
 #define TEST_MUNGE(path, expected)  memset(out, '\0', 256); \
         result = path_munge(path, out, 256); \
-        EXPECT_STREQ(expected, result); \
-        EXPECT_STREQ(expected, out); \
-        EXPECT_EQ(0, errno)
+        EXPECT_EQ(kOk, result); \
+        EXPECT_STREQ(expected, out)
 
 TEST_F(PathTest, Munge) {
     char out[256];
-    errno = 0;
-    char *result;
+    MmResult result;
 
     // Absolute paths.
     TEST_MUNGE("a:",              "/");

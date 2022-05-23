@@ -67,7 +67,9 @@ void file_open(const char *fname, const char *mode, int fnbr) {
     if (file_table[fnbr].type != fet_closed) ERROR_ALREADY_OPEN;
 
     char path[STRINGSIZE];
-    if (!path_munge(fname, path, STRINGSIZE)) error_throw(errno);
+    MmResult result = path_munge(fname, path, STRINGSIZE);
+    printf("***%s\n", path);
+    if (FAILED(result)) error_throw(result);
 
     // random writing is not allowed when a file is opened for append so open it
     // first for read+update and if that does not work open it for
@@ -83,7 +85,7 @@ void file_open(const char *fname, const char *mode, int fnbr) {
             if (!f) error_throw(errno);
         }
         errno = 0;
-        if FAILED(fseek(f, 0, SEEK_END)) error_throw(errno);
+        if (FAILED(fseek(f, 0, SEEK_END))) error_throw(errno);
     } else {
         errno = 0;
         f = fopen(path, mode);

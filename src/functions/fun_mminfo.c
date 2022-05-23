@@ -172,7 +172,8 @@ static void mminfo_errno(const char *p) {
 
 static char *get_path(const char *p) {
     char *path = GetTempStrMemory();
-    if (!path_munge(getCstring(p), path, STRINGSIZE)) error_throw(errno);
+    MmResult result = path_munge(getCstring(p), path, STRINGSIZE);
+    if (FAILED(result)) error_throw(result);
     return path;
 }
 
