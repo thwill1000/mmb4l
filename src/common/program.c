@@ -228,22 +228,18 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     if (errno != 0) error_throw(errno); // Is this really necessary?
 }
 
-// TODO: change this to return MmResult.
-char *program_get_inc_file(const char *parent_file, const char *filename, char *out) {
+MmResult program_get_inc_file(const char *parent_file, const char *filename, char *out) {
 
     char tmp_path[STRINGSIZE];
     MmResult result = path_munge(filename, tmp_path, STRINGSIZE);
-    if (FAILED(result)) {
-        errno = result;
-        return NULL;
-    }
+    if (FAILED(result)) return result;
 
     if (!path_is_absolute(tmp_path)) {
         char parent_dir[STRINGSIZE];
-        if (!path_get_parent(parent_file, parent_dir, STRINGSIZE)) return NULL;
+        if (!path_get_parent(parent_file, parent_dir, STRINGSIZE)) return errno;
 
         char tmp_string[STRINGSIZE];
-        if (!path_append(parent_dir, tmp_path, tmp_string, STRINGSIZE)) return NULL;
+        if (!path_append(parent_dir, tmp_path, tmp_string, STRINGSIZE)) return errno;
 
         strcpy(tmp_path, tmp_string);
     }
@@ -254,19 +250,14 @@ char *program_get_inc_file(const char *parent_file, const char *filename, char *
     if (strcasecmp(path_get_extension(tmp_path), INC_FILE_EXTENSIONS[0]) != 0) {
         size_t len = strlen(tmp_path);
         for (size_t i = 0; i < sizeof(INC_FILE_EXTENSIONS) / sizeof(const char *); i++) {
-            if (len + strlen(INC_FILE_EXTENSIONS[i]) >= sizeof(tmp_path)) {
-                errno = ENAMETOOLONG;
-                return NULL;
-            }
+            if (len + strlen(INC_FILE_EXTENSIONS[i]) >= sizeof(tmp_path)) return kFilenameTooLong;
             strcpy(tmp_path + len, INC_FILE_EXTENSIONS[i]);
             if (path_exists(tmp_path)) break;
         }
         if (!path_exists(tmp_path)) strcpy(tmp_path + len, INC_FILE_EXTENSIONS[0]);
     }
 
-    result = path_get_canonical(tmp_path, out, STRINGSIZE);
-    errno = FAILED(result) ? result : kOk;
-    return out;
+    return path_get_canonical(tmp_path, out, STRINGSIZE);
 }
 
 static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
@@ -285,19 +276,19 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     filename = getCstring(tp);
 
     char file_path[STRINGSIZE];
-    errno = 0;
-    if (!program_get_inc_file(parent_file, filename, file_path)) {
-        switch (errno) {
-            case ENOENT:
-                ERROR_INCLUDE_FILE_NOT_FOUND(filename);
-                break;
-            case ENAMETOOLONG:
-                ERROR_PATH_TOO_LONG;
-                break;
-            default:
-                error_throw(errno);
-                break;
-        }
+    MmResult result = program_get_inc_file(parent_file, filename, file_path);
+    switch (result) {
+        case kOk:
+            break;
+        case kFileNotFound:
+            ERROR_INCLUDE_FILE_NOT_FOUND(filename);
+            break;
+        case kFilenameTooLong:
+            ERROR_PATH_TOO_LONG;
+            break;
+        default:
+            error_throw(result);
+            break;
     }
 
     file_open(file_path, "rb", fnbr);

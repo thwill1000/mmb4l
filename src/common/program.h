@@ -78,10 +78,9 @@ MmResult program_get_bas_file(const char *filename, char *out);
  * @param parent_file  path to the MMBasic program file that is including the file.
  * @param filename     unprocessed filename.
  * @param out          absolute canonical path to file is returned in this buffer.
- * @return             the value of 'out' on success,
- *                     otherwise sets 'errno' and returns NULL.
+ * @return             kOk on success.
  */
-char *program_get_inc_file(const char *parent_file, const char *filename, char *out);
+MmResult program_get_inc_file(const char *parent_file, const char *filename, char *out);
 
 /** @return  0 on success, -1 on error.*/
 int program_load_file(char *filename);
