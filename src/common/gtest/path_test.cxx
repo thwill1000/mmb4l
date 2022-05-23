@@ -63,6 +63,33 @@ protected:
 
 };
 
+#define TEST_GET_PARENT(path, expected) \
+        EXPECT_EQ(kOk, path_get_parent(path, out, 256)); \
+        EXPECT_STREQ(expected, out)
+
+TEST_F(PathTest, GetParent) {
+    char out[256];
+
+    TEST_GET_PARENT("/", "/");
+    TEST_GET_PARENT("/..", "/");
+    TEST_GET_PARENT("/..", "/");
+    TEST_GET_PARENT("/foo", "/");
+    TEST_GET_PARENT("/foo/bar", "/foo");
+
+    TEST_GET_PARENT("\\", "/");
+    TEST_GET_PARENT("\\foo", "/");
+    TEST_GET_PARENT("\\foo\\bar", "/foo");
+
+    EXPECT_EQ(kFileNotFound, path_get_parent("", out, 256));
+
+    // Are these the answers we want ?
+    EXPECT_EQ(kFileNotFound, path_get_parent("foo", out, 256));
+    EXPECT_EQ(kFileNotFound, path_get_parent(".", out, 256));
+    EXPECT_EQ(kFileNotFound, path_get_parent("..", out, 256));
+    EXPECT_EQ(kFileNotFound, path_get_parent("./foo", out, 256));
+    TEST_GET_PARENT("../foo" , "..");
+}
+
 extern "C" {
 char *path_unwind(char *new_path, char *pdst);
 }

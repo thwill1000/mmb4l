@@ -236,7 +236,8 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
 
     if (!path_is_absolute(tmp_path)) {
         char parent_dir[STRINGSIZE];
-        if (!path_get_parent(parent_file, parent_dir, STRINGSIZE)) return errno;
+        result = path_get_parent(parent_file, parent_dir, STRINGSIZE);
+        if (FAILED(result)) return result;
 
         char tmp_string[STRINGSIZE];
         result = path_append(parent_dir, tmp_path, tmp_string, STRINGSIZE);

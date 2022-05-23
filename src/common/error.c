@@ -116,7 +116,7 @@ static void get_line_and_file(int *line, char *file_path) {
         comma_pos++;
         *line = atoi(comma_pos);
 
-        if (!path_get_parent(CurrentFile, file_path, STRINGSIZE)) return;
+        if (FAILED(path_get_parent(CurrentFile, file_path, STRINGSIZE))) return;
         // TODO: prevent buffer overflow.
         int len = strlen(file_path);
         file_path[len++] = '/';
