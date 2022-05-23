@@ -68,7 +68,6 @@ void file_open(const char *fname, const char *mode, int fnbr) {
 
     char path[STRINGSIZE];
     MmResult result = path_munge(fname, path, STRINGSIZE);
-    printf("***%s\n", path);
     if (FAILED(result)) error_throw(result);
 
     // random writing is not allowed when a file is opened for append so open it

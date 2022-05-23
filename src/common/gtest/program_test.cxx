@@ -134,13 +134,12 @@ protected:
 
 #define TEST_PROGRAM_GET_BAS_FILE(filename, expected) \
     result = program_get_bas_file(filename, out); \
-    EXPECT_STREQ(expected, result); \
-    EXPECT_STREQ(expected, out); \
-    EXPECT_EQ(0, errno)
+    EXPECT_EQ(kOk, result); \
+    EXPECT_STREQ(expected, out)
 
 TEST_F(ProgramTest, GetBasFile_GivenAbsolutePath) {
     char out[STRINGSIZE] = { '\0' };
-    char *result;
+    MmResult result;
 
     // Test when no file present.
     TEST_PROGRAM_GET_BAS_FILE(PROGRAM_TEST_DIR "/foo.bas", PROGRAM_TEST_DIR "/foo.bas");
@@ -176,7 +175,7 @@ TEST_F(ProgramTest, GetBasFile_GivenAbsolutePath) {
 
 TEST_F(ProgramTest, GetBasFile_GivenRelativePath) {
     char out[STRINGSIZE] = { '\0' };
-    char *result;
+    MmResult result;
 
     // Test when no file present.
     TEST_PROGRAM_GET_BAS_FILE("foo.bas", PathToFileInCwd("foo.bas").c_str());
@@ -215,7 +214,7 @@ TEST_F(ProgramTest, GetBasFile_GivenRunningProgram_AndAbsolutePath) {
     errno = 0;
     CurrentLinePtr = (char *) 1; // anything other than 0.
     strcpy(CurrentFile, PROGRAM_TEST_DIR "/current.bas");
-    char *result;
+    MmResult result;
 
     TEST_PROGRAM_GET_BAS_FILE(PROGRAM_TEST_DIR "/bar/foo.bas", PROGRAM_TEST_DIR "/bar/foo.bas");
 }
@@ -225,7 +224,7 @@ TEST_F(ProgramTest, GetBasFile_GivenRunningProgram_AndRelativePath) {
     errno = 0;
     CurrentLinePtr = (char *) 1; // anything other than 0.
     strcpy(CurrentFile, PROGRAM_TEST_DIR "/current.bas");
-    char *result;
+    MmResult result;
 
     // Contrary to my original belief the file should be is resolved relative
     // to CWD and not to the directory containing the currently running program.
@@ -234,7 +233,7 @@ TEST_F(ProgramTest, GetBasFile_GivenRunningProgram_AndRelativePath) {
 
 TEST_F(ProgramTest, GetBasFile_GivenOnlyInSearchPath) {
     char out[STRINGSIZE] = { '\0' };
-    char *result;
+    MmResult result;
     MakeEmptyFile(PROGRAM_TEST_DIR "/foo.bas");
 
     // Given no search path, expect to resolve to file in CWD.
