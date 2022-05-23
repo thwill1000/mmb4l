@@ -4,21 +4,26 @@ TODO
 Required for alpha 5
 --------------------
 
- - 'path.h' and 'program.h' functions should return MmResult instead of setting
-   errno
- - Don't fake/support drive specifications, e.g. A:/
  - Implement tab completion of paths at MMBasic prompt
+ - Improve MMBasic prompt history so works even after you start typing
+ - Support "long lines" at the MMBasic prompt
+ - Add PicoMite EDITor implementation
+   - and add support for "long lines" to it
+ - Add '.' command that behaves like a combination of '*' and '!', first
+   looking for a .bas file to run and then trying a SYSTEM command.
  - Implement variable/sub/function hash tables
- - Replace bang ! command with *, or allow both ?
-   - also allow use of dot because it is usually available on virtual keyboard
-     without requiring a modifier key to be pressed.
- - Implement SAVE command (?)
  - Make sense of or eliminate mmb_options.prog_flash_size
  - Don't include line number and filename in error message string; still show
    them at prompt where appropriate and make them available via MM.INFO()
- - What should behaviour be when a command at the MMBasic prompt goes onto a
-   second line ?
  - Make default output from FILES more like that of CMM2
+ - Fix TODOs in 'path.c'
+ - (?) Implement SAVE command
+ - (?) Don't fake/support drive specifications, e.g. A:/
+ - (?) Remove use of 'goto' in 'path.c'
+ - (?) Remove SETTITLE and CURSOR commands
+ - (?) Rewrite 'tools/glibc_check.sh' in MMBasic
+ - Rejig LICENSE file so there is only one
+ - Make sure LICENSE file is included in .tgz distributions
  - Find fix for this bug:
 
     ' This will sometimes run forever,
