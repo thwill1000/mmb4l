@@ -63,10 +63,9 @@ void ListNewLine(int *ListCnt, int all); // MMBasic/Commands.c
  *
  * @param filename   unprocessed filename.
  * @param file_path  absolute canonical path to file is returned in this buffer.
- * @return           the value of 'file_path' on success,
- *                   otherwise sets 'errno' and returns NULL.
+ * @return           kOk on success.
  */
-char *program_get_bas_file(const char *filename, char *out);
+MmResult program_get_bas_file(const char *filename, char *out);
 
 /**
  * @brief Gets the absolute canonical path to an MMBasic include file (.inc)

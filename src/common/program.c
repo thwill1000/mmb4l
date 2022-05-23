@@ -418,15 +418,11 @@ static bool program_path_exists(const char *root, const char *stem, const char *
     return path_exists(path);
 }
 
-// TODO: change this to return MmResult.
-char *program_get_bas_file(const char *filename, char *out) {
+MmResult program_get_bas_file(const char *filename, char *out) {
 
     char stem[STRINGSIZE] = { '\0' };
     MmResult result = path_munge(filename, stem, STRINGSIZE);
-    if (FAILED(result)) {
-        errno = result;
-        return NULL;
-    }
+    if (FAILED(result)) return result;
     bool stem_has_extension = strcasecmp(path_get_extension(stem), BAS_FILE_EXTENSIONS[0]) == 0;
     bool stem_is_relative = !path_is_absolute(stem);
 
@@ -434,11 +430,8 @@ char *program_get_bas_file(const char *filename, char *out) {
     char root[STRINGSIZE] = { '\0' };
     if (stem_is_relative) {
         errno = 0;
-        if (!getcwd(root, STRINGSIZE)) return NULL;
-        if (FAILED(cstring_cat(root, "/", STRINGSIZE))) {
-            errno = ENAMETOOLONG;
-            return NULL;
-        }
+        if (!getcwd(root, STRINGSIZE)) return errno;
+        if (FAILED(cstring_cat(root, "/", STRINGSIZE))) return kFilenameTooLong;
     }
 
     // Determine the extension to use if one isn't provided.
@@ -457,8 +450,7 @@ char *program_get_bas_file(const char *filename, char *out) {
         char search_path[STRINGSIZE] = { '\0' };
         if (FAILED(cstring_cat(search_path, mmb_options.search_path, STRINGSIZE))
                 || FAILED(cstring_cat(search_path, "/", STRINGSIZE))) {
-            errno = ENAMETOOLONG;
-            return NULL;
+            return kFilenameTooLong;
         }
         if (stem_has_extension) {
             if (program_path_exists(search_path, stem, "")) {
@@ -479,17 +471,13 @@ char *program_get_bas_file(const char *filename, char *out) {
     if (!stem_has_extension && !*extension) strcpy(extension, BAS_FILE_EXTENSIONS[0]);
 
     char path[STRINGSIZE] = { '\0' };
-    errno = ENAMETOOLONG;
     if (FAILED(cstring_cat(path, root, STRINGSIZE))
             || FAILED(cstring_cat(path, stem, STRINGSIZE))
             || FAILED(cstring_cat(path, extension, STRINGSIZE))) {
-        errno = ENAMETOOLONG;
-        return NULL;
+        return kFilenameTooLong;
     }
 
-    result = path_get_canonical(path, out, STRINGSIZE);
-    errno = FAILED(result) ? result : kOk;
-    return out;
+    return path_get_canonical(path, out, STRINGSIZE);
 }
 
 // now we must scan the program looking for CFUNCTION/CSUB/DEFINEFONT
@@ -673,19 +661,19 @@ void program_list_csubs(int all) {
 static int program_load_file_internal(char *filename) {
 
     char file_path[STRINGSIZE];
-    errno = 0;
-    if (!program_get_bas_file(filename, file_path)) {
-        switch (errno) {
-            case ENOENT:
-                ERROR_PROGRAM_FILE_NOT_FOUND;
-                break;
-            case ENAMETOOLONG:
-                ERROR_PATH_TOO_LONG;
-                break;
-            default:
-                error_throw(errno);
-                break;
-        }
+    MmResult result = program_get_bas_file(filename, file_path);
+    switch (result) {
+        case kOk:
+            break;
+        case kFileNotFound:
+            ERROR_PROGRAM_FILE_NOT_FOUND;
+            break;
+        case kFilenameTooLong:
+            ERROR_PATH_TOO_LONG;
+            break;
+        default:
+            error_throw(result);
+            break;
     }
 
     char *p, *op, *ip, *edit_buffer, *sbuff;
