@@ -97,10 +97,9 @@ bool path_is_absolute(const char *path);
  * @param  path         original path to get the parent of.
  * @param  parent_path  parent path is returned in this buffer.
  * @param  sz           size of the 'parent_path' buffer.
- * @return              the value of 'parent_path' on success,
- *                      otherwise sets 'errno' and returns NULL.
+ * @return              kOk on success.
  */
-char *path_get_parent(const char *path, char *parent_path, size_t sz);
+MmResult path_get_parent(const char *path, char *parent_path, size_t sz);
 
 /**
  * Appends one path to another.

@@ -314,7 +314,7 @@ static void mminfo_path(const char *p) {
     if (CurrentFile[0] == '\0') {
         strcpy(g_string_rtn, "NONE");
     } else {
-        if (!path_get_parent(CurrentFile, g_string_rtn, STRINGSIZE)) {
+        if (FAILED(path_get_parent(CurrentFile, g_string_rtn, STRINGSIZE))) {
             ERROR_COULD_NOT("determine path");
         }
         // TODO: error handling if path too long.

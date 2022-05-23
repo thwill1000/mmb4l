@@ -419,26 +419,18 @@ bool path_is_absolute(const char *path) {
     return path[0] == '\\' || path[0] == '/';
 }
 
-char *path_get_parent(const char *path, char *parent_path, size_t sz) {
-    errno = 0;
-    char *p = (char *) path + strlen(path) - 1;
-    while ((p > path) && (*p == '\\' || *p == '/')) p--;
-    while ((p > path) && (*p != '\\' && *p != '/')) p--;
-
-    if (p <= path) {
-        errno = ENOENT;
-        return NULL;
+MmResult path_get_parent(const char *path, char *parent_path, size_t sz) {
+    bool absolute = path_is_absolute(path);
+    MmResult result = path_munge(path, parent_path, PATH_MAX);
+    if (FAILED(result)) return result;
+    char *p = strrchr(parent_path, '/');
+    if (!p) return kFileNotFound;
+    *p = '\0';
+    if (parent_path[0] == '\0' && absolute) {
+        parent_path[0] = '/';
+        parent_path[1] = '\0';
     }
-
-    if (p - path >= sz) {
-        errno = ENAMETOOLONG;
-        return NULL;
-    }
-
-    memcpy(parent_path, path, p - path);
-    parent_path[p - path] = '\0';
-
-    return parent_path;
+    return kOk;
 }
 
 MmResult path_append(const char *head, const char *tail, char *result, size_t sz) {
