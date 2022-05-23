@@ -211,20 +211,18 @@ TEST_F(ProgramTest, GetBasFile_GivenRelativePath) {
 
 TEST_F(ProgramTest, GetBasFile_GivenRunningProgram_AndAbsolutePath) {
     char out[STRINGSIZE] = { '\0' };
-    errno = 0;
+    MmResult result;
     CurrentLinePtr = (char *) 1; // anything other than 0.
     strcpy(CurrentFile, PROGRAM_TEST_DIR "/current.bas");
-    MmResult result;
 
     TEST_PROGRAM_GET_BAS_FILE(PROGRAM_TEST_DIR "/bar/foo.bas", PROGRAM_TEST_DIR "/bar/foo.bas");
 }
 
 TEST_F(ProgramTest, GetBasFile_GivenRunningProgram_AndRelativePath) {
     char out[STRINGSIZE] = { '\0' };
-    errno = 0;
+    MmResult result;
     CurrentLinePtr = (char *) 1; // anything other than 0.
     strcpy(CurrentFile, PROGRAM_TEST_DIR "/current.bas");
-    MmResult result;
 
     // Contrary to my original belief the file should be is resolved relative
     // to CWD and not to the directory containing the currently running program.
@@ -261,14 +259,13 @@ TEST_F(ProgramTest, GetBasFile_GivenOnlyInSearchPath) {
 
 #define TEST_PROGRAM_GET_INC_FILE(filename, expected) \
     result = program_get_inc_file(bas_file, filename, out); \
-    EXPECT_STREQ(expected, result); \
-    EXPECT_STREQ(expected, out); \
-    EXPECT_EQ(0, errno)
+    EXPECT_EQ(kOk, result); \
+    EXPECT_STREQ(expected, out)
 
 TEST_F(ProgramTest, GetIncFile_GivenAbsolutePath) {
     const char *bas_file = PROGRAM_TEST_DIR "/bar/myprog.bas";
     char out[STRINGSIZE] = { '\0' };
-    char *result;
+    MmResult result;
 
     // Test when no file present.
     TEST_PROGRAM_GET_INC_FILE(PROGRAM_TEST_DIR "/foo.inc", PROGRAM_TEST_DIR "/foo.inc");
@@ -305,7 +302,7 @@ TEST_F(ProgramTest, GetIncFile_GivenAbsolutePath) {
 TEST_F(ProgramTest, GetIncFile_GivenRelativePath) {
     const char *bas_file = PROGRAM_TEST_DIR "/bar/myprog.bas";
     char out[STRINGSIZE] = { '\0' };
-    char *result;
+    MmResult result;
 
     // Test when no file present.
     TEST_PROGRAM_GET_INC_FILE("foo.inc", PROGRAM_TEST_DIR "/bar/foo.inc");
