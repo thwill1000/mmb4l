@@ -137,8 +137,7 @@ typedef enum {
     return NULL;
 }
 
-char *path_munge(const char *original_path, char *new_path, size_t sz) {
-    errno = 0;
+MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
     const char *psrc = original_path;
     bool absolute = original_path[0] == '\\' || original_path[0] == '/';
 
@@ -151,10 +150,7 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
     }
 
     // TODO: better checking for buffer overrun.
-    if (sz <= len || sz <= 2) {
-        errno = ENAMETOOLONG;
-        return NULL;
-    }
+    if (sz <= len || sz <= 2) return kFilenameTooLong;
 
     char *pdst = new_path;
     *pdst = '\0';
@@ -252,8 +248,9 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
                 if (state == kPathStateStart) {
                     psrc++;
                     if (*psrc == '\0' || *psrc == '\\' || *psrc == '/' ) {
+                        errno = 0;
                         const char *home = getenv("HOME");
-                        if (!home) return NULL; // Probably never happens.
+                        if (!home) return errno; // Probably never happens.
                         while (*home != '\0') {
                             *pdst++ = *home++;
                         }
@@ -305,7 +302,7 @@ char *path_munge(const char *original_path, char *new_path, size_t sz) {
         new_path[1] = '\0';
     }
 
-    return new_path;
+    return kOk;
 }
 
 /**
@@ -324,6 +321,7 @@ static MmResult path_resolve_symlinks(const char *src, char *dst, size_t sz) {
     const char *psrc = src;
     char *pdst = dst;
     char buf[PATH_MAX];
+    MmResult result;
     do {
         if (*psrc == '/' || *psrc == '\0') {
 try_again:
@@ -348,7 +346,8 @@ try_again:
                 memcpy(pdst, buf, num);
                 pdst += num;
                 *pdst = '\0';
-                assert(path_munge(dst, buf, PATH_MAX));
+                result = path_munge(dst, buf, PATH_MAX);
+                if (FAILED(result)) return result;
                 strcpy(dst, buf);
                 pdst = dst + strlen(dst);
 
@@ -404,10 +403,11 @@ MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
 
     // Munge 'tmp_path' into 'canonical_path' to deal with any
     // repeated slashes, slash-dots, slash-dot-dots, or back-slashes.
-    if (!path_munge(tmp_path, canonical_path, sz)) return errno;
+    MmResult result = path_munge(tmp_path, canonical_path, sz);
+    if (FAILED(result)) return result;
 
     // Resolve symbolic links into 'tmp_path'.
-    MmResult result = path_resolve_symlinks(canonical_path, tmp_path, PATH_MAX);
+    result = path_resolve_symlinks(canonical_path, tmp_path, PATH_MAX);
     if (FAILED(result)) return result;
     if (strlen(tmp_path) >= sz) return kFilenameTooLong;
     strcpy(canonical_path, tmp_path);
@@ -470,11 +470,11 @@ static MmResult path_mkdir_internal(const char *path) {
 
 MmResult path_mkdir(const char *path) {
     char tmp_path[PATH_MAX];
-    if (!path_munge(path, tmp_path, PATH_MAX)) return errno;
+    MmResult result = path_munge(path, tmp_path, PATH_MAX);
+    if (FAILED(result)) return result;
 
     // Make intermediate elements of the path.
     char *end = strchr(tmp_path, '/');
-    MmResult result = kOk;
     while (end) {
         *end = '\0';
         result = path_mkdir_internal(tmp_path);

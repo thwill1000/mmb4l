@@ -138,7 +138,8 @@ void fun_dir(void) {
         // This must be the first call eg:  DIR$("*.*", FILE)
 
         char *path = GetTempStrMemory();
-        if (!path_munge(getCstring(argv[0]), path, STRINGSIZE)) error_throw(errno);
+        MmResult result = path_munge(getCstring(argv[0]), path, STRINGSIZE);
+        if (FAILED(result)) error_throw(result);
 
         strcpy(pp, basename(path));
         dp = opendir(dirname(path));

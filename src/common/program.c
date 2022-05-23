@@ -228,10 +228,15 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     if (errno != 0) error_throw(errno); // Is this really necessary?
 }
 
+// TODO: change this to return MmResult.
 char *program_get_inc_file(const char *parent_file, const char *filename, char *out) {
 
     char tmp_path[STRINGSIZE];
-    if (!path_munge(filename, tmp_path, STRINGSIZE)) return NULL;
+    MmResult result = path_munge(filename, tmp_path, STRINGSIZE);
+    if (FAILED(result)) {
+        errno = result;
+        return NULL;
+    }
 
     if (!path_is_absolute(tmp_path)) {
         char parent_dir[STRINGSIZE];
@@ -259,7 +264,7 @@ char *program_get_inc_file(const char *parent_file, const char *filename, char *
         if (!path_exists(tmp_path)) strcpy(tmp_path + len, INC_FILE_EXTENSIONS[0]);
     }
 
-    MmResult result = path_get_canonical(tmp_path, out, STRINGSIZE);
+    result = path_get_canonical(tmp_path, out, STRINGSIZE);
     errno = FAILED(result) ? result : kOk;
     return out;
 }
@@ -413,10 +418,15 @@ static bool program_path_exists(const char *root, const char *stem, const char *
     return path_exists(path);
 }
 
+// TODO: change this to return MmResult.
 char *program_get_bas_file(const char *filename, char *out) {
 
     char stem[STRINGSIZE] = { '\0' };
-    if (!path_munge(filename, stem, STRINGSIZE)) return NULL;
+    MmResult result = path_munge(filename, stem, STRINGSIZE);
+    if (FAILED(result)) {
+        errno = result;
+        return NULL;
+    }
     bool stem_has_extension = strcasecmp(path_get_extension(stem), BAS_FILE_EXTENSIONS[0]) == 0;
     bool stem_is_relative = !path_is_absolute(stem);
 
@@ -477,7 +487,7 @@ char *program_get_bas_file(const char *filename, char *out) {
         return NULL;
     }
 
-    MmResult result = path_get_canonical(path, out, STRINGSIZE);
+    result = path_get_canonical(path, out, STRINGSIZE);
     errno = FAILED(result) ? result : kOk;
     return out;
 }

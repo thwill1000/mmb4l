@@ -51,8 +51,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void cmd_mkdir(void) {
     char *path = GetTempStrMemory();
-    if (!path_munge(getCstring(cmdline), path, STRINGSIZE)) error_throw(errno);
+    MmResult result = path_munge(getCstring(cmdline), path, STRINGSIZE);
+    if (FAILED(result)) error_throw(result);
     // TODO: check/validate mode/permissions.
     errno = 0;
-    if FAILED(mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) error_throw(errno);
+    if (FAILED(mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) error_throw(errno);
 }

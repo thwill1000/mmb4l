@@ -286,7 +286,8 @@ MmResult options_get_definition(const char *name, OptionsDefinition **definition
 
 MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb) {
     char path[STRINGSIZE];
-    if (!path_munge(filename, path, STRINGSIZE)) return errno;
+    MmResult result = path_munge(filename, path, STRINGSIZE);
+    if (FAILED(result)) return result;
     if (path_is_directory(path)) return kIsADirectory;
 
     errno = 0;
@@ -296,7 +297,6 @@ MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB
     char line[STRINGSIZE * 2];
     char name[STRINGSIZE];
     char value[STRINGSIZE];
-    MmResult result = kOk;
     int line_num = 0;
     while (!feof(f) && fgets(line, STRINGSIZE * 2, f)) {
         line_num++;
@@ -361,13 +361,13 @@ bool options_has_default_value(const Options *options, OptionsId id) {
 
 MmResult options_save(const Options *options, const char *filename) {
     char path[STRINGSIZE];
-    if (!path_munge(filename, path, STRINGSIZE)) return errno;
+    MmResult result = path_munge(filename, path, STRINGSIZE);
+    if (FAILED(result)) return result;
 
     errno = 0;
     FILE *f = fopen(path, "w");
     if (!f) return errno;
 
-    MmResult result = kOk;
     char tmp[STRINGSIZE];
     for (OptionsDefinition *def = options_definitions; def->name; def++) {
         if (!def->saved) continue;

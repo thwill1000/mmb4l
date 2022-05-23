@@ -117,15 +117,17 @@ char *path_append(const char *head, const char *tail, char *result, size_t sz);
 /**
  * Transforms path by:
  *  - removing any DOS style drive specified, e.g. A:
+ *  - replacing leading ~ by user's HOME directory
  *  - replacing any '\' with '/'
+ *  - resolving any . and .. elements
+ *  - removing any duplicate file separators '/'
  *
  * @param  original_path  path to be transformed.
  * @param  new_path       transformed path is returned in this buffer.
  * @param  sz             size of the 'new_path' buffer.
- * @return                the value of 'new_path' on success,
- *                        otherwise sets 'errno' and returns NULL.
+ * @return                kOk on success.
  */
-char *path_munge(const char *original_path, char *new_path, size_t sz);
+MmResult path_munge(const char *original_path, char *new_path, size_t sz);
 
 /**
  * Gets the file-extension, if any from a path.

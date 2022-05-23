@@ -143,7 +143,8 @@ static void list_file(const char *filename, int all) {
     }
 
     char file_path[STRINGSIZE];
-    if (!path_munge(filename ? filename : CurrentFile, file_path, STRINGSIZE)) error_throw(errno);
+    MmResult result = path_munge(filename ? filename : CurrentFile, file_path, STRINGSIZE);
+    if (FAILED(result)) error_throw(result);
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;

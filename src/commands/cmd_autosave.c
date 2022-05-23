@@ -60,7 +60,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Gets the path of the file to write to. */
 static void cmd_autosave_get_file_path(char *file_path) {
     char *filename = getCstring(cmdline);
-    if (!path_munge(filename, file_path, STRINGSIZE)) error_throw(errno);
+    MmResult result = path_munge(filename, file_path, STRINGSIZE);
+    if (FAILED(result)) error_throw(result);
 
     if (strlen(path_get_extension(file_path)) == 0) {
         if (strlen(file_path) > MAXSTRLEN - 4) ERROR_PATH_TOO_LONG;
