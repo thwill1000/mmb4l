@@ -239,7 +239,8 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
         if (!path_get_parent(parent_file, parent_dir, STRINGSIZE)) return errno;
 
         char tmp_string[STRINGSIZE];
-        if (!path_append(parent_dir, tmp_path, tmp_string, STRINGSIZE)) return errno;
+        result = path_append(parent_dir, tmp_path, tmp_string, STRINGSIZE);
+        if (FAILED(result)) return result;
 
         strcpy(tmp_path, tmp_string);
     }
