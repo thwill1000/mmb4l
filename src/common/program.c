@@ -66,8 +66,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MAXDEFINES  256
 
-static const char *BAS_FILE_EXTENSIONS[] = { ".bas", ".BAS", ".Bas" };
-static const char *INC_FILE_EXTENSIONS[] = { ".inc", ".INC", ".Inc" };
+// Repetition of last element is deliberate, see implementations of
+// program_get_bas_file() and program_get_inc_file().
+static const char *BAS_FILE_EXTENSIONS[] = { ".bas", ".BAS", ".Bas", ".bas" };
+static const char *INC_FILE_EXTENSIONS[] = { ".inc", ".INC", ".Inc", ".inc" };
 
 char CurrentFile[STRINGSIZE];
 
@@ -413,64 +415,88 @@ static bool program_path_exists(const char *root, const char *stem, const char *
 
 MmResult program_get_bas_file(const char *filename, char *out) {
 
-    char stem[STRINGSIZE] = { '\0' };
-    MmResult result = path_munge(filename, stem, STRINGSIZE);
+    char path[STRINGSIZE];
+    MmResult result = path_munge(filename, path, STRINGSIZE);
     if (FAILED(result)) return result;
-    bool stem_has_extension = strcasecmp(path_get_extension(stem), BAS_FILE_EXTENSIONS[0]) == 0;
-    bool stem_is_relative = !path_is_absolute(stem);
 
-    // The root for resolving relative paths is always the current working directory.
-    char root[STRINGSIZE] = { '\0' };
-    if (stem_is_relative) {
-        errno = 0;
-        if (!getcwd(root, STRINGSIZE)) return errno;
-        if (FAILED(cstring_cat(root, "/", STRINGSIZE))) return kFilenameTooLong;
-    }
+    bool is_absolute = path_is_absolute(path);
+    bool has_extension = strcasecmp(path_get_extension(path), BAS_FILE_EXTENSIONS[0]) == 0;
 
-    // Determine the extension to use if one isn't provided.
-    char extension[8] = { '\0' };
-    if (!stem_has_extension) {
+    // If the specified file exists, or is absolute and has a .bas file
+    // extension then return it.
+    if (path_exists(path) || (is_absolute && has_extension))
+        return path_get_canonical(path, out, STRINGSIZE);
+
+    // If the specified file is absolute but doesn't have a .bas file
+    // extension then try looking for the file with each extension
+    // in turn. If none of them are found then use the last extension;
+    // which is the default (and the the same as the first extension).
+    if (is_absolute) {
+        char *p = path + strlen(path);
         for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
-            if (program_path_exists(root, stem, BAS_FILE_EXTENSIONS[i])) {
-                strcpy(extension, BAS_FILE_EXTENSIONS[i]);
-                break;
-            }
+            *p = '\0';
+            if (FAILED(cstring_cat(path, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
+                return kFilenameTooLong;
+            if (path_exists(path)) break;
         }
+        return path_get_canonical(path, out, STRINGSIZE);
     }
 
-    // If the stem is relative and we still can't find an existing file then check the SEARCH PATH.
-    if (stem_is_relative && *mmb_options.search_path && !program_path_exists(root, stem, extension)) {
-        char search_path[STRINGSIZE] = { '\0' };
-        if (FAILED(cstring_cat(search_path, mmb_options.search_path, STRINGSIZE))
-                || FAILED(cstring_cat(search_path, "/", STRINGSIZE))) {
-            return kFilenameTooLong;
-        }
-        if (stem_has_extension) {
-            if (program_path_exists(search_path, stem, "")) {
-                strcpy(root, search_path);
-            }
-        } else {
-            for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
-                if (program_path_exists(search_path, stem, BAS_FILE_EXTENSIONS[i])) {
-                    strcpy(root, search_path);
-                    strcpy(extension, BAS_FILE_EXTENSIONS[i]);
-                    break;
-                }
-            }
-        }
-    }
+    // If we get here then the filename is relative and does not exist as
+    // specified, it may or may not have a .bas file extension.
 
-    // If we still don't have an extension use the default.
-    if (!stem_has_extension && !*extension) strcpy(extension, BAS_FILE_EXTENSIONS[0]);
-
-    char path[STRINGSIZE] = { '\0' };
-    if (FAILED(cstring_cat(path, root, STRINGSIZE))
-            || FAILED(cstring_cat(path, stem, STRINGSIZE))
-            || FAILED(cstring_cat(path, extension, STRINGSIZE))) {
+    // Get the path resolved relative to the current working directory (CWD).
+    char cwd[STRINGSIZE] = { '\0'};
+    errno = 0;
+    if (!getcwd(cwd, STRINGSIZE)) return errno;
+    if (FAILED(cstring_cat(cwd, "/", STRINGSIZE))
+            || FAILED(cstring_cat(cwd, path, STRINGSIZE)))
         return kFilenameTooLong;
+
+    // Get the path resolved relative to the SEARCH PATH.
+    char search_path[STRINGSIZE] = { '\0' };
+    if (FAILED(cstring_cat(search_path, mmb_options.search_path, STRINGSIZE)))
+        return kFilenameTooLong;
+    if (*search_path) {
+        if (FAILED(cstring_cat(search_path, "/", STRINGSIZE))
+                || FAILED(cstring_cat(search_path, path, STRINGSIZE)))
+            return kFilenameTooLong;
     }
 
-    return path_get_canonical(path, out, STRINGSIZE);
+    // Note we don't have to check here if the file exists in the CWD;
+    // if that were the case we would have caught it in the first IF statement.
+
+    // If the file exists in the SEARCH PATH then return it.
+    if (*search_path && path_exists(search_path))
+        return path_get_canonical(search_path, out, STRINGSIZE);
+
+    // If the file has .bas extension then return path resolved relative to CWD.
+    if (has_extension)
+        return path_get_canonical(cwd, out, STRINGSIZE);
+
+    // Try looking for the file with each extension resolved relative to CWD.
+    char *pend = cwd + strlen(cwd);
+    for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+        *pend = '\0';
+        if (FAILED(cstring_cat(cwd, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
+            return kFilenameTooLong;
+        if (path_exists(cwd))
+            return path_get_canonical(cwd, out, STRINGSIZE);
+    }
+
+    // Try looking for the file with each extension resolved relative to SEARCH PATH.
+    pend = search_path + strlen(search_path);
+    for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+        *pend = '\0';
+        if (FAILED(cstring_cat(search_path, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
+            return kFilenameTooLong;
+        if (path_exists(search_path))
+            return path_get_canonical(search_path, out, STRINGSIZE);
+    }
+
+    // If all else fails return the path resolved relative to CWD with the
+    // default .bas extension; this will already be present in 'cwd'.
+    return path_get_canonical(cwd, out, STRINGSIZE);
 }
 
 // now we must scan the program looking for CFUNCTION/CSUB/DEFINEFONT

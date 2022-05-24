@@ -206,7 +206,7 @@ TEST_F(ProgramTest, GetBasFile_GivenRelativePath) {
 
     // Test when "foo" without extension is present.
     MakeEmptyFile("foo");
-    TEST_PROGRAM_GET_BAS_FILE("foo",     PathToFileInCwd("foo.bas").c_str());
+    TEST_PROGRAM_GET_BAS_FILE("foo",     PathToFileInCwd("foo").c_str());
 }
 
 TEST_F(ProgramTest, GetBasFile_GivenRunningProgram_AndAbsolutePath) {
@@ -234,27 +234,44 @@ TEST_F(ProgramTest, GetBasFile_GivenOnlyInSearchPath) {
     MmResult result;
     MakeEmptyFile(PROGRAM_TEST_DIR "/foo.bas");
 
-    // Given no search path, expect to resolve to file in CWD.
+    // Given no SEARCH PATH,
+    // expect to resolve to non-existent file in CWD.
     strcpy(mmb_options.search_path, "");
     TEST_PROGRAM_GET_BAS_FILE("foo.bas", PathToFileInCwd("foo.bas").c_str());
 
-    // Given search path contains file, expect to resolve to file in search path.
+    // Given matching file in SEARCH PATH,
+    // expect to resolve to file in SEARCH PATH.
     strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
     TEST_PROGRAM_GET_BAS_FILE("foo.bas", PROGRAM_TEST_DIR "/foo.bas");
 
-    // Given extension is not an exact match, expect to resolve to file in CWD.
+    // Given file in SEARCH PATH with non-matching extension,
+    // expect to resolve to non-existent file in CWD.
     strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
     TEST_PROGRAM_GET_BAS_FILE("foo.BAS", PathToFileInCwd("foo.BAS").c_str());
 
-    // Given no extension, expect to resolve to file in search path.
+    // Given no extension and no matching file,
+    // expect to resolve to file with extension in SEARCH PATH.
     strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
     TEST_PROGRAM_GET_BAS_FILE("foo", PROGRAM_TEST_DIR "/foo.bas");
 
-    // Given file in CWD and search path, expect to resolve to file in CWD.
+    // Given no extension and matching file in SEARCH PATH,
+    // expect to resolve to file in SEARCH PATH.
+    MakeEmptyFile(PROGRAM_TEST_DIR "/foo");
+    strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
+    TEST_PROGRAM_GET_BAS_FILE("foo", PROGRAM_TEST_DIR "/foo");
+
+    // Given no extension and matching file in CWD,
+    // expect to resolve to file in CWD.
+    MakeEmptyFile("foo");
+    strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
+    TEST_PROGRAM_GET_BAS_FILE("foo", PathToFileInCwd("foo").c_str());
+
+    // Given file in CWD and SEARCH PATH
+    // expect to resolve to file in CWD.
     MakeEmptyFile("foo.bas");
     TEST_PROGRAM_GET_BAS_FILE("foo.bas", PathToFileInCwd("foo.bas").c_str());
     TEST_PROGRAM_GET_BAS_FILE("foo.BAS", PathToFileInCwd("foo.BAS").c_str());
-    TEST_PROGRAM_GET_BAS_FILE("foo",     PathToFileInCwd("foo.bas").c_str());
+    TEST_PROGRAM_GET_BAS_FILE("foo",     PathToFileInCwd("foo").c_str());
 }
 
 #define TEST_PROGRAM_GET_INC_FILE(filename, expected) \
