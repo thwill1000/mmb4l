@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+
 #include "mmb4l.h"
 #include "console.h"
 #include "error.h"
@@ -53,9 +55,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ERROR_LINE_TOO_LONG_TO_EDIT  error_throw_ex(kStringTooLong, "Line is too long to edit")
 
 typedef struct {
+    char backup[STRINGSIZE];
     char buf[OPTIONS_MAX_FN_KEY_LEN + 3];
     int char_index;
-    bool buf_edited;
     int history_idx;
     bool insert;
     int start_line;
@@ -153,7 +155,6 @@ void put_history_item(char *s) {
 static void handle_backspace(PromptState *pstate) {
     if (pstate->char_index <= 0) return;
 
-    pstate->buf_edited = true;
     int i = pstate->char_index - 1;
     for (char *p = inpbuf + i; *p; p++) {
         *p = *(p + 1);  // remove the char from inpbuf
@@ -173,7 +174,6 @@ static void handle_backspace(PromptState *pstate) {
 static void handle_delete(PromptState *pstate) {
     if (pstate->char_index >= strlen(inpbuf)) return;
 
-    pstate->buf_edited = true;
     int i = pstate->char_index;
     for (char *p = inpbuf + i; *p; p++) {
         *p = *(p + 1);  // remove the char from inpbuf
@@ -190,9 +190,9 @@ static void handle_delete(PromptState *pstate) {
     }
 }
 
-static void insert_history_item(PromptState *pstate) {
-    // Update input buffer from the history.
-    strcpy(inpbuf, get_history_item(pstate->history_idx));
+static void prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
+    // Update characters in input buffer.
+    strcpy(inpbuf, new_inpbuf);
 
     // Erase existing input from the console.
     for (int i = 0; i < pstate->char_index; ++i) console_putc('\b');
@@ -212,12 +212,15 @@ static void insert_history_item(PromptState *pstate) {
 }
 
 static void handle_down(PromptState *pstate) {
-    // [DOWN] is non-functional once the user starts to edit the buffer.
-    if (pstate->buf_edited) return;
-
-    pstate->history_idx--;
-    if (pstate->history_idx < 0) pstate->history_idx = -1;
-    insert_history_item(pstate);
+    assert(pstate->history_idx >= -1);
+    if (pstate->history_idx > -1) {
+        pstate->history_idx--;
+        if (pstate->history_idx == -1) {
+            prompt_update_inpbuf(pstate, pstate->backup);
+        } else {
+            prompt_update_inpbuf(pstate, get_history_item(pstate->history_idx));
+        }
+    }
 }
 
 static void handle_end(PromptState *pstate) {
@@ -266,8 +269,6 @@ static void handle_newline(PromptState *pstate) {
 static void handle_other(PromptState *pstate) {
     if (pstate->buf[0] < ' ' || pstate->buf[0] >= 0x7f) return;
 
-    pstate->buf_edited = true;  // this means that something was typed
-    // int i = pstate->char_index;
     int j = strlen(inpbuf);
 
     if (pstate->insert) {
@@ -307,12 +308,12 @@ static void handle_right(PromptState *pstate) {
 }
 
 static void handle_up(PromptState *pstate) {
-    // [UP] is non-functional once the user starts to edit the buffer.
-    if (pstate->buf_edited) return;
-
-    pstate->history_idx++;
-    if (pstate->history_idx >= get_history_count()) pstate->history_idx--;
-    insert_history_item(pstate);
+    assert(pstate->history_idx >= -1);
+    if (pstate->history_idx + 1 < get_history_count()) {
+        if (pstate->history_idx == -1) strcpy(pstate->backup, inpbuf);
+        pstate->history_idx++;
+        prompt_update_inpbuf(pstate, get_history_item(pstate->history_idx));
+    }
 }
 
 void prompt_get_input(void) {

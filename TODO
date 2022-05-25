@@ -5,7 +5,6 @@ Required for alpha 5
 --------------------
 
  - Implement tab completion of paths at MMBasic prompt
- - Improve MMBasic prompt history so works even after you start typing
  - Support "long lines" at the MMBasic prompt
  - Add PicoMite EDITor implementation
    - and add support for "long lines" to it
