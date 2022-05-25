@@ -6,6 +6,10 @@ Version 2022.01.00-a5 - ??-???-2022:
     extension.
         - if file$ does not exist then will try appending the extensions
           ".bas", ".BAS" and ".Bas" in turn.
+  - Changed #INCLUDE "<file>" so that it is not necessary for <file> to have
+    a ".inc" extension.
+        - if <file> does not exist then will try appending the extension
+          ".inc", ".INC" and ".Inc" in turn.
   - Fixed bug where relative #INCLUDE files could not be found when running
     a symbolic link to an MMBasic file; the path to the #INCLUDE files was
     incorrectly being resolved relative to the parent of the symbolic link

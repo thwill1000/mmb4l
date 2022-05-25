@@ -350,5 +350,5 @@ TEST_F(ProgramTest, GetIncFile_GivenRelativePath) {
 
     // Test when "foo" without extension is present.
     MakeEmptyFile(PROGRAM_TEST_DIR "/bar/foo");
-    TEST_PROGRAM_GET_INC_FILE("foo",     PROGRAM_TEST_DIR "/bar/foo.inc");
+    TEST_PROGRAM_GET_INC_FILE("foo",     PROGRAM_TEST_DIR "/bar/foo");
 }

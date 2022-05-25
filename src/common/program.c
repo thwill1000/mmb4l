@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <unistd.h>
@@ -232,36 +233,42 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
 
 MmResult program_get_inc_file(const char *parent_file, const char *filename, char *out) {
 
-    char tmp_path[STRINGSIZE];
-    MmResult result = path_munge(filename, tmp_path, STRINGSIZE);
+    char path[STRINGSIZE];
+    MmResult result = path_munge(filename, path, STRINGSIZE);
     if (FAILED(result)) return result;
 
-    if (!path_is_absolute(tmp_path)) {
+    if (!path_is_absolute(path)) {
         char parent_dir[STRINGSIZE];
         result = path_get_parent(parent_file, parent_dir, STRINGSIZE);
         if (FAILED(result)) return result;
 
-        char tmp_string[STRINGSIZE];
-        result = path_append(parent_dir, tmp_path, tmp_string, STRINGSIZE);
-        if (FAILED(result)) return result;
+        if (FAILED(cstring_cat(parent_dir, "/", STRINGSIZE))
+                || FAILED(cstring_cat(parent_dir, path, STRINGSIZE)))
+            return kFilenameTooLong;
 
-        strcpy(tmp_path, tmp_string);
+        strcpy(path, parent_dir);
     }
 
-    // If file does not have ".inc" extension then we add one, but we try to
-    // match up with existing file with ".inc", ".INC" or ".Inc" extensions in
-    // that order.
-    if (strcasecmp(path_get_extension(tmp_path), INC_FILE_EXTENSIONS[0]) != 0) {
-        size_t len = strlen(tmp_path);
-        for (size_t i = 0; i < sizeof(INC_FILE_EXTENSIONS) / sizeof(const char *); i++) {
-            if (len + strlen(INC_FILE_EXTENSIONS[i]) >= sizeof(tmp_path)) return kFilenameTooLong;
-            strcpy(tmp_path + len, INC_FILE_EXTENSIONS[i]);
-            if (path_exists(tmp_path)) break;
-        }
-        if (!path_exists(tmp_path)) strcpy(tmp_path + len, INC_FILE_EXTENSIONS[0]);
+    assert(path_is_absolute(path));
+
+    // If the file exists, or has a .inc file extension then return it.
+    bool has_extension = strcasecmp(path_get_extension(path), INC_FILE_EXTENSIONS[0]) == 0;
+    if (path_exists(path) || has_extension)
+        return path_get_canonical(path, out, STRINGSIZE);
+
+    // Try looking for the file with each extension/
+    char *pend = path + strlen(path);
+    for (size_t i = 0; i < sizeof(INC_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+        *pend = '\0';
+        if (FAILED(cstring_cat(path, INC_FILE_EXTENSIONS[i], STRINGSIZE)))
+            return kFilenameTooLong;
+        if (path_exists(path))
+            return path_get_canonical(path, out, STRINGSIZE);
     }
 
-    return path_get_canonical(tmp_path, out, STRINGSIZE);
+    // If all else fails return the path with the default '.inc' extension;
+    // this will already be present in 'cwd'.
+    return path_get_canonical(path, out, STRINGSIZE);
 }
 
 static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
