@@ -136,4 +136,16 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz);
  */
 const char *path_get_extension(const char *path);
 
+/**
+ * @brief Gets an autocompletion for the given path.
+ *
+ * @param path  the path.
+ * @param out   buffer that on exit will contain the autocompletion to append
+ *              to the path. Will be the empty string if there is no
+ *              autocompletion or an error occurred.
+ * @param sz    size of the \p out buffer.
+ * @return      kOk on success.
+ */
+MmResult path_complete(const char *path, char *out, size_t sz);
+
 #endif

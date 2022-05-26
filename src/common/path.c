@@ -44,8 +44,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
 #include <limits.h>
+#include <linux/limits.h> // PATH_MAX
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,12 +57,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "path.h"
 #include "utility.h"
-
-// Shouldn't be necessary, but VSCode can't find the defintion of PATH_AX and
-// highlights it as undefined.
-#if !defined(PATH_MAX)
-#define PATH_MAX  4096
-#endif
 
 bool path_exists(const char *path) {
     struct stat st;
@@ -477,4 +473,65 @@ MmResult path_mkdir(const char *path) {
     // Make final element of the path.
     result = path_mkdir_internal(tmp_path);
     return result == kNotADirectory ? kFileExists : result;
+}
+
+MmResult path_complete(const char *path, char *out, size_t sz) {
+    // printf("path_complete: #%s#\n", path);
+    char dir_path[PATH_MAX];
+    MmResult result = path_munge(path, dir_path, PATH_MAX);
+
+    out[0] = '\0';
+    if (dir_path[0] == '\0' || path_exists(dir_path)) return kOk;
+
+    // Rewind to path-separator '/' or beginning of path,
+    // that gives us the 'dir_path' to search
+    // and the 'filename' prefix to match.
+    char filename[NAME_MAX + 1];
+    char *p = dir_path + strlen(dir_path);
+    while (*p != '/' && p > dir_path) p--;
+    if (*p == '/') {
+        strcpy(filename, p + 1);
+        if (p == dir_path) {
+            strcpy(dir_path, "/");
+        } else {
+            *p = '\0';
+        }
+    } else {
+        strcpy(filename, p);
+        strcpy(dir_path, "./");
+    }
+
+    // printf("#%s#%s#\n", dir_path, filename);
+    // printf("%d\n", path_exists(dir_path));
+    // printf("%d\n", path_is_directory(dir_path));
+
+    // If 'dir_path' doesn not exist or is not a directory then exit.
+    if (!path_exists(dir_path)) return kFileNotFound;
+    if (!path_is_directory(dir_path)) return kNotADirectory;
+
+    // Open 'dir_path'.
+    errno = 0;
+    DIR *fd = opendir(dir_path);
+    if (!fd) return errno;
+
+    // Loop through files in 'dir_path' to identify a common completion 'out'.
+    struct dirent* entry;
+    size_t filename_len = strlen(filename);
+    while ((entry = readdir(fd))) {
+        if (strcmp(entry->d_name, ".") == 0
+                 || strcmp(entry->d_name, "..") == 0) continue;
+        p = strstr(entry->d_name, filename);
+        if (p != entry->d_name) continue;
+        // printf(" - %s\n", entry->d_name);
+        if (out[0] == '\0') {
+            cstring_cat(out, entry->d_name + filename_len, sz);
+        } else {
+            p = out;
+            char *p2 = entry->d_name + filename_len;
+            while (*p++ == *p2++);
+            *--p = '\0';
+        }
+    }
+
+    return kOk;
 }

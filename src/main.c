@@ -60,6 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/parse.h"
 #include "common/path.h"
 #include "common/program.h"
+#include "common/prompt.h"
 #include "common/serial.h"
 #include "common/utility.h"
 
@@ -81,7 +82,6 @@ static const char mmbasic_dir[] = "~/.mmbasic";
 
 void IntHandler(int signo);
 void dump_token_table(const struct s_tokentbl* tbl);
-void prompt_get_input(void); // common/prompt.c
 
 /**
  * If 'true' then RUN program specified by 'mmb_args.run_cmd'.

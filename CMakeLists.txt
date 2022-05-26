@@ -313,6 +313,27 @@ target_link_libraries(
 gtest_discover_tests(test_program)
 
 ################################################################################
+# test_prompt
+################################################################################
+
+add_executable(
+  test_prompt
+  src/common/cstring.c
+  src/common/prompt.c
+  src/common/gtest/prompt_test.cxx
+)
+
+target_link_libraries(
+  test_prompt
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_prompt)
+
+################################################################################
 # test_rx_buf
 ################################################################################
 

@@ -23,13 +23,6 @@ extern "C" {
 #define FILE_THAT_EXISTS  BIN_DIR "/cp"
 #define PATH_TEST_DIR     TMP_DIR "/PathTest"
 
-// Used like a macro so named like a macro.
-static void SYSTEM_CALL(const char *cmd) {
-    errno = 0;
-    int exit_status = system(cmd);
-    if (exit_status != 0) FAIL() << "system(\"" << cmd << "\" failed: " << exit_status;
-}
-
 class PathTest : public ::testing::Test {
 
 private:
@@ -508,4 +501,83 @@ TEST_F(PathTest, Append) {
     EXPECT_STREQ("0123456789012345/01234567890123", out);
 
     EXPECT_EQ(kFilenameTooLong, path_append("0123456789012345", "012345678901234", out, 32));
+}
+
+#define TEST_COMPLETE(input, expected) \
+        EXPECT_EQ(kOk, path_complete(input, out, 256)); \
+        EXPECT_STREQ(expected, out)
+
+TEST_F(PathTest, GivenRelativePath) {
+    char out[256];
+
+    MAKE_FILE(PATH_TEST_DIR "/foo");
+    MAKE_FILE(PATH_TEST_DIR "/bar");
+    MAKE_FILE(PATH_TEST_DIR "/foobar");
+    MAKE_FILE("\"" PATH_TEST_DIR "/sna fu\"");
+    CHDIR(PATH_TEST_DIR);
+
+    TEST_COMPLETE("b",        "ar");
+    TEST_COMPLETE("ba",       "r");
+    TEST_COMPLETE("bar",      "");
+    TEST_COMPLETE("f",        "oo");
+    TEST_COMPLETE("fo",       "o");
+    TEST_COMPLETE("foo",      "");
+    TEST_COMPLETE("foob",     "ar");
+    TEST_COMPLETE("fooba",    "r");
+    TEST_COMPLETE("foobar",   "");
+    TEST_COMPLETE("s",        "na fu");
+    TEST_COMPLETE("sn",       "a fu");
+    TEST_COMPLETE("sna",      " fu");
+    TEST_COMPLETE("sna ",     "fu");
+    TEST_COMPLETE("sna f",    "u");
+    TEST_COMPLETE("sna fu",   "");
+    TEST_COMPLETE("w",        "");
+    TEST_COMPLETE("",         "");
+    TEST_COMPLETE("./f",      "oo");
+    TEST_COMPLETE("tmp/../f", "oo");
+}
+
+TEST_F(PathTest, Complete_GivenAbsolutePath) {
+    char out[256];
+
+    MAKE_FILE(PATH_TEST_DIR "/foo");
+    MAKE_FILE(PATH_TEST_DIR "/bar");
+    MAKE_FILE(PATH_TEST_DIR "/foobar");
+    MAKE_FILE("\"" PATH_TEST_DIR "/sna fu\"");
+
+    TEST_COMPLETE(PATH_TEST_DIR "/b",        "ar");
+    TEST_COMPLETE(PATH_TEST_DIR "/ba",       "r");
+    TEST_COMPLETE(PATH_TEST_DIR "/bar",      "");
+    TEST_COMPLETE(PATH_TEST_DIR "/f",        "oo");
+    TEST_COMPLETE(PATH_TEST_DIR "/fo",       "o");
+    TEST_COMPLETE(PATH_TEST_DIR "/foo",      "");
+    TEST_COMPLETE(PATH_TEST_DIR "/foob",     "ar");
+    TEST_COMPLETE(PATH_TEST_DIR "/fooba",    "r");
+    TEST_COMPLETE(PATH_TEST_DIR "/foobar",   "");
+    TEST_COMPLETE(PATH_TEST_DIR "/s",        "na fu");
+    TEST_COMPLETE(PATH_TEST_DIR "/sn",       "a fu");
+    TEST_COMPLETE(PATH_TEST_DIR "/sna",      " fu");
+    TEST_COMPLETE(PATH_TEST_DIR "/sna ",     "fu");
+    TEST_COMPLETE(PATH_TEST_DIR "/sna f",    "u");
+    TEST_COMPLETE(PATH_TEST_DIR "/sna fu",   "");
+    TEST_COMPLETE(PATH_TEST_DIR "/w",        "");
+    TEST_COMPLETE(PATH_TEST_DIR "",          "");
+    TEST_COMPLETE(PATH_TEST_DIR "/./f",      "oo");
+    TEST_COMPLETE(PATH_TEST_DIR "/tmp/../f", "oo");
+}
+
+TEST_F(PathTest, Complete_GivenRootPath) {
+    char out[256];
+
+    TEST_COMPLETE("/",   "");
+    TEST_COMPLETE("/bi", "n");
+    TEST_COMPLETE("/me", "dia");
+
+    TEST_COMPLETE("/",     "");
+    TEST_COMPLETE("/./bi", "n");
+    TEST_COMPLETE("/./me", "dia");
+
+    TEST_COMPLETE("/tmp/..",    "");
+    TEST_COMPLETE("/tmp/../bi", "n");
+    TEST_COMPLETE("/tmp/../me", "dia");
 }
