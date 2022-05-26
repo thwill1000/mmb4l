@@ -49,21 +49,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "file.h"
 #include "options.h"
+#include "path.h"
+#include "prompt.h"
 #include "utility.h"
 
 #define HISTORY_SIZE  4 * STRINGSIZE
 #define ERROR_LINE_TOO_LONG_TO_EDIT  error_throw_ex(kStringTooLong, "Line is too long to edit")
-
-typedef struct {
-    char backup[STRINGSIZE];
-    char buf[OPTIONS_MAX_FN_KEY_LEN + 3];
-    int char_index;
-    int history_idx;
-    bool insert;
-    int start_line;
-    int max_chars;
-    bool save_line;
-} PromptState;
+#define ERROR_TAB_CHAR_IN_FN_DEF     error_throw_ex(kError, "Tab character in function key definition")
 
 static char history[HISTORY_SIZE];
 static const char NO_ITEM[] = "";
@@ -232,6 +224,16 @@ static void handle_end(PromptState *pstate) {
 static void handle_function_key(PromptState *pstate) {
     if (pstate->buf[0] >= F1 && pstate->buf[0] <= F12) {
         strcpy(pstate->buf + 1, mmb_options.fn_keys[pstate->buf[0] - F1]);
+
+        // Currently allowing tab characters in function key definitions
+        // would royally screw things up because it will interact with path
+        // completion which also manipulates pstate->buf.
+        // TODO: either support it or prevent it in OPTION F<NUM>.
+        char *p = pstate->buf;
+        while (*p) {
+            if (*p == TAB) ERROR_TAB_CHAR_IN_FN_DEF;
+            p++;
+        }
     }
 }
 
@@ -307,6 +309,30 @@ static void handle_right(PromptState *pstate) {
     pstate->char_index++;
 }
 
+void prompt_handle_tab(PromptState *pstate) {
+    char *pstart = inpbuf;
+    char *p = inpbuf;
+    bool in_quote = false;
+    while (*p) {
+        switch (*p) {
+            case ' ':
+                if (!in_quote) pstart = p + 1;
+                break;
+            case '"':
+                in_quote = !in_quote;
+                pstart = p + 1;
+                break;
+            default:
+                break;
+        }
+        p++;
+    }
+
+    if (FAILED(path_complete(pstart, pstate->buf + 1, sizeof(pstate->buf) - 1)))
+        pstate->buf[1] = '\0';
+    if (pstate->buf[1] == '\0') console_bell();
+}
+
 static void handle_up(PromptState *pstate) {
     assert(pstate->history_idx >= -1);
     if (pstate->history_idx + 1 < get_history_count()) {
@@ -332,29 +358,9 @@ void prompt_get_input(void) {
         ERROR_LINE_TOO_LONG_TO_EDIT;
     }
 
-    int ch;
     while (1) {
-        ch = MMgetchar(); // MMgetchar(1);
-        if (ch == TAB) {
-            strcpy(state.buf, "        ");
-            switch (mmb_options.tab) {
-                case 2:
-                    state.buf[2 - (state.char_index % 2)] = 0;
-                    break;
-                case 3:
-                    state.buf[3 - (state.char_index % 3)] = 0;
-                    break;
-                case 4:
-                    state.buf[4 - (state.char_index % 4)] = 0;
-                    break;
-                case 8:
-                    state.buf[8 - (state.char_index % 8)] = 0;
-                    break;
-            }
-        } else {
-            state.buf[0] = ch;
-            state.buf[1] = '\0';
-        }
+        state.buf[0] = MMgetchar();
+        state.buf[1] = '\0';
 
         do {
             switch (state.buf[0]) {
@@ -420,6 +426,10 @@ void prompt_get_input(void) {
                 // case CTRLKEY('X'):
                 case DOWN:
                     handle_down(&state);
+                    break;
+
+                case TAB:
+                    prompt_handle_tab(&state);
                     break;
 
                 default:
