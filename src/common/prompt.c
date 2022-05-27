@@ -147,20 +147,19 @@ void put_history_item(char *s) {
 static void handle_backspace(PromptState *pstate) {
     if (pstate->char_index <= 0) return;
 
-    int i = pstate->char_index - 1;
-    for (char *p = inpbuf + i; *p; p++) {
-        *p = *(p + 1);  // remove the char from inpbuf
+    pstate->char_index--;
+    char *p = inpbuf + pstate->char_index;
+    console_putc('\b');
+    int count = 0;
+    while (*(p + 1)) {
+        *p = *(p + 1);
+        console_putc(*p);
+        p++;
+        count++;
     }
-    while (pstate->char_index) {
-        console_putc('\b');
-        pstate->char_index--;
-    }  // go to the beginning of the line
-    console_puts(inpbuf);
+    *p = '\0';
     console_putc(' ');
-    console_putc('\b');  // display the line and erase the last char
-    for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
-        console_putc('\b');  // return the cursor to the right position
-    }
+    while (count-- >= 0) console_putc('\b');
 }
 
 static void handle_delete(PromptState *pstate) {
@@ -270,6 +269,7 @@ static void handle_newline(PromptState *pstate) {
 
 static void handle_other(PromptState *pstate) {
     if (pstate->buf[0] < ' ' || pstate->buf[0] >= 0x7f) return;
+    if (strlen(inpbuf) == MAXSTRLEN) return;
 
     int j = strlen(inpbuf);
 
@@ -289,16 +289,16 @@ static void handle_other(PromptState *pstate) {
         inpbuf[strlen(inpbuf) + 1] = 0;  // incase we are adding to the end
                                          // of the string
         inpbuf[pstate->char_index++] = pstate->buf[0];  // overwrite the char
-        console_putc(pstate->buf[0]);                      // display it
-        if (pstate->char_index + pstate->start_line >=
-            pstate->max_chars) {  // has the input gone beyond the
-                                  // end of the line?
-            MMgetline(0, inpbuf);  // use the old fashioned way
-                                   // of getting the line
-            // if(autoOn && atoi(inpbuf) > 0) autoNext =
-            // atoi(inpbuf) + autoIncr;
-            pstate->save_line = 1;
-        }
+        console_putc(pstate->buf[0]);                   // display it
+        // if (pstate->char_index + pstate->start_line >=
+        //     pstate->max_chars) {  // has the input gone beyond the
+        //                           // end of the line?
+        //     MMgetline(0, inpbuf);  // use the old fashioned way
+        //                            // of getting the line
+        //     // if(autoOn && atoi(inpbuf) > 0) autoNext =
+        //     // atoi(inpbuf) + autoIncr;
+        //     pstate->save_line = 1;
+        // }
     }
 }
 

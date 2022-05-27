@@ -70,7 +70,7 @@ static char console_rx_buf_data[CONSOLE_RX_BUF_SIZE];
 static RxBuf console_rx_buf;
 
 int ListCnt = 0;
-int MMCharPos = 0;
+int MMCharPos = 0; // TODO: should this be initialised to 1 ?
 
 void console_init(void) {
     rx_buf_init(
