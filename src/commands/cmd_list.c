@@ -109,15 +109,15 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, con
     for (int i = 0; i < total; i += step) {
         for (int k = 0; k < step; k++) {
             if (i + k < total) {
-                MMPrintString(tbl[i + k]);
+                console_puts(tbl[i + k]);
                 if (k != (step - 1))
-                    for (int j = strlen(tbl[i + k]); j < 19; j++) MMPrintString(" "); //putConsole(' ');
+                    for (int j = strlen(tbl[i + k]); j < 19; j++) console_puts(" ");
             }
         }
-        MMPrintString("\r\n");
+        console_puts("\r\n");
     }
     sprintf(buf, "Total of %d %s using %d slots\r\n\r\n", total, title, num_primary);
-    MMPrintString(buf);
+    console_puts(buf);
 }
 
 static void list_commands() {
@@ -156,14 +156,14 @@ static void list_file(const char *filename, int all) {
         for (size_t i = 0; i < strlen(line_buffer); i++) {
             if (line_buffer[i] == TAB) line_buffer[i] = ' ';
         }
-        MMPrintString(line_buffer);
+        console_puts(line_buffer);
         list_count += strlen(line_buffer) / mmb_options.width;
         ListNewLine(&list_count, all);
     }
     file_close(fnbr);
 
     // Ensure listing is followed by an empty line.
-    if (strcmp(line_buffer, "") != 0) MMPrintString("\r\n");
+    if (strcmp(line_buffer, "") != 0) console_puts("\r\n");
 }
 
 static void list_flash(int all) {
@@ -177,7 +177,7 @@ static void list_flash(int all) {
 
     ListProgram(ProgMemory, all);
 
-    MMPrintString("\r\n");
+    console_puts("\r\n");
 }
 
 static void list_csubs(int all) {

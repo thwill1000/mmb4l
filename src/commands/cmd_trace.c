@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 #include "../common/mmb4l.h"
+#include "../common/console.h"
 #include "../common/error.h"
 
 // count the number of lines up to and including the line pointed to by the argument
@@ -73,20 +74,20 @@ int TraceLines(const char *target) {
                     i--;
                 }
                 if (cpos != NULL) {
-                    MMPrintString("[");
+                    console_puts("[");
                     if ((ename = strchr(cpos, ',')) != NULL) {
                         *ename = 0;
                         cpos++;
                         ename++;
-                        MMPrintString(cpos);
-                        MMPrintString(":");
-                        MMPrintString(ename);
+                        console_puts(cpos);
+                        console_puts(":");
+                        console_puts(ename);
                     } else {
                         cpos++;
                         IntToStr(buff, atoi(cpos), 10);
-                        MMPrintString(buff);
+                        console_puts(buff);
                     }
-                    MMPrintString("] ");
+                    console_puts("] ");
                 }
             }
             continue;

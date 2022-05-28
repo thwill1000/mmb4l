@@ -29,7 +29,10 @@ void error_throw(MmResult error) { }
 void error_throw_ex(MmResult error, const char *msg, ...) { }
 int MMgetchar(void) { return -1; }
 void MMgetline(int filenbr, char *p) { }
-void MMPrintString(char* s) { }
+
+void console_puts(const char* s) {
+    while (*s) console_putc(*s++);
+}
 
 MmResult path_complete(const char *path, char *out, size_t sz) {
     strcpy(path_complete_captured_path, path); // Capture path.

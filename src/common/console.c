@@ -266,7 +266,7 @@ int console_getc(void) {
     return ch;
 }
 
-char console_putc(char c) {
+static char console_putc_noflush(char c) {
     if (mmb_options.codepage && c > 127) {
         const char *ptr = mmb_options.codepage + 4 * (c - 128);
         putc(*ptr++, stdout);           // 1st byte.
@@ -293,8 +293,19 @@ char console_putc(char c) {
             }
         }
     }
-    fflush(stdout);
     return c;
+}
+
+
+char console_putc(char c) {
+    char rval = console_putc_noflush(c);
+    fflush(stdout);
+    return rval;
+}
+
+void console_puts(const char *s) {
+    while (*s) (void) console_putc_noflush(*s++);
+    fflush(stdout);
 }
 
 void console_set_title(const char *title) {

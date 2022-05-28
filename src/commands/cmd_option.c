@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "../common/mmb4l.h"
+#include "../common/console.h"
 #include "../common/error.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
@@ -71,17 +72,17 @@ void cmd_option_list(const char *p) {
         if (!all && options_has_default_value(&mmb_options, def->id)) continue;
         result = options_get_display_value(&mmb_options, def->id, buf);
         if (FAILED(result)) error_throw(result);
-        MMPrintString("Option ");
-        MMPrintString((char *) def->name);
-        MMPrintString(" ");
-        MMPrintString(buf);
-        MMPrintString("\r\n");
+        console_puts("Option ");
+        console_puts(def->name);
+        console_puts(" ");
+        console_puts(buf);
+        console_puts("\r\n");
         count++;
     }
 
-    if (count == 0) MMPrintString("All options at default values; try OPTION LIST ALL\r\n");
+    if (count == 0) console_puts("All options at default values; try OPTION LIST ALL\r\n");
 
-    MMPrintString("\r\n");
+    console_puts("\r\n");
 }
 
 void cmd_option_load(const char *p) {
@@ -227,9 +228,9 @@ static void cmd_option_set(const char *p) {
     if (def->saved) {
         result = options_save(&mmb_options, OPTIONS_FILE_NAME);
         if (FAILED(result)) {
-            MMPrintString("Warning: failed to save options: ");
-            MMPrintString((char *) mmresult_to_string(result));
-            MMPrintString("\r\n");
+            console_puts("Warning: failed to save options: ");
+            console_puts(mmresult_to_string(result));
+            console_puts("\r\n");
         }
     }
 }

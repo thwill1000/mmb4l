@@ -96,6 +96,7 @@ extern int IgnorePIN;
 #define MMfgetc          file_getc
 #define MMfputc          file_putc
 #define MMputchar        console_putc
+#define MMPrintString    console_puts
 #define error            error_throw_legacy
 
 // Aliases for identifiers using "legacy" names in MMBasic core:

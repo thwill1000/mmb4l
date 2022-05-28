@@ -150,6 +150,9 @@ int console_kbhit(void);
 /** Writes a character to the console. */
 char console_putc(char c);
 
+/** Write a NULL terminated stirng to the console. */
+void console_puts(const char *s);
+
 void console_reset(void);
 
 /**
