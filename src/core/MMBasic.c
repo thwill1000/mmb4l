@@ -2765,12 +2765,14 @@ A couple of I/O routines that do not belong anywhere else
 
 
 // print a string to the console interfaces
+#if !defined(__mmb4l__)
 void MMPrintString(const char* s) {
   while(*s) {
       MMputchar(*s);
       s++;
   }
 }
+#endif
 
 
 // output a string to a file

@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "../common/mmb4l.h"
+#include "../common/console.h"
 #include "../common/error.h"
 #include "../common/utility.h"
 
@@ -244,7 +245,7 @@ static void memory_report(const char *unused) {
             (PROG_FLASH_SIZE - num_bytes + 512) / 1024,
             num_lines,
             num_lines == 1 ? "" : "s");
-    MMPrintString(inpbuf);
+    console_puts(inpbuf);
 
     int32_t vcnt = count_variables();
     int32_t size = sizeof(struct s_vartbl);
@@ -255,7 +256,7 @@ static void memory_report(const char *unused) {
             (int32_t) (vcnt * 100 / MAXVARS),
             (int32_t) (((MAXVARS * size + 512) / 1024) - ((vcnt * size + 512) / 1024)),
             vcnt);
-    MMPrintString(inpbuf);
+    console_puts(inpbuf);
 
     int ram_used = (UsedHeap() + 512) / 1024;
     int percent_used = ((UsedHeap() + 512) * 100) / HEAP_SIZE;
@@ -265,7 +266,7 @@ static void memory_report(const char *unused) {
             ram_used,
             percent_used,
             (HEAP_SIZE / 1024) - ram_used);
-    MMPrintString(inpbuf);
+    console_puts(inpbuf);
 }
 
 void cmd_memory(void) {

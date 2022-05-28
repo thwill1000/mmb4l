@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "mmb4l.h"
+#include "console.h"
 #include "error.h"
 #include "maths.h"
 
@@ -122,27 +123,27 @@ MMFLOAT eInt[3]={0,0,0};
 void transpose(MMFLOAT **matrix,MMFLOAT **matrix_cofactor,MMFLOAT **newmatrix, int size);
 
 void PRet(void){
-    MMPrintString("\r\n");
+    console_puts("\r\n");
 }
 
 void PFlt(MMFLOAT flt){
     char s[20];
     FloatToStr(s, flt, 4, 4, ' ');
-    MMPrintString(s);
+    console_puts(s);
 }
 
 void PFltComma(MMFLOAT n) {
-    MMPrintString(", "); PFlt(n);
+    console_puts(", "); PFlt(n);
 }
 
 void PInt(int64_t n) {
     char s[20];
     IntToStr(s, (int64_t)n, 10);
-    MMPrintString(s);
+    console_puts(s);
 }
 
 void PIntComma(int64_t n) {
-    MMPrintString(", "); PInt(n);
+    console_puts(", "); PInt(n);
 }
 
 void floatshellsort(MMFLOAT a[], int n) {

@@ -41,7 +41,7 @@ void IntToStr(char *strr, long long int nbr, unsigned int base) { }
 void ListNewLine(int *ListCnt, int all) { }
 void makeargs(char **p, int maxargs, char *argbuf, char *argv[], int *argc, char *delim) { }
 void MMgetline(int filenbr, char *p) { }
-void MMPrintString(char* s) { }
+void console_puts(const char* s) { }
 void tokenise(int console) { }
 
 }

@@ -623,7 +623,7 @@ static void get_csub_name(char *p, char *buf) {
 }
 
 static void print_line(const char *buf, int* line_count, int all) {
-    MMPrintString(buf);
+    console_puts(buf);
     ListNewLine(line_count, all);
 }
 

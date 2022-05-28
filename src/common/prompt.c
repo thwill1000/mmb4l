@@ -65,21 +65,21 @@ static void dump_history() {
     char s[STRINGSIZE];
     char *p = history;
     char *start = p;
-    MMPrintString("[BEGIN]\r\n");
+    console_puts("[BEGIN]\r\n");
     for (; p < history + HISTORY_SIZE; ++p) {
         if (*p == '\0') {
             int len = p - start;
             if (len == 0) break;
             memset(s, 0, STRINGSIZE);
             memcpy(s, start, len);
-            MMPrintString("~");
-            MMPrintString(s);
-            MMPrintString("~\r\n");
+            console_puts("~");
+            console_puts(s);
+            console_puts("~\r\n");
             start = p + 1;
         }
     }
-    MMPrintString("[END]\r\n");
-    MMPrintString("\r\n");
+    console_puts("[END]\r\n");
+    console_puts("\r\n");
 }
 
 /** Gets an item from the 'history' buffer. */
@@ -155,7 +155,7 @@ static void handle_backspace(PromptState *pstate) {
         console_putc('\b');
         pstate->char_index--;
     }  // go to the beginning of the line
-    MMPrintString(inpbuf);
+    console_puts(inpbuf);
     console_putc(' ');
     console_putc('\b');  // display the line and erase the last char
     for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
@@ -174,7 +174,7 @@ static void handle_delete(PromptState *pstate) {
         console_putc('\b');
         pstate->char_index--;
     }  // go to the beginning of the line
-    MMPrintString(inpbuf);
+    console_puts(inpbuf);
     console_putc(' ');
     console_putc('\b');  // display the line and erase the last char
     for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
@@ -192,7 +192,7 @@ static void prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
     for (int i = 0; i < pstate->char_index; ++i) console_putc('\b');
 
     // Display the new contents of the input buffer.
-    MMPrintString(inpbuf);
+    console_puts(inpbuf);
 
     // Handle the new input buffer being too long.
     if (strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
@@ -279,7 +279,7 @@ static void handle_other(PromptState *pstate) {
             *(p + 1) = *p;
         }
         inpbuf[pstate->char_index] = pstate->buf[0];  // insert the char
-        MMPrintString(&inpbuf[pstate->char_index]);   // display new part of
+        console_puts(&inpbuf[pstate->char_index]);   // display new part of
                                                       // the line
         pstate->char_index++;
         for (j = strlen(inpbuf); j > pstate->char_index; j--) {
@@ -352,7 +352,7 @@ void prompt_get_input(void) {
     state.max_chars = width;
     state.history_idx = -1;
 
-    MMPrintString(inpbuf);  // display the contents of the input buffer (if any)
+    console_puts(inpbuf);  // display the contents of the input buffer (if any)
 
     if (strlen(inpbuf) >= state.max_chars) {
         ERROR_LINE_TOO_LONG_TO_EDIT;
@@ -449,7 +449,7 @@ void prompt_get_input(void) {
     }
 
 saveline:
-    MMPrintString("\r\n");
+    console_puts("\r\n");
 
     put_history_item(inpbuf);
 }
