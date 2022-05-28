@@ -88,6 +88,32 @@ void console_clear(void) {
     console_home_cursor();
 }
 
+void console_cursor_down(uint8_t i) {
+    char buf[32];
+    sprintf(buf, "\033[%dB", i);
+    WRITE_CODE(buf);
+}
+
+void console_cursor_left(uint8_t i) {
+    char buf[32];
+    sprintf(buf, "\033[%dD", i);
+    WRITE_CODE(buf);
+    MMCharPos -= i;
+}
+
+void console_cursor_right(uint8_t i) {
+    char buf[32];
+    sprintf(buf, "\033[%dC", i);
+    WRITE_CODE(buf);
+    MMCharPos += i;
+}
+
+void console_cursor_up(uint8_t i) {
+    char buf[32];
+    sprintf(buf, "\033[%dA", i);
+    WRITE_CODE(buf);
+}
+
 void console_disable_raw_mode(void) {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
 }

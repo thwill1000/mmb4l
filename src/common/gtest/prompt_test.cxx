@@ -11,6 +11,7 @@
 
 extern "C" {
 
+#include "../console.h"
 #include "../prompt.h"
 #include "../utility.h"
 
@@ -28,7 +29,39 @@ char *MMgetchar_canned_results_ptr;
 char console_putc_captured_c[512];
 char *console_putc_captured_c_ptr;
 
-void console_bell(void) { console_bell_sounded = true; }
+void console_bell(void) {
+    console_bell_sounded = true;
+}
+
+void console_cursor_down(uint8_t i) {
+    char buf[32];
+    sprintf(buf, "\033[%dB", i);
+    char *p = buf;
+    while (*p) (void) console_putc(*p++);
+}
+
+void console_cursor_left(uint8_t i) {
+    char buf[32];
+    sprintf(buf, "\033[%dD", i);
+    char *p = buf;
+    while (*p) (void) console_putc(*p++);
+    MMCharPos -= i;
+}
+
+void console_cursor_right(uint8_t i) {
+    char buf[32];
+    sprintf(buf, "\033[%dC", i);
+    char *p = buf;
+    while (*p) (void) console_putc(*p++);
+    MMCharPos += i;
+}
+
+void console_cursor_up(uint8_t i) {
+    char buf[32];
+    sprintf(buf, "\033[%dA", i);
+    char *p = buf;
+    while (*p) (void) console_putc(*p++);
+}
 
 int console_get_size(int *width, int *height) {
     *width = CONSOLE_WIDTH;

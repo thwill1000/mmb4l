@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <assert.h>
+#include <unistd.h>
 
 #include "mmb4l.h"
 #include "console.h"
@@ -147,10 +148,19 @@ void put_history_item(char *s) {
 static void handle_backspace(PromptState *pstate) {
     if (pstate->char_index <= 0) return;
 
+    if (MMCharPos == 1) console_bell();
     pstate->char_index--;
     char *p = inpbuf + pstate->char_index;
-    console_putc('\b');
-    int count = 0;
+    int count;
+    if (MMCharPos == 1) {
+        console_cursor_up(1);
+        console_cursor_right(pstate->max_chars - 1);
+//        count = -1;
+    } else {
+        console_putc('\b');
+        count = 0;
+    }
+    //int count = 0;
     while (*(p + 1)) {
         *p = *(p + 1);
         console_putc(*p);
@@ -290,6 +300,11 @@ static void handle_other(PromptState *pstate) {
                                          // of the string
         inpbuf[pstate->char_index++] = pstate->buf[0];  // overwrite the char
         console_putc(pstate->buf[0]);                   // display it
+        if (MMCharPos == pstate->max_chars + 1) {
+            console_cursor_down(1);
+            console_cursor_left(pstate->max_chars);
+        }
+        //if (MMCharPos > pstate->max_chars) MMCharPos = 2;
         // if (pstate->char_index + pstate->start_line >=
         //     pstate->max_chars) {  // has the input gone beyond the
         //                           // end of the line?

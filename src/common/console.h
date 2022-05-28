@@ -108,6 +108,10 @@ extern int MMCharPos;
 void console_init();
 void console_background(int colour);
 void console_bell();
+void console_cursor_down(uint8_t i);
+void console_cursor_left(uint8_t i);
+void console_cursor_right(uint8_t i);
+void console_cursor_up(uint8_t i);
 void console_pump_input(void);
 void console_clear(void);
 void console_disable_raw_mode(void);
@@ -174,6 +178,5 @@ int console_set_size(int width, int height);
 
 void console_set_title(const char *title);
 void console_show_cursor(bool show);
-
 
 #endif
