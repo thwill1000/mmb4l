@@ -276,13 +276,24 @@ char console_putc(char c) {
         MMCharPos++;
     } else {
         putc(c, stdout);
-        if (isprint(c)) MMCharPos++;
+        if (isprint(c))
+            MMCharPos++;
+        else {
+            switch (c) {
+                case '\b':
+                    MMCharPos--;
+                    break;
+                case '\r':
+                case '\n':
+                    MMCharPos = 1;
+                    ListCnt++;
+                    break;
+                default:
+                    break;
+            }
+        }
     }
     fflush(stdout);
-    if (c == '\r' || c == '\n') {
-        MMCharPos = 1;
-        ListCnt++;
-    }
     return c;
 }
 
