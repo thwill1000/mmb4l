@@ -74,7 +74,6 @@ int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary, **FontTable;
 
-char g_break_key = BREAK_KEY;
 CmdLineArgs mmb_args = { 0 };
 uint8_t mmb_exit_code = EX_OK;
 
