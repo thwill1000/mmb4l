@@ -129,6 +129,7 @@ set(MMB4L_OPERATORS_SOURCE_FILES
 set(MMB4L_COMMON_SOURCE_FILES
     src/common/cmdline.c
     src/common/codepage.c
+    src/common/classic_editor.c
     src/common/console.c
     src/common/cJSON.c
     src/common/cstring.c
