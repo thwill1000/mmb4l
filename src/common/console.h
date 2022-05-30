@@ -179,4 +179,13 @@ int console_set_size(int width, int height);
 void console_set_title(const char *title);
 void console_show_cursor(bool show);
 
+/** @brief Clears from cursor to the end of the line. */
+void console_clear_to_eol(void);
+
+/** @brief Flushes the console output buffer. */
+void console_flush(void);
+
+/** @brief Enables/disables underline. */
+void console_underline(bool underline);
+
 #endif

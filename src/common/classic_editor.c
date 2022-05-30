@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "options.h"
 #include "program.h"
+#include "utility.h"
 
 //#include "../core/MMBasic_Includes.h"
 //#include "../Hardware_Includes.h"
@@ -103,10 +104,12 @@ int VRes;
 int PromptBC;
 int PromptFC;
 
-#define MMInkey  MMgetchar
+typedef struct {
+    const char *file_path;
+} EditorState;
 
 // Should be an option.
-bool classic_editor_colour_code = false;
+bool classic_editor_colour_code = true;
 
 void DisplayPutC(char c) { }
 
@@ -201,7 +204,7 @@ void FullScreenEditor(void);
 char *findLine(int ln);
 void printLine(int ln);
 void printScreen(void);
-void SCursor(int x, int y);
+static void editor_set_cursor(int x, int y);
 int editInsertChar(char c);
 void PrintFunctKeys(int);
 void PrintStatus(void);
@@ -213,14 +216,75 @@ void ScrollDown(void);
 void MarkMode(char *cb, char *buf);
 void PositionCursor(char *curp);
 
+#define ERROR_NOT_ASCII  error_throw_ex(kError, "Not an ASCII file")
+
+static void editor_read_file(EditorState *pstate) {
+    errno = 0;
+    FILE *f = fopen(pstate->file_path, "r");
+    if (!f) error_throw(errno);
+    int c = '\0';
+    int previous = '\0';
+    char *p = EdBuff;
+    *p = '\0';
+    nbrlines = 0;
+    // TODO: handle buffer overflow
+    do  {
+        c = fgetc(f);
+        switch (c) {
+            case EOF:
+                // Do nothing.
+                break;
+            case '\r':
+                break;
+            case '\n':
+                *p++ = '\n';
+                nbrlines ++;
+                break;
+            default:
+                if (!isascii(c)) ERROR_NOT_ASCII;
+                if (previous == '\r') {
+                    *p++ = '\n';
+                    nbrlines++;
+                }
+                *p++ = (char) c;
+                break;
+        }
+        previous = c;
+    } while (!feof(f));
+    errno = 0;
+    if (FAILED(fclose(f))) error_throw(errno);
+    if (previous == '\n') *(p - 1) = '\0';
+    *p = '\0';
+}
+
+static void editor_write_file(EditorState *pstate) {
+    errno = 0;
+    FILE *f = fopen(pstate->file_path, "w");
+    if (!f) error_throw(errno);
+    const char *p = EdBuff;
+    int c = '\0';
+    while (*p && c != EOF) {
+        c = fputc(*p++, f);
+    }
+    errno = 0;
+    if (FAILED(fclose(f))) error_throw(errno);
+}
+
 // edit command:
 //  EDIT              Will run the full screen editor on the current program memory, if run after an
 //  error will place the cursor on the error line
-void classic_editor(void) {
+void classic_editor(const char *file_path, int line) {
+
+    if (FAILED(console_get_size(&mmb_options.width, &mmb_options.height)))
+        ERROR_INTERNAL_FAULT;
+
+    EditorState state = { 0 };
+    state.file_path = file_path;
+
     char *fromp, *p;
     int y, x;
-    checkend(cmdline);
-    if (CurrentLinePtr) error_throw_legacy("Invalid in a program");
+    // checkend(cmdline);
+    // if (CurrentLinePtr) error_throw_legacy("Invalid in a program");
     // if (classic_editor_colour_code) {
     //     gui_fcolour = WHITE;
     //     gui_bcolour = BLACK;
@@ -236,42 +300,45 @@ void classic_editor(void) {
     txtp = EdBuff;
     *tknbuf = 0;
 
-    fromp = ProgMemory;
-    p = EdBuff;
-    nbrlines = 0;
-    while (*fromp != 0xff) {
-        if (*fromp == T_NEWLINE) {
-            if (StartEditPoint >= ProgMemory) {
-                if (StartEditPoint == fromp) {
-                    y = nbrlines;  // we will start editing at this line
-                    tempx = x = StartEditChar;
-                    txtp = p + StartEditChar;
-                }
-            } else {
-                if (StartEditPoint == (char *) nbrlines) { // This looks wrong!
-                    y = nbrlines;
-                    tempx = x = StartEditChar;
-                    txtp = p + StartEditChar;
-                }
-            }
-            nbrlines++;
-            fromp = llist(p, fromp);  // otherwise expand the line
-            p += strlen(p);
-            *p++ = '\n';
-            *p = 0;
-        }
-        // finally, is it the end of the program?
-        if (fromp[0] == 0 || fromp[0] == 0xff) break;
-    }
-    if (nbrlines == 0) nbrlines++;
-    if (p > EdBuff) --p;
-    *p = 0;  // erase the last line terminator
-    // setterminal(); <-- Sets the console size
+    editor_read_file(&state);
 
-    MMPrintString("\033[?1000h");         // Tera Term turn on mouse click report in VT200 mode
-    MMPrintString("\0337\033[2J\033[H");  // vt100 clear screen and home cursor
-    MX470Display(DISPLAY_CLS);            // clear screen on the MX470 display only
-    SCursor(0, 0);
+    // fromp = ProgMemory;
+    // p = EdBuff;
+    // nbrlines = 0;
+    // while (*fromp != 0xff) {
+    //     if (*fromp == T_NEWLINE) {
+    //         if (StartEditPoint >= ProgMemory) {
+    //             if (StartEditPoint == fromp) {
+    //                 y = nbrlines;  // we will start editing at this line
+    //                 tempx = x = StartEditChar;
+    //                 txtp = p + StartEditChar;
+    //             }
+    //         } else {
+    //             if (StartEditPoint == (char *) nbrlines) { // This looks wrong!
+    //                 y = nbrlines;
+    //                 tempx = x = StartEditChar;
+    //                 txtp = p + StartEditChar;
+    //             }
+    //         }
+    //         nbrlines++;
+    //         fromp = llist(p, fromp);  // otherwise expand the line
+    //         p += strlen(p);
+    //         *p++ = '\n';
+    //         *p = 0;
+    //     }
+    //     // finally, is it the end of the program?
+    //     if (fromp[0] == 0 || fromp[0] == 0xff) break;
+    // }
+    // if (nbrlines == 0) nbrlines++;
+    // if (p > EdBuff) --p;
+    // *p = 0;  // erase the last line terminator
+    // // setterminal(); <-- Sets the console size
+
+    // MMPrintString("\033[?1000h");         // Tera Term turn on mouse click report in VT200 mode
+    console_clear();
+    console_home_cursor();
+    // MX470Display(DISPLAY_CLS);            // clear screen on the MX470 display only
+    // editor_set_cursor(0, 0);
     PrintFunctKeys(EDIT);
 
     if (nbrlines > VHeight) {
@@ -280,7 +347,7 @@ void classic_editor(void) {
         y = y - edy;            // y is the line on the screen
     }
     printScreen();  // draw the screen
-    SCursor(x, y);
+    editor_set_cursor(x, y);
     drawstatusline = true;
     FullScreenEditor();
     memset(tknbuf, 0, STRINGSIZE);  // zero this so that nextstmt is pointing to the end of program
@@ -304,7 +371,7 @@ void FullScreenEditor(void) {
         do {
             // ShowCursor(true);
             console_show_cursor(1);
-            c = MMInkey();
+            c = console_getc();
             if (statuscount++ == 5000) PrintStatus();
         } while (c == -1);
         console_show_cursor(0);
@@ -368,7 +435,7 @@ void FullScreenEditor(void) {
                         ;  // move the cursor to the column
 
                     if (cury > 2 || edy == 0) {  // if we are more that two lines from the top
-                        if (cury > 0) SCursor(i, cury - 1);  // just move the cursor up
+                        if (cury > 0) editor_set_cursor(i, cury - 1);  // just move the cursor up
                     } else if (edy > 0) {  // if we are two lines or less from the top
                         curx = i;
                         ScrollDown();
@@ -387,7 +454,7 @@ void FullScreenEditor(void) {
                     txtp = p;
 
                     if (cury < VHeight - 3 || edy + VHeight == nbrlines) {
-                        if (cury < VHeight - 1) SCursor(i, cury + 1);
+                        if (cury < VHeight - 1) editor_set_cursor(i, cury + 1);
                     } else if (edy + VHeight < nbrlines) {
                         curx = i;
                         Scroll();
@@ -605,13 +672,13 @@ void FullScreenEditor(void) {
                     mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
                     // uSec(50000);  // wait 50ms to see if anything more is coming
                     routinechecks();
-                    if (MMInkey() == '[' && MMInkey() == 'M') {
+                    if (console_getc() == '[' && console_getc() == 'M') {
                         // received escape code for Tera Term reporting a mouse click or scroll
                         // wheel movement
                         int c, x, y;
-                        c = MMInkey();
-                        x = MMInkey() - '!';
-                        y = MMInkey() - '!';
+                        c = console_getc();
+                        x = console_getc() - '!';
+                        y = console_getc() - '!';
                         if (c == 'e' || c == 'a') {  // Tera Term - SHIFT + mouse-wheel-rotate-down
                             buf[1] = UP;
                             buf[2] = 0;
@@ -648,8 +715,8 @@ void FullScreenEditor(void) {
                 case F1:            // Save and exit
                 case CTRLKEY('W'):  // Save, exit and run
                 case F2:            // Save, exit and run
-                    MMPrintString(
-                        "\033[?1000l");  // Tera Term turn off mouse click report in vt200 mode
+                    //MMPrintString(
+                    //    "\033[?1000l");  // Tera Term turn off mouse click report in vt200 mode
                     MMPrintString("\0338\033[2J\033[H");  // vt100 clear screen and home cursor
                     gui_fcolour = PromptFC;
                     gui_bcolour = PromptBC;
@@ -700,7 +767,7 @@ void FullScreenEditor(void) {
                     if (edy < 0) edy = 0;   // compensate if we are near the start
                     printScreen();
                     PositionCursor(txtp);
-                    // SCursor(x, y);
+                    // editor_set_cursor(x, y);
                     break;
 
                 // Mark
@@ -749,7 +816,7 @@ void FullScreenEditor(void) {
                     printLine(edy +
                               cury);  // redraw the whole line so that colour coding will occur
                     PositionCursor(txtp);
-                    // SCursor(x, cury);
+                    // editor_set_cursor(x, cury);
                     tempx = cury;  // used to track the preferred cursor position
                     break;
             }
@@ -779,7 +846,7 @@ void PositionCursor(char *curp) {
             col++;
     }
     if (ln < edy || ln >= edy + VHeight) return;
-    SCursor(col, ln - edy);
+    editor_set_cursor(col, ln - edy);
 }
 
 // mark mode
@@ -793,7 +860,7 @@ void MarkMode(char *cb, char *buf) {
     txtpx = oldx = curx;
     txtpy = oldy = cury;
     while (1) {
-        c = MMInkey();
+        c = console_getc();
         if (c != -1 && errmsg) {
             PrintFunctKeys(MARK);
             errmsg = false;
@@ -802,12 +869,12 @@ void MarkMode(char *cb, char *buf) {
             case ESC:
                 mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
                 // uSec(50000);  // wait 50ms to see if anything more is coming
-                if (MMInkey() == '[' && MMInkey() == 'M') {
+                if (console_getc() == '[' && console_getc() == 'M') {
                     // received escape code for Tera Term reporting a mouse click.  in mark mode we
                     // ignore it
-                    MMInkey();
-                    MMInkey();
-                    MMInkey();
+                    console_getc();
+                    console_getc();
+                    console_getc();
                     break;
                 }
                 curx = txtpx;
@@ -1014,8 +1081,7 @@ void MarkMode(char *cb, char *buf) {
 // exits pointing to the start of the line or pointing to a zero char if not that many lines in the
 // buffer
 char *findLine(int ln) {
-    char *p;
-    p = EdBuff;
+    char *p = EdBuff;
     while (ln && *p) {
         if (*p == '\n') ln--;
         p++;
@@ -1239,7 +1305,6 @@ void SetColour(char *p, int DoVT100) {
 // if the line is beyond the end of the text then just clear to the end of line
 // enters with the line number to be printed
 void printLine(int ln) {
-    char *p;
     int i;
 
     // we always colour code the output to the LCD panel on the MX470 (when used as the console)
@@ -1256,7 +1321,7 @@ void printLine(int ln) {
     // }
     SetColour(NULL, false);
 
-    p = findLine(ln);
+    char *p = findLine(ln);
     if (classic_editor_colour_code) {
         // if we are colour coding we need to redraw the whole line
         MMputchar('\r', 0);  // display the chars after the editing point
@@ -1286,33 +1351,15 @@ void printLine(int ln) {
 void printScreen(void) {
     int i;
 
-    SCursor(0, 0);
+    editor_set_cursor(0, 0);
     for (i = 0; i < VHeight; i++) {
         printLine(i + edy);
-        MMPrintString("\r\n");
+        console_puts("\r\n");
         MX470PutS("\r\n", gui_fcolour, gui_bcolour);
         curx = 0;
         cury = i + 1;
     }
-    while (MMInkey() != -1)
-        ;  // consume any keystrokes accumulated while redrawing the screen
-}
-
-// position the cursor on the screen
-void SCursor(int x, int y) {
-    char s[12];
-
-    MMPrintString("\033[");
-    IntToStr(s, y + 1, 10);
-    MMPrintString(s);
-    MMPrintString(";");
-    IntToStr(s, x + 1, 10);
-    MMPrintString(s);
-    MMPrintString("H");
-    MX470Cursor(x * gui_font_width,
-                y * gui_font_height);  // position the cursor on the MX470 display only
-    curx = x;
-    cury = y;
+    while (console_getc() != -1) ;  // consume any keystrokes accumulated while redrawing the screen
 }
 
 // move the text down by one char starting at the current position in the text
@@ -1332,9 +1379,20 @@ int editInsertChar(char c) {
     return true;
 }
 
+static void editor_set_cursor(int x, int y) {
+    console_set_cursor_pos(x, y);
+    // MX470Cursor(x * gui_font_width,
+    //             y * gui_font_height);  // position the cursor on the MX470 display only
+    curx = x;
+    cury = y;
+}
+
+static void editor_set_colour(const char *vt100_colour) {
+    if (classic_editor_colour_code) console_puts(vt100_colour);
+}
+
 // print the function keys at the bottom of the screen
 void PrintFunctKeys(int typ) {
-    int i, x, y;
     const char *p;
 
     if (typ == EDIT) {
@@ -1351,23 +1409,24 @@ void PrintFunctKeys(int typ) {
             p = "MARK MODE";
     }
 
-    MX470Display(DRAW_LINE);  // on the MX470 display draw the line
-    MX470PutS(p, GUI_C_STATUS,
-              gui_bcolour);      // display the string on the display attached to the MX470
-    MX470Display(CLEAR_TO_EOL);  // clear to the end of line on the MX470 display only
+    // MX470Display(DRAW_LINE);                  // on the MX470 display draw the line
+    // MX470PutS(p, GUI_C_STATUS, gui_bcolour);  // display the string on the display attached to the MX470
+    // MX470Display(CLEAR_TO_EOL);               // clear to the end of line on the MX470 display only
 
-    x = curx;
-    y = cury;
-    SCursor(0, VHeight);
-    if (classic_editor_colour_code) MMPrintString(VT100_C_LINE);
-    MMPrintString("\033[4m");  // underline on
-    for (i = 0; i < VWidth; i++) MMputchar(' ', 0);
-    MMPrintString("\033[0m\r\n");  // underline off
-    if (classic_editor_colour_code) MMPrintString(VT100_C_STATUS);
-    MMPrintString(p);
-    if (classic_editor_colour_code) MMPrintString(VT100_C_NORMAL);
-    MMPrintString("\033[K");  // clear to the end of the line on a vt100 emulator
-    SCursor(x, y);
+    int x = curx;
+    int y = cury;
+    editor_set_cursor(0, VHeight);
+    editor_set_colour(VT100_C_LINE);
+    console_underline(true);
+    for (int i = 0; i < VWidth; i++) console_putc(' ');
+    console_underline(false);
+    console_puts("\r\n");
+    editor_set_colour(VT100_C_STATUS);
+    console_puts(p);
+    editor_set_colour(VT100_C_NORMAL);
+    console_clear_to_eol();
+    editor_set_cursor(x, y);
+    console_flush();
 }
 
 // print the current status
@@ -1387,7 +1446,7 @@ void PrintStatus(void) {
     MX470PutS(s, GUI_C_STATUS,
               gui_bcolour);  // display the string on the display attached to the MX470
 
-    SCursor(VWidth - 25, VHeight + 1);
+    editor_set_cursor(VWidth - 25, VHeight + 1);
     if (classic_editor_colour_code) MMPrintString(VT100_C_STATUS);
     MMPrintString(s);
     if (classic_editor_colour_code) MMPrintString(VT100_C_NORMAL);
@@ -1397,7 +1456,7 @@ void PrintStatus(void) {
 
 // display a message in the status line
 void editDisplayMsg(const char *msg) {
-    SCursor(0, VHeight + 1);
+    editor_set_cursor(0, VHeight + 1);
     if (classic_editor_colour_code) MMPrintString(VT100_C_ERROR);
     MMPrintString("\033[7m");
     MX470Cursor(0, VRes - gui_font_height);
@@ -1431,7 +1490,7 @@ void GetInputString(const char *prompt) {
     int i;
     char *p;
 
-    SCursor(0, VHeight + 1);
+    editor_set_cursor(0, VHeight + 1);
     MMPrintString(prompt);
     MX470Cursor(0, VRes - gui_font_height);
     MX470PutS(prompt, gui_fcolour, gui_bcolour);
@@ -1439,7 +1498,7 @@ void GetInputString(const char *prompt) {
         MMputchar(' ', 1);
         MX470PutC(' ');
     }
-    SCursor(strlen(prompt), VHeight + 1);
+    editor_set_cursor(strlen(prompt), VHeight + 1);
     MX470Cursor(strlen(prompt) * gui_font_width, VRes - gui_font_height);
     for (p = inpbuf; (*p = MMgetchar()) != '\r'; p++) {  // get the input
         if (*p == 0xb3 || *p == F3 || *p == ESC) {
@@ -1467,32 +1526,30 @@ void GetInputString(const char *prompt) {
 // scroll up the video screen
 void Scroll(void) {
     edy++;
-    SCursor(0, VHeight);
+    editor_set_cursor(0, VHeight);
     MMPrintString("\033[J\033[99B\n");  // clear to end of screen, move to the end of the screen and
                                         // force a scroll of one line
     MX470Cursor(0, VHeight * gui_font_height);
     MX470Scroll(gui_font_height);
-    SCursor(0, VHeight);
+    editor_set_cursor(0, VHeight);
     curx = 0;
     cury = VHeight - 1;
     PrintFunctKeys(EDIT);
     printLine(VHeight - 1 + edy);
     PositionCursor(txtp);
-    while (MMInkey() != -1)
-        ;  // consume any keystrokes accumulated while redrawing the screen
+    while (console_getc() != -1) ;  // consume any keystrokes accumulated while redrawing the screen
 }
 
 // scroll down the video screen
 void ScrollDown(void) {
-    SCursor(0, VHeight);      // go to the end of the editing area
+    editor_set_cursor(0, VHeight);      // go to the end of the editing area
     MMPrintString("\033[J");  // clear to end of screen
     edy--;
-    SCursor(0, 0);
+    editor_set_cursor(0, 0);
     MMPrintString("\033M");  // scroll window down one line
     MX470Scroll(-gui_font_height);
     printLine(edy);
     PrintFunctKeys(EDIT);
     PositionCursor(txtp);
-    while (MMInkey() != -1)
-        ;  // consume any keystrokes accumulated while redrawing the screen
+    while (console_getc() != -1) ;  // consume any keystrokes accumulated while redrawing the screen
 }

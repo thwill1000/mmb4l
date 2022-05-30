@@ -60,6 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 OptionsEditor options_editors[] = {
     { "Atom",    "atom ${file}:${line}",             false },
+    { "Classic", "n/a",                              true  },
     { "Geany",   "geany --line=${line} ${file} &",   false },
     { "Gedit",   "gedit ${file} +${line} &",         false },
     { "Leafpad", "leafpad --jump=${line} ${file} &", false },
@@ -90,6 +91,7 @@ static const NameOrdinalPair options_default_type_map[] = {
 // Note that at the moment the ordinal is unused in this map.
 static const NameOrdinalPair options_editor_map[] = {
     { "Atom",    0 },
+    { "Classic", 0 },
     { "Code",    0 },
     { "Default", 0 },
     { "Geany",   0 },

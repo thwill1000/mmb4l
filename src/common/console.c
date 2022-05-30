@@ -85,7 +85,7 @@ void console_bell(void) {
 
 void console_clear(void) {
     WRITE_CODE_2("\033[2J", 4); // Clear screen.
-    console_home_cursor();
+    console_home_cursor(); // TODO: Should it do this, or should client call separately ?
 }
 
 void console_cursor_down(uint8_t i) {
@@ -479,5 +479,21 @@ void console_show_cursor(bool show) {
         WRITE_CODE_2("\033[?25h", 6);
     } else {
         WRITE_CODE_2("\033[?25l", 6);
+    }
+}
+
+void console_clear_to_eol(void) {
+    WRITE_CODE_2("\033[K", 3);
+}
+
+void console_flush(void) {
+    fflush(stdout);
+}
+
+void console_underline(bool underline) {
+    if (underline) {
+        WRITE_CODE_2("\033[4m", 4);
+    } else {
+        WRITE_CODE_2("\033[24m", 5);
     }
 }

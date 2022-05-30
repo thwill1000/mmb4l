@@ -54,6 +54,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/program.h"
 #include "../common/utility.h"
 
+void classic_editor(const char *file_path, int line);
+
 #define ERROR_EDITOR_FAILED              error_throw_ex(kError, "Editor could not be run")
 #define ERROR_FAILED_TO_DELETE_TMP_FILE  error_throw_ex(kError, "Temporary file could not be deleted")
 #define ERROR_FILE_COULD_NOT_BE_CREATED  error_throw_ex(kError, "File could not be created")
@@ -167,13 +169,18 @@ void cmd_edit(void) {
     }
 
     // Edit the file.
-    char command[STRINGSIZE * 2] = { 0 };
     bool blocking = false;
-    if (FAILED(get_editor_command(file_path, line > 1 ? line : 1, command, &blocking))) {
-        ERROR_UNKNOWN_EDITOR(mmb_options.editor);
+    if (strcasecmp(mmb_options.editor, "Classic") == 0) {
+        blocking = true;
+        classic_editor(file_path, line);
+    } else {
+        char command[STRINGSIZE * 2] = { 0 };
+        if (FAILED(get_editor_command(file_path, line > 1 ? line : 1, command, &blocking))) {
+            ERROR_UNKNOWN_EDITOR(mmb_options.editor);
+        }
+        errno = 0;
+        if (FAILED(system(command))) ERROR_EDITOR_FAILED;
     }
-    errno = 0;
-    if (FAILED(system(command))) ERROR_EDITOR_FAILED;
 
     // If we created a new file and it is still empty after editing with an
     // editor that blocks then delete it.
