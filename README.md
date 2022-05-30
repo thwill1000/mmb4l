@@ -694,7 +694,7 @@ Credit is also due to the denizens of [The Back Shed](https://www.thebackshed.co
 
 **1. I heard rumours of Android and Chrome OS versions, do they exist ? can I have them ?**
 
-I have compiled MMB4L to run under [Termux](https://termux.com/) and [Crostini](https://chromeos.dev/en/linux) but I am not providing pre-build distributions for these platforms at this time so I can concentrate on resolving issues with the mainline Linux builds.
+I have previously compiled MMB4L to run under [Termux](https://termux.com/) and [Crostini](https://chromeos.dev/en/linux) but currently I am not providing pre-built distributions for these platforms and instead I am concentrating on supporting and extending the mainline Linux builds.
 
 **2. How do I contact the maintainer ?**
 
