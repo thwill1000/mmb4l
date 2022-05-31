@@ -178,7 +178,7 @@ static void reset_console_title() {
 /** Handle return via longjmp(). */
 void longjmp_handler(int jmp_state) {
 
-    console_show_cursor(1);
+    console_show_cursor(true);
     console_reset();
     if (MMCharPos > 1) console_puts("\r\n");
 
@@ -256,7 +256,7 @@ int main(int argc, char *argv[]) {
         reset_console_title();
         console_reset();
         console_clear();
-        console_show_cursor(1);
+        console_show_cursor(true);
 
         print_banner();
         console_puts("\r\n");
