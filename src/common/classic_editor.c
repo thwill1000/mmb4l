@@ -105,7 +105,12 @@ int PromptBC;
 int PromptFC;
 
 typedef struct {
+    bool exit;
     const char *file_path;
+    char input_buf[STRINGSIZE + 2];
+    char last_key;
+    char clipboard[STRINGSIZE];
+    char saved_break_key;
 } EditorState;
 
 // Should be an option.
@@ -200,7 +205,7 @@ int TextChanged;      // true if the program has been modified and therefor a sa
 #define EDIT 1  // used to select the status line string
 #define MARK 2
 
-void FullScreenEditor(void);
+void FullScreenEditor(EditorState *pstate);
 char *findLine(int ln);
 void printLine(int ln);
 void printScreen(void);
@@ -349,389 +354,457 @@ void classic_editor(const char *file_path, int line) {
     printScreen();  // draw the screen
     editor_set_cursor(x, y);
     drawstatusline = true;
-    FullScreenEditor();
+    FullScreenEditor(&state);
     memset(tknbuf, 0, STRINGSIZE);  // zero this so that nextstmt is pointing to the end of program
     MMCharPos = 0;
+    console_show_cursor(true);
 }
 
-void FullScreenEditor(void) {
+static void handle_delete(EditorState *pstate) {
+    if (*txtp == 0) return;
+    char *p = txtp;
+    char c = *p;
+    while (*p) {
+        p[0] = p[1];
+        p++;
+    }
+    if (c == '\n') {
+        printScreen();
+        nbrlines--;
+    } else
+        printLine(edy + cury);
+    TextChanged = true;
+    PositionCursor(txtp);
+}
+
+static void handle_backspace(EditorState *pstate) {
+    int i;
+    char *p;
+    if (txtp == EdBuff) return;
+    if (*(txtp - 1) == '\n') {  // if at the beginning of the line wrap around
+        pstate->input_buf[1] = UP;
+        pstate->input_buf[2] = END;
+        pstate->input_buf[3] = DEL;
+        pstate->input_buf[4] = '\0';
+        return;
+    }
+    // find how many spaces are between the cursor and the start of the line
+    for (p = txtp - 1; *p == ' ' && p != EdBuff; p--)
+        ;
+    if ((p == EdBuff || *p == '\n') && txtp - p > 1) {
+        i = txtp - p - 1;
+        // we have have the number of continuous spaces between the cursor and the
+        // start of the line now figure out the number of backspaces to the nearest
+        // tab stop
+
+        i = (i % mmb_options.tab);
+        if (i == 0) i = mmb_options.tab;
+        // load the corresponding number of deletes in the type ahead buffer
+        pstate->input_buf[i + 1] = 0;
+        while (i--) {
+            pstate->input_buf[i + 1] = DEL;
+            txtp--;
+        }
+        // and let the delete case take care of deleting the characters
+        PositionCursor(txtp);
+        return;
+    }
+    // this is just a normal backspace (not a tabbed backspace)
+    txtp--;
+    PositionCursor(txtp);
+    handle_delete(pstate);
+}
+
+static void handle_down(EditorState *pstate) {
+    int i;
+    char *p = txtp;
+    while (*p != 0 && *p != '\n') p++;  // move to the end of this line
+    if (*p == 0) return;                // skip if it is at the end of the file
+    p++;  // step over the line terminator to the start of the next line
+    for (i = 0; i < edx + tempx && *p != 0 && *p != '\n'; i++, p++)
+        ;  // move the cursor to the column
+    txtp = p;
+
+    if (cury < VHeight - 3 || edy + VHeight == nbrlines) {
+        if (cury < VHeight - 1) editor_set_cursor(i, cury + 1);
+    } else if (edy + VHeight < nbrlines) {
+        curx = i;
+        Scroll();
+    }
+    PositionCursor(txtp);
+}
+
+static void handle_end(EditorState *pstate) {
+    if (*txtp == 0) return;                         // already at the end
+    if (pstate->last_key == END
+            || pstate->last_key == CTRLKEY('K')) {  // jump to the end of the file
+        int i = 0;
+        char *p = txtp = EdBuff;
+        while (*txtp != 0) {
+            if (*txtp == '\n') {
+                p = txtp + 1;
+                i++;
+            }
+            txtp++;
+        }
+
+        if (i >= VHeight) {
+            edy = i - VHeight + 1;
+            printScreen();
+            cury = VHeight - 1;
+        } else {
+            cury = i;
+        }
+        txtp = p;
+        curx = 0;
+    }
+
+    while (curx < VWidth && *txtp != 0 && *txtp != '\n') {
+        txtp++;
+        PositionCursor(txtp);
+    }
+    if (curx > VWidth) editDisplayMsg(" LINE IS TOO LONG ");
+}
+
+static void handle_exit(EditorState *pstate) {
+    pstate->exit = true;
+    // MMPrintString(
+    //     "\033[?1000l");  // Tera Term turn off mouse click report in vt200 mode
+    MMPrintString("\0338\033[2J\033[H");  // vt100 clear screen and home cursor
+    gui_fcolour = PromptFC;
+    gui_bcolour = PromptBC;
+    MX470Display(DISPLAY_CLS);  // clear screen on the MX470 display only
+    MX470Cursor(0, 0);          // home the cursor
+    mmb_options.break_key = pstate->saved_break_key;
+    if (pstate->input_buf[0] != ESC && TextChanged) editor_write_file(pstate);
+    if (pstate->input_buf[0] == ESC
+            || pstate->input_buf[0] == CTRLKEY('Q')
+            || pstate->input_buf[0] == F1) return;
+    // this must be save, exit and run.  We have done the first two, now do the run
+    // part.
+    ClearRuntime();
+    //                            WatchdogSet = false;
+    PrepareProgram(true);
+    nextstmt = ProgMemory;
+}
+
+static void handle_escape(EditorState *pstate) {
+    mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
+    // uSec(50000);  // wait 50ms to see if anything more is coming
+    routinechecks();
+    if (console_getc() == '[' && console_getc() == 'M') {
+        // received escape code for Tera Term reporting a mouse click or scroll
+        // wheel movement
+        int c, x, y;
+        c = console_getc();
+        x = console_getc() - '!';
+        y = console_getc() - '!';
+        if (c == 'e' || c == 'a') {  // Tera Term - SHIFT + mouse-wheel-rotate-down
+            pstate->input_buf[1] = UP;
+            pstate->input_buf[2] = '\0';
+        } else if (c == 'd' || c == '`') {  // Tera Term - SHIFT + mouse-wheel-rotate-up
+            pstate->input_buf[1] = DOWN;
+            pstate->input_buf[2] = '\0';
+        } else if (c == ' '
+                && x >= 0
+                && x < VWidth
+                && y >= 0
+                && y < VHeight) {  // c == ' ' means mouse down and no shift, ctrl,
+                                   // etc
+            // first position on the y axis
+            while (*txtp != 0 && y > cury)  // assume we have to move down the screen
+                if (*txtp++ == '\n') cury++;
+            while (txtp != EdBuff && y < cury)  // assume we have to move up the screen
+                if (*--txtp == '\n') cury--;
+            while (txtp != EdBuff && *(txtp - 1) != '\n')
+                txtp--;  // move to the beginning of the line
+            for (curx = 0; curx < x && *txtp && *txtp != '\n'; curx++)
+                txtp++;  // now position on the x axis
+            PositionCursor(txtp);
+        }
+        return;
+    }
+    // this must be an ordinary escape (not part of an escape code)
+    if (TextChanged) {
+        GetInputString("Exit and discard all changes (Y/N): ");
+        if (toupper(*inpbuf) != 'Y') return;
+    }
+    handle_exit(pstate);
+}
+
+static void handle_home(EditorState *pstate) {
+    if (txtp == EdBuff) return;
+    if (pstate->last_key == HOME || pstate->last_key == CTRLKEY('U')) {
+        edx = edy = curx = cury = 0;
+        txtp = EdBuff;
+        MMPrintString("\033[2J\033[H");  // vt100 clear screen and home cursor
+        MX470Display(DISPLAY_CLS);       // clear screen on the MX470 display only
+        printScreen();
+        PrintFunctKeys(EDIT);
+        PositionCursor(txtp);
+        return;
+    }
+    if (*txtp == '\n')
+        txtp--;  // step back over the terminator if we are right at the end of the
+                 // line
+    while (txtp != EdBuff && *txtp != '\n') txtp--;  // move to the beginning of the line
+    if (*txtp == '\n') txtp++;                       // skip if no more lines above this one
+    PositionCursor(txtp);
+}
+
+static void handle_insert(EditorState *pstate) { insert = !insert; }
+
+static void handle_left(EditorState *pstate) {
+    if (txtp == EdBuff) return;
+    if (*(txtp - 1) == '\n') {  // if at the beginning of the line wrap around
+        pstate->input_buf[1] = UP;
+        pstate->input_buf[2] = END;
+        pstate->input_buf[3] = 1;
+        pstate->input_buf[4] = 0;
+    } else {
+        txtp--;
+        PositionCursor(txtp);
+    }
+}
+
+static void handle_newline(EditorState *pstate) {
+    int i;
+    char *tp;
+    // first count the spaces at the beginning of the line
+    if (txtp != EdBuff &&
+        (*txtp == '\n' || *txtp == 0)) {  // we only do this if we are at the end of the line
+        for (tp = txtp - 1, i = 0; *tp != '\n' && tp >= EdBuff; tp--)
+            if (*tp != ' ')
+                i = 0;  // not a space
+            else
+                i++;  // potential space at the start
+        if (tp == EdBuff && *tp == ' ')
+            i++;  // correct for a counting error at the start of the buffer
+        if (pstate->input_buf[1] != '\0')
+            i = 0;  // do not insert spaces if buffer too small or has something in
+                    // it
+        else
+            pstate->input_buf[i + 1] = 0;        // make sure that the end of the buffer is zeroed
+        while (i) pstate->input_buf[i--] = ' ';  // now, place our spaces in the typeahead buffer
+    }
+    if (!editInsertChar('\n')) return;  // insert the newline
+    TextChanged = true;
+    nbrlines++;
+    if (!(cury < VHeight - 1))  // if we are NOT at the bottom
+        edy++;                  // otherwise scroll
+    printScreen();              // redraw everything
+    PositionCursor(txtp);
+}
+
+static void handle_page_down(EditorState *pstate) {
+    int i;
+    if (nbrlines <= edy + VHeight + 1) {  // if we are already showing the end of the text
+        pstate->input_buf[1] = END;       // force the editing point to the end of the text
+        pstate->input_buf[2] = END;
+        pstate->input_buf[3] = '\0';
+        return;                                         // cursor to the top line
+    } else if (nbrlines - edy - VHeight >= VHeight) {  // if we can scroll a full screenfull
+        edy += VHeight;
+        i = VHeight;
+    } else {  // if it is less than a full screenfull
+        i = nbrlines - VHeight - edy;
+        edy = nbrlines - VHeight;
+    }
+    if (*txtp == '\n') i--;  // compensate if we are right at the end of a line
+    while (i--) {
+        if (*txtp == '\n')
+            txtp++;  // step over the terminator if we are right at the start of the
+                     // line
+        while (*txtp != 0 && *txtp != '\n') txtp++;  // move to the end of the line
+        if (*txtp == 0) return;                      // skip if no more lines after this one
+    }
+    if (txtp != EdBuff) txtp++;  // and position at the start of the line
+    for (i = 0; i < edx + curx && *txtp != 0 && *txtp != '\n'; i++, txtp++)
+        ;  // move the cursor to the column
+    // y = cury;
+    printScreen();
+    PositionCursor(txtp);
+}
+
+static void handle_page_up(EditorState *pstate) {
+    int i;
+    if (edy == 0) {     // if we are already showing the top of the text
+        pstate->input_buf[1] = HOME;  // force the editing point to the start of the text
+        pstate->input_buf[2] = HOME;
+        pstate->input_buf[3] = 0;
+        return;
+    } else if (edy >= VHeight - 1) {  // if we can scroll a full screenfull
+        i = VHeight + 1;
+        edy -= VHeight;
+    } else {  // if it is less than a full screenfull
+        i = edy + 1;
+        edy = 0;
+    }
+    while (i--) {
+        if (*txtp == '\n')
+            txtp--;  // step back over the terminator if we are right at the end of
+                     // the line
+        while (txtp != EdBuff && *txtp != '\n') txtp--;  // move to the beginning of the line
+        if (txtp == EdBuff) break;                       // skip if no more lines above this one
+    }
+    if (txtp != EdBuff) txtp++;  // and position at the start of the line
+    for (i = 0; i < edx + curx && *txtp != 0 && *txtp != '\n'; i++, txtp++)
+        ;  // move the cursor to the column
+    printScreen();
+    PositionCursor(txtp);
+}
+
+static void handle_right(EditorState *pstate) {
+    if (*txtp == '\n') {  // if at the end of the line wrap around
+        pstate->input_buf[1] = HOME;
+        pstate->input_buf[2] = DOWN;
+        pstate->input_buf[3] = 0;
+        return;
+    }
+    if (curx >= VWidth) {
+        editDisplayMsg(" LINE IS TOO LONG ");
+        return;
+    }
+
+    if (*txtp != 0) txtp++;  // now we can move the cursor
+    PositionCursor(txtp);
+}
+
+static void handle_up(EditorState *pstate) {
+    if (cury == 0 && edy == 0) return;
+    if (*txtp == '\n')
+        txtp--;  // step back over the terminator if we are right at the end of the
+                 // line
+    while (txtp != EdBuff && *txtp != '\n') txtp--;  // move to the beginning of the line
+    if (txtp != EdBuff) {
+        txtp--;  // step over the terminator to the end of the previous line
+        while (txtp != EdBuff && *txtp != '\n') txtp--;  // move to the beginning of that line
+        if (*txtp == '\n') txtp++;                       // and position at the start
+    }
+    int i;
+    for (i = 0; i < edx + tempx && *txtp != 0 && *txtp != '\n'; i++, txtp++)
+        ;  // move the cursor to the column
+
+    if (cury > 2 || edy == 0) {                        // if we are more that two lines from the top
+        if (cury > 0) editor_set_cursor(i, cury - 1);  // just move the cursor up
+    } else if (edy > 0) {                              // if we are two lines or less from the top
+        curx = i;
+        ScrollDown();
+    }
+    PositionCursor(txtp);
+}
+
+void FullScreenEditor(EditorState *pstate) {
     int c, i;
-    char buf[STRINGSIZE + 2], clipboard[STRINGSIZE];
-    char *p, *tp, BreakKeySave;
-    char lastkey = 0;
+    // char buf[STRINGSIZE + 2], clipboard[STRINGSIZE];
+    char *p, *tp;
     int y, statuscount;
 
-    clipboard[0] = 0;
+    pstate->clipboard[0] = '\0';
+    pstate->exit = false;
+    pstate->input_buf[0] = '\0';
+    pstate->last_key = 0;
+
     insert = true;
     TextChanged = false;
-    BreakKeySave = mmb_options.break_key;
+    pstate->saved_break_key = mmb_options.break_key;
     mmb_options.break_key = 0;
-    while (1) {
+    while (!pstate->exit) {
         statuscount = 0;
         do {
             // ShowCursor(true);
-            console_show_cursor(1);
+            console_show_cursor(true);
             c = console_getc();
             if (statuscount++ == 5000) PrintStatus();
         } while (c == -1);
-        console_show_cursor(0);
+        console_show_cursor(false);
 
         if (drawstatusline) PrintFunctKeys(EDIT);
         drawstatusline = false;
         if (c == TAB) {
-            strcpy(buf, "        ");
-            buf[mmb_options.tab - ((edx + curx) % mmb_options.tab)] = 0;
+            strcpy(pstate->input_buf, "        ");
+            pstate->input_buf[mmb_options.tab - ((edx + curx) % mmb_options.tab)] = 0;
         } else {
-            buf[0] = c;
-            buf[1] = 0;
+            pstate->input_buf[0] = c;
+            pstate->input_buf[1] = 0;
         }
         do {
-            if (buf[0] == BreakKeySave)
-                buf[0] = ESC;  // if the user tried to break turn it into an escape
-            switch (buf[0]) {
+            if (pstate->input_buf[0] == pstate->saved_break_key)
+                pstate->input_buf[0] = ESC;  // if the user tried to break turn it into an escape
+            switch (pstate->input_buf[0]) {
                 case '\r':
-                case '\n':  // first count the spaces at the beginning of the line
-                    if (txtp != EdBuff &&
-                        (*txtp == '\n' ||
-                         *txtp == 0)) {  // we only do this if we are at the end of the line
-                        for (tp = txtp - 1, i = 0; *tp != '\n' && tp >= EdBuff; tp--)
-                            if (*tp != ' ')
-                                i = 0;  // not a space
-                            else
-                                i++;  // potential space at the start
-                        if (tp == EdBuff && *tp == ' ')
-                            i++;  // correct for a counting error at the start of the buffer
-                        if (buf[1] != 0)
-                            i = 0;  // do not insert spaces if buffer too small or has something in
-                                    // it
-                        else
-                            buf[i + 1] = 0;        // make sure that the end of the buffer is zeroed
-                        while (i) buf[i--] = ' ';  // now, place our spaces in the typeahead buffer
-                    }
-                    if (!editInsertChar('\n')) break;  // insert the newline
-                    TextChanged = true;
-                    nbrlines++;
-                    if (!(cury < VHeight - 1))  // if we are NOT at the bottom
-                        edy++;                  // otherwise scroll
-                    printScreen();              // redraw everything
-                    PositionCursor(txtp);
+                case '\n':
+                    handle_newline(pstate);
                     break;
 
                 case CTRLKEY('E'):
                 case UP:
-                    if (cury == 0 && edy == 0) break;
-                    if (*txtp == '\n')
-                        txtp--;  // step back over the terminator if we are right at the end of the
-                                 // line
-                    while (txtp != EdBuff && *txtp != '\n')
-                        txtp--;  // move to the beginning of the line
-                    if (txtp != EdBuff) {
-                        txtp--;  // step over the terminator to the end of the previous line
-                        while (txtp != EdBuff && *txtp != '\n')
-                            txtp--;                 // move to the beginning of that line
-                        if (*txtp == '\n') txtp++;  // and position at the start
-                    }
-                    for (i = 0; i < edx + tempx && *txtp != 0 && *txtp != '\n'; i++, txtp++)
-                        ;  // move the cursor to the column
-
-                    if (cury > 2 || edy == 0) {  // if we are more that two lines from the top
-                        if (cury > 0) editor_set_cursor(i, cury - 1);  // just move the cursor up
-                    } else if (edy > 0) {  // if we are two lines or less from the top
-                        curx = i;
-                        ScrollDown();
-                    }
-                    PositionCursor(txtp);
+                    handle_up(pstate);
                     break;
 
                 case CTRLKEY('X'):
                 case DOWN:
-                    p = txtp;
-                    while (*p != 0 && *p != '\n') p++;  // move to the end of this line
-                    if (*p == 0) break;                 // skip if it is at the end of the file
-                    p++;  // step over the line terminator to the start of the next line
-                    for (i = 0; i < edx + tempx && *p != 0 && *p != '\n'; i++, p++)
-                        ;  // move the cursor to the column
-                    txtp = p;
-
-                    if (cury < VHeight - 3 || edy + VHeight == nbrlines) {
-                        if (cury < VHeight - 1) editor_set_cursor(i, cury + 1);
-                    } else if (edy + VHeight < nbrlines) {
-                        curx = i;
-                        Scroll();
-                    }
-                    PositionCursor(txtp);
+                    handle_down(pstate);
                     break;
 
                 case CTRLKEY('S'):
                 case LEFT:
-                    if (txtp == EdBuff) break;
-                    if (*(txtp - 1) == '\n') {  // if at the beginning of the line wrap around
-                        buf[1] = UP;
-                        buf[2] = END;
-                        buf[3] = 1;
-                        buf[4] = 0;
-                    } else {
-                        txtp--;
-                        PositionCursor(txtp);
-                    }
+                    handle_left(pstate);
                     break;
 
                 case CTRLKEY('D'):
                 case RIGHT:
-                    if (*txtp == '\n') {  // if at the end of the line wrap around
-                        buf[1] = HOME;
-                        buf[2] = DOWN;
-                        buf[3] = 0;
-                        break;
-                    }
-                    if (curx >= VWidth) {
-                        editDisplayMsg(" LINE IS TOO LONG ");
-                        break;
-                    }
-
-                    if (*txtp != 0) txtp++;  // now we can move the cursor
-                    PositionCursor(txtp);
+                    handle_right(pstate);
                     break;
 
-                // backspace
                 case BKSP:
-                    if (txtp == EdBuff) break;
-                    if (*(txtp - 1) == '\n') {  // if at the beginning of the line wrap around
-                        buf[1] = UP;
-                        buf[2] = END;
-                        buf[3] = DEL;
-                        buf[4] = 0;
-                        break;
-                    }
-                    // find how many spaces are between the cursor and the start of the line
-                    for (p = txtp - 1; *p == ' ' && p != EdBuff; p--)
-                        ;
-                    if ((p == EdBuff || *p == '\n') && txtp - p > 1) {
-                        i = txtp - p - 1;
-                        // we have have the number of continuous spaces between the cursor and the
-                        // start of the line now figure out the number of backspaces to the nearest
-                        // tab stop
-
-                        i = (i % mmb_options.tab);
-                        if (i == 0) i = mmb_options.tab;
-                        // load the corresponding number of deletes in the type ahead buffer
-                        buf[i + 1] = 0;
-                        while (i--) {
-                            buf[i + 1] = DEL;
-                            txtp--;
-                        }
-                        // and let the delete case take care of deleting the characters
-                        PositionCursor(txtp);
-                        break;
-                    }
-                    // this is just a normal backspace (not a tabbed backspace)
-                    txtp--;
-                    PositionCursor(txtp);
-                    // fall through to delete the char
+                    handle_backspace(pstate);
+                    break;
 
                 case CTRLKEY(']'):
                 case DEL:
-                    if (*txtp == 0) break;
-                    p = txtp;
-                    c = *p;
-                    while (*p) {
-                        p[0] = p[1];
-                        p++;
-                    }
-                    if (c == '\n') {
-                        printScreen();
-                        nbrlines--;
-                    } else
-                        printLine(edy + cury);
-                    TextChanged = true;
-                    PositionCursor(txtp);
+                    handle_delete(pstate);
                     break;
 
                 case CTRLKEY('N'):
                 case INSERT:
-                    insert = !insert;
+                    handle_insert(pstate);
                     break;
 
                 case CTRLKEY('U'):
                 case HOME:
-                    if (txtp == EdBuff) break;
-                    if (lastkey == HOME || lastkey == CTRLKEY('U')) {
-                        edx = edy = curx = cury = 0;
-                        txtp = EdBuff;
-                        MMPrintString("\033[2J\033[H");  // vt100 clear screen and home cursor
-                        MX470Display(DISPLAY_CLS);       // clear screen on the MX470 display only
-                        printScreen();
-                        PrintFunctKeys(EDIT);
-                        PositionCursor(txtp);
-                        break;
-                    }
-                    if (*txtp == '\n')
-                        txtp--;  // step back over the terminator if we are right at the end of the
-                                 // line
-                    while (txtp != EdBuff && *txtp != '\n')
-                        txtp--;                 // move to the beginning of the line
-                    if (*txtp == '\n') txtp++;  // skip if no more lines above this one
-                    PositionCursor(txtp);
+                    handle_home(pstate);
                     break;
 
                 case CTRLKEY('K'):
                 case END:
-                    if (*txtp == 0) break;                            // already at the end
-                    if (lastkey == END || lastkey == CTRLKEY('K')) {  // jump to the end of the file
-                        i = 0;
-                        p = txtp = EdBuff;
-                        while (*txtp != 0) {
-                            if (*txtp == '\n') {
-                                p = txtp + 1;
-                                i++;
-                            }
-                            txtp++;
-                        }
-
-                        if (i >= VHeight) {
-                            edy = i - VHeight + 1;
-                            printScreen();
-                            cury = VHeight - 1;
-                        } else {
-                            cury = i;
-                        }
-                        txtp = p;
-                        curx = 0;
-                    }
-
-                    while (curx < VWidth && *txtp != 0 && *txtp != '\n') {
-                        txtp++;
-                        PositionCursor(txtp);
-                    }
-                    if (curx > VWidth) editDisplayMsg(" LINE IS TOO LONG ");
+                    handle_end(pstate);
                     break;
 
                 case CTRLKEY('P'):
                 case PUP:
-                    if (edy == 0) {     // if we are already showing the top of the text
-                        buf[1] = HOME;  // force the editing point to the start of the text
-                        buf[2] = HOME;
-                        buf[3] = 0;
-                        break;
-                    } else if (edy >= VHeight - 1) {  // if we can scroll a full screenfull
-                        i = VHeight + 1;
-                        edy -= VHeight;
-                    } else {  // if it is less than a full screenfull
-                        i = edy + 1;
-                        edy = 0;
-                    }
-                    while (i--) {
-                        if (*txtp == '\n')
-                            txtp--;  // step back over the terminator if we are right at the end of
-                                     // the line
-                        while (txtp != EdBuff && *txtp != '\n')
-                            txtp--;                 // move to the beginning of the line
-                        if (txtp == EdBuff) break;  // skip if no more lines above this one
-                    }
-                    if (txtp != EdBuff) txtp++;  // and position at the start of the line
-                    for (i = 0; i < edx + curx && *txtp != 0 && *txtp != '\n'; i++, txtp++)
-                        ;  // move the cursor to the column
-                    printScreen();
-                    PositionCursor(txtp);
+                    handle_page_up(pstate);
                     break;
 
                 case CTRLKEY('L'):
                 case PDOWN:
-                    if (nbrlines <=
-                        edy + VHeight + 1) {  // if we are already showing the end of the text
-                        buf[1] = END;         // force the editing point to the end of the text
-                        buf[2] = END;
-                        buf[3] = 0;
-                        break;  // cursor to the top line
-                    } else if (nbrlines - edy - VHeight >=
-                               VHeight) {  // if we can scroll a full screenfull
-                        edy += VHeight;
-                        i = VHeight;
-                    } else {  // if it is less than a full screenfull
-                        i = nbrlines - VHeight - edy;
-                        edy = nbrlines - VHeight;
-                    }
-                    if (*txtp == '\n') i--;  // compensate if we are right at the end of a line
-                    while (i--) {
-                        if (*txtp == '\n')
-                            txtp++;  // step over the terminator if we are right at the start of the
-                                     // line
-                        while (*txtp != 0 && *txtp != '\n') txtp++;  // move to the end of the line
-                        if (*txtp == 0) break;  // skip if no more lines after this one
-                    }
-                    if (txtp != EdBuff) txtp++;  // and position at the start of the line
-                    for (i = 0; i < edx + curx && *txtp != 0 && *txtp != '\n'; i++, txtp++)
-                        ;  // move the cursor to the column
-                    // y = cury;
-                    printScreen();
-                    PositionCursor(txtp);
+                    handle_page_down(pstate);
                     break;
 
                 // Abort without saving
                 case ESC:
-                    mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
-                    // uSec(50000);  // wait 50ms to see if anything more is coming
-                    routinechecks();
-                    if (console_getc() == '[' && console_getc() == 'M') {
-                        // received escape code for Tera Term reporting a mouse click or scroll
-                        // wheel movement
-                        int c, x, y;
-                        c = console_getc();
-                        x = console_getc() - '!';
-                        y = console_getc() - '!';
-                        if (c == 'e' || c == 'a') {  // Tera Term - SHIFT + mouse-wheel-rotate-down
-                            buf[1] = UP;
-                            buf[2] = 0;
-                        } else if (c == 'd' ||
-                                   c == '`') {  // Tera Term - SHIFT + mouse-wheel-rotate-up
-                            buf[1] = DOWN;
-                            buf[2] = 0;
-                        } else if (c == ' ' && x >= 0 && x < VWidth && y >= 0 &&
-                                   y < VHeight) {  // c == ' ' means mouse down and no shift, ctrl,
-                                                   // etc
-                            // first position on the y axis
-                            while (*txtp != 0 &&
-                                   y > cury)  // assume we have to move down the screen
-                                if (*txtp++ == '\n') cury++;
-                            while (txtp != EdBuff &&
-                                   y < cury)  // assume we have to move up the screen
-                                if (*--txtp == '\n') cury--;
-                            while (txtp != EdBuff && *(txtp - 1) != '\n')
-                                txtp--;  // move to the beginning of the line
-                            for (curx = 0; curx < x && *txtp && *txtp != '\n'; curx++)
-                                txtp++;  // now position on the x axis
-                            PositionCursor(txtp);
-                        }
-                        break;
-                    }
-                    // this must be an ordinary escape (not part of an escape code)
-                    if (TextChanged) {
-                        GetInputString("Exit and discard all changes (Y/N): ");
-                        if (toupper(*inpbuf) != 'Y') break;
-                    }
+                    handle_escape(pstate);
+                    break;
+
                     // fall through to the normal exit
 
                 case CTRLKEY('Q'):  // Save and exit
                 case F1:            // Save and exit
                 case CTRLKEY('W'):  // Save, exit and run
                 case F2:            // Save, exit and run
-                    //MMPrintString(
-                    //    "\033[?1000l");  // Tera Term turn off mouse click report in vt200 mode
-                    MMPrintString("\0338\033[2J\033[H");  // vt100 clear screen and home cursor
-                    gui_fcolour = PromptFC;
-                    gui_bcolour = PromptBC;
-                    MX470Display(DISPLAY_CLS);  // clear screen on the MX470 display only
-                    MX470Cursor(0, 0);          // home the cursor
-                    mmb_options.break_key = BreakKeySave;
-                    if (buf[0] != ESC && TextChanged) SaveToProgMemory();
-                    if (buf[0] == ESC || buf[0] == CTRLKEY('Q') || buf[0] == F1) return;
-                    // this must be save, exit and run.  We have done the first two, now do the run
-                    // part.
-                    ClearRuntime();
-                    //                            WatchdogSet = false;
-                    PrepareProgram(true);
-                    nextstmt = ProgMemory;
+                    handle_exit(pstate);
                     return;
+
 
                 // Search
                 case CTRLKEY('R'):
@@ -773,7 +846,7 @@ void FullScreenEditor(void) {
                 // Mark
                 case CTRLKEY('T'):
                 case F4:
-                    MarkMode(clipboard, &buf[1]);
+                    MarkMode(pstate->clipboard, &pstate->input_buf[1]);
                     printScreen();
                     PrintFunctKeys(EDIT);
                     PositionCursor(txtp);
@@ -782,12 +855,13 @@ void FullScreenEditor(void) {
                 case CTRLKEY('Y'):
                 case CTRLKEY('V'):
                 case F5:
-                    if (*clipboard == 0) {
+                    if (*pstate->clipboard == 0) {
                         editDisplayMsg(" CLIPBOARD IS EMPTY ");
                         break;
                     }
-                    for (i = 0; clipboard[i]; i++) buf[i + 1] = clipboard[i];
-                    buf[i + 1] = 0;
+                    for (i = 0; pstate->clipboard[i]; i++)
+                        pstate->input_buf[i + 1] = pstate->clipboard[i];
+                    pstate->input_buf[i + 1] = '\0';
                     break;
 
                 // F6 to F12 - Normal function keys
@@ -802,7 +876,7 @@ void FullScreenEditor(void) {
 
                 // a normal character
                 default:
-                    c = buf[0];
+                    c = pstate->input_buf[0];
                     if (c < ' ' || c > '~') break;  // make sure that this is valid
                     if (curx >= VWidth) {
                         editDisplayMsg(" LINE IS TOO LONG ");
@@ -820,13 +894,19 @@ void FullScreenEditor(void) {
                     tempx = cury;  // used to track the preferred cursor position
                     break;
             }
-            lastkey = buf[0];
-            if (buf[0] != UP && buf[0] != DOWN && buf[0] != CTRLKEY('E') && buf[0] != CTRLKEY('X'))
+
+            if (pstate->exit) break;
+
+            pstate->last_key = pstate->input_buf[0];
+            if (pstate->input_buf[0] != UP
+                    && pstate->input_buf[0] != DOWN
+                    && pstate->input_buf[0] != CTRLKEY('E')
+                    && pstate->input_buf[0] != CTRLKEY('X'))
                 tempx = curx;
-            buf[STRINGSIZE + 1] = 0;
+            pstate->input_buf[STRINGSIZE + 1] = '\0';
             for (i = 0; i < STRINGSIZE + 1; i++)
-                buf[i] = buf[i + 1];  // suffle down the buffer to get the next char
-        } while (*buf);
+                pstate->input_buf[i] = pstate->input_buf[i + 1];  // shuffle down the buffer to get the next char
+        } while (*pstate->input_buf);
     }
 }
 
@@ -1470,20 +1550,20 @@ void editDisplayMsg(const char *msg) {
     drawstatusline = true;
 }
 
-// save the program in the editing buffer into the program memory
-void SaveToProgMemory(void) {
-    // SaveProgramToFlash(EdBuff, true); // Doesn't exist in MMB4L
-    ClearProgram();
-    StartEditPoint = (char *) (edy + cury);  // record out position in case the editor is invoked again
-    StartEditChar = edx + curx;
-    // bugfix for when the edit point is a space
-    // the space could be at the end of a line which will be trimmed in SaveProgramToFlash() leaving
-    // StartEditChar referring to something not there this is not a serious issue so fix the bug in
-    // the MX470 only because it has plenty of flash
-    while (StartEditChar > 0 && txtp > EdBuff && *(--txtp) == ' ') {
-        StartEditChar--;
-    }
-}
+// // save the program in the editing buffer into the program memory
+// void SaveToProgMemory(void) {
+//     // SaveProgramToFlash(EdBuff, true); // Doesn't exist in MMB4L
+//     ClearProgram();
+//     StartEditPoint = (char *) (edy + cury);  // record out position in case the editor is invoked again
+//     StartEditChar = edx + curx;
+//     // bugfix for when the edit point is a space
+//     // the space could be at the end of a line which will be trimmed in SaveProgramToFlash() leaving
+//     // StartEditChar referring to something not there this is not a serious issue so fix the bug in
+//     // the MX470 only because it has plenty of flash
+//     while (StartEditChar > 0 && txtp > EdBuff && *(--txtp) == ' ') {
+//         StartEditChar--;
+//     }
+// }
 
 // get an input string from the user and save into inpbuf
 void GetInputString(const char *prompt) {
