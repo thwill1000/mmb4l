@@ -70,7 +70,7 @@ static void get_mmbasic_nanorc(char *path) {
     }
 }
 
-static int get_editor_command(char *file_path, int line, char *command, bool *blocking) {
+static int get_editor_command(const char *file_path, int line, char *command, bool *blocking) {
     *command = '\0';
     *blocking = false;
     for (const OptionsEditor *editor = options_editors; editor->name; ++editor) {
@@ -146,15 +146,11 @@ void cmd_edit(void) {
         }
     }
 
-    int new_file = false;
     char file_path[STRINGSIZE];
     MmResult result = path_get_canonical(fname, file_path, STRINGSIZE);
     switch (result) {
         case kOk:
             // Nothing to see here, move along.
-            break;
-        case kFileNotFound:
-            new_file = true;
             break;
         case kFilenameTooLong:
             ERROR_PATH_TOO_LONG;
@@ -165,6 +161,7 @@ void cmd_edit(void) {
     }
 
     // If necessary create a new file.
+    bool new_file = !path_exists(file_path);
     if (new_file) {
         if (!create_empty_file(file_path)) ERROR_FILE_COULD_NOT_BE_CREATED;
     }
