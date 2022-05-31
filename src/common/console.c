@@ -42,8 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-// Copyright (c) 2021-2022 Thomas Hugo Williams
-
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -450,7 +448,7 @@ void console_reset() {
     WRITE_CODE_2("\033[0m", 4);
 }
 
-void console_show_cursor(int show) {
+void console_show_cursor(bool show) {
     if (show) {
         WRITE_CODE_2("\033[?25h", 6);
     } else {

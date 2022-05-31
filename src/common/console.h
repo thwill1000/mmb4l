@@ -42,10 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-// Copyright (c) 2021 Thomas Hugo Williams
-
 #if !defined(CONSOLE_H)
 #define CONSOLE_H
+
+#include <stdbool.h>
 
 // the values returned by the standard control keys
 #define TAB 0x9
@@ -173,7 +173,7 @@ void console_set_cursor_pos(int x, int y);
 int console_set_size(int width, int height);
 
 void console_set_title(const char *title);
-void console_show_cursor(int show);
+void console_show_cursor(bool show);
 
 
 #endif
