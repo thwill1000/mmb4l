@@ -106,7 +106,11 @@ static void get_line_and_file(int *line, char *file_path) {
     // p = tknbuf;
     // skipspace(p);
 
-    char *pipe_pos = strchr(tknbuf, '|');
+    // Search backwards for the '|' character that delimits the meta-data about
+    // which file the statement originated from. Note that if the name of the
+    // file from which the statement was sourced contains a '|' then all bets
+    // are off.
+    char *pipe_pos = strrchr(tknbuf, '|');
     if (!pipe_pos) return;
 
     char *comma_pos = strchr(pipe_pos, ',');
