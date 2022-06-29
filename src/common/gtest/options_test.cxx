@@ -22,15 +22,24 @@ class OptionsTest : public ::testing::Test {
 
 protected:
 
+    std::string m_home;
+
     void SetUp() override {
         struct stat st = { 0 };
         if (stat(OPTIONS_TEST_DIR, &st) == -1) {
             mkdir(OPTIONS_TEST_DIR, 0775);
         }
+
+        char *home = getenv("HOME");
+        if (home) {
+            m_home = home;
+        } else {
+            FAIL() << "getenv(\"HOME\") failed.";
+        }
     }
 
     void TearDown() override {
-        (void)! system("rm -rf " OPTIONS_TEST_DIR);
+        SYSTEM_CALL("rm -rf " OPTIONS_TEST_DIR);
     }
 
 };
@@ -1020,9 +1029,9 @@ TEST_F(OptionsTest, GetStringValue_ForSearchPath) {
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
     EXPECT_STREQ("", svalue);
 
-    strcpy(options.search_path, HOME_DIR "/foo");
+    strcpy(options.search_path, (m_home + "/foo").c_str());
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
-    EXPECT_STREQ(HOME_DIR "/foo", svalue);
+    EXPECT_STREQ((m_home + "/foo").c_str(), svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForTab) {

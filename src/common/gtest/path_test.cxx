@@ -31,6 +31,8 @@ private:
 
 protected:
 
+    std::string m_home;
+
     void SetUp() override {
         struct stat st = { 0 };
         if (stat(PATH_TEST_DIR, &st) == -1) {
@@ -41,6 +43,13 @@ protected:
         char *cwd = getcwd(NULL, 0);
         m_cwd = cwd;
         free(cwd);
+
+        char *home = getenv("HOME");
+        if (home) {
+            m_home = home;
+        } else {
+            FAIL() << "getenv(\"HOME\") failed.";
+        }
     }
 
     void TearDown() override {
@@ -49,8 +58,7 @@ protected:
         // Restore current working directory.
         errno = 0;
         if (FAILED(chdir(m_cwd.c_str()))) {
-            fprintf(stderr, "chdir() failed.");
-            exit(EXIT_FAILURE);
+            FAIL() << "chdir() failed: " << errno;
         }
     }
 
@@ -194,11 +202,11 @@ TEST_F(PathTest, Munge) {
     TEST_MUNGE("../../../foo",    "../../../foo");
 
     // HOME relative paths.
-    TEST_MUNGE("~",               HOME_DIR);
-    TEST_MUNGE("~/",              HOME_DIR);
-    TEST_MUNGE("~/.",             HOME_DIR);
+    TEST_MUNGE("~",               m_home.c_str());
+    TEST_MUNGE("~/",              m_home.c_str());
+    TEST_MUNGE("~/.",             m_home.c_str());
     TEST_MUNGE("~/../foo",        HOME_PARENT "/foo");
-    TEST_MUNGE("~/.mmbasic",      HOME_DIR "/.mmbasic");
+    TEST_MUNGE("~/.mmbasic",      (m_home + "/.mmbasic").c_str());
 #if defined(__ANDROID__)
     TEST_MUNGE("~/../../tmp",     TERMUX_ROOT "/tmp");
 #else
@@ -383,8 +391,8 @@ TEST_F(PathTest, GetCanonical_ResolvesSymbolicLinks) {
     TEST_GET_CANONICAL(PATH_TEST_DIR "/missinglink/missinglink.bas", PATH_TEST_DIR "/missing/missinglink.bas");
     TEST_GET_CANONICAL(PATH_TEST_DIR "/rootlink",                    "/");
     TEST_GET_CANONICAL(PATH_TEST_DIR "/rootlink/foo.bas",            "/foo.bas");
-    TEST_GET_CANONICAL(PATH_TEST_DIR "/homelink",                    HOME_DIR);
-    TEST_GET_CANONICAL(PATH_TEST_DIR "/homelink/foo.bas",            HOME_DIR "/foo.bas");
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/homelink",                    m_home.c_str());
+    TEST_GET_CANONICAL(PATH_TEST_DIR "/homelink/foo.bas",            (m_home + "/foo.bas").c_str());
     TEST_GET_CANONICAL(PATH_TEST_DIR "/wtflink",                     "/");
     TEST_GET_CANONICAL(PATH_TEST_DIR "/wtflink/foo.bas",             "/foo.bas");
 
@@ -404,8 +412,8 @@ TEST_F(PathTest, GetCanonical_ResolvesSymbolicLinks) {
     TEST_GET_CANONICAL("../missinglink/missinglink.bas", PATH_TEST_DIR "/missing/missinglink.bas");
     TEST_GET_CANONICAL("../rootlink",                    "/");
     TEST_GET_CANONICAL("../rootlink/foo.bas",            "/foo.bas");
-    TEST_GET_CANONICAL("../homelink",                    HOME_DIR);
-    TEST_GET_CANONICAL("../homelink/foo.bas",            HOME_DIR "/foo.bas");
+    TEST_GET_CANONICAL("../homelink",                    m_home.c_str());
+    TEST_GET_CANONICAL("../homelink/foo.bas",            (m_home + "/foo.bas").c_str());
     TEST_GET_CANONICAL("../wtflink",                     "/");
     TEST_GET_CANONICAL("../wtflink/foo.bas",             "/foo.bas");
 }

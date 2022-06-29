@@ -8,7 +8,6 @@
 
 #define BIN_DIR           "/usr/bin"
 #define TMP_DIR           "/tmp"
-#define HOME_DIR          "/home/thwill"
 
 #if defined(__ANDROID__)
 
@@ -18,13 +17,11 @@
 #define BIN_DIR           TERMUX_FILES "/usr/bin"
 #undef  TMP_DIR
 #define TMP_DIR           TERMUX_FILES "/usr/tmp"
-#undef  HOME_DIR
-#define HOME_DIR          TERMUX_FILES "/home"
 
 #elif defined(__arm__)
 
-#undef  HOME_DIR
-#define HOME_DIR          "/home/pi"
+#undef  BIN_DIR
+#define BIN_DIR           "/bin"
 
 #endif
 
