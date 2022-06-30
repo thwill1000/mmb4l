@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define xmodem_send  xmodem_transmit
 
-void xmodem_transmit(int file_fnbr, int serial_fnbr);
-void xmodem_receive(int file_fnbr, int serial_fnbr);
+void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose);
+void xmodem_receive(int file_fnbr, int serial_fnbr, bool verbose);
 
 #endif

@@ -88,6 +88,13 @@ void console_clear(void) {
     console_home_cursor();
 }
 
+void console_cursor_up(int i) {
+    assert(i > 0);
+    char buf[32];
+    sprintf(buf, "\033[%dA", i);
+    WRITE_CODE(buf);
+}
+
 void console_disable_raw_mode(void) {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
 }
