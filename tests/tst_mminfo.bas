@@ -167,13 +167,15 @@ Sub test_exists()
   ' Local sym_link_dir$ = Mm.Info$(Directory) + "firmware-tests"
 
   ' TODO: what about directory paths with trailing '/' ?
-
+  ' TODO: does this now work on MMB4W ?
   If Mm.Device$ = "MMB4L" Then
     ' MM.INFO(EXISTS path$) is MMB4L specific.
     assert_int_equals(1, Mm.Info(Exists existing_dir$))
     assert_int_equals(1, Mm.Info(Exists existing_file$))
     assert_int_equals(0, Mm.Info(Exists non_existing$))
     assert_int_equals(1, Mm.Info(Exists root$))
+    assert_int_equals(1, Mm.Info(Exists "."))
+    assert_int_equals(1, Mm.Info(Exists ".."))
     ' assert_int_equals(1, Mm.Info(Exists sym_link_dir$))
   EndIf
 
@@ -181,12 +183,16 @@ Sub test_exists()
   assert_int_equals(1, Mm.Info(Exists File existing_file$))
   assert_int_equals(0, Mm.Info(Exists File non_existing$))
   assert_int_equals(0, Mm.Info(Exists File root$))
+  assert_int_equals(0, Mm.Info(Exists File "."))
+  assert_int_equals(0, Mm.Info(Exists File ".."))
   ' assert_int_equals(0, Mm.Info(Exists File sym_link_dir$))
 
   assert_int_equals(1, Mm.Info(Exists Dir existing_dir$))
   assert_int_equals(0, Mm.Info(Exists Dir existing_file$))
   assert_int_equals(0, Mm.Info(Exists Dir non_existing$))
   assert_int_equals(1, Mm.Info(Exists Dir root$))
+  assert_int_equals(1, Mm.Info(Exists Dir "."))
+  assert_int_equals(1, Mm.Info(Exists Dir ".."))
   ' assert_int_equals(1, Mm.Info(Exists Dir sym_link_dir$))
 
   If Mm.Device$ = "MMB4L" Then
@@ -195,6 +201,8 @@ Sub test_exists()
     assert_int_equals(0, Mm.Info(Exists SymLink existing_file$))
     assert_int_equals(0, Mm.Info(Exists SymLink non_existing$))
     assert_int_equals(0, Mm.Info(Exists SymLink root$))
+    assert_int_equals(0, Mm.Info(Exists SymLink "."))
+    assert_int_equals(0, Mm.Info(Exists SymLink ".."))
    ' assert_int_equals(1, Mm.Info(Exists SymLink sym_link_dir$))
   EndIf
 End Sub

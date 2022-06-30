@@ -183,18 +183,18 @@ TEST_F(PathTest, Munge) {
     TEST_MUNGE("/~foo/bar",       "/~foo/bar");
 
     // Relative paths.
-    TEST_MUNGE(".",               "");
+    TEST_MUNGE(".",               ".");
     TEST_MUNGE("..",              "..");
     TEST_MUNGE("./..",            "..");
     TEST_MUNGE("./foo",           "foo");
     TEST_MUNGE("foo/.",           "foo");
-    TEST_MUNGE("foo/..",          "");
+    TEST_MUNGE("foo/..",          ".");
     TEST_MUNGE("foo/../bar",      "bar");
     TEST_MUNGE("foo/../bar.bas",  "bar.bas");
     TEST_MUNGE("foo/.bar",        "foo/.bar");
     TEST_MUNGE("foo/..bar",       "foo/..bar");
     TEST_MUNGE("foo../bar",       "foo../bar");
-    TEST_MUNGE("foo../..",        "");
+    TEST_MUNGE("foo../..",        ".");
     TEST_MUNGE("foo../../bar",    "bar");
     TEST_MUNGE("foo//bar",        "foo/bar");
     TEST_MUNGE("../foo",          "../foo");
