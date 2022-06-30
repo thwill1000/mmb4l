@@ -167,9 +167,8 @@ Sub test_exists()
   ' Local sym_link_dir$ = Mm.Info$(Directory) + "firmware-tests"
 
   ' TODO: what about directory paths with trailing '/' ?
-  ' TODO: does this now work on MMB4W ?
-  If Mm.Device$ = "MMB4L" Then
-    ' MM.INFO(EXISTS path$) is MMB4L specific.
+
+  If Mm.Device$ = "MMB4L" Or Mm.Device$ = "MMBasic for Windows" Then
     assert_int_equals(1, Mm.Info(Exists existing_dir$))
     assert_int_equals(1, Mm.Info(Exists existing_file$))
     assert_int_equals(0, Mm.Info(Exists non_existing$))
