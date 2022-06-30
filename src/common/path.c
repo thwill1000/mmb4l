@@ -292,9 +292,9 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
 
     } while (*psrc++);
 
-    // Empty absolute path is '/'
-    if (absolute && *new_path == '\0') {
-        new_path[0] = '/';
+    if (!*new_path) {
+        // Empty absolute path is '/' whereas empty relative path is '.'
+        new_path[0] = absolute ? '/' : '.';
         new_path[1] = '\0';
     }
 
