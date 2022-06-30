@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stddef.h>
 
 #include "mmb4l.h"
+#include "console.h"
 #include "error.h"
 #include "file.h"
 #include "mmtime.h"
@@ -103,12 +104,13 @@ static void xmodem_putc(int serial_fnbr, char ch) {
     serial_putc(ch, serial_fnbr);
 }
 
-void xmodem_transmit(int file_fnbr, int serial_fnbr) {
+void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
     unsigned char xbuff[X_BUF_SIZE];
     unsigned char packetno = 1;
     char prevchar = 0;
-    int i, c, len;
+    int i, c, len, total = 0;
     int retry;
+    char sbuf[128];
 
     // first establish communication with the remote
     while (1) {
@@ -144,6 +146,12 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr) {
             xbuff[1] = packetno;
             xbuff[2] = ~packetno;
 
+            if (verbose) {
+                if (total > 0) console_cursor_up(1);
+                sprintf(sbuf, "Sent %d bytes\n", total);
+                console_puts(sbuf);
+            }
+
             // Copy data from the file into the packet.
             for (len = 0; len < 128 && !file_eof(file_fnbr); len++) {
                 xbuff[len + 3] = file_getc(file_fnbr);
@@ -167,6 +175,7 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr) {
                         switch (c) {
                             case ACK:
                                 ++packetno;
+                                total += len;
                                 goto start_trans;
                             case CAN:  // cancelled by remote
                                 xmodem_putc(serial_fnbr, ACK);
@@ -201,16 +210,23 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr) {
     }
 }
 
-void xmodem_receive(int file_fnbr, int serial_fnbr) {
+void xmodem_receive(int file_fnbr, int serial_fnbr, bool verbose) {
     unsigned char xbuff[X_BUF_SIZE];
     unsigned char *p;
     unsigned char trychar = NAK;  //'C';
     unsigned char packetno = 1;
-    int i, c;
+    int i, c, total = 0;
     int retry, retrans = MAXRETRANS;
+    char sbuf[128];
 
     // first establish communication with the remote
     while (1) {
+        if (verbose) {
+            if (total > 0) console_cursor_up(1);
+            sprintf(sbuf, "Received %d bytes\n", total);
+            console_puts(sbuf);
+        }
+
         for (retry = 0; retry < 32; ++retry) {
             if (trychar) xmodem_putc(serial_fnbr, trychar);
             if ((c = _inbyte((DLY_1S) << 1, serial_fnbr)) >= 0) {
@@ -254,6 +270,7 @@ void xmodem_receive(int file_fnbr, int serial_fnbr) {
                 }
                 ++packetno;
                 retrans = MAXRETRANS + 1;
+                total += X_BLOCK_SIZE;
             }
             if (--retrans <= 0) {
                 flushinput(serial_fnbr);
