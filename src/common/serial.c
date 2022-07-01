@@ -426,3 +426,19 @@ int serial_rx_queue_size(int fnbr) {
     assert(file_table[fnbr].type == fet_serial);
     return rx_buf_size(&file_table[fnbr].rx_buf);
 }
+
+int serial_write(int fnbr, const char *buf, size_t sz) {
+    assert(file_table[fnbr].type == fet_serial);
+    errno = 0;
+    ssize_t count = write(file_table[fnbr].serial_fd, buf, sz);
+    if (count == sz) {
+        return sz;
+    } else if (count == -1) {
+        error_throw(errno);
+    } else {
+        error_throw(EBADF);
+    }
+
+    assert(false);
+    return -1;
+}
