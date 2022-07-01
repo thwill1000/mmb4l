@@ -52,5 +52,6 @@ int serial_getc(int fnbr);
 void serial_pump_input(int fnbr);
 int serial_putc(int ch, int fnbr);
 int serial_rx_queue_size(int fnbr);
+int serial_write(int fnbr, const char *buf, size_t sz);
 
 #endif

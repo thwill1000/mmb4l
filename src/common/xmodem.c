@@ -167,9 +167,10 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
                 // now send the block
                 for (retry = 0; retry < MAXRETRANS && !MMAbort; ++retry) {
                     // send the block
-                    for (i = 0; i < X_BLOCK_SIZE + 4 && !MMAbort; ++i) {
-                        xmodem_putc(serial_fnbr, xbuff[i]);
-                    }
+                    serial_write(serial_fnbr, xbuff, X_BLOCK_SIZE + 4);
+                    //for (i = 0; i < X_BLOCK_SIZE + 4 && !MMAbort; ++i) {
+                    //    xmodem_putc(serial_fnbr, xbuff[i]);
+                    //}
                     // check the response
                     if ((c = _inbyte(DLY_1S, serial_fnbr)) >= 0) {
                         switch (c) {
