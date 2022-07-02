@@ -208,7 +208,7 @@ int file_lof(int fnbr) {
     return -1;
 }
 
-int file_putc(int ch, int fnbr) {
+int file_putc(int fnbr, int ch) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
     if (fnbr == 0) return console_putc(ch);
 
@@ -229,7 +229,7 @@ int file_putc(int ch, int fnbr) {
         }
 
         case fet_serial:
-            return serial_putc(ch, fnbr);
+            return serial_putc(fnbr, ch);
     }
 
     ERROR_INTERNAL_FAULT;

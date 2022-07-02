@@ -77,7 +77,7 @@ int file_eof(int fnbr);
 int file_getc(int fnbr);
 int file_loc(int fnbr);
 int file_lof(int fnbr);
-int file_putc(int ch, int fnbr);
+int file_putc(int fnbr, int ch);
 void file_seek(int fnbr, int idx);
 
 #endif

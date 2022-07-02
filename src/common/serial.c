@@ -402,7 +402,7 @@ int serial_getc(int fnbr) {
     return ch;
 }
 
-int serial_putc(int ch, int fnbr) {
+int serial_putc(int fnbr, int ch) {
     assert(file_table[fnbr].type == fet_serial);
     errno = 0;
     ssize_t count = write(file_table[fnbr].serial_fd, &ch, 1);

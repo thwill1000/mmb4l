@@ -89,15 +89,15 @@ extern int IgnorePIN;
 #define FONT_TABLE_SIZE 0
 
 // Aliases for functions using "legacy" names in MMBasic core:
-#define check_interrupt  interrupt_check
-#define CloseAllFiles    file_close_all
-#define getConsole       console_getc
-#define MMfeof           file_eof
-#define MMfgetc          file_getc
-#define MMfputc          file_putc
-#define MMputchar        console_putc
-#define MMPrintString    console_puts
-#define error            error_throw_legacy
+#define check_interrupt    interrupt_check
+#define CloseAllFiles      file_close_all
+#define getConsole         console_getc
+#define MMfeof             file_eof
+#define MMfgetc            file_getc
+#define MMfputc(ch, fnbr)  file_putc(fnbr, ch)
+#define MMputchar          console_putc
+#define MMPrintString      console_puts
+#define error              error_throw_legacy
 
 // Aliases for identifiers using "legacy" names in MMBasic core:
 #define Autorun          autorun
