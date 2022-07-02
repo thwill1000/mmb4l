@@ -100,8 +100,8 @@ static void flushinput(int serial_fnbr) {
     }
 }
 
-static void xmodem_putc(int serial_fnbr, char ch) {
-    serial_putc(ch, serial_fnbr);
+static inline void xmodem_putc(int serial_fnbr, char ch) {
+    serial_putc(serial_fnbr, ch);
 }
 
 void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
@@ -267,7 +267,7 @@ void xmodem_receive(int file_fnbr, int serial_fnbr, bool verbose) {
             xmodem_check(&xbuff[3], X_BLOCK_SIZE)) {
             if (xbuff[1] == packetno) {
                 for (i = 0; i < X_BLOCK_SIZE; i++) {
-                    file_putc(xbuff[i + 3], file_fnbr);
+                    file_putc(file_fnbr, xbuff[i + 3]);
                 }
                 ++packetno;
                 retrans = MAXRETRANS + 1;

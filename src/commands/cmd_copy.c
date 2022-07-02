@@ -71,7 +71,7 @@ void cmd_copy(void) {  // thanks to Bryan Rentoul for the contribution
     while (1) {
         if (file_eof(of)) break;
         c = file_getc(of);
-        file_putc(c, nf);
+        file_putc(nf, c);
     }
 
     file_close(of);

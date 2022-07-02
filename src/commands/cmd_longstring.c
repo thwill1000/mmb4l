@@ -305,7 +305,7 @@ static void longstring_print(const char *tp) {
         }
         j = dest[0];
         while (j--) {
-            file_putc(*q++, fnbr);
+            file_putc(fnbr, *q++);
         }
         i++;
     }

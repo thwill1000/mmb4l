@@ -131,7 +131,7 @@ static void cmd_autosave_write_file(char *file_path, char *buf) {
     file_open(file_path, "wb", fnbr);
     char *p = buf;
     while (*p) {
-        file_putc(*p++, fnbr);
+        file_putc(fnbr, *p++);
     }
     file_close(fnbr);
 }
