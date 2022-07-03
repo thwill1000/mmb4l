@@ -285,3 +285,32 @@ int file_find_free(void) {
     ERROR_TOO_MANY_OPEN_FILES;
     return -1;
 }
+
+size_t file_write(int fnbr, const char *buf, size_t sz) {
+    if (fnbr < 0 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr == 0) return console_write(buf, sz);
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ERROR_NOT_OPEN;
+            break;
+
+        case fet_file: {
+            errno = 0;
+            size_t result = fwrite(buf, 1, sz, file_table[fnbr].file_ptr);
+            if (result != sz) {
+                if (ferror(file_table[fnbr].file_ptr)) error_throw(errno);
+                assert(false); // Always expect ferror to have been set.
+            }
+            if (FAILED(fflush(file_table[fnbr].file_ptr))) error_throw(errno);
+            return result;
+        }
+
+        case fet_serial:
+            return serial_write(fnbr, buf, sz);
+            break;
+    }
+
+    ERROR_INTERNAL_FAULT;
+    return -1;
+}

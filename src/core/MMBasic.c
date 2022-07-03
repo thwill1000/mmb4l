@@ -2774,15 +2774,15 @@ void MMPrintString(const char* s) {
 }
 #endif
 
-
 // output a string to a file
 // the string must be a MMBasic string
+#if !defined(__mmb4l__)
 void MMfputs(const char *p, int filenbr) {
   int i;
   i = *p++;
   while(i--) MMfputc(*p++, filenbr);
 }
-
+#endif
 
 
 

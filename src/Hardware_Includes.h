@@ -95,6 +95,7 @@ extern int IgnorePIN;
 #define MMfeof             file_eof
 #define MMfgetc            file_getc
 #define MMfputc(ch, fnbr)  file_putc(fnbr, ch)
+#define MMfputs(mmbstr, fnbr)  file_write(fnbr, mmbstr + 1, mmbstr[0])
 #define MMputchar          console_putc
 #define MMPrintString      console_puts
 #define error              error_throw_legacy

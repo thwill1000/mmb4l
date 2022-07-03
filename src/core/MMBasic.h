@@ -264,10 +264,10 @@ int MIPS16 CountLines(char *target);
 void DefinedSubFun(int iscmd, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64, char **sa, int *t);
 int FindSubFun(const char *p, int type);
 void MIPS16 PrepareProgram(int);
-#if defined(__mmb4l__)
+#if !defined(__mmb4l__)
 void MMPrintString(const char* s);
-#endif
 void MMfputs(const char *p, int filenbr);
+#endif
 void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix);
 void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
