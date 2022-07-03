@@ -312,7 +312,7 @@ static void longstring_print(const char *tp) {
     if (argc > i) {
         if (*argv[i] == ';') return;
     }
-    MMfputs("\2\r\n", fnbr);
+    file_write(fnbr, "\r\n", 2);
 }
 
 static void longstring_replace(const char *tp) {

@@ -79,5 +79,6 @@ int file_loc(int fnbr);
 int file_lof(int fnbr);
 int file_putc(int fnbr, int ch);
 void file_seek(int fnbr, int idx);
+size_t file_write(int fnbr, const char *buf, size_t sz);
 
 #endif

@@ -176,5 +176,6 @@ int console_set_size(int width, int height);
 void console_set_title(const char *title);
 void console_show_cursor(bool show);
 
+size_t console_write(const char *buf, size_t sz);
 
 #endif

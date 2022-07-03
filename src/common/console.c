@@ -449,3 +449,11 @@ void console_show_cursor(bool show) {
     printf(show ? "\033[?25h" : "\033[?25l");
     fflush(stdout);
 }
+
+size_t console_write(const char *buf, size_t sz) {
+    for (size_t idx = 0; idx < sz; ++idx) {
+        console_putc_noflush(buf[idx]);
+    }
+    fflush(stdout);
+    return sz;
+}
