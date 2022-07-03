@@ -61,10 +61,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define CONSOLE_RX_BUF_SIZE 256
 
-// Jump through hoops so compiler doesn't complain about ignoring the return value.
-#define WRITE_CODE(s)         (void)(write(STDOUT_FILENO, s, strlen(s)) + 1)
-#define WRITE_CODE_2(s, len)  (void)(write(STDOUT_FILENO, s, len) + 1)
-
 static struct termios orig_termios;
 static char console_rx_buf_data[CONSOLE_RX_BUF_SIZE];
 static RxBuf console_rx_buf;
@@ -80,19 +76,19 @@ void console_init(void) {
 }
 
 void console_bell(void) {
-    WRITE_CODE_2("\07", 1);
+    printf("\07");
+    fflush(stdout);
 }
 
 void console_clear(void) {
-    WRITE_CODE_2("\033[2J", 4); // Clear screen.
-    console_home_cursor();
+    printf("\033[2J");      // Clear screen.
+    console_home_cursor();  // Which will also call fflush().
 }
 
 void console_cursor_up(int i) {
     assert(i > 0);
-    char buf[32];
-    sprintf(buf, "\033[%dA", i);
-    WRITE_CODE(buf);
+    printf("\033[%dA", i);
+    fflush(stdout);
 }
 
 void console_disable_raw_mode(void) {
@@ -301,7 +297,6 @@ static char console_putc_noflush(char c) {
     return c;
 }
 
-
 char console_putc(char c) {
     char rval = console_putc_noflush(c);
     fflush(stdout);
@@ -314,9 +309,8 @@ void console_puts(const char *s) {
 }
 
 void console_set_title(const char *title) {
-    char buf[256];
-    sprintf(buf, "\x1b]0;%s\x7", title);
-    WRITE_CODE(buf);
+    printf("\x1b]0;%s\x7", title);
+    fflush(stdout);
 }
 
 enum ReadCursorPositionState {
@@ -331,7 +325,8 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
     rx_buf_clear(&console_rx_buf);
 
     // Send escape code to report cursor position.
-    WRITE_CODE_2("\033[6n", 4);
+    printf("\033[6n");
+    fflush(stdout);
 
     // Read characters one at a time to match the expected pattern ESC[n;mR
     // - fails if the pattern has not been matched within the timeout.
@@ -398,19 +393,18 @@ int console_get_size(int *width, int *height) {
 }
 
 void console_home_cursor(void) {
-    WRITE_CODE_2("\x1b[H", 4);
+    printf("\x1b[H");
+    fflush(stdout);
 }
 
 void console_set_cursor_pos(int x, int y) {
-    char buf[STRINGSIZE];
-    sprintf(buf, "\033[%d;%dH", y + 1, x + 1); // VT100 origin is (1,1) not (0,0).
-    WRITE_CODE(buf);
+    printf("\033[%d;%dH", y + 1, x + 1); // VT100 origin is (1,1) not (0,0).
+    fflush(stdout);
 }
 
 int console_set_size(int width, int height) {
-    char buf[STRINGSIZE];
-    sprintf(buf, "\033[8;%d;%dt", height, width);
-    WRITE_CODE(buf);
+    printf("\033[8;%d;%dt", height, width);
+    fflush(stdout);
 
     // Wait 250ms for the change to take effect.
     // Note that if the requested height and width are not possible (e.g. too big)
@@ -430,35 +424,28 @@ int console_set_size(int width, int height) {
 const int ANSI_COLOURS[] = { 0, 4, 2, 6, 1, 5, 3, 7, 10, 14, 12, 16, 11, 15, 13, 17 };
 
 void console_background(int colour) {
-    char buf[STRINGSIZE];
     int ansi_colour = ANSI_COLOURS[colour];
-    sprintf(buf, "\033[%dm", ansi_colour + (ansi_colour < 10 ? 40 : 90));
-    WRITE_CODE(buf);
+    printf("\033[%dm", ansi_colour + (ansi_colour < 10 ? 40 : 90));
+    fflush(stdout);
 }
 
 void console_foreground(int colour) {
-    char buf[STRINGSIZE];
     int ansi_colour = ANSI_COLOURS[colour];
-    sprintf(buf, "\033[%dm", ansi_colour + (ansi_colour < 10 ? 30 : 80));
-    WRITE_CODE(buf);
+    printf("\033[%dm", ansi_colour + (ansi_colour < 10 ? 30 : 80));
+    fflush(stdout);
 }
 
 void console_invert(int invert) {
-    if (invert) {
-        WRITE_CODE_2("\033[7m", 4);
-    } else {
-        WRITE_CODE_2("\033[27m", 5);
-    }
+    printf(invert ? "\033[7m" : "\033[27m");
+    fflush(stdout);
 }
 
 void console_reset() {
-    WRITE_CODE_2("\033[0m", 4);
+    printf("\033[0m");
+    fflush(stdout);
 }
 
 void console_show_cursor(bool show) {
-    if (show) {
-        WRITE_CODE_2("\033[?25h", 6);
-    } else {
-        WRITE_CODE_2("\033[?25l", 6);
-    }
+    printf(show ? "\033[?25h" : "\033[?25l");
+    fflush(stdout);
 }
