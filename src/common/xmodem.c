@@ -153,9 +153,10 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
             }
 
             // Copy data from the file into the packet.
-            for (len = 0; len < 128 && !file_eof(file_fnbr); len++) {
-                xbuff[len + 3] = file_getc(file_fnbr);
-            }
+            len = file_read(file_fnbr, xbuff + 3, 128);
+//            for (len = 0; len < 128 && !file_eof(file_fnbr); len++) {
+//                xbuff[len + 3] = file_getc(file_fnbr);
+//            }
 
             if (len > 0) {
                 unsigned char ccks = 0;
