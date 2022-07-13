@@ -108,6 +108,7 @@ void console_enable_raw_mode(void) {
 }
 
 void console_pump_input(void) {
+    return;
     char ch;
     errno = 0;
     ssize_t result = read(STDIN_FILENO, &ch, 1);

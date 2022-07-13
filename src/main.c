@@ -353,6 +353,8 @@ int main(int argc, char *argv[]) {
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
 
         ExecuteProgram(tknbuf);  // execute the line straight away
+
+        ///for(;;) {}
     }
 }
 
