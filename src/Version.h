@@ -69,6 +69,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #define __mmb4l__
     #define MM_ARCH "RISC OS"
     #define ENV32BIT
+#elif defined(__EMSCRIPTEN__)
+    #define __mmb4l__
+        #define MM_ARCH  "Emscripten"
+        #define ENV32BIT
 #else
     #error This device is not supported
 #endif

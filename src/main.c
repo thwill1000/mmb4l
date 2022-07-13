@@ -253,17 +253,21 @@ int main(int argc, char *argv[]) {
     atexit(console_disable_raw_mode);
 
     if (mmb_args.interactive) {
-        reset_console_title();
-        console_reset();
-        console_clear();
-        console_show_cursor(true);
+//        reset_console_title();
+//        console_reset();
+//        console_clear();
+//        console_show_cursor(true);
 
         print_banner();
         console_puts("\r\n");
     }
 
+#if 0
+
     init_mmbasic_config_dir();
     init_options();
+#endif
+
     error_init(mmb_error_state_ptr);
 
     InitBasic();
@@ -282,7 +286,8 @@ int main(int argc, char *argv[]) {
     interrupt_init();
     mmtime_init();
     srand(0);  // seed the random generator with zero
-    set_start_directory();
+
+//    set_start_directory();
 
     run_flag = mmb_args.run_cmd[0] != '\0';
 
@@ -334,9 +339,11 @@ int main(int argc, char *argv[]) {
             strcpy(inpbuf, mmb_args.run_cmd);
             run_flag = false;
         } else {
-            prompt_get_input();
-            MmResult result = parse_transform_input_buffer(inpbuf);
-            if (FAILED(result)) error_throw(result);
+            // prompt_get_input();
+            // MmResult result = parse_transform_input_buffer(inpbuf);
+            // if (FAILED(result)) error_throw(result);
+            //strcpy(inpbuf, "Memory : Quit");
+            strcpy(inpbuf, "Memory : For i = 1 To 10 : Print \"Hello World\" i : Next : Quit");
         }
 
         if (!*inpbuf) continue;  // ignore an empty line

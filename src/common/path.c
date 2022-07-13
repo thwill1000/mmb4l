@@ -47,7 +47,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dirent.h>
 #include <errno.h>
 #include <limits.h>
-#include <linux/limits.h> // PATH_MAX
+#if defined(__linux__)
+#include <linux/limits.h>
+#else
+#define PATH_MAX  4096
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
