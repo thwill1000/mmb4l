@@ -52,6 +52,7 @@ add_test("test_option_search_path")
 add_test("test_option_serial")
 add_test("test_option_tab")
 add_test("test_path")
+add_test("test_pid")
 add_test("test_version")
 add_test("test_vpos")
 add_test("test_vres")
@@ -597,6 +598,14 @@ End Sub
 
 Sub test_path()
   assert_string_equals(expected_path$(), MM.Info$(Path))
+End Sub
+
+Sub test_pid()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
+  Local out$
+  System "echo $PPID", out$
+  assert_int_equals(Val(out$), Mm.Info(PID))
 End Sub
 
 Sub test_vpos()
