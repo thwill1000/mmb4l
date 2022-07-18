@@ -6,6 +6,7 @@ Version 2022.01.00-a5 - ??-???-2022:
     will attempt to complete (as far as can be unambiguously determined) a
     filename that the user is typing at the prompt, or sound the console bell
     if no completion is possible.
+  - Added MM.INFO(PID) to get the process ID of the MM4L process.
   - Changed MMBasic prompt so that you can access the history with the up
     and down cursors even after you start typing a command.
   - Changed RUN file$ so that it is not necessary for file$ to have a ".bas"

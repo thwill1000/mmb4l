@@ -326,6 +326,12 @@ static void mminfo_path(const char *p) {
     CtoM(g_string_rtn);
 }
 
+static void mminfo_pid(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_rtn_type = T_INT;
+    g_integer_rtn = (MMINTEGER) getpid();
+}
+
 static void mminfo_version(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     char *endptr;
@@ -393,6 +399,8 @@ void fun_mminfo(void) {
         mminfo_option(p);
     } else if ((p = checkstring(ep, "PATH"))) {
         mminfo_path(p);
+    } else if ((p = checkstring(ep, "PID"))) {
+        mminfo_pid(p);
     } else if ((p = checkstring(ep, "VERSION"))) {
         mminfo_version(p);
     } else if ((p = checkstring(ep, "VRES"))) {
