@@ -48,6 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Hardware_Includes.h"
 #include "MMBasic_Includes.h"
+#include "FunTable.h"
+#include "mmbasic_core_xtra.h"
 
 extern int ListCnt;
 extern int MMCharPos;
@@ -99,7 +101,8 @@ const struct s_tokentbl tokentbl[] = {
 // these are initialised at startup
 int CommandTableSize, TokenTableSize;
 
-struct s_vartbl *vartbl;                                            // this table stores all variables
+struct s_funtbl funtbl[MAXSUBFUN];                                  // this table stores all the subroutines/functions.
+struct s_vartbl *vartbl = NULL;                                     // this table stores all variables
 int varcnt;                                                         // number of variables
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables
@@ -340,12 +343,12 @@ void ExecuteProgram(const char *p) {
  Code associated with processing user defined subroutines and functions
 ********************************************************************************************************************************************/
 
+int MIPS16 PrepareProgramExt(const char *, int, unsigned char **, int);
 
 // Scan through the program loaded in flash and build a table pointing to the definition of all user defined subroutines and functions.
 // This pre processing speeds up the program when using defined subroutines and functions
 // this routine also looks for embedded fonts and adds them to the font table
 void MIPS16 PrepareProgram(int ErrAbort) {
-    int MIPS16 PrepareProgramExt(const char *, int, unsigned char **, int);
     int i, j, NbrFuncts;
     const char *p1, *p2;
 
@@ -359,27 +362,7 @@ void MIPS16 PrepareProgram(int ErrAbort) {
     if (Option.ProgFlashSize != PROG_FLASH_SIZE)
         NbrFuncts = PrepareProgramExt(ProgMemory + Option.ProgFlashSize, 0, (unsigned char **) &CFunctionLibrary, ErrAbort);
     PrepareProgramExt(ProgMemory, NbrFuncts, (unsigned char **) &CFunctionFlash, ErrAbort);
-
-    // check the sub/fun table for duplicates
-    if(!ErrAbort) return;
-    for(i = 0; i < MAXSUBFUN && subfun[i] != NULL; i++) {
-        for(j = i + 1; j < MAXSUBFUN && subfun[j] != NULL; j++) {
-            CurrentLinePtr = p1 = subfun[i];
-            p1++;
-            skipspace(p1);
-            p2 = subfun[j];
-            p2++;
-            skipspace(p2);
-            while(1) {
-                if(!isnamechar(*p1) && !isnamechar(*p2)) {
-                    error("Duplicate name");
-                    return;
-                }
-                if(toupper(*p1) != toupper(*p2)) break;
-                p1++; p2++;
-            }
-        }
-    }
+    mmb_function_table_prepare(ErrAbort);
 }
 
 
@@ -402,27 +385,6 @@ int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int 
                 i--;
                 continue;
             }
-
-#if defined(__mmb4l__)
-            // I suspect all platforms should have this or something equivalent.
-            // Note that the name does not (appear to) include any trailing %, !
-            // or $ character.
-            {
-                int len = 0;
-                while (isnamechar(*p)) {
-                    // Do not call isnamechar(*p++)
-                    // because the macro will increment the pointer 3 times.
-                    len++;
-                    p++;
-                }
-                if (len > MAXVARLEN) {
-                    if (ErrAbort) error("Function name too long");
-                    i--;
-                    continue;
-                }
-            }
-#endif
-
         }
         while(*p) p++;                                              // look for the zero marking the start of the next element
     }
@@ -449,6 +411,11 @@ int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int 
 // returns with the index of the sub/function in the table or -1 if not found
 // if type = 0 then look for a sub otherwise a function
 int FindSubFun(const char *p, int type) {
+
+    // TODO: 'type' is ignored - copied from the PicoMite.
+    return mmb_function_table_find(p);
+
+#if 0
     const char *p1, *p2;
     int i;
 
@@ -466,6 +433,7 @@ int FindSubFun(const char *p, int type) {
         if((*p1 == '$' && *p2 == '$') || (*p1 == '%' && *p2 == '%') || (*p1 == '!' && *p2 == '!') || (!isnamechar(*p1) && !isnamechar(*p2))) return i;          // found it !
     }
     return -1;
+#endif
 }
 
 

@@ -32,6 +32,7 @@ set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS
 
 set(MMB4L_CORE_SOURCE_FILES
     src/core/MMBasic.c
+    src/core/mmbasic_core_xtra.c
     src/core/Operators.c
     src/core/Functions.c
     src/core/Commands.c
@@ -352,3 +353,23 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_rx_buf)
+
+################################################################################
+# test_mmbasic_core
+################################################################################
+
+add_executable(
+  test_mmbasic_core
+  src/core/mmbasic_core_xtra.c
+  src/core/gtest/mmbasic_core_test.cxx
+)
+
+target_link_libraries(
+  test_mmbasic_core
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_mmbasic_core)
