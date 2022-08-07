@@ -360,7 +360,9 @@ gtest_discover_tests(test_rx_buf)
 
 add_executable(
   test_mmbasic_core
+  src/common/memory.c
   src/core/mmbasic_core_xtra.c
+  src/core/MMBasic.c
   src/core/gtest/mmbasic_core_test.cxx
 )
 
