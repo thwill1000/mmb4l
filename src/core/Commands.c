@@ -1420,26 +1420,6 @@ void cmd_on(void) {
 }
 #endif
 
-// utility routine used by DoDim() below and other places in the interpreter
-// checks if the type has been explicitly specified as in DIM FLOAT A, B, ... etc
-const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType) {
-    const char *tp;
-
-    if((tp = checkstring(p, "INTEGER")) != NULL)
-        *type = T_INT | T_IMPLIED;
-    else if((tp = checkstring(p, "STRING")) != NULL)
-        *type = T_STR | T_IMPLIED;
-    else if((tp = checkstring(p, "FLOAT")) != NULL)
-        *type = T_NBR | T_IMPLIED;
-    else {
-        if(!AllowDefaultType) error("Variable type");
-        tp = p;
-        *type = DefaultType;                                        // if the type is not specified use the default
-    }
-    return tp;
-}
-
-
 
 const char *SetValue(const char *p, int t, void *v) {
     MMFLOAT f;

@@ -274,3 +274,4 @@ void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
 int str_equal(const char *s1, const char *s2);
 int strncasecmp (const char *s1, const char *s2, size_t n);
 int mem_equal(const char *s1, const char *s2, int i);
+const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType);

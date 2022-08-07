@@ -2835,6 +2835,25 @@ int Mstrcmp(const char *s1, const char *s2) {
 }
 
 
+// utility routine used by DoDim() and other places in the interpreter
+// checks if the type has been explicitly specified as in DIM FLOAT A, B, ... etc
+const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType) {
+    const char *tp;
+
+    if((tp = checkstring(p, "INTEGER")) != NULL)
+        *type = T_INT | T_IMPLIED;
+    else if((tp = checkstring(p, "STRING")) != NULL)
+        *type = T_STR | T_IMPLIED;
+    else if((tp = checkstring(p, "FLOAT")) != NULL)
+        *type = T_NBR | T_IMPLIED;
+    else {
+        if(!AllowDefaultType) error("Variable type");
+        tp = p;
+        *type = DefaultType;                                        // if the type is not specified use the default
+    }
+    return tp;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // these library functions went missing in the PIC32 C compiler ver 1.12 and later
