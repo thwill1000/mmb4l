@@ -22,6 +22,9 @@ add_test("test_unary_minus")
 add_test("test_unary_plus")
 add_test("test_error_correct_after_goto")
 add_test("test_error_correct_after_gosub")
+add_test("test_dim_with_same_name_as_sub_reports_error", "test_dim_with_same_name")
+add_test("test_local_with_same_name_as_fun_reports_error", "test_local_with_same_name")
+
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -115,13 +118,13 @@ End Sub
 Sub test_error_correct_after_goto()
   Goto 30
 test_goto_label_1:
-  assert_raw_error("Error in line 127: foo1")
+  assert_raw_error("Error in line 130: foo1")
   Goto 40
 test_goto_label_2:
-  assert_raw_error("Error in line 129: foo2")
+  assert_raw_error("Error in line 132: foo2")
   On Error Skip
   Error "foo3"
-  assert_raw_error("Error in line 123: foo3")
+  assert_raw_error("Error in line 126: foo3")
 End Sub
 
 30 On Error Skip : Error "foo1" : Goto test_goto_label_1
@@ -131,15 +134,33 @@ Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
   GoSub 60
-  assert_raw_error("Error in line 142: bar1")
+  assert_raw_error("Error in line 145: bar1")
   GoSub 70
-  assert_raw_error("Error in line 144: bar2")
+  assert_raw_error("Error in line 147: bar2")
   On Error Skip
   Error "bar3"
-  assert_raw_error("Error in line 138: bar3")
+  assert_raw_error("Error in line 141: bar3")
 End Sub
 
 60 On Error Skip : Error "bar1" : Return
 70 On Error Skip
 Error "bar2"
 Return
+
+Sub test_dim_with_same_name()
+  On Error Skip 1
+  Dim sub_a%
+  assert_raw_error("A sub/fun has the same name: SUB_A")
+End Sub
+
+Sub sub_a()
+End Sub
+
+Sub test_local_with_same_name()
+  On Error Skip 1
+  Local fun_b%
+  assert_raw_error("A sub/fun has the same name: FUN_B")
+End Sub
+
+Function fun_b%()
+End Function
