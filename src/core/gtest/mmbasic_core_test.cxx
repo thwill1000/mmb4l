@@ -36,6 +36,52 @@ protected:
 
 };
 
+TEST_F(MmBasicCoreTest, FunctionTableHash) {
+    char program[256];
+    char name[MAXVARLEN + 1];
+    HASH_TYPE hash;
+
+    sprintf(program, "foo");
+    int actual = mmb_function_table_hash(program, name, &hash);
+
+    EXPECT_EQ(0, actual);
+    EXPECT_STREQ("FOO", name);
+    EXPECT_EQ(503, hash);
+
+    sprintf(program, "bar");
+    actual = mmb_function_table_hash(program, name, &hash);
+
+    EXPECT_EQ(0, actual);
+    EXPECT_STREQ("BAR", name);
+    EXPECT_EQ(122, hash);
+}
+
+TEST_F(MmBasicCoreTest, FunctionTableHash_GivenMaximumLengthName) {
+    char program[256];
+    char name[MAXVARLEN + 1];
+    HASH_TYPE hash;
+
+    sprintf(program, "_32_character_name_9012345678901");
+    int actual = mmb_function_table_hash(program, name, &hash);
+
+    EXPECT_EQ(0, actual);
+    EXPECT_STREQ("_32_CHARACTER_NAME_9012345678901", name);
+    EXPECT_EQ(479, hash);
+}
+
+TEST_F(MmBasicCoreTest, FunctionTableHash_GivenNameTooLong) {
+    char program[256];
+    char name[MAXVARLEN + 1];
+    HASH_TYPE hash;
+
+    sprintf(program, "_33_character_name_90123456789012");
+    int actual = mmb_function_table_hash(program, name, &hash);
+
+    EXPECT_EQ(-1, actual);
+    EXPECT_STREQ("_33_CHARACTER_NAME_9012345678901", name);
+    EXPECT_EQ(24, hash);
+}
+
 TEST_F(MmBasicCoreTest, FunctionTablePrepare) {
     char program[256];
     sprintf(program,

@@ -45,10 +45,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMBASIC_CORE_XTRA)
 #define MMBASIC_CORE_XTRA
 
-extern void mmb_function_table_clear();
-extern void mmb_function_table_dump();
-extern int mmb_function_table_find(const char *p);
-extern void mmb_function_table_prepare(bool abort_on_error);
-extern size_t mmb_function_table_size();
+typedef uint32_t HASH_TYPE;
+
+void mmb_function_table_clear();
+void mmb_function_table_dump();
+int mmb_function_table_find(const char *p);
+void mmb_function_table_prepare(bool abort_on_error);
+size_t mmb_function_table_size();
+
+/**
+ * Calculates hash for a function table entry.
+ *
+ * @param[in]  p     function name is read from here.
+ * @param[out] name  on exit the function name in upper-case,
+ *                   a buffer of at least MAXVARLEN + 1 chars must be provided.
+ * @param[out] hash  on exit the calculated hash value.
+ * @return           0 on success, or
+ *                   -1 if the name was too long in which case the value
+ *                   copied to \p pname will be truncated.
+ */
+int mmb_function_table_hash(const char *p, char *name, HASH_TYPE* hash);
 
 #endif // #if !defined(MMBASIC_CORE_XTRA)

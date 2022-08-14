@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Hardware_Includes.h"
 #include "MMBasic_Includes.h"
 #include "FunTable.h"
+#include "mmbasic_core_xtra.h"
 
 #include <stddef.h>
 
@@ -53,8 +54,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FNV_OFFSET_BASIS  2166136261
 
 #define MAXSUBHASH        MAXSUBFUN
-
-typedef uint32_t HASH_TYPE;
 
 extern struct s_funtbl funtbl[MAXSUBFUN];
 
@@ -72,23 +71,10 @@ void mmb_function_table_prepare(bool abort_on_error) {
         p++;
         skipspace(p);                // p1 is pointing at the beginning of the SUB/FUNCTION name.
 
-        char *pname = name;
-        size_t namelen = 0;
-        HASH_TYPE hash = FNV_OFFSET_BASIS;
-
-        while (isnamechar(*p)) {
-            *pname = toupper(*p);
-            hash ^= *pname;
-            hash *= FNV_PRIME;
-            if (++namelen > MAXVARLEN) {
-                if (abort_on_error) error("SUB/FUNCTION name too long");
-                break;  // which will truncate the name.
-            }
-            p++;
-            pname++;
+        HASH_TYPE hash;
+        if (mmb_function_table_hash(p, name, &hash) != 0 && abort_on_error) {
+            error("SUB/FUNCTION name too long");
         }
-        *pname = '\0';
-        hash %= MAXSUBHASH;  // scale to size of table.
 
         while (funtbl[hash].name[0]) {
             if (strcmp(funtbl[hash].name, name) == 0) break;
@@ -121,23 +107,11 @@ size_t mmb_function_table_size() {
 
 int mmb_function_table_find(const char *p) {
     char name[MAXVARLEN + 1] = { 0 };
-    char *pname = name;
-    size_t namelen = 0;
-    HASH_TYPE hash = FNV_OFFSET_BASIS;
-
-    while (isnamechar(*p)) {
-        *pname = toupper(*p);
-        hash ^= *pname;
-        hash *= FNV_PRIME;
-        if (++namelen > MAXVARLEN) {
-            error("SUB/FUNCTION name too long");
-            return -1;
-        }
-        p++;
-        pname++;
+    HASH_TYPE hash;
+    if (mmb_function_table_hash(p, name, &hash) != 0) {
+        error("SUB/FUNCTION name too long");
+        return -1;
     }
-    *pname = '\0';
-    hash %= MAXSUBHASH;
 
     while (funtbl[hash].name[0]) {
         if (strcmp(funtbl[hash].name, name) == 0) return funtbl[hash].index;
@@ -145,4 +119,20 @@ int mmb_function_table_find(const char *p) {
     }
 
     return -1;
+}
+
+int mmb_function_table_hash(const char *p, char *name, HASH_TYPE* hash) {
+    int namelen = 0;
+    *hash = FNV_OFFSET_BASIS;
+    while (isnamechar(*p)) {
+        *name = toupper(*p);
+        *hash ^= *name;
+        *hash *= FNV_PRIME;
+        if (++namelen > MAXVARLEN) break; // Which will truncate the name.
+        p++;
+        name++;
+    }
+    *name = '\0';
+    *hash %= MAXSUBHASH; // Scale hash to size of function table.
+    return namelen > MAXVARLEN ? -1 : 0;
 }
