@@ -35,7 +35,11 @@ add_test("test_envvar")
 add_test("test_errmsg")
 add_test("test_errno")
 add_test("test_exists")
+add_test("test_exists_dir")
+add_test("test_exists_file")
+add_test("test_exists_symlink")
 add_test("test_filesize")
+add_test("test_filesize_given_directory")
 add_test("test_fontheight")
 add_test("test_fontwidth")
 add_test("test_hpos")
@@ -169,50 +173,103 @@ Sub test_errno()
 End Sub
 
 Sub test_exists()
+  If Mm.Device$ <> "MMB4L" And Mm.Device$ <> "MMBasic for Windows" Then Exit Sub
+
   Local existing_dir$ = Mm.Info$(Path)
   Local existing_file$ = Mm.Info$(Path) + "tst_mminfo.bas"
   Local non_existing$ = Mm.Info$(Path) + "does_not_exist"
-  Local root$ = "/"
   ' Local sym_link_dir$ = Mm.Info$(Directory) + "firmware-tests"
 
   ' TODO: what about directory paths with trailing '/' ?
 
-  If Mm.Device$ = "MMB4L" Or Mm.Device$ = "MMBasic for Windows" Then
-    assert_int_equals(1, Mm.Info(Exists existing_dir$))
-    assert_int_equals(1, Mm.Info(Exists existing_file$))
-    assert_int_equals(0, Mm.Info(Exists non_existing$))
-    assert_int_equals(1, Mm.Info(Exists root$))
-    assert_int_equals(1, Mm.Info(Exists "."))
-    assert_int_equals(1, Mm.Info(Exists ".."))
-    ' assert_int_equals(1, Mm.Info(Exists sym_link_dir$))
-  EndIf
+  assert_int_equals(1, Mm.Info(Exists existing_dir$))
+  assert_int_equals(1, Mm.Info(Exists existing_file$))
+  assert_int_equals(0, Mm.Info(Exists non_existing$))
+  assert_int_equals(1, Mm.Info(Exists "."))
+  assert_int_equals(1, Mm.Info(Exists ".."))
+  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists ""))
+  ' assert_int_equals(1, Mm.Info(Exists sym_link_dir$))
 
-  assert_int_equals(0, Mm.Info(Exists File existing_dir$))
-  assert_int_equals(1, Mm.Info(Exists File existing_file$))
-  assert_int_equals(0, Mm.Info(Exists File non_existing$))
-  assert_int_equals(0, Mm.Info(Exists File root$))
-  assert_int_equals(0, Mm.Info(Exists File "."))
-  assert_int_equals(0, Mm.Info(Exists File ".."))
-  ' assert_int_equals(0, Mm.Info(Exists File sym_link_dir$))
+  ' Given root.
+  assert_int_equals(1, Mm.Info(Exists "/"))
+  assert_int_equals(1, Mm.Info(Exists "\"))
+  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists "A:/"))
+  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists "A:\"))
+  assert_int_equals(1, Mm.Info(Exists "C:/"))
+  assert_int_equals(1, Mm.Info(Exists "C:\"))
+
+End Sub
+
+Sub test_exists_dir()
+  Local existing_dir$ = Mm.Info$(Path)
+  Local existing_file$ = Mm.Info$(Path) + "tst_mminfo.bas"
+  Local non_existing$ = Mm.Info$(Path) + "does_not_exist"
+  ' Local sym_link_dir$ = Mm.Info$(Directory) + "firmware-tests"
 
   assert_int_equals(1, Mm.Info(Exists Dir existing_dir$))
   assert_int_equals(0, Mm.Info(Exists Dir existing_file$))
   assert_int_equals(0, Mm.Info(Exists Dir non_existing$))
-  assert_int_equals(1, Mm.Info(Exists Dir root$))
   assert_int_equals(1, Mm.Info(Exists Dir "."))
   assert_int_equals(1, Mm.Info(Exists Dir ".."))
+  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists Dir ""))
   ' assert_int_equals(1, Mm.Info(Exists Dir sym_link_dir$))
 
-  If Mm.Device$ = "MMB4L" Then
-    ' MM.INFO(EXISTS SYMLINK path$) is MMB4L specific.
-    assert_int_equals(0, Mm.Info(Exists SymLink existing_dir$))
-    assert_int_equals(0, Mm.Info(Exists SymLink existing_file$))
-    assert_int_equals(0, Mm.Info(Exists SymLink non_existing$))
-    assert_int_equals(0, Mm.Info(Exists SymLink root$))
-    assert_int_equals(0, Mm.Info(Exists SymLink "."))
-    assert_int_equals(0, Mm.Info(Exists SymLink ".."))
-   ' assert_int_equals(1, Mm.Info(Exists SymLink sym_link_dir$))
-  EndIf
+  ' Given root.
+  assert_int_equals(1, Mm.Info(Exists Dir "/"))
+  assert_int_equals(1, Mm.Info(Exists Dir "\"))
+  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists Dir "A:/"))
+  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists Dir "A:\"))
+  assert_int_equals(1, Mm.Info(Exists Dir "C:/"))
+  assert_int_equals(1, Mm.Info(Exists Dir "C:\"))
+End Sub
+
+Sub test_exists_file()
+  Local existing_dir$ = Mm.Info$(Path)
+  Local existing_file$ = Mm.Info$(Path) + "tst_mminfo.bas"
+  Local non_existing$ = Mm.Info$(Path) + "does_not_exist"
+  ' Local sym_link_dir$ = Mm.Info$(Directory) + "firmware-tests"
+
+  assert_int_equals(0, Mm.Info(Exists File existing_dir$))
+  assert_int_equals(1, Mm.Info(Exists File existing_file$))
+  assert_int_equals(0, Mm.Info(Exists File non_existing$))
+  assert_int_equals(0, Mm.Info(Exists File "."))
+  assert_int_equals(0, Mm.Info(Exists File ".."))
+  assert_int_equals(0, Mm.Info(Exists File ""))
+  ' assert_int_equals(0, Mm.Info(Exists File sym_link_dir$))
+
+  ' Given root.
+  assert_int_equals(0, Mm.Info(Exists File "/"))
+  assert_int_equals(0, Mm.Info(Exists File "\"))
+  assert_int_equals(0, Mm.Info(Exists File "A:/"))
+  assert_int_equals(0, Mm.Info(Exists File "A:\"))
+  assert_int_equals(0, Mm.Info(Exists File "C:/"))
+  assert_int_equals(0, Mm.Info(Exists File "C:\"))
+End Sub
+
+Sub test_exists_symlink()
+  ' MM.INFO(EXISTS SYMLINK path$) is MMB4L specific.
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
+  Local existing_dir$ = Mm.Info$(Path)
+  Local existing_file$ = Mm.Info$(Path) + "tst_mminfo.bas"
+  Local non_existing$ = Mm.Info$(Path) + "does_not_exist"
+  ' Local sym_link_dir$ = Mm.Info$(Directory) + "firmware-tests"
+
+  assert_int_equals(0, Mm.Info(Exists SymLink existing_dir$))
+  assert_int_equals(0, Mm.Info(Exists SymLink existing_file$))
+  assert_int_equals(0, Mm.Info(Exists SymLink non_existing$))
+  assert_int_equals(0, Mm.Info(Exists SymLink "."))
+  assert_int_equals(0, Mm.Info(Exists SymLink ".."))
+  assert_int_equals(0, Mm.Info(Exists SymLink ""))
+  ' assert_int_equals(1, Mm.Info(Exists SymLink sym_link_dir$))
+
+  ' Given root.
+  assert_int_equals(0, Mm.Info(Exists SymLink "/"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "\"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "A:/"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "A:\"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "C:/"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "C:\"))
 End Sub
 
 Sub test_filesize()
@@ -233,12 +290,44 @@ Sub test_filesize()
   Kill "test_filesize.txt"
 
   ' Test when file is directory.
-  On Error Skip 1
-  Local size% = Mm.Info(FileSize Mm.Info(Directory))
-  If Mm.Device$ = "MMB4L" Then
-    assert_int_equals(-2, size%)
-  Else
+  ' On Error Skip 1
+  ' Local size% = Mm.Info(FileSize Mm.Info(Directory))
+  ' If Mm.Device$ = "MMB4L" Then
+  '   assert_int_equals(-2, size%)
+  ' Else
+  '   assert_raw_error("Invalid file specification")
+  ' EndIf
+End Sub
+
+Sub test_filesize_given_directory()
+  assert_filesize_for_directory(Mm.Info$(Directory), 1)
+  assert_filesize_for_directory(Mm.Info$(Path), 1)
+  assert_filesize_for_directory("/", 1)
+  assert_filesize_for_directory("\", 1)
+  assert_filesize_for_directory(".")
+  assert_filesize_for_directory("..")
+  assert_filesize_for_directory("A:/", 1)
+  assert_filesize_for_directory("A:\", 1)
+  assert_filesize_for_directory("C:/", 1)
+  assert_filesize_for_directory("C:\", 1)
+  assert_filesize_for_directory(str.replace$(TMP$, "/", "\"))
+  assert_filesize_for_directory(str.replace$(TMP$, "\", "/"))
+  If Mm.Device$ <> "MMBasic for Windows" Then
+    assert_filesize_for_directory(str.replace$("A:" + TMP$, "/", "\"))
+    assert_filesize_for_directory(str.replace$("A:" + TMP$, "\", "/"))
+    assert_filesize_for_directory(str.replace$("C:" + TMP$, "/", "\"))
+    assert_filesize_for_directory(str.replace$("C:" + TMP$, "\", "/"))
+  EndIf
+End Sub
+
+Sub assert_filesize_for_directory(d$, error_on_mmb4w%)
+  If Mm.Device$ = "MMBasic for Windows" And error_on_mmb4w% Then
+    On Error Skip 1
+    Local size% = Mm.Info(FileSize d$)
     assert_raw_error("Invalid file specification")
+    On Error Clear
+  Else
+    assert_int_equals(-2, Mm.Info(FileSize d$))
   EndIf
 End Sub
 
