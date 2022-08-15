@@ -73,28 +73,32 @@ class MmBasicCoreTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
+        ClearRuntime();
         error_msg[0] = '\0';
+        m_program[0] = '\0';
+        VarIndex = 999;
     }
 
     void TearDown() override {
     }
 
+    char m_program[256];
+
 };
 
 TEST_F(MmBasicCoreTest, FunctionTableHash) {
-    char program[256];
     char name[MAXVARLEN + 1];
     HASH_TYPE hash;
 
-    sprintf(program, "foo");
-    int actual = mmb_function_table_hash(program, name, &hash);
+    sprintf(m_program, "foo");
+    int actual = mmb_function_table_hash(m_program, name, &hash);
 
     EXPECT_EQ(0, actual);
     EXPECT_STREQ("FOO", name);
     EXPECT_EQ(503, hash);
 
-    sprintf(program, "bar");
-    actual = mmb_function_table_hash(program, name, &hash);
+    sprintf(m_program, "bar");
+    actual = mmb_function_table_hash(m_program, name, &hash);
 
     EXPECT_EQ(0, actual);
     EXPECT_STREQ("BAR", name);
@@ -102,12 +106,11 @@ TEST_F(MmBasicCoreTest, FunctionTableHash) {
 }
 
 TEST_F(MmBasicCoreTest, FunctionTableHash_GivenMaximumLengthName) {
-    char program[256];
     char name[MAXVARLEN + 1];
     HASH_TYPE hash;
 
-    sprintf(program, "_32_character_name_9012345678901");
-    int actual = mmb_function_table_hash(program, name, &hash);
+    sprintf(m_program, "_32_character_name_9012345678901");
+    int actual = mmb_function_table_hash(m_program, name, &hash);
 
     EXPECT_EQ(0, actual);
     EXPECT_STREQ("_32_CHARACTER_NAME_9012345678901", name);
@@ -115,12 +118,11 @@ TEST_F(MmBasicCoreTest, FunctionTableHash_GivenMaximumLengthName) {
 }
 
 TEST_F(MmBasicCoreTest, FunctionTableHash_GivenNameTooLong) {
-    char program[256];
     char name[MAXVARLEN + 1];
     HASH_TYPE hash;
 
-    sprintf(program, "_33_character_name_90123456789012");
-    int actual = mmb_function_table_hash(program, name, &hash);
+    sprintf(m_program, "_33_character_name_90123456789012");
+    int actual = mmb_function_table_hash(m_program, name, &hash);
 
     EXPECT_EQ(-1, actual);
     EXPECT_STREQ("_33_CHARACTER_NAME_9012345678901", name);
@@ -128,14 +130,13 @@ TEST_F(MmBasicCoreTest, FunctionTableHash_GivenNameTooLong) {
 }
 
 TEST_F(MmBasicCoreTest, FunctionTablePrepare) {
-    char program[256];
-    sprintf(program,
+    sprintf(m_program,
             "# foo\n"
             "#\n"
             "# bar\n"
             "#\n");
-    subfun[0] = program;
-    subfun[1] = program + 8;
+    subfun[0] = m_program;
+    subfun[1] = m_program + 8;
     subfun[2] = NULL;
 
     mmb_function_table_prepare(true);
@@ -150,14 +151,13 @@ TEST_F(MmBasicCoreTest, FunctionTablePrepare) {
 }
 
 TEST_F(MmBasicCoreTest, FunctionTablePrepare_GivenNameTooLong) {
-    char program[256];
-    sprintf(program,
+    sprintf(m_program,
             "# name_32_characters_xxxxxxxxxxxxx\n"
             "#\n"
             "# name_33_characters_zzzzzzzzzzzzzz\n"
             "#\n");
-    subfun[0] = program;
-    subfun[1] = program + 37;
+    subfun[0] = m_program;
+    subfun[1] = m_program + 37;
     subfun[2] = NULL;
 
     mmb_function_table_prepare(true);
@@ -173,14 +173,13 @@ TEST_F(MmBasicCoreTest, FunctionTablePrepare_GivenNameTooLong) {
 }
 
 TEST_F(MmBasicCoreTest, FunctionTablePrepare_GivenDuplicateName) {
-    char program[256];
-    sprintf(program,
+    sprintf(m_program,
             "# foo\n"
             "#\n"
             "# fOo\n"
             "#\n");
-    subfun[0] = program;
-    subfun[1] = program + 8;
+    subfun[0] = m_program;
+    subfun[1] = m_program + 8;
     subfun[2] = NULL;
 
     mmb_function_table_prepare(true);
@@ -194,14 +193,13 @@ TEST_F(MmBasicCoreTest, FunctionTablePrepare_GivenDuplicateName) {
 }
 
 TEST_F(MmBasicCoreTest, FunctionTableFind) {
-    char program[256];
-    sprintf(program,
+    sprintf(m_program,
             "# foo\n"
             "#\n"
             "# bar\n"
             "#\n");
-    subfun[0] = program;
-    subfun[1] = program + 8;
+    subfun[0] = m_program;
+    subfun[1] = m_program + 8;
     subfun[2] = NULL;
 
     mmb_function_table_prepare(true);
@@ -212,6 +210,691 @@ TEST_F(MmBasicCoreTest, FunctionTableFind) {
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(-1, mmb_function_table_find("name_33_characters_zzzzzzzzzzzzzz"));
     EXPECT_STREQ("SUB/FUNCTION name too long", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenNoExplicitType) {
+    sprintf(m_program, "foo = 1");
+    void *actual = findvar(m_program, V_FIND);
+
+    EXPECT_EQ(&vartbl[0].val, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[0].level);
+    EXPECT_STREQ("FOO", vartbl[0].name);
+    EXPECT_EQ(T_NBR, vartbl[0].type);
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenTypeSuffix) {
+    // Make an INTEGER variable.
+    sprintf(m_program, "my_int%% = 1");
+    void *actual = findvar(m_program, V_FIND);
+
+    EXPECT_EQ(&vartbl[0].val, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[0].level);
+    EXPECT_STREQ("MY_INT", vartbl[0].name);
+    EXPECT_EQ(T_INT, vartbl[0].type);
+
+    // Make a FLOAT variable.
+    sprintf(m_program, "my_float! = 1");
+    actual = findvar(m_program, T_NBR);
+
+    EXPECT_EQ(&vartbl[1].val, actual);
+    EXPECT_EQ(1, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[1].level);
+    EXPECT_STREQ("MY_FLOAT", vartbl[1].name);
+    EXPECT_EQ(T_NBR, vartbl[1].type);
+
+    // Make a STRING variable.
+    sprintf(m_program, "my_string$ = \"wombat\"");
+    actual = findvar(m_program, T_STR);
+
+    EXPECT_EQ(vartbl[2].val.s, actual);
+    EXPECT_EQ(2, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[2].level);
+    EXPECT_STREQ("MY_STRING", vartbl[2].name);
+    EXPECT_EQ(T_STR, vartbl[2].type);
+
+    EXPECT_EQ(3, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenImpliedType) {
+    // Make an INTEGER variable.
+    sprintf(m_program, "my_int = 1");
+    void *actual = findvar(m_program, T_IMPLIED | T_INT);
+
+    EXPECT_EQ(&vartbl[0].val, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[0].level);
+    EXPECT_STREQ("MY_INT", vartbl[0].name);
+    EXPECT_EQ(T_IMPLIED | T_INT, vartbl[0].type);
+
+    // Make a FLOAT variable.
+    sprintf(m_program, "my_float = 1");
+    actual = findvar(m_program, T_IMPLIED | T_NBR);
+
+    EXPECT_EQ(&vartbl[1].val, actual);
+    EXPECT_EQ(1, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[1].level);
+    EXPECT_STREQ("MY_FLOAT", vartbl[1].name);
+    EXPECT_EQ(T_IMPLIED | T_NBR, vartbl[1].type);
+
+    // Make a STRING variable.
+    sprintf(m_program, "my_string = \"wombat\"");
+    actual = findvar(m_program, T_IMPLIED | T_STR);
+
+    EXPECT_EQ(vartbl[2].val.s, actual);
+    EXPECT_EQ(2, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[2].level);
+    EXPECT_STREQ("MY_STRING", vartbl[2].name);
+    EXPECT_EQ(T_IMPLIED | T_STR, vartbl[2].type);
+
+    EXPECT_EQ(3, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenMaxNameLen) {
+    sprintf(m_program, "_32_characters_long9012345678901 = 1");
+    void *actual = findvar(m_program, V_FIND);
+
+    EXPECT_EQ(&vartbl[0].val, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[0].level);
+    EXPECT_EQ(T_NBR, vartbl[0].type);
+
+    // The name is not null terminated when it is the maximum allowed length (32 chars).
+    EXPECT_EQ(0, memcmp("_32_CHARACTERS_LONG9012345678901", vartbl[0].name, 32));
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenNameTooLong) {
+    sprintf(m_program, "_33_characters_long90123456789012 = 1");
+    void *actual = findvar(m_program, V_FIND);
+
+    EXPECT_STREQ("Variable name too long", error_msg);
+    EXPECT_EQ(0, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenExists) {
+    // First findvar() creates new variables.
+    sprintf(m_program, "foo = 1");
+    EXPECT_EQ(&vartbl[0].val, findvar(m_program, V_FIND));
+    sprintf(m_program, "bar = 1");
+    EXPECT_EQ(&vartbl[1].val, findvar(m_program, V_FIND));
+
+    // Second findvar() finds them.
+    sprintf(m_program, "foo = 2");
+    EXPECT_EQ(&vartbl[0].val, findvar(m_program, V_FIND));
+    sprintf(m_program, "bar = 1");
+    EXPECT_EQ(&vartbl[1].val, findvar(m_program, V_FIND));
+
+    EXPECT_EQ(2, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenThrowErrorIfNotExist) {
+    sprintf(m_program, "foo = 1");
+    void *actual = findvar(m_program, V_NOFIND_ERR);
+
+    EXPECT_STREQ("Cannot find $", error_msg);
+    EXPECT_EQ(0, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenReturnNullIfNotExist) {
+    sprintf(m_program, "foo = 1");
+    void *actual = findvar(m_program, V_NOFIND_NULL);
+
+    EXPECT_EQ(NULL, actual);
+    EXPECT_EQ(999, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenPreviouslyDeclaredWithDifferentType) {
+    sprintf(m_program, "foo%% = 1");
+    (void) findvar(m_program, V_FIND);
+
+    error_msg[0] = '\0';
+    sprintf(m_program, "foo!");
+    (void) findvar(m_program, V_FIND);
+    EXPECT_STREQ("$ already declared", error_msg);
+
+    error_msg[0] = '\0';
+    sprintf(m_program, "foo$");
+    (void) findvar(m_program, V_FIND);
+    EXPECT_STREQ("$ already declared", error_msg);
+
+    error_msg[0] = '\0';
+    sprintf(m_program, "foo");
+    (void) findvar(m_program, V_FIND);
+    EXPECT_STREQ("$ already declared", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenIllegalName) {
+    sprintf(m_program, "1foo = 1");
+    void *actual = findvar(m_program, V_FIND);
+
+    EXPECT_STREQ("Variable name", error_msg);
+    EXPECT_EQ(0, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenConflictingType) {
+    // Make an INTEGER variable.
+    error_msg[0] = '\0';
+    sprintf(m_program, "my_int! = 1");
+    void *actual = findvar(m_program, T_IMPLIED | T_INT);
+
+    EXPECT_STREQ("Conflicting variable type", error_msg);
+
+    // Make a FLOAT variable.
+    error_msg[0] = '\0';
+    sprintf(m_program, "my_float$ = 1");
+    actual = findvar(m_program, T_IMPLIED | T_NBR);
+
+    EXPECT_STREQ("Conflicting variable type", error_msg);
+
+    // Make a STRING variable.
+    error_msg[0] = '\0';
+    sprintf(m_program, "my_string%% = \"wombat\"");
+    actual = findvar(m_program, T_IMPLIED | T_STR);
+
+    EXPECT_STREQ("Conflicting variable type", error_msg);
+
+    EXPECT_EQ(0, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimExistingVariable) {
+    // Implicitly create "foo".
+    sprintf(m_program, "foo = 1");
+    (void) findvar(m_program, V_FIND);
+
+    // DIM foo
+    sprintf(m_program, "foo = 2");
+    void *actual = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("$ already declared", error_msg);
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenImplicitGlobalInSubroutine) {
+    LocalIndex = 3;
+
+    sprintf(m_program, "foo = 1");
+    void *actual = findvar(m_program, V_FIND);
+
+    EXPECT_EQ(&vartbl[0].val, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[0].level);
+    EXPECT_STREQ("FOO", vartbl[0].name);
+    EXPECT_EQ(T_NBR, vartbl[0].type);
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimGlobalInSubroutine) {
+    LocalIndex = 3;
+
+    sprintf(m_program, "foo = 1");
+    void *actual = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_EQ(&vartbl[0].val, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[0].level);
+    EXPECT_STREQ("FOO", vartbl[0].name);
+    EXPECT_EQ(T_NBR, vartbl[0].type);
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenExplicitCreationOfLocal) {
+    LocalIndex = 3;
+
+    sprintf(m_program, "foo = 1");
+    void *actual = findvar(m_program, V_LOCAL);
+
+    EXPECT_EQ(&vartbl[0].val, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(3, vartbl[0].level);
+    EXPECT_STREQ("FOO", vartbl[0].name);
+    EXPECT_EQ(T_NBR, vartbl[0].type);
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenLocal_GivenLocalExists) {
+    LocalIndex = 3;
+    sprintf(m_program, "foo = 1");
+    (void) findvar(m_program, V_LOCAL);
+
+    sprintf(m_program, "foo = 1");
+    (void) findvar(m_program, V_LOCAL);
+
+    EXPECT_STREQ("$ already declared", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenGlobalAndLocalOfSameName) {
+    sprintf(m_program, "foo = 1");
+    void *global_var = findvar(m_program, V_FIND); // Implicit creation of global.
+    LocalIndex = 2;
+    void *local_var = findvar(m_program, V_LOCAL); // Explicit creation of local.
+
+    // Global scope.
+    error_msg[0] = '\0';
+    LocalIndex = 0;
+    void *actual = findvar(m_program, V_FIND);
+    EXPECT_EQ(global_var, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+
+    // Level 1 scope.
+    error_msg[0] = '\0';
+    LocalIndex = 1;
+    actual = findvar(m_program, V_FIND);
+    EXPECT_EQ(global_var, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+
+    // Level 2 scope.
+    error_msg[0] = '\0';
+    LocalIndex = 2;
+    actual = findvar(m_program, V_FIND);
+    EXPECT_EQ(local_var, actual);
+    EXPECT_EQ(1, VarIndex);
+    EXPECT_STREQ("", error_msg);
+
+    // Level 3 scope.
+    error_msg[0] = '\0';
+    LocalIndex = 3;
+    actual = findvar(m_program, V_FIND);
+    EXPECT_EQ(global_var, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenFindingUndeclaredVariable_GivenExplicitOn) {
+    mmb_options.explicit_type = true;
+
+    sprintf(m_program, "foo = 1");
+    void *actual = findvar(m_program, V_FIND);
+
+    EXPECT_STREQ("$ is not declared", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfGlobal_GivenSubFunWithSameName) {
+    sprintf(m_program,
+            "# foo\n"
+            "#\n"
+            "# bar\n"
+            "#\n"
+            "foo = 1");
+    subfun[0] = m_program;
+    subfun[1] = m_program + 8;
+    subfun[2] = NULL;
+    mmb_function_table_prepare(true);
+
+    error_msg[0] = '\0';
+    void *actual = findvar(m_program + 16, V_DIM_VAR);
+    EXPECT_STREQ("A sub/fun has the same name: $", error_msg);
+
+    // With V_FUNCT ... though actually this never happens in production with V_DIM_VAR.
+    error_msg[0] = '\0';
+    actual = findvar(m_program + 16, V_DIM_VAR | V_FUNCT);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfLocal_GivenSubFunWithSameName) {
+    sprintf(m_program,
+            "# foo\n"
+            "#\n"
+            "# bar\n"
+            "#\n"
+            "foo = 1");
+    subfun[0] = m_program;
+    subfun[1] = m_program + 8;
+    subfun[2] = NULL;
+    mmb_function_table_prepare(true);
+
+    error_msg[0] = '\0';
+    LocalIndex = 3;
+    void *actual = findvar(m_program + 16, V_LOCAL);
+    EXPECT_STREQ("A sub/fun has the same name: $", error_msg);
+
+    // With V_FUNCT.
+    error_msg[0] = '\0';
+    actual = findvar(m_program + 16, V_LOCAL | V_FUNCT);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDim_ReusesEmptySlot) {
+    sprintf(m_program, "foo = ...");
+    (void) findvar(m_program, V_DIM_VAR);
+    sprintf(m_program, "bar = ...");
+    (void) findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("FOO", vartbl[0].name);
+    EXPECT_STREQ("BAR", vartbl[1].name);
+
+    vartbl[0].type = T_NOTYPE; // Fake releasing the slot.
+
+    sprintf(m_program, "wombat = ...");
+    void *actual = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_EQ(&vartbl[0].val, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[0].dims[0]);
+    EXPECT_STREQ("WOMBAT", vartbl[0].name);
+    EXPECT_EQ(T_NBR, vartbl[0].type);
+    EXPECT_EQ(2, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenExistingInteger) {
+    sprintf(m_program, "foo%% = ...");
+    void *int_array = findvar(m_program, V_DIM_VAR);
+
+    sprintf(m_program, "bar = ...");
+    (void) findvar(m_program, V_DIM_VAR);
+
+    sprintf(m_program, "foo%% = ...");
+    void *actual = findvar(m_program, V_FIND);
+
+    EXPECT_EQ(int_array, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, vartbl[0].dims[0]);
+    EXPECT_STREQ("FOO", vartbl[0].name);
+    EXPECT_EQ(T_INT, vartbl[0].type);
+    EXPECT_EQ(2, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimFloatArray) {
+    sprintf(m_program, "my_array!(2) = ...");
+    void *created = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_EQ(vartbl[0].val.fa, created);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, vartbl[0].dims[0]);
+    EXPECT_EQ(0, vartbl[0].dims[1]);
+    EXPECT_STREQ("MY_ARRAY", vartbl[0].name);
+    EXPECT_EQ(T_NBR, vartbl[0].type);
+
+    sprintf(m_program, "my_array(1) = ...");
+    void *found = findvar(m_program, V_FIND);
+
+    EXPECT_EQ(created, (void *) ((uintptr_t) found - 8)); // Account for offset of element.
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, vartbl[0].dims[0]);
+    EXPECT_EQ(0, vartbl[0].dims[1]);
+    EXPECT_STREQ("MY_ARRAY", vartbl[0].name);
+    EXPECT_EQ(T_NBR, vartbl[0].type);
+
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimIntegerArray) {
+    sprintf(m_program, "my_array%%(2,4) = ...");
+    void *created = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_EQ(vartbl[0].val.fa, created);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, vartbl[0].dims[0]);
+    EXPECT_EQ(4, vartbl[0].dims[1]);
+    EXPECT_EQ(0, vartbl[0].dims[2]);
+    EXPECT_STREQ("MY_ARRAY", vartbl[0].name);
+    EXPECT_EQ(T_INT, vartbl[0].type);
+
+    sprintf(m_program, "my_array%%(1,1) = ...");
+    void *found = findvar(m_program, V_FIND);
+
+    EXPECT_EQ(created, (void *) ((uintptr_t) found - 8 * 4)); // Account for offset of element.
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, vartbl[0].dims[0]);
+    EXPECT_EQ(4, vartbl[0].dims[1]);
+    EXPECT_EQ(0, vartbl[0].dims[2]);
+    EXPECT_STREQ("MY_ARRAY", vartbl[0].name);
+    EXPECT_EQ(T_INT, vartbl[0].type);
+
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimStringArray) {
+    sprintf(m_program, "my_array$(2,4,6)");
+    void *created = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_EQ(vartbl[0].val.fa, created);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, vartbl[0].dims[0]);
+    EXPECT_EQ(4, vartbl[0].dims[1]);
+    EXPECT_EQ(6, vartbl[0].dims[2]);
+    EXPECT_EQ(0, vartbl[0].dims[3]);
+    EXPECT_STREQ("MY_ARRAY", vartbl[0].name);
+    EXPECT_EQ(255, vartbl[0].size);
+    EXPECT_EQ(T_STR, vartbl[0].type);
+
+    sprintf(m_program, "my_array$(1,1,1)");
+    void *found = findvar(m_program, V_FIND);
+
+    EXPECT_EQ(created, (void *) ((uintptr_t) found - 256 * 19)); // Account for offset of element.
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, vartbl[0].dims[0]);
+    EXPECT_EQ(4, vartbl[0].dims[1]);
+    EXPECT_EQ(6, vartbl[0].dims[2]);
+    EXPECT_EQ(0, vartbl[0].dims[3]);
+    EXPECT_STREQ("MY_ARRAY", vartbl[0].name);
+    EXPECT_EQ(255, vartbl[0].size);
+    EXPECT_EQ(T_STR, vartbl[0].type);
+
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimArrayWithNoType) {
+    mmb_options.default_type = T_NOTYPE;
+
+    sprintf(m_program, "my_array = ...");
+    void *actual = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("Variable type not specified", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimEmptyArray) {
+    sprintf(m_program, "foo() = ...");
+    void *actual = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("Dimensions", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimArrayWithTooManyDimensions) {
+    sprintf(m_program, "foo(1,1,1,1,1,1,1,1,1) = ...");
+    void *actual = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("Dimensions", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimArrayWithDimensionEqualToOptionBase) {
+    mmb_options.base = 0;
+    sprintf(m_program, "foo(0) = ...");
+    error_msg[0] = '\0';
+    void *actual = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("Dimensions", error_msg);
+
+    mmb_options.base = 1;
+    sprintf(m_program, "bar(1) = ...");
+    error_msg[0] = '\0';
+    actual = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("Dimensions", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenFindWithDimensionLessThanOptionBase) {
+    error_msg[0] = '\0';
+    sprintf(m_program, "foo(2,5) = ...");
+    (void) findvar(m_program, V_DIM_VAR);
+
+    error_msg[0] = '\0';
+    mmb_options.base = 0;
+    sprintf(m_program, "foo(1,-1) = ...");
+    (void) findvar(m_program, V_FIND);
+    EXPECT_STREQ("Expression syntax", error_msg);
+
+    error_msg[0] = '\0';
+    mmb_options.base = 1;
+    sprintf(m_program, "foo(1,0) = ...");
+    (void) findvar(m_program, V_FIND);
+    EXPECT_STREQ("Dimensions", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenFindNonExistentEmptyArray) {
+    sprintf(m_program, "foo() = ...");
+    void *actual = findvar(m_program, V_FIND);
+
+    EXPECT_STREQ("Dimensions", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenFindNonExistentEmptyArray_GivenEmptyOk) {
+    sprintf(m_program, "foo() = ...");
+    void *actual = findvar(m_program, V_DIM_VAR | V_EMPTY_OK);
+
+    EXPECT_EQ(vartbl[0].val.fa, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(-1, vartbl[0].dims[0]);
+    EXPECT_EQ(0, vartbl[0].dims[1]);
+    EXPECT_EQ(0, vartbl[0].dims[2]);
+    EXPECT_EQ(0, vartbl[0].level);
+    EXPECT_STREQ("FOO", vartbl[0].name);
+    EXPECT_EQ(T_NBR, vartbl[0].type);
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenFindExistingEmptyArray) {
+    sprintf(m_program, "foo(2,4) = ...");
+    (void) findvar(m_program, V_DIM_VAR);
+
+    sprintf(m_program, "foo() = ...");
+    void *actual = findvar(m_program, V_EMPTY_OK);
+
+    EXPECT_EQ(vartbl[0].val.fa, actual);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, vartbl[0].dims[0]);
+    EXPECT_EQ(4, vartbl[0].dims[1]);
+    EXPECT_EQ(0, vartbl[0].dims[2]);
+    EXPECT_EQ(0, vartbl[0].level);
+    EXPECT_STREQ("FOO", vartbl[0].name);
+    EXPECT_EQ(T_NBR, vartbl[0].type);
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenRedimArray) {
+    sprintf(m_program, "foo%%(2,4) = ...");
+    void *int_array = findvar(m_program, V_DIM_VAR);
+
+    sprintf(m_program, "foo%%(1,2) = ...");
+    void *actual = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("$ already declared", error_msg);
+
+    // Code contains this error but there is no code path to get to it that
+    // does not hit "$ already declared" first.
+    // EXPECT_STREQ("Cannot re dimension array", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenArrayDimensionOutOfBounds) {
+    sprintf(m_program, "foo%%(2,4) = ...");
+    void *int_array = findvar(m_program, V_DIM_VAR);
+
+    sprintf(m_program, "foo%%(3,4) = ...");
+    void *actual = findvar(m_program, V_FIND);
+
+    EXPECT_STREQ("Index out of bounds", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenArrayDimensionMismatch) {
+    sprintf(m_program, "foo%%(2,4) = ...");
+    void *int_array = findvar(m_program, V_DIM_VAR);
+
+    sprintf(m_program, "foo%%(1) = ...");
+    void *actual = findvar(m_program, V_FIND);
+
+    EXPECT_STREQ("Array dimensions", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimStringArrayWithLength) {
+    sprintf(m_program, "my_array$(5) Length 32");
+    void *created = findvar(m_program, V_DIM_VAR);
+
+    EXPECT_EQ(vartbl[0].val.fa, created);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(5, vartbl[0].dims[0]);
+    EXPECT_EQ(0, vartbl[0].dims[1]);
+    EXPECT_STREQ("MY_ARRAY", vartbl[0].name);
+    EXPECT_EQ(32, vartbl[0].size);
+    EXPECT_EQ(T_STR, vartbl[0].type);
+
+    sprintf(m_program, "my_array$(2)");
+    void *found = findvar(m_program, V_FIND);
+
+    EXPECT_EQ(created, (void *) ((uintptr_t) found - (32 + 1) * 2)); // Account for offset of element.
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(5, vartbl[0].dims[0]);
+    EXPECT_EQ(0, vartbl[0].dims[1]);
+    EXPECT_STREQ("MY_ARRAY", vartbl[0].name);
+    EXPECT_EQ(32, vartbl[0].size);
+    EXPECT_EQ(T_STR, vartbl[0].type);
+
+    EXPECT_EQ(1, varcnt);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimStringArrayWithLengthTooLong) {
+    sprintf(m_program, "my_array$(5) Length 256");
+    (void) findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenDimStringArrayWithUnexpectedText) {
+    sprintf(m_program, "my_array$(5) Aardvark");
+    (void) findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("Unexpected text: $", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenFindEmptyArray_GivenDeclaredScalar) {
+    sprintf(m_program, "foo = 1");
+    (void) findvar(m_program, V_DIM_VAR);
+
+    error_msg[0] = '\0';
+    sprintf(m_program, "foo()");
+    (void) findvar(m_program, V_EMPTY_OK);
+
+    EXPECT_STREQ("Array dimensions", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_GivenTooManyDeclarations) {
+    int ii = 0;
+    while (!*error_msg) {
+        error_msg[0] = '\0';
+        sprintf(m_program, "var_%d", ii);
+        (void) findvar(m_program, V_DIM_VAR);
+        ++ii;
+    }
+    EXPECT_STREQ("Not enough memory", error_msg);
+    EXPECT_EQ(1024, ii);
 }
 
 extern "C" {

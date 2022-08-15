@@ -21,6 +21,7 @@ FetchContent_MakeAvailable(googletest)
 add_definitions(-funsigned-char)
 
 if (MMB4L_COVERAGE)
+    message("** Configuring with code-coverage")
     set(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
     set(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
     set(GCOV_LINK_LIBRARY          gcov)

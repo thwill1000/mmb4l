@@ -1620,8 +1620,10 @@ routines for storing and manipulating variables
 // - V_FIND    a straight forward find, if the variable is not found it is created and set to zero
 // - V_NOFIND_ERR    throw an error if not found
 // - V_NOFIND_NULL   return a null pointer if not found
-// - V_DIM_VAR    dimension an array
-// - V_LOCAL   create a local variable
+// - V_DIM_VAR       dimension an array
+// - V_EMPTY_OK      empty array dimension, e.g. foo() allowed
+// - V_FUNCT         define the name of a function
+// - V_LOCAL         create a local variable
 //
 // there are four types of variable:
 //  - T_NOTYPE a free slot that was used but is now free for reuse
@@ -1633,7 +1635,6 @@ routines for storing and manipulating variables
 //  - T_PTR the variable points to another variable's data
 //  - T_IMPLIED  the variables type does not have to be specified with a suffix
 //  - T_CONST the contents of this variable cannot be changed
-//  - T_FUNCT this variable represents the return value from a function
 //
 // storage of the variable's data:
 //      if it is type T_NBR or T_INT the value is held in the variable slot
@@ -1643,7 +1644,10 @@ void *findvar(const char *p, int action) {
     int i, j, size, ifree, nbr, vtype, vindex, namelen, tmp;
     char *s, *x;
     void *mptr;
-    int dim[MAXDIM], dnbr;
+    int dim[MAXDIM];
+    int dnbr;  // Number of dimensions
+               // -1 : empty array used in fun/sub calls
+               //  0 : scalar.
 
     TestStackOverflow();                                            // test if we have overflowed the PIC32's stack
 
@@ -1654,13 +1658,19 @@ void *findvar(const char *p, int action) {
 
     // check the first char for a legal variable name
     skipspace(p);
-    if(!isnamestart(*p)) error("Variable name");
+    if(!isnamestart(*p)) {
+        error("Variable name");
+        return NULL;
+    }
 
     // copy the variable name into name
     s = name; namelen = 0;
     do {
         *s++ = toupper(*p++);
-        if(++namelen > MAXVARLEN) error("Variable name too long");
+        if(++namelen > MAXVARLEN) {
+            error("Variable name too long");
+            return NULL;
+        }
     } while(isnamechar(*p));
 
     // make sure there are multiple of 4 bytes with valid name or set to 0
@@ -1671,21 +1681,32 @@ void *findvar(const char *p, int action) {
 
     // check the terminating char and set the type
     if(*p == '$') {
-        if((action & T_IMPLIED) && !(action & T_STR)) error("Conflicting variable type");
+        if((action & T_IMPLIED) && !(action & T_STR)) {
+            error("Conflicting variable type");
+            return NULL;
+        }
         vtype = T_STR;
         p++;
     } else if(*p == '%') {
-        if((action & T_IMPLIED) && !(action & T_INT)) error("Conflicting variable type");
+        if((action & T_IMPLIED) && !(action & T_INT)) {
+            error("Conflicting variable type");
+            return NULL;
+        }
         vtype = T_INT;
         p++;
     } else if(*p == '!') {
-        if((action & T_IMPLIED) && !(action & T_NBR)) error("Conflicting variable type");
+        if((action & T_IMPLIED) && !(action & T_NBR)) {
+            error("Conflicting variable type");
+            return NULL;
+        }
         vtype = T_NBR;
         p++;
-    } else if((action & V_DIM_VAR) && DefaultType == T_NOTYPE && !(action & T_IMPLIED))
+    } else if((action & V_DIM_VAR) && DefaultType == T_NOTYPE && !(action & T_IMPLIED)) {
         error("Variable type not specified");
-    else
+        return NULL;
+    } else {
         vtype = 0;
+    }
 
     // check if this is an array
     if(*p == '(') {
@@ -1700,9 +1721,15 @@ void *findvar(const char *p, int action) {
             // find the value of each dimension and store in dims[]
             // the bracket in "(," is a signal to getargs that the list is in brackets
             getargs(&p, MAXDIM * 2, "(,");
-            if((argc & 0x01) == 0) error("Dimensions");
+            if((argc & 0x01) == 0) {
+                error("Dimensions");
+                return NULL;
+            }
             dnbr = argc/2 + 1;
-            if(dnbr > MAXDIM) error("Dimensions");
+            if(dnbr > MAXDIM) {
+                error("Dimensions");
+                return NULL;
+            }
             for(i = 0; i < argc; i += 2) {
                 MMFLOAT f;
                 MMINTEGER in;
@@ -1712,7 +1739,10 @@ void *findvar(const char *p, int action) {
                 if(targ == T_STR) dnbr = MAXDIM;                    // force an error to be thrown later (with the correct message)
                 if(targ == T_NBR) in = FloatToInt32(f);
                 dim[i/2] = in;
-                if(dim[i/2] < OptionBase) error("Dimensions");
+                if(dim[i/2] < OptionBase) {
+                    error("Dimensions");
+                    return NULL;
+                }
             }
         }
     }
@@ -1765,10 +1795,16 @@ void *findvar(const char *p, int action) {
 
     if(action & V_LOCAL) {
         // if we declared the variable as LOCAL within a sub/fun and an existing local was found
-        if(i < varcnt) error("$ already declared", name);
+        if(i < varcnt) {
+            error("$ already declared", name);
+            return NULL;
+        }
     } else if(action & V_DIM_VAR) {
         // if are using DIM to declare a global variable and an existing global variable was found
-        if(i < varcnt || tmp >= 0) error("$ already declared", name);
+        if(i < varcnt || tmp >= 0) {
+            error("$ already declared", name);
+            return NULL;
+        }
     } else
         // we are not declaring the variable
         // if the variable was not found and there is a global - we must be in a sub so use the global
@@ -1783,15 +1819,27 @@ void *findvar(const char *p, int action) {
         // check that the dimensions match
         for(i = 0; i < MAXDIM && vartbl[vindex].dims[i] != 0; i++);
         if(dnbr == -1) {
-            if(i == 0) error("Array dimensions");
+            if(i == 0) {
+                error("Array dimensions");
+                return NULL;
+            }
         } else {
-            if(i != dnbr) error("Array dimensions");
+            if(i != dnbr) {
+                error("Array dimensions");
+                return NULL;
+            }
         }
 
         if(vtype == 0) {
-            if(!(vartbl[vindex].type & (DefaultType | T_IMPLIED))) error("$ already declared", name);
+            if(!(vartbl[vindex].type & (DefaultType | T_IMPLIED))) {
+                error("$ already declared", name);
+                return NULL;
+            }
         } else {
-            if(!(vartbl[vindex].type & vtype)) error("$ already declared", name);
+            if(!(vartbl[vindex].type & vtype)) {
+                error("$ already declared", name);
+                return NULL;
+            }
         }
 
         // if it is a non arrayed variable or an empty array it is easy, just calculate and return a pointer to the value
@@ -1807,10 +1855,17 @@ void *findvar(const char *p, int action) {
 
         // if we reached this point it must be a reference to an existing array
         // check that we are not using DIM and that all parameters are within the dimensions
-        if(action & V_DIM_VAR) error("Cannot re dimension array");
+        if(action & V_DIM_VAR) {
+            // THW 15-Aug-2022: I do not think there is any code-path to reach
+            // this that does not throw "$ already declared" first.
+            error("Cannot re dimension array");
+            return NULL;
+        }
         for(i = 0; i < dnbr; i++) {
-            if(dim[i] > vartbl[vindex].dims[i] || dim[i] < OptionBase)
+            if(dim[i] > vartbl[vindex].dims[i] || dim[i] < OptionBase) {
                 error("Index out of bounds");
+                return NULL;
+            }
         }
 
         // then calculate the index into the array.  Bug fix by Gerard Sexton.
@@ -1831,10 +1886,15 @@ void *findvar(const char *p, int action) {
     }
 
     // we reached this point if no existing variable has been found
-    if(action & V_NOFIND_ERR) error("Cannot find $", name);
+    if(action & V_NOFIND_ERR) {
+        error("Cannot find $", name);
+        return NULL;
+    }
     if(action & V_NOFIND_NULL) return NULL;
-    if((OptionExplicit || dnbr != 0) && !(action & V_DIM_VAR))
+    if((OptionExplicit || dnbr != 0) && !(action & V_DIM_VAR)) {
         error("$ is not declared", name);
+        return NULL;
+    }
     if(vtype == 0) {
         if(action & T_IMPLIED)
             vtype = (action & (T_NBR | T_INT | T_STR));
@@ -1850,7 +1910,10 @@ void *findvar(const char *p, int action) {
             s = name;                                               // point to the new variable
             if(*s != toupper(*x)) continue;                         // quick first test
             while(1) {
-                if(!isnamechar(*s) && !isnamechar(*x)) error("A sub/fun has the same name: $", name);
+                if(!isnamechar(*s) && !isnamechar(*x)) {
+                    error("A sub/fun has the same name: $", name);
+                    return NULL;
+                }
                 if(*s != toupper(*x) || *s == 0 || !isnamechar(*x) || s - name >= MAXVARLEN) break;
                 s++; x++;
             }
@@ -1879,7 +1942,10 @@ void *findvar(const char *p, int action) {
             if ((p2 = checkstring(p, "LENGTH")) != NULL)
                 size = getint(p2, 1, MAXSTRLEN) ;
             else
-                if(!(*p == ',' || *p == 0 || tokenfunction(*p) == op_equal || tokenfunction(*p) == op_invalid)) error("Unexpected text: $", p);
+                if(!(*p == ',' || *p == 0 || tokenfunction(*p) == op_equal || tokenfunction(*p) == op_invalid)) {
+                    error("Unexpected text: $", p);
+                    return NULL;
+                }
         }
     }
 
@@ -1927,7 +1993,10 @@ void *findvar(const char *p, int action) {
     // if this is an array copy the array dimensions and calculate the overall size
     // for a non array string this will leave nbr = 1 which is just what we want
     for(nbr = 1, i = 0; i < dnbr; i++) {
-        if(dim[i] <= OptionBase) error("Dimensions");
+        if(dim[i] <= OptionBase) {
+            error("Dimensions");
+            return NULL;
+        }
         vartbl[vindex].dims[i] = dim[i];
         nbr *= (dim[i] + 1 - OptionBase);
     }
