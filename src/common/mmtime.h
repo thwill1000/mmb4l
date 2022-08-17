@@ -91,4 +91,7 @@ void mmtime_day_of_week(int64_t time_ns, char* buf);
 /** Sleeps for a given number of nanoseconds. */
 void mmtime_sleep_ns(int64_t duration_ns);
 
+/** Gets the CPU time consumed by the MMBasic process in nanoseconds. */
+int64_t mmtime_get_cputime_ns(void) ;
+
 #endif

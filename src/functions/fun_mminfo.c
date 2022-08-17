@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/memory.h"
+#include "../common/mmtime.h"
 #include "../common/options.h"
 #include "../common/parse.h"
 #include "../common/path.h"
@@ -103,6 +104,12 @@ static void mminfo_cmdline(const char *p) {
     g_rtn_type = T_STR;
     get_mmcmdline(g_string_rtn);
     CtoM(g_string_rtn);
+}
+
+static void mminfo_cputime(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_rtn_type = T_INT;
+    g_integer_rtn = mmtime_get_cputime_ns();
 }
 
 static void mminfo_current(const char *p) {
@@ -369,6 +376,8 @@ void fun_mminfo(void) {
         mminfo_architecture(p);
     } else if ((p = checkstring(ep, "CMDLINE"))) {
         mminfo_cmdline(p);
+    } else if ((p = checkstring(ep, "CPUTIME"))) {
+        mminfo_cputime(p);
     } else if ((p = checkstring(ep, "CURRENT"))) {
         mminfo_current(p);
     } else if ((p = checkstring(ep, "DEVICE"))) {

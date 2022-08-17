@@ -27,6 +27,7 @@ Else
 EndIf
 
 add_test("test_arch")
+add_test("test_cputime")
 add_test("test_current")
 add_test("test_device")
 add_test("test_directory")
@@ -82,6 +83,13 @@ Sub test_arch()
   End Select
 
   assert_string_equals(expected_arch$, Mm.Info$(Arch))
+End Sub
+
+Sub test_cputime()
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  Local cputime% = Mm.Info(CpuTime)
+  ' Not really anything that can be tested other than it returns.
+  assert_true(cputime% > 0)
 End Sub
 
 Sub test_current()
