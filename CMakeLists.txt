@@ -52,6 +52,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_dummy.c
     src/commands/cmd_edit.c
     src/commands/cmd_end.c
+    src/commands/cmd_erase.c
     src/commands/cmd_error.c
     src/commands/cmd_execute.c
     src/commands/cmd_files.c

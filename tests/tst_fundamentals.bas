@@ -17,6 +17,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 
 Const BASE% = Mm.Info(Option Base)
 
+add_test("test_erase")
 add_test("test_inv")
 add_test("test_unary_minus")
 add_test("test_unary_plus")
@@ -34,6 +35,33 @@ Sub setup_test()
 End Sub
 
 Sub teardown_test()
+End Sub
+
+Sub test_erase()
+  Dim foo%, bar!, wombat$
+
+  foo% = 42
+  bar! = 3.142
+  wombat$ = "wombat"
+
+  Erase foo%
+  On Error Skip 1
+  foo% = 42
+  assert_raw_error("FOO is not declared")
+  bar! = 3.142
+  wombat$ = "wombat"
+
+  Erase bar, wombat$
+  On Error Skip 1
+  bar! = 3.142
+  assert_raw_error("BAR is not declared")
+  On Error Skip 1
+  wombat$ = "wombat"
+  assert_raw_error("WOMBAT is not declared")
+
+  On Error Skip 1
+  Erase snafu!
+  assert_raw_error("Cannot find SNAFU")
 End Sub
 
 Sub test_inv()
@@ -116,15 +144,16 @@ Sub test_unary_plus()
 End Sub
 
 Sub test_error_correct_after_goto()
+  Local base_line% = 155
   Goto 30
 test_goto_label_1:
-  assert_raw_error("Error in line 130: foo1")
+  assert_raw_error("Error in line " + Str$(base_line% + 4) + ": foo1")
   Goto 40
 test_goto_label_2:
-  assert_raw_error("Error in line 132: foo2")
+  assert_raw_error("Error in line " + Str$(base_line% + 6) + ": foo2")
   On Error Skip
   Error "foo3"
-  assert_raw_error("Error in line 126: foo3")
+  assert_raw_error("Error in line " + Str$(base_line%) + ": foo3")
 End Sub
 
 30 On Error Skip : Error "foo1" : Goto test_goto_label_1
@@ -133,13 +162,14 @@ Error "foo2"
 Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
+  Local base_line% = 171
   GoSub 60
-  assert_raw_error("Error in line 145: bar1")
+  assert_raw_error("Error in line " + Str$(base_line% + 4) + ": bar1")
   GoSub 70
-  assert_raw_error("Error in line 147: bar2")
+  assert_raw_error("Error in line " + Str$(base_line% + 6) + ": bar2")
   On Error Skip
   Error "bar3"
-  assert_raw_error("Error in line 141: bar3")
+  assert_raw_error("Error in line " + Str$(base_line%) + ": bar3")
 End Sub
 
 60 On Error Skip : Error "bar1" : Return

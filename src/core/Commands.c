@@ -313,6 +313,7 @@ void MIPS16 cmd_new(void) {
 
 
 
+#if !defined(__mmb4l__)
 void cmd_erase(void) {
     int i,j,k, len;
     char p[MAXVARLEN + 1], *s, *x;
@@ -343,6 +344,7 @@ void cmd_erase(void) {
         if(j == varcnt) error("Cannot find $", p);
     }
 }
+#endif
 
 
 
