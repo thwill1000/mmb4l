@@ -51,14 +51,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 bool parse_is_end(const char *p);
 const char *parse_check_string(const char *p, const char *tkn);
-int parse_bool(const char *p);
+bool parse_bool(const char *p);
 int parse_colour(const char *p, bool allow_bright);
 int parse_file_number(const char *p, bool allow_zero);
 
 /**
- * @brief  Does the string match the pattern for a LONGSTRING, i.e. name%() or name().
+ * @brief Does the string match the pattern for a LONGSTRING, i.e. name%() or name().
  */
 bool parse_matches_longstring_pattern(const char *s);
+
+/**
+ * @brief Parses a name/identifier ignoring any leading space characters.
+ *
+ * @param[in,out] p     Parse from this pointer.
+ *                      On exit points at the character following the name.
+ * @param[out]    name  Buffer to store the UPPER-CASE name in, should be
+ *                      at least MAXVARLEN + 1 chars.
+ * @return              kOk on success.
+ *                      kSyntax if the first non-space character is not valid to
+ *                      start a name.
+ *                      kNameTooLong if the name is more than MAXVARLEN chars.
+ */
+MmResult parse_name(const char **p, char *name);
 
 /**
  * @brief Transforms star '*' and bang '!' commands in the input buffer

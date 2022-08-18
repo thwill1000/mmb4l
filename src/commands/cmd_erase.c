@@ -43,19 +43,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
+#include "../common/parse.h"
+#include "../common/utility.h"
 
 void cmd_erase(void) {
-    int i,j,k, len;
-    char p[MAXVARLEN + 1], *s, *x;
-
     getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
     if ((argc & 0x01) == 0) ERROR_ARGUMENT_COUNT;
 
-    for (i = 0; i < argc; i += 2) {
-        strcpy((char *)p, argv[i]);
-        while (!isnamechar(p[strlen(p) - 1])) p[strlen(p) - 1] = 0;
+    int i,j,k, len;
+    const char *p;
+    const char *s;
+    const char *x;
+    char name[MAXVARLEN + 1];
+    MmResult result = kOk;
 
-        makeupper(p);                                               // all variables are stored as uppercase
+    for (i = 0; i < argc; i += 2) {
+        p = argv[i];
+        result = parse_name(&p, name);
+        if (FAILED(result)) error_throw(result);
+        p = name;
         for (j = 0; j < varcnt; j++) {
             s = p;  x = vartbl[j].name; len = strlen(p);
             while (len > 0 && *s == *x) {                           // compare the variable to the name that we have

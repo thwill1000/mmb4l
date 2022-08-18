@@ -63,6 +63,7 @@ const char *mmresult_to_string(MmResult result) {
         case kInvalidValue:  return "Invalid value";
         case kUnknownSystemCommand: return "Unknown system command";
         case kNotPersistent: return "Invalid for non-persistent option";
+        case kNameTooLong:   return "Name too long";
         case kUnimplemented: return "Unimplemented function";
         default:             return "Unknown result code";
     }

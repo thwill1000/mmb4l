@@ -62,6 +62,18 @@ Sub test_erase()
   On Error Skip 1
   Erase snafu!
   assert_raw_error("Cannot find SNAFU")
+
+  On Error Skip 1
+  Erase *invalid
+  assert_raw_error("Syntax")
+
+  On Error Skip 1
+  Erase _32_chars_long_67890123456789012%
+  assert_raw_error("Cannot find _32_CHARS_LONG_67890123456789012")
+
+  On Error Skip 1
+  Erase _33_chars_long_678901234567890123%
+  assert_raw_error("Name too long")
 End Sub
 
 Sub test_inv()
@@ -144,7 +156,7 @@ Sub test_unary_plus()
 End Sub
 
 Sub test_error_correct_after_goto()
-  Local base_line% = 155
+  Local base_line% = 167
   Goto 30
 test_goto_label_1:
   assert_raw_error("Error in line " + Str$(base_line% + 4) + ": foo1")
@@ -162,7 +174,7 @@ Error "foo2"
 Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
-  Local base_line% = 171
+  Local base_line% = 183
   GoSub 60
   assert_raw_error("Error in line " + Str$(base_line% + 4) + ": bar1")
   GoSub 70

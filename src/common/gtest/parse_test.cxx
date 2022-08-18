@@ -36,6 +36,44 @@ TEST_F(ParseTest, ParseMatchesLongStringPattern) {
     EXPECT_FALSE(parse_matches_longstring_pattern("foo$()"));
 }
 
+TEST_F(ParseTest, ParseName) {
+    char name[MAXVARLEN + 1];
+
+    std::string text = " foo ";
+    const char *p = text.c_str();
+    EXPECT_EQ(kOk, parse_name(&p, name));
+    EXPECT_EQ(text.c_str() + 4, p);
+    EXPECT_STREQ("FOO", name);
+
+    text = "_32_chars_long_67890123456789012";
+    p = text.c_str();
+    EXPECT_EQ(kOk, parse_name(&p, name));
+    EXPECT_EQ(text.c_str() + 32, p);
+    EXPECT_STREQ("_32_CHARS_LONG_67890123456789012", name);
+}
+
+TEST_F(ParseTest, ParseName_GivenInvalidName) {
+    char name[MAXVARLEN + 1];
+
+    std::string text = "";
+    const char *p = text.c_str();
+    EXPECT_EQ(kSyntax, parse_name(&p, name));
+
+    text = " *";
+    p = text.c_str();
+    EXPECT_EQ(kSyntax, parse_name(&p, name));
+}
+
+TEST_F(ParseTest, ParseName_GivenNameTooLong) {
+    std::string text = " _33_chars_long_678901234567890123 ";
+    const char *p = text.c_str();
+    char name[MAXVARLEN + 1];
+
+    EXPECT_EQ(kNameTooLong, parse_name(&p, name));
+    EXPECT_EQ(text.c_str() + 33, p);
+    EXPECT_STREQ("_33_CHARS_LONG_67890123456789012", name);
+}
+
 TEST_F(ParseTest, ParseTransformInputBuffer_GivenStarCommand) {
     char input[STRINGSIZE];
     char expected[STRINGSIZE];

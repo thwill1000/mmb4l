@@ -42,13 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-#include <stdio.h>
+#include <stdio.h> // For debugging
+
+#include "parse.h"
 
 #include "mmb4l.h"
 #include "console.h"
 #include "cstring.h"
-#include "error.h"
 
 bool parse_is_end(const char *p) {
     return *p == '\0' || *p == '\'';
@@ -143,6 +143,21 @@ bool parse_matches_longstring_pattern(const char *s) {
     if (*p++ != ')') return false;
     skipspace(p);
     return *p == '\0' ? true : false;
+}
+
+MmResult parse_name(const char **p, char *name) {
+    skipspace((*p)); // Double bracket is necessary for correct macro expansion.
+    if (!isnamestart(**p)) return kSyntax; // Not a name.
+    size_t name_len = 0;
+    *name++ = toupper(*((*p)++));
+    name_len++;
+    while (isnamechar(**p) && name_len < MAXVARLEN) {
+        *name++ = toupper(*((*p)++));
+        name_len++;
+    }
+    *name = '\0';
+    if (isnamechar(**p)) return kNameTooLong;
+    return kOk;
 }
 
 /**
