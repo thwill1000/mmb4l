@@ -42,16 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <assert.h>
-
 #include "mmb4l.h"
 #include "console.h"
-#include "error.h"
 #include "file.h"
-#include "options.h"
 #include "path.h"
 #include "prompt.h"
 #include "utility.h"
+
+#include <assert.h>
+#include <string.h>
 
 #define HISTORY_SIZE  4 * STRINGSIZE
 #define ERROR_LINE_TOO_LONG_TO_EDIT  error_throw_ex(kStringTooLong, "Line is too long to edit")

@@ -42,15 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stddef.h>
+#include "xmodem.h"
 
 #include "mmb4l.h"
 #include "console.h"
-#include "error.h"
 #include "file.h"
 #include "mmtime.h"
 #include "serial.h"
-#include "xmodem.h"
+
+#include <string.h>
 
 /*
  * Derived from the work of Georges Menie (www.menie.org) Copyright 2001-2010

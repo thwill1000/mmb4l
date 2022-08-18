@@ -42,17 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
-#include "../common/error.h"
 #include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 #define ERROR_EDITOR_FAILED              error_throw_ex(kError, "Editor could not be run")
 #define ERROR_FAILED_TO_DELETE_TMP_FILE  error_throw_ex(kError, "Temporary file could not be deleted")

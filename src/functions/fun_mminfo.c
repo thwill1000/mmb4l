@@ -42,23 +42,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include "../common/mmb4l.h"
 #include "../common/console.h"
-#include "../common/error.h"
-#include "../common/memory.h"
 #include "../common/mmtime.h"
-#include "../common/options.h"
 #include "../common/parse.h"
 #include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #define FONT_HEIGHT  12
 #define FONT_WIDTH   8

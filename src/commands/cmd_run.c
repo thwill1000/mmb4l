@@ -43,9 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
-#include "../common/error.h"
 #include "../common/program.h"
 #include "../common/utility.h"
+
+#include <string.h>
 
 #define ERROR_NOTHING_TO_RUN  error_throw_ex(kError, "Nothing to run")
 

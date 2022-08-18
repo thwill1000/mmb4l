@@ -42,17 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include "common/mmb4l.h"
 #include "common/cmdline.h"
 #include "common/console.h"
 #include "common/cstring.h"
-#include "common/error.h"
 #include "common/exit_codes.h"
 #include "common/file.h"
 #include "common/interrupt.h"
@@ -63,6 +56,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/prompt.h"
 #include "common/serial.h"
 #include "common/utility.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter

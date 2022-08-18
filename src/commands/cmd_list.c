@@ -42,8 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdlib.h>
-
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"
@@ -52,6 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 #define ERROR_NOTHING_TO_LIST  error_throw_ex(kError, "Nothing to list")
 

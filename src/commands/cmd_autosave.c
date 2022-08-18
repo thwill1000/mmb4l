@@ -42,20 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-#include <errno.h>
-#include <stdbool.h>
-
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/cstring.h"
-#include "../common/error.h"
 #include "../common/file.h"
-#include "../common/memory.h"
 #include "../common/parse.h"
 #include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
+
+#include <string.h>
 
 /** Gets the path of the file to write to. */
 static void cmd_autosave_get_file_path(char *file_path) {

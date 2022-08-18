@@ -42,13 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <dirent.h>
-#include <libgen.h>
-
 #include "../common/mmb4l.h"
-#include "../common/error.h"
 #include "../common/path.h"
 #include "../common/utility.h"
+
+#include <dirent.h>
+#include <libgen.h>
+#include <string.h>
 
 #define ERROR_INVALID_FLAG_SPECIFICATION  error_throw_ex(kError, "Invalid flag specification")
 #define ERROR_UNABLE_TO_OPEN_DIRECTORY    error_throw_ex(kError, "Unable to open directory")

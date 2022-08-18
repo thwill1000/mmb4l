@@ -42,20 +42,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <unistd.h>
+#include "program.h"
 
 #include "mmb4l.h"
 #include "console.h"
 #include "cstring.h"
-#include "error.h"
 #include "file.h"
-#include "options.h"
 #include "path.h"
-#include "program.h"
 #include "utility.h"
+
+#include <assert.h>
+#include <string.h>
+#include <unistd.h>
 
 #define ERROR_CANNOT_INCLUDE_FROM_INCLUDE  error_throw_ex(kError, "Can't import from an import")
 #define ERROR_FUNCTION_NAME                error_throw_ex(kError, "Function name")

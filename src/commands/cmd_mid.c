@@ -43,7 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
-#include "../common/error.h"
+
+#include <string.h>
 
 #define ERROR_NOT_A_STRING              error_throw_ex(kError, "Not a string")
 #define ERROR_SELECTION_EXCEEDS_LENGTH  error_throw_ex(kError, "Selection exceeds length of string")

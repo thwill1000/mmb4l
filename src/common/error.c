@@ -42,20 +42,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "error.h"
+
+#include "mmb4l.h"
+#include "cstring.h"
+#include "exit_codes.h"
+#include "path.h"
+#include "program.h"
+#include "utility.h"
+
 #include <assert.h>
-#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "../common/mmb4l.h"
-#include "../common/cstring.h"
-#include "../common/error.h"
-#include "../common/exit_codes.h"
-#include "../common/options.h"
-#include "../common/path.h"
-#include "../common/program.h"
-#include "../common/utility.h"
+#include <string.h>
 
 extern jmp_buf ErrNext;
 

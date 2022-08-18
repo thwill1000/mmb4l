@@ -45,9 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_PARSE_H)
 #define MMB4L_PARSE_H
 
-#include <stdbool.h>
-
 #include "mmresult.h"
+
+#include <stdbool.h>
 
 bool parse_is_end(const char *p);
 const char *parse_check_string(const char *p, const char *tkn);

@@ -46,8 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmb4l.h"
 
 #include <assert.h>
-#include <stdbool.h>
-#include <stdio.h>
+#include <string.h>
 
 bool variables_init_called = false;
 int variables_free_idx = 0;

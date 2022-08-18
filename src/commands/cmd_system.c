@@ -42,17 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
-#include "../common/error.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /**
  * @brief  Reads value of an environment variable into a buffer.

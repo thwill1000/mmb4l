@@ -43,6 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <ctype.h>
+#include <setjmp.h>
+#include <stddef.h>
 
 // Types used to define an item of data. Often they are ORed together.
 // Used in tokens, variables and arguments to functions

@@ -42,13 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdio.h>
-
 #include "../common/mmb4l.h"
 #include "../common/console.h"
-#include "../common/error.h"
 #include "../common/utility.h"
 #include "../common/variables.h"
+
+#include <stdio.h>
+#include <string.h>
 
 #define ERROR_ADDRESS_NOT_DIVISIBLE_BY(i)      error_throw_ex(kError, "Address not divisible by %", i)
 #define ERROR_DST_ADDRESS_NOT_DIVISIBLE_BY(i)  error_throw_ex(kError, "Destination address not divisible by %", i)

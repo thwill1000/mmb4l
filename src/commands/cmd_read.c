@@ -42,10 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <assert.h>
-
 #include "../common/mmb4l.h"
-#include "../common/error.h"
+
+#include <assert.h>
+#include <string.h>
 
 #define ERROR_NO_DATA             error_throw_ex(kError, "No DATA to read")
 #define ERROR_NOTHING_TO_RESTORE  error_throw_ex(kError, "Nothing to restore")

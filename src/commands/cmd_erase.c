@@ -47,6 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/utility.h"
 #include "../common/variables.h"
 
+#include <string.h>
+
 /** This command can only erase global variables. */
 void cmd_erase(void) {
     getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");

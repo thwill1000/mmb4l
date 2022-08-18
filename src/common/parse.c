@@ -42,13 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdio.h> // For debugging
-
 #include "parse.h"
 
 #include "mmb4l.h"
 #include "console.h"
 #include "cstring.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 bool parse_is_end(const char *p) {
     return *p == '\0' || *p == '\'';

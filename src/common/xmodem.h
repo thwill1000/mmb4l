@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_XMODEM_H)
 #define MMB4L_XMODEM_H
 
+#include <stdbool.h>
+
 #define xmodem_send  xmodem_transmit
 
 void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose);

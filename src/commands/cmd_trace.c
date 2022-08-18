@@ -42,11 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdlib.h>
-
 #include "../common/mmb4l.h"
 #include "../common/console.h"
-#include "../common/error.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 // count the number of lines up to and including the line pointed to by the argument
 // used for error reporting in programs that do not use line numbers

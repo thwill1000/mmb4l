@@ -45,11 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined MMB4L_H
 #define MMB4L_H
 
-#include <setjmp.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
-
 #include "../Version.h"
 #include "../Configuration.h"
 #include "../core/MMBasic.h"

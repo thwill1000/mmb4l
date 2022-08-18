@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMB4L_PROGRAM_H
 
 #include "../Configuration.h"
+#include "mmresult.h"
 
 #define EDIT_BUFFER_SIZE  512 * 1024
 

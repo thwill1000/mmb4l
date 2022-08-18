@@ -44,10 +44,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // This module manages all memory allocation for MMBasic.
 
-#include <stdio.h>
-
 #include "mmb4l.h"
-#include "error.h"
+
+#include <stdio.h>
+#include <string.h>
 
 // allocate static memory for programs, variables and the heap
 // this is simple memory management because DOS has plenty of memory
