@@ -149,6 +149,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/prompt.c
     src/common/rx_buf.c
     src/common/serial.c
+    src/common/variables.c
     src/common/xmodem.c
 )
 
@@ -377,3 +378,25 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_mmbasic_core)
+
+################################################################################
+# test_variables
+################################################################################
+
+add_executable(
+  test_variables
+#  src/common/cstring.c
+#  src/common/path.c
+  src/common/variables.c
+  src/common/gtest/variables_test.cxx
+)
+
+target_link_libraries(
+  test_variables
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_variables)

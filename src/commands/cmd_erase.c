@@ -45,38 +45,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
+#include "../common/variables.h"
 
 void cmd_erase(void) {
     getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
     if ((argc & 0x01) == 0) ERROR_ARGUMENT_COUNT;
 
-    int i,j,k, len;
     const char *p;
-    const char *s;
-    const char *x;
     char name[MAXVARLEN + 1];
     MmResult result = kOk;
 
-    for (i = 0; i < argc; i += 2) {
+    for (int i = 0; i < argc; i += 2) {
         p = argv[i];
         result = parse_name(&p, name);
         if (FAILED(result)) error_throw(result);
-        p = name;
-        for (j = 0; j < varcnt; j++) {
-            s = p;  x = vartbl[j].name; len = strlen(p);
-            while (len > 0 && *s == *x) {                           // compare the variable to the name that we have
-                len--; s++; x++;
-            }
-            if (!(len == 0 && (*x == 0 || strlen(p) == MAXVARLEN))) continue;
-
-            // found the variable
-            FreeMemory(vartbl[j].val.s);                            // free the memory, note that FreeMemory() will ignore an invalid argument
-            vartbl[j].type = T_NOTYPE;                              // empty slot
-            *vartbl[j].name = 0;                                    // safety precaution
-            for(k = 0; k < MAXDIM; k++) vartbl[j].dims[k] = 0;      // and again
-            if (j == varcnt - 1) { j--; varcnt--; }
-            break;
-        }
-        if (j == varcnt) error_throw_ex(kError, "Cannot find $", p);
+        int var_idx = variables_find(name);
+        if (var_idx == -1) error_throw_ex(kError, "Cannot find $", name);
+        FreeMemory(vartbl[var_idx].val.s);                           // free the memory, note that FreeMemory() will ignore an invalid argument
+        vartbl[var_idx].type = T_NOTYPE;                             // empty slot
+        *vartbl[var_idx].name = 0;                                   // safety precaution
+        for (int k = 0; k < MAXDIM; k++) vartbl[var_idx].dims[k] = 0;// and again
+        if (var_idx == varcnt - 1) varcnt--;
     }
 }

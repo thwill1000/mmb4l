@@ -42,8 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_OPTION_H)
-#define MMB4L_OPTION_H
+#if !defined(MMB4L_OPTIONS_H)
+#define MMB4L_OPTIONS_H
 
 #include <stdbool.h>
 
@@ -206,4 +206,4 @@ MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER iva
 /** @brief Sets the value for the given option from a C-string. */
 MmResult options_set_string_value(Options *options, OptionsId id, const char *svalue);
 
-#endif
+#endif // #if !defined(MMB4L_OPTIONS_H)

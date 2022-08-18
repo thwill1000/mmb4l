@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-VarTable.h
+variables.h
 
-Copyright 2011-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,24 +42,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_VAR_TABLE_H)
-#define MMB4L_VAR_TABLE_H
+#if !defined(MMB4L_VARIABLES_H)
+#define MMB4L_VARIABLES_H
 
-#include "../Configuration.h"
+/**
+ * @brief  Adds a variable to the variables table.
+ *
+ * For the moment this is only for use by unit-tests.
+ *
+ * @param  name  Name for the variable. This is case-sensitive, but
+ *               MMB4L should always call it with an UPPER-CASE name.
+ * @return       Index of the new variable.
+ */
+int variables_add(const char *name);
 
-struct s_vartbl {                                     // structure of the variable table
-    char name[MAXVARLEN];                             // variable's name
-    char type;                                        // its type (T_NBR, T_INT or T_STR)
-    char level;                                       // its subroutine or function level (used to track local variables)
-    short int dims[MAXDIM];                           // the dimensions. it is an array if the first dimension is NOT zero
-    unsigned char size;                               // the number of chars to allocate for each element in a string array
-    union u_val {
-        MMFLOAT f;                                    // the value if it is a float
-        MMINTEGER i;                                  // the value if it is an integer
-        MMFLOAT *fa;                                  // pointer to the allocated memory if it is an array of floats
-        MMINTEGER *ia;                                // pointer to the allocated memory if it is an array of integers
-        char *s;                                      // pointer to the allocated memory if it is a string
-    } __attribute__ ((aligned (8))) val;
-};
+/**
+ * @brief  Finds a variable by name in the variables table.
+ *
+ * @param  name  Name of the variable to find. This is case-sensitive, but
+ *               MMB4L should always call it with an UPPER-CASE name.
+ * @return       Index of the named variable in the variables table,
+ *               or -1 if not found.
+ */
+int variables_find(const char *name);
 
-#endif // #if !defined(MMB4L_VAR_TABLE_H)
+#endif // #if !defined(MMB4L_VARIABLES_H)

@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-VarTable.h
+variables.c
 
-Copyright 2011-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,24 +42,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_VAR_TABLE_H)
-#define MMB4L_VAR_TABLE_H
+#include "variables.h"
 
-#include "../Configuration.h"
+#include "mmb4l.h"
 
-struct s_vartbl {                                     // structure of the variable table
-    char name[MAXVARLEN];                             // variable's name
-    char type;                                        // its type (T_NBR, T_INT or T_STR)
-    char level;                                       // its subroutine or function level (used to track local variables)
-    short int dims[MAXDIM];                           // the dimensions. it is an array if the first dimension is NOT zero
-    unsigned char size;                               // the number of chars to allocate for each element in a string array
-    union u_val {
-        MMFLOAT f;                                    // the value if it is a float
-        MMINTEGER i;                                  // the value if it is an integer
-        MMFLOAT *fa;                                  // pointer to the allocated memory if it is an array of floats
-        MMINTEGER *ia;                                // pointer to the allocated memory if it is an array of integers
-        char *s;                                      // pointer to the allocated memory if it is a string
-    } __attribute__ ((aligned (8))) val;
-};
+#include <stdbool.h>
 
-#endif // #if !defined(MMB4L_VAR_TABLE_H)
+int variables_add(const char *name) {
+    // Copy a maximum of MAXVARLEN characters,
+    // a maximum length stored name will not be '\0' terminated.
+    strncpy(vartbl[varcnt].name, name, MAXVARLEN);
+    return varcnt++;
+}
+
+int variables_find(const char *name) {
+    for (int ii = 0; ii < varcnt; ++ii) {
+        // Only compares first MAXVARLEN characters.
+        if (strncmp(name, vartbl[ii].name, MAXVARLEN) == 0) return ii;
+    }
+    return -1;
+}
