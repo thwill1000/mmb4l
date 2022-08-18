@@ -48,23 +48,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/variables.h"
 
 void cmd_erase(void) {
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");
     if ((argc & 0x01) == 0) ERROR_ARGUMENT_COUNT;
 
     const char *p;
     char name[MAXVARLEN + 1];
     MmResult result = kOk;
 
-    for (int i = 0; i < argc; i += 2) {
-        p = argv[i];
+    for (int ii = 0; ii < argc; ii += 2) {
+        p = argv[ii];
         result = parse_name(&p, name);
         if (FAILED(result)) error_throw(result);
         int var_idx = variables_find(name);
         if (var_idx == -1) error_throw_ex(kError, "Cannot find $", name);
-        FreeMemory(vartbl[var_idx].val.s);                           // free the memory, note that FreeMemory() will ignore an invalid argument
-        vartbl[var_idx].type = T_NOTYPE;                             // empty slot
-        *vartbl[var_idx].name = 0;                                   // safety precaution
-        for (int k = 0; k < MAXDIM; k++) vartbl[var_idx].dims[k] = 0;// and again
-        if (var_idx == varcnt - 1) varcnt--;
+        variables_delete(var_idx);
     }
 }

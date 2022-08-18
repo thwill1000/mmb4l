@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_VARIABLES_H)
 #define MMB4L_VARIABLES_H
 
+#include <stddef.h>
+
 /**
  * @brief  Adds a variable to the variables table.
  *
@@ -52,9 +54,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @param  name  Name for the variable. This is case-sensitive, but
  *               MMB4L should always call it with an UPPER-CASE name.
+ * @param  size  Number of bytes of heap memory that should be allocated
+ *               for this variable. If == 0 then no heap memory is allocatted.
  * @return       Index of the new variable.
  */
-int variables_add(const char *name);
+int variables_add(const char *name, size_t size);
+
+/**
+ * @brief  Deletes a variable from the variable table.
+ *
+ * @param  var_idx  Index of the variable to delete.
+ */
+void variables_delete(int var_idx);
 
 /**
  * @brief  Finds a variable by name in the variables table.

@@ -48,11 +48,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdbool.h>
 
-int variables_add(const char *name) {
+int variables_add(const char *name, size_t size) {
     // Copy a maximum of MAXVARLEN characters,
     // a maximum length stored name will not be '\0' terminated.
     strncpy(vartbl[varcnt].name, name, MAXVARLEN);
+    char *mptr = size == 0 ? NULL : GetMemory(size);
+    vartbl[varcnt].val.s = mptr;
     return varcnt++;
+}
+
+void variables_delete(int var_idx) {
+    if (var_idx >= varcnt) return;
+
+    // TODO: according to the MMBasic for DOS code FreeMemory() will ignore
+    //       invalid addresses, I suspect this is bollocks and this code
+    //       will do bad things if called for scalar variables.
+    FreeMemory(vartbl[var_idx].val.s);
+    memset(vartbl + var_idx, 0x0, sizeof(struct s_vartbl));
+    if (var_idx == varcnt - 1) varcnt--;
 }
 
 int variables_find(const char *name) {
