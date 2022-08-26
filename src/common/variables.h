@@ -46,19 +46,45 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMB4L_VARIABLES_H
 
 #include <stddef.h>
+#include <stdint.h>
+
+#define  GLOBAL_VAR  0
+
+/**
+ * @brief  Index of the lowest index "potentially" free slot in the
+ *         variables table.
+ *
+ * When a free slot is required (for a new variable) the code should
+ * start looking at this index by checking if:
+ *
+ *     vartbl[variables_free_idx].type == T_NOTYPE
+ *
+ * and then proceed to increment \p variables_free_idx until a free slot
+ * is found.
+ */
+extern int variables_free_idx;
+
+/**
+ * @brief  Initialises variables/structures for the variables table.
+ */
+void variables_init();
 
 /**
  * @brief  Adds a variable to the variables table.
  *
- * For the moment this is only for use by unit-tests.
+ * Notes:
+ *   1. For the moment this is only for use by unit-tests.
+ *   2. This function makes no effort to detect and report duplicate
+ *      or invalid variable names/levels.
  *
  * @param  name  Name for the variable. This is case-sensitive, but
  *               MMB4L should always call it with an UPPER-CASE name.
  * @param  size  Number of bytes of heap memory that should be allocated
- *               for this variable. If == 0 then no heap memory is allocatted.
- * @return       Index of the new variable.
+ *               for this variable. If == 0 then no heap memory is allocated.
+ * @return       Index of the new variable, or
+ *               -1 if we would exceed the maximum number of variables.
  */
-int variables_add(const char *name, size_t size);
+int variables_add(const char *name, uint8_t level, size_t size);
 
 /**
  * @brief  Deletes a variable from the variable table.
@@ -66,6 +92,16 @@ int variables_add(const char *name, size_t size);
  * @param  var_idx  Index of the variable to delete.
  */
 void variables_delete(int var_idx);
+
+/**
+ * @brief  Deletes all variables of a given 'level' or above from the
+ *         variable table.
+ *
+ * @param  level  variables of this level and above will be deleted.
+ *                A value of 0 deletes all variables including globals
+ *                (which by definition are of level 0).
+ */
+void variables_delete_all(uint8_t level);
 
 /**
  * @brief  Finds a variable by name in the variables table.

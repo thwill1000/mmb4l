@@ -43,18 +43,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "variables.h"
-
 #include "mmb4l.h"
 
+#include <assert.h>
 #include <stdbool.h>
+#include <stdio.h>
 
-int variables_add(const char *name, size_t size) {
+int variables_free_idx = 0;
+
+void variables_init() {
+    varcnt = 0;
+    variables_free_idx = 0;
+}
+
+int variables_add(const char *name, uint8_t level, size_t size) {
+    // Find a free slot.
+    while (variables_free_idx < varcnt
+            && vartbl[variables_free_idx].type != T_NOTYPE) variables_free_idx++;
+
+    if (variables_free_idx == MAXVARS) return -1;
+
     // Copy a maximum of MAXVARLEN characters,
     // a maximum length stored name will not be '\0' terminated.
-    strncpy(vartbl[varcnt].name, name, MAXVARLEN);
+    int var_idx = variables_free_idx;
+    strncpy(vartbl[var_idx].name, name, MAXVARLEN);
+    vartbl[var_idx].type = T_INT;  // Placeholder.
+    vartbl[var_idx].level = level;
     char *mptr = size == 0 ? NULL : GetMemory(size);
-    vartbl[varcnt].val.s = mptr;
-    return varcnt++;
+    vartbl[var_idx].val.s = mptr;
+
+    // Increment because next time this is called there is no point in
+    // looking in a slot we have just used.
+    variables_free_idx++;
+
+    // If we've used a new slot then we increment 'varcnt'.
+    if (variables_free_idx > varcnt) varcnt++;
+
+    return var_idx;
 }
 
 void variables_delete(int var_idx) {
@@ -62,10 +87,24 @@ void variables_delete(int var_idx) {
 
     // TODO: according to the MMBasic for DOS code FreeMemory() will ignore
     //       invalid addresses, I suspect this is bollocks and this code
-    //       will do bad things if called for scalar variables.
+    //       can do bad things if called for scalar variables.
     FreeMemory(vartbl[var_idx].val.s);
     memset(vartbl + var_idx, 0x0, sizeof(struct s_vartbl));
     if (var_idx == varcnt - 1) varcnt--;
+    if (var_idx < variables_free_idx) variables_free_idx = var_idx;
+}
+
+void variables_delete_all(uint8_t level) {
+    assert(level >= 0);
+
+    // We traverse the table in reverse so that 'varcnt' will be decremented
+    // as much as possible.
+    const int original_count = varcnt;
+    for (int ii = original_count - 1; ii >= 0; --ii) {
+        if (vartbl[ii].level >= level) {
+            variables_delete(ii);
+        }
+    }
 }
 
 int variables_find(const char *name) {
