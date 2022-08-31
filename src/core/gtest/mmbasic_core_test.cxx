@@ -73,6 +73,7 @@ class MmBasicCoreTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
+        InitBasic();
         ClearRuntime();
         error_msg[0] = '\0';
         m_program[0] = '\0';
@@ -738,16 +739,27 @@ TEST_F(MmBasicCoreTest, FindVar_GivenDimArrayWithDimensionEqualToOptionBase) {
     EXPECT_STREQ("Dimensions", error_msg);
 }
 
+extern "C" void op_subtract();
+
 TEST_F(MmBasicCoreTest, FindVar_GivenFindWithDimensionLessThanOptionBase) {
     error_msg[0] = '\0';
     sprintf(m_program, "foo(2,5) = ...");
     (void) findvar(m_program, V_DIM_VAR);
 
+    // We can't just put a literal negative value for one of the bounds,
+    // we need to insert the token for the subtract operator.
+    char SUBTRACT_TOKEN = 0;
+    for (int ii = 0; tokentbl[ii].fptr; ++ii) {
+        if (tokentbl[ii].fptr == op_subtract) {
+            SUBTRACT_TOKEN = ii + C_BASETOKEN;
+        }
+    }
+
     error_msg[0] = '\0';
     mmb_options.base = 0;
-    sprintf(m_program, "foo(1,-1) = ...");
+    sprintf(m_program, "foo(1,%c1) = ...", SUBTRACT_TOKEN);
     (void) findvar(m_program, V_FIND);
-    EXPECT_STREQ("Expression syntax", error_msg);
+    EXPECT_STREQ("Dimensions", error_msg);
 
     error_msg[0] = '\0';
     mmb_options.base = 1;
@@ -886,15 +898,17 @@ TEST_F(MmBasicCoreTest, FindVar_GivenFindEmptyArray_GivenDeclaredScalar) {
 }
 
 TEST_F(MmBasicCoreTest, FindVar_GivenTooManyDeclarations) {
-    int ii = 0;
-    while (!*error_msg) {
+    int ii;
+    for (ii = 1; ; ++ii) {
         error_msg[0] = '\0';
         sprintf(m_program, "var_%d", ii);
         (void) findvar(m_program, V_DIM_VAR);
-        ++ii;
+        if (*error_msg) break;
     }
+
+    // The 1025'th request should fail.
     EXPECT_STREQ("Not enough memory", error_msg);
-    EXPECT_EQ(1024, ii);
+    EXPECT_EQ(1025, ii);
 }
 
 extern "C" {

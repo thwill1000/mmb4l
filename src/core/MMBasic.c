@@ -50,6 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MMBasic_Includes.h"
 #include "FunTable.h"
 #include "mmbasic_core_xtra.h"
+#include "../common/variables.h"
+
+#include <assert.h>
 
 extern int ListCnt;
 extern int MMCharPos;
@@ -1641,10 +1644,10 @@ routines for storing and manipulating variables
 //      for T_STR a block of memory of MAXSTRLEN size (or size determined by the LENGTH keyword) will be malloc'ed and the pointer stored in the variable slot.
 void *findvar(const char *p, int action) {
     char name[MAXVARLEN + 1];
-    int i, j, size, ifree, nbr, vtype, vindex, namelen, tmp;
+    int i, j, ifree, nbr, vtype, vindex, namelen, tmp;
     char *s, *x;
     void *mptr;
-    int dim[MAXDIM];
+    DIMTYPE dim[MAXDIM];
     int dnbr;  // Number of dimensions
                // -1 : empty array used in fun/sub calls
                //  0 : scalar.
@@ -1920,117 +1923,74 @@ void *findvar(const char *p, int action) {
         }
     }
 
-    // set a default string size
-    size = MAXSTRLEN;
+    // If we are declaring a new array then the bound of the irst dimension must
+    // be greater than OPTION BASE. This isn't caught inside variables_add()
+    // because it uses a value of dim[0] == 0 to mean a scalar variable.
+    if (dnbr > 0 && dim[0] <= mmb_options.base) {
+        error("Dimensions");
+        return NULL;
+    }
 
-    // if it is an array we must be dimensioning it
-    // if it is a string array we skip over the dimension values and look for the LENGTH keyword
-    // and if found find the string size and change the vartbl entry
-      if(action & V_DIM_VAR) {
-          if(vtype & T_STR) {
+    // If it is an array we must be dimensioning it.
+    // If it is a string array we skip over the dimension values and look for
+    // the LENGTH keyword and if found set 'slen'.
+    uint8_t slen = MAXSTRLEN;
+    if (action & V_DIM_VAR) {
+        if (vtype & T_STR) {
             i = 0;
-            if(*p == '(') {
+            if (*p == '(') {
                 do {
-                    if(*p == '(') i++;
-                    if(tokentype(*p) & T_FUN) i++;
-                    if(*p == ')') i--;
+                    if (*p == '(') i++;
+                    if (tokentype(*p) & T_FUN) i++;
+                    if (*p == ')') i--;
                     p++;
                 } while(i);
             }
             skipspace(p);
             const char *p2;
-            if ((p2 = checkstring(p, "LENGTH")) != NULL)
-                size = getint(p2, 1, MAXSTRLEN) ;
-            else
-                if(!(*p == ',' || *p == 0 || tokenfunction(*p) == op_equal || tokenfunction(*p) == op_invalid)) {
+            if ((p2 = checkstring(p, "LENGTH")) != NULL) {
+                slen = getint(p2, 1, MAXSTRLEN);
+                if (slen == 0) return NULL;
+            } else {
+                if (!(*p == ',' || *p == 0 || tokenfunction(*p) == op_equal || tokenfunction(*p) == op_invalid)) {
                     error("Unexpected text: $", p);
                     return NULL;
                 }
+            }
         }
     }
 
-
-    // at this point we need to create the variable
-    // as a result of the previous search ifree is the index to the entry that we should use
-
-    // if we are adding to the top, increment the number of vars and inform the memory manager
-    if(ifree == varcnt) {
-        varcnt++;
-        m_alloc(M_VAR, varcnt * sizeof(struct s_vartbl));
-    }
-    VarIndex = vindex = ifree;
-
-    // initialise it: save the name, set the initial value to zero and set the type
-    s = name;  x = vartbl[ifree].name; j = namelen;
-    while(j--) *x++ = *s++;
-    if(namelen < MAXVARLEN) *x = 0;
-    vartbl[ifree].type = vtype | (action & (T_IMPLIED | T_CONST));
-    if(action & V_LOCAL)
-        vartbl[ifree].level = LocalIndex;
-    else
-        vartbl[ifree].level = 0;
-
-    for(j = 0; j < MAXDIM; j++) vartbl[ifree].dims[j] = 0;
-
-    // the easy request is for is a non array numeric variable, so just initialise to
-    // zero and return the pointer
-    if(dnbr == 0) {
-        if(vtype & T_NBR) {
-            vartbl[ifree].val.f = 0;
-            return &(vartbl[ifree].val.f);
-        } else if(vtype & T_INT) {
-            vartbl[ifree].val.i = 0;
-            return &(vartbl[ifree].val.i);
-        }
-    }
-
-    // if this is a definition of an empty array (only used in the parameter list for a sub/function)
-    if(dnbr == -1) {
-        vartbl[vindex].dims[0] = -1;                                // let the caller know that this is an empty array and needs more work
-        return vartbl[vindex].val.s;                                // just return a pointer to the data element as it will be replaced in the sub/fun with a pointer
-    }
-
-    // if this is an array copy the array dimensions and calculate the overall size
-    // for a non array string this will leave nbr = 1 which is just what we want
-    for(nbr = 1, i = 0; i < dnbr; i++) {
-        if(dim[i] <= OptionBase) {
+    variables_free_idx = ifree;
+    VarIndex = ifree;
+    if (dnbr == -1) dim[0] = -1;  // "empty" array for fun/sub parameters.
+    int var_idx = variables_add(
+            name,
+            vtype | (action & (T_IMPLIED | T_CONST)),
+            (action & V_LOCAL) ? LocalIndex : 0,
+            dnbr == 0 ? NULL : dim,
+            (vtype & T_STR) ? slen : 0);
+    switch (var_idx) {
+        case -2: {
             error("Dimensions");
             return NULL;
         }
-        vartbl[vindex].dims[i] = dim[i];
-        nbr *= (dim[i] + 1 - OptionBase);
+
+        case -1: {
+            error("Not enough memory");  // TODO: "Too many variables".
+            return NULL;
+        }
+
+        default: {
+            if (vartbl[var_idx].dims[0] == 0) {
+                if (vartbl[var_idx].type & T_INT) {
+                    return &(vartbl[var_idx].val.i);
+                } else if (vartbl[var_idx].type & T_NBR) {
+                    return &(vartbl[var_idx].val.f);
+                }
+            }
+            return vartbl[var_idx].val.s;
+        }
     }
-
-    // we now have a string, an array of strings or an array of numbers
-    // all need some memory to be allocated (note: GetMemory() zeros the memory)
-
-    // First, set the important characteristics of the variable to indicate that the
-    // variable is not allocated.  Thus, if GetMemory() fails with "not enough memory",
-    // the variable will remain not allocated
-    vartbl[ifree].val.s = NULL;
-    vartbl[ifree].type = T_NOTYPE;
-    i = *vartbl[ifree].name; *vartbl[ifree].name = 0;
-    j = vartbl[ifree].dims[0]; vartbl[ifree].dims[0] = 0;
-
-
-    // Now, grab the memory
-    if(vtype & T_NBR)
-        mptr = GetMemory(nbr * sizeof(MMFLOAT));
-    else
-        if(vtype & T_INT)
-            mptr = GetMemory(nbr * sizeof(MMINTEGER));
-        else
-            mptr = GetMemory(nbr * (size + 1));
-
-    // If we reached here the memory request was successful, so restore the details of
-    // the variable that were saved previously and set the variables pointer to the
-    // allocated memory
-    vartbl[ifree].type = vtype | (action & (T_IMPLIED | T_CONST));
-    *vartbl[ifree].name = i;
-    vartbl[ifree].dims[0] = j;
-    vartbl[ifree].size = size;
-    vartbl[ifree].val.s = mptr;
-    return mptr;
 }
 
 

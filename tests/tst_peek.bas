@@ -288,8 +288,7 @@ Sub check_header(header%())
   For i% = 34 To 49 ' 8 x 2 byte array dimensions
     assert_hex_equals(0,      Peek(Byte addr% + i%))
   Next
-  Local expected_size% = Choice(Mm.Device$ = "MMB4L", 255, 0)
-  assert_hex_equals(expected_size%, Peek(Byte addr% + 50)) ' string size
+  assert_hex_equals(0, Peek(Byte addr% + 50)) ' string size
   For i% = 51 To 55 ' 5 bytes of padding
     assert_hex_equals(0,      Peek(Byte addr% + i%))
   Next

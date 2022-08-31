@@ -99,7 +99,7 @@ int variables_add(
     // this may report an out-of-memory error in which case we do not
     // want to have left a half constructed variable in the table.
     size_t heap_sz = 0;
-    if (dims && dims[0] != 0) {
+    if (dims) {
         if (dims[0] != -1) {
             if (type & T_INT) {
                 heap_sz = sizeof(MMINTEGER);
