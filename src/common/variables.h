@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_VARIABLES_H)
 #define MMB4L_VARIABLES_H
 
+#include "../core/VarTable.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -77,14 +79,28 @@ void variables_init();
  *   2. This function makes no effort to detect and report duplicate
  *      or invalid variable names/levels.
  *
- * @param  name  Name for the variable. This is case-sensitive, but
- *               MMB4L should always call it with an UPPER-CASE name.
- * @param  size  Number of bytes of heap memory that should be allocated
- *               for this variable. If == 0 then no heap memory is allocated.
- * @return       Index of the new variable, or
- *               -1 if we would exceed the maximum number of variables.
+ * @param  name   Name for the variable. This is case-sensitive, but
+ *                MMB4L should always call it with an UPPER-CASE name.
+ *                Only the first 32 characters are used.
+ * @param  type   Type of variable, a logical OR of one or more of:
+ *                T_NBR, T_STR, T_INT, T_PTR, T_IMPLIED and T_CONST.
+ * @param  level  Subroutine depth for a local variable,
+ *                or 0 for a global variable.
+ * @param  dims   Upper bounds for up to 8 dimensions. If dims[0] == 0
+ *                then it is a scalar variable.
+ * @param  slen   Maximum length for a string variable, only really relevant
+ *                for arrays since scalar strings always require at least
+ *                255 + 1 bytes of heap storage.
+ * @return        Index of the new variable, or
+ *                -1 if we would exceed the maximum number of variables.
+ *                -2 if an array dimension is invalid.
  */
-int variables_add(const char *name, uint8_t level, size_t size);
+int variables_add(
+        const char *name,
+        uint8_t type,
+        uint8_t level,
+        DIMTYPE* dims,
+        uint8_t slen);
 
 /**
  * @brief  Deletes a variable from the variable table.

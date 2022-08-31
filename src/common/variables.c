@@ -54,23 +54,90 @@ int variables_free_idx = 0;
 void variables_init() {
     varcnt = 0;
     variables_free_idx = 0;
+    memset(vartbl, 0, MAXVARS * sizeof(struct s_vartbl));
 }
 
-int variables_add(const char *name, uint8_t level, size_t size) {
+int variables_add(
+        const char *name,
+        uint8_t type,
+        uint8_t level,
+        DIMTYPE* dims,
+        uint8_t slen) {
+
+    assert((type & T_STR) || (slen == 0));
+    assert(!(type & T_STR) || (slen > 0));
+
+    // The T_PTR flag is expected to be only set after a variable has
+    // already been added to the table.
+    assert(!(type & T_PTR));
+
     // Find a free slot.
     while (variables_free_idx < varcnt
-            && vartbl[variables_free_idx].type != T_NOTYPE) variables_free_idx++;
+            && vartbl[variables_free_idx].type != T_NOTYPE) {
+        variables_free_idx++;
+    }
 
     if (variables_free_idx == MAXVARS) return -1;
 
+    // In theory verify sufficient variable memory is available and/or allocate
+    // more. However in practice MMB4L uses a fixed sized variable table so this
+    // is unnecessary.
+#if 0
+    if (variables_free_idx == varcnt) {
+        m_alloc(M_VAR, (varcnt + 1) * sizeof(struct s_vartbl));
+    }
+#endif
+
+    int var_idx = variables_free_idx;
+
+    // IMPORTANT! This code assumes that the slot in the variable table has
+    //            already been zeroed out either during the initialisation
+    //            of the table or when the variable previously occupying the
+    //            slot was deleted.
+
+    // First try to allocate any heap memory required by the variable;
+    // this may report an out-of-memory error in which case we do not
+    // want to have left a half constructed variable in the table.
+    size_t heap_sz = 0;
+    if (dims && dims[0] != 0) {
+        if (dims[0] != -1) {
+            if (type & T_INT) {
+                heap_sz = sizeof(MMINTEGER);
+            } else if (type & T_NBR) {
+                heap_sz = sizeof(MMFLOAT);
+            } else if (type & T_STR) {
+                heap_sz = (slen + 1);
+            }
+
+            for (int ii = 0; ii < MAXDIM && dims[ii] != 0; ++ii) {
+                if (dims[ii] <= mmb_options.base) return -2;
+                heap_sz *= (dims[ii] + 1 - mmb_options.base);
+            }
+        } else {
+            // "Empty" array used for fun/sub parameter lists.
+            // Don't allocate any heap memory.
+        }
+    } else if (type & T_STR) {
+        heap_sz = slen + 1;
+    }
+    // Memory allocated by GetMemory will have been zeroed out.
+    // TODO: At the moment GetMemory() will do a longjmp if there is an error,
+    //       it would be better if it returned an error code which we could
+    //       handle later.
+    vartbl[var_idx].val.s = heap_sz == 0 ? NULL : GetMemory(heap_sz);
+
     // Copy a maximum of MAXVARLEN characters,
     // a maximum length stored name will not be '\0' terminated.
-    int var_idx = variables_free_idx;
     strncpy(vartbl[var_idx].name, name, MAXVARLEN);
-    vartbl[var_idx].type = T_INT;  // Placeholder.
+
+    vartbl[var_idx].type = type;
     vartbl[var_idx].level = level;
-    char *mptr = size == 0 ? NULL : GetMemory(size);
-    vartbl[var_idx].val.s = mptr;
+    vartbl[var_idx].size = slen;
+
+    // Copy dimension data.
+    if (dims) {
+        memcpy(vartbl[var_idx].dims, dims, MAXDIM * sizeof(DIMTYPE));
+    }
 
     // Increment because next time this is called there is no point in
     // looking in a slot we have just used.

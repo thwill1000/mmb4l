@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdint.h>
+
 #define MIPS16                                      // don't use mips16 attribute on functions
 
 #define MMFLOAT double                              // precision of all floating point operations
