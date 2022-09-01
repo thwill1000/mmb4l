@@ -48,7 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Configuration.h"
 
 // TODO: change to int16_t
-#define DIMTYPE  short int
+#define DIMTYPE       short int
+#define DIMTYPE_MAX   SHRT_MAX
 
 struct s_vartbl {                                     // structure of the variable table
     char name[MAXVARLEN];                             // variable's name

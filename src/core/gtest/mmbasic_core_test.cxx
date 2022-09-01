@@ -911,6 +911,13 @@ TEST_F(MmBasicCoreTest, FindVar_GivenTooManyDeclarations) {
     EXPECT_EQ(1025, ii);
 }
 
+TEST_F(MmBasicCoreTest, FindVar_GivenArrayDimensionTooLarge) {
+    sprintf(m_program, "my_array%%(32768)");
+    (void) findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("Array bound exceeds maximum: %", error_msg);
+}
+
 extern "C" {
 
 void cmd_autosave() { }

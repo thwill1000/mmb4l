@@ -1741,6 +1741,10 @@ void *findvar(const char *p, int action) {
                 evaluate(argv[i], &f, &in, &s, &targ, false);       // get the value and type of the argument
                 if(targ == T_STR) dnbr = MAXDIM;                    // force an error to be thrown later (with the correct message)
                 if(targ == T_NBR) in = FloatToInt32(f);
+                if (in > DIMTYPE_MAX) {
+                    error("Array bound exceeds maximum: %", DIMTYPE_MAX);
+                    return NULL;
+                }
                 dim[i/2] = in;
                 if(dim[i/2] < OptionBase) {
                     error("Dimensions");
