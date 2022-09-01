@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_VARIABLES_H)
 #define MMB4L_VARIABLES_H
 
+#include "mmresult.h"
 #include "../core/VarTable.h"
 
 #include <stddef.h>
@@ -122,11 +123,24 @@ void variables_delete_all(uint8_t level);
 /**
  * @brief  Finds a variable by name in the variables table.
  *
- * @param  name  Name of the variable to find. This is case-sensitive, but
- *               MMB4L should always call it with an UPPER-CASE name.
- * @return       Index of the named variable in the variables table,
- *               or -1 if not found.
+ * @param  name   Name of the variable to find. This is case-sensitive, but
+ *                MMB4L should always call it with an UPPER-CASE name.
+ * @param  level  Subroutine depth to find a local variable,
+ *                or 0 to find a global variable.
+ * @param[out]  var_idx
+ *                On exit the index of the matching variable,
+ *                or -1 if not found.
+ * @param[out]  global_idx
+ *                If non-NULL then on exit the index of a global
+ *                variable with the same name, or -1 if not found.
+ * @return        kOk if the variable was found at the given level.
+ *                kVariableNotFound if the variable was not found at the
+ *                given level. However if a local variable (level > 0) is
+ *                not found but there is a corresponding global variable
+ *                then \p global_idx will be set to the index of the
+ *                global variable.
  */
-int variables_find(const char *name);
+MmResult variables_find(
+        const char *name, uint8_t level, int *var_idx, int *global_idx);
 
 #endif // #if !defined(MMB4L_VARIABLES_H)

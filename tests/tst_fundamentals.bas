@@ -61,7 +61,7 @@ Sub test_erase()
 
   On Error Skip 1
   Erase snafu!
-  assert_raw_error("Cannot find SNAFU")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Cannot find global variable SNAFU", "Cannot find SNAFU"))
 
   On Error Skip 1
   Erase *invalid
@@ -69,7 +69,7 @@ Sub test_erase()
 
   On Error Skip 1
   Erase _32_chars_long_67890123456789012%
-  assert_raw_error("Cannot find _32_CHARS_LONG_67890123456789012")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Cannot find global variable _32_CHARS_LONG_67890123456789012", "Cannot find _32_CHARS_LONG_67890123456789012"))
 
   On Error Skip 1
   Erase _33_chars_long_678901234567890123%

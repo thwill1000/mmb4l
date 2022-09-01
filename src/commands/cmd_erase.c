@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/utility.h"
 #include "../common/variables.h"
 
+/** This command can only erase global variables. */
 void cmd_erase(void) {
     getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");
     if ((argc & 0x01) == 0) ERROR_ARGUMENT_COUNT;
@@ -54,13 +55,24 @@ void cmd_erase(void) {
     const char *p;
     char name[MAXVARLEN + 1];
     MmResult result = kOk;
+    int var_idx;
+    int global_idx;
 
     for (int ii = 0; ii < argc; ii += 2) {
         p = argv[ii];
         result = parse_name(&p, name);
         if (FAILED(result)) error_throw(result);
-        int var_idx = variables_find(name);
-        if (var_idx == -1) error_throw_ex(kError, "Cannot find $", name);
-        variables_delete(var_idx);
+        result = variables_find(name, GLOBAL_VAR, &var_idx, NULL);
+        switch (result) {
+            case kOk:
+                variables_delete(var_idx);
+                break;
+            case kVariableNotFound:
+                error_throw_ex(result, "Cannot find global variable $", name);
+                break;
+            default:
+                error_throw(result);
+                break;
+        }
     }
 }

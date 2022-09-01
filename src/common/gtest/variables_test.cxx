@@ -582,24 +582,248 @@ TEST_F(VariablesTest, DeleteAll) {
 }
 
 TEST_F(VariablesTest, Find) {
+    int var_idx;
+    int global_idx;
+
+    variables_add("global_1", T_INT, GLOBAL_VAR, NULL, 0);
+    variables_add("local_1", T_INT, 1, NULL, 0);
+    variables_add("local_2", T_INT, 2, NULL, 0);
+
+    // Find "global_1".
+    EXPECT_EQ(
+            kOk,
+            variables_find("global_1", GLOBAL_VAR, &var_idx, &global_idx));
+    EXPECT_EQ(0, var_idx);
+    EXPECT_EQ(0, global_idx);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("global_1", 1, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(0, global_idx);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("global_1", 2, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(0, global_idx);
+
+    // Find "local_1".
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("local_1", GLOBAL_VAR, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(-1, global_idx);
+
+    EXPECT_EQ(
+            kOk,
+            variables_find("local_1", 1, &var_idx, &global_idx));
+    EXPECT_EQ(1, var_idx);
+    EXPECT_EQ(-1, global_idx);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("local_1", 2, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(-1, global_idx);
+
+    // Find "local_2".
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("local_2", GLOBAL_VAR, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(-1, global_idx);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("local_2", 1, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(-1, global_idx);
+
+    EXPECT_EQ(
+            kOk,
+            variables_find("local_2", 2, &var_idx, &global_idx));
+    EXPECT_EQ(2, var_idx);
+    EXPECT_EQ(-1, global_idx);
+}
+
+TEST_F(VariablesTest, Find_GivenMultipleVariablesWithSameName) {
+    int var_idx;
+    int global_idx;
+
     variables_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
-    variables_add("bar", T_INT, GLOBAL_VAR, NULL, 0);
-    variables_add("FOO", T_INT, GLOBAL_VAR, NULL, 0);
+    variables_add("foo", T_INT, 1, NULL, 0);
+    variables_add("foo", T_INT, 2, NULL, 0);
+
+    EXPECT_EQ(
+            kOk,
+            variables_find("foo", GLOBAL_VAR, &var_idx, &global_idx));
+    EXPECT_EQ(0, var_idx);
+    EXPECT_EQ(0, global_idx);
+
+    EXPECT_EQ(
+            kOk,
+            variables_find("foo", 1, &var_idx, &global_idx));
+    EXPECT_EQ(1, var_idx);
+    EXPECT_EQ(0, global_idx); // But may be -1 depending on traversal order.
+
+    EXPECT_EQ(
+            kOk,
+            variables_find("foo", 2, &var_idx, &global_idx));
+    EXPECT_EQ(2, var_idx);
+    EXPECT_EQ(0, global_idx); // But may be -1 depending on traversal order.
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("foo", 3, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(0, global_idx);
+}
+
+TEST_F(VariablesTest, Find_GivenNameTooLong) {
+    int var_idx;
+    int global_idx;
+
+    variables_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
     variables_add(
             "_32_chars_long_67890123456789012", T_INT, GLOBAL_VAR, NULL, 0);
-    variables_add("", T_INT, GLOBAL_VAR, NULL, 0);
-
-    EXPECT_EQ(0, variables_find("foo"));
-    EXPECT_EQ(1, variables_find("bar"));
-    EXPECT_EQ(-1, variables_find("wombat"));
-
-    // Case-sensitive, but during real execution all names are UPPER-CASE.
-    EXPECT_EQ(2, variables_find("FOO"));
 
     // Only the first 32-chars are checked.
-    EXPECT_EQ(3, variables_find("_32_chars_long_67890123456789012"));
-    EXPECT_EQ(3, variables_find("_32_chars_long_67890123456789012x"));
+    EXPECT_EQ(
+            kOk,
+            variables_find(
+                    "_32_chars_long_67890123456789012xxxx",
+                    GLOBAL_VAR,
+                    &var_idx,
+                    &global_idx));
+    EXPECT_EQ(1, var_idx);
+    EXPECT_EQ(1, global_idx);
 
-    // During real execution we don't expect empty variable names.
-    EXPECT_EQ(4, variables_find(""));
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find(
+                    "_32_chars_long_67890123456789012xxxx",
+                    1,
+                    &var_idx,
+                    &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(1, global_idx);
+}
+
+TEST_F(VariablesTest, Find_GivenEmptyName) {
+    int var_idx;
+    int global_idx;
+
+    variables_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
+    variables_add("bar", T_INT, GLOBAL_VAR, NULL, 0);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("", GLOBAL_VAR, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(-1, global_idx);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("", 1, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(-1, global_idx);
+
+    // Possible in tests, but does not happen in real operation.
+    variables_add("", T_INT, GLOBAL_VAR, NULL, 0);
+
+    EXPECT_EQ(
+            kOk,
+            variables_find("", GLOBAL_VAR, &var_idx, &global_idx));
+    EXPECT_EQ(2, var_idx);
+    EXPECT_EQ(2, global_idx);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("", 1, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(2, global_idx);
+}
+
+TEST_F(VariablesTest, Find_GivenVariableNotPresent) {
+    int var_idx;
+    int global_idx;
+
+    variables_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
+    variables_add("bar", T_INT, GLOBAL_VAR, NULL, 0);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("wombat", GLOBAL_VAR, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(-1, global_idx);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("wombat", 1, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(-1, global_idx);
+}
+
+TEST_F(VariablesTest, Find_GivenDifferentCaseName) {
+    int var_idx;
+    int global_idx;
+
+    // Note that whilst we can test this, in real operation variable
+    // names are always capitalised before calling variables_add() or
+    // variables_find().
+
+    variables_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
+    variables_add("bar", T_INT, GLOBAL_VAR, NULL, 0);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("FOO", GLOBAL_VAR, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(-1, global_idx);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("BAR", GLOBAL_VAR, &var_idx, &global_idx));
+    EXPECT_EQ(-1, var_idx);
+    EXPECT_EQ(-1, global_idx);
+}
+
+TEST_F(VariablesTest, Find_GivenNullGlobalIdxParameter) {
+    int var_idx;
+
+    variables_add("global_1", T_INT, GLOBAL_VAR, NULL, 0);
+    variables_add("local_1", T_INT, 1, NULL, 0);
+
+    // Find "global_1".
+    EXPECT_EQ(
+            kOk,
+            variables_find("global_1", GLOBAL_VAR, &var_idx, NULL));
+    EXPECT_EQ(0, var_idx);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("global_1", 1, &var_idx, NULL));
+    EXPECT_EQ(-1, var_idx);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("global_1", 2, &var_idx, NULL));
+    EXPECT_EQ(-1, var_idx);
+
+    // Find "local_1".
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("local_1", GLOBAL_VAR, &var_idx, NULL));
+    EXPECT_EQ(-1, var_idx);
+
+    EXPECT_EQ(
+            kOk,
+            variables_find("local_1", 1, &var_idx, NULL));
+    EXPECT_EQ(1, var_idx);
+
+    EXPECT_EQ(
+            kVariableNotFound,
+            variables_find("local_1", 2, &var_idx, NULL));
+    EXPECT_EQ(-1, var_idx);
 }

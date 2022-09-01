@@ -76,7 +76,8 @@ typedef enum {
     kUnknownSystemCommand,
     kNotPersistent,
     kNameTooLong,
-    kUnimplemented
+    kUnimplemented,
+    kVariableNotFound
 } MmResultCode;
 
 /**

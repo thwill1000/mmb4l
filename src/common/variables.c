@@ -174,10 +174,32 @@ void variables_delete_all(uint8_t level) {
     }
 }
 
-int variables_find(const char *name) {
+MmResult variables_find(
+        const char *name, uint8_t level, int *var_idx, int *global_idx) {
+    *var_idx = -1;
+    int tmp;  // So we don't have to keep checking if global_idx is NULL or not.
+    if (!global_idx) global_idx = &tmp;
+    *global_idx = -1;
     for (int ii = 0; ii < varcnt; ++ii) {
         // Only compares first MAXVARLEN characters.
-        if (strncmp(name, vartbl[ii].name, MAXVARLEN) == 0) return ii;
+        if (strncmp(name, vartbl[ii].name, MAXVARLEN) == 0) {
+            if (vartbl[ii].level == 0) {
+                // Found a global.
+                if (level == 0) {
+                    // Looking for a global, we're done.
+                    *var_idx = ii;
+                    *global_idx = ii;
+                    return kOk;
+                } else {
+                    // Looking for a local, store but keep looking.
+                    *global_idx = ii;
+                }
+            } else if (vartbl[ii].level == level) {
+                // Found the local we are looking for, we're done.
+                *var_idx = ii;
+                return kOk;
+            }
+        }
     }
-    return -1;
+    return kVariableNotFound;
 }
