@@ -152,10 +152,11 @@ int variables_add(
 void variables_delete(int var_idx) {
     if (var_idx >= varcnt) return;
 
-    // TODO: according to the MMBasic for DOS code FreeMemory() will ignore
-    //       invalid addresses, I suspect this is bollocks and this code
-    //       can do bad things if called for scalar variables.
-    FreeMemory(vartbl[var_idx].val.s);
+    // FreeMemory associated with string and array variables unless they are pointers.
+    if (((vartbl[var_idx].type & T_STR) || vartbl[var_idx].dims[0] != 0)
+            && !(vartbl[var_idx].type & T_PTR)) {
+        FreeMemory(vartbl[var_idx].val.s); // Free any memory (if allocated).
+    }
     memset(vartbl + var_idx, 0x0, sizeof(struct s_vartbl));
     if (var_idx == varcnt - 1) varcnt--;
     if (var_idx < variables_free_idx) variables_free_idx = var_idx;

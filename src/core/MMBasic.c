@@ -2400,46 +2400,34 @@ Various routines to clear memory or the interpreter's state
 // if level is not zero it will only delete local variables at that level or greater
 // if level is zero to will delete all variables and reset global settings
 void MIPS16 ClearVars(int level) {
-    int i;
 
-    // first step through the variable table and delete local variables at that level or greater
-    for(i = 0; i < varcnt; i++) {
-        if(level == 0 || vartbl[i].level >= level) {                // if this is for deletion
-            if(((vartbl[i].type & T_STR) || vartbl[i].dims[0] != 0) && !(vartbl[i].type & T_PTR)) {
-                FreeMemory(vartbl[i].val.s);                        // free any memory (if allocated)
-            }
-          vartbl[i].type = T_NOTYPE;                                // empty slot
-          *vartbl[i].name = 0;                                      // safety precaution
-          vartbl[i].dims[0] = 0;                                    // and again
-          vartbl[i].level = 0;
-          if(i == varcnt - 1) { /* i--; */ varcnt--; }
-        }
-    }
+    variables_delete_all(level);
 
-    // then step through the for...next table and remove any loops at the level or greater
-    for(i = 0; i < forindex; i++) {
+    // Step through the for...next table and remove any loops at the level or greater
+    for (int i = 0; i < forindex; i++) {
         if(forstack[i].level >= level) {
             forindex = i;
             break;
         }
     }
 
-    // also step through the do...loop table and remove any loops at the level or greater
-    for(i = 0; i < doindex; i++) {
+    // Step through the do...loop table and remove any loops at the level or greater
+    for (int i = 0; i < doindex; i++) {
         if(dostack[i].level >= level) {
             doindex = i;
             break;
         }
     }
 
-    if(level != 0) return;
+    if (level != 0) return;
 
-    forindex = doindex = 0;
+    assert(varcnt == 0);
+
+    forindex = 0;
+    doindex = 0;
     LocalIndex = 0;                                                 // signal that all space is to be cleared
     ClearTempMemory();                                              // clear temp string space
 
-    // we can now delete all variables by zeroing the counters
-    varcnt = 0;
     OptionBase = 0;
     DimUsed = false;
 }

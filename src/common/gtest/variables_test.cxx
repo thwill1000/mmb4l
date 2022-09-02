@@ -466,29 +466,117 @@ TEST_F(VariablesTest, Add_GivenEmptyArray) {
     EXPECT_EQ(0, memory_count);
 }
 
-TEST_F(VariablesTest, Delete) {
+TEST_F(VariablesTest, Delete_GivenScalarInt) {
+    (void) variables_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
+    memory[0] = 999;
+
+    variables_delete(0);
+
+    EXPECT_EQ(0, varcnt);
+    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl, sizeof(struct s_vartbl)));
+    EXPECT_EQ(999, memory[0]); // i.e. unchanged by calling variables_delete().
+}
+
+TEST_F(VariablesTest, Delete_GivenScalarFloat) {
+    (void) variables_add("foo", T_NBR, GLOBAL_VAR, NULL, 0);
+    memory[0] = 999;
+
+    variables_delete(0);
+
+    EXPECT_EQ(0, varcnt);
+    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl, sizeof(struct s_vartbl)));
+    EXPECT_EQ(999, memory[0]); // i.e. unchanged by calling variables_delete().
+}
+
+TEST_F(VariablesTest, Delete_GivenScalarString) {
+    (void) variables_add("foo", T_STR, GLOBAL_VAR, NULL, 255);
+    EXPECT_EQ(256, memory[0]);
+
+    variables_delete(0);
+
+    EXPECT_EQ(0, varcnt);
+    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl, sizeof(struct s_vartbl)));
+    EXPECT_EQ(0, memory[0]);
+}
+
+TEST_F(VariablesTest, Delete_GivenIntArray) {
+    DIMTYPE dims[MAXDIM] = { 2, 3, 4, 0, 0, 0, 0, 0 };
+    (void) variables_add("foo", T_INT, GLOBAL_VAR, dims, 0);
+    EXPECT_EQ(3 * 4 * 5 * sizeof(MMINTEGER), memory[0]);
+
+    variables_delete(0);
+
+    EXPECT_EQ(0, varcnt);
+    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl, sizeof(struct s_vartbl)));
+    EXPECT_EQ(0, memory[0]);
+}
+
+TEST_F(VariablesTest, Delete_GivenFloatArray) {
+    DIMTYPE dims[MAXDIM] = { 2, 3, 4, 0, 0, 0, 0, 0 };
+    (void) variables_add("foo", T_NBR, GLOBAL_VAR, dims, 0);
+    EXPECT_EQ(3 * 4 * 5 * sizeof(MMFLOAT), memory[0]);
+
+    variables_delete(0);
+
+    EXPECT_EQ(0, varcnt);
+    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl, sizeof(struct s_vartbl)));
+    EXPECT_EQ(0, memory[0]);
+}
+
+TEST_F(VariablesTest, Delete_GivenStringArray) {
+    DIMTYPE dims[MAXDIM] = { 2, 3, 4, 0, 0, 0, 0, 0 };
+    (void) variables_add("foo", T_STR, GLOBAL_VAR, dims, 255);
+    EXPECT_EQ(3 * 4 * 5 * 256, memory[0]);
+
+    variables_delete(0);
+
+    EXPECT_EQ(0, varcnt);
+    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl, sizeof(struct s_vartbl)));
+    EXPECT_EQ(0, memory[0]);
+}
+
+TEST_F(VariablesTest, Delete_GivenPointerToArray_DoesNotFreeMemory) {
+    DIMTYPE dims[MAXDIM] = { 2, 3, 4, 0, 0, 0, 0, 0 };
+    (void) variables_add("foo", T_INT, GLOBAL_VAR, dims, 0);
+    EXPECT_EQ(3 * 4 * 5 * sizeof(MMINTEGER), memory[0]);
+    vartbl[0].type |= T_PTR;
+
+    variables_delete(0);
+
+    EXPECT_EQ(0, varcnt);
+    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl, sizeof(struct s_vartbl)));
+    EXPECT_EQ(3 * 4 * 5 * sizeof(MMINTEGER), memory[0]);
+}
+
+TEST_F(VariablesTest, Delete_GivenPointerToString) {
+    (void) variables_add("foo", T_STR, GLOBAL_VAR, NULL, 255);
+    EXPECT_EQ(256, memory[0]);
+    vartbl[0].type |= T_PTR;
+
+    variables_delete(0);
+
+    EXPECT_EQ(0, varcnt);
+    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl, sizeof(struct s_vartbl)));
+    EXPECT_EQ(256, memory[0]);
+}
+
+TEST_F(VariablesTest, Delete_OnlyDecrementsVarCntWhenLastVariableDeleted) {
     variables_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
     variables_add("bar", T_INT, GLOBAL_VAR, NULL, 0);
-    variables_add("FOO", T_INT, GLOBAL_VAR, NULL, 0);
-    variables_add(
-            "_32_chars_long_67890123456789012", T_INT, GLOBAL_VAR, NULL, 0);
-    variables_add("", T_INT, GLOBAL_VAR, NULL, 0);
-    variables_add("non_scalar_1", T_INT, GLOBAL_VAR, NULL, 0);
-    variables_add("non_scalar_2", T_INT, GLOBAL_VAR, NULL, 0);
-    EXPECT_EQ(7, varcnt);
+    variables_add("wombat", T_INT, GLOBAL_VAR, NULL, 0);
+    EXPECT_EQ(3, varcnt);
 
-    variables_delete(2);   // "FOO"
-    EXPECT_EQ(7, varcnt);  // Because we didn't delete the last variable.
+    variables_delete(1);   // "bar"
+    EXPECT_EQ(3, varcnt);  // Is not decremented.
+    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl + 1, sizeof(struct s_vartbl)));
+
+    variables_delete(2);   // "wombat"
+    EXPECT_EQ(2, varcnt);  // Decrement because we deleted last variable.
     EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl + 2, sizeof(struct s_vartbl)));
 
-    variables_delete(6);   // "non_scalar_2"
-    EXPECT_EQ(6, varcnt);
-    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl + 6, sizeof(struct s_vartbl)));
-    EXPECT_EQ(0, memory[1]);
-
-    variables_delete(5);   // "non_scalar_1"
-    EXPECT_EQ(5, varcnt);
-    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl + 5, sizeof(struct s_vartbl)));
+    variables_delete(0);   // "foo"
+    EXPECT_EQ(2, varcnt);  // Is not decremented.
+    EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl, sizeof(struct s_vartbl)));
     EXPECT_EQ(0, memory[0]);
 }
 
