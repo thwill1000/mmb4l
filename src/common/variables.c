@@ -49,12 +49,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <stdio.h>
 
+bool variables_init_called = false;
 int variables_free_idx = 0;
+int varcnt = 0;
 
 void variables_init() {
+    assert(!variables_init_called);
     varcnt = 0;
     variables_free_idx = 0;
     memset(vartbl, 0, MAXVARS * sizeof(struct s_vartbl));
+    variables_init_called = true;
 }
 
 int variables_add(
@@ -64,6 +68,9 @@ int variables_add(
         DIMTYPE* dims,
         uint8_t slen) {
 
+    //printf("variables_add(%s, %d, %d, ...)\n", name, type, level);
+
+    assert(variables_init_called);
     assert((type & T_STR) || (slen == 0));
     assert(!(type & T_STR) || (slen > 0));
 
@@ -76,6 +83,8 @@ int variables_add(
             && vartbl[variables_free_idx].type != T_NOTYPE) {
         variables_free_idx++;
     }
+
+    //printf("variables_free_idx = %d\n", variables_free_idx);
 
     if (variables_free_idx == MAXVARS) return -1;
 
@@ -150,7 +159,12 @@ int variables_add(
 }
 
 void variables_delete(int var_idx) {
+
+    assert(variables_init_called);
+
     if (var_idx >= varcnt) return;
+
+    //printf("variables_delete(%d = %s)\n", var_idx, vartbl[var_idx].name);
 
     // FreeMemory associated with string and array variables unless they are pointers.
     if (((vartbl[var_idx].type & T_STR) || vartbl[var_idx].dims[0] != 0)
@@ -163,6 +177,8 @@ void variables_delete(int var_idx) {
 }
 
 void variables_delete_all(uint8_t level) {
+
+    assert(variables_init_called);
     assert(level >= 0);
 
     // We traverse the table in reverse so that 'varcnt' will be decremented
@@ -177,6 +193,11 @@ void variables_delete_all(uint8_t level) {
 
 MmResult variables_find(
         const char *name, uint8_t level, int *var_idx, int *global_idx) {
+
+    assert(variables_init_called);
+
+    //printf("variables_find(%s, %d, ...)\n", name, level);
+
     *var_idx = -1;
     int tmp;  // So we don't have to keep checking if global_idx is NULL or not.
     if (!global_idx) global_idx = &tmp;
@@ -190,6 +211,7 @@ MmResult variables_find(
                     // Looking for a global, we're done.
                     *var_idx = ii;
                     *global_idx = ii;
+                    // if (vartbl[ii].type & T_STR) printf("\"%s\"\n", vartbl[ii].val.s + 1);
                     return kOk;
                 } else {
                     // Looking for a local, store but keep looking.

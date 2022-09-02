@@ -48,10 +48,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 #include "../core/VarTable.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #define  GLOBAL_VAR  0
+
+/**
+ * @brief  Has variables_init() been called ?
+ */
+extern bool variables_init_called;
 
 /**
  * @brief  Index of the lowest index "potentially" free slot in the
@@ -66,6 +72,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * is found.
  */
 extern int variables_free_idx;
+
+/**
+ * @brief  Largest index into the variables table.
+ */
+extern int varcnt;
 
 /**
  * @brief  Initialises variables/structures for the variables table.

@@ -64,7 +64,7 @@ uint32_t mmap[MMAP_SIZE];
 char MMHeap[HEAP_SIZE];
 
 // memory for the variable table
-struct s_vartbl DOS_vartbl[MAXVARS];
+struct s_vartbl vartbl[MAXVARS];
 
 // arrays used to track temporary strings
 char *StrTmp[MAXTEMPSTRINGS];           // used to track temporary string space on the heap
@@ -79,14 +79,6 @@ void *getheap(int size);
 /***********************************************************************************************************************
  Public memory management functions
 ************************************************************************************************************************/
-
-// every time a variable is added this must be called to verify that enough memory is free
-void m_alloc(int type, int size) {
-    if(type == M_VAR) {
-        vartbl = (struct s_vartbl *)DOS_vartbl;
-        if(size >= MAXVARS * sizeof(struct s_vartbl)) ERROR_OUT_OF_MEMORY;
-    }
-}
 
 // get some memory from the heap
 void *GetMemory(size_t msize) {

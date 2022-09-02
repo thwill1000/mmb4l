@@ -106,8 +106,6 @@ const struct s_tokentbl tokentbl[] = {
 int CommandTableSize, TokenTableSize;
 
 struct s_funtbl funtbl[MAXSUBFUN];                                  // this table stores all the subroutines/functions.
-struct s_vartbl *vartbl = NULL;                                     // this table stores all variables
-int varcnt;                                                         // number of variables
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables
 #if !defined(__mmb4l__)
@@ -198,6 +196,7 @@ void MIPS16 InitBasic(void) {
     CommandTableSize =  (sizeof(commandtbl)/sizeof(struct s_tokentbl));
     TokenTableSize =  (sizeof(tokentbl)/sizeof(struct s_tokentbl));
 
+    variables_init();
     ClearProgram();
 
     // load the commonly used tokens
@@ -1644,8 +1643,7 @@ routines for storing and manipulating variables
 //      if it is type T_NBR or T_INT the value is held in the variable slot
 //      for T_STR a block of memory of MAXSTRLEN size (or size determined by the LENGTH keyword) will be malloc'ed and the pointer stored in the variable slot.
 void *findvar(const char *p, int action) {
-    int i, j, ifree, nbr, vtype, vindex, tmp;
-    void *mptr;
+    int i, j, nbr, vtype, vindex, tmp;
     DIMTYPE dim[MAXDIM];
     int dnbr;  // Number of dimensions
                // -1 : empty array used in fun/sub calls
@@ -1656,7 +1654,6 @@ void *findvar(const char *p, int action) {
     vtype = dnbr = 0;
     // first zero the array used for holding the dimension values
     for(i = 0; i < MAXDIM; i++) dim[i] = 0;
-    ifree = varcnt;
 
     char name[MAXVARLEN + 1] = { 0 };
 //    memset(name, '\0', MAXVARLEN + 1);
@@ -1759,36 +1756,23 @@ void *findvar(const char *p, int action) {
     //
     // In either case              ifree         will contain the index of a free slot which can be used if we need to create the variable
 
-    for(tmp = -1, i = 0; i < varcnt; i++) {
-        if(vartbl[i].type == T_NOTYPE)
-            ifree = i;
-        else {
-//            if(*name != *vartbl[i].name) continue;                // preliminary quick check
-//            s = name;  x = vartbl[i].name; j = namelen;
-//            while(j > 0 && *s == *x) {                            // compare each letter
-//                j--; s++; x++;
-//            }
-//            if(j == 0 && (*x == 0 || namelen == MAXVARLEN)) {     // found a matching name
-            unsigned int *ip, *tp;
-            ip=(unsigned int *)name;
-            tp=(unsigned int *)vartbl[i].name;
-            if(*ip++ != *tp++) continue;                            // preliminary quick check on first 4 chars
-            j = namelen-4;
-            while(j > 0 && *ip == *tp) {                            // compare 4 chars at a time
-                j-=4; ip++; tp++;
-            }
-            if(j == 0 && (*(char *)tp == 0 || namelen == MAXVARLEN)) {       // found a matching name
-                if(vartbl[i].level == 0)                            // if it is a global
-                    if(LocalIndex == 0)                             // if we are NOT in a subroutine
-                        break;                                      // exit with the index
-                    else
-                        tmp = i;                                    // otherwise just remember the index
-                else                                                // else we are in a subroutine or function
-                    if(vartbl[i].level == LocalIndex)               // and if the level match
-                        break;                                      // just exit with the index
-            }
-        }
+    int var_idx;
+    int global_idx;
+    result = variables_find(name, LocalIndex, &var_idx, &global_idx);
+    switch (result) {
+        case kOk:
+            i = var_idx;
+            tmp = -1;
+            break;
+        case kVariableNotFound:
+            i = varcnt;
+            tmp = LocalIndex > 0 ? global_idx : -1;
+            break;
+        default:
+            error_throw(result);
+            return NULL;
     }
+    i = var_idx == -1 ? varcnt : var_idx;
 
     if(action & V_LOCAL) {
         // if we declared the variable as LOCAL within a sub/fun and an existing local was found
@@ -1954,15 +1938,14 @@ void *findvar(const char *p, int action) {
         }
     }
 
-    variables_free_idx = ifree;
-    VarIndex = ifree;
     if (dnbr == -1) dim[0] = -1;  // "empty" array for fun/sub parameters.
-    int var_idx = variables_add(
+    var_idx = variables_add(
             name,
             vtype | (action & (T_IMPLIED | T_CONST)),
             (action & V_LOCAL) ? LocalIndex : 0,
             dnbr == 0 ? NULL : dim,
             (vtype & T_STR) ? slen : 0);
+    VarIndex = var_idx;
     switch (var_idx) {
         case -2: {
             error("Dimensions");
@@ -1970,7 +1953,7 @@ void *findvar(const char *p, int action) {
         }
 
         case -1: {
-            error("Not enough memory");  // TODO: "Too many variables".
+            ERROR_OUT_OF_MEMORY;  // TODO: "Too many variables".
             return NULL;
         }
 
@@ -2412,6 +2395,7 @@ void MIPS16 ClearVars(int level) {
     if (level != 0) return;
 
     assert(varcnt == 0);
+    assert(variables_free_idx == 0);
 
     forindex = 0;
     doindex = 0;
@@ -2456,7 +2440,7 @@ void MIPS16 ClearRuntime(void) {
     OptionFileErrorAbort = true;
 #endif
     ClearStack();
-    ClearVars(0);
+//    ClearVars(0);
     OptionExplicit = false;
     DefaultType = T_NBR;
 #if defined(__mmb4l__)
@@ -2478,8 +2462,7 @@ void MIPS16 ClearRuntime(void) {
     *MMErrMsg = 0;
 #endif
     InitHeap();
-    m_alloc(M_VAR, 0);
-    varcnt = 0;
+    ClearVars(0);
     CurrentLinePtr = ContinuePoint = NULL;
     for(i = 0;  i < MAXSUBFUN; i++)  subfun[i] = NULL;
 }
@@ -2489,7 +2472,6 @@ void MIPS16 ClearRuntime(void) {
 // clear everything including program memory (includes ClearStack() and ClearRuntime())
 // this is used before loading a program
 void MIPS16 ClearProgram(void) {
-    m_alloc(M_PROG, 0);                                             // init the variables for program memory - only effective in the Maximite
     ClearRuntime();
 #if defined(__mmb4l__)
     memset(error_file, 0, STRINGSIZE);

@@ -243,7 +243,6 @@ int main(int argc, char *argv[]) {
         exit(EX_OK);
     }
 
-    vartbl = DOS_vartbl;
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
 
     InitHeap();  // init memory allocation

@@ -13,6 +13,7 @@ extern "C" {
 #include "../Commands.h"
 #include "../FunTable.h"
 #include "../mmbasic_core_xtra.h"
+#include "../../common/variables.h"
 
 char error_msg[256];
 
@@ -25,6 +26,10 @@ void console_puts(const char *s) {
 }
 
 void error_init(ErrorState *error_state) { }
+
+void error_throw(MmResult error) {
+    error_throw_ex(error, mmresult_to_string(error));
+}
 
 void error_throw_ex(MmResult error, const char *msg, ...) {
     strcpy(error_msg, msg);
@@ -73,6 +78,7 @@ class MmBasicCoreTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
+        variables_init_called = false;
         InitBasic();
         ClearRuntime();
         error_msg[0] = '\0';
@@ -231,34 +237,34 @@ TEST_F(MmBasicCoreTest, FindVar_GivenTypeSuffix) {
     sprintf(m_program, "my_int%% = 1");
     void *actual = findvar(m_program, V_FIND);
 
-    EXPECT_EQ(&vartbl[0].val, actual);
     EXPECT_EQ(0, VarIndex);
-    EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(0, vartbl[0].level);
     EXPECT_STREQ("MY_INT", vartbl[0].name);
+    EXPECT_EQ(0, vartbl[0].level);
     EXPECT_EQ(T_INT, vartbl[0].type);
+    EXPECT_EQ(&vartbl[0].val, actual);
+    EXPECT_STREQ("", error_msg);
 
     // Make a FLOAT variable.
     sprintf(m_program, "my_float! = 1");
     actual = findvar(m_program, T_NBR);
 
-    EXPECT_EQ(&vartbl[1].val, actual);
     EXPECT_EQ(1, VarIndex);
-    EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(0, vartbl[1].level);
     EXPECT_STREQ("MY_FLOAT", vartbl[1].name);
+    EXPECT_EQ(0, vartbl[1].level);
     EXPECT_EQ(T_NBR, vartbl[1].type);
+    EXPECT_EQ(&vartbl[1].val, actual);
+    EXPECT_STREQ("", error_msg);
 
     // Make a STRING variable.
     sprintf(m_program, "my_string$ = \"wombat\"");
     actual = findvar(m_program, T_STR);
 
-    EXPECT_EQ(vartbl[2].val.s, actual);
     EXPECT_EQ(2, VarIndex);
-    EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(0, vartbl[2].level);
     EXPECT_STREQ("MY_STRING", vartbl[2].name);
+    EXPECT_EQ(0, vartbl[2].level);
     EXPECT_EQ(T_STR, vartbl[2].type);
+    EXPECT_EQ(vartbl[2].val.s, actual);
+    EXPECT_STREQ("", error_msg);
 
     EXPECT_EQ(3, varcnt);
 }
@@ -581,17 +587,17 @@ TEST_F(MmBasicCoreTest, FindVar_GivenDim_ReusesEmptySlot) {
     EXPECT_STREQ("FOO", vartbl[0].name);
     EXPECT_STREQ("BAR", vartbl[1].name);
 
-    vartbl[0].type = T_NOTYPE; // Fake releasing the slot.
+    variables_delete(0);
 
     sprintf(m_program, "wombat = ...");
     void *actual = findvar(m_program, V_DIM_VAR);
 
-    EXPECT_EQ(&vartbl[0].val, actual);
     EXPECT_EQ(0, VarIndex);
-    EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(0, vartbl[0].dims[0]);
     EXPECT_STREQ("WOMBAT", vartbl[0].name);
+    EXPECT_EQ(0, vartbl[0].dims[0]);
     EXPECT_EQ(T_NBR, vartbl[0].type);
+    EXPECT_EQ(&vartbl[0].val, actual);
+    EXPECT_STREQ("", error_msg);
     EXPECT_EQ(2, varcnt);
 }
 

@@ -91,9 +91,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // this flag is used to signal that automatic precision is to be used in FloatToStr()
 #define STR_AUTO_PRECISION  999
 
-extern struct s_vartbl *vartbl;
-
-extern int varcnt;                                    // number of variables defined (eg, largest index into the variable table)
 extern int VarIndex;                                  // index of the current variable.  set after the findvar() function has found/created a variable
 extern int LocalIndex;                                // used to track the level of local variables
 

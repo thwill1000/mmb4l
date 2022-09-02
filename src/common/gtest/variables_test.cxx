@@ -15,8 +15,7 @@ extern "C" {
 const struct s_vartbl EMPTY_VAR = {};
 
 Options mmb_options;
-int varcnt;
-struct s_vartbl *vartbl;
+struct s_vartbl vartbl[MAXVARS];
 size_t memory[10];
 size_t memory_count;
 
@@ -42,14 +41,13 @@ protected:
 
     void SetUp() override {
         mmb_options.base = 0;
-        vartbl = (struct s_vartbl*) calloc(MAXVARS, sizeof(struct s_vartbl));
+        variables_init_called = false;
         variables_init();
         memset(memory, 0, sizeof(memory));
         memory_count = 0;
     }
 
     void TearDown() override {
-        free(vartbl);
     }
 };
 

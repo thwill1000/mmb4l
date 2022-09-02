@@ -55,9 +55,6 @@ extern char *StrTmp[];                                      // used to track tem
 extern int TempMemoryTop;                                   // this is the last index used for allocating temp memory
 extern int TempMemoryIsChanged;                             // used to prevent unnecessary scanning of strtmp[]
 
-typedef enum _M_Req {M_PROG, M_VAR} M_Req;
-
-void m_alloc(int type, int size);
 void *GetMemory(size_t msize);
 void *GetTempMemory(int NbrBytes);
 void *GetTempStrMemory(void);
@@ -96,8 +93,7 @@ uintptr_t get_peek_addr(const char *p);
 #define PAGESPERWORD    ((sizeof(uint32_t) * 8)/PAGEBITS)
 // #define MRoundUp(a)     (((a) + (PAGESIZE - 1)) & (~(PAGESIZE - 1)))// round up to the nearest page size
 
-extern struct s_vartbl *vartbl;
-extern struct s_vartbl DOS_vartbl[MAXVARS];
+extern struct s_vartbl vartbl[MAXVARS];
 extern char ProgMemory[];
 
 #endif
