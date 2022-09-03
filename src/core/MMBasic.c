@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MMBasic_Includes.h"
 #include "FunTable.h"
 #include "mmbasic_core_xtra.h"
+#include "../common/parse.h"
 #include "../common/variables.h"
 
 #include <assert.h>
@@ -1643,9 +1644,7 @@ routines for storing and manipulating variables
 //      if it is type T_NBR or T_INT the value is held in the variable slot
 //      for T_STR a block of memory of MAXSTRLEN size (or size determined by the LENGTH keyword) will be malloc'ed and the pointer stored in the variable slot.
 void *findvar(const char *p, int action) {
-    char name[MAXVARLEN + 1];
-    int i, j, ifree, nbr, vtype, vindex, namelen, tmp;
-    char *s, *x;
+    int i, j, ifree, nbr, vtype, vindex, tmp;
     void *mptr;
     DIMTYPE dim[MAXDIM];
     int dnbr;  // Number of dimensions
@@ -1659,28 +1658,20 @@ void *findvar(const char *p, int action) {
     for(i = 0; i < MAXDIM; i++) dim[i] = 0;
     ifree = varcnt;
 
-    // check the first char for a legal variable name
-    skipspace(p);
-    if(!isnamestart(*p)) {
-        error("Variable name");
-        return NULL;
-    }
-
-    // copy the variable name into name
-    s = name; namelen = 0;
-    do {
-        *s++ = toupper(*p++);
-        if(++namelen > MAXVARLEN) {
+    char name[MAXVARLEN + 1] = { 0 };
+//    memset(name, '\0', MAXVARLEN + 1);
+    MmResult result = parse_name(&p, name);
+    switch (result) {
+        case kSyntax:
+            error("Variable name");
+            return NULL;
+        case kNameTooLong:
             error("Variable name too long");
             return NULL;
-        }
-    } while(isnamechar(*p));
-
-    // make sure there are multiple of 4 bytes with valid name or set to 0
-    while(namelen % 4) {
-        *s++=0;
-        namelen++;
     }
+
+    int namelen = strlen(name);
+    while (namelen % 4) namelen++;
 
     // check the terminating char and set the type
     if(*p == '$') {
@@ -1753,7 +1744,6 @@ void *findvar(const char *p, int action) {
             }
         }
     }
-    *s = 0;                                                         // terminate the new variable name
 
     // we now have the variable name and, if it is an array, the parameters
     // search the table looking for a match
@@ -1914,7 +1904,7 @@ void *findvar(const char *p, int action) {
         for(i = 0;  i < MAXSUBFUN && subfun[i] != NULL; i++) {
             const char *x = subfun[i];                              // point to the command token
             x++; skipspace(x);                                      // point to the identifier
-            s = name;                                               // point to the new variable
+            const char *s = name;                                   // point to the new variable
             if(*s != toupper(*x)) continue;                         // quick first test
             while(1) {
                 if(!isnamechar(*s) && !isnamechar(*x)) {

@@ -364,6 +364,7 @@ gtest_discover_tests(test_rx_buf)
 add_executable(
   test_mmbasic_core
   src/common/memory.c
+  src/common/parse.c
   src/common/variables.c
   src/core/mmbasic_core_xtra.c
   src/core/MMBasic.c
