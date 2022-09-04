@@ -493,7 +493,7 @@ MmResult options_get_display_value(const Options *options, OptionsId id, char *s
                 strcpy(append, "<lf>");
                 break;
             case '\r':
-                if (*(src + 1)) {
+                if (*(src + 1) == '\n') {
                     strcpy(append, "<crlf>");
                     src++;
                 } else {
