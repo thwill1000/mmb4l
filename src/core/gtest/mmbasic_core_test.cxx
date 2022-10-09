@@ -924,6 +924,38 @@ TEST_F(MmBasicCoreTest, FindVar_GivenArrayDimensionTooLarge) {
     EXPECT_STREQ("Array bound exceeds maximum: %", error_msg);
 }
 
+TEST_F(MmBasicCoreTest, Tokenise_DimStatement) {
+    sprintf(inpbuf, "Dim a = 1");
+
+    tokenise(0);
+
+    char expected[256];
+    sprintf(
+            expected,
+            "%c%ca %c 1",
+            T_NEWLINE,
+            GetCommandValue("Dim"),
+            GetTokenValue("="));
+    EXPECT_STREQ(expected, tknbuf);
+}
+
+TEST_F(MmBasicCoreTest, Tokenise_RunStatement) {
+    sprintf(inpbuf, "Run \"foo\", --base=1");
+
+    tokenise(0);
+
+    char expected[256];
+    sprintf(
+            expected,
+            "%c%c\"foo\", %c%cbase%c1",
+            T_NEWLINE,
+            GetCommandValue("Run"),
+            GetTokenValue("-"),
+            GetTokenValue("-"),
+            GetTokenValue("="));
+    EXPECT_STREQ(expected, tknbuf);
+}
+
 extern "C" {
 
 void cmd_autosave() { }

@@ -163,10 +163,18 @@ MmResult parse_name(const char **p, char *name) {
 
 /**
  * @brief Transforms input beginning with * into a corresponding RUN command.
+ *
+ * e.g.
+ *   *foo              =>  RUN "foo"
+ *   *"foo bar"        =>  RUN "foo bar"
+ *   *foo --wombat     =>  RUN "foo", "--wombat"
+ *   *foo "wom"        =>  RUN "foo", Chr$(34) + "wom" + Chr$(34)
+ *   *foo "wom" "bat"  =>  RUN "foo", Chr$(34) + "wom" + Chr$(34) + " " + Chr$(34) + "bat" + Chr$(34)
+ *   *foo --wom="bat"  =>  RUN "foo", "--wom=" + Chr$(34) + "bat" + Chr$(34)
  */
 static MmResult parse_transform_star_command(char *input) {
     char *src = input;
-    while (isspace(*src)) src++; // Skip whitespace.
+    while (isspace(*src)) src++; // Skip leading whitespace.
     if (*src != '*') return kInternalFault;
     src++;
 
@@ -174,7 +182,10 @@ static MmResult parse_transform_star_command(char *input) {
     char *end = input + strlen(input) - 1;
     while (isspace(*end)) *end-- = '\0';
 
-    char tmp[STRINGSIZE + 32] = "RUN"; // Allocate extra space to avoid string overrun.
+    // Allocate extra space to avoid string overrun.
+    // We rely on the caller to clean this up.
+    char *tmp = (char *) GetTempMemory(STRINGSIZE + 32);
+    strcpy(tmp, "RUN");
     char *dst = tmp + 3;
 
     if (*src == '"') {
@@ -198,14 +209,46 @@ static MmResult parse_transform_star_command(char *input) {
 
     while (isspace(*src)) src++; // Skip whitespace.
 
-    // Everything after is arguments.
+    // Anything else is arguments.
     if (*src) {
         *dst++ = ',';
         *dst++ = ' ';
-        strcpy(dst, src);
+
+        // If 'src' starts with double-quote then replace with: Chr$(34) +
+        if (*src == '"') {
+            memcpy(dst, "Chr$(34) + ", 11);
+            dst += 11;
+            *src++;
+        }
+
+        *dst++ = '\"';
+
+        // Copy from 'src' to 'dst'.
+        while (*src) {
+            if (*src == '"') {
+                // Close current set of quotes to insert a Chr$(34)
+                memcpy(dst, "\" + Chr$(34)", 12);
+                dst += 12;
+
+                // Open another set of quotes unless this was the last character.
+                if (*(src + 1)) {
+                    memcpy(dst, " + \"", 4);
+                    dst += 4;
+                }
+                src++;
+            } else {
+                *dst++ = *src++;
+            }
+            if (dst - tmp >= STRINGSIZE) return kStringTooLong;
+        }
+
+        // End with a double quote unless 'src' ended with one.
+        if (*(src - 1) != '"') *dst++ = '\"';
+
+        *dst = '\0';
     }
 
-    if (dst >= tmp + STRINGSIZE) return kStringTooLong;
+    if (dst - tmp >= STRINGSIZE) return kStringTooLong;
 
     // Copy transformed string back into the input buffer.
     strncpy(input, tmp, STRINGSIZE - 1);

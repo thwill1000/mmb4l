@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cmdline.h"
 #include "cstring.h"
+#include "parse.h"
 #include "utility.h"
 
 static int is_prefix(const char *pre, const char *str) {
@@ -91,17 +92,17 @@ int cmdline_parse(int argc, const char *argv[], CmdLineArgs *result) {
     cstring_unquote(result->directory);
 
     // Any remaining arguments are the program to RUN.
+    // We convert them into the prompt * syntax ...
     for (; i < argc; ++i) {
         if (result->run_cmd[0] == '\0') {
-            cstring_cat(result->run_cmd, "RUN \"", sizeof(result->run_cmd));
-            cstring_cat(result->run_cmd, argv[i], sizeof(result->run_cmd));
-            cstring_cat(result->run_cmd, "\"", sizeof(result->run_cmd));
-            if (i != argc - 1) cstring_cat(result->run_cmd, ",", sizeof(result->run_cmd));
-        } else {
-            cstring_cat(result->run_cmd, " ", sizeof(result->run_cmd));
-            cstring_cat(result->run_cmd, argv[i], sizeof(result->run_cmd));
+            cstring_cat(result->run_cmd, "*", sizeof(result->run_cmd));
         }
+        cstring_cat(result->run_cmd, argv[i], sizeof(result->run_cmd));
+        cstring_cat(result->run_cmd, " ", sizeof(result->run_cmd));
     }
+
+    // ... and then transform that into the RUN syntax.
+    if (FAILED(parse_transform_input_buffer(result->run_cmd))) return -1;
 
     if (result->interactive == 255) {
         result->interactive = (result->run_cmd[0] == '\0');

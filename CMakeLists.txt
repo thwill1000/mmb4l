@@ -194,6 +194,8 @@ add_executable(
   test_cmdline
   src/common/cmdline.c
   src/common/cstring.c
+  src/common/memory.c
+  src/common/parse.c
   src/common/gtest/cmdline_test.cxx
 )
 
@@ -206,6 +208,31 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_cmdline)
+
+################################################################################
+# test_cmd_run
+################################################################################
+
+add_executable(
+  test_cmd_run
+  src/commands/cmd_run.c
+  src/commands/gtest/cmd_run_test.cxx
+  src/common/memory.c
+  src/common/mmresult.c
+  src/common/parse.c
+  src/common/variables.c
+  src/core/MMBasic.c
+)
+
+target_link_libraries(
+  test_cmd_run
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_cmd_run)
 
 ################################################################################
 # test_cstring
@@ -259,6 +286,7 @@ gtest_discover_tests(test_options)
 add_executable(
   test_parse
   src/common/cstring.c
+  src/common/memory.c
   src/common/parse.c
   src/common/gtest/parse_test.cxx
 )

@@ -58,7 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FONT_HEIGHT  12
 #define FONT_WIDTH   8
 
-extern char run_cmdline[STRINGSIZE];
+extern char cmd_run_args[STRINGSIZE];
 
 static void mminfo_architecture(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
@@ -68,36 +68,11 @@ static void mminfo_architecture(const char *p) {
     CtoM(g_string_rtn);
 }
 
-void get_mmcmdline(char *cmdline) {
-    char *p = run_cmdline;
-    skipspace(p);
-
-    if (*p == 34) {
-        do {
-            p++;
-        } while (*p != 34);
-        p++;
-        skipspace(p);
-        if (*p == ',') {
-            p++;
-            skipspace(p);
-        }
-    }
-
-    char *q;
-    if ((q = strchr(p, '|'))) {
-        q--;
-        *q = 0;
-    }
-
-    strcpy(cmdline, p);
-}
-
 static void mminfo_cmdline(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
-    get_mmcmdline(g_string_rtn);
+    strcpy(g_string_rtn, cmd_run_args);
     CtoM(g_string_rtn);
 }
 

@@ -50,23 +50,158 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define ERROR_NOTHING_TO_RUN  error_throw_ex(kError, "Nothing to run")
 
-char run_cmdline[STRINGSIZE];
+char cmd_run_args[STRINGSIZE];
+
+/**
+ * Heuristically determines whether the "legacy" (non-string expression) format
+ * is being used for RUN arguments.
+ *
+ * This and the 'cmd_run_transform_legacy_args' functions are probably only
+ * required short-term on the CMM2 and MMB4W to support old versions of
+ * "The Welcome Tape" and tools by @thwill.
+ *
+ * @return true   if the 'cmd_args' contain the MMBasic minus-sign token
+ *                or if the 'filename' contains "menu/menu.bas" AND the
+ *                'cmd_args' start with "MENU_".
+ *         false  otherwise.
+ */
+static bool cmd_run_is_legacy_args(const char *filename, const char *run_args) {
+    if (strchr(run_args, GetTokenValue((unsigned char *) "-"))) return true;
+    if (filename
+            && strstr(filename, "menu/menu.bas")
+            && strstr(run_args, "MENU_") == run_args) return true;
+    return false;
+}
+
+/**
+ * Makes a best effort to restore tokenised RUN arguments to the
+ * "legacy" (non-string expression) format
+ *
+ *  - tokens are converted back to literals,
+ *  - unquoted strings are converted to lower-case,
+ *  - whitespace may not be restored exactly the same.
+ *
+ * Probably it is "overkill".
+ */
+static void cmd_run_transform_legacy_args(char *run_args) {
+    char *tmp = (char *) GetTempMemory(STRINGSIZE + 32); // Extra space to avoid string overrun.
+    char *ptmp = tmp;
+    for (char *p = run_args; *p; ++p) {
+        char *tok = (char *) tokenname((unsigned char) *p);
+        if (*tok) {
+            // Convert tokens backs to literals and try to do sensible things
+            // regarding spaces.
+            if (ptmp != tmp && *(ptmp - 1) != ' ') {
+                switch (*tok) {
+                    case '-':
+                        if (*(ptmp - 1) != '-' && !isalnum(*(ptmp - 1))) *ptmp++ = ' ';
+                        break;
+                    case '=':
+                        if (!isalnum(*(ptmp - 1))) *ptmp++ = ' ';
+                        break;
+                    default:
+                        *ptmp++ = ' ';
+                        break;
+                }
+            }
+            memcpy(ptmp, tok, strlen(tok));
+            ptmp += strlen(tok);
+        } else if (*p == '"') {
+            // Do not mangle quoted sections.
+            *ptmp++ = *p++;
+            for (; *p; ++p) {
+                *ptmp++ = *p;
+                if (*p == '"') break;
+            }
+        } else {
+            if (*p == ' ' && ptmp != tmp) {
+                // Compress consecutive spaces.
+                if (*(ptmp - 1) != ' ') *ptmp++ = ' ';
+            } else {
+                // Though the current MMB4L tokeniser preserves case, that in
+                // MMB4W and other MMBasic ports by Peter will have converted
+                // unquoted legacy arguments to upper-case. On the balance of
+                // probabilities we convert them to lower-case here.
+                *ptmp++ = tolower(*p);
+            }
+        }
+
+        if (ptmp - tmp >= STRINGSIZE - 1) break;
+    }
+    *ptmp = '\0';
+    strncpy(run_args, tmp, STRINGSIZE - 1);
+    run_args[STRINGSIZE - 1] = '\0';
+    ClearSpecificTempMemory(tmp);
+}
+
+/**
+ * Parses filename and RUN arguments from a token buffer.
+ *
+ * @param[in]   p         pointer to the buffer.
+ * @param[out]  filename  buffer to hold the filename, should be at least STRINGSIZE.
+ * @param[out]  run_args  buffer to hold the RUN args, should be at least STRINGSIZE.
+ * @return                kOk on success.
+ */
+MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args) {
+    *filename = '\0';
+    *run_args = '\0';
+    if (!*p) return kOk;
+
+    getargs(&p, 3, ",");
+    int filename_idx = -1;  // Index into argv[] for filename.
+    int run_args_idx = -1;  // Index into argv[] for additional arguments.
+
+    // Note for legacy compatibility we need to allow the trailing comma.
+    if (argc == 1 && *(argv[0]) == ',') {
+        // RUN ,
+        // Don't set filename or cmd_run_args.
+    } else if (argc == 1) {
+        // RUN file$
+        if (*(argv[0]) != ',') filename_idx = 0;
+    } else if (argc == 2 && *(argv[0]) == ',') {
+        // RUN , args$
+        run_args_idx = 1;
+    } else if (argc == 2) {
+        // RUN file$ ,
+        filename_idx = 0;
+    } else if (argc == 3) {
+        // RUN file$ , args$
+        filename_idx = 0;
+        run_args_idx = 2;
+    } else {
+        return kInternalFault;
+    }
+
+    if (filename_idx >= 0) strcpy(filename, getCstring(argv[0]));
+
+    if (run_args_idx >= 0) {
+        if (cmd_run_is_legacy_args(filename, argv[run_args_idx])) {
+            strcpy(run_args, argv[run_args_idx]);
+            cmd_run_transform_legacy_args(run_args);
+        } else {
+            strcpy(run_args, getCstring(argv[run_args_idx]));
+        }
+    }
+
+    return kOk;
+}
 
 void cmd_run(void) {
+    char filename[STRINGSIZE];  // Filename to RUN.
 
-    // Save the cmdline for later.
-    skipspace(cmdline);
-    memset(run_cmdline, 0, STRINGSIZE);
-    memcpy(run_cmdline, cmdline, strlen(cmdline));
-
-    char *filename = NULL;
-    if (*cmdline != '\0') {
-        filename = getCstring(cmdline);
-    } else if (*CurrentFile != '\0') {
-        filename = CurrentFile;
-    } else {
-        ERROR_NOTHING_TO_RUN;
+    MmResult result = cmd_run_parse_args(cmdline, filename, cmd_run_args);
+    if (FAILED(result)) {
+        error_throw(result);
         return;
+    }
+
+    if (!*filename) {
+        if (*CurrentFile != '\0') {
+            strcpy(filename, CurrentFile);
+        } else {
+            ERROR_NOTHING_TO_RUN;
+            return;
+        }
     }
 
     if (FAILED(program_load_file(filename))) return;
