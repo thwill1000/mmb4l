@@ -40,6 +40,7 @@ add_test("test_exists_file")
 add_test("test_exists_symlink")
 add_test("test_filesize")
 add_test("test_filesize_given_directory")
+add_test("test_font_address")
 add_test("test_fontheight")
 add_test("test_fontwidth")
 add_test("test_hpos")
@@ -329,6 +330,19 @@ Sub assert_filesize_for_directory(d$, error_on_mmb4w%)
   Else
     assert_int_equals(-2, Mm.Info(FileSize d$))
   EndIf
+End Sub
+
+Sub test_font_address()
+  If Mm.Device$ = "MMB4L" Then Exit Sub
+
+  ' First byte at the "font address" is the font width.
+  assert_int_equals(8, Peek(Byte(Mm.Info(Font Address 1))))
+  assert_int_equals(12, Peek(Byte(Mm.Info(Font Address 2))))
+  assert_int_equals(16, Peek(Byte(Mm.Info(Font Address 3))))
+  ' assert_int_equals(8, Peek(Byte(Mm.Info(Font Address 4))))
+  assert_int_equals(24, Peek(Byte(Mm.Info(Font Address 5))))
+  ' assert_int_equals(8, Peek(Byte(Mm.Info(Font Address 6))))
+  assert_int_equals(6, Peek(Byte(Mm.Info(Font Address 7))))
 End Sub
 
 Sub test_fontheight()
