@@ -18,6 +18,8 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 Const BASE% = Mm.Info(Option Base)
 
 add_test("test_erase")
+add_test("test_erase_given_arrays")
+add_test("test_erase_given_strings")
 add_test("test_inv")
 add_test("test_unary_minus")
 add_test("test_unary_plus")
@@ -74,6 +76,54 @@ Sub test_erase()
   On Error Skip 1
   Erase _33_chars_long_678901234567890123%
   assert_raw_error("Name too long")
+End Sub
+
+' There was a bug in MMB4W (and the PicoMite) where the heap memory
+' used by arrays was not being released correctly and would eventually
+' be exhausted.
+Sub test_erase_given_arrays()
+  If Mm.Device$ = "MMBasic for Windows" Then
+    Local filler1%(15 * 1024 * 1024)
+  Else
+    ' TODO: remove MMB4L 32K array size limitation.
+    Local filler1%(32 * 1024 - 1)
+    Local filler2%(32 * 1024 - 1)
+    Local filler3%(32 * 1024 - 1)
+    Local filler4%(24 * 1024 - 1)
+  EndIf
+  Local i%
+  For i% = 0 To 255
+    Dim foo_array%(Mm.Info(Option Base) + 4095) ' 32K
+    Erase foo_array%
+  Next
+
+  On Error Skip 1
+  foo_array%(1) = 42
+  assert_raw_error("FOO_ARRAY is not declared")
+End Sub
+
+' There was a bug in MMB4W (and the PicoMite) where the heap memory
+' used by strings was not being released correctly and would eventually
+' be exhausted.
+Sub test_erase_given_strings()
+  If Mm.Device$ = "MMBasic for Windows" Then
+    Local filler1%(15 * 1024 * 1024)
+  Else
+    ' TODO: remove MMB4L 32K array size limitation.
+    Local filler1%(32 * 1024 - 1)
+    Local filler2%(32 * 1024 - 1)
+    Local filler3%(32 * 1024 - 1)
+    Local filler4%(24 * 1024 - 1)
+  EndIf
+  Local i%
+  For i% = 0 To 32767
+    Dim foo_string$
+    Erase foo_string$
+  Next
+
+  On Error Skip 1
+  foo_string$ = "foo"
+  assert_raw_error("FOO_STRING is not declared")
 End Sub
 
 Sub test_inv()
@@ -156,7 +206,7 @@ Sub test_unary_plus()
 End Sub
 
 Sub test_error_correct_after_goto()
-  Local base_line% = 167
+  Local base_line% = 217
   Goto 30
 test_goto_label_1:
   assert_raw_error("Error in line " + Str$(base_line% + 4) + ": foo1")
@@ -174,7 +224,7 @@ Error "foo2"
 Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
-  Local base_line% = 183
+  Local base_line% = 233
   GoSub 60
   assert_raw_error("Error in line " + Str$(base_line% + 4) + ": bar1")
   GoSub 70
