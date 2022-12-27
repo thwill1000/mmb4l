@@ -218,7 +218,7 @@ static MmResult parse_transform_star_command(char *input) {
         if (*src == '"') {
             memcpy(dst, "Chr$(34) + ", 11);
             dst += 11;
-            *src++;
+            src++;
         }
 
         *dst++ = '\"';

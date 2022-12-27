@@ -66,7 +66,7 @@ char cmd_run_args[STRINGSIZE];
  *         false  otherwise.
  */
 static bool cmd_run_is_legacy_args(const char *filename, const char *run_args) {
-    if (strchr(run_args, GetTokenValue((unsigned char *) "-"))) return true;
+    if (strchr(run_args, GetTokenValue("-"))) return true;
     if (filename
             && strstr(filename, "menu/menu.bas")
             && strstr(run_args, "MENU_") == run_args) return true;
