@@ -1627,18 +1627,10 @@ routines for storing and manipulating variables
 //      if it is type T_NBR or T_INT the value is held in the variable slot
 //      for T_STR a block of memory of MAXSTRLEN size (or size determined by the LENGTH keyword) will be malloc'ed and the pointer stored in the variable slot.
 void *findvar(const char *p, int action) {
-    int i, j, nbr, vtype, vindex, tmp;
-    DIMTYPE dim[MAXDIM];
-    int dnbr;  // Number of dimensions
-               // -1 : empty array used in fun/sub calls
-               //  0 : scalar.
 
-    TestStackOverflow();                                            // test if we have overflowed the PIC32's stack
+    TestStackOverflow();  // Test if we have overflowed the PIC32's stack.
 
-    vtype = dnbr = 0;
-    // first zero the array used for holding the dimension values
-    for (i = 0; i < MAXDIM; i++) dim[i] = 0;
-
+    // Get the name.
     char name[MAXVARLEN + 1] = {0};
     MmResult result = parse_name(&p, name);
     switch (result) {
@@ -1650,7 +1642,8 @@ void *findvar(const char *p, int action) {
             return NULL;
     }
 
-    // check the terminating char and set the type
+    // Check the terminating character to determine the variable type.
+    int vtype = T_NOTYPE;
     if (*p == '$') {
         if ((action & T_IMPLIED) && !(action & T_STR)) {
             error("Conflicting variable type");
@@ -1675,11 +1668,13 @@ void *findvar(const char *p, int action) {
     } else if ((action & V_DIM_VAR) && DefaultType == T_NOTYPE && !(action & T_IMPLIED)) {
         error("Variable type not specified");
         return NULL;
-    } else {
-        vtype = 0;
     }
 
-    // check if this is an array
+    // Check if this is an array.
+    int dnbr = 0;  // Number of dimensions
+                   // -1 : empty array used in fun/sub calls
+                   //  0 : scalar.
+    DIMTYPE dim[MAXDIM] = {0};
     if (*p == '(') {
         const char *pp = p + 1;
         skipspace(pp);
@@ -1700,7 +1695,7 @@ void *findvar(const char *p, int action) {
                 error("Dimensions");
                 return NULL;
             }
-            for (i = 0; i < argc; i += 2) {
+            for (int i = 0; i < argc; i += 2) {
                 MMFLOAT f;
                 MMINTEGER in;
                 char *s;
@@ -1735,8 +1730,7 @@ void *findvar(const char *p, int action) {
     //
     // In either case              ifree         will contain the index of a free slot which can be used if we need to create the variable
 
-    int var_idx;
-    int global_idx;
+    int global_idx, i, tmp, var_idx;
     result = variables_find(name, LocalIndex, &var_idx, &global_idx);
     switch (result) {
         case kOk:
@@ -1773,23 +1767,27 @@ void *findvar(const char *p, int action) {
     // if we found an existing and matching variable
     // set the global VarIndex indicating the index in the table
     if (i < varcnt && *vartbl[i].name != 0) {
-        VarIndex = vindex = i;
+        int vindex = i;
+        VarIndex = vindex;
 
-        // check that the dimensions match
-        for (i = 0; i < MAXDIM && vartbl[vindex].dims[i] != 0; i++) ;
-        if (dnbr == -1) {
-            if (i == 0) {
-                error("Array dimensions");
-                return NULL;
-            }
-        } else {
-            if (i != dnbr) {
-                error("Array dimensions");
-                return NULL;
+        // Check that the dimensions match.
+        {
+            int i;
+            for (i = 0; i < MAXDIM && vartbl[vindex].dims[i] != 0; i++) ;
+            if (dnbr == -1) {
+                if (i == 0) {
+                    error("Array dimensions");
+                    return NULL;
+                }
+            } else {
+                if (i != dnbr) {
+                    error("Array dimensions");
+                    return NULL;
+                }
             }
         }
 
-        if (vtype == 0) {
+        if (vtype == T_NOTYPE) {
             if (!(vartbl[vindex].type & (DefaultType | T_IMPLIED))) {
                 error("$ already declared", name);
                 return NULL;
@@ -1820,7 +1818,7 @@ void *findvar(const char *p, int action) {
             error("Cannot re dimension array");
             return NULL;
         }
-        for (i = 0; i < dnbr; i++) {
+        for (int i = 0; i < dnbr; i++) {
             if (dim[i] > vartbl[vindex].dims[i] || dim[i] < OptionBase) {
                 error("Index out of bounds");
                 return NULL;
@@ -1828,9 +1826,9 @@ void *findvar(const char *p, int action) {
         }
 
         // then calculate the index into the array.  Bug fix by Gerard Sexton.
-        nbr = dim[0] - OptionBase;
-        j = 1;
-        for (i = 1; i < dnbr; i++) {
+        int nbr = dim[0] - OptionBase;
+        int j = 1;
+        for (int i = 1; i < dnbr; i++) {
             j *= (vartbl[vindex].dims[i - 1] + 1 - OptionBase);
             nbr += (dim[i] - OptionBase) * j;
         }
@@ -1844,7 +1842,7 @@ void *findvar(const char *p, int action) {
         }
     }
 
-    // we reached this point if no existing variable has been found
+    // We reached this point if no existing variable has been found.
     if (action & V_NOFIND_ERR) {
         error("Cannot find $", name);
         return NULL;
@@ -1854,16 +1852,17 @@ void *findvar(const char *p, int action) {
         error("$ is not declared", name);
         return NULL;
     }
-    if (vtype == 0) {
+    if (vtype == T_NOTYPE) {
         if (action & T_IMPLIED)
             vtype = (action & (T_NBR | T_INT | T_STR));
         else
             vtype = DefaultType;
     }
 
-    // now scan the sub/fun table to make sure that there is not a sub/fun with the same name
+    // TODO: this should be using mmb_function_table_find()
+    // Now scan the sub/fun table to make sure that there is not a sub/fun with the same name.
     if (!(action & V_FUNCT)) {                                      // don't do this if we are defining the local variable for a function name
-        for (i = 0; i < MAXSUBFUN && subfun[i] != NULL; i++) {
+        for (int i = 0; i < MAXSUBFUN && subfun[i] != NULL; i++) {
             const char *x = subfun[i];                              // point to the command token
             x++;
             skipspace(x);                                           // point to the identifier
@@ -1881,7 +1880,7 @@ void *findvar(const char *p, int action) {
         }
     }
 
-    // If we are declaring a new array then the bound of the irst dimension must
+    // If we are declaring a new array then the bound of the first dimension must
     // be greater than OPTION BASE. This isn't caught inside variables_add()
     // because it uses a value of dim[0] == 0 to mean a scalar variable.
     if (dnbr > 0 && dim[0] <= mmb_options.base) {
@@ -1895,7 +1894,7 @@ void *findvar(const char *p, int action) {
     uint8_t slen = MAXSTRLEN;
     if (action & V_DIM_VAR) {
         if (vtype & T_STR) {
-            i = 0;
+            int i = 0;
             if (*p == '(') {
                 do {
                     if (*p == '(') i++;
