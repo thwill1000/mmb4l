@@ -53,9 +53,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FLOAT_ROUNDING_LIMIT 0x7fffff               // used to limit rounding for large numbers in FloatToInt64()
 
 // these 3 represent most of the RAM used
-#define PROG_FLASH_SIZE   (512 * 1024)              // size of the program memory (in bytes)
-// #define HEAP_SIZE         (512 * 1024)              // size of the heap memory (in bytes)
-#define HEAP_SIZE         (512 * 1024 * 2)          // size of the heap memory (in bytes)
+#define PROG_FLASH_SIZE     (512 * 1024)            // size of the program memory (in bytes)
+// #define HEAP_SIZE        (512 * 1024)            // size of the heap memory (in bytes)
+#define HEAP_SIZE           (512 * 1024 * 2)        // size of the heap memory (in bytes)
 #define MAXVARS             1024                    // 8 + MAXVARLEN + MAXDIM * 2  (ie, 56 bytes) - these do not incl array members
 
 // more static memory allocations (less important)
