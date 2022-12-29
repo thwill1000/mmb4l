@@ -254,6 +254,24 @@ target_link_libraries(
 gtest_discover_tests(test_cstring)
 
 ################################################################################
+# test_hash
+################################################################################
+
+add_executable(
+  test_hash
+  src/common/gtest/hash_test.cxx
+)
+
+target_link_libraries(
+  test_hash
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_hash)
+
+################################################################################
 # test_options
 ################################################################################
 

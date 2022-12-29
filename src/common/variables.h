@@ -52,12 +52,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stddef.h>
 #include <stdint.h>
 
-#define  GLOBAL_VAR  0
+#define GLOBAL_VAR     0
+#define UNUSED_HASH   -1
+#define DELETED_HASH  -2
 
 /**
  * @brief  Has variables_init() been called ?
  */
 extern bool variables_init_called;
+
+/**
+ * @brief  Hashmap from a hash of the first 32 characters of the
+ *         variable name to the corresponding entry in the \p vartbl.
+ *         Empty hash table entries will contain -1.
+ */
+extern VarHashValue variables_hashmap[VARS_HASHMAP_SIZE];
 
 /**
  * @brief  Index of the lowest index "potentially" free slot in the
@@ -87,8 +96,7 @@ void variables_init();
  * @brief  Adds a variable to the variables table.
  *
  * Notes:
- *   1. For the moment this is only for use by unit-tests.
- *   2. This function makes no effort to detect and report duplicate
+ *   1. This function makes no effort to detect and report duplicate
  *      or invalid variable names/levels.
  *
  * @param  name   Name for the variable. This is case-sensitive, but
@@ -106,6 +114,9 @@ void variables_init();
  * @return        Index of the new variable, or
  *                -1 if we would exceed the maximum number of variables.
  *                -2 if an array dimension is invalid.
+ *                -3 if the variable hashmap is full; this should never happen
+ *                   in production because the map size is larger than the
+ *                   maximum number of variables.
  */
 int variables_add(
         const char *name,

@@ -44,11 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "variables.h"
 #include "mmb4l.h"
+#include "hash.h"
 
 #include <assert.h>
 #include <string.h>
 
 bool variables_init_called = false;
+VarHashValue variables_hashmap[VARS_HASHMAP_SIZE];
 int variables_free_idx = 0;
 int varcnt = 0;
 
@@ -57,6 +59,7 @@ void variables_init() {
     varcnt = 0;
     variables_free_idx = 0;
     memset(vartbl, 0, MAXVARS * sizeof(struct s_vartbl));
+    memset(variables_hashmap, 0xFF, sizeof(variables_hashmap));
     variables_init_called = true;
 }
 
@@ -151,8 +154,19 @@ int variables_add(
     // looking in a slot we have just used.
     variables_free_idx++;
 
-    // If we've used a new slot then we increment 'varcnt'.
+    // If we have used a new slot then we increment 'varcnt'.
     if (variables_free_idx > varcnt) varcnt++;
+
+    // Record variable in the hashmap.
+    VarHashValue hash = hash_cstring(name, MAXVARLEN) % VARS_HASHMAP_SIZE;
+    VarHashValue original_hash = hash;
+    while (variables_hashmap[hash] >= 0) {
+        hash = (hash + 1) % VARS_HASHMAP_SIZE;
+        if (hash == original_hash) return -3; // Should never happen in production because the map
+                                              // size is larger than the maximum numer of variables.
+    }
+    variables_hashmap[hash] = var_idx;
+    vartbl[var_idx].hash = hash;
 
     return var_idx;
 }
@@ -160,10 +174,13 @@ int variables_add(
 void variables_delete(int var_idx) {
 
     assert(variables_init_called);
+    assert(var_idx >= 0);
 
     if (var_idx >= varcnt) return;
 
     //printf("variables_delete(%d = %s)\n", var_idx, vartbl[var_idx].name);
+
+    variables_hashmap[vartbl[var_idx].hash] = DELETED_HASH;
 
     // FreeMemory associated with string and array variables unless they are pointers.
     if (((vartbl[var_idx].type & T_STR) || vartbl[var_idx].dims[0] != 0)
@@ -188,6 +205,13 @@ void variables_delete_all(uint8_t level) {
             variables_delete(ii);
         }
     }
+
+    // When deleting ALL variables including globals then mark all the hashmap
+    // slots as UNUSED and not just DELETED.
+    if (level == 0) {
+        assert(varcnt == 0);
+        memset(variables_hashmap, 0xFF, sizeof(variables_hashmap));
+    }
 }
 
 MmResult variables_find(
@@ -195,33 +219,39 @@ MmResult variables_find(
 
     assert(variables_init_called);
 
-    //printf("variables_find(%s, %d, ...)\n", name, level);
+//    printf("variables_find(\"%s\", %d, ...)\n", name, level);
 
     *var_idx = -1;
     int tmp;  // So we don't have to keep checking if global_idx is NULL or not.
     if (!global_idx) global_idx = &tmp;
     *global_idx = -1;
-    for (int ii = 0; ii < varcnt; ++ii) {
-        // Only compares first MAXVARLEN characters.
-        if (strncmp(name, vartbl[ii].name, MAXVARLEN) == 0) {
-            if (vartbl[ii].level == 0) {
-                // Found a global.
-                if (level == 0) {
-                    // Looking for a global, we're done.
-                    *var_idx = ii;
-                    *global_idx = ii;
-                    // if (vartbl[ii].type & T_STR) printf("\"%s\"\n", vartbl[ii].val.s + 1);
-                    return kOk;
-                } else {
-                    // Looking for a local, store but keep looking.
-                    *global_idx = ii;
+
+    MmResult result = kVariableNotFound;
+    VarHashValue hash = hash_cstring(name, MAXVARLEN) % VARS_HASHMAP_SIZE;
+    VarHashValue original_hash = hash;
+
+    do {
+        *var_idx = variables_hashmap[hash];
+        if (*var_idx == UNUSED_HASH) break;
+
+        if (*var_idx != DELETED_HASH) {
+            // TODO: check 'vartbl' entry is valid.
+            assert(vartbl[*var_idx].type != T_NOTYPE);
+
+            // Compare 'name' with referenced 'vartbl' entry.
+            // Both names should be in upper-case, but if they are MAXVARLEN
+            // chars long then they are not NULL terminated.
+            if (strncmp(name, vartbl[*var_idx].name, MAXVARLEN) == 0) {
+                if (vartbl[*var_idx].level == 0) *global_idx = *var_idx;
+                if (vartbl[*var_idx].level == level) {
+                    result = kOk;
+                    break;
                 }
-            } else if (vartbl[ii].level == level) {
-                // Found the local we are looking for, we're done.
-                *var_idx = ii;
-                return kOk;
             }
         }
-    }
-    return kVariableNotFound;
+
+        hash = (hash + 1) % VARS_HASHMAP_SIZE;
+    } while (hash != original_hash);
+
+    return result;
 }

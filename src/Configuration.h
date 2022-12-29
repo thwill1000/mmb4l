@@ -57,6 +57,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // #define HEAP_SIZE        (512 * 1024)            // size of the heap memory (in bytes)
 #define HEAP_SIZE           (512 * 1024 * 2)        // size of the heap memory (in bytes)
 #define MAXVARS             1024                    // 8 + MAXVARLEN + MAXDIM * 2  (ie, 56 bytes) - these do not incl array members
+#define VARS_HASHMAP_SIZE   1371                    // Size of the variables hash table
+                                                    //  - first prime number at least 1/3 greater than MAXVARS.
 
 // more static memory allocations (less important)
 #define MAXFORLOOPS         50                      // each entry uses 17 bytes
