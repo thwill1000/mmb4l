@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(FUN_TABLE_H)
 #define FUN_TABLE_H
 
+#include "../Configuration.h"
+
 struct s_funtbl {
     char name[MAXVARLEN + 1];
     uint32_t index;

@@ -11,8 +11,7 @@ extern "C" {
 #include "../../Hardware_Includes.h"
 #include "../MMBasic.h"
 #include "../Commands.h"
-#include "../FunTable.h"
-#include "../mmbasic_core_xtra.h"
+#include "../funtbl.h"
 #include "../../common/variables.h"
 
 char error_msg[256];
@@ -47,9 +46,6 @@ bool interrupt_check(void) {
 
 void interrupt_clear(void) { }
 
-// Declared in MMBasic.c
-extern struct s_funtbl funtbl[MAXSUBFUN];
-
 // Declared in "main.c"
 char *CFunctionFlash;
 char *CFunctionLibrary;
@@ -73,9 +69,6 @@ int TraceOn;
 
 } // extern "C"
 
-#define EXAMPLE_MAX_LENGTH_NAME     "_32_character_name_9012345678901"
-#define EXAMPLE_MAX_LENGTH_NAME_UC  "_32_CHARACTER_NAME_9012345678901"
-
 class MmBasicCoreTest : public ::testing::Test {
 
 protected:
@@ -95,132 +88,6 @@ protected:
     char m_program[256];
 
 };
-
-TEST_F(MmBasicCoreTest, FunctionTableHash) {
-    char name[MAXVARLEN + 1];
-    HashValue hash;
-
-    sprintf(m_program, "foo");
-    int actual = mmb_function_table_hash(m_program, name, &hash);
-
-    EXPECT_EQ(0, actual);
-    EXPECT_STREQ("FOO", name);
-    EXPECT_EQ(503, hash);
-
-    sprintf(m_program, "bar");
-    actual = mmb_function_table_hash(m_program, name, &hash);
-
-    EXPECT_EQ(0, actual);
-    EXPECT_STREQ("BAR", name);
-    EXPECT_EQ(122, hash);
-}
-
-TEST_F(MmBasicCoreTest, FunctionTableHash_GivenMaximumLengthName) {
-    char name[MAXVARLEN + 1];
-    HashValue hash;
-
-    sprintf(m_program, EXAMPLE_MAX_LENGTH_NAME);
-    int actual = mmb_function_table_hash(m_program, name, &hash);
-
-    EXPECT_EQ(0, actual);
-    EXPECT_STREQ(EXAMPLE_MAX_LENGTH_NAME_UC, name);
-    EXPECT_EQ(479, hash);
-}
-
-TEST_F(MmBasicCoreTest, FunctionTableHash_GivenNameTooLong) {
-    char name[MAXVARLEN + 1];
-    HashValue hash;
-
-    sprintf(m_program, "_33_character_name_90123456789012");
-    int actual = mmb_function_table_hash(m_program, name, &hash);
-
-    EXPECT_EQ(-1, actual);
-    EXPECT_STREQ("_33_CHARACTER_NAME_9012345678901", name);
-    EXPECT_EQ(24, hash);
-}
-
-TEST_F(MmBasicCoreTest, FunctionTablePrepare) {
-    sprintf(m_program,
-            "# foo\n"
-            "#\n"
-            "# bar\n"
-            "#\n");
-    subfun[0] = m_program;
-    subfun[1] = m_program + 8;
-    subfun[2] = NULL;
-
-    mmb_function_table_prepare(true);
-
-    EXPECT_EQ(2, mmb_function_table_size());
-    EXPECT_STREQ("", funtbl[0].name);
-    EXPECT_EQ(0, funtbl[0].index);
-    EXPECT_STREQ("BAR", funtbl[122].name);
-    EXPECT_EQ(1, funtbl[122].index);
-    EXPECT_STREQ("FOO", funtbl[503].name);
-    EXPECT_EQ(0, funtbl[503].index);
-}
-
-TEST_F(MmBasicCoreTest, FunctionTablePrepare_GivenNameTooLong) {
-    sprintf(m_program,
-            "# name_32_characters_xxxxxxxxxxxxx\n"
-            "#\n"
-            "# name_33_characters_zzzzzzzzzzzzzz\n"
-            "#\n");
-    subfun[0] = m_program;
-    subfun[1] = m_program + 37;
-    subfun[2] = NULL;
-
-    mmb_function_table_prepare(true);
-
-    EXPECT_EQ(2, mmb_function_table_size());
-    EXPECT_STREQ("", funtbl[0].name);
-    EXPECT_EQ(0, funtbl[0].index);
-    EXPECT_STREQ("NAME_32_CHARACTERS_XXXXXXXXXXXXX", funtbl[308].name);
-    EXPECT_EQ(0, funtbl[308].index);
-    EXPECT_STREQ("NAME_33_CHARACTERS_ZZZZZZZZZZZZZ", funtbl[431].name);
-    EXPECT_EQ(1, funtbl[431].index);
-    EXPECT_STREQ("SUB/FUNCTION name too long", error_msg);
-}
-
-TEST_F(MmBasicCoreTest, FunctionTablePrepare_GivenDuplicateName) {
-    sprintf(m_program,
-            "# foo\n"
-            "#\n"
-            "# fOo\n"
-            "#\n");
-    subfun[0] = m_program;
-    subfun[1] = m_program + 8;
-    subfun[2] = NULL;
-
-    mmb_function_table_prepare(true);
-
-    EXPECT_EQ(1, mmb_function_table_size());
-    EXPECT_STREQ("", funtbl[0].name);
-    EXPECT_EQ(0, funtbl[0].index);
-    EXPECT_STREQ("FOO", funtbl[503].name);
-    EXPECT_EQ(0, funtbl[503].index);
-    EXPECT_STREQ("Duplicate SUB/FUNCTION declaration", error_msg);
-}
-
-TEST_F(MmBasicCoreTest, FunctionTableFind) {
-    sprintf(m_program,
-            "# foo\n"
-            "#\n"
-            "# bar\n"
-            "#\n");
-    subfun[0] = m_program;
-    subfun[1] = m_program + 8;
-    subfun[2] = NULL;
-
-    mmb_function_table_prepare(true);
-
-    EXPECT_EQ(0,  mmb_function_table_find("Foo("));
-    EXPECT_EQ(1,  mmb_function_table_find("BAr "));
-    EXPECT_EQ(-1, mmb_function_table_find("WOMBAT("));
-    EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(-1, mmb_function_table_find("name_33_characters_zzzzzzzzzzzzzz"));
-    EXPECT_STREQ("SUB/FUNCTION name too long", error_msg);
-}
 
 TEST_F(MmBasicCoreTest, FindVar_GivenNoExplicitType) {
     sprintf(m_program, "foo = 1");
@@ -547,7 +414,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfGlobal_GivenSubFunWithSameName) {
     subfun[0] = m_program;
     subfun[1] = m_program + 8;
     subfun[2] = NULL;
-    mmb_function_table_prepare(true);
+    funtbl_prepare(true);
 
     error_msg[0] = '\0';
     void *actual = findvar(m_program + 16, V_DIM_VAR);
@@ -569,7 +436,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfLocal_GivenSubFunWithSameName) {
     subfun[0] = m_program;
     subfun[1] = m_program + 8;
     subfun[2] = NULL;
-    mmb_function_table_prepare(true);
+    funtbl_prepare(true);
 
     error_msg[0] = '\0';
     LocalIndex = 3;

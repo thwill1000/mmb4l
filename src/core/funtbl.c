@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-mmbasic-core-xtra.c
+funtbl.c
 
 Copyright 2011-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Hardware_Includes.h"
 #include "MMBasic_Includes.h"
 #include "FunTable.h"
-#include "mmbasic_core_xtra.h"
+#include "funtbl.h"
 
 #include <stddef.h>
 
@@ -57,14 +57,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern struct s_funtbl funtbl[MAXSUBFUN];
 
-void mmb_function_table_clear() {
+void funtbl_clear() {
     memset(funtbl, 0, sizeof(funtbl));
 }
 
-void mmb_function_table_prepare(bool abort_on_error) {
+void funtbl_prepare(bool abort_on_error) {
     char name[MAXVARLEN + 1];
 
-    mmb_function_table_clear();
+    funtbl_clear();
 
     for (size_t ii = 0; ii < MAXSUBFUN && subfun[ii]; ++ii) {
         const char *p = subfun[ii];  // p is pointing at the SUB/FUNCTION keyword.
@@ -72,7 +72,7 @@ void mmb_function_table_prepare(bool abort_on_error) {
         skipspace(p);                // p1 is pointing at the beginning of the SUB/FUNCTION name.
 
         HashValue hash;
-        if (mmb_function_table_hash(p, name, &hash) != 0 && abort_on_error) {
+        if (funtbl_hash(p, name, &hash) != 0 && abort_on_error) {
             error("SUB/FUNCTION name too long");
         }
 
@@ -91,13 +91,13 @@ void mmb_function_table_prepare(bool abort_on_error) {
     }
 }
 
-void mmb_function_table_dump() {
+void funtbl_dump() {
     for (int ii = 0; ii < MAXSUBFUN; ++ii) {
         if (funtbl[ii].name[0]) printf("[%d] %s, %d\n", ii, funtbl[ii].name, funtbl[ii].index);
     }
 }
 
-size_t mmb_function_table_size() {
+size_t funtbl_size() {
     size_t sz = 0;
     for (int ii = 0; ii < MAXSUBFUN; ++ii) {
         if (funtbl[ii].name[0]) sz++;
@@ -105,10 +105,10 @@ size_t mmb_function_table_size() {
     return sz;
 }
 
-int mmb_function_table_find(const char *p) {
+int funtbl_find(const char *p) {
     char name[MAXVARLEN + 1] = { 0 };
     HashValue hash;
-    if (mmb_function_table_hash(p, name, &hash) != 0) {
+    if (funtbl_hash(p, name, &hash) != 0) {
         error("SUB/FUNCTION name too long");
         return -1;
     }
@@ -121,7 +121,7 @@ int mmb_function_table_find(const char *p) {
     return -1;
 }
 
-int mmb_function_table_hash(const char *p, char *name, HashValue* hash) {
+int funtbl_hash(const char *p, char *name, HashValue* hash) {
     int namelen = 0;
     *hash = FNV_OFFSET_BASIS;
     while (isnamechar(*p)) {

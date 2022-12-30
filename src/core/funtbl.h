@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-mmbasic-core-xtra.h
+funtbl.h
 
 Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,16 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMBASIC_CORE_XTRA)
-#define MMBASIC_CORE_XTRA
+#if !defined(FUNTBL_H)
+#define FUNTBL_H
 
 #include "../common/hash.h"
 
-void mmb_function_table_clear();
-void mmb_function_table_dump();
-int mmb_function_table_find(const char *p);
-void mmb_function_table_prepare(bool abort_on_error);
-size_t mmb_function_table_size();
+void funtbl_clear();
+void funtbl_dump();
+int funtbl_find(const char *p);
+void funtbl_prepare(bool abort_on_error);
+size_t funtbl_size();
 
 /**
  * Calculates hash for a function table entry.
@@ -64,6 +64,6 @@ size_t mmb_function_table_size();
  *                   -1 if the name was too long in which case the value
  *                   copied to \p pname will be truncated.
  */
-int mmb_function_table_hash(const char *p, char *name, HashValue* hash);
+int funtbl_hash(const char *p, char *name, HashValue* hash);
 
-#endif // #if !defined(MMBASIC_CORE_XTRA)
+#endif // #if !defined(FUNTBL_H)

@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Hardware_Includes.h"
 #include "MMBasic_Includes.h"
 #include "FunTable.h"
-#include "mmbasic_core_xtra.h"
+#include "funtbl.h"
 #include "../common/parse.h"
 #include "../common/variables.h"
 
@@ -365,7 +365,7 @@ void MIPS16 PrepareProgram(int ErrAbort) {
     if (Option.ProgFlashSize != PROG_FLASH_SIZE)
         NbrFuncts = PrepareProgramExt(ProgMemory + Option.ProgFlashSize, 0, (unsigned char **) &CFunctionLibrary, ErrAbort);
     PrepareProgramExt(ProgMemory, NbrFuncts, (unsigned char **) &CFunctionFlash, ErrAbort);
-    mmb_function_table_prepare(ErrAbort);
+    funtbl_prepare(ErrAbort);
 }
 
 
@@ -416,7 +416,7 @@ int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int 
 int FindSubFun(const char *p, int type) {
 
     // TODO: 'type' is ignored - copied from the PicoMite.
-    return mmb_function_table_find(p);
+    return funtbl_find(p);
 
 #if 0
     const char *p1, *p2;
@@ -1835,7 +1835,7 @@ void *findvar(const char *p, int action) {
             vtype = DefaultType;
     }
 
-    // TODO: this should be using mmb_function_table_find()
+    // TODO: this should be using funtbl_find()
     // Now scan the sub/fun table to make sure that there is not a sub/fun with the same name.
     if (!(action & V_FUNCT)) {                                      // don't do this if we are defining the local variable for a function name
         for (int i = 0; i < MAXSUBFUN && subfun[i] != NULL; i++) {
