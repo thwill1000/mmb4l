@@ -95,7 +95,7 @@ protected:
 
 TEST_F(MmBasicCoreTest, FunctionTableHash) {
     char name[MAXVARLEN + 1];
-    HASH_TYPE hash;
+    HashValue hash;
 
     sprintf(m_program, "foo");
     int actual = mmb_function_table_hash(m_program, name, &hash);
@@ -114,7 +114,7 @@ TEST_F(MmBasicCoreTest, FunctionTableHash) {
 
 TEST_F(MmBasicCoreTest, FunctionTableHash_GivenMaximumLengthName) {
     char name[MAXVARLEN + 1];
-    HASH_TYPE hash;
+    HashValue hash;
 
     sprintf(m_program, "_32_character_name_9012345678901");
     int actual = mmb_function_table_hash(m_program, name, &hash);
@@ -126,7 +126,7 @@ TEST_F(MmBasicCoreTest, FunctionTableHash_GivenMaximumLengthName) {
 
 TEST_F(MmBasicCoreTest, FunctionTableHash_GivenNameTooLong) {
     char name[MAXVARLEN + 1];
-    HASH_TYPE hash;
+    HashValue hash;
 
     sprintf(m_program, "_33_character_name_90123456789012");
     int actual = mmb_function_table_hash(m_program, name, &hash);

@@ -58,7 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern struct s_funtbl funtbl[MAXSUBFUN];
 
 void mmb_function_table_clear() {
-    memset(funtbl, 0, sizeof(struct s_funtbl) * MAXSUBFUN);
+    memset(funtbl, 0, sizeof(funtbl));
 }
 
 void mmb_function_table_prepare(bool abort_on_error) {
@@ -71,7 +71,7 @@ void mmb_function_table_prepare(bool abort_on_error) {
         p++;
         skipspace(p);                // p1 is pointing at the beginning of the SUB/FUNCTION name.
 
-        HASH_TYPE hash;
+        HashValue hash;
         if (mmb_function_table_hash(p, name, &hash) != 0 && abort_on_error) {
             error("SUB/FUNCTION name too long");
         }
@@ -107,7 +107,7 @@ size_t mmb_function_table_size() {
 
 int mmb_function_table_find(const char *p) {
     char name[MAXVARLEN + 1] = { 0 };
-    HASH_TYPE hash;
+    HashValue hash;
     if (mmb_function_table_hash(p, name, &hash) != 0) {
         error("SUB/FUNCTION name too long");
         return -1;
@@ -121,7 +121,7 @@ int mmb_function_table_find(const char *p) {
     return -1;
 }
 
-int mmb_function_table_hash(const char *p, char *name, HASH_TYPE* hash) {
+int mmb_function_table_hash(const char *p, char *name, HashValue* hash) {
     int namelen = 0;
     *hash = FNV_OFFSET_BASIS;
     while (isnamechar(*p)) {

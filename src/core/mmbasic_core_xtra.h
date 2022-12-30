@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMBASIC_CORE_XTRA)
 #define MMBASIC_CORE_XTRA
 
-typedef uint32_t HASH_TYPE;
+#include "../common/hash.h"
 
 void mmb_function_table_clear();
 void mmb_function_table_dump();
@@ -64,6 +64,6 @@ size_t mmb_function_table_size();
  *                   -1 if the name was too long in which case the value
  *                   copied to \p pname will be truncated.
  */
-int mmb_function_table_hash(const char *p, char *name, HASH_TYPE* hash);
+int mmb_function_table_hash(const char *p, char *name, HashValue* hash);
 
 #endif // #if !defined(MMBASIC_CORE_XTRA)
