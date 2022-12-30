@@ -1926,26 +1926,24 @@ void *findvar(const char *p, int action) {
             (vtype & T_STR) ? slen : 0);
     VarIndex = var_idx;
     switch (var_idx) {
-        case -2: {
+        case -2:
             error("Dimensions");
             return NULL;
-        }
 
-        case -1: {
+        case -1:
             ERROR_OUT_OF_MEMORY;  // TODO: "Too many variables".
             return NULL;
-        }
 
-        default: {
-            if (vartbl[var_idx].dims[0] == 0) {
-                if (vartbl[var_idx].type & T_INT) {
-                    return &(vartbl[var_idx].val.i);
-                } else if (vartbl[var_idx].type & T_NBR) {
-                    return &(vartbl[var_idx].val.f);
-                }
+        default:
+            if (vartbl[var_idx].dims[0] != 0) {
+                return vartbl[var_idx].val.s;
+            } else if (vartbl[var_idx].type & T_INT) {
+                return &(vartbl[var_idx].val.i);
+            } else if (vartbl[var_idx].type & T_NBR) {
+                return &(vartbl[var_idx].val.f);
+            } else {
+                return vartbl[var_idx].val.s;
             }
-            return vartbl[var_idx].val.s;
-        }
     }
 }
 
