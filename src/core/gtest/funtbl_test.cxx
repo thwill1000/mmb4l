@@ -8,7 +8,6 @@
 
 extern "C" {
 
-#include "../FunTable.h"
 #include "../funtbl.h"
 
 char error_msg[256];

@@ -45,7 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(FUNTBL_H)
 #define FUNTBL_H
 
+#include "../Configuration.h"
 #include "../common/hash.h"
+
+struct s_funtbl {
+    char name[MAXVARLEN + 1];
+    uint32_t index;
+};
 
 void funtbl_clear();
 void funtbl_dump();
