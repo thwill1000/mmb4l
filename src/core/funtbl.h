@@ -48,10 +48,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Configuration.h"
 #include "../common/hash.h"
 
+#include <stdbool.h>
+
 struct s_funtbl {
-    char name[MAXVARLEN + 1];
-    uint32_t index;
+    char name[MAXVARLEN + 1];  // SUB/FUNCTION name.
+    uint32_t index;            // Index into subfun[].
 };
+
+/** Indexes into this table are hashes of the SUB/FUNCTION names. */
+extern struct s_funtbl funtbl[MAXSUBFUN];
+
+/** Table of pointers to SUBroutines and FUNCTIONs in the program memory. */
+extern const char *subfun[MAXSUBFUN];
 
 void funtbl_clear();
 void funtbl_dump();

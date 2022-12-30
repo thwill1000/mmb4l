@@ -54,7 +54,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MAXSUBHASH        MAXSUBFUN
 
-extern struct s_funtbl funtbl[MAXSUBFUN];
+struct s_funtbl funtbl[MAXSUBFUN];
+const char *subfun[MAXSUBFUN];
 
 void funtbl_clear() {
     memset(funtbl, 0, sizeof(funtbl));

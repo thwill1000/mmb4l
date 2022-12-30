@@ -221,6 +221,7 @@ add_executable(
   src/common/mmresult.c
   src/common/parse.c
   src/common/variables.c
+  src/core/funtbl.c
   src/core/MMBasic.c
 )
 

@@ -16,10 +16,6 @@ void error_throw_legacy(const char *msg, ...) {
     strcpy(error_msg, msg);
 }
 
-// Declared in "MMBasic.c"
-struct s_funtbl funtbl[MAXSUBFUN];
-const char *subfun[MAXSUBFUN];
-
 } // extern "C"
 
 #define EXAMPLE_MAX_LENGTH_NAME     "_32_character_name_9012345678901"

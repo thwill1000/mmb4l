@@ -75,10 +75,6 @@ int TraceBuffIndex;
 const char *TraceBuff[TRACE_BUFF_SIZE];
 int TraceOn;
 
-// Defined in "core/funtbl.c"
-int funtbl_find(const char *p) { return -1; }
-void funtbl_prepare(bool abort_on_error) { }
-
 // Defined in "core/Operators.c"
 void op_add(void) {
     if (targ & T_NBR) {

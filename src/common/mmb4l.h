@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Version.h"
 #include "../Configuration.h"
 #include "../core/MMBasic.h"
+#include "../core/funtbl.h"
 #include "../core/VarTable.h"
 #include "error.h"
 #include "memory.h"

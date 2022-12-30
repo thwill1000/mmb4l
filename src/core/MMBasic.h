@@ -187,7 +187,6 @@ extern int MMerrno;
 extern char MMErrMsg[MAXERRMSG];                // array holding the error msg
 #endif
 
-extern const char *subfun[];                    // Table of subroutines and functions built when the program starts running
 extern char CurrentSubFunName[MAXVARLEN + 1];   // the name of the current sub or fun
 extern char CurrentInterruptName[MAXVARLEN + 1];// the name of the current interrupt function
 

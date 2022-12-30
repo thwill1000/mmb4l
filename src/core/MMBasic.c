@@ -104,7 +104,6 @@ const struct s_tokentbl tokentbl[] = {
 // these are initialised at startup
 int CommandTableSize, TokenTableSize;
 
-struct s_funtbl funtbl[MAXSUBFUN];                                  // this table stores all the subroutines/functions.
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables
 #if !defined(__mmb4l__)
@@ -112,7 +111,6 @@ char OptionExplicit;                                                // used to f
 char DefaultType;                                                   // the default type if a variable is not specifically typed
 #endif
 
-const char *subfun[MAXSUBFUN];                                      // table used to locate all subroutines and functions
 char CurrentSubFunName[MAXVARLEN + 1];                              // the name of the current sub or fun
 char CurrentInterruptName[MAXVARLEN + 1];                           // the name of the current interrupt function
 
