@@ -73,6 +73,9 @@ int TraceOn;
 
 } // extern "C"
 
+#define EXAMPLE_MAX_LENGTH_NAME     "_32_character_name_9012345678901"
+#define EXAMPLE_MAX_LENGTH_NAME_UC  "_32_CHARACTER_NAME_9012345678901"
+
 class MmBasicCoreTest : public ::testing::Test {
 
 protected:
@@ -116,11 +119,11 @@ TEST_F(MmBasicCoreTest, FunctionTableHash_GivenMaximumLengthName) {
     char name[MAXVARLEN + 1];
     HashValue hash;
 
-    sprintf(m_program, "_32_character_name_9012345678901");
+    sprintf(m_program, EXAMPLE_MAX_LENGTH_NAME);
     int actual = mmb_function_table_hash(m_program, name, &hash);
 
     EXPECT_EQ(0, actual);
-    EXPECT_STREQ("_32_CHARACTER_NAME_9012345678901", name);
+    EXPECT_STREQ(EXAMPLE_MAX_LENGTH_NAME_UC, name);
     EXPECT_EQ(479, hash);
 }
 
@@ -450,9 +453,9 @@ TEST_F(MmBasicCoreTest, FindVar_GivenDimGlobalInSubroutine) {
     sprintf(m_program, "foo = 1");
     void *actual = findvar(m_program, V_DIM_VAR);
 
+    EXPECT_STREQ("", error_msg);
     EXPECT_EQ(&vartbl[0].val, actual);
     EXPECT_EQ(0, VarIndex);
-    EXPECT_STREQ("", error_msg);
     EXPECT_EQ(0, vartbl[0].level);
     EXPECT_STREQ("FOO", vartbl[0].name);
     EXPECT_EQ(T_NBR, vartbl[0].type);
@@ -487,41 +490,42 @@ TEST_F(MmBasicCoreTest, FindVar_GivenLocal_GivenLocalExists) {
 
 TEST_F(MmBasicCoreTest, FindVar_GivenGlobalAndLocalOfSameName) {
     sprintf(m_program, "foo = 1");
-    void *global_var = findvar(m_program, V_FIND); // Implicit creation of global.
+    void *global_var = findvar(m_program, V_DIM_VAR); // Explicit creation of global.
     LocalIndex = 2;
     void *local_var = findvar(m_program, V_LOCAL); // Explicit creation of local.
+    EXPECT_EQ(2, varcnt);
 
     // Global scope.
     error_msg[0] = '\0';
     LocalIndex = 0;
     void *actual = findvar(m_program, V_FIND);
+    EXPECT_STREQ("", error_msg);
     EXPECT_EQ(global_var, actual);
     EXPECT_EQ(0, VarIndex);
-    EXPECT_STREQ("", error_msg);
 
     // Level 1 scope.
     error_msg[0] = '\0';
     LocalIndex = 1;
     actual = findvar(m_program, V_FIND);
+    EXPECT_STREQ("", error_msg);
     EXPECT_EQ(global_var, actual);
     EXPECT_EQ(0, VarIndex);
-    EXPECT_STREQ("", error_msg);
 
     // Level 2 scope.
     error_msg[0] = '\0';
     LocalIndex = 2;
     actual = findvar(m_program, V_FIND);
+    EXPECT_STREQ("", error_msg);
     EXPECT_EQ(local_var, actual);
     EXPECT_EQ(1, VarIndex);
-    EXPECT_STREQ("", error_msg);
 
     // Level 3 scope.
     error_msg[0] = '\0';
     LocalIndex = 3;
     actual = findvar(m_program, V_FIND);
+    EXPECT_STREQ("", error_msg);
     EXPECT_EQ(global_var, actual);
     EXPECT_EQ(0, VarIndex);
-    EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(MmBasicCoreTest, FindVar_GivenFindingUndeclaredVariable_GivenExplicitOn) {
