@@ -1716,59 +1716,35 @@ void *findvar(const char *p, int action) {
         }
     }
 
-    // we now have the variable name and, if it is an array, the parameters
-    // search the table looking for a match
-    // we exit the search with:  i  being the index of the variable and  tmp  the index if we are in a sub/fun (otherwise -1)
-    //
-    // If we ARE NOT in a sub/fun  i < varcnt    means that a previously created variable was found
-    //                             i >= varcnt   means that no matching variable was found
-    //                             tmp           will always be -1
-    //
-    // If we ARE in a sub/fun      tmp           will be the index of a matching global variable (or -1 if no global found)
-    //                             i < varcnt    means that a local variable was found
-    //                             i >= varcnt   a local variable was not found (in that case check tmp which might have the index of a global)
-    //
-    // In either case              ifree         will contain the index of a free slot which can be used if we need to create the variable
-
-    int global_idx, i, tmp, var_idx;
-    result = variables_find(name, LocalIndex, &var_idx, &global_idx);
-    switch (result) {
-        case kOk:
-            i = var_idx;
-            tmp = -1;
-            break;
-        case kVariableNotFound:
-            i = varcnt;
-            tmp = LocalIndex > 0 ? global_idx : -1;
-            break;
-        default:
-            error_throw(result);
-            return NULL;
+    // Check for an existing variable.
+    int var_idx = -1;
+    {
+        int global_idx = -1;
+        result = variables_find(name, LocalIndex, &var_idx, &global_idx);
+        switch (result) {
+            case kOk:
+                break;
+            case kVariableNotFound:
+                // If we are not explicitly declaring a LOCAL variable then use a
+                // GLOBAL variable if we found one.
+                if (!(action & V_LOCAL)) var_idx = global_idx;
+                break;
+            default:
+                error_throw(result);
+                return NULL;
+        }
     }
-    i = var_idx == -1 ? varcnt : var_idx;
 
-    if (action & V_LOCAL) {
-        // if we declared the variable as LOCAL within a sub/fun and an existing local was found
-        if (i < varcnt) {
+    if (var_idx >= 0 && var_idx < varcnt) {  // We found an existing variable.
+
+        // Are we trying to explicitly declare the same variable (DIM or LOCAL)
+        // at the same scope ?
+        if ((action & V_LOCAL) || (action & V_DIM_VAR)) {
             error("$ already declared", name);
             return NULL;
         }
-    } else if (action & V_DIM_VAR) {
-        // if are using DIM to declare a global variable and an existing global variable was found
-        if (i < varcnt || tmp >= 0) {
-            error("$ already declared", name);
-            return NULL;
-        }
-    } else
-        // we are not declaring the variable
-        // if the variable was not found and there is a global - we must be in a sub so use the global
-        if (i >= varcnt && tmp >= 0) i = tmp;                       // use the global if it was found and a local was not
 
-    // if we found an existing and matching variable
-    // set the global VarIndex indicating the index in the table
-    if (i < varcnt && *vartbl[i].name != 0) {
-        var_idx = i;
-        VarIndex = var_idx;
+        VarIndex = var_idx;  // Set the global VarIndex.
 
         // Check that the dimensions match.
         {
