@@ -63,7 +63,14 @@ extern const char *subfun[MAXSUBFUN];
 
 void funtbl_clear();
 void funtbl_dump();
+
+/**
+ * @brief  Finds a FUNCTION/SUBroutine by name in the function table.
+ *
+ * @return  index of the function in subfun[], or -1 if it was not found.
+ */
 int funtbl_find(const char *p);
+
 void funtbl_prepare(bool abort_on_error);
 size_t funtbl_size();
 

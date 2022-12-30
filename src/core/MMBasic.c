@@ -1832,24 +1832,13 @@ void *findvar(const char *p, int action) {
             vtype = DefaultType;
     }
 
-    // TODO: this should be using funtbl_find()
-    // Now scan the sub/fun table to make sure that there is not a sub/fun with the same name.
-    if (!(action & V_FUNCT)) {                                      // don't do this if we are defining the local variable for a function name
-        for (int i = 0; i < MAXSUBFUN && subfun[i] != NULL; i++) {
-            const char *x = subfun[i];                              // point to the command token
-            x++;
-            skipspace(x);                                           // point to the identifier
-            const char *s = name;                                   // point to the new variable
-            if (*s != toupper(*x)) continue;                        // quick first test
-            while (1) {
-                if (!isnamechar(*s) && !isnamechar(*x)) {
-                    error("A sub/fun has the same name: $", name);
-                    return NULL;
-                }
-                if (*s != toupper(*x) || *s == 0 || !isnamechar(*x) || s - name >= MAXVARLEN) break;
-                s++;
-                x++;
-            }
+    // Check the sub/fun table to make sure that there is not a sub/fun with the same name.
+    // Don't do this if we are defining the local variable for a function name.
+    if (!(action & V_FUNCT)) {
+        int fun_idx = funtbl_find(name);
+        if (fun_idx != -1) {
+            error("A sub/fun has the same name: $", name);
+            return NULL;
         }
     }
 

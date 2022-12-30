@@ -77,6 +77,7 @@ protected:
         variables_init_called = false;
         InitBasic();
         ClearRuntime();
+        funtbl_clear(); // TODO: remove this
         error_msg[0] = '\0';
         m_program[0] = '\0';
         VarIndex = 999;
@@ -452,8 +453,10 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfLocal_GivenSubFunWithSameName) {
 TEST_F(MmBasicCoreTest, FindVar_GivenDim_ReusesEmptySlot) {
     sprintf(m_program, "foo = ...");
     (void) findvar(m_program, V_DIM_VAR);
+    EXPECT_EQ(0, VarIndex);
     sprintf(m_program, "bar = ...");
     (void) findvar(m_program, V_DIM_VAR);
+    EXPECT_EQ(1, VarIndex);
 
     EXPECT_STREQ("FOO", vartbl[0].name);
     EXPECT_STREQ("BAR", vartbl[1].name);
