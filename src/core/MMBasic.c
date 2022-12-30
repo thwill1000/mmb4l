@@ -1640,7 +1640,6 @@ void *findvar(const char *p, int action) {
     for (i = 0; i < MAXDIM; i++) dim[i] = 0;
 
     char name[MAXVARLEN + 1] = {0};
-//    memset(name, '\0', MAXVARLEN + 1);
     MmResult result = parse_name(&p, name);
     switch (result) {
         case kSyntax:
@@ -1650,9 +1649,6 @@ void *findvar(const char *p, int action) {
             error("Variable name too long");
             return NULL;
     }
-
-    int namelen = strlen(name);
-    while (namelen % 4) namelen++;
 
     // check the terminating char and set the type
     if (*p == '$') {
