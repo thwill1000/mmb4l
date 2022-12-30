@@ -1767,13 +1767,13 @@ void *findvar(const char *p, int action) {
     // if we found an existing and matching variable
     // set the global VarIndex indicating the index in the table
     if (i < varcnt && *vartbl[i].name != 0) {
-        int vindex = i;
-        VarIndex = vindex;
+        var_idx = i;
+        VarIndex = var_idx;
 
         // Check that the dimensions match.
         {
             int i;
-            for (i = 0; i < MAXDIM && vartbl[vindex].dims[i] != 0; i++) ;
+            for (i = 0; i < MAXDIM && vartbl[var_idx].dims[i] != 0; i++) ;
             if (dnbr == -1) {
                 if (i == 0) {
                     error("Array dimensions");
@@ -1788,25 +1788,25 @@ void *findvar(const char *p, int action) {
         }
 
         if (vtype == T_NOTYPE) {
-            if (!(vartbl[vindex].type & (DefaultType | T_IMPLIED))) {
+            if (!(vartbl[var_idx].type & (DefaultType | T_IMPLIED))) {
                 error("$ already declared", name);
                 return NULL;
             }
         } else {
-            if (!(vartbl[vindex].type & vtype)) {
+            if (!(vartbl[var_idx].type & vtype)) {
                 error("$ already declared", name);
                 return NULL;
             }
         }
 
         // if it is a non arrayed variable or an empty array it is easy, just calculate and return a pointer to the value
-        if (dnbr == -1 || vartbl[vindex].dims[0] == 0) {
-            if (dnbr == -1 || vartbl[vindex].type & (T_PTR | T_STR)) {
-                return vartbl[vindex].val.s;                        // if it is a string or pointer just return the pointer to the data
-            } else if (vartbl[vindex].type & (T_INT)) {
-                return &(vartbl[vindex].val.i);                     // must be an integer, point to its value
+        if (dnbr == -1 || vartbl[var_idx].dims[0] == 0) {
+            if (dnbr == -1 || vartbl[var_idx].type & (T_PTR | T_STR)) {
+                return vartbl[var_idx].val.s;                        // if it is a string or pointer just return the pointer to the data
+            } else if (vartbl[var_idx].type & (T_INT)) {
+                return &(vartbl[var_idx].val.i);                     // must be an integer, point to its value
             } else {
-                return &(vartbl[vindex].val.f);                     // must be a straight number (float), point to its value
+                return &(vartbl[var_idx].val.f);                     // must be a straight number (float), point to its value
             }
         }
 
@@ -1819,7 +1819,7 @@ void *findvar(const char *p, int action) {
             return NULL;
         }
         for (int i = 0; i < dnbr; i++) {
-            if (dim[i] > vartbl[vindex].dims[i] || dim[i] < OptionBase) {
+            if (dim[i] > vartbl[var_idx].dims[i] || dim[i] < OptionBase) {
                 error("Index out of bounds");
                 return NULL;
             }
@@ -1829,16 +1829,16 @@ void *findvar(const char *p, int action) {
         int nbr = dim[0] - OptionBase;
         int j = 1;
         for (int i = 1; i < dnbr; i++) {
-            j *= (vartbl[vindex].dims[i - 1] + 1 - OptionBase);
+            j *= (vartbl[var_idx].dims[i - 1] + 1 - OptionBase);
             nbr += (dim[i] - OptionBase) * j;
         }
         // finally return a pointer to the value
-        if (vartbl[vindex].type & T_NBR) {
-            return vartbl[vindex].val.s + (nbr * sizeof(MMFLOAT));
-        } else if (vartbl[vindex].type & T_INT) {
-            return vartbl[vindex].val.s + (nbr * sizeof(MMINTEGER));
+        if (vartbl[var_idx].type & T_NBR) {
+            return vartbl[var_idx].val.s + (nbr * sizeof(MMFLOAT));
+        } else if (vartbl[var_idx].type & T_INT) {
+            return vartbl[var_idx].val.s + (nbr * sizeof(MMINTEGER));
         } else {
-            return vartbl[vindex].val.s + (nbr * (vartbl[vindex].size + 1));
+            return vartbl[var_idx].val.s + (nbr * (vartbl[var_idx].size + 1));
         }
     }
 
