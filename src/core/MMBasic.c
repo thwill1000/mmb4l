@@ -49,8 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Hardware_Includes.h"
 #include "MMBasic_Includes.h"
 #include "funtbl.h"
+#include "vartbl.h"
 #include "../common/parse.h"
-#include "../common/variables.h"
 
 #include <assert.h>
 
@@ -193,7 +193,7 @@ void MIPS16 InitBasic(void) {
     CommandTableSize =  (sizeof(commandtbl)/sizeof(struct s_tokentbl));
     TokenTableSize =  (sizeof(tokentbl)/sizeof(struct s_tokentbl));
 
-    variables_init();
+    vartbl_init();
     ClearProgram();
 
     // load the commonly used tokens
@@ -1717,7 +1717,7 @@ void *findvar(const char *p, int action) {
     int var_idx = -1;
     {
         int global_idx = -1;
-        result = variables_find(name, LocalIndex, &var_idx, &global_idx);
+        result = vartbl_find(name, LocalIndex, &var_idx, &global_idx);
         switch (result) {
             case kOk:
                 break;
@@ -1843,7 +1843,7 @@ void *findvar(const char *p, int action) {
     }
 
     // If we are declaring a new array then the bound of the first dimension must
-    // be greater than OPTION BASE. This isn't caught inside variables_add()
+    // be greater than OPTION BASE. This isn't caught inside vartbl_add()
     // because it uses a value of dim[0] == 0 to mean a scalar variable.
     if (dnbr > 0 && dim[0] <= mmb_options.base) {
         error("Dimensions");
@@ -1880,7 +1880,7 @@ void *findvar(const char *p, int action) {
     }
 
     if (dnbr == -1) dim[0] = -1;  // "empty" array for fun/sub parameters.
-    var_idx = variables_add(
+    var_idx = vartbl_add(
             name,
             vtype | (action & (T_IMPLIED | T_CONST)),
             (action & V_LOCAL) ? LocalIndex : 0,
@@ -2313,7 +2313,7 @@ Various routines to clear memory or the interpreter's state
 // if level is zero to will delete all variables and reset global settings
 void MIPS16 ClearVars(int level) {
 
-    variables_delete_all(level);
+    vartbl_delete_all(level);
 
     // Step through the for...next table and remove any loops at the level or greater
     for (int i = 0; i < forindex; i++) {
@@ -2334,7 +2334,7 @@ void MIPS16 ClearVars(int level) {
     if (level != 0) return;
 
     assert(varcnt == 0);
-    assert(variables_free_idx == 0);
+    assert(vartbl_free_idx == 0);
 
     forindex = 0;
     doindex = 0;

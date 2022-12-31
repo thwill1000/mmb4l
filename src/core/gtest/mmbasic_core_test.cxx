@@ -9,10 +9,10 @@
 extern "C" {
 
 #include "../../Hardware_Includes.h"
-#include "../MMBasic.h"
 #include "../Commands.h"
 #include "../funtbl.h"
-#include "../../common/variables.h"
+#include "../vartbl.h"
+#include "../MMBasic.h"
 
 char error_msg[256];
 
@@ -74,7 +74,7 @@ class MmBasicCoreTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
-        variables_init_called = false;
+        vartbl_init_called = false;
         InitBasic();
         ClearRuntime();
         funtbl_clear(); // TODO: remove this
@@ -461,7 +461,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenDim_ReusesEmptySlot) {
     EXPECT_STREQ("FOO", vartbl[0].name);
     EXPECT_STREQ("BAR", vartbl[1].name);
 
-    variables_delete(0);
+    vartbl_delete(0);
 
     sprintf(m_program, "wombat = ...");
     void *actual = findvar(m_program, V_DIM_VAR);

@@ -9,9 +9,9 @@
 extern "C" {
 
 #include "../../Hardware_Includes.h"
-#include "../../core/MMBasic.h"
 #include "../../core/Commands.h"
-#include "../../common/variables.h"
+#include "../../core/MMBasic.h"
+#include "../../core/vartbl.h"
 
 char error_msg[256];
 
@@ -101,7 +101,7 @@ protected:
     void SetUp() override {
         *m_filename = '\0';
         *m_run_args = '\0';
-        variables_init_called = false;
+        vartbl_init_called = false;
         InitBasic();
         ClearRuntime();
     }

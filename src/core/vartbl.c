@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-variables.c
+vartbl.c
 
 Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,37 +42,37 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "variables.h"
-#include "mmb4l.h"
-#include "hash.h"
+#include "vartbl.h"
+#include "../common/hash.h"
+#include "../common/mmb4l.h"
 
 #include <assert.h>
 #include <string.h>
 
-bool variables_init_called = false;
-VarHashValue variables_hashmap[VARS_HASHMAP_SIZE];
-int variables_free_idx = 0;
+bool vartbl_init_called = false;
+VarHashValue vartbl_hashmap[VARS_HASHMAP_SIZE];
+int vartbl_free_idx = 0;
 int varcnt = 0;
 
-void variables_init() {
-    assert(!variables_init_called);
+void vartbl_init() {
+    assert(!vartbl_init_called);
     varcnt = 0;
-    variables_free_idx = 0;
+    vartbl_free_idx = 0;
     memset(vartbl, 0, MAXVARS * sizeof(struct s_vartbl));
-    memset(variables_hashmap, 0xFF, sizeof(variables_hashmap));
-    variables_init_called = true;
+    memset(vartbl_hashmap, 0xFF, sizeof(vartbl_hashmap));
+    vartbl_init_called = true;
 }
 
-int variables_add(
+int vartbl_add(
         const char *name,
         uint8_t type,
         uint8_t level,
         DIMTYPE* dims,
         uint8_t slen) {
 
-    //printf("variables_add(%s, %d, %d, ...)\n", name, type, level);
+    //printf("vartbl_add(%s, %d, %d, ...)\n", name, type, level);
 
-    assert(variables_init_called);
+    assert(vartbl_init_called);
     assert((type & T_STR) || (slen == 0));
     assert(!(type & T_STR) || (slen > 0));
 
@@ -81,25 +81,25 @@ int variables_add(
     assert(!(type & T_PTR));
 
     // Find a free slot.
-    while (variables_free_idx < varcnt
-            && vartbl[variables_free_idx].type != T_NOTYPE) {
-        variables_free_idx++;
+    while (vartbl_free_idx < varcnt
+            && vartbl[vartbl_free_idx].type != T_NOTYPE) {
+        vartbl_free_idx++;
     }
 
-    //printf("variables_free_idx = %d\n", variables_free_idx);
+    //printf("vartbl_free_idx = %d\n", vartbl_free_idx);
 
-    if (variables_free_idx == MAXVARS) return -1;
+    if (vartbl_free_idx == MAXVARS) return -1;
 
     // In theory verify sufficient variable memory is available and/or allocate
     // more. However in practice MMB4L uses a fixed sized variable table so this
     // is unnecessary.
 #if 0
-    if (variables_free_idx == varcnt) {
+    if (vartbl_free_idx == varcnt) {
         m_alloc(M_VAR, (varcnt + 1) * sizeof(struct s_vartbl));
     }
 #endif
 
-    int var_idx = variables_free_idx;
+    int var_idx = vartbl_free_idx;
 
     // IMPORTANT! This code assumes that the slot in the variable table has
     //            already been zeroed out either during the initialisation
@@ -152,35 +152,35 @@ int variables_add(
 
     // Increment because next time this is called there is no point in
     // looking in a slot we have just used.
-    variables_free_idx++;
+    vartbl_free_idx++;
 
     // If we have used a new slot then we increment 'varcnt'.
-    if (variables_free_idx > varcnt) varcnt++;
+    if (vartbl_free_idx > varcnt) varcnt++;
 
     // Record variable in the hashmap.
     VarHashValue hash = hash_cstring(name, MAXVARLEN) % VARS_HASHMAP_SIZE;
     VarHashValue original_hash = hash;
-    while (variables_hashmap[hash] >= 0) {
+    while (vartbl_hashmap[hash] >= 0) {
         hash = (hash + 1) % VARS_HASHMAP_SIZE;
         if (hash == original_hash) return -3; // Should never happen in production because the map
                                               // size is larger than the maximum numer of variables.
     }
-    variables_hashmap[hash] = var_idx;
+    vartbl_hashmap[hash] = var_idx;
     vartbl[var_idx].hash = hash;
 
     return var_idx;
 }
 
-void variables_delete(int var_idx) {
+void vartbl_delete(int var_idx) {
 
-    assert(variables_init_called);
+    assert(vartbl_init_called);
     assert(var_idx >= 0);
 
     if (var_idx >= varcnt) return;
 
-    //printf("variables_delete(%d = %s)\n", var_idx, vartbl[var_idx].name);
+    //printf("vartbl_delete(%d = %s)\n", var_idx, vartbl[var_idx].name);
 
-    variables_hashmap[vartbl[var_idx].hash] = DELETED_HASH;
+    vartbl_hashmap[vartbl[var_idx].hash] = DELETED_HASH;
 
     // FreeMemory associated with string and array variables unless they are pointers.
     if (((vartbl[var_idx].type & T_STR) || vartbl[var_idx].dims[0] != 0)
@@ -189,12 +189,12 @@ void variables_delete(int var_idx) {
     }
     memset(vartbl + var_idx, 0x0, sizeof(struct s_vartbl));
     if (var_idx == varcnt - 1) varcnt--;
-    if (var_idx < variables_free_idx) variables_free_idx = var_idx;
+    if (var_idx < vartbl_free_idx) vartbl_free_idx = var_idx;
 }
 
-void variables_delete_all(uint8_t level) {
+void vartbl_delete_all(uint8_t level) {
 
-    assert(variables_init_called);
+    assert(vartbl_init_called);
     assert(level >= 0);
 
     // We traverse the table in reverse so that 'varcnt' will be decremented
@@ -202,7 +202,7 @@ void variables_delete_all(uint8_t level) {
     const int original_count = varcnt;
     for (int ii = original_count - 1; ii >= 0; --ii) {
         if (vartbl[ii].level >= level) {
-            variables_delete(ii);
+            vartbl_delete(ii);
         }
     }
 
@@ -210,16 +210,16 @@ void variables_delete_all(uint8_t level) {
     // slots as UNUSED and not just DELETED.
     if (level == 0) {
         assert(varcnt == 0);
-        memset(variables_hashmap, 0xFF, sizeof(variables_hashmap));
+        memset(vartbl_hashmap, 0xFF, sizeof(vartbl_hashmap));
     }
 }
 
-MmResult variables_find(
+MmResult vartbl_find(
         const char *name, uint8_t level, int *var_idx, int *global_idx) {
 
-    assert(variables_init_called);
+    assert(vartbl_init_called);
 
-//    printf("variables_find(\"%s\", %d, ...)\n", name, level);
+//    printf("vartbl_find(\"%s\", %d, ...)\n", name, level);
 
     *var_idx = -1;
     int tmp;  // So we don't have to keep checking if global_idx is NULL or not.
@@ -231,7 +231,7 @@ MmResult variables_find(
     VarHashValue original_hash = hash;
 
     do {
-        *var_idx = variables_hashmap[hash];
+        *var_idx = vartbl_hashmap[hash];
         if (*var_idx == UNUSED_HASH) break;
 
         if (*var_idx != DELETED_HASH) {

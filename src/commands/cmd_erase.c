@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
-#include "../common/variables.h"
+#include "../core/vartbl.h"
 
 #include <string.h>
 
@@ -64,10 +64,10 @@ void cmd_erase(void) {
         p = argv[ii];
         result = parse_name(&p, name);
         if (FAILED(result)) error_throw(result);
-        result = variables_find(name, GLOBAL_VAR, &var_idx, NULL);
+        result = vartbl_find(name, GLOBAL_VAR, &var_idx, NULL);
         switch (result) {
             case kOk:
-                variables_delete(var_idx);
+                vartbl_delete(var_idx);
                 break;
             case kVariableNotFound:
                 error_throw_ex(result, "Cannot find global variable $", name);

@@ -32,11 +32,12 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -Wwrite-s
 set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
 
 set(MMB4L_CORE_SOURCE_FILES
-    src/core/MMBasic.c
-    src/core/funtbl.c
-    src/core/Operators.c
-    src/core/Functions.c
     src/core/Commands.c
+    src/core/Functions.c
+    src/core/funtbl.c
+    src/core/MMBasic.c
+    src/core/Operators.c
+    src/core/vartbl.c
 )
 
 set(MMB4L_COMMANDS_SOURCE_FILES
@@ -149,7 +150,6 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/prompt.c
     src/common/rx_buf.c
     src/common/serial.c
-    src/common/variables.c
     src/common/xmodem.c
 )
 
@@ -220,9 +220,9 @@ add_executable(
   src/common/memory.c
   src/common/mmresult.c
   src/common/parse.c
-  src/common/variables.c
   src/core/funtbl.c
   src/core/MMBasic.c
+  src/core/vartbl.c
 )
 
 target_link_libraries(
@@ -432,9 +432,9 @@ add_executable(
   src/common/memory.c
   src/common/mmresult.c
   src/common/parse.c
-  src/common/variables.c
   src/core/funtbl.c
   src/core/MMBasic.c
+  src/core/vartbl.c
   src/core/gtest/mmbasic_core_test.cxx
 )
 
@@ -449,21 +449,21 @@ target_link_libraries(
 gtest_discover_tests(test_mmbasic_core)
 
 ################################################################################
-# test_variables
+# test_vartbl
 ################################################################################
 
 add_executable(
-  test_variables
-  src/common/variables.c
-  src/common/gtest/variables_test.cxx
+  test_vartbl
+  src/core/vartbl.c
+  src/core/gtest/vartbl_test.cxx
 )
 
 target_link_libraries(
-  test_variables
+  test_vartbl
   gtest_main
   gmock
   gmock_main
   ${GCOV_LINK_LIBRARY}
 )
 
-gtest_discover_tests(test_variables)
+gtest_discover_tests(test_vartbl)

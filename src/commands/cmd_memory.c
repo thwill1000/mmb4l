@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/utility.h"
-#include "../common/variables.h"
+#include "../core/vartbl.h"
 
 #include <stdio.h>
 #include <string.h>

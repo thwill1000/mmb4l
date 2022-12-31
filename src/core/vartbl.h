@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-variables.h
+vartbl.h
 
 Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,11 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_VARIABLES_H)
-#define MMB4L_VARIABLES_H
+#if !defined(MMB4L_VARTBL_H)
+#define MMB4L_VARTBL_H
 
-#include "mmresult.h"
-#include "../core/VarTable.h"
+#include "VarTable.h"
+#include "../common/mmresult.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -57,16 +57,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DELETED_HASH  -2
 
 /**
- * @brief  Has variables_init() been called ?
+ * @brief  Has vartbl_init() been called ?
  */
-extern bool variables_init_called;
+extern bool vartbl_init_called;
 
 /**
  * @brief  Hashmap from a hash of the first 32 characters of the
  *         variable name to the corresponding entry in the \p vartbl.
  *         Empty hash table entries will contain -1.
  */
-extern VarHashValue variables_hashmap[VARS_HASHMAP_SIZE];
+extern VarHashValue vartbl_hashmap[VARS_HASHMAP_SIZE];
 
 /**
  * @brief  Index of the lowest index "potentially" free slot in the
@@ -75,12 +75,12 @@ extern VarHashValue variables_hashmap[VARS_HASHMAP_SIZE];
  * When a free slot is required (for a new variable) the code should
  * start looking at this index by checking if:
  *
- *     vartbl[variables_free_idx].type == T_NOTYPE
+ *     vartbl[vartbl_free_idx].type == T_NOTYPE
  *
- * and then proceed to increment \p variables_free_idx until a free slot
+ * and then proceed to increment \p vartbl_free_idx until a free slot
  * is found.
  */
-extern int variables_free_idx;
+extern int vartbl_free_idx;
 
 /**
  * @brief  Largest index into the variables table.
@@ -90,7 +90,7 @@ extern int varcnt;
 /**
  * @brief  Initialises variables/structures for the variables table.
  */
-void variables_init();
+void vartbl_init();
 
 /**
  * @brief  Adds a variable to the variables table.
@@ -118,7 +118,7 @@ void variables_init();
  *                   in production because the map size is larger than the
  *                   maximum number of variables.
  */
-int variables_add(
+int vartbl_add(
         const char *name,
         uint8_t type,
         uint8_t level,
@@ -130,7 +130,7 @@ int variables_add(
  *
  * @param  var_idx  Index of the variable to delete.
  */
-void variables_delete(int var_idx);
+void vartbl_delete(int var_idx);
 
 /**
  * @brief  Deletes all variables of a given 'level' or above from the
@@ -140,7 +140,7 @@ void variables_delete(int var_idx);
  *                A value of 0 deletes all variables including globals
  *                (which by definition are of level 0).
  */
-void variables_delete_all(uint8_t level);
+void vartbl_delete_all(uint8_t level);
 
 /**
  * @brief  Finds a variable by name in the variables table.
@@ -162,7 +162,7 @@ void variables_delete_all(uint8_t level);
  *                then \p global_idx will be set to the index of the
  *                global variable.
  */
-MmResult variables_find(
+MmResult vartbl_find(
         const char *name, uint8_t level, int *var_idx, int *global_idx);
 
-#endif // #if !defined(MMB4L_VARIABLES_H)
+#endif // #if !defined(MMB4L_VARTBL_H)
