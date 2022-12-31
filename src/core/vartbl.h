@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_VARTBL_H)
 #define MMB4L_VARTBL_H
 
-#include "VarTable.h"
+#include "../Configuration.h"
 #include "../common/mmresult.h"
 
 #include <stdbool.h>
@@ -55,6 +55,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GLOBAL_VAR     0
 #define UNUSED_HASH   -1
 #define DELETED_HASH  -2
+
+// TODO: change to int16_t
+#define DIMTYPE       short int
+#define DIMTYPE_MAX   SHRT_MAX
+
+typedef int16_t VarHashValue;
+
+struct s_vartbl {                                     // structure of the variable table
+    char name[MAXVARLEN];                             // variable's name
+    char type;                                        // its type (T_NBR, T_INT or T_STR)
+    char level;                                       // its subroutine or function level (used to track local variables)
+    DIMTYPE dims[MAXDIM];                             // the dimensions. it is an array if the first dimension is NOT zero
+    unsigned char size;                               // the number of chars to allocate for each element in a string array
+    VarHashValue hash;                                // index into the hash table for the variable
+    union u_val {
+        MMFLOAT f;                                    // the value if it is a float
+        MMINTEGER i;                                  // the value if it is an integer
+        MMFLOAT *fa;                                  // pointer to the allocated memory if it is an array of floats
+        MMINTEGER *ia;                                // pointer to the allocated memory if it is an array of integers
+        char *s;                                      // pointer to the allocated memory if it is a string
+    } __attribute__ ((aligned (8))) val;
+};
 
 /**
  * @brief  Has vartbl_init() been called ?
