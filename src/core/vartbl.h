@@ -78,6 +78,9 @@ struct s_vartbl {                                     // structure of the variab
     } __attribute__ ((aligned (8))) val;
 };
 
+/** Table of variables. */
+extern struct s_vartbl vartbl[MAXVARS];
+
 /**
  * @brief  Has vartbl_init() been called ?
  */

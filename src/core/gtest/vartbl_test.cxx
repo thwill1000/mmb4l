@@ -16,7 +16,6 @@ extern "C" {
 const struct s_vartbl EMPTY_VAR = {};
 
 Options mmb_options;
-struct s_vartbl vartbl[MAXVARS];
 size_t memory[10];
 size_t memory_count;
 

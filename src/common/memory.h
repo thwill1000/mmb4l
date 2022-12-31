@@ -46,7 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMB4L_MEMORY_H
 
 #include "../Configuration.h"
-#include "../core/vartbl.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -93,7 +92,6 @@ uintptr_t get_peek_addr(const char *p);
 #define PAGESPERWORD    ((sizeof(uint32_t) * 8)/PAGEBITS)
 // #define MRoundUp(a)     (((a) + (PAGESIZE - 1)) & (~(PAGESIZE - 1)))// round up to the nearest page size
 
-extern struct s_vartbl vartbl[MAXVARS];
 extern char ProgMemory[];
 
 #endif

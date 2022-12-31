@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 bool vartbl_init_called = false;
+struct s_vartbl vartbl[MAXVARS];
 VarHashValue vartbl_hashmap[VARS_HASHMAP_SIZE];
 int vartbl_free_idx = 0;
 int varcnt = 0;

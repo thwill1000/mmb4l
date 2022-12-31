@@ -63,9 +63,6 @@ uint32_t mmap[MMAP_SIZE];
 // memory for the actual heap
 char MMHeap[HEAP_SIZE];
 
-// memory for the variable table
-struct s_vartbl vartbl[MAXVARS];
-
 // arrays used to track temporary strings
 char *StrTmp[MAXTEMPSTRINGS];           // used to track temporary string space on the heap
 char StrTmpLocalIndex[MAXTEMPSTRINGS];  // used to track the LocalIndex for each temporary string space on the heap
