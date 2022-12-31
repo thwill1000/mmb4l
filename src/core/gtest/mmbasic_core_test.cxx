@@ -307,11 +307,11 @@ TEST_F(MmBasicCoreTest, FindVar_GivenPreviouslyDeclaredWithDifferentType) {
     EXPECT_STREQ("$ already declared", error_msg);
 }
 
-TEST_F(MmBasicCoreTest, FindVar_GivenIllegalName) {
+TEST_F(MmBasicCoreTest, FindVar_GivenInvalidName) {
     sprintf(m_program, "1foo = 1");
     (void) findvar(m_program, V_FIND);
 
-    EXPECT_STREQ("Variable name", error_msg);
+    EXPECT_STREQ("Invalid variable name", error_msg);
     EXPECT_EQ(0, varcnt);
 }
 
@@ -458,21 +458,20 @@ TEST_F(MmBasicCoreTest, FindVar_GivenFindingUndeclaredVariable_GivenExplicitOn) 
     EXPECT_STREQ("$ is not declared", error_msg);
 }
 
-TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfGlobal_GivenSubFunWithSameName) {
+TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfGlobal_GivenFunctionWithSameName) {
+    int fun_idx;
     sprintf(m_program,
             "# foo\n"
             "#\n"
             "# bar\n"
             "#\n"
             "foo = 1");
-    subfun[0] = m_program;
-    subfun[1] = m_program + 8;
-    subfun[2] = NULL;
-    funtbl_prepare(true);
+    funtbl_add("FOO", m_program, &fun_idx);
+    funtbl_add("BAR", m_program + 8, &fun_idx);
 
     error_msg[0] = '\0';
     (void) findvar(m_program + 16, V_DIM_VAR);
-    EXPECT_STREQ("A sub/fun has the same name: $", error_msg);
+    EXPECT_STREQ("A function/subroutine has the same name: $", error_msg);
 
     // With V_FUNCT ... though actually this never happens in production with V_DIM_VAR.
     error_msg[0] = '\0';
@@ -480,22 +479,21 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfGlobal_GivenSubFunWithSameName) {
     EXPECT_STREQ("", error_msg);
 }
 
-TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfLocal_GivenSubFunWithSameName) {
+TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfLocal_GivenFunctionWithSameName) {
+    int fun_idx;
     sprintf(m_program,
             "# foo\n"
             "#\n"
             "# bar\n"
             "#\n"
             "foo = 1");
-    subfun[0] = m_program;
-    subfun[1] = m_program + 8;
-    subfun[2] = NULL;
-    funtbl_prepare(true);
+    funtbl_add("FOO", m_program, &fun_idx);
+    funtbl_add("BAR", m_program + 8, &fun_idx);
 
     error_msg[0] = '\0';
     LocalIndex = 3;
     (void) findvar(m_program + 16, V_LOCAL);
-    EXPECT_STREQ("A sub/fun has the same name: $", error_msg);
+    EXPECT_STREQ("A function/subroutine has the same name: $", error_msg);
 
     // With V_FUNCT.
     error_msg[0] = '\0';
@@ -957,7 +955,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenInvalidFunctionName) {
 
     PrepareProgram(1);
 
-    EXPECT_STREQ("Invalid identifier", error_msg);
+    EXPECT_STREQ("Invalid function/subroutine name", error_msg);
 
     error_msg[0] = '\0';
     PrepareProgram(0); // Should not report error.
@@ -1007,7 +1005,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionNameTooLong) {
 
     PrepareProgram(1);
 
-    EXPECT_STREQ("SUB/FUNCTION name too long", error_msg);
+    EXPECT_STREQ("Function/subroutine name too long", error_msg);
 
     error_msg[0] = '\0';
     PrepareProgram(0);  // Should not report error.
@@ -1023,7 +1021,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenSubWithSameNameAsFunction) {
 
     PrepareProgram(1);
 
-    EXPECT_STREQ("Duplicate SUB/FUNCTION declaration", error_msg);
+    EXPECT_STREQ("Duplicate function/subroutine declaration", error_msg);
 
     error_msg[0] = '\0';
     PrepareProgram(0);  // Should not report error.
@@ -1039,7 +1037,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenTwoFunctionsWithSameNameButDifferent
 
     PrepareProgram(1);
 
-    EXPECT_STREQ("Duplicate SUB/FUNCTION declaration", error_msg);
+    EXPECT_STREQ("Duplicate function/subroutine declaration", error_msg);
 
     error_msg[0] = '\0';
     PrepareProgram(0); // Should not report error.
@@ -1056,7 +1054,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenNameTooLong) {
     sprintf(name, "%sA", MAX_LENGTH_NAME);
     int fun_idx = FindSubFun(name, 1);
 
-    EXPECT_STREQ("SUB/FUNCTION name too long", error_msg);
+    EXPECT_STREQ("Function/subroutine name too long", error_msg);
     EXPECT_EQ(-1, fun_idx);
 }
 

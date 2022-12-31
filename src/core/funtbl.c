@@ -45,54 +45,68 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Hardware_Includes.h"
 #include "MMBasic_Includes.h"
 #include "funtbl.h"
+#include "../common/parse.h"
+#include "../common/utility.h"
 
 #include <stddef.h>
 
-// FNV hash parameters for 32-bit hashes (https://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function)
-#define FNV_PRIME         16777619
-#define FNV_OFFSET_BASIS  2166136261
-
-#define MAXSUBHASH        MAXSUBFUN
-
 struct s_funtbl funtbl[MAXSUBFUN];
 const char *subfun[MAXSUBFUN];
+FunHashValue funtbl_hashmap[FUN_HASHMAP_SIZE];
+size_t funtbl_count = 0;
+
+MmResult funtbl_add(const char *name, const char *code, int *fun_idx) {
+    *fun_idx = -1;
+    if (funtbl_count == MAXSUBFUN) return kTooManyFunctions;
+
+    // Record function in the hashmap.
+    FunHashValue hash = hash_cstring(name, MAXVARLEN) % FUN_HASHMAP_SIZE;
+    FunHashValue original_hash = hash;
+    while (funtbl_hashmap[hash] >= 0) {
+        if (strncmp(funtbl[funtbl_hashmap[hash]].name, name, MAXVARLEN) == 0) {
+            return kDuplicateFunction;
+        }
+        hash = (hash + 1) % FUN_HASHMAP_SIZE;
+        if (hash == original_hash) return kHashmapFull; // Should never happen in production because
+                                                        // the hashmap is larger than the function
+                                                        // table.
+    }
+    funtbl_hashmap[hash] = funtbl_count;
+
+    // Copy a maximum of MAXVARLEN characters,
+    // a maximum length stored name will not be '\0' terminated.
+    strncpy(funtbl[funtbl_count].name, name, MAXVARLEN);
+    funtbl[funtbl_count].code = code;
+    funtbl[funtbl_count].hash = hash;
+    funtbl[funtbl_count].index = funtbl_count;
+
+    *fun_idx = funtbl_count++;
+    return kOk;
+}
 
 void funtbl_clear() {
     memset(funtbl, 0, sizeof(funtbl));
+    // memset(subfun, 0, sizeof(subfun));
+    memset(funtbl_hashmap, 0xFF, sizeof(funtbl_hashmap));
+    funtbl_count = 0;
 }
 
-void funtbl_prepare(bool abort_on_error) {
+MmResult funtbl_prepare(bool abort_on_error) {
+    const char *pname;
+    int fun_idx;
     char name[MAXVARLEN + 1];
 
     funtbl_clear();
 
     for (size_t ii = 0; ii < MAXSUBFUN && subfun[ii]; ++ii) {
-        const char *p = subfun[ii];  // p is pointing at the SUB/FUNCTION keyword.
-        p++;
-        skipspace(p);                // p1 is pointing at the beginning of the SUB/FUNCTION name.
-
-        HashValue hash;
-        if (funtbl_hash(p, name, &hash) != 0) {
-            if (abort_on_error) {
-                error("SUB/FUNCTION name too long");
-            } else {
-                continue;
-            }
-        }
-
-        while (funtbl[hash].name[0]) {
-            if (strcmp(funtbl[hash].name, name) == 0) break;
-            hash++;
-            if (hash == MAXSUBFUN) hash = 0;
-        }
-
-        if (strcmp(funtbl[hash].name, name) == 0) {
-            if (abort_on_error) error("Duplicate SUB/FUNCTION declaration");
-        } else {
-            funtbl[hash].index = ii;
-            strcpy(funtbl[hash].name, name);
-        }
+        pname = subfun[ii] + 1;  // subfun[ii] is pointing at SUB/FUNCTION keyword.
+        skipspace(pname);        // pname is pointing at first characetr of name.
+        MmResult result = parse_name(&pname, name);
+        if (SUCCEEDED(result)) result = funtbl_add(name, subfun[ii], &fun_idx);
+        if (FAILED(result) && abort_on_error) return result;
     }
+
+    return kOk;
 }
 
 void funtbl_dump() {
@@ -109,35 +123,22 @@ size_t funtbl_size() {
     return sz;
 }
 
-MmResult funtbl_find(const char *p, int *fun_idx) {
+MmResult funtbl_find(const char *name, int *fun_idx) {
+    FunHashValue hash = hash_cstring(name, MAXVARLEN) % FUN_HASHMAP_SIZE;
+    FunHashValue original_hash = hash;
+
+    do {
+        *fun_idx = funtbl_hashmap[hash];
+        if (*fun_idx == -1) break;
+
+        // Compare 'name' with referenced 'funtbl' entry.
+        // Both names should be in upper-case, but if they are MAXVARLEN
+        // chars long then they are not NULL terminated.
+        if (strncmp(name, funtbl[*fun_idx].name, MAXVARLEN) == 0) return kOk;
+
+        hash = (hash + 1) % FUN_HASHMAP_SIZE;
+    } while (hash != original_hash);
+
     *fun_idx = -1;
-    char name[MAXVARLEN + 1] = { 0 };
-    HashValue hash;
-    if (funtbl_hash(p, name, &hash) != 0) return kNameTooLong;
-
-    while (funtbl[hash].name[0]) {
-        if (strcmp(funtbl[hash].name, name) == 0) {
-            *fun_idx = funtbl[hash].index;
-            return kOk;
-        }
-        hash = (hash + 1) % MAXSUBFUN;
-    }
-
     return kFunctionNotFound;
-}
-
-int funtbl_hash(const char *p, char *name, HashValue* hash) {
-    int namelen = 0;
-    *hash = FNV_OFFSET_BASIS;
-    while (isnamechar(*p)) {
-        *name = toupper(*p);
-        *hash ^= *name;
-        *hash *= FNV_PRIME;
-        if (++namelen > MAXVARLEN) break; // Which will truncate the name.
-        p++;
-        name++;
-    }
-    *name = '\0';
-    *hash %= MAXSUBHASH; // Scale hash to size of function table.
-    return namelen > MAXVARLEN ? -1 : 0;
 }

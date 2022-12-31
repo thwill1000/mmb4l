@@ -62,13 +62,17 @@ const char *mmresult_to_string(MmResult result) {
         case kInvalidString: return "Invalid string value";
         case kInvalidValue:  return "Invalid value";
         case kUnknownSystemCommand: return "Unknown system command";
-        case kNotAFunction:  return "Not a function";
-        case kNotASubroutine: return "Not a subroutine";
-        case kNotPersistent: return "Invalid for non-persistent option";
-        case kNameTooLong:   return "Name too long";
-        case kUnimplemented: return "Unimplemented function";
-        case kFunctionNotFound: return "Function not found";
-        case kVariableNotFound: return "Variable not found";
-        default:             return "Unknown result code";
+        case kNotAFunction:         return "Not a function";
+        case kNotASubroutine:       return "Not a subroutine";
+        case kNotPersistent:        return "Invalid for non-persistent option";
+        case kNameTooLong:          return "Name too long";
+        case kUnimplemented:        return "Unimplemented function";
+        case kFunctionNotFound:     return "Function not found";
+        case kVariableNotFound:     return "Variable not found";
+        case kTooManyFunctions:     return "Too many functions/subroutines";
+        case kDuplicateFunction:    return "Duplicate function/subroutine declaration";
+        case kHashmapFull:          return "Hashmap full";
+        case kInvalidName:          return "Invalid name";
+        default:                    return "Unknown result code";
     }
 }

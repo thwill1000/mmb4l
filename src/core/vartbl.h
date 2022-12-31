@@ -120,13 +120,12 @@ void vartbl_init();
 /**
  * @brief  Adds a variable to the variables table.
  *
- * Notes:
- *   1. This function makes no effort to detect and report duplicate
- *      or invalid variable names/levels.
- *
- * @param  name   Name for the variable. This is case-sensitive, but
- *                MMB4L should always call it with an UPPER-CASE name.
- *                Only the first 32 characters are used.
+ * @param  name   Name for the variable.
+ *                @warning  This is case-sensitive, but MMB4L should always call
+ *                          it with an UPPER-CASE name.
+ *                @warning  Only the first 32 characters are used.
+ *                @warning  Validity of the name is not checked.
+ *                @warning  Name/level duplication is not checked.
  * @param  type   Type of variable, a logical OR of one or more of:
  *                T_NBR, T_STR, T_INT, T_PTR, T_IMPLIED and T_CONST.
  * @param  level  Subroutine depth for a local variable,
@@ -170,8 +169,10 @@ void vartbl_delete_all(uint8_t level);
 /**
  * @brief  Finds a variable by name in the variables table.
  *
- * @param  name   Name of the variable to find. This is case-sensitive, but
- *                MMB4L should always call it with an UPPER-CASE name.
+ * @param  name   Name of the variable to find.
+ *                @warning  This is case-sensitive, but MMB4L should always call
+ *                          it with an UPPER-CASE name.
+ *                @warning  Only the first 32 characters are used.
  * @param  level  Subroutine depth to find a local variable,
  *                or 0 to find a global variable.
  * @param[out]  var_idx

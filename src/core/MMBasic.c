@@ -374,7 +374,20 @@ void MIPS16 PrepareProgram(int ErrAbort) {
     CFunctionFlash = CFunctionLibrary = NULL;
 #endif
     PrepareProgramExt(ProgMemory, NbrFuncts, (unsigned char **) &CFunctionFlash, ErrAbort);
-    funtbl_prepare(ErrAbort);
+    MmResult result = funtbl_prepare(ErrAbort);
+    switch (result) {
+        case kOk:
+            break;
+        case kInvalidName:
+            error_throw_ex(result, "Invalid function/subroutine name");
+            break;
+        case kNameTooLong:
+            error_throw_ex(result, "Function/subroutine name too long");
+            break;
+        default:
+            error_throw(result);
+            break;
+    }
 }
 
 
@@ -430,8 +443,12 @@ int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int 
  */
 int FindSubFun(const char *p, int type) {
     assert(type > 0 || type < 3);
+
+    char name[MAXVARLEN + 1];
+    MmResult result = parse_name(&p, name);
+
     int fun_idx;
-    MmResult result = funtbl_find(p, &fun_idx);
+    if (result == kOk) result = funtbl_find(name, &fun_idx);
 
     if (result == kOk && type != 2) {
         char actual_type = *subfun[fun_idx];
@@ -448,7 +465,7 @@ int FindSubFun(const char *p, int type) {
         case kFunctionNotFound:
             return fun_idx;
         case kNameTooLong:
-            error_throw_ex(kNameTooLong, "SUB/FUNCTION name too long");
+            error_throw_ex(kNameTooLong, "Function/subroutine name too long");
             return -1;
         default:
             error_throw(result);
@@ -1641,11 +1658,16 @@ void *findvar(const char *p, int action) {
     char name[MAXVARLEN + 1] = {0};
     MmResult result = parse_name(&p, name);
     switch (result) {
-        case kSyntax:
-            error("Variable name");
+        case kOk:
+            break;
+        case kInvalidName:
+            error_throw_ex(result, "Invalid variable name");
             return NULL;
         case kNameTooLong:
-            error("Variable name too long");
+            error_throw_ex(result, "Variable name too long");
+            return NULL;
+        default:
+            error_throw(result);
             return NULL;
     }
 
@@ -1846,10 +1868,16 @@ void *findvar(const char *p, int action) {
     // Don't do this if we are defining the local variable for a function name.
     if (!(action & V_FUNCT)) {
         int fun_idx = -1;
-        (void) funtbl_find(name, &fun_idx);
-        if (fun_idx != -1) {
-            error("A sub/fun has the same name: $", name);
-            return NULL;
+        MmResult result = funtbl_find(name, &fun_idx);
+        switch (result) {
+            case kOk:
+                error_throw_legacy("A function/subroutine has the same name: $", name);
+                return NULL;
+            case kFunctionNotFound:
+                break;
+            default:
+                error_throw(result);
+                return NULL;
         }
     }
 

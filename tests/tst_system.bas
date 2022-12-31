@@ -194,7 +194,7 @@ Sub test_system_getenv()
   ' Given value is STRING literal.
   On Error Skip 1
   System GetEnv "HOME", "FOO"
-  assert_raw_error("Variable name")
+  assert_raw_error("Invalid variable name")
 
   ' Given value is INTEGER.
   On Error Skip 1

@@ -42,8 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(FUNTBL_H)
-#define FUNTBL_H
+#if !defined(MMB4L_FUNTBL_H)
+#define MMB4L_FUNTBL_H
 
 #include "../Configuration.h"
 #include "../common/hash.h"
@@ -51,9 +51,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdbool.h>
 
+typedef int16_t FunHashValue;
+
 struct s_funtbl {
-    char name[MAXVARLEN + 1];  // SUB/FUNCTION name.
-    uint32_t index;            // Index into subfun[].
+    char name[MAXVARLEN];  // Function name; will not be \0 terminated if
+                           // MAXVARLEN characters long.
+    const char *code;      // Pointer to function in the program memory.
+    FunHashValue hash;
+    uint32_t index;        // Obsolete index into subfun[].
 };
 
 /** Indexes into this table are hashes of the SUB/FUNCTION names. */
@@ -62,35 +67,58 @@ extern struct s_funtbl funtbl[MAXSUBFUN];
 /** Table of pointers to SUBroutines and FUNCTIONs in the program memory. */
 extern const char *subfun[MAXSUBFUN];
 
+/**
+ * @brief  Hashmap from a hash of the first 32 characters of the
+ *         function name to the corresponding entry in the \p funtbl.
+ *         Empty hash table entries will contain -1.
+ */
+extern FunHashValue funtbl_hashmap[FUN_HASHMAP_SIZE];
+
+/**
+ * @brief  The number of declared functions (entries in 'funtbl').
+ */
+extern size_t funtbl_count;
+
+/**
+ * @brief  Adds a function to the functions table.
+ *
+ * @param  name   Name for the function.
+ *                @warning  This is case-sensitive, but MMB4L should always call
+ *                          it with an UPPER-CASE name.
+ *                @warning  Only the first 32 characters are used.
+ *                @warning  Validity of the name is not checked.
+ * @param  code   Pointer to the functions declaration in the program memory.
+ * @param[out]  fun_idx  On exit, the index of the new function,
+ *                       or -1 on error.
+ * @return        kOk                - on success.
+ *                kTooManyFunctions  - if the function table is full.
+ *                kDuplicateFunction - if a function of the same name is already
+ *                                     in the table.
+ *                kHashmapFull       - if the function hashmap is full, this
+ *                                     should never happen because the hashmap
+ *                                     is larger than the function table.
+ */
+MmResult funtbl_add(const char *name, const char *code, int *fun_idx);
+
 void funtbl_clear();
 void funtbl_dump();
 
 /**
- * @brief  Finds a FUNCTION/SUBroutine by name in the function table.
+ * @brief  Finds a function by name in the functions table.
  *
- * @param[in]   p        pointer to start of function name.
- * @param[out]  fun_idx  on exit the index of the function subfun[],
- *                       or -1 on failure.
- * @return               kOk               - on success.
- *                       kNameTooLong      - if function name is too long.
- *                       kFunctionNotFound - if function not in table.
+ * @param  name          Name of the function to find.
+ *                       @warning  This is case-sensitive, but MMB4L should
+ *                                 always call it with an UPPER-CASE name.
+ *                       @warning  Only the first 32 characters are used.
+ * @param[out]  fun_idx  On exit, the index of the matching function,
+ *                       or -1 if not found.
+ * @return               kOk               - if the function is found.
+ *                       kFunctionNotFound - if the function is not in the
+ *                                           table.
  */
-MmResult funtbl_find(const char *p, int *fun_idx);
+MmResult funtbl_find(const char *name, int *fun_idx);
 
-void funtbl_prepare(bool abort_on_error);
+MmResult funtbl_prepare(bool abort_on_error);
 size_t funtbl_size();
 
-/**
- * Calculates hash for a function table entry.
- *
- * @param[in]  p     function name is read from here.
- * @param[out] name  on exit the function name in upper-case,
- *                   a buffer of at least MAXVARLEN + 1 chars must be provided.
- * @param[out] hash  on exit the calculated hash value.
- * @return           0 on success, or
- *                   -1 if the name was too long in which case the value
- *                   copied to \p pname will be truncated.
- */
-int funtbl_hash(const char *p, char *name, HashValue* hash);
-
-#endif // #if !defined(FUNTBL_H)
+#endif // #if !defined(MMB4L_FUNTBL_H)

@@ -148,7 +148,7 @@ bool parse_matches_longstring_pattern(const char *s) {
 
 MmResult parse_name(const char **p, char *name) {
     skipspace((*p)); // Double bracket is necessary for correct macro expansion.
-    if (!isnamestart(**p)) return kSyntax; // Not a name.
+    if (!isnamestart(**p)) return kInvalidName;
     size_t name_len = 0;
     *name++ = toupper(*((*p)++));
     name_len++;

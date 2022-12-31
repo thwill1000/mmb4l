@@ -80,7 +80,11 @@ typedef enum {
     kNameTooLong,
     kUnimplemented,
     kFunctionNotFound,
-    kVariableNotFound
+    kVariableNotFound,
+    kTooManyFunctions,
+    kDuplicateFunction,
+    kHashmapFull,
+    kInvalidName
 } MmResultCode;
 
 /**

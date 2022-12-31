@@ -62,11 +62,11 @@ TEST_F(ParseTest, ParseName_GivenInvalidName) {
 
     std::string text = "";
     const char *p = text.c_str();
-    EXPECT_EQ(kSyntax, parse_name(&p, name));
+    EXPECT_EQ(kInvalidName, parse_name(&p, name));
 
     text = " *";
     p = text.c_str();
-    EXPECT_EQ(kSyntax, parse_name(&p, name));
+    EXPECT_EQ(kInvalidName, parse_name(&p, name));
 }
 
 TEST_F(ParseTest, ParseName_GivenNameTooLong) {

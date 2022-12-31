@@ -68,6 +68,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAXTEMPSTRINGS      256                     // each entry takes up 4 bytes
 #define NBRSETTICKS         4                       // the number of SETTICK interrupts available
 #define MAXSUBFUN           512                     // each entry takes up 4 bytes
+#define FUN_HASHMAP_SIZE    683                     // Size of the functions hash table
+                                                    //  - first prime number at least 1/3 greater than MAXSUBFUN.
 
 // operating characteristics
 #define MAXVARLEN           32                      // maximum length of a variable name

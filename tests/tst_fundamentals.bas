@@ -74,7 +74,7 @@ Sub test_erase()
     Case "Colour Maximite 2", "Colour Maximite 2 G2"
       assert_raw_error("Unknown command")
     Case Else
-      assert_raw_error("Syntax")
+      assert_raw_error("Invalid name")
   End Select
 
   On Error Skip 1
@@ -255,7 +255,11 @@ Return
 Sub test_dim_with_same_name()
   On Error Skip 1
   Dim sub_a%
-  assert_raw_error("A sub/fun has the same name: SUB_A")
+  If Mm.Device$ = "MMB4L" Then
+    assert_raw_error("A function/subroutine has the same name: SUB_A")
+  Else
+    assert_raw_error("A sub/fun has the same name: SUB_A")
+  EndIf
 End Sub
 
 Sub sub_a()
@@ -264,7 +268,11 @@ End Sub
 Sub test_local_with_same_name()
   On Error Skip 1
   Local fun_b%
-  assert_raw_error("A sub/fun has the same name: FUN_B")
+  If Mm.Device$ = "MMB4L" Then
+    assert_raw_error("A function/subroutine has the same name: FUN_B")
+  Else
+    assert_raw_error("A sub/fun has the same name: FUN_B")
+  EndIf
 End Sub
 
 Function fun_b%()
