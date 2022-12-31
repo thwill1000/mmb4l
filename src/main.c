@@ -353,7 +353,7 @@ void IntHandler(int signo) {
     MMAbort = true;
 }
 
-void FlashWriteInit(char *p, int nbr) {
+void FlashWriteInit() {
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
     console_set_title("MMBasic - Untitled");
     CurrentFile[0] = 0;

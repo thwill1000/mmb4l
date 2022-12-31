@@ -54,10 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 void cmd_restore(void) {
     if (*cmdline == 0 || *cmdline == '\'') {
-        if (CurrentLinePtr >= (char *) (ProgMemory + mmb_options.prog_flash_size))
-            NextDataLine = ProgMemory + mmb_options.prog_flash_size;
-        else
-            NextDataLine = ProgMemory;
+        NextDataLine = ProgMemory;
         NextData = 0;
     }
     else {

@@ -156,7 +156,6 @@ void options_init(Options *options) {
     // TODO: Do these even belong in options?
     options->autorun = 0;
     options->height = 0;
-    options->prog_flash_size = PROG_FLASH_SIZE;
     options->width = 0;
 
     for (const OptionsDefinition *def = options_definitions; def->name; def++) {

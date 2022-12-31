@@ -10,7 +10,6 @@ Required for alpha 5
  - Add '.' command that behaves like a combination of '*' and '!', first
    looking for a .bas file to run and then trying a SYSTEM command.
  - Implement variable/sub/function hash tables
- - Make sense of or eliminate mmb_options.prog_flash_size
  - Don't include line number and filename in error message string; still show
    them at prompt where appropriate and make them available via MM.INFO()
  - Make default output from FILES more like that of CMM2

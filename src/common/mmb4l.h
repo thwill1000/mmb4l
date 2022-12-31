@@ -69,7 +69,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define g_var_tbl          vartbl
 
 void CheckAbort(void);
-void FlashWriteInit(char *p, int nbr);
+void FlashWriteInit();
 const char *GetIntAddress(const char *p);
 void ListProgram(char *p, int all);
 char *llist(char *b, const char *p);

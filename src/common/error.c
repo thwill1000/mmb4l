@@ -74,7 +74,7 @@ static void get_line_and_file(int *line, char *file_path) {
 
     if (!CurrentLinePtr) return;
 
-    if (CurrentLinePtr >= (char *) ProgMemory + PROG_FLASH_SIZE) return;
+    assert(CurrentLinePtr < (char *) ProgMemory + PROG_FLASH_SIZE);
 
     if (*CurrentLinePtr != T_NEWLINE) {
         // normally CurrentLinePtr points to a T_NEWLINE token but in this
@@ -99,7 +99,7 @@ static void get_line_and_file(int *line, char *file_path) {
         }
     }
 
-    if (CurrentLinePtr >= (char *) ProgMemory + PROG_FLASH_SIZE) return;
+    assert(CurrentLinePtr < (char *) ProgMemory + PROG_FLASH_SIZE);
 
     // We now have CurrentLinePtr pointing to the start of the line.
     llist(tknbuf, CurrentLinePtr);

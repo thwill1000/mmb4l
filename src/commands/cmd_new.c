@@ -53,7 +53,7 @@ void cmd_new(void) {
 //    if(CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
     checkend(cmdline);
     ClearSavedVars();
-    FlashWriteInit(ProgMemory, mmb_options.prog_flash_size);
+    FlashWriteInit();
     ClearProgram();
     WatchdogSet = false;
     mmb_options.autorun = false;

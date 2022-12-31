@@ -74,7 +74,6 @@ static void expect_options_have_defaults(Options *options) {
     EXPECT_STREQ("", options->fn_keys[11]);
     EXPECT_EQ(0, options->height);
     EXPECT_EQ(kTitle, options->list_case);
-    EXPECT_EQ(PROG_FLASH_SIZE, options->prog_flash_size);
     EXPECT_EQ(kCharacter, options->resolution);
     EXPECT_STREQ("", options->search_path);
     EXPECT_EQ(4, options->tab);

@@ -256,7 +256,8 @@ void ExecuteProgram(const char *p) {
             TraceBuff[TraceBuffIndex] = p;                          // used by TRACE LIST
             if(++TraceBuffIndex >= TRACE_BUFF_SIZE) TraceBuffIndex = 0;
 #endif
-            if(TraceOn && p < (char *) (ProgMemory + Option.ProgFlashSize)) {
+            assert(p < (char *) (ProgMemory + PROG_FLASH_SIZE));
+            if (TraceOn) {
 #if defined(__mmb4l__)
                 // Copied from the CMM2,
                 // looks like it has duplication with cmd_trace.c#TraceLines()
@@ -359,8 +360,6 @@ void MIPS16 PrepareProgram(int ErrAbort) {
 #if !defined(__mmb4l__)
     CFunctionFlash = CFunctionLibrary = NULL;
 #endif
-    if (Option.ProgFlashSize != PROG_FLASH_SIZE)
-        NbrFuncts = PrepareProgramExt(ProgMemory + Option.ProgFlashSize, 0, (unsigned char **) &CFunctionLibrary, ErrAbort);
     PrepareProgramExt(ProgMemory, NbrFuncts, (unsigned char **) &CFunctionFlash, ErrAbort);
     funtbl_prepare(ErrAbort);
 }
@@ -1444,13 +1443,8 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
 // search through program memory looking for a line number. Stops when it has a matching or larger number
 // returns a pointer to the T_NEWLINE token or a pointer to the two zero characters representing the end of the program
 char *findline(int nbr, int mustfind) {
-    char *p;
     int i;
-
-    if (CurrentLinePtr >= (char *) (ProgMemory + Option.ProgFlashSize))
-        p = ProgMemory + Option.ProgFlashSize;
-    else
-        p = ProgMemory;
+    char *p = ProgMemory;
 
     while(1) {
         if(p[0] == 0 && p[1] == 0) {
@@ -1491,7 +1485,6 @@ char *findline(int nbr, int mustfind) {
 // returns a pointer to the T_NEWLINE token or throws an error if not found
 // non cached version
 const char *findlabel(const char *labelptr) {
-    const char *p, *lastp = ProgMemory + 1;
     int i;
     char label[MAXVARLEN + 1];
 
@@ -1508,12 +1501,8 @@ const char *findlabel(const char *labelptr) {
     }
     label[0] = i - 1;                                               // the length byte
 
-    // point to the main program memory or the library
-    if (CurrentLinePtr >= (char *) (ProgMemory + Option.ProgFlashSize))
-        p = ProgMemory + Option.ProgFlashSize;
-    else {
-        p = ProgMemory;
-    }
+    const char *p = ProgMemory;
+    const char *lastp = ProgMemory + 1;
 
     // now do the search
     while(1) {
