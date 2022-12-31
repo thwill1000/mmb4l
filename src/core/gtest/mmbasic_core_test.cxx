@@ -69,6 +69,8 @@ int TraceOn;
 
 } // extern "C"
 
+#define MAX_LENGTH_NAME  "_32_character_name_9012345678901"
+
 class MmBasicCoreTest : public ::testing::Test {
 
 protected:
@@ -81,9 +83,60 @@ protected:
         error_msg[0] = '\0';
         m_program[0] = '\0';
         VarIndex = 999;
+        ClearProgMemory();
     }
 
     void TearDown() override {
+    }
+
+    void ClearProgMemory() {
+        ProgMemory[0] = '\0'; // Program ends with two 0x00 and one or more 0xFF.
+        ProgMemory[1] = '\0';
+        ProgMemory[2] = '\xFF';
+    }
+
+    void TokeniseAndAppend(const char* untokenised) {
+        strcpy(inpbuf, untokenised);
+
+        tokenise(0);
+
+        // Current end of ProgMemory should be "\0\0\xFF".
+        char *p = ProgMemory;
+        int count = 0;
+        for (; !(count == 2 && *p == 0xFF); ++p) {
+            count = (*p  == '\0') ? count + 1 : 0;
+        }
+        p -= 1; // We leave one '\0' between each command.
+
+        if (p == ProgMemory + 1) p = ProgMemory;
+
+        strcpy(p, tknbuf);
+        p += strlen(tknbuf);
+        *p++ = '\0';
+        *p++ = '\0';
+        *p++ = '\xFF';
+    }
+
+    void DumpProgMemory() {
+        size_t column = 0;
+        size_t count = 0;
+        for (const char *p = ProgMemory; !(count == 2 && *p == 0xFF); ++p) {
+            if (*p > 31 && *p < 127) {
+                printf(" %c   ", *p);
+            } else {
+
+                count = (*p == '\0') ? count + 1 : 0;
+                printf("0x%02X ", *p);
+            }
+
+            column++;
+            if (column == 10) {
+                printf("\n");
+                column = 0;
+            }
+        }
+
+        printf("0xFF\n");
     }
 
     char m_program[256];
@@ -828,6 +881,163 @@ TEST_F(MmBasicCoreTest, Tokenise_RunStatement) {
             GetTokenValue("-"),
             GetTokenValue("="));
     EXPECT_STREQ(expected, tknbuf);
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_And_FindSubFun) {
+    TokeniseAndAppend("Sub foo()");
+    TokeniseAndAppend("End Sub");
+    TokeniseAndAppend("Function bar%%()");
+    TokeniseAndAppend("End Function");
+    TokeniseAndAppend("CSub wom()");
+    TokeniseAndAppend("End CSub");
+//    TokeniseAndAppend("CFunction bat!()");
+//    TokeniseAndAppend("End CFunction");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, FindSubFun("foo", 0));
+    EXPECT_EQ(ProgMemory + 1, subfun[0]);
+    EXPECT_EQ(1, FindSubFun("bar", 0));
+    EXPECT_EQ(ProgMemory + 12, subfun[1]);
+    EXPECT_EQ(2, FindSubFun("wom", 0));
+    EXPECT_EQ(ProgMemory + 25, subfun[2]);
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_GivenMaximumNumberOfFunctions) {
+    char buf[MAXVARLEN + 1];
+    for (int ii = 0; ii < MAXSUBFUN; ++ii) {
+        sprintf(buf, "Function fun%d()", ii);
+        TokeniseAndAppend(buf);
+        TokeniseAndAppend("End Function");
+    }
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("", error_msg);
+    for (int ii = 0; ii < MAXSUBFUN; ++ii) {
+        sprintf(buf, "fun%d", ii);
+        EXPECT_EQ(ii, FindSubFun(buf, 0));
+    }
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_GivenTooManyFunctions) {
+    char buf[MAXVARLEN + 1];
+    for (int ii = 0; ii < MAXSUBFUN + 1; ++ii) {
+        sprintf(buf, "Function fun%d()", ii);
+        TokeniseAndAppend(buf);
+        TokeniseAndAppend("End Function");
+    }
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("Too many subroutines and functions", error_msg);
+
+    error_msg[0] = '\0';
+    PrepareProgram(0); // Should not report error.
+
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_GivenInvalidFunctionName) {
+    TokeniseAndAppend("Function .foo()");
+    TokeniseAndAppend("End Function");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("Invalid identifier", error_msg);
+
+    error_msg[0] = '\0';
+    PrepareProgram(0); // Should not report error.
+
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionNameContainingPeriod) {
+    TokeniseAndAppend("Function f.oo()");
+    TokeniseAndAppend("End Function");
+    TokeniseAndAppend("Sub b.ar()");
+    TokeniseAndAppend("End Sub");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, FindSubFun("f.oo", 0));
+    EXPECT_EQ(1, FindSubFun("b.ar", 0));
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionHasMaximumLengthName) {
+    char buf[256];
+    sprintf(buf, "Function %s()", MAX_LENGTH_NAME);
+    TokeniseAndAppend(buf);
+    TokeniseAndAppend("End Function");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, FindSubFun(MAX_LENGTH_NAME, 0));
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionNameTooLong) {
+    char buf[256];
+    sprintf(buf, "Function %sA()", MAX_LENGTH_NAME);
+    TokeniseAndAppend(buf);
+    TokeniseAndAppend("End Function");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("SUB/FUNCTION name too long", error_msg);
+
+    error_msg[0] = '\0';
+    PrepareProgram(0);  // Should not report error.
+
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_GivenSubWithSameNameAsFunction) {
+    TokeniseAndAppend("Function foo()");
+    TokeniseAndAppend("End Function");
+    TokeniseAndAppend("Sub foo()");
+    TokeniseAndAppend("End Sub");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("Duplicate SUB/FUNCTION declaration", error_msg);
+
+    error_msg[0] = '\0';
+    PrepareProgram(0);  // Should not report error.
+
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_GivenTwoFunctionsWithSameNameButDifferentTypeSuffix) {
+    TokeniseAndAppend("Function foo!()");
+    TokeniseAndAppend("End Function");
+    TokeniseAndAppend("Function foo%()");
+    TokeniseAndAppend("End Function");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("Duplicate SUB/FUNCTION declaration", error_msg);
+
+    error_msg[0] = '\0';
+    PrepareProgram(0); // Should not report error.
+
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindSubFun_GivenTypeMismatch) {
+    TokeniseAndAppend("Function foo%()");
+    TokeniseAndAppend("End Function");
+    PrepareProgram(1);
+
+    int fun_idx = FindSubFun("foo!", 0);
+
+    // The type suffix does not form part of the name and the type checking is
+    // performed in the function calling code only after the function has
+    // been found.
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, fun_idx);
 }
 
 extern "C" {

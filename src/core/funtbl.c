@@ -72,8 +72,12 @@ void funtbl_prepare(bool abort_on_error) {
         skipspace(p);                // p1 is pointing at the beginning of the SUB/FUNCTION name.
 
         HashValue hash;
-        if (funtbl_hash(p, name, &hash) != 0 && abort_on_error) {
-            error("SUB/FUNCTION name too long");
+        if (funtbl_hash(p, name, &hash) != 0) {
+            if (abort_on_error) {
+                error("SUB/FUNCTION name too long");
+            } else {
+                continue;
+            }
         }
 
         while (funtbl[hash].name[0]) {
