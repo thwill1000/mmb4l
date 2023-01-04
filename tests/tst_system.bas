@@ -15,19 +15,22 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
-If Mm.Device$ = "MMB4L" Then
-  Select Case Mm.Info$(Arch)
-    Case "Android aarch64"
-      Const IS_ANDROID% = 1
-      Const EXPECTED_HOME$ = "/data/data/com.termux/files/home"
-    Case "Linux armv6l"
-      Const EXPECTED_HOME$ = "/home/pi"
-  End Select
-EndIf
-On Error Skip 1 : Const IS_ANDROID% = 0
-On Error Skip 1 : Const EXPECTED_HOME$ = "/home/thwill"
 
-If Mm.Device$ = "MMB4L" Or Mm.Device$ = "MMBasic for Windows" Then
+If InStr(Mm.Device$, "Colour Maximite 2") Then Goto skip_tests
+
+Const DEVICE$ = Choice(Mm.Device$ = "MMB4L", Mm.Device$ + " - " + Mm.Info$(Arch), Mm.Device$)
+
+Select Case DEVICE$
+  Case "MMB4L - Android aarch64"
+    Const IS_ANDROID% = 1
+    Const EXPECTED_HOME$ = "/data/data/com.termux/files/home"
+  Case "MMB4L - Linux armv6l"
+    Const IS_ANDROID% = 0
+    Const EXPECTED_HOME$ = "/home/pi"
+  Case Else
+    Const IS_ANDROID% = 0
+    Const EXPECTED_HOME$ = "/home/thwill"
+End Select
 
 add_test("test_system_no_capture")
 add_test("test_system_string_capture")
@@ -40,7 +43,7 @@ add_test("test_system_getenv")
 add_test("test_system_setenv")
 add_test("test_system_setenv_given_longstring", "test_system_setenv_given_ls")
 
-EndIf
+skip_tests:
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -158,27 +161,28 @@ End Sub
 Sub test_system_getenv()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
-  Local i%, name$ = "HOME", value$, value_ls%(32)
+  Local expected$, i%, name$ = "HOME", value$, value_ls%(32)
 
   ' Given name is STRING literal and value is STRING variable.
   value$ = ""
   System GetEnv "HOME", value$
-  assert_string_equals(EXPECTED_HOME$, value$)
+  If value$ <> expected$ And Mm.Device$ = "MMB4L" Then expected$ = "/home/thwill"
+  assert_string_equals(expected$, value$)
 
   ' Given name is STRING literal and value is is LONGSTRING variable.
   LongString Clear value_ls%()
   System GetEnv "HOME", value_ls%()
-  assert_string_equals(EXPECTED_HOME$, LGetStr$(value_ls%(), 1, LLen(value_ls%())))
+  assert_string_equals(expected$, LGetStr$(value_ls%(), 1, LLen(value_ls%())))
 
   ' Given name is STRING variable and value is STRING variable.
   value$ = ""
   System GetEnv name$, value$
-  assert_string_equals(EXPECTED_HOME$, value$)
+  assert_string_equals(expected$, value$)
 
   ' Given name is STRING variable and value is LONGSTRING variable.
   LongString Clear value_ls%()
   System GetEnv name$, value_ls%()
-  assert_string_equals(EXPECTED_HOME$, LGetStr$(value_ls%(), 1, LLen(value_ls%())))
+  assert_string_equals(expected$, LGetStr$(value_ls%(), 1, LLen(value_ls%())))
 
   ' Given name is LONGSTRING variable and value is STRING variable.
   LongString Clear value_ls%()

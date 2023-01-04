@@ -289,47 +289,47 @@ Sub test_filesize()
   Close #1
   assert_int_equals(7, Mm.Info(FileSize "test_filesize.txt"))
   Kill "test_filesize.txt"
-
-  ' Test when file is directory.
-  ' On Error Skip 1
-  ' Local size% = Mm.Info(FileSize Mm.Info(Directory))
-  ' If Mm.Device$ = "MMB4L" Then
-  '   assert_int_equals(-2, size%)
-  ' Else
-  '   assert_raw_error("Invalid file specification")
-  ' EndIf
 End Sub
 
 Sub test_filesize_given_directory()
-  assert_filesize_for_directory(Mm.Info$(Directory), 1)
-  assert_filesize_for_directory(Mm.Info$(Path), 1)
-  assert_filesize_for_directory("/", 1)
-  assert_filesize_for_directory("\", 1)
-  assert_filesize_for_directory(".")
-  assert_filesize_for_directory("..")
-  assert_filesize_for_directory("A:/", 1)
-  assert_filesize_for_directory("A:\", 1)
-  assert_filesize_for_directory("C:/", 1)
-  assert_filesize_for_directory("C:\", 1)
-  assert_filesize_for_directory(str.replace$(TMP$, "/", "\"))
-  assert_filesize_for_directory(str.replace$(TMP$, "\", "/"))
-  If Mm.Device$ <> "MMBasic for Windows" Then
-    assert_filesize_for_directory(str.replace$("A:" + TMP$, "/", "\"))
-    assert_filesize_for_directory(str.replace$("A:" + TMP$, "\", "/"))
-    assert_filesize_for_directory(str.replace$("C:" + TMP$, "/", "\"))
-    assert_filesize_for_directory(str.replace$("C:" + TMP$, "\", "/"))
+  If Mm.Device$ = "MMB4L" Then
+    assert_int_equals(-2, Mm.Info(FileSize Mm.Info$(Directory)))
+    assert_int_equals(-2, Mm.Info(FileSize Mm.Info$(Path)))
+    assert_int_equals(-2, Mm.Info(FileSize "/"))
+    assert_int_equals(-2, Mm.Info(FileSize "\"))
+    assert_int_equals(-2, Mm.Info(FileSize "."))
+    assert_int_equals(-2, Mm.Info(FileSize ".."))
+    assert_int_equals(-2, Mm.Info(FileSize "A:/"))
+    assert_int_equals(-2, Mm.Info(FileSize "A:\"))
+    assert_int_equals(-2, Mm.Info(FileSize "C:/"))
+    assert_int_equals(-2, Mm.Info(FileSize "C:\"))
+    assert_int_equals(-2, Mm.Info(FileSize str.replace$(TMP$, "/", "\")))
+    assert_int_equals(-2, Mm.Info(FileSize str.replace$(TMP$, "\", "/")))
+    assert_int_equals(-2, Mm.Info(FileSize str.replace$("A:" + TMP$, "/", "\")))
+    assert_int_equals(-2, Mm.Info(FileSize str.replace$("A:" + TMP$, "\", "/")))
+    assert_int_equals(-2, Mm.Info(FileSize str.replace$("C:" + TMP$, "/", "\")))
+    assert_int_equals(-2, Mm.Info(FileSize str.replace$("C:" + TMP$, "\", "/")))
+  Else
+    assert_filesize_fails(Mm.Info$(Directory))
+    assert_filesize_fails(Mm.Info$(Path))
+    assert_filesize_fails("/")
+    assert_filesize_fails("\")
+    assert_int_equals(Choice(Mm.Device$ = "MMBasic for Windows", -2, -1), Mm.Info(FileSize "."))
+    assert_int_equals(Choice(Mm.Device$ = "MMBasic for Windows", -2, -1), Mm.Info(FileSize ".."))
+    assert_filesize_fails("A:/")
+    assert_filesize_fails("A:\")
+    assert_filesize_fails("C:/")
+    assert_filesize_fails("C:\")
+    assert_int_equals(-2, Mm.Info(FileSize str.replace$(TMP$, "/", "\")))
+    assert_int_equals(-2, Mm.Info(FileSize str.replace$(TMP$, "\", "/")))
   EndIf
 End Sub
 
-Sub assert_filesize_for_directory(d$, error_on_mmb4w%)
-  If Mm.Device$ = "MMBasic for Windows" And error_on_mmb4w% Then
-    On Error Skip 1
-    Local size% = Mm.Info(FileSize d$)
-    assert_raw_error("Invalid file specification")
-    On Error Clear
-  Else
-    assert_int_equals(-2, Mm.Info(FileSize d$))
-  EndIf
+Sub assert_filesize_fails(f$)
+  On Error Skip 1
+  Local size% = Mm.Info(FileSize f$)
+  assert_raw_error("Invalid file specification")
+  On Error Clear
 End Sub
 
 Sub test_font_address()

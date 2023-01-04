@@ -27,7 +27,9 @@ add_test("test_error_correct_after_goto")
 add_test("test_error_correct_after_gosub")
 add_test("test_dim_with_same_name_as_sub_reports_error", "test_dim_with_same_name")
 add_test("test_local_with_same_name_as_fun_reports_error", "test_local_with_same_name")
-
+add_test("test_call_fn_as_sub")
+add_test("test_call_sub_as_fn")
+add_test("test_call_fn_with_wrong_type")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -67,7 +69,12 @@ Sub test_erase()
 
   On Error Skip 1
   Erase *invalid
-  assert_raw_error("Syntax")
+  Select Case Mm.Device$
+    Case "Colour Maximite 2", "Colour Maximite 2 G2"
+      assert_raw_error("Unknown command")
+    Case Else
+      assert_raw_error("Syntax")
+  End Select
 
   On Error Skip 1
   Erase _32_chars_long_67890123456789012%
@@ -75,7 +82,12 @@ Sub test_erase()
 
   On Error Skip 1
   Erase _33_chars_long_678901234567890123%
-  assert_raw_error("Name too long")
+  Select Case Mm.Device$
+    Case "Colour Maximite 2", "Colour Maximite 2 G2"
+      assert_raw_error("Cannot find _33_CHARS_LONG_678901234567890123")
+    Case Else
+      assert_raw_error("Name too long")
+  End Select
 End Sub
 
 ' There was a bug in MMB4W (and the PicoMite) where the heap memory
@@ -206,7 +218,7 @@ Sub test_unary_plus()
 End Sub
 
 Sub test_error_correct_after_goto()
-  Local base_line% = 217
+  Local base_line% = 229
   Goto 30
 test_goto_label_1:
   assert_raw_error("Error in line " + Str$(base_line% + 4) + ": foo1")
@@ -224,7 +236,7 @@ Error "foo2"
 Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
-  Local base_line% = 233
+  Local base_line% = 245
   GoSub 60
   assert_raw_error("Error in line " + Str$(base_line% + 4) + ": bar1")
   GoSub 70
@@ -256,3 +268,38 @@ End Sub
 
 Function fun_b%()
 End Function
+
+Sub test_call_fn_as_sub()
+  On Error Skip 1
+  fun_b%()
+  assert_raw_error("Type specification is invalid: %")
+
+  On Error Clear
+  On Error Skip 1
+  fun_b()
+  assert_raw_error("Type specification is invalid: %")
+
+  On Error Clear
+  On Error Skip 1
+  fun_b!()
+  assert_raw_error("Type specification is invalid: %")
+End Sub
+
+Sub test_call_sub_as_fn()
+  ' Can't do this, reports error "Nothing to return to" when we END SUB.
+'  On Error Skip 1
+'  Local a% = sub_a()
+'  assert_raw_error("foo")
+End Sub
+
+Sub test_call_fn_with_wrong_type()
+  ' Doesn't seem to correctly catch error.
+'  On Error Skip 1
+'  Local s$ = fun_b%()
+'  assert_raw_error("Expected a string")
+
+  On Error Clear
+  On Error Skip 1
+  Local i% = fun_b$()
+  assert_raw_error("Inconsistent type suffix")
+End Sub

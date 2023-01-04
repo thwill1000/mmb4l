@@ -545,7 +545,7 @@ Sub test_seek_errors()
     Case "MMB4L"
       assert_raw_error("Invalid seek position")
       assert_int_equals(29, Loc(#1))
-    Case "MMBasic for Windows"
+    Case "MMBasic for Windows", "Colour Maximite 2", "Colour Maximite 2 G2"
       assert_raw_error("0 is invalid (valid is 1 to 2147483647)")
       assert_int_equals(29, Loc(#1))
     Case Else
@@ -562,7 +562,7 @@ Sub test_seek_errors()
     Case "MMB4L"
       assert_raw_error("Invalid seek position")
       assert_int_equals(29, Loc(#1))
-    Case "MMBasic for Windows"
+    Case "MMBasic for Windows", "Colour Maximite 2", "Colour Maximite 2 G2"
       assert_raw_error("-1 is invalid (valid is 1 to 2147483647)")
       assert_int_equals(29, Loc(#1))
     Case Else
