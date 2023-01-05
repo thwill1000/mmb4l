@@ -60,8 +60,10 @@ char ProgMemory[PROG_FLASH_SIZE];
 // memory for the memory map used in heap management
 uint32_t mmap[MMAP_SIZE];
 
-// memory for the actual heap
-char MMHeap[HEAP_SIZE];
+// MMBasic heap memory:
+//   - aligned on 64-bit boundary so that elements of MMBasic arrays of
+//     FLOAT and INTEGER will be likewise aligned.
+char __attribute__ ((aligned (8))) MMHeap[HEAP_SIZE];
 
 // arrays used to track temporary strings
 char *StrTmp[MAXTEMPSTRINGS];           // used to track temporary string space on the heap
