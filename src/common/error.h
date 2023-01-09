@@ -112,6 +112,7 @@ uint8_t error_to_exit_code(MmResult error);
 #define ERROR_UNKNOWN_COMMAND             error_throw_ex(kSyntax, "Unknown command")
 #define ERROR_UNKNOWN_OPTION              error_throw(kUnknownOption)
 #define ERROR_UNKNOWN_SUBCOMMAND          error_throw_ex(kSyntax, "Unknown subcommand")
+#define ERROR_UNKNOWN_TERMINAL_SIZE       error_throw_ex(kError, "Cannot determine terminal size")
 #define ERROR_UNKNOWN_USER_ERROR          error_throw_ex(kError, "Unspecified error")
 #define ERROR_UNSUPPORTED_FLAG(s)         error_throw_ex(kError, "Unsupported flag: $", s)
 

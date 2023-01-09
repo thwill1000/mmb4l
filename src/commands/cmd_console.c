@@ -117,8 +117,8 @@ static void cmd_console_get_size(const char *p) {
     }
 
     int width, height;
-    if (FAILED(console_get_size(&width, &height))) {
-        ERROR_COULD_NOT("determine console size");
+    if (FAILED(console_get_size(&width, &height, 0))) {
+        ERROR_UNKNOWN_TERMINAL_SIZE;
     }
 
     *((int64_t *) pwidth) = width;
@@ -181,7 +181,7 @@ static void cmd_console_set_size(const char *p) {
     if (at_least) {
         int old_width = 0;
         int old_height = 0;
-        if (FAILED(console_get_size(&old_width, &old_height))) {
+        if (FAILED(console_get_size(&old_width, &old_height, 0))) {
             ERROR_COULD_NOT("resize console");
         }
         width = max(width, old_width);

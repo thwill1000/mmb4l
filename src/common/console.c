@@ -381,11 +381,20 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
     }
 }
 
-int console_get_size(int *width, int *height) {
-    struct winsize ws;
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
-        return -1; // Failure
+int console_get_size(int *width, int *height, int timeout_ms) {
+    struct winsize ws= { 0 };
+    int fd = open("/dev/tty", O_RDWR);
+    if (fd >= 0) {
+        int64_t timeout_ns = mmtime_now_ns() + MILLISECONDS_TO_NANOSECONDS(timeout_ms);
+        do {
+            // Alternatively consider: ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws)
+            if (SUCCEEDED(ioctl(fd, TIOCGWINSZ, &ws)) && ws.ws_col > 0) break;
+            nanosleep(&ONE_MICROSECOND, NULL);
+        } while (mmtime_now_ns() < timeout_ns);
+        close(fd);
     }
+
+    if (ws.ws_col <= 0) return -1; // Failure
 
     *width = ws.ws_col;
     *height = ws.ws_row;
@@ -414,7 +423,7 @@ int console_set_size(int width, int height) {
 
     int new_height = 0;
     int new_width = 0;
-    if (SUCCEEDED(console_get_size(&new_width, &new_height))
+    if (SUCCEEDED(console_get_size(&new_width, &new_height, 0))
             && (new_width == width)
             && (new_height == height)) return 0; // Success
 

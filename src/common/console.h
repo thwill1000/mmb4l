@@ -136,11 +136,13 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms);
 /**
  * Gets the console size.
  *
- * @param   width   on return holds the width in characters.
- * @param   height  on return holds the height in characters.
+ * @param   width       on return holds the width in characters.
+ * @param   height      on return holds the height in characters.
+ * @param   timeout_ms  how long (in milliseconds) to retry before
+ *                      reporting a failure.
  * @return  0 on success, -1 on error.
  */
-int console_get_size(int *width, int *height);
+int console_get_size(int *width, int *height, int timeout_ms);
 
 void console_home_cursor(void);
 void console_invert(int invert);

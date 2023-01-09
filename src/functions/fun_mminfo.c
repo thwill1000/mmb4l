@@ -231,8 +231,8 @@ static void mminfo_fontwidth(const char *p) {
 void mminfo_hres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int width, height;
-    if (FAILED(console_get_size(&width, &height))) {
-        ERROR_COULD_NOT("determine console size");
+    if (FAILED(console_get_size(&width, &height, 0))) {
+        ERROR_UNKNOWN_TERMINAL_SIZE;
     }
     int scale = mmb_options.resolution == kPixel ? FONT_WIDTH : 1;
     g_integer_rtn = width * scale;
@@ -321,8 +321,8 @@ static void mminfo_version(const char *p) {
 void mminfo_vres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int width, height;
-    if (FAILED(console_get_size(&width, &height))) {
-        ERROR_COULD_NOT("determine console size");
+    if (FAILED(console_get_size(&width, &height, 0))) {
+        ERROR_UNKNOWN_TERMINAL_SIZE;
     }
     int scale = mmb_options.resolution == kPixel ? FONT_HEIGHT : 1;
     g_integer_rtn = height * scale;

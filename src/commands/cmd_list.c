@@ -202,7 +202,9 @@ void cmd_list(void) {
     skipspace(cmdline);
 
     // Use the current console dimensions for the output of the LIST command.
-    if (FAILED(console_get_size(&mmb_options.width, &mmb_options.height))) ERROR_INTERNAL_FAULT;
+    if (FAILED(console_get_size(&mmb_options.width, &mmb_options.height, 0))) {
+        ERROR_UNKNOWN_TERMINAL_SIZE;
+    }
 
     if (parse_is_end(cmdline)) {
         list_file(NULL, false);

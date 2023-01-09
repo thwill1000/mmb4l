@@ -343,7 +343,7 @@ static void handle_up(PromptState *pstate) {
 
 void prompt_get_input(void) {
     int width, height;
-    if (FAILED(console_get_size(&width, &height))) ERROR_INTERNAL_FAULT;
+    if (FAILED(console_get_size(&width, &height, 1000))) ERROR_UNKNOWN_TERMINAL_SIZE;
 
     PromptState state = { 0 };
     state.char_index = strlen(inpbuf); // get the current cursor position in the line
