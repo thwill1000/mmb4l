@@ -228,6 +228,12 @@ static void mminfo_fontwidth(const char *p) {
     g_rtn_type = T_INT;
 }
 
+static void mminfo_calldepth(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_integer_rtn = LocalIndex;
+    g_rtn_type = T_INT;
+}
+
 void mminfo_hres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int width, height;
@@ -370,6 +376,8 @@ void fun_mminfo(void) {
         mminfo_fontheight(p);
     } else if ((p = checkstring(ep, "FONTWIDTH"))) {
         mminfo_fontwidth(p);
+    } else if ((p = checkstring(ep, "CALLDEPTH"))) {
+        mminfo_calldepth(p);
     } else if ((p = checkstring(ep, "HRES"))) {
         mminfo_hres(p);
     } else if ((p = checkstring(ep, "HPOS"))) {
