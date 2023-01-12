@@ -156,8 +156,8 @@ void InitHeap(void) {
     printf("RAMEND = %lX\n", RAMEND);
     printf("MMAP SIZE = %d\n", MMAP_SIZE);
 #endif
-    for (int i = 0; i < MMAP_SIZE; i++) mmap[i] = 0;
-    for (int i = 0; i < MAXTEMPSTRINGS; i++) StrTmp[i] = NULL;
+    for (size_t i = 0; i < MMAP_SIZE; i++) mmap[i] = 0;
+    for (size_t i = 0; i < MAXTEMPSTRINGS; i++) StrTmp[i] = NULL;
     MBitsSet((char *) RAMEND, PUSED | PLAST);
 }
 

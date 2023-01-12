@@ -194,7 +194,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenMaxNameLen) {
 
 TEST_F(MmBasicCoreTest, FindVar_GivenNameTooLong) {
     sprintf(m_program, "_33_characters_long90123456789012 = 1");
-    void *actual = findvar(m_program, V_FIND);
+    (void) findvar(m_program, V_FIND);
 
     EXPECT_STREQ("Variable name too long", error_msg);
     EXPECT_EQ(0, varcnt);
@@ -218,7 +218,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenExists) {
 
 TEST_F(MmBasicCoreTest, FindVar_GivenThrowErrorIfNotExist) {
     sprintf(m_program, "foo = 1");
-    void *actual = findvar(m_program, V_NOFIND_ERR);
+    (void) findvar(m_program, V_NOFIND_ERR);
 
     EXPECT_STREQ("Cannot find $", error_msg);
     EXPECT_EQ(0, varcnt);
@@ -256,7 +256,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenPreviouslyDeclaredWithDifferentType) {
 
 TEST_F(MmBasicCoreTest, FindVar_GivenIllegalName) {
     sprintf(m_program, "1foo = 1");
-    void *actual = findvar(m_program, V_FIND);
+    (void) findvar(m_program, V_FIND);
 
     EXPECT_STREQ("Variable name", error_msg);
     EXPECT_EQ(0, varcnt);
@@ -266,21 +266,21 @@ TEST_F(MmBasicCoreTest, FindVar_GivenConflictingType) {
     // Make an INTEGER variable.
     error_msg[0] = '\0';
     sprintf(m_program, "my_int! = 1");
-    void *actual = findvar(m_program, T_IMPLIED | T_INT);
+    (void) findvar(m_program, T_IMPLIED | T_INT);
 
     EXPECT_STREQ("Conflicting variable type", error_msg);
 
     // Make a FLOAT variable.
     error_msg[0] = '\0';
     sprintf(m_program, "my_float$ = 1");
-    actual = findvar(m_program, T_IMPLIED | T_NBR);
+    (void) findvar(m_program, T_IMPLIED | T_NBR);
 
     EXPECT_STREQ("Conflicting variable type", error_msg);
 
     // Make a STRING variable.
     error_msg[0] = '\0';
     sprintf(m_program, "my_string%% = \"wombat\"");
-    actual = findvar(m_program, T_IMPLIED | T_STR);
+    (void) findvar(m_program, T_IMPLIED | T_STR);
 
     EXPECT_STREQ("Conflicting variable type", error_msg);
 
@@ -294,7 +294,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenDimExistingVariable) {
 
     // DIM foo
     sprintf(m_program, "foo = 2");
-    void *actual = findvar(m_program, V_DIM_VAR);
+    (void) findvar(m_program, V_DIM_VAR);
 
     EXPECT_STREQ("$ already declared", error_msg);
     EXPECT_EQ(1, varcnt);
@@ -400,7 +400,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenFindingUndeclaredVariable_GivenExplicitOn) 
     mmb_options.explicit_type = true;
 
     sprintf(m_program, "foo = 1");
-    void *actual = findvar(m_program, V_FIND);
+    (void) findvar(m_program, V_FIND);
 
     EXPECT_STREQ("$ is not declared", error_msg);
 }
@@ -418,12 +418,12 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfGlobal_GivenSubFunWithSameName) {
     funtbl_prepare(true);
 
     error_msg[0] = '\0';
-    void *actual = findvar(m_program + 16, V_DIM_VAR);
+    (void) findvar(m_program + 16, V_DIM_VAR);
     EXPECT_STREQ("A sub/fun has the same name: $", error_msg);
 
     // With V_FUNCT ... though actually this never happens in production with V_DIM_VAR.
     error_msg[0] = '\0';
-    actual = findvar(m_program + 16, V_DIM_VAR | V_FUNCT);
+    (void) findvar(m_program + 16, V_DIM_VAR | V_FUNCT);
     EXPECT_STREQ("", error_msg);
 }
 
@@ -441,12 +441,12 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfLocal_GivenSubFunWithSameName) {
 
     error_msg[0] = '\0';
     LocalIndex = 3;
-    void *actual = findvar(m_program + 16, V_LOCAL);
+    (void) findvar(m_program + 16, V_LOCAL);
     EXPECT_STREQ("A sub/fun has the same name: $", error_msg);
 
     // With V_FUNCT.
     error_msg[0] = '\0';
-    actual = findvar(m_program + 16, V_LOCAL | V_FUNCT);
+    (void) findvar(m_program + 16, V_LOCAL | V_FUNCT);
     EXPECT_STREQ("", error_msg);
 }
 
@@ -584,21 +584,21 @@ TEST_F(MmBasicCoreTest, FindVar_GivenDimArrayWithNoType) {
     mmb_options.default_type = T_NOTYPE;
 
     sprintf(m_program, "my_array = ...");
-    void *actual = findvar(m_program, V_DIM_VAR);
+    (void) findvar(m_program, V_DIM_VAR);
 
     EXPECT_STREQ("Variable type not specified", error_msg);
 }
 
 TEST_F(MmBasicCoreTest, FindVar_GivenDimEmptyArray) {
     sprintf(m_program, "foo() = ...");
-    void *actual = findvar(m_program, V_DIM_VAR);
+    (void) findvar(m_program, V_DIM_VAR);
 
     EXPECT_STREQ("Dimensions", error_msg);
 }
 
 TEST_F(MmBasicCoreTest, FindVar_GivenDimArrayWithTooManyDimensions) {
     sprintf(m_program, "foo(1,1,1,1,1,1,1,1,1) = ...");
-    void *actual = findvar(m_program, V_DIM_VAR);
+    (void) findvar(m_program, V_DIM_VAR);
 
     EXPECT_STREQ("Dimensions", error_msg);
 }
@@ -607,14 +607,14 @@ TEST_F(MmBasicCoreTest, FindVar_GivenDimArrayWithDimensionEqualToOptionBase) {
     mmb_options.base = 0;
     sprintf(m_program, "foo(0) = ...");
     error_msg[0] = '\0';
-    void *actual = findvar(m_program, V_DIM_VAR);
+    (void) findvar(m_program, V_DIM_VAR);
 
     EXPECT_STREQ("Dimensions", error_msg);
 
     mmb_options.base = 1;
     sprintf(m_program, "bar(1) = ...");
     error_msg[0] = '\0';
-    actual = findvar(m_program, V_DIM_VAR);
+    (void) findvar(m_program, V_DIM_VAR);
 
     EXPECT_STREQ("Dimensions", error_msg);
 }
@@ -650,7 +650,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenFindWithDimensionLessThanOptionBase) {
 
 TEST_F(MmBasicCoreTest, FindVar_GivenFindNonExistentEmptyArray) {
     sprintf(m_program, "foo() = ...");
-    void *actual = findvar(m_program, V_FIND);
+    (void) findvar(m_program, V_FIND);
 
     EXPECT_STREQ("Dimensions", error_msg);
 }
@@ -692,10 +692,10 @@ TEST_F(MmBasicCoreTest, FindVar_GivenFindExistingEmptyArray) {
 
 TEST_F(MmBasicCoreTest, FindVar_GivenRedimArray) {
     sprintf(m_program, "foo%%(2,4) = ...");
-    void *int_array = findvar(m_program, V_DIM_VAR);
+    (void) findvar(m_program, V_DIM_VAR);
 
     sprintf(m_program, "foo%%(1,2) = ...");
-    void *actual = findvar(m_program, V_DIM_VAR);
+    (void) findvar(m_program, V_DIM_VAR);
 
     EXPECT_STREQ("$ already declared", error_msg);
 
@@ -706,20 +706,20 @@ TEST_F(MmBasicCoreTest, FindVar_GivenRedimArray) {
 
 TEST_F(MmBasicCoreTest, FindVar_GivenArrayDimensionOutOfBounds) {
     sprintf(m_program, "foo%%(2,4) = ...");
-    void *int_array = findvar(m_program, V_DIM_VAR);
+    (void) findvar(m_program, V_DIM_VAR);
 
     sprintf(m_program, "foo%%(3,4) = ...");
-    void *actual = findvar(m_program, V_FIND);
+    (void) findvar(m_program, V_FIND);
 
     EXPECT_STREQ("Index out of bounds", error_msg);
 }
 
 TEST_F(MmBasicCoreTest, FindVar_GivenArrayDimensionMismatch) {
     sprintf(m_program, "foo%%(2,4) = ...");
-    void *int_array = findvar(m_program, V_DIM_VAR);
+    (void) findvar(m_program, V_DIM_VAR);
 
     sprintf(m_program, "foo%%(1) = ...");
-    void *actual = findvar(m_program, V_FIND);
+    (void) findvar(m_program, V_FIND);
 
     EXPECT_STREQ("Array dimensions", error_msg);
 }

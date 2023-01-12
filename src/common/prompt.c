@@ -163,7 +163,7 @@ static void handle_backspace(PromptState *pstate) {
 }
 
 static void handle_delete(PromptState *pstate) {
-    if (pstate->char_index >= strlen(inpbuf)) return;
+    if (pstate->char_index >= (ssize_t) strlen(inpbuf)) return;
 
     int i = pstate->char_index;
     for (char *p = inpbuf + i; *p; p++) {
@@ -194,7 +194,7 @@ static void prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
     console_puts(inpbuf);
 
     // Handle the new input buffer being too long.
-    if (strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
+    if ((ssize_t) strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
         ERROR_LINE_TOO_LONG_TO_EDIT;
     }
 
@@ -215,7 +215,7 @@ static void handle_down(PromptState *pstate) {
 }
 
 static void handle_end(PromptState *pstate) {
-    while (pstate->char_index < strlen(inpbuf)) {
+    while (pstate->char_index < (ssize_t) strlen(inpbuf)) {
         console_putc(inpbuf[pstate->char_index++]);
     }
 }
@@ -239,7 +239,7 @@ static void handle_function_key(PromptState *pstate) {
 static void handle_home(PromptState *pstate) {
     if (pstate->char_index <= 0) return;
 
-    if (pstate->char_index == strlen(inpbuf)) {
+    if (pstate->char_index == (ssize_t) strlen(inpbuf)) {
         pstate->insert = true;
     }
 
@@ -256,7 +256,7 @@ static void handle_insert(PromptState *pstate) {
 static void handle_left(PromptState *pstate) {
     if (pstate->char_index <= 0) return;
 
-    if (pstate->char_index == strlen(inpbuf)) {
+    if (pstate->char_index == (ssize_t) strlen(inpbuf)) {
         pstate->insert = true;
     }
     console_putc('\b');
@@ -273,7 +273,7 @@ static void handle_other(PromptState *pstate) {
     int j = strlen(inpbuf);
 
     if (pstate->insert) {
-        if (strlen(inpbuf) >= pstate->max_chars - 1) return;  // sorry, line full
+        if ((ssize_t) strlen(inpbuf) >= pstate->max_chars - 1) return;  // sorry, line full
         for (char *p = inpbuf + strlen(inpbuf); j >= pstate->char_index; p--, j--) {
             *(p + 1) = *p;
         }
@@ -302,7 +302,7 @@ static void handle_other(PromptState *pstate) {
 }
 
 static void handle_right(PromptState *pstate) {
-    if (pstate->char_index >= strlen(inpbuf)) return;
+    if (pstate->char_index >= (ssize_t) strlen(inpbuf)) return;
 
     console_putc(inpbuf[pstate->char_index]);
     pstate->char_index++;
@@ -353,7 +353,7 @@ void prompt_get_input(void) {
 
     console_puts(inpbuf);  // display the contents of the input buffer (if any)
 
-    if (strlen(inpbuf) >= state.max_chars) {
+    if ((ssize_t) strlen(inpbuf) >= state.max_chars) {
         ERROR_LINE_TOO_LONG_TO_EDIT;
     }
 
@@ -442,7 +442,7 @@ void prompt_get_input(void) {
             memmove(state.buf, state.buf + 1, sizeof(state.buf) - 1);
         } while (*state.buf);
 
-        if (state.char_index == strlen(inpbuf)) {
+        if (state.char_index == (ssize_t) strlen(inpbuf)) {
             state.insert = false;
         }
     }

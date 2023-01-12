@@ -500,7 +500,7 @@ void MMgetline(int filenbr, char *p) {
 // dump a memory area to the console
 // for debugging
 void dump(char *p, int nbr) {
-    char buf1[80], buf2[80], buf3[80], *b1, *b2, *pt;
+    char buf1[80], buf2[80], *b1, *b2, *pt;
     b1 = buf1;
     b2 = buf2;
     console_puts(

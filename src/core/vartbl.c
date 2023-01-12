@@ -196,7 +196,6 @@ void vartbl_delete(int var_idx) {
 void vartbl_delete_all(uint8_t level) {
 
     assert(vartbl_init_called);
-    assert(level >= 0);
 
     // We traverse the table in reverse so that 'varcnt' will be decremented
     // as much as possible.

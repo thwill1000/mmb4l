@@ -147,7 +147,7 @@ OptionsDefinition options_definitions[] = {
     { "ZInteger",    kOptionZInteger,     kOptionTypeInteger, true,  "1945",                    NULL },
     { "ZString",     kOptionZString,      kOptionTypeString,  true,  "wombat",                  NULL },
 #endif
-    { NULL, -1, -1, false, "" }
+    { NULL, -1, -1, false, "", NULL }
 };
 
 void options_init(Options *options) {

@@ -59,7 +59,7 @@ void cmd_files_internal(const char *p) {
         snprintf(command, STRINGSIZE, "ls");
     }
 
-    int result = system(command);
+    (void) system(command);
     // if (result != 0) ERROR_SYSTEM_COMMAND_FAILED;
 
     console_puts("\r\n");

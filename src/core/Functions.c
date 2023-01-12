@@ -72,16 +72,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // return the absolute value of a number (ie, without the sign)
 // a = ABS(nbr)
 void fun_abs(void) {
-    const char *p;
     char *s;
     MMFLOAT f;
     MMINTEGER i64;
 
     targ = T_INT;
-    p = evaluate(ep, &f, &i64, &s, &targ, false);                   // get the value and type of the argument
-    if(targ & T_NBR)
+    (void) evaluate(ep, &f, &i64, &s, &targ, false);                 // get the value and type of the argument
+    if (targ & T_NBR) {
         fret = fabsf(f);
-    else {
+    } else {
         iret = i64;
         if(iret < 0) iret = -iret;
     }

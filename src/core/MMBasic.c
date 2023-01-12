@@ -350,8 +350,7 @@ int MIPS16 PrepareProgramExt(const char *, int, unsigned char **, int);
 // This pre processing speeds up the program when using defined subroutines and functions
 // this routine also looks for embedded fonts and adds them to the font table
 void MIPS16 PrepareProgram(int ErrAbort) {
-    int i, j, NbrFuncts;
-    const char *p1, *p2;
+    int i, NbrFuncts;
 
     for(i = FONT_BUILTIN_NBR; i < FONT_TABLE_SIZE; i++)
         FontTable[i] = NULL;                                        // clear the font table
@@ -368,7 +367,6 @@ void MIPS16 PrepareProgram(int ErrAbort) {
 // This scans one area (main program or the library area) for user defined subroutines and functions.
 // It is only used by PrepareProgram() above.
 int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int ErrAbort) {
-    unsigned int *cfp;
     while(*p != 0xff) {
         p = GetNextCommand(p, &CurrentLinePtr, NULL);
         if(*p == 0) break;                                          // end of the program or module
@@ -395,7 +393,7 @@ int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int 
     CurrentLinePtr = NULL;
 
     // now, step through the CFunction area looking for fonts to add to the font table
-    cfp = *(unsigned int **)CFunPtr;
+    unsigned int cfp = *(unsigned int **)CFunPtr;
     while(*cfp != 0xffffffff) {
         if(*cfp < FONT_TABLE_SIZE)
             FontTable[*cfp] = (unsigned char *)(cfp + 2);
@@ -873,7 +871,7 @@ void MIPS16 tokenise(int console) {
         if(firstnonwhite) {                                         // first entry on the line must be a command
             // these variables are only used in the search for a command code
             char *tp2, *match_p = NULL;
-            int match_i = -1, match_l = 0;
+            ssize_t match_i = -1, match_l = 0;
             // first test if it is a print shortcut char (?) - this needs special treatment
             if(*p == '?') {
                 match_i = GetCommandValue("Print") - C_BASETOKEN;
@@ -900,7 +898,7 @@ void MIPS16 tokenise(int console) {
                     if(*tp == 0 && (!isnamechar(*tp2) || (commandtbl[i].type & T_FUN))) {
                         if(*(tp - 1) != '(' && isnamechar(*tp2)) continue;   // skip if not the function
                         // save the details if it is the longest command found so far
-                        if(strlen(commandtbl[i].name) > match_l) {
+                        if((ssize_t) strlen(commandtbl[i].name) > match_l) {
                             match_p = tp2;
                             match_l = strlen(commandtbl[i].name);
                             match_i = i;
@@ -2181,7 +2179,7 @@ void IntToStr(char *strr, MMINTEGER nbr, unsigned int base) {
 //     if padch is negative and nbr is zero prefix the number with the - sign
 void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix) {
     char sign = 0;
-    if ((nbr < 0 && radix == 10 && nbr!=0x8000000000000000) || padch < 0) {  // if the number is negative or we are forced to use a - symbol
+    if ((nbr < 0 && radix == 10 && (uint64_t) nbr != 0x8000000000000000) || padch < 0) {  // if the number is negative or we are forced to use a - symbol
         sign = '-';                                                 // set the sign
         nbr *= -1;                                                  // convert to a positive nbr
         padch = abs(padch);
@@ -2800,7 +2798,7 @@ const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType)
  * sequences.
  */
 
-const static char charmap[] = {
+static const char charmap[] = {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
     0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,

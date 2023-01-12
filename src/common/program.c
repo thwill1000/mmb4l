@@ -276,7 +276,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     int importlines = 0;
     int ignore = 0;
     char *filename, *sbuff, *op, *ip;
-    int c, slen, data;
+    size_t c, slen, data;
     int fnbr = file_find_free();
     char *q;
     if ((q = strchr(tp, 34)) == 0) ERROR_SYNTAX;
@@ -303,7 +303,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     file_open(file_path, "rb", fnbr);
     //    while(!FileEOF(fnbr)) {
     while (!file_eof(fnbr)) {
-        int toggle = 0, len = 0;  // while waiting for the end of file
+        size_t toggle = 0, len = 0;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
         //        mymemset(buff,0,256);
@@ -373,8 +373,8 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
             } else {
                 if (cmpstr("COMMENT END", &sbuff[1]) == 0) ignore = 0;
                 if (cmpstr("COMMENT START", &sbuff[1]) == 0) ignore = 1;
-                if (cmpstr("MMDEBUG ON", &sbuff[1]) == 0) convertdebug = 0;
-                if (cmpstr("MMDEBUG OFF", &sbuff[1]) == 0) convertdebug = 1;
+                //if (cmpstr("MMDEBUG ON", &sbuff[1]) == 0) convertdebug = 0;
+                //if (cmpstr("MMDEBUG OFF", &sbuff[1]) == 0) convertdebug = 1;
                 if (cmpstr("INCLUDE ", &sbuff[1]) == 0) ERROR_CANNOT_INCLUDE_FROM_INCLUDE;
             }
         } else {
@@ -703,11 +703,11 @@ static int program_load_file_internal(char *filename) {
     char *p, *op, *ip, *edit_buffer, *sbuff;
     char line_buffer[STRINGSIZE];
     char num[10];
-    int c;
+    size_t c;
     int convertdebug = 1;
     int ignore = 0;
     nDefines = 0;
-    int i, importlines = 0, data;
+    int importlines = 0, data;
 
     ClearProgram();
     int fnbr = file_find_free();
@@ -718,7 +718,7 @@ static int program_load_file_internal(char *filename) {
     dlist = GetTempMemory(sizeof(a_dlist) * MAXDEFINES);
 
     while (!file_eof(fnbr)) {
-        int toggle = 0, len = 0, slen;  // while waiting for the end of file
+        size_t toggle = 0, len = 0, slen;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
             ERROR_OUT_OF_MEMORY;

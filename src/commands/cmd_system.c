@@ -181,8 +181,8 @@ static MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exi
         FILE *f = popen(cmd, "r");
         if (!f) return errno;
 
-        int i;
-        for (i = 0; i < *sz; ++i) {
+        ssize_t i;
+        for (i = 0; i < (ssize_t) *sz; ++i) {
             int ch = fgetc(f);
             if (ch == EOF) break;
             buf[i] = (char) ch;

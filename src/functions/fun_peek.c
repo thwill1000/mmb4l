@@ -103,8 +103,9 @@ static void peek_cfunaddr(int argc, char **argv, const char *p) {
 static void peek_dataptr(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
     assert(sizeof(DataReadPointer) == sizeof(MMINTEGER));
-    ((DataReadPointer *) &g_integer_rtn)->next_line_offset = NextDataLine - ProgMemory;
-    ((DataReadPointer *) &g_integer_rtn)->next_data = NextData;
+    DataReadPointer *pdrp = (DataReadPointer *) &g_integer_rtn;
+    pdrp->next_line_offset = NextDataLine - ProgMemory;
+    pdrp->next_data = NextData;
     g_rtn_type = T_INT;
 }
 
@@ -171,7 +172,7 @@ static void peek_varaddr(int argc, char **argv, const char *p) {
 /** PEEK(VARHEADER var) */
 static void peek_varheader(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
-    void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
+    (void) findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
     g_rtn_type = T_INT;
     g_integer_rtn = (uintptr_t) &vartbl[VarIndex];
 }

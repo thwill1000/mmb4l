@@ -87,7 +87,7 @@ bool path_has_suffix(
         const char *path, const char *suffix, bool case_insensitive) {
     int start = strlen(path) - strlen(suffix);
     if (start < 0) return 0;
-    for (int i = 0; i < strlen(suffix); ++i) {
+    for (size_t i = 0; i < strlen(suffix); ++i) {
         if (case_insensitive) {
             if (toupper(path[i + start]) != toupper(suffix[i])) return false;
         } else {
@@ -258,6 +258,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                     break;
                 } else {
                     // Fall through to the default case.
+                    [[fallthrough]];
                 }
 
             default:
@@ -322,7 +323,7 @@ static MmResult path_resolve_symlinks(const char *src, char *dst, size_t sz) {
         if (*psrc == '/' || *psrc == '\0') {
 try_again:
             *pdst = '\0';
-            size_t num = readlink(dst, buf, PATH_MAX);
+            ssize_t num = readlink(dst, buf, PATH_MAX);
             if (num != -1) {
                 // On success replace 'dst' with target of link.
                 // On failure leave contents of 'dst' intact.
@@ -479,6 +480,7 @@ MmResult path_complete(const char *path, char *out, size_t sz) {
     // printf("path_complete: #%s#\n", path);
     char dir_path[PATH_MAX];
     MmResult result = path_munge(path, dir_path, PATH_MAX);
+    if (FAILED(result)) return result;
 
     out[0] = '\0';
     if (dir_path[0] == '\0' || path_exists(dir_path)) return kOk;

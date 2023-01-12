@@ -246,7 +246,6 @@ TEST_F(ParseTest, ParseTransformInputBuffer_GivenBangCommand) {
 
 TEST_F(ParseTest, ParseTransformInputBuffer_GivenBangCdCommand) {
     char input[STRINGSIZE];
-    char expected[STRINGSIZE];
 
     // Given no directory.
     strcpy(input, "!cd");

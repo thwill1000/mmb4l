@@ -79,7 +79,7 @@ static void cmd_read_restore(void) {
 
 void cmd_read_data(void) {
     int i, len;
-    const char *p, *lineptr = NULL, *x;
+    const char *p, *lineptr = NULL;
     char *vtbl[MAX_ARG_COUNT];
     int vtype[MAX_ARG_COUNT];
     int vsize[MAX_ARG_COUNT];
@@ -141,7 +141,7 @@ search_again:
                 NextData = 0;
                 goto search_again;
             }
-            x = CurrentLinePtr;
+            // x = CurrentLinePtr;
             CurrentLinePtr = lineptr;
             if(vtype[vidx] & T_STR) {
                 char *p1, *p2;

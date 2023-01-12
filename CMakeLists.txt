@@ -27,8 +27,9 @@ if (MMB4L_COVERAGE)
     set(GCOV_LINK_LIBRARY          gcov)
 endif()
 
-set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -Wwrite-strings -Werror")
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -Wwrite-strings -Werror")
+set(XTRA_WARNING_FLAGS "-Wwrite-strings -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-function -Werror")
+set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${XTRA_WARNING_FLAGS}")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${XTRA_WARNING_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
 
 set(MMB4L_CORE_SOURCE_FILES

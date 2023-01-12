@@ -59,6 +59,7 @@ void cmd_xmodem(void) {
         receive = false;
     } else {
         ERROR_SYNTAX;
+        receive = false;
     }
 
     getargs(&p, 5, ",");

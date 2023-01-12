@@ -107,7 +107,6 @@ static inline void xmodem_putc(int serial_fnbr, char ch) {
 void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
     char xbuff[X_BUF_SIZE];
     unsigned char packetno = 1;
-    char prevchar = 0;
     int i, c, len, total = 0;
     int retry;
     char sbuf[128];

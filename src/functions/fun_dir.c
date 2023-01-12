@@ -116,7 +116,6 @@ pattern_matching(                 /* 0:not matched, 1:matched */
 
 void fun_dir(void) {
     static DIR *dp;
-    char *p;
     struct dirent *entry;
     static char pp[32];
     getargs(&ep, 3, ",");

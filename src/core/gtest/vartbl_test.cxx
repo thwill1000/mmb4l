@@ -554,9 +554,9 @@ TEST_F(VartblTest, Add_GivenNoFreeHashmapSlots) {
 
 TEST_F(VartblTest, Add_ReusesDeletedHashmapSlots) {
     const VarHashValue foo_hash = hash_cstring("foo", MAXVARLEN) % VARS_HASHMAP_SIZE;
-    int global_0 = vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
+    /* int global_0 = */ (void) vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
     int local_1 = vartbl_add("foo", T_INT, 1, NULL, 0);
-    int local_2 = vartbl_add("foo", T_INT, 2, NULL, 0);
+    /* int local_2 = */ (void) vartbl_add("foo", T_INT, 2, NULL, 0);
     vartbl_delete(local_1);
 
     int local_3 = vartbl_add("foo", T_INT, 3, NULL, 0);
@@ -801,13 +801,13 @@ TEST_F(VartblTest, DeleteAll_GivenLevel0_SetsAllHashmapSlotsUnused) {
 TEST_F(VartblTest, DeleteAll_GivenNotLevel0_DoesNotSetAllHashmapSlotsUnused) {
     int var_idx;
     var_idx = vartbl_add("global_a", T_INT, GLOBAL_VAR, NULL, 0);
-    VarHashValue global_a_hash = vartbl[var_idx].hash;
+    /* VarHashValue global_a_hash = vartbl[var_idx].hash; */
     var_idx = vartbl_add("local_1_a", T_INT, 1, NULL, 0);
     VarHashValue local_1_a_hash = vartbl[var_idx].hash;
     var_idx = vartbl_add("local_2_a", T_INT, 2, NULL, 0);
     VarHashValue local_2_a_hash = vartbl[var_idx].hash;
     var_idx = vartbl_add("global_b", T_INT, GLOBAL_VAR, NULL, 0);
-    VarHashValue global_b_hash = vartbl[var_idx].hash;
+    /* VarHashValue global_b_hash = vartbl[var_idx].hash; */
     var_idx = vartbl_add("local_1_b", T_INT, 1, NULL, 0);
     VarHashValue local_1_b_hash = vartbl[var_idx].hash;
     var_idx = vartbl_add("local_2_b", T_INT, 2, NULL, 0);

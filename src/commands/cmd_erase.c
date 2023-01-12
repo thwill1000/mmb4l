@@ -58,7 +58,6 @@ void cmd_erase(void) {
     char name[MAXVARLEN + 1];
     MmResult result = kOk;
     int var_idx;
-    int global_idx;
 
     for (int ii = 0; ii < argc; ii += 2) {
         p = argv[ii];
