@@ -29,6 +29,7 @@ add_test("test_on_error_skip_2")
 ' Can't keep these tests enabled as they are designed to throw uncaught ERRORs.
 ' add_test("test_interrupt_does_not_ignore", "test_interrupt_not_ignore")
 ' add_test("test_editor_opens_correctly")
+add_test("test_error_skip_with_if_block")
 
 skip_tests:
 
@@ -53,7 +54,7 @@ Sub test_error_normal()
 
   assert_true(interrupt_called%)
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  assert_string_equals("Error in line 50: foo", Mm.ErrMsg$)
+  assert_string_equals("Error in line 51: foo", Mm.ErrMsg$)
 End Sub
 
 Sub interrupt1()
@@ -80,7 +81,7 @@ Sub interrupt2()
   On Error Skip 1
   Error "foo"
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  assert_string_equals("Error in line 81: foo", Mm.ErrMsg$)
+  assert_string_equals("Error in line 82: foo", Mm.ErrMsg$)
   SetTick 0, interrupt2
 End Sub
 
@@ -88,7 +89,7 @@ Sub test_error_given_pipe()
   On Error Skip 2
   Local s$ = "Hello|World" : Error "foo"
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  assert_string_equals("Error in line 89: foo", Mm.ErrMsg$)
+  assert_string_equals("Error in line 90: foo", Mm.ErrMsg$)
 End Sub
 
 ' Test that a skip in the normal thread of execution is not swallowed by
@@ -101,7 +102,7 @@ Sub test_interrupt_not_swallow()
     Error "foo" ' Should always be skipped
   Next
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  assert_string_equals("Error in line 101: foo", Mm.ErrMsg$)
+  assert_string_equals("Error in line 102: foo", Mm.ErrMsg$)
   SetTick 0, interrupt3
 End Sub
 
@@ -135,7 +136,7 @@ Sub test_on_error_skip_2()
     ' Error "wombat"
   Next
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  assert_string_equals("Error in line 134: bar", Mm.ErrMsg$)
+  assert_string_equals("Error in line 135: bar", Mm.ErrMsg$)
   SetTick 0, interrupt3
 End Sub
 
@@ -152,4 +153,30 @@ End Sub
 Sub interrupt5()
   interrupt_called% = 1
   Error "interrupt5"
+End Sub
+
+Sub test_error_skip_with_if_block()
+  Local a%, even%, z%
+
+  a% = 4
+  On Error Skip 5
+  If a% Mod 2 = 0 Then
+    even% = true
+    z% = 1 ' deliberate extra command.
+  Else
+    even% = false
+  EndIf
+  z% = 1 / 0
+  assert_raw_error("Divide by zero")
+
+  a% = 5
+  On Error Skip 4 ' one less command to skip.
+  If a% Mod 2 = 0 Then
+    even% = true
+    z% = 1 ' deliberate extra command.
+  Else
+    even% = false
+  EndIf
+  z% = 1 / 0
+  assert_raw_error("Divide by zero")
 End Sub

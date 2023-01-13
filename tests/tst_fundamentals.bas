@@ -30,6 +30,7 @@ add_test("test_local_with_same_name_as_fun_reports_error", "test_local_with_same
 add_test("test_call_fn_as_sub")
 add_test("test_call_sub_as_fn")
 add_test("test_call_fn_with_wrong_type")
+add_test("test_assign_fn_to_wrong_type")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -218,7 +219,7 @@ Sub test_unary_plus()
 End Sub
 
 Sub test_error_correct_after_goto()
-  Local base_line% = 229
+  Local base_line% = 230
   Goto 30
 test_goto_label_1:
   assert_raw_error("Error in line " + Str$(base_line% + 4) + ": foo1")
@@ -236,7 +237,7 @@ Error "foo2"
 Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
-  Local base_line% = 245
+  Local base_line% = 246
   GoSub 60
   assert_raw_error("Error in line " + Str$(base_line% + 4) + ": bar1")
   GoSub 70
@@ -287,19 +288,21 @@ End Sub
 
 Sub test_call_sub_as_fn()
   ' Can't do this, reports error "Nothing to return to" when we END SUB.
-'  On Error Skip 1
-'  Local a% = sub_a()
-'  assert_raw_error("foo")
+  If 0 Then
+    On Error Skip 1
+    Local a% = sub_a()
+    assert_raw_error("foo")
+  EndIf
 End Sub
 
 Sub test_call_fn_with_wrong_type()
-  ' Doesn't seem to correctly catch error.
-'  On Error Skip 1
-'  Local s$ = fun_b%()
-'  assert_raw_error("Expected a string")
-
-  On Error Clear
   On Error Skip 1
   Local i% = fun_b$()
   assert_raw_error("Inconsistent type suffix")
+End Sub
+
+Sub test_assign_fn_to_wrong_type()
+  On Error Skip 2
+  Local s$ = fun_b%()
+  assert_raw_error("Expected a string")
 End Sub

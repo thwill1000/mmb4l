@@ -245,8 +245,14 @@ void MIPS16 InitBasic(void) {
 // run a program
 // this will continuously execute a program until the end (marked by TWO zero chars)
 // the argument p must point to the first line to be executed
+// We need to suppress a spurious(?) warning about 'p' being clobbered by setjmp().
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclobbered"
 void ExecuteProgram(const char *p) {
-    int i, SaveLocalIndex = 0;
+    int i;
+    int SaveLocalIndex = 0;
+    jmp_buf SaveErrNext;                                            // we call ExecuteProgram() recursively so we need
+    memcpy(SaveErrNext, ErrNext, sizeof(jmp_buf));                  // to store/restore old jump buffer between calls
     skipspace(p);                                                   // just in case, skip any whitespace
     while(1) {
         if(*p == 0) p++;                                            // step over the zero byte marking the beginning of a new element
@@ -309,8 +315,9 @@ void ExecuteProgram(const char *p) {
             skipspace(cmdline);
             skipelement(nextstmt);
             if(*p && *p != '\'') {                                  // ignore a comment line
-                if(setjmp(ErrNext) == 0) {                          // return to the else leg of this if error and OPTION ERROR SKIP/IGNORE is in effect
-                    SaveLocalIndex = LocalIndex;                    // save this if we need to cleanup after an error
+                SaveLocalIndex = LocalIndex;                        // save this if we need to cleanup after an error
+
+                if (setjmp(ErrNext) == 0) {                         // return to the else leg of this if error and OPTION ERROR SKIP/IGNORE is in effect
                     if(*(char*)p >= C_BASETOKEN && *(char*)p - C_BASETOKEN < CommandTableSize - 1 && (commandtbl[*(char*)p - C_BASETOKEN].type & T_CMD)) {
                         cmdtoken = *(char*)p;
                         targ = T_CMD;
@@ -328,6 +335,7 @@ void ExecuteProgram(const char *p) {
                     LocalIndex = SaveLocalIndex;                    // restore so that we can clean up any memory leaks
                     ClearTempMemory();
                 }
+
                 if(OptionErrorSkip > 0) OptionErrorSkip--;          // if OPTION ERROR SKIP decrement the count - we do not error if it is greater than zero
                 if(TempMemoryIsChanged) ClearTempMemory();          // at the end of each command we need to clear any temporary string vars
                 CheckAbort();
@@ -335,9 +343,15 @@ void ExecuteProgram(const char *p) {
             }
             p = nextstmt;
         }
-        if((p[0] == 0 && p[1] == 0) || (p[0] == 0xff && p[1] == 0xff)) return;      // the end of the program is marked by TWO zero chars, empty flash by two 0xff
+
+        if ((p[0] == 0 && p[1] == 0) || (p[0] == 0xff && p[1] == 0xff)) {
+            break;                                                  // the end of the program is marked by TWO zero chars, empty flash by two 0xff
+        }
     }
+
+    memcpy(ErrNext, SaveErrNext, sizeof(jmp_buf));                  // restore jump buffer
 }
+#pragma GCC diagnostic pop
 
 
 /********************************************************************************************************************************************
