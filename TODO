@@ -1,15 +1,33 @@
 TODO
 ====
 
-Required for alpha 5
---------------------
+Required for 0.5
+----------------
+
+ - Update version number to 0.5
+ - Implement sub/function hash lookup
+ - Implement label hash lookup
+ - Rejig LICENSE file so there is only one
+ - Ensure LICENSE file is included in .tgz distributions
+ - Add change to Nano syntax file from contributor
+ - Update ChangeLog
+
+
+Required for 0.6
+----------------
+
+ - Add ability to direct TRACE to a file
+ - Add ability to call native "C" shared objects
+
+
+Required for 0.7
+----------------
 
  - Support "long lines" at the MMBasic prompt
  - Add PicoMite EDITor implementation
    - and add support for "long lines" to it
  - Add '.' command that behaves like a combination of '*' and '!', first
    looking for a .bas file to run and then trying a SYSTEM command.
- - Implement variable/sub/function hash tables
  - Don't include line number and filename in error message string; still show
    them at prompt where appropriate and make them available via MM.INFO()
  - Make default output from FILES more like that of CMM2
@@ -19,8 +37,6 @@ Required for alpha 5
  - (?) Remove use of 'goto' in 'path.c'
  - (?) Remove SETTITLE and CURSOR commands
  - (?) Rewrite 'tools/glibc_check.sh' in MMBasic
- - Rejig LICENSE file so there is only one
- - Make sure LICENSE file is included in .tgz distributions
  - Find fix for this bug:
 
     ' This will sometimes run forever,
@@ -46,8 +62,8 @@ Required for alpha 5
     End Sub
 
 
-Required for alpha 6
---------------------
+Required for 0.8
+----------------
 
  - Remove 32K array size limit.
  - Reorder interrupt processing to match PicoMite, add this as a comment to the
@@ -80,8 +96,8 @@ Required for alpha 6
   - Implement CONSOLE BLINK, BOLD, FAINT, ITALIC, REVERSE, STRIKE, UNDERLINE
 
 
-Required for alpha 7
---------------------
+Required for 0.9
+----------------
 
   - Write a proper lexer and ensure all Peter's "preprocessor tricks" work in both
     - programs, and
@@ -90,8 +106,8 @@ Required for alpha 7
     - can we fix syntax highlighting for "strings" inside comments ?
 
 
-Required for release
---------------------
+Required for 1.0
+----------------
 
   - Add option to PAUSE controlling whether it nanosleeps or not
     - or an OPTION to MMBasic controlling all sleep behaviour
@@ -116,3 +132,4 @@ To infinity and beyond
     but will if you use a label
   - Can PRINT @(x,y) be implemented without using a function slot for @ ?
   - Implement line continuation character _
+  - Implement exception handling TRY | CATCH | FINALLY | END TRY
