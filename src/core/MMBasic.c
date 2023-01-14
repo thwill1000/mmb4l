@@ -424,7 +424,20 @@ int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int 
 int FindSubFun(const char *p, int type) {
 
     // TODO: 'type' is ignored - copied from the PicoMite.
-    return funtbl_find(p);
+    int fun_idx;
+    MmResult result = funtbl_find(p, &fun_idx);
+    switch (result) {
+        case kOk:
+            [[fallthrough]]
+        case kFunctionNotFound:
+            return fun_idx;
+        case kNameTooLong:
+            error_throw_ex(kNameTooLong, "SUB/FUNCTION name too long");
+            return -1;
+        default:
+            error_throw(result);
+            return -1;
+    }
 
 #if 0
     const char *p1, *p2;
@@ -1836,7 +1849,8 @@ void *findvar(const char *p, int action) {
     // Check the sub/fun table to make sure that there is not a sub/fun with the same name.
     // Don't do this if we are defining the local variable for a function name.
     if (!(action & V_FUNCT)) {
-        int fun_idx = funtbl_find(name);
+        int fun_idx = -1;
+        (void) funtbl_find(name, &fun_idx);
         if (fun_idx != -1) {
             error("A sub/fun has the same name: $", name);
             return NULL;

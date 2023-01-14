@@ -77,6 +77,7 @@ typedef enum {
     kNotPersistent,
     kNameTooLong,
     kUnimplemented,
+    kFunctionNotFound,
     kVariableNotFound
 } MmResultCode;
 

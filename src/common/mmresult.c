@@ -65,6 +65,7 @@ const char *mmresult_to_string(MmResult result) {
         case kNotPersistent: return "Invalid for non-persistent option";
         case kNameTooLong:   return "Name too long";
         case kUnimplemented: return "Unimplemented function";
+        case kFunctionNotFound: return "Function not found";
         case kVariableNotFound: return "Variable not found";
         default:             return "Unknown result code";
     }

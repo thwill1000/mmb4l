@@ -109,20 +109,21 @@ size_t funtbl_size() {
     return sz;
 }
 
-int funtbl_find(const char *p) {
+MmResult funtbl_find(const char *p, int *fun_idx) {
+    *fun_idx = -1;
     char name[MAXVARLEN + 1] = { 0 };
     HashValue hash;
-    if (funtbl_hash(p, name, &hash) != 0) {
-        error("SUB/FUNCTION name too long");
-        return -1;
-    }
+    if (funtbl_hash(p, name, &hash) != 0) return kNameTooLong;
 
     while (funtbl[hash].name[0]) {
-        if (strcmp(funtbl[hash].name, name) == 0) return funtbl[hash].index;
+        if (strcmp(funtbl[hash].name, name) == 0) {
+            *fun_idx = funtbl[hash].index;
+            return kOk;
+        }
         hash = (hash + 1) % MAXSUBFUN;
     }
 
-    return -1;
+    return kFunctionNotFound;
 }
 
 int funtbl_hash(const char *p, char *name, HashValue* hash) {

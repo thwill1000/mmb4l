@@ -146,6 +146,7 @@ TEST_F(FuntblTest, Prepare_GivenDuplicateName) {
 }
 
 TEST_F(FuntblTest, Find) {
+    int fun_idx;
     sprintf(m_program,
             "# foo\n"
             "#\n"
@@ -157,10 +158,15 @@ TEST_F(FuntblTest, Find) {
 
     funtbl_prepare(true);
 
-    EXPECT_EQ(0,  funtbl_find("Foo("));
-    EXPECT_EQ(1,  funtbl_find("BAr "));
-    EXPECT_EQ(-1, funtbl_find("WOMBAT("));
-    EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(-1, funtbl_find("name_33_characters_zzzzzzzzzzzzzz"));
-    EXPECT_STREQ("SUB/FUNCTION name too long", error_msg);
+    EXPECT_EQ(kOk, funtbl_find("Foo(", &fun_idx));
+    EXPECT_EQ(0, fun_idx);
+
+    EXPECT_EQ(kOk, funtbl_find("BAr ", &fun_idx));
+    EXPECT_EQ(1, fun_idx);
+
+    EXPECT_EQ(kFunctionNotFound, funtbl_find("WOMBAT(", &fun_idx));
+    EXPECT_EQ(-1, fun_idx);
+
+    EXPECT_EQ(kNameTooLong, funtbl_find("name_33_characters_zzzzzzzzzzzzzz", &fun_idx));
+    EXPECT_EQ(-1, fun_idx);
 }

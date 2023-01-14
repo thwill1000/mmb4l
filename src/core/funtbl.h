@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Configuration.h"
 #include "../common/hash.h"
+#include "../common/mmresult.h"
 
 #include <stdbool.h>
 
@@ -67,9 +68,14 @@ void funtbl_dump();
 /**
  * @brief  Finds a FUNCTION/SUBroutine by name in the function table.
  *
- * @return  index of the function in subfun[], or -1 if it was not found.
+ * @param[in]   p        pointer to start of function name.
+ * @param[out]  fun_idx  on exit the index of the function subfun[],
+ *                       or -1 on failure.
+ * @return               kOk               - on success.
+ *                       kNameTooLong      - if function name is too long.
+ *                       kFunctionNotFound - if function not in table.
  */
-int funtbl_find(const char *p);
+MmResult funtbl_find(const char *p, int *fun_idx);
 
 void funtbl_prepare(bool abort_on_error);
 size_t funtbl_size();

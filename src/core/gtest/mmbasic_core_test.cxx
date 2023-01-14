@@ -1026,6 +1026,19 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenTwoFunctionsWithSameNameButDifferent
     EXPECT_STREQ("", error_msg);
 }
 
+TEST_F(MmBasicCoreTest, FindSubFun_GivenNameTooLong) {
+    TokeniseAndAppend("Function foo%()");
+    TokeniseAndAppend("End Function");
+    PrepareProgram(1);
+
+    char name[256];
+    sprintf(name, "%sA", MAX_LENGTH_NAME);
+    int fun_idx = FindSubFun(name, 0);
+
+    EXPECT_STREQ("SUB/FUNCTION name too long", error_msg);
+    EXPECT_EQ(-1, fun_idx);
+}
+
 TEST_F(MmBasicCoreTest, FindSubFun_GivenTypeMismatch) {
     TokeniseAndAppend("Function foo%()");
     TokeniseAndAppend("End Function");
