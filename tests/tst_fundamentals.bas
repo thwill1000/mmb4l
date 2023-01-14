@@ -271,28 +271,28 @@ Function fun_b%()
 End Function
 
 Sub test_call_fn_as_sub()
+  Local expected$ = Choice(Mm.Device$ = "MMB4L", "Not a subroutine", "Type specification is invalid: %")
   On Error Skip 1
   fun_b%()
-  assert_raw_error("Type specification is invalid: %")
+  assert_raw_error(expected$)
 
-  On Error Clear
   On Error Skip 1
   fun_b()
-  assert_raw_error("Type specification is invalid: %")
+  assert_raw_error(expected$)
 
-  On Error Clear
   On Error Skip 1
   fun_b!()
-  assert_raw_error("Type specification is invalid: %")
+  assert_raw_error(expected$)
 End Sub
 
 Sub test_call_sub_as_fn()
-  ' Can't do this, reports error "Nothing to return to" when we END SUB.
-  If 0 Then
-    On Error Skip 1
-    Local a% = sub_a()
-    assert_raw_error("foo")
-  EndIf
+  ' Can't test this on non-MMB4L;
+  ' reports error "Nothing to return to" when we END SUB.
+  If Mm.Device$ <> "MMB4L" Then Exit Sub
+
+  On Error Skip 1
+  Local a% = sub_a()
+  assert_raw_error("Not a function")
 End Sub
 
 Sub test_call_fn_with_wrong_type()

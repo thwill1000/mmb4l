@@ -1786,7 +1786,7 @@ void execute_one_command(char *p) {
         commandtbl[cmd].fptr();                                     // execute the command
     } else {
         if(!isnamestart(*p)) error("Invalid character");
-        i = FindSubFun(p, false);                                   // it could be a defined command
+        i = FindSubFun(p, 0);                                       // find a subroutine.
         if(i >= 0)                                                  // >= 0 means it is a user defined command
             DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
         else

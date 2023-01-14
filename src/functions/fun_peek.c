@@ -81,9 +81,7 @@ static char *GetCFunAddr(const char *p, int i) {
 /** PEEK(CFUNADDR cfun) */
 static void peek_cfunaddr(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
-    int idx = FindSubFun(p, true);  // search for a function first
-    if (idx == -1)
-        idx = FindSubFun(p, false);  // and if not found try for a subroutine
+    int idx = FindSubFun(p, 2); // sfind a function or subroutine.
     if (idx == -1 || !(*subfun[idx] == cmdCFUN || *subfun[idx] == cmdCSUB))
         ERROR_INVALID_ARGUMENT;
 

@@ -896,12 +896,21 @@ TEST_F(MmBasicCoreTest, PrepareProgram_And_FindSubFun) {
     PrepareProgram(1);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(0, FindSubFun("foo", 0));
-    EXPECT_EQ(ProgMemory + 1, subfun[0]);
-    EXPECT_EQ(1, FindSubFun("bar", 0));
-    EXPECT_EQ(ProgMemory + 12, subfun[1]);
-    EXPECT_EQ(2, FindSubFun("wom", 0));
-    EXPECT_EQ(ProgMemory + 25, subfun[2]);
+
+    int fun_idx = FindSubFun("foo", 0);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, fun_idx);
+    EXPECT_EQ(ProgMemory + 1, subfun[fun_idx]);
+
+    fun_idx = FindSubFun("bar", 1);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(1, fun_idx);
+    EXPECT_EQ(ProgMemory + 12, subfun[fun_idx]);
+
+    fun_idx = FindSubFun("wom", 0);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, fun_idx);
+    EXPECT_EQ(ProgMemory + 25, subfun[fun_idx]);
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_GivenMaximumNumberOfFunctions) {
@@ -915,9 +924,12 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenMaximumNumberOfFunctions) {
     PrepareProgram(1);
 
     EXPECT_STREQ("", error_msg);
+    int fun_idx;
     for (int ii = 0; ii < MAXSUBFUN; ++ii) {
         sprintf(buf, "fun%d", ii);
-        EXPECT_EQ(ii, FindSubFun(buf, 0));
+        fun_idx = FindSubFun(buf, 1);
+        EXPECT_STREQ("", error_msg);
+        EXPECT_EQ(ii, fun_idx);
     }
 }
 
@@ -962,8 +974,14 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionNameContainingPeriod) {
     PrepareProgram(1);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(0, FindSubFun("f.oo", 0));
-    EXPECT_EQ(1, FindSubFun("b.ar", 0));
+
+    int fun_idx = FindSubFun("f.oo", 1);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, fun_idx);
+
+    fun_idx = FindSubFun("b.ar", 0);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(1, fun_idx);
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionHasMaximumLengthName) {
@@ -975,7 +993,10 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionHasMaximumLengthName) {
     PrepareProgram(1);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(0, FindSubFun(MAX_LENGTH_NAME, 0));
+
+    int fun_idx = FindSubFun(MAX_LENGTH_NAME, 1);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, fun_idx);
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionNameTooLong) {
@@ -1033,7 +1054,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenNameTooLong) {
 
     char name[256];
     sprintf(name, "%sA", MAX_LENGTH_NAME);
-    int fun_idx = FindSubFun(name, 0);
+    int fun_idx = FindSubFun(name, 1);
 
     EXPECT_STREQ("SUB/FUNCTION name too long", error_msg);
     EXPECT_EQ(-1, fun_idx);
@@ -1044,13 +1065,53 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenTypeMismatch) {
     TokeniseAndAppend("End Function");
     PrepareProgram(1);
 
-    int fun_idx = FindSubFun("foo!", 0);
+    int fun_idx = FindSubFun("foo!", 1);
 
     // The type suffix does not form part of the name and the type checking is
     // performed in the function calling code only after the function has
     // been found.
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(0, fun_idx);
+}
+
+TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForASubButFoundAFunction) {
+    TokeniseAndAppend("Function foo%()");
+    TokeniseAndAppend("End Function");
+    PrepareProgram(1);
+
+    int fun_idx = FindSubFun("foo", 0);
+
+    EXPECT_STREQ("Not a subroutine", error_msg);
+    EXPECT_EQ(-1, fun_idx);
+}
+
+TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForAFunctionButFoundASub) {
+    TokeniseAndAppend("Sub foo()");
+    TokeniseAndAppend("End Sub");
+    PrepareProgram(1);
+
+    int fun_idx = FindSubFun("foo", 1);
+
+    EXPECT_STREQ("Not a function", error_msg);
+    EXPECT_EQ(-1, fun_idx);
+}
+
+TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForAFunctionOrSub) {
+    TokeniseAndAppend("Function foo()");
+    TokeniseAndAppend("End Function");
+    TokeniseAndAppend("Sub bar()");
+    TokeniseAndAppend("End Sub");
+    PrepareProgram(1);
+
+    int fun_idx = FindSubFun("foo", 2);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, fun_idx);
+
+    fun_idx = FindSubFun("bar", 2);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(1, fun_idx);
 }
 
 extern "C" {

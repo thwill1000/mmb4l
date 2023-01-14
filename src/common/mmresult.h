@@ -74,6 +74,8 @@ typedef enum {
     kInvalidString,
     kInvalidValue,
     kUnknownSystemCommand,
+    kNotAFunction,
+    kNotASubroutine,
     kNotPersistent,
     kNameTooLong,
     kUnimplemented,

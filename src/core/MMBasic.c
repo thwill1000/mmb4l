@@ -324,7 +324,7 @@ void ExecuteProgram(const char *p) {
                         commandtbl[*(char*)p - C_BASETOKEN].fptr(); // execute the command
                     } else {
                         if (!isnamestart(*p)) error("Invalid character: %", (int)(*p));
-                        i = FindSubFun(p, false);                   // it could be a defined command
+                        i = FindSubFun(p, 0);                       // it could be a defined command (subroutine)
                         if(i >= 0) {                                // >= 0 means it is a user defined command
                             DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
                         }
@@ -418,14 +418,30 @@ int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int 
     return i;
 }
 
-// searches the subfun[] table to locate a defined sub or fun
-// returns with the index of the sub/function in the table or -1 if not found
-// if type = 0 then look for a sub otherwise a function
+/**
+ * @brief  Finds a FUNCTION/SUBroutine by name in the function table.
+ *
+ * @param[in]   p        pointer to start of function name.
+ * @param[in]   type     0 - to find a subroutine.
+ *                       1 - to find a function.
+ *                       2 - to find a subroutine or function.
+ * @return               the index of the function in subfun[],
+ *                       or -1 if the function could not be found.
+ */
 int FindSubFun(const char *p, int type) {
-
-    // TODO: 'type' is ignored - copied from the PicoMite.
+    assert(type > 0 || type < 3);
     int fun_idx;
     MmResult result = funtbl_find(p, &fun_idx);
+
+    if (result == kOk && type != 2) {
+        char actual_type = *subfun[fun_idx];
+        if (type == 0) {
+            result = (actual_type == cmdSUB || actual_type == cmdCSUB) ? kOk : kNotASubroutine;
+        } else {
+            result = (actual_type == cmdFUN || actual_type == cmdCFUN) ? kOk : kNotAFunction;
+        }
+    }
+
     switch (result) {
         case kOk:
             [[fallthrough]]
@@ -438,26 +454,6 @@ int FindSubFun(const char *p, int type) {
             error_throw(result);
             return -1;
     }
-
-#if 0
-    const char *p1, *p2;
-    int i;
-
-    for(i = 0;  i < MAXSUBFUN && subfun[i] != NULL; i++) {
-        p2 = subfun[i];                                             // point to the command token
-        if(type == 0) {                                             // if it is a sub and we want a fun or vice versa skip this one
-            if(!(*p2 == cmdSUB || *p2 == cmdCSUB)) continue;
-        } else {
-            if(!(*p2 == cmdFUN || *p2 == cmdCFUN)) continue;
-        }
-        p2++; skipspace(p2);                                        // point to the identifier
-        if(toupper(*p) != toupper(*p2)) continue;                   // quick first test
-        p1 = p + 1;  p2++;
-        while(isnamechar(*p1) && toupper(*p1) == toupper(*p2)) { p1++; p2++; };
-        if((*p1 == '$' && *p2 == '$') || (*p1 == '%' && *p2 == '%') || (*p1 == '!' && *p2 == '!') || (!isnamechar(*p1) && !isnamechar(*p2))) return i;          // found it !
-    }
-    return -1;
-#endif
 }
 
 

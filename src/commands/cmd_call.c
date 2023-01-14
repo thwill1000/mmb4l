@@ -60,7 +60,7 @@ void cmd_call(void) {
         q++;
     }
     if (*q == ',') q++;
-    int i = FindSubFun(cmd, false);  // it could be a defined command
+    int i = FindSubFun(cmd, 0);  // find a subroutine.
     cstring_cat(cmd, " ", STRINGSIZE);
     cstring_cat(cmd, q, STRINGSIZE);
     // MMPrintString(p);PRet();
