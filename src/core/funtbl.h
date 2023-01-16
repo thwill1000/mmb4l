@@ -49,23 +49,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/hash.h"
 #include "../common/mmresult.h"
 
-#include <stdbool.h>
-
 typedef int16_t FunHashValue;
 
+/** Structure of elements in the function table. */
 struct s_funtbl {
-    char name[MAXVARLEN];  // Function name; will not be \0 terminated if
-                           // MAXVARLEN characters long.
-    const char *code;      // Pointer to function in the program memory.
-    FunHashValue hash;
-    uint32_t index;        // Obsolete index into subfun[].
+    char name[MAXVARLEN];  // Function name canonically in UPPER-CASE; will not
+                           // be \0 terminated if MAXVARLEN characters long.
+    const char *addr;      // Pointer to function in the program memory.
+    FunHashValue hash;     // Index of this function in funtbl_hashmap[].
 };
 
 /** Indexes into this table are hashes of the SUB/FUNCTION names. */
 extern struct s_funtbl funtbl[MAXSUBFUN];
-
-/** Table of pointers to SUBroutines and FUNCTIONs in the program memory. */
-extern const char *subfun[MAXSUBFUN];
 
 /**
  * @brief  Hashmap from a hash of the first 32 characters of the
@@ -87,7 +82,7 @@ extern size_t funtbl_count;
  *                          it with an UPPER-CASE name.
  *                @warning  Only the first 32 characters are used.
  *                @warning  Validity of the name is not checked.
- * @param  code   Pointer to the functions declaration in the program memory.
+ * @param  addr   Pointer to the function's declaration in the program memory.
  * @param[out]  fun_idx  On exit, the index of the new function,
  *                       or -1 on error.
  * @return        kOk                - on success.
@@ -98,7 +93,7 @@ extern size_t funtbl_count;
  *                                     should never happen because the hashmap
  *                                     is larger than the function table.
  */
-MmResult funtbl_add(const char *name, const char *code, int *fun_idx);
+MmResult funtbl_add(const char *name, const char *addr, int *fun_idx);
 
 void funtbl_clear();
 void funtbl_dump();
@@ -118,7 +113,6 @@ void funtbl_dump();
  */
 MmResult funtbl_find(const char *name, int *fun_idx);
 
-MmResult funtbl_prepare(bool abort_on_error);
 size_t funtbl_size();
 
 #endif // #if !defined(MMB4L_FUNTBL_H)

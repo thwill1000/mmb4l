@@ -45,17 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Hardware_Includes.h"
 #include "MMBasic_Includes.h"
 #include "funtbl.h"
-#include "../common/parse.h"
-#include "../common/utility.h"
 
 #include <stddef.h>
 
 struct s_funtbl funtbl[MAXSUBFUN];
-const char *subfun[MAXSUBFUN];
 FunHashValue funtbl_hashmap[FUN_HASHMAP_SIZE];
 size_t funtbl_count = 0;
 
-MmResult funtbl_add(const char *name, const char *code, int *fun_idx) {
+MmResult funtbl_add(const char *name, const char *addr, int *fun_idx) {
     *fun_idx = -1;
     if (funtbl_count == MAXSUBFUN) return kTooManyFunctions;
 
@@ -76,9 +73,8 @@ MmResult funtbl_add(const char *name, const char *code, int *fun_idx) {
     // Copy a maximum of MAXVARLEN characters,
     // a maximum length stored name will not be '\0' terminated.
     strncpy(funtbl[funtbl_count].name, name, MAXVARLEN);
-    funtbl[funtbl_count].code = code;
+    funtbl[funtbl_count].addr = addr;
     funtbl[funtbl_count].hash = hash;
-    funtbl[funtbl_count].index = funtbl_count;
 
     *fun_idx = funtbl_count++;
     return kOk;
@@ -86,41 +82,14 @@ MmResult funtbl_add(const char *name, const char *code, int *fun_idx) {
 
 void funtbl_clear() {
     memset(funtbl, 0, sizeof(funtbl));
-    // memset(subfun, 0, sizeof(subfun));
     memset(funtbl_hashmap, 0xFF, sizeof(funtbl_hashmap));
     funtbl_count = 0;
 }
 
-MmResult funtbl_prepare(bool abort_on_error) {
-    const char *pname;
-    int fun_idx;
-    char name[MAXVARLEN + 1];
-
-    funtbl_clear();
-
-    for (size_t ii = 0; ii < MAXSUBFUN && subfun[ii]; ++ii) {
-        pname = subfun[ii] + 1;  // subfun[ii] is pointing at SUB/FUNCTION keyword.
-        skipspace(pname);        // pname is pointing at first characetr of name.
-        MmResult result = parse_name(&pname, name);
-        if (SUCCEEDED(result)) result = funtbl_add(name, subfun[ii], &fun_idx);
-        if (FAILED(result) && abort_on_error) return result;
-    }
-
-    return kOk;
-}
-
 void funtbl_dump() {
     for (int ii = 0; ii < MAXSUBFUN; ++ii) {
-        if (funtbl[ii].name[0]) printf("[%d] %s, %d\n", ii, funtbl[ii].name, funtbl[ii].index);
+        if (funtbl[ii].name[0]) printf("[%d] %s, %d\n", ii, funtbl[ii].name, funtbl[ii].hash);
     }
-}
-
-size_t funtbl_size() {
-    size_t sz = 0;
-    for (int ii = 0; ii < MAXSUBFUN; ++ii) {
-        if (funtbl[ii].name[0]) sz++;
-    }
-    return sz;
 }
 
 MmResult funtbl_find(const char *name, int *fun_idx) {

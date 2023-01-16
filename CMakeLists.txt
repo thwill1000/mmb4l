@@ -261,8 +261,6 @@ gtest_discover_tests(test_cstring)
 
 add_executable(
   test_funtbl
-  src/common/memory.c
-  src/common/parse.c
   src/core/funtbl.c
   src/core/gtest/funtbl_test.cxx
 )

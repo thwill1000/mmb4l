@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/memory.h"
 #include "../common/utility.h"
+#include "../core/funtbl.h"
 
 /** PEEK(BYTE addr%) */
 static void peek_byte(int argc, char **argv, const char *p) {
@@ -65,7 +66,7 @@ static char *GetCFunAddr(const char *p, int i) {
         uintptr_t addr = *((uint64_t *) ip);
         ip += 2;
         size = *ip++;
-        if (addr == (uintptr_t) g_subfun[i]) {  // if we have a match
+        if (addr == (uintptr_t) (funtbl[i].addr)) {  // if we have a match
             int offset = *ip++;                 // get the offset in 32-bit words
             return (char *) (ip + offset);      // return the entry point
         } else {
@@ -82,7 +83,7 @@ static char *GetCFunAddr(const char *p, int i) {
 static void peek_cfunaddr(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
     int idx = FindSubFun(p, 2); // sfind a function or subroutine.
-    if (idx == -1 || !(*subfun[idx] == cmdCFUN || *subfun[idx] == cmdCSUB))
+    if (idx == -1 || !(*(funtbl[idx].addr) == cmdCFUN || *(funtbl[idx].addr) == cmdCSUB))
         ERROR_INVALID_ARGUMENT;
 
     // Search through program flash and the library looking for a match to

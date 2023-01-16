@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "funtbl.h"
 #include "vartbl.h"
 #include "../common/parse.h"
+#include "../common/utility.h"
 
 #include <assert.h>
 
@@ -358,60 +359,56 @@ void ExecuteProgram(const char *p) {
  Code associated with processing user defined subroutines and functions
 ********************************************************************************************************************************************/
 
-int MIPS16 PrepareProgramExt(const char *, int, unsigned char **, int);
+void MIPS16 PrepareProgramExt(const char *, unsigned char **, int);
 
 // Scan through the program loaded in flash and build a table pointing to the definition of all user defined subroutines and functions.
 // This pre processing speeds up the program when using defined subroutines and functions
 // this routine also looks for embedded fonts and adds them to the font table
 void MIPS16 PrepareProgram(int ErrAbort) {
-    int i, NbrFuncts;
+    // Clear the font table.
+    for (int i = FONT_BUILTIN_NBR; i < FONT_TABLE_SIZE; i++) {
+        FontTable[i] = NULL;
+    }
 
-    for(i = FONT_BUILTIN_NBR; i < FONT_TABLE_SIZE; i++)
-        FontTable[i] = NULL;                                        // clear the font table
-
-    NbrFuncts = 0;
 #if !defined(__mmb4l__)
     CFunctionFlash = CFunctionLibrary = NULL;
 #endif
-    PrepareProgramExt(ProgMemory, NbrFuncts, (unsigned char **) &CFunctionFlash, ErrAbort);
-    MmResult result = funtbl_prepare(ErrAbort);
-    switch (result) {
-        case kOk:
-            break;
-        case kInvalidName:
-            error_throw_ex(result, "Invalid function/subroutine name");
-            break;
-        case kNameTooLong:
-            error_throw_ex(result, "Function/subroutine name too long");
-            break;
-        default:
-            error_throw(result);
-            break;
-    }
+    PrepareProgramExt(ProgMemory, (unsigned char **) &CFunctionFlash, ErrAbort);
 }
 
 
 // This scans one area (main program or the library area) for user defined subroutines and functions.
 // It is only used by PrepareProgram() above.
-int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int ErrAbort) {
-    while(*p != 0xff) {
+void MIPS16 PrepareProgramExt(const char *p, unsigned char **CFunPtr, int ErrAbort) {
+    const char *code;
+    char name[MAXVARLEN + 1];
+    int fun_idx;
+    funtbl_clear();
+    while (*p != 0xff) {
         p = GetNextCommand(p, &CurrentLinePtr, NULL);
-        if(*p == 0) break;                                          // end of the program or module
-        if(*p == cmdSUB || *p == cmdFUN || *p == cmdCFUN || *p == cmdCSUB) {         // found a SUB, FUN, CFUNCTION or CSUB token
-            if(i >= MAXSUBFUN) {
-                if(ErrAbort) error("Too many subroutines and functions");
-                continue;
-            }
-            subfun[i++] = p++;                                      // save the address and step over the token
+        if (*p == 0) break;                                          // end of the program or module
+        if (*p == cmdSUB || *p == cmdFUN || *p == cmdCFUN || *p == cmdCSUB) {  // found a SUB, FUN, CFUNCTION or CSUB token
+            code = p++;
             skipspace(p);
-            if(!isnamestart(*p)) {
-                if(ErrAbort) error("Invalid identifier");
-                i--;
-                continue;
+            MmResult result = parse_name(&p, name);
+            if (SUCCEEDED(result)) result = funtbl_add(name, code, &fun_idx);
+            if (FAILED(result) && ErrAbort) {
+                switch (result) {
+                    case kInvalidName:
+                        error_throw_ex(result, "Invalid function/subroutine name");
+                        break;
+                    case kNameTooLong:
+                        error_throw_ex(result, "Function/subroutine name too long");
+                        break;
+                    default:
+                        error_throw(result);
+                        break;
+                }
             }
         }
         while(*p) p++;                                              // look for the zero marking the start of the next element
     }
+
 #if defined(MICROMITE)
     while(*p == 0) p++;                                             // the end of the program can have multiple zeros
     p++;                                                            // step over the terminating 0xff
@@ -428,7 +425,6 @@ int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int 
         cfp += (*cfp + 4) / sizeof(unsigned int);
     }
 #endif
-    return i;
 }
 
 /**
@@ -438,7 +434,7 @@ int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int 
  * @param[in]   type     0 - to find a subroutine.
  *                       1 - to find a function.
  *                       2 - to find a subroutine or function.
- * @return               the index of the function in subfun[],
+ * @return               the index of the function in funtbl[],
  *                       or -1 if the function could not be found.
  */
 int FindSubFun(const char *p, int type) {
@@ -451,7 +447,7 @@ int FindSubFun(const char *p, int type) {
     if (result == kOk) result = funtbl_find(name, &fun_idx);
 
     if (result == kOk && type != 2) {
-        char actual_type = *subfun[fun_idx];
+        char actual_type = *(funtbl[fun_idx].addr);
         if (type == 0) {
             result = (actual_type == cmdSUB || actual_type == cmdCSUB) ? kOk : kNotASubroutine;
         } else {
@@ -481,7 +477,7 @@ int FindSubFun(const char *p, int type) {
 // The arguments when called are:
 //   isfun    = true if we are executing a function
 //   cmd      = pointer to the command name used by the caller (in program memory)
-//   index    = index into subfun[i] which points to the definition of the sub or funct
+//   index    = index into funtbl[i] which points to the definition of the sub or funct
 //   fa, i64a, sa and typ are pointers to where the return value is to be stored (used by functions only)
 void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a, char **sa, int *typ) {
     const char *p;
@@ -504,7 +500,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     int *argVarIndex;
 
     CallersLinePtr = CurrentLinePtr;
-    SubLinePtr = subfun[index];                                     // used for error reporting
+    SubLinePtr = funtbl[index].addr;                                // used for error reporting
     p =  SubLinePtr + 1;                                            // point to the sub or function definition
     skipspace(p);
     ttp = p;
@@ -2408,7 +2404,6 @@ void MIPS16 ClearStack(void) {
 // clear the runtime (eg, variables, external I/O, etc) includes ClearStack() and ClearVars()
 // this is done before running a program
 void MIPS16 ClearRuntime(void) {
-    int i;
 #if defined(MX470)
     //have to stop audio before we clear variables to avoid exception
     CloseAudio();
@@ -2442,7 +2437,7 @@ void MIPS16 ClearRuntime(void) {
     InitHeap();
     ClearVars(0);
     CurrentLinePtr = ContinuePoint = NULL;
-    for(i = 0;  i < MAXSUBFUN; i++)  subfun[i] = NULL;
+    funtbl_clear();
 }
 
 

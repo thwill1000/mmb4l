@@ -12,16 +12,6 @@ extern "C" {
 
 const struct s_funtbl EMPTY_FUN = {};
 
-// Declared in "error.c"
-void error_throw(MmResult error) { }
-void error_throw_ex(MmResult error, const char *msg, ...) { }
-void error_throw_legacy(const char *msg, ...) { }
-
-// Declared in "MMBasic.c"
-int LocalIndex = 0;
-int getint(char *p, int min, int max) { return 0; }
-long long int getinteger(char *p) { return 0; }
-
 } // extern "C"
 
 #define MAX_LENGTH_NAME     "_32_character_name_9012345678901"
@@ -30,10 +20,9 @@ long long int getinteger(char *p) { return 0; }
 #define EXPECT_FUNTBL_ENTRY(idx, expected_name, expected_code) \
     { \
     EXPECT_STREQ(expected_name, funtbl[idx].name); \
-    EXPECT_EQ(expected_code, funtbl[idx].code); \
+    EXPECT_EQ(expected_code, funtbl[idx].addr); \
     FunHashValue expected_hash = hash_cstring(expected_name, MAXVARLEN) % FUN_HASHMAP_SIZE; \
     EXPECT_EQ(expected_hash, funtbl[idx].hash); \
-    EXPECT_EQ(idx, funtbl[idx].index); \
     EXPECT_EQ(idx, funtbl_hashmap[expected_hash]); \
     }
 
@@ -43,7 +32,6 @@ protected:
 
     void SetUp() override {
         funtbl_clear();
-        memset(subfun, 0, sizeof(subfun));
         m_program[0] = '\0';
     }
 
@@ -105,7 +93,7 @@ TEST_F(FuntblTest, Add_GivenMaxLengthName) {
     // 33rd element will be the first byte of the code pointer.
     EXPECT_EQ(0, memcmp(MAX_LENGTH_NAME "\xFF", funtbl[fun_idx].name, 33));
 
-    EXPECT_EQ((const char *) -1, funtbl[fun_idx].code);
+    EXPECT_EQ((const char *) -1, funtbl[fun_idx].addr);
     FunHashValue expected_hash = hash_cstring(MAX_LENGTH_NAME, MAXVARLEN) % FUN_HASHMAP_SIZE;
     EXPECT_EQ(expected_hash, funtbl[fun_idx].hash);
     EXPECT_EQ(fun_idx, funtbl_hashmap[expected_hash]);
@@ -127,7 +115,7 @@ TEST_F(FuntblTest, Add_GivenNameTooLong) {
     // 33rd element will be the first byte of the code pointer.
     EXPECT_EQ(0, memcmp(MAX_LENGTH_NAME "\xFF", funtbl[fun_idx].name, 33));
 
-    EXPECT_EQ((const char *) -1, funtbl[fun_idx].code);
+    EXPECT_EQ((const char *) -1, funtbl[fun_idx].addr);
     FunHashValue expected_hash = hash_cstring(MAX_LENGTH_NAME, MAXVARLEN) % FUN_HASHMAP_SIZE;
     EXPECT_EQ(expected_hash, funtbl[fun_idx].hash);
     EXPECT_EQ(fun_idx, funtbl_hashmap[expected_hash]);
@@ -173,63 +161,6 @@ TEST_F(FuntblTest, Add_GivenHashmapFull) {
 
     EXPECT_EQ(kHashmapFull, result);
     EXPECT_EQ(-1, fun_idx);
-}
-
-TEST_F(FuntblTest, Prepare) {
-    sprintf(m_program,
-            "# foo\n"
-            "#\n"
-            "# bar\n"
-            "#\n");
-    subfun[0] = m_program;
-    subfun[1] = m_program + 8;
-    subfun[2] = NULL;
-
-    MmResult result = funtbl_prepare(true);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(2, funtbl_size());
-    EXPECT_FUNTBL_ENTRY(0, "FOO", m_program);
-    EXPECT_FUNTBL_ENTRY(1, "BAR", m_program + 8);
-}
-
-TEST_F(FuntblTest, Prepare_GivenNameTooLong) {
-    sprintf(m_program,
-            "# name_32_characters_xxxxxxxxxxxxx\n"
-            "#\n"
-            "# name_33_characters_zzzzzzzzzzzzzz\n"
-            "#\n");
-    subfun[0] = m_program;
-    subfun[1] = m_program + 37;
-    subfun[2] = NULL;
-
-    MmResult result = funtbl_prepare(true);
-
-    EXPECT_EQ(kNameTooLong, result);
-    EXPECT_EQ(1, funtbl_size());
-    EXPECT_EQ(0, strncmp("NAME_32_CHARACTERS_XXXXXXXXXXXXX", funtbl[0].name, MAXVARLEN));
-    EXPECT_EQ(m_program, funtbl[0].code);
-    FunHashValue expected_hash =
-            hash_cstring("NAME_32_CHARACTERS_XXXXXXXXXXXXX", MAXVARLEN) % FUN_HASHMAP_SIZE;
-    EXPECT_EQ(expected_hash, funtbl[0].hash);
-    EXPECT_EQ(0, funtbl[0].index);
-}
-
-TEST_F(FuntblTest, Prepare_GivenDuplicateName) {
-    sprintf(m_program,
-            "# foo\n"
-            "#\n"
-            "# fOo\n"
-            "#\n");
-    subfun[0] = m_program;
-    subfun[1] = m_program + 8;
-    subfun[2] = NULL;
-
-    MmResult result = funtbl_prepare(true);
-
-    EXPECT_EQ(kDuplicateFunction, result);
-    EXPECT_EQ(1, funtbl_size());
-    EXPECT_FUNTBL_ENTRY(0, "FOO", m_program);
 }
 
 TEST_F(FuntblTest, Find_GivenFunctionFound_InFirstChoiceSlot) {

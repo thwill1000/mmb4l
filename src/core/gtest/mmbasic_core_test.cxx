@@ -898,17 +898,17 @@ TEST_F(MmBasicCoreTest, PrepareProgram_And_FindSubFun) {
     int fun_idx = FindSubFun("foo", 0);
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(0, fun_idx);
-    EXPECT_EQ(ProgMemory + 1, subfun[fun_idx]);
+    EXPECT_EQ(ProgMemory + 1, funtbl[fun_idx].addr);
 
     fun_idx = FindSubFun("bar", 1);
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(1, fun_idx);
-    EXPECT_EQ(ProgMemory + 12, subfun[fun_idx]);
+    EXPECT_EQ(ProgMemory + 12, funtbl[fun_idx].addr);
 
     fun_idx = FindSubFun("wom", 0);
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(2, fun_idx);
-    EXPECT_EQ(ProgMemory + 25, subfun[fun_idx]);
+    EXPECT_EQ(ProgMemory + 25, funtbl[fun_idx].addr);
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_GivenMaximumNumberOfFunctions) {
@@ -941,7 +941,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenTooManyFunctions) {
 
     PrepareProgram(1);
 
-    EXPECT_STREQ("Too many subroutines and functions", error_msg);
+    EXPECT_STREQ("Too many functions/subroutines", error_msg);
 
     error_msg[0] = '\0';
     PrepareProgram(0); // Should not report error.

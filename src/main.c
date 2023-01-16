@@ -566,8 +566,8 @@ const char *GetIntAddress(const char *p) {
         if (i == -1)
             return findlabel(p);  // if a subroutine was NOT found it must be a label
         else
-            return subfun[i];  // if a subroutine was found, return the address
-                               // of the sub
+            return funtbl[i].addr;  // if a subroutine was found, return the address
+                                    // of the sub
     }
 
     return findline(getinteger(p), true);  // otherwise try for a line number
