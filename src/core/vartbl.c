@@ -64,14 +64,16 @@ void vartbl_init() {
     vartbl_init_called = true;
 }
 
-int vartbl_add(
+MmResult vartbl_add(
         const char *name,
         uint8_t type,
         uint8_t level,
         DIMTYPE* dims,
-        uint8_t slen) {
+        uint8_t slen,
+        int *var_idx) {
 
     //printf("vartbl_add(%s, %d, %d, ...)\n", name, type, level);
+    *var_idx = -1;
 
     assert(vartbl_init_called);
     assert((type & T_STR) || (slen == 0));
@@ -89,7 +91,7 @@ int vartbl_add(
 
     //printf("vartbl_free_idx = %d\n", vartbl_free_idx);
 
-    if (vartbl_free_idx == MAXVARS) return -1;
+    if (vartbl_free_idx == MAXVARS) return kTooManyVariables;
 
     // In theory verify sufficient variable memory is available and/or allocate
     // more. However in practice MMB4L uses a fixed sized variable table so this
@@ -99,8 +101,6 @@ int vartbl_add(
         m_alloc(M_VAR, (varcnt + 1) * sizeof(struct s_vartbl));
     }
 #endif
-
-    int var_idx = vartbl_free_idx;
 
     // IMPORTANT! This code assumes that the slot in the variable table has
     //            already been zeroed out either during the initialisation
@@ -122,7 +122,7 @@ int vartbl_add(
             }
 
             for (int ii = 0; ii < MAXDIM && dims[ii] != 0; ++ii) {
-                if (dims[ii] <= mmb_options.base) return -2;
+                if (dims[ii] <= mmb_options.base) return kInvalidArrayDimensions;
                 heap_sz *= (dims[ii] + 1 - mmb_options.base);
             }
         } else {
@@ -132,23 +132,26 @@ int vartbl_add(
     } else if (type & T_STR) {
         heap_sz = slen + 1;
     }
+
+    *var_idx = vartbl_free_idx;
+
     // Memory allocated by GetMemory will have been zeroed out.
     // TODO: At the moment GetMemory() will do a longjmp if there is an error,
     //       it would be better if it returned an error code which we could
     //       handle later.
-    vartbl[var_idx].val.s = heap_sz == 0 ? NULL : GetMemory(heap_sz);
+    vartbl[*var_idx].val.s = heap_sz == 0 ? NULL : GetMemory(heap_sz);
 
     // Copy a maximum of MAXVARLEN characters,
     // a maximum length stored name will not be '\0' terminated.
-    strncpy(vartbl[var_idx].name, name, MAXVARLEN);
+    strncpy(vartbl[*var_idx].name, name, MAXVARLEN);
 
-    vartbl[var_idx].type = type;
-    vartbl[var_idx].level = level;
-    vartbl[var_idx].size = slen;
+    vartbl[*var_idx].type = type;
+    vartbl[*var_idx].level = level;
+    vartbl[*var_idx].size = slen;
 
     // Copy dimension data.
     if (dims) {
-        memcpy(vartbl[var_idx].dims, dims, MAXDIM * sizeof(DIMTYPE));
+        memcpy(vartbl[*var_idx].dims, dims, MAXDIM * sizeof(DIMTYPE));
     }
 
     // Increment because next time this is called there is no point in
@@ -163,13 +166,16 @@ int vartbl_add(
     VarHashValue original_hash = hash;
     while (vartbl_hashmap[hash] >= 0) {
         hash = (hash + 1) % VARS_HASHMAP_SIZE;
-        if (hash == original_hash) return -3; // Should never happen in production because the map
-                                              // size is larger than the maximum numer of variables.
+        if (hash == original_hash) {
+            *var_idx = -1;
+            return kHashmapFull; // Should never happen in production because
+                                 // the hashmap is larger than the variable table.
+        }
     }
-    vartbl_hashmap[hash] = var_idx;
-    vartbl[var_idx].hash = hash;
+    vartbl_hashmap[hash] = *var_idx;
+    vartbl[*var_idx].hash = hash;
 
-    return var_idx;
+    return kOk;
 }
 
 void vartbl_delete(int var_idx) {

@@ -1915,23 +1915,16 @@ void *findvar(const char *p, int action) {
     }
 
     if (dnbr == -1) dim[0] = -1;  // "empty" array for fun/sub parameters.
-    var_idx = vartbl_add(
+    result = vartbl_add(
             name,
             vtype | (action & (T_IMPLIED | T_CONST)),
             (action & V_LOCAL) ? LocalIndex : 0,
             dnbr == 0 ? NULL : dim,
-            (vtype & T_STR) ? slen : 0);
+            (vtype & T_STR) ? slen : 0,
+            &var_idx);
     VarIndex = var_idx;
-    switch (var_idx) {
-        case -2:
-            error("Dimensions");
-            return NULL;
-
-        case -1:
-            ERROR_OUT_OF_MEMORY;  // TODO: "Too many variables".
-            return NULL;
-
-        default:
+    switch (result) {
+        case kOk:
             if (vartbl[var_idx].dims[0] != 0) {
                 return vartbl[var_idx].val.s;
             } else if (vartbl[var_idx].type & T_INT) {
@@ -1941,9 +1934,11 @@ void *findvar(const char *p, int action) {
             } else {
                 return vartbl[var_idx].val.s;
             }
+        default:
+            error_throw(result);
+            return NULL;
     }
 }
-
 
 
 

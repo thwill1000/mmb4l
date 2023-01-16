@@ -135,19 +135,22 @@ void vartbl_init();
  * @param  slen   Maximum length for a string variable, only really relevant
  *                for arrays since scalar strings always require at least
  *                255 + 1 bytes of heap storage.
- * @return        Index of the new variable, or
- *                -1 if we would exceed the maximum number of variables.
- *                -2 if an array dimension is invalid.
- *                -3 if the variable hashmap is full; this should never happen
- *                   in production because the map size is larger than the
- *                   maximum number of variables.
+ * @param[out]  var_idx  On exit, the index of the new variable,
+ *                       or -1 on error.
+ * @return        kOk                - on success.
+ *                kTooManyVariables  - if the variable table is full.
+ *                kInvalidArrayDimensions - if the array dimensions are invalid.
+ *                kHashmapFull       - if the variable hashmap is full, this
+ *                                     should never happen because the hashmap
+ *                                     is larger than the variable table.
  */
-int vartbl_add(
+MmResult vartbl_add(
         const char *name,
         uint8_t type,
         uint8_t level,
         DIMTYPE* dims,
-        uint8_t slen);
+        uint8_t slen,
+        int *var_idx);
 
 /**
  * @brief  Deletes a variable from the variable table.

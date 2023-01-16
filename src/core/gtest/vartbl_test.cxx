@@ -60,40 +60,44 @@ protected:
 };
 
 TEST_F(VartblTest, Add_ScalarInt) {
-    int idx = vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0);
+    int var_idx;
+    MmResult result = vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
 
-    EXPECT_EQ(0, idx);
-    EXPECT_STREQ("global_0", vartbl[idx].name);
-    EXPECT_EQ(T_INT, vartbl[idx].type);
-    EXPECT_EQ(0, vartbl[idx].level);
-    EXPECT_EQ(0, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(GLOBAL_0_HASH, vartbl[idx].hash);
-    EXPECT_EQ(NULL, vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
+    EXPECT_STREQ("global_0", vartbl[var_idx].name);
+    EXPECT_EQ(T_INT, vartbl[var_idx].type);
+    EXPECT_EQ(0, vartbl[var_idx].level);
+    EXPECT_EQ(0, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(GLOBAL_0_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ(NULL, vartbl[var_idx].val.s);
     EXPECT_EQ(0, vartbl_hashmap[GLOBAL_0_HASH]);
 
-    idx = vartbl_add("local_1", T_INT, 1, NULL, 0);
+    result = vartbl_add("local_1", T_INT, 1, NULL, 0, &var_idx);
 
-    EXPECT_EQ(1, idx);
-    EXPECT_STREQ("local_1", vartbl[idx].name);
-    EXPECT_EQ(T_INT, vartbl[idx].type);
-    EXPECT_EQ(1, vartbl[idx].level);
-    EXPECT_EQ(0, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_1_HASH, vartbl[idx].hash);
-    EXPECT_EQ(NULL, vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(1, var_idx);
+    EXPECT_STREQ("local_1", vartbl[var_idx].name);
+    EXPECT_EQ(T_INT, vartbl[var_idx].type);
+    EXPECT_EQ(1, vartbl[var_idx].level);
+    EXPECT_EQ(0, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_1_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ(NULL, vartbl[var_idx].val.s);
     EXPECT_EQ(1, vartbl_hashmap[LOCAL_1_HASH]);
 
-    idx = vartbl_add("local_2", T_INT, 2, NULL, 0);
+    result = vartbl_add("local_2", T_INT, 2, NULL, 0, &var_idx);
 
-    EXPECT_EQ(2, idx);
-    EXPECT_STREQ("local_2", vartbl[idx].name);
-    EXPECT_EQ(T_INT, vartbl[idx].type);
-    EXPECT_EQ(2, vartbl[idx].level);
-    EXPECT_EQ(0, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_2_HASH, vartbl[idx].hash);
-    EXPECT_EQ(NULL, vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, var_idx);
+    EXPECT_STREQ("local_2", vartbl[var_idx].name);
+    EXPECT_EQ(T_INT, vartbl[var_idx].type);
+    EXPECT_EQ(2, vartbl[var_idx].level);
+    EXPECT_EQ(0, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_2_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ(NULL, vartbl[var_idx].val.s);
     EXPECT_EQ(2, vartbl_hashmap[LOCAL_2_HASH]);
 
     EXPECT_EQ(3, varcnt);
@@ -102,40 +106,44 @@ TEST_F(VartblTest, Add_ScalarInt) {
 }
 
 TEST_F(VartblTest, Add_ScalarFloat) {
-    int idx = vartbl_add("global_0", T_NBR, GLOBAL_VAR, NULL, 0);
+    int var_idx;
+    MmResult result = vartbl_add("global_0", T_NBR, GLOBAL_VAR, NULL, 0, &var_idx);
 
-    EXPECT_EQ(0, idx);
-    EXPECT_STREQ("global_0", vartbl[idx].name);
-    EXPECT_EQ(T_NBR, vartbl[idx].type);
-    EXPECT_EQ(0, vartbl[idx].level);
-    EXPECT_EQ(0, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(hash_cstring("global_0", MAXVARLEN) % VARS_HASHMAP_SIZE, vartbl[idx].hash);
-    EXPECT_EQ(NULL, vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
+    EXPECT_STREQ("global_0", vartbl[var_idx].name);
+    EXPECT_EQ(T_NBR, vartbl[var_idx].type);
+    EXPECT_EQ(0, vartbl[var_idx].level);
+    EXPECT_EQ(0, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(hash_cstring("global_0", MAXVARLEN) % VARS_HASHMAP_SIZE, vartbl[var_idx].hash);
+    EXPECT_EQ(NULL, vartbl[var_idx].val.s);
     EXPECT_EQ(0, vartbl_hashmap[GLOBAL_0_HASH]);
 
-    idx = vartbl_add("local_1", T_NBR, 1, NULL, 0);
+    result = vartbl_add("local_1", T_NBR, 1, NULL, 0, &var_idx);
 
-    EXPECT_EQ(1, idx);
-    EXPECT_STREQ("local_1", vartbl[idx].name);
-    EXPECT_EQ(T_NBR, vartbl[idx].type);
-    EXPECT_EQ(1, vartbl[idx].level);
-    EXPECT_EQ(0, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_1_HASH, vartbl[idx].hash);
-    EXPECT_EQ(NULL, vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(1, var_idx);
+    EXPECT_STREQ("local_1", vartbl[var_idx].name);
+    EXPECT_EQ(T_NBR, vartbl[var_idx].type);
+    EXPECT_EQ(1, vartbl[var_idx].level);
+    EXPECT_EQ(0, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_1_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ(NULL, vartbl[var_idx].val.s);
     EXPECT_EQ(1, vartbl_hashmap[LOCAL_1_HASH]);
 
-    idx = vartbl_add("local_2", T_NBR, 2, NULL, 0);
+    result = vartbl_add("local_2", T_NBR, 2, NULL, 0, &var_idx);
 
-    EXPECT_EQ(2, idx);
-    EXPECT_STREQ("local_2", vartbl[idx].name);
-    EXPECT_EQ(T_NBR, vartbl[idx].type);
-    EXPECT_EQ(2, vartbl[idx].level);
-    EXPECT_EQ(0, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_2_HASH, vartbl[idx].hash);
-    EXPECT_EQ(NULL, vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, var_idx);
+    EXPECT_STREQ("local_2", vartbl[var_idx].name);
+    EXPECT_EQ(T_NBR, vartbl[var_idx].type);
+    EXPECT_EQ(2, vartbl[var_idx].level);
+    EXPECT_EQ(0, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_2_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ(NULL, vartbl[var_idx].val.s);
     EXPECT_EQ(2, vartbl_hashmap[LOCAL_2_HASH]);
 
     EXPECT_EQ(3, varcnt);
@@ -144,42 +152,46 @@ TEST_F(VartblTest, Add_ScalarFloat) {
 }
 
 TEST_F(VartblTest, Add_ScalarString) {
-    int idx = vartbl_add("global_0", T_STR, GLOBAL_VAR, NULL, 255);
+    int var_idx;
+    MmResult result = vartbl_add("global_0", T_STR, GLOBAL_VAR, NULL, 255, &var_idx);
 
-    EXPECT_EQ(0, idx);
-    EXPECT_STREQ("global_0", vartbl[idx].name);
-    EXPECT_EQ(T_STR, vartbl[idx].type);
-    EXPECT_EQ(0, vartbl[idx].level);
-    EXPECT_EQ(0, vartbl[idx].dims[0]);
-    EXPECT_EQ(255, vartbl[idx].size);
-    EXPECT_EQ(hash_cstring("global_0", MAXVARLEN) % VARS_HASHMAP_SIZE, vartbl[idx].hash);
-    EXPECT_EQ((char *) memory, vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
+    EXPECT_STREQ("global_0", vartbl[var_idx].name);
+    EXPECT_EQ(T_STR, vartbl[var_idx].type);
+    EXPECT_EQ(0, vartbl[var_idx].level);
+    EXPECT_EQ(0, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(255, vartbl[var_idx].size);
+    EXPECT_EQ(hash_cstring("global_0", MAXVARLEN) % VARS_HASHMAP_SIZE, vartbl[var_idx].hash);
+    EXPECT_EQ((char *) memory, vartbl[var_idx].val.s);
     EXPECT_EQ(0, vartbl_hashmap[GLOBAL_0_HASH]);
     EXPECT_EQ(256, memory[0]);
 
-    idx = vartbl_add("local_1", T_STR, 1, NULL, 128);
+    result = vartbl_add("local_1", T_STR, 1, NULL, 128, &var_idx);
 
-    EXPECT_EQ(1, idx);
-    EXPECT_STREQ("local_1", vartbl[idx].name);
-    EXPECT_EQ(T_STR, vartbl[idx].type);
-    EXPECT_EQ(1, vartbl[idx].level);
-    EXPECT_EQ(0, vartbl[idx].dims[0]);
-    EXPECT_EQ(128, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_1_HASH, vartbl[idx].hash);
-    EXPECT_EQ((char *) (memory + 1), vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(1, var_idx);
+    EXPECT_STREQ("local_1", vartbl[var_idx].name);
+    EXPECT_EQ(T_STR, vartbl[var_idx].type);
+    EXPECT_EQ(1, vartbl[var_idx].level);
+    EXPECT_EQ(0, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(128, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_1_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ((char *) (memory + 1), vartbl[var_idx].val.s);
     EXPECT_EQ(1, vartbl_hashmap[LOCAL_1_HASH]);
     EXPECT_EQ(129, memory[1]);
 
-    idx = vartbl_add("local_2", T_STR, 2, NULL, 1);
+    result = vartbl_add("local_2", T_STR, 2, NULL, 1, &var_idx);
 
-    EXPECT_EQ(2, idx);
-    EXPECT_STREQ("local_2", vartbl[idx].name);
-    EXPECT_EQ(T_STR, vartbl[idx].type);
-    EXPECT_EQ(2, vartbl[idx].level);
-    EXPECT_EQ(0, vartbl[idx].dims[0]);
-    EXPECT_EQ(1, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_2_HASH, vartbl[idx].hash);
-    EXPECT_EQ((char *) (memory + 2), vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, var_idx);
+    EXPECT_STREQ("local_2", vartbl[var_idx].name);
+    EXPECT_EQ(T_STR, vartbl[var_idx].type);
+    EXPECT_EQ(2, vartbl[var_idx].level);
+    EXPECT_EQ(0, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(1, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_2_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ((char *) (memory + 2), vartbl[var_idx].val.s);
     EXPECT_EQ(2, vartbl_hashmap[LOCAL_2_HASH]);
     EXPECT_EQ(2, memory[2]);
 
@@ -193,37 +205,40 @@ TEST_F(VartblTest, Add_ArrayInt) {
 
     // 1D array with 11 elements if OPTION BASE 0.
     dims[0] = 10;
-    int idx = vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0);
+    int var_idx;
+    MmResult result = vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0, &var_idx);
 
-    EXPECT_EQ(0, idx);
-    EXPECT_STREQ("global_0", vartbl[idx].name);
-    EXPECT_EQ(T_INT, vartbl[idx].type);
-    EXPECT_EQ(0, vartbl[idx].level);
-    EXPECT_EQ(10, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].dims[1]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(hash_cstring("global_0", MAXVARLEN) % VARS_HASHMAP_SIZE, vartbl[idx].hash);
-    EXPECT_EQ((MMINTEGER *) memory, vartbl[idx].val.ia);
-    EXPECT_EQ((char *) memory, vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
+    EXPECT_STREQ("global_0", vartbl[var_idx].name);
+    EXPECT_EQ(T_INT, vartbl[var_idx].type);
+    EXPECT_EQ(0, vartbl[var_idx].level);
+    EXPECT_EQ(10, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].dims[1]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(hash_cstring("global_0", MAXVARLEN) % VARS_HASHMAP_SIZE, vartbl[var_idx].hash);
+    EXPECT_EQ((MMINTEGER *) memory, vartbl[var_idx].val.ia);
+    EXPECT_EQ((char *) memory, vartbl[var_idx].val.s);
     EXPECT_EQ(0, vartbl_hashmap[GLOBAL_0_HASH]);
     EXPECT_EQ(11 * sizeof(MMINTEGER), memory[0]);
 
     // 2D array with 66 elements if OPTION BASE 0.
     dims[0] = 10;
     dims[1] = 5;
-    idx = vartbl_add("local_1", T_INT, 1, dims, 0);
+    result = vartbl_add("local_1", T_INT, 1, dims, 0, &var_idx);
 
-    EXPECT_EQ(1, idx);
-    EXPECT_STREQ("local_1", vartbl[idx].name);
-    EXPECT_EQ(T_INT, vartbl[idx].type);
-    EXPECT_EQ(1, vartbl[idx].level);
-    EXPECT_EQ(10, vartbl[idx].dims[0]);
-    EXPECT_EQ(5, vartbl[idx].dims[1]);
-    EXPECT_EQ(0, vartbl[idx].dims[2]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_1_HASH, vartbl[idx].hash);
-    EXPECT_EQ((MMINTEGER *) (memory + 1), vartbl[idx].val.ia);
-    EXPECT_EQ((char *) (memory + 1), vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(1, var_idx);
+    EXPECT_STREQ("local_1", vartbl[var_idx].name);
+    EXPECT_EQ(T_INT, vartbl[var_idx].type);
+    EXPECT_EQ(1, vartbl[var_idx].level);
+    EXPECT_EQ(10, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(5, vartbl[var_idx].dims[1]);
+    EXPECT_EQ(0, vartbl[var_idx].dims[2]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_1_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ((MMINTEGER *) (memory + 1), vartbl[var_idx].val.ia);
+    EXPECT_EQ((char *) (memory + 1), vartbl[var_idx].val.s);
     EXPECT_EQ(1, vartbl_hashmap[LOCAL_1_HASH]);
     EXPECT_EQ(66 * sizeof(MMINTEGER), memory[1]);
 
@@ -237,20 +252,21 @@ TEST_F(VartblTest, Add_ArrayInt) {
     dims[1] = 5;
     dims[2] = 3;
     mmb_options.base = 1;
-    idx = vartbl_add("local_2", T_INT, 2, dims, 0);
+    result = vartbl_add("local_2", T_INT, 2, dims, 0, &var_idx);
 
-    EXPECT_EQ(2, idx);
-    EXPECT_STREQ("local_2", vartbl[idx].name);
-    EXPECT_EQ(T_INT, vartbl[idx].type);
-    EXPECT_EQ(2, vartbl[idx].level);
-    EXPECT_EQ(10, vartbl[idx].dims[0]);
-    EXPECT_EQ(5, vartbl[idx].dims[1]);
-    EXPECT_EQ(3, vartbl[idx].dims[2]);
-    EXPECT_EQ(0, vartbl[idx].dims[3]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_2_HASH, vartbl[idx].hash);
-    EXPECT_EQ((MMINTEGER *) (memory + 2), vartbl[idx].val.ia);
-    EXPECT_EQ((char *) (memory + 2), vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, var_idx);
+    EXPECT_STREQ("local_2", vartbl[var_idx].name);
+    EXPECT_EQ(T_INT, vartbl[var_idx].type);
+    EXPECT_EQ(2, vartbl[var_idx].level);
+    EXPECT_EQ(10, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(5, vartbl[var_idx].dims[1]);
+    EXPECT_EQ(3, vartbl[var_idx].dims[2]);
+    EXPECT_EQ(0, vartbl[var_idx].dims[3]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_2_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ((MMINTEGER *) (memory + 2), vartbl[var_idx].val.ia);
+    EXPECT_EQ((char *) (memory + 2), vartbl[var_idx].val.s);
     EXPECT_EQ(2, vartbl_hashmap[LOCAL_2_HASH]);
     EXPECT_EQ(150 * sizeof(MMINTEGER), memory[2]);
 
@@ -264,37 +280,40 @@ TEST_F(VartblTest, Add_ArrayFloat) {
 
     // 1D array with 11 elements if OPTION BASE 0.
     dims[0] = 10;
-    int idx = vartbl_add("global_0", T_NBR, GLOBAL_VAR, dims, 0);
+    int var_idx;
+    MmResult result = vartbl_add("global_0", T_NBR, GLOBAL_VAR, dims, 0, &var_idx);
 
-    EXPECT_EQ(0, idx);
-    EXPECT_STREQ("global_0", vartbl[idx].name);
-    EXPECT_EQ(T_NBR, vartbl[idx].type);
-    EXPECT_EQ(0, vartbl[idx].level);
-    EXPECT_EQ(10, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].dims[1]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(hash_cstring("global_0", MAXVARLEN) % VARS_HASHMAP_SIZE, vartbl[idx].hash);
-    EXPECT_EQ((MMFLOAT *) memory, vartbl[idx].val.fa);
-    EXPECT_EQ((char *) memory, vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
+    EXPECT_STREQ("global_0", vartbl[var_idx].name);
+    EXPECT_EQ(T_NBR, vartbl[var_idx].type);
+    EXPECT_EQ(0, vartbl[var_idx].level);
+    EXPECT_EQ(10, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].dims[1]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(hash_cstring("global_0", MAXVARLEN) % VARS_HASHMAP_SIZE, vartbl[var_idx].hash);
+    EXPECT_EQ((MMFLOAT *) memory, vartbl[var_idx].val.fa);
+    EXPECT_EQ((char *) memory, vartbl[var_idx].val.s);
     EXPECT_EQ(0, vartbl_hashmap[GLOBAL_0_HASH]);
     EXPECT_EQ(11 * sizeof(MMFLOAT), memory[0]);
 
     // 2D array with 66 elements if OPTION BASE 0.
     dims[0] = 10;
     dims[1] = 5;
-    idx = vartbl_add("local_1", T_NBR, 1, dims, 0);
+    result = vartbl_add("local_1", T_NBR, 1, dims, 0, &var_idx);
 
-    EXPECT_EQ(1, idx);
-    EXPECT_STREQ("local_1", vartbl[idx].name);
-    EXPECT_EQ(T_NBR, vartbl[idx].type);
-    EXPECT_EQ(1, vartbl[idx].level);
-    EXPECT_EQ(10, vartbl[idx].dims[0]);
-    EXPECT_EQ(5, vartbl[idx].dims[1]);
-    EXPECT_EQ(0, vartbl[idx].dims[2]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_1_HASH, vartbl[idx].hash);
-    EXPECT_EQ((MMFLOAT *) (memory + 1), vartbl[idx].val.fa);
-    EXPECT_EQ((char *) (memory + 1), vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(1, var_idx);
+    EXPECT_STREQ("local_1", vartbl[var_idx].name);
+    EXPECT_EQ(T_NBR, vartbl[var_idx].type);
+    EXPECT_EQ(1, vartbl[var_idx].level);
+    EXPECT_EQ(10, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(5, vartbl[var_idx].dims[1]);
+    EXPECT_EQ(0, vartbl[var_idx].dims[2]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_1_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ((MMFLOAT *) (memory + 1), vartbl[var_idx].val.fa);
+    EXPECT_EQ((char *) (memory + 1), vartbl[var_idx].val.s);
     EXPECT_EQ(1, vartbl_hashmap[LOCAL_1_HASH]);
     EXPECT_EQ(66 * sizeof(MMFLOAT), memory[1]);
 
@@ -308,20 +327,21 @@ TEST_F(VartblTest, Add_ArrayFloat) {
     dims[1] = 5;
     dims[2] = 3;
     mmb_options.base = 1;
-    idx = vartbl_add("local_2", T_NBR, 2, dims, 0);
+    result = vartbl_add("local_2", T_NBR, 2, dims, 0, &var_idx);
 
-    EXPECT_EQ(2, idx);
-    EXPECT_STREQ("local_2", vartbl[idx].name);
-    EXPECT_EQ(T_NBR, vartbl[idx].type);
-    EXPECT_EQ(2, vartbl[idx].level);
-    EXPECT_EQ(10, vartbl[idx].dims[0]);
-    EXPECT_EQ(5, vartbl[idx].dims[1]);
-    EXPECT_EQ(3, vartbl[idx].dims[2]);
-    EXPECT_EQ(0, vartbl[idx].dims[3]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_2_HASH, vartbl[idx].hash);
-    EXPECT_EQ((MMFLOAT *) (memory + 2), vartbl[idx].val.fa);
-    EXPECT_EQ((char *) (memory + 2), vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, var_idx);
+    EXPECT_STREQ("local_2", vartbl[var_idx].name);
+    EXPECT_EQ(T_NBR, vartbl[var_idx].type);
+    EXPECT_EQ(2, vartbl[var_idx].level);
+    EXPECT_EQ(10, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(5, vartbl[var_idx].dims[1]);
+    EXPECT_EQ(3, vartbl[var_idx].dims[2]);
+    EXPECT_EQ(0, vartbl[var_idx].dims[3]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_2_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ((MMFLOAT *) (memory + 2), vartbl[var_idx].val.fa);
+    EXPECT_EQ((char *) (memory + 2), vartbl[var_idx].val.s);
     EXPECT_EQ(2, vartbl_hashmap[LOCAL_2_HASH]);
     EXPECT_EQ(150 * sizeof(MMFLOAT), memory[2]);
 
@@ -335,35 +355,38 @@ TEST_F(VartblTest, Add_ArrayString) {
 
     // 1D array with 11 elements if OPTION BASE 0.
     dims[0] = 10;
-    int idx = vartbl_add("global_0", T_STR, GLOBAL_VAR, dims, 255);
+    int var_idx;
+    MmResult result = vartbl_add("global_0", T_STR, GLOBAL_VAR, dims, 255, &var_idx);
 
-    EXPECT_EQ(0, idx);
-    EXPECT_STREQ("global_0", vartbl[idx].name);
-    EXPECT_EQ(T_STR, vartbl[idx].type);
-    EXPECT_EQ(0, vartbl[idx].level);
-    EXPECT_EQ(10, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].dims[1]);
-    EXPECT_EQ(255, vartbl[idx].size);
-    EXPECT_EQ(hash_cstring("global_0", MAXVARLEN) % VARS_HASHMAP_SIZE, vartbl[idx].hash);
-    EXPECT_EQ((char *) memory, vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
+    EXPECT_STREQ("global_0", vartbl[var_idx].name);
+    EXPECT_EQ(T_STR, vartbl[var_idx].type);
+    EXPECT_EQ(0, vartbl[var_idx].level);
+    EXPECT_EQ(10, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].dims[1]);
+    EXPECT_EQ(255, vartbl[var_idx].size);
+    EXPECT_EQ(hash_cstring("global_0", MAXVARLEN) % VARS_HASHMAP_SIZE, vartbl[var_idx].hash);
+    EXPECT_EQ((char *) memory, vartbl[var_idx].val.s);
     EXPECT_EQ(0, vartbl_hashmap[GLOBAL_0_HASH]);
     EXPECT_EQ(11 * 256, memory[0]);
 
     // 2D array with 66 elements if OPTION BASE 0.
     dims[0] = 10;
     dims[1] = 5;
-    idx = vartbl_add("local_1", T_STR, 1, dims, 128);
+    result = vartbl_add("local_1", T_STR, 1, dims, 128, &var_idx);
 
-    EXPECT_EQ(1, idx);
-    EXPECT_STREQ("local_1", vartbl[idx].name);
-    EXPECT_EQ(T_STR, vartbl[idx].type);
-    EXPECT_EQ(1, vartbl[idx].level);
-    EXPECT_EQ(10, vartbl[idx].dims[0]);
-    EXPECT_EQ(5, vartbl[idx].dims[1]);
-    EXPECT_EQ(0, vartbl[idx].dims[2]);
-    EXPECT_EQ(128, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_1_HASH, vartbl[idx].hash);
-    EXPECT_EQ((char *) (memory + 1), vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(1, var_idx);
+    EXPECT_STREQ("local_1", vartbl[var_idx].name);
+    EXPECT_EQ(T_STR, vartbl[var_idx].type);
+    EXPECT_EQ(1, vartbl[var_idx].level);
+    EXPECT_EQ(10, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(5, vartbl[var_idx].dims[1]);
+    EXPECT_EQ(0, vartbl[var_idx].dims[2]);
+    EXPECT_EQ(128, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_1_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ((char *) (memory + 1), vartbl[var_idx].val.s);
     EXPECT_EQ(1, vartbl_hashmap[LOCAL_1_HASH]);
     EXPECT_EQ(66 * 129, memory[1]);
 
@@ -377,19 +400,20 @@ TEST_F(VartblTest, Add_ArrayString) {
     dims[1] = 5;
     dims[2] = 3;
     mmb_options.base = 1;
-    idx = vartbl_add("local_2", T_STR, 2, dims, 1);
+    result = vartbl_add("local_2", T_STR, 2, dims, 1, &var_idx);
 
-    EXPECT_EQ(2, idx);
-    EXPECT_STREQ("local_2", vartbl[idx].name);
-    EXPECT_EQ(T_STR, vartbl[idx].type);
-    EXPECT_EQ(2, vartbl[idx].level);
-    EXPECT_EQ(10, vartbl[idx].dims[0]);
-    EXPECT_EQ(5, vartbl[idx].dims[1]);
-    EXPECT_EQ(3, vartbl[idx].dims[2]);
-    EXPECT_EQ(0, vartbl[idx].dims[3]);
-    EXPECT_EQ(1, vartbl[idx].size);
-    EXPECT_EQ(LOCAL_2_HASH, vartbl[idx].hash);
-    EXPECT_EQ((char *) (memory + 2), vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, var_idx);
+    EXPECT_STREQ("local_2", vartbl[var_idx].name);
+    EXPECT_EQ(T_STR, vartbl[var_idx].type);
+    EXPECT_EQ(2, vartbl[var_idx].level);
+    EXPECT_EQ(10, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(5, vartbl[var_idx].dims[1]);
+    EXPECT_EQ(3, vartbl[var_idx].dims[2]);
+    EXPECT_EQ(0, vartbl[var_idx].dims[3]);
+    EXPECT_EQ(1, vartbl[var_idx].size);
+    EXPECT_EQ(LOCAL_2_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ((char *) (memory + 2), vartbl[var_idx].val.s);
     EXPECT_EQ(2, vartbl_hashmap[LOCAL_2_HASH]);
     EXPECT_EQ(150 * 2, memory[2]);
 
@@ -399,29 +423,34 @@ TEST_F(VartblTest, Add_ArrayString) {
 }
 
 TEST_F(VartblTest, Add_GivenTooManyVariables) {
+    int var_idx;
     for (int ii = 0; ii < MAXVARS; ++ii) {
-        EXPECT_EQ(ii, vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0));
+        EXPECT_EQ(kOk, vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0, &var_idx));
+        EXPECT_EQ(ii, var_idx);
     }
 
-    EXPECT_EQ(-1, vartbl_add("bar", T_INT, GLOBAL_VAR, NULL, 0));
+    EXPECT_EQ(kTooManyVariables, vartbl_add("bar", T_INT, GLOBAL_VAR, NULL, 0, &var_idx));
 }
 
 TEST_F(VartblTest, Add_GivenMaxLengthName) {
-    int idx = vartbl_add(
-            "_32_chars_long_67890123456789012", T_INT, GLOBAL_VAR, NULL, 0);
-    EXPECT_EQ(0, idx);
+    int var_idx;
+    MmResult result = vartbl_add(
+            "_32_chars_long_67890123456789012", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
 
-    // 33rd element will be the value of vartbl[idx].type.
-    EXPECT_EQ(0, memcmp("_32_chars_long_67890123456789012\x4", vartbl[idx].name, 33));
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
 
-    EXPECT_EQ(T_INT, vartbl[idx].type);
-    EXPECT_EQ(0, vartbl[idx].level);
-    EXPECT_EQ(0, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].size);
+    // 33rd element will be the value of vartbl[var_idx].type.
+    EXPECT_EQ(0, memcmp("_32_chars_long_67890123456789012\x4", vartbl[var_idx].name, 33));
+
+    EXPECT_EQ(T_INT, vartbl[var_idx].type);
+    EXPECT_EQ(0, vartbl[var_idx].level);
+    EXPECT_EQ(0, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
     VarHashValue expected_hash =
             hash_cstring("_32_chars_long_67890123456789012", MAXVARLEN) % VARS_HASHMAP_SIZE;
-    EXPECT_EQ(expected_hash, vartbl[idx].hash);
-    EXPECT_EQ(NULL, vartbl[idx].val.s);
+    EXPECT_EQ(expected_hash, vartbl[var_idx].hash);
+    EXPECT_EQ(NULL, vartbl[var_idx].val.s);
     EXPECT_EQ(0, vartbl_hashmap[expected_hash]);
 }
 
@@ -431,25 +460,28 @@ TEST_F(VartblTest, Add_GivenNameTooLong) {
     char silly_name[1024];
     memset(silly_name, 'a', 1023);
     silly_name[1023] = '\0';
-    int idx = vartbl_add(silly_name, T_INT, GLOBAL_VAR, NULL, 0);
-    EXPECT_EQ(0, idx);
+    int var_idx;
+    MmResult result = vartbl_add(silly_name, T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
 
-    // 33rd element will be the value of vartbl[idx].type.
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
+
+    // 33rd element will be the value of vartbl[var_idx].type.
     EXPECT_EQ(
             0,
             memcmp(
                     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\x4",
-                    vartbl[idx].name,
+                    vartbl[var_idx].name,
                     33));
 
-    EXPECT_EQ(T_INT, vartbl[idx].type);
-    EXPECT_EQ(0, vartbl[idx].level);
-    EXPECT_EQ(0, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].size);
+    EXPECT_EQ(T_INT, vartbl[var_idx].type);
+    EXPECT_EQ(0, vartbl[var_idx].level);
+    EXPECT_EQ(0, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
     VarHashValue expected_hash =
             hash_cstring("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", MAXVARLEN) % VARS_HASHMAP_SIZE;
-    EXPECT_EQ(expected_hash, vartbl[idx].hash);
-    EXPECT_EQ(NULL, vartbl[idx].val.s);
+    EXPECT_EQ(expected_hash, vartbl[var_idx].hash);
+    EXPECT_EQ(NULL, vartbl[var_idx].val.s);
     EXPECT_EQ(0, vartbl_hashmap[expected_hash]);
 
     // Check we did not overrun into the next element.
@@ -458,24 +490,26 @@ TEST_F(VartblTest, Add_GivenNameTooLong) {
 
 TEST_F(VartblTest, Add_GivenEightDimensionalArray) {
     DIMTYPE dims[MAXDIM] = { 2, 3, 4, 5, 6, 7, 8, 9 };
-    int idx = vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0);
+    int var_idx;
+    MmResult result = vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0, &var_idx);
 
-    EXPECT_EQ(0, idx);
-    EXPECT_STREQ("global_0", vartbl[idx].name);
-    EXPECT_EQ(T_INT, vartbl[idx].type);
-    EXPECT_EQ(0, vartbl[idx].level);
-    EXPECT_EQ(2, vartbl[idx].dims[0]);
-    EXPECT_EQ(3, vartbl[idx].dims[1]);
-    EXPECT_EQ(4, vartbl[idx].dims[2]);
-    EXPECT_EQ(5, vartbl[idx].dims[3]);
-    EXPECT_EQ(6, vartbl[idx].dims[4]);
-    EXPECT_EQ(7, vartbl[idx].dims[5]);
-    EXPECT_EQ(8, vartbl[idx].dims[6]);
-    EXPECT_EQ(9, vartbl[idx].dims[7]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(GLOBAL_0_HASH, vartbl[idx].hash);
-    EXPECT_EQ((MMINTEGER *) memory, vartbl[idx].val.ia);
-    EXPECT_EQ((char *) memory, vartbl[idx].val.s);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
+    EXPECT_STREQ("global_0", vartbl[var_idx].name);
+    EXPECT_EQ(T_INT, vartbl[var_idx].type);
+    EXPECT_EQ(0, vartbl[var_idx].level);
+    EXPECT_EQ(2, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(3, vartbl[var_idx].dims[1]);
+    EXPECT_EQ(4, vartbl[var_idx].dims[2]);
+    EXPECT_EQ(5, vartbl[var_idx].dims[3]);
+    EXPECT_EQ(6, vartbl[var_idx].dims[4]);
+    EXPECT_EQ(7, vartbl[var_idx].dims[5]);
+    EXPECT_EQ(8, vartbl[var_idx].dims[6]);
+    EXPECT_EQ(9, vartbl[var_idx].dims[7]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(GLOBAL_0_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ((MMINTEGER *) memory, vartbl[var_idx].val.ia);
+    EXPECT_EQ((char *) memory, vartbl[var_idx].val.s);
     EXPECT_EQ(0, vartbl_hashmap[GLOBAL_0_HASH]);
 
     // OPTION BASE 0, so add one to each bound to determine number of elements.
@@ -483,18 +517,22 @@ TEST_F(VartblTest, Add_GivenEightDimensionalArray) {
 }
 
 TEST_F(VartblTest, Add_GivenInvalidDimensions) {
+    int var_idx;
+
     {
         DIMTYPE dims[MAXDIM] = { -2, 0, 0, 0, 0, 0, 0, 0 };
-        int idx = vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0);
-        EXPECT_EQ(-2, idx);
+        MmResult result = vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0, &var_idx);
+        EXPECT_EQ(kInvalidArrayDimensions, result);
+        EXPECT_EQ(-1, var_idx);
         EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl, sizeof(s_vartbl)));
         EXPECT_EQ(0, memory_count);
     }
 
     {
         DIMTYPE dims[MAXDIM] = { 10, -1, 0, 0, 0, 0, 0, 0 };
-        int idx = vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0);
-        EXPECT_EQ(-2, idx);
+        MmResult result = vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0, &var_idx);
+        EXPECT_EQ(kInvalidArrayDimensions, result);
+        EXPECT_EQ(-1, var_idx);
         EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl, sizeof(s_vartbl)));
         EXPECT_EQ(0, memory_count);
     }
@@ -504,16 +542,19 @@ TEST_F(VartblTest, Add_GivenEmptyArray) {
     // An "empty" array is indicated by having the first dimension be -1
     // (and the others 0).
     DIMTYPE dims[MAXDIM] = { -1, 0, 0, 0, 0, 0, 0, 0 };
-    int idx = vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0);
-    EXPECT_EQ(0, idx);
-    EXPECT_STREQ("global_0", vartbl[idx].name);
-    EXPECT_EQ(T_INT, vartbl[idx].type);
-    EXPECT_EQ(0, vartbl[idx].level);
-    EXPECT_EQ(-1, vartbl[idx].dims[0]);
-    EXPECT_EQ(0, vartbl[idx].dims[1]);
-    EXPECT_EQ(0, vartbl[idx].size);
-    EXPECT_EQ(GLOBAL_0_HASH, vartbl[idx].hash);
-    EXPECT_EQ(NULL, vartbl[idx].val.s);
+    int var_idx;
+    MmResult result = vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0, &var_idx);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
+    EXPECT_STREQ("global_0", vartbl[var_idx].name);
+    EXPECT_EQ(T_INT, vartbl[var_idx].type);
+    EXPECT_EQ(0, vartbl[var_idx].level);
+    EXPECT_EQ(-1, vartbl[var_idx].dims[0]);
+    EXPECT_EQ(0, vartbl[var_idx].dims[1]);
+    EXPECT_EQ(0, vartbl[var_idx].size);
+    EXPECT_EQ(GLOBAL_0_HASH, vartbl[var_idx].hash);
+    EXPECT_EQ(NULL, vartbl[var_idx].val.s);
     EXPECT_EQ(0, vartbl_hashmap[GLOBAL_0_HASH]);
     EXPECT_EQ(1, varcnt);
     EXPECT_EQ(1, vartbl_free_idx);
@@ -523,11 +564,14 @@ TEST_F(VartblTest, Add_GivenEmptyArray) {
 TEST_F(VartblTest, Add_GivenFirstChoiceHashmapSlotOccupied) {
     vartbl_hashmap[GLOBAL_0_HASH] = 999; // Dummy value.
 
-    int idx = vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0);
+    int var_idx;
+    MmResult result = vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
 
-    // Expect variable idx to be stored in next slot.
-    EXPECT_EQ(GLOBAL_0_HASH + 1, vartbl[idx].hash);
-    EXPECT_EQ(0, vartbl_hashmap[GLOBAL_0_HASH + 1]);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
+    // Expect variable idx to be stored in next slot.    
+    EXPECT_EQ(GLOBAL_0_HASH + 1, vartbl[var_idx].hash);
+    EXPECT_EQ(var_idx, vartbl_hashmap[GLOBAL_0_HASH + 1]);
 }
 
 TEST_F(VartblTest, Add_GivenHashmapWrapAround) {
@@ -535,10 +579,13 @@ TEST_F(VartblTest, Add_GivenHashmapWrapAround) {
         vartbl_hashmap[ii] = 999; // Dummy value.
     }
 
-    int idx = vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0);
+    int var_idx;
+    MmResult result = vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
 
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, var_idx);
     // Expect variable idx to be stored in 0 slot.
-    EXPECT_EQ(0, vartbl[idx].hash);
+    EXPECT_EQ(0, vartbl[var_idx].hash);
     EXPECT_EQ(0, vartbl_hashmap[0]);
 }
 
@@ -547,26 +594,34 @@ TEST_F(VartblTest, Add_GivenNoFreeHashmapSlots) {
         vartbl_hashmap[ii] = 999; // Dummy value.
     }
 
-    int idx = vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0);
+    int var_idx;
+    MmResult result = vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
 
-    EXPECT_EQ(-3, idx);
+    EXPECT_EQ(kHashmapFull, result);
+    EXPECT_EQ(-1, var_idx);
 }
 
 TEST_F(VartblTest, Add_ReusesDeletedHashmapSlots) {
     const VarHashValue foo_hash = hash_cstring("foo", MAXVARLEN) % VARS_HASHMAP_SIZE;
-    /* int global_0 = */ (void) vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
-    int local_1 = vartbl_add("foo", T_INT, 1, NULL, 0);
-    /* int local_2 = */ (void) vartbl_add("foo", T_INT, 2, NULL, 0);
+    int global_0;
+    MmResult result = vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0, &global_0);
+    int local_1;
+    result = vartbl_add("foo", T_INT, 1, NULL, 0, &local_1);
+    int local_2;
+    result = vartbl_add("foo", T_INT, 2, NULL, 0, &local_2);
     vartbl_delete(local_1);
 
-    int local_3 = vartbl_add("foo", T_INT, 3, NULL, 0);
+    int local_3;
+    result = vartbl_add("foo", T_INT, 3, NULL, 0, &local_3);
 
+    EXPECT_EQ(kOk, result);
     EXPECT_EQ(1, local_3);
     EXPECT_EQ(foo_hash + 1, vartbl[local_3].hash);
 }
 
 TEST_F(VartblTest, Delete_GivenScalarInt) {
-    (void) vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0);
+    int var_idx;
+    (void) vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
     memory[0] = 999;
 
     vartbl_delete(0);
@@ -578,7 +633,8 @@ TEST_F(VartblTest, Delete_GivenScalarInt) {
 }
 
 TEST_F(VartblTest, Delete_GivenScalarFloat) {
-    (void) vartbl_add("global_0", T_NBR, GLOBAL_VAR, NULL, 0);
+    int var_idx;
+    (void) vartbl_add("global_0", T_NBR, GLOBAL_VAR, NULL, 0, &var_idx);
     memory[0] = 999;
 
     vartbl_delete(0);
@@ -590,7 +646,8 @@ TEST_F(VartblTest, Delete_GivenScalarFloat) {
 }
 
 TEST_F(VartblTest, Delete_GivenScalarString) {
-    (void) vartbl_add("global_0", T_STR, GLOBAL_VAR, NULL, 255);
+    int var_idx;
+    (void) vartbl_add("global_0", T_STR, GLOBAL_VAR, NULL, 255, &var_idx);
     EXPECT_EQ(256, memory[0]);
 
     vartbl_delete(0);
@@ -603,7 +660,8 @@ TEST_F(VartblTest, Delete_GivenScalarString) {
 
 TEST_F(VartblTest, Delete_GivenIntArray) {
     DIMTYPE dims[MAXDIM] = { 2, 3, 4, 0, 0, 0, 0, 0 };
-    (void) vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0);
+    int var_idx;
+    (void) vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0, &var_idx);
     EXPECT_EQ(3 * 4 * 5 * sizeof(MMINTEGER), memory[0]);
 
     vartbl_delete(0);
@@ -616,7 +674,8 @@ TEST_F(VartblTest, Delete_GivenIntArray) {
 
 TEST_F(VartblTest, Delete_GivenFloatArray) {
     DIMTYPE dims[MAXDIM] = { 2, 3, 4, 0, 0, 0, 0, 0 };
-    (void) vartbl_add("global_0", T_NBR, GLOBAL_VAR, dims, 0);
+    int var_idx;
+    (void) vartbl_add("global_0", T_NBR, GLOBAL_VAR, dims, 0, &var_idx);
     EXPECT_EQ(3 * 4 * 5 * sizeof(MMFLOAT), memory[0]);
 
     vartbl_delete(0);
@@ -629,7 +688,8 @@ TEST_F(VartblTest, Delete_GivenFloatArray) {
 
 TEST_F(VartblTest, Delete_GivenStringArray) {
     DIMTYPE dims[MAXDIM] = { 2, 3, 4, 0, 0, 0, 0, 0 };
-    (void) vartbl_add("global_0", T_STR, GLOBAL_VAR, dims, 255);
+    int var_idx;
+    (void) vartbl_add("global_0", T_STR, GLOBAL_VAR, dims, 255, &var_idx);
     EXPECT_EQ(3 * 4 * 5 * 256, memory[0]);
 
     vartbl_delete(0);
@@ -642,7 +702,8 @@ TEST_F(VartblTest, Delete_GivenStringArray) {
 
 TEST_F(VartblTest, Delete_GivenPointerToArray_DoesNotFreeMemory) {
     DIMTYPE dims[MAXDIM] = { 2, 3, 4, 0, 0, 0, 0, 0 };
-    (void) vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0);
+    int var_idx;
+    (void) vartbl_add("global_0", T_INT, GLOBAL_VAR, dims, 0, &var_idx);
     EXPECT_EQ(3 * 4 * 5 * sizeof(MMINTEGER), memory[0]);
     vartbl[0].type |= T_PTR;
 
@@ -655,7 +716,8 @@ TEST_F(VartblTest, Delete_GivenPointerToArray_DoesNotFreeMemory) {
 }
 
 TEST_F(VartblTest, Delete_GivenPointerToString) {
-    (void) vartbl_add("global_0", T_STR, GLOBAL_VAR, NULL, 255);
+    int var_idx;
+    (void) vartbl_add("global_0", T_STR, GLOBAL_VAR, NULL, 255, &var_idx);
     EXPECT_EQ(256, memory[0]);
     vartbl[0].type |= T_PTR;
 
@@ -668,9 +730,10 @@ TEST_F(VartblTest, Delete_GivenPointerToString) {
 }
 
 TEST_F(VartblTest, Delete_OnlyDecrementsVarCntWhenLastVariableDeleted) {
-    vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("local_1", T_INT, 1, NULL, 0);
-    vartbl_add("local_2", T_INT, 2, NULL, 0);
+    int var_idx;
+    (void) vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("local_1", T_INT, 1, NULL, 0, &var_idx);
+    (void) vartbl_add("local_2", T_INT, 2, NULL, 0, &var_idx);
     EXPECT_EQ(3, varcnt);
 
     vartbl_delete(1);   // "local_1"
@@ -692,12 +755,13 @@ TEST_F(VartblTest, Delete_OnlyDecrementsVarCntWhenLastVariableDeleted) {
 
 TEST_F(VartblTest, DeleteAll) {
     // Fill the table.
-    vartbl_add("global_a", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("local_1_a", T_INT, 1, NULL, 0);
-    vartbl_add("local_2_a", T_INT, 2, NULL, 0);
-    vartbl_add("global_b", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("local_1_b", T_INT, 1, NULL, 0);
-    vartbl_add("local_2_b", T_INT, 2, NULL, 0);
+    int var_idx;
+    (void) vartbl_add("global_a", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("local_1_a", T_INT, 1, NULL, 0, &var_idx);
+    (void) vartbl_add("local_2_a", T_INT, 2, NULL, 0, &var_idx);
+    (void) vartbl_add("global_b", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("local_1_b", T_INT, 1, NULL, 0, &var_idx);
+    (void) vartbl_add("local_2_b", T_INT, 2, NULL, 0, &var_idx);
 
     EXPECT_EQ(6, varcnt);
     EXPECT_STREQ("global_a",  vartbl[0].name);
@@ -720,8 +784,8 @@ TEST_F(VartblTest, DeleteAll) {
     EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl + 5, sizeof(struct s_vartbl)));
 
     // Refill the table.
-    vartbl_add("local_2_a", T_INT, 2, NULL, 0);
-    vartbl_add("local_2_b", T_INT, 2, NULL, 0);
+    vartbl_add("local_2_a", T_INT, 2, NULL, 0, &var_idx);
+    vartbl_add("local_2_b", T_INT, 2, NULL, 0, &var_idx);
 
     EXPECT_EQ(6, varcnt);
     EXPECT_STREQ("local_2_a", vartbl[2].name);
@@ -740,10 +804,10 @@ TEST_F(VartblTest, DeleteAll) {
     EXPECT_EQ(0, memcmp(&EMPTY_VAR, vartbl + 5, sizeof(struct s_vartbl)));
 
     // Refill the table.
-    vartbl_add("local_1_a", T_INT, 1, NULL, 0);
-    vartbl_add("local_1_b", T_INT, 1, NULL, 0);
-    vartbl_add("local_2_a", T_INT, 2, NULL, 0);
-    vartbl_add("local_2_b", T_INT, 2, NULL, 0);
+    (void) vartbl_add("local_1_a", T_INT, 1, NULL, 0, &var_idx);
+    (void) vartbl_add("local_1_b", T_INT, 1, NULL, 0, &var_idx);
+    (void) vartbl_add("local_2_a", T_INT, 2, NULL, 0, &var_idx);
+    (void) vartbl_add("local_2_b", T_INT, 2, NULL, 0, &var_idx);
 
     EXPECT_EQ(6, varcnt);
     EXPECT_STREQ("local_1_a", vartbl[1].name);
@@ -767,12 +831,12 @@ TEST_F(VartblTest, DeleteAll) {
     }
 
     // Refill the table.
-    vartbl_add("global_a", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("local_1_a", T_INT, 1, NULL, 0);
-    vartbl_add("local_2_a", T_INT, 2, NULL, 0);
-    vartbl_add("global_b", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("local_1_b", T_INT, 1, NULL, 0);
-    vartbl_add("local_2_b", T_INT, 2, NULL, 0);
+    (void) vartbl_add("global_a", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("local_1_a", T_INT, 1, NULL, 0, &var_idx);
+    (void) vartbl_add("local_2_a", T_INT, 2, NULL, 0, &var_idx);
+    (void) vartbl_add("global_b", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("local_1_b", T_INT, 1, NULL, 0, &var_idx);
+    (void) vartbl_add("local_2_b", T_INT, 2, NULL, 0, &var_idx);
 
     EXPECT_EQ(6, varcnt);
     EXPECT_STREQ("global_a",  vartbl[0].name);
@@ -784,12 +848,13 @@ TEST_F(VartblTest, DeleteAll) {
 }
 
 TEST_F(VartblTest, DeleteAll_GivenLevel0_SetsAllHashmapSlotsUnused) {
-    vartbl_add("global_a", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("local_1_a", T_INT, 1, NULL, 0);
-    vartbl_add("local_2_a", T_INT, 2, NULL, 0);
-    vartbl_add("global_b", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("local_1_b", T_INT, 1, NULL, 0);
-    vartbl_add("local_2_b", T_INT, 2, NULL, 0);
+    int var_idx;
+    (void) vartbl_add("global_a", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("local_1_a", T_INT, 1, NULL, 0, &var_idx);
+    (void) vartbl_add("local_2_a", T_INT, 2, NULL, 0, &var_idx);
+    (void) vartbl_add("global_b", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("local_1_b", T_INT, 1, NULL, 0, &var_idx);
+    (void) vartbl_add("local_2_b", T_INT, 2, NULL, 0, &var_idx);
 
     vartbl_delete_all(0);
 
@@ -800,17 +865,17 @@ TEST_F(VartblTest, DeleteAll_GivenLevel0_SetsAllHashmapSlotsUnused) {
 
 TEST_F(VartblTest, DeleteAll_GivenNotLevel0_DoesNotSetAllHashmapSlotsUnused) {
     int var_idx;
-    var_idx = vartbl_add("global_a", T_INT, GLOBAL_VAR, NULL, 0);
+    (void) vartbl_add("global_a", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
     /* VarHashValue global_a_hash = vartbl[var_idx].hash; */
-    var_idx = vartbl_add("local_1_a", T_INT, 1, NULL, 0);
+    (void) vartbl_add("local_1_a", T_INT, 1, NULL, 0, &var_idx);
     VarHashValue local_1_a_hash = vartbl[var_idx].hash;
-    var_idx = vartbl_add("local_2_a", T_INT, 2, NULL, 0);
+    (void) vartbl_add("local_2_a", T_INT, 2, NULL, 0, &var_idx);
     VarHashValue local_2_a_hash = vartbl[var_idx].hash;
-    var_idx = vartbl_add("global_b", T_INT, GLOBAL_VAR, NULL, 0);
+    (void) vartbl_add("global_b", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
     /* VarHashValue global_b_hash = vartbl[var_idx].hash; */
-    var_idx = vartbl_add("local_1_b", T_INT, 1, NULL, 0);
+    (void) vartbl_add("local_1_b", T_INT, 1, NULL, 0, &var_idx);
     VarHashValue local_1_b_hash = vartbl[var_idx].hash;
-    var_idx = vartbl_add("local_2_b", T_INT, 2, NULL, 0);
+    (void) vartbl_add("local_2_b", T_INT, 2, NULL, 0, &var_idx);
     VarHashValue local_2_b_hash = vartbl[var_idx].hash;
 
     vartbl_delete_all(1);
@@ -828,9 +893,9 @@ TEST_F(VartblTest, Find) {
     int var_idx;
     int global_idx;
 
-    vartbl_add("global_1", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("local_1", T_INT, 1, NULL, 0);
-    vartbl_add("local_2", T_INT, 2, NULL, 0);
+    (void) vartbl_add("global_1", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("local_1", T_INT, 1, NULL, 0, &var_idx);
+    (void) vartbl_add("local_2", T_INT, 2, NULL, 0, &var_idx);
 
     // Find "global_1".
     EXPECT_EQ(
@@ -894,9 +959,9 @@ TEST_F(VartblTest, Find_GivenMultipleVariablesWithSameName) {
     int var_idx;
     int global_idx;
 
-    vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("foo", T_INT, 1, NULL, 0);
-    vartbl_add("foo", T_INT, 2, NULL, 0);
+    (void) vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("foo", T_INT, 1, NULL, 0, &var_idx);
+    (void) vartbl_add("foo", T_INT, 2, NULL, 0, &var_idx);
 
     EXPECT_EQ(
             kOk,
@@ -927,9 +992,9 @@ TEST_F(VartblTest, Find_GivenNameTooLong) {
     int var_idx;
     int global_idx;
 
-    vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add(
-            "_32_chars_long_67890123456789012", T_INT, GLOBAL_VAR, NULL, 0);
+    (void) vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add(
+            "_32_chars_long_67890123456789012", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
 
     // Only the first 32-chars are checked.
     EXPECT_EQ(
@@ -957,8 +1022,8 @@ TEST_F(VartblTest, Find_GivenEmptyName) {
     int var_idx;
     int global_idx;
 
-    vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("bar", T_INT, GLOBAL_VAR, NULL, 0);
+    (void) vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("bar", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
 
     EXPECT_EQ(
             kVariableNotFound,
@@ -973,7 +1038,7 @@ TEST_F(VartblTest, Find_GivenEmptyName) {
     EXPECT_EQ(-1, global_idx);
 
     // Possible in tests, but does not happen in real operation.
-    vartbl_add("", T_INT, GLOBAL_VAR, NULL, 0);
+    (void) vartbl_add("", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
 
     EXPECT_EQ(
             kOk,
@@ -992,8 +1057,8 @@ TEST_F(VartblTest, Find_GivenVariableNotPresent) {
     int var_idx;
     int global_idx;
 
-    vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("bar", T_INT, GLOBAL_VAR, NULL, 0);
+    (void) vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("bar", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
 
     EXPECT_EQ(
             kVariableNotFound,
@@ -1016,8 +1081,8 @@ TEST_F(VartblTest, Find_GivenDifferentCaseName) {
     // names are always capitalised before calling vartbl_add() or
     // vartbl_find().
 
-    vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("bar", T_INT, GLOBAL_VAR, NULL, 0);
+    (void) vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("bar", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
 
     EXPECT_EQ(
             kVariableNotFound,
@@ -1035,8 +1100,8 @@ TEST_F(VartblTest, Find_GivenDifferentCaseName) {
 TEST_F(VartblTest, Find_GivenNullGlobalIdxParameter) {
     int var_idx;
 
-    vartbl_add("global_1", T_INT, GLOBAL_VAR, NULL, 0);
-    vartbl_add("local_1", T_INT, 1, NULL, 0);
+    (void) vartbl_add("global_1", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
+    (void) vartbl_add("local_1", T_INT, 1, NULL, 0, &var_idx);
 
     // Find "global_1".
     EXPECT_EQ(
@@ -1075,10 +1140,10 @@ TEST_F(VartblTest, Find_GivenFirstChoiceHashmapSlotOccupiedByDifferentVariable) 
     int var_idx;
     int global_idx;
 
-    var_idx = vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0);
+    (void) vartbl_add("global_0", T_INT, GLOBAL_VAR, NULL, 0, &var_idx);
     vartbl_hashmap[GLOBAL_0_HASH] = -1;
     vartbl_hashmap[LOCAL_1_HASH] = var_idx;
-    var_idx = vartbl_add("local_1", T_INT, 1, NULL, 0);
+    (void) vartbl_add("local_1", T_INT, 1, NULL, 0, &var_idx);
     EXPECT_EQ(LOCAL_1_HASH + 1, vartbl[var_idx].hash);
 
     EXPECT_EQ(
@@ -1096,7 +1161,7 @@ TEST_F(VartblTest, Find_GivenHashmapWrapAround) {
     // Fill hashmap from LOCAL_2_HASH (900) to the end.
     for (int ii = LOCAL_2_HASH; ii < VARS_HASHMAP_SIZE; ++ii) {
         sprintf(buf, "var_%d", ii);
-        EXPECT_NE(-1, vartbl_add(buf, T_INT, GLOBAL_VAR, NULL, 0));
+        EXPECT_EQ(kOk, vartbl_add(buf, T_INT, GLOBAL_VAR, NULL, 0, &var_idx));
     }
     var_idx = 0;
     memset(vartbl_hashmap, 0xFF, sizeof(vartbl_hashmap));
@@ -1106,9 +1171,10 @@ TEST_F(VartblTest, Find_GivenHashmapWrapAround) {
     }
 
     // Add level 2 LOCAL variable "local_2".
-    int expected_var_idx = vartbl_add("local_2", T_INT, 2, NULL, 0);
-    EXPECT_EQ(VARS_HASHMAP_SIZE - LOCAL_2_HASH, expected_var_idx);
-    EXPECT_EQ(0, vartbl[expected_var_idx].hash);
+    (void) vartbl_add("local_2", T_INT, 2, NULL, 0, &var_idx);
+    EXPECT_EQ(VARS_HASHMAP_SIZE - LOCAL_2_HASH, var_idx);
+    EXPECT_EQ(0, vartbl[var_idx].hash);
+    int expected_var_idx = var_idx;
 
     // Can we find it ?
     EXPECT_EQ(
@@ -1119,10 +1185,9 @@ TEST_F(VartblTest, Find_GivenHashmapWrapAround) {
 }
 
 TEST_F(VartblTest, Find_GivenDeletedFirstItemInHashChain) {
-    int var_idx;
-    int global_idx;
-    int foo_0 = vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
-    int foo_1 = vartbl_add("foo", T_INT, 1, NULL, 0);
+    int foo_0, foo_1, global_idx, var_idx;
+    (void) vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0, &foo_0);
+    (void) vartbl_add("foo", T_INT, 1, NULL, 0, &foo_1);
     vartbl_delete(foo_0);
 
     EXPECT_EQ(kOk, vartbl_find("foo", 1, &var_idx, &global_idx));
@@ -1131,11 +1196,10 @@ TEST_F(VartblTest, Find_GivenDeletedFirstItemInHashChain) {
 }
 
 TEST_F(VartblTest, Find_GivenDeletedIntermediateItemInHashChain) {
-    int var_idx;
-    int global_idx;
-    int foo_0 = vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0);
-    int foo_1 = vartbl_add("foo", T_INT, 1, NULL, 0);
-    int foo_2 = vartbl_add("foo", T_INT, 2, NULL, 0);
+    int foo_0, foo_1, foo_2, global_idx, var_idx;
+    (void) vartbl_add("foo", T_INT, GLOBAL_VAR, NULL, 0, &foo_0);
+    (void) vartbl_add("foo", T_INT, 1, NULL, 0, &foo_1);
+    (void) vartbl_add("foo", T_INT, 2, NULL, 0, &foo_2);
     vartbl_delete(foo_1);
 
     EXPECT_EQ(kOk, vartbl_find("foo", 2, &var_idx, &global_idx));

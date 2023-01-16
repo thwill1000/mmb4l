@@ -70,9 +70,11 @@ const char *mmresult_to_string(MmResult result) {
         case kFunctionNotFound:     return "Function not found";
         case kVariableNotFound:     return "Variable not found";
         case kTooManyFunctions:     return "Too many functions/subroutines";
+        case kTooManyVariables:     return "Too many variables";
         case kDuplicateFunction:    return "Duplicate function/subroutine declaration";
         case kHashmapFull:          return "Hashmap full";
         case kInvalidName:          return "Invalid name";
+        case kInvalidArrayDimensions: return "Dimensions";
         default:                    return "Unknown result code";
     }
 }

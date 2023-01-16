@@ -82,9 +82,11 @@ typedef enum {
     kFunctionNotFound,
     kVariableNotFound,
     kTooManyFunctions,
+    kTooManyVariables,
     kDuplicateFunction,
     kHashmapFull,
-    kInvalidName
+    kInvalidName,
+    kInvalidArrayDimensions
 } MmResultCode;
 
 /**

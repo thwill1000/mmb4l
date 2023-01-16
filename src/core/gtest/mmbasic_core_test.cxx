@@ -838,7 +838,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenTooManyDeclarations) {
     }
 
     // The 1025'th request should fail.
-    EXPECT_STREQ("Not enough memory", error_msg);
+    EXPECT_STREQ("Too many variables", error_msg);
     EXPECT_EQ(1025, ii);
 }
 
