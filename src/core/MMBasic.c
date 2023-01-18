@@ -1530,7 +1530,10 @@ const char *findlabel(const char *labelptr) {
     label[1] = *labelptr++;
     for(i = 2; ; i++) {
         if(!isnamechar(*labelptr)) break;                           // the end of the label
-        if(i > MAXVARLEN ) error("Label too long");                 // too long, not a correctly formed label
+        if (i > MAXVARLEN) {
+            error("Label too long");                                // too long, not a correctly formed label
+            return NULL;
+        }
         label[i] = *labelptr++;
     }
     label[0] = i - 1;                                               // the length byte
@@ -1540,8 +1543,10 @@ const char *findlabel(const char *labelptr) {
 
     // now do the search
     while(1) {
-        if(p[0] == 0 && p[1] == 0)                                  // end of the program
+        if (p[0] == 0 && p[1] == 0) {                               // end of the program
             error("Cannot find label");
+            return NULL;
+        }
 
         if(p[0] == T_NEWLINE) {
             lastp = p;                                              // save in case this is the right line

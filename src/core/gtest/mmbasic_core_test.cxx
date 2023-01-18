@@ -70,6 +70,7 @@ int TraceOn;
 } // extern "C"
 
 #define MAX_LENGTH_NAME  "_32_character_name_9012345678901"
+#define TOO_LONG_NAME    "_33_character_name_90123456789012"
 
 class MmBasicCoreTest : public ::testing::Test {
 
@@ -90,41 +91,45 @@ protected:
     }
 
     void ClearProgMemory() {
-        ProgMemory[0] = '\0'; // Program ends with two 0x00 and one or more 0xFF.
+        ProgMemory[0] = '\0'; // Program ends "\0\0\xFF".
         ProgMemory[1] = '\0';
         ProgMemory[2] = '\xFF';
     }
 
+    // TODO: can I just use program_tokenise() instead ?
     void TokeniseAndAppend(const char* untokenised) {
         strcpy(inpbuf, untokenised);
 
         tokenise(0);
+        EXPECT_STREQ("", error_msg);
 
-        // Current end of ProgMemory should be "\0\0\xFF".
-        char *p = ProgMemory;
+        // Current end of ProgMemory should be "\0\0".
+        char *pmem = ProgMemory;
         int count = 0;
-        for (; !(count == 2 && *p == 0xFF); ++p) {
-            count = (*p  == '\0') ? count + 1 : 0;
+        for (; count != 2; ++pmem) {
+            count = (*pmem  == '\0') ? count + 1 : 0;
         }
-        p -= 1; // We leave one '\0' between each command.
+        pmem -= 1; // We leave one '\0' between each command.
 
-        if (p == ProgMemory + 1) p = ProgMemory;
+        if (pmem == ProgMemory + 1) pmem = ProgMemory;
 
-        strcpy(p, tknbuf);
-        p += strlen(tknbuf);
-        *p++ = '\0';
-        *p++ = '\0';
-        *p++ = '\xFF';
+        // Do not just do a strcpy() from the tknbuf as it may contain embedded \0.
+        // The actual end is when there are two consecutive \0.
+        for (const char *pbuf = tknbuf; pbuf[0] || pbuf[1]; pmem++, pbuf++) {
+            *pmem = *pbuf;
+        }
+        *pmem++ = '\0';
+        *pmem++ = '\0';
     }
 
     void DumpProgMemory() {
         size_t column = 0;
         size_t count = 0;
-        for (const char *p = ProgMemory; !(count == 2 && *p == 0xFF); ++p) {
+        for (const char *p = ProgMemory; count != 2; ++p) {
             if (*p > 31 && *p < 127) {
+                count = 0;
                 printf(" %c   ", *p);
             } else {
-
                 count = (*p == '\0') ? count + 1 : 0;
                 printf("0x%02X ", *p);
             }
@@ -136,7 +141,7 @@ protected:
             }
         }
 
-        printf("0xFF\n");
+        printf("\n");
     }
 
     char m_program[256];
@@ -1110,6 +1115,185 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForAFunctionOrSub) {
 
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(1, fun_idx);
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_GivenLabelPresent) {
+    TokeniseAndAppend("Print \"Hello\"");
+    TokeniseAndAppend("Goto foo");
+    TokeniseAndAppend("Print \"End1\"");
+    TokeniseAndAppend("End");
+    TokeniseAndAppend("foo:");
+    TokeniseAndAppend("Print \"World\"");
+    TokeniseAndAppend("Goto bar");
+    TokeniseAndAppend("Print \"End2\"");
+    TokeniseAndAppend("bar: Print \"Humbug\"");
+    TokeniseAndAppend("Print \"End3\"");
+    PrepareProgram(true);
+
+    const char *addr = findlabel("foo");
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(T_NEWLINE, *addr);
+    EXPECT_EQ(T_LABEL, *(addr + 1));
+    EXPECT_EQ(3, *(addr + 2));
+    EXPECT_EQ(0, memcmp(addr + 3, "foo", 3));
+
+    addr = findlabel("bar");
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(T_NEWLINE, *addr);
+    EXPECT_EQ(T_LABEL, *(addr + 1));
+    EXPECT_EQ(3, *(addr + 2));
+    EXPECT_EQ(0, memcmp(addr + 3, "bar", 3));
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_GivenLabelNotPresent) {
+    TokeniseAndAppend("Print \"Hello\"");
+    TokeniseAndAppend("foobar:");
+    TokeniseAndAppend("Print \"World\"");
+    TokeniseAndAppend("End");
+    PrepareProgram(true);
+
+    const char *addr = findlabel("wombat");
+
+    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_EQ(NULL, addr);
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_IsCaseInsensitive) {
+    TokeniseAndAppend("Print \"Hello\"");
+    TokeniseAndAppend("foobar:");
+    TokeniseAndAppend("Print \"World\"");
+    TokeniseAndAppend("End");
+    PrepareProgram(true);
+
+    const char *addr = findlabel("FOOBAR");
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(T_NEWLINE, *addr);
+    EXPECT_EQ(T_LABEL, *(addr + 1));
+    EXPECT_EQ(6, *(addr + 2));
+    EXPECT_EQ(0, memcmp(addr + 3, "foobar", 6));
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_RequiresCompleteMatch) {
+    TokeniseAndAppend("Print \"Hello\"");
+    TokeniseAndAppend("foobar:");
+    TokeniseAndAppend("Print \"World\"");
+    TokeniseAndAppend("End");
+    PrepareProgram(true);
+
+    const char *addr = findlabel("foo"); // Try to match on a prefix.
+
+    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_EQ(NULL, addr);
+
+    error_msg[0] = '\0';
+    addr = findlabel("bar"); // Try to match on a suffix.
+
+    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_EQ(NULL, addr);
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_GivenLabelPreceededBySpaces) {
+    TokeniseAndAppend("Print \"Hello\"");
+    TokeniseAndAppend("  foobar:");
+    TokeniseAndAppend("Print \"World\"");
+    TokeniseAndAppend("End");
+    PrepareProgram(true);
+
+    const char *addr = findlabel("foobar");
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(T_NEWLINE, *addr);
+    EXPECT_EQ(' ', *(addr + 1));
+    EXPECT_EQ(' ', *(addr + 2));
+    EXPECT_EQ(T_LABEL, *(addr + 3));
+    EXPECT_EQ(6, *(addr + 4));
+    EXPECT_EQ(0, memcmp(addr + 5, "foobar", 6));
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_GivenLabelPreceededByLineNumber) {
+    TokeniseAndAppend("Print \"Hello\"");
+    TokeniseAndAppend("100 foobar:");
+    TokeniseAndAppend("Print \"World\"");
+    TokeniseAndAppend("End");
+    PrepareProgram(true);
+
+    const char *addr = findlabel("foobar");
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(T_NEWLINE, *addr);
+    EXPECT_EQ(T_LINENBR, *(addr + 1));
+    EXPECT_EQ(0x00, *(addr + 2)); // 16-bit line number ...
+    EXPECT_EQ(0x64, *(addr + 3)); // ... 0x64 = 100
+    EXPECT_EQ(' ', *(addr + 4));  // space
+    EXPECT_EQ(T_LABEL, *(addr + 5));
+    EXPECT_EQ(6, *(addr + 6));
+    EXPECT_EQ(0, memcmp(addr + 7, "foobar", 6));
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_GivenLabelHasMaximumLength) {
+    TokeniseAndAppend("Print \"Hello\"");
+    TokeniseAndAppend(MAX_LENGTH_NAME ":");
+    TokeniseAndAppend("Print \"World\"");
+    TokeniseAndAppend("End");
+    PrepareProgram(true);
+
+    const char *addr = findlabel(MAX_LENGTH_NAME);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(T_NEWLINE, *addr);
+    EXPECT_EQ(T_LABEL, *(addr + 1));
+    EXPECT_EQ(32, *(addr + 2));
+    EXPECT_EQ(0, memcmp(addr + 3, MAX_LENGTH_NAME, 32));
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_GivenLabelArgumentIsTooLong) {
+    TokeniseAndAppend("Print \"Hello\"");
+    TokeniseAndAppend("foo:");
+    TokeniseAndAppend("Print \"World\"");
+    TokeniseAndAppend("End");
+    PrepareProgram(true);
+
+    const char *addr = findlabel(TOO_LONG_NAME);
+
+    EXPECT_STREQ("Label too long", error_msg);
+    EXPECT_EQ(NULL, addr);
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_GivenLabelInProgramIsTooLong) {
+    TokeniseAndAppend("Print \"Hello\"");
+    TokeniseAndAppend(TOO_LONG_NAME ":");
+    TokeniseAndAppend("Print \"World\"");
+    TokeniseAndAppend("End");
+
+    PrepareProgram(true);
+
+    // At the moment the presence of the invalid label is not enough to
+    // cause an error.
+    EXPECT_STREQ("", error_msg);
+
+    const char *addr = findlabel(TOO_LONG_NAME);
+
+    EXPECT_STREQ("Label too long", error_msg);
+    EXPECT_EQ(NULL, addr);
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_GivenLabelWithinMultiStatementLine) {
+    TokeniseAndAppend("Print \"Hello\"");
+    TokeniseAndAppend("Print \"abc\" : foobar: Print \"def\"");
+    TokeniseAndAppend("Print \"World\"");
+    TokeniseAndAppend("End");
+    PrepareProgram(true);
+
+    const char *addr = findlabel("foobar");
+
+    // Because it is not at the 'start' of the line the colon following 'foobar'
+    // is converted to a statement separator '\0' instead of being recognised as
+    // terminating a label.
+    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_EQ(NULL, addr);
 }
 
 extern "C" {
