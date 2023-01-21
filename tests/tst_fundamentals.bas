@@ -73,6 +73,8 @@ Sub test_erase()
   Select Case Mm.Device$
     Case "Colour Maximite 2", "Colour Maximite 2 G2"
       assert_raw_error("Unknown command")
+    Case "MMBasic for Windows"
+      assert_raw_error("Syntax")
     Case Else
       assert_raw_error("Invalid name")
   End Select
@@ -219,7 +221,7 @@ Sub test_unary_plus()
 End Sub
 
 Sub test_error_correct_after_goto()
-  Local base_line% = 230
+  Local base_line% = 232
   Goto 30
 test_goto_label_1:
   assert_raw_error("Error in line " + Str$(base_line% + 4) + ": foo1")
@@ -237,7 +239,7 @@ Error "foo2"
 Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
-  Local base_line% = 246
+  Local base_line% = 248
   GoSub 60
   assert_raw_error("Error in line " + Str$(base_line% + 4) + ": bar1")
   GoSub 70
