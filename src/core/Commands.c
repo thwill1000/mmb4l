@@ -1216,15 +1216,18 @@ void cmd_subfun(void) {
 
 void cmd_gosub(void) {
     if(gosubindex >= MAXGOSUB) error("Too many nested GOSUB");
-    errorstack[gosubindex] = CurrentLinePtr;
-    gosubstack[gosubindex++] = nextstmt;
-    LocalIndex++;
+    const char *return_to = nextstmt;
     if(isnamestart(*cmdline))
         nextstmt = findlabel(cmdline);                              // must be a label
     else
         nextstmt = findline(getinteger(cmdline), true);             // try for a line number
     IgnorePIN = false;
 
+    // Do not update the interpreter state until successfully finding
+    // the target line/label.
+    errorstack[gosubindex] = CurrentLinePtr;
+    gosubstack[gosubindex++] = return_to;
+    LocalIndex++;
     CurrentLinePtr = nextstmt;
 }
 
