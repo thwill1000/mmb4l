@@ -25,9 +25,9 @@ RUN ln -s ~/host-home-thwill/.ssh ~/.ssh
 RUN ln -s ~/host-home-thwill/.terminfo ~/.terminfo
 RUN ln -s ~/host-home-thwill/git_sandbox/github ~/github
 RUN mkdir local-mmb4l
-RUN mkdir local-mmb4l/build-coverage
-RUN mkdir local-mmb4l/build-debug
-RUN mkdir local-mmb4l/build-release
+#RUN mkdir local-mmb4l/build-coverage
+#RUN mkdir local-mmb4l/build-debug
+#RUN mkdir local-mmb4l/build-release
 RUN ln -s ~/github/mmb4l/examples local-mmb4l/examples
 RUN ln -s ~/github/mmb4l/resources local-mmb4l/resources
 RUN ln -s ~/github/mmb4l/sptools local-mmb4l/sptools
