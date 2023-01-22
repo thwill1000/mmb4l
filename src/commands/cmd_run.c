@@ -137,15 +137,23 @@ static void cmd_run_transform_legacy_args(char *run_args) {
 /**
  * Parses filename and RUN arguments from a token buffer.
  *
- * @param[in]   p         pointer to the buffer.
- * @param[out]  filename  buffer to hold the filename, should be at least STRINGSIZE.
- * @param[out]  run_args  buffer to hold the RUN args, should be at least STRINGSIZE.
- * @return                kOk on success.
+ * @param[in]   p            pointer to the buffer.
+ * @param[out]  filename     buffer to hold the filename, should be at least STRINGSIZE.
+ * @param[in,out]  run_args  buffer to hold the RUN args, should be at least STRINGSIZE.
+ *                             on entry: the RUN args that were passed to the current program.
+ *                             on exit:  the RUN args to pass to the new program.
+ * @return                   kOk on success.
  */
 MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args) {
     *filename = '\0';
-    *run_args = '\0';
-    if (!*p) return kOk;
+
+    // WARNING! do not clear 'run_args' at the start of this function,
+    // its existing value may need to be evaluated to calculate its new value.
+
+    if (!*p) {
+        *run_args = '\0';
+        return kOk;
+    }
 
     getargs(&p, 3, ",");
     int filename_idx = -1;  // Index into argv[] for filename.
@@ -154,7 +162,7 @@ MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args) {
     // Note for legacy compatibility we need to allow the trailing comma.
     if (argc == 1 && *(argv[0]) == ',') {
         // RUN ,
-        // Don't set filename or cmd_run_args.
+        // Don't set filename, and clear cmd_run_args.
     } else if (argc == 1) {
         // RUN file$
         if (*(argv[0]) != ',') filename_idx = 0;
@@ -181,6 +189,8 @@ MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args) {
         } else {
             strcpy(run_args, getCstring(argv[run_args_idx]));
         }
+    } else {
+        *run_args = '\0';
     }
 
     return kOk;

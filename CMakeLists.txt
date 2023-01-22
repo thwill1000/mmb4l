@@ -224,6 +224,7 @@ add_executable(
   src/core/funtbl.c
   src/core/MMBasic.c
   src/core/vartbl.c
+  src/functions/fun_mmcmdline.c
 )
 
 target_link_libraries(

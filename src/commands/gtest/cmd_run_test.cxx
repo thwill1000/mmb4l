@@ -31,6 +31,9 @@ void CheckAbort(void) { }
 void cmd_read_clear_cache()  { }
 
 // Defined in "commands/cmd_run.c"
+extern char cmd_run_args[STRINGSIZE];
+
+// Defined in "commands/cmd_run.c"
 MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args);
 
 // Defined in "common/console.c"
@@ -165,6 +168,15 @@ TEST_F(CmdRunTest, ParseArgs_GivenStringExpressions) {
     EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
     EXPECT_STREQ("foobar", m_filename);
     EXPECT_STREQ("wombat", m_run_args);
+}
+
+TEST_F(CmdRunTest, ParseArgs_GivenNewCmdArgsDependOnExistingMmCmdLine) {
+    strcpy(cmd_run_args, "wom");
+    strcpy(inpbuf, "RUN \"foobar\", Mm.CmdLine$ + \"bat\"");
+    tokenise(1);
+    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, cmd_run_args));
+    EXPECT_STREQ("foobar", m_filename);
+    EXPECT_STREQ("wombat", cmd_run_args);
 }
 
 TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
@@ -378,7 +390,6 @@ void fun_math() { }
 void fun_max() { }
 void fun_mid() { }
 void fun_min() { }
-void fun_mmcmdline() { }
 void fun_mmdevice() { }
 void fun_mminfo() { }
 void fun_oct() { }
