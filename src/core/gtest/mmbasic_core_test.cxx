@@ -1296,6 +1296,212 @@ TEST_F(MmBasicCoreTest, FindLabel_GivenLabelWithinMultiStatementLine) {
     EXPECT_EQ(NULL, addr);
 }
 
+TEST_F(MmBasicCoreTest, SkipVar_GivenrStringScalar) {
+    TokeniseAndAppend("Print x$");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 4, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenIntegerScalar) {
+    TokeniseAndAppend("Print xy%");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 5, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenFloatScalar) {
+    TokeniseAndAppend("Print xyz!");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 6, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenUntypedScalar) {
+    TokeniseAndAppend("Print xyz_");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 6, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenMaxLengthNamePlusExtension) {
+    TokeniseAndAppend("Print " MAX_LENGTH_NAME "$");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 35, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenTooLongName) {
+    TokeniseAndAppend("Print " TOO_LONG_NAME "$");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("Variable name too long", error_msg);
+    EXPECT_EQ(0x0, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenTooLongName_AndNoErrorSet) {
+    TokeniseAndAppend("Print " TOO_LONG_NAME "$");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 1);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 35, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenNotAName) {
+    TokeniseAndAppend("Print 1");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_EQ(ProgMemory + 2, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenLeadingSpaces) {
+    TokeniseAndAppend("Print    abc!");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 9, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenUndimensionedArray) {
+    TokeniseAndAppend("Print abc()");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 7, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenUnbalancedBrackets) {
+    TokeniseAndAppend("Print abc(");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("Expected closing bracket", error_msg);
+    EXPECT_EQ(NULL, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenUnbalancedBrackets_AndNoErrorSet) {
+    TokeniseAndAppend("Print abc(");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 1);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 6, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenSpaceBeforeBrackets) {
+    TokeniseAndAppend("Print abc  ()");
+    // Tokenising removes the spaces,
+    // insert them back in for sake of test.
+    memcpy(ProgMemory + 5, "  ()\0\0", 6);
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 9, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenStringArg) {
+    TokeniseAndAppend("Print abc(\"def\")");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 12, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenBracketInQuotes) {
+    TokeniseAndAppend("Print abc(\"(\")");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 10, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenInternalFunctionCallInBrackets) {
+    TokeniseAndAppend("Print abc(Int(5))");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 10, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenUserFunctionCallInBrackets) {
+    TokeniseAndAppend("Print abc(def(5))");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 2;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 13, actual);
+}
+
 extern "C" {
 
 void cmd_autosave() { }

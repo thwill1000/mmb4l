@@ -2545,23 +2545,34 @@ const char *skipvar(const char *p, int noerror) {
         p++;
     } while(isnamechar(*p));
 
-    // check the terminating char.
-    if(*p == '$' || *p == '%' || *p == '!') p++;
-
     if(p - tp > MAXVARLEN) {
         if(noerror) return p;
         error("Variable name too long");
+        return NULL;
     }
+
+    // check the terminating char.
+    if(*p == '$' || *p == '%' || *p == '!') p++;
+
+    // THW: 22-Jan-2025: moved above the check for the terminating char.
+    // if(p - tp > MAXVARLEN) {
+    //     if(noerror) return p;
+    //     error("A Variable name too long");
+    // }
 
     pp = p; skipspace(pp); if(*pp == '(') p = pp;
     if(*p == '(') {
-        // this is an array
+        // this is an array - THW: actually might be a function.
 
         p++;
-        if(p - tp > MAXVARLEN) {
-            if(noerror) return p;
-            error("Variable name too long");
-        }
+
+        // THW: 22-Jan-2025: removed, I don't think it makes sense, and
+        //                   why is it including the opening bracket in
+        //                   the variable name length?
+        // if(p - tp > MAXVARLEN) {
+        //     if(noerror) return p;
+        //     error("Variable name too long");
+        // }
 
         // step over the parameters keeping track of nested brackets
         i = 1;
@@ -2570,6 +2581,7 @@ const char *skipvar(const char *p, int noerror) {
             if(*p == 0) {
                 if(noerror) return p;
                 error("Expected closing bracket");
+                return NULL;
             }
             if(!inquote) {
                 if(*p == ')') if(--i == 0) break;
