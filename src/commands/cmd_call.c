@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_call.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -60,7 +60,7 @@ void cmd_call(void) {
         q++;
     }
     if (*q == ',') q++;
-    int i = FindSubFun(cmd, 0);  // find a subroutine.
+    int i = FindSubFun(cmd, kSub);  // find a subroutine.
     cstring_cat(cmd, " ", STRINGSIZE);
     cstring_cat(cmd, q, STRINGSIZE);
     // MMPrintString(p);PRet();

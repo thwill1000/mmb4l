@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_peek.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -82,7 +82,7 @@ static char *GetCFunAddr(const char *p, int i) {
 /** PEEK(CFUNADDR cfun) */
 static void peek_cfunaddr(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
-    int idx = FindSubFun(p, 2); // sfind a function or subroutine.
+    int idx = FindSubFun(p, kFunction | kSub); // find a function or subroutine.
     if (idx == -1 || !(*(funtbl[idx].addr) == cmdCFUN || *(funtbl[idx].addr) == cmdCSUB))
         ERROR_INVALID_ARGUMENT;
 

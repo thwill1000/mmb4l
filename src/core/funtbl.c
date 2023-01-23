@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 funtbl.c
 
-Copyright 2011-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -52,7 +52,8 @@ struct s_funtbl funtbl[MAXSUBFUN];
 FunHashValue funtbl_hashmap[FUN_HASHMAP_SIZE];
 size_t funtbl_count = 0;
 
-MmResult funtbl_add(const char *name, const char *addr, int *fun_idx) {
+MmResult funtbl_add(
+        const char *name, FunType type, const char *addr, int *fun_idx) {
     *fun_idx = -1;
     if (funtbl_count == MAXSUBFUN) return kTooManyFunctions;
 
@@ -73,8 +74,9 @@ MmResult funtbl_add(const char *name, const char *addr, int *fun_idx) {
     // Copy a maximum of MAXVARLEN characters,
     // a maximum length stored name will not be '\0' terminated.
     strncpy(funtbl[funtbl_count].name, name, MAXVARLEN);
-    funtbl[funtbl_count].addr = addr;
+    funtbl[funtbl_count].type = type;
     funtbl[funtbl_count].hash = hash;
+    funtbl[funtbl_count].addr = addr;
 
     *fun_idx = funtbl_count++;
     return kOk;

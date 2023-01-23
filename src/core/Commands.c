@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Hardware_Includes.h"
 #include "MMBasic_Includes.h"
+#include "funtbl.h"
 #include "vartbl.h"
 
 void flist(int, int, int);
@@ -1789,7 +1790,7 @@ void execute_one_command(char *p) {
         commandtbl[cmd].fptr();                                     // execute the command
     } else {
         if(!isnamestart(*p)) error("Invalid character");
-        i = FindSubFun(p, 0);                                       // find a subroutine.
+        i = FindSubFun(p, kSub);                                    // find a subroutine.
         if(i >= 0)                                                  // >= 0 means it is a user defined command
             DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
         else

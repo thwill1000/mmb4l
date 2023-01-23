@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -325,7 +325,7 @@ void ExecuteProgram(const char *p) {
                         commandtbl[*(char*)p - C_BASETOKEN].fptr(); // execute the command
                     } else {
                         if (!isnamestart(*p)) error("Invalid character: %", (int)(*p));
-                        i = FindSubFun(p, 0);                       // it could be a defined command (subroutine)
+                        i = FindSubFun(p, kSub);                    // it could be a defined command (subroutine)
                         if(i >= 0) {                                // >= 0 means it is a user defined command
                             DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
                         }
@@ -387,11 +387,17 @@ void MIPS16 PrepareProgramExt(const char *p, unsigned char **CFunPtr, int ErrAbo
     while (*p != 0xff) {
         p = GetNextCommand(p, &CurrentLinePtr, NULL);
         if (*p == 0) break;                                          // end of the program or module
-        if (*p == cmdSUB || *p == cmdFUN || *p == cmdCFUN || *p == cmdCSUB) {  // found a SUB, FUN, CFUNCTION or CSUB token
+        int type = 0x0;
+        if (*p == cmdSUB || *p == cmdCSUB) {
+            type = kSub;
+        } else if (*p == cmdFUN || *p == cmdCFUN) {
+            type = kFunction;
+        }
+        if (type) {  // found a SUB, FUN, CFUNCTION or CSUB token
             code = p++;
             skipspace(p);
             MmResult result = parse_name(&p, name);
-            if (SUCCEEDED(result)) result = funtbl_add(name, code, &fun_idx);
+            if (SUCCEEDED(result)) result = funtbl_add(name, type, code, &fun_idx);
             if (FAILED(result) && ErrAbort) {
                 switch (result) {
                     case kInvalidName:
@@ -430,15 +436,15 @@ void MIPS16 PrepareProgramExt(const char *p, unsigned char **CFunPtr, int ErrAbo
 /**
  * @brief  Finds a FUNCTION/SUBroutine by name in the function table.
  *
- * @param[in]   p        pointer to start of function name.
- * @param[in]   type     0 - to find a subroutine.
- *                       1 - to find a function.
- *                       2 - to find a subroutine or function.
- * @return               the index of the function in funtbl[],
- *                       or -1 if the function could not be found.
+ * @param[in]  p          pointer to start of function name.
+ * @param[in]  type_mask  kSub             - to find a subroutine.
+ *                        kFunction        - to find a function.
+ *                        kSub | kFunction - to find a subroutine or function.
+ * @return                the index of the function in funtbl[],
+ *                        or -1 if the function could not be found.
  */
-int FindSubFun(const char *p, int type) {
-    assert(type > 0 || type < 3);
+int FindSubFun(const char *p, uint8_t type_mask) {
+    assert(type_mask >= 1 || type_mask <= 3);
 
     char name[MAXVARLEN + 1];
     MmResult result = parse_name(&p, name);
@@ -446,12 +452,17 @@ int FindSubFun(const char *p, int type) {
     int fun_idx;
     if (result == kOk) result = funtbl_find(name, &fun_idx);
 
-    if (result == kOk && type != 2) {
-        char actual_type = *(funtbl[fun_idx].addr);
-        if (type == 0) {
-            result = (actual_type == cmdSUB || actual_type == cmdCSUB) ? kOk : kNotASubroutine;
-        } else {
-            result = (actual_type == cmdFUN || actual_type == cmdCFUN) ? kOk : kNotAFunction;
+    if (result == kOk && !(type_mask & funtbl[fun_idx].type)) {
+        switch (type_mask) {
+            case kFunction:
+                result = kNotAFunction;
+                break;
+            case kSub:
+                result = kNotASubroutine;
+                break;
+            default:
+                result = kInternalFault;
+                break;
         }
     }
 
@@ -630,7 +641,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
             // check if the argument is a valid variable
             if(i < argc1 && isnamestart(*argv1[i]) && *skipvar(argv1[i], false) == 0) {
                 // yes, it is a variable (or perhaps a user defined function which looks the same)?
-                if(!(FindSubFun(argv1[i], 1) >= 0 && strchr(argv1[i], '(') != NULL)) {
+                if(!(FindSubFun(argv1[i], kFunction) >= 0 && strchr(argv1[i], '(') != NULL)) {
                     // yes, this is a valid variable.  set argvalue to point to the variable's data and argtype to its type
                     argval[i].s = findvar(argv1[i], V_FIND | V_EMPTY_OK);        // get a pointer to the variable's data
                     argtype[i] = vartbl[VarIndex].type;                          // and the variable's type
@@ -1345,7 +1356,7 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
             while (isnamechar(*tp)) tp++;                               // search for the end of the identifier
             if (*tp == '$' || *tp == '%' || *tp == '!') tp++;
             i = -1;
-            if (*tp == '(') i = FindSubFun(p, 1);                       // if terminated with a bracket it could be a function
+            if (*tp == '(') i = FindSubFun(p, kFunction);               // if terminated with a bracket it could be a function
             if (i >= 0) {                                               // >= 0 means it is a user defined function
                 const char *SaveCurrentLinePtr = CurrentLinePtr;        // in case the code in DefinedSubFun messes with this
                 DefinedSubFun(true, p, i, &f, &i64, &s, &t);

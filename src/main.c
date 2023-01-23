@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 main.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -305,7 +305,7 @@ int main(int argc, char *argv[]) {
             console_puts("\r\n");  // prompt should be on a new line
         }
         //PrepareProgram(false); // This seems superflous so comment it out and see what breaks!
-        // if (!ErrorInPrompt && FindSubFun("MM.PROMPT", 0) >= 0) {
+        // if (!ErrorInPrompt && FindSubFun("MM.PROMPT", kSub) >= 0) {
         //     ErrorInPrompt = true;
         //     ExecuteProgram("MM.PROMPT\0");
         // } else {
@@ -561,10 +561,10 @@ void dump_token_table(const struct s_tokentbl* tbl) {
  */
 const char *GetIntAddress(const char *p) {
     int32_t i;
-    if (isnamestart(*p)) {     // if it starts with a valid name char
-        i = FindSubFun(p, 0);  // try to find a matching subroutine
+    if (isnamestart(*p)) {          // if it starts with a valid name char
+        i = FindSubFun(p, kSub);    // try to find a matching subroutine
         if (i == -1)
-            return findlabel(p);  // if a subroutine was NOT found it must be a label
+            return findlabel(p);    // if a subroutine was NOT found it must be a label
         else
             return funtbl[i].addr;  // if a subroutine was found, return the address
                                     // of the sub

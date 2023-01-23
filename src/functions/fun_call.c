@@ -63,7 +63,7 @@ void fun_call(void) {
         q++;
     }
     if (*q == ',') q++;
-    int i = FindSubFun(fun, 1);  // find a function.
+    int i = FindSubFun(fun, kFunction);  // find a function.
     cstring_cat(fun, " ", STRINGSIZE);
     cstring_cat(fun, q, STRINGSIZE);
     targ = T_NOTYPE;

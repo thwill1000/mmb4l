@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 funtbl.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -49,14 +49,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/hash.h"
 #include "../common/mmresult.h"
 
+typedef enum {
+    kFunction = 0x1,
+    kSub      = 0x2
+} FunType;
+
 typedef int16_t FunHashValue;
 
 /** Structure of elements in the function table. */
 struct s_funtbl {
-    char name[MAXVARLEN];  // Function name canonically in UPPER-CASE; will not
+    char name[MAXVARLEN];  // Entry name canonically in UPPER-CASE; will not
                            // be \0 terminated if MAXVARLEN characters long.
-    const char *addr;      // Pointer to function in the program memory.
-    FunHashValue hash;     // Index of this function in funtbl_hashmap[].
+    FunType type;          // Is the entry for a function or a subroutine?
+                           // In theory you can determine this by looking at the
+                           // first token/character of 'addr', but I decided
+                           // the program should be opaque to this module.
+    FunHashValue hash;     // Index of this entry in funtbl_hashmap[].
+    const char *addr;      // Pointer to entry in the program memory.
 };
 
 /** Indexes into this table are hashes of the SUB/FUNCTION names. */
@@ -75,25 +84,27 @@ extern FunHashValue funtbl_hashmap[FUN_HASHMAP_SIZE];
 extern size_t funtbl_count;
 
 /**
- * @brief  Adds a function to the functions table.
+ * @brief  Adds an entry to the functions table.
  *
- * @param  name   Name for the function.
+ * @param  name   Name for the entry.
  *                @warning  This is case-sensitive, but MMB4L should always call
  *                          it with an UPPER-CASE name.
  *                @warning  Only the first 32 characters are used.
  *                @warning  Validity of the name is not checked.
- * @param  addr   Pointer to the function's declaration in the program memory.
- * @param[out]  fun_idx  On exit, the index of the new function,
+ * @param  type   Type of entry: function or subroutine.
+ * @param  addr   Pointer to the entry's declaration in the program memory.
+ * @param[out]  fun_idx  On exit, the index of the new entry,
  *                       or -1 on error.
  * @return        kOk                - on success.
  *                kTooManyFunctions  - if the function table is full.
- *                kDuplicateFunction - if a function of the same name is already
+ *                kDuplicateFunction - if an entry with the same name is already
  *                                     in the table.
  *                kHashmapFull       - if the function hashmap is full, this
  *                                     should never happen because the hashmap
  *                                     is larger than the function table.
  */
-MmResult funtbl_add(const char *name, const char *addr, int *fun_idx);
+MmResult funtbl_add(
+       const char *name, FunType type, const char *addr, int *fun_idx);
 
 void funtbl_clear();
 void funtbl_dump();

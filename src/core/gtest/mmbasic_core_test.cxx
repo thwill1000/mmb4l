@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Thomas Hugo Williams
+ * Copyright (c) 2022-2023 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -471,8 +471,8 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfGlobal_GivenFunctionWithSameName)
             "# bar\n"
             "#\n"
             "foo = 1");
-    funtbl_add("FOO", m_program, &fun_idx);
-    funtbl_add("BAR", m_program + 8, &fun_idx);
+    funtbl_add("FOO", kFunction, m_program, &fun_idx);
+    funtbl_add("BAR", kFunction, m_program + 8, &fun_idx);
 
     error_msg[0] = '\0';
     (void) findvar(m_program + 16, V_DIM_VAR);
@@ -492,8 +492,8 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfLocal_GivenFunctionWithSameName) 
             "# bar\n"
             "#\n"
             "foo = 1");
-    funtbl_add("FOO", m_program, &fun_idx);
-    funtbl_add("BAR", m_program + 8, &fun_idx);
+    funtbl_add("FOO", kFunction, m_program, &fun_idx);
+    funtbl_add("BAR", kFunction, m_program + 8, &fun_idx);
 
     error_msg[0] = '\0';
     LocalIndex = 3;
@@ -900,19 +900,22 @@ TEST_F(MmBasicCoreTest, PrepareProgram_And_FindSubFun) {
 
     EXPECT_STREQ("", error_msg);
 
-    int fun_idx = FindSubFun("foo", 0);
+    int fun_idx = FindSubFun("foo", kSub);
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(0, fun_idx);
+    EXPECT_EQ(kSub, funtbl[fun_idx].type);
     EXPECT_EQ(ProgMemory + 1, funtbl[fun_idx].addr);
 
-    fun_idx = FindSubFun("bar", 1);
+    fun_idx = FindSubFun("bar", kFunction);
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(1, fun_idx);
+    EXPECT_EQ(kFunction, funtbl[fun_idx].type);
     EXPECT_EQ(ProgMemory + 12, funtbl[fun_idx].addr);
 
-    fun_idx = FindSubFun("wom", 0);
+    fun_idx = FindSubFun("wom", kSub);
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(2, fun_idx);
+    EXPECT_EQ(kSub, funtbl[fun_idx].type);
     EXPECT_EQ(ProgMemory + 25, funtbl[fun_idx].addr);
 }
 
@@ -930,7 +933,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenMaximumNumberOfFunctions) {
     int fun_idx;
     for (int ii = 0; ii < MAXSUBFUN; ++ii) {
         sprintf(buf, "fun%d", ii);
-        fun_idx = FindSubFun(buf, 1);
+        fun_idx = FindSubFun(buf, kFunction);
         EXPECT_STREQ("", error_msg);
         EXPECT_EQ(ii, fun_idx);
     }
@@ -978,11 +981,11 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionNameContainingPeriod) {
 
     EXPECT_STREQ("", error_msg);
 
-    int fun_idx = FindSubFun("f.oo", 1);
+    int fun_idx = FindSubFun("f.oo", kFunction);
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(0, fun_idx);
 
-    fun_idx = FindSubFun("b.ar", 0);
+    fun_idx = FindSubFun("b.ar", kSub);
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(1, fun_idx);
 }
@@ -997,7 +1000,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionHasMaximumLengthName) {
 
     EXPECT_STREQ("", error_msg);
 
-    int fun_idx = FindSubFun(MAX_LENGTH_NAME, 1);
+    int fun_idx = FindSubFun(MAX_LENGTH_NAME, kFunction);
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(0, fun_idx);
 }
@@ -1057,7 +1060,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenNameTooLong) {
 
     char name[256];
     sprintf(name, "%sA", MAX_LENGTH_NAME);
-    int fun_idx = FindSubFun(name, 1);
+    int fun_idx = FindSubFun(name, kFunction);
 
     EXPECT_STREQ("Function/subroutine name too long", error_msg);
     EXPECT_EQ(-1, fun_idx);
@@ -1068,7 +1071,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenTypeMismatch) {
     TokeniseAndAppend("End Function");
     PrepareProgram(1);
 
-    int fun_idx = FindSubFun("foo!", 1);
+    int fun_idx = FindSubFun("foo!", kFunction);
 
     // The type suffix does not form part of the name and the type checking is
     // performed in the function calling code only after the function has
@@ -1082,7 +1085,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForASubButFoundAFunction) {
     TokeniseAndAppend("End Function");
     PrepareProgram(1);
 
-    int fun_idx = FindSubFun("foo", 0);
+    int fun_idx = FindSubFun("foo", kSub);
 
     EXPECT_STREQ("Not a subroutine", error_msg);
     EXPECT_EQ(-1, fun_idx);
@@ -1093,7 +1096,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForAFunctionButFoundASub) {
     TokeniseAndAppend("End Sub");
     PrepareProgram(1);
 
-    int fun_idx = FindSubFun("foo", 1);
+    int fun_idx = FindSubFun("foo", kFunction);
 
     EXPECT_STREQ("Not a function", error_msg);
     EXPECT_EQ(-1, fun_idx);
@@ -1106,12 +1109,12 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForAFunctionOrSub) {
     TokeniseAndAppend("End Sub");
     PrepareProgram(1);
 
-    int fun_idx = FindSubFun("foo", 2);
+    int fun_idx = FindSubFun("foo", kFunction | kSub);
 
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(0, fun_idx);
 
-    fun_idx = FindSubFun("bar", 2);
+    fun_idx = FindSubFun("bar", kFunction | kSub);
 
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(1, fun_idx);

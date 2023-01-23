@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.h
 
-Copyright 2011-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -262,7 +262,7 @@ int IsValidLine(int line);
 void InsertLastcmd(char *s);
 int MIPS16 CountLines(char *target);
 void DefinedSubFun(int iscmd, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64, char **sa, int *t);
-int FindSubFun(const char *p, int type);
+int FindSubFun(const char *p, uint8_t type);
 void MIPS16 PrepareProgram(int);
 #if !defined(__mmb4l__)
 void MMPrintString(const char* s);
