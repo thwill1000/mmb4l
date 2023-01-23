@@ -6,6 +6,7 @@ FROM gcc:11.3.0
 
 RUN apt-get update
 RUN apt-get -y install cmake
+RUN apt-get -y install gcc-arm-none-eabi
 RUN apt-get -y install gcovr
 RUN apt-get -y install gdb
 # RUN apt-get -y install lcov
