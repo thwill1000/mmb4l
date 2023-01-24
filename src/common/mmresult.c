@@ -62,8 +62,6 @@ const char *mmresult_to_string(MmResult result) {
         case kInvalidString: return "Invalid string value";
         case kInvalidValue:  return "Invalid value";
         case kUnknownSystemCommand: return "Unknown system command";
-        case kNotAFunction:         return "Not a function";
-        case kNotASubroutine:       return "Not a subroutine";
         case kNotPersistent:        return "Invalid for non-persistent option";
         case kNameTooLong:          return "Name too long";
         case kUnimplemented:        return "Unimplemented function";
@@ -75,6 +73,7 @@ const char *mmresult_to_string(MmResult result) {
         case kHashmapFull:          return "Hashmap full";
         case kInvalidName:          return "Invalid name";
         case kInvalidArrayDimensions: return "Dimensions";
+        case kTargetTypeMismatch:   return "Function/subroutine mismatch";
         default:                    return "Unknown result code";
     }
 }

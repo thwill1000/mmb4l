@@ -168,12 +168,12 @@ TEST_F(FuntblTest, Find_GivenFunctionFound_InFirstChoiceSlot) {
     (void) funtbl_add("foo", kSub, ADDRESS_1, &fun_idx);
     (void) funtbl_add("bar", kSub, ADDRESS_2, &fun_idx);
 
-    MmResult result = funtbl_find("foo", &fun_idx);
+    MmResult result = funtbl_find("foo", kSub, &fun_idx);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(0, fun_idx);
 
-    result = funtbl_find("bar", &fun_idx);
+    result = funtbl_find("bar", kSub, &fun_idx);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(1, fun_idx);
@@ -188,7 +188,7 @@ TEST_F(FuntblTest, Find_GivenFunctionFound_InSecondChoiceSlot) {
     EXPECT_EQ(0, funtbl_hashmap[foo_hash + 1]);
     EXPECT_EQ(foo_hash + 1, funtbl[0].hash);
 
-    MmResult result = funtbl_find("foo", &fun_idx);
+    MmResult result = funtbl_find("foo", kSub, &fun_idx);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(0, fun_idx);
@@ -202,7 +202,7 @@ TEST_F(FuntblTest, Find_GivenFunctionFound_AfterHashmapWraparound) {
     EXPECT_EQ(0, funtbl_hashmap[1]);
     EXPECT_EQ(1, funtbl[0].hash);
 
-    MmResult result = funtbl_find("foo", &fun_idx);
+    MmResult result = funtbl_find("foo", kSub, &fun_idx);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(0, fun_idx);
@@ -213,7 +213,7 @@ TEST_F(FuntblTest, Find_GivenFunctionNotFound_AndHashmapNotFull) {
     (void)funtbl_add("foo", kSub, ADDRESS_1, &fun_idx);
     (void)funtbl_add("bar", kSub, ADDRESS_2, &fun_idx);
 
-    MmResult result = funtbl_find("wombat", &fun_idx);
+    MmResult result = funtbl_find("wombat", kSub, &fun_idx);
 
     EXPECT_EQ(kFunctionNotFound, result);
     EXPECT_EQ(-1, fun_idx);
@@ -223,8 +223,46 @@ TEST_F(FuntblTest, Find_GivenFunctionNotFound_AndHashmapFull) {
     GivenHashmapFull();
 
     int fun_idx;
-    MmResult result = funtbl_find("wombat", &fun_idx);
+    MmResult result = funtbl_find("wombat", kSub, &fun_idx);
 
     EXPECT_EQ(kFunctionNotFound, result);
     EXPECT_EQ(-1, fun_idx);
+}
+
+TEST_F(FuntblTest, Find_GivenLookingForFunctionButFindSub) {
+    int fun_idx;
+    (void)funtbl_add("fnfoo", kFunction, ADDRESS_1, &fun_idx);
+    (void)funtbl_add("subfoo", kSub, ADDRESS_2, &fun_idx);
+
+    MmResult result = funtbl_find("fnfoo", kSub, &fun_idx);
+
+    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(0, fun_idx);
+}
+
+TEST_F(FuntblTest, Find_GivenLookingForSubButFindFunction) {
+    int fun_idx;
+    (void)funtbl_add("fnfoo", kFunction, ADDRESS_1, &fun_idx);
+    (void)funtbl_add("subfoo", kSub, ADDRESS_2, &fun_idx);
+
+    MmResult result = funtbl_find("subfoo", kFunction, &fun_idx);
+
+    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(1, fun_idx);
+}
+
+TEST_F(FuntblTest, Find_GivenLookingForFunctionOrSub) {
+    int fun_idx;
+    (void)funtbl_add("fnfoo", kFunction, ADDRESS_1, &fun_idx);
+    (void)funtbl_add("subfoo", kSub, ADDRESS_2, &fun_idx);
+
+    MmResult result = funtbl_find("fnfoo", kFunction | kSub, &fun_idx);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, fun_idx);
+
+    result = funtbl_find("subfoo", kFunction | kSub, &fun_idx);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(1, fun_idx);
 }

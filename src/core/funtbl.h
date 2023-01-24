@@ -112,17 +112,26 @@ void funtbl_dump();
 /**
  * @brief  Finds a function by name in the functions table.
  *
- * @param  name          Name of the function to find.
- *                       @warning  This is case-sensitive, but MMB4L should
- *                                 always call it with an UPPER-CASE name.
- *                       @warning  Only the first 32 characters are used.
- * @param[out]  fun_idx  On exit, the index of the matching function,
- *                       or -1 if not found.
- * @return               kOk               - if the function is found.
- *                       kFunctionNotFound - if the function is not in the
- *                                           table.
+ * @param[in]  name       Name of the function to find.
+ *                        @warning  This is case-sensitive, but MMB4L should
+ *                                  always call it with an UPPER-CASE name.
+ *                        @warning  Only the first 32 characters are used.
+ * @param[in]  type_mask  kSub             - to find a subroutine.
+ *                        kFunction        - to find a function.
+ *                        kSub | kFunction - to find a subroutine or function.
+ * @param[out] fun_idx    On exit, the index of the named function,
+ *                        or -1 if not found. If \p kTargetTypeMismatch is
+ *                        returned this will be the index of the mismatched
+ *                        entry.
+ * @return                kOk                 - if the function is found and
+ *                                              its type matches \p type_mask.
+ *                        kTargetTypeMismatch - if the function is found but
+ *                                              its type does not match
+ *                                              \p type_mask.
+ *                        kFunctionNotFound   - if the function is not in the
+ *                                              table.
  */
-MmResult funtbl_find(const char *name, int *fun_idx);
+MmResult funtbl_find(const char *name, uint8_t type_mask, int *fun_idx);
 
 size_t funtbl_size();
 

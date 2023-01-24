@@ -450,21 +450,7 @@ int FindSubFun(const char *p, uint8_t type_mask) {
     MmResult result = parse_name(&p, name);
 
     int fun_idx;
-    if (result == kOk) result = funtbl_find(name, &fun_idx);
-
-    if (result == kOk && !(type_mask & funtbl[fun_idx].type)) {
-        switch (type_mask) {
-            case kFunction:
-                result = kNotAFunction;
-                break;
-            case kSub:
-                result = kNotASubroutine;
-                break;
-            default:
-                result = kInternalFault;
-                break;
-        }
-    }
+    if (result == kOk) result = funtbl_find(name, type_mask, &fun_idx);
 
     switch (result) {
         case kOk:
@@ -474,10 +460,23 @@ int FindSubFun(const char *p, uint8_t type_mask) {
         case kNameTooLong:
             error_throw_ex(kNameTooLong, "Function/subroutine name too long");
             return -1;
+        case kTargetTypeMismatch:
+            switch (type_mask) {
+                case kFunction:
+                    error_throw_ex(result, "Not a function");
+                    return -1;
+                case kSub:
+                    error_throw_ex(result, "Not a subroutine");
+                    return -1;
+                default:
+                    break;
+            }
         default:
-            error_throw(result);
-            return -1;
+            break;
     }
+
+    error_throw(result);
+    return -1;
 }
 
 
@@ -1880,7 +1879,7 @@ void *findvar(const char *p, int action) {
     // Don't do this if we are defining the local variable for a function name.
     if (!(action & V_FUNCT)) {
         int fun_idx = -1;
-        MmResult result = funtbl_find(name, &fun_idx);
+        MmResult result = funtbl_find(name, kFunction | kSub, &fun_idx);
         switch (result) {
             case kOk:
                 error_throw_legacy("A function/subroutine has the same name: $", name);

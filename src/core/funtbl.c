@@ -94,7 +94,7 @@ void funtbl_dump() {
     }
 }
 
-MmResult funtbl_find(const char *name, int *fun_idx) {
+MmResult funtbl_find(const char *name, uint8_t type_mask, int *fun_idx) {
     FunHashValue hash = hash_cstring(name, MAXVARLEN) % FUN_HASHMAP_SIZE;
     FunHashValue original_hash = hash;
 
@@ -105,7 +105,11 @@ MmResult funtbl_find(const char *name, int *fun_idx) {
         // Compare 'name' with referenced 'funtbl' entry.
         // Both names should be in upper-case, but if they are MAXVARLEN
         // chars long then they are not NULL terminated.
-        if (strncmp(name, funtbl[*fun_idx].name, MAXVARLEN) == 0) return kOk;
+        if (strncmp(name, funtbl[*fun_idx].name, MAXVARLEN) == 0) {
+            return funtbl[*fun_idx].type & type_mask
+                    ? kOk
+                    : kTargetTypeMismatch;
+        }
 
         hash = (hash + 1) % FUN_HASHMAP_SIZE;
     } while (hash != original_hash);

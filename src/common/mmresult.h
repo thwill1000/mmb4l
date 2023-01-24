@@ -74,8 +74,6 @@ typedef enum {
     kInvalidString,
     kInvalidValue,
     kUnknownSystemCommand,
-    kNotAFunction,
-    kNotASubroutine,
     kNotPersistent,
     kNameTooLong,
     kUnimplemented,
@@ -86,7 +84,8 @@ typedef enum {
     kDuplicateFunction,
     kHashmapFull,
     kInvalidName,
-    kInvalidArrayDimensions
+    kInvalidArrayDimensions,
+    kTargetTypeMismatch
 } MmResultCode;
 
 /**
