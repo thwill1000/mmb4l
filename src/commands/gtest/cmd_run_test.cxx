@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Thomas Hugo Williams
+ * Copyright (c) 2022-2023 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -12,6 +12,12 @@ extern "C" {
 #include "../../core/Commands.h"
 #include "../../core/MMBasic.h"
 #include "../../core/vartbl.h"
+#define DO_NOT_STUB_CMD_RUN
+#include "../../core/gtest/command_stubs.h"
+#define DO_NOT_STUB_FUN_MMCMDLINE
+#include "../../core/gtest/function_stubs.h"
+#define DO_NOT_STUB_OP_ADD
+#include "../../core/gtest/operation_stubs.h"
 
 char error_msg[256];
 
@@ -265,174 +271,3 @@ TEST_F(CmdRunTest, ParseArgs_DoesNotOverrunBuffer) {
             "+ + + + + + + + ",
             m_run_args);
 }
-
-extern "C" {
-
-void cmd_autosave() { }
-void cmd_call() { }
-void cmd_case() { }
-void cmd_cfunction() { }
-void cmd_chdir() { }
-void cmd_clear() { }
-void cmd_close() { }
-void cmd_cls() { }
-void cmd_console() { }
-void cmd_const() { }
-void cmd_continue() { }
-void cmd_copy() { }
-void cmd_cursor() { }
-void cmd_dim() { }
-void cmd_do() { }
-void cmd_dummy() { }
-void cmd_edit() { }
-void cmd_else() { }
-void cmd_end() { }
-void cmd_endfun() { }
-void cmd_erase() { }
-void cmd_error() { }
-void cmd_execute() { }
-void cmd_exit() { }
-void cmd_exitfor() { }
-void cmd_files() { }
-void cmd_for() { }
-void cmd_gosub() { }
-void cmd_goto() { }
-void cmd_if() { }
-void cmd_inc() { }
-void cmd_input() { }
-void cmd_ireturn() { }
-void cmd_kill() { }
-void cmd_let() { }
-void cmd_lineinput() { }
-void cmd_list() { }
-void cmd_load() { }
-void cmd_loop() { }
-void cmd_longstring() { }
-void cmd_math() { }
-void cmd_memory() { }
-void cmd_mid() { }
-void cmd_mkdir() { }
-void cmd_new() { }
-void cmd_next() { }
-void cmd_null() { }
-void cmd_on() { }
-void cmd_open() { }
-void cmd_option() { }
-void cmd_pause() { }
-void cmd_poke() { }
-void cmd_print() { }
-void cmd_quit() { }
-void cmd_randomize() { }
-void cmd_read() { }
-void cmd_rename() { }
-void cmd_restore() { }
-void cmd_return() { }
-void cmd_rmdir() { }
-void cmd_seek() { }
-void cmd_select() { }
-void cmd_settick() { }
-void cmd_settitle() { }
-void cmd_sort() { }
-void cmd_subfun() { }
-void cmd_system() { }
-void cmd_timer() { }
-void cmd_trace() { }
-void cmd_troff() { }
-void cmd_tron() { }
-void cmd_xmodem() { }
-void fun_abs() { }
-void fun_acos() { }
-void fun_asc() { }
-void fun_asin() { }
-void fun_at() { }
-void fun_atn() { }
-void fun_bin() { }
-void fun_bound() { }
-void fun_call() { }
-void fun_choice() { }
-void fun_chr() { }
-void fun_cint() { }
-void fun_cos() { }
-void fun_cwd() { }
-void fun_date() { }
-void fun_datetime() { }
-void fun_day() { }
-void fun_deg() { }
-void fun_dir() { }
-void fun_eof() { }
-void fun_epoch() { }
-void fun_errmsg() { }
-void fun_errno() { }
-void fun_eval() { }
-void fun_exp() { }
-void fun_field() { }
-void fun_fix() { }
-void fun_format() { }
-void fun_hex() { }
-void fun_hres() { }
-void fun_inkey() { }
-void fun_inputstr() { }
-void fun_instr() { }
-void fun_int() { }
-void fun_json() { }
-void fun_lcase() { }
-void fun_lcompare() { }
-void fun_left() { }
-void fun_len() { }
-void fun_lgetbyte() { }
-void fun_lgetstr() { }
-void fun_linstr() { }
-void fun_llen() { }
-void fun_loc() { }
-void fun_lof() { }
-void fun_log() { }
-void fun_math() { }
-void fun_max() { }
-void fun_mid() { }
-void fun_min() { }
-void fun_mmdevice() { }
-void fun_mminfo() { }
-void fun_oct() { }
-void fun_peek() { }
-void fun_pi() { }
-void fun_pos() { }
-void fun_rad() { }
-void fun_rgb() { }
-void fun_right() { }
-void fun_rnd() { }
-void fun_sgn() { }
-void fun_sin() { }
-void fun_space() { }
-void fun_sqr() { }
-void fun_str() { }
-void fun_string() { }
-void fun_tab() { }
-void fun_tan() { }
-void fun_time() { }
-void fun_timer() { }
-void fun_ucase() { }
-void fun_val() { }
-void fun_version() { }
-void fun_vres() { }
-void op_and() { }
-void op_div() { }
-void op_divint() { }
-void op_equal() { }
-void op_exp() { }
-void op_gt() { }
-void op_gte() { }
-void op_inv() { }
-void op_invalid() { }
-void op_lt() { }
-void op_lte() { }
-void op_mod() { }
-void op_mul() { }
-void op_ne() { }
-void op_not() { }
-void op_or() { }
-void op_shiftleft() { }
-void op_shiftright() { }
-void op_subtract() { }
-void op_xor() { }
-
-} // extern "C"
