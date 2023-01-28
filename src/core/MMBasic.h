@@ -249,6 +249,7 @@ const char *getclosebracket(const char *p);
 void makeupper(char *p);
 void checkend(const char *p);
 int GetCommandValue(const char *n);
+const char *GetIntAddress(const char *p);
 int GetTokenValue(const char *n);
 const char *checkstring(const char *p, const char *tkn);
 int GetLineLength(char *p);

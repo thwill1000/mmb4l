@@ -70,7 +70,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void CheckAbort(void);
 void FlashWriteInit();
-const char *GetIntAddress(const char *p);
 void ListProgram(char *p, int all);
 char *llist(char *b, const char *p);
 int MMgetchar(void);

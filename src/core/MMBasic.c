@@ -2982,6 +2982,26 @@ int mem_equal(const char *s1, const char *s2, int i) {
 }
 
 
+/**
+ * Gets the address for a MMBasic interrupt.
+ *
+ * This will handle a line number, a label or a subroutine,
+ * all areas of MMBasic that can generate an interrupt use this function.
+ */
+const char *GetIntAddress(const char *p) {
+    int32_t i;
+    if (isnamestart(*p)) {          // if it starts with a valid name char
+        i = FindSubFun(p, kSub);    // try to find a matching subroutine
+        if (i == -1)
+            return findlabel(p);    // if a subroutine was NOT found it must be a label
+        else
+            return funtbl[i].addr;  // if a subroutine was found, return the address
+                                    // of the sub
+    }
+
+    return findline(getinteger(p), true);  // otherwise try for a line number
+}
+
 
 #if defined(DEBUGMODE)
 
