@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/utility.h"
 
-#define ERROR_UNKNOWN_USER_FUNCTION  error_throw(kFunctionNotFound)
+#define ERROR_UNKNOWN_USER_FUNCTION  error_throw(kTargetNotFound)
 
 void fun_call(void) {
     MMINTEGER i64 = 0;

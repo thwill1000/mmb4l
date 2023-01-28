@@ -73,7 +73,7 @@ TEST_F(FuntblTest, Add) {
     EXPECT_EQ(2, funtbl_count);
 }
 
-TEST_F(FuntblTest, Add_GivenTooManyFunctions) {
+TEST_F(FuntblTest, Add_GivenTooManyTargets) {
     int fun_idx;
     char buf[MAXVARLEN + 1];
     for (int ii = 0; ii < MAXSUBFUN; ++ii) {
@@ -85,7 +85,7 @@ TEST_F(FuntblTest, Add_GivenTooManyFunctions) {
 
     MmResult result = funtbl_add("bar", kSub, ADDRESS_1, &fun_idx);
 
-    EXPECT_EQ(kTooManyFunctions, result);
+    EXPECT_EQ(kTooManyTargets, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
@@ -199,37 +199,37 @@ TEST_F(FuntblTest, Add_ReturnsInternalFault_GivenInvalidAddress) {
     EXPECT_EQ(1, fun_idx);
 }
 
-TEST_F(FuntblTest, Add_ReturnsDuplicateFunction_GivenTwoSubsWithSameName) {
+TEST_F(FuntblTest, Add_ReturnsDuplicateTarget_GivenTwoSubsWithSameName) {
     int fun_idx;
     (void) funtbl_add("foo", kSub, ADDRESS_1, &fun_idx);
 
     MmResult result = funtbl_add("foo", kSub, ADDRESS_2, &fun_idx);
 
-    EXPECT_EQ(kDuplicateFunction, result);
+    EXPECT_EQ(kDuplicateTarget, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
-TEST_F(FuntblTest, Add_ReturnsDuplicateFunction_GivenTwoFunctionsWithSameName) {
+TEST_F(FuntblTest, Add_ReturnsDuplicateTarget_GivenTwoFunctionsWithSameName) {
     int fun_idx;
     (void) funtbl_add("foo", kFunction, ADDRESS_1, &fun_idx);
 
     MmResult result = funtbl_add("foo", kFunction, ADDRESS_2, &fun_idx);
 
-    EXPECT_EQ(kDuplicateFunction, result);
+    EXPECT_EQ(kDuplicateTarget, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
-TEST_F(FuntblTest, Add_ReturnsDuplicateFunction_GivenTwoLabelsWithSameName) {
+TEST_F(FuntblTest, Add_ReturnsDuplicateTarget_GivenTwoLabelsWithSameName) {
     int fun_idx;
     (void) funtbl_add("foo", kLabel, ADDRESS_1, &fun_idx);
 
     MmResult result = funtbl_add("foo", kLabel, ADDRESS_2, &fun_idx);
 
-    EXPECT_EQ(kDuplicateFunction, result);
+    EXPECT_EQ(kDuplicateTarget, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
-TEST_F(FuntblTest, Add_ReturnsDuplicateFunction_GivenSubAndFunctionWithSameName) {
+TEST_F(FuntblTest, Add_ReturnsDuplicateTarget_GivenSubAndFunctionWithSameName) {
     int fun_idx;
     (void) funtbl_add("foo", kSub, ADDRESS_1, &fun_idx);
     (void) funtbl_add("bar", kFunction, ADDRESS_2, &fun_idx);
@@ -237,13 +237,13 @@ TEST_F(FuntblTest, Add_ReturnsDuplicateFunction_GivenSubAndFunctionWithSameName)
     // Add function with same name as sub.
     MmResult result = funtbl_add("foo", kFunction, ADDRESS_3, &fun_idx);
 
-    EXPECT_EQ(kDuplicateFunction, result);
+    EXPECT_EQ(kDuplicateTarget, result);
     EXPECT_EQ(-1, fun_idx);
 
     // Add sub with same name as function.
     result = funtbl_add("bar", kSub, ADDRESS_4, &fun_idx);
 
-    EXPECT_EQ(kDuplicateFunction, result);
+    EXPECT_EQ(kDuplicateTarget, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
@@ -299,7 +299,7 @@ TEST_F(FuntblTest, Find_GivenFunctionFound_InFirstChoiceSlot) {
     EXPECT_EQ(1, fun_idx);
 }
 
-TEST_F(FuntblTest, Find_GivenFunctionFound_InSecondChoiceSlot) {
+TEST_F(FuntblTest, Find_GivenSubFound_InSecondChoiceSlot) {
     int fun_idx;
     FunHashValue foo_hash = hash_cstring("foo", MAXVARLEN) % FUN_HASHMAP_SIZE;
     strcpy(funtbl[500].name, "bar");
@@ -315,7 +315,7 @@ TEST_F(FuntblTest, Find_GivenFunctionFound_InSecondChoiceSlot) {
     EXPECT_EQ(0, fun_idx);
 }
 
-TEST_F(FuntblTest, Find_GivenFunctionFound_AfterHashmapWraparound) {
+TEST_F(FuntblTest, Find_GivenSubFound_AfterHashmapWraparound) {
     GivenHashmapFull();
     funtbl_hashmap[1] = -1; // Free hashmap element 1.
     int fun_idx;
@@ -329,24 +329,24 @@ TEST_F(FuntblTest, Find_GivenFunctionFound_AfterHashmapWraparound) {
     EXPECT_EQ(0, fun_idx);
 }
 
-TEST_F(FuntblTest, Find_GivenFunctionNotFound_AndHashmapNotFull) {
+TEST_F(FuntblTest, Find_GiveSubNotFound_AndHashmapNotFull) {
     int fun_idx;
     (void) funtbl_add("foo", kSub, ADDRESS_1, &fun_idx);
     (void) funtbl_add("bar", kSub, ADDRESS_2, &fun_idx);
 
     MmResult result = funtbl_find("wombat", kSub, &fun_idx);
 
-    EXPECT_EQ(kFunctionNotFound, result);
+    EXPECT_EQ(kTargetNotFound, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
-TEST_F(FuntblTest, Find_GivenFunctionNotFound_AndHashmapFull) {
+TEST_F(FuntblTest, Find_GivenSubNotFound_AndHashmapFull) {
     GivenHashmapFull();
 
     int fun_idx;
     MmResult result = funtbl_find("wombat", kSub, &fun_idx);
 
-    EXPECT_EQ(kFunctionNotFound, result);
+    EXPECT_EQ(kTargetNotFound, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
@@ -462,7 +462,7 @@ TEST_F(FuntblTest, Find_ReturnsNotFound_GivenLookingForFunction_ButOnlyFindsLabe
 
     MmResult result = funtbl_find("foo", kFunction, &fun_idx);
 
-    EXPECT_EQ(kFunctionNotFound, result);
+    EXPECT_EQ(kTargetNotFound, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
@@ -472,7 +472,7 @@ TEST_F(FuntblTest, Find_ReturnsNotFound_GivenLookingForSub_ButOnlyFindsLabel) {
 
     MmResult result = funtbl_find("foo", kSub, &fun_idx);
 
-    EXPECT_EQ(kFunctionNotFound, result);
+    EXPECT_EQ(kTargetNotFound, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
@@ -482,7 +482,7 @@ TEST_F(FuntblTest, Find_ReturnsNotFound_GivenLookingForSubOrFunction_ButOnlyFind
 
     MmResult result = funtbl_find("foo", kFunction | kSub, &fun_idx);
 
-    EXPECT_EQ(kFunctionNotFound, result);
+    EXPECT_EQ(kTargetNotFound, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
@@ -492,7 +492,7 @@ TEST_F(FuntblTest, Find_ReturnsNotFound_GivenLookingForLabel_ButOnlyFindsFunctio
 
     MmResult result = funtbl_find("foo", kLabel, &fun_idx);
 
-    EXPECT_EQ(kFunctionNotFound, result);
+    EXPECT_EQ(kTargetNotFound, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
@@ -502,6 +502,6 @@ TEST_F(FuntblTest, Find_ReturnsNotFound_GivenLookingForLabel_ButOnlyFindsSub) {
 
     MmResult result = funtbl_find("foo", kLabel, &fun_idx);
 
-    EXPECT_EQ(kFunctionNotFound, result);
+    EXPECT_EQ(kTargetNotFound, result);
     EXPECT_EQ(-1, fun_idx);
 }

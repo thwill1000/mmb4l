@@ -434,11 +434,17 @@ void MIPS16 PrepareProgramExt(const char *p, unsigned char **CFunPtr, int ErrAbo
             if (SUCCEEDED(result)) result = funtbl_add(name, type, code, &fun_idx);
             if (FAILED(result) && ErrAbort) {
                 switch (result) {
+                    case kDuplicateTarget:
+                        error_throw_ex(result, "Function/subroutine already declared");
+                        break;
                     case kInvalidName:
                         error_throw_ex(result, "Invalid function/subroutine name");
                         break;
                     case kNameTooLong:
                         error_throw_ex(result, "Function/subroutine name too long");
+                        break;
+                    case kTooManyTargets:
+                        error_throw_ex(result, "Too many functions/subroutines");
                         break;
                     default:
                         error_throw(result);
@@ -489,7 +495,7 @@ int FindSubFun(const char *p, uint8_t type_mask) {
     switch (result) {
         case kOk:
             [[fallthrough]]
-        case kFunctionNotFound:
+        case kTargetNotFound:
             return fun_idx;
         case kNameTooLong:
             error_throw_ex(kNameTooLong, "Function/subroutine name too long");
@@ -1570,12 +1576,12 @@ const char *findlabel(const char *labelptr) {
     MmResult result = parse_name(&labelptr, name);
 
     int fun_idx;
-    if (result == kOk) result = funtbl_find(name, kLabel, &fun_idx);
+    if (SUCCEEDED(result)) result = funtbl_find(name, kLabel, &fun_idx);
 
     switch (result) {
         case kOk:
             return funtbl[fun_idx].addr;
-        case kFunctionNotFound:
+        case kTargetNotFound:
             [[fallthrough]]
         case kTargetTypeMismatch:
             error_throw_ex(result, "Cannot find label");
@@ -1891,7 +1897,7 @@ void *findvar(const char *p, int action) {
             case kOk:
                 error_throw_legacy("A function/subroutine has the same name: $", name);
                 return NULL;
-            case kFunctionNotFound:
+            case kTargetNotFound:
                 break;
             default:
                 error_throw(result);

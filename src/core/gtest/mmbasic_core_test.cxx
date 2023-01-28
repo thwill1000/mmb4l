@@ -1061,7 +1061,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenSubWithSameNameAsFunction) {
 
     PrepareProgram(1);
 
-    EXPECT_STREQ("Duplicate function/subroutine declaration", error_msg);
+    EXPECT_STREQ("Function/subroutine already declared", error_msg);
 
     error_msg[0] = '\0';
     PrepareProgram(0);  // Should not report error.
@@ -1077,7 +1077,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenTwoFunctionsWithSameNameButDifferent
 
     PrepareProgram(1);
 
-    EXPECT_STREQ("Duplicate function/subroutine declaration", error_msg);
+    EXPECT_STREQ("Function/subroutine already declared", error_msg);
 
     error_msg[0] = '\0';
     PrepareProgram(0); // Should not report error.

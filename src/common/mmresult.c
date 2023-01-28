@@ -65,15 +65,15 @@ const char *mmresult_to_string(MmResult result) {
         case kNotPersistent:        return "Invalid for non-persistent option";
         case kNameTooLong:          return "Name too long";
         case kUnimplemented:        return "Unimplemented function";
-        case kFunctionNotFound:     return "Function not found";
+        case kTargetNotFound:       return "Function/label/subroutine not found";
         case kVariableNotFound:     return "Variable not found";
-        case kTooManyFunctions:     return "Too many functions/subroutines";
+        case kTooManyTargets:       return "Too many targets";
         case kTooManyVariables:     return "Too many variables";
-        case kDuplicateFunction:    return "Duplicate function/subroutine declaration";
+        case kDuplicateTarget:      return "Function/label/subroutine already declared";
         case kHashmapFull:          return "Hashmap full";
         case kInvalidName:          return "Invalid name";
         case kInvalidArrayDimensions: return "Dimensions";
-        case kTargetTypeMismatch:   return "Function/subroutine mismatch";
+        case kTargetTypeMismatch:   return "Function/label/subroutine mismatch";
         default:                    return "Unknown result code";
     }
 }
