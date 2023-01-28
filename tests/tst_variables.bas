@@ -17,9 +17,14 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 
 Const BASE% = Mm.Info(Option Base)
 
+add_test("Test DIM var with max length", "test_dim_given_max_len")
+add_test("Test DIM var with too long", "test_dim_given_too_long")
 add_test("Test DIM var with same name as SUB", "test_dim_given_sub")
 add_test("Test DIM var with same name as FUNCTION", "test_dim_given_function")
 add_test("Test DIM var with same name as label", "test_dim_given_label")
+
+add_test("Test LOCAL var with max length", "test_local_given_max_len")
+add_test("Test LOCAL var with too long", "test_local_given_too_long")
 add_test("Test LOCAL var with same name as SUB", "test_local_given_sub")
 add_test("Test LOCAL var with same name as FUNCTION", "test_local_given_function")
 add_test("Test LOCAL var with same name as label", "test_local_given_label")
@@ -35,6 +40,18 @@ Function fun_foo%()
 End Function
 
 foo_label:
+
+Sub test_dim_given_max_len()
+  On Error Skip 1
+  Dim max_len_901234567890123456789012%
+  assert_no_error()
+End Sub
+
+Sub test_dim_given_too_long()
+  On Error Skip 1
+  Dim too_long_012345678901234567890123%
+  assert_raw_error("Variable name too long")
+End Sub
 
 Sub test_dim_given_sub()
   On Error Skip 1
@@ -59,6 +76,18 @@ End Sub
 Sub test_dim_given_label()
   Dim foo_label% = 42
   assert_int_equals(42, foo_label%)
+End Sub
+
+Sub test_local_given_max_len()
+  On Error Skip 1
+  Local max_len_901234567890123456789012%
+  assert_no_error()
+End Sub
+
+Sub test_local_given_too_long()
+  On Error Skip 1
+  Local too_long_012345678901234567890123%
+  assert_raw_error("Variable name too long")
 End Sub
 
 Sub test_local_given_sub()
