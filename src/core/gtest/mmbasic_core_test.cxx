@@ -1569,3 +1569,85 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenUserFunctionCallInBrackets) {
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(ProgMemory + 13, actual);
 }
+
+TEST_F(MmBasicCoreTest, GetIntAddress_Succeeds_GivenSubroutine) {
+    TokeniseAndAppend("foo");
+    TokeniseAndAppend("Sub foo()");
+    TokeniseAndAppend("End Sub");
+    PrepareProgram(true);
+
+    const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 6, actual); // Point to the SUB token.
+}
+
+TEST_F(MmBasicCoreTest, GetIntAddress_Succeeds_GivenLabel) {
+    TokeniseAndAppend("foo");
+    TokeniseAndAppend("foo:");
+    TokeniseAndAppend("  Print \"bar\"");
+    PrepareProgram(true);
+
+    const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 5, actual); // Point to the T_NEWLINE on the label line.
+}
+
+TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenFunction) {
+    TokeniseAndAppend("foo");
+    TokeniseAndAppend("Function foo()");
+    TokeniseAndAppend("End Function");
+
+    const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
+
+    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_EQ(NULL, actual);
+}
+
+TEST_F(MmBasicCoreTest, GetIntAddress_Succeeds_GivenLineNumber) {
+    TokeniseAndAppend("Goto 100");
+    TokeniseAndAppend("100 Print \"bar\"");
+    PrepareProgram(true);
+
+    const char *actual = GetIntAddress(ProgMemory + 2); // Skip initial T_NEWLINE and GOTO.
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 7, actual); // Point to the T_LINENBR on the numbered line.
+}
+
+TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenNonExistentTarget) {
+    TokeniseAndAppend("bar");
+    TokeniseAndAppend("Sub foo()");
+    TokeniseAndAppend("End Sub");
+    PrepareProgram(true);
+
+    const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
+
+    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_EQ(NULL, actual);
+}
+
+TEST_F(MmBasicCoreTest, GetIntAddress_Succeeds_GivenMaxNameLength) {
+    TokeniseAndAppend(MAX_LENGTH_NAME);
+    TokeniseAndAppend("Sub " MAX_LENGTH_NAME "()");
+    TokeniseAndAppend("End Sub");
+    PrepareProgram(true);
+
+    const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 35, actual); // Point to the SUB token.
+}
+
+TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenTargetNameTooLong) {
+    TokeniseAndAppend(TOO_LONG_NAME);
+    TokeniseAndAppend("Sub foo()");
+    TokeniseAndAppend("End Sub");
+    PrepareProgram(true);
+
+    const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
+
+    EXPECT_STREQ("Label too long", error_msg);
+    EXPECT_EQ(NULL, actual);
+}
