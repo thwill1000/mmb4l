@@ -316,12 +316,28 @@ static void mminfo_pid(const char *p) {
 }
 
 static void mminfo_version(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    char *endptr;
-    g_float_rtn = (MMFLOAT) strtol(VERSION, &endptr, 10);
-    g_float_rtn += (MMFLOAT) strtol(endptr + 1, &endptr, 10) / (MMFLOAT) 100.0;
-    g_float_rtn += (MMFLOAT) strtol(endptr + 1, &endptr, 10) / (MMFLOAT) 10000.0;
-    g_rtn_type = T_NBR;
+    const char *p2;
+    g_rtn_type = T_INT;
+    if ((p2 = checkstring(p, "MAJOR"))) {
+        if (!parse_is_end(p2)) ERROR_SYNTAX;
+        g_integer_rtn = MAJOR_VERSION;
+    } else if ((p2 = checkstring(p, "MINOR"))) {
+        if (!parse_is_end(p2)) ERROR_SYNTAX;
+        g_integer_rtn = MINOR_VERSION;
+    } else if ((p2 = checkstring(p, "MICRO"))) {
+        if (!parse_is_end(p2)) ERROR_SYNTAX;
+        g_integer_rtn = MICRO_VERSION;
+    } else if ((p2 = checkstring(p, "BUILD"))) {
+        if (!parse_is_end(p2)) ERROR_SYNTAX;
+        g_integer_rtn = BUILD_NUMBER;
+    } else if (!parse_is_end(p)) {
+        ERROR_SYNTAX;
+    } else {
+        g_integer_rtn = MAJOR_VERSION * 100000000
+                + MINOR_VERSION * 1000000
+                + MICRO_VERSION * 10000
+                + BUILD_NUMBER;
+    }
 }
 
 void mminfo_vres(const char *p) {

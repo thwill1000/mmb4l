@@ -75,11 +75,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(__mmb4l__)
     #define MM_DEVICE   "MMB4L"
-    #define VERSION     "2022.01.00"
-    #define COPYRIGHT   "Copyright 2011-2022 Geoff Graham\r\n" \
-                        "Copyright 2016-2022 Peter Mather\r\n" \
-                        "Copyright 2021-2022 Thomas Hugo Williams\r\n"
-    #define MES_SIGNON  MM_ARCH " MMBasic Ver " VERSION "-a5\r\n"
+    #define MAJOR_VERSION  0
+    #define MINOR_VERSION  5
+    #define MICRO_VERSION  0
+    #define BUILD_NUMBER   0
+    #define STR_HELPER(x)  #x
+    #define STR(x)         STR_HELPER(x)
+    #define VERSION        STR(MAJOR_VERSION) "." STR(MINOR_VERSION) "." STR(MICRO_VERSION)
+    #define COPYRIGHT      "Copyright 2011-2023 Geoff Graham\r\n" \
+                           "Copyright 2016-2023 Peter Mather\r\n" \
+                           "Copyright 2021-2023 Thomas Hugo Williams\r\n"
+    #define MES_SIGNON  MM_ARCH " MMBasic Version " VERSION "\r\n"
 #else
     #error __mmb4l__ is not defined
 #endif

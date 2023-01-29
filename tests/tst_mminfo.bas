@@ -19,7 +19,7 @@ Const TMP$ = sys.string_prop$("tmpdir")
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
 If Mm.Device$ = "MMB4L" Then
-  Const EXPECTED_VERSION$ = "2022.01"
+  Const EXPECTED_VERSION$ = "5000000"
 ElseIf Mm.Device$ = "MMBasic for Windows" Then
   Const EXPECTED_VERSION$ = "5.0703"
 Else
@@ -763,4 +763,11 @@ End Sub
 
 Sub test_version()
   assert_string_equals(EXPECTED_VERSION$, Left$(Str$(Mm.Info(Version)), Len(EXPECTED_VERSION$)))
+
+  If sys.is_device%("mmb4l") Then
+    assert_int_equals(0, Mm.Info(Version Major))
+    assert_int_equals(5, Mm.Info(Version Minor))
+    assert_int_equals(0, Mm.Info(Version Micro))
+    assert_int_equals(0, Mm.Info(Version Build))
+  End If
 End Sub
