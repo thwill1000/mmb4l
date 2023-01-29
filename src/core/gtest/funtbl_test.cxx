@@ -179,9 +179,12 @@ TEST_F(FuntblTest, Add_ReturnsInternalFault_GivenInvalidAddress) {
     EXPECT_EQ(-1, fun_idx);
 
     // < ProgMemory is invalid.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
     result = funtbl_add("foo", kSub, ProgMemory - 1, &fun_idx);
     EXPECT_EQ(kInternalFault, result);
     EXPECT_EQ(-1, fun_idx);
+#pragma GCC diagnostic pop
 
     // >= ProgMemory + PROG_FLASH_SIZE is invalid.
     result = funtbl_add("foo", kSub, ProgMemory + PROG_FLASH_SIZE, &fun_idx);
