@@ -1482,7 +1482,7 @@ const char *SetValue(const char *p, int t, void *v) {
     MMFLOAT f;
     MMINTEGER i64;
     char *s;
-    char TempCurrentSubFunName[MAXVARLEN + 1];
+    char TempCurrentSubFunName[MAXVARLEN + 2];                      // requires extra byte to store optional type suffix.
 
     strcpy(TempCurrentSubFunName, CurrentSubFunName);               // save the current sub/fun name
     if(t & T_STR) {

@@ -112,8 +112,9 @@ char OptionExplicit;                                                // used to f
 char DefaultType;                                                   // the default type if a variable is not specifically typed
 #endif
 
-char CurrentSubFunName[MAXVARLEN + 1];                              // the name of the current sub or fun
-char CurrentInterruptName[MAXVARLEN + 1];                           // the name of the current interrupt function
+                                                                    // require extra byte to store optional type suffix
+char CurrentSubFunName[MAXVARLEN + 2];                              // the name of the current sub or fun
+char CurrentInterruptName[MAXVARLEN + 2];                           // the name of the current interrupt function
 
 jmp_buf mark;                                                       // longjump to recover from an error and abort
 jmp_buf ErrNext;                                                    // longjump to recover from an error and continue

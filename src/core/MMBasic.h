@@ -187,8 +187,9 @@ extern int MMerrno;
 extern char MMErrMsg[MAXERRMSG];                // array holding the error msg
 #endif
 
-extern char CurrentSubFunName[MAXVARLEN + 1];   // the name of the current sub or fun
-extern char CurrentInterruptName[MAXVARLEN + 1];// the name of the current interrupt function
+                                                // require extra byte to store optional type suffix
+extern char CurrentSubFunName[MAXVARLEN + 2];   // the name of the current sub or fun
+extern char CurrentInterruptName[MAXVARLEN + 2];// the name of the current interrupt function
 
 struct s_tokentbl {                             // structure of the token table
     const char *name;                           // the string (eg, PRINT, FOR, ASC(, etc)
