@@ -493,7 +493,7 @@ int FindSubFun(const char *p, uint8_t type_mask) {
     MmResult result = parse_name(&p, name);
 
     int fun_idx;
-    if (result == kOk) result = funtbl_find(name, type_mask, &fun_idx);
+    if (SUCCEEDED(result)) result = funtbl_find(name, type_mask, &fun_idx);
 
     switch (result) {
         case kOk:
@@ -503,9 +503,22 @@ int FindSubFun(const char *p, uint8_t type_mask) {
         case kTargetNotFound:
             return fun_idx;
         case kNameTooLong:
-            error_throw_ex(kNameTooLong, "Function/subroutine name too long");
-            return -1;
+            switch (type_mask) {
+                case kFunction:
+                    error_throw_ex(result, "Function name too long");
+                    return -1;
+                case kSub:
+                    error_throw_ex(result, "Subroutine name too long");
+                    return -1;
+                case kFunction | kSub:
+                    error_throw_ex(result, "Function/subroutine name too long");
+                    return -1;
+                default:
+                    break;
+            }
+            break;
         case kTargetTypeMismatch:
+            if (funtbl[fun_idx].type == kLabel) return -1;
             switch (type_mask) {
                 case kFunction:
                     error_throw_ex(result, "Not a function");
@@ -519,6 +532,7 @@ int FindSubFun(const char *p, uint8_t type_mask) {
                 default:
                     break;
             }
+            break;
         default:
             break;
     }
@@ -1587,9 +1601,10 @@ const char *findlabel(const char *labelptr) {
         case kOk:
             return funtbl[fun_idx].addr;
         case kTargetNotFound:
-            [[fallthrough]]
+            error_throw_ex(result, "Label not found");
+            return NULL;
         case kTargetTypeMismatch:
-            error_throw_ex(result, "Cannot find label");
+            error_throw_ex(result, "Not a label");
             return NULL;
         case kNameTooLong:
             error_throw_ex(result, "Label too long");
@@ -1902,6 +1917,11 @@ void *findvar(const char *p, int action) {
             case kOk:
                 error_throw_legacy("A function/subroutine has the same name: $", name);
                 return NULL;
+            case kTargetTypeMismatch:
+                // Found a label.
+#if !defined(__clang__)
+                [[fallthrough]];
+#endif
             case kTargetNotFound:
                 break;
             default:
@@ -2994,14 +3014,28 @@ int mem_equal(const char *s1, const char *s2, int i) {
  * all areas of MMBasic that can generate an interrupt use this function.
  */
 const char *GetIntAddress(const char *p) {
-    int32_t i;
     if (isnamestart(*p)) {          // if it starts with a valid name char
-        i = FindSubFun(p, kSub);    // try to find a matching subroutine
-        if (i == -1)
-            return findlabel(p);    // if a subroutine was NOT found it must be a label
-        else
-            return funtbl[i].addr;  // if a subroutine was found, return the address
-                                    // of the sub
+        char name[MAXVARLEN + 1];
+        MmResult result = parse_name(&p, name);
+
+        int fun_idx;
+        if (SUCCEEDED(result)) result = funtbl_find(name, kLabel | kSub, &fun_idx);
+        switch (result) {
+            case kOk:
+                return funtbl[fun_idx].addr;
+            case kNameTooLong:
+                error_throw_ex(result, "Label/subroutine name too long");
+                return NULL;
+            case kTargetNotFound:
+                error_throw_ex(result, "Label/subroutine not found");
+                return NULL;
+            case kTargetTypeMismatch:
+                error_throw_ex(result, "Not a label/subroutine");
+                return NULL;
+            default:
+                error_throw(result);
+                return NULL;
+        }
     }
 
     return findline(getinteger(p), true);  // otherwise try for a line number

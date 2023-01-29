@@ -120,20 +120,15 @@ MmResult funtbl_find(const char *name, uint8_t type_mask, int *fun_idx) {
     FunHashValue hash = hash_cstring(name, MAXVARLEN) % FUN_HASHMAP_SIZE;
     FunHashValue original_hash = hash;
     int mismatch = -1;
-    bool same_namespace = false;
 
     do {
         *fun_idx = funtbl_hashmap[hash];
         if (*fun_idx == -1) break;
 
-        // Only compare with elements in same namespace.
-        same_namespace = (funtbl[*fun_idx].type & type_mask)
-                || ((funtbl[*fun_idx].type != kLabel) && (type_mask != kLabel));
-
         // Compare 'name' with referenced 'funtbl' entry.
         // Both names should be in upper-case, but if they are MAXVARLEN
         // chars long then they are not NULL terminated.
-        if (same_namespace && strncmp(name, funtbl[*fun_idx].name, MAXVARLEN) == 0) {
+        if (strncmp(name, funtbl[*fun_idx].name, MAXVARLEN) == 0) {
             switch (funtbl[*fun_idx].type) {
                 case kFunction:
                     if (type_mask & kFunction) return kOk;
@@ -145,7 +140,10 @@ MmResult funtbl_find(const char *name, uint8_t type_mask, int *fun_idx) {
                     break;
                 case kLabel:
                     if (type_mask & kLabel) return kOk;
-                    mismatch = *fun_idx;
+                    // Where there is both a mismatched Function or Sub and a
+                    // mismatched Label we preferably return the index of the
+                    // former.
+                    if (mismatch == -1) mismatch = *fun_idx;
                     break;
                 default:
                     *fun_idx = -1;

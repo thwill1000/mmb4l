@@ -16,6 +16,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
+Const NOT_FOUND$ = Choice(Mm.Device$ = "MMB4L", "Label not found", "Cannot find label")
 Dim global_x%
 
 add_test("test_goto_label")
@@ -79,11 +80,11 @@ End Sub
 Sub test_goto_partial_match()
   On Error Skip 1
   Goto goto_partial
-  assert_raw_error("Cannot find label")
+  assert_raw_error(NOT_FOUND$)
 
   On Error Skip 1
   Goto partial_match
-  assert_raw_error("Cannot find label")
+  assert_raw_error(NOT_FOUND$)
 
   Exit Sub
 goto_partial_match:
@@ -93,7 +94,7 @@ End Sub
 Sub test_goto_non_existent_label()
   On Error Skip 1
   Goto no_such_label
-  assert_raw_error("Cannot find label")
+  assert_raw_error(NOT_FOUND$)
 End Sub
 
 Sub test_goto_max_length_label()
@@ -115,7 +116,7 @@ End Sub
 Sub test_goto_sub()
   On Error Skip 1
   Goto my_sub
-  assert_raw_error("Cannot find label")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Not a label", NOT_FOUND$))
 End Sub
 
 Sub my_sub()
@@ -125,7 +126,7 @@ End Sub
 Sub test_goto_function()
   On Error Skip 1
   Goto my_function
-  assert_raw_error("Cannot find label")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Not a label", NOT_FOUND$))
 End Sub
 
 Function my_function%()
@@ -167,11 +168,11 @@ Sub test_gosub_partial_match()
 
   On Error Skip 1
   Gosub gosub_partial
-  assert_raw_error("Cannot find label")
+  assert_raw_error(NOT_FOUND$)
 
   On Error Skip 1
   Gosub partial_match
-  assert_raw_error("Cannot find label")
+  assert_raw_error(NOT_FOUND$)
 End Sub
 
 gosub_partial_match:
@@ -182,7 +183,7 @@ Sub test_gosub_non_existent_label()
 
   On Error Skip 1
   Gosub no_such_label
-  assert_raw_error("Cannot find label")
+  assert_raw_error(NOT_FOUND$)
 End Sub
 
 Sub test_gosub_max_length_label()
@@ -210,7 +211,7 @@ Sub test_gosub_sub()
 
   On Error Skip 1
   Gosub my_sub
-  assert_raw_error("Cannot find label")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Not a label", NOT_FOUND$))
 End Sub
 
 Sub test_gosub_function()
@@ -218,7 +219,7 @@ Sub test_gosub_function()
 
   On Error Skip 1
   Gosub my_function
-  assert_raw_error("Cannot find label")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Not a label", NOT_FOUND$))
 End Sub
 
 Sub test_restore_label()
@@ -258,11 +259,11 @@ RESTORE_CASE_INSENSITIVE_UC:
 Sub test_restore_partial_match()
   On Error Skip 1
   Restore restore_partial
-  assert_raw_error("Cannot find label")
+  assert_raw_error(NOT_FOUND$)
 
   On Error Skip 1
   Restore partial_match
-  assert_raw_error("Cannot find label")
+  assert_raw_error(NOT_FOUND$)
 End Sub
 
 restore_partial_match:
@@ -271,7 +272,7 @@ restore_partial_match:
 Sub test_restore_non_existent_label()
   On Error Skip 1
   Restore no_such_label
-  assert_raw_error("Cannot find label")
+  assert_raw_error(NOT_FOUND$)
 End Sub
 
 Sub test_restore_max_length_label()
@@ -299,13 +300,13 @@ End Sub
 Sub test_restore_sub()
   On Error Skip 1
   Restore my_sub
-  assert_raw_error("Cannot find label")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Not a label", NOT_FOUND$))
 End Sub
 
 Sub test_restore_function()
   On Error Skip 1
   Restore my_function
-  assert_raw_error("Cannot find label")
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Not a label", NOT_FOUND$))
 End Sub
 
 Sub test_call_label_as_sub()

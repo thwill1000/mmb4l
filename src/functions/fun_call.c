@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/utility.h"
 
-#define ERROR_UNKNOWN_USER_FUNCTION  error_throw(kTargetNotFound)
+#define ERROR_FUNCTION_NOT_FOUND  error_throw_ex(kTargetNotFound, "Function not found")
 
 void fun_call(void) {
     MMINTEGER i64 = 0;
@@ -70,7 +70,7 @@ void fun_call(void) {
     if (i >= 0) {  // >= 0 means it is a user defined function
         DefinedSubFun(true, fun, i, &f, &i64, &s, &targ);
     } else {
-        ERROR_UNKNOWN_USER_FUNCTION;
+        ERROR_FUNCTION_NOT_FOUND;
     }
     if (targ & T_STR) {
         sret = GetTempStrMemory();

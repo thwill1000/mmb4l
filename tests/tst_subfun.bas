@@ -90,7 +90,7 @@ Sub test_fun_too_long_name()
   Local i%
   On Error Skip
   i% = fun_with_too_long_name_4567890123%()
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Function/subroutine name too long", "Variable name too long"))
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Function name too long", "Variable name too long"))
 End Sub
 
 Sub test_sub_max_length_name()
@@ -106,5 +106,5 @@ End Sub
 Sub test_sub_too_long_name()
   On Error Skip
   sub_with_too_long_name_4567890123(i%)
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Function/subroutine name too long", "Variable name too long"))
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Subroutine name too long", "Variable name too long"))
 End Sub

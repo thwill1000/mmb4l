@@ -991,9 +991,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionNameContainingPeriod) {
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionHasMaximumLengthName) {
-    char buf[256];
-    sprintf(buf, "Function %s()", MAX_LENGTH_NAME);
-    TokeniseAndAppend(buf);
+    TokeniseAndAppend("Function " MAX_LENGTH_NAME "()");
     TokeniseAndAppend("End Function");
 
     PrepareProgram(1);
@@ -1006,9 +1004,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionHasMaximumLengthName) {
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionNameTooLong) {
-    char buf[256];
-    sprintf(buf, "Function %sA()", MAX_LENGTH_NAME);
-    TokeniseAndAppend(buf);
+    TokeniseAndAppend("Function " MAX_LENGTH_NAME "A()");
     TokeniseAndAppend("End Function");
 
     PrepareProgram(1);
@@ -1053,14 +1049,22 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenTwoFunctionsWithSameNameButDifferent
     EXPECT_STREQ("", error_msg);
 }
 
-TEST_F(MmBasicCoreTest, FindSubFun_GivenNameTooLong) {
-    TokeniseAndAppend("Function foo%()");
-    TokeniseAndAppend("End Function");
-    PrepareProgram(1);
+TEST_F(MmBasicCoreTest, FindSubFun_Errors_GivenFunctionNameTooLong) {
+    int fun_idx = FindSubFun(MAX_LENGTH_NAME "A", kFunction);
 
-    char name[256];
-    sprintf(name, "%sA", MAX_LENGTH_NAME);
-    int fun_idx = FindSubFun(name, kFunction);
+    EXPECT_STREQ("Function name too long", error_msg);
+    EXPECT_EQ(-1, fun_idx);
+}
+
+TEST_F(MmBasicCoreTest, FindSubFun_Errors_GivenSubNameTooLong) {
+    int fun_idx = FindSubFun(MAX_LENGTH_NAME "A", kSub);
+
+    EXPECT_STREQ("Subroutine name too long", error_msg);
+    EXPECT_EQ(-1, fun_idx);
+}
+
+TEST_F(MmBasicCoreTest, FindSubFun_Errors_GivenFunctionOrSubNameTooLong) {
+    int fun_idx = FindSubFun(MAX_LENGTH_NAME "A", kFunction | kSub);
 
     EXPECT_STREQ("Function/subroutine name too long", error_msg);
     EXPECT_EQ(-1, fun_idx);
@@ -1192,7 +1196,7 @@ TEST_F(MmBasicCoreTest, FindLabel_GivenLabelNotPresent) {
 
     const char *addr = findlabel("wombat");
 
-    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_STREQ("Label not found", error_msg);
     EXPECT_EQ(NULL, addr);
 }
 
@@ -1221,13 +1225,13 @@ TEST_F(MmBasicCoreTest, FindLabel_RequiresCompleteMatch) {
 
     const char *addr = findlabel("foo"); // Try to match on a prefix.
 
-    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_STREQ("Label not found", error_msg);
     EXPECT_EQ(NULL, addr);
 
     error_msg[0] = '\0';
     addr = findlabel("bar"); // Try to match on a suffix.
 
-    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_STREQ("Label not found", error_msg);
     EXPECT_EQ(NULL, addr);
 }
 
@@ -1328,7 +1332,31 @@ TEST_F(MmBasicCoreTest, FindLabel_GivenLabelWithinMultiStatementLine) {
     // Because it is not at the 'start' of the line the colon following 'foobar'
     // is converted to a statement separator '\0' instead of being recognised as
     // terminating a label.
-    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_STREQ("Label not found", error_msg);
+    EXPECT_EQ(NULL, addr);
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_Errors_GivenFoundFunction) {
+    TokeniseAndAppend("Print \"Hello World\"");
+    TokeniseAndAppend("Function foo()");
+    TokeniseAndAppend("End Function");
+    PrepareProgram(true);
+
+    const char *addr = findlabel("foo");
+
+    EXPECT_STREQ("Not a label", error_msg);
+    EXPECT_EQ(NULL, addr);
+}
+
+TEST_F(MmBasicCoreTest, FindLabel_Errors_GivenFoundSub) {
+    TokeniseAndAppend("Print \"Hello World\"");
+    TokeniseAndAppend("Sub foo()");
+    TokeniseAndAppend("End Sub");
+    PrepareProgram(true);
+
+    const char *addr = findlabel("foo");
+
+    EXPECT_STREQ("Not a label", error_msg);
     EXPECT_EQ(NULL, addr);
 }
 
@@ -1569,7 +1597,7 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenFunction) {
 
     const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
 
-    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_STREQ("Label/subroutine not found", error_msg);
     EXPECT_EQ(NULL, actual);
 }
 
@@ -1592,7 +1620,7 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenNonExistentTarget) {
 
     const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
 
-    EXPECT_STREQ("Cannot find label", error_msg);
+    EXPECT_STREQ("Label/subroutine not found", error_msg);
     EXPECT_EQ(NULL, actual);
 }
 
@@ -1616,6 +1644,6 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenTargetNameTooLong) {
 
     const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
 
-    EXPECT_STREQ("Label too long", error_msg);
+    EXPECT_STREQ("Label/subroutine name too long", error_msg);
     EXPECT_EQ(NULL, actual);
 }

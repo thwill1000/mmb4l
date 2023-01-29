@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/utility.h"
 
-#define ERROR_UNKNOWN_SUBROUTINE  error_throw_ex(kError, "Unknown user subroutine")
+#define ERROR_SUB_NOT_FOUND  error_throw_ex(kTargetNotFound, "Subroutine not found")
 
 void cmd_call(void) {
     char *cmd = getCstring(cmdline);  // get the command we want to call
@@ -67,6 +67,6 @@ void cmd_call(void) {
     if (i >= 0) {  // >= 0 means it is a user defined command
         DefinedSubFun(false, cmd, i, NULL, NULL, NULL, NULL);
     } else {
-        ERROR_UNKNOWN_SUBROUTINE;
+        ERROR_SUB_NOT_FOUND;
     }
 }
