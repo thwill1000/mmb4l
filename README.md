@@ -10,6 +10,7 @@
     * [Using GNU nano](#using-gnu-nano)
 6. [Differences from MMBasic 5.07.03 for the Colour Maximite 2](#6-differences-from-mmbasic-50703-for-the-colour-maximite-2)
 7. [MMB4L specific extensions to MMBasic](#7-mmb4l-specific-extensions-to-mmbasic)
+    * [Automatic path completion](#automatic-path-completion)
     * [The "bang" command !](#the-bang-command-)
     * [CHR$](#chr)
     * [CONSOLE](#console)
@@ -31,6 +32,7 @@
     * [QUIT](#quit)
     * [READ](#read)
     * [RESTORE](#restore)
+    * [RUN](#run)
     * [SYSTEM](#system)
     * [XMODEM](#xmodem)
 8. [Limitations](#8-limitations)
@@ -44,24 +46,24 @@ MMB4L is a port of Geoff Graham's [MMBasic](https://mmbasic.com/) interpreter to
 
 It was originally derived with permission from:
  * [MMBasic for DOS](https://geoffg.net/WindowsMMBasic.html)
-     * Copyright 2011-2022 Geoff Graham<br/>
+     * Copyright 2011-2023 Geoff Graham<br/>
 
 But also incorporates code and ideas from several other MMBasic ports:
  * [MMBasic for the PicoMite](https://geoffg.net/picomite.html) and [PicoMite VGA](https://geoffg.net/picomitevga.html)
-     * Copyright 2011-2022 Geoff Graham
-     * Copyright 2016-2022 Peter Mather
+     * Copyright 2011-2023 Geoff Graham
+     * Copyright 2016-2023 Peter Mather
      * https://github.com/UKTailwind/PicoMite
      * https://github.com/UKTailwind/PicoMite-VGA-Edition<br/>
  * [MMBasic for the Colour Maximite 2](https://geoffg.net/maximite.html)
-     * Copyright 2011-2022 Geoff Graham
-     * Copyright 2016-2022 Peter Mather<br/>
+     * Copyright 2011-2023 Geoff Graham
+     * Copyright 2016-2023 Peter Mather<br/>
  * MMBasic for Windows
-     * Copyright 2011-2022 Geoff Graham
-     * Copyright 2016-2022 Peter Mather
+     * Copyright 2011-2023 Geoff Graham
+     * Copyright 2016-2023 Peter Mather
      * https://github.com/UKTailwind/MMB4W
  * Mothballed Pi-cromite project by Peter Mather.
 
-What little MMB4L specific code there is, is Copyright 2021-2022 Thomas Hugo Williams.
+What little MMB4L specific code there is, is Copyright 2021-2023 Thomas Hugo Williams.
 
 MMB4L is an open-source project distributed under a modified 4-clause BSD license, see the [LICENSE.MMBasic](LICENSE.MMBasic) file for details.
 
@@ -209,7 +211,7 @@ Where not overridden by the above the [default nano keyboard bindings](https://w
  1. Unlike other MMBasic version there is no key combination to automatically **Run** a program from the editor.
  2. If you rename a file whilst saving it MMB4L will not update its "current stored program" state and will still be using the previous file.
 
-## 6. Differences from MMBasic 5.07.03 for the Colour Maximite 2
+## 6. Differences from MMBasic 5.07.02 for the Colour Maximite 2
 
 The principle difference between MMB4L and the Colour Maximite 2 is the lack of commands/functions for high-resolution graphics, sound and GPIO.
 
@@ -221,10 +223,7 @@ The principle difference between MMB4L and the Colour Maximite 2 is the lack of 
     * `OPTION CONSOLE CHARACTER` returns to using character resolution.
 * When the source of an error is in a .INC file the `EDIT` command will open that file instead of the current .BAS file.
      * To explicitly open the current .BAS file use `EDIT CURRENT`
-* The `RUN` command accepts a string expression, e.g. `RUN s1$ + s2`
-     * However any optional command-line is still passed verbatim / without evaluation to `MM.CMDLINE`
-         * e.g. `RUN "foo.bas", this_expression$ + will% + not_be_evaluated!`
-         * as on the CMM2 the `EXECUTE` command can be used to workaround this limitation.
+* The syntax of the `RUN` command is changed/extended (see [below](#run)).
 * As is the default for most BASICs the `FILES` command lists the contents of the current directory.
      * The CMM2 is "non-standard" in this respect and instead shows a TUI file manager.
 * There is no `LS` command, use `FILES` or for more flexibility `!ls`.
@@ -233,6 +232,10 @@ The principle difference between MMB4L and the Colour Maximite 2 is the lack of 
 ## 7. MMB4L specific extensions to MMBasic
 
 MMB4L implements a small number of extensions to MMBasic 5.07.03:
+
+### Automatic path completion
+
+At the MMB4L prompt pressing the TAB key will attempt to complete (as far as can be unambiguously determined) a filename that is currently being typed, or sound the console bell if no completion is possible.
 
 ### The "bang" command !
 
@@ -384,6 +387,13 @@ In MMB4L this function can return values for these additional properties:
          * "Linux x86_64"
      * Note that `MM.INFO$(DEVICE)` will return "MMB4L" for all of these.
 
+ * `MM.INFO(CALLDEPTH)`
+     * Gets the the current function/subroutine call depth starting at 0 when not in a function/subroutine.
+     * Primarily to help with debugging; though a production use-case might be to allow recursive code to "bail out" if recursion gets too deep.
+
+ * `MM.INFO(CPUTIME)`
+     * Gets the value (in nanoseconds) of the CPU timer for the MMB4L process.
+
  * `MM.INFO$(ENVVAR name$)`
      * Gets the value of the named environment variable, or the empty string if there is no such environment variable.
 
@@ -403,6 +413,13 @@ In MMB4L this function can return values for these additional properties:
  
  * `MM.INFO$(OPTION <option>)`
      * Gets the value of the named option, this is supported for all options.
+
+ * `MM.INFO(PID)`
+     * Gets the process ID of the MM4L process.
+
+ * `MM.INFO(VERSION [MAJOR | MINOR | MICRO | BUILD] )`
+     * Gets the MMB4L major, minor, micro version or build number as an integer.
+     * Without the additional argument it returns an integer = MAJOR * 100,000,000 + MINOR * 1,000,000 + MICRO * 10000 + BUILD, e.g. 5,000,000 for version 0.5.
 
 ### OPEN
 
@@ -556,6 +573,21 @@ Sets the value of the "virtual pointer" used to track where the [READ](#read) co
 Outputs text to the console/terminal at a given character position followed by a carriage return/newline pair.
  * Unlike the CMM2 `x%` and `y%` are both obligatory and in character (not pixel) coordinates. There is no `mode` parameter.
  * It is equivalent to `CONSOLE SETCURSOR x, y : PRINT expression`
+
+### RUN
+
+`RUN [file$] [, cmdline$]`
+
+Both `file$` and `cmdline$` can now be string expressions instead of the legacy behaviour where the command line argument was "not processed" by MMBasic and was copied verbatim into the `MM.CMDLINE$` of the new program.
+ * If the text following the comma contains an unquoted minus sign then for backward compatibility MMB4L trys to use the legacy behaviour, but this does not work for all possible legacy command lines.
+ * Note that the behaviour of the `*` command is unchanged; expressions in any command line provided via `*` are not evaluated by MMB4L, e.g.
+    ```
+    *foo a$ + b$
+    ```
+    is equivalent to:
+    ```
+    RUN "foo", "a$ + b$"
+    ```
 
 ### QUIT
 
