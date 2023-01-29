@@ -34,8 +34,13 @@ RUN ln -s ~/github/mmb4l/tests local-mmb4l/tests
 RUN ln -s ~/github/mmb4l/src local-mmb4l/src
 RUN ln -s ~/github/mmb4l/tools local-mmb4l/tools
 RUN ln -s ~/github/mmb4l/build-all.sh local-mmb4l/build-all.sh
+RUN ln -s ~/github/mmb4l/ChangeLog local-mmb4l/ChangeLog
 RUN ln -s ~/github/mmb4l/CMakeLists.txt local-mmb4l/CMakeLists.txt
-RUN ln -s ~/github/mmb4l/README local-mmb4l/README
+RUN ln -s ~/github/mmb4l/LICENSE local-mmb4l/LICENSE
+RUN ln -s ~/github/mmb4l/LICENSE.MIT local-mmb4l/LICENSE.MIT
+RUN ln -s ~/github/mmb4l/LICENSE.MMBasic local-mmb4l/LICENSE.MMBasic
+RUN ln -s ~/github/mmb4l/package.sh local-mmb4l/package.sh
+RUN ln -s ~/github/mmb4l/README.md local-mmb4l/README.md
 RUN ln -s ~/github/mmb4l/TODO local-mmb4l/TODO
 
 RUN mkdir ~/.mmbasic

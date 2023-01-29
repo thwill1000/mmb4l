@@ -14,6 +14,7 @@ cp mmbasic ${distrib}
 cp ../resources/mmbasic.nanorc ${distrib}
 cp ../resources/mmbasic.syntax.nanorc ${distrib}
 cp ../ChangeLog ${distrib}
+cp ../LICENSE* ${distrib}
 cp ../README.md ${distrib}
 tar -cvzf ${distrib}.tgz ${distrib}
 
