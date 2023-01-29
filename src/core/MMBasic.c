@@ -249,7 +249,9 @@ void MIPS16 InitBasic(void) {
 // the argument p must point to the first line to be executed
 // We need to suppress a spurious(?) warning about 'p' being clobbered by setjmp().
 #pragma GCC diagnostic push
+#if !defined(__clang__)
 #pragma GCC diagnostic ignored "-Wclobbered"
+#endif
 void ExecuteProgram(const char *p) {
     int i;
     int SaveLocalIndex = 0;
@@ -495,7 +497,9 @@ int FindSubFun(const char *p, uint8_t type_mask) {
 
     switch (result) {
         case kOk:
-            [[fallthrough]]
+#if !defined(__clang__)
+            [[fallthrough]];
+#endif
         case kTargetNotFound:
             return fun_idx;
         case kNameTooLong:

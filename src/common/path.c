@@ -258,7 +258,9 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                     break;
                 } else {
                     // Fall through to the default case.
+#if !defined(__clang__)
                     [[fallthrough]];
+#endif
                 }
 
             default:

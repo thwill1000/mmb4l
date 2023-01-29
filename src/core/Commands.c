@@ -597,7 +597,7 @@ void cmd_select(void) {
                 // check for CASE IS,  eg  CASE IS > 5  -or-  CASE > 5  and process it if it is
                 // an operator can be >, <>, etc but it can also be a prefix + or - so we must not catch them
                 if((SaveCurrentLinePtr = checkstring(p, "IS")) || ((tokentype(*p) & T_OPER) && !(*p == GetTokenValue("+") || *p == GetTokenValue("-")))) {
-                    int o;
+                    int o = 0;
                     if(SaveCurrentLinePtr) p += 2;
                     skipspace(p);
                     if(tokentype(*p) & T_OPER)

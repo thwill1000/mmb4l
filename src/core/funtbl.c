@@ -66,7 +66,9 @@ MmResult funtbl_add(
             // Functions and Subs share a namespace but Labels do not.
             switch (funtbl[funtbl_hashmap[hash]].type) {
                 case kFunction:
-                    [[fallthrough]]
+#if !defined(__clang__)
+                    [[fallthrough]];
+#endif
                 case kSub:
                     if (type == kFunction || type == kSub) return kDuplicateTarget;
                     break;
