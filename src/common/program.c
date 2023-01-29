@@ -167,6 +167,30 @@ static void program_transform_line(char *line) {
     STR_REPLACE(line,"MM.INFO$","MM.INFO");
 }
 
+void program_dump_memory() {
+    size_t column = 0;
+    size_t count = 0;
+    for (const char *p = ProgMemory; count != 2; ++p) {
+        if (*p > 32 && *p < 127) {
+            count = 0;
+            printf(" %c ", *p);
+        } else {
+            count = (*p == '\0') ? count + 1 : 0;
+            printf("%02X ", *p);
+        }
+
+        column++;
+        if (column == 10) {
+            printf("    ");
+        } else if (column == 20) {
+            printf("\n");
+            column = 0;
+        }
+    }
+
+    printf("\n");
+}
+
 // Tokenize the string in the edit buffer
 static void program_tokenise(const char *file_path, const char *edit_buf) {
     //const char *p = edit_buf;
@@ -227,6 +251,8 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     CFunctionFlash = pmem;
 
     if (errno != 0) error_throw(errno); // Is this really necessary?
+
+    // program_dump_memory();
 }
 
 MmResult program_get_inc_file(const char *parent_file, const char *filename, char *out) {

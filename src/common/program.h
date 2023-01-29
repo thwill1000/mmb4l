@@ -54,6 +54,9 @@ extern char CurrentFile[STRINGSIZE];
 
 void ListNewLine(int *ListCnt, int all); // MMBasic/Commands.c
 
+/** @brief Dumps contents of \p ProgMemory to STDOUT. */
+void program_dump_memory();
+
 /**
  * @brief Gets the absolute canonical path to an MMBasic program file (.bas)
  *

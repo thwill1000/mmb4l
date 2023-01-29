@@ -431,9 +431,17 @@ gtest_discover_tests(test_rx_buf)
 
 add_executable(
   test_mmbasic_core
+  src/common/cstring.c
+  src/common/file.c
+  src/common/interrupt.c
   src/common/memory.c
   src/common/mmresult.c
+  src/common/mmtime.c
   src/common/parse.c
+  src/common/path.c
+  src/common/program.c
+  src/common/rx_buf.c
+  src/common/serial.c
   src/core/funtbl.c
   src/core/MMBasic.c
   src/core/vartbl.c

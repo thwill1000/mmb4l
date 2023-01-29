@@ -13,51 +13,39 @@ extern "C" {
 #include "../funtbl.h"
 #include "../vartbl.h"
 #include "../MMBasic.h"
+#include "../../common/program.h"
 #include "command_stubs.h"
 #include "function_stubs.h"
 #include "operation_stubs.h"
 
-char error_msg[256];
-
-void CheckAbort(void) { }
-
-void cmd_read_clear_cache()  { }
-
-/** Write a NULL terminated stirng to the console. */
-void console_puts(const char *s) {
-}
-
-void error_init(ErrorState *error_state) { }
-
-void error_throw(MmResult error) {
-    error_throw_ex(error, mmresult_to_string(error));
-}
-
-void error_throw_ex(MmResult error, const char *msg, ...) {
-    strcpy(error_msg, msg);
-}
-
-void error_throw_legacy(const char *msg, ...) {
-    strcpy(error_msg, msg);
-}
-
-void file_close_all(void) { }
-
-bool interrupt_check(void) {
-    return false;
-}
-
-void interrupt_clear(void) { }
-
-// Declared in "main.c"
+// Defined in "main.c"
 char *CFunctionFlash;
 char *CFunctionLibrary;
 char **FontTable;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
+int MMgetchar(void) { return 0; }
+void MMgetline(int filenbr, char *p) { }
 
-// Declared in "Commands.c"
+// Defined in "commands/cmd_read.c"
+void cmd_read_clear_cache()  { }
+
+// Defined in "common/console.c"
+int console_kbhit(void) { return 0; }
+char console_putc(char c) { return c; }
+void console_puts(const char *s) { }
+void console_set_title(const char *title) { }
+size_t console_write(const char *buf, size_t sz) { return 0; }
+
+// Defined in "common/error.c"
+char error_msg[256];
+void error_init(ErrorState *error_state) { }
+void error_throw(MmResult error) { error_throw_ex(error, mmresult_to_string(error)); }
+void error_throw_ex(MmResult error, const char *msg, ...) { strcpy(error_msg, msg); }
+void error_throw_legacy(const char *msg, ...) { strcpy(error_msg, msg); }
+
+// Defined in "core/Commands.c"
 char DimUsed;
 int doindex;
 struct s_dostack dostack[MAXDOLOOPS];
@@ -69,6 +57,8 @@ const char *gosubstack[MAXGOSUB];
 int TraceBuffIndex;
 const char *TraceBuff[TRACE_BUFF_SIZE];
 int TraceOn;
+void CheckAbort(void) { }
+void ListNewLine(int *ListCnt, int all) { }
 
 } // extern "C"
 
@@ -123,28 +113,6 @@ protected:
         }
         *pmem++ = '\0';
         *pmem++ = '\0';
-    }
-
-    void DumpProgMemory() {
-        size_t column = 0;
-        size_t count = 0;
-        for (const char *p = ProgMemory; count != 2; ++p) {
-            if (*p > 31 && *p < 127) {
-                count = 0;
-                printf(" %c   ", *p);
-            } else {
-                count = (*p == '\0') ? count + 1 : 0;
-                printf("0x%02X ", *p);
-            }
-
-            column++;
-            if (column == 10) {
-                printf("\n");
-                column = 0;
-            }
-        }
-
-        printf("\n");
     }
 
     char m_program[256];
