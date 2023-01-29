@@ -25,10 +25,8 @@ WORKDIR /home/thwill
 RUN ln -s ~/host-home-thwill/.ssh ~/.ssh
 RUN ln -s ~/host-home-thwill/.terminfo ~/.terminfo
 RUN ln -s ~/host-home-thwill/git_sandbox/github ~/github
+
 RUN mkdir local-mmb4l
-#RUN mkdir local-mmb4l/build-coverage
-#RUN mkdir local-mmb4l/build-debug
-#RUN mkdir local-mmb4l/build-release
 RUN ln -s ~/github/mmb4l/examples local-mmb4l/examples
 RUN ln -s ~/github/mmb4l/resources local-mmb4l/resources
 RUN ln -s ~/github/mmb4l/sptools local-mmb4l/sptools
@@ -39,6 +37,11 @@ RUN ln -s ~/github/mmb4l/build-all.sh local-mmb4l/build-all.sh
 RUN ln -s ~/github/mmb4l/CMakeLists.txt local-mmb4l/CMakeLists.txt
 RUN ln -s ~/github/mmb4l/README local-mmb4l/README
 RUN ln -s ~/github/mmb4l/TODO local-mmb4l/TODO
+
+RUN mkdir ~/.mmbasic
+RUN ln -s ~/github/mmb4l/resources/mmbasic.nanorc ~/.mmbasic/mmbasic.nanorc
+RUN ln -s ~/github/mmb4l/resources/mmbasic.syntax.nanorc ~/.mmbasic/mmbasic.syntax.nanorc
+
 RUN echo "" >> /home/thwill/.bashrc
 RUN echo "LS_COLORS=$LS_COLORS:'ow=1;31:' ; export LS_COLORS" >> /home/thwill/.bashrc
 #RUN echo "alias generate-coverage='lcov -c -d . -o main_coverage.info && genhtml main_coverage.info --output-directory ~/host-home-thwill/tmp/mmb4l-coverage'" >> /home/thwill/.bashrc
