@@ -467,46 +467,75 @@ TEST_F(MmBasicCoreTest, FindVar_GivenFindingUndeclaredVariable_GivenExplicitOn) 
 }
 
 TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfGlobal_GivenFunctionWithSameName) {
-    int fun_idx;
-    sprintf(m_program,
-            "# foo\n"
-            "#\n"
-            "# bar\n"
-            "#\n"
-            "foo = 1");
-    funtbl_add("FOO", kFunction, m_program, &fun_idx);
-    funtbl_add("BAR", kFunction, m_program + 8, &fun_idx);
+    TokeniseAndAppend("Function foo()");
+    TokeniseAndAppend("End Function");
+    TokeniseAndAppend("Function bar()");
+    TokeniseAndAppend("End Function");
+    TokeniseAndAppend("foo = 1");
+    PrepareProgram(1);
 
     error_msg[0] = '\0';
-    (void) findvar(m_program + 16, V_DIM_VAR);
+    (void) findvar(ProgMemory + 24, V_DIM_VAR);
     EXPECT_STREQ("A function/subroutine has the same name: $", error_msg);
 
     // With V_FUNCT ... though actually this never happens in production with V_DIM_VAR.
     error_msg[0] = '\0';
-    (void) findvar(m_program + 16, V_DIM_VAR | V_FUNCT);
+    (void) findvar(ProgMemory + 24, V_DIM_VAR | V_FUNCT);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfLocal_GivenFunctionWithSameName) {
-    int fun_idx;
-    sprintf(m_program,
-            "# foo\n"
-            "#\n"
-            "# bar\n"
-            "#\n"
-            "foo = 1");
-    funtbl_add("FOO", kFunction, m_program, &fun_idx);
-    funtbl_add("BAR", kFunction, m_program + 8, &fun_idx);
+    TokeniseAndAppend("Function foo()");
+    TokeniseAndAppend("End Function");
+    TokeniseAndAppend("Function bar()");
+    TokeniseAndAppend("End Function");
+    TokeniseAndAppend("foo = 1");
+    PrepareProgram(1);
 
     error_msg[0] = '\0';
     LocalIndex = 3;
-    (void) findvar(m_program + 16, V_LOCAL);
+    (void) findvar(ProgMemory + 24, V_LOCAL);
     EXPECT_STREQ("A function/subroutine has the same name: $", error_msg);
 
     // With V_FUNCT.
     error_msg[0] = '\0';
-    (void) findvar(m_program + 16, V_LOCAL | V_FUNCT);
+    (void) findvar(ProgMemory + 24, V_LOCAL | V_FUNCT);
     EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_CreatesGlobal_GivenLabelWithSameName) {
+    TokeniseAndAppend("foo:");
+    TokeniseAndAppend("  Print \"foo\"");
+    TokeniseAndAppend("foo% = 1");
+    PrepareProgram(1);
+
+    error_msg[0] = '\0';
+    void *actual = findvar(ProgMemory + 19, V_DIM_VAR);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("FOO", vartbl[0].name);
+    EXPECT_EQ(0, vartbl[0].level);
+    EXPECT_EQ(T_INT, vartbl[0].type);
+    EXPECT_EQ(&vartbl[0].val, actual);
+}
+
+TEST_F(MmBasicCoreTest, FindVar_CreatesLocal_GivenLabelWithSameName) {
+    TokeniseAndAppend("foo:");
+    TokeniseAndAppend("  Print \"foo\"");
+    TokeniseAndAppend("foo% = 1");
+    PrepareProgram(1);
+
+    error_msg[0] = '\0';
+    LocalIndex = 3;
+    void *actual = findvar(ProgMemory + 19, V_LOCAL);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, VarIndex);
+    EXPECT_STREQ("FOO", vartbl[0].name);
+    EXPECT_EQ(3, vartbl[0].level);
+    EXPECT_EQ(T_INT, vartbl[0].type);
+    EXPECT_EQ(&vartbl[0].val, actual);
 }
 
 TEST_F(MmBasicCoreTest, FindVar_GivenDim_ReusesEmptySlot) {
@@ -1083,7 +1112,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenTypeMismatch) {
     EXPECT_EQ(0, fun_idx);
 }
 
-TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForASubButFoundAFunction) {
+TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForSub_ButFoundFunction) {
     TokeniseAndAppend("Function foo%()");
     TokeniseAndAppend("End Function");
     PrepareProgram(1);
@@ -1094,7 +1123,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForASubButFoundAFunction) {
     EXPECT_EQ(-1, fun_idx);
 }
 
-TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForAFunctionButFoundASub) {
+TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForFunction_ButFoundSub) {
     TokeniseAndAppend("Sub foo()");
     TokeniseAndAppend("End Sub");
     PrepareProgram(1);
@@ -1105,7 +1134,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForAFunctionButFoundASub) {
     EXPECT_EQ(-1, fun_idx);
 }
 
-TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForAFunctionOrSub) {
+TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForFunctionOrSub) {
     TokeniseAndAppend("Function foo()");
     TokeniseAndAppend("End Function");
     TokeniseAndAppend("Sub bar()");
@@ -1121,6 +1150,39 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForAFunctionOrSub) {
 
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(1, fun_idx);
+}
+
+TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForFunction_ButFindLabel) {
+    TokeniseAndAppend("foo:");
+    TokeniseAndAppend("  Print \"Hello\"");
+    PrepareProgram(1);
+
+    int fun_idx = FindSubFun("foo", kFunction);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(-1, fun_idx);
+}
+
+TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForSub_ButFindLabel) {
+    TokeniseAndAppend("foo:");
+    TokeniseAndAppend("  Print \"Hello\"");
+    PrepareProgram(1);
+
+    int fun_idx = FindSubFun("foo", kSub);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(-1, fun_idx);
+}
+
+TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForFunctionOrSub_ButFindLabel) {
+    TokeniseAndAppend("foo:");
+    TokeniseAndAppend("  Print \"Hello\"");
+    PrepareProgram(1);
+
+    int fun_idx = FindSubFun("foo", kFunction | kSub);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(-1, fun_idx);
 }
 
 TEST_F(MmBasicCoreTest, FindLabel_GivenLabelPresent) {

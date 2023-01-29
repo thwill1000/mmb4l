@@ -51,7 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef enum {
     kFunction = 0x1,
-    kSub      = 0x2
+    kSub      = 0x2,
+    kLabel    = 0x4
 } FunType;
 
 typedef int16_t FunHashValue;

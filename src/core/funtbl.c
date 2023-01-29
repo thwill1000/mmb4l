@@ -56,13 +56,27 @@ MmResult funtbl_add(
         const char *name, FunType type, const char *addr, int *fun_idx) {
     *fun_idx = -1;
     if (funtbl_count == MAXSUBFUN) return kTooManyFunctions;
+    if (addr < ProgMemory || addr >= ProgMemory + PROG_FLASH_SIZE) return kInternalFault;
 
     // Record function in the hashmap.
     FunHashValue hash = hash_cstring(name, MAXVARLEN) % FUN_HASHMAP_SIZE;
     FunHashValue original_hash = hash;
     while (funtbl_hashmap[hash] >= 0) {
         if (strncmp(funtbl[funtbl_hashmap[hash]].name, name, MAXVARLEN) == 0) {
-            return kDuplicateFunction;
+            // Functions and Subs share a namespace but Labels do not.
+            switch (funtbl[funtbl_hashmap[hash]].type) {
+                case kFunction:
+                    [[fallthrough]]
+                case kSub:
+                    if (type == kFunction || type == kSub) return kDuplicateFunction;
+                    break;
+                case kLabel:
+                    if (type == kLabel) return kDuplicateFunction;
+                    break;
+                default:
+                    *fun_idx = -1;
+                    return kInternalFault;
+            }
         }
         hash = (hash + 1) % FUN_HASHMAP_SIZE;
         if (hash == original_hash) return kHashmapFull; // Should never happen in production because
@@ -90,30 +104,56 @@ void funtbl_clear() {
 
 void funtbl_dump() {
     for (int ii = 0; ii < MAXSUBFUN; ++ii) {
-        if (funtbl[ii].name[0]) printf("[%d] %s, %d\n", ii, funtbl[ii].name, funtbl[ii].hash);
+        if (funtbl[ii].name[0]) printf(
+                "[%d] %s, type = %d, hash = %d, addr = %ld\n",
+                ii,
+                funtbl[ii].name,
+                funtbl[ii].type,
+                funtbl[ii].hash,
+                (uint64_t) funtbl[ii].addr);
     }
 }
 
 MmResult funtbl_find(const char *name, uint8_t type_mask, int *fun_idx) {
     FunHashValue hash = hash_cstring(name, MAXVARLEN) % FUN_HASHMAP_SIZE;
     FunHashValue original_hash = hash;
+    int mismatch = -1;
+    bool same_namespace = false;
 
     do {
         *fun_idx = funtbl_hashmap[hash];
         if (*fun_idx == -1) break;
 
+        // Only compare with elements in same namespace.
+        same_namespace = (funtbl[*fun_idx].type & type_mask)
+                || ((funtbl[*fun_idx].type != kLabel) && (type_mask != kLabel));
+
         // Compare 'name' with referenced 'funtbl' entry.
         // Both names should be in upper-case, but if they are MAXVARLEN
         // chars long then they are not NULL terminated.
-        if (strncmp(name, funtbl[*fun_idx].name, MAXVARLEN) == 0) {
-            return funtbl[*fun_idx].type & type_mask
-                    ? kOk
-                    : kTargetTypeMismatch;
+        if (same_namespace && strncmp(name, funtbl[*fun_idx].name, MAXVARLEN) == 0) {
+            switch (funtbl[*fun_idx].type) {
+                case kFunction:
+                    if (type_mask & kFunction) return kOk;
+                    mismatch = *fun_idx;
+                    break;
+                case kSub:
+                    if (type_mask & kSub) return kOk;
+                    mismatch = *fun_idx;
+                    break;
+                case kLabel:
+                    if (type_mask & kLabel) return kOk;
+                    mismatch = *fun_idx;
+                    break;
+                default:
+                    *fun_idx = -1;
+                    return kInternalFault;
+            }
         }
 
         hash = (hash + 1) % FUN_HASHMAP_SIZE;
     } while (hash != original_hash);
 
-    *fun_idx = -1;
-    return kFunctionNotFound;
+    *fun_idx = mismatch;
+    return *fun_idx == -1 ? kFunctionNotFound : kTargetTypeMismatch;
 }

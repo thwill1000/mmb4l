@@ -359,6 +359,39 @@ void ExecuteProgram(const char *p) {
  Code associated with processing user defined subroutines and functions
 ********************************************************************************************************************************************/
 
+void hash_labels(bool abort_on_error) {
+    const char *pnewline = NULL;
+    char name[MAXVARLEN + 1];
+    int fun_idx;
+    MmResult result;
+
+    for (const char *p = ProgMemory; !(p[0] == 0 && p[1] == 0); ++p) {
+        switch (*p) {
+            case T_NEWLINE:
+                pnewline = p;
+                break;
+            case T_LINENBR:
+                p += 2; // Skip 2 byte line number.
+                break;
+            case T_LABEL:
+                p += 2; // Skip 1 byte token and 1 byte label length.
+                result = parse_name(&p, name);
+                if (SUCCEEDED(result)) {
+                    result = (pnewline == NULL)
+                            ? kInternalFault
+                            : funtbl_add(name, kLabel, pnewline, &fun_idx);
+                    p -= 1; // Backup to last line of name.
+                }
+                if (FAILED(result) && abort_on_error) error_throw(result);
+                pnewline = NULL;
+                break;
+            default:
+                // Do nothing.
+                break;
+        }
+    }
+}
+
 void MIPS16 PrepareProgramExt(const char *, unsigned char **, int);
 
 // Scan through the program loaded in flash and build a table pointing to the definition of all user defined subroutines and functions.
@@ -374,6 +407,7 @@ void MIPS16 PrepareProgram(int ErrAbort) {
     CFunctionFlash = CFunctionLibrary = NULL;
 #endif
     PrepareProgramExt(ProgMemory, (unsigned char **) &CFunctionFlash, ErrAbort);
+    hash_labels(ErrAbort);
 }
 
 
@@ -467,6 +501,9 @@ int FindSubFun(const char *p, uint8_t type_mask) {
                     return -1;
                 case kSub:
                     error_throw_ex(result, "Not a subroutine");
+                    return -1;
+                case kFunction | kSub:
+                    error_throw_ex(result, "Not a function or subroutine");
                     return -1;
                 default:
                     break;
@@ -1529,56 +1566,26 @@ char *findline(int nbr, int mustfind) {
 // returns a pointer to the T_NEWLINE token or throws an error if not found
 // non cached version
 const char *findlabel(const char *labelptr) {
-    int i;
-    char label[MAXVARLEN + 1];
+    char name[MAXVARLEN + 1];
+    MmResult result = parse_name(&labelptr, name);
 
-    // first, just exit we have a NULL argument
-    if(labelptr == NULL) return NULL;
+    int fun_idx;
+    if (result == kOk) result = funtbl_find(name, kLabel, &fun_idx);
 
-    // convert the label to the token format and load into label[]
-    // this assumes that the first character has already been verified as a valid label character
-    label[1] = *labelptr++;
-    for(i = 2; ; i++) {
-        if(!isnamechar(*labelptr)) break;                           // the end of the label
-        if (i > MAXVARLEN) {
-            error("Label too long");                                // too long, not a correctly formed label
+    switch (result) {
+        case kOk:
+            return funtbl[fun_idx].addr;
+        case kFunctionNotFound:
+            [[fallthrough]]
+        case kTargetTypeMismatch:
+            error_throw_ex(result, "Cannot find label");
             return NULL;
-        }
-        label[i] = *labelptr++;
-    }
-    label[0] = i - 1;                                               // the length byte
-
-    const char *p = ProgMemory;
-    const char *lastp = ProgMemory + 1;
-
-    // now do the search
-    while(1) {
-        if (p[0] == 0 && p[1] == 0) {                               // end of the program
-            error("Cannot find label");
+        case kNameTooLong:
+            error_throw_ex(result, "Label too long");
             return NULL;
-        }
-
-        if(p[0] == T_NEWLINE) {
-            lastp = p;                                              // save in case this is the right line
-            p++;                                                    // and step over the line number
-            continue;
-        }
-
-        if(p[0] == T_LINENBR) {
-            p += 3;                                                 // and step over the line number
-            continue;
-        }
-
-        if(p[0] == T_LABEL) {
-            p++;                                                    // point to the length of the label
-            if (mem_equal(p, label, label[0] + 1)) {                // compare the strings including the length byte
-                return lastp;                                       // and if successful return pointing to the beginning of the line
-            }
-            p += p[0] + 1;                                          // still looking! skip over the label
-            continue;
-        }
-
-        p++;
+        default:
+            error_throw(result);
+            return NULL;
     }
 }
 
@@ -2434,7 +2441,6 @@ void MIPS16 ClearRuntime(void) {
     ds18b20Timers = NULL;                                           // InitHeap() will recover the memory allocated to this array
 #endif
     CloseAllFiles();
-    findlabel(NULL);                                                // clear the label cache
     ClearExternalIO();                                              // this MUST come before InitHeap()
 #if defined(__mmb4l__)
     mmb_error_state_ptr = &mmb_normal_error_state;

@@ -17,8 +17,6 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 
 Const BASE% = Mm.Info(Option Base)
 
-add_test("test_dim_with_same_name_as_sub_reports_error", "test_dim_with_same_name")
-add_test("test_local_with_same_name_as_fun_reports_error", "test_local_with_same_name")
 add_test("test_call_fn_as_sub")
 add_test("test_call_sub_as_fn")
 add_test("test_call_fn_with_wrong_type")
@@ -32,27 +30,7 @@ If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
 
-Sub test_dim_with_same_name()
-  On Error Skip 1
-  Dim sub_a%
-  If Mm.Device$ = "MMB4L" Then
-    assert_raw_error("A function/subroutine has the same name: SUB_A")
-  Else
-    assert_raw_error("A sub/fun has the same name: SUB_A")
-  EndIf
-End Sub
-
 Sub sub_a()
-End Sub
-
-Sub test_local_with_same_name()
-  On Error Skip 1
-  Local fun_b%
-  If Mm.Device$ = "MMB4L" Then
-    assert_raw_error("A function/subroutine has the same name: FUN_B")
-  Else
-    assert_raw_error("A sub/fun has the same name: FUN_B")
-  EndIf
 End Sub
 
 Function fun_b%()
