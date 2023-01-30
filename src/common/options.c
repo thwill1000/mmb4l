@@ -261,13 +261,16 @@ static MmResult options_parse_float(const char *value, MMFLOAT *out) {
 }
 
 static void options_report_warning(int line_num, char *name, MmResult result, OPTIONS_WARNING_CB warning_cb) {
-    char buf[256];
+    char buf[256] = { 0 };
     if (name[0] == '\0') {
-        sprintf(buf, "line %d: %s for option.", line_num, mmresult_to_string(result));
+        snprintf_nowarn(buf, 256, "line %d: %s for option.",
+                line_num, mmresult_to_string(result));
     } else if (result == kUnknownOption) {
-        sprintf(buf, "line %d: %s '%s'.", line_num, mmresult_to_string(result), name);
+        snprintf_nowarn(buf, 256, "line %d: %s '%s'.",
+                line_num, mmresult_to_string(result), name);
     } else {
-        sprintf(buf, "line %d: %s for option '%s'.", line_num, mmresult_to_string(result), name);
+        snprintf_nowarn(buf, 256, "line %d: %s for option '%s'.",
+                line_num, mmresult_to_string(result), name);
     }
     warning_cb(buf);
 }

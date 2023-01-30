@@ -218,6 +218,7 @@ add_executable(
   test_cmd_run
   src/commands/cmd_run.c
   src/commands/gtest/cmd_run_test.cxx
+  src/common/cstring.c
   src/common/memory.c
   src/common/mmresult.c
   src/common/parse.c

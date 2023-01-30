@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_run.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
+#include "../common/cstring.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
@@ -129,8 +130,7 @@ static void cmd_run_transform_legacy_args(char *run_args) {
         if (ptmp - tmp >= STRINGSIZE - 1) break;
     }
     *ptmp = '\0';
-    strncpy(run_args, tmp, STRINGSIZE - 1);
-    run_args[STRINGSIZE - 1] = '\0';
+    cstring_cpy(run_args, tmp, STRINGSIZE);
     ClearSpecificTempMemory(tmp);
 }
 

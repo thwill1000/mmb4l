@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../Hardware_Includes.h"
+#include "../common/utility.h"
 #include "MMBasic_Includes.h"
 #include "funtbl.h"
 
@@ -66,9 +67,7 @@ MmResult funtbl_add(
             // Functions and Subs share a namespace but Labels do not.
             switch (funtbl[funtbl_hashmap[hash]].type) {
                 case kFunction:
-#if !defined(__clang__)
-                    [[fallthrough]];
-#endif
+                    CASE_FALLTHROUGH;
                 case kSub:
                     if (type == kFunction || type == kSub) return kDuplicateFunction;
                     break;
@@ -107,12 +106,16 @@ void funtbl_clear() {
 void funtbl_dump() {
     for (int ii = 0; ii < MAXSUBFUN; ++ii) {
         if (funtbl[ii].name[0]) printf(
-                "[%d] %s, type = %d, hash = %d, addr = %ld\n",
+#if defined(ENV64BIT)
+                "[%d] %s, type = %d, hash = %d, addr = %8lx\n",
+#else
+                "[%d] %s, type = %d, hash = %d, addr = %8ix\n",
+#endif
                 ii,
                 funtbl[ii].name,
                 funtbl[ii].type,
                 funtbl[ii].hash,
-                (uint64_t) funtbl[ii].addr);
+                (uintptr_t) funtbl[ii].addr);
     }
 }
 

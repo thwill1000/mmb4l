@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmb4l.h"
 #include "console.h"
 #include "cstring.h"
+#include "utility.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -251,8 +252,7 @@ static MmResult parse_transform_star_command(char *input) {
     if (dst - tmp >= STRINGSIZE) return kStringTooLong;
 
     // Copy transformed string back into the input buffer.
-    strncpy(input, tmp, STRINGSIZE - 1);
-    input[STRINGSIZE - 1] = '\0';
+    cstring_cpy(input, tmp, STRINGSIZE);
 
     return kOk;
 }
@@ -281,11 +281,10 @@ static MmResult parse_transform_bang_cd_command(char *input, char *src) {
     // End the command with a double quote unless the input ended with one.
     if (*(src - 1) != '\"') *dst++ = '\"';
 
-    // Copy transformed string back into the input buffer.
-    strncpy(input, tmp, STRINGSIZE - 1);
-    input[STRINGSIZE - 1] = '\0';
-
     *dst = '\0';
+
+    // Copy transformed string back into the input buffer.
+    cstring_cpy(input, tmp, STRINGSIZE);
 
     return kOk;
 }
@@ -354,8 +353,7 @@ static MmResult parse_transform_bang_command(char *input) {
     *dst = '\0';
 
     // Copy transformed string back into the input buffer.
-    strncpy(input, tmp, STRINGSIZE - 1);
-    input[STRINGSIZE - 1] = '\0';
+    cstring_cpy(input, tmp, STRINGSIZE);
 
     return kOk;
 }

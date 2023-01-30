@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 error.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -179,9 +179,7 @@ static void verror(MmResult error, const char *msg, va_list argp) {
         msg++;
     }
 
-    // Don't overflow mmb_error_state_ptr->message.
-    strncpy(mmb_error_state_ptr->message, buf, MAXERRMSG - 1);
-    mmb_error_state_ptr->message[MAXERRMSG - 1] = '\0';
+    cstring_cpy(mmb_error_state_ptr->message, buf, MAXERRMSG);
 
     if (mmb_error_state_ptr->skip) {
         *mmb_error_state_ptr->file = '\0';

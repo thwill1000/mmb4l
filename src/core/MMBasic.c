@@ -516,9 +516,7 @@ int FindSubFun(const char *p, uint8_t type_mask) {
 
     switch (result) {
         case kOk:
-#if !defined(__clang__)
-            [[fallthrough]];
-#endif
+            CASE_FALLTHROUGH;
         case kFunctionNotFound:
             return fun_idx;
         case kNameTooLong:
@@ -1935,9 +1933,7 @@ void *findvar(const char *p, int action) {
                 return NULL;
             case kFunctionTypeMismatch:
                 // Found a label.
-#if !defined(__clang__)
-                [[fallthrough]];
-#endif
+                CASE_FALLTHROUGH;
             case kFunctionNotFound:
                 break;
             default:

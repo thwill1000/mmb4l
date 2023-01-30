@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cstring.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -52,13 +52,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @param dst     the string buffer to append to.
  * @param src     the string buffer to append.
- * @param dst_sz  the size of the 'dst' buffer.
+ * @param dst_sz  the size of the \p dst buffer.
  * @return        0 on success, -1 if the 'dst' buffer was too small to hold
- *                the result without overrun. On failure the 'dst' buffer will
+ *                the result without overrun. On failure the \p dst buffer will
  *                contain the result truncated to avoid an overrun whilst still
  *                allowing for a terminating '\0'.
  */
-int cstring_cat(char *dst, const char* src, size_t dst_sz);
+int cstring_cat(char *dst, const char *src, size_t dst_sz);
+
+/**
+ * @brief  Safely copies strings.
+ *
+ * @param dst     the string buffer to write to.
+ * @param src     the string buffer to read from.
+ * @param dst_sz  the size of the \p dst buffer.
+ * @return        0 on success, -1 if the \p dst buffer was too small to hold
+ *                the result without overrun. On failure the \p dst buffer will
+ *                contain the \p src truncated to avoid an overrun whilst still
+ *                allowing for a terminating '\0'.
+*/
+int cstring_cpy(char *dst, const char *src, size_t dst_sz);
 
 /**
  * @brief Performs inplace double-quoting of a C-string.
