@@ -27,15 +27,18 @@ add_test("test_sub_max_length_name")
 add_test("test_sub_too_long_name")
 add_test("test_fun_alt_type_syntax")
 add_test("test_sub_alt_type_syntax")
+add_test("test_fun_label_and_sub")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
 
-Sub sub_a()
+Sub sub_a(i%)
+  i% = 42
 End Sub
 
 Function fun_b%()
+  fun_b% = 42
 End Function
 
 Sub test_call_fn_as_sub()
@@ -70,7 +73,7 @@ Sub test_call_fn_with_wrong_type()
 End Sub
 
 Sub test_assign_fn_to_wrong_type()
-  On Error Skip 2
+  On Error Skip 3 ' Needs SKIP 3 because of lines to skip in function itself.
   Local s$ = fun_b%()
   assert_raw_error("Expected a string")
 End Sub
@@ -129,3 +132,36 @@ Sub test_sub_alt_type_syntax()
   isub(c, d)
   assert_int_equals(42, d)
 End Sub
+
+' Smoke test for mixing functions, labels and subroutines with same names.
+Sub test_fun_label_and_sub()
+  Local i%, s$
+
+  Restore aaa
+  Read s$
+  assert_string_equals("aaa", s$)
+
+  Restore bbb
+  Read s$
+  assert_string_equals("bbb", s$)
+
+  aaa(i%, 3.14)
+  assert_int_equals(3, i%)
+
+  i% = bbb(42, 3.142)
+  assert_int_equals(126, i%)
+End Sub
+
+zzz: Data "zzz"
+
+aaa: Sub aaa(i As Integer, f As Float)
+  i = Int(f)
+End Sub
+
+Data "aaa", "zzz"
+
+bbb: Function bbb(i As Integer, f As Float) As Integer
+  bbb = i * Int(f)
+End Function
+
+Data "bbb"

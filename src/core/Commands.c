@@ -1193,7 +1193,9 @@ void cmd_subfun(void) {
     int returntoken;
     int errtoken;
 
-    if(gosubindex != 0) error("No matching END declaration");       // we have hit a SUB/FUN while in another SUB or FUN
+    if(gosubindex != 0) error("No matching END declaration");       // We have hit a SUB/FUNCTION while in another SUB or FUN.
+                                                                    // This can also happen if we GOSUB somewhere and then
+                                                                    // encounter SUB/FUNCTION before we RETURN.
     if(cmdtoken == cmdSUB) {
         returntoken = GetCommandValue("End Sub");
         errtoken = GetCommandValue("End Function");

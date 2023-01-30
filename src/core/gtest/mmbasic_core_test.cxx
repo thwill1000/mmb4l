@@ -1049,6 +1049,51 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenTwoFunctionsWithSameNameButDifferent
     EXPECT_STREQ("", error_msg);
 }
 
+TEST_F(MmBasicCoreTest, PrepareProgram_GivenMixOfFunctionsLabelsAndSubs) {
+    // Deliberately erratically spaced.
+    TokeniseAndAppend("  zzz: Data \"zzz\"");
+    TokeniseAndAppend(" aaa:   Sub  aaa(i As Integer, f As Float)");
+    TokeniseAndAppend(" i = Int(f)");
+    TokeniseAndAppend("End Sub");
+    TokeniseAndAppend("Data \"aaa\", \"zzz\"");
+    TokeniseAndAppend("    bbb: Function bbb(i As Integer, f As Float) As Integer");
+    TokeniseAndAppend("bbb = i * Int(f)");
+    TokeniseAndAppend(" End Function");
+    TokeniseAndAppend("  Data \"bbb\"");
+    program_dump_memory();
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("", error_msg);
+
+    // Currently PrepareProgram() processes FUNCTION and SUB first.
+    EXPECT_STREQ("AAA", funtbl[0].name);
+    EXPECT_EQ(kSub, funtbl[0].type);
+    printf("%ld\n", funtbl[0].addr - ProgMemory);
+    EXPECT_EQ(ProgMemory + 26, funtbl[0].addr);
+
+    EXPECT_STREQ("BBB", funtbl[1].name);
+    EXPECT_EQ(kFunction, funtbl[1].type);
+    printf("%ld\n", funtbl[1].addr - ProgMemory);
+    EXPECT_EQ(ProgMemory + 96, funtbl[1].addr);
+
+    // And then labels.
+    EXPECT_STREQ("ZZZ", funtbl[2].name);
+    EXPECT_EQ(kLabel, funtbl[2].type);
+    printf("%ld\n", funtbl[2].addr - ProgMemory);
+    EXPECT_EQ(ProgMemory, funtbl[2].addr);
+
+    EXPECT_STREQ("AAA", funtbl[3].name);
+    EXPECT_EQ(kLabel, funtbl[3].type);
+    printf("%ld\n", funtbl[3].addr - ProgMemory);
+    EXPECT_EQ(ProgMemory + 16, funtbl[3].addr);
+
+    EXPECT_STREQ("BBB", funtbl[4].name);
+    EXPECT_EQ(kLabel, funtbl[4].type);
+    printf("%ld\n", funtbl[4].addr - ProgMemory);
+    EXPECT_EQ(ProgMemory + 85, funtbl[4].addr);
+}
+
 TEST_F(MmBasicCoreTest, FindSubFun_Errors_GivenFunctionNameTooLong) {
     int fun_idx = FindSubFun(MAX_LENGTH_NAME "A", kFunction);
 
