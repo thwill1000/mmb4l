@@ -949,7 +949,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenTooManyFunctions) {
 
     PrepareProgram(1);
 
-    EXPECT_STREQ("Too many functions/subroutines", error_msg);
+    EXPECT_STREQ("Too many functions/labels/subroutines", error_msg);
 
     error_msg[0] = '\0';
     PrepareProgram(0); // Should not report error.
@@ -957,13 +957,13 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenTooManyFunctions) {
     EXPECT_STREQ("", error_msg);
 }
 
-TEST_F(MmBasicCoreTest, PrepareProgram_GivenInvalidFunctionName) {
+TEST_F(MmBasicCoreTest, PrepareProgram_Errors_GivenInvalidFunctionName) {
     TokeniseAndAppend("Function .foo()");
     TokeniseAndAppend("End Function");
 
     PrepareProgram(1);
 
-    EXPECT_STREQ("Invalid function/subroutine name", error_msg);
+    EXPECT_STREQ("Invalid function name", error_msg);
 
     error_msg[0] = '\0';
     PrepareProgram(0); // Should not report error.
@@ -971,7 +971,21 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenInvalidFunctionName) {
     EXPECT_STREQ("", error_msg);
 }
 
-TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionNameContainingPeriod) {
+TEST_F(MmBasicCoreTest, PrepareProgram_Errors_GivenInvalidSubName) {
+    TokeniseAndAppend("Sub .foo()");
+    TokeniseAndAppend("End Sub");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("Invalid subroutine name", error_msg);
+
+    error_msg[0] = '\0';
+    PrepareProgram(0); // Should not report error.
+
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_Succeeds_GivenFunctionNameContainingPeriod) {
     TokeniseAndAppend("Function f.oo()");
     TokeniseAndAppend("End Function");
     TokeniseAndAppend("Sub b.ar()");
@@ -990,7 +1004,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionNameContainingPeriod) {
     EXPECT_EQ(1, fun_idx);
 }
 
-TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionHasMaximumLengthName) {
+TEST_F(MmBasicCoreTest, PrepareProgram_Succeeds_GivenFunctionHasMaximumLengthName) {
     TokeniseAndAppend("Function " MAX_LENGTH_NAME "()");
     TokeniseAndAppend("End Function");
 
@@ -1003,13 +1017,53 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionHasMaximumLengthName) {
     EXPECT_EQ(0, fun_idx);
 }
 
-TEST_F(MmBasicCoreTest, PrepareProgram_GivenFunctionNameTooLong) {
+TEST_F(MmBasicCoreTest, PrepareProgram_Succeeds_GivenLabelHasMaximumLength) {
+    TokeniseAndAppend(MAX_LENGTH_NAME ":");
+    TokeniseAndAppend("Print \"foo\"");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("", error_msg);
+
+    int fun_idx = FindSubFun(MAX_LENGTH_NAME, kLabel);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, fun_idx);
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_Succeeds_GivenSubHasMaximumLengthName) {
+    TokeniseAndAppend("Sub " MAX_LENGTH_NAME "()");
+    TokeniseAndAppend("End Sub");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("", error_msg);
+
+    int fun_idx = FindSubFun(MAX_LENGTH_NAME, kSub);
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(0, fun_idx);
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_Errors_GivenFunctionNameTooLong) {
     TokeniseAndAppend("Function " MAX_LENGTH_NAME "A()");
     TokeniseAndAppend("End Function");
 
     PrepareProgram(1);
 
-    EXPECT_STREQ("Function/subroutine name too long", error_msg);
+    EXPECT_STREQ("Function name too long", error_msg);
+
+    error_msg[0] = '\0';
+    PrepareProgram(0);  // Should not report error.
+
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_Errors_GivenSubNameTooLong) {
+    TokeniseAndAppend("Sub " MAX_LENGTH_NAME "A()");
+    TokeniseAndAppend("End Sub");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("Subroutine name too long", error_msg);
 
     error_msg[0] = '\0';
     PrepareProgram(0);  // Should not report error.
@@ -1026,6 +1080,22 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenSubWithSameNameAsFunction) {
     PrepareProgram(1);
 
     EXPECT_STREQ("Function/subroutine already declared", error_msg);
+
+    error_msg[0] = '\0';
+    PrepareProgram(0);  // Should not report error.
+
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(MmBasicCoreTest, PrepareProgram_Errors_GivenDuplicateLabel) {
+    TokeniseAndAppend("foo:");
+    TokeniseAndAppend("Print \"foo\"");
+    TokeniseAndAppend("foo:");
+    TokeniseAndAppend("Print \"bar\"");
+
+    PrepareProgram(1);
+
+    EXPECT_STREQ("Duplicate label", error_msg);
 
     error_msg[0] = '\0';
     PrepareProgram(0);  // Should not report error.
@@ -1060,38 +1130,30 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenMixOfFunctionsLabelsAndSubs) {
     TokeniseAndAppend("bbb = i * Int(f)");
     TokeniseAndAppend(" End Function");
     TokeniseAndAppend("  Data \"bbb\"");
-    program_dump_memory();
 
     PrepareProgram(1);
 
     EXPECT_STREQ("", error_msg);
 
-    // Currently PrepareProgram() processes FUNCTION and SUB first.
-    EXPECT_STREQ("AAA", funtbl[0].name);
-    EXPECT_EQ(kSub, funtbl[0].type);
-    printf("%ld\n", funtbl[0].addr - ProgMemory);
-    EXPECT_EQ(ProgMemory + 26, funtbl[0].addr);
+    EXPECT_STREQ("ZZZ", funtbl[0].name);
+    EXPECT_EQ(kLabel, funtbl[0].type);
+    EXPECT_EQ(ProgMemory, funtbl[0].addr);
 
-    EXPECT_STREQ("BBB", funtbl[1].name);
-    EXPECT_EQ(kFunction, funtbl[1].type);
-    printf("%ld\n", funtbl[1].addr - ProgMemory);
-    EXPECT_EQ(ProgMemory + 96, funtbl[1].addr);
+    EXPECT_STREQ("AAA", funtbl[1].name);
+    EXPECT_EQ(kLabel, funtbl[1].type);
+    EXPECT_EQ(ProgMemory + 16, funtbl[1].addr);
 
-    // And then labels.
-    EXPECT_STREQ("ZZZ", funtbl[2].name);
-    EXPECT_EQ(kLabel, funtbl[2].type);
-    printf("%ld\n", funtbl[2].addr - ProgMemory);
-    EXPECT_EQ(ProgMemory, funtbl[2].addr);
+    EXPECT_STREQ("AAA", funtbl[2].name);
+    EXPECT_EQ(kSub, funtbl[2].type);
+    EXPECT_EQ(ProgMemory + 26, funtbl[2].addr);
 
-    EXPECT_STREQ("AAA", funtbl[3].name);
+    EXPECT_STREQ("BBB", funtbl[3].name);
     EXPECT_EQ(kLabel, funtbl[3].type);
-    printf("%ld\n", funtbl[3].addr - ProgMemory);
-    EXPECT_EQ(ProgMemory + 16, funtbl[3].addr);
+    EXPECT_EQ(ProgMemory + 85, funtbl[3].addr);
 
     EXPECT_STREQ("BBB", funtbl[4].name);
-    EXPECT_EQ(kLabel, funtbl[4].type);
-    printf("%ld\n", funtbl[4].addr - ProgMemory);
-    EXPECT_EQ(ProgMemory + 85, funtbl[4].addr);
+    EXPECT_EQ(kFunction, funtbl[4].type);
+    EXPECT_EQ(ProgMemory + 96, funtbl[4].addr);
 }
 
 TEST_F(MmBasicCoreTest, FindSubFun_Errors_GivenFunctionNameTooLong) {

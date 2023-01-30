@@ -362,40 +362,110 @@ void ExecuteProgram(const char *p) {
  Code associated with processing user defined subroutines and functions
 ********************************************************************************************************************************************/
 
-void hash_labels(bool abort_on_error) {
-    const char *pnewline = NULL;
-    char name[MAXVARLEN + 1];
-    int fun_idx;
-    MmResult result;
-
-    for (const char *p = ProgMemory; !(p[0] == 0 && p[1] == 0); ++p) {
-        switch (*p) {
-            case T_NEWLINE:
-                pnewline = p;
-                break;
-            case T_LINENBR:
-                p += 2; // Skip 2 byte line number.
-                break;
-            case T_LABEL:
-                p += 2; // Skip 1 byte token and 1 byte label length.
-                result = parse_name(&p, name);
-                if (SUCCEEDED(result)) {
-                    result = (pnewline == NULL)
-                            ? kInternalFault
-                            : funtbl_add(name, kLabel, pnewline, &fun_idx);
-                    p -= 1; // Backup to last line of name.
-                }
-                if (FAILED(result) && abort_on_error) error_throw(result);
-                pnewline = NULL;
-                break;
-            default:
-                // Do nothing.
-                break;
-        }
+/**
+ * @brief  Formats error message from a call to AddFunction().
+ */
+static const char *FormatAddFunctionError(MmResult result, FunType type) {
+    switch (result) {
+        case kDuplicateTarget:
+            switch (type) {
+                case kLabel:
+                    return "Duplicate label";
+                default:
+                    return "Function/subroutine already declared";
+            }
+            break;
+        case kInvalidName:
+            switch (type) {
+                case kFunction:
+                    return "Invalid function name";
+                case kLabel:
+                    // Does not seem to be possible;
+                    // the tokeniser doesn't recognise it as a label.
+                    return "Invalid label";
+                default:
+                    return "Invalid subroutine name";
+            }
+            break;
+        case kNameTooLong:
+            switch (type) {
+                case kFunction:
+                    return "Function name too long";
+                case kLabel:
+                    // Does not seem to be possible;
+                    // the tokeniser doesn't recognise it as a label.
+                    return "Label too long";
+                default:
+                    return "Subroutine name too long";
+            }
+            break;
+        case kTooManyTargets:
+            return "Too many functions/labels/subroutines";
+        default:
+            return mmresult_to_string(result);
     }
 }
 
-void MIPS16 PrepareProgramExt(const char *, unsigned char **, int);
+/**
+ * @brief  Adds a function, label or subroutine to the function table.
+ */
+static MmResult AddFunction(const char **p, FunType type, const char *addr) {
+    char name[MAXVARLEN + 1];
+    MmResult result = parse_name(p, name);
+    if (SUCCEEDED(result)) {
+        int fun_idx;
+        result = funtbl_add(name, type, addr, &fun_idx);
+    }
+    return result;
+}
+
+/**
+ * @brief  Populates the function table by searching ProgMemory for functions,
+ *         labels and subroutines.
+ */
+static void PrepareFunctionTable(bool abort_on_error) {
+    const char *p = ProgMemory;
+    const char *pnewline = NULL;
+
+    funtbl_clear();
+
+    for (;;) {
+
+        // If we are not at the start of a line then look for the '/0' marking
+        // the start of a statement and step over it.
+        if (*p != T_NEWLINE) {
+            while(*p) p++;
+            p++;
+        }
+
+        if (*p == 0) break;                   // The end of the program.
+        if (*p == T_NEWLINE) pnewline = p++;  // Record position of newline and step over token.
+        if (*p == T_LINENBR) p += 3;          // Step over token and 2-byte line number
+
+        skipspace(p);
+
+        // Have we found a label ?
+        if (*p == T_LABEL) {
+            p += 2; // Step over the token and the length byte.
+            MmResult result = AddFunction(&p, kLabel, pnewline);
+            if (FAILED(result) && abort_on_error) {
+                error_throw_ex(result, FormatAddFunctionError(result, kLabel));
+            }
+            skipspace(p);
+        }
+
+        // Have we found a function or subroutine ?
+        if (*p == cmdSUB || *p == cmdCSUB || *p == cmdFUN || *p == cmdCFUN) {
+            int type = (*p == cmdSUB || *p == cmdCSUB) ? kSub : kFunction;
+            const char *addr = p;
+            p++; // Step over the token.
+            MmResult result = AddFunction(&p, type, addr);
+            if (FAILED(result) && abort_on_error) {
+                error_throw_ex(result, FormatAddFunctionError(result, type));
+            }
+        }
+    }
+}
 
 // Scan through the program loaded in flash and build a table pointing to the definition of all user defined subroutines and functions.
 // This pre processing speeds up the program when using defined subroutines and functions
@@ -409,54 +479,8 @@ void MIPS16 PrepareProgram(int ErrAbort) {
 #if !defined(__mmb4l__)
     CFunctionFlash = CFunctionLibrary = NULL;
 #endif
-    PrepareProgramExt(ProgMemory, (unsigned char **) &CFunctionFlash, ErrAbort);
-    hash_labels(ErrAbort);
-}
 
-
-// This scans one area (main program or the library area) for user defined subroutines and functions.
-// It is only used by PrepareProgram() above.
-void MIPS16 PrepareProgramExt(const char *p, unsigned char **CFunPtr, int ErrAbort) {
-    const char *code;
-    char name[MAXVARLEN + 1];
-    int fun_idx;
-    funtbl_clear();
-    while (*p != 0xff) {
-        p = GetNextCommand(p, &CurrentLinePtr, NULL);
-        if (*p == 0) break;                                          // end of the program or module
-        int type = 0x0;
-        if (*p == cmdSUB || *p == cmdCSUB) {
-            type = kSub;
-        } else if (*p == cmdFUN || *p == cmdCFUN) {
-            type = kFunction;
-        }
-        if (type) {  // found a SUB, FUN, CFUNCTION or CSUB token
-            code = p++;
-            skipspace(p);
-            MmResult result = parse_name(&p, name);
-            if (SUCCEEDED(result)) result = funtbl_add(name, type, code, &fun_idx);
-            if (FAILED(result) && ErrAbort) {
-                switch (result) {
-                    case kDuplicateTarget:
-                        error_throw_ex(result, "Function/subroutine already declared");
-                        break;
-                    case kInvalidName:
-                        error_throw_ex(result, "Invalid function/subroutine name");
-                        break;
-                    case kNameTooLong:
-                        error_throw_ex(result, "Function/subroutine name too long");
-                        break;
-                    case kTooManyTargets:
-                        error_throw_ex(result, "Too many functions/subroutines");
-                        break;
-                    default:
-                        error_throw(result);
-                        break;
-                }
-            }
-        }
-        while(*p) p++;                                              // look for the zero marking the start of the next element
-    }
+    PrepareFunctionTable(ErrAbort);
 
 #if defined(MICROMITE)
     while(*p == 0) p++;                                             // the end of the program can have multiple zeros
