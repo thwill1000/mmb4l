@@ -25,6 +25,8 @@ add_test("test_fun_max_length_name")
 add_test("test_fun_too_long_name")
 add_test("test_sub_max_length_name")
 add_test("test_sub_too_long_name")
+add_test("test_fun_alt_type_syntax")
+add_test("test_sub_alt_type_syntax")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -107,4 +109,23 @@ Sub test_sub_too_long_name()
   On Error Skip
   sub_with_too_long_name_4567890123(i%)
   assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Subroutine name too long", "Variable name too long"))
+End Sub
+
+Function ifun(i As Integer) As Integer
+  ifun = i
+End Function
+
+Sub test_fun_alt_type_syntax()
+  assert_int_equals(42, ifun(42))
+End Sub
+
+Sub isub(a As Integer, b As Integer)
+  b = a
+End Sub
+
+Sub test_sub_alt_type_syntax()
+  Local c As Integer = 42
+  Local Integer d
+  isub(c, d)
+  assert_int_equals(42, d)
 End Sub

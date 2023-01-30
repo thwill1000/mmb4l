@@ -742,7 +742,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         tp2 = (char *) skipvar(argv2[i], false);                    // point to after the variable
         skipspace(tp2);
         if (*tp2 == tokenAS) {                                      // are we using Microsoft syntax (eg, AS INTEGER)?
-            *tp2 ='\0';                                             // terminate the string and step over the AS token
+            *tp2++ = '\0';                                          // terminate the string and step over the AS token
             tp2 = (char *) CheckIfTypeSpecified(tp2, &ArgType, true);  // and get the type
             if(!(ArgType & T_IMPLIED)) error("Variable type");
         }
