@@ -514,6 +514,7 @@ int FindSubFun(const char *p, uint8_t type_mask) {
     int fun_idx;
     if (SUCCEEDED(result)) result = funtbl_find(name, type_mask, &fun_idx);
 
+    const char *msg = NULL;
     switch (result) {
         case kOk:
             CASE_FALLTHROUGH;
@@ -522,14 +523,14 @@ int FindSubFun(const char *p, uint8_t type_mask) {
         case kNameTooLong:
             switch (type_mask) {
                 case kFunction:
-                    error_throw_ex(result, "Function name too long");
-                    return -1;
+                    msg = "Function name too long";
+                    break;
                 case kSub:
-                    error_throw_ex(result, "Subroutine name too long");
-                    return -1;
+                    msg = "Subroutine name too long";
+                    break;
                 case kFunction | kSub:
-                    error_throw_ex(result, "Function/subroutine name too long");
-                    return -1;
+                    msg = "Function/subroutine name too long";
+                    break;
                 default:
                     break;
             }
@@ -538,11 +539,12 @@ int FindSubFun(const char *p, uint8_t type_mask) {
             if (funtbl[fun_idx].type == kLabel) return -1;
             switch (type_mask) {
                 case kSub:
-                    error_throw_ex(result, "Not a subroutine");
-                    return -1;
+                    msg = "Not a subroutine";
+                    break;
                 case kFunction | kSub:
-                    error_throw_ex(result, "Not a function or subroutine");
-                    return -1;
+                    // I don't think this is currently possible.
+                    msg = "Not a function/subroutine";
+                    break;
                 default:
                     break;
             }
@@ -551,7 +553,7 @@ int FindSubFun(const char *p, uint8_t type_mask) {
             break;
     }
 
-    error_throw(result);
+    error_throw_ex(result, msg ? msg : mmresult_to_string(result));
     return -1;
 }
 
