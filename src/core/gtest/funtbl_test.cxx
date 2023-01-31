@@ -73,7 +73,7 @@ TEST_F(FuntblTest, Add) {
     EXPECT_EQ(2, funtbl_count);
 }
 
-TEST_F(FuntblTest, Add_GivenTooManyTargets) {
+TEST_F(FuntblTest, Add_GivenTooManyFunctions) {
     int fun_idx;
     char buf[MAXVARLEN + 1];
     for (int ii = 0; ii < MAXSUBFUN; ++ii) {
@@ -85,7 +85,7 @@ TEST_F(FuntblTest, Add_GivenTooManyTargets) {
 
     MmResult result = funtbl_add("bar", kSub, ADDRESS_1, &fun_idx);
 
-    EXPECT_EQ(kTooManyTargets, result);
+    EXPECT_EQ(kTooManyFunctions, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
@@ -202,37 +202,37 @@ TEST_F(FuntblTest, Add_ReturnsInternalFault_GivenInvalidAddress) {
     EXPECT_EQ(1, fun_idx);
 }
 
-TEST_F(FuntblTest, Add_ReturnsDuplicateTarget_GivenTwoSubsWithSameName) {
+TEST_F(FuntblTest, Add_ReturnsDuplicateFunction_GivenTwoSubsWithSameName) {
     int fun_idx;
     (void) funtbl_add("foo", kSub, ADDRESS_1, &fun_idx);
 
     MmResult result = funtbl_add("foo", kSub, ADDRESS_2, &fun_idx);
 
-    EXPECT_EQ(kDuplicateTarget, result);
+    EXPECT_EQ(kDuplicateFunction, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
-TEST_F(FuntblTest, Add_ReturnsDuplicateTarget_GivenTwoFunctionsWithSameName) {
+TEST_F(FuntblTest, Add_ReturnsDuplicateFunction_GivenTwoFunctionsWithSameName) {
     int fun_idx;
     (void) funtbl_add("foo", kFunction, ADDRESS_1, &fun_idx);
 
     MmResult result = funtbl_add("foo", kFunction, ADDRESS_2, &fun_idx);
 
-    EXPECT_EQ(kDuplicateTarget, result);
+    EXPECT_EQ(kDuplicateFunction, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
-TEST_F(FuntblTest, Add_ReturnsDuplicateTarget_GivenTwoLabelsWithSameName) {
+TEST_F(FuntblTest, Add_ReturnsDuplicateFunction_GivenTwoLabelsWithSameName) {
     int fun_idx;
     (void) funtbl_add("foo", kLabel, ADDRESS_1, &fun_idx);
 
     MmResult result = funtbl_add("foo", kLabel, ADDRESS_2, &fun_idx);
 
-    EXPECT_EQ(kDuplicateTarget, result);
+    EXPECT_EQ(kDuplicateFunction, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
-TEST_F(FuntblTest, Add_ReturnsDuplicateTarget_GivenSubAndFunctionWithSameName) {
+TEST_F(FuntblTest, Add_ReturnsDuplicateFunction_GivenSubAndFunctionWithSameName) {
     int fun_idx;
     (void) funtbl_add("foo", kSub, ADDRESS_1, &fun_idx);
     (void) funtbl_add("bar", kFunction, ADDRESS_2, &fun_idx);
@@ -240,13 +240,13 @@ TEST_F(FuntblTest, Add_ReturnsDuplicateTarget_GivenSubAndFunctionWithSameName) {
     // Add function with same name as sub.
     MmResult result = funtbl_add("foo", kFunction, ADDRESS_3, &fun_idx);
 
-    EXPECT_EQ(kDuplicateTarget, result);
+    EXPECT_EQ(kDuplicateFunction, result);
     EXPECT_EQ(-1, fun_idx);
 
     // Add sub with same name as function.
     result = funtbl_add("bar", kSub, ADDRESS_4, &fun_idx);
 
-    EXPECT_EQ(kDuplicateTarget, result);
+    EXPECT_EQ(kDuplicateFunction, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
@@ -339,7 +339,7 @@ TEST_F(FuntblTest, Find_GiveSubNotFound_AndHashmapNotFull) {
 
     MmResult result = funtbl_find("wombat", kSub, &fun_idx);
 
-    EXPECT_EQ(kTargetNotFound, result);
+    EXPECT_EQ(kFunctionNotFound, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
@@ -349,7 +349,7 @@ TEST_F(FuntblTest, Find_GivenSubNotFound_AndHashmapFull) {
     int fun_idx;
     MmResult result = funtbl_find("wombat", kSub, &fun_idx);
 
-    EXPECT_EQ(kTargetNotFound, result);
+    EXPECT_EQ(kFunctionNotFound, result);
     EXPECT_EQ(-1, fun_idx);
 }
 
@@ -360,7 +360,7 @@ TEST_F(FuntblTest, Find_GivenLookingForFunctionButFindSub) {
 
     MmResult result = funtbl_find("fnfoo", kSub, &fun_idx);
 
-    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(kFunctionTypeMismatch, result);
     EXPECT_EQ(0, fun_idx);
 }
 
@@ -371,7 +371,7 @@ TEST_F(FuntblTest, Find_GivenLookingForSubButFindFunction) {
 
     MmResult result = funtbl_find("subfoo", kFunction, &fun_idx);
 
-    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(kFunctionTypeMismatch, result);
     EXPECT_EQ(1, fun_idx);
 }
 
@@ -397,7 +397,7 @@ TEST_F(FuntblTest, Find_ReturnsTypeMismatch_GivenLookingForFunction_ButFindsSub)
 
     MmResult result = funtbl_find("foo", kFunction, &fun_idx);
 
-    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(kFunctionTypeMismatch, result);
     EXPECT_EQ(0, fun_idx);
 }
 
@@ -419,7 +419,7 @@ TEST_F(FuntblTest, Find_ReturnsTypeMismatch_GivenLookingForSub_ButFindsFunction)
 
     MmResult result = funtbl_find("foo", kSub, &fun_idx);
 
-    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(kFunctionTypeMismatch, result);
     EXPECT_EQ(0, fun_idx);
 }
 
@@ -465,7 +465,7 @@ TEST_F(FuntblTest, Find_ReturnsTypeMismatch_GivenLookingForFunction_ButOnlyFinds
 
     MmResult result = funtbl_find("foo", kFunction, &fun_idx);
 
-    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(kFunctionTypeMismatch, result);
     EXPECT_EQ(0, fun_idx);
 }
 
@@ -475,7 +475,7 @@ TEST_F(FuntblTest, Find_ReturnsTypeMismatch_GivenLookingForSub_ButOnlyFindsLabel
 
     MmResult result = funtbl_find("foo", kSub, &fun_idx);
 
-    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(kFunctionTypeMismatch, result);
     EXPECT_EQ(0, fun_idx);
 }
 
@@ -485,7 +485,7 @@ TEST_F(FuntblTest, Find_ReturnsTypeMismatch_GivenLookingForSubOrFunction_ButOnly
 
     MmResult result = funtbl_find("foo", kFunction | kSub, &fun_idx);
 
-    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(kFunctionTypeMismatch, result);
     EXPECT_EQ(0, fun_idx);
 }
 
@@ -495,7 +495,7 @@ TEST_F(FuntblTest, Find_ReturnsTypeMismatch_GivenLookingForLabel_ButOnlyFindsFun
 
     MmResult result = funtbl_find("foo", kLabel, &fun_idx);
 
-    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(kFunctionTypeMismatch, result);
     EXPECT_EQ(0, fun_idx);
 }
 
@@ -505,7 +505,7 @@ TEST_F(FuntblTest, Find_ReturnsTypeMismatch_GivenLookingForLabel_ButOnlyFindsSub
 
     MmResult result = funtbl_find("foo", kLabel, &fun_idx);
 
-    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(kFunctionTypeMismatch, result);
     EXPECT_EQ(0, fun_idx);
 }
 
@@ -516,7 +516,7 @@ TEST_F(FuntblTest, Find_ReturnsMismatchedSubInPreferenceToLabel) {
 
     MmResult result = funtbl_find("foo", kFunction, &fun_idx);
 
-    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(kFunctionTypeMismatch, result);
     EXPECT_EQ(0, fun_idx);
 }
 
@@ -527,6 +527,6 @@ TEST_F(FuntblTest, Find_ReturnMismatchedFunctionInPreferenceToLabel) {
 
     MmResult result = funtbl_find("foo", kSub, &fun_idx);
 
-    EXPECT_EQ(kTargetTypeMismatch, result);
+    EXPECT_EQ(kFunctionTypeMismatch, result);
     EXPECT_EQ(0, fun_idx);
 }

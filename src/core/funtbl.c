@@ -55,7 +55,7 @@ size_t funtbl_count = 0;
 MmResult funtbl_add(
         const char *name, FunType type, const char *addr, int *fun_idx) {
     *fun_idx = -1;
-    if (funtbl_count == MAXSUBFUN) return kTooManyTargets;
+    if (funtbl_count == MAXSUBFUN) return kTooManyFunctions;
     if (addr < ProgMemory || addr >= ProgMemory + PROG_FLASH_SIZE) return kInternalFault;
 
     // Record function in the hashmap.
@@ -70,10 +70,10 @@ MmResult funtbl_add(
                     [[fallthrough]];
 #endif
                 case kSub:
-                    if (type == kFunction || type == kSub) return kDuplicateTarget;
+                    if (type == kFunction || type == kSub) return kDuplicateFunction;
                     break;
                 case kLabel:
-                    if (type == kLabel) return kDuplicateTarget;
+                    if (type == kLabel) return kDuplicateFunction;
                     break;
                 default:
                     *fun_idx = -1;
@@ -155,5 +155,5 @@ MmResult funtbl_find(const char *name, uint8_t type_mask, int *fun_idx) {
     } while (hash != original_hash);
 
     *fun_idx = mismatch;
-    return *fun_idx == -1 ? kTargetNotFound : kTargetTypeMismatch;
+    return *fun_idx == -1 ? kFunctionNotFound : kFunctionTypeMismatch;
 }

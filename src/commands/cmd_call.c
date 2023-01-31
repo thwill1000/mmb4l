@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/utility.h"
 
-#define ERROR_SUB_NOT_FOUND  error_throw_ex(kTargetNotFound, "Subroutine not found")
+#define ERROR_SUB_NOT_FOUND  error_throw_ex(kFunctionNotFound, "Subroutine not found")
 
 void cmd_call(void) {
     char *cmd = getCstring(cmdline);  // get the command we want to call

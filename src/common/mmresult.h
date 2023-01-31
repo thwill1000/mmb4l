@@ -77,15 +77,15 @@ typedef enum {
     kNotPersistent,
     kNameTooLong,
     kUnimplemented,
-    kTargetNotFound,
+    kFunctionNotFound,
     kVariableNotFound,
-    kTooManyTargets,
+    kTooManyFunctions,
     kTooManyVariables,
-    kDuplicateTarget,
+    kDuplicateFunction,
     kHashmapFull,
     kInvalidName,
     kInvalidArrayDimensions,
-    kTargetTypeMismatch
+    kFunctionTypeMismatch
 } MmResultCode;
 
 /**

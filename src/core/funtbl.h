@@ -121,16 +121,16 @@ void funtbl_dump();
  *                        kFunction        - to find a function.
  *                        kSub | kFunction - to find a subroutine or function.
  * @param[out] fun_idx    On exit, the index of the named function,
- *                        or -1 if not found. If \p kTargetTypeMismatch is
+ *                        or -1 if not found. If \p kFunctionTypeMismatch is
  *                        returned this will be the index of the mismatched
  *                        entry.
- * @return                kOk                 - if the function is found and
- *                                              its type matches \p type_mask.
- *                        kTargetTypeMismatch - if the function is found but
- *                                              its type does not match
- *                                              \p type_mask.
- *                        kFunctionNotFound   - if the function is not in the
- *                                              table.
+ * @return                kOk                   - if the function is found and
+ *                                                its type matches \p type_mask.
+ *                        kFunctionTypeMismatch - if the function is found but
+ *                                                its type does not match
+ *                                                \p type_mask.
+ *                        kFunctionNotFound     - if the function is not in the
+ *                                                table.
  */
 MmResult funtbl_find(const char *name, uint8_t type_mask, int *fun_idx);
 

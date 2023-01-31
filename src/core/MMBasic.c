@@ -367,13 +367,8 @@ void ExecuteProgram(const char *p) {
  */
 static const char *FormatAddFunctionError(MmResult result, FunType type) {
     switch (result) {
-        case kDuplicateTarget:
-            switch (type) {
-                case kLabel:
-                    return "Duplicate label";
-                default:
-                    return "Function/subroutine already declared";
-            }
+        case kDuplicateFunction:
+            if (type == kLabel) return "Duplicate label";
             break;
         case kInvalidName:
             switch (type) {
@@ -399,11 +394,11 @@ static const char *FormatAddFunctionError(MmResult result, FunType type) {
                     return "Subroutine name too long";
             }
             break;
-        case kTooManyTargets:
-            return "Too many functions/labels/subroutines";
         default:
-            return mmresult_to_string(result);
+            break;
     }
+
+    return mmresult_to_string(result);
 }
 
 /**
@@ -524,7 +519,7 @@ int FindSubFun(const char *p, uint8_t type_mask) {
 #if !defined(__clang__)
             [[fallthrough]];
 #endif
-        case kTargetNotFound:
+        case kFunctionNotFound:
             return fun_idx;
         case kNameTooLong:
             switch (type_mask) {
@@ -541,12 +536,9 @@ int FindSubFun(const char *p, uint8_t type_mask) {
                     break;
             }
             break;
-        case kTargetTypeMismatch:
+        case kFunctionTypeMismatch:
             if (funtbl[fun_idx].type == kLabel) return -1;
             switch (type_mask) {
-                case kFunction:
-                    error_throw_ex(result, "Not a function");
-                    return -1;
                 case kSub:
                     error_throw_ex(result, "Not a subroutine");
                     return -1;
@@ -1624,10 +1616,10 @@ const char *findlabel(const char *labelptr) {
     switch (result) {
         case kOk:
             return funtbl[fun_idx].addr;
-        case kTargetNotFound:
+        case kFunctionNotFound:
             error_throw_ex(result, "Label not found");
             return NULL;
-        case kTargetTypeMismatch:
+        case kFunctionTypeMismatch:
             error_throw_ex(result, "Not a label");
             return NULL;
         case kNameTooLong:
@@ -1941,12 +1933,12 @@ void *findvar(const char *p, int action) {
             case kOk:
                 error_throw_legacy("A function/subroutine has the same name: $", name);
                 return NULL;
-            case kTargetTypeMismatch:
+            case kFunctionTypeMismatch:
                 // Found a label.
 #if !defined(__clang__)
                 [[fallthrough]];
 #endif
-            case kTargetNotFound:
+            case kFunctionNotFound:
                 break;
             default:
                 error_throw(result);
@@ -3050,10 +3042,10 @@ const char *GetIntAddress(const char *p) {
             case kNameTooLong:
                 error_throw_ex(result, "Label/subroutine name too long");
                 return NULL;
-            case kTargetNotFound:
+            case kFunctionNotFound:
                 error_throw_ex(result, "Label/subroutine not found");
                 return NULL;
-            case kTargetTypeMismatch:
+            case kFunctionTypeMismatch:
                 error_throw_ex(result, "Not a label/subroutine");
                 return NULL;
             default:
