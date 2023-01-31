@@ -420,7 +420,7 @@ static MmResult AddFunction(const char **p, FunType type, const char *addr) {
  */
 static void PrepareFunctionTable(bool abort_on_error) {
     const char *p = ProgMemory;
-    const char *pnewline = NULL;
+    CurrentLinePtr = NULL;
 
     funtbl_clear();
 
@@ -433,16 +433,16 @@ static void PrepareFunctionTable(bool abort_on_error) {
             p++;
         }
 
-        if (*p == 0) break;                   // The end of the program.
-        if (*p == T_NEWLINE) pnewline = p++;  // Record position of newline and step over token.
-        if (*p == T_LINENBR) p += 3;          // Step over token and 2-byte line number
+        if (*p == 0) break;                         // The end of the program.
+        if (*p == T_NEWLINE) CurrentLinePtr = p++;  // Record newline and step over token.
+        if (*p == T_LINENBR) p += 3;                // Step over token and 2-byte line number
 
         skipspace(p);
 
         // Have we found a label ?
         if (*p == T_LABEL) {
             p += 2; // Step over the token and the length byte.
-            MmResult result = AddFunction(&p, kLabel, pnewline);
+            MmResult result = AddFunction(&p, kLabel, CurrentLinePtr);
             if (FAILED(result) && abort_on_error) {
                 error_throw_ex(result, FormatAddFunctionError(result, kLabel));
             }
