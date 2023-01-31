@@ -42,6 +42,7 @@ End Function
 foo_label:
 
 Sub test_dim_given_max_len()
+  If Not sys.is_device%("mmb4l") Then Exit Sub
   On Error Skip 1
   Dim max_len_901234567890123456789012%
   assert_no_error()
@@ -79,6 +80,7 @@ Sub test_dim_given_label()
 End Sub
 
 Sub test_local_given_max_len()
+  If Not sys.is_device%("mmb4l") Then Exit Sub
   On Error Skip 1
   Local max_len_901234567890123456789012%
   assert_no_error()

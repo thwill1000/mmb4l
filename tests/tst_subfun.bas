@@ -73,6 +73,7 @@ Sub test_call_fn_with_wrong_type()
 End Sub
 
 Sub test_assign_fn_to_wrong_type()
+  If sys.is_device%("cmm2*") Then Exit Sub
   On Error Skip 3 ' Needs SKIP 3 because of lines to skip in function itself.
   Local s$ = fun_b%()
   assert_raw_error("Expected a string")

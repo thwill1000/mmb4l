@@ -91,10 +91,15 @@ Sub test_call_fun_as_sub()
   Local i%
   On Error Skip
   Call "int_fn", i%
-  assert_raw_error("Not a subroutine")
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error("Not a subroutine")
+  Else
+    assert_raw_error("Type specification is invalid")
+  EndIf
 End Sub
 
 Sub test_call_sub_as_fun()
+  If Not sys.is_device%("mmb4l") Then Exit Sub
   Local i%
   On Error Skip
   i% = Call("foo", i%)
@@ -105,17 +110,26 @@ Sub test_call_label_as_fun()
   Local i%
   On Error Skip
   i% = Call("wombat_label", i%)
-  assert_raw_error("Function not found")
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error("Function not found")
+  Else
+    assert_raw_error("Unknown user function")
+  EndIf
 End Sub
 
 Sub test_call_label_as_sub()
   Local i%
   On Error Skip
   Call "wombat_label", i%
-  assert_raw_error("Subroutine not found")
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error("Subroutine not found")
+  Else
+    assert_raw_error("Unknown user subroutine")
+  EndIf
 End Sub
 
 Sub test_call_fun_max_name()
+  If Not sys.is_device%("mmb4l") Then Exit Sub
   Local i%
   i% = Call("fun_with_max_length_name_6789012%")
   assert_int_equals(42, i%)
@@ -125,7 +139,11 @@ Sub test_call_fun_too_long_name()
   Local i%
   On Error Skip
   i% = Call("fun_with_too_long_name_4567890123%", i%)
-  assert_raw_error("Function name too long")
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error("Function name too long")
+  Else
+    assert_raw_error("Variable name too long")
+  EndIf
 End Sub
 
 Sub test_call_sub_max_name()
@@ -138,21 +156,33 @@ Sub test_call_sub_too_long_name()
   Local i%
   On Error Skip
   Call "sub_with_too_long_name_4567890123", i%
-  assert_raw_error("Subroutine name too long")
-End Sub
-
-Sub test_call_missing_sub()
-  Local i%
-  On Error Skip
-  Call "missing_sub", i%
-  assert_raw_error("Subroutine not found")
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error("Subroutine name too long")
+  Else
+    assert_raw_error("Variable name too long")
+  EndIf
 End Sub
 
 Sub test_call_missing_fun()
   Local i%
   On Error Skip
   i% = Call("missing_fun", i%)
-  assert_raw_error("Function not found")
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error("Function not found")
+  Else
+    assert_raw_error("Unknown user function")
+  EndIf
+End Sub
+
+Sub test_call_missing_sub()
+  Local i%
+  On Error Skip
+  Call "missing_sub", i%
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error("Subroutine not found")
+  Else
+    assert_raw_error("Unknown user subroutine")
+  EndIf
 End Sub
 
 ' Prior to 5.07.01 this would report an "Argument List" error from the Print #1 statement.
