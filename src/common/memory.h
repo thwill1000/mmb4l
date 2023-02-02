@@ -45,19 +45,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_MEMORY_H)
 #define MMB4L_MEMORY_H
 
+#include "../Configuration.h"
+
 #include <stddef.h>
 #include <stdint.h>
-
-#include "../Configuration.h"
-#include "../core/VarTable.h"
 
 extern char *StrTmp[];                                      // used to track temporary string space on the heap
 extern int TempMemoryTop;                                   // this is the last index used for allocating temp memory
 extern int TempMemoryIsChanged;                             // used to prevent unnecessary scanning of strtmp[]
 
-typedef enum _M_Req {M_PROG, M_VAR} M_Req;
-
-void m_alloc(int type, int size);
 void *GetMemory(size_t msize);
 void *GetTempMemory(int NbrBytes);
 void *GetTempStrMemory(void);
@@ -96,8 +92,6 @@ uintptr_t get_peek_addr(const char *p);
 #define PAGESPERWORD    ((sizeof(uint32_t) * 8)/PAGEBITS)
 // #define MRoundUp(a)     (((a) + (PAGESIZE - 1)) & (~(PAGESIZE - 1)))// round up to the nearest page size
 
-extern struct s_vartbl *vartbl;
-extern struct s_vartbl DOS_vartbl[MAXVARS];
 extern char ProgMemory[];
 
 #endif

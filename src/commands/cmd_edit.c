@@ -42,17 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
-#include "../common/error.h"
 #include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 #define ERROR_EDITOR_FAILED              error_throw_ex(kError, "Editor could not be run")
 #define ERROR_FAILED_TO_DELETE_TMP_FILE  error_throw_ex(kError, "Temporary file could not be deleted")
@@ -70,7 +69,7 @@ static void get_mmbasic_nanorc(char *path) {
     }
 }
 
-static int get_editor_command(char *file_path, int line, char *command, bool *blocking) {
+static int get_editor_command(const char *file_path, int line, char *command, bool *blocking) {
     *command = '\0';
     *blocking = false;
     for (const OptionsEditor *editor = options_editors; editor->name; ++editor) {
@@ -146,24 +145,22 @@ void cmd_edit(void) {
         }
     }
 
-    int new_file = false;
     char file_path[STRINGSIZE];
-    errno = 0;
-    if (!path_get_canonical(fname, file_path, STRINGSIZE)) {
-        switch (errno) {
-            case ENOENT:
-                new_file = true;
-                break;
-            case ENAMETOOLONG:
-                ERROR_PATH_TOO_LONG;
-                break;
-            default:
-                error_throw(errno);
-                break;
-        }
+    MmResult result = path_get_canonical(fname, file_path, STRINGSIZE);
+    switch (result) {
+        case kOk:
+            // Nothing to see here, move along.
+            break;
+        case kFilenameTooLong:
+            ERROR_PATH_TOO_LONG;
+            break;
+        default:
+            error_throw(result);
+            break;
     }
 
     // If necessary create a new file.
+    bool new_file = !path_exists(file_path);
     if (new_file) {
         if (!create_empty_file(file_path)) ERROR_FILE_COULD_NOT_BE_CREATED;
     }

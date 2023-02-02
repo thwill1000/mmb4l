@@ -305,14 +305,14 @@ static void longstring_print(const char *tp) {
         }
         j = dest[0];
         while (j--) {
-            file_putc(*q++, fnbr);
+            file_putc(fnbr, *q++);
         }
         i++;
     }
     if (argc > i) {
         if (*argv[i] == ';') return;
     }
-    MMfputs("\2\r\n", fnbr);
+    file_write(fnbr, "\r\n", 2);
 }
 
 static void longstring_replace(const char *tp) {

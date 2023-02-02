@@ -55,10 +55,12 @@ void cmd_rename(void) {
     if (argc != 3) ERROR_SYNTAX;
 
     char *old_path = GetTempStrMemory();
-    if (!path_munge(getCstring(argv[0]), old_path, STRINGSIZE)) error_throw(errno);
+    MmResult result = path_munge(getCstring(argv[0]), old_path, STRINGSIZE);
+    if (FAILED(result)) error_throw(result);
 
     char *new_path = GetTempStrMemory();
-    if (!path_munge(getCstring(argv[2]), new_path, STRINGSIZE)) error_throw(errno);
+    result = path_munge(getCstring(argv[2]), new_path, STRINGSIZE);
+    if (FAILED(result)) error_throw(result);
 
     errno = 0;
     if FAILED(rename(old_path, new_path)) error_throw(errno);

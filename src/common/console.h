@@ -42,10 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-// Copyright (c) 2021 Thomas Hugo Williams
-
 #if !defined(CONSOLE_H)
 #define CONSOLE_H
+
+#include <stdbool.h>
 
 // the values returned by the standard control keys
 #define TAB 0x9
@@ -108,6 +108,7 @@ extern int MMCharPos;
 void console_init();
 void console_background(int colour);
 void console_bell();
+void console_cursor_up(int i);
 void console_pump_input(void);
 void console_clear(void);
 void console_disable_raw_mode(void);
@@ -135,11 +136,13 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms);
 /**
  * Gets the console size.
  *
- * @param   width   on return holds the width in characters.
- * @param   height  on return holds the height in characters.
+ * @param   width       on return holds the width in characters.
+ * @param   height      on return holds the height in characters.
+ * @param   timeout_ms  how long (in milliseconds) to retry before
+ *                      reporting a failure.
  * @return  0 on success, -1 on error.
  */
-int console_get_size(int *width, int *height);
+int console_get_size(int *width, int *height, int timeout_ms);
 
 void console_home_cursor(void);
 void console_invert(int invert);
@@ -149,6 +152,9 @@ int console_kbhit(void);
 
 /** Writes a character to the console. */
 char console_putc(char c);
+
+/** Write a NULL terminated stirng to the console. */
+void console_puts(const char *s);
 
 void console_reset(void);
 
@@ -170,7 +176,8 @@ void console_set_cursor_pos(int x, int y);
 int console_set_size(int width, int height);
 
 void console_set_title(const char *title);
-void console_show_cursor(int show);
+void console_show_cursor(bool show);
 
+size_t console_write(const char *buf, size_t sz);
 
 #endif

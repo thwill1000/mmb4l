@@ -42,19 +42,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-#include <errno.h>
-#include <unistd.h>
+#include "program.h"
 
 #include "mmb4l.h"
 #include "console.h"
 #include "cstring.h"
-#include "error.h"
 #include "file.h"
-#include "options.h"
 #include "path.h"
-#include "program.h"
 #include "utility.h"
+
+#include <assert.h>
+#include <string.h>
+#include <unistd.h>
 
 #define ERROR_CANNOT_INCLUDE_FROM_INCLUDE  error_throw_ex(kError, "Can't import from an import")
 #define ERROR_FUNCTION_NAME                error_throw_ex(kError, "Function name")
@@ -66,8 +65,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MAXDEFINES  256
 
-static const char *BAS_FILE_EXTENSIONS[] = { ".bas", ".BAS", ".Bas" };
-static const char *INC_FILE_EXTENSIONS[] = { ".inc", ".INC", ".Inc" };
+// Repetition of last element is deliberate, see implementations of
+// program_get_bas_file() and program_get_inc_file().
+static const char *BAS_FILE_EXTENSIONS[] = { ".bas", ".BAS", ".Bas", ".bas" };
+static const char *INC_FILE_EXTENSIONS[] = { ".inc", ".INC", ".Inc", ".inc" };
 
 char CurrentFile[STRINGSIZE];
 
@@ -166,6 +167,30 @@ static void program_transform_line(char *line) {
     STR_REPLACE(line,"MM.INFO$","MM.INFO");
 }
 
+void program_dump_memory() {
+    size_t column = 0;
+    size_t count = 0;
+    for (const char *p = ProgMemory; count != 2; ++p) {
+        if (*p > 32 && *p < 127) {
+            count = 0;
+            printf(" %c ", *p);
+        } else {
+            count = (*p == '\0') ? count + 1 : 0;
+            printf("%02X ", *p);
+        }
+
+        column++;
+        if (column == 10) {
+            printf("    ");
+        } else if (column == 20) {
+            printf("\n");
+            column = 0;
+        }
+    }
+
+    printf("\n");
+}
+
 // Tokenize the string in the edit buffer
 static void program_tokenise(const char *file_path, const char *edit_buf) {
     //const char *p = edit_buf;
@@ -185,6 +210,10 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     memcpy(pmem, tknbuf, strlen(tknbuf) + 1);
     pmem += strlen(tknbuf);
     pmem++;
+
+    // Maximum extent of the program;
+    // 4 characters are required for termination with 2-3 '\0' and a '\xFF'.
+    const char *limit  = (const char *) ProgMemory + PROG_FLASH_SIZE - 5;
 
     // Loop while data
     // Read a line from edit_buf into tkn_buf
@@ -208,58 +237,67 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
         //printf("* %s\n", tknbuf);
 
         for (char *pbuf = tknbuf; !(pbuf[0] == 0 && pbuf[1] == 0); pmem++, pbuf++) {
-            if (pmem > (char *) ProgMemory + PROG_FLASH_SIZE - 3) ERROR_OUT_OF_MEMORY;
+            if (pmem > limit) ERROR_OUT_OF_MEMORY;
             *pmem = *pbuf;
         }
-        *pmem++ = 0;  // write the terminating zero char
+        *pmem++ = '\0';  // write the terminating zero char
 
         pstart = pend + 1;
     }
 
     //printf("DONE\n");
 
-    *pmem++ = 0;
-    *pmem++ = 0;  // two zeros terminate the program but add an extra just in case
+    *pmem++ = '\0';
+    *pmem++ = '\0';    // Two zeros terminate the program, but add an extra just in case.
+    *pmem++ = '\xFF';  // A terminating 0xFF may also be expected; it's not completely clear.
 
     // We want CFunctionFlash to start on a 64-bit boundary.
-    while ((uintptr_t) pmem % 8 != 0) *pmem++ = 0;
+    while ((uintptr_t) pmem % 8 != 0) *pmem++ = '\0';
     CFunctionFlash = pmem;
 
     if (errno != 0) error_throw(errno); // Is this really necessary?
+
+    // program_dump_memory();
 }
 
-char *program_get_inc_file(const char *parent_file, const char *filename, char *out) {
+MmResult program_get_inc_file(const char *parent_file, const char *filename, char *out) {
 
-    char tmp_path[STRINGSIZE];
-    if (!path_munge(filename, tmp_path, STRINGSIZE)) return NULL;
+    char path[STRINGSIZE];
+    MmResult result = path_munge(filename, path, STRINGSIZE);
+    if (FAILED(result)) return result;
 
-    if (!path_is_absolute(tmp_path)) {
+    if (!path_is_absolute(path)) {
         char parent_dir[STRINGSIZE];
-        if (!path_get_parent(parent_file, parent_dir, STRINGSIZE)) return NULL;
+        result = path_get_parent(parent_file, parent_dir, STRINGSIZE);
+        if (FAILED(result)) return result;
 
-        char tmp_string[STRINGSIZE];
-        if (!path_append(parent_dir, tmp_path, tmp_string, STRINGSIZE)) return NULL;
+        if (FAILED(cstring_cat(parent_dir, "/", STRINGSIZE))
+                || FAILED(cstring_cat(parent_dir, path, STRINGSIZE)))
+            return kFilenameTooLong;
 
-        strcpy(tmp_path, tmp_string);
+        strcpy(path, parent_dir);
     }
 
-    // If file does not have ".inc" extension then we add one, but we try to
-    // match up with existing file with ".inc", ".INC" or ".Inc" extensions in
-    // that order.
-    if (strcasecmp(path_get_extension(tmp_path), INC_FILE_EXTENSIONS[0]) != 0) {
-        size_t len = strlen(tmp_path);
-        for (size_t i = 0; i < sizeof(INC_FILE_EXTENSIONS) / sizeof(const char *); i++) {
-            if (len + strlen(INC_FILE_EXTENSIONS[i]) >= sizeof(tmp_path)) {
-                errno = ENAMETOOLONG;
-                return NULL;
-            }
-            strcpy(tmp_path + len, INC_FILE_EXTENSIONS[i]);
-            if (path_exists(tmp_path)) break;
-        }
-        if (!path_exists(tmp_path)) strcpy(tmp_path + len, INC_FILE_EXTENSIONS[0]);
+    assert(path_is_absolute(path));
+
+    // If the file exists, or has a .inc file extension then return it.
+    bool has_extension = strcasecmp(path_get_extension(path), INC_FILE_EXTENSIONS[0]) == 0;
+    if (path_exists(path) || has_extension)
+        return path_get_canonical(path, out, STRINGSIZE);
+
+    // Try looking for the file with each extension/
+    char *pend = path + strlen(path);
+    for (size_t i = 0; i < sizeof(INC_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+        *pend = '\0';
+        if (FAILED(cstring_cat(path, INC_FILE_EXTENSIONS[i], STRINGSIZE)))
+            return kFilenameTooLong;
+        if (path_exists(path))
+            return path_get_canonical(path, out, STRINGSIZE);
     }
 
-    return path_get_canonical(tmp_path, out, STRINGSIZE);
+    // If all else fails return the path with the default '.inc' extension;
+    // this will already be present in 'cwd'.
+    return path_get_canonical(path, out, STRINGSIZE);
 }
 
 static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
@@ -269,7 +307,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     int importlines = 0;
     int ignore = 0;
     char *filename, *sbuff, *op, *ip;
-    int c, slen, data;
+    size_t c, slen, data;
     int fnbr = file_find_free();
     char *q;
     if ((q = strchr(tp, 34)) == 0) ERROR_SYNTAX;
@@ -278,25 +316,25 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
     filename = getCstring(tp);
 
     char file_path[STRINGSIZE];
-    errno = 0;
-    if (!program_get_inc_file(parent_file, filename, file_path)) {
-        switch (errno) {
-            case ENOENT:
-                ERROR_INCLUDE_FILE_NOT_FOUND(filename);
-                break;
-            case ENAMETOOLONG:
-                ERROR_PATH_TOO_LONG;
-                break;
-            default:
-                error_throw(errno);
-                break;
-        }
+    MmResult result = program_get_inc_file(parent_file, filename, file_path);
+    switch (result) {
+        case kOk:
+            break;
+        case kFileNotFound:
+            ERROR_INCLUDE_FILE_NOT_FOUND(filename);
+            break;
+        case kFilenameTooLong:
+            ERROR_PATH_TOO_LONG;
+            break;
+        default:
+            error_throw(result);
+            break;
     }
 
     file_open(file_path, "rb", fnbr);
     //    while(!FileEOF(fnbr)) {
     while (!file_eof(fnbr)) {
-        int toggle = 0, len = 0;  // while waiting for the end of file
+        size_t toggle = 0, len = 0;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
         //        mymemset(buff,0,256);
@@ -366,8 +404,8 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
             } else {
                 if (cmpstr("COMMENT END", &sbuff[1]) == 0) ignore = 0;
                 if (cmpstr("COMMENT START", &sbuff[1]) == 0) ignore = 1;
-                if (cmpstr("MMDEBUG ON", &sbuff[1]) == 0) convertdebug = 0;
-                if (cmpstr("MMDEBUG OFF", &sbuff[1]) == 0) convertdebug = 1;
+                //if (cmpstr("MMDEBUG ON", &sbuff[1]) == 0) convertdebug = 0;
+                //if (cmpstr("MMDEBUG OFF", &sbuff[1]) == 0) convertdebug = 1;
                 if (cmpstr("INCLUDE ", &sbuff[1]) == 0) ERROR_CANNOT_INCLUDE_FROM_INCLUDE;
             }
         } else {
@@ -411,71 +449,90 @@ static bool program_path_exists(const char *root, const char *stem, const char *
     return path_exists(path);
 }
 
-char *program_get_bas_file(const char *filename, char *out) {
+MmResult program_get_bas_file(const char *filename, char *out) {
 
-    char stem[STRINGSIZE] = { '\0' };
-    if (!path_munge(filename, stem, STRINGSIZE)) return NULL;
-    bool stem_has_extension = strcasecmp(path_get_extension(stem), BAS_FILE_EXTENSIONS[0]) == 0;
-    bool stem_is_relative = !path_is_absolute(stem);
+    char path[STRINGSIZE];
+    MmResult result = path_munge(filename, path, STRINGSIZE);
+    if (FAILED(result)) return result;
 
-    // The root for resolving relative paths is always the current working directory.
-    char root[STRINGSIZE] = { '\0' };
-    if (stem_is_relative) {
-        errno = 0;
-        if (!getcwd(root, STRINGSIZE)) return NULL;
-        if (FAILED(cstring_cat(root, "/", STRINGSIZE))) {
-            errno = ENAMETOOLONG;
-            return NULL;
-        }
-    }
+    bool is_absolute = path_is_absolute(path);
+    bool has_extension = strcasecmp(path_get_extension(path), BAS_FILE_EXTENSIONS[0]) == 0;
 
-    // Determine the extension to use if one isn't provided.
-    char extension[8] = { '\0' };
-    if (!stem_has_extension) {
+    // If the specified file exists, or is absolute and has a .bas file
+    // extension then return it.
+    if (path_exists(path) || (is_absolute && has_extension))
+        return path_get_canonical(path, out, STRINGSIZE);
+
+    // If the specified file is absolute but doesn't have a .bas file
+    // extension then try looking for the file with each extension
+    // in turn. If none of them are found then use the last extension;
+    // which is the default (and the the same as the first extension).
+    if (is_absolute) {
+        char *p = path + strlen(path);
         for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
-            if (program_path_exists(root, stem, BAS_FILE_EXTENSIONS[i])) {
-                strcpy(extension, BAS_FILE_EXTENSIONS[i]);
-                break;
-            }
+            *p = '\0';
+            if (FAILED(cstring_cat(path, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
+                return kFilenameTooLong;
+            if (path_exists(path)) break;
         }
+        return path_get_canonical(path, out, STRINGSIZE);
     }
 
-    // If the stem is relative and we still can't find an existing file then check the SEARCH PATH.
-    if (stem_is_relative && *mmb_options.search_path && !program_path_exists(root, stem, extension)) {
-        char search_path[STRINGSIZE] = { '\0' };
-        if (FAILED(cstring_cat(search_path, mmb_options.search_path, STRINGSIZE))
-                || FAILED(cstring_cat(search_path, "/", STRINGSIZE))) {
-            errno = ENAMETOOLONG;
-            return NULL;
-        }
-        if (stem_has_extension) {
-            if (program_path_exists(search_path, stem, "")) {
-                strcpy(root, search_path);
-            }
-        } else {
-            for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
-                if (program_path_exists(search_path, stem, BAS_FILE_EXTENSIONS[i])) {
-                    strcpy(root, search_path);
-                    strcpy(extension, BAS_FILE_EXTENSIONS[i]);
-                    break;
-                }
-            }
-        }
+    // If we get here then the filename is relative and does not exist as
+    // specified, it may or may not have a .bas file extension.
+
+    // Get the path resolved relative to the current working directory (CWD).
+    char cwd[STRINGSIZE] = { '\0'};
+    errno = 0;
+    if (!getcwd(cwd, STRINGSIZE)) return errno;
+    if (FAILED(cstring_cat(cwd, "/", STRINGSIZE))
+            || FAILED(cstring_cat(cwd, path, STRINGSIZE)))
+        return kFilenameTooLong;
+
+    // Get the path resolved relative to the SEARCH PATH.
+    char search_path[STRINGSIZE] = { '\0' };
+    if (FAILED(cstring_cat(search_path, mmb_options.search_path, STRINGSIZE)))
+        return kFilenameTooLong;
+    if (*search_path) {
+        if (FAILED(cstring_cat(search_path, "/", STRINGSIZE))
+                || FAILED(cstring_cat(search_path, path, STRINGSIZE)))
+            return kFilenameTooLong;
     }
 
-    // If we still don't have an extension use the default.
-    if (!stem_has_extension && !*extension) strcpy(extension, BAS_FILE_EXTENSIONS[0]);
+    // Note we don't have to check here if the file exists in the CWD;
+    // if that were the case we would have caught it in the first IF statement.
 
-    char path[STRINGSIZE] = { '\0' };
-    errno = ENAMETOOLONG;
-    if (FAILED(cstring_cat(path, root, STRINGSIZE))
-            || FAILED(cstring_cat(path, stem, STRINGSIZE))
-            || FAILED(cstring_cat(path, extension, STRINGSIZE))) {
-        errno = ENAMETOOLONG;
-        return NULL;
+    // If the file exists in the SEARCH PATH then return it.
+    if (*search_path && path_exists(search_path))
+        return path_get_canonical(search_path, out, STRINGSIZE);
+
+    // If the file has .bas extension then return path resolved relative to CWD.
+    if (has_extension)
+        return path_get_canonical(cwd, out, STRINGSIZE);
+
+    // Try looking for the file with each extension resolved relative to CWD.
+    char *pend = cwd + strlen(cwd);
+    for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+        *pend = '\0';
+        if (FAILED(cstring_cat(cwd, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
+            return kFilenameTooLong;
+        if (path_exists(cwd))
+            return path_get_canonical(cwd, out, STRINGSIZE);
     }
 
-    return path_get_canonical(path, out, STRINGSIZE);
+    // Try looking for the file with each extension resolved relative to SEARCH PATH.
+    pend = search_path + strlen(search_path);
+    for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+        *pend = '\0';
+        if (FAILED(cstring_cat(search_path, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
+            return kFilenameTooLong;
+        if (path_exists(search_path))
+            return path_get_canonical(search_path, out, STRINGSIZE);
+    }
+
+    // If all else fails return the path resolved relative to CWD with the
+    // default .bas extension; this will already be present in 'cwd'.
+    return path_get_canonical(cwd, out, STRINGSIZE);
 }
 
 // now we must scan the program looking for CFUNCTION/CSUB/DEFINEFONT
@@ -595,7 +652,7 @@ static void get_csub_name(char *p, char *buf) {
 }
 
 static void print_line(const char *buf, int* line_count, int all) {
-    MMPrintString(buf);
+    console_puts(buf);
     ListNewLine(line_count, all);
 }
 
@@ -659,29 +716,29 @@ void program_list_csubs(int all) {
 static int program_load_file_internal(char *filename) {
 
     char file_path[STRINGSIZE];
-    errno = 0;
-    if (!program_get_bas_file(filename, file_path)) {
-        switch (errno) {
-            case ENOENT:
-                ERROR_PROGRAM_FILE_NOT_FOUND;
-                break;
-            case ENAMETOOLONG:
-                ERROR_PATH_TOO_LONG;
-                break;
-            default:
-                error_throw(errno);
-                break;
-        }
+    MmResult result = program_get_bas_file(filename, file_path);
+    switch (result) {
+        case kOk:
+            break;
+        case kFileNotFound:
+            ERROR_PROGRAM_FILE_NOT_FOUND;
+            break;
+        case kFilenameTooLong:
+            ERROR_PATH_TOO_LONG;
+            break;
+        default:
+            error_throw(result);
+            break;
     }
 
     char *p, *op, *ip, *edit_buffer, *sbuff;
     char line_buffer[STRINGSIZE];
     char num[10];
-    int c;
+    size_t c;
     int convertdebug = 1;
     int ignore = 0;
     nDefines = 0;
-    int i, importlines = 0, data;
+    int importlines = 0, data;
 
     ClearProgram();
     int fnbr = file_find_free();
@@ -692,7 +749,7 @@ static int program_load_file_internal(char *filename) {
     dlist = GetTempMemory(sizeof(a_dlist) * MAXDEFINES);
 
     while (!file_eof(fnbr)) {
-        int toggle = 0, len = 0, slen;  // while waiting for the end of file
+        size_t toggle = 0, len = 0, slen;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
             ERROR_OUT_OF_MEMORY;

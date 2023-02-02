@@ -89,14 +89,16 @@ extern int IgnorePIN;
 #define FONT_TABLE_SIZE 0
 
 // Aliases for functions using "legacy" names in MMBasic core:
-#define check_interrupt  interrupt_check
-#define CloseAllFiles    file_close_all
-#define getConsole       console_getc
-#define MMfeof           file_eof
-#define MMfgetc          file_getc
-#define MMfputc          file_putc
-#define MMputchar        console_putc
-#define error            error_throw_legacy
+#define check_interrupt    interrupt_check
+#define CloseAllFiles      file_close_all
+#define getConsole         console_getc
+#define MMfeof             file_eof
+#define MMfgetc            file_getc
+#define MMfputc(ch, fnbr)  file_putc(fnbr, ch)
+#define MMfputs(mmbstr, fnbr)  file_write(fnbr, mmbstr + 1, mmbstr[0])
+#define MMputchar          console_putc
+#define MMPrintString      console_puts
+#define error              error_throw_legacy
 
 // Aliases for identifiers using "legacy" names in MMBasic core:
 #define Autorun          autorun
@@ -113,7 +115,6 @@ extern int IgnorePIN;
 #define OptionBase       mmb_options.base
 #define OptionErrorSkip  mmb_error_state_ptr->skip
 #define OptionExplicit   mmb_options.explicit_type
-#define ProgFlashSize    prog_flash_size
 #define Width            width
 
 // Functions not used in MMB4L ... so make them go away

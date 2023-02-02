@@ -44,11 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 
-void get_mmcmdline(char *cmdline); // fun_mminfo.c
+#include <string.h>
+
+extern char cmd_run_args[STRINGSIZE];
 
 void fun_mmcmdline(void) {
     g_string_rtn = GetTempStrMemory();
-    get_mmcmdline(g_string_rtn);
+    strcpy(g_string_rtn, cmd_run_args);
     CtoM(g_string_rtn);
     g_rtn_type = T_STR;
 }

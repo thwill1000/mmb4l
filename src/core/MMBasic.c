@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,6 +48,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Hardware_Includes.h"
 #include "MMBasic_Includes.h"
+#include "funtbl.h"
+#include "vartbl.h"
+#include "../common/parse.h"
+#include "../common/utility.h"
+
+#include <assert.h>
 
 extern int ListCnt;
 extern int MMCharPos;
@@ -99,8 +105,6 @@ const struct s_tokentbl tokentbl[] = {
 // these are initialised at startup
 int CommandTableSize, TokenTableSize;
 
-struct s_vartbl *vartbl;                                            // this table stores all variables
-int varcnt;                                                         // number of variables
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables
 #if !defined(__mmb4l__)
@@ -108,9 +112,9 @@ char OptionExplicit;                                                // used to f
 char DefaultType;                                                   // the default type if a variable is not specifically typed
 #endif
 
-const char *subfun[MAXSUBFUN];                                      // table used to locate all subroutines and functions
-char CurrentSubFunName[MAXVARLEN + 1];                              // the name of the current sub or fun
-char CurrentInterruptName[MAXVARLEN + 1];                           // the name of the current interrupt function
+                                                                    // require extra byte to store optional type suffix
+char CurrentSubFunName[MAXVARLEN + 2];                              // the name of the current sub or fun
+char CurrentInterruptName[MAXVARLEN + 2];                           // the name of the current interrupt function
 
 jmp_buf mark;                                                       // longjump to recover from an error and abort
 jmp_buf ErrNext;                                                    // longjump to recover from an error and continue
@@ -191,6 +195,7 @@ void MIPS16 InitBasic(void) {
     CommandTableSize =  (sizeof(commandtbl)/sizeof(struct s_tokentbl));
     TokenTableSize =  (sizeof(tokentbl)/sizeof(struct s_tokentbl));
 
+    vartbl_init();
     ClearProgram();
 
     // load the commonly used tokens
@@ -242,11 +247,17 @@ void MIPS16 InitBasic(void) {
 // run a program
 // this will continuously execute a program until the end (marked by TWO zero chars)
 // the argument p must point to the first line to be executed
+// We need to suppress a spurious(?) warning about 'p' being clobbered by setjmp().
+#pragma GCC diagnostic push
+#if !defined(__clang__)
+#pragma GCC diagnostic ignored "-Wclobbered"
+#endif
 void ExecuteProgram(const char *p) {
-    //printf("ExecuteProgram: %s\n\n", p);
-    //printf("%d\n", p[0]);
-    int i, SaveLocalIndex = 0;
-    skipspace(p);                                                   // just in case, skip any white space
+    int i;
+    int SaveLocalIndex = 0;
+    jmp_buf SaveErrNext;                                            // we call ExecuteProgram() recursively so we need
+    memcpy(SaveErrNext, ErrNext, sizeof(jmp_buf));                  // to store/restore old jump buffer between calls
+    skipspace(p);                                                   // just in case, skip any whitespace
     while(1) {
         if(*p == 0) p++;                                            // step over the zero byte marking the beginning of a new element
         if(*p == T_NEWLINE) {
@@ -255,7 +266,8 @@ void ExecuteProgram(const char *p) {
             TraceBuff[TraceBuffIndex] = p;                          // used by TRACE LIST
             if(++TraceBuffIndex >= TRACE_BUFF_SIZE) TraceBuffIndex = 0;
 #endif
-            if(TraceOn && p < (char *) (ProgMemory + Option.ProgFlashSize)) {
+            assert(p < (char *) (ProgMemory + PROG_FLASH_SIZE));
+            if (TraceOn) {
 #if defined(__mmb4l__)
                 // Copied from the CMM2,
                 // looks like it has duplication with cmd_trace.c#TraceLines()
@@ -307,19 +319,16 @@ void ExecuteProgram(const char *p) {
             skipspace(cmdline);
             skipelement(nextstmt);
             if(*p && *p != '\'') {                                  // ignore a comment line
-                if(setjmp(ErrNext) == 0) {                          // return to the else leg of this if error and OPTION ERROR SKIP/IGNORE is in effect
-                    SaveLocalIndex = LocalIndex;                    // save this if we need to cleanup after an error
-                    //printf("Here we are\n");
-                    //printf("p = %d, C_BASETOKEN = %d, CommandTableSize = %d\n", *p, C_BASETOKEN, CommandTableSize);
-                    //printf("%d\n", *(char*)p);
-                    //printf("%d\n", *(char*)p >= C_BASETOKEN);
+                SaveLocalIndex = LocalIndex;                        // save this if we need to cleanup after an error
+
+                if (setjmp(ErrNext) == 0) {                         // return to the else leg of this if error and OPTION ERROR SKIP/IGNORE is in effect
                     if(*(char*)p >= C_BASETOKEN && *(char*)p - C_BASETOKEN < CommandTableSize - 1 && (commandtbl[*(char*)p - C_BASETOKEN].type & T_CMD)) {
                         cmdtoken = *(char*)p;
                         targ = T_CMD;
                         commandtbl[*(char*)p - C_BASETOKEN].fptr(); // execute the command
                     } else {
                         if (!isnamestart(*p)) error("Invalid character: %", (int)(*p));
-                        i = FindSubFun(p, false);                   // it could be a defined command
+                        i = FindSubFun(p, kSub);                    // it could be a defined command (subroutine)
                         if(i >= 0) {                                // >= 0 means it is a user defined command
                             DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
                         }
@@ -330,6 +339,7 @@ void ExecuteProgram(const char *p) {
                     LocalIndex = SaveLocalIndex;                    // restore so that we can clean up any memory leaks
                     ClearTempMemory();
                 }
+
                 if(OptionErrorSkip > 0) OptionErrorSkip--;          // if OPTION ERROR SKIP decrement the count - we do not error if it is greater than zero
                 if(TempMemoryIsChanged) ClearTempMemory();          // at the end of each command we need to clear any temporary string vars
                 CheckAbort();
@@ -337,101 +347,136 @@ void ExecuteProgram(const char *p) {
             }
             p = nextstmt;
         }
-        if((p[0] == 0 && p[1] == 0) || (p[0] == 0xff && p[1] == 0xff)) return;      // the end of the program is marked by TWO zero chars, empty flash by two 0xff
+
+        if ((p[0] == 0 && p[1] == 0) || (p[0] == 0xff && p[1] == 0xff)) {
+            break;                                                  // the end of the program is marked by TWO zero chars, empty flash by two 0xff
+        }
     }
+
+    memcpy(ErrNext, SaveErrNext, sizeof(jmp_buf));                  // restore jump buffer
 }
+#pragma GCC diagnostic pop
 
 
 /********************************************************************************************************************************************
  Code associated with processing user defined subroutines and functions
 ********************************************************************************************************************************************/
 
+/**
+ * @brief  Formats error message from a call to AddFunction().
+ */
+static const char *FormatAddFunctionError(MmResult result, FunType type) {
+    switch (result) {
+        case kDuplicateFunction:
+            if (type == kLabel) return "Duplicate label";
+            break;
+        case kInvalidName:
+            switch (type) {
+                case kFunction:
+                    return "Invalid function name";
+                case kLabel:
+                    // Does not seem to be possible;
+                    // the tokeniser doesn't recognise it as a label.
+                    return "Invalid label";
+                default:
+                    return "Invalid subroutine name";
+            }
+            break;
+        case kNameTooLong:
+            switch (type) {
+                case kFunction:
+                    return "Function name too long";
+                case kLabel:
+                    // Does not seem to be possible;
+                    // the tokeniser doesn't recognise it as a label.
+                    return "Label too long";
+                default:
+                    return "Subroutine name too long";
+            }
+            break;
+        default:
+            break;
+    }
 
-// Scan through the program loaded in flash and build a table pointing to the definition of all user defined subroutines and functions.
-// This pre processing speeds up the program when using defined subroutines and functions
-// this routine also looks for embedded fonts and adds them to the font table
-void MIPS16 PrepareProgram(int ErrAbort) {
-    int MIPS16 PrepareProgramExt(const char *, int, unsigned char **, int);
-    int i, j, NbrFuncts;
-    const char *p1, *p2;
+    return mmresult_to_string(result);
+}
 
-    for(i = FONT_BUILTIN_NBR; i < FONT_TABLE_SIZE; i++)
-        FontTable[i] = NULL;                                        // clear the font table
+/**
+ * @brief  Adds a function, label or subroutine to the function table.
+ */
+static MmResult AddFunction(const char **p, FunType type, const char *addr) {
+    char name[MAXVARLEN + 1];
+    MmResult result = parse_name(p, name);
+    if (SUCCEEDED(result)) {
+        int fun_idx;
+        result = funtbl_add(name, type, addr, &fun_idx);
+    }
+    return result;
+}
 
-    NbrFuncts = 0;
-#if !defined(__mmb4l__)
-    CFunctionFlash = CFunctionLibrary = NULL;
-#endif
-    if (Option.ProgFlashSize != PROG_FLASH_SIZE)
-        NbrFuncts = PrepareProgramExt(ProgMemory + Option.ProgFlashSize, 0, (unsigned char **) &CFunctionLibrary, ErrAbort);
-    PrepareProgramExt(ProgMemory, NbrFuncts, (unsigned char **) &CFunctionFlash, ErrAbort);
+/**
+ * @brief  Populates the function table by searching ProgMemory for functions,
+ *         labels and subroutines.
+ */
+static void PrepareFunctionTable(bool abort_on_error) {
+    const char *p = ProgMemory;
+    CurrentLinePtr = NULL;
 
-    // check the sub/fun table for duplicates
-    if(!ErrAbort) return;
-    for(i = 0; i < MAXSUBFUN && subfun[i] != NULL; i++) {
-        for(j = i + 1; j < MAXSUBFUN && subfun[j] != NULL; j++) {
-            CurrentLinePtr = p1 = subfun[i];
-            p1++;
-            skipspace(p1);
-            p2 = subfun[j];
-            p2++;
-            skipspace(p2);
-            while(1) {
-                if(!isnamechar(*p1) && !isnamechar(*p2)) {
-                    error("Duplicate name");
-                    return;
-                }
-                if(toupper(*p1) != toupper(*p2)) break;
-                p1++; p2++;
+    funtbl_clear();
+
+    for (;;) {
+
+        // If we are not at the start of a line then look for the '/0' marking
+        // the start of a statement and step over it.
+        if (*p != T_NEWLINE) {
+            while(*p) p++;
+            p++;
+        }
+
+        if (*p == 0) break;                         // The end of the program.
+        if (*p == T_NEWLINE) CurrentLinePtr = p++;  // Record newline and step over token.
+        if (*p == T_LINENBR) p += 3;                // Step over token and 2-byte line number
+
+        skipspace(p);
+
+        // Have we found a label ?
+        if (*p == T_LABEL) {
+            p += 2; // Step over the token and the length byte.
+            MmResult result = AddFunction(&p, kLabel, CurrentLinePtr);
+            if (FAILED(result) && abort_on_error) {
+                error_throw_ex(result, FormatAddFunctionError(result, kLabel));
+            }
+            skipspace(p);
+        }
+
+        // Have we found a function or subroutine ?
+        if (*p == cmdSUB || *p == cmdCSUB || *p == cmdFUN || *p == cmdCFUN) {
+            int type = (*p == cmdSUB || *p == cmdCSUB) ? kSub : kFunction;
+            const char *addr = p;
+            p++; // Step over the token.
+            MmResult result = AddFunction(&p, type, addr);
+            if (FAILED(result) && abort_on_error) {
+                error_throw_ex(result, FormatAddFunctionError(result, type));
             }
         }
     }
 }
 
+// Scan through the program loaded in flash and build a table pointing to the definition of all user defined subroutines and functions.
+// This pre processing speeds up the program when using defined subroutines and functions
+// this routine also looks for embedded fonts and adds them to the font table
+void MIPS16 PrepareProgram(int ErrAbort) {
+    // Clear the font table.
+    for (int i = FONT_BUILTIN_NBR; i < FONT_TABLE_SIZE; i++) {
+        FontTable[i] = NULL;
+    }
 
-// This scans one area (main program or the library area) for user defined subroutines and functions.
-// It is only used by PrepareProgram() above.
-int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int ErrAbort) {
-    unsigned int *cfp;
-    while(*p != 0xff) {
-        p = GetNextCommand(p, &CurrentLinePtr, NULL);
-        if(*p == 0) break;                                          // end of the program or module
-        if(*p == cmdSUB || *p == cmdFUN || *p == cmdCFUN || *p == cmdCSUB) {         // found a SUB, FUN, CFUNCTION or CSUB token
-            if(i >= MAXSUBFUN) {
-                if(ErrAbort) error("Too many subroutines and functions");
-                continue;
-            }
-            subfun[i++] = p++;                                      // save the address and step over the token
-            skipspace(p);
-            if(!isnamestart(*p)) {
-                if(ErrAbort) error("Invalid identifier");
-                i--;
-                continue;
-            }
-
-#if defined(__mmb4l__)
-            // I suspect all platforms should have this or something equivalent.
-            // Note that the name does not (appear to) include any trailing %, !
-            // or $ character.
-            {
-                int len = 0;
-                while (isnamechar(*p)) {
-                    // Do not call isnamechar(*p++)
-                    // because the macro will increment the pointer 3 times.
-                    len++;
-                    p++;
-                }
-                if (len > MAXVARLEN) {
-                    if (ErrAbort) error("Function name too long");
-                    i--;
-                    continue;
-                }
-            }
+#if !defined(__mmb4l__)
+    CFunctionFlash = CFunctionLibrary = NULL;
 #endif
 
-        }
-        while(*p) p++;                                              // look for the zero marking the start of the next element
-    }
+    PrepareFunctionTable(ErrAbort);
+
 #if defined(MICROMITE)
     while(*p == 0) p++;                                             // the end of the program can have multiple zeros
     p++;                                                            // step over the terminating 0xff
@@ -440,7 +485,7 @@ int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int 
     CurrentLinePtr = NULL;
 
     // now, step through the CFunction area looking for fonts to add to the font table
-    cfp = *(unsigned int **)CFunPtr;
+    unsigned int cfp = *(unsigned int **)CFunPtr;
     while(*cfp != 0xffffffff) {
         if(*cfp < FONT_TABLE_SIZE)
             FontTable[*cfp] = (unsigned char *)(cfp + 2);
@@ -448,31 +493,67 @@ int MIPS16 PrepareProgramExt(const char *p, int i, unsigned char **CFunPtr, int 
         cfp += (*cfp + 4) / sizeof(unsigned int);
     }
 #endif
-    return i;
 }
 
+/**
+ * @brief  Finds a FUNCTION/SUBroutine by name in the function table.
+ *
+ * @param[in]  p          pointer to start of function name.
+ * @param[in]  type_mask  kSub             - to find a subroutine.
+ *                        kFunction        - to find a function.
+ *                        kSub | kFunction - to find a subroutine or function.
+ * @return                the index of the function in funtbl[],
+ *                        or -1 if the function could not be found.
+ */
+int FindSubFun(const char *p, uint8_t type_mask) {
+    assert(type_mask >= 1 || type_mask <= 3);
 
+    char name[MAXVARLEN + 1];
+    MmResult result = parse_name(&p, name);
 
-// searches the subfun[] table to locate a defined sub or fun
-// returns with the index of the sub/function in the table or -1 if not found
-// if type = 0 then look for a sub otherwise a function
-int FindSubFun(const char *p, int type) {
-    const char *p1, *p2;
-    int i;
+    int fun_idx;
+    if (SUCCEEDED(result)) result = funtbl_find(name, type_mask, &fun_idx);
 
-    for(i = 0;  i < MAXSUBFUN && subfun[i] != NULL; i++) {
-        p2 = subfun[i];                                             // point to the command token
-        if(type == 0) {                                             // if it is a sub and we want a fun or vice versa skip this one
-            if(!(*p2 == cmdSUB || *p2 == cmdCSUB)) continue;
-        } else {
-            if(!(*p2 == cmdFUN || *p2 == cmdCFUN)) continue;
-        }
-        p2++; skipspace(p2);                                        // point to the identifier
-        if(toupper(*p) != toupper(*p2)) continue;                   // quick first test
-        p1 = p + 1;  p2++;
-        while(isnamechar(*p1) && toupper(*p1) == toupper(*p2)) { p1++; p2++; };
-        if((*p1 == '$' && *p2 == '$') || (*p1 == '%' && *p2 == '%') || (*p1 == '!' && *p2 == '!') || (!isnamechar(*p1) && !isnamechar(*p2))) return i;          // found it !
+    const char *msg = NULL;
+    switch (result) {
+        case kOk:
+            CASE_FALLTHROUGH;
+        case kFunctionNotFound:
+            return fun_idx;
+        case kNameTooLong:
+            switch (type_mask) {
+                case kFunction:
+                    msg = "Function name too long";
+                    break;
+                case kSub:
+                    msg = "Subroutine name too long";
+                    break;
+                case kFunction | kSub:
+                    msg = "Function/subroutine name too long";
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case kFunctionTypeMismatch:
+            if (funtbl[fun_idx].type == kLabel) return -1;
+            switch (type_mask) {
+                case kSub:
+                    msg = "Not a subroutine";
+                    break;
+                case kFunction | kSub:
+                    // I don't think this is currently possible.
+                    msg = "Not a function/subroutine";
+                    break;
+                default:
+                    break;
+            }
+            break;
+        default:
+            break;
     }
+
+    error_throw_ex(result, msg ? msg : mmresult_to_string(result));
     return -1;
 }
 
@@ -484,7 +565,7 @@ int FindSubFun(const char *p, int type) {
 // The arguments when called are:
 //   isfun    = true if we are executing a function
 //   cmd      = pointer to the command name used by the caller (in program memory)
-//   index    = index into subfun[i] which points to the definition of the sub or funct
+//   index    = index into funtbl[i] which points to the definition of the sub or funct
 //   fa, i64a, sa and typ are pointers to where the return value is to be stored (used by functions only)
 void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a, char **sa, int *typ) {
     const char *p;
@@ -507,7 +588,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     int *argVarIndex;
 
     CallersLinePtr = CurrentLinePtr;
-    SubLinePtr = subfun[index];                                     // used for error reporting
+    SubLinePtr = funtbl[index].addr;                                // used for error reporting
     p =  SubLinePtr + 1;                                            // point to the sub or function definition
     skipspace(p);
     ttp = p;
@@ -637,7 +718,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
             // check if the argument is a valid variable
             if(i < argc1 && isnamestart(*argv1[i]) && *skipvar(argv1[i], false) == 0) {
                 // yes, it is a variable (or perhaps a user defined function which looks the same)?
-                if(!(FindSubFun(argv1[i], 1) >= 0 && strchr(argv1[i], '(') != NULL)) {
+                if(!(FindSubFun(argv1[i], kFunction) >= 0 && strchr(argv1[i], '(') != NULL)) {
                     // yes, this is a valid variable.  set argvalue to point to the variable's data and argtype to its type
                     argval[i].s = findvar(argv1[i], V_FIND | V_EMPTY_OK);        // get a pointer to the variable's data
                     argtype[i] = vartbl[VarIndex].type;                          // and the variable's type
@@ -677,7 +758,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         tp2 = (char *) skipvar(argv2[i], false);                    // point to after the variable
         skipspace(tp2);
         if (*tp2 == tokenAS) {                                      // are we using Microsoft syntax (eg, AS INTEGER)?
-            *tp2 ='\0';                                             // terminate the string and step over the AS token
+            *tp2++ = '\0';                                          // terminate the string and step over the AS token
             tp2 = (char *) CheckIfTypeSpecified(tp2, &ArgType, true);  // and get the type
             if(!(ArgType & T_IMPLIED)) error("Variable type");
         }
@@ -715,7 +796,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
             // the argument supplied was a variable so we must setup the local variable as a pointer
             if((vartbl[VarIndex].type & T_STR) && vartbl[VarIndex].val.s != NULL) {
                 FreeMemory(vartbl[VarIndex].val.s);                            // free up the local variable's memory if it is a pointer to a string
-                }
+            }
             vartbl[VarIndex].val.s = argval[i].s;                              // point to the data of the variable supplied as an argument
             vartbl[VarIndex].type |= T_PTR;                                    // set the type to a pointer
             vartbl[VarIndex].size = vartbl[argVarIndex[i]].size;               // just in case it is a string copy the size
@@ -739,9 +820,13 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     }
 
     // temp memory used in setting up the arguments can be deleted now
-    ClearSpecificTempMemory(argval); ClearSpecificTempMemory(argtype); ClearSpecificTempMemory(argVarIndex);
-    ClearSpecificTempMemory(argbuf1); ClearSpecificTempMemory(argv1);
-    ClearSpecificTempMemory(argbuf2); ClearSpecificTempMemory(argv2);
+    ClearSpecificTempMemory(argval);
+    ClearSpecificTempMemory(argtype);
+    ClearSpecificTempMemory(argVarIndex);
+    ClearSpecificTempMemory(argbuf1);
+    ClearSpecificTempMemory(argv1);
+    ClearSpecificTempMemory(argbuf2);
+    ClearSpecificTempMemory(argv2);
 
     // set the CurrentSubFunName which is used to create static variables
     strcpy(CurrentSubFunName, fun_name);
@@ -792,9 +877,9 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     else
         *sa = pvar;                                                 // for a string we just need to return the local memory
     *typ = FunType;                                                 // save the function type for the caller
-  ClearVars(LocalIndex--);                                          // delete any local variables
+    ClearVars(LocalIndex--);                                        // delete any local variables
     TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
-  gosubindex--;
+    gosubindex--;
 }
 
 
@@ -808,21 +893,14 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
 // - convert a label to the token format
 // - convert keywords to tokens
 // - convert the colon to a zero char
-//the result in tknbuf[] is terminated with double zero chars
+// the result in tknbuf[] is terminated with MMFLOAT zero chars
 // if the arg console is true then do not add a line number
 
 void MIPS16 tokenise(int console) {
-
-    //printf("console = %d\n", console);
-    //printf("inpbuf = %s\n", inpbuf);
-
     char *p, *op;
     int i;
     int firstnonwhite;
     int labelvalid;
-#if defined(__mmb4l__)
-    int run_flag = 0;
-#endif
 
     // first, make sure that only printable characters are in the line
     p = inpbuf;
@@ -885,16 +963,6 @@ void MIPS16 tokenise(int console) {
             continue;
         }
 
-#if defined(__mmb4l__)
-        // Once we've seen a RUN command we copy anything after a comma verbatim.
-        if (run_flag && *p == ',') {
-            do {
-                *op++ = *p++;
-            } while(*p);
-            continue;
-        }
-#endif
-
         // check for multiline separator (colon) and replace with a zero char
         if(*p == ':') {
             *op++ = 0;
@@ -908,7 +976,7 @@ void MIPS16 tokenise(int console) {
             continue;
         }
 
-        // not white space or string or comment  - try a number
+        // not whitespace or string or comment - try a number
         if(isdigit(*p) || *p == '.') {                              // valid chars at the start of a number
             while(isdigit(*p) || *p == '.' || *p == 'E' || *p == 'e')
                 if (*p == 'E' || *p == 'e') {   // check for '+' or '-' as part of the exponent
@@ -923,11 +991,11 @@ void MIPS16 tokenise(int console) {
             continue;
         }
 
-        // not white space or string or comment or number - see if we can find a label or a token identifier
+        // not whitespace or string or comment or number - see if we can find a label or a token identifier
         if(firstnonwhite) {                                         // first entry on the line must be a command
             // these variables are only used in the search for a command code
             char *tp2, *match_p = NULL;
-            int match_i = -1, match_l = 0;
+            ssize_t match_i = -1, match_l = 0;
             // first test if it is a print shortcut char (?) - this needs special treatment
             if(*p == '?') {
                 match_i = GetCommandValue("Print") - C_BASETOKEN;
@@ -954,7 +1022,7 @@ void MIPS16 tokenise(int console) {
                     if(*tp == 0 && (!isnamechar(*tp2) || (commandtbl[i].type & T_FUN))) {
                         if(*(tp - 1) != '(' && isnamechar(*tp2)) continue;   // skip if not the function
                         // save the details if it is the longest command found so far
-                        if(strlen(commandtbl[i].name) > match_l) {
+                        if((ssize_t) strlen(commandtbl[i].name) > match_l) {
                             match_p = tp2;
                             match_l = strlen(commandtbl[i].name);
                             match_i = i;
@@ -970,9 +1038,6 @@ void MIPS16 tokenise(int console) {
                 if(match_i + C_BASETOKEN == GetCommandValue("Rem")) // check if it is a REM command
                     while(*p) *op++ = *p++;                         // and in that case just copy everything
                 else {
-#if defined(__mmb4l__)
-                    if(match_i + C_BASETOKEN == GetCommandValue("Run")) run_flag = 1;
-#endif
                     if(isalpha(*(p-1)) && *p == ' ')                // if the command is followed by a space
                         p++;                                        // skip over it (llist will restore the space)
                 }
@@ -1025,7 +1090,7 @@ void MIPS16 tokenise(int console) {
             }
         }
 
-        // not white space or string or comment or token identifier or number
+        // not whitespace or string or comment or token identifier or number
         // try for a variable name which could be a user defined subroutine or an implied let
         if(isnamestart(*p)) {                                       // valid chars at the start of a variable name
             if(firstnonwhite) {                                     // first entry on the line?
@@ -1264,6 +1329,25 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
     if (*p >= C_BASETOKEN) { //don't waste time if not a built-in function
         // special processing for the NOT operator
         // just get the next value and invert its logical value
+        if (tokenfunction(*p) == op_not) {
+            int ro;
+            p++; t = T_NOTYPE;
+            p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
+            if (t & T_NBR)
+                f = (MMFLOAT)((f != 0) ? 0 : 1);                        // invert the value returned
+            else if (t & T_INT)
+                i64 = ((i64 != 0) ? 0 : 1);
+            else
+                error("Expected a number");
+            skipspace(p);
+            *fa = f;                                                    // save what we have
+            *ia = i64;
+            *sa = s;
+            *ta = t;
+            *oo = ro;
+            return p;                                                   // return straight away as we already have the next operator
+        }
+
         if (tokenfunction(*p) == op_inv) {
             int ro;
             uint64_t ut;
@@ -1284,25 +1368,6 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
             *oo = ro;
             return p;                                                   // return straight away as we already have the next operator
         }
-        if (tokenfunction(*p) == op_not) {
-            int ro;
-            p++; t = T_NOTYPE;
-            p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
-            if (t & T_NBR)
-                f = (MMFLOAT)((f != 0) ? 0 : 1);                        // invert the value returned
-            else if (t & T_INT)
-                i64 = ((i64 != 0) ? 0 : 1);
-            else
-                error("Expected a number");
-            skipspace(p);
-            *fa = f;                                                    // save what we have
-            *ia = i64;
-            *sa = s;
-            *ta = t;
-            *oo = ro;
-            return p;                                                   // return straight away as we already have the next operator
-        }
-
 
         // special processing for the unary - operator
         // just get the next value and negate it
@@ -1324,6 +1389,7 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
             *oo = ro;
             return p;                                                   // return straight away as we already have the next operator
         }
+
         if (tokenfunction(*p) == op_add) {
             int ro;
             p++; t = T_NOTYPE;
@@ -1336,7 +1402,6 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
             *oo = ro;
             return p;                                                   // return straight away as we already have the next operator
         }
-
 
         // if a function execute it and save the result
         if (tokentype(*p) & (T_FUN | T_FNA)) {
@@ -1352,7 +1417,6 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
                 while (p1 != p) *p2++ = *p1++;
             }
             p++;                                                        // point to after the function (without argument) or after the closing bracket
-
             targ = TypeMask(tokentype(*tp));                            // set the type of the function (which might need to know this)
             tmp = targ;
             tokenfunction(*tp)();                                       // execute the function
@@ -1369,7 +1433,7 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
             while (isnamechar(*tp)) tp++;                               // search for the end of the identifier
             if (*tp == '$' || *tp == '%' || *tp == '!') tp++;
             i = -1;
-            if (*tp == '(') i = FindSubFun(p, 1);                       // if terminated with a bracket it could be a function
+            if (*tp == '(') i = FindSubFun(p, kFunction);               // if terminated with a bracket it could be a function
             if (i >= 0) {                                               // >= 0 means it is a user defined function
                 const char *SaveCurrentLinePtr = CurrentLinePtr;        // in case the code in DefinedSubFun messes with this
                 DefinedSubFun(true, p, i, &f, &i64, &s, &t);
@@ -1378,7 +1442,7 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
             else {
                 s = (char *) findvar(p, V_FIND);                        // if it is a string then the string pointer is automatically set
                 t = TypeMask(vartbl[VarIndex].type);
-                if (t & T_NBR) f = (*(MMFLOAT*)s);
+                if (t & T_NBR) f = (*(MMFLOAT *)s);
                 if (t & T_INT) i64 = (*(MMINTEGER *)s);
             }
             p = skipvar(p, false);
@@ -1386,7 +1450,7 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
         // is it an ordinary numeric constant?  get its value if yes
         // a leading + or - might have been converted to a token so we need to check for them also
         else if (isdigit(*p) || *p == '.') {
-            char ts[31], * tsp;
+            char ts[31], *tsp;
             int isi64 = true;
             tsp = ts;
             int isf = true;
@@ -1440,17 +1504,24 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
         else if (*p == '&') {
             p++; i64 = 0;
             switch (toupper(*p++)) {
-            case 'H':   while (isxdigit(*p)) {
-                i64 = (i64 << 4) | ((toupper(*p) >= 'A') ? toupper(*p) - 'A' + 10 : *p - '0');
-                p++;
-            } break;
-            case 'O':   while (*p >= '0' && *p <= '7') {
-                i64 = (i64 << 3) | (*p++ - '0');
-            } break;
-            case 'B':   while (*p == '0' || *p == '1') {
-                i64 = (i64 << 1) | (*p++ - '0');
-            } break;
-            default:    error("Type prefix");
+                case 'H':
+                    while (isxdigit(*p)) {
+                        i64 = (i64 << 4) | ((toupper(*p) >= 'A') ? toupper(*p) - 'A' + 10 : *p - '0');
+                        p++;
+                    }
+                    break;
+                case 'O':
+                    while (*p >= '0' && *p <= '7') {
+                        i64 = (i64 << 3) | (*p++ - '0');
+                    }
+                    break;
+                case 'B':
+                    while (*p == '0' || *p == '1') {
+                        i64 = (i64 << 1) | (*p++ - '0');
+                    }
+                    break;
+                default:
+                    error("Type prefix");
             }
             t = T_INT;
         }
@@ -1494,13 +1565,9 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
 // search through program memory looking for a line number. Stops when it has a matching or larger number
 // returns a pointer to the T_NEWLINE token or a pointer to the two zero characters representing the end of the program
 char *findline(int nbr, int mustfind) {
-    char *p;
     int i;
+    char *p = ProgMemory;
 
-    if (CurrentLinePtr >= (char *) (ProgMemory + Option.ProgFlashSize))
-        p = ProgMemory + Option.ProgFlashSize;
-    else
-        p = ProgMemory;
     while(1) {
         if(p[0] == 0 && p[1] == 0) {
             i = MAXLINENBR;
@@ -1540,58 +1607,29 @@ char *findline(int nbr, int mustfind) {
 // returns a pointer to the T_NEWLINE token or throws an error if not found
 // non cached version
 const char *findlabel(const char *labelptr) {
-    const char *p, *lastp = ProgMemory + 1;
-    int i;
-    char label[MAXVARLEN + 1];
+    char name[MAXVARLEN + 1];
+    MmResult result = parse_name(&labelptr, name);
 
-    // first, just exit we have a NULL argument
-    if(labelptr == NULL) return NULL;
+    int fun_idx;
+    if (SUCCEEDED(result)) result = funtbl_find(name, kLabel, &fun_idx);
 
-    // convert the label to the token format and load into label[]
-    // this assumes that the first character has already been verified as a valid label character
-    label[1] = *labelptr++;
-    for(i = 2; ; i++) {
-        if(!isnamechar(*labelptr)) break;                           // the end of the label
-        if(i > MAXVARLEN ) error("Label too long");                 // too long, not a correctly formed label
-        label[i] = *labelptr++;
-    }
-    label[0] = i - 1;                                               // the length byte
-
-    // point to the main program memory or the library
-    if (CurrentLinePtr >= (char *) (ProgMemory + Option.ProgFlashSize))
-        p = ProgMemory + Option.ProgFlashSize;
-    else {
-        p = ProgMemory;
-    }
-
-    // now do the search
-    while(1) {
-        if(p[0] == 0 && p[1] == 0)                                  // end of the program
-            error("Cannot find label");
-
-        if(p[0] == T_NEWLINE) {
-            lastp = p;                                              // save in case this is the right line
-            p++;                                                    // and step over the line number
-            continue;
-        }
-
-        if(p[0] == T_LINENBR) {
-            p += 3;                                                 // and step over the line number
-            continue;
-        }
-
-        if(p[0] == T_LABEL) {
-            p++;                                                    // point to the length of the label
-            if(mem_equal(p, label, label[0] + 1))                   // compare the strings including the length byte
-                return lastp;                                       // and if successful return pointing to the beginning of the line
-            p += p[0] + 1;                                          // still looking! skip over the label
-            continue;
-        }
-
-        p++;
+    switch (result) {
+        case kOk:
+            return funtbl[fun_idx].addr;
+        case kFunctionNotFound:
+            error_throw_ex(result, "Label not found");
+            return NULL;
+        case kFunctionTypeMismatch:
+            error_throw_ex(result, "Not a label");
+            return NULL;
+        case kNameTooLong:
+            error_throw_ex(result, "Label too long");
+            return NULL;
+        default:
+            error_throw(result);
+            return NULL;
     }
 }
-
 
 
 // returns true if 'line' is a valid line in the program
@@ -1653,8 +1691,10 @@ routines for storing and manipulating variables
 // - V_FIND    a straight forward find, if the variable is not found it is created and set to zero
 // - V_NOFIND_ERR    throw an error if not found
 // - V_NOFIND_NULL   return a null pointer if not found
-// - V_DIM_VAR    dimension an array
-// - V_LOCAL   create a local variable
+// - V_DIM_VAR       dimension an array
+// - V_EMPTY_OK      empty array dimension, e.g. foo() allowed
+// - V_FUNCT         define the name of a function
+// - V_LOCAL         create a local variable
 //
 // there are four types of variable:
 //  - T_NOTYPE a free slot that was used but is now free for reuse
@@ -1666,335 +1706,306 @@ routines for storing and manipulating variables
 //  - T_PTR the variable points to another variable's data
 //  - T_IMPLIED  the variables type does not have to be specified with a suffix
 //  - T_CONST the contents of this variable cannot be changed
-//  - T_FUNCT this variable represents the return value from a function
 //
 // storage of the variable's data:
 //      if it is type T_NBR or T_INT the value is held in the variable slot
 //      for T_STR a block of memory of MAXSTRLEN size (or size determined by the LENGTH keyword) will be malloc'ed and the pointer stored in the variable slot.
 void *findvar(const char *p, int action) {
-    char name[MAXVARLEN + 1];
-    int i, j, size, ifree, nbr, vtype, vindex, namelen, tmp;
-    char *s, *x;
-    void *mptr;
-    int dim[MAXDIM], dnbr;
 
-    TestStackOverflow();                                            // test if we have overflowed the PIC32's stack
+    TestStackOverflow();  // Test if we have overflowed the PIC32's stack.
 
-    vtype = dnbr = 0;
-    // first zero the array used for holding the dimension values
-    for(i = 0; i < MAXDIM; i++) dim[i] = 0;
-    ifree = varcnt;
-
-    // check the first char for a legal variable name
-    skipspace(p);
-    if(!isnamestart(*p)) error("Variable name");
-
-    // copy the variable name into name
-    s = name; namelen = 0;
-    do {
-        *s++ = toupper(*p++);
-        if(++namelen > MAXVARLEN) error("Variable name too long");
-    } while(isnamechar(*p));
-
-    // make sure there are multiple of 4 bytes with valid name or set to 0
-    while(namelen % 4) {
-        *s++=0;
-        namelen++;
+    // Get the name.
+    char name[MAXVARLEN + 1] = {0};
+    MmResult result = parse_name(&p, name);
+    switch (result) {
+        case kOk:
+            break;
+        case kInvalidName:
+            error_throw_ex(result, "Invalid variable name");
+            return NULL;
+        case kNameTooLong:
+            error_throw_ex(result, "Variable name too long");
+            return NULL;
+        default:
+            error_throw(result);
+            return NULL;
     }
 
-    // check the terminating char and set the type
-    if(*p == '$') {
-        if((action & T_IMPLIED) && !(action & T_STR)) error("Conflicting variable type");
+    // Check the terminating character to determine the variable type.
+    int vtype = T_NOTYPE;
+    if (*p == '$') {
+        if ((action & T_IMPLIED) && !(action & T_STR)) {
+            error("Conflicting variable type");
+            return NULL;
+        }
         vtype = T_STR;
         p++;
-    } else if(*p == '%') {
-        if((action & T_IMPLIED) && !(action & T_INT)) error("Conflicting variable type");
+    } else if (*p == '%') {
+        if ((action & T_IMPLIED) && !(action & T_INT)) {
+            error("Conflicting variable type");
+            return NULL;
+        }
         vtype = T_INT;
         p++;
-    } else if(*p == '!') {
-        if((action & T_IMPLIED) && !(action & T_NBR)) error("Conflicting variable type");
+    } else if (*p == '!') {
+        if ((action & T_IMPLIED) && !(action & T_NBR)) {
+            error("Conflicting variable type");
+            return NULL;
+        }
         vtype = T_NBR;
         p++;
-    } else if((action & V_DIM_VAR) && DefaultType == T_NOTYPE && !(action & T_IMPLIED))
+    } else if ((action & V_DIM_VAR) && DefaultType == T_NOTYPE && !(action & T_IMPLIED)) {
         error("Variable type not specified");
-    else
-        vtype = 0;
+        return NULL;
+    }
 
-    // check if this is an array
-    if(*p == '(') {
+    // Check if this is an array.
+    int dnbr = 0;  // Number of dimensions
+                   // -1 : empty array used in fun/sub calls
+                   //  0 : scalar.
+    DIMTYPE dim[MAXDIM] = {0};
+    if (*p == '(') {
         const char *pp = p + 1;
         skipspace(pp);
-        if(action & V_EMPTY_OK && *pp == ')')                       // if this is an empty array.  eg  ()
+        if (action & V_EMPTY_OK && *pp == ')') {                    // if this is an empty array.  eg  ()
             dnbr = -1;                                              // flag this
-        else {                                                      // else, get the dimensions
+        } else {                                                    // else, get the dimensions
             // start a new block - getargs macro must be the first executable stmt in a block
             // split the argument into individual elements
             // find the value of each dimension and store in dims[]
             // the bracket in "(," is a signal to getargs that the list is in brackets
             getargs(&p, MAXDIM * 2, "(,");
-            if((argc & 0x01) == 0) error("Dimensions");
-            dnbr = argc/2 + 1;
-            if(dnbr > MAXDIM) error("Dimensions");
-            for(i = 0; i < argc; i += 2) {
+            if ((argc & 0x01) == 0) {
+                error("Dimensions");
+                return NULL;
+            }
+            dnbr = argc / 2 + 1;
+            if (dnbr > MAXDIM) {
+                error("Dimensions");
+                return NULL;
+            }
+            for (int i = 0; i < argc; i += 2) {
                 MMFLOAT f;
                 MMINTEGER in;
                 char *s;
                 int targ = T_NOTYPE;
                 evaluate(argv[i], &f, &in, &s, &targ, false);       // get the value and type of the argument
-                if(targ == T_STR) dnbr = MAXDIM;                    // force an error to be thrown later (with the correct message)
-                if(targ == T_NBR) in = FloatToInt32(f);
-                dim[i/2] = in;
-                if(dim[i/2] < OptionBase) error("Dimensions");
-            }
-        }
-    }
-    *s = 0;                                                         // terminate the new variable name
-
-    // we now have the variable name and, if it is an array, the parameters
-    // search the table looking for a match
-    // we exit the search with:  i  being the index of the variable and  tmp  the index if we are in a sub/fun (otherwise -1)
-    //
-    // If we ARE NOT in a sub/fun  i < varcnt    means that a previously created variable was found
-    //                             i >= varcnt   means that no matching variable was found
-    //                             tmp           will always be -1
-    //
-    // If we ARE in a sub/fun      tmp           will be the index of a matching global variable (or -1 if no global found)
-    //                             i < varcnt    means that a local variable was found
-    //                             i >= varcnt   a local variable was not found (in that case check tmp which might have the index of a global)
-    //
-    // In either case              ifree         will contain the index of a free slot which can be used if we need to create the variable
-
-    for(tmp = -1, i = 0; i < varcnt; i++) {
-        if(vartbl[i].type == T_NOTYPE)
-            ifree = i;
-        else {
-//            if(*name != *vartbl[i].name) continue;                // preliminary quick check
-//            s = name;  x = vartbl[i].name; j = namelen;
-//            while(j > 0 && *s == *x) {                            // compare each letter
-//                j--; s++; x++;
-//            }
-//            if(j == 0 && (*x == 0 || namelen == MAXVARLEN)) {     // found a matching name
-            unsigned int *ip, *tp;
-            ip=(unsigned int *)name;
-            tp=(unsigned int *)vartbl[i].name;
-            if(*ip++ != *tp++) continue;                            // preliminary quick check on first 4 chars
-            j = namelen-4;
-            while(j > 0 && *ip == *tp) {                            // compare 4 chars at a time
-                j-=4; ip++; tp++;
-            }
-            if(j == 0 && (*(char *)tp == 0 || namelen == MAXVARLEN)) {       // found a matching name
-                if(vartbl[i].level == 0)                            // if it is a global
-                    if(LocalIndex == 0)                             // if we are NOT in a subroutine
-                        break;                                      // exit with the index
-                    else
-                        tmp = i;                                    // otherwise just remember the index
-                else                                                // else we are in a subroutine or function
-                    if(vartbl[i].level == LocalIndex)               // and if the level match
-                        break;                                      // just exit with the index
+                if (targ == T_STR) dnbr = MAXDIM;                   // force an error to be thrown later (with the correct message)
+                if (targ == T_NBR) in = FloatToInt32(f);
+                if (in > DIMTYPE_MAX) {
+                    error("Array bound exceeds maximum: %", DIMTYPE_MAX);
+                    return NULL;
+                }
+                dim[i / 2] = in;
+                if (dim[i / 2] < OptionBase) {
+                    error("Dimensions");
+                    return NULL;
+                }
             }
         }
     }
 
-    if(action & V_LOCAL) {
-        // if we declared the variable as LOCAL within a sub/fun and an existing local was found
-        if(i < varcnt) error("$ already declared", name);
-    } else if(action & V_DIM_VAR) {
-        // if are using DIM to declare a global variable and an existing global variable was found
-        if(i < varcnt || tmp >= 0) error("$ already declared", name);
-    } else
-        // we are not declaring the variable
-        // if the variable was not found and there is a global - we must be in a sub so use the global
-        if(i >= varcnt && tmp >= 0) i = tmp;                        // use the global if it was found and a local was not
+    // Check for an existing variable.
+    int var_idx = -1;
+    {
+        int global_idx = -1;
+        result = vartbl_find(name, LocalIndex, &var_idx, &global_idx);
+        switch (result) {
+            case kOk:
+                break;
+            case kVariableNotFound:
+                // If we are not explicitly declaring a LOCAL variable then use a
+                // GLOBAL variable if we found one.
+                if (!(action & V_LOCAL)) var_idx = global_idx;
+                break;
+            default:
+                error_throw(result);
+                return NULL;
+        }
+    }
 
+    if (var_idx >= 0 && var_idx < varcnt) {  // We found an existing variable.
 
-    // if we found an existing and matching variable
-    // set the global VarIndex indicating the index in the table
-    if(i < varcnt && *vartbl[i].name != 0) {
-        VarIndex = vindex = i;
-
-        // check that the dimensions match
-        for(i = 0; i < MAXDIM && vartbl[vindex].dims[i] != 0; i++);
-        if(dnbr == -1) {
-            if(i == 0) error("Array dimensions");
-        } else {
-            if(i != dnbr) error("Array dimensions");
+        // Are we trying to explicitly declare the same variable (DIM or LOCAL)
+        // at the same scope ?
+        if ((action & V_LOCAL) || (action & V_DIM_VAR)) {
+            error("$ already declared", name);
+            return NULL;
         }
 
-        if(vtype == 0) {
-            if(!(vartbl[vindex].type & (DefaultType | T_IMPLIED))) error("$ already declared", name);
+        VarIndex = var_idx;  // Set the global VarIndex.
+
+        // Check that the dimensions match.
+        {
+            int i;
+            for (i = 0; i < MAXDIM && vartbl[var_idx].dims[i] != 0; i++) ;
+            if (dnbr == -1) {
+                if (i == 0) {
+                    error("Array dimensions");
+                    return NULL;
+                }
+            } else {
+                if (i != dnbr) {
+                    error("Array dimensions");
+                    return NULL;
+                }
+            }
+        }
+
+        if (vtype == T_NOTYPE) {
+            if (!(vartbl[var_idx].type & (DefaultType | T_IMPLIED))) {
+                error("$ already declared", name);
+                return NULL;
+            }
         } else {
-            if(!(vartbl[vindex].type & vtype)) error("$ already declared", name);
+            if (!(vartbl[var_idx].type & vtype)) {
+                error("$ already declared", name);
+                return NULL;
+            }
         }
 
         // if it is a non arrayed variable or an empty array it is easy, just calculate and return a pointer to the value
-        if(dnbr == -1 || vartbl[vindex].dims[0] == 0) {
-            if(dnbr == -1 || vartbl[vindex].type & (T_PTR | T_STR))
-                return vartbl[vindex].val.s;                        // if it is a string or pointer just return the pointer to the data
-            else
-                if(vartbl[vindex].type & (T_INT))
-                    return &(vartbl[vindex].val.i);                 // must be an integer, point to its value
-                else
-                    return &(vartbl[vindex].val.f);                 // must be a straight number (float), point to its value
-         }
+        if (dnbr == -1 || vartbl[var_idx].dims[0] == 0) {
+            if (dnbr == -1 || vartbl[var_idx].type & (T_PTR | T_STR)) {
+                return vartbl[var_idx].val.s;                        // if it is a string or pointer just return the pointer to the data
+            } else if (vartbl[var_idx].type & (T_INT)) {
+                return &(vartbl[var_idx].val.i);                     // must be an integer, point to its value
+            } else {
+                return &(vartbl[var_idx].val.f);                     // must be a straight number (float), point to its value
+            }
+        }
 
         // if we reached this point it must be a reference to an existing array
         // check that we are not using DIM and that all parameters are within the dimensions
-        if(action & V_DIM_VAR) error("Cannot re dimension array");
-        for(i = 0; i < dnbr; i++) {
-            if(dim[i] > vartbl[vindex].dims[i] || dim[i] < OptionBase)
+        if (action & V_DIM_VAR) {
+            // THW 15-Aug-2022: I do not think there is any code-path to reach
+            // this that does not throw "$ already declared" first.
+            error("Cannot re dimension array");
+            return NULL;
+        }
+        for (int i = 0; i < dnbr; i++) {
+            if (dim[i] > vartbl[var_idx].dims[i] || dim[i] < OptionBase) {
                 error("Index out of bounds");
+                return NULL;
+            }
         }
 
         // then calculate the index into the array.  Bug fix by Gerard Sexton.
-        nbr = dim[0] - OptionBase;
-        j = 1;
-        for(i = 1; i < dnbr; i++) {
-            j *= (vartbl[vindex].dims[i - 1] + 1 - OptionBase);
+        int nbr = dim[0] - OptionBase;
+        int j = 1;
+        for (int i = 1; i < dnbr; i++) {
+            j *= (vartbl[var_idx].dims[i - 1] + 1 - OptionBase);
             nbr += (dim[i] - OptionBase) * j;
         }
         // finally return a pointer to the value
-        if(vartbl[vindex].type & T_NBR)
-            return vartbl[vindex].val.s + (nbr * sizeof(MMFLOAT));
-        else
-            if(vartbl[vindex].type & T_INT)
-                return vartbl[vindex].val.s + (nbr * sizeof(MMINTEGER));
-            else
-                return vartbl[vindex].val.s + (nbr * (vartbl[vindex].size + 1));
+        if (vartbl[var_idx].type & T_NBR) {
+            return vartbl[var_idx].val.s + (nbr * sizeof(MMFLOAT));
+        } else if (vartbl[var_idx].type & T_INT) {
+            return vartbl[var_idx].val.s + (nbr * sizeof(MMINTEGER));
+        } else {
+            return vartbl[var_idx].val.s + (nbr * (vartbl[var_idx].size + 1));
+        }
     }
 
-    // we reached this point if no existing variable has been found
-    if(action & V_NOFIND_ERR) error("Cannot find $", name);
-    if(action & V_NOFIND_NULL) return NULL;
-    if((OptionExplicit || dnbr != 0) && !(action & V_DIM_VAR))
+    // We reached this point if no existing variable has been found.
+    if (action & V_NOFIND_ERR) {
+        error("Cannot find $", name);
+        return NULL;
+    }
+    if (action & V_NOFIND_NULL) return NULL;
+    if ((OptionExplicit || dnbr != 0) && !(action & V_DIM_VAR)) {
         error("$ is not declared", name);
-    if(vtype == 0) {
-        if(action & T_IMPLIED)
+        return NULL;
+    }
+    if (vtype == T_NOTYPE) {
+        if (action & T_IMPLIED)
             vtype = (action & (T_NBR | T_INT | T_STR));
         else
             vtype = DefaultType;
     }
 
-    // now scan the sub/fun table to make sure that there is not a sub/fun with the same name
-    if(!(action & V_FUNCT)) {                                       // don't do this if we are defining the local variable for a function name
-        for(i = 0;  i < MAXSUBFUN && subfun[i] != NULL; i++) {
-            const char *x = subfun[i];                              // point to the command token
-            x++; skipspace(x);                                      // point to the identifier
-            s = name;                                               // point to the new variable
-            if(*s != toupper(*x)) continue;                         // quick first test
-            while(1) {
-                if(!isnamechar(*s) && !isnamechar(*x)) error("A sub/fun has the same name: $", name);
-                if(*s != toupper(*x) || *s == 0 || !isnamechar(*x) || s - name >= MAXVARLEN) break;
-                s++; x++;
-            }
+    // Check the sub/fun table to make sure that there is not a sub/fun with the same name.
+    // Don't do this if we are defining the local variable for a function name.
+    if (!(action & V_FUNCT)) {
+        int fun_idx = -1;
+        MmResult result = funtbl_find(name, kFunction | kSub, &fun_idx);
+        switch (result) {
+            case kOk:
+                error_throw_legacy("A function/subroutine has the same name: $", name);
+                return NULL;
+            case kFunctionTypeMismatch:
+                // Found a label.
+                CASE_FALLTHROUGH;
+            case kFunctionNotFound:
+                break;
+            default:
+                error_throw(result);
+                return NULL;
         }
     }
 
-    // set a default string size
-    size = MAXSTRLEN;
+    // If we are declaring a new array then the bound of the first dimension must
+    // be greater than OPTION BASE. This isn't caught inside vartbl_add()
+    // because it uses a value of dim[0] == 0 to mean a scalar variable.
+    if (dnbr > 0 && dim[0] <= mmb_options.base) {
+        error("Dimensions");
+        return NULL;
+    }
 
-    // if it is an array we must be dimensioning it
-    // if it is a string array we skip over the dimension values and look for the LENGTH keyword
-    // and if found find the string size and change the vartbl entry
-      if(action & V_DIM_VAR) {
-          if(vtype & T_STR) {
-            i = 0;
-            if(*p == '(') {
+    // If it is an array we must be dimensioning it.
+    // If it is a string array we skip over the dimension values and look for
+    // the LENGTH keyword and if found set 'slen'.
+    uint8_t slen = MAXSTRLEN;
+    if (action & V_DIM_VAR) {
+        if (vtype & T_STR) {
+            int i = 0;
+            if (*p == '(') {
                 do {
-                    if(*p == '(') i++;
-                    if(tokentype(*p) & T_FUN) i++;
-                    if(*p == ')') i--;
+                    if (*p == '(') i++;
+                    if (tokentype(*p) & T_FUN) i++;
+                    if (*p == ')') i--;
                     p++;
-                } while(i);
+                } while (i);
             }
             skipspace(p);
             const char *p2;
-            if ((p2 = checkstring(p, "LENGTH")) != NULL)
-                size = getint(p2, 1, MAXSTRLEN) ;
-            else
-                if(!(*p == ',' || *p == 0 || tokenfunction(*p) == op_equal || tokenfunction(*p) == op_invalid)) error("Unexpected text: $", p);
+            if ((p2 = checkstring(p, "LENGTH")) != NULL) {
+                slen = getint(p2, 1, MAXSTRLEN);
+                if (slen == 0) return NULL;
+            } else {
+                if (!(*p == ',' || *p == 0 || tokenfunction(*p) == op_equal || tokenfunction(*p) == op_invalid)) {
+                    error("Unexpected text: $", p);
+                    return NULL;
+                }
+            }
         }
     }
 
-
-    // at this point we need to create the variable
-    // as a result of the previous search ifree is the index to the entry that we should use
-
-     // if we are adding to the top, increment the number of vars and inform the memory manager
-    if(ifree == varcnt) {
-        varcnt++;
-        m_alloc(M_VAR, varcnt * sizeof(struct s_vartbl));
+    if (dnbr == -1) dim[0] = -1;  // "empty" array for fun/sub parameters.
+    result = vartbl_add(
+            name,
+            vtype | (action & (T_IMPLIED | T_CONST)),
+            (action & V_LOCAL) ? LocalIndex : 0,
+            dnbr == 0 ? NULL : dim,
+            (vtype & T_STR) ? slen : 0,
+            &var_idx);
+    VarIndex = var_idx;
+    switch (result) {
+        case kOk:
+            if (vartbl[var_idx].dims[0] != 0) {
+                return vartbl[var_idx].val.s;
+            } else if (vartbl[var_idx].type & T_INT) {
+                return &(vartbl[var_idx].val.i);
+            } else if (vartbl[var_idx].type & T_NBR) {
+                return &(vartbl[var_idx].val.f);
+            } else {
+                return vartbl[var_idx].val.s;
+            }
+        default:
+            error_throw(result);
+            return NULL;
     }
-    VarIndex = vindex = ifree;
-
-    // initialise it: save the name, set the initial value to zero and set the type
-    s = name;  x = vartbl[ifree].name; j = namelen;
-    while(j--) *x++ = *s++;
-    if(namelen < MAXVARLEN) *x = 0;
-    vartbl[ifree].type = vtype | (action & (T_IMPLIED | T_CONST));
-    if(action & V_LOCAL)
-        vartbl[ifree].level = LocalIndex;
-    else
-        vartbl[ifree].level = 0;
-    for(j = 0; j < MAXDIM; j++) vartbl[ifree].dims[j] = 0;
-
-    // the easy request is for is a non array numeric variable, so just initialise to
-    // zero and return the pointer
-    if(dnbr == 0) {
-        if(vtype & T_NBR) {
-            vartbl[ifree].val.f = 0;
-            return &(vartbl[ifree].val.f);
-        } else if(vtype & T_INT) {
-            vartbl[ifree].val.i = 0;
-            return &(vartbl[ifree].val.i);
-        }
-    }
-
-    // if this is a definition of an empty array (only used in the parameter list for a sub/function)
-    if(dnbr == -1) {
-        vartbl[vindex].dims[0] = -1;                                // let the caller know that this is an empty array and needs more work
-        return vartbl[vindex].val.s;                                // just return a pointer to the data element as it will be replaced in the sub/fun with a pointer
-    }
-
-    // if this is an array copy the array dimensions and calculate the overall size
-    // for a non array string this will leave nbr = 1 which is just what we want
-    for(nbr = 1, i = 0; i < dnbr; i++) {
-        if(dim[i] <= OptionBase) error("Dimensions");
-        vartbl[vindex].dims[i] = dim[i];
-        nbr *= (dim[i] + 1 - OptionBase);
-    }
-
-    // we now have a string, an array of strings or an array of numbers
-    // all need some memory to be allocated (note: GetMemory() zeros the memory)
-
-    // First, set the important characteristics of the variable to indicate that the
-    // variable is not allocated.  Thus, if GetMemory() fails with "not enough memory",
-    // the variable will remain not allocated
-    vartbl[ifree].val.s = NULL;
-    vartbl[ifree].type = T_NOTYPE;
-    i = *vartbl[ifree].name;   *vartbl[ifree].name = 0;
-  j = vartbl[ifree].dims[0]; vartbl[ifree].dims[0] = 0;
-
-
-  // Now, grab the memory
-    if(vtype & T_NBR)
-        mptr = GetMemory(nbr * sizeof(MMFLOAT));
-    else
-        if(vtype & T_INT)
-            mptr = GetMemory(nbr * sizeof(MMINTEGER));
-        else
-            mptr = GetMemory(nbr * (size + 1));
-
-    // If we reached here the memory request was successful, so restore the details of
-    // the variable that were saved previously and set the variables pointer to the
-    // allocated memory
-    vartbl[ifree].type = vtype | (action & (T_IMPLIED | T_CONST));
-    *vartbl[ifree].name = i;
-    vartbl[ifree].dims[0] = j;
-    vartbl[ifree].size = size;
-    vartbl[ifree].val.s = mptr;
-    return mptr;
 }
-
 
 
 
@@ -2016,8 +2027,8 @@ void *findvar(const char *p, int action) {
 //   buffer where the returned strings are to be stored
 //   pointer to an array of strings that will contain (after the function has returned) the values of each argument
 //   pointer to an integer that will contain (after the function has returned) the number of arguments found
-//   pointer to a string that contains the characters to be used in spiting up the line.  If the first char of that
-//       string is an opening bracket '(' this function will expect the arg list to be enclosed in brackets.
+//   pointer to a string that contains the characters to be used in spliting up the line.  If the first char of that
+//   string is an opening bracket '(' this function will expect the arg list to be enclosed in brackets.
 void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc, const char *delim) {
     char *op;
     int inarg, expect_cmd, expect_bracket, then_tkn, else_tkn;
@@ -2126,6 +2137,7 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
     *op = 0;                                                        // terminate the last argument
 }
 
+
 // throw an error
 // displays the error message and aborts the program
 // the message can contain variable text which is indicated by a special character in the message string
@@ -2221,6 +2233,7 @@ void MIPS16 error(char *msg, ...) {
 }
 #endif
 
+
 /**********************************************************************************************
  Routines to convert floats and integers to formatted strings
  These replace the sprintf() libraries with much less flash usage
@@ -2276,8 +2289,7 @@ void IntToStr(char *strr, MMINTEGER nbr, unsigned int base) {
 //     if padch is negative and nbr is zero prefix the number with the - sign
 void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix) {
     char sign = 0;
-    if ((nbr < 0 && radix == 10 && nbr!=0x8000000000000000)         // if the number is negative or we are forced to use a - symbol
-            || padch < 0) {
+    if ((nbr < 0 && radix == 10 && (uint64_t) nbr != 0x8000000000000000) || padch < 0) {  // if the number is negative or we are forced to use a - symbol
         sign = '-';                                                 // set the sign
         nbr *= -1;                                                  // convert to a positive nbr
         padch = abs(padch);
@@ -2289,7 +2301,7 @@ void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix
 
     char buf[IntToStrBufSize];
     IntToStr(buf, nbr, radix);
-    int j = abs(maxch) - strlen(buf);                                   // calc padding required
+    int j = abs(maxch) - strlen(buf);                               // calc padding required
     if (j <= 0) j = 0;
     else memset(p, padch, abs(maxch));                              // fill the buffer with the padding char
     if (sign != 0) {                                                // if we need a sign
@@ -2325,7 +2337,6 @@ void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch) {
         // we must use scientific notation
         f /= powf(10, exp);                                         // scale the number to 1.2345
         if(f >= 10) { f /= 10; exp++; }
-        //if(n == STR_AUTO_PRECISION) n = STR_SIG_DIGITS;
         if(n < 0) n = -n;                                           // negative indicates always use exponantial format
         FloatToStr(p, f, m, n, ch);                                 // recursively call ourself to convert that to a string
         p = p + strlen(p);
@@ -2398,46 +2409,35 @@ Various routines to clear memory or the interpreter's state
 // if level is not zero it will only delete local variables at that level or greater
 // if level is zero to will delete all variables and reset global settings
 void MIPS16 ClearVars(int level) {
-    int i;
 
-    // first step through the variable table and delete local variables at that level or greater
-    for(i = 0; i < varcnt; i++) {
-        if(level == 0 || vartbl[i].level >= level) {                // if this is for deletion
-            if(((vartbl[i].type & T_STR) || vartbl[i].dims[0] != 0) && !(vartbl[i].type & T_PTR)) {
-                FreeMemory(vartbl[i].val.s);                        // free any memory (if allocated)
-            }
-          vartbl[i].type = T_NOTYPE;                                // empty slot
-          *vartbl[i].name = 0;                                      // safety precaution
-          vartbl[i].dims[0] = 0;                                    // and again
-          vartbl[i].level = 0;
-          if(i == varcnt - 1) { /* i--; */ varcnt--; }
-        }
-    }
+    vartbl_delete_all(level);
 
-    // then step through the for...next table and remove any loops at the level or greater
-    for(i = 0; i < forindex; i++) {
+    // Step through the for...next table and remove any loops at the level or greater
+    for (int i = 0; i < forindex; i++) {
         if(forstack[i].level >= level) {
             forindex = i;
             break;
         }
     }
 
-    // also step through the do...loop table and remove any loops at the level or greater
-    for(i = 0; i < doindex; i++) {
+    // Step through the do...loop table and remove any loops at the level or greater
+    for (int i = 0; i < doindex; i++) {
         if(dostack[i].level >= level) {
             doindex = i;
             break;
         }
     }
 
-    if(level != 0) return;
+    if (level != 0) return;
 
-    forindex = doindex = 0;
+    assert(varcnt == 0);
+    assert(vartbl_free_idx == 0);
+
+    forindex = 0;
+    doindex = 0;
     LocalIndex = 0;                                                 // signal that all space is to be cleared
     ClearTempMemory();                                              // clear temp string space
 
-    // we can now delete all variables by zeroing the counters
-    varcnt = 0;
     OptionBase = 0;
     DimUsed = false;
 }
@@ -2466,7 +2466,6 @@ void MIPS16 ClearStack(void) {
 // clear the runtime (eg, variables, external I/O, etc) includes ClearStack() and ClearVars()
 // this is done before running a program
 void MIPS16 ClearRuntime(void) {
-    int i;
 #if defined(MX470)
     //have to stop audio before we clear variables to avoid exception
     CloseAudio();
@@ -2476,7 +2475,7 @@ void MIPS16 ClearRuntime(void) {
     OptionFileErrorAbort = true;
 #endif
     ClearStack();
-    ClearVars(0);
+//    ClearVars(0);
     OptionExplicit = false;
     DefaultType = T_NBR;
 #if defined(__mmb4l__)
@@ -2487,7 +2486,6 @@ void MIPS16 ClearRuntime(void) {
     ds18b20Timers = NULL;                                           // InitHeap() will recover the memory allocated to this array
 #endif
     CloseAllFiles();
-    findlabel(NULL);                                                // clear the label cache
     ClearExternalIO();                                              // this MUST come before InitHeap()
 #if defined(__mmb4l__)
     mmb_error_state_ptr = &mmb_normal_error_state;
@@ -2498,10 +2496,9 @@ void MIPS16 ClearRuntime(void) {
     *MMErrMsg = 0;
 #endif
     InitHeap();
-    m_alloc(M_VAR, 0);
-    varcnt = 0;
+    ClearVars(0);
     CurrentLinePtr = ContinuePoint = NULL;
-    for(i = 0;  i < MAXSUBFUN; i++)  subfun[i] = NULL;
+    funtbl_clear();
 }
 
 
@@ -2509,12 +2506,10 @@ void MIPS16 ClearRuntime(void) {
 // clear everything including program memory (includes ClearStack() and ClearRuntime())
 // this is used before loading a program
 void MIPS16 ClearProgram(void) {
-    m_alloc(M_PROG, 0);                                             // init the variables for program memory - only effective in the Maximite
     ClearRuntime();
 #if defined(__mmb4l__)
     memset(error_file, 0, STRINGSIZE);
     error_line = -1;
-
 #else
     StartEditPoint = NULL;
     StartEditChar = 0;
@@ -2577,7 +2572,6 @@ int GetCommandValue(const char *n) {
     for(i = 0; i < CommandTableSize - 1; i++)
         if(str_equal(n, commandtbl[i].name))
             return i + C_BASETOKEN;
-//    MMPrintString(n);
     error("Internal fault (sorry)");
     return 0;
 }
@@ -2590,7 +2584,6 @@ int GetTokenValue(const char *n) {
     for(i = 0; i < TokenTableSize - 1; i++)
         if(str_equal(n, tokentbl[i].name))
             return i + C_BASETOKEN;
-//    MMPrintString(n);
     error("Internal fault (sorry)");
     return 0;
 }
@@ -2613,23 +2606,34 @@ const char *skipvar(const char *p, int noerror) {
         p++;
     } while(isnamechar(*p));
 
-    // check the terminating char.
-    if(*p == '$' || *p == '%' || *p == '!') p++;
-
     if(p - tp > MAXVARLEN) {
         if(noerror) return p;
         error("Variable name too long");
+        return NULL;
     }
+
+    // check the terminating char.
+    if(*p == '$' || *p == '%' || *p == '!') p++;
+
+    // THW: 22-Jan-2025: moved above the check for the terminating char.
+    // if(p - tp > MAXVARLEN) {
+    //     if(noerror) return p;
+    //     error("A Variable name too long");
+    // }
 
     pp = p; skipspace(pp); if(*pp == '(') p = pp;
     if(*p == '(') {
-        // this is an array
+        // this is an array - THW: actually might be a function.
 
         p++;
-        if(p - tp > MAXVARLEN) {
-            if(noerror) return p;
-            error("Variable name too long");
-        }
+
+        // THW: 22-Jan-2025: removed, I don't think it makes sense, and
+        //                   why is it including the opening bracket in
+        //                   the variable name length?
+        // if(p - tp > MAXVARLEN) {
+        //     if(noerror) return p;
+        //     error("Variable name too long");
+        // }
 
         // step over the parameters keeping track of nested brackets
         i = 1;
@@ -2638,6 +2642,7 @@ const char *skipvar(const char *p, int noerror) {
             if(*p == 0) {
                 if(noerror) return p;
                 error("Expected closing bracket");
+                return NULL;
             }
             if(!inquote) {
                 if(*p == ')') if(--i == 0) break;
@@ -2731,8 +2736,8 @@ void checkend(const char *p) {
 
 
 // check if the next text in an element (a basic statement) corresponds to an alpha string
-// leading white space is skipped and the string must be terminated with a valid terminating
-// character (space, null, comma or comment). Returns a pointer a pointer to the next
+// leading whitespace is skipped and the string must be terminated with a valid terminating
+// character (space, null, comma or comment). Returns a pointer to the next
 // non space character after the matched string if found or NULL if not
 const char *checkstring(const char *p, const char *tkn) {
     skipspace(p);                                           // skip leading spaces
@@ -2765,22 +2770,24 @@ A couple of I/O routines that do not belong anywhere else
 
 
 // print a string to the console interfaces
+#if !defined(__mmb4l__)
 void MMPrintString(const char* s) {
   while(*s) {
       MMputchar(*s);
       s++;
   }
 }
-
+#endif
 
 // output a string to a file
 // the string must be a MMBasic string
+#if !defined(__mmb4l__)
 void MMfputs(const char *p, int filenbr) {
   int i;
   i = *p++;
   while(i--) MMfputc(*p++, filenbr);
 }
-
+#endif
 
 
 
@@ -2867,6 +2874,25 @@ int Mstrcmp(const char *s1, const char *s2) {
 }
 
 
+// utility routine used by DoDim() and other places in the interpreter
+// checks if the type has been explicitly specified as in DIM FLOAT A, B, ... etc
+const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType) {
+    const char *tp;
+
+    if((tp = checkstring(p, "INTEGER")) != NULL)
+        *type = T_INT | T_IMPLIED;
+    else if((tp = checkstring(p, "STRING")) != NULL)
+        *type = T_STR | T_IMPLIED;
+    else if((tp = checkstring(p, "FLOAT")) != NULL)
+        *type = T_NBR | T_IMPLIED;
+    else {
+        if(!AllowDefaultType) error("Variable type");
+        tp = p;
+        *type = DefaultType;                                        // if the type is not specified use the default
+    }
+    return tp;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // these library functions went missing in the PIC32 C compiler ver 1.12 and later
@@ -2892,7 +2918,7 @@ int Mstrcmp(const char *s1, const char *s2) {
  * sequences.
  */
 
-const static char charmap[] = {
+static const char charmap[] = {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
     0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
@@ -2948,11 +2974,11 @@ const static char charmap[] = {
 
 
 int strncasecmp(
-    const char *s1,         /* First string. */
-    const char *s2,         /* Second string. */
-    size_t length)      /* Maximum number of characters to compare
-                         * (stop earlier if the end of either string
-                         * is reached). */
+    const char *s1,  /* First string. */
+    const char *s2,  /* Second string. */
+    size_t length)   /* Maximum number of characters to compare
+                      * (stop earlier if the end of either string
+                      * is reached). */
 {
     register unsigned char u1, u2;
 
@@ -2995,28 +3021,42 @@ int mem_equal(const char *s1, const char *s2, int i) {
 }
 
 
+/**
+ * Gets the address for a MMBasic interrupt.
+ *
+ * This will handle a line number, a label or a subroutine,
+ * all areas of MMBasic that can generate an interrupt use this function.
+ */
+const char *GetIntAddress(const char *p) {
+    if (isnamestart(*p)) {          // if it starts with a valid name char
+        char name[MAXVARLEN + 1];
+        MmResult result = parse_name(&p, name);
+
+        int fun_idx;
+        if (SUCCEEDED(result)) result = funtbl_find(name, kLabel | kSub, &fun_idx);
+        switch (result) {
+            case kOk:
+                return funtbl[fun_idx].addr;
+            case kNameTooLong:
+                error_throw_ex(result, "Label/subroutine name too long");
+                return NULL;
+            case kFunctionNotFound:
+                error_throw_ex(result, "Label/subroutine not found");
+                return NULL;
+            case kFunctionTypeMismatch:
+                error_throw_ex(result, "Not a label/subroutine");
+                return NULL;
+            default:
+                error_throw(result);
+                return NULL;
+        }
+    }
+
+    return findline(getinteger(p), true);  // otherwise try for a line number
+}
+
 
 #if defined(DEBUGMODE)
-
-/*
-struct s_vartbl {                               // structure of the variable table
-    char name[MAXVARLEN];                       // variable's name
-    char type;                                  // its type (T_NUM, T_INT or T_STR)
-    char level;                                 // its subroutine or function level (used to track local variables)
-    short int dims[MAXDIM];                     // the dimensions. it is an array if the first dimension is NOT zero
-    unsigned char size;                         // the number of chars to allocate for each element in a string array
-    union u_val {
-        MMFLOAT f;                              // the value if it is a MMFLOAT
-        MMINTEGER i;                            // the value if it is an integer
-        MMFLOAT *fa;                            // pointer to the allocated memory if it is an array of floats
-        MMINTEGER *ia;                          // pointer to the allocated memory if it is an array of integers
-        char *s;                                // pointer to the allocated memory if it is a string
-    } val;
-};
-extern struct s_vartbl *vartbl;
-
-extern int varcnt;                              // number of variables defined (eg, largest index into the variable table)
-*/
 
 // debug,  dump the variable table
 void DumpVarTbl(void) {

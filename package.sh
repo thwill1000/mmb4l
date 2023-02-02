@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export version="2022.01.00-a4"
+export version="0.5.0"
 export arch=`uname -m`
 export distrib=mmb4l-${version}-${arch}
 
@@ -14,6 +14,7 @@ cp mmbasic ${distrib}
 cp ../resources/mmbasic.nanorc ${distrib}
 cp ../resources/mmbasic.syntax.nanorc ${distrib}
 cp ../ChangeLog ${distrib}
+cp ../LICENSE* ${distrib}
 cp ../README.md ${distrib}
 tar -cvzf ${distrib}.tgz ${distrib}
 

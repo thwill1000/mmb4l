@@ -65,8 +65,9 @@ static void poke_dataptr(int argc, char** argv, const char *p) {
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     assert(sizeof(DataReadPointer) == sizeof(MMINTEGER));
     MMINTEGER i = getinteger(p);
-    NextDataLine = ProgMemory + ((DataReadPointer *) &i)->next_line_offset;
-    NextData = ((DataReadPointer *) &i)->next_data;
+    DataReadPointer *pdrp = (DataReadPointer *) &i;
+    NextDataLine = ProgMemory + pdrp->next_line_offset;
+    NextData = pdrp->next_data;
 }
 
 /** POKE FLOAT addr%, float! */

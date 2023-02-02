@@ -105,3 +105,9 @@ void mmtime_sleep_ns(int64_t duration_ns) {
     struct timespec t = { duration_ns / 1000000000, duration_ns % 1000000000 };
     nanosleep(&t, NULL);
 }
+
+int64_t mmtime_get_cputime_ns(void) {
+    struct timespec now;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &now);
+    return SECONDS_TO_NANOSECONDS(now.tv_sec) + (int64_t) now.tv_nsec;
+}

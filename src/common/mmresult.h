@@ -54,14 +54,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef int32_t MmResult;
 
 typedef enum {
-    kOk               = 0,
-    kFileNotFound     = ENOENT,
-    kPermissionDenied = EACCES,
-    kFileExists       = EEXIST,
-    kNotADirectory    = ENOTDIR,
-    kIsADirectory     = EISDIR,
-    kFilenameTooLong  = ENAMETOOLONG,
-    kError            = 256,
+    kOk                   = 0,
+    kFileNotFound         = ENOENT,
+    kPermissionDenied     = EACCES,
+    kFileExists           = EEXIST,
+    kNotADirectory        = ENOTDIR,
+    kIsADirectory         = EISDIR,
+    kFilenameTooLong      = ENAMETOOLONG,
+    kTooManySymbolicLinks = ELOOP,
+    kError                = 256,
     kInternalFault,
     kSyntax,
     kStringTooLong,
@@ -74,7 +75,17 @@ typedef enum {
     kInvalidValue,
     kUnknownSystemCommand,
     kNotPersistent,
-    kUnimplemented
+    kNameTooLong,
+    kUnimplemented,
+    kFunctionNotFound,
+    kVariableNotFound,
+    kTooManyFunctions,
+    kTooManyVariables,
+    kDuplicateFunction,
+    kHashmapFull,
+    kInvalidName,
+    kInvalidArrayDimensions,
+    kFunctionTypeMismatch
 } MmResultCode;
 
 /**

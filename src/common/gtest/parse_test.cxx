@@ -7,9 +7,12 @@
 
 extern "C" {
 
+#include "../memory.h"
 #include "../parse.h"
 #include "../utility.h"
 #include "../../Configuration.h"
+
+int LocalIndex = 0;
 
 void error_throw_ex(MmResult error, char *msg, ...) { }
 long long int getinteger(char *p) { return 0; }
@@ -22,9 +25,11 @@ class ParseTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
+        InitHeap();
     }
 
     void TearDown() override {
+        ClearTempMemory();
     }
 };
 
@@ -34,6 +39,44 @@ TEST_F(ParseTest, ParseMatchesLongStringPattern) {
     EXPECT_TRUE(parse_matches_longstring_pattern(" foo  (   ) "));
     EXPECT_FALSE(parse_matches_longstring_pattern("foo%"));
     EXPECT_FALSE(parse_matches_longstring_pattern("foo$()"));
+}
+
+TEST_F(ParseTest, ParseName) {
+    char name[MAXVARLEN + 1];
+
+    std::string text = " foo ";
+    const char *p = text.c_str();
+    EXPECT_EQ(kOk, parse_name(&p, name));
+    EXPECT_EQ(text.c_str() + 4, p);
+    EXPECT_STREQ("FOO", name);
+
+    text = "_32_chars_long_67890123456789012";
+    p = text.c_str();
+    EXPECT_EQ(kOk, parse_name(&p, name));
+    EXPECT_EQ(text.c_str() + 32, p);
+    EXPECT_STREQ("_32_CHARS_LONG_67890123456789012", name);
+}
+
+TEST_F(ParseTest, ParseName_GivenInvalidName) {
+    char name[MAXVARLEN + 1];
+
+    std::string text = "";
+    const char *p = text.c_str();
+    EXPECT_EQ(kInvalidName, parse_name(&p, name));
+
+    text = " *";
+    p = text.c_str();
+    EXPECT_EQ(kInvalidName, parse_name(&p, name));
+}
+
+TEST_F(ParseTest, ParseName_GivenNameTooLong) {
+    std::string text = " _33_chars_long_678901234567890123 ";
+    const char *p = text.c_str();
+    char name[MAXVARLEN + 1];
+
+    EXPECT_EQ(kNameTooLong, parse_name(&p, name));
+    EXPECT_EQ(text.c_str() + 33, p);
+    EXPECT_STREQ("_33_CHARS_LONG_67890123456789012", name);
 }
 
 TEST_F(ParseTest, ParseTransformInputBuffer_GivenStarCommand) {
@@ -53,12 +96,12 @@ TEST_F(ParseTest, ParseTransformInputBuffer_GivenStarCommand) {
     // Given arguments.
     strcpy(input, "*foo bar wom bat");
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
-    EXPECT_STREQ("RUN \"foo\", bar wom bat", input);
+    EXPECT_STREQ("RUN \"foo\", \"bar wom bat\"", input);
 
     // Given arguments and trailing whitespace.
     strcpy(input, "*foo bar wom bat    ");
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
-    EXPECT_STREQ("RUN \"foo\", bar wom bat", input);
+    EXPECT_STREQ("RUN \"foo\", \"bar wom bat\"", input);
 
     // Given just star.
     strcpy(input, "*");
@@ -73,38 +116,49 @@ TEST_F(ParseTest, ParseTransformInputBuffer_GivenStarCommand) {
     // Given file to run is already quoted.
     strcpy(input, "*\"foo bar\" wom bat");
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
-    EXPECT_STREQ("RUN \"foo bar\", wom bat", input);
+    EXPECT_STREQ("RUN \"foo bar\", \"wom bat\"", input);
 
     // Given quoted file and no space before first argument.
     strcpy(input, "*\"foo bar\"wom bat");
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
-    EXPECT_STREQ("RUN \"foo bar\", wom bat", input);
+    EXPECT_STREQ("RUN \"foo bar\", \"wom bat\"", input);
 
-    // Give file has leading but no trailing quote
+    // Given file has leading but no trailing quote
     // - note that the resulting command will be invalid.
     strcpy(input, "*\"foo bar wom bat");
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
     EXPECT_STREQ("RUN \"foo bar wom bat", input);
 
+    // Given single argument containing quotes.
+    strcpy(input, "*foo --outfile=\"wom bat\"");
+    EXPECT_EQ(kOk, parse_transform_input_buffer(input));
+    EXPECT_STREQ("RUN \"foo\", \"--outfile=\" + Chr$(34) + \"wom bat\" + Chr$(34)", input);
+
+    // Given whole argument quoted.
+    strcpy(input, "*foo \"wom bat\"");
+    EXPECT_EQ(kOk, parse_transform_input_buffer(input));
+    EXPECT_STREQ("RUN \"foo\", Chr$(34) + \"wom bat\" + Chr$(34)", input);
+
+    // Given two quoted arguments.
+    strcpy(input, "*foo \"wom\" \"bat\"");
+    EXPECT_EQ(kOk, parse_transform_input_buffer(input));
+    EXPECT_STREQ("RUN \"foo\", Chr$(34) + \"wom\" + Chr$(34) + \" \" + Chr$(34) + \"bat\" + Chr$(34)", input);
+
     // Given maximum length input.
-    memset(input, 'A', STRINGSIZE);
-    input[0] = '*';
-    memset(input + 1, 'A', 249);
-    input[250] = '\0';
+    memcpy(input, "*foo \"", 6);
+    memset(input + 6, 'A', 220);
+    memcpy(input + 226, "\"", 2);
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
     EXPECT_EQ(STRINGSIZE - 1, strlen(input));
-    memset(expected, 'A', STRINGSIZE);
-    memcpy(expected, "RUN \"", 5);
-    memset(expected + 5, 'A', 249);
-    expected[254] = '"';
-    expected[255] = '\0';
+    memcpy(expected, "RUN \"foo\", Chr$(34) + \"", 23);
+    memset(expected + 23, 'A', 220);
+    memcpy(expected + 243, "\" + Chr$(34)", 13);
     EXPECT_STREQ(expected, input);
 
     // Given expanded command is too long.
-    memset(input, 'A', STRINGSIZE);
-    input[0] = '*';
-    memset(input + 1, 'A', 250);
-    input[251] = '\0';
+    memcpy(input, "*foo \"", 6);
+    memset(input + 6, 'A', 221);
+    memcpy(input + 227, "\"", 2);
     strcpy(expected, input);
     EXPECT_EQ(kStringTooLong, parse_transform_input_buffer(input));
     EXPECT_STREQ(expected, input);
@@ -192,7 +246,6 @@ TEST_F(ParseTest, ParseTransformInputBuffer_GivenBangCommand) {
 
 TEST_F(ParseTest, ParseTransformInputBuffer_GivenBangCdCommand) {
     char input[STRINGSIZE];
-    char expected[STRINGSIZE];
 
     // Given no directory.
     strcpy(input, "!cd");

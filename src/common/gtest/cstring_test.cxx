@@ -59,6 +59,30 @@ TEST(CstringTest, Cat) {
     EXPECT_STREQ("XXXXXXXX", s + strlen(s) + 1);
 }
 
+TEST(CstringTest, Cpy) {
+    char dst[10] = { 0 };
+
+    EXPECT_EQ(-1, cstring_cpy(dst, "", 0));
+    EXPECT_STREQ("", dst);
+
+    EXPECT_EQ(0, cstring_cpy(dst, "", sizeof(dst)));
+    EXPECT_STREQ("", dst);
+
+    EXPECT_EQ(0, cstring_cpy(dst, "foobar", sizeof(dst)));
+    EXPECT_STREQ("foobar", dst);
+
+    EXPECT_EQ(0, cstring_cpy(dst, "123456789", sizeof(dst)));
+    EXPECT_STREQ("123456789", dst);
+
+    EXPECT_EQ(-1, cstring_cpy(dst, "1234567890", sizeof(dst)));
+    EXPECT_STREQ("123456789", dst);
+
+    memset(dst, 0xFF, sizeof(dst));
+    EXPECT_EQ(-1, cstring_cpy(dst, "1234567890", 2));
+    EXPECT_STREQ("1", dst);
+    EXPECT_EQ(0, memcmp("1\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", dst, sizeof(dst)));
+}
+
 TEST(CstringTest, Enquote) {
     char s[16];
 

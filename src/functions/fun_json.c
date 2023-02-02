@@ -42,11 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdlib.h>
-
 #include "../common/mmb4l.h"
-#include "../common/error.h"
 #include "../common/cJSON.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 #define ERROR_NOT_AN_ITEM  error_throw_ex(kError, "Not an item")
 

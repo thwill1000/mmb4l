@@ -42,17 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
-#include "../common/error.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /**
  * @brief  Reads value of an environment variable into a buffer.
@@ -184,8 +181,8 @@ static MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exi
         FILE *f = popen(cmd, "r");
         if (!f) return errno;
 
-        int i;
-        for (i = 0; i < *sz; ++i) {
+        ssize_t i;
+        for (i = 0; i < (ssize_t) *sz; ++i) {
             int ch = fgetc(f);
             if (ch == EOF) break;
             buf[i] = (char) ch;

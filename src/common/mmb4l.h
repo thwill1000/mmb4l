@@ -45,15 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined MMB4L_H
 #define MMB4L_H
 
-#include <setjmp.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
-
 #include "../Version.h"
 #include "../Configuration.h"
+#include "../core/funtbl.h"
 #include "../core/MMBasic.h"
-#include "../core/VarTable.h"
+#include "../core/vartbl.h"
 #include "error.h"
 #include "memory.h"
 #include "options.h"
@@ -73,8 +69,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define g_var_tbl          vartbl
 
 void CheckAbort(void);
-void FlashWriteInit(char *p, int nbr);
-const char *GetIntAddress(const char *p);
+void FlashWriteInit();
 void ListProgram(char *p, int all);
 char *llist(char *b, const char *p);
 int MMgetchar(void);

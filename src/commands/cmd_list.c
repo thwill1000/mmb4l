@@ -42,8 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdlib.h>
-
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"
@@ -52,6 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 #define ERROR_NOTHING_TO_LIST  error_throw_ex(kError, "Nothing to list")
 
@@ -109,15 +110,15 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, con
     for (int i = 0; i < total; i += step) {
         for (int k = 0; k < step; k++) {
             if (i + k < total) {
-                MMPrintString(tbl[i + k]);
+                console_puts(tbl[i + k]);
                 if (k != (step - 1))
-                    for (int j = strlen(tbl[i + k]); j < 19; j++) MMPrintString(" "); //putConsole(' ');
+                    for (int j = strlen(tbl[i + k]); j < 19; j++) console_puts(" ");
             }
         }
-        MMPrintString("\r\n");
+        console_puts("\r\n");
     }
     sprintf(buf, "Total of %d %s using %d slots\r\n\r\n", total, title, num_primary);
-    MMPrintString(buf);
+    console_puts(buf);
 }
 
 static void list_commands() {
@@ -143,7 +144,8 @@ static void list_file(const char *filename, int all) {
     }
 
     char file_path[STRINGSIZE];
-    if (!path_munge(filename ? filename : CurrentFile, file_path, STRINGSIZE)) error_throw(errno);
+    MmResult result = path_munge(filename ? filename : CurrentFile, file_path, STRINGSIZE);
+    if (FAILED(result)) error_throw(result);
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;
@@ -155,14 +157,14 @@ static void list_file(const char *filename, int all) {
         for (size_t i = 0; i < strlen(line_buffer); i++) {
             if (line_buffer[i] == TAB) line_buffer[i] = ' ';
         }
-        MMPrintString(line_buffer);
+        console_puts(line_buffer);
         list_count += strlen(line_buffer) / mmb_options.width;
         ListNewLine(&list_count, all);
     }
     file_close(fnbr);
 
     // Ensure listing is followed by an empty line.
-    if (strcmp(line_buffer, "") != 0) MMPrintString("\r\n");
+    if (strcmp(line_buffer, "") != 0) console_puts("\r\n");
 }
 
 static void list_flash(int all) {
@@ -176,7 +178,7 @@ static void list_flash(int all) {
 
     ListProgram(ProgMemory, all);
 
-    MMPrintString("\r\n");
+    console_puts("\r\n");
 }
 
 static void list_csubs(int all) {
@@ -200,7 +202,9 @@ void cmd_list(void) {
     skipspace(cmdline);
 
     // Use the current console dimensions for the output of the LIST command.
-    if (FAILED(console_get_size(&mmb_options.width, &mmb_options.height))) ERROR_INTERNAL_FAULT;
+    if (FAILED(console_get_size(&mmb_options.width, &mmb_options.height, 0))) {
+        ERROR_UNKNOWN_TERMINAL_SIZE;
+    }
 
     if (parse_is_end(cmdline)) {
         list_file(NULL, false);

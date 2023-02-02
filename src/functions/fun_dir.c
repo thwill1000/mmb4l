@@ -42,13 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <dirent.h>
-#include <libgen.h>
-
 #include "../common/mmb4l.h"
-#include "../common/error.h"
 #include "../common/path.h"
 #include "../common/utility.h"
+
+#include <dirent.h>
+#include <libgen.h>
+#include <string.h>
 
 #define ERROR_INVALID_FLAG_SPECIFICATION  error_throw_ex(kError, "Invalid flag specification")
 #define ERROR_UNABLE_TO_OPEN_DIRECTORY    error_throw_ex(kError, "Unable to open directory")
@@ -116,7 +116,6 @@ pattern_matching(                 /* 0:not matched, 1:matched */
 
 void fun_dir(void) {
     static DIR *dp;
-    char *p;
     struct dirent *entry;
     static char pp[32];
     getargs(&ep, 3, ",");
@@ -138,7 +137,8 @@ void fun_dir(void) {
         // This must be the first call eg:  DIR$("*.*", FILE)
 
         char *path = GetTempStrMemory();
-        if (!path_munge(getCstring(argv[0]), path, STRINGSIZE)) error_throw(errno);
+        MmResult result = path_munge(getCstring(argv[0]), path, STRINGSIZE);
+        if (FAILED(result)) error_throw(result);
 
         strcpy(pp, basename(path));
         dp = opendir(dirname(path));

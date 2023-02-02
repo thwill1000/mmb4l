@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 error.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,20 +42,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "error.h"
+
+#include "mmb4l.h"
+#include "cstring.h"
+#include "exit_codes.h"
+#include "path.h"
+#include "program.h"
+#include "utility.h"
+
 #include <assert.h>
-#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "../common/mmb4l.h"
-#include "../common/cstring.h"
-#include "../common/error.h"
-#include "../common/exit_codes.h"
-#include "../common/options.h"
-#include "../common/path.h"
-#include "../common/program.h"
-#include "../common/utility.h"
+#include <string.h>
 
 extern jmp_buf ErrNext;
 
@@ -74,7 +74,7 @@ static void get_line_and_file(int *line, char *file_path) {
 
     if (!CurrentLinePtr) return;
 
-    if (CurrentLinePtr >= (char *) ProgMemory + PROG_FLASH_SIZE) return;
+    assert(CurrentLinePtr < (char *) ProgMemory + PROG_FLASH_SIZE);
 
     if (*CurrentLinePtr != T_NEWLINE) {
         // normally CurrentLinePtr points to a T_NEWLINE token but in this
@@ -99,14 +99,18 @@ static void get_line_and_file(int *line, char *file_path) {
         }
     }
 
-    if (CurrentLinePtr >= (char *) ProgMemory + PROG_FLASH_SIZE) return;
+    assert(CurrentLinePtr < (char *) ProgMemory + PROG_FLASH_SIZE);
 
     // We now have CurrentLinePtr pointing to the start of the line.
     llist(tknbuf, CurrentLinePtr);
     // p = tknbuf;
     // skipspace(p);
 
-    char *pipe_pos = strchr(tknbuf, '|');
+    // Search backwards for the '|' character that delimits the meta-data about
+    // which file the statement originated from. Note that if the name of the
+    // file from which the statement was sourced contains a '|' then all bets
+    // are off.
+    char *pipe_pos = strrchr(tknbuf, '|');
     if (!pipe_pos) return;
 
     char *comma_pos = strchr(pipe_pos, ',');
@@ -116,7 +120,7 @@ static void get_line_and_file(int *line, char *file_path) {
         comma_pos++;
         *line = atoi(comma_pos);
 
-        if (!path_get_parent(CurrentFile, file_path, STRINGSIZE)) return;
+        if (FAILED(path_get_parent(CurrentFile, file_path, STRINGSIZE))) return;
         // TODO: prevent buffer overflow.
         int len = strlen(file_path);
         file_path[len++] = '/';
@@ -175,9 +179,7 @@ static void verror(MmResult error, const char *msg, va_list argp) {
         msg++;
     }
 
-    // Don't overflow mmb_error_state_ptr->message.
-    strncpy(mmb_error_state_ptr->message, buf, MAXERRMSG - 1);
-    mmb_error_state_ptr->message[MAXERRMSG - 1] = '\0';
+    cstring_cpy(mmb_error_state_ptr->message, buf, MAXERRMSG);
 
     if (mmb_error_state_ptr->skip) {
         *mmb_error_state_ptr->file = '\0';

@@ -42,27 +42,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include "../common/mmb4l.h"
 #include "../common/console.h"
-#include "../common/error.h"
-#include "../common/memory.h"
-#include "../common/options.h"
+#include "../common/mmtime.h"
 #include "../common/parse.h"
 #include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #define FONT_HEIGHT  12
 #define FONT_WIDTH   8
 
-extern char run_cmdline[STRINGSIZE];
+extern char cmd_run_args[STRINGSIZE];
 
 static void mminfo_architecture(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
@@ -72,37 +68,18 @@ static void mminfo_architecture(const char *p) {
     CtoM(g_string_rtn);
 }
 
-void get_mmcmdline(char *cmdline) {
-    char *p = run_cmdline;
-    skipspace(p);
-
-    if (*p == 34) {
-        do {
-            p++;
-        } while (*p != 34);
-        p++;
-        skipspace(p);
-        if (*p == ',') {
-            p++;
-            skipspace(p);
-        }
-    }
-
-    char *q;
-    if ((q = strchr(p, '|'))) {
-        q--;
-        *q = 0;
-    }
-
-    strcpy(cmdline, p);
-}
-
 static void mminfo_cmdline(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
-    get_mmcmdline(g_string_rtn);
+    strcpy(g_string_rtn, cmd_run_args);
     CtoM(g_string_rtn);
+}
+
+static void mminfo_cputime(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_rtn_type = T_INT;
+    g_integer_rtn = mmtime_get_cputime_ns();
 }
 
 static void mminfo_current(const char *p) {
@@ -172,7 +149,8 @@ static void mminfo_errno(const char *p) {
 
 static char *get_path(const char *p) {
     char *path = GetTempStrMemory();
-    if (!path_munge(getCstring(p), path, STRINGSIZE)) error_throw(errno);
+    MmResult result = path_munge(getCstring(p), path, STRINGSIZE);
+    if (FAILED(result)) error_throw(result);
     return path;
 }
 
@@ -250,11 +228,17 @@ static void mminfo_fontwidth(const char *p) {
     g_rtn_type = T_INT;
 }
 
+static void mminfo_calldepth(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_integer_rtn = LocalIndex;
+    g_rtn_type = T_INT;
+}
+
 void mminfo_hres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int width, height;
-    if (FAILED(console_get_size(&width, &height))) {
-        ERROR_COULD_NOT("determine console size");
+    if (FAILED(console_get_size(&width, &height, 0))) {
+        ERROR_UNKNOWN_TERMINAL_SIZE;
     }
     int scale = mmb_options.resolution == kPixel ? FONT_WIDTH : 1;
     g_integer_rtn = width * scale;
@@ -313,7 +297,7 @@ static void mminfo_path(const char *p) {
     if (CurrentFile[0] == '\0') {
         strcpy(g_string_rtn, "NONE");
     } else {
-        if (!path_get_parent(CurrentFile, g_string_rtn, STRINGSIZE)) {
+        if (FAILED(path_get_parent(CurrentFile, g_string_rtn, STRINGSIZE))) {
             ERROR_COULD_NOT("determine path");
         }
         // TODO: error handling if path too long.
@@ -325,20 +309,42 @@ static void mminfo_path(const char *p) {
     CtoM(g_string_rtn);
 }
 
-static void mminfo_version(const char *p) {
+static void mminfo_pid(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    char *endptr;
-    g_float_rtn = (MMFLOAT) strtol(VERSION, &endptr, 10);
-    g_float_rtn += (MMFLOAT) strtol(endptr + 1, &endptr, 10) / (MMFLOAT) 100.0;
-    g_float_rtn += (MMFLOAT) strtol(endptr + 1, &endptr, 10) / (MMFLOAT) 10000.0;
-    g_rtn_type = T_NBR;
+    g_rtn_type = T_INT;
+    g_integer_rtn = (MMINTEGER) getpid();
+}
+
+static void mminfo_version(const char *p) {
+    const char *p2;
+    g_rtn_type = T_INT;
+    if ((p2 = checkstring(p, "MAJOR"))) {
+        if (!parse_is_end(p2)) ERROR_SYNTAX;
+        g_integer_rtn = MAJOR_VERSION;
+    } else if ((p2 = checkstring(p, "MINOR"))) {
+        if (!parse_is_end(p2)) ERROR_SYNTAX;
+        g_integer_rtn = MINOR_VERSION;
+    } else if ((p2 = checkstring(p, "MICRO"))) {
+        if (!parse_is_end(p2)) ERROR_SYNTAX;
+        g_integer_rtn = MICRO_VERSION;
+    } else if ((p2 = checkstring(p, "BUILD"))) {
+        if (!parse_is_end(p2)) ERROR_SYNTAX;
+        g_integer_rtn = BUILD_NUMBER;
+    } else if (!parse_is_end(p)) {
+        ERROR_SYNTAX;
+    } else {
+        g_integer_rtn = MAJOR_VERSION * 100000000
+                + MINOR_VERSION * 1000000
+                + MICRO_VERSION * 10000
+                + BUILD_NUMBER;
+    }
 }
 
 void mminfo_vres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     int width, height;
-    if (FAILED(console_get_size(&width, &height))) {
-        ERROR_COULD_NOT("determine console size");
+    if (FAILED(console_get_size(&width, &height, 0))) {
+        ERROR_UNKNOWN_TERMINAL_SIZE;
     }
     int scale = mmb_options.resolution == kPixel ? FONT_HEIGHT : 1;
     g_integer_rtn = height * scale;
@@ -362,6 +368,8 @@ void fun_mminfo(void) {
         mminfo_architecture(p);
     } else if ((p = checkstring(ep, "CMDLINE"))) {
         mminfo_cmdline(p);
+    } else if ((p = checkstring(ep, "CPUTIME"))) {
+        mminfo_cputime(p);
     } else if ((p = checkstring(ep, "CURRENT"))) {
         mminfo_current(p);
     } else if ((p = checkstring(ep, "DEVICE"))) {
@@ -384,6 +392,8 @@ void fun_mminfo(void) {
         mminfo_fontheight(p);
     } else if ((p = checkstring(ep, "FONTWIDTH"))) {
         mminfo_fontwidth(p);
+    } else if ((p = checkstring(ep, "CALLDEPTH"))) {
+        mminfo_calldepth(p);
     } else if ((p = checkstring(ep, "HRES"))) {
         mminfo_hres(p);
     } else if ((p = checkstring(ep, "HPOS"))) {
@@ -392,6 +402,8 @@ void fun_mminfo(void) {
         mminfo_option(p);
     } else if ((p = checkstring(ep, "PATH"))) {
         mminfo_path(p);
+    } else if ((p = checkstring(ep, "PID"))) {
+        mminfo_pid(p);
     } else if ((p = checkstring(ep, "VERSION"))) {
         mminfo_version(p);
     } else if ((p = checkstring(ep, "VRES"))) {

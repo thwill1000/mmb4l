@@ -286,13 +286,14 @@ Sub check_header(header%())
   assert_hex_equals(3,        Peek(Byte addr% + 33)) ' level
   Local i%
   For i% = 34 To 49 ' 8 x 2 byte array dimensions
-    assert_hex_equals(0,      Peek(Byte addr% + i%))
+    assert_hex_equals(0,  Peek(Byte addr% + i%))
   Next
-  Local expected_size% = Choice(Mm.Device$ = "MMB4L", 255, 0)
-  assert_hex_equals(expected_size%, Peek(Byte addr% + 50)) ' string size
-  For i% = 51 To 55 ' 5 bytes of padding
-    assert_hex_equals(0,      Peek(Byte addr% + i%))
-  Next
+  assert_hex_equals(0, Peek(Byte addr% + 50))    ' string size
+  assert_hex_equals(0, Peek(Byte addr% + 51))    ' 1 byte of padding
+  assert_hex_equals(&hAE * (Mm.Device$ = "MMB4L"), Peek(Byte addr% + 52)) ' 2 bytes of hash
+  assert_hex_equals(&h03 * (Mm.Device$ = "MMB4L"), Peek(Byte addr% + 53))
+  assert_hex_equals(0,    Peek(Byte addr% + 54)) ' 2 bytes of padding
+  assert_hex_equals(0,    Peek(Byte addr% + 55))
   assert_hex_equals(&hFF, Peek(Byte addr% + 56)) ' value (1st byte)
   assert_hex_equals(&hEE, Peek(Byte addr% + 57)) ' value (2nd byte)
   assert_hex_equals(&hDD, Peek(Byte addr% + 58)) ' value (3rd byte)

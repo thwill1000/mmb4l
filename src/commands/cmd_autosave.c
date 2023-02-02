@@ -42,25 +42,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-#include <errno.h>
-#include <stdbool.h>
-
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/cstring.h"
-#include "../common/error.h"
 #include "../common/file.h"
-#include "../common/memory.h"
 #include "../common/parse.h"
 #include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
+#include <string.h>
+
 /** Gets the path of the file to write to. */
 static void cmd_autosave_get_file_path(char *file_path) {
     char *filename = getCstring(cmdline);
-    if (!path_munge(filename, file_path, STRINGSIZE)) error_throw(errno);
+    MmResult result = path_munge(filename, file_path, STRINGSIZE);
+    if (FAILED(result)) error_throw(result);
 
     if (strlen(path_get_extension(file_path)) == 0) {
         if (strlen(file_path) > MAXSTRLEN - 4) ERROR_PATH_TOO_LONG;
@@ -130,7 +127,7 @@ static void cmd_autosave_write_file(char *file_path, char *buf) {
     file_open(file_path, "wb", fnbr);
     char *p = buf;
     while (*p) {
-        file_putc(*p++, fnbr);
+        file_putc(fnbr, *p++);
     }
     file_close(fnbr);
 }

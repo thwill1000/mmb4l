@@ -21,20 +21,24 @@ FetchContent_MakeAvailable(googletest)
 add_definitions(-funsigned-char)
 
 if (MMB4L_COVERAGE)
+    message("** Configuring with code-coverage")
     set(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
     set(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
     set(GCOV_LINK_LIBRARY          gcov)
 endif()
 
-set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -Wwrite-strings")
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -Wwrite-strings")
+set(XTRA_WARNING_FLAGS "-Wwrite-strings -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-function -Wno-unused-result -Werror")
+set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${XTRA_WARNING_FLAGS}")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${XTRA_WARNING_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
 
 set(MMB4L_CORE_SOURCE_FILES
+    src/core/Commands.c
+    src/core/Functions.c
+    src/core/funtbl.c
     src/core/MMBasic.c
     src/core/Operators.c
-    src/core/Functions.c
-    src/core/Commands.c
+    src/core/vartbl.c
 )
 
 set(MMB4L_COMMANDS_SOURCE_FILES
@@ -50,6 +54,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_dummy.c
     src/commands/cmd_edit.c
     src/commands/cmd_end.c
+    src/commands/cmd_erase.c
     src/commands/cmd_error.c
     src/commands/cmd_execute.c
     src/commands/cmd_files.c
@@ -190,6 +195,8 @@ add_executable(
   test_cmdline
   src/common/cmdline.c
   src/common/cstring.c
+  src/common/memory.c
+  src/common/parse.c
   src/common/gtest/cmdline_test.cxx
 )
 
@@ -202,6 +209,34 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_cmdline)
+
+################################################################################
+# test_cmd_run
+################################################################################
+
+add_executable(
+  test_cmd_run
+  src/commands/cmd_run.c
+  src/commands/gtest/cmd_run_test.cxx
+  src/common/cstring.c
+  src/common/memory.c
+  src/common/mmresult.c
+  src/common/parse.c
+  src/core/funtbl.c
+  src/core/MMBasic.c
+  src/core/vartbl.c
+  src/functions/fun_mmcmdline.c
+)
+
+target_link_libraries(
+  test_cmd_run
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_cmd_run)
 
 ################################################################################
 # test_cstring
@@ -221,6 +256,43 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_cstring)
+
+################################################################################
+# test_funtbl
+################################################################################
+
+add_executable(
+  test_funtbl
+  src/core/funtbl.c
+  src/core/gtest/funtbl_test.cxx
+)
+
+target_link_libraries(
+  test_funtbl
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_funtbl)
+
+################################################################################
+# test_hash
+################################################################################
+
+add_executable(
+  test_hash
+  src/common/gtest/hash_test.cxx
+)
+
+target_link_libraries(
+  test_hash
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_hash)
 
 ################################################################################
 # test_options
@@ -255,6 +327,7 @@ gtest_discover_tests(test_options)
 add_executable(
   test_parse
   src/common/cstring.c
+  src/common/memory.c
   src/common/parse.c
   src/common/gtest/parse_test.cxx
 )
@@ -313,6 +386,27 @@ target_link_libraries(
 gtest_discover_tests(test_program)
 
 ################################################################################
+# test_prompt
+################################################################################
+
+add_executable(
+  test_prompt
+  src/common/cstring.c
+  src/common/prompt.c
+  src/common/gtest/prompt_test.cxx
+)
+
+target_link_libraries(
+  test_prompt
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_prompt)
+
+################################################################################
 # test_rx_buf
 ################################################################################
 
@@ -331,3 +425,56 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_rx_buf)
+
+################################################################################
+# test_mmbasic_core
+################################################################################
+
+add_executable(
+  test_mmbasic_core
+  src/common/cstring.c
+  src/common/file.c
+  src/common/interrupt.c
+  src/common/memory.c
+  src/common/mmresult.c
+  src/common/mmtime.c
+  src/common/parse.c
+  src/common/path.c
+  src/common/program.c
+  src/common/rx_buf.c
+  src/common/serial.c
+  src/core/funtbl.c
+  src/core/MMBasic.c
+  src/core/vartbl.c
+  src/core/gtest/mmbasic_core_test.cxx
+)
+
+target_link_libraries(
+  test_mmbasic_core
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_mmbasic_core)
+
+################################################################################
+# test_vartbl
+################################################################################
+
+add_executable(
+  test_vartbl
+  src/core/vartbl.c
+  src/core/gtest/vartbl_test.cxx
+)
+
+target_link_libraries(
+  test_vartbl
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_vartbl)

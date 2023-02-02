@@ -17,20 +17,117 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 
 Const BASE% = Mm.Info(Option Base)
 
+add_test("test_erase")
+add_test("test_erase_given_arrays")
+add_test("test_erase_given_strings")
 add_test("test_inv")
 add_test("test_unary_minus")
 add_test("test_unary_plus")
 add_test("test_error_correct_after_goto")
 add_test("test_error_correct_after_gosub")
 
+
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
 
-Sub setup_test()
+Sub test_erase()
+  Dim foo%, bar!, wombat$
+
+  foo% = 42
+  bar! = 3.142
+  wombat$ = "wombat"
+
+  Erase foo%
+  On Error Skip 1
+  foo% = 42
+  assert_raw_error("FOO is not declared")
+  bar! = 3.142
+  wombat$ = "wombat"
+
+  Erase bar, wombat$
+  On Error Skip 1
+  bar! = 3.142
+  assert_raw_error("BAR is not declared")
+  On Error Skip 1
+  wombat$ = "wombat"
+  assert_raw_error("WOMBAT is not declared")
+
+  On Error Skip 1
+  Erase snafu!
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Cannot find global variable SNAFU", "Cannot find SNAFU"))
+
+  On Error Skip 1
+  Erase *invalid
+  Select Case Mm.Device$
+    Case "Colour Maximite 2", "Colour Maximite 2 G2"
+      assert_raw_error("Unknown command")
+    Case "MMBasic for Windows"
+      assert_raw_error("Syntax")
+    Case Else
+      assert_raw_error("Invalid name")
+  End Select
+
+  On Error Skip 1
+  Erase _32_chars_long_67890123456789012%
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Cannot find global variable _32_CHARS_LONG_67890123456789012", "Cannot find _32_CHARS_LONG_67890123456789012"))
+
+  On Error Skip 1
+  Erase _33_chars_long_678901234567890123%
+  Select Case Mm.Device$
+    Case "Colour Maximite 2", "Colour Maximite 2 G2"
+      assert_raw_error("Cannot find _33_CHARS_LONG_678901234567890123")
+    Case Else
+      assert_raw_error("Name too long")
+  End Select
 End Sub
 
-Sub teardown_test()
+' There was a bug in MMB4W (and the PicoMite) where the heap memory
+' used by arrays was not being released correctly and would eventually
+' be exhausted.
+Sub test_erase_given_arrays()
+  If Mm.Device$ = "MMBasic for Windows" Then
+    Local filler1%(15 * 1024 * 1024)
+  Else
+    ' TODO: remove MMB4L 32K array size limitation.
+    Local filler1%(32 * 1024 - 1)
+    Local filler2%(32 * 1024 - 1)
+    Local filler3%(32 * 1024 - 1)
+    Local filler4%(24 * 1024 - 1)
+  EndIf
+  Local i%
+  For i% = 0 To 255
+    Dim foo_array%(Mm.Info(Option Base) + 4095) ' 32K
+    Erase foo_array%
+  Next
+
+  On Error Skip 1
+  foo_array%(1) = 42
+  assert_raw_error("FOO_ARRAY is not declared")
+End Sub
+
+' There was a bug in MMB4W (and the PicoMite) where the heap memory
+' used by strings was not being released correctly and would eventually
+' be exhausted.
+Sub test_erase_given_strings()
+  If Mm.Device$ = "MMBasic for Windows" Then
+    Local filler1%(15 * 1024 * 1024)
+  Else
+    ' TODO: remove MMB4L 32K array size limitation.
+    Local filler1%(32 * 1024 - 1)
+    Local filler2%(32 * 1024 - 1)
+    Local filler3%(32 * 1024 - 1)
+    Local filler4%(24 * 1024 - 1)
+  EndIf
+  Local i%
+  For i% = 0 To 32767
+    Dim foo_string$
+    Erase foo_string$
+  Next
+
+  On Error Skip 1
+  foo_string$ = "foo"
+  assert_raw_error("FOO_STRING is not declared")
 End Sub
 
 Sub test_inv()
@@ -113,15 +210,16 @@ Sub test_unary_plus()
 End Sub
 
 Sub test_error_correct_after_goto()
+  Local base_line% = 221
   Goto 30
 test_goto_label_1:
-  assert_raw_error("Error in line 127: foo1")
+  assert_raw_error("Error in line " + Str$(base_line% + 4) + ": foo1")
   Goto 40
 test_goto_label_2:
-  assert_raw_error("Error in line 129: foo2")
+  assert_raw_error("Error in line " + Str$(base_line% + 6) + ": foo2")
   On Error Skip
   Error "foo3"
-  assert_raw_error("Error in line 123: foo3")
+  assert_raw_error("Error in line " + Str$(base_line%) + ": foo3")
 End Sub
 
 30 On Error Skip : Error "foo1" : Goto test_goto_label_1
@@ -130,13 +228,14 @@ Error "foo2"
 Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
+  Local base_line% = 237
   GoSub 60
-  assert_raw_error("Error in line 142: bar1")
+  assert_raw_error("Error in line " + Str$(base_line% + 4) + ": bar1")
   GoSub 70
-  assert_raw_error("Error in line 144: bar2")
+  assert_raw_error("Error in line " + Str$(base_line% + 6) + ": bar2")
   On Error Skip
   Error "bar3"
-  assert_raw_error("Error in line 138: bar3")
+  assert_raw_error("Error in line " + Str$(base_line%) + ": bar3")
 End Sub
 
 60 On Error Skip : Error "bar1" : Return

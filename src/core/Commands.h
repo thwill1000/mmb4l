@@ -233,7 +233,6 @@ extern char DimUsed;
 // void mergefile(char *fname, char *MemPtr);
 void MIPS16 ListProgram(char *p, int all);
 char MIPS16 *llist(char *b, char *p);
-const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType);
 
 #if !defined(__mmb4l__)
 #define CONFIG_TITLE      0

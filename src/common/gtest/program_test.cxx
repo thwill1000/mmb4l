@@ -41,7 +41,7 @@ void IntToStr(char *strr, long long int nbr, unsigned int base) { }
 void ListNewLine(int *ListCnt, int all) { }
 void makeargs(char **p, int maxargs, char *argbuf, char *argv[], int *argc, char *delim) { }
 void MMgetline(int filenbr, char *p) { }
-void MMPrintString(char* s) { }
+void console_puts(const char* s) { }
 void tokenise(int console) { }
 
 }
@@ -134,13 +134,12 @@ protected:
 
 #define TEST_PROGRAM_GET_BAS_FILE(filename, expected) \
     result = program_get_bas_file(filename, out); \
-    EXPECT_STREQ(expected, result); \
-    EXPECT_STREQ(expected, out); \
-    EXPECT_EQ(0, errno)
+    EXPECT_EQ(kOk, result); \
+    EXPECT_STREQ(expected, out)
 
 TEST_F(ProgramTest, GetBasFile_GivenAbsolutePath) {
     char out[STRINGSIZE] = { '\0' };
-    char *result;
+    MmResult result;
 
     // Test when no file present.
     TEST_PROGRAM_GET_BAS_FILE(PROGRAM_TEST_DIR "/foo.bas", PROGRAM_TEST_DIR "/foo.bas");
@@ -176,7 +175,7 @@ TEST_F(ProgramTest, GetBasFile_GivenAbsolutePath) {
 
 TEST_F(ProgramTest, GetBasFile_GivenRelativePath) {
     char out[STRINGSIZE] = { '\0' };
-    char *result;
+    MmResult result;
 
     // Test when no file present.
     TEST_PROGRAM_GET_BAS_FILE("foo.bas", PathToFileInCwd("foo.bas").c_str());
@@ -207,25 +206,23 @@ TEST_F(ProgramTest, GetBasFile_GivenRelativePath) {
 
     // Test when "foo" without extension is present.
     MakeEmptyFile("foo");
-    TEST_PROGRAM_GET_BAS_FILE("foo",     PathToFileInCwd("foo.bas").c_str());
+    TEST_PROGRAM_GET_BAS_FILE("foo",     PathToFileInCwd("foo").c_str());
 }
 
 TEST_F(ProgramTest, GetBasFile_GivenRunningProgram_AndAbsolutePath) {
     char out[STRINGSIZE] = { '\0' };
-    errno = 0;
+    MmResult result;
     CurrentLinePtr = (char *) 1; // anything other than 0.
     strcpy(CurrentFile, PROGRAM_TEST_DIR "/current.bas");
-    char *result;
 
     TEST_PROGRAM_GET_BAS_FILE(PROGRAM_TEST_DIR "/bar/foo.bas", PROGRAM_TEST_DIR "/bar/foo.bas");
 }
 
 TEST_F(ProgramTest, GetBasFile_GivenRunningProgram_AndRelativePath) {
     char out[STRINGSIZE] = { '\0' };
-    errno = 0;
+    MmResult result;
     CurrentLinePtr = (char *) 1; // anything other than 0.
     strcpy(CurrentFile, PROGRAM_TEST_DIR "/current.bas");
-    char *result;
 
     // Contrary to my original belief the file should be is resolved relative
     // to CWD and not to the directory containing the currently running program.
@@ -234,42 +231,58 @@ TEST_F(ProgramTest, GetBasFile_GivenRunningProgram_AndRelativePath) {
 
 TEST_F(ProgramTest, GetBasFile_GivenOnlyInSearchPath) {
     char out[STRINGSIZE] = { '\0' };
-    char *result;
+    MmResult result;
     MakeEmptyFile(PROGRAM_TEST_DIR "/foo.bas");
 
-    // Given no search path, expect to resolve to file in CWD.
+    // Given no SEARCH PATH,
+    // expect to resolve to non-existent file in CWD.
     strcpy(mmb_options.search_path, "");
     TEST_PROGRAM_GET_BAS_FILE("foo.bas", PathToFileInCwd("foo.bas").c_str());
 
-    // Given search path contains file, expect to resolve to file in search path.
+    // Given matching file in SEARCH PATH,
+    // expect to resolve to file in SEARCH PATH.
     strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
     TEST_PROGRAM_GET_BAS_FILE("foo.bas", PROGRAM_TEST_DIR "/foo.bas");
 
-    // Given extension is not an exact match, expect to resolve to file in CWD.
+    // Given file in SEARCH PATH with non-matching extension,
+    // expect to resolve to non-existent file in CWD.
     strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
     TEST_PROGRAM_GET_BAS_FILE("foo.BAS", PathToFileInCwd("foo.BAS").c_str());
 
-    // Given no extension, expect to resolve to file in search path.
+    // Given no extension and no matching file,
+    // expect to resolve to file with extension in SEARCH PATH.
     strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
     TEST_PROGRAM_GET_BAS_FILE("foo", PROGRAM_TEST_DIR "/foo.bas");
 
-    // Given file in CWD and search path, expect to resolve to file in CWD.
+    // Given no extension and matching file in SEARCH PATH,
+    // expect to resolve to file in SEARCH PATH.
+    MakeEmptyFile(PROGRAM_TEST_DIR "/foo");
+    strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
+    TEST_PROGRAM_GET_BAS_FILE("foo", PROGRAM_TEST_DIR "/foo");
+
+    // Given no extension and matching file in CWD,
+    // expect to resolve to file in CWD.
+    MakeEmptyFile("foo");
+    strcpy(mmb_options.search_path, PROGRAM_TEST_DIR);
+    TEST_PROGRAM_GET_BAS_FILE("foo", PathToFileInCwd("foo").c_str());
+
+    // Given file in CWD and SEARCH PATH
+    // expect to resolve to file in CWD.
     MakeEmptyFile("foo.bas");
     TEST_PROGRAM_GET_BAS_FILE("foo.bas", PathToFileInCwd("foo.bas").c_str());
     TEST_PROGRAM_GET_BAS_FILE("foo.BAS", PathToFileInCwd("foo.BAS").c_str());
-    TEST_PROGRAM_GET_BAS_FILE("foo",     PathToFileInCwd("foo.bas").c_str());
+    TEST_PROGRAM_GET_BAS_FILE("foo",     PathToFileInCwd("foo").c_str());
 }
 
 #define TEST_PROGRAM_GET_INC_FILE(filename, expected) \
     result = program_get_inc_file(bas_file, filename, out); \
-    EXPECT_STREQ(expected, result); \
-    EXPECT_STREQ(expected, out); \
-    EXPECT_EQ(0, errno)
+    EXPECT_EQ(kOk, result); \
+    EXPECT_STREQ(expected, out)
 
 TEST_F(ProgramTest, GetIncFile_GivenAbsolutePath) {
     const char *bas_file = PROGRAM_TEST_DIR "/bar/myprog.bas";
     char out[STRINGSIZE] = { '\0' };
-    char *result;
+    MmResult result;
 
     // Test when no file present.
     TEST_PROGRAM_GET_INC_FILE(PROGRAM_TEST_DIR "/foo.inc", PROGRAM_TEST_DIR "/foo.inc");
@@ -306,7 +319,7 @@ TEST_F(ProgramTest, GetIncFile_GivenAbsolutePath) {
 TEST_F(ProgramTest, GetIncFile_GivenRelativePath) {
     const char *bas_file = PROGRAM_TEST_DIR "/bar/myprog.bas";
     char out[STRINGSIZE] = { '\0' };
-    char *result;
+    MmResult result;
 
     // Test when no file present.
     TEST_PROGRAM_GET_INC_FILE("foo.inc", PROGRAM_TEST_DIR "/bar/foo.inc");
@@ -337,5 +350,5 @@ TEST_F(ProgramTest, GetIncFile_GivenRelativePath) {
 
     // Test when "foo" without extension is present.
     MakeEmptyFile(PROGRAM_TEST_DIR "/bar/foo");
-    TEST_PROGRAM_GET_INC_FILE("foo",     PROGRAM_TEST_DIR "/bar/foo.inc");
+    TEST_PROGRAM_GET_INC_FILE("foo",     PROGRAM_TEST_DIR "/bar/foo");
 }

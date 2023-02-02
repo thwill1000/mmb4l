@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.h
 
-Copyright 2011-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -41,6 +41,10 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
+
+#include <ctype.h>
+#include <setjmp.h>
+#include <stddef.h>
 
 // Types used to define an item of data. Often they are ORed together.
 // Used in tokens, variables and arguments to functions
@@ -89,9 +93,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // this flag is used to signal that automatic precision is to be used in FloatToStr()
 #define STR_AUTO_PRECISION  999
 
-extern struct s_vartbl *vartbl;
-
-extern int varcnt;                                    // number of variables defined (eg, largest index into the variable table)
 extern int VarIndex;                                  // index of the current variable.  set after the findvar() function has found/created a variable
 extern int LocalIndex;                                // used to track the level of local variables
 
@@ -186,9 +187,9 @@ extern int MMerrno;
 extern char MMErrMsg[MAXERRMSG];                // array holding the error msg
 #endif
 
-extern const char *subfun[];                    // Table of subroutines and functions built when the program starts running
-extern char CurrentSubFunName[MAXVARLEN + 1];   // the name of the current sub or fun
-extern char CurrentInterruptName[MAXVARLEN + 1];// the name of the current interrupt function
+                                                // require extra byte to store optional type suffix
+extern char CurrentSubFunName[MAXVARLEN + 2];   // the name of the current sub or fun
+extern char CurrentInterruptName[MAXVARLEN + 2];// the name of the current interrupt function
 
 struct s_tokentbl {                             // structure of the token table
     const char *name;                           // the string (eg, PRINT, FOR, ASC(, etc)
@@ -249,6 +250,7 @@ const char *getclosebracket(const char *p);
 void makeupper(char *p);
 void checkend(const char *p);
 int GetCommandValue(const char *n);
+const char *GetIntAddress(const char *p);
 int GetTokenValue(const char *n);
 const char *checkstring(const char *p, const char *tkn);
 int GetLineLength(char *p);
@@ -262,13 +264,16 @@ int IsValidLine(int line);
 void InsertLastcmd(char *s);
 int MIPS16 CountLines(char *target);
 void DefinedSubFun(int iscmd, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64, char **sa, int *t);
-int FindSubFun(const char *p, int type);
+int FindSubFun(const char *p, uint8_t type);
 void MIPS16 PrepareProgram(int);
+#if !defined(__mmb4l__)
 void MMPrintString(const char* s);
 void MMfputs(const char *p, int filenbr);
+#endif
 void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix);
 void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
 int str_equal(const char *s1, const char *s2);
 int strncasecmp (const char *s1, const char *s2, size_t n);
 int mem_equal(const char *s1, const char *s2, int i);
+const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType);

@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdint.h>
+
 #define MIPS16                                      // don't use mips16 attribute on functions
 
 #define MMFLOAT double                              // precision of all floating point operations
@@ -51,10 +53,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FLOAT_ROUNDING_LIMIT 0x7fffff               // used to limit rounding for large numbers in FloatToInt64()
 
 // these 3 represent most of the RAM used
-#define PROG_FLASH_SIZE   (512 * 1024)              // size of the program memory (in bytes)
-// #define HEAP_SIZE         (512 * 1024)              // size of the heap memory (in bytes)
-#define HEAP_SIZE         (512 * 1024 * 2)          // size of the heap memory (in bytes)
+#define PROG_FLASH_SIZE     (512 * 1024)            // size of the program memory (in bytes)
+// #define HEAP_SIZE        (512 * 1024)            // size of the heap memory (in bytes)
+#define HEAP_SIZE           (512 * 1024 * 2)        // size of the heap memory (in bytes)
 #define MAXVARS             1024                    // 8 + MAXVARLEN + MAXDIM * 2  (ie, 56 bytes) - these do not incl array members
+#define VARS_HASHMAP_SIZE   1371                    // Size of the variables hash table
+                                                    //  - first prime number at least 1/3 greater than MAXVARS.
 
 // more static memory allocations (less important)
 #define MAXFORLOOPS         50                      // each entry uses 17 bytes
@@ -64,6 +68,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAXTEMPSTRINGS      256                     // each entry takes up 4 bytes
 #define NBRSETTICKS         4                       // the number of SETTICK interrupts available
 #define MAXSUBFUN           512                     // each entry takes up 4 bytes
+#define FUN_HASHMAP_SIZE    683                     // Size of the functions hash table
+                                                    //  - first prime number at least 1/3 greater than MAXSUBFUN.
 
 // operating characteristics
 #define MAXVARLEN           32                      // maximum length of a variable name

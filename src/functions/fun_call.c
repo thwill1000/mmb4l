@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/utility.h"
 
-#define ERROR_UNKNOWN_USER_FUNCTION  error_throw_ex(kError, "Unknown user function")
+#define ERROR_FUNCTION_NOT_FOUND  error_throw(kFunctionNotFound)
 
 void fun_call(void) {
     MMINTEGER i64 = 0;
@@ -63,14 +63,14 @@ void fun_call(void) {
         q++;
     }
     if (*q == ',') q++;
-    int i = FindSubFun(fun, true);  // it could be a defined function
+    int i = FindSubFun(fun, kFunction);  // find a function.
     cstring_cat(fun, " ", STRINGSIZE);
     cstring_cat(fun, q, STRINGSIZE);
     targ = T_NOTYPE;
     if (i >= 0) {  // >= 0 means it is a user defined function
         DefinedSubFun(true, fun, i, &f, &i64, &s, &targ);
     } else {
-        ERROR_UNKNOWN_USER_FUNCTION;
+        ERROR_FUNCTION_NOT_FOUND;
     }
     if (targ & T_STR) {
         sret = GetTempStrMemory();
