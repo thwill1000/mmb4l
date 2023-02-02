@@ -18,9 +18,9 @@ Print "4 squares in basic" : Print
 
 ' # Comments.
 Dim s1$ = "foo ' bar" ' bar "foo"
-Dim s2$ = "foo REM bar" REM foo bar
+Dim s2$ = "foo REM bar" : REM foo bar
 Dim s3$ = "foo REM bar" ' foo bar
-Dim s4$ = "foo ' bar" REM foo bar
+Dim s4$ = "foo ' bar" : REM foo bar
 
 ' # followed by number should be green.
 Open "foo" For Input As #1
