@@ -1,41 +1,43 @@
 ChangeLog
 ---------
 
-Version 0.5.0 - ??-Jan-2023:
-  - Changed to semantic versioning.
+Version 0.5.0 - 3-Feb-2023:
+  - Changed to semantic versioning scheme.
     Note that MMB4L is still versioned independently of Geoff and Peter's
     "mainline" MMBasic platforms.
-        - MM.INFO(VERSION) will return the integer 5000000,
+        - MM.INFO(VERSION) will return the integer 5000000 for this release,
           divide by 10000000 to get float equivalent, e.g. 0.5
         - MM.INFO(VERSION MAJOR) will return major version, 0 for this release.
         - MM.INFO(VERSION MINOR) will return minor version, 5 for this release.
         - MM.INFO(VERSION MICRO) will return minor/patch version, 0 for this
           release.
         - MM.INFO(VERSION BUILD) will return the build number, 0 for this
-          release and only included just in case I want to make use of it later.
+          release and only included for use in some theoretical future.
   - Added "automatic path completion" to the MMBasic prompt.
-    Pressing TAB will attempt to complete (as far as can be unambiguously
-    determined) a filename that the user is typing at the prompt, or sound the
-    console bell if no completion is possible.
+        - Pressing TAB will attempt to complete (as far as can be unambiguously
+          determined) a filename that the user is typing at the prompt, or sound
+          the console bell if no completion is possible.
   - Added MM.INFO(CALLDEPTH) to return the current function/subroutine call
-    depth starting at 0 when not in a function/subroutine.
-        - primarily to help with debugging, I am not sure it has a production
-          use-case except possibly to "bail out" if recursion gets too deep.
+    depth.
+        - 0 when at the global level, i.e. not in a function/subroutine.
+        - Primarily for debugging purposes, though a possible production
+          use-case would be to allow a program to "bail out" if recursion gets
+          too deep.
   - Added MM.INFO(PID) to get the process ID of the MM4L process.
   - Added MM.INFO(CPUTIME) to get the value (in nanoseconds) of the CPU timer
     for the MMB4L process.
   - Changed function, label, subroutine and variable lookup to use hashmap.
-    Depending on the problem this might be expected to produce a 5-10%
-    improvement in performance.
+        - Depending on the problem this might be expected to produce a 3-5%
+          improvement in performance.
   - Changed syntax of RUN command to:
         RUN [file$] [, cmdline$]
     Both file$ and cmdline$ can now be string expressions instead of
     the legacy behaviour where the command line argument was "not processed" by
     MMBasic and was copied verbatim into the MM.CMDLINE$ of the new program.
-        - this change means that cmdline$ can now be constructed from other
+        - This change means that cmdline$ can now be constructed from other
           variables and functions instead of having to be hardcoded, or
           finessed by using EXECUTE to construct the RUN statement.
-        - if the text following the comma contains an unquoted minus sign then
+        - If the text following the comma contains an unquoted minus sign then
           for backward compatibility MMB4L trys to use the legacy behaviour,
           but this does not work for all possible legacy command lines.
     Note that the behaviour of the * command is unchanged; expressions in any
@@ -45,23 +47,24 @@ Version 0.5.0 - ??-Jan-2023:
         RUN "foo", "a$ + b$"
   - Changed RUN file$ so that it is not necessary for file$ to have a ".bas"
     extension.
-        - if file$ does not exist then will try appending the extensions
+        - If file$ does not exist then will try appending the extensions
           ".bas", ".BAS" and ".Bas" in turn.
   - Changed #INCLUDE "<file>" so that it is not necessary for <file> to have
     a ".inc" extension.
-        - if <file> does not exist then will try appending the extension
+        - If <file> does not exist then will try appending the extension
           ".inc", ".INC" and ".Inc" in turn.
   - Changed XMODEM to improve read/write performance.
-        - by directly reading/writing 128 characters at a time instead of 1.
+        - It now reads/writes 128 characters at a time instead of 1.
   - Changed MMBasic prompt so that you can access the history with the up
     and down cursors even after you start typing a command.
   - Changed some error messages to be clearer and/or more specific.
-  - Changed "mmbasic.syntax.nanorc" to improve syntax highlighting of comments;
-    even so it is still not 100% reliable.
+  - Changed "mmbasic.syntax.nanorc" to improve syntax highlighting of comments.
+        - Even so it is still not 100% correct.
   - Fixed bug where relative #INCLUDE files could not be found when running
-    a symbolic link to an MMBasic file; the path to the #INCLUDE files was
-    incorrectly being resolved relative to the parent of the symbolic link
-    instead of the parent of the target file.
+    a symbolic link to an MMBasic file.
+        - The path to the #INCLUDE files was incorrectly being resolved relative
+          to the parent of the symbolic link instead of the parent of the target
+          file.
   - Fixed several bugs with identifiers allowing / being limited to 32
     characters (not including variable/function type suffix).
   - Fixed bug with GOSUB/RETURN corrupting the interpreter state when using
@@ -71,10 +74,10 @@ Version 0.5.0 - ??-Jan-2023:
   - Fixed bug where an "Internal fault" error would be reported immediately if
     the console/tty dimensions could not be determined when displaying the
     MMBasic prompt.
-        - this can be a transient problem so MMB4L now retries for 1 second
+        - This can be a transient problem so MMB4L now retries for 1 second
           before reporting a "Cannot determine terminal size" error.
-  - Fixed bug in listing function key options containing carriage-return
-    character.
+  - Fixed bug in OPTION LIST for F<num> function key options whose values
+    contained carriage-return character.
 
 Version 2022.01.00-a4 - 15-May-2022:
   - MMB4L is now open-source and licensed under a modified 4-clause BSD license
