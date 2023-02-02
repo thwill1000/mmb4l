@@ -1,13 +1,13 @@
 set autoindent
 set constantshow
 #set linenumbers
-set morespace
+set morespace          # obsolete in nano 4.0+
 set multibuffer
 #set nohelp            # perhaps comment out until comfortable
 set quickblank
 set regexp
-set smooth
-set suspend
+set smooth             # obsolete in nano 4.0+
+set suspend            # obsolete in nano 6.0+
 set tabsize 2
 set zap
 
@@ -24,7 +24,9 @@ bind ^P prevword main
 bind ^N nextword main
 bind ^B firstline main
 bind ^E lastline main
-bind ^L curpos main
+#bind ^L curpos main
+bind ^L location main  # replaces curpos in  nano 5.0+
+
 bind ^J gotoline main
 
 bind ^Space mark main
