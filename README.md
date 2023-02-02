@@ -208,7 +208,7 @@ Where not overridden by the above the [default nano keyboard bindings](https://w
 
 **Gotchas:**
 
- 1. Unlike other MMBasic version there is no key combination to automatically **Run** a program from the editor.
+ 1. Unlike other MMBasic version there is no key combination to automatically **RUN** a program from the editor.
  2. If you rename a file whilst saving it MMB4L will not update its "current stored program" state and will still be using the previous file.
 
 ## 6. Differences from MMBasic 5.07.02 for the Colour Maximite 2
@@ -217,7 +217,7 @@ The principle difference between MMB4L and the Colour Maximite 2 is the lack of 
 
 * Unlike the CMM2 there is a ```LOAD program_file$``` command which updates the "current stored program".
     * Note that any command that operates on the "current stored program" automatically reloads that program from disk before executing, i.e. `LIST`, `EDIT`, `RUN`. MMB4L never operates on a program that differs from that on disk.
-    * As with the CMM2 there is no `SAVE program_file` command.
+    * As with the CMM2 there is no `SAVE program_file$` command.
 * By default the functions `HRES`, `VRES`, `MM.INFO(HPOS)`, `MM.INFO(HRES)`, `MM.INFO(VPOS)` and `MM.INFO(VRES)` return values in character rather than pixel resolution.
     * `OPTION CONSOLE PIXEL` changes this to use pixel resolution based on a nominal 8x12 font.
     * `OPTION CONSOLE CHARACTER` returns to using character resolution.
@@ -231,7 +231,7 @@ The principle difference between MMB4L and the Colour Maximite 2 is the lack of 
 
 ## 7. MMB4L specific extensions to MMBasic
 
-MMB4L implements a small number of extensions to MMBasic 5.07.03:
+MMB4L implements a small number of extensions to MMBasic 5.07.02:
 
 ### Automatic path completion
 
@@ -389,7 +389,7 @@ In MMB4L this function can return values for these additional properties:
 
  * `MM.INFO(CALLDEPTH)`
      * Gets the the current function/subroutine call depth starting at 0 when not in a function/subroutine.
-     * Primarily to help with debugging; though a production use-case might be to allow recursive code to "bail out" if recursion gets too deep.
+     * Primarily for debugging purposes, though a possible production use-case would be to allow a program to "bail out" if recursion gets too deep.
 
  * `MM.INFO(CPUTIME)`
      * Gets the value (in nanoseconds) of the CPU timer for the MMB4L process.
@@ -578,7 +578,7 @@ Outputs text to the console/terminal at a given character position followed by a
 
 `RUN [file$] [, cmdline$]`
 
-Both `file$` and `cmdline$` can now be string expressions instead of the legacy behaviour where the command line argument was "not processed" by MMBasic and was copied verbatim into the `MM.CMDLINE$` of the new program.
+Both `file$` and `cmdline$` can be string expressions instead of the legacy behaviour where the command line argument was "not processed" by MMBasic and was copied verbatim into the `MM.CMDLINE$` of the new program.
  * If the text following the comma contains an unquoted minus sign then for backward compatibility MMB4L trys to use the legacy behaviour, but this does not work for all possible legacy command lines.
  * Note that the behaviour of the `*` command is unchanged; expressions in any command line provided via `*` are not evaluated by MMB4L, e.g.
     ```
