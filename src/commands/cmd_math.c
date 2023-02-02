@@ -225,6 +225,10 @@ void cmd_math(void){
                         } else ERROR_TARGET_NOT_1D_NUMERICAL_ARRAY;
                         if (dim[target] != toarray) ERROR_SIZE_MISMATCH_BETWEEN_SLICE_AND_TARGET;
                         i=dimcount-1;
+// Suppress (spurious?) warnings with GCC 7.5 Release build on x86_64.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
                         while(i>=0){
                                 off[i]=1;
                                 for(j=0; j<i; j++)off[i]*=(dim[j]+1);
@@ -234,6 +238,7 @@ void cmd_math(void){
                         for(i=0;i<dimcount;i++){
                                 start+= (pos[i]*off[i]);
                         }
+#pragma GCC diagnostic pop
                         start--;
                         increment=off[target];
                         start-=increment;
@@ -1071,6 +1076,10 @@ void cmd_math(void){
                         } else ERROR_SRC_NOT_1D_NUMERICAL_ARRAY;
                         if (dim[target] != toarray) ERROR_SIZE_MISMATCH_BETWEEN_INSERT_AND_TARGET;
                         i=dimcount-1;
+// Suppress (spurious?) warnings with GCC 7.5 Release build on x86_64.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
                         while(i>=0){
                                 off[i]=1;
                                 for(j=0; j<i; j++)off[i]*=(dim[j]+1);
@@ -1080,6 +1089,7 @@ void cmd_math(void){
                         for(i=0;i<dimcount;i++){
                                 start+= (pos[i]*off[i]);
                         }
+#pragma GCC diagnostic pop
                         start--;
                         increment=off[target];
                         start-=increment;
