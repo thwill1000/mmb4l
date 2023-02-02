@@ -211,6 +211,10 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     pmem += strlen(tknbuf);
     pmem++;
 
+    // Maximum extent of the program;
+    // 4 characters are required for termination with 2-3 '\0' and a '\xFF'.
+    const char *limit  = (const char *) ProgMemory + PROG_FLASH_SIZE - 5;
+
     // Loop while data
     // Read a line from edit_buf into tkn_buf
     // Tokenize the line.
@@ -233,21 +237,22 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
         //printf("* %s\n", tknbuf);
 
         for (char *pbuf = tknbuf; !(pbuf[0] == 0 && pbuf[1] == 0); pmem++, pbuf++) {
-            if (pmem > (char *) ProgMemory + PROG_FLASH_SIZE - 3) ERROR_OUT_OF_MEMORY;
+            if (pmem > limit) ERROR_OUT_OF_MEMORY;
             *pmem = *pbuf;
         }
-        *pmem++ = 0;  // write the terminating zero char
+        *pmem++ = '\0';  // write the terminating zero char
 
         pstart = pend + 1;
     }
 
     //printf("DONE\n");
 
-    *pmem++ = 0;
-    *pmem++ = 0;  // two zeros terminate the program but add an extra just in case
+    *pmem++ = '\0';
+    *pmem++ = '\0';    // Two zeros terminate the program, but add an extra just in case.
+    *pmem++ = '\xFF';  // A terminating 0xFF may also be expected; it's not completely clear.
 
     // We want CFunctionFlash to start on a 64-bit boundary.
-    while ((uintptr_t) pmem % 8 != 0) *pmem++ = 0;
+    while ((uintptr_t) pmem % 8 != 0) *pmem++ = '\0';
     CFunctionFlash = pmem;
 
     if (errno != 0) error_throw(errno); // Is this really necessary?
