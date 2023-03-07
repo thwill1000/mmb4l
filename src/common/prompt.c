@@ -44,24 +44,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmb4l.h"
 #include "console.h"
-#include "error.h"
 #include "file.h"
-#include "options.h"
+#include "path.h"
+#include "prompt.h"
 #include "utility.h"
+
+#include <assert.h>
+#include <string.h>
 
 #define HISTORY_SIZE  4 * STRINGSIZE
 #define ERROR_LINE_TOO_LONG_TO_EDIT  error_throw_ex(kStringTooLong, "Line is too long to edit")
-
-typedef struct {
-    char buf[OPTIONS_MAX_FN_KEY_LEN + 3];
-    int char_index;
-    bool buf_edited;
-    int history_idx;
-    bool insert;
-    int start_line;
-    int max_chars;
-    bool save_line;
-} PromptState;
+#define ERROR_TAB_CHAR_IN_FN_DEF     error_throw_ex(kError, "Tab character in function key definition")
 
 static char history[HISTORY_SIZE];
 static const char NO_ITEM[] = "";
@@ -71,21 +64,21 @@ static void dump_history() {
     char s[STRINGSIZE];
     char *p = history;
     char *start = p;
-    MMPrintString("[BEGIN]\r\n");
+    console_puts("[BEGIN]\r\n");
     for (; p < history + HISTORY_SIZE; ++p) {
         if (*p == '\0') {
             int len = p - start;
             if (len == 0) break;
             memset(s, 0, STRINGSIZE);
             memcpy(s, start, len);
-            MMPrintString("~");
-            MMPrintString(s);
-            MMPrintString("~\r\n");
+            console_puts("~");
+            console_puts(s);
+            console_puts("~\r\n");
             start = p + 1;
         }
     }
-    MMPrintString("[END]\r\n");
-    MMPrintString("\r\n");
+    console_puts("[END]\r\n");
+    console_puts("\r\n");
 }
 
 /** Gets an item from the 'history' buffer. */
@@ -153,7 +146,6 @@ void put_history_item(char *s) {
 static void handle_backspace(PromptState *pstate) {
     if (pstate->char_index <= 0) return;
 
-    pstate->buf_edited = true;
     int i = pstate->char_index - 1;
     for (char *p = inpbuf + i; *p; p++) {
         *p = *(p + 1);  // remove the char from inpbuf
@@ -162,7 +154,7 @@ static void handle_backspace(PromptState *pstate) {
         console_putc('\b');
         pstate->char_index--;
     }  // go to the beginning of the line
-    MMPrintString(inpbuf);
+    console_puts(inpbuf);
     console_putc(' ');
     console_putc('\b');  // display the line and erase the last char
     for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
@@ -171,9 +163,8 @@ static void handle_backspace(PromptState *pstate) {
 }
 
 static void handle_delete(PromptState *pstate) {
-    if (pstate->char_index >= strlen(inpbuf)) return;
+    if (pstate->char_index >= (ssize_t) strlen(inpbuf)) return;
 
-    pstate->buf_edited = true;
     int i = pstate->char_index;
     for (char *p = inpbuf + i; *p; p++) {
         *p = *(p + 1);  // remove the char from inpbuf
@@ -182,7 +173,7 @@ static void handle_delete(PromptState *pstate) {
         console_putc('\b');
         pstate->char_index--;
     }  // go to the beginning of the line
-    MMPrintString(inpbuf);
+    console_puts(inpbuf);
     console_putc(' ');
     console_putc('\b');  // display the line and erase the last char
     for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
@@ -190,9 +181,9 @@ static void handle_delete(PromptState *pstate) {
     }
 }
 
-static void insert_history_item(PromptState *pstate) {
-    // Update input buffer from the history.
-    strcpy(inpbuf, get_history_item(pstate->history_idx));
+static void prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
+    // Update characters in input buffer.
+    strcpy(inpbuf, new_inpbuf);
 
     // Erase existing input from the console.
     for (int i = 0; i < pstate->char_index; ++i) console_putc('\b');
@@ -200,10 +191,10 @@ static void insert_history_item(PromptState *pstate) {
     for (int i = 0; i < pstate->char_index; ++i) console_putc('\b');
 
     // Display the new contents of the input buffer.
-    MMPrintString(inpbuf);
+    console_puts(inpbuf);
 
     // Handle the new input buffer being too long.
-    if (strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
+    if ((ssize_t) strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
         ERROR_LINE_TOO_LONG_TO_EDIT;
     }
 
@@ -212,16 +203,19 @@ static void insert_history_item(PromptState *pstate) {
 }
 
 static void handle_down(PromptState *pstate) {
-    // [DOWN] is non-functional once the user starts to edit the buffer.
-    if (pstate->buf_edited) return;
-
-    pstate->history_idx--;
-    if (pstate->history_idx < 0) pstate->history_idx = -1;
-    insert_history_item(pstate);
+    assert(pstate->history_idx >= -1);
+    if (pstate->history_idx > -1) {
+        pstate->history_idx--;
+        if (pstate->history_idx == -1) {
+            prompt_update_inpbuf(pstate, pstate->backup);
+        } else {
+            prompt_update_inpbuf(pstate, get_history_item(pstate->history_idx));
+        }
+    }
 }
 
 static void handle_end(PromptState *pstate) {
-    while (pstate->char_index < strlen(inpbuf)) {
+    while (pstate->char_index < (ssize_t) strlen(inpbuf)) {
         console_putc(inpbuf[pstate->char_index++]);
     }
 }
@@ -229,13 +223,23 @@ static void handle_end(PromptState *pstate) {
 static void handle_function_key(PromptState *pstate) {
     if (pstate->buf[0] >= F1 && pstate->buf[0] <= F12) {
         strcpy(pstate->buf + 1, mmb_options.fn_keys[pstate->buf[0] - F1]);
+
+        // Currently allowing tab characters in function key definitions
+        // would royally screw things up because it will interact with path
+        // completion which also manipulates pstate->buf.
+        // TODO: either support it or prevent it in OPTION F<NUM>.
+        char *p = pstate->buf;
+        while (*p) {
+            if (*p == TAB) ERROR_TAB_CHAR_IN_FN_DEF;
+            p++;
+        }
     }
 }
 
 static void handle_home(PromptState *pstate) {
     if (pstate->char_index <= 0) return;
 
-    if (pstate->char_index == strlen(inpbuf)) {
+    if (pstate->char_index == (ssize_t) strlen(inpbuf)) {
         pstate->insert = true;
     }
 
@@ -252,7 +256,7 @@ static void handle_insert(PromptState *pstate) {
 static void handle_left(PromptState *pstate) {
     if (pstate->char_index <= 0) return;
 
-    if (pstate->char_index == strlen(inpbuf)) {
+    if (pstate->char_index == (ssize_t) strlen(inpbuf)) {
         pstate->insert = true;
     }
     console_putc('\b');
@@ -266,17 +270,15 @@ static void handle_newline(PromptState *pstate) {
 static void handle_other(PromptState *pstate) {
     if (pstate->buf[0] < ' ' || pstate->buf[0] >= 0x7f) return;
 
-    pstate->buf_edited = true;  // this means that something was typed
-    // int i = pstate->char_index;
     int j = strlen(inpbuf);
 
     if (pstate->insert) {
-        if (strlen(inpbuf) >= pstate->max_chars - 1) return;  // sorry, line full
+        if ((ssize_t) strlen(inpbuf) >= pstate->max_chars - 1) return;  // sorry, line full
         for (char *p = inpbuf + strlen(inpbuf); j >= pstate->char_index; p--, j--) {
             *(p + 1) = *p;
         }
         inpbuf[pstate->char_index] = pstate->buf[0];  // insert the char
-        MMPrintString(&inpbuf[pstate->char_index]);   // display new part of
+        console_puts(&inpbuf[pstate->char_index]);   // display new part of
                                                       // the line
         pstate->char_index++;
         for (j = strlen(inpbuf); j > pstate->char_index; j--) {
@@ -300,24 +302,48 @@ static void handle_other(PromptState *pstate) {
 }
 
 static void handle_right(PromptState *pstate) {
-    if (pstate->char_index >= strlen(inpbuf)) return;
+    if (pstate->char_index >= (ssize_t) strlen(inpbuf)) return;
 
     console_putc(inpbuf[pstate->char_index]);
     pstate->char_index++;
 }
 
-static void handle_up(PromptState *pstate) {
-    // [UP] is non-functional once the user starts to edit the buffer.
-    if (pstate->buf_edited) return;
+void prompt_handle_tab(PromptState *pstate) {
+    char *pstart = inpbuf;
+    char *p = inpbuf;
+    bool in_quote = false;
+    while (*p) {
+        switch (*p) {
+            case ' ':
+                if (!in_quote) pstart = p + 1;
+                break;
+            case '"':
+                in_quote = !in_quote;
+                pstart = p + 1;
+                break;
+            default:
+                break;
+        }
+        p++;
+    }
 
-    pstate->history_idx++;
-    if (pstate->history_idx >= get_history_count()) pstate->history_idx--;
-    insert_history_item(pstate);
+    if (FAILED(path_complete(pstart, pstate->buf + 1, sizeof(pstate->buf) - 1)))
+        pstate->buf[1] = '\0';
+    if (pstate->buf[1] == '\0') console_bell();
+}
+
+static void handle_up(PromptState *pstate) {
+    assert(pstate->history_idx >= -1);
+    if (pstate->history_idx + 1 < get_history_count()) {
+        if (pstate->history_idx == -1) strcpy(pstate->backup, inpbuf);
+        pstate->history_idx++;
+        prompt_update_inpbuf(pstate, get_history_item(pstate->history_idx));
+    }
 }
 
 void prompt_get_input(void) {
     int width, height;
-    if (FAILED(console_get_size(&width, &height))) ERROR_INTERNAL_FAULT;
+    if (FAILED(console_get_size(&width, &height, 1000))) ERROR_UNKNOWN_TERMINAL_SIZE;
 
     PromptState state = { 0 };
     state.char_index = strlen(inpbuf); // get the current cursor position in the line
@@ -325,35 +351,15 @@ void prompt_get_input(void) {
     state.max_chars = width;
     state.history_idx = -1;
 
-    MMPrintString(inpbuf);  // display the contents of the input buffer (if any)
+    console_puts(inpbuf);  // display the contents of the input buffer (if any)
 
-    if (strlen(inpbuf) >= state.max_chars) {
+    if ((ssize_t) strlen(inpbuf) >= state.max_chars) {
         ERROR_LINE_TOO_LONG_TO_EDIT;
     }
 
-    int ch;
     while (1) {
-        ch = MMgetchar(); // MMgetchar(1);
-        if (ch == TAB) {
-            strcpy(state.buf, "        ");
-            switch (mmb_options.tab) {
-                case 2:
-                    state.buf[2 - (state.char_index % 2)] = 0;
-                    break;
-                case 3:
-                    state.buf[3 - (state.char_index % 3)] = 0;
-                    break;
-                case 4:
-                    state.buf[4 - (state.char_index % 4)] = 0;
-                    break;
-                case 8:
-                    state.buf[8 - (state.char_index % 8)] = 0;
-                    break;
-            }
-        } else {
-            state.buf[0] = ch;
-            state.buf[1] = '\0';
-        }
+        state.buf[0] = MMgetchar();
+        state.buf[1] = '\0';
 
         do {
             switch (state.buf[0]) {
@@ -421,6 +427,10 @@ void prompt_get_input(void) {
                     handle_down(&state);
                     break;
 
+                case TAB:
+                    prompt_handle_tab(&state);
+                    break;
+
                 default:
                     handle_other(&state);
                     break;
@@ -432,13 +442,13 @@ void prompt_get_input(void) {
             memmove(state.buf, state.buf + 1, sizeof(state.buf) - 1);
         } while (*state.buf);
 
-        if (state.char_index == strlen(inpbuf)) {
+        if (state.char_index == (ssize_t) strlen(inpbuf)) {
             state.insert = false;
         }
     }
 
 saveline:
-    MMPrintString("\r\n");
+    console_puts("\r\n");
 
     put_history_item(inpbuf);
 }

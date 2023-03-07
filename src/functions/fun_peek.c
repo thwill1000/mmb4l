@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_peek.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/memory.h"
 #include "../common/utility.h"
+#include "../core/funtbl.h"
 
 /** PEEK(BYTE addr%) */
 static void peek_byte(int argc, char **argv, const char *p) {
@@ -65,7 +66,7 @@ static char *GetCFunAddr(const char *p, int i) {
         uintptr_t addr = *((uint64_t *) ip);
         ip += 2;
         size = *ip++;
-        if (addr == (uintptr_t) g_subfun[i]) {  // if we have a match
+        if (addr == (uintptr_t) (funtbl[i].addr)) {  // if we have a match
             int offset = *ip++;                 // get the offset in 32-bit words
             return (char *) (ip + offset);      // return the entry point
         } else {
@@ -81,10 +82,8 @@ static char *GetCFunAddr(const char *p, int i) {
 /** PEEK(CFUNADDR cfun) */
 static void peek_cfunaddr(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
-    int idx = FindSubFun(p, true);  // search for a function first
-    if (idx == -1)
-        idx = FindSubFun(p, false);  // and if not found try for a subroutine
-    if (idx == -1 || !(*subfun[idx] == cmdCFUN || *subfun[idx] == cmdCSUB))
+    int idx = FindSubFun(p, kFunction | kSub); // find a function or subroutine.
+    if (idx == -1 || !(*(funtbl[idx].addr) == cmdCFUN || *(funtbl[idx].addr) == cmdCSUB))
         ERROR_INVALID_ARGUMENT;
 
     // Search through program flash and the library looking for a match to
@@ -103,8 +102,9 @@ static void peek_cfunaddr(int argc, char **argv, const char *p) {
 static void peek_dataptr(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
     assert(sizeof(DataReadPointer) == sizeof(MMINTEGER));
-    ((DataReadPointer *) &g_integer_rtn)->next_line_offset = NextDataLine - ProgMemory;
-    ((DataReadPointer *) &g_integer_rtn)->next_data = NextData;
+    DataReadPointer *pdrp = (DataReadPointer *) &g_integer_rtn;
+    pdrp->next_line_offset = NextDataLine - ProgMemory;
+    pdrp->next_data = NextData;
     g_rtn_type = T_INT;
 }
 
@@ -171,7 +171,7 @@ static void peek_varaddr(int argc, char **argv, const char *p) {
 /** PEEK(VARHEADER var) */
 static void peek_varheader(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
-    void *pvar = findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
+    (void) findvar(p, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
     g_rtn_type = T_INT;
     g_integer_rtn = (uintptr_t) &vartbl[VarIndex];
 }

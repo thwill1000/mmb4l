@@ -8,6 +8,13 @@
 extern "C" {
 
 #include "../cmdline.h"
+#include "../parse.h"
+
+int LocalIndex = 0;
+
+void error_throw_ex(MmResult error, char *msg, ...) { }
+long long int getinteger(char *p) { return 0; }
+int getint(char *p, int min, int max) { return 0; }
 
 }
 
@@ -147,7 +154,7 @@ TEST(CmdLineTest, Parse_GivenProgramArgumentWithFlags) {
     EXPECT_EQ(0, args.help);
     EXPECT_EQ(0, args.interactive);
     EXPECT_EQ(0, args.version);
-    EXPECT_STREQ("RUN \"myprogram.bas\", --foo -i -v --interactive --version \"wom bat\"", args.run_cmd);
+    EXPECT_STREQ("RUN \"myprogram.bas\", \"--foo -i -v --interactive --version \" + Chr$(34) + \"wom bat\" + Chr$(34)", args.run_cmd);
     EXPECT_STREQ("", args.directory);
 }
 

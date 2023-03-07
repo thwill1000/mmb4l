@@ -194,12 +194,15 @@ color white "[(){}]" "\[" "\]"
 # labels
 icolor white "(^|^[[:space:]]*)[^\ ^=.]*:"
 
+# Comments - 1 of 2.
+color yellow "'.*"
+icolor yellow "REM\ .*"
+
 # Strings
 color brightmagenta ""(\\.|[^"])*""
 
-# Comments.
+# Comments - 2 of 2.
 color yellow "'[^']*$"
-icolor yellow "REM\ .*$"
 
 # SPTrans directives.
 color red "'!.*"

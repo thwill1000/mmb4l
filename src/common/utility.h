@@ -45,6 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(UTILITY_H)
 #define UTILITY_H
 
+#include <stdio.h>
+
+#if __GNUC__ >= 11
+#define CASE_FALLTHROUGH  [[fallthrough]]
+#else
+#define CASE_FALLTHROUGH  __attribute__ ((fallthrough))
+#endif
+
 #define max(a,b) \
     ({ __typeof__ (a) _a = (a); \
         __typeof__ (b) _b = (b); \
@@ -55,7 +63,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         __typeof__ (b) _b = (b); \
         _a < _b ? _a : _b; })
 
+#define snprintf_nowarn(...) (snprintf(__VA_ARGS__) < 0 ? abort() : (void)0)
+
 #define FAILED(x) (x != 0)
 #define SUCCEEDED(x) (x == 0)
 
-#endif
+#endif // #if !defined(UTILITY_H)

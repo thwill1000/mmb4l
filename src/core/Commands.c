@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Hardware_Includes.h"
 #include "MMBasic_Includes.h"
+#include "funtbl.h"
+#include "vartbl.h"
 
 void flist(int, int, int);
 void clearprog(void);
@@ -57,12 +59,9 @@ void execute_one_command(char *p);
 struct s_forstack forstack[MAXFORLOOPS + 1];
 int forindex;
 
-
-
 // stack to keep track of nested DO/LOOP loops
 struct s_dostack dostack[MAXDOLOOPS];
 int doindex;                                                        // counts the number of nested DO/LOOP loops
-
 
 // stack to keep track of GOSUBs, SUBs and FUNCTIONs
 const char *gosubstack[MAXGOSUB];
@@ -72,16 +71,15 @@ int gosubindex;
 char DimUsed = false;                                               // used to catch OPTION BASE after DIM has been used
 
 int TraceOn;                                                        // used to track the state of TRON/TROFF
-#if !defined(MX170)
-  const char *TraceBuff[TRACE_BUFF_SIZE];
-  int TraceBuffIndex;                                               // used for listing the contents of the trace buffer
-#endif
+const char *TraceBuff[TRACE_BUFF_SIZE];
+int TraceBuffIndex;                                                 // used for listing the contents of the trace buffer
 
 #if !defined(__mmb4l__)
 int OptionErrorSkip;                                                // how to handle an error
 int MMerrno;                                                        // the error number
 char MMErrMsg[MAXERRMSG];                                           // the error message
 #endif
+
 
 
 void cmd_null(void) {
@@ -91,7 +89,6 @@ void cmd_null(void) {
 #if !defined(__mmb4l__)
 // the PRINT command
 void cmd_print(void) {
-    //printf("Entered cmd_print()\n");
     char *s, *p;
     MMFLOAT f;
     MMINTEGER i64;
@@ -100,7 +97,7 @@ void cmd_print(void) {
 
     getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ";,");               // this is a macro and must be the first executable stmt
 
-    //    s = 0; *s = 56;                                           // for testing the exception handler
+    // s = 0; *s = 56;                                              // for testing the exception handler
 
     docrlf = true;
 
@@ -145,6 +142,7 @@ void cmd_print(void) {
     if(docrlf) MMfputs("\2\r\n", fnbr);                             // print the terminating cr/lf unless it has been suppressed
 }
 #endif
+
 
 
 // the LET command
@@ -199,9 +197,10 @@ void cmd_let(void) {
     checkend(p1);
 }
 
+
 #if !defined(__mmb4l__)
 void MIPS16 cmd_list(void) {
-  char *p;
+    char *p;
 
     if((p = checkstring(cmdline, "ALL"))) {
         ListProgram(ProgMemory, true);
@@ -212,6 +211,8 @@ void MIPS16 cmd_list(void) {
     }
 }
 #endif
+
+
 
 void ListNewLine(int *ListCnt, int all) {
     MMPrintString("\r\n");
@@ -234,19 +235,21 @@ void MIPS16 ListProgram(char *p, int all) {
   GetConsoleSize();                                                 // this allows the user to change screen size anytime
 #endif
 
-    while(!(*p == 0 || *p == 0xff)) {                                 // normally a LIST ends at the break so this is a safety precaution
+    while(!(*p == 0 || *p == 0xff)) {                               // normally a LIST ends at the break so this is a safety precaution
         if(*p == T_NEWLINE) {
-            p = llist(b, p);                                          // otherwise expand the line
+            p = llist(b, p);                                        // otherwise expand the line
             pp = b;
             while(*pp) {
                 if(MMCharPos >= Option.Width) ListNewLine(&ListCnt, all);
                 MMputchar(*pp++);
             }
             ListNewLine(&ListCnt, all);
-            if(p[0] == 0 && p[1] == 0) break;                         // end of the listing ?
+            if(p[0] == 0 && p[1] == 0) break;                       // end of the listing ?
         }
     }
 }
+
+
 
 #if !defined(__mmb4l__)
 void MIPS16 cmd_run(void) {
@@ -273,6 +276,8 @@ void MIPS16 cmd_run(void) {
 }
 #endif
 
+
+
 void MIPS16 cmd_continue(void) {
     if(*cmdline == tokenFOR) {
         if(forindex == 0) error("No FOR loop is in effect");
@@ -292,9 +297,11 @@ void MIPS16 cmd_continue(void) {
     nextstmt = ContinuePoint;
 }
 
+
+
 #if !defined(__mmb4l__)
 void MIPS16 cmd_new(void) {
-//    if(CurrentLinePtr) error("Invalid in a program");
+    // if(CurrentLinePtr) error("Invalid in a program");
     checkend(cmdline);
     ClearSavedVars();                                               // clear any saved variables
     FlashWriteInit(ProgMemory, Option.ProgFlashSize);
@@ -306,10 +313,49 @@ void MIPS16 cmd_new(void) {
 }
 #endif
 
+
+
+#if !defined(__mmb4l__)
+void cmd_erase(void) {
+    int i,j,k, len;
+    char p[MAXVARLEN + 1], *s, *x;
+
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
+    if((argc & 0x01) == 0) error("Argument count");
+
+    for(i = 0; i < argc; i += 2) {
+        strcpy((char *)p, argv[i]);
+        while(!isnamechar(p[strlen(p) - 1])) p[strlen(p) - 1] = 0;
+
+        makeupper(p);                                               // all variables are stored as uppercase
+        for(j = 0; j < varcnt; j++) {
+            s = p;  x = vartbl[j].name; len = strlen(p);
+            while(len > 0 && *s == *x) {                            // compare the variable to the name that we have
+                len--; s++; x++;
+            }
+            if(!(len == 0 && (*x == 0 || strlen(p) == MAXVARLEN))) continue;
+
+            // found the variable
+            FreeMemory(vartbl[j].val.s);                            // free the memory, note that FreeMemory() will ignore an invalid argument
+            vartbl[j].type = T_NOTYPE;                              // empty slot
+            *vartbl[j].name = 0;                                    // safety precaution
+            for(k = 0; k < MAXDIM; k++) vartbl[j].dims[k] = 0;      // and again
+            if(j == varcnt - 1) { j--; varcnt--; }
+            break;
+        }
+        if(j == varcnt) error("Cannot find $", p);
+    }
+}
+#endif
+
+
+
 void cmd_clear(void) {
     checkend(cmdline);
     ClearVars(0);
 }
+
+
 
 void cmd_goto(void) {
     if(isnamestart(*cmdline))
@@ -320,6 +366,7 @@ void cmd_goto(void) {
 
     CurrentLinePtr = nextstmt;
 }
+
 
 
 void cmd_if(void) {
@@ -335,7 +382,7 @@ void cmd_if(void) {
     testgoto = false;
     testelseif = false;
 
-    retest_an_if:
+retest_an_if:
     {                                                               // start a new block
         getargs(&cmdline, 20, ss);                                  // getargs macro must be the first executable stmt in a block
 
@@ -348,7 +395,6 @@ void cmd_if(void) {
             testgoto = true;
             goto retest_an_if;
         }
-
 
         // allow for IF statements embedded inside this IF
         if(argc >= 3 && *argv[2] == cmdIF) argc = 3;                // this is IF xx=yy THEN IF ... so we want to evaluate only the first 3
@@ -420,7 +466,7 @@ void cmd_if(void) {
                         // we have found an ELSEIF statement at the same level as our IF statement
                         // setup the environment to make this function evaluate the test following ELSEIF and jump back
                         // to the start of the function.  This is not very clean (it uses the dreaded goto for a start) but it works
-                        p++;                                          // step over the token
+                        p++;                                        // step over the token
                         skipspace(p);
                         CurrentLinePtr = rp;
                         if(*p == 0) error("Syntax");                // there must be a test after the elseif
@@ -456,7 +502,7 @@ void cmd_if(void) {
                     }
                 } else {
                     // no ELSE on a single line IF statement, so just continue with the next statement
-                    // this used to be just  skipline(cmdline);  but extra error checking is needed
+                    // this used to be just skipline(cmdline), but extra error checking is needed
                     skipline(cmdline);
                     nextstmt = cmdline;
                 }
@@ -497,6 +543,7 @@ void cmd_else(void) {
 }
 
 
+
 #if !defined(__mmb4l__)
 void cmd_end(void) {
     checkend(cmdline);
@@ -504,7 +551,7 @@ void cmd_end(void) {
 }
 #endif
 
-#if !defined(LITE)
+
 
 void cmd_select(void) {
     int i, type;
@@ -550,7 +597,7 @@ void cmd_select(void) {
                 // check for CASE IS,  eg  CASE IS > 5  -or-  CASE > 5  and process it if it is
                 // an operator can be >, <>, etc but it can also be a prefix + or - so we must not catch them
                 if((SaveCurrentLinePtr = checkstring(p, "IS")) || ((tokentype(*p) & T_OPER) && !(*p == GetTokenValue("+") || *p == GetTokenValue("-")))) {
-                    int o;
+                    int o = 0;
                     if(SaveCurrentLinePtr) p += 2;
                     skipspace(p);
                     if(tokentype(*p) & T_OPER)
@@ -629,6 +676,7 @@ void cmd_select(void) {
 }
 
 
+
 // if we have hit a CASE or CASE ELSE we must search for a END SELECT at this level and resume at that point
 void cmd_case(void) {
     int i;
@@ -652,7 +700,7 @@ void cmd_case(void) {
     }
 }
 
-#endif
+
 
 void cmd_input(void) {
     char s[STRINGSIZE];
@@ -710,16 +758,15 @@ void cmd_input(void) {
             if(strlen(s) > vartbl[VarIndex].size) error("String too long");
             strcpy(tp, s);
             CtoM(tp);                                               // convert to a MMBasic string
-        } else
-            if(vartbl[VarIndex].type & T_INT) {
-            *((MMINTEGER *)tp) = strtoll(s, &sp, 10);           // convert to an integer
+        }
+        else if(vartbl[VarIndex].type & T_INT) {
+            *((MMINTEGER *)tp) = strtoll(s, &sp, 10);               // convert to an integer
         }
         else
             *((MMFLOAT *)tp) = (MMFLOAT)atof(s);
         if(*p == ',') p++;
     }
 }
-
 
 
 
@@ -735,6 +782,8 @@ void cmd_troff(void) {
     TraceOn = false;
 }
 
+
+
 #if !defined(__mmb4l__)
 void cmd_trace(void) {
     if(checkstring(cmdline, "ON"))
@@ -747,9 +796,9 @@ void cmd_trace(void) {
         cmdline += 4;
         skipspace(cmdline);
         if(*cmdline == 0 || *cmdline =='\'')  //'
-          i = TRACE_BUFF_SIZE - 1;
+            i = TRACE_BUFF_SIZE - 1;
         else
-          i = getint(cmdline, 0, TRACE_BUFF_SIZE - 1);
+            i = getint(cmdline, 0, TRACE_BUFF_SIZE - 1);
         i = TraceBuffIndex - i;
         if(i < 0) i += TRACE_BUFF_SIZE;
         while(i != TraceBuffIndex) {
@@ -766,6 +815,8 @@ void cmd_trace(void) {
 }
 #endif
 
+
+
 // FOR command
 void cmd_for(void) {
     int i, t, vlen, test;
@@ -775,7 +826,7 @@ void cmd_for(void) {
     char *vname, vtype;
     static char fortoken, nexttoken;
 
-      // cache these tokens for speed
+    // cache these tokens for speed
     if(!fortoken) fortoken = GetCommandValue("For");
     if(!nexttoken) nexttoken = GetCommandValue("Next");
 
@@ -833,7 +884,7 @@ void cmd_for(void) {
             else
                 forstack[forindex - 1].stepvalue.f = 1.0;           // default is +1
         } else {
-            *(MMINTEGER *)vptr = getinteger(argv[2]);           // get the starting value for an integer and save
+            *(MMINTEGER *)vptr = getinteger(argv[2]);               // get the starting value for an integer and save
             forstack[forindex - 1].tovalue.i = getinteger(argv[4]); // get the to value and save
             if(argc == 7)
                 forstack[forindex - 1].stepvalue.i = getinteger(argv[6]);// get the step value for an integer and save
@@ -847,7 +898,7 @@ void cmd_for(void) {
         // now find the matching NEXT command
         t = 1; p = nextstmt;
         while(1) {
-              p = GetNextCommand(p, &tp, "No matching NEXT");
+            p = GetNextCommand(p, &tp, "No matching NEXT");
             if(*p == fortoken) t++;                                 // count the FOR
             if(*p == nexttoken) {                                   // is it NEXT
                 xp = p + 1;                                         // point to after the NEXT token
@@ -863,19 +914,19 @@ void cmd_for(void) {
             }
         }
 
-          // test the loop value at the start
-          if(forstack[forindex].vartype & T_INT)
-              test = (forstack[forindex].stepvalue.i >= 0 && *(MMINTEGER *)vptr > forstack[forindex].tovalue.i) || (forstack[forindex].stepvalue.i < 0 && *(MMINTEGER *)vptr < forstack[forindex].tovalue.i) ;
-          else
-              test = (forstack[forindex].stepvalue.f >= 0 && *(MMFLOAT *)vptr > forstack[forindex].tovalue.f) || (forstack[forindex].stepvalue.f < 0 && *(MMFLOAT *)vptr < forstack[forindex].tovalue.f) ;
+        // test the loop value at the start
+        if(forstack[forindex].vartype & T_INT)
+            test = (forstack[forindex].stepvalue.i >= 0 && *(MMINTEGER *)vptr > forstack[forindex].tovalue.i) || (forstack[forindex].stepvalue.i < 0 && *(MMINTEGER *)vptr < forstack[forindex].tovalue.i) ;
+        else
+            test = (forstack[forindex].stepvalue.f >= 0 && *(MMFLOAT *)vptr > forstack[forindex].tovalue.f) || (forstack[forindex].stepvalue.f < 0 && *(MMFLOAT *)vptr < forstack[forindex].tovalue.f) ;
 
-          if(test) {
+        if(test) {
             // loop is invalid at the start, so go to the end of the NEXT command
             skipelement(p);                                         // find the command after the NEXT command
             nextstmt = p;                                           // this is where we will continue
         } else {
             forindex++;                                             // save the loop data and continue on with the command after the FOR statement
-          }
+        }
     }
 }
 
@@ -897,7 +948,7 @@ void cmd_next(void) {
             vtbl[vcnt++] = findvar(argv[i], V_FIND | V_NOFIND_ERR); // find the variable and error if not found
     }
 
-    loopback:
+loopback:
     // first search the for stack for a loop with the same variable specified on the NEXT's line
     if(vcnt) {
         for(i = forindex - 1; i >= 0; i--)
@@ -916,7 +967,7 @@ void cmd_next(void) {
 
     error("Cannot find a matching FOR");
 
-    breakout:
+breakout:
 
     // found a match
     // apply the STEP value to the variable and test against the TO value
@@ -960,7 +1011,6 @@ void cmd_next(void) {
 
 
 
-
 void cmd_do(void) {
     int i, whileloop;
     const char *p, *tp, *evalp;
@@ -975,7 +1025,7 @@ void cmd_do(void) {
         whiletoken = tokenWHILE;
     }
 
-      if(whileloop)
+    if(whileloop)
         // if it is a WHILE WEND loop we can just point to the command line
         evalp = cmdline;
     else {
@@ -1023,7 +1073,7 @@ void cmd_do(void) {
         }
     }
 
-    if(!whileloop  && dostack[doindex].evalptr != NULL) {
+    if(!whileloop && dostack[doindex].evalptr != NULL) {
         // if this is a DO WHILE ... LOOP statement
         // search the LOOP statement for a WHILE or UNTIL token (p is pointing to the matching LOOP statement)
         p++;
@@ -1042,7 +1092,6 @@ void cmd_do(void) {
     }
 
 }
-
 
 
 
@@ -1085,7 +1134,7 @@ void cmd_loop(void) {
             else {
                 // the loop has terminated
                 // remove the entry in the table, then just let the default nextstmt run and continue on from there
-                  doindex = i;
+                doindex = i;
                 // just let the default nextstmt run
             }
             return;
@@ -1113,6 +1162,7 @@ void cmd_exit(void) {
 }
 
 
+
 #if !defined(__mmb4l__)
 void cmd_error(void) {
     char *s;
@@ -1129,9 +1179,9 @@ void cmd_error(void) {
 
 
 void cmd_randomize(void) {
-  int i;
-  i = getint(cmdline, 0, INT_MAX);
-  srand(i);
+    int i;
+    i = getint(cmdline, 0, INT_MAX);
+    srand(i);
 }
 
 
@@ -1143,7 +1193,9 @@ void cmd_subfun(void) {
     int returntoken;
     int errtoken;
 
-    if(gosubindex != 0) error("No matching END declaration");       // we have hit a SUB/FUN while in another SUB or FUN
+    if(gosubindex != 0) error("No matching END declaration");       // We have hit a SUB/FUNCTION while in another SUB or FUN.
+                                                                    // This can also happen if we GOSUB somewhere and then
+                                                                    // encounter SUB/FUNCTION before we RETURN.
     if(cmdtoken == cmdSUB) {
         returntoken = GetCommandValue("End Sub");
         errtoken = GetCommandValue("End Function");
@@ -1165,18 +1217,20 @@ void cmd_subfun(void) {
 
 
 
-
 void cmd_gosub(void) {
     if(gosubindex >= MAXGOSUB) error("Too many nested GOSUB");
-    errorstack[gosubindex] = CurrentLinePtr;
-    gosubstack[gosubindex++] = nextstmt;
-    LocalIndex++;
+    const char *return_to = nextstmt;
     if(isnamestart(*cmdline))
         nextstmt = findlabel(cmdline);                              // must be a label
     else
         nextstmt = findline(getinteger(cmdline), true);             // try for a line number
     IgnorePIN = false;
 
+    // Do not update the interpreter state until successfully finding
+    // the target line/label.
+    errorstack[gosubindex] = CurrentLinePtr;
+    gosubstack[gosubindex++] = return_to;
+    LocalIndex++;
     CurrentLinePtr = nextstmt;
 }
 
@@ -1193,12 +1247,12 @@ void cmd_return(void) {
 
 
 
-
 void cmd_endfun(void) {
     checkend(cmdline);
     if(gosubindex == 0 || gosubstack[gosubindex - 1] != NULL) error("Nothing to return to");
     nextstmt = "\0\0\0";                                            // now terminate this run of ExecuteProgram()
 }
+
 
 
 #if !defined(__mmb4l__)
@@ -1209,8 +1263,8 @@ void cmd_read(void) {
     int vtype[MAX_ARG_COUNT];
     int vsize[MAX_ARG_COUNT];
     int vcnt, vidx;
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
 
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
     if(argc == 0) error("Syntax");
 
     // step through the arguments and save the pointer and type
@@ -1296,6 +1350,8 @@ search_again:
 }
 #endif
 
+
+
 #if !defined(__mmb4l__)
 void cmd_restore(void) {
     if(*cmdline == 0 || *cmdline == '\'') {
@@ -1347,6 +1403,8 @@ void cmd_lineinput(void) {
     strcpy(vp, inpbuf);
     CtoM(vp);                                                       // convert to a MMBasic string
 }
+
+
 
 #if !defined(__mmb4l__)
 void cmd_on(void) {
@@ -1406,7 +1464,7 @@ void cmd_on(void) {
         if(*argv[1] == ss[1]) {
             // this is a GOSUB, same as a GOTO but we need to first push the return pointer
             if(gosubindex >= MAXGOSUB) error("Too many nested GOSUB");
-              errorstack[gosubindex] = CurrentLinePtr;
+            errorstack[gosubindex] = CurrentLinePtr;
             gosubstack[gosubindex++] = nextstmt;
             LocalIndex++;
         }
@@ -1420,31 +1478,13 @@ void cmd_on(void) {
 }
 #endif
 
-// utility routine used by DoDim() below and other places in the interpreter
-// checks if the type has been explicitly specified as in DIM FLOAT A, B, ... etc
-const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType) {
-    const char *tp;
-
-    if((tp = checkstring(p, "INTEGER")) != NULL)
-        *type = T_INT | T_IMPLIED;
-    else if((tp = checkstring(p, "STRING")) != NULL)
-        *type = T_STR | T_IMPLIED;
-    else if((tp = checkstring(p, "FLOAT")) != NULL)
-        *type = T_NBR | T_IMPLIED;
-    else {
-        if(!AllowDefaultType) error("Variable type");
-        tp = p;
-        *type = DefaultType;                                        // if the type is not specified use the default
-    }
-    return tp;
-}
-
 
 
 const char *SetValue(const char *p, int t, void *v) {
     MMFLOAT f;
     MMINTEGER i64;
-    char *s, TempCurrentSubFunName[MAXVARLEN + 1];
+    char *s;
+    char TempCurrentSubFunName[MAXVARLEN + 2];                      // requires extra byte to store optional type suffix.
 
     strcpy(TempCurrentSubFunName, CurrentSubFunName);               // save the current sub/fun name
     if(t & T_STR) {
@@ -1515,10 +1555,10 @@ void MIPS16 cmd_dim(void) {
                 else
                     strcpy(VarName, CurrentSubFunName);             // normal sub/fun
                 for(k = 1; k <= MAXVARLEN; k++)
-                                        if(!isnamechar(VarName[k])) {
-                                                VarName[k] = 0;                             // terminate the string on a non valid char
-                                                break;
-                                        }
+                    if(!isnamechar(VarName[k])) {
+                        VarName[k] = 0;                             // terminate the string on a non valid char
+                        break;
+                    }
                 strcat(VarName, argv[i]);                           // by prefixing the var name with the sub/fun name
                 StaticVar = true;
             } else
@@ -1564,7 +1604,6 @@ void MIPS16 cmd_dim(void) {
                 if(!StaticVar) error("$ already declared", VarName);
             }
 
-
             // if it is a STATIC var create a local var pointing to the global var
             if(StaticVar) {
                 tv = findvar(argv[i], typeSave | V_LOCAL | V_NOFIND_NULL);                        // check if the local variable exists
@@ -1585,14 +1624,13 @@ void MIPS16 cmd_dim(void) {
 
 
 
-
 void MIPS16 cmd_const(void) {
     const char *p;
     void *v;
     int i, type;
 
-  getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                  // getargs macro must be the first executable stmt in a block
-  if((argc & 0x01) == 0) error("Syntax");
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
+    if((argc & 0x01) == 0) error("Syntax");
 
     for(i = 0; i < argc; i += 2) {
         p = skipvar(argv[i], false);                                // point to after the variable
@@ -1617,67 +1655,33 @@ void MIPS16 cmd_const(void) {
 
 
 
-
-void cmd_erase(void) {
-    int i,j,k, len;
-    char p[MAXVARLEN + 1], *s, *x;
-
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
-    if((argc & 0x01) == 0) error("Argument count");
-
-    for(i = 0; i < argc; i += 2) {
-        strcpy((char *)p, argv[i]);
-        while(!isnamechar(p[strlen(p) - 1])) p[strlen(p) - 1] = 0;
-
-        makeupper(p);                                               // all variables are stored as uppercase
-        for(j = 0; j < varcnt; j++) {
-            s = p;  x = vartbl[j].name; len = strlen(p);
-            while(len > 0 && *s == *x) {                            // compare the variable to the name that we have
-                len--; s++; x++;
-            }
-            if(!(len == 0 && (*x == 0 || strlen(p) == MAXVARLEN))) continue;
-
-            // found the variable
-            FreeMemory(vartbl[j].val.s);                            // free the memory, note that FreeMemory() will ignore an invalid argument
-            vartbl[j].type = T_NOTYPE;                              // empty slot
-            *vartbl[j].name = 0;                                    // safety precaution
-            for(k = 0; k < MAXDIM; k++) vartbl[j].dims[k] = 0;      // and again
-            if(j == varcnt - 1) { j--; varcnt--; }
-            break;
-        }
-        if(j == varcnt) error("Cannot find $", p);
-    }
-}
-
-
-
-
 void cmd_auto(void) {
-//        getargs(&cmdline, 3, ",");
-//        if(CurrentLinePtr) error("Invalid in a program");
-//        if(argc == 0) {                                                                                                        // if there are no arguments just stuff the lines into program memory
-//                ClearRuntime();                                                                                                // clear any leftovers from the previous program
-//                while(1) {                                                                                                        // while forever (actually until CTRL-C)
-//                        *inpbuf = 0;                                                                                        // clear the input buffer
-//                        EditInputLine();                                                                                // get the input
-//                        tokenise(false);                                                                                // turn into executable code
-//                        AddProgramLine(true);                                            // add to program memory
-//                }
-//        }
-//
-//        if(argc == 2) error("Invalid syntax");
-//        if(argc >= 1) autoNext = getinteger(argv[0]);
-//        if(argc == 3) autoIncr = getinteger(argv[2]);
-//        autoOn = true;
+#if 0
+    getargs(&cmdline, 3, ",");
+    if(CurrentLinePtr) error("Invalid in a program");
+    if(argc == 0) {                                                                                                        // if there are no arguments just stuff the lines into program memory
+        ClearRuntime();                                                                                                // clear any leftovers from the previous program
+        while(1) {                                                                                                        // while forever (actually until CTRL-C)
+            *inpbuf = 0;                                                                                        // clear the input buffer
+            EditInputLine();                                                                                // get the input
+            tokenise(false);                                                                                // turn into executable code
+            AddProgramLine(true);                                   // add to program memory
+        }
+    }
+
+    if(argc == 2) error("Invalid syntax");
+    if(argc >= 1) autoNext = getinteger(argv[0]);
+    if(argc == 3) autoIncr = getinteger(argv[2]);
+    autoOn = true;
+#endif
 }
-
-
 
 
 
 /***********************************************************************************************
 utility functions used by the various commands
 ************************************************************************************************/
+
 
 
 // utility function used by llist() below
@@ -1692,6 +1696,7 @@ void strCopyWithCase(char *d, const char *s) {
     }
     *d = 0;
 }
+
 
 
 // list a line into a buffer (b) given a pointer to the beginning of the line (p).
@@ -1714,7 +1719,7 @@ char MIPS16 *llist(char *b, char *p) {
             IntToStr(b, i, 10);
             b += strlen(b);
             if(*p != ' ') *b++ = ' ';
-            }
+        }
 
         if(*p == T_LABEL) {                                         // got a label
             for(i = p[1], p += 2; i > 0; i--)
@@ -1722,7 +1727,7 @@ char MIPS16 *llist(char *b, char *p) {
             *b++ = ':';                                             // terminate with a colon
             if(*p && *p != ' ') *b++ = ' ';                         // and a space if necessary
             firstnonwhite = true;
-            }                                                       // this deliberately drops through in case the label is the only thing on the line
+        }                                                           // this deliberately drops through in case the label is the only thing on the line
 
         if(*p >= C_BASETOKEN) {
             if(firstnonwhite) {
@@ -1787,7 +1792,7 @@ void execute_one_command(char *p) {
         commandtbl[cmd].fptr();                                     // execute the command
     } else {
         if(!isnamestart(*p)) error("Invalid character");
-        i = FindSubFun(p, false);                                   // it could be a defined command
+        i = FindSubFun(p, kSub);                                    // find a subroutine.
         if(i >= 0)                                                  // >= 0 means it is a user defined command
             DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
         else

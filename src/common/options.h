@@ -42,8 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_OPTION_H)
-#define MMB4L_OPTION_H
+#if !defined(MMB4L_OPTIONS_H)
+#define MMB4L_OPTIONS_H
 
 #include <stdbool.h>
 
@@ -135,7 +135,6 @@ typedef struct {
     char fn_keys[OPTIONS_NUM_FN_KEYS][OPTIONS_MAX_FN_KEY_LEN + 1];
     int  height;
     OptionsListCase list_case;
-    int  prog_flash_size;
     OptionsResolution resolution;
     char search_path[STRINGSIZE];
     char tab;
@@ -206,4 +205,4 @@ MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER iva
 /** @brief Sets the value for the given option from a C-string. */
 MmResult options_set_string_value(Options *options, OptionsId id, const char *svalue);
 
-#endif
+#endif // #if !defined(MMB4L_OPTIONS_H)

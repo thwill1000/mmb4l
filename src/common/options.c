@@ -42,19 +42,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-
 #include "mmb4l.h"
 #include "codepage.h"
 #include "cstring.h"
-#include "options.h"
 #include "path.h"
 #include "utility.h"
+
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+//#include <ctype.h>
+//#include <errno.h>
+//#include <sys/stat.h>
 
 #define INVALID_VALUE  "???"
 
@@ -147,7 +147,7 @@ OptionsDefinition options_definitions[] = {
     { "ZInteger",    kOptionZInteger,     kOptionTypeInteger, true,  "1945",                    NULL },
     { "ZString",     kOptionZString,      kOptionTypeString,  true,  "wombat",                  NULL },
 #endif
-    { NULL, -1, -1, false, "" }
+    { NULL, -1, -1, false, "", NULL }
 };
 
 void options_init(Options *options) {
@@ -156,7 +156,6 @@ void options_init(Options *options) {
     // TODO: Do these even belong in options?
     options->autorun = 0;
     options->height = 0;
-    options->prog_flash_size = PROG_FLASH_SIZE;
     options->width = 0;
 
     for (const OptionsDefinition *def = options_definitions; def->name; def++) {
@@ -262,13 +261,16 @@ static MmResult options_parse_float(const char *value, MMFLOAT *out) {
 }
 
 static void options_report_warning(int line_num, char *name, MmResult result, OPTIONS_WARNING_CB warning_cb) {
-    char buf[256];
+    char buf[256] = { 0 };
     if (name[0] == '\0') {
-        sprintf(buf, "line %d: %s for option.", line_num, mmresult_to_string(result));
+        snprintf_nowarn(buf, 256, "line %d: %s for option.",
+                line_num, mmresult_to_string(result));
     } else if (result == kUnknownOption) {
-        sprintf(buf, "line %d: %s '%s'.", line_num, mmresult_to_string(result), name);
+        snprintf_nowarn(buf, 256, "line %d: %s '%s'.",
+                line_num, mmresult_to_string(result), name);
     } else {
-        sprintf(buf, "line %d: %s for option '%s'.", line_num, mmresult_to_string(result), name);
+        snprintf_nowarn(buf, 256, "line %d: %s for option '%s'.",
+                line_num, mmresult_to_string(result), name);
     }
     warning_cb(buf);
 }
@@ -286,7 +288,8 @@ MmResult options_get_definition(const char *name, OptionsDefinition **definition
 
 MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb) {
     char path[STRINGSIZE];
-    if (!path_munge(filename, path, STRINGSIZE)) return errno;
+    MmResult result = path_munge(filename, path, STRINGSIZE);
+    if (FAILED(result)) return result;
     if (path_is_directory(path)) return kIsADirectory;
 
     errno = 0;
@@ -296,7 +299,6 @@ MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB
     char line[STRINGSIZE * 2];
     char name[STRINGSIZE];
     char value[STRINGSIZE];
-    MmResult result = kOk;
     int line_num = 0;
     while (!feof(f) && fgets(line, STRINGSIZE * 2, f)) {
         line_num++;
@@ -361,13 +363,13 @@ bool options_has_default_value(const Options *options, OptionsId id) {
 
 MmResult options_save(const Options *options, const char *filename) {
     char path[STRINGSIZE];
-    if (!path_munge(filename, path, STRINGSIZE)) return errno;
+    MmResult result = path_munge(filename, path, STRINGSIZE);
+    if (FAILED(result)) return result;
 
     errno = 0;
     FILE *f = fopen(path, "w");
     if (!f) return errno;
 
-    MmResult result = kOk;
     char tmp[STRINGSIZE];
     for (OptionsDefinition *def = options_definitions; def->name; def++) {
         if (!def->saved) continue;
@@ -493,7 +495,7 @@ MmResult options_get_display_value(const Options *options, OptionsId id, char *s
                 strcpy(append, "<lf>");
                 break;
             case '\r':
-                if (*(src + 1)) {
+                if (*(src + 1) == '\n') {
                     strcpy(append, "<crlf>");
                     src++;
                 } else {
@@ -827,23 +829,19 @@ static MmResult options_set_resolution(Options *options, const char *svalue) {
 }
 
 static MmResult options_set_search_path(Options *options, const char *svalue) {
-    MmResult result = kOk;
-    char canonical_path[STRINGSIZE];
-    errno = 0;
-
     if (svalue[0] == '\0') {
         strcpy(options->search_path, "");
-    } else if (!path_get_canonical(svalue, canonical_path, STRINGSIZE)) {
-        result = errno;
-    } else if (!path_exists(canonical_path)) {
-        result = kFileNotFound;
-    } else if (path_is_directory(canonical_path)) {
-        strcpy(options->search_path, canonical_path);
-    } else {
-        result = kNotADirectory;
+        return kOk;
     }
 
-    return result;
+    char canonical_path[STRINGSIZE];
+    MmResult result = path_get_canonical(svalue, canonical_path, STRINGSIZE);
+    if (FAILED(result)) return result;
+    if (!path_exists(canonical_path)) return kFileNotFound;
+    if (!path_is_directory(canonical_path)) return kNotADirectory;
+
+    strcpy(options->search_path, canonical_path);
+    return kOk;
 }
 
 static MmResult options_set_tab(Options *options, int ivalue) {

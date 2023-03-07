@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_call.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/utility.h"
 
-#define ERROR_UNKNOWN_SUBROUTINE  error_throw_ex(kError, "Unknown user subroutine")
+#define ERROR_SUB_NOT_FOUND  error_throw_ex(kFunctionNotFound, "Subroutine not found")
 
 void cmd_call(void) {
     char *cmd = getCstring(cmdline);  // get the command we want to call
@@ -60,13 +60,13 @@ void cmd_call(void) {
         q++;
     }
     if (*q == ',') q++;
-    int i = FindSubFun(cmd, false);  // it could be a defined command
+    int i = FindSubFun(cmd, kSub);  // find a subroutine.
     cstring_cat(cmd, " ", STRINGSIZE);
     cstring_cat(cmd, q, STRINGSIZE);
     // MMPrintString(p);PRet();
     if (i >= 0) {  // >= 0 means it is a user defined command
         DefinedSubFun(false, cmd, i, NULL, NULL, NULL, NULL);
     } else {
-        ERROR_UNKNOWN_SUBROUTINE;
+        ERROR_SUB_NOT_FOUND;
     }
 }

@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "../common/mmb4l.h"
+#include "../common/console.h"
 #include "../common/options.h"
 #include "../common/utility.h"
 
@@ -52,7 +53,7 @@ void cmd_new(void) {
 //    if(CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
     checkend(cmdline);
     ClearSavedVars();
-    FlashWriteInit(ProgMemory, mmb_options.prog_flash_size);
+    FlashWriteInit();
     ClearProgram();
     WatchdogSet = false;
     mmb_options.autorun = false;
@@ -60,7 +61,7 @@ void cmd_new(void) {
     if (FAILED(result)) {
         char buf[STRINGSIZE];
         sprintf(buf, "Warning: failed to save options: %s", mmresult_to_string(result));
-        MMPrintString(buf);
+        console_puts(buf);
     }
     longjmp(mark, JMP_NEW);
 }

@@ -44,10 +44,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // This module manages all memory allocation for MMBasic.
 
-#include <stdio.h>
-
 #include "mmb4l.h"
-#include "error.h"
+
+#include <stdio.h>
+#include <string.h>
 
 // allocate static memory for programs, variables and the heap
 // this is simple memory management because DOS has plenty of memory
@@ -60,11 +60,10 @@ char ProgMemory[PROG_FLASH_SIZE];
 // memory for the memory map used in heap management
 uint32_t mmap[MMAP_SIZE];
 
-// memory for the actual heap
-char MMHeap[HEAP_SIZE];
-
-// memory for the variable table
-struct s_vartbl DOS_vartbl[MAXVARS];
+// MMBasic heap memory:
+//   - aligned on 64-bit boundary so that elements of MMBasic arrays of
+//     FLOAT and INTEGER will be likewise aligned.
+char __attribute__ ((aligned (8))) MMHeap[HEAP_SIZE];
 
 // arrays used to track temporary strings
 char *StrTmp[MAXTEMPSTRINGS];           // used to track temporary string space on the heap
@@ -79,14 +78,6 @@ void *getheap(int size);
 /***********************************************************************************************************************
  Public memory management functions
 ************************************************************************************************************************/
-
-// every time a variable is added this must be called to verify that enough memory is free
-void m_alloc(int type, int size) {
-    if(type == M_VAR) {
-        vartbl = (struct s_vartbl *)DOS_vartbl;
-        if(size >= MAXVARS * sizeof(struct s_vartbl)) ERROR_OUT_OF_MEMORY;
-    }
-}
 
 // get some memory from the heap
 void *GetMemory(size_t msize) {
@@ -165,8 +156,8 @@ void InitHeap(void) {
     printf("RAMEND = %lX\n", RAMEND);
     printf("MMAP SIZE = %d\n", MMAP_SIZE);
 #endif
-    for (int i = 0; i < MMAP_SIZE; i++) mmap[i] = 0;
-    for (int i = 0; i < MAXTEMPSTRINGS; i++) StrTmp[i] = NULL;
+    for (size_t i = 0; i < MMAP_SIZE; i++) mmap[i] = 0;
+    for (size_t i = 0; i < MAXTEMPSTRINGS; i++) StrTmp[i] = NULL;
     MBitsSet((char *) RAMEND, PUSED | PLAST);
 }
 

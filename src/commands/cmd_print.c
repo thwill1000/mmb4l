@@ -42,13 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdbool.h>
-
 #include "../common/mmb4l.h"
 #include "../common/error.h"
+#include "../common/file.h"
 #include "../common/parse.h"
-
-#define PRINT_MMSTRING(s, fnbr)  MMfputs(s, fnbr)
 
 void cmd_print(void) {
 
@@ -76,7 +73,7 @@ void cmd_print(void) {
 
     for (; i < argc; i++) {                                         // step through the arguments
         if (*argv[i] == ',') {
-            PRINT_MMSTRING("\1\t", fnbr);                           // print a tab for a comma
+            file_write(fnbr, "\t", 1);                              // print a tab for a comma
             docrlf = false;                                         // a trailing comma should suppress CR/LF
         }
         else if (*argv[i] == ';') {
@@ -101,11 +98,11 @@ void cmd_print(void) {
                     ERROR_INTERNAL_FAULT;
                 }
 
-                PRINT_MMSTRING(s, fnbr);
+                file_write(fnbr, s + 1, (size_t) s[0]);
             }
             docrlf = true;
         }
     }
 
-    if (docrlf) PRINT_MMSTRING("\2\r\n", fnbr);                     // print the terminating cr/lf unless it has been suppressed
+    if (docrlf) file_write(fnbr, "\r\n", 2);                        // print the terminating cr/lf unless it has been suppressed
 }

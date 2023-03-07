@@ -46,12 +46,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMB4L_PROGRAM_H
 
 #include "../Configuration.h"
+#include "mmresult.h"
 
 #define EDIT_BUFFER_SIZE  512 * 1024
 
 extern char CurrentFile[STRINGSIZE];
 
 void ListNewLine(int *ListCnt, int all); // MMBasic/Commands.c
+
+/** @brief Dumps contents of \p ProgMemory to STDOUT. */
+void program_dump_memory();
 
 /**
  * @brief Gets the absolute canonical path to an MMBasic program file (.bas)
@@ -63,10 +67,9 @@ void ListNewLine(int *ListCnt, int all); // MMBasic/Commands.c
  *
  * @param filename   unprocessed filename.
  * @param file_path  absolute canonical path to file is returned in this buffer.
- * @return           the value of 'file_path' on success,
- *                   otherwise sets 'errno' and returns NULL.
+ * @return           kOk on success.
  */
-char *program_get_bas_file(const char *filename, char *out);
+MmResult program_get_bas_file(const char *filename, char *out);
 
 /**
  * @brief Gets the absolute canonical path to an MMBasic include file (.inc)
@@ -79,10 +82,9 @@ char *program_get_bas_file(const char *filename, char *out);
  * @param parent_file  path to the MMBasic program file that is including the file.
  * @param filename     unprocessed filename.
  * @param out          absolute canonical path to file is returned in this buffer.
- * @return             the value of 'out' on success,
- *                     otherwise sets 'errno' and returns NULL.
+ * @return             kOk on success.
  */
-char *program_get_inc_file(const char *parent_file, const char *filename, char *out);
+MmResult program_get_inc_file(const char *parent_file, const char *filename, char *out);
 
 /** @return  0 on success, -1 on error.*/
 int program_load_file(char *filename);

@@ -22,15 +22,24 @@ class OptionsTest : public ::testing::Test {
 
 protected:
 
+    std::string m_home;
+
     void SetUp() override {
         struct stat st = { 0 };
         if (stat(OPTIONS_TEST_DIR, &st) == -1) {
             mkdir(OPTIONS_TEST_DIR, 0775);
         }
+
+        char *home = getenv("HOME");
+        if (home) {
+            m_home = home;
+        } else {
+            FAIL() << "getenv(\"HOME\") failed.";
+        }
     }
 
     void TearDown() override {
-        (void)! system("rm -rf " OPTIONS_TEST_DIR);
+        SYSTEM_CALL("rm -rf " OPTIONS_TEST_DIR);
     }
 
 };
@@ -65,7 +74,6 @@ static void expect_options_have_defaults(Options *options) {
     EXPECT_STREQ("", options->fn_keys[11]);
     EXPECT_EQ(0, options->height);
     EXPECT_EQ(kTitle, options->list_case);
-    EXPECT_EQ(PROG_FLASH_SIZE, options->prog_flash_size);
     EXPECT_EQ(kCharacter, options->resolution);
     EXPECT_STREQ("", options->search_path);
     EXPECT_EQ(4, options->tab);
@@ -665,17 +673,17 @@ TEST_F(OptionsTest, GetDisplayValue_GivenNonAscii) {
     options_init(&options);
     char svalue[STRINGSIZE];
 
-    strcpy(options.fn_keys[10], "foo\r\n");
+    strcpy(options.fn_keys[10], "foo\r\nbar");
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
-    EXPECT_STREQ("foo<crlf>", svalue);
+    EXPECT_STREQ("foo<crlf>bar", svalue);
 
-    strcpy(options.fn_keys[10], "foo\r");
+    strcpy(options.fn_keys[10], "foo\rbar");
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
-    EXPECT_STREQ("foo<cr>", svalue);
+    EXPECT_STREQ("foo<cr>bar", svalue);
 
-    strcpy(options.fn_keys[10], "foo\n");
+    strcpy(options.fn_keys[10], "foo\nbar");
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
-    EXPECT_STREQ("foo<lf>", svalue);
+    EXPECT_STREQ("foo<lf>bar", svalue);
 
     strcpy(options.fn_keys[10], "foo\x82 bar");
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
@@ -693,38 +701,37 @@ TEST_F(OptionsTest, GetDisplayValue_GivenNonAscii) {
 TEST_F(OptionsTest, GetDisplayValue_GivenTooLong) {
     Options options;
     options_init(&options);
-    char expected[STRINGSIZE];
-    char in[STRINGSIZE];
+    char in[OPTIONS_MAX_FN_KEY_LEN + 1];
     char out[STRINGSIZE];
+    std::string expected;
 
-    memset(in, '\0', STRINGSIZE);
-    memset(in, '*', STRINGSIZE - 1);
+    // A display value of STRINGSIZE - 1 characters is allowed.
+    EXPECT_EQ(64, OPTIONS_MAX_FN_KEY_LEN);
+    memset(in, '\r', 63); // '\r' char is expanded into 4 char string "<cr>"
+    in[63] = 'a';
+    in[64] = '\0';
     strcpy(options.fn_keys[10], in);
-    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, out));
-    EXPECT_EQ(STRINGSIZE - 1, strlen(out));
-    strcpy(expected, in);
-    EXPECT_STREQ(expected, out);
 
-    memset(in, '\0', STRINGSIZE);
-    memset(in, '*', STRINGSIZE - 5);
-    strcat(in + STRINGSIZE - 5, "\r");
-    strcpy(options.fn_keys[10], in);
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, out));
-    EXPECT_EQ(STRINGSIZE - 1, strlen(out));
-    memset(expected, '\0', STRINGSIZE);
-    memset(expected, '*', STRINGSIZE - 5);
-    strcpy(expected + STRINGSIZE - 5, "<cr>");
-    EXPECT_STREQ(expected, out);
 
-    memset(in, '\0', STRINGSIZE);
-    memset(in, '*', STRINGSIZE - 4);
-    strcat(in + STRINGSIZE - 4, "\r");
+    expected = "";
+    for (int ii = 0; ii < 63; ++ii) expected += "<cr>";
+    expected += "a";
+    EXPECT_STREQ(expected.c_str(), out);
+    EXPECT_EQ(253, strlen(out));
+
+    // But display values longer than that will be truncated.
+    memset(in, '\r', 63);
+    in[63] = '\r'; // <-- This one extra '\r' char is the difference.
+    in[64] = '\0';
     strcpy(options.fn_keys[10], in);
+
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, out));
-    EXPECT_EQ(STRINGSIZE - 4, strlen(out));
-    memset(expected, '\0', STRINGSIZE);
-    memset(expected, '*', STRINGSIZE - 4);
-    EXPECT_STREQ(expected, out);
+
+    expected = "";
+    for (int ii = 0; ii < 63; ++ii) expected += "<cr>";
+    EXPECT_STREQ(expected.c_str(), out);
+    EXPECT_EQ(252, strlen(out));
 }
 
 TEST_F(OptionsTest, GetFloatValue_ForZFloat) {
@@ -1020,9 +1027,9 @@ TEST_F(OptionsTest, GetStringValue_ForSearchPath) {
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
     EXPECT_STREQ("", svalue);
 
-    strcpy(options.search_path, HOME_DIR "/foo");
+    strcpy(options.search_path, (m_home + "/foo").c_str());
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSearchPath, svalue));
-    EXPECT_STREQ(HOME_DIR "/foo", svalue);
+    EXPECT_STREQ((m_home + "/foo").c_str(), svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForTab) {
@@ -1381,6 +1388,8 @@ TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
     EXPECT_STREQ("", options.search_path);
 
     // Path to a directory that exists.
+    // Note: this will set the SEARCH PATH property to the canonical path
+    // corresponding to the value supplied.
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, BIN_DIR));
     EXPECT_STREQ(BIN_DIR, options.search_path);
 

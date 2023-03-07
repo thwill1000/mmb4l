@@ -42,10 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-
 #include "../common/mmb4l.h"
-#include "../common/error.h"
+
+#include <string.h>
 
 #define ERROR_MULTIPLE_STATEMENTS  error_throw_ex(kError, "Only single statements allowed")
 

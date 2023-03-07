@@ -76,16 +76,12 @@ bool path_has_suffix(
 /**
  * Gets the canonicalized absolute pathname.
  *
- * The last element of the path does not have to exist, but all intermediate elements do,
- * otherwise will return NULL and set errno == ENOENT.
- *
  * @param  path            original path to be converted.
  * @param  canonical_path  canonical path is returned in this buffer.
  * @param  sz              size of the 'canonical_path' buffer.
- * @return                 the value of 'canonical_path' on success,
- *                         otherwise sets 'errno' and returns NULL.
+ * @return                 kOk on success.
  */
-char *path_get_canonical(const char *path, char *canonical_path, size_t sz);
+MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz);
 
 /**
  * Is the path absolute?
@@ -101,10 +97,9 @@ bool path_is_absolute(const char *path);
  * @param  path         original path to get the parent of.
  * @param  parent_path  parent path is returned in this buffer.
  * @param  sz           size of the 'parent_path' buffer.
- * @return              the value of 'parent_path' on success,
- *                      otherwise sets 'errno' and returns NULL.
+ * @return              kOk on success.
  */
-char *path_get_parent(const char *path, char *parent_path, size_t sz);
+MmResult path_get_parent(const char *path, char *parent_path, size_t sz);
 
 /**
  * Appends one path to another.
@@ -113,23 +108,24 @@ char *path_get_parent(const char *path, char *parent_path, size_t sz);
  * @param  tail    path being appended.
  * @param  result  result is returned in this buffer.
  * @param  sz      size of the 'result' buffer.
- * @return         the value of 'result' on success,
- *                 otherwise sets 'errno' and returns NULL.
+ * @return         kOk on success.
  */
-char *path_append(const char *head, const char *tail, char *result, size_t sz);
+MmResult path_append(const char *head, const char *tail, char *result, size_t sz);
 
 /**
  * Transforms path by:
  *  - removing any DOS style drive specified, e.g. A:
+ *  - replacing leading ~ by user's HOME directory
  *  - replacing any '\' with '/'
+ *  - resolving any . and .. elements
+ *  - removing any duplicate file separators '/'
  *
  * @param  original_path  path to be transformed.
  * @param  new_path       transformed path is returned in this buffer.
  * @param  sz             size of the 'new_path' buffer.
- * @return                the value of 'new_path' on success,
- *                        otherwise sets 'errno' and returns NULL.
+ * @return                kOk on success.
  */
-char *path_munge(const char *original_path, char *new_path, size_t sz);
+MmResult path_munge(const char *original_path, char *new_path, size_t sz);
 
 /**
  * Gets the file-extension, if any from a path.
@@ -139,5 +135,17 @@ char *path_munge(const char *original_path, char *new_path, size_t sz);
  *          pointer to '\0' at the end of 'path' if it has not file-extension.
  */
 const char *path_get_extension(const char *path);
+
+/**
+ * @brief Gets an autocompletion for the given path.
+ *
+ * @param path  the path.
+ * @param out   buffer that on exit will contain the autocompletion to append
+ *              to the path. Will be the empty string if there is no
+ *              autocompletion or an error occurred.
+ * @param sz    size of the \p out buffer.
+ * @return      kOk on success.
+ */
+MmResult path_complete(const char *path, char *out, size_t sz);
 
 #endif

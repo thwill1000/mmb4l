@@ -59,27 +59,29 @@ void cmd_xmodem(void) {
         receive = false;
     } else {
         ERROR_SYNTAX;
+        receive = false;
     }
 
-    char *filename;
-    int serial_fnbr;
+    getargs(&p, 5, ",");
+    if (argc != 3 && argc != 5) ERROR_ARGUMENT_COUNT;
 
-    {
-        getargs(&p, 3, ",");  // Macro needs to start a new block.
-        if (argc != 3) ERROR_ARGUMENT_COUNT;
+    const char *filename = getCstring(argv[0]);
+    int serial_fnbr = parse_file_number(argv[2], false);
+    if (serial_fnbr == -1) ERROR_INVALID_FILE_NUMBER;
 
-        filename = getCstring(argv[0]);
-        serial_fnbr = parse_file_number(argv[2], false);
-        if (serial_fnbr == -1) ERROR_INVALID_FILE_NUMBER;
+    bool verbose = false;
+    if (argc == 5) {
+        MMINTEGER i = getint(argv[4], 0, 1);
+        verbose = i == 1;
     }
 
     int file_fnbr = file_find_free();
     file_open(filename, receive ? "wb" : "rb", file_fnbr);
 
     if (receive) {
-        xmodem_receive(file_fnbr, serial_fnbr);
+        xmodem_receive(file_fnbr, serial_fnbr, verbose);
     } else {
-        xmodem_send(file_fnbr, serial_fnbr);
+        xmodem_send(file_fnbr, serial_fnbr, verbose);
     }
 
     file_close(file_fnbr);

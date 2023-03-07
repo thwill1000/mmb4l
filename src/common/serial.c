@@ -402,7 +402,7 @@ int serial_getc(int fnbr) {
     return ch;
 }
 
-int serial_putc(int ch, int fnbr) {
+int serial_putc(int fnbr, int ch) {
     assert(file_table[fnbr].type == fet_serial);
     errno = 0;
     ssize_t count = write(file_table[fnbr].serial_fd, &ch, 1);
@@ -425,4 +425,20 @@ int serial_putc(int ch, int fnbr) {
 int serial_rx_queue_size(int fnbr) {
     assert(file_table[fnbr].type == fet_serial);
     return rx_buf_size(&file_table[fnbr].rx_buf);
+}
+
+int serial_write(int fnbr, const char *buf, size_t sz) {
+    assert(file_table[fnbr].type == fet_serial);
+    errno = 0;
+    ssize_t count = write(file_table[fnbr].serial_fd, buf, sz);
+    if (count == (ssize_t) sz) {
+        return sz;
+    } else if (count == -1) {
+        error_throw(errno);
+    } else {
+        error_throw(EBADF);
+    }
+
+    assert(false);
+    return -1;
 }

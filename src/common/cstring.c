@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cstring.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "utility.h"
 
-int cstring_cat(char *dst, const char* src, size_t dst_sz) {
+int cstring_cat(char *dst, const char *src, size_t dst_sz) {
     size_t dst_len = strlen(dst);
     size_t src_len = strlen(src);
     size_t n = min(dst_sz - dst_len - 1, src_len);
@@ -60,6 +60,16 @@ int cstring_cat(char *dst, const char* src, size_t dst_sz) {
         dst[dst_len + n] = '\0';
     }
     return dst_len + src_len < dst_sz ? 0 : -1;
+}
+
+int cstring_cpy(char *dst, const char *src, size_t dst_sz) {
+    if (dst_sz == 0) return -1;
+    const char *limit = dst + dst_sz - 1;
+    while (dst < limit && *src) {
+        *dst++ = *src++;
+    }
+    *dst = '\0';
+    return *src ? -1 : 0;
 }
 
 int cstring_enquote(char *s, size_t n) {

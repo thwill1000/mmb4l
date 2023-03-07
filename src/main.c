@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 main.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,17 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include "common/mmb4l.h"
 #include "common/cmdline.h"
 #include "common/console.h"
 #include "common/cstring.h"
-#include "common/error.h"
 #include "common/exit_codes.h"
 #include "common/file.h"
 #include "common/interrupt.h"
@@ -60,8 +53,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/parse.h"
 #include "common/path.h"
 #include "common/program.h"
+#include "common/prompt.h"
 #include "common/serial.h"
 #include "common/utility.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
@@ -73,7 +71,6 @@ int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary, **FontTable;
 
-char g_break_key = BREAK_KEY;
 CmdLineArgs mmb_args = { 0 };
 uint8_t mmb_exit_code = EX_OK;
 
@@ -81,7 +78,6 @@ static const char mmbasic_dir[] = "~/.mmbasic";
 
 void IntHandler(int signo);
 void dump_token_table(const struct s_tokentbl* tbl);
-void prompt_get_input(void); // common/prompt.c
 
 /**
  * If 'true' then RUN program specified by 'mmb_args.run_cmd'.
@@ -92,8 +88,8 @@ void prompt_get_input(void); // common/prompt.c
 static bool run_flag;
 
 void print_banner() {
-    MMPrintString(MES_SIGNON);
-    MMPrintString(COPYRIGHT);
+    console_puts(MES_SIGNON);
+    console_puts(COPYRIGHT);
 }
 
 static void init_mmbasic_config_dir() {
@@ -112,18 +108,18 @@ static void init_options_cb(const char *msg) {
     static int count = 0;
 
     if (strcmp(msg, "END") == 0) {
-        if (count > 0) MMPrintString("\r\n");
+        if (count > 0) console_puts("\r\n");
         return;
     }
 
     if (count == 0) {
-        MMPrintString("Warnings in '");
-        MMPrintString(OPTIONS_FILE_NAME);
-        MMPrintString("':\r\n");
+        console_puts("Warnings in '");
+        console_puts(OPTIONS_FILE_NAME);
+        console_puts("':\r\n");
     }
 
-    MMPrintString((char *)msg);
-    MMPrintString("\r\n");
+    console_puts(msg);
+    console_puts("\r\n");
 
     count++;
 }
@@ -161,12 +157,12 @@ void set_start_directory() {
 
     errno = 0;
     if (chdir(p) != 0) {
-        MMPrintString("Error: could not set starting directory '");
-        MMPrintString(p);
-        MMPrintString("'.\r\n");
-        MMPrintString(strerror(errno));
-        MMPrintString(".\r\n");
-        MMPrintString("\r\n");
+        console_puts("Error: could not set starting directory '");
+        console_puts(p);
+        console_puts("'.\r\n");
+        console_puts(strerror(errno));
+        console_puts(".\r\n");
+        console_puts("\r\n");
     }
 }
 
@@ -179,9 +175,9 @@ static void reset_console_title() {
 /** Handle return via longjmp(). */
 void longjmp_handler(int jmp_state) {
 
-    console_show_cursor(1);
+    console_show_cursor(true);
     console_reset();
-    if (MMCharPos > 1) MMPrintString("\r\n");
+    if (MMCharPos > 1) console_puts("\r\n");
 
     int do_exit = false;
     switch (jmp_state) {
@@ -195,8 +191,8 @@ void longjmp_handler(int jmp_state) {
             break;
 
         case JMP_ERROR:
-            MMPrintString(mmb_error_state_ptr->message);
-            MMPrintString("\r\n");
+            console_puts(mmb_error_state_ptr->message);
+            console_puts("\r\n");
             mmb_exit_code = error_to_exit_code(mmb_error_state_ptr->code);
             do_exit = !mmb_args.interactive;
             break;
@@ -244,7 +240,6 @@ int main(int argc, char *argv[]) {
         exit(EX_OK);
     }
 
-    vartbl = DOS_vartbl;
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
 
     InitHeap();  // init memory allocation
@@ -257,10 +252,10 @@ int main(int argc, char *argv[]) {
         reset_console_title();
         console_reset();
         console_clear();
-        console_show_cursor(1);
+        console_show_cursor(true);
 
         print_banner();
-        MMPrintString("\r\n");
+        console_puts("\r\n");
     }
 
     init_mmbasic_config_dir();
@@ -307,15 +302,15 @@ int main(int argc, char *argv[]) {
                             // the prompt)
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
         if (MMCharPos > 1) {
-            MMPrintString("\r\n");  // prompt should be on a new line
+            console_puts("\r\n");  // prompt should be on a new line
         }
         //PrepareProgram(false); // This seems superflous so comment it out and see what breaks!
-        // if (!ErrorInPrompt && FindSubFun("MM.PROMPT", 0) >= 0) {
+        // if (!ErrorInPrompt && FindSubFun("MM.PROMPT", kSub) >= 0) {
         //     ErrorInPrompt = true;
         //     ExecuteProgram("MM.PROMPT\0");
         // } else {
         if (mmb_args.interactive) {
-            MMPrintString("> ");  // print the prompt
+            console_puts("> ");  // print the prompt
         }
         // }
         // ErrorInPrompt = false;
@@ -329,8 +324,8 @@ int main(int argc, char *argv[]) {
         memset(inpbuf, 0, STRINGSIZE);
         if (run_flag) {
             if (mmb_args.interactive) {
-                MMPrintString(mmb_args.run_cmd);
-                MMPrintString("\r\n");
+                console_puts(mmb_args.run_cmd);
+                console_puts("\r\n");
             }
             strcpy(inpbuf, mmb_args.run_cmd);
             run_flag = false;
@@ -358,7 +353,7 @@ void IntHandler(int signo) {
     MMAbort = true;
 }
 
-void FlashWriteInit(char *p, int nbr) {
+void FlashWriteInit() {
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
     console_set_title("MMBasic - Untitled");
     CurrentFile[0] = 0;
@@ -402,8 +397,8 @@ int MMgetchar(void) {
         if (c == -1) {
             if (!isatty(STDIN_FILENO)) {
                 // In this case there will never be anything to read.
-                if (MMCharPos > 1) MMPrintString("\r\n");
-                MMPrintString("Error: STDIN exhausted\r\n");
+                if (MMCharPos > 1) console_puts("\r\n");
+                console_puts("Error: STDIN exhausted\r\n");
                 mmb_exit_code = 1;
                 longjmp(mark, JMP_QUIT);
             }
@@ -445,8 +440,8 @@ void MMgetline(int filenbr, char *p) {
             if (c == F5) tp = "WEDIT";
             if (tp) {
                 strcpy(p, tp);
-                MMPrintString(tp);
-                MMPrintString("\r\n");
+                console_puts(tp);
+                console_puts("\r\n");
                 return;
             }
         }
@@ -462,7 +457,7 @@ void MMgetline(int filenbr, char *p) {
 
         if (c == '\b') {  // handle the backspace
             if (nbrchars) {
-                if (filenbr == 0) MMPrintString("\b \b");
+                if (filenbr == 0) console_puts("\b \b");
                 nbrchars--;
                 p--;
             }
@@ -475,7 +470,7 @@ void MMgetline(int filenbr, char *p) {
 
         if (c == '\r') {
             if (filenbr == 0) {
-                MMPrintString("\r\n");
+                console_puts("\r\n");
                 break;  // on the console this means the end of the line
                         // - stop collecting
             } else {
@@ -505,10 +500,10 @@ void MMgetline(int filenbr, char *p) {
 // dump a memory area to the console
 // for debugging
 void dump(char *p, int nbr) {
-    char buf1[80], buf2[80], buf3[80], *b1, *b2, *pt;
+    char buf1[80], buf2[80], *b1, *b2, *pt;
     b1 = buf1;
     b2 = buf2;
-    MMPrintString(
+    console_puts(
         "   addr    0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F    "
         "0123456789ABCDEF\r\n");
 #if defined(ENV64BIT)
@@ -526,9 +521,9 @@ void dump(char *p, int nbr) {
         p++;
         nbr--;
         if ((uintptr_t)p % 16 == 0) {
-            MMPrintString(buf1);
-            MMPrintString("   ");
-            MMPrintString(buf2);
+            console_puts(buf1);
+            console_puts("   ");
+            console_puts(buf2);
             b1 = buf1;
             b2 = buf2;
 #if defined(ENV64BIT)
@@ -539,14 +534,14 @@ void dump(char *p, int nbr) {
         }
     }
     if (b2 != buf2) {
-        MMPrintString(buf1);
-        MMPrintString("   ");
+        console_puts(buf1);
+        console_puts("   ");
         for (pt = p; (uintptr_t)pt % 16 != 0; pt++) {
-            MMPrintString("   ");
+            console_puts("   ");
         }
-        MMPrintString(buf2);
+        console_puts(buf2);
     }
-    MMPrintString("\r\n");
+    console_puts("\r\n");
 }
 
 void dump_token_table(const struct s_tokentbl* tbl) {
@@ -556,24 +551,4 @@ void dump_token_table(const struct s_tokentbl* tbl) {
         if (*(tbl[i].name) == 0) break;
         i++;
     }
-}
-
-/**
- * Gets the address for a MMBasic interrupt.
- *
- * This will handle a line number, a label or a subroutine,
- * all areas of MMBasic that can generate an interrupt use this function.
- */
-const char *GetIntAddress(const char *p) {
-    int32_t i;
-    if (isnamestart(*p)) {     // if it starts with a valid name char
-        i = FindSubFun(p, 0);  // try to find a matching subroutine
-        if (i == -1)
-            return findlabel(p);  // if a subroutine was NOT found it must be a label
-        else
-            return subfun[i];  // if a subroutine was found, return the address
-                               // of the sub
-    }
-
-    return findline(getinteger(p), true);  // otherwise try for a line number
 }

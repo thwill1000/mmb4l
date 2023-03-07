@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 #include "../common/mmb4l.h"
+#include "../common/console.h"
 #include "../common/memory.h"
 
 void cmd_files_internal(const char *p) {
@@ -58,10 +59,10 @@ void cmd_files_internal(const char *p) {
         snprintf(command, STRINGSIZE, "ls");
     }
 
-    int result = system(command);
+    (void) system(command);
     // if (result != 0) ERROR_SYSTEM_COMMAND_FAILED;
 
-    MMPrintString("\r\n");
+    console_puts("\r\n");
 }
 
 void cmd_files(void) {
