@@ -1,6 +1,10 @@
 ChangeLog
 ---------
 
+Version 0.6.0 - ??-???-????:
+  - Changed file path reported in an error message to be canonicalised.
+  - Changed maximum error message length to 255 characters (from 127).
+
 Version 0.5.0 - 3-Feb-2023:
   - Changed to semantic versioning scheme.
     Note that MMB4L is still versioned independently of Geoff and Peter's
