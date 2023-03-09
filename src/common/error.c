@@ -120,12 +120,14 @@ static void get_line_and_file(int *line, char *file_path) {
         comma_pos++;
         *line = atoi(comma_pos);
 
-        if (FAILED(path_get_parent(CurrentFile, file_path, STRINGSIZE))) return;
-        // TODO: prevent buffer overflow.
-        int len = strlen(file_path);
-        file_path[len++] = '/';
-        memcpy(file_path + len, pipe_pos, comma_pos - pipe_pos - 1);
-        file_path[len + comma_pos - pipe_pos] = '\0';
+        memcpy(file_path, pipe_pos, comma_pos - pipe_pos - 1);
+        file_path[comma_pos - pipe_pos] = '\0';
+        char tmp[STRINGSIZE];
+        MmResult result = path_get_parent(CurrentFile, tmp, STRINGSIZE);
+        if (SUCCEEDED(result)) result = cstring_cat(tmp, "/", STRINGSIZE);
+        if (SUCCEEDED(result)) result = cstring_cat(tmp, file_path, STRINGSIZE);
+        if (SUCCEEDED(result)) result = path_get_canonical(tmp, file_path, STRINGSIZE);
+        if (FAILED(result)) strcpy(file_path, "<invalid path>");
     } else {
         // Line is from the main file.
         pipe_pos++;
