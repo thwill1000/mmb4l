@@ -76,7 +76,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined(__mmb4l__)
     #define MM_DEVICE   "MMB4L"
     #define MAJOR_VERSION  0
-    #define MINOR_VERSION  5
+    #define MINOR_VERSION  6
     #define MICRO_VERSION  0
     #define BUILD_NUMBER   0
     #define STR_HELPER(x)  #x
