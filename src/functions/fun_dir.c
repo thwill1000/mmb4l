@@ -51,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #define ERROR_INVALID_FLAG_SPECIFICATION  error_throw_ex(kError, "Invalid flag specification")
-#define ERROR_UNABLE_TO_OPEN_DIRECTORY    error_throw_ex(kError, "Unable to open directory")
 
 int32_t dirflags;
 
@@ -115,22 +114,41 @@ pattern_matching(                 /* 0:not matched, 1:matched */
 }
 
 void fun_dir(void) {
-    static DIR *dp;
-    struct dirent *entry;
+    static DIR *dp = NULL;
     static char pp[32];
     getargs(&ep, 3, ",");
-    if (argc != 0) dirflags = DT_REG; // 0 ?
-    if (argc > 3) ERROR_SYNTAX;
+    g_rtn_type = T_STR;
 
-    if (argc == 3) {
-        if (checkstring(argv[2], "DIR"))
-            dirflags = DT_DIR;
-        else if (checkstring(argv[2], "FILE"))
+    switch (argc) {
+        case 0:
+            if (!dp) {
+                g_string_rtn = GetTempStrMemory();
+                *g_string_rtn = '\0';
+                CtoM(g_string_rtn);
+                return;
+            }
+            break;
+
+        case 1:
             dirflags = DT_REG;
-        else if (checkstring(argv[2], "ALL"))
-            dirflags = 0;
-        else
-            ERROR_INVALID_FLAG_SPECIFICATION;
+            break;
+
+        case 3:
+            if (checkstring(argv[2], "DIR")) {
+                dirflags = DT_DIR;
+            } else if (checkstring(argv[2], "FILE")) {
+                dirflags = DT_REG;
+            } else if (checkstring(argv[2], "ALL")) {
+                dirflags = 0;
+            } else {
+                ERROR_INVALID_FLAG_SPECIFICATION;
+                return;
+            }
+            break;
+
+        default:
+            ERROR_SYNTAX;
+            return;
     }
 
     if (argc != 0) {
@@ -138,34 +156,35 @@ void fun_dir(void) {
 
         char *path = GetTempStrMemory();
         MmResult result = path_munge(getCstring(argv[0]), path, STRINGSIZE);
-        if (FAILED(result)) error_throw(result);
+        if (FAILED(result)) {
+            error_throw(result);
+            return;
+        }
 
         strcpy(pp, basename(path));
         dp = opendir(dirname(path));
-        if (dp == NULL) ERROR_UNABLE_TO_OPEN_DIRECTORY;
-    }
-
-    for (;;) {
-        entry = readdir(dp);
-        if (!entry) break;
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
-        if (pattern_matching(pp, entry->d_name, 0, 0)) {
-            if (dirflags) {
-                if (entry->d_type == dirflags) break;
-            } else {
-                break;
-            }
+        if (!dp) {
+            error_throw(errno);
+            return;
         }
     }
 
-    g_string_rtn = GetTempStrMemory();
-    g_rtn_type = T_STR;
+    struct dirent *entry;
+    while ((entry = readdir(dp))) {
+        if (strcmp(entry->d_name, ".") != 0
+                && strcmp(entry->d_name, "..") != 0
+                && pattern_matching(pp, entry->d_name, 0, 0)
+                && (!dirflags || entry->d_type == dirflags)) break;
+    }
 
-    if (!entry) {
+    g_string_rtn = GetTempStrMemory();
+
+    if (entry) {
+        strcpy(sret, entry->d_name);
+    } else {
         closedir(dp);
         g_string_rtn[0] = 0;
-    } else {
-        strcpy(sret, entry->d_name);
+        dp = NULL;
     }
 
     CtoM(g_string_rtn);

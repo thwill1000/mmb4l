@@ -1,4 +1,4 @@
-' Copyright (c) 2020-2022 Thomas Hugo Williams
+' Copyright (c) 2020-2023 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -29,6 +29,8 @@ add_test("test_close_errors")
 add_test("test_copy")
 add_test("test_dir")
 add_test("test_dir_given_no_matches")
+add_test("test_dir_given_not_found")
+add_test("test_dir_given_invalid_flag")
 add_test("test_eof")
 add_test("test_eof_errors")
 add_test("test_inputstr")
@@ -47,12 +49,6 @@ add_test("test_append_eof_bug")
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
-
-Sub setup_test()
-End Sub
-
-Sub teardown_test()
-End Sub
 
 Sub test_chdir_mkdir_rmdir()
     Local current_dir$ = Mm.Info$(Directory))
@@ -152,6 +148,12 @@ Sub test_dir()
   Local expected$(BASE% + 9) = ("abc", "file1", "file3", "subdir", "", "", "", "", "", "")
   assert_string_array_equals(expected$(), actual$())
 
+  ' Additional calls to DIR$() should return the empty string.
+  ' Note that if the first call to DIR$() does not provide a pattern then it
+  ' should also return the empty string, but that is hard to unit-test because
+  ' the framework makes use of DIR$().
+  assert_string_equals("", Dir$())
+
   Kill tst_dir$ + "/file1"
   Kill tst_dir$ + "/abc"
   Kill tst_dir$ + "/file3"
@@ -165,6 +167,23 @@ Sub test_dir_given_no_matches()
   MkDir tst_dir$
   Local f$ = Dir$(tst_dir$ + "/*.non")
   assert_string_equals("", f$)
+  RmDir tst_dir$
+End Sub
+
+Sub test_dir_given_not_found()
+  Const tst_dir$ = TMPDIR$ + "\test_dir_given_not_found.tmpdir"
+  On Error Skip
+  Local f$ = Dir$(tst_dir$ + "/*")
+  assert_raw_error("No such file or directory")
+End Sub
+
+Sub test_dir_given_invalid_flag()
+  Const tst_dir$ = TMPDIR$ + "\test_dir_given_invalid_flag.tmpdir"
+  If file.exists%(tst_dir$) Then RmDir tst_dir$
+  MkDir tst_dir$
+  On Error Skip
+  Local f$ = Dir$(tst_dir$ + "/*", foo)
+  assert_raw_error("Invalid flag specification")
   RmDir tst_dir$
 End Sub
 
