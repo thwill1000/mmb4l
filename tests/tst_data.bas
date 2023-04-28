@@ -334,7 +334,11 @@ Sub test_data_save_and_restore_err()
   assert_raw_error("Nothing to restore")
 
   Local i%
-  For i% = 1 To 49 : Read Save : Next
+  If sys.is_device%("pm*") Then
+    For i% = 1 To 15 : Read Save : Next
+  Else
+    For i% = 1 To 49 : Read Save : Next
+  EndIf
 
   On Error Skip
   Read Save

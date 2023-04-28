@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2022 Thomas Hugo Williams
+' Copyright (c) 2021-2023 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -14,24 +14,40 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../sptools/src/splib/vt100.inc"
 #Include "../sptools/src/sptest/unittest.inc"
 
+If sys.is_device%("pm*") Then Goto skip_tests
+
 Const BASE% = Mm.Info(Option Base)
-Const RESOURCES_DIR$ = Mm.Info$(Path) + "/resources"
+Const TMPDIR$ = sys.string_prop$("tmpdir") + "/tst_json"
 
 add_test("test_json")
+
+skip_tests:
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
 
 Sub setup_test()
+  If file.exists%(TMPDIR$) Then
+    If file.delete%(TMPDIR$, 1) <> sys.SUCCESS Then Error "Failed to delete directory '" + TMPDIR$ + "'"
+  EndIf
 End Sub
 
 Sub teardown_test()
+  If file.exists%(TMPDIR$) Then
+    If file.delete%(TMPDIR$, 1) <> sys.SUCCESS Then Error "Failed to delete directory '" + TMPDIR$ + "'"
+  EndIf
 End Sub
 
 Sub test_json()
+  If sys.is_device%("pm*") Then Exit Sub
+
+  MkDir TMPDIR$
+  Local f$ = TMPDIR$ + "/test_json.json"
+  ut.write_data_file(f$, "data_test_json")
+
   Local data%(1000), s$
-  Open RESOURCES_DIR$ + "/test_json.json" For Input As #1
+  Open f$ For Input As #1
   Do While Not Eof(#1)
     Line Input #1, s$
     LongString Append data%(), s$
@@ -51,7 +67,7 @@ Sub test_json()
 
   ' Test explicit null value.
   assert_string_equals("",       Json$(data%(), "null-value"))
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     assert_string_equals("<null>", Json$(data%(), "null-value", &b01))
     assert_string_equals("",       Json$(data%(), "null-value", &b10))
     assert_string_equals("<null>", Json$(data%(), "null-value", &b11))
@@ -59,7 +75,7 @@ Sub test_json()
 
   ' Test keys that do not exist.
   assert_string_equals("",          Json$(data%(), "does-not-exist"))
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     assert_string_equals("",          Json$(data%(), "does-not-exist", &b01))
     assert_string_equals("<missing>", Json$(data%(), "does-not-exist", &b10))
     assert_string_equals("<missing>", Json$(data%(), "does-not-exist", &b11))
@@ -69,3 +85,26 @@ Sub test_json()
     assert_string_equals("<missing>", Json$(data%(), "resolutions[3].width", &b11))
   EndIf
 End Sub
+
+data_test_json:
+Data "text/json"
+Data "{"
+Data "    'name': 'Awesome 4K',"
+Data "    'resolutions': ["
+Data "        {"
+Data "            'width': 1280,"
+Data "            'height': 720"
+Data "        },"
+Data "        {"
+Data "            'width': 1920,"
+Data "            'height': 1080"
+Data "        },"
+Data "        {"
+Data "            'width': 3840,"
+Data "            'height': 2160"
+Data "        }"
+Data "    ],"
+Data "    'empty-string': '',"
+Data "    'null-value': null"
+Data "}"
+Data "<EOF>"

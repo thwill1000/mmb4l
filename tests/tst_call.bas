@@ -196,7 +196,7 @@ Sub test_arg_list_bug()
   Line Input #1, s$
 
   ' The difference seems to be something to do with how tabs are handled.
-  If sys.is_device%("mmb4l", "mmb4w") Then
+  If sys.is_device%("mmb4l", "mmb4w", "pm*") Then
     assert_string_equals(" 42  3.12   bar", s$)
   Else
     assert_string_equals(" 42  3.12 bar", s$)

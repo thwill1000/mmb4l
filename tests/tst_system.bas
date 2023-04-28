@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2022 Thomas Hugo Williams
+' Copyright (c) 2021-2023 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -14,10 +14,9 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../sptools/src/splib/vt100.inc"
 #Include "../sptools/src/sptest/unittest.inc"
 
+If sys.is_device%("cmm2*", "pm*") Then Goto skip_tests
+
 Const BASE% = Mm.Info(Option Base)
-
-If InStr(Mm.Device$, "Colour Maximite 2") Then Goto skip_tests
-
 Const DEVICE$ = Choice(Mm.Device$ = "MMB4L", Mm.Device$ + " - " + Mm.Info$(Arch), Mm.Device$)
 
 Select Case DEVICE$

@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2022 Thomas Hugo Williams
+' Copyright (c) 2021-2023 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -18,10 +18,12 @@ Const BASE% = Mm.Info(Option Base)
 Const TMP$ = sys.string_prop$("tmpdir")
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
-If Mm.Device$ = "MMB4L" Then
-  Const EXPECTED_VERSION$ = "5000000"
-ElseIf Mm.Device$ = "MMBasic for Windows" Then
+If sys.is_device%("mmb4l") Then
+  Const EXPECTED_VERSION$ = "6000000"
+ElseIf sys.is_device%("mmb4w") Then
   Const EXPECTED_VERSION$ = "5.0703"
+ElseIf sys.is_device%("pm*") Then
+  Const EXPECTED_VERSION$ = "5.0707"
 Else
   Const EXPECTED_VERSION$ = "5.0702"
 EndIf
@@ -67,14 +69,8 @@ If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
 
-Sub setup_test()
-End Sub
-
-Sub teardown_test()
-End Sub
-
 Sub test_arch()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Local expected_arch$
   System "uname -o -m", expected_arch$
@@ -91,7 +87,7 @@ Sub test_arch()
 End Sub
 
 Sub test_cputime()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
   Local cputime% = Mm.Info(CpuTime)
   ' Not really anything that can be tested other than it returns.
   assert_true(cputime% > 0)
@@ -102,17 +98,18 @@ Sub test_current()
 End Sub
 
 Function expected_path$()
-  Select Case Mm.Device$
-    Case "MMB4L"
-      Local out$
-      System "echo $HOME", out$
-      expected_path$ = out$ + "/github/mmb4l/tests/"
-    Case "MMBasic for Windows"
-      expected_path$ = "C:\home-thwill\git_sandbox\github\mmb4l\tests\"
-    Case Else
-      expected_path$ = "A:/MMB4L/tests/"
-      If Cwd$ + "/" = UCase$(expected_path$) Then expected_path$ = UCase$(expected_path$)
-  End Select
+  If sys.is_device%("mmb4l") Then
+    Local out$
+    System "echo $HOME", out$
+    expected_path$ = out$ + "/github/mmb4l/tests/"
+  ElseIf sys.is_device%("mmb4w") Then
+    expected_path$ = "C:\home-thwill\git_sandbox\github\mmb4l\tests\"
+  ElseIf sys.is_device%("pm*") Then
+    expected_path$ = "A:/"
+  Else
+    expected_path$ = "A:/MMB4L/tests/"
+    If Cwd$ + "/" = UCase$(expected_path$) Then expected_path$ = UCase$(expected_path$)
+  EndIf
 End Function
 
 Sub test_device()
@@ -121,11 +118,14 @@ Sub test_device()
   known% = known% Or (Mm.Device$ = "Colour Maximite 2 G2")
   known% = known% Or (Mm.Device$ = "MMB4L")
   known% = known% Or (Mm.Device$ = "MMBasic for Windows")
+  known% = known% Or (Mm.Device$ = "PicoMite")
   assert_true(known%)
   assert_string_equals(Mm.Info$(Device), Mm.Device$)
 End Sub
 
 Sub test_directory()
+  If sys.is_device%("pm*") Then Exit Sub
+
   Local expected_dir$
   Select Case Mm.Device$
     Case "MMB4L"               : System "pwd", expected_dir$
@@ -140,7 +140,7 @@ Sub test_directory()
 End Sub
 
 Sub test_envvar()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Local expected_home$
   System "echo $HOME", expected_home$
@@ -151,20 +151,22 @@ End Sub
 Sub test_errmsg()
   On Error Skip 1
   Error "foo"
-  assert_string_equals("Error in line", Left$(Mm.ErrMsg$, 13));
   assert_string_equals("foo", Right$(Mm.ErrMsg$, 3));
-  assert_string_equals("Error in line", Left$(Mm.Info(ErrMsg), 13));
   assert_string_equals("foo", Right$(Mm.Info$(ErrMsg), 3));
+  If Not sys.is_device%("pm*") Then
+    assert_string_equals("Error in line", Left$(Mm.ErrMsg$, 13));
+    assert_string_equals("Error in line", Left$(Mm.Info(ErrMsg), 13));
+  EndIf
 End Sub
 
 Sub test_errno()
-  Local expected% = Choice(Mm.Device$ = "MMB4L", 256, 16)
+  Local expected% = Choice(sys.is_device%("mmb4l"), 256, 16)
   On Error Skip 1
   Error "foo"
   assert_int_equals(expected%, Mm.ErrNo);
   assert_int_equals(expected%, Mm.Info$(ErrNo));
 
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   On Error Skip 1
   Error "foo", 201
@@ -174,7 +176,7 @@ Sub test_errno()
 End Sub
 
 Sub test_exists()
-  If Mm.Device$ <> "MMB4L" And Mm.Device$ <> "MMBasic for Windows" Then Exit Sub
+  If Not sys.is_device%("mmb4l", "mmb4w") Then Exit Sub
 
   Local existing_dir$ = Mm.Info$(Path)
   Local existing_file$ = Mm.Info$(Path) + "tst_mminfo.bas"
@@ -188,17 +190,16 @@ Sub test_exists()
   assert_int_equals(0, Mm.Info(Exists non_existing$))
   assert_int_equals(1, Mm.Info(Exists "."))
   assert_int_equals(1, Mm.Info(Exists ".."))
-  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists ""))
+  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists ""))
   ' assert_int_equals(1, Mm.Info(Exists sym_link_dir$))
 
   ' Given root.
   assert_int_equals(1, Mm.Info(Exists "/"))
   assert_int_equals(1, Mm.Info(Exists "\"))
-  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists "A:/"))
-  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists "A:\"))
+  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists "A:/"))
+  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists "A:\"))
   assert_int_equals(1, Mm.Info(Exists "C:/"))
   assert_int_equals(1, Mm.Info(Exists "C:\"))
-
 End Sub
 
 Sub test_exists_dir()
@@ -212,16 +213,27 @@ Sub test_exists_dir()
   assert_int_equals(0, Mm.Info(Exists Dir non_existing$))
   assert_int_equals(1, Mm.Info(Exists Dir "."))
   assert_int_equals(1, Mm.Info(Exists Dir ".."))
-  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists Dir ""))
+  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists Dir ""))
   ' assert_int_equals(1, Mm.Info(Exists Dir sym_link_dir$))
 
   ' Given root.
   assert_int_equals(1, Mm.Info(Exists Dir "/"))
   assert_int_equals(1, Mm.Info(Exists Dir "\"))
-  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists Dir "A:/"))
-  assert_int_equals(Mm.Device$ <> "MMBasic for Windows", Mm.Info(Exists Dir "A:\"))
-  assert_int_equals(1, Mm.Info(Exists Dir "C:/"))
-  assert_int_equals(1, Mm.Info(Exists Dir "C:\"))
+  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists Dir "A:/"))
+  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists Dir "A:\"))
+
+  If sys.is_device%("pm*") Then
+    Local z%
+    On Error Skip
+    z% = Mm.Info(Exists Dir "C:/")
+    assert_raw_error("Invalid disk")
+    On Error Skip
+    z% = Mm.Info(Exists Dir "C:\")
+    assert_raw_error("Invalid disk")
+  Else
+    assert_int_equals(1, Mm.Info(Exists Dir "C:/"))
+    assert_int_equals(1, Mm.Info(Exists Dir "C:\"))
+  EndIf
 End Sub
 
 Sub test_exists_file()
@@ -243,13 +255,24 @@ Sub test_exists_file()
   assert_int_equals(0, Mm.Info(Exists File "\"))
   assert_int_equals(0, Mm.Info(Exists File "A:/"))
   assert_int_equals(0, Mm.Info(Exists File "A:\"))
-  assert_int_equals(0, Mm.Info(Exists File "C:/"))
-  assert_int_equals(0, Mm.Info(Exists File "C:\"))
+
+  If sys.is_device%("pm*") Then
+    Local z%
+    On Error Skip
+    z% = Mm.Info(Exists File "C:/")
+    assert_raw_error("Invalid disk")
+    On Error Skip
+    z% = Mm.Info(Exists File "C:\")
+    assert_raw_error("Invalid disk")
+  Else
+    assert_int_equals(0, Mm.Info(Exists File "C:/"))
+    assert_int_equals(0, Mm.Info(Exists File "C:\"))
+  EndIf
 End Sub
 
 Sub test_exists_symlink()
   ' MM.INFO(EXISTS SYMLINK path$) is MMB4L specific.
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Local existing_dir$ = Mm.Info$(Path)
   Local existing_file$ = Mm.Info$(Path) + "tst_mminfo.bas"
@@ -293,60 +316,94 @@ End Sub
 
 Sub test_filesize_given_directory()
   If sys.is_device%("mmb4l") Then
-    assert_int_equals(-2, Mm.Info(FileSize Mm.Info$(Directory)))
-    assert_int_equals(-2, Mm.Info(FileSize Mm.Info$(Path)))
-    assert_int_equals(-2, Mm.Info(FileSize "/"))
-    assert_int_equals(-2, Mm.Info(FileSize "\"))
-    assert_int_equals(-2, Mm.Info(FileSize "."))
-    assert_int_equals(-2, Mm.Info(FileSize ".."))
-    assert_int_equals(-2, Mm.Info(FileSize "A:/"))
-    assert_int_equals(-2, Mm.Info(FileSize "A:\"))
-    assert_int_equals(-2, Mm.Info(FileSize "C:/"))
-    assert_int_equals(-2, Mm.Info(FileSize "C:\"))
-    assert_int_equals(-2, Mm.Info(FileSize str.replace$(TMP$, "/", "\")))
-    assert_int_equals(-2, Mm.Info(FileSize str.replace$(TMP$, "\", "/")))
-    assert_int_equals(-2, Mm.Info(FileSize str.replace$("A:" + TMP$, "/", "\")))
-    assert_int_equals(-2, Mm.Info(FileSize str.replace$("A:" + TMP$, "\", "/")))
-    assert_int_equals(-2, Mm.Info(FileSize str.replace$("C:" + TMP$, "/", "\")))
-    assert_int_equals(-2, Mm.Info(FileSize str.replace$("C:" + TMP$, "\", "/")))
-  Else If sys.is_device%("cmm2*") Then
-    assert_filesize_fails(Mm.Info$(Directory))
-    assert_filesize_fails(Mm.Info$(Path))
-    assert_filesize_fails("/")
-    assert_filesize_fails("\")
-    assert_filesize_fails("A:/")
-    assert_filesize_fails("A:\")
-    assert_filesize_fails("C:/")
-    assert_filesize_fails("C:\")
-    assert_int_equals(-2, Mm.Info(FileSize str.replace$(TMP$, "/", "\")))
-    assert_int_equals(-2, Mm.Info(FileSize str.replace$(TMP$, "\", "/")))
-    assert_int_equals(-1, Mm.Info(FileSize "."))
-    assert_int_equals(-1, Mm.Info(FileSize ".."))
-  Else
-    assert_int_equals(-2, Mm.Info(FileSize Mm.Info$(Directory)))
-    assert_int_equals(-2, Mm.Info(FileSize Mm.Info$(Path)))
+    expect_filesize_is_dir(Mm.Info$(Directory))
+    expect_filesize_is_dir(Mm.Info$(Path))
+    expect_filesize_is_dir("/")
+    expect_filesize_is_dir("\")
+    expect_filesize_is_dir(".")
+    expect_filesize_is_dir("..")
+    expect_filesize_is_dir("A:/")
+    expect_filesize_is_dir("A:\")
+    expect_filesize_is_dir("C:/")
+    expect_filesize_is_dir("C:\")
+    expect_filesize_is_dir(str.replace$(TMP$, "/", "\"))
+    expect_filesize_is_dir(str.replace$(TMP$, "\", "/"))
+    expect_filesize_is_dir(str.replace$("A:" + TMP$, "/", "\"))
+    expect_filesize_is_dir(str.replace$("A:" + TMP$, "\", "/"))
+    expect_filesize_is_dir(str.replace$("C:" + TMP$, "/", "\"))
+    expect_filesize_is_dir(str.replace$("C:" + TMP$, "\", "/"))
+  ElseIf sys.is_device%("cmm2*") Then
+    expect_filesize_invalid_file(Mm.Info$(Directory))
+    expect_filesize_invalid_file(Mm.Info$(Path))
+    expect_filesize_invalid_file("/")
+    expect_filesize_invalid_file("\")
+    expect_filesize_invalid_file("A:/")
+    expect_filesize_invalid_file("A:\")
+    expect_filesize_invalid_file("C:/")
+    expect_filesize_invalid_file("C:\")
+    expect_filesize_is_dir(str.replace$(TMP$, "/", "\"))
+    expect_filesize_is_dir(str.replace$(TMP$, "\", "/"))
+    expect_filesize_not_found(".")
+    expect_filesize_not_found("..")
+  ElseIf sys.is_device%("mmb4w") Then
+    expect_filesize_is_dir(Mm.Info$(Directory))
+    expect_filesize_is_dir(Mm.Info$(Path))
     assert_int_equals(-1, Mm.Info$(FileSize "/"))
     assert_int_equals(-1, Mm.Info$(FileSize "\"))
-    assert_int_equals(-1, Mm.Info(FileSize "A:/"))
-    assert_int_equals(-1, Mm.Info(FileSize "A:\"))
-    assert_int_equals(-2, Mm.Info(FileSize "C:/"))
-    assert_int_equals(-2, Mm.Info(FileSize "C:\"))
-    assert_int_equals(-2, Mm.Info(FileSize str.replace$(TMP$, "/", "\")))
-    assert_int_equals(-2, Mm.Info(FileSize str.replace$(TMP$, "\", "/")))
-    assert_int_equals(-2, Mm.Info(FileSize "."))
-    assert_int_equals(-2, Mm.Info(FileSize ".."))
+    expect_filesize_not_found("A:/")
+    expect_filesize_not_found("A:\")
+    expect_filesize_is_dir("C:/")
+    expect_filesize_is_dir("C:\")
+    expect_filesize_is_dir(str.replace$(TMP$, "/", "\"))
+    expect_filesize_is_dir(str.replace$(TMP$, "\", "/"))
+    expect_filesize_is_dir(".")
+    expect_filesize_is_dir("..")
+  ElseIf sys.is_device%("pm*") Then
+    expect_filesize_is_dir(Cwd$)
+    expect_filesize_is_dir(Mm.Info$(Path))
+    expect_filesize_is_dir("/")
+    expect_filesize_not_found("\")
+    expect_filesize_is_dir(".")
+    expect_filesize_is_dir("..")
+    expect_filesize_is_dir("A:/")
+    expect_filesize_not_found("A:\")
+    expect_filesize_invalid_disk("C:/")
+    expect_filesize_not_found("C:\")
+    expect_filesize_not_found(str.replace$(TMP$, "/", "\"))
+    expect_filesize_is_dir(str.replace$(TMP$, "\", "/"))
+    expect_filesize_not_found(str.replace$("A:" + TMP$, "/", "\"))
+    expect_filesize_not_found(str.replace$("A:" + TMP$, "\", "/"))
+    expect_filesize_not_found(str.replace$("C:" + TMP$, "/", "\"))
+    expect_filesize_not_found(str.replace$("C:" + TMP$, "\", "/"))
   EndIf
 End Sub
 
-Sub assert_filesize_fails(f$)
+Sub expect_filesize_is_dir(f$)
+  assert_int_equals(-2, Mm.Info(FileSize f$))
+End Sub
+
+Sub expect_filesize_not_found(f$)
+  assert_int_equals(-1, Mm.Info(FileSize f$))
+End Sub
+
+Sub expect_filesize_invalid_file(f$)
   On Error Skip 1
   Local size% = Mm.Info(FileSize f$)
   assert_raw_error("Invalid file specification")
+  assert_int_equals(0, size%)
+  On Error Clear
+End Sub
+
+Sub expect_filesize_invalid_disk(f$)
+  On Error Skip 1
+  Local size% = Mm.Info(FileSize f$)
+  assert_raw_error("Invalid disk")
+  assert_int_equals(0, size%)
   On Error Clear
 End Sub
 
 Sub test_font_address()
-  If Mm.Device$ = "MMB4L" Then Exit Sub
+  If sys.is_device%("mmb4l") Then Exit Sub
 
   ' First byte at the "font address" is the font width.
   assert_int_equals(8, Peek(Byte(Mm.Info(Font Address 1))))
@@ -361,7 +418,7 @@ End Sub
 Sub test_fontheight()
   assert_int_equals(EXPECTED_FONT_HEIGHT%, Mm.Info(FontHeight))
 
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     ' Expect error if there is a space between FONT and HEIGHT.
     On Error Skip
     Local i% = Mm.Info(Font Height)
@@ -375,7 +432,7 @@ End Sub
 Sub test_fontwidth()
   assert_int_equals(EXPECTED_FONT_WIDTH%, Mm.Info(FontWidth))
 
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     ' Expect error if there is a space between FONT and WIDTH.
     On Error Skip
     Local i% = Mm.Info(Font Width)
@@ -387,7 +444,7 @@ Sub test_fontwidth()
 End Sub
 
 Sub test_hpos()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Option Resolution Character
   Local old_x%, old_y%
@@ -405,7 +462,7 @@ Sub test_hpos()
 End Sub
 
 Sub test_hres()
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     Option Resolution Character
     Local actual% = Mm.Info(HRes)
     Local out$
@@ -435,7 +492,7 @@ Sub test_option_break()
 End Sub
 
 Sub test_option_case()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   assert_string_equals("Title", Mm.Info(Option Case))
 
@@ -450,7 +507,7 @@ Sub test_option_case()
 End Sub
 
 Sub test_option_editor()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Local original$ = Mm.Info(Option Editor)
 
@@ -516,7 +573,7 @@ End Sub
 Sub test_option_explicit()
   assert_string_equals("On", Mm.Info(Option Explicit))
 
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   ' Only MMB4L supports the optional boolean flag.
 
@@ -538,7 +595,7 @@ Sub test_option_explicit()
 End Sub
 
 Sub test_option_codepage()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   assert_string_equals("None", Mm.Info(Option CodePage))
 
@@ -576,7 +633,7 @@ Sub test_option_codepage()
 End Sub
 
 Sub test_option_fn_key()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   ' Save current options and switch to defaults.
   Option Save TMP$ + "/mmbasic.options.bak"
@@ -610,7 +667,7 @@ Sub test_option_fn_key()
 End Sub
 
 Sub test_option_resolution()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Option Resolution Pixel
   assert_string_equals("Pixel", Mm.Info(Option Resolution))
@@ -620,14 +677,14 @@ Sub test_option_resolution()
 End Sub
 
 Sub test_option_search_path()
-  If Mm.Device$ <> "MMB4L" And Mm.Device$ <> "MMBasic for Windows" Then Exit Sub
+  If sys.is_device%("cmm2*", "pm*") Then Exit Sub
 
   Local original$ = Mm.Info$(Option Search Path)
 
   ' Set the SEARCH PATH to a directory that exists.
   Local path$ = Mm.Info$(Path)
   Option Search Path path$
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     ' Note we the trailing '/' will have been trimmed from the Search Path.
     assert_string_equals(Left$(path$, Len(path$) - 1), Mm.Info$(Option Search Path))
   Else
@@ -671,7 +728,9 @@ Sub test_option_search_path()
 End Sub
 
 Sub test_option_serial()
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("pm*") Then Exit Sub
+
+  If sys.is_device%("mmb4l") Then
 
     assert_string_equals("Serial", Mm.Info(Option Console))
 
@@ -706,7 +765,7 @@ Sub test_option_serial()
 End Sub
 
 Sub test_option_tab()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   assert_int_equals(4, Mm.Info(Option Tab))
 
@@ -725,7 +784,7 @@ Sub test_path()
 End Sub
 
 Sub test_pid()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Local out$
   System "echo $PPID", out$
@@ -733,7 +792,7 @@ Sub test_pid()
 End Sub
 
 Sub test_vpos()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Option Resolution Character
   Local old_x%, old_y%
@@ -751,7 +810,7 @@ Sub test_vpos()
 End Sub
 
 Sub test_vres()
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     Option Resolution Character
     Local actual% = Mm.Info(VRes)
     Local out$
@@ -771,7 +830,7 @@ Sub test_version()
 
   If sys.is_device%("mmb4l") Then
     assert_int_equals(0, Mm.Info(Version Major))
-    assert_int_equals(5, Mm.Info(Version Minor))
+    assert_int_equals(6, Mm.Info(Version Minor))
     assert_int_equals(0, Mm.Info(Version Micro))
     assert_int_equals(0, Mm.Info(Version Build))
   End If

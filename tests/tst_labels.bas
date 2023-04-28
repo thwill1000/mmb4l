@@ -98,7 +98,7 @@ Sub test_goto_non_existent_label()
 End Sub
 
 Sub test_goto_max_length_label()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Local x% = 1
   Goto goto_max_length_label_3456789012
@@ -114,9 +114,11 @@ Sub test_goto_too_long_label()
 End Sub
 
 Sub test_goto_sub()
+  If sys.is_device%("pm*") Then Exit Sub
+
   On Error Skip 1
   Goto my_sub
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Not a label", NOT_FOUND$))
+  assert_raw_error(Choice(sys.is_device%("mmb4l"), "Not a label", NOT_FOUND$))
 End Sub
 
 Sub my_sub()
@@ -124,9 +126,11 @@ Sub my_sub()
 End Sub
 
 Sub test_goto_function()
+  If sys.is_device%("pm*") Then Exit Sub
+
   On Error Skip 1
   Goto my_function
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Not a label", NOT_FOUND$))
+  assert_raw_error(Choice(sys.is_device%("mmb4l"), "Not a label", NOT_FOUND$))
 End Sub
 
 Function my_function%()
@@ -164,7 +168,7 @@ GOSUB_CASE_INSENSITIVE_UC:
   Return
 
 Sub test_gosub_partial_match()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   On Error Skip 1
   Gosub gosub_partial
@@ -179,7 +183,7 @@ gosub_partial_match:
   assert_fail("Should never happen")
 
 Sub test_gosub_non_existent_label()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   On Error Skip 1
   Gosub no_such_label
@@ -187,7 +191,7 @@ Sub test_gosub_non_existent_label()
 End Sub
 
 Sub test_gosub_max_length_label()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   global_x% = 1
   Gosub gosub_max_length_label_456789012
@@ -199,7 +203,7 @@ gosub_max_length_label_456789012:
   Return
 
 Sub test_gosub_too_long_label()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   On Error Skip 1
   Gosub thirty_three_characters_567890123
@@ -207,7 +211,7 @@ Sub test_gosub_too_long_label()
 End Sub
 
 Sub test_gosub_sub()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   On Error Skip 1
   Gosub my_sub
@@ -215,7 +219,7 @@ Sub test_gosub_sub()
 End Sub
 
 Sub test_gosub_function()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   On Error Skip 1
   Gosub my_function
@@ -276,7 +280,7 @@ Sub test_restore_non_existent_label()
 End Sub
 
 Sub test_restore_max_length_label()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Local x%, y%, z%
   Restore restore_max_length_label_6789012
@@ -298,15 +302,19 @@ Sub test_restore_too_long_label()
 End Sub
 
 Sub test_restore_sub()
+  If sys.is_device%("pm*") Then Exit Sub
+
   On Error Skip 1
   Restore my_sub
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Not a label", NOT_FOUND$))
+  assert_raw_error(Choice(sys.is_device%("mmb4l"), "Not a label", NOT_FOUND$))
 End Sub
 
 Sub test_restore_function()
+  If sys.is_device%("pm*") Then Exit Sub
+
   On Error Skip 1
   Restore my_function
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Not a label", NOT_FOUND$))
+  assert_raw_error(Choice(sys.is_device%("mmb4l"), "Not a label", NOT_FOUND$))
 End Sub
 
 Sub test_call_label_as_sub()
@@ -325,6 +333,8 @@ Sub test_call_label_as_function()
 End Sub
 
 Sub test_duplicate_label_and_sub()
+  If sys.is_device%("pm*") Then Exit Sub
+
   global_x% = 0
   duplicate_label_and_sub()
   assert_int_equals(1, global_x%)
@@ -341,6 +351,8 @@ duplicate_label_and_sub:
   Return
 
 Sub test_duplicate_label_and_fun()
+  If sys.is_device%("pm*") Then Exit Sub
+
   global_x% = 0
   Inc global_x%, duplicate_label_and_fun%()
   assert_int_equals(3, global_x%)

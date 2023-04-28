@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2022 Thomas Hugo Williams
+' Copyright (c) 2021-2023 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -25,7 +25,6 @@ add_test("test_unary_minus")
 add_test("test_unary_plus")
 add_test("test_error_correct_after_goto")
 add_test("test_error_correct_after_gosub")
-
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -59,14 +58,16 @@ Sub test_erase()
 
   On Error Skip 1
   Erase *invalid
-  Select Case Mm.Device$
-    Case "Colour Maximite 2", "Colour Maximite 2 G2"
-      assert_raw_error("Unknown command")
-    Case "MMBasic for Windows"
-      assert_raw_error("Syntax")
-    Case Else
-      assert_raw_error("Invalid name")
-  End Select
+
+  If sys.is_device%("cmm2*") Then
+    assert_raw_error("Unknown command")
+  ElseIf sys.is_device%("mmb4w") Then
+    assert_raw_error("Syntax")
+  ElseIf sys.is_device%("pm*") Then
+    assert_raw_error("Cannot find ")
+  Else
+    assert_raw_error("Invalid name")
+  EndIf
 
   On Error Skip 1
   Erase _32_chars_long_67890123456789012%
@@ -74,30 +75,34 @@ Sub test_erase()
 
   On Error Skip 1
   Erase _33_chars_long_678901234567890123%
-  Select Case Mm.Device$
-    Case "Colour Maximite 2", "Colour Maximite 2 G2"
-      assert_raw_error("Cannot find _33_CHARS_LONG_678901234567890123")
-    Case Else
-      assert_raw_error("Name too long")
-  End Select
+  If sys.is_device%("cmm2*", "pm*") Then
+    assert_raw_error("Cannot find _33_CHARS_LONG_678901234567890123")
+  Else
+    assert_raw_error("Name too long")
+  EndIf
 End Sub
 
 ' There was a bug in MMB4W (and the PicoMite) where the heap memory
 ' used by arrays was not being released correctly and would eventually
 ' be exhausted.
 Sub test_erase_given_arrays()
-  If Mm.Device$ = "MMBasic for Windows" Then
+  If sys.is_device%("cmm2*", "mmb4w") Then
     Local filler1%(15 * 1024 * 1024)
-  Else
+  ElseIf sys.is_device%("mmb4l") Then
     ' TODO: remove MMB4L 32K array size limitation.
     Local filler1%(32 * 1024 - 1)
     Local filler2%(32 * 1024 - 1)
     Local filler3%(32 * 1024 - 1)
     Local filler4%(24 * 1024 - 1)
+  ElseIf sys.is_device%("pm") Then
+    Local filler1%(64 * 1024 / 8) ' ~64K
+  ElseIf sys.is_device%("pmvga") Then
+    Local filler1%(32 * 1024 / 8) ' ~32K
   EndIf
+
   Local i%
   For i% = 0 To 255
-    Dim foo_array%(Mm.Info(Option Base) + 4095) ' 32K
+    Dim foo_array%(32 * 1024 / 8) ' ~32K
     Erase foo_array%
   Next
 
@@ -110,15 +115,20 @@ End Sub
 ' used by strings was not being released correctly and would eventually
 ' be exhausted.
 Sub test_erase_given_strings()
-  If Mm.Device$ = "MMBasic for Windows" Then
+  If sys.is_device%("cmm2*", "mmb4w") Then
     Local filler1%(15 * 1024 * 1024)
-  Else
+  ElseIf sys.is_device%("mmb4l") Then
     ' TODO: remove MMB4L 32K array size limitation.
     Local filler1%(32 * 1024 - 1)
     Local filler2%(32 * 1024 - 1)
     Local filler3%(32 * 1024 - 1)
     Local filler4%(24 * 1024 - 1)
+  ElseIf sys.is_device%("pm") Then
+    Local filler1%(64 * 1024 / 8) ' ~64K
+  ElseIf sys.is_device%("pmvga") Then
+    Local filler1%(32 * 1024 / 8) ' ~32K
   EndIf
+
   Local i%
   For i% = 0 To 32767
     Dim foo_string$
@@ -210,16 +220,16 @@ Sub test_unary_plus()
 End Sub
 
 Sub test_error_correct_after_goto()
-  Local base_line% = 221
+  Const BASE_LINE = 227 + Choice(sys.is_device%("pm*"), 1824, 0)
   Goto 30
 test_goto_label_1:
-  assert_raw_error("Error in line " + Str$(base_line% + 4) + ": foo1")
+  assert_raw_error(expected_error_msg$(BASE_LINE + 4, "foo1"))
   Goto 40
 test_goto_label_2:
-  assert_raw_error("Error in line " + Str$(base_line% + 6) + ": foo2")
+  assert_raw_error(expected_error_msg$(BASE_LINE + 6, "foo2"))
   On Error Skip
   Error "foo3"
-  assert_raw_error("Error in line " + Str$(base_line%) + ": foo3")
+  assert_raw_error(expected_error_msg$(BASE_LINE, "foo3"))
 End Sub
 
 30 On Error Skip : Error "foo1" : Goto test_goto_label_1
@@ -228,17 +238,25 @@ Error "foo2"
 Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
-  Local base_line% = 237
+  Const BASE_LINE = 243 + Choice(sys.is_device%("pm*"), 1824, 0)
   GoSub 60
-  assert_raw_error("Error in line " + Str$(base_line% + 4) + ": bar1")
+  assert_raw_error(expected_error_msg$(BASE_LINE + 4, "bar1"))
   GoSub 70
-  assert_raw_error("Error in line " + Str$(base_line% + 6) + ": bar2")
+  assert_raw_error(expected_error_msg$(BASE_LINE + 6, "bar2"))
   On Error Skip
   Error "bar3"
-  assert_raw_error("Error in line " + Str$(base_line%) + ": bar3")
+  assert_raw_error(expected_error_msg$(BASE_LINE, "bar3"))
 End Sub
 
 60 On Error Skip : Error "bar1" : Return
 70 On Error Skip
 Error "bar2"
 Return
+
+Function expected_error_msg$(line%, msg$)
+  If sys.is_device%("pm*") Then
+  expected_error_msg$ = "[" + Str$(line%) + "] " + msg$
+  Else
+    expected_error_msg$ = "Error in line " + Str$(line%) + ": " + msg$
+  EndIf
+End Function

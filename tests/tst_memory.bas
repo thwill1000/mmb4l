@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2022 Thomas Hugo Williams
+' Copyright (c) 2021-2023 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -179,11 +179,13 @@ Sub test_set_float()
   Memory Set Float addr% + 3, 312.764, 1
   assert_raw_error("Address not divisible by 8")
 
-  ' Test "maximum" value SET, actually the value is NaN.
-  Local f!
-  Poke Integer Peek(VarAddr f!), &hFFFFFFFFFFFFFFFF
-  Memory Set Float addr% + 8, f!, 1
-  assert_float_equals(f!, Peek(Float addr% + 8))
+  ' Test "maximum" value SET, actually the value is NaN - TODO: is this true?
+  If Not sys.is_device%("pm*") Then
+    Local f!
+    Poke Integer Peek(VarAddr f!), &hFFFFFFFFFFFFFFFF
+    Memory Set Float addr% + 8, f!, 1
+    assert_float_equals(f!, Peek(Float addr% + 8))
+  EndIf
 End Sub
 
 Sub test_copy()
@@ -384,9 +386,9 @@ Sub test_copy_given_overlap()
   buf%(BASE% + 2) = &h08090A0B0C0D0E0F
   buf%(BASE% + 3) = &h0
 
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l", "pm*") Then
     ' Copy where pdst > psrc.
-    ' Colour Maximite 2 (and probably PicoMite) doesn't handle this correctly.
+    ' Colour Maximite 2 and MMB4W (?) don't handle this correctly.
     Memory Copy pbuf% + 8, pbuf% + 11, 16
 
     assert_hex_equals(&h0,                Peek(Integer pbuf%))

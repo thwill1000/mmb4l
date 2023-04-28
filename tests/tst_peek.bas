@@ -1,4 +1,4 @@
-' Copyright (c) 2020-2022 Thomas Hugo Williams
+' Copyright (c) 2020-2023 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -217,10 +217,13 @@ Sub test_peek_progmem()
   Loop
 
   ' Different token ids for OPTION on different platforms.
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     assert_string_equals(Chr$(204) + "EXPLICIT ON'|5" + Chr$(0), s$)
-  Else
+  ElseIf sys.is_device%("cmm2*") Then
     assert_string_equals(Chr$(197) + "EXPLICIT ON'|5" + Chr$(0), s$)
+  ElseIf sys.is_device%("pm*") Then
+    ' Assuming we are testing transpiled code.
+    assert_string_equals("' Transpiled on ", Left$(s$, 16))
   EndIf
 End Sub
 
@@ -241,17 +244,16 @@ End Sub
 Function find_var_offset%(needle$)
   Local offset% = 0
   Local name$
-  Local name_addr% = Peek(VarAddr name$)
   Local ch%, done%, i%, j%
   For i% = 0 To 1023
     done% = 0
+    name$ = ""
     For j% = 1 To 32
       ch% = Peek(VarTbl, offset%)
-      If ch% = 0 And Not done% Then
-        Poke Byte name_addr%, j% - 1
+      If ch% = 0 Then
         done% = 1
       Else
-        Poke Byte name_addr% + j%, ch%
+        Cat name$, Chr$(ch%)
       EndIf
       Inc offset%
     Next
@@ -262,47 +264,67 @@ Function find_var_offset%(needle$)
       find_var_offset% = offset% - 32
       Exit For
     EndIf
-    Inc offset%, 32
+    ' VarTbl entries are 56 bytes on the PicoMite and 64 bytes on the other platforms.
+    Inc offset%, Choice(sys.is_device%("pm*"), 24, 32)
   Next
 End Function
 
 Sub check_header(header%())
   Local addr% = Peek(VarAddr header%())
+  Local i% = -1
 
-  assert_hex_equals(Asc("E"), Peek(Byte addr% + 0))
-  assert_hex_equals(Asc("A"), Peek(Byte addr% + 1))
-  assert_hex_equals(Asc("S"), Peek(Byte addr% + 2))
-  assert_hex_equals(Asc("Y"), Peek(Byte addr% + 3))
-  assert_hex_equals(Asc("_"), Peek(Byte addr% + 4))
-  assert_hex_equals(Asc("T"), Peek(Byte addr% + 5))
-  assert_hex_equals(Asc("O"), Peek(Byte addr% + 6))
-  assert_hex_equals(Asc("_"), Peek(Byte addr% + 7))
-  assert_hex_equals(Asc("F"), Peek(Byte addr% + 8))
-  assert_hex_equals(Asc("I"), Peek(Byte addr% + 9))
-  assert_hex_equals(Asc("N"), Peek(Byte addr% + 10))
-  assert_hex_equals(Asc("D"), Peek(Byte addr% + 11))
-  assert_hex_equals(0,        Peek(Byte addr% + 12))
-  assert_hex_equals(4,        Peek(Byte addr% + 32)) ' type
-  assert_hex_equals(3,        Peek(Byte addr% + 33)) ' level
-  Local i%
-  For i% = 34 To 49 ' 8 x 2 byte array dimensions
-    assert_hex_equals(0,  Peek(Byte addr% + i%))
-  Next
-  assert_hex_equals(0, Peek(Byte addr% + 50))    ' string size
-  assert_hex_equals(0, Peek(Byte addr% + 51))    ' 1 byte of padding
-  assert_hex_equals(&hAE * (Mm.Device$ = "MMB4L"), Peek(Byte addr% + 52)) ' 2 bytes of hash
-  assert_hex_equals(&h03 * (Mm.Device$ = "MMB4L"), Peek(Byte addr% + 53))
-  assert_hex_equals(0,    Peek(Byte addr% + 54)) ' 2 bytes of padding
-  assert_hex_equals(0,    Peek(Byte addr% + 55))
-  assert_hex_equals(&hFF, Peek(Byte addr% + 56)) ' value (1st byte)
-  assert_hex_equals(&hEE, Peek(Byte addr% + 57)) ' value (2nd byte)
-  assert_hex_equals(&hDD, Peek(Byte addr% + 58)) ' value (3rd byte)
-  assert_hex_equals(&hCC, Peek(Byte addr% + 59)) ' value (4th byte)
-  assert_hex_equals(&hBB, Peek(Byte addr% + 60)) ' value (5th byte)
-  assert_hex_equals(&hAA, Peek(Byte addr% + 61)) ' value (6th byte)
-  assert_hex_equals(&h22, Peek(Byte addr% + 62)) ' value (7th byte)
-  assert_hex_equals(&h11, Peek(Byte addr% + 63)) ' value (8th byte)
+  assert_hex_equals(Asc("E"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(Asc("A"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(Asc("S"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(Asc("Y"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(Asc("_"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(Asc("T"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(Asc("O"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(Asc("_"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(Asc("F"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(Asc("I"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(Asc("N"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(Asc("D"), Peek(Byte addr% + nxt%(i%)))
+  assert_hex_equals(0,        Peek(Byte addr% + nxt%(i%)))
+  i% = 31
+  assert_hex_equals(4,        Peek(Byte addr% + nxt%(i%))) ' type
+  assert_hex_equals(3,        Peek(Byte addr% + nxt%(i%))) ' level
+
+  If sys.is_device%("pm*") Then
+    assert_hex_equals(0, Peek(Byte addr% + nxt%(i%))) ' string size
+    assert_hex_equals(0, Peek(Byte addr% + nxt%(i%))) ' name length ?
+  EndIf
+
+  ' PicoMite has 6 x 2 byte array dimensions,
+  ' other platforms have 8 x 2 byte array dimensions.
+  Local limit% = i% + 2 * Choice(sys.is_device%("pm*"), 6, 8)
+  Do While i% < limit%
+    assert_hex_equals(0, Peek(Byte addr% + nxt%(i%)))
+  Loop
+
+  If Not sys.is_device%("pm*") Then
+    assert_hex_equals(0, Peek(Byte addr% + nxt%(i%))) ' string size
+    assert_hex_equals(0, Peek(Byte addr% + nxt%(i%))) ' 1 byte of padding
+    assert_hex_equals(&hAE * sys.is_device%("mmb4l"), Peek(Byte addr% + nxt%(i%))) ' 2 bytes of hash
+    assert_hex_equals(&h03 * sys.is_device%("mmb4l"), Peek(Byte addr% + nxt%(i%)))
+    assert_hex_equals(0, Peek(Byte addr% + nxt%(i%))) ' 2 bytes of padding
+    assert_hex_equals(0, Peek(Byte addr% + nxt%(i%)))
+  EndIf
+
+  assert_hex_equals(&hFF, Peek(Byte addr% + nxt%(i%))) ' value (1st byte)
+  assert_hex_equals(&hEE, Peek(Byte addr% + nxt%(i%))) ' value (2nd byte)
+  assert_hex_equals(&hDD, Peek(Byte addr% + nxt%(i%))) ' value (3rd byte)
+  assert_hex_equals(&hCC, Peek(Byte addr% + nxt%(i%))) ' value (4th byte)
+  assert_hex_equals(&hBB, Peek(Byte addr% + nxt%(i%))) ' value (5th byte)
+  assert_hex_equals(&hAA, Peek(Byte addr% + nxt%(i%))) ' value (6th byte)
+  assert_hex_equals(&h22, Peek(Byte addr% + nxt%(i%))) ' value (7th byte)
+  assert_hex_equals(&h11, Peek(Byte addr% + nxt%(i%))) ' value (8th byte)
 End Sub
+
+Function nxt%(i%)
+  Inc i%
+  nxt% = i%
+End Function
 
 Sub test_peek_varheader()
   Local easy_to_find% = &h1122AABBCCDDEEFF

@@ -1,4 +1,4 @@
-' Copyright (c) 2022 Thomas Hugo Williams
+' Copyright (c) 2022-2023 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -15,11 +15,11 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
-Const EXPECTED_ERROR_CODE% = Choice(Mm.Device$ = "MMB4L", 256, 16)
+Const EXPECTED_ERROR_CODE% = Choice(sys.is_device%("mmb4l"), 256, 16)
 
 Dim interrupt_called% = 0
 
-If InStr(Mm.Device$, "Colour Maximite 2") Then Goto skip_tests
+If sys.is_device%("cmm2*") Then Goto skip_tests
 
 add_test("test_error_normal")
 add_test("test_error_in_interrupt")
@@ -37,12 +37,6 @@ If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
 
-Sub setup_test()
-End Sub
-
-Sub teardown_test()
-End Sub
-
 ' Test that an error thrown in the normal thread of execution is not visible
 ' in an interrupt.
 Sub test_error_normal()
@@ -54,7 +48,11 @@ Sub test_error_normal()
 
   assert_true(interrupt_called%)
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  assert_string_equals("Error in line 51: foo", Mm.ErrMsg$)
+  If sys.is_device%("pm*") Then
+    assert_string_equals("[1869] foo", Mm.ErrMsg$)
+  Else
+    assert_string_equals("Error in line 45: foo", Mm.ErrMsg$)
+  EndIf
 End Sub
 
 Sub interrupt1()
@@ -81,7 +79,11 @@ Sub interrupt2()
   On Error Skip 1
   Error "foo"
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  assert_string_equals("Error in line 82: foo", Mm.ErrMsg$)
+  If sys.is_device%("pm*") Then
+    assert_string_equals("[1904] foo", Mm.ErrMsg$)
+  Else
+    assert_string_equals("Error in line 80: foo", Mm.ErrMsg$)
+  EndIf
   SetTick 0, interrupt2
 End Sub
 
@@ -89,7 +91,11 @@ Sub test_error_given_pipe()
   On Error Skip 2
   Local s$ = "Hello|World" : Error "foo"
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  assert_string_equals("Error in line 90: foo", Mm.ErrMsg$)
+  If sys.is_device%("pm*") Then
+    assert_string_equals("[1916] foo", Mm.ErrMsg$)
+  Else
+    assert_string_equals("Error in line 92: foo", Mm.ErrMsg$)
+  EndIf
 End Sub
 
 ' Test that a skip in the normal thread of execution is not swallowed by
@@ -102,7 +108,11 @@ Sub test_interrupt_not_swallow()
     Error "foo" ' Should always be skipped
   Next
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  assert_string_equals("Error in line 102: foo", Mm.ErrMsg$)
+  If sys.is_device%("pm*") Then
+    assert_string_equals("[1932] foo", Mm.ErrMsg$)
+  Else
+    assert_string_equals("Error in line 108: foo", Mm.ErrMsg$)
+  EndIf
   SetTick 0, interrupt3
 End Sub
 
@@ -136,7 +146,11 @@ Sub test_on_error_skip_2()
     ' Error "wombat"
   Next
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  assert_string_equals("Error in line 135: bar", Mm.ErrMsg$)
+  If sys.is_device%("pm*") Then
+    assert_string_equals("[1969] bar", Mm.ErrMsg$)
+  Else
+    assert_string_equals("Error in line 145: bar", Mm.ErrMsg$)
+  EndIf
   SetTick 0, interrupt3
 End Sub
 

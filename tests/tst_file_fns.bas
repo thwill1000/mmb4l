@@ -16,7 +16,19 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 
 Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
-Const TMPDIR$ = sys.string_prop$("tmpdir")
+
+If sys.is_device%("pm*") Then
+  If InStr(Mm.CmdLine$, "--drive=b") Then
+    Drive "B:"
+    Const TMPDIR$ = "B:/tmp"
+  Else
+    Drive "A:"
+    Const TMPDIR$ = "A:/tmp"
+  EndIf
+Else
+  Const TMPDIR$ = sys.string_prop$("tmpdir")
+EndIf
+
 Const BAD_FILE_DESCRIPTOR_ERR$ = "Bad file descriptor"
 Const FILE_ALREADY_OPEN_ERR$ = Choice(Mm.Device$ = "MMB4L", "File or device already open", "File number already open")
 Const FILE_NOT_OPEN_ERR$ = Choice(Mm.Device$ = "MMB4L", "File or device not open", "File number is not open")
@@ -46,12 +58,26 @@ add_test("test_tilde_expansion")
 add_test("test_open_errors")
 add_test("test_append_eof_bug")
 
-If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
-
-End
+' On the PicoMite the tests should run 3 times:
+'   Base 0, Drive A
+'   Base 1, Drive A
+'   Base 1, Drive B
+' TODO: Test Base 0, Drive B ?
+If InStr(Mm.CmdLine$, "--drive=b") Then
+  run_tests()
+  Drive "A:"
+ElseIf InStr(Mm.CmdLine$, "--base=1") Then
+  If sys.is_device%("pm*") Then
+    run_tests("--drive=b")
+  Else
+    run_tests()
+  EndIf
+Else
+  run_tests("--base=1")
+EndIf
 
 Sub test_chdir_mkdir_rmdir()
-    Local current_dir$ = Mm.Info$(Directory))
+    Local current_dir$ = Cwd$ ' Mm.Info$(Directory))
     Local new_dir$ = "test_chdir_mkdir_rmdir.tmpdir"
     If file.exists%(TMPDIR$ + SEPARATOR$ + new_dir$) Then RmDir(TMPDIR$ + SEPARATOR$ + new_dir$)
 
@@ -59,20 +85,18 @@ Sub test_chdir_mkdir_rmdir()
     MkDir new_dir$
     ChDir new_dir$
 
-    Local expected$ = TMPDIR$ + SEPARATOR$ + new_dir$ + SEPARATOR$
-    Select Case Mm.Device$
-      Case "MMB4L", "MMBasic for Windows" : ' Do nothing
-      Case Else : expected$ = UCase$(expected$)
-    End Select
-    assert_string_equals(expected$, Mm.Info$(Directory))
+    Local expected$ = TMPDIR$ + SEPARATOR$ + new_dir$ ' + SEPARATOR$
+    If sys.is_device%("cmm2") Then expected$ = UCase(expected$)
+    assert_string_equals(expected$, Cwd$) 'Mm.Info$(Directory))
 
     ChDir ".."
     RmDir new_dir$
 
     assert_false(file.exists%(new_dir$))
 
+    '? current_dir$
     ChDir current_dir$
-    assert_string_equals(current_dir$, Mm.Info$(Directory))
+    assert_string_equals(current_dir$, Cwd$) ' Mm.Info$(Directory))
 End Sub
 
 Sub test_close_errors()
@@ -139,6 +163,7 @@ Sub test_dir()
   Local f$ = Dir$(tst_dir$ + "/*", ALL)
   Local index%
   Do While f$ <> ""
+    ' ? f$
     actual$(BASE% + index%) = f$
     f$ = Dir$()
     Inc index%
@@ -174,7 +199,17 @@ Sub test_dir_given_not_found()
   Const tst_dir$ = TMPDIR$ + "\test_dir_given_not_found.tmpdir"
   On Error Skip
   Local f$ = Dir$(tst_dir$ + "/*")
-  assert_raw_error("No such file or directory")
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error("No such file or directory")
+  ElseIf sys.is_device%("pm*") Then
+    If Mm.Info$(Drive) = "A:" Then
+      assert_raw_error("Could not find the file")
+    Else
+      assert_raw_error("Could not find the path")
+    EndIf
+  Else
+    assert_raw_error("Could not find the file")
+  EndIf
 End Sub
 
 Sub test_dir_given_invalid_flag()
@@ -288,7 +323,8 @@ Sub test_inputstr()
   ' Test on unopened file.
   On Error Skip 1
   s$ = Input$(28, #1)
-  assert_raw_error(FILE_NOT_OPEN_ERR$)
+'  assert_raw_error(FILE_NOT_OPEN_ERR$)
+  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "File or device not open", "File number is not open"))
 
   ' NOTE you can call on file number #0, but I can't automatically test this.
 
@@ -560,34 +596,24 @@ Sub test_seek_errors()
   Open f$ For Random As #1
   On Error Skip 1
   Seek #1, 0
-  Select Case Mm.Device$
-    Case "MMB4L"
-      assert_raw_error("Invalid seek position")
-      assert_int_equals(29, Loc(#1))
-    Case "MMBasic for Windows", "Colour Maximite 2", "Colour Maximite 2 G2"
-      assert_raw_error("0 is invalid (valid is 1 to 2147483647)")
-      assert_int_equals(29, Loc(#1))
-    Case Else
-      assert_no_error()
-      assert_int_equals(1, Loc(#1))
-  End Select
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error("Invalid seek position")
+  Else
+    assert_raw_error("0 is invalid (valid is 1 to 2147483647)")
+  EndIf
+  assert_int_equals(29, Loc(#1))
   Close #1
 
   ' Test SEEK to -ve position.
   Open f$ For Random As #1
   On Error Skip 1
   Seek #1, -1
-  Select Case Mm.Device$
-    Case "MMB4L"
-      assert_raw_error("Invalid seek position")
-      assert_int_equals(29, Loc(#1))
-    Case "MMBasic for Windows", "Colour Maximite 2", "Colour Maximite 2 G2"
-      assert_raw_error("-1 is invalid (valid is 1 to 2147483647)")
-      assert_int_equals(29, Loc(#1))
-    Case Else
-      assert_no_error()
-      assert_int_equals(1, Loc(#1))
-  End Select
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error("Invalid seek position")
+  Else
+    assert_raw_error("-1 is invalid (valid is 1 to 2147483647)")
+  EndIf
+  assert_int_equals(29, Loc(#1))
   Close #1
 End Sub
 

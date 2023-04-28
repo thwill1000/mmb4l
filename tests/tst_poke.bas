@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2022 Thomas Hugo Williams
+' Copyright (c) 2021-2023 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -127,34 +127,40 @@ End Sub
 Sub test_poke_vartbl()
   Local easy_to_find% = 0
   Local offset% = find_var_offset%("easy_to_find")
+  ' PicoMite has different VarTbl layout.
+  Inc offset%, Choice(sys.is_device%("pm*"), 47, 55)
 
-  Poke VarTbl, offset% + 56, &h01
-  Poke VarTbl, offset% + 57, &h23
-  Poke VarTbl, offset% + 58, &h45
-  Poke VarTbl, offset% + 59, &h67
-  Poke VarTbl, offset% + 60, &h89
-  Poke VarTbl, offset% + 61, &hAB
-  Poke VarTbl, offset% + 62, &hCD
-  Poke VarTbl, offset% + 63, &hEF
+  Poke VarTbl, nxt%(offset%), &h01
+  Poke VarTbl, nxt%(offset%), &h23
+  Poke VarTbl, nxt%(offset%), &h45
+  Poke VarTbl, nxt%(offset%), &h67
+  Poke VarTbl, nxt%(offset%), &h89
+  Poke VarTbl, nxt%(offset%), &hAB
+  Poke VarTbl, nxt%(offset%), &hCD
+  Poke VarTbl, nxt%(offset%), &hEF
 
   assert_hex_equals(&hEFCDAB8967452301, easy_to_find%)
 End Sub
+
+Function nxt%(i%)
+  Inc i%
+  nxt% = i%
+End Function
 
 ' Finds byte offset into the variable table for a named variable.
 Function find_var_offset%(needle$)
   Local offset% = 0
   Local name$
-  Local name_addr% = Peek(VarAddr name$)
   Local ch%, done%, i%, j%
   For i% = 0 To 1023
     done% = 0
+    name$ = ""
     For j% = 1 To 32
       ch% = Peek(VarTbl, offset%)
-      If ch% = 0 And Not done% Then
-        Poke Byte name_addr%, j% - 1
+      If ch% = 0 Then
         done% = 1
       Else
-        Poke Byte name_addr% + j%, ch%
+        Cat name$, Chr$(ch%)
       EndIf
       Inc offset%
     Next
@@ -165,6 +171,7 @@ Function find_var_offset%(needle$)
       find_var_offset% = offset% - 32
       Exit For
     EndIf
-    Inc offset%, 32
+    ' VarTbl entries are 56 bytes on the PicoMite and 64 bytes on the other platforms.
+    Inc offset%, Choice(sys.is_device%("pm*"), 24, 32)
   Next
 End Function

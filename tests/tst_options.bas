@@ -14,17 +14,14 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../sptools/src/splib/vt100.inc"
 #Include "../sptools/src/sptest/unittest.inc"
 
+If Not sys.is_device%("mmb4l") Then Goto skip_tests
+
 Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
 Const HOME$ = sys.string_prop$("home")
 Const TMP$ = sys.string_prop$("tmpdir")
-If Mm.Device$ = "MMB4L" Then
-  Const IS_ANDROID% = Mm.Info$(Arch) = "Android aarch64"
-Else
-  Const IS_ANDROID% = 0
-EndIf
+Const IS_ANDROID% = Mm.Info$(Arch) = "Android aarch64"
 
-If Mm.Device$ = "MMB4L" Then
 add_test("test_option_load")
 add_test("test_option_load_given_directory")
 add_test("test_option_load_given_file_does_not_exist", "test_option_load_given_not_exist")
@@ -37,7 +34,8 @@ add_test("test_option_reset_given_non_persistent", "test_option_reset_non_persis
 add_test("test_option_reset_given_unknown")
 add_test("test_option_reset_all")
 add_test("test_option_reset_syntax_errors")
-EndIf
+
+skip_tests:
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
