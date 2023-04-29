@@ -42,7 +42,7 @@ End Sub
 
 Sub test_set()
   Local buf%(array.new%(32)) ' 256-bytes
-  Local addr% = Peek(VarAddr buf%())
+  Const addr% = Peek(VarAddr buf%())
 
   Memory Set addr% + 1, &hCD, 254
 
@@ -50,17 +50,16 @@ Sub test_set()
   For i% = 0 To 255
     Select Case i%
       Case 0, 255
-          assert_hex_equals(&h00, Peek(Byte addr%))
+          assert_hex_equals(&h00, Peek(Byte addr% + i%))
       Case Else
-          assert_hex_equals(&hCD, Peek(Byte addr%))
+          assert_hex_equals(&hCD, Peek(Byte addr% + i%))
     End Select
-    Inc addr%
   Next
 End Sub
 
 Sub test_set_byte()
   Local buf%(array.new%(32)) ' 256-bytes
-  Local addr% = Peek(VarAddr buf%())
+  Const addr% = Peek(VarAddr buf%())
 
   Memory Set Byte addr% + 1, &hAB, 254
 
@@ -68,17 +67,16 @@ Sub test_set_byte()
   For i% = 0 To 255
     Select Case i%
       Case 0, 255
-          assert_hex_equals(&h00, Peek(Byte addr%))
+          assert_hex_equals(&h00, Peek(Byte addr% + i%))
       Case Else
-          assert_hex_equals(&hAB, Peek(Byte addr%))
+          assert_hex_equals(&hAB, Peek(Byte addr% + i%))
     End Select
-    Inc addr%
   Next
 End Sub
 
 Sub test_set_short()
   Local buf%(array.new%(32)) ' 256-bytes
-  Local addr% = Peek(VarAddr buf%())
+  Const addr% = Peek(VarAddr buf%())
 
   Memory Set Short addr% + 2, &hABCD, 126
 
@@ -86,11 +84,10 @@ Sub test_set_short()
   For i% = 0 To 127
     Select Case i%
       Case 0, 127
-          assert_hex_equals(&h0000, Peek(Short addr%))
+          assert_hex_equals(&h0000, Peek(Short addr% + 2 * i%))
       Case Else
-          assert_hex_equals(&hABCD, Peek(Short addr%))
+          assert_hex_equals(&hABCD, Peek(Short addr% + 2 * i%))
     End Select
-    Inc addr%, 2
   Next
 
   ' Test unaligned address.
@@ -105,7 +102,7 @@ End Sub
 
 Sub test_set_word()
   Local buf%(array.new%(32)) ' 256-bytes
-  Local addr% = Peek(VarAddr buf%())
+  Const addr% = Peek(VarAddr buf%())
 
   Memory Set Word addr% + 4, &h12345678, 62
 
@@ -113,11 +110,10 @@ Sub test_set_word()
   For i% = 0 To 63
     Select Case i%
       Case 0, 63
-          assert_hex_equals(&h00000000, Peek(Word addr%))
+          assert_hex_equals(&h00000000, Peek(Word addr% + 4 * i%))
       Case Else
-          assert_hex_equals(&h12345678, Peek(Word addr%))
+          assert_hex_equals(&h12345678, Peek(Word addr% + 4 * i%))
     End Select
-    Inc addr%, 4
   Next
 
   ' Test unaligned address.
@@ -132,7 +128,7 @@ End Sub
 
 Sub test_set_integer()
   Local buf%(array.new%(32)) ' 256-bytes
-  Local addr% = Peek(VarAddr buf%())
+  Const addr% = Peek(VarAddr buf%())
 
   Memory Set Integer addr% + 8, &h1234567890ABCDEF, 30
 
@@ -140,11 +136,10 @@ Sub test_set_integer()
   For i% = 0 To 31
     Select Case i%
       Case 0, 31
-          assert_hex_equals(&h0000000000000000, Peek(Integer addr%))
+          assert_hex_equals(&h0000000000000000, Peek(Integer addr% + 8 * i%))
       Case Else
-          assert_hex_equals(&h1234567890ABCDEF, Peek(Integer addr%))
+          assert_hex_equals(&h1234567890ABCDEF, Peek(Integer addr% + 8 * i%))
     End Select
-    Inc addr%, 8
   Next
 
   ' Test unaligned address.
@@ -159,7 +154,7 @@ End Sub
 
 Sub test_set_float()
   Local buf%(array.new%(32)) ' 256-bytes
-  Local addr% = Peek(VarAddr buf%())
+  Const addr% = Peek(VarAddr buf%())
 
   Memory Set Float addr% + 8, 312.764, 30
 
@@ -167,11 +162,10 @@ Sub test_set_float()
   For i% = 0 To 31
     Select Case i%
       Case 0, 31
-          assert_float_equals(0.0, Peek(Float addr%))
+          assert_float_equals(0.0, Peek(Float addr% + 8 * i%))
       Case Else
-          assert_float_equals(312.764, Peek(Float addr%))
+          assert_float_equals(312.764, Peek(Float addr% + 8 * i%))
     End Select
-    Inc addr%, 8
   Next
 
   ' Test unaligned address.
@@ -190,8 +184,8 @@ End Sub
 
 Sub test_copy()
   Local dst%(array.new%(32)), src%(array.new%(32)) ' 256-bytes
-  Local dst_addr% = Peek(VarAddr dst%())
-  Local src_addr% = Peek(VarAddr src%())
+  Const dst_addr% = Peek(VarAddr dst%())
+  Const src_addr% = Peek(VarAddr src%())
   Local i%
   For i% = Bound(src%(), 0) + 1 To Bound(src%(), 1) - 1
     src%(i%) = &h0102030405060708
@@ -205,11 +199,11 @@ Sub test_copy()
 End Sub
 
 Sub test_copy_byte()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Local dst%(array.new%(32)), src%(array.new%(32)) ' 256-bytes
-  Local dst_addr% = Peek(VarAddr dst%())
-  Local src_addr% = Peek(VarAddr src%())
+  Const dst_addr% = Peek(VarAddr dst%())
+  Const src_addr% = Peek(VarAddr src%())
   Local i%
   For i% = Bound(src%(), 0) + 1 To Bound(src%(), 1) - 1
     src%(i%) = &h0102030405060708
@@ -223,11 +217,11 @@ Sub test_copy_byte()
 End Sub
 
 Sub test_copy_short()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Local dst%(array.new%(32)), src%(array.new%(32)) ' 256-bytes
-  Local dst_addr% = Peek(VarAddr dst%())
-  Local src_addr% = Peek(VarAddr src%())
+  Const dst_addr% = Peek(VarAddr dst%())
+  Const src_addr% = Peek(VarAddr src%())
   Local i%
   For i% = Bound(src%(), 0) + 1 To Bound(src%(), 1) - 1
     src%(i%) = &h0102030405060708
@@ -251,11 +245,11 @@ Sub test_copy_short()
 End Sub
 
 Sub test_copy_word()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
   Local dst%(array.new%(32)), src%(array.new%(32)) ' 256-bytes
-  Local dst_addr% = Peek(VarAddr dst%())
-  Local src_addr% = Peek(VarAddr src%())
+  Const dst_addr% = Peek(VarAddr dst%())
+  Const src_addr% = Peek(VarAddr src%())
   Local i%
   For i% = Bound(src%(), 0) + 1 To Bound(src%(), 1) - 1
     src%(i%) = &h0102030405060708
@@ -280,8 +274,8 @@ End Sub
 
 Sub test_copy_integer()
   Local dst%(array.new%(32)), src%(array.new%(32)) ' 256-bytes
-  Local dst_addr% = Peek(VarAddr dst%())
-  Local src_addr% = Peek(VarAddr src%())
+  Const dst_addr% = Peek(VarAddr dst%())
+  Const src_addr% = Peek(VarAddr src%())
   Local i%
   For i% = Bound(src%(), 0) + 1 To Bound(src%(), 1) - 1
     src%(i%) = &h0102030405060708
@@ -296,7 +290,7 @@ Sub test_copy_integer()
   ' Test unaligned source address.
   On Error Skip
   Memory Copy Integer src_addr% + 3, dst_addr%, 1
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     assert_raw_error("Source address not divisible by 8")
   Else
     assert_raw_error("Address not divisible by 8")
@@ -305,7 +299,7 @@ Sub test_copy_integer()
   ' Test unaligned destination address.
   On Error Skip
   Memory Copy Integer src_addr%, dst_addr% + 3, 1
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     assert_raw_error("Destination address not divisible by 8")
   Else
     assert_raw_error("Address not divisible by 8")
@@ -314,8 +308,8 @@ End Sub
 
 Sub test_copy_float()
   Local dst!(array.new%(32)), src!(array.new%(32)) ' 256-bytes
-  Local dst_addr% = Peek(VarAddr dst!())
-  Local src_addr% = Peek(VarAddr src!())
+  Const dst_addr% = Peek(VarAddr dst!())
+  Const src_addr% = Peek(VarAddr src!())
   Local i%
   For i% = Bound(src!(), 0) + 1 To Bound(src!(), 1) - 1
     src!(i%) = 123.456
@@ -331,7 +325,7 @@ Sub test_copy_float()
   ' Test unaligned source address.
   On Error Skip
   Memory Copy Float src_addr% + 3, dst_addr%, 1
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     assert_raw_error("Source address not divisible by 8")
   Else
     assert_raw_error("Address not divisible by 8")
@@ -340,7 +334,7 @@ Sub test_copy_float()
   ' Test unaligned destination address.
   On Error Skip
   Memory Copy Float src_addr%, dst_addr% + 3, 1
-  If Mm.Device$ = "MMB4L" Then
+  If sys.is_device%("mmb4l") Then
     assert_raw_error("Destination address not divisible by 8")
   Else
     assert_raw_error("Address not divisible by 8")
