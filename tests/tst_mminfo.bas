@@ -15,7 +15,6 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
-Const TMP$ = sys.string_prop$("tmpdir")
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
 If sys.is_device%("mmb4l") Then
@@ -33,6 +32,7 @@ add_test("test_cputime")
 add_test("test_current")
 add_test("test_device")
 add_test("test_directory")
+add_test("test_drive")
 add_test("test_envvar")
 add_test("test_errmsg")
 add_test("test_errno")
@@ -40,7 +40,9 @@ add_test("test_exists")
 add_test("test_exists_dir")
 add_test("test_exists_file")
 add_test("test_exists_symlink")
-add_test("test_filesize")
+add_test("test_filesize_given_empty")
+add_test("test_filesize_given_not_empty")
+add_test("test_filesize_given_not_found")
 add_test("test_filesize_given_directory")
 add_test("test_font_address")
 add_test("test_fontheight")
@@ -65,7 +67,26 @@ add_test("test_version")
 add_test("test_vpos")
 add_test("test_vres")
 
-If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
+' On the PicoMite the tests should run 4 times:
+'   Base 0, Drive A
+'   Base 1, Drive A
+'   Base 0, Drive B
+'   Base 1, Drive B
+If sys.is_device%("pm*") Then
+  If InStr(Mm.CmdLine$, "--base=1 --drive=b") Then
+    run_tests()
+  ElseIf InStr(Mm.CmdLine$, "--base=1") Then
+    run_tests("--base=1", "--drive=b")
+  ElseIf InStr(Mm.CmdLine$, "--drive=b") Then
+    run_tests("--drive=b", "--base=1 --drive=b")
+  Else
+    run_tests("--base=1")
+  EndIf
+ElseIf InStr(Mm.CmdLine$, "--base=1") Then
+  run_tests("")
+Else
+  run_tests("--base=1")
+EndIf
 
 End
 
@@ -119,6 +140,7 @@ Sub test_device()
   known% = known% Or (Mm.Device$ = "MMB4L")
   known% = known% Or (Mm.Device$ = "MMBasic for Windows")
   known% = known% Or (Mm.Device$ = "PicoMite")
+  known% = known% Or (Mm.Device$ = "PicoMiteVGA")
   assert_true(known%)
   assert_string_equals(Mm.Info$(Device), Mm.Device$)
 End Sub
@@ -137,6 +159,11 @@ Sub test_directory()
 
   assert_string_equals(expected_dir$ + sys.string_prop$("separator"), actual$)
   assert_string_equals(Left$(actual$, Len(actual$) - 1), Cwd$)
+End Sub
+
+Sub test_drive()
+  If Not sys.is_device%("pm*") Then Exit Sub
+  assert_string_equals(Choice(InStr(Mm.CmdLine$, "--drive=b"), "B:", "A:"), Mm.Info$(Drive))
 End Sub
 
 Sub test_envvar()
@@ -178,203 +205,323 @@ End Sub
 Sub test_exists()
   If Not sys.is_device%("mmb4l", "mmb4w") Then Exit Sub
 
-  Local existing_dir$ = Mm.Info$(Path)
-  Local existing_file$ = Mm.Info$(Path) + "tst_mminfo.bas"
-  Local non_existing$ = Mm.Info$(Path) + "does_not_exist"
-  ' Local sym_link_dir$ = Mm.Info$(Directory) + "firmware-tests"
+  ' Drives/root.
+  Const A_EXISTS = Not sys.is_device%("mmb4w")
+  Const B_EXISTS = Not sys.is_device%("mmb4w")
+  assert_int_equals(A_EXISTS, Mm.Info(Exists "A:"))
+  assert_int_equals(A_EXISTS, Mm.Info(Exists "A:/"))
+  assert_int_equals(A_EXISTS, Mm.Info(Exists "A:\"))
+  assert_int_equals(B_EXISTS, Mm.Info(Exists "B:"))
+  assert_int_equals(B_EXISTS, Mm.Info(Exists "B:/"))
+  assert_int_equals(B_EXISTS, Mm.Info(Exists "B:\"))
+  assert_int_equals(1, Mm.Info(Exists "C:"))
+  assert_int_equals(1, Mm.Info(Exists "C:/"))
+  assert_int_equals(1, Mm.Info(Exists "C:\"))
+  assert_int_equals(1, Mm.Info(Exists "/"))
+  assert_int_equals(1, Mm.Info(Exists "\"))
 
-  ' TODO: what about directory paths with trailing '/' ?
+  ' Files and directories.
+  Const PATH = Left$(Mm.Info$(Path), Len(Mm.Info$(Path)) - 1) ' Trim the trailing slash.
+  Const EXISTING_FILE = Mm.Info$(Path) + "tst_mminfo.bas"
+  assert_int_equals(1, Mm.Info(Exists PATH))
+  assert_int_equals(1, Mm.Info(Exists PATH + "/"))
+  assert_int_equals(1, Mm.Info(Exists PATH + "\"))
+  assert_int_equals(1, Mm.Info(Exists PATH + "/tst_mminfo.bas"))
+  assert_int_equals(1, Mm.Info(Exists PATH + "\tst_mminfo.bas"))
+  assert_int_equals(0, Mm.Info(Exists PATH + "/no_such_file"))
+  assert_int_equals(0, Mm.Info(Exists PATH + "\no_such_file"))
 
-  assert_int_equals(1, Mm.Info(Exists existing_dir$))
-  assert_int_equals(1, Mm.Info(Exists existing_file$))
-  assert_int_equals(0, Mm.Info(Exists non_existing$))
+  ' Odd and ends.
   assert_int_equals(1, Mm.Info(Exists "."))
   assert_int_equals(1, Mm.Info(Exists ".."))
   assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists ""))
-  ' assert_int_equals(1, Mm.Info(Exists sym_link_dir$))
 
-  ' Given root.
-  assert_int_equals(1, Mm.Info(Exists "/"))
-  assert_int_equals(1, Mm.Info(Exists "\"))
-  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists "A:/"))
-  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists "A:\"))
-  assert_int_equals(1, Mm.Info(Exists "C:/"))
-  assert_int_equals(1, Mm.Info(Exists "C:\"))
-End Sub
+  ' Symbolic links.
+  If sys.is_device%("mmb4l") Then
+    MkDir TMPDIR$
 
-Sub test_exists_dir()
-  Local existing_dir$ = Mm.Info$(Path)
-  Local existing_file$ = Mm.Info$(Path) + "tst_mminfo.bas"
-  Local non_existing$ = Mm.Info$(Path) + "does_not_exist"
-  ' Local sym_link_dir$ = Mm.Info$(Directory) + "firmware-tests"
+    System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
+    System "ln -s " + PATH + " " + TMPDIR$ + "/dir_link"
 
-  assert_int_equals(1, Mm.Info(Exists Dir existing_dir$))
-  assert_int_equals(0, Mm.Info(Exists Dir existing_file$))
-  assert_int_equals(0, Mm.Info(Exists Dir non_existing$))
-  assert_int_equals(1, Mm.Info(Exists Dir "."))
-  assert_int_equals(1, Mm.Info(Exists Dir ".."))
-  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists Dir ""))
-  ' assert_int_equals(1, Mm.Info(Exists Dir sym_link_dir$))
-
-  ' Given root.
-  assert_int_equals(1, Mm.Info(Exists Dir "/"))
-  assert_int_equals(1, Mm.Info(Exists Dir "\"))
-  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists Dir "A:/"))
-  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists Dir "A:\"))
-
-  If sys.is_device%("pm*") Then
-    Local z%
-    On Error Skip
-    z% = Mm.Info(Exists Dir "C:/")
-    assert_raw_error("Invalid disk")
-    On Error Skip
-    z% = Mm.Info(Exists Dir "C:\")
-    assert_raw_error("Invalid disk")
-  Else
-    assert_int_equals(1, Mm.Info(Exists Dir "C:/"))
-    assert_int_equals(1, Mm.Info(Exists Dir "C:\"))
+    assert_int_equals(1, Mm.Info(Exists TMPDIR$ + "/file_link"))
+    assert_int_equals(1, Mm.Info(Exists TMPDIR$ + "/dir_link"))
   EndIf
 End Sub
 
-Sub test_exists_file()
-  Local existing_dir$ = Mm.Info$(Path)
-  Local existing_file$ = Mm.Info$(Path) + "tst_mminfo.bas"
-  Local non_existing$ = Mm.Info$(Path) + "does_not_exist"
-  ' Local sym_link_dir$ = Mm.Info$(Directory) + "firmware-tests"
+Sub test_exists_dir()
+  MkDir TMPDIR$
 
-  assert_int_equals(0, Mm.Info(Exists File existing_dir$))
-  assert_int_equals(1, Mm.Info(Exists File existing_file$))
-  assert_int_equals(0, Mm.Info(Exists File non_existing$))
+  ' Drives/root.
+  Const A_EXISTS = Not sys.is_device%("mmb4w")
+  Const B_EXISTS = Not sys.is_device%("mmb4w")
+  assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:"))
+  assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:/"))
+  assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:\"))
+  assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:"))
+  assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:/"))
+  assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:\"))
+  If sys.is_device%("pm*") Then
+    Local dummy%
+    On Error Skip
+    dummy% = Mm.Info(Exists Dir "C:")
+    assert_raw_error("Invalid disk")
+    On Error Skip
+    dummy% = Mm.Info(Exists Dir "C:/")
+    assert_raw_error("Invalid disk")
+    On Error Skip
+    dummy% = Mm.Info(Exists Dir "C:\")
+    assert_raw_error("Invalid disk")
+  Else
+    assert_int_equals(1, Mm.Info(Exists Dir "C:"))
+    assert_int_equals(1, Mm.Info(Exists Dir "C:/"))
+    assert_int_equals(1, Mm.Info(Exists Dir "C:\"))
+  EndIf
+  assert_int_equals(1, Mm.Info(Exists Dir "/"))
+  assert_int_equals(1, Mm.Info(Exists Dir "\"))
+
+  ' Files and directories.
+  Const PATH = Left$(Mm.Info$(Path), Len(Mm.Info$(Path)) - 1) ' Trim the trailing slash.
+  Const EXISTING_FILE = Mm.Info$(Path) + "tst_mminfo.bas"
+  assert_int_equals(1, Mm.Info(Exists Dir PATH))
+  assert_int_equals(1, Mm.Info(Exists Dir PATH + "/"))
+  assert_int_equals(1, Mm.Info(Exists Dir PATH + "\"))
+  assert_int_equals(0, Mm.Info(Exists Dir PATH + "/tst_mminfo.bas"))
+  assert_int_equals(0, Mm.Info(Exists Dir PATH + "\tst_mminfo.bas"))
+  assert_int_equals(0, Mm.Info(Exists Dir PATH + "/no_such_file"))
+  assert_int_equals(0, Mm.Info(Exists Dir PATH + "\no_such_file"))
+
+  ' Odd and ends.
+  assert_int_equals(1, Mm.Info(Exists Dir "."))
+  assert_int_equals(1, Mm.Info(Exists Dir ".."))
+  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists Dir ""))
+
+  ' Symbolic links.
+  If sys.is_device%("mmb4l") Then
+    System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
+    System "ln -s " + PATH + " " + TMPDIR$ + "/dir_link"
+
+    assert_int_equals(0, Mm.Info(Exists Dir TMPDIR$ + "/file_link"))
+    assert_int_equals(1, Mm.Info(Exists Dir TMPDIR$ + "/dir_link"))
+  EndIf
+
+  ' Test for odd bug encountered on PicoMite when not in root dir.
+  Const OLD_DIR = Cwd$
+  ChDir TMPDIR$
+  assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:"))
+  assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:/"))
+  assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:\"))
+  assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:"))
+  assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:/"))
+  assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:\"))
+  assert_int_equals(1, Mm.Info(Exists Dir "."))
+  assert_int_equals(1, Mm.Info(Exists Dir ".."))
+  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists Dir ""))
+  ChDir OLD_DIR
+End Sub
+
+Sub test_exists_file()
+  ' Drives/root.
+  assert_int_equals(0, Mm.Info(Exists File "A:"))
+  assert_int_equals(0, Mm.Info(Exists File "A:/"))
+  assert_int_equals(0, Mm.Info(Exists File "A:\"))
+  assert_int_equals(0, Mm.Info(Exists File "B:"))
+  assert_int_equals(0, Mm.Info(Exists File "B:/"))
+  assert_int_equals(0, Mm.Info(Exists File "B:\"))
+  If sys.is_device%("pm*") Then
+    Local dummy%
+    On Error Skip
+    dummy% = Mm.Info(Exists Dir "C:")
+    assert_raw_error("Invalid disk")
+    On Error Skip
+    dummy% = Mm.Info(Exists Dir "C:/")
+    assert_raw_error("Invalid disk")
+    On Error Skip
+    dummy% = Mm.Info(Exists Dir "C:\")
+    assert_raw_error("Invalid disk")
+  Else
+    assert_int_equals(0, Mm.Info(Exists File "C:"))
+    assert_int_equals(0, Mm.Info(Exists File "C:/"))
+    assert_int_equals(0, Mm.Info(Exists File "C:\"))
+  EndIf
+  assert_int_equals(0, Mm.Info(Exists File "/"))
+  assert_int_equals(0, Mm.Info(Exists File "\"))
+
+  ' Files and directories.
+  Const PATH = Left$(Mm.Info$(Path), Len(Mm.Info$(Path)) - 1) ' Trim the trailing slash.
+  Const EXISTING_FILE = Mm.Info$(Path) + "tst_mminfo.bas"
+  assert_int_equals(0, Mm.Info(Exists File PATH))
+  assert_int_equals(0, Mm.Info(Exists File PATH + "/"))
+  assert_int_equals(0, Mm.Info(Exists File PATH + "\"))
+  assert_int_equals(1, Mm.Info(Exists File PATH + "/tst_mminfo.bas"))
+  assert_int_equals(1, Mm.Info(Exists File PATH + "\tst_mminfo.bas"))
+  assert_int_equals(0, Mm.Info(Exists File PATH + "/no_such_file"))
+  assert_int_equals(0, Mm.Info(Exists File PATH + "\no_such_file"))
+
+  ' Odd and ends.
   assert_int_equals(0, Mm.Info(Exists File "."))
   assert_int_equals(0, Mm.Info(Exists File ".."))
   assert_int_equals(0, Mm.Info(Exists File ""))
-  ' assert_int_equals(0, Mm.Info(Exists File sym_link_dir$))
 
-  ' Given root.
-  assert_int_equals(0, Mm.Info(Exists File "/"))
-  assert_int_equals(0, Mm.Info(Exists File "\"))
-  assert_int_equals(0, Mm.Info(Exists File "A:/"))
-  assert_int_equals(0, Mm.Info(Exists File "A:\"))
+  ' Symbolic links.
+  If sys.is_device%("mmb4l") Then
+    MkDir TMPDIR$
 
-  If sys.is_device%("pm*") Then
-    Local z%
-    On Error Skip
-    z% = Mm.Info(Exists File "C:/")
-    assert_raw_error("Invalid disk")
-    On Error Skip
-    z% = Mm.Info(Exists File "C:\")
-    assert_raw_error("Invalid disk")
-  Else
-    assert_int_equals(0, Mm.Info(Exists File "C:/"))
-    assert_int_equals(0, Mm.Info(Exists File "C:\"))
+    System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
+    System "ln -s " + PATH + " " + TMPDIR$ + "/dir_link"
+
+    assert_int_equals(1, Mm.Info(Exists File TMPDIR$ + "/file_link"))
+    assert_int_equals(0, Mm.Info(Exists File TMPDIR$ + "/dir_link"))
   EndIf
 End Sub
 
 Sub test_exists_symlink()
-  ' MM.INFO(EXISTS SYMLINK path$) is MMB4L specific.
   If Not sys.is_device%("mmb4l") Then Exit Sub
 
-  Local existing_dir$ = Mm.Info$(Path)
-  Local existing_file$ = Mm.Info$(Path) + "tst_mminfo.bas"
-  Local non_existing$ = Mm.Info$(Path) + "does_not_exist"
-  ' Local sym_link_dir$ = Mm.Info$(Directory) + "firmware-tests"
+  ' Drives/root.
+  assert_int_equals(0, Mm.Info(Exists SymLink "A:"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "A:/"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "A:\"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "B:"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "B:/"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "B:\"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "C:"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "C:/"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "C:\"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "/"))
+  assert_int_equals(0, Mm.Info(Exists SymLink "\"))
 
-  assert_int_equals(0, Mm.Info(Exists SymLink existing_dir$))
-  assert_int_equals(0, Mm.Info(Exists SymLink existing_file$))
-  assert_int_equals(0, Mm.Info(Exists SymLink non_existing$))
+  ' Files and directories.
+  Const PATH = Left$(Mm.Info$(Path), Len(Mm.Info$(Path)) - 1) ' Trim the trailing slash.
+  Const EXISTING_FILE = Mm.Info$(Path) + "tst_mminfo.bas"
+  assert_int_equals(0, Mm.Info(Exists SymLink PATH))
+  assert_int_equals(0, Mm.Info(Exists SymLink PATH + "/"))
+  assert_int_equals(0, Mm.Info(Exists SymLink PATH + "\"))
+  assert_int_equals(0, Mm.Info(Exists SymLink PATH + "/tst_mminfo.bas"))
+  assert_int_equals(0, Mm.Info(Exists SymLink PATH + "\tst_mminfo.bas"))
+  assert_int_equals(0, Mm.Info(Exists SymLink PATH + "/no_such_file"))
+  assert_int_equals(0, Mm.Info(Exists SymLink PATH + "\no_such_file"))
+
+  ' Odd and ends.
   assert_int_equals(0, Mm.Info(Exists SymLink "."))
   assert_int_equals(0, Mm.Info(Exists SymLink ".."))
   assert_int_equals(0, Mm.Info(Exists SymLink ""))
-  ' assert_int_equals(1, Mm.Info(Exists SymLink sym_link_dir$))
 
-  ' Given root.
-  assert_int_equals(0, Mm.Info(Exists SymLink "/"))
-  assert_int_equals(0, Mm.Info(Exists SymLink "\"))
-  assert_int_equals(0, Mm.Info(Exists SymLink "A:/"))
-  assert_int_equals(0, Mm.Info(Exists SymLink "A:\"))
-  assert_int_equals(0, Mm.Info(Exists SymLink "C:/"))
-  assert_int_equals(0, Mm.Info(Exists SymLink "C:\"))
+  ' Symbolic links.
+  MkDir TMPDIR$
+  System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
+  System "ln -s " + PATH + " " + TMPDIR$ + "/dir_link"
+
+  assert_int_equals(1, Mm.Info(Exists SymLink TMPDIR$ + "/file_link"))
+  assert_int_equals(1, Mm.Info(Exists SymLink TMPDIR$ + "/dir_link"))
 End Sub
 
-Sub test_filesize()
-  ' Test when file does not exist.
-  assert_int_equals(-1, Mm.Info(FileSize "test_filesize.txt"))
-
-  ' Test when file is empty.
-  Open "test_filesize.txt" For Output As #1
+Sub test_filesize_given_empty()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_filesize.txt"
+  Open f$ For Output As #1
   Close #1
-  assert_int_equals(0, Mm.Info(FileSize "test_filesize.txt"))
-  Kill "test_filesize.txt"
+  assert_int_equals(0, Mm.Info(FileSize f$))
+End Sub
 
-  ' Test when file is not empty.
-  Open "test_filesize.txt" For Output As #1
+Sub test_filesize_given_not_empty()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_filesize.txt"
+  Open f$ For Output As #1
   Print #1, "7 bytes";
   Close #1
-  assert_int_equals(7, Mm.Info(FileSize "test_filesize.txt"))
-  Kill "test_filesize.txt"
+  assert_int_equals(7, Mm.Info(FileSize f$))
+End Sub
+
+Sub test_filesize_given_not_found()
+  MkDir TMPDIR$
+  assert_int_equals(-1, Mm.Info(FileSize TMPDIR$ + "/test_filesize.txt"))
 End Sub
 
 Sub test_filesize_given_directory()
-  If sys.is_device%("mmb4l") Then
-    expect_filesize_is_dir(Mm.Info$(Directory))
-    expect_filesize_is_dir(Mm.Info$(Path))
-    expect_filesize_is_dir("/")
-    expect_filesize_is_dir("\")
-    expect_filesize_is_dir(".")
-    expect_filesize_is_dir("..")
-    expect_filesize_is_dir("A:/")
-    expect_filesize_is_dir("A:\")
-    expect_filesize_is_dir("C:/")
-    expect_filesize_is_dir("C:\")
-    expect_filesize_is_dir(str.replace$(TMP$, "/", "\"))
-    expect_filesize_is_dir(str.replace$(TMP$, "\", "/"))
-    expect_filesize_is_dir(str.replace$("A:" + TMP$, "/", "\"))
-    expect_filesize_is_dir(str.replace$("A:" + TMP$, "\", "/"))
-    expect_filesize_is_dir(str.replace$("C:" + TMP$, "/", "\"))
-    expect_filesize_is_dir(str.replace$("C:" + TMP$, "\", "/"))
-  ElseIf sys.is_device%("cmm2*") Then
-    expect_filesize_invalid_file(Mm.Info$(Directory))
-    expect_filesize_invalid_file(Mm.Info$(Path))
-    expect_filesize_invalid_file("/")
-    expect_filesize_invalid_file("\")
-    expect_filesize_invalid_file("A:/")
-    expect_filesize_invalid_file("A:\")
-    expect_filesize_invalid_file("C:/")
-    expect_filesize_invalid_file("C:\")
-    expect_filesize_is_dir(str.replace$(TMP$, "/", "\"))
-    expect_filesize_is_dir(str.replace$(TMP$, "\", "/"))
-    expect_filesize_not_found(".")
-    expect_filesize_not_found("..")
-  ElseIf sys.is_device%("mmb4w") Then
-    expect_filesize_is_dir(Mm.Info$(Directory))
-    expect_filesize_is_dir(Mm.Info$(Path))
-    assert_int_equals(-1, Mm.Info$(FileSize "/"))
-    assert_int_equals(-1, Mm.Info$(FileSize "\"))
-    expect_filesize_not_found("A:/")
-    expect_filesize_not_found("A:\")
-    expect_filesize_is_dir("C:/")
-    expect_filesize_is_dir("C:\")
-    expect_filesize_is_dir(str.replace$(TMP$, "/", "\"))
-    expect_filesize_is_dir(str.replace$(TMP$, "\", "/"))
-    expect_filesize_is_dir(".")
-    expect_filesize_is_dir("..")
-  ElseIf sys.is_device%("pm*") Then
+  MkDir TMPDIR$
+
+  If sys.is_device%("mmb4l", "pm*") Then
     expect_filesize_is_dir(Cwd$)
     expect_filesize_is_dir(Mm.Info$(Path))
     expect_filesize_is_dir("/")
-    expect_filesize_not_found("\")
+    expect_filesize_is_dir("\")
+    expect_filesize_is_dir("A:")
+    expect_filesize_is_dir("A:/")
+    expect_filesize_is_dir("A:\")
+    expect_filesize_is_dir("B:")
+    expect_filesize_is_dir("B:/")
+    expect_filesize_is_dir("B:\")
+    If sys.is_device%("mmb4l") Then
+      expect_filesize_is_dir("C:")
+      expect_filesize_is_dir("C:/")
+      expect_filesize_is_dir("C:\")
+    Else
+      expect_filesize_invalid_disk("C:")
+      expect_filesize_invalid_disk("C:/")
+      expect_filesize_invalid_disk("C:\")
+    EndIf
+    expect_filesize_is_dir(str.replace$(TMPDIR$, "/", "\"))
+    expect_filesize_is_dir(str.replace$(TMPDIR$, "\", "/"))
     expect_filesize_is_dir(".")
     expect_filesize_is_dir("..")
-    expect_filesize_is_dir("A:/")
+  ElseIf sys.is_device%("cmm2*") Then
+    expect_filesize_invalid_file(Cwd$)
+    expect_filesize_invalid_file(Mm.Info$(Path))
+    expect_filesize_invalid_file("/")
+    expect_filesize_invalid_file("\")
+    expect_filesize_invalid_file("A:")
+    expect_filesize_invalid_file("A:/")
+    expect_filesize_invalid_file("A:\")
+    expect_filesize_invalid_file("B:")
+    expect_filesize_invalid_file("B:/")
+    expect_filesize_invalid_file("B:\")
+    expect_filesize_invalid_file("C:")
+    expect_filesize_invalid_file("C:/")
+    expect_filesize_invalid_file("C:\")
+    expect_filesize_is_dir(str.replace$(TMPDIR$, "/", "\"))
+    expect_filesize_is_dir(str.replace$(TMPDIR$, "\", "/"))
+    expect_filesize_not_found(".")
+    expect_filesize_not_found("..")
+  ElseIf sys.is_device%("mmb4w") Then
+    expect_filesize_is_dir(Cwd$)
+    expect_filesize_is_dir(Mm.Info$(Path))
+    expect_filesize_not_found("/")
+    expect_filesize_not_found("\")
+    expect_filesize_not_found("A:")
+    expect_filesize_not_found("A:/")
     expect_filesize_not_found("A:\")
-    expect_filesize_invalid_disk("C:/")
-    expect_filesize_not_found("C:\")
-    expect_filesize_not_found(str.replace$(TMP$, "/", "\"))
-    expect_filesize_is_dir(str.replace$(TMP$, "\", "/"))
-    expect_filesize_not_found(str.replace$("A:" + TMP$, "/", "\"))
-    expect_filesize_not_found(str.replace$("A:" + TMP$, "\", "/"))
-    expect_filesize_not_found(str.replace$("C:" + TMP$, "/", "\"))
-    expect_filesize_not_found(str.replace$("C:" + TMP$, "\", "/"))
+    expect_filesize_not_found("B:")
+    expect_filesize_not_found("B:/")
+    expect_filesize_not_found("B:\")
+    expect_filesize_is_dir("C:")
+    expect_filesize_is_dir("C:/")
+    expect_filesize_is_dir("C:\")
+    expect_filesize_is_dir(str.replace$(TMPDIR$, "/", "\"))
+    expect_filesize_is_dir(str.replace$(TMPDIR$, "\", "/"))
+    expect_filesize_is_dir(".")
+    expect_filesize_is_dir("..")
+  EndIf
+
+  ' Test for odd bug encountered on PicoMite when not in root dir.
+  If Not sys.is_device%("mmb4w") Then
+    Const OLD_DIR = Cwd$
+    ChDir TMPDIR$
+    expect_filesize_is_dir(Cwd$)
+    expect_filesize_is_dir(Mm.Info$(Path))
+    expect_filesize_is_dir("/")
+    expect_filesize_is_dir("\")
+    expect_filesize_is_dir("A:")
+    expect_filesize_is_dir("A:/")
+    expect_filesize_is_dir("A:\")
+    expect_filesize_is_dir("B:")
+    expect_filesize_is_dir("B:/")
+    expect_filesize_is_dir("B:\")
+    expect_filesize_is_dir(str.replace$(TMPDIR$, "/", "\"))
+    expect_filesize_is_dir(str.replace$(TMPDIR$, "\", "/"))
+    expect_filesize_is_dir(".")
+    expect_filesize_is_dir("..")
+    expect_filesize_is_dir("")
+    ChDir OLD_DIR
   EndIf
 End Sub
 
@@ -635,8 +782,10 @@ End Sub
 Sub test_option_fn_key()
   If Not sys.is_device%("mmb4l") Then Exit Sub
 
+  MkDir TMPDIR$
+
   ' Save current options and switch to defaults.
-  Option Save TMP$ + "/mmbasic.options.bak"
+  Option Save TMPDIR$ + "/mmbasic.options.bak"
   Option Reset All
 
   Const CRLF$ = Chr$(&h0D) + Chr$(&h0A)
@@ -663,7 +812,7 @@ Sub test_option_fn_key()
 
   ' Restore old options.
   Option Reset All
-  Option Load TMP$ + "/mmbasic.options.bak"
+  Option Load TMPDIR$ + "/mmbasic.options.bak"
 End Sub
 
 Sub test_option_resolution()

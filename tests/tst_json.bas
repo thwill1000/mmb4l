@@ -17,7 +17,6 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 If sys.is_device%("pm*") Then Goto skip_tests
 
 Const BASE% = Mm.Info(Option Base)
-Const TMPDIR$ = sys.string_prop$("tmpdir") + "/tst_json"
 
 add_test("test_json")
 
@@ -27,23 +26,11 @@ If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
 
-Sub setup_test()
-  If file.exists%(TMPDIR$) Then
-    If file.delete%(TMPDIR$, 1) <> sys.SUCCESS Then Error "Failed to delete directory '" + TMPDIR$ + "'"
-  EndIf
-End Sub
-
-Sub teardown_test()
-  If file.exists%(TMPDIR$) Then
-    If file.delete%(TMPDIR$, 1) <> sys.SUCCESS Then Error "Failed to delete directory '" + TMPDIR$ + "'"
-  EndIf
-End Sub
-
 Sub test_json()
   If sys.is_device%("pm*") Then Exit Sub
 
   MkDir TMPDIR$
-  Local f$ = TMPDIR$ + "/test_json.json"
+  Const f$ = TMPDIR$ + "/test_json.json"
   ut.write_data_file(f$, "data_test_json")
 
   Local data%(1000), s$

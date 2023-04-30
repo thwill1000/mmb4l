@@ -186,14 +186,17 @@ Sub test_mid()
 End Sub
 
 Sub test_print()
+  MkDir TMPDIR$
+
   Local array%(100)
   LongString Append array%(), "Hello World"
+  Const f$ = TMPDIR$ + "/test_print"
 
-  Open sys.string_prop$("tmpdir") + "/tst_longstring-test_print.txt" For Output As #1
+  Open f$ For Output As #1
   LongString Print #1, array%()
   Close #1
 
-  Open sys.string_prop$("tmpdir") + "/tst_longstring-test_print.txt" For Input As #1
+  Open f$ For Input As #1
   Local s$
   Line Input #1, s$
   assert_string_equals("Hello World", s$)

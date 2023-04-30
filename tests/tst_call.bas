@@ -15,7 +15,6 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
-Const TMPDIR$ = sys.string_prop$("tmpdir")
 
 add_test("test_call_integer_fun")
 add_test("test_call_float_fun")
@@ -93,6 +92,8 @@ Sub test_call_fun_as_sub()
   Call "int_fn", i%
   If sys.is_device%("mmb4l") Then
     assert_raw_error("Not a subroutine")
+  ElseIf sys.is_device%("pmvga") Then
+    assert_raw_error("Unknown user subroutine")
   Else
     assert_raw_error("Type specification is invalid")
   EndIf
@@ -141,6 +142,8 @@ Sub test_call_fun_too_long_name()
   i% = Call("fun_with_too_long_name_4567890123%", i%)
   If sys.is_device%("mmb4l") Then
     assert_raw_error("Function name too long")
+  ElseIf sys.is_device%("pmvga") Then
+    assert_raw_error("Unknown user function")
   Else
     assert_raw_error("Variable name too long")
   EndIf
@@ -158,6 +161,8 @@ Sub test_call_sub_too_long_name()
   Call "sub_with_too_long_name_4567890123", i%
   If sys.is_device%("mmb4l") Then
     assert_raw_error("Subroutine name too long")
+  ElseIf sys.is_device%("pmvga") Then
+    assert_raw_error("Unknown user subroutine")
   Else
     assert_raw_error("Variable name too long")
   EndIf
@@ -187,11 +192,14 @@ End Sub
 
 ' Prior to 5.07.01 this would report an "Argument List" error from the Print #1 statement.
 Sub test_arg_list_bug()
-  Open TMPDIR$ + "/tst_call.tmp" For Output As #1
+  MkDir TMPDIR$
+
+  Const f$ = TMPDIR$ + "/test_arg_list_bug"
+  Open f$ For Output As #1
   Print #1, Call("int_fn%"), Call("float_fn!"), Call("string_fn$")
   Close #1
 
-  Open TMPDIR$ + "/tst_call.tmp" For Input As #1
+  Open f$ For Input As #1
   Local s$
   Line Input #1, s$
 

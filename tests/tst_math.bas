@@ -18,7 +18,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
-Const RESOURCE_DIR$ = file.PROG_DIR$ + "/resources/tst_math"
+Const RESOURCE_DIR$ = Mm.Info(Path) + "resources/tst_math"
 
 Const NUM_SAMPLES% = 512
 Dim sin_amp1!(array.new%(NUM_SAMPLES%))

@@ -17,18 +17,6 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
 
-If sys.is_device%("pm*") Then
-  If InStr(Mm.CmdLine$, "--drive=b") Then
-    Drive "B:"
-    Const TMPDIR$ = "B:/tmp"
-  Else
-    Drive "A:"
-    Const TMPDIR$ = "A:/tmp"
-  EndIf
-Else
-  Const TMPDIR$ = sys.string_prop$("tmpdir")
-EndIf
-
 Const BAD_FILE_DESCRIPTOR_ERR$ = "Bad file descriptor"
 Const FILE_ALREADY_OPEN_ERR$ = Choice(Mm.Device$ = "MMB4L", "File or device already open", "File number already open")
 Const FILE_NOT_OPEN_ERR$ = Choice(Mm.Device$ = "MMB4L", "File or device not open", "File number is not open")
@@ -57,46 +45,63 @@ add_test("test_seek_errors")
 add_test("test_tilde_expansion")
 add_test("test_open_errors")
 add_test("test_append_eof_bug")
+add_test("test_open_for_input")
+add_test("test_open_for_output")
+add_test("test_open_for_append")
+add_test("test_open_for_random")
+add_test("OPEN RANDOM and LINE INPUT at beginning", "test_open_random_line_beginning")
+add_test("OPEN RANDOM and LINE INPUT in middle", "test_open_random_line_middle")
+add_test("OPEN RANDOM and LINE INPUT at end", "test_open_random_line_end")
+add_test("OPEN RANDOM and PRINT at beginning", "test_open_random_print_beginning")
+add_test("OPEN RANDOM and PRINT in middle", "test_open_random_print_middle")
+add_test("OPEN RANDOM and PRINT at end", "test_open_random_print_end")
+add_test("OPEN RANDOM and INPUT at beginning", "test_open_random_input_beginning")
+add_test("OPEN RANDOM and INPUT in middle", "test_open_random_input_middle")
+add_test("OPEN RANDOM and INPUT at end", "test_open_random_input_end")
 
-' On the PicoMite the tests should run 3 times:
+
+' On the PicoMite the tests should run 4 times:
 '   Base 0, Drive A
 '   Base 1, Drive A
+'   Base 0, Drive B
 '   Base 1, Drive B
-' TODO: Test Base 0, Drive B ?
-If InStr(Mm.CmdLine$, "--drive=b") Then
-  run_tests()
-  Drive "A:"
-ElseIf InStr(Mm.CmdLine$, "--base=1") Then
-  If sys.is_device%("pm*") Then
-    run_tests("--drive=b")
-  Else
+If sys.is_device%("pm*") Then
+  If InStr(Mm.CmdLine$, "--base=1 --drive=b") Then
     run_tests()
+  ElseIf InStr(Mm.CmdLine$, "--base=1") Then
+    run_tests("--base=1", "--drive=b")
+  ElseIf InStr(Mm.CmdLine$, "--drive=b") Then
+    run_tests("--drive=b", "--base=1 --drive=b")
+  Else
+    run_tests("--base=1")
   EndIf
+ElseIf InStr(Mm.CmdLine$, "--base=1") Then
+  run_tests("")
 Else
   run_tests("--base=1")
 EndIf
 
 Sub test_chdir_mkdir_rmdir()
-    Local current_dir$ = Cwd$ ' Mm.Info$(Directory))
-    Local new_dir$ = "test_chdir_mkdir_rmdir.tmpdir"
-    If file.exists%(TMPDIR$ + SEPARATOR$ + new_dir$) Then RmDir(TMPDIR$ + SEPARATOR$ + new_dir$)
+  MkDir TMPDIR$
 
-    ChDir TMPDIR$
-    MkDir new_dir$
-    ChDir new_dir$
+  Const current_dir$ = Cwd$
+  Const new_dir$ = "test_chdir_mkdir_rmdir"
 
-    Local expected$ = TMPDIR$ + SEPARATOR$ + new_dir$ ' + SEPARATOR$
-    If sys.is_device%("cmm2") Then expected$ = UCase(expected$)
-    assert_string_equals(expected$, Cwd$) 'Mm.Info$(Directory))
+  ChDir TMPDIR$
+  MkDir new_dir$
+  ChDir new_dir$
 
-    ChDir ".."
-    RmDir new_dir$
+  Const expected$ = TMPDIR$ + SEPARATOR$ + new_dir$
+  If sys.is_device%("cmm2") Then expected$ = UCase(expected$)
+  assert_string_equals(expected$, Cwd$)
 
-    assert_false(file.exists%(new_dir$))
+  ChDir ".."
+  RmDir new_dir$
 
-    '? current_dir$
-    ChDir current_dir$
-    assert_string_equals(current_dir$, Cwd$) ' Mm.Info$(Directory))
+  assert_false(file.exists%(new_dir$))
+
+  ChDir current_dir$
+  assert_string_equals(current_dir$, Cwd$)
 End Sub
 
 Sub test_close_errors()
@@ -129,8 +134,10 @@ Sub given_test_file(f$)
 End Sub
 
 Sub test_copy()
-  Local f$ = TMPDIR$ + "/test_copy.tmp"
-  Local f_copy$ = TMPDIR$ + "/test_copy.tmp.copy"
+  MkDir TMPDIR$
+
+  Local f$ = TMPDIR$ + "/test_copy"
+  Local f_copy$ = TMPDIR$ + "/test_copy.copy"
   Local s$
 
   given_test_file(f$)
@@ -151,8 +158,9 @@ Sub test_copy()
 End Sub
 
 Sub test_dir()
-  Const tst_dir$ = TMPDIR$ + "\test_dir.tmpdir"
-  If file.exists%(tst_dir$) Then RmDir tst_dir$
+  MkDir TMPDIR$
+
+  Const tst_dir$ = TMPDIR$ + "/test_dir"
   MkDir tst_dir$
   Open tst_dir$ + "/file1" For Output As #1 : Close #1
   Open tst_dir$ + "/abc" For Output As #1 : Close #1
@@ -178,25 +186,21 @@ Sub test_dir()
   ' should also return the empty string, but that is hard to unit-test because
   ' the framework makes use of DIR$().
   assert_string_equals("", Dir$())
-
-  Kill tst_dir$ + "/file1"
-  Kill tst_dir$ + "/abc"
-  Kill tst_dir$ + "/file3"
-  RmDir tst_dir$ + "/subdir"
-  RmDir tst_dir$
 End Sub
 
 Sub test_dir_given_no_matches()
-  Const tst_dir$ = TMPDIR$ + "\test_dir_given_no_matches.tmpdir"
-  If file.exists%(tst_dir$) Then RmDir tst_dir$
+  MkDir TMPDIR$
+
+  Const tst_dir$ = TMPDIR$ + "/test_dir_given_no_matches"
   MkDir tst_dir$
   Local f$ = Dir$(tst_dir$ + "/*.non")
   assert_string_equals("", f$)
-  RmDir tst_dir$
 End Sub
 
 Sub test_dir_given_not_found()
-  Const tst_dir$ = TMPDIR$ + "\test_dir_given_not_found.tmpdir"
+  MkDir TMPDIR$
+
+  Const tst_dir$ = TMPDIR$ + "/test_dir_given_not_found"
   On Error Skip
   Local f$ = Dir$(tst_dir$ + "/*")
   If sys.is_device%("mmb4l") Then
@@ -213,17 +217,19 @@ Sub test_dir_given_not_found()
 End Sub
 
 Sub test_dir_given_invalid_flag()
-  Const tst_dir$ = TMPDIR$ + "\test_dir_given_invalid_flag.tmpdir"
-  If file.exists%(tst_dir$) Then RmDir tst_dir$
+  MkDir TMPDIR$
+
+  Const tst_dir$ = TMPDIR$ + "/test_dir_given_invalid_flag"
   MkDir tst_dir$
   On Error Skip
   Local f$ = Dir$(tst_dir$ + "/*", foo)
   assert_raw_error("Invalid flag specification")
-  RmDir tst_dir$
 End Sub
 
 Sub test_eof()
-  Local f$ = TMPDIR$ + "/test_eof.tmp"
+  MkDir TMPDIR$
+
+  Local f$ = TMPDIR$ + "/test_eof"
   Local i%
 
   ' Test when file opened for INPUT.
@@ -280,7 +286,9 @@ Sub test_eof()
 End Sub
 
 Sub test_eof_errors()
-  Local f$ = TMPDIR$ + "/test_eof_errors.tmp"
+  MkDir TMPDIR$
+
+  Local f$ = TMPDIR$ + "/test_eof_errors"
   Local i%, s$
 
   ' Test on an unopened file.
@@ -311,7 +319,9 @@ Sub test_eof_errors()
 End Sub
 
 Sub test_inputstr()
-  Local f$ = TMPDIR$ + "/test_inputstr.tmp"
+  MkDir TMPDIR$
+
+  Local f$ = TMPDIR$ + "/test_inputstr"
 
   ' Test on file opened for INPUT.
   given_test_file(f$)
@@ -343,94 +353,101 @@ Sub test_inputstr()
   End Select
 End Sub
 
-Sub test_kill() {
-    Local f$ = TMPDIR$ + "/test_kill.tmp"
+Sub test_kill()
+  MkDir TMPDIR$
 
-    given_test_file(f$)
+  Const f$ = TMPDIR$ + "/test_kill"
+  given_test_file(f$)
 
-    assert_true(file.exists%(f$))
+  assert_true(file.exists%(f$))
 
-    Kill f$
+  Kill f$
 
-    assert_false(file.exists%(f$))
+  assert_false(file.exists%(f$))
 End Sub
 
 Sub test_rename()
-    Local f$ = TMPDIR$ + "/test_new.tmp"
-    Local f_new$ = TMPDIR$ + "/test_new.tmp.new"
-    Local s$
+  MkDir TMPDIR$
 
-    given_test_file(f$)
+  Const f$ = TMPDIR$ + "/test_rename"
+  Const f_new$ = TMPDIR$ + "/test_rename.new"
+  Local s$
 
-    ' CMM2 will not RENAME over an existing file.
-    If file.exists%(f_new$) Then Kill f_new$
-    Rename f$ As f_new$
+  given_test_file(f$)
 
-    assert_false(file.exists%(f$))
+  ' CMM2 will not RENAME over an existing file.
+  If file.exists%(f_new$) Then Kill f_new$
+  Rename f$ As f_new$
 
-    Open f_new$ For Input As #1
-    s$ = Input$(28, #1)
-    assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
-    assert_int_equals(1, Eof(#1))
-    Close #1
+  assert_false(file.exists%(f$))
+
+  Open f_new$ For Input As #1
+  s$ = Input$(28, #1)
+  assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
+  assert_int_equals(1, Eof(#1))
+  Close #1
 End Sub
 
 Sub test_loc()
-    Local f$ = TMPDIR$ + "/test_loc.tmp"
+  MkDir TMPDIR$
 
-    ' Test when file opened for INPUT.
-    Open f$ For Output As #1
-    assert_int_equals(1, Loc(#1))
-    Print #1, "foo";
-    assert_int_equals(4, Loc(#1))
-    Close #1
-    Kill f$
+  Const f$ = TMPDIR$ + "/test_loc"
 
-    ' Test when non-existing file opened for RANDOM.
-    Open f$ For Random As #1
-    assert_int_equals(1, Loc(#1))
-    Print #1, "foo";
-    assert_int_equals(4, Loc(#1))
-    Close #1
-    Kill f$
+  ' Test when file opened for OUTPUT.
+  Open f$ For Output As #1
+  assert_int_equals(1, Loc(#1))
+  Print #1, "foo";
+  assert_int_equals(4, Loc(#1))
+  Close #1
+  Kill f$
 
-    ' Test when existing empty file opened for RANDOM.
-    Open f$ For Output As #1
-    Close #1
-    Open f$ For Random As #1
-    assert_int_equals(1, Loc(#1))
-    Print #1, "foo";
-    assert_int_equals(4, Loc(#1))
-    Close #1
-    Kill f$
+  ' Test when non-existing file opened for RANDOM.
+  Open f$ For Random As #1
+  assert_int_equals(1, Loc(#1))
+  Print #1, "foo";
+  assert_int_equals(4, Loc(#1))
+  Close #1
+  Kill f$
 
-    ' Test when existing non-empty file opened for RANDOM,
-    ' starts with r/w pointer one past the end.
-    given_test_file(f$)
-    Open f$ For Random As #1
-    assert_int_equals(29, Loc(#1))
-    Close #1
-    Kill f$
+  ' Test when existing empty file opened for RANDOM.
+  Open f$ For Output As #1
+  Close #1
+  Open f$ For Random As #1
+  assert_int_equals(1, Loc(#1))
+  Print #1, "foo";
+  assert_int_equals(4, Loc(#1))
+  Close #1
+  Kill f$
 
-    ' Test when existing non-empty file opened for INPUT.
-    given_test_file(f$)
-    Open f$ For Input As #1
-    assert_int_equals(1, Loc(#1))
-    Close #1
-    Kill f$
+  ' Test when existing non-empty file opened for RANDOM,
+  ' starts with r/w pointer one past the end.
+  given_test_file(f$)
+  Open f$ For Random As #1
+  assert_int_equals(29, Loc(#1))
+  Close #1
+  Kill f$
 
-    ' Test when existing non-empty file opened for APPEND.
-    given_test_file(f$)
-    Open f$ For Append As #1
-    Select Case Mm.Device$
-      Case "MMBasic for Windows" : assert_int_equals(1, Loc(#1))
-      Case Else :                  assert_int_equals(29, Loc(#1))
-    End Select
-    Close #1
-    Kill f$
+  ' Test when existing non-empty file opened for INPUT.
+  given_test_file(f$)
+  Open f$ For Input As #1
+  assert_int_equals(1, Loc(#1))
+  Close #1
+  Kill f$
+
+  ' Test when existing non-empty file opened for APPEND.
+  given_test_file(f$)
+  Open f$ For Append As #1
+  Select Case Mm.Device$
+    Case "MMBasic for Windows" : assert_int_equals(1, Loc(#1))
+    Case Else :                  assert_int_equals(29, Loc(#1))
+  End Select
+  Close #1
+  Kill f$
 End Sub
 
 Sub test_loc_errors()
+  MkDir TMPDIR$
+
   ' Test on an unopened file.
   On Error Skip 1
   Local i% = Loc(#1)
@@ -445,7 +462,7 @@ Sub test_loc_errors()
   End Select
 
   ' Test on file number #10.
-  Local f$ = TMPDIR$ + "/test_loc_errors.tmp"
+  Local f$ = TMPDIR$ + "/test_loc_errors"
   Open f$ For Output As MAX_FILE_NBR%
   Close MAX_FILE_NBR%
   Open f$ For Random As MAX_FILE_NBR%
@@ -462,7 +479,9 @@ Sub test_loc_errors()
 End Sub
 
 Sub test_lof()
-  Local f$ = TMPDIR$ + "/test_lof.tmp"
+  MkDir TMPDIR$
+
+  Const f$ = TMPDIR$ + "/test_lof"
 
   ' Test when writing a file.
   Open f$ For Output As #1
@@ -497,6 +516,8 @@ Sub test_lof()
 End Sub
 
 Sub test_lof_errors()
+  MkDir TMPDIR$
+
   ' Test on an unopened file.
   On Error Skip 1
   Local i% = Lof(#1)
@@ -511,7 +532,7 @@ Sub test_lof_errors()
   End Select
 
   ' Test on file number #10.
-  Local f$ = TMPDIR$ + "/test_lof_errors.tmp"
+  Local f$ = TMPDIR$ + "/test_lof_errors"
   Open f$ For Output As MAX_FILE_NBR%
   Print #MAX_FILE_NBR%, "Hello World";
   Close MAX_FILE_NBR%
@@ -529,31 +550,35 @@ Sub test_lof_errors()
 End Sub
 
 Sub test_seek()
-    Local f$ = TMPDIR$ + "/test_seek.tmp"
-    Local s$
+  MkDir TMPDIR$
 
-    given_test_file(f$)
+  Const f$ = TMPDIR$ + "/test_seek"
+  Local s$
 
-    Open f$ For Random As #1
+  given_test_file(f$)
 
-    Seek #1, 7
-    s$ = Input$(5, #1)
-    assert_string_equals("World", s$)
-    s$ = Input$(9, #1)
-    assert_string_equals(CRLF$ + "Goodbye", s$)
+  Open f$ For Random As #1
 
-    ' Seek back and read the same again.
-    Seek #1, 7
-    s$ = Input$(5, #1)
-    assert_string_equals("World", s$)
-    s$ = Input$(9, #1)
-    assert_string_equals(CRLF$ + "Goodbye", s$)
+  Seek #1, 7
+  s$ = Input$(5, #1)
+  assert_string_equals("World", s$)
+  s$ = Input$(9, #1)
+  assert_string_equals(CRLF$ + "Goodbye", s$)
 
-    Close #1
+  ' Seek back and read the same again.
+  Seek #1, 7
+  s$ = Input$(5, #1)
+  assert_string_equals("World", s$)
+  s$ = Input$(9, #1)
+  assert_string_equals(CRLF$ + "Goodbye", s$)
+
+  Close #1
 End Sub
 
 Sub test_seek_errors()
-  Local f$ = TMPDIR$ + "/test_seek_errors.tmp"
+  MkDir TMPDIR$
+
+  Const f$ = TMPDIR$ + "/test_seek_errors"
   Local s$
 
   ' Test on an unopened file.
@@ -618,9 +643,11 @@ Sub test_seek_errors()
 End Sub
 
 Sub test_tilde_expansion()
-  If Mm.Device$ <> "MMB4L" Then Exit Sub
+  If Not sys.is_device%("mmb4l") Then Exit Sub
 
-  Local original_dir$ = Cwd$
+  MkDir TMPDIR$
+
+  Const original_dir$ = Cwd$
 
   System "rm -Rf " + TMPDIR$ + "/test_tilde_expansion.dir"
 
@@ -628,7 +655,7 @@ Sub test_tilde_expansion()
   ChDir "~"
   assert_string_equals(Mm.Info$(EnvVar "HOME"), Cwd$)
 
-  ' Use SYSTEM with 'realpath' to determine relative path from HOME to TMPDIR.
+  ' Use SYSTEM with 'realpath' to determine relative path from HOME to TMPDIR$.
   Local s$
   System "realpath --relative-to=$HOME " + TMPDIR$, s$
   Local tmp_relative$ = "~/" + s$
@@ -688,6 +715,8 @@ Sub test_tilde_expansion()
 End Sub
 
 Sub test_open_errors()
+  MkDir TMPDIR$
+
   Open TMPDIR$ + "/test_open_errors.txt" For Output As #1
 
   ' Cannot use a file number that is already open.
@@ -722,9 +751,9 @@ Sub test_open_errors()
 End Sub
 
 Sub test_append_eof_bug()
-  Local filename$ = TMPDIR + "/test_append_eof_bug.txt"
+  MkDir TMPDIR$
 
-  If file.exists%(filename$) Then Kill filename$
+  Const filename$ = TMPDIR$ + "/test_append_eof_bug.txt"
 
   Open filename$ For Append As #1
   Print #1, "Goodbye World"
@@ -738,4 +767,258 @@ Sub test_append_eof_bug()
   Close #1
 
   assert_int_equals(15, Len(s$))
+End Sub
+
+Sub test_open_for_input()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_for_input.txt"
+  given_test_file(f$)
+
+  Open f$ For Input As #1
+  Local s$
+  Line Input #1, s$
+  assert_string_equals("Hello World", s$)
+  Line Input #1, s$
+  assert_string_equals("Goodbye World", s$)
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+End Sub
+
+Sub test_open_for_output()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_for_output.txt"
+  given_test_file(f$)
+
+  Open f$ For Output As #1
+  Print #1, "Moses supposes his toeses are roses"
+  Print #1, "But Moses supposes eroneously"
+  Close #1
+
+  Open f$ For Input As #1
+  Local s$
+  Line Input #1, s$
+  assert_string_equals("Moses supposes his toeses are roses", s$)
+  Line Input #1, s$
+  assert_string_equals("But Moses supposes eroneously", s$)
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+End Sub
+
+Sub test_open_for_append()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_for_output.txt"
+  given_test_file(f$)
+
+  Open f$ For Append As #1
+  Print #1, "Moses supposes his toeses are roses"
+  Print #1, "But Moses supposes eroneously"
+  Close #1
+
+  Open f$ For Input As #1
+  Local s$
+  Line Input #1, s$
+  assert_string_equals("Hello World", s$)
+  Line Input #1, s$
+  assert_string_equals("Goodbye World", s$)
+  Line Input #1, s$
+  assert_string_equals("Moses supposes his toeses are roses", s$)
+  Line Input #1, s$
+  assert_string_equals("But Moses supposes eroneously", s$)
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+End Sub
+
+Sub test_open_for_random()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_for_random.txt"
+  given_test_file(f$)
+
+  Open f$ For Random As #1
+  Local s$
+  Seek #1, 1
+  Line Input #1, s$
+  assert_string_equals("Hello World", s$)
+  Print #1, "Moses supposes his toeses are roses"
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+
+  Open f$ For Random As #1
+  Seek #1, 1
+  Line Input #1, s$
+  assert_string_equals("Hello World", s$)
+  Line Input #1, s$
+  assert_string_equals("Moses supposes his toeses are roses", s$)
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+
+  Open f$ For Random As #1
+  Seek #1, Len("Hello World") + 3
+  Print #1, "But Moses supposes eroneously"
+  Line Input #1, s$
+  assert_string_equals("oses", s$)
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+
+  Open f$ For Random As #1
+  Seek #1, 1
+  Line Input #1, s$
+  assert_string_equals("Hello World", s$)
+  Line Input #1, s$
+  assert_string_equals("But Moses supposes eroneously", s$)
+  Line Input #1, s$
+  assert_string_equals("oses", s$)
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+End Sub
+
+Sub test_open_random_line_beginning()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_random_line_beginning.txt"
+  given_test_file(f$)
+  Local s$
+
+  Open f$ For Random As #1
+  Seek #1, 1
+  Line Input #1, s$
+  assert_string_equals("Hello World", s$)
+  Line Input #1, s$
+  assert_string_equals("Goodbye World", s$)
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+End Sub
+
+Sub test_open_random_line_middle()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_random_line_middle.txt"
+  given_test_file(f$)
+  Local s$
+
+  Open f$ For Random As #1
+  Seek #1, 7
+  Line Input #1, s$
+  assert_string_equals("World", s$)
+  Line Input #1, s$
+  assert_string_equals("Goodbye World", s$)
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+End Sub
+
+Sub test_open_random_line_end()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_random_line_end.txt"
+  given_test_file(f$)
+  Local s$
+
+  Open f$ For Random As #1
+  Seek #1, 29
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+End Sub
+
+Sub test_open_random_print_beginning()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_random_print_beginning.txt"
+  given_test_file(f$)
+  Local s$
+
+  Open f$ For Random As #1
+  Seek #1, 1
+  Print #1, "Apple Fargo"
+  Seek #1, 1
+  Line Input #1, s$
+  assert_string_equals("Apple Fargo", s$)
+  Line Input #1, s$
+  assert_string_equals("Goodbye World", s$)
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+End Sub
+
+Sub test_open_random_print_middle()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_random_print_middle.txt"
+  given_test_file(f$)
+  Local s$
+
+  Open f$ For Random As #1
+  Seek #1, 7
+  Print #1, "Fargo"
+  Seek #1, 1
+  Line Input #1, s$
+  assert_string_equals("Hello Fargo", s$)
+  Line Input #1, s$
+  assert_string_equals("Goodbye World", s$)
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+End Sub
+
+Sub test_open_random_print_end()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_random_print_end.txt"
+  given_test_file(f$)
+  Local s$
+
+  Open f$ For Random As #1
+  Seek #1, 29
+  Print #1, "So long and thanks for all the fish"
+  Seek #1, 1
+  Line Input #1, s$
+  assert_string_equals("Hello World", s$)
+  Line Input #1, s$
+  assert_string_equals("Goodbye World", s$)
+  Line Input #1, s$
+  assert_string_equals("So long and thanks for all the fish", s$)
+  Line Input #1, s$
+  assert_string_equals("", s$)
+  Close #1
+End Sub
+
+Sub test_open_random_input_beginning()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_random_line_beginning.txt"
+  given_test_file(f$)
+  Local s$
+
+  Open f$ For Random As #1
+  Seek #1, 1
+  s$ = Input$(255, #1)
+  assert_string_equals("Hello World" + CRLF$ + "Goodbye World" + CRLF$, s$)
+  Close #1
+End Sub
+
+Sub test_open_random_input_middle()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_random_line_middle.txt"
+  given_test_file(f$)
+  Local s$
+
+  Open f$ For Random As #1
+  Seek #1, 7
+  s$ = Input$(255, #1)
+  assert_string_equals("World" + CRLF$ + "Goodbye World" + CRLF$, s$)
+  Close #1
+End Sub
+
+Sub test_open_random_input_end()
+  MkDir TMPDIR$
+  Const f$ = TMPDIR$ + "/test_open_random_line_end.txt"
+  given_test_file(f$)
+  Local s$
+
+  Open f$ For Random As #1
+  Seek #1, 29
+  s$ = Input$(255, #1)
+  assert_string_equals("", s$)
+  Close #1
 End Sub
