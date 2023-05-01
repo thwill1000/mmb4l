@@ -465,7 +465,7 @@ Sub test_filesize_given_directory()
     expect_filesize_is_dir(".")
     expect_filesize_is_dir("..")
   ElseIf sys.is_device%("cmm2*") Then
-    expect_filesize_invalid_file(Cwd$)
+    expect_filesize_is_dir(Cwd$)
     expect_filesize_invalid_file(Mm.Info$(Path))
     expect_filesize_invalid_file("/")
     expect_filesize_invalid_file("\")
@@ -503,7 +503,7 @@ Sub test_filesize_given_directory()
   EndIf
 
   ' Test for odd bug encountered on PicoMite when not in root dir.
-  If Not sys.is_device%("mmb4w") Then
+  If Not sys.is_device%("cmm2*", "mmb4w") Then
     Const OLD_DIR = Cwd$
     ChDir TMPDIR$
     expect_filesize_is_dir(Cwd$)

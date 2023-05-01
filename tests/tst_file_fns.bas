@@ -91,7 +91,7 @@ Sub test_chdir_mkdir_rmdir()
   ChDir new_dir$
 
   Const expected$ = TMPDIR$ + file.SEPARATOR + new_dir$
-  If sys.is_device%("cmm2") Then expected$ = UCase(expected$)
+  If sys.is_device%("cmm2*") Then expected$ = UCase$(expected$)
   assert_string_equals(expected$, Cwd$)
 
   ChDir ".."
@@ -203,7 +203,9 @@ Sub test_dir_given_not_found()
   Const tst_dir$ = TMPDIR$ + "/test_dir_given_not_found"
   On Error Skip
   Local f$ = Dir$(tst_dir$ + "/*")
-  If sys.is_device%("mmb4l") Then
+  If sys.is_device%("cmm2*") Then
+    assert_raw_error("Could not find the path")
+  ElseIf sys.is_device%("mmb4l") Then
     assert_raw_error("No such file or directory")
   ElseIf sys.is_device%("pm*") Then
     If Mm.Info$(Drive) = "A:" Then

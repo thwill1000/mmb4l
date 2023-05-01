@@ -87,7 +87,7 @@ End Sub
 ' be exhausted.
 Sub test_erase_given_arrays()
   If sys.is_device%("cmm2*", "mmb4w") Then
-    Local filler1%(15 * 1024 * 1024)
+    Local filler1%(24500 * 1024 / 8) ' ~24500K
   ElseIf sys.is_device%("mmb4l") Then
     ' TODO: remove MMB4L 32K array size limitation.
     Local filler1%(32 * 1024 - 1)
@@ -116,7 +116,7 @@ End Sub
 ' be exhausted.
 Sub test_erase_given_strings()
   If sys.is_device%("cmm2*", "mmb4w") Then
-    Local filler1%(15 * 1024 * 1024)
+    Local filler1%(24500 * 1024 / 8) ' ~24500K
   ElseIf sys.is_device%("mmb4l") Then
     ' TODO: remove MMB4L 32K array size limitation.
     Local filler1%(32 * 1024 - 1)
