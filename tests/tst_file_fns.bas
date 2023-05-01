@@ -18,11 +18,10 @@ Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
 
 Const BAD_FILE_DESCRIPTOR_ERR$ = "Bad file descriptor"
-Const FILE_ALREADY_OPEN_ERR$ = Choice(Mm.Device$ = "MMB4L", "File or device already open", "File number already open")
-Const FILE_NOT_OPEN_ERR$ = Choice(Mm.Device$ = "MMB4L", "File or device not open", "File number is not open")
-Const INVALID_FILE_NBR_ERR$ = "Invalid file number"
-Const MAX_FILE_NBR% = Choice(Mm.Device$ = "MMBasic for Windows", 128, 10)
-Const SEPARATOR$ = sys.string_prop$("separator")
+Const FILE_ALREADY_OPEN_ERR$ = Choice(sys.is_device%("mmb4l"), "File or device already open", "File number already open")
+Const FILE_NOT_OPEN_ERR$ = Choice(sys.is_device%("mmb4l"), "File or device not open", "File number is not open")
+Const INVALID_FILE_NBR_ERR$ = Choice(sys.is_device%("mmb4l"), "Invalid file number", "File number")
+Const MAX_FILE_NBR% = Choice(sys.is_device%("mmb4w"), 128, 10)
 
 add_test("test_chdir_mkdir_rmdir")
 add_test("test_close_errors")
@@ -91,7 +90,7 @@ Sub test_chdir_mkdir_rmdir()
   MkDir new_dir$
   ChDir new_dir$
 
-  Const expected$ = TMPDIR$ + SEPARATOR$ + new_dir$
+  Const expected$ = TMPDIR$ + file.SEPARATOR + new_dir$
   If sys.is_device%("cmm2") Then expected$ = UCase(expected$)
   assert_string_equals(expected$, Cwd$)
 
@@ -113,17 +112,19 @@ Sub test_close_errors()
   ' Can't call on file number #0.
   On Error Skip 1
   Close #0
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", INVALID_FILE_NBR_ERR$, "0 is invalid"))
+  assert_raw_error(Choice(sys.is_device%("mmb4l"), INVALID_FILE_NBR_ERR$, "0 is invalid"))
 
   ' Can't call on file number #11.
   On Error Skip 1
   Close (MAX_FILE_NBR% + 1
   Local expected$
-  Select Case Mm.Device$
-    Case "MMB4L" :               expected$ = INVALID_FILE_NBR_ERR$
-    Case "MMBasic for Windows" : expected$ = "129 is invalid (valid is 1 to 128)"
-    Case Else :                  expected$ = "11 is invalid"
-  End Select
+  If sys.is_device%("mmb4l") Then
+    expected$ = INVALID_FILE_NBR_ERR$
+  ElseIf sys.is_device%("mmb4w") Then
+    expected$ = "129 is invalid (valid is 1 to 128)"
+  Else
+    expected$ = "11 is invalid"
+  EndIf
 End Sub
 
 Sub given_test_file(f$)
@@ -171,7 +172,6 @@ Sub test_dir()
   Local f$ = Dir$(tst_dir$ + "/*", ALL)
   Local index%
   Do While f$ <> ""
-    ' ? f$
     actual$(BASE% + index%) = f$
     f$ = Dir$()
     Inc index%
@@ -294,11 +294,13 @@ Sub test_eof_errors()
   ' Test on an unopened file.
   On Error Skip 1
   i% = Eof(#1)
-  Select Case Mm.Device$
-    Case "MMB4L" :               assert_raw_error("File or device not open")
-    Case "MMBasic for Windows" : assert_raw_error("File number 1 is not open")
-    Case Else :                  assert_raw_error("File number is not open")
-  End Select
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error("File or device not open")
+  ElseIf sys.is_device%("mmb4w") Then
+    assert_raw_error("File number 1 is not open")
+  Else
+    assert_raw_error("File number is not open")
+  EndIf
 
   ' Test on file number #10.
   given_test_file(f$)
@@ -311,11 +313,7 @@ Sub test_eof_errors()
   ' Test on file number #11.
   On Error Skip 1
   i% = Eof(MAX_FILE_NBR% + 1)
-  Select Case Mm.Device$
-    Case "MMB4L" :               assert_raw_error(INVALID_FILE_NBR_ERR$)
-    Case "MMBasic for Windows" : assert_raw_error(INVALID_FILE_NBR_ERR$)
-    Case Else :                  assert_raw_error("File number")
-  End Select
+  assert_raw_error(Choice(sys.is_device%("mmb4w"), "Invalid file number", INVALID_FILE_NBR_ERR$))
 End Sub
 
 Sub test_inputstr()
@@ -334,7 +332,7 @@ Sub test_inputstr()
   On Error Skip 1
   s$ = Input$(28, #1)
 '  assert_raw_error(FILE_NOT_OPEN_ERR$)
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "File or device not open", "File number is not open"))
+  assert_raw_error(Choice(sys.is_device%("mmb4l"), "File or device not open", "File number is not open"))
 
   ' NOTE you can call on file number #0, but I can't automatically test this.
 
@@ -347,10 +345,7 @@ Sub test_inputstr()
   ' Test on file number #11.
   On Error Skip 1
   s$ = Input$(28, MAX_FILE_NBR% + 1)
-  Select Case Mm.Device$
-    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
-    Case Else :    assert_raw_error("File number")
-  End Select
+  assert_raw_error(INVALID_FILE_NBR_ERR$)
 End Sub
 
 Sub test_kill()
@@ -437,10 +432,7 @@ Sub test_loc()
   ' Test when existing non-empty file opened for APPEND.
   given_test_file(f$)
   Open f$ For Append As #1
-  Select Case Mm.Device$
-    Case "MMBasic for Windows" : assert_int_equals(1, Loc(#1))
-    Case Else :                  assert_int_equals(29, Loc(#1))
-  End Select
+  assert_int_equals(29, Loc(#1))
   Close #1
   Kill f$
 End Sub
@@ -456,10 +448,11 @@ Sub test_loc_errors()
   ' Test on file number #0.
   On Error Skip 1
   i% = Loc(#0)
-  Select Case Mm.Device$
-    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
-    Case Else :    assert_int_equals(0, Mm.ErrNo)
-  End Select
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error(INVALID_FILE_NBR_ERR$)
+  Else
+    assert_int_equals(0, Mm.ErrNo)
+  EndIf
 
   ' Test on file number #10.
   Local f$ = TMPDIR$ + "/test_loc_errors"
@@ -472,10 +465,7 @@ Sub test_loc_errors()
   ' Test on file number #11.
   On Error Skip 1
   i% = Loc(MAX_FILE_NBR% + 1)
-  Select Case Mm.Device$
-    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
-    Case Else :    assert_raw_error("File number")
-  End Select
+  assert_raw_error(INVALID_FILE_NBR_ERR$)
 End Sub
 
 Sub test_lof()
@@ -526,10 +516,11 @@ Sub test_lof_errors()
   ' Test on file number #0.
   On Error Skip 1
   i% = Lof(#0)
-  Select Case Mm.Device$
-    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
-    Case Else :    assert_int_equals(0, Mm.ErrNo)
-  End Select
+  If sys.is_device%("mmb4l") Then
+    assert_raw_error(INVALID_FILE_NBR_ERR$)
+  Else
+    assert_int_equals(0, Mm.ErrNo)
+  EndIf
 
   ' Test on file number #10.
   Local f$ = TMPDIR$ + "/test_lof_errors"
@@ -543,10 +534,7 @@ Sub test_lof_errors()
   ' Test on file number #11.
   On Error Skip 1
   i% = Lof(MAX_FILE_NBR% + 1)
-  Select Case Mm.Device$
-    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
-    Case Else :    assert_raw_error("File number")
-  End Select
+  assert_raw_error(INVALID_FILE_NBR_ERR$)
 End Sub
 
 Sub test_seek()
@@ -589,10 +577,7 @@ Sub test_seek_errors()
   ' Test on file number #0.
   On Error Skip 1
   Seek #0, 1
-  Select Case Mm.Device$
-    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
-    Case Else :    assert_raw_error("File number")
-  End Select
+  assert_raw_error(INVALID_FILE_NBR_ERR$)
 
   ' Test on file number #10.
   Open f$ For Output As MAX_FILE_NBR%
@@ -610,10 +595,7 @@ Sub test_seek_errors()
   ' Test on file number #11.
   On Error Skip 1
   Seek MAX_FILE_NBR% + 1, 1
-  Select Case Mm.Device$
-    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
-    Case Else :    assert_raw_error("File number")
-  End Select
+  assert_raw_error(INVALID_FILE_NBR_ERR$)
 
   given_test_file(f$)
 
@@ -732,10 +714,7 @@ Sub test_open_errors()
   ' Can't open file number #0.
   On Error Skip 1
   Open TMPDIR$ + "/test_open_errors.txt" For Output As #0
-    Select Case Mm.Device$
-    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
-    Case Else :    assert_raw_error("File number")
-  End Select
+  assert_raw_error(INVALID_FILE_NBR_ERR$)
 
   ' Can use file number #10.
   Open TMPDIR$ + "/test_open_errors.txt" For Output As MAX_FILE_NBR%
@@ -744,10 +723,7 @@ Sub test_open_errors()
   ' Can't use file number #11.
   On Error Skip 1
   Open TMPDIR$ + "/test_open_errors.txt" For Output As MAX_FILE_NBR% + 1
-    Select Case Mm.Device$
-    Case "MMB4L" : assert_raw_error(INVALID_FILE_NBR_ERR$)
-    Case Else :    assert_raw_error("File number")
-  End Select
+  assert_raw_error(INVALID_FILE_NBR_ERR$)
 End Sub
 
 Sub test_append_eof_bug()
@@ -841,7 +817,10 @@ Sub test_open_for_random()
   Seek #1, 1
   Line Input #1, s$
   assert_string_equals("Hello World", s$)
+  On Error Ignore
   Print #1, "Moses supposes his toeses are roses"
+  assert_no_error()
+  If Mm.ErrNo Then Close #1 : Exit Sub
   Line Input #1, s$
   assert_string_equals("", s$)
   Close #1
