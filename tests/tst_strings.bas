@@ -21,6 +21,7 @@ Const MIN_INT% = -9223372036854775808
 add_test("test_bin_function")
 add_test("test_chr_ascii")
 add_test("test_chr_utf8")
+add_test("test_format_function")
 add_test("test_hex_function")
 add_test("test_mid_function")
 add_test("test_mid_command")
@@ -92,6 +93,18 @@ Sub test_chr_utf8()
   assert_int_equals(&h92, Peek(Byte Peek(VarAddr s$) + 2))
   assert_int_equals(&h80, Peek(Byte Peek(VarAddr s$) + 3))
   assert_int_equals(&h93, Peek(Byte Peek(VarAddr s$) + 4))
+End Sub
+
+Sub test_format_function()
+  ' TODO: Actually write some tests.
+  If sys.is_device%("pm*") Then
+    ' Peter says this is due to different sprintf impl - I'm less convinced.
+    assert_string_equals("3.14200", Format$(3.142, "%-5g"))
+    assert_string_equals("42.0000", Format$(42, "%-5g"))
+  Else
+    assert_string_equals("3.142", Format$(3.142, "%-5g"))
+    assert_string_equals("42   ", Format$(42, "%-5g"))
+  EndIf
 End Sub
 
 Sub test_hex_function()
