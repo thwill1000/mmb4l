@@ -95,7 +95,7 @@ Sub test_erase_given_arrays()
     Local filler3%(32 * 1024 - 1)
     Local filler4%(24 * 1024 - 1)
   ElseIf sys.is_device%("pm") Then
-    Local filler1%(64 * 1024 / 8) ' ~64K
+    Local filler1%(60 * 1024 / 8) ' ~60K
   ElseIf sys.is_device%("pmvga") Then
     Local filler1%(32 * 1024 / 8) ' ~32K
   EndIf

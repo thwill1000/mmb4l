@@ -97,14 +97,8 @@ End Sub
 
 Sub test_format_function()
   ' TODO: Actually write some tests.
-  If sys.is_device%("pm*") Then
-    ' Peter says this is due to different sprintf impl - I'm less convinced.
-    assert_string_equals("3.14200", Format$(3.142, "%-5g"))
-    assert_string_equals("42.0000", Format$(42, "%-5g"))
-  Else
-    assert_string_equals("3.142", Format$(3.142, "%-5g"))
-    assert_string_equals("42   ", Format$(42, "%-5g"))
-  EndIf
+  assert_string_equals("3.142", Format$(3.142, "%-5g"))
+  assert_string_equals("42   ", Format$(42, "%-5g"))
 End Sub
 
 Sub test_hex_function()
