@@ -9,6 +9,8 @@ Version 0.6.0 - ??-???-????:
         - If it had never been initialised with a pattern to match.
         - If the empty string indicating the end of the directory stream had
           already been returned.
+  - Fixed bug in CALL command and function to allow the function/subroutine
+    name to be provided by a non-trivial expression.
 
 Version 0.5.0 - 3-Feb-2023:
   - Changed to semantic versioning scheme.

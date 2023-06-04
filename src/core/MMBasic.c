@@ -2658,7 +2658,7 @@ const char *skipvar(const char *p, int noerror) {
 
 
 // skip to the end of an expression (terminates on null, comma, comment or unpaired ')'
-char *skipexpression(char *p) {
+const char *skipexpression(const char *p) {
     int i, inquote;
 
     for(i = inquote = 0; *p; p++) {

@@ -243,7 +243,7 @@ void MIPS16 SaveProgramToFlash(char *pm, int msg);
 char *findline(int, int);
 const char *findlabel(const char *labelptr);
 const char *skipvar(const char *p, int noerror);
-char *skipexpression(char *p);
+const char *skipexpression(const char *p);
 const char *GetNextCommand(const char *p, const char **CLine, const char *EOFMsg);
 int FunctionType(char *p);
 const char *getclosebracket(const char *p);

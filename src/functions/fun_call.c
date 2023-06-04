@@ -55,13 +55,10 @@ void fun_call(void) {
     MMINTEGER i64 = 0;
     char *s = NULL;
     MMFLOAT f;
+    const char *q = ep;  // store the value of 'ep' because calling getCstring() can change it.
     char *fun = getCstring(ep);  // get the function we want to call
     cstring_toupper(fun);
-    const char *q = ep;
-    while (*q) {
-        if (*q == ',' || *q == '\'') break;
-        q++;
-    }
+    q = skipexpression(q);
     if (*q == ',') q++;
     int i = FindSubFun(fun, kFunction);  // find a function.
     cstring_cat(fun, " ", STRINGSIZE);

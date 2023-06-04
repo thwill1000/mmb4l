@@ -31,6 +31,8 @@ add_test("test_call_sub_too_long_name")
 add_test("test_call_missing_fun")
 add_test("test_call_missing_sub")
 add_test("test_arg_list_bug")
+add_test("test_call_fun_given_expr")
+add_test("test_call_sub_given_expr")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -212,4 +214,27 @@ Sub test_arg_list_bug()
 
   assert_int_equals(1, Eof(#1))
   Close #1
+End Sub
+
+Sub test_call_fun_given_expr()
+  Local my_fun$(2, 2)
+  my_fun$(1, 1) = "int_fn%"
+  assert_int_equals(42, Call(my_fun$(1, 1)))
+
+  assert_int_equals(42, Call(Field$("int_fn%,1", 1)))
+End Sub
+
+Sub test_call_sub_given_expr()
+  Local my_sub$(2, 2)
+  my_sub$(1, 1) = "foo"
+  Local i%, f!, s$
+  Call my_sub$(1, 1), i%, f!, s$
+  assert_int_equals(42, i%)
+  assert_float_equals(3.12, f!)
+  assert_string_equals("bar", s$)
+
+  Call Field$("foo,1", 1), i%, f!, s$
+  assert_int_equals(42, i%)
+  assert_float_equals(3.12, f!)
+  assert_string_equals("bar", s$)
 End Sub
