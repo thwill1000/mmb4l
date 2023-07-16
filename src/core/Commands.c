@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Commands.c
 
-Copyright 2011-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,6 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MMBasic_Includes.h"
 #include "funtbl.h"
 #include "vartbl.h"
+#include "../common/cstring.h"
+#include "../common/utility.h"
 
 void flist(int, int, int);
 void clearprog(void);
@@ -1516,7 +1518,7 @@ const char *SetValue(const char *p, int t, void *v) {
 void MIPS16 cmd_dim(void) {
     int i, j, k, type, typeSave, ImpliedType = 0, VIndexSave, StaticVar = false;
     char chSave, *chPosit;
-    char VarName[(MAXVARLEN * 2) + 1];
+    char VarName[STRINGSIZE];
     void *v, *tv;
 
     if (*cmdline == tokenAS) cmdline++;                             // this means that we can use DIM AS INTEGER a, b, etc
@@ -1547,22 +1549,25 @@ void MIPS16 cmd_dim(void) {
                 type |= V_LOCAL;                                    // local if defined in a sub/fun
             }
 
-            if(cmdtoken == GetCommandValue("Static")) {
-                if(LocalIndex == 0) error("Invalid here");
-                // create a unique global name
-                if(*CurrentInterruptName)
+            if (cmdtoken == GetCommandValue("Static")) {
+                if (LocalIndex == 0) error("Invalid here");
+                // Create a unique global name by prefixing variable name with sub/fun name.
+                if (*CurrentInterruptName) {
                     strcpy(VarName, CurrentInterruptName);          // we must be in an interrupt sub
-                else
+                } else {
                     strcpy(VarName, CurrentSubFunName);             // normal sub/fun
-                for(k = 1; k <= MAXVARLEN; k++)
-                    if(!isnamechar(VarName[k])) {
+                }
+                for (k = 1; k <= MAXVARLEN; k++) {
+                    if (!isnamechar(VarName[k])) {
                         VarName[k] = 0;                             // terminate the string on a non valid char
                         break;
                     }
-                strcat(VarName, argv[i]);                           // by prefixing the var name with the sub/fun name
+                }
+                if (FAILED(cstring_cat(VarName, argv[i], sizeof(VarName)))) ERROR_LINE_LENGTH;
                 StaticVar = true;
-            } else
-                strcpy(VarName, argv[i]);
+            } else {
+                if (FAILED(cstring_cpy(VarName, argv[i], sizeof(VarName)))) ERROR_LINE_LENGTH;
+            }
 
             v = findvar(VarName, type | V_NOFIND_NULL);             // check if the variable exists
             typeSave = type;
