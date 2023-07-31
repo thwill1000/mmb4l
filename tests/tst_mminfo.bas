@@ -49,6 +49,7 @@ add_test("test_fontheight")
 add_test("test_fontwidth")
 add_test("test_hpos")
 add_test("test_hres")
+add_test("test_line")
 add_test("test_option_base")
 add_test("test_option_break")
 add_test("test_option_case")
@@ -625,6 +626,14 @@ Sub test_hres()
     Option Resolution Pixel
     assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.Info(HRes))
     assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.HRes)
+  EndIf
+End Sub
+
+Sub test_line()
+  Const line$ = Mm.Info$(Line)
+  assert_int_equals(633, Val(Field$(line$, 1, ",")))
+  If sys.is_device%("mmb4l") Then
+    assert_string_equals(Mm.Info$(Current), Field$(line$, 2, ","))
   EndIf
 End Sub
 

@@ -1646,7 +1646,7 @@ int IsValidLine(int nbr) {
 
 // count the number of lines up to and including the line pointed to by the argument
 // used for error reporting in programs that do not use line numbers
-int MIPS16 CountLines(char *target) {
+int MIPS16 CountLines(const char *target) {
     char *p;
     int cnt;
 

@@ -262,7 +262,7 @@ int Mstrcmp(const char *s1, const char *s2);
 char *getCstring(const char *p);
 int IsValidLine(int line);
 void InsertLastcmd(char *s);
-int MIPS16 CountLines(char *target);
+int MIPS16 CountLines(const char *target);
 void DefinedSubFun(int iscmd, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64, char **sa, int *t);
 int FindSubFun(const char *p, uint8_t type);
 void MIPS16 PrepareProgram(int);

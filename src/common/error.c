@@ -67,7 +67,7 @@ void error_init(ErrorState *error_state) {
     error_state->skip = 0;
 }
 
-static void get_line_and_file(int *line, char *file_path) {
+void error_get_line_and_file(int *line, char *file_path) {
 
     *line = -1;
     memset(file_path, 0, STRINGSIZE);
@@ -148,7 +148,7 @@ static void verror(MmResult error, const char *msg, va_list argp) {
     options_load(&mmb_options, OPTIONS_FILE_NAME, NULL);  // make sure that the option struct is in a clean state
 
     mmb_error_state_ptr->code = error;
-    get_line_and_file(&mmb_error_state_ptr->line, mmb_error_state_ptr->file);
+    error_get_line_and_file(&mmb_error_state_ptr->line, mmb_error_state_ptr->file);
 
     char buf[STRINGSIZE * 2];
 

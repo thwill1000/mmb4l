@@ -220,16 +220,16 @@ Sub test_unary_plus()
 End Sub
 
 Sub test_error_correct_after_goto()
-  Const BASE_LINE = 227 + Choice(sys.is_device%("pm*"), 1824, 0)
+  Const BASE_LINE = Val(Field$(Mm.Info$(Line), 1, ","))
   Goto 30
 test_goto_label_1:
-  assert_raw_error(expected_error_msg$(BASE_LINE + 4, "foo1"))
+  assert_raw_error(expected_error_msg$(BASE_LINE + 12, "foo1"))
   Goto 40
 test_goto_label_2:
-  assert_raw_error(expected_error_msg$(BASE_LINE + 6, "foo2"))
+  assert_raw_error(expected_error_msg$(BASE_LINE + 14, "foo2"))
   On Error Skip
   Error "foo3"
-  assert_raw_error(expected_error_msg$(BASE_LINE, "foo3"))
+  assert_raw_error(expected_error_msg$(BASE_LINE + 8, "foo3"))
 End Sub
 
 30 On Error Skip : Error "foo1" : Goto test_goto_label_1
@@ -238,14 +238,14 @@ Error "foo2"
 Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
-  Const BASE_LINE = 243 + Choice(sys.is_device%("pm*"), 1824, 0)
+  Const BASE_LINE = Val(Field$(Mm.Info$(Line), 1, ","))
   GoSub 60
-  assert_raw_error(expected_error_msg$(BASE_LINE + 4, "bar1"))
+  assert_raw_error(expected_error_msg$(BASE_LINE + 10, "bar1"))
   GoSub 70
-  assert_raw_error(expected_error_msg$(BASE_LINE + 6, "bar2"))
+  assert_raw_error(expected_error_msg$(BASE_LINE + 12, "bar2"))
   On Error Skip
   Error "bar3"
-  assert_raw_error(expected_error_msg$(BASE_LINE, "bar3"))
+  assert_raw_error(expected_error_msg$(BASE_LINE + 6, "bar3"))
 End Sub
 
 60 On Error Skip : Error "bar1" : Return

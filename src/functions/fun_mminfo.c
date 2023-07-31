@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/console.h"
+#include "../common/cstring.h"
 #include "../common/mmtime.h"
 #include "../common/parse.h"
 #include "../common/path.h"
@@ -256,6 +257,22 @@ static void mminfo_hpos(const char *p) {
     g_rtn_type = T_INT;
 }
 
+static void mminfo_line(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_rtn_type = T_STR;
+    g_string_rtn = GetTempStrMemory();
+    int line;
+    char file[STRINGSIZE];
+    error_get_line_and_file(&line, file);
+    if (line == -1) {
+        strcpy(g_string_rtn, "UNKNOWN");
+    } else {
+        sprintf(g_string_rtn, "%d,", line);
+        if (FAILED(cstring_cat(g_string_rtn, file, STRINGSIZE))) ERROR_STRING_TOO_LONG;
+    }
+    CtoM(sret);
+}
+
 static void mminfo_option(const char *p) {
     OptionsDefinition *def = NULL;
     for (def = options_definitions; def->name; def++) {
@@ -398,6 +415,8 @@ void fun_mminfo(void) {
         mminfo_hres(p);
     } else if ((p = checkstring(ep, "HPOS"))) {
         mminfo_hpos(p);
+    } else if ((p = checkstring(ep, "LINE"))) {
+        mminfo_line(p);
     } else if ((p = checkstring(ep, "OPTION"))) {
         mminfo_option(p);
     } else if ((p = checkstring(ep, "PATH"))) {

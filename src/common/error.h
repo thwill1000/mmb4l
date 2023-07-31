@@ -62,6 +62,7 @@ typedef struct {
 extern ErrorState *mmb_error_state_ptr;
 extern ErrorState mmb_normal_error_state;
 
+void error_get_line_and_file(int *line, char *file_path);
 void error_init(ErrorState *error_state);
 void error_throw(MmResult error);
 void error_throw_ex(MmResult error, const char *msg, ...);
