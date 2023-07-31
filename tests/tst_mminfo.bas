@@ -122,7 +122,11 @@ Function expected_path$()
   If sys.is_device%("mmb4l") Then
     Local out$
     System "echo $HOME", out$
-    expected_path$ = out$ + "/github/mmb4l/tests/"
+    If Mm.Info(Exists Dir out$ + "/github/thwill1000") Then
+      expected_path$ = out$ + "/github/thwill1000/mmb4l/tests/"
+    Else
+      expected_path$ = out$ + "/github/mmb4l/tests/"
+    EndIf
   ElseIf sys.is_device%("mmb4w") Then
     expected_path$ = "C:\home-thwill\git_sandbox\github\mmb4l\tests\"
   ElseIf sys.is_device%("pm*") Then
