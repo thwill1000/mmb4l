@@ -224,8 +224,13 @@ void longjmp_handler(int jmp_state) {
 }
 
 int main(int argc, char *argv[]) {
-    if (FAILED(cmdline_parse(argc, (const char **) argv, &mmb_args))) {
-        fprintf(stderr, "Invalid command line arguments\n");
+    MmResult result = cmdline_parse(argc, (const char **) argv, &mmb_args);
+    if (FAILED(result)) {
+        if (result == kStringTooLong) {
+            fprintf(stderr, "Command line too long\n");
+        } else {
+            fprintf(stderr, "%s\n", mmresult_to_string(result));
+        }
         cmdline_print_usage();
         exit(EX_FAIL);
     }

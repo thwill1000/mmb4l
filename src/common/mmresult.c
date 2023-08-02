@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmresult.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -74,6 +74,7 @@ const char *mmresult_to_string(MmResult result) {
         case kInvalidName:          return "Invalid name";
         case kInvalidArrayDimensions: return "Dimensions";
         case kFunctionTypeMismatch: return "Not a function";
+        case kInvalidCommandLine: return "Invalid command line arguments";
         default:                    return "Unknown result code";
     }
 }
