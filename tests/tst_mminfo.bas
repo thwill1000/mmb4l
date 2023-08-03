@@ -22,7 +22,7 @@ If sys.is_device%("mmb4l") Then
 ElseIf sys.is_device%("mmb4w") Then
   Const EXPECTED_VERSION$ = "5.0703"
 ElseIf sys.is_device%("pm*") Then
-  Const EXPECTED_VERSION$ = "5.0707"
+  Const EXPECTED_VERSION$ = "5.0708"
 Else
   Const EXPECTED_VERSION$ = "5.0702"
 EndIf
@@ -631,9 +631,12 @@ End Sub
 
 Sub test_line()
   Const line$ = Mm.Info$(Line)
-  assert_int_equals(633, Val(Field$(line$, 1, ",")))
   If sys.is_device%("mmb4l") Then
+    assert_int_equals(633, Val(Field$(line$, 1, ",")))
     assert_string_equals(Mm.Info$(Current), Field$(line$, 2, ","))
+  Else
+    ' Line number refers to the transpiled file.
+    assert_int_equals(1922, Val(Field$(line$, 1, ",")))
   EndIf
 End Sub
 

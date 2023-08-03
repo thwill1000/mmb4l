@@ -40,6 +40,7 @@ End
 ' Test that an error thrown in the normal thread of execution is not visible
 ' in an interrupt.
 Sub test_error_normal()
+  Const BASE_LINE% = Val(Field$(Mm.Info$(Line), 1, ","))
   interrupt_called% = 0
   On Error Skip 1
   Error "foo"
@@ -48,12 +49,16 @@ Sub test_error_normal()
 
   assert_true(interrupt_called%)
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  If sys.is_device%("pm*") Then
-    assert_string_equals("[1869] foo", Mm.ErrMsg$)
-  Else
-    assert_string_equals("Error in line 45: foo", Mm.ErrMsg$)
-  EndIf
+  assert_string_equals(expected_error$(BASE_LINE% + 3, "foo"), Mm.ErrMsg$)
 End Sub
+
+Function expected_error$(line%, msg$)
+  If sys.is_device%("pm*") Then
+    expected_error$ = "[" + Str$(line%) + "] " + msg$
+  Else
+    expected_error$ = "Error in line " + Str$(line%) + ": " + msg$
+  EndIf
+End Function
 
 Sub interrupt1()
   interrupt_called% = 1
@@ -75,32 +80,27 @@ Sub test_error_in_interrupt()
 End Sub
 
 Sub interrupt2()
+  Const BASE_LINE% = Val(Field$(Mm.Info$(Line), 1, ","))
   interrupt_called% = 1
   On Error Skip 1
   Error "foo"
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  If sys.is_device%("pm*") Then
-    assert_string_equals("[1904] foo", Mm.ErrMsg$)
-  Else
-    assert_string_equals("Error in line 80: foo", Mm.ErrMsg$)
-  EndIf
+  assert_string_equals(expected_error$(BASE_LINE% + 3, "foo"), Mm.ErrMsg$)
   SetTick 0, interrupt2
 End Sub
 
 Sub test_error_given_pipe()
+  Const BASE_LINE% = Val(Field$(Mm.Info$(Line), 1, ","))
   On Error Skip 2
   Local s$ = "Hello|World" : Error "foo"
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  If sys.is_device%("pm*") Then
-    assert_string_equals("[1916] foo", Mm.ErrMsg$)
-  Else
-    assert_string_equals("Error in line 92: foo", Mm.ErrMsg$)
-  EndIf
+  assert_string_equals(expected_error$(BASE_LINE% + 2, "foo"), Mm.ErrMsg$)
 End Sub
 
 ' Test that a skip in the normal thread of execution is not swallowed by
 ' an interrupt.
 Sub test_interrupt_not_swallow()
+  Const BASE_LINE% = Val(Field$(Mm.Info$(Line), 1, ","))
   SetTick 1, interrupt3
   Local i%
   For i% = 1 To 1000
@@ -108,11 +108,7 @@ Sub test_interrupt_not_swallow()
     Error "foo" ' Should always be skipped
   Next
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  If sys.is_device%("pm*") Then
-    assert_string_equals("[1932] foo", Mm.ErrMsg$)
-  Else
-    assert_string_equals("Error in line 108: foo", Mm.ErrMsg$)
-  EndIf
+  assert_string_equals(expected_error$(BASE_LINE% + 5, "foo"), Mm.ErrMsg$)
   SetTick 0, interrupt3
 End Sub
 
@@ -137,6 +133,7 @@ Sub interrupt4()
 End Sub
 
 Sub test_on_error_skip_2()
+  Const BASE_LINE% = Val(Field$(Mm.Info$(Line), 1, ","))
   SetTick 1, interrupt3
   Local i%
   For i% = 1 To 1000
@@ -146,11 +143,7 @@ Sub test_on_error_skip_2()
     ' Error "wombat"
   Next
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
-  If sys.is_device%("pm*") Then
-    assert_string_equals("[1969] bar", Mm.ErrMsg$)
-  Else
-    assert_string_equals("Error in line 145: bar", Mm.ErrMsg$)
-  EndIf
+  assert_string_equals(expected_error$(BASE_LINE% + 6, "bar"), Mm.ErrMsg$)
   SetTick 0, interrupt3
 End Sub
 

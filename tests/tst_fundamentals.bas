@@ -220,34 +220,32 @@ Sub test_unary_plus()
 End Sub
 
 Sub test_error_correct_after_goto()
-  Const BASE_LINE = Val(Field$(Mm.Info$(Line), 1, ","))
+  Const BASE_LINE% = Val(Field$(Mm.Info$(Line), 1, ","))
   Goto 30
 test_goto_label_1:
-  assert_raw_error(expected_error_msg$(BASE_LINE + 12, "foo1"))
+  assert_raw_error(expected_error_msg$(BASE_LINE% + 11, "foo1"))
   Goto 40
 test_goto_label_2:
-  assert_raw_error(expected_error_msg$(BASE_LINE + 14, "foo2"))
+  assert_raw_error(expected_error_msg$(BASE_LINE% + 13, "foo2"))
   On Error Skip
   Error "foo3"
-  assert_raw_error(expected_error_msg$(BASE_LINE + 8, "foo3"))
+  assert_raw_error(expected_error_msg$(BASE_LINE% + 8, "foo3"))
 End Sub
-
 30 On Error Skip : Error "foo1" : Goto test_goto_label_1
 40 On Error Skip
 Error "foo2"
 Goto test_goto_label_2
 
 Sub test_error_correct_after_gosub()
-  Const BASE_LINE = Val(Field$(Mm.Info$(Line), 1, ","))
+  Const BASE_LINE% = Val(Field$(Mm.Info$(Line), 1, ","))
   GoSub 60
-  assert_raw_error(expected_error_msg$(BASE_LINE + 10, "bar1"))
+  assert_raw_error(expected_error_msg$(BASE_LINE% + 9, "bar1"))
   GoSub 70
-  assert_raw_error(expected_error_msg$(BASE_LINE + 12, "bar2"))
+  assert_raw_error(expected_error_msg$(BASE_LINE% + 11, "bar2"))
   On Error Skip
   Error "bar3"
-  assert_raw_error(expected_error_msg$(BASE_LINE + 6, "bar3"))
+  assert_raw_error(expected_error_msg$(BASE_LINE% + 6, "bar3"))
 End Sub
-
 60 On Error Skip : Error "bar1" : Return
 70 On Error Skip
 Error "bar2"
