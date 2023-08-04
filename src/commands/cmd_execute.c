@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_execute.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -106,7 +106,7 @@ void execute_other() {
         i++;
     }
     tokenise(true);  // and tokenise it (the result is in tknbuf)
-    memset(inpbuf, 0, STRINGSIZE);
+    memset(inpbuf, 0, INPBUF_SIZE);
     tknbuf[strlen(tknbuf)] = 0;
     tknbuf[strlen(tknbuf) + 1] = 0;
 

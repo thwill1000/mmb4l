@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Functions.c
 
-Copyright 2011-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -460,8 +460,8 @@ void fun_val(void) {
 
 //#if !defined(MX170)
 void fun_eval(void) {
-    char *s, *st, *temp_tknbuf;
-    temp_tknbuf = GetTempStrMemory();
+    char *s, *st;
+    char *temp_tknbuf = GetTempMemory(TKNBUF_SIZE);
     strcpy(temp_tknbuf, tknbuf);                                    // first save the current token buffer in case we are in immediate mode
     // we have to fool the tokeniser into thinking that it is processing a program line entered at the console
     st = GetTempStrMemory();

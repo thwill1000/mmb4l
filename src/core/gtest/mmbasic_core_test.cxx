@@ -859,7 +859,7 @@ TEST_F(MmBasicCoreTest, Tokenise_DimStatement) {
 
     tokenise(0);
 
-    char expected[256];
+    char expected[TKNBUF_SIZE];
     sprintf(
             expected,
             "%c%ca %c 1",
@@ -874,7 +874,7 @@ TEST_F(MmBasicCoreTest, Tokenise_RunStatement) {
 
     tokenise(0);
 
-    char expected[256];
+    char expected[TKNBUF_SIZE];
     sprintf(
             expected,
             "%c%c\"foo\", %c%cbase%c1",

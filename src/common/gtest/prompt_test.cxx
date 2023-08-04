@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Thomas Hugo Williams
+ * Copyright (c) 2022-2023 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -14,7 +14,7 @@ extern "C" {
 #include "../prompt.h"
 #include "../utility.h"
 
-char inpbuf[STRINGSIZE] = { '\0' };
+char inpbuf[INPBUF_SIZE] = { '\0' };
 int MMCharPos = 0;
 Options mmb_options = { 0 };
 PromptState prompt_state;

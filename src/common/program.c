@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 program.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -204,7 +204,7 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     char *pmem = ProgMemory;
 
     // First line in the program memory should be a comment containing the 'file_path'.
-    memset(inpbuf, 0, STRINGSIZE);
+    memset(inpbuf, 0, INPBUF_SIZE);
     sprintf(inpbuf, "'%s", file_path);
     tokenise(false);
     memcpy(pmem, tknbuf, strlen(tknbuf) + 1);
@@ -227,7 +227,7 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
         pend = pstart;
         while (*pend != '\n') pend++;
         if (pend - pstart > STRINGSIZE - 1) ERROR_LINE_TOO_LONG; // TODO: what cleans up the edit buffer ?
-        memset(inpbuf, 0, STRINGSIZE);
+        memset(inpbuf, 0, INPBUF_SIZE);
         memcpy(inpbuf, pstart, pend - pstart);
         //printf("%s\n", inpbuf);
 
@@ -877,13 +877,13 @@ static int program_load_file_internal(char *filename) {
 
 int program_load_file(char *filename) {
     // Store the current token buffer incase we are at the command prompt.
-    char tmp[STRINGSIZE];
-    memcpy(tmp, tknbuf, STRINGSIZE);
+    char tmp[TKNBUF_SIZE];
+    memcpy(tmp, tknbuf, TKNBUF_SIZE);
 
     int result = program_load_file_internal(filename);
 
     // Restore the token buffer.
-    memcpy(tknbuf, tmp, STRINGSIZE);
+    memcpy(tknbuf, tmp, TKNBUF_SIZE);
 
     // Set the console window title.
     char title[STRINGSIZE + 10];

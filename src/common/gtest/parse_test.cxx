@@ -7,6 +7,7 @@
 
 extern "C" {
 
+#include "../cstring.h"
 #include "../memory.h"
 #include "../parse.h"
 #include "../utility.h"
@@ -80,8 +81,8 @@ TEST_F(ParseTest, ParseName_GivenNameTooLong) {
 }
 
 TEST_F(ParseTest, ParseTransformInputBuffer_GivenStarCommand) {
-    char input[STRINGSIZE];
-    char expected[STRINGSIZE];
+    char input[INPBUF_SIZE];
+    char expected[INPBUF_SIZE];
 
     // Given star with a file.
     strcpy(input, "*foo");
@@ -145,28 +146,34 @@ TEST_F(ParseTest, ParseTransformInputBuffer_GivenStarCommand) {
     EXPECT_STREQ("RUN \"foo\", Chr$(34) + \"wom\" + Chr$(34) + \" \" + Chr$(34) + \"bat\" + Chr$(34)", input);
 
     // Given maximum length input.
-    memcpy(input, "*foo \"", 6);
-    memset(input + 6, 'A', 220);
-    memcpy(input + 226, "\"", 2);
+    input[0] = '\0';
+    cstring_cat(input, "*foo \"", INPBUF_SIZE);
+    for (int i = 0; i < INPBUF_SIZE - 36; ++i) cstring_cat(input, "A", INPBUF_SIZE);
+    cstring_cat(input, "\"", INPBUF_SIZE);
+
+    expected[0] = '\0';
+    cstring_cat(expected, "RUN \"foo\", Chr$(34) + \"", INPBUF_SIZE);
+    for (int i = 0; i < INPBUF_SIZE - 36; ++i) cstring_cat(expected, "A", INPBUF_SIZE);
+    cstring_cat(expected, "\" + Chr$(34)", INPBUF_SIZE);
+
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
-    EXPECT_EQ(STRINGSIZE - 1, strlen(input));
-    memcpy(expected, "RUN \"foo\", Chr$(34) + \"", 23);
-    memset(expected + 23, 'A', 220);
-    memcpy(expected + 243, "\" + Chr$(34)", 13);
+    EXPECT_EQ(INPBUF_SIZE - 1, strlen(input));
     EXPECT_STREQ(expected, input);
 
     // Given expanded command is too long.
-    memcpy(input, "*foo \"", 6);
-    memset(input + 6, 'A', 221);
-    memcpy(input + 227, "\"", 2);
+    input[0] = '\0';
+    cstring_cat(input, "*foo \"", INPBUF_SIZE);
+    for (int i = 0; i < INPBUF_SIZE - 35; ++i) cstring_cat(input, "A", INPBUF_SIZE);
+    cstring_cat(input, "\"", INPBUF_SIZE);
     strcpy(expected, input);
+
     EXPECT_EQ(kStringTooLong, parse_transform_input_buffer(input));
     EXPECT_STREQ(expected, input);
 }
 
 TEST_F(ParseTest, ParseTransformInputBuffer_GivenBangCommand) {
-    char input[STRINGSIZE];
-    char expected[STRINGSIZE];
+    char input[INPBUF_SIZE];
+    char expected[INPBUF_SIZE];
 
     // Given bang on its own.
     strcpy(input, "!");
@@ -197,55 +204,62 @@ TEST_F(ParseTest, ParseTransformInputBuffer_GivenBangCommand) {
     EXPECT_STREQ("SYSTEM Chr$(34) + \"foo\" + Chr$(34)", input);
 
     // Given bang with a command of maximum length.
-    // input:    !<246 * 'A'>
-    // expected: SYSTEM "<246 * 'A'>"
-    input[0] = '!';
-    memset(input + 1, 'A', 246);
-    input[247] = '\0';
+    // input:    !<502 * 'A'>
+    // expected: SYSTEM "<502 * 'A'>"
+    input[0] = '\0';
+    cstring_cat(input, "!", INPBUF_SIZE);
+    for (int i = 0; i < INPBUF_SIZE - 10; ++i) cstring_cat(input, "A", INPBUF_SIZE);
+
+    expected[0] = '\0';
+    cstring_cat(expected, "SYSTEM \"", INPBUF_SIZE);
+    cstring_cat(expected, input + 1, INPBUF_SIZE);
+    cstring_cat(expected, "\"", INPBUF_SIZE);
+
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
-    EXPECT_EQ(STRINGSIZE - 1, strlen(input));
-    memcpy(expected, "SYSTEM \"", 8);
-    memset(expected + 8, 'A', 246);
-    expected[254] = '"';
-    expected[255] = '\0';
+    EXPECT_EQ(INPBUF_SIZE - 1, strlen(input));
     EXPECT_STREQ(expected, input);
 
     // Given bang with a command that is too long.
-    // input:    !<247 * 'A'>
+    // input:    !<503 * 'A'>
     // expected: kStringTooLong
-    input[0] = '!';
-    memset(input + 1, 'A', 247);
-    input[248] = '\0';
+    input[0] = '\0';
+    cstring_cat(input, "!", INPBUF_SIZE);
+    for (int i = 0; i < INPBUF_SIZE - 9; ++i) cstring_cat(input, "A", INPBUF_SIZE);
     strcpy(expected, input);
+
     EXPECT_EQ(kStringTooLong, parse_transform_input_buffer(input));
     EXPECT_STREQ(expected, input);
 
     // Given bang with a command whose Chr$(34) expansion makes it of maximum length.
-    // input:    !"<235 * 'A'>
-    // expected: SYSTEM Chr$(34) + "<235 * 'A'>"
-    input[0] = '!';
-    input[1] = '"';
-    memset(input + 2, 'A', 235);
-    input[237] = '\0'; // !"<235 x 'A'>
+    // input:    !"<491 * 'A'>
+    // expected: SYSTEM Chr$(34) + "<491 * 'A'>"
+    input[0] = '\0';
+    cstring_cat(input, "!\"", INPBUF_SIZE);
+    for (int i = 0; i < INPBUF_SIZE - 21; ++i) cstring_cat(input, "A", INPBUF_SIZE);
+
+    expected[0] = '\0';
+    cstring_cat(expected, "SYSTEM Chr$(34) + \"", INPBUF_SIZE);
+    cstring_cat(expected, input + 2, INPBUF_SIZE);
+    cstring_cat(expected, "\"", INPBUF_SIZE);
+
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
-    EXPECT_EQ(STRINGSIZE - 1, strlen(input));
-    memcpy(expected, "SYSTEM Chr$(34) + \"", 19);
-    memset(expected + 19, 'A', 235);
-    expected[254] = '"';
-    expected[255] = '\0';
+    EXPECT_EQ(INPBUF_SIZE - 1, strlen(input));
     EXPECT_STREQ(expected, input);
 
     // Given bang with a command whose Chr$(34) expansion makes it too long.
-    // input:    !"<236 * 'A'>
+    // input:    !"<492 * 'A'>
     // expected: kStringTooLong
-    input[0] = '!';
-    input[1] = '"';
-    memset(input + 2, 'A', 236);
-    input[238] = '\0';
+    input[0] = '\0';
+    cstring_cat(input, "!\"", INPBUF_SIZE);
+    for (int i = 0; i < INPBUF_SIZE - 20; ++i) cstring_cat(input, "A", INPBUF_SIZE);
+    strcpy(expected, input);
+
+    EXPECT_EQ(kStringTooLong, parse_transform_input_buffer(input));
+    EXPECT_STREQ(expected, input);
 }
 
 TEST_F(ParseTest, ParseTransformInputBuffer_GivenBangCdCommand) {
-    char input[STRINGSIZE];
+    char input[INPBUF_SIZE];
 
     // Given no directory.
     strcpy(input, "!cd");
@@ -299,7 +313,7 @@ TEST_F(ParseTest, ParseTransformInputBuffer_GivenBangCdCommand) {
 }
 
 TEST_F(ParseTest, ParseTransformInputBuffer_GivenNormalCommand) {
-    char input[STRINGSIZE];
+    char input[INPBUF_SIZE];
     strcpy(input, "  PRINT \"Hello World\"  ");
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
     EXPECT_STREQ("  PRINT \"Hello World\"  ", input);

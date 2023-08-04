@@ -45,13 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_CMDLINE)
 #define MMB4L_CMDLINE
 
+#include "../Configuration.h"
 #include "mmresult.h"
 
 typedef struct {
     char help;
     char interactive;
     char version;
-    char run_cmd[256];
+    char run_cmd[INPBUF_SIZE];
     char directory[256];
 } CmdLineArgs;
 

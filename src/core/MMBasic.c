@@ -118,8 +118,8 @@ char CurrentInterruptName[MAXVARLEN + 2];                           // the name 
 
 jmp_buf mark;                                                       // longjump to recover from an error and abort
 jmp_buf ErrNext;                                                    // longjump to recover from an error and continue
-char inpbuf[STRINGSIZE];                                            // used to store user keystrokes until we have a line
-char tknbuf[STRINGSIZE];                                            // used to store the tokenised representation of the users input line
+char inpbuf[INPBUF_SIZE];                                           // used to store user keystrokes until we have a line
+char tknbuf[TKNBUF_SIZE];                                           // used to store the tokenised representation of the users input line
 
 const char DIGIT_CHARS[256] = {
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0

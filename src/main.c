@@ -218,7 +218,7 @@ void longjmp_handler(int jmp_state) {
 
     ContinuePoint = nextstmt;  // In case the user wants to use the continue command
     *tknbuf = 0;               // we do not want to run whatever is in the token buffer
-    memset(inpbuf, 0, STRINGSIZE);
+    memset(inpbuf, 0, INPBUF_SIZE);
 
     reset_console_title();
 }
@@ -326,7 +326,7 @@ int main(int argc, char *argv[]) {
         //       from CTRL-C or ERROR.
         interrupt_clear();
 
-        memset(inpbuf, 0, STRINGSIZE);
+        memset(inpbuf, 0, INPBUF_SIZE);
         if (run_flag) {
             if (mmb_args.interactive) {
                 console_puts(mmb_args.run_cmd);

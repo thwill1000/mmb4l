@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Configuration.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -80,6 +80,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TRACE_BUFF_SIZE     128                     // capacity of the trace buffer
 //#define MAXERRMSG           32                      // max error msg size (MM.ErrMsg$ is truncated to this)
 #define MAXERRMSG           256                     // max error msg size (MM.ErrMsg$ is truncated to this)
+#define INPBUF_SIZE         512                     // Size of the input buffer, inpbuf[].
+#define TKNBUF_SIZE         512                     // Size of the token buffer, tknbuf[].
 
 
 // define the maximum number of arguments to PRINT, INPUT, WRITE, ON, DIM, ERASE, DATA and READ

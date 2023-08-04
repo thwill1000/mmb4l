@@ -8,6 +8,7 @@
 extern "C" {
 
 #include "../cmdline.h"
+#include "../cstring.h"
 #include "../parse.h"
 
 int LocalIndex = 0;
@@ -210,14 +211,36 @@ TEST(CmdLineTest, Parse_GivenUnknownFlag) {
     EXPECT_EQ(kInvalidCommandLine, cmdline_parse(argc, argv, &args));
 }
 
-TEST(CmdLineTest, Parse_GivenCommandLineTooLong) {
+TEST(CmdLineTest, Parse_GivenCommandLineMaxLength) {
+    char input[INPBUF_SIZE] = { 0 };
+    cstring_cat(input, "\"", INPBUF_SIZE);
+    for (int i = 0; i < INPBUF_SIZE - 7; ++i) cstring_cat(input, "A", INPBUF_SIZE);
+    cstring_cat(input, "\"", INPBUF_SIZE);
+
     int argc = 2;
     const char *argv[10];
     argv[0] = "mmbasic";
-    argv[1] = "\"really/really/really/really/really/really/really/really/really/really/really"
-            "/really/really/really/really/really/really/really/really/really/really/really/really"
-            "/really/really/really/really/really/really/really/really/really/really/really/really"
-            "/really/really/really/really/really/really/really/really/really/really/really/long\"";
+    argv[1] = input;
+    CmdLineArgs args = { 0 };
+
+    char expected[INPBUF_SIZE] = { 0 };
+    cstring_cat(expected, "RUN ", INPBUF_SIZE);
+    cstring_cat(expected, input, INPBUF_SIZE);
+
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
+    EXPECT_STREQ(expected, args.run_cmd);
+}
+
+TEST(CmdLineTest, Parse_GivenCommandLineTooLong) {
+    char input[INPBUF_SIZE] = { 0 };
+    cstring_cat(input, "\"", INPBUF_SIZE);
+    for (int i = 0; i < INPBUF_SIZE - 6; ++i) cstring_cat(input, "A", INPBUF_SIZE);
+    cstring_cat(input, "\"", INPBUF_SIZE);
+
+    int argc = 2;
+    const char *argv[10];
+    argv[0] = "mmbasic";
+    argv[1] = input;
     CmdLineArgs args = { 0 };
 
     EXPECT_EQ(kStringTooLong, cmdline_parse(argc, argv, &args));
