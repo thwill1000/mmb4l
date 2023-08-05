@@ -21,10 +21,12 @@ Dim interrupt_called% = 0
 
 If sys.is_device%("cmm2*") Then Goto skip_tests
 
-add_test("test_error_normal")
-add_test("test_error_in_interrupt")
+add_test("test_system_error")
+add_test("test_user_error")
+add_test("Error in main thread not visible in interrupt", "test_error_in_normal")
+add_test("Error in interrupt not visible in main thread", "test_error_in_interrupt")
 add_test("test_error_given_pipe")
-add_test("test_interrupt_does_not_swallow_skip", "test_interrupt_not_swallow")
+add_test("Skip in normal thread not swallowed by interrupt", "test_interrupt_not_swallow")
 add_test("test_on_error_skip_2")
 ' Can't keep these tests enabled as they are designed to throw uncaught ERRORs.
 ' add_test("test_interrupt_does_not_ignore", "test_interrupt_not_ignore")
@@ -37,9 +39,37 @@ If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
 
+Sub test_system_error()
+  Const BASE_LINE% = Val(Field$(Mm.Info$(Line), 1, ","))
+  On Error Skip 1
+  Local x% = 1 / 0
+  If sys.is_device%("pm*") Then
+    ' System error messages on the PicoMite do not include the line number,
+    ' instead they offending line (with number) is printed to the console beforehand.
+    assert_string_equals("Divide by zero", Mm.ErrMsg$)
+  Else
+    assert_string_equals(expected_error$(BASE_LINE% + 2, "Divide by zero"), Mm.ErrMsg$)
+  EndIf
+End Sub
+
+Function expected_error$(line%, msg$)
+  If sys.is_device%("pm*") Then
+    expected_error$ = "[" + Str$(line%) + "] " + msg$
+  Else
+    expected_error$ = "Error in line " + Str$(line%) + ": " + msg$
+  EndIf
+End Function
+
+Sub test_user_error()
+  Const BASE_LINE% = Val(Field$(Mm.Info$(Line), 1, ","))
+  On Error Skip 1
+  Error "foo"
+  assert_string_equals(expected_error$(BASE_LINE% + 2, "foo"), Mm.ErrMsg$)
+End Sub
+
 ' Test that an error thrown in the normal thread of execution is not visible
 ' in an interrupt.
-Sub test_error_normal()
+Sub test_error_in_normal()
   Const BASE_LINE% = Val(Field$(Mm.Info$(Line), 1, ","))
   interrupt_called% = 0
   On Error Skip 1
@@ -51,14 +81,6 @@ Sub test_error_normal()
   assert_int_equals(EXPECTED_ERROR_CODE%, Mm.ErrNo)
   assert_string_equals(expected_error$(BASE_LINE% + 3, "foo"), Mm.ErrMsg$)
 End Sub
-
-Function expected_error$(line%, msg$)
-  If sys.is_device%("pm*") Then
-    expected_error$ = "[" + Str$(line%) + "] " + msg$
-  Else
-    expected_error$ = "Error in line " + Str$(line%) + ": " + msg$
-  EndIf
-End Function
 
 Sub interrupt1()
   interrupt_called% = 1
