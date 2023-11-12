@@ -4,6 +4,7 @@ ChangeLog
 Version 0.6.0 - ??-???-????:
   - Changed file path reported in an error message to be canonicalised.
   - Changed maximum error message length to 255 characters (from 127).
+  - Changed MODE to clear the console.
   - Fixed bugs in DIR$() function that would cause a crash if called with no
     arguments:
         - If it had never been initialised with a pattern to match.

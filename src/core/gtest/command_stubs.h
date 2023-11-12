@@ -50,6 +50,7 @@ void cmd_math() { }
 void cmd_memory() { }
 void cmd_mid() { }
 void cmd_mkdir() { }
+void cmd_mode() { }
 void cmd_new() { }
 void cmd_next() { }
 void cmd_null() { }
