@@ -17,6 +17,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 
 Const BASE% = Mm.Info(Option Base)
 
+add_test("test_array_decl_errors")
 add_test("test_erase")
 add_test("test_erase_given_arrays")
 add_test("test_erase_given_strings")
@@ -29,6 +30,16 @@ add_test("test_error_correct_after_gosub")
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
+
+Sub test_array_decl_errors()
+  On Error Skip
+  Local a%(BASE%)
+  assert_raw_error("Dimensions")
+
+  On Error Skip
+  Local b%(5, BASE%)
+  assert_raw_error("Dimensions")
+End Sub
 
 Sub test_erase()
   Dim foo%, bar!, wombat$

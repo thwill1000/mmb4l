@@ -1776,12 +1776,12 @@ void *findvar(const char *p, int action) {
             // the bracket in "(," is a signal to getargs that the list is in brackets
             getargs(&p, MAXDIM * 2, "(,");
             if ((argc & 0x01) == 0) {
-                error("Dimensions");
+                error_throw(kInvalidArrayDimensions);
                 return NULL;
             }
             dnbr = argc / 2 + 1;
             if (dnbr > MAXDIM) {
-                error("Dimensions");
+                error_throw(kInvalidArrayDimensions);
                 return NULL;
             }
             for (int i = 0; i < argc; i += 2) {
@@ -1798,7 +1798,7 @@ void *findvar(const char *p, int action) {
                 }
                 dim[i / 2] = in;
                 if (dim[i / 2] < OptionBase) {
-                    error("Dimensions");
+                    error_throw(kInvalidArrayDimensions);
                     return NULL;
                 }
             }
@@ -1947,9 +1947,11 @@ void *findvar(const char *p, int action) {
     // If we are declaring a new array then the bound of the first dimension must
     // be greater than OPTION BASE. This isn't caught inside vartbl_add()
     // because it uses a value of dim[0] == 0 to mean a scalar variable.
-    if (dnbr > 0 && dim[0] <= mmb_options.base) {
-        error("Dimensions");
-        return NULL;
+    for (int i = 0; i < dnbr; ++i) {
+        if (dim[i] <= mmb_options.base) {
+            error_throw(kInvalidArrayDimensions);
+            return NULL;
+        }
     }
 
     // If it is an array we must be dimensioning it.

@@ -667,8 +667,22 @@ TEST_F(MmBasicCoreTest, FindVar_GivenDimArrayWithDimensionEqualToOptionBase) {
 
     EXPECT_STREQ("Dimensions", error_msg);
 
+    mmb_options.base = 0;
+    sprintf(m_program, "foo2D(2, 0) = ...");
+    error_msg[0] = '\0';
+    (void) findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("Dimensions", error_msg);
+
     mmb_options.base = 1;
     sprintf(m_program, "bar(1) = ...");
+    error_msg[0] = '\0';
+    (void) findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("Dimensions", error_msg);
+
+    mmb_options.base = 1;
+    sprintf(m_program, "bar2D(2, 1) = ...");
     error_msg[0] = '\0';
     (void) findvar(m_program, V_DIM_VAR);
 

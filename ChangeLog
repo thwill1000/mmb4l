@@ -12,6 +12,8 @@ Version 0.6.0 - ??-???-????:
           already been returned.
   - Fixed bug in CALL command and function to allow the function/subroutine
     name to be provided by a non-trivial expression.
+  - Fixed bug in variable declaration where 2nd and subsequent dimensions
+    of a multi-dimensional array could be declared with 1 element.
 
 Version 0.5.0 - 3-Feb-2023:
   - Changed to semantic versioning scheme.
