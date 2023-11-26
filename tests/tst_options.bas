@@ -1,4 +1,4 @@
-' Copyright (c) 2022 Thomas Hugo Williams
+' Copyright (c) 2022-2023 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -18,7 +18,7 @@ If Not sys.is_device%("mmb4l") Then Goto skip_tests
 
 Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
-Const HOME$ = sys.string_prop$("home")
+Const HOME$ = sys.HOME$()
 Const IS_ANDROID% = Mm.Info$(Arch) = "Android aarch64"
 
 add_test("test_option_load")

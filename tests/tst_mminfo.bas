@@ -162,7 +162,7 @@ Sub test_directory()
 
   Local actual$ = Mm.Info$(Directory)
 
-  assert_string_equals(expected_dir$ + sys.string_prop$("separator"), actual$)
+  assert_string_equals(expected_dir$ + sys.SEPARATOR$(), actual$)
   assert_string_equals(Left$(actual$, Len(actual$) - 1), Cwd$)
 End Sub
 
