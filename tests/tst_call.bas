@@ -94,7 +94,7 @@ Sub test_call_fun_as_sub()
   Call "int_fn", i%
   If sys.is_device%("mmb4l") Then
     assert_raw_error("Not a subroutine")
-  ElseIf sys.is_device%("pmvga") Then
+  ElseIf sys.is_device%("pm*") Then
     assert_raw_error("Unknown user subroutine")
   Else
     assert_raw_error("Type specification is invalid")
@@ -144,7 +144,7 @@ Sub test_call_fun_too_long_name()
   i% = Call("fun_with_too_long_name_4567890123%", i%)
   If sys.is_device%("mmb4l") Then
     assert_raw_error("Function name too long")
-  ElseIf sys.is_device%("pmvga") Then
+  ElseIf sys.is_device%("pm*") Then
     assert_raw_error("Unknown user function")
   Else
     assert_raw_error("Variable name too long")
@@ -163,7 +163,7 @@ Sub test_call_sub_too_long_name()
   Call "sub_with_too_long_name_4567890123", i%
   If sys.is_device%("mmb4l") Then
     assert_raw_error("Subroutine name too long")
-  ElseIf sys.is_device%("pmvga") Then
+  ElseIf sys.is_device%("pm*") Then
     assert_raw_error("Unknown user subroutine")
   Else
     assert_raw_error("Variable name too long")

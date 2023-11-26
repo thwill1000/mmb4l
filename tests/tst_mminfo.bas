@@ -636,7 +636,7 @@ Sub test_line()
     assert_string_equals(Mm.Info$(Current), Field$(line$, 2, ","))
   Else
     ' Line number refers to the transpiled file.
-    assert_int_equals(1922, Val(Field$(line$, 1, ",")))
+    assert_int_equals(2151, Val(Field$(line$, 1, ",")))
   EndIf
 End Sub
 

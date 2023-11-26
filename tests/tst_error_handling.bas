@@ -44,7 +44,7 @@ Sub test_system_error()
   On Error Skip 1
   Local x% = 1 / 0
   If sys.is_device%("pm*") Then
-    ' System error messages on the PicoMite do not include the line number,
+    ' Error messages on the PicoMite do not include the line number,
     ' instead they offending line (with number) is printed to the console beforehand.
     assert_string_equals("Divide by zero", Mm.ErrMsg$)
   Else
@@ -54,7 +54,7 @@ End Sub
 
 Function expected_error$(line%, msg$)
   If sys.is_device%("pm*") Then
-    expected_error$ = "[" + Str$(line%) + "] " + msg$
+    expected_error$ = msg$
   Else
     expected_error$ = "Error in line " + Str$(line%) + ": " + msg$
   EndIf

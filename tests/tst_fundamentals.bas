@@ -264,7 +264,7 @@ Return
 
 Function expected_error_msg$(line%, msg$)
   If sys.is_device%("pm*") Then
-  expected_error_msg$ = "[" + Str$(line%) + "] " + msg$
+    expected_error_msg$ = msg$
   Else
     expected_error_msg$ = "Error in line " + Str$(line%) + ": " + msg$
   EndIf
