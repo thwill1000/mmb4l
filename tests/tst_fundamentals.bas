@@ -26,6 +26,7 @@ add_test("test_unary_minus")
 add_test("test_unary_plus")
 add_test("test_error_correct_after_goto")
 add_test("test_error_correct_after_gosub")
+add_test("test_equals_as_string_terminator")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -261,6 +262,14 @@ End Sub
 70 On Error Skip
 Error "bar2"
 Return
+
+' Tests that the = is recognised as a separate token and not part of the "Integer" string.
+Sub test_equals_as_string_terminator()
+'!disable-format
+  Dim i As Integer=10
+  assert_int_equals(10, i)
+'!disable-format off
+End Sub
 
 Function expected_error_msg$(line%, msg$)
   If sys.is_device%("pm*") Then

@@ -2738,13 +2738,13 @@ void checkend(const char *p) {
 
 
 // check if the next text in an element (a basic statement) corresponds to an alpha string
-// leading whitespace is skipped and the string must be terminated with a valid terminating
-// character (space, null, comma or comment). Returns a pointer to the next
-// non space character after the matched string if found or NULL if not
+// leading whitespace is skipped and the string must be terminated by a non-name character.
+// Returns a pointer to the next non space character after the matched string if found,
+// or NULL if not
 const char *checkstring(const char *p, const char *tkn) {
-    skipspace(p);                                           // skip leading spaces
+    skipspace(p);                                                   // skip leading spaces
     while(*tkn && (toupper(*tkn) == toupper(*p))) { tkn++; p++; }   // compare the strings
-    if(*tkn == 0 && (*p == ' ' || *p == ',' || *p == '\'' || *p == '(' || *p == 0)) {
+    if (*tkn == 0 && !isnamechar(*p)) {
         skipspace(p);
         return p;                                                   // if successful return a pointer to the next non space character after the matched string
     }
