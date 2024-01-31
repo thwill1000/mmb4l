@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 error.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -102,8 +102,10 @@ uint8_t error_to_exit_code(MmResult error);
 #define ERROR_NOT_SERIAL_PORT             error_throw_ex(kError, "Not a serial port")
 #define ERROR_NUMBER_OUT_OF_BOUNDS        error_throw_ex(kError, "Number out of bounds")
 #define ERROR_OUT_OF_MEMORY               error_throw_ex(kError, "Not enough memory")
+#define ERROR_OVERFLOW                    error_throw(kOverflow)
 #define ERROR_PATH_TOO_LONG               error_throw_ex(kFilenameTooLong, "Path too long")
 #define ERROR_SIZE_MISMATCH               error_throw_ex(kError, "Size mismatch")
+#define ERROR_STRING_LENGTH               error_throw(kStringLength)
 #define ERROR_STRING_TOO_LONG             error_throw(kStringTooLong)
 #define ERROR_SYNTAX                      error_throw(kSyntax)
 #define ERROR_SYSTEM_COMMAND_FAILED       error_throw_ex(kError, "System command failed")

@@ -27,6 +27,8 @@ add_test("test_mid_function")
 add_test("test_mid_command")
 add_test("test_oct_function")
 add_test("test_str_function")
+add_test("test_bin2str_function")
+add_test("test_str2bin_function")
 add_test("test special chars with OPTION ESCAPE","test_option_escape")
 add_test("test special chars in DATA strings","test_option_escape_given_data")
 add_test("test special case &00 and 000","test_option_escape_given_null")
@@ -190,6 +192,75 @@ Sub test_str_function()
   assert_string_equals("  -1", Str$(-1, 4))
   assert_string_equals("9223372036854775807", Str$(MAX_INT%, 4))
   assert_string_equals("-9223372036854775808", Str$(MIN_INT%, 4))
+End Sub
+
+Sub test_bin2str_function()
+  Local expected$, fn$, val$, type$
+
+  ' Little endian.
+  Restore bin2str_data
+  Do
+    Read val$, type$, expected$
+    If val$ = "" Then Exit Do
+    expected$ = str.decode$(expected$)
+    fn$ = "Bin2Str$(" + type$ + ", " + val$ + ")"
+    assert_string_equals(expected$, Eval(fn$))
+  Loop
+
+  ' Big endian.
+  Restore bin2str_data
+  Do
+    Read val$, type$, expected$
+    If val$ = "" Then Exit Do
+    expected$ = str.reverse$(str.decode$(expected$))
+    fn$ = "Bin2Str$(" + type$ + ", " + val$ + ", Big)"
+    assert_string_equals(expected$, Eval(fn$))
+  Loop
+End Sub
+
+bin2str_data:
+Data "32",   "Int64",  "\x20\x00\x00\x00\x00\x00\x00\x00"
+Data "32",   "UInt64", "\x20\x00\x00\x00\x00\x00\x00\x00"
+Data "32",   "Int32",  "\x20\x00\x00\x00"
+Data "32",   "UInt32", "\x20\x00\x00\x00"
+Data "32",   "Int16",  "\x20\x00"
+Data "32",   "UInt16", "\x20\x00"
+Data "32",   "Int8",   "\x20"
+Data "32",   "UInt8",  "\x20"
+Data "32.0", "Single", "\x00\x00\x00\x42"
+Data "32.0", "Double", "\x00\x00\x00\x00\x00\x00\x40\x40"
+Data "", "", ""
+
+Sub test_str2bin_function()
+  Local expected$, fn$, val$, type$
+
+  ' Little endian.
+  Restore bin2str_data
+  Do
+    Read expected$, type$, val$
+    If expected$ = "" Then Exit Do
+    val$ = str.decode$(val$)
+    fn$ = "Str2Bin(" + type$ + ", val$)"
+    If InStr("Single|Double", type$) Then
+      assert_float_equals(Val(expected$), Eval(fn$))
+    Else
+      assert_int_equals(Val(expected$), Eval(fn$))
+    EndIf
+  Loop
+
+  ' Big endian.
+  Restore bin2str_data
+  Do
+    Read expected$, type$, val$
+    If expected$ = "" Then Exit Do
+    val$ = str.reverse$(str.decode$(val$))
+    fn$ = "Str2Bin(" + type$ + ", val$, Big)"
+    If InStr("Single|Double", type$) Then
+      assert_float_equals(Val(expected$), Eval(fn$))
+    Else
+      assert_int_equals(Val(expected$), Eval(fn$))
+    EndIf
+  Loop
 End Sub
 
 Sub test_option_escape()

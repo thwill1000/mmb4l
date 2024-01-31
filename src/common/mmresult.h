@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmresult.h
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -65,6 +65,7 @@ typedef enum {
     kError                = 256,
     kInternalFault,
     kSyntax,
+    kStringLength,
     kStringTooLong,
     kInvalidFormat,
     kUnknownOption,
@@ -76,6 +77,7 @@ typedef enum {
     kUnknownSystemCommand,
     kNotPersistent,
     kNameTooLong,
+    kOverflow,
     kUnimplemented,
     kFunctionNotFound,
     kVariableNotFound,

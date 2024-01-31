@@ -94,6 +94,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
 
 set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_at.c
+    src/functions/fun_bin2str.c
     src/functions/fun_bound.c
     src/functions/fun_call.c
     src/functions/fun_choice.c
@@ -123,6 +124,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_mminfo.c
     src/functions/fun_peek.c
     src/functions/fun_rgb.c
+    src/functions/fun_str2bin.c
     src/functions/fun_time.c
     src/functions/fun_timer.c
     src/functions/fun_vres.c
