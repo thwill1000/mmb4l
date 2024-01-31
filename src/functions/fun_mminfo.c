@@ -337,23 +337,20 @@ static void mminfo_version(const char *p) {
     g_rtn_type = T_INT;
     if ((p2 = checkstring(p, "MAJOR"))) {
         if (!parse_is_end(p2)) ERROR_SYNTAX;
-        g_integer_rtn = MAJOR_VERSION;
+        g_integer_rtn = MM_MAJOR;
     } else if ((p2 = checkstring(p, "MINOR"))) {
         if (!parse_is_end(p2)) ERROR_SYNTAX;
-        g_integer_rtn = MINOR_VERSION;
+        g_integer_rtn = MM_MINOR;
     } else if ((p2 = checkstring(p, "MICRO"))) {
         if (!parse_is_end(p2)) ERROR_SYNTAX;
-        g_integer_rtn = MICRO_VERSION;
+        g_integer_rtn = MM_MICRO;
     } else if ((p2 = checkstring(p, "BUILD"))) {
         if (!parse_is_end(p2)) ERROR_SYNTAX;
         g_integer_rtn = BUILD_NUMBER;
     } else if (!parse_is_end(p)) {
         ERROR_SYNTAX;
     } else {
-        g_integer_rtn = MAJOR_VERSION * 100000000
-                + MINOR_VERSION * 1000000
-                + MICRO_VERSION * 10000
-                + BUILD_NUMBER;
+        g_integer_rtn = MM_VERSION;
     }
 }
 

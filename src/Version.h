@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Version.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -75,17 +75,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(__mmb4l__)
     #define MM_DEVICE   "MMB4L"
-    #define MAJOR_VERSION  0
-    #define MINOR_VERSION  6
-    #define MICRO_VERSION  0
-    #define BUILD_NUMBER   0
-    #define STR_HELPER(x)  #x
-    #define STR(x)         STR_HELPER(x)
-    #define VERSION        STR(MAJOR_VERSION) "." STR(MINOR_VERSION) "." STR(MICRO_VERSION)
-    #define COPYRIGHT      "Copyright 2011-2023 Geoff Graham\r\n" \
-                           "Copyright 2016-2023 Peter Mather\r\n" \
-                           "Copyright 2021-2023 Thomas Hugo Williams\r\n"
-    #define MES_SIGNON  MM_ARCH " MMBasic Version " VERSION "\r\n"
+    #define MM_MAJOR    0
+    #define MM_MINOR    6
+    #define MM_MICRO    300
+    #define MM_VERSION  (MM_MAJOR * 1000000000) + (MM_MINOR * 10000000) + (MM_MICRO) * 10000 + BUILD_NUMBER
+    #define BUILD_NUMBER   0  // Currently always 0.
+    #define COPYRIGHT      "Copyright 2011-2024 Geoff Graham\r\n" \
+                           "Copyright 2016-2024 Peter Mather\r\n" \
+                           "Copyright 2021-2024 Thomas Hugo Williams\r\n"
 #else
     #error __mmb4l__ is not defined
 #endif

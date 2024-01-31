@@ -158,7 +158,7 @@ void fun_min(void);
   { "Len(",       T_FUN  | T_INT,         0, fun_len      },
   { "Log(",       T_FUN  | T_NBR,         0, fun_log      },
   { "Mid$(",      T_FUN  | T_STR,         0, fun_mid      },
-  { "MM.Ver",     T_FNA  | T_NBR,         0, fun_version  },
+  { "MM.Ver",     T_FNA  | T_INT,         0, fun_version  },
   { "Oct$(",      T_FUN  | T_STR,         0, fun_oct      },
   { "Pi",         T_FNA  | T_NBR,         0, fun_pi       },
   { "Pos",        T_FNA  | T_INT,         0, fun_pos      },

@@ -18,7 +18,7 @@ Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
 If sys.is_platform%("mmb4l") Then
-  Const EXPECTED_VERSION$ = "6000000"
+  Const EXPECTED_VERSION$ = "63000000"
 ElseIf sys.is_platform%("mmb4w") Then
   Const EXPECTED_VERSION$ = "5.0703"
 ElseIf sys.is_platform%("pm*") Then
@@ -996,7 +996,7 @@ Sub test_version()
   If sys.is_platform%("mmb4l") Then
     assert_int_equals(0, Mm.Info(Version Major))
     assert_int_equals(6, Mm.Info(Version Minor))
-    assert_int_equals(0, Mm.Info(Version Micro))
+    assert_int_equals(300, Mm.Info(Version Micro))
     assert_int_equals(0, Mm.Info(Version Build))
   End If
 End Sub
