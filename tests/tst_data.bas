@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2022 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -328,7 +328,7 @@ Sub test_data_save_and_restore_err()
   assert_raw_error("Nothing to restore")
 
   Local i%
-  If sys.is_device%("pm*") Then
+  If sys.is_platform%("pm*") Then
     For i% = 1 To 15 : Read Save : Next
   Else
     For i% = 1 To 49 : Read Save : Next

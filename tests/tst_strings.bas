@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2023 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -43,7 +43,7 @@ Sub test_bin_function()
   assert_string_equals("1000000000000000000000000000000000000000000000000000000000000000", Bin$(MIN_INT%))
 
   ' Value of 0 for second argument should give same result as not providing argument.
-  If Not sys.is_device%("pm*") Then ' TODO: re-enable  
+  If Not sys.is_platform%("pm*") Then ' TODO: re-enable  
   assert_string_equals("0", Bin$(0, 0))
   assert_string_equals("1", Bin$(1, 0))
   assert_string_equals("1111111111111111111111111111111111111111111111111111111111111111", Bin$(-1, 0))
@@ -69,7 +69,7 @@ Sub test_chr_ascii()
 End Sub
 
 Sub test_chr_utf8()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   ' 1-byte unicode = ASCII
   Local s$ = Chr$(Utf8 102)
@@ -112,7 +112,7 @@ Sub test_hex_function()
   assert_string_equals("8000000000000000", Hex$(MIN_INT%))
 
   ' Value of 0 for second argument should give same result as not providing argument.
-  If Not sys.is_device%("pm*") Then ' TODO: re-enable
+  If Not sys.is_platform%("pm*") Then ' TODO: re-enable
   assert_string_equals("0", Hex$(0, 0))
   assert_string_equals("1", Hex$(1, 0))
   assert_string_equals("FFFFFFFFFFFFFFFF", Hex$(-1, 0))
@@ -156,7 +156,7 @@ Sub test_oct_function()
   assert_string_equals("1000000000000000000000", Oct$(MIN_INT%))
 
   ' Value of 0 for second argument should give same result as not providing argument.
-  If Not sys.is_device%("pm*") Then ' TODO: re-enable
+  If Not sys.is_platform%("pm*") Then ' TODO: re-enable
   assert_string_equals("0", Oct$(0, 0))
   assert_string_equals("1", Oct$(1, 0))
   assert_string_equals("1777777777777777777777", Oct$(-1, 0))
@@ -193,7 +193,7 @@ Sub test_str_function()
 End Sub
 
 Sub test_option_escape()
-  If Not sys.is_device%("pm*") Then Exit Sub
+  If Not sys.is_platform%("pm*") Then Exit Sub
 
   Option Escape
   Const QU$ = Chr$(34)
@@ -217,7 +217,7 @@ Sub test_option_escape()
 End Sub
 
 Sub test_option_escape_given_data()
-  If Not sys.is_device%("pm*") Then Exit Sub
+  If Not sys.is_platform%("pm*") Then Exit Sub
 
   Option Escape
   Restore string_data
@@ -233,7 +233,7 @@ string_data:
 Data "\qhello world\q","good\qbye"
 
 Sub test_option_escape_given_null()
-  If Not sys.is_device%("pm*") Then Exit Sub
+  If Not sys.is_platform%("pm*") Then Exit Sub
 
   Option Escape
   Const QU$ = Chr$(34)

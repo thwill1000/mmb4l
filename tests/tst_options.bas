@@ -1,4 +1,4 @@
-' Copyright (c) 2022-2023 Thomas Hugo Williams
+' Copyright (c) 2022-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -14,7 +14,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../sptools/src/splib/vt100.inc"
 #Include "../sptools/src/sptest/unittest.inc"
 
-If Not sys.is_device%("mmb4l") Then Goto skip_tests
+If Not sys.is_platform%("mmb4l") Then Goto skip_tests
 
 Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)

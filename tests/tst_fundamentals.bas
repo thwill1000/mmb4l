@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2023 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -71,11 +71,11 @@ Sub test_erase()
   On Error Skip 1
   Erase *invalid
 
-  If sys.is_device%("cmm2*") Then
+  If sys.is_platform%("cmm2*") Then
     assert_raw_error("Unknown command")
-  ElseIf sys.is_device%("mmb4w") Then
+  ElseIf sys.is_platform%("mmb4w") Then
     assert_raw_error("Syntax")
-  ElseIf sys.is_device%("pm*") Then
+  ElseIf sys.is_platform%("pm*") Then
     assert_raw_error("Cannot find ")
   Else
     assert_raw_error("Invalid name")
@@ -87,7 +87,7 @@ Sub test_erase()
 
   On Error Skip 1
   Erase _33_chars_long_678901234567890123%
-  If sys.is_device%("cmm2*", "pm*") Then
+  If sys.is_platform%("cmm2*", "pm*") Then
     assert_raw_error("Cannot find _33_CHARS_LONG_678901234567890123")
   Else
     assert_raw_error("Name too long")
@@ -98,17 +98,17 @@ End Sub
 ' used by arrays was not being released correctly and would eventually
 ' be exhausted.
 Sub test_erase_given_arrays()
-  If sys.is_device%("cmm2*", "mmb4w") Then
+  If sys.is_platform%("cmm2*", "mmb4w") Then
     Local filler1%(24500 * 1024 / 8) ' ~24500K
-  ElseIf sys.is_device%("mmb4l") Then
+  ElseIf sys.is_platform%("mmb4l") Then
     ' TODO: remove MMB4L 32K array size limitation.
     Local filler1%(32 * 1024 - 1)
     Local filler2%(32 * 1024 - 1)
     Local filler3%(32 * 1024 - 1)
     Local filler4%(24 * 1024 - 1)
-  ElseIf sys.is_device%("pm") Then
+  ElseIf sys.is_platform%("pm") Then
     Local filler1%(60 * 1024 / 8) ' ~60K
-  ElseIf sys.is_device%("pmvga") Then
+  ElseIf sys.is_platform%("pmvga") Then
     Local filler1%(32 * 1024 / 8) ' ~32K
   EndIf
 
@@ -127,17 +127,17 @@ End Sub
 ' used by strings was not being released correctly and would eventually
 ' be exhausted.
 Sub test_erase_given_strings()
-  If sys.is_device%("cmm2*", "mmb4w") Then
+  If sys.is_platform%("cmm2*", "mmb4w") Then
     Local filler1%(24500 * 1024 / 8) ' ~24500K
-  ElseIf sys.is_device%("mmb4l") Then
+  ElseIf sys.is_platform%("mmb4l") Then
     ' TODO: remove MMB4L 32K array size limitation.
     Local filler1%(32 * 1024 - 1)
     Local filler2%(32 * 1024 - 1)
     Local filler3%(32 * 1024 - 1)
     Local filler4%(24 * 1024 - 1)
-  ElseIf sys.is_device%("pm") Then
+  ElseIf sys.is_platform%("pm") Then
     Local filler1%(64 * 1024 / 8) ' ~64K
-  ElseIf sys.is_device%("pmvga") Then
+  ElseIf sys.is_platform%("pmvga") Then
     Local filler1%(32 * 1024 / 8) ' ~32K
   EndIf
 
@@ -272,7 +272,7 @@ Sub test_equals_as_string_terminator()
 End Sub
 
 Function expected_error_msg$(line%, msg$)
-  If sys.is_device%("pm*") Then
+  If sys.is_platform%("pm*") Then
     expected_error_msg$ = msg$
   Else
     expected_error_msg$ = "Error in line " + Str$(line%) + ": " + msg$

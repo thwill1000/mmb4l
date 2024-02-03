@@ -15,11 +15,13 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
-Const EXPECTED_ERROR_CODE% = Choice(sys.is_device%("mmb4l"), 256, 16)
+Const EXPECTED_ERROR_CODE% = Choice(sys.is_platform%("mmb4l"), 256, 16)
+
+? sys.is_platform%("mmb4l")
 
 Dim interrupt_called% = 0
 
-If sys.is_device%("cmm2*") Then Goto skip_tests
+If sys.is_platform%("cmm2*") Then Goto skip_tests
 
 add_test("test_system_error")
 add_test("test_user_error")
@@ -43,7 +45,7 @@ Sub test_system_error()
   Const BASE_LINE% = Val(Field$(Mm.Info$(Line), 1, ","))
   On Error Skip 1
   Local x% = 1 / 0
-  If sys.is_device%("pm*") Then
+  If sys.is_platform%("pm*") Then
     ' Error messages on the PicoMite do not include the line number,
     ' instead they offending line (with number) is printed to the console beforehand.
     assert_string_equals("Divide by zero", Mm.ErrMsg$)
@@ -53,7 +55,7 @@ Sub test_system_error()
 End Sub
 
 Function expected_error$(line%, msg$)
-  If sys.is_device%("pm*") Then
+  If sys.is_platform%("pm*") Then
     expected_error$ = msg$
   Else
     expected_error$ = "Error in line " + Str$(line%) + ": " + msg$

@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2023 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -92,9 +92,9 @@ Sub test_call_fun_as_sub()
   Local i%
   On Error Skip
   Call "int_fn", i%
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Not a subroutine")
-  ElseIf sys.is_device%("pm*") Then
+  ElseIf sys.is_platform%("pm*") Then
     assert_raw_error("Unknown user subroutine")
   Else
     assert_raw_error("Type specification is invalid")
@@ -102,7 +102,7 @@ Sub test_call_fun_as_sub()
 End Sub
 
 Sub test_call_sub_as_fun()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
   Local i%
   On Error Skip
   i% = Call("foo", i%)
@@ -113,7 +113,7 @@ Sub test_call_label_as_fun()
   Local i%
   On Error Skip
   i% = Call("wombat_label", i%)
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Function not found")
   Else
     assert_raw_error("Unknown user function")
@@ -124,7 +124,7 @@ Sub test_call_label_as_sub()
   Local i%
   On Error Skip
   Call "wombat_label", i%
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Subroutine not found")
   Else
     assert_raw_error("Unknown user subroutine")
@@ -132,7 +132,7 @@ Sub test_call_label_as_sub()
 End Sub
 
 Sub test_call_fun_max_name()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
   Local i%
   i% = Call("fun_with_max_length_name_6789012%")
   assert_int_equals(42, i%)
@@ -142,9 +142,9 @@ Sub test_call_fun_too_long_name()
   Local i%
   On Error Skip
   i% = Call("fun_with_too_long_name_4567890123%", i%)
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Function name too long")
-  ElseIf sys.is_device%("pm*") Then
+  ElseIf sys.is_platform%("pm*") Then
     assert_raw_error("Unknown user function")
   Else
     assert_raw_error("Variable name too long")
@@ -161,9 +161,9 @@ Sub test_call_sub_too_long_name()
   Local i%
   On Error Skip
   Call "sub_with_too_long_name_4567890123", i%
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Subroutine name too long")
-  ElseIf sys.is_device%("pm*") Then
+  ElseIf sys.is_platform%("pm*") Then
     assert_raw_error("Unknown user subroutine")
   Else
     assert_raw_error("Variable name too long")
@@ -174,7 +174,7 @@ Sub test_call_missing_fun()
   Local i%
   On Error Skip
   i% = Call("missing_fun", i%)
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Function not found")
   Else
     assert_raw_error("Unknown user function")
@@ -185,7 +185,7 @@ Sub test_call_missing_sub()
   Local i%
   On Error Skip
   Call "missing_sub", i%
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Subroutine not found")
   Else
     assert_raw_error("Unknown user subroutine")
@@ -206,7 +206,7 @@ Sub test_arg_list_bug()
   Line Input #1, s$
 
   ' The difference seems to be something to do with how tabs are handled.
-  If sys.is_device%("mmb4l", "mmb4w", "pm*") Then
+  If sys.is_platform%("mmb4l", "mmb4w", "pm*") Then
     assert_string_equals(" 42  3.12   bar", s$)
   Else
     assert_string_equals(" 42  3.12 bar", s$)

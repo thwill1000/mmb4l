@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2023 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -17,11 +17,11 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
-If sys.is_device%("mmb4l") Then
+If sys.is_platform%("mmb4l") Then
   Const EXPECTED_VERSION$ = "6000000"
-ElseIf sys.is_device%("mmb4w") Then
+ElseIf sys.is_platform%("mmb4w") Then
   Const EXPECTED_VERSION$ = "5.0703"
-ElseIf sys.is_device%("pm*") Then
+ElseIf sys.is_platform%("pm*") Then
   Const EXPECTED_VERSION$ = "5.0708"
 Else
   Const EXPECTED_VERSION$ = "5.0702"
@@ -73,7 +73,7 @@ add_test("test_vres")
 '   Base 1, Drive A
 '   Base 0, Drive B
 '   Base 1, Drive B
-If sys.is_device%("pm*") Then
+If sys.is_platform%("pm*") Then
   If InStr(Mm.CmdLine$, "--base=1 --drive=b") Then
     run_tests()
   ElseIf InStr(Mm.CmdLine$, "--base=1") Then
@@ -92,7 +92,7 @@ EndIf
 End
 
 Sub test_arch()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   Local expected_arch$
   System "uname -o -m", expected_arch$
@@ -109,7 +109,7 @@ Sub test_arch()
 End Sub
 
 Sub test_cputime()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
   Local cputime% = Mm.Info(CpuTime)
   ' Not really anything that can be tested other than it returns.
   assert_true(cputime% > 0)
@@ -120,7 +120,7 @@ Sub test_current()
 End Sub
 
 Function expected_path$()
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     Local out$
     System "echo $HOME", out$
     If Mm.Info(Exists Dir out$ + "/github/thwill1000") Then
@@ -128,9 +128,9 @@ Function expected_path$()
     Else
       expected_path$ = out$ + "/github/mmb4l/tests/"
     EndIf
-  ElseIf sys.is_device%("mmb4w") Then
+  ElseIf sys.is_platform%("mmb4w") Then
     expected_path$ = "C:\home-thwill\git_sandbox\github\mmb4l\tests\"
-  ElseIf sys.is_device%("pm*") Then
+  ElseIf sys.is_platform%("pm*") Then
     expected_path$ = "A:/"
   Else
     expected_path$ = "A:/MMB4L/tests/"
@@ -151,7 +151,7 @@ Sub test_device()
 End Sub
 
 Sub test_directory()
-  If sys.is_device%("pm*") Then Exit Sub
+  If sys.is_platform%("pm*") Then Exit Sub
 
   Local expected_dir$
   Select Case Mm.Device$
@@ -167,12 +167,12 @@ Sub test_directory()
 End Sub
 
 Sub test_drive()
-  If Not sys.is_device%("pm*") Then Exit Sub
+  If Not sys.is_platform%("pm*") Then Exit Sub
   assert_string_equals(Choice(InStr(Mm.CmdLine$, "--drive=b"), "B:", "A:"), Mm.Info$(Drive))
 End Sub
 
 Sub test_envvar()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   Local expected_home$
   System "echo $HOME", expected_home$
@@ -185,20 +185,20 @@ Sub test_errmsg()
   Error "foo"
   assert_string_equals("foo", Right$(Mm.ErrMsg$, 3));
   assert_string_equals("foo", Right$(Mm.Info$(ErrMsg), 3));
-  If Not sys.is_device%("pm*") Then
+  If Not sys.is_platform%("pm*") Then
     assert_string_equals("Error in line", Left$(Mm.ErrMsg$, 13));
     assert_string_equals("Error in line", Left$(Mm.Info(ErrMsg), 13));
   EndIf
 End Sub
 
 Sub test_errno()
-  Local expected% = Choice(sys.is_device%("mmb4l"), 256, 16)
+  Local expected% = Choice(sys.is_platform%("mmb4l"), 256, 16)
   On Error Skip 1
   Error "foo"
   assert_int_equals(expected%, Mm.ErrNo);
   assert_int_equals(expected%, Mm.Info$(ErrNo));
 
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   On Error Skip 1
   Error "foo", 201
@@ -208,11 +208,11 @@ Sub test_errno()
 End Sub
 
 Sub test_exists()
-  If Not sys.is_device%("mmb4l", "mmb4w") Then Exit Sub
+  If Not sys.is_platform%("mmb4l", "mmb4w") Then Exit Sub
 
   ' Drives/root.
-  Const A_EXISTS = Not sys.is_device%("mmb4w")
-  Const B_EXISTS = Not sys.is_device%("mmb4w")
+  Const A_EXISTS = Not sys.is_platform%("mmb4w")
+  Const B_EXISTS = Not sys.is_platform%("mmb4w")
   assert_int_equals(A_EXISTS, Mm.Info(Exists "A:"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists "A:/"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists "A:\"))
@@ -239,10 +239,10 @@ Sub test_exists()
   ' Odd and ends.
   assert_int_equals(1, Mm.Info(Exists "."))
   assert_int_equals(1, Mm.Info(Exists ".."))
-  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists ""))
+  assert_int_equals(Not sys.is_platform%("mmb4w"), Mm.Info(Exists ""))
 
   ' Symbolic links.
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     MkDir TMPDIR$
 
     System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
@@ -257,15 +257,15 @@ Sub test_exists_dir()
   MkDir TMPDIR$
 
   ' Drives/root.
-  Const A_EXISTS = Not sys.is_device%("mmb4w")
-  Const B_EXISTS = Not sys.is_device%("mmb4w")
+  Const A_EXISTS = Not sys.is_platform%("mmb4w")
+  Const B_EXISTS = Not sys.is_platform%("mmb4w")
   assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:/"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:\"))
   assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:"))
   assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:/"))
   assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:\"))
-  If sys.is_device%("pm*") Then
+  If sys.is_platform%("pm*") Then
     Local dummy%
     On Error Skip
     dummy% = Mm.Info(Exists Dir "C:")
@@ -298,10 +298,10 @@ Sub test_exists_dir()
   ' Odd and ends.
   assert_int_equals(1, Mm.Info(Exists Dir "."))
   assert_int_equals(1, Mm.Info(Exists Dir ".."))
-  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists Dir ""))
+  assert_int_equals(Not sys.is_platform%("mmb4w"), Mm.Info(Exists Dir ""))
 
   ' Symbolic links.
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
     System "ln -s " + PATH + " " + TMPDIR$ + "/dir_link"
 
@@ -320,7 +320,7 @@ Sub test_exists_dir()
   assert_int_equals(B_EXISTS, Mm.Info(Exists Dir "B:\"))
   assert_int_equals(1, Mm.Info(Exists Dir "."))
   assert_int_equals(1, Mm.Info(Exists Dir ".."))
-  assert_int_equals(Not sys.is_device%("mmb4w"), Mm.Info(Exists Dir ""))
+  assert_int_equals(Not sys.is_platform%("mmb4w"), Mm.Info(Exists Dir ""))
   ChDir OLD_DIR
 End Sub
 
@@ -332,7 +332,7 @@ Sub test_exists_file()
   assert_int_equals(0, Mm.Info(Exists File "B:"))
   assert_int_equals(0, Mm.Info(Exists File "B:/"))
   assert_int_equals(0, Mm.Info(Exists File "B:\"))
-  If sys.is_device%("pm*") Then
+  If sys.is_platform%("pm*") Then
     Local dummy%
     On Error Skip
     dummy% = Mm.Info(Exists Dir "C:")
@@ -368,7 +368,7 @@ Sub test_exists_file()
   assert_int_equals(0, Mm.Info(Exists File ""))
 
   ' Symbolic links.
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     MkDir TMPDIR$
 
     System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
@@ -380,7 +380,7 @@ Sub test_exists_file()
 End Sub
 
 Sub test_exists_symlink()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   ' Drives/root.
   assert_int_equals(0, Mm.Info(Exists SymLink "A:"))
@@ -445,7 +445,7 @@ End Sub
 Sub test_filesize_given_directory()
   MkDir TMPDIR$
 
-  If sys.is_device%("mmb4l", "pm*") Then
+  If sys.is_platform%("mmb4l", "pm*") Then
     expect_filesize_is_dir(Cwd$)
     expect_filesize_is_dir(Mm.Info$(Path))
     expect_filesize_is_dir("/")
@@ -456,7 +456,7 @@ Sub test_filesize_given_directory()
     expect_filesize_is_dir("B:")
     expect_filesize_is_dir("B:/")
     expect_filesize_is_dir("B:\")
-    If sys.is_device%("mmb4l") Then
+    If sys.is_platform%("mmb4l") Then
       expect_filesize_is_dir("C:")
       expect_filesize_is_dir("C:/")
       expect_filesize_is_dir("C:\")
@@ -469,7 +469,7 @@ Sub test_filesize_given_directory()
     expect_filesize_is_dir(str.replace$(TMPDIR$, "\", "/"))
     expect_filesize_is_dir(".")
     expect_filesize_is_dir("..")
-  ElseIf sys.is_device%("cmm2*") Then
+  ElseIf sys.is_platform%("cmm2*") Then
     expect_filesize_is_dir(Cwd$)
     expect_filesize_invalid_file(Mm.Info$(Path))
     expect_filesize_invalid_file("/")
@@ -487,7 +487,7 @@ Sub test_filesize_given_directory()
     expect_filesize_is_dir(str.replace$(TMPDIR$, "\", "/"))
     expect_filesize_not_found(".")
     expect_filesize_not_found("..")
-  ElseIf sys.is_device%("mmb4w") Then
+  ElseIf sys.is_platform%("mmb4w") Then
     expect_filesize_is_dir(Cwd$)
     expect_filesize_is_dir(Mm.Info$(Path))
     expect_filesize_not_found("/")
@@ -508,7 +508,7 @@ Sub test_filesize_given_directory()
   EndIf
 
   ' Test for odd bug encountered on PicoMite when not in root dir.
-  If Not sys.is_device%("cmm2*", "mmb4w") Then
+  If Not sys.is_platform%("cmm2*", "mmb4w") Then
     Const OLD_DIR = Cwd$
     ChDir TMPDIR$
     expect_filesize_is_dir(Cwd$)
@@ -555,7 +555,7 @@ Sub expect_filesize_invalid_disk(f$)
 End Sub
 
 Sub test_font_address()
-  If sys.is_device%("mmb4l") Then Exit Sub
+  If sys.is_platform%("mmb4l") Then Exit Sub
 
   ' First byte at the "font address" is the font width.
   assert_int_equals(8, Peek(Byte(Mm.Info(Font Address 1))))
@@ -570,7 +570,7 @@ End Sub
 Sub test_fontheight()
   assert_int_equals(EXPECTED_FONT_HEIGHT%, Mm.Info(FontHeight))
 
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     ' Expect error if there is a space between FONT and HEIGHT.
     On Error Skip
     Local i% = Mm.Info(Font Height)
@@ -584,7 +584,7 @@ End Sub
 Sub test_fontwidth()
   assert_int_equals(EXPECTED_FONT_WIDTH%, Mm.Info(FontWidth))
 
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     ' Expect error if there is a space between FONT and WIDTH.
     On Error Skip
     Local i% = Mm.Info(Font Width)
@@ -596,7 +596,7 @@ Sub test_fontwidth()
 End Sub
 
 Sub test_hpos()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   Option Resolution Character
   Local old_x%, old_y%
@@ -614,7 +614,7 @@ Sub test_hpos()
 End Sub
 
 Sub test_hres()
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     Option Resolution Character
     Local actual% = Mm.Info(HRes)
     Local out$
@@ -631,7 +631,7 @@ End Sub
 
 Sub test_line()
   Const line$ = Mm.Info$(Line)
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_int_equals(633, Val(Field$(line$, 1, ",")))
     assert_string_equals(Mm.Info$(Current), Field$(line$, 2, ","))
   Else
@@ -655,7 +655,7 @@ Sub test_option_break()
 End Sub
 
 Sub test_option_case()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   assert_string_equals("Title", Mm.Info(Option Case))
 
@@ -670,7 +670,7 @@ Sub test_option_case()
 End Sub
 
 Sub test_option_editor()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   Local original$ = Mm.Info(Option Editor)
 
@@ -736,7 +736,7 @@ End Sub
 Sub test_option_explicit()
   assert_string_equals("On", Mm.Info(Option Explicit))
 
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   ' Only MMB4L supports the optional boolean flag.
 
@@ -758,7 +758,7 @@ Sub test_option_explicit()
 End Sub
 
 Sub test_option_codepage()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   assert_string_equals("None", Mm.Info(Option CodePage))
 
@@ -796,7 +796,7 @@ Sub test_option_codepage()
 End Sub
 
 Sub test_option_fn_key()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   MkDir TMPDIR$
 
@@ -832,7 +832,7 @@ Sub test_option_fn_key()
 End Sub
 
 Sub test_option_resolution()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   Option Resolution Pixel
   assert_string_equals("Pixel", Mm.Info(Option Resolution))
@@ -842,14 +842,14 @@ Sub test_option_resolution()
 End Sub
 
 Sub test_option_search_path()
-  If sys.is_device%("cmm2*", "pm*") Then Exit Sub
+  If sys.is_platform%("cmm2*", "pm*") Then Exit Sub
 
   Local original$ = Mm.Info$(Option Search Path)
 
   ' Set the SEARCH PATH to a directory that exists.
   Local path$ = Mm.Info$(Path)
   Option Search Path path$
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     ' Note we the trailing '/' will have been trimmed from the Search Path.
     assert_string_equals(Left$(path$, Len(path$) - 1), Mm.Info$(Option Search Path))
   Else
@@ -893,9 +893,9 @@ Sub test_option_search_path()
 End Sub
 
 Sub test_option_serial()
-  If sys.is_device%("pm*") Then Exit Sub
+  If sys.is_platform%("pm*") Then Exit Sub
 
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
 
     assert_string_equals("Serial", Mm.Info(Option Console))
 
@@ -930,7 +930,7 @@ Sub test_option_serial()
 End Sub
 
 Sub test_option_tab()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   assert_int_equals(4, Mm.Info(Option Tab))
 
@@ -949,7 +949,7 @@ Sub test_path()
 End Sub
 
 Sub test_pid()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   Local out$
   System "echo $PPID", out$
@@ -957,7 +957,7 @@ Sub test_pid()
 End Sub
 
 Sub test_vpos()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   Option Resolution Character
   Local old_x%, old_y%
@@ -975,7 +975,7 @@ Sub test_vpos()
 End Sub
 
 Sub test_vres()
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     Option Resolution Character
     Local actual% = Mm.Info(VRes)
     Local out$
@@ -993,7 +993,7 @@ End Sub
 Sub test_version()
   assert_string_equals(EXPECTED_VERSION$, Left$(Str$(Mm.Info(Version)), Len(EXPECTED_VERSION$)))
 
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_int_equals(0, Mm.Info(Version Major))
     assert_int_equals(6, Mm.Info(Version Minor))
     assert_int_equals(0, Mm.Info(Version Micro))

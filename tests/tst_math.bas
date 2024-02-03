@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2023 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 '
@@ -166,7 +166,7 @@ End Sub
 
 ' Test MATH FFT against a file of known values and results.
 Sub test_fft_given_values_from_csv()
-  If sys.is_device%("pm*") Then Exit Sub
+  If sys.is_platform%("pm*") Then Exit Sub
 
   Const size% = 1024
   Local signal!(array.new%(size%))

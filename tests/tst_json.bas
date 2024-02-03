@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2023 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -14,7 +14,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../sptools/src/splib/vt100.inc"
 #Include "../sptools/src/sptest/unittest.inc"
 
-If sys.is_device%("pm*") Then Goto skip_tests
+If sys.is_platform%("pm*") Then Goto skip_tests
 
 Const BASE% = Mm.Info(Option Base)
 
@@ -27,7 +27,7 @@ If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 End
 
 Sub test_json()
-  If sys.is_device%("pm*") Then Exit Sub
+  If sys.is_platform%("pm*") Then Exit Sub
 
   MkDir TMPDIR$
   Const f$ = TMPDIR$ + "/test_json.json"
@@ -54,7 +54,7 @@ Sub test_json()
 
   ' Test explicit null value.
   assert_string_equals("",       Json$(data%(), "null-value"))
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_string_equals("<null>", Json$(data%(), "null-value", &b01))
     assert_string_equals("",       Json$(data%(), "null-value", &b10))
     assert_string_equals("<null>", Json$(data%(), "null-value", &b11))
@@ -62,7 +62,7 @@ Sub test_json()
 
   ' Test keys that do not exist.
   assert_string_equals("",          Json$(data%(), "does-not-exist"))
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_string_equals("",          Json$(data%(), "does-not-exist", &b01))
     assert_string_equals("<missing>", Json$(data%(), "does-not-exist", &b10))
     assert_string_equals("<missing>", Json$(data%(), "does-not-exist", &b11))

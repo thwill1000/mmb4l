@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2023 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -168,7 +168,7 @@ Sub test_set_float()
   assert_raw_error("Address not divisible by 8")
 
   ' Test "maximum" value SET, actually the value is NaN - TODO: is this true?
-  If Not sys.is_device%("pm*") Then
+  If Not sys.is_platform%("pm*") Then
     Local f!
     Poke Integer Peek(VarAddr f!), &hFFFFFFFFFFFFFFFF
     Memory Set Float addr% + 8, f!, 1
@@ -193,7 +193,7 @@ Sub test_copy()
 End Sub
 
 Sub test_copy_byte()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   Local dst%(array.new%(32)), src%(array.new%(32)) ' 256-bytes
   Const dst_addr% = Peek(VarAddr dst%())
@@ -211,7 +211,7 @@ Sub test_copy_byte()
 End Sub
 
 Sub test_copy_short()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   Local dst%(array.new%(32)), src%(array.new%(32)) ' 256-bytes
   Const dst_addr% = Peek(VarAddr dst%())
@@ -239,7 +239,7 @@ Sub test_copy_short()
 End Sub
 
 Sub test_copy_word()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   Local dst%(array.new%(32)), src%(array.new%(32)) ' 256-bytes
   Const dst_addr% = Peek(VarAddr dst%())
@@ -284,7 +284,7 @@ Sub test_copy_integer()
   ' Test unaligned source address.
   On Error Skip
   Memory Copy Integer src_addr% + 3, dst_addr%, 1
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Source address not divisible by 8")
   Else
     assert_raw_error("Address not divisible by 8")
@@ -293,7 +293,7 @@ Sub test_copy_integer()
   ' Test unaligned destination address.
   On Error Skip
   Memory Copy Integer src_addr%, dst_addr% + 3, 1
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Destination address not divisible by 8")
   Else
     assert_raw_error("Address not divisible by 8")
@@ -319,7 +319,7 @@ Sub test_copy_float()
   ' Test unaligned source address.
   On Error Skip
   Memory Copy Float src_addr% + 3, dst_addr%, 1
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Source address not divisible by 8")
   Else
     assert_raw_error("Address not divisible by 8")
@@ -328,7 +328,7 @@ Sub test_copy_float()
   ' Test unaligned destination address.
   On Error Skip
   Memory Copy Float src_addr%, dst_addr% + 3, 1
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Destination address not divisible by 8")
   Else
     assert_raw_error("Address not divisible by 8")
@@ -374,7 +374,7 @@ Sub test_copy_given_overlap()
   buf%(BASE% + 2) = &h08090A0B0C0D0E0F
   buf%(BASE% + 3) = &h0
 
-  If sys.is_device%("mmb4l", "pm*") Then
+  If sys.is_platform%("mmb4l", "pm*") Then
     ' Copy where pdst > psrc.
     ' Colour Maximite 2 and MMB4W (?) don't handle this correctly.
     Memory Copy pbuf% + 8, pbuf% + 11, 16

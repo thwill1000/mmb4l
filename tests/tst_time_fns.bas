@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2023 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -156,7 +156,7 @@ Sub test_timer()
 End Sub
 
 Sub test_timer_given_large_value()
-  If sys.is_device%("pm*") Then Exit Sub
+  If sys.is_platform%("pm*") Then Exit Sub
 
   Local old_timer% = Timer
 

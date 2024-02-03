@@ -1,4 +1,4 @@
-' Copyright (c) 2020-2023 Thomas Hugo Williams
+' Copyright (c) 2020-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -211,11 +211,11 @@ Sub test_peek_progmem()
   Loop
 
   ' Different token ids for OPTION on different platforms.
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_string_equals(Chr$(204) + "EXPLICIT ON'|5" + Chr$(0), s$)
-  ElseIf sys.is_device%("cmm2*") Then
+  ElseIf sys.is_platform%("cmm2*") Then
     assert_string_equals(Chr$(197) + "EXPLICIT ON'|5" + Chr$(0), s$)
-  ElseIf sys.is_device%("pm*") Then
+  ElseIf sys.is_platform%("pm*") Then
     ' Assuming we are testing transpiled code.
     assert_string_equals("' Transpiled on ", Left$(s$, 16))
   EndIf
@@ -259,7 +259,7 @@ Function find_var_offset%(needle$)
       Exit For
     EndIf
     ' VarTbl entries are 56 bytes on the PicoMite and 64 bytes on the other platforms.
-    Inc offset%, Choice(sys.is_device%("pm*"), 24, 32)
+    Inc offset%, Choice(sys.is_platform%("pm*"), 24, 32)
   Next
 End Function
 
@@ -284,23 +284,23 @@ Sub check_header(header%())
   assert_hex_equals(4,        Peek(Byte addr% + nxt%(i%))) ' type
   assert_hex_equals(3,        Peek(Byte addr% + nxt%(i%))) ' level
 
-  If sys.is_device%("pm*") Then
+  If sys.is_platform%("pm*") Then
     assert_hex_equals(0, Peek(Byte addr% + nxt%(i%))) ' string size
     assert_hex_equals(0, Peek(Byte addr% + nxt%(i%))) ' name length ?
   EndIf
 
   ' PicoMite has 6 x 2 byte array dimensions,
   ' other platforms have 8 x 2 byte array dimensions.
-  Local limit% = i% + 2 * Choice(sys.is_device%("pm*"), 6, 8)
+  Local limit% = i% + 2 * Choice(sys.is_platform%("pm*"), 6, 8)
   Do While i% < limit%
     assert_hex_equals(0, Peek(Byte addr% + nxt%(i%)))
   Loop
 
-  If Not sys.is_device%("pm*") Then
+  If Not sys.is_platform%("pm*") Then
     assert_hex_equals(0, Peek(Byte addr% + nxt%(i%))) ' string size
     assert_hex_equals(0, Peek(Byte addr% + nxt%(i%))) ' 1 byte of padding
-    assert_hex_equals(&hAE * sys.is_device%("mmb4l"), Peek(Byte addr% + nxt%(i%))) ' 2 bytes of hash
-    assert_hex_equals(&h03 * sys.is_device%("mmb4l"), Peek(Byte addr% + nxt%(i%)))
+    assert_hex_equals(&hAE * sys.is_platform%("mmb4l"), Peek(Byte addr% + nxt%(i%))) ' 2 bytes of hash
+    assert_hex_equals(&h03 * sys.is_platform%("mmb4l"), Peek(Byte addr% + nxt%(i%)))
     assert_hex_equals(0, Peek(Byte addr% + nxt%(i%))) ' 2 bytes of padding
     assert_hex_equals(0, Peek(Byte addr% + nxt%(i%)))
   EndIf

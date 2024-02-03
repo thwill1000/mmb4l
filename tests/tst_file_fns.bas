@@ -1,4 +1,4 @@
-' Copyright (c) 2020-2023 Thomas Hugo Williams
+' Copyright (c) 2020-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -18,10 +18,10 @@ Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
 
 Const BAD_FILE_DESCRIPTOR_ERR$ = "Bad file descriptor"
-Const FILE_ALREADY_OPEN_ERR$ = Choice(sys.is_device%("mmb4l"), "File or device already open", "File number already open")
-Const FILE_NOT_OPEN_ERR$ = Choice(sys.is_device%("mmb4l"), "File or device not open", "File number is not open")
-Const INVALID_FILE_NBR_ERR$ = Choice(sys.is_device%("mmb4l"), "Invalid file number", "File number")
-Const MAX_FILE_NBR% = Choice(sys.is_device%("mmb4w"), 128, 10)
+Const FILE_ALREADY_OPEN_ERR$ = Choice(sys.is_platform%("mmb4l"), "File or device already open", "File number already open")
+Const FILE_NOT_OPEN_ERR$ = Choice(sys.is_platform%("mmb4l"), "File or device not open", "File number is not open")
+Const INVALID_FILE_NBR_ERR$ = Choice(sys.is_platform%("mmb4l"), "Invalid file number", "File number")
+Const MAX_FILE_NBR% = Choice(sys.is_platform%("mmb4w"), 128, 10)
 
 add_test("test_chdir_mkdir_rmdir")
 add_test("test_close_errors")
@@ -64,7 +64,7 @@ add_test("OPEN RANDOM and INPUT at end", "test_open_random_input_end")
 '   Base 1, Drive A
 '   Base 0, Drive B
 '   Base 1, Drive B
-If sys.is_device%("pm*") Then
+If sys.is_platform%("pm*") Then
   If InStr(Mm.CmdLine$, "--base=1 --drive=b") Then
     run_tests()
   ElseIf InStr(Mm.CmdLine$, "--base=1") Then
@@ -91,7 +91,7 @@ Sub test_chdir_mkdir_rmdir()
   ChDir new_dir$
 
   Const expected$ = TMPDIR$ + file.SEPARATOR + new_dir$
-  If sys.is_device%("cmm2*") Then expected$ = UCase$(expected$)
+  If sys.is_platform%("cmm2*") Then expected$ = UCase$(expected$)
   assert_string_equals(expected$, Cwd$)
 
   ChDir ".."
@@ -112,15 +112,15 @@ Sub test_close_errors()
   ' Can't call on file number #0.
   On Error Skip 1
   Close #0
-  assert_raw_error(Choice(sys.is_device%("mmb4l"), INVALID_FILE_NBR_ERR$, "0 is invalid"))
+  assert_raw_error(Choice(sys.is_platform%("mmb4l"), INVALID_FILE_NBR_ERR$, "0 is invalid"))
 
   ' Can't call on file number #11.
   On Error Skip 1
   Close (MAX_FILE_NBR% + 1
   Local expected$
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     expected$ = INVALID_FILE_NBR_ERR$
-  ElseIf sys.is_device%("mmb4w") Then
+  ElseIf sys.is_platform%("mmb4w") Then
     expected$ = "129 is invalid (valid is 1 to 128)"
   Else
     expected$ = "11 is invalid"
@@ -203,11 +203,11 @@ Sub test_dir_given_not_found()
   Const tst_dir$ = TMPDIR$ + "/test_dir_given_not_found"
   On Error Skip
   Local f$ = Dir$(tst_dir$ + "/*")
-  If sys.is_device%("cmm2*") Then
+  If sys.is_platform%("cmm2*") Then
     assert_raw_error("Could not find the path")
-  ElseIf sys.is_device%("mmb4l") Then
+  ElseIf sys.is_platform%("mmb4l") Then
     assert_raw_error("No such file or directory")
-  ElseIf sys.is_device%("pm*") Then
+  ElseIf sys.is_platform%("pm*") Then
     If Mm.Info$(Drive) = "A:" Then
       assert_raw_error("Could not find the file")
     Else
@@ -296,9 +296,9 @@ Sub test_eof_errors()
   ' Test on an unopened file.
   On Error Skip 1
   i% = Eof(#1)
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("File or device not open")
-  ElseIf sys.is_device%("mmb4w") Then
+  ElseIf sys.is_platform%("mmb4w") Then
     assert_raw_error("File number 1 is not open")
   Else
     assert_raw_error("File number is not open")
@@ -315,7 +315,7 @@ Sub test_eof_errors()
   ' Test on file number #11.
   On Error Skip 1
   i% = Eof(MAX_FILE_NBR% + 1)
-  assert_raw_error(Choice(sys.is_device%("mmb4w"), "Invalid file number", INVALID_FILE_NBR_ERR$))
+  assert_raw_error(Choice(sys.is_platform%("mmb4w"), "Invalid file number", INVALID_FILE_NBR_ERR$))
 End Sub
 
 Sub test_inputstr()
@@ -334,7 +334,7 @@ Sub test_inputstr()
   On Error Skip 1
   s$ = Input$(28, #1)
 '  assert_raw_error(FILE_NOT_OPEN_ERR$)
-  assert_raw_error(Choice(sys.is_device%("mmb4l"), "File or device not open", "File number is not open"))
+  assert_raw_error(Choice(sys.is_platform%("mmb4l"), "File or device not open", "File number is not open"))
 
   ' NOTE you can call on file number #0, but I can't automatically test this.
 
@@ -450,7 +450,7 @@ Sub test_loc_errors()
   ' Test on file number #0.
   On Error Skip 1
   i% = Loc(#0)
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error(INVALID_FILE_NBR_ERR$)
   Else
     assert_int_equals(0, Mm.ErrNo)
@@ -518,7 +518,7 @@ Sub test_lof_errors()
   ' Test on file number #0.
   On Error Skip 1
   i% = Lof(#0)
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error(INVALID_FILE_NBR_ERR$)
   Else
     assert_int_equals(0, Mm.ErrNo)
@@ -605,7 +605,7 @@ Sub test_seek_errors()
   Open f$ For Random As #1
   On Error Skip 1
   Seek #1, 0
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Invalid seek position")
   Else
     assert_raw_error("0 is invalid (valid is 1 to 2147483647)")
@@ -617,7 +617,7 @@ Sub test_seek_errors()
   Open f$ For Random As #1
   On Error Skip 1
   Seek #1, -1
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Invalid seek position")
   Else
     assert_raw_error("-1 is invalid (valid is 1 to 2147483647)")
@@ -627,7 +627,7 @@ Sub test_seek_errors()
 End Sub
 
 Sub test_tilde_expansion()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
   MkDir TMPDIR$
 

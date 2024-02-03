@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2023 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -122,7 +122,7 @@ Sub test_poke_vartbl()
   Local easy_to_find% = 0
   Local offset% = find_var_offset%("easy_to_find")
   ' PicoMite has different VarTbl layout.
-  Inc offset%, Choice(sys.is_device%("pm*"), 47, 55)
+  Inc offset%, Choice(sys.is_platform%("pm*"), 47, 55)
 
   Poke VarTbl, nxt%(offset%), &h01
   Poke VarTbl, nxt%(offset%), &h23
@@ -166,6 +166,6 @@ Function find_var_offset%(needle$)
       Exit For
     EndIf
     ' VarTbl entries are 56 bytes on the PicoMite and 64 bytes on the other platforms.
-    Inc offset%, Choice(sys.is_device%("pm*"), 24, 32)
+    Inc offset%, Choice(sys.is_platform%("pm*"), 24, 32)
   Next
 End Function
