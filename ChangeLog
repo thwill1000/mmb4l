@@ -1,10 +1,15 @@
 ChangeLog
 ---------
 
-Version 0.6.0 - ??-???-????:
+Version 0.6.0 - 4-Feb-2024:
+  - Added BIN2STR$() and STR2BIN functions.
+  - Added MM.INFO(LINE) function to return the number of the current line.
+  - Added NOP implementation of PAGE command.
   - Changed file path reported in an error message to be canonicalised.
   - Changed maximum error message length to 255 characters (from 127).
-  - Changed MODE to clear the console.
+  - Changed otherwise NOP implementation of MODE to clear the console.
+  - Changed parser to allow any non-name character to be used as a keyword
+    terminator, i.e. DIM i AS INTEGER=10 is now valid.
   - Changed 'micro' version in semantic versioning from 2 digits to 3, the most
     significant digit indicates whether it is an alpha, beta, RC or release
     version:
@@ -21,6 +26,11 @@ Version 0.6.0 - ??-???-????:
     Currently the version is 63000000 => 0.6.0 build 0.
   - Changed MM.VER to return an INTEGER instead of a FLOAT, the same as
     MM.INFO(VERSION).
+  - Changed maximum length of command line when starting MMB4L from 256 to 512
+    characters.
+      - Also improved error message when that command line is too long.
+      - Note that the length of a command entered at the MMB4L prompt is still
+        limited to the width of the console.
   - Fixed bugs in DIR$() function that would cause a crash if called with no
     arguments:
         - If it had never been initialised with a pattern to match.
@@ -30,6 +40,8 @@ Version 0.6.0 - ??-???-????:
     name to be provided by a non-trivial expression.
   - Fixed bug in variable declaration where 2nd and subsequent dimensions
     of a multi-dimensional array could be declared with 1 element.
+  - Fixed bug with left and right arrow glyphs being swapped when using
+    OPTION CODEPAGE CMM2.
 
 Version 0.5.0 - 3-Feb-2023:
   - Changed to semantic versioning scheme.
