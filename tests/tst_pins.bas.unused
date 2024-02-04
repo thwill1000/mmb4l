@@ -1,0 +1,935 @@
+#SPTEST
+
+' Copyright (c) 2021-2022 Thomas Hugo Williams
+' License MIT <https://opensource.org/licenses/MIT>
+' For MMBasic 5.07
+
+#LIBRARYSTART
+Option Explicit On
+Option Default None
+ON ERROR SKIP 1
+Option Base InStr(Mm.CmdLine$, "--base=1") > 0
+#Include "../sptools/src/splib/system.inc"
+#Include "../sptools/src/splib/array.inc"
+#Include "../sptools/src/splib/list.inc"
+'#Include "../sptools/src/splib/math.inc"
+'#Include "../sptools/src/splib/map.inc"
+#Include "../sptools/src/splib/string.inc"
+#Include "../sptools/src/splib/file.inc"
+#Include "../sptools/src/splib/vt100.inc"
+'#Include "../sptools/src/splib/bits.inc"
+#Include "../sptools/src/sptest/unittest.inc"
+#LIBRARYEND
+
+Const BASE% = Mm.Info(Option Base)
+
+Dim integer loc0last,loc0now,loc1last,loc1now,loc2last,loc2now,GetCon=0,GetCom1=0,GetCom2=0
+Dim integer loc3last,loc3now,loc4last,loc4now,GetCom3=0,GetCom4=0 
+
+
+add_test("test_call_fn_with_wrong_type")
+'add_test("test_timer")
+add_test("test_gosub_label_not_found")
+
+if left$(mm.device$,4)<>"Pico" then
+  
+  if INSTR(MM.DEVICE$,"Micromite eXtreme")=0 then
+   add_test("test_adcpins")
+   
+  END IF
+  add_test("test_pwmpins")
+  add_test("test_i2cpins")
+  add_test("test_spipins")
+  add_test("test_comports")
+  add_test("test_countpins")
+  add_test("test_irpin")
+else
+  add_test("test_pwmpins")
+endif
+if mm.device$="ARMmite H7" then
+  add_test("test_filesize")
+endif
+'assert_fail(msg$)
+'assert_false(z%, msg$)
+'assert_true(z%, msg$)
+'assert_hex_equals(expected%, actual%, chars%)
+'assert_string_equals(expected$, actual$)
+'assert_string_array_equals(expected$(), actual$())
+'assert_int_equals(expected%, actual%)
+'assert_int_array_equals(expected%(), actual%())
+'assert_no_error()
+'assert_error(expected$)
+'assert_float_equals(expected!, actual!, delta!)
+'assert_float_array_equals(expected!(), actual!(), delta!())'
+'assert_raw_error(expected$)
+
+
+' work around for failure after CPU RESTART on H7
+if mm.device$="ARMmite H7" then
+ if mm.info(NBRPINS)=100 then 
+   ADC OPEN 10000,22,15,30
+ else
+  ADC OPEN 10000,34,13,53
+ end if 
+ ADC CLOSE
+end if 
+
+'All tests end with this call to initiate the next test
+'If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
+run_tests()  'Dont do BASE 1
+
+End
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+Sub setup_test()
+End Sub
+
+Sub teardown_test()
+End Sub
+
+
+'*** test errors when calling function with wrong type****
+Sub test_call_fn_with_wrong_type()
+ Local x% = 1
+ On Error Skip 2
+ Local s$ = fun_b%()
+ x% = 2
+ assert_raw_error("Expected a string")
+End Sub
+
+Function fun_b%()
+End Function
+
+'*** test errors when calling gosub with invalid label ****
+Sub test_gosub_label_not_found()
+
+foo()
+End sub
+
+Sub foo()
+ Local x% = 1
+ On Error Skip 1
+ Gosub no_such_label
+ x% = 2
+ assert_raw_error("Cannot find label")
+End Sub
+
+
+'*** test filesize returns -2 for directories****
+'The format for DATETIME$ is ?dd-mm-yyyy hh:mm:ss?. Use NOW to get
+'The format for Modified is ?yyyy-mm-dd hh:mm:ss?. Use NOW to get
+'FUNCTION ut.swapyearday$(d$)
+'ut.swapyearday$=mid$(d$,9,2)+mid$(d$,5,4)+mid$(d$,1,4)+mid$(d$,11)
+'end FUNCTION
+sub test_filesize()
+ chdir("/")
+ assert_string_equals("A:/", CWD$)
+ ON ERROR SKIP 1
+ MkDir "mydir"
+ assert_int_equals(-2,Mm.Info(FileSize "mydir"))
+ assert_int_equals(-2,Mm.Info(FileSize "/mydir"))
+ assert_int_equals(-2,Mm.Info(FileSize "A:/mydir"))
+ assert_int_equals(-2,Mm.Info(FileSize "A:\mydir"))
+ if left$(mm.device$,4)<>"Pico" then
+  assert_float_equals(epoch(NOW), epoch(ut.swapyearday$(Mm.Info$(Modified "mydir"))), 3)
+  assert_float_equals(epoch(NOW), epoch(ut.swapyearday$(Mm.Info$(Modified "/mydir"))), 3)
+  assert_float_equals(epoch(NOW), epoch(ut.swapyearday$(Mm.Info$(Modified "A:/mydir"))), 3)
+  assert_float_equals(epoch(NOW), epoch(ut.swapyearday$(Mm.Info$(Modified "A:\mydir"))), 3)
+ endif 
+ ON ERROR SKIP 1
+ RMDir "mydir"
+END SUB
+
+
+'*** test error in timer found in CMM2 is fixed ****
+SUB test_timer()
+ LOCAL i%,d!
+ if left$(mm.device$,4)="Pico" then
+   d!=0.4
+ elseif INSTR(mm.device$,"Micromite eXtreme") then  
+   d!=1.0
+ else
+  d!=0.95
+ endif
+ For i% = 0 To 200 Step 10
+  Timer = i% ': Print i%, Timer
+  assert_float_equals(i%, TIMER, d!)
+ Next
+ 'assert_float_array_equals(expected!(), actual!(), delta!())'
+ END SUB
+
+Sub test_pwmpins()
+
+  if mm.device$="ARMmite H7" then
+    if mm.info(NBRPINS)=100 then
+      h7100pwmpins:
+      DATA 7,59,60,61,62,22,23,24,25                     'pwm pins
+      DATA 1,4,4                                         'pins/pwm
+      RESTORE h7100pwmpins   
+    else
+      h7144pwmpins:
+      DATA 7,81,82,85,86,34,35,36,37                     'pwm pins
+      DATA 1,4,4                                         'pins/pwm
+      RESTORE h7144pwmpins  
+    endif
+  elseif mm.device$="ARMmite F407" then
+      '? "**** F4 PINS********" 
+    if mm.info(NBRPINS)=64 then  
+      F464pwmpins:
+      DATA 4,22,23,26,61,62                      'pwm pins
+      DATA 1,3,2                                      'pins/pwm
+      RESTORE F464pwmpins
+    endif 
+    if mm.info(NBRPINS)=100 then  
+      F4100pwmpins:
+      DATA 7,31,32,35,59,95,96,4,5                       'pwm pins
+      DATA 2,3,3,2                                       'pins/pwm
+      RESTORE F4100pwmpins
+    endif  
+     
+  elseif INSTR(mm.device$,"Micromite eXtreme") then
+      '? "**** F4 PINS********" 
+      MMX100pwmpins:
+      DATA 5,73,71,16,6,40,3                             'pwm pins
+      DATA 1,3,3                                       'pins/pwm
+      RESTORE MMX100pwmpins    
+  else
+      '? "**** PICO PINS********" 
+      PICOpwmpins:
+      'DATA 15,0,1,2,3,4,5,6,7,8,9,10 ,11,12,13,14,15     'pwm pins
+      'DATA 7,2,2,2,2,2,2,2,2                             'pins/pwm
+      DATA 25,0,1,2,3,4,5,6,7,8,9,10 ,11,12,13,14,15,16,17,18,19,20,21,22,26,27,28     'pwm pins
+      DATA 15,2,2,2,2,2,2,2,2, 2,2,2,1,0,2,1,0                             'pins/pwm
+      RESTORE PICOpwmpins
+      'SETPIN pin, PWM required.
+  endif
+   'Load PWM pins
+   local pins$
+   local offset%=0
+   LOCAL pwmmax%
+   READ pwmmax%
+   local pwms%(pwmmax%) 
+   READ pwms%()
+   LOCAL pwmcountmax%
+   READ pwmcountmax%
+   local pwmcounts%(pwmcountmax%)
+   READ pwmcounts%()
+       
+   '? "** Check allocation of pwm pins"
+   local x%,y%,z%,r$
+   'Check pwm
+   local startpin%=0
+   'print 
+   for x%=0 to pwmcountmax%
+    if pwmcounts%(x%)<>0 then
+     pins$=""
+     for y%=startpin% to startpin%+pwmcounts%(x%)-1
+        'pins$=pins$+","+str$(pwms%(y%))
+        pins$=pins$+",50"
+        if left$(mm.device$,4)="Pico" then
+          offset%=-1
+          'print "SETPIN GP"+str$(pwms%(y%))+", PWM "
+          execute "SETPIN GP"+str$(pwms%(y%))+", PWM "
+          ' SETPIN pwms%(y%), PWM  
+        endif
+     next y%
+     'print "PWM "+str$((x%+1+offset%) MOD 8)+",1000"+pins$
+     execute "PWM "+str$((x%+1+offset%) MOD 8)+",1000"+pins$
+     for y%=startpin% to startpin%+pwmcounts%(x%)-1
+        if offset%=0 then
+           r$=MM.INFO$(PIN pwms%(y%))
+          'print y%,str$(pwms%(y%))+" "+r$+"@"+str$(pwms%(y%))
+          assert_string_equals( "Reserved"+"@"+str$(pwms%(y%)),r$+"@"+str$(pwms%(y%)) )
+        else 'iu.e. Picomite
+          r$=mid$(MM.INFO$(PIN mm.info(PINNO "GP"+str$(pwms%(y%)))),8)
+         ' print y%,"GP"+str$(pwms%(y%))+" "+r$+"@GP"+str$(pwms%(y%))
+          assert_string_equals( "Reserved for function"+"@"+str$(pwms%(y%)),r$+"@"+str$(pwms%(y%)) )
+       endif 
+     next y%
+     'print "PWM "+str$((x%+1+offset%) MOD 8)+",STOP/OFF "
+     if left$(mm.device$,4)="Pico" then 
+        execute "PWM "+str$((x%+1+offset%) MOD 8)+",OFF "
+     else  
+        execute "PWM "+str$((x%+1+offset%) MOD 8)+",STOP "
+     endif 
+     for y%=startpin% to startpin%+pwmcounts%(x%)-1
+      if offset%=0 then
+       r$=MM.INFO$(PIN pwms%(Y%))
+       'print y%,str$(pwms%(y%))+" "+r$+"@"+str$(pwms%(y%))
+       assert_string_equals( "Unused"+"@"+str$(pwms%(Y%)),r$+"@"+str$(pwms%(y%)))
+      else 'i.e. Picomite
+       r$=MM.INFO$(PIN mm.info(PINNO "GP"+str$(pwms%(y%))))
+       'print y%,"GP"+str$(pwms%(y%))+" "+r$+"@GP"+str$(pwms%(y%))
+       assert_string_equals( "OFF"+"@"+str$(pwms%(y%)),r$+"@"+str$(pwms%(y%)) )
+      endif 
+      next y% 
+      startpin%= startpin%+pwmcounts%(x%)
+      '? startpin%
+    endif  
+   next x%  
+  
+  
+     
+   
+End Sub
+
+
+
+
+
+
+' Check allocation of IR pin 
+Sub test_comports()
+  'settick 100,IsSerialOrConsoleComplete,1 
+  local INTEGER tx%(4)
+  local INTEGER rx%(4)
+  LOCAL de%
+  LOCAL INTEGER nbrcomports=4
+  if mm.device$="ARMmite H7" then
+    h7comspecs:
+    DATA 10
+    DATA "9600,INV","9600,7BIT,ODD","9600,7BIT,EVEN","9600,S2,7BIT,ODD","9600,S2,7BIT,EVEN"
+    if mm.info(NBRPINS)=100 then
+      h7100comports:
+      tx%(1)=68:tx%(2)=86:tx%(3)=92:tx%(4)=63
+      rx%(1)=69:rx%(2)=25:rx%(3)=51:rx%(4)=64
+      de%=85
+          'RESTORE h7100irpin
+    else
+      h7144comports:
+      tx%(1)=136:tx%(2)=119:tx%(3)=74:tx%(4)=129
+      rx%(1)=76:rx%(2)=122:rx%(3)=73:rx%(4)=124
+      de%=118
+      'RESTORE h7144irpin
+    endif 
+  elseif mm.device$="ARMmite F407" then
+    if mm.info(NBRPINS)=64 then
+      F464comports:
+      tx%(1)=29:tx%(2)=37:tx%(3)=14:tx%(4)=16
+      rx%(1)=30:rx%(2)=38:rx%(3)=15:rx%(4)=17
+      nbrcomports=2
+    endif 
+
+    if mm.info(NBRPINS)=100 then
+      F4100comports:
+      tx%(1)=68:tx%(2)=63:tx%(3)=23:tx%(4)=25
+      rx%(1)=69:rx%(2)=64:rx%(3)=24:rx%(4)=26
+    endif 
+    if mm.info(NBRPINS)=144 then
+      F4144comports:
+      tx%(1)=68:tx%(2)=63:tx%(3)=23:tx%(4)=25
+      rx%(1)=69:rx%(2)=64:rx%(3)=24:rx%(4)=26
+    endif    
+  else if INSTR(mm.device$,"Micromite eXtreme") then
+    IF MM.INFO(NBRPINS)=100 THEN
+      MMX100comports:
+      tx%(1)=65:tx%(2)=87:tx%(3)=57:tx%(4)=57
+      rx%(1)=47:rx%(2)=88:rx%(3)=58:rx%(4)=58  
+      de%=39
+      nbrcomports=3
+    ENDIF  
+  endif 
+ 
+  local t$,r$,n%
+  OPTION ESCAPE
+  for n%=1 to nbrcomports
+    EXECUTE "Open \qCOM"+str$(n%)+":9600\q As #1" 
+    On Error Ignore
+    EXECUTE "Open \qCOM"+str$(n%)+":9600\q As #1" 
+    assert_raw_error("Already open")
+    On Error ABORT
+    'ut.execute "Open ~COM"+str$(n%)+":9600~ As #1"  
+    r$=MM.INFO$(PIN tx%(n%))
+    assert_string_equals(r$+"@"+str$(tx%(n%)),   "Reserved"+"@"+str$(tx%(n%)))
+    r$=MM.INFO$(PIN rx%(n%))
+    assert_string_equals(r$+"@"+str$(rx%(n%)),   "Reserved"+"@"+str$(rx%(n%)))
+    CLOSE #1 
+    On Error Ignore
+    CLOSE #1 
+    assert_raw_error("File number is not open")
+    On Error ABORT
+    r$=MM.INFO$(PIN tx%(n%))
+    assert_string_equals(r$+"@"+str$(tx%(n%)),   "Unused"+"@"+str$(tx%(n%)))
+    r$=MM.INFO$(PIN rx%(n%))
+    assert_string_equals(r$+"@"+str$(rx%(n%)),   "Unused"+"@"+str$(rx%(n%)))
+  next n%
+  'Now do the loop back testing
+  '? "LOOPBACK TESTS"
+  settick 100,IsSerialOrConsoleComplete,1 
+  t$="9600,S2,OC,DE"
+  t$="9600,S2,OC"
+  't$="9600,S2"
+  for n%=1 to nbrcomports
+    execute "Open \qCOM"+str$(n%)+":"+t$+"\q As #1"  
+    'ut.execute "Open ~COM"+str$(n%)+":"+t$+"~ As #1"  
+    print #1,t$
+    r$=GetResult$()
+    assert_string_equals(t$+chr$(13)+chr$(10)+"@COM"+str$(n%),r$+"@COM"+str$(n%))
+    CLOSE #1  
+  next n%
+  '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  'Check COM2 DEP and DEN parameters on H7
+  '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  if mm.device$="ARMmite H7" then
+     t$="DE TEST COM2"
+     local deport%=2
+     open "com2:9600,DEP" as #1
+     print #1,t$
+     r$=GetResult$()
+     assert_string_equals(t$+chr$(13)+chr$(10)+"@COM"+str$(deport%),r$+"@COM"+str$(deport%))
+     r$=MM.INFO$(PIN de%)
+     assert_string_equals( "Reserved"+"@"+str$(de%),r$+"@"+str$(de%))
+     CLOSE #1 
+     r$=MM.INFO$(PIN de%)
+     assert_string_equals( "Unused"+"@"+str$(de%),r$+"@"+str$(de%)  )
+     open "com2:9600,DEN" as #1
+     print #1,t$
+     r$=GetResult$()
+     assert_string_equals(t$+chr$(13)+chr$(10)+"@COM"+str$(deport%),r$+"@COM"+str$(deport%))
+     r$=MM.INFO$(PIN de%)
+     assert_string_equals( "Reserved"+"@"+str$(de%),r$+"@"+str$(de%))
+     CLOSE #1 
+     r$=MM.INFO$(PIN de%)
+     assert_string_equals( "Unused"+"@"+str$(de%),r$+"@"+str$(de%)  )
+  endif 
+  ''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  ' Check PWM2D and COM2 shared pin on H7 100Pin Devices
+  '''''''''''''''''''''''''''''''''''''''''''''''''''''
+  if mm.device$="ARMmite H7" then
+    if mm.info(NBRPINS)=100 then
+     T$="COM2vsPWM2D
+     PWM 2,1000,50,50,50,50
+     On Error Ignore
+     open "com2:9600" as #1
+     assert_raw_error("Pin 25 is in use") 'In use by PWM 2D
+     On Error Abort
+     pwm 2,STOP
+     PWM 2,1000,50,50,50
+     open "com2:9600" as #1
+     print #1,t$
+     r$=GetResult$()
+     assert_string_equals(t$+chr$(13)+chr$(10)+"@COM"+str$(2),r$+"@COM"+str$(2))
+     PWM 2,STOP
+     On Error Ignore
+     PWM 2,1000,50,50,50,50
+     assert_raw_error("Pin 25 is in use") 'In use by COM2
+     On Error Abort
+     CLOSE #1  
+    endif
+  endif
+  settick 0,0,1 
+End Sub
+
+function GetResult$() as string
+   timer=0
+   do
+    'Watchdog 40000                                  'reset after 40 secs on hang  
+  '==============================Check Console and Serial Ports====================================
+    'IF GetCon=1 then 
+    '  ReadConsole             'If data in console1 then GOSUB GetConsole
+    'END IF
+     
+    IF GetCom1=1 then 
+      GetResult$=Input$(254, #1)
+      GetCom1=0
+      exit do
+    END IF
+     
+    'IF GetCom2=1 then
+    '   ReadSerial2            'If data in COM2 then GOSUB GetSerial2
+   ' END IF 
+    
+   ' IF GetCom3=1 then 
+    '  ReadSerial3             'If data in COM1 then GOSUB GetSerial1
+    'END IF
+     
+    'IF GetCom4=1 then
+    '   ReadSerial4            'If data in COM2 then GOSUB GetSerial2
+   ' END IF  
+    if timer >1000 then
+      GetResult$="timeout"
+      exit do
+    endif
+    
+  Loop
+end function
+
+ 
+'================================================================================================
+  ' Subrountines called to monitor for Serial Port or Console input
+  '================================================================================================
+  'Checks console and serial ports for data and sets flag if data has stopped coming in.
+  'flag triggers read of the data in the main program loop
+  sub IsSerialOrConsoleComplete  
+    'Check console and set flag if data exists and has stopped coming in
+    
+    loc0now=LOC(#0)     
+    IF Loc0now>0 then
+     IF loc0now=loc0last  THEN 'data finished
+      GetCon=1                'If data in CON then set GetConsole flag
+     else
+      loc0last=loc0now  
+     ENDIF  
+    END IF
+     
+     'Check #1 and set flag if data exists and has stopped coming in
+    loc1now=LOC(#1)
+    IF loc1now > 0 THEN 
+     if loc1now=loc1last then 'data finished
+       GetCom1=1
+     ELSE
+      loc1last=loc1now
+     ENDIF 
+    ENDIF 
+   
+   
+  end sub
+
+
+
+Sub test_adcpins()
+  if mm.device$="ARMmite H7" then
+    if mm.info(NBRPINS)=100 then
+      h7100pins:
+      DATA 6,22,23,24,25,32,33,35                    'ADC1 pins 
+      'DATA 7,22,23,24,25,32,33,34,35                'ADC1 pins 
+      DATA 3,15,16,17,18                             'ADC 2 pins
+      DATA 1,30,31                                   'ADC3 pins
+      RESTORE h7100pins                              'point to top of data
+    else
+      h7144pins:
+      DATA 10,34,35,36,37,42,43,44,45,47,49,50      'ADC1 pins   
+      'DATA 11,13,14,15,18,19,20,21,22,26,27,28,29   'ADC 2 pins 
+      DATA 8,13,14,15,18,22,26,27,28,29            'ADC 2 pins less system spi 19,20,21
+      DATA 1,53,54                                  'ADC3 pins  
+      RESTORE h7144pins                             'point to top of data
+    endif
+  else
+   if mm.info(NBRPINS)=64 then  'Adfruit feather
+      f464adcpins:
+      DATA 1,22,23     'ADC1 pins 
+      DATA 1,10,10  'ADC 2 pins Note: add same pin twice so Dimension is not 0.
+      DATA 2,9,24,25                                 'ADC3 pins
+      RESTORE F464adcpins   'point to top of data
+    endif  
+    if mm.info(NBRPINS)=100 then
+      f4100adcpins:
+      DATA 7,15,18,23,24,25,26,31,32',35     'ADC1 pins 35 is F-CS on bigboard.
+      'DATA 8,15,18,23,24,25,26,31,32,35  
+      DATA 1,17,17  'ADC 2 pins Note: add same pin twice so Dimension is not 0.
+      DATA 2,16,33,34                                 'ADC3 pins
+      RESTORE F4100adcpins   'point to top of data
+    endif 
+    if mm.info(NBRPINS)=144 then
+      f4144adcpins:
+      DATA 7,15,18,23,24,25,26,31,32',35     'ADC1 pins 35 is F-CS on bigboard.
+      'DATA 8,15,18,23,24,25,26,31,32,35  
+      DATA 1,17,17  'ADC 2 pins Note: add same pin twice so Dimension is not 0.
+      DATA 2,16,33,34                                 'ADC3 pins
+      RESTORE F4144adcpins   'point to top of data
+    endif   
+  endif 
+  
+   
+   'Load ADC1 pins
+   LOCAL adc1max%
+   READ adc1max%
+   local adc1pins%(adc1max%)
+   READ adc1pins%()
+  
+   'Load ADC2 pins
+   LOCAL adc2max%
+   READ adc2max%
+   local adc2pins%(adc2max%)
+   READ adc2pins%()
+  
+   'Load ADC3 pins
+   LOCAL adc3max%
+   READ adc3max%
+   local adc3pins%(adc3max%)
+   READ adc3pins%()
+     
+   '? "** Check allocation of ADC pins to Analogue A,B an C"
+   local x%,y%,z%,r$
+   for x%=0 to adc1max%
+    for y%=0 to adc2max%
+     for z%=0 to adc3max%
+     execute "ADC OPEN 1000, "+str$(adc1pins%(x%))+","+str$(adc2pins%(y%))+","+str$(adc3pins%(z%))
+     r$=MM.INFO$(PIN adc1pins%(x%))
+     assert_string_equals(r$+"@"+str$(adc1pins%(x%)),   "Reserved"+"@"+str$(adc1pins%(x%)))
+     r$=MM.INFO$(PIN adc2pins%(y%))
+     assert_string_equals(r$+"@"+str$(adc2pins%(y%)),   "Reserved"+"@"+str$(adc2pins%(y%)))
+     r$=MM.INFO$(PIN adc3pins%(z%))
+     assert_string_equals(r$+"@"+str$(adc3pins%(z%)),   "Reserved"+"@"+str$(adc3pins%(z%)))
+     'ADC OPEN 10000,22,15,30
+     'DAC 1,3.0
+     'DAC STOP
+     
+     ADC CLOSE
+     r$=MM.INFO$(PIN adc1pins%(x%))
+     assert_string_equals(r$+"@"+str$(adc1pins%(x%)),   "Unused"+"@"+str$(adc1pins%(x%)))
+     r$=MM.INFO$(PIN adc2pins%(y%))
+     assert_string_equals(r$+"@"+str$(adc2pins%(y%)),   "Unused"+"@"+str$(adc2pins%(y%)))
+     r$=MM.INFO$(PIN adc3pins%(z%))
+     assert_string_equals(r$+"@"+str$(adc3pins%(z%)),   "Unused"+"@"+str$(adc3pins%(z%)))
+     
+     next z%
+    next y%
+   next x%  
+End Sub
+
+Sub test_countpins()
+  if mm.device$="ARMmite H7" then
+    if mm.info(NBRPINS)=100 then
+      h7100countpins:
+      DATA 3,81,82,36,84                              'count pins
+      RESTORE h7100countpins   'point to top of data
+    else
+      h7144countpins:
+      DATA 3,10,11,12,13                            'count pins
+      RESTORE h7144countpins                        'point to top of data
+    endif
+  ELSE if mm.device$="ARMmite F407" then
+    '? "**** F4 PINS********" 
+    if mm.info(NBRPINS)=64 then
+      F464countpins:
+      DATA 3,9,11,24,41                           'count pins
+      RESTORE F464countpins   'point to top of data
+    endif 
+    if mm.info(NBRPINS)=100 then
+      F4100countpins:
+      DATA 3,98,2,3,67                           'count pins
+      RESTORE F4100countpins   'point to top of data
+    endif 
+  elseif INSTR(mm.device$,"Micromite eXtreme") then
+      MMX100countpins:
+      DATA 3,6,7,8,9                           'count pins IR is pin 9
+      RESTORE MMX100countpins   'point to top of data 
+  else
+      
+  endif 
+  
+   'Load Count pins
+   LOCAL cinmax%
+   READ cinmax%
+   local cins%(cinmax%) 
+   READ cins%()
+       
+   '? "** Check allocation of ADC pins to Analogue A,B an C"
+   local x%,y%,z%,r$
+   for x%=0 to cinmax%
+    'for y%=0 to adc2max%
+     'for z%=0 to adc3max%
+     execute "SETPIN "+str$(cins%(x%))+", CIN"     'option 1-5
+     if INSTR(mm.device$,"Micromite eXtreme")=0 then
+      execute "SETPIN "+str$(cins%(x%))+", CIN,1"     'option 1-5
+      execute "SETPIN "+str$(cins%(x%))+", CIN,2"     'option 1-5
+      execute "SETPIN "+str$(cins%(x%))+", CIN,3"     'option 1-5
+      execute "SETPIN "+str$(cins%(x%))+", CIN,4"     'option 1-5
+      execute "SETPIN "+str$(cins%(x%))+", CIN,5"     'option 1-5
+      On Error Ignore
+      execute "SETPIN "+str$(cins%(x%))+", CIN,0"   ',option 1-10000
+      assert_raw_error("0 is invalid (valid is 1 to 5)")
+      execute "SETPIN "+str$(cins%(x%))+", CIN,6"   ',option 1-10000
+      assert_raw_error("6 is invalid (valid is 1 to 5)")
+      On Error Abort
+     endif
+     r$=MM.INFO$(PIN cins%(x%))
+     assert_string_equals(r$+"@"+str$(cins%(x%)),   "Reserved"+"@"+str$(cins%(x%)))
+     execute "SETPIN "+str$(cins%(x%))+", OFF"
+     r$=MM.INFO$(PIN cins%(x%))
+     assert_string_equals(r$+"@"+str$(cins%(x%)),   "Unused"+"@"+str$(cins%(x%)))
+     
+     'Check the option boundaries
+     execute "SETPIN "+str$(cins%(x%))+", PIN"    'option 1-10000
+     execute "SETPIN "+str$(cins%(x%))+", PIN,1"    'option 1-10000
+     execute "SETPIN "+str$(cins%(x%))+", PIN,10000"    'option 1-10000
+     On Error Ignore
+     execute "SETPIN "+str$(cins%(x%))+", PIN,0"   ',option 1-10000
+     assert_raw_error("0 is invalid (valid is 1 to 10000)")
+     execute "SETPIN "+str$(cins%(x%))+", PIN,10001"   ',option 1-10000
+     assert_raw_error("10001 is invalid (valid is 1 to 10000)")
+     On Error Abort
+    
+     r$=MM.INFO$(PIN cins%(x%))
+     assert_string_equals(r$+"@"+str$(cins%(x%)),   "Reserved"+"@"+str$(cins%(x%)))
+     execute "SETPIN "+str$(cins%(x%))+", OFF"
+     r$=MM.INFO$(PIN cins%(x%))
+     assert_string_equals(r$+"@"+str$(cins%(x%)),   "Unused"+"@"+str$(cins%(x%)))
+    
+     'Check the option boundaries
+     execute "SETPIN "+str$(cins%(x%))+", FIN"   ',option 10-100000
+     execute "SETPIN "+str$(cins%(x%))+", FIN,10"   ',option 10-100000
+     execute "SETPIN "+str$(cins%(x%))+", FIN,100000"   ',option 10-100000
+     On Error Ignore
+     execute "SETPIN "+str$(cins%(x%))+", FIN,9"   ',option 10-100000
+     assert_raw_error("9 is invalid (valid is 10 to 100000)")
+     execute "SETPIN "+str$(cins%(x%))+", FIN,100001"   ',option 10-100000
+     assert_raw_error("100001 is invalid (valid is 10 to 100000)")
+     On Error Abort
+     
+     
+     r$=MM.INFO$(PIN cins%(x%))
+     assert_string_equals(r$+"@"+str$(cins%(x%)),   "In Use"+"@"+str$(cins%(x%)))
+     execute "SETPIN "+str$(cins%(x%))+", OFF"
+     r$=MM.INFO$(PIN cins%(x%))
+     assert_string_equals(r$+"@"+str$(cins%(x%)),   "Unused"+"@"+str$(cins%(x%)))
+     'next z%
+    'next y%
+   next x%  
+   
+End Sub
+
+Sub test_i2cpins()
+
+  if mm.device$="ARMmite H7" then
+    if mm.info(NBRPINS)=100 then
+      h7100i2cpins:
+      DATA 3,95,96,46,47   'i2c pins scl,sda
+      DATA 2,100,400,1000   'speeds
+      RESTORE h7100i2cpins   'point to top of data
+    else
+      h7144i2cpins:
+      DATA 3,139,140,69,70  'i2c pins
+      DATA 2,100,400,1000  'speeds
+      RESTORE h7144i2cpins                        'point to top of data
+    endif
+  ELSE if mm.device$="ARMmite F407" then
+    if mm.info(NBRPINS)=64 then 
+      F464i2cpins:
+      DATA 1,58,59                          'i2ct pins
+      DATA 1,100,400
+      RESTORE F464i2cpins   'point to top of data
+       '? "**** F4 PINS********" 
+    endif
+    if mm.info(NBRPINS)=100 then 
+      F4100i2cpins:
+      DATA 3,92,93,47,48                           'i2ct pins
+      DATA 1,100,400
+      RESTORE F4100i2cpins   'point to top of data
+       '? "**** F4 PINS********" 
+    endif
+  else if INSTR(mm.device$,"Micromite eXtreme") then
+      MMX100i2cpins:
+      DATA 3,11,12,59,60                           'i2c
+      DATA 1,100,400
+      RESTORE MMX100i2cpins   'point to top of data
+  endif 
+  
+   'Load Count pins
+   LOCAL i2cmax%
+   READ i2cmax%
+   DIM i2cs%(i2cmax%) 
+   READ i2cs%()
+   LOCAL speedmax%
+   READ speedmax%
+   local speeds%(speedmax%)
+   READ speeds%()
+       
+   '? "** Check allocation of ADC pins to Analogue A,B an C"
+   local x%,y%,z%,r$
+   'Check I2C
+   for x%=0 to speedmax%
+    'for y%=0 to adc2max%
+     'for z%=0 to adc3max%
+     ON ERROR SKIP 1
+     execute "i2c open "+str$(speeds%(x%))+",100"
+       r$=MM.INFO$(PIN i2cs%(0))
+       assert_string_equals(r$+"@"+str$(i2cs%(0)),   "Reserved"+"@"+str$(i2cs%(0)))
+       r$=MM.INFO$(PIN i2cs%(1))
+       assert_string_equals(r$+"@"+str$(i2cs%(1)),   "Reserved"+"@"+str$(i2cs%(1)))
+       'i2c WRITE
+       'i2c READ
+     ON ERROR SKIP 1
+     I2C CLOSE 
+       r$=MM.INFO$(PIN i2cs%(0))
+       assert_string_equals(r$+"@"+str$(i2cs%(0)),   "Unused"+"@"+str$(i2cs%(0)))
+       r$=MM.INFO$(PIN i2cs%(1))
+       assert_string_equals(r$+"@"+str$(i2cs%(1)),   "Unused"+"@"+str$(i2cs%(1)))
+   next x%  
+  'Check I2C2
+  If i2cmax%>1 then
+   for x%=0 to speedmax%
+    
+     ON ERROR SKIP 1
+     execute "i2c2 open "+str$(speeds%(x%))+",100"
+       r$=MM.INFO$(PIN i2cs%(2))
+       assert_string_equals(r$+"@"+str$(i2cs%(2)),   "Reserved"+"@"+str$(i2cs%(2)))
+       r$=MM.INFO$(PIN i2cs%(3))
+       assert_string_equals(r$+"@"+str$(i2cs%(3)),   "Reserved"+"@"+str$(i2cs%(3)))
+     ON ERROR SKIP 1
+     I2C2 CLOSE 
+       r$=MM.INFO$(PIN i2cs%(2))
+       assert_string_equals(r$+"@"+str$(i2cs%(2)),   "Unused"+"@"+str$(i2cs%(2)))
+       r$=MM.INFO$(PIN i2cs%(3))
+       assert_string_equals(r$+"@"+str$(i2cs%(3)),   "Unused"+"@"+str$(i2cs%(3)))
+   next x%  
+  endif 
+     
+   
+End Sub
+
+Sub test_spipins()
+  OPTION ESCAPE
+  if mm.device$="ARMmite H7" then
+    if mm.info(NBRPINS)=100 then
+      h7100spipins:
+      DATA 5,90,88,89,43,44,42   'spi pins in,out,clk ...
+      DATA 2,10000,20000,40000   'speeds
+      RESTORE h7100spipins   'point to top of data
+    else
+      h7144spipins:
+      DATA 8,42,43,126,28,27,117,134,48,133  'spi pins
+      DATA 2,1000,20000,40000  'speeds
+      RESTORE h7144spipins                        'point to top of data
+    endif
+  ELSE if mm.device$="ARMmite F407" then
+      '? "**** F4 PINS********" 
+    if mm.info(NBRPINS)=64 then  
+      F464spipins:
+      DATA 5,56,57,55,35,36,34                           'spi pins
+      DATA 2,1000,20000,40000  'speeds
+      RESTORE F464spipins
+    endif 
+    if mm.info(NBRPINS)=100 then  
+      F4100spipins:
+      DATA 5,90,91,89,53,54,52                           'spi pins
+      DATA 2,1000,20000,40000  'speeds
+      RESTORE F4100spipins
+    endif 
+    if mm.info(NBRPINS)=144 then  
+      F4144spipins:
+      DATA 5,134,135,133,75,76,74                           'spi pins
+      DATA 2,1000,20000,40000  'speeds
+      RESTORE F4144spipins
+    endif 
+  else if INSTR(mm.device$,"Micromite eXtreme") then  
+     if mm.info(NBRPINS)=100 then
+       MMX100spipins:
+       DATA 8,78,77,76,66,72,10,67,70,69                           'spi pins
+       DATA 2,1000,20000,40000  'speeds
+       RESTORE MMX100spipins
+     endif
+    
+  endif
+   'Load Count pins
+   LOCAL spimax%
+   READ spimax%
+   DIM spis%(spimax%) 
+   READ spis%()
+   LOCAL speedmax%
+   READ speedmax%
+   local speeds%(speedmax%)
+   READ speeds%()
+       
+   '? "** Check allocation of spi pins"
+   local x%,y%,z%,r$
+   'Check SPI
+   for x%=0 to speedmax%
+     execute "SPI open "+str$(speeds%(x%))+",0,8"  'Mode=0 bits=8
+       r$=MM.INFO$(PIN spis%(0))
+       assert_string_equals("Reserved"+"@"+str$(spis%(0)),r$+"@"+str$(spis%(0)))
+       r$=MM.INFO$(PIN spis%(1))
+       assert_string_equals("Reserved"+"@"+str$(spis%(1)),r$+"@"+str$(spis%(1)))
+       r$=MM.INFO$(PIN spis%(2))
+       assert_string_equals("Reserved"+"@"+str$(spis%(2)),r$+"@"+str$(spis%(2)))
+     spi CLOSE 
+       r$=MM.INFO$(PIN spis%(0))
+       assert_string_equals("Unused"+"@"+str$(spis%(0)),r$+"@"+str$(spis%(0)))
+       r$=MM.INFO$(PIN spis%(1))
+       assert_string_equals("Unused"+"@"+str$(spis%(1)),r$+"@"+str$(spis%(1)))
+       r$=MM.INFO$(PIN spis%(2))
+       assert_string_equals("Unused"+"@"+str$(spis%(2)),r$+"@"+str$(spis%(2)))
+   next x%  
+  'Check SPI2
+   for x%=0 to speedmax%
+     execute "SPI2 open "+str$(speeds%(x%))+",0,8"
+       r$=MM.INFO$(PIN spis%(3))
+       assert_string_equals("Reserved"+"@"+str$(spis%(3)),r$+"@"+str$(spis%(3)))
+       r$=MM.INFO$(PIN spis%(4))
+       assert_string_equals("Reserved"+"@"+str$(spis%(4)),r$+"@"+str$(spis%(4)))
+       r$=MM.INFO$(PIN spis%(5))
+       assert_string_equals("Reserved"+"@"+str$(spis%(5)),r$+"@"+str$(spis%(5)))
+      
+     spi2 CLOSE 
+       r$=MM.INFO$(PIN spis%(3))
+       assert_string_equals("Unused"+"@"+str$(spis%(3)),r$+"@"+str$(spis%(3)))
+       r$=MM.INFO$(PIN spis%(4))
+       assert_string_equals("Unused"+"@"+str$(spis%(4)),r$+"@"+str$(spis%(4)))
+       r$=MM.INFO$(PIN spis%(5))
+       assert_string_equals("Unused"+"@"+str$(spis%(5)),r$+"@"+str$(spis%(5)))
+   next x% 
+   
+   'Check SPI3
+   if spimax%>5 then
+    for x%=0 to speedmax%
+     execute "SPI3 open "+str$(speeds%(x%))+",0,8"
+       r$=MM.INFO$(PIN spis%(6))
+       assert_string_equals("Reserved"+"@"+str$(spis%(6)),r$+"@"+str$(spis%(6)))
+       r$=MM.INFO$(PIN spis%(7))
+       assert_string_equals("Reserved"+"@"+str$(spis%(7)),r$+"@"+str$(spis%(7)))
+       r$=MM.INFO$(PIN spis%(8))
+       assert_string_equals("Reserved"+"@"+str$(spis%(8)),r$+"@"+str$(spis%(8)))
+     spi3 CLOSE 
+       r$=MM.INFO$(PIN spis%(6))
+       assert_string_equals("Unused"+"@"+str$(spis%(6)),r$+"@"+str$(spis%(6)))
+       r$=MM.INFO$(PIN spis%(7))
+       assert_string_equals("Unused"+"@"+str$(spis%(7)),r$+"@"+str$(spis%(7)))
+       r$=MM.INFO$(PIN spis%(8))
+       assert_string_equals("Unused"+"@"+str$(spis%(8)),r$+"@"+str$(spis%(8)))
+    next x%   
+   endif 
+     
+   
+End Sub
+
+
+' Check allocation of IR pin 
+Sub test_irpin()
+  if mm.device$="ARMmite H7" then
+    if mm.info(NBRPINS)=100 then
+      h7100irpin:
+      DATA 93    'IR Pin
+      RESTORE h7100irpin
+    else
+      h7144irpin:
+      DATA 14  'IR Pin
+      RESTORE h7144irpin
+    endif 
+  ELSE if mm.device$="ARMmite F407" then
+    if mm.info(NBRPINS)=64 then
+     F464irpin:
+     DATA 10  'IR Pin
+     RESTORE F464irpin
+    endif 
+    if mm.info(NBRPINS)=100 then
+     F4100irpin:
+     DATA 1  'IR Pin
+     RESTORE F4100irpin
+    endif
+    if mm.info(NBRPINS)=144 then
+     F4144irpin:
+     DATA 1  'IR Pin
+     RESTORE F4144irpin
+    endif 
+    
+  else if INSTR(mm.device$,"Micromite eXtreme") then
+     MMX100irpin:
+    DATA 9  'IR Pin is count 4
+    RESTORE MMX100irpin  
+    
+  endif 
+  LOCAL irpin%
+  READ irpin%
+  local r$,irdev%,irkey%
+  IR irdev%, irkey%,irsub 
+  r$=MM.INFO$(PIN irpin%)
+  assert_string_equals( "Reserved"+"@"+str$(irpin%),r$+"@"+str$(irpin%))
+  IR CLOSE 
+  r$=MM.INFO$(PIN irpin%)
+  assert_string_equals( "Unused"+"@"+str$(irpin%),r$+"@"+str$(irpin%))
+End Sub
+sub IRSUB
+END SUB
