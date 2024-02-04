@@ -2,12 +2,13 @@ ChangeLog
 ---------
 
 Version 0.6.0 - 4-Feb-2024:
-  - Added BIN2STR$() and STR2BIN functions.
+  - Added BIN2STR$() and STR2BIN() functions.
   - Added MM.INFO(LINE) function to return the number of the current line.
   - Added NOP implementation of PAGE command.
   - Changed file path reported in an error message to be canonicalised.
   - Changed maximum error message length to 255 characters (from 127).
-  - Changed otherwise NOP implementation of MODE to clear the console.
+  - Changed implementation of MODE so that it clears the console instead of
+    just being a NOP.
   - Changed parser to allow any non-name character to be used as a keyword
     terminator, i.e. DIM i AS INTEGER=10 is now valid.
   - Changed 'micro' version in semantic versioning from 2 digits to 3, the most
@@ -18,11 +19,11 @@ Version 0.6.0 - 4-Feb-2024:
       2      - RC (release candidate)
       3 .. 9 - release, in which case the "real" MICRO version is the
                3-digit number minus 300.
-    e.g. version 1230560000 => 1.23 alpha 56 build 0
-                 1231560000 => 1.23 beta 56 build 0
-                 1232560000 => 1.23 RC 56 build 0
-                 1233560000 => 1.23.56 build 0
-                 1234560000 => 1.23.156 build 0
+    e.g. version 1230560001 => 1.23 alpha 56 build 1
+                 1231560012 => 1.23 beta 56 build 12
+                 1232560123 => 1.23 RC 56 build 123
+                 1233561234 => 1.23.56 build 1234
+                 1234567890 => 1.23.156 build 7890
     Currently the version is 63000000 => 0.6.0 build 0.
   - Changed MM.VER to return an INTEGER instead of a FLOAT, the same as
     MM.INFO(VERSION).
