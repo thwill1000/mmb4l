@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-Version.h
+cmd_cls.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,49 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_VERSION_H)
-#define MMB4L_VERSION_H
+#include "../common/mmb4l.h"
+#include "../common/console.h"
+#include "../common/error.h"
+#include "../common/parse.h"
 
-#if defined(__linux__)
-    #define __mmb4l__
-    #if defined(__ANDROID__)
-        #define MM_ARCH  "Android aarch64"
-        #define ENV64BIT
-    #elif defined(__x86_64)
-        #define MM_ARCH  "Linux x86_64"
-        #define ENV64BIT
-    #elif defined(__aarch64__)
-        #define MM_ARCH  "Linux aarch64"
-        #define ENV64BIT
-    #elif defined(__arm__)
-        #define MM_ARCH  "Linux armv6l"
-        #define ENV32BIT
-    #elif defined(__i686__)
-        #define MM_ARCH  "Linux i686"
-        #define ENV32BIT
-    #else
-        #error This architecture is not supported
-    #endif
-#elif defined(__riscos__)
-    #define __mmb4l__
-    #define MM_ARCH "RISC OS"
-    #define ENV32BIT
-#else
-    #error This device is not supported
-#endif
-
-#if defined(__mmb4l__)
-    #define MM_DEVICE   "MMB4L"
-    #define MM_MAJOR    0
-    #define MM_MINOR    6
-    #define MM_MICRO    300
-    #define MM_VERSION  (MM_MAJOR * 1000000000) + (MM_MINOR * 10000000) + (MM_MICRO) * 10000 + BUILD_NUMBER
-    #define BUILD_NUMBER   0  // Currently always 0.
-    #define COPYRIGHT      "Copyright 2011-2024 Geoff Graham\r\n" \
-                           "Copyright 2016-2024 Peter Mather\r\n" \
-                           "Copyright 2021-2024 Thomas Hugo Williams\r\n"
-#else
-    #error __mmb4l__ is not defined
-#endif
-
-#endif // #if !defined(MMB4L_VERSION_H)
+void cmd_mode(void) {
+    //skipspace(cmdline);
+    //if (!parse_is_end(cmdline)) ERROR_SYNTAX;
+    console_clear();
+}

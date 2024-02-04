@@ -33,12 +33,6 @@ If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
 
-Sub setup_test()
-End Sub
-
-Sub teardown_test()
-End Sub
-
 Sub test_min_given_ints()
   assert_int_equals(5, Min(5))
   assert_int_equals(-5, Min(-5))

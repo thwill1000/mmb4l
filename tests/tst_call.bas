@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2023 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -15,7 +15,6 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
-Const TMPDIR$ = sys.string_prop$("tmpdir")
 
 add_test("test_call_integer_fun")
 add_test("test_call_float_fun")
@@ -32,6 +31,8 @@ add_test("test_call_sub_too_long_name")
 add_test("test_call_missing_fun")
 add_test("test_call_missing_sub")
 add_test("test_arg_list_bug")
+add_test("test_call_fun_given_expr")
+add_test("test_call_sub_given_expr")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -91,15 +92,17 @@ Sub test_call_fun_as_sub()
   Local i%
   On Error Skip
   Call "int_fn", i%
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Not a subroutine")
+  ElseIf sys.is_platform%("pm*") Then
+    assert_raw_error("Unknown user subroutine")
   Else
     assert_raw_error("Type specification is invalid")
   EndIf
 End Sub
 
 Sub test_call_sub_as_fun()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
   Local i%
   On Error Skip
   i% = Call("foo", i%)
@@ -110,7 +113,7 @@ Sub test_call_label_as_fun()
   Local i%
   On Error Skip
   i% = Call("wombat_label", i%)
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Function not found")
   Else
     assert_raw_error("Unknown user function")
@@ -121,7 +124,7 @@ Sub test_call_label_as_sub()
   Local i%
   On Error Skip
   Call "wombat_label", i%
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Subroutine not found")
   Else
     assert_raw_error("Unknown user subroutine")
@@ -129,7 +132,7 @@ Sub test_call_label_as_sub()
 End Sub
 
 Sub test_call_fun_max_name()
-  If Not sys.is_device%("mmb4l") Then Exit Sub
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
   Local i%
   i% = Call("fun_with_max_length_name_6789012%")
   assert_int_equals(42, i%)
@@ -139,8 +142,10 @@ Sub test_call_fun_too_long_name()
   Local i%
   On Error Skip
   i% = Call("fun_with_too_long_name_4567890123%", i%)
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Function name too long")
+  ElseIf sys.is_platform%("pm*") Then
+    assert_raw_error("Unknown user function")
   Else
     assert_raw_error("Variable name too long")
   EndIf
@@ -156,8 +161,10 @@ Sub test_call_sub_too_long_name()
   Local i%
   On Error Skip
   Call "sub_with_too_long_name_4567890123", i%
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Subroutine name too long")
+  ElseIf sys.is_platform%("pm*") Then
+    assert_raw_error("Unknown user subroutine")
   Else
     assert_raw_error("Variable name too long")
   EndIf
@@ -167,7 +174,7 @@ Sub test_call_missing_fun()
   Local i%
   On Error Skip
   i% = Call("missing_fun", i%)
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Function not found")
   Else
     assert_raw_error("Unknown user function")
@@ -178,7 +185,7 @@ Sub test_call_missing_sub()
   Local i%
   On Error Skip
   Call "missing_sub", i%
-  If sys.is_device%("mmb4l") Then
+  If sys.is_platform%("mmb4l") Then
     assert_raw_error("Subroutine not found")
   Else
     assert_raw_error("Unknown user subroutine")
@@ -187,16 +194,19 @@ End Sub
 
 ' Prior to 5.07.01 this would report an "Argument List" error from the Print #1 statement.
 Sub test_arg_list_bug()
-  Open TMPDIR$ + "/tst_call.tmp" For Output As #1
+  MkDir TMPDIR$
+
+  Const f$ = TMPDIR$ + "/test_arg_list_bug"
+  Open f$ For Output As #1
   Print #1, Call("int_fn%"), Call("float_fn!"), Call("string_fn$")
   Close #1
 
-  Open TMPDIR$ + "/tst_call.tmp" For Input As #1
+  Open f$ For Input As #1
   Local s$
   Line Input #1, s$
 
   ' The difference seems to be something to do with how tabs are handled.
-  If sys.is_device%("mmb4l", "mmb4w") Then
+  If sys.is_platform%("mmb4l", "mmb4w", "pm*") Then
     assert_string_equals(" 42  3.12   bar", s$)
   Else
     assert_string_equals(" 42  3.12 bar", s$)
@@ -204,4 +214,27 @@ Sub test_arg_list_bug()
 
   assert_int_equals(1, Eof(#1))
   Close #1
+End Sub
+
+Sub test_call_fun_given_expr()
+  Local my_fun$(2, 2)
+  my_fun$(1, 1) = "int_fn%"
+  assert_int_equals(42, Call(my_fun$(1, 1)))
+
+  assert_int_equals(42, Call(Field$("int_fn%,1", 1)))
+End Sub
+
+Sub test_call_sub_given_expr()
+  Local my_sub$(2, 2)
+  my_sub$(1, 1) = "foo"
+  Local i%, f!, s$
+  Call my_sub$(1, 1), i%, f!, s$
+  assert_int_equals(42, i%)
+  assert_float_equals(3.12, f!)
+  assert_string_equals("bar", s$)
+
+  Call Field$("foo,1", 1), i%, f!, s$
+  assert_int_equals(42, i%)
+  assert_float_equals(3.12, f!)
+  assert_string_equals("bar", s$)
 End Sub

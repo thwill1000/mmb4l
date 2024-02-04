@@ -54,11 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_call(void) {
     char *cmd = getCstring(cmdline);  // get the command we want to call
     cstring_toupper(cmd);
-    const char *q = cmdline;
-    while (*q) {
-        if (*q == ',' || *q == '\'') break;
-        q++;
-    }
+    const char *q = skipexpression(cmdline);
     if (*q == ',') q++;
     int i = FindSubFun(cmd, kSub);  // find a subroutine.
     cstring_cat(cmd, " ", STRINGSIZE);

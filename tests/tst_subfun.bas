@@ -1,4 +1,4 @@
-' Copyright (c) 2023 Thomas Hugo Williams
+' Copyright (c) 2023-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -42,7 +42,13 @@ Function fun_b%()
 End Function
 
 Sub test_call_fn_as_sub()
-  Local expected$ = Choice(Mm.Device$ = "MMB4L", "Not a subroutine", "Type specification is invalid: %")
+  If sys.is_platform%("mmb4l") Then
+    Const expected$ = "Not a subroutine"
+  ElseIf sys.is_platform%("pmvga") Then
+    Const expected$ = "Unknown command"
+  Else
+    Const expected$ = "Type specification is invalid: %"
+  EndIf
   On Error Skip 1
   fun_b%()
   assert_raw_error(expected$)
@@ -73,7 +79,7 @@ Sub test_call_fn_with_wrong_type()
 End Sub
 
 Sub test_assign_fn_to_wrong_type()
-  If sys.is_device%("cmm2*") Then Exit Sub
+  If sys.is_platform%("cmm2*") Then Exit Sub
   On Error Skip 3 ' Needs SKIP 3 because of lines to skip in function itself.
   Local s$ = fun_b%()
   assert_raw_error("Expected a string")
@@ -112,7 +118,14 @@ End Sub
 Sub test_sub_too_long_name()
   On Error Skip
   sub_with_too_long_name_4567890123(i%)
-  assert_raw_error(Choice(Mm.Device$ = "MMB4L", "Subroutine name too long", "Variable name too long"))
+  If sys.is_platform%("mmb4l") Then
+    Const expected$ = "Subroutine name too long"
+  ElseIf sys.is_platform%("pmvga") Then
+    Const expected$ = "Unknown command"
+  Else
+    Const expected$ = "Variable name too long"
+  EndIf
+  assert_raw_error(expected$)
 End Sub
 
 Function ifun(i As Integer) As Integer
@@ -136,6 +149,8 @@ End Sub
 
 ' Smoke test for mixing functions, labels and subroutines with same names.
 Sub test_fun_label_and_sub()
+  If sys.is_platform%("pm*") Then Exit Sub
+
   Local i%, s$
 
   Restore aaa

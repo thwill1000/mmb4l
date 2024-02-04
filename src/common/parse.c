@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 parse.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -184,8 +184,7 @@ static MmResult parse_transform_star_command(char *input) {
     while (isspace(*end)) *end-- = '\0';
 
     // Allocate extra space to avoid string overrun.
-    // We rely on the caller to clean this up.
-    char *tmp = (char *) GetTempMemory(STRINGSIZE + 32);
+    char *tmp = (char *) GetTempMemory(INPBUF_SIZE + 32);
     strcpy(tmp, "RUN");
     char *dst = tmp + 3;
 
@@ -240,7 +239,10 @@ static MmResult parse_transform_star_command(char *input) {
             } else {
                 *dst++ = *src++;
             }
-            if (dst - tmp >= STRINGSIZE) return kStringTooLong;
+            if (dst - tmp >= INPBUF_SIZE) {
+                ClearSpecificTempMemory(tmp);
+                return kStringTooLong;
+            }
         }
 
         // End with a double quote unless 'src' ended with one.
@@ -249,18 +251,19 @@ static MmResult parse_transform_star_command(char *input) {
         *dst = '\0';
     }
 
-    if (dst - tmp >= STRINGSIZE) return kStringTooLong;
+    if (dst - tmp >= INPBUF_SIZE) {
+        ClearSpecificTempMemory(tmp);
+        return kStringTooLong;
+    }
 
     // Copy transformed string back into the input buffer.
-    cstring_cpy(input, tmp, STRINGSIZE);
+    cstring_cpy(input, tmp, INPBUF_SIZE);
 
+    ClearSpecificTempMemory(tmp);
     return kOk;
 }
 
 static MmResult parse_transform_bang_cd_command(char *input, char *src) {
-    // Allocate extra space to avoid string overrun.
-    char tmp[STRINGSIZE + 32] = "CHDIR ";
-    char *dst = tmp + 6;
     while (isspace(*src)) src++;
 
     if (!*src) {
@@ -269,13 +272,21 @@ static MmResult parse_transform_bang_cd_command(char *input, char *src) {
         return kOk;
     }
 
+    // Allocate extra space to avoid string overrun.
+    char *tmp = (char *) GetTempMemory(INPBUF_SIZE + 32);
+    strcpy(tmp, "CHDIR ");
+    char *dst = tmp + 6;
+
     // Start the command with a double quote unless the input started with one.
     if (*src != '\"') *dst++ = '\"';
 
     // Copy from src to dst.
     while (*src) {
         *dst++ = *src++;
-        if (dst > tmp + STRINGSIZE - 1) return kStringTooLong;
+        if (dst > tmp + INPBUF_SIZE - 1) {
+            ClearSpecificTempMemory(tmp);
+            return kStringTooLong;
+        }
     }
 
     // End the command with a double quote unless the input ended with one.
@@ -284,8 +295,9 @@ static MmResult parse_transform_bang_cd_command(char *input, char *src) {
     *dst = '\0';
 
     // Copy transformed string back into the input buffer.
-    cstring_cpy(input, tmp, STRINGSIZE);
+    cstring_cpy(input, tmp, INPBUF_SIZE);
 
+    ClearSpecificTempMemory(tmp);
     return kOk;
 }
 
@@ -321,7 +333,8 @@ static MmResult parse_transform_bang_command(char *input) {
     }
 
     // Allocate extra space to avoid string overrun.
-    char tmp[STRINGSIZE + 32] = "SYSTEM ";
+    char *tmp = (char *) GetTempMemory(INPBUF_SIZE + 32);
+    strcpy(tmp, "SYSTEM ");
     char *dst = tmp + 7;
 
     // Start the command with a double quote unless the input started with one.
@@ -344,7 +357,10 @@ static MmResult parse_transform_bang_command(char *input) {
         } else {
             *dst++ = *src++;
         }
-        if (dst > tmp + STRINGSIZE - 2) return kStringTooLong;
+        if (dst > tmp + INPBUF_SIZE - 2) {
+            ClearSpecificTempMemory(tmp);
+            return kStringTooLong;
+        }
     }
 
     // End the command with a double quote unless the input ended with one.
@@ -353,8 +369,9 @@ static MmResult parse_transform_bang_command(char *input) {
     *dst = '\0';
 
     // Copy transformed string back into the input buffer.
-    cstring_cpy(input, tmp, STRINGSIZE);
+    cstring_cpy(input, tmp, INPBUF_SIZE);
 
+    ClearSpecificTempMemory(tmp);
     return kOk;
 }
 

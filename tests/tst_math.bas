@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2022 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 '
@@ -18,7 +18,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
-Const RESOURCE_DIR$ = file.PROG_DIR$ + "/resources/tst_math"
+Const RESOURCE_DIR$ = Mm.Info(Path) + "resources/tst_math"
 
 Const NUM_SAMPLES% = 512
 Dim sin_amp1!(array.new%(NUM_SAMPLES%))
@@ -166,6 +166,8 @@ End Sub
 
 ' Test MATH FFT against a file of known values and results.
 Sub test_fft_given_values_from_csv()
+  If sys.is_platform%("pm*") Then Exit Sub
+
   Const size% = 1024
   Local signal!(array.new%(size%))
   Local expected_mag!(array.new%(size%))

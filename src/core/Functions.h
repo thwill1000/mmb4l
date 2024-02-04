@@ -57,6 +57,7 @@ void fun_abs(void);
 void fun_asc(void);
 void fun_atn(void);
 void fun_bin(void);
+void fun_bin2str(void);
 void fun_chr(void);
 void fun_cint(void);
 void fun_cos(void);
@@ -86,6 +87,7 @@ void fun_space(void);
 void fun_sqr(void);
 void fun_str(void);
 void fun_string(void);
+void fun_str2bin(void);
 void fun_tab(void);
 void fun_tan(void);
 void fun_ucase(void);
@@ -138,6 +140,7 @@ void fun_min(void);
   { "ASin(",      T_FUN  | T_NBR,         0, fun_asin     },
   { "Atn(",       T_FUN  | T_NBR,         0, fun_atn      },
   { "Bin$(",      T_FUN  | T_STR,         0, fun_bin      },
+  { "Bin2Str$(",  T_FUN  | T_STR,         0, fun_bin2str  },
   { "Chr$(",      T_FUN  | T_STR,         0, fun_chr,     },
   { "Cint(",      T_FUN  | T_INT,         0, fun_cint     },
   { "Cos(",       T_FUN  | T_NBR,         0, fun_cos      },
@@ -155,7 +158,7 @@ void fun_min(void);
   { "Len(",       T_FUN  | T_INT,         0, fun_len      },
   { "Log(",       T_FUN  | T_NBR,         0, fun_log      },
   { "Mid$(",      T_FUN  | T_STR,         0, fun_mid      },
-  { "MM.Ver",     T_FNA  | T_NBR,         0, fun_version  },
+  { "MM.Ver",     T_FNA  | T_INT,         0, fun_version  },
   { "Oct$(",      T_FUN  | T_STR,         0, fun_oct      },
   { "Pi",         T_FNA  | T_NBR,         0, fun_pi       },
   { "Pos",        T_FNA  | T_INT,         0, fun_pos      },
@@ -170,6 +173,7 @@ void fun_min(void);
   { "Sqr(",       T_FUN  | T_NBR,         0, fun_sqr      },
   { "Str$(",      T_FUN  | T_STR,         0, fun_str      },
   { "String$(",   T_FUN  | T_STR,         0, fun_string   },
+  { "Str2Bin(",   T_FUN  | T_NBR | T_INT, 0, fun_str2bin  },
   { "Tab(",       T_FUN  | T_STR,         0, fun_tab,     },
   { "Tan(",       T_FUN  | T_NBR,         0, fun_tan      },
   { "UCase$(",    T_FUN  | T_STR,         0, fun_ucase    },

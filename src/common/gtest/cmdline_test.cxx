@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Thomas Hugo Williams
+ * Copyright (c) 2021-2023 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -8,6 +8,7 @@
 extern "C" {
 
 #include "../cmdline.h"
+#include "../cstring.h"
 #include "../parse.h"
 
 int LocalIndex = 0;
@@ -24,7 +25,7 @@ TEST(CmdLineTest, Parse_GivenNoAdditionalArguments) {
     argv[0] = "mmbasic";
     CmdLineArgs args = { 0 };
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
@@ -38,7 +39,7 @@ TEST(CmdLineTest, Parse_GivenHelpFlag) {
     argv[1] = "-h";
     CmdLineArgs args = { 0 };
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(1, args.help);
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
@@ -48,7 +49,7 @@ TEST(CmdLineTest, Parse_GivenHelpFlag) {
     args.interactive = 0;
     argv[1] = "--help";
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(1, args.help);
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
@@ -63,7 +64,7 @@ TEST(CmdLineTest, Parse_GivenInteractiveFlag) {
     argv[1] = "-i";
     CmdLineArgs args = { 0 };
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
@@ -73,7 +74,7 @@ TEST(CmdLineTest, Parse_GivenInteractiveFlag) {
     args.interactive = 0;
     argv[1] = "--interactive";
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
@@ -88,7 +89,7 @@ TEST(CmdLineTest, Parse_GivenVersionFlag) {
     argv[1] = "-v";
     CmdLineArgs args = { 0 };
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(1, args.version);
@@ -98,7 +99,7 @@ TEST(CmdLineTest, Parse_GivenVersionFlag) {
     args.version = 0;
     argv[1] = "--version";
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(1, args.version);
@@ -114,7 +115,7 @@ TEST(CmdLineTest, Parse_GivenInteractiveAndVersionFlags) {
     argv[2] = "-v";
     CmdLineArgs args = { 0 };
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(1, args.version);
@@ -129,7 +130,7 @@ TEST(CmdLineTest, Parse_GivenProgramArgument) {
     argv[1] = "myprogram.bas";
     CmdLineArgs args = { 0 };
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
     EXPECT_EQ(0, args.interactive);
     EXPECT_EQ(0, args.version);
@@ -150,7 +151,7 @@ TEST(CmdLineTest, Parse_GivenProgramArgumentWithFlags) {
     argv[7] = "\"wom bat\"";
     CmdLineArgs args = { 0 };
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
     EXPECT_EQ(0, args.interactive);
     EXPECT_EQ(0, args.version);
@@ -166,7 +167,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
     argv[2] = "some/directory";
     CmdLineArgs args = { 0 };
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
@@ -176,7 +177,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
     argv[1] = "--directory";
     argv[2] = "foo/bar/wom bat";
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
@@ -185,7 +186,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
     argc = 2;
     argv[1] = "-d=some/directory";
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
@@ -193,9 +194,54 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
 
     argv[1] = "--directory=\"foo/bar/wom bat\"";
 
-    EXPECT_EQ(0, cmdline_parse(argc, argv, &args));
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(1, args.interactive);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("foo/bar/wom bat", args.directory);
+}
+
+TEST(CmdLineTest, Parse_GivenUnknownFlag) {
+    int argc = 2;
+    const char *argv[10];
+    argv[0] = "mmbasic";
+    argv[1] = "--unknown";
+    CmdLineArgs args = { 0 };
+
+    EXPECT_EQ(kInvalidCommandLine, cmdline_parse(argc, argv, &args));
+}
+
+TEST(CmdLineTest, Parse_GivenCommandLineMaxLength) {
+    char input[INPBUF_SIZE] = { 0 };
+    cstring_cat(input, "\"", INPBUF_SIZE);
+    for (int i = 0; i < INPBUF_SIZE - 7; ++i) cstring_cat(input, "A", INPBUF_SIZE);
+    cstring_cat(input, "\"", INPBUF_SIZE);
+
+    int argc = 2;
+    const char *argv[10];
+    argv[0] = "mmbasic";
+    argv[1] = input;
+    CmdLineArgs args = { 0 };
+
+    char expected[INPBUF_SIZE] = { 0 };
+    cstring_cat(expected, "RUN ", INPBUF_SIZE);
+    cstring_cat(expected, input, INPBUF_SIZE);
+
+    EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
+    EXPECT_STREQ(expected, args.run_cmd);
+}
+
+TEST(CmdLineTest, Parse_GivenCommandLineTooLong) {
+    char input[INPBUF_SIZE] = { 0 };
+    cstring_cat(input, "\"", INPBUF_SIZE);
+    for (int i = 0; i < INPBUF_SIZE - 6; ++i) cstring_cat(input, "A", INPBUF_SIZE);
+    cstring_cat(input, "\"", INPBUF_SIZE);
+
+    int argc = 2;
+    const char *argv[10];
+    argv[0] = "mmbasic";
+    argv[1] = input;
+    CmdLineArgs args = { 0 };
+
+    EXPECT_EQ(kStringTooLong, cmdline_parse(argc, argv, &args));
 }

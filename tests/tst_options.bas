@@ -1,4 +1,4 @@
-' Copyright (c) 2022 Thomas Hugo Williams
+' Copyright (c) 2022-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -14,17 +14,13 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../sptools/src/splib/vt100.inc"
 #Include "../sptools/src/sptest/unittest.inc"
 
+If Not sys.is_platform%("mmb4l") Then Goto skip_tests
+
 Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
-Const HOME$ = sys.string_prop$("home")
-Const TMP$ = sys.string_prop$("tmpdir")
-If Mm.Device$ = "MMB4L" Then
-  Const IS_ANDROID% = Mm.Info$(Arch) = "Android aarch64"
-Else
-  Const IS_ANDROID% = 0
-EndIf
+Const HOME$ = sys.HOME$()
+Const IS_ANDROID% = Mm.Info$(Arch) = "Android aarch64"
 
-If Mm.Device$ = "MMB4L" Then
 add_test("test_option_load")
 add_test("test_option_load_given_directory")
 add_test("test_option_load_given_file_does_not_exist", "test_option_load_given_not_exist")
@@ -37,7 +33,8 @@ add_test("test_option_reset_given_non_persistent", "test_option_reset_non_persis
 add_test("test_option_reset_given_unknown")
 add_test("test_option_reset_all")
 add_test("test_option_reset_syntax_errors")
-EndIf
+
+skip_tests:
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -45,16 +42,17 @@ End
 
 Sub setup_test()
   ' Only saves options that are not at their defaults.
-  Option Save TMP$ + "/mmbasic.options.bak"
+  MkDir TMPDIR$
+  Option Save TMPDIR$ + "/mmbasic.options.bak"
 End Sub
 
 Sub teardown_test()
   Option Reset All
-  Option Load TMP$ + "/mmbasic.options.bak"
+  Option Load TMPDIR$ + "/mmbasic.options.bak"
 End Sub
 
 Sub test_option_load()
-  Local filename$ = TMP$ + "/test_option_load"
+  Local filename$ = TMPDIR$ + "/test_option_load"
   Open filename$ For Output As #1
   Print #1, "f1 = " + str.quote$("foo")
   Print #1, "f2 = " + str.quote$("bar")
@@ -80,12 +78,12 @@ End Sub
 
 Sub test_option_load_given_not_exist()
   On Error Skip
-  Option Load TMP$ + "/does_not_exist"
+  Option Load TMPDIR$ + "/does_not_exist"
   assert_raw_error("No such file or directory")
 End Sub
 
 Sub test_option_load_given_invalid()
-  Local filename$ = TMP$ + "/test_option_load_given_invalid"
+  Local filename$ = TMPDIR$ + "/test_option_load_given_invalid"
   Open filename$ For Output As #1
   Print #1, "foo"
   Print #1, "bar"
@@ -103,7 +101,7 @@ Sub test_option_save()
   Option F2 "bar"
   Option F3 "wom"
   Option F4 "bat"
-  Local filename$ = TMP$ + "/test_option_save"
+  Local filename$ = TMPDIR$ + "/test_option_save"
   Option Save filename$
 
   Open filename$ For Input As #1
@@ -133,13 +131,13 @@ End Sub
 
 Sub test_option_save_given_invalid()
   On Error Skip
-  Option Save TMP$ + "/invalid/path"
+  Option Save TMPDIR$ + "/invalid/path"
   assert_raw_error("No such file or directory")
 End Sub
 
 Sub test_option_save_given_directory()
   On Error Skip
-  Option Save TMP$
+  Option Save TMPDIR$
   assert_raw_error("Is a directory")
 End Sub
 

@@ -88,7 +88,28 @@ void dump_token_table(const struct s_tokentbl* tbl);
 static bool run_flag;
 
 void print_banner() {
-    console_puts(MES_SIGNON);
+    char s[128];
+    sprintf(
+        s,
+        "%s MMBasic Version %d.%d%s%d\n",
+        MM_ARCH,
+        MM_MAJOR,
+        MM_MINOR,
+        MM_MICRO < 100
+            ? " alpha "
+            : MM_MICRO < 200
+                ? " beta "
+                : MM_MICRO < 300
+                    ? " RC "
+                    : ".",
+        MM_MICRO < 100
+            ? MM_MICRO
+            : MM_MICRO < 200
+                ? MM_MICRO - 100
+                : MM_MICRO < 300
+                    ? MM_MICRO - 200
+                    : MM_MICRO - 300);
+    console_puts(s);
     console_puts(COPYRIGHT);
 }
 
@@ -218,14 +239,19 @@ void longjmp_handler(int jmp_state) {
 
     ContinuePoint = nextstmt;  // In case the user wants to use the continue command
     *tknbuf = 0;               // we do not want to run whatever is in the token buffer
-    memset(inpbuf, 0, STRINGSIZE);
+    memset(inpbuf, 0, INPBUF_SIZE);
 
     reset_console_title();
 }
 
 int main(int argc, char *argv[]) {
-    if (FAILED(cmdline_parse(argc, (const char **) argv, &mmb_args))) {
-        fprintf(stderr, "Invalid command line arguments\n");
+    MmResult result = cmdline_parse(argc, (const char **) argv, &mmb_args);
+    if (FAILED(result)) {
+        if (result == kStringTooLong) {
+            fprintf(stderr, "Command line too long\n");
+        } else {
+            fprintf(stderr, "%s\n", mmresult_to_string(result));
+        }
         cmdline_print_usage();
         exit(EX_FAIL);
     }
@@ -321,7 +347,7 @@ int main(int argc, char *argv[]) {
         //       from CTRL-C or ERROR.
         interrupt_clear();
 
-        memset(inpbuf, 0, STRINGSIZE);
+        memset(inpbuf, 0, INPBUF_SIZE);
         if (run_flag) {
             if (mmb_args.interactive) {
                 console_puts(mmb_args.run_cmd);

@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2022 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -31,12 +31,6 @@ add_test("test_settick")
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
-
-Sub setup_test()
-End Sub
-
-Sub teardown_test()
-End Sub
 
 Sub test_date()
   If Mm.Device$ = "MMBasic for Windows" Then
@@ -85,10 +79,7 @@ Sub test_datetime()
   assert_string_equals("03-01-1974 19:36:36", DateTime$(126473796))
   assert_string_equals("01-01-2000 00:00:00", DateTime$(946684800))
   assert_string_equals("25-08-2015 12:12:12", DateTime$(1440504732))
-
-  If Mm.Device$ <> "MMBasic for Windows" Then
-    assert_string_equals("31-12-1969 23:43:20", DateTime$(-1000))
-  EndIf
+  assert_string_equals("31-12-1969 23:43:20", DateTime$(-1000))
 End Sub
 
 Sub test_day()
@@ -165,6 +156,8 @@ Sub test_timer()
 End Sub
 
 Sub test_timer_given_large_value()
+  If sys.is_platform%("pm*") Then Exit Sub
+
   Local old_timer% = Timer
 
   ' At a large enough value the TIMER will rollover,

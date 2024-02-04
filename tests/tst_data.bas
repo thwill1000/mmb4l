@@ -1,4 +1,4 @@
-' Copyright (c) 2021-2022 Thomas Hugo Williams
+' Copyright (c) 2021-2024 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -35,12 +35,6 @@ add_test("test_peek_poke_dataptr")
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
 End
-
-Sub setup_test()
-End Sub
-
-Sub teardown_test()
-End Sub
 
 Sub test_base2()
   Local actual%(array.new%(5))
@@ -334,7 +328,11 @@ Sub test_data_save_and_restore_err()
   assert_raw_error("Nothing to restore")
 
   Local i%
-  For i% = 1 To 49 : Read Save : Next
+  If sys.is_platform%("pm*") Then
+    For i% = 1 To 15 : Read Save : Next
+  Else
+    For i% = 1 To 49 : Read Save : Next
+  EndIf
 
   On Error Skip
   Read Save

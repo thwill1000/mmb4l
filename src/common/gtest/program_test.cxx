@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Thomas Hugo Williams
+ * Copyright (c) 2021-2023 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -18,9 +18,9 @@ extern "C" {
 char *CFunctionFlash = NULL;
 char cmdCSUB = '\0';
 char *CurrentLinePtr = NULL;
-char inpbuf[STRINGSIZE] = { '\0' };
+char inpbuf[INPBUF_SIZE] = { '\0' };
 char ProgMemory[PROG_FLASH_SIZE] = { '\0' } ;
-char tknbuf[STRINGSIZE] = { '\0' };
+char tknbuf[TKNBUF_SIZE] = { '\0' };
 Options mmb_options = { 0 };
 
 const char *checkstring(const char *p, char *tkn) { return NULL; }

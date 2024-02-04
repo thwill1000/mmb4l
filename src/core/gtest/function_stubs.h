@@ -13,6 +13,7 @@ void fun_asin() { }
 void fun_at() { }
 void fun_atn() { }
 void fun_bin() { }
+void fun_bin2str() { }
 void fun_bound() { }
 void fun_call() { }
 void fun_choice() { }
@@ -75,6 +76,7 @@ void fun_space() { }
 void fun_sqr() { }
 void fun_str() { }
 void fun_string() { }
+void fun_str2bin() { }
 void fun_tab() { }
 void fun_tan() { }
 void fun_time() { }

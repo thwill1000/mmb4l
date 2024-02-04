@@ -667,8 +667,22 @@ TEST_F(MmBasicCoreTest, FindVar_GivenDimArrayWithDimensionEqualToOptionBase) {
 
     EXPECT_STREQ("Dimensions", error_msg);
 
+    mmb_options.base = 0;
+    sprintf(m_program, "foo2D(2, 0) = ...");
+    error_msg[0] = '\0';
+    (void) findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("Dimensions", error_msg);
+
     mmb_options.base = 1;
     sprintf(m_program, "bar(1) = ...");
+    error_msg[0] = '\0';
+    (void) findvar(m_program, V_DIM_VAR);
+
+    EXPECT_STREQ("Dimensions", error_msg);
+
+    mmb_options.base = 1;
+    sprintf(m_program, "bar2D(2, 1) = ...");
     error_msg[0] = '\0';
     (void) findvar(m_program, V_DIM_VAR);
 
@@ -859,7 +873,7 @@ TEST_F(MmBasicCoreTest, Tokenise_DimStatement) {
 
     tokenise(0);
 
-    char expected[256];
+    char expected[TKNBUF_SIZE];
     sprintf(
             expected,
             "%c%ca %c 1",
@@ -874,7 +888,7 @@ TEST_F(MmBasicCoreTest, Tokenise_RunStatement) {
 
     tokenise(0);
 
-    char expected[256];
+    char expected[TKNBUF_SIZE];
     sprintf(
             expected,
             "%c%c\"foo\", %c%cbase%c1",
@@ -1753,4 +1767,88 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenTargetNameTooLong) {
 
     EXPECT_STREQ("Label/subroutine name too long", error_msg);
     EXPECT_EQ(NULL, actual);
+}
+
+TEST_F(MmBasicCoreTest, CheckString_TerminatedBySpace) {
+    TokeniseAndAppend(" foo bar");
+    PrepareProgram(true);
+
+    const char *actual = checkstring(ProgMemory + 1, "foo"); // Skip initial T_NEWLINE
+    EXPECT_EQ(ProgMemory + 6, actual); // Expect 'b' of "bar".
+}
+
+TEST_F(MmBasicCoreTest, CheckString_TerminatedByComma) {
+    TokeniseAndAppend(" foo,bar");
+    PrepareProgram(true);
+
+    const char *actual = checkstring(ProgMemory + 1, "foo"); // Skip initial T_NEWLINE
+    EXPECT_EQ(ProgMemory + 5, actual); // Expect ',' position.
+}
+
+TEST_F(MmBasicCoreTest, CheckString_TerminatedBySingleQuote) {
+    TokeniseAndAppend(" foo'bar");
+    PrepareProgram(true);
+
+    const char *actual = checkstring(ProgMemory + 1, "foo"); // Skip initial T_NEWLINE
+    EXPECT_EQ(ProgMemory + 5, actual); // Expect single-quote position.
+}
+
+TEST_F(MmBasicCoreTest, CheckString_TerminatedByOpenBracket)  {
+    TokeniseAndAppend(" foo(bar");
+    PrepareProgram(true);
+
+    const char *actual = checkstring(ProgMemory + 1, "foo"); // Skip initial T_NEWLINE
+    EXPECT_EQ(ProgMemory + 5, actual); // Expect '(' position.
+}
+
+TEST_F(MmBasicCoreTest, CheckString_TerminatedByEquals)  {
+    // The "a " suffix prevents the tokeniser inserting an "implied LET".
+    TokeniseAndAppend(" a foo=bar");
+    PrepareProgram(true);
+
+    const char *actual = checkstring(ProgMemory + 4, "foo"); // Space after 'a'
+    EXPECT_EQ(ProgMemory + 7, actual); // Expect '=' position.
+}
+
+TEST_F(MmBasicCoreTest, CheckString_IsCaseInsensitive) {
+    TokeniseAndAppend(" foo bar");
+    PrepareProgram(true);
+
+    const char *actual = checkstring(ProgMemory + 1, "fOO"); // Skip initial T_NEWLINE
+    EXPECT_EQ(ProgMemory + 6, actual); // Expect 'b' of "bar".
+}
+
+TEST_F(MmBasicCoreTest, CheckString_GivenNotFound) {
+    TokeniseAndAppend(" foo bar");
+    PrepareProgram(true);
+
+    const char *actual = checkstring(ProgMemory + 1, "bar"); // Skip initial T_NEWLINE
+    EXPECT_EQ(NULL, actual); // Not found.
+}
+
+TEST_F(MmBasicCoreTest, CheckString_IgnoresLeadingSpaces) {
+    TokeniseAndAppend("     foo bar");
+    PrepareProgram(true);
+
+    const char *actual = checkstring(ProgMemory + 1, "foo"); // Skip initial T_NEWLINE
+    EXPECT_EQ(ProgMemory + 10, actual); // Expect 'b' of "bar".
+}
+
+TEST_F(MmBasicCoreTest, CheckString_SkipsTrailingSpaces) {
+    TokeniseAndAppend(" foo     bar");
+    PrepareProgram(true);
+
+    const char *actual = checkstring(ProgMemory + 1, "foo"); // Skip initial T_NEWLINE
+    EXPECT_EQ(ProgMemory + 10, actual); // Expect 'b' of "bar".
+}
+
+TEST_F(MmBasicCoreTest, CheckString_DoesNotMakePartialMatches) {
+    TokeniseAndAppend(" foo bar");
+    PrepareProgram(true);
+
+    const char *actual = checkstring(ProgMemory + 1, "fo"); // Skip initial T_NEWLINE
+    EXPECT_EQ(NULL, actual); // Not found.
+
+    actual = checkstring(ProgMemory + 1, "football"); // Skip initial T_NEWLINE
+    EXPECT_EQ(NULL, actual); // Not found.
 }

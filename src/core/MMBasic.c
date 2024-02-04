@@ -118,8 +118,8 @@ char CurrentInterruptName[MAXVARLEN + 2];                           // the name 
 
 jmp_buf mark;                                                       // longjump to recover from an error and abort
 jmp_buf ErrNext;                                                    // longjump to recover from an error and continue
-char inpbuf[STRINGSIZE];                                            // used to store user keystrokes until we have a line
-char tknbuf[STRINGSIZE];                                            // used to store the tokenised representation of the users input line
+char inpbuf[INPBUF_SIZE];                                           // used to store user keystrokes until we have a line
+char tknbuf[TKNBUF_SIZE];                                           // used to store the tokenised representation of the users input line
 
 const char DIGIT_CHARS[256] = {
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, //0
@@ -1646,7 +1646,7 @@ int IsValidLine(int nbr) {
 
 // count the number of lines up to and including the line pointed to by the argument
 // used for error reporting in programs that do not use line numbers
-int MIPS16 CountLines(char *target) {
+int MIPS16 CountLines(const char *target) {
     char *p;
     int cnt;
 
@@ -1776,12 +1776,12 @@ void *findvar(const char *p, int action) {
             // the bracket in "(," is a signal to getargs that the list is in brackets
             getargs(&p, MAXDIM * 2, "(,");
             if ((argc & 0x01) == 0) {
-                error("Dimensions");
+                error_throw(kInvalidArrayDimensions);
                 return NULL;
             }
             dnbr = argc / 2 + 1;
             if (dnbr > MAXDIM) {
-                error("Dimensions");
+                error_throw(kInvalidArrayDimensions);
                 return NULL;
             }
             for (int i = 0; i < argc; i += 2) {
@@ -1798,7 +1798,7 @@ void *findvar(const char *p, int action) {
                 }
                 dim[i / 2] = in;
                 if (dim[i / 2] < OptionBase) {
-                    error("Dimensions");
+                    error_throw(kInvalidArrayDimensions);
                     return NULL;
                 }
             }
@@ -1947,9 +1947,11 @@ void *findvar(const char *p, int action) {
     // If we are declaring a new array then the bound of the first dimension must
     // be greater than OPTION BASE. This isn't caught inside vartbl_add()
     // because it uses a value of dim[0] == 0 to mean a scalar variable.
-    if (dnbr > 0 && dim[0] <= mmb_options.base) {
-        error("Dimensions");
-        return NULL;
+    for (int i = 0; i < dnbr; ++i) {
+        if (dim[i] <= mmb_options.base) {
+            error_throw(kInvalidArrayDimensions);
+            return NULL;
+        }
     }
 
     // If it is an array we must be dimensioning it.
@@ -2658,7 +2660,7 @@ const char *skipvar(const char *p, int noerror) {
 
 
 // skip to the end of an expression (terminates on null, comma, comment or unpaired ')'
-char *skipexpression(char *p) {
+const char *skipexpression(const char *p) {
     int i, inquote;
 
     for(i = inquote = 0; *p; p++) {
@@ -2736,13 +2738,13 @@ void checkend(const char *p) {
 
 
 // check if the next text in an element (a basic statement) corresponds to an alpha string
-// leading whitespace is skipped and the string must be terminated with a valid terminating
-// character (space, null, comma or comment). Returns a pointer to the next
-// non space character after the matched string if found or NULL if not
+// leading whitespace is skipped and the string must be terminated by a non-name character.
+// Returns a pointer to the next non space character after the matched string if found,
+// or NULL if not
 const char *checkstring(const char *p, const char *tkn) {
-    skipspace(p);                                           // skip leading spaces
+    skipspace(p);                                                   // skip leading spaces
     while(*tkn && (toupper(*tkn) == toupper(*p))) { tkn++; p++; }   // compare the strings
-    if(*tkn == 0 && (*p == ' ' || *p == ',' || *p == '\'' || *p == '(' || *p == 0)) {
+    if (*tkn == 0 && !isnamechar(*p)) {
         skipspace(p);
         return p;                                                   // if successful return a pointer to the next non space character after the matched string
     }
