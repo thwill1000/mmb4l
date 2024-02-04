@@ -18,6 +18,7 @@
     * [ERROR](#error)
     * [JSON$()](#json)
     * [MM.INFO()](#mminfo)
+    * [MM.VER](#mmver)
     * [OPEN](#open)
     * [OPTION CODEPAGE](#option-codepage)
     * [OPTION EDITOR](#option-editor)
@@ -46,24 +47,24 @@ MMB4L is a port of Geoff Graham's [MMBasic](https://mmbasic.com/) interpreter to
 
 It was originally derived with permission from:
  * [MMBasic for DOS](https://geoffg.net/WindowsMMBasic.html)
-     * Copyright 2011-2023 Geoff Graham<br/>
+     * Copyright 2011-2024 Geoff Graham<br/>
 
 But also incorporates code and ideas from several other MMBasic ports:
  * [MMBasic for the PicoMite](https://geoffg.net/picomite.html) and [PicoMite VGA](https://geoffg.net/picomitevga.html)
-     * Copyright 2011-2023 Geoff Graham
-     * Copyright 2016-2023 Peter Mather
+     * Copyright 2011-2024 Geoff Graham
+     * Copyright 2016-2024 Peter Mather
      * https://github.com/UKTailwind/PicoMite
      * https://github.com/UKTailwind/PicoMite-VGA-Edition<br/>
  * [MMBasic for the Colour Maximite 2](https://geoffg.net/maximite.html)
-     * Copyright 2011-2023 Geoff Graham
-     * Copyright 2016-2023 Peter Mather<br/>
+     * Copyright 2011-2024 Geoff Graham
+     * Copyright 2016-2024 Peter Mather<br/>
  * MMBasic for Windows
-     * Copyright 2011-2023 Geoff Graham
-     * Copyright 2016-2023 Peter Mather
+     * Copyright 2011-2024 Geoff Graham
+     * Copyright 2016-2024 Peter Mather
      * https://github.com/UKTailwind/MMB4W
  * Mothballed Pi-cromite project by Peter Mather.
 
-What little MMB4L specific code there is, is Copyright 2021-2023 Thomas Hugo Williams.
+What little MMB4L specific code there is, is Copyright 2021-2024 Thomas Hugo Williams.
 
 MMB4L is an open-source project distributed under a modified 4-clause BSD license, see the [LICENSE.MMBasic](LICENSE.MMBasic) file for details.
 
@@ -410,6 +411,9 @@ In MMB4L this function can return values for these additional properties:
          * If a program is interrupted by the break key combination (default CTRL-C) this will be 130.
          * If an unhandled `ERROR` occurs this will be 1 (this may change).
          * If a ```NEW``` command is executed this will be 0.
+
+ * `MM.INFO(LINE)`
+     *  Gets the current line number.
  
  * `MM.INFO$(OPTION <option>)`
      * Gets the value of the named option, this is supported for all options.
@@ -419,7 +423,18 @@ In MMB4L this function can return values for these additional properties:
 
  * `MM.INFO(VERSION [MAJOR | MINOR | MICRO | BUILD] )`
      * Gets the MMB4L major, minor, micro version or build number as an integer.
+         * The MAJOR and MINOR versions each have 2 digits.
+         * The MICRO version has 3 digits, the most significant digit distinguishes the type:
+             * 0 - alpha
+             * 1 - beta
+             * 2 - RC (release candidate)
+             * 3 .. 9 - release, in which case the "real" MICRO version is the 3-digit number minus 300.
+         * The BUILD version has 4 digits but is currently unused and always returns 0.
      * Without the additional argument it returns an integer = MAJOR * 100,000,000 + MINOR * 1,000,000 + MICRO * 10000 + BUILD, e.g. 5,000,000 for version 0.5.
+
+### MM.VER
+
+In MMB4L this inbuilt constant is an INTEGER value insted of a FLOAT, it has the same value as MM.INFO(VERSION).
 
 ### OPEN
 
@@ -667,6 +682,7 @@ Transfers a file to/from  a remote computer using the [XMODEM protocol](https://
 ## 8. Limitations
 
  * No high-resolution graphics commands/functions.
+     * Though for convenience some, such as `MODE` and `PAGE` have NOP implementation.
  * No sound commands/functions.
  * No GPIO commands/functions; this is only applicable to Raspberry Pi.
  * Supports `SETTICK` but not `SETTICK FAST`.
