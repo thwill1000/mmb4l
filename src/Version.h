@@ -76,8 +76,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined(__mmb4l__)
     #define MM_DEVICE   "MMB4L"
     #define MM_MAJOR    0
-    #define MM_MINOR    6
-    #define MM_MICRO    300
+    #define MM_MINOR    7
+    #define MM_MICRO    1
     #define MM_VERSION  (MM_MAJOR * 1000000000) + (MM_MINOR * 10000000) + (MM_MICRO) * 10000 + BUILD_NUMBER
     #define BUILD_NUMBER   0  // Currently always 0.
     #define COPYRIGHT      "Copyright 2011-2024 Geoff Graham\r\n" \
