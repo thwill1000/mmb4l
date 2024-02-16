@@ -1,6 +1,9 @@
 ChangeLog
 ---------
 
+Version 0.7 alpha 1 - ??-???-2024:
+  - ...
+
 Version 0.6.1 - 28-Sep-2024:
   - Fixed bug where would show endless 'Cannot determine terminal size' errors.
   - Minor corrections to v0.6.0 ChangeLog entry.
