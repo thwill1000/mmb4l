@@ -1,6 +1,9 @@
 ChangeLog
 ---------
 
+Version 0.7 alpha 1 - ??-???-2024:
+  - ...
+
 Version 0.6.0 - 4-Feb-2024:
   - Added BIN2STR$() and STR2BIN() functions.
   - Added MM.INFO(LINE) function to return the number of the current line.
