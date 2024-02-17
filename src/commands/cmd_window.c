@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-mmresult.c
+cmd_window.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,44 +42,67 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <string.h>
+#include <stdio.h>
 
-#include "mmresult.h"
+#include "../common/mmb4l.h"
+#include "../common/error.h"
+#include "../common/graphics.h"
+#include "../common/utility.h"
 
-const char *mmresult_to_string(MmResult result) {
-    if (result > kOk && result < kError) {
-        return strerror(result);
+#define CHECK_GRAPHICS_RESULT(result) \
+    if (FAILED(result)) { \
+        error_throw_ex( \
+            result, \
+            "$: $", \
+            mmresult_to_string(result), \
+            graphics_last_error()); \
     }
 
-    switch (result) {
-        case kOk:            return "No error";
-        case kError:         return "MMBasic error";
-        case kInternalFault: return "Internal fault (sorry)";
-        case kSyntax:        return "Syntax";
-        case kStringTooLong: return "String too long";
-        case kInvalidFormat: return "Invalid format";
-        case kUnknownOption: return "Unknown option";
-        case kInvalidString: return "Invalid string value";
-        case kInvalidValue:  return "Invalid value";
-        case kUnknownSystemCommand: return "Unknown system command";
-        case kOverflow:             return "Overflow";
-        case kNotPersistent:        return "Invalid for non-persistent option";
-        case kNameTooLong:          return "Name too long";
-        case kUnimplemented:        return "Unimplemented function";
-        case kFunctionNotFound:     return "Function not found";
-        case kVariableNotFound:     return "Variable not found";
-        case kTooManyFunctions:     return "Too many functions/labels/subroutines";
-        case kTooManyVariables:     return "Too many variables";
-        case kDuplicateFunction:    return "Function/subroutine already declared";
-        case kHashmapFull:          return "Hashmap full";
-        case kInvalidName:          return "Invalid name";
-        case kInvalidArrayDimensions: return "Dimensions";
-        case kFunctionTypeMismatch: return "Not a function";
-        case kInvalidCommandLine: return "Invalid command line arguments";
-        case kStringLength:         return "String length";
-        case kGraphicsFailedToInitialise: return "Graphics subsystem failed to initialise";
-        case kGraphicsWindowNotCreated:   return "Window could not be created";
-        case kGraphicsWindowNotFound:     return "Invalid graphics window";
-        default:                          return "Unknown result code";
+/** WINDOW CREATE id, x, y, width, height */
+static void cmd_window_create(const char *p) {
+    getargs(&p, 9, ",");
+    if (argc != 9) ERROR_ARGUMENT_COUNT;
+    int id = getint(argv[0], 0, WINDOW_MAX_ID);
+    int x = getint(argv[2], 0, WINDOW_MAX_X);
+    int y = getint(argv[4], 0, WINDOW_MAX_Y);
+    int width = getint(argv[6], 0, WINDOW_MAX_WIDTH);
+    int height = getint(argv[8], 0, WINDOW_MAX_HEIGHT);
+
+    // TODO width & height should be divisible by 8.
+    // TODO check window has not already been created.
+
+    // printf("%d %d %d %d %d\n", id, x, y, width, height);
+
+    CHECK_GRAPHICS_RESULT(graphics_window_create(id, x, y, width, height));
+}
+
+/** WINDOW DESTROY id */
+static void cmd_window_destroy(const char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    int id = getint(argv[0], 0, WINDOW_MAX_ID);
+
+    CHECK_GRAPHICS_RESULT(graphics_window_destroy(id));
+}
+
+/** WINDOW USE id */
+static void cmd_window_use(const char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    const int id = getint(argv[0], 0, WINDOW_MAX_ID);
+    const MmResult result = graphics_window_use(id);
+    if (FAILED(result)) error_throw(result);
+}
+
+void cmd_window(void) {
+    const char *p;
+    if ((p = checkstring(cmdline, "CREATE"))) {
+        cmd_window_create(p);
+    } else if ((p = checkstring(cmdline, "DESTROY"))) {
+        cmd_window_destroy(p);
+    } else if ((p = checkstring(cmdline, "USE"))) {
+        cmd_window_use(p);
+    } else {
+        ERROR_UNKNOWN_ARGUMENT;
     }
 }

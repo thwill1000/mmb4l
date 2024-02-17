@@ -156,6 +156,7 @@ const struct s_tokentbl commandtbl[] = {
     { "TrOn",        T_CMD,              0, cmd_tron     },
     { "Wend",        T_CMD,              0, cmd_loop     },
     { "While",       T_CMD,              0, cmd_do       },
+    { "Window",      T_CMD,              0, cmd_window   },
     { "XModem",      T_CMD,              0, cmd_xmodem   },
     { "/*",          T_CMD,              0, cmd_comment  },
     { "*/",          T_CMD,              0, cmd_comment_end },

@@ -88,7 +88,10 @@ typedef enum {
     kInvalidName,
     kInvalidArrayDimensions,
     kFunctionTypeMismatch,
-    kInvalidCommandLine
+    kInvalidCommandLine,
+    kGraphicsFailedToInitialise,
+    kGraphicsWindowNotCreated,
+    kGraphicsWindowNotFound
 } MmResultCode;
 
 /**

@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2022 Thomas Hugo Williams
+# Copyright (c) 2021-2024 Thomas Hugo Williams
 # License MIT <https://opensource.org/licenses/MIT>
 
 cmake_minimum_required(VERSION 3.14)
@@ -93,6 +93,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_system.c
     src/commands/cmd_timer.c
     src/commands/cmd_trace.c
+    src/commands/cmd_window.c
     src/commands/cmd_xmodem.c
 )
 
@@ -146,6 +147,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/cstring.c
     src/common/error.c
     src/common/file.c
+    src/common/graphics.c
     src/common/interrupt.c
     src/common/maths.c
     src/common/memory.c
@@ -183,10 +185,15 @@ add_executable(test_keyboard
     src/common/options.c
     src/common/path.c)
 
+target_include_directories(mmbasic PUBLIC
+  /usr/include/SDL2
+)
+
 target_link_libraries(
     mmbasic
     m
     ${GCOV_LINK_LIBRARY}
+    SDL2
 )
 
 # GoogleTest
@@ -239,6 +246,10 @@ add_executable(
   src/core/vartbl.c
 )
 
+target_include_directories(test_cmd_do PUBLIC
+  /usr/include/SDL2
+)
+
 target_link_libraries(
   test_cmd_do
   gtest_main
@@ -269,6 +280,10 @@ add_executable(
   src/core/tokentbl.c
   src/core/vartbl.c
   src/functions/fun_mmcmdline.c
+)
+
+target_include_directories(test_cmd_run PUBLIC
+  /usr/include/SDL2
 )
 
 target_link_libraries(
@@ -495,6 +510,10 @@ add_executable(
   src/core/tokentbl.c
   src/core/vartbl.c
   src/core/gtest/mmbasic_core_test.cxx
+)
+
+target_include_directories(test_mmbasic_core PUBLIC
+  /usr/include/SDL2
 )
 
 target_link_libraries(

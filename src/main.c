@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/cstring.h"
 #include "common/exit_codes.h"
 #include "common/file.h"
+#include "common/graphics.h"
 #include "common/interrupt.h"
 #include "common/mmtime.h"
 #include "common/parse.h"
@@ -401,6 +402,8 @@ static void perform_background_tasks() {
             serial_pump_input(i);
         }
     }
+
+    graphics_pump_events();
 }
 
 void CheckAbort(void) {

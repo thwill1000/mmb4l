@@ -149,6 +149,7 @@ void cmd_timer(void);
 void cmd_trace(void);
 void cmd_troff(void);
 void cmd_tron(void);
+void cmd_window(void);
 void cmd_xmodem(void);
 
 void commandtbl_init();
