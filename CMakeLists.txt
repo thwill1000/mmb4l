@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2022 Thomas Hugo Williams
+# Copyright (c) 2021-2024 Thomas Hugo Williams
 # License MIT <https://opensource.org/licenses/MIT>
 
 cmake_minimum_required(VERSION 3.14)
@@ -61,6 +61,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_error.c
     src/commands/cmd_execute.c
     src/commands/cmd_files.c
+    src/commands/cmd_graphics.c
     src/commands/cmd_inc.c
     src/commands/cmd_ireturn.c
     src/commands/cmd_kill.c
@@ -447,10 +448,6 @@ add_executable(
   src/core/MMBasic.c
   src/core/tokentbl.c
   src/core/vartbl.c
-)
-
-target_include_directories(test_program PUBLIC
-  /usr/include/SDL2
 )
 
 target_link_libraries(
