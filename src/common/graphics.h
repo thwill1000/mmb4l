@@ -2,7 +2,11 @@
 
 MMBasic for Linux (MMB4L)
 
+<<<<<<< HEAD
 graphics.h
+=======
+graphics.c
+>>>>>>> 78066d7 (WIP - Implement GRAPHICS {BUFFER|DESTROY|WRITE|WINDOW} commands)
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -46,8 +50,87 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMBASIC_GRAPHICS_H
 
 #include "mmresult.h"
+#include "utility.h"
+#include "../Configuration.h"
+
+#include <stdbool.h>
+
+#define GRAPHICS_NONE          -1
+#define GRAPHICS_MAX_SURFACES  256
+#define GRAPHICS_MAX_ID        (GRAPHICS_MAX_SURFACES - 1)
+#define WINDOW_MAX_X           2048
+#define WINDOW_MAX_Y           2048
+#define WINDOW_MAX_WIDTH       2048
+#define WINDOW_MAX_HEIGHT      2048
+#define WINDOW_MAX_SCALE       10
+
+#define RGB(red, green, blue, trans) (uint32_t) (((trans & 0b1111) << 24) | ((red & 0b11111111) << 16) | ((green  & 0b11111111) << 8) | (blue & 0b11111111))
+
+#define RGB_BLACK     RGB(   0,     0,     0,     0)
+#define RGB_BLUE      RGB(   0,     0,   255,   255)
+#define RGB_GREEN     RGB(   0,   255,     0,   255)
+#define RGB_CYAN      RGB(   0,   255,   255,   255)
+#define RGB_RED       RGB( 255,     0,     0,   255)
+#define RGB_MAGENTA   RGB( 255,     0,   192,   255)
+#define RGB_YELLOW    RGB( 255,   255,     0,   255)
+#define RGB_BROWN     RGB(0xA5,  0x2A,  0x2A,   255)
+#define RGB_GRAY      RGB(  64,    64,    64,   255)
+#define RGB_LITEGRAY  RGB( 128,   128,   128,   255)
+#define RGB_WHITE     RGB( 255,   255,   255,   255)
+#define RGB_ORANGE    RGB(0xFF,  0xA5,     0,   255)
+#define RGB_PINK      RGB(0xFF,  0xA0,  0xAB,   255)
+#define RGB_GOLD      RGB(0xFF,  0xD7,  0x00,   255)
+#define RGB_SALMON    RGB(0xFA,  0x80,  0x72,   255)
+#define RGB_BEIGE     RGB(0xF5,  0xF5,  0xDC,   255)
+#define RGB_NOTBLACK  RGB(   0,     0,     0,   255)
+
+typedef enum {
+    kGraphicsNone = 0,
+    kGraphicsBuffer,
+    kGraphicsSprite,
+    kGraphicsWindow
+} GraphicsSurfaceType;
+
+typedef int32_t MmSurfaceId;
+typedef int64_t MmGraphicsColour; // 32-bit colour, -1 for transparent background colour.
+typedef void* MmWindowPtr;
+typedef void* MmRendererPtr;
+typedef void* MmTexturePtr;
+
+typedef struct {
+    GraphicsSurfaceType type;
+    bool dirty;
+    MmWindowPtr window;
+    MmRendererPtr renderer;
+    MmTexturePtr texture;
+    uint32_t* pixels;
+    uint32_t height;
+    uint32_t width;
+} MmSurface;
+
+extern MmSurface graphics_surfaces[];
+extern MmSurface *graphics_current;
+extern MmGraphicsColour graphics_fcolour;
+extern MmGraphicsColour graphics_bcolour;
 
 MmResult graphics_init();
 const char* graphics_last_error();
+
+/** Redraws all 'dirty' windows (if the time is right). */
+void graphics_refresh_windows();
+
+/** Terminates graphics sub-system, close all windows, free all resources. */
+void graphics_term();
+
+MmResult graphics_buffer_create(MmSurfaceId id, uint32_t width, uint32_t height);
+MmResult graphics_window_create(MmSurfaceId id, int x, int y, uint32_t width, uint32_t height,
+                                uint32_t scale);
+MmResult graphics_surface_destroy(MmSurfaceId id);
+MmResult graphics_surface_destroy_all();
+MmResult graphics_surface_write(MmSurfaceId id);
+
+static inline bool graphics_surface_exists(MmSurfaceId id) {
+    return id >= 0 && id <= GRAPHICS_MAX_ID && graphics_surfaces[id].type != kGraphicsNone;
+}
 
 #endif // #if !defined(MMBASIC_GRAPHICS_H)

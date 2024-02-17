@@ -102,6 +102,7 @@ void cmd_font(void);
 void cmd_for(void);
 void cmd_gosub(void);
 void cmd_goto(void);
+void cmd_graphics(void);
 void cmd_if(void);
 void cmd_inc(void);
 void cmd_input(void);

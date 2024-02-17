@@ -47,6 +47,9 @@ void console_puts(const char *s) { }
 // Defined in "common/file.c"
 void file_close_all(void) { }
 
+// Defined in "common/graphics.c"
+void graphics_term(void) { }
+
 // Defined in "common/interrupt.c"
 bool interrupt_check(void) { return false; }
 void interrupt_clear(void) { }

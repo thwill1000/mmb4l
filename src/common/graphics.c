@@ -50,13 +50,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
+#define HRes graphics_current->width
+#define VRes graphics_current->height
+
 static const char* NO_ERROR = "";
 static bool graphics_initialised = false;
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
+MmSurface* graphics_current = NULL;
+MmGraphicsColour graphics_fcolour = RGB_WHITE;
+MmGraphicsColour graphics_bcolour = RGB_BLACK;
+static uint64_t frameEnd = 0;
 
 MmResult graphics_init() {
     if (graphics_initialised) return kOk;
     MmResult result = events_init();
     if (FAILED(result)) return result;
+    frameEnd = 0;
     graphics_initialised = true;
     return kOk;
 }
@@ -64,4 +73,135 @@ MmResult graphics_init() {
 const char *graphics_last_error() {
     const char* emsg = SDL_GetError();
     return emsg && *emsg ? emsg : NO_ERROR;
+}
+
+void graphics_term() {
+    graphics_surface_destroy_all();
+    graphics_fcolour = RGB_WHITE;
+    graphics_bcolour = RGB_BLACK;
+}
+
+void graphics_refresh_windows() {
+    // if (SDL_GetTicks64() > frameEnd) {
+    if (SDL_GetTicks() > frameEnd) {
+        // TODO: Optimise by using linked-list of windows.
+        for (int id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+            MmSurface* w = &graphics_surfaces[id];
+            if (w->type == kGraphicsWindow && w->dirty) {
+                SDL_UpdateTexture((SDL_Texture *) w->texture, NULL, w->pixels, w->width * 4);
+                SDL_RenderCopy((SDL_Renderer *) w->renderer, (SDL_Texture *) w->texture, NULL,
+                               NULL);
+                SDL_RenderPresent((SDL_Renderer *) w->renderer);
+                w->dirty = false;
+            }
+        }
+        // frameEnd = SDL_GetTicks64() + 15;
+        frameEnd = SDL_GetTicks() + 15;
+    }
+}
+
+MmResult graphics_buffer_create(MmSurfaceId id, uint32_t width, uint32_t height) {
+    MmResult result = graphics_init();
+    if (FAILED(result)) return result;
+
+    if (id < 0 || id > GRAPHICS_MAX_ID) return kGraphicsInvalidId;
+    if (graphics_surfaces[id].type != kGraphicsNone) return kGraphicsSurfaceExists;
+    if (width > WINDOW_MAX_WIDTH || height > WINDOW_MAX_HEIGHT) return kGraphicsSurfaceTooLarge;
+
+    MmSurface *s = &graphics_surfaces[id];
+    s->type = kGraphicsBuffer;
+    s->window = NULL;
+    s->renderer = NULL;
+    s->texture = NULL;
+    s->dirty = false;
+    s->pixels = calloc(width * height, sizeof(uint32_t));
+    s->height = height;
+    s->width = width;
+
+    return kOk;
+}
+
+MmResult graphics_window_create(MmSurfaceId id, int x, int y, uint32_t width, uint32_t height,
+                                uint32_t scale) {
+    MmResult result = graphics_init();
+    if (FAILED(result)) return result;
+
+    if (id < 0 || id > GRAPHICS_MAX_ID) return kGraphicsInvalidId;
+    if (graphics_surfaces[id].type != kGraphicsNone) return kGraphicsSurfaceExists;
+    if (width > WINDOW_MAX_WIDTH || height > WINDOW_MAX_HEIGHT) return kGraphicsSurfaceTooLarge;
+
+    // Reduce scale to fit display.
+    float fscale = scale;
+    SDL_DisplayMode dm;
+    if (FAILED(SDL_GetCurrentDisplayMode(0, &dm))) return kGraphicsSurfaceNotCreated;
+    while (width * fscale > dm.w * 0.9 || height * fscale > dm.h * 0.9) {
+        fscale -= fscale > 2.0 ? 1.0 : 0.1;
+        if (fscale < 0.1) return kGraphicsSurfaceTooLarge;
+    }
+
+    char name[256];
+    sprintf(name, "MMB4L: %d", id);
+    SDL_Window *window = SDL_CreateWindow(name, x == -1 ? (int)SDL_WINDOWPOS_CENTERED : x,
+                                          y == -1 ? (int)SDL_WINDOWPOS_CENTERED : y, width * fscale,
+                                          height * fscale, SDL_WINDOW_SHOWN);
+    if (!window) return kGraphicsSurfaceNotCreated;
+
+    // Create a renderer with V-Sync enabled.
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+
+    // Create a streaming texture.
+    SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
+                                             SDL_TEXTUREACCESS_STREAMING, width, height);
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
+
+    MmSurface *s = &graphics_surfaces[id];
+    s->type = kGraphicsWindow;
+    s->window = window;
+    s->renderer = renderer;
+    s->texture = texture;
+    s->dirty = false;
+    s->pixels = calloc(width * height, sizeof(uint32_t));
+    s->height = height;
+    s->width = width;
+
+    return kOk;
+}
+
+MmResult graphics_surface_destroy(MmSurfaceId id) {
+    if (id < 0 || id > GRAPHICS_MAX_ID) return kGraphicsInvalidId;
+
+    MmSurface* surface = &graphics_surfaces[id];
+    if (surface->type != kGraphicsNone) {
+        SDL_DestroyTexture((SDL_Texture *) surface->texture);
+        SDL_DestroyRenderer((SDL_Renderer *) surface->renderer);
+        SDL_DestroyWindow((SDL_Window *) surface->window);
+        free(surface->pixels);
+        memset(surface, 0, sizeof(MmSurface));
+        if (graphics_current == surface) graphics_current = NULL;
+    }
+    return kOk;
+}
+
+MmResult graphics_surface_destroy_all() {
+    MmResult result = kOk;
+    MmResult new_result = kOk;
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        new_result = graphics_surface_destroy(id);
+        result = SUCCEEDED(result) ? new_result : result;
+    }
+    return result;
+}
+
+MmResult graphics_surface_write(MmSurfaceId id) {
+    if (id == GRAPHICS_NONE) {
+        graphics_current = NULL;
+    } else if (!graphics_surface_exists(id)) {
+        return kGraphicsSurfaceNotFound;
+    } else {
+        graphics_current = &graphics_surfaces[id];
+    }
+    return kOk;
 }

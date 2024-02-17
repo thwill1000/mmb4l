@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "funtbl.h"
 #include "tokentbl.h"
 #include "vartbl.h"
+#include "../common/graphics.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
 
@@ -2287,6 +2288,7 @@ void ClearStack(void) {
 // clear the runtime (eg, variables, external I/O, etc) includes ClearStack() and ClearVars()
 // this is done before running a program
 void ClearRuntime(void) {
+    graphics_term();
 #if defined(MX470)
     //have to stop audio before we clear variables to avoid exception
     CloseAudio();

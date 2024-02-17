@@ -100,6 +100,11 @@ typedef enum {
     kEventsApiError,
     kGamepadApiError,
     kGraphicsApiError,
+    kGraphicsInvalidId,
+    kGraphicsSurfaceNotCreated,
+    kGraphicsSurfaceNotFound,
+    kGraphicsSurfaceExists,
+    kGraphicsSurfaceTooLarge
 } MmResultCode;
 
 /**

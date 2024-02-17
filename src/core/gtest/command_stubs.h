@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023 Thomas Hugo Williams
+ * Copyright (c) 2022-2024 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -37,6 +37,7 @@ void cmd_files() { }
 void cmd_for() { }
 void cmd_gosub() { }
 void cmd_goto() { }
+void cmd_graphics() { }
 void cmd_if() { }
 void cmd_inc() { }
 void cmd_input() { }
