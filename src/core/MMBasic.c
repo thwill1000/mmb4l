@@ -2729,3 +2729,48 @@ void DumpVarTbl(void) {
 }
 #endif
 
+void getargaddress(char *p, long long int **ip, MMFLOAT **fp, int *n) {
+    unsigned char *ptr = NULL;
+    *fp = NULL;
+    *ip = NULL;
+    char pp[STRINGSIZE] = {0};
+    strcpy(pp, (char *)p);
+    if (!isnamestart(pp[0])) {  // found a literal
+        *n = 1;
+        return;
+    }
+    ptr = findvar(pp, V_FIND | V_EMPTY_OK | V_NOFIND_NULL);
+    if (ptr && vartbl[VarIndex].type & (T_NBR | T_INT)) {
+        if (vartbl[VarIndex].dims[0] <= 0) {  // simple variable
+            *n = 1;
+            return;
+        } else {  // array or array element
+            if (*n == 0)
+                *n = vartbl[VarIndex].dims[0] + 1 - OptionBase;
+            else
+                *n = (vartbl[VarIndex].dims[0] + 1 - OptionBase) < *n
+                         ? (vartbl[VarIndex].dims[0] + 1 - OptionBase)
+                         : *n;
+            skipspace(p);
+            do {
+                p++;
+            } while (isnamechar(*p));
+            if (*p == '!' || *p == '%') p++;
+            if (*p == '(') {
+                p++;
+                skipspace(p);
+                if (*p != ')') {  // array element
+                    *n = 1;
+                    return;
+                }
+            }
+        }
+        if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
+        if (vartbl[VarIndex].type & T_NBR)
+            *fp = (MMFLOAT *)ptr;
+        else
+            *ip = (long long int *)ptr;
+    } else {
+        *n = 1;  // may be a function call
+    }
+}
