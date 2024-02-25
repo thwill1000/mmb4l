@@ -109,3 +109,4 @@ MmResult graphics_window_use(int id);
 MmResult graphics_cls();
 
 MmResult graphics_draw_rectangle(int x1, int y1, int x2, int y2, int c);
+MmResult graphics_draw_pixel(int x, int y, int c);

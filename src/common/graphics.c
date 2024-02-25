@@ -182,6 +182,12 @@ MmResult graphics_cls() {
                                    graphics_current->bcolour);
 }
 
+MmResult graphics_draw_pixel(int x, int y, int c) {
+    SET_PIXEL_SAFE(x, y, c);
+    graphics_current->dirty = true;
+    return kOk;
+}
+
 MmResult graphics_draw_rectangle(int x1, int y1, int x2, int y2, int c) {
     // Do not draw anything if entire rectangle is off the screen.
     if ((x1 < 0 && x2 < 0) || (y1 < 0 && y2 < 0) ||
