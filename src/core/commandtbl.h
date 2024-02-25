@@ -129,6 +129,7 @@ void cmd_on(void);
 void cmd_open(void);
 void cmd_option(void);
 void cmd_pause(void);
+void cmd_pixel(void);
 void cmd_poke(void);
 void cmd_print(void);
 void cmd_quit(void);
