@@ -213,11 +213,17 @@ static inline void graphics_set_pixel_safe(MmSurface *surface, int x, int y, MmG
     }
 }
 
+MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour) {
+    graphics_set_pixel_safe(surface, x, y, colour);
+    surface->dirty = true;
+    return kOk;
+}
+
 MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int y2, MmGraphicsColour colour) {
     // Do not draw anything if entire rectangle is off the screen.
     if ((x1 < 0 && x2 < 0) || (y1 < 0 && y2 < 0) ||
-        ((uint32_t)x1 >= graphics_current->width && (uint32_t)x2 >= graphics_current->width) ||
-        ((uint32_t)y1 >= graphics_current->height && (uint32_t)y2 >= graphics_current->height)) {
+        ((uint32_t)x1 >= surface->width && (uint32_t)x2 >= surface->width) ||
+        ((uint32_t)y1 >= surface->height && (uint32_t)y2 >= surface->height)) {
         return kOk;
     }
 
