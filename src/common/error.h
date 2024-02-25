@@ -98,6 +98,7 @@ uint8_t error_to_exit_code(MmResult result);
 #define ERROR_INVALID_CHARACTER           ERROR_INVALID("character")
 #define ERROR_INVALID_FILE_NUMBER         ERROR_INVALID("file number")
 #define ERROR_INVALID_IN_PROGRAM          ERROR_INVALID("in a program")
+#define ERROR_INVALID_INTEGER_RANGE(i,j,k)  error_throw_ex(kError, "\% is invalid (valid is \% to \%)")
 #define ERROR_INVALID_OPTION_VALUE        ERROR_INVALID("value for option")
 #define ERROR_INVALID_VARIABLE            ERROR_INVALID("variable")
 #define ERROR_LINE_LENGTH                 error_throw_ex(kStringTooLong, "Line length")

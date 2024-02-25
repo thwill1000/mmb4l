@@ -142,6 +142,14 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
 }
 
 /**
+ * Draws a single pixel.
+ *
+ * @param  x, y    Coordinates of the pixel.
+ * @param  colour  Colour of the pixel.
+ */
+MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour);
+
+/**
  * Draws a filled rectangle.
  *
  * @param  x1, y1  Start coordinates.
