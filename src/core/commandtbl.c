@@ -132,6 +132,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Page",        T_CMD,              0, cmd_graphics },
     { "Pause",       T_CMD,              0, cmd_pause    },
     { "Play",        T_CMD,              0, cmd_dummy    },
+    { "Pixel",       T_CMD,              0, cmd_pixel    },
     { "Poke",        T_CMD,              0, cmd_poke     },
     { "Print",       T_CMD,              0, cmd_print    },
     { "Quit",        T_CMD,              0, cmd_quit     },
