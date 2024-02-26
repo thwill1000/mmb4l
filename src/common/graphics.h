@@ -128,7 +128,36 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
     return id >= 0 && id <= GRAPHICS_MAX_ID && graphics_surfaces[id].type != kGraphicsNone;
 }
 
+/**
+ * Draws an anti-aliased straight line.
+ *
+ * @param  x1, y1  Coordinates of the start of the line.
+ * @param  x2, y2  Coordinates of the end of the line.
+ * @param  width   Width of the line; valid for horizontal, vertical AND diagonal lines.
+ * @param  colour  Colour of the line.
+ */
+MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x1, MMFLOAT y1, MMFLOAT x2,
+                               MMFLOAT y2, MmGraphicsColour colour, int w);
+
+/**
+ * Draws a straight line.
+ *
+ * @param  x1, y1  Coordinates of the start of the line.
+ * @param  x2, y2  Coordinates of the end of the line.
+ * @param  width   Width of the line; currently only for horizontal and vertical lines.
+ * @param  colour  Colour of the line.
+ */
+MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, int w,
+                            MmGraphicsColour colour);
+
+/**
+ * Draws a single pixel.
+ *
+ * @param  x, y    Coordinates of the pixel.
+ * @param  colour  Colour of the pixel.
+ */
 MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour);
+MmResult graphics_draw_polygon(MmSurface *surface, unsigned char *p, int close);
 MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int y2, MmGraphicsColour colour);
 
 #endif // #if !defined(MMBASIC_GRAPHICS_H)

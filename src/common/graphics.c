@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "error.h"
 #include "events.h"
 #include "graphics.h"
 #include "utility.h"
@@ -216,6 +217,107 @@ static inline void graphics_set_pixel_safe(MmSurface *surface, int x, int y, MmG
 MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour) {
     graphics_set_pixel_safe(surface, x, y, colour);
     surface->dirty = true;
+    return kOk;
+}
+
+MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0, MMFLOAT y0, MMFLOAT x1, MMFLOAT y1,
+                               MmGraphicsColour colour, int w) {
+    ERROR_UNIMPLEMENTED("graphics_draw_aa_line");
+    return kUnimplemented;
+}
+
+MmResult graphics_draw_buffered(MmSurface *surface, int xti, int yti, MmGraphicsColour colour, int complete) {
+    static unsigned char pos = 0;
+    static unsigned char movex, movey, movec;
+    static short xtilast[8];
+    static short ytilast[8];
+    static MmGraphicsColour clast[8];
+    xtilast[pos] = xti;
+    ytilast[pos] = yti;
+    clast[pos] = colour;
+    if (complete == 1) {
+        if (pos == 1) {
+            graphics_set_pixel_safe(surface, xtilast[0], ytilast[0], clast[0]);
+        } else {
+            graphics_draw_line(surface, xtilast[0], ytilast[0], xtilast[pos - 1], ytilast[pos - 1],
+                               1, clast[0]);
+        }
+        pos = 0;
+    } else {
+        if (pos == 0) {
+            movex = movey = movec = 1;
+            pos += 1;
+        } else {
+            if (xti == xtilast[0] && abs(yti - ytilast[pos - 1]) == 1)
+                movex = 0;
+            else
+                movex = 1;
+            if (yti == ytilast[0] && abs(xti - xtilast[pos - 1]) == 1)
+                movey = 0;
+            else
+                movey = 1;
+            if (colour == clast[0])
+                movec = 0;
+            else
+                movec = 1;
+            if (movec == 0 && (movex == 0 || movey == 0) && pos < 6)
+                pos += 1;
+            else {
+                if (pos == 1) {
+                    graphics_set_pixel_safe(surface, xtilast[0], ytilast[0], clast[0]);
+                } else {
+                    graphics_draw_line(surface, xtilast[0], ytilast[0], xtilast[pos - 1],
+                                       ytilast[pos - 1], 1, clast[0]);
+                }
+                movex = movey = movec = 1;
+                xtilast[0] = xti;
+                ytilast[0] = yti;
+                clast[0] = colour;
+                pos = 1;
+            }
+        }
+    }
+
+    return kOk;
+}
+
+MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, int w,
+                            MmGraphicsColour colour) {
+    if (y1 == y2) {
+        return graphics_draw_rectangle(surface, x1, y1, x2, y2 + w - 1, colour);  // horiz line
+    }
+    if (x1 == x2) {
+        return graphics_draw_rectangle(surface, x1, y1, x2 + w - 1, y2, colour);  // vert line
+    }
+    int dx, dy, sx, sy, err, e2;
+    dx = abs(x2 - x1);
+    sx = x1 < x2 ? 1 : -1;
+    dy = -abs(y2 - y1);
+    sy = y1 < y2 ? 1 : -1;
+    err = dx + dy;
+    while (1) {
+        graphics_draw_buffered(surface, x1, y1, colour, 0);
+        e2 = 2 * err;
+        if (e2 >= dy) {
+            if (x1 == x2) break;
+            err += dy;
+            x1 += sx;
+        }
+        if (e2 <= dx) {
+            if (y1 == y2) break;
+            err += dx;
+            y1 += sy;
+        }
+    }
+    graphics_draw_buffered(surface, 0, 0, 0, 1);
+    // if(Option.Refresh)Display_Refresh();
+    surface->dirty = true;
+
+    return kOk;
+}
+
+MmResult graphics_draw_polygon(MmSurface *surface, unsigned char *p, int close) {
+    ERROR_UNIMPLEMENTED("graphics_draw_polygon");
     return kOk;
 }
 

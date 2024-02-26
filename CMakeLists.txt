@@ -66,6 +66,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_inc.c
     src/commands/cmd_ireturn.c
     src/commands/cmd_kill.c
+    src/commands/cmd_line.c
     src/commands/cmd_list.c
     src/commands/cmd_load.c
     src/commands/cmd_loop.c
