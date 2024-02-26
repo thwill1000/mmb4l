@@ -45,6 +45,7 @@ void cmd_input() { }
 void cmd_ireturn() { }
 void cmd_kill() { }
 void cmd_let() { }
+void cmd_line() { }
 void cmd_lineinput() { }
 void cmd_list() { }
 void cmd_load() { }

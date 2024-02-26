@@ -110,6 +110,7 @@ void cmd_input(void);
 void cmd_ireturn(void);
 void cmd_kill(void);
 void cmd_let(void);
+void cmd_line(void);
 void cmd_lineinput(void);
 void cmd_list(void);
 void cmd_load(void);

@@ -132,7 +132,12 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
     return id >= 0 && id <= GRAPHICS_MAX_ID && graphics_surfaces[id].type != kGraphicsNone;
 }
 
+MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0 , MMFLOAT y0 , MMFLOAT x1 ,
+                               MMFLOAT y1, MmGraphicsColour colour, uint32_t w);
+MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w,
+                            MmGraphicsColour colour);
 MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour);
+MmResult graphics_draw_polygon(MmSurface *surface, unsigned char *p, int close);
 MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int y2, MmGraphicsColour colour);
 
 #endif // #if !defined(MMBASIC_GRAPHICS_H)
