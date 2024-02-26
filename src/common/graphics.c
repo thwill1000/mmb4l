@@ -182,9 +182,112 @@ MmResult graphics_cls() {
                                    graphics_current->bcolour);
 }
 
+MmResult graphics_draw_aa_line(MMFLOAT x0, MMFLOAT y0, MMFLOAT x1, MMFLOAT y1, uint32_t c, int w) {
+    ERROR_UNIMPLEMENTED("graphics_draw_aa_line");
+    return kOk;
+}
+
+MmResult graphics_draw_buffered(int xti, int yti, int c, int complete) {
+    static unsigned char pos = 0;
+    static unsigned char movex, movey, movec;
+    static short xtilast[8];
+    static short ytilast[8];
+    static int clast[8];
+    xtilast[pos] = xti;
+    ytilast[pos] = yti;
+    clast[pos] = c;
+    if (complete == 1) {
+        if (pos == 1) {
+            SET_PIXEL_SAFE(xtilast[0], ytilast[0], clast[0]);
+        } else {
+            graphics_draw_line(xtilast[0], ytilast[0], xtilast[pos - 1], ytilast[pos - 1], 1,
+                               clast[0]);
+        }
+        pos = 0;
+    } else {
+        if (pos == 0) {
+            movex = movey = movec = 1;
+            pos += 1;
+        } else {
+            if (xti == xtilast[0] && abs(yti - ytilast[pos - 1]) == 1)
+                movex = 0;
+            else
+                movex = 1;
+            if (yti == ytilast[0] && abs(xti - xtilast[pos - 1]) == 1)
+                movey = 0;
+            else
+                movey = 1;
+            if (c == clast[0])
+                movec = 0;
+            else
+                movec = 1;
+            if (movec == 0 && (movex == 0 || movey == 0) && pos < 6)
+                pos += 1;
+            else {
+                if (pos == 1) {
+                    SET_PIXEL_SAFE(xtilast[0], ytilast[0], clast[0]);
+                } else {
+                    graphics_draw_line(xtilast[0], ytilast[0], xtilast[pos - 1], ytilast[pos - 1],
+                                       1, clast[0]);
+                }
+                movex = movey = movec = 1;
+                xtilast[0] = xti;
+                ytilast[0] = yti;
+                clast[0] = c;
+                pos = 1;
+            }
+        }
+    }
+
+    return kOk;
+}
+
+MmResult graphics_draw_line(int x1, int y1, int x2, int y2, int w, int c) {
+    if (y1 == y2) {
+        MmResult result = graphics_draw_rectangle(x1, y1, x2, y2 + w - 1, c);  // horiz line
+        // if (Option.Refresh) Display_Refresh();
+        return result;
+    }
+    if (x1 == x2) {
+        MmResult result = graphics_draw_rectangle(x1, y1, x2 + w - 1, y2, c);  // vert line
+        // if (Option.Refresh) Display_Refresh();
+        return result;
+    }
+    int dx, dy, sx, sy, err, e2;
+    dx = abs(x2 - x1);
+    sx = x1 < x2 ? 1 : -1;
+    dy = -abs(y2 - y1);
+    sy = y1 < y2 ? 1 : -1;
+    err = dx + dy;
+    while (1) {
+        graphics_draw_buffered(x1, y1, c, 0);
+        e2 = 2 * err;
+        if (e2 >= dy) {
+            if (x1 == x2) break;
+            err += dy;
+            x1 += sx;
+        }
+        if (e2 <= dx) {
+            if (y1 == y2) break;
+            err += dx;
+            y1 += sy;
+        }
+    }
+    graphics_draw_buffered(0, 0, 0, 1);
+    // if(Option.Refresh)Display_Refresh();
+    graphics_current->dirty = true;
+
+    return kOk;
+}
+
 MmResult graphics_draw_pixel(int x, int y, int c) {
     SET_PIXEL_SAFE(x, y, c);
     graphics_current->dirty = true;
+    return kOk;
+}
+
+MmResult graphics_draw_polygon(unsigned char *p, int close) {
+    ERROR_UNIMPLEMENTED("graphics_draw_polygon");
     return kOk;
 }
 

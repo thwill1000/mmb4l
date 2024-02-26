@@ -108,5 +108,8 @@ MmResult graphics_window_use(int id);
 
 MmResult graphics_cls();
 
-MmResult graphics_draw_rectangle(int x1, int y1, int x2, int y2, int c);
+MmResult graphics_draw_aa_line(MMFLOAT x0 , MMFLOAT y0 , MMFLOAT x1 , MMFLOAT y1, uint32_t c, int w);
+MmResult graphics_draw_line(int x1, int y1, int x2, int y2, int w, int c);
 MmResult graphics_draw_pixel(int x, int y, int c);
+MmResult graphics_draw_polygon(unsigned char *p, int close);
+MmResult graphics_draw_rectangle(int x1, int y1, int x2, int y2, int c);
