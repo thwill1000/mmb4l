@@ -124,6 +124,5 @@ uint8_t error_to_exit_code(MmResult result);
 #define ERROR_UNKNOWN_TERMINAL_SIZE       error_throw_ex(kError, "Cannot determine terminal size")
 #define ERROR_UNKNOWN_USER_ERROR          error_throw_ex(kError, "Unspecified error")
 #define ERROR_UNSUPPORTED_FLAG(s)         error_throw_ex(kError, "Unsupported flag: $", s)
-#define ERROR_GRAPHICS_WINDOW_NOT_FOUND   error_throw(kGraphicsWindowNotFound)
 
 #endif

@@ -112,6 +112,7 @@ const struct s_tokentbl commandtbl[] = {
     { "IReturn",     T_CMD,              0, cmd_ireturn  },
     { "Kill",        T_CMD,              0, cmd_kill     },
     { "Let",         T_CMD,              0, cmd_let      },
+    { "Line",        T_CMD,              0, cmd_line     },
     { "Line Input",  T_CMD,              0, cmd_lineinput},
     { "List",        T_CMD,              0, cmd_list     },
     { "Load",        T_CMD,              0, cmd_load     },
