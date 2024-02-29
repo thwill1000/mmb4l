@@ -70,6 +70,7 @@ void cmd_poke() { }
 void cmd_print() { }
 void cmd_quit() { }
 void cmd_randomize() { }
+void cmd_rbox() { }
 void cmd_read() { }
 void cmd_rename() { }
 void cmd_restore() { }

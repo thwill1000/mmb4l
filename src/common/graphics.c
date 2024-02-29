@@ -311,6 +311,56 @@ MmResult graphics_draw_polygon(unsigned char *p, int close) {
     return kOk;
 }
 
+MmResult graphics_draw_rbox(int x1, int y1, int x2, int y2, int radius, int c, int fill) {
+    // Make sure the coordinates are in the right sequence.
+    if (x1 > x2) SWAP(int, x1, x2);
+    if (y1 > y2) SWAP(int, y1, y2);
+
+    int f = 1 - radius;
+    int ddF_x = 1;
+    int ddF_y = -2 * radius;
+    int xx = 0;
+    int yy = radius;
+
+    while (xx < yy) {
+        if (f >= 0) {
+            yy -= 1;
+            ddF_y += 2;
+            f += ddF_y;
+        }
+        xx += 1;
+        ddF_x += 2;
+        f += ddF_x;
+        SET_PIXEL_SAFE(x2 + xx - radius, y2 + yy - radius, c);  // Bottom Right Corner
+        SET_PIXEL_SAFE(x2 + yy - radius, y2 + xx - radius, c);  // ^^^
+        SET_PIXEL_SAFE(x1 - xx + radius, y2 + yy - radius, c);  // Bottom Left Corner
+        SET_PIXEL_SAFE(x1 - yy + radius, y2 + xx - radius, c);  // ^^^
+
+        SET_PIXEL_SAFE(x2 + xx - radius, y1 - yy + radius, c);  // Top Right Corner
+        SET_PIXEL_SAFE(x2 + yy - radius, y1 - xx + radius, c);  // ^^^
+        SET_PIXEL_SAFE(x1 - xx + radius, y1 - yy + radius, c);  // Top Left Corner
+        SET_PIXEL_SAFE(x1 - yy + radius, y1 - xx + radius, c);  // ^^^
+        if (fill >= 0) {
+            graphics_draw_line(x2 + xx - radius - 1, y2 + yy - radius, x1 - xx + radius + 1,
+                               y2 + yy - radius, 1, fill);
+            graphics_draw_line(x2 + yy - radius - 1, y2 + xx - radius, x1 - yy + radius + 1,
+                               y2 + xx - radius, 1, fill);
+            graphics_draw_line(x2 + xx - radius - 1, y1 - yy + radius, x1 - xx + radius + 1,
+                               y1 - yy + radius, 1, fill);
+            graphics_draw_line(x2 + yy - radius - 1, y1 - xx + radius, x1 - yy + radius + 1,
+                               y1 - xx + radius, 1, fill);
+        }
+    }
+    if (fill >= 0) graphics_draw_rectangle(x1 + 1, y1 + radius, x2 - 1, y2 - radius, fill);
+    graphics_draw_rectangle(x1 + radius - 1, y1, x2 - radius + 1, y1, c);  // top side
+    graphics_draw_rectangle(x1 + radius - 1, y2, x2 - radius + 1, y2, c);  // bottom side
+    graphics_draw_rectangle(x1, y1 + radius, x1, y2 - radius, c);          // left side
+    graphics_draw_rectangle(x2, y1 + radius, x2, y2 - radius, c);          // right side
+    // if (Option.Refresh) Display_Refresh();
+
+    return kOk;
+}
+
 MmResult graphics_draw_rectangle(int x1, int y1, int x2, int y2, int c) {
     // Do not draw anything if entire rectangle is off the screen.
     if ((x1 < 0 && x2 < 0) || (y1 < 0 && y2 < 0) ||
