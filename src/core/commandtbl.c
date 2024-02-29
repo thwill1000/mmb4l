@@ -139,6 +139,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Print",       T_CMD,              0, cmd_print    },
     { "Quit",        T_CMD,              0, cmd_quit     },
     { "Randomize",   T_CMD,              0, cmd_randomize},
+    { "RBox",        T_CMD,              0, cmd_rbox     },
     { "Read",        T_CMD,              0, cmd_read     },
     { "Rem",         T_CMD,              0, cmd_null,    },
     { "Rename",      T_CMD,              0, cmd_rename   },

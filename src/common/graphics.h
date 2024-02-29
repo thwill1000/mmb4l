@@ -142,6 +142,17 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
 }
 
 /**
+ * Draws an anti-aliased straight line.
+ *
+ * @param  x1, y1  Start coordinates.
+ * @param  x2, y2  End coordinates.
+ * @param  width   Width of the line; valid for horizontal, vertical AND diagonal lines.
+ * @param  colour  Colour of the line.
+ */
+MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x1, MMFLOAT y1, MMFLOAT x2,
+                               MMFLOAT y2, int width, MmGraphicsColour colour);
+
+/**
  * Draws a box.
  *
  * @param  x1, y1  Start coordinates.
@@ -152,17 +163,6 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
  */
 MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t width,
                            MmGraphicsColour colour, MmGraphicsColour fill);
-
-/**
- * Draws an anti-aliased straight line.
- *
- * @param  x1, y1  Start coordinates.
- * @param  x2, y2  End coordinates.
- * @param  width   Width of the line; valid for horizontal, vertical AND diagonal lines.
- * @param  colour  Colour of the line.
- */
-MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x1, MMFLOAT y1, MMFLOAT x2,
-                               MMFLOAT y2, int width, MmGraphicsColour colour);
 
 /**
  * Draws a straight line.
@@ -182,6 +182,18 @@ MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, 
  * @param  colour  Colour of the pixel.
  */
 MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour);
+
+/**
+ * Draws a box with rounded corners.
+ *
+ * @param  x1, y1  Start coordinates.
+ * @param  x2, y2  End coordinates.
+ * @param  radius  The radius (in pixels) of the arc forming the corners.
+ * @param  colour  Colour to use for sides of the box.
+ * @param  fill    Colour to fill the box (-1 for no fill).
+ */
+MmResult graphics_draw_rbox(MmSurface *surface, int x1, int y1, int x2, int y2, int radius,
+                            MmGraphicsColour colour, MmGraphicsColour fill);
 
 /**
  * Draws a filled rectangle.
