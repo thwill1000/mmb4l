@@ -50,6 +50,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_chdir.c
     src/commands/cmd_cls.c
     src/commands/cmd_close.c
+    src/commands/cmd_colour.c
     src/commands/cmd_console.c
     src/commands/cmd_copy.c
     src/commands/cmd_cursor.c
