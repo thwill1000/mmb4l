@@ -79,6 +79,7 @@ void cmd_chdir(void);
 void cmd_clear(void);
 void cmd_close(void);
 void cmd_cls(void);
+void cmd_colour(void);
 void cmd_comment(void);
 void cmd_comment_end(void);
 void cmd_console(void);
