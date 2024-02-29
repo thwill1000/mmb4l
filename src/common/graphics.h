@@ -170,6 +170,20 @@ MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, 
  */
 MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour);
 MmResult graphics_draw_polygon(MmSurface *surface, unsigned char *p, int close);
-MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int y2, MmGraphicsColour colour);
+
+/**
+ * Draws a box with rounded corners.
+ *
+ * @param  x1, y1  start coordinates.
+ * @param  x2, y2  end coordinates.
+ * @param  radius  the radius (in pixels) of the arc forming the corners.
+ * @param  colour  colour to use for sides of the box.
+ * @param  fill    colour to fill the box (-1 for no fill).
+ */
+MmResult graphics_draw_rbox(MmSurface *surface, int x1, int y1, int x2, int y2, int radius,
+                            MmGraphicsColour colour, MmGraphicsColour fill);
+
+MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int y2,
+                                 MmGraphicsColour colour);
 
 #endif // #if !defined(MMBASIC_GRAPHICS_H)
