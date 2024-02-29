@@ -136,6 +136,7 @@ void cmd_poke(void);
 void cmd_print(void);
 void cmd_quit(void);
 void cmd_randomize(void);
+void cmd_rbox(void);
 void cmd_read(void);
 void cmd_rename(void);
 void cmd_restore(void);
