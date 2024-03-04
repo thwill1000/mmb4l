@@ -42,8 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "error.h"
 #include "events.h"
 #include "graphics.h"
+#include "memory.h"
 #include "utility.h"
 
 #include <stdbool.h>
@@ -298,6 +300,196 @@ MmResult graphics_draw_buffered(MmSurface *surface, int xti, int yti, MmGraphics
         }
     }
 
+    return kOk;
+}
+
+static void graphics_hline(int x0, int x1, int y, int f, int ints_per_line,
+                           uint32_t* br) {  // draw a horizontal line
+    uint32_t w1, xx1, w0, xx0, x, xn, i;
+    const uint32_t a[] = {
+        0xFFFFFFFF, 0x7FFFFFFF, 0x3FFFFFFF, 0x1FFFFFFF, 0xFFFFFFF, 0x7FFFFFF, 0x3FFFFFF, 0x1FFFFFF,
+        0xFFFFFF,   0x7FFFFF,   0x3FFFFF,   0x1FFFFF,   0xFFFFF,   0x7FFFF,   0x3FFFF,   0x1FFFF,
+        0xFFFF,     0x7FFF,     0x3FFF,     0x1FFF,     0xFFF,     0x7FF,     0x3FF,     0x1FF,
+        0xFF,       0x7F,       0x3F,       0x1F,       0x0F,      0x07,      0x03,      0x01};
+    const uint32_t b[] = {0x80000000, 0xC0000000, 0xe0000000, 0xf0000000, 0xf8000000, 0xfc000000,
+                          0xfe000000, 0xff000000, 0xff800000, 0xffC00000, 0xffe00000, 0xfff00000,
+                          0xfff80000, 0xfffc0000, 0xfffe0000, 0xffff0000, 0xffff8000, 0xffffC000,
+                          0xffffe000, 0xfffff000, 0xfffff800, 0xfffffc00, 0xfffffe00, 0xffffff00,
+                          0xffffff80, 0xffffffC0, 0xffffffe0, 0xfffffff0, 0xfffffff8, 0xfffffffc,
+                          0xfffffffe, 0xffffffff};
+    w0 = y * (ints_per_line);
+    xx0 = 0;
+    w1 = y * (ints_per_line) + x1 / 32;
+    xx1 = (x1 & 0x1F);
+    w0 = y * (ints_per_line) + x0 / 32;
+    xx0 = (x0 & 0x1F);
+    w1 = y * (ints_per_line) + x1 / 32;
+    xx1 = (x1 & 0x1F);
+    if (w1 == w0) {  // special case both inside same word
+        x = (a[xx0] & b[xx1]);
+        xn = ~x;
+        if (f)
+            br[w0] |= x;
+        else
+            br[w0] &= xn;  // turn on the pixel
+    } else {
+        if (w1 - w0 > 1) {  // first deal with full words
+            for (i = w0 + 1; i < w1; i++) {
+                // draw the pixel
+                br[i] = 0;
+                if (f) br[i] = 0xFFFFFFFF;  // turn on the pixels
+            }
+        }
+        x = ~a[xx0];
+        br[w0] &= x;
+        x = ~x;
+        if (f) br[w0] |= x;  // turn on the pixel
+        x = ~b[xx1];
+        br[w1] &= x;
+        x = ~x;
+        if (f) br[w1] |= x;  // turn on the pixel
+    }
+}
+
+MmResult graphics_draw_filled_circle(int x, int y, int radius, int r,
+                                     MmGraphicsColour fill, int ints_per_line, uint32_t* br,
+                                     MMFLOAT aspect, MMFLOAT aspect2) {
+    int a, b, P;
+    int A, B, asp;
+    x = (int)((MMFLOAT)r * aspect) + radius;
+    y = r + radius;
+    a = 0;
+    b = radius;
+    P = 1 - radius;
+    asp = aspect2 * (MMFLOAT)(1 << 10);
+    do {
+        A = (a * asp) >> 10;
+        B = (b * asp) >> 10;
+        graphics_hline(x - A - radius, x + A - radius, y + b - radius, fill, ints_per_line, br);
+        graphics_hline(x - A - radius, x + A - radius, y - b - radius, fill, ints_per_line, br);
+        graphics_hline(x - B - radius, x + B - radius, y + a - radius, fill, ints_per_line, br);
+        graphics_hline(x - B - radius, x + B - radius, y - a - radius, fill, ints_per_line, br);
+        if (P < 0)
+            P += 3 + 2 * a++;
+        else
+            P += 5 + 2 * (a++ - b--);
+
+    } while (a <= b);
+
+    return kOk;
+}
+
+#define RoundUptoInt(a) (((a) + (32 - 1)) & (~(32 - 1)))  // round up to the nearest whole integer
+
+MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, uint32_t w,
+                              MmGraphicsColour colour, MmGraphicsColour fill, MMFLOAT aspect) {
+    if (!surface || surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
+    int a, b, P;
+    int A, B;
+    int asp;
+    MMFLOAT aspect2;
+    if (w > 1) {
+        if (fill >= 0) {  // thick border with filled centre
+            graphics_draw_circle(surface, x, y, radius, 0, colour, colour, aspect);
+            aspect2 = ((aspect * (MMFLOAT)radius) - (MMFLOAT)w) / ((MMFLOAT)(radius - w));
+            graphics_draw_circle(surface, x, y, radius - w, 0, fill, fill, aspect2);
+        } else {  // thick border with empty centre
+            int r1 = radius - w, r2 = radius, xs = -1, xi = 0, i, j, k, m, ll = radius;
+            if (aspect > 1.0) ll = (int)((MMFLOAT)radius * aspect);
+            int ints_per_line = RoundUptoInt((ll * 2) + 1) / 32;
+            uint32_t* br = (uint32_t*)GetTempMemory(((ints_per_line + 1) * ((r2 * 2) + 1)) * 4);
+            graphics_draw_filled_circle(x, y, r2, r2, 1, ints_per_line, br, aspect, aspect);
+            aspect2 = ((aspect * (MMFLOAT)r2) - (MMFLOAT)w) / ((MMFLOAT)r1);
+            graphics_draw_filled_circle(x, y, r1, r2, 0, ints_per_line, br, aspect, aspect2);
+            x = (int)((MMFLOAT)x + (MMFLOAT)r2 * (1.0 - aspect));
+            for (j = 0; j < r2 * 2 + 1; j++) {
+                for (i = 0; i < ints_per_line; i++) {
+                    k = br[i + j * ints_per_line];
+                    for (m = 0; m < 32; m++) {
+                        if (xs == -1 && (k & 0x80000000)) {
+                            xs = m;
+                            xi = i;
+                        }
+                        if (xs != -1 && !(k & 0x80000000)) {
+                            graphics_draw_rectangle(surface, x - r2 + xs + xi * 32, y - r2 + j,
+                                                    x - r2 + m + i * 32, y - r2 + j, colour);
+                            xs = -1;
+                        }
+                        k <<= 1;
+                    }
+                }
+                if (xs != -1) {
+                    graphics_draw_rectangle(surface, x - r2 + xs + xi * 32, y - r2 + j, x - r2 + m + i * 32,
+                                            y - r2 + j, colour);
+                    xs = -1;
+                }
+            }
+        }
+
+    } else {  // single thickness outline
+        int w1 = w, r1 = radius;
+        if (fill >= 0) {
+            while (radius > 0) {
+                a = 0;
+                b = radius;
+                P = 1 - radius;
+                asp = aspect * (MMFLOAT)(1 << 10);
+
+                do {
+                    A = (a * asp) >> 10;
+                    B = (b * asp) >> 10;
+                    if (fill >= 0) {
+                        graphics_draw_rectangle(surface, x - A, y + b, x + A, y + b, fill);
+                        graphics_draw_rectangle(surface, x - A, y - b, x + A, y - b, fill);
+                        graphics_draw_rectangle(surface, x - B, y + a, x + B, y + a, fill);
+                        graphics_draw_rectangle(surface, x - B, y - a, x + B, y - a, fill);
+                    }
+                    if (P < 0)
+                        P += 3 + 2 * a++;
+                    else
+                        P += 5 + 2 * (a++ - b--);
+
+                } while (a <= b);
+                if (w == 0) break;
+                w--;
+                radius--;
+            }
+        }
+        if (colour != fill) {
+            w = w1;
+            radius = r1;
+            while (radius > 0) {
+                a = 0;
+                b = radius;
+                P = 1 - radius;
+                asp = aspect * (MMFLOAT)(1 << 10);
+                do {
+                    A = (a * asp) >> 10;
+                    B = (b * asp) >> 10;
+                    if (w) {
+                        graphics_set_pixel_safe(surface, A + x, b + y, colour);
+                        graphics_set_pixel_safe(surface, B + x, a + y, colour);
+                        graphics_set_pixel_safe(surface, x - A, b + y, colour);
+                        graphics_set_pixel_safe(surface, x - B, a + y, colour);
+                        graphics_set_pixel_safe(surface, B + x, y - a, colour);
+                        graphics_set_pixel_safe(surface, A + x, y - b, colour);
+                        graphics_set_pixel_safe(surface, x - A, y - b, colour);
+                        graphics_set_pixel_safe(surface, x - B, y - a, colour);
+                    }
+                    if (P < 0)
+                        P += 3 + 2 * a++;
+                    else
+                        P += 5 + 2 * (a++ - b--);
+
+                } while (a <= b);
+                if (w == 0) break;
+                w--;
+                radius--;
+            }
+        }
+    }
+
+    surface->dirty = true;
     return kOk;
 }
 

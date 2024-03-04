@@ -147,6 +147,19 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0 , MMFLOAT y0 , MMF
 MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w,
                            MmGraphicsColour colour, MmGraphicsColour fill);
 
+/**
+ * Draws a circle or elipse.
+ *
+ * @param  x, y    coordinates of the center of the circle.
+ * @param  radius  radius of the circle.
+ * @param  w       width of the line drawing the circle.
+ * @param  colour  colour to use for the circle.
+ * @param  fill    colour to use for the fill or -1 if no fill.
+ * @param  aspect  ratio of the x and y axis (a MMFLOAT). 1.0 gives a prefect circle.
+ */
+MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, uint32_t w,
+                              MmGraphicsColour colour, MmGraphicsColour fill, MMFLOAT aspect);
+
 MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w,
                             MmGraphicsColour colour);
 MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour);

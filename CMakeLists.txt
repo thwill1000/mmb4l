@@ -49,6 +49,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_call.c
     src/commands/cmd_cfunction.c
     src/commands/cmd_chdir.c
+    src/commands/cmd_circle.c
     src/commands/cmd_cls.c
     src/commands/cmd_close.c
     src/commands/cmd_colour.c
@@ -229,12 +230,17 @@ add_executable(
   src/common/gtest/cmdline_test.cxx
 )
 
+target_include_directories(test_cmdline PUBLIC
+  /usr/include/SDL2
+)
+
 target_link_libraries(
   test_cmdline
   gtest_main
   gmock
   gmock_main
   ${GCOV_LINK_LIBRARY}
+  SDL2
 )
 
 gtest_discover_tests(test_cmdline)
@@ -266,6 +272,7 @@ target_link_libraries(
   gmock
   gmock_main
   ${GCOV_LINK_LIBRARY}
+  SDL2
 )
 
 gtest_discover_tests(test_cmd_do)
