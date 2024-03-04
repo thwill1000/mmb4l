@@ -126,7 +126,8 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsApiError:
             formatGraphicsApiError();
             return mmresult_buffer;
-        case kGraphicsInvalidId:          return "Invalid graphics surface id";
+        case kGraphicsInvalidId:          return "Invalid graphics surface ID";
+        case kGraphicsInvalidWriteSurface: return "Invalid graphics write surface";
         case kGraphicsSurfaceNotCreated:  return "Graphics surface could not be created";
         case kGraphicsSurfaceNotFound:    return "Graphics surface does not exist";
         case kGraphicsSurfaceExists:      return "Graphics surface already exists";

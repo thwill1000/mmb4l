@@ -77,6 +77,7 @@ void cmd_call(void);
 void cmd_case(void);
 void cmd_cfunction(void);
 void cmd_chdir(void);
+void cmd_circle(void);
 void cmd_clear(void);
 void cmd_close(void);
 void cmd_cls(void);

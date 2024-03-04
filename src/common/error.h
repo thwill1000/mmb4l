@@ -72,7 +72,10 @@ MmResult error_throw_ex(MmResult result, const char *msg, ...);
 MmResult error_throw_legacy(const char *msg, ...);
 uint8_t error_to_exit_code(MmResult result);
 
-#define ERROR_ON_FAILURE(x)  if (FAILED(x)) { error_throw(x); return; }
+#define ERROR_ON_FAILURE(x)  { \
+  MmResult rezult = x; \
+  if (FAILED(rezult)) { error_throw(rezult); return; } \
+}
 
 #define ERROR_ALREADY_OPEN                error_throw_ex(kError, "File or device already open")
 #define ERROR_ARGUMENT_COUNT              error_throw(kArgumentCount)
