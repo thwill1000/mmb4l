@@ -67,6 +67,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Case",        T_CMD,              0, cmd_case     },
     { "Cat",         T_CMD,              0, cmd_inc      }, // TODO: alias of INC.
     { "Chdir",       T_CMD,              0, cmd_chdir    },
+    { "Circle",      T_CMD,              0, cmd_circle   },
     { "Clear",       T_CMD,              0, cmd_clear    },
     { "Close",       T_CMD,              0, cmd_close    },
     { "Cls",         T_CMD,              0, cmd_cls      },

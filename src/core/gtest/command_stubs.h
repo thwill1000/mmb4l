@@ -12,6 +12,7 @@ void cmd_call() { }
 void cmd_case() { }
 void cmd_cfunction() { }
 void cmd_chdir() { }
+void cmd_circle() { }
 void cmd_clear() { }
 void cmd_close() { }
 void cmd_cls() { }
