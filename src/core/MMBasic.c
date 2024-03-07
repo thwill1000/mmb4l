@@ -47,7 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // the expression execution engine and other useful functions.
 
 #include "../Hardware_Includes.h"
-#include "MMBasic_Includes.h"
+#include "MMBasic.h"
+#include "Commands.h"
 #include "funtbl.h"
 #include "vartbl.h"
 #include "../common/parse.h"
@@ -55,31 +56,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 
+void op_add(void);
+void op_equal(void);
+void op_inv(void);
+void op_invalid(void);
+void op_not(void);
+void op_subtract(void);
+
 extern int ListCnt;
 extern int MMCharPos;
-
-void cmd_null(void);
-
-// this is the token table that defines the other tokens in the source code
-// most of them are listed in the .h files so you should not add your own here
-// but instead add them to the appropriate .h file
-#define INCLUDE_TOKEN_TABLE
-const struct s_tokentbl tokentbl[] = {
-    #include "Functions.h"
-    #include "Commands.h"
-    #include "Operators.h"
-#if defined(MX170) || defined(MX470)
-    #include "../Micromite/Hardware_Commands.h"
-#elif defined(MAXIMITE)
-    #include "..\Maximite\Hardware_Commands.h"
-#elif defined(__mmb4l__)
-    #include "../Hardware_Commands.h"
-#elif defined(DOS)
-    #include "..\DOS\Source\Hardware_Commands.h"
-#endif
-    { "",   0,                  0, cmd_null,    }                   // this dummy entry is always at the end
-};
-#undef INCLUDE_TOKEN_TABLE
 
 // these are initialised at startup
 int CommandTableSize, TokenTableSize;
@@ -168,12 +153,13 @@ char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
 *********************************************************************************************************************************************/
 
 int commandtbl_size();
+int tokentbl_size();
 
 // Initialise MMBasic
 void InitBasic(void) {
     DefaultType = T_NBR;
     CommandTableSize = commandtbl_size();
-    TokenTableSize =  (sizeof(tokentbl)/sizeof(struct s_tokentbl));
+    TokenTableSize = tokentbl_size();
 
     vartbl_init();
     ClearProgram();
