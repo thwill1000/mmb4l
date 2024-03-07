@@ -47,6 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commandtbl.h"
 #include "../common/error.h"
 
+#include <strings.h>
+
 /**
  * This is the command table that defines the various tokens for MMBasic commands.
  *
@@ -164,7 +166,7 @@ int commandtbl_size() {
 
 int commandtbl_get(const char *s) {
     for (int i = 0; i < CommandTableSize - 1; i++) {
-        if (str_equal(s, commandtbl[i].name)) {
+        if (strcasecmp(s, commandtbl[i].name) == 0) {
             return i + C_BASETOKEN;
         }
     }
