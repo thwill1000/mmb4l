@@ -44,6 +44,5 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Declares the commands/tokens to be included in MMBasic's command and token tables.
 
-#include "commands/mmb4l_commands.h"
 #include "functions/mmb4l_functions.h"
 #include "operators/mmb4l_operators.h"
