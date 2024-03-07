@@ -34,7 +34,7 @@ void file_close(int fnbr) { }
 int file_eof(int fnbr) { return 0; }
 int file_find_free(void) { return 1; }
 void file_open(char *fname, char *mode, int fnbr) { }
-int GetCommandValue(char *n) { return 0; }
+int commandtbl_get(char *s) { return 0; }
 char *getCstring(char *p) { return NULL; }
 void *GetTempMemory(int NbrBytes) { return NULL; }
 void IntToStr(char *strr, long long int nbr, unsigned int base) { }
