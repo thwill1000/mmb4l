@@ -65,8 +65,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/interrupt.h"
 #include "common/memory.h"
 #include "common/options.h"
-#include "functions/mmb4l_functions.h"
-#include "operators/mmb4l_operators.h"
 
 // Redefine the standard float routines used in MMBasic to their double versions
 #define powf pow

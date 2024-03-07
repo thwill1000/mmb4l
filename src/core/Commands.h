@@ -42,30 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-
-
-/**********************************************************************************
- All other tokens (keywords, functions, operators) should be inserted in this table
-**********************************************************************************/
-#ifdef INCLUDE_TOKEN_TABLE
-
-  { "For",        T_NA,              0, op_invalid    },
-  { "Else",       T_NA,              0, op_invalid    },
-  { "GoSub",      T_NA,              0, op_invalid    },
-  { "GoTo",       T_NA,              0, op_invalid    },
-  { "Step",       T_NA,              0, op_invalid    },
-  { "Then",       T_NA,              0, op_invalid    },
-  { "To",         T_NA,              0, op_invalid    },
-  { "Until",      T_NA,              0, op_invalid    },
-  { "While",      T_NA,              0, op_invalid    },
-
-#endif
-
-
-
-
-#if !defined(INCLUDE_COMMAND_TABLE) && !defined(INCLUDE_TOKEN_TABLE)
-
 struct s_forstack {
     const char *forptr;                     // pointer to the FOR command in program memory
     const char *nextptr;                    // pointer to the NEXT command in program memory
@@ -114,5 +90,3 @@ char *llist(char *b, char *p);
 extern unsigned int BusSpeed;
 extern char *OnKeyGOSUB;
 extern char EchoOption;
-
-#endif

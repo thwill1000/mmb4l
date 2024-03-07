@@ -39,6 +39,7 @@ set(MMB4L_CORE_SOURCE_FILES
     src/core/funtbl.c
     src/core/MMBasic.c
     src/core/Operators.c
+    src/core/tokentbl.c
     src/core/vartbl.c
 )
 
@@ -229,6 +230,7 @@ add_executable(
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
+  src/core/tokentbl.c
   src/core/vartbl.c
   src/functions/fun_mmcmdline.c
 )
@@ -451,6 +453,7 @@ add_executable(
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
+  src/core/tokentbl.c
   src/core/vartbl.c
   src/core/gtest/mmbasic_core_test.cxx
 )
