@@ -65,7 +65,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/interrupt.h"
 #include "common/memory.h"
 #include "common/options.h"
-#include "commands/mmb4l_commands.h"
 #include "functions/mmb4l_functions.h"
 #include "operators/mmb4l_operators.h"
 
