@@ -159,6 +159,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Text",        T_CMD,              0, cmd_dummy    },
     { "Timer",       T_CMD | T_FUN,      0, cmd_timer    },
     { "Trace",       T_CMD,              0, cmd_trace    },
+    { "Triangle",    T_CMD,              0, cmd_triangle },
     { "TrOff",       T_CMD,              0, cmd_troff    },
     { "TrOn",        T_CMD,              0, cmd_tron     },
     { "Wend",        T_CMD,              0, cmd_loop     },
