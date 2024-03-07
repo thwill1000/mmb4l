@@ -149,3 +149,12 @@ MmResult graphics_draw_polygon(unsigned char *p, int close);
 MmResult graphics_draw_rbox(int x1, int y1, int x2, int y2, int radius, int c, int fill);
 
 MmResult graphics_draw_rectangle(int x1, int y1, int x2, int y2, int c);
+
+/**
+ * Draws a triangle.
+ *
+ * @param  x0, y0, x1, y1, x2, y2  coordinates of the vertices.
+ * @param  c       colour to use for sides of the triangle.
+ * @param  fill    colour to fill the box (-1 for no fill).
+ */
+MmResult graphics_draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, int c, int fill);
