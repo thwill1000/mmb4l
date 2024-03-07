@@ -45,7 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Provides all the core commands in MMBasic.
 
 #include "../Hardware_Includes.h"
-#include "MMBasic_Includes.h"
+#include "MMBasic.h"
+#include "Commands.h"
 #include "funtbl.h"
 #include "vartbl.h"
 #include "../common/cstring.h"
@@ -54,8 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void flist(int, int, int);
 void clearprog(void);
 void execute_one_command(char *p);
-
-
+void op_equal(void);
 
 // stack to keep track of nested FOR/NEXT loops
 struct s_forstack forstack[MAXFORLOOPS + 1];
