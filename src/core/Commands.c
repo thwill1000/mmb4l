@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Commands.c
 
-Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -200,21 +200,6 @@ void cmd_let(void) {
 }
 
 
-#if !defined(__mmb4l__)
-void MIPS16 cmd_list(void) {
-    char *p;
-
-    if((p = checkstring(cmdline, "ALL"))) {
-        ListProgram(ProgMemory, true);
-        checkend(p);
-    } else {
-        ListProgram(ProgMemory, false);
-        checkend(cmdline);
-    }
-}
-#endif
-
-
 
 void ListNewLine(int *ListCnt, int all) {
     MMPrintString("\r\n");
@@ -228,7 +213,7 @@ void ListNewLine(int *ListCnt, int all) {
 }
 
 
-void MIPS16 ListProgram(char *p, int all) {
+void ListProgram(char *p, int all) {
     char b[STRINGSIZE];
     char *pp;
     int ListCnt = 1;
@@ -253,34 +238,7 @@ void MIPS16 ListProgram(char *p, int all) {
 
 
 
-#if !defined(__mmb4l__)
-void MIPS16 cmd_run(void) {
-#if !defined(MX170)
-    skipspace(cmdline);
-    if(*cmdline && *cmdline != '\'')
-        if(!FileLoadProgram(cmdline))
-            return;
-#endif
-#if defined(MICROMITE)
-    if(CurrentLinePtr) {
-        _excep_code = RESTART_DOAUTORUN;
-        SoftReset();                                                // if we are in a program simply restart the processor
-    }
-#endif
-    // we must be at the command line or a non Maximite version
-    ClearRuntime();
-    WatchdogSet = false;
-    PrepareProgram(true);
-    IgnorePIN = false;
-    if(Option.ProgFlashSize != PROG_FLASH_SIZE) ExecuteProgram(ProgMemory + Option.ProgFlashSize);       // run anything that might be in the library
-    if(*ProgMemory != T_NEWLINE) return;                            // no program to run
-    nextstmt = ProgMemory;
-}
-#endif
-
-
-
-void MIPS16 cmd_continue(void) {
+void cmd_continue(void) {
     if(*cmdline == tokenFOR) {
         if(forindex == 0) error("No FOR loop is in effect");
         nextstmt = forstack[forindex - 1].nextptr;
@@ -298,57 +256,6 @@ void MIPS16 cmd_continue(void) {
     IgnorePIN = false;
     nextstmt = ContinuePoint;
 }
-
-
-
-#if !defined(__mmb4l__)
-void MIPS16 cmd_new(void) {
-    // if(CurrentLinePtr) error("Invalid in a program");
-    checkend(cmdline);
-    ClearSavedVars();                                               // clear any saved variables
-    FlashWriteInit(ProgMemory, Option.ProgFlashSize);
-    ClearProgram();
-    WatchdogSet = false;
-    Option.Autorun = false;
-    SaveOptions();
-    longjmp(mark, 1);                                               // jump back to the input prompt
-}
-#endif
-
-
-
-#if !defined(__mmb4l__)
-void cmd_erase(void) {
-    int i,j,k, len;
-    char p[MAXVARLEN + 1], *s, *x;
-
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
-    if((argc & 0x01) == 0) error("Argument count");
-
-    for(i = 0; i < argc; i += 2) {
-        strcpy((char *)p, argv[i]);
-        while(!isnamechar(p[strlen(p) - 1])) p[strlen(p) - 1] = 0;
-
-        makeupper(p);                                               // all variables are stored as uppercase
-        for(j = 0; j < varcnt; j++) {
-            s = p;  x = vartbl[j].name; len = strlen(p);
-            while(len > 0 && *s == *x) {                            // compare the variable to the name that we have
-                len--; s++; x++;
-            }
-            if(!(len == 0 && (*x == 0 || strlen(p) == MAXVARLEN))) continue;
-
-            // found the variable
-            FreeMemory(vartbl[j].val.s);                            // free the memory, note that FreeMemory() will ignore an invalid argument
-            vartbl[j].type = T_NOTYPE;                              // empty slot
-            *vartbl[j].name = 0;                                    // safety precaution
-            for(k = 0; k < MAXDIM; k++) vartbl[j].dims[k] = 0;      // and again
-            if(j == varcnt - 1) { j--; varcnt--; }
-            break;
-        }
-        if(j == varcnt) error("Cannot find $", p);
-    }
-}
-#endif
 
 
 
@@ -1515,7 +1422,7 @@ const char *SetValue(const char *p, int t, void *v) {
 // define a variable
 // DIM [AS INTEGER|FLOAT|STRING] var[(d1 [,d2,...]] [AS INTEGER|FLOAT|STRING] [, ..., ...]
 // LOCAL also uses this function the routines only differ in that LOCAL can only be used in a sub/fun
-void MIPS16 cmd_dim(void) {
+void cmd_dim(void) {
     int i, j, k, type, typeSave, ImpliedType = 0, VIndexSave, StaticVar = false;
     char chSave, *chPosit;
     char VarName[STRINGSIZE];
@@ -1629,7 +1536,7 @@ void MIPS16 cmd_dim(void) {
 
 
 
-void MIPS16 cmd_const(void) {
+void cmd_const(void) {
     const char *p;
     void *v;
     int i, type;
@@ -1707,7 +1614,7 @@ void strCopyWithCase(char *d, const char *s) {
 // list a line into a buffer (b) given a pointer to the beginning of the line (p).
 // the returned string is a C style string (terminated with a zero)
 // this is used by cmd_list(), cmd_edit() and cmd_xmodem()
-char MIPS16 *llist(char *b, char *p) {
+char *llist(char *b, char *p) {
     int i, firstnonwhite = true;
     char *b_start = b;
 

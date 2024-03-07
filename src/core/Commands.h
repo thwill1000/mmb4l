@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Commands.h
 
-Copyright 2011-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -54,8 +54,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //      void op_???(void)
 
 void cmd_clear(void);
-void MIPS16 cmd_continue(void);
-void MIPS16 cmd_dim(void);
+void cmd_continue(void);
+void cmd_dim(void);
 void cmd_do(void);
 void cmd_else(void);
 void cmd_end(void);
@@ -73,9 +73,9 @@ void cmd_if(void);
 void cmd_input(void);
 void cmd_let(void);
 void cmd_lineinput(void);
-void MIPS16 cmd_list(void);
+void cmd_list(void);
 void cmd_loop(void);
-void MIPS16 cmd_new(void);
+void cmd_new(void);
 void cmd_next(void);
 void cmd_null(void);
 void cmd_on(void);
@@ -84,11 +84,11 @@ void cmd_randomize(void);
 void cmd_read(void);
 void cmd_restore(void);
 void cmd_return(void);
-void MIPS16 cmd_run(void);
+void cmd_run(void);
 void cmd_troff(void);
 void cmd_tron(void);
 void cmd_trace(void);
-void MIPS16 cmd_const(void);
+void cmd_const(void);
 void cmd_select(void);
 void cmd_case(void);
 
@@ -231,8 +231,8 @@ extern char DimUsed;
 
 // char *GetFileName(char* CmdLinePtr, char *LastFilePtr);
 // void mergefile(char *fname, char *MemPtr);
-void MIPS16 ListProgram(char *p, int all);
-char MIPS16 *llist(char *b, char *p);
+void ListProgram(char *p, int all);
+char *llist(char *b, char *p);
 
 #if !defined(__mmb4l__)
 #define CONFIG_TITLE      0
