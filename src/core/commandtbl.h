@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-cmd_cfunction.c
+MMBasic.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,30 +42,90 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
-#include "../core/commandtbl.h"
-#include "../common/error.h"
+#if !defined(COMMANDTBL_H)
+#define COMMANDTBL_H
 
-#define ERROR_MISSING_END  error_throw_ex(kError, "Missing END statement")
+#define GetCommandValue(s)  commandtbl_get(s)
 
-void cmd_cfunction(void) {
-    int end_token = GetCommandValue("End CSub");  // this terminates a CSUB
-    const char *p = cmdline;
-    while (*p != 0xff) {
-        if (*p == 0) p++;  // if it is at the end of an element skip the zero marker
-        if (*p == 0) ERROR_MISSING_END;  // end of the program
-        if (*p == T_NEWLINE) p++;     // skip over the newline token
-        if (*p == T_LINENBR) p += 3;  // skip over the line number
-        skipspace(p);
-        if (*p == T_LABEL) {
-            p += p[1] + 2;  // skip over the label
-            skipspace(p);   // and any following spaces
-        }
-        if (*p == end_token) {  // found an END token
-            nextstmt = p;
-            skipelement(nextstmt);
-            return;
-        }
-        p++;
-    }
-}
+void cmd_autosave(void);
+void cmd_call(void);
+void cmd_case(void);
+void cmd_cfunction(void);
+void cmd_chdir(void);
+void cmd_clear(void);
+void cmd_close(void);
+void cmd_cls(void);
+void cmd_console(void);
+void cmd_const(void);
+void cmd_continue(void);
+void cmd_copy(void);
+void cmd_cursor(void);
+void cmd_dim(void);
+void cmd_do(void);
+void cmd_dummy(void);
+void cmd_edit(void);
+void cmd_else(void);
+void cmd_endfun(void);
+void cmd_endsub(void);
+void cmd_end(void);
+void cmd_erase(void);
+void cmd_error(void);
+void cmd_execute(void);
+void cmd_exitfor(void);
+void cmd_exit(void);
+void cmd_files(void);
+void cmd_font(void);
+void cmd_for(void);
+void cmd_gosub(void);
+void cmd_goto(void);
+void cmd_if(void);
+void cmd_inc(void);
+void cmd_input(void);
+void cmd_ireturn(void);
+void cmd_kill(void);
+void cmd_let(void);
+void cmd_lineinput(void);
+void cmd_list(void);
+void cmd_load(void);
+void cmd_longstring(void);
+void cmd_loop(void);
+void cmd_math(void);
+void cmd_memory(void);
+void cmd_mid(void);
+void cmd_mkdir(void);
+void cmd_mode(void);
+void cmd_new(void);
+void cmd_next(void);
+void cmd_null(void);
+void cmd_null(void);
+void cmd_on(void);
+void cmd_open(void);
+void cmd_option(void);
+void cmd_pause(void);
+void cmd_poke(void);
+void cmd_print(void);
+void cmd_quit(void);
+void cmd_randomize(void);
+void cmd_read(void);
+void cmd_rename(void);
+void cmd_restore(void);
+void cmd_return(void);
+void cmd_rmdir(void);
+void cmd_run(void);
+void cmd_seek(void);
+void cmd_select(void);
+void cmd_settick(void);
+void cmd_settitle(void);
+void cmd_sort(void);
+void cmd_subfun(void);
+void cmd_system(void);
+void cmd_timer(void);
+void cmd_trace(void);
+void cmd_troff(void);
+void cmd_tron(void);
+void cmd_xmodem(void);
+
+int commandtbl_size();
+int commandtbl_get(const char *s);
+
+#endif

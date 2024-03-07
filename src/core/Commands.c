@@ -47,6 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Hardware_Includes.h"
 #include "MMBasic.h"
 #include "Commands.h"
+#include "commandtbl.h"
+#include "tokentbl.h"
 #include "funtbl.h"
 #include "vartbl.h"
 #include "../common/cstring.h"

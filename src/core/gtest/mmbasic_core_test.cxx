@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023 Thomas Hugo Williams
+ * Copyright (c) 2022-2024 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -10,7 +10,9 @@ extern "C" {
 
 #include "../../Hardware_Includes.h"
 #include "../Commands.h"
+#include "../commandtbl.h"
 #include "../funtbl.h"
+#include "../tokentbl.h"
 #include "../vartbl.h"
 #include "../MMBasic.h"
 #include "../../common/program.h"

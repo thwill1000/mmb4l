@@ -49,19 +49,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Hardware_Includes.h"
 #include "MMBasic.h"
 #include "Commands.h"
+#include "commandtbl.h"
 #include "funtbl.h"
+#include "tokentbl.h"
 #include "vartbl.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
 
 #include <assert.h>
-
-void op_add(void);
-void op_equal(void);
-void op_inv(void);
-void op_invalid(void);
-void op_not(void);
-void op_subtract(void);
 
 extern int ListCnt;
 extern int MMCharPos;
@@ -152,9 +147,6 @@ char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
  Includes the routines to initialise MMBasic, start running the interpreter, and to run a program in memory
 *********************************************************************************************************************************************/
 
-int commandtbl_size();
-int tokentbl_size();
-
 // Initialise MMBasic
 void InitBasic(void) {
     DefaultType = T_NBR;
@@ -166,46 +158,33 @@ void InitBasic(void) {
 
     // load the commonly used tokens
     // by looking them up once here performance is improved considerably
-    tokenTHEN  = GetTokenValue("Then");
-    tokenELSE  = GetTokenValue("Else");
-    tokenGOTO  = GetTokenValue("GoTo");
-    tokenEQUAL = GetTokenValue("=");
-    tokenTO    = GetTokenValue("To");
-    tokenSTEP  = GetTokenValue("Step");
-    tokenWHILE = GetTokenValue("While");
-    tokenUNTIL = GetTokenValue("Until");
-    tokenGOSUB = GetTokenValue("GoSub");
-    tokenAS    = GetTokenValue("As");
-    tokenFOR   = GetTokenValue("For");
+    tokenTHEN  = tokentbl_get("Then");
+    tokenELSE  = tokentbl_get("Else");
+    tokenGOTO  = tokentbl_get("GoTo");
+    tokenEQUAL = tokentbl_get("=");
+    tokenTO    = tokentbl_get("To");
+    tokenSTEP  = tokentbl_get("Step");
+    tokenWHILE = tokentbl_get("While");
+    tokenUNTIL = tokentbl_get("Until");
+    tokenGOSUB = tokentbl_get("GoSub");
+    tokenAS    = tokentbl_get("As");
+    tokenFOR   = tokentbl_get("For");
 
-    cmdIF      = GetCommandValue("If");
-    cmdENDIF   = GetCommandValue("EndIf");
-    cmdEND_IF  = GetCommandValue("End If");
-    cmdELSEIF  = GetCommandValue("ElseIf");
-    cmdELSE_IF = GetCommandValue("Else If");
-    cmdELSE    = GetCommandValue("Else");
-#if !defined(LITE)
-    cmdSELECT_CASE = GetCommandValue("Select Case");
-    cmdCASE        = GetCommandValue("Case");
-    cmdCASE_ELSE   = GetCommandValue("Case Else");
-    cmdEND_SELECT  = GetCommandValue("End Select");
-#endif
-    cmdSUB = GetCommandValue("Sub");
-    cmdFUN = GetCommandValue("Function");
-#if defined(MICROMITE)
-    cmdIRET = GetCommandValue("IReturn");
-    cmdCSUB = GetCommandValue("CSub");
-    cmdCFUN = GetCommandValue("CFunction");
-#elif defined(__mmb4l__)
-    cmdIRET = GetCommandValue("IReturn");
-    cmdCSUB = GetCommandValue("CSub");
+    cmdIF      = commandtbl_get("If");
+    cmdENDIF   = commandtbl_get("EndIf");
+    cmdEND_IF  = commandtbl_get("End If");
+    cmdELSEIF  = commandtbl_get("ElseIf");
+    cmdELSE_IF = commandtbl_get("Else If");
+    cmdELSE    = commandtbl_get("Else");
+    cmdSELECT_CASE = commandtbl_get("Select Case");
+    cmdCASE        = commandtbl_get("Case");
+    cmdCASE_ELSE   = commandtbl_get("Case Else");
+    cmdEND_SELECT  = commandtbl_get("End Select");
+    cmdSUB = commandtbl_get("Sub");
+    cmdFUN = commandtbl_get("Function");
+    cmdIRET = commandtbl_get("IReturn");
+    cmdCSUB = commandtbl_get("CSub");
     cmdCFUN = 0xFF;
-#elif defined(DOS)
-    cmdIRET = 0xFF;
-    cmdCSUB = 0xFF;
-#else
-    #error "Unknown target platform"
-#endif
 }
 
 
@@ -2436,29 +2415,6 @@ void makeupper(char *p) {
         *p = toupper(*p);
         p++;
     }
-}
-
-
-// find the value of a command token given its name
-int GetCommandValue(const char *n) {
-    int i;
-    for(i = 0; i < CommandTableSize - 1; i++)
-        if(str_equal(n, commandtbl[i].name))
-            return i + C_BASETOKEN;
-    error("Internal fault (sorry)");
-    return 0;
-}
-
-
-
-// find the value of a token given its name
-int GetTokenValue(const char *n) {
-    int i;
-    for(i = 0; i < TokenTableSize - 1; i++)
-        if(str_equal(n, tokentbl[i].name))
-            return i + C_BASETOKEN;
-    error("Internal fault (sorry)");
-    return 0;
 }
 
 
