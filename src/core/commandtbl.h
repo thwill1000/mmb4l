@@ -153,6 +153,7 @@ void cmd_subfun(void);
 void cmd_system(void);
 void cmd_timer(void);
 void cmd_trace(void);
+void cmd_triangle(void);
 void cmd_troff(void);
 void cmd_tron(void);
 void cmd_xmodem(void);

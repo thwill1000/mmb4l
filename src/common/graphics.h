@@ -218,4 +218,16 @@ MmResult graphics_draw_rbox(MmSurface *surface, int x1, int y1, int x2, int y2, 
 MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int y2,
                                  MmGraphicsColour colour);
 
+/**
+ * Draws a triangle.
+ *
+ * @param  x0, y0  Coordinates of the 0th vertex.
+ * @param  x1, y1  Coordinates of the 1st vertex.
+ * @param  x2, y2  Coordinates of the 2nd vertex.
+ * @param  colour  Colour to use for sides of the triangle.
+ * @param  fill    Colour to fill the box (-1 for no fill).
+ */
+MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int y1, int x2, int y2,
+                                MmGraphicsColour colour, MmGraphicsColour fill);
+
 #endif // #if !defined(MMBASIC_GRAPHICS_H)
