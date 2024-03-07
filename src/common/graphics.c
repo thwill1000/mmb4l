@@ -605,3 +605,83 @@ MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int
     surface->dirty = true;
     return kOk;
 }
+
+MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int y1, int x2, int y2,
+                                MmGraphicsColour colour, MmGraphicsColour fill) {
+    if (x0 * (y1 - y2) + x1 * (y2 - y0) + x2 * (y0 - y1) == 0) {
+        // points are co-linear i.e zero area
+        if (y0 > y1) {
+            SWAP(int, y0, y1);
+            SWAP(int, x0, x1);
+        }
+        if (y1 > y2) {
+            SWAP(int, y2, y1);
+            SWAP(int, x2, x1);
+        }
+        if (y0 > y1) {
+            SWAP(int, y0, y1);
+            SWAP(int, x0, x1);
+        }
+        graphics_draw_line(surface, x0, y0, x2, y2, 1, colour);
+    }
+    else {
+        if (fill == -1) {
+            // draw only the outline
+            graphics_draw_line(surface, x0, y0, x1, y1, 1, colour);
+            graphics_draw_line(surface, x1, y1, x2, y2, 1, colour);
+            graphics_draw_line(surface, x2, y2, x0, y0, 1, colour);
+        }
+        else {
+            //we are drawing a filled triangle which may also have an outline
+            int a, b, y, last;
+
+            if (y0 > y1) {
+                SWAP(int, y0, y1);
+                SWAP(int, x0, x1);
+            }
+            if (y1 > y2) {
+                SWAP(int, y2, y1);
+                SWAP(int, x2, x1);
+            }
+            if (y0 > y1) {
+                SWAP(int, y0, y1);
+                SWAP(int, x0, x1);
+            }
+
+            // We only care about what is visible.
+            y0 = min(max(0, y0), (int) (surface->height - 1));
+            y1 = min(max(0, y1), (int) (surface->height - 1));
+            y2 = min(max(0, y2), (int) (surface->height - 1));
+
+            if (y1 == y2) {
+                last = y1;                                          //Include y1 scanline
+            }
+            else {
+                last = y1 - 1;                                      // Skip it
+            }
+            for (y = y0; y <= last; y++) {
+                if (y1 == y0 || y2 == y0) continue; // Impose sanity.
+                a = x0 + (x1 - x0) * (y - y0) / (y1 - y0);
+                b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
+                if (a > b)SWAP(int, a, b);
+                graphics_draw_rectangle(surface, a, y, b, y, fill);
+            }
+            while (y <= y2) {
+                if (y2 == y1 || y2 == y0) continue; // Impose sanity.
+                a = x1 + (x2 - x1) * (y - y1) / (y2 - y1);
+                b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
+                if (a > b) SWAP(int, a, b);
+                graphics_draw_rectangle(surface, a, y, b, y, fill);
+                y = y + 1;
+            }
+            // we also need an outline but we do this last to overwrite the edge of the fill area
+            if (colour != fill) {
+                graphics_draw_line(surface, x0, y0, x1, y1, 1, colour);
+                graphics_draw_line(surface, x1, y1, x2, y2, 1, colour);
+                graphics_draw_line(surface, x2, y2, x0, y0, 1, colour);
+            }
+        }
+    }
+
+    return kOk;
+}

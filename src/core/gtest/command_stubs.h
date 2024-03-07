@@ -89,6 +89,7 @@ void cmd_subfun() { }
 void cmd_system() { }
 void cmd_timer() { }
 void cmd_trace() { }
+void cmd_triangle() { }
 void cmd_troff() { }
 void cmd_tron() { }
 void cmd_xmodem() { }
