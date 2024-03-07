@@ -48,6 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tokentbl.h"
 #include "../common/error.h"
 
+#include <strings.h>
+
 /**
  * This is the token table that defines the various tokens for MMBasic functions
  * and operators.
@@ -184,7 +186,7 @@ int tokentbl_size() {
 
 int tokentbl_get(const char *s) {
     for (int i = 0; i < TokenTableSize - 1; i++) {
-        if (str_equal(s, tokentbl[i].name)) {
+        if (strcasecmp(s, tokentbl[i].name) == 0) {
             return i + C_BASETOKEN;
         }
     }

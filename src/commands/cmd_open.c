@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_open.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,29 +42,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <strings.h>
-
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/file.h"
 #include "../common/parse.h"
 #include "../common/serial.h"
 
+#include <strings.h>
+
 static void cmd_open_file(int argc, char **argv) {
     const char *filename = getCstring(argv[0]);
 
     const char *mode = NULL;
-    if (str_equal(argv[2], "OUTPUT"))
+    if (strcasecmp(argv[2], "OUTPUT") == 0) {
         mode = "wb";  // binary mode so that we do not have lf to cr/lf
                       // translation
-    else if (str_equal(argv[2], "APPEND"))
+    } else if (strcasecmp(argv[2], "APPEND") == 0) {
         mode = "ab";  // binary mode is used in MMfopen()
-    else if (str_equal(argv[2], "INPUT"))
+    } else if (strcasecmp(argv[2], "INPUT") == 0) {
         mode = "rb";  // note binary mode
-    else if (str_equal(argv[2], "RANDOM"))
+    } else if (strcasecmp(argv[2], "RANDOM") == 0) {
         mode = "x";  // a special mode for MMfopen()
-    else
+    } else {
         ERROR_INVALID("file access mode");
+    }
 
     int fnbr = parse_file_number(argv[4], false);
     if (fnbr == -1) ERROR_INVALID_FILE_NUMBER;
