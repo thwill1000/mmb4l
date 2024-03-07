@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.h
 
-Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -210,25 +210,18 @@ extern char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP, tok
 extern char cmdIF, cmdENDIF, cmdEND_IF, cmdELSEIF, cmdELSE_IF, cmdELSE, cmdSELECT_CASE, cmdCASE, cmdCASE_ELSE, cmdEND_SELECT;
 extern char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
 
-#if !defined(__mmb4l__)
-void MIPS16 error(char *, ...);
-#endif
-void MIPS16 InitBasic(void);
+void InitBasic(void);
 
-#if defined(__mmb4l__)
 int32_t FloatToInt32(MMFLOAT x);
-#else
-int FloatToInt32(MMFLOAT);
-#endif
 MMINTEGER FloatToInt64(MMFLOAT x);
 
 void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc, const char *delim);
 void *findvar(const char *, int);
 void erasearray(char *n);
-void MIPS16 ClearVars(int level);
-void MIPS16 ClearStack(void);
-void MIPS16 ClearRuntime(void);
-void MIPS16 ClearProgram(void);
+void ClearVars(int level);
+void ClearStack(void);
+void ClearRuntime(void);
+void ClearProgram(void);
 void *DoExpression(const char *p, int *t);
 const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int noerror);
 const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *t);
@@ -236,9 +229,9 @@ MMFLOAT getnumber(const char *p);
 MMINTEGER getinteger(const char *p);
 int getint(const char *p, int min, int max);
 char *getstring(const char *p);
-void MIPS16 tokenise(int console);
+void tokenise(int console);
 void ExecuteProgram(const char *);
-void MIPS16 SaveProgramToFlash(char *pm, int msg);
+void SaveProgramToFlash(char *pm, int msg);
 //void AddProgramLine(int append);
 char *findline(int, int);
 const char *findlabel(const char *labelptr);
@@ -262,14 +255,10 @@ int Mstrcmp(const char *s1, const char *s2);
 char *getCstring(const char *p);
 int IsValidLine(int line);
 void InsertLastcmd(char *s);
-int MIPS16 CountLines(const char *target);
+int CountLines(const char *target);
 void DefinedSubFun(int iscmd, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64, char **sa, int *t);
 int FindSubFun(const char *p, uint8_t type);
-void MIPS16 PrepareProgram(int);
-#if !defined(__mmb4l__)
-void MMPrintString(const char* s);
-void MMfputs(const char *p, int filenbr);
-#endif
+void PrepareProgram(int);
 void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix);
 void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);

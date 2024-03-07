@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -190,7 +190,7 @@ char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
 
 
 // Initialise MMBasic
-void MIPS16 InitBasic(void) {
+void InitBasic(void) {
     DefaultType = T_NBR;
     CommandTableSize =  (sizeof(commandtbl)/sizeof(struct s_tokentbl));
     TokenTableSize =  (sizeof(tokentbl)/sizeof(struct s_tokentbl));
@@ -465,7 +465,7 @@ static void PrepareFunctionTable(bool abort_on_error) {
 // Scan through the program loaded in flash and build a table pointing to the definition of all user defined subroutines and functions.
 // This pre processing speeds up the program when using defined subroutines and functions
 // this routine also looks for embedded fonts and adds them to the font table
-void MIPS16 PrepareProgram(int ErrAbort) {
+void PrepareProgram(int ErrAbort) {
     // Clear the font table.
     for (int i = FONT_BUILTIN_NBR; i < FONT_TABLE_SIZE; i++) {
         FontTable[i] = NULL;
@@ -896,7 +896,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
 // the result in tknbuf[] is terminated with MMFLOAT zero chars
 // if the arg console is true then do not add a line number
 
-void MIPS16 tokenise(int console) {
+void tokenise(int console) {
     char *p, *op;
     int i;
     int firstnonwhite;
@@ -1646,7 +1646,7 @@ int IsValidLine(int nbr) {
 
 // count the number of lines up to and including the line pointed to by the argument
 // used for error reporting in programs that do not use line numbers
-int MIPS16 CountLines(const char *target) {
+int CountLines(const char *target) {
     char *p;
     int cnt;
 
@@ -2140,101 +2140,6 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
 }
 
 
-// throw an error
-// displays the error message and aborts the program
-// the message can contain variable text which is indicated by a special character in the message string
-//  $ = insert a string at this place
-//  @ = insert a character
-//  % = insert a number
-// the optional data to be inserted is the second argument to this function
-// this uses longjump to skip back to the command input and cleanup the stack
-#if !defined(__mmb4l__)
-void MIPS16 error(char *msg, ...) {
-    char *p, *tp, tstr[STRINGSIZE * 2];
-    va_list ap;
-
-    // first build the error message in the global string MMErrMsg
-    if(MMerrno == 0) MMerrno = 16;                                  // indicate an error
-    memset(tstr, 0, STRINGSIZE * 2);                                // clear any previous string
-    if(*msg) {
-        va_start(ap, msg);
-        while(*msg) {
-            tp = &tstr[strlen(tstr)];                               // point to the end of the string
-            if(*msg == '$')                                         // insert a string
-                strcpy(tp, va_arg(ap, char *));
-            else if(*msg == '@')                                    // insert a character
-                *tp = (va_arg(ap, int));
-            else if(*msg == '%')                                    // insert an integer
-                IntToStr(tp, va_arg(ap, int), 10);
-            else
-                *tp = *msg;
-            msg++;
-        }
-    }
-
-    // copy the error message into the global MMErrMsg truncating at any tokens or if the string is too long
-    for(p = MMErrMsg, tp = tstr; *tp < 127 && (tp - tstr) < MAXERRMSG - 1; ) *p++ = *tp++;
-    *p = 0;
-
-    if(OptionErrorSkip) longjmp(ErrNext, 1);                        // if OPTION ERROR SKIP/IGNORE is in force
-
-    LoadOptions();                                                  // make sure that the option struct is in a clean state
-
-#if defined(MX470)
-    if(Option.DISPLAY_CONSOLE) {
-        SetFont(PromptFont);
-        gui_fcolour = PromptFC;
-        gui_bcolour = PromptBC;
-        if(CurrentX != 0) MMPrintString("\r\n");                    // error message should be on a new line
-    }
-#endif
-    if(MMCharPos > 1) MMPrintString("\r\n");
-    if(CurrentLinePtr) {
-        tp = p = ProgMemory;
-        if(*CurrentLinePtr != T_NEWLINE && CurrentLinePtr < ProgMemory + Option.ProgFlashSize) {
-            // normally CurrentLinePtr points to a T_NEWLINE token but in this case it does not
-            // so we have to search for the start of the line and set CurrentLinePtr to that
-          while(*p != 0xff) {
-              while(*p) p++;                                        // look for the zero marking the start of an element
-              if(p >= CurrentLinePtr || p[1] == 0) {                // the previous line was the one that we wanted
-                  CurrentLinePtr = tp;
-                  break;
-                }
-              if(p[1] == T_NEWLINE) {
-                  tp = ++p;                                         // save because it might be the line we want
-              }
-              p++;                                                  // step over the zero marking the start of the element
-              skipspace(p);
-              if(p[0] == T_LABEL) p += p[1] + 2;                    // skip over the label
-            }
-        }
-
-       // we now have CurrentLinePtr pointing to the start of the line
-//        dump(CurrentLinePtr, 80);
-        llist(tknbuf, CurrentLinePtr);
-        p = tknbuf; skipspace(p);
-        MMPrintString(MMCharPos > 1 ? "\r\n[" : "[");
-        if(CurrentLinePtr < ProgMemory + Option.ProgFlashSize) {
-            IntToStr(inpbuf, CountLines(CurrentLinePtr), 10);
-            MMPrintString(inpbuf);
-            StartEditPoint = CurrentLinePtr;
-            StartEditChar = 0;
-        } else
-            MMPrintString("LIBRARY");
-        MMPrintString("] ");
-        MMPrintString(p);
-        MMPrintString("\r\n");
-    }
-    MMPrintString("Error");
-    if(*MMErrMsg) {
-        MMPrintString(" : ");
-        MMPrintString(MMErrMsg);
-    }
-    MMPrintString("\r\n");
-    longjmp(mark, 1);
-}
-#endif
-
 
 /**********************************************************************************************
  Routines to convert floats and integers to formatted strings
@@ -2410,7 +2315,7 @@ Various routines to clear memory or the interpreter's state
 // clear (or delete) variables
 // if level is not zero it will only delete local variables at that level or greater
 // if level is zero to will delete all variables and reset global settings
-void MIPS16 ClearVars(int level) {
+void ClearVars(int level) {
 
     vartbl_delete_all(level);
 
@@ -2447,7 +2352,7 @@ void MIPS16 ClearVars(int level) {
 
 // clear all stack pointers (eg, FOR/NEXT stack, DO/LOOP stack, GOSUB stack, etc)
 // this is done at the command prompt or at any break
-void MIPS16 ClearStack(void) {
+void ClearStack(void) {
     NextData = 0;
     NextDataLine = ProgMemory;
     forindex = 0;
@@ -2467,7 +2372,7 @@ void MIPS16 ClearStack(void) {
 
 // clear the runtime (eg, variables, external I/O, etc) includes ClearStack() and ClearVars()
 // this is done before running a program
-void MIPS16 ClearRuntime(void) {
+void ClearRuntime(void) {
 #if defined(MX470)
     //have to stop audio before we clear variables to avoid exception
     CloseAudio();
@@ -2507,7 +2412,7 @@ void MIPS16 ClearRuntime(void) {
 
 // clear everything including program memory (includes ClearStack() and ClearRuntime())
 // this is used before loading a program
-void MIPS16 ClearProgram(void) {
+void ClearProgram(void) {
     ClearRuntime();
 #if defined(__mmb4l__)
     memset(error_file, 0, STRINGSIZE);
