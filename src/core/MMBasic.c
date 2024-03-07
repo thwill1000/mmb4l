@@ -58,28 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern int ListCnt;
 extern int MMCharPos;
 
-// this is the command table that defines the various tokens for commands in the source code
-// most of them are listed in the .h files so you should not add your own here but instead add
-// them to the appropriate .h file
-#define INCLUDE_COMMAND_TABLE
-const struct s_tokentbl commandtbl[] = {
-    #include "Functions.h"
-    #include "Commands.h"
-    #include "Operators.h"
-#if defined(MX170) || defined(MX470)
-    #include "../Micromite/Hardware_Commands.h"
-#elif defined(MAXIMITE)
-    #include "..\Maximite\Hardware_Commands.h"
-#elif defined(__mmb4l__)
-    #include "../Hardware_Commands.h"
-#elif defined(DOS)
-    #include "..\DOS\Source\Hardware_Commands.h"
-#endif
-    { "",   0,                  0, cmd_null,    }                   // this dummy entry is always at the end
-};
-#undef INCLUDE_COMMAND_TABLE
-
-
+void cmd_null(void);
 
 // this is the token table that defines the other tokens in the source code
 // most of them are listed in the .h files so you should not add your own here
@@ -188,11 +167,12 @@ char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
  Includes the routines to initialise MMBasic, start running the interpreter, and to run a program in memory
 *********************************************************************************************************************************************/
 
+int commandtbl_size();
 
 // Initialise MMBasic
 void InitBasic(void) {
     DefaultType = T_NBR;
-    CommandTableSize =  (sizeof(commandtbl)/sizeof(struct s_tokentbl));
+    CommandTableSize = commandtbl_size();
     TokenTableSize =  (sizeof(tokentbl)/sizeof(struct s_tokentbl));
 
     vartbl_init();

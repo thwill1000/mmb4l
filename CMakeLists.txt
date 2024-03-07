@@ -33,6 +33,7 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${XTRA_WA
 set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
 
 set(MMB4L_CORE_SOURCE_FILES
+    src/core/commandtbl.c
     src/core/Commands.c
     src/core/Functions.c
     src/core/funtbl.c
@@ -225,6 +226,7 @@ add_executable(
   src/common/memory.c
   src/common/mmresult.c
   src/common/parse.c
+  src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
   src/core/vartbl.c
@@ -446,6 +448,7 @@ add_executable(
   src/common/program.c
   src/common/rx_buf.c
   src/common/serial.c
+  src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
   src/core/vartbl.c
