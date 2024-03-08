@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_timer.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,11 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <time.h>
-
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/mmtime.h"
+#include "../core/tokentbl.h"
+
+#include <time.h>
 
 // this is invoked as a command (ie, TIMER = 0)
 // search through the line looking for the equals sign and step over it,

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_copy.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../core/tokentbl.h"
 
 void cmd_copy(void) {  // thanks to Bryan Rentoul for the contribution
     char *oldf, *newf, ss[2];
