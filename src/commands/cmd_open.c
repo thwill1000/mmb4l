@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/file.h"
 #include "../common/parse.h"
 #include "../common/serial.h"
+#include "../core/tokentbl.h"
 
 #include <strings.h>
 

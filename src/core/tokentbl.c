@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Configuration.h"
 #include "MMBasic.h"
-#include "commandtbl.h"
 #include "tokentbl.h"
 #include "../common/error.h"
 
@@ -180,12 +179,27 @@ const struct s_tokentbl tokentbl[] = {
     { "",            0,                              0, cmd_null,    }  // This dummy entry is always at the end.
 };
 
-int tokentbl_size() {
-    return sizeof(tokentbl) / sizeof(struct s_tokentbl);
+char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP;
+char tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
+
+void tokentbl_init() {
+    tokentbl_size = sizeof(tokentbl) / sizeof(struct s_tokentbl);
+
+    tokenTHEN  = tokentbl_get("Then");
+    tokenELSE  = tokentbl_get("Else");
+    tokenGOTO  = tokentbl_get("GoTo");
+    tokenEQUAL = tokentbl_get("=");
+    tokenTO    = tokentbl_get("To");
+    tokenSTEP  = tokentbl_get("Step");
+    tokenWHILE = tokentbl_get("While");
+    tokenUNTIL = tokentbl_get("Until");
+    tokenGOSUB = tokentbl_get("GoSub");
+    tokenAS    = tokentbl_get("As");
+    tokenFOR   = tokentbl_get("For");
 }
 
 int tokentbl_get(const char *s) {
-    for (int i = 0; i < TokenTableSize - 1; i++) {
+    for (int i = 0; i < tokentbl_size - 1; i++) {
         if (strcasecmp(s, tokentbl[i].name) == 0) {
             return i + C_BASETOKEN;
         }

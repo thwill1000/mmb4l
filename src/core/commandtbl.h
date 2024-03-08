@@ -45,7 +45,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(COMMANDTBL_H)
 #define COMMANDTBL_H
 
+struct s_tokentbl {      // structure of the command and token tables.
+    const char *name;    // the string (eg, PRINT, FOR, ASC(, etc)
+    char type;           // the type returned (T_NBR, T_STR, T_INT)
+    char precedence;     // precedence used by operators only.  operators with equal precedence are processed left to right.
+    void (*fptr)(void);  // pointer to the function that will interpret that token
+};
+
+#define C_BASETOKEN 0x80  // the base of the token numbers
+
 #define GetCommandValue(s)  commandtbl_get(s)
+#define CommandTableSize    commandtbl_size
+
+/** Gets the type of a command. */
+#define commandtype(i)  ((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].type) : 0)
+
+/** Gets the function pointer of a command. */
+#define commandfunction(i)  ((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].fptr) : (commandtbl[0].fptr))
+
+/** Gets the type of a command. */
+#define commandname(i)  ((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].name) : "")
 
 void cmd_autosave(void);
 void cmd_call(void);
@@ -125,7 +144,15 @@ void cmd_troff(void);
 void cmd_tron(void);
 void cmd_xmodem(void);
 
-int commandtbl_size();
+void commandtbl_init();
 int commandtbl_get(const char *s);
+
+extern const struct s_tokentbl commandtbl[];
+extern int commandtbl_size;
+
+// Store commonly used commands for faster token checking.
+extern char cmdIF, cmdENDIF, cmdEND_IF, cmdELSEIF, cmdELSE_IF, cmdELSE;
+extern char cmdSELECT_CASE, cmdCASE, cmdCASE_ELSE, cmdEND_SELECT, cmdSUB;
+extern char cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
 
 #endif
