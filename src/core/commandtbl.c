@@ -160,12 +160,32 @@ const struct s_tokentbl commandtbl[] = {
     { "",            0,                  0, cmd_null,    }  // This dummy entry is always at the end.
 };
 
-int commandtbl_size() {
-    return sizeof(commandtbl) / sizeof(struct s_tokentbl);
+char cmdIF, cmdENDIF, cmdEND_IF, cmdELSEIF, cmdELSE_IF, cmdELSE;
+char cmdSELECT_CASE, cmdCASE, cmdCASE_ELSE, cmdEND_SELECT, cmdSUB;
+char cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
+
+void commandtbl_init() {
+    commandtbl_size = sizeof(commandtbl) / sizeof(struct s_tokentbl);
+
+    cmdIF      = commandtbl_get("If");
+    cmdENDIF   = commandtbl_get("EndIf");
+    cmdEND_IF  = commandtbl_get("End If");
+    cmdELSEIF  = commandtbl_get("ElseIf");
+    cmdELSE_IF = commandtbl_get("Else If");
+    cmdELSE    = commandtbl_get("Else");
+    cmdSELECT_CASE = commandtbl_get("Select Case");
+    cmdCASE        = commandtbl_get("Case");
+    cmdCASE_ELSE   = commandtbl_get("Case Else");
+    cmdEND_SELECT  = commandtbl_get("End Select");
+    cmdSUB = commandtbl_get("Sub");
+    cmdFUN = commandtbl_get("Function");
+    cmdIRET = commandtbl_get("IReturn");
+    cmdCSUB = commandtbl_get("CSub");
+    cmdCFUN = 0xFF;
 }
 
 int commandtbl_get(const char *s) {
-    for (int i = 0; i < CommandTableSize - 1; i++) {
+    for (int i = 0; i < commandtbl_size - 1; i++) {
         if (strcasecmp(s, commandtbl[i].name) == 0) {
             return i + C_BASETOKEN;
         }

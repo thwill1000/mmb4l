@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/prompt.h"
 #include "common/serial.h"
 #include "common/utility.h"
+#include "core/tokentbl.h"
 
 #include <stdlib.h>
 #include <string.h>
