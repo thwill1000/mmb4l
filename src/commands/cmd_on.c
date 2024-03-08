@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_on.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,11 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <ctype.h>
-
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/interrupt.h"
+#include "../core/tokentbl.h"
+
+#include <ctype.h>
 
 #define ERROR_TOO_MANY_NESTED_GOSUB  error_throw_ex(kError, "Too many nested GOSUB")
 

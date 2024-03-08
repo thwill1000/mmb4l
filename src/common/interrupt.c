@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 interrupt.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,14 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <assert.h>
-
 #include "mmb4l.h"
 #include "console.h"
 #include "error.h"
 #include "interrupt.h"
 #include "mmtime.h"
 #include "serial.h"
+#include "../core/commandtbl.h"
+
+#include <assert.h>
 
 #define ERROR_NOT_AN_INTERRUPT  error_throw_ex(kError, "Not in interrupt")
 #define ERROR_TOO_MANY_SUBS     error_throw_ex(kError, "Too many SUBs for interrupt")

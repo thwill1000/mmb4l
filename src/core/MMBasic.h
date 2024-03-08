@@ -66,8 +66,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T_FUN       0x40                            // a function (also used for a function that can operate as a command)
 #define T_FNA       0x80                            // a function that has no arguments
 
-#define C_BASETOKEN 0x80                            // the base of the token numbers
-
 // flags used in the program lines
 #define T_CMDEND    0                               // end of a command
 #define T_NEWLINE   1                               // Single byte indicating the start of a new line
@@ -138,21 +136,11 @@ extern char DefaultType;                              // the default type if a v
 #define isnamechar(c)   (isalnum(c) || c == '_' || c == '.')        // true if valid part of a variable name
 #define isnameend(c)    (isalnum(c) || c == '_' || c == '.' || c == '$' || c == '!' || c == '%')        // true if valid at the end of a variable name
 
-#define tokentype(i)    ((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].type) : 0)             // get the type of a token
-#define tokenfunction(i)((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].fptr) : (tokentbl[0].fptr))    // get the function pointer  of a token
-#define tokenname(i)    ((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].name) : "")            // get the name of a token
-
-#define commandtype(i)  ((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].type) : 0)             // get the type of a token
-#define commandfunction(i)((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].fptr) : (commandtbl[0].fptr))    // get the function pointer  of a token
-#define commandname(i)  ((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].name) : "")        // get the name of a command
-
 // this macro will allocate temporary memory space and build an argument table in it
 // x = pointer to the basic text to be split up (char *)
 // y = maximum number of args (will throw an error if exceeded) (int)
 // s = a string of characters to be used in detecting where to split the text (char *)
 #define getargs(x, y, s) char argbuf[STRINGSIZE + STRINGSIZE/2]; char *argv[y]; int argc; makeargs(x, y, argbuf, argv, &argc, s)
-
-extern int CommandTableSize, TokenTableSize;
 
 extern volatile int MMAbort;
 extern jmp_buf mark;                            // longjump to recover from an error
@@ -191,24 +179,10 @@ extern char MMErrMsg[MAXERRMSG];                // array holding the error msg
 extern char CurrentSubFunName[MAXVARLEN + 2];   // the name of the current sub or fun
 extern char CurrentInterruptName[MAXVARLEN + 2];// the name of the current interrupt function
 
-struct s_tokentbl {                             // structure of the token table
-    const char *name;                           // the string (eg, PRINT, FOR, ASC(, etc)
-    char type;                                  // the type returned (T_NBR, T_STR, T_INT)
-    char precedence;                            // precedence used by operators only.  operators with equal precedence are processed left to right.
-    void (*fptr)(void);                         // pointer to the function that will interpret that token
-};
-extern const struct s_tokentbl tokentbl[];
-extern const struct s_tokentbl commandtbl[];
-
 // used for the trace function
 extern int TraceOn;
 extern const char *TraceBuff[TRACE_BUFF_SIZE];  // TRACE_BUFF_SIZE defined in 'Configuration.h'
 extern int TraceBuffIndex;
-
-// used to store commonly used tokens for faster token checking
-extern char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP, tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
-extern char cmdIF, cmdENDIF, cmdEND_IF, cmdELSEIF, cmdELSE_IF, cmdELSE, cmdSELECT_CASE, cmdCASE, cmdCASE_ELSE, cmdEND_SELECT;
-extern char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
 
 void InitBasic(void);
 

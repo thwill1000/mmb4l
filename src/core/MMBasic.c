@@ -138,9 +138,6 @@ void getexpr(char *);
 void checktype(int *, int);
 const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta);
 
-char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP, tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
-char cmdIF, cmdENDIF, cmdEND_IF, cmdELSEIF, cmdELSE_IF, cmdELSE, cmdSELECT_CASE, cmdCASE, cmdCASE_ELSE, cmdEND_SELECT;
-char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
 
 /********************************************************************************************************************************************
  Program management
@@ -150,41 +147,10 @@ char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
 // Initialise MMBasic
 void InitBasic(void) {
     DefaultType = T_NBR;
-    CommandTableSize = commandtbl_size();
-    TokenTableSize = tokentbl_size();
-
+    commandtbl_init();
+    tokentbl_init();
     vartbl_init();
     ClearProgram();
-
-    // load the commonly used tokens
-    // by looking them up once here performance is improved considerably
-    tokenTHEN  = tokentbl_get("Then");
-    tokenELSE  = tokentbl_get("Else");
-    tokenGOTO  = tokentbl_get("GoTo");
-    tokenEQUAL = tokentbl_get("=");
-    tokenTO    = tokentbl_get("To");
-    tokenSTEP  = tokentbl_get("Step");
-    tokenWHILE = tokentbl_get("While");
-    tokenUNTIL = tokentbl_get("Until");
-    tokenGOSUB = tokentbl_get("GoSub");
-    tokenAS    = tokentbl_get("As");
-    tokenFOR   = tokentbl_get("For");
-
-    cmdIF      = commandtbl_get("If");
-    cmdENDIF   = commandtbl_get("EndIf");
-    cmdEND_IF  = commandtbl_get("End If");
-    cmdELSEIF  = commandtbl_get("ElseIf");
-    cmdELSE_IF = commandtbl_get("Else If");
-    cmdELSE    = commandtbl_get("Else");
-    cmdSELECT_CASE = commandtbl_get("Select Case");
-    cmdCASE        = commandtbl_get("Case");
-    cmdCASE_ELSE   = commandtbl_get("Case Else");
-    cmdEND_SELECT  = commandtbl_get("End Select");
-    cmdSUB = commandtbl_get("Sub");
-    cmdFUN = commandtbl_get("Function");
-    cmdIRET = commandtbl_get("IReturn");
-    cmdCSUB = commandtbl_get("CSub");
-    cmdCFUN = 0xFF;
 }
 
 

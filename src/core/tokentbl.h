@@ -45,7 +45,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(TOKENTBL_H)
 #define TOKENTBL_H
 
+#include "commandtbl.h"
+
 #define GetTokenValue(s)  tokentbl_get(s)
+#define TokenTableSize    tokentbl_size
+
+/** Gets the type of a token. */
+#define tokentype(i)  ((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].type) : 0)
+
+/** Gets the function pointer of a token. */
+#define tokenfunction(i)  ((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].fptr) : (tokentbl[0].fptr))
+
+/** Gets the name of a token. */
+#define tokenname(i)  ((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].name) : "")
 
 void fun_abs(void);
 void fun_acos(void);
@@ -147,7 +159,14 @@ void op_shiftright(void);
 void op_subtract(void);
 void op_xor(void);
 
-int tokentbl_size();
+void tokentbl_init();
 int tokentbl_get(const char *s);
+
+extern const struct s_tokentbl tokentbl[];
+extern int tokentbl_size;
+
+// Store commonly used tokens for faster token checking.
+extern char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP;
+extern char tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
 
 #endif
