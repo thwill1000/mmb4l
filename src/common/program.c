@@ -169,27 +169,7 @@ static void program_transform_line(char *line) {
 }
 
 void program_dump_memory() {
-    size_t column = 0;
-    size_t count = 0;
-    for (const char *p = ProgMemory; count != 2; ++p) {
-        if (*p > 32 && *p < 127) {
-            count = 0;
-            printf(" %c ", *p);
-        } else {
-            count = (*p == '\0') ? count + 1 : 0;
-            printf("%02X ", *p);
-        }
-
-        column++;
-        if (column == 10) {
-            printf("    ");
-        } else if (column == 20) {
-            printf("\n");
-            column = 0;
-        }
-    }
-
-    printf("\n");
+    utility_dump_memory(ProgMemory);
 }
 
 // Tokenize the string in the edit buffer
