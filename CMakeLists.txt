@@ -156,6 +156,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/prompt.c
     src/common/rx_buf.c
     src/common/serial.c
+    src/common/utility.c
     src/common/xmodem.c
 )
 
@@ -379,6 +380,7 @@ add_executable(
   src/common/cstring.c
   src/common/path.c
   src/common/program.c
+  src/common/utility.c
   src/common/gtest/program_test.cxx
 )
 
@@ -450,6 +452,7 @@ add_executable(
   src/common/program.c
   src/common/rx_buf.c
   src/common/serial.c
+  src/common/utility.c
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c

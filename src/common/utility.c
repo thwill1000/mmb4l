@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-utility.h
+utility.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,32 +42,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(UTILITY_H)
-#define UTILITY_H
+#include "utility.h"
 
-#include <stdio.h>
+void utility_dump_memory(const char *start) {
+    size_t column = 0;
+    size_t count = 0;
+    for (const char *p = start; count != 2; ++p) {
+        if (*p > 32 && *p < 127) {
+            count = 0;
+            printf(" %c ", *p);
+        } else {
+            count = (*p == '\0') ? count + 1 : 0;
+            printf("%02X ", *p);
+        }
 
-#if __GNUC__ >= 11
-#define CASE_FALLTHROUGH  [[fallthrough]]
-#else
-#define CASE_FALLTHROUGH  __attribute__ ((fallthrough))
-#endif
+        column++;
+        if (column == 8) {
+            printf("    ");
+        } else if (column == 16) {
+            printf("\n");
+            column = 0;
+        }
+    }
 
-#define max(a,b) \
-    ({ __typeof__ (a) _a = (a); \
-        __typeof__ (b) _b = (b); \
-        _a > _b ? _a : _b; })
-
-#define min(a,b) \
-    ({ __typeof__ (a) _a = (a); \
-        __typeof__ (b) _b = (b); \
-        _a < _b ? _a : _b; })
-
-#define snprintf_nowarn(...) (snprintf(__VA_ARGS__) < 0 ? abort() : (void)0)
-
-#define FAILED(x) (x != 0)
-#define SUCCEEDED(x) (x == 0)
-
-void utility_dump_memory(const char *p);
-
-#endif // #if !defined(UTILITY_H)
+    printf("\n");
+}
