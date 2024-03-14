@@ -48,8 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/MMBasic.h"
 #include "../core/tokentbl.h"
 
-#include <stdio.h>
-
 void cmd_do(void) {
     int i;
     const char *p, *tp, *evalp;
@@ -129,5 +127,4 @@ void cmd_do(void) {
         nextstmt = dostack[doindex].loopptr;                        // point to the LOOP or WEND statement
         skipelement(nextstmt);                                      // skip to the next command
     }
-
 }
