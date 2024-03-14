@@ -922,56 +922,6 @@ breakout:
 
 
 
-void cmd_loop(void) {
-    const char *p;
-    int tst = 0;                                                    // initialise tst to stop the compiler from complaining
-    int i;
-
-    // search the do table looking for an entry with the same program position as this LOOP statement
-    for(i = 0; i < doindex ;i++) {
-        p = dostack[i].loopptr + 1;
-        skipspace(p);
-        if(p == cmdline) {
-            // found a match
-            // first check if the DO statement had a WHILE component
-            // if not find the WHILE statement here and evaluate it
-            if(dostack[i].evalptr == NULL) {                        // if it was a DO without a WHILE
-                if(*cmdline >= 0x80) {                              // if there is something
-                    if(*cmdline == tokenWHILE)
-                        tst = (getnumber(++cmdline) != 0);          // evaluate the expression
-                    else if(*cmdline == tokenUNTIL)
-                        tst = (getnumber(++cmdline) == 0);          // evaluate the expression
-                    else
-                        error("Syntax");
-                }
-                else {
-                    tst = 1;                                        // and loop forever
-                    checkend(cmdline);                              // make sure that there is nothing else
-                }
-            }
-            else {                                                  // if was DO WHILE
-                tst = (getnumber(dostack[i].evalptr) != 0);         // evaluate its expression
-                checkend(cmdline);                                  // make sure that there is nothing else
-            }
-
-            // test the expression value and reset the program pointer if we are still looping
-            // otherwise remove this entry from the do stack
-            if(tst)
-                nextstmt = dostack[i].doptr;                        // loop again
-            else {
-                // the loop has terminated
-                // remove the entry in the table, then just let the default nextstmt run and continue on from there
-                doindex = i;
-                // just let the default nextstmt run
-            }
-            return;
-        }
-    }
-    error("LOOP without a matching DO");
-}
-
-
-
 void cmd_exitfor(void) {
     if(forindex == 0) error("No FOR loop is in effect");
     nextstmt = forstack[--forindex].nextptr;
