@@ -16,6 +16,7 @@ extern "C" {
 #include "../vartbl.h"
 #include "../MMBasic.h"
 #include "../../common/program.h"
+#include "../../common/gtest/test_helper.h"
 #include "command_stubs.h"
 #include "function_stubs.h"
 #include "operation_stubs.h"
@@ -39,13 +40,6 @@ char console_putc(char c) { return c; }
 void console_puts(const char *s) { }
 void console_set_title(const char *title) { }
 size_t console_write(const char *buf, size_t sz) { return 0; }
-
-// Defined in "common/error.c"
-char error_msg[256];
-void error_init(ErrorState *error_state) { }
-void error_throw(MmResult error) { error_throw_ex(error, mmresult_to_string(error)); }
-void error_throw_ex(MmResult error, const char *msg, ...) { strcpy(error_msg, msg); }
-void error_throw_legacy(const char *msg, ...) { strcpy(error_msg, msg); }
 
 // Defined in "core/Commands.c"
 char DimUsed;
@@ -86,39 +80,15 @@ protected:
     }
 
     void ClearProgMemory() {
-        ProgMemory[0] = '\0'; // Program ends "\0\0\xFF".
-        ProgMemory[1] = '\0';
-        ProgMemory[2] = '\xFF';
+        clear_prog_memory();
     }
 
-    // TODO: can I just use program_tokenise() instead ?
     void TokeniseAndAppend(const char* untokenised) {
-        strcpy(inpbuf, untokenised);
-
-        tokenise(0);
+        tokenise_and_append(untokenised);
         EXPECT_STREQ("", error_msg);
-
-        // Current end of ProgMemory should be "\0\0".
-        char *pmem = ProgMemory;
-        int count = 0;
-        for (; count != 2; ++pmem) {
-            count = (*pmem  == '\0') ? count + 1 : 0;
-        }
-        pmem -= 1; // We leave one '\0' between each command.
-
-        if (pmem == ProgMemory + 1) pmem = ProgMemory;
-
-        // Do not just do a strcpy() from the tknbuf as it may contain embedded \0.
-        // The actual end is when there are two consecutive \0.
-        for (const char *pbuf = tknbuf; pbuf[0] || pbuf[1]; pmem++, pbuf++) {
-            *pmem = *pbuf;
-        }
-        *pmem++ = '\0';
-        *pmem++ = '\0';
     }
 
     char m_program[256];
-
 };
 
 TEST_F(MmBasicCoreTest, FindVar_GivenNoExplicitType) {

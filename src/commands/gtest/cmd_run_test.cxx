@@ -9,6 +9,7 @@
 extern "C" {
 
 #include "../../Hardware_Includes.h"
+#include "../../common/gtest/test_helper.h"
 #include "../../core/Commands.h"
 #include "../../core/MMBasic.h"
 #include "../../core/vartbl.h"
@@ -18,8 +19,6 @@ extern "C" {
 #include "../../core/gtest/function_stubs.h"
 #define DO_NOT_STUB_OP_ADD
 #include "../../core/gtest/operation_stubs.h"
-
-char error_msg[256];
 
 // Defined in "main.c"
 char *CFunctionFlash;
@@ -44,21 +43,6 @@ MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args);
 
 // Defined in "common/console.c"
 void console_puts(const char *s) { }
-
-// Defined in "common/error.c"
-void error_init(ErrorState *error_state) { }
-
-void error_throw(MmResult error) {
-    error_throw_ex(error, mmresult_to_string(error));
-}
-
-void error_throw_ex(MmResult error, const char *msg, ...) {
-    strcpy(error_msg, msg);
-}
-
-void error_throw_legacy(const char *msg, ...) {
-    strcpy(error_msg, msg);
-}
 
 // Defined in "common/file.c"
 void file_close_all(void) { }
