@@ -53,6 +53,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_console.c
     src/commands/cmd_copy.c
     src/commands/cmd_cursor.c
+    src/commands/cmd_do.c
     src/commands/cmd_dummy.c
     src/commands/cmd_edit.c
     src/commands/cmd_end.c
@@ -215,6 +216,37 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_cmdline)
+
+################################################################################
+# test_cmd_do
+################################################################################
+
+add_executable(
+  test_cmd_do
+  src/commands/cmd_do.c
+  src/commands/gtest/cmd_do_test.cxx
+  src/common/cstring.c
+  src/common/memory.c
+  src/common/mmresult.c
+  src/common/parse.c
+  src/common/utility.c
+  src/common/gtest/test_helper.c
+  src/core/commandtbl.c
+  src/core/funtbl.c
+  src/core/MMBasic.c
+  src/core/tokentbl.c
+  src/core/vartbl.c
+)
+
+target_link_libraries(
+  test_cmd_do
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_cmd_do)
 
 ################################################################################
 # test_cmd_run
