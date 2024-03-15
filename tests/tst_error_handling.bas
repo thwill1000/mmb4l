@@ -17,8 +17,6 @@ Option Base InStr(Mm.CmdLine$, "--base=1")  > 0
 Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_ERROR_CODE% = Choice(sys.is_platform%("mmb4l"), 256, 16)
 
-? sys.is_platform%("mmb4l")
-
 Dim interrupt_called% = 0
 
 If sys.is_platform%("cmm2*") Then Goto skip_tests
