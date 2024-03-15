@@ -79,6 +79,8 @@ void cmd_chdir(void);
 void cmd_clear(void);
 void cmd_close(void);
 void cmd_cls(void);
+void cmd_comment(void);
+void cmd_comment_end(void);
 void cmd_console(void);
 void cmd_const(void);
 void cmd_continue(void);
@@ -165,8 +167,8 @@ extern const struct s_tokentbl commandtbl[];
 extern int commandtbl_size;
 
 // Store commonly used commands for faster token checking.
-extern CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDO;
-extern CommandToken cmdELSE, cmdELSEIF, cmdELSE_IF, cmdENDIF, cmdEND_CSUB, cmdEND_FUNCTION;
+extern CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCOMMENT, cmdCSUB, cmdDATA, cmdDO;
+extern CommandToken cmdELSE, cmdELSEIF, cmdELSE_IF, cmdENDIF, cmdEND_CSUB, cmdEND_COMMENT, cmdEND_FUNCTION;
 extern CommandToken cmdENDIF, cmdEND_IF, cmdEND_SELECT, cmdEND_SUB, cmdFOR, cmdFUN;
 extern CommandToken cmdIF, cmdIRET, cmdLET, cmdLOOP, cmdNEXT, cmdPRINT;
 extern CommandToken cmdREM, cmdSELECT_CASE, cmdSUB, cmdWEND, cmdWHILE;

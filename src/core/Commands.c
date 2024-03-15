@@ -971,6 +971,9 @@ void cmd_subfun(void) {
     if (cmdtoken == cmdSUB) {
         returntoken = cmdEND_SUB;
         errtoken = cmdEND_FUNCTION;
+    } else if (cmdtoken == cmdCOMMENT) {
+        returntoken = cmdEND_COMMENT;
+        errtoken = cmdEND_FUNCTION;
     } else {
         returntoken = cmdEND_FUNCTION;
         errtoken = cmdEND_SUB;
@@ -989,6 +992,23 @@ void cmd_subfun(void) {
 }
 
 
+void cmd_comment(void) {
+    const char *p = nextstmt;
+    while(1) {
+        p = GetNextCommand(p, NULL, "No matching END declaration");
+        const CommandToken cmd = commandtbl_decode(p);
+        if (cmd == cmdCOMMENT) error("No matching END declaration");
+        if (cmd == cmdEND_COMMENT) {                                // found the next return
+            skipelement(p);
+            nextstmt = p;                                           // point to the next command
+            break;
+        }
+    }
+}
+
+
+void cmd_comment_end(void) {
+}
 
 void cmd_gosub(void) {
     if(gosubindex >= MAXGOSUB) error("Too many nested GOSUB");

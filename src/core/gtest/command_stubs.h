@@ -14,6 +14,8 @@ void cmd_chdir() { }
 void cmd_clear() { }
 void cmd_close() { }
 void cmd_cls() { }
+void cmd_comment() { }
+void cmd_comment_end() { }
 void cmd_console() { }
 void cmd_const() { }
 void cmd_continue() { }

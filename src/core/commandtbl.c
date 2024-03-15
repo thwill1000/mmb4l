@@ -157,11 +157,13 @@ const struct s_tokentbl commandtbl[] = {
     { "Wend",        T_CMD,              0, cmd_loop     },
     { "While",       T_CMD,              0, cmd_do       },
     { "XModem",      T_CMD,              0, cmd_xmodem   },
+    { "/*",          T_CMD,              0, cmd_comment  },
+    { "*/",          T_CMD,              0, cmd_comment_end },
     { "",            0,                  0, cmd_null,    }  // This dummy entry is always at the end.
 };
 
-CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDO;
-CommandToken cmdELSE, cmdELSEIF, cmdELSE_IF, cmdENDIF, cmdEND_CSUB, cmdEND_FUNCTION;
+CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCOMMENT, cmdCSUB, cmdDATA, cmdDO;
+CommandToken cmdELSE, cmdELSEIF, cmdELSE_IF, cmdENDIF, cmdEND_COMMENT, cmdEND_CSUB, cmdEND_FUNCTION;
 CommandToken cmdENDIF, cmdEND_IF, cmdEND_SELECT, cmdEND_SUB, cmdFOR, cmdFUN;
 CommandToken cmdIF, cmdIRET, cmdLET, cmdLOOP, cmdNEXT, cmdPRINT;
 CommandToken cmdREM, cmdSELECT_CASE, cmdSUB, cmdWEND, cmdWHILE;
@@ -172,6 +174,7 @@ void commandtbl_init() {
     cmdCASE = commandtbl_get("Case");
     cmdCASE_ELSE = commandtbl_get("Case Else");
     cmdCFUN = INVALID_COMMAND_TOKEN;
+    cmdCOMMENT = commandtbl_get("/*");
     cmdCSUB = commandtbl_get("CSub");
     cmdDATA = commandtbl_get("Data");
     cmdDO = commandtbl_get("Do");
@@ -179,6 +182,7 @@ void commandtbl_init() {
     cmdELSEIF = commandtbl_get("ElseIf");
     cmdELSE_IF = commandtbl_get("Else If");
     cmdENDIF = commandtbl_get("EndIf");
+    cmdEND_COMMENT = commandtbl_get("*/");
     cmdEND_CSUB = commandtbl_get("End CSub");
     cmdEND_FUNCTION = commandtbl_get("End Function");
     cmdEND_IF = commandtbl_get("End If");

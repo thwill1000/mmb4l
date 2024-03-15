@@ -130,6 +130,7 @@ const char *nextstmt;                                               // Pointer t
 const char *CurrentLinePtr;                                         // Pointer to the current line (used in error reporting)
 const char *ContinuePoint;                                          // Where to continue from if using the continue statement
 
+int multi = false;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // Functions only used within MMBasic.c
@@ -870,7 +871,7 @@ void tokenise(int console) {
         }
 
         // copy anything after a comment (')
-        if(*p == '\'') {
+        if (*p == '\'' || multi) {
             char t;
             do {
                 t = *p++;
@@ -960,6 +961,13 @@ void tokenise(int console) {
                 }
                 firstnonwhite = false;
                 labelvalid = false;                                 // we do not want any labels after this
+                if (match_i == cmdCOMMENT) {
+                    multi = true;
+                }
+                if (match_i == cmdEND_COMMENT) {
+                    multi = false;
+                }
+
                 continue;
             }
 
