@@ -83,6 +83,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_option.c
     src/commands/cmd_pause.c
     src/commands/cmd_pixel.c
+    src/commands/cmd_play.c
     src/commands/cmd_poke.c
     src/commands/cmd_print.c
     src/commands/cmd_quit.c
