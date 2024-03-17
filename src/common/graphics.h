@@ -142,6 +142,18 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
 }
 
 /**
+ * Draws a box.
+ *
+ * @param  x1, y1  Start coordinates.
+ * @param  x2, y2  End coordinates.
+ * @param  width   The line width of the sides of the box (can be zero).
+ * @param  colour  Colour to use for sides of the box.
+ * @param  fill    Colour to fill the box (-1 for no fill).
+ */
+MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t width,
+                           MmGraphicsColour colour, MmGraphicsColour fill);
+
+/**
  * Draws an anti-aliased straight line.
  *
  * @param  x1, y1  Start coordinates.
