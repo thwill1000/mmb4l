@@ -50,6 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
+#define HRes graphics_current->width
+#define VRes graphics_current->height
+
 static const char* NO_ERROR = "";
 static bool graphics_initialised = false;
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
@@ -197,5 +200,36 @@ MmResult graphics_surface_write(MmSurfaceId id) {
     } else {
         graphics_current = &graphics_surfaces[id];
     }
+    return kOk;
+}
+
+static inline void graphics_set_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour) {
+    surface->pixels[y*surface->width + x] = colour;
+}
+
+static inline void graphics_set_pixel_safe(MmSurface *surface, int x, int y, MmGraphicsColour colour) {
+    if (x >= 0 && y >= 0 && x < surface->width && y < surface->height) {
+        surface->pixels[y*surface->width + x] = colour;
+    }
+}
+
+MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int y2, MmGraphicsColour colour) {
+    // Do not draw anything if entire rectangle is off the screen.
+    if ((x1 < 0 && x2 < 0) || (y1 < 0 && y2 < 0) ||
+        (x1 >= graphics_current->width && x2 >= graphics_current->width) ||
+        (y1 >= graphics_current->height && y2 >= graphics_current->height)) {
+        return kOk;
+    }
+
+    x1 = min(max(0, x1), HRes - 1);
+    x2 = min(max(0, x2), HRes - 1);
+    y1 = min(max(0, y1), VRes - 1);
+    y2 = min(max(0, y2), VRes - 1);
+    if (x1 > x2) SWAP(int, x1, x2);
+    if (y1 > y2) SWAP(int, y1, y2);
+    for (int y = y1; y <= y2; y++) {
+        for (int x = x1; x <= x2; x++) graphics_set_pixel(surface, x, y, colour);
+    }
+    surface->dirty = true;
     return kOk;
 }

@@ -128,4 +128,7 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
     return id >= 0 && id <= GRAPHICS_MAX_ID && graphics_surfaces[id].type != kGraphicsNone;
 }
 
+MmResult graphics_cls(MmSurface *surface);
+MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int y2, MmGraphicsColour colour);
+
 #endif // #if !defined(MMBASIC_GRAPHICS_H)
