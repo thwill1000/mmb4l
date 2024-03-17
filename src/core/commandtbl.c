@@ -61,6 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 const struct s_tokentbl commandtbl[] = {
     { "AutoSave",    T_CMD,              0, cmd_autosave },
+    { "Box",         T_CMD,              0, cmd_box      },
     { "Call",        T_CMD,              0, cmd_call     },
     { "Case Else",   T_CMD,              0, cmd_case     },
     { "Case",        T_CMD,              0, cmd_case     },

@@ -135,6 +135,19 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
 
 MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0 , MMFLOAT y0 , MMFLOAT x1 ,
                                MMFLOAT y1, MmGraphicsColour colour, uint32_t w);
+
+/**
+ * Draws a box.
+ *
+ * @param  x1, y1  start coordinates.
+ * @param  x2, y2  end coordinates.
+ * @param  w       the width of the sides of the box (can be zero).
+ * @param  colour  colour to use for sides of the box.
+ * @param  fill    colour to fill the box (-1 for no fill).
+ */
+MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w,
+                           MmGraphicsColour colour, MmGraphicsColour fill);
+
 MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w,
                             MmGraphicsColour colour);
 MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour);
