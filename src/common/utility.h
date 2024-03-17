@@ -68,6 +68,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FAILED(x) (x != 0)
 #define SUCCEEDED(x) (x == 0)
 
+#define SWAP(T, a, b) do { T tmp = a; a = b; b = tmp; } while (0)
+
 void utility_dump_memory(const char *p);
 
 #endif // #if !defined(UTILITY_H)

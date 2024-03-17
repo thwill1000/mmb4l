@@ -105,3 +105,7 @@ void graphics_pump_events();
 MmResult graphics_window_create(int id, int x, int y, int width, int height);
 MmResult graphics_window_destroy(int id);
 MmResult graphics_window_use(int id);
+
+MmResult graphics_cls();
+
+MmResult graphics_draw_rectangle(int x1, int y1, int x2, int y2, int c);

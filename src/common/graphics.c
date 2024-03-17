@@ -176,3 +176,29 @@ MmResult graphics_window_use(int id) {
     }
     return kOk;
 }
+
+MmResult graphics_cls() {
+    return graphics_draw_rectangle(0, 0, graphics_current->width - 1, graphics_current->height - 1,
+                                   graphics_current->bcolour);
+}
+
+MmResult graphics_draw_rectangle(int x1, int y1, int x2, int y2, int c) {
+    // Do not draw anything if entire rectangle is off the screen.
+    if ((x1 < 0 && x2 < 0) || (y1 < 0 && y2 < 0) ||
+        ((uint32_t)x1 >= graphics_current->width && (uint32_t)x2 >= graphics_current->width) ||
+        ((uint32_t)y1 >= graphics_current->height && (uint32_t)y2 >= graphics_current->height)) {
+        return kOk;
+    }
+
+    x1 = min(max(0, x1), (int)(HRes - 1));
+    x2 = min(max(0, x2), (int)(HRes - 1));
+    y1 = min(max(0, y1), (int)(VRes - 1));
+    y2 = min(max(0, y2), (int)(VRes - 1));
+    if (x1 > x2) SWAP(int, x1, x2);
+    if (y1 > y2) SWAP(int, y1, y2);
+    for (int y = y1; y <= y2; y++) {
+        for (int x = x1; x <= x2; x++) SET_PIXEL(x, y, c);
+    }
+    graphics_current->dirty = true;
+    return kOk;
+}

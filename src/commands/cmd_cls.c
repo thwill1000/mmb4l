@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_cls.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,10 +45,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"
+#include "../common/graphics.h"
 #include "../common/parse.h"
 
 void cmd_cls(void) {
     skipspace(cmdline);
     if (!parse_is_end(cmdline)) ERROR_SYNTAX;
-    console_clear();
+    if (graphics_current) {
+      graphics_cls();
+    } else {
+      console_clear();
+    }
 }
