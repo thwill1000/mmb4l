@@ -226,6 +226,27 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0, MMFLOAT y0, MMFLO
     return kUnimplemented;
 }
 
+MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w,
+                           MmGraphicsColour colour, MmGraphicsColour fill) {
+    // Make sure the coordinates are in the right sequence.
+    if (x1 > x2) SWAP(int, x1, x2);
+    if (y1 > y2) SWAP(int, x1, x2);
+
+    w = min(min(w, (uint32_t) (x2 - x1)), (uint32_t) (y2 - y1));
+    if (w > 0) {
+        w--;
+        graphics_draw_rectangle(surface, x1, y1, x2, y1 + w, colour);  // Draw the top horiz line.
+        graphics_draw_rectangle(surface, x1, y2 - w, x2, y2, colour);  // Draw the bottom horiz line.
+        graphics_draw_rectangle(surface, x1, y1, x1 + w, y2, colour);  // Draw the left vert line.
+        graphics_draw_rectangle(surface, x2 - w, y1, x2, y2, colour);  // Draw the right vert line.
+        w++;
+    }
+
+    if (fill >= 0) graphics_draw_rectangle(surface, x1 + w, y1 + w, x2 - w, y2 - w, fill);
+
+    return kOk;
+}
+
 MmResult graphics_draw_buffered(MmSurface *surface, int xti, int yti, MmGraphicsColour colour, int complete) {
     static unsigned char pos = 0;
     static unsigned char movex, movey, movec;

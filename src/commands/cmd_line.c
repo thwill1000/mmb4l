@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
 
-#define HRes graphics_current->width
-#define VRes graphics_current->height
+#define HRes  graphics_current->width
+#define VRes  graphics_current->height
 
 static MmResult cmd_line_cmm1(const char *p) {
     ERROR_UNIMPLEMENTED("cmd_line_cmm1");
