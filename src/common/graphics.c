@@ -226,7 +226,35 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0, MMFLOAT y0, MMFLO
     return kUnimplemented;
 }
 
-MmResult graphics_draw_buffered(MmSurface *surface, int xti, int yti, MmGraphicsColour colour, int complete) {
+MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t width,
+                           MmGraphicsColour colour, MmGraphicsColour fill) {
+    MmResult result = kOk;
+
+    // Make sure the coordinates are in the right sequence.
+    if (x1 > x2) SWAP(int, x1, x2);
+    if (y1 > y2) SWAP(int, x1, x2);
+
+    width = min(min(width, (uint32_t) (x2 - x1)), (uint32_t) (y2 - y1));
+    if (width > 0) {
+        width--;
+        result = graphics_draw_rectangle(surface, x1, y1, x2, y1 + width, colour);  // Top border.
+        if (SUCCEEDED(result)) result = graphics_draw_rectangle(surface, x1, y2 - width, x2, y2,
+                                                                colour);  // Bottom border.
+        if (SUCCEEDED(result)) result = graphics_draw_rectangle(surface, x1, y1, x1 + width, y2,
+                                                                colour);  // Left border.
+        if (SUCCEEDED(result)) result = graphics_draw_rectangle(surface, x2 - width, y1, x2, y2,
+                                                                colour);  // Right border.
+        width++;
+    }
+
+    if (SUCCEEDED(result) && fill >= 0) graphics_draw_rectangle(surface, x1 + width, y1 + width,
+                                                                x2 - width, y2 - width, fill);
+
+    return result;
+}
+
+MmResult graphics_draw_buffered(MmSurface *surface, int xti, int yti, MmGraphicsColour colour,
+                                int complete) {
     static unsigned char pos = 0;
     static unsigned char movex, movey, movec;
     static short xtilast[8];
