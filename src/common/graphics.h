@@ -109,6 +109,18 @@ MmResult graphics_window_use(int id);
 MmResult graphics_cls();
 
 MmResult graphics_draw_aa_line(MMFLOAT x0 , MMFLOAT y0 , MMFLOAT x1 , MMFLOAT y1, uint32_t c, int w);
+
+/**
+ * Draws a box.
+ *
+ * @param  x1, y1  start coordinates.
+ * @param  x2, y2  end coordinates.
+ * @param  w       the width of the sides of the box (can be zero).
+ * @param  c       colour to use for sides of the box.
+ * @param  fill    colour to fill the box (-1 for no fill).
+ */
+MmResult graphics_draw_box(int x1, int y1, int x2, int y2, int w, int c, int fill);
+
 MmResult graphics_draw_line(int x1, int y1, int x2, int y2, int w, int c);
 MmResult graphics_draw_pixel(int x, int y, int c);
 MmResult graphics_draw_polygon(unsigned char *p, int close);

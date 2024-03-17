@@ -45,6 +45,7 @@ set(MMB4L_CORE_SOURCE_FILES
 
 set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_autosave.c
+    src/commands/cmd_box.c
     src/commands/cmd_call.c
     src/commands/cmd_cfunction.c
     src/commands/cmd_chdir.c
