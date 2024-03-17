@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_mminfo.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/cstring.h"
+#include "../common/graphics.h"
 #include "../common/mmtime.h"
 #include "../common/parse.h"
 #include "../common/path.h"
@@ -237,13 +238,17 @@ static void mminfo_fontwidth(const char *p) {
 
 void mminfo_hres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    int width, height;
-    if (FAILED(console_get_size(&width, &height, 0))) {
-        ERROR_UNKNOWN_TERMINAL_SIZE;
-    }
-    int scale = mmb_options.resolution == kPixel ? FONT_WIDTH : 1;
-    g_integer_rtn = width * scale;
     g_rtn_type = T_INT;
+    if (graphics_current) {
+        g_integer_rtn = graphics_current->width;
+    } else {
+        int width, height;
+        if (FAILED(console_get_size(&width, &height, 0))) {
+            ERROR_UNKNOWN_TERMINAL_SIZE;
+        }
+        int scale = mmb_options.resolution == kPixel ? FONT_WIDTH : 1;
+        g_integer_rtn = width * scale;
+    }
 }
 
 static void mminfo_hpos(const char *p) {
@@ -356,13 +361,17 @@ static void mminfo_version(const char *p) {
 
 void mminfo_vres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    int width, height;
-    if (FAILED(console_get_size(&width, &height, 0))) {
-        ERROR_UNKNOWN_TERMINAL_SIZE;
-    }
-    int scale = mmb_options.resolution == kPixel ? FONT_HEIGHT : 1;
-    g_integer_rtn = height * scale;
     g_rtn_type = T_INT;
+    if (graphics_current) {
+        g_integer_rtn = graphics_current->height;
+    } else {
+        int width, height;
+        if (FAILED(console_get_size(&width, &height, 0))) {
+            ERROR_UNKNOWN_TERMINAL_SIZE;
+        }
+        int scale = mmb_options.resolution == kPixel ? FONT_HEIGHT : 1;
+        g_integer_rtn = height * scale;
+    }
 }
 
 static void mminfo_vpos(const char *p) {
