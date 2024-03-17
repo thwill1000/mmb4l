@@ -141,4 +141,14 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
     return id >= 0 && id <= GRAPHICS_MAX_ID && graphics_surfaces[id].type != kGraphicsNone;
 }
 
+/**
+ * Draws a filled rectangle.
+ *
+ * @param  x1, y1  Start coordinates.
+ * @param  x2, y2  End coordinates.
+ * @param  colour  Colour to draw/fill the rectangle.
+ */
+MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int y2,
+                                 MmGraphicsColour colour);
+
 #endif // #if !defined(MMBASIC_GRAPHICS_H)
