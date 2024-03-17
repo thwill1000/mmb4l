@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_cls.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,10 +45,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"
+#include "../common/graphics.h"
 #include "../common/parse.h"
 
 void cmd_cls(void) {
     skipspace(cmdline);
-    if (!parse_is_end(cmdline)) ERROR_SYNTAX;
-    console_clear();
+    MmGraphicsColour colour = graphics_bcolour;
+    if (*cmdline != 0 && *cmdline != '\'') colour = getint(cmdline, RGB_BLACK, RGB_WHITE);
+    if (graphics_current) {
+        MmResult result = graphics_draw_rectangle(graphics_current, 0, 0,
+                                                  graphics_current->width - 1,
+                                                  graphics_current->height - 1, colour);
+        if (FAILED(result)) error_throw(result);
+    } else {
+      console_clear();
+    }
 }
