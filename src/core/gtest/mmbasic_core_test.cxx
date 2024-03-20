@@ -415,12 +415,12 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfGlobal_GivenFunctionWithSameName)
     PrepareProgram(1);
 
     error_msg[0] = '\0';
-    (void) findvar(ProgMemory + 24, V_DIM_VAR);
+    (void) findvar(ProgMemory + 29, V_DIM_VAR);
     EXPECT_STREQ("A function/subroutine has the same name: $", error_msg);
 
     // With V_FUNCT ... though actually this never happens in production with V_DIM_VAR.
     error_msg[0] = '\0';
-    (void) findvar(ProgMemory + 24, V_DIM_VAR | V_FUNCT);
+    (void) findvar(ProgMemory + 29, V_DIM_VAR | V_FUNCT);
     EXPECT_STREQ("", error_msg);
 }
 
@@ -434,12 +434,12 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfLocal_GivenFunctionWithSameName) 
 
     error_msg[0] = '\0';
     LocalIndex = 3;
-    (void) findvar(ProgMemory + 24, V_LOCAL);
+    (void) findvar(ProgMemory + 29, V_LOCAL);
     EXPECT_STREQ("A function/subroutine has the same name: $", error_msg);
 
     // With V_FUNCT.
     error_msg[0] = '\0';
-    (void) findvar(ProgMemory + 24, V_LOCAL | V_FUNCT);
+    (void) findvar(ProgMemory + 29, V_LOCAL | V_FUNCT);
     EXPECT_STREQ("", error_msg);
 }
 
@@ -450,7 +450,7 @@ TEST_F(MmBasicCoreTest, FindVar_CreatesGlobal_GivenLabelWithSameName) {
     PrepareProgram(1);
 
     error_msg[0] = '\0';
-    void *actual = findvar(ProgMemory + 19, V_DIM_VAR);
+    void *actual = findvar(ProgMemory + 21, V_DIM_VAR);
 
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(0, VarIndex);
@@ -468,7 +468,7 @@ TEST_F(MmBasicCoreTest, FindVar_CreatesLocal_GivenLabelWithSameName) {
 
     error_msg[0] = '\0';
     LocalIndex = 3;
-    void *actual = findvar(ProgMemory + 19, V_LOCAL);
+    void *actual = findvar(ProgMemory + 21, V_LOCAL);
 
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(0, VarIndex);
@@ -848,9 +848,10 @@ TEST_F(MmBasicCoreTest, Tokenise_DimStatement) {
     char expected[TKNBUF_SIZE];
     sprintf(
             expected,
-            "%c%ca %c 1",
+            "%c%c%ca %c 1",
             T_NEWLINE,
-            GetCommandValue("Dim"),
+            (GetCommandValue("Dim") & 0x7F) + C_BASETOKEN,
+            (GetCommandValue("Dim") >> 7) + C_BASETOKEN,
             GetTokenValue("="));
     EXPECT_STREQ(expected, tknbuf);
 }
@@ -863,9 +864,10 @@ TEST_F(MmBasicCoreTest, Tokenise_RunStatement) {
     char expected[TKNBUF_SIZE];
     sprintf(
             expected,
-            "%c%c\"foo\", %c%cbase%c1",
+            "%c%c%c\"foo\", %c%cbase%c1",
             T_NEWLINE,
-            GetCommandValue("Run"),
+            (GetCommandValue("Run") & 0x7F) + C_BASETOKEN,
+            (GetCommandValue("Run") >> 7) + C_BASETOKEN,
             GetTokenValue("-"),
             GetTokenValue("-"),
             GetTokenValue("="));
@@ -896,13 +898,13 @@ TEST_F(MmBasicCoreTest, PrepareProgram_And_FindSubFun) {
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(1, fun_idx);
     EXPECT_EQ(kFunction, funtbl[fun_idx].type);
-    EXPECT_EQ(ProgMemory + 12, funtbl[fun_idx].addr);
+    EXPECT_EQ(ProgMemory + 14, funtbl[fun_idx].addr);
 
     fun_idx = FindSubFun("wom", kSub);
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(2, fun_idx);
     EXPECT_EQ(kSub, funtbl[fun_idx].type);
-    EXPECT_EQ(ProgMemory + 25, funtbl[fun_idx].addr);
+    EXPECT_EQ(ProgMemory + 29, funtbl[fun_idx].addr);
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_GivenMaximumNumberOfFunctions) {
@@ -1118,7 +1120,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenMixOfFunctionsLabelsAndSubs) {
     TokeniseAndAppend("  Data \"bbb\"");
 
     PrepareProgram(1);
-
+    
     EXPECT_STREQ("", error_msg);
 
     EXPECT_STREQ("ZZZ", funtbl[0].name);
@@ -1127,19 +1129,19 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenMixOfFunctionsLabelsAndSubs) {
 
     EXPECT_STREQ("AAA", funtbl[1].name);
     EXPECT_EQ(kLabel, funtbl[1].type);
-    EXPECT_EQ(ProgMemory + 16, funtbl[1].addr);
+    EXPECT_EQ(ProgMemory + 17, funtbl[1].addr);
 
     EXPECT_STREQ("AAA", funtbl[2].name);
     EXPECT_EQ(kSub, funtbl[2].type);
-    EXPECT_EQ(ProgMemory + 26, funtbl[2].addr);
+    EXPECT_EQ(ProgMemory + 27, funtbl[2].addr);
 
     EXPECT_STREQ("BBB", funtbl[3].name);
     EXPECT_EQ(kLabel, funtbl[3].type);
-    EXPECT_EQ(ProgMemory + 85, funtbl[3].addr);
+    EXPECT_EQ(ProgMemory + 90, funtbl[3].addr);
 
     EXPECT_STREQ("BBB", funtbl[4].name);
     EXPECT_EQ(kFunction, funtbl[4].type);
-    EXPECT_EQ(ProgMemory + 96, funtbl[4].addr);
+    EXPECT_EQ(ProgMemory + 101, funtbl[4].addr);
 }
 
 TEST_F(MmBasicCoreTest, FindSubFun_Errors_GivenFunctionNameTooLong) {
@@ -1453,23 +1455,11 @@ TEST_F(MmBasicCoreTest, FindLabel_Errors_GivenFoundSub) {
     EXPECT_EQ(NULL, addr);
 }
 
-TEST_F(MmBasicCoreTest, SkipVar_GivenrStringScalar) {
+TEST_F(MmBasicCoreTest, SkipVar_GivenStringScalar) {
     TokeniseAndAppend("Print x$");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
-
-    const char *actual = skipvar(p, 0);
-
-    EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 4, actual);
-}
-
-TEST_F(MmBasicCoreTest, SkipVar_GivenIntegerScalar) {
-    TokeniseAndAppend("Print xy%");
-    TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
@@ -1477,47 +1467,59 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenIntegerScalar) {
     EXPECT_EQ(ProgMemory + 5, actual);
 }
 
-TEST_F(MmBasicCoreTest, SkipVar_GivenFloatScalar) {
-    TokeniseAndAppend("Print xyz!");
+TEST_F(MmBasicCoreTest, SkipVar_GivenIntegerScalar) {
+    TokeniseAndAppend("Print xy%");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(ProgMemory + 6, actual);
+}
+
+TEST_F(MmBasicCoreTest, SkipVar_GivenFloatScalar) {
+    TokeniseAndAppend("Print xyz!");
+    TokeniseAndAppend("Print \"something more\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 3;
+
+    const char *actual = skipvar(p, 0);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(ProgMemory + 7, actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenUntypedScalar) {
     TokeniseAndAppend("Print xyz_");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 6, actual);
+    EXPECT_EQ(ProgMemory + 7, actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenMaxLengthNamePlusExtension) {
     TokeniseAndAppend("Print " MAX_LENGTH_NAME "$");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 35, actual);
+    EXPECT_EQ(ProgMemory + 36, actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenTooLongName) {
     TokeniseAndAppend("Print " TOO_LONG_NAME "$");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
@@ -1529,12 +1531,12 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenTooLongName_AndNoErrorSet) {
     TokeniseAndAppend("Print " TOO_LONG_NAME "$");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 1);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 35, actual);
+    EXPECT_EQ(ProgMemory + 36, actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenNotAName) {
@@ -1552,31 +1554,31 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenLeadingSpaces) {
     TokeniseAndAppend("Print    abc!");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 9, actual);
+    EXPECT_EQ(ProgMemory + 10, actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenUndimensionedArray) {
     TokeniseAndAppend("Print abc()");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 7, actual);
+    EXPECT_EQ(ProgMemory + 8, actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenUnbalancedBrackets) {
     TokeniseAndAppend("Print abc(");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
@@ -1588,75 +1590,75 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenUnbalancedBrackets_AndNoErrorSet) {
     TokeniseAndAppend("Print abc(");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 1);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 6, actual);
+    EXPECT_EQ(ProgMemory + 7, actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenSpaceBeforeBrackets) {
     TokeniseAndAppend("Print abc  ()");
     // Tokenising removes the spaces,
     // insert them back in for sake of test.
-    memcpy(ProgMemory + 5, "  ()\0\0", 6);
+    memcpy(ProgMemory + 6, "  ()\0\0", 6);
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 9, actual);
+    EXPECT_EQ(ProgMemory + 10, actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenStringArg) {
     TokeniseAndAppend("Print abc(\"def\")");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 12, actual);
+    EXPECT_EQ(ProgMemory + 13, actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenBracketInQuotes) {
     TokeniseAndAppend("Print abc(\"(\")");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 10, actual);
+    EXPECT_EQ(ProgMemory + 11, actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenInternalFunctionCallInBrackets) {
     TokeniseAndAppend("Print abc(Int(5))");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 10, actual);
+    EXPECT_EQ(ProgMemory + 11, actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenUserFunctionCallInBrackets) {
     TokeniseAndAppend("Print abc(def(5))");
     TokeniseAndAppend("Print \"something more\"");
     PrepareProgram(true);
-    const char *p = ProgMemory + 2;
+    const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 13, actual);
+    EXPECT_EQ(ProgMemory + 14, actual);
 }
 
 TEST_F(MmBasicCoreTest, GetIntAddress_Succeeds_GivenSubroutine) {
@@ -1699,10 +1701,10 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Succeeds_GivenLineNumber) {
     TokeniseAndAppend("100 Print \"bar\"");
     PrepareProgram(true);
 
-    const char *actual = GetIntAddress(ProgMemory + 2); // Skip initial T_NEWLINE and GOTO.
+    const char *actual = GetIntAddress(ProgMemory + 3); // Skip initial T_NEWLINE and GOTO.
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 7, actual); // Point to the T_LINENBR on the numbered line.
+    EXPECT_EQ(ProgMemory + 8, actual); // Point to the T_LINENBR on the numbered line.
 }
 
 TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenNonExistentTarget) {
@@ -1823,4 +1825,19 @@ TEST_F(MmBasicCoreTest, CheckString_DoesNotMakePartialMatches) {
 
     actual = checkstring(ProgMemory + 1, "football"); // Skip initial T_NEWLINE
     EXPECT_EQ(NULL, actual); // Not found.
+}
+
+TEST_F(MmBasicCoreTest, MakeArgs) {
+    TokeniseAndAppend("If foo = -1 Then Error \"bar\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
+    char argbuf[STRINGSIZE];
+    char *argv[10];
+    int argc[10];
+    char ss[3];
+    ss[0] = tokenTHEN;
+    ss[1] = tokenELSE;
+    ss[2] = 0;
+
+    makeargs(&p, 10, argbuf, argv, argc, ss);
 }

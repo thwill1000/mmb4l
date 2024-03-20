@@ -51,14 +51,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_do(void) {
     int i;
     const char *p, *tp, *evalp;
-    char looptoken;
+    CommandToken looptoken;
 
-    char whiletoken = GetCommandValue("While");
+    CommandToken whiletoken = cmdWHILE;
     char whileloop = (cmdtoken == whiletoken);
     if(whileloop)
-        looptoken = GetCommandValue("WEnd");
+        looptoken = cmdWEND;
     else {
-        looptoken = GetCommandValue("Loop");
+        looptoken = cmdLOOP;
         whiletoken = tokenWHILE;
     }
 
@@ -102,8 +102,9 @@ void cmd_do(void) {
     i = 1; p = nextstmt;
     while(1) {
         p = GetNextCommand(p, &tp, "No matching LOOP");
-        if(*p == cmdtoken) i++;                                     // entered a nested DO or WHILE loop
-        if(*p == looptoken) i--;                                    // exited a nested loop
+        const CommandToken cmd = commandtbl_decode(p);
+        if (cmd == cmdtoken) i++;                                   // entered a nested DO or WHILE loop
+        if (cmd == looptoken) i--;                                  // exited a nested loop
         if(i == 0) {                                                // found our matching LOOP or WEND stmt
             dostack[doindex].loopptr = p;
             break;
@@ -113,7 +114,7 @@ void cmd_do(void) {
     if(!whileloop && dostack[doindex].evalptr != NULL) {
         // if this is a DO WHILE ... LOOP statement
         // search the LOOP statement for a WHILE or UNTIL token (p is pointing to the matching LOOP statement)
-        p++;
+        p += sizeof(CommandToken);
         while(*p && *p < 0x80) p++;
         if(*p == tokenWHILE) error_throw_ex(kError, "LOOP has a WHILE test");
         if(*p == tokenUNTIL) error_throw_ex(kError, "LOOP has an UNTIL test");

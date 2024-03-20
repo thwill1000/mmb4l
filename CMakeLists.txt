@@ -261,6 +261,7 @@ add_executable(
   src/common/memory.c
   src/common/mmresult.c
   src/common/parse.c
+  src/common/utility.c
   src/common/gtest/test_helper.c
   src/core/commandtbl.c
   src/core/funtbl.c
