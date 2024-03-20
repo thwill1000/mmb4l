@@ -49,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ERROR_MISSING_END  error_throw_ex(kError, "Missing END statement")
 
 void cmd_cfunction(void) {
-    int end_token = GetCommandValue("End CSub");  // this terminates a CSUB
     const char *p = cmdline;
     while (*p != 0xff) {
         if (*p == 0) p++;  // if it is at the end of an element skip the zero marker
@@ -61,7 +60,7 @@ void cmd_cfunction(void) {
             p += p[1] + 2;  // skip over the label
             skipspace(p);   // and any following spaces
         }
-        if (*p == end_token) {  // found an END token
+        if (commandtbl_decode(p) == cmdEND_CSUB) {
             nextstmt = p;
             skipelement(nextstmt);
             return;
