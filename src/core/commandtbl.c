@@ -160,36 +160,51 @@ const struct s_tokentbl commandtbl[] = {
     { "",            0,                  0, cmd_null,    }  // This dummy entry is always at the end.
 };
 
-char cmdIF, cmdENDIF, cmdEND_IF, cmdELSEIF, cmdELSE_IF, cmdELSE;
-char cmdSELECT_CASE, cmdCASE, cmdCASE_ELSE, cmdEND_SELECT, cmdSUB;
-char cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
+CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDO;
+CommandToken cmdELSE, cmdELSEIF, cmdELSE_IF, cmdENDIF, cmdEND_CSUB, cmdEND_FUNCTION;
+CommandToken cmdENDIF, cmdEND_IF, cmdEND_SELECT, cmdEND_SUB, cmdFOR, cmdFUN;
+CommandToken cmdIF, cmdIRET, cmdLET, cmdLOOP, cmdNEXT, cmdPRINT;
+CommandToken cmdREM, cmdSELECT_CASE, cmdSUB, cmdWEND, cmdWHILE;
 
 void commandtbl_init() {
     commandtbl_size = sizeof(commandtbl) / sizeof(struct s_tokentbl);
 
-    cmdIF      = commandtbl_get("If");
-    cmdENDIF   = commandtbl_get("EndIf");
-    cmdEND_IF  = commandtbl_get("End If");
-    cmdELSEIF  = commandtbl_get("ElseIf");
-    cmdELSE_IF = commandtbl_get("Else If");
-    cmdELSE    = commandtbl_get("Else");
-    cmdSELECT_CASE = commandtbl_get("Select Case");
-    cmdCASE        = commandtbl_get("Case");
-    cmdCASE_ELSE   = commandtbl_get("Case Else");
-    cmdEND_SELECT  = commandtbl_get("End Select");
-    cmdSUB = commandtbl_get("Sub");
-    cmdFUN = commandtbl_get("Function");
-    cmdIRET = commandtbl_get("IReturn");
+    cmdCASE = commandtbl_get("Case");
+    cmdCASE_ELSE = commandtbl_get("Case Else");
+    cmdCFUN = INVALID_COMMAND_TOKEN;
     cmdCSUB = commandtbl_get("CSub");
-    cmdCFUN = 0xFF;
+    cmdDATA = commandtbl_get("Data");
+    cmdDO = commandtbl_get("Do");
+    cmdELSE = commandtbl_get("Else");
+    cmdELSEIF = commandtbl_get("ElseIf");
+    cmdELSE_IF = commandtbl_get("Else If");
+    cmdENDIF = commandtbl_get("EndIf");
+    cmdEND_CSUB = commandtbl_get("End CSub");
+    cmdEND_FUNCTION = commandtbl_get("End Function");
+    cmdEND_IF = commandtbl_get("End If");
+    cmdEND_SELECT = commandtbl_get("End Select");
+    cmdEND_SUB = commandtbl_get("End Sub");
+    cmdFOR = commandtbl_get("For");
+    cmdFUN = commandtbl_get("Function");
+    cmdIF = commandtbl_get("If");
+    cmdIRET = commandtbl_get("IReturn");
+    cmdLET = commandtbl_get("Let");
+    cmdLOOP = commandtbl_get("Loop");
+    cmdNEXT = commandtbl_get("Next");
+    cmdPRINT = commandtbl_get("Print");
+    cmdREM = commandtbl_get("Rem");
+    cmdSELECT_CASE = commandtbl_get("Select Case");
+    cmdSUB = commandtbl_get("Sub");
+    cmdWEND = commandtbl_get("WEnd");
+    cmdWHILE = commandtbl_get("While");
 }
 
-int commandtbl_get(const char *s) {
+CommandToken commandtbl_get(const char *s) {
     for (int i = 0; i < commandtbl_size - 1; i++) {
         if (strcasecmp(s, commandtbl[i].name) == 0) {
-            return i + C_BASETOKEN;
+            return i;
         }
     }
     ERROR_INTERNAL_FAULT;
-    return 0;
+    return INVALID_COMMAND_TOKEN;
 }

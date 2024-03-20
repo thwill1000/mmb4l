@@ -45,6 +45,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(COMMANDTBL_H)
 #define COMMANDTBL_H
 
+#include <stdint.h>
+
+typedef uint16_t CommandToken;
+
 struct s_tokentbl {      // structure of the command and token tables.
     const char *name;    // the string (eg, PRINT, FOR, ASC(, etc)
     char type;           // the type returned (T_NBR, T_STR, T_INT)
@@ -52,19 +56,20 @@ struct s_tokentbl {      // structure of the command and token tables.
     void (*fptr)(void);  // pointer to the function that will interpret that token
 };
 
-#define C_BASETOKEN 0x80  // the base of the token numbers
+#define C_BASETOKEN            0x80  // the base of the token numbers
+#define INVALID_COMMAND_TOKEN  0xFFFF   
 
 #define GetCommandValue(s)  commandtbl_get(s)
 #define CommandTableSize    commandtbl_size
 
 /** Gets the type of a command. */
-#define commandtype(i)  ((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].type) : 0)
+#define commandtype(i)  ((i < CommandTableSize - 1) ? commandtbl[i].type : 0)
 
 /** Gets the function pointer of a command. */
-#define commandfunction(i)  ((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].fptr) : (commandtbl[0].fptr))
+#define commandfunction(i)  ((i < CommandTableSize - 1) ? commandtbl[i].fptr : commandtbl[0].fptr)
 
-/** Gets the type of a command. */
-#define commandname(i)  ((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].name) : "")
+/** Gets the name of a command. */
+#define commandname(i)  ((i < CommandTableSize - 1) ? commandtbl[i].name : "")
 
 void cmd_autosave(void);
 void cmd_call(void);
@@ -145,14 +150,25 @@ void cmd_tron(void);
 void cmd_xmodem(void);
 
 void commandtbl_init();
-int commandtbl_get(const char *s);
+CommandToken commandtbl_get(const char *s);
+
+static inline CommandToken commandtbl_decode(const char *p) {
+   return ((CommandToken)(p[0] & 0x7F)) | ((CommandToken)(p[1] & 0x7F) << 7);
+}
+
+static inline void commandtbl_encode(char **p, CommandToken cmd) {
+  *((*p)++) = (char) (cmd & 0x7F) + C_BASETOKEN;
+  *((*p)++) = (char) (cmd >> 7) + C_BASETOKEN;
+}
 
 extern const struct s_tokentbl commandtbl[];
 extern int commandtbl_size;
 
 // Store commonly used commands for faster token checking.
-extern char cmdIF, cmdENDIF, cmdEND_IF, cmdELSEIF, cmdELSE_IF, cmdELSE;
-extern char cmdSELECT_CASE, cmdCASE, cmdCASE_ELSE, cmdEND_SELECT, cmdSUB;
-extern char cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
+extern CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDO;
+extern CommandToken cmdELSE, cmdELSEIF, cmdELSE_IF, cmdENDIF, cmdEND_CSUB, cmdEND_FUNCTION;
+extern CommandToken cmdENDIF, cmdEND_IF, cmdEND_SELECT, cmdEND_SUB, cmdFOR, cmdFUN;
+extern CommandToken cmdIF, cmdIRET, cmdLET, cmdLOOP, cmdNEXT, cmdPRINT;
+extern CommandToken cmdREM, cmdSELECT_CASE, cmdSUB, cmdWEND, cmdWHILE;
 
 #endif

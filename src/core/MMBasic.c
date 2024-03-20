@@ -124,7 +124,7 @@ const char *ep;                                                     // pointer t
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Global information used by commands
 //
-int cmdtoken;                                                       // Token number of the command
+CommandToken cmdtoken;                                              // Token number of the command
 const char *cmdline;                                                // Command line terminated with a zero char and trimmed of spaces
 const char *nextstmt;                                               // Pointer to the next statement to be executed.
 const char *CurrentLinePtr;                                         // Pointer to the current line (used in error reporting)
@@ -226,17 +226,17 @@ void ExecuteProgram(const char *p) {
         }
 
         if(*p) {                                                    // if p is pointing to a command
-            nextstmt = cmdline = p + 1;
+            nextstmt = cmdline = p + sizeof(CommandToken);
             skipspace(cmdline);
             skipelement(nextstmt);
             if(*p && *p != '\'') {                                  // ignore a comment line
                 SaveLocalIndex = LocalIndex;                        // save this if we need to cleanup after an error
 
                 if (setjmp(ErrNext) == 0) {                         // return to the else leg of this if error and OPTION ERROR SKIP/IGNORE is in effect
-                    if(*(char*)p >= C_BASETOKEN && *(char*)p - C_BASETOKEN < CommandTableSize - 1 && (commandtbl[*(char*)p - C_BASETOKEN].type & T_CMD)) {
-                        cmdtoken = *(char*)p;
+                    if (p[0] >= C_BASETOKEN && p[1] >= C_BASETOKEN) {
+                        cmdtoken = commandtbl_decode(p);
                         targ = T_CMD;
-                        commandtbl[*(char*)p - C_BASETOKEN].fptr(); // execute the command
+                        commandtbl[cmdtoken].fptr();                // execute the command
                     } else {
                         if (!isnamestart(*p)) error("Invalid character: %", (int)(*p));
                         i = FindSubFun(p, kSub);                    // it could be a defined command (subroutine)
@@ -361,10 +361,11 @@ static void PrepareFunctionTable(bool abort_on_error) {
         }
 
         // Have we found a function or subroutine ?
-        if (*p == cmdSUB || *p == cmdCSUB || *p == cmdFUN || *p == cmdCFUN) {
-            int type = (*p == cmdSUB || *p == cmdCSUB) ? kSub : kFunction;
+        const CommandToken cmd = commandtbl_decode(p);
+        if (cmd == cmdSUB || cmd == cmdCSUB || cmd == cmdFUN || cmd == cmdCFUN) {
+            int type = (cmd == cmdSUB || cmd == cmdCSUB) ? kSub : kFunction;
             const char *addr = p;
-            p++; // Step over the token.
+            p += sizeof(CommandToken); // Step over the token.
             MmResult result = AddFunction(&p, type, addr);
             if (FAILED(result) && abort_on_error) {
                 error_throw_ex(result, FormatAddFunctionError(result, type));
@@ -500,7 +501,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
 
     CallersLinePtr = CurrentLinePtr;
     SubLinePtr = funtbl[index].addr;                                // used for error reporting
-    p =  SubLinePtr + 1;                                            // point to the sub or function definition
+    p =  SubLinePtr + sizeof(CommandToken);                         // point to the sub or function definition
     skipspace(p);
     ttp = p;
 
@@ -552,8 +553,10 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     skipspace(tp); skipspace(p);
 
 #if defined(MICROMITE)
+    const CommandToken cmd = commandtbl_decode(SubLinePtr);
+
     // if this is a CFUNCTION we can skip all the rest and just execute the CFUNCTION and return its value
-    if(*SubLinePtr == cmdCFUN) {
+    if (cmd == cmdCFUN) {
         skipspace(p);
         if(*p != '(')
             *typ = T_INT;
@@ -584,7 +587,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     }
 
     // similar if this is a CSUB
-    if(*SubLinePtr == cmdCSUB) {
+    if (cmd == cmdCSUB) {
         CallCFunction(SubLinePtr, tp, p, CallersLinePtr);           // run the CSUB
         TempMemoryIsChanged = true;                                 // signal that temporary memory should be checked
         return;
@@ -770,7 +773,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     skipelement(p);                                                 // point to the body of the function
 
     const char *cached_nextstmt = nextstmt;                         // save the globals used by commands
-    int cached_cmdtoken = cmdtoken;
+    CommandToken cached_cmdtoken = cmdtoken;
     const char *cached_cmdline = cmdline;
 
     ExecuteProgram(p);                                              // execute the function's code
@@ -868,9 +871,12 @@ void tokenise(int console) {
 
         // copy anything after a comment (')
         if(*p == '\'') {
+            char t;
             do {
-                *op++ = *p++;
+                t = *p++;
+                *op++ = t;
             } while(*p);
+            if (t == '\'') *op++ = 32;
             continue;
         }
 
@@ -909,7 +915,7 @@ void tokenise(int console) {
             ssize_t match_i = -1, match_l = 0;
             // first test if it is a print shortcut char (?) - this needs special treatment
             if(*p == '?') {
-                match_i = GetCommandValue("Print") - C_BASETOKEN;
+                match_i = cmdPRINT;
                 if(*++p == ' ') p++;                                // eat a trailing space
                 match_p = p;
             } else {
@@ -942,11 +948,11 @@ void tokenise(int console) {
                 }
             }
 
-            if(match_i > -1) {
+            if (match_i > -1) {
                 // we have found a command
-                *op++ = match_i + C_BASETOKEN;                      // insert the token found
+                commandtbl_encode(&op, match_i);
                 p = match_p;                                        // step over the command in the source
-                if(match_i + C_BASETOKEN == GetCommandValue("Rem")) // check if it is a REM command
+                if (match_i == cmdREM)                              // check if it is a REM command
                     while(*p) *op++ = *p++;                         // and in that case just copy everything
                 else {
                     if(isalpha(*(p-1)) && *p == ' ')                // if the command is followed by a space
@@ -1004,12 +1010,13 @@ void tokenise(int console) {
         // not whitespace or string or comment or token identifier or number
         // try for a variable name which could be a user defined subroutine or an implied let
         if(isnamestart(*p)) {                                       // valid chars at the start of a variable name
-            if(firstnonwhite) {                                     // first entry on the line?
+            if (firstnonwhite) {                                    // first entry on the line?
                 const char *tp = skipvar(p, true);                  // find the char after the variable
                 skipspace(tp);
-                if(*tp == '=')                                      // is it an implied let?
-                    *op++ = GetCommandValue("Let");                 // find let's token value and copy into memory
+                if (*tp == '=') {
+                    commandtbl_encode(&op, cmdLET);
                 }
+            }
             while(isnamechar(*p)) *op++ = *p++;                     // copy the variable name
             firstnonwhite = false;
             labelvalid = false;                                     // we do not want any labels after this
@@ -1943,19 +1950,14 @@ void *findvar(const char *p, int action) {
 //   pointer to a string that contains the characters to be used in spliting up the line.  If the first char of that
 //   string is an opening bracket '(' this function will expect the arg list to be enclosed in brackets.
 void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc, const char *delim) {
-    char *op;
-    int inarg, expect_cmd, expect_bracket, then_tkn, else_tkn;
-
     TestStackOverflow();                                            // throw an error if we have overflowed the PIC32's stack
 
     const char *tp = *p;
-    op = argbuf;
+    char *op = argbuf;
     *argc = 0;
-    inarg = false;
-    expect_cmd = false;
-    expect_bracket = false;
-    then_tkn = tokenTHEN;
-    else_tkn = tokenELSE;
+    bool inarg = false;
+    bool expect_cmd = false;
+    bool expect_bracket = false;
 
     // skip leading spaces
     while(*tp == ' ') tp++;
@@ -1963,9 +1965,8 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
     // check if we are processing a list enclosed in brackets and if so
     //  - skip the opening bracket
     //  - flag that a closing bracket should be found
-    if(*delim == '(') {
-        if(*tp != '(')
-            error("Syntax");
+    if (*delim == '(') {
+        if (*tp != '(') ERROR_SYNTAX;
         expect_bracket = true;
         delim++;
         tp++;
@@ -1984,7 +1985,7 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
         // the special characters that cause the line to be split up are in the string delim
         // any other chars form part of the one argument
         if(strchr(delim, *tp) != NULL && !expect_cmd) {
-            if(*tp == then_tkn || *tp == else_tkn) expect_cmd = true;
+            if(*tp == tokenTHEN || *tp == tokenELSE) expect_cmd = true;
             if(inarg) {                                             // if we have been processing an argument
                 while(op > argbuf && *(op - 1) == ' ') op--;        // trim trailing spaces
                 *op++ = 0;                                          // terminate it
@@ -1994,7 +1995,7 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
             }
 
             inarg = false;
-            if(*argc >= maxargs) error("Syntax");
+            if (*argc >= maxargs) ERROR_SYNTAX;
             argv[(*argc)++] = op;                                   // save the pointer for this delimiter
             *op++ = *tp++;                                          // copy the token or char (always one)
             *op++ = 0;                                              // terminate it
@@ -2002,7 +2003,7 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
         }
 
         // check if we have a THEN or ELSE token and if so flag that a command should be next
-        if(*tp == then_tkn || *tp == else_tkn) expect_cmd = true;
+        if(*tp == tokenTHEN || *tp == tokenELSE) expect_cmd = true;
 
 
         // remove all spaces (outside of quoted text and bracketed text)
@@ -2013,7 +2014,7 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
 
         // not a special char so we must start a new argument
         if(!inarg) {
-            if(*argc >= maxargs) error("Syntax");
+            if (*argc >= maxargs) ERROR_SYNTAX;
             argv[(*argc)++] = op;                                   // save the pointer for this arg
             inarg = true;
         }
@@ -2034,7 +2035,7 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
         if(*tp == '"') {
             do {
                 *op++ = *tp++;
-                if(*tp == 0) error("Syntax");
+                if(*tp == 0) ERROR_SYNTAX;
             } while(*tp != '"');
             *op++ = *tp++;
             continue;
@@ -2042,10 +2043,12 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
 
         // anything else is just copied into the argument
         *op++ = *tp++;
-
-        expect_cmd = false;
+        if (expect_cmd) {
+            *op++ = *tp++;
+            expect_cmd = false;
+        }
     }
-    if(expect_bracket && *tp != ')') error("Syntax");
+    if (expect_bracket && *tp != ')') ERROR_SYNTAX;
     while(op - 1 > argbuf && *(op-1) == ' ') --op;                  // trim any trailing spaces on the last argument
     *op = 0;                                                        // terminate the last argument
 }

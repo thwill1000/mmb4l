@@ -459,7 +459,6 @@ void fun_val(void) {
 
 
 
-//#if !defined(MX170)
 void fun_eval(void) {
     char *s, *st;
     char *temp_tknbuf = GetTempMemory(TKNBUF_SIZE);
@@ -471,7 +470,7 @@ void fun_eval(void) {
     inpbuf[0] = 'r'; inpbuf[1] = '=';                               // place a dummy assignment in the input buffer to keep the tokeniser happy
     strcpy(inpbuf + 2, st);
     tokenise(true);                                                 // and tokenise it (the result is in tknbuf)
-    strcpy(st, tknbuf + 3);
+    strcpy(st, tknbuf + 2 + sizeof(CommandToken));
     targ = T_NOTYPE;
     evaluate(st, &fret, &iret, &s, &targ, false);                   // get the value and type of the argument
     if(targ & T_STR) {
@@ -480,7 +479,6 @@ void fun_eval(void) {
     }
     strcpy(tknbuf, temp_tknbuf);                                    // restore the saved token buffer
 }
-//#endif
 
 
 

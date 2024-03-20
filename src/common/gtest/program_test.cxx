@@ -14,9 +14,11 @@ extern "C" {
 #include "../options.h"
 #include "../program.h"
 #include "../utility.h"
+#include "../../core/commandtbl.h"
 
 char *CFunctionFlash = NULL;
-char cmdCSUB = '\0';
+CommandToken cmdCSUB = 0x0000;
+CommandToken cmdEND_CSUB = 0x0000;
 char *CurrentLinePtr = NULL;
 char inpbuf[INPBUF_SIZE] = { '\0' };
 char ProgMemory[PROG_FLASH_SIZE] = { '\0' } ;
@@ -34,7 +36,7 @@ void file_close(int fnbr) { }
 int file_eof(int fnbr) { return 0; }
 int file_find_free(void) { return 1; }
 void file_open(char *fname, char *mode, int fnbr) { }
-int commandtbl_get(char *s) { return 0; }
+CommandToken commandtbl_get(const char *s) { return 0x0000; }
 char *getCstring(char *p) { return NULL; }
 void *GetTempMemory(int NbrBytes) { return NULL; }
 void IntToStr(char *strr, long long int nbr, unsigned int base) { }

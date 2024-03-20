@@ -55,7 +55,7 @@ void cmd_loop(void) {
 
     // search the do table looking for an entry with the same program position as this LOOP statement
     for(i = 0; i < doindex ;i++) {
-        p = dostack[i].loopptr + 1;
+        p = dostack[i].loopptr + sizeof(CommandToken);
         skipspace(p);
         if(p == cmdline) {
             // found a match
