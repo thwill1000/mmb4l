@@ -107,7 +107,9 @@ protected:
 TEST_F(CmdRunTest, ParseArgs_GivenEmptyString) {
     strcpy(inpbuf, "RUN");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("", m_filename);
     EXPECT_STREQ("", m_run_args);
 }
@@ -115,7 +117,9 @@ TEST_F(CmdRunTest, ParseArgs_GivenEmptyString) {
 TEST_F(CmdRunTest, ParseArgs_GivenJustAComma) {
     strcpy(inpbuf, "RUN ,");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("", m_filename);
     EXPECT_STREQ("", m_run_args);
 }
@@ -123,7 +127,9 @@ TEST_F(CmdRunTest, ParseArgs_GivenJustAComma) {
 TEST_F(CmdRunTest, ParseArgs_GivenFilename) {
     strcpy(inpbuf, "RUN \"foo\"");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("", m_run_args);
 }
@@ -131,7 +137,9 @@ TEST_F(CmdRunTest, ParseArgs_GivenFilename) {
 TEST_F(CmdRunTest, ParseArgs_GivenFilenameWithTrailingComma) {
     strcpy(inpbuf, "RUN \"foo\",");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("", m_run_args);
 }
@@ -139,7 +147,9 @@ TEST_F(CmdRunTest, ParseArgs_GivenFilenameWithTrailingComma) {
 TEST_F(CmdRunTest, ParseArgs_GivenCmdArgs) {
     strcpy(inpbuf, "RUN , \"foo\"");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("", m_filename);
     EXPECT_STREQ("foo", m_run_args);
 }
@@ -147,7 +157,9 @@ TEST_F(CmdRunTest, ParseArgs_GivenCmdArgs) {
 TEST_F(CmdRunTest, ParseArgs_GivenFilenameAndCmdArgs) {
     strcpy(inpbuf, "RUN \"foo\", \"bar\"");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("bar", m_run_args);
 }
@@ -155,7 +167,9 @@ TEST_F(CmdRunTest, ParseArgs_GivenFilenameAndCmdArgs) {
 TEST_F(CmdRunTest, ParseArgs_GivenStringExpressions) {
     strcpy(inpbuf, "RUN \"foo\" + \"bar\", \"wom\" + \"bat\"");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foobar", m_filename);
     EXPECT_STREQ("wombat", m_run_args);
 }
@@ -164,16 +178,20 @@ TEST_F(CmdRunTest, ParseArgs_GivenNewCmdArgsDependOnExistingMmCmdLine) {
     strcpy(cmd_run_args, "wom");
     strcpy(inpbuf, "RUN \"foobar\", Mm.CmdLine$ + \"bat\"");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, cmd_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foobar", m_filename);
-    EXPECT_STREQ("wombat", cmd_run_args);
+    EXPECT_STREQ("wombat", m_run_args);
 }
 
 TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     // Legacy compatibility code should be invoked when args contain hyphen.
     strcpy(inpbuf, "RUN \"foo\", -wom bat  ");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("-wom bat", m_run_args);
 
@@ -181,7 +199,9 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     // "menu/menu.bas" and args contains "MENU_".
     strcpy(inpbuf, "RUN \"my/menu/menu.bas\", MENU_ITEM  ");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("my/menu/menu.bas", m_filename);
     EXPECT_STREQ("menu_item", m_run_args);
 
@@ -189,7 +209,9 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     // hyphen tokens.
     strcpy(inpbuf, "RUN \"foo\", --wom bat  ");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("--wom bat", m_run_args);
 
@@ -197,7 +219,9 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     // and '=' token.
     strcpy(inpbuf, "RUN \"foo\", -wom=bat  ");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("-wom=bat", m_run_args);
 
@@ -205,14 +229,18 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     // and '-' token.
     strcpy(inpbuf, "RUN \"foo\", wom-bat=2");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("wom-bat=2", m_run_args);
 
     // Legacy compatibility code should convert to lower-case.
     strcpy(inpbuf, "RUN \"foo\", -WOM BAT  ");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("-wom bat", m_run_args);
 
@@ -220,21 +248,27 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     // tokens.
     strcpy(inpbuf, "RUN \"foo\", /-=-/=-  ");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("/ - = - / = -", m_run_args);
 
     // Legacy compatibility code should compresses consecutive spaces.
     strcpy(inpbuf, "RUN \"foo\", wom  -bat  ");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("wom -bat", m_run_args);
 
     // Legacy compatibility code should not mangle quoted sections.
     strcpy(inpbuf, "RUN \"foo\", -wom \"/-=-/=- -WOM BAT  \" bat  ");
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("-wom \"/-=-/=- -WOM BAT  \" bat", m_run_args);
 }
@@ -244,7 +278,9 @@ TEST_F(CmdRunTest, ParseArgs_DoesNotOverrunBuffer) {
     memcpy(inpbuf, "RUN \"foo\", -bar", 15);
     inpbuf[255] = '\0';
     tokenise(1);
-    EXPECT_EQ(kOk, cmd_run_parse_args(tknbuf + 1, m_filename, m_run_args));
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_EQ(255, strlen(m_run_args));
     EXPECT_STREQ(

@@ -164,7 +164,9 @@ extern MMINTEGER iarg1, iarg2, iret;            // Global integer variables used
 extern char *sarg1, *sarg2, *sret;              // Global string pointers used by operators
 extern int targ;                                // Global type of argument (string or MMFLOAT) returned by an operator
 
-extern int cmdtoken;                            // Token number of the command
+typedef uint16_t CommandToken;
+
+extern CommandToken cmdtoken;                   // Token number of the command
 extern const char *cmdline;                     // Command line terminated with a zero char and trimmed of spaces
 extern const char *nextstmt;                    // Pointer to the next statement to be executed.
 extern const char *ep;                          // Pointer to the argument to a function

@@ -68,8 +68,8 @@ static char *GetCFunAddr(const char *p, int i) {
         ip += 2;
         size = *ip++;
         if (addr == (uintptr_t) (funtbl[i].addr)) {  // if we have a match
-            int offset = *ip++;                 // get the offset in 32-bit words
-            return (char *) (ip + offset);      // return the entry point
+            int offset = *ip++;                      // get the offset in 32-bit words
+            return (char *) (ip + offset);           // return the entry point
         } else {
             ip += size / sizeof(uint32_t);         // skip this CSUB
             while ((uintptr_t) ip % 2 != 0) ip++;  // and any trailing words to the next 64-bit
@@ -84,8 +84,10 @@ static char *GetCFunAddr(const char *p, int i) {
 static void peek_cfunaddr(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
     int idx = FindSubFun(p, kFunction | kSub); // find a function or subroutine.
-    if (idx == -1 || !(*(funtbl[idx].addr) == cmdCFUN || *(funtbl[idx].addr) == cmdCSUB))
-        ERROR_INVALID_ARGUMENT;
+    const CommandToken cmd = idx == -1
+        ? INVALID_COMMAND_TOKEN
+        : commandtbl_decode(funtbl[idx].addr);
+    if (cmd != cmdCFUN && cmd != cmdCSUB) ERROR_INVALID_ARGUMENT;
 
     // Search through program flash and the library looking for a match to
     // the function being called.

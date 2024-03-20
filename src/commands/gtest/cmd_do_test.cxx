@@ -101,7 +101,7 @@ TEST_F(CmdDoTest, GivenOneLineDoLoop) {
     TokeniseAndAppend("Do : Print : Loop");
     PrepareProgram(1);
     cmdtoken = GetCommandValue("Do");
-    nextstmt = cmdline = ProgMemory + 2;
+    nextstmt = cmdline = ProgMemory + 1 + sizeof(CommandToken);
     skipspace(cmdline);
     skipelement(nextstmt);
 
@@ -109,7 +109,7 @@ TEST_F(CmdDoTest, GivenOneLineDoLoop) {
 
     EXPECT_EQ(1, doindex);
     EXPECT_EQ(NULL, dostack[0].evalptr);
-    EXPECT_EQ(ProgMemory + 2, dostack[0].doptr);
+    EXPECT_EQ(ProgMemory + 3, dostack[0].doptr);
     EXPECT_EQ(0, dostack[0].level);
-    EXPECT_EQ(ProgMemory + 7, dostack[0].loopptr);
+    EXPECT_EQ(ProgMemory + 9, dostack[0].loopptr);
 }

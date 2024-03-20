@@ -107,16 +107,17 @@ bool interrupt_running() {
 }
 
 static int handle_interrupt(const char *interrupt_address) {
-    static char rti[2]; // TODO: does this really need to be static ?
+    static char rti[3] = { 0 }; // TODO: does this really need to be static ?
 
     LocalIndex++;                                                   // IRETURN will decrement this
     mmb_error_state_ptr = &interrupt_error_state;                   // swap to the interrupt error state
     error_init(mmb_error_state_ptr);                                // and clear it
     interrupt_return_stmt = nextstmt;                               // for when IRETURN is executed
     // if the interrupt is pointing to a SUB token we need to call a subroutine
-    if  (*interrupt_address == cmdSUB) {
-        rti[0] = cmdIRET;                                           // setup a dummy IRETURN command
-        rti[1] = 0;
+    if (commandtbl_decode(interrupt_address) == cmdSUB) {
+        char *p = rti;
+        commandtbl_encode(&p, cmdIRET);                             // setup a dummy IRETURN command
+        *p = '\0';
         if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_SUBS;
         errorstack[gosubindex] = CurrentLinePtr;
         gosubstack[gosubindex++] = rti;                             // return from the subroutine to the dummy IRETURN command

@@ -537,7 +537,7 @@ MmResult program_get_bas_file(const char *filename, char *out) {
 // The next CFunction/CSub/Font starts immediately following the last word
 // of the previous CFunction/CSub/Font
 static void program_process_csubs() {
-    char end_token = '\0';
+    CommandToken end_token = INVALID_COMMAND_TOKEN;
     uint32_t *flash_ptr = (uint32_t *) CFunctionFlash;
     uint32_t *save_addr = NULL;
     char *p = (char *) ProgMemory;  // start scanning program memory
@@ -557,14 +557,14 @@ static void program_process_csubs() {
             skipspace(p);   // and any following spaces
         }
 
-        if (*p == cmdCSUB) {
+        if (commandtbl_decode(p) == cmdCSUB) {
 
-            end_token = GetCommandValue("End CSub");
+            end_token = cmdEND_CSUB;
             *((uint64_t *) flash_ptr) = (uintptr_t) p;
             flash_ptr += 2;
             save_addr = flash_ptr; // Save where we are so that we can write the CSub size in here
             flash_ptr ++;
-            p++;
+            p += sizeof(CommandToken);
             skipspace(p);
             if (!isnamestart(*p)) ERROR_FUNCTION_NAME;
             do {
@@ -599,8 +599,7 @@ static void program_process_csubs() {
                     skipspace(p);
                 }
                 // we are at the end of a embedded code line
-                while (*p)
-                    p++;  // make sure that we move to the end of the line
+                while (*p) p++;  // make sure that we move to the end of the line
                 p++;      // step to the start of the next line
                 if (*p == 0) ERROR_MISSING_END;
                 if (*p == T_NEWLINE) {
@@ -609,7 +608,7 @@ static void program_process_csubs() {
                 }
                 if (*p == T_LINENBR) p += 3;  // skip over the line number
                 skipspace(p);
-            } while (*p != end_token);
+            } while (commandtbl_decode(p) != end_token);
 
             // Write back the size of the CSUB (in bytes) to the 32-bit slot reserved previously.
             *save_addr = 4 * (flash_ptr - save_addr - 1);
