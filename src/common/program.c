@@ -66,6 +66,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MAXDEFINES  256
 
+#define SINGLE_QUOTE  '\''
+
 // Repetition of last element is deliberate, see implementations of
 // program_get_bas_file() and program_get_inc_file().
 static const char *BAS_FILE_EXTENSIONS[] = { ".bas", ".BAS", ".Bas", ".bas" };
@@ -278,103 +280,116 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
     return path_get_canonical(path, out, STRINGSIZE);
 }
 
-static void program_process_file(int fnbr, char **p, char *edit_buffer, const char *filename) {
+static void program_process_line(int fnbr, char *line_buffer, const char *filename, int importlines, char **p) {
+    bool in_quotes = false;
+
+    // Read a program line.
+    memset(line_buffer, 0, STRINGSIZE);
+    MMgetline(fnbr, line_buffer);
+    size_t len = strlen(line_buffer);
+
+    // Convert tab characters into single spaces in the line_buffer.
+    for (size_t c = 0; c < strlen(line_buffer); c++) {
+        if (line_buffer[c] == TAB) line_buffer[c] = ' ';
+    }
+
+    // sbuff points to the first non space character in the line_buffer.
+    char *sbuff = line_buffer;
+    while (*sbuff == ' ') {
+        sbuff++;
+        len--;
+    }
+
+    // Replace REM command with ' comment character.
+    if (strncasecmp(sbuff, "REM ", 4) == 0 ||
+        (len == 3 && strncasecmp(sbuff, "REM", 3) == 0)) {
+        sbuff += 2;
+        *sbuff = SINGLE_QUOTE;
+        return;
+    }
+
+    // Are we processing a DATA command ?
+    bool data = (strncasecmp(sbuff, "DATA ", 5) == 0);
+
+    // Compress multiple spaces into one.
+    size_t slen = len;
+    char *op = sbuff;
+    char *ip = sbuff;
+    while (*ip) {
+        if (*ip == '"') {
+            in_quotes = !in_quotes;
+        }
+        if (!in_quotes && (*ip == ' ' || *ip == ':')) {
+            *op++ = *ip++;
+            while (*ip == ' ') {
+                ip++;
+                len--;
+            }
+        } else
+            *op++ = *ip++;
+    }
+    slen = len;
+
+    // Remove comments.
+    for (size_t c = 0; c < slen; c++) {
+        if (sbuff[c] == '"') {
+            in_quotes = !in_quotes;
+        }
+        if (!(in_quotes || data)) sbuff[c] = toupper(sbuff[c]);
+        if (!in_quotes && sbuff[c] == SINGLE_QUOTE && len == slen) {
+            len = c;
+            break;
+        }
+    }
+
+    // Handle "pre-processor" commands.
+    if (*sbuff == '#') {
+        const char *tp = checkstring(&sbuff[1], "DEFINE");
+        if (tp) {
+            getargs(&tp, 3, ",");
+            if (nDefines >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;
+            strcpy(dlist[nDefines].from, getCstring(argv[0]));
+            strcpy(dlist[nDefines].to, getCstring(argv[2]));
+            nDefines++;
+        } else {
+            if (cmpstr("INCLUDE ", &sbuff[1]) == 0) ERROR_CANNOT_INCLUDE_FROM_INCLUDE;
+        }
+        return;
+    }
+
+    // Close any open double-quote.
+    if (in_quotes) sbuff[len++] = '"';
+
+    // Append file and line-number.
+    sbuff[len++] = SINGLE_QUOTE;
+    sbuff[len++] = '|';
+    memcpy(&sbuff[len], filename, strlen(filename));
+    len += strlen(filename);
+    sbuff[len++] = ',';
     char num[10];
+    IntToStr(num, importlines, 10);
+    strcpy(&sbuff[len], num);
+    len += strlen(num);
+    if (len > 254) ERROR_LINE_TOO_LONG;
+    sbuff[len] = 0;
+
+    len = massage(sbuff);  // can't risk crushing lines with a quote in them
+    if ((sbuff[0] != SINGLE_QUOTE) || (sbuff[0] == SINGLE_QUOTE && sbuff[1] == SINGLE_QUOTE)) {
+        memcpy(*p, sbuff, len);
+        *p += len;
+        **p = '\n';
+        *p += 1;
+    }
+}
+
+static void program_process_file(int fnbr, char **p, char *edit_buffer, const char *filename) {
     char line_buffer[STRINGSIZE];
-    char *sbuff, *ip, *op;
-    bool data, in_quotes;
     int importlines = 0;
-    size_t len, slen;
 
     while (!file_eof(fnbr)) {
-        sbuff = line_buffer;
         if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
-        //        mymemset(buff,0,256);
-        memset(line_buffer, 0, STRINGSIZE);
-        MMgetline(fnbr, line_buffer);  // get the input line
-        data = false;
         importlines++;
-        //        routinechecks(1);
-        len = strlen(line_buffer);
-        in_quotes = false;
-        for (size_t c = 0; c < strlen(line_buffer); c++) {
-            if (line_buffer[c] == TAB) line_buffer[c] = ' ';
-        }
-        while (*sbuff == ' ') {
-            sbuff++;
-            len--;
-        }
-        if (strncasecmp(sbuff, "rem ", 4) == 0 ||
-            (len == 3 && strncasecmp(sbuff, "rem", 3) == 0)) {
-            sbuff += 2;
-            *sbuff = '\'';
-            continue;
-        }
-        if (strncasecmp(sbuff, "data ", 5) == 0) data = true;
-        slen = len;
-        op = sbuff;
-        ip = sbuff;
-        while (*ip) {
-            if (*ip == '"') {
-                in_quotes = !in_quotes;
-            }
-            if (!in_quotes && (*ip == ' ' || *ip == ':')) {
-                *op++ = *ip++;  // copy the first space
-                while (*ip == ' ') {
-                    ip++;
-                    len--;
-                }
-            } else
-                *op++ = *ip++;
-        }
-        slen = len;
-        for (size_t c = 0; c < slen; c++) {
-            if (sbuff[c] == '"') {
-                in_quotes = !in_quotes;
-            }
-            if (!(in_quotes || data)) sbuff[c] = toupper(sbuff[c]);
-            if (!in_quotes && sbuff[c] == 39 && len == slen) {
-                len = c;  // get rid of comments
-                break;
-            }
-        }
-        if (sbuff[0] == '#') {
-            const char *tp = checkstring(&sbuff[1], "DEFINE");
-            if (tp) {
-                getargs(&tp, 3, ",");
-                if (nDefines >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;
-                strcpy(dlist[nDefines].from, getCstring(argv[0]));
-                strcpy(dlist[nDefines].to, getCstring(argv[2]));
-                nDefines++;
-            } else {
-                if (cmpstr("INCLUDE ", &sbuff[1]) == 0) ERROR_CANNOT_INCLUDE_FROM_INCLUDE;
-            }
-        } else {
-            if (in_quotes) sbuff[len++] = '"';
-            sbuff[len++] = 39;
-            sbuff[len++] = '|';
-            memcpy(&sbuff[len], filename, strlen(filename));
-            len += strlen(filename);
-            sbuff[len++] = ',';
-            IntToStr(num, importlines, 10);
-            strcpy(&sbuff[len], num);
-            len += strlen(num);
-            if (len > 254) ERROR_LINE_TOO_LONG;
-            sbuff[len] = 0;
-            len = massage(sbuff);  // can't risk crushing lines with a quote in them
-            if ((sbuff[0] != 39) || (sbuff[0] == 39 && sbuff[1] == 39)) {
-                // if(Option.profile){
-                //     while(strlen(sbuff)<9){
-                //         cstring_cat(sbuff, " ", STRINGSIZE);
-                //         len++;
-                //     }
-                // }
-                memcpy(*p, sbuff, len);
-                *p += len;
-                **p = '\n';
-                *p += 1;
-            }
-        }
+        program_process_line(fnbr, line_buffer, filename, importlines, p);
     }
 }
 
@@ -568,7 +583,7 @@ static void program_process_csubs() {
                 if (*p == T_LINENBR) p += 3;  // skip over a line number
             }
             do {
-                while (*p && *p != '\'') {
+                while (*p && *p != SINGLE_QUOTE) {
                     skipspace(p);
                     int n = 0;
                     for (int i = 0; i < 8; i++) {
@@ -737,7 +752,7 @@ static int program_load_file_internal(char *filename) {
         if (strncasecmp(sbuff, "rem ", 4) == 0 ||
             (len == 3 && strncasecmp(sbuff, "rem", 3) == 0)) {
             sbuff += 2;
-            *sbuff = '\'';
+            *sbuff = SINGLE_QUOTE;
             continue;
         }
         if (strncasecmp(sbuff, "data ", 5) == 0) data = true;
@@ -778,13 +793,13 @@ static int program_load_file_internal(char *filename) {
                     in_quotes = !in_quotes;
                 }
                 if (!(in_quotes || data)) sbuff[c] = toupper(sbuff[c]);
-                if (!in_quotes && sbuff[c] == 39 && len == slen) {
+                if (!in_quotes && sbuff[c] == SINGLE_QUOTE && len == slen) {
                     len = c;  // get rid of comments
                     break;
                 }
             }
             if (in_quotes) sbuff[len++] = '"';
-            sbuff[len++] = 39;
+            sbuff[len++] = SINGLE_QUOTE;
             sbuff[len++] = '|';
             IntToStr(num, importlines, 10);
             strcpy(&sbuff[len], num);
@@ -792,14 +807,7 @@ static int program_load_file_internal(char *filename) {
             if (len > 254) ERROR_LINE_TOO_LONG;
             sbuff[len] = 0;
             len = massage(sbuff);  // can't risk crushing lines with a quote in them
-            if ((sbuff[0] != 39) || (sbuff[0] == 39 && sbuff[1] == 39)) {
-                // if(Option.profile){
-                //     while(strlen(sbuff)<9){
-                //         cstring_cat(sbuff, " ", STRINGSIZE);
-                //         len++;
-                //     }
-                // }
-                //                mycpy(p,sbuff,len);
+            if ((sbuff[0] != SINGLE_QUOTE) || (sbuff[0] == SINGLE_QUOTE && sbuff[1] == SINGLE_QUOTE)) {
                 memcpy(p, sbuff, len);
                 p += len;
                 *p++ = '\n';
