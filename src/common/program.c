@@ -281,12 +281,11 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
     return path_get_canonical(path, out, STRINGSIZE);
 }
 
-static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
+static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer) {
 
     char line_buffer[STRINGSIZE];
     char num[10];
     int importlines = 0;
-    int ignore = 0;
     char *filename, *sbuff, *op, *ip;
     size_t c, slen, data;
     int fnbr = file_find_free();
@@ -333,7 +332,6 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
             sbuff++;
             len--;
         }
-        if (ignore && sbuff[0] != '#') *sbuff = '\'';
         if (strncasecmp(sbuff, "rem ", 4) == 0 ||
             (len == 3 && strncasecmp(sbuff, "rem", 3) == 0)) {
             sbuff += 2;
@@ -383,10 +381,6 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer,
                 strcpy(dlist[nDefines].to, getCstring(argv[2]));
                 nDefines++;
             } else {
-                if (cmpstr("COMMENT END", &sbuff[1]) == 0) ignore = 0;
-                if (cmpstr("COMMENT START", &sbuff[1]) == 0) ignore = 1;
-                //if (cmpstr("MMDEBUG ON", &sbuff[1]) == 0) convertdebug = 0;
-                //if (cmpstr("MMDEBUG OFF", &sbuff[1]) == 0) convertdebug = 1;
                 if (cmpstr("INCLUDE ", &sbuff[1]) == 0) ERROR_CANNOT_INCLUDE_FROM_INCLUDE;
             }
         } else {
@@ -715,8 +709,6 @@ static int program_load_file_internal(char *filename) {
     char line_buffer[STRINGSIZE];
     char num[10];
     size_t c;
-    int convertdebug = 1;
-    int ignore = 0;
     nDefines = 0;
     int importlines = 0, data;
 
@@ -748,15 +740,9 @@ static int program_load_file_internal(char *filename) {
             sbuff++;
             len--;
         }
-        if (ignore && sbuff[0] != '#') *sbuff = '\'';
         if (strncasecmp(sbuff, "rem ", 4) == 0 ||
             (len == 3 && strncasecmp(sbuff, "rem", 3) == 0)) {
             sbuff += 2;
-            *sbuff = '\'';
-            continue;
-        }
-        if (strncasecmp(sbuff, "mmdebug ", 7) == 0 && convertdebug == 1) {
-            sbuff += 6;
             *sbuff = '\'';
             continue;
         }
@@ -790,12 +776,8 @@ static int program_load_file_internal(char *filename) {
                 strcpy(dlist[nDefines].to, getCstring(argv[2]));
                 nDefines++;
             } else {
-                if (cmpstr("COMMENT END", &sbuff[1]) == 0) ignore = 0;
-                if (cmpstr("COMMENT START", &sbuff[1]) == 0) ignore = 1;
-                if (cmpstr("MMDEBUG ON", &sbuff[1]) == 0) convertdebug = 0;
-                if (cmpstr("MMDEBUG OFF", &sbuff[1]) == 0) convertdebug = 1;
                 if (cmpstr("INCLUDE", &sbuff[1]) == 0) {
-                    importfile(file_path, &sbuff[8], &p, edit_buffer, convertdebug);
+                    importfile(file_path, &sbuff[8], &p, edit_buffer);
                 }
             }
         } else {
