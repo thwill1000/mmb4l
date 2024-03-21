@@ -84,21 +84,18 @@ static a_dlist *dlist;
 
 static void STR_REPLACE(char *target, const char *needle, const char *replacement) {
     char *ip = target;
-    int toggle = 0;
+    bool in_quotes = false;
     while (*ip) {
-        if (*ip == 34) {
-            if (toggle == 0)
-                toggle = 1;
-            else
-                toggle = 0;
+        if (*ip == '"') {
+            in_quotes = !in_quotes;
         }
-        if (toggle && *ip == ' ') {
+        if (in_quotes && *ip == ' ') {
             *ip = 0xFF;
         }
-        if (toggle && *ip == '.') {
+        if (in_quotes && *ip == '.') {
             *ip = 0xFE;
         }
-        if (toggle && *ip == '=') {
+        if (in_quotes && *ip == '=') {
             *ip = 0xFD;
         }
         ip++;
@@ -285,12 +282,11 @@ static void program_process_file(int fnbr, char **p, char *edit_buffer, const ch
     char num[10];
     char line_buffer[STRINGSIZE];
     char *sbuff, *ip, *op;
-    bool data;
+    bool data, in_quotes;
     int importlines = 0;
-    size_t slen;
+    size_t len, slen;
 
     while (!file_eof(fnbr)) {
-        size_t toggle = 0, len = 0;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
         //        mymemset(buff,0,256);
@@ -300,7 +296,7 @@ static void program_process_file(int fnbr, char **p, char *edit_buffer, const ch
         importlines++;
         //        routinechecks(1);
         len = strlen(line_buffer);
-        toggle = 0;
+        in_quotes = false;
         for (size_t c = 0; c < strlen(line_buffer); c++) {
             if (line_buffer[c] == TAB) line_buffer[c] = ' ';
         }
@@ -319,13 +315,10 @@ static void program_process_file(int fnbr, char **p, char *edit_buffer, const ch
         op = sbuff;
         ip = sbuff;
         while (*ip) {
-            if (*ip == 34) {
-                if (toggle == 0)
-                    toggle = 1;
-                else
-                    toggle = 0;
+            if (*ip == '"') {
+                in_quotes = !in_quotes;
             }
-            if (!toggle && (*ip == ' ' || *ip == ':')) {
+            if (!in_quotes && (*ip == ' ' || *ip == ':')) {
                 *op++ = *ip++;  // copy the first space
                 while (*ip == ' ') {
                     ip++;
@@ -336,14 +329,11 @@ static void program_process_file(int fnbr, char **p, char *edit_buffer, const ch
         }
         slen = len;
         for (size_t c = 0; c < slen; c++) {
-            if (sbuff[c] == 34) {
-                if (toggle == 0)
-                    toggle = 1;
-                else
-                    toggle = 0;
+            if (sbuff[c] == '"') {
+                in_quotes = !in_quotes;
             }
-            if (!(toggle || data)) sbuff[c] = toupper(sbuff[c]);
-            if (!toggle && sbuff[c] == 39 && len == slen) {
+            if (!(in_quotes || data)) sbuff[c] = toupper(sbuff[c]);
+            if (!in_quotes && sbuff[c] == 39 && len == slen) {
                 len = c;  // get rid of comments
                 break;
             }
@@ -360,7 +350,7 @@ static void program_process_file(int fnbr, char **p, char *edit_buffer, const ch
                 if (cmpstr("INCLUDE ", &sbuff[1]) == 0) ERROR_CANNOT_INCLUDE_FROM_INCLUDE;
             }
         } else {
-            if (toggle) sbuff[len++] = 34;
+            if (in_quotes) sbuff[len++] = '"';
             sbuff[len++] = 39;
             sbuff[len++] = '|';
             memcpy(&sbuff[len], filename, strlen(filename));
@@ -391,9 +381,9 @@ static void program_process_file(int fnbr, char **p, char *edit_buffer, const ch
 static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer) {
     int fnbr = file_find_free();
     char *q;
-    if ((q = strchr(tp, 34)) == 0) ERROR_SYNTAX;
+    if ((q = strchr(tp, '"')) == 0) ERROR_SYNTAX;
     q++;
-    if ((q = strchr(q, 34)) == 0) ERROR_SYNTAX;
+    if ((q = strchr(q, '"')) == 0) ERROR_SYNTAX;
     const char *filename = getCstring(tp);
 
     char file_path[STRINGSIZE];
@@ -713,7 +703,8 @@ static int program_load_file_internal(char *filename) {
     char num[10];
     size_t c;
     nDefines = 0;
-    int importlines = 0, data;
+    int importlines = 0;
+    bool data, in_quotes;
 
     ClearProgram();
     int fnbr = file_find_free();
@@ -724,18 +715,18 @@ static int program_load_file_internal(char *filename) {
     dlist = GetTempMemory(sizeof(a_dlist) * MAXDEFINES);
 
     while (!file_eof(fnbr)) {
-        size_t toggle = 0, len = 0, slen;  // while waiting for the end of file
+        size_t len = 0, slen;  // while waiting for the end of file
         sbuff = line_buffer;
         if ((p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
             ERROR_OUT_OF_MEMORY;
         //        mymemset(buff,0,256);
         memset(line_buffer, 0, STRINGSIZE);
         MMgetline(fnbr, line_buffer);  // get the input line
-        data = 0;
+        data = false;
         importlines++;
         //        routinechecks(1);
         len = strlen(line_buffer);
-        toggle = 0;
+        in_quotes = false;
         for (c = 0; c < strlen(line_buffer); c++) {
             if (line_buffer[c] == TAB) line_buffer[c] = ' ';
         }
@@ -749,18 +740,15 @@ static int program_load_file_internal(char *filename) {
             *sbuff = '\'';
             continue;
         }
-        if (strncasecmp(sbuff, "data ", 5) == 0) data = 1;
+        if (strncasecmp(sbuff, "data ", 5) == 0) data = true;
         slen = len;
         op = sbuff;
         ip = sbuff;
         while (*ip) {
-            if (*ip == 34) {
-                if (toggle == 0)
-                    toggle = 1;
-                else
-                    toggle = 0;
+            if (*ip == '"') {
+                in_quotes = !in_quotes;
             }
-            if (!toggle && (*ip == ' ' || *ip == ':')) {
+            if (!in_quotes && (*ip == ' ' || *ip == ':')) {
                 *op++ = *ip++;  // copy the first space
                 while (*ip == ' ') {
                     ip++;
@@ -784,21 +772,18 @@ static int program_load_file_internal(char *filename) {
                 }
             }
         } else {
-            toggle = 0;
+            in_quotes = false;
             for (c = 0; c < slen; c++) {
-                if (sbuff[c] == 34) {
-                    if (toggle == 0)
-                        toggle = 1;
-                    else
-                        toggle = 0;
+                if (sbuff[c] == '"') {
+                    in_quotes = !in_quotes;
                 }
-                if (!(toggle || data)) sbuff[c] = toupper(sbuff[c]);
-                if (!toggle && sbuff[c] == 39 && len == slen) {
+                if (!(in_quotes || data)) sbuff[c] = toupper(sbuff[c]);
+                if (!in_quotes && sbuff[c] == 39 && len == slen) {
                     len = c;  // get rid of comments
                     break;
                 }
             }
-            if (toggle) sbuff[len++] = 34;
+            if (in_quotes) sbuff[len++] = '"';
             sbuff[len++] = 39;
             sbuff[len++] = '|';
             IntToStr(num, importlines, 10);
