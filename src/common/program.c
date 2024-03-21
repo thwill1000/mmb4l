@@ -281,38 +281,14 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
     return path_get_canonical(path, out, STRINGSIZE);
 }
 
-static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer) {
-
-    char line_buffer[STRINGSIZE];
+static void program_process_file(int fnbr, char **p, char *edit_buffer, const char *filename) {
     char num[10];
+    char line_buffer[STRINGSIZE];
+    char *sbuff, *ip, *op;
+    bool data;
     int importlines = 0;
-    char *filename, *sbuff, *op, *ip;
-    size_t c, slen, data;
-    int fnbr = file_find_free();
-    char *q;
-    if ((q = strchr(tp, 34)) == 0) ERROR_SYNTAX;
-    q++;
-    if ((q = strchr(q, 34)) == 0) ERROR_SYNTAX;
-    filename = getCstring(tp);
+    size_t slen;
 
-    char file_path[STRINGSIZE];
-    MmResult result = program_get_inc_file(parent_file, filename, file_path);
-    switch (result) {
-        case kOk:
-            break;
-        case kFileNotFound:
-            ERROR_INCLUDE_FILE_NOT_FOUND(filename);
-            break;
-        case kFilenameTooLong:
-            ERROR_PATH_TOO_LONG;
-            break;
-        default:
-            error_throw(result);
-            break;
-    }
-
-    file_open(file_path, "rb", fnbr);
-    //    while(!FileEOF(fnbr)) {
     while (!file_eof(fnbr)) {
         size_t toggle = 0, len = 0;  // while waiting for the end of file
         sbuff = line_buffer;
@@ -320,12 +296,12 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer)
         //        mymemset(buff,0,256);
         memset(line_buffer, 0, STRINGSIZE);
         MMgetline(fnbr, line_buffer);  // get the input line
-        data = 0;
+        data = false;
         importlines++;
         //        routinechecks(1);
         len = strlen(line_buffer);
         toggle = 0;
-        for (c = 0; c < strlen(line_buffer); c++) {
+        for (size_t c = 0; c < strlen(line_buffer); c++) {
             if (line_buffer[c] == TAB) line_buffer[c] = ' ';
         }
         while (*sbuff == ' ') {
@@ -338,7 +314,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer)
             *sbuff = '\'';
             continue;
         }
-        if (strncasecmp(sbuff, "data ", 5) == 0) data = 1;
+        if (strncasecmp(sbuff, "data ", 5) == 0) data = true;
         slen = len;
         op = sbuff;
         ip = sbuff;
@@ -359,7 +335,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer)
                 *op++ = *ip++;
         }
         slen = len;
-        for (c = 0; c < slen; c++) {
+        for (size_t c = 0; c < slen; c++) {
             if (sbuff[c] == 34) {
                 if (toggle == 0)
                     toggle = 1;
@@ -410,7 +386,34 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer)
             }
         }
     }
+}
 
+static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer) {
+    int fnbr = file_find_free();
+    char *q;
+    if ((q = strchr(tp, 34)) == 0) ERROR_SYNTAX;
+    q++;
+    if ((q = strchr(q, 34)) == 0) ERROR_SYNTAX;
+    const char *filename = getCstring(tp);
+
+    char file_path[STRINGSIZE];
+    MmResult result = program_get_inc_file(parent_file, filename, file_path);
+    switch (result) {
+        case kOk:
+            break;
+        case kFileNotFound:
+            ERROR_INCLUDE_FILE_NOT_FOUND(filename);
+            break;
+        case kFilenameTooLong:
+            ERROR_PATH_TOO_LONG;
+            break;
+        default:
+            error_throw(result);
+            break;
+    }
+
+    file_open(file_path, "rb", fnbr);
+    program_process_file(fnbr, p, edit_buffer, filename);
     file_close(fnbr);
 }
 
