@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Thomas Hugo Williams
+ * Copyright (c) 2021-2024 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -11,43 +11,54 @@
 
 extern "C" {
 
+#include "../error.h"
+#include "../memory.h"
 #include "../options.h"
 #include "../program.h"
 #include "../utility.h"
+#include "../../core/Commands.h"
 #include "../../core/commandtbl.h"
+#include "../../core/MMBasic.h"
+#include "../../core/gtest/command_stubs.h"
+#include "../../core/gtest/function_stubs.h"
+#include "../../core/gtest/operation_stubs.h"
 
-char *CFunctionFlash = NULL;
-CommandToken cmdCSUB = 0x0000;
-CommandToken cmdEND_CSUB = 0x0000;
-char *CurrentLinePtr = NULL;
-char inpbuf[INPBUF_SIZE] = { '\0' };
-char ProgMemory[PROG_FLASH_SIZE] = { '\0' } ;
-char tknbuf[TKNBUF_SIZE] = { '\0' };
-Options mmb_options = { 0 };
+// Defined in "main.c"
+char *CFunctionFlash;
+char *CFunctionLibrary;
+char **FontTable;
+ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
+Options mmb_options;
+ErrorState mmb_normal_error_state;
+int MMgetchar(void) { return 0; }
 
-void ClearProgram(void) { }
-void ClearSpecificTempMemory(void *addr) { }
+// Defined in "commands/cmd_read.c"
+void cmd_read_clear_cache()  { }
+
+// Defined in "common/console.c"
+int console_kbhit(void) { return 0; }
+char console_putc(char c) { return c; }
+void console_puts(const char *s) { }
 void console_set_title(const char *title) { }
-int error_check(void) { return 0; }
-void error_throw(MmResult error) { }
-void error_throw_ex(MmResult error, char *msg, ...) { }
-void file_close(int fnbr) { }
-int file_eof(int fnbr) { return 0; }
-int file_find_free(void) { return 1; }
-void file_open(char *fname, char *mode, int fnbr) { }
-CommandToken commandtbl_get(const char *s) { return 0x0000; }
-char *getCstring(char *p) { return NULL; }
-void *GetTempMemory(int NbrBytes) { return NULL; }
-void IntToStr(char *strr, long long int nbr, unsigned int base) { }
-void ListNewLine(int *ListCnt, int all) { }
-void makeargs(char **p, int maxargs, char *argbuf, char *argv[], int *argc, char *delim) { }
-void MMgetline(int filenbr, char *p) { }
-void console_puts(const char* s) { }
-void tokenise(int console) { }
+size_t console_write(const char *buf, size_t sz) { return 0; }
 
-// MMBasic.c
-MMINTEGER getinteger(const char *p) { return 0; }
-int getint(const char *p, int min, int max) { return 0; }
+// Defined in "common/graphics.c"
+void graphics_term(void) { }
+
+// Defined in "core/Commands.c"
+char DimUsed;
+int doindex;
+struct s_dostack dostack[MAXDOLOOPS];
+const char *errorstack[MAXGOSUB];
+int forindex;
+struct s_forstack forstack[MAXFORLOOPS + 1];
+int gosubindex;
+const char *gosubstack[MAXGOSUB];
+int TraceBuffIndex;
+const char *TraceBuff[TRACE_BUFF_SIZE];
+int TraceOn;
+void CheckAbort(void) { }
+void ListNewLine(int *ListCnt, int all) { }
 
 } // extern "C"
 
@@ -65,7 +76,12 @@ protected:
     }
 
     void MakeEmptyFile(const char* path) {
+        MakeFile(path, "");
+    }
+
+    void MakeFile(const char *path, const char *contents) {
         FILE *f = fopen(path, "w");
+        fprintf(f, "%s", contents); // Assuming contents contains no NULLs.
         fclose(f);
     }
 
@@ -130,10 +146,12 @@ protected:
         errno = 0;
         CurrentLinePtr = (char *) 0;
         strcpy(CurrentFile, "");
+        program_init_defines();
     }
 
     void TearDown() override {
         RemoveTemporaryFiles();
+        program_term_defines();
     }
 };
 
@@ -356,4 +374,216 @@ TEST_F(ProgramTest, GetIncFile_GivenRelativePath) {
     // Test when "foo" without extension is present.
     MakeEmptyFile(PROGRAM_TEST_DIR "/bar/foo");
     TEST_PROGRAM_GET_INC_FILE("foo",     PROGRAM_TEST_DIR "/bar/foo");
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenEmptyLine) {
+    char line[STRINGSIZE] = { 0 };
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenLeadingWhitespace_StripsWhitespace) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "    Print 5");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("PRINT 5", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenRemCommandWithContent) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "REM foo bar");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenRemCommandWithNoContent) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "REM");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenComment_RemovesComment) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "Print 5 ' foo bar");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("PRINT 5", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenCommentContainingDoubleQuote_RemovesComment) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "Print 5 ' foo \" bar");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("PRINT 5", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenStringContainingSingleQuote) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "Print \"'\"");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("PRINT \"'\"", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_CompressesSpaces) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "Print   \"foo bar\"  +    \"wom   bat\"");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("PRINT \"foo bar\" + \"wom   bat\"", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenUnclosedDoubleQuote) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "Print \"foo bar");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("PRINT \"foo bar\"", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenTabs_ReplacesWithSpaces) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "Print\t\"foo\tbar"); // Even within quotes.
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("PRINT \"foo bar\"", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenData_DoesNotConvertToUpperCase) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "Data abc, \"def\"");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("Data abc, \"def\"", line); // TODO: Keyword should probably be capitalised.
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenLessThanOrEqual_ConvertsToCanonicalForm) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "If a <= b And b =< c Then");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("IF A <= B AND B <= C THEN", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenGreaterThanOrEqual_ConvertsToCanonicalForm) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "If a >= b And b => c Then");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("IF A >= B AND B >= C THEN", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_GivenDirective) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "#include \"foo\"");
+
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("#INCLUDE \"foo\"", line);
+}
+
+TEST_F(ProgramTest, ProcessLine_AppliesDefineReplacements) {
+    char line[STRINGSIZE] = { 0 };
+    strcpy(line, "wom bat");
+    program_add_define("wom", "foo");
+    program_add_define("bat", "snafu");
+
+    // Matching is case-insensitive and replacements are in upper-case.
+    EXPECT_EQ(kOk, program_process_line(line));
+    EXPECT_STREQ("FOO SNAFU", line);
+}
+
+TEST_F(ProgramTest, ProcessFile_GivenEmpty) {
+    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
+    MakeFile(file_path, "");
+    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
+    char *p = edit_buffer;
+
+    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
+    EXPECT_STREQ("", edit_buffer);
+
+    ClearSpecificTempMemory(edit_buffer);
+}
+
+TEST_F(ProgramTest, ProcessFile_GivenNotEmpty) {
+    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
+    MakeFile(file_path,
+        "Print \"Hello World\"\n"
+        "Dim a = 1");
+    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
+    char *p = edit_buffer;
+
+    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
+    EXPECT_STREQ(
+        "PRINT \"Hello World\"'|foo.bas,1\n"
+        "DIM A = 1'|foo.bas,2\n",
+        edit_buffer);
+
+    ClearSpecificTempMemory(edit_buffer);
+}
+
+TEST_F(ProgramTest, ProcessFile_GivenEmptyLines_IgnoresThem) {
+    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
+    MakeFile(file_path,
+        "\n"
+        "Print \"Hello World\"\n"
+        "    \n"
+        "Dim a = 1"
+        "' this is a comment");
+    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
+    char *p = edit_buffer;
+
+    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
+    EXPECT_STREQ(
+        "PRINT \"Hello World\"'|foo.bas,2\n"
+        "DIM A = 1'|foo.bas,4\n",
+        edit_buffer);
+
+    ClearSpecificTempMemory(edit_buffer);
+}
+
+TEST_F(ProgramTest, ProcessFile_GivenIncludeDirective_ReturnsError) {
+    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
+    MakeFile(file_path, "#Include \"wom.inc\"");
+    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
+    char *p = edit_buffer;
+
+    EXPECT_EQ(kUnsupportedNestedInclude, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
+    EXPECT_STREQ("", edit_buffer);
+
+    ClearSpecificTempMemory(edit_buffer);
+}
+
+TEST_F(ProgramTest, ProcessFile_GivenDefineDirective_CreatesDefine) {
+    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
+    MakeFile(file_path, "#Define \"foo\", \"bar\"");
+    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
+    char *p = edit_buffer;
+
+    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
+    EXPECT_STREQ("", edit_buffer);
+    EXPECT_EQ(1, program_get_num_defines());
+    const char *from, *to;
+    EXPECT_EQ(kOk, program_get_define(0, &from, &to));
+    EXPECT_STREQ("foo", from);
+    EXPECT_STREQ("bar", to);
+
+    ClearSpecificTempMemory(edit_buffer);
+}
+
+TEST_F(ProgramTest, ProcessFile_GivenUnnownDirective_IgnoresIt) {
+    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
+    MakeFile(file_path, "#Unknown \"wom.inc\"");
+    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
+    char *p = edit_buffer;
+
+    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
+    EXPECT_STREQ("", edit_buffer);
+
+    ClearSpecificTempMemory(edit_buffer);
 }

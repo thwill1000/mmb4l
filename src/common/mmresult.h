@@ -88,7 +88,9 @@ typedef enum {
     kInvalidName,
     kInvalidArrayDimensions,
     kFunctionTypeMismatch,
-    kInvalidCommandLine
+    kInvalidCommandLine,
+    kTooManyDefines,
+    kUnsupportedNestedInclude
 } MmResultCode;
 
 /**
