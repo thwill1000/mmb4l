@@ -77,6 +77,8 @@ const char *mmresult_to_string(MmResult result) {
         case kFunctionTypeMismatch: return "Not a function";
         case kInvalidCommandLine: return "Invalid command line arguments";
         case kStringLength:         return "String length";
-        default:                    return "Unknown result code";
+        case kTooManyDefines:             return "Too many #DEFINE directives";
+        case kUnsupportedNestedInclude:   return "Nested #INCLUDE directives are not supported";
+        default:                          return "Unknown result code";
     }
 }

@@ -91,4 +91,58 @@ int program_load_file(char *filename);
 
 void program_list_csubs(int all);
 
+/**
+ * @brief Pre-process a file into the edit buffer.
+ *
+ * @param          file_path    The full path to the file to pre-process.
+ * @param[in,out]  p            Pointer to the insertion point in the edit buffer.
+ * @param          edit_buffer  Pointer to the start of the edit buffer.
+ * @param          filename     The #INCLUDE path to the the file to pre-process.
+ * @return                      kOk on success.
+ */
+MmResult program_process_file(const char *file_path, char **p, char *edit_buffer, const char *filename);
+
+/**
+ * @brief Pre-process a single line of the program (in place).
+ *
+ * @param[in,out]  line  The line to pre-process.
+ * @return               kOk on success.
+ */
+MmResult program_process_line(char *line);
+
+/**
+ * @brief Initialises/allocates the string replacement map.
+ */
+void program_init_defines();
+
+/**
+ * @brief Terminates/frees the string replacement map.
+ */
+void program_term_defines();
+
+/**
+ * @brief Add an entry to the string replacement map.
+ *
+ * @param  from  The 'from' string.
+ * @param  to    The 'to' string.
+ * @return       kOk on success,
+ *               kTooManyDefines if there are too many #DEFINEs.
+ */
+MmResult program_add_define(const char *from, const char *to);
+
+/**
+ * @brief Gets the number of entries in the string replacement map.
+ */
+int program_get_num_defines();
+
+/**
+ * @brief Gets an entry from the string replacement map.
+ *
+ * @param       idx   Index of the entry to get.
+ * @param[out]  from  On exit points to the entry's 'from' property.
+ * @param[out]  to    On exit points to the entry's 'from' property.
+ * @return            kOk on success.
+ */
+MmResult program_get_define(size_t idx, const char **from, const char **to);
+
 #endif
