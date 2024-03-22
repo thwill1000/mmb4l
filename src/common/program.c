@@ -42,13 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "program.h"
-
-#include "mmb4l.h"
 #include "console.h"
 #include "cstring.h"
 #include "file.h"
+#include "mmb4l.h"
+#include "parse.h"
 #include "path.h"
+#include "program.h"
 #include "utility.h"
 #include "../core/commandtbl.h"
 
@@ -56,7 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <unistd.h>
 
-#define ERROR_CANNOT_INCLUDE_FROM_INCLUDE  error_throw_ex(kError, "Can't import from an import")
 #define ERROR_FUNCTION_NAME                error_throw_ex(kError, "Function name")
 #define ERROR_INCLUDE_FILE_NOT_FOUND(s)    error_throw_ex(kFileNotFound, "Include file '$' not found", s)
 #define ERROR_INVALID_HEX                  ERROR_INVALID("hex word")
@@ -75,7 +74,7 @@ static const char *INC_FILE_EXTENSIONS[] = { ".inc", ".INC", ".Inc", ".inc" };
 
 char CurrentFile[STRINGSIZE];
 
-static int nDefines = 0;
+static size_t nDefines = 0;
 
 typedef struct sa_dlist {
     char from[STRINGSIZE];
@@ -129,21 +128,21 @@ static int massage(char *buff) {
     }
     STR_REPLACE(buff, "=<", "<=");
     STR_REPLACE(buff, "=>", ">=");
-    STR_REPLACE(buff, " ,", ",");
-    STR_REPLACE(buff, ", ", ",");
-    STR_REPLACE(buff, " *", "*");
-    STR_REPLACE(buff, "* ", "*");
-    STR_REPLACE(buff, "- ", "-");
-    STR_REPLACE(buff, " /", "/");
-    STR_REPLACE(buff, "/ ", "/");
-    STR_REPLACE(buff, "= ", "=");
-    STR_REPLACE(buff, "+ ", "+");
-    STR_REPLACE(buff, " )", ")");
-    STR_REPLACE(buff, ") ", ")");
-    STR_REPLACE(buff, "( ", "(");
-    STR_REPLACE(buff, "> ", ">");
-    STR_REPLACE(buff, "< ", "<");
-    STR_REPLACE(buff, " '", "'");
+    // STR_REPLACE(buff, " ,", ",");
+    // STR_REPLACE(buff, ", ", ",");
+    // STR_REPLACE(buff, " *", "*");
+    // STR_REPLACE(buff, "* ", "*");
+    // STR_REPLACE(buff, "- ", "-");
+    // STR_REPLACE(buff, " /", "/");
+    // STR_REPLACE(buff, "/ ", "/");
+    // STR_REPLACE(buff, "= ", "=");
+    // STR_REPLACE(buff, "+ ", "+");
+    // STR_REPLACE(buff, " )", ")");
+    // STR_REPLACE(buff, ") ", ")");
+    // STR_REPLACE(buff, "( ", "(");
+    // STR_REPLACE(buff, "> ", ">");
+    // STR_REPLACE(buff, "< ", "<");
+    // STR_REPLACE(buff, " '", "'");
     return strlen(buff);
 }
 
@@ -280,121 +279,168 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
     return path_get_canonical(path, out, STRINGSIZE);
 }
 
-static void program_process_line(int fnbr, char *line_buffer, const char *filename, int importlines, char **p) {
+void program_init_defines() {
+    nDefines = 0;
+    dlist = GetTempMemory(sizeof(a_dlist) * MAXDEFINES);
+}
+
+void program_term_defines() {
+    nDefines = 0;
+    ClearSpecificTempMemory(dlist);
+}
+
+MmResult program_add_define(const char *from, const char *to) {
+    if (nDefines >= MAXDEFINES) return kTooManyDefines;
+    strcpy(dlist[nDefines].from, from);
+    strcpy(dlist[nDefines].to, to);
+    nDefines++;
+    return kOk;
+}
+
+int program_get_num_defines() {
+    return nDefines;
+}
+
+MmResult program_get_define(size_t idx, const char **from, const char **to) {
+    if (idx >= nDefines) return kInternalFault;
+    *from = dlist[idx].from;
+    *to = dlist[idx].to;
+    return kOk;
+}
+
+MmResult program_process_line(char *line) {
     bool in_quotes = false;
 
-    // Read a program line.
-    memset(line_buffer, 0, STRINGSIZE);
-    MMgetline(fnbr, line_buffer);
-    size_t len = strlen(line_buffer);
-
-    // Convert tab characters into single spaces in the line_buffer.
-    for (size_t c = 0; c < strlen(line_buffer); c++) {
-        if (line_buffer[c] == TAB) line_buffer[c] = ' ';
+    // Convert tab characters into single spaces in the line.
+    for (size_t c = 0; c < strlen(line); c++) {
+        if (line[c] == TAB) line[c] = ' ';
     }
 
-    // sbuff points to the first non space character in the line_buffer.
-    char *sbuff = line_buffer;
-    while (*sbuff == ' ') {
-        sbuff++;
-        len--;
-    }
+    // sbuff points to the first non space character in the line.
+    cstring_trim(line);
 
     // Replace REM command with ' comment character.
-    if (strncasecmp(sbuff, "REM ", 4) == 0 ||
-        (len == 3 && strncasecmp(sbuff, "REM", 3) == 0)) {
-        sbuff += 2;
-        *sbuff = SINGLE_QUOTE;
-        return;
+    // TODO: What if line contains REM command but it is not the first command ?
+    if (strncasecmp(line, "REM ", 4) == 0 ||
+        (strlen(line) == 3 && strncasecmp(line, "REM", 3) == 0)) {
+        line[0] = ' ';
+        line[1] = ' ';
+        line[2] = SINGLE_QUOTE;
+        cstring_trim(line);
     }
 
     // Are we processing a DATA command ?
-    bool data = (strncasecmp(sbuff, "DATA ", 5) == 0);
+    bool data = (strncasecmp(line, "DATA ", 5) == 0);
 
     // Compress multiple spaces into one.
-    size_t slen = len;
-    char *op = sbuff;
-    char *ip = sbuff;
+    char *op = line;
+    char *ip = line;
     while (*ip) {
         if (*ip == '"') {
             in_quotes = !in_quotes;
         }
-        if (!in_quotes && (*ip == ' ' || *ip == ':')) {
+        if (!in_quotes && (*ip == ' ')) {
             *op++ = *ip++;
             while (*ip == ' ') {
                 ip++;
-                len--;
             }
-        } else
-            *op++ = *ip++;
-    }
-    slen = len;
-
-    // Remove comments.
-    for (size_t c = 0; c < slen; c++) {
-        if (sbuff[c] == '"') {
-            in_quotes = !in_quotes;
-        }
-        if (!(in_quotes || data)) sbuff[c] = toupper(sbuff[c]);
-        if (!in_quotes && sbuff[c] == SINGLE_QUOTE && len == slen) {
-            len = c;
-            break;
-        }
-    }
-
-    // Handle "pre-processor" commands.
-    if (*sbuff == '#') {
-        const char *tp = checkstring(&sbuff[1], "DEFINE");
-        if (tp) {
-            getargs(&tp, 3, ",");
-            if (nDefines >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;
-            strcpy(dlist[nDefines].from, getCstring(argv[0]));
-            strcpy(dlist[nDefines].to, getCstring(argv[2]));
-            nDefines++;
         } else {
-            if (cmpstr("INCLUDE ", &sbuff[1]) == 0) ERROR_CANNOT_INCLUDE_FROM_INCLUDE;
+            *op++ = *ip++;
         }
-        return;
     }
+    *op = '\0';
+
+    // Convert to upper-case and remove comments unless processing a DATA command.
+    in_quotes = false;
+    ip = line;
+    while (*ip) {
+        switch (*ip) {
+            case '"':
+                in_quotes = !in_quotes;
+                break;
+            case SINGLE_QUOTE:
+                if (!in_quotes) {
+                    *ip = '\0';
+                    in_quotes = false;
+                }
+                break;
+            default:
+                if (!in_quotes && !data) *ip = toupper(*ip);
+                break;
+        }
+        if (!*ip) break;
+        ip++;
+    }
+
+    cstring_trim(line);
+
+    if (*line == '#') return kOk; // pre-processor directive.
 
     // Close any open double-quote.
-    if (in_quotes) sbuff[len++] = '"';
+    if (in_quotes) cstring_cat(line, "\"", STRINGSIZE);
 
-    // Append file and line-number.
-    sbuff[len++] = SINGLE_QUOTE;
-    sbuff[len++] = '|';
-    memcpy(&sbuff[len], filename, strlen(filename));
-    len += strlen(filename);
-    sbuff[len++] = ',';
-    char num[10];
-    IntToStr(num, importlines, 10);
-    strcpy(&sbuff[len], num);
-    len += strlen(num);
-    if (len > 254) ERROR_LINE_TOO_LONG;
-    sbuff[len] = 0;
+    massage(line);
 
-    len = massage(sbuff);  // can't risk crushing lines with a quote in them
-    if ((sbuff[0] != SINGLE_QUOTE) || (sbuff[0] == SINGLE_QUOTE && sbuff[1] == SINGLE_QUOTE)) {
-        memcpy(*p, sbuff, len);
-        *p += len;
-        **p = '\n';
-        *p += 1;
-    }
+    return kOk;
 }
 
-static void program_process_file(int fnbr, char **p, char *edit_buffer, const char *filename) {
-    char line_buffer[STRINGSIZE];
-    int importlines = 0;
+MmResult program_process_file(const char *file_path, char **p, char *edit_buffer, const char *filename) {
+    char line[STRINGSIZE];
+    int line_num = 0;
+
+    int fnbr = file_find_free();
+    file_open(file_path, "rb", fnbr);
 
     while (!file_eof(fnbr)) {
         if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
-        importlines++;
-        program_process_line(fnbr, line_buffer, filename, importlines, p);
+        line_num++;
+
+        // Read a program line.
+        memset(line, 0, STRINGSIZE);
+        MMgetline(fnbr, line);
+
+        // Pre-process the line.
+        MmResult result = program_process_line(line);
+        if (FAILED(result)) return result;
+
+        // Handle pre-processor directives.
+        if (*line == '#') {
+            const char *tp;
+            if ((tp = checkstring(line, "#DEFINE"))) {
+                getargs(&tp, 3, ",");
+                result = program_add_define(getCstring(argv[0]), getCstring(argv[2]));
+                if (FAILED(result)) error_throw(result);
+                continue;  // Don't write to edit buffer.
+            } else if ((tp = checkstring(line, "#INCLUDE"))) {
+                return kUnsupportedNestedInclude;
+            } else {
+                continue;  // Ignore unknown directive.
+            }
+        }
+
+        // Append file and line-number.
+        result = cstring_cat(line, "'|", STRINGSIZE);
+        if (SUCCEEDED(result)) result = cstring_cat(line, filename, STRINGSIZE);
+        if (SUCCEEDED(result)) result = cstring_cat(line, ",", STRINGSIZE);
+        if (SUCCEEDED(result)) result = cstring_cat_int64(line, line_num, STRINGSIZE);
+        if (FAILED(result)) ERROR_LINE_TOO_LONG;
+
+        // Copy the transformed line into the edit buffer, terminating with '\n'.
+        size_t len = strlen(line);
+        if ((line[0] != SINGLE_QUOTE) || (line[0] == SINGLE_QUOTE && line[1] == SINGLE_QUOTE)) {
+            memcpy(*p, line, len);
+            *p += len;
+            **p = '\n';
+            *p += 1;
+        }
     }
+
+    file_close(fnbr);
+
+    return kOk;
 }
 
 static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer) {
-    int fnbr = file_find_free();
     char *q;
     if ((q = strchr(tp, '"')) == 0) ERROR_SYNTAX;
     q++;
@@ -417,9 +463,8 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer)
             break;
     }
 
-    file_open(file_path, "rb", fnbr);
-    program_process_file(fnbr, p, edit_buffer, filename);
-    file_close(fnbr);
+    result = program_process_file(file_path, p, edit_buffer, filename);
+    if (FAILED(result)) error_throw(result);
 }
 
 static bool program_path_exists(const char *root, const char *stem, const char *extension) {
@@ -714,7 +759,7 @@ static int program_load_file_internal(char *filename) {
     }
 
     char *p, *op, *ip, *edit_buffer, *sbuff;
-    char line_buffer[STRINGSIZE];
+    char line[STRINGSIZE];
     char num[10];
     size_t c;
     nDefines = 0;
@@ -727,23 +772,23 @@ static int program_load_file_internal(char *filename) {
 
     // TODO: are these being properly released after a longjmp() ?
     p = edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);
-    dlist = GetTempMemory(sizeof(a_dlist) * MAXDEFINES);
+    program_init_defines();
 
     while (!file_eof(fnbr)) {
         size_t len = 0, slen;  // while waiting for the end of file
-        sbuff = line_buffer;
+        sbuff = line;
         if ((p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
             ERROR_OUT_OF_MEMORY;
         //        mymemset(buff,0,256);
-        memset(line_buffer, 0, STRINGSIZE);
-        MMgetline(fnbr, line_buffer);  // get the input line
+        memset(line, 0, STRINGSIZE);
+        MMgetline(fnbr, line);  // get the input line
         data = false;
         importlines++;
         //        routinechecks(1);
-        len = strlen(line_buffer);
+        len = strlen(line);
         in_quotes = false;
-        for (c = 0; c < strlen(line_buffer); c++) {
-            if (line_buffer[c] == TAB) line_buffer[c] = ' ';
+        for (c = 0; c < strlen(line); c++) {
+            if (line[c] == TAB) line[c] = ' ';
         }
         while (sbuff[0] == ' ') {  // strip leading spaces
             sbuff++;
@@ -825,7 +870,7 @@ static int program_load_file_internal(char *filename) {
     program_tokenise(file_path, edit_buffer);
 
     ClearSpecificTempMemory(edit_buffer);
-    ClearSpecificTempMemory(dlist);
+    program_term_defines();
 
     program_process_csubs();
     // program_list_csubs(1);

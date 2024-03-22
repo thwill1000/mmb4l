@@ -91,7 +91,9 @@ typedef enum {
     kInvalidCommandLine,
     kGraphicsFailedToInitialise,
     kGraphicsWindowNotCreated,
-    kGraphicsWindowNotFound
+    kGraphicsWindowNotFound,
+    kTooManyDefines,
+    kUnsupportedNestedInclude
 } MmResultCode;
 
 /**

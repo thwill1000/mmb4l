@@ -80,6 +80,8 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsFailedToInitialise: return "Graphics subsystem failed to initialise";
         case kGraphicsWindowNotCreated:   return "Window could not be created";
         case kGraphicsWindowNotFound:     return "Invalid graphics window";
+        case kTooManyDefines:             return "Too many #DEFINE directives";
+        case kUnsupportedNestedInclude:   return "Nested #INCLUDE directives are not supported";
         default:                          return "Unknown result code";
     }
 }
