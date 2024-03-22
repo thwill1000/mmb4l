@@ -414,11 +414,29 @@ gtest_discover_tests(test_path)
 add_executable(
   test_program
   src/common/cstring.c
+  src/common/file.c
+  src/common/interrupt.c
+  src/common/memory.c
+  src/common/mmgetline.c
+  src/common/mmresult.c
+  src/common/mmtime.c
   src/common/path.c
   src/common/parse.c
   src/common/program.c
+  src/common/rx_buf.c
+  src/common/serial.c
   src/common/utility.c
   src/common/gtest/program_test.cxx
+  src/common/gtest/test_helper.c
+  src/core/commandtbl.c
+  src/core/funtbl.c
+  src/core/MMBasic.c
+  src/core/tokentbl.c
+  src/core/vartbl.c
+)
+
+target_include_directories(test_program PUBLIC
+  /usr/include/SDL2
 )
 
 target_link_libraries(
