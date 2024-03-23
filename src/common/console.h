@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONSOLE_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 // the values returned by the standard control keys
 #define TAB 0x9
