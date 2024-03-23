@@ -113,8 +113,9 @@ bool cstring_isquoted(const char *s);
  * @param [in,out] target       string to apply replacements to.
  * @param [in]     needle       replace this ...
  * @param [in]     replacement  ... with this
+ * @return                      0 on success, -1 on failure.
  */
-void cstring_replace(char *target, const char *needle, const char *replacement);
+int cstring_replace(char *target, const char *needle, const char *replacement);
 
 /**
  * @brief Performs inplace conversion of a C-string to lower-case.
