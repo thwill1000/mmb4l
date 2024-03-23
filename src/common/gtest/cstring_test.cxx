@@ -12,6 +12,11 @@ extern "C" {
 
 }
 
+static void init_string(char *s, size_t len) {
+    memset(s, 'X', len);
+    s[len - 1] = '\0';
+}
+
 TEST(CstringTest, Cat) {
     char s[10];
 
@@ -58,6 +63,45 @@ TEST(CstringTest, Cat) {
     EXPECT_STREQ("", s);
     EXPECT_STREQ("XXXXXXXX", s + strlen(s) + 1);
 }
+
+TEST(CstringTest, CatInt64) {
+    char s[32];
+
+    init_string(s, sizeof(s));
+    strcpy(s, "abc");
+    EXPECT_EQ(0, cstring_cat_int64(s, 42, sizeof(s) - 2));
+    EXPECT_STREQ("abc42", s);
+    EXPECT_STREQ("XXXXXXXXXXXXXXXXXXXXXXXXX", s + strlen(s) + 1);
+
+    // Maximum int64_t.
+    init_string(s, sizeof(s));
+    strcpy(s, "abc");
+    EXPECT_EQ(0, cstring_cat_int64(s, INT64_MAX, sizeof(s) - 2));
+    EXPECT_STREQ("abc9223372036854775807", s);
+    EXPECT_STREQ("XXXXXXXX", s + strlen(s) + 1);
+
+    // Minimum int64_t.
+    init_string(s, sizeof(s));
+    strcpy(s, "abc");
+    EXPECT_EQ(0, cstring_cat_int64(s, INT64_MIN, sizeof(s) - 2));
+    EXPECT_STREQ("abc-9223372036854775808", s);
+    EXPECT_STREQ("XXXXXXX", s + strlen(s) + 1);
+
+    // Exactly at the size limit.
+    init_string(s, sizeof(s));
+    strcpy(s, "01234567890123456789012345_");
+    EXPECT_EQ(0, cstring_cat_int64(s, 42, sizeof(s) - 2));
+    EXPECT_STREQ("01234567890123456789012345_42", s);
+    EXPECT_STREQ("X", s + strlen(s) + 1);
+
+    // One beyond the size limit.
+    init_string(s, sizeof(s));
+    strcpy(s, "012345678901234567890123456_");
+    EXPECT_EQ(-1, cstring_cat_int64(s, 42, sizeof(s) - 2));
+    EXPECT_STREQ("012345678901234567890123456_4", s);
+    EXPECT_STREQ("X", s + strlen(s) + 1);
+}
+
 
 TEST(CstringTest, Cpy) {
     char dst[10] = { 0 };
