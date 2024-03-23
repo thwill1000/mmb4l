@@ -62,6 +62,12 @@ int cstring_cat(char *dst, const char *src, size_t dst_sz) {
     return dst_len + src_len < dst_sz ? 0 : -1;
 }
 
+int cstring_cat_int64(char *dst, int64_t src, size_t dst_sz) {
+    char buf[32];
+    sprintf(buf, "%ld", src);
+    return cstring_cat(dst, buf, dst_sz);
+}
+
 int cstring_cpy(char *dst, const char *src, size_t dst_sz) {
     if (dst_sz == 0) return -1;
     const char *limit = dst + dst_sz - 1;
