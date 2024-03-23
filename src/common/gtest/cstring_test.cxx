@@ -205,9 +205,22 @@ TEST(CstringTest, IsQuoted) {
 TEST(CstringTest, Replace) {
     char s[256] = "cat dog fish cat";
 
-    cstring_replace(s, "cat", "elephant");
-
+    EXPECT_EQ(0, cstring_replace(s, "cat", "elephant"));
     EXPECT_STREQ("elephant dog fish elephant", s);
+}
+
+TEST(CstringTest, Replace_GivenEmptyTarget) {
+    char s[256] = "";
+
+    EXPECT_EQ(0, cstring_replace(s, "cat", "elephant"));
+    EXPECT_STREQ("", s);
+}
+
+TEST(CstringTest, Replace_GivenEmptyNeedle) {
+    char s[256] = "cat dog fish cat";
+
+    EXPECT_EQ(-1, cstring_replace(s, "", "elephant"));
+    EXPECT_STREQ("cat dog fish cat", s);
 }
 
 TEST(CstringTest, ToLower) {
