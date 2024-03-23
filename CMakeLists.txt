@@ -149,6 +149,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/interrupt.c
     src/common/maths.c
     src/common/memory.c
+    src/common/mmgetline.c
     src/common/mmresult.c
     src/common/mmtime.c
     src/common/options.c
