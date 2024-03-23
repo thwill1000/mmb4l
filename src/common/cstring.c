@@ -96,12 +96,14 @@ bool cstring_isquoted(const char *s) {
 
 // TODO: be smart and safe about not overrunning target.
 // TODO: unit test this better.
-void cstring_replace(char *target, const char *needle, const char *replacement) {
+int cstring_replace(char *target, const char *needle, const char *replacement) {
     char buffer[288] = {0};
     char *insert_point = &buffer[0];
     const char *tmp = target;
     size_t needle_len = strlen(needle);
     size_t repl_len = strlen(replacement);
+
+    if (needle_len <= 0) return -1;
 
     while (1) {
         const char *p = strstr(tmp, needle);
@@ -126,6 +128,8 @@ void cstring_replace(char *target, const char *needle, const char *replacement) 
 
     // write altered string back to target
     strcpy(target, buffer);
+
+    return 0;
 }
 
 char *cstring_tolower(char *s) {
