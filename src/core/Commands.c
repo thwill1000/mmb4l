@@ -215,7 +215,7 @@ void ListNewLine(int *ListCnt, int all) {
 }
 
 
-void ListProgram(char *p, int all) {
+void ListProgram(const char *p, int all) {
     char b[STRINGSIZE];
     char *pp;
     int ListCnt = 1;
@@ -1361,7 +1361,7 @@ void strCopyWithCase(char *d, const char *s) {
 // list a line into a buffer (b) given a pointer to the beginning of the line (p).
 // the returned string is a C style string (terminated with a zero)
 // this is used by cmd_list(), cmd_edit() and cmd_xmodem()
-char *llist(char *b, char *p) {
+const char *llist(char *b, const char *p) {
     int i, firstnonwhite = true;
     char *b_start = b;
 
