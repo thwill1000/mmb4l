@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmb4l.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -70,8 +70,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void CheckAbort(void);
 void FlashWriteInit();
-void ListProgram(char *p, int all);
-char *llist(char *b, const char *p);
+void ListProgram(const char *p, int all);
+const char *llist(char *b, const char *p);
 int MMgetchar(void);
 void cmd_dummy(void);
 void op_equal(void);

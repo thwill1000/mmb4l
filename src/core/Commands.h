@@ -76,10 +76,8 @@ extern const char *errorstack[MAXGOSUB];
 extern int gosubindex;
 extern char DimUsed;
 
-// char *GetFileName(char* CmdLinePtr, char *LastFilePtr);
-// void mergefile(char *fname, char *MemPtr);
-void ListProgram(char *p, int all);
-char *llist(char *b, char *p);
+void ListProgram(const char *p, int all);
+const char *llist(char *b, const char *p);
 
 #if !defined(__mmb4l__)
 #define CONFIG_TITLE      0
