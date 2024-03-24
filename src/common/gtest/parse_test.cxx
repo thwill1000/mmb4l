@@ -318,3 +318,96 @@ TEST_F(ParseTest, ParseTransformInputBuffer_GivenNormalCommand) {
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
     EXPECT_STREQ("  PRINT \"Hello World\"  ", input);
 }
+
+TEST_F(ParseTest, CheckString) {
+    char input[INPBUF_SIZE];
+    strcpy(input, "PRINT \"Hello World\"");
+
+    EXPECT_EQ(input + 6, parse_check_string(input, "PRINT"));
+    EXPECT_EQ(input + 6, parse_check_string(input, "Print"));
+    EXPECT_EQ(NULL, parse_check_string(input, "Printer"));
+    EXPECT_EQ(NULL, parse_check_string(input, "DIM"));
+}
+
+TEST_F(ParseTest, CheckString_TerminatedBySpace) {
+    char input[INPBUF_SIZE];
+    strcpy(input, " foo bar");
+
+    const char *actual = parse_check_string(input, "foo");
+    EXPECT_EQ(input + 5, actual); // Expect 'b' of "bar".
+}
+
+TEST_F(ParseTest, CheckString_TerminatedByComma) {
+    char input[INPBUF_SIZE];
+    strcpy(input, " foo,bar");
+
+    const char *actual = parse_check_string(input, "foo");
+    EXPECT_EQ(input + 4, actual); // Expect ',' position.
+}
+
+TEST_F(ParseTest, CheckString_TerminatedBySingleQuote) {
+    char input[INPBUF_SIZE];
+    strcpy(input, " foo'bar");
+
+    const char *actual = parse_check_string(input, "foo");
+    EXPECT_EQ(input + 4, actual); // Expect single-quote position.
+}
+
+TEST_F(ParseTest, CheckString_TerminatedByOpenBracket)  {
+    char input[INPBUF_SIZE];
+    strcpy(input, " foo(bar");
+
+    const char *actual = parse_check_string(input, "foo");
+    EXPECT_EQ(input + 4, actual); // Expect '(' position.
+}
+
+TEST_F(ParseTest, CheckString_TerminatedByEquals)  {
+    char input[INPBUF_SIZE];
+    strcpy(input, " foo=bar");
+
+    const char *actual = parse_check_string(input, "foo");
+    EXPECT_EQ(input + 4, actual); // Expect '=' position.
+}
+
+TEST_F(ParseTest, CheckString_IsCaseInsensitive) {
+    char input[INPBUF_SIZE];
+    strcpy(input, " foo bar");
+
+    const char *actual = parse_check_string(input, "fOO");
+    EXPECT_EQ(input + 5, actual); // Expect 'b' of "bar".
+}
+
+TEST_F(ParseTest, CheckString_GivenNotFound) {
+    char input[INPBUF_SIZE];
+    strcpy(input, " foo bar");
+
+    const char *actual = parse_check_string(input, "bar");
+    EXPECT_EQ(NULL, actual); // Not found.
+}
+
+TEST_F(ParseTest, CheckString_IgnoresLeadingSpaces) {
+    char input[INPBUF_SIZE];
+    strcpy(input, "     foo bar");
+
+    const char *actual = parse_check_string(input, "foo");
+    EXPECT_EQ(input + 9, actual); // Expect 'b' of "bar".
+}
+
+TEST_F(ParseTest, CheckString_SkipsTrailingSpaces) {
+    char input[INPBUF_SIZE];
+    strcpy(input, " foo     bar");
+
+    const char *actual = parse_check_string(input, "foo");
+    EXPECT_EQ(input + 9, actual); // Expect 'b' of "bar".
+}
+
+TEST_F(ParseTest, CheckString_DoesNotMakePartialMatches) {
+    char input[INPBUF_SIZE];
+    strcpy(input, " foo bar");
+
+    const char *actual = parse_check_string(input, "fo");
+    EXPECT_EQ(NULL, actual); // Not found.
+
+    actual = parse_check_string(input, "football");
+    EXPECT_EQ(NULL, actual); // Not found.
+}
