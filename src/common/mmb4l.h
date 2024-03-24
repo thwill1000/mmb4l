@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "memory.h"
 #include "options.h"
+#include "parse.h"
 
 #define PI_VALUE  3.14159265358979323
 
@@ -67,6 +68,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define g_string_rtn       sret
 #define g_subfun           subfun
 #define g_var_tbl          vartbl
+
+#define checkstring        parse_check_string
 
 void CheckAbort(void);
 void FlashWriteInit();

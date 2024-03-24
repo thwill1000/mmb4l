@@ -50,7 +50,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 
 bool parse_is_end(const char *p);
+
+/**
+ * @brief Does the next text in an element (a basic statement) correspond to an alpha string.
+ *
+ * Leading whitespace is skipped and the string must be terminated by a non-name character.
+ *
+ * @param[in] p  Parse from this pointer.
+ * @return       If found, then poiter to the next non-space character after the match,
+ *               otherwise NULL.
+ */
 const char *parse_check_string(const char *p, const char *tkn);
+
 bool parse_bool(const char *p);
 int parse_colour(const char *p, bool allow_bright);
 int parse_file_number(const char *p, bool allow_zero);

@@ -25,7 +25,6 @@ char ProgMemory[PROG_FLASH_SIZE] = { '\0' } ;
 char tknbuf[TKNBUF_SIZE] = { '\0' };
 Options mmb_options = { 0 };
 
-const char *checkstring(const char *p, char *tkn) { return NULL; }
 void ClearProgram(void) { }
 void ClearSpecificTempMemory(void *addr) { }
 void console_set_title(const char *title) { }
@@ -46,7 +45,11 @@ void MMgetline(int filenbr, char *p) { }
 void console_puts(const char* s) { }
 void tokenise(int console) { }
 
-}
+// MMBasic.c
+MMINTEGER getinteger(const char *p) { return 0; }
+int getint(const char *p, int min, int max) { return 0; }
+
+} // extern "C"
 
 #define PROGRAM_TEST_DIR  TMP_DIR "/ProgramTest"
 
