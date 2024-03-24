@@ -2533,22 +2533,6 @@ void checkend(const char *p) {
 }
 
 
-// check if the next text in an element (a basic statement) corresponds to an alpha string
-// leading whitespace is skipped and the string must be terminated by a non-name character.
-// Returns a pointer to the next non space character after the matched string if found,
-// or NULL if not
-const char *checkstring(const char *p, const char *tkn) {
-    skipspace(p);                                                   // skip leading spaces
-    while(*tkn && (toupper(*tkn) == toupper(*p))) { tkn++; p++; }   // compare the strings
-    if (*tkn == 0 && !isnamechar(*p)) {
-        skipspace(p);
-        return p;                                                   // if successful return a pointer to the next non space character after the matched string
-    }
-    return NULL;                                                    // or NULL if not
-}
-
-
-
 // count the length of a program line excluding the terminating zero byte
 // the pointer p must be pointing to the T_NEWLINE token at the start of the line
 int GetLineLength(char *p) {

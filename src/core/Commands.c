@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "funtbl.h"
 #include "vartbl.h"
 #include "../common/cstring.h"
+#include "../common/parse.h"
 #include "../common/utility.h"
 
 void flist(int, int, int);

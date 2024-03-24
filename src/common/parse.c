@@ -59,7 +59,7 @@ bool parse_is_end(const char *p) {
 const char *parse_check_string(const char *p, const char *tkn) {
     skipspace(p);  // skip leading spaces
     while(*tkn && (toupper(*tkn) == toupper(*p))) { tkn++; p++; }  // compare the strings
-    if(*tkn == 0 && (*p == ' ' || *p == ',' || *p == '\'' || *p == '(' || *p == 0)) {
+    if (*tkn == 0 && !isnamechar(*p)) {
         skipspace(p);
         return p;  // if successful return a pointer to the next non space character after the matched string
     }

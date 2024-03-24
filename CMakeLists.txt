@@ -415,6 +415,7 @@ add_executable(
   test_program
   src/common/cstring.c
   src/common/path.c
+  src/common/parse.c
   src/common/program.c
   src/common/utility.c
   src/common/gtest/program_test.cxx
