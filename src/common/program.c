@@ -83,6 +83,20 @@ typedef struct sa_dlist {
 
 static a_dlist *dlist;
 
+typedef struct {
+    char filename[STRINGSIZE];
+    int fnbr;
+    int line_num;
+} ProgramFile;
+
+typedef struct {
+  size_t size;
+  ProgramFile files[MAXOPENFILES];
+  ProgramFile *head;
+} ProgramFileStack;
+
+static ProgramFileStack *program_file_stack = NULL;
+
 static void STR_REPLACE(char *target, const char *needle, const char *replacement) {
     char *ip = target;
     bool in_quotes = false;
@@ -282,11 +296,14 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
 void program_init_defines() {
     nDefines = 0;
     dlist = GetTempMemory(sizeof(a_dlist) * MAXDEFINES);
+    program_file_stack = GetTempMemory(sizeof(ProgramFileStack));
 }
 
 void program_term_defines() {
     nDefines = 0;
     ClearSpecificTempMemory(dlist);
+    ClearSpecificTempMemory(program_file_stack);
+    program_file_stack = NULL;
 }
 
 MmResult program_add_define(const char *from, const char *to) {
@@ -384,20 +401,61 @@ MmResult program_process_line(char *line) {
     return kOk;
 }
 
-MmResult program_process_file(const char *file_path, char **p, char *edit_buffer, const char *filename) {
-    char line[STRINGSIZE];
-    int line_num = 0;
+static void program_open_file(const char *filename, bool include) {
+    char file_path[STRINGSIZE];
+    MmResult result = program_get_inc_file(program_file_stack->files[0].filename, filename, file_path);
+    switch (result) {
+        case kOk:
+            break;
+        case kFileNotFound:
+            ERROR_INCLUDE_FILE_NOT_FOUND(filename);
+            break;
+        case kFilenameTooLong:
+            ERROR_PATH_TOO_LONG;
+            break;
+        default:
+            error_throw(result);
+            break;
+    }
 
     int fnbr = file_find_free();
     file_open(file_path, "rb", fnbr);
+    program_file_stack->head = &program_file_stack->files[program_file_stack->size];
+    strcpy(program_file_stack->head->filename, filename);
+    program_file_stack->head->fnbr = fnbr;
+    program_file_stack->head->line_num = 0;
+    program_file_stack->size++;
+}
 
-    while (!file_eof(fnbr)) {
+static void program_close_file() {
+    if (program_file_stack->size == 0) ERROR_INTERNAL_FAULT;
+    file_close(program_file_stack->head->fnbr);
+    program_file_stack->head->filename[0] = '\0';
+    program_file_stack->head->fnbr = -1;
+    program_file_stack->head->line_num = -1;
+    program_file_stack->size--;
+    program_file_stack->head = program_file_stack->size == 0
+            ? NULL
+            : &program_file_stack->files[program_file_stack->size - 1];
+}
+
+MmResult program_process_file(const char *file_path, char **p, char *edit_buffer) {
+    char line[STRINGSIZE];
+
+    program_open_file(file_path, true);
+
+    for (;;) {
         if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
-        line_num++;
+        program_file_stack->head->line_num++;
+
+        if (file_eof(program_file_stack->head->fnbr)) {
+            program_close_file();
+            if (!program_file_stack->head) break;
+        }
 
         // Read a program line.
         memset(line, 0, STRINGSIZE);
-        MMgetline(fnbr, line);
+        MMgetline(program_file_stack->head->fnbr, line);
 
         // Pre-process the line.
         MmResult result = program_process_line(line);
@@ -408,11 +466,19 @@ MmResult program_process_file(const char *file_path, char **p, char *edit_buffer
             const char *tp;
             if ((tp = checkstring(line, "#DEFINE"))) {
                 getargs(&tp, 3, ",");
+                // TODO: Free these strings.
                 result = program_add_define(getCstring(argv[0]), getCstring(argv[2]));
                 if (FAILED(result)) error_throw(result);
                 continue;  // Don't write to edit buffer.
             } else if ((tp = checkstring(line, "#INCLUDE"))) {
-                return kUnsupportedNestedInclude;
+                char *q;
+                if ((q = strchr(tp, '"')) == 0) return kSyntax;
+                q++;
+                if ((q = strchr(q, '"')) == 0) return kSyntax;
+                /*const*/ char *include_filename = getCstring(tp);
+                program_open_file(include_filename, true);
+                ClearSpecificTempMemory(include_filename);
+                continue;  // Don't write to edit buffer.
             } else {
                 continue;  // Ignore unknown directive.
             }
@@ -420,9 +486,9 @@ MmResult program_process_file(const char *file_path, char **p, char *edit_buffer
 
         // Append file and line-number.
         result = cstring_cat(line, "'|", STRINGSIZE);
-        if (SUCCEEDED(result)) result = cstring_cat(line, filename, STRINGSIZE);
+        if (SUCCEEDED(result)) result = cstring_cat(line, program_file_stack->head->filename, STRINGSIZE);
         if (SUCCEEDED(result)) result = cstring_cat(line, ",", STRINGSIZE);
-        if (SUCCEEDED(result)) result = cstring_cat_int64(line, line_num, STRINGSIZE);
+        if (SUCCEEDED(result)) result = cstring_cat_int64(line, program_file_stack->head->line_num, STRINGSIZE);
         if (FAILED(result)) ERROR_LINE_TOO_LONG;
 
         // Copy the transformed line into the edit buffer, terminating with '\n'.
@@ -434,8 +500,6 @@ MmResult program_process_file(const char *file_path, char **p, char *edit_buffer
             *p += 1;
         }
     }
-
-    file_close(fnbr);
 
     return kOk;
 }
@@ -463,7 +527,7 @@ static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer)
             break;
     }
 
-    result = program_process_file(file_path, p, edit_buffer, filename);
+    result = program_process_file(file_path, p, edit_buffer);
     if (FAILED(result)) error_throw(result);
 }
 

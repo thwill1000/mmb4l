@@ -504,7 +504,7 @@ TEST_F(ProgramTest, ProcessFile_GivenEmpty) {
     char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
     char *p = edit_buffer;
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
+    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
     EXPECT_STREQ("", edit_buffer);
 
     ClearSpecificTempMemory(edit_buffer);
@@ -518,10 +518,10 @@ TEST_F(ProgramTest, ProcessFile_GivenNotEmpty) {
     char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
     char *p = edit_buffer;
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
+    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
     EXPECT_STREQ(
-        "PRINT \"Hello World\"'|foo.bas,1\n"
-        "DIM A = 1'|foo.bas,2\n",
+        "PRINT \"Hello World\"'|" PROGRAM_TEST_DIR "/foo.bas,1\n"
+        "DIM A = 1'|" PROGRAM_TEST_DIR "/foo.bas,2\n",
         edit_buffer);
 
     ClearSpecificTempMemory(edit_buffer);
@@ -538,23 +538,39 @@ TEST_F(ProgramTest, ProcessFile_GivenEmptyLines_IgnoresThem) {
     char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
     char *p = edit_buffer;
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
+    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
     EXPECT_STREQ(
-        "PRINT \"Hello World\"'|foo.bas,2\n"
-        "DIM A = 1'|foo.bas,4\n",
+        "PRINT \"Hello World\"'|" PROGRAM_TEST_DIR "/foo.bas,2\n"
+        "DIM A = 1'|" PROGRAM_TEST_DIR "/foo.bas,4\n",
         edit_buffer);
 
     ClearSpecificTempMemory(edit_buffer);
 }
 
-TEST_F(ProgramTest, ProcessFile_GivenIncludeDirective_ReturnsError) {
-    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
-    MakeFile(file_path, "#Include \"wom.inc\"");
+TEST_F(ProgramTest, ProcessFile_GivenHierarchicalInclude) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Main\n"
+        "#Include \"one.inc\"\n"
+        "#Include \"two.inc\"");
+    const char *one_path = PROGRAM_TEST_DIR "/one.inc";
+    MakeFile(one_path,
+        "One\n"
+        "#Include \"three.inc\"");
+    const char *two_path = PROGRAM_TEST_DIR "/two.inc";
+    MakeFile(two_path, "Two");
+    const char *three_path = PROGRAM_TEST_DIR "/three.inc";
+    MakeFile(three_path, "Three");
     char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
     char *p = edit_buffer;
 
-    EXPECT_EQ(kUnsupportedNestedInclude, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
-    EXPECT_STREQ("", edit_buffer);
+    EXPECT_EQ(kOk, program_process_file(main_path, &p, edit_buffer));
+    EXPECT_STREQ(
+        "MAIN'|" PROGRAM_TEST_DIR "/main.bas,1\n"
+        "ONE'|one.inc,1\n"
+        "THREE'|three.inc,1\n"
+        "TWO'|two.inc,1\n",
+        edit_buffer);
 
     ClearSpecificTempMemory(edit_buffer);
 }
@@ -565,7 +581,7 @@ TEST_F(ProgramTest, ProcessFile_GivenDefineDirective_CreatesDefine) {
     char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
     char *p = edit_buffer;
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
+    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
     EXPECT_STREQ("", edit_buffer);
     EXPECT_EQ(1, program_get_num_defines());
     const char *from, *to;
@@ -582,7 +598,7 @@ TEST_F(ProgramTest, ProcessFile_GivenUnnownDirective_IgnoresIt) {
     char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
     char *p = edit_buffer;
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer, "foo.bas"));
+    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
     EXPECT_STREQ("", edit_buffer);
 
     ClearSpecificTempMemory(edit_buffer);
