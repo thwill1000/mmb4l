@@ -520,8 +520,8 @@ TEST_F(ProgramTest, ProcessFile_GivenNotEmpty) {
 
     EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
     EXPECT_STREQ(
-        "PRINT \"Hello World\"'|" PROGRAM_TEST_DIR "/foo.bas,1\n"
-        "DIM A = 1'|" PROGRAM_TEST_DIR "/foo.bas,2\n",
+        "PRINT \"Hello World\"'|1\n"
+        "DIM A = 1'|2\n",
         edit_buffer);
 
     ClearSpecificTempMemory(edit_buffer);
@@ -540,8 +540,8 @@ TEST_F(ProgramTest, ProcessFile_GivenEmptyLines_IgnoresThem) {
 
     EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
     EXPECT_STREQ(
-        "PRINT \"Hello World\"'|" PROGRAM_TEST_DIR "/foo.bas,2\n"
-        "DIM A = 1'|" PROGRAM_TEST_DIR "/foo.bas,4\n",
+        "PRINT \"Hello World\"'|2\n"
+        "DIM A = 1'|4\n",
         edit_buffer);
 
     ClearSpecificTempMemory(edit_buffer);
@@ -566,7 +566,7 @@ TEST_F(ProgramTest, ProcessFile_GivenHierarchicalInclude) {
 
     EXPECT_EQ(kOk, program_process_file(main_path, &p, edit_buffer));
     EXPECT_STREQ(
-        "MAIN'|" PROGRAM_TEST_DIR "/main.bas,1\n"
+        "MAIN'|1\n"
         "ONE'|one.inc,1\n"
         "THREE'|three.inc,1\n"
         "TWO'|two.inc,1\n",
