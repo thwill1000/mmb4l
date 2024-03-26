@@ -205,7 +205,7 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
         // Note that all lines in the edit buffer should just have a '\n' line-end.
         pend = pstart;
         while (*pend != '\n') pend++;
-        if (pend - pstart > STRINGSIZE - 1) ERROR_LINE_TOO_LONG; // TODO: what cleans up the edit buffer ?
+        if (pend - pstart > STRINGSIZE - 1) error_throw(kLineTooLong); // TODO: what cleans up the edit buffer ?
         memset(inpbuf, 0, INPBUF_SIZE);
         memcpy(inpbuf, pstart, pend - pstart);
         //printf("%s\n", inpbuf);
@@ -387,7 +387,9 @@ MmResult program_process_line(char *line) {
     if (*line == '#') return kOk; // pre-processor directive.
 
     // Close any open double-quote.
-    if (in_quotes) cstring_cat(line, "\"", STRINGSIZE);
+    if (in_quotes) {
+        if (FAILED(cstring_cat(line, "\"", STRINGSIZE))) return kStringTooLong;
+    }
 
     program_apply_replacements(line);
 
@@ -450,7 +452,7 @@ MmResult program_process_file(const char *file_path, char **p) {
     program_open_file(file_path);
 
     for (;;) {
-        if ((*p - program_edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
+        if ((*p - program_edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) return kOutOfMemory;
 
         if (file_eof(program_file_stack->head->fnbr)) {
             program_close_file();
@@ -474,7 +476,7 @@ MmResult program_process_file(const char *file_path, char **p) {
                 getargs(&tp, 3, ",");
                 // TODO: Free these strings.
                 result = program_add_define(getCstring(argv[0]), getCstring(argv[2]));
-                if (FAILED(result)) error_throw(result);
+                if (FAILED(result)) return result;
                 continue;  // Don't write to edit buffer.
             } else if ((tp = checkstring(line, "#INCLUDE"))) {
                 char *q;
@@ -490,14 +492,14 @@ MmResult program_process_file(const char *file_path, char **p) {
             }
         }
 
-        // Append file and line-number.
+        // Append file and line-number.        
         result = cstring_cat(line, "'|", STRINGSIZE);
         if (program_file_stack->size > 1) {
             if (SUCCEEDED(result)) result = cstring_cat(line, program_file_stack->head->filename, STRINGSIZE);
             if (SUCCEEDED(result)) result = cstring_cat(line, ",", STRINGSIZE);
         }
         if (SUCCEEDED(result)) result = cstring_cat_int64(line, program_file_stack->head->line_num, STRINGSIZE);
-        if (FAILED(result)) ERROR_LINE_TOO_LONG;
+        if (FAILED(result)) return kLineTooLong;
 
         // Copy the transformed line into the edit buffer, terminating with '\n'.
         size_t len = strlen(line);
@@ -785,7 +787,7 @@ void program_list_csubs(int all) {
     print_line("", &line_count, all);
 }
 
-int program_load_file(char *filename) {
+MmResult program_load_file(const char *filename) {
     // Store the current token buffer incase we are at the command prompt.
     char tmp[TKNBUF_SIZE];
     memcpy(tmp, tknbuf, TKNBUF_SIZE);
@@ -799,6 +801,10 @@ int program_load_file(char *filename) {
     program_internal_alloc();
     char *p = program_edit_buffer;
     MmResult result = program_process_file(filename2, &p);
+    if (FAILED(result)) {
+        program_internal_free();
+        return result == kStringTooLong ? kLineTooLong : result;
+    }
 
     // Ensure every program has an END (and a terminating '\0').
     if (p - program_edit_buffer > EDIT_BUFFER_SIZE - 5) ERROR_OUT_OF_MEMORY;

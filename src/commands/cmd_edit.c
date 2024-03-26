@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_edit.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -186,7 +186,7 @@ void cmd_edit(void) {
     if (path_exists(file_path)
             && path_is_regular(file_path)
             && path_has_suffix(file_path, ".bas", true)) {
-        // Never expected to return failure - reports its own ERROR and calls longjmp().
-        if (FAILED(program_load_file(file_path))) ERROR_INTERNAL_FAULT;
+        MmResult result = program_load_file(file_path);
+        if (FAILED(result)) error_throw(result);
     }
 }

@@ -90,7 +90,8 @@ typedef enum {
     kFunctionTypeMismatch,
     kInvalidCommandLine,
     kTooManyDefines,
-    kUnsupportedNestedInclude
+    kOutOfMemory,
+    kLineTooLong
 } MmResultCode;
 
 /**
