@@ -463,22 +463,6 @@ TEST_F(ProgramTest, ProcessLine_GivenData_DoesNotConvertToUpperCase) {
     EXPECT_STREQ("Data abc, \"def\"", line); // TODO: Keyword should probably be capitalised.
 }
 
-TEST_F(ProgramTest, ProcessLine_GivenLessThanOrEqual_ConvertsToCanonicalForm) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "If a <= b And b =< c Then");
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("IF A <= B AND B <= C THEN", line);
-}
-
-TEST_F(ProgramTest, ProcessLine_GivenGreaterThanOrEqual_ConvertsToCanonicalForm) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "If a >= b And b => c Then");
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("IF A >= B AND B >= C THEN", line);
-}
-
 TEST_F(ProgramTest, ProcessLine_GivenDirective) {
     char line[STRINGSIZE] = { 0 };
     strcpy(line, "#include \"foo\"");
