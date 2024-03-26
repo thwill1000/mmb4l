@@ -74,14 +74,17 @@ static const char *INC_FILE_EXTENSIONS[] = { ".inc", ".INC", ".Inc", ".inc" };
 
 char CurrentFile[STRINGSIZE];
 
-static size_t nDefines = 0;
-
-typedef struct sa_dlist {
+typedef struct {
     char from[STRINGSIZE];
     char to[STRINGSIZE];
-} a_dlist;
+} Replace;
 
-static a_dlist *dlist;
+typedef struct {
+    size_t size;
+    Replace items[MAXDEFINES];
+} ReplaceMap;
+
+static ReplaceMap *program_replace_map = NULL;
 
 typedef struct {
     char filename[STRINGSIZE];
@@ -126,19 +129,22 @@ static void STR_REPLACE(char *target, const char *needle, const char *replacemen
 }
 
 static int massage(char *buff) {
-    int i = nDefines;
+    int i = program_replace_map->size;
     while (i--) {
-        char *p = dlist[i].from;
+        char *p = program_replace_map->items[i].from;
         while (*p) {
             *p = toupper(*p);
             p++;
         }
-        p = dlist[i].to;
+        p = program_replace_map->items[i].to;
         while (*p) {
             *p = toupper(*p);
             p++;
         }
-        STR_REPLACE(buff, dlist[i].from, dlist[i].to);
+        STR_REPLACE(
+                buff,
+                program_replace_map->items[i].from,
+                program_replace_map->items[i].to);
     }
     STR_REPLACE(buff, "=<", "<=");
     STR_REPLACE(buff, "=>", ">=");
@@ -294,34 +300,35 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
 }
 
 void program_init_defines() {
-    nDefines = 0;
-    dlist = GetTempMemory(sizeof(a_dlist) * MAXDEFINES);
+    program_replace_map = GetTempMemory(sizeof(ReplaceMap));
+    program_replace_map->size = 0;
     program_file_stack = GetTempMemory(sizeof(ProgramFileStack));
+    program_file_stack->size = 0;
 }
 
 void program_term_defines() {
-    nDefines = 0;
-    ClearSpecificTempMemory(dlist);
+    ClearSpecificTempMemory(program_replace_map);
+    program_replace_map = NULL;
     ClearSpecificTempMemory(program_file_stack);
     program_file_stack = NULL;
 }
 
 MmResult program_add_define(const char *from, const char *to) {
-    if (nDefines >= MAXDEFINES) return kTooManyDefines;
-    strcpy(dlist[nDefines].from, from);
-    strcpy(dlist[nDefines].to, to);
-    nDefines++;
+    if (program_replace_map->size >= MAXDEFINES) return kTooManyDefines;
+    strcpy(program_replace_map->items[program_replace_map->size].from, from);
+    strcpy(program_replace_map->items[program_replace_map->size].to, to);
+    program_replace_map->size++;
     return kOk;
 }
 
 int program_get_num_defines() {
-    return nDefines;
+    return program_replace_map->size;
 }
 
 MmResult program_get_define(size_t idx, const char **from, const char **to) {
-    if (idx >= nDefines) return kInternalFault;
-    *from = dlist[idx].from;
-    *to = dlist[idx].to;
+    if (idx >= program_replace_map->size) return kInternalFault;
+    *from = program_replace_map->items[program_replace_map->size - 1].from;
+    *to = program_replace_map->items[program_replace_map->size - 1].to;
     return kOk;
 }
 
@@ -826,7 +833,6 @@ static int program_load_file_internal(char *filename) {
     char line[STRINGSIZE];
     char num[10];
     size_t c;
-    nDefines = 0;
     int importlines = 0;
     bool data, in_quotes;
 
@@ -886,10 +892,10 @@ static int program_load_file_internal(char *filename) {
             const char *tp = checkstring(&sbuff[1], "DEFINE");
             if (tp) {
                 getargs(&tp, 3, ",");
-                if (nDefines >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;
-                strcpy(dlist[nDefines].from, getCstring(argv[0]));
-                strcpy(dlist[nDefines].to, getCstring(argv[2]));
-                nDefines++;
+                if (program_replace_map->size >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;
+                strcpy(program_replace_map->items[program_replace_map->size].from, getCstring(argv[0]));
+                strcpy(program_replace_map->items[program_replace_map->size].to, getCstring(argv[2]));
+                program_replace_map->size++;
             } else {
                 if (cmpstr("INCLUDE", &sbuff[1]) == 0) {
                     importfile(file_path, &sbuff[8], &p, edit_buffer);
