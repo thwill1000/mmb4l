@@ -100,6 +100,8 @@ typedef struct {
 
 static ProgramFileStack *program_file_stack = NULL;
 
+static char *program_edit_buffer = NULL;
+
 static void STR_REPLACE(char *target, const char *needle, const char *replacement) {
     char *ip = target;
     bool in_quotes = false;
@@ -299,18 +301,25 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
     return path_get_canonical(path, out, STRINGSIZE);
 }
 
-void program_init_defines() {
+void program_internal_alloc() {
     program_replace_map = GetTempMemory(sizeof(ReplaceMap));
     program_replace_map->size = 0;
     program_file_stack = GetTempMemory(sizeof(ProgramFileStack));
     program_file_stack->size = 0;
+    program_edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);
 }
 
-void program_term_defines() {
+void program_internal_free() {
     ClearSpecificTempMemory(program_replace_map);
     program_replace_map = NULL;
     ClearSpecificTempMemory(program_file_stack);
     program_file_stack = NULL;
+    ClearSpecificTempMemory(program_edit_buffer);
+    program_edit_buffer = NULL;
+}
+
+char* program_get_edit_buffer() {
+    return program_edit_buffer;
 }
 
 MmResult program_add_define(const char *from, const char *to) {
@@ -458,13 +467,13 @@ static void program_close_file() {
             : &program_file_stack->files[program_file_stack->size - 1];
 }
 
-MmResult program_process_file(const char *file_path, char **p, char *edit_buffer) {
+MmResult program_process_file(const char *file_path, char **p) {
     char line[STRINGSIZE];
 
     program_open_file(file_path);
 
     for (;;) {
-        if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
+        if ((*p - program_edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
 
         if (file_eof(program_file_stack->head->fnbr)) {
             program_close_file();
@@ -810,22 +819,17 @@ int program_load_file(char *filename) {
 
     ClearProgram();
 
-    // TODO: are these being properly released after a longjmp() ?
-    char *edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);
-    char *p = edit_buffer;
-    program_init_defines();
-    MmResult result = program_process_file(filename2, &p, edit_buffer);
+    program_internal_alloc();
+    char *p = program_edit_buffer;
+    MmResult result = program_process_file(filename2, &p);
 
     // Ensure every program has an END (and a terminating '\0').
-    if (p - edit_buffer > EDIT_BUFFER_SIZE - 5) ERROR_OUT_OF_MEMORY;
+    if (p - program_edit_buffer > EDIT_BUFFER_SIZE - 5) ERROR_OUT_OF_MEMORY;
     memcpy(p, "END\n", 5);
     p += 5;
 
-    program_tokenise(CurrentFile, edit_buffer);
-
-    ClearSpecificTempMemory(edit_buffer);
-    program_term_defines();
-
+    program_tokenise(CurrentFile, program_edit_buffer);
+    program_internal_free();
     program_process_csubs();
 
     // Restore the token buffer.
