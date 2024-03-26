@@ -96,12 +96,11 @@ uint8_t error_to_exit_code(MmResult error);
 #define ERROR_INVALID_OPTION_VALUE        ERROR_INVALID("value for option")
 #define ERROR_INVALID_VARIABLE            ERROR_INVALID("variable")
 #define ERROR_LINE_LENGTH                 error_throw_ex(kStringTooLong, "Line length")
-#define ERROR_LINE_TOO_LONG               error_throw_ex(kStringTooLong, "Line too long")
 #define ERROR_NOT_ALLOWED(s)              error_throw_ex(kError, "$ not allowed", s)
 #define ERROR_NOT_OPEN                    error_throw_ex(kError, "File or device not open")
 #define ERROR_NOT_SERIAL_PORT             error_throw_ex(kError, "Not a serial port")
 #define ERROR_NUMBER_OUT_OF_BOUNDS        error_throw_ex(kError, "Number out of bounds")
-#define ERROR_OUT_OF_MEMORY               error_throw_ex(kError, "Not enough memory")
+#define ERROR_OUT_OF_MEMORY               error_throw(kOutOfMemory);
 #define ERROR_OVERFLOW                    error_throw(kOverflow)
 #define ERROR_PATH_TOO_LONG               error_throw_ex(kFilenameTooLong, "Path too long")
 #define ERROR_SIZE_MISMATCH               error_throw_ex(kError, "Size mismatch")
