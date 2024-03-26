@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023 Thomas Hugo Williams
+ * Copyright (c) 2022-2024 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -53,7 +53,7 @@ void interrupt_clear(void) { }
 
 // Defined in "common/program.c"
 char CurrentFile[STRINGSIZE];
-int program_load_file(char *filename) { return -1; }
+MmResult program_load_file(char *filename) { return kError; }
 
 // Defined in "core/Commands.c"
 char DimUsed;

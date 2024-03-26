@@ -78,7 +78,8 @@ const char *mmresult_to_string(MmResult result) {
         case kInvalidCommandLine: return "Invalid command line arguments";
         case kStringLength:         return "String length";
         case kTooManyDefines:             return "Too many #DEFINE directives";
-        case kUnsupportedNestedInclude:   return "Nested #INCLUDE directives are not supported";
+        case kOutOfMemory:                return "Not enough memory";
+        case kLineTooLong:                return "Line too long";
         default:                          return "Unknown result code";
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Thomas Hugo Williams
+ * Copyright (c) 2021-2024 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -15,6 +15,7 @@ extern "C" {
 
 int LocalIndex = 0;
 
+void error_throw(MmResult error) { }
 void error_throw_ex(MmResult error, char *msg, ...) { }
 long long int getinteger(char *p) { return 0; }
 int getint(char *p, int min, int max) { return 0; }
