@@ -130,7 +130,7 @@ static void STR_REPLACE(char *target, const char *needle, const char *replacemen
     }
 }
 
-static int massage(char *buff) {
+static void program_apply_replacements(char *line) {
     int i = program_replace_map->size;
     while (i--) {
         char *p = program_replace_map->items[i].from;
@@ -144,28 +144,10 @@ static int massage(char *buff) {
             p++;
         }
         STR_REPLACE(
-                buff,
+                line,
                 program_replace_map->items[i].from,
                 program_replace_map->items[i].to);
     }
-    STR_REPLACE(buff, "=<", "<=");
-    STR_REPLACE(buff, "=>", ">=");
-    // STR_REPLACE(buff, " ,", ",");
-    // STR_REPLACE(buff, ", ", ",");
-    // STR_REPLACE(buff, " *", "*");
-    // STR_REPLACE(buff, "* ", "*");
-    // STR_REPLACE(buff, "- ", "-");
-    // STR_REPLACE(buff, " /", "/");
-    // STR_REPLACE(buff, "/ ", "/");
-    // STR_REPLACE(buff, "= ", "=");
-    // STR_REPLACE(buff, "+ ", "+");
-    // STR_REPLACE(buff, " )", ")");
-    // STR_REPLACE(buff, ") ", ")");
-    // STR_REPLACE(buff, "( ", "(");
-    // STR_REPLACE(buff, "> ", ">");
-    // STR_REPLACE(buff, "< ", "<");
-    // STR_REPLACE(buff, " '", "'");
-    return strlen(buff);
 }
 
 static int cmpstr(const char *s1, const char *s2) {
@@ -182,10 +164,6 @@ static int cmpstr(const char *s1, const char *s2) {
     } while (c1 == c2);
 
     return c1 - c2;
-}
-
-static void program_transform_line(char *line) {
-    STR_REPLACE(line,"MM.INFO$","MM.INFO");
 }
 
 void program_dump_memory() {
@@ -232,7 +210,6 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
         memcpy(inpbuf, pstart, pend - pstart);
         //printf("%s\n", inpbuf);
 
-        program_transform_line(inpbuf);
         tokenise(false);
 
         //printf("* %s\n", tknbuf);
@@ -412,7 +389,7 @@ MmResult program_process_line(char *line) {
     // Close any open double-quote.
     if (in_quotes) cstring_cat(line, "\"", STRINGSIZE);
 
-    massage(line);
+    program_apply_replacements(line);
 
     return kOk;
 }
