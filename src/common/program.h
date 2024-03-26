@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 program.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -86,8 +86,8 @@ MmResult program_get_bas_file(const char *filename, char *out);
  */
 MmResult program_get_inc_file(const char *parent_file, const char *filename, char *out);
 
-/** @return  0 on success, -1 on error.*/
-int program_load_file(char *filename);
+/** @return  kOk on success. */
+MmResult program_load_file(const char *filename);
 
 void program_list_csubs(int all);
 

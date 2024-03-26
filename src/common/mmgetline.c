@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmgetline.c
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -85,7 +85,7 @@ void MMgetline(int filenbr, char *p) {
 
         if (c == '\t') {  // expand tabs to spaces
             do {
-                if (++nbrchars > MAXSTRLEN) ERROR_LINE_TOO_LONG;
+                if (++nbrchars > MAXSTRLEN) error_throw(kLineTooLong);
                 *p++ = ' ';
                 if (filenbr == 0) console_putc(' ');
             } while (nbrchars % mmb_options.tab);
@@ -120,7 +120,7 @@ void MMgetline(int filenbr, char *p) {
             console_putc(c);  // The console requires that chars be echoed
         }
 
-        if (++nbrchars > MAXSTRLEN) ERROR_LINE_TOO_LONG;  // stop collecting if maximum length
+        if (++nbrchars > MAXSTRLEN) error_throw(kLineTooLong);  // stop collecting if maximum length
 
         // TODO: currently this function can return strings containing control
         //       characters, i.e. c < 32.

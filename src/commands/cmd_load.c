@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_load.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -50,9 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_load(void) {
     getargs(&cmdline, 1, " ,");
     if (argc == 1) {
-        char *filename = getCstring(argv[0]);
-        // Never expected to return failure - reports its own ERROR and calls longjmp().
-        if (FAILED(program_load_file(filename))) ERROR_INTERNAL_FAULT;
+        const char *filename = getCstring(argv[0]);
+        MmResult result = program_load_file(filename);
+        if (FAILED(result)) error_throw(result);
     } else {
         ERROR_SYNTAX;
     }

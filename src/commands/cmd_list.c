@@ -175,7 +175,8 @@ static void list_flash(int all) {
     }
 
     // Make sure we are looking at the latest (on disk) version of the program.
-    if (FAILED(program_load_file(CurrentFile))) return;
+    MmResult result = program_load_file(CurrentFile);
+    if (FAILED(result)) error_throw(result);
 
     ListProgram(ProgMemory, all);
 
@@ -189,7 +190,8 @@ static void list_csubs(int all) {
     }
 
     // Make sure we are looking at the latest (on disk) version of the program.
-    if (FAILED(program_load_file(CurrentFile))) return;
+    MmResult result = program_load_file(CurrentFile);
+    if (FAILED(result)) error_throw(result);
 
     program_list_csubs(all);
 }

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_run.c
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -215,7 +215,8 @@ void cmd_run(void) {
         }
     }
 
-    if (FAILED(program_load_file(filename))) return;
+    result = program_load_file(filename);
+    if (FAILED(result)) error_throw(result);
 
     ClearRuntime();
     WatchdogSet = false;

@@ -81,7 +81,8 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsWindowNotCreated:   return "Window could not be created";
         case kGraphicsWindowNotFound:     return "Invalid graphics window";
         case kTooManyDefines:             return "Too many #DEFINE directives";
-        case kUnsupportedNestedInclude:   return "Nested #INCLUDE directives are not supported";
+        case kOutOfMemory:                return "Not enough memory";
+        case kLineTooLong:                return "Line too long";
         default:                          return "Unknown result code";
     }
 }

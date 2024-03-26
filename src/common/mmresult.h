@@ -93,7 +93,8 @@ typedef enum {
     kGraphicsWindowNotCreated,
     kGraphicsWindowNotFound,
     kTooManyDefines,
-    kUnsupportedNestedInclude
+    kOutOfMemory,
+    kLineTooLong
 } MmResultCode;
 
 /**

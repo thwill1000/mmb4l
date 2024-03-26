@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_autosave.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -144,7 +144,8 @@ void cmd_autosave(void) {
     cmd_autosave_write_file(file_path, buf);
 
     if (path_has_suffix(file_path, ".bas", true)) {
-        program_load_file(file_path);
+        MmResult result = program_load_file(file_path);
+        if (FAILED(result)) error_throw(result);
         if (exit_key == F2) {
             strcpy(inpbuf, "RUN\n");
             tokenise(true);
