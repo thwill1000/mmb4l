@@ -198,13 +198,13 @@ static void program_tokenise(const char *file_path, const char *edit_buf) {
     //printf("%s", edit_buf);
     //printf("<end>\n");
 
-    strcpy(CurrentFile, file_path);
+    // strcpy(CurrentFile, file_path);
 
     char *pmem = ProgMemory;
 
-    // First line in the program memory should be a comment containing the 'file_path'.
+    // First line in the program memory should be a comment containing the 'CurrentFile'.
     memset(inpbuf, 0, INPBUF_SIZE);
-    sprintf(inpbuf, "'%s", file_path);
+    sprintf(inpbuf, "'%s", CurrentFile);
     tokenise(false);
     memcpy(pmem, tknbuf, strlen(tknbuf) + 1);
     pmem += strlen(tknbuf);
@@ -408,14 +408,20 @@ MmResult program_process_line(char *line) {
     return kOk;
 }
 
-static void program_open_file(const char *filename, bool include) {
-    char file_path[STRINGSIZE];
-    MmResult result = program_get_inc_file(program_file_stack->files[0].filename, filename, file_path);
+static void program_open_file(const char *filename) {
+    char full_path[STRINGSIZE];
+    MmResult result = program_file_stack->size == 0
+            ? program_get_bas_file(filename, full_path)
+            : program_get_inc_file(program_file_stack->files[0].filename, filename, full_path);
     switch (result) {
         case kOk:
             break;
         case kFileNotFound:
-            ERROR_INCLUDE_FILE_NOT_FOUND(filename);
+            if (program_file_stack->size == 0) {
+                ERROR_PROGRAM_FILE_NOT_FOUND;
+            } else {
+                ERROR_INCLUDE_FILE_NOT_FOUND(filename);
+            }
             break;
         case kFilenameTooLong:
             ERROR_PATH_TOO_LONG;
@@ -426,12 +432,18 @@ static void program_open_file(const char *filename, bool include) {
     }
 
     int fnbr = file_find_free();
-    file_open(file_path, "rb", fnbr);
+    file_open(full_path, "rb", fnbr);
     program_file_stack->head = &program_file_stack->files[program_file_stack->size];
-    strcpy(program_file_stack->head->filename, filename);
     program_file_stack->head->fnbr = fnbr;
     program_file_stack->head->line_num = 0;
     program_file_stack->size++;
+
+    if (program_file_stack->size == 1) {
+        strcpy(CurrentFile, full_path);
+        strcpy(program_file_stack->head->filename, full_path);
+    } else {
+        strcpy(program_file_stack->head->filename, filename);
+    }
 }
 
 static void program_close_file() {
@@ -449,16 +461,17 @@ static void program_close_file() {
 MmResult program_process_file(const char *file_path, char **p, char *edit_buffer) {
     char line[STRINGSIZE];
 
-    program_open_file(file_path, true);
+    program_open_file(file_path);
 
     for (;;) {
         if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
-        program_file_stack->head->line_num++;
 
         if (file_eof(program_file_stack->head->fnbr)) {
             program_close_file();
             if (!program_file_stack->head) break;
         }
+
+        program_file_stack->head->line_num++;
 
         // Read a program line.
         memset(line, 0, STRINGSIZE);
@@ -483,7 +496,7 @@ MmResult program_process_file(const char *file_path, char **p, char *edit_buffer
                 q++;
                 if ((q = strchr(q, '"')) == 0) return kSyntax;
                 /*const*/ char *include_filename = getCstring(tp);
-                program_open_file(include_filename, true);
+                program_open_file(include_filename);
                 ClearSpecificTempMemory(include_filename);
                 continue;  // Don't write to edit buffer.
             } else {
@@ -493,8 +506,10 @@ MmResult program_process_file(const char *file_path, char **p, char *edit_buffer
 
         // Append file and line-number.
         result = cstring_cat(line, "'|", STRINGSIZE);
-        if (SUCCEEDED(result)) result = cstring_cat(line, program_file_stack->head->filename, STRINGSIZE);
-        if (SUCCEEDED(result)) result = cstring_cat(line, ",", STRINGSIZE);
+        if (program_file_stack->size > 1) {
+            if (SUCCEEDED(result)) result = cstring_cat(line, program_file_stack->head->filename, STRINGSIZE);
+            if (SUCCEEDED(result)) result = cstring_cat(line, ",", STRINGSIZE);
+        }
         if (SUCCEEDED(result)) result = cstring_cat_int64(line, program_file_stack->head->line_num, STRINGSIZE);
         if (FAILED(result)) ERROR_LINE_TOO_LONG;
 
@@ -509,33 +524,6 @@ MmResult program_process_file(const char *file_path, char **p, char *edit_buffer
     }
 
     return kOk;
-}
-
-static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer) {
-    char *q;
-    if ((q = strchr(tp, '"')) == 0) ERROR_SYNTAX;
-    q++;
-    if ((q = strchr(q, '"')) == 0) ERROR_SYNTAX;
-    const char *filename = getCstring(tp);
-
-    char file_path[STRINGSIZE];
-    MmResult result = program_get_inc_file(parent_file, filename, file_path);
-    switch (result) {
-        case kOk:
-            break;
-        case kFileNotFound:
-            ERROR_INCLUDE_FILE_NOT_FOUND(filename);
-            break;
-        case kFilenameTooLong:
-            ERROR_PATH_TOO_LONG;
-            break;
-        default:
-            error_throw(result);
-            break;
-    }
-
-    result = program_process_file(file_path, p, edit_buffer);
-    if (FAILED(result)) error_throw(result);
 }
 
 static bool program_path_exists(const char *root, const char *stem, const char *extension) {
@@ -811,149 +799,34 @@ void program_list_csubs(int all) {
     print_line("", &line_count, all);
 }
 
-static int program_load_file_internal(char *filename) {
+int program_load_file(char *filename) {
+    // Store the current token buffer incase we are at the command prompt.
+    char tmp[TKNBUF_SIZE];
+    memcpy(tmp, tknbuf, TKNBUF_SIZE);
 
-    char file_path[STRINGSIZE];
-    MmResult result = program_get_bas_file(filename, file_path);
-    switch (result) {
-        case kOk:
-            break;
-        case kFileNotFound:
-            ERROR_PROGRAM_FILE_NOT_FOUND;
-            break;
-        case kFilenameTooLong:
-            ERROR_PATH_TOO_LONG;
-            break;
-        default:
-            error_throw(result);
-            break;
-    }
-
-    char *p, *op, *ip, *edit_buffer, *sbuff;
-    char line[STRINGSIZE];
-    char num[10];
-    size_t c;
-    int importlines = 0;
-    bool data, in_quotes;
+    // Store a copy of the filename on the stack so it is not trampled on by ClearProgram().
+    char filename2[STRINGSIZE];
+    strcpy(filename2, filename);
 
     ClearProgram();
-    int fnbr = file_find_free();
-    file_open(file_path, "rb", fnbr);
 
     // TODO: are these being properly released after a longjmp() ?
-    p = edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);
+    char *edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);
+    char *p = edit_buffer;
     program_init_defines();
-
-    while (!file_eof(fnbr)) {
-        size_t len = 0, slen;  // while waiting for the end of file
-        sbuff = line;
-        if ((p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
-            ERROR_OUT_OF_MEMORY;
-        //        mymemset(buff,0,256);
-        memset(line, 0, STRINGSIZE);
-        MMgetline(fnbr, line);  // get the input line
-        data = false;
-        importlines++;
-        //        routinechecks(1);
-        len = strlen(line);
-        in_quotes = false;
-        for (c = 0; c < strlen(line); c++) {
-            if (line[c] == TAB) line[c] = ' ';
-        }
-        while (sbuff[0] == ' ') {  // strip leading spaces
-            sbuff++;
-            len--;
-        }
-        if (strncasecmp(sbuff, "rem ", 4) == 0 ||
-            (len == 3 && strncasecmp(sbuff, "rem", 3) == 0)) {
-            sbuff += 2;
-            *sbuff = SINGLE_QUOTE;
-            continue;
-        }
-        if (strncasecmp(sbuff, "data ", 5) == 0) data = true;
-        slen = len;
-        op = sbuff;
-        ip = sbuff;
-        while (*ip) {
-            if (*ip == '"') {
-                in_quotes = !in_quotes;
-            }
-            if (!in_quotes && (*ip == ' ' || *ip == ':')) {
-                *op++ = *ip++;  // copy the first space
-                while (*ip == ' ') {
-                    ip++;
-                    len--;
-                }
-            } else
-                *op++ = *ip++;
-        }
-        slen = len;
-        if (sbuff[0] == '#') {
-            const char *tp = checkstring(&sbuff[1], "DEFINE");
-            if (tp) {
-                getargs(&tp, 3, ",");
-                if (program_replace_map->size >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;
-                strcpy(program_replace_map->items[program_replace_map->size].from, getCstring(argv[0]));
-                strcpy(program_replace_map->items[program_replace_map->size].to, getCstring(argv[2]));
-                program_replace_map->size++;
-            } else {
-                if (cmpstr("INCLUDE", &sbuff[1]) == 0) {
-                    importfile(file_path, &sbuff[8], &p, edit_buffer);
-                }
-            }
-        } else {
-            in_quotes = false;
-            for (c = 0; c < slen; c++) {
-                if (sbuff[c] == '"') {
-                    in_quotes = !in_quotes;
-                }
-                if (!(in_quotes || data)) sbuff[c] = toupper(sbuff[c]);
-                if (!in_quotes && sbuff[c] == SINGLE_QUOTE && len == slen) {
-                    len = c;  // get rid of comments
-                    break;
-                }
-            }
-            if (in_quotes) sbuff[len++] = '"';
-            sbuff[len++] = SINGLE_QUOTE;
-            sbuff[len++] = '|';
-            IntToStr(num, importlines, 10);
-            strcpy(&sbuff[len], num);
-            len += strlen(num);
-            if (len > 254) ERROR_LINE_TOO_LONG;
-            sbuff[len] = 0;
-            len = massage(sbuff);  // can't risk crushing lines with a quote in them
-            if ((sbuff[0] != SINGLE_QUOTE) || (sbuff[0] == SINGLE_QUOTE && sbuff[1] == SINGLE_QUOTE)) {
-                memcpy(p, sbuff, len);
-                p += len;
-                *p++ = '\n';
-            }
-        }
-    }
-
-    file_close(fnbr);
+    MmResult result = program_process_file(filename2, &p, edit_buffer);
 
     // Ensure every program has an END (and a terminating '\0').
     if (p - edit_buffer > EDIT_BUFFER_SIZE - 5) ERROR_OUT_OF_MEMORY;
     memcpy(p, "END\n", 5);
     p += 5;
 
-    program_tokenise(file_path, edit_buffer);
+    program_tokenise(CurrentFile, edit_buffer);
 
     ClearSpecificTempMemory(edit_buffer);
     program_term_defines();
 
     program_process_csubs();
-    // program_list_csubs(1);
-
-    return 0; // Success
-}
-
-int program_load_file(char *filename) {
-    // Store the current token buffer incase we are at the command prompt.
-    char tmp[TKNBUF_SIZE];
-    memcpy(tmp, tknbuf, TKNBUF_SIZE);
-
-    int result = program_load_file_internal(filename);
 
     // Restore the token buffer.
     memcpy(tknbuf, tmp, TKNBUF_SIZE);
