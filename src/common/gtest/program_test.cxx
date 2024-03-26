@@ -146,12 +146,12 @@ protected:
         errno = 0;
         CurrentLinePtr = (char *) 0;
         strcpy(CurrentFile, "");
-        program_init_defines();
+        program_internal_alloc();
     }
 
     void TearDown() override {
         RemoveTemporaryFiles();
-        program_term_defines();
+        program_internal_free();
     }
 };
 
@@ -501,13 +501,10 @@ TEST_F(ProgramTest, ProcessLine_AppliesDefineReplacements) {
 TEST_F(ProgramTest, ProcessFile_GivenEmpty) {
     const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
     MakeFile(file_path, "");
-    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
-    char *p = edit_buffer;
+    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
-    EXPECT_STREQ("", edit_buffer);
-
-    ClearSpecificTempMemory(edit_buffer);
+    EXPECT_EQ(kOk, program_process_file(file_path, &p));
+    EXPECT_STREQ("", program_get_edit_buffer());
 }
 
 TEST_F(ProgramTest, ProcessFile_GivenNotEmpty) {
@@ -515,16 +512,13 @@ TEST_F(ProgramTest, ProcessFile_GivenNotEmpty) {
     MakeFile(file_path,
         "Print \"Hello World\"\n"
         "Dim a = 1");
-    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
-    char *p = edit_buffer;
+    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
+    EXPECT_EQ(kOk, program_process_file(file_path, &p));
     EXPECT_STREQ(
         "PRINT \"Hello World\"'|1\n"
         "DIM A = 1'|2\n",
-        edit_buffer);
-
-    ClearSpecificTempMemory(edit_buffer);
+        program_get_edit_buffer());
 }
 
 TEST_F(ProgramTest, ProcessFile_GivenEmptyLines_IgnoresThem) {
@@ -535,16 +529,13 @@ TEST_F(ProgramTest, ProcessFile_GivenEmptyLines_IgnoresThem) {
         "    \n"
         "Dim a = 1"
         "' this is a comment");
-    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
-    char *p = edit_buffer;
+    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
+    EXPECT_EQ(kOk, program_process_file(file_path, &p));
     EXPECT_STREQ(
         "PRINT \"Hello World\"'|2\n"
         "DIM A = 1'|4\n",
-        edit_buffer);
-
-    ClearSpecificTempMemory(edit_buffer);
+        program_get_edit_buffer());
 }
 
 TEST_F(ProgramTest, ProcessFile_GivenHierarchicalInclude) {
@@ -561,45 +552,36 @@ TEST_F(ProgramTest, ProcessFile_GivenHierarchicalInclude) {
     MakeFile(two_path, "Two");
     const char *three_path = PROGRAM_TEST_DIR "/three.inc";
     MakeFile(three_path, "Three");
-    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
-    char *p = edit_buffer;
+    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(main_path, &p, edit_buffer));
+    EXPECT_EQ(kOk, program_process_file(main_path, &p));
     EXPECT_STREQ(
         "MAIN'|1\n"
         "ONE'|one.inc,1\n"
         "THREE'|three.inc,1\n"
         "TWO'|two.inc,1\n",
-        edit_buffer);
-
-    ClearSpecificTempMemory(edit_buffer);
+        program_get_edit_buffer());
 }
 
 TEST_F(ProgramTest, ProcessFile_GivenDefineDirective_CreatesDefine) {
     const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
     MakeFile(file_path, "#Define \"foo\", \"bar\"");
-    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
-    char *p = edit_buffer;
+    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
-    EXPECT_STREQ("", edit_buffer);
+    EXPECT_EQ(kOk, program_process_file(file_path, &p));
+    EXPECT_STREQ("", program_get_edit_buffer());
     EXPECT_EQ(1, program_get_num_defines());
     const char *from, *to;
     EXPECT_EQ(kOk, program_get_define(0, &from, &to));
     EXPECT_STREQ("foo", from);
     EXPECT_STREQ("bar", to);
-
-    ClearSpecificTempMemory(edit_buffer);
 }
 
 TEST_F(ProgramTest, ProcessFile_GivenUnnownDirective_IgnoresIt) {
     const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
     MakeFile(file_path, "#Unknown \"wom.inc\"");
-    char *edit_buffer = (char *) GetTempMemory(EDIT_BUFFER_SIZE);
-    char *p = edit_buffer;
+    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p, edit_buffer));
-    EXPECT_STREQ("", edit_buffer);
-
-    ClearSpecificTempMemory(edit_buffer);
+    EXPECT_EQ(kOk, program_process_file(file_path, &p));
+    EXPECT_STREQ("", program_get_edit_buffer());
 }
