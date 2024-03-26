@@ -96,10 +96,9 @@ void program_list_csubs(int all);
  *
  * @param          file_path    The full path to the file to pre-process.
  * @param[in,out]  p            Pointer to the insertion point in the edit buffer.
- * @param          edit_buffer  Pointer to the start of the edit buffer.
  * @return                      kOk on success.
  */
-MmResult program_process_file(const char *file_path, char **p, char *edit_buffer);
+MmResult program_process_file(const char *file_path, char **p);
 
 /**
  * @brief Pre-process a single line of the program (in place).
@@ -110,14 +109,25 @@ MmResult program_process_file(const char *file_path, char **p, char *edit_buffer
 MmResult program_process_line(char *line);
 
 /**
- * @brief Initialises/allocates the string replacement map.
+ * @brief Allocates memory for internal data-structures.
+ *
+ * Only visible for unit-testing.
  */
-void program_init_defines();
+void program_internal_alloc();
 
 /**
- * @brief Terminates/frees the string replacement map.
+ * @brief Frees memory for internal data-structures.
+ *
+ * Only visible for unit-testing.
  */
-void program_term_defines();
+void program_internal_free();
+
+/**
+ * @brief Gets pointer to edit buffer.
+ *
+ * Only visible for unit-testing.
+ */
+char* program_get_edit_buffer();
 
 /**
  * @brief Add an entry to the string replacement map.
