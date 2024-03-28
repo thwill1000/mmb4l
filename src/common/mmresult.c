@@ -80,6 +80,7 @@ const char *mmresult_to_string(MmResult result) {
         case kTooManyDefines:             return "Too many #DEFINE directives";
         case kOutOfMemory:                return "Not enough memory";
         case kLineTooLong:                return "Line too long";
+        case kProgramTooLong:             return "Program too long";
         default:                          return "Unknown result code";
     }
 }

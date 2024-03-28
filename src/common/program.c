@@ -100,7 +100,11 @@ typedef struct {
 
 static ProgramFileStack *program_file_stack = NULL;
 
+/** Start of the edit buffer. */
 static char *program_edit_buffer = NULL;
+
+/** Current insertion point into edit buffer. */
+static char *program_edit_buffer_insert = NULL;
 
 static void STR_REPLACE(char *target, const char *needle, const char *replacement) {
     char *ip = target;
@@ -284,6 +288,7 @@ void program_internal_alloc() {
     program_file_stack = GetTempMemory(sizeof(ProgramFileStack));
     program_file_stack->size = 0;
     program_edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);
+    program_edit_buffer_insert = program_edit_buffer;
 }
 
 void program_internal_free() {
@@ -293,6 +298,7 @@ void program_internal_free() {
     program_file_stack = NULL;
     ClearSpecificTempMemory(program_edit_buffer);
     program_edit_buffer = NULL;
+    program_edit_buffer_insert = NULL;
 }
 
 char* program_get_edit_buffer() {
@@ -388,7 +394,7 @@ MmResult program_process_line(char *line) {
 
     // Close any open double-quote.
     if (in_quotes) {
-        if (FAILED(cstring_cat(line, "\"", STRINGSIZE))) return kStringTooLong;
+        if (FAILED(cstring_cat(line, "\"", STRINGSIZE))) return kLineTooLong;
     }
 
     program_apply_replacements(line);
@@ -446,14 +452,21 @@ static void program_close_file() {
             : &program_file_stack->files[program_file_stack->size - 1];
 }
 
-MmResult program_process_file(const char *file_path, char **p) {
+static MmResult program_append_to_edit_buffer(const char *s) {
+    size_t len = strlen(s);
+    if (program_edit_buffer_insert + len >= program_edit_buffer + EDIT_BUFFER_SIZE - 1) return kProgramTooLong;
+    strcpy(program_edit_buffer_insert, s);
+    program_edit_buffer_insert += len;
+    return kOk;
+}
+
+MmResult program_process_file(const char *file_path) {
+    MmResult result = kOk;
     char line[STRINGSIZE];
 
     program_open_file(file_path);
 
     for (;;) {
-        if ((*p - program_edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) return kOutOfMemory;
-
         if (file_eof(program_file_stack->head->fnbr)) {
             program_close_file();
             if (!program_file_stack->head) break;
@@ -466,8 +479,8 @@ MmResult program_process_file(const char *file_path, char **p) {
         MMgetline(program_file_stack->head->fnbr, line);
 
         // Pre-process the line.
-        MmResult result = program_process_line(line);
-        if (FAILED(result)) return result;
+        result = program_process_line(line);
+        if (FAILED(result)) break;
 
         // Handle pre-processor directives.
         if (*line == '#') {
@@ -492,26 +505,23 @@ MmResult program_process_file(const char *file_path, char **p) {
             }
         }
 
-        // Append file and line-number.        
-        result = cstring_cat(line, "'|", STRINGSIZE);
-        if (program_file_stack->size > 1) {
-            if (SUCCEEDED(result)) result = cstring_cat(line, program_file_stack->head->filename, STRINGSIZE);
-            if (SUCCEEDED(result)) result = cstring_cat(line, ",", STRINGSIZE);
-        }
-        if (SUCCEEDED(result)) result = cstring_cat_int64(line, program_file_stack->head->line_num, STRINGSIZE);
-        if (FAILED(result)) return kLineTooLong;
+        if (*line) {
+            // Append file and line-number.
+            result = cstring_cat(line, "'|", STRINGSIZE);
+            if (program_file_stack->size > 1) {
+                if (SUCCEEDED(result)) result = cstring_cat(line, program_file_stack->head->filename, STRINGSIZE);
+                if (SUCCEEDED(result)) result = cstring_cat(line, ",", STRINGSIZE);
+            }
+            if (SUCCEEDED(result)) result = cstring_cat_int64(line, program_file_stack->head->line_num, STRINGSIZE);
+            if (FAILED(result)) return kLineTooLong;
 
-        // Copy the transformed line into the edit buffer, terminating with '\n'.
-        size_t len = strlen(line);
-        if ((line[0] != SINGLE_QUOTE) || (line[0] == SINGLE_QUOTE && line[1] == SINGLE_QUOTE)) {
-            memcpy(*p, line, len);
-            *p += len;
-            **p = '\n';
-            *p += 1;
+            // Copy the transformed line into the edit buffer, terminating with '\n'.
+            result = program_append_to_edit_buffer(line);
+            if (SUCCEEDED(result)) result = program_append_to_edit_buffer("\n");
         }
     }
 
-    return kOk;
+    return result;
 }
 
 static bool program_path_exists(const char *root, const char *stem, const char *extension) {
@@ -799,24 +809,13 @@ MmResult program_load_file(const char *filename) {
     ClearProgram();
 
     program_internal_alloc();
-    char *p = program_edit_buffer;
-    MmResult result = program_process_file(filename2, &p);
-    if (FAILED(result)) {
-        program_internal_free();
-        return result == kStringTooLong ? kLineTooLong : result;
-    }
-
-    // Ensure every program has an END (and a terminating '\0').
-    if (p - program_edit_buffer > EDIT_BUFFER_SIZE - 5) ERROR_OUT_OF_MEMORY;
-    memcpy(p, "END\n", 5);
-    p += 5;
-
-    program_tokenise(CurrentFile, program_edit_buffer);
+    MmResult result = program_process_file(filename2);
+    if (SUCCEEDED(result)) result = program_append_to_edit_buffer("END\n");
+    if (SUCCEEDED(result)) program_tokenise(CurrentFile, program_edit_buffer);
     program_internal_free();
-    program_process_csubs();
-
-    // Restore the token buffer.
-    memcpy(tknbuf, tmp, TKNBUF_SIZE);
+    if (SUCCEEDED(result)) program_process_csubs();
+    memcpy(tknbuf, tmp, TKNBUF_SIZE);  // Restore the token buffer.
+    if (FAILED(result)) return result;
 
     // Set the console window title.
     char title[STRINGSIZE + 10];

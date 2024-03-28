@@ -94,11 +94,10 @@ void program_list_csubs(int all);
 /**
  * @brief Pre-process a file into the edit buffer.
  *
- * @param          file_path    The full path to the file to pre-process.
- * @param[in,out]  p            Pointer to the insertion point in the edit buffer.
- * @return                      kOk on success.
+ * @param   file_path    The full path to the file to pre-process.
+ * @return               kOk on success.
  */
-MmResult program_process_file(const char *file_path, char **p);
+MmResult program_process_file(const char *file_path);
 
 /**
  * @brief Pre-process a single line of the program (in place).
