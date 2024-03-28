@@ -282,7 +282,12 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
     return path_get_canonical(path, out, STRINGSIZE);
 }
 
-void program_internal_alloc() {
+/**
+ * @brief Allocates memory for internal data-structures.
+ *
+ * Only visible for unit-testing.
+ */
+static void program_internal_alloc() {
     program_replace_map = GetTempMemory(sizeof(ReplaceMap));
     program_replace_map->size = 0;
     program_file_stack = GetTempMemory(sizeof(ProgramFileStack));
@@ -291,7 +296,12 @@ void program_internal_alloc() {
     program_edit_buffer_insert = program_edit_buffer;
 }
 
-void program_internal_free() {
+/**
+ * @brief Frees memory for internal data-structures.
+ *
+ * Only visible for unit-testing.
+ */
+static void program_internal_free() {
     ClearSpecificTempMemory(program_replace_map);
     program_replace_map = NULL;
     ClearSpecificTempMemory(program_file_stack);
@@ -301,11 +311,15 @@ void program_internal_free() {
     program_edit_buffer_insert = NULL;
 }
 
-char* program_get_edit_buffer() {
-    return program_edit_buffer;
-}
-
-MmResult program_add_define(const char *from, const char *to) {
+/**
+ * @brief Add an entry to the string replacement map.
+ *
+ * @param  from  The 'from' string.
+ * @param  to    The 'to' string.
+ * @return       kOk on success,
+ *               kTooManyDefines if there are too many #DEFINEs.
+ */
+static MmResult program_add_define(const char *from, const char *to) {
     if (program_replace_map->size >= MAXDEFINES) return kTooManyDefines;
     strcpy(program_replace_map->items[program_replace_map->size].from, from);
     strcpy(program_replace_map->items[program_replace_map->size].to, to);
@@ -313,21 +327,41 @@ MmResult program_add_define(const char *from, const char *to) {
     return kOk;
 }
 
-int program_get_num_defines() {
+/**
+ * @brief Gets the number of entries in the string replacement map.
+ */
+static int program_get_num_defines() {
     return program_replace_map->size;
 }
 
-MmResult program_get_define(size_t idx, const char **from, const char **to) {
+/**
+ * @brief Gets an entry from the string replacement map.
+ *
+ * @param       idx   Index of the entry to get.
+ * @param[out]  from  On exit points to the entry's 'from' property.
+ * @param[out]  to    On exit points to the entry's 'from' property.
+ * @return            kOk on success.
+ */
+static MmResult program_get_define(size_t idx, const char **from, const char **to) {
     if (idx >= program_replace_map->size) return kInternalFault;
     *from = program_replace_map->items[program_replace_map->size - 1].from;
     *to = program_replace_map->items[program_replace_map->size - 1].to;
     return kOk;
 }
 
-MmResult program_process_line(char *line) {
+/**
+ * @brief Pre-process a single line of the program (in place).
+ *
+ * @param[in,out]  line  The line to pre-process.
+ * @return               kOk on success.
+ */
+static MmResult program_process_line(char *line) {
     bool in_quotes = false;
 
     // Convert tab characters into single spaces in the line.
+    // TODO: This is non-functional since lines will have been processed by
+    //       MMgetline which already expands tabs according to the value of
+    //       mmb_options.tab.
     for (size_t c = 0; c < strlen(line); c++) {
         if (line[c] == TAB) line[c] = ' ';
     }
@@ -460,6 +494,12 @@ static MmResult program_append_to_edit_buffer(const char *s) {
     return kOk;
 }
 
+/**
+ * @brief Pre-process a file into the edit buffer.
+ *
+ * @param   file_path    The full path to the file to pre-process.
+ * @return               kOk on success.
+ */
 MmResult program_process_file(const char *file_path) {
     MmResult result = kOk;
     char line[STRINGSIZE];

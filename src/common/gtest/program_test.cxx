@@ -4,6 +4,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h> // Needed for EXPECT_THAT.
 #include <climits>
 #include <dirent.h>
 
@@ -11,14 +12,16 @@
 
 extern "C" {
 
+#include "test_helper.h"
 #include "../error.h"
 #include "../memory.h"
 #include "../options.h"
 #include "../program.h"
 #include "../utility.h"
 #include "../../core/Commands.h"
-#include "../../core/commandtbl.h"
+#include "../../core/tokentbl.h"
 #include "../../core/MMBasic.h"
+#include "../../core/vartbl.h"
 #include "../../core/gtest/command_stubs.h"
 #include "../../core/gtest/function_stubs.h"
 #include "../../core/gtest/operation_stubs.h"
@@ -63,6 +66,49 @@ void ListNewLine(int *ListCnt, int all) { }
 } // extern "C"
 
 #define PROGRAM_TEST_DIR  TMP_DIR "/ProgramTest"
+
+#define CMD_DATA    "\x91\x80"
+#define CMD_DIM     "\x92\x80"
+#define CMD_END     "\x9E\x80"
+#define CMD_LET     "\xB2\x80"
+#define CMD_PRINT   "\xC7\x80"
+#define OP_EQUALS   "\xEC"
+
+#define EXPECT_PROGRAM_EQ(prog) \
+    EXPECT_THAT(std::vector<char>(ProgMemory, ProgMemory + prog.length()), \
+                ::testing::ElementsAreArray(prog.buffer, prog.length()));
+
+class ExpectedProgram {
+
+public:
+    ExpectedProgram() {
+        p = buffer;
+    }
+
+    void appendChar(char c) {
+        *p++ = c;
+    }
+
+    void appendLine(const char *s) {
+        appendChar('\x01');
+        do {
+            appendChar(*s);
+        } while (*s++);
+    }
+
+    void end() {
+        appendChar('\0');
+        appendChar('\0');
+        appendChar('\xFF');
+    }
+
+    size_t length() {
+        return p - buffer;
+    }
+
+    char buffer[512];
+    char *p;
+};
 
 class ProgramTest : public ::testing::Test {
 
@@ -143,15 +189,15 @@ protected:
         MakeDir(PROGRAM_TEST_DIR "/bar");
         MakeDir("bar");
 
+        vartbl_init_called = false;
         errno = 0;
-        CurrentLinePtr = (char *) 0;
-        strcpy(CurrentFile, "");
-        program_internal_alloc();
+        strcpy(error_msg, "");
+        InitBasic();
+        clear_prog_memory();
     }
 
     void TearDown() override {
         RemoveTemporaryFiles();
-        program_internal_free();
     }
 };
 
@@ -376,190 +422,292 @@ TEST_F(ProgramTest, GetIncFile_GivenRelativePath) {
     TEST_PROGRAM_GET_INC_FILE("foo",     PROGRAM_TEST_DIR "/bar/foo");
 }
 
-TEST_F(ProgramTest, ProcessLine_GivenEmptyLine) {
-    char line[STRINGSIZE] = { 0 };
+TEST_F(ProgramTest, HardcodedTokenValuesAreCorrect) {
+    char buf[3];
+    char *p = buf;
+    commandtbl_encode(&p, commandtbl_get("Data"));
+    EXPECT_STREQ(CMD_DATA, buf);
+    p = buf;
+    commandtbl_encode(&p, commandtbl_get("Dim"));
+    EXPECT_STREQ(CMD_DIM, buf);
+    p = buf;
+    commandtbl_encode(&p, commandtbl_get("End"));
+    EXPECT_STREQ(CMD_END, buf);
+    p = buf;
+    commandtbl_encode(&p, commandtbl_get("Let"));
+    EXPECT_STREQ(CMD_LET, buf);
+    p = buf;
+    commandtbl_encode(&p, commandtbl_get("Print"));
+    EXPECT_STREQ(CMD_PRINT, buf);
 
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("", line);
+    sprintf(buf, "%c", (char) tokentbl_get("="));
+    EXPECT_STREQ(OP_EQUALS, buf);
 }
 
-TEST_F(ProgramTest, ProcessLine_GivenLeadingWhitespace_StripsWhitespace) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "    Print 5");
+TEST_F(ProgramTest, LoadFile_GivenEmptyFile) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path, "");
 
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("PRINT 5", line);
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
 }
 
-TEST_F(ProgramTest, ProcessLine_GivenRemCommandWithContent) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "REM foo bar");
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("", line);
-}
-
-TEST_F(ProgramTest, ProcessLine_GivenRemCommandWithNoContent) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "REM");
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("", line);
-}
-
-TEST_F(ProgramTest, ProcessLine_GivenComment_RemovesComment) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "Print 5 ' foo bar");
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("PRINT 5", line);
-}
-
-TEST_F(ProgramTest, ProcessLine_GivenCommentContainingDoubleQuote_RemovesComment) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "Print 5 ' foo \" bar");
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("PRINT 5", line);
-}
-
-TEST_F(ProgramTest, ProcessLine_GivenStringContainingSingleQuote) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "Print \"'\"");
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("PRINT \"'\"", line);
-}
-
-TEST_F(ProgramTest, ProcessLine_CompressesSpaces) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "Print   \"foo bar\"  +    \"wom   bat\"");
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("PRINT \"foo bar\" + \"wom   bat\"", line);
-}
-
-TEST_F(ProgramTest, ProcessLine_GivenUnclosedDoubleQuote) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "Print \"foo bar");
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("PRINT \"foo bar\"", line);
-}
-
-TEST_F(ProgramTest, ProcessLine_GivenTabs_ReplacesWithSpaces) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "Print\t\"foo\tbar"); // Even within quotes.
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("PRINT \"foo bar\"", line);
-}
-
-TEST_F(ProgramTest, ProcessLine_GivenData_DoesNotConvertToUpperCase) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "Data abc, \"def\"");
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("Data abc, \"def\"", line); // TODO: Keyword should probably be capitalised.
-}
-
-TEST_F(ProgramTest, ProcessLine_GivenDirective) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "#include \"foo\"");
-
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("#INCLUDE \"foo\"", line);
-}
-
-TEST_F(ProgramTest, ProcessLine_AppliesDefineReplacements) {
-    char line[STRINGSIZE] = { 0 };
-    strcpy(line, "wom bat");
-    program_add_define("wom", "foo");
-    program_add_define("bat", "snafu");
-
-    // Matching is case-insensitive and replacements are in upper-case.
-    EXPECT_EQ(kOk, program_process_line(line));
-    EXPECT_STREQ("FOO SNAFU", line);
-}
-
-TEST_F(ProgramTest, ProcessFile_GivenEmpty) {
-    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
-    MakeFile(file_path, "");
-
-    EXPECT_EQ(kOk, program_process_file(file_path));
-    EXPECT_STREQ("", program_get_edit_buffer());
-}
-
-TEST_F(ProgramTest, ProcessFile_GivenNotEmpty) {
-    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
-    MakeFile(file_path,
-        "Print \"Hello World\"\n"
-        "Dim a = 1");
-
-    EXPECT_EQ(kOk, program_process_file(file_path));
-    EXPECT_STREQ(
-        "PRINT \"Hello World\"'|1\n"
-        "DIM A = 1'|2\n",
-        program_get_edit_buffer());
-}
-
-TEST_F(ProgramTest, ProcessFile_GivenEmptyLines_IgnoresThem) {
-    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
-    MakeFile(file_path,
-        "\n"
-        "Print \"Hello World\"\n"
-        "    \n"
-        "Dim a = 1"
-        "' this is a comment");
-
-    EXPECT_EQ(kOk, program_process_file(file_path));
-    EXPECT_STREQ(
-        "PRINT \"Hello World\"'|2\n"
-        "DIM A = 1'|4\n",
-        program_get_edit_buffer());
-}
-
-TEST_F(ProgramTest, ProcessFile_GivenHierarchicalInclude) {
+TEST_F(ProgramTest, LoadFile_GivenEmptyLine_StripsIt) {
     const char *main_path = PROGRAM_TEST_DIR "/main.bas";
     MakeFile(main_path,
-        "Main\n"
+        "Print \"Hello World\"\n"
+        "\n"
+        "Dim a = 1\n"
+        "    ");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|3");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenExtraWhitespace_StripsIt) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path, "     Print   \"Hello World\"    ");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenRemCommandWithContent_StripsIt) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "REM foo bar\n"
+        "Dim a = 1");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|3");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenRemCommandWithoutContent_StripsIt) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "  REM\n"
+        "Dim a = 1");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|3");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenComment_StripsIt) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\" 'comment1\n"
+        "  ' comment2\n"
+        "Dim a = 1    'comment3");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|3");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenCommentContainingDoubleQuotes_StripsIt) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\" 'foo \"bar\n"
+        "  ' \"wom bat\"\n"
+        "Dim a = 1    'comment3");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|3");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenStringContainingSingleQuote_DoesNotTreatAsComment) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello 'World\"\n"
+        "\n"
+        "Dim a = 1");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello 'World\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|3");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenUnclosedDoubleQuote_InsertsClosingQuote) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\n"
+        "Dim a = 1");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|2");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenTabs_ReplacesWithSpaces) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print\t\"Hello\t\tWorld\t\n"
+        "Dim\t\ta\t=\t1");
+    mmb_options.tab = 2;
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello    World\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|2");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenData_DoesNotConvertToUpperCase) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\n"
+        "Data abc, \"def\"");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_DATA "abc, \"def\"'|2");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenIncludeDirective_IncludesFiles) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Dim Main = 0\n"
         "#Include \"one.inc\"\n"
         "#Include \"two.inc\"");
     const char *one_path = PROGRAM_TEST_DIR "/one.inc";
     MakeFile(one_path,
-        "One\n"
+        "Dim One = 1\n"
         "#Include \"three.inc\"");
     const char *two_path = PROGRAM_TEST_DIR "/two.inc";
-    MakeFile(two_path, "Two");
+    MakeFile(two_path, "Dim Two = 2");
     const char *three_path = PROGRAM_TEST_DIR "/three.inc";
-    MakeFile(three_path, "Three");
+    MakeFile(three_path, "Dim Three = 3");
 
-    EXPECT_EQ(kOk, program_process_file(main_path));
-    EXPECT_STREQ(
-        "MAIN'|1\n"
-        "ONE'|one.inc,1\n"
-        "THREE'|three.inc,1\n"
-        "TWO'|two.inc,1\n",
-        program_get_edit_buffer());
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_DIM "MAIN " OP_EQUALS " 0'|1");
+    e.appendLine(CMD_DIM "ONE " OP_EQUALS " 1'|one.inc,1");
+    e.appendLine(CMD_DIM "THREE " OP_EQUALS " 3'|three.inc,1");
+    e.appendLine(CMD_DIM "TWO " OP_EQUALS " 2'|two.inc,1");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
 }
 
-TEST_F(ProgramTest, ProcessFile_GivenDefineDirective_CreatesDefine) {
-    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
-    MakeFile(file_path, "#Define \"foo\", \"bar\"");
+TEST_F(ProgramTest, LoadFile_GivenDefineDirective_AppliesReplacement) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#define \"foo\", \"bar\"\n"
+        "Dim foo = 1\n"
+        "FOO = 2"); // And is case-insensitive.
 
-    EXPECT_EQ(kOk, program_process_file(file_path));
-    EXPECT_STREQ("", program_get_edit_buffer());
-    EXPECT_EQ(1, program_get_num_defines());
-    const char *from, *to;
-    EXPECT_EQ(kOk, program_get_define(0, &from, &to));
-    EXPECT_STREQ("foo", from);
-    EXPECT_STREQ("bar", to);
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_DIM "BAR " OP_EQUALS " 1'|3");
+    e.appendLine(CMD_LET "BAR " OP_EQUALS " 2'|4");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
 }
 
-TEST_F(ProgramTest, ProcessFile_GivenUnnownDirective_IgnoresIt) {
-    const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
-    MakeFile(file_path, "#Unknown \"wom.inc\"");
+TEST_F(ProgramTest, LoadFile_GivenUnknownDirective_StripsIt) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#Unknown\n"
+        "Dim a = 1");
 
-    EXPECT_EQ(kOk, program_process_file(file_path));
-    EXPECT_STREQ("", program_get_edit_buffer());
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|3");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
 }
