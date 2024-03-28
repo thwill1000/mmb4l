@@ -485,9 +485,8 @@ TEST_F(ProgramTest, ProcessLine_AppliesDefineReplacements) {
 TEST_F(ProgramTest, ProcessFile_GivenEmpty) {
     const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
     MakeFile(file_path, "");
-    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p));
+    EXPECT_EQ(kOk, program_process_file(file_path));
     EXPECT_STREQ("", program_get_edit_buffer());
 }
 
@@ -496,9 +495,8 @@ TEST_F(ProgramTest, ProcessFile_GivenNotEmpty) {
     MakeFile(file_path,
         "Print \"Hello World\"\n"
         "Dim a = 1");
-    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p));
+    EXPECT_EQ(kOk, program_process_file(file_path));
     EXPECT_STREQ(
         "PRINT \"Hello World\"'|1\n"
         "DIM A = 1'|2\n",
@@ -513,9 +511,8 @@ TEST_F(ProgramTest, ProcessFile_GivenEmptyLines_IgnoresThem) {
         "    \n"
         "Dim a = 1"
         "' this is a comment");
-    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p));
+    EXPECT_EQ(kOk, program_process_file(file_path));
     EXPECT_STREQ(
         "PRINT \"Hello World\"'|2\n"
         "DIM A = 1'|4\n",
@@ -536,9 +533,8 @@ TEST_F(ProgramTest, ProcessFile_GivenHierarchicalInclude) {
     MakeFile(two_path, "Two");
     const char *three_path = PROGRAM_TEST_DIR "/three.inc";
     MakeFile(three_path, "Three");
-    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(main_path, &p));
+    EXPECT_EQ(kOk, program_process_file(main_path));
     EXPECT_STREQ(
         "MAIN'|1\n"
         "ONE'|one.inc,1\n"
@@ -550,9 +546,8 @@ TEST_F(ProgramTest, ProcessFile_GivenHierarchicalInclude) {
 TEST_F(ProgramTest, ProcessFile_GivenDefineDirective_CreatesDefine) {
     const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
     MakeFile(file_path, "#Define \"foo\", \"bar\"");
-    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p));
+    EXPECT_EQ(kOk, program_process_file(file_path));
     EXPECT_STREQ("", program_get_edit_buffer());
     EXPECT_EQ(1, program_get_num_defines());
     const char *from, *to;
@@ -564,8 +559,7 @@ TEST_F(ProgramTest, ProcessFile_GivenDefineDirective_CreatesDefine) {
 TEST_F(ProgramTest, ProcessFile_GivenUnnownDirective_IgnoresIt) {
     const char *file_path = PROGRAM_TEST_DIR "/foo.bas";
     MakeFile(file_path, "#Unknown \"wom.inc\"");
-    char *p = program_get_edit_buffer();
 
-    EXPECT_EQ(kOk, program_process_file(file_path, &p));
+    EXPECT_EQ(kOk, program_process_file(file_path));
     EXPECT_STREQ("", program_get_edit_buffer());
 }

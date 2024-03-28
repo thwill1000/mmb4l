@@ -91,7 +91,8 @@ typedef enum {
     kInvalidCommandLine,
     kTooManyDefines,
     kOutOfMemory,
-    kLineTooLong
+    kLineTooLong,
+    kProgramTooLong
 } MmResultCode;
 
 /**
