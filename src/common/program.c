@@ -199,14 +199,20 @@ static void program_end_progmem() {
     CFunctionFlash = program_progmem_insert;
 }
 
-// Tokenize the string in the edit buffer
-static MmResult program_tokenise(const char *file_path) {
-    // First line in the program memory should be a comment containing the 'CurrentFile'.
+/**
+ * The first line in the ProgramMemory should be a comment containing the CurrentFile.
+ */
+static MmResult program_append_header() {
     memset(inpbuf, 0, INPBUF_SIZE);
     sprintf(inpbuf, "'%s", CurrentFile);
     tokenise(false);
     MmResult result = program_append_to_progmem(tknbuf);
-    if (FAILED(result)) return result;
+    return result;
+}
+
+// Tokenize the string in the edit buffer
+static MmResult program_tokenise() {
+    program_append_header();
 
     // Loop while data
     // Read a line from edit_buf into tkn_buf
@@ -225,7 +231,7 @@ static MmResult program_tokenise(const char *file_path) {
 
         tokenise(false);
 
-        result = program_append_to_progmem(tknbuf);
+        MmResult result = program_append_to_progmem(tknbuf);
         if (FAILED(result)) return result;
 
         pstart = pend + 1;
@@ -850,7 +856,7 @@ MmResult program_load_file(const char *filename) {
     program_internal_alloc();
     MmResult result = program_process_file(filename2);
     if (SUCCEEDED(result)) result = program_append_to_edit_buffer("END\n");
-    if (SUCCEEDED(result)) result = program_tokenise(CurrentFile);
+    if (SUCCEEDED(result)) result = program_tokenise();
     program_internal_free();
     if (SUCCEEDED(result)) program_process_csubs();
     memcpy(tknbuf, tmp, TKNBUF_SIZE);  // Restore the token buffer.
