@@ -455,6 +455,40 @@ static MmResult program_close_file() {
     return kOk;
 }
 
+static MmResult program_handle_define_directive(const char *p) {
+    getargs(&p, 3, ",");
+    if (argc != 3) return kSyntax;
+    /*const*/ char *from = getCstring(argv[0]);
+    /*const*/ char *to = getCstring(argv[2]);
+    MmResult result = program_add_define(from, to);
+    ClearSpecificTempMemory(from);
+    ClearSpecificTempMemory(to);
+    return result;
+}
+
+static MmResult program_handle_include_directive(const char *p) {
+    char *q;
+    if ((q = strchr(p, '"')) == 0) return kSyntax;
+    q++;
+    if ((q = strchr(q, '"')) == 0) return kSyntax;
+    /*const*/ char *include_filename = getCstring(p);
+    MmResult result = program_open_file(include_filename);
+    ClearSpecificTempMemory(include_filename);
+    return result;
+}
+
+static MmResult program_handle_directive(const char *line) {
+    const char *p;
+    if ((p = checkstring(inpbuf, "#DEFINE"))) {
+        return program_handle_define_directive(p);
+    } else if ((p = checkstring(inpbuf, "#INCLUDE"))) {
+        return program_handle_include_directive(p);
+    } else {
+        // Unknown directives are ignored.
+        return kOk;
+    }
+}
+
 /**
  * @brief Process files from the stack a line at a time.
  *
@@ -482,34 +516,12 @@ MmResult program_process_file() {
         if (FAILED(result)) break;
 
         // Handle pre-processor directives.
+        // A directive must be the first/only thing on a line. Do not catch illegal usage here
+        // but instead rely on the interpreter reporting invalid usage of the # character.
         if (*inpbuf == '#') {
-            const char *tp;
-            if ((tp = checkstring(inpbuf, "#DEFINE"))) {
-                getargs(&tp, 3, ",");
-                if (argc != 3) return kSyntax;
-                // TODO: Free these strings.
-                result = program_add_define(getCstring(argv[0]), getCstring(argv[2]));
-                if (FAILED(result)) return result;
-                continue;  // Don't write to ProgMemory.
-            } else if ((tp = checkstring(inpbuf, "#INCLUDE"))) {
-                char *q;
-                if ((q = strchr(tp, '"')) == 0) {
-                    result = kSyntax;
-                    break;
-                }
-                q++;
-                if ((q = strchr(q, '"')) == 0) {
-                    result = kSyntax;
-                    break;
-                }
-                /*const*/ char *include_filename = getCstring(tp);
-                result = program_open_file(include_filename);
-                ClearSpecificTempMemory(include_filename);
-                if (FAILED(result)) break;
-                continue;  // Don't write to ProgMemory.
-            } else {
-                continue;  // Ignore unknown directive.
-            }
+            result = program_handle_directive(inpbuf);
+            if (FAILED(result)) break;
+            continue; // Don't write to ProgMemory.
         }
 
         if (*inpbuf) {
