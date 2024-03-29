@@ -326,82 +326,78 @@ static MmResult program_get_define(size_t idx, const char **from, const char **t
  * @return               kOk on success.
  */
 static MmResult program_process_line(char *line) {
-    bool in_quotes = false;
-
-    // Convert tab characters into single spaces in the line.
-    // TODO: This is non-functional since lines will have been processed by
-    //       MMgetline which already expands tabs according to the value of
-    //       mmb_options.tab.
-    for (size_t c = 0; c < strlen(line); c++) {
-        if (line[c] == TAB) line[c] = ' ';
-    }
-
-    // sbuff points to the first non space character in the line.
-    cstring_trim(line);
-
-    // Replace REM command with ' comment character.
-    // TODO: What if line contains REM command but it is not the first command ?
-    if (strncasecmp(line, "REM ", 4) == 0 ||
-        (strlen(line) == 3 && strncasecmp(line, "REM", 3) == 0)) {
-        line[0] = ' ';
-        line[1] = ' ';
-        line[2] = SINGLE_QUOTE;
-        cstring_trim(line);
-    }
-
-    // Are we processing a DATA command ?
-    bool data = (strncasecmp(line, "DATA ", 5) == 0);
-
-    // Compress multiple spaces into one.
     char *op = line;
     char *ip = line;
-    while (*ip) {
-        if (*ip == '"') {
-            in_quotes = !in_quotes;
-        }
-        if (!in_quotes && (*ip == ' ')) {
-            *op++ = *ip++;
-            while (*ip == ' ') {
-                ip++;
-            }
-        } else {
-            *op++ = *ip++;
-        }
-    }
-    *op = '\0';
+    bool expecting_command = true;  // Are we expecing a BASIC command ?
+    bool in_data = false;           // Are we processing a DATA command ?
+    bool in_quotes = false;         // Are we within double-quotes ?
 
-    // Convert to upper-case and remove comments unless processing a DATA command.
-    in_quotes = false;
-    ip = line;
     while (*ip) {
         switch (*ip) {
             case '"':
                 in_quotes = !in_quotes;
+                *op++ = *ip++;
                 break;
-            case SINGLE_QUOTE:
+
+            case ' ':
+            case TAB:
+                if (expecting_command) {
+                    // Ignore leading spaces before a command.
+                    while (*ip == ' ' || *ip == TAB) ip++;
+                    continue;  // So we don't set expecting_command = false.
+                }
+                // Convert tabs into spaces.
+                //   ... though this may be irrelevant since lines will have been processed
+                //       by MMgetline which already expands tabs according to the value of
+                //       mmb_options.tab.
+                *op++ = ' ';
+                ip++;
                 if (!in_quotes) {
-                    *ip = '\0';
-                    in_quotes = false;
+                    // Compress multiple spaces except within a string
+                    while (*ip == ' ' || *ip == TAB) ip++;
                 }
                 break;
+
+            case SINGLE_QUOTE:
+                if (in_quotes) {
+                    *op++ = *ip++;
+                } else {
+                    // Strip single-quote comments.
+                    while (*ip) ip++;
+                }
+                break;
+
             default:
-                if (!in_quotes && !data) *ip = toupper(*ip);
+                if (expecting_command) {
+                    if (strncasecmp(ip, "DATA", 4) == 0 && !isnamechar(*(ip + 4))) {
+                        in_data = true;
+                    } else if (strncasecmp(ip, "REM", 3) == 0 && !isnamechar(*(ip + 3))) {
+                        // Strip REM comments.
+                        while (*ip) ip++;
+                        break;
+                    }
+                }
+                // Convert to upper-case except within strings or DATA commands.
+                *op++ = (in_quotes || in_data) ? *ip++ : toupper(*ip++);
                 break;
         }
-        if (!*ip) break;
-        ip++;
+        expecting_command = false;
     }
 
-    cstring_trim(line);
+    // Strip trailing whitespace
+    while (op != line && *(op - 1) == ' ') op--;
 
-    if (*line == '#') return kOk; // pre-processor directive.
-
-    // Close any open double-quote.
+    // Close any open-quote.
     if (in_quotes) {
-        if (FAILED(cstring_cat(line, "\"", STRINGSIZE))) return kLineTooLong;
+        if (op - line >= STRINGSIZE - 1) return kLineTooLong;
+        *op++ = '"';
     }
 
-    program_apply_replacements(line);
+    // Terminate the buffer.
+    *op = '\0';
+
+    // Apply replacements unless the line starts with a directive.
+    if (*line != '#') program_apply_replacements(line);
 
     return kOk;
 }
