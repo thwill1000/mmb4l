@@ -488,6 +488,7 @@ MmResult program_process_file() {
             const char *tp;
             if ((tp = checkstring(line, "#DEFINE"))) {
                 getargs(&tp, 3, ",");
+                if (argc != 3) return kSyntax;
                 // TODO: Free these strings.
                 result = program_add_define(getCstring(argv[0]), getCstring(argv[2]));
                 if (FAILED(result)) return result;
