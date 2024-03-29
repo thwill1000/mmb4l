@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 const char *mmresult_to_string(MmResult result) {
     if (result > kOk && result < kError) {
+        if (result == kFilenameTooLong) return "Pathname too long";
         return strerror(result);
     }
 

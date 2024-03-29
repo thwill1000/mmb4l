@@ -56,12 +56,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <unistd.h>
 
-#define ERROR_FUNCTION_NAME                error_throw_ex(kError, "Function name")
-#define ERROR_INCLUDE_FILE_NOT_FOUND(s)    error_throw_ex(kFileNotFound, "Include file '$' not found", s)
-#define ERROR_INVALID_HEX                  ERROR_INVALID("hex word")
-#define ERROR_MISSING_END                  error_throw_ex(kError, "Missing END declaration")
-#define ERROR_PROGRAM_FILE_NOT_FOUND       error_throw_ex(kFileNotFound, "Program file not found")
-#define ERROR_TOO_MANY_DEFINES             error_throw_ex(kError, "Too many #DEFINE statements")
+#define ERROR_FUNCTION_NAME     error_throw_ex(kError, "Function name")
+#define ERROR_INVALID_HEX       ERROR_INVALID("hex word")
+#define ERROR_MISSING_END       error_throw_ex(kError, "Missing END declaration")
+#define ERROR_TOO_MANY_DEFINES  error_throw_ex(kError, "Too many #DEFINE statements")
 
 #define MAXDEFINES  256
 
@@ -409,28 +407,13 @@ static MmResult program_process_line(char *line) {
     return kOk;
 }
 
-static void program_open_file(const char *filename) {
+static MmResult program_open_file(const char *filename) {
     char full_path[STRINGSIZE];
     MmResult result = program_file_stack->size == 0
             ? program_get_bas_file(filename, full_path)
             : program_get_inc_file(program_file_stack->files[0].filename, filename, full_path);
-    switch (result) {
-        case kOk:
-            break;
-        case kFileNotFound:
-            if (program_file_stack->size == 0) {
-                ERROR_PROGRAM_FILE_NOT_FOUND;
-            } else {
-                ERROR_INCLUDE_FILE_NOT_FOUND(filename);
-            }
-            break;
-        case kFilenameTooLong:
-            ERROR_PATH_TOO_LONG;
-            break;
-        default:
-            error_throw(result);
-            break;
-    }
+    if (FAILED(result)) return result;
+    if (!path_exists(full_path)) return kFileNotFound;
 
     int fnbr = file_find_free();
     file_open(full_path, "rb", fnbr);
@@ -445,10 +428,12 @@ static void program_open_file(const char *filename) {
     } else {
         strcpy(program_file_stack->head->filename, filename);
     }
+
+    return kOk;
 }
 
-static void program_close_file() {
-    if (program_file_stack->size == 0) ERROR_INTERNAL_FAULT;
+static MmResult program_close_file() {
+    if (program_file_stack->size == 0) return kInternalFault;
     file_close(program_file_stack->head->fnbr);
     program_file_stack->head->filename[0] = '\0';
     program_file_stack->head->fnbr = -1;
@@ -457,13 +442,13 @@ static void program_close_file() {
     program_file_stack->head = program_file_stack->size == 0
             ? NULL
             : &program_file_stack->files[program_file_stack->size - 1];
+    return kOk;
 }
 
 /**
- * @brief Pre-process a file into the edit buffer.
+ * @brief Process files from the stack a line at a time.
  *
- * @param   file_path    The full path to the file to pre-process.
- * @return               kOk on success.
+ * @return  kOk on success.
  */
 MmResult program_process_file() {
     MmResult result = kOk;
@@ -471,7 +456,8 @@ MmResult program_process_file() {
 
     for (;;) {
         if (file_eof(program_file_stack->head->fnbr)) {
-            program_close_file();
+            result = program_close_file();
+            if (FAILED(result)) break;
             if (!program_file_stack->head) break;
         }
 
@@ -496,12 +482,19 @@ MmResult program_process_file() {
                 continue;  // Don't write to edit buffer.
             } else if ((tp = checkstring(line, "#INCLUDE"))) {
                 char *q;
-                if ((q = strchr(tp, '"')) == 0) return kSyntax;
+                if ((q = strchr(tp, '"')) == 0) {
+                    result = kSyntax;
+                    break;
+                }
                 q++;
-                if ((q = strchr(q, '"')) == 0) return kSyntax;
+                if ((q = strchr(q, '"')) == 0) {
+                    result = kSyntax;
+                    break;
+                }
                 /*const*/ char *include_filename = getCstring(tp);
-                program_open_file(include_filename);
+                result = program_open_file(include_filename);
                 ClearSpecificTempMemory(include_filename);
+                if (FAILED(result)) break;
                 continue;  // Don't write to edit buffer.
             } else {
                 continue;  // Ignore unknown directive.
@@ -516,14 +509,17 @@ MmResult program_process_file() {
                 if (SUCCEEDED(result)) result = cstring_cat(line, ",", STRINGSIZE);
             }
             if (SUCCEEDED(result)) result = cstring_cat_int64(line, program_file_stack->head->line_num, STRINGSIZE);
-            if (FAILED(result)) return kLineTooLong;
+            if (FAILED(result)) {
+                result = kLineTooLong;
+                break;
+            }
 
             // Tokenise line and append to program.
             memset(inpbuf, 0, INPBUF_SIZE);
             memcpy(inpbuf, line, strlen(line));
             tokenise(false);
             result = program_append_to_progmem(tknbuf);
-            if (FAILED(result)) return result;
+            if (FAILED(result)) break;
         }
     }
 
@@ -816,8 +812,8 @@ MmResult program_load_file(const char *filename) {
 
     program_internal_alloc();
 
-    program_open_file(filename2);
-    MmResult result = program_append_header();
+    MmResult result = program_open_file(filename2);
+    if (SUCCEEDED(result)) result = program_append_header();
     if (SUCCEEDED(result)) result = program_process_file();
     if (SUCCEEDED(result)) result = program_append_footer();
     program_internal_free();
