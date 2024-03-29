@@ -106,6 +106,12 @@ static char *program_edit_buffer = NULL;
 /** Current insertion point into edit buffer. */
 static char *program_edit_buffer_insert = NULL;
 
+/** Current insertion point into ProgramMemory. */
+static char *program_progmem_insert = NULL;
+
+/** Maximum extent of the program. */
+static char *program_progmem_limit = NULL;
+
 static void STR_REPLACE(char *target, const char *needle, const char *replacement) {
     char *ip = target;
     bool in_quotes = false;
@@ -174,72 +180,60 @@ void program_dump_memory() {
     utility_dump_memory(ProgMemory);
 }
 
+static MmResult program_append_to_progmem(const char *src) {
+    for (const char *p = src; !(p[0] == '\0' && p[1] == '\0'); program_progmem_insert++, p++) {
+        if (program_progmem_insert > program_progmem_limit) return kProgramTooLong;
+        *program_progmem_insert = *p;
+    }
+    *program_progmem_insert++ = '\0';  // Include terminating \0.
+    return kOk;
+}
+
+static void program_end_progmem() {
+    *program_progmem_insert++ = '\0';
+    *program_progmem_insert++ = '\0';    // Two zeros terminate the program, but add an extra just in case.
+    *program_progmem_insert++ = '\xFF';  // A terminating 0xFF may also be expected; it's not completely clear.
+
+    // We want CFunctionFlash to start on a 64-bit boundary.
+    while ((uintptr_t) program_progmem_insert % 8 != 0) *program_progmem_insert++ = '\0';
+    CFunctionFlash = program_progmem_insert;
+}
+
 // Tokenize the string in the edit buffer
-static void program_tokenise(const char *file_path, const char *edit_buf) {
-    //const char *p = edit_buf;
-    //p++;
-    //printf("<begin>\n");
-    //printf("%s", edit_buf);
-    //printf("<end>\n");
-
-    // strcpy(CurrentFile, file_path);
-
-    char *pmem = ProgMemory;
-
+static MmResult program_tokenise(const char *file_path) {
     // First line in the program memory should be a comment containing the 'CurrentFile'.
     memset(inpbuf, 0, INPBUF_SIZE);
     sprintf(inpbuf, "'%s", CurrentFile);
     tokenise(false);
-    memcpy(pmem, tknbuf, strlen(tknbuf) + 1);
-    pmem += strlen(tknbuf);
-    pmem++;
-
-    // Maximum extent of the program;
-    // 4 characters are required for termination with 2-3 '\0' and a '\xFF'.
-    const char *limit  = (const char *) ProgMemory + PROG_FLASH_SIZE - 5;
+    MmResult result = program_append_to_progmem(tknbuf);
+    if (FAILED(result)) return result;
 
     // Loop while data
     // Read a line from edit_buf into tkn_buf
     // Tokenize the line.
     // Copy tokenized result into pmem
     char *pend;
-    char *pstart = (char *) edit_buf;
+    char *pstart = program_edit_buffer;
     while (*pstart != '\0') {
 
         // Note that all lines in the edit buffer should just have a '\n' line-end.
         pend = pstart;
         while (*pend != '\n') pend++;
-        if (pend - pstart > STRINGSIZE - 1) error_throw(kLineTooLong); // TODO: what cleans up the edit buffer ?
+        if (pend - pstart > STRINGSIZE - 1) return kLineTooLong;
         memset(inpbuf, 0, INPBUF_SIZE);
         memcpy(inpbuf, pstart, pend - pstart);
-        //printf("%s\n", inpbuf);
 
         tokenise(false);
 
-        //printf("* %s\n", tknbuf);
-
-        for (char *pbuf = tknbuf; !(pbuf[0] == 0 && pbuf[1] == 0); pmem++, pbuf++) {
-            if (pmem > limit) ERROR_OUT_OF_MEMORY;
-            *pmem = *pbuf;
-        }
-        *pmem++ = '\0';  // write the terminating zero char
+        result = program_append_to_progmem(tknbuf);
+        if (FAILED(result)) return result;
 
         pstart = pend + 1;
     }
 
-    //printf("DONE\n");
+    program_end_progmem();
 
-    *pmem++ = '\0';
-    *pmem++ = '\0';    // Two zeros terminate the program, but add an extra just in case.
-    *pmem++ = '\xFF';  // A terminating 0xFF may also be expected; it's not completely clear.
-
-    // We want CFunctionFlash to start on a 64-bit boundary.
-    while ((uintptr_t) pmem % 8 != 0) *pmem++ = '\0';
-    CFunctionFlash = pmem;
-
-    if (errno != 0) error_throw(errno); // Is this really necessary?
-
-    // program_dump_memory();
+    return errno;  // Though not expected to be anything other than 0.
 }
 
 MmResult program_get_inc_file(const char *parent_file, const char *filename, char *out) {
@@ -294,6 +288,10 @@ static void program_internal_alloc() {
     program_file_stack->size = 0;
     program_edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);
     program_edit_buffer_insert = program_edit_buffer;
+    program_progmem_insert = ProgMemory;
+
+    // 4 characters are required for termination with 2-3 '\0' and a '\xFF'.
+    program_progmem_limit = ProgMemory + PROG_FLASH_SIZE - 5;
 }
 
 /**
@@ -309,6 +307,7 @@ static void program_internal_free() {
     ClearSpecificTempMemory(program_edit_buffer);
     program_edit_buffer = NULL;
     program_edit_buffer_insert = NULL;
+    program_progmem_insert = NULL;
 }
 
 /**
@@ -851,7 +850,7 @@ MmResult program_load_file(const char *filename) {
     program_internal_alloc();
     MmResult result = program_process_file(filename2);
     if (SUCCEEDED(result)) result = program_append_to_edit_buffer("END\n");
-    if (SUCCEEDED(result)) program_tokenise(CurrentFile, program_edit_buffer);
+    if (SUCCEEDED(result)) result = program_tokenise(CurrentFile);
     program_internal_free();
     if (SUCCEEDED(result)) program_process_csubs();
     memcpy(tknbuf, tmp, TKNBUF_SIZE);  // Restore the token buffer.
