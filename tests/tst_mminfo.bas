@@ -878,11 +878,7 @@ Sub test_option_search_path()
   ' Set the SEARCH PATH to a path that is too long.
   On Error Skip
   Option Search Path String$(255, "a")
-  Select Case Mm.Device$
-    Case "MMB4L" :               assert_raw_error("File name too long")
-    Case "MMBasic for Windows" : assert_raw_error("Pathname too long")
-    Case Else :                  assert_raw_error("Pathname too long")
-  End Select
+  assert_raw_error("Pathname too long")
 
   ' Unset the SEARCH PATH.
   Option Search Path ""

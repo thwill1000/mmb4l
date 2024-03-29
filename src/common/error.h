@@ -102,7 +102,7 @@ uint8_t error_to_exit_code(MmResult error);
 #define ERROR_NUMBER_OUT_OF_BOUNDS        error_throw_ex(kError, "Number out of bounds")
 #define ERROR_OUT_OF_MEMORY               error_throw(kOutOfMemory);
 #define ERROR_OVERFLOW                    error_throw(kOverflow)
-#define ERROR_PATH_TOO_LONG               error_throw_ex(kFilenameTooLong, "Path too long")
+#define ERROR_PATH_TOO_LONG               error_throw(kFilenameTooLong);
 #define ERROR_SIZE_MISMATCH               error_throw_ex(kError, "Size mismatch")
 #define ERROR_STRING_LENGTH               error_throw(kStringLength)
 #define ERROR_STRING_TOO_LONG             error_throw(kStringTooLong)

@@ -444,6 +444,13 @@ TEST_F(ProgramTest, HardcodedTokenValuesAreCorrect) {
     EXPECT_STREQ(OP_EQUALS, buf);
 }
 
+TEST_F(ProgramTest, LoadFile_GivenFileNotFound) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+
+    EXPECT_EQ(kFileNotFound, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+}
+
 TEST_F(ProgramTest, LoadFile_GivenEmptyFile) {
     const char *main_path = PROGRAM_TEST_DIR "/main.bas";
     MakeFile(main_path, "");
@@ -670,6 +677,14 @@ TEST_F(ProgramTest, LoadFile_GivenIncludeDirective_IncludesFiles) {
     e.appendLine(CMD_END);
     e.end();
     EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenIncludeDirective_AndFileNotFound) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path, "#Include \"not_found.inc\"");
+
+    EXPECT_EQ(kFileNotFound, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ProgramTest, LoadFile_GivenDefineDirective_AppliesReplacement) {
