@@ -465,6 +465,21 @@ TEST_F(ProgramTest, LoadFile_GivenEmptyFile) {
     EXPECT_PROGRAM_EQ(e);
 }
 
+TEST_F(ProgramTest, LoadFile_GivenLineTooLong) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "01234567890123456789012345678901234567890123456789012345678901234567890123456789"
+        "01234567890123456789012345678901234567890123456789012345678901234567890123456789"
+        "01234567890123456789012345678901234567890123456789012345678901234567890123456789"
+        "012345678901234567890");  // 260 chars.
+
+    EXPECT_EQ(kLineTooLong, program_load_file(main_path));
+    EXPECT_STREQ("Line too long", error_msg); // Because we hit the legacy error handling.
+    EXPECT_EQ(2, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
 TEST_F(ProgramTest, LoadFile_GivenEmptyLine_StripsIt) {
     const char *main_path = PROGRAM_TEST_DIR "/main.bas";
     MakeFile(main_path,
