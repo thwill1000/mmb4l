@@ -429,6 +429,12 @@ static MmResult program_open_file(const char *filename) {
         strcpy(program_file_stack->head->filename, filename);
     }
 
+    // Override default error handling to report file/line even though we are
+    // not yet executing a program.
+    mmb_error_state_ptr->override_line = true;
+    mmb_error_state_ptr->line = 0;
+    strcpy(mmb_error_state_ptr->file, program_file_stack->head->filename);
+
     return kOk;
 }
 
@@ -442,6 +448,11 @@ static MmResult program_close_file() {
     program_file_stack->head = program_file_stack->size == 0
             ? NULL
             : &program_file_stack->files[program_file_stack->size - 1];
+
+    if (program_file_stack->head) {
+        strcpy(mmb_error_state_ptr->file, program_file_stack->head->filename);
+    }
+
     return kOk;
 }
 
@@ -462,6 +473,7 @@ MmResult program_process_file() {
         }
 
         program_file_stack->head->line_num++;
+        mmb_error_state_ptr->line = program_file_stack->head->line_num;
 
         // Read a program line.
         memset(line, 0, STRINGSIZE);
@@ -521,6 +533,11 @@ MmResult program_process_file() {
             result = program_append_to_progmem(tknbuf);
             if (FAILED(result)) break;
         }
+    }
+
+    if (SUCCEEDED(result)) {
+        // Restore default error handling.
+        mmb_error_state_ptr->override_line = false;
     }
 
     return result;
@@ -819,14 +836,14 @@ MmResult program_load_file(const char *filename) {
     program_internal_free();
     if (SUCCEEDED(result)) program_process_csubs();
     memcpy(tknbuf, tmp, TKNBUF_SIZE);  // Restore the token buffer.
-    if (FAILED(result)) return result;
 
-    // Set the console window title.
-    char title[STRINGSIZE + 10];
-    sprintf(title, "MMBasic - %s", CurrentFile);
-    console_set_title(title);
+    if (SUCCEEDED(result)) {
+        // Set the console window title.
+        char title[STRINGSIZE + 10];
+        sprintf(title, "MMBasic - %s", CurrentFile);
+        console_set_title(title);
+    }
 
-    if (errno != 0) error_throw(errno); // Is this really necessary?
-
-    return result;
+    // TODO: Is the 'errno' check really necessary?
+    return SUCCEEDED(result) ? errno : result;
 }
