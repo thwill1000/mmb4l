@@ -628,6 +628,24 @@ TEST_F(ProgramTest, LoadFile_GivenUnclosedDoubleQuote_InsertsClosingQuote) {
     EXPECT_PROGRAM_EQ(e);
 }
 
+TEST_F(ProgramTest, LoadFile_GivenCommentContainingUnclosedDoubleQuote_StripsIt) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print '\"Hello World\n"
+        "Dim a = 1");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|2");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
 TEST_F(ProgramTest, LoadFile_GivenTabs_ReplacesWithSpaces) {
     const char *main_path = PROGRAM_TEST_DIR "/main.bas";
     MakeFile(main_path,
