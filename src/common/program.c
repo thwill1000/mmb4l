@@ -462,7 +462,6 @@ static MmResult program_close_file() {
  */
 MmResult program_process_file() {
     MmResult result = kOk;
-    char line[STRINGSIZE];
 
     for (;;) {
         if (file_eof(program_file_stack->head->fnbr)) {
@@ -475,24 +474,24 @@ MmResult program_process_file() {
         mmb_error_state_ptr->line = program_file_stack->head->line_num;
 
         // Read a program line.
-        memset(line, 0, STRINGSIZE);
-        MMgetline(program_file_stack->head->fnbr, line);
+        memset(inpbuf, 0, STRINGSIZE);
+        MMgetline(program_file_stack->head->fnbr, inpbuf);
 
         // Pre-process the line.
-        result = program_process_line(line);
+        result = program_process_line(inpbuf);
         if (FAILED(result)) break;
 
         // Handle pre-processor directives.
-        if (*line == '#') {
+        if (*inpbuf == '#') {
             const char *tp;
-            if ((tp = checkstring(line, "#DEFINE"))) {
+            if ((tp = checkstring(inpbuf, "#DEFINE"))) {
                 getargs(&tp, 3, ",");
                 if (argc != 3) return kSyntax;
                 // TODO: Free these strings.
                 result = program_add_define(getCstring(argv[0]), getCstring(argv[2]));
                 if (FAILED(result)) return result;
-                continue;  // Don't write to edit buffer.
-            } else if ((tp = checkstring(line, "#INCLUDE"))) {
+                continue;  // Don't write to ProgMemory.
+            } else if ((tp = checkstring(inpbuf, "#INCLUDE"))) {
                 char *q;
                 if ((q = strchr(tp, '"')) == 0) {
                     result = kSyntax;
@@ -507,28 +506,26 @@ MmResult program_process_file() {
                 result = program_open_file(include_filename);
                 ClearSpecificTempMemory(include_filename);
                 if (FAILED(result)) break;
-                continue;  // Don't write to edit buffer.
+                continue;  // Don't write to ProgMemory.
             } else {
                 continue;  // Ignore unknown directive.
             }
         }
 
-        if (*line) {
+        if (*inpbuf) {
             // Append file and line-number.
-            result = cstring_cat(line, "'|", STRINGSIZE);
+            result = cstring_cat(inpbuf, "'|", STRINGSIZE);
             if (program_file_stack->size > 1) {
-                if (SUCCEEDED(result)) result = cstring_cat(line, program_file_stack->head->filename, STRINGSIZE);
-                if (SUCCEEDED(result)) result = cstring_cat(line, ",", STRINGSIZE);
+                if (SUCCEEDED(result)) result = cstring_cat(inpbuf, program_file_stack->head->filename, STRINGSIZE);
+                if (SUCCEEDED(result)) result = cstring_cat(inpbuf, ",", STRINGSIZE);
             }
-            if (SUCCEEDED(result)) result = cstring_cat_int64(line, program_file_stack->head->line_num, STRINGSIZE);
+            if (SUCCEEDED(result)) result = cstring_cat_int64(inpbuf, program_file_stack->head->line_num, STRINGSIZE);
             if (FAILED(result)) {
                 result = kLineTooLong;
                 break;
             }
 
-            // Tokenise line and append to program.
-            memset(inpbuf, 0, INPBUF_SIZE);
-            memcpy(inpbuf, line, strlen(line));
+            // Tokenise and append to program.
             tokenise(false);
             result = program_append_to_progmem(tknbuf);
             if (FAILED(result)) break;
