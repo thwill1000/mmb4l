@@ -56,10 +56,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <unistd.h>
 
-#define ERROR_FUNCTION_NAME     error_throw_ex(kError, "Function name")
-#define ERROR_INVALID_HEX       ERROR_INVALID("hex word")
-#define ERROR_MISSING_END       error_throw_ex(kError, "Missing END declaration")
-#define ERROR_TOO_MANY_DEFINES  error_throw_ex(kError, "Too many #DEFINE statements")
+#define ERROR_INVALID_FUNCTION_NAME  error_throw_ex(kInvalidName, "Invalid function name")
+#define ERROR_INVALID_HEX            ERROR_INVALID("hex word")
+#define ERROR_MISSING_END            error_throw_ex(kError, "Missing END command")
 
 #define MAXDEFINES  256
 
@@ -690,7 +689,7 @@ static void program_process_csubs() {
             flash_ptr ++;
             p += sizeof(CommandToken);
             skipspace(p);
-            if (!isnamestart(*p)) ERROR_FUNCTION_NAME;
+            if (!isnamestart(*p)) ERROR_INVALID_FUNCTION_NAME;
             do {
                 p++;
             } while (isnamechar(*p));
