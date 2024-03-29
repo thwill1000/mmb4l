@@ -48,8 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Configuration.h" // for STRINGSIZE
 #include "mmresult.h"
 
+#include <stdbool.h>
+
 typedef struct {
-   int code;
+   MmResult code;
    char file[STRINGSIZE];   // File that error was reported from.
    int line;                // Line that error was reported from.
    char message[MAXERRMSG];
@@ -57,6 +59,7 @@ typedef struct {
                             //   0 = abort
                             //  -1 = ignore
                             //  >0 = skip errors from this many statements
+   bool override_line;      // Set to override automatic determination of line/file.
 } ErrorState;
 
 extern ErrorState *mmb_error_state_ptr;
