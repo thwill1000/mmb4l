@@ -189,16 +189,6 @@ static MmResult program_append_to_progmem(const char *src) {
     return kOk;
 }
 
-static void program_end_progmem() {
-    *program_progmem_insert++ = '\0';
-    *program_progmem_insert++ = '\0';    // Two zeros terminate the program, but add an extra just in case.
-    *program_progmem_insert++ = '\xFF';  // A terminating 0xFF may also be expected; it's not completely clear.
-
-    // We want CFunctionFlash to start on a 64-bit boundary.
-    while ((uintptr_t) program_progmem_insert % 8 != 0) *program_progmem_insert++ = '\0';
-    CFunctionFlash = program_progmem_insert;
-}
-
 /**
  * The first line in the ProgramMemory should be a comment containing the CurrentFile.
  */
@@ -210,10 +200,29 @@ static MmResult program_append_header() {
     return result;
 }
 
+static MmResult program_append_footer() {
+    // Ensure program has a final END command.
+    memset(inpbuf, 0, INPBUF_SIZE);
+    sprintf(inpbuf, "END");  // Note there is no line number comment on this line.
+    tokenise(false);
+    MmResult result = program_append_to_progmem(tknbuf);
+    if (FAILED(result)) return result;
+
+    // The program should be terminated by at least two zeroes (Note: it may already have one).
+    // A terminating 0xFF may also be expected; it's not completely clear.
+    *program_progmem_insert++ = '\0';
+    *program_progmem_insert++ = '\0';
+    *program_progmem_insert++ = '\xFF';
+
+    // We want CFunctionFlash to start on a 64-bit boundary.
+    while ((uintptr_t) program_progmem_insert % 8 != 0) *program_progmem_insert++ = '\0';
+    CFunctionFlash = program_progmem_insert;
+
+    return kOk;
+}
+
 // Tokenize the string in the edit buffer
 static MmResult program_tokenise() {
-    program_append_header();
-
     // Loop while data
     // Read a line from edit_buf into tkn_buf
     // Tokenize the line.
@@ -236,8 +245,6 @@ static MmResult program_tokenise() {
 
         pstart = pend + 1;
     }
-
-    program_end_progmem();
 
     return errno;  // Though not expected to be anything other than 0.
 }
@@ -855,8 +862,9 @@ MmResult program_load_file(const char *filename) {
 
     program_internal_alloc();
     MmResult result = program_process_file(filename2);
-    if (SUCCEEDED(result)) result = program_append_to_edit_buffer("END\n");
+    if (SUCCEEDED(result)) result = program_append_header();
     if (SUCCEEDED(result)) result = program_tokenise();
+    if (SUCCEEDED(result)) result = program_append_footer();
     program_internal_free();
     if (SUCCEEDED(result)) program_process_csubs();
     memcpy(tknbuf, tmp, TKNBUF_SIZE);  // Restore the token buffer.
