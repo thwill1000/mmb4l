@@ -100,12 +100,6 @@ typedef struct {
 
 static ProgramFileStack *program_file_stack = NULL;
 
-/** Start of the edit buffer. */
-static char *program_edit_buffer = NULL;
-
-/** Current insertion point into edit buffer. */
-static char *program_edit_buffer_insert = NULL;
-
 /** Current insertion point into ProgramMemory. */
 static char *program_progmem_insert = NULL;
 
@@ -221,34 +215,6 @@ static MmResult program_append_footer() {
     return kOk;
 }
 
-// Tokenize the string in the edit buffer
-static MmResult program_tokenise() {
-    // Loop while data
-    // Read a line from edit_buf into tkn_buf
-    // Tokenize the line.
-    // Copy tokenized result into pmem
-    char *pend;
-    char *pstart = program_edit_buffer;
-    while (*pstart != '\0') {
-
-        // Note that all lines in the edit buffer should just have a '\n' line-end.
-        pend = pstart;
-        while (*pend != '\n') pend++;
-        if (pend - pstart > STRINGSIZE - 1) return kLineTooLong;
-        memset(inpbuf, 0, INPBUF_SIZE);
-        memcpy(inpbuf, pstart, pend - pstart);
-
-        tokenise(false);
-
-        MmResult result = program_append_to_progmem(tknbuf);
-        if (FAILED(result)) return result;
-
-        pstart = pend + 1;
-    }
-
-    return errno;  // Though not expected to be anything other than 0.
-}
-
 MmResult program_get_inc_file(const char *parent_file, const char *filename, char *out) {
 
     char path[STRINGSIZE];
@@ -299,8 +265,6 @@ static void program_internal_alloc() {
     program_replace_map->size = 0;
     program_file_stack = GetTempMemory(sizeof(ProgramFileStack));
     program_file_stack->size = 0;
-    program_edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);
-    program_edit_buffer_insert = program_edit_buffer;
     program_progmem_insert = ProgMemory;
 
     // 4 characters are required for termination with 2-3 '\0' and a '\xFF'.
@@ -317,9 +281,6 @@ static void program_internal_free() {
     program_replace_map = NULL;
     ClearSpecificTempMemory(program_file_stack);
     program_file_stack = NULL;
-    ClearSpecificTempMemory(program_edit_buffer);
-    program_edit_buffer = NULL;
-    program_edit_buffer_insert = NULL;
     program_progmem_insert = NULL;
 }
 
@@ -498,25 +459,15 @@ static void program_close_file() {
             : &program_file_stack->files[program_file_stack->size - 1];
 }
 
-static MmResult program_append_to_edit_buffer(const char *s) {
-    size_t len = strlen(s);
-    if (program_edit_buffer_insert + len >= program_edit_buffer + EDIT_BUFFER_SIZE - 1) return kProgramTooLong;
-    strcpy(program_edit_buffer_insert, s);
-    program_edit_buffer_insert += len;
-    return kOk;
-}
-
 /**
  * @brief Pre-process a file into the edit buffer.
  *
  * @param   file_path    The full path to the file to pre-process.
  * @return               kOk on success.
  */
-MmResult program_process_file(const char *file_path) {
+MmResult program_process_file() {
     MmResult result = kOk;
     char line[STRINGSIZE];
-
-    program_open_file(file_path);
 
     for (;;) {
         if (file_eof(program_file_stack->head->fnbr)) {
@@ -567,9 +518,12 @@ MmResult program_process_file(const char *file_path) {
             if (SUCCEEDED(result)) result = cstring_cat_int64(line, program_file_stack->head->line_num, STRINGSIZE);
             if (FAILED(result)) return kLineTooLong;
 
-            // Copy the transformed line into the edit buffer, terminating with '\n'.
-            result = program_append_to_edit_buffer(line);
-            if (SUCCEEDED(result)) result = program_append_to_edit_buffer("\n");
+            // Tokenise line and append to program.
+            memset(inpbuf, 0, INPBUF_SIZE);
+            memcpy(inpbuf, line, strlen(line));
+            tokenise(false);
+            result = program_append_to_progmem(tknbuf);
+            if (FAILED(result)) return result;
         }
     }
 
@@ -861,9 +815,10 @@ MmResult program_load_file(const char *filename) {
     ClearProgram();
 
     program_internal_alloc();
-    MmResult result = program_process_file(filename2);
-    if (SUCCEEDED(result)) result = program_append_header();
-    if (SUCCEEDED(result)) result = program_tokenise();
+
+    program_open_file(filename2);
+    MmResult result = program_append_header();
+    if (SUCCEEDED(result)) result = program_process_file();
     if (SUCCEEDED(result)) result = program_append_footer();
     program_internal_free();
     if (SUCCEEDED(result)) program_process_csubs();
