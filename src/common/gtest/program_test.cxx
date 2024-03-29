@@ -685,6 +685,8 @@ TEST_F(ProgramTest, LoadFile_GivenIncludeDirective_AndFileNotFound) {
 
     EXPECT_EQ(kFileNotFound, program_load_file(main_path));
     EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(1, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
 }
 
 TEST_F(ProgramTest, LoadFile_GivenDefineDirective_AppliesReplacement) {
@@ -706,6 +708,20 @@ TEST_F(ProgramTest, LoadFile_GivenDefineDirective_AppliesReplacement) {
     e.appendLine(CMD_END);
     e.end();
     EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenDefineDirectiveWithMissingComma) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#define \"foo\" \"bar\"\n"
+        "Dim foo = 1\n"
+        "FOO = 2"); // And is case-insensitive.
+
+    EXPECT_EQ(kSyntax, program_load_file(main_path));
+    EXPECT_EQ(2, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+    EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ProgramTest, LoadFile_GivenUnknownDirective_StripsIt) {
