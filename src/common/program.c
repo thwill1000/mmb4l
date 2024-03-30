@@ -330,7 +330,7 @@ static MmResult program_get_define(size_t idx, const char **from, const char **t
  */
 static MmResult program_process_line(char *line) {
     char *op = line;
-    char *ip = line;
+    const char *ip = line;
     bool expecting_command = true;  // Are we expecing a BASIC command ?
     bool in_data = false;           // Are we processing a DATA command ?
     bool in_quotes = false;         // Are we within double-quotes ?
@@ -341,13 +341,27 @@ static MmResult program_process_line(char *line) {
         if (program_comment_level) {
             if (*ip == '*' && *(ip + 1) == '/') {
                 program_comment_level--;
-                ip += 2;
+                ip++;
             } else if (*ip == '/' && *(ip + 1) == '*') {
                 program_comment_level++;
-                ip += 2;
-            } else {
                 ip++;
+            } else if (*ip == '#') {
+                // ... and CMM2 style #COMMENT {START|END}.
+                const char *q, *r;
+                if ((q = checkstring(ip + 1, "COMMENT"))) {
+                    if ((r = checkstring(q, "START"))) {
+                        program_comment_level++;
+                        ip = r;
+                    } else if ((r = checkstring(q, "END"))) {
+                        program_comment_level--;
+                        ip = r;
+                    } else {
+                        return kSyntax;
+                    }
+                    if (!parse_is_end(r)) return kSyntax;
+                }
             }
+            ip++;
             continue;
         }
 
@@ -492,6 +506,20 @@ static MmResult program_close_file() {
     return kOk;
 }
 
+static MmResult program_handle_comment_directive(const char *p) {
+    const char *q;
+    if ((q = checkstring(p, "START"))) {
+        program_comment_level++;
+        if (!parse_is_end(q)) return kSyntax;
+    } else if ((q = checkstring(p, "END"))) {
+        // Should never get here, instead handled in program_process_line().
+        return kInternalFault;
+    } else {
+        return kSyntax;
+    }
+    return kOk;
+}
+
 static MmResult program_handle_define_directive(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 3) return kSyntax;
@@ -516,9 +544,11 @@ static MmResult program_handle_include_directive(const char *p) {
 
 static MmResult program_handle_directive(const char *line) {
     const char *p;
-    if ((p = checkstring(inpbuf, "#DEFINE"))) {
+    if ((p = checkstring(line, "#COMMENT"))) {
+        return program_handle_comment_directive(p);
+    } else if ((p = checkstring(line, "#DEFINE"))) {
         return program_handle_define_directive(p);
-    } else if ((p = checkstring(inpbuf, "#INCLUDE"))) {
+    } else if ((p = checkstring(line, "#INCLUDE"))) {
         return program_handle_include_directive(p);
     } else {
         // Unknown directives are ignored.
@@ -582,7 +612,7 @@ MmResult program_process_file() {
         }
     }
 
-    if (program_comment_level) {
+    if (SUCCEEDED(result) && program_comment_level) {
         result = kUnterminatedComment;
     }
 
