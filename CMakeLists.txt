@@ -72,6 +72,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_memory.c
     src/commands/cmd_mid.c
     src/commands/cmd_mkdir.c
+    src/commands/cmd_mmdebug.c
     src/commands/cmd_mode.c
     src/commands/cmd_new.c
     src/commands/cmd_on.c

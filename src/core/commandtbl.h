@@ -117,6 +117,7 @@ void cmd_math(void);
 void cmd_memory(void);
 void cmd_mid(void);
 void cmd_mkdir(void);
+void cmd_mmdebug(void);
 void cmd_mode(void);
 void cmd_new(void);
 void cmd_next(void);

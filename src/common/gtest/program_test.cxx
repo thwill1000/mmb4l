@@ -19,8 +19,8 @@ extern "C" {
 #include "../program.h"
 #include "../utility.h"
 #include "../../core/Commands.h"
-#include "../../core/tokentbl.h"
 #include "../../core/MMBasic.h"
+#include "../../core/tokentbl.h"
 #include "../../core/vartbl.h"
 #include "../../core/gtest/command_stubs.h"
 #include "../../core/gtest/function_stubs.h"
@@ -71,7 +71,8 @@ void ListNewLine(int *ListCnt, int all) { }
 #define CMD_DIM     "\x92\x80"
 #define CMD_END     "\x9E\x80"
 #define CMD_LET     "\xB2\x80"
-#define CMD_PRINT   "\xC7\x80"
+#define CMD_MMDEBUG "\xBD\x80"
+#define CMD_PRINT   "\xC8\x80"
 #define OP_EQUALS   "\xEC"
 
 #define EXPECT_PROGRAM_EQ(prog) \
@@ -440,6 +441,9 @@ TEST_F(ProgramTest, HardcodedTokenValuesAreCorrect) {
     p = buf;
     commandtbl_encode(&p, commandtbl_get("Let"));
     EXPECT_STREQ(CMD_LET, buf);
+    p = buf;
+    commandtbl_encode(&p, commandtbl_get("MmDebug"));
+    EXPECT_STREQ(CMD_MMDEBUG, buf);
     p = buf;
     commandtbl_encode(&p, commandtbl_get("Print"));
     EXPECT_STREQ(CMD_PRINT, buf);
@@ -973,5 +977,130 @@ TEST_F(ProgramTest, LoadFile_GivenNestedCommentStartDirective_WithTrailingText_F
     EXPECT_EQ(kSyntax, program_load_file(main_path));
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(3, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenMmDebugDirective) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "#MMDEBUG ON\n"
+        "MmDebug \"Hello World\"\n"
+        "MmDebug Break\n"
+        "#MMDEBUG OFF\n"
+        "MmDebug \"Goodbye World\"\n"
+        "MmDebug Break\n"
+        "#MMDEBUG ON\n"
+        "MmDebug \"Hello Again World\"\n"
+        "MmDebug Break");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_MMDEBUG "\"Hello World\"'|2");
+    e.appendLine(CMD_MMDEBUG "BREAK'|3");
+    e.appendLine(CMD_MMDEBUG "\"Hello Again World\"'|8");
+    e.appendLine(CMD_MMDEBUG "BREAK'|9");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenMmDebugOnDirective_WhileAlreadyOn_Succeeds) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "#MMDEBUG ON\n"
+        "MmDebug \"Hello World\"\n"
+        "MmDebug Break\n"
+        "#MMDEBUG ON\n"
+        "MmDebug \"Hello Again World\"\n"
+        "MmDebug Break");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_MMDEBUG "\"Hello World\"'|2");
+    e.appendLine(CMD_MMDEBUG "BREAK'|3");
+    e.appendLine(CMD_MMDEBUG "\"Hello Again World\"'|5");
+    e.appendLine(CMD_MMDEBUG "BREAK'|6");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenMmDebugOffDirective_WhileAlreadyOff_Succeeds) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "#MMDEBUG ON\n"
+        "MmDebug \"Hello World\"\n"
+        "MmDebug Break\n"
+        "#MMDEBUG OFF\n"
+        "MmDebug \"Goodbye World\"\n"
+        "MmDebug Break\n"
+        "#MMDEBUG OFF\n"
+        "MmDebug \"Hello Again World\"\n"
+        "MmDebug Break");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_MMDEBUG "\"Hello World\"'|2");
+    e.appendLine(CMD_MMDEBUG "BREAK'|3");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenMmDebugDirective_WithInvalidSubDirective_Fails) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#MMDEBUG foo");
+
+    EXPECT_EQ(kSyntax, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenMmDebugDirective_WithMissingSubDirective_Fails) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#MMDEBUG");
+
+    EXPECT_EQ(kSyntax, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenMmDebugOnDirective_WithTrailingText_Fails) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#MMDEBUG ON foo");
+
+    EXPECT_EQ(kSyntax, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+
+TEST_F(ProgramTest, LoadFile_GivenMmDebugOffDirective_WithTrailingText_Fails) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#MMDEBUG OFF foo");
+
+    EXPECT_EQ(kSyntax, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, mmb_error_state_ptr->line);
     EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
 }
