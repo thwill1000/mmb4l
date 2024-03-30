@@ -92,7 +92,9 @@ typedef enum {
     kTooManyDefines,
     kOutOfMemory,
     kLineTooLong,
-    kProgramTooLong
+    kProgramTooLong,
+    kUnterminatedComment,
+    kNoCommentToTerminate
 } MmResultCode;
 
 /**

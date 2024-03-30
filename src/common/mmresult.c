@@ -82,6 +82,8 @@ const char *mmresult_to_string(MmResult result) {
         case kOutOfMemory:                return "Not enough memory";
         case kLineTooLong:                return "Line too long";
         case kProgramTooLong:             return "Program too long";
+        case kUnterminatedComment:        return "Unterminated multiline comment";
+        case kNoCommentToTerminate:       return "No comment to terminate";
         default:                          return "Unknown result code";
     }
 }
