@@ -105,6 +105,8 @@ static char *program_progmem_limit = NULL;
 
 static size_t program_comment_level = 0;  // Level of nesting within /* */ style comment ?
 
+static bool program_debug_on = false;  // Is there an active #MMDEBUG ON directive ?
+
 static void STR_REPLACE(char *target, const char *needle, const char *replacement) {
     char *ip = target;
     bool in_quotes = false;
@@ -196,12 +198,12 @@ static MmResult program_append_header() {
 static MmResult program_append_footer() {
     // Ensure program has a final END command.
     memset(inpbuf, 0, INPBUF_SIZE);
-    sprintf(inpbuf, "END");  // Note there is no line number comment on this line.
+    sprintf(inpbuf, "END");  // NOTE: There is no line number comment on this line.
     tokenise(false);
     MmResult result = program_append_to_progmem(tknbuf);
     if (FAILED(result)) return result;
 
-    // The program should be terminated by at least two zeroes (Note: it may already have one).
+    // The program should be terminated by at least two zeroes (NOTE: it may already have one).
     // A terminating 0xFF may also be expected; it's not completely clear.
     *program_progmem_insert++ = '\0';
     *program_progmem_insert++ = '\0';
@@ -425,6 +427,13 @@ static MmResult program_process_line(char *line) {
                 if (expecting_command) {
                     if (strncasecmp(ip, "DATA", 4) == 0 && !isnamechar(*(ip + 4))) {
                         in_data = true;
+                    } else if (strncasecmp(ip, "MMDEBUG", 7) == 0 && !isnamechar(*(ip + 7))) {
+                        if (!program_debug_on) {
+                            // If not within #MMDEBUG ON then strip line.
+                            // BUG! Strips entire line even if there are multiple commands.
+                            while (*ip) ip++;
+                            break;
+                        }
                     } else if (strncasecmp(ip, "REM", 3) == 0 && !isnamechar(*(ip + 3))) {
                         // Strip REM comments.
                         while (*ip) ip++;
@@ -510,14 +519,13 @@ static MmResult program_handle_comment_directive(const char *p) {
     const char *q;
     if ((q = checkstring(p, "START"))) {
         program_comment_level++;
-        if (!parse_is_end(q)) return kSyntax;
     } else if ((q = checkstring(p, "END"))) {
         // Should never get here, instead handled in program_process_line().
         return kInternalFault;
     } else {
         return kSyntax;
     }
-    return kOk;
+    return parse_is_end(q) ? kOk : kSyntax;
 }
 
 static MmResult program_handle_define_directive(const char *p) {
@@ -542,6 +550,20 @@ static MmResult program_handle_include_directive(const char *p) {
     return result;
 }
 
+static MmResult program_handle_mmdebug_directive(const char *p) {
+    const char *q;
+    if ((q = checkstring(p, "ON"))) {
+        // NOTE: There is no error/warning if already ON.
+        program_debug_on = true;
+    } else if ((q = checkstring(p, "OFF"))) {
+        // NOTE: There is no error/warning if already OFF.
+        program_debug_on = false;
+    } else {
+        return kSyntax;
+    }
+    return parse_is_end(q) ? kOk : kSyntax;
+}
+
 static MmResult program_handle_directive(const char *line) {
     const char *p;
     if ((p = checkstring(line, "#COMMENT"))) {
@@ -550,6 +572,8 @@ static MmResult program_handle_directive(const char *line) {
         return program_handle_define_directive(p);
     } else if ((p = checkstring(line, "#INCLUDE"))) {
         return program_handle_include_directive(p);
+    } else if ((p = checkstring(line, "#MMDEBUG"))) {
+        return program_handle_mmdebug_directive(p);
     } else {
         // Unknown directives are ignored.
         return kOk;
