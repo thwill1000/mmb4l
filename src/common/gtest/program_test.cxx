@@ -91,6 +91,10 @@ public:
 
     void appendLine(const char *s) {
         appendChar('\x01');
+        appendString(s);
+    }
+
+    void appendString(const char *s) {
         do {
             appendChar(*s);
         } while (*s++);
@@ -553,6 +557,26 @@ TEST_F(ProgramTest, LoadFile_GivenRemCommandWithoutContent_StripsIt) {
     EXPECT_PROGRAM_EQ(e);
 }
 
+TEST_F(ProgramTest, LoadFile_GivenRemIsNotFirstCommandOnLine_StripsIt) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\" : REM foo bar\n"
+        "Dim a = 1:REM");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    // TODO: Not quite what we want; the trailing ':' are transformed to '\0' in the output.
+    //       We do not naively strip trailing ':' because they may terminate a label.
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\" "); e.appendString("'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1");  e.appendString("'|2");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
 TEST_F(ProgramTest, LoadFile_GivenComment_StripsIt) {
     const char *main_path = PROGRAM_TEST_DIR "/main.bas";
     MakeFile(main_path,
@@ -770,6 +794,26 @@ TEST_F(ProgramTest, LoadFile_GivenUnknownDirective_StripsIt) {
     ExpectedProgram e;
     e.appendLine("'/tmp/ProgramTest/main.bas");
     e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|3");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenLabel_TokenisesLabel) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "my_label:\n"
+        "Dim a = 1");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine("\x03\x08MY_LABEL'|2");
     e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|3");
     e.appendLine(CMD_END);
     e.end();
