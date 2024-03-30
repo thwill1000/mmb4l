@@ -382,6 +382,8 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
 }
 
 int console_get_size(int *width, int *height, int timeout_ms) {
+    static int safe_width = 80;
+    static int safe_height = 40;
     struct winsize ws= { 0 };
     int fd = open("/dev/tty", O_RDWR);
     if (fd >= 0) {
@@ -394,11 +396,19 @@ int console_get_size(int *width, int *height, int timeout_ms) {
         close(fd);
     }
 
-    if (ws.ws_col <= 0) return -1; // Failure
+    if (ws.ws_col > 0) {
+        // Success.
+        safe_width = ws.ws_col;
+        safe_height = ws.ws_row;
+    }
 
-    *width = ws.ws_col;
-    *height = ws.ws_row;
-    return 0; // Success
+    // NOTE: Previously when the console size could not be determined this
+    //       function would return -1 and "all hell would break loose" with
+    //       endless "Cannot determine terminal size" errors being reported.
+    //       Now we return the last successful values determined, or 80x40.
+    *width = safe_width;
+    *height = safe_height;
+    return 0;
 }
 
 void console_home_cursor(void) {
