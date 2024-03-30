@@ -121,6 +121,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Memory",      T_CMD,              0, cmd_memory   },
     { "Mid$(",       T_CMD | T_FUN,      0, cmd_mid      },
     { "Mkdir",       T_CMD,              0, cmd_mkdir    },
+    { "MmDebug",     T_CMD,              0, cmd_mmdebug  },
     { "Mode",        T_CMD,              0, cmd_mode     },
     { "New",         T_CMD,              0, cmd_new      },
     { "Next",        T_CMD,              0, cmd_next     },
