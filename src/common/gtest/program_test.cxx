@@ -815,6 +815,65 @@ TEST_F(ProgramTest, LoadFile_GivenLabel_TokenisesLabel) {
     e.appendLine(CMD_PRINT "\"Hello World\"'|1");
     e.appendLine("\x03\x08MY_LABEL'|2");
     e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|3");
+}
+
+TEST_F(ProgramTest, LoadFile_GivenMultilineComment_StripsIt) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello /*World*/\"\n"
+        "Dim /*Strip this*/a = 1\n"
+        "/* Strip this \n"
+        "multi line comment */");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello /*World*/\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|2");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenMultilineCommentStartedButNotEnded) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "Dim /*Unterminated comment");
+
+    EXPECT_EQ(kUnterminatedComment, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenMultilineCommentEndedButNotStarted) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "Dim a = 1*/");
+
+    EXPECT_EQ(kNoCommentToTerminate, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenNestedMultilineComment) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "Dim a = 1 /* foo /* bar */ wombat */");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_DIM "A " OP_EQUALS " 1'|2");
     e.appendLine(CMD_END);
     e.end();
     EXPECT_PROGRAM_EQ(e);

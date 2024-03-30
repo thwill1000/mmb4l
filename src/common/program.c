@@ -103,6 +103,8 @@ static char *program_progmem_insert = NULL;
 /** Maximum extent of the program. */
 static char *program_progmem_limit = NULL;
 
+static size_t program_comment_level = 0;  // Level of nesting within /* */ style comment ?
+
 static void STR_REPLACE(char *target, const char *needle, const char *replacement) {
     char *ip = target;
     bool in_quotes = false;
@@ -279,6 +281,7 @@ static void program_internal_free() {
     ClearSpecificTempMemory(program_file_stack);
     program_file_stack = NULL;
     program_progmem_insert = NULL;
+    program_progmem_limit = NULL;
 }
 
 /**
@@ -333,6 +336,21 @@ static MmResult program_process_line(char *line) {
     bool in_quotes = false;         // Are we within double-quotes ?
 
     while (*ip) {
+
+        // Handle multiline /* */ comments.
+        if (program_comment_level) {
+            if (*ip == '*' && *(ip + 1) == '/') {
+                program_comment_level--;
+                ip += 2;
+            } else if (*ip == '/' && *(ip + 1) == '*') {
+                program_comment_level++;
+                ip += 2;
+            } else {
+                ip++;
+            }
+            continue;
+        }
+
         switch (*ip) {
             case '"':
                 in_quotes = !in_quotes;
@@ -373,6 +391,20 @@ static MmResult program_process_line(char *line) {
                     expecting_command = true;
                     continue;  // So we don't set expecting_command = false.
                 }
+                break;
+
+            case '/':
+                if (!in_quotes && *(ip + 1) == '*') {
+                    program_comment_level++;
+                    ip += 2;
+                } else {
+                    *op++ = *ip++;
+                }
+                break;
+
+            case '*':
+                if (!in_quotes && *(ip + 1) == '/') return kNoCommentToTerminate;
+                *op++ = *ip++;
                 break;
 
             default:
@@ -501,6 +533,7 @@ static MmResult program_handle_directive(const char *line) {
  */
 MmResult program_process_file() {
     MmResult result = kOk;
+    program_comment_level = 0;
 
     for (;;) {
         if (file_eof(program_file_stack->head->fnbr)) {
@@ -547,6 +580,10 @@ MmResult program_process_file() {
             result = program_append_to_progmem(tknbuf);
             if (FAILED(result)) break;
         }
+    }
+
+    if (program_comment_level) {
+        result = kUnterminatedComment;
     }
 
     if (SUCCEEDED(result)) {
