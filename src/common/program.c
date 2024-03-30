@@ -367,6 +367,14 @@ static MmResult program_process_line(char *line) {
                 }
                 break;
 
+            case ':':
+                *op++ = *ip++;
+                if (!in_quotes) {
+                    expecting_command = true;
+                    continue;  // So we don't set expecting_command = false.
+                }
+                break;
+
             default:
                 if (expecting_command) {
                     if (strncasecmp(ip, "DATA", 4) == 0 && !isnamechar(*(ip + 4))) {
@@ -384,8 +392,9 @@ static MmResult program_process_line(char *line) {
         expecting_command = false;
     }
 
-    // Strip trailing whitespace
-    while (op != line && *(op - 1) == ' ') op--;
+    // Strip trailing spaces.
+    // NOTE: We do not naively strip trailing ':' because they may terminate a label.
+     while (op != line && *(op - 1) == ' ') op--;
 
     // Close any open-quote.
     if (in_quotes) {
