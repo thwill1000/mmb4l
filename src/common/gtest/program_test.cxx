@@ -878,3 +878,100 @@ TEST_F(ProgramTest, LoadFile_GivenNestedMultilineComment) {
     e.end();
     EXPECT_PROGRAM_EQ(e);
 }
+
+TEST_F(ProgramTest, LoadFile_GivenCommentDirective) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#COMMENT START\n"
+        "Dim a = 1\n"
+        "#COMMENT END");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    ExpectedProgram e;
+    e.appendLine("'/tmp/ProgramTest/main.bas");
+    e.appendLine(CMD_PRINT "\"Hello World\"'|1");
+    e.appendLine(CMD_END);
+    e.end();
+    EXPECT_PROGRAM_EQ(e);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenCommentDirective_WithMissingSubDirective_Fails) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#COMMENT");  // Missing comment sub-directive.
+
+    EXPECT_EQ(kSyntax, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenCommentDirective_WithInvalidSubDirective_Fails) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#COMMENT foo");  // Invalid comment sub-directive.
+
+    EXPECT_EQ(kSyntax, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenNestedCommentDirective_WithMissingSubDirective_Fails) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#COMMENT START\n"
+        "#COMMENT");  // Missing comment sub-directive.
+
+    EXPECT_EQ(kSyntax, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(3, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenNestedCommentDirective_WithInvalidSubDirective_Fails) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#COMMENT START\n"
+        "#COMMENT foo");  // Invalid comment sub-directive.
+
+    EXPECT_EQ(kSyntax, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(3, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenCommentStartDirective_WithTrailingText_Fails) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#COMMENT START foo\n"  // Invalid trailing text.
+        "#COMMENT END");
+
+    EXPECT_EQ(kSyntax, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(2, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenNestedCommentStartDirective_WithTrailingText_Fails) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "Print \"Hello World\"\n"
+        "#COMMENT START\n"
+        "#COMMENT START foo\n"  // Invalid trailing text in nested comment.
+        "#COMMENT END\n"
+        "#COMMENT END");
+
+    EXPECT_EQ(kSyntax, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(3, mmb_error_state_ptr->line);
+    EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
