@@ -89,7 +89,9 @@ static void cmd_triangle_default(const char *p) {
         y3 = getinteger(argv[10]);
         if (argc >= 13 && *argv[12]) colour = getint(argv[12], RGB_BLACK, RGB_WHITE);
         if (argc == 15) fill = getint(argv[14], -1, RGB_WHITE);
-        GRAPHICS_CHECK_RESULT(graphics_draw_triangle(graphics_current, x1, y1, x2, y2, x3, y3, colour, fill));
+        MmResult result = graphics_draw_triangle(graphics_current, x1, y1, x2, y2, x3, y3, colour,
+                                                 fill);
+        if (FAILED(result)) error_throw(result);
         return;
     }
 

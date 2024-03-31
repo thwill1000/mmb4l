@@ -191,4 +191,16 @@ MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int
 MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int y1, int x2, int y2,
                                 MmGraphicsColour colour, MmGraphicsColour fill);
 
+/**
+ * Loads a .png image.
+ *
+ * @param  surface   Surface to draw the image on.
+ * @param  filename  Name of file to load the image from.
+ * @param  x, y      Coordinates of top-left corner to start drawing the image from.
+ * @param  transparent
+ * @param  force
+ */
+MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
+                           int force);
+
 #endif // #if !defined(MMBASIC_GRAPHICS_H)
