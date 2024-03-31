@@ -172,6 +172,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/prompt.c
     src/common/rx_buf.c
     src/common/serial.c
+    src/common/upng.c
     src/common/utility.c
     src/common/xmodem.c
 )
