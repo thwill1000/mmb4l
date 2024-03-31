@@ -44,16 +44,89 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
+#include "../common/graphics.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
-void cmd_load(void) {
-    getargs(&cmdline, 1, " ,");
+/** LOAD file$ [, x, y] */
+static MmResult cmd_load_bmp(const char *p) {
+    ERROR_UNIMPLEMENTED("LOAD {BMP|IMAGE}");
+    return kUnimplemented;
+}
+
+/** LOAD DATA file$, address */
+static MmResult cmd_load_data(const char *p) {
+    ERROR_UNIMPLEMENTED("LOAD DATA");
+    return kUnimplemented;
+}
+
+/** LOAD FONT file$ */
+static MmResult cmd_load_font(const char *p) {
+    ERROR_UNIMPLEMENTED("LOAD FONT");
+    return kUnimplemented;
+}
+
+/** LOAD file$ [, x, y] */
+static MmResult cmd_load_gif(const char *p) {
+    ERROR_UNIMPLEMENTED("LOAD GIF");
+    return kUnimplemented;
+}
+
+/** LOAD file$ [, x, y] */
+static MmResult cmd_load_jpg(const char *p) {
+    ERROR_UNIMPLEMENTED("LOAD JPG");
+    return kUnimplemented;
+}
+
+/** LOAD PNG file$ [, x [, y [, transparency_cut_off]]] */
+static MmResult cmd_load_png(const char *p) {
+    if (!graphics_current) return kGraphicsSurfaceNotFound;
+
+	getargs(&p, 7, ",");
+    if (argc == 0 || argc > 7) return kArgumentCount;
+    char *filename = getCstring(argv[0]);
+    const int xOrigin = (argc >= 3 && *argv[2]) ? getinteger(argv[2]) : 0;
+    const int yOrigin = (argc >= 5 && *argv[4]) ? getinteger(argv[4]) : 0;
+    int transparent = (argc == 7) ? getint(argv[6], 0, 15) : 0;
+    int force = 0;
+    if (transparent > 4) {
+        force = transparent << 4;
+        transparent = 4;
+    }
+
+    return graphics_load_png(graphics_current, filename, xOrigin, yOrigin, transparent, force);
+}
+
+/** LOAD file$ */
+static MmResult cmd_load_default(const char *p) {
+    getargs(&p, 1, " ,");
     if (argc == 1) {
         const char *filename = getCstring(argv[0]);
-        MmResult result = program_load_file(filename);
-        if (FAILED(result)) error_throw(result);
+        return program_load_file(filename);
     } else {
-        ERROR_SYNTAX;
+        return kArgumentCount;;
     }
+}
+
+void cmd_load(void) {
+    MmResult result = kOk;
+    const char *p;
+    if ((p = checkstring(cmdline, "BMP"))) {
+        result = cmd_load_bmp(p);
+    } else if ((p = checkstring(cmdline, "DATA"))) {
+        result = cmd_load_data(p);
+    } else if ((p = checkstring(cmdline, "IMAGE"))) {
+        result = cmd_load_bmp(p);
+    } else if ((p = checkstring(cmdline, "JPG"))) {
+        result = cmd_load_jpg(p);
+    } else if ((p = checkstring(cmdline, "GIF"))) {
+        result = cmd_load_gif(p);
+    } else if ((p = checkstring(cmdline, "FONT"))) {
+        result = cmd_load_font(p);
+    } else if ((p = checkstring(cmdline, "PNG"))) {
+        result = cmd_load_png(p);
+    } else {
+        result = cmd_load_default(cmdline);
+    }
+    ERROR_ON_FAILURE(result);
 }
