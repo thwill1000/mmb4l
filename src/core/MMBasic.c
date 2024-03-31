@@ -377,34 +377,31 @@ static void PrepareFunctionTable(bool abort_on_error) {
     }
 }
 
-// Scan through the program loaded in flash and build a table pointing to the definition of all user defined subroutines and functions.
-// This pre processing speeds up the program when using defined subroutines and functions
-// this routine also looks for embedded fonts and adds them to the font table
-void PrepareProgram(int ErrAbort) {
+/**
+ * @brief  Populates the font table by searching for font entries in CFunctionFlash.
+ */
+static void PrepareFontTable() {
     font_clear_user_defined();
 
-#if !defined(__mmb4l__)
-    CFunctionFlash = CFunctionLibrary = NULL;
-#endif
+    uint32_t *p = (uint32_t *) CFunctionFlash;
 
-    PrepareFunctionTable(ErrAbort);
+    if (!p) return; // To handle unit-tests that have not setup CFunctionFlash.
 
-#if defined(MICROMITE)
-    while(*p == 0) p++;                                             // the end of the program can have multiple zeros
-    p++;                                                            // step over the terminating 0xff
-    *CFunPtr = (unsigned char *)(((unsigned int)p + 0b11) & ~0b11); // CFunction flash (if it exists) starts on the next word address after the program in flash
-    if(i < MAXSUBFUN) subfun[i] = NULL;
-    CurrentLinePtr = NULL;
-
-    // now, step through the CFunction area looking for fonts to add to the font table
-    unsigned int cfp = *(unsigned int **)CFunPtr;
-    while(*cfp != 0xffffffff) {
-        if(*cfp < FONT_TABLE_SIZE)
-            FontTable[*cfp] = (unsigned char *)(cfp + 2);
-        cfp++;
-        cfp += (*cfp + 4) / sizeof(unsigned int);
+    while (*p != 0xFFFFFFFF) {
+        const uint64_t font_id = *((uint64_t *) p) + 1;
+        if (font_id <= (uint64_t) FONT_TABLE_SIZE) {
+            FontTable[font_id] = (unsigned char *) (p + 3);
+        }
+        p += 2;  // Skip the font number / CSub address.
+        const uint32_t length = *p;
+        p += 1;  // Skip the length.
+        p += length / 4;  // Skip the data.
     }
-#endif
+}
+
+void PrepareProgram(int ErrAbort) {
+    PrepareFunctionTable(ErrAbort);
+    PrepareFontTable();
 }
 
 /**
