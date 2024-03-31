@@ -42,11 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <string.h>
-
 #include "../common/error.h"
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
+
+#include <string.h>
 
 #define HRes  graphics_current->width
 #define VRes  graphics_current->height

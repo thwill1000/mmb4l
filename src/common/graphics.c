@@ -42,10 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "cstring.h"
 #include "error.h"
 #include "events.h"
 #include "graphics.h"
 #include "memory.h"
+#include "upng.h"
 #include "utility.h"
 
 #include <stdbool.h>
@@ -739,5 +741,122 @@ MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int 
         }
     }
 
+    return kOk;
+}
+
+void graphics_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
+                          const unsigned char* buffer, int skip) {
+    const unsigned char *psrc = buffer;
+    union colourmap
+    {
+        char rgbbytes[4];
+        uint32_t rgb;
+    } c;
+    int scale = 1; // (PageTable[WritePage].expand ? 2 : 1);
+    //if(optiony)y1=maxH-1-y1;
+    //if(optiony)y2=maxH-1-y2;
+    // make sure the coordinates are kept within the display area
+    if (x2 <= x1) SWAP(int, x1, x2);
+    if (y2 <= y1) SWAP(int, y1, y2);
+    // int cursorhidden=0;
+    // if(cursoron)
+    //     if( !(xcursor + wcursor < x1 ||
+    //         xcursor > x2 ||
+    //         ycursor + hcursor < y1 ||
+    //         ycursor > y2)){
+    //     hidecursor(0);
+    //     cursorhidden=1;
+    //     }
+    if (scale==1){
+        for (int32_t y = y1; y <= y2; y++){
+            // routinechecks(1);
+            uint32_t *pdst = surface->pixels + (y * surface->width + x1);
+            for (int32_t x = x1; x <= x2; x++){
+                if (x >= 0 && x < (int32_t) surface->width && y >= 0 && y < (int32_t) surface->height) {
+                    if (skip & 2) {
+                        c.rgbbytes[3] = 0xFF; //assume solid colour
+                        c.rgbbytes[2] = *psrc++; //this order swaps the bytes to match the .BMP file
+                        c.rgbbytes[1] = *psrc++;
+                        c.rgbbytes[0] = *psrc++;
+                        if (skip & 1) c.rgbbytes[3] = *psrc++; //ARGB8888 so set transparency
+                    } else {
+                        c.rgbbytes[3] = 0;
+                        c.rgbbytes[0] = *psrc++; //this order swaps the bytes to match the .BMP file
+                        c.rgbbytes[1] = *psrc++;
+                        c.rgbbytes[2] = *psrc++;
+                        if (skip & 1) psrc++;
+                    }
+                    *pdst = c.rgb;
+                } else {
+                    psrc += (skip & 1) ? 4 : 3;
+                }
+                pdst++;
+            }
+        }
+    }
+    // } else {
+    //     uint32_t *s1;
+    //     for(y=y1*2;y<=y2*2;y+=2){
+    //         routinechecks(1);
+    //         sc=(uint32_t *)((y * maxW + x1) * 4 + wpa);
+    //         s1=(uint32_t *)(((y+1) * maxW + x1) * 4 + wpa);
+    //         for(x=x1;x<=x2;x++){
+    //             if(x>=0 && x<maxW && y>=0 && y<maxH*2){
+    //                 if(skip & 2){
+    //                     c.rgbbytes[3]=0xFF;
+    //                     c.rgbbytes[2]=*p++; //this order swaps the bytes to match the .BMP file
+    //                     c.rgbbytes[1]=*p++;
+    //                     c.rgbbytes[0]=*p++;
+    //                     if(skip & 1)c.rgbbytes[3]=*p++; //ARGB8888 so set transparency
+    //                 } else {
+    //                     c.rgbbytes[3]=0;
+    //                     c.rgbbytes[0]=*p++; //this order swaps the bytes to match the .BMP file
+    //                     c.rgbbytes[1]=*p++;
+    //                     c.rgbbytes[2]=*p++;
+    //                     if(skip & 1)p++;
+    //                 }
+    //                 *sc=c.rgb;
+    //                 *s1=*sc;
+    //             } else {
+    //                 p+=(skip & 1) ? 4 : 3;
+    //             }
+    //             sc++;
+    //             s1++;
+    //         }
+    //     }
+    // }
+    // if(cursorhidden)showcursor(0, xcursor,ycursor);
+}
+
+MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent, int force) {
+    if (strchr(filename, '.') == NULL) cstring_cat(filename, ".PNG", STRINGSIZE);
+    upng_t *upng = upng_new_from_file(filename);
+    // routinechecks(1);
+    upng_header(upng);
+    unsigned w = upng_get_width(upng);
+    unsigned h = upng_get_height(upng);
+    if (x + w > graphics_current->width || y + h > graphics_current->height) {
+        upng_free(upng);
+        return kImageTooLarge;
+    }
+    if (!(upng_get_format(upng)==1 || upng_get_format(upng)==3)){
+        upng_free(upng);
+        return kImageInvalidFormat;
+    }
+    // routinechecks(1);
+    upng_decode(upng);
+    // routinechecks(1);
+    const unsigned char *buffer = upng_get_buffer(upng);
+    // int savey = optiony;
+    // optiony = 0;
+    if (upng_get_format(upng) ==3) {
+        graphics_draw_buffer(surface, x, y, x + w - 1, y + h - 1, buffer, 3 | transparent | force);
+    } else {
+        graphics_draw_buffer(surface, x, y, x + w - 1, y + h - 1, buffer, 2 | transparent | force);
+    }
+    // optiony = savey;
+    upng_free(upng);
+    // clearrepeat();
+    surface->dirty = true;
     return kOk;
 }

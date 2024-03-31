@@ -44,16 +44,79 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
+#include "../common/graphics.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
-void cmd_load(void) {
-    getargs(&cmdline, 1, " ,");
+static void cmd_load_bmp(const char *p) {
+    ERROR_UNIMPLEMENTED("LOAD {BMP|IMAGE}");
+}
+
+static void cmd_load_data(const char *p) {
+    ERROR_UNIMPLEMENTED("LOAD DATA");
+}
+
+static void cmd_load_font(const char *p) {
+    ERROR_UNIMPLEMENTED("LOAD FONT");
+}
+
+static void cmd_load_gif(const char *p) {
+    ERROR_UNIMPLEMENTED("LOAD GIF");
+}
+
+static void cmd_load_jpg(const char *p) {
+    ERROR_UNIMPLEMENTED("LOAD JPG");
+}
+
+/** LOAD PNG file$ [, x [, y [, transparency_cut_off]]] */
+static void cmd_load_png(const char *p) {
+    if (!graphics_current) error_throw(kGraphicsSurfaceNotFound);
+
+	getargs(&p, 7, ",");
+    if (argc == 0 || argc > 7) ERROR_ARGUMENT_COUNT;
+    char *filename = getCstring(argv[0]);
+    int xOrigin = (argc >= 3 && *argv[2]) ? getinteger(argv[2]) : 0;
+    int yOrigin = (argc >= 5 && *argv[4]) ? getinteger(argv[4]) : 0;
+    int transparent = (argc == 7) ? getint(argv[6], 0, 15) : 0;
+    int force = 0;
+    if (transparent > 4) {
+        force = transparent << 4;
+        transparent = 4;
+    }
+
+    MmResult result = graphics_load_png(graphics_current, filename, xOrigin, yOrigin, transparent,
+                                        force);
+    if (FAILED(result)) error_throw(result);
+}
+
+static void cmd_load_default(const char *p) {
+    getargs(&p, 1, " ,");
     if (argc == 1) {
         const char *filename = getCstring(argv[0]);
         MmResult result = program_load_file(filename);
         if (FAILED(result)) error_throw(result);
     } else {
         ERROR_SYNTAX;
+    }
+}
+
+void cmd_load(void) {
+    const char *p;
+    if ((p = checkstring(cmdline, "BMP"))) {
+        cmd_load_bmp(p);
+    } else if ((p = checkstring(cmdline, "DATA"))) {
+        cmd_load_data(p);
+    } else if ((p = checkstring(cmdline, "IMAGE"))) {
+        cmd_load_bmp(p);
+    } else if ((p = checkstring(cmdline, "JPG"))) {
+        cmd_load_jpg(p);
+    } else if ((p = checkstring(cmdline, "GIF"))) {
+        cmd_load_gif(p);
+    } else if ((p = checkstring(cmdline, "FONT"))) {
+        cmd_load_font(p);
+    } else if ((p = checkstring(cmdline, "PNG"))) {
+        cmd_load_png(p);
+    } else {
+        cmd_load_default(cmdline);
     }
 }
