@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "console.h"
 #include "cstring.h"
 #include "file.h"
+#include "fonttbl.h"
 #include "mmb4l.h"
 #include "parse.h"
 #include "path.h"
@@ -744,33 +745,35 @@ MmResult program_get_bas_file(const char *filename, char *out) {
     return path_get_canonical(cwd, out, STRINGSIZE);
 }
 
-// now we must scan the program looking for CFUNCTION/CSUB/DEFINEFONT
-// statements, extract their data and program it into the flash used by
-// CFUNCTIONs programs are terminated with two zero bytes and one or more
-// bytes of 0xff.  The CFunction area starts immediately after that.
-//
-// The format of a CFunction/CSub/Font in flash is:
-//
-//   uint64_t     - Address of the CFunction/CSub in program memory (points to
-//                  the token representing the "CFunction" keyword) or NULL if
-//                  it is a font.
-//   uint32_t     - The length of the CFunction/CSub/Font in bytes including
-//                  the Offset (see below) but not including any zero padding at
-//                  the end.
-//   uint32_t     - The Offset (in words) to the main() function (ie, the
-//                  entry point to the CFunction/CSub). Omitted in a font.
-//   word1..wordN - The CFunction/CSub/Font code (words are 32-bit).
-//                - Padding with zeroes to the next 64-bit boundary.
-//
-// The next CFunction/CSub/Font starts immediately following the last word
-// of the previous CFunction/CSub/Font
-static void program_process_csubs() {
+/**
+ * Scans ProgMemory looking for CFUNCTION/CSUB/DEFINEFONT statements, extract their data and
+ * store it after the program. Programs are terminated with two zero bytes and one or more
+ * bytes of 0xFF.  The CFunction area starts immediately after that.
+ *
+ * The format of a CFunction/CSub/Font in memory is:
+ *
+ *   uint64_t     - Address of the CFunction/CSub in program memory (points to
+ *                  the token representing the "CFunction" keyword) or NULL if
+ *                  it is a font.
+ *   uint32_t     - The length of the CFunction/CSub/Font in bytes including
+ *                  the Offset (see below) but not including any zero padding at
+ *                  the end.
+ *   uint32_t     - The Offset (in words) to the main() function (ie, the
+ *                  entry point to the CFunction/CSub). Omitted in a font.
+ *   word1..wordN - The CFunction/CSub/Font code (words are 32-bit).
+ *                - Padding with zeroes to the next 64-bit boundary.
+ *
+ * The next CFunction/CSub/Font starts immediately following the last word
+ * of the previous CFunction/CSub/Font.
+ */
+static void program_process_blobs() {
     CommandToken end_token = INVALID_COMMAND_TOKEN;
-    uint32_t *flash_ptr = (uint32_t *) CFunctionFlash;
-    uint32_t *save_addr = NULL;
+    char *flash_ptr = CFunctionFlash;
+    char *save_addr = NULL;
     char *p = (char *) ProgMemory;  // start scanning program memory
+    uint32_t fontnbr = 0;
 
-    while (*p != 0xff) {
+    while (*p != 0xFF) {
         if (*p == 0) p++;    // if it is at the end of an element skip the zero marker
         if (*p == 0) break;  // end of the program
         if (*p == T_NEWLINE) {
@@ -785,65 +788,95 @@ static void program_process_csubs() {
             skipspace(p);   // and any following spaces
         }
 
-        if (commandtbl_decode(p) == cmdCSUB) {
+        const CommandToken cmd = commandtbl_decode(p);
+        if (cmd == cmdCSUB || cmd == cmdDEFINEFONT) {
+            if (cmd == cmdDEFINEFONT) {
+                end_token = cmdEND_DEFINEFONT;
 
-            end_token = cmdEND_CSUB;
-            *((uint64_t *) flash_ptr) = (uintptr_t) p;
-            flash_ptr += 2;
+                // Step over the command token.
+                p += sizeof(CommandToken);
+                skipspace(p);
+
+                // Read font number.
+                if (*p == '#') p++;
+                fontnbr = getint(p, 1, FONT_TABLE_SIZE);
+                // Font 6 has some special characters, some of which depend on font 1.
+                if (fontnbr == 1 || fontnbr == 6 || fontnbr == 7) {
+                    error_throw_ex(kError, "Cannot redefine fonts 1, 6 or 7");
+                }
+                skipspace(p);
+
+                // Store the font number - 1.
+                *((uint64_t *) flash_ptr) = fontnbr - 1;
+            } else {
+                end_token = cmdEND_CSUB;
+                // Store the address of the CSUB token in the program.
+                *((uint64_t *) flash_ptr) = (uintptr_t) p;
+
+                // Step over the command token.
+                p += sizeof(CommandToken);
+                skipspace(p);
+
+                // Read CSub/Function name.
+                if (!isnamestart(*p)) ERROR_INVALID_FUNCTION_NAME;
+                do {
+                    p++;
+                } while (isnamechar(*p));
+                skipspace(p);
+            }
+
+            flash_ptr += 8;
             save_addr = flash_ptr; // Save where we are so that we can write the CSub size in here
-            flash_ptr ++;
-            p += sizeof(CommandToken);
-            skipspace(p);
-            if (!isnamestart(*p)) ERROR_INVALID_FUNCTION_NAME;
-            do {
-                p++;
-            } while (isnamechar(*p));
-            skipspace(p);
+            flash_ptr += 4;
+
+            // Unless the binary data starts immediately (at least 3 hex digits)
+            // we skip to the beginning of the next statement.
             if (!(isxdigit(p[0]) && isxdigit(p[1]) && isxdigit(p[2]))) {
                 skipelement(p);
                 p++;
+            }
+
+            for (;;) {
                 if (*p == T_NEWLINE) {
                     CurrentLinePtr = p;
                     p++;  // skip the newline token
                 }
-                if (*p == T_LINENBR) p += 3;  // skip over a line number
-            }
-            do {
+                if (*p == T_LINENBR) p += 3;  // skip over any line number
+                skipspace(p);
+                if (commandtbl_decode(p) == end_token) break;
+
                 while (*p && *p != SINGLE_QUOTE) {
                     skipspace(p);
                     int n = 0;
                     for (int i = 0; i < 8; i++) {
                         if (!isxdigit(*p)) ERROR_INVALID_HEX;
                         n = n << 4;
-                        if (*p <= '9')
+                        if (*p <= '9') {
                             n |= (*p - '0');
-                        else
+                        } else {
                             n |= (toupper(*p) - 'A' + 10);
+                        }
                         p++;
                     }
                     if ((char *) flash_ptr >= (char *) ProgMemory + PROG_FLASH_SIZE - 9) ERROR_OUT_OF_MEMORY;
-                    *flash_ptr = n;
-                    flash_ptr ++;
+                    *((uint32_t *) flash_ptr) = n;
+                    flash_ptr += 4;
                     skipspace(p);
                 }
-                // we are at the end of a embedded code line
-                while (*p) p++;  // make sure that we move to the end of the line
-                p++;      // step to the start of the next line
+
+                // We are at the end of an embedded code line.
+                while (*p) p++;  // Make sure that we move to the end of the line.
+                p++;             // Step to the start of the next line.
                 if (*p == 0) ERROR_MISSING_END;
-                if (*p == T_NEWLINE) {
-                    CurrentLinePtr = p;
-                    p++;  // skip the newline token
-                }
-                if (*p == T_LINENBR) p += 3;  // skip over the line number
-                skipspace(p);
-            } while (commandtbl_decode(p) != end_token);
+            }
 
             // Write back the size of the CSUB (in bytes) to the 32-bit slot reserved previously.
-            *save_addr = 4 * (flash_ptr - save_addr - 1);
+            *((uint32_t *) save_addr) = flash_ptr - save_addr - 4;
 
             // Pad to the next 64-bit boundary with zeroes.
-            while ((uintptr_t) flash_ptr % 2 != 0) *flash_ptr++ = 0;
+            while ((uintptr_t) flash_ptr % 8 != 0) *flash_ptr++ = 0;
         }
+
         while (*p) p++;  // look for the zero marking the start of the next element
     }
 
@@ -939,7 +972,7 @@ MmResult program_load_file(const char *filename) {
     if (SUCCEEDED(result)) result = program_process_file();
     if (SUCCEEDED(result)) result = program_append_footer();
     program_internal_free();
-    if (SUCCEEDED(result)) program_process_csubs();
+    if (SUCCEEDED(result)) program_process_blobs();
     memcpy(tknbuf, tmp, TKNBUF_SIZE);  // Restore the token buffer.
 
     if (SUCCEEDED(result)) {

@@ -67,13 +67,15 @@ void ListNewLine(int *ListCnt, int all) { }
 
 #define PROGRAM_TEST_DIR  TMP_DIR "/ProgramTest"
 
-#define CMD_DATA    "\x94\x80"
-#define CMD_DIM     "\x95\x80"
-#define CMD_END     "\xA1\x80"
-#define CMD_LET     "\xB7\x80"
-#define CMD_MMDEBUG "\xC3\x80"
-#define CMD_PRINT   "\xCF\x80"
-#define OP_EQUALS   "\xEC"
+#define CMD_CSUB        "\x92\x80"
+#define CMD_DATA        "\x94\x80"
+#define CMD_DEFINEFONT  "\x95\x80"
+#define CMD_DIM         "\x96\x80"
+#define CMD_END         "\x9C\x80"
+#define CMD_LET         "\xB9\x80"
+#define CMD_MMDEBUG     "\xC5\x80"
+#define CMD_PRINT       "\xD1\x80"
+#define OP_EQUALS       "\xEC"
 
 #define EXPECT_PROGRAM_EQ(prog) \
     EXPECT_THAT(std::vector<char>(ProgMemory, ProgMemory + prog.length()), \
@@ -430,8 +432,14 @@ TEST_F(ProgramTest, GetIncFile_GivenRelativePath) {
 TEST_F(ProgramTest, HardcodedTokenValuesAreCorrect) {
     char buf[3];
     char *p = buf;
+    commandtbl_encode(&p, commandtbl_get("CSub"));
+    EXPECT_STREQ(CMD_CSUB, buf);
+    p = buf;
     commandtbl_encode(&p, commandtbl_get("Data"));
     EXPECT_STREQ(CMD_DATA, buf);
+    p = buf;
+    commandtbl_encode(&p, commandtbl_get("DefineFont"));
+    EXPECT_STREQ(CMD_DEFINEFONT, buf);
     p = buf;
     commandtbl_encode(&p, commandtbl_get("Dim"));
     EXPECT_STREQ(CMD_DIM, buf);
@@ -1092,7 +1100,6 @@ TEST_F(ProgramTest, LoadFile_GivenMmDebugOnDirective_WithTrailingText_Fails) {
     EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
 }
 
-
 TEST_F(ProgramTest, LoadFile_GivenMmDebugOffDirective_WithTrailingText_Fails) {
     const char *main_path = PROGRAM_TEST_DIR "/main.bas";
     MakeFile(main_path,
@@ -1103,4 +1110,193 @@ TEST_F(ProgramTest, LoadFile_GivenMmDebugOffDirective_WithTrailingText_Fails) {
     EXPECT_STREQ("", error_msg);
     EXPECT_EQ(2, mmb_error_state_ptr->line);
     EXPECT_STREQ(main_path, mmb_error_state_ptr->file);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenCSub) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "CSub my_csub(arg1, arg2)\n"
+        "  12345678\n"
+        "  01020304 05060708 090A0B0C 0D0E0F10 11121314 15161718\n"
+        "End CSub\n");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    // Expect first 8 bytes of CFunctionFlash to point to the address of the CSUB token.
+    void *pcsub = memchr(ProgMemory, CMD_CSUB[0], 256);
+    EXPECT_EQ(*((uint64_t *) CFunctionFlash), (uintptr_t) pcsub);
+
+    // Expect next 4 bytes to contain the length in bytes.
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 8)), 28);
+
+    // Expect next 4 bytes to contain the "offset to main()".
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 12)), 0x12345678);
+
+    // Expect 24 bytes of data.
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 16)), 0x01020304);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 20)), 0x05060708);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 24)), 0x090A0B0C);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 28)), 0x0D0E0F10);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 32)), 0x11121314);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 36)), 0x15161718);
+
+    // Expect end marker
+    EXPECT_EQ(*((uint64_t *) (CFunctionFlash + 40)), 0xFFFFFFFFFFFFFFFF);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenCSub_WithBinaryDataOnFirstLine) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "CSub my_csub 12345678\n"
+        "  01020304 05060708 090A0B0C 0D0E0F10 11121314 15161718\n"
+        "End CSub\n");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    // Expect first 8 bytes of CFunctionFlash to point to the address of the CSUB token.
+    void *pcsub = memchr(ProgMemory, CMD_CSUB[0], 256);
+    EXPECT_EQ(*((uint64_t *) CFunctionFlash), (uintptr_t) pcsub);
+
+    // Expect next 4 bytes to contain the length in bytes.
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 8)), 28);
+
+    // Expect next 4 bytes to contain the "offset to main()".
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 12)), 0x12345678);
+
+    // Expect 24 bytes of data.
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 16)), 0x01020304);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 20)), 0x05060708);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 24)), 0x090A0B0C);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 28)), 0x0D0E0F10);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 32)), 0x11121314);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 36)), 0x15161718);
+
+    // Expect end marker
+    EXPECT_EQ(*((uint64_t *) (CFunctionFlash + 40)), 0xFFFFFFFFFFFFFFFF);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenCSub_WithLineNumbers) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "10 CSub my_csub(arg1, arg2)\n"
+        "20  12345678\n"
+        "30  01020304 05060708 090A0B0C 0D0E0F10 11121314 15161718\n"
+        "40 End CSub\n");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    // Expect first 8 bytes of CFunctionFlash to point to the address of the CSUB token.
+    void *pcsub = memchr(ProgMemory, CMD_CSUB[0], 256);
+    EXPECT_EQ(*((uint64_t *) CFunctionFlash), (uintptr_t) pcsub);
+
+    // Expect next 4 bytes to contain the length in bytes.
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 8)), 28);
+
+    // Expect next 4 bytes to contain the "offset to main()".
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 12)), 0x12345678);
+
+    // Expect 24 bytes of data.
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 16)), 0x01020304);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 20)), 0x05060708);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 24)), 0x090A0B0C);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 28)), 0x0D0E0F10);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 32)), 0x11121314);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 36)), 0x15161718);
+
+    // Expect end marker
+    EXPECT_EQ(*((uint64_t *) (CFunctionFlash + 40)), 0xFFFFFFFFFFFFFFFF);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenMultipleCSub) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "CSub my_csub(arg1, arg2)\n"
+        "  12345678\n"
+        "  11111111 22222222\n"
+        "  33333333\n"
+        "End CSub\n"
+        "CSub my_csub_2(arg3)\n"
+        "  90ABCDEF\n"
+        "  55555555 66666666\n"
+        "End CSub\n");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    // my_csub()
+    char *pcsub1;
+    {
+        // Expect first 8 bytes of CFunctionFlash to point to the address of the CSUB token.
+        pcsub1 = (char *) memchr(ProgMemory, CMD_CSUB[0], 256);
+        EXPECT_EQ(*((uint64_t *) CFunctionFlash), (uintptr_t) pcsub1);
+
+        // Expect next 4 bytes to contain the length in bytes.
+        EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 8)), 16);
+
+        // Expect next 4 bytes to contain the "offset to main()".
+        EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 12)), 0x12345678);
+
+        // Expect 12 bytes of data.
+        EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 16)), 0x11111111);
+        EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 20)), 0x22222222);
+        EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 24)), 0x33333333);
+
+        // Expect zero padding to 64-bit boundary.
+        EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 28)), 0x0);
+    }
+
+    // my_csub_2()
+    char *pcsub2;
+    {
+        // Expect first 8 bytes of CFunctionFlash to point to the address of the CSUB token.
+        pcsub2 = (char *) memchr(pcsub1 + 1, CMD_CSUB[0], 256);
+        EXPECT_EQ(*((uint64_t *) (CFunctionFlash + 32)), (uintptr_t) pcsub2);
+
+        // Expect next 4 bytes to contain the length in bytes.
+        EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 40)), 12);
+
+        // Expect next 4 bytes to contain the "offset to main()".
+        EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 44)), 0x90ABCDEF);
+
+        // Expect 8 bytes of data.
+        EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 48)), 0x55555555);
+        EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 52)), 0x66666666);
+    }
+
+    // Expect end marker
+    EXPECT_EQ(*((uint64_t *) (CFunctionFlash + 56)), 0xFFFFFFFFFFFFFFFF);
+}
+
+TEST_F(ProgramTest, LoadFile_GivenDefineFont) {
+    const char *main_path = PROGRAM_TEST_DIR "/main.bas";
+    MakeFile(main_path,
+        "DefineFont #9\n"
+        "  5F200808\n"
+        "  00000000 00000000 18181818 00180018 006C6C6C 00000000 367F3636 0036367F\n"
+        "  3E683F0C 00187E0B 180C6660 00066630 386C6C38 003B666D 0030180C 00000000\n"
+        "End DefineFont\n");
+
+    EXPECT_EQ(kOk, program_load_file(main_path));
+    EXPECT_STREQ("", error_msg);
+
+    // Expect first 8 bytes of CFunctionFlash to contain the font number - 1.
+    EXPECT_EQ(*((uint64_t *) CFunctionFlash), 9 - 1);
+
+    // Expect next 4 bytes to contain the length in bytes.
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 8)), 17 * 4);
+
+    // Expect 17 * 4 bytes of data.
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 12)), 0x5F200808);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 16)), 0x00000000);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 20)), 0x00000000);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 24)), 0x18181818);
+    // ...
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 72)), 0x0030180C);
+    EXPECT_EQ(*((uint32_t *) (CFunctionFlash + 76)), 0x00000000);
+
+    // Expect end marker
+    EXPECT_EQ(*((uint64_t *) (CFunctionFlash + 80)), 0xFFFFFFFFFFFFFFFF);
 }
