@@ -46,9 +46,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/commandtbl.h"
 #include "../common/error.h"
 
-#define ERROR_MISSING_END  error_throw_ex(kError, "Missing END statement")
+#define ERROR_MISSING_END  error_throw_ex(kSyntax, "Missing END statement")
 
 void cmd_cfunction(void) {
+    CommandToken end_token = cmdtoken == cmdCSUB
+            ? cmdEND_CSUB
+            : GetCommandValue("End DefineFont");
     const char *p = cmdline;
     while (*p != 0xff) {
         if (*p == 0) p++;  // if it is at the end of an element skip the zero marker
@@ -60,7 +63,7 @@ void cmd_cfunction(void) {
             p += p[1] + 2;  // skip over the label
             skipspace(p);   // and any following spaces
         }
-        if (commandtbl_decode(p) == cmdEND_CSUB) {
+        if (commandtbl_decode(p) == end_token) {
             nextstmt = p;
             skipelement(nextstmt);
             return;

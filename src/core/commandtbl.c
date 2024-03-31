@@ -81,19 +81,21 @@ const struct s_tokentbl commandtbl[] = {
     { "CSub",        T_CMD,              0, cmd_cfunction },
     { "Cursor",      T_CMD,              0, cmd_cursor   },
     { "Data",        T_CMD,              0, cmd_null     },
+    { "DefineFont",  T_CMD,              0, cmd_cfunction },
     { "Dim",         T_CMD,              0, cmd_dim      },
     { "Do",          T_CMD,              0, cmd_do       },
     { "Edit",        T_CMD,              0, cmd_edit     },
-    { "Else If",     T_CMD,              0, cmd_else     },
     { "ElseIf",      T_CMD,              0, cmd_else     },
+    { "Else If",     T_CMD,              0, cmd_else     },
     { "Else",        T_CMD,              0, cmd_else     },
+    { "End",         T_CMD,              0, cmd_end      },
     { "End CSub",    T_CMD,              0, cmd_null     },
+    { "End DefineFont", T_CMD,           0, cmd_null     },
     { "End Function", T_CMD,             0, cmd_endfun   },
-    { "End If",      T_CMD,              0, cmd_null     },
     { "EndIf",       T_CMD,              0, cmd_null     },
+    { "End If",      T_CMD,              0, cmd_null     },
     { "End Select",  T_CMD,              0, cmd_null     },
     { "End Sub",     T_CMD,              0, cmd_return   },
-    { "End",         T_CMD,              0, cmd_end      },
     { "Erase",       T_CMD,              0, cmd_erase    },
     { "Error",       T_CMD,              0, cmd_error    },
     { "Execute",     T_CMD,              0, cmd_execute  },
@@ -170,8 +172,9 @@ const struct s_tokentbl commandtbl[] = {
     { "",            0,                  0, cmd_null,    }  // This dummy entry is always at the end.
 };
 
-CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDO;
-CommandToken cmdELSE, cmdELSEIF, cmdELSE_IF, cmdENDIF, cmdEND_CSUB, cmdEND_FUNCTION;
+CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDEFINEFONT, cmdDO;
+CommandToken cmdELSE, cmdELSEIF, cmdELSE_IF, cmdENDIF, cmdEND_CSUB, cmdEND_DEFINEFONT;
+CommandToken cmdEND_FUNCTION;
 CommandToken cmdENDIF, cmdEND_IF, cmdEND_SELECT, cmdEND_SUB, cmdFOR, cmdFUN;
 CommandToken cmdIF, cmdIRET, cmdLET, cmdLOOP, cmdNEXT, cmdPRINT;
 CommandToken cmdREM, cmdSELECT_CASE, cmdSUB, cmdWEND, cmdWHILE;
@@ -184,12 +187,14 @@ void commandtbl_init() {
     cmdCFUN = INVALID_COMMAND_TOKEN;
     cmdCSUB = commandtbl_get("CSub");
     cmdDATA = commandtbl_get("Data");
+    cmdDEFINEFONT = commandtbl_get("DefineFont");
     cmdDO = commandtbl_get("Do");
     cmdELSE = commandtbl_get("Else");
     cmdELSEIF = commandtbl_get("ElseIf");
     cmdELSE_IF = commandtbl_get("Else If");
     cmdENDIF = commandtbl_get("EndIf");
     cmdEND_CSUB = commandtbl_get("End CSub");
+    cmdEND_DEFINEFONT = commandtbl_get("End DefineFont");
     cmdEND_FUNCTION = commandtbl_get("End Function");
     cmdEND_IF = commandtbl_get("End If");
     cmdEND_SELECT = commandtbl_get("End Select");
