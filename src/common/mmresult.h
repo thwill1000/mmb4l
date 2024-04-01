@@ -103,6 +103,7 @@ typedef enum {
     kGamepadApiError,
     kGraphicsApiError,
     kGraphicsInvalidId,
+    kGraphicsInvalidReadSurface,
     kGraphicsInvalidWriteSurface,
     kGraphicsSurfaceNotCreated,
     kGraphicsSurfaceNotFound,
