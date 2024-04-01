@@ -132,6 +132,19 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
     return id >= 0 && id <= GRAPHICS_MAX_ID && graphics_surfaces[id].type != kGraphicsNone;
 }
 
+/**
+ * Blits rectangle from one surface to another.
+ *
+ * @param  x1, y1         Top left coordinates on the read surface.
+ * @param  x2, y2         Top left coordinates on the write surface.
+ * @param  w, h           Width and height of rectangle.
+ * @param  read_surface   The surface to read from.
+ * @param  write_surface  The surface to write to.
+ * @param  flags          TODO.
+ */
+MmResult graphics_blit(int x1, int y1, int x2, int y2, uint32_t w, uint32_t h,
+                       MmSurface *read_surface, MmSurface *write_surface, int flags);
+
 MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0 , MMFLOAT y0 , MMFLOAT x1 ,
                                MMFLOAT y1, MmGraphicsColour colour, uint32_t w);
 

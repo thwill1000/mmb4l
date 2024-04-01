@@ -212,7 +212,7 @@ Sub test_peek_progmem()
 
   ' Different token ids for OPTION on different platforms.
   If sys.is_platform%("mmb4l") Then
-    assert_string_equals(Chr$(199) + Chr$(128) + "EXPLICIT ON'|5" + Chr$(0), s$)
+    assert_string_equals(Chr$(202) + Chr$(128) + "EXPLICIT ON'|5" + Chr$(0), s$)
   ElseIf sys.is_platform%("cmm2*") Then
     assert_string_equals(Chr$(197) + "EXPLICIT ON'|5" + Chr$(0), s$)
   ElseIf sys.is_platform%("pm*") Then
