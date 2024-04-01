@@ -72,6 +72,7 @@ struct s_tokentbl {      // structure of the command and token tables.
 #define commandname(i)  ((i < CommandTableSize - 1) ? commandtbl[i].name : "")
 
 void cmd_autosave(void);
+void cmd_blit();
 void cmd_box(void);
 void cmd_call(void);
 void cmd_case(void);
