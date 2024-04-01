@@ -7,6 +7,7 @@
 #define MMB4L_COMMAND_STUBS_H
 
 void cmd_autosave() { }
+void cmd_blit() { }
 void cmd_box() { }
 void cmd_call() { }
 void cmd_case() { }

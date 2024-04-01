@@ -152,6 +152,20 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
 MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x1, MMFLOAT y1, MMFLOAT x2,
                                MMFLOAT y2, int width, MmGraphicsColour colour);
 
+/*
+ * Blits rectangle from one surface to another.
+ *
+ * @param  x1, y1         Top left coordinates on the read surface.
+ * @param  x2, y2         Top left coordinates on the write surface.
+ * @param  width          Width of rectangle to blit.
+ * @param  height         Height of rectangle to blit.
+ * @param  read_surface   The surface to read from.
+ * @param  write_surface  The surface to write to.
+ * @param  flags          TODO
+ */
+MmResult graphics_blit(int x1, int y1, int x2, int y2, int width, int height,
+                       MmSurface *read_surface, MmSurface *write_surface, int flags);
+
 /**
  * Draws a box.
  *

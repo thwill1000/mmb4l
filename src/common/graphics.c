@@ -806,3 +806,27 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
     surface->dirty = true;
     return kOk;
 }
+
+/*
+ * FLIP parameter
+0 - normal display (default if omitted)
+1 - mirrored left to right
+2 - mirrored top to bottom
+3 - rotated 180 degrees (= 1+2)
+4 - transparent normal display (default if omitted)
+5 - transparent mirrored left to right
+6 - transparent mirrored top to bottom
+7 - transparent rotated 180 degrees (= 1+2)
+*/
+MmResult graphics_blit(int x1, int y1, int x2, int y2, int w, int h,
+                       MmSurface *read_surface, MmSurface *write_surface, int flags){
+    uint32_t *src = read_surface->pixels + (y1 * read_surface->width) + x1;
+    uint32_t *dst = write_surface->pixels + (y2 * write_surface->width) + x2;
+    for (int i = 0; i < h; i++) {
+        memcpy(dst, src, w << 2);
+        src += read_surface->width;
+        dst += write_surface->width;
+    }
+    write_surface->dirty = true;
+    return kOk;
+}
