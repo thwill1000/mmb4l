@@ -135,11 +135,11 @@ static void cmd_blit_write(const char *p) {
 }
 
 /** BLIT x1, y1, x2, y2, w, h [,surface] [,orientation] */
-static void cmd_blit_default(const char *p) {
-    if (!graphics_current) error_throw_ex(kGraphicsSurfaceNotFound, "Write surface does not exist");
+static MmResult cmd_blit_default(const char *p) {
+    if (!graphics_current) return kGraphicsInvalidWriteSurface;
 
     getargs(&p, 15, ",");
-    if (argc < 11) ERROR_ARGUMENT_COUNT;
+    if (argc < 11) return kArgumentCount;
     MMINTEGER x1 = getinteger(argv[0]);
     MMINTEGER y1 = getinteger(argv[2]);
     MMINTEGER x2 = getinteger(argv[4]);
@@ -147,16 +147,15 @@ static void cmd_blit_default(const char *p) {
     MMINTEGER w = getinteger(argv[8]);
     MMINTEGER h = getinteger(argv[10]);
     MMINTEGER read_id = argc >= 13 ? getint(argv[12], 0, GRAPHICS_MAX_ID) : -1;
-    if (read_id != -1 && !graphics_surface_exists(read_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %%", read_id);
-    }
+    if (read_id != -1 && !graphics_surface_exists(read_id)) return kGraphicsInvalidReadSurface;
 
     MmSurface* read_surface = &graphics_surfaces[read_id];
     MmSurface* write_surface = graphics_current;
-    GRAPHICS_CHECK_RESULT(graphics_blit(x1, y1, x2, y2, w, h, read_surface, write_surface, 0x0));
+    return graphics_blit(x1, y1, x2, y2, w, h, read_surface, write_surface, 0x0);
 }
 
 void cmd_blit(void) {
+    MmResult result = kOk;
     const char *p;
     if ((p = checkstring(cmdline, "CLOSE"))) {
         cmd_blit_close(p);
@@ -203,6 +202,7 @@ void cmd_blit(void) {
     } else if ((p = checkstring(cmdline, "WRITE"))) {
         cmd_blit_write(p);
     } else {
-        cmd_blit_default(cmdline);
+        result = cmd_blit_default(cmdline);
     }
+    ERROR_ON_FAILURE(result);
 }

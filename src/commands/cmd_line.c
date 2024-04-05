@@ -109,20 +109,20 @@ static void cmd_line_plot(const char *p) {
     if (argc >= 7 && *argv[6]) xinc = getint(argv[6], 1, HRes - 1);
     if (argc >= 9 && *argv[8]) ys = getint(argv[8], 0, n - 1);
     if (argc >= 11 && *argv[10]) yinc = getint(argv[10], 1, n - 1);
-    uint32_t w = 1;  // setup the defaults
+    int w = 1;  // setup the defaults
     MmGraphicsColour colour = (argc == 13) ? getint(argv[12], RGB_BLACK, RGB_WHITE) : graphics_fcolour;
     for (i = 0; i < nc - 1; i += xinc) {
         int y = ys + yinc * (i / xinc);
         x1 = xs + i;
         y1 = (y1fptr == NULL ? y1ptr[y] : (int)y1fptr[y]);
         if (y1 < 0) y1 = 0;
-        if ((uint32_t)y1 >= VRes) y1 = VRes - 1;
+        if (y1 >= VRes) y1 = VRes - 1;
         x2 = xs + (i + xinc);
         y2 = (y1fptr == NULL ? y1ptr[y + yinc] : (int)y1fptr[y + yinc]);
-        if ((uint32_t)x1 >= HRes) break;  // can only get worse so stop now
-        if ((uint32_t)x2 >= HRes) x2 = HRes - 1;
+        if (x1 >= HRes) break;  // can only get worse so stop now
+        if (x2 >= HRes) x2 = HRes - 1;
         if (y2 < 0) y2 = 0;
-        if ((uint32_t)y2 >= VRes) y2 = VRes - 1;
+        if (y2 >= VRes) y2 = VRes - 1;
         graphics_draw_line(graphics_current, x1, y1, x2, y2, w, colour);
     }
 }
@@ -144,7 +144,7 @@ static void cmd_line_aa(const char *p) {
     y1 = getnumber(argv[2]);
     x2 = getnumber(argv[4]);
     y2 = getnumber(argv[6]);
-    uint32_t w = (argc > 7 && *argv[8]) ? getint(argv[8], 1, 100) : 1;
+    int w = (argc > 7 && *argv[8]) ? getint(argv[8], 1, 100) : 1;
     MmGraphicsColour colour = (argc == 11) ? getint(argv[10], RGB_BLACK, RGB_WHITE) : graphics_fcolour;
     graphics_draw_aa_line(graphics_current, x1, y1, x2, y2, colour, w);
 }
@@ -169,13 +169,13 @@ static void cmd_line_default(const char *p) {
         int y1 = getinteger(argv[2]);
         int x2 = getinteger(argv[4]);
         int y2 = getinteger(argv[6]);
-        uint32_t w = (argc > 7 && *argv[8]) ? getint(argv[8], 1, 100) : 1;
+        int w = (argc > 7 && *argv[8]) ? getint(argv[8], 1, 100) : 1;
         MmGraphicsColour colour = (argc == 11) ? getint(argv[10], RGB_BLACK, RGB_WHITE) : graphics_fcolour;
         graphics_draw_line(graphics_current, x1, y1, x2, y2, w, colour);
     } else {
         int nc = 0, nw = 0;
         long long int *wptr, *cptr;
-        int32_t w = 1;
+        int w = 1;
         MmGraphicsColour colour = graphics_fcolour;
         MMFLOAT *wfptr, *cfptr;
         if (argc > 7 && *argv[8]) {

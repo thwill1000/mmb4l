@@ -212,7 +212,7 @@ static inline void graphics_set_pixel(MmSurface *surface, int x, int y, MmGraphi
 }
 
 static inline void graphics_set_pixel_safe(MmSurface *surface, int x, int y, MmGraphicsColour colour) {
-    if (x >= 0 && y >= 0 && (uint32_t) x < surface->width && (uint32_t) y < surface->height) {
+    if (x >= 0 && y >= 0 && x < surface->width && y < surface->height) {
         surface->pixels[y*surface->width + x] = colour;
     }
 }
@@ -224,18 +224,18 @@ MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour 
 }
 
 MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0, MMFLOAT y0, MMFLOAT x1, MMFLOAT y1,
-                               MmGraphicsColour colour, uint32_t w) {
+                               MmGraphicsColour colour, int w) {
     ERROR_UNIMPLEMENTED("graphics_draw_aa_line");
     return kOk;
 }
 
-MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w,
+MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, int w,
                            MmGraphicsColour colour, MmGraphicsColour fill) {
     // Make sure the coordinates are in the right sequence.
     if (x1 > x2) SWAP(int, x1, x2);
     if (y1 > y2) SWAP(int, x1, x2);
 
-    w = min(min(w, (uint32_t) (x2 - x1)), (uint32_t) (y2 - y1));
+    w = min(min(w, x2 - x1), y2 - y1);
     if (w > 0) {
         w--;
         graphics_draw_rectangle(surface, x1, y1, x2, y1 + w, colour);  // Draw the top horiz line.
@@ -383,7 +383,7 @@ MmResult graphics_draw_filled_circle(int x, int y, int radius, int r,
 
 #define RoundUptoInt(a) (((a) + (32 - 1)) & (~(32 - 1)))  // round up to the nearest whole integer
 
-MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, uint32_t w,
+MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, int w,
                               MmGraphicsColour colour, MmGraphicsColour fill, MMFLOAT aspect) {
     if (!surface || surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
     int a, b, P;
@@ -495,7 +495,7 @@ MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, uint
     return kOk;
 }
 
-MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w, MmGraphicsColour colour) {
+MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, int w, MmGraphicsColour colour) {
     if (y1 == y2) {
         return graphics_draw_rectangle(surface, x1, y1, x2, y2 + w - 1, colour);  // horiz line
     }
@@ -589,15 +589,15 @@ MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int
                                  MmGraphicsColour colour) {
     // Do not draw anything if entire rectangle is off the screen.
     if ((x1 < 0 && x2 < 0) || (y1 < 0 && y2 < 0) ||
-        ((uint32_t)x1 >= surface->width && (uint32_t)x2 >= surface->width) ||
-        ((uint32_t)y1 >= surface->height && (uint32_t)y2 >= surface->height)) {
+        (x1 >= surface->width && x2 >= surface->width) ||
+        (y1 >= surface->height && y2 >= surface->height)) {
         return kOk;
     }
 
-    x1 = min(max(0, x1), (int)(HRes - 1));
-    x2 = min(max(0, x2), (int)(HRes - 1));
-    y1 = min(max(0, y1), (int)(VRes - 1));
-    y2 = min(max(0, y2), (int)(VRes - 1));
+    x1 = min(max(0, x1), HRes - 1);
+    x2 = min(max(0, x2), HRes - 1);
+    y1 = min(max(0, y1), VRes - 1);
+    y2 = min(max(0, y2), VRes - 1);
     if (x1 > x2) SWAP(int, x1, x2);
     if (y1 > y2) SWAP(int, y1, y2);
     for (int y = y1; y <= y2; y++) {
@@ -833,8 +833,8 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
     upng_t *upng = upng_new_from_file(filename);
     // routinechecks(1);
     upng_header(upng);
-    unsigned w = upng_get_width(upng);
-    unsigned h = upng_get_height(upng);
+    int w = upng_get_width(upng);
+    int h = upng_get_height(upng);
     if (x + w > graphics_current->width || y + h > graphics_current->height) {
         upng_free(upng);
         return kImageTooLarge;
@@ -872,11 +872,11 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
 6 - transparent mirrored top to bottom
 7 - transparent rotated 180 degrees (= 1+2)
 */
-MmResult graphics_blit(int x1, int y1, int x2, int y2, uint32_t w, uint32_t h,
+MmResult graphics_blit(int x1, int y1, int x2, int y2, int w, int h,
                        MmSurface *read_surface, MmSurface *write_surface, int flags){
     uint32_t *src = read_surface->pixels + (y1 * read_surface->width) + x1;
     uint32_t *dst = write_surface->pixels + (y2 * write_surface->width) + x2;
-    for (uint32_t i = 0; i < h; i++) {
+    for (int i = 0; i < h; i++) {
         memcpy(dst, src, w << 2);
         src += read_surface->width;
         dst += write_surface->width;

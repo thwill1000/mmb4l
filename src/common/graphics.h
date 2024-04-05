@@ -142,11 +142,11 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
  * @param  write_surface  The surface to write to.
  * @param  flags          TODO.
  */
-MmResult graphics_blit(int x1, int y1, int x2, int y2, uint32_t w, uint32_t h,
-                       MmSurface *read_surface, MmSurface *write_surface, int flags);
+MmResult graphics_blit(int x1, int y1, int x2, int y2, int w, int h, MmSurface *read_surface,
+                       MmSurface *write_surface, int flags);
 
 MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0 , MMFLOAT y0 , MMFLOAT x1 ,
-                               MMFLOAT y1, MmGraphicsColour colour, uint32_t w);
+                               MMFLOAT y1, MmGraphicsColour colour, int w);
 
 /**
  * Draws a box.
@@ -157,7 +157,7 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0 , MMFLOAT y0 , MMF
  * @param  colour  colour to use for sides of the box.
  * @param  fill    colour to fill the box (-1 for no fill).
  */
-MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w,
+MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, int w,
                            MmGraphicsColour colour, MmGraphicsColour fill);
 
 /**
@@ -170,10 +170,10 @@ MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, u
  * @param  fill    colour to use for the fill or -1 if no fill.
  * @param  aspect  ratio of the x and y axis (a MMFLOAT). 1.0 gives a prefect circle.
  */
-MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, uint32_t w,
+MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, int w,
                               MmGraphicsColour colour, MmGraphicsColour fill, MMFLOAT aspect);
 
-MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w,
+MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, int w,
                             MmGraphicsColour colour);
 MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour);
 MmResult graphics_draw_polygon(MmSurface *surface, unsigned char *p, int close);
