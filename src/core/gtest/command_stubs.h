@@ -43,6 +43,7 @@ void cmd_gosub() { }
 void cmd_goto() { }
 void cmd_graphics() { }
 void cmd_if() { }
+void cmd_image() { }
 void cmd_inc() { }
 void cmd_input() { }
 void cmd_ireturn() { }

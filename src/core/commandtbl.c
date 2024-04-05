@@ -110,6 +110,7 @@ const struct s_tokentbl commandtbl[] = {
     { "GoTo",        T_CMD,              0, cmd_goto     },
     { "Graphics",    T_CMD,              0, cmd_graphics },
     { "If",          T_CMD,              0, cmd_if       },
+    { "Image",       T_CMD,              0, cmd_image    },
     { "Inc",         T_CMD,              0, cmd_inc      },
     { "Input",       T_CMD,              0, cmd_input    },
     { "IReturn",     T_CMD,              0, cmd_ireturn  },
