@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/graphics.h"
+#include "../core/tokentbl.h"
 
 /** GRAPHICS BUFFER id, width, height */
 static void cmd_graphics_buffer(const char *p) {
@@ -58,6 +59,55 @@ static void cmd_graphics_buffer(const char *p) {
 
     MmResult result = graphics_buffer_create(id, width, height);
     if (FAILED(result)) error_throw(result);
+}
+
+/** GRAPHICS COPY n TO m [,when] [,t] */
+static void cmd_graphics_copy(const char *p) {
+    bool transparent_black = false;
+    char ss[3];
+    ss[0] = tokenTO;
+    ss[1] =',';
+    ss[2] = 0;
+    getargs(&p, 7, ss);
+    if (argc<3) ERROR_ARGUMENT_COUNT;
+    MMINTEGER read_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+    MMINTEGER write_id = getint(argv[2], 0, GRAPHICS_MAX_ID);
+
+    if (!graphics_surface_exists(read_id)) {
+        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %%", read_id);
+    }
+    if (!graphics_surface_exists(write_id)) {
+        error_throw_ex(kGraphicsSurfaceNotFound, "Write surface does not exist: %%", write_id);
+    }
+
+    MmSurface* read_surface = &graphics_surfaces[read_id];
+    MmSurface* write_surface = &graphics_surfaces[write_id];
+
+    if (read_surface->width != write_surface->width || read_surface->height != write_surface->height) {
+        error_throw_ex(kError, "Page size mismatch - use BLIT");
+    }
+
+    if (argc >= 5 && *argv[4]) {
+        const char *p = argv[4];
+        switch (toupper(*p)) {
+            case 'I':
+            case 'B':
+            case 'D':
+                // Ignore for now
+                break;
+            default:
+                ERROR_SYNTAX;
+                break;
+        }
+    }
+
+    if (argc == 7) {
+        const char *p = argv[6];
+        if (toupper(*p) == 'T' || *p == '1') transparent_black = true;
+    }
+
+    GRAPHICS_CHECK_RESULT(graphics_blit(0, 0, 0, 0, read_surface->width, read_surface->height,
+                          read_surface, write_surface, transparent_black ? 4 : 0));
 }
 
 /** GRAPHICS WINDOW id, x, y, width, height, scale */
@@ -108,6 +158,8 @@ void cmd_graphics(void) {
     const char *p;
     if ((p = checkstring(cmdline, "BUFFER"))) {
         cmd_graphics_buffer(p);
+    } else if ((p = checkstring(cmdline, "COPY"))) {
+        cmd_graphics_copy(p);
     } else if ((p = checkstring(cmdline, "DESTROY"))) {
         cmd_graphics_destroy(p);
     } else if ((p = checkstring(cmdline, "WINDOW"))) {
