@@ -108,6 +108,7 @@ void cmd_gosub(void);
 void cmd_goto(void);
 void cmd_graphics(void);
 void cmd_if(void);
+void cmd_image(void);
 void cmd_inc(void);
 void cmd_input(void);
 void cmd_ireturn(void);
