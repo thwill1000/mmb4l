@@ -89,6 +89,7 @@ void cmd_settitle() { }
 void cmd_sort() { }
 void cmd_subfun() { }
 void cmd_system() { }
+void cmd_text() { }
 void cmd_timer() { }
 void cmd_trace() { }
 void cmd_triangle() { }

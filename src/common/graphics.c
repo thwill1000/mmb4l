@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "error.h"
 #include "events.h"
+#include "fonttbl.h"
 #include "graphics.h"
 #include "memory.h"
 #include "upng.h"
@@ -63,6 +64,7 @@ MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 MmSurface* graphics_current = NULL;
 MmGraphicsColour graphics_fcolour = RGB_WHITE;
 MmGraphicsColour graphics_bcolour = RGB_BLACK;
+uint32_t graphics_font = 1;
 static uint64_t frameEnd = 0;
 
 MmResult graphics_init() {
@@ -227,6 +229,41 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0, MMFLOAT y0, MMFLO
                                MmGraphicsColour colour, int w) {
     ERROR_UNIMPLEMENTED("graphics_draw_aa_line");
     return kUnimplemented;
+}
+
+MmResult graphics_draw_bitmap(MmSurface *surface, int x1, int y1, int width, int height, int scale,
+                              MmGraphicsColour fcolour, MmGraphicsColour bcolour,
+                              const unsigned char* bitmap) {
+    const int hres = surface->width;
+    const int vres = surface->height;
+
+    if (x1 >= hres
+            || y1 >= vres
+            || x1 + (width * scale) < 0
+            || y1 + (height * scale) < 0) return kOk;
+
+    uint32_t *dst = surface->pixels;
+    for (int i = 0; i < height; i++) {             // step thru the bitmap scan line by line
+        for (int j = 0; j < scale; j++) {          // repeat lines to scale the bitmap
+            const int y = y1 + i * scale + j;
+            for (int k = 0; k < width; k++) {      // step through each bit in a scan line
+                for (int m = 0; m < scale; m++) {  // repeat pixels to scale in the x axis
+                    const int x = x1 + k * scale + m;
+                    if (x >= 0 && x < hres && y >= 0 && y < vres) {  // if the coordinates are valid
+                        if ((bitmap[((i * width) + k) / 8] >> (((height * width) - ((i * width) + k) - 1) % 8)) & 1) {
+                            dst[y * hres + x] = fcolour;
+                        } else if (bcolour != -1) {
+                            dst[y * hres + x] = bcolour;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    surface->dirty = true;
+
+    return kOk;
 }
 
 MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, int w,
@@ -524,7 +561,7 @@ MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, 
         }
     }
     graphics_draw_buffered(surface, 0, 0, 0, 1);
-    // if(Option.Refresh)Display_Refresh();
+    // if (Option.Refresh)Display_Refresh();
     surface->dirty = true;
 
     return kOk;
@@ -697,14 +734,14 @@ void graphics_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
         uint32_t rgb;
     } c;
     int scale = 1; // (PageTable[WritePage].expand ? 2 : 1);
-    //if(optiony)y1=maxH-1-y1;
-    //if(optiony)y2=maxH-1-y2;
+    //if (optiony)y1=maxH-1-y1;
+    //if (optiony)y2=maxH-1-y2;
     // make sure the coordinates are kept within the display area
     if (x2 <= x1) SWAP(int, x1, x2);
     if (y2 <= y1) SWAP(int, y1, y2);
     // int cursorhidden=0;
-    // if(cursoron)
-    //     if( !(xcursor + wcursor < x1 ||
+    // if (cursoron)
+    //     if ( !(xcursor + wcursor < x1 ||
     //         xcursor > x2 ||
     //         ycursor + hcursor < y1 ||
     //         ycursor > y2)){
@@ -745,19 +782,19 @@ void graphics_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
     //         sc=(uint32_t *)((y * maxW + x1) * 4 + wpa);
     //         s1=(uint32_t *)(((y+1) * maxW + x1) * 4 + wpa);
     //         for(x=x1;x<=x2;x++){
-    //             if(x>=0 && x<maxW && y>=0 && y<maxH*2){
-    //                 if(skip & 2){
+    //             if (x>=0 && x<maxW && y>=0 && y<maxH*2){
+    //                 if (skip & 2){
     //                     c.rgbbytes[3]=0xFF;
     //                     c.rgbbytes[2]=*p++; //this order swaps the bytes to match the .BMP file
     //                     c.rgbbytes[1]=*p++;
     //                     c.rgbbytes[0]=*p++;
-    //                     if(skip & 1)c.rgbbytes[3]=*p++; //ARGB8888 so set transparency
+    //                     if (skip & 1)c.rgbbytes[3]=*p++; //ARGB8888 so set transparency
     //                 } else {
     //                     c.rgbbytes[3]=0;
     //                     c.rgbbytes[0]=*p++; //this order swaps the bytes to match the .BMP file
     //                     c.rgbbytes[1]=*p++;
     //                     c.rgbbytes[2]=*p++;
-    //                     if(skip & 1)p++;
+    //                     if (skip & 1)p++;
     //                 }
     //                 *sc=c.rgb;
     //                 *s1=*sc;
@@ -769,7 +806,7 @@ void graphics_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
     //         }
     //     }
     // }
-    // if(cursorhidden)showcursor(0, xcursor,ycursor);
+    // if (cursorhidden)showcursor(0, xcursor,ycursor);
 }
 
 MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
@@ -828,4 +865,245 @@ MmResult graphics_blit(int x1, int y1, int x2, int y2, int w, int h,
     }
     write_surface->dirty = true;
     return kOk;
+}
+
+MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
+                            MmGraphicsColour fcolour, MmGraphicsColour bcolour, char c,
+                            TextOrientation orientation) {
+    unsigned char *p, *fp, *np = NULL;
+    int BitNumber, BitPos, newx, newy, modx, mody, scale = font & 0b1111;
+    MmResult result = kOk;
+
+    uint32_t PrintPixelMode = 0; // Currently always 0.
+    switch (PrintPixelMode) {
+        case 0:
+            break;
+        case 1:
+            bcolour = -1;
+            break;
+        case 2:
+            SWAP(int64_t, fcolour, bcolour);
+            break;
+        case 5:
+            fcolour = bcolour;
+            bcolour = -1;
+            break;
+        default:
+            return kInternalFault;
+    }
+
+    // to get the +, - and = chars for font 6 we fudge them by scaling up font 1
+    if ((font & 0xf0) == 0x50 && (c == '-' || c == '+' || c == '=')) {
+        fp = (unsigned char *) FontTable[0];
+        scale = scale * 4;
+    }
+    else
+        fp = (unsigned char *) FontTable[font >> 4];
+
+    uint32_t height = fp[1];
+    uint32_t width = fp[0];
+    modx = mody = 0;
+    if (orientation > kOrientVert) {
+        np = (unsigned char *)GetTempMemory(width * height);
+        if (orientation == kOrientInverted) {
+            modx -= width * scale - 1;
+            mody -= height * scale - 1;
+        } else if (orientation == kOrientCounterClock) {
+            mody -= width * scale;
+        } else if (orientation == kOrientClockwise) {
+            modx -= height * scale - 1;
+        }
+    }
+
+    if (c >= fp[2] && c < fp[2] + fp[3]) {
+        p = fp + 4 + (int)(((c - fp[2]) * height * width) / 8);
+
+        if (orientation > kOrientVert) {                             // non-standard orientation
+            if (orientation == kOrientInverted) {
+                for (uint32_t y = 0; y < height; y++) {
+                    newy = height - y - 1;
+                    for (uint32_t x = 0; x < width; x++) {
+                        newx = width - x - 1;
+                        if ((p[((y * width) + x) / 8] >> (((height * width) - ((y * width) + x) - 1) % 8)) & 1) {
+                            BitNumber = ((newy * width) + newx);
+                            BitPos = 128 >> (BitNumber % 8);
+                            np[BitNumber / 8] |= BitPos;
+                        }
+                    }
+                }
+            }
+            else if (orientation == kOrientCounterClock) {
+                for (uint32_t y = 0; y < height; y++) {
+                    newx = y;
+                    for (uint32_t x = 0; x < width; x++) {
+                        newy = width - x - 1;
+                        if ((p[((y * width) + x) / 8] >> (((height * width) - ((y * width) + x) - 1) % 8)) & 1) {
+                            BitNumber = ((newy * height) + newx);
+                            BitPos = 128 >> (BitNumber % 8);
+                            np[BitNumber / 8] |= BitPos;
+                        }
+                    }
+                }
+            }
+            else if (orientation == kOrientClockwise) {
+                for (uint32_t y = 0; y < height; y++) {
+                    newx = height - y - 1;
+                    for (uint32_t x = 0; x < width; x++) {
+                        newy = x;
+                        if ((p[((y * width) + x) / 8] >> (((height * width) - ((y * width) + x) - 1) % 8)) & 1) {
+                            BitNumber = ((newy * height) + newx);
+                            BitPos = 128 >> (BitNumber % 8);
+                            np[BitNumber / 8] |= BitPos;
+                        }
+                    }
+                }
+            }
+        }
+        else np = p;
+
+        if (orientation < kOrientCounterClock) {
+            result = graphics_draw_bitmap(surface, *x + modx, *y + mody, width, height, scale,
+                                          fcolour, bcolour, np);
+        } else {
+            result = graphics_draw_bitmap(surface, *x + modx, *y + mody, height, width, scale,
+                                          fcolour, bcolour, np);
+        }
+    }
+    else {
+        if (orientation < kOrientCounterClock) {
+            result = graphics_draw_rectangle(surface, *x + modx, *y + mody,
+                                             *x + modx + (width * scale),
+                                             *y + mody + (height * scale), bcolour);
+        } else {
+            result = graphics_draw_rectangle(surface, *x + modx, *y + mody,
+                                             *x + modx + (height * scale),
+                                             *y + mody + (width * scale), bcolour);
+        }
+    }
+
+    if (FAILED(result)) return result;
+
+    // to get the . and degree symbols for font 6 we draw a small circle
+    if ((font & 0xf0) == 0x50) {
+        if (orientation > kOrientVert) {
+            if (orientation == kOrientInverted) {
+                if (c == '.') {
+                    result = graphics_draw_circle(surface, *x + modx + (width * scale) / 2,
+                                                 *y + mody + 7 * scale, 4 * scale, 0, fcolour,
+                                                 fcolour, 1.0);
+                } else if (c == 0x60) {
+                    result = graphics_draw_circle(surface, *x + modx + (width * scale) / 2,
+                                                  *y + mody + (height * scale) - 9 * scale,
+                                                  6 * scale, 2 * scale, fcolour, -1, 1.0);
+                }
+            } else if (orientation == kOrientCounterClock) {
+                if (c == '.') {
+                    result = graphics_draw_circle(surface, *x + modx + (height * scale) - 7 * scale,
+                                                  *y + mody + (width * scale) / 2, 4 * scale, 0,
+                                                  fcolour, fcolour, 1.0);
+                } else if (c == 0x60) {
+                    result = graphics_draw_circle(surface, *x + modx + 9 * scale,
+                                                  *y + mody + (width * scale) / 2, 6 * scale,
+                                                  2 * scale, fcolour, -1, 1.0);
+                }
+            } else if (orientation == kOrientClockwise) {
+                if (c == '.') {
+                    result = graphics_draw_circle(surface, *x + modx + 7 * scale,
+                                                  *y + mody + (width * scale) / 2, 4 * scale, 0,
+                                                  fcolour, fcolour, 1.0);
+                } else if (c == 0x60) {
+                    result = graphics_draw_circle(surface, *x + modx + (height * scale) - 9 * scale,
+                                                  *y + mody + (width * scale) / 2, 6 * scale,
+                                                  2 * scale, fcolour, -1, 1.0);
+                }
+            }
+        }
+        else {
+            if (c == '.') {
+                result = graphics_draw_circle(surface, *x + modx + (width * scale) / 2,
+                                              *y + mody + (height * scale) - 7 * scale, 4 * scale,
+                                              0, fcolour, fcolour, 1.0);
+            } else if (c == 0x60) {
+                result = graphics_draw_circle(surface, *x + modx + (width * scale) / 2,
+                                              *y + mody + 9 * scale, 6 * scale, 2 * scale, fcolour,
+                                              -1, 1.0);
+            }
+        }
+    }
+
+    switch (orientation) {
+        case kOrientNormal:
+            *x += width * scale;
+            break;
+        case kOrientVert:
+            *y += height * scale;
+            break;
+        case kOrientInverted:
+            *x -= width * scale;
+            break;
+        case kOrientCounterClock:
+            *y -= width * scale;
+            break;
+        case kOrientClockwise:
+            *y += width * scale;
+            break;
+        default:
+            return kInternalFault;
+    }
+
+    return result;
+}
+
+static inline uint32_t GetFontWidth(uint32_t font) {
+    return FontTable[font >> 4][0] * (font & 0b1111);
+}
+
+static inline uint32_t GetFontHeight(uint32_t font) {
+    return FontTable[font >> 4][1] * (font & 0b1111);
+}
+
+MmResult graphics_draw_string(MmSurface *surface, int x, int y, uint32_t font, TextHAlign jh,
+                              TextVAlign jv, TextOrientation jo, MmGraphicsColour fcolour,
+                              MmGraphicsColour bcolour, const char *s) {
+    switch (jo) {
+        case kOrientNormal:
+            if (jh == kAlignCenter) x -= (strlen(s) * GetFontWidth(font)) / 2;
+            if (jh == kAlignRight)  x -= (strlen(s) * GetFontWidth(font));
+            if (jv == kAlignMiddle) y -= GetFontHeight(font) / 2;
+            if (jv == kAlignBottom) y -= GetFontHeight(font);
+            break;
+        case kOrientVert:
+            if (jh == kAlignCenter) x -= GetFontWidth(font) / 2;
+            if (jh == kAlignRight)  x -= GetFontWidth(font);
+            if (jv == kAlignMiddle) y -= (strlen(s) * GetFontHeight(font)) / 2;
+            if (jv == kAlignBottom) y -= (strlen(s) * GetFontHeight(font));
+            break;
+        case kOrientInverted:
+            if (jh == kAlignCenter) x += (strlen(s) * GetFontWidth(font)) / 2;
+            if (jh == kAlignRight)  x += (strlen(s) * GetFontWidth(font));
+            if (jv == kAlignMiddle) y += GetFontHeight(font) / 2;
+            if (jv == kAlignBottom) y += GetFontHeight(font);
+            break;
+        case kOrientCounterClock:
+            if (jh == kAlignCenter) x -= GetFontHeight(font) / 2;
+            if (jh == kAlignRight)  x -= GetFontHeight(font);
+            if (jv == kAlignMiddle) y += (strlen(s) * GetFontWidth(font)) / 2;
+            if (jv == kAlignBottom) y += (strlen(s) * GetFontWidth(font));
+            break;
+        case kOrientClockwise:
+            if (jh == kAlignCenter) x += GetFontHeight(font) / 2;
+            if (jh == kAlignRight)  x += GetFontHeight(font);
+            if (jv == kAlignMiddle) y -= (strlen(s) * GetFontWidth(font)) / 2;
+            if (jv == kAlignBottom) y -= (strlen(s) * GetFontWidth(font));
+            break;
+        default:
+            return kInternalFault;
+    }
+
+    MmResult result = kOk;
+    while (*s && SUCCEEDED(result)) {
+        result = graphics_draw_char(surface, &x, &y, font, fcolour, bcolour, *s++, jo);
+    }
+
+    return result;
 }

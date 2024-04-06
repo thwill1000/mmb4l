@@ -111,7 +111,8 @@ typedef enum {
     kGraphicsSurfaceSizeMismatch,
     kGraphicsSurfaceTooLarge,
     kImageTooLarge,
-    kImageInvalidFormat
+    kImageInvalidFormat,
+    kInvalidFont
 } MmResultCode;
 
 #if !defined(STRINGSIZE)

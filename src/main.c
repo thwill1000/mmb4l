@@ -72,7 +72,7 @@ ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Options mmb_options;
 int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
-char *CFunctionFlash, *CFunctionLibrary, **FontTable;
+char *CFunctionFlash, *CFunctionLibrary;
 
 CmdLineArgs mmb_args = { 0 };
 uint8_t mmb_exit_code = EX_OK;
