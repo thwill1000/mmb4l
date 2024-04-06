@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/graphics.h"
 
+#include <stdlib.h>
+
 static void cmd_image_resize(const char *p) { ERROR_UNIMPLEMENTED("IMAGE RESIZE"); }
 
 void ReadBufferFast(MmSurface *surface, uint32_t* dst, int x1, int y1, int x2, int y2) {

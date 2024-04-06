@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-mmresult.h
+fonttbl.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,78 +42,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMRESULT_H)
-#define MMRESULT_H
+#include "fonttbl.h"
 
-#include <errno.h>
-#include <stdint.h>
+#include "../fonts/ArialNumFontPlus.h"
+#include "../fonts/Fnt_10x16.h"
+#include "../fonts/font1.h"
+#include "../fonts/Font_8x6.h"
+#include "../fonts/Hom_16x24_LE.h"
+#include "../fonts/Inconsola.h"
+#include "../fonts/Misc_12x20_LE.h"
 
-// MmResult encompasses both the standard C errno in range 1 .. 255
-// plus MMBasic specific error codes.
+#include <stddef.h>
 
-typedef int32_t MmResult;
-
-typedef enum {
-    kOk                   = 0,
-    kFileNotFound         = ENOENT,
-    kPermissionDenied     = EACCES,
-    kFileExists           = EEXIST,
-    kNotADirectory        = ENOTDIR,
-    kIsADirectory         = EISDIR,
-    kFilenameTooLong      = ENAMETOOLONG,
-    kTooManySymbolicLinks = ELOOP,
-    kError                = 256,
-    kInternalFault,
-    kSyntax,
-    kArgumentCount,
-    kStringLength,
-    kStringTooLong,
-    kInvalidFormat,
-    kUnknownOption,
-    kInvalidBool,
-    kInvalidFloat,
-    kInvalidInt,
-    kInvalidString,
-    kInvalidValue,
-    kUnknownSystemCommand,
-    kNotPersistent,
-    kNameTooLong,
-    kOverflow,
-    kUnimplemented,
-    kFunctionNotFound,
-    kVariableNotFound,
-    kTooManyFunctions,
-    kTooManyVariables,
-    kDuplicateFunction,
-    kHashmapFull,
-    kInvalidName,
-    kInvalidArrayDimensions,
-    kFunctionTypeMismatch,
-    kInvalidCommandLine,
-    kTooManyDefines,
-    kOutOfMemory,
-    kLineTooLong,
-    kProgramTooLong,
-    kUnterminatedComment,
-    kNoCommentToTerminate,
-    kAudioApiError,
-    kEventsApiError,
-    kGamepadApiError,
-    kGraphicsApiError,
-    kGraphicsInvalidId,
-    kGraphicsInvalidWriteSurface,
-    kGraphicsSurfaceNotCreated,
-    kGraphicsSurfaceNotFound,
-    kGraphicsSurfaceExists,
-    kGraphicsSurfaceTooLarge,
-    kImageTooLarge,
-    kImageInvalidFormat,
-    kInvalidFont
-} MmResultCode;
-
-/**
- * @brief Gets the string corresponding to a given result code.
- */
-const char *mmresult_to_string(MmResult result);
-
-#endif
+unsigned char* FontTable[FONT_TABLE_SIZE] = {
+    (unsigned char *) font1,
+    (unsigned char *) Misc_12x20_LE,
+    (unsigned char *) Hom_16x24_LE,
+    (unsigned char *) Fnt_10x16,
+    (unsigned char *) Inconsola,
+    (unsigned char *) ArialNumFontPlus,
+    (unsigned char *) F_6x8_LE,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+};

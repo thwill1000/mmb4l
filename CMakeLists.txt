@@ -101,6 +101,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_settitle.c
     src/commands/cmd_sort.c
     src/commands/cmd_system.c
+    src/commands/cmd_text.c
     src/commands/cmd_timer.c
     src/commands/cmd_trace.c
     src/commands/cmd_triangle.c
@@ -159,6 +160,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/error.c
     src/common/events.c
     src/common/file.c
+    src/common/fonttbl.c
     src/common/gamepad.c
     src/common/graphics.c
     src/common/interrupt.c
@@ -258,6 +260,7 @@ add_executable(
   src/commands/cmd_do.c
   src/commands/gtest/cmd_do_test.cxx
   src/common/cstring.c
+  src/common/fonttbl.c
   src/common/memory.c
   src/common/mmresult.c
   src/common/parse.c
@@ -290,6 +293,7 @@ add_executable(
   src/commands/cmd_run.c
   src/commands/gtest/cmd_run_test.cxx
   src/common/cstring.c
+  src/common/fonttbl.c
   src/common/memory.c
   src/common/mmresult.c
   src/common/parse.c
@@ -525,6 +529,7 @@ add_executable(
   test_mmbasic_core
   src/common/cstring.c
   src/common/file.c
+  src/common/fonttbl.c
   src/common/interrupt.c
   src/common/memory.c
   src/common/mmresult.c

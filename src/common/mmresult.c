@@ -134,6 +134,7 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsSurfaceTooLarge:    return "Graphics surface too large";
         case kImageTooLarge:              return "Image too large";
         case kImageInvalidFormat:         return "Invalid image format";
+        case kInvalidFont:                return "Invalid font";
         default:                          return "Unknown result code";
     }
 }

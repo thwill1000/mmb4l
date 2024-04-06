@@ -106,8 +106,9 @@ static void cmd_graphics_copy(const char *p) {
         if (toupper(*p) == 'T' || *p == '1') transparent_black = true;
     }
 
-    GRAPHICS_CHECK_RESULT(graphics_blit(0, 0, 0, 0, read_surface->width, read_surface->height,
-                          read_surface, write_surface, transparent_black ? 4 : 0));
+    MmResult result = graphics_blit(0, 0, 0, 0, read_surface->width, read_surface->height,
+                                    read_surface, write_surface, transparent_black ? 4 : 0);
+    if (FAILED(result)) error_throw(result);
 }
 
 /** GRAPHICS WINDOW id, x, y, width, height, scale */

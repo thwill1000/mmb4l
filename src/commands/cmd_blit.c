@@ -153,7 +153,8 @@ static void cmd_blit_default(const char *p) {
 
     MmSurface* read_surface = &graphics_surfaces[read_id];
     MmSurface* write_surface = graphics_current;
-    GRAPHICS_CHECK_RESULT(graphics_blit(x1, y1, x2, y2, w, h, read_surface, write_surface, 0x0));
+    MmResult result = graphics_blit(x1, y1, x2, y2, w, h, read_surface, write_surface, 0x0);
+    if (FAILED(result)) error_throw(result);
 }
 
 void cmd_blit(void) {
