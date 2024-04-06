@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "funtbl.h"
 #include "tokentbl.h"
 #include "vartbl.h"
+#include "../common/fonttbl.h"
 #include "../common/graphics.h"
 #include "../common/parse.h"
 #include "../common/utility.h"

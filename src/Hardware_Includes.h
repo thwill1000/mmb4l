@@ -82,9 +82,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Global variables used in MMBasic but must be maintained outside of the interpreter
 extern int IgnorePIN;
 
-#define FONT_BUILTIN_NBR 0
-#define FONT_TABLE_SIZE 0
-
 // Aliases for functions using "legacy" names in MMBasic core:
 #define check_interrupt    interrupt_check
 #define CloseAllFiles      file_close_all
@@ -125,7 +122,6 @@ int MMgetchar(void);
 
 extern char *CFunctionFlash;
 extern char *CFunctionLibrary;
-extern char **FontTable;
 
 // various debug macros
 #if defined(DEBUGMODE)

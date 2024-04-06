@@ -153,6 +153,7 @@ void cmd_settitle(void);
 void cmd_sort(void);
 void cmd_subfun(void);
 void cmd_system(void);
+void cmd_text(void);
 void cmd_timer(void);
 void cmd_trace(void);
 void cmd_triangle(void);

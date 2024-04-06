@@ -158,7 +158,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Static",      T_CMD,              0, cmd_dim      },
     { "Sub",         T_CMD,              0, cmd_subfun   },
     { "System",      T_CMD,              0, cmd_system   },
-    { "Text",        T_CMD,              0, cmd_dummy    },
+    { "Text",        T_CMD,              0, cmd_text     },
     { "Timer",       T_CMD | T_FUN,      0, cmd_timer    },
     { "Trace",       T_CMD,              0, cmd_trace    },
     { "Triangle",    T_CMD,              0, cmd_triangle },
