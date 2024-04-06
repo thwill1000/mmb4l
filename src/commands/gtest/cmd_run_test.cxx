@@ -23,7 +23,6 @@ extern "C" {
 // Defined in "main.c"
 char *CFunctionFlash;
 char *CFunctionLibrary;
-char **FontTable;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Options mmb_options;
 ErrorState mmb_normal_error_state;

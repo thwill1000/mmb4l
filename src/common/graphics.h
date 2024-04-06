@@ -91,6 +91,26 @@ typedef enum {
     kGraphicsWindow
 } GraphicsSurfaceType;
 
+typedef enum {
+    kAlignLeft = 0,
+    kAlignCenter,
+    kAlignRight
+} TextHAlign;
+
+typedef enum {
+    kAlignTop = 0,
+    kAlignMiddle,
+    kAlignBottom
+} TextVAlign;
+
+typedef enum {
+    kOrientNormal = 0,
+    kOrientVert,
+    kOrientInverted,
+    kOrientCounterClock,
+    kOrientClockwise
+} TextOrientation;
+
 typedef int32_t MmSurfaceId;
 typedef int64_t MmGraphicsColour; // 32-bit colour, -1 for transparent background colour.
 typedef void* MmWindowPtr;
@@ -112,6 +132,7 @@ extern MmSurface graphics_surfaces[];
 extern MmSurface *graphics_current;
 extern MmGraphicsColour graphics_fcolour;
 extern MmGraphicsColour graphics_bcolour;
+extern uint32_t graphics_font;
 
 MmResult graphics_init();
 const char* graphics_last_error();
@@ -149,6 +170,21 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0 , MMFLOAT y0 , MMF
                                MMFLOAT y1, MmGraphicsColour colour, int w);
 
 /**
+ * Draws a bitmap.
+ *
+ * @param  surface
+ * @param  x, y
+ * @param  width, height
+ * @param  scale
+ * @param  fcolour
+ * @param  bcolour
+ * @param  bitmap         Bitmap data to draw.
+ */
+MmResult graphics_draw_bitmap(MmSurface *surface, int x, int y, int width, int height, int scale,
+                              MmGraphicsColour fcolour, MmGraphicsColour bcolour,
+                              const unsigned char* bitmap);
+
+/**
  * Draws a box.
  *
  * @param  x1, y1  start coordinates.
@@ -159,6 +195,21 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0 , MMFLOAT y0 , MMF
  */
 MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, int w,
                            MmGraphicsColour colour, MmGraphicsColour fill);
+
+/**
+ * Draws a single character of text.
+ *
+ * @param  surface_id   Surface to draw on.
+ * @param  x, y         Top left coordinates to start drawing from.
+ * @param  font         Font id.
+ * @param  fcolour      Foreground colour.
+ * @param  bcolour      Background colour.
+ * @param  c            The character to draw.
+ * @param  orientation  Orientation / rotation.
+ */
+MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
+                            MmGraphicsColour fcolour, MmGraphicsColour bcolour, char c,
+                            TextOrientation orientation);
 
 /**
  * Draws a circle or elipse.
@@ -192,6 +243,24 @@ MmResult graphics_draw_rbox(MmSurface *surface, int x1, int y1, int x2, int y2, 
 
 MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int y2,
                                  MmGraphicsColour colour);
+
+/**
+ * Draws a string of text.
+ *
+ * @param  surface  Surface to draw on.
+ * @param  x        x-coordinate.
+ * @param  y        y-coordinate.
+ * @param  font     Font id.
+ * @param  jh       Horizontal alignment.
+ * @param  jv       Vertical alignment.
+ * @param  jo       Orientation / rotation.
+ * @param  fcolour  Foreground colour.
+ * @param  bcolour  Background colour.
+ * @param  s        The string to draw.
+ */
+MmResult graphics_draw_string(MmSurface *surface, int x, int y, uint32_t font, TextHAlign jh,
+                              TextVAlign jv, TextOrientation jo, MmGraphicsColour fcolour,
+                              MmGraphicsColour bcolour, const char *s);
 
 /**
  * Draws a triangle.

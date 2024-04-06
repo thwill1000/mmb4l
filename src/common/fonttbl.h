@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-mmresult.h
+fonttbl.h
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,80 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMRESULT_H)
-#define MMRESULT_H
+#define FONT_BUILTIN_NBR  7
+#define FONT_TABLE_SIZE   16
 
-#include <errno.h>
-#include <stdint.h>
+extern unsigned char* FontTable[];
 
-// MmResult encompasses both the standard C errno in range 1 .. 255
-// plus MMBasic specific error codes.
-
-typedef int32_t MmResult;
-
-typedef enum {
-    kOk                   = 0,
-    kFileNotFound         = ENOENT,
-    kPermissionDenied     = EACCES,
-    kFileExists           = EEXIST,
-    kNotADirectory        = ENOTDIR,
-    kIsADirectory         = EISDIR,
-    kFilenameTooLong      = ENAMETOOLONG,
-    kTooManySymbolicLinks = ELOOP,
-    kError                = 256,
-    kInternalFault,
-    kSyntax,
-    kArgumentCount,
-    kStringLength,
-    kStringTooLong,
-    kInvalidFormat,
-    kUnknownOption,
-    kInvalidBool,
-    kInvalidFloat,
-    kInvalidInt,
-    kInvalidString,
-    kInvalidValue,
-    kUnknownSystemCommand,
-    kNotPersistent,
-    kNameTooLong,
-    kOverflow,
-    kUnimplemented,
-    kFunctionNotFound,
-    kVariableNotFound,
-    kTooManyFunctions,
-    kTooManyVariables,
-    kDuplicateFunction,
-    kHashmapFull,
-    kInvalidName,
-    kInvalidArrayDimensions,
-    kFunctionTypeMismatch,
-    kInvalidCommandLine,
-    kTooManyDefines,
-    kOutOfMemory,
-    kLineTooLong,
-    kProgramTooLong,
-    kUnterminatedComment,
-    kNoCommentToTerminate,
-    kAudioApiError,
-    kEventsApiError,
-    kGamepadApiError,
-    kGraphicsApiError,
-    kGraphicsInvalidId,
-    kGraphicsInvalidReadSurface,
-    kGraphicsInvalidWriteSurface,
-    kGraphicsSurfaceNotCreated,
-    kGraphicsSurfaceNotFound,
-    kGraphicsSurfaceExists,
-    kGraphicsSurfaceSizeMismatch,
-    kGraphicsSurfaceTooLarge,
-    kImageTooLarge,
-    kImageInvalidFormat,
-    kInvalidFont
-} MmResultCode;
-
-/**
- * @brief Gets the string corresponding to a given result code.
- */
-const char *mmresult_to_string(MmResult result);
-
-#endif
