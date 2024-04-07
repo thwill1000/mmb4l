@@ -892,9 +892,9 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
             return kInternalFault;
     }
 
-    // to get the +, - and = chars for font 6 we fudge them by scaling up font 1
-    if ((font & 0xf0) == 0x50 && (c == '-' || c == '+' || c == '=')) {
-        fp = (unsigned char *) FontTable[0];
+    // To get the +, - and = chars for font 6 we fudge them by scaling up font 1.
+    if ((font & 0xf0) == 0x60 && (c == '-' || c == '+' || c == '=')) {
+        fp = (unsigned char *) FontTable[1];
         scale = scale * 4;
     }
     else
@@ -983,8 +983,8 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
 
     if (FAILED(result)) return result;
 
-    // to get the . and degree symbols for font 6 we draw a small circle
-    if ((font & 0xf0) == 0x50) {
+    // To get the . and degree symbols for font 6 we draw a small circle.
+    if ((font & 0xf0) == 0x60) {
         if (orientation > kOrientVert) {
             if (orientation == kOrientInverted) {
                 if (c == '.') {
@@ -1054,47 +1054,39 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
     return result;
 }
 
-static inline uint32_t GetFontWidth(uint32_t font) {
-    return FontTable[font >> 4][0] * (font & 0b1111);
-}
-
-static inline uint32_t GetFontHeight(uint32_t font) {
-    return FontTable[font >> 4][1] * (font & 0b1111);
-}
-
 MmResult graphics_draw_string(MmSurface *surface, int x, int y, uint32_t font, TextHAlign jh,
                               TextVAlign jv, TextOrientation jo, MmGraphicsColour fcolour,
                               MmGraphicsColour bcolour, const char *s) {
     switch (jo) {
         case kOrientNormal:
-            if (jh == kAlignCenter) x -= (strlen(s) * GetFontWidth(font)) / 2;
-            if (jh == kAlignRight)  x -= (strlen(s) * GetFontWidth(font));
-            if (jv == kAlignMiddle) y -= GetFontHeight(font) / 2;
-            if (jv == kAlignBottom) y -= GetFontHeight(font);
+            if (jh == kAlignCenter) x -= (strlen(s) * font_width(font)) / 2;
+            if (jh == kAlignRight)  x -= (strlen(s) * font_width(font));
+            if (jv == kAlignMiddle) y -= font_height(font) / 2;
+            if (jv == kAlignBottom) y -= font_height(font);
             break;
         case kOrientVert:
-            if (jh == kAlignCenter) x -= GetFontWidth(font) / 2;
-            if (jh == kAlignRight)  x -= GetFontWidth(font);
-            if (jv == kAlignMiddle) y -= (strlen(s) * GetFontHeight(font)) / 2;
-            if (jv == kAlignBottom) y -= (strlen(s) * GetFontHeight(font));
+            if (jh == kAlignCenter) x -= font_width(font) / 2;
+            if (jh == kAlignRight)  x -= font_width(font);
+            if (jv == kAlignMiddle) y -= (strlen(s) * font_height(font)) / 2;
+            if (jv == kAlignBottom) y -= (strlen(s) * font_height(font));
             break;
         case kOrientInverted:
-            if (jh == kAlignCenter) x += (strlen(s) * GetFontWidth(font)) / 2;
-            if (jh == kAlignRight)  x += (strlen(s) * GetFontWidth(font));
-            if (jv == kAlignMiddle) y += GetFontHeight(font) / 2;
-            if (jv == kAlignBottom) y += GetFontHeight(font);
+            if (jh == kAlignCenter) x += (strlen(s) * font_width(font)) / 2;
+            if (jh == kAlignRight)  x += (strlen(s) * font_width(font));
+            if (jv == kAlignMiddle) y += font_height(font) / 2;
+            if (jv == kAlignBottom) y += font_height(font);
             break;
         case kOrientCounterClock:
-            if (jh == kAlignCenter) x -= GetFontHeight(font) / 2;
-            if (jh == kAlignRight)  x -= GetFontHeight(font);
-            if (jv == kAlignMiddle) y += (strlen(s) * GetFontWidth(font)) / 2;
-            if (jv == kAlignBottom) y += (strlen(s) * GetFontWidth(font));
+            if (jh == kAlignCenter) x -= font_height(font) / 2;
+            if (jh == kAlignRight)  x -= font_height(font);
+            if (jv == kAlignMiddle) y += (strlen(s) * font_width(font)) / 2;
+            if (jv == kAlignBottom) y += (strlen(s) * font_width(font));
             break;
         case kOrientClockwise:
-            if (jh == kAlignCenter) x += GetFontHeight(font) / 2;
-            if (jh == kAlignRight)  x += GetFontHeight(font);
-            if (jv == kAlignMiddle) y -= (strlen(s) * GetFontWidth(font)) / 2;
-            if (jv == kAlignBottom) y -= (strlen(s) * GetFontWidth(font));
+            if (jh == kAlignCenter) x += font_height(font) / 2;
+            if (jh == kAlignRight)  x += font_height(font);
+            if (jv == kAlignMiddle) y -= (strlen(s) * font_width(font)) / 2;
+            if (jv == kAlignBottom) y -= (strlen(s) * font_width(font));
             break;
         default:
             return kInternalFault;
@@ -1106,4 +1098,16 @@ MmResult graphics_draw_string(MmSurface *surface, int x, int y, uint32_t font, T
     }
 
     return result;
+}
+
+MmResult graphics_set_font(uint32_t font_id, uint32_t scale) {
+    if (font_id > FONT_TABLE_SIZE) {
+        return kInvalidFont;
+    } else if (!FontTable[font_id]) {
+        return kInvalidFont;
+    } else if (scale > 15) {
+        return kInvalidFontScaling;
+    }
+    graphics_font = (font_id << 4) | scale;
+    return kOk;
 }

@@ -206,7 +206,7 @@ MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, i
  *
  * @param  surface      Surface to draw on.
  * @param  x, y         Top left coordinates to start drawing from.
- * @param  font         Font id.
+ * @param  font         Font.
  * @param  fcolour      Foreground colour.
  * @param  bcolour      Background colour.
  * @param  c            The character to draw.
@@ -270,7 +270,7 @@ MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int
  * @param  surface  Surface to draw on.
  * @param  x        x-coordinate.
  * @param  y        y-coordinate.
- * @param  font     Font id.
+ * @param  font     Font.
  * @param  jh       Horizontal alignment.
  * @param  jv       Vertical alignment.
  * @param  jo       Orientation / rotation.
@@ -303,5 +303,13 @@ MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int 
  */
 MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
                            int force);
+
+/**
+ * Sets the default graphics font.
+ *
+ * @param  font_id  The font Id.
+ * @param  scale    Scaling factor 1-15.
+ */
+MmResult graphics_set_font(uint32_t font_id, uint32_t scale);
 
 #endif // #if !defined(MMBASIC_GRAPHICS_H)
