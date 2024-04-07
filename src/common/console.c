@@ -125,6 +125,10 @@ void console_pump_input(void) {
             break;
     }
 
+    console_put_keypress(ch);
+}
+
+void console_put_keypress(char ch) {
     // Support for ON KEY ascii_code%, handler_sub().
     // Note that 'ch' does not get added to the buffer.
     if (interrupt_check_key_press(ch)) return;
