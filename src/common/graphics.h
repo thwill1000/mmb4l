@@ -272,6 +272,12 @@ MmResult graphics_draw_string(MmSurface *surface, int x, int y, uint32_t font, T
 MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int y1, int x2, int y2,
                                 MmGraphicsColour colour, MmGraphicsColour fill);
 
+/** Gets the height of a font. */
+uint32_t graphics_font_height(uint32_t font);
+
+/** Gets the width of a font. */
+uint32_t graphics_font_width(uint32_t font);
+
 /**
  * Loads a .png image.
  *
@@ -283,5 +289,13 @@ MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int 
  */
 MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
                            int force);
+
+/**
+ * Sets the default graphics font.
+ *
+ * @param  font_number  The font number.
+ * @param  scale        Scaling factor 1-15.
+ */
+MmResult graphics_set_font(uint32_t font_number, uint32_t scale);
 
 #endif // #if !defined(MMBASIC_GRAPHICS_H)

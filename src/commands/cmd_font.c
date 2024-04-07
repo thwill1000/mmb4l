@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-mmresult.h
+cmd_font.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,81 +42,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMRESULT_H)
-#define MMRESULT_H
+#include "../common/error.h"
+#include "../common/fonttbl.h"
+#include "../common/graphics.h"
+#include "../common/mmb4l.h"
 
-#include <errno.h>
-#include <stdint.h>
-
-// MmResult encompasses both the standard C errno in range 1 .. 255
-// plus MMBasic specific error codes.
-
-typedef int32_t MmResult;
-
-typedef enum {
-    kOk                   = 0,
-    kFileNotFound         = ENOENT,
-    kPermissionDenied     = EACCES,
-    kFileExists           = EEXIST,
-    kNotADirectory        = ENOTDIR,
-    kIsADirectory         = EISDIR,
-    kFilenameTooLong      = ENAMETOOLONG,
-    kTooManySymbolicLinks = ELOOP,
-    kError                = 256,
-    kInternalFault,
-    kSyntax,
-    kArgumentCount,
-    kStringLength,
-    kStringTooLong,
-    kInvalidFormat,
-    kUnknownOption,
-    kInvalidBool,
-    kInvalidFloat,
-    kInvalidInt,
-    kInvalidString,
-    kInvalidValue,
-    kUnknownSystemCommand,
-    kNotPersistent,
-    kNameTooLong,
-    kOverflow,
-    kUnimplemented,
-    kFunctionNotFound,
-    kVariableNotFound,
-    kTooManyFunctions,
-    kTooManyVariables,
-    kDuplicateFunction,
-    kHashmapFull,
-    kInvalidName,
-    kInvalidArrayDimensions,
-    kFunctionTypeMismatch,
-    kInvalidCommandLine,
-    kTooManyDefines,
-    kOutOfMemory,
-    kLineTooLong,
-    kProgramTooLong,
-    kUnterminatedComment,
-    kNoCommentToTerminate,
-    kAudioApiError,
-    kEventsApiError,
-    kGamepadApiError,
-    kGraphicsApiError,
-    kGraphicsInvalidId,
-    kGraphicsInvalidReadSurface,
-    kGraphicsInvalidWriteSurface,
-    kGraphicsSurfaceNotCreated,
-    kGraphicsSurfaceNotFound,
-    kGraphicsSurfaceExists,
-    kGraphicsSurfaceSizeMismatch,
-    kGraphicsSurfaceTooLarge,
-    kImageTooLarge,
-    kImageInvalidFormat,
-    kInvalidFont,
-    kInvalidFontScaling
-} MmResultCode;
-
-/**
- * @brief Gets the string corresponding to a given result code.
- */
-const char *mmresult_to_string(MmResult result);
-
-#endif
+/** FONT [#]font-number [, scaling] */
+void cmd_font(void) {
+    getargs(&cmdline, 3, ",");
+    if (argc < 1) ERROR_ARGUMENT_COUNT;
+    if (*argv[0] == '#') ++argv[0];
+    uint32_t font_number = getint(argv[0], 1, FONT_TABLE_SIZE - 1);
+    uint32_t scaling = (argc == 3) ? getint(argv[0], 1, 15) : 1;
+    GRAPHICS_CHECK_RESULT(graphics_set_font(font_number, scaling));
+}
