@@ -181,4 +181,9 @@ void console_show_cursor(bool show);
 
 size_t console_write(const char *buf, size_t sz);
 
+/**
+ * Adds a character to the console input buffer.
+ */
+void console_put_keypress(char ch);
+
 #endif
