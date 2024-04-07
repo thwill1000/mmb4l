@@ -54,7 +54,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stddef.h>
 
-unsigned char* FontTable[FONT_TABLE_SIZE] = {
+unsigned char* FontTable[FONT_TABLE_SIZE + 1] = {
+    NULL, // Element 0 unused.
     (unsigned char *) font1,
     (unsigned char *) Misc_12x20_LE,
     (unsigned char *) Hom_16x24_LE,
@@ -72,3 +73,23 @@ unsigned char* FontTable[FONT_TABLE_SIZE] = {
     NULL,
     NULL,
 };
+
+void font_clear_user_defined() {
+    for (int i = FONT_BUILTIN_NBR + 1; i <= FONT_TABLE_SIZE; ++i) {
+        FontTable[i] = NULL;
+    }
+}
+
+uint32_t font_width(uint32_t font) {
+    const uint32_t font_id = font >> 4;
+    const uint32_t scaling = font & 0b1111;
+    if (font_id > FONT_TABLE_SIZE || !FontTable[font_id]) return 0;
+    return FontTable[font_id][0] * scaling;
+}
+
+uint32_t font_height(uint32_t font) {
+    const uint32_t font_id = font >> 4;
+    const uint32_t scaling = font & 0b1111;
+    if (font_id > FONT_TABLE_SIZE || !FontTable[font_id]) return 0;
+    return FontTable[font_id][1] * scaling;
+}

@@ -124,16 +124,16 @@ void cmd_text(void) {
                 error_throw_ex(kSyntax, "Justification");
     }
 
-    uint32_t font = (graphics_font >> 4) + 1;
+    uint32_t font_id = graphics_font >> 4;
     uint32_t scale = (graphics_font & 0b1111);
     MmGraphicsColour fcolour = graphics_fcolour;
     MmGraphicsColour bcolour = graphics_bcolour;
 
     if (argc > 7 && *argv[8]) {
         if (*argv[8] == '#') argv[8]++;
-        font = (uint32_t) getint(argv[8], 1, FONT_TABLE_SIZE);
+        font_id = (uint32_t) getint(argv[8], 1, FONT_TABLE_SIZE);
     }
-    if (FontTable[font - 1] == NULL) error_throw_ex(kInvalidFont, "Invalid font #%", font);
+    if (FontTable[font_id] == NULL) error_throw_ex(kInvalidFont, "Invalid font #%", font_id);
 
     if (argc > 9 && *argv[10]) scale = (uint32_t)getint(argv[10], 1, 15);
 
@@ -141,7 +141,6 @@ void cmd_text(void) {
 
     if (argc == 15) bcolour = (MmGraphicsColour) getint(argv[14], -1, RGB_WHITE);
 
-    MmResult result = graphics_draw_string(graphics_current, x, y, ((font - 1) << 4) | scale, jh,
-                                           jv, jo, fcolour, bcolour, s);
-    if (FAILED(result)) error_throw(result);
+    ERROR_ON_FAILURE(graphics_draw_string(graphics_current, x, y, (font_id << 4) | scale, jh,
+                                          jv, jo, fcolour, bcolour, s));
 }

@@ -38,6 +38,7 @@ void cmd_execute() { }
 void cmd_exit() { }
 void cmd_exitfor() { }
 void cmd_files() { }
+void cmd_font() { }
 void cmd_for() { }
 void cmd_gosub() { }
 void cmd_goto() { }

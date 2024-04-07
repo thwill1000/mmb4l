@@ -381,10 +381,7 @@ static void PrepareFunctionTable(bool abort_on_error) {
 // This pre processing speeds up the program when using defined subroutines and functions
 // this routine also looks for embedded fonts and adds them to the font table
 void PrepareProgram(int ErrAbort) {
-    // Clear the font table.
-    for (int i = FONT_BUILTIN_NBR; i < FONT_TABLE_SIZE; i++) {
-        FontTable[i] = NULL;
-    }
+    font_clear_user_defined();
 
 #if !defined(__mmb4l__)
     CFunctionFlash = CFunctionLibrary = NULL;
