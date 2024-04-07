@@ -57,8 +57,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define FONT_HEIGHT  12
-#define FONT_WIDTH   8
+// #define FONT_HEIGHT  12
+// #define FONT_WIDTH   8
 
 extern char cmd_run_args[STRINGSIZE];
 
@@ -226,13 +226,13 @@ static void mminfo_filesize(const char *p) {
 
 static void mminfo_fontheight(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_integer_rtn = FONT_HEIGHT;
+    g_integer_rtn = graphics_font_height(graphics_font);
     g_rtn_type = T_INT;
 }
 
 static void mminfo_fontwidth(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_integer_rtn = FONT_WIDTH;
+    g_integer_rtn = graphics_font_width(graphics_font);
     g_rtn_type = T_INT;
 }
 
@@ -246,7 +246,7 @@ void mminfo_hres(const char *p) {
         if (FAILED(console_get_size(&width, &height, 0))) {
             ERROR_UNKNOWN_TERMINAL_SIZE;
         }
-        int scale = mmb_options.resolution == kPixel ? FONT_WIDTH : 1;
+        int scale = mmb_options.resolution == kPixel ? graphics_font_width(graphics_font) : 1;
         g_integer_rtn = width * scale;
     }
 }
@@ -257,7 +257,7 @@ static void mminfo_hpos(const char *p) {
     if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
-    int scale = mmb_options.resolution == kPixel ? FONT_WIDTH : 1;
+    int scale = mmb_options.resolution == kPixel ? graphics_font_width(graphics_font) : 1;
     g_integer_rtn = x * scale;
     g_rtn_type = T_INT;
 }
@@ -369,7 +369,7 @@ void mminfo_vres(const char *p) {
         if (FAILED(console_get_size(&width, &height, 0))) {
             ERROR_UNKNOWN_TERMINAL_SIZE;
         }
-        int scale = mmb_options.resolution == kPixel ? FONT_HEIGHT : 1;
+        int scale = mmb_options.resolution == kPixel ? graphics_font_height(graphics_font) : 1;
         g_integer_rtn = height * scale;
     }
 }
@@ -380,7 +380,7 @@ static void mminfo_vpos(const char *p) {
     if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
-    int scale = mmb_options.resolution == kPixel ? FONT_HEIGHT : 1;
+    int scale = mmb_options.resolution == kPixel ? graphics_font_height(graphics_font) : 1;
     g_integer_rtn = y * scale;
     g_rtn_type = T_INT;
 }

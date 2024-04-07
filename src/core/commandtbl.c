@@ -103,7 +103,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Exit Sub",    T_CMD,              0, cmd_return   },
     { "Exit",        T_CMD,              0, cmd_exit     },
     { "Files",       T_CMD,              0, cmd_files    },
-    { "Font",        T_CMD,              0, cmd_dummy    },
+    { "Font",        T_CMD,              0, cmd_font     },
     { "For",         T_CMD,              0, cmd_for      },
     { "Function",    T_CMD,              0, cmd_subfun   },
     { "GoSub",       T_CMD,              0, cmd_gosub    },

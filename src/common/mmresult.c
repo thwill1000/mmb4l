@@ -135,6 +135,7 @@ const char *mmresult_to_string(MmResult result) {
         case kImageTooLarge:              return "Image too large";
         case kImageInvalidFormat:         return "Invalid image format";
         case kInvalidFont:                return "Invalid font";
+        case kInvalidFontScaling:         return "Invalid font scaling; should be 1-15";
         default:                          return "Unknown result code";
     }
 }
