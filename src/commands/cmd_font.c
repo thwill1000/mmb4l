@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-fonttbl.h
+cmd_font.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,23 +42,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMBASIC_FONTTBL_H)
-#define MMBASIC_FONTTBL_H
+#include "../common/error.h"
+#include "../common/fonttbl.h"
+#include "../common/graphics.h"
+#include "../common/mmb4l.h"
 
-#include <stdint.h>
-
-#define FONT_BUILTIN_NBR  7
-#define FONT_TABLE_SIZE   16
-
-extern unsigned char* FontTable[];
-
-/** Clears user defined fonts. */
-void font_clear_user_defined();
-
-/** Gets the height of a font. */
-uint32_t font_height(uint32_t font);
-
-/** Gets the width of a font. */
-uint32_t font_width(uint32_t font);
-
-#endif // #if !defined(MMBASIC_FONTTBL_H)
+/** FONT [#]font_id [, scale] */
+void cmd_font(void) {
+    getargs(&cmdline, 3, ",");
+    if (argc != 1 && argc != 3) ERROR_ARGUMENT_COUNT;
+    if (*argv[0] == '#') ++argv[0];
+    uint32_t font_id = getint(argv[0], 1, FONT_TABLE_SIZE - 1);
+    uint32_t scale = (argc == 3) ? getint(argv[0], 1, 15) : 1;
+    ERROR_ON_FAILURE(graphics_set_font(font_id, scale));
+}
