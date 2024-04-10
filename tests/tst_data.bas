@@ -320,19 +320,16 @@ Sub test_data_save_and_restore()
 End Sub
 
 Sub test_data_save_and_restore_err()
-  If InStr(Mm.Device$, "Colour Maximite 2") Then Exit Sub
+  If sys.is_platform%("cmm2*") Then Exit Sub
 
   ' Pop when the stack is empty.
   On Error Skip
   Read Restore
   assert_raw_error("Nothing to restore")
 
+  Const MAX_SAVES = Choice(sys.is_platform%("pm*"), 15, 49)
   Local i%
-  If sys.is_platform%("pm*") Then
-    For i% = 1 To 15 : Read Save : Next
-  Else
-    For i% = 1 To 49 : Read Save : Next
-  EndIf
+  For i% = 1 To MAX_SAVES : Read Save : Next
 
   On Error Skip
   Read Save
