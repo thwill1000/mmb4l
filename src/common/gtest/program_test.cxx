@@ -14,6 +14,7 @@ extern "C" {
 
 #include "test_helper.h"
 #include "../error.h"
+#include "../graphics.h"
 #include "../memory.h"
 #include "../options.h"
 #include "../program.h"
@@ -49,7 +50,8 @@ size_t console_write(const char *buf, size_t sz) { return 0; }
 void font_clear_user_defined() { }
 
 // Defined in "common/graphics.c"
-void graphics_term(void) { }
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES];
+MmResult graphics_term(void) { return kOk; }
 
 // Defined in "core/Commands.c"
 char DimUsed;

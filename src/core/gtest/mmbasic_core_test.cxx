@@ -42,7 +42,8 @@ void console_set_title(const char *title) { }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "common/graphics.c"
-void graphics_term(void) { }
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES];
+MmResult graphics_term(void) { return kOk; }
 
 // Defined in "core/Commands.c"
 char DimUsed;

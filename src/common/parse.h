@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 parse.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_PARSE_H)
 #define MMB4L_PARSE_H
 
+#include "graphics.h"
 #include "mmresult.h"
 
 #include <stdbool.h>
@@ -92,5 +93,43 @@ MmResult parse_name(const char **p, char *name);
  * @param[in,out] The buffer to transform, usually called with the global 'inpbuf'.
  */
 MmResult parse_transform_input_buffer(char *input);
+
+/**
+ * Parses a page/surface ID.
+ *
+ * @param[in]   p        Parse from this pointer.
+ * @param[out]  page_id  The page/surface ID.
+ * @return               kGraphicsInvalidSurface if the page/surface does not exist.
+ */
+MmResult parse_page(const char *p, MmSurfaceId *page_id);
+
+/**
+ * Parses a READ page/surface ID.
+ *
+ * @param[in]   p        Parse from this pointer.
+ * @param[out]  page_id  The page/surface ID.
+ * @return               kGraphicsInvalidReadSurface if the page/surface does not exist.
+ */
+MmResult parse_read_page(const char *p, MmSurfaceId *page_id);
+
+/**
+ * Parses a WRITE page/surface ID.
+ *
+ * @param[in]   p        Parse from this pointer.
+ * @param[out]  page_id  The page/surface ID.
+ * @return               kGraphicsInvalidWriteSurface if the page/surface does not exist.
+ */
+MmResult parse_write_page(const char *p, MmSurfaceId *page_id);
+
+/**
+ * Parses a blit/buffer/surface ID.
+ *
+ * @param[in]   p         Parse from this pointer.
+ * @param[in]   existing  Return an error if blit/buffer/surface does not exist.
+ * @param[out]  blit_id   On exit, the blit/buffer/surface ID.
+ * @return                kGraphicsInvalidSurface if the blit/buffer/surface
+ *                        does not exist and existing == true.
+ */
+MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id);
 
 #endif

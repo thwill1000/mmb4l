@@ -104,6 +104,7 @@ typedef enum {
     kGraphicsApiError,
     kGraphicsInvalidId,
     kGraphicsInvalidReadSurface,
+    kGraphicsInvalidSurface,
     kGraphicsInvalidWriteSurface,
     kGraphicsSurfaceNotCreated,
     kGraphicsSurfaceNotFound,
@@ -117,7 +118,10 @@ typedef enum {
     kUnexpectedText,
     kUnknownDevice,
     kUnsupportedOnCurrentDevice,
+    kUnsupportedParameterOnCurrentDevice,
     kInvalidMode,
+    kInvalidFlag,
+    kCannotBlitCloseWindow,
 } MmResultCode;
 
 #if !defined(STRINGSIZE)

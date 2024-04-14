@@ -46,14 +46,42 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
 
+/** BLIT CLOSE [#]id */
 static MmResult cmd_blit_close(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT CLOSE");
-    return kUnimplemented;
+    getargs(&p, 1, ",");
+    if (argc != 1) return kArgumentCount;
+    MmSurfaceId blit_id = -1;
+    MmResult result = parse_blit_id(p, true, &blit_id);
+    if (SUCCEEDED(result)) {
+        MmSurface *surface = &graphics_surfaces[blit_id];
+        if (surface->type == kGraphicsBuffer) {
+            result = graphics_surface_destroy(surface);
+        } else {
+            result = kGraphicsInvalidSurface;
+        }
+    }
+    return result;
 }
 
+/** BLIT CLOSE ALL */
 static MmResult cmd_blit_close_all(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT CLOSE ALL");
-    return kUnimplemented;
+    skipspace(p);
+    if (!parse_is_end(p)) return kUnexpectedText;
+    MmResult result = kOk;
+    const MmSurfaceId start_id = (mmb_options.simulate == kSimulateMmb4l)
+            ? 0
+            : CMM2_BLIT_BASE + 1; // 64
+    const MmSurfaceId end_id = (mmb_options.simulate == kSimulateMmb4l)
+            ? GRAPHICS_MAX_ID
+            : CMM2_BLIT_BASE + CMM2_BLIT_COUNT; // 127
+    for (MmSurfaceId surface_id = start_id; surface_id <= end_id; ++surface_id) {
+        MmSurface *surface = &graphics_surfaces[surface_id];
+        if (surface->type == kGraphicsBuffer) {
+            MmResult local_result = graphics_surface_destroy(surface);
+            if (FAILED(local_result) && SUCCEEDED(result)) result = local_result;
+        }
+    }
+    return result;
 }
 
 static MmResult cmd_blit_compressed(const char *p) {
@@ -71,40 +99,93 @@ static MmResult cmd_blit_memory(const char *p) {
     return kUnimplemented;
 }
 
-static MmResult cmd_blit_read(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT READ");
-    return kUnimplemented;
+/**
+ * BLIT READ [#]dst_id, x, y, width, height [, src_id]
+ *  - <dst_id> parameter unsupported on PicoMite{VGA}.
+ */
+MmResult cmd_blit_read(const char *p) {
+    getargs(&p, 11, ",");
+    if (!(argc == 9 || argc == 11)) return kArgumentCount;
+    MmSurfaceId dst_id = -1;
+    MmResult result = parse_blit_id(argv[0], false, &dst_id);
+    if (result == kGraphicsInvalidSurface) result = kGraphicsInvalidWriteSurface;
+    if (FAILED(result)) return result;
+    const int x = getint(argv[2], 0, WINDOW_MAX_X);
+    const int y = getint(argv[4], 0, WINDOW_MAX_Y);
+    const int width = getint(argv[6], 0, WINDOW_MAX_WIDTH);
+    const int height = getint(argv[8], 0, WINDOW_MAX_HEIGHT);
+    if (width < 1 || height < 1) return kOk;
+
+    MmSurface *dst_surface = &graphics_surfaces[dst_id];
+    if (dst_surface->type == kGraphicsNone) {
+        MmResult result = graphics_buffer_create(dst_id, width, height);
+        if (FAILED(result)) return result;
+    } else if (dst_surface->width != width || dst_surface->height != height) {
+        return kGraphicsSurfaceSizeMismatch;
+    }
+
+    MmSurface *src_surface = graphics_current;
+    if (argc == 11) {
+        if (mmb_options.simulate == kSimulateGameMite
+                || mmb_options.simulate == kSimulatePicoMiteVga) {
+            return kUnsupportedParameterOnCurrentDevice;
+        }
+        MmSurfaceId src_id = -1;
+        MmResult result = parse_read_page(argv[10], &src_id);
+        if (FAILED(result)) return result;
+        src_surface = &graphics_surfaces[src_id];
+    }
+
+    return graphics_blit(x, y, 0, 0, width, height, src_surface, dst_surface, 0x0);
 }
 
-static MmResult cmd_blit_write(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT WRITE");
-    return kUnimplemented;
+/** BLIT WRITE [#]src_id, x, y [, orientation] */
+MmResult cmd_blit_write(const char *p) {
+    getargs(&p, 7, ",");
+    if (!(argc == 5 || argc == 7)) return kArgumentCount;
+    MmSurfaceId src_id = -1;
+    MmResult result = parse_blit_id(argv[0], true, &src_id);
+    if (result == kGraphicsInvalidSurface) result = kGraphicsInvalidReadSurface;
+    if (FAILED(result)) return result;
+    MmSurface *src_surface = &graphics_surfaces[src_id];
+
+    const int x = getint(argv[2], -src_surface->width + 1, WINDOW_MAX_X);
+    const int y = getint(argv[4], -src_surface->height + 1, WINDOW_MAX_Y);
+
+    MmSurface *dst_surface = graphics_current;
+    return graphics_blit(0, 0, x, y, src_surface->width, src_surface->height, src_surface,
+                         dst_surface, 0x0);
 }
 
-/** BLIT x1, y1, x2, y2, width, height [, surface] [, orientation] */
+/** BLIT x1, y1, x2, y2, width, height [, src_id] [, flags] */
 static MmResult cmd_blit_default(const char *p) {
     if (!graphics_current) return kGraphicsInvalidWriteSurface;
 
     getargs(&p, 15, ",");
-    if (argc < 11) return kArgumentCount;
-    int x1 = getinteger(argv[0]);
-    int y1 = getinteger(argv[2]);
-    int x2 = getinteger(argv[4]);
-    int y2 = getinteger(argv[6]);
-    int w = getinteger(argv[8]);
-    int h = getinteger(argv[10]);
-    MmSurfaceId read_id = argc >= 13 ? getint(argv[12], 0, GRAPHICS_MAX_ID) : -1;
-    if (read_id != -1 && !graphics_surface_exists(read_id)) return kGraphicsInvalidReadSurface;
-
-    MmSurface* read_surface = &graphics_surfaces[read_id];
-    MmSurface* write_surface = graphics_current;
-    return graphics_blit(x1, y1, x2, y2, w, h, read_surface, write_surface, 0x0);
+    if (argc < 11 || argc > 15) return kArgumentCount;
+    const int x1 = getinteger(argv[0]);
+    const int y1 = getinteger(argv[2]);
+    const int x2 = getinteger(argv[4]);
+    const int y2 = getinteger(argv[6]);
+    const int width = getinteger(argv[8]);
+    const int height = getinteger(argv[10]);
+    MmSurface *src_surface = graphics_current;
+    if (argc >= 13) {
+        MmSurfaceId src_id = -1;
+        MmResult result = parse_blit_id(argv[0], true, &src_id);
+        if (result == kGraphicsInvalidSurface) result = kGraphicsInvalidReadSurface;
+        if (FAILED(result)) return result;
+        src_surface = &graphics_surfaces[src_id];
+    }
+    const int flags = (argc == 15) ? getint(argv[14], 0, 7) : 0x0;
+    MmSurface* dst_surface = graphics_current;
+    return graphics_blit(x1, y1, x2, y2, width, height, src_surface, dst_surface, flags);
 }
 
 void cmd_blit(void) {
     MmResult result = kOk;
     const char *p;
-    if ((p = checkstring(cmdline, "CLOSE_ALL"))) {
+    if ((p = checkstring(cmdline, "CLOSE ALL"))) {
         result = cmd_blit_close_all(p);
     } else if ((p = checkstring(cmdline, "CLOSE"))) {
         result = cmd_blit_close(p);
