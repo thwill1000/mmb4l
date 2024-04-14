@@ -117,7 +117,9 @@ static MmResult cmd_graphics_window(const char *p) {
     // TODO width & height should be divisible by 8.
     // TODO check window has not already been created.
 
-    return graphics_window_create(id, x, y, width, height, scale);
+    char title[256];
+    sprintf(title, "MMB4L: %d", id);
+    return graphics_window_create(id, x, y, width, height, scale, title);
 }
 
 /** GRAPHICS DESTROY id | ALL */
