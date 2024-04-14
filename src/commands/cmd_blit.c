@@ -46,12 +46,46 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
 
+#define CMM2_BLIT_BUF_BASE   63
+#define CMM2_BLIT_BUF_COUNT  64
+
+/** BLIT CLOSE [#]b */
 static void cmd_blit_close(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT CLOSE");
+    skipspace(p);
+    if (*p == '#') p++;
+    MMINTEGER surface_id = getint(p, 0, GRAPHICS_MAX_ID);
+    if (mmb_options.simulate == kSimulateCmm2) surface_id += CMM2_BLIT_BUF_BASE;
+    MmResult result = kOk;
+    if (!graphics_surface_exists(surface_id)) {
+        result = kGraphicsSurfaceNotFound;
+    } else if (graphics_surfaces[surface_id].type == kGraphicsWindow) {
+        result = kCannotBlitCloseWindow;
+    } else {
+        result = graphics_surface_destroy(surface_id);
+    }
+    if (FAILED(result)) error_throw(result);
 }
 
+/** BLIT CLOSE ALL */
 static void cmd_blit_close_all(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT CLOSE ALL");
+    skipspace(p);
+    if (!parse_is_end(p)) {
+        error_throw(kUnexpectedText);
+        return;
+    }
+    MmResult result = kOk;
+    const MmSurfaceId start_id = mmb_options.simulate == kSimulateCmm2 ? CMM2_BLIT_BUF_BASE : 0;
+    const MmSurfaceId end_id = mmb_options.simulate == kSimulateCmm2
+            ? CMM2_BLIT_BUF_BASE + CMM2_BLIT_BUF_COUNT
+            : GRAPHICS_MAX_ID;
+    for (MmSurfaceId surface_id = start_id; surface_id <= end_id; ++surface_id) {
+        if (graphics_surfaces[surface_id].type != kGraphicsNone
+                && graphics_surfaces[surface_id].type != kGraphicsWindow) {
+            MmResult local_result = graphics_surface_destroy(surface_id);
+            if (FAILED(local_result) && SUCCEEDED(result)) result = local_result;
+        }
+    }
+    if (FAILED(result)) error_throw(result);
 }
 
 static void cmd_blit_copy(const char *p) {
@@ -98,8 +132,41 @@ static void cmd_blit_nointerrupt(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT NOINTERRUPT");
 }
 
+/** BLIT READ [#]b, x, y, w, h [,pagenumber] */
 static void cmd_blit_read(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT READ");
+    getargs(&p, 11, ",");
+    if (!(argc == 9 || argc == 11)) ERROR_ARGUMENT_COUNT;
+    if (*argv[0] == '#') argv[0]++;
+    MMINTEGER write_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+    MMINTEGER x = getint(argv[2], 0, WINDOW_MAX_X);
+    MMINTEGER y = getint(argv[4], 0, WINDOW_MAX_Y);
+    MMINTEGER w = getint(argv[6], 0, WINDOW_MAX_WIDTH);
+    MMINTEGER h = getint(argv[8], 0, WINDOW_MAX_HEIGHT);
+    if (w < 1 || h < 1) return;
+
+    if (mmb_options.simulate == kSimulateCmm2) write_id += CMM2_BLIT_BUF_BASE;
+    // TODO: Check for CMM2 buffer out of range.
+    if (graphics_surfaces[write_id].type == kGraphicsNone) {
+        MmResult result = graphics_buffer_create(write_id, w, h);
+        if (FAILED(result)) error_throw(result);
+    } else {
+        if (graphics_surfaces[write_id].width != w || graphics_surfaces[write_id].height != h) {
+            error_throw_ex(kError, "Existing surface is incorrect size");
+            return;
+        }
+    }
+    MmSurface *write_surface = &graphics_surfaces[write_id];
+    MmSurface *read_surface = graphics_current;
+    if (argc == 11) {
+        if (checkstring(argv[10], "FRAMEBUFFER")) {
+            // TODO
+        }
+        else {
+            MMINTEGER read_id = getint(argv[10], 0, GRAPHICS_MAX_ID);
+            read_surface = &graphics_surfaces[read_id];
+        }
+    }
+    graphics_blit(x, y, 0, 0, w, h, read_surface, write_surface, 0x0);
 }
 
 static void cmd_blit_restore(const char *p) {
@@ -130,47 +197,73 @@ static void cmd_blit_transparency(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT TRANSPARENCY");
 }
 
+/** BLIT WRITE [#]b, x, y [,orientation] */
 static void cmd_blit_write(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT WRITE");
+    getargs(&p, 7, ",");
+    if (!(argc == 5 || argc == 7)) ERROR_ARGUMENT_COUNT;
+
+    if (*argv[0] == '#') argv[0]++;
+    MMINTEGER read_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+    if (!graphics_surface_exists(read_id)) {
+        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist");
+        return;
+    }
+    if (mmb_options.simulate == kSimulateCmm2) read_id += CMM2_BLIT_BUF_BASE;
+    // TODO: Check for CMM2 buffer out of range.
+    MmSurface *read_surface = &graphics_surfaces[read_id];
+
+    MMINTEGER x = getint(argv[2], -read_surface->width + 1, WINDOW_MAX_X);
+    MMINTEGER y = getint(argv[4], -read_surface->height + 1, WINDOW_MAX_Y);
+
+    MmSurface *write_surface = graphics_current;
+    MmResult result = graphics_blit(0, 0, x, y, read_surface->width, read_surface->height,
+                                    read_surface, write_surface, 0x0);
+    if (FAILED(result)) error_throw(result);
 }
 
-/** BLIT x1, y1, x2, y2, w, h [,surface] [,orientation] */
+/** BLIT x1, y1, x2, y2, w, h [,surface] [,flags] */
 static void cmd_blit_default(const char *p) {
     if (!graphics_current) error_throw_ex(kGraphicsSurfaceNotFound, "Write surface does not exist");
 
     getargs(&p, 15, ",");
-    if (argc < 11) ERROR_ARGUMENT_COUNT;
+    if (argc < 11 || argc > 15) ERROR_ARGUMENT_COUNT;
     MMINTEGER x1 = getinteger(argv[0]);
     MMINTEGER y1 = getinteger(argv[2]);
     MMINTEGER x2 = getinteger(argv[4]);
     MMINTEGER y2 = getinteger(argv[6]);
     MMINTEGER w = getinteger(argv[8]);
     MMINTEGER h = getinteger(argv[10]);
-    MMINTEGER read_id = argc >= 13 ? getint(argv[12], 0, GRAPHICS_MAX_ID) : -1;
-    if (read_id != -1 && !graphics_surface_exists(read_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %%", read_id);
+    MmSurface *read_surface = graphics_current;
+    if (argc >= 13) {
+        MMINTEGER read_id = getint(argv[12], 0, GRAPHICS_MAX_ID);
+        if (graphics_surface_exists(read_id)) {
+            read_surface = &graphics_surfaces[read_id];
+        } else {
+            error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %%", read_id);
+            return;
+        }
     }
+    MMINTEGER flags = argc == 15 ? getint(argv[14], 0, 7) : 0x0;
 
-    MmSurface* read_surface = &graphics_surfaces[read_id];
     MmSurface* write_surface = graphics_current;
-    MmResult result = graphics_blit(x1, y1, x2, y2, w, h, read_surface, write_surface, 0x0);
+    MmResult result = graphics_blit(x1, y1, x2, y2, w, h, read_surface, write_surface, flags);
     if (FAILED(result)) error_throw(result);
 }
 
 void cmd_blit(void) {
     const char *p;
-    if ((p = checkstring(cmdline, "CLOSE"))) {
-        cmd_blit_close(p);
-    } else if ((p = checkstring(cmdline, "CLOSE ALL"))) {
+    if ((p = checkstring(cmdline, "CLOSE ALL"))) {
         cmd_blit_close_all(p);
+    } else if ((p = checkstring(cmdline, "CLOSE"))) {
+        cmd_blit_close(p);
     } else if ((p = checkstring(cmdline, "COPY"))) {
         cmd_blit_copy(p);
-    } else if ((p = checkstring(cmdline, "HIDE"))) {
-        cmd_blit_hide(p);
     } else if ((p = checkstring(cmdline, "HIDE ALL"))) {
         cmd_blit_hide_all(p);
     } else if ((p = checkstring(cmdline, "HIDE SAFE"))) {
         cmd_blit_hide_safe(p);
+    } else if ((p = checkstring(cmdline, "HIDE"))) {
+        cmd_blit_hide(p);
     } else if ((p = checkstring(cmdline, "INTERRUPT"))) {
         cmd_blit_interrupt(p);
     } else if ((p = checkstring(cmdline, "LOAD"))) {
@@ -189,10 +282,10 @@ void cmd_blit(void) {
         cmd_blit_scroll(p);
     } else if ((p = checkstring(cmdline, "SCROLLR"))) {
         cmd_blit_scrollr(p);
-    } else if ((p = checkstring(cmdline, "SHOW"))) {
-        cmd_blit_show(p);
     } else if ((p = checkstring(cmdline, "SHOW SAFE"))) {
         cmd_blit_show_safe(p);
+    } else if ((p = checkstring(cmdline, "SHOW"))) {
+        cmd_blit_show(p);
     } else if ((p = checkstring(cmdline, "READ"))) {
         cmd_blit_read(p);
     } else if ((p = checkstring(cmdline, "RESTORE"))) {

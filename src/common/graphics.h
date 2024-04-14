@@ -166,7 +166,10 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
  * @param  w, h           Width and height of rectangle.
  * @param  read_surface   The surface to read from.
  * @param  write_surface  The surface to write to.
- * @param  flags          TODO.
+ * @param  flags          Bitwise AND of:
+ *                          0x01 = mirrored left to right.
+ *                          0x02 = mirrored top to bottom.
+ *                          0x04 = don't copy transparent pixels.
  */
 MmResult graphics_blit(int x1, int y1, int x2, int y2, uint32_t w, uint32_t h,
                        MmSurface *read_surface, MmSurface *write_surface, int flags);

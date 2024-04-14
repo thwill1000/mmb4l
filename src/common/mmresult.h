@@ -113,6 +113,9 @@ typedef enum {
     kUnknownDevice,
     kUnsupportedOnCurrentDevice,
     kInvalidMode,
+    kInvalidFlag,
+    kUnexpectedText,
+    kCannotBlitCloseWindow,
 } MmResultCode;
 
 /**
