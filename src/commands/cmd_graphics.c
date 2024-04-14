@@ -127,7 +127,9 @@ static void cmd_graphics_window(const char *p) {
 
     // printf("%d %d %d %d %d\n", id, x, y, width, height);
 
-    MmResult result = graphics_window_create(id, x, y, width, height, scale);
+    char title[256];
+    sprintf(title, "MMB4L: %d", id);
+    MmResult result = graphics_window_create(id, x, y, width, height, scale, title);
     if (FAILED(result)) error_throw(result);
 }
 
