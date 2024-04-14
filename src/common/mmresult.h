@@ -117,6 +117,7 @@ typedef enum {
     kUnexpectedText,
     kUnknownDevice,
     kUnsupportedOnCurrentDevice,
+    kInvalidMode,
 } MmResultCode;
 
 #if !defined(STRINGSIZE)
