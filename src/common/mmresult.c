@@ -147,6 +147,7 @@ const char *mmresult_to_string(MmResult result) {
         case kUnexpectedText:             return "Unexpected text";
         case kUnknownDevice:              return "Unknown device/platform";
         case kUnsupportedOnCurrentDevice: return "Unsupported on current device/platform";
+        case kInvalidMode:                return "Invalid graphics mode for current device";
         default:                          return "Unknown result code";
     }
 }
