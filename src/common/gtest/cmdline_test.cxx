@@ -18,6 +18,15 @@ void error_throw_ex(MmResult error, char *msg, ...) { }
 long long int getinteger(char *p) { return 0; }
 int getint(char *p, int min, int max) { return 0; }
 
+// Defined in "main.c"
+Options mmb_options;
+
+// Defined in "common/graphics.c"
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES];
+
+// Defined in "core/MMBasic.c"
+char *getCstring(const char *p) { return NULL; }
+
 }
 
 TEST(CmdLineTest, Parse_GivenNoAdditionalArguments) {

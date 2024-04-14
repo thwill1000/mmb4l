@@ -88,6 +88,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RGB_BEIGE     RGB(0xF5,  0xF5,  0xDC,   255)
 #define RGB_NOTBLACK  RGB(   0,     0,     0,   255)
 
+#define CMM2_BLIT_BASE   63
+#define CMM2_BLIT_COUNT  64
+
 typedef enum {
     kGraphicsNone = 0,
     kGraphicsBuffer,
@@ -182,7 +185,7 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
 MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x1, MMFLOAT y1, MMFLOAT x2,
                                MMFLOAT y2, int width, MmGraphicsColour colour);
 
-/*
+/**
  * Blits rectangle from one surface to another.
  *
  * @param  x1, y1         Top left coordinates on the read surface.
@@ -191,7 +194,10 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x1, MMFLOAT y1, MMFLO
  * @param  height         Height of rectangle to blit.
  * @param  read_surface   The surface to read from.
  * @param  write_surface  The surface to write to.
- * @param  flags          TODO
+ * @param  flags          Bitwise OR of:
+ *                          0x01 = mirrored left to right.
+ *                          0x02 = mirrored top to bottom.
+ *                          0x04 = don't copy transparent pixels.
  */
 MmResult graphics_blit(int x1, int y1, int x2, int y2, int width, int height,
                        MmSurface *read_surface, MmSurface *write_surface, int flags);

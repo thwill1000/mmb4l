@@ -387,3 +387,70 @@ MmResult parse_transform_input_buffer(char *input) {
             return kOk;
     }
 }
+
+static inline MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) {
+    *page_id = -1;
+    const char *tp;
+    if ((tp = checkstring(p, "N"))) {
+        *page_id = GRAPHICS_SURFACE_N;
+    } else if ((tp = checkstring(p, "F"))) {
+        *page_id = GRAPHICS_SURFACE_F;
+    } else if ((tp = checkstring(p, "L"))) {
+        *page_id = GRAPHICS_SURFACE_L;
+    } else { // Allow string expression.
+        const char *s = getCstring(p);
+        if (strcasecmp(s, "N") == 0) {
+            *page_id = GRAPHICS_SURFACE_N;
+        } else if (strcasecmp(s, "F") == 0) {
+            *page_id = GRAPHICS_SURFACE_F;
+        } else if (strcasecmp(s, "L") == 0) {
+            *page_id = GRAPHICS_SURFACE_L;
+        } else {
+            return kSyntax;
+        }
+    }
+    return kOk;
+}
+
+MmResult parse_page(const char *p, MmSurfaceId *page_id) {
+    MmResult result = kOk;
+    switch (mmb_options.simulate) {
+        case kSimulateGameMite:
+        case kSimulatePicoMiteVga:
+            result = parse_picomite_page(p, page_id);
+            break;
+        default:
+            *page_id = getint(p, 0, GRAPHICS_MAX_ID);
+            result = kOk;
+            break;
+    }
+    if (SUCCEEDED(result) && !graphics_surface_exists(*page_id)) {
+        return kGraphicsInvalidSurface;
+    } else {
+        return result;
+    }
+}
+
+MmResult parse_read_page(const char *p, MmSurfaceId *page_id) {
+    MmResult result = parse_page(p, page_id);
+    return (result == kGraphicsInvalidSurface) ? kGraphicsInvalidReadSurface : result;
+}
+
+MmResult parse_write_page(const char *p, MmSurfaceId *page_id) {
+    MmResult result = parse_page(p, page_id);
+    return (result == kGraphicsInvalidSurface) ? kGraphicsInvalidWriteSurface : result;
+}
+
+MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id) {
+    skipspace(p);
+    if (*p == '#') p++;
+    if (mmb_options.simulate == kSimulateMmb4l) {
+        *blit_id = getint(p, 0, GRAPHICS_MAX_ID);
+    } else {
+        *blit_id = getint(p, 1, CMM2_BLIT_COUNT) + CMM2_BLIT_BASE;
+    }
+    if (existing && graphics_surfaces[*blit_id].type == kGraphicsNone) {
+        return kGraphicsInvalidSurface;
+    }
+    return kOk;
+}

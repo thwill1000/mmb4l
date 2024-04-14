@@ -9,6 +9,7 @@
 extern "C" {
 
 #include "../../Hardware_Includes.h"
+#include "../../common/graphics.h"
 #include "../../common/utility.h"
 #include "../../common/gtest/test_helper.h"
 #include "../../core/Commands.h"
@@ -49,7 +50,8 @@ void console_puts(const char *s) { }
 void file_close_all(void) { }
 
 // Defined in "common/graphics.c"
-void graphics_term(void) { }
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES];
+MmResult graphics_term(void) { return kOk; }
 
 // Defined in "common/interrupt.c"
 bool interrupt_check(void) { return false; }
