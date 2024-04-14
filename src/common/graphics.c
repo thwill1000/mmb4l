@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "upng.h"
 #include "utility.h"
 
+#include <assert.h>
 #include <stdbool.h>
 
 #include <SDL.h>
@@ -878,27 +879,96 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
     return kOk;
 }
 
-/*
- * FLIP parameter
-0 - normal display (default if omitted)
-1 - mirrored left to right
-2 - mirrored top to bottom
-3 - rotated 180 degrees (= 1+2)
-4 - transparent normal display (default if omitted)
-5 - transparent mirrored left to right
-6 - transparent mirrored top to bottom
-7 - transparent rotated 180 degrees (= 1+2)
-*/
+static void *pixelcpy_transparent(void* dst, const void* src, size_t count, uint32_t transparent) {
+    assert(count % 4 == 0);
+    uint32_t *dst_word = (uint32_t *)dst;
+    const uint32_t *src_word = (const uint32_t *)src;
+    const size_t word_count = count / 4;
+    for (size_t i = 0; i < word_count; ++i) {
+        if (*src_word != transparent) {
+            *dst_word++ = *src_word++;
+        } else {
+            dst_word++;
+            src_word++;
+        }
+    }
+    return dst;
+}
+
 MmResult graphics_blit(int x1, int y1, int x2, int y2, int w, int h,
                        MmSurface *read_surface, MmSurface *write_surface, int flags){
     uint32_t *src = read_surface->pixels + (y1 * read_surface->width) + x1;
-    uint32_t *dst = write_surface->pixels + (y2 * write_surface->width) + x2;
-    for (int i = 0; i < h; i++) {
-        memcpy(dst, src, w << 2);
-        src += read_surface->width;
-        dst += write_surface->width;
-    }
+    uint32_t *dst = write_surface->pixels;
+    int pdelta = 0; // Added to dst after writing each pixel.
+    int ldelta = 0; // Added to dst after writing each line.
+    uint32_t transparent_colour = RGB_BLACK; // Black for now, but configurable in the future ?
+
     write_surface->dirty = true;
+
+    // TODO: If read and write surfaces overlap then copy read surface to temporary buffer.
+    // TODO: Handle off-surface co-ordinates.
+
+    switch (flags) {
+        case 0x0: {
+            // Optimised using memcpy.
+            dst += (y2 * write_surface->width) + x2;
+            for (int i = 0; i < h; i++) {
+                memcpy(dst, src, w << 2);
+                src += read_surface->width;
+                dst += write_surface->width;
+            }
+            return kOk;
+        }
+
+        case 0x1: // Horizontal flip.
+        case 0x5: // Don't copy transparent pixels and horizontal flip.
+        {
+            dst += (y2 * write_surface->width) + x2 + w - 1;
+            pdelta = -1;
+            ldelta = write_surface->width + w;
+            break;
+        }
+
+        case 0x2: // Vertical flip - TODO: could be optimised using memcpy.
+        case 0x6: // Don't copy transparent pixels and vertical flip.
+        {
+            dst += ((y2 + h - 1) * write_surface->width) + x2;
+            pdelta = 1;
+            ldelta = -(write_surface->width + w);
+            break;
+        }
+
+        case 0x3: // Vertical & horizontal flip.
+        case 0x7: // Don't copy transparent pixels and vertical & horizontal flip.
+        {
+            // TODO
+        }
+
+        case 0x4: // Don't copy transparent pixels.
+        {
+            dst += (y2 * write_surface->width) + x2;
+            pdelta = 1;
+            ldelta = write_surface->width - w;
+            break;
+        }
+
+        default:
+            return kInvalidFlag;
+    }
+
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; j++) {
+            if ((flags & 0x4) && *src == transparent_colour) {
+                src++;
+            } else {
+                *dst = *src++;
+            }
+            dst += pdelta;
+        }
+        src += read_surface->width - w;
+        dst += ldelta;
+    }
+
     return kOk;
 }
 
