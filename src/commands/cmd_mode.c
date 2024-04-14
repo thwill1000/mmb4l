@@ -43,12 +43,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
-#include "../common/console.h"
+#include "../common/graphics.h"
 #include "../common/error.h"
 #include "../common/parse.h"
 
 void cmd_mode(void) {
-    //skipspace(cmdline);
-    //if (!parse_is_end(cmdline)) ERROR_SYNTAX;
-    console_clear();
+    getargs(&cmdline, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+
+    MmResult result = kOk;
+    OptionsSimulate device = kSimulateMmb4l;
+    uint8_t mode = 0;
+    switch (mmb_options.simulate) {
+        case kSimulateCmm2: {
+            device = kSimulateCmm2;
+            mode = getint(argv[0], MIN_CMM2_MODE, MAX_CMM2_MODE);
+            break;
+        }
+
+        case kSimulatePicoMiteVga: {
+            device = kSimulatePicoMiteVga;
+            mode = getint(argv[0], MIN_PMVGA_MODE, MAX_PMVGA_MODE);
+            break;
+        }
+
+        default: {
+            result = kUnsupportedOnCurrentDevice;
+            break;
+        }
+    }
+
+    if (SUCCEEDED(result)) result = graphics_simulate_display(device, mode);
+    if (FAILED(result)) error_throw(result);
 }

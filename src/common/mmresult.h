@@ -114,6 +114,7 @@ typedef enum {
     kInvalidFontScaling,
     kUnknownDevice,
     kUnsupportedOnCurrentDevice,
+    kInvalidMode,
 } MmResultCode;
 
 /**

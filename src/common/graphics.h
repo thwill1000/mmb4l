@@ -2,11 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-<<<<<<< HEAD
 graphics.h
-=======
-graphics.c
->>>>>>> 78066d7 (WIP - Implement GRAPHICS {BUFFER|DESTROY|WRITE|WINDOW} commands)
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -50,19 +46,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMBASIC_GRAPHICS_H
 
 #include "mmresult.h"
+#include "options.h"
 #include "utility.h"
 #include "../Configuration.h"
 
 #include <stdbool.h>
 
-#define GRAPHICS_NONE          -1
-#define GRAPHICS_MAX_SURFACES  256
-#define GRAPHICS_MAX_ID        (GRAPHICS_MAX_SURFACES - 1)
-#define WINDOW_MAX_X           2048
-#define WINDOW_MAX_Y           2048
-#define WINDOW_MAX_WIDTH       2048
-#define WINDOW_MAX_HEIGHT      2048
-#define WINDOW_MAX_SCALE       10
+#define GRAPHICS_NONE            -1
+#define GRAPHICS_MAX_SURFACES    256
+#define GRAPHICS_MAX_ID          (GRAPHICS_MAX_SURFACES - 1)
+#define WINDOW_MAX_X             2048
+#define WINDOW_MAX_Y             2048
+#define WINDOW_MAX_WIDTH         2048
+#define WINDOW_MAX_HEIGHT        2048
+#define WINDOW_MAX_SCALE         10
+#define GRAPHICS_SURFACE_N       1
+#define GRAPHICS_SURFACE_F       2
+#define GRAPHICS_SURFACE_L       3
+#define MIN_CMM2_MODE            1
+#define MAX_CMM2_MODE            17
+#define MIN_PMVGA_MODE           1
+#define MAX_PMVGA_MODE           2
 
 #define RGB(red, green, blue, trans) (uint32_t) (((trans & 0b1111) << 24) | ((red & 0b11111111) << 16) | ((green  & 0b11111111) << 8) | (blue & 0b11111111))
 
@@ -144,7 +148,8 @@ void graphics_refresh_windows();
 MmResult graphics_term();
 
 MmResult graphics_buffer_create(MmSurfaceId id, int width, int height);
-MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int height, int scale);
+MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int height, int scale,
+                                const char *title);
 MmResult graphics_surface_destroy(MmSurface *surface);
 MmResult graphics_surface_destroy_all();
 MmResult graphics_surface_write(MmSurfaceId id);
@@ -297,5 +302,13 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
  * @param  scale        Scaling factor 1-15.
  */
 MmResult graphics_set_font(uint32_t font_number, uint32_t scale);
+
+/**
+ * Configures graphics surfaces to simulate a given device/platform/mode.
+ *
+ * @param  platform  The device/platform to simulate (not kSimulateMmb4l).
+ * @param  mode      The graphics mode.
+ */
+MmResult graphics_simulate_display(OptionsSimulate platform, uint8_t mode);
 
 #endif // #if !defined(MMBASIC_GRAPHICS_H)

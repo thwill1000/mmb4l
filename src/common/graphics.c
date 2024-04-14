@@ -59,6 +59,41 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HRes graphics_current->width
 #define VRes graphics_current->height
 
+typedef struct {
+    uint32_t id;
+    uint32_t width;
+    uint32_t height;
+    uint32_t num_pages;
+    uint32_t font;
+} ModeDefinition;
+
+static const ModeDefinition CMM2_MODES[] = {
+    { 0, 0, 0, 0, 0},
+    { 1, 800, 600, 7, 1 },
+    { 2, 640, 400, 14, 1 },
+    { 3, 320, 200, 58, 7 },
+    { 4, 480, 432, 18, 1 },
+    { 5, 240, 216, 61, 1 },
+    { 6, 256, 240, 61, 1 },
+    { 7, 320, 240, 47, 1 },
+    { 8, 640, 480, 11, 1 },
+    { 9, 1024, 768, 4, 1 },
+    { 10, 848, 480, 8, 1 },
+    { 11, 1280, 720, 3, 1 },
+    { 12, 960, 540, 5, 1 },
+    { 13, 400, 300, 29, 1 },
+    { 14, 960, 540, 7, 1 },
+    { 15, 1280, 1024, 5, 1 },
+    { 16, 1920, 1080, 3, 1 },
+    { 17, 384, 240, 39, 1 },
+};
+
+static const ModeDefinition PICOMITE_VGA_MODES[] = {
+    { 0, 0, 0, 0, 0 },
+    { 1, 640, 480, 1, 1 },
+    { 2, 320, 240, 1, 7 },
+};
+
 static const char* NO_ERROR = "";
 static bool graphics_initialised = false;
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
@@ -131,7 +166,8 @@ MmResult graphics_buffer_create(MmSurfaceId id, int width, int height) {
     return kOk;
 }
 
-MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int height, int scale) {
+MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int height, int scale,
+                                const char *title) {
     MmResult result = graphics_init();
     if (FAILED(result)) return result;
 
@@ -148,9 +184,7 @@ MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int hei
         if (fscale < 0.1) return kGraphicsSurfaceTooLarge;
     }
 
-    char name[256];
-    sprintf(name, "MMB4L: %d", id);
-    SDL_Window *window = SDL_CreateWindow(name, x == -1 ? (int)SDL_WINDOWPOS_CENTERED : x,
+    SDL_Window *window = SDL_CreateWindow(title, x == -1 ? (int)SDL_WINDOWPOS_CENTERED : x,
                                           y == -1 ? (int)SDL_WINDOWPOS_CENTERED : y, width * fscale,
                                           height * fscale, SDL_WINDOW_SHOWN);
     if (!window) return kGraphicsSurfaceNotCreated;
@@ -1173,6 +1207,97 @@ MmResult graphics_set_font(uint32_t font_number, uint32_t scale) {
     } else if (scale > 15) {
         return kInvalidFontScaling;
     }
-    graphics_font = (font_number << 4) | scale;
+    graphics_font = ((font_number - 1) << 4) | scale;
     return kOk;
+}
+
+static MmResult graphics_destroy_surfaces_0_to_63() {
+    MmResult result = kOk;
+    for (MmSurfaceId id = 0; id < 64 && SUCCEEDED(result); ++id) {
+        result = graphics_surface_destroy(&graphics_surfaces[id]);
+    }
+    return result;
+}
+
+static MmResult graphics_simulate_cmm2(uint8_t mode) {
+    if (mode < MIN_CMM2_MODE || mode > MAX_CMM2_MODE) return kInvalidMode;
+    const ModeDefinition *mode_def = &CMM2_MODES[mode];
+
+    MmResult result = graphics_destroy_surfaces_0_to_63();
+    if (SUCCEEDED(result)) {
+        // Create window for page 0.
+        char title[32];
+        sprintf(title, "Colour Maximite 2 - Mode %d", mode);
+        graphics_window_create(0, -1, -1, mode_def->width, mode_def->height, 10, title);
+    }
+    if (SUCCEEDED(result)) {
+        // Create buffers for remaining pages.
+        for (MmSurfaceId id = 1; id < (MmSurfaceId) mode_def->num_pages && SUCCEEDED(result); ++id) {
+            result = graphics_buffer_create(id, mode_def->width, mode_def->height);
+        }
+    }
+    if (SUCCEEDED(result)) {
+        result = graphics_surface_write(0);
+    }
+    if (SUCCEEDED(result)) {
+        graphics_fcolour = RGB_WHITE;
+        graphics_bcolour = RGB_BLACK;
+        result = graphics_set_font(mode_def->font, 1);
+    }
+    return result;
+}
+
+static MmResult graphics_simulate_gamemite(uint8_t mode) {
+    if (mode != 0) return kInvalidMode;
+
+    MmResult result = graphics_destroy_surfaces_0_to_63();
+    if (SUCCEEDED(result)) {
+        result = graphics_window_create(0, -1, -1, 320, 240, 10, "Game*Mite");
+    }
+    if (SUCCEEDED(result)) {
+        result = graphics_surface_write(0);
+    }
+    if (SUCCEEDED(result)) {
+        graphics_fcolour = RGB_WHITE;
+        graphics_bcolour = RGB_BLACK;
+        result = graphics_set_font(7, 1);
+    }
+    return result;
+}
+
+static MmResult graphics_simulate_picomite_vga(uint8_t mode) {
+    if (mode < MIN_PMVGA_MODE || mode > MAX_PMVGA_MODE) return kInvalidMode;
+    const ModeDefinition *mode_def = &PICOMITE_VGA_MODES[mode];
+
+    MmResult result = graphics_destroy_surfaces_0_to_63();
+    if (SUCCEEDED(result)) {
+        char title[32];
+        sprintf(title, "PicoMiteVGA - Mode %d", mode);
+        result = graphics_window_create(0, -1, -1, mode_def->width, mode_def->height, 10, title);
+    }
+    if (SUCCEEDED(result)) {
+        result = graphics_buffer_create(GRAPHICS_SURFACE_N, mode_def->width, mode_def->height);
+    }
+    if (SUCCEEDED(result)) {
+        result = graphics_surface_write(GRAPHICS_SURFACE_N);
+    }
+    if (SUCCEEDED(result)) {
+        graphics_fcolour = RGB_WHITE;
+        graphics_bcolour = RGB_BLACK;
+        result = graphics_set_font(mode_def->font, 1);
+    }
+    return result;
+}
+
+MmResult graphics_simulate_display(OptionsSimulate platform, uint8_t mode) {
+    switch (platform) {
+        case kSimulateCmm2:
+            return graphics_simulate_cmm2(mode);
+        case kSimulatePicoMiteVga:
+            return graphics_simulate_picomite_vga(mode);
+        case kSimulateGameMite:
+            return graphics_simulate_gamemite(mode);
+        default:
+            return kInternalFault;
+    }
 }
