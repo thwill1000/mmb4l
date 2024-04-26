@@ -157,6 +157,8 @@ const char *mmresult_to_string(MmResult result) {
         case kGamepadNotFound:            return "Gamepad not found";
         case kGamepadInvalidId:           return "Invalid gamepad ID";
         case kGamepadNotOpen:             return "Gamepad not open";
+        case kSoundInUse:                 return "Sound output in use";
+        case kSoundInvalidFrequency:      return "Valid is 0Hz to 20KHz";
         default:                          return "Unknown result code";
     }
 }
