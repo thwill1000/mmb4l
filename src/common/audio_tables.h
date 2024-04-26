@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-audio.h
+audio_tables.h
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,41 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMBASIC_AUDIO_H)
-#define MMBASIC_AUDIO_H
+#define MAPPING_TABLE_SIZE   101
+#define WAVEFORM_TABLE_SIZE  4096
 
-#include "mmresult.h"
+extern const int mapping[];
+extern /*const*/ unsigned short null_table[];
+extern const unsigned short square_table[];
+extern const unsigned short triangular_table[];
+extern const unsigned short saw_tooth_table[];
+extern const unsigned short sine_table[];
+extern /*const*/ unsigned short periodic_noise_table[];
+extern const unsigned short white_noise_table[];
 
-#include <stdbool.h>
-#include <stdint.h>
-
-#define MAXSOUNDS  4
-
-typedef enum {
-   kChannelLeft = 0x1,
-   kChannelRight = 0x2,
-   kChannelBoth = 0x3
-} Channel;
-
-typedef enum {
-  kSoundTypeSine,
-  kSoundTypeSquare,
-  kSoundTypeTriangular,
-  kSoundTypeSawTooth,
-  kSoundTypePeriodicNoise,
-  kSoundTypeWhiteNoise,
-  kSoundTypeNull
-} SoundType;
-
-MmResult audio_init();
-const char *audio_last_error();
-void audio_close(bool all);
-
-/**
- * @param  sound_no  
- */
-MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, float frequency,
-                          uint8_t volume);
-MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const char *interrupt);
-
-#endif // #if !defined(MMBASIC_AUDIO_H)
+void audio_tables_init();
