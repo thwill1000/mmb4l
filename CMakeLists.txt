@@ -89,6 +89,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_option.c
     src/commands/cmd_pause.c
     src/commands/cmd_pixel.c
+    src/commands/cmd_play.c
     src/commands/cmd_poke.c
     src/commands/cmd_print.c
     src/commands/cmd_quit.c
@@ -156,6 +157,7 @@ set(MMB4L_OPERATORS_SOURCE_FILES
 
 set(MMB4L_COMMON_SOURCE_FILES
     src/common/audio.c
+    src/common/audio_tables.c
     src/common/cmdline.c
     src/common/codepage.c
     src/common/console.c

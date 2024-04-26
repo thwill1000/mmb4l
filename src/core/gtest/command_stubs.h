@@ -71,6 +71,7 @@ void cmd_open() { }
 void cmd_option() { }
 void cmd_pause() { }
 void cmd_pixel() { }
+void cmd_play() { }
 void cmd_poke() { }
 void cmd_print() { }
 void cmd_quit() { }
