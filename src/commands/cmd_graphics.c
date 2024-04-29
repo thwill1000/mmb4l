@@ -103,23 +103,41 @@ static MmResult cmd_graphics_copy(const char *p) {
                          dst_surface, transparent_black ? 0x4 : 0x0);
 }
 
-/** GRAPHICS WINDOW id, x, y, width, height [, scale] */
+/** GRAPHICS WINDOW id, x, y, width, height [, scale] [, interrupt] */
 static MmResult cmd_graphics_window(const char *p) {
-    getargs(&p, 11, ",");
-    if (argc != 9 && argc != 11) return kArgumentCount;
-    int id = getint(argv[0], 0, GRAPHICS_MAX_ID);
-    int x = getint(argv[2], -1, WINDOW_MAX_X);
-    int y = getint(argv[4], -1, WINDOW_MAX_Y);
-    int width = getint(argv[6], 8, WINDOW_MAX_WIDTH);
-    int height = getint(argv[8], 8, WINDOW_MAX_HEIGHT);
-    int scale = argc == 11 ? getint(argv[10], 1, WINDOW_MAX_SCALE) : 1;
+    getargs(&p, 13, ",");
+    if (argc < 9 || argc > 13) return kArgumentCount;
+    const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+    const int x = getint(argv[2], -1, WINDOW_MAX_X);
+    const int y = getint(argv[4], -1, WINDOW_MAX_Y);
+    const int width = getint(argv[6], 8, WINDOW_MAX_WIDTH);
+    const int height = getint(argv[8], 8, WINDOW_MAX_HEIGHT);
+    const int scale = (argc == 11) ? getint(argv[10], 1, WINDOW_MAX_SCALE) : 1;
+    const char* interrupt_addr = argc == 13 ? GetIntAddress(argv[12]): NULL;
+    if (interrupt_addr) {
+        // Check interrupt is a SUB with the correct signature.
+        FunctionSignature *fn = (FunctionSignature *) GetTempMemory(sizeof(FunctionSignature));
+        const char *p2 = interrupt_addr;
+        const char *cached_line_ptr = CurrentLinePtr;
+        CurrentLinePtr = interrupt_addr; // So any error is reported on the correct line.
+        MmResult result = parse_fn_sig(&p2, fn);
+        if (FAILED(result)) error_throw(result);
+        CurrentLinePtr = cached_line_ptr;
+        if (fn->token != cmdSUB
+            || fn->num_params != 2
+            || !(fn->params[0].type & T_INT)
+            || !(fn->params[1].type & T_INT)
+            || fn->params[0].array
+            || fn->params[1].array) error_throw(kInvalidInterruptSignature);
+        ClearSpecificTempMemory(fn);
+    }
 
     // TODO: width & height should be divisible by 8.
     // TODO: check window has not already been created.
 
     char title[256];
     sprintf(title, "MMB4L: %d", id);
-    return graphics_window_create(id, x, y, width, height, scale, title);
+    return graphics_window_create(id, x, y, width, height, scale, title, interrupt_addr);
 }
 
 /** GRAPHICS DESTROY { id | ALL } */

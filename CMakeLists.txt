@@ -193,7 +193,7 @@ set(MMB4L_SOURCE_FILES
 add_executable(mmbasic ${MMB4L_CORE_SOURCE_FILES} ${MMB4L_SOURCE_FILES})
 
 target_include_directories(mmbasic PUBLIC
-  /usr/include/SDL2
+    /usr/include/SDL2
 )
 
 target_link_libraries(
@@ -341,6 +341,10 @@ add_executable(
   src/core/gtest/funtbl_test.cxx
 )
 
+target_include_directories(test_funtbl PUBLIC
+  /usr/include/SDL2
+)
+
 target_link_libraries(
   test_funtbl
   gtest_main
@@ -402,7 +406,6 @@ add_executable(
   test_parse
   src/common/cstring.c
   src/common/file.c
-  src/common/interrupt.c
   src/common/memory.c
   src/common/mmgetline.c
   src/common/mmresult.c
@@ -461,7 +464,6 @@ add_executable(
   test_program
   src/common/cstring.c
   src/common/file.c
-  src/common/interrupt.c
   src/common/memory.c
   src/common/mmgetline.c
   src/common/mmresult.c
@@ -541,7 +543,6 @@ add_executable(
   src/common/cstring.c
   src/common/file.c
   src/common/fonttbl.c
-  src/common/interrupt.c
   src/common/memory.c
   src/common/mmresult.c
   src/common/mmtime.c

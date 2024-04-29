@@ -133,6 +133,7 @@ typedef struct {
     uint32_t* pixels;
     int height;
     int width;
+    const char *interrupt_addr;
 } MmSurface;
 
 extern MmSurface graphics_surfaces[];
@@ -146,6 +147,7 @@ MmResult graphics_init();
 
 /** Gets the last error message reported by the underlying SDL implementation. */
 const char* graphics_last_error();
+MmSurfaceId graphics_find_window(uint32_t window_id);
 
 /** Redraws all 'dirty' windows (if the time is right). */
 void graphics_refresh_windows();
@@ -158,7 +160,7 @@ MmResult graphics_buffer_create(MmSurfaceId id, int width, int height);
 
 /** Creates a window. */
 MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int height, int scale,
-                                const char *title);
+                                const char *title, const char *interrupt_addr);
 
 /** Destroys a graphics surface. */
 MmResult graphics_surface_destroy(MmSurface *surface);

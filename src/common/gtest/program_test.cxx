@@ -34,6 +34,8 @@ char **FontTable;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
+uint8_t mmb_exit_code = 0;
+
 int MMgetchar(void) { return 0; }
 
 // Defined in "commands/cmd_read.c"
@@ -52,6 +54,13 @@ void font_clear_user_defined() { }
 // Defined in "common/graphics.c"
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES];
 MmResult graphics_term(void) { return kOk; }
+MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }
+
+// Defined in "common/interrupt.c"
+bool interrupt_check() { return true; }
+void interrupt_clear() { }
+void interrupt_disable_serial_rx(int fnbr) { }
+void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_addr) { }
 
 // Defined in "core/Commands.c"
 char DimUsed;

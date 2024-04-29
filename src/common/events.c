@@ -44,6 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "console.h"
 #include "events.h"
+#include "graphics.h"
+#include "interrupt.h"
 #include "utility.h"
 
 #include <stdbool.h>
@@ -157,6 +159,16 @@ void events_pump() {
                 break;
 
             case SDL_KEYUP:
+                break;
+
+            case SDL_WINDOWEVENT:
+                switch (event.window.event) {
+                    case SDL_WINDOWEVENT_CLOSE:
+                        interrupt_fire_window_close(graphics_find_window(event.window.windowID));
+
+                    default:
+                        break;
+                }
                 break;
         }
     }

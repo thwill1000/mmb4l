@@ -48,6 +48,13 @@ void font_clear_user_defined(void) { }
 // Defined in "common/graphics.c"
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES];
 MmResult graphics_term(void) { return kOk; }
+// MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }
+
+// Defined in "common/interrupt.c"
+bool interrupt_check() { return true; }
+void interrupt_clear() { }
+void interrupt_disable_serial_rx(int fnbr) { }
+void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_addr) { }
 
 // Defined in "core/Commands.c"
 char DimUsed;
