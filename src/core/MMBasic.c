@@ -1073,7 +1073,7 @@ void *DoExpression(const char *p, int *t) {
     if(*t & T_NBR) return &f;
     if(*t & T_STR) return s;
 
-    error("Internal fault (sorry)");
+    error_throw(kInternalFault);
     return NULL;                                                    // to keep the compiler happy
 }
 
@@ -1336,7 +1336,7 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
             targ = TypeMask(tokentype(*tp));                            // set the type of the function (which might need to know this)
             tmp = targ;
             tokenfunction(*tp)();                                       // execute the function
-            if ((tmp & targ) == 0) error("Internal fault (sorry)");     // as a safety check the function must return a type the same as set in the header
+            if ((tmp & targ) == 0) error_throw(kInternalFault);         // as a safety check the function must return a type the same as set in the header
             t = targ;                                                   // save the type of the function
             f = fret; i64 = iret; s = sret;                             // save the result
         }
