@@ -45,10 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_INTERRUPT_H)
 #define MMB4L_INTERRUPT_H
 
+#include "graphics.h"
+#include "../Configuration.h"
+
 #include <stdbool.h>
 #include <stdint.h>
-
-#include "../Configuration.h"
 
 /** Initialises interrupts. */
 void interrupt_init(void);
@@ -110,5 +111,8 @@ bool interrupt_pause_needs_resuming(void);
 void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_addr);
 
 void interrupt_disable_serial_rx(int fnbr);
+
+/** Fires a window closed interrupt. */
+void interrupt_fire_window_close(MmSurfaceId id);
 
 #endif

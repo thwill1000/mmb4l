@@ -111,16 +111,34 @@ static void cmd_graphics_copy(const char *p) {
     if (FAILED(result)) error_throw(result);
 }
 
-/** GRAPHICS WINDOW id, x, y, width, height, scale */
+/** GRAPHICS WINDOW id, x, y, width, height [, scale] [, interrupt] */
 static void cmd_graphics_window(const char *p) {
-    getargs(&p, 11, ",");
-    if (argc != 9 && argc != 11) ERROR_ARGUMENT_COUNT;
-    int id = getint(argv[0], 0, GRAPHICS_MAX_ID);
-    int x = getint(argv[2], -1, WINDOW_MAX_X);
-    int y = getint(argv[4], -1, WINDOW_MAX_Y);
-    int width = getint(argv[6], 8, WINDOW_MAX_WIDTH);
-    int height = getint(argv[8], 8, WINDOW_MAX_HEIGHT);
-    int scale = argc == 11 ? getint(argv[10], 1, WINDOW_MAX_SCALE) : 1;
+    getargs(&p, 13, ",");
+    if (argc < 9 || argc > 13) ERROR_ARGUMENT_COUNT;
+    MMINTEGER id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+    MMINTEGER x = getint(argv[2], -1, WINDOW_MAX_X);
+    MMINTEGER y = getint(argv[4], -1, WINDOW_MAX_Y);
+    MMINTEGER width = getint(argv[6], 8, WINDOW_MAX_WIDTH);
+    MMINTEGER height = getint(argv[8], 8, WINDOW_MAX_HEIGHT);
+    MMINTEGER scale = argc == 11 ? getint(argv[10], 1, WINDOW_MAX_SCALE) : 1;
+    const char* interrupt_addr = argc == 13 ? GetIntAddress(argv[12]): NULL;
+    if (interrupt_addr) {
+        // Check interrupt is a SUB with the correct signature.
+        FunctionSignature *fn = (FunctionSignature *) GetTempMemory(sizeof(FunctionSignature));
+        const char *p2 = interrupt_addr;
+        const char *cached_line_ptr = CurrentLinePtr;
+        CurrentLinePtr = interrupt_addr; // So any error is reported on the correct line.
+        MmResult result = parse_fn_sig(&p2, fn);
+        if (FAILED(result)) error_throw(result);
+        CurrentLinePtr = cached_line_ptr;
+        if (fn->token != cmdSUB
+            || fn->num_params != 2
+            || !(fn->params[0].type & T_INT)
+            || !(fn->params[1].type & T_INT)
+            || fn->params[0].array
+            || fn->params[1].array) error_throw(kInvalidInterruptSignature);
+        ClearSpecificTempMemory(fn);
+    }
 
     // TODO width & height should be divisible by 8.
     // TODO check window has not already been created.
@@ -128,8 +146,8 @@ static void cmd_graphics_window(const char *p) {
     // printf("%d %d %d %d %d\n", id, x, y, width, height);
 
     char title[256];
-    sprintf(title, "MMB4L: %d", id);
-    MmResult result = graphics_window_create(id, x, y, width, height, scale, title);
+    sprintf(title, "MMB4L: %ld", id);
+    MmResult result = graphics_window_create(id, x, y, width, height, scale, title, interrupt_addr);
     if (FAILED(result)) error_throw(result);
 }
 

@@ -130,6 +130,7 @@ typedef struct {
     uint32_t* pixels;
     uint32_t height;
     uint32_t width;
+    const char *interrupt_addr;
 } MmSurface;
 
 extern MmSurface graphics_surfaces[];
@@ -140,6 +141,7 @@ extern uint32_t graphics_font;
 
 MmResult graphics_init();
 const char* graphics_last_error();
+MmSurfaceId graphics_find_window(uint32_t window_id);
 
 /** Redraws all 'dirty' windows (if the time is right). */
 void graphics_refresh_windows();
@@ -149,7 +151,7 @@ void graphics_term();
 
 MmResult graphics_buffer_create(MmSurfaceId id, uint32_t width, uint32_t height);
 MmResult graphics_window_create(MmSurfaceId id, int x, int y, uint32_t width, uint32_t height,
-                                uint32_t scale, const char *title);
+                                uint32_t scale, const char *title, const char *interrupt_addr);
 MmResult graphics_surface_destroy(MmSurfaceId id);
 MmResult graphics_surface_destroy_all();
 MmResult graphics_surface_write(MmSurfaceId id);

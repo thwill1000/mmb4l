@@ -15,6 +15,7 @@ extern "C" {
 #include "../tokentbl.h"
 #include "../vartbl.h"
 #include "../MMBasic.h"
+#include "../../common/graphics.h"
 #include "../../common/parse.h"
 #include "../../common/program.h"
 #include "../../common/gtest/test_helper.h"
@@ -28,6 +29,7 @@ char *CFunctionLibrary;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
+uint8_t mmb_exit_code = 0;
 int MMgetchar(void) { return 0; }
 void MMgetline(int filenbr, char *p) { }
 
@@ -43,6 +45,13 @@ size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "common/graphics.c"
 void graphics_term(void) { }
+MmResult graphics_surface_destroy(MmSurfaceId id) { return kOk; }
+
+// Defined in "common/interrupt.c"
+bool interrupt_check() { return true; }
+void interrupt_clear() { }
+void interrupt_disable_serial_rx(int fnbr) { }
+void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_addr) { }
 
 // Defined in "core/Commands.c"
 char DimUsed;
