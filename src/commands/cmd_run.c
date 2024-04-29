@@ -151,7 +151,8 @@ MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args) {
     // WARNING! do not clear 'run_args' at the start of this function,
     // its existing value may need to be evaluated to calculate its new value.
 
-    if (!*p) {
+    skipspace(p);
+    if (!*p || *p == '\'') {
         *run_args = '\0';
         return kOk;
     }
