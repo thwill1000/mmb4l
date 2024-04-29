@@ -293,3 +293,13 @@ TEST_F(CmdRunTest, ParseArgs_DoesNotOverrunBuffer) {
             "+ + + + + + + + ",
             m_run_args);
 }
+
+TEST_F(CmdRunTest, ParseArgs_GivenJustAComment) {
+    strcpy(inpbuf, "RUN'foo");
+    tokenise(1);
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+    EXPECT_STREQ("", m_filename);
+    EXPECT_STREQ("", m_run_args);
+}
