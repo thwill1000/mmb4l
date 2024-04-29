@@ -127,6 +127,7 @@ typedef enum {
     kUnexpectedCloseBracket,
     kInvalidArrayParameter,
     kTooManyParameters,
+    kInvalidInterruptSignature
 } MmResultCode;
 
 /**

@@ -153,6 +153,7 @@ const char *mmresult_to_string(MmResult result) {
         case kUnexpectedCloseBracket:     return "Unexpected close bracket";
         case kInvalidArrayParameter:      return "Invalid array parameter";
         case kTooManyParameters:          return "Too many parameters";
+        case kInvalidInterruptSignature:  return "Invalid interrupt signature";
         default:                          return "Unknown result code";
     }
 }

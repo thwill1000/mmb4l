@@ -14,6 +14,7 @@ extern "C" {
 
 #include "test_helper.h"
 #include "../error.h"
+#include "../graphics.h"
 #include "../memory.h"
 #include "../options.h"
 #include "../program.h"
@@ -33,6 +34,8 @@ char **FontTable;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
+uint8_t mmb_exit_code = 0;
+
 int MMgetchar(void) { return 0; }
 
 // Defined in "commands/cmd_read.c"
@@ -46,7 +49,14 @@ void console_set_title(const char *title) { }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "common/graphics.c"
-void graphics_term(void) { }
+MmResult graphics_term(void) { return kOk; }
+MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }
+
+// Defined in "common/interrupt.c"
+bool interrupt_check() { return true; }
+void interrupt_clear() { }
+void interrupt_disable_serial_rx(int fnbr) { }
+void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_addr) { }
 
 // Defined in "core/Commands.c"
 char DimUsed;
