@@ -49,7 +49,7 @@ void console_puts(const char *s) { }
 void file_close_all(void) { }
 
 // Defined in "common/graphics.c"
-void graphics_term(void) { }
+MmResult graphics_term(void) { return kOk; }
 
 // Defined in "common/interrupt.c"
 bool interrupt_check(void) { return false; }

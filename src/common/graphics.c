@@ -127,6 +127,16 @@ MmResult graphics_term() {
     return result;
 }
 
+MmSurfaceId graphics_find_window(uint32_t window_id) {
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        if (graphics_surfaces[id].type == kGraphicsWindow
+                && SDL_GetWindowID(graphics_surfaces[id].window) == window_id) {
+            return id;
+        }
+    }
+    return -1;
+}
+
 void graphics_refresh_windows() {
     // if (SDL_GetTicks64() > frameEnd) {
     if (SDL_GetTicks() > frameEnd) {
@@ -168,7 +178,7 @@ MmResult graphics_buffer_create(MmSurfaceId id, int width, int height) {
 }
 
 MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int height, int scale,
-                                const char *title) {
+                                const char *title, const char *interrupt_addr) {
     MmResult result = graphics_init();
     if (FAILED(result)) return result;
 
@@ -210,6 +220,7 @@ MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int hei
     s->pixels = calloc(width * height, sizeof(uint32_t));
     s->height = height;
     s->width = width;
+    s->interrupt_addr = interrupt_addr;
 
     return kOk;
 }
@@ -1234,7 +1245,7 @@ static MmResult graphics_simulate_cmm2(uint8_t mode) {
         // Create window for page 0.
         char title[32];
         sprintf(title, "Colour Maximite 2 - Mode %d", mode);
-        graphics_window_create(0, -1, -1, mode_def->width, mode_def->height, 10, title);
+        graphics_window_create(0, -1, -1, mode_def->width, mode_def->height, 10, title, NULL);
     }
     if (SUCCEEDED(result)) {
         // Create buffers for remaining pages.
@@ -1258,7 +1269,7 @@ static MmResult graphics_simulate_gamemite(uint8_t mode) {
 
     MmResult result = graphics_destroy_surfaces_0_to_63();
     if (SUCCEEDED(result)) {
-        result = graphics_window_create(0, -1, -1, 320, 240, 10, "Game*Mite");
+        result = graphics_window_create(0, -1, -1, 320, 240, 10, "Game*Mite", NULL);
     }
     if (SUCCEEDED(result)) {
         result = graphics_surface_write(0);
@@ -1279,7 +1290,8 @@ static MmResult graphics_simulate_picomite_vga(uint8_t mode) {
     if (SUCCEEDED(result)) {
         char title[32];
         sprintf(title, "PicoMiteVGA - Mode %d", mode);
-        result = graphics_window_create(0, -1, -1, mode_def->width, mode_def->height, 10, title);
+        result = graphics_window_create(0, -1, -1, mode_def->width, mode_def->height, 10, title,
+                                        NULL);
     }
     if (SUCCEEDED(result)) {
         result = graphics_buffer_create(GRAPHICS_SURFACE_N, mode_def->width, mode_def->height);

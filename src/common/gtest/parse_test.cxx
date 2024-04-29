@@ -44,8 +44,14 @@ void console_set_title(const char *title) { }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "common/graphics.c"
-void graphics_term(void) { }
-MmResult graphics_surface_destroy(MmSurfaceId id) { return kOk; }
+MmResult graphics_term(void) { return kOk; }
+MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }
+
+// Defined in "common/interrupt.c"
+bool interrupt_check() { return true; }
+void interrupt_clear() { }
+void interrupt_disable_serial_rx(int fnbr) { }
+void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_addr) { }
 
 // Defined in "core/Commands.c"
 char DimUsed;

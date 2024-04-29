@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmb4l.h"
 #include "console.h"
 #include "error.h"
+#include "exit_codes.h"
 #include "interrupt.h"
 #include "mmtime.h"
 #include "serial.h"
@@ -68,6 +69,7 @@ typedef struct {
     const char *interrupt_addr;
 } SerialRxStruct;
 
+static char DUMMY_IRETURN[3]; // Dummy IRETURN call.
 static int interrupt_count = 0;
 static const char *interrupt_any_key_addr = NULL;
 static bool interrupt_pause_flag = false;
@@ -78,9 +80,13 @@ static const char *interrupt_specific_key_addr = NULL;
 static TickStruct interrupt_ticks[NBRSETTICKS + 1];
 static SerialRxStruct interrupt_serial_rx[MAXOPENFILES + 1];
 static ErrorState interrupt_error_state;
+static MmSurfaceId interrupt_window_close_id;
 
 void interrupt_init() {
     interrupt_clear();
+    char *p = DUMMY_IRETURN;
+    commandtbl_encode(&p, cmdIRET);
+    *p = '\0';
 }
 
 void interrupt_clear() {
@@ -100,6 +106,7 @@ void interrupt_clear() {
         interrupt_serial_rx[i].count = 0;
         interrupt_serial_rx[i].interrupt_addr = NULL;
     }
+    interrupt_window_close_id = -1;
 }
 
 bool interrupt_running() {
@@ -126,6 +133,61 @@ static int handle_interrupt(const char *interrupt_address) {
     }
 
     nextstmt = interrupt_address;                                   // the next command will be in the interrupt routine
+    return true;
+}
+
+static int handle_window_interrupt() {
+    MmSurfaceId window_id = interrupt_window_close_id;
+    interrupt_window_close_id = -1; // Clear the interrupt.
+    interrupt_count--;
+
+    if (!graphics_surface_exists(window_id)) error_throw(kInternalFault);
+    MmSurface *window = &graphics_surfaces[window_id];
+
+    if (!window->interrupt_addr) {
+        (void) graphics_surface_destroy(window);
+        mmb_exit_code = EX_OK;
+        longjmp(mark, JMP_END);
+    }
+
+    // Get interrupt SUB signature.
+    // It should already have been validated when the window was created.
+    FunctionSignature *fn = (FunctionSignature *) GetTempMemory(sizeof(FunctionSignature));
+    const char *p2 = window->interrupt_addr;
+    const char *cached_line_ptr = CurrentLinePtr;
+    CurrentLinePtr = window->interrupt_addr; // So any error is reported on the correct line.
+    MmResult result = parse_fn_sig(&p2, fn);
+    if (FAILED(result)) error_throw(result);
+    CurrentLinePtr = cached_line_ptr;
+
+    // Setup stack and return state.
+    LocalIndex++;                                     // IRETURN will decrement this.
+    mmb_error_state_ptr = &interrupt_error_state;     // Swap to the interrupt error state
+    error_init(mmb_error_state_ptr);                  //   and clear it
+    interrupt_return_stmt = nextstmt;                 //   for when IRETURN is executed
+    if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_SUBS;
+    errorstack[gosubindex] = CurrentLinePtr;
+    gosubstack[gosubindex++] = DUMMY_IRETURN;         // Return from the subroutine to the dummy IRETURN command.
+    LocalIndex++;                                     // Return from the subroutine will decrement LocalIndex.
+
+    // Setup local variables corresponding to parameters.
+    int var_idx[2];
+    char name[MAXVARLEN + 1];
+    for (uint8_t i = 0; i < 2; ++i) {
+        const char *p = fn->addr + fn->params[i].name_offset;
+        result = parse_name(&p, name);
+        if (FAILED(result)) error_throw(result);
+        result = vartbl_add(name, fn->params[i].type, LocalIndex, NULL, 0, &var_idx[i]);
+        if (FAILED(result)) error_throw(result);
+    }
+    vartbl[var_idx[0]].val.i = window_id;
+    vartbl[var_idx[1]].val.i = 1; // event_id
+
+    // Set the next command to be the body of the interrupt SUB.
+    const char *interrupt_addr = window->interrupt_addr;
+    skipelement(interrupt_addr);
+    nextstmt = interrupt_addr;
+
     return true;
 }
 
@@ -173,6 +235,9 @@ bool interrupt_check(void) {
             return handle_interrupt(entry->interrupt_addr);
         }
     }
+
+    // Check for window interrupts.
+    if (interrupt_window_close_id != -1) handle_window_interrupt();
 
     return false;
 }
@@ -276,5 +341,12 @@ void interrupt_disable_serial_rx(int fnbr) {
         interrupt_serial_rx[fnbr].count = 0;
         interrupt_serial_rx[fnbr].interrupt_addr = NULL;
         interrupt_count--;
+    }
+}
+
+void interrupt_fire_window_close(MmSurfaceId id) {
+    if (interrupt_window_close_id == -1) {
+        interrupt_count++;
+        interrupt_window_close_id = id;
     }
 }

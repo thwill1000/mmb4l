@@ -129,6 +129,7 @@ typedef enum {
     kUnexpectedCloseBracket,
     kInvalidArrayParameter,
     kTooManyParameters,
+    kInvalidInterruptSignature
 } MmResultCode;
 
 #if !defined(STRINGSIZE)
