@@ -237,17 +237,12 @@ add_executable(
   src/common/gtest/cmdline_test.cxx
 )
 
-target_include_directories(test_cmdline PUBLIC
-  /usr/include/SDL2
-)
-
 target_link_libraries(
   test_cmdline
   gtest_main
   gmock
   gmock_main
   ${GCOV_LINK_LIBRARY}
-  SDL2
 )
 
 gtest_discover_tests(test_cmdline)
@@ -280,7 +275,6 @@ target_link_libraries(
   gmock
   gmock_main
   ${GCOV_LINK_LIBRARY}
-  SDL2
 )
 
 gtest_discover_tests(test_cmd_do)
