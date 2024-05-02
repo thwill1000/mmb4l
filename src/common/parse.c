@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 parse.c
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "console.h"
 #include "cstring.h"
 #include "utility.h"
+#include "../core/tokentbl.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -386,4 +387,180 @@ MmResult parse_transform_input_buffer(char *input) {
         default:
             return kOk;
     }
+}
+
+static MmResult parse_skip_name(const char **p, uint8_t *len) {
+    if (!isnamestart(**p)) return kInvalidName;
+    *len = 1;
+    (*p)++;
+    while (isnamechar(**p)) {
+        (*p)++;
+        (*len)++;
+    }
+    return *len > MAXVARLEN ? kNameTooLong : kOk;
+}
+
+MmResult parse_implied_type(const char **p, uint8_t *type) {
+    const char *tp = NULL;
+    if ((tp = checkstring(*p, "INTEGER")) != NULL) {
+        *type = T_INT | T_IMPLIED;
+    } else if ((tp = checkstring(*p, "STRING")) != NULL) {
+        *type = T_STR | T_IMPLIED;
+    } else if ((tp = checkstring(*p, "FLOAT")) != NULL) {
+        *type = T_NBR | T_IMPLIED;
+    } else {
+        return kMissingType;
+    }
+    if (tp) *p = tp;
+    return kOk;
+}
+
+MmResult parse_explicit_type(const char **p, uint8_t *type) {
+    switch (**p) {
+        case '%':
+            *type = T_INT;
+            (*p)++;
+            break;
+        case '$':
+            *type = T_STR;
+            (*p)++;
+            break;
+        case '!':
+            *type = T_NBR;
+            (*p)++;
+            break;
+        default:
+            *type = T_NOTYPE;
+            break;
+    }
+    return kOk;
+}
+
+MmResult parse_fn_sig(const char **p, FunctionSignature *signature) {
+    int bracket_count = 0;
+    MmResult result = kOk;
+
+    // Start from a blank slate.
+    memset(signature, 0, sizeof(FunctionSignature));
+
+    // Parse FUNCTION/SUB command token.
+    skipspace((*p)); // Double bracket is necessary for correct macro expansion.
+    signature->addr = *p;
+    signature->token = commandtbl_decode(*p);
+    if (signature->token != cmdSUB && signature->token != cmdFUN) return kInternalFault;
+    *p += sizeof(CommandToken); // Jump over the command token.
+
+    // Parse FUNCTION/SUB name.
+    skipspace((*p));
+    signature->name_offset = *p - signature->addr;
+    result = parse_skip_name(p, &signature->name_len);
+    if (FAILED(result)) return result;
+
+    // Parse %, $, ! explicit type.
+    result = parse_explicit_type(p, &signature->type);
+    if (FAILED(result)) return result;
+    if (signature->token == cmdSUB && signature->type) return kInvalidSubDefinition;
+    if ((**p != '\0') && (**p != '\'') && (**p != ' ') && (**p != '(')) {
+        return signature->token == cmdSUB ? kInvalidSubDefinition : kInvalidFunctionDefinition;
+    }
+
+    // Parse open bracket, obligatory for FUNCTION, optional for SUB.
+    skipspace((*p));
+    if (**p == '(') {
+        bracket_count++;
+        (*p)++; // Jump over the open bracket.
+    } else if (signature->token == cmdFUN) {
+        return kMissingOpenBracket;
+    }
+
+    // Parse comma separated parameter list.
+    skipspace((*p));
+    if ((**p != '\0') && (**p != '\'') && (**p != ')')) {
+        for (;;) {
+            if (signature->num_params == MAX_PARAMETERS) return kTooManyParameters;
+
+            ParameterSignature *param = &signature->params[signature->num_params];
+
+            // Parse parameter name.
+            skipspace((*p));
+            param->name_offset = *p - signature->addr;
+            result = parse_skip_name(p, &param->name_len);
+            if (FAILED(result)) return result;
+
+            // Parse %, $, ! explicit type.
+            result = parse_explicit_type(p, &(param->type));
+            if (FAILED(result)) return result;
+
+            // Parse array parameter.
+            skipspace((*p));
+            if (**p == '(') {
+                (*p)++; // Jump over the open bracket.
+                skipspace((*p));
+                if (**p != ')') return kInvalidArrayParameter;
+                (*p)++; // Jump over the closing bracket.
+                skipspace((*p));
+                param->array = true;
+            }
+
+            // Parse optional trailing AS FLOAT|INTEGER|STRING.
+            if (**p == tokenAS) {
+                (*p)++; // Jump over the AS token.
+                if (param->type) return kTypeSpecifiedTwice;
+                skipspace((*p));
+                result = parse_implied_type(p, &(param->type));
+                if (FAILED(result)) return result;
+            }
+
+            // If no parameter type has been specified then use the default type.
+            if (param->type == T_NOTYPE) {
+                if (mmb_options.default_type == T_NOTYPE) {
+                    return kMissingType;
+                } else {
+                    param->type = mmb_options.default_type;
+                }
+            }
+
+            signature->num_params++;
+
+            // Are there any more parameters?
+            skipspace((*p));
+            if (**p == ',') {
+                (*p)++; // Jump over the comma.
+            } else {
+                break;
+            }
+        }
+    }
+
+    // Parse optional trailing AS FLOAT|INTEGER|STRING.
+    if (**p == ')') {
+        if (bracket_count == 0) return kUnexpectedCloseBracket;
+        bracket_count--;
+        (*p)++; // Jump over the closing bracket.
+        skipspace((*p));
+        if (**p == tokenAS) {
+            if (signature->token == cmdSUB) return kInvalidSubDefinition;
+            if (signature->type) return kTypeSpecifiedTwice;
+            (*p)++; // Jump over the AS token.
+            skipspace((*p));
+            result = parse_implied_type(p, &signature->type);
+            if (FAILED(result)) return result;
+        }
+    }
+
+    if (bracket_count != 0) return kMissingCloseBracket;
+
+    skipspace((*p));
+    if (**p != '\0' && **p != '\'') return kUnexpectedText;
+
+    // If no function type has been specified then use the default type.
+    if (signature->token == cmdFUN && signature->type == T_NOTYPE) {
+        if (mmb_options.default_type == T_NOTYPE) {
+            return kMissingType;
+        } else {
+            signature->type = mmb_options.default_type;
+        }
+    }
+
+    return result;
 }

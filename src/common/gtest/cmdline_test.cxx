@@ -10,6 +10,7 @@ extern "C" {
 #include "../cmdline.h"
 #include "../cstring.h"
 #include "../parse.h"
+#include "../options.h"
 
 int LocalIndex = 0;
 
@@ -17,6 +18,16 @@ void error_throw(MmResult error) { }
 void error_throw_ex(MmResult error, char *msg, ...) { }
 long long int getinteger(char *p) { return 0; }
 int getint(char *p, int min, int max) { return 0; }
+
+// Defined in "main.c"
+Options mmb_options;
+
+// Defined in "commandtbl.c"
+CommandToken cmdFUN = 0x0;
+CommandToken cmdSUB = 0x0;
+
+// Defined in "tokentbl.c"
+char tokenAS = 0x0;
 
 }
 
