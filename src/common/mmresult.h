@@ -116,6 +116,15 @@ typedef enum {
     kInvalidFlag,
     kUnexpectedText,
     kCannotBlitCloseWindow,
+    kMissingType,
+    kTypeSpecifiedTwice,
+    kInvalidFunctionDefinition,
+    kInvalidSubDefinition,
+    kMissingCloseBracket,
+    kMissingOpenBracket,
+    kUnexpectedCloseBracket,
+    kInvalidArrayParameter,
+    kTooManyParameters,
 } MmResultCode;
 
 /**
