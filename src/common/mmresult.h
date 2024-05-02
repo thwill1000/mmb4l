@@ -122,6 +122,15 @@ typedef enum {
     kInvalidMode,
     kInvalidFlag,
     kCannotBlitCloseWindow,
+    kMissingType,
+    kTypeSpecifiedTwice,
+    kInvalidFunctionDefinition,
+    kInvalidSubDefinition,
+    kMissingCloseBracket,
+    kMissingOpenBracket,
+    kUnexpectedCloseBracket,
+    kInvalidArrayParameter,
+    kTooManyParameters,
 } MmResultCode;
 
 #if !defined(STRINGSIZE)

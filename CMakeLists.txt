@@ -402,12 +402,17 @@ add_executable(
   test_parse
   src/common/cstring.c
   src/common/file.c
+  src/common/interrupt.c
   src/common/memory.c
+  src/common/mmgetline.c
   src/common/mmresult.c
+  src/common/mmtime.c
   src/common/parse.c
   src/common/path.c
+  src/common/program.c
   src/common/rx_buf.c
   src/common/serial.c
+  src/common/utility.c
   src/common/gtest/parse_test.cxx
   src/common/gtest/test_helper.c
   src/core/commandtbl.c

@@ -10,6 +10,7 @@ extern "C" {
 #include "../cmdline.h"
 #include "../cstring.h"
 #include "../parse.h"
+#include "../options.h"
 
 int LocalIndex = 0;
 
@@ -24,9 +25,15 @@ Options mmb_options;
 // Defined in "common/graphics.c"
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES];
 
+// Defined in "core/commandtbl.c"
+CommandToken cmdFUN = 0x0;
+CommandToken cmdSUB = 0x0;
+
+// Defined in "core/tokentbl.c"
+char tokenAS = 0x0;
+
 // Defined in "core/MMBasic.c"
 char *getCstring(const char *p) { return NULL; }
-
 }
 
 TEST(CmdLineTest, Parse_GivenNoAdditionalArguments) {

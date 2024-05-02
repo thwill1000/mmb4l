@@ -152,6 +152,15 @@ const char *mmresult_to_string(MmResult result) {
         case kInvalidMode:                return "Invalid graphics mode for current device";
         case kInvalidFlag:                return "Invalid flag";
         case kCannotBlitCloseWindow:      return "Use GRAPHICS DESTROY to close windows";
+        case kMissingType:                return "Missing type";
+        case kTypeSpecifiedTwice:         return "Type specified twice";
+        case kInvalidFunctionDefinition:  return "Invalid function definition";
+        case kInvalidSubDefinition:       return "Invalid subroutine definition";
+        case kMissingCloseBracket:        return "Missing close bracket";
+        case kMissingOpenBracket:         return "Missing open bracket";
+        case kUnexpectedCloseBracket:     return "Unexpected close bracket";
+        case kInvalidArrayParameter:      return "Invalid array parameter";
+        case kTooManyParameters:          return "Too many parameters";
         default:                          return "Unknown result code";
     }
 }
