@@ -11,6 +11,7 @@ extern "C" {
 #include "../cstring.h"
 #include "../error.h"
 #include "../graphics.h"
+#include "../options.h"
 #include "../memory.h"
 #include "../parse.h"
 #include "../utility.h"
@@ -48,12 +49,6 @@ void font_clear_user_defined(void) { }
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES];
 MmResult graphics_term(void) { return kOk; }
 
-// Defined in "common/interrupt.c"
-bool interrupt_check() { return true; }
-void interrupt_clear() { }
-void interrupt_disable_serial_rx(int fnbr) {}
-void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_addr) {}
-
 // Defined in "core/Commands.c"
 char DimUsed;
 int doindex;
@@ -69,6 +64,29 @@ int TraceOn;
 void CheckAbort(void) { }
 void ListNewLine(int *ListCnt, int all) { }
 
+}
+
+bool operator==(const ParameterSignature& lhs, const ParameterSignature& rhs)
+{
+    return lhs.name_offset == rhs.name_offset
+        && lhs.name_len == rhs.name_len
+        && lhs.type == rhs.type
+        && lhs.array == rhs.array;
+}
+
+bool operator==(const FunctionSignature& lhs, const FunctionSignature& rhs)
+{
+    bool equal = lhs.addr == rhs.addr
+        && lhs.token == rhs.token
+        && lhs.name_offset == rhs.name_offset
+        && lhs.name_len == rhs.name_len
+        && lhs.type == rhs.type
+        && lhs.num_params == rhs.num_params;
+    for (size_t i = 0; i < 32; ++i) {
+        if (!equal) break;
+        equal = lhs.params[i] == rhs.params[i];
+    }
+    return equal;
 }
 
 class ParseTest : public ::testing::Test {
@@ -467,6 +485,651 @@ TEST_F(ParseTest, CheckString_DoesNotMakePartialMatches) {
     EXPECT_EQ(NULL, actual); // Not found.
 }
 
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedIntegerType_Succeeds) {
+    tokenise_and_append("FUNCTION foo() AS INTEGER");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_INT | T_IMPLIED,
+        .num_params = 0
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(18, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedStringType_Succeeds) {
+    tokenise_and_append("FUNCTION foo() AS STRING");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_STR | T_IMPLIED,
+        .num_params = 0
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(17, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedFloatType_Succeeds) {
+    tokenise_and_append("FUNCTION foo() AS FLOAT");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_NBR | T_IMPLIED,
+        .num_params = 0
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(16, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExplicitIntegerType_Succeeds) {
+    tokenise_and_append("FUNCTION foo%()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_INT,
+        .num_params = 0
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(9, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExplicitStringType_Succeeds) {
+    tokenise_and_append("FUNCTION foo$()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_STR,
+        .num_params = 0
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(9, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExplicitFloatType_Succeeds) {
+    tokenise_and_append("FUNCTION foo!()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_NBR,
+        .num_params = 0
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(9, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedIntegerParameter_Succeeds) {
+    tokenise_and_append("FUNCTION foo%(a As Integer)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_INT,
+        .num_params = 1
+    };
+    expected.params[0] = {
+        .name_offset = 7,
+        .name_len = 1,
+        .type = T_IMPLIED | T_INT,
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(20, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithNoType_AndDefaultType_Succeeds) {
+    mmb_options.default_type = T_INT;
+    tokenise_and_append("FUNCTION foo()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_INT,
+        .num_params = 0
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(8, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExplicitStringParameter_Succeeds) {
+    tokenise_and_append("FUNCTION foo%(a$)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_INT,
+        .num_params = 1
+    };
+    expected.params[0] = {
+        .name_offset = 7,
+        .name_len = 1,
+        .type = T_STR,
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(11, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithParameterWithNoType_AndDefaultType_Succeeds) {
+    mmb_options.default_type = T_STR;
+    tokenise_and_append("FUNCTION foo%(a)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_INT,
+        .num_params = 1
+    };
+    expected.params[0] = {
+        .name_offset = 7,
+        .name_len = 1,
+        .type = T_STR,
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(10, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithTwoParameters_Succeeds) {
+    tokenise_and_append("FUNCTION foo%(a As Integer, bar As Float)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_INT,
+        .num_params = 2
+    };
+    expected.params[0] = {
+        .name_offset = 7,
+        .name_len = 1,
+        .type = T_IMPLIED | T_INT,
+    };
+    expected.params[1] = {
+        .name_offset = 20,
+        .name_len = 3,
+        .type = T_IMPLIED | T_NBR,
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(33, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithArrayParameters_Succeeds) {
+    tokenise_and_append("FUNCTION foo%(a%() , bc( ) As Float, def () As String)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_INT,
+        .num_params = 3
+    };
+    expected.params[0] = {
+        .name_offset = 7,
+        .name_len = 1,
+        .type = T_INT,
+        .array = true,
+    };
+    expected.params[1] = {
+        .name_offset = 14,
+        .name_len = 2,
+        .type = T_IMPLIED | T_NBR,
+        .array = true,
+    };
+    expected.params[2] = {
+        .name_offset = 29,
+        .name_len = 3,
+        .type = T_IMPLIED | T_STR,
+        .array = true,
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(45, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExtraWhitespace_Succeeds) {
+    tokenise_and_append("   FUNCTION   foo!   (   a   As   String   ,   b%   )   ");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 4,
+        .token = cmdFUN,
+        .name_offset = 4,
+        .name_len = 3,
+        .type = T_NBR,
+        .num_params = 2
+    };
+    expected.params[0] = {
+        .name_offset = 12,
+        .name_len = 1,
+        .type = T_IMPLIED | T_STR,
+    };
+    expected.params[1] = {
+        .name_offset = 33,
+        .name_len = 1,
+        .type = T_INT,
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(43, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_With32CharacterName_Succeeds) {
+    tokenise_and_append("FUNCTION a2345678901234567890123456789012!()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 32,
+        .type = T_NBR,
+        .num_params = 0
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(38, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithParameterWith32CharacterName_Succeeds) {
+    tokenise_and_append("FUNCTION foo%(a2345678901234567890123456789012!)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdFUN,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_INT,
+        .num_params = 1
+    };
+    expected.params[0] = {
+        .name_offset = 7,
+        .name_len = 32,
+        .type = T_NBR,
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(42, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_With32Parameters_Succeeds) {
+    tokenise_and_append("FUNCTION foo!(a1$,a2$,a3$,a4$,a5$,a6$,a7$,a8$,a9$,a10$,a11$,a12$,a13$,"
+        "a14$,a15$,a16$,a17$,a18$,a19$,a20$,a21$,a22$,a23$,a24$,a25$,a26$,a27$,a28$,a29$,a30$,a31$,"
+        "a32$)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+    EXPECT_EQ(32, actual.num_params);
+    EXPECT_EQ(159, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithInvalidName_Fails) {
+    tokenise_and_append("FUNCTION foo%bar()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kInvalidFunctionDefinition, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithNoName_Fails) {
+    {
+        tokenise_and_append("FUNCTION");
+
+        FunctionSignature actual = { 0 };
+        const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+        EXPECT_EQ(kInvalidName, parse_fn_sig(&p, &actual));
+    }
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("FUNCTION (a AS STRING)");
+
+        FunctionSignature actual = { 0 };
+        const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+        EXPECT_EQ(kInvalidName, parse_fn_sig(&p, &actual));
+    }
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_With33CharacterName_Fails) {
+    tokenise_and_append("FUNCTION a23456789012345678901234567890123%()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kNameTooLong, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithParameterWith33CharacterName_Fails) {
+    tokenise_and_append("FUNCTION foo!(a23456789012345678901234567890123%)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kNameTooLong, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExplicitAndImpliedType_Fails) {
+    tokenise_and_append("FUNCTION foo%() AS INTEGER");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kTypeSpecifiedTwice, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithNoType_AndNoDefaultType_Fails) {
+    mmb_options.default_type = T_NOTYPE;
+    tokenise_and_append("FUNCTION foo()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kMissingType, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithTrailingAs_Fails) {
+    tokenise_and_append("FUNCTION foo() AS");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kMissingType, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithUnknownType_Fails) {
+    tokenise_and_append("FUNCTION foo() AS wombat");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kMissingType, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithParameterWithExplicitAndImpliedType_Fails) {
+    tokenise_and_append("FUNCTION foo%(a$ As String)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kTypeSpecifiedTwice, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithParameterWithNoType_AndNoDefaultType_Fails) {
+    mmb_options.default_type = T_NOTYPE;
+    tokenise_and_append("FUNCTION foo%(a)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kMissingType, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithSpaceBeforeExplicitType_Fails) {
+    tokenise_and_append("FUNCTION foo !(a As String)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kMissingOpenBracket, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithParameterWithSpaceBeforeExplicitType_Fails) {
+    tokenise_and_append("FUNCTION foo!(a %)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kMissingCloseBracket, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithInvalidArrayParameter_Fails) {
+    tokenise_and_append("FUNCTION foo%(a%(bar))");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kInvalidArrayParameter, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithUnclosedBracket_Fails) {
+    tokenise_and_append("FUNCTION foo%(a As String");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kMissingCloseBracket, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithUnopenedBracket_Fails) {
+    tokenise_and_append("FUNCTION foo! a As String)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kMissingOpenBracket, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_WithTrailingGarbage_Fails) {
+    tokenise_and_append("FUNCTION foo!(a As String) garbage");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kUnexpectedText, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenFunction_With33Parameters_Fails) {
+    tokenise_and_append("FUNCTION foo!(a1$,a2$,a3$,a4$,a5$,a6$,a7$,a8$,a9$,a10$,a11$,a12$,a13$,"
+        "a14$,a15$,a16$,a17$,a18$,a19$,a20$,a21$,a22$,a23$,a24$,a25$,a26$,a27$,a28$,a29$,a30$,a31$,"
+        "a32$,a33$)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kTooManyParameters, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenSub_WithZeroParameters_Succeeds) {
+    tokenise_and_append("SUB foo()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdSUB,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_NOTYPE,
+        .num_params = 0
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(8, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenSub_WithZeroParameters_AndNoBrackets_Succeeds) {
+    tokenise_and_append("SUB foo");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdSUB,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_NOTYPE,
+        .num_params = 0
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(6, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenSub_WithImpliedIntegerParameter_Succeeds) {
+    tokenise_and_append("SUB foo(a As Integer)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kOk, parse_fn_sig(&p, &actual));
+
+    FunctionSignature expected = {
+        .addr = ProgMemory + 1,
+        .token = cmdSUB,
+        .name_offset = 2,
+        .name_len = 3,
+        .type = T_NOTYPE,
+        .num_params = 1
+    };
+    expected.params[0] = {
+        .name_offset = 6,
+        .name_len = 1,
+        .type = T_IMPLIED | T_INT,
+    };
+    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(19, p - ProgMemory);
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenSub_WithInvalidName_Fails) {
+    tokenise_and_append("SUB foo-bar()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kInvalidSubDefinition, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenSub_WithNoName_Fails) {
+    {
+        tokenise_and_append("SUB");
+
+        FunctionSignature actual = { 0 };
+        const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+        EXPECT_EQ(kInvalidName, parse_fn_sig(&p, &actual));
+    }
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("SUB (a AS STRING)");
+
+        FunctionSignature actual = { 0 };
+        const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+        EXPECT_EQ(kInvalidName, parse_fn_sig(&p, &actual));
+    }
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenSub_WithImpliedType_Fails) {
+    tokenise_and_append("SUB foo() AS INTEGER");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kInvalidSubDefinition, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenSub_WithExplicitType_Fails) {
+    tokenise_and_append("SUB foo!()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kInvalidSubDefinition, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenSub_WithUnclosedBracket_Fails) {
+    tokenise_and_append("SUB foo(a As String");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kMissingCloseBracket, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenSub_WithUnopenedBracket_Fails) {
+    tokenise_and_append("SUB foo a As String)");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kUnexpectedCloseBracket, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenSub_WithTrailingGarbage_Fails) {
+    tokenise_and_append("SUB foo a%, b!, c$ garbage");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kUnexpectedText, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseFnSig_GivenNotAFunctionOrSub_Fails) {
+    tokenise_and_append("PRINT foo()");
+
+    FunctionSignature actual = { 0 };
+    const char *p = ProgMemory + 1; // Skip T_NEWLINE.
+    EXPECT_EQ(kInternalFault, parse_fn_sig(&p, &actual));
+}
+
 TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndNonPicoMite) {
     graphics_surfaces[0].type = kGraphicsBuffer;
     graphics_surfaces[1].type = kGraphicsBuffer;
@@ -580,8 +1243,7 @@ TEST_F(ParseTest, ParsePage_GivenUnknownNonStringPageId_AndPicomite) {
     GTEST_SKIP() << "Segfaults due to longjmp() error handling";
     mmb_options.simulate = kSimulatePicoMiteVga;
     tokenise_and_append("PAGE WRITE 1");
- //    printf("### %s\n", mmresult_to_string(258));
-
+ 
     const char *p = ProgMemory + 9;
     MmSurfaceId page_id = -1;
     EXPECT_EQ(kSyntax, parse_page(p, &page_id));

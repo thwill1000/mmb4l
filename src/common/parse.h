@@ -47,8 +47,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "graphics.h"
 #include "mmresult.h"
+#include "../core/commandtbl.h"
 
 #include <stdbool.h>
+
+#define  MAX_PARAMETERS  32
+
+typedef struct {
+    uint8_t name_offset;
+    uint8_t name_len;
+    uint8_t type;
+    bool    array;
+} ParameterSignature;
+
+typedef struct {
+    const char *addr;
+    CommandToken token;
+    uint8_t name_offset;
+    uint8_t name_len;
+    uint8_t type;
+    uint8_t num_params;
+    ParameterSignature params[MAX_PARAMETERS];
+} FunctionSignature;
 
 bool parse_is_end(const char *p);
 
@@ -58,7 +78,7 @@ bool parse_is_end(const char *p);
  * Leading whitespace is skipped and the string must be terminated by a non-name character.
  *
  * @param[in] p  Parse from this pointer.
- * @return       If found, then poiter to the next non-space character after the match,
+ * @return       If found, then pointer to the next non-space character after the match,
  *               otherwise NULL.
  */
 const char *parse_check_string(const char *p, const char *tkn);
@@ -93,6 +113,17 @@ MmResult parse_name(const char **p, char *name);
  * @param[in,out] The buffer to transform, usually called with the global 'inpbuf'.
  */
 MmResult parse_transform_input_buffer(char *input);
+
+/**
+ * @brief Parses a SUB/FUNCTION signature from tokenised code ignoring any leading space
+ *        characters.
+ *
+ * @param[in,out] p          Parse from this pointer.
+ *                           On exit points at the character following the signature.
+ * @param[out]    signature  Structure to store the signature in.
+ * @return                   kOk on success.
+ */
+MmResult parse_fn_sig(const char **p, FunctionSignature *signature);
 
 /**
  * Parses a page/surface ID.
