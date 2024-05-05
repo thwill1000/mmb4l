@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-mmresult.h
+events.h
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,69 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMRESULT_H)
-#define MMRESULT_H
+#if !defined(MMBASIC_EVENTS_H)
+#define MMBASIC_EVENTS_H
 
-#include <errno.h>
-#include <stdint.h>
+#include "mmresult.h"
 
-// MmResult encompasses both the standard C errno in range 1 .. 255
-// plus MMBasic specific error codes.
+MmResult events_init();
+const char *events_last_error();
+void events_pump();
 
-typedef int32_t MmResult;
-
-typedef enum {
-    kOk                   = 0,
-    kFileNotFound         = ENOENT,
-    kPermissionDenied     = EACCES,
-    kFileExists           = EEXIST,
-    kNotADirectory        = ENOTDIR,
-    kIsADirectory         = EISDIR,
-    kFilenameTooLong      = ENAMETOOLONG,
-    kTooManySymbolicLinks = ELOOP,
-    kError                = 256,
-    kInternalFault,
-    kSyntax,
-    kArgumentCount,
-    kStringLength,
-    kStringTooLong,
-    kInvalidFormat,
-    kUnknownOption,
-    kInvalidBool,
-    kInvalidFloat,
-    kInvalidInt,
-    kInvalidString,
-    kInvalidValue,
-    kUnknownSystemCommand,
-    kNotPersistent,
-    kNameTooLong,
-    kOverflow,
-    kUnimplemented,
-    kFunctionNotFound,
-    kVariableNotFound,
-    kTooManyFunctions,
-    kTooManyVariables,
-    kDuplicateFunction,
-    kHashmapFull,
-    kInvalidName,
-    kInvalidArrayDimensions,
-    kFunctionTypeMismatch,
-    kInvalidCommandLine,
-    kTooManyDefines,
-    kOutOfMemory,
-    kLineTooLong,
-    kProgramTooLong,
-    kUnterminatedComment,
-    kNoCommentToTerminate,
-    kAudioApiError,
-    kEventsApiError,
-    kGamepadApiError,
-    kGraphicsApiError,
-} MmResultCode;
-
-/**
- * @brief Gets the string corresponding to a given result code.
- */
-const char *mmresult_to_string(MmResult result);
-
-#endif
+#endif // #if !defined(MMBASIC_EVENTS_H)
