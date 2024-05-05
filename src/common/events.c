@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-mmresult.h
+events.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,69 +42,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMRESULT_H)
-#define MMRESULT_H
+#include "events.h"
+#include "utility.h"
 
-#include <errno.h>
-#include <stdint.h>
+#include <stdbool.h>
 
-// MmResult encompasses both the standard C errno in range 1 .. 255
-// plus MMBasic specific error codes.
+#include <SDL.h>
 
-typedef int32_t MmResult;
+static const char* NO_ERROR = "";
+static bool events_initialised = false;
 
-typedef enum {
-    kOk                   = 0,
-    kFileNotFound         = ENOENT,
-    kPermissionDenied     = EACCES,
-    kFileExists           = EEXIST,
-    kNotADirectory        = ENOTDIR,
-    kIsADirectory         = EISDIR,
-    kFilenameTooLong      = ENAMETOOLONG,
-    kTooManySymbolicLinks = ELOOP,
-    kError                = 256,
-    kInternalFault,
-    kSyntax,
-    kArgumentCount,
-    kStringLength,
-    kStringTooLong,
-    kInvalidFormat,
-    kUnknownOption,
-    kInvalidBool,
-    kInvalidFloat,
-    kInvalidInt,
-    kInvalidString,
-    kInvalidValue,
-    kUnknownSystemCommand,
-    kNotPersistent,
-    kNameTooLong,
-    kOverflow,
-    kUnimplemented,
-    kFunctionNotFound,
-    kVariableNotFound,
-    kTooManyFunctions,
-    kTooManyVariables,
-    kDuplicateFunction,
-    kHashmapFull,
-    kInvalidName,
-    kInvalidArrayDimensions,
-    kFunctionTypeMismatch,
-    kInvalidCommandLine,
-    kTooManyDefines,
-    kOutOfMemory,
-    kLineTooLong,
-    kProgramTooLong,
-    kUnterminatedComment,
-    kNoCommentToTerminate,
-    kAudioApiError,
-    kEventsApiError,
-    kGamepadApiError,
-    kGraphicsApiError,
-} MmResultCode;
+MmResult events_init() {
+    if (events_initialised) return kOk;
+    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER | SDL_INIT_VIDEO) < 0) {
+        return kEventsApiError;
+    }
+    events_initialised = true;
+    return kOk;
+}
 
-/**
- * @brief Gets the string corresponding to a given result code.
- */
-const char *mmresult_to_string(MmResult result);
+const char* events_last_error() {
+    const char* emsg = SDL_GetError();
+    return emsg && *emsg ? emsg : NO_ERROR;
+}
 
-#endif
+void events_pump() {
+    if (!events_initialised) return;
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) { }
+}
