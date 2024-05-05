@@ -57,6 +57,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_console.c
     src/commands/cmd_copy.c
     src/commands/cmd_cursor.c
+    src/commands/cmd_device.c
     src/commands/cmd_do.c
     src/commands/cmd_dummy.c
     src/commands/cmd_edit.c
@@ -120,6 +121,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_date.c
     src/functions/fun_datetime.c
     src/functions/fun_day.c
+    src/functions/fun_device.c
     src/functions/fun_dir.c
     src/functions/fun_eof.c
     src/functions/fun_epoch.c
@@ -262,6 +264,7 @@ add_executable(
   src/common/parse.c
   src/common/utility.c
   src/common/gtest/test_helper.c
+  src/common/gtest/stubs/gamepad_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
@@ -294,6 +297,7 @@ add_executable(
   src/common/parse.c
   src/common/utility.c
   src/common/gtest/test_helper.c
+  src/common/gtest/stubs/gamepad_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
@@ -353,6 +357,33 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_funtbl)
+
+################################################################################
+# test_gamepad
+################################################################################
+
+add_executable(
+  test_gamepad
+  src/common/cstring.c
+  src/common/events.c
+  src/common/gamepad.c
+  src/common/mmresult.c
+  src/common/gtest/gamepad_test.cxx
+  src/common/gtest/stubs/sdl2_stubs.c
+)
+
+target_include_directories(test_gamepad PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_gamepad
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_gamepad)
 
 ################################################################################
 # test_hash
@@ -418,6 +449,7 @@ add_executable(
   src/common/utility.c
   src/common/gtest/parse_test.cxx
   src/common/gtest/test_helper.c
+  src/common/gtest/stubs/gamepad_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
@@ -476,6 +508,7 @@ add_executable(
   src/common/utility.c
   src/common/gtest/program_test.cxx
   src/common/gtest/test_helper.c
+  src/common/gtest/stubs/gamepad_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
@@ -553,6 +586,7 @@ add_executable(
   src/common/serial.c
   src/common/utility.c
   src/common/gtest/test_helper.c
+  src/common/gtest/stubs/gamepad_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c

@@ -47,6 +47,9 @@ size_t console_write(const char *buf, size_t sz) { return 0; }
 MmResult graphics_term(void) { return kOk; }
 MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }
 
+// Defined in "common/fonttbl.c"
+void font_clear_user_defined() { }
+
 // Defined in "common/interrupt.c"
 bool interrupt_check() { return true; }
 void interrupt_clear() { }

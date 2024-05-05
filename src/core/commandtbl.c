@@ -82,6 +82,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Cursor",      T_CMD,              0, cmd_cursor   },
     { "Data",        T_CMD,              0, cmd_null     },
     { "DefineFont",  T_CMD,              0, cmd_cfunction },
+    { "Device",      T_CMD,              0, cmd_device   },
     { "Dim",         T_CMD,              0, cmd_dim      },
     { "Do",          T_CMD,              0, cmd_do       },
     { "Edit",        T_CMD,              0, cmd_edit     },

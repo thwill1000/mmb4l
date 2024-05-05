@@ -160,6 +160,9 @@ const char *mmresult_to_string(MmResult result) {
         case kInvalidArrayParameter:      return "Invalid array parameter";
         case kTooManyParameters:          return "Too many parameters";
         case kInvalidInterruptSignature:  return "Invalid interrupt signature";
+        case kGamepadNotFound:            return "Gamepad not found";
+        case kGamepadInvalidId:           return "Invalid gamepad ID";
+        case kGamepadNotOpen:             return "Gamepad not open";
         default:                          return "Unknown result code";
     }
 }

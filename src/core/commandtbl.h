@@ -90,6 +90,7 @@ void cmd_copy(void);
 void cmd_cursor(void);
 void cmd_dim(void);
 void cmd_do(void);
+void cmd_device(void);
 void cmd_dummy(void);
 void cmd_edit(void);
 void cmd_else(void);

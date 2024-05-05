@@ -83,12 +83,12 @@ void ListNewLine(int *ListCnt, int all) { }
 #define CMD_CSUB        "\x92\x80"
 #define CMD_DATA        "\x94\x80"
 #define CMD_DEFINEFONT  "\x95\x80"
-#define CMD_DIM         "\x96\x80"
-#define CMD_END         "\x9C\x80"
-#define CMD_LET         "\xB9\x80"
-#define CMD_MMDEBUG     "\xC5\x80"
-#define CMD_PRINT       "\xD1\x80"
-#define OP_EQUALS       "\xEC"
+#define CMD_DIM         "\x97\x80"
+#define CMD_END         "\x9D\x80"
+#define CMD_LET         "\xBA\x80"
+#define CMD_MMDEBUG     "\xC6\x80"
+#define CMD_PRINT       "\xD2\x80"
+#define OP_EQUALS       "\xED"
 
 #define EXPECT_PROGRAM_EQ(prog) \
     EXPECT_THAT(std::vector<char>(ProgMemory, ProgMemory + prog.length()), \
