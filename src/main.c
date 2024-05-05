@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/cmdline.h"
 #include "common/console.h"
 #include "common/cstring.h"
+#include "common/events.h"
 #include "common/exit_codes.h"
 #include "common/file.h"
 #include "common/interrupt.h"
@@ -401,6 +402,8 @@ static void perform_background_tasks() {
             serial_pump_input(i);
         }
     }
+
+    events_pump();
 }
 
 void CheckAbort(void) {

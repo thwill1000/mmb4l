@@ -140,13 +140,17 @@ set(MMB4L_OPERATORS_SOURCE_FILES
 )
 
 set(MMB4L_COMMON_SOURCE_FILES
+    src/common/audio.c
     src/common/cmdline.c
     src/common/codepage.c
     src/common/console.c
     src/common/cJSON.c
     src/common/cstring.c
     src/common/error.c
+    src/common/events.c
     src/common/file.c
+    src/common/gamepad.c
+    src/common/graphics.c
     src/common/interrupt.c
     src/common/maths.c
     src/common/memory.c
@@ -174,6 +178,21 @@ set(MMB4L_SOURCE_FILES
 # add the executable
 add_executable(mmbasic ${MMB4L_CORE_SOURCE_FILES} ${MMB4L_SOURCE_FILES})
 
+target_include_directories(mmbasic PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+    mmbasic
+    m
+    ${GCOV_LINK_LIBRARY}
+    SDL2
+)
+
+################################################################################
+# test_keyboard
+################################################################################
+
 add_executable(test_keyboard
     src/keyboard_test.c
     src/common/rx_buf.c
@@ -184,12 +203,6 @@ add_executable(test_keyboard
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c)
-
-target_link_libraries(
-    mmbasic
-    m
-    ${GCOV_LINK_LIBRARY}
-)
 
 # GoogleTest
 

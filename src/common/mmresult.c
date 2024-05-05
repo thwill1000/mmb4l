@@ -42,9 +42,38 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "cstring.h"
+#include "mmresult.h"
+#include "../Configuration.h"
+
 #include <string.h>
 
-#include "mmresult.h"
+const char *audio_last_error();
+const char *events_last_error();
+const char *gamepad_last_error();
+const char *graphics_last_error();
+
+static char mmresult_buffer[STRINGSIZE] = { 0 };
+
+static void formatAudioApiError() {
+    cstring_cpy(mmresult_buffer, "Audio error: ", STRINGSIZE);
+    cstring_cat(mmresult_buffer, audio_last_error(), STRINGSIZE);
+}
+
+static void formatEventsApiError() {
+    cstring_cpy(mmresult_buffer, "Events error: ", STRINGSIZE);
+    cstring_cat(mmresult_buffer, events_last_error(), STRINGSIZE);
+}
+
+static void formatGamepadApiError() {
+    cstring_cpy(mmresult_buffer, "Gamepad error: ", STRINGSIZE);
+    cstring_cat(mmresult_buffer, gamepad_last_error(), STRINGSIZE);
+}
+
+static void formatGraphicsApiError() {
+    cstring_cpy(mmresult_buffer, "Graphics error: ", STRINGSIZE);
+    cstring_cat(mmresult_buffer, graphics_last_error(), STRINGSIZE);
+}
 
 const char *mmresult_to_string(MmResult result) {
     if (result > kOk && result < kError) {
@@ -85,6 +114,18 @@ const char *mmresult_to_string(MmResult result) {
         case kProgramTooLong:             return "Program too long";
         case kUnterminatedComment:        return "Unterminated multiline comment";
         case kNoCommentToTerminate:       return "No comment to terminate";
+        case kAudioApiError:
+            formatAudioApiError();
+            return mmresult_buffer;
+        case kEventsApiError:
+            formatEventsApiError();
+            return mmresult_buffer;
+        case kGamepadApiError:
+            formatGamepadApiError();
+            return mmresult_buffer;
+        case kGraphicsApiError:
+            formatGraphicsApiError();
+            return mmresult_buffer;
         default:                          return "Unknown result code";
     }
 }

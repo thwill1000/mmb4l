@@ -243,6 +243,6 @@ void cmd_console(void) {
     } else if ((p = parse_check_string(cmdline, "SHOWCURSOR"))) {
         cmd_console_show_cursor(p);
     } else {
-        ERROR_UNKNOWN_SUBCOMMAND;
+        ERROR_UNKNOWN_SUBCOMMAND("CONSOLE");
     }
 }

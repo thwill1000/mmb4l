@@ -127,6 +127,6 @@ void cmd_trace(void) {
             if (++i >= TRACE_BUFF_SIZE) i = 0;
         }
     } else {
-        ERROR_UNKNOWN_SUBCOMMAND;
+        ERROR_UNKNOWN_SUBCOMMAND("TRACE");
     }
 }
