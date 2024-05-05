@@ -14,6 +14,11 @@ extern "C" {
 #include "../options.h"
 #include "../utility.h"
 
+const char *audio_last_error() { return ""; }
+const char *events_last_error() { return ""; }
+const char *gamepad_last_error() { return ""; }
+const char *graphics_last_error() { return ""; }
+
 }
 
 #define OPTIONS_TEST_DIR  TMP_DIR "/OptionsTest"
