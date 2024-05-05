@@ -23,6 +23,8 @@ Do While count% > 0
   EndIf
 Loop
 
+End
+
 on_key:
 
 'Sub on_key()

@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+#include <string.h>
+
 #include "mmb4l.h"
 #include "console.h"
 #include "error.h"
@@ -50,8 +53,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmtime.h"
 #include "serial.h"
 #include "../core/commandtbl.h"
-
-#include <assert.h>
 
 #define ERROR_NOT_AN_INTERRUPT  error_throw_ex(kError, "Not in interrupt")
 #define ERROR_TOO_MANY_SUBS     error_throw_ex(kError, "Too many SUBs for interrupt")
@@ -83,6 +84,8 @@ static SerialRxStruct interrupt_serial_rx[MAXOPENFILES + 1];
 static ErrorState interrupt_error_state;
 static MmSurfaceId interrupt_window_close_id;
 
+static Interrupt interrupt_list[kInterruptLast];
+
 void interrupt_init() {
     interrupt_clear();
     char *p = DUMMY_IRETURN;
@@ -108,6 +111,7 @@ void interrupt_clear() {
         interrupt_serial_rx[i].interrupt_addr = NULL;
     }
     interrupt_window_close_id = -1;
+    for (size_t i = 0; i < kInterruptLast; ++i) memset(interrupt_list + i, 0, sizeof(Interrupt));
 }
 
 bool interrupt_running() {
@@ -246,6 +250,15 @@ bool interrupt_check(void) {
     // Check for window interrupts.
     if (interrupt_window_close_id != -1) handle_window_interrupt();
 
+    // All other interrupts.
+    for (size_t i = 0; i < kInterruptLast; ++i) {
+        Interrupt *interrupt = interrupt_list + i;
+        if (interrupt->fn && interrupt->fired) {
+            interrupt->fired = false;
+            return handle_interrupt(interrupt->fn);
+        }
+    }
+
     return false;
 }
 
@@ -360,4 +373,21 @@ void interrupt_fire_window_close(MmSurfaceId id) {
         interrupt_count++;
         interrupt_window_close_id = id;
     }
+}
+
+void interrupt_enable(InterruptType type, const char *fn) {
+    assert(fn);
+    interrupt_list[type].fn = fn;
+    interrupt_list[type].fired = false;
+    interrupt_count++;
+}
+
+void interrupt_disable(InterruptType type) {
+    interrupt_list[type].fn = NULL;
+    interrupt_list[type].fired = false;
+    interrupt_count--;
+}
+
+void interrupt_fire(InterruptType type) {
+    interrupt_list[type].fired = true;
 }
