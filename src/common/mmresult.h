@@ -127,7 +127,10 @@ typedef enum {
     kUnexpectedCloseBracket,
     kInvalidArrayParameter,
     kTooManyParameters,
-    kInvalidInterruptSignature
+    kInvalidInterruptSignature,
+    kGamepadNotFound,
+    kGamepadInvalidId,
+    kGamepadNotOpen
 } MmResultCode;
 
 /**
