@@ -71,6 +71,7 @@ typedef struct {
 
 static char DUMMY_IRETURN[3]; // Dummy IRETURN call.
 static int interrupt_count = 0;
+static bool interrupt_legacy = false; // Is the current interrupt using a label/line number ?
 static const char *interrupt_any_key_addr = NULL;
 static bool interrupt_pause_flag = false;
 static const char *interrupt_return_stmt = NULL;
@@ -114,25 +115,28 @@ bool interrupt_running() {
 }
 
 static int handle_interrupt(const char *interrupt_address) {
-    static char rti[3] = { 0 }; // TODO: does this really need to be static ?
+    LocalIndex++;  // IRETURN will decrement this unless the interrupt routine is a SUB in which
+                   // case exiting the SUB decrements it.
+    mmb_error_state_ptr = &interrupt_error_state; // Swap to the interrupt error state
+    error_init(mmb_error_state_ptr);              //   and clear it
+    interrupt_return_stmt = nextstmt;             //   for when IRETURN is executed.
 
-    LocalIndex++;                                                   // IRETURN will decrement this
-    mmb_error_state_ptr = &interrupt_error_state;                   // swap to the interrupt error state
-    error_init(mmb_error_state_ptr);                                // and clear it
-    interrupt_return_stmt = nextstmt;                               // for when IRETURN is executed
-    // if the interrupt is pointing to a SUB token we need to call a subroutine
-    if (commandtbl_decode(interrupt_address) == cmdSUB) {
-        char *p = rti;
-        commandtbl_encode(&p, cmdIRET);                             // setup a dummy IRETURN command
-        *p = '\0';
+    const CommandToken token = commandtbl_decode(interrupt_address);
+    if (token == cmdSUB) {
         if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_SUBS;
         errorstack[gosubindex] = CurrentLinePtr;
-        gosubstack[gosubindex++] = rti;                             // return from the subroutine to the dummy IRETURN command
-        LocalIndex++;                                               // return from the subroutine will decrement LocalIndex
-        skipelement(interrupt_address);                             // point to the body of the subroutine
+        gosubstack[gosubindex++] = DUMMY_IRETURN;  // Return from the subroutine to the dummy IRETURN command.
+        skipelement(interrupt_address);            // Point to the body of the SUB.
+        interrupt_legacy = false;
+    } else if (token == cmdFUN) {
+        return kInternalFault;
+    } else {
+        // Label or line number.
+        interrupt_legacy = true;
     }
 
-    nextstmt = interrupt_address;                                   // the next command will be in the interrupt routine
+    // Set the next command to be the body of the interrupt routine.
+    nextstmt = interrupt_address;
     return true;
 }
 
@@ -161,14 +165,15 @@ static int handle_window_interrupt() {
     CurrentLinePtr = cached_line_ptr;
 
     // Setup stack and return state.
-    LocalIndex++;                                     // IRETURN will decrement this.
-    mmb_error_state_ptr = &interrupt_error_state;     // Swap to the interrupt error state
-    error_init(mmb_error_state_ptr);                  //   and clear it
-    interrupt_return_stmt = nextstmt;                 //   for when IRETURN is executed
+    LocalIndex++;  // IRETURN will decrement this unless the interrupt routine is a SUB in which
+                   // case exiting the SUB decrements it.
+    mmb_error_state_ptr = &interrupt_error_state;  // Swap to the interrupt error state
+    error_init(mmb_error_state_ptr);               //   and clear it
+    interrupt_return_stmt = nextstmt;              //   for when IRETURN is executed
     if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_SUBS;
     errorstack[gosubindex] = CurrentLinePtr;
-    gosubstack[gosubindex++] = DUMMY_IRETURN;         // Return from the subroutine to the dummy IRETURN command.
-    LocalIndex++;                                     // Return from the subroutine will decrement LocalIndex.
+    gosubstack[gosubindex++] = DUMMY_IRETURN;  // Return from the subroutine to the dummy IRETURN command.
+    interrupt_legacy = false;
 
     // Setup local variables corresponding to parameters.
     int var_idx[2];
@@ -182,6 +187,8 @@ static int handle_window_interrupt() {
     }
     vartbl[var_idx[0]].val.i = window_id;
     vartbl[var_idx[1]].val.i = 1; // event_id
+
+    ClearSpecificTempMemory(fn);
 
     // Set the next command to be the body of the interrupt SUB.
     const char *interrupt_addr = window->interrupt_addr;
@@ -246,7 +253,11 @@ void interrupt_return(void) {
     if (interrupt_return_stmt == NULL) ERROR_NOT_AN_INTERRUPT;
     checkend(cmdline);
     nextstmt = interrupt_return_stmt;
-    if (LocalIndex) ClearVars(LocalIndex--);  // delete any local variables
+    if (interrupt_legacy && LocalIndex > 0) {
+        // If the interrupt routine was not a SUB then clear local variables and decrement
+        // LocalIndex. If it was a SUB then leaving the SUB will have handled this.
+        ClearVars(LocalIndex--);
+    }
     TempMemoryIsChanged = true;  // signal that temporary memory should be checked
     *CurrentInterruptName = 0;
     interrupt_return_stmt = NULL;

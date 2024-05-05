@@ -14,12 +14,27 @@ For count% = 0 To 19
   Graphics Window count%, x%, y%, w%, h%, 1, on_window_close
 Next
 
+On Key on_key
+
 Do While count% > 0
   If call_depth% <> Mm.Info(CALLDEPTH) Then
     call_depth% = Mm.Info(CALLDEPTH)
     Print "Call depth: "; Str$(call_depth%)
   EndIf
 Loop
+
+on_key:
+
+'Sub on_key()
+  Print "Entering on_key() interrupt"
+  If call_depth% <> Mm.Info(CALLDEPTH) Then
+    call_depth% = Mm.Info(CALLDEPTH)
+    Print "Call depth: "; Str$(call_depth%)
+  EndIf
+  Do While Inkey$ <> "" : Loop
+  Print "Exiting interrupt"
+'End Sub
+IReturn
 
 Sub on_window_close(window_id%, event_id%)
   Print "Entering on_window_close() interrupt"
