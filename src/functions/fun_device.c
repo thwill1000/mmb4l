@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-gamepad.h
+fun_device.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,51 +42,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMBASIC_GAMEPAD_H)
-#define MMBASIC_GAMEPAD_H
+#include "../common/gamepad.h"
+#include "../common/mmb4l.h"
+#include "../common/utility.h"
 
-#include "mmresult.h"
+static MmResult fun_device_gamepad(const char *p) {
+    getargs(&p, 3, ",");
+    if (argc != 3) return kArgumentCount;
+    MmGamepadId gamepad_id = getint(argv[0], 1, 4);
+    const char *p2;
+    MmResult result = kOk;
+    targ = T_INT;
+    if ((p2 = checkstring(argv[2], "B"))) {
+        result = gamepad_read_buttons(gamepad_id, &iret);
+    } else if ((p2 = checkstring(argv[2], "LX"))) {
+        result = gamepad_read_left_x(gamepad_id, &iret);
+    } else if ((p2 = checkstring(argv[2], "LY"))) {
+        result = gamepad_read_left_y(gamepad_id, &iret);
+    } else if ((p2 = checkstring(argv[2], "RX"))) {
+        result = gamepad_read_right_x(gamepad_id, &iret);
+    } else if ((p2 = checkstring(argv[2], "RY"))) {
+        result = gamepad_read_right_y(gamepad_id, &iret);
+    } else if ((p2 = checkstring(argv[2], "L"))) {
+        result = gamepad_read_left_analog_button(gamepad_id, &iret);
+    } else if ((p2 = checkstring(argv[2], "R"))) {
+        result = gamepad_read_right_analog_button(gamepad_id, &iret);
+    } else {
+        error_throw_ex(kSyntax, "Unknown gamepad function");
+    }
+    return result;
+}
 
-/** Bitmask to pass to gamepad_open() to interrupt on all digital button presses. */
-#define GAMEPAD_BITMASK_ALL  0b111111111111111
-
-typedef enum {
-    kButtonR      = 0x01,
-    kButtonStart  = 0x02,
-    kButtonHome   = 0x04,
-    kButtonSelect = 0x08,
-    kButtonL      = 0x10,
-    kButtonDown   = 0x20,
-    kButtonRight  = 0x40,
-    kButtonUp     = 0x80,
-    kButtonLeft   = 0x100,
-    kButtonZR     = 0x200,
-    kButtonX      = 0x400,
-    kButtonA      = 0x800,
-    kButtonY      = 0x1000,
-    kButtonB      = 0x2000,
-    kButtonZL     = 0x4000,
-} GamepadButton;
-
-typedef int32_t MmGamepadId;
-
-MmResult gamepad_init();
-MmResult gamepad_term();
-const char *gamepad_last_error();
-MmResult gamepad_info(MmGamepadId id, char *buf);
-MmResult gamepad_open(MmGamepadId id, const char *interrupt, uint16_t bitmask);
-MmResult gamepad_close(MmGamepadId id);
-MmResult gamepad_close_all();
-MmResult gamepad_on_analog(int32_t sdlId, uint8_t sdlAxis, int16_t value);
-MmResult gamepad_on_button_down(int32_t sdlId, uint8_t sdlButton);
-MmResult gamepad_on_button_up(int32_t sdlId, uint8_t sdlButton);
-MmResult gamepad_read_buttons(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_left_x(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_left_y(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_right_x(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_right_y(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_left_analog_button(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_right_analog_button(MmGamepadId id, int64_t *out);
-MmResult gamepad_vibrate(MmGamepadId id, uint16_t low_freq, uint16_t high_freq, uint32_t duration_ms);
-
-#endif // #if !defined(MMBASIC_GAMEPAD_H)
+void fun_device(void) {
+    MmResult result = kOk;
+    const char *p;
+    if ((p = checkstring(ep, "GAMEPAD"))) {
+        result = fun_device_gamepad(p);
+    } else {
+        ERROR_UNKNOWN_SUBFUNCTION("DEVICE");
+    }
+    ERROR_ON_FAILURE(result);
+}

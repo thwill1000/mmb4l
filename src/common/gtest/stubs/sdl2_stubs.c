@@ -49,6 +49,15 @@ int SDL_GameControllerEventState(int state) {
     return 0;
 }
 
+SDL_bool SDL_GameControllerHasRumble(SDL_GameController *gamecontroller) {
+    return SDL_FALSE;
+}
+
+int SDL_GameControllerRumble(SDL_GameController *gamecontroller, Uint16 low_frequency_rumble,
+                             Uint16 high_frequency_rumble, Uint32 duration_ms) {
+    return 0;
+}
+
 int SDL_GetCurrentDisplayMode(int displayIndex, SDL_DisplayMode * mode) {
     mode->h = 1080;
     mode->w = 1920;
@@ -57,6 +66,10 @@ int SDL_GetCurrentDisplayMode(int displayIndex, SDL_DisplayMode * mode) {
 
 const char* SDL_GetError(void) {
     return "Stubbed error message";
+}
+
+const char* SDL_GetKeyName(SDL_Keycode key) {
+    return NULL;
 }
 
 Uint32 SDL_GetTicks(void) {

@@ -23,6 +23,7 @@ void cmd_const() { }
 void cmd_continue() { }
 void cmd_copy() { }
 void cmd_cursor() { }
+void cmd_device() { }
 void cmd_dim() { }
 #if !defined(DO_NOT_STUB_CMD_DO)
 void cmd_do() { }

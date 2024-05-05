@@ -51,6 +51,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef enum {
+  kInterruptGamepad1,
+  kInterruptGamepad2,
+  kInterruptGamepad3,
+  kInterruptGamepad4,
+  kInterruptLast
+} InterruptType;
+
+typedef struct {
+  const char *fn;
+  bool fired;
+} Interrupt;
+
 /** Initialises interrupts. */
 void interrupt_init(void);
 
@@ -114,5 +127,14 @@ void interrupt_disable_serial_rx(int fnbr);
 
 /** Fires a window closed interrupt. */
 void interrupt_fire_window_close(MmSurfaceId id);
+
+/** Enables an interrupt. */
+void interrupt_enable(InterruptType type, const char *fn);
+
+/** Disables an interrupt. */
+void interrupt_disable(InterruptType type);
+
+/** Fires an interrupt. */
+void interrupt_fire(InterruptType type);
 
 #endif

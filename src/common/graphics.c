@@ -118,18 +118,20 @@ const char *graphics_last_error() {
 }
 
 MmResult graphics_term() {
+    if (!graphics_initialised) return kOk;
     MmResult result = graphics_surface_destroy_all();
     if (SUCCEEDED(result)) {
         graphics_fcolour = RGB_WHITE;
         graphics_bcolour = RGB_BLACK;
+        graphics_initialised = false;
     }
     return result;
 }
 
-MmSurfaceId graphics_find_window(uint32_t window_id) {
+MmSurfaceId graphics_find_window(uint32_t sdl_window_id) {
     for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
         if (graphics_surfaces[id].type == kGraphicsWindow
-                && SDL_GetWindowID(graphics_surfaces[id].window) == window_id) {
+                && SDL_GetWindowID(graphics_surfaces[id].window) == sdl_window_id) {
             return id;
         }
     }
@@ -141,13 +143,13 @@ void graphics_refresh_windows() {
     if (SDL_GetTicks() > frameEnd) {
         // TODO: Optimise by using linked-list of windows.
         for (int id = 0; id <= GRAPHICS_MAX_ID; ++id) {
-            MmSurface* w = &graphics_surfaces[id];
-            if (w->type == kGraphicsWindow && w->dirty) {
-                SDL_UpdateTexture((SDL_Texture *) w->texture, NULL, w->pixels, w->width * 4);
-                SDL_RenderCopy((SDL_Renderer *) w->renderer, (SDL_Texture *) w->texture, NULL,
+            MmSurface* s = &graphics_surfaces[id];
+            if (s->type == kGraphicsWindow && s->dirty) {
+                SDL_UpdateTexture((SDL_Texture *) s->texture, NULL, s->pixels, s->width * 4);
+                SDL_RenderCopy((SDL_Renderer *) s->renderer, (SDL_Texture *) s->texture, NULL,
                                NULL);
-                SDL_RenderPresent((SDL_Renderer *) w->renderer);
-                w->dirty = false;
+                SDL_RenderPresent((SDL_Renderer *) s->renderer);
+                s->dirty = false;
             }
         }
         // frameEnd = SDL_GetTicks64() + 15;
@@ -156,8 +158,10 @@ void graphics_refresh_windows() {
 }
 
 MmResult graphics_buffer_create(MmSurfaceId id, int width, int height) {
-    MmResult result = graphics_init();
-    if (FAILED(result)) return result;
+    if (!graphics_initialised) {
+        MmResult result = graphics_init();
+        if (FAILED(result)) return result;
+    }
 
     if (id < 0 || id > GRAPHICS_MAX_ID) return kGraphicsInvalidId;
     if (graphics_surfaces[id].type != kGraphicsNone) return kGraphicsSurfaceExists;
@@ -178,8 +182,10 @@ MmResult graphics_buffer_create(MmSurfaceId id, int width, int height) {
 
 MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int height, int scale,
                                 const char *title, const char *interrupt_addr) {
-    MmResult result = graphics_init();
-    if (FAILED(result)) return result;
+    if (!graphics_initialised) {
+        MmResult result = graphics_init();
+        if (FAILED(result)) return result;
+    }
 
     if (id < 0 || id > GRAPHICS_MAX_ID) return kGraphicsInvalidId;
     if (graphics_surfaces[id].type != kGraphicsNone) return kGraphicsSurfaceExists;
