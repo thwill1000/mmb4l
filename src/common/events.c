@@ -43,10 +43,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "console.h"
+#include "error.h"
 #include "events.h"
+#include "gamepad.h"
 #include "graphics.h"
 #include "interrupt.h"
-#include "utility.h"
 
 #include <stdbool.h>
 
@@ -130,9 +131,26 @@ static void print_key_info(SDL_KeyboardEvent *key){
 void events_pump() {
     if (!events_initialised) return;
 
+    MmResult result = kOk;
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
+            case SDL_CONTROLLERAXISMOTION:
+                // printf("Controller axis: device idx: %d, axis: %d, value: %d\n", event.caxis.which, event.caxis.axis, event.caxis.value);
+                result = gamepad_on_analog(event.caxis.which, event.caxis.axis, event.caxis.value);
+                break;
+            case SDL_CONTROLLERBUTTONDOWN:
+                result = gamepad_on_button_down(event.cbutton.which, event.cbutton.button);
+                break;
+            case SDL_CONTROLLERBUTTONUP:
+                result = gamepad_on_button_up(event.cbutton.which, event.cbutton.button);
+                break;
+            case SDL_CONTROLLERDEVICEADDED:
+                // printf("Controller added, device idx: %d\n", event.cdevice.which);
+                break;
+            case SDL_CONTROLLERDEVICEREMOVED:
+                // printf("Controller removed, instance id: %d\n", event.cdevice.which);
+                break;
             case SDL_KEYDOWN:
                 // print_key_info(&event.key);
                 switch (event.key.keysym.sym) {
@@ -167,11 +185,16 @@ void events_pump() {
                 switch (event.window.event) {
                     case SDL_WINDOWEVENT_CLOSE:
                         interrupt_fire_window_close(graphics_find_window(event.window.windowID));
+                        break;
 
                     default:
                         break;
                 }
                 break;
+
+            default:
+                break;
         }
+        if (FAILED(result)) error_throw(result);
     }
 }

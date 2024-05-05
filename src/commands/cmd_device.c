@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-gamepad.h
+fun_device.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,47 +42,42 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMBASIC_GAMEPAD_H)
-#define MMBASIC_GAMEPAD_H
+#include "../common/gamepad.h"
+#include "../common/mmb4l.h"
+#include "../common/utility.h"
 
-#include "mmresult.h"
+static void cmd_device_gamepad_close(const char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    MMINTEGER gamepad_id = getint(argv[0], 1, 4);
+    MmResult result = gamepad_close(gamepad_id);
+    if (FAILED(result)) error_throw(result);
+}
 
-typedef enum {
-    kButtonR      = 0x01,
-    kButtonStart  = 0x02,
-    kButtonHome   = 0x04,
-    kButtonSelect = 0x08,
-    kButtonL      = 0x10,
-    kButtonDown   = 0x20,
-    kButtonRight  = 0x40,
-    kButtonUp     = 0x80,
-    kButtonLeft   = 0x100,
-    kButtonZR     = 0x200,
-    kButtonX      = 0x400,
-    kButtonA      = 0x800,
-    kButtonY      = 0x1000,
-    kButtonB      = 0x2000,
-    kButtonZL     = 0x4000,
-} GamepadButton;
+static void cmd_device_gamepad_open(const char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    MMINTEGER gamepad_id = getint(argv[0], 1, 4);
+    MmResult result = gamepad_open(gamepad_id);
+    if (FAILED(result)) error_throw(result);
+}
 
-typedef int32_t MmGamepadId;
+static void cmd_device_gamepad(const char *p) {
+    const char *p2;
+    if ((p2 = checkstring(p, "CLOSE"))) {
+        cmd_device_gamepad_close(p2);
+    } else if ((p2 = checkstring(p, "OPEN"))) {
+        cmd_device_gamepad_open(p2);
+    } else {
+        ERROR_UNKNOWN_SUBCOMMAND("DEVICE GAMEPAD");
+    }
+}
 
-MmResult gamepad_init();
-MmResult gamepad_term();
-const char *gamepad_last_error();
-MmResult gamepad_info(MmGamepadId id, char *buf);
-MmResult gamepad_open(MmGamepadId id);
-MmResult gamepad_close(MmGamepadId id);
-MmResult gamepad_close_all();
-MmResult gamepad_on_analog(int32_t sdlId, uint8_t sdlAxis, int16_t value);
-MmResult gamepad_on_button_down(int32_t sdlId, uint8_t sdlButton);
-MmResult gamepad_on_button_up(int32_t sdlId, uint8_t sdlButton);
-MmResult gamepad_read_buttons(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_left_x(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_left_y(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_right_x(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_right_y(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_left_analog_button(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_right_analog_button(MmGamepadId id, int64_t *out);
-
-#endif // #if !defined(MMBASIC_GAMEPAD_H)
+void cmd_device(void) {
+    const char *p;
+    if ((p = checkstring(cmdline, "GAMEPAD"))) {
+        cmd_device_gamepad(p);
+    } else {
+        ERROR_UNKNOWN_SUBCOMMAND("DEVICE");
+    }
+}

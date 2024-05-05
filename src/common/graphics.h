@@ -146,7 +146,7 @@ MmSurfaceId graphics_find_window(uint32_t window_id);
 /** Redraws all 'dirty' windows (if the time is right). */
 void graphics_refresh_windows();
 
-/** Terminates graphics sub-system, close all windows, free all resources. */
+/** Terminate graphics sub-system, close all windows, free all resources. */
 void graphics_term();
 
 MmResult graphics_buffer_create(MmSurfaceId id, uint32_t width, uint32_t height);

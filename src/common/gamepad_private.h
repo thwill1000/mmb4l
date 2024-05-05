@@ -42,47 +42,31 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMBASIC_GAMEPAD_H)
-#define MMBASIC_GAMEPAD_H
+#if !defined(MMBASIC_GAMEPAD_PRIVATE_H)
+#define MMBASIC_GAMEPAD_PRIVATE_H
 
-#include "mmresult.h"
+#include <stdbool.h>
+#include <stdint.h>
 
-typedef enum {
-    kButtonR      = 0x01,
-    kButtonStart  = 0x02,
-    kButtonHome   = 0x04,
-    kButtonSelect = 0x08,
-    kButtonL      = 0x10,
-    kButtonDown   = 0x20,
-    kButtonRight  = 0x40,
-    kButtonUp     = 0x80,
-    kButtonLeft   = 0x100,
-    kButtonZR     = 0x200,
-    kButtonX      = 0x400,
-    kButtonA      = 0x800,
-    kButtonY      = 0x1000,
-    kButtonB      = 0x2000,
-    kButtonZL     = 0x4000,
-} GamepadButton;
+#include <SDL.h>
 
-typedef int32_t MmGamepadId;
+typedef struct {
+    SDL_Joystick *joystick;
+    SDL_GameController *controller;
+    SDL_JoystickID id;
+    int64_t buttons;
+    int64_t left_x;
+    int64_t left_y;
+    int64_t right_x;
+    int64_t right_y;
+    int64_t left_analog_button;
+    int64_t right_analog_button;
+    int64_t left_analog_x;
+    int64_t left_analog_y;
+    int64_t right_analog_x;
+    int64_t right_analog_y;
+} GamepadDevice;
 
-MmResult gamepad_init();
-MmResult gamepad_term();
-const char *gamepad_last_error();
-MmResult gamepad_info(MmGamepadId id, char *buf);
-MmResult gamepad_open(MmGamepadId id);
-MmResult gamepad_close(MmGamepadId id);
-MmResult gamepad_close_all();
-MmResult gamepad_on_analog(int32_t sdlId, uint8_t sdlAxis, int16_t value);
-MmResult gamepad_on_button_down(int32_t sdlId, uint8_t sdlButton);
-MmResult gamepad_on_button_up(int32_t sdlId, uint8_t sdlButton);
-MmResult gamepad_read_buttons(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_left_x(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_left_y(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_right_x(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_right_y(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_left_analog_button(MmGamepadId id, int64_t *out);
-MmResult gamepad_read_right_analog_button(MmGamepadId id, int64_t *out);
+extern GamepadDevice gamepad_devices[];
 
-#endif // #if !defined(MMBASIC_GAMEPAD_H)
+#endif // #if !defined(MMBASIC_GAMEPAD_PRIVATE_H)

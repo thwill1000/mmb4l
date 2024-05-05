@@ -67,6 +67,4 @@ const char *audio_last_error() { return ""; }
 
 const char *events_last_error() { return ""; }
 
-const char *gamepad_last_error() { return ""; }
-
 const char *graphics_last_error() { return ""; }

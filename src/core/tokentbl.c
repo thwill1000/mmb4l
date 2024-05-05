@@ -80,6 +80,7 @@ const struct s_tokentbl tokentbl[] = {
     { "DateTime$(",  T_FUN | T_STR,      0, fun_datetime },
     { "Day$(",       T_FUN | T_STR,      0, fun_day      },
     { "Deg(",        T_FUN | T_NBR,      0, fun_deg      },
+    { "Device(",     T_FUN | T_INT,      0, fun_device   },
     { "Dir$(",       T_FUN | T_STR,      0, fun_dir      },
     { "Eof(",        T_FUN | T_INT,      0, fun_eof      },
     { "Epoch(",      T_FUN | T_INT,      0, fun_epoch    },

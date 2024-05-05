@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/cstring.h"
+#include "../common/gamepad.h"
 #include "../common/graphics.h"
 #include "../common/mmtime.h"
 #include "../common/parse.h"
@@ -246,6 +247,21 @@ static void mminfo_fontwidth(const char *p) {
     g_rtn_type = T_INT;
 }
 
+static void mminfo_gamepad(const char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    MMINTEGER id = getint(argv[0], 1, 4);
+    g_string_rtn = GetTempStrMemory();
+    MmResult result = gamepad_info(id, g_string_rtn);
+    if (result == kGamepadNotFound) {
+        strcpy(g_string_rtn, "");
+    } else if (FAILED(result)) {
+        error_throw(result);
+    }
+    g_rtn_type = T_STR;
+    CtoM(g_string_rtn);
+}
+
 void mminfo_hres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
@@ -439,6 +455,8 @@ void fun_mminfo(void) {
         mminfo_fontheight(p);
     } else if ((p = checkstring(ep, "FONTWIDTH"))) {
         mminfo_fontwidth(p);
+    } else if ((p = checkstring(ep, "GAMEPAD"))) {
+        mminfo_gamepad(p);
     } else if ((p = checkstring(ep, "HRES"))) {
         mminfo_hres(p);
     } else if ((p = checkstring(ep, "HPOS"))) {

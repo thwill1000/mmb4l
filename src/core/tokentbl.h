@@ -78,6 +78,7 @@ void fun_datetime(void);
 void fun_date(void);
 void fun_day(void);
 void fun_deg(void);
+void fun_device(void);
 void fun_dir(void);
 void fun_eof(void);
 void fun_epoch(void);

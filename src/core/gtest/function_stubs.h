@@ -25,6 +25,7 @@ void fun_date() { }
 void fun_datetime() { }
 void fun_day() { }
 void fun_deg() { }
+void fun_device() { }
 void fun_dir() { }
 void fun_eof() { }
 void fun_epoch() { }
