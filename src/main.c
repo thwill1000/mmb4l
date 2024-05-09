@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/exit_codes.h"
 #include "common/file.h"
 #include "common/interrupt.h"
+#include "common/keyboard.h"
 #include "common/mmtime.h"
 #include "common/parse.h"
 #include "common/path.h"
@@ -289,6 +290,7 @@ int main(int argc, char *argv[]) {
     init_mmbasic_config_dir();
     init_options();
     error_init(mmb_error_state_ptr);
+    keyboard_init();
 
     InitBasic();
 
