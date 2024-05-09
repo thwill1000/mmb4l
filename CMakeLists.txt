@@ -130,6 +130,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_hres.c
     src/functions/fun_inputstr.c
     src/functions/fun_json.c
+    src/functions/fun_keydown.c
     src/functions/fun_lcompare.c
     src/functions/fun_lgetbyte.c
     src/functions/fun_lgetstr.c
@@ -167,6 +168,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/gamepad.c
     src/common/graphics.c
     src/common/interrupt.c
+    src/common/keyboard.c
     src/common/maths.c
     src/common/memory.c
     src/common/mmgetline.c
@@ -206,11 +208,11 @@ target_link_libraries(
 )
 
 ################################################################################
-# test_keyboard
+# test_console_getc
 ################################################################################
 
-add_executable(test_keyboard
-    src/keyboard_test.c
+add_executable(test_console_getc
+    src/console_getc_test.c
     src/common/rx_buf.c
     src/common/codepage.c
     src/common/console.c
@@ -402,6 +404,29 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_hash)
+
+################################################################################
+# test_keyboard
+################################################################################
+
+add_executable(
+  test_keyboard
+  src/common/keyboard.c
+  src/common/gtest/keyboard_test.cxx
+)
+
+target_include_directories(test_keyboard PUBLIC
+    /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_keyboard
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_keyboard)
 
 ################################################################################
 # test_options
