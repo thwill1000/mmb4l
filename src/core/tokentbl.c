@@ -95,6 +95,7 @@ const struct s_tokentbl tokentbl[] = {
     { "Instr(",      T_FUN | T_INT,      0, fun_instr    },
     { "Int(",        T_FUN | T_INT,      0, fun_int      },
     { "Json$(",      T_FUN | T_STR,      0, fun_json     },
+    { "Keydown(",    T_FUN | T_INT,      0, fun_keydown  },
     { "LCase$(",     T_FUN | T_STR,      0, fun_lcase    },
     { "LCompare(",   T_FUN | T_INT,      0, fun_lcompare },
     { "Left$(",      T_FUN | T_STR,      0, fun_left     },
