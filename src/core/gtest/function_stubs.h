@@ -43,6 +43,7 @@ void fun_inputstr() { }
 void fun_instr() { }
 void fun_int() { }
 void fun_json() { }
+void fun_keydown() { }
 void fun_lcase() { }
 void fun_lcompare() { }
 void fun_left() { }
