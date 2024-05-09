@@ -53,6 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BKSP 0x8
 #define ENTER 0xa
 #define ESC 0x1b
+#define BREAK 0x9e
+#define PSCRN 0x9d
 
 // the values returned by the function keys
 #define F1 0x91
@@ -82,6 +84,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NUM_ENT ENTER
 #define SLOCK 0x8c
 #define ALT 0x8b
+
+// Shifted values
+#define STAB    0x9F
+#define SDEL    0xA0
+#define SDOWN   0xA1
+#define SRIGHT  0xA3
 
 // Ordinals match those used by MMBasic for DOS and original CMM.
 #define BLACK           0

@@ -96,6 +96,7 @@ void fun_inputstr(void);
 void fun_instr(void);
 void fun_int(void);
 void fun_json(void);
+void fun_keydown(void);
 void fun_lcase(void);
 void fun_lcompare(void);
 void fun_left(void);

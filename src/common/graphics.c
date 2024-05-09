@@ -100,7 +100,7 @@ MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 MmSurface* graphics_current = NULL;
 MmGraphicsColour graphics_fcolour = RGB_WHITE;
 MmGraphicsColour graphics_bcolour = RGB_BLACK;
-uint32_t graphics_font = 1;
+uint32_t graphics_font = 0x11; // Font 1, scale 1.
 static uint64_t frameEnd = 0;
 
 MmResult graphics_init() {
