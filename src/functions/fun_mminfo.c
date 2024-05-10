@@ -110,13 +110,22 @@ MmResult get_mmdevice(char *device) {
 }
 
 static void mminfo_device(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_string_rtn = GetTempStrMemory();
+    const char *p2;
     g_rtn_type = T_STR;
-    MmResult result = get_mmdevice(g_string_rtn);
-    if (FAILED(result)) {
-        error_throw(result);
-        return;
+    if ((p2 = checkstring(p, "X"))) {
+        // With the 'X' flag we always return the real device, i.e. "MMB4L".
+        if (!parse_is_end(p2)) error_throw(kUnexpectedText);
+        g_string_rtn = GetTempStrMemory();
+        strcpy(g_string_rtn, "MMB4L");
+    } else {
+        // Without the 'X' flag we can return a value set using OPTION SIMULATE.
+        if (!parse_is_end(p)) error_throw(kUnexpectedText);
+        g_string_rtn = GetTempStrMemory();
+        MmResult result = get_mmdevice(g_string_rtn);
+        if (FAILED(result)) {
+            error_throw(result);
+            return;
+        }
     }
     CtoM(g_string_rtn);
 }
