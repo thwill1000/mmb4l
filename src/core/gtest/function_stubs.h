@@ -19,6 +19,7 @@ void fun_call() { }
 void fun_choice() { }
 void fun_chr() { }
 void fun_cint() { }
+void fun_classic() { }
 void fun_cos() { }
 void fun_cwd() { }
 void fun_date() { }

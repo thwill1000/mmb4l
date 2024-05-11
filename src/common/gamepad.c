@@ -285,6 +285,19 @@ MmResult gamepad_read_right_analog_button(MmGamepadId id, int64_t *out) {
     return kOk;
 }
 
+MmGamepadId gamepad_transform_wii_i2c(int32_t i2c) {
+    switch (i2c) {
+        case 1: // Right hand port on CMM2 G2
+            return 2;
+        case 2: // Middle port on CMM2 Deluxe
+            return 3;
+        case 3: // Only port on CMM2 G1, Left hand port on CMM2 G2
+            return 1;
+        default:
+            return -1;
+    }
+}
+
 MmResult gamepad_vibrate(MmGamepadId id, uint16_t low_freq, uint16_t high_freq, uint32_t duration_ms) {
     CHECK_GAMEPAD(id);
     if (SDL_GameControllerHasRumble(gamepad->controller)) {

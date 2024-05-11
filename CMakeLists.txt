@@ -118,6 +118,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_call.c
     src/functions/fun_choice.c
     src/functions/fun_chr.c
+    src/functions/fun_classic.c
     src/functions/fun_cwd.c
     src/functions/fun_date.c
     src/functions/fun_datetime.c
