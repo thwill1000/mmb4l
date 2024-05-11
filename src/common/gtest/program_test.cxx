@@ -77,15 +77,15 @@ void ListNewLine(int *ListCnt, int all) { }
 
 #define PROGRAM_TEST_DIR  TMP_DIR "/ProgramTest"
 
-#define CMD_CSUB        "\x92\x80"
-#define CMD_DATA        "\x94\x80"
-#define CMD_DEFINEFONT  "\x95\x80"
-#define CMD_DIM         "\x97\x80"
-#define CMD_END         "\x9D\x80"
-#define CMD_LET         "\xBA\x80"
-#define CMD_MMDEBUG     "\xC6\x80"
-#define CMD_PRINT       "\xD2\x80"
-#define OP_EQUALS       "\xEE"
+#define CMD_CSUB        "\x93\x80"
+#define CMD_DATA        "\x95\x80"
+#define CMD_DEFINEFONT  "\x96\x80"
+#define CMD_DIM         "\x98\x80"
+#define CMD_END         "\x9E\x80"
+#define CMD_LET         "\xBB\x80"
+#define CMD_MMDEBUG     "\xC7\x80"
+#define CMD_PRINT       "\xD3\x80"
+#define OP_EQUALS       "\xEF"
 
 #define EXPECT_PROGRAM_EQ(prog) \
     EXPECT_THAT(std::vector<char>(ProgMemory, ProgMemory + prog.length()), \

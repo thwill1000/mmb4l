@@ -46,6 +46,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/utility.h"
 
+static void cmd_device_classic_close(const char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    MMINTEGER wii_i2c = getint(argv[0], 1, 3);
+    MmGamepadId gamepad_id = gamepad_transform_wii_i2c(wii_i2c);
+    if (gamepad_id == -1) ERROR_INTERNAL_FAULT;
+    MmResult result = gamepad_close(gamepad_id);
+    if (FAILED(result)) error_throw(result);
+}
+
+static void cmd_device_classic_open(const char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    MMINTEGER wii_i2c = getint(argv[0], 1, 3);
+    MmGamepadId gamepad_id = gamepad_transform_wii_i2c(wii_i2c);
+    if (gamepad_id == -1) ERROR_INTERNAL_FAULT;
+    MmResult result = gamepad_open(gamepad_id);
+    if (FAILED(result)) error_throw(result);
+}
+
+/**
+ * Maps CMM2 (Wii) "CLASSIC" controller commands to MMB4L "GAMEPAD" controllers.
+ */
+static void cmd_device_classic(const char *p) {
+    if (mmb_options.device != kDeviceCmm2) {
+        ERROR_UNIMPLEMENTED("CONTROLLER CLASSIC command except for 'Colour Maximite 2'");
+    }
+    const char *p2;
+    if ((p2 = checkstring(p, "CLOSE"))) {
+        cmd_device_classic_close(p2);
+    } else if ((p2 = checkstring(p, "OPEN"))) {
+        cmd_device_classic_open(p2);
+    } else {
+        ERROR_UNKNOWN_SUBCOMMAND("CONTROLLER CLASSIC");
+    }
+}
+
 static void cmd_device_gamepad_close(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) ERROR_ARGUMENT_COUNT;
@@ -73,10 +110,22 @@ static void cmd_device_gamepad(const char *p) {
     }
 }
 
+static void cmd_device_mouse(const char *p) {
+    ERROR_UNIMPLEMENTED("DEVICE MOUSE");
+}
+
 void cmd_device(void) {
     const char *p;
-    if ((p = checkstring(cmdline, "GAMEPAD"))) {
+    if ((p = checkstring(cmdline, "CLASSIC"))) {
+        cmd_device_classic(p);
+    } else if ((p = checkstring(cmdline, "GAMEPAD"))) {
         cmd_device_gamepad(p);
+    } else if ((p = checkstring(cmdline, "MOUSE"))) {
+        cmd_device_mouse(p);
+    } else if ((p = checkstring(cmdline, "NUNCHUK"))) {
+        cmd_device_classic(p);
+    } else if ((p = checkstring(cmdline, "NUNCHUCK"))) {
+        cmd_device_classic(p);
     } else {
         ERROR_UNKNOWN_SUBCOMMAND("DEVICE");
     }

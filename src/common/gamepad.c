@@ -272,3 +272,16 @@ MmResult gamepad_read_right_analog_button(MmGamepadId id, int64_t *out) {
     *out = gamepad->right_analog_button;
     return kOk;
 }
+
+MmGamepadId gamepad_transform_wii_i2c(int32_t i2c) {
+    switch (i2c) {
+        case 1: // Right hand port on CMM2 G2
+            return 2;
+        case 2: // Middle port on CMM2 Deluxe
+            return 3;
+        case 3: // Only port on CMM2 G1, Left hand port on CMM2 G2
+            return 1;
+        default:
+            return -1;
+    }
+}
