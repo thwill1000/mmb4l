@@ -132,7 +132,8 @@ typedef enum {
     kGamepadInvalidId,
     kGamepadNotOpen,
     kSoundInUse,
-    kSoundInvalidFrequency
+    kSoundInvalidFrequency,
+    kUnsupported
 } MmResultCode;
 
 /**
