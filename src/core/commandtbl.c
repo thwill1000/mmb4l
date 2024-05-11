@@ -77,6 +77,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Console",     T_CMD,              0, cmd_console  },
     { "Const",       T_CMD,              0, cmd_const    },
     { "Continue",    T_CMD,              0, cmd_continue },
+    { "Controller",  T_CMD,              0, cmd_device   },
     { "Copy",        T_CMD,              0, cmd_copy     },
     { "CSub",        T_CMD,              0, cmd_cfunction },
     { "Cursor",      T_CMD,              0, cmd_cursor   },
