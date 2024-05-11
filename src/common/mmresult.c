@@ -157,6 +157,7 @@ const char *mmresult_to_string(MmResult result) {
         case kGamepadNotOpen:             return "Gamepad not open";
         case kSoundInUse:                 return "Sound output in use";
         case kSoundInvalidFrequency:      return "Valid is 0Hz to 20KHz";
+        case kUnsupported:                return "Unsupported by MMB4L";
         default:                          return "Unknown result code";
     }
 }
