@@ -46,6 +46,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/utility.h"
 
+/** CONTROLLER CLASSIC CLOSE [i2c] */
+static MmResult cmd_device_classic_close(const char *p) {
+    getargs(&p, 1, ",");
+    if (argc > 1) return kArgumentCount;
+    int wii_i2c = (argc > 0) ? getint(argv[0], 1, 3) : 3;
+    MmGamepadId gamepad_id = gamepad_transform_wii_i2c(wii_i2c);
+    if (gamepad_id == -1) return kInternalFault;
+    return gamepad_close(gamepad_id);
+}
+
+/** CONTROLLER CLASSIC OPEN [i2c] [, interrupt] [, bitmask] */
+static MmResult cmd_device_classic_open(const char *p) {
+    getargs(&p, 5, ",");
+    if (argc != 0 && argc != 1 && argc != 3 && argc != 5) return kArgumentCount;
+    int wii_i2c = (argc > 0) ? getint(argv[0], 1, 3) : 3;
+    MmGamepadId gamepad_id = gamepad_transform_wii_i2c(wii_i2c);
+    if (gamepad_id == -1) return kInternalFault;
+    const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
+    uint16_t bitmask = (argc > 3) ? getint(argv[4], 0, UINT16_MAX) : GAMEPAD_BITMASK_ALL;
+    return gamepad_open(gamepad_id, interrupt, bitmask);
+}
+
+/**
+ * Maps CMM2 (Wii) "CLASSIC" controller commands to MMB4L "GAMEPAD" controllers.
+ */
+static MmResult cmd_device_classic(const char *p) {
+    if (mmb_options.simulate != kSimulateCmm2) return kUnsupportedOnCurrentDevice;
+    const char *p2;
+    if ((p2 = checkstring(p, "CLOSE"))) {
+        return cmd_device_classic_close(p2);
+    } else if ((p2 = checkstring(p, "OPEN"))) {
+        return cmd_device_classic_open(p2);
+    } else {
+        ERROR_UNKNOWN_SUBCOMMAND("CONTROLLER CLASSIC");
+        return kUnimplemented;
+    }
+}
+
 /** DEVICE GAMEPAD CLOSE id */
 static MmResult cmd_device_gamepad_close(const char *p) {
     getargs(&p, 1, ",");
@@ -85,24 +123,39 @@ static MmResult cmd_device_gamepad_vibrate(const char *p) {
 }
 
 static MmResult cmd_device_gamepad(const char *p) {
+    MmResult result = kOk;
     const char *p2;
     if ((p2 = checkstring(p, "CLOSE"))) {
-        return cmd_device_gamepad_close(p2);
+        result = cmd_device_gamepad_close(p2);
     } else if ((p2 = checkstring(p, "OPEN"))) {
-        return cmd_device_gamepad_open(p2);
+        result = cmd_device_gamepad_open(p2);
     } else if ((p2 = checkstring(p, "VIBRATE"))) {
-        return cmd_device_gamepad_vibrate(p2);
+        result = cmd_device_gamepad_vibrate(p2);
     } else {
         ERROR_UNKNOWN_SUBCOMMAND("DEVICE GAMEPAD");
+        result = kUnimplemented;
     }
-    return kOk;
+    return result;
+}
+
+static MmResult cmd_device_mouse(const char *p) {
+    ERROR_UNIMPLEMENTED("DEVICE MOUSE");
+    return kUnimplemented;
 }
 
 void cmd_device(void) {
     MmResult result = kOk;
     const char *p;
-    if ((p = checkstring(cmdline, "GAMEPAD"))) {
+    if ((p = checkstring(cmdline, "CLASSIC"))) {
+        result = cmd_device_classic(p);
+    } else if ((p = checkstring(cmdline, "GAMEPAD"))) {
         result = cmd_device_gamepad(p);
+    } else if ((p = checkstring(cmdline, "MOUSE"))) {
+        result = cmd_device_mouse(p);
+    } else if ((p = checkstring(cmdline, "NUNCHUK"))) {
+        result = cmd_device_classic(p);
+    } else if ((p = checkstring(cmdline, "NUNCHUCK"))) {
+        result = cmd_device_classic(p);
     } else {
         ERROR_UNKNOWN_SUBCOMMAND("DEVICE");
     }

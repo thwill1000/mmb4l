@@ -72,6 +72,7 @@ void fun_call(void);
 void fun_choice(void);
 void fun_chr(void);
 void fun_cint(void);
+void fun_classic(void);
 void fun_cos(void);
 void fun_cwd(void);
 void fun_datetime(void);
