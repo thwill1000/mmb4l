@@ -430,6 +430,10 @@ static void mminfo_vpos(const char *p) {
     g_rtn_type = T_INT;
 }
 
+static void mminfo_writebuff(const char *p) {
+    error_throw_ex(kUnsupported, "Direct access to display WriteBuff unsupported by MMB4L");
+}
+
 void fun_mminfo(void) {
     const char *p;
     if ((p = checkstring(ep, "ARCH"))) {
@@ -484,6 +488,8 @@ void fun_mminfo(void) {
         mminfo_vres(p);
     } else if ((p = checkstring(ep, "VPOS"))) {
         mminfo_vpos(p);
+    } else if ((p = checkstring(ep, "WRITEBUFF"))) {
+        mminfo_writebuff(p);
     } else {
         ERROR_UNKNOWN_ARGUMENT;
     }
