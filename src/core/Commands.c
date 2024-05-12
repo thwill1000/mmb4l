@@ -169,7 +169,7 @@ void cmd_let(void) {
     // check that we have a straight forward variable
     const char *p2 = skipvar(cmdline, false);
     skipspace(p2);
-    if (p1 != p2) error("Syntax");
+    if (p1 != p2) ERROR_SYNTAX;
 
     // create the variable and get the length if it is a string
     char *pvar = findvar(cmdline, V_FIND);
@@ -312,7 +312,7 @@ retest_an_if:
         if(argc >= 3 && *argv[2] == cmdIF) argc = 3;                // this is IF xx=yy THEN IF ... so we want to evaluate only the first 3
         if(argc >= 5 && *argv[4] == cmdIF) argc = 5;                // this is IF xx=yy THEN cmd ELSE IF ... so we want to evaluate only the first 5
 
-        if(argc == 4 || (argc == 5 && *argv[3] != ss[1])) error("Syntax");
+        if(argc == 4 || (argc == 5 && *argv[3] != ss[1])) ERROR_SYNTAX;
 
         r = (getnumber(argv[0]) != 0);                              // evaluate the expression controlling the if statement
 
@@ -382,7 +382,7 @@ retest_an_if:
                         p += sizeof(CommandToken);                  // step over the token
                         skipspace(p);
                         CurrentLinePtr = rp;
-                        if(*p == 0) error("Syntax");                // there must be a test after the elseif
+                        if(*p == 0) ERROR_SYNTAX;                   // there must be a test after the elseif
                         cmdline = p;
                         skipelement(p);
                         nextstmt = p;
@@ -510,12 +510,12 @@ void cmd_select(void) {
                     if(tokentype(*p) & T_OPER)
                         o = *p++ - C_BASETOKEN;                     // get the operator
                     else
-                        error("Syntax");
+                        ERROR_SYNTAX;
                     if(type & T_NBR) ft = f;
                     if(type & T_INT) i64t = i64;
                     if(type & T_STR) st = s;
                     while(o != E_END) p = doexpr(p, &ft, &i64t, &st, &o, &t); // get the right hand side of the expression and evaluate the operator in o
-                    if(!(t & T_INT)) error("Syntax");               // comparisons must always return an integer
+                    if(!(t & T_INT)) ERROR_SYNTAX;                  // comparisons must always return an integer
                     if(i64t) {                                      // evaluates to true
                         skipelement(p);
                         nextstmt = p;
@@ -641,7 +641,7 @@ void cmd_input(void) {
         }
     }
 
-    if(argc - i < 1) error("Syntax");                               // no variable to input to
+    if(argc - i < 1) ERROR_SYNTAX;                                  // no variable to input to
 
     MMgetline(fnbr, inpbuf);                                        // get the line
     p = inpbuf;
@@ -744,7 +744,7 @@ void cmd_for(void) {
     {                                                               // start a new block
         getargs(&cmdline, 7, ss);                                   // getargs macro must be the first executable stmt in a block
         if(argc < 5 || argc == 6 || *argv[1] != ss[0] || *argv[3] != ss[1]) error("FOR with misplaced = or TO");
-        if(argc == 6 || (argc == 7 && *argv[5] != ss[2])) error("Syntax");
+        if(argc == 6 || (argc == 7 && *argv[5] != ss[2])) ERROR_SYNTAX;
 
         // get the variable name and trim any spaces
         vname = argv[0];
@@ -850,7 +850,7 @@ void cmd_next(void) {
 
     for(vcnt = i = 0; i < argc; i++) {
         if(i & 0x01) {
-            if(*argv[i] != ',') error("Syntax");
+            if(*argv[i] != ',') ERROR_SYNTAX;
         } else
             vtbl[vcnt++] = findvar(argv[i], V_FIND | V_NOFIND_ERR); // find the variable and error if not found
     }
@@ -1033,7 +1033,7 @@ void cmd_lineinput(void) {
     char *vp;
     int i, fnbr;
     getargs(&cmdline, 3, ",;");                                     // this is a macro and must be the first executable stmt
-    if(argc == 0 || argc == 2) error("Syntax");
+    if(argc == 0 || argc == 2) ERROR_SYNTAX;
 
     i = 0;
     fnbr = 0;
@@ -1045,13 +1045,13 @@ void cmd_lineinput(void) {
         }
         else {
             // is the first argument a prompt?  if so, print it otherwise there are too many arguments
-            if(*argv[1] != ',' && *argv[1] != ';') error("Syntax");
+            if(*argv[1] != ',' && *argv[1] != ';') ERROR_SYNTAX;
             MMfputs(getstring(argv[0]), 0);
         }
         i = 2;
     }
 
-    if(argc - i != 1) error("Syntax");
+    if(argc - i != 1) ERROR_SYNTAX;
     vp = findvar(argv[i], V_FIND);
     if(vartbl[VarIndex].type & T_CONST) error("Cannot change a constant");
     if(!(vartbl[VarIndex].type & T_STR)) error("Invalid variable");
@@ -1101,7 +1101,7 @@ void cmd_on(void) {
                 OptionErrorSkip = getint(p, 1, 10000) + 1;
             return;
         }
-        error("Syntax");
+        ERROR_SYNTAX;
     }
 
     // if we got here the command must be the traditional:  ON nbr GOTO|GOSUB line1, line2,... etc
@@ -1112,8 +1112,8 @@ void cmd_on(void) {
     ss[3] = 0;
     {                                                               // start a new block
         getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ss);             // getargs macro must be the first executable stmt in a block
-        if(argc < 3 || !(*argv[1] == ss[0] || *argv[1] == ss[1])) error("Syntax");
-        if(argc%2 == 0) error("Syntax");
+        if(argc < 3 || !(*argv[1] == ss[0] || *argv[1] == ss[1])) ERROR_SYNTAX;
+        if(argc%2 == 0) ERROR_SYNTAX;
 
         r = getint(argv[0], 0, 255);                                // evaluate the expression controlling the statement
         if(r == 0 || r > argc/2) return;                            // microsoft say that we just go on to the next line
@@ -1181,7 +1181,7 @@ void cmd_dim(void) {
     ImpliedType = type;
     {                                                               // getargs macro must be the first executable stmt in a block
         getargs(&pconst, (MAX_ARG_COUNT * 2) - 1, ",");
-        if((argc & 0x01) == 0) error("Syntax");
+        if((argc & 0x01) == 0) ERROR_SYNTAX;
 
         // 'p' will be pointing into the items of argv[] which we know are not
         // constants so we can cast away const-ness as necessary to remove
@@ -1290,12 +1290,12 @@ void cmd_const(void) {
     int i, type;
 
     getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
-    if((argc & 0x01) == 0) error("Syntax");
+    if((argc & 0x01) == 0) ERROR_SYNTAX;
 
     for(i = 0; i < argc; i += 2) {
         p = skipvar(argv[i], false);                                // point to after the variable
         skipspace(p);
-        if(tokenfunction(*p) != op_equal) error("Syntax");          // must be followed by an equals sign
+        if(tokenfunction(*p) != op_equal) ERROR_SYNTAX;             // must be followed by an equals sign
         p++;                                                        // step over the equals sign
         type = T_NOTYPE;
         v = DoExpression(p, &type);                                 // evaluate the constant's value

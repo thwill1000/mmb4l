@@ -524,7 +524,7 @@ void fun_str(void) {
     const char *p;
 
     getargs(&ep, 7, ",");
-    if((argc & 1) != 1) error("Syntax");
+    if((argc & 1) != 1) ERROR_SYNTAX;
     t = T_NOTYPE;
     p = evaluate(argv[0], &f, &i64, &s, &t, false);                 // get the value and type of the argument
     if(t & T_STR) error("Expected a number");
@@ -565,7 +565,7 @@ void fun_string(void) {
     void *p;
 
     getargs(&ep, 3, ",");
-    if(argc != 3) error("Syntax");
+    if(argc != 3) ERROR_SYNTAX;
 
     i = getint(argv[0], 0, MAXSTRLEN);
     p = DoExpression(argv[2], &t);                                  // get the value and type of the argument
@@ -723,7 +723,7 @@ void do_max_min(int cmp) {
     int i;
     MMFLOAT nbr, f;
     getargs(&ep, (MAX_ARG_COUNT * 2) - 1, ",");
-    if((argc & 1) != 1) error("Syntax");
+    if((argc & 1) != 1) ERROR_SYNTAX;
     if(cmp) nbr = -FLT_MAX; else nbr = FLT_MAX;
     for(i = 0; i < argc; i += 2) {
         f = getnumber(argv[i]);
