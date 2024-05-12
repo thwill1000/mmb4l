@@ -563,7 +563,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         else {                                                      // find the type
             char *pp = p;
             while(*pp != ')' && *pp != 0) pp++;
-            if(*pp == 0) error("Syntax");
+            if(*pp == 0) ERROR_SYNTAX;
             pp++; skipspace(pp);
             CheckIfTypeSpecified(pp, typ, false);
             *typ &= ~T_IMPLIED;
@@ -1460,7 +1460,7 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
             t = T_STR;
         }
         else
-            error("Syntax");
+            ERROR_SYNTAX;
     }
     skipspace(p);
     *fa = f;                                                            // save what we have
