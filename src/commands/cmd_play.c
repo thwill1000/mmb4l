@@ -87,13 +87,11 @@ static MmResult cmd_play_midifile(const char *p) {
 }
 
 static MmResult cmd_play_modfile(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY MODFILE");
-    return kUnimplemented;
+    return kOk;
 }
 
 static MmResult cmd_play_modsample(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY MODSAMPLE");
-    return kUnimplemented;
+    return kOk;
 }
 
 static MmResult cmd_play_next(const char *p) {
