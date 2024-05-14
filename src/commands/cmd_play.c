@@ -65,9 +65,9 @@ static void cmd_play_midi(const char *p) { ERROR_UNIMPLEMENTED("PLAY MIDI"); }
 
 static void cmd_play_midifile(const char *p) { ERROR_UNIMPLEMENTED("PLAY MIDIFILE"); }
 
-static void cmd_play_modfile(const char *p) { ERROR_UNIMPLEMENTED("PLAY MODFILE"); }
+static void cmd_play_modfile(const char *p) { /* NoOp */ }
 
-static void cmd_play_modsample(const char *p) { ERROR_UNIMPLEMENTED("PLAY MODSAMPLE"); }
+static void cmd_play_modsample(const char *p) { /* NoOp */ }
 
 static void cmd_play_next(const char *p) { ERROR_UNIMPLEMENTED("PLAY NEXT"); }
 
