@@ -170,6 +170,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/fonttbl.c
     src/common/gamepad.c
     src/common/graphics.c
+    src/common/image_bmp.c
     src/common/interrupt.c
     src/common/keyboard.c
     src/common/maths.c

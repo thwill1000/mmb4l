@@ -45,9 +45,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "error.h"
 #include "events.h"
+#include "file.h"
 #include "fonttbl.h"
 #include "graphics.h"
+#include "image_bmp.h"
 #include "memory.h"
+#include "path.h"
 #include "upng.h"
 #include "utility.h"
 
@@ -859,6 +862,24 @@ void graphics_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
     //     }
     // }
     // if (cursorhidden)showcursor(0, xcursor,ycursor);
+}
+
+MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
+    MmResult result = kOk;
+
+    if (!path_has_suffix(filename, ".BMP", true)) {
+        // TODO: What if the file-extension is ".bmp" ?
+        result = cstring_cat(filename, ".BMP", STRINGSIZE);
+        if (FAILED(result)) return result;
+    }
+
+    int fnbr = file_find_free();
+    file_open(filename, "rb", fnbr);
+    uint8_t image_result = image_bmp_load(surface, x, y, fnbr);
+    if (FAILED(image_result)) result = kError; // TODO
+    file_close(fnbr);
+
+    return result;
 }
 
 MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent, int force) {
