@@ -48,10 +48,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/program.h"
 #include "../common/utility.h"
 
-/** LOAD file$ [, x, y] */
+/** LOAD IMAGE file$ [, x] [, y] */
 static MmResult cmd_load_bmp(const char *p) {
-    ERROR_UNIMPLEMENTED("LOAD {BMP|IMAGE}");
-    return kUnimplemented;
+    getargs(&p, 5, ",");
+    if (argc == 0) return kArgumentCount;
+
+    char *filename = getCstring(argv[0]);
+    const int xOrigin = (argc >= 3 && *argv[2]) ? getinteger(argv[2]) : 0;
+    const int yOrigin = (argc >= 5 && *argv[4]) ? getinteger(argv[4]) : 0;
+
+    return graphics_load_bmp(graphics_current, filename, xOrigin, yOrigin);
 }
 
 /** LOAD DATA file$, address */
