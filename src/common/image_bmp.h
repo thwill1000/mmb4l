@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-fun_classic.c
+image_bmp.h
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,43 +42,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/gamepad.h"
-#include "../common/mmb4l.h"
-#include "../common/utility.h"
+#if !defined(MMBASIC_IMAGE_BMP_H)
+#define MMBASIC_IMAGE_BMP_H
 
-void fun_classic(void) {
-    if (mmb_options.simulate != kSimulateCmm2) {
-        ERROR_UNIMPLEMENTED("CLASSIC function except for 'Colour Maximite 2'");
-    }
+#include "graphics.h"
 
-    getargs(&ep, 3, ",");
-    if (argc != 1 && argc != 3) ERROR_ARGUMENT_COUNT;
-    const MMINTEGER wii_i2c = (argc == 3) ? getint(argv[2], 1, 3) : 3;
-    const MmGamepadId gamepad_id = gamepad_transform_wii_i2c(wii_i2c);
-    if (gamepad_id == -1) ERROR_INTERNAL_FAULT;
+#include <stdint.h>
 
-    const char *p2;
-    MmResult result = kOk;
-    targ = T_INT;
-    if ((p2 = checkstring(argv[0], "B"))) {
-        result = gamepad_read_buttons(gamepad_id, &iret);
-    } else if ((p2 = checkstring(argv[0], "LX"))) {
-        result = gamepad_read_left_x(gamepad_id, &iret);
-    } else if ((p2 = checkstring(argv[0], "LY"))) {
-        result = gamepad_read_left_y(gamepad_id, &iret);
-    } else if ((p2 = checkstring(argv[0], "RX"))) {
-        result = gamepad_read_right_x(gamepad_id, &iret);
-    } else if ((p2 = checkstring(argv[0], "RY"))) {
-        result = gamepad_read_right_y(gamepad_id, &iret);
-    } else if ((p2 = checkstring(argv[0], "L"))) {
-        result = gamepad_read_left_analog_button(gamepad_id, &iret);
-    } else if ((p2 = checkstring(argv[0], "R"))) {
-        result = gamepad_read_right_analog_button(gamepad_id, &iret);
-    } else if ((p2 = checkstring(argv[0], "T"))) {
-        iret = 0xA4200101; // I2C id for Wii Classic controller.
-        result = kOk;
-    } else {
-        error_throw_ex(kSyntax, "Unknown gamepad function");
-    }
-    if (FAILED(result)) error_throw(result);
-}
+/**
+ * Loads a bitmap image (.bmp file) onto an MMBasic graphics surface.
+ *
+ * @param  surface  The destination surface.
+ * @param  x        The x-coordinate of the top left corner on the surface to render the image.
+ * @param  y        The y-coordinate of the top left corner on the surface to render the image.
+ * @param  fnbr     MMBasic file number of an open file to read from.
+ * @return          0 on success, all other values indicate an error.
+ */
+uint8_t image_bmp_load(MmSurface *surface, int x, int y, int fnbr);
+
+#endif // #if !defined(MMBASIC_IMAGE_BMP_H)

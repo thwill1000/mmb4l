@@ -289,6 +289,15 @@ uint32_t graphics_font_height(uint32_t font);
 uint32_t graphics_font_width(uint32_t font);
 
 /**
+ * Loads a .bmp image.
+ *
+ * @param  surface   Surface to draw the image on.
+ * @param  filename  Name of file to load the image from.
+ * @param  x, y      Coordinates of top-left corner to start drawing the image from.
+ */
+MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y);
+
+/**
  * Loads a .png image.
  *
  * @param  surface   Surface to draw the image on.
