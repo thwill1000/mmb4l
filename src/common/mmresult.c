@@ -168,6 +168,9 @@ const char *mmresult_to_string(MmResult result) {
         case kGamepadNotOpen:             return "Gamepad not open";
         case kSoundInUse:                 return "Sound output in use";
         case kSoundInvalidFrequency:      return "Valid is 0Hz to 20KHz";
+        case kAudioNoModFile:             return "No MOD file playing";
+        case kAudioNothingToResume:       return "Nothing to resume";
+        case kAudioNothingToPause:        return "Nothing playing";
         default:                          return "Unknown result code";
     }
 }

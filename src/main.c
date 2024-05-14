@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "common/mmb4l.h"
+#include "common/audio.h"
 #include "common/cmdline.h"
 #include "common/console.h"
 #include "common/cstring.h"
@@ -202,6 +203,7 @@ void longjmp_handler(int jmp_state) {
     console_show_cursor(true);
     console_reset();
     if (MMCharPos > 1) console_puts("\r\n");
+    audio_close(true);
 
     int do_exit = false;
     switch (jmp_state) {
@@ -407,6 +409,7 @@ static void perform_background_tasks() {
 
     events_pump();
     graphics_refresh_windows();
+    audio_service_buffers();
 }
 
 void CheckAbort(void) {
