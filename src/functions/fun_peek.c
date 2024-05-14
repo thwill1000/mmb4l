@@ -83,7 +83,25 @@ static char *GetCFunAddr(const char *p, int i) {
 /** PEEK(CFUNADDR cfun) */
 static void peek_cfunaddr(int argc, char **argv, const char *p) {
     if (argc != 1) ERROR_SYNTAX;
-    int idx = FindSubFun(p, kFunction | kSub); // find a function or subroutine.
+
+    skipspace(p);
+
+    // The argument may be am unquoted function / sub name.
+    char name[MAXVARLEN + 1];
+    MmResult result = parse_name(&p, name);
+    int idx = -1;
+    if (SUCCEEDED(result)) {
+        idx = FindSubFun(name, kFunction | kSub);
+    }
+
+    // Or a string expression evaluating to a function / sub name.
+    if (idx == -1) {
+        getargs(&p, 1, ",");
+        if (argc!=1) ERROR_ARGUMENT_COUNT;
+        char *s = getCstring(argv[0]);
+        idx = FindSubFun(s, kFunction | kSub);
+    }
+
     const CommandToken cmd = idx == -1
         ? INVALID_COMMAND_TOKEN
         : commandtbl_decode(funtbl[idx].addr);
