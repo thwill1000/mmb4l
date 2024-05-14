@@ -56,8 +56,8 @@ static MmResult cmd_play_continue(const char *p) {
     return kUnimplemented;
 }
 
-static MmResult cmd_play_close(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY CLOSE");
+static MmResult cmd_play_effect(const char *p) {
+    ERROR_UNIMPLEMENTED("PLAY EFFECT");
     return kUnimplemented;
 }
 
@@ -86,39 +86,54 @@ static MmResult cmd_play_midifile(const char *p) {
     return kUnimplemented;
 }
 
-static MmResult cmd_play_modfile(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY MODFILE");
-    return kUnimplemented;
-}
-
-static MmResult cmd_play_modsample(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY MODSAMPLE");
-    return kUnimplemented;
-}
-
 static MmResult cmd_play_next(const char *p) {
     ERROR_UNIMPLEMENTED("PLAY NEXT");
     return kUnimplemented;
 }
 
-static MmResult cmd_play_pause(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY PAUSE");
-    return kUnimplemented;
-}
-
-static MmResult cmd_play_previous(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY PREVIOUS");
-    return kUnimplemented;
-}
-
 static MmResult cmd_play_note(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY NOTE"); 
+    ERROR_UNIMPLEMENTED("PLAY NOTE");
     return kUnimplemented;
+}
+
+/** PLAY MODFILE file$ [,interrupt] */
+static MmResult cmd_play_modfile(const char *p) {
+    getargs(&p, 3, ",");
+    if (argc != 1 && argc != 3) return kArgumentCount;
+    const char *filename = getCstring(argv[0]);
+    const char *interrupt = (argc == 3) ? GetIntAddress(argv[2]) : NULL;
+
+    return audio_play_modfile(filename, interrupt);
+}
+
+/** PLAY MODSAMPLE sample_num, channel_num [, volume] [, sample_rate] */
+static MmResult cmd_play_modsample(const char *p) {
+    getargs(&p, 7, ",");
+    if (argc != 3 && argc != 5 && argc != 7) return kArgumentCount;
+    const uint8_t sample_num = (uint8_t) getint(argv[0], 1, 32);
+    const uint8_t channel_num = (uint8_t) getint(argv[2], 1, 4);
+    const uint8_t volume = max(0, (argc >= 5) ? (uint8_t) getint(argv[4], 0, 64) : 64);
+    const uint32_t sample_rate = (argc == 7) ? (uint32_t) getint(argv[6], 150, 500000) : 16000;
+
+    return audio_play_modsample(sample_num, channel_num, volume, sample_rate);
+}
+
+static MmResult cmd_play_pause(const char *p) { 
+    skipspace(p);
+    if (!parse_is_end(p)) error_throw(kUnexpectedText);
+    return audio_pause();
+}
+
+static MmResult cmd_play_previous(const char *p) { 
+    skipspace(p);
+    if (!parse_is_end(p)) error_throw(kUnexpectedText);
+    return audio_pause();
 }
 
 static MmResult cmd_play_resume(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY RESUME");
-    return kUnimplemented;
+    skipspace(p);
+    if (!parse_is_end(p)) error_throw(kUnexpectedText);
+    return audio_resume();
 }
 
 /** PLAY SOUND soundno, channelno, type [, frequency] [, volume] */
@@ -199,9 +214,14 @@ static MmResult cmd_play_mp3(const char *p) {
     return kUnimplemented;
 }
 
+/** PLAY VOLUME left [, right] */
 static MmResult cmd_play_volume(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY VOLUME");
-    return kUnimplemented;
+    getargs(&p, 3, ",");
+    if (argc != 1 && argc != 3) return kArgumentCount;
+    uint8_t left = (uint8_t)getint(argv[0], 0, 100);
+    uint8_t right = (argc == 3) ? (uint8_t)getint(argv[2], 0, 100) : left;
+
+    return audio_set_volume(left, right);
 }
 
 static MmResult cmd_play_wav(const char *p) {
@@ -213,9 +233,13 @@ void cmd_play(void) {
     MmResult result = kOk;
     const char *p;
     if ((p = checkstring(cmdline, "CLOSE"))) {
-        result = cmd_play_close(p);
+        result = cmd_play_stop(p); // CLOSE is a synonym of STOP.
     } else if ((p = checkstring(cmdline, "CONTINUE"))) {
         result = cmd_play_continue(p);
+    } else if ((p = checkstring(cmdline, "CONTINUE"))) {
+        cmd_play_continue(p);
+    } else if ((p = checkstring(cmdline, "EFFECT"))) {
+        cmd_play_effect(p);
     } else if ((p = checkstring(cmdline, "FLAC"))) {
         result = cmd_play_flac(p);
     } else if ((p = checkstring(cmdline, "HALT"))) {

@@ -136,7 +136,10 @@ typedef enum {
     kGamepadNotOpen,
     kSoundInUse,
     kSoundInvalidFrequency,
-    kUnsupported
+    kUnsupported,
+    kAudioNoModFile,
+    kAudioNothingToResume,
+    kAudioNothingToPause,
 } MmResultCode;
 
 #if !defined(STRINGSIZE)
