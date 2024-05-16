@@ -63,6 +63,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HRes graphics_current->width
 #define VRes graphics_current->height
 
+const MmGraphicsColour GRAPHICS_4BIT_COLOUR[] = {
+    RGB_BLACK,
+    RGB_BLUE,
+    RGB_MYRTLE,
+    RGB_COBALT,
+    RGB_MIDGREEN,
+    RGB_CERULEAN,
+    RGB_GREEN,
+    RGB_CYAN,
+    RGB_RED,
+    RGB_MAGENTA_4BIT,
+    RGB_RUST,
+    RGB_FUSCHIA,
+    RGB_BROWN_4BIT,
+    RGB_LILAC,
+    RGB_YELLOW,
+    RGB_WHITE,
+};
+
 typedef struct {
     uint32_t id;
     uint32_t width;
@@ -1014,6 +1033,59 @@ MmResult graphics_blit(int x1, int y1, int x2, int y2, int w, int h,
         src += read_surface->width - w;
         dst += ldelta;
     }
+
+    return kOk;
+}
+
+MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int x, int y, int w, int h,
+                                         int transparent) {
+    unsigned count = 0;
+    int colour;
+    for (int yy = y; yy < y + h; ++yy) {
+        for (int xx = x; xx < x + w; ++xx) {
+            if (count == 0) {
+                count = *data & 0x0F;
+                colour = *data >> 4;
+                data++;
+            }
+            if (colour != transparent) {
+                graphics_set_pixel_safe(surface, xx, yy, GRAPHICS_4BIT_COLOUR[colour]);
+            }
+            count--;
+        }
+    }
+
+    surface->dirty = true;
+
+    return kOk;
+}
+
+MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x, int y, int w,
+                                           int h, int transparent) {
+    unsigned count = 0;
+    int colour;
+    for (int yy = y; yy < y + h; ++yy) {
+        for (int xx = x; xx < x + w; ++xx) {
+            switch (count) {
+                case 0:
+                    count = 2;
+                    colour = *data & 0xF;
+                    break;
+                case 1:
+                    colour = *data >> 4;
+                    data++;
+                    break;
+                default:
+                    return kInternalFault;
+            }
+            if (colour != transparent) {
+                graphics_set_pixel_safe(surface, xx, yy, GRAPHICS_4BIT_COLOUR[colour]);
+            }
+            count--;
+        }
+    }
+
+    surface->dirty = true;
 
     return kOk;
 }
