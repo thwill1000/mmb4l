@@ -84,9 +84,21 @@ static MmResult cmd_blit_close_all(const char *p) {
     return result;
 }
 
+/** BLIT COMPRESSED address, x, y [, transparent] */
 static MmResult cmd_blit_compressed(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT COMPRESSED");
-    return kUnimplemented;
+    getargs(&p, 7, ",");
+    if (argc != 5 && argc != 7) return kArgumentCount;
+    char *data = (char *) get_peek_addr(argv[0]);
+    const int x = getint(argv[2], INT32_MIN, INT32_MAX);
+    const int y = getint(argv[4], INT32_MIN, INT32_MAX);
+    const int transparent = (argc == 7) ? getint(argv[6], -1, 15) : -1;
+
+    const uint16_t *size = (uint16_t *) data;
+    const int w = size[0] & 0x7FFF;
+    const int h = size[1] & 0x7FFF;
+    data += 4;
+
+    return graphics_blit_memory_compressed(graphics_current, data, x, y, w, h, transparent);
 }
 
 static MmResult cmd_blit_framebuffer(const char *p) {
@@ -94,9 +106,24 @@ static MmResult cmd_blit_framebuffer(const char *p) {
     return kUnimplemented;
 }
 
+/** BLIT MEMORY address, x, y [, transparent] */
 static MmResult cmd_blit_memory(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT MEMORY");
-    return kUnimplemented;
+    getargs(&p, 7, ",");
+    if (argc != 5 && argc != 7) return kArgumentCount;
+    char *data = (char *) get_peek_addr(argv[0]);
+    const int x = getint(argv[2], INT32_MIN, INT32_MAX);
+    const int y = getint(argv[4], INT32_MIN, INT32_MAX);
+    const int transparent = (argc == 7) ? getint(argv[6], -1, 15) : -1;
+
+    const uint16_t *size = (uint16_t *) data;
+    const int w = size[0] & 0x7FFF;
+    const int h = size[1] & 0x7FFF;
+    const bool compressed = size[0] & 0x8000 || size[1] & 0x8000;
+    data += 4;
+
+    return compressed
+        ? graphics_blit_memory_compressed(graphics_current, data, x, y, w, h, transparent)
+        : graphics_blit_memory_uncompressed(graphics_current, data, x, y, w, h, transparent);
 }
 
 /**
