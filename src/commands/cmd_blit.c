@@ -88,6 +88,25 @@ static void cmd_blit_close_all(const char *p) {
     if (FAILED(result)) error_throw(result);
 }
 
+/** BLIT COMPRESSED address, x, y [, transparent] */
+static void cmd_blit_compressed(const char *p) {
+    getargs(&p, 7, ",");
+    if (argc != 5 && argc != 7) ERROR_ARGUMENT_COUNT;
+    char *data = (char *) get_peek_addr(argv[0]);
+    const int32_t x = getint(argv[2], INT32_MIN, INT32_MAX);
+    const int32_t y = getint(argv[4], INT32_MIN, INT32_MAX);
+    const uint32_t transparent = argc == 7 ? getint(argv[6], -1, 15) : -1;
+
+    const uint16_t *size = (uint16_t *) data;
+    const uint32_t w = size[0] & 0x7FFF;
+    const uint32_t h = size[1] & 0x7FFF;
+    data += 4;
+
+    MmResult result = graphics_blit_memory_compressed(graphics_current, data, x, y, w, h,
+                                                      transparent);
+    if (FAILED(result)) error_throw(result);
+}
+
 static void cmd_blit_copy(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT COPY");
 }
@@ -118,6 +137,27 @@ static void cmd_blit_load_array(const char *p) {
 
 static void cmd_blit_load_png(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT LOADPNG");
+}
+
+/** BLIT MEMORY address, x, y [, transparent] */
+static void cmd_blit_memory(const char *p) {
+    getargs(&p, 7, ",");
+    if (argc != 5 && argc != 7) ERROR_ARGUMENT_COUNT;
+    char *data = (char *) get_peek_addr(argv[0]);
+    const int32_t x = getint(argv[2], INT32_MIN, INT32_MAX);
+    const int32_t y = getint(argv[4], INT32_MIN, INT32_MAX);
+    const uint32_t transparent = argc == 7 ? getint(argv[6], -1, 15) : -1;
+
+    const uint16_t *size = (uint16_t *) data;
+    const uint32_t w = size[0] & 0x7FFF;
+    const uint32_t h = size[1] & 0x7FFF;
+    const bool compressed = size[0] & 0x8000 || size[1] & 0x8000;
+    data += 4;
+
+    MmResult result = compressed
+        ? graphics_blit_memory_compressed(graphics_current, data, x, y, w, h, transparent)
+        : graphics_blit_memory_uncompressed(graphics_current, data, x, y, w, h, transparent);
+    if (FAILED(result)) error_throw(result);
 }
 
 static void cmd_blit_move(const char *p) {
@@ -256,6 +296,8 @@ void cmd_blit(void) {
         cmd_blit_close_all(p);
     } else if ((p = checkstring(cmdline, "CLOSE"))) {
         cmd_blit_close(p);
+    } else if ((p = checkstring(cmdline, "COMPRESSED"))) {
+        cmd_blit_compressed(p);
     } else if ((p = checkstring(cmdline, "COPY"))) {
         cmd_blit_copy(p);
     } else if ((p = checkstring(cmdline, "HIDE ALL"))) {
@@ -274,6 +316,8 @@ void cmd_blit(void) {
         cmd_blit_load_png(p);
     } else if ((p = checkstring(cmdline, "MOVE"))) {
         cmd_blit_move(p);
+    } else if ((p = checkstring(cmdline, "MEMORY"))) {
+        cmd_blit_memory(p);
     } else if ((p = checkstring(cmdline, "NEXT"))) {
         cmd_blit_next(p);
     } else if ((p = checkstring(cmdline, "NOINTERRUPT"))) {

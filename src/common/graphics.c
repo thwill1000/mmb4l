@@ -62,6 +62,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HRes graphics_current->width
 #define VRes graphics_current->height
 
+const MmGraphicsColour GRAPHICS_4BIT_COLOUR[] = {
+    RGB_BLACK,
+    RGB_BLUE,
+    RGB_MYRTLE,
+    RGB_COBALT,
+    RGB_MIDGREEN,
+    RGB_CERULEAN,
+    RGB_GREEN,
+    RGB_CYAN,
+    RGB_RED,
+    RGB_MAGENTA_4BIT,
+    RGB_RUST,
+    RGB_FUSCHIA,
+    RGB_BROWN_4BIT,
+    RGB_LILAC,
+    RGB_YELLOW,
+    RGB_WHITE,
+};
+
 typedef struct {
     uint32_t id;
     uint32_t width;
@@ -1006,6 +1025,63 @@ MmResult graphics_blit(int x1, int y1, int x2, int y2, uint32_t w, uint32_t h,
         src += read_surface->width - w;
         dst += ldelta;
     }
+
+    return kOk;
+}
+
+MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int32_t x, int32_t y,
+                                         uint32_t w, uint32_t h, int32_t transparent) {
+    // printf("Compressed x = %d, y = %d, w = %d, h = %d, transparent = %d\n", x, y, w, h,
+    //        transparent);
+    int8_t count = 0;
+    int8_t colour;
+    for (int32_t yy = y; yy < y + (int32_t) h; ++yy) {
+        for (int32_t xx = x; xx < x + (int32_t) w; ++xx) {
+            if (count == 0) {
+                count = *data & 0x0F;
+                colour = *data >> 4;
+                data++;
+            }
+            if (colour != transparent) {
+                graphics_set_pixel_safe(surface, xx, yy, GRAPHICS_4BIT_COLOUR[colour]);
+            }
+            count--;
+        }
+    }
+
+    surface->dirty = true;
+
+    return kOk;
+}
+
+MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int32_t x, int32_t y,
+                                           uint32_t w, uint32_t h, int32_t transparent) {
+    // printf("Uncompressed x = %d, y = %d, w = %d, h = %d, transparent = %d\n", x, y, w, h,
+    //        transparent);
+    int8_t count = 0;
+    int8_t colour;
+    for (int32_t yy = y; yy < y + (int32_t) h; ++yy) {
+        for (int32_t xx = x; xx < x + (int32_t) w; ++xx) {
+            switch (count) {
+                case 0:
+                    count = 2;
+                    colour = *data & 0xF;
+                    break;
+                case 1:
+                    colour = *data >> 4;
+                    data++;
+                    break;
+                default:
+                    return kInternalFault;
+            }
+            if (colour != transparent) {
+                graphics_set_pixel_safe(surface, xx, yy, GRAPHICS_4BIT_COLOUR[colour]);
+            }
+            count--;
+        }
+    }
+
+    surface->dirty = true;
 
     return kOk;
 }

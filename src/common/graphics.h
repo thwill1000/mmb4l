@@ -88,6 +88,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RGB_BEIGE     RGB(0xF5,  0xF5,  0xDC,   255)
 #define RGB_NOTBLACK  RGB(   0,     0,     0,   255)
 
+// Additional 4-bit colours defined on the PicoMite.
+#define RGB_MYRTLE        RGB(   0, 0x40,    0, 0xFF)
+#define RGB_COBALT        RGB(   0, 0x40, 0xFF, 0xFF)
+#define RGB_MIDGREEN      RGB(   0, 0x80,    0, 0xFF)
+#define RGB_CERULEAN      RGB(   0, 0x80, 0xFF, 0xFF)
+#define RGB_MAGENTA_4BIT  RGB(0xFF,    0, 0xFF, 0xFF)
+#define RGB_RUST          RGB(0xFF, 0x40,    0, 0xFF)
+#define RGB_FUSCHIA       RGB(0xFF, 0x40, 0xFF, 0xFF)
+#define RGB_BROWN_4BIT    RGB(0xFF, 0x80,    0, 0xFF)
+#define RGB_LILAC         RGB(0xFF, 0x80, 0xFF, 0xFF)
+
 typedef enum {
     kGraphicsNone = 0,
     kGraphicsBuffer,
@@ -175,6 +186,30 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
  */
 MmResult graphics_blit(int x1, int y1, int x2, int y2, uint32_t w, uint32_t h,
                        MmSurface *read_surface, MmSurface *write_surface, int flags);
+
+/**
+ * Blits 4-bit colour compressed "sprite" from memory.
+ *
+ * @param  surface      The surface to write to.
+ * @param  data         Sprite data is read from here.
+ * @param  x, y         Top left coordinates on the write surface.
+ * @param  w, h         Width and height of sprite.
+ * @param  transparent  4-bit colour to treat as transparent, -1 for no transparency.
+ */
+MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int32_t x, int32_t y,
+                                         uint32_t w, uint32_t h, int32_t transparent);
+
+/**
+ * Blits 4-bit colour uncompressed "sprite" from memory.
+ *
+ * @param  surface      The surface to write to.
+ * @param  data         Sprite data is read from here.
+ * @param  x, y         Top left coordinates on the write surface.
+ * @param  w, h         Width and height of sprite.
+ * @param  transparent  4-bit colour to treat as transparent, -1 for no transparency.
+ */
+MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int32_t x, int32_t y,
+                                           uint32_t w, uint32_t h, int32_t transparent);
 
 MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0 , MMFLOAT y0 , MMFLOAT x1 ,
                                MMFLOAT y1, MmGraphicsColour colour, uint32_t w);
