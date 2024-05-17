@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static void cmd_play_continue(const char *p) { ERROR_UNIMPLEMENTED("PLAY CONTINUE"); }
 
-static void cmd_play_close(const char *p) { ERROR_UNIMPLEMENTED("PLAY CLOSE"); }
+static void cmd_play_effect(const char *p) { ERROR_UNIMPLEMENTED("PLAY EFFECT"); }
 
 static void cmd_play_flac(const char *p) { ERROR_UNIMPLEMENTED("PLAY FLAC"); }
 
@@ -65,27 +65,47 @@ static void cmd_play_midi(const char *p) { ERROR_UNIMPLEMENTED("PLAY MIDI"); }
 
 static void cmd_play_midifile(const char *p) { ERROR_UNIMPLEMENTED("PLAY MIDIFILE"); }
 
-/** PLAY MODFILE file$ [,interrupt]*/
+/** PLAY MODFILE file$ [,interrupt] */
 static void cmd_play_modfile(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 1 && argc != 3) ERROR_ARGUMENT_COUNT;
     const char *filename = getCstring(argv[0]);
-    const char *interrupt = argc == 3 ? GetIntAddress(argv[2]) : NULL;
+    const char *interrupt = (argc == 3) ? GetIntAddress(argv[2]) : NULL;
+
     MmResult result = audio_play_modfile(filename, interrupt);
     if (FAILED(result)) error_throw(result);
 }
 
-static void cmd_play_modsample(const char *p) { /* NoOp */ }
+/** PLAY MODSAMPLE sample_num, channel_num [, volume] [, sample_rate] */
+static void cmd_play_modsample(const char *p) {
+    getargs(&p, 7, ",");
+    if (argc != 3 && argc != 5 && argc != 7) ERROR_ARGUMENT_COUNT;
+    const uint8_t sample_num = (uint8_t) getint(argv[0], 1, 32);
+    const uint8_t channel_num = (uint8_t) getint(argv[2], 1, 4);
+    const uint8_t volume = max(0, (argc >= 5) ? (uint8_t) getint(argv[4], 0, 64) : 64);
+    const uint32_t sample_rate = (argc == 7) ? (uint32_t) getint(argv[6], 150, 500000) : 16000;
+
+    MmResult result = audio_play_modsample(sample_num, channel_num, volume, sample_rate);
+    if (FAILED(result)) error_throw(result);
+}
 
 static void cmd_play_next(const char *p) { ERROR_UNIMPLEMENTED("PLAY NEXT"); }
 
-static void cmd_play_pause(const char *p) { ERROR_UNIMPLEMENTED("PLAY PAUSE"); }
+static void cmd_play_pause(const char *p) { 
+    if (!parse_is_end(p)) error_throw(kUnexpectedText);
+    MmResult result = audio_pause();
+    if (FAILED(result)) error_throw(result);
+}
 
 static void cmd_play_previous(const char *p) { ERROR_UNIMPLEMENTED("PLAY PREVIOUS"); }
 
 static void cmd_play_note(const char *p) { ERROR_UNIMPLEMENTED("PLAY NOTE"); }
 
-static void cmd_play_resume(const char *p) { ERROR_UNIMPLEMENTED("PLAY RESUME"); }
+static void cmd_play_resume(const char *p) {
+    if (!parse_is_end(p)) error_throw(kUnexpectedText);
+    MmResult result = audio_resume();
+    if (FAILED(result)) error_throw(result);
+}
 
 /** PLAY SOUND soundno, channelno, type [, frequency] [, volume] */
 static void cmd_play_sound(const char *p) {
@@ -160,16 +180,27 @@ static void cmd_play_stream(const char *p) { ERROR_UNIMPLEMENTED("PLAY STREAM");
 
 static void cmd_play_mp3(const char *p) { ERROR_UNIMPLEMENTED("PLAY MP3"); }
 
-static void cmd_play_volume(const char *p) { ERROR_UNIMPLEMENTED("PLAY VOLUME"); }
+/** PLAY VOLUME left [, right] */
+static void cmd_play_volume(const char *p) {
+    getargs(&p, 3, ",");
+    if (argc != 1 && argc != 3) ERROR_ARGUMENT_COUNT;
+    uint8_t left = (uint8_t)getint(argv[0], 0, 100);
+    uint8_t right = (argc == 3) ? (uint8_t)getint(argv[2], 0, 100) : left;
+
+    MmResult result = audio_set_volume(left, right);
+    if (FAILED(result)) error_throw(result);
+}
 
 static void cmd_play_wav(const char *p) { ERROR_UNIMPLEMENTED("PLAY WAV"); }
 
 void cmd_play(void) {
     const char *p;
     if ((p = checkstring(cmdline, "CLOSE"))) {
-        cmd_play_close(p);
+        cmd_play_stop(p); // CLOSE and STOP are synonyms.
     } else if ((p = checkstring(cmdline, "CONTINUE"))) {
         cmd_play_continue(p);
+    } else if ((p = checkstring(cmdline, "EFFECT"))) {
+        cmd_play_effect(p);
     } else if ((p = checkstring(cmdline, "FLAC"))) {
         cmd_play_flac(p);
     } else if ((p = checkstring(cmdline, "HALT"))) {

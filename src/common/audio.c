@@ -83,13 +83,13 @@ typedef enum {
     P_TTS,
     P_DAC,
     P_PAUSE_MP3
-} e_CurrentlyPlaying;
+} AudioState;
 
 static uint64_t bcount[3] = {0, 0, 0};  // Number of bytes(?) of data in audio buffer.
                                         // I believe element 0 is ignored.
 static uint64_t bcounte[3] = {0, 0, 0};
-static e_CurrentlyPlaying CurrentlyPlaying = P_NOTHING;
-//static e_CurrentlyPlaying CurrentlyPlayinge = P_NOTHING;
+static AudioState audio_state = P_NOTHING;
+//static AudioState audio_statee = P_NOTHING;
 static float fFilterVolumeL = 1.0f;
 static float fFilterVolumeR = 1.0f;
 //static int mono;
@@ -165,8 +165,8 @@ const char *audio_last_error() {
 void audio_close(bool all) {
     SDL_LockAudioDevice(1);
 
-    // int was_playing = CurrentlyPlaying;
-    CurrentlyPlaying = P_NOTHING;
+    // int was_playing = audio_state;
+    audio_state = P_NOTHING;
     memset(bcount, 0, sizeof(bcount));
     swingbuf = nextbuf = playreadcomplete = 0;
     memset(bcounte, 0, sizeof(bcounte));
@@ -246,7 +246,7 @@ static float audio_callback_mod(int nChannel) {
             ppos = 0;
         }
     }
-    // if (CurrentlyPlayinge == P_WAV) {
+    // if (audio_statee == P_WAV) {
     //     static int toggle = 0;
     //     float *flacbuff;
     //     if (swingbufe == 1)
@@ -395,7 +395,7 @@ static void audio_callback(void *userdata, Uint8 *stream, int len) {
     // static int counter = 0;
     float *fstream = (float *)stream;
     for (int i = 0; i < BUFFER_SIZE; i += 2) {
-        switch (CurrentlyPlaying) {
+        switch (audio_state) {
             case P_TONE:
                 fstream[i] = audio_callback_tone(0);
                 fstream[i + 1] = audio_callback_tone(1);
@@ -425,6 +425,43 @@ static void audio_callback(void *userdata, Uint8 *stream, int len) {
     }
 }
 
+MmResult audio_pause() {
+    if (!audio_initialised) {
+        MmResult result = audio_init();
+        if (FAILED(result)) return result;
+    }
+
+    SDL_LockAudioDevice(1);
+
+    MmResult result = kOk;
+    switch (audio_state) {
+        case P_TONE:
+            audio_state = P_PAUSE_TONE;
+            break;
+        case P_FLAC:
+            audio_state = P_PAUSE_FLAC;
+            break;
+        case P_SOUND:
+            audio_state = P_PAUSE_SOUND;
+            break;
+        case P_MOD:
+            audio_state = P_PAUSE_MOD;
+            break;
+        case P_WAV:
+            audio_state = P_PAUSE_WAV;
+            break;
+        case P_MP3:
+            audio_state = P_PAUSE_MP3;
+            break;
+        default:
+            result = kAudioNothingToPause;
+            break;
+    }
+
+    SDL_UnlockAudioDevice(1);
+    return result;
+}
+
 MmResult audio_play_modfile(const char *filename, const char *interrupt) {
     if (!audio_initialised) {
         MmResult result = audio_init();
@@ -433,7 +470,7 @@ MmResult audio_play_modfile(const char *filename, const char *interrupt) {
 
     SDL_LockAudioDevice(1);
 
-    if (CurrentlyPlaying != P_NOTHING) {
+    if (audio_state != P_NOTHING) {
         SDL_UnlockAudioDevice(1);
         return kSoundInUse;
     }
@@ -516,7 +553,28 @@ MmResult audio_play_modfile(const char *filename, const char *interrupt) {
     nextbuf = 2;
     ppos = 0;
     playreadcomplete = 0;
-    CurrentlyPlaying = P_MOD;
+    audio_state = P_MOD;
+
+    SDL_UnlockAudioDevice(1);
+    return kOk;
+}
+
+MmResult audio_play_modsample(uint8_t sample_num, uint8_t channel_num, uint8_t volume,
+                              uint32_t sample_rate) {
+    if (!audio_initialised) {
+        MmResult result = audio_init();
+        if (FAILED(result)) return result;
+    }
+
+    SDL_LockAudioDevice(1);
+
+    if (audio_state != P_MOD) {
+        SDL_UnlockAudioDevice(1);
+        return kAudioNoModFile;
+    }
+
+    hxcmod_playsoundeffect(&audio_mod_context, sample_num - 1, channel_num - 1, max(0, volume - 1),
+            3579545 / sample_rate);
 
     SDL_UnlockAudioDevice(1);
     return kOk;
@@ -531,8 +589,8 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
 
     SDL_LockAudioDevice(1);
 
-    if (!(CurrentlyPlaying == P_NOTHING || CurrentlyPlaying == P_SOUND ||
-          CurrentlyPlaying == P_PAUSE_SOUND)) {
+    if (!(audio_state == P_NOTHING || audio_state == P_SOUND ||
+          audio_state == P_PAUSE_SOUND)) {
         SDL_UnlockAudioDevice(1);
         return kSoundInUse;
     }
@@ -623,7 +681,7 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
 	// 	while (SystemMode != MODE_RUN) {}
 	// }
 
-	CurrentlyPlaying = P_SOUND;
+	audio_state = P_SOUND;
 
     SDL_UnlockAudioDevice(1);
 	return kOk;
@@ -637,11 +695,11 @@ MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const ch
 
     SDL_LockAudioDevice(1);
 
-    // if(CurrentlyPlaying == P_TONE || CurrentlyPlaying == P_PAUSE_TONE) CurrentlyPlaying =
+    // if(audio_state == P_TONE || audio_state == P_PAUSE_TONE) audio_state =
     // P_PAUSE_TONE;//StopAudio();                 // stop the current tone
 
-    if (!(CurrentlyPlaying == P_NOTHING || CurrentlyPlaying == P_TONE ||
-          CurrentlyPlaying == P_PAUSE_TONE)) {
+    if (!(audio_state == P_NOTHING || audio_state == P_TONE ||
+          audio_state == P_PAUSE_TONE)) {
         SDL_UnlockAudioDevice(1);
         return kSoundInUse;
     }
@@ -681,15 +739,52 @@ MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const ch
     //     }
     // }
     SoundPlay = play_duration;
-    CurrentlyPlaying = P_TONE;
+    audio_state = P_TONE;
 
     SDL_UnlockAudioDevice(1);
     return kOk;
 }
 
+MmResult audio_resume() {
+    if (!audio_initialised) {
+        MmResult result = audio_init();
+        if (FAILED(result)) return result;
+    }
+
+    SDL_LockAudioDevice(1);
+
+    MmResult result = kOk;
+    switch (audio_state) {
+        case P_PAUSE_TONE:
+            audio_state = P_TONE;
+            break;
+        case P_PAUSE_FLAC:
+            audio_state = P_FLAC;
+            break;
+        case P_PAUSE_SOUND:
+            audio_state = P_SOUND;
+            break;
+        case P_PAUSE_MOD:
+            audio_state = P_MOD;
+            break;
+        case P_PAUSE_WAV:
+            audio_state = P_WAV;
+            break;
+        case P_PAUSE_MP3:
+            audio_state = P_MP3;
+            break;
+        default:
+            result = kAudioNothingToResume;
+            break;
+    }
+
+    SDL_UnlockAudioDevice(1);
+    return result;
+}
+
 void audio_service_buffers() {
     if (swingbuf != nextbuf) {
-        if (CurrentlyPlaying == P_MOD) {
+        if (audio_state == P_MOD) {
             char *buf = (nextbuf == 1) ? sbuff1 : sbuff2;
             hxcmod_fillbuffer(&audio_mod_context, (msample*)buf, WAV_BUFFER_SIZE / 4, NULL,
                               audio_mod_noloop ? 1 : 0);
@@ -697,4 +792,10 @@ void audio_service_buffers() {
             nextbuf = swingbuf;
         }
     }
+}
+
+MmResult audio_set_volume(uint8_t left, uint8_t right) {
+    fFilterVolumeL = (float)mapping[left] / 2001.0f;
+    fFilterVolumeR = (float)mapping[right] / 2001.0f;
+    return kOk;
 }
