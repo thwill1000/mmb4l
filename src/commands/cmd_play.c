@@ -65,7 +65,15 @@ static void cmd_play_midi(const char *p) { ERROR_UNIMPLEMENTED("PLAY MIDI"); }
 
 static void cmd_play_midifile(const char *p) { ERROR_UNIMPLEMENTED("PLAY MIDIFILE"); }
 
-static void cmd_play_modfile(const char *p) { /* NoOp */ }
+/** PLAY MODFILE file$ [,interrupt]*/
+static void cmd_play_modfile(const char *p) {
+    getargs(&p, 3, ",");
+    if (argc != 1 && argc != 3) ERROR_ARGUMENT_COUNT;
+    const char *filename = getCstring(argv[0]);
+    const char *interrupt = argc == 3 ? GetIntAddress(argv[2]) : NULL;
+    MmResult result = audio_play_modfile(filename, interrupt);
+    if (FAILED(result)) error_throw(result);
+}
 
 static void cmd_play_modsample(const char *p) { /* NoOp */ }
 

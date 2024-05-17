@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "common/mmb4l.h"
+#include "common/audio.h"
 #include "common/cmdline.h"
 #include "common/console.h"
 #include "common/cstring.h"
@@ -407,6 +408,7 @@ static void perform_background_tasks() {
 
     events_pump();
     graphics_refresh_windows();
+    audio_service_buffers();
 }
 
 void CheckAbort(void) {
