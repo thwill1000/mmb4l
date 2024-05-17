@@ -190,11 +190,16 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/xmodem.c
 )
 
+set(MMB4L_THIRD_PARTY_SOURCE_FILES
+    src/third_party/hxcmod.c
+)
+
 set(MMB4L_SOURCE_FILES
     ${MMB4L_COMMANDS_SOURCE_FILES}
     ${MMB4L_FUNCTIONS_SOURCE_FILES}
     ${MMB4L_OPERATORS_SOURCE_FILES}
     ${MMB4L_COMMON_SOURCE_FILES}
+    ${MMB4L_THIRD_PARTY_SOURCE_FILES}
     src/main.c)
 
 # add the executable

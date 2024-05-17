@@ -77,6 +77,18 @@ MmResult audio_close(bool all);
  */
 MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, float frequency,
                           uint8_t volume);
+
+/**
+ * Loads and plays a .mod file asynchronously.
+ *
+ * @param  filename   The file to load.
+ * @param  interrupt  Pointer to optional interrupt routine to call when/if the .mod file ends.
+ *                    Use NULL for no interrupt routine.
+ */
+MmResult audio_play_modfile(const char *filename, const char *interrupt);
+
 MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const char *interrupt);
+
+void audio_service_buffers();
 
 #endif // #if !defined(MMBASIC_AUDIO_H)

@@ -86,8 +86,13 @@ static MmResult cmd_play_midifile(const char *p) {
     return kUnimplemented;
 }
 
+/** PLAY MODFILE file$ [,interrupt]*/
 static MmResult cmd_play_modfile(const char *p) {
-    return kOk;
+    getargs(&p, 3, ",");
+    if (argc != 1 && argc != 3) return kArgumentCount;
+    const char *filename = getCstring(argv[0]);
+    const char *interrupt = (argc == 3) ? GetIntAddress(argv[2]) : NULL;
+    return audio_play_modfile(filename, interrupt);
 }
 
 static MmResult cmd_play_modsample(const char *p) {
