@@ -163,6 +163,8 @@ const char *audio_last_error() {
 }
 
 void audio_close(bool all) {
+    if (!audio_initialised) return;
+
     SDL_LockAudioDevice(1);
 
     // int was_playing = audio_state;
@@ -234,7 +236,10 @@ static float audio_callback_mod(int nChannel) {
             //printf("flacbuff[%ld] = %d\n", ppos, flacbuff[ppos]);
             value = (float)buf[ppos++] / 32768.0f *
                     (nChannel == 0 ? fFilterVolumeL : fFilterVolumeR);
-        } else if (ppos == bcount[swingbuf]) {
+        }
+
+        // If we are now at the end of the buffer ...
+        if (ppos == bcount[swingbuf]) {
             if (bcount[swingbuf == 1 ? 2 : 1] != 0) {
                 // Alternative buffer is not empty so swap buffer.
                 bcount[swingbuf] = 0;

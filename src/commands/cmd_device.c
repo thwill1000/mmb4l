@@ -71,7 +71,8 @@ static void cmd_device_classic_open(const char *p) {
  */
 static void cmd_device_classic(const char *p) {
     if (mmb_options.simulate != kSimulateCmm2) {
-        ERROR_UNIMPLEMENTED("CONTROLLER CLASSIC command except for 'Colour Maximite 2'");
+        error_throw(kUnsupportedOnCurrentDevice);
+        return;
     }
     const char *p2;
     if ((p2 = checkstring(p, "CLOSE"))) {
