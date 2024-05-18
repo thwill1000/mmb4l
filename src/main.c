@@ -203,6 +203,7 @@ void longjmp_handler(int jmp_state) {
     console_show_cursor(true);
     console_reset();
     if (MMCharPos > 1) console_puts("\r\n");
+    audio_close(true);
 
     int do_exit = false;
     switch (jmp_state) {

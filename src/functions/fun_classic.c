@@ -49,7 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** CLASSIC(funct [, i2c]) */
 void fun_classic(void) {
     if (mmb_options.simulate != kSimulateCmm2) {
-        ERROR_UNIMPLEMENTED("CLASSIC function except for 'Colour Maximite 2'");
+        error_throw(kUnsupportedOnCurrentDevice);
+        return;
     }
 
     getargs(&ep, 3, ",");

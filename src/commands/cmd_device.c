@@ -72,10 +72,7 @@ static MmResult cmd_device_classic_open(const char *p) {
  * Maps CMM2 (Wii) "CLASSIC" controller commands to MMB4L "GAMEPAD" controllers.
  */
 static MmResult cmd_device_classic(const char *p) {
-    if (mmb_options.simulate != kSimulateCmm2) {
-        ERROR_UNIMPLEMENTED("CONTROLLER CLASSIC command except for 'Colour Maximite 2'");
-        return kUnimplemented;
-    }
+    if (mmb_options.simulate != kSimulateCmm2) return kUnsupportedOnCurrentDevice;
     const char *p2;
     if ((p2 = checkstring(p, "CLOSE"))) {
         return cmd_device_classic_close(p2);
