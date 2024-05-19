@@ -100,6 +100,7 @@ static void given_non_default_options(Options *options) {
     strcpy(options->editor, "Vi");
     options->list_case = kLower;
     strcpy(options->search_path, "/foo/bar");
+    options->simulate = kSimulateCmm2;
     options->tab = 8;
     options->zboolean = false;
     options->zfloat = 3.142;
@@ -118,9 +119,10 @@ TEST_F(OptionsTest, HasDefaultValue) {
     given_non_default_options(&options);
     for (const OptionsDefinition *def = options_definitions; def->name; ++def) {
         switch (def->id) {
-            case kOptionListCase:
             case kOptionEditor:
+            case kOptionListCase:
             case kOptionSearchPath:
+            case kOptionSimulate:
             case kOptionTab:
             case kOptionZBoolean:
             case kOptionZFloat:
@@ -657,6 +659,9 @@ TEST_F(OptionsTest, GetDisplayValue) {
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionSearchPath, svalue));
     EXPECT_STREQ("<unset>", svalue);
 
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("MMB4L", svalue);
+
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionTab, svalue));
     EXPECT_STREQ("4", svalue);
 
@@ -1037,6 +1042,28 @@ TEST_F(OptionsTest, GetStringValue_ForSearchPath) {
     EXPECT_STREQ((m_home + "/foo").c_str(), svalue);
 }
 
+TEST_F(OptionsTest, GetStringValue_ForSimulate) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.simulate = kSimulateMmb4l;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("MMB4L", svalue);
+
+    options.simulate = kSimulateCmm2;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("Colour Maximite 2", svalue);
+
+    options.simulate = kSimulatePicoMiteVga;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("PicoMiteVGA", svalue);
+
+    options.simulate = kSimulateGameMite;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("Game*Mite", svalue);
+}
+
 TEST_F(OptionsTest, GetStringValue_ForTab) {
     Options options;
     options_init(&options);
@@ -1415,6 +1442,29 @@ TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
     EXPECT_EQ(
             kFilenameTooLong,
             options_set_string_value(&options, kOptionSearchPath, svalue));
+}
+
+TEST_F(OptionsTest, SetStringValue_ForSimulate) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "MMB4L"));
+    EXPECT_EQ(kSimulateMmb4l, options.simulate);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "Colour Maximite 2"));
+    EXPECT_EQ(kSimulateCmm2, options.simulate);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "PicoMiteVGA"));
+    EXPECT_EQ(kSimulatePicoMiteVga, options.simulate);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "Game*Mite"));
+    EXPECT_EQ(kSimulateGameMite, options.simulate);
+
+    // Test case-insensitivity.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "COLOUR maximite 2"));
+    EXPECT_EQ(kSimulateCmm2, options.simulate);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionSimulate, "wombat"));
 }
 
 TEST_F(OptionsTest, SetStringValue_ForTab) {

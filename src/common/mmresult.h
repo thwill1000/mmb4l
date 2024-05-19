@@ -109,7 +109,9 @@ typedef enum {
     kImageTooLarge,
     kImageInvalidFormat,
     kInvalidFont,
-    kInvalidFontScaling
+    kInvalidFontScaling,
+    kUnknownDevice,
+    kUnsupportedOnCurrentDevice,
 } MmResultCode;
 
 /**

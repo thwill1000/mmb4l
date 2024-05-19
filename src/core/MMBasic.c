@@ -2303,8 +2303,9 @@ void ClearRuntime(void) {
     OptionExplicit = false;
     DefaultType = T_NBR;
 #if defined(__mmb4l__)
-    mmb_options.resolution = kCharacter;
     mmb_options.codepage = NULL;
+    mmb_options.simulate = kSimulateMmb4l;
+    mmb_options.resolution = kCharacter;
 #endif
 #if defined(MICROMITE) && !defined(LITE)
     ds18b20Timers = NULL;                                           // InitHeap() will recover the memory allocated to this array
