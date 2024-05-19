@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_mmdevice.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,12 +43,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
+#include "../common/utility.h"
 
-void get_mmdevice(char *device); // fun_mminfo.c
+MmResult get_mmdevice(char *device); // fun_mminfo.c
 
 void fun_mmdevice(void) {
     g_string_rtn = GetTempStrMemory();
-    get_mmdevice(g_string_rtn);
+    MmResult result = get_mmdevice(g_string_rtn);
+    if (FAILED(result)) {
+        error_throw(result);
+        return;
+    }
     CtoM(g_string_rtn);
     g_rtn_type = T_STR;
 }

@@ -144,6 +144,8 @@ const char *mmresult_to_string(MmResult result) {
         case kImageInvalidFormat:         return "Invalid image format";
         case kInvalidFont:                return "Invalid font";
         case kInvalidFontScaling:         return "Invalid font scaling; should be 1-15";
+        case kUnknownDevice:              return "Unknown device/platform";
+        case kUnsupportedOnCurrentDevice: return "Unsupported on current device/platform";
         default:                          return "Unknown result code";
     }
 }
