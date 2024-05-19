@@ -96,15 +96,34 @@ static void mminfo_current(const char *p) {
     CtoM(g_string_rtn);
 }
 
-void get_mmdevice(char *device) {
-    strcpy(device, MM_DEVICE);
+MmResult get_mmdevice(char *device) {
+    if (mmb_options.simulate == kSimulateGameMite) {
+        strcpy(device, "PicoMite");
+    } else {
+        MmResult result = options_get_string_value(&mmb_options, kOptionSimulate, device);
+        if (FAILED(result)) return kUnknownDevice;
+    }
+    return kOk;
 }
 
 static void mminfo_device(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_string_rtn = GetTempStrMemory();
+    const char *p2;
     g_rtn_type = T_STR;
-    get_mmdevice(g_string_rtn);
+    if ((p2 = checkstring(p, "X"))) {
+        // With the 'X' flag we always return the real device, i.e. "MMB4L".
+        if (!parse_is_end(p2)) error_throw(kUnexpectedText);
+        g_string_rtn = GetTempStrMemory();
+        strcpy(g_string_rtn, "MMB4L");
+    } else {
+        // Without the 'X' flag we can return a value set using OPTION SIMULATE.
+        if (!parse_is_end(p)) error_throw(kUnexpectedText);
+        g_string_rtn = GetTempStrMemory();
+        MmResult result = get_mmdevice(g_string_rtn);
+        if (FAILED(result)) {
+            error_throw(result);
+            return;
+        }
+    }
     CtoM(g_string_rtn);
 }
 
@@ -335,6 +354,18 @@ static void mminfo_pid(const char *p) {
     g_integer_rtn = (MMINTEGER) getpid();
 }
 
+static void mminfo_platform(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_string_rtn = GetTempStrMemory();
+    g_rtn_type = T_STR;
+    if (mmb_options.simulate == kSimulateGameMite) {
+        strcpy(g_string_rtn, "Game*Mite");
+    } else {
+        strcpy(g_string_rtn, "");
+    }
+    CtoM(g_string_rtn);
+}
+
 static void mminfo_version(const char *p) {
     const char *p2;
     g_rtn_type = T_INT;
@@ -427,6 +458,8 @@ void fun_mminfo(void) {
         mminfo_path(p);
     } else if ((p = checkstring(ep, "PID"))) {
         mminfo_pid(p);
+    } else if ((p = checkstring(ep, "PLATFORM"))) {
+        mminfo_platform(p);
     } else if ((p = checkstring(ep, "VERSION"))) {
         mminfo_version(p);
     } else if ((p = checkstring(ep, "VRES"))) {
