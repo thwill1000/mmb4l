@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 options.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -52,9 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <ctype.h>
-//#include <errno.h>
-//#include <sys/stat.h>
 
 #define INVALID_VALUE  "???"
 
@@ -114,6 +111,17 @@ static const NameOrdinalPair options_list_case_map[] = {
 static const NameOrdinalPair options_resolution_map[] = {
     { "Character", kCharacter },
     { "Pixel",     kPixel },
+    { NULL,        -1 }
+};
+
+static const NameOrdinalPair options_simulate_map[] = {
+    { "MMB4L",             kSimulateMmb4l },
+    { "MMBasic for Windows", kSimulateMmb4w },
+    { "MMB4W",             kSimulateMmb4w },
+    { "Colour Maximite 2", kSimulateCmm2 },
+    { "CMM2",              kSimulateCmm2 },
+    { "PicoMiteVGA",       kSimulatePicoMiteVga },
+    { "Game*Mite",         kSimulateGameMite },
     { NULL,    -1 }
 };
 
@@ -140,6 +148,7 @@ OptionsDefinition options_definitions[] = {
     { "F12",         kOptionF12,          kOptionTypeString,  true,  "",                        NULL },
     { "Resolution",  kOptionResolution,   kOptionTypeString,  false, "Character",               options_resolution_map },
     { "Search Path", kOptionSearchPath,   kOptionTypeString,  true,  "",                        NULL },
+    { "Simulate",    kOptionSimulate,     kOptionTypeString,  false, "MMB4L",                   options_simulate_map },
     { "Tab",         kOptionTab,          kOptionTypeInteger, true,  "4",                       NULL },
 #if defined(OPTION_TESTS)
     { "ZBoolean",    kOptionZBoolean,     kOptionTypeBoolean, true,  "On",                      NULL },
@@ -712,6 +721,14 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
             strcpy(svalue, options->search_path);
             break;
 
+        case kOptionSimulate:
+            assert(options->simulate >= kSimulateMmb4l && options->simulate <= kSimulateGameMite);
+            options_ordinal_to_name(
+                    options_definitions[kOptionSimulate].enum_map,
+                    options->simulate,
+                    svalue);
+            break;
+
 #if defined(OPTION_TESTS)
         case kOptionZString:
             strcpy(svalue, options->zstring);
@@ -844,6 +861,16 @@ static MmResult options_set_search_path(Options *options, const char *svalue) {
     return kOk;
 }
 
+static MmResult options_set_simulate(Options *options, const char *svalue) {
+    for (const NameOrdinalPair *entry = options_simulate_map; entry->name; ++entry) {
+        if (strcasecmp(svalue, entry->name) == 0) {
+            options->simulate = entry->ordinal;
+            return kOk;
+        }
+    }
+    return kInvalidValue;
+}
+
 static MmResult options_set_tab(Options *options, int ivalue) {
     if (ivalue == 2 || ivalue == 4 || ivalue == 8) {
         options->tab = (char) ivalue;
@@ -942,6 +969,7 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
         case kOptionListCase:     return options_set_list_case(options, svalue);
         case kOptionResolution:   return options_set_resolution(options, svalue);
         case kOptionSearchPath:   return options_set_search_path(options, svalue);
+        case kOptionSimulate:     return options_set_simulate(options, svalue);
 
 #if defined(OPTION_TESTS)
         case kOptionZString:

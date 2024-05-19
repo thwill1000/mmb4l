@@ -113,7 +113,10 @@ typedef enum {
     kImageTooLarge,
     kImageInvalidFormat,
     kInvalidFont,
-    kInvalidFontScaling
+    kInvalidFontScaling,
+    kUnexpectedText,
+    kUnknownDevice,
+    kUnsupportedOnCurrentDevice,
 } MmResultCode;
 
 #if !defined(STRINGSIZE)

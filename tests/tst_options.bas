@@ -33,6 +33,7 @@ add_test("test_option_reset_given_non_persistent", "test_option_reset_non_persis
 add_test("test_option_reset_given_unknown")
 add_test("test_option_reset_all")
 add_test("test_option_reset_syntax_errors")
+add_test("test_option_simulate")
 
 skip_tests:
 
@@ -265,4 +266,34 @@ Sub test_option_reset_syntax_errors()
   On Error Skip
   Option Reset
   assert_raw_error("Syntax")
+End Sub
+
+Sub test_option_simulate()
+  Option Simulate "Colour Maximite 2"
+
+  assert_string_equals("Colour Maximite 2", Mm.Device$)
+  assert_string_equals("Colour Maximite 2", Mm.Info$(Device))
+  assert_string_equals("", Mm.Info$(Platform))
+
+  Option Simulate "PicoMiteVGA"
+
+  assert_string_equals("PicoMiteVGA", Mm.Device$)
+  assert_string_equals("PicoMiteVGA", Mm.Info$(Device))
+  assert_string_equals("", Mm.Info$(Platform))
+
+  Option Simulate "Game*Mite"
+
+  assert_string_equals("PicoMite", Mm.Device$)
+  assert_string_equals("PicoMite", Mm.Info$(Device))
+  assert_string_equals("Game*Mite", Mm.Info$(Platform))
+
+  On Error Skip
+  Option Simulate "FooBar"
+  assert_raw_error("Invalid value")
+
+  Option Simulate "MMB4L"
+
+  assert_string_equals("MMB4L", Mm.Device$)
+  assert_string_equals("MMB4L", Mm.Info$(Device))
+  assert_string_equals("", Mm.Info$(Platform))
 End Sub
