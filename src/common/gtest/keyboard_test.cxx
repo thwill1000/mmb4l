@@ -186,6 +186,8 @@ TEST(KeyboardTest, GetLocks) {
     mod_state = KMOD_CAPS | KMOD_NUM;
     EXPECT_EQ(kCapsLock | kNumLock, keyboard_get_locks());
 
-    mod_state = KMOD_CAPS | KMOD_NUM | KMOD_SCROLL;
-    EXPECT_EQ(kCapsLock | kNumLock | kScrollLock, keyboard_get_locks());
+//    mod_state = KMOD_CAPS | KMOD_NUM | KMOD_SCROLL;
+//    EXPECT_EQ(kCapsLock | kNumLock | kScrollLock, keyboard_get_locks());
+    mod_state = KMOD_CAPS | KMOD_NUM;
+    EXPECT_EQ(kCapsLock | kNumLock, keyboard_get_locks());
 }

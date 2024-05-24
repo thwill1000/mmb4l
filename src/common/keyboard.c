@@ -314,7 +314,8 @@ int keyboard_get_locks() {
     SDL_Keymod sdl_mods = SDL_GetModState();
     if (sdl_mods & KMOD_CAPS) locks |= kCapsLock;
     if (sdl_mods & KMOD_NUM) locks |= kNumLock;
-    if (sdl_mods & KMOD_SCROLL) locks |= kScrollLock;
+// TODO: protect with macro
+//    if (sdl_mods & KMOD_SCROLL) locks |= kScrollLock;
     return locks;
 }
 
