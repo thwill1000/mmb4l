@@ -18,7 +18,6 @@ extern "C" {
 #include "../../core/gtest/command_stubs.h"
 #define DO_NOT_STUB_FUN_MMCMDLINE
 #include "../../core/gtest/function_stubs.h"
-#define DO_NOT_STUB_OP_ADD
 #include "../../core/gtest/operation_stubs.h"
 
 // Defined in "main.c"
@@ -47,6 +46,10 @@ void console_puts(const char *s) { }
 // Defined in "common/file.c"
 void file_close_all(void) { }
 
+// Defined in "common/gpio.c"
+void gpio_term() { }
+MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
+
 // Defined in "common/graphics.c"
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES];
 MmResult graphics_term(void) { return kOk; }
@@ -72,20 +75,6 @@ int TraceBuffIndex;
 const char *TraceBuff[TRACE_BUFF_SIZE];
 int TraceOn;
 
-// Defined in "core/Operators.c"
-void op_add(void) {
-    if (targ & T_NBR) {
-        fret = farg1 + farg2;
-    } else if(targ & T_INT) {
-        iret = iarg1 + iarg2;
-    } else {
-        if(*sarg1 + *sarg2 > MAXSTRLEN) error("String too long");
-        sret = (char *) GetTempStrMemory();
-        Mstrcpy(sret, sarg1);
-        Mstrcat(sret, sarg2);
-    }
-}
-
 } // extern "C"
 
 class CmdRunTest : public ::testing::Test {
@@ -101,9 +90,23 @@ protected:
         vartbl_init_called = false;
         InitBasic();
         ClearRuntime();
+
+        mock_op_add = [](){
+            if (targ & T_NBR) {
+                fret = farg1 + farg2;
+            } else if(targ & T_INT) {
+                iret = iarg1 + iarg2;
+            } else {
+                if(*sarg1 + *sarg2 > MAXSTRLEN) error("String too long");
+                sret = (char *) GetTempStrMemory();
+                Mstrcpy(sret, sarg1);
+                Mstrcat(sret, sarg2);
+            }
+        };
     }
 
     void TearDown() override {
+        mock_op_add = NULL;
     }
 
 };

@@ -6,9 +6,8 @@
 #if !defined(MMB4L_OPERATION_STUBS_H)
 #define MMB4L_OPERATION_STUBS_H
 
-#if !defined(DO_NOT_STUB_OP_ADD)
-void op_add() { }
-#endif
+void (*mock_op_add)() = [](){};
+void op_add() { mock_op_add(); }
 void op_and() { }
 void op_div() { }
 void op_divint() { }
