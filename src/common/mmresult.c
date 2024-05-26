@@ -161,6 +161,10 @@ const char *mmresult_to_string(MmResult result) {
         case kAudioNoModFile:             return "No MOD file playing";
         case kAudioNothingToResume:       return "Nothing to resume";
         case kAudioNothingToPause:        return "Nothing playing";
+        case kGpioInvalidPin:             return "Invalid pin";
+        case kGpioInvalidPulseWidth:      return "Invalid pulse width";
+        case kGpioPinIsNotAnOutput:       return "Pin is not an output";
+        case kNotParsed:                  return "Not parsed";
         default:                          return "Unknown result code";
     }
 }

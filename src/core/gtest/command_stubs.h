@@ -70,10 +70,12 @@ void cmd_on() { }
 void cmd_open() { }
 void cmd_option() { }
 void cmd_pause() { }
+void cmd_pin() { }
 void cmd_pixel() { }
 void cmd_play() { }
 void cmd_poke() { }
 void cmd_print() { }
+void cmd_pulse() { }
 void cmd_quit() { }
 void cmd_randomize() { }
 void cmd_rbox() { }
@@ -87,6 +89,7 @@ void cmd_run() { }
 #endif
 void cmd_seek() { }
 void cmd_select() { }
+void cmd_setpin() { }
 void cmd_settick() { }
 void cmd_settitle() { }
 void cmd_sort() { }
