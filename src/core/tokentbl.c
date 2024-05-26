@@ -125,6 +125,8 @@ const struct s_tokentbl tokentbl[] = {
     { "Oct$(",       T_FUN | T_STR,      0, fun_oct      },
     { "Peek(",       T_FUN | T_INT | T_NBR, 0, fun_peek  },
     { "Pi",          T_FNA | T_NBR,      0, fun_pi       },
+    { "Pin(",        T_FUN | T_NBR | T_INT, 0, fun_pin   },
+    { "Port(",       T_FUN | T_INT,      0, fun_port     },
     { "Pos",         T_FNA | T_INT,      0, fun_pos      },
     { "Rad(",        T_FUN | T_NBR,      0, fun_rad      },
     { "Rgb(",        T_FUN | T_INT,      0, fun_rgb      },

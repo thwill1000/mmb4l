@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmb4l.h"
 #include "console.h"
 #include "cstring.h"
+#include "gpio.h"
 #include "utility.h"
 #include "../core/tokentbl.h"
 
@@ -562,5 +563,50 @@ MmResult parse_fn_sig(const char **p, FunctionSignature *signature) {
         }
     }
 
+    return result;
+}
+
+MmResult parse_gp_pin(const char **p, uint8_t *gp) {
+    const char *tp = *p;
+    *gp = 0;
+    skipspace((*p));
+    if (*tp != 'g' && *tp != 'G') return kNotParsed;
+    tp++;
+    if (*tp != 'p' && *tp != 'P') return kNotParsed;
+    tp++;
+    if (!isdigit(*tp)) return kError;
+    *gp = (*tp) - '0';
+    tp++;
+    if (isdigit(*tp)) {
+        if (*gp == 0) return kSyntax; // Leading zero.
+        *gp *= 10;
+        *gp += (*tp) - '0';
+        tp++;
+    }
+    if (isdigit(*tp)) { // Too many digits.
+        *gp = 0;
+        return kSyntax;
+    }
+    if (*tp != '\0' && *tp != ' ' && *tp != ')' && *tp !='\'') return kNotParsed;
+    *p = tp;
+    return kOk;
+}
+
+MmResult parse_pin_num(const char **p, uint8_t *pin_num, bool *is_gp) {
+    *is_gp = false;
+
+    // First try parsing arg as literal GPnn.
+    uint8_t pin_gp = 0;
+    MmResult result = parse_gp_pin(p, &pin_gp);
+    if (SUCCEEDED(result)) {
+        *is_gp = true;
+        result = gpio_translate_from_pin_gp(pin_gp, pin_num);
+    } else if (result != kSyntax) {
+        // If it is not in the format GPnn then treat it as an integer instead.
+        // TODO: Currently getint() will longjmp on an error rather than returing an MmResult.
+        *pin_num = (uint8_t) getint(*p, 1, GPIO_MAX_PIN_NUM);
+        *p = skipexpression(*p);
+        result = kOk;
+    }
     return result;
 }
