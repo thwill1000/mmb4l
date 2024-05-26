@@ -55,96 +55,77 @@ static int rgb(int r, int g, int b, int t) {
     return RGB(r, g, b, t);
 }
 
+static MMINTEGER fun_rgb_parse_colour(const char *p) {
+    if (checkstring(p, "WHITE"))
+        return RGB_WHITE;
+    else if (checkstring(p, "BLACK"))
+        return RGB_BLACK;
+    else if (checkstring(p, "NOTBLACK"))
+        return RGB_NOTBLACK;
+    else if (checkstring(p, "BEIGE"))
+        return RGB_BEIGE;
+    else if (checkstring(p, "BLUE"))
+        return RGB_BLUE;
+    else if (checkstring(p, "BROWN"))
+        return RGB_BROWN;
+    else if (checkstring(p, "GREEN"))
+        return RGB_GREEN;
+    else if (checkstring(p, "CERULEAN"))
+        return RGB_CERULEAN;
+    else if (checkstring(p, "COBALT"))
+        return RGB_COBALT;
+    else if (checkstring(p, "CYAN"))
+        return RGB_CYAN;
+    else if (checkstring(p, "FUCHSIA"))
+        return RGB_FUCHSIA;
+    else if (checkstring(p, "GOLD"))
+        return RGB_GOLD;
+    else if (checkstring(p, "GRAY"))
+        return RGB_GRAY;
+    else if (checkstring(p, "GREY"))
+        return RGB_GRAY;
+    else if (checkstring(p, "LIGHTGRAY"))
+        return RGB_LITEGRAY;
+    else if (checkstring(p, "LIGHTGREY"))
+        return RGB_LITEGRAY;
+    else if (checkstring(p, "LILAC"))
+        return RGB_LILAC;
+    else if (checkstring(p, "MAGENTA"))
+        return RGB_MAGENTA;
+    else if (checkstring(p, "MIDGREEN"))
+        return RGB_MIDGREEN;
+    else if (checkstring(p, "MYRTLE"))
+        return RGB_MYRTLE;
+    else if (checkstring(p, "ORANGE"))
+        return RGB_ORANGE;
+    else if (checkstring(p, "PINK"))
+        return RGB_PINK;
+    else if (checkstring(p, "RED"))
+        return RGB_RED;
+    else if (checkstring(p, "RUST"))
+        return RGB_RUST;
+    else if (checkstring(p, "SALMON"))
+        return RGB_SALMON;
+    else if (checkstring(p, "YELLOW"))
+        return RGB_YELLOW;
+    else {
+        ERROR_INVALID_COLOUR(p);
+        return RGB_BLACK;
+    }
+}
+
 void fun_rgb(void) {
     getargs(&ep, 7, ",");
     if (argc == 5) {
         iret = rgb(getint(argv[0], 0, 255), getint(argv[2], 0, 255),
                    getint(argv[4], 0, 255), 15);
     } else if (argc == 1) {
-        if (checkstring(argv[0], "WHITE"))
-            iret = RGB_WHITE;
-        else if (checkstring(argv[0], "BLACK"))
-            iret = RGB_BLACK;
-        else if (checkstring(argv[0], "NOTBLACK"))
-            iret = RGB_NOTBLACK;
-        else if (checkstring(argv[0], "BLUE"))
-            iret = RGB_BLUE;
-        else if (checkstring(argv[0], "GREEN"))
-            iret = RGB_GREEN;
-        else if (checkstring(argv[0], "CYAN"))
-            iret = RGB_CYAN;
-        else if (checkstring(argv[0], "RED"))
-            iret = RGB_RED;
-        else if (checkstring(argv[0], "MAGENTA"))
-            iret = RGB_MAGENTA;
-        else if (checkstring(argv[0], "YELLOW"))
-            iret = RGB_YELLOW;
-        else if (checkstring(argv[0], "BROWN"))
-            iret = RGB_BROWN;
-        else if (checkstring(argv[0], "GRAY"))
-            iret = RGB_GRAY;
-        else if (checkstring(argv[0], "GREY"))
-            iret = RGB_GRAY;
-        else if (checkstring(argv[0], "LIGHTGRAY"))
-            iret = RGB_LITEGRAY;
-        else if (checkstring(argv[0], "LIGHTGRAY"))
-            iret = RGB_LITEGRAY;
-        else if (checkstring(argv[0], "ORANGE"))
-            iret = RGB_ORANGE;
-        else if (checkstring(argv[0], "PINK"))
-            iret = RGB_PINK;
-        else if (checkstring(argv[0], "GOLD"))
-            iret = RGB_GOLD;
-        else if (checkstring(argv[0], "SALMON"))
-            iret = RGB_SALMON;
-        else if (checkstring(argv[0], "BEIGE"))
-            iret = RGB_BEIGE;
-        else
-            ERROR_INVALID_COLOUR(argv[0]);
+        iret = fun_rgb_parse_colour(argv[0]);
         if (VideoColour != 32) iret &= 0xFFFFFFF;
     } else if (argc == 3) {
         if (VideoColour == 8 || VideoColour == 16)
             ERROR_INVALID_TRANSPARENCY;
-        if (checkstring(argv[0], "WHITE"))
-            iret = RGB_WHITE;
-        else if (checkstring(argv[0], "BLACK"))
-            iret = RGB_BLACK;
-        else if (checkstring(argv[0], "NOTBLACK"))
-            iret = RGB_NOTBLACK;
-        else if (checkstring(argv[0], "BLUE"))
-            iret = RGB_BLUE;
-        else if (checkstring(argv[0], "GREEN"))
-            iret = RGB_GREEN;
-        else if (checkstring(argv[0], "CYAN"))
-            iret = RGB_CYAN;
-        else if (checkstring(argv[0], "RED"))
-            iret = RGB_RED;
-        else if (checkstring(argv[0], "MAGENTA"))
-            iret = RGB_MAGENTA;
-        else if (checkstring(argv[0], "YELLOW"))
-            iret = RGB_YELLOW;
-        else if (checkstring(argv[0], "BROWN"))
-            iret = RGB_BROWN;
-        else if (checkstring(argv[0], "GRAY"))
-            iret = RGB_GRAY;
-        else if (checkstring(argv[0], "GREY"))
-            iret = RGB_GRAY;
-        else if (checkstring(argv[0], "LIGHTGRAY"))
-            iret = RGB_LITEGRAY;
-        else if (checkstring(argv[0], "LIGHTGRAY"))
-            iret = RGB_LITEGRAY;
-        else if (checkstring(argv[0], "ORANGE"))
-            iret = RGB_ORANGE;
-        else if (checkstring(argv[0], "PINK"))
-            iret = RGB_PINK;
-        else if (checkstring(argv[0], "GOLD"))
-            iret = RGB_GOLD;
-        else if (checkstring(argv[0], "SALMON"))
-            iret = RGB_SALMON;
-        else if (checkstring(argv[0], "BEIGE"))
-            iret = RGB_BEIGE;
-        else
-            ERROR_INVALID_COLOUR(argv[0]);
+        iret = fun_rgb_parse_colour(argv[0]);
         iret &= 0xFFFFFF;
         if (VideoColour == 12) iret |= (getint(argv[2], 0, 15) << 24);
         if (VideoColour == 32) iret |= (getint(argv[2], 0, 255) << 24);
