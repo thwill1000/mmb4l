@@ -45,6 +45,13 @@ size_t console_write(const char *buf, size_t sz) { return 0; }
 // Defined in "common/fonttbl.c"
 void font_clear_user_defined(void) { }
 
+// Defined in "common/gpio.c"
+void gpio_term() { }
+MmResult (*mock_gpio_translate_from_pin_gp)(uint8_t pin_gp, uint8_t *pin_num) = NULL;
+MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) {
+    return mock_gpio_translate_from_pin_gp(pin_gp, pin_num);
+}
+
 // Defined in "common/graphics.c"
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES];
 MmResult graphics_term(void) { return kOk; }
@@ -105,6 +112,7 @@ protected:
         strcpy(error_msg, "");
         InitBasic();
         clear_prog_memory();
+        mock_gpio_translate_from_pin_gp = NULL;
     }
 
     void TearDown() override {
@@ -1134,6 +1142,169 @@ TEST_F(ParseTest, ParseFnSig_GivenNotAFunctionOrSub_Fails) {
     FunctionSignature actual = { 0 };
     const char *p = ProgMemory + 1; // Skip T_NEWLINE.
     EXPECT_EQ(kInternalFault, parse_fn_sig(&p, &actual));
+}
+
+TEST_F(ParseTest, ParseGpPin_GivenGpZero_Succeeds) {
+    tokenise_and_append("Print Mm.Info(PinNo GP0)");
+
+    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    uint8_t gp = 0;
+    EXPECT_EQ(kOk, parse_gp_pin(&p, &gp));
+    EXPECT_EQ(0, gp);
+    EXPECT_EQ(ProgMemory + 13, p);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseTest, ParseGpPin_GivenOneDigitGp_Succeeds) {
+    tokenise_and_append("Print Mm.Info(PinNo GP1)");
+
+    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    uint8_t gp = 0;
+    EXPECT_EQ(kOk, parse_gp_pin(&p, &gp));
+    EXPECT_EQ(1, gp);
+    EXPECT_EQ(ProgMemory + 13, p);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseTest, ParseGpPin_GivenTwoDigitGp_Succeeds) {
+    tokenise_and_append("Print Mm.Info(PinNo GP42)");
+
+    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    uint8_t gp = 0;
+    EXPECT_EQ(kOk, parse_gp_pin(&p, &gp));
+    EXPECT_EQ(42, gp);
+    EXPECT_EQ(ProgMemory + 14, p);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseTest, ParseGpPin_GivenGpWithLeadingZero_Fails) {
+    tokenise_and_append("Print Mm.Info(PinNo GP01)");
+
+    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    uint8_t gp = 0;
+    EXPECT_EQ(kSyntax, parse_gp_pin(&p, &gp));
+    EXPECT_EQ(0, gp);
+    EXPECT_EQ(ProgMemory + 10, p);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseTest, ParseGpPin_GivenThreeDigitGp_Fails) {
+    tokenise_and_append("Print Mm.Info(PinNo GP100)");
+
+    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    uint8_t gp = 0;
+    EXPECT_EQ(kSyntax, parse_gp_pin(&p, &gp));
+    EXPECT_EQ(0, gp);
+    EXPECT_EQ(ProgMemory + 10, p);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseTest, ParseGpPin_GivenNotGp_Fails) {
+    tokenise_and_append("Print Mm.Info(PinNo s$)");
+
+    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    uint8_t gp = 0;
+    EXPECT_EQ(kNotParsed, parse_gp_pin(&p, &gp));
+    EXPECT_EQ(0, gp);
+    EXPECT_EQ(ProgMemory + 10, p);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseTest, ParsePinNum_GivenGpPinValid_Succeeds) {
+    mock_gpio_translate_from_pin_gp = [](uint8_t pin_gp, uint8_t *pin_num) -> MmResult {
+        *pin_num = pin_gp + 100;
+        return kOk;
+    };
+    tokenise_and_append("GP1");
+
+    const char *p = ProgMemory + 1; // Skip the leading \001.
+    uint8_t pin_num = 0;
+    bool is_gp = false;
+    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num, &is_gp));
+    EXPECT_EQ(101, pin_num);
+    EXPECT_EQ(true, is_gp);
+    EXPECT_EQ(ProgMemory + 4, p);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseTest, ParsePinNum_GivenGpPinDoesNotTranslate_Fails) {
+    mock_gpio_translate_from_pin_gp = [](uint8_t pin_gp, uint8_t *pin_num) -> MmResult {
+        return kGpioInvalidPin;
+    };
+    tokenise_and_append("GP1");
+
+    const char *p = ProgMemory + 1; // Skip the leading \001.
+    uint8_t pin_num = 0;
+    bool is_gp = false;
+    EXPECT_EQ(kGpioInvalidPin, parse_pin_num(&p, &pin_num, &is_gp));
+    EXPECT_EQ(0, pin_num);
+    EXPECT_EQ(true, is_gp);
+    EXPECT_EQ(ProgMemory + 4, p);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseTest, ParsePinNum_GivenGpPinSyntaxWrong_Fails) {
+    tokenise_and_append("GP123"); // 3 digits is not allowed.
+
+    const char *p = ProgMemory + 1; // Skip the leading \001.
+    uint8_t pin_num = 0;
+    bool is_gp = false;
+    EXPECT_EQ(kSyntax, parse_pin_num(&p, &pin_num, &is_gp));
+    EXPECT_EQ(0, pin_num);
+    EXPECT_EQ(false, is_gp);
+    EXPECT_EQ(ProgMemory + 1, p);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseTest, ParsePinNum_GivenInteger_Succeeds) {
+    tokenise_and_append("SETPIN 5, DIN");
+
+    const char *p = ProgMemory + 3;
+    uint8_t pin_num = 0;
+    bool is_gp = false;
+    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num, &is_gp));
+    EXPECT_EQ(5, pin_num);
+    EXPECT_EQ(false, is_gp);
+    EXPECT_EQ(ProgMemory + 4, p);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseTest, ParsePinNum_GivenIntegerExpression_Succeeds) {
+    mock_op_add = []() {
+        if (targ & T_INT) {
+            iret = iarg1 + iarg2;
+        } else {
+            iret = -1;
+        }
+    };
+
+    tokenise_and_append("SETPIN 5+9, DIN");
+
+    const char *p = ProgMemory + 3;
+    uint8_t pin_num = 0;
+    bool is_gp = false;
+    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num, &is_gp));
+    EXPECT_EQ(14, pin_num);
+    EXPECT_EQ(false, is_gp);
+    EXPECT_EQ(ProgMemory + 6, p);
+    EXPECT_STREQ("", error_msg);
+}
+
+TEST_F(ParseTest, ParsePinNum_GivenUnknownVariable_Fails) {
+    mmb_options.explicit_type = true;
+    tokenise_and_append("SETPIN foo, DIN");
+
+    const char *p = ProgMemory + 3;
+    uint8_t pin_num = 0;
+    bool is_gp = false;
+    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num, &is_gp));
+    EXPECT_EQ(0, pin_num);
+    EXPECT_EQ(false, is_gp);
+    EXPECT_EQ(ProgMemory + 6, p);
+    EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+
+    // Note failure MmResult is not currently reported because error is picked up in a legacy
+    // routine that uses longjmp().
 }
 
 TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndNonPicoMite) {

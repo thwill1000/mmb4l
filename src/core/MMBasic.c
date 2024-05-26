@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vartbl.h"
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
+#include "../common/gpio.h"
 #include "../common/graphics.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
@@ -2287,6 +2288,7 @@ void ClearStack(void) {
 void ClearRuntime(void) {
     gamepad_term();
     graphics_term();
+    gpio_term();
 #if defined(MX470)
     //have to stop audio before we clear variables to avoid exception
     CloseAudio();

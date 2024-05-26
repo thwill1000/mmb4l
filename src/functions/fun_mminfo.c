@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/cstring.h"
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
+#include "../common/gpio.h"
 #include "../common/graphics.h"
 #include "../common/mmtime.h"
 #include "../common/parse.h"
@@ -370,6 +371,48 @@ static void mminfo_pid(const char *p) {
     g_integer_rtn = (MMINTEGER) getpid();
 }
 
+static void mminfo_pin_no(const char *p) {
+    if (mmb_options.simulate != kSimulatePicoMiteVga
+            && mmb_options.simulate != kSimulateGameMite) {
+        error_throw(kUnsupportedOnCurrentDevice);
+        return;
+    }
+
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+
+    uint8_t pin_gp = 0;
+    const char *tp = argv[0];
+    // First try parsing arg as literal GPnn.
+    MmResult result = parse_gp_pin(&tp, &pin_gp);
+    if (result == kNotParsed) {
+        // If that fails treat it as a string expression instead.
+        const char *s = getCstring(tp);
+        result = parse_gp_pin(&s, &pin_gp);
+        if (SUCCEEDED(result)) tp = skipexpression(tp);
+    }
+
+    if (FAILED(result)) {
+        error_throw(result);
+        return;
+    }
+
+    if (!parse_is_end(tp)) {
+        error_throw(kUnexpectedText);
+        return;
+    }
+
+    uint8_t pin_num = 0;
+    result = gpio_translate_from_pin_gp(pin_gp, &pin_num);
+    if (FAILED(result)) {
+        error_throw(result);
+        return;
+    }
+
+    g_rtn_type = T_INT;
+    g_integer_rtn = pin_num;
+}
+
 static void mminfo_platform(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
@@ -481,6 +524,8 @@ void fun_mminfo(void) {
         mminfo_path(p);
     } else if ((p = checkstring(ep, "PID"))) {
         mminfo_pid(p);
+    } else if ((p = checkstring(ep, "PINNO"))) {
+        mminfo_pin_no(p);
     } else if ((p = checkstring(ep, "PLATFORM"))) {
         mminfo_platform(p);
     } else if ((p = checkstring(ep, "VERSION"))) {

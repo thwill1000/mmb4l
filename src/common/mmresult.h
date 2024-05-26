@@ -141,6 +141,10 @@ typedef enum {
     kAudioNoModFile,
     kAudioNothingToResume,
     kAudioNothingToPause,
+    kGpioInvalidPin,
+    kGpioInvalidPulseWidth,
+    kGpioPinIsNotAnOutput,
+    kNotParsed,
 } MmResultCode;
 
 #if !defined(STRINGSIZE)
