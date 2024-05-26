@@ -68,7 +68,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MIN_PMVGA_MODE           1
 #define MAX_PMVGA_MODE           2
 
-#define RGB(red, green, blue, trans) (uint32_t) (((trans & 0b1111) << 24) | ((red & 0b11111111) << 16) | ((green  & 0b11111111) << 8) | (blue & 0b11111111))
+#define RGB(red, green, blue, trans) (uint32_t) (((trans & 0xFF) << 24) | ((red & 0xFF) << 16) | ((green & 0xFF) << 8) | (blue & 0xFF))
 
 #define RGB_BLACK     RGB(   0,     0,     0,     0)
 #define RGB_BLUE      RGB(   0,     0,   255,   255)
@@ -95,7 +95,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RGB_CERULEAN      RGB(   0, 0x80, 0xFF, 0xFF)
 #define RGB_MAGENTA_4BIT  RGB(0xFF,    0, 0xFF, 0xFF)
 #define RGB_RUST          RGB(0xFF, 0x40,    0, 0xFF)
-#define RGB_FUSCHIA       RGB(0xFF, 0x40, 0xFF, 0xFF)
+#define RGB_FUCHSIA       RGB(0xFF, 0x40, 0xFF, 0xFF)
 #define RGB_BROWN_4BIT    RGB(0xFF, 0x80,    0, 0xFF)
 #define RGB_LILAC         RGB(0xFF, 0x80, 0xFF, 0xFF)
 

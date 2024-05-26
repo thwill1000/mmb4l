@@ -132,6 +132,7 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsApiError:
             formatGraphicsApiError();
             return mmresult_last_msg;
+        case kGraphicsInvalidColour:      return "Invalid colour";
         case kGraphicsInvalidId:          return "Invalid graphics surface ID";
         case kGraphicsInvalidReadSurface: return "Invalid graphics read surface";
         case kGraphicsInvalidWriteSurface: return "Invalid graphics write surface";
