@@ -10,9 +10,14 @@ project(MMB4L)
 set(CMAKE_CXX_STANDARD 11)
 
 include(FetchContent)
+#FetchContent_Declare(
+#  googletest
+#  URL https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip
+#)
 FetchContent_Declare(
   googletest
-  URL https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        v1.14.0
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -88,10 +93,13 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_open.c
     src/commands/cmd_option.c
     src/commands/cmd_pause.c
+    src/commands/cmd_pin.c
     src/commands/cmd_pixel.c
     src/commands/cmd_play.c
     src/commands/cmd_poke.c
     src/commands/cmd_print.c
+    src/commands/cmd_pulse.c
+    src/commands/cmd_pin.c
     src/commands/cmd_quit.c
     src/commands/cmd_rbox.c
     src/commands/cmd_read.c
@@ -100,6 +108,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_rmdir.c
     src/commands/cmd_run.c
     src/commands/cmd_seek.c
+    src/commands/cmd_setpin.c
     src/commands/cmd_settick.c
     src/commands/cmd_settitle.c
     src/commands/cmd_sort.c
@@ -145,6 +154,8 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_mmdevice.c
     src/functions/fun_mminfo.c
     src/functions/fun_peek.c
+    src/functions/fun_pin.c
+    src/functions/fun_port.c
     src/functions/fun_rgb.c
     src/functions/fun_str2bin.c
     src/functions/fun_time.c
@@ -169,6 +180,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/file.c
     src/common/fonttbl.c
     src/common/gamepad.c
+    src/common/gpio.c
     src/common/graphics.c
     src/common/image_bmp.c
     src/common/interrupt.c
@@ -356,10 +368,6 @@ add_executable(
   src/core/gtest/funtbl_test.cxx
 )
 
-target_include_directories(test_funtbl PUBLIC
-  /usr/include/SDL2
-)
-
 target_link_libraries(
   test_funtbl
   gtest_main
@@ -367,7 +375,31 @@ target_link_libraries(
   gmock_main
 )
 
-gtest_discover_tests(test_funtbl)
+################################################################################
+# test_gpio
+################################################################################
+
+add_executable(
+  test_gpio
+  src/common/cstring.c
+  src/common/gpio.c
+  src/common/mmresult.c
+  src/common/mmtime.c
+  src/common/gtest/gpio_test.cxx
+)
+
+target_include_directories(test_gpio PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_gpio
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_gpio)
 
 ################################################################################
 # test_gamepad
