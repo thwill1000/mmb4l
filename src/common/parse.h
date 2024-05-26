@@ -124,4 +124,32 @@ MmResult parse_transform_input_buffer(char *input);
  */
 MmResult parse_fn_sig(const char **p, FunctionSignature *signature);
 
+/**
+ * @brief Parses a literal GPnn specification from tokenised code ignoring any leading space
+ *        characters.
+ *
+ * @param[in,out] p       Parse from this pointer.
+ *                        On exit points at the character following the signature.
+ * @param[out]    pin_gp  The parsed GPnn number.
+ * @return                kOk on success.
+ *                        kSyntax if a badly formed GPnn specification is parsed.
+ *                        kNotParsed if a GPnn specification is not parsed.
+ */
+MmResult parse_gp_pin(const char **p, uint8_t *pin_gp);
+
+/**
+ * @brief Parses a pin number, either literal GPnn or integer from tokenised code ignoring any
+ *        leading space characters.
+ *
+ * @param[in,out] p        Parse from this pointer.
+ *                         On exit points at the character following the signature.
+ * @param[out]    pin_num  The parsed hardware pin number. If parsed from a GPnn specification it
+                           will have been converted to a hardware pin number.
+ * @param[out]    is_gp    True if pin number parsed from GPnn specification, otherwise false.
+ * @return                 kOk on success.
+ *                         kSyntax if a badly formed GPnn specification is parsed.
+ *                         kNotParsed if a GPnn specification is not parsed.
+ */
+MmResult parse_pin_num(const char **p, uint8_t *pin_num, bool *gp);
+
 #endif

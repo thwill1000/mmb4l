@@ -48,6 +48,10 @@ void console_puts(const char *s) { }
 void console_set_title(const char *title) { }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 
+// Defined in "common/gpio.c"
+void gpio_term() { }
+MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
+
 // Defined in "common/graphics.c"
 MmResult graphics_term(void) { return kOk; }
 MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }
@@ -84,8 +88,8 @@ void ListNewLine(int *ListCnt, int all) { }
 #define CMD_END         "\x9E\x80"
 #define CMD_LET         "\xBB\x80"
 #define CMD_MMDEBUG     "\xC7\x80"
-#define CMD_PRINT       "\xD3\x80"
-#define OP_EQUALS       "\xF0"
+#define CMD_PRINT       "\xD4\x80"
+#define OP_EQUALS       "\xF2"
 
 #define EXPECT_PROGRAM_EQ(prog) \
     EXPECT_THAT(std::vector<char>(ProgMemory, ProgMemory + prog.length()), \

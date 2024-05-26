@@ -48,6 +48,10 @@ void console_puts(const char *s) { }
 // Defined in "common/file.c"
 void file_close_all(void) { }
 
+// Defined in "common/gpio.c"
+void gpio_term() { }
+MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
+
 // Defined in "common/graphics.c"
 MmResult graphics_term(void) { return kOk; }
 
