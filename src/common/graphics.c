@@ -75,7 +75,7 @@ const MmGraphicsColour GRAPHICS_4BIT_COLOUR[] = {
     RGB_RED,
     RGB_MAGENTA_4BIT,
     RGB_RUST,
-    RGB_FUSCHIA,
+    RGB_FUCHSIA,
     RGB_BROWN_4BIT,
     RGB_LILAC,
     RGB_YELLOW,
