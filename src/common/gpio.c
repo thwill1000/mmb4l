@@ -50,36 +50,65 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef struct {
     uint8_t pin_num;
+    uint8_t pin_gp;
     bool valid;
     GpioPinConfig config;
     uint8_t value;
 } GpioPin;
 
 static GpioPin gpio_pins[GPIO_MAX_PIN_NUM + 1] = {
-    {.pin_num = 0, .valid = false},  {.pin_num = 1, .valid = true},
-    {.pin_num = 2, .valid = true},   {.pin_num = 3, .valid = false},
-    {.pin_num = 4, .valid = true},   {.pin_num = 5, .valid = true},
-    {.pin_num = 6, .valid = true},   {.pin_num = 7, .valid = true},
-    {.pin_num = 8, .valid = false},  {.pin_num = 9, .valid = true},
-    {.pin_num = 10, .valid = true},  {.pin_num = 11, .valid = true},
-    {.pin_num = 12, .valid = true},  {.pin_num = 13, .valid = false},
-    {.pin_num = 14, .valid = true},  {.pin_num = 15, .valid = true},
-    {.pin_num = 16, .valid = true},  {.pin_num = 17, .valid = true},
-    {.pin_num = 18, .valid = false}, {.pin_num = 19, .valid = true},
-    {.pin_num = 20, .valid = true},  {.pin_num = 21, .valid = true},
-    {.pin_num = 22, .valid = true},  {.pin_num = 23, .valid = false},
-    {.pin_num = 24, .valid = true},  {.pin_num = 25, .valid = true},
-    {.pin_num = 26, .valid = true},  {.pin_num = 27, .valid = true},
-    {.pin_num = 28, .valid = false}, {.pin_num = 29, .valid = true},
-    {.pin_num = 30, .valid = false}, {.pin_num = 31, .valid = true},
-    {.pin_num = 32, .valid = true},  {.pin_num = 33, .valid = false},
-    {.pin_num = 34, .valid = true},  {.pin_num = 35, .valid = false},
-    {.pin_num = 36, .valid = false}, {.pin_num = 37, .valid = false},
-    {.pin_num = 38, .valid = false}, {.pin_num = 39, .valid = false},
-    {.pin_num = 40, .valid = false}};
+    {.pin_num = 0, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 1, .pin_gp = 0, .valid = true},
+    {.pin_num = 2, .pin_gp = 1, .valid = true},
+    {.pin_num = 3, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 4, .pin_gp = 2, .valid = true},
+    {.pin_num = 5, .pin_gp = 3, .valid = true},
+    {.pin_num = 6, .pin_gp = 4, .valid = true},
+    {.pin_num = 7, .pin_gp = 5, .valid = true},
+    {.pin_num = 8, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 9, .pin_gp = 6, .valid = true},
+    {.pin_num = 10, .pin_gp = 7, .valid = true},
+    {.pin_num = 11, .pin_gp = 8, .valid = true},
+    {.pin_num = 12, .pin_gp = 9, .valid = true},
+    {.pin_num = 13, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 14, .pin_gp = 10, .valid = true},
+    {.pin_num = 15, .pin_gp = 11, .valid = true},
+    {.pin_num = 16, .pin_gp = 12, .valid = true},
+    {.pin_num = 17, .pin_gp = 13, .valid = true},
+    {.pin_num = 18, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 19, .pin_gp = 14, .valid = true},
+    {.pin_num = 20, .pin_gp = 15, .valid = true},
+    {.pin_num = 21, .pin_gp = 16, .valid = true},
+    {.pin_num = 22, .pin_gp = 17, .valid = true},
+    {.pin_num = 23, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 24, .pin_gp = 18, .valid = true},
+    {.pin_num = 25, .pin_gp = 19, .valid = true},
+    {.pin_num = 26, .pin_gp = 20, .valid = true},
+    {.pin_num = 27, .pin_gp = 21, .valid = true},
+    {.pin_num = 28, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 29, .pin_gp = 22, .valid = true},
+    {.pin_num = 30, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 31, .pin_gp = 26, .valid = true},
+    {.pin_num = 32, .pin_gp = 27, .valid = true},
+    {.pin_num = 33, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 34, .pin_gp = 28, .valid = true},
+    {.pin_num = 35, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 36, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 37, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 38, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 39, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 40, .pin_gp = 0xFF, .valid = false},
+    {.pin_num = 41, .pin_gp = 23, .valid = true},
+    {.pin_num = 42, .pin_gp = 24, .valid = true},
+    {.pin_num = 43, .pin_gp = 25, .valid = true}
+};
 
+/**
+ * Map of GP pin (0..28) to hardware pin number (1..40).
+ * Hardware pins 41 .. 44 are the unavailable pins on the Raspberry Pi Pico.
+ */
 static const uint8_t GP_PIN_MAP[] = {1,  2,  4,  5,  6,  7,  9,  10, 11, 12, 14, 15, 16, 17, 19,
-                                     20, 21, 22, 24, 25, 26, 27, 29, 0,  0,  0,  31, 32, 34};
+                                     20, 21, 22, 24, 25, 26, 27, 29, 41, 42, 43, 31, 32, 34, 44};
 
 /** Simulated bits returned by SNES controller A. */
 static uint16_t gpio_snes_a;
@@ -102,7 +131,23 @@ void gpio_init() {
  * @param  pin_gp  The potential GP pin number.
  */
 static bool gpio_is_valid_pin_gp(uint8_t pin_gp) {
-    return pin_gp != 23 && pin_gp != 24 && pin_gp != 25 && pin_gp <= 28;
+    return pin_gp <= 28;
+}
+
+static MmResult gpio_configure_pin_gamemite(uint8_t pin_num, GpioPinConfig config) {
+    MmResult result = kOk;
+    switch (pin_num) {
+        case GPIO_GP8:
+            if (config == kGpioPinDIn && gpio_pins[pin_num].config == kGpioPinOff) {
+                result = gamepad_open(1);
+            } else if (config == kGpioPinOff && gpio_pins[pin_num].config == kGpioPinDIn) {
+                result = gamepad_close(1);
+            }
+            break;
+        default:
+            break;
+    }
+    return result;
 }
 
 /**
@@ -124,32 +169,58 @@ static MmResult gpio_configure_snes_latch(MmGamepadId id, uint8_t pin_num, GpioP
     return result;
 }
 
+static MmResult gpio_configure_pin_picomite_vga(uint8_t pin_num, GpioPinConfig config) {
+    switch (pin_num) {
+        case GPIO_SNES_A_LATCH:
+            return gpio_configure_snes_latch(1, GPIO_SNES_A_LATCH, config);
+
+        case GPIO_SNES_B_LATCH:
+            return gpio_configure_snes_latch(2, GPIO_SNES_B_LATCH, config);
+
+        default:
+            return kOk;
+    }
+}
+
 MmResult gpio_configure_pin(uint8_t pin_num, GpioPinConfig config) {
     if (!gpio_is_valid_pin_num(pin_num)) return kGpioInvalidPin;
 
     MmResult result = kOk;
-    switch (pin_num) {
-        case GPIO_SNES_A_LATCH: {
-            result = gpio_configure_snes_latch(1, GPIO_SNES_A_LATCH, config);
-            break;
-        }
 
-        case GPIO_SNES_B_LATCH: {
-            result = gpio_configure_snes_latch(2, GPIO_SNES_B_LATCH, config);
+    switch (mmb_options.simulate) {
+        case kSimulateGameMite:
+            result = gpio_configure_pin_gamemite(pin_num, config);
             break;
-        }
-
+        case kSimulatePicoMiteVga:
+            result = gpio_configure_pin_picomite_vga(pin_num, config);
+            break;
         default:
             break;
     }
+
     if (SUCCEEDED(result)) gpio_pins[pin_num].config = config;
+
     return result;
 }
 
-MmResult gpio_translate_from_gp_pin(uint8_t pin_gp, uint8_t *pin_num) {
-    if (!gpio_is_valid_pin_gp(pin_gp)) return kGpioInvalidPin;
-    *pin_num = GP_PIN_MAP[pin_gp];
-    return kOk;
+MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) {
+    if (!gpio_is_valid_pin_gp(pin_gp)) {
+        *pin_num = 0xFF;
+        return kGpioInvalidPin;
+    } else {
+        *pin_num = GP_PIN_MAP[pin_gp];
+        return kOk;
+    }
+}
+
+MmResult gpio_translate_from_pin_num(uint8_t pin_num, uint8_t *gp_pin) {
+    if (!gpio_is_valid_pin_num(pin_num) || gpio_pins[pin_num].pin_gp == 0xFF) {
+        *gp_pin = 0xFF;
+        return kGpioInvalidPin;
+    } else {
+        *gp_pin = gpio_pins[pin_num].pin_gp;
+        return kOk;
+    }
 }
 
 bool gpio_is_valid_pin_num(uint8_t pin_num) {
@@ -158,8 +229,52 @@ bool gpio_is_valid_pin_num(uint8_t pin_num) {
 
 MmResult gpio_get_pin_value(uint8_t pin_num, uint8_t *value) {
     if (!gpio_is_valid_pin_num(pin_num)) return kGpioInvalidPin;
-    *value = gpio_pins[pin_num].value;
-    return kOk;
+
+    MmResult result = kOk;
+    if (mmb_options.simulate == kSimulateGameMite) {
+        GamepadButton button = 0x0;
+        switch (pin_num) {
+            case GPIO_GP8:
+                button = kButtonDown;
+                break;
+            case GPIO_GP9:
+                button = kButtonLeft;
+                break;
+            case GPIO_GP10:
+                button = kButtonUp;
+                break;
+            case GPIO_GP11:
+                button = kButtonRight;
+                break;
+            case GPIO_GP12:
+                button = kButtonSelect;
+                break;
+            case GPIO_GP13:
+                button = kButtonStart;
+                break;
+            case GPIO_GP14:
+                button = kButtonB | kButtonY;
+                break;
+            case GPIO_GP15:
+                button = kButtonA | kButtonX;
+                break;
+            default:
+                break;
+        }
+        if (button) {
+            int64_t out = 0x0;
+            result = gamepad_read_buttons(1, &out);
+            if (SUCCEEDED(result)) {
+                *value = (out & button) ? 0 : 1;
+            }
+        } else {
+            *value = gpio_pins[pin_num].value;
+        }
+    } else {
+        *value = gpio_pins[pin_num].value;
+    }
+
+    return result;
 }
 
 /**

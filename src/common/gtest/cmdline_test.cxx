@@ -23,7 +23,7 @@ int getint(char *p, int min, int max) { return 0; }
 Options mmb_options;
 
 // Defined in "common/gpio.c"
-MmResult gpio_translate_from_gp_pin(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
+MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
 // Defined in "core/commandtbl.c"
 CommandToken cmdFUN = 0x0;

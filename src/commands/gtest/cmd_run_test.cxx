@@ -46,7 +46,7 @@ void console_puts(const char *s) { }
 void file_close_all(void) { }
 
 // Defined in "common/gpio.c"
-MmResult gpio_translate_from_gp_pin(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
+MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
 // Defined in "common/graphics.c"
 void graphics_term(void) { }

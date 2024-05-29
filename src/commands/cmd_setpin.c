@@ -48,22 +48,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/parse.h"
 #include "../common/utility.h"
 
-/** SETPIN pin, { DIN | DOUT | OFF } */
+/** SETPIN pin, { DIN | DOUT | OFF } [, PULLUP] */
 void cmd_setpin(void) {
-    if (mmb_options.simulate != kSimulatePicoMiteVga) {
+    if (mmb_options.simulate != kSimulatePicoMiteVga && mmb_options.simulate != kSimulateGameMite) {
         error_throw(kUnsupportedOnCurrentDevice);
         return;
     }
 
-    getargs(&cmdline, 3, ",");
-    if (argc != 3) {
+    getargs(&cmdline, 5, ",");
+    if (argc != 3 && argc != 5) {
         ERROR_ARGUMENT_COUNT;
         return;
     }
 
     uint8_t pin_num = 0;
+    bool is_gp = false;
     const char *p = argv[0];
-    MmResult result = parse_pin_num(&p, &pin_num);
+    MmResult result = parse_pin_num(&p, &pin_num, &is_gp);
     if (FAILED(result)) {
         error_throw(result);
         return;
@@ -77,6 +78,14 @@ void cmd_setpin(void) {
         result = gpio_configure_pin(pin_num, kGpioPinOff);
     } else {
         result = kSyntax;
+    }
+
+    if (argc == 5) {
+        if ((p = parse_check_string(argv[4], "PULLUP"))) {
+            // Ignored for now.
+        } else {
+            result = kSyntax;
+        }
     }
 
     if (FAILED(result)) {

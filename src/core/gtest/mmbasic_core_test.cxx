@@ -44,7 +44,7 @@ void console_set_title(const char *title) { }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "common/gpio.c"
-MmResult gpio_translate_from_gp_pin(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
+MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
 // Defined in "common/graphics.c"
 void graphics_term(void) { }

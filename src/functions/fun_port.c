@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-fun_pinc.c
+fun_port.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -46,40 +46,45 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/utility.h"
 
-/** PIN(pin) */
-void fun_pin(void) {
-    if (mmb_options.simulate != kSimulatePicoMiteVga) {
+/** PORT(start, nbr [, start, nbr] ...) */
+void fun_port(void) {
+    if (mmb_options.simulate != kSimulateGameMite) {
         error_throw(kUnsupportedOnCurrentDevice);
         return;
     }
 
-    getargs(&ep, 1, ",");
-    if (argc != 1) {
-        ERROR_ARGUMENT_COUNT;
-        return;
+    getargs(&ep, GPIO_MAX_PIN_NUM * 4, ",");
+    if ((argc & 0b11) != 0b11) ERROR_ARGUMENT_COUNT;
+
+    iret = 0;
+    targ = T_INT;
+    MmResult result = kOk;
+    for (int i = argc - 3; i >= 0 && SUCCEEDED(result); i -= 4) {
+        uint8_t pin_num;
+        bool is_gp = false;
+        const char *tp = argv[i];
+        result = parse_pin_num(&tp, &pin_num, &is_gp);
+        uint8_t nbr = (uint8_t)getint(argv[i + 2], 1, GPIO_MAX_PIN_NUM);
+        if (is_gp) {
+            uint8_t pin_gp = 0;
+            result = gpio_translate_from_pin_num(pin_num, &pin_gp);
+            for (uint8_t j = pin_gp + nbr - 1; j >= pin_gp && SUCCEEDED(result); --j) {
+                iret <<= 1;
+                uint8_t value = 0x0;
+                result = gpio_translate_from_pin_gp(j, &pin_num);
+                if (SUCCEEDED(result)) result = gpio_get_pin_value(pin_num, &value);
+                iret |= value;
+            }
+
+        } else {
+            for (uint8_t j = pin_num + nbr - 1; j >= pin_num && SUCCEEDED(result); --j) {
+                iret <<= 1;
+                uint8_t value = 0x0;
+                result = gpio_get_pin_value(j, &value);
+                iret |= value;
+            }
+        }
     }
 
-    uint8_t pin_num = 0;
-    bool is_gp = false;
-    const char *tp = argv[0];
-    MmResult result = parse_pin_num(&tp, &pin_num, &is_gp);
-    if (FAILED(result)) {
-        error_throw(result);
-        return;
-    }
-
-    if (!parse_is_end(tp)) {
-        error_throw(kUnexpectedText);
-        return;
-    }
-
-    uint8_t value = 0;
-    result = gpio_get_pin_value(pin_num, &value);
-    if (FAILED(result)) {
-        error_throw(result);
-        return;
-    }
-
-    g_rtn_type = T_INT;
-    g_integer_rtn = value;
+    if (FAILED(result)) error_throw(result);
 }

@@ -52,14 +52,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmb4l.h"
 #include "mmresult.h"
 
-#define GPIO_MAX_PIN_NUM 40
+#define GPIO_MAX_PIN_NUM 43
 
-#define GPIO_GP1 2
-#define GPIO_GP2 4
-#define GPIO_GP3 5
-#define GPIO_GP4 6
-#define GPIO_GP5 7
-#define GPIO_GP22 29
+#define GPIO_GP1    2
+#define GPIO_GP2    4
+#define GPIO_GP3    5
+#define GPIO_GP4    6
+#define GPIO_GP5    7
+#define GPIO_GP8   11
+#define GPIO_GP9   12
+#define GPIO_GP10  14
+#define GPIO_GP11  15
+#define GPIO_GP12  16
+#define GPIO_GP13  17
+#define GPIO_GP14  19
+#define GPIO_GP15  20
+#define GPIO_GP22  29
 
 #define GPIO_SNES_A_DATA GPIO_GP1
 #define GPIO_SNES_A_LATCH GPIO_GP2
@@ -101,7 +109,15 @@ MmResult gpio_configure_pin(uint8_t pin_num, GpioPinConfig config);
  * @param[in]   pin_gp   The GP pin number.
  * @param[out]  pin_num  The hardware pin number.
  */
-MmResult gpio_translate_from_gp_pin(uint8_t pin_gp, uint8_t *pin_num);
+MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num);
+
+/**
+ * Translates from hardware pin number to GPnn.
+ *
+ * @param[in]   pin_num  The hardware pin number.
+ * @param[out]  pin_gp   The GP pin number.
+ */
+MmResult gpio_translate_from_pin_num(uint8_t pin_num, uint8_t *pin_gp);
 
 /**
  * Gets the value of a given pin.

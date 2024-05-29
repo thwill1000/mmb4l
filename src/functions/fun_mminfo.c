@@ -405,7 +405,7 @@ static void mminfo_pin_no(const char *p) {
     }
 
     uint8_t pin_num = 0;
-    result = gpio_translate_from_gp_pin(pin_gp, &pin_num);
+    result = gpio_translate_from_pin_gp(pin_gp, &pin_num);
     if (FAILED(result)) {
         error_throw(result);
         return;

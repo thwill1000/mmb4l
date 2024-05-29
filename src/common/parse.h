@@ -143,12 +143,13 @@ MmResult parse_gp_pin(const char **p, uint8_t *pin_gp);
  *
  * @param[in,out] p        Parse from this pointer.
  *                         On exit points at the character following the signature.
- * @param[out]    pin_num  The parsed pin number. If this was a GPnn then it will have been
- *                         converted to a hardware pin number.
+ * @param[out]    pin_num  The parsed hardware pin number. If parsed from a GPnn specification it
+                           will have been converted to a hardware pin number.
+ * @param[out]    is_gp    True if pin number parsed from GPnn specification, otherwise false.
  * @return                 kOk on success.
  *                         kSyntax if a badly formed GPnn specification is parsed.
  *                         kNotParsed if a GPnn specification is not parsed.
  */
-MmResult parse_pin_num(const char **p, uint8_t *pin_num); 
+MmResult parse_pin_num(const char **p, uint8_t *pin_num, bool *gp);
 
 #endif

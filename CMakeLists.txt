@@ -155,6 +155,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_mminfo.c
     src/functions/fun_peek.c
     src/functions/fun_pin.c
+    src/functions/fun_port.c
     src/functions/fun_rgb.c
     src/functions/fun_str2bin.c
     src/functions/fun_time.c

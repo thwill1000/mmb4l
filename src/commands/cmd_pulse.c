@@ -59,8 +59,9 @@ void cmd_pulse(void) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     uint8_t pin_num = 0;
+    bool is_gp = false;
     const char *p = argv[0];
-    MmResult result = parse_pin_num(&p, &pin_num);
+    MmResult result = parse_pin_num(&p, &pin_num, &is_gp);
     if (FAILED(result)) {
         error_throw(result);
         return;

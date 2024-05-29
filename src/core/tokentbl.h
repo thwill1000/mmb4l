@@ -120,6 +120,7 @@ void fun_oct(void);
 void fun_peek(void);
 void fun_pi(void);
 void fun_pin(void);
+void fun_port(void);
 void fun_pos(void);
 void fun_rad(void);
 void fun_rgb(void);

@@ -13,8 +13,8 @@ extern "C" {
 #include "../gpio.h"
 #include "../mmresult.h"
 
-static int64_t snes_a_buttons = 0x0;
-static int64_t snes_b_buttons = 0x0;
+static int64_t gamepad_1_buttons = 0x0;
+static int64_t gamepad_2_buttons = 0x0;
 
 // Defined in "audio.c"
 const char *audio_last_error() { return NULL; }
@@ -31,10 +31,10 @@ MmResult gamepad_close(MmGamepadId id) { return kOk; }
 MmResult gamepad_read_buttons(MmGamepadId id, int64_t *out) {
     switch (id) {
         case 1:
-            *out = snes_a_buttons;
+            *out = gamepad_1_buttons;
             break;
         case 2:
-            *out = snes_b_buttons;
+            *out = gamepad_2_buttons;
             break;
         default:
             break;
@@ -49,7 +49,7 @@ const char *graphics_last_error() { return NULL; }
 Options mmb_options;
 }
 
-class GpioTest : public ::testing::Test {
+class GpioPinTest : public ::testing::TestWithParam<std::tuple<uint8_t, uint8_t, MmResult>> {
    protected:
     void SetUp() override {
         memset(&mmb_options, 0x0, sizeof(Options));
@@ -59,110 +59,104 @@ class GpioTest : public ::testing::Test {
     void TearDown() override {}
 };
 
-TEST_F(GpioTest, GpioTranslateFromGpPin) {
-    uint8_t pin_num;
-
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(0, &pin_num));
-    EXPECT_EQ(1, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(1, &pin_num));
-    EXPECT_EQ(2, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(2, &pin_num));
-    EXPECT_EQ(4, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(3, &pin_num));
-    EXPECT_EQ(5, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(4, &pin_num));
-    EXPECT_EQ(6, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(5, &pin_num));
-    EXPECT_EQ(7, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(6, &pin_num));
-    EXPECT_EQ(9, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(7, &pin_num));
-    EXPECT_EQ(10, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(8, &pin_num));
-    EXPECT_EQ(11, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(9, &pin_num));
-    EXPECT_EQ(12, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(10, &pin_num));
-    EXPECT_EQ(14, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(11, &pin_num));
-    EXPECT_EQ(15, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(12, &pin_num));
-    EXPECT_EQ(16, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(13, &pin_num));
-    EXPECT_EQ(17, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(14, &pin_num));
-    EXPECT_EQ(19, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(15, &pin_num));
-    EXPECT_EQ(20, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(16, &pin_num));
-    EXPECT_EQ(21, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(17, &pin_num));
-    EXPECT_EQ(22, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(18, &pin_num));
-    EXPECT_EQ(24, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(19, &pin_num));
-    EXPECT_EQ(25, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(20, &pin_num));
-    EXPECT_EQ(26, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(21, &pin_num));
-    EXPECT_EQ(27, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(22, &pin_num));
-    EXPECT_EQ(29, pin_num);
-    EXPECT_EQ(kGpioInvalidPin, gpio_translate_from_gp_pin(23, &pin_num));
-    EXPECT_EQ(kGpioInvalidPin, gpio_translate_from_gp_pin(24, &pin_num));
-    EXPECT_EQ(kGpioInvalidPin, gpio_translate_from_gp_pin(25, &pin_num));
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(26, &pin_num));
-    EXPECT_EQ(31, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(27, &pin_num));
-    EXPECT_EQ(32, pin_num);
-    EXPECT_EQ(kOk, gpio_translate_from_gp_pin(28, &pin_num));
-    EXPECT_EQ(34, pin_num);
-    EXPECT_EQ(kGpioInvalidPin, gpio_translate_from_gp_pin(29, &pin_num));
-}
-
-TEST_F(GpioTest, GpioGetSetPinValue) {
-    for (uint8_t pin_num = 0; pin_num <= GPIO_MAX_PIN_NUM; ++pin_num) {
-        if (gpio_is_valid_pin_num(pin_num)) {
-            uint8_t value = 0xFF;
-            EXPECT_EQ(kOk, gpio_get_pin_value(pin_num, &value));
-            EXPECT_EQ(0, value);
-            EXPECT_EQ(kOk, gpio_configure_pin(pin_num, kGpioPinDOut));
-            EXPECT_EQ(kOk, gpio_set_pin_value(pin_num, 1));
-            EXPECT_EQ(kOk, gpio_get_pin_value(pin_num, &value));
-            EXPECT_EQ(1, value);
-        } else {
-            uint8_t value = 0xFF;
-            EXPECT_EQ(kGpioInvalidPin, gpio_get_pin_value(pin_num, &value));
-            EXPECT_EQ(kGpioInvalidPin, gpio_set_pin_value(pin_num, 1));
-        }
+TEST_P(GpioPinTest, FromPinNum) {
+    uint8_t pin_gp = 0;
+    if (std::get<0>(GetParam()) != 0xFF) {
+        EXPECT_EQ(std::get<2>(GetParam()),
+                  gpio_translate_from_pin_num(std::get<0>(GetParam()), &pin_gp));
+        EXPECT_EQ(std::get<1>(GetParam()), pin_gp);
     }
 }
 
-TEST_F(GpioTest, GpioPulsePin) {
-    for (uint8_t pin_num = 0; pin_num <= GPIO_MAX_PIN_NUM; ++pin_num) {
-        if (gpio_is_valid_pin_num(pin_num)) {
-            EXPECT_EQ(kOk, gpio_configure_pin(pin_num, kGpioPinDOut));
-
-            // Not a lot we can actually test here since gpio_pulse_pin() should leave pin in
-            // its original state.
-            uint8_t value = 0xFF;
-            EXPECT_EQ(kOk, gpio_set_pin_value(pin_num, 0));
-            EXPECT_EQ(kOk, gpio_pulse_pin(pin_num, 5));
-            EXPECT_EQ(kOk, gpio_get_pin_value(pin_num, &value));
-            EXPECT_EQ(0, value);
-
-            EXPECT_EQ(kOk, gpio_set_pin_value(pin_num, 1));
-            EXPECT_EQ(kOk, gpio_pulse_pin(pin_num, 5));
-            EXPECT_EQ(kOk, gpio_get_pin_value(pin_num, &value));
-            EXPECT_EQ(1, value);
-        } else {
-            EXPECT_EQ(kGpioInvalidPin, gpio_pulse_pin(pin_num, 10));
-        }
+TEST_P(GpioPinTest, FromPinGp) {
+    uint8_t pin_num = 0;
+    if (std::get<1>(GetParam()) != 0xFF) {
+        EXPECT_EQ(std::get<2>(GetParam()),
+                  gpio_translate_from_pin_gp(std::get<1>(GetParam()), &pin_num));
+        EXPECT_EQ(std::get<0>(GetParam()), pin_num);
     }
-
-    EXPECT_EQ(kOk, gpio_pulse_pin(2, 0));
-    EXPECT_EQ(kGpioInvalidPulseWidth, gpio_pulse_pin(2, -1));
 }
+
+TEST_P(GpioPinTest, GetSetPinValue) {
+    uint8_t pin_num = std::get<0>(GetParam());
+    if (pin_num != 0xFF && std::get<1>(GetParam()) != 0xFF) {
+        uint8_t value = 0xFF;
+        EXPECT_EQ(kOk, gpio_get_pin_value(pin_num, &value));
+        EXPECT_EQ(0, value);
+        EXPECT_EQ(kOk, gpio_configure_pin(pin_num, kGpioPinDOut));
+        EXPECT_EQ(kOk, gpio_set_pin_value(pin_num, 1));
+        EXPECT_EQ(kOk, gpio_get_pin_value(pin_num, &value));
+        EXPECT_EQ(1, value);
+    } else {
+        uint8_t value = 0xFF;
+        EXPECT_EQ(kGpioInvalidPin, gpio_get_pin_value(pin_num, &value));
+        EXPECT_EQ(kGpioInvalidPin, gpio_set_pin_value(pin_num, 1));
+    }
+}
+
+TEST_P(GpioPinTest, PulsePin) {
+    uint8_t pin_num = std::get<0>(GetParam());
+    if (pin_num != 0xFF && std::get<1>(GetParam()) != 0xFF) {
+        EXPECT_EQ(kOk, gpio_configure_pin(pin_num, kGpioPinDOut));
+
+        // Not a lot we can actually test here since gpio_pulse_pin() should leave pin in
+        // its original state.
+        uint8_t value = 0xFF;
+        EXPECT_EQ(kOk, gpio_set_pin_value(pin_num, 0));
+        EXPECT_EQ(kOk, gpio_pulse_pin(pin_num, 5));
+        EXPECT_EQ(kOk, gpio_get_pin_value(pin_num, &value));
+        EXPECT_EQ(0, value);
+
+        EXPECT_EQ(kOk, gpio_set_pin_value(pin_num, 1));
+        EXPECT_EQ(kOk, gpio_pulse_pin(pin_num, 5));
+        EXPECT_EQ(kOk, gpio_get_pin_value(pin_num, &value));
+        EXPECT_EQ(1, value);
+
+        // Zero length pulse.
+        EXPECT_EQ(kOk, gpio_pulse_pin(pin_num, 0));
+
+        // Invalid length pulse.
+        EXPECT_EQ(kGpioInvalidPulseWidth, gpio_pulse_pin(pin_num, -1));
+    } else {
+        EXPECT_EQ(kGpioInvalidPin, gpio_pulse_pin(pin_num, 10));
+    }
+}
+
+// Values are: (pin_num, pin_gp, translation result)
+INSTANTIATE_TEST_SUITE_P(
+    , GpioPinTest,
+    ::testing::Values(
+        std::make_tuple(1, 0, kOk), std::make_tuple(2, 1, kOk),
+        std::make_tuple(3, 0xFF, kGpioInvalidPin), std::make_tuple(4, 2, kOk),
+        std::make_tuple(5, 3, kOk), std::make_tuple(6, 4, kOk), std::make_tuple(7, 5, kOk),
+        std::make_tuple(8, 0xFF, kGpioInvalidPin), std::make_tuple(9, 6, kOk),
+        std::make_tuple(10, 7, kOk), std::make_tuple(11, 8, kOk), std::make_tuple(12, 9, kOk),
+        std::make_tuple(13, 0xFF, kGpioInvalidPin), std::make_tuple(14, 10, kOk),
+        std::make_tuple(15, 11, kOk), std::make_tuple(16, 12, kOk), std::make_tuple(17, 13, kOk),
+        std::make_tuple(18, 0xFF, kGpioInvalidPin), std::make_tuple(19, 14, kOk),
+        std::make_tuple(20, 15, kOk), std::make_tuple(21, 16, kOk), std::make_tuple(22, 17, kOk),
+        std::make_tuple(23, 0xFF, kGpioInvalidPin), std::make_tuple(24, 18, kOk),
+        std::make_tuple(25, 19, kOk), std::make_tuple(26, 20, kOk), std::make_tuple(27, 21, kOk),
+        std::make_tuple(28, 0xFF, kGpioInvalidPin), std::make_tuple(29, 22, kOk),
+        std::make_tuple(30, 0xFF, kGpioInvalidPin), std::make_tuple(31, 26, kOk),
+        std::make_tuple(32, 27, kOk), std::make_tuple(33, 0xFF, kGpioInvalidPin),
+        std::make_tuple(34, 28, kOk), std::make_tuple(35, 0xFF, kGpioInvalidPin),
+        std::make_tuple(36, 0xFF, kGpioInvalidPin), std::make_tuple(37, 0xFF, kGpioInvalidPin),
+        std::make_tuple(38, 0xFF, kGpioInvalidPin), std::make_tuple(39, 0xFF, kGpioInvalidPin),
+        std::make_tuple(40, 0xFF, kGpioInvalidPin), std::make_tuple(41, 23, kOk),
+        std::make_tuple(42, 24, kOk), std::make_tuple(43, 25, kOk),
+        std::make_tuple(0xFF, 29, kGpioInvalidPin)),
+    [](const testing::TestParamInfo<GpioPinTest::ParamType> &info) {
+        char buf[32];
+        if (std::get<0>(info.param) == 0xFF) {
+            sprintf(buf, "Gp_%d", std::get<1>(info.param));
+        } else if (std::get<1>(info.param) == 0xFF) {
+            sprintf(buf, "Pin_%d", std::get<0>(info.param));
+        } else if (std::get<1>(info.param) != 0xFF) {
+            sprintf(buf, "Pin_%d_Gp_%d", std::get<0>(info.param), std::get<1>(info.param));
+        }
+        return std::string(buf);
+    });
 
 static uint16_t read_snes(uint8_t latch, uint8_t clock, uint8_t data) {
     const float PULSE_DURATION = 0.012;  // 12uS
@@ -187,8 +181,15 @@ static uint16_t read_snes(uint8_t latch, uint8_t clock, uint8_t data) {
 }
 
 class SnesControllerSimulationTest
-    : public GpioTest,
-      public ::testing::WithParamInterface<std::tuple<std::string, GamepadButton, uint16_t>> {};
+    : public ::testing::TestWithParam<std::tuple<std::string, GamepadButton, uint16_t>> {
+   protected:
+    void SetUp() override {
+        memset(&mmb_options, 0x0, sizeof(Options));
+        gpio_init();
+    }
+
+    void TearDown() override {}
+};
 
 TEST_P(SnesControllerSimulationTest, ControllerA) {
     mmb_options.simulate = kSimulatePicoMiteVga;
@@ -197,11 +198,11 @@ TEST_P(SnesControllerSimulationTest, ControllerA) {
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_A_CLOCK, kGpioPinDOut));
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_A_DATA, kGpioPinDIn));
 
-    snes_a_buttons = std::get<1>(GetParam());
+    gamepad_1_buttons = std::get<1>(GetParam());
     EXPECT_EQ(std::get<2>(GetParam()),
               read_snes(GPIO_SNES_A_LATCH, GPIO_SNES_A_CLOCK, GPIO_SNES_A_DATA));
 
-    snes_a_buttons = 0x0;
+    gamepad_1_buttons = 0x0;
     EXPECT_EQ(0b1111111111111111,
               read_snes(GPIO_SNES_A_LATCH, GPIO_SNES_A_CLOCK, GPIO_SNES_A_DATA));
 }
@@ -213,11 +214,11 @@ TEST_P(SnesControllerSimulationTest, ControllerB) {
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_B_CLOCK, kGpioPinDOut));
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_B_DATA, kGpioPinDIn));
 
-    snes_b_buttons = std::get<1>(GetParam());
+    gamepad_2_buttons = std::get<1>(GetParam());
     EXPECT_EQ(std::get<2>(GetParam()),
               read_snes(GPIO_SNES_B_LATCH, GPIO_SNES_B_CLOCK, GPIO_SNES_B_DATA));
 
-    snes_b_buttons = 0x0;
+    gamepad_2_buttons = 0x0;
     EXPECT_EQ(0b1111111111111111,
               read_snes(GPIO_SNES_B_LATCH, GPIO_SNES_B_CLOCK, GPIO_SNES_B_DATA));
 }
@@ -240,6 +241,80 @@ INSTANTIATE_TEST_SUITE_P(
                       std::make_tuple("Multiple_buttons",
                                       (GamepadButton)(kButtonA | kButtonUp | kButtonLeft),
                                       0b1111111010101111)),
-    [](const testing::TestParamInfo<std::tuple<std::string, GamepadButton, uint16_t>> &info) {
+    [](const testing::TestParamInfo<SnesControllerSimulationTest::ParamType> &info) {
+        return std::get<0>(info.param);
+    });
+
+static uint16_t read_gamemite() {
+    uint8_t down = 0x0;
+    EXPECT_EQ(kOk, gpio_get_pin_value(GPIO_GP8, &down));
+    uint8_t left = 0x0;
+    EXPECT_EQ(kOk, gpio_get_pin_value(GPIO_GP9, &left));
+    uint8_t up = 0x0;
+    EXPECT_EQ(kOk, gpio_get_pin_value(GPIO_GP10, &up));
+    uint8_t right = 0x0;
+    EXPECT_EQ(kOk, gpio_get_pin_value(GPIO_GP11, &right));
+    uint8_t select = 0x0;
+    EXPECT_EQ(kOk, gpio_get_pin_value(GPIO_GP12, &select));
+    uint8_t start = 0x0;
+    EXPECT_EQ(kOk, gpio_get_pin_value(GPIO_GP13, &start));
+    uint8_t b = 0x0;
+    EXPECT_EQ(kOk, gpio_get_pin_value(GPIO_GP14, &b));
+    uint8_t a = 0x0;
+    EXPECT_EQ(kOk, gpio_get_pin_value(GPIO_GP15, &a));
+
+    return down | (left << 1) | (up << 2) | (right << 3) | (select << 4) | (start << 5) | (b << 6) |
+           (a << 7);
+}
+
+class GameMiteControllerSimulationTest
+    : public ::testing::TestWithParam<std::tuple<std::string, GamepadButton, uint16_t>> {
+   protected:
+    void SetUp() override {
+        memset(&mmb_options, 0x0, sizeof(Options));
+        gpio_init();
+    }
+
+    void TearDown() override {}
+};
+
+TEST_P(GameMiteControllerSimulationTest, ControllerA) {
+    mmb_options.simulate = kSimulateGameMite;
+
+    EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP8, kGpioPinDIn));
+    EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP9, kGpioPinDIn));
+    EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP10, kGpioPinDIn));
+    EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP11, kGpioPinDIn));
+    EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP12, kGpioPinDIn));
+    EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP13, kGpioPinDIn));
+    EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP14, kGpioPinDIn));
+    EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP15, kGpioPinDIn));
+
+    gamepad_1_buttons = std::get<1>(GetParam());
+    EXPECT_EQ(std::get<2>(GetParam()), read_gamemite());
+
+    gamepad_1_buttons = 0x0;
+    EXPECT_EQ(0b11111111, read_gamemite());
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    , GameMiteControllerSimulationTest,
+    ::testing::Values(std::make_tuple("No_buttons", (GamepadButton)0x0, 0b11111111),
+                      std::make_tuple("Button_B", kButtonB, 0b10111111),
+                      std::make_tuple("Button_Y", kButtonY, 0b10111111),
+                      std::make_tuple("Button_Select", kButtonSelect, 0b11101111),
+                      std::make_tuple("Button_Start", kButtonStart, 0b11011111),
+                      std::make_tuple("Button_Up", kButtonUp, 0b11111011),
+                      std::make_tuple("Button_Down", kButtonDown, 0b11111110),
+                      std::make_tuple("Button_Left", kButtonLeft, 0b11111101),
+                      std::make_tuple("Button_Right", kButtonRight, 0b11110111),
+                      std::make_tuple("Button_A", kButtonA, 0b01111111),
+                      std::make_tuple("Button_X", kButtonX, 0b01111111),
+                      std::make_tuple("Button_L", kButtonL, 0b11111111),
+                      std::make_tuple("Button_R", kButtonR, 0b11111111),
+                      std::make_tuple("Multiple_buttons",
+                                      (GamepadButton)(kButtonA | kButtonUp | kButtonLeft),
+                                      0b01111001)),
+    [](const testing::TestParamInfo<GameMiteControllerSimulationTest::ParamType> &info) {
         return std::get<0>(info.param);
     });

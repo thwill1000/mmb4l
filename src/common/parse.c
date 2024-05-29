@@ -592,12 +592,15 @@ MmResult parse_gp_pin(const char **p, uint8_t *gp) {
     return kOk;
 }
 
-MmResult parse_pin_num(const char **p, uint8_t *pin_num) {
+MmResult parse_pin_num(const char **p, uint8_t *pin_num, bool *is_gp) {
+    *is_gp = false;
+
     // First try parsing arg as literal GPnn.
     uint8_t pin_gp = 0;
     MmResult result = parse_gp_pin(p, &pin_gp);
     if (SUCCEEDED(result)) {
-        result = gpio_translate_from_gp_pin(pin_gp, pin_num);
+        *is_gp = true;
+        result = gpio_translate_from_pin_gp(pin_gp, pin_num);
     } else if (result != kSyntax) {
         // If it is not in the format GPnn then treat it as an integer instead.
         // TODO: Currently getint() will longjmp on an error rather than returing an MmResult.

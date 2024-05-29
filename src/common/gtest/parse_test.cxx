@@ -44,9 +44,9 @@ void console_set_title(const char *title) { }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "common/gpio.c"
-MmResult (*mock_gpio_transplate_from_gp_pin)(uint8_t pin_gp, uint8_t *pin_num) = NULL;
-MmResult gpio_translate_from_gp_pin(uint8_t pin_gp, uint8_t *pin_num) {
-    return mock_gpio_transplate_from_gp_pin(pin_gp, pin_num);
+MmResult (*mock_gpio_transplate_from_pin_gp)(uint8_t pin_gp, uint8_t *pin_num) = NULL;
+MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) {
+    return mock_gpio_transplate_from_pin_gp(pin_gp, pin_num);
 }
 
 // Defined in "common/graphics.c"
@@ -109,7 +109,7 @@ protected:
         strcpy(error_msg, "");
         InitBasic();
         clear_prog_memory();
-        mock_gpio_transplate_from_gp_pin = NULL;
+        mock_gpio_transplate_from_pin_gp = NULL;
     }
 
     void TearDown() override {
@@ -1207,7 +1207,7 @@ TEST_F(ParseTest, ParseGpPin_GivenNotGp_Fails) {
 }
 
 TEST_F(ParseTest, ParsePinNum_GivenGpPinValid_Succeeds) {
-    mock_gpio_transplate_from_gp_pin = [](uint8_t pin_gp, uint8_t *pin_num) -> MmResult {
+    mock_gpio_transplate_from_pin_gp = [](uint8_t pin_gp, uint8_t *pin_num) -> MmResult {
         *pin_num = pin_gp + 100;
         return kOk;
     };
@@ -1215,22 +1215,26 @@ TEST_F(ParseTest, ParsePinNum_GivenGpPinValid_Succeeds) {
 
     const char *p = ProgMemory + 1; // Skip the leading \001.
     uint8_t pin_num = 0;
-    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num));
+    bool is_gp = false;
+    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num, &is_gp));
     EXPECT_EQ(101, pin_num);
+    EXPECT_EQ(true, is_gp);
     EXPECT_EQ(ProgMemory + 4, p);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ParseTest, ParsePinNum_GivenGpPinDoesNotTranslate_Fails) {
-    mock_gpio_transplate_from_gp_pin = [](uint8_t pin_gp, uint8_t *pin_num) -> MmResult {
+    mock_gpio_transplate_from_pin_gp = [](uint8_t pin_gp, uint8_t *pin_num) -> MmResult {
         return kGpioInvalidPin;
     };
     tokenise_and_append("GP1");
 
     const char *p = ProgMemory + 1; // Skip the leading \001.
     uint8_t pin_num = 0;
-    EXPECT_EQ(kGpioInvalidPin, parse_pin_num(&p, &pin_num));
+    bool is_gp = false;
+    EXPECT_EQ(kGpioInvalidPin, parse_pin_num(&p, &pin_num, &is_gp));
     EXPECT_EQ(0, pin_num);
+    EXPECT_EQ(true, is_gp);
     EXPECT_EQ(ProgMemory + 4, p);
     EXPECT_STREQ("", error_msg);
 }
@@ -1240,8 +1244,10 @@ TEST_F(ParseTest, ParsePinNum_GivenGpPinSyntaxWrong_Fails) {
 
     const char *p = ProgMemory + 1; // Skip the leading \001.
     uint8_t pin_num = 0;
-    EXPECT_EQ(kSyntax, parse_pin_num(&p, &pin_num));
+    bool is_gp = false;
+    EXPECT_EQ(kSyntax, parse_pin_num(&p, &pin_num, &is_gp));
     EXPECT_EQ(0, pin_num);
+    EXPECT_EQ(false, is_gp);
     EXPECT_EQ(ProgMemory + 1, p);
     EXPECT_STREQ("", error_msg);
 }
@@ -1251,8 +1257,10 @@ TEST_F(ParseTest, ParsePinNum_GivenInteger_Succeeds) {
 
     const char *p = ProgMemory + 3;
     uint8_t pin_num = 0;
-    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num));
+    bool is_gp = false;
+    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num, &is_gp));
     EXPECT_EQ(5, pin_num);
+    EXPECT_EQ(false, is_gp);
     EXPECT_EQ(ProgMemory + 4, p);
     EXPECT_STREQ("", error_msg);
 }
@@ -1270,8 +1278,10 @@ TEST_F(ParseTest, ParsePinNum_GivenIntegerExpression_Succeeds) {
 
     const char *p = ProgMemory + 3;
     uint8_t pin_num = 0;
-    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num));
+    bool is_gp = false;
+    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num, &is_gp));
     EXPECT_EQ(14, pin_num);
+    EXPECT_EQ(false, is_gp);
     EXPECT_EQ(ProgMemory + 6, p);
     EXPECT_STREQ("", error_msg);
 }
@@ -1282,8 +1292,10 @@ TEST_F(ParseTest, ParsePinNum_GivenUnknownVariable_Fails) {
 
     const char *p = ProgMemory + 3;
     uint8_t pin_num = 0;
-    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num));
+    bool is_gp = false;
+    EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num, &is_gp));
     EXPECT_EQ(0, pin_num);
+    EXPECT_EQ(false, is_gp);
     EXPECT_EQ(ProgMemory + 6, p);
     EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
 
