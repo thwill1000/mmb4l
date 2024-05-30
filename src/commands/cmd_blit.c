@@ -108,6 +108,86 @@ static void cmd_blit_copy(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT COPY");
 }
 
+/** BLIT FRAMEBUFFER from, to, x1, y1, x2, y2, w, h [, transparent] */
+static void cmd_blit_framebuffer(const char *p) {
+    if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
+        error_throw(kUnsupportedOnCurrentDevice);
+        return;
+    }
+
+    getargs(&p, 17, ",");
+    if (argc < 15) ERROR_ARGUMENT_COUNT;
+
+    MmSurfaceId read_surface_id = -1;
+    MmResult result = parse_picomite_surface(argv[0], &read_surface_id);
+    if (FAILED(result)) {
+        error_throw(result);
+        return;
+    }
+
+    if (!graphics_surface_exists(read_surface_id)) {
+        switch (read_surface_id) {
+            case GRAPHICS_SURFACE_N:
+                error_throw_ex(kGraphicsSurfaceNotFound, "Display does not exist");
+                return;
+            case GRAPHICS_SURFACE_F:
+                error_throw_ex(kGraphicsSurfaceNotFound, "FrameBuffer does not exist");
+                return;
+            case GRAPHICS_SURFACE_L:
+                error_throw_ex(kGraphicsSurfaceNotFound, "Layer does not exist");
+                return;
+            default:
+                error_throw(kInternalFault);
+                return;
+        }
+    }
+    MmSurface *read_surface = &graphics_surfaces[read_surface_id];
+
+    MmSurfaceId write_surface_id = -1;
+    result = parse_picomite_surface(argv[2], &write_surface_id);
+    if (FAILED(result)) {
+        error_throw(result);
+        return;
+    }
+
+    if (!graphics_surface_exists(write_surface_id)) {
+        switch (write_surface_id) {
+            case GRAPHICS_SURFACE_N:
+                error_throw_ex(kGraphicsSurfaceNotFound, "Display does not exist");
+                return;
+            case GRAPHICS_SURFACE_F:
+                error_throw_ex(kGraphicsSurfaceNotFound, "FrameBuffer does not exist");
+                return;
+            case GRAPHICS_SURFACE_L:
+                error_throw_ex(kGraphicsSurfaceNotFound, "Layer does not exist");
+                return;
+            default:
+                error_throw(kInternalFault);
+                return;
+        }
+    }
+    MmSurface *write_surface = &graphics_surfaces[write_surface_id];
+
+    if (read_surface == write_surface) {
+        error_throw(kGraphicsReadAndWriteSurfaceSame);
+        return;
+    }
+
+    MMINTEGER x1 = getinteger(argv[4]);
+    MMINTEGER y1 = getinteger(argv[6]);
+    MMINTEGER x2 = getinteger(argv[8]);
+    MMINTEGER y2 = getinteger(argv[10]);
+    MMINTEGER w = getinteger(argv[12]);
+    MMINTEGER h = getinteger(argv[14]);
+    int8_t t4bit = (argc == 17) ? getint(argv[16], 0, 15) : -1;
+
+    const int flags = (t4bit == -1) ? 0x0 : 0x4;
+    const MmGraphicsColour transparent = (t4bit == -1) ? RGB_BLACK : GRAPHICS_RGB121_COLOURS[t4bit];
+
+    result = graphics_blit(x1, y1, x2, y2, w, h, read_surface, write_surface, flags, transparent);
+    if (FAILED(result)) error_throw(result);
+}
+
 static void cmd_blit_hide(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT HIDE");
 }
@@ -298,6 +378,8 @@ void cmd_blit(void) {
         cmd_blit_compressed(p);
     } else if ((p = checkstring(cmdline, "COPY"))) {
         cmd_blit_copy(p);
+    } else if ((p = checkstring(cmdline, "FRAMEBUFFER"))) {
+        cmd_blit_framebuffer(p);
     } else if ((p = checkstring(cmdline, "HIDE ALL"))) {
         cmd_blit_hide_all(p);
     } else if ((p = checkstring(cmdline, "HIDE SAFE"))) {
