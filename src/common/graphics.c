@@ -229,6 +229,7 @@ MmResult graphics_buffer_create(MmSurfaceId id, uint32_t width, uint32_t height)
     s->pixels = calloc(width * height, sizeof(uint32_t));
     s->height = height;
     s->width = width;
+    s->transparent = -1;
 
     return kOk;
 }
@@ -279,6 +280,7 @@ MmResult graphics_window_create(MmSurfaceId id, int x, int y, uint32_t width, ui
     s->height = height;
     s->width = width;
     s->interrupt_addr = interrupt_addr;
+    s->transparent = -1;
 
     return kOk;
 }
@@ -970,7 +972,6 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
     surface->dirty = true;
     return kOk;
 }
-
 
 static void *pixelcpy_transparent(void* dst, const void* src, size_t count, uint32_t transparent) {
     assert(count % 4 == 0);
