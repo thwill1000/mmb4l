@@ -268,6 +268,28 @@ static uint8_t image_bmp_load_4_bit_colour(BitmapHeader *header, MmSurface *surf
     return 0;
 }
 
+static uint8_t image_bmp_load_4_bit_colour_compression_2(BitmapHeader *header, MmSurface *surface,
+                                                         int x, int y, int fnbr) {
+    uint8_t b[2];
+    uint8_t count;
+    for (uint32_t wY = 0; wY < header->height; wY++) {
+        IMG_vCheckAndAbort();
+        uint32_t wX = 0;
+        do {
+            FILE_READ(b, 1, 2, fnbr);
+            MmGraphicsColour colour1 = RGB_TABLE_ENTRY(b[1] >> 4);
+            MmGraphicsColour colour2 = RGB_TABLE_ENTRY(b[1] & 0xF);
+            count = b[0];
+            while (count) {
+                SET_PIXEL(wX++, header->height - wY - 1, colour1);
+                SET_PIXEL(wX++, header->height - wY - 1, colour2);
+                count -= 2;
+            }
+        } while (b[0] != 0 || b[1] != 0);
+    }
+    return 0;
+}
+
 static uint8_t image_bmp_load_8_bit_colour(BitmapHeader *header, MmSurface *surface, int x, int y,
                                            int fnbr) {
     if (header->colour_table_size == 0) return -1;
@@ -344,7 +366,7 @@ uint8_t image_bmp_load(MmSurface* surface, int x, int y, int fnbr) {
     if (result != 0) return result;
 
     if (header.bm_marker_flag == 0 || header.header_type < 40 ||
-        (header.compression_type != 0 && header.compression_type != 3)) {
+        (header.compression_type != 0 && header.compression_type != 2 && header.compression_type != 3)) {
         return -1;
     }
 
@@ -353,7 +375,9 @@ uint8_t image_bmp_load(MmSurface* surface, int x, int y, int fnbr) {
             result = image_bmp_load_black_and_white(&header, surface, x, y, fnbr);
             break;
         case 4:
-            result = image_bmp_load_4_bit_colour(&header, surface, x, y, fnbr);
+            result = header.compression_type == 2
+                    ? image_bmp_load_4_bit_colour_compression_2(&header, surface, x, y, fnbr)
+                    : image_bmp_load_4_bit_colour(&header, surface, x, y, fnbr);
             break;
         case 8:
             result = header.colour_table_size == 0
