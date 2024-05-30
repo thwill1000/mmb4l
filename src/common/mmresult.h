@@ -104,6 +104,7 @@ typedef enum {
     kGraphicsInvalidId,
     kGraphicsInvalidReadSurface,
     kGraphicsInvalidWriteSurface,
+    kGraphicsLoadBitmapFailed,
     kGraphicsSurfaceNotCreated,
     kGraphicsSurfaceNotFound,
     kGraphicsSurfaceExists,

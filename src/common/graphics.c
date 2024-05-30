@@ -895,7 +895,7 @@ MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
     int fnbr = file_find_free();
     file_open(filename, "rb", fnbr);
     uint8_t image_result = image_bmp_load(surface, x, y, fnbr);
-    if (FAILED(image_result)) result = kError; // TODO
+    if (FAILED(image_result)) result = kGraphicsLoadBitmapFailed;
     file_close(fnbr);
 
     return result;
