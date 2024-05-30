@@ -398,6 +398,11 @@ static void PrepareFontTable() {
         const uint32_t length = *p;
         p += 1;  // Skip the length.
         p += length / 4;  // Skip the data.
+        while ((uintptr_t) p % 8 != 0) {
+            // Expect zeroes until the next 64-bit boundary.
+            if (*p != 0x00) ERROR_INTERNAL_FAULT;
+            p++;
+        }
     }
 }
 
