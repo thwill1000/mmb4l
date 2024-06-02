@@ -941,9 +941,8 @@ MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
     }
 
     int fnbr = file_find_free();
-    file_open(filename, "rb", fnbr);
-    // result = file_open(filename, "rb", fnbr);
-    // if (FAILED(result)) return result;
+    result = file_open(filename, "rb", fnbr);
+    if (FAILED(result)) return result;
     spbmp_init(spbmp_file_read_cb, spbmp_set_pixel_cb, spbmp_abort_check_cb);
     SpBmpResult bmp_result = spbmp_load(file_table[fnbr].file_ptr, x, y, surface);
     surface->dirty = true;
@@ -951,8 +950,7 @@ MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
         (void) file_close(fnbr);
         result = kGraphicsLoadBitmapFailed;
     } else {
-        file_close(fnbr);
-        // result = file_close(fnbr);
+        result = file_close(fnbr);
     }
 
     return result;
