@@ -141,6 +141,10 @@ typedef enum {
     kGpioInvalidPulseWidth,
     kGpioPinIsNotAnOutput,
     kNotParsed,
+    kFileInvalidFileNumber,
+    kFileAlreadyOpen,
+    kFileNotOpen,
+    kFileInvalidSeekPosition,
 } MmResultCode;
 
 /**

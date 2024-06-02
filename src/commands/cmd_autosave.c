@@ -124,12 +124,17 @@ cmd_autosave_read_exit:
 /** Writes out the file. */
 static void cmd_autosave_write_file(char *file_path, char *buf) {
     int fnbr = file_find_free();
-    file_open(file_path, "wb", fnbr);
+    MmResult result = file_open(file_path, "wb", fnbr);
+    if (FAILED(result)) {
+        error_throw(result);
+        return;
+    }
     char *p = buf;
     while (*p) {
         file_putc(fnbr, *p++);
     }
-    file_close(fnbr);
+    result = file_close(fnbr);
+    if (FAILED(result)) error_throw(result);
 }
 
 void cmd_autosave(void) {

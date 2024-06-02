@@ -146,12 +146,19 @@ static void list_file(const char *filename, int all) {
 
     char file_path[STRINGSIZE];
     MmResult result = path_munge(filename ? filename : CurrentFile, file_path, STRINGSIZE);
-    if (FAILED(result)) error_throw(result);
+    if (FAILED(result)) {
+        error_throw(result);
+        return;
+    }
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;
     int fnbr = file_find_free();
-    file_open(file_path, "rb", fnbr);
+    result = file_open(file_path, "rb", fnbr);
+    if (FAILED(result)) {
+        error_throw(result);
+        return;
+    }
     while (!file_eof(fnbr)) {
         memset(line_buffer, 0, STRINGSIZE);
         MMgetline(fnbr, line_buffer);
@@ -162,10 +169,12 @@ static void list_file(const char *filename, int all) {
         list_count += strlen(line_buffer) / mmb_options.width;
         ListNewLine(&list_count, all);
     }
-    file_close(fnbr);
 
     // Ensure listing is followed by an empty line.
     if (strcmp(line_buffer, "") != 0) console_puts("\r\n");
+
+    result = file_close(fnbr);
+    if (FAILED(result)) error_throw(result);
 }
 
 static void list_flash(int all) {

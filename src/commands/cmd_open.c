@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/file.h"
 #include "../common/parse.h"
 #include "../common/serial.h"
+#include "../common/utility.h"
 #include "../core/tokentbl.h"
 
 #include <strings.h>
@@ -68,10 +69,14 @@ static void cmd_open_file(int argc, char **argv) {
         ERROR_INVALID("file access mode");
     }
 
+    MmResult result = kOk;
     int fnbr = parse_file_number(argv[4], false);
-    if (fnbr == -1) ERROR_INVALID_FILE_NUMBER;
-
-    file_open(filename, mode, fnbr);
+    if (fnbr == -1) {
+        result = kFileInvalidFileNumber;
+    } else {
+        result = file_open(filename, mode, fnbr);
+    }
+    if (FAILED(result)) error_throw(result);
 }
 
 static void cmd_open_gps(int argc, char **argv) {
@@ -81,10 +86,14 @@ static void cmd_open_gps(int argc, char **argv) {
 static void cmd_open_serial(int argc, char **argv) {
     char *comspec = getCstring(argv[0]);
 
+    MmResult result = kOk;
     int fnbr = parse_file_number(argv[2], false);
-    if (fnbr == -1) ERROR_INVALID_FILE_NUMBER;
-
-    serial_open(comspec, fnbr);
+    if (fnbr == -1) {
+        result = kFileInvalidFileNumber;
+    } else {
+        result = serial_open(comspec, fnbr);
+    }
+    if (FAILED(result)) error_throw(result);
 }
 
 /**

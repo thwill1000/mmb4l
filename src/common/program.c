@@ -476,7 +476,8 @@ static MmResult program_open_file(const char *filename) {
     if (!path_exists(full_path)) return kFileNotFound;
 
     int fnbr = file_find_free();
-    file_open(full_path, "rb", fnbr);
+    result = file_open(full_path, "rb", fnbr);
+    if (FAILED(result)) return result;
     program_file_stack->head = &program_file_stack->files[program_file_stack->size];
     program_file_stack->head->fnbr = fnbr;
     program_file_stack->head->line_num = 0;
@@ -500,7 +501,8 @@ static MmResult program_open_file(const char *filename) {
 
 static MmResult program_close_file() {
     if (program_file_stack->size == 0) return kInternalFault;
-    file_close(program_file_stack->head->fnbr);
+    MmResult result = file_close(program_file_stack->head->fnbr);
+    if (FAILED(result)) return result;
     program_file_stack->head->filename[0] = '\0';
     program_file_stack->head->fnbr = -1;
     program_file_stack->head->line_num = -1;

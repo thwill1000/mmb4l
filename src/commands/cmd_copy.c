@@ -45,12 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../common/utility.h"
 #include "../core/tokentbl.h"
 
 void cmd_copy(void) {  // thanks to Bryan Rentoul for the contribution
     char *oldf, *newf, ss[2];
     char c;
     int of, nf;
+    MmResult result = kOk;
 
     ss[0] = tokenTO;  // this will be used to split up the argument line
     ss[1] = 0;
@@ -63,10 +65,19 @@ void cmd_copy(void) {  // thanks to Bryan Rentoul for the contribution
                                      // standard C string
 
         of = file_find_free();
-        file_open(oldf, "r", of);
+        result = file_open(oldf, "r", of);
+        if (FAILED(result)) {
+            error_throw(result);
+            return;
+        }
 
         nf = file_find_free();
-        file_open(newf, "w", nf);  // We'll just overwrite any existing file
+        result = file_open(newf, "w", nf);  // We'll just overwrite any existing file
+        if (FAILED(result)) {
+            (void) file_close(of);
+            error_throw(result);
+            return;
+        }
     }
 
     while (1) {
@@ -75,6 +86,12 @@ void cmd_copy(void) {  // thanks to Bryan Rentoul for the contribution
         file_putc(nf, c);
     }
 
-    file_close(of);
-    file_close(nf);
+    result = file_close(of);
+    if (FAILED(result)) {
+        (void) file_close(nf);
+        error_throw(result);
+        return;
+    }
+    result = file_close(nf);
+    if (FAILED(result)) error_throw(result);
 }

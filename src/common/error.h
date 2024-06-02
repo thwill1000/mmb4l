@@ -77,7 +77,6 @@ uint8_t error_to_exit_code(MmResult result);
   if (FAILED(rezult)) { error_throw(rezult); return; } \
 }
 
-#define ERROR_ALREADY_OPEN                error_throw_ex(kError, "File or device already open")
 #define ERROR_ARGUMENT_COUNT              error_throw(kArgumentCount)
 #define ERROR_ARRAY_NOT_SQUARE            error_throw_ex(kError, "Array must be square")
 #define ERROR_ARRAY_SIZE_MISMATCH         error_throw_ex(kError, "Array size mismatch")
@@ -99,14 +98,12 @@ uint8_t error_to_exit_code(MmResult result);
 #define ERROR_INVALID_ADDRESS             ERROR_INVALID("address")
 #define ERROR_INVALID_ARGUMENT            ERROR_INVALID("argument")
 #define ERROR_INVALID_CHARACTER           ERROR_INVALID("character")
-#define ERROR_INVALID_FILE_NUMBER         ERROR_INVALID("file number")
 #define ERROR_INVALID_IN_PROGRAM          ERROR_INVALID("in a program")
 #define ERROR_INVALID_INTEGER_RANGE(i,j,k)  error_throw_ex(kError, "\% is invalid (valid is \% to \%)")
 #define ERROR_INVALID_OPTION_VALUE        ERROR_INVALID("value for option")
 #define ERROR_INVALID_VARIABLE            ERROR_INVALID("variable")
 #define ERROR_LINE_LENGTH                 error_throw_ex(kStringTooLong, "Line length")
 #define ERROR_NOT_ALLOWED(s)              error_throw_ex(kError, "$ not allowed", s)
-#define ERROR_NOT_OPEN                    error_throw_ex(kError, "File or device not open")
 #define ERROR_NOT_SERIAL_PORT             error_throw_ex(kError, "Not a serial port")
 #define ERROR_NUMBER_OUT_OF_BOUNDS        error_throw_ex(kError, "Number out of bounds")
 #define ERROR_OUT_OF_MEMORY               error_throw(kOutOfMemory);

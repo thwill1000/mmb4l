@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 serial.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -263,10 +263,10 @@ void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
     }
 }
 
-void serial_open(const char *comspec_str, int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+MmResult serial_open(const char *comspec_str, int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
     FileEntry *entry = &(file_table[fnbr]);
-    if (entry->type != fet_closed) ERROR_ALREADY_OPEN;
+    if (entry->type != fet_closed) return kFileAlreadyOpen;
 
     ComSpec comspec = { 0 };
     serial_parse_comspec(comspec_str, &comspec);
@@ -354,9 +354,11 @@ void serial_open(const char *comspec_str, int fnbr) {
 
     char *data = GetMemory(comspec.bufsize); // Should already be zeroed.
     rx_buf_init(&(entry->rx_buf), data, comspec.bufsize);
+
+    return kOk;
 }
 
-void serial_close(int fnbr) {
+MmResult serial_close(int fnbr) {
     FileEntry *entry = &(file_table[fnbr]);
     assert(entry->type == fet_serial);
     close(entry->serial_fd);
@@ -364,6 +366,7 @@ void serial_close(int fnbr) {
     entry->serial_fd = 0;
     FreeMemory(entry->rx_buf.data);
     interrupt_disable_serial_rx(fnbr);
+    return kOk;
 }
 
 void serial_pump_input(int fnbr) {
