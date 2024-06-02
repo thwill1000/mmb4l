@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_xmodem.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/file.h"
 #include "../common/parse.h"
 #include "../common/xmodem.h"
+#include "../common/utility.h"
 
 // TODO: Disable and restore break key ?
 
@@ -67,7 +68,10 @@ void cmd_xmodem(void) {
 
     const char *filename = getCstring(argv[0]);
     int serial_fnbr = parse_file_number(argv[2], false);
-    if (serial_fnbr == -1) ERROR_INVALID_FILE_NUMBER;
+    if (serial_fnbr == -1) {
+        error_throw(kFileInvalidFileNumber);
+        return;
+    }
 
     bool verbose = false;
     if (argc == 5) {
@@ -76,7 +80,11 @@ void cmd_xmodem(void) {
     }
 
     int file_fnbr = file_find_free();
-    file_open(filename, receive ? "wb" : "rb", file_fnbr);
+    MmResult result = file_open(filename, receive ? "wb" : "rb", file_fnbr);
+    if (FAILED(result)) {
+        error_throw(result);
+        return;
+    }
 
     if (receive) {
         xmodem_receive(file_fnbr, serial_fnbr, verbose);
@@ -84,5 +92,6 @@ void cmd_xmodem(void) {
         xmodem_send(file_fnbr, serial_fnbr, verbose);
     }
 
-    file_close(file_fnbr);
+    result = file_close(file_fnbr);
+    if (FAILED(result)) error_throw(result);
 }

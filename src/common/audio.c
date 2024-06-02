@@ -501,11 +501,13 @@ MmResult audio_play_modfile(const char *filename, const char *interrupt) {
     // Read the file.
     // TODO: Could leave audio device locked!
     audio_fnbr = file_find_free();
-    file_open(filename2, "rb", audio_fnbr);
+    MmResult result = file_open(filename2, "rb", audio_fnbr);
+    if (FAILED(result)) return result;
     int size = file_lof(audio_fnbr);
     audio_modbuff = (char *)GetMemory(size + 256);
     file_read(audio_fnbr, audio_modbuff, size);
-    file_close(audio_fnbr);
+    result = file_close(audio_fnbr);
+    if (FAILED(result)) return result;
 
     // for (int i = 0; i < size; ++i) {
     //     printf("%x, ", audio_modbuff[i]);
