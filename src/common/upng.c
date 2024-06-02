@@ -22,12 +22,11 @@ freely, subject to the following restrictions:
 #include "file.h"
 #include "memory.h"
 #include "upng.h"
+#include "utility.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-//#include "MMBasic_Includes.h"
-//#include "Hardware_Includes.h"
 
 #define MAKE_BYTE(b) ((b) & 0xFF)
 #define MAKE_DWORD(a,b,c,d) ((MAKE_BYTE(a) << 24) | (MAKE_BYTE(b) << 16) | (MAKE_BYTE(c) << 8) | MAKE_BYTE(d))
@@ -1179,7 +1178,11 @@ upng_t* upng_new_from_file(char *filename)
     if(strchr(filename, '.') == NULL) strcat(filename, ".png");
     fnbr = file_find_free();
     // if(!BasicFileOpen(filename, fnbr, FA_READ)) return 0;
-	file_open(filename, "rb", fnbr);
+	MmResult result = file_open(filename, "rb", fnbr);
+    if (FAILED(result)) {
+        error_throw(result);
+        return NULL;
+    }
 
     /* get filesize */
     // f_lseek(FileTable[fnbr].fptr, f_size(FileTable[fnbr].fptr));
@@ -1189,7 +1192,7 @@ upng_t* upng_new_from_file(char *filename)
 
     /* read contents of the file into the vector */
     if (buffer == NULL) {
-        file_close(fnbr);
+        (void) file_close(fnbr);
         error_throw_ex(kError, "UPNG_ENOMEM");
         return upng;
     }
@@ -1198,7 +1201,12 @@ upng_t* upng_new_from_file(char *filename)
         size-=sizeread;
         buffer+=sizeread;
     }
-    file_close(fnbr);
+    result = file_close(fnbr);
+    if (FAILED(result)) {
+        upng_free(upng);
+        error_throw(result);
+        return NULL;
+    }
     /* set the read buffer as our source buffer, with owning flag set */
     upng->source.buffer = (unsigned char *) buff;
     upng->source.size = fullsize;

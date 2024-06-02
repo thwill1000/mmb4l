@@ -170,6 +170,10 @@ const char *mmresult_to_string(MmResult result) {
         case kGpioInvalidPulseWidth:      return "Invalid pulse width";
         case kGpioPinIsNotAnOutput:       return "Pin is not an output";
         case kNotParsed:                  return "Not parsed";
+        case kFileInvalidFileNumber:      return "Invalid file number";
+        case kFileAlreadyOpen:            return "File or device already open";
+        case kFileNotOpen:                return "File or device not open";
+        case kFileInvalidSeekPosition:    return "Invalid seek position";
         default:                          return "Unknown result code";
     }
 }
