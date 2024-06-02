@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_eof.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -52,7 +52,10 @@ void fun_eof(void) {
     if (argc == 0) ERROR_SYNTAX;
 
     int fnbr = parse_file_number(argv[0], true);
-    if (fnbr == -1) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr == -1) {
+        error_throw(kFileInvalidFileNumber);
+        return;
+    }
 
     targ = T_INT;
     iret = file_eof(fnbr);
