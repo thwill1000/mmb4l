@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 file.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "../Configuration.h"
+#include "mmresult.h"
 #include "rx_buf.h"
 
 enum FileEntryType { fet_closed, fet_file, fet_serial };
@@ -70,8 +71,8 @@ void MMgetline(int fnbr, char *p); // main.c
 /** Finds the first available free file number. */
 int file_find_free(void);
 
-void file_open(const char *fname, const char *mode, int fnbr);
-void file_close(int fnbr);
+MmResult file_open(const char *fname, const char *mode, int fnbr);
+MmResult file_close(int fnbr);
 void file_close_all(void);
 int file_eof(int fnbr);
 int file_getc(int fnbr);
