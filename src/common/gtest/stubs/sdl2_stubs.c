@@ -5,6 +5,10 @@
 
 #include "sdl2_stubs.h"
 
+const char *window = "window";
+const char *renderer = "renderer";
+const char *texture = "texture";
+
 SDL_GameController* (*mock_SDL_GameControllerOpen)(int joystick_index) = NULL;
 SDL_JoystickID (*mock_SDL_JoystickInstanceID)(SDL_Joystick *joystick) = NULL;
 SDL_Joystick* (*mock_SDL_JoystickOpen)(int device_index) = NULL;
@@ -12,15 +16,19 @@ SDL_Joystick* (*mock_SDL_JoystickOpen)(int device_index) = NULL;
 SDL_Window *SDL_CreateWindow(const char *title, int x, int y, int w, int h, Uint32 flags) {
      // Need to return something if successful.
      // The real SDL_Window is an opaque type.
-     return (SDL_Window *) title;
+     return (SDL_Window *) window;
 }
 
 SDL_Renderer *SDL_CreateRenderer(SDL_Window *window, int index, Uint32 flags) {
-    return NULL;
+     // Need to return something if successful.
+     // The real SDL_Renderer is an opaque type.
+    return (SDL_Renderer *) renderer;
 }
 
 SDL_Texture *SDL_CreateTexture(SDL_Renderer *renderer, Uint32 format, int access, int w, int h) {
-    return NULL;
+     // Need to return something if successful.
+     // The real SDL_Texture is an opaque type.
+    return (SDL_Texture *) texture;
 }
 
 void SDL_DestroyRenderer(SDL_Renderer *renderer) {

@@ -42,12 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "parse.h"
-
 #include "mmb4l.h"
 #include "console.h"
 #include "cstring.h"
 #include "gpio.h"
+#include "parse.h"
+#include "sprite.h"
 #include "utility.h"
 #include "../core/tokentbl.h"
 
@@ -611,21 +611,7 @@ MmResult parse_pin_num(const char **p, uint8_t *pin_num, bool *is_gp) {
     return result;
 }
 
-MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id) {
-    skipspace(p);
-    if (*p == '#') p++;
-    if (mmb_options.simulate == kSimulateMmb4l) {
-        *blit_id = getint(p, 0, GRAPHICS_MAX_ID);
-    } else {
-        *blit_id = getint(p, 1, CMM2_BLIT_COUNT) + CMM2_BLIT_BASE;
-    }
-    if (existing && graphics_surfaces[*blit_id].type == kGraphicsNone) {
-        return kGraphicsInvalidSurface;
-    }
-    return kOk;
-}
-
-MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) {
+static inline MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) {
     *page_id = -1;
     const char *tp;
     if ((tp = checkstring(p, "N"))) {
@@ -676,4 +662,34 @@ MmResult parse_read_page(const char *p, MmSurfaceId *page_id) {
 MmResult parse_write_page(const char *p, MmSurfaceId *page_id) {
     MmResult result = parse_page(p, page_id);
     return (result == kGraphicsInvalidSurface) ? kGraphicsInvalidWriteSurface : result;
+}
+
+MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id) {
+    skipspace(p);
+    if (*p == '#') p++;
+    if (mmb_options.simulate == kSimulateMmb4l) {
+        *blit_id = getint(p, 0, GRAPHICS_MAX_ID);
+    } else {
+        *blit_id = getint(p, 1, CMM2_BLIT_COUNT) + CMM2_BLIT_BASE;
+    }
+    if (existing && graphics_surfaces[*blit_id].type == kGraphicsNone) {
+        return kGraphicsInvalidSurface;
+    }
+    return kOk;
+}
+
+MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id) {
+    skipspace(p);
+    if (*p == '#') p++;
+    if (mmb_options.simulate == kSimulateMmb4l) {
+        *sprite_id = getint(p, 0, GRAPHICS_MAX_ID);
+    } else {
+        *sprite_id = getint(p, 1, CMM2_SPRITE_COUNT) + CMM2_SPRITE_BASE;
+    }
+    if (existing
+            && graphics_surfaces[*sprite_id].type != kGraphicsSprite
+            && graphics_surfaces[*sprite_id].type != kGraphicsInactiveSprite) {
+        return kGraphicsInvalidSprite;
+    }
+    return kOk;
 }

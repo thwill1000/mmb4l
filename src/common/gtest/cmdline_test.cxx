@@ -26,7 +26,7 @@ Options mmb_options;
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
 // Defined in "common/graphics.c"
-MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES];
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 
 // Defined in "core/commandtbl.c"
 CommandToken cmdFUN = 0x0;

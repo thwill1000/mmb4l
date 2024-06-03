@@ -70,6 +70,10 @@ void spbmp_init(
     SpBmpAbortCheckCb abort_check_cb) {}
 SpBmpResult spbmp_load(void *userdata, int x, int y, void *file) { return kSpBmpError; }
 
+// Defined in "common/sprite.c"
+MmResult sprite_init() { return kOk; }
+MmResult sprite_term() { return kOk; }
+
 // Defined in "core/MMBasic.c"
 int LocalIndex = 0;
 

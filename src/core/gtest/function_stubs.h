@@ -78,6 +78,7 @@ void fun_rnd() { }
 void fun_sgn() { }
 void fun_sin() { }
 void fun_space() { }
+void fun_sprite() { }
 void fun_sqr() { }
 void fun_str() { }
 void fun_string() { }

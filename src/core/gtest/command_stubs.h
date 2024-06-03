@@ -94,6 +94,7 @@ void cmd_setpin() { }
 void cmd_settick() { }
 void cmd_settitle() { }
 void cmd_sort() { }
+void cmd_sprite() { }
 void cmd_subfun() { }
 void cmd_system() { }
 void cmd_text() { }
