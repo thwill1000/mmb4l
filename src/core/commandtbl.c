@@ -163,6 +163,7 @@ const struct s_tokentbl commandtbl[] = {
     { "SetTick",     T_CMD,              0, cmd_settick  },
     { "SetTitle",    T_CMD,              0, cmd_settitle },
     { "Sort",        T_CMD,              0, cmd_sort     },
+    { "Sprite",      T_CMD,              0, cmd_sprite   },
     { "Static",      T_CMD,              0, cmd_dim      },
     { "Sub",         T_CMD,              0, cmd_subfun   },
     { "System",      T_CMD,              0, cmd_system   },

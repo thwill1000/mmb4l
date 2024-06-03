@@ -109,7 +109,7 @@ static void cmd_blit_copy(const char *p) {
 }
 
 /** BLIT FRAMEBUFFER from, to, x1, y1, x2, y2, w, h [, transparent] */
-static void cmd_blit_framebuffer(const char *p) {
+void cmd_blit_framebuffer(const char *p) {
     if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
         error_throw(kUnsupportedOnCurrentDevice);
         return;
@@ -204,10 +204,6 @@ static void cmd_blit_interrupt(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT INTERRUPT");
 }
 
-static void cmd_blit_load_sprite(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT LOAD");
-}
-
 static void cmd_blit_load_array(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT LOADARRAY");
 }
@@ -290,16 +286,12 @@ static void cmd_blit_restore(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT RESTORE");
 }
 
-static void cmd_blit_scroll(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT SCROLL");
+void cmd_blit_scroll(const char *p) {
+    // ERROR_UNIMPLEMENTED("BLIT SCROLL");
 }
 
 static void cmd_blit_scrollr(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT SCROLLR");
-}
-
-static void cmd_blit_show(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT SHOW");
 }
 
 static void cmd_blit_show_safe(const char *p) {
@@ -315,7 +307,7 @@ static void cmd_blit_transparency(const char *p) {
 }
 
 /** BLIT WRITE [#]b, x, y [,orientation] */
-static void cmd_blit_write(const char *p) {
+void cmd_blit_write(const char *p) {
     getargs(&p, 7, ",");
     if (!(argc == 5 || argc == 7)) ERROR_ARGUMENT_COUNT;
 
@@ -388,8 +380,6 @@ void cmd_blit(void) {
         cmd_blit_hide(p);
     } else if ((p = checkstring(cmdline, "INTERRUPT"))) {
         cmd_blit_interrupt(p);
-    } else if ((p = checkstring(cmdline, "LOAD"))) {
-        cmd_blit_load_sprite(p);
     } else if ((p = checkstring(cmdline, "LOADARRAY"))) {
         cmd_blit_load_array(p);
     } else if ((p = checkstring(cmdline, "LOADPNG"))) {
@@ -408,8 +398,6 @@ void cmd_blit(void) {
         cmd_blit_scrollr(p);
     } else if ((p = checkstring(cmdline, "SHOW SAFE"))) {
         cmd_blit_show_safe(p);
-    } else if ((p = checkstring(cmdline, "SHOW"))) {
-        cmd_blit_show(p);
     } else if ((p = checkstring(cmdline, "READ"))) {
         cmd_blit_read(p);
     } else if ((p = checkstring(cmdline, "RESTORE"))) {

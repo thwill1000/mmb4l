@@ -137,6 +137,7 @@ const struct s_tokentbl tokentbl[] = {
     { "Sin(",        T_FUN | T_NBR,      0, fun_sin      },
     { "Space$(",     T_FUN | T_STR,      0, fun_space    },
     { "Spc(",        T_FUN | T_STR,      0, fun_space    },
+    { "Sprite(",     T_FUN | T_INT | T_NBR | T_STR, 0, fun_sprite },
     { "Sqr(",        T_FUN | T_NBR,      0, fun_sqr      },
     { "Str$(",       T_FUN | T_STR,      0, fun_str      },
     { "Str2Bin(",    T_FUN | T_NBR | T_INT, 0, fun_str2bin  },

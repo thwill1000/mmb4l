@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "bitset.h"
 #include "cstring.h"
 #include "error.h"
 #include "events.h"
@@ -62,6 +63,46 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define HRes graphics_current->width
 #define VRes graphics_current->height
+
+/** Sprite colours on CMM2. */
+const MmGraphicsColour GRAPHICS_CMM2_SPRITE_COLOURS[] = {
+    RGB_BLACK,
+    RGB_BLUE,
+    RGB_GREEN,
+    RGB_CYAN,
+    RGB_RED,
+    RGB_MAGENTA,
+    RGB_YELLOW,
+    RGB_WHITE,
+    RGB_MYRTLE,
+    RGB_COBALT,
+    RGB_MIDGREEN,
+    RGB_CERULEAN,
+    RGB_RUST,
+    RGB_FUCHSIA,
+    RGB_BROWN,
+    RGB_LILAC,
+};
+
+/** Sprite colours in CMM2 order but adjusted to RGB121. */
+const MmGraphicsColour GRAPHICS_CMM2_SPRITE_COLOURS_RGB121[] = {
+    RGB_BLACK,
+    RGB_BLUE,
+    RGB_GREEN,
+    RGB_CYAN,
+    RGB_RED,
+    RGB_MAGENTA_4BIT,
+    RGB_YELLOW,
+    RGB_WHITE,
+    RGB_MYRTLE,
+    RGB_COBALT,
+    RGB_MIDGREEN,
+    RGB_CERULEAN,
+    RGB_RUST,
+    RGB_FUCHSIA,
+    RGB_BROWN_4BIT,
+    RGB_LILAC,
+};
 
 /** PicoMite RGB121 colours. */
 const MmGraphicsColour GRAPHICS_RGB121_COLOURS[] = {
@@ -126,11 +167,17 @@ MmGraphicsColour graphics_fcolour = RGB_WHITE;
 MmGraphicsColour graphics_bcolour = RGB_BLACK;
 uint32_t graphics_font = 1;
 static uint64_t frameEnd = 0;
+MmSpriteState graphics_sprite_state;
 
 MmResult graphics_init() {
     if (graphics_initialised) return kOk;
     MmResult result = events_init();
     if (FAILED(result)) return result;
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        memset(&graphics_surfaces[id], 0, sizeof(MmSurface));
+    }
+    memset(&graphics_sprite_state, 0x0, sizeof(MmSpriteState));
+    graphics_sprite_state.sprite_which_collided = -1;
     frameEnd = 0;
     graphics_initialised = true;
     return kOk;
@@ -146,6 +193,7 @@ void graphics_term() {
     graphics_surface_destroy_all();
     graphics_fcolour = RGB_WHITE;
     graphics_bcolour = RGB_BLACK;
+    // graphics_sprite_transparent_colour = RGB_BLACK;
     graphics_initialised = false;
 }
 
@@ -210,6 +258,23 @@ void graphics_refresh_windows() {
     }
 }
 
+static inline MmSurface *graphics_surface_from_id(MmSurfaceId id) {
+    if (id == -1) return NULL;
+    assert(id >= 0 && id <= GRAPHICS_MAX_ID);
+    return &graphics_surfaces[id];
+}
+
+/** Gets the ID of the next active sprite. */
+static MmSurfaceId graphics_next_active_sprite(MmSurfaceId start) {
+    assert(start >= 0 && start <= GRAPHICS_MAX_ID);
+    for (MmSurfaceId id = start; id <= GRAPHICS_MAX_ID; ++id) {
+        if (graphics_surfaces[id].type == kGraphicsSprite) {
+            return id;
+        }
+    }
+    return -1;
+}
+
 MmResult graphics_buffer_create(MmSurfaceId id, uint32_t width, uint32_t height) {
     if (!graphics_initialised) {
         MmResult result = graphics_init();
@@ -221,17 +286,29 @@ MmResult graphics_buffer_create(MmSurfaceId id, uint32_t width, uint32_t height)
     if (width > WINDOW_MAX_WIDTH || height > WINDOW_MAX_HEIGHT) return kGraphicsSurfaceTooLarge;
 
     MmSurface *s = &graphics_surfaces[id];
+    s->id = id;
     s->type = kGraphicsBuffer;
     s->window = NULL;
     s->renderer = NULL;
     s->texture = NULL;
     s->dirty = false;
     s->pixels = calloc(width * height, sizeof(uint32_t));
+    s->restore = NULL;
     s->height = height;
     s->width = width;
     s->transparent = -1;
+    s->next_active_sprite = graphics_surface_from_id(graphics_next_active_sprite(id));
 
     return kOk;
+}
+
+MmResult graphics_sprite_create(MmSurfaceId id, uint32_t width, uint32_t height) {
+    MmResult result = graphics_buffer_create(id, width, height);
+    if (SUCCEEDED(result)) {
+        graphics_surfaces[id].type = kGraphicsInactiveSprite;
+        graphics_surfaces[id].restore = calloc(width * height, sizeof(uint32_t));
+    }
+    return result;
 }
 
 MmResult graphics_window_create(MmSurfaceId id, int x, int y, uint32_t width, uint32_t height,
@@ -271,16 +348,19 @@ MmResult graphics_window_create(MmSurfaceId id, int x, int y, uint32_t width, ui
     SDL_RenderPresent(renderer);
 
     MmSurface *s = &graphics_surfaces[id];
+    s->id = id;
     s->type = kGraphicsWindow;
     s->window = window;
     s->renderer = renderer;
     s->texture = texture;
     s->dirty = false;
     s->pixels = calloc(width * height, sizeof(uint32_t));
+    s->restore = NULL;
     s->height = height;
     s->width = width;
     s->interrupt_addr = interrupt_addr;
     s->transparent = -1;
+    s->next_active_sprite = graphics_surface_from_id(graphics_next_active_sprite(id));
 
     return kOk;
 }
@@ -294,7 +374,13 @@ MmResult graphics_surface_destroy(MmSurfaceId id) {
         SDL_DestroyRenderer((SDL_Renderer *) surface->renderer);
         SDL_DestroyWindow((SDL_Window *) surface->window);
         free(surface->pixels);
+        free(surface->restore);
+
+        // TODO: ensure active sprite linked list is maintained.
+//        MmSurface *next_active_sprite = surface->next_active_sprite;
         memset(surface, 0, sizeof(MmSurface));
+//        surface->next_active_sprite = next_active_sprite;
+
         if (graphics_current == surface) graphics_current = NULL;
     }
     return kOk;
@@ -971,6 +1057,83 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
     // clearrepeat();
     surface->dirty = true;
     return kOk;
+}
+
+MmResult graphics_load_sprite(const char *filename_in, uint8_t start_sprite_id, uint8_t colour_mode) {
+    char filename[STRINGSIZE];
+    cstring_cpy(filename, filename_in, STRINGSIZE);
+    if (!path_has_suffix(filename, ".spr", true)) {
+        // TODO: What if the file-extension is ".SPR" ?
+        MmResult result = cstring_cat(filename, ".spr", STRINGSIZE);
+        if (FAILED(result)) return result;
+    }
+
+    int fnbr = file_find_free();
+    MmResult result = file_open(filename, "r", fnbr);
+    if (FAILED(result)) return result;
+
+    const bool is_picomite = (mmb_options.simulate == kSimulateGameMite)
+            || (mmb_options.simulate == kSimulatePicoMiteVga);
+    const MmGraphicsColour *sprite_colours = (colour_mode == 0)
+            ? (is_picomite) ? GRAPHICS_CMM2_SPRITE_COLOURS_RGB121 : GRAPHICS_CMM2_SPRITE_COLOURS
+            : GRAPHICS_RGB121_COLOURS;
+
+    char buf[256] = { 0 };
+    MMgetline(fnbr, buf);
+    while (buf[0] == 39) MMgetline(fnbr, buf);  // Skip lines beginning with single quote.
+    const char *z = buf;
+
+    getargs(&z, 5, ", ");
+    uint32_t width = getinteger(argv[0]);
+    uint32_t number = getinteger(argv[2]);
+    uint32_t height = (argc == 5) ? getinteger(argv[4]) : width;
+
+    if (mmb_options.simulate != kSimulateMmb4l) {
+        if (start_sprite_id + number > CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT) {
+            (void) file_close(fnbr);
+            return kGraphicsTooManySprites;
+            // error((char *)"Maximum of % sprites",MAXBLITBUF);
+        }
+    }
+
+    bool new_sprite = true;
+    uint8_t lc = 0;
+    uint32_t *p = NULL;
+    MmSurfaceId surface_id = start_sprite_id;
+    while (!file_eof(fnbr) && (uint32_t) surface_id <= number + start_sprite_id) {
+        if (new_sprite) {
+            new_sprite = false;
+            result = graphics_sprite_create(surface_id, width, height);
+            if (FAILED(result)) {
+                (void) file_close(fnbr);
+                return result;
+            }
+            lc = height;
+            p = graphics_surfaces[surface_id].pixels;
+        }
+
+        while (lc--) {
+            MMgetline(fnbr, buf);
+            while (buf[0] == 39) MMgetline(fnbr, buf);
+            if (strlen(buf) < width) memset(&buf[strlen(buf)], 32, width - strlen(buf));
+            for (size_t i = 0; i < width; i++) {
+                uint8_t idx = 0;
+                if (buf[i] >= '0' && buf[i] <= '9') {
+                    idx = buf[i] - '0';
+                } else if (buf[i] >= 'A' && buf[i] <= 'F') {
+                    idx = buf[i] - 'A';
+                } else if (buf[i] >= 'a' && buf[i] <= 'f') {
+                    idx = buf[i] - 'a';
+                }
+                *p++ = sprite_colours[idx];
+            }
+        }
+
+        surface_id++;
+        new_sprite = true;
+    }
+
+    return file_close(fnbr);
 }
 
 static void *pixelcpy_transparent(void* dst, const void* src, size_t count, uint32_t transparent) {

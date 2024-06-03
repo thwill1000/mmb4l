@@ -1,0 +1,130 @@
+/*-*****************************************************************************
+
+MMBasic for Linux (MMB4L)
+
+sprite.h
+
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holders nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+
+4. The name MMBasic be used when referring to the interpreter in any
+   documentation and promotional material and the original copyright message
+   be displayed  on the console at startup (additional copyright messages may
+   be added).
+
+5. All advertising materials mentioning features or use of this software must
+   display the following acknowledgement: This product includes software
+   developed by Geoff Graham, Peter Mather and Thomas Hugo Williams.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*******************************************************************************/
+
+#if !defined(MMBASIC_SPRITE_H)
+#define MMBASIC_SPRITE_H
+
+#include "graphics.h"
+
+typedef enum {
+   kSpriteEdgeLeft = 0x01,
+   kSpriteEdgeTop = 0x02,
+   kSpriteEdgeRight = 0x04,
+   kSpriteEdgeBottom = 0x08
+} SpriteEdge;
+
+/**
+ * Gets the number of collisions a given sprite is currently involved in ?
+ *
+ * @param[in]   sprite  Pointer to the sprite.
+ * @param[out]  count   On exit, the number of collisions the sprite is involved in.
+ */
+MmResult sprite_get_num_collisions(MmSurface *sprite, uint32_t *count);
+
+ /**
+  * Gets the ID of the n'th sprite that a given sprite is currently collided with.
+  *
+  * @param[in]   sprite  Pointer to the sprite.
+  * @param[in]   n       Number of the collision to interrogate.
+  * @param[out]  id      On exit, the ID of the sprite collided with.
+  *                      If the collision was with a surface edge then OR of
+  *                      0xFFF1 (left), 0xFFF2 (top), 0xFFF4 (right), 0xFFF8 (bottom).
+  *                      If n is greater than the number of collisions then -1.
+  */
+MmResult sprite_get_collision(MmSurface *sprite, uint32_t n, MmSurfaceId *id);
+
+/**
+ * Gets the total number of sprites currently involved in collisions.
+ *
+ * @param[out]  count   On exit, the total number of sprites currently involved in collisions.
+ */
+MmResult sprite_get_num_collided_sprites(uint32_t *count);
+
+/**
+ * Gets the ID of the n'th sprite currently involved in a collision.
+ *
+ * @param[in]   n   Number of the collision to interrogate.
+ * @param[out]  id  ID of the sprite, or -1 if n is greater than the number of collisions.
+ */
+MmResult sprite_get_collided_sprite(uint32_t n, MmSurfaceId *id);
+
+/** TODO */
+MmResult sprite_update_all_collisions();
+
+/** TODO */
+MmResult sprite_update_collisions(MmSurface *sprite);
+
+/** Activate/deactivate a sprite. */
+MmResult sprite_activate(MmSurface *sprite, bool activate);
+
+/**
+ * Gets a 64-bit slice of the bitset of sprites that a given sprite is currently collided with.
+ *
+ * @param[in]   id      The ID of the sprite to query.
+ * @param[in]   start   Bit to start the slice from; must be 0, 64, 128 or 192.
+ * @param[out]  bitset  64-bit set. Bit x is set if the sprite being queried is currently
+ *                      collided with sprite start_id + x.
+ */
+MmResult sprite_get_collision_bitset(MmSurface *sprite, uint8_t start, uint64_t *bitset);
+
+/**
+ * Sets the transparent colour for sprites.
+ *
+ * @param  colour  The transparent colour.
+ */
+MmResult sprite_set_transparent_colour(MmGraphicsColour colour);
+
+/**
+ * TODO
+ *
+ * @param  sprite
+ * @param  write_surface
+ * @param  x
+ * @param  y
+ * @param  mode
+ */
+MmResult sprite_show(MmSurface *sprite, MmSurface *write_surface, int32_t x, int32_t y,
+                     uint8_t mode);
+
+#endif // #if !defined(MMBASIC_SPRITE_H)

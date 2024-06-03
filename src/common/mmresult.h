@@ -108,6 +108,8 @@ typedef enum {
     kGraphicsSurfaceExists,
     kGraphicsSurfaceTooLarge,
     kGraphicsReadAndWriteSurfaceSame,
+    kGraphicsTooManySprites,
+    kGraphicsNotASprite,
     kImageTooLarge,
     kImageInvalidFormat,
     kInvalidFont,

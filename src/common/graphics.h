@@ -63,6 +63,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GRAPHICS_SURFACE_N       1
 #define GRAPHICS_SURFACE_F       2
 #define GRAPHICS_SURFACE_L       3
+#define GRAPHICS_MAX_LAYER       4
+#define GRAPHICS_MAX_COLLISIONS  4
 #define MIN_CMM2_MODE            1
 #define MAX_CMM2_MODE            17
 #define MIN_PMVGA_MODE           1
@@ -102,10 +104,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CMM2_BLIT_BASE   63
 #define CMM2_BLIT_COUNT  64
 
+#define CMM2_SPRITE_BASE  127
+#define CMM2_SPRITE_COUNT  64
+
 typedef enum {
     kGraphicsNone = 0,
     kGraphicsBuffer,
     kGraphicsSprite,
+    kGraphicsInactiveSprite,
     kGraphicsWindow
 } GraphicsSurfaceType;
 
@@ -142,7 +148,8 @@ typedef void* MmWindowPtr;
 typedef void* MmRendererPtr;
 typedef void* MmTexturePtr;
 
-typedef struct {
+typedef struct MmSurfaceStruct {
+    MmSurfaceId id; 
     GraphicsSurfaceType type;
     bool dirty;
     MmWindowPtr window;
@@ -150,10 +157,40 @@ typedef struct {
     MmTexturePtr texture;
     uint32_t height;
     uint32_t width;
-    uint32_t* pixels;
+    uint32_t *pixels;
     const char *interrupt_addr;
     MmGraphicsColour transparent;
+    struct MmSurfaceStruct *next_active_sprite;
+
+    // The following fields are only used for type == kGraphicsSprite | kGraphicsInactiveSprite.
+    uint32_t *restore;
+    int32_t x;
+    int32_t y;
+    uint8_t layer;
+
+    /** Is the sprite collided with the surface/screen edge? */
+    uint8_t edge_collisions;
+
+    /** Is the sprite collided with another sprite? */
+    int sprite_collisions[32 / sizeof(int)]; // 256 bits.
+
+    /** Number of other sprites currently touched, capped to GRAPHICS_MAX_COLLISIONS */
+    //uint8_t num_collisions;
+
+    /** IDs of other sprites currently touched. */
+    //uint8_t collisions[GRAPHICS_MAX_COLLISIONS];
 } MmSurface;
+
+typedef struct {
+    bool collision_found;
+    MmSurfaceId sprite_which_collided;
+
+    /** Number of sprites with active collisions, capped to GRAPHICS_MAX_COLLISIONS. */
+    uint8_t num_collisions;
+
+    /** IDs of sprites with active collisions. */
+    uint8_t collisions[GRAPHICS_MAX_COLLISIONS];
+} MmSpriteState;
 
 extern const MmGraphicsColour GRAPHICS_RGB121_COLOURS[];
 
@@ -162,6 +199,7 @@ extern MmSurface *graphics_current;
 extern MmGraphicsColour graphics_fcolour;
 extern MmGraphicsColour graphics_bcolour;
 extern uint32_t graphics_font;
+extern MmSpriteState graphics_sprite_state;
 
 MmResult graphics_init();
 const char* graphics_last_error();
@@ -174,6 +212,7 @@ void graphics_refresh_windows();
 void graphics_term();
 
 MmResult graphics_buffer_create(MmSurfaceId id, uint32_t width, uint32_t height);
+MmResult graphics_sprite_create(MmSurfaceId id, uint32_t width, uint32_t height);
 MmResult graphics_window_create(MmSurfaceId id, int x, int y, uint32_t width, uint32_t height,
                                 uint32_t scale, const char *title, const char *interrupt_addr);
 MmResult graphics_surface_destroy(MmSurfaceId id);
@@ -358,6 +397,16 @@ MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y);
  */
 MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
                            int force);
+
+/**
+ * Loads a Colour Maximite sprite file.
+ *
+ * @param  filename      Name of file to load the sprite(s) from.
+ * @param  start_sprite  Number to be given for the first sprite.
+ * @param  colour_mode   0 to use the original CMM1/CMM2 colour mapping,
+ *                       1 to use the PicoMite RGB121 colour mapping.
+ */
+MmResult graphics_load_sprite(const char *filename, uint8_t start_sprite, uint8_t colour_mode);
 
 /**
  * Sets the default graphics font.

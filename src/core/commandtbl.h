@@ -157,6 +157,7 @@ void cmd_setpin(void);
 void cmd_settick(void);
 void cmd_settitle(void);
 void cmd_sort(void);
+void cmd_sprite(void);
 void cmd_subfun(void);
 void cmd_system(void);
 void cmd_text(void);
