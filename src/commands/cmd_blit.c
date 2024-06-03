@@ -48,17 +48,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** BLIT CLOSE [#]b */
 static MmResult cmd_blit_close(const char *p) {
-    skipspace(p);
-    if (*p == '#') p++;
-    MmSurfaceId surface_id = getint(p, 0, GRAPHICS_MAX_ID);
-    if (mmb_options.simulate != kSimulateMmb4l) surface_id += CMM2_BLIT_BASE;
-    MmResult result = kOk;
-    if (!graphics_surface_exists(surface_id)) {
-        result = kGraphicsSurfaceNotFound;
-    } else if (graphics_surfaces[surface_id].type == kGraphicsWindow) {
-        result = kCannotBlitCloseWindow;
-    } else {
-        result = graphics_surface_destroy(&graphics_surfaces[surface_id]);
+    getargs(&p, 1, ",");
+    if (argc != 1) return kArgumentCount;
+    MmSurfaceId buffer_id = -1;
+    MmResult result = parse_buffer_id(argv[0], true, &buffer_id);
+    if (SUCCEEDED(result)) {
+        MmSurface *buffer = &graphics_surfaces[buffer_id];
+        if (buffer->type != kGraphicsBuffer) result = kGraphicsInvalidSurface;
+        if (SUCCEEDED(result)) result = graphics_surface_destroy(buffer);
     }
     return result;
 }
@@ -68,22 +65,15 @@ static MmResult cmd_blit_close_all(const char *p) {
     skipspace(p);
     if (!parse_is_end(p)) return kUnexpectedText;
     MmResult result = kOk;
-    const MmSurfaceId start_id = mmb_options.simulate == kSimulateMmb4l ? 0 : CMM2_BLIT_BASE;
-    const MmSurfaceId end_id = mmb_options.simulate == kSimulateMmb4l
-            ? GRAPHICS_MAX_ID
-            : CMM2_BLIT_BASE + CMM2_BLIT_COUNT;
-    for (MmSurfaceId surface_id = start_id; surface_id <= end_id; ++surface_id) {
-        if (graphics_surfaces[surface_id].type != kGraphicsNone
-                && graphics_surfaces[surface_id].type != kGraphicsWindow) {
-            MmResult local_result = graphics_surface_destroy(&graphics_surfaces[surface_id]);
-            if (FAILED(local_result) && SUCCEEDED(result)) result = local_result;
-        }
+    for (MmSurfaceId id = 0; SUCCEEDED(result) && id <= GRAPHICS_MAX_ID; ++id) {
+        MmSurface *buffer = &graphics_surfaces[id];
+        if (buffer->type == kGraphicsBuffer) result = graphics_surface_destroy(buffer);
     }
     return result;
 }
 
 /** BLIT COMPRESSED address, x, y [, transparent] */
-static MmResult cmd_blit_compressed(const char *p) {
+MmResult cmd_blit_compressed(const char *p) {
     getargs(&p, 7, ",");
     if (argc != 5 && argc != 7) return kArgumentCount;
     char *data = (char *) get_peek_addr(argv[0]);
@@ -100,7 +90,7 @@ static MmResult cmd_blit_compressed(const char *p) {
 }
 
 /** BLIT FRAMEBUFFER from, to, x1, y1, x2, y2, w, h [, transparent] */
-static MmResult cmd_blit_framebuffer(const char *p) {
+MmResult cmd_blit_framebuffer(const char *p) {
     if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
         return kUnsupportedOnCurrentDevice;
     }
@@ -108,47 +98,15 @@ static MmResult cmd_blit_framebuffer(const char *p) {
     getargs(&p, 17, ",");
     if (argc < 15) return kArgumentCount;
 
-    MmSurfaceId read_surface_id = -1;
-    MmResult result = parse_picomite_surface(argv[0], &read_surface_id);
+    MmSurfaceId read_id = -1;
+    MmResult result = parse_read_page(argv[0], &read_id);
     if (FAILED(result)) return result;
+    MmSurface *read_surface = &graphics_surfaces[read_id];
 
-    if (!graphics_surface_exists(read_surface_id)) {
-        switch (read_surface_id) {
-            case GRAPHICS_SURFACE_N:
-                error_throw_ex(kGraphicsInvalidReadSurface, "Display does not exist");
-                return kGraphicsInvalidReadSurface;
-            case GRAPHICS_SURFACE_F:
-                error_throw_ex(kGraphicsInvalidReadSurface, "FrameBuffer does not exist");
-                return kGraphicsInvalidReadSurface;
-            case GRAPHICS_SURFACE_L:
-                error_throw_ex(kGraphicsInvalidReadSurface, "Layer does not exist");
-                return kGraphicsInvalidReadSurface;
-            default:
-                return kInternalFault;
-        }
-    }
-    MmSurface *read_surface = &graphics_surfaces[read_surface_id];
-
-    MmSurfaceId write_surface_id = -1;
-    result = parse_picomite_surface(argv[2], &write_surface_id);
+    MmSurfaceId write_id = -1;
+    result = parse_write_page(argv[2], &write_id);
     if (FAILED(result)) return result;
-
-    if (!graphics_surface_exists(write_surface_id)) {
-        switch (write_surface_id) {
-            case GRAPHICS_SURFACE_N:
-                error_throw_ex(kGraphicsInvalidWriteSurface, "Display does not exist");
-                return kGraphicsInvalidWriteSurface;
-            case GRAPHICS_SURFACE_F:
-                error_throw_ex(kGraphicsInvalidWriteSurface, "FrameBuffer does not exist");
-                return kGraphicsInvalidWriteSurface;
-            case GRAPHICS_SURFACE_L:
-                error_throw_ex(kGraphicsInvalidWriteSurface, "Layer does not exist");
-                return kGraphicsInvalidWriteSurface;
-            default:
-                return kInternalFault;
-        }
-    }
-    MmSurface *write_surface = &graphics_surfaces[write_surface_id];
+    MmSurface *write_surface = &graphics_surfaces[write_id];
 
     if (read_surface == write_surface) return kGraphicsReadAndWriteSurfaceSame;
 
@@ -167,7 +125,7 @@ static MmResult cmd_blit_framebuffer(const char *p) {
 }
 
 /** BLIT MEMORY address, x, y [, transparent] */
-static MmResult cmd_blit_memory(const char *p) {
+MmResult cmd_blit_memory(const char *p) {
     getargs(&p, 7, ",");
     if (argc != 5 && argc != 7) return kArgumentCount;
     char *data = (char *) get_peek_addr(argv[0]);
@@ -186,8 +144,11 @@ static MmResult cmd_blit_memory(const char *p) {
         : graphics_blit_memory_uncompressed(graphics_current, data, x, y, w, h, transparent);
 }
 
-/** BLIT READ [#]b, x, y, w, h [, read_id] */
-static MmResult cmd_blit_read(const char *p) {
+/**
+ * BLIT READ [#]b, x, y, w, h [, read_page]
+ *  - <read_page> parameter unsupported on PicoMite{VGA}.
+ */
+MmResult cmd_blit_read(const char *p) {
     getargs(&p, 11, ",");
     if (!(argc == 9 || argc == 11)) return kArgumentCount;
     if (*argv[0] == '#') argv[0]++;
@@ -209,22 +170,23 @@ static MmResult cmd_blit_read(const char *p) {
         }
     }
     MmSurface *write_surface = &graphics_surfaces[write_id];
+
     MmSurface *read_surface = graphics_current;
     if (argc == 11) {
-        if (checkstring(argv[10], "FRAMEBUFFER")) {
-            // TODO
+        if (mmb_options.simulate == kSimulateGameMite || mmb_options.simulate == kSimulatePicoMiteVga) {
+            return kUnsupportedParameterOnCurrentDevice;
         }
-        else {
-            const MmSurfaceId read_id = getint(argv[10], 0, GRAPHICS_MAX_ID);
-            read_surface = &graphics_surfaces[read_id];
-        }
+        MmSurfaceId read_id = -1;
+        MmResult result = parse_read_page(argv[10], &read_id);
+        if (FAILED(result)) return result;
+        read_surface = &graphics_surfaces[read_id];
     }
 
     return graphics_blit(x, y, 0, 0, w, h, read_surface, write_surface, 0x0, RGB_BLACK);
 }
 
 /** BLIT WRITE [#]b, x, y [,orientation] */
-static MmResult cmd_blit_write(const char *p) {
+MmResult cmd_blit_write(const char *p) {
     getargs(&p, 7, ",");
     if (!(argc == 5 || argc == 7)) return kArgumentCount;
 
@@ -244,7 +206,11 @@ static MmResult cmd_blit_write(const char *p) {
                          write_surface, 0x0, RGB_BLACK);
 }
 
-/** BLIT x1, y1, x2, y2, w, h [,surface] [,flags] */
+/**
+ * BLIT x1, y1, x2, y2, w, h [, read_page] [, flags]
+ *  - <read_page> parameter unsupported on PicoMite{VGA}.
+ *  - <flags> parameter unsupported on PicoMite{VGA}.
+ */
 static MmResult cmd_blit_default(const char *p) {
     if (!graphics_current) return kGraphicsInvalidWriteSurface;
 
@@ -256,14 +222,15 @@ static MmResult cmd_blit_default(const char *p) {
     const int y2 = getinteger(argv[6]);
     const int w = getinteger(argv[8]);
     const int h = getinteger(argv[10]);
-    const MmSurfaceId read_id = (argc >= 13) ? getint(argv[12], 0, GRAPHICS_MAX_ID) : -1;
     MmSurface *read_surface = graphics_current;
-    if (read_id != -1) {
-        if (graphics_surface_exists(read_id)) {
-            read_surface = &graphics_surfaces[read_id];
-        } else {
-            return kGraphicsInvalidReadSurface;
+    if (argc >= 13) {
+        if (mmb_options.simulate == kSimulateGameMite || mmb_options.simulate == kSimulatePicoMiteVga) {
+            return kUnsupportedParameterOnCurrentDevice;
         }
+        MmSurfaceId read_id = -1;
+        MmResult result = parse_read_page(argv[12], &read_id);
+        if (FAILED(result)) return result;
+        read_surface = &graphics_surfaces[read_id];
     }
     const unsigned flags = (argc == 15) ? getint(argv[14], 0, 7) : 0x0;
     MmSurface* write_surface = graphics_current;

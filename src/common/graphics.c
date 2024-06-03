@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "bitset.h"
 #include "cstring.h"
 #include "error.h"
 #include "events.h"
@@ -51,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "memory.h"
 #include "mmb4l.h"
 #include "path.h"
+#include "sprite.h"
 #include "upng.h"
 #include "utility.h"
 #include "../third_party/spbmp.h"
@@ -62,6 +64,46 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define HRes graphics_current->width
 #define VRes graphics_current->height
+
+/** Sprite colours on CMM2. */
+const MmGraphicsColour GRAPHICS_CMM2_SPRITE_COLOURS[] = {
+    RGB_BLACK,
+    RGB_BLUE,
+    RGB_GREEN,
+    RGB_CYAN,
+    RGB_RED,
+    RGB_MAGENTA,
+    RGB_YELLOW,
+    RGB_WHITE,
+    RGB_MYRTLE,
+    RGB_COBALT,
+    RGB_MIDGREEN,
+    RGB_CERULEAN,
+    RGB_RUST,
+    RGB_FUCHSIA,
+    RGB_BROWN,
+    RGB_LILAC,
+};
+
+/** Sprite colours in CMM2 order but adjusted to RGB121. */
+const MmGraphicsColour GRAPHICS_CMM2_SPRITE_COLOURS_RGB121[] = {
+    RGB_BLACK,
+    RGB_BLUE,
+    RGB_GREEN,
+    RGB_CYAN,
+    RGB_RED,
+    RGB_MAGENTA_4BIT,
+    RGB_YELLOW,
+    RGB_WHITE,
+    RGB_MYRTLE,
+    RGB_COBALT,
+    RGB_MIDGREEN,
+    RGB_CERULEAN,
+    RGB_RUST,
+    RGB_FUCHSIA,
+    RGB_BROWN_4BIT,
+    RGB_LILAC,
+};
 
 /** PicoMite RGB121 colours. */
 const MmGraphicsColour GRAPHICS_RGB121_COLOURS[] = {
@@ -131,7 +173,13 @@ MmResult graphics_init() {
     if (graphics_initialised) return kOk;
     MmResult result = events_init();
     if (FAILED(result)) return result;
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        memset(&graphics_surfaces[id], 0, sizeof(MmSurface));
+        graphics_surfaces[id].id = id;
+    }
     frameEnd = 0;
+    result = sprite_init();
+    if (FAILED(result)) return result;
     graphics_initialised = true;
     return kOk;
 }
@@ -143,7 +191,8 @@ const char *graphics_last_error() {
 
 MmResult graphics_term() {
     if (!graphics_initialised) return kOk;
-    MmResult result = graphics_surface_destroy_all();
+    MmResult result = sprite_term();
+    if (SUCCEEDED(result)) result = graphics_surface_destroy_all();
     if (SUCCEEDED(result)) {
         graphics_fcolour = RGB_WHITE;
         graphics_bcolour = RGB_BLACK;
@@ -163,38 +212,58 @@ MmSurfaceId graphics_find_window(uint32_t sdl_window_id) {
 }
 
 /** TODO */
-static MmResult graphics_merge_picomite_vga_buffers() {
-    const bool merge = graphics_surfaces[GRAPHICS_SURFACE_N].dirty
-            || graphics_surfaces[GRAPHICS_SURFACE_L].dirty;
-    if (!merge) return kOk;
+static MmResult graphics_refresh_gamemite_window() {
+    MmSurface *buffer_N = &graphics_surfaces[GRAPHICS_SURFACE_N];
+    if (!buffer_N->dirty) return kOk;
+    MmResult result = kOk;
+    if (graphics_surface_exists(GRAPHICS_SURFACE_N)) {
+        MmSurface *window = &graphics_surfaces[0];
+        result = graphics_blit(0, 0, 0, 0, 320, 240, buffer_N, window, 0x0, RGB_BLACK);
+    }
+    if (SUCCEEDED(result)) buffer_N->dirty = false;
+    return kOk;
+}
+
+/** TODO */
+static MmResult graphics_refresh_picomite_vga_window() {
+    MmSurface *buffer_N = &graphics_surfaces[GRAPHICS_SURFACE_N];
+    MmSurface *buffer_L = &graphics_surfaces[GRAPHICS_SURFACE_L];
+
+    if (!buffer_N->dirty && !buffer_L->dirty) return kOk;
+
+    MmSurface *window = &graphics_surfaces[0];
+    const uint32_t w = buffer_N->width;
+    const uint32_t h = buffer_N->height;
+    MmResult result = kOk;
 
     if (graphics_surface_exists(GRAPHICS_SURFACE_N)) {
-        MmResult result = graphics_blit(0, 0, 0, 0, 320, 240,
-                                        &graphics_surfaces[GRAPHICS_SURFACE_N],
-                                        &graphics_surfaces[0], 0x0, RGB_BLACK);
-        if (FAILED(result)) return result;
+        result = graphics_blit(0, 0, 0, 0, w, h, buffer_N, window, 0x0, RGB_BLACK);
     }
 
-    if (graphics_surface_exists(GRAPHICS_SURFACE_L)) {
-        MmResult result = graphics_blit(0, 0, 0, 0, 320, 240,
-                                        &graphics_surfaces[GRAPHICS_SURFACE_L],
-                                        &graphics_surfaces[0], 0x4,
-                                        graphics_surfaces[GRAPHICS_SURFACE_L].transparent);
-        if (FAILED(result)) return result;
+    if (SUCCEEDED(result) && graphics_surface_exists(GRAPHICS_SURFACE_L)) {
+        result = graphics_blit(0, 0, 0, 0, w, h, buffer_L, window, 0x4, buffer_L->transparent);
     }
 
-    graphics_surfaces[GRAPHICS_SURFACE_N].dirty = false;
-    graphics_surfaces[GRAPHICS_SURFACE_L].dirty = false;
+    if (SUCCEEDED(result)) {
+        buffer_N->dirty = false;
+        buffer_L->dirty = false;
+    }
 
-    return kOk;
+    return result;
 }
 
 void graphics_refresh_windows() {
     // if (SDL_GetTicks64() > frameEnd) {
     if (SDL_GetTicks() > frameEnd) {
-        if (mmb_options.simulate == kSimulatePicoMiteVga) {
-            MmResult result = graphics_merge_picomite_vga_buffers();
-            if (FAILED(result)) error_throw(result);
+        switch (mmb_options.simulate) {
+            case kSimulateGameMite:
+                ERROR_ON_FAILURE(graphics_refresh_gamemite_window());
+                break;
+            case kSimulatePicoMiteVga:
+                ERROR_ON_FAILURE(graphics_refresh_picomite_vga_window());
+                break;
+            default:
+                break;
         }
 
         // TODO: Optimise by using linked-list of windows.
@@ -213,88 +282,172 @@ void graphics_refresh_windows() {
     }
 }
 
-MmResult graphics_buffer_create(MmSurfaceId id, int width, int height) {
+static inline MmSurface *graphics_surface_from_id(MmSurfaceId id) {
+    if (id == -1) return NULL;
+    assert(id >= 0 && id <= GRAPHICS_MAX_ID);
+    return &graphics_surfaces[id];
+}
+
+/** Gets the ID of the next active sprite. */
+static MmSurfaceId graphics_next_active_sprite(MmSurfaceId start) {
+    assert(start >= 0 && start <= GRAPHICS_MAX_ID);
+    for (MmSurfaceId id = start; id <= GRAPHICS_MAX_ID; ++id) {
+        if (graphics_surfaces[id].type == kGraphicsSprite) {
+            return id;
+        }
+    }
+    return -1;
+}
+
+static MmResult graphics_surface_create(MmSurfaceId id, GraphicsSurfaceType type, int width,
+                                        int height) {
     if (!graphics_initialised) {
         MmResult result = graphics_init();
         if (FAILED(result)) return result;
     }
 
     if (id < 0 || id > GRAPHICS_MAX_ID) return kGraphicsInvalidId;
-    if (graphics_surfaces[id].type != kGraphicsNone) return kGraphicsSurfaceExists;
+    if (graphics_surfaces[id].type != kGraphicsNone) return kGraphicsSurfaceAlreadyExists;
     if (width > WINDOW_MAX_WIDTH || height > WINDOW_MAX_HEIGHT) return kGraphicsSurfaceTooLarge;
 
     MmSurface *s = &graphics_surfaces[id];
-    s->type = kGraphicsBuffer;
+    s->id = id;
+    s->type = type;
     s->window = NULL;
     s->renderer = NULL;
     s->texture = NULL;
     s->dirty = false;
     s->pixels = calloc(width * height, sizeof(uint32_t));
+    if (!s->pixels) return kOutOfMemory;
+    s->background = NULL;
     s->height = height;
     s->width = width;
+    s->interrupt_addr = NULL;
     s->transparent = -1;
+    s->background = NULL;
+    s->x = GRAPHICS_OFF_SCREEN;
+    s->y = GRAPHICS_OFF_SCREEN;
+    s->next_x = GRAPHICS_OFF_SCREEN;
+    s->next_y = GRAPHICS_OFF_SCREEN;
+    s->layer = 0xFF;
+    s->edge_collisions = 0x0;
+    bitset_reset(s->sprite_collisions, 256);
 
     return kOk;
+}
+
+MmResult graphics_buffer_create(MmSurfaceId id, int width, int height) {
+    return graphics_surface_create(id, kGraphicsBuffer, width, height);
+}
+
+MmResult graphics_sprite_create(MmSurfaceId id, int width, int height) {
+    MmResult result = graphics_surface_create(id, kGraphicsInactiveSprite, width, height);
+    MmSurface *s = &graphics_surfaces[id];
+
+    if (SUCCEEDED(result)) {
+        s->background = calloc(width * height, sizeof(uint32_t));
+        if (!s->background) result = kOutOfMemory;
+    }
+
+    if (FAILED(result)) {
+        free(s->pixels);
+        s->pixels = NULL;
+        free(s->background);
+        s->background = NULL;
+    }
+
+    return result;
 }
 
 MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int height, int scale,
                                 const char *title, const char *interrupt_addr) {
-    if (!graphics_initialised) {
-        MmResult result = graphics_init();
-        if (FAILED(result)) return result;
-    }
-
-    if (id < 0 || id > GRAPHICS_MAX_ID) return kGraphicsInvalidId;
-    if (graphics_surfaces[id].type != kGraphicsNone) return kGraphicsSurfaceExists;
-    if (width > WINDOW_MAX_WIDTH || height > WINDOW_MAX_HEIGHT) return kGraphicsSurfaceTooLarge;
+    MmResult result = graphics_surface_create(id, kGraphicsWindow, width, height);
+    MmSurface *s = &graphics_surfaces[id];
 
     // Reduce scale to fit display.
     float fscale = scale;
-    SDL_DisplayMode dm;
-    if (FAILED(SDL_GetCurrentDisplayMode(0, &dm))) return kGraphicsSurfaceNotCreated;
-    while (width * fscale > dm.w * 0.9 || height * fscale > dm.h * 0.9) {
-        fscale -= fscale > 2.0 ? 1.0 : 0.1;
-        if (fscale < 0.1) return kGraphicsSurfaceTooLarge;
+    if (SUCCEEDED(result)) {
+        SDL_DisplayMode dm;
+        if (SUCCEEDED(SDL_GetCurrentDisplayMode(0, &dm))) {
+            while (width * fscale > dm.w * 0.9 || height * fscale > dm.h * 0.9) {
+                fscale -= fscale > 2.0 ? 1.0 : 0.1;
+                if (fscale < 0.1) return kGraphicsSurfaceTooLarge;
+            }
+        } else {
+            result = kGraphicsApiError;
+        }
     }
 
-    SDL_Window *window = SDL_CreateWindow(title, x == -1 ? (int)SDL_WINDOWPOS_CENTERED : x,
-                                          y == -1 ? (int)SDL_WINDOWPOS_CENTERED : y, width * fscale,
-                                          height * fscale, SDL_WINDOW_SHOWN);
-    if (!window) return kGraphicsSurfaceNotCreated;
+    // Create SDL window.
+    SDL_Window *window = NULL;
+    if (SUCCEEDED(result)) {
+        window = SDL_CreateWindow(title, x == -1 ? (int)SDL_WINDOWPOS_CENTERED : x,
+                                            y == -1 ? (int)SDL_WINDOWPOS_CENTERED : y,
+                                            width * fscale, height * fscale, SDL_WINDOW_SHOWN);
+        if (!window) result = kGraphicsApiError;
+    }
 
-    // Create a renderer with V-Sync enabled.
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+    // Create SDL renderer with V-Sync enabled.
+    SDL_Renderer *renderer = NULL;
+    if (SUCCEEDED(result)) {
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+        if (!renderer) result = kGraphicsApiError;
+    }
 
-    // Create a streaming texture.
-    SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
-                                             SDL_TEXTUREACCESS_STREAMING, width, height);
+    // Create SDL streaming texture.
+    SDL_Texture *texture = NULL;
+    if (SUCCEEDED(result)) {
+        texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
+                                    SDL_TEXTUREACCESS_STREAMING, width, height);
+        if (!texture) result = kGraphicsApiError;
+    }
 
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-    SDL_RenderClear(renderer);
-    SDL_RenderPresent(renderer);
+    if (SUCCEEDED(result)) {
+        result = SUCCEEDED(SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE))
+                ? kOk : kGraphicsApiError;
+    }
 
-    MmSurface *s = &graphics_surfaces[id];
-    s->type = kGraphicsWindow;
-    s->window = window;
-    s->renderer = renderer;
-    s->texture = texture;
-    s->dirty = false;
-    s->pixels = calloc(width * height, sizeof(uint32_t));
-    s->height = height;
-    s->width = width;
-    s->interrupt_addr = interrupt_addr;
-    s->transparent = -1;
+    if (SUCCEEDED(result)) {
+        result = SUCCEEDED(SDL_RenderClear(renderer)) ? kOk : kGraphicsApiError;
+    }
 
-    return kOk;
+    if (SUCCEEDED(result)) SDL_RenderPresent(renderer);
+
+    if (SUCCEEDED(result)) {
+        s->window = window;
+        s->renderer = renderer;
+        s->texture = texture;
+        s->interrupt_addr = interrupt_addr;
+    } else {
+        SDL_DestroyTexture((SDL_Texture *) s->texture);
+        s->texture = NULL;
+        SDL_DestroyRenderer((SDL_Renderer *) s->renderer);
+        s->renderer = NULL;
+        SDL_DestroyWindow((SDL_Window *) s->window);
+        s->window = NULL;
+        free(s->pixels);
+        s->pixels = NULL;
+        free(s->background);
+        s->background = NULL;
+    }
+
+    return result;
 }
 
 MmResult graphics_surface_destroy(MmSurface *surface) {
+    assert(surface);
     if (surface->type != kGraphicsNone) {
         SDL_DestroyTexture((SDL_Texture *) surface->texture);
         SDL_DestroyRenderer((SDL_Renderer *) surface->renderer);
         SDL_DestroyWindow((SDL_Window *) surface->window);
         free(surface->pixels);
+        free(surface->background);
+
+        // TODO: ensure active sprite linked list is maintained.
+//        MmSurface *next_active_sprite = surface->next_active_sprite;
         memset(surface, 0, sizeof(MmSurface));
+//        surface->next_active_sprite = next_active_sprite;
+
         if (graphics_current == surface) graphics_current = NULL;
     }
     return kOk;
@@ -798,9 +951,9 @@ MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int 
             }
 
             // We only care about what is visible.
-            y0 = min(max(0, y0), (int) (surface->height - 1));
-            y1 = min(max(0, y1), (int) (surface->height - 1));
-            y2 = min(max(0, y2), (int) (surface->height - 1));
+            y0 = min(max(0, y0), surface->height - 1);
+            y1 = min(max(0, y1), surface->height - 1);
+            y2 = min(max(0, y2), surface->height - 1);
 
             if (y1 == y2) {
                 last = y1;                                          //Include y1 scanline
@@ -859,11 +1012,11 @@ void graphics_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
     //     cursorhidden=1;
     //     }
     if (scale==1){
-        for (int32_t y = y1; y <= y2; y++){
+        for (int y = y1; y <= y2; y++){
             // routinechecks(1);
             uint32_t *pdst = surface->pixels + (y * surface->width + x1);
-            for (int32_t x = x1; x <= x2; x++){
-                if (x >= 0 && x < (int32_t) surface->width && y >= 0 && y < (int32_t) surface->height) {
+            for (int x = x1; x <= x2; x++){
+                if (x >= 0 && x < surface->width && y >= 0 && y < surface->height) {
                     if (skip & 2) {
                         c.rgbbytes[3] = 0xFF; //assume solid colour
                         c.rgbbytes[2] = *psrc++; //this order swaps the bytes to match the .BMP file
@@ -992,6 +1145,83 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
     return kOk;
 }
 
+MmResult graphics_load_sprite(const char *filename_in, uint8_t start_sprite_id, uint8_t colour_mode) {
+    char filename[STRINGSIZE];
+    cstring_cpy(filename, filename_in, STRINGSIZE);
+    if (!path_has_suffix(filename, ".spr", true)) {
+        // TODO: What if the file-extension is ".SPR" ?
+        MmResult result = cstring_cat(filename, ".spr", STRINGSIZE);
+        if (FAILED(result)) return result;
+    }
+
+    int fnbr = file_find_free();
+    MmResult result = file_open(filename, "r", fnbr);
+    if (FAILED(result)) return result;
+
+    const bool is_picomite = (mmb_options.simulate == kSimulateGameMite)
+            || (mmb_options.simulate == kSimulatePicoMiteVga);
+    const MmGraphicsColour *sprite_colours = (colour_mode == 0)
+            ? (is_picomite) ? GRAPHICS_CMM2_SPRITE_COLOURS_RGB121 : GRAPHICS_CMM2_SPRITE_COLOURS
+            : GRAPHICS_RGB121_COLOURS;
+
+    char buf[256] = { 0 };
+    MMgetline(fnbr, buf);
+    while (buf[0] == 39) MMgetline(fnbr, buf);  // Skip lines beginning with single quote.
+    const char *z = buf;
+
+    getargs(&z, 5, ", ");
+    unsigned width = getinteger(argv[0]);
+    MmSurfaceId number = getinteger(argv[2]);
+    unsigned height = (argc == 5) ? getinteger(argv[4]) : width;
+
+    if (mmb_options.simulate != kSimulateMmb4l) {
+        if (start_sprite_id + number > CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT) {
+            (void) file_close(fnbr);
+            return kGraphicsTooManySprites;
+            // error((char *)"Maximum of % sprites",MAXBLITBUF);
+        }
+    }
+
+    bool new_sprite = true;
+    uint8_t lc = 0;
+    uint32_t *p = NULL;
+    MmSurfaceId surface_id = start_sprite_id;
+    while (!file_eof(fnbr) && surface_id <= number + start_sprite_id) {
+        if (new_sprite) {
+            new_sprite = false;
+            result = graphics_sprite_create(surface_id, width, height);
+            if (FAILED(result)) {
+                (void) file_close(fnbr);
+                return result;
+            }
+            lc = height;
+            p = graphics_surfaces[surface_id].pixels;
+        }
+
+        while (lc--) {
+            MMgetline(fnbr, buf);
+            while (buf[0] == 39) MMgetline(fnbr, buf);
+            if (strlen(buf) < width) memset(&buf[strlen(buf)], 32, width - strlen(buf));
+            for (size_t i = 0; i < width; i++) {
+                uint8_t idx = 0;
+                if (buf[i] >= '0' && buf[i] <= '9') {
+                    idx = buf[i] - '0';
+                } else if (buf[i] >= 'A' && buf[i] <= 'F') {
+                    idx = buf[i] - 'A';
+                } else if (buf[i] >= 'a' && buf[i] <= 'f') {
+                    idx = buf[i] - 'a';
+                }
+                *p++ = sprite_colours[idx];
+            }
+        }
+
+        surface_id++;
+        new_sprite = true;
+    }
+
+    return file_close(fnbr);
+}
+
 static void *pixelcpy_transparent(void* dst, const void* src, size_t count, uint32_t transparent) {
     assert(count % 4 == 0);
     uint32_t *dst_word = (uint32_t *)dst;
@@ -1011,39 +1241,39 @@ static void *pixelcpy_transparent(void* dst, const void* src, size_t count, uint
 MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
                        MmSurface *src_surface, MmSurface *dst_surface, unsigned flags,
                        MmGraphicsColour transparent) {
-    // printf("graphics_blit: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d\n",
-    //         src_x, src_y, dst_x, dst_y);
+    // printf("graphics_blit: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, src_id = %d, dst_id = %d\n",
+    //       src_x, src_y, dst_x, dst_y, w, h, src_surface->id, dst_surface->id);
 
     if (src_x < 0) {
-        w = max(0, (int) w + src_x);
+        w = max(0, w + src_x);
         dst_x -= src_x;
         src_x = 0;
     }
-    if (src_x + w >= src_surface->width) w = max(0, (int) src_surface->width - src_x);
+    if (src_x + w >= src_surface->width) w = max(0, src_surface->width - src_x);
 
     if (src_y < 0) {
-        h = max(0, (int) h + src_y);
+        h = max(0, h + src_y);
         dst_y -= src_y;
         src_y = 0;
     }
-    if (src_y + h >= src_surface->height) h = max(0, (int) src_surface->height - src_y);
+    if (src_y + h >= src_surface->height) h = max(0, src_surface->height - src_y);
 
     if (dst_x < 0) {
-        w = max(0, (int) w + dst_x);
+        w = max(0, w + dst_x);
         src_x -= dst_x;
         dst_x = 0;
     }
-    if (dst_x + w >= dst_surface->width) w = max(0, (int) dst_surface->width - dst_x);
+    if (dst_x + w >= dst_surface->width) w = max(0, dst_surface->width - dst_x);
 
     if (dst_y < 0) {
-        h = max(0, (int) h + dst_y);
+        h = max(0, h + dst_y);
         src_y -= dst_y;
         dst_y = 0;
     }
-    if (dst_y + h >= dst_surface->height) h = max(0, (int) dst_surface->height - dst_y);
+    if (dst_y + h >= dst_surface->height) h = max(0, dst_surface->height - dst_y);
 
-    // printf("graphics_blit: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d\n",
-    //         src_x, src_y, dst_x, dst_y, w, h);
+    // printf("graphics_blit: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, src_id = %d, dst_id = %d\n",
+    //       src_x, src_y, dst_x, dst_y, w, h, src_surface->id, dst_surface->id);
 
     if (w == 0 || h == 0) return kOk;
 
@@ -1204,8 +1434,8 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
     else
         fp = (unsigned char *) FontTable[font >> 4];
 
-    uint32_t height = fp[1];
-    uint32_t width = fp[0];
+    int height = fp[1];
+    int width = fp[0];
     modx = mody = 0;
     if (orientation > kOrientVert) {
         np = (unsigned char *)GetTempMemory(width * height);
@@ -1224,9 +1454,9 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
 
         if (orientation > kOrientVert) {                             // non-standard orientation
             if (orientation == kOrientInverted) {
-                for (uint32_t y = 0; y < height; y++) {
+                for (int y = 0; y < height; y++) {
                     newy = height - y - 1;
-                    for (uint32_t x = 0; x < width; x++) {
+                    for (int x = 0; x < width; x++) {
                         newx = width - x - 1;
                         if ((p[((y * width) + x) / 8] >> (((height * width) - ((y * width) + x) - 1) % 8)) & 1) {
                             BitNumber = ((newy * width) + newx);
@@ -1237,9 +1467,9 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
                 }
             }
             else if (orientation == kOrientCounterClock) {
-                for (uint32_t y = 0; y < height; y++) {
+                for (int y = 0; y < height; y++) {
                     newx = y;
-                    for (uint32_t x = 0; x < width; x++) {
+                    for (int x = 0; x < width; x++) {
                         newy = width - x - 1;
                         if ((p[((y * width) + x) / 8] >> (((height * width) - ((y * width) + x) - 1) % 8)) & 1) {
                             BitNumber = ((newy * height) + newx);
@@ -1250,9 +1480,9 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
                 }
             }
             else if (orientation == kOrientClockwise) {
-                for (uint32_t y = 0; y < height; y++) {
+                for (int y = 0; y < height; y++) {
                     newx = height - y - 1;
-                    for (uint32_t x = 0; x < width; x++) {
+                    for (int x = 0; x < width; x++) {
                         newy = x;
                         if ((p[((y * width) + x) / 8] >> (((height * width) - ((y * width) + x) - 1) % 8)) & 1) {
                             BitNumber = ((newy * height) + newx);
@@ -1404,7 +1634,7 @@ MmResult graphics_draw_string(MmSurface *surface, int x, int y, uint32_t font, T
     return result;
 }
 
-MmResult graphics_set_font(uint32_t font_id, uint32_t scale) {
+MmResult graphics_set_font(uint32_t font_id, int scale) {
     if (font_id > FONT_TABLE_SIZE) {
         return kInvalidFont;
     } else if (!FontTable[font_id]) {
@@ -1421,6 +1651,147 @@ static MmResult graphics_destroy_surfaces_0_to_63() {
     for (MmSurfaceId id = 0; id < 64 && SUCCEEDED(result); ++id) {
         result = graphics_surface_destroy(&graphics_surfaces[id]);
     }
+    return result;
+}
+
+static inline MmResult graphics_scroll_down(MmSurface *surface, int y, MmGraphicsColour fill) {
+    assert(y > 0);
+    const size_t width_in_bytes = surface->width * sizeof(uint32_t);
+
+    uint32_t *buffer = NULL;
+    if (fill == -2) {
+        buffer = malloc(y * width_in_bytes);
+        if (!buffer) return kOutOfMemory;
+        memcpy(buffer,
+               surface->pixels + (surface->height - y) * surface->width,
+               y * width_in_bytes);
+    }
+
+    memmove(surface->pixels + y * surface->width,
+            surface->pixels,
+            (surface->height - y) * width_in_bytes);
+
+    if (fill >= 0) {
+        const uint32_t *limit = surface->pixels + y * surface->width;
+        for (uint32_t *p = surface->pixels; p < limit; ++p) *p = fill;
+    } else if (fill == -2) {
+        memcpy(surface->pixels, buffer, y * width_in_bytes);
+        free(buffer);
+    }
+
+    return kOk;
+}
+
+static inline MmResult graphics_scroll_up(MmSurface *surface, int y, MmGraphicsColour fill) {
+    assert(y > 0);
+    const size_t width_in_bytes = surface->width * sizeof(uint32_t);
+
+    uint32_t *buffer = NULL;
+    if (fill == -2) {
+        buffer = malloc(y * width_in_bytes);
+        if (!buffer) return kOutOfMemory;
+        memcpy(buffer, surface->pixels, y * width_in_bytes);
+    }
+
+    memmove(surface->pixels,
+            surface->pixels + y * surface->width,
+            (surface->height - y) * width_in_bytes);
+
+    if (fill >= 0) {
+        const uint32_t *limit = surface->pixels + surface->height * surface->width;
+        for (uint32_t *p = surface->pixels + (surface->height - y) * surface->width;
+             p < limit;
+             ++p) *p = fill;
+    } else if (fill == -2) {
+        memcpy(surface->pixels + (surface->height - y) * surface->width,
+               buffer,
+               y * width_in_bytes);
+        free(buffer);
+    }
+
+    return kOk;
+}
+
+static inline MmResult graphics_scroll_left(MmSurface *surface, int x, MmGraphicsColour fill) {
+    assert(x > 0);
+    const size_t width_in_bytes = surface->width * sizeof(uint32_t);
+
+    uint32_t *buffer = NULL;
+    if (fill == -2) {
+        buffer = malloc(x * sizeof(uint32_t));
+        if (!buffer) return kOutOfMemory;
+    }
+
+    uint32_t *p = surface->pixels;
+    const size_t num_bytes_to_scroll = x * sizeof(uint32_t);
+    const size_t num_bytes_to_move = width_in_bytes - num_bytes_to_scroll;
+
+    for (int y = 0; y < surface->height; ++y) {
+        if (fill == -2) memcpy(buffer, p, num_bytes_to_scroll);
+        memmove(p, p + x, num_bytes_to_move);
+        if (fill >= 0) {
+            const uint32_t *limit = p + surface->width;
+            for (uint32_t *p2 = p + surface->width - x; p2 < limit; ++p2) *p2 = fill;
+        } else if (fill == -2) {
+            memcpy(p + surface->width - x, buffer, num_bytes_to_scroll);
+        }
+        p += surface->width;
+    }
+
+    if (fill == -2) free(buffer);
+    return kOk;
+}
+
+static inline MmResult graphics_scroll_right(MmSurface *surface, int x, MmGraphicsColour fill) {
+    assert(x > 0);
+    const size_t width_in_bytes = surface->width * sizeof(uint32_t);
+
+    uint32_t *buffer = NULL;
+    if (fill == -2) {
+        buffer = malloc(x * sizeof(uint32_t));
+        if (!buffer) return kOutOfMemory;
+    }
+
+    uint32_t *p = surface->pixels;
+    const size_t num_bytes_to_scroll = x * sizeof(uint32_t);
+    const size_t num_bytes_to_move = width_in_bytes - num_bytes_to_scroll;
+
+    for (int y = 0; y < surface->height; ++y) {
+        if (fill == -2) memcpy(buffer, p + surface->width - x, num_bytes_to_scroll);
+        memmove(p + x, p, num_bytes_to_move);
+        if (fill >= 0) {
+            const uint32_t *limit = p + x;
+            for (uint32_t *p2 = p; p2 < limit; ++p2) *p2 = fill;
+        } else if (fill == -2) {
+            memcpy(p, buffer, num_bytes_to_scroll);
+        }
+        p += surface->width;
+    }
+
+    if (fill == -2) free(buffer);
+    return kOk;
+}
+
+MmResult graphics_scroll(MmSurface *surface, int x, int y, MmGraphicsColour fill) {
+    if (surface->type == kGraphicsNone) return kGraphicsInvalidSurface;
+    // TODO: Sanity check x.
+    // TODO: Sanity check y.
+
+    MmResult result = kOk;
+
+    if (x != 0) {
+        result = (x > 0)
+                ? graphics_scroll_right(surface, x, fill)
+                : graphics_scroll_left(surface, -x, fill);
+    }
+
+    if (y != 0 && SUCCEEDED(result)) {
+        result = (y > 0)
+                ? graphics_scroll_up(surface, y, fill)
+                : graphics_scroll_down(surface, -y, fill);
+    }
+
+    if (SUCCEEDED(result)) surface->dirty = true;
     return result;
 }
 
@@ -1460,7 +1831,10 @@ static MmResult graphics_simulate_gamemite(uint8_t mode) {
         result = graphics_window_create(0, -1, -1, 320, 240, 10, "Game*Mite", NULL);
     }
     if (SUCCEEDED(result)) {
-        result = graphics_surface_write(0);
+        result = graphics_buffer_create(GRAPHICS_SURFACE_N, 320, 240);
+    }
+    if (SUCCEEDED(result)) {
+        result = graphics_surface_write(GRAPHICS_SURFACE_N);
     }
     if (SUCCEEDED(result)) {
         graphics_fcolour = RGB_WHITE;

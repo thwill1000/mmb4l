@@ -144,12 +144,14 @@ static MmResult cmd_graphics_window(const char *p) {
 static MmResult cmd_graphics_destroy(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) return kArgumentCount;
+    MmResult result = kOk;
     if ((p = checkstring(argv[0], "ALL"))) {
-        return graphics_surface_destroy_all();
+        result = graphics_surface_destroy_all();
     } else {
-        int surface_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
-        return graphics_surface_destroy(&graphics_surfaces[surface_id]);
+        MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+        result = graphics_surface_destroy(&graphics_surfaces[id]);
     }
+    return result;
 }
 
 /** GRAPHICS WRITE id */

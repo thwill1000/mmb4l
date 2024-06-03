@@ -51,6 +51,7 @@ MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) {
 }
 
 // Defined in "common/graphics.c"
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 MmResult graphics_term(void) { return kOk; }
 MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }
 

@@ -42,12 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "parse.h"
-
 #include "mmb4l.h"
 #include "console.h"
 #include "cstring.h"
 #include "gpio.h"
+#include "parse.h"
+#include "sprite.h"
 #include "utility.h"
 #include "../core/tokentbl.h"
 
@@ -611,26 +611,84 @@ MmResult parse_pin_num(const char **p, uint8_t *pin_num, bool *is_gp) {
     return result;
 }
 
-MmResult parse_picomite_surface(const char *p, MmSurfaceId *surface_id) {
-    *surface_id = -1;
+static inline MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) {
+    *page_id = -1;
     const char *tp;
     if ((tp = checkstring(p, "N"))) {
-        *surface_id = GRAPHICS_SURFACE_N;
+        *page_id = GRAPHICS_SURFACE_N;
     } else if ((tp = checkstring(p, "F"))) {
-        *surface_id = GRAPHICS_SURFACE_F;
+        *page_id = GRAPHICS_SURFACE_F;
     } else if ((tp = checkstring(p, "L"))) {
-        *surface_id = GRAPHICS_SURFACE_L;
+        *page_id = GRAPHICS_SURFACE_L;
     } else { // Allow string expression.
         const char *s = getCstring(p);
-        if (strcasecmp(s, "N")) {
-            *surface_id = GRAPHICS_SURFACE_N;
-        } else if (strcasecmp(s, "F")) {
-            *surface_id = GRAPHICS_SURFACE_F;
-        } else if (strcasecmp(s, "L")) {
-            *surface_id = GRAPHICS_SURFACE_L;
+        if (strcasecmp(s, "N") == 0) {
+            *page_id = GRAPHICS_SURFACE_N;
+        } else if (strcasecmp(s, "F") == 0) {
+            *page_id = GRAPHICS_SURFACE_F;
+        } else if (strcasecmp(s, "L") == 0) {
+            *page_id = GRAPHICS_SURFACE_L;
         } else {
             return kSyntax;
         }
+    }
+    return kOk;
+}
+
+MmResult parse_page(const char *p, MmSurfaceId *page_id) {
+    MmResult result = kOk;
+    switch (mmb_options.simulate) {
+        case kSimulateGameMite:
+        case kSimulatePicoMiteVga:
+            result = parse_picomite_page(p, page_id);
+            break;
+        default:
+            *page_id = getint(p, 0, GRAPHICS_MAX_ID);
+            result = kOk;
+            break;
+    }
+    if (SUCCEEDED(result) && !graphics_surface_exists(*page_id)) {
+        return kGraphicsInvalidSurface;
+    } else {
+        return result;
+    }
+}
+
+MmResult parse_read_page(const char *p, MmSurfaceId *page_id) {
+    MmResult result = parse_page(p, page_id);
+    return (result == kGraphicsInvalidSurface) ? kGraphicsInvalidReadSurface : result;
+}
+
+MmResult parse_write_page(const char *p, MmSurfaceId *page_id) {
+    MmResult result = parse_page(p, page_id);
+    return (result == kGraphicsInvalidSurface) ? kGraphicsInvalidWriteSurface : result;
+}
+
+MmResult parse_buffer_id(const char *p, bool existing, MmSurfaceId *buffer_id) {
+    if (*p == '#') p++;
+    if (mmb_options.simulate == kSimulateMmb4l) {
+        *buffer_id = getint(p, 0, GRAPHICS_MAX_ID);
+    } else {
+        *buffer_id = getint(p, 1, CMM2_BLIT_COUNT) + CMM2_BLIT_BASE;
+    }
+    if (existing && graphics_surfaces[*buffer_id].type == kGraphicsNone) {
+        return kGraphicsInvalidSurface;
+    }
+    return kOk;
+}
+
+MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id) {
+    if (*p == '#') p++;
+    if (mmb_options.simulate == kSimulateMmb4l) {
+        *sprite_id = getint(p, 0, GRAPHICS_MAX_ID);
+    } else {
+        *sprite_id = getint(p, 1, CMM2_SPRITE_COUNT) + CMM2_SPRITE_BASE;
+    }
+    if (existing
+            && graphics_surfaces[*sprite_id].type != kGraphicsSprite
+            && graphics_surfaces[*sprite_id].type != kGraphicsInactiveSprite) {
+        printf("Invalid sprite: %d\n", *sprite_id);
+        return kGraphicsInvalidSprite;
     }
     return kOk;
 }
