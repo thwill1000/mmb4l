@@ -51,20 +51,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static MmResult cmd_framebuffer_close(const char *p) {
     skipspace(p);
     MmResult result = kOk;
+    MmSurface *surfaceF = &graphics_surfaces[GRAPHICS_SURFACE_F];
+    MmSurface *surfaceL = &graphics_surfaces[GRAPHICS_SURFACE_L];
     if (parse_is_end(p)) {
-        result = graphics_surface_destroy(&graphics_surfaces[GRAPHICS_SURFACE_F]);
-        if (SUCCEEDED(result)) result = graphics_surface_destroy(&graphics_surfaces[GRAPHICS_SURFACE_L]);
+        result = graphics_surface_destroy(surfaceF);
+        if (SUCCEEDED(result)) result = graphics_surface_destroy(surfaceL);
     } else {
-        MmSurfaceId surface_id = -1;
-        result = parse_picomite_page(p, &surface_id);
+        MmSurfaceId page_id = -1;
+        result = parse_page(p, &page_id);
         if (SUCCEEDED(result)) {
-            switch (surface_id) {
+            switch (page_id) {
                 case GRAPHICS_SURFACE_N:
-                    result = kGraphicsInvalidId;
+                    result = kGraphicsInvalidSurface;
                     break;
                 case GRAPHICS_SURFACE_F:
+                    result = graphics_surface_destroy(surfaceF);
+                    break;
                 case GRAPHICS_SURFACE_L:
-                    result = graphics_surface_destroy(&graphics_surfaces[surface_id]);
+                    result = graphics_surface_destroy(surfaceL);
                     break;
                 default:
                     result = kInternalFault;
@@ -82,12 +86,14 @@ static MmResult cmd_framebuffer_copy(const char *p) {
     if (argc != 3 && argc != 5) return kArgumentCount;
 
     MmSurfaceId src_id = -1;
-    MmResult result = parse_picomite_page(argv[0], &src_id);
+    MmResult result = parse_read_page(argv[0], &src_id);
     if (FAILED(result)) return result;
+    MmSurface* src_surface = &graphics_surfaces[src_id];
 
     MmSurfaceId dst_id = -1;
-    result = parse_picomite_page(argv[2], &dst_id);
+    result = parse_write_page(argv[2], &dst_id);
     if (FAILED(result)) return result;
+    MmSurface* dst_surface = &graphics_surfaces[dst_id];
 
     // MMB4L ignores the background flag B for the moment.
 #pragma GCC diagnostic push
@@ -108,17 +114,13 @@ static MmResult cmd_framebuffer_copy(const char *p) {
         }
     }
 
-    if (!graphics_surface_exists(src_id)) return kGraphicsInvalidReadSurface;
-    MmSurface* src_surface = &graphics_surfaces[src_id];
-
-    if (!graphics_surface_exists(dst_id)) return kGraphicsInvalidWriteSurface;
-    MmSurface* dst_surface = &graphics_surfaces[dst_id];
-
     if (src_surface->width != dst_surface->width || src_surface->height != dst_surface->height) {
-        MMRESULT_RETURN_EX(kError, "Surface size mismatch - use BLIT");
+        return kGraphicsSurfaceSizeMismatch;
     }
 
-    if (src_surface == dst_surface) return kGraphicsReadAndWriteSurfaceSame;
+    if (src_surface == dst_surface) {
+        return kGraphicsReadAndWriteSurfaceSame;
+    }
 
     return graphics_blit(0, 0, 0, 0, src_surface->width, src_surface->height, src_surface,
                          dst_surface, 0x0, -1);
@@ -159,15 +161,15 @@ static MmResult cmd_framebuffer_merge(const char *p) {
     uint8_t transparent = (argc > 0) ? getint(argv[0], 0, 15) : 0;
     // MMB4L ignores the 'mode' and 'update rate' arguments for the moment.
 
-    // Copy "Framebuffer" to display.
-    MmSurface* src_surface = &graphics_surfaces[1];
-    MmSurface* dst_surface = &graphics_surfaces[0];
+    // Copy F to N.
+    MmSurface* src_surface = &graphics_surfaces[GRAPHICS_SURFACE_F];
+    MmSurface* dst_surface = &graphics_surfaces[GRAPHICS_SURFACE_N];
     MmResult result = graphics_blit(0, 0, 0, 0, src_surface->width, src_surface->height,
                                     src_surface, dst_surface, 0x0, RGB_BLACK);
     if (FAILED(result)) return result;
 
-    // Merge "Layer" with display.
-    src_surface = &graphics_surfaces[2];
+    // Merge L with N.
+    src_surface = &graphics_surfaces[GRAPHICS_SURFACE_L];
     return graphics_blit(0, 0, 0, 0, src_surface->width, src_surface->height, src_surface,
                          dst_surface, 0x4, GRAPHICS_RGB121_COLOURS[transparent]);
 }
@@ -187,21 +189,8 @@ static MmResult cmd_framebuffer_write(const char *p) {
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId dst_id = -1;
-    MmResult result = parse_picomite_page(argv[0], &dst_id);
-    if (FAILED(result)) return result;
-
-    result = graphics_surface_write(dst_id);
-    if (result == kGraphicsSurfaceNotFound) {
-        switch (dst_id) {
-            case GRAPHICS_SURFACE_F:
-                MMRESULT_RETURN_EX(result, "Frame buffer not created");
-            case GRAPHICS_SURFACE_L:
-                MMRESULT_RETURN_EX(result, "Layer buffer not created");
-            default:
-                return kInternalFault;
-        }
-    }
-
+    MmResult result = parse_write_page(argv[0], &dst_id);
+    if (SUCCEEDED(result)) result = graphics_surface_write(dst_id);
     return result;
 }
 

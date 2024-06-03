@@ -113,6 +113,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_settick.c
     src/commands/cmd_settitle.c
     src/commands/cmd_sort.c
+    src/commands/cmd_sprite.c
     src/commands/cmd_system.c
     src/commands/cmd_text.c
     src/commands/cmd_timer.c
@@ -158,6 +159,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_pin.c
     src/functions/fun_port.c
     src/functions/fun_rgb.c
+    src/functions/fun_sprite.c
     src/functions/fun_str2bin.c
     src/functions/fun_time.c
     src/functions/fun_timer.c
@@ -197,6 +199,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/prompt.c
     src/common/rx_buf.c
     src/common/serial.c
+    src/common/sprite.c
     src/common/upng.c
     src/common/utility.c
     src/common/xmodem.c
@@ -339,6 +342,24 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_cmd_run)
+
+################################################################################
+# test_bitset
+################################################################################
+
+add_executable(
+  test_bitset
+  src/common/gtest/bitset_test.cxx
+)
+
+target_link_libraries(
+  test_bitset
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_bitset)
 
 ################################################################################
 # test_cstring
@@ -668,6 +689,42 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_rx_buf)
+
+################################################################################
+# test_sprite
+################################################################################
+
+add_executable(
+  test_sprite
+  src/common/codepage.c
+  src/common/cstring.c
+  src/common/events.c
+  src/common/file.c
+  src/common/fonttbl.c
+  src/common/graphics.c
+  src/common/memory.c
+  src/common/mmresult.c
+  src/common/options.c
+  src/common/path.c
+  src/common/upng.c
+  src/common/sprite.c
+  src/common/gtest/sprite_test.cxx
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/sdl2_stubs.c
+)
+
+target_include_directories(test_sprite PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_sprite
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_sprite)
 
 ################################################################################
 # test_stack

@@ -56,6 +56,7 @@ typedef enum {
   kInterruptGamepad2,
   kInterruptGamepad3,
   kInterruptGamepad4,
+  kInterruptSpriteCollision,
   kInterruptLast
 } InterruptType;
 

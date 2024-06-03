@@ -129,6 +129,7 @@ void fun_rnd(void);
 void fun_sgn(void);
 void fun_sin(void);
 void fun_space(void);
+void fun_sprite(void);
 void fun_sqr(void);
 void fun_str2bin(void);
 void fun_string(void);
