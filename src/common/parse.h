@@ -153,7 +153,53 @@ MmResult parse_gp_pin(const char **p, uint8_t *pin_gp);
  */
 MmResult parse_pin_num(const char **p, uint8_t *pin_num, bool *gp);
 
-// TODO
-MmResult parse_picomite_surface(const char *p, MmSurfaceId *surface_id);
+/**
+ * Parses a page/surface ID.
+ *
+ * @param[in]   p        Parse from this pointer.
+ * @param[out]  page_id  The page/surface ID.
+ * @return               kGraphicsInvalidSurface if the page/surface does not exist.
+ */
+MmResult parse_page(const char *p, MmSurfaceId *page_id);
+
+/**
+ * Parses a READ page/surface ID.
+ *
+ * @param[in]   p        Parse from this pointer.
+ * @param[out]  page_id  The page/surface ID.
+ * @return               kGraphicsInvalidReadSurface if the page/surface does not exist.
+ */
+MmResult parse_read_page(const char *p, MmSurfaceId *page_id);
+
+/**
+ * Parses a WRITE page/surface ID.
+ *
+ * @param[in]   p        Parse from this pointer.
+ * @param[out]  page_id  The page/surface ID.
+ * @return               kGraphicsInvalidWriteSurface if the page/surface does not exist.
+ */
+MmResult parse_write_page(const char *p, MmSurfaceId *page_id);
+
+/**
+ * Parses a buffer/surface ID.
+ *
+ * @param[in]   p          Parse from this pointer.
+ * @param[in]   existing   Return an error if buffer/surface does not exist.
+ * @param[out]  buffer_id  On exit, the buffer/surface ID.
+ * @return                 kGraphicsInvalidSurface if the buffer/surface does not exist
+ *                         and existing == true.
+ */
+MmResult parse_buffer_id(const char *p, bool existing, MmSurfaceId *buffer_id);
+
+/**
+ * Parses a sprite/surface ID.
+ *
+ * @param[in]   p          Parse from this pointer.
+ * @param[in]   existing   Return an error if sprite/surface does not exist.
+ * @param[out]  sprite_id  On exit, the sprite/surface ID.
+ * @return                 kGraphicsInvalidSprite if the sprite/surface does not exist
+ *                         and existing == true.
+ */
+MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id);
 
 #endif

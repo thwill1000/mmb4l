@@ -74,10 +74,10 @@ static void cmd_graphics_copy(const char *p) {
     MMINTEGER write_id = getint(argv[2], 0, GRAPHICS_MAX_ID);
 
     if (!graphics_surface_exists(read_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %%", read_id);
+        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %", read_id);
     }
     if (!graphics_surface_exists(write_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Write surface does not exist: %%", write_id);
+        error_throw_ex(kGraphicsSurfaceNotFound, "Write surface does not exist: %", write_id);
     }
 
     MmSurface* read_surface = &graphics_surfaces[read_id];
@@ -153,17 +153,17 @@ static void cmd_graphics_window(const char *p) {
 }
 
 /** GRAPHICS DESTROY id | ALL */
-static void cmd_graphics_destroy(const char *p) {
+static MmResult cmd_graphics_destroy(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) ERROR_ARGUMENT_COUNT;
+    MmResult result = kOk;
     if ((p = checkstring(argv[0], "ALL"))) {
-        MmResult result = graphics_surface_destroy_all();
-        if (FAILED(result)) error_throw(result);
+        result = graphics_surface_destroy_all();
     } else {
         int id = getint(argv[0], 0, GRAPHICS_MAX_ID);
-        MmResult result = graphics_surface_destroy(id);
-        if (FAILED(result)) error_throw(result);
+        result = graphics_surface_destroy(&graphics_surfaces[id]);
     }
+    return result;
 }
 
 /** GRAPHICS WRITE id */

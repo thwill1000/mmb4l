@@ -146,10 +146,10 @@ static int handle_window_interrupt() {
     interrupt_count--;
 
     if (!graphics_surface_exists(window_id)) error_throw(kInternalFault);
-    MmSurface *s = &graphics_surfaces[window_id];
+    MmSurface *window = &graphics_surfaces[window_id];
 
-    if (!s->interrupt_addr) {
-        graphics_surface_destroy(window_id);
+    if (!window->interrupt_addr) {
+        graphics_surface_destroy(window);
         mmb_exit_code = EX_OK;
         longjmp(mark, JMP_END);
     }
@@ -157,9 +157,9 @@ static int handle_window_interrupt() {
     // Get interrupt SUB signature.
     // It should already have been validated when the window was created.
     FunctionSignature *fn = (FunctionSignature *) GetTempMemory(sizeof(FunctionSignature));
-    const char *p2 = s->interrupt_addr;
+    const char *p2 = window->interrupt_addr;
     const char *cached_line_ptr = CurrentLinePtr;
-    CurrentLinePtr = s->interrupt_addr; // So any error is reported on the correct line.
+    CurrentLinePtr = window->interrupt_addr; // So any error is reported on the correct line.
     MmResult result = parse_fn_sig(&p2, fn);
     if (FAILED(result)) error_throw(result);
     CurrentLinePtr = cached_line_ptr;
@@ -191,7 +191,7 @@ static int handle_window_interrupt() {
     ClearSpecificTempMemory(fn);
 
     // Set the next command to be the body of the interrupt SUB.
-    const char *interrupt_addr = s->interrupt_addr;
+    const char *interrupt_addr = window->interrupt_addr;
     skipelement(interrupt_addr);
     nextstmt = interrupt_addr;
 
