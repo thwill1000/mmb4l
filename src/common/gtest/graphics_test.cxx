@@ -66,6 +66,10 @@ int serial_putc(int fnbr, int ch) { return -1; }
 int serial_rx_queue_size(int fnbr) { return -1; }
 int serial_write(int fnbr, const char *buf, size_t sz) { return -1; }
 
+// Defined in "common/sprite.c"
+MmResult sprite_init() { return kOk; }
+MmResult sprite_term() { return kOk; }
+
 // Defined in "core/MMBasic.c"
 int LocalIndex = 0;
 

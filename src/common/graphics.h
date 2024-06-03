@@ -63,6 +63,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GRAPHICS_SURFACE_N       1
 #define GRAPHICS_SURFACE_F       2
 #define GRAPHICS_SURFACE_L       3
+#define GRAPHICS_MAX_LAYER       4
+#define GRAPHICS_MAX_COLLISIONS  4
 #define MIN_CMM2_MODE            1
 #define MAX_CMM2_MODE            17
 #define MIN_PMVGA_MODE           1
@@ -102,10 +104,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CMM2_BLIT_BASE   63
 #define CMM2_BLIT_COUNT  64
 
+#define CMM2_SPRITE_BASE  127
+#define CMM2_SPRITE_COUNT  64
+
+#define GRAPHICS_OFF_SCREEN  10000
+
+typedef enum {
+   kGraphicsFlagSurfaceExists = 0x01,
+} GraphicsFlags;
+
 typedef enum {
     kGraphicsNone = 0,
     kGraphicsBuffer,
     kGraphicsSprite,
+    kGraphicsInactiveSprite,
     kGraphicsWindow
 } GraphicsSurfaceType;
 
@@ -142,18 +154,51 @@ typedef void* MmWindowPtr;
 typedef void* MmRendererPtr;
 typedef void* MmTexturePtr;
 
-typedef struct {
+typedef struct MmSurfaceStruct {
+    MmSurfaceId id; 
     GraphicsSurfaceType type;
     bool dirty;
     MmWindowPtr window;
     MmRendererPtr renderer;
     MmTexturePtr texture;
-    uint32_t* pixels;
     int height;
     int width;
+    uint32_t *pixels;
     const char *interrupt_addr;
     MmGraphicsColour transparent;
+    struct MmSurfaceStruct *next_active_sprite;
+
+    // The following fields are only used for type == kGraphicsSprite | kGraphicsInactiveSprite.
+    uint32_t *background;
+    int x;
+    int y;
+    int next_x;
+    int next_y; 
+    uint8_t layer;
+
+    /** Is the sprite collided with the surface/screen edge? */
+    uint8_t edge_collisions;
+
+    /** Is the sprite collided with another sprite? */
+    int sprite_collisions[32 / sizeof(int)]; // 256 bits.
+
+    /** Number of other sprites currently touched, capped to GRAPHICS_MAX_COLLISIONS */
+    //uint8_t num_collisions;
+
+    /** IDs of other sprites currently touched. */
+    //uint8_t collisions[GRAPHICS_MAX_COLLISIONS];
 } MmSurface;
+
+typedef struct {
+    bool collision_found;
+    MmSurfaceId sprite_which_collided;
+
+    /** Number of sprites with active collisions, capped to GRAPHICS_MAX_COLLISIONS. */
+    uint8_t num_collisions;
+
+    /** IDs of sprites with active collisions. */
+    uint8_t collisions[GRAPHICS_MAX_COLLISIONS];
+} MmSpriteState;
 
 extern const MmGraphicsColour GRAPHICS_RGB121_COLOURS[];
 
@@ -162,6 +207,7 @@ extern MmSurface *graphics_current;
 extern MmGraphicsColour graphics_fcolour;
 extern MmGraphicsColour graphics_bcolour;
 extern uint32_t graphics_font;
+extern MmSpriteState graphics_sprite_state;
 
 MmResult graphics_init();
 const char* graphics_last_error();
@@ -174,6 +220,7 @@ void graphics_refresh_windows();
 MmResult graphics_term();
 
 MmResult graphics_buffer_create(MmSurfaceId id, int width, int height);
+MmResult graphics_sprite_create(MmSurfaceId id, int width, int height);
 MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int height, int scale,
                                 const char *title, const char *interrupt_addr);
 MmResult graphics_surface_destroy(MmSurface *surface);
@@ -333,10 +380,10 @@ MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int 
                                 MmGraphicsColour colour, MmGraphicsColour fill);
 
 /** Gets the height of a font. */
-uint32_t graphics_font_height(uint32_t font);
+int graphics_font_height(uint32_t font);
 
 /** Gets the width of a font. */
-uint32_t graphics_font_width(uint32_t font);
+int graphics_font_width(uint32_t font);
 
 /**
  * Loads a .bmp image.
@@ -360,12 +407,32 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
                            int force);
 
 /**
+ * Loads a Colour Maximite sprite file.
+ *
+ * @param  filename      Name of file to load the sprite(s) from.
+ * @param  start_sprite  Number to be given for the first sprite.
+ * @param  colour_mode   0 to use the original CMM1/CMM2 colour mapping,
+ *                       1 to use the PicoMite RGB121 colour mapping.
+ */
+MmResult graphics_load_sprite(const char *filename, uint8_t start_sprite, uint8_t colour_mode);
+
+/**
+ * Scrolls surface.
+ *
+ * @param  surface  The surface.
+ * @param  x        Horizontal scroll increment.
+ * @param  y        Vertical scroll increment.
+ * @param  fill     Colour to fill space left by pixels that have scrolled off screen.
+ */
+MmResult graphics_scroll(MmSurface *surface, int x, int y, MmGraphicsColour fill);
+
+/**
  * Sets the default graphics font.
  *
  * @param  font_number  The font number.
  * @param  scale        Scaling factor 1-15.
  */
-MmResult graphics_set_font(uint32_t font_number, uint32_t scale);
+MmResult graphics_set_font(uint32_t font_number, int scale);
 
 /**
  * Configures graphics surfaces to simulate a given device/platform/mode.

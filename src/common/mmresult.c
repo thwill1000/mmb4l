@@ -129,20 +129,25 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsInvalidColour:      return "Invalid colour";
         case kGraphicsInvalidId:          return "Invalid graphics surface ID";
         case kGraphicsInvalidReadSurface: return "Invalid graphics read surface";
+        case kGraphicsInvalidSprite:      return "Invalid sprite";
+        case kGraphicsInvalidSurface:     return "Invalid graphics surface";
         case kGraphicsInvalidWriteSurface: return "Invalid graphics write surface";
         case kGraphicsLoadBitmapFailed:   return "Bitmap could not be loaded";
+        case kGraphicsSurfaceAlreadyExists: return "Graphics surface already exists";
         case kGraphicsSurfaceNotCreated:  return "Graphics surface could not be created";
         case kGraphicsSurfaceNotFound:    return "Graphics surface does not exist";
-        case kGraphicsSurfaceExists:      return "Graphics surface already exists";
         case kGraphicsSurfaceSizeMismatch: return "Graphics surface size mismatch";
         case kGraphicsSurfaceTooLarge:    return "Graphics surface too large";
         case kGraphicsReadAndWriteSurfaceSame: return "Read and write surfaces are the same";
+        case kGraphicsTooManySprites:     return "Maximum of 64 sprites";
+        case kGraphicsNotASprite:         return "Not a sprite";
         case kImageTooLarge:              return "Image too large";
         case kImageInvalidFormat:         return "Invalid image format";
         case kInvalidFont:                return "Invalid font";
         case kInvalidFontScaling:         return "Invalid font scaling; should be 1-15";
         case kUnknownDevice:              return "Unknown device/platform";
         case kUnsupportedOnCurrentDevice: return "Unsupported on current device/platform";
+        case kUnsupportedParameterOnCurrentDevice: return "Unsupported parameter on current device/platform";
         case kInvalidMode:                return "Invalid graphics mode for current device";
         case kInvalidFlag:                return "Invalid flag";
         case kUnexpectedText:             return "Unexpected text";
@@ -174,6 +179,13 @@ const char *mmresult_to_string(MmResult result) {
         case kFileAlreadyOpen:            return "File or device already open";
         case kFileNotOpen:                return "File or device not open";
         case kFileInvalidSeekPosition:    return "Invalid seek position";
+        case kSpriteInactive:             return "Sprite not showing";
+        case kSpritesAreHidden:           return "Sprites are hidden";
+        case kSpritesNotHidden:           return "Sprites are not hidden";
+        case kStackElementNotFound:       return "Stack element not found";
+        case kStackEmpty:                 return "Stack empty";
+        case kStackFull:                  return "Stack full";
+        case kStackIndexOutOfBounds:      return "Stack index out of bounds";
         default:                          return "Unknown result code";
     }
 }
