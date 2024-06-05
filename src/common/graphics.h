@@ -122,6 +122,13 @@ typedef enum {
 } TextVAlign;
 
 typedef enum {
+    kBlitNormal = 0x0,
+    kBlitHorizontalFlip = 0x1,
+    kBlitVerticalFlip = 0x2,
+    kBlitWithTransparency = 0x4
+} GraphicsBlitType;
+
+typedef enum {
     kOrientNormal = 0,
     kOrientVert,
     kOrientInverted,
@@ -193,20 +200,20 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
 /**
  * Blits rectangle from one surface to another.
  *
- * @param  x1, y1         Top left coordinates on the read surface.
- * @param  x2, y2         Top left coordinates on the write surface.
+ * @param  src_x, src_y   Top left coordinates on the source surface.
+ * @param  dst_x, dst_y   Top left coordinates on the destination surface.
  * @param  width          Width of rectangle to blit.
  * @param  height         Height of rectangle to blit.
- * @param  read_surface   The surface to read from.
- * @param  write_surface  The surface to write to.
+ * @param  src_surface    The source surface.
+ * @param  dst_surface    The destination surface.
  * @param  flags          Bitwise OR of:
  *                          0x01 = mirrored left to right.
  *                          0x02 = mirrored top to bottom.
  *                          0x04 = don't copy transparent pixels.
  * @param  transparent    Transparent colour, -1 for none.
  */
-MmResult graphics_blit(int x1, int y1, int x2, int y2, int width, int height,
-                       MmSurface *read_surface, MmSurface *write_surface, unsigned flags,
+MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int width, int height,
+                       MmSurface *src_surface, MmSurface *dst_surface, unsigned flags,
                        MmGraphicsColour transparent);
 
 /**
