@@ -430,6 +430,41 @@ target_link_libraries(
 gtest_discover_tests(test_gamepad)
 
 ################################################################################
+# test_graphics
+################################################################################
+
+add_executable(
+  test_graphics
+  src/common/codepage.c
+  src/common/cstring.c
+  src/common/events.c
+  src/common/file.c
+  src/common/fonttbl.c
+  src/common/graphics.c
+  src/common/memory.c
+  src/common/mmresult.c
+  src/common/options.c
+  src/common/path.c
+  src/common/upng.c
+  src/common/gtest/graphics_test.cxx
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/sdl2_stubs.c
+)
+
+target_include_directories(test_graphics PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_graphics
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_graphics)
+
+################################################################################
 # test_hash
 ################################################################################
 
