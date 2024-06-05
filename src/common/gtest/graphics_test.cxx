@@ -48,6 +48,11 @@ MmResult error_throw_ex(MmResult result, const char *msg, ...) {
 }
 MmResult error_throw_legacy(const char *msg, ...) { return error_throw_ex(kError, msg); }
 
+// Defined in "common/interrupt.c"
+void interrupt_disable_serial_rx(int fnbr) {}
+void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_addr) {}
+void interrupt_fire_window_close(MmSurfaceId id) {}
+
 // Defined in "common/keyboard.c"
 MmResult keyboard_key_down(const SDL_Keysym *keysym) { return kError; }
 MmResult keyboard_key_up(const SDL_Keysym *keysym) { return kError; }

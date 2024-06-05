@@ -1007,77 +1007,110 @@ static void *pixelcpy_transparent(void* dst, const void* src, size_t count, uint
     return dst;
 }
 
-MmResult graphics_blit(int x1, int y1, int x2, int y2, int w, int h,
-                       MmSurface *read_surface, MmSurface *write_surface, unsigned flags,
+MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
+                       MmSurface *src_surface, MmSurface *dst_surface, unsigned flags,
                        MmGraphicsColour transparent) {
-    uint32_t *src = read_surface->pixels + (y1 * read_surface->width) + x1;
-    uint32_t *dst = write_surface->pixels;
+    // printf("graphics_blit: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d\n",
+    //         src_x, src_y, dst_x, dst_y);
+
+    if (src_x < 0) {
+        w = max(0, (int) w + src_x);
+        dst_x -= src_x;
+        src_x = 0;
+    }
+    if (src_x + w >= src_surface->width) w = max(0, (int) src_surface->width - src_x);
+
+    if (src_y < 0) {
+        h = max(0, (int) h + src_y);
+        dst_y -= src_y;
+        src_y = 0;
+    }
+    if (src_y + h >= src_surface->height) h = max(0, (int) src_surface->height - src_y);
+
+    if (dst_x < 0) {
+        w = max(0, (int) w + dst_x);
+        src_x -= dst_x;
+        dst_x = 0;
+    }
+    if (dst_x + w >= dst_surface->width) w = max(0, (int) dst_surface->width - dst_x);
+
+    if (dst_y < 0) {
+        h = max(0, (int) h + dst_y);
+        src_y -= dst_y;
+        dst_y = 0;
+    }
+    if (dst_y + h >= dst_surface->height) h = max(0, (int) dst_surface->height - dst_y);
+
+    // printf("graphics_blit: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d\n",
+    //         src_x, src_y, dst_x, dst_y, w, h);
+
+    if (w == 0 || h == 0) return kOk;
+
+    uint32_t *src = src_surface->pixels + (src_y * src_surface->width) + src_x;
+    uint32_t *dst = dst_surface->pixels;
     int pdelta = 0; // Added to dst after writing each pixel.
     int ldelta = 0; // Added to dst after writing each line.
 
-    write_surface->dirty = true;
+    dst_surface->dirty = true;
 
     // TODO: If read and write surfaces overlap then copy read surface to temporary buffer.
-    // TODO: Handle off-surface co-ordinates.
 
-    switch (flags) {
-        case 0x0: {
-            // Optimised using memcpy.
-            dst += (y2 * write_surface->width) + x2;
-            for (int i = 0; i < h; i++) {
-                memcpy(dst, src, w << 2);
-                src += read_surface->width;
-                dst += write_surface->width;
+    switch (flags & 0x3) {
+        case kBlitNormal: {
+            dst += (dst_y * dst_surface->width) + dst_x;
+            if (!(flags & kBlitWithTransparency)) {
+                // Optimised using memcpy.
+                for (int i = 0; i < h; i++) {
+                    memcpy(dst, src, w << 2);
+                    src += src_surface->width;
+                    dst += dst_surface->width;
+                }
+                return kOk;
             }
-            return kOk;
+            pdelta = 1;
+            ldelta = dst_surface->width - w;
+            break;
         }
 
-        case 0x1: // Horizontal flip.
-        case 0x5: // Don't copy transparent pixels and horizontal flip.
+        case kBlitHorizontalFlip:
         {
-            dst += (y2 * write_surface->width) + x2 + w - 1;
+            dst += (dst_y * dst_surface->width) + dst_x + w - 1;
             pdelta = -1;
-            ldelta = write_surface->width + w;
+            ldelta = dst_surface->width + w;
             break;
         }
 
-        case 0x2: // Vertical flip - TODO: could be optimised using memcpy.
-        case 0x6: // Don't copy transparent pixels and vertical flip.
+        case kBlitVerticalFlip:
         {
-            dst += ((y2 + h - 1) * write_surface->width) + x2;
+            // TODO: could be optimised using memcpy.
+            dst += ((dst_y + h - 1) * dst_surface->width) + dst_x;
             pdelta = 1;
-            ldelta = -(write_surface->width + w);
+            ldelta = -(dst_surface->width + w);
             break;
         }
 
-        case 0x3: // Vertical & horizontal flip.
-        case 0x7: // Don't copy transparent pixels and vertical & horizontal flip.
+        case kBlitHorizontalFlip | kBlitVerticalFlip:
         {
-            // TODO
-        }
-
-        case 0x4: // Don't copy transparent pixels.
-        {
-            dst += (y2 * write_surface->width) + x2;
-            pdelta = 1;
-            ldelta = write_surface->width - w;
+            dst += ((dst_y + h - 1) * dst_surface->width) + dst_x + w - 1;
+            pdelta = -1;
+            ldelta = 0;
             break;
         }
 
         default:
-            return kInvalidFlag;
+            return kInternalFault;
     }
 
     for (int i = 0; i < h; i++) {
         for (int j = 0; j < w; j++) {
-            if ((flags & 0x4) && *src == transparent) {
+            if ((flags & kBlitWithTransparency) && *src == transparent) {
                 src++;
             } else {
                 *dst = *src++;
             }
             dst += pdelta;
         }
-        src += read_surface->width - w;
+        src += src_surface->width - w;
         dst += ldelta;
     }
 
