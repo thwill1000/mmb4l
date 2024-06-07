@@ -110,6 +110,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Font",        T_CMD,              0, cmd_font     },
     { "For",         T_CMD,              0, cmd_for      },
     { "Function",    T_CMD,              0, cmd_subfun   },
+    { "FrameBuffer", T_CMD,              0, cmd_framebuffer },
     { "GoSub",       T_CMD,              0, cmd_gosub    },
     { "GoTo",        T_CMD,              0, cmd_goto     },
     { "Graphics",    T_CMD,              0, cmd_graphics },

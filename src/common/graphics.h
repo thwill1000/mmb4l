@@ -145,7 +145,10 @@ typedef struct {
     int height;
     int width;
     const char *interrupt_addr;
+    MmGraphicsColour transparent;
 } MmSurface;
+
+extern const MmGraphicsColour GRAPHICS_RGB121_COLOURS[];
 
 extern MmSurface graphics_surfaces[];
 extern MmSurface *graphics_current;
@@ -200,9 +203,11 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
  *                          0x01 = mirrored left to right.
  *                          0x02 = mirrored top to bottom.
  *                          0x04 = don't copy transparent pixels.
+ * @param  transparent    Transparent colour, -1 for none.
  */
 MmResult graphics_blit(int x1, int y1, int x2, int y2, int width, int height,
-                       MmSurface *read_surface, MmSurface *write_surface, int flags);
+                       MmSurface *read_surface, MmSurface *write_surface, unsigned flags,
+                       MmGraphicsColour transparent);
 
 /**
  * Blits 4-bit colour compressed "sprite" from memory.

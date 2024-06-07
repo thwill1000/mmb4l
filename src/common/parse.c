@@ -625,7 +625,7 @@ MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id) {
     return kOk;
 }
 
-static inline MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) {
+MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) {
     *page_id = -1;
     const char *tp;
     if ((tp = checkstring(p, "N"))) {

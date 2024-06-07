@@ -100,7 +100,7 @@ static MmResult cmd_graphics_copy(const char *p) {
     }
 
     return graphics_blit(0, 0, 0, 0, src_surface->width, src_surface->height, src_surface,
-                         dst_surface, transparent_black ? 0x4 : 0x0);
+                         dst_surface, transparent_black ? 0x4 : 0x0, RGB_BLACK);
 }
 
 /** GRAPHICS WINDOW id, x, y, width, height [, scale] [, interrupt] */

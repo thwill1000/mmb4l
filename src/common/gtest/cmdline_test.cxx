@@ -33,13 +33,12 @@ CommandToken cmdFUN = 0x0;
 CommandToken cmdSUB = 0x0;
 
 // Defined in "core/MMBasic.c"
+char *getCstring(const char *p) { return NULL; }
 const char *skipexpression(const char *p) { return NULL; }
 
 // Defined in "core/tokentbl.c"
 char tokenAS = 0x0;
 
-// Defined in "core/MMBasic.c"
-char *getCstring(const char *p) { return NULL; }
 }
 
 TEST(CmdLineTest, Parse_GivenNoAdditionalArguments) {

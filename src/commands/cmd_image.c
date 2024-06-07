@@ -96,13 +96,13 @@ static MmResult cmd_image_resize_fast(const char *p) {
 
     if (width == new_width && height == new_height && src_surface != write_surface) {
         return graphics_blit(x, y, new_x, new_y, width, height, src_surface, write_surface,
-                             transparent_black ? 4 : 0);
+                             transparent_black ? 4 : 0, RGB_BLACK);
     } else if (width == new_width && src_surface != write_surface) {
         const float y_ratio = ((float) height / (float) new_height);
         for (int yy = 0; yy < new_height; ++yy) {
             int py = (yy * y_ratio) + y;
             return graphics_blit(x, py, new_x, new_y + yy, width, 1, src_surface, write_surface,
-                                 transparent_black ? 4 : 0);
+                                 transparent_black ? 4 : 0, RGB_BLACK);
         }
     } else {
         const int x_ratio = (int)((float) width / (float) new_width * (float)65536.0);

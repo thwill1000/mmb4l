@@ -113,6 +113,7 @@ typedef enum {
     kGraphicsSurfaceExists,
     kGraphicsSurfaceSizeMismatch,
     kGraphicsSurfaceTooLarge,
+    kGraphicsReadAndWriteSurfaceSame,
     kImageTooLarge,
     kImageInvalidFormat,
     kInvalidFont,
@@ -157,7 +158,7 @@ extern char mmresult_last_msg[STRINGSIZE];
 
 #define MMRESULT_RETURN_EX(result, format, ...) { \
     mmresult_last_code = result; \
-    snprintf(mmresult_last_msg, STRINGSIZE, format, __VA_ARGS__); \
+    snprintf(mmresult_last_msg, STRINGSIZE, format, ##__VA_ARGS__); \
     return result; \
 }
 
