@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_PARSE_H)
 #define MMB4L_PARSE_H
 
+#include "graphics.h"
 #include "mmresult.h"
 #include "../core/commandtbl.h"
 
@@ -151,5 +152,8 @@ MmResult parse_gp_pin(const char **p, uint8_t *pin_gp);
  *                         kNotParsed if a GPnn specification is not parsed.
  */
 MmResult parse_pin_num(const char **p, uint8_t *pin_num, bool *gp);
+
+// TODO
+MmResult parse_picomite_surface(const char *p, MmSurfaceId *surface_id);
 
 #endif
