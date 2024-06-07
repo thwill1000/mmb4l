@@ -91,13 +91,13 @@ static void cmd_image_resize_fast(const char *p) {
 
     if (width == new_width && height == new_height && read_surface != write_surface) {
         graphics_blit(x, y, new_x, new_y, width, height, read_surface, write_surface,
-                      transparent_black ? 4 : 0);
+                      transparent_black ? 0x4 : 0x0, RGB_BLACK);
     } else if (width == new_width && read_surface != write_surface) {
         const float y_ratio = ((float) height / (float) new_height);
         for (int yy = 0; yy < new_height; ++yy) {
             int py = (yy * y_ratio) + y;
             graphics_blit(x, py, new_x, new_y + yy, width, 1, read_surface, write_surface,
-                          transparent_black ? 4 : 0);
+                          transparent_black ? 0x4 : 0x0, RGB_BLACK);
         }
     } else {
         const int x_ratio = (int)((float) width / (float) new_width * (float)65536.0);

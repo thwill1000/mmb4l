@@ -46,15 +46,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
 
-#define CMM2_BLIT_BUF_BASE   63
-#define CMM2_BLIT_BUF_COUNT  64
-
 /** BLIT CLOSE [#]b */
 static void cmd_blit_close(const char *p) {
     skipspace(p);
     if (*p == '#') p++;
     MMINTEGER surface_id = getint(p, 0, GRAPHICS_MAX_ID);
-    if (mmb_options.simulate == kSimulateCmm2) surface_id += CMM2_BLIT_BUF_BASE;
+    if (mmb_options.simulate != kSimulateMmb4l) surface_id += CMM2_BLIT_BASE;
     MmResult result = kOk;
     if (!graphics_surface_exists(surface_id)) {
         result = kGraphicsSurfaceNotFound;
@@ -74,10 +71,10 @@ static void cmd_blit_close_all(const char *p) {
         return;
     }
     MmResult result = kOk;
-    const MmSurfaceId start_id = mmb_options.simulate == kSimulateCmm2 ? CMM2_BLIT_BUF_BASE : 0;
-    const MmSurfaceId end_id = mmb_options.simulate == kSimulateCmm2
-            ? CMM2_BLIT_BUF_BASE + CMM2_BLIT_BUF_COUNT
-            : GRAPHICS_MAX_ID;
+    const MmSurfaceId start_id = mmb_options.simulate == kSimulateMmb4l ? 0 : CMM2_BLIT_BASE;
+    const MmSurfaceId end_id = mmb_options.simulate == kSimulateMmb4l
+            ? GRAPHICS_MAX_ID
+            : CMM2_BLIT_BASE + CMM2_BLIT_COUNT;
     for (MmSurfaceId surface_id = start_id; surface_id <= end_id; ++surface_id) {
         if (graphics_surfaces[surface_id].type != kGraphicsNone
                 && graphics_surfaces[surface_id].type != kGraphicsWindow) {
@@ -172,7 +169,7 @@ static void cmd_blit_nointerrupt(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT NOINTERRUPT");
 }
 
-/** BLIT READ [#]b, x, y, w, h [,pagenumber] */
+/** BLIT READ [#]b, x, y, w, h [, read_surface] */
 static void cmd_blit_read(const char *p) {
     getargs(&p, 11, ",");
     if (!(argc == 9 || argc == 11)) ERROR_ARGUMENT_COUNT;
@@ -184,7 +181,7 @@ static void cmd_blit_read(const char *p) {
     MMINTEGER h = getint(argv[8], 0, WINDOW_MAX_HEIGHT);
     if (w < 1 || h < 1) return;
 
-    if (mmb_options.simulate == kSimulateCmm2) write_id += CMM2_BLIT_BUF_BASE;
+    if (mmb_options.simulate != kSimulateMmb4l) write_id += CMM2_BLIT_BASE;
     // TODO: Check for CMM2 buffer out of range.
     if (graphics_surfaces[write_id].type == kGraphicsNone) {
         MmResult result = graphics_buffer_create(write_id, w, h);
@@ -206,7 +203,7 @@ static void cmd_blit_read(const char *p) {
             read_surface = &graphics_surfaces[read_id];
         }
     }
-    graphics_blit(x, y, 0, 0, w, h, read_surface, write_surface, 0x0);
+    graphics_blit(x, y, 0, 0, w, h, read_surface, write_surface, 0x0, RGB_BLACK);
 }
 
 static void cmd_blit_restore(const char *p) {
@@ -244,11 +241,11 @@ static void cmd_blit_write(const char *p) {
 
     if (*argv[0] == '#') argv[0]++;
     MMINTEGER read_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+    if (mmb_options.simulate != kSimulateMmb4l) read_id += CMM2_BLIT_BASE;
     if (!graphics_surface_exists(read_id)) {
         error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist");
         return;
     }
-    if (mmb_options.simulate == kSimulateCmm2) read_id += CMM2_BLIT_BUF_BASE;
     // TODO: Check for CMM2 buffer out of range.
     MmSurface *read_surface = &graphics_surfaces[read_id];
 
@@ -257,7 +254,7 @@ static void cmd_blit_write(const char *p) {
 
     MmSurface *write_surface = graphics_current;
     MmResult result = graphics_blit(0, 0, x, y, read_surface->width, read_surface->height,
-                                    read_surface, write_surface, 0x0);
+                                    read_surface, write_surface, 0x0, RGB_BLACK);
     if (FAILED(result)) error_throw(result);
 }
 
@@ -286,7 +283,8 @@ static void cmd_blit_default(const char *p) {
     MMINTEGER flags = argc == 15 ? getint(argv[14], 0, 7) : 0x0;
 
     MmSurface* write_surface = graphics_current;
-    MmResult result = graphics_blit(x1, y1, x2, y2, w, h, read_surface, write_surface, flags);
+    MmResult result = graphics_blit(x1, y1, x2, y2, w, h, read_surface, write_surface, flags,
+                                    RGB_BLACK);
     if (FAILED(result)) error_throw(result);
 }
 

@@ -133,6 +133,7 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsSurfaceNotFound:    return "Graphics surface does not exist";
         case kGraphicsSurfaceExists:      return "Graphics surface already exists";
         case kGraphicsSurfaceTooLarge:    return "Graphics surface too large";
+        case kGraphicsReadAndWriteSurfaceSame: return "Read and write surfaces are the same";
         case kImageTooLarge:              return "Image too large";
         case kImageInvalidFormat:         return "Invalid image format";
         case kInvalidFont:                return "Invalid font";

@@ -42,22 +42,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/graphics.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
 
 void cmd_cls(void) {
     skipspace(cmdline);
-    MmGraphicsColour colour = graphics_bcolour;
+    const MmSurface *layer = &graphics_surfaces[GRAPHICS_SURFACE_L];
+    MmGraphicsColour colour =
+        (mmb_options.simulate == kSimulatePicoMiteVga && graphics_current == layer)
+            ? colour = layer->transparent
+            : graphics_bcolour;
     if (*cmdline != 0 && *cmdline != '\'') colour = getint(cmdline, RGB_BLACK, RGB_WHITE);
     if (graphics_current) {
-        MmResult result = graphics_draw_rectangle(graphics_current, 0, 0,
-                                                  graphics_current->width - 1,
-                                                  graphics_current->height - 1, colour);
+        MmResult result =
+            graphics_draw_rectangle(graphics_current, 0, 0, graphics_current->width - 1,
+                                    graphics_current->height - 1, colour);
         if (FAILED(result)) error_throw(result);
     } else {
-      console_clear();
+        console_clear();
     }
 }
