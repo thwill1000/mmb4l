@@ -610,3 +610,27 @@ MmResult parse_pin_num(const char **p, uint8_t *pin_num, bool *is_gp) {
     }
     return result;
 }
+
+MmResult parse_picomite_surface(const char *p, MmSurfaceId *surface_id) {
+    *surface_id = -1;
+    const char *tp;
+    if ((tp = checkstring(p, "N"))) {
+        *surface_id = GRAPHICS_SURFACE_N;
+    } else if ((tp = checkstring(p, "F"))) {
+        *surface_id = GRAPHICS_SURFACE_F;
+    } else if ((tp = checkstring(p, "L"))) {
+        *surface_id = GRAPHICS_SURFACE_L;
+    } else { // Allow string expression.
+        const char *s = getCstring(p);
+        if (strcasecmp(s, "N")) {
+            *surface_id = GRAPHICS_SURFACE_N;
+        } else if (strcasecmp(s, "F")) {
+            *surface_id = GRAPHICS_SURFACE_F;
+        } else if (strcasecmp(s, "L")) {
+            *surface_id = GRAPHICS_SURFACE_L;
+        } else {
+            return kSyntax;
+        }
+    }
+    return kOk;
+}

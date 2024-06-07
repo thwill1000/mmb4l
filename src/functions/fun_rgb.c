@@ -67,7 +67,8 @@ static MMINTEGER fun_rgb_parse_colour(const char *p) {
     else if (checkstring(p, "BLUE"))
         return RGB_BLUE;
     else if (checkstring(p, "BROWN"))
-        return RGB_BROWN;
+        return (mmb_options.simulate == kSimulateGameMite || mmb_options.simulate == kSimulatePicoMiteVga)
+                ? RGB_BROWN_4BIT : RGB_BROWN;
     else if (checkstring(p, "GREEN"))
         return RGB_GREEN;
     else if (checkstring(p, "CERULEAN"))
@@ -91,7 +92,8 @@ static MMINTEGER fun_rgb_parse_colour(const char *p) {
     else if (checkstring(p, "LILAC"))
         return RGB_LILAC;
     else if (checkstring(p, "MAGENTA"))
-        return RGB_MAGENTA;
+        return (mmb_options.simulate == kSimulateGameMite || mmb_options.simulate == kSimulatePicoMiteVga)
+                ? RGB_MAGENTA_4BIT : RGB_MAGENTA;
     else if (checkstring(p, "MIDGREEN"))
         return RGB_MIDGREEN;
     else if (checkstring(p, "MYRTLE"))

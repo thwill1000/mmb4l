@@ -84,7 +84,7 @@ static void cmd_graphics_copy(const char *p) {
     MmSurface* write_surface = &graphics_surfaces[write_id];
 
     if (read_surface->width != write_surface->width || read_surface->height != write_surface->height) {
-        error_throw_ex(kError, "Page size mismatch - use BLIT");
+        error_throw_ex(kError, "Surface size mismatch - use BLIT");
     }
 
     if (argc >= 5 && *argv[4]) {
@@ -107,7 +107,8 @@ static void cmd_graphics_copy(const char *p) {
     }
 
     MmResult result = graphics_blit(0, 0, 0, 0, read_surface->width, read_surface->height,
-                                    read_surface, write_surface, transparent_black ? 4 : 0);
+                                    read_surface, write_surface, transparent_black ? 0x4 : 0x0,
+                                    RGB_BLACK);
     if (FAILED(result)) error_throw(result);
 }
 
