@@ -99,6 +99,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RGB_BROWN_4BIT    RGB(0xFF, 0x80,    0, 0xFF)
 #define RGB_LILAC         RGB(0xFF, 0x80, 0xFF, 0xFF)
 
+#define CMM2_BLIT_BASE   63
+#define CMM2_BLIT_COUNT  64
+
 typedef enum {
     kGraphicsNone = 0,
     kGraphicsBuffer,
@@ -142,7 +145,10 @@ typedef struct {
     int height;
     int width;
     const char *interrupt_addr;
+    MmGraphicsColour transparent;
 } MmSurface;
+
+extern const MmGraphicsColour GRAPHICS_RGB121_COLOURS[];
 
 extern MmSurface graphics_surfaces[];
 extern MmSurface *graphics_current;
@@ -183,9 +189,11 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
  *                          0x01 = mirrored left to right.
  *                          0x02 = mirrored top to bottom.
  *                          0x04 = don't copy transparent pixels.
+ * @param  transparent    Transparent colour, -1 for none.
  */
 MmResult graphics_blit(int x1, int y1, int x2, int y2, int w, int h,
-                       MmSurface *read_surface, MmSurface *write_surface, int flags);
+                       MmSurface *read_surface, MmSurface *write_surface, unsigned flags,
+                       MmGraphicsColour transparent);
 
 /**
  * Blits 4-bit colour compressed "sprite" from memory.
@@ -196,8 +204,8 @@ MmResult graphics_blit(int x1, int y1, int x2, int y2, int w, int h,
  * @param  w, h         Width and height of sprite.
  * @param  transparent  4-bit colour to treat as transparent, -1 for no transparency.
  */
-MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int32_t x, int32_t y,
-                                         uint32_t w, uint32_t h, int32_t transparent);
+MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int x, int y, int w, int h,
+                                         unsigned transparent);
 
 /**
  * Blits 4-bit colour uncompressed "sprite" from memory.
@@ -208,8 +216,8 @@ MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int32_t
  * @param  w, h         Width and height of sprite.
  * @param  transparent  4-bit colour to treat as transparent, -1 for no transparency.
  */
-MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int32_t x, int32_t y,
-                                           uint32_t w, uint32_t h, int32_t transparent);
+MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x, int y, int w,
+                                           int h, unsigned transparent);
 
 /**
  * Draws an anti-aliased straight line.
