@@ -41,6 +41,7 @@ void cmd_exitfor() { }
 void cmd_files() { }
 void cmd_font() { }
 void cmd_for() { }
+void cmd_framebuffer() { }
 void cmd_gosub() { }
 void cmd_goto() { }
 void cmd_graphics() { }

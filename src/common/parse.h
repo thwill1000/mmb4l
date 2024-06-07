@@ -154,6 +154,16 @@ MmResult parse_gp_pin(const char **p, uint8_t *pin_gp);
 MmResult parse_pin_num(const char **p, uint8_t *pin_num, bool *gp);
 
 /**
+ * Parses a picomite page/framebuffer, i.e. N, F, L or "N", "F", "L".
+ *
+ * @param[in]   p        Parse from this pointer.
+ * @param[out]  page_id  The corresponding page/surface ID.
+ * @return               kSyntax if not parsed.
+ *                       This function does not check if the page/framebuffer exists.
+ */
+MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id);
+
+/**
  * Parses a page/surface ID.
  *
  * @param[in]   p        Parse from this pointer.

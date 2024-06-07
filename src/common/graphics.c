@@ -63,7 +63,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HRes graphics_current->width
 #define VRes graphics_current->height
 
-const MmGraphicsColour GRAPHICS_4BIT_COLOUR[] = {
+/** PicoMite RGB121 colours. */
+const MmGraphicsColour GRAPHICS_RGB121_COLOURS[] = {
     RGB_BLACK,
     RGB_BLUE,
     RGB_MYRTLE,
@@ -161,9 +162,48 @@ MmSurfaceId graphics_find_window(uint32_t sdl_window_id) {
     return -1;
 }
 
+/**
+ * Copies frame buffer N (surface 1) to the display (surface 0)
+ * and then merges frame buffer L (surface 3) with it,
+ * ignoring transparent pixels from L.
+ * This behaviour is specific to the PicoMite VGA.
+ */
+static MmResult graphics_merge_picomite_vga_buffers() {
+    assert(mmb_options.simulate == kSimulatePicoMiteVga);
+
+    const bool merge = graphics_surfaces[GRAPHICS_SURFACE_N].dirty
+            || graphics_surfaces[GRAPHICS_SURFACE_L].dirty;
+    if (!merge) return kOk;
+
+    if (graphics_surface_exists(GRAPHICS_SURFACE_N)) {
+        MmResult result = graphics_blit(0, 0, 0, 0, 320, 240,
+                                        &graphics_surfaces[GRAPHICS_SURFACE_N],
+                                        &graphics_surfaces[0], 0x0, RGB_BLACK);
+        if (FAILED(result)) return result;
+    }
+
+    if (graphics_surface_exists(GRAPHICS_SURFACE_L)) {
+        MmResult result = graphics_blit(0, 0, 0, 0, 320, 240,
+                                        &graphics_surfaces[GRAPHICS_SURFACE_L],
+                                        &graphics_surfaces[0], 0x4,
+                                        graphics_surfaces[GRAPHICS_SURFACE_L].transparent);
+        if (FAILED(result)) return result;
+    }
+
+    graphics_surfaces[GRAPHICS_SURFACE_N].dirty = false;
+    graphics_surfaces[GRAPHICS_SURFACE_L].dirty = false;
+
+    return kOk;
+}
+
 void graphics_refresh_windows() {
     // if (SDL_GetTicks64() > frameEnd) {
     if (SDL_GetTicks() > frameEnd) {
+        if (mmb_options.simulate == kSimulatePicoMiteVga) {
+            MmResult result = graphics_merge_picomite_vga_buffers();
+            if (FAILED(result)) error_throw(result);
+        }
+
         // TODO: Optimise by using linked-list of windows.
         for (int id = 0; id <= GRAPHICS_MAX_ID; ++id) {
             MmSurface* s = &graphics_surfaces[id];
@@ -961,12 +1001,12 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
 }
 
 MmResult graphics_blit(int x1, int y1, int x2, int y2, int w, int h,
-                       MmSurface *read_surface, MmSurface *write_surface, int flags){
+                       MmSurface *read_surface, MmSurface *write_surface, unsigned flags,
+                       MmGraphicsColour transparent) {
     uint32_t *src = read_surface->pixels + (y1 * read_surface->width) + x1;
     uint32_t *dst = write_surface->pixels;
     int pdelta = 0; // Added to dst after writing each pixel.
     int ldelta = 0; // Added to dst after writing each line.
-    uint32_t transparent_colour = RGB_BLACK; // Black for now, but configurable in the future ?
 
     write_surface->dirty = true;
 
@@ -1023,7 +1063,7 @@ MmResult graphics_blit(int x1, int y1, int x2, int y2, int w, int h,
 
     for (int i = 0; i < h; i++) {
         for (int j = 0; j < w; j++) {
-            if ((flags & 0x4) && *src == transparent_colour) {
+            if ((flags & 0x4) && *src == transparent) {
                 src++;
             } else {
                 *dst = *src++;
@@ -1049,7 +1089,7 @@ MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int x, 
                 data++;
             }
             if (colour != transparent) {
-                graphics_set_pixel_safe(surface, xx, yy, GRAPHICS_4BIT_COLOUR[colour]);
+                graphics_set_pixel_safe(surface, xx, yy, GRAPHICS_RGB121_COLOURS[colour]);
             }
             count--;
         }
@@ -1079,7 +1119,7 @@ MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x
                     return kInternalFault;
             }
             if (colour != transparent) {
-                graphics_set_pixel_safe(surface, xx, yy, GRAPHICS_4BIT_COLOUR[colour]);
+                graphics_set_pixel_safe(surface, xx, yy, GRAPHICS_RGB121_COLOURS[colour]);
             }
             count--;
         }

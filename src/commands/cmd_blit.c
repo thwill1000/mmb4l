@@ -163,7 +163,7 @@ MmResult cmd_blit_read(const char *p) {
         src_surface = &graphics_surfaces[src_id];
     }
 
-    return graphics_blit(x, y, 0, 0, width, height, src_surface, dst_surface, 0x0);
+    return graphics_blit(x, y, 0, 0, width, height, src_surface, dst_surface, 0x0, RGB_BLACK);
 }
 
 /** BLIT WRITE [#]src_id, x, y [, orientation] */
@@ -181,7 +181,7 @@ MmResult cmd_blit_write(const char *p) {
 
     MmSurface *dst_surface = graphics_current;
     return graphics_blit(0, 0, x, y, src_surface->width, src_surface->height, src_surface,
-                         dst_surface, 0x0);
+                         dst_surface, 0x0, RGB_BLACK);
 }
 
 /** BLIT x1, y1, x2, y2, width, height [, src_id] [, flags] */
@@ -204,9 +204,9 @@ static MmResult cmd_blit_default(const char *p) {
         if (FAILED(result)) return result;
         src_surface = &graphics_surfaces[src_id];
     }
-    const int flags = (argc == 15) ? getint(argv[14], 0, 7) : 0x0;
+    const unsigned flags = (argc == 15) ? getint(argv[14], 0, 7) : 0x0;
     MmSurface* dst_surface = graphics_current;
-    return graphics_blit(x1, y1, x2, y2, width, height, src_surface, dst_surface, flags);
+    return graphics_blit(x1, y1, x2, y2, width, height, src_surface, dst_surface, flags, RGB_BLACK);
 }
 
 void cmd_blit(void) {
