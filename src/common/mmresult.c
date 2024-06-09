@@ -57,6 +57,7 @@ const char *mmresult_to_string(MmResult result) {
         case kError:         return "MMBasic error";
         case kInternalFault: return "Internal fault (sorry)";
         case kSyntax:        return "Syntax";
+        case kArgumentCount: return "Argument count";
         case kStringTooLong: return "String too long";
         case kInvalidFormat: return "Invalid format";
         case kUnknownOption: return "Unknown option";

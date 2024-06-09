@@ -67,13 +67,15 @@ extern ErrorState mmb_normal_error_state;
 
 void error_get_line_and_file(int *line, char *file_path);
 void error_init(ErrorState *error_state);
-void error_throw(MmResult error);
-void error_throw_ex(MmResult error, const char *msg, ...);
-void error_throw_legacy(const char *msg, ...);
-uint8_t error_to_exit_code(MmResult error);
+MmResult error_throw(MmResult result);
+MmResult error_throw_ex(MmResult result, const char *msg, ...);
+MmResult error_throw_legacy(const char *msg, ...);
+uint8_t error_to_exit_code(MmResult result);
+
+#define ERROR_ON_FAILURE(x)  if (FAILED(x)) { error_throw(x); return; }
 
 #define ERROR_ALREADY_OPEN                error_throw_ex(kError, "File or device already open")
-#define ERROR_ARGUMENT_COUNT              error_throw_ex(kSyntax, "Argument count")
+#define ERROR_ARGUMENT_COUNT              error_throw(kArgumentCount)
 #define ERROR_ARRAY_NOT_SQUARE            error_throw_ex(kError, "Array must be square")
 #define ERROR_ARRAY_SIZE_MISMATCH         error_throw_ex(kError, "Array size mismatch")
 #define ERROR_ARG_NOT_ARRAY(i)            error_throw_ex(kError, "Argument % must be an array")
