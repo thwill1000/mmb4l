@@ -11,8 +11,8 @@
 #include "common/console.h"
 
 void console_key_to_string(int ch, char *buf);
-void error_throw(MmResult error) {}
-void error_throw_ex(MmResult error, const char *msg, ...) {}
+MmResult error_throw(MmResult result) { return result; }
+MmResult error_throw_ex(MmResult result, const char *msg, ...) { return result; }
 
 volatile int MMAbort;
 Options mmb_options;

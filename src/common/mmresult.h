@@ -65,6 +65,7 @@ typedef enum {
     kError                = 256,
     kInternalFault,
     kSyntax,
+    kArgumentCount,
     kStringLength,
     kStringTooLong,
     kInvalidFormat,

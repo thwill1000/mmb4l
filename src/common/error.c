@@ -197,28 +197,30 @@ static void verror(MmResult error, const char *msg, va_list argp) {
     }
 }
 
-void error_throw_legacy(const char *msg, ...) {
+MmResult error_throw_legacy(const char *msg, ...) {
     va_list argp;
     va_start(argp, msg);
     verror(kError, msg, argp);
     assert(0); // Don't expect to get here because of long_jmp().
     va_end(argp);
+    return kError;
 }
 
-void error_throw_ex(MmResult error, const char *msg, ...) {
+MmResult error_throw_ex(MmResult result, const char *msg, ...) {
     va_list argp;
     va_start(argp, msg);
-    verror(error, msg, argp);
+    verror(result, msg, argp);
     assert(0); // Don't expect to get here because of long_jmp().
     va_end(argp);
+    return result;
 }
 
-void error_throw(MmResult error) {
-    error_throw_ex(error, mmresult_to_string(error));
+MmResult error_throw(MmResult result) {
+    return error_throw_ex(result, mmresult_to_string(result));
 }
 
-uint8_t error_to_exit_code(MmResult error) {
-    switch (error) {
+uint8_t error_to_exit_code(MmResult result) {
+    switch (result) {
         default:
             return EX_FAIL;
     }
