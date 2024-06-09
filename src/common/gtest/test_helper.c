@@ -17,16 +17,18 @@ char error_msg[256];
 // Defined in "common/error.c"
 void error_init(ErrorState *error_state) { }
 
-void error_throw(MmResult error) {
-    error_throw_ex(error, mmresult_to_string(error));
+MmResult error_throw(MmResult result) {
+    return error_throw_ex(result, mmresult_to_string(result));
 }
 
-void error_throw_ex(MmResult error, const char *msg, ...) {
+MmResult error_throw_ex(MmResult result, const char *msg, ...) {
     strcpy(error_msg, msg);
+    return result;
 }
 
-void error_throw_legacy(const char *msg, ...) {
+MmResult error_throw_legacy(const char *msg, ...) {
     strcpy(error_msg, msg);
+    return kOk;
 }
 
 void clear_prog_memory() {
