@@ -48,7 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void cmd_blit_framebuffer(const char *p);
 void cmd_blit_scroll(const char *p);
-void cmd_blit_write(const char *p);
+
+MmResult parse_sprite_id(char *p, bool allow_none, MmSurface **sprite);
 
 /** SPRITE LOAD filename$ [, start_sprite] [, colour mode] */
 static MmResult cmd_sprite_load(const char *p) {
@@ -129,6 +130,36 @@ static MmResult cmd_sprite_read(const char *p) {
     return graphics_blit(x, y, 0, 0, w, h, read_surface, write_surface, 0x0, RGB_BLACK);
 }
 
+/** SPRITE SCROLL x, y [, colour] */
+MmResult cmd_sprite_scroll(const char *p) {
+    getargs(&p, 5, ",");
+    if (argc != 3 && argc != 5) return kArgumentCount;
+    const int32_t maxW = graphics_current->width;
+    const int32_t maxH = graphics_current->height;
+    int32_t x = getint(argv[0], -maxW / 2 - 1, maxW);
+    int32_t y = getint(argv[2], -maxH / 2 - 1, maxH);
+    MmGraphicsColour colour = -1;
+    if (argc == 5) {
+        switch (mmb_options.simulate) {
+            case kSimulateGameMite:
+            case kSimulatePicoMiteVga:
+                colour = getint(argv[4], -1, 15);
+                if (colour >= 0) colour = GRAPHICS_RGB121_COLOURS[colour];
+                break;
+            default:
+                colour = getint(argv[4], -1, RGB_WHITE);
+                break;
+        }
+    }
+    return sprite_scroll(x, y, colour);
+}
+
+/** SPRITE SCROLLR x, y, w, h, delta_x, delta_y [, col] */
+MmResult cmd_sprite_scrollr(const char *p) {
+    ERROR_UNIMPLEMENTED("SPRITE SCROLLR");
+    return kUnimplemented;
+}
+
 /** SPRITE SET TRANSPARENT rgb121_colour */
 static MmResult cmd_sprite_set_transparent(const char *p) {
     uint8_t rgb121_colour = getint(p, 0, 15);
@@ -136,9 +167,9 @@ static MmResult cmd_sprite_set_transparent(const char *p) {
 }
 
 /**
- * SPRITE SHOW [#]n, x, y, layer [, mode]
+ * SPRITE SHOW [#]n, x, y, layer [, orientation]
  *
- * 'mode' is a bitmask:
+ * 'orientation' is a bitmask:
  *   - bit 0 set - mirrored left to right.
  *   - bit 1 set - mirrored top to bottom.
  *   - bit 2 set - black pixels not treated as transparent default is 0.
@@ -170,11 +201,11 @@ static MmResult cmd_sprite_show(const char *p) {
     int32_t x = getint(argv[2], -sprite->width + 1, graphics_current->width - 1);
     int32_t y = getint(argv[4], -sprite->height + 1, graphics_current->height - 1);
     sprite->layer = getint(argv[6], 0, GRAPHICS_MAX_LAYER);
-    /*uint8_t mode = (argc == 9) ? getint(argv[8], 0, 7) : 1;*/
+    /*uint8_t orientation = (argc == 9) ? getint(argv[8], 0, 7) : 1;*/
 
-    //printf("x = %d, y = %d, layer = %d, mode = %d\n", x, y, layer, mode);
+    //printf("x = %d, y = %d, layer = %d, orientation = %d\n", x, y, layer, orientation);
 /*
-    int layer, mode=1;
+    int layer, orientation=1;
     bnbr = (int)getint(argv[0], 1, MAXBLITBUF);									// get the number
     // if(spritebuff[bnbr].h==9999)error("Invalid buffer");
     if (spritebuff[bnbr].spritebuffptr != NULL) {
@@ -184,7 +215,7 @@ static MmResult cmd_sprite_show(const char *p) {
         if (argc == 9)spritebuff[bnbr].rotation = (int)getint(argv[8], 0, 7);
         else spritebuff[bnbr].rotation = 0;
         if(spritebuff[bnbr].rotation>3){
-            mode |=8;
+            orientation |=8;
             spritebuff[bnbr].rotation&=3;
         }
         w = spritebuff[bnbr].w;
@@ -202,7 +233,7 @@ static MmResult cmd_sprite_show(const char *p) {
         sprites_in_use++;
 //        int cursorhidden = 0;
 */
-    //BlitShowBuffer(bnbr, x1, y1, mode);
+    //BlitShowBuffer(bnbr, x1, y1, orientation);
     MmResult result = sprite_show(sprite, graphics_current, x, y, 0x1);
     if (SUCCEEDED(result)) {
         result = sprite_update_collisions(sprite);
@@ -217,6 +248,39 @@ static MmResult cmd_sprite_show(const char *p) {
 */
 }
 
+/** SPRITE SHOW [#]n, x, y, layer [, orientation] [, ontop] */
+static MmResult cmd_sprite_show_safe(const char *p) {
+    ERROR_UNIMPLEMENTED("SPRITE SHOW SAFE");
+    return kUnimplemented;
+}
+
+/** SPRITE WRITE [#]b, x, y [,orientation] */
+MmResult cmd_sprite_write(const char *p) {
+    getargs(&p, 7, ",");
+    if (!(argc == 5 || argc == 7)) return kArgumentCount;
+
+    MmSurface *sprite = NULL;
+    MmResult result = parse_sprite_id(argv[0], false, &sprite);
+    if (FAILED(result)) return result;
+
+    // if (*argv[0] == '#') argv[0]++;
+    // MMINTEGER read_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+    // if (mmb_options.simulate != kSimulateMmb4l) read_id += CMM2_BLIT_BASE;
+    // printf("read_id = %ld\n", read_id);
+    // if (!graphics_surface_exists(read_id)) {
+    //     error_throw(kGraphicsInvalidReadSurface);
+    //     return;
+    // }
+    // // TODO: Check for CMM2 buffer out of range.
+    // MmSurface *read_surface = &graphics_surfaces[read_id];
+
+    MMINTEGER x = getint(argv[2], -sprite->width + 1, WINDOW_MAX_X);
+    MMINTEGER y = getint(argv[4], -sprite->height + 1, WINDOW_MAX_Y);
+
+    return graphics_blit(0, 0, x, y, sprite->width, sprite->height, sprite, graphics_current, 0x0,
+                         RGB_BLACK);
+}
+
 void cmd_sprite(void) {
     MmResult result = kOk;
     const char *p;
@@ -227,13 +291,17 @@ void cmd_sprite(void) {
     } else if ((p = checkstring(cmdline, "READ"))) {
         result = cmd_sprite_read(p);
     } else if ((p = checkstring(cmdline, "SCROLL"))) {
-        cmd_blit_scroll(p);
+        result = cmd_sprite_scroll(p);
+    } else if ((p = checkstring(cmdline, "SCROLLR"))) {
+        result = cmd_sprite_scrollr(p);
     } else if ((p = checkstring(cmdline, "SET TRANSPARENT"))) {
         result = cmd_sprite_set_transparent(p);
     } else if ((p = checkstring(cmdline, "SHOW"))) {
         result = cmd_sprite_show(p);
+    } else if ((p = checkstring(cmdline, "SHOW SAFE"))) {
+        result = cmd_sprite_show_safe(p);
     } else if ((p = checkstring(cmdline, "WRITE"))) {
-        cmd_blit_write(p);
+        result = cmd_sprite_write(p);
     } else {
         ERROR_UNKNOWN_SUBCOMMAND("SPRITE");
     }

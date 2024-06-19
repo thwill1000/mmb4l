@@ -60,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                          parsed),
  *                          kGraphicsNotASprite if the ID was valid, but not a sprite.
  */
-static MmResult parse_sprite_id(char *p, bool allow_none, MmSurface **sprite) {
+MmResult parse_sprite_id(char *p, bool allow_none, MmSurface **sprite) {
     if (*p == '#') p++;
     *sprite = NULL;
     if (mmb_options.simulate == kSimulateMmb4l) {
@@ -71,7 +71,9 @@ static MmResult parse_sprite_id(char *p, bool allow_none, MmSurface **sprite) {
         if (sprite_id != 0) *sprite = &graphics_surfaces[sprite_id + CMM2_SPRITE_BASE];
     }
     if (sprite) {
-        return ((*sprite)->type == kGraphicsSprite) ? kOk : kGraphicsNotASprite;
+        return ((*sprite)->type == kGraphicsSprite || (*sprite)->type == kGraphicsInactiveSprite)
+                ? kOk
+                : kGraphicsNotASprite;
     } else if (allow_none) {
         return kOk;
     } else {

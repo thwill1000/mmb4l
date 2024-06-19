@@ -127,6 +127,7 @@ const char *mmresult_to_string(MmResult result) {
             formatGraphicsApiError();
             return mmresult_buffer;
         case kGraphicsInvalidId:          return "Invalid graphics surface ID";
+        case kGraphicsInvalidReadSurface: return "Invalid graphics read surface";
         case kGraphicsInvalidWriteSurface: return "Invalid graphics write surface";
         case kGraphicsLoadBitmapFailed:   return "Bitmap could not be loaded";
         case kGraphicsSurfaceNotCreated:  return "Graphics surface could not be created";

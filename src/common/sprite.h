@@ -109,6 +109,21 @@ MmResult sprite_activate(MmSurface *sprite, bool activate);
 MmResult sprite_get_collision_bitset(MmSurface *sprite, uint8_t start, uint64_t *bitset);
 
 /**
+ * Scrolls the background and any sprites on layer 0 'x' pixels to the right and 'y'
+ * pixels up. 'x' can be any number between -MM.HRES-1 and MM.HRES-1,
+ * 'y' can be any number between -MM.VRES-1 and MM.VRES-1.
+ * Sprites on any layer other than zero will remain fixed in position on the
+ * screen. By default the scroll wraps the image round. If 'col' is specified the
+ * colour will replace the area behind the scrolled image. If 'col' is set to -1 the
+ * scrolled area will be left untouched.
+ *
+ * @param  x       TODO
+ * @param  y       TODO
+ * @param  colour  TODO
+ */
+MmResult sprite_scroll(int32_t x, int32_t y, MmGraphicsColour colour);
+
+/**
  * Sets the transparent colour for sprites.
  *
  * @param  colour  The transparent colour.

@@ -286,18 +286,6 @@ static void cmd_blit_restore(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT RESTORE");
 }
 
-void cmd_blit_scroll(const char *p) {
-    // ERROR_UNIMPLEMENTED("BLIT SCROLL");
-}
-
-static void cmd_blit_scrollr(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT SCROLLR");
-}
-
-static void cmd_blit_show_safe(const char *p) {
-    ERROR_UNIMPLEMENTED("BLIT SHOW SAFE");
-}
-
 static void cmd_blit_swap(const char *p) {
     ERROR_UNIMPLEMENTED("BLIT SWAP");
 }
@@ -314,8 +302,9 @@ void cmd_blit_write(const char *p) {
     if (*argv[0] == '#') argv[0]++;
     MMINTEGER read_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     if (mmb_options.simulate != kSimulateMmb4l) read_id += CMM2_BLIT_BASE;
+    printf("read_id = %ld\n", read_id);
     if (!graphics_surface_exists(read_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist");
+        error_throw(kGraphicsInvalidReadSurface);
         return;
     }
     // TODO: Check for CMM2 buffer out of range.
@@ -392,12 +381,6 @@ void cmd_blit(void) {
         cmd_blit_next(p);
     } else if ((p = checkstring(cmdline, "NOINTERRUPT"))) {
         cmd_blit_nointerrupt(p);
-    } else if ((p = checkstring(cmdline, "SCROLL"))) {
-        cmd_blit_scroll(p);
-    } else if ((p = checkstring(cmdline, "SCROLLR"))) {
-        cmd_blit_scrollr(p);
-    } else if ((p = checkstring(cmdline, "SHOW SAFE"))) {
-        cmd_blit_show_safe(p);
     } else if ((p = checkstring(cmdline, "READ"))) {
         cmd_blit_read(p);
     } else if ((p = checkstring(cmdline, "RESTORE"))) {
