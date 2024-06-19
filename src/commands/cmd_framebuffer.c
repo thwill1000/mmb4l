@@ -119,13 +119,13 @@ static void cmd_framebuffer_copy(const char *p) {
     }
 
     if (!graphics_surface_exists(read_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %%", read_id);
+        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %", read_id);
         return;
     }
     MmSurface* read_surface = &graphics_surfaces[read_id];
 
     if (!graphics_surface_exists(write_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Write surface does not exist: %%", write_id);
+        error_throw_ex(kGraphicsSurfaceNotFound, "Write surface does not exist: %", write_id);
         return;
     }
     MmSurface* write_surface = &graphics_surfaces[write_id];

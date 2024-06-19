@@ -74,7 +74,7 @@ static void cmd_image_resize_fast(const char *p) {
             ? getint(argv[16], 0, GRAPHICS_MAX_ID)
             : -1;
     if (read_id != -1 && !graphics_surface_exists(read_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %%", read_id);
+        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %", read_id);
     }
     MmSurface *read_surface = &graphics_surfaces[read_id];
     MmSurface *write_surface = graphics_current;

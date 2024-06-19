@@ -348,7 +348,7 @@ static void cmd_blit_default(const char *p) {
         if (graphics_surface_exists(read_id)) {
             read_surface = &graphics_surfaces[read_id];
         } else {
-            error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %%", read_id);
+            error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %", read_id);
             return;
         }
     }

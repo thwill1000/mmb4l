@@ -208,38 +208,58 @@ MmSurfaceId graphics_find_window(uint32_t sdl_window_id) {
 }
 
 /** TODO */
-static MmResult graphics_merge_picomite_vga_buffers() {
-    const bool merge = graphics_surfaces[GRAPHICS_SURFACE_N].dirty
-            || graphics_surfaces[GRAPHICS_SURFACE_L].dirty;
-    if (!merge) return kOk;
+static MmResult graphics_refresh_gamemite_window() {
+    MmSurface *buffer_N = &graphics_surfaces[GRAPHICS_SURFACE_N];
+    if (!buffer_N->dirty) return kOk;
+    MmResult result = kOk;
+    if (graphics_surface_exists(GRAPHICS_SURFACE_N)) {
+        MmSurface *window = &graphics_surfaces[0];
+        result = graphics_blit(0, 0, 0, 0, 320, 240, buffer_N, window, 0x0, RGB_BLACK);
+    }
+    if (SUCCEEDED(result)) buffer_N->dirty = false;
+    return kOk;
+}
+
+/** TODO */
+static MmResult graphics_refresh_picomite_vga_window() {
+    MmSurface *buffer_N = &graphics_surfaces[GRAPHICS_SURFACE_N];
+    MmSurface *buffer_L = &graphics_surfaces[GRAPHICS_SURFACE_L];
+
+    if (!buffer_N->dirty && !buffer_L->dirty) return kOk;
+
+    MmSurface *window = &graphics_surfaces[0];
+    const uint32_t w = buffer_N->width;
+    const uint32_t h = buffer_N->height;
+    MmResult result = kOk;
 
     if (graphics_surface_exists(GRAPHICS_SURFACE_N)) {
-        MmResult result = graphics_blit(0, 0, 0, 0, 320, 240,
-                                        &graphics_surfaces[GRAPHICS_SURFACE_N],
-                                        &graphics_surfaces[0], 0x0, RGB_BLACK);
-        if (FAILED(result)) return result;
+        result = graphics_blit(0, 0, 0, 0, w, h, buffer_N, window, 0x0, RGB_BLACK);
     }
 
-    if (graphics_surface_exists(GRAPHICS_SURFACE_L)) {
-        MmResult result = graphics_blit(0, 0, 0, 0, 320, 240,
-                                        &graphics_surfaces[GRAPHICS_SURFACE_L],
-                                        &graphics_surfaces[0], 0x4,
-                                        graphics_surfaces[GRAPHICS_SURFACE_L].transparent);
-        if (FAILED(result)) return result;
+    if (SUCCEEDED(result) && graphics_surface_exists(GRAPHICS_SURFACE_L)) {
+        result = graphics_blit(0, 0, 0, 0, w, h, buffer_L, window, 0x4, buffer_L->transparent);
     }
 
-    graphics_surfaces[GRAPHICS_SURFACE_N].dirty = false;
-    graphics_surfaces[GRAPHICS_SURFACE_L].dirty = false;
+    if (SUCCEEDED(result)) {
+        buffer_N->dirty = false;
+        buffer_L->dirty = false;
+    }
 
-    return kOk;
+    return result;
 }
 
 void graphics_refresh_windows() {
     // if (SDL_GetTicks64() > frameEnd) {
     if (SDL_GetTicks() > frameEnd) {
-        if (mmb_options.simulate == kSimulatePicoMiteVga) {
-            MmResult result = graphics_merge_picomite_vga_buffers();
-            if (FAILED(result)) error_throw(result);
+        switch (mmb_options.simulate) {
+            case kSimulateGameMite:
+                ERROR_ON_FAILURE(graphics_refresh_gamemite_window());
+                break;
+            case kSimulatePicoMiteVga:
+                ERROR_ON_FAILURE(graphics_refresh_picomite_vga_window());
+                break;
+            default:
+                break;
         }
 
         // TODO: Optimise by using linked-list of windows.
@@ -1616,7 +1636,10 @@ static MmResult graphics_simulate_gamemite(uint8_t mode) {
         result = graphics_window_create(0, -1, -1, 320, 240, 10, "Game*Mite", NULL);
     }
     if (SUCCEEDED(result)) {
-        result = graphics_surface_write(0);
+        result = graphics_buffer_create(GRAPHICS_SURFACE_N, 320, 240);
+    }
+    if (SUCCEEDED(result)) {
+        result = graphics_surface_write(GRAPHICS_SURFACE_N);
     }
     if (SUCCEEDED(result)) {
         graphics_fcolour = RGB_WHITE;

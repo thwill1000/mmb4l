@@ -74,10 +74,10 @@ static void cmd_graphics_copy(const char *p) {
     MMINTEGER write_id = getint(argv[2], 0, GRAPHICS_MAX_ID);
 
     if (!graphics_surface_exists(read_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %%", read_id);
+        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %", read_id);
     }
     if (!graphics_surface_exists(write_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Write surface does not exist: %%", write_id);
+        error_throw_ex(kGraphicsSurfaceNotFound, "Write surface does not exist: %", write_id);
     }
 
     MmSurface* read_surface = &graphics_surfaces[read_id];
