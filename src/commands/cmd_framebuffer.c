@@ -179,15 +179,15 @@ static void cmd_framebuffer_merge(const char *p) {
     uint8_t transparent = (argc > 0) ? getint(argv[0], 0, 15) : 0;
     // MMB4L ignores the 'mode' and 'update rate' arguments for the moment.
 
-    // Copy "Framebuffer" to display.
-    MmSurface* read_surface = &graphics_surfaces[1];
-    MmSurface* write_surface = &graphics_surfaces[0];
+    // Copy F to N.
+    MmSurface* read_surface = &graphics_surfaces[GRAPHICS_SURFACE_F];
+    MmSurface* write_surface = &graphics_surfaces[GRAPHICS_SURFACE_N];
     MmResult result = graphics_blit(0, 0, 0, 0, read_surface->width, read_surface->height,
                                     read_surface, write_surface, 0x0, RGB_BLACK);
     if (FAILED(result)) error_throw(result);
 
-    // Merge "Layer" with display.
-    read_surface = &graphics_surfaces[2];
+    // Merge L with N.
+    read_surface = &graphics_surfaces[GRAPHICS_SURFACE_L];
     result = graphics_blit(0, 0, 0, 0, read_surface->width, read_surface->height, read_surface,
                            write_surface, 0x4, GRAPHICS_RGB121_COLOURS[transparent]);
     if (FAILED(result)) error_throw(result);
