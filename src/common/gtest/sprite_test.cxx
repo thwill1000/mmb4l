@@ -31,12 +31,6 @@ void MMgetline(int fnbr, char *p) {}
 // Defined in "common/audio.c"
 const char *audio_last_error() { return NULL; }
 
-// Defined in "common/gamepad.c"
-const char *gamepad_last_error() { return NULL; }
-MmResult gamepad_on_analog(int32_t sdlId, uint8_t sdlAxis, int16_t value) { return kError; }
-MmResult gamepad_on_button_down(int32_t sdlId, uint8_t sdlButton) { return kError; }
-MmResult gamepad_on_button_up(int32_t sdlId, uint8_t sdlButton) { return kError; }
-
 // Defined in "common/console.c"
 int console_kbhit(void) { return 0; }
 char console_putc(char c) { return c; }

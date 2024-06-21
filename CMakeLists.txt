@@ -709,6 +709,7 @@ add_executable(
   src/common/upng.c
   src/common/sprite.c
   src/common/gtest/sprite_test.cxx
+  src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/sdl2_stubs.c
 )
 
