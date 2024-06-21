@@ -22,9 +22,6 @@ char error_msg[256];
 // Defined in "common/audio.c"
 const char *audio_last_error() { return ""; }
 
-// Defined in "common/console.c"
-void console_put_keypress(char ch) {}
-
 // Defined in "common/error.c"
 void error_init(ErrorState *error_state) {}
 MmResult error_throw(MmResult result) { return error_throw_ex(result, mmresult_to_string(result)); }
