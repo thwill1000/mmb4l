@@ -427,6 +427,13 @@ static void mminfo_platform(const char *p) {
     CtoM(g_string_rtn);
 }
 
+static void mminfo_sdcard(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_rtn_type = T_STR;
+    strcpy(g_string_rtn, "READY");
+    CtoM(g_string_rtn);
+}
+
 static void mminfo_version(const char *p) {
     const char *p2;
     g_rtn_type = T_INT;
@@ -529,6 +536,8 @@ void fun_mminfo(void) {
         mminfo_pin_no(p);
     } else if ((p = checkstring(ep, "PLATFORM"))) {
         mminfo_platform(p);
+    } else if ((p = checkstring(ep, "SDCARD"))) {
+        mminfo_sdcard(p);
     } else if ((p = checkstring(ep, "VERSION"))) {
         mminfo_version(p);
     } else if ((p = checkstring(ep, "VRES"))) {
