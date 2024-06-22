@@ -50,42 +50,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/tokentbl.h"
 
 /** GRAPHICS BUFFER id, width, height */
-static void cmd_graphics_buffer(const char *p) {
+static MmResult cmd_graphics_buffer(const char *p) {
     getargs(&p, 5, ",");
-    if (argc != 5) ERROR_ARGUMENT_COUNT;
+    if (argc != 5) return kArgumentCount;
     int id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     int width = getint(argv[2], 8, WINDOW_MAX_WIDTH);
     int height = getint(argv[4], 8, WINDOW_MAX_HEIGHT);
 
-    MmResult result = graphics_buffer_create(id, width, height);
-    if (FAILED(result)) error_throw(result);
+    return graphics_buffer_create(id, width, height);
 }
 
 /** GRAPHICS COPY n TO m [,when] [,t] */
-static void cmd_graphics_copy(const char *p) {
+MmResult cmd_graphics_copy(const char *p) {
     bool transparent_black = false;
     char ss[3];
     ss[0] = tokenTO;
     ss[1] =',';
     ss[2] = 0;
     getargs(&p, 7, ss);
-    if (argc<3) ERROR_ARGUMENT_COUNT;
+    if (argc < 3) return kArgumentCount;
     MMINTEGER read_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     MMINTEGER write_id = getint(argv[2], 0, GRAPHICS_MAX_ID);
 
-    if (!graphics_surface_exists(read_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Read surface does not exist: %", read_id);
-    }
-    if (!graphics_surface_exists(write_id)) {
-        error_throw_ex(kGraphicsSurfaceNotFound, "Write surface does not exist: %", write_id);
-    }
+    if (!graphics_surface_exists(read_id)) return kGraphicsInvalidReadSurface;
+    if (!graphics_surface_exists(write_id)) return kGraphicsInvalidWriteSurface;
 
     MmSurface* read_surface = &graphics_surfaces[read_id];
     MmSurface* write_surface = &graphics_surfaces[write_id];
 
-    if (read_surface->width != write_surface->width || read_surface->height != write_surface->height) {
-        error_throw_ex(kError, "Surface size mismatch - use BLIT");
-    }
+    if (read_surface->width != write_surface->width || read_surface->height != write_surface->height)
+        return kGraphicsSurfaceSizeMismatch;
 
     if (argc >= 5 && *argv[4]) {
         const char *p = argv[4];
@@ -96,8 +90,7 @@ static void cmd_graphics_copy(const char *p) {
                 // Ignore for now
                 break;
             default:
-                ERROR_SYNTAX;
-                break;
+                return kSyntax;
         }
     }
 
@@ -106,16 +99,14 @@ static void cmd_graphics_copy(const char *p) {
         if (toupper(*p) == 'T' || *p == '1') transparent_black = true;
     }
 
-    MmResult result = graphics_blit(0, 0, 0, 0, read_surface->width, read_surface->height,
-                                    read_surface, write_surface, transparent_black ? 0x4 : 0x0,
-                                    RGB_BLACK);
-    if (FAILED(result)) error_throw(result);
+    return graphics_blit(0, 0, 0, 0, read_surface->width, read_surface->height,
+                         read_surface, write_surface, transparent_black ? 0x4 : 0x0, RGB_BLACK);
 }
 
 /** GRAPHICS WINDOW id, x, y, width, height [, scale] [, interrupt] */
-static void cmd_graphics_window(const char *p) {
+static MmResult cmd_graphics_window(const char *p) {
     getargs(&p, 13, ",");
-    if (argc < 9 || argc > 13) ERROR_ARGUMENT_COUNT;
+    if (argc < 9 || argc > 13) return kArgumentCount;
     MMINTEGER id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     MMINTEGER x = getint(argv[2], -1, WINDOW_MAX_X);
     MMINTEGER y = getint(argv[4], -1, WINDOW_MAX_Y);
@@ -130,14 +121,14 @@ static void cmd_graphics_window(const char *p) {
         const char *cached_line_ptr = CurrentLinePtr;
         CurrentLinePtr = interrupt_addr; // So any error is reported on the correct line.
         MmResult result = parse_fn_sig(&p2, fn);
-        if (FAILED(result)) error_throw(result);
+        if (FAILED(result)) return result;
         CurrentLinePtr = cached_line_ptr;
         if (fn->token != cmdSUB
             || fn->num_params != 2
             || !(fn->params[0].type & T_INT)
             || !(fn->params[1].type & T_INT)
             || fn->params[0].array
-            || fn->params[1].array) error_throw(kInvalidInterruptSignature);
+            || fn->params[1].array) return kInvalidInterruptSignature;
         ClearSpecificTempMemory(fn);
     }
 
@@ -148,8 +139,7 @@ static void cmd_graphics_window(const char *p) {
 
     char title[256];
     sprintf(title, "MMB4L: %ld", id);
-    MmResult result = graphics_window_create(id, x, y, width, height, scale, title, interrupt_addr);
-    if (FAILED(result)) error_throw(result);
+    return graphics_window_create(id, x, y, width, height, scale, title, interrupt_addr);
 }
 
 /** GRAPHICS DESTROY id | ALL */
@@ -167,28 +157,30 @@ static MmResult cmd_graphics_destroy(const char *p) {
 }
 
 /** GRAPHICS WRITE id */
-static void cmd_graphics_write(const char *p) {
+MmResult cmd_graphics_write(const char *p) {
     getargs(&p, 1, ",");
-    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    if (argc != 1) return kArgumentCount;;
     const int id = getint(argv[0], -1, GRAPHICS_MAX_ID);
 
-    MmResult result = graphics_surface_write(id);
-    if (FAILED(result)) error_throw(result);
+    return graphics_surface_write(id);
 }
 
 void cmd_graphics(void) {
+    MmResult result = kOk;
     const char *p;
     if ((p = checkstring(cmdline, "BUFFER"))) {
-        cmd_graphics_buffer(p);
+        result = cmd_graphics_buffer(p);
     } else if ((p = checkstring(cmdline, "COPY"))) {
-        cmd_graphics_copy(p);
+        result = cmd_graphics_copy(p);
     } else if ((p = checkstring(cmdline, "DESTROY"))) {
-        cmd_graphics_destroy(p);
+        result = cmd_graphics_destroy(p);
     } else if ((p = checkstring(cmdline, "WINDOW"))) {
-        cmd_graphics_window(p);
+        result = cmd_graphics_window(p);
     } else if ((p = checkstring(cmdline, "WRITE"))) {
-        cmd_graphics_write(p);
+        result = cmd_graphics_write(p);
     } else {
         ERROR_UNKNOWN_SUBCOMMAND("GRAPHICS");
     }
+
+    ERROR_ON_FAILURE(result);
 }
