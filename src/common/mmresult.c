@@ -134,7 +134,8 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsSurfaceNotFound:    return "Graphics surface does not exist";
         case kGraphicsSurfaceExists:      return "Graphics surface already exists";
         case kGraphicsSurfaceTooLarge:    return "Graphics surface too large";
-        case kGraphicsReadAndWriteSurfaceSame: return "Read and write surfaces are the same";
+        case kGraphicsReadAndWriteSurfaceSame: return "Graphics read and write surfaces are the same";
+        case kGraphicsSurfaceSizeMismatch: return "Graphics surface size mismatch";
         case kGraphicsTooManySprites:     return "Maximum of 64 sprites";
         case kGraphicsNotASprite:         return "Not a sprite";
         case kImageTooLarge:              return "Image too large";

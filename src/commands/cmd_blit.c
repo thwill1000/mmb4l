@@ -302,7 +302,6 @@ void cmd_blit_write(const char *p) {
     if (*argv[0] == '#') argv[0]++;
     MMINTEGER read_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     if (mmb_options.simulate != kSimulateMmb4l) read_id += CMM2_BLIT_BASE;
-    printf("read_id = %ld\n", read_id);
     if (!graphics_surface_exists(read_id)) {
         error_throw(kGraphicsInvalidReadSurface);
         return;
