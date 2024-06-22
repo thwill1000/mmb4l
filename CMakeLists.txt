@@ -93,6 +93,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_on.c
     src/commands/cmd_open.c
     src/commands/cmd_option.c
+    src/commands/cmd_page.c
     src/commands/cmd_pause.c
     src/commands/cmd_pin.c
     src/commands/cmd_pixel.c
