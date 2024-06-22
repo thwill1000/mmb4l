@@ -135,6 +135,7 @@ void cmd_null(void);
 void cmd_on(void);
 void cmd_open(void);
 void cmd_option(void);
+void cmd_page(void);
 void cmd_pause(void);
 void cmd_pin(void);
 void cmd_pixel(void);

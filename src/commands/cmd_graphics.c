@@ -60,15 +60,15 @@ static MmResult cmd_graphics_buffer(const char *p) {
     return graphics_buffer_create(id, width, height);
 }
 
-/** GRAPHICS COPY n TO m [,when] [,t] */
-static MmResult cmd_graphics_copy(const char *p) {
+/** GRAPHICS COPY n TO m [, when] [, t] */
+MmResult cmd_graphics_copy(const char *p) {
     bool transparent_black = false;
     char ss[3];
     ss[0] = tokenTO;
     ss[1] =',';
     ss[2] = 0;
     getargs(&p, 7, ss);
-    if (argc<3) return kArgumentCount;
+    if (argc < 3) return kArgumentCount;
     MmSurfaceId read_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     MmSurfaceId write_id = getint(argv[2], 0, GRAPHICS_MAX_ID);
 
@@ -121,14 +121,14 @@ static MmResult cmd_graphics_window(const char *p) {
         const char *cached_line_ptr = CurrentLinePtr;
         CurrentLinePtr = interrupt_addr; // So any error is reported on the correct line.
         MmResult result = parse_fn_sig(&p2, fn);
-        if (FAILED(result)) error_throw(result);
+        if (FAILED(result)) return result;
         CurrentLinePtr = cached_line_ptr;
         if (fn->token != cmdSUB
             || fn->num_params != 2
             || !(fn->params[0].type & T_INT)
             || !(fn->params[1].type & T_INT)
             || fn->params[0].array
-            || fn->params[1].array) error_throw(kInvalidInterruptSignature);
+            || fn->params[1].array) return kInvalidInterruptSignature;
         ClearSpecificTempMemory(fn);
     }
 
@@ -155,10 +155,10 @@ static MmResult cmd_graphics_destroy(const char *p) {
 }
 
 /** GRAPHICS WRITE id */
-static MmResult cmd_graphics_write(const char *p) {
+MmResult cmd_graphics_write(const char *p) {
     getargs(&p, 1, ",");
-    if (argc != 1) return kArgumentCount;
-    const int id = getint(argv[0], -1, GRAPHICS_MAX_ID);
+    if (argc != 1) return kArgumentCount;;
+    const MmSurfaceId id = getint(argv[0], -1, GRAPHICS_MAX_ID);
     return graphics_surface_write(id);
 }
 

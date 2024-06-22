@@ -70,6 +70,7 @@ void cmd_null() { }
 void cmd_on() { }
 void cmd_open() { }
 void cmd_option() { }
+void cmd_page() { }
 void cmd_pause() { }
 void cmd_pin() { }
 void cmd_pixel() { }
