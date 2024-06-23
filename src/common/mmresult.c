@@ -128,6 +128,7 @@ const char *mmresult_to_string(MmResult result) {
             return mmresult_buffer;
         case kGraphicsInvalidId:          return "Invalid graphics surface ID";
         case kGraphicsInvalidReadSurface: return "Invalid graphics read surface";
+        case kGraphicsInvalidSurface:     return "Invalid graphics surface";
         case kGraphicsInvalidWriteSurface: return "Invalid graphics write surface";
         case kGraphicsLoadBitmapFailed:   return "Bitmap could not be loaded";
         case kGraphicsSurfaceNotCreated:  return "Graphics surface could not be created";
@@ -144,6 +145,7 @@ const char *mmresult_to_string(MmResult result) {
         case kInvalidFontScaling:         return "Invalid font scaling; should be 1-15";
         case kUnknownDevice:              return "Unknown device/platform";
         case kUnsupportedOnCurrentDevice: return "Unsupported on current device/platform";
+        case kUnsupportedParameterOnCurrentDevice: return "Unsupported parameter on current device/platform";
         case kInvalidMode:                return "Invalid graphics mode for current device";
         case kInvalidFlag:                return "Invalid flag";
         case kUnexpectedText:             return "Unexpected text";

@@ -52,6 +52,7 @@ size_t console_write(const char *buf, size_t sz) { return 0; }
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
 // Defined in "common/graphics.c"
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 void graphics_term(void) { }
 MmResult graphics_surface_destroy(MmSurfaceId id) { return kOk; }
 
