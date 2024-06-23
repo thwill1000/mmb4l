@@ -116,6 +116,7 @@ protected:
 
     void TearDown() override {
         ClearTempMemory();
+        memset(graphics_surfaces, 0x0, sizeof(graphics_surfaces));
     }
 };
 
@@ -1303,4 +1304,172 @@ TEST_F(ParseTest, ParsePinNum_GivenUnknownVariable_Fails) {
 
     // Note failure MmResult is not currently reported because error is picked up in a legacy
     // routine that uses longjmp().
+}
+
+TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndNonPicoMite) {
+    graphics_surfaces[0].type = kGraphicsBuffer;
+    graphics_surfaces[1].type = kGraphicsBuffer;
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE 0");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(0, page_id);
+    }
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE 1");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(1, page_id);
+    }
+}
+
+TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndPicoMite) {
+    mmb_options.simulate = kSimulatePicoMiteVga;
+    graphics_surfaces[GRAPHICS_SURFACE_N].type = kGraphicsBuffer;
+    graphics_surfaces[GRAPHICS_SURFACE_F].type = kGraphicsBuffer;
+    graphics_surfaces[GRAPHICS_SURFACE_L].type = kGraphicsBuffer;
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE N");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(1, page_id);
+    }
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE F");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(2, page_id);
+    }
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE L");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(3, page_id);
+    }
+}
+
+TEST_F(ParseTest, ParsePage_GivenValidExistingPageIdAsString_AndPicoMite) {
+    mmb_options.simulate = kSimulatePicoMiteVga;
+    graphics_surfaces[GRAPHICS_SURFACE_N].type = kGraphicsBuffer;
+    graphics_surfaces[GRAPHICS_SURFACE_F].type = kGraphicsBuffer;
+    graphics_surfaces[GRAPHICS_SURFACE_L].type = kGraphicsBuffer;
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE \"N\"");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(1, page_id);
+    }
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE \"F\"");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(2, page_id);
+    }
+
+    {
+        clear_prog_memory();
+        tokenise_and_append("PAGE WRITE \"L\"");
+
+        const char *p = ProgMemory + 9;
+        MmSurfaceId page_id = -1;
+        EXPECT_EQ(kOk, parse_page(p, &page_id));
+        EXPECT_EQ(3, page_id);
+    }
+}
+
+TEST_F(ParseTest, ParsePage_GivenUnknownStringPageId_AndPicomite) {
+    mmb_options.simulate = kSimulatePicoMiteVga;
+    tokenise_and_append("PAGE WRITE \"A\"");
+
+    const char *p = ProgMemory + 9;
+    MmSurfaceId page_id = -1;
+    EXPECT_EQ(kSyntax, parse_page(p, &page_id));
+    EXPECT_EQ(-1, page_id);
+}
+
+TEST_F(ParseTest, ParsePage_GivenUnknownNonStringPageId_AndPicomite) {
+    GTEST_SKIP() << "Segfaults due to longjmp() error handling";
+    mmb_options.simulate = kSimulatePicoMiteVga;
+    tokenise_and_append("PAGE WRITE 1");
+ //    printf("### %s\n", mmresult_to_string(258));
+
+    const char *p = ProgMemory + 9;
+    MmSurfaceId page_id = -1;
+    EXPECT_EQ(kSyntax, parse_page(p, &page_id));
+    EXPECT_EQ(-1, page_id);
+}
+
+TEST_F(ParseTest, ParsePage_GivenValidNonExistingPageId_AndPicomite) {
+    mmb_options.simulate = kSimulatePicoMiteVga;
+    tokenise_and_append("PAGE WRITE \"N\"");
+
+    const char *p = ProgMemory + 9;
+    MmSurfaceId page_id = -1;
+    EXPECT_EQ(kGraphicsInvalidSurface, parse_page(p, &page_id));
+    EXPECT_EQ(1, page_id);
+}
+
+TEST_F(ParseTest, ParsePage_GivenValidNonExistingPageId_AndNonPicomite) {
+    tokenise_and_append("PAGE WRITE 1");
+
+    const char *p = ProgMemory + 9;
+    MmSurfaceId page_id = -1;
+    EXPECT_EQ(kGraphicsInvalidSurface, parse_page(p, &page_id));
+    EXPECT_EQ(1, page_id);
+}
+
+TEST_F(ParseTest, ParsePage_GivenInvalidPageId_AndNonPicomite) {
+    tokenise_and_append("PAGE WRITE \"A\"");
+
+    const char *p = ProgMemory + 9;
+    MmSurfaceId page_id = -1;
+    EXPECT_EQ(kGraphicsInvalidSurface, parse_page(p, &page_id));
+    EXPECT_EQ(0, page_id); // TODO: Should be -1
+    EXPECT_STREQ("Expected a number", error_msg);
+}
+
+TEST_F(ParseTest, ParseReadPage_GivenValidNonExistingPageId_AndNonPicomite) {
+    tokenise_and_append("PAGE WRITE 1");
+
+    const char *p = ProgMemory + 9;
+    MmSurfaceId page_id = -1;
+    EXPECT_EQ(kGraphicsInvalidReadSurface, parse_read_page(p, &page_id));
+    EXPECT_EQ(1, page_id);
+}
+
+TEST_F(ParseTest, ParseWritePage_GivenValidNonExistingPageId_AndNonPicomite) {
+    tokenise_and_append("PAGE WRITE 1");
+
+    const char *p = ProgMemory + 9;
+    MmSurfaceId page_id = -1;
+    EXPECT_EQ(kGraphicsInvalidWriteSurface, parse_write_page(p, &page_id));
+    EXPECT_EQ(1, page_id);
 }
