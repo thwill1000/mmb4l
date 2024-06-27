@@ -669,6 +669,24 @@ target_link_libraries(
 gtest_discover_tests(test_rx_buf)
 
 ################################################################################
+# test_stack
+################################################################################
+
+add_executable(
+  test_stack
+  src/common/gtest/stack_test.cxx
+)
+
+target_link_libraries(
+  test_stack
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_stack)
+
+################################################################################
 # test_mmbasic_core
 ################################################################################
 
