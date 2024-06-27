@@ -151,6 +151,10 @@ typedef enum {
     kFileAlreadyOpen,
     kFileNotOpen,
     kFileInvalidSeekPosition,
+    kStackElementNotFound,
+    kStackEmpty,
+    kStackFull,
+    kStackIndexOutOfBounds,
 } MmResultCode;
 
 #if !defined(STRINGSIZE)
