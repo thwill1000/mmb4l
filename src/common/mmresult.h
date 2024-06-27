@@ -151,6 +151,8 @@ typedef enum {
     kFileAlreadyOpen,
     kFileNotOpen,
     kFileInvalidSeekPosition,
+    kStackEmpty,
+    kStackFull,
 } MmResultCode;
 
 /**

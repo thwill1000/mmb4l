@@ -177,6 +177,8 @@ const char *mmresult_to_string(MmResult result) {
         case kFileAlreadyOpen:            return "File or device already open";
         case kFileNotOpen:                return "File or device not open";
         case kFileInvalidSeekPosition:    return "Invalid seek position";
+        case kStackEmpty:                 return "Stack empty";
+        case kStackFull:                  return "Stack full";
         default:                          return "Unknown result code";
     }
 }
