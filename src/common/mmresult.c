@@ -90,6 +90,7 @@ const char *mmresult_to_string(MmResult result) {
         case kSyntax:        return "Syntax";
         case kArgumentCount: return "Argument count";
         case kStringTooLong: return "String too long";
+        case kInvalidArgumentType: return "Invalid argument type";
         case kInvalidFormat: return "Invalid format";
         case kUnknownOption: return "Unknown option";
         case kInvalidArray:  return "Invalid array value";
@@ -185,6 +186,7 @@ const char *mmresult_to_string(MmResult result) {
         case kFileAlreadyOpen:            return "File or device already open";
         case kFileNotOpen:                return "File or device not open";
         case kFileInvalidSeekPosition:    return "Invalid seek position";
+        case kNotEnoughData:              return "Not enough data";
         case kSpriteInactive:             return "Sprite not showing";
         case kSpritesAreHidden:           return "Sprites are hidden";
         case kSpritesNotHidden:           return "Sprites are not hidden";
