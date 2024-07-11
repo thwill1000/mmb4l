@@ -1420,7 +1420,7 @@ TEST_F(ParseTest, ParsePage_GivenUnknownNonStringPageId_AndPicomite) {
     GTEST_SKIP() << "Segfaults due to longjmp() error handling";
     mmb_options.simulate = kSimulatePicoMiteVga;
     tokenise_and_append("PAGE WRITE 1");
- 
+
     const char *p = ProgMemory + 9;
     MmSurfaceId page_id = -1;
     EXPECT_EQ(kSyntax, parse_page(p, &page_id));
