@@ -109,6 +109,7 @@ void cmd_framebuffer(void);
 void cmd_gosub(void);
 void cmd_goto(void);
 void cmd_graphics(void);
+void cmd_gui(void);
 void cmd_if(void);
 void cmd_image(void);
 void cmd_inc(void);
