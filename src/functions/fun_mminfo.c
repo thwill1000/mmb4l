@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/cstring.h"
+#include "../common/flash.h"
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
@@ -241,6 +242,17 @@ static void mminfo_filesize(const char *p) {
     }
 
     g_rtn_type = T_INT;
+}
+
+static void mminfo_flash_address(const char *p) {
+    if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
+        ERROR_ON_FAILURE(kUnsupportedOnCurrentDevice);
+    }
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    const int flash_index = getint(argv[0], 1, FLASH_NUM_SLOTS) - 1;
+    g_rtn_type = T_INT;
+    ERROR_ON_FAILURE(flash_get_addr(flash_index, (char **) &g_integer_rtn));
 }
 
 static void mminfo_fontheight(const char *p) {
@@ -512,6 +524,8 @@ void fun_mminfo(void) {
         mminfo_exitcode(p);
     } else if ((p = checkstring(ep, "FILESIZE"))) {
         mminfo_filesize(p);
+    } else if ((p = checkstring(ep, "FLASH ADDRESS"))) {
+        mminfo_flash_address(p);
     } else if ((p = checkstring(ep, "FONTHEIGHT"))) {
         mminfo_fontheight(p);
     } else if ((p = checkstring(ep, "FONTWIDTH"))) {

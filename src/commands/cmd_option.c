@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"
+#include "../common/flash.h"
 #include "../common/graphics.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
@@ -236,9 +237,16 @@ static void cmd_option_set(const char *p) {
     }
 
     if (def->id == kOptionSimulate) {
-        if(mmb_options.simulate == kSimulateGameMite) {
-            result = graphics_simulate_display(kSimulateGameMite, 0);
-            if (FAILED(result)) error_throw(result);
+        switch (mmb_options.simulate) {
+            case kSimulateGameMite:
+                ERROR_ON_FAILURE(graphics_simulate_display(kSimulateGameMite, 0));
+                ERROR_ON_FAILURE(flash_init());
+                break;
+            case kSimulatePicoMiteVga:
+                ERROR_ON_FAILURE(flash_init());
+                break;
+            default:
+                ERROR_ON_FAILURE(flash_term());
         }
     }
 }

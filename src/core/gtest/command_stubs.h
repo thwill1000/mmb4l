@@ -39,6 +39,7 @@ void cmd_execute() { }
 void cmd_exit() { }
 void cmd_exitfor() { }
 void cmd_files() { }
+void cmd_flash() { }
 void cmd_font() { }
 void cmd_for() { }
 void cmd_framebuffer() { }
