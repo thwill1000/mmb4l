@@ -71,6 +71,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_error.c
     src/commands/cmd_execute.c
     src/commands/cmd_files.c
+    src/commands/cmd_flash.c
     src/commands/cmd_font.c
     src/commands/cmd_framebuffer.c
     src/commands/cmd_graphics.c
@@ -183,6 +184,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/error.c
     src/common/events.c
     src/common/file.c
+    src/common/flash.c
     src/common/fonttbl.c
     src/common/gamepad.c
     src/common/gpio.c
