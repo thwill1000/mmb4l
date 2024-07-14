@@ -121,6 +121,9 @@ const char *mmresult_to_string(MmResult result) {
         case kEventsApiError:
             formatEventsApiError();
             return mmresult_buffer;
+        case kFlashFileTooBig:               return "File too large to load into flash";
+        case kFlashInvalidIndex:             return "Invalid flash slot";
+        case kFlashModuleNotInitialised:     return "Flash simulation module not initialised";
         case kGamepadApiError:
             formatGamepadApiError();
             return mmresult_buffer;

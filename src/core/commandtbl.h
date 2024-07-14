@@ -103,6 +103,7 @@ void cmd_execute(void);
 void cmd_exitfor(void);
 void cmd_exit(void);
 void cmd_files(void);
+void cmd_flash(void);
 void cmd_font(void);
 void cmd_for(void);
 void cmd_framebuffer(void);
