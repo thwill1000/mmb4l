@@ -65,9 +65,22 @@ static MmResult cmd_page_resize(const char *p) {
 }
 
 /** PAGE SCROLL page, x, y [, fill_colour] */
-static MmResult cmd_page_sctoll(const char *p) {
-    ERROR_UNIMPLEMENTED("PAGE SCROLL");
-    return kUnimplemented;
+static MmResult cmd_page_scroll(const char *p) {
+    getargs(&p, 7, ",");
+    if (argc != 5 && argc != 7) return kArgumentCount;
+    MmSurfaceId page_id = -1;
+    MmResult result = parse_page(p, &page_id);
+    if (SUCCEEDED(result)) {
+        MmSurface *page = &graphics_surfaces[page_id];
+        const int maxW = page->width;
+        const int maxH = page->height;
+        int x = getint(argv[2], -maxW / 2 - 1, maxW);
+        int y = getint(argv[4], -maxH / 2 - 1, maxH);
+        // The default -2 is wrap around.
+        MmGraphicsColour colour = (argc == 7) ? getint(argv[6], -2, RGB_WHITE) : -2;
+        result = graphics_scroll(page, x, y, colour);
+    }
+    return result;
 }
 
 /** PAGE STITCH from_page_1, from_page_2, to_page, offset */
@@ -107,7 +120,7 @@ void cmd_page(void) {
     } else if ((p = checkstring(cmdline, "RESIZE"))) {
         result = cmd_page_resize(p);
     } else if ((p = checkstring(cmdline, "SCROLL"))) {
-        result = cmd_page_sctoll(p);
+        result = cmd_page_scroll(p);
     } else if ((p = checkstring(cmdline, "STITCH"))) {
         result = cmd_page_stitch(p);
     } else if ((p = checkstring(cmdline, "AND_PIXELS"))) {
