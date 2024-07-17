@@ -1144,10 +1144,9 @@ MMINTEGER getinteger(const char *p) {
 // evaluate an expression and return an integer
 // this will throw an error is the integer is outside a specified range
 // this will correctly round the number if it is a fraction of an integer
-int getint(const char *p, int min, int max) {
-    MMINTEGER i;
-    i = getinteger(p);
-    if(i < min || i > max) error("% is invalid (valid is % to %)", (int)i, min, max);
+MMINTEGER getint(const char *p, MMINTEGER min, MMINTEGER max) {
+    MMINTEGER i = getinteger(p);
+    if (i < min || i > max) error("% is invalid (valid is % to %)", i, min, max);
     return i;
 }
 
