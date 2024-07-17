@@ -460,9 +460,18 @@ MmResult graphics_set_font(uint32_t font_id, int scale);
 /**
  * Configures graphics surfaces to simulate a given device/platform/mode.
  *
- * @param  platform  The device/platform to simulate (not kSimulateMmb4l).
- * @param  mode      The graphics mode.
+ * @param  platform      The device/platform to simulate (not kSimulateMmb4l).
+ * @param  mode          The graphics mode.
+ * @param  colour_depth  If == 12 then simulate a three layer CMM2 display:
+ *                         page/surface 1 -- top
+ *                         page/surface 0
+ *                         background     -- bottom
+ *                       Pixels in the higher layer overwrite those in the lower levels as defined
+ *                       by the transparency/alpha levels of the individual pixels.
+
+ * @param  background    Background colour when transparency == true.
  */
-MmResult graphics_simulate_display(OptionsSimulate platform, uint8_t mode);
+MmResult graphics_simulate_display(OptionsSimulate platform, unsigned mode, unsigned colour_depth,
+                                   MmGraphicsColour background);
 
 #endif // #if !defined(MMBASIC_GRAPHICS_H)
