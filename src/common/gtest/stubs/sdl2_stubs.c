@@ -127,6 +127,14 @@ int SDL_SetRenderDrawColor(SDL_Renderer *renderer, Uint8 r, Uint8 g, Uint8 b, Ui
     return 0;
 }
 
+int SDL_SetRenderDrawBlendMode(SDL_Renderer * renderer, SDL_BlendMode blendMode) {
+    return 0;
+}
+
+int SDL_SetTextureBlendMode(SDL_Texture * texture, SDL_BlendMode blendMode) {
+    return 0;
+}
+
 int SDL_UpdateTexture(SDL_Texture *texture, const SDL_Rect *rect, const void *pixels, int pitch) {
     return 0;
 }

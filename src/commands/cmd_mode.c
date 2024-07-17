@@ -47,32 +47,60 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/parse.h"
 
-void cmd_mode(void) {
+/**
+ * MODE mode [, colour_depth [, background [, interrupt]]]
+ *
+ * @param  colour_depth  On the real CMM2 this is the colour depth (8, 12, 16 or 32) of the video
+ *                       page.
+ *                       In MMB4L all the "video pages" are 32-bit and only the values 12 and 32
+ *                       have any meaning (the same as MMB4W). A value of 12 makes MMB4L simulate a
+ *                       3 layer CMM2 display:
+ *                         page/surface 1 -- top
+ *                         page/surface 0
+ *                         background     -- bottom
+ *                       Pixels in the higher layer overwrite those in the lower levels as defined
+ *                       by the transparency/alpha levels of the individual pixels.
+ * @param  background    Colour of background layer when colour_depth == 12.
+ * @param  interrupt     Unused by MMB4L; on the real CMM2 this is an interrupt routine called at
+ *                       the start of frame blanking.
+ */
+static MmResult cmd_mode_cmm2(void) {
+    getargs(&cmdline, 7, ",");
+    if ((argc % 2 == 0) || argc < 1) return kArgumentCount;
+
+    const OptionsSimulate device = kSimulateCmm2;
+    const unsigned mode = getint(argv[0], MIN_CMM2_MODE, MAX_CMM2_MODE);
+    const unsigned colour_depth = (argc >= 3) ? getint(argv[2], 0, 32) : 32;
+    const MmGraphicsColour background = (argc >= 5)
+            ? getint(argv[4], RGB_BLACK, RGB_WHITE)
+            : RGB_BLACK;
+    // 'interrupt' parameter is ignored by MMB4L.
+    return graphics_simulate_display(device, mode, colour_depth, background);
+}
+
+static MmResult cmd_mode_pmvga(void) {
     getargs(&cmdline, 1, ",");
-    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    if (argc != 1) return kArgumentCount;
 
+    const OptionsSimulate device = kSimulatePicoMiteVga;
+    const unsigned mode = getint(argv[0], MIN_PMVGA_MODE, MAX_PMVGA_MODE);
+    return graphics_simulate_display(device, mode, 32, RGB_BLACK);
+}
+
+void cmd_mode(void) {
     MmResult result = kOk;
-    OptionsSimulate device = kSimulateMmb4l;
-    uint8_t mode = 0;
     switch (mmb_options.simulate) {
-        case kSimulateCmm2: {
-            device = kSimulateCmm2;
-            mode = getint(argv[0], MIN_CMM2_MODE, MAX_CMM2_MODE);
+        case kSimulateCmm2:
+            result = cmd_mode_cmm2();
             break;
-        }
 
-        case kSimulatePicoMiteVga: {
-            device = kSimulatePicoMiteVga;
-            mode = getint(argv[0], MIN_PMVGA_MODE, MAX_PMVGA_MODE);
+        case kSimulatePicoMiteVga:
+            result = cmd_mode_pmvga();
             break;
-        }
 
-        default: {
+        default:
             result = kUnsupportedOnCurrentDevice;
             break;
-        }
     }
-
-    if (SUCCEEDED(result)) result = graphics_simulate_display(device, mode);
-    if (FAILED(result)) error_throw(result);
+    ERROR_ON_FAILURE(result);
 }

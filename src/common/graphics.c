@@ -169,6 +169,21 @@ MmGraphicsColour graphics_bcolour = RGB_BLACK;
 uint32_t graphics_font = 1;
 static uint64_t frameEnd = 0;
 
+/**
+ * If kSimulateCmm2 && colour depth== 12 then simulate a 3 layer CMM2 display:
+ *   page/surface 1 -- top
+ *   page/surface 0
+ *   background     -- bottom
+ * Pixels in the higher layer overwrite those in the lower levels as defined
+ * by the transparency/alpha levels of the individual pixels.use special mode
+ */
+unsigned graphics_colour_depth = 32;
+
+/**
+ * Colour of the background layer to be used if kSimulateCmm2 && graphics_colour_depth == 12;
+ */
+MmGraphicsColour graphics_cmm2_background = RGB_BLACK;
+
 MmResult graphics_init() {
     if (graphics_initialised) return kOk;
     MmResult result = events_init();
@@ -177,6 +192,8 @@ MmResult graphics_init() {
         memset(&graphics_surfaces[id], 0, sizeof(MmSurface));
         graphics_surfaces[id].id = id;
     }
+    graphics_colour_depth = 12;
+    graphics_cmm2_background = RGB_BLACK;
     frameEnd = 0;
     result = sprite_init();
     if (FAILED(result)) return result;
@@ -209,6 +226,46 @@ MmSurfaceId graphics_find_window(uint32_t sdl_window_id) {
         }
     }
     return -1;
+}
+
+/** TODO */
+static MmResult graphics_refresh_cmm2_window() {
+    if (graphics_colour_depth != 12) return kOk; // Use default window refresh.
+    assert(mmb_options.simulate == kSimulateCmm2);
+    MmSurface* window = &graphics_surfaces[0];
+    MmSurface* page1 = &graphics_surfaces[1];
+    assert(window->type == kGraphicsWindow);
+    assert(page1->type == kGraphicsBuffer);
+    if (!window->dirty && !page1->dirty) return kOk;
+
+    SDL_Renderer *renderer = window->renderer;
+    SDL_Texture *texture = window->texture;
+
+    // TODO: Do this on setup instead of each refresh.
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+
+    // Clear to the background colour.
+    SDL_SetRenderDrawColor(renderer,
+                           (graphics_cmm2_background >> 16) & 0b11111111,
+                           (graphics_cmm2_background >> 8) & 0b11111111,
+                           graphics_cmm2_background & 0b11111111,
+                           SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(renderer);
+
+    // Blend in pixels from page 0 (which is the "window").
+    SDL_UpdateTexture(texture, NULL, window->pixels, window->width * 4);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+    // Blend in pixels from page 1.
+    SDL_UpdateTexture(texture, NULL, page1->pixels, page1->width * 4);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+    SDL_RenderPresent(renderer);
+
+    window->dirty = false;
+    page1->dirty = false;
+
+    return kOk;
 }
 
 /** TODO */
@@ -256,6 +313,9 @@ void graphics_refresh_windows() {
     // if (SDL_GetTicks64() > frameEnd) {
     if (SDL_GetTicks() > frameEnd) {
         switch (mmb_options.simulate) {
+            case kSimulateCmm2:
+                ERROR_ON_FAILURE(graphics_refresh_cmm2_window());
+                break;
             case kSimulateGameMite:
                 ERROR_ON_FAILURE(graphics_refresh_gamemite_window());
                 break;
@@ -1795,7 +1855,8 @@ MmResult graphics_scroll(MmSurface *surface, int x, int y, MmGraphicsColour fill
     return result;
 }
 
-static MmResult graphics_simulate_cmm2(uint8_t mode) {
+static MmResult graphics_simulate_cmm2(unsigned mode, unsigned colour_depth,
+                                       MmGraphicsColour background) {
     if (mode < MIN_CMM2_MODE || mode > MAX_CMM2_MODE) return kInvalidMode;
     const ModeDefinition *mode_def = &CMM2_MODES[mode];
 
@@ -1818,12 +1879,14 @@ static MmResult graphics_simulate_cmm2(uint8_t mode) {
     if (SUCCEEDED(result)) {
         graphics_fcolour = RGB_WHITE;
         graphics_bcolour = RGB_BLACK;
+        graphics_colour_depth = colour_depth;
+        graphics_cmm2_background = background;
         result = graphics_set_font(mode_def->font, 1);
     }
     return result;
 }
 
-static MmResult graphics_simulate_gamemite(uint8_t mode) {
+static MmResult graphics_simulate_gamemite(unsigned mode) {
     if (mode != 0) return kInvalidMode;
 
     MmResult result = graphics_destroy_surfaces_0_to_63();
@@ -1839,12 +1902,14 @@ static MmResult graphics_simulate_gamemite(uint8_t mode) {
     if (SUCCEEDED(result)) {
         graphics_fcolour = RGB_WHITE;
         graphics_bcolour = RGB_BLACK;
+        graphics_colour_depth = 32;
+        graphics_cmm2_background = RGB_BLACK;
         result = graphics_set_font(7, 1);
     }
     return result;
 }
 
-static MmResult graphics_simulate_picomite_vga(uint8_t mode) {
+static MmResult graphics_simulate_picomite_vga(unsigned mode) {
     if (mode < MIN_PMVGA_MODE || mode > MAX_PMVGA_MODE) return kInvalidMode;
     const ModeDefinition *mode_def = &PICOMITE_VGA_MODES[mode];
 
@@ -1864,15 +1929,29 @@ static MmResult graphics_simulate_picomite_vga(uint8_t mode) {
     if (SUCCEEDED(result)) {
         graphics_fcolour = RGB_WHITE;
         graphics_bcolour = RGB_BLACK;
+        graphics_colour_depth = 32;
+        graphics_cmm2_background = RGB_BLACK;
         result = graphics_set_font(mode_def->font, 1);
     }
     return result;
 }
 
-MmResult graphics_simulate_display(OptionsSimulate platform, uint8_t mode) {
+MmResult graphics_simulate_display(OptionsSimulate platform, unsigned mode, unsigned colour_depth,
+                                   MmGraphicsColour background) {
+    switch (colour_depth) {
+        case 12:
+            if (platform != kSimulateCmm2) return kGraphicsInvalidColourDepth;
+            break;
+        case 32:
+            if (background != RGB_BLACK) return kInvalidValue;
+            break;
+        default:
+            return kGraphicsInvalidColourDepth;
+    }
+
     switch (platform) {
         case kSimulateCmm2:
-            return graphics_simulate_cmm2(mode);
+            return graphics_simulate_cmm2(mode, colour_depth, background);
         case kSimulatePicoMiteVga:
             return graphics_simulate_picomite_vga(mode);
         case kSimulateGameMite:
