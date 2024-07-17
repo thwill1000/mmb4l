@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
 
+/** BOX x, y, w, h [, lw] [, c] [, fill] */
 void cmd_box(void) {
     int x1, y1, wi, h, w = 0, n = 0, i, nc = 0, nw = 0, nf = 0, hmod, wmod;
     long long int *x1ptr, *y1ptr, *wiptr, *hptr, *wptr, *cptr, *fptr;
