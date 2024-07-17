@@ -203,7 +203,7 @@ const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *
 const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *t);
 MMFLOAT getnumber(const char *p);
 MMINTEGER getinteger(const char *p);
-int getint(const char *p, int min, int max);
+MMINTEGER getint(const char *p, MMINTEGER min, MMINTEGER max);
 char *getstring(const char *p);
 void tokenise(int console);
 void ExecuteProgram(const char *);
