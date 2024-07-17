@@ -239,7 +239,7 @@ static void cmd_option_set(const char *p) {
     if (def->id == kOptionSimulate) {
         switch (mmb_options.simulate) {
             case kSimulateGameMite:
-                ERROR_ON_FAILURE(graphics_simulate_display(kSimulateGameMite, 0));
+                ERROR_ON_FAILURE(graphics_simulate_display(kSimulateGameMite, 0, 32, RGB_BLACK));
                 ERROR_ON_FAILURE(flash_init());
                 break;
             case kSimulatePicoMiteVga:
