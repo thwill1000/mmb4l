@@ -45,9 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 
 #include "bitset.h"
+#include "interrupt.h"
 #include "sprite.h"
 #include "stack.h"
 
+MmSurfaceId sprite_last_collision = SPRITE_NO_COLLISION;
 MmGraphicsColour sprite_transparent_colour = RGB_BLACK;
 
 static bool sprite_initialised = false;
@@ -62,6 +64,7 @@ MmResult sprite_init() {
     }
     sprite_all_hidden = false;
     sprite_initialised = true;
+    sprite_last_collision = SPRITE_NO_COLLISION;
     return kOk;
 }
 
@@ -460,6 +463,7 @@ static inline bool sprite_check_for_sprite_collision(MmSurface *sprite, MmSurfac
 
 MmResult sprite_update_collisions(MmSurface *sprite) {
     assert(sprite);
+    assert(sprite->type == kGraphicsSprite);
 
     //printf("Update collisions for %d\n", sprite->id - 128);
 
@@ -482,6 +486,14 @@ MmResult sprite_update_collisions(MmSurface *sprite) {
     // Check for collisions with surface edge.
     has_collision |= sprite_check_for_edge_collision(sprite, graphics_current);
 
+    if (has_collision) {
+        printf("Sprite collision: %d\n", sprite->id);
+        sprite_last_collision = sprite->id;
+        interrupt_fire(kInterruptSpriteCollision);
+    } else {
+        sprite_last_collision = SPRITE_NO_COLLISION;
+    }
+
     // if (has_collision) {
     //     printf("Sprite %d has collision\n", sprite->id);
     //     printf("  0: 0b%010b\n", sprite->sprite_collisions[0]);
@@ -499,32 +511,29 @@ MmResult sprite_update_collisions(MmSurface *sprite) {
 }
 
 MmResult sprite_update_all_collisions() {
-    // Clear 'global' sprite state.
-    //sprite_clear_state();
-
     // Clear collision data for all active sprites.
     for (MmSurface *sprite = sprite_get_first_active(); sprite; sprite = sprite->next_active_sprite) {
         sprite_clear_collision_data(sprite);
     }
 
+    bool has_collision = false;
+
     for (MmSurface *sprite = sprite_get_first_active(); sprite; sprite = sprite->next_active_sprite) {
         // Check for collisions with other sprites.
         for (MmSurface *other = sprite->next_active_sprite; other; other = other->next_active_sprite) {
-            (void) sprite_check_for_sprite_collision(sprite, other);
+            has_collision |= sprite_check_for_sprite_collision(sprite, other);
         }
 
         // Check for collisions with surface edge.
-        (void) sprite_check_for_edge_collision(sprite, graphics_current);
-
-        // Record collision in global state,
-        // if (graphics_sprite_state.num_collisions < GRAPHICS_MAX_COLLISIONS &&
-        //     (sprite->num_collisions > 0 || sprite->edge_collisions != 0x0)) {
-        //     graphics_sprite_state.collisions[graphics_sprite_state.num_collisions++] = id;
-        // }
+        has_collision |= sprite_check_for_edge_collision(sprite, graphics_current);
     }
 
-    // TODO: Setup data for sprite interrupt.
-    // graphics_sprite_state.collision_found = graphics_sprite_state.num_collisions > 0;
+    if (has_collision) {
+        sprite_last_collision = SPRITE_SCROLL_COLLISION;
+        interrupt_fire(kInterruptSpriteCollision);
+    } else {
+        sprite_last_collision = SPRITE_NO_COLLISION;
+    }
 
     return kOk;
 }

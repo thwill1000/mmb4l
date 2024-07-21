@@ -686,7 +686,8 @@ MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id) {
     }
     if (existing
             && graphics_surfaces[*sprite_id].type != kGraphicsSprite
-            && graphics_surfaces[* sprite_id].type != kGraphicsInactiveSprite) {
+            && graphics_surfaces[*sprite_id].type != kGraphicsInactiveSprite) {
+        printf("Invalid sprite: %d\n", *sprite_id);
         return kGraphicsInvalidSprite;
     }
     return kOk;

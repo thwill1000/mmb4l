@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/error.h"
+#include "../common/interrupt.h"
 #include "../common/mmb4l.h"
 #include "../common/sprite.h"
 
@@ -80,8 +81,19 @@ static MmResult cmd_sprite_hide(const char *p) {
     return sprite_hide(sprite);
 }
 
+/** SPRITE INTERRUPT interrupt */
+static MmResult cmd_sprite_interrupt(const char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) return kArgumentCount;
+    const char* interrupt_addr = GetIntAddress(argv[0]);
+    interrupt_enable(kInterruptSpriteCollision, interrupt_addr);
+    return kOk;
+}
+
 /** SPRITE HIDE ALL */
 static inline MmResult cmd_sprite_hide_all(const char *p) {
+    skipspace(p);
+    if (!parse_is_end(p)) return kUnexpectedText;
     return sprite_hide_all();
 }
 
@@ -134,8 +146,18 @@ static MmResult cmd_sprite_next(const char *p) {
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
     sprite->next_x = getint(argv[2], 1 - sprite->width, graphics_current->width - 1);
-    sprite->next_y = getint(argv[2], 1 - sprite->height, graphics_current->height - 1);
+    sprite->next_y = getint(argv[4], 1 - sprite->height, graphics_current->height - 1);
 
+    // printf("cmd_sprite_next: %d, %d, %d\n", sprite_id, sprite->next_x, sprite->next_y);
+
+    return kOk;
+}
+
+/** SPRITE NOINTERRUPT */
+static MmResult cmd_sprite_nointerrupt(const char *p) {
+    skipspace(p);
+    if (!parse_is_end(p)) return kUnexpectedText;
+    interrupt_disable(kInterruptSpriteCollision);
     return kOk;
 }
 
@@ -225,10 +247,10 @@ MmResult cmd_sprite_scroll(const char *p) {
 }
 
 /** SPRITE SCROLLR x, y, w, h, delta_x, delta_y [, col] */
-MmResult cmd_sprite_scrollr(const char *p) {
-    ERROR_UNIMPLEMENTED("SPRITE SCROLLR");
-    return kUnimplemented;
-}
+// MmResult cmd_sprite_scrollr(const char *p) {
+//     ERROR_UNIMPLEMENTED("SPRITE SCROLLR");
+//     return kUnimplemented;
+// }
 
 /** SPRITE SET TRANSPARENT rgb121_colour */
 static MmResult cmd_sprite_set_transparent(const char *p) {
@@ -345,20 +367,22 @@ void cmd_sprite(void) {
         result = cmd_sprite_hide_safe(p);
     } else if ((p = checkstring(cmdline, "HIDE"))) {
         result = cmd_sprite_hide(p);
+    } else if ((p = checkstring(cmdline, "INTERRUPT"))) {
+        result = cmd_sprite_interrupt(p);
     } else if ((p = checkstring(cmdline, "MEMORY"))) {
         result = cmd_blit_memory(p);
     } else if ((p = checkstring(cmdline, "MOVE"))) {
         result = cmd_sprite_move(p);
     } else if ((p = checkstring(cmdline, "NEXT"))) {
         result = cmd_sprite_next(p);
+    } else if ((p = checkstring(cmdline, "NOINTERRUPT"))) {
+        result = cmd_sprite_nointerrupt(p);
     } else if ((p = checkstring(cmdline, "READ"))) {
         result = cmd_sprite_read(p);
     } else if ((p = checkstring(cmdline, "RESTORE"))) {
         result = cmd_sprite_restore(p);
     } else if ((p = checkstring(cmdline, "SCROLL"))) {
         result = cmd_sprite_scroll(p);
-    } else if ((p = checkstring(cmdline, "SCROLLR"))) {
-        result = cmd_sprite_scrollr(p);
     } else if ((p = checkstring(cmdline, "SET TRANSPARENT"))) {
         result = cmd_sprite_set_transparent(p);
     } else if ((p = checkstring(cmdline, "SHOW SAFE"))) {
@@ -369,10 +393,9 @@ void cmd_sprite(void) {
         result = cmd_sprite_write(p);
     }
     ELSE_IF_UNIMPLEMENTED("COPY")
-    ELSE_IF_UNIMPLEMENTED("INTERRUPT")
     ELSE_IF_UNIMPLEMENTED("LOADARRAY")
     ELSE_IF_UNIMPLEMENTED("LOADPNG")
-    ELSE_IF_UNIMPLEMENTED("NOINTERRUPT")
+    ELSE_IF_UNIMPLEMENTED("SCROLLR")
     ELSE_IF_UNIMPLEMENTED("SWAP")
     ELSE_IF_UNIMPLEMENTED("TRANSPARENCY")
     else {

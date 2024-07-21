@@ -47,12 +47,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "graphics.h"
 
+#include <stdbool.h>
+
+#define SPRITE_SCROLL_COLLISION  -1
+#define SPRITE_NO_COLLISION  -2
+
 typedef enum {
    kSpriteEdgeLeft = 0x01,
    kSpriteEdgeTop = 0x02,
    kSpriteEdgeRight = 0x04,
    kSpriteEdgeBottom = 0x08
 } SpriteEdge;
+
+/**
+ * Id of the sprite involved in the last collision:
+ *  SPRITE_NO_COLLISION     - if there are no active collisions.
+ *  SPRITE_SCROLL_COLLISION - if the last collision was due to a SPRITE SCROLL or SPRITE RESTORE.
+ */
+extern MmSurfaceId sprite_last_collision;
 
 extern MmGraphicsColour sprite_transparent_colour;
 

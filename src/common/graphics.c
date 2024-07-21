@@ -168,7 +168,7 @@ MmGraphicsColour graphics_fcolour = RGB_WHITE;
 MmGraphicsColour graphics_bcolour = RGB_BLACK;
 uint32_t graphics_font = 1;
 static uint64_t frameEnd = 0;
-MmSpriteState graphics_sprite_state;
+//MmSpriteState graphics_sprite_state;
 
 /**
  * If kSimulateCmm2 && colour depth== 12 then simulate a 3 layer CMM2 display:
@@ -193,8 +193,8 @@ MmResult graphics_init() {
         memset(&graphics_surfaces[id], 0, sizeof(MmSurface));
         graphics_surfaces[id].id = id;
     }
-    memset(&graphics_sprite_state, 0x0, sizeof(MmSpriteState));
-    graphics_sprite_state.sprite_which_collided = -1;
+//    memset(&graphics_sprite_state, 0x0, sizeof(MmSpriteState));
+//    graphics_sprite_state.sprite_which_collided = -1;
     graphics_colour_depth = 12;
     graphics_cmm2_background = RGB_BLACK;
     frameEnd = 0;

@@ -92,7 +92,7 @@ static MmResult fun_sprite_collision(int argc, char **argv) {
                     : sprite_get_collided_sprite(m, &id);
             if (SUCCEEDED(result)) iret = (MMINTEGER) id;
             if (mmb_options.simulate != kSimulateMmb4l) {
-                iret = (iret == -1) ? 0 : iret & 0xFF;
+                iret = (iret == -1) ? 0 : iret - CMM2_SPRITE_BASE;
             }
         }
     }
@@ -122,11 +122,17 @@ static MmResult fun_sprite_distance(int argc, char **argv) {
     return result;
 }
 
-/** SPRITE(E, [#]n) */
+/**
+ * SPRITE(E, [#]n)
+ *
+ * Gets a bitmask of the edges that a sprite is in collision with.
+ *
+ * If not a sprite, or not active then returns 0.
+ */
 static MmResult fun_sprite_edges(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
     if (SUCCEEDED(result)) {
         MmSurface *sprite = &graphics_surfaces[sprite_id];
         targ = T_INT;
@@ -135,24 +141,36 @@ static MmResult fun_sprite_edges(int argc, char **argv) {
     return result;
 }
 
-/** SPRITE(H, [#]n) */
+/**
+ * SPRITE(H, [#]n)
+ *
+ * Gets the height of a sprite.
+ *
+ * If not a sprite, or not active then returns -1.
+ */
 static MmResult fun_sprite_height(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
     if (SUCCEEDED(result)) {
         MmSurface *sprite = &graphics_surfaces[sprite_id];
         targ = T_INT;
-        iret = (sprite->type == kGraphicsSprite) ? (MMINTEGER) sprite->height : -1;
+        iret = (sprite->type == kGraphicsSprite) ? sprite->height : -1;
     }
     return result;
 }
 
-/** SPRITE(L, [#]n) */
+/**
+ * SPRITE(L, [#]n)
+ *
+ * Gets the layer of a sprite.
+ *
+ * If not a sprite, or not active then returns -1.
+ */
 static MmResult fun_sprite_layer(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
     if (SUCCEEDED(result)) {
         MmSurface *sprite = &graphics_surfaces[sprite_id];
         targ = T_INT;
@@ -182,7 +200,20 @@ static MmResult fun_sprite_count(int argc, char **argv) {
 static MmResult fun_sprite_last_collision(int argc, char **argv) {
     if (argc != 1) return kArgumentCount;
     targ = T_INT;
-    iret = (MMINTEGER) graphics_sprite_state.sprite_which_collided;
+    iret = (MMINTEGER) sprite_last_collision;
+    if (mmb_options.simulate != kSimulateMmb4l) {
+        switch (iret) {
+            case SPRITE_NO_COLLISION:
+                iret = -1;
+                break;
+            case SPRITE_SCROLL_COLLISION:
+                iret = 0;
+                break;
+            default:
+                iret -= CMM2_SPRITE_BASE;
+                break;
+        }
+    }
     return kOk;
 }
 
@@ -228,11 +259,17 @@ static MmResult fun_sprite_touching(int argc, char **argv) {
     return result;
 }
 
-/** SPRITE(W, [#]n) */
+/**
+ * SPRITE(W, [#]n)
+ *
+ * Gets the width of a sprite.
+ *
+ * If not a sprite, or not active then returns -1.
+ */
 static MmResult fun_sprite_width(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
     if (SUCCEEDED(result)) {
         MmSurface *sprite = &graphics_surfaces[sprite_id];
         targ = T_INT;
@@ -241,11 +278,17 @@ static MmResult fun_sprite_width(int argc, char **argv) {
     return result;
 }
 
-/** SPRITE(X, [#]n) */
+/**
+ * SPRITE(X, [#]n)
+ *
+ * Gets the x-coordinate of a sprite.
+ *
+ * If not a sprite, or not active then returns 10000.
+ */
 static MmResult fun_sprite_x(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
     if (SUCCEEDED(result)) {
         MmSurface *sprite = &graphics_surfaces[sprite_id];
         targ = T_INT;
@@ -254,11 +297,17 @@ static MmResult fun_sprite_x(int argc, char **argv) {
     return result;
 }
 
-/** SPRITE(Y, [#]n) */
+/**
+ * SPRITE(Y, [#]n)
+ *
+ * Gets the y-coordinate of a sprite.
+ *
+ * If not a sprite, or not active then returns 10000.
+ */
 static MmResult fun_sprite_y(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
     if (SUCCEEDED(result)) {
         MmSurface *sprite = &graphics_surfaces[sprite_id];
         targ = T_INT;

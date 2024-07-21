@@ -189,16 +189,16 @@ typedef struct MmSurfaceStruct {
     //uint8_t collisions[GRAPHICS_MAX_COLLISIONS];
 } MmSurface;
 
-typedef struct {
-    bool collision_found;
-    MmSurfaceId sprite_which_collided;
+// typedef struct {
+//     bool collision_found;
+//     MmSurfaceId sprite_which_collided;
 
-    /** Number of sprites with active collisions, capped to GRAPHICS_MAX_COLLISIONS. */
-    uint8_t num_collisions;
+//     /** Number of sprites with active collisions, capped to GRAPHICS_MAX_COLLISIONS. */
+//     uint8_t num_collisions;
 
-    /** IDs of sprites with active collisions. */
-    uint8_t collisions[GRAPHICS_MAX_COLLISIONS];
-} MmSpriteState;
+//     /** IDs of sprites with active collisions. */
+//     uint8_t collisions[GRAPHICS_MAX_COLLISIONS];
+// } MmSpriteState;
 
 extern const MmGraphicsColour GRAPHICS_RGB121_COLOURS[];
 
@@ -207,7 +207,7 @@ extern MmSurface *graphics_current;
 extern MmGraphicsColour graphics_fcolour;
 extern MmGraphicsColour graphics_bcolour;
 extern uint32_t graphics_font;
-extern MmSpriteState graphics_sprite_state;
+//extern MmSpriteState graphics_sprite_state;
 
 MmResult graphics_init();
 const char* graphics_last_error();
