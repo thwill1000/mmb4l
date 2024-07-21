@@ -49,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Configuration.h"
 
-extern MMFLOAT optionangle;
 extern const double chitable[51][15];
 
 MMFLOAT *alloc1df(int n);

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_math.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/maths.h"
+#include "../core/Functions.h"
 
 #define ERROR_ARG_NOT_2D_OR_MORE_NUMERICAL_ARRAY(i)    error_throw_ex(kError,  "Argument % must be a 2D or more numerical array", i)
 #define ERROR_ARG_NOT_3_ELEMENT_FLOAT_ARRAY(i)         error_throw_ex(kError,  "Argument % must be a 3 element floating point array", i)
@@ -730,9 +731,9 @@ void cmd_math(void){
                         MMFLOAT *q=NULL;
                         getargs(&tp, 7,",");
                         if (!(argc == 7)) ERROR_ARGUMENT_COUNT;
-                        MMFLOAT yaw=-getnumber(argv[0])/optionangle;
-                        MMFLOAT pitch=getnumber(argv[2])/optionangle;
-                        MMFLOAT roll=getnumber(argv[4])/optionangle;
+                        MMFLOAT yaw=-getnumber(argv[0])/ANGLE_CONVERSION;
+                        MMFLOAT pitch=getnumber(argv[2])/ANGLE_CONVERSION;
+                        MMFLOAT roll=getnumber(argv[4])/ANGLE_CONVERSION;
                         ptr1 = findvar(argv[6], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
                         if (vartbl[VarIndex].type & T_NBR) {
                                 if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;
@@ -777,7 +778,7 @@ void cmd_math(void){
                                 q = (MMFLOAT *)ptr1;
                                 if ((char *) ptr1 != vartbl[VarIndex].val.s) ERROR_SYNTAX;
                         } else ERROR_ARG_NOT_5_ELEMENT_FLOAT_ARRAY(1);
-                        MMFLOAT sineterm= sin(theta/2.0/optionangle);
+                        MMFLOAT sineterm= sin(theta/2.0/ANGLE_CONVERSION);
                         q[0]=cos(theta/2.0);
                         q[1]=x* sineterm;
                         q[2]=y* sineterm;

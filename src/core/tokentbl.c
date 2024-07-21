@@ -66,6 +66,7 @@ const struct s_tokentbl tokentbl[] = {
     { "ACos(",       T_FUN | T_NBR,      0, fun_acos     },
     { "Asc(",        T_FUN | T_INT,      0, fun_asc      },
     { "ASin(",       T_FUN | T_NBR,      0, fun_asin     },
+    { "Atan2(",      T_FUN | T_NBR,      0, fun_atan2    },
     { "Atn(",        T_FUN | T_NBR,      0, fun_atn      },
     { "Bin$(",       T_FUN | T_STR,      0, fun_bin      },
     { "Bin2Str$(" ,  T_FUN | T_STR,      0, fun_bin2str  },

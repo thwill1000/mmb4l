@@ -16,7 +16,7 @@ extern "C" {
 
 char inpbuf[INPBUF_SIZE] = { '\0' };
 int MMCharPos = 0;
-Options mmb_options = { 0 };
+Options mmb_options;
 PromptState prompt_state;
 bool console_bell_sounded;
 MmResult path_complete_canned_result;
