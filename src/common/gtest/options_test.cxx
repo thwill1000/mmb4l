@@ -57,6 +57,7 @@ static void write_line_to_buf(const char *line) {
 }
 
 static void expect_options_have_defaults(Options *options) {
+    EXPECT_EQ(kRadians, options->angle);
     EXPECT_EQ(0, options->autorun);
     EXPECT_EQ(0, options->base);
     EXPECT_EQ(3, options->break_key);
@@ -97,6 +98,7 @@ TEST_F(OptionsTest, Init) {
 }
 
 static void given_non_default_options(Options *options) {
+    options->angle = kDegrees;
     strcpy(options->editor, "Vi");
     options->list_case = kLower;
     strcpy(options->search_path, "/foo/bar");
@@ -119,6 +121,7 @@ TEST_F(OptionsTest, HasDefaultValue) {
     given_non_default_options(&options);
     for (const OptionsDefinition *def = options_definitions; def->name; ++def) {
         switch (def->id) {
+            case kOptionAngle:
             case kOptionEditor:
             case kOptionListCase:
             case kOptionSearchPath:
@@ -620,6 +623,9 @@ TEST_F(OptionsTest, GetDisplayValue) {
     options_init(&options);
     char svalue[STRINGSIZE];
 
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionAngle, svalue));
+    EXPECT_STREQ("Radians", svalue);
+
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionBase, svalue));
     EXPECT_STREQ("0", svalue);
 
@@ -833,6 +839,20 @@ TEST_F(OptionsTest, GetIntegerValue_ForNonInteger) {
     EXPECT_EQ(0, ivalue);
     EXPECT_EQ(kInternalFault, options_get_integer_value(&options, kOptionZString, &ivalue));
     EXPECT_EQ(0, ivalue);
+}
+
+TEST_F(OptionsTest, GetStringValue_ForAngle) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.angle = kRadians;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAngle, svalue));
+    EXPECT_STREQ("Radians", svalue);
+
+    options.angle = kDegrees;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAngle, svalue));
+    EXPECT_STREQ("Degrees", svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForBase) {
@@ -1204,6 +1224,23 @@ TEST_F(OptionsTest, SetIntegerValue_ForNonInteger) {
 
     EXPECT_EQ(kInternalFault, options_set_integer_value(&options, kOptionZFloat, 42));
     EXPECT_EQ(kInternalFault, options_set_integer_value(&options, kOptionZString, 42));
+}
+
+TEST_F(OptionsTest, SetStringValue_ForAngle) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAngle, "Radians"));
+    EXPECT_EQ(kRadians, options.angle);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAngle, "Degrees"));
+    EXPECT_EQ(kDegrees, options.angle);
+
+    // Test case-insensitivity.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAngle, "RADians"));
+    EXPECT_EQ(kRadians, options.angle);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAngle, "wombat"));
 }
 
 TEST_F(OptionsTest, SetStringValue_ForBase) {

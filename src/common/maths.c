@@ -61,7 +61,6 @@ void MadgwickQuaternionUpdate(MMFLOAT ax, MMFLOAT ay, MMFLOAT az, MMFLOAT gx, MM
 
 extern volatile unsigned int AHRSTimer;
 
-MMFLOAT optionangle = 1.0;
 MMFLOAT PI;
 typedef MMFLOAT complex cplx;
 void cmd_FFT(char *pp);

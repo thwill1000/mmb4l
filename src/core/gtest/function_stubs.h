@@ -11,6 +11,7 @@ void fun_acos() { }
 void fun_asc() { }
 void fun_asin() { }
 void fun_at() { }
+void fun_atan2() { }
 void fun_atn() { }
 void fun_bin() { }
 void fun_bin2str() { }
