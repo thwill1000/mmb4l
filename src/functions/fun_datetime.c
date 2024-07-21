@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include "../common/mmb4l.h"
 #include "../common/mmtime.h"
@@ -52,7 +53,7 @@ void fun_datetime(void) {
     if (checkstring(ep, "NOW")) {
         t = NANOSECONDS_TO_SECONDS(mmtime_now_ns());
     } else {
-        t = getint(ep, 0x80000000, 0x7FFFFFFF);
+        t = getint(ep, INT32_MIN, INT32_MAX);
     }
     struct tm *tmbuf;
     tmbuf = gmtime(&t);
