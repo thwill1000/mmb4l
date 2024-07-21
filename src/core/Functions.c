@@ -106,7 +106,19 @@ void fun_asc(void) {
 
 // return the arctangent of a number in radians
 void fun_atn(void) {
-    fret = atanf(getnumber(ep));
+    fret = atanf(getnumber(ep)) * ANGLE_CONVERSION;
+    targ = T_NBR;
+}
+
+
+
+void fun_atan2(void) {
+    getargs(&ep, 3, ",");
+    if (argc != 3) ERROR_SYNTAX;
+    MMFLOAT y = getnumber(argv[0]);
+    MMFLOAT x = getnumber(argv[2]);
+    MMFLOAT z = atan2(y, x);
+    fret = z * ANGLE_CONVERSION;
     targ = T_NBR;
 }
 
@@ -138,7 +150,7 @@ void fun_cint(void) {
 
 // return the cosine of a number in radians
 void fun_cos(void) {
-    fret = cosf(getnumber(ep));
+    fret = cosf(getnumber(ep) / ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -395,7 +407,7 @@ void fun_sgn(void) {
 // Return the sine of the argument 'number' in radians.
 // n = SIN( number )
 void fun_sin(void) {
-    fret = sinf(getnumber(ep));
+    fret = sinf(getnumber(ep) / ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -416,7 +428,7 @@ void fun_sqr(void) {
 // Return the tangent of the argument 'number' in radians.
 // n = TAN( number )
 void fun_tan(void) {
-    fret = tanf(getnumber(ep));
+    fret = tanf(getnumber(ep)/ ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -697,6 +709,7 @@ void fun_asin(void) {
      } else {
           fret = arcsinus(f);
      }
+    fret *= ANGLE_CONVERSION;
     targ = T_NBR;
 }
 
@@ -713,6 +726,7 @@ void fun_acos(void) {
      } else {
           fret = PI_VALUE/2 - arcsinus(f);
      }
+     fret *= ANGLE_CONVERSION;
      targ = T_NBR;
 }
 

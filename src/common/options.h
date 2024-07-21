@@ -59,7 +59,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OPTIONS_MAX_FN_KEY_LEN  64
 
 typedef enum {
-    kOptionBase = 0,
+    kOptionAngle = 0,
+    kOptionBase,
     kOptionBreakKey,
     kOptionListCase, // Alphabetically ordered as if it were kOptionCase.
     kOptionCodePage,
@@ -118,6 +119,8 @@ typedef struct {
     bool blocking;       // Does the editor command block.
 } OptionsEditor;
 
+typedef enum { kRadians, kDegrees } OptionsAngle;
+
 typedef enum { kBoth, kScreen, kSerial } OptionsConsole;
 
 typedef enum {
@@ -133,6 +136,7 @@ typedef enum { kTitle, kLower, kUpper } OptionsListCase;
 typedef enum { kCharacter, kPixel } OptionsResolution;
 
 typedef struct {
+    OptionsAngle angle;
     int autorun;
     int base;
     char break_key;
