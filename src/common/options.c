@@ -52,9 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <ctype.h>
-//#include <errno.h>
-//#include <sys/stat.h>
 
 #define INVALID_VALUE  "???"
 
@@ -70,6 +67,12 @@ OptionsEditor options_editors[] = {
     { "VSCode",  "code -g ${file}:${line}",          false },
     { "Xed",     "xed +${line} ${file} &",           false },
     { NULL, NULL, false }
+};
+
+static const NameOrdinalPair options_angle_map[] = {
+    { "Radians", kRadians },
+    { "Degrees", kDegrees },
+    { NULL,      -1 }
 };
 
 static const NameOrdinalPair options_console_map[] = {
@@ -126,6 +129,7 @@ static const NameOrdinalPair options_simulate_map[] = {
 };
 
 OptionsDefinition options_definitions[] = {
+    { "Angle",       kOptionAngle,        kOptionTypeString,  false, "Radians",                 options_angle_map },
     { "Base",        kOptionBase,         kOptionTypeInteger, false, "0",                       NULL },
     { "Break",       kOptionBreakKey,     kOptionTypeInteger, false, "3" /* Ctrl-C */,          NULL },
     { "Case",        kOptionListCase,     kOptionTypeString,  true,  "Title",                   options_list_case_map },
@@ -653,6 +657,14 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
 
     switch (id) {
 
+        case kOptionAngle:
+            assert(options->angle >= kRadians && options->angle <= kDegrees);
+            options_ordinal_to_name(
+                    options_definitions[kOptionAngle].enum_map,
+                    options->angle,
+                    svalue);
+            break;
+
         case kOptionCodePage:
             if (FAILED(options_get_codepage(options, svalue))) {
                 strcpy(svalue, INVALID_VALUE);
@@ -739,6 +751,16 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
             result = kInternalFault;
     }
     return result;
+}
+
+static MmResult options_set_angle(Options *options, const char *svalue) {
+    for (const NameOrdinalPair *entry = options_angle_map; entry->name; ++entry) {
+        if (strcasecmp(svalue, entry->name) == 0) {
+            options->angle = entry->ordinal;
+            return kOk;
+        }
+    }
+    return kInvalidValue;
 }
 
 static MmResult options_set_base(Options *options, int ivalue) {
@@ -949,6 +971,7 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
     }
 
     switch (id) {
+        case kOptionAngle:        return options_set_angle(options, svalue);
         case kOptionCodePage:     return options_set_codepage(options, svalue);
         case kOptionConsole:      return options_set_console(options, svalue);
         case kOptionDefaultType:  return options_set_default_type(options, svalue);
