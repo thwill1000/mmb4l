@@ -35,12 +35,6 @@ MmResult error_throw_legacy(const char *msg, ...) { return error_throw_ex(kError
 MmSurfaceId graphics_find_window(uint32_t window_id) { return 0; }
 const char *graphics_last_error() { return ""; }
 
-// Defined in "common/interrupt.c"
-void interrupt_disable(InterruptType type) {}
-void interrupt_enable(InterruptType type, const char *fn) {}
-void interrupt_fire(InterruptType type) {}
-void interrupt_fire_window_close(MmSurfaceId id) {}
-
 // Defined in "common/keyboard.c"
 MmResult keyboard_key_down(const SDL_Keysym *keysym) { return kError; }
 MmResult keyboard_key_up(const SDL_Keysym *keysym) { return kError; }

@@ -296,6 +296,7 @@ add_executable(
   src/common/utility.c
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
@@ -329,6 +330,7 @@ add_executable(
   src/common/utility.c
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
@@ -438,6 +440,7 @@ add_executable(
   src/common/gamepad.c
   src/common/mmresult.c
   src/common/gtest/gamepad_test.cxx
+  src/common/gtest/stubs/interrupt_stubs.c
   src/common/gtest/stubs/sdl2_stubs.c
 )
 
@@ -473,6 +476,7 @@ add_executable(
   src/common/upng.c
   src/common/gtest/graphics_test.cxx
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
   src/common/gtest/stubs/sdl2_stubs.c
 )
 
@@ -577,6 +581,7 @@ add_executable(
   src/common/gtest/parse_test.cxx
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
@@ -636,6 +641,7 @@ add_executable(
   src/common/gtest/program_test.cxx
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
@@ -714,6 +720,7 @@ add_executable(
   src/common/sprite.c
   src/common/gtest/sprite_test.cxx
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
   src/common/gtest/stubs/sdl2_stubs.c
 )
 
@@ -768,6 +775,7 @@ add_executable(
   src/common/utility.c
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c

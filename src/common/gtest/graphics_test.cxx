@@ -47,9 +47,6 @@ MmResult error_throw_ex(MmResult result, const char *msg, ...) {
 }
 MmResult error_throw_legacy(const char *msg, ...) { return error_throw_ex(kError, msg); }
 
-// Defined in "common/interrupt.c"
-void interrupt_fire_window_close(MmSurfaceId id) {}
-
 // Defined in "common/keyboard.c"
 MmResult keyboard_key_down(const SDL_Keysym *keysym) { return kError; }
 MmResult keyboard_key_up(const SDL_Keysym *keysym) { return kError; }
