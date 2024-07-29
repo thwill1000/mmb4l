@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined MMB4L_H
+#if !defined(MMB4L_H)
 #define MMB4L_H
 
 #include "../Version.h"
@@ -103,4 +103,4 @@ typedef struct {
     uint32_t next_data;
 } DataReadPointer;
 
-#endif
+#endif // #if !defined(MMB4L_H)
