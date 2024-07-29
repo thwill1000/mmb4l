@@ -85,7 +85,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_load.c
     src/commands/cmd_loop.c
     src/commands/cmd_longstring.c
-    src/commands/cmd_math.c
+#    src/commands/cmd_math.c
     src/commands/cmd_memory.c
     src/commands/cmd_mid.c
     src/commands/cmd_mkdir.c
@@ -154,7 +154,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_llen.c
     src/functions/fun_loc.c
     src/functions/fun_lof.c
-    src/functions/fun_math.c
+#    src/functions/fun_math.c
     src/functions/fun_mmcmdline.c
     src/functions/fun_mmdevice.c
     src/functions/fun_mminfo.c
