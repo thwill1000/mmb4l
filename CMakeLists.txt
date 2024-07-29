@@ -42,6 +42,7 @@ set(MMB4L_CORE_SOURCE_FILES
     src/core/Commands.c
     src/core/Functions.c
     src/core/funtbl.c
+    src/core/maths.c
     src/core/MMBasic.c
     src/core/Operators.c
     src/core/tokentbl.c
@@ -85,7 +86,6 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_load.c
     src/commands/cmd_loop.c
     src/commands/cmd_longstring.c
-    src/commands/cmd_math.c
     src/commands/cmd_memory.c
     src/commands/cmd_mid.c
     src/commands/cmd_mkdir.c
@@ -154,7 +154,6 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_llen.c
     src/functions/fun_loc.c
     src/functions/fun_lof.c
-    src/functions/fun_math.c
     src/functions/fun_mmcmdline.c
     src/functions/fun_mmdevice.c
     src/functions/fun_mminfo.c
@@ -191,7 +190,6 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/graphics.c
     src/common/interrupt.c
     src/common/keyboard.c
-    src/common/maths.c
     src/common/memory.c
     src/common/mmgetline.c
     src/common/mmresult.c
