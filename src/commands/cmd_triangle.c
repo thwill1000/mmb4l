@@ -57,7 +57,7 @@ static void cmd_triangle_restore(const char *p) {
 /** TRIANGLE x1, y1, x2, y2, x3, y3 [, colour] [, fill] */
 static void cmd_triangle_default(const char *p) {
     int x1, y1, x2, y2, x3, y3, n = 0;
-    long long int *x3ptr, *y3ptr, *x1ptr, *y1ptr, *x2ptr, *y2ptr, *fptr, *cptr;
+    MMINTEGER *x3ptr, *y3ptr, *x1ptr, *y1ptr, *x2ptr, *y2ptr, *fptr, *cptr;
     MMFLOAT *x3fptr, *y3fptr, *x1fptr, *y1fptr, *x2fptr, *y2fptr, *ffptr, *cfptr;
     getargs(&cmdline, 15, ",");
     if (!(argc & 1) || argc < 11) ERROR_ARGUMENT_COUNT;

@@ -95,7 +95,7 @@ static void cmd_line_cmm1(const char *p) {
 
 static void cmd_line_plot(const char *p) {
     int x1, y1, x2, y2, n = 0, i, nc = 0;
-    long long int *y1ptr;
+    MMINTEGER *y1ptr;
     MMFLOAT *y1fptr;
     int xs = 0, xinc = 1;
     int ys = 0, yinc = 1;
@@ -151,7 +151,7 @@ static void cmd_line_aa(const char *p) {
 
 static void cmd_line_default(const char *p) {
     int n = 0;
-    long long int *x1ptr, *y1ptr, *x2ptr, *y2ptr;
+    MMINTEGER *x1ptr, *y1ptr, *x2ptr, *y2ptr;
     MMFLOAT *x1fptr, *y1fptr, *x2fptr, *y2fptr;
 
     getargs(&cmdline, 11, ",");
@@ -174,7 +174,7 @@ static void cmd_line_default(const char *p) {
         graphics_draw_line(graphics_current, x1, y1, x2, y2, w, colour);
     } else {
         int nc = 0, nw = 0;
-        long long int *wptr, *cptr;
+        MMINTEGER *wptr, *cptr;
         int w = 1;
         MmGraphicsColour colour = graphics_fcolour;
         MMFLOAT *wfptr, *cfptr;

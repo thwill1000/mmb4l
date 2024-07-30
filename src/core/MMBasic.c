@@ -2736,7 +2736,7 @@ void DumpVarTbl(void) {
 }
 #endif
 
-void getargaddress(char *p, long long int **ip, MMFLOAT **fp, int *n) {
+void getargaddress(char *p, MMINTEGER **ip, MMFLOAT **fp, int *n) {
     unsigned char *ptr = NULL;
     *fp = NULL;
     *ip = NULL;
@@ -2776,7 +2776,7 @@ void getargaddress(char *p, long long int **ip, MMFLOAT **fp, int *n) {
         if (vartbl[VarIndex].type & T_NBR)
             *fp = (MMFLOAT *)ptr;
         else
-            *ip = (long long int *)ptr;
+            *ip = (MMINTEGER *)ptr;
     } else {
         *n = 1;  // may be a function call
     }

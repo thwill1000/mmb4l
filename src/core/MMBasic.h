@@ -237,4 +237,4 @@ void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix
 void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
 const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType);
-void getargaddress(char *p, long long int **ip, MMFLOAT **fp, int *n);
+void getargaddress(char *p, MMINTEGER **ip, MMFLOAT **fp, int *n);

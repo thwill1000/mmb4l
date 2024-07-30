@@ -105,7 +105,7 @@ static void cmd_circle_cmm1(void) {
 static void cmd_circle_default(void) {
     int x, y, r, n = 0, nc = 0, nw = 0, nf = 0, na = 0;
     MMFLOAT a;
-    long long int *xptr, *yptr, *rptr, *fptr, *wptr, *cptr, *aptr;
+    MMINTEGER *xptr, *yptr, *rptr, *fptr, *wptr, *cptr, *aptr;
     MMFLOAT *xfptr, *yfptr, *rfptr, *ffptr, *wfptr, *cfptr, *afptr;
     getargs(&cmdline, 13, ",");
     if (!(argc & 1) || argc < 5) ERROR_ARGUMENT_COUNT;

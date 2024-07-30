@@ -67,7 +67,7 @@ static void cmd_pixel_cmm1(const char *p) {
 
 static void cmd_pixel_default(const char *p) {
     int n = 0, nc = 0;
-    long long int *x1ptr, *y1ptr, *cptr;
+    MMINTEGER *x1ptr, *y1ptr, *cptr;
     MMFLOAT *x1fptr, *y1fptr, *cfptr;
 
     getargs(&cmdline, 5, ",");

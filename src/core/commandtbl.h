@@ -142,6 +142,7 @@ void cmd_pause(void);
 void cmd_pin(void);
 void cmd_pixel(void);
 void cmd_play(void);
+void cmd_polygon(void);
 void cmd_poke(void);
 void cmd_print(void);
 void cmd_pulse(void);

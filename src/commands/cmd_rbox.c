@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void cmd_rbox(void) {
     int x1, y1, wi, h, w = 0, r = 0, n = 0, i, nc = 0, nw = 0, nf = 0, hmod, wmod;
-    long long int *x1ptr, *y1ptr, *wiptr, *hptr, *wptr, *cptr, *fptr;
+    MMINTEGER *x1ptr, *y1ptr, *wiptr, *hptr, *wptr, *cptr, *fptr;
     MMFLOAT *x1fptr, *y1fptr, *wifptr, *hfptr, *wfptr, *cfptr, *ffptr;
     getargs(&cmdline, 13, ",");
     // if (Option.DISPLAY_TYPE == 0) error("Display not configured");

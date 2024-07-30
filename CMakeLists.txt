@@ -104,6 +104,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_print.c
     src/commands/cmd_pulse.c
     src/commands/cmd_pin.c
+    src/commands/cmd_polygon.c
     src/commands/cmd_quit.c
     src/commands/cmd_rbox.c
     src/commands/cmd_read.c
