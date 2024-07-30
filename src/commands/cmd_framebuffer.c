@@ -132,7 +132,10 @@ static void cmd_framebuffer_copy(const char *p) {
 static void cmd_framebuffer_create(const char *p) {
     skipspace(p);
     if (!parse_is_end(p)) error_throw(kUnexpectedText);
-    MmResult result = graphics_buffer_create(GRAPHICS_SURFACE_F, 320, 240);
+    MmResult result = graphics_buffer_create(
+        GRAPHICS_SURFACE_F,
+        graphics_surfaces[GRAPHICS_SURFACE_N].width,
+        graphics_surfaces[GRAPHICS_SURFACE_N].height);
     if (FAILED(result)) error_throw(result);
 }
 
@@ -141,7 +144,10 @@ static void cmd_framebuffer_layer(const char *p) {
     skipspace(p);
     uint8_t transparent = parse_is_end(p) ? 0 : getint(p, 0, 15);
 
-    MmResult result = graphics_buffer_create(GRAPHICS_SURFACE_L, 320, 240);
+    MmResult result = graphics_buffer_create(
+        GRAPHICS_SURFACE_L,
+        graphics_surfaces[GRAPHICS_SURFACE_N].width,
+        graphics_surfaces[GRAPHICS_SURFACE_N].height);
     if (FAILED(result)) error_throw(result);
 
     MmSurface *layer = &graphics_surfaces[GRAPHICS_SURFACE_L];
