@@ -74,6 +74,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_flash.c
     src/commands/cmd_font.c
     src/commands/cmd_framebuffer.c
+    src/commands/cmd_gamepad.c
     src/commands/cmd_graphics.c
     src/commands/cmd_gui.c
     src/commands/cmd_image.c
@@ -143,6 +144,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_epoch.c
     src/functions/fun_format.c
     src/functions/fun_field.c
+    src/functions/fun_gamepad.c
     src/functions/fun_hres.c
     src/functions/fun_inputstr.c
     src/functions/fun_json.c

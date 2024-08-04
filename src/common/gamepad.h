@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMBASIC_GAMEPAD_H)
 #define MMBASIC_GAMEPAD_H
 
+#include <stdbool.h>
+
 #include "mmresult.h"
 
 /** Bitmask to pass to gamepad_open() to interrupt on all digital button presses. */

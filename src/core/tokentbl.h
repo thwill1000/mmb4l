@@ -91,6 +91,7 @@ void fun_exp(void);
 void fun_field(void);
 void fun_fix(void);
 void fun_format(void);
+void fun_gamepad(void);
 void fun_hex(void);
 void fun_hres(void);
 void fun_inkey(void);

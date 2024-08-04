@@ -43,6 +43,7 @@ void cmd_flash() { }
 void cmd_font() { }
 void cmd_for() { }
 void cmd_framebuffer() { }
+void cmd_gamepad() { }
 void cmd_gosub() { }
 void cmd_goto() { }
 void cmd_graphics() { }
