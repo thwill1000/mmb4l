@@ -91,6 +91,7 @@ const struct s_tokentbl tokentbl[] = {
     { "Field$(",     T_FUN | T_STR,      0, fun_field    },
     { "Fix(",        T_FUN | T_INT,      0, fun_fix      },
     { "Format$(",    T_FUN | T_STR,      0, fun_format   },
+    { "Gamepad(",    T_FUN | T_INT,      0, fun_gamepad  },
     { "Hex$(",       T_FUN | T_STR,      0, fun_hex      },
     { "Inkey$",      T_FNA | T_STR,      0, fun_inkey    },
     { "Input$(",     T_FUN | T_STR,      0, fun_inputstr },

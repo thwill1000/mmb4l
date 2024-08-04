@@ -108,6 +108,7 @@ void cmd_flash(void);
 void cmd_font(void);
 void cmd_for(void);
 void cmd_framebuffer(void);
+void cmd_gamepad(void);
 void cmd_gosub(void);
 void cmd_goto(void);
 void cmd_graphics(void);

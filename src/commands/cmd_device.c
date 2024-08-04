@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-fun_device.c
+cmd_device.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 

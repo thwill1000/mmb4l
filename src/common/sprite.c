@@ -396,18 +396,18 @@ static inline bool sprite_check_for_edge_collision(MmSurface *sprite, MmSurface 
     if (sprite->x + sprite->width > surface->width) sprite->edge_collisions |= kSpriteEdgeRight;
     if (sprite->y + sprite->height > surface->height) sprite->edge_collisions |= kSpriteEdgeBottom;
 
-    if (sprite->edge_collisions) {
-        printf("Sprite %d has edge collision\n", sprite->id);
-        // printf("  0: 0b%010b\n", sprite->sprite_collisions[0]);
-        // printf("  1: 0b%010b\n", sprite->sprite_collisions[1]);
-        // printf("  2: 0b%010b\n", sprite->sprite_collisions[2]);
-        // printf("  3: 0b%010b\n", sprite->sprite_collisions[3]);
-        // printf("  4: 0b%010b\n", sprite->sprite_collisions[4]);
-        // printf("  5: 0b%010b\n", sprite->sprite_collisions[5]);
-        // printf("  6: 0b%010b\n", sprite->sprite_collisions[6]);
-        // printf("  7: 0b%010b\n", sprite->sprite_collisions[7]);
-        printf("  *: 0b%010b\n", sprite->edge_collisions);
-    }
+    // if (sprite->edge_collisions) {
+    //     printf("Sprite %d has edge collision\n", sprite->id);
+    //     printf("  0: 0b%010b\n", sprite->sprite_collisions[0]);
+    //     printf("  1: 0b%010b\n", sprite->sprite_collisions[1]);
+    //     printf("  2: 0b%010b\n", sprite->sprite_collisions[2]);
+    //     printf("  3: 0b%010b\n", sprite->sprite_collisions[3]);
+    //     printf("  4: 0b%010b\n", sprite->sprite_collisions[4]);
+    //     printf("  5: 0b%010b\n", sprite->sprite_collisions[5]);
+    //     printf("  6: 0b%010b\n", sprite->sprite_collisions[6]);
+    //     printf("  7: 0b%010b\n", sprite->sprite_collisions[7]);
+    //     printf("  *: 0b%010b\n", sprite->edge_collisions);
+    // }
 
     return sprite->edge_collisions > 0;
 }
