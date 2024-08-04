@@ -77,6 +77,20 @@ MmResult sprite_term() {
     return kOk;
 }
 
+static inline MmSurface *sprite_first_active() {
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        if (graphics_surfaces[id].type == kGraphicsSprite) return &graphics_surfaces[id];
+    }
+    return NULL;
+}
+
+static inline MmSurface *sprite_next_active(MmSurface *sprite) {
+    for (MmSurfaceId id = sprite->id + 1; id <= GRAPHICS_MAX_ID; ++id) {
+        if (graphics_surfaces[id].type == kGraphicsSprite) return &graphics_surfaces[id];
+    }
+    return NULL;
+}
+
 MmResult sprite_count(size_t *total) {
     *total = 0;
     MmResult result = kOk;
@@ -177,15 +191,9 @@ static inline MmResult sprite_update_background(MmSurface *sprite, MmSurface *sr
                          &background, 0x0, -1);
 }
 
-static inline MmSurface *sprite_get_first_active() {
-    return graphics_surfaces[0].type == kGraphicsSprite
-            ? &graphics_surfaces[0]
-            : graphics_surfaces[0].next_active_sprite;
-}
-
 MmResult sprite_get_num_collisions(MmSurface *sprite, uint32_t *count) {
     *count = 0;
-    for (MmSurface *other = sprite_get_first_active(); other; other = other->next_active_sprite) {
+    for (MmSurface *other = sprite_first_active(); other; other = sprite_next_active(other)) {
         *count += bitset_get(sprite->sprite_collisions, other->id) ? 1 : 0;
     }
     if (sprite->edge_collisions) (*count)++;
@@ -196,7 +204,7 @@ MmResult sprite_get_collision(MmSurface *sprite, uint32_t n, MmSurfaceId *id) {
     assert(n != 0);
     *id = -1;
     uint32_t count = 0;
-    for (MmSurface *other = sprite_get_first_active(); other; other = other->next_active_sprite) {
+    for (MmSurface *other = sprite_first_active(); other; other = sprite_next_active(other)) {
         if (bitset_get(sprite->sprite_collisions, other->id)) {
             count++;
             if (count == n) {
@@ -225,7 +233,7 @@ static inline bool sprite_has_collided(MmSurface *sprite) {
 
 MmResult sprite_get_num_collided_sprites(uint32_t *count) {
     *count = 0;
-    for (MmSurface *sprite = sprite_get_first_active(); sprite; sprite = sprite->next_active_sprite) {
+    for (MmSurface *sprite = sprite_first_active(); sprite; sprite = sprite_next_active(sprite)) {
         *count += sprite_has_collided(sprite) ? 1 : 0;
     }
     return kOk;
@@ -234,7 +242,7 @@ MmResult sprite_get_num_collided_sprites(uint32_t *count) {
 MmResult sprite_get_collided_sprite(uint32_t n, MmSurfaceId *id) {
     assert(n != 0);
     uint32_t count = 0;
-    for (MmSurface *sprite = sprite_get_first_active(); sprite; sprite = sprite->next_active_sprite) {
+    for (MmSurface *sprite = sprite_first_active(); sprite; sprite = sprite_next_active(sprite)) {
         if (sprite_has_collided(sprite)) {
             count++;
             if (count == n) {
@@ -271,34 +279,9 @@ MmResult sprite_hide(MmSurface *sprite) {
     sprite->next_x = GRAPHICS_OFF_SCREEN;
     sprite->next_y = GRAPHICS_OFF_SCREEN;
     sprite_clear_collision_data(sprite);
-    return sprite_activate(sprite, false);
+    sprite->type = kGraphicsInactiveSprite;
+    return result;
 }
-
-/**
- * @param  layer0     If true then hide sprites on layer 0, otherwise on other layers.
- * @param  transient  If true then just restore the background and temporarily flag as inactive,
- *                    without a full sprite_activate() call.
- * @param  sprite     If not NULL then stop hiding sprites when we reach this sprite.
- *                    WITHOUT hiding this sprite.
- */
-// static MmResult sprite_hide_multiple(bool layer0, bool transient, MmSurface *sprite) {
-//     const MmSurfaceId *base = (MmSurfaceId *) sprite_stack[layer0 ? 0 : 1].storage;
-//     const MmSurfaceId *top = (MmSurfaceId *) sprite_stack[layer0 ? 0 : 1].top;
-//     MmResult result = kOk;
-//     for (const MmSurfaceId *pid = top - 1; result == kOk && pid >= base; --pid) {
-//         MmSurface *s = &graphics_surfaces[*pid];
-//         if (s == sprite) break;
-//         result = sprite_render_background(sprite, graphics_current);
-//         if (SUCCEEDED(result)) {
-//             if (transient) {
-//                 sprite->type = kGraphicsInactiveSprite;
-//             } else {
-//                 result = sprite_activate(sprite, false);
-//             }
-//         }
-//     }
-//     return result;
-// }
 
 /**
  * Temporarily hides sprites in a Stack.
@@ -366,18 +349,6 @@ MmResult sprite_hide_safe(MmSurface *sprite) {
     return result;
 }
 
-// static MmResult sprite_hide_all_internal(Stack *stack) {
-//     MmResult result = kOk;
-//     const MmSurfaceId *base = (MmSurfaceId *) stack->storage;
-//     const MmSurfaceId *top = (MmSurfaceId *) stack->top;
-//     for (const MmSurfaceId *pid = top - 1; SUCCEEDED(result) && pid >= base; --pid) {
-//         MmSurface *s = &graphics_surfaces[*pid];
-//         result = sprite_render_background(s, graphics_current);
-//         if (SUCCEEDED(result)) result = sprite_activate(s, false);
-//     }
-//     return result;
-// }
-
 MmResult sprite_hide_all() {
     if (sprite_all_hidden) return kSpritesAreHidden;
     MmResult result = sprite_tmp_hide(&sprite_stack[1], NULL);
@@ -424,6 +395,20 @@ static inline bool sprite_check_for_edge_collision(MmSurface *sprite, MmSurface 
     if (sprite->y < 0) sprite->edge_collisions |= kSpriteEdgeTop;
     if (sprite->x + sprite->width > surface->width) sprite->edge_collisions |= kSpriteEdgeRight;
     if (sprite->y + sprite->height > surface->height) sprite->edge_collisions |= kSpriteEdgeBottom;
+
+    if (sprite->edge_collisions) {
+        printf("Sprite %d has edge collision\n", sprite->id);
+        // printf("  0: 0b%010b\n", sprite->sprite_collisions[0]);
+        // printf("  1: 0b%010b\n", sprite->sprite_collisions[1]);
+        // printf("  2: 0b%010b\n", sprite->sprite_collisions[2]);
+        // printf("  3: 0b%010b\n", sprite->sprite_collisions[3]);
+        // printf("  4: 0b%010b\n", sprite->sprite_collisions[4]);
+        // printf("  5: 0b%010b\n", sprite->sprite_collisions[5]);
+        // printf("  6: 0b%010b\n", sprite->sprite_collisions[6]);
+        // printf("  7: 0b%010b\n", sprite->sprite_collisions[7]);
+        printf("  *: 0b%010b\n", sprite->edge_collisions);
+    }
+
     return sprite->edge_collisions > 0;
 }
 
@@ -476,7 +461,7 @@ MmResult sprite_update_collisions(MmSurface *sprite) {
     bool has_collision = false;
 
     // Check for collisions with other sprites.   
-    for (MmSurface *other = sprite_get_first_active(); other; other = other->next_active_sprite) {
+    for (MmSurface *other = sprite_first_active(); other; other = sprite_next_active(other)) {
         //printf("  %d\n", other->id - 128);
         has_collision |= sprite_check_for_sprite_collision(sprite, other);
     }
@@ -485,14 +470,6 @@ MmResult sprite_update_collisions(MmSurface *sprite) {
 
     // Check for collisions with surface edge.
     has_collision |= sprite_check_for_edge_collision(sprite, graphics_current);
-
-    if (has_collision) {
-        printf("Sprite collision: %d\n", sprite->id);
-        sprite_last_collision = sprite->id;
-        interrupt_fire(kInterruptSpriteCollision);
-    } else {
-        sprite_last_collision = SPRITE_NO_COLLISION;
-    }
 
     // if (has_collision) {
     //     printf("Sprite %d has collision\n", sprite->id);
@@ -507,20 +484,27 @@ MmResult sprite_update_collisions(MmSurface *sprite) {
     //     printf("  *: 0b%010b\n", sprite->edge_collisions);
     // }
 
+    if (has_collision) {
+        sprite_last_collision = sprite->id;
+        interrupt_fire(kInterruptSpriteCollision);
+    } else {
+        sprite_last_collision = SPRITE_NO_COLLISION;
+    }
+
     return kOk;
 }
 
 MmResult sprite_update_all_collisions() {
     // Clear collision data for all active sprites.
-    for (MmSurface *sprite = sprite_get_first_active(); sprite; sprite = sprite->next_active_sprite) {
+    for (MmSurface *sprite = sprite_first_active(); sprite; sprite = sprite_next_active(sprite)) {
         sprite_clear_collision_data(sprite);
     }
 
     bool has_collision = false;
 
-    for (MmSurface *sprite = sprite_get_first_active(); sprite; sprite = sprite->next_active_sprite) {
+    for (MmSurface *sprite = sprite_first_active(); sprite; sprite = sprite_next_active(sprite)) {
         // Check for collisions with other sprites.
-        for (MmSurface *other = sprite->next_active_sprite; other; other = other->next_active_sprite) {
+        for (MmSurface *other = sprite_next_active(sprite); other; other = sprite_next_active(other)) {
             has_collision |= sprite_check_for_sprite_collision(sprite, other);
         }
 
@@ -538,39 +522,6 @@ MmResult sprite_update_all_collisions() {
     return kOk;
 }
 
-MmResult sprite_activate(MmSurface *sprite, bool activate) {
-    switch (sprite->type) {
-        case kGraphicsSprite:
-            if (!activate) { // Deactivating an active sprite.
-                sprite->type = kGraphicsInactiveSprite;
-                for (MmSurfaceId id = sprite->id - 1; id >= 0; --id) {
-                    if (graphics_surfaces[id].next_active_sprite == sprite) {
-                        graphics_surfaces[id].next_active_sprite = sprite->next_active_sprite;
-                    } else {
-                        break;
-                    }
-                }
-                // TODO: Clear collisions ?
-            }
-            return kOk;
-        case kGraphicsInactiveSprite:
-            if (activate) { // Activating an inactive sprite.
-                sprite->type = kGraphicsSprite;
-                for (MmSurfaceId id = sprite->id - 1; id >= 0; --id) {
-                    if (graphics_surfaces[id].next_active_sprite == sprite->next_active_sprite) {
-                        graphics_surfaces[id].next_active_sprite = sprite;
-                    } else {
-                        break;
-                    }
-                }
-                // TODO: Recalculate collisions ?
-            }
-            return kOk;
-        default:
-            return kGraphicsNotASprite;
-    }
-}
-
 MmResult sprite_get_collision_bitset(MmSurface *sprite, uint8_t start, uint64_t *bitset) {
     if (sprite->type != kGraphicsSprite && sprite->type != kGraphicsInactiveSprite)
         return kGraphicsNotASprite;
@@ -578,43 +529,6 @@ MmResult sprite_get_collision_bitset(MmSurface *sprite, uint8_t start, uint64_t 
     *bitset = ((uint64_t *) sprite->sprite_collisions)[start / 64];
     return kOk;
 }
-
-// static MmResult sprite_restore_all_internal(Stack *stack) {
-//     MmResult result = kOk;
-//     const MmSurfaceId *base = (MmSurfaceId *) stack->storage;
-//     const MmSurfaceId *top = (MmSurfaceId *) stack->top;
-//     for (const MmSurfaceId *pid = base; SUCCEEDED(result) && pid < top; ++pid) {
-//         MmSurface *s = &graphics_surfaces[*pid];
-//         if (s->layer != 0) sprite_update_position(s);
-//         result = sprite_update_background(s, graphics_current);
-//         if (SUCCEEDED(result)) result = sprite_render(s, graphics_current);
-//         result = sprite_render_background(s, graphics_current);
-//         if (SUCCEEDED(result)) result = sprite_activate(s, false);
-//     }
-//     return result;
-// }
-
-// MmResult sprite_restore_all() {
-//     if (!sprite_all_hidden) return kSpritesNotHidden;
-
-//     // Need to clear this flag before calling sprite_show().
-//     sprite_all_hidden = false;
-
-//     // Restore layer 0 sprites and then other sprites.
-//     for (int ii = 0; ii <= 1; ++ii) {
-//         const MmSurfaceId *base = (MmSurfaceId *) sprite_stack[ii].storage;
-//         const MmSurfaceId *top = (MmSurfaceId *) sprite_stack[ii].top;
-//         for (const MmSurfaceId *pid = base; pid < top; ++pid) {
-//             MmSurface *sprite = &graphics_surfaces[*pid];
-//             if (ii != 0) sprite_update_position(sprite);
-//             MmResult result = sprite_show(sprite, graphics_current, sprite->x, sprite->y,
-//                                           sprite->layer, 0x0); // TODO: sprite should remember flags!
-//             if (FAILED(result)) return result;
-//         }
-//     }
-
-//     return sprite_update_all_collisions();
-// }
 
 MmResult sprite_restore_all() {
     if (!sprite_all_hidden) return kSpritesNotHidden;
@@ -676,76 +590,6 @@ MmResult sprite_scroll(int x, int y, MmGraphicsColour colour) {
     if (SUCCEEDED(result)) result = sprite_update_all_collisions();
 
     return result;
-
-#if 0
-    m = ((maxW * (y > 0 ? y : -y)+1) >>1);
-    n = ((maxH * (x > 0 ? x : -x)+1) >>1);
-    if (n > m)m = n;
-    if (blank == -2)current = (char *)GetMemory(m);
-    for (i = LIFOpointer - 1; i >= 0; i--) blithide(LIFO[i], 0);
-
-    for (i = zeroLIFOpointer - 1; i >= 0; i--) {
-        int xs = spritebuff[zeroLIFO[i]].x + (spritebuff[zeroLIFO[i]].w >> 1);
-        int ys = spritebuff[zeroLIFO[i]].y + (spritebuff[zeroLIFO[i]].h >> 1);
-        blithide(zeroLIFO[i], 0);
-        xs += x;
-        if (xs >= maxW)xs -= maxW;
-        if (xs < 0)xs += maxW;
-        spritebuff[zeroLIFO[i]].x = xs - (spritebuff[zeroLIFO[i]].w >> 1);
-        ys -= y;
-        if (ys >= maxH)ys -= maxH;
-        if (ys < 0)ys += maxH;
-        spritebuff[zeroLIFO[i]].y = ys - (spritebuff[zeroLIFO[i]].h >> 1);
-    }
-
-    if (x > 0) {
-        if (blank == -2)ReadBufferFast(maxW - x, 0, maxW - 1, maxH - 1, (unsigned char *)current);
-        ScrollBufferH(x);
-        if (blank == -2)DrawBufferFast(0, 0, x - 1, maxH - 1, -1, (unsigned char *)current);
-        else if (blank != -1)DrawRectangle(0, 0, x - 1, maxH - 1, blank);
-    }
-    else if (x < 0) {
-        x = -x;
-        if (blank == -2)ReadBufferFast(0, 0, x - 1, maxH - 1, (unsigned char *)current);
-        ScrollBufferH(-x);
-        if (blank == -2)DrawBufferFast(maxW - x, 0, maxW - 1, maxH - 1, -1, (unsigned char *)current);
-        else if (blank != -1)DrawRectangle(maxW - x, 0, maxW - 1, maxH - 1, blank);
-    }
-
-    if (y > 0) {
-        if (blank == -2)ReadBufferFast(0, 0, maxW - 1, y - 1, (unsigned char *)current);
-        ScrollBufferV(y, 0);
-        if (blank == -2)DrawBufferFast(0, maxH - y, maxW - 1, maxH - 1, -1, (unsigned char *)current);
-        else if (blank != -1)DrawRectangle(0, maxH - y, maxW - 1, maxH - 1, blank);
-    }
-    else if (y < 0) {
-        y = -y;
-        if (blank == -2)ReadBufferFast(0, maxH - y, maxW - 1, maxH - 1, (unsigned char *)current);
-        ScrollBufferV(-y, 0);
-        if (blank == -2)DrawBufferFast(0, 0, maxW - 1, y - 1, -1, (unsigned char *)current);
-        else if (blank != -1)DrawRectangle(0, 0, maxW - 1, y - 1, blank);
-    }
-
-    for (i = 0; i < zeroLIFOpointer; i++) {
-        BlitShowBuffer(zeroLIFO[i], spritebuff[zeroLIFO[i]].x, spritebuff[zeroLIFO[i]].y, 0);
-    }
-
-    for (i = 0; i < LIFOpointer; i++) {
-        if (spritebuff[LIFO[i]].next_x != 10000) {
-            spritebuff[LIFO[i]].x = spritebuff[LIFO[i]].next_x;
-            spritebuff[LIFO[i]].next_x = 10000;
-        }
-        if (spritebuff[LIFO[i]].next_y != 10000) {
-            spritebuff[LIFO[i]].y = spritebuff[LIFO[i]].next_y;
-            spritebuff[LIFO[i]].next_y = 10000;
-        }
-
-        BlitShowBuffer(LIFO[i], spritebuff[LIFO[i]].x, spritebuff[LIFO[i]].y, 0);
-    }
-
-    ProcessCollisions(0);
-    if (current)FreeMemory((unsigned char *)current);
-#endif
 }
 
 MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
@@ -788,7 +632,7 @@ MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
     }
 
     // Flag the sprite as active / visible.
-    if (SUCCEEDED(result)) result = sprite_activate(sprite, true);
+    if (SUCCEEDED(result)) sprite->type = kGraphicsSprite;
 
     return result;
 }

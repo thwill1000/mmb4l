@@ -145,9 +145,6 @@ MmResult sprite_update_all_collisions();
 /** TODO */
 MmResult sprite_update_collisions(MmSurface *sprite);
 
-/** Activate/deactivate a sprite. */
-MmResult sprite_activate(MmSurface *sprite, bool activate);
-
 /**
  * Gets a 64-bit slice of the bitset of sprites that a given sprite is currently collided with.
  *

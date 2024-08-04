@@ -166,7 +166,6 @@ typedef struct MmSurfaceStruct {
     uint32_t *pixels;
     const char *interrupt_addr;
     MmGraphicsColour transparent;
-    struct MmSurfaceStruct *next_active_sprite;
 
     // The following fields are only used for type == kGraphicsSprite | kGraphicsInactiveSprite.
     uint32_t *background;

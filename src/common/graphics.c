@@ -388,7 +388,6 @@ static MmResult graphics_surface_create(MmSurfaceId id, GraphicsSurfaceType type
     s->width = width;
     s->interrupt_addr = NULL;
     s->transparent = -1;
-    s->next_active_sprite = graphics_surface_from_id(graphics_next_active_sprite(id));
     s->background = NULL;
     s->x = GRAPHICS_OFF_SCREEN;
     s->y = GRAPHICS_OFF_SCREEN;
