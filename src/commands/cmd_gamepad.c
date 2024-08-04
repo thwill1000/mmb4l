@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-fun_device.c
+cmd_gamepad.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,62 +42,55 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdint.h>
-
 #include "../common/gamepad.h"
+#include "../common/interrupt.h"
 #include "../common/mmb4l.h"
 #include "../common/utility.h"
 
-/** Adjusts range of signed 16-bit value (-32768 .. 32767) to an unsigned 8-bit value. */
-static int transform_analog_for_mmb4w(int in) {
-    int out = 128;
-    if (in < INT16_MIN) {
-        out = 0;
-    } else if (in > INT16_MAX) {
-        out = 255;
-    } else if (in < -3072 || in > 3072) { // Allow some play in joystick center.
-        out = max(0, min(256, 128 + (in / 256)));
-    }
-    return out;
+/** GAMEPAD OFF */
+static MmResult cmd_gamepad_off(const char *p) {
+    skipspace(p);
+    if (!parse_is_end(p)) return kUnexpectedText;
+    return gamepad_close(1);
 }
 
-MmResult fun_device_gamepad(const char *p, bool mmb4w_compatibility) {
+/** GAMEPAD ON [interrupt] [, bitmask] */
+static MmResult cmd_gamepad_on(const char *p) {
     getargs(&p, 3, ",");
-    if (argc != 1 && argc != 3) ERROR_ARGUMENT_COUNT;
-    MmGamepadId gamepad_id = (argc == 3) ? getint(argv[0], 1, 4) : 1;
-    const char *flag = argv[argc - 1];
-    const char *p2;
-    MmResult result = kOk;
-    targ = T_INT;
-    if ((p2 = checkstring(flag, "B"))) {
-        result = gamepad_read_buttons(gamepad_id, &iret);
-        return result;
-    } else if ((p2 = checkstring(flag, "LX"))) {
-        result = gamepad_read_left_x(gamepad_id, &iret);
-    } else if ((p2 = checkstring(flag, "LY"))) {
-        result = gamepad_read_left_y(gamepad_id, &iret);
-    } else if ((p2 = checkstring(flag, "RX"))) {
-        result = gamepad_read_right_x(gamepad_id, &iret);
-    } else if ((p2 = checkstring(flag, "RY"))) {
-        result = gamepad_read_right_y(gamepad_id, &iret);
-    } else if ((p2 = checkstring(flag, "L"))) {
-        result = gamepad_read_left_analog_button(gamepad_id, &iret);
-    } else if ((p2 = checkstring(flag, "R"))) {
-        result = gamepad_read_right_analog_button(gamepad_id, &iret);
-    } else {
-        result = kGamepadUnknownFunction;
-    }
-    if (SUCCEEDED(result) && mmb4w_compatibility) iret = transform_analog_for_mmb4w(iret);
-    return result;
+    if (argc > 3) return kArgumentCount;
+    const char* interrupt_addr = (argc > 0) ? GetIntAddress(argv[0]) : NULL;
+    uint16_t bitmask = (argc == 3) ? getint(argv[2], 0, GAMEPAD_BITMASK_ALL) : GAMEPAD_BITMASK_ALL;
+    return gamepad_open(1, interrupt_addr, bitmask);
 }
 
-void fun_device(void) {
+/** GAMEPAD STOP */
+static MmResult cmd_gamepad_stop(const char *p) {
+    skipspace(p);
+    if (!parse_is_end(p)) return kUnexpectedText;
+    return gamepad_vibrate(1, 0, 0, 0);
+}
+
+/** GAMEPAD VIBRATE */
+static MmResult cmd_gamepad_vibrate(const char *p) {
+    skipspace(p);
+    if (!parse_is_end(p)) return kUnexpectedText;
+    return gamepad_vibrate(1, UINT16_MAX, UINT16_MAX, 10000);
+}
+
+void cmd_gamepad(void) {
+    if (mmb_options.simulate != kSimulateMmb4w) ERROR_ON_FAILURE(kUnsupportedOnCurrentDevice);
     MmResult result = kOk;
     const char *p;
-    if ((p = checkstring(ep, "GAMEPAD"))) {
-        result = fun_device_gamepad(p, false);
+    if ((p = checkstring(cmdline, "ON"))) {
+        result = cmd_gamepad_on(p);
+    } else if ((p = checkstring(cmdline, "OFF"))) {
+        result = cmd_gamepad_off(p);
+    } else if ((p = checkstring(cmdline, "VIBRATE"))) {
+        result = cmd_gamepad_vibrate(p);
+    } else if ((p = checkstring(cmdline, "STOP"))) {
+        result = cmd_gamepad_stop(p);
     } else {
-        ERROR_UNKNOWN_SUBFUNCTION("DEVICE");
+        ERROR_UNKNOWN_SUBCOMMAND("GAMEPAD");
     }
     ERROR_ON_FAILURE(result);
 }
