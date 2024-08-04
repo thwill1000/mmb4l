@@ -38,6 +38,7 @@ void fun_exp() { }
 void fun_field() { }
 void fun_fix() { }
 void fun_format() { }
+void fun_gamepad() { }
 void fun_hex() { }
 void fun_hres() { }
 void fun_inkey() { }

@@ -146,6 +146,7 @@ typedef enum {
     kGamepadNotFound,
     kGamepadInvalidId,
     kGamepadNotOpen,
+    kGamepadUnknownFunction,
     kSoundInUse,
     kSoundInvalidFrequency,
     kAudioNoModFile,
