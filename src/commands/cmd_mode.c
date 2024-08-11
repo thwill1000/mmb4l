@@ -68,14 +68,13 @@ static MmResult cmd_mode_cmm2(void) {
     getargs(&cmdline, 7, ",");
     if ((argc % 2 == 0) || argc < 1) return kArgumentCount;
 
-    const OptionsSimulate device = kSimulateCmm2;
     const unsigned mode = getint(argv[0], MIN_CMM2_MODE, MAX_CMM2_MODE);
     const unsigned colour_depth = (argc >= 3) ? getint(argv[2], 0, 32) : 32;
     const MmGraphicsColour background = (argc >= 5)
             ? getint(argv[4], RGB_BLACK, RGB_WHITE)
             : RGB_BLACK;
     // 'interrupt' parameter is ignored by MMB4L.
-    return graphics_simulate_display(device, mode, colour_depth, background);
+    return graphics_simulate_display(mmb_options.simulate, mode, colour_depth, background);
 }
 
 static MmResult cmd_mode_pmvga(void) {
@@ -91,6 +90,7 @@ void cmd_mode(void) {
     MmResult result = kOk;
     switch (mmb_options.simulate) {
         case kSimulateCmm2:
+        case kSimulateMmb4w:
             result = cmd_mode_cmm2();
             break;
 

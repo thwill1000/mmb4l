@@ -171,7 +171,7 @@ static uint64_t frameEnd = 0;
 //MmSpriteState graphics_sprite_state;
 
 /**
- * If kSimulateCmm2 && colour depth== 12 then simulate a 3 layer CMM2 display:
+ * If kSimulate{Cmm2|Mmb4w} && colour depth== 12 then simulate a 3 layer CMM2 display:
  *   page/surface 1 -- top
  *   page/surface 0
  *   background     -- bottom
@@ -181,7 +181,7 @@ static uint64_t frameEnd = 0;
 unsigned graphics_colour_depth = 32;
 
 /**
- * Colour of the background layer to be used if kSimulateCmm2 && graphics_colour_depth == 12;
+ * Colour of the background layer to be used if kSimulate{Cmm2|Mmb4w} && graphics_colour_depth == 12;
  */
 MmGraphicsColour graphics_cmm2_background = RGB_BLACK;
 
@@ -235,7 +235,7 @@ MmSurfaceId graphics_find_window(uint32_t sdl_window_id) {
 /** TODO */
 static MmResult graphics_refresh_cmm2_window() {
     if (graphics_colour_depth != 12) return kOk; // Use default window refresh.
-    assert(mmb_options.simulate == kSimulateCmm2);
+    assert(mmb_options.simulate == kSimulateCmm2 || mmb_options.simulate == kSimulateMmb4w);
     MmSurface* window = &graphics_surfaces[0];
     MmSurface* page1 = &graphics_surfaces[1];
     assert(window->type == kGraphicsWindow);
@@ -318,6 +318,7 @@ void graphics_refresh_windows() {
     if (SDL_GetTicks() > frameEnd) {
         switch (mmb_options.simulate) {
             case kSimulateCmm2:
+            case kSimulateMmb4w:
                 ERROR_ON_FAILURE(graphics_refresh_cmm2_window());
                 break;
             case kSimulateGameMite:
@@ -2130,7 +2131,7 @@ MmResult graphics_simulate_display(OptionsSimulate platform, unsigned mode, unsi
                                    MmGraphicsColour background) {
     switch (colour_depth) {
         case 12:
-            if (platform != kSimulateCmm2) return kGraphicsInvalidColourDepth;
+            if (platform != kSimulateCmm2 && platform != kSimulateMmb4w) return kGraphicsInvalidColourDepth;
             break;
         case 32:
             if (background != RGB_BLACK) return kInvalidValue;
@@ -2141,6 +2142,7 @@ MmResult graphics_simulate_display(OptionsSimulate platform, unsigned mode, unsi
 
     switch (platform) {
         case kSimulateCmm2:
+        case kSimulateMmb4w:
             return graphics_simulate_cmm2(mode, colour_depth, background);
         case kSimulatePicoMiteVga:
             return graphics_simulate_picomite_vga(mode);

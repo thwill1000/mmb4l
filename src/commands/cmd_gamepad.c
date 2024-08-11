@@ -78,10 +78,13 @@ static MmResult cmd_gamepad_vibrate(const char *p) {
 }
 
 /**
- * This for compatibility with the "MMBasic for Windows" GAMEPAD command.
- * MMB4L has a DEVICE GAMEPAD command that should be preferred.
+ * For compatibility with the "MMBasic for Windows" GAMEPAD command.
  */
 void cmd_gamepad(void) {
+    if (mmb_options.simulate != kSimulateMmb4w) {
+        ERROR_ON_FAILURE(kUnsupportedOnCurrentDevice);
+        return;
+    }
     MmResult result = kOk;
     const char *p;
     if ((p = checkstring(cmdline, "ON"))) {

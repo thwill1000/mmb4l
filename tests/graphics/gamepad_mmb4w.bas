@@ -2,8 +2,7 @@ Option Base 0
 Option Default None
 Option Explicit
 
-' TODO: Should probably support OPTION SIMULATE "MMB4W"
-Option Simulate "Colour Maximite 2"
+Option Simulate "MMB4W"
 
 Dim cmd$
 Dim gamepad_present%(1)

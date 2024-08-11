@@ -125,6 +125,7 @@ typedef enum { kBoth, kScreen, kSerial } OptionsConsole;
 
 typedef enum {
     kSimulateMmb4l,
+    kSimulateMmb4w,
     kSimulateCmm2,
     kSimulatePicoMiteVga,
     kSimulateGameMite
