@@ -1071,6 +1071,10 @@ TEST_F(OptionsTest, GetStringValue_ForSimulate) {
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
     EXPECT_STREQ("MMB4L", svalue);
 
+    options.simulate = kSimulateMmb4w;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("MMB4W", svalue);
+
     options.simulate = kSimulateCmm2;
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
     EXPECT_STREQ("Colour Maximite 2", svalue);
@@ -1487,6 +1491,9 @@ TEST_F(OptionsTest, SetStringValue_ForSimulate) {
 
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "MMB4L"));
     EXPECT_EQ(kSimulateMmb4l, options.simulate);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "MMB4W"));
+    EXPECT_EQ(kSimulateMmb4w, options.simulate);
 
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "Colour Maximite 2"));
     EXPECT_EQ(kSimulateCmm2, options.simulate);

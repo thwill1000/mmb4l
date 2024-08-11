@@ -122,6 +122,7 @@ static const NameOrdinalPair options_resolution_map[] = {
 
 static const NameOrdinalPair options_simulate_map[] = {
     { "MMB4L",             kSimulateMmb4l },
+    { "MMB4W",             kSimulateMmb4w },
     { "Colour Maximite 2", kSimulateCmm2 },
     { "PicoMiteVGA",       kSimulatePicoMiteVga },
     { "Game*Mite",         kSimulateGameMite },

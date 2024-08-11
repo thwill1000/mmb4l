@@ -47,9 +47,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 MmResult fun_device_gamepad(const char *p, bool mmb4w_compatibility);
 
 /**
- * This for compatibility with the "MMBasic for Windows" GAMEPAD function.
- * MMB4L has a DEVICE GAMEPAD function that should be preferred.
+ * For compatibility with the "MMBasic for Windows" GAMEPAD function.
  */
 void fun_gamepad(void) {
-    ERROR_ON_FAILURE(fun_device_gamepad(ep, true));
+   MmResult result = kOk;
+    if (mmb_options.simulate == kSimulateMmb4w) {
+      result = fun_device_gamepad(ep, true);
+    } else {
+      result = kUnsupportedOnCurrentDevice;
+    }
+    ERROR_ON_FAILURE(result);
 }
