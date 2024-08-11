@@ -175,9 +175,13 @@ const char *mmresult_to_string(MmResult result) {
         case kSoundInUse:                 return "Sound output in use";
         case kSoundInvalidFrequency:      return "Valid is 0Hz to 20KHz";
         case kUnsupported:                return "Unsupported by MMB4L";
+        case kAudioFlacInitialisationFailed: return "FLAC file initialisation failed";    
+        case kAudioInvalidSampleRate:     return "Invalid audio sample rate";
+        case kAudioMp3InitialisationFailed: return "MP3 file initialisation failed";    
         case kAudioNoModFile:             return "No MOD file playing";
         case kAudioNothingToResume:       return "Nothing to resume";
         case kAudioNothingToPause:        return "Nothing playing";
+        case kAudioWavInitialisationFailed: return "WAV file initialisation failed";    
         case kGpioInvalidPin:             return "Invalid pin";
         case kGpioInvalidPulseWidth:      return "Invalid pulse width";
         case kGpioPinIsNotAnOutput:       return "Pin is not an output";

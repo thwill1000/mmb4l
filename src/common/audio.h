@@ -79,6 +79,21 @@ MmResult audio_pause();
 MmResult audio_resume();
 
 /**
+ * Loads and play a .wav file at the same time as a .mod file is playing.
+ *
+ * If a previous effect file is playing this will immediately terminate it and commence playing
+ * the new file.
+ *
+ * NOTE: .wav files must have the same sample rate as the .mod file output.
+ *       Files can be mono or stereo.
+ *
+ * @param  filename     The file to load.
+ * @param  interrupt    Pointer to optional interrupt routine to call when/if the .wav file ends.
+ *                      Use NULL for no interrupt routine.
+ */
+MmResult audio_play_effect(const char *filename, const char *interrupt);
+
+/**
  * @param  sound_no  
  */
 MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, float frequency,
@@ -87,11 +102,12 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
 /**
  * Loads and plays a .mod file asynchronously.
  *
- * @param  filename   The file to load.
- * @param  interrupt  Pointer to optional interrupt routine to call when/if the .mod file ends.
- *                    Use NULL for no interrupt routine.
+ * @param  filename     The file to load.
+ * @param  sample_rate  TODO
+ * @param  interrupt    Pointer to optional interrupt routine to call when/if the .mod file ends.
+ *                      Use NULL for no interrupt routine.
  */
-MmResult audio_play_modfile(const char *filename, const char *interrupt);
+MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const char *interrupt);
 
 /**
  * Plays a sample/effect concurrently with an already playing .mod file.
@@ -102,9 +118,36 @@ MmResult audio_play_modfile(const char *filename, const char *interrupt);
  * @param  sample_rate
  */
 MmResult audio_play_modsample(uint8_t sample_num, uint8_t channel_num, uint8_t volume,
-                              uint32_t sample_rate);
+                              unsigned sample_rate);
 
 MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const char *interrupt);
+
+/**
+ * Loads and plays a .flac file asynchronously.
+ *
+ * @param  filename     The file to load.
+ * @param  interrupt    Pointer to optional interrupt routine to call when/if the .mp3 file ends.
+ *                      Use NULL for no interrupt routine.
+ */
+MmResult audio_play_flac(const char *filename, const char *interrupt);
+
+/**
+ * Loads and plays a .mp3 file asynchronously.
+ *
+ * @param  filename     The file to load.
+ * @param  interrupt    Pointer to optional interrupt routine to call when/if the .mp3 file ends.
+ *                      Use NULL for no interrupt routine.
+ */
+MmResult audio_play_mp3(const char *filename, const char *interrupt);
+
+/**
+ * Loads and plays a .wav file asynchronously.
+ *
+ * @param  filename     The file to load.
+ * @param  interrupt    Pointer to optional interrupt routine to call when/if the .wav file ends.
+ *                      Use NULL for no interrupt routine.
+ */
+MmResult audio_play_wav(const char *filename, const char *interrupt);
 
 void audio_service_buffers();
 
