@@ -90,6 +90,7 @@ const char *mmresult_to_string(MmResult result) {
         case kSyntax:        return "Syntax";
         case kArgumentCount: return "Argument count";
         case kStringTooLong: return "String too long";
+        case kInvalidArgument: return "Invalid argument";
         case kInvalidArgumentType: return "Invalid argument type";
         case kInvalidFormat: return "Invalid format";
         case kUnknownOption: return "Unknown option";

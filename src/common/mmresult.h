@@ -69,6 +69,7 @@ typedef enum {
     kArgumentCount,
     kStringLength,
     kStringTooLong,
+    kInvalidArgument,
     kInvalidArgumentType,
     kInvalidFormat,
     kUnknownOption,

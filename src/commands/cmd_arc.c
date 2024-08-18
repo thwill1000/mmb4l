@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-utility.h
+cmd_arc.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,37 +42,40 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(UTILITY_H)
-#define UTILITY_H
+#include "../common/error.h"
+#include "../common/graphics.h"
+#include "../common/mmb4l.h"
 
-#include <stdio.h>
+/**
+ * ARC x, y, r1, [r2], rad1, rad2 [, colour]
+ *
+ * @param  r2  outer radius of the arc, can be omitted if 1 pixel wide.
+ */
+void cmd_arc(void) {
+    if (!graphics_current) error_throw(kGraphicsSurfaceNotFound);
 
-#if __GNUC__ >= 11
-#define CASE_FALLTHROUGH  [[fallthrough]]
-#else
-#define CASE_FALLTHROUGH  __attribute__ ((fallthrough))
-#endif
+    getargs(&cmdline, 13, ",");
+    if (argc != 11 && argc != 13) error_throw(kArgumentCount);
 
-#define max(a,b) \
-    ({ __typeof__ (a) _a = (a); \
-        __typeof__ (b) _b = (b); \
-        _a > _b ? _a : _b; })
+    const int x = getinteger(argv[0]);
+    const int y = getinteger(argv[2]);
+    int r1 = getinteger(argv[4]);
+    int r2 = -1;
+    if (*argv[6]) {
+        r2 = getinteger(argv[6]);
+    } else {
+        r2 = r1;
+        r1--;
+    }
+    if (r2 < r1) error_throw_ex(kInvalidArgument, "Inner radius < outer");
+    int arcrad1 = getinteger(argv[8]);
+    while (arcrad1 < 0) arcrad1 += 360;
+    int arcrad2 = getinteger(argv[10]);
+    while (arcrad2 < 0) arcrad2 += 360;
+    while (arcrad2 < arcrad1) arcrad2 += 360;
+    if (arcrad1 == arcrad2) error_throw_ex(kInvalidArgument, "Radials");
+    const MmGraphicsColour colour =
+        (argc == 13) ? getint(argv[12], RGB_BLACK, RGB_WHITE) : graphics_fcolour;
 
-#define min(a,b) \
-    ({ __typeof__ (a) _a = (a); \
-        __typeof__ (b) _b = (b); \
-        _a < _b ? _a : _b; })
-
-#define snprintf_nowarn(...) (snprintf(__VA_ARGS__) < 0 ? abort() : (void)0)
-
-#define FAILED(x) (x != 0)
-#define SUCCEEDED(x) (x == 0)
-
-#define SWAP(T, a, b) do { T tmp = a; a = b; b = tmp; } while (0)
-
-#define RADCONV   57.2957795130823229
-#define DEGREES_TO_RADIANS(angle)  (((MMFLOAT) angle) / RADCONV)
-
-void utility_dump_memory(const char *p);
-
-#endif // #if !defined(UTILITY_H)
+    ERROR_ON_FAILURE(graphics_draw_arc(graphics_current, x, y, r1, r2, arcrad1, arcrad2, colour));
+}
