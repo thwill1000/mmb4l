@@ -6,6 +6,7 @@
 #if !defined(MMB4L_COMMAND_STUBS_H)
 #define MMB4L_COMMAND_STUBS_H
 
+void cmd_arc() { }
 void cmd_autosave() { }
 void cmd_blit() { }
 void cmd_box() { }

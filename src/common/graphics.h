@@ -277,6 +277,21 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0 , MMFLOAT y0 , MMF
                                MMFLOAT y1, MmGraphicsColour colour, int w);
 
 /**
+ * Draws an arc of a circle of a given colour and width between two radials (defined in degrees).
+ *
+ * @param  surface  The surface to draw on.
+ * @param  x        The x-coordinate of the center of the arc.
+ * @param  y        The y-coordinate of the center of the arc.
+ * @param  r1       The inner radius of the arc.
+ * @param  r2       The outer radius of the arc.
+ * @param  arcrad1  The start radial of the arc in degrees.
+ * @param  arcrad2  The end radial of the arc in degrees.
+ * @param  colour   The colour of the arc.
+ */
+MmResult graphics_draw_arc(MmSurface *surface, int x, int y, int r1, int r2, int arcrad1,
+                           int arcrad2, MmGraphicsColour colour);
+
+/**
  * Draws a bitmap.
  *
  * @param  surface

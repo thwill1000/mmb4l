@@ -60,6 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * P    - Is the precedence, which is only used for operators.
  */
 const struct s_tokentbl commandtbl[] = {
+    { "Arc",         T_CMD,              0, cmd_arc },
     { "AutoSave",    T_CMD,              0, cmd_autosave },
     { "Blit",        T_CMD,              0, cmd_blit     },
     { "Box",         T_CMD,              0, cmd_box      },

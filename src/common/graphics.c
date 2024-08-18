@@ -553,6 +553,255 @@ MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour 
     return kOk;
 }
 
+#define RoundUptoInt(a) (((a) + (32 - 1)) & (~(32 - 1)))  // round up to the nearest whole integer
+
+MmResult graphics_draw_filled_circle(int x, int y, int radius, int r,
+                                     MmGraphicsColour fill, int ints_per_line, uint32_t *br,
+                                     MMFLOAT aspect, MMFLOAT aspect2);
+
+static void pointcalc(int angle, int x, int y, int r2, int *x0, int *y0) {
+    MMFLOAT c1, s1;
+    int quad;
+    angle %= 360;
+    switch (angle) {
+        case 0:
+            *x0 = x;
+            *y0 = y - r2;
+            break;
+        case 45:
+            *x0 = x + r2 + 1;
+            *y0 = y - r2;
+            break;
+        case 90:
+            *x0 = x + r2 + 1;
+            *y0 = y;
+            break;
+        case 135:
+            *x0 = x + r2 + 1;
+            *y0 = y + r2;
+            break;
+        case 180:
+            *x0 = x;
+            *y0 = y + r2;
+            break;
+        case 225:
+            *x0 = x - r2;
+            *y0 = y + r2;
+            break;
+        case 270:
+            *x0 = x - r2;
+            *y0 = y;
+            break;
+        case 315:
+            *x0 = x - r2;
+            *y0 = y - r2;
+            break;
+        default:
+            c1 = cos(DEGREES_TO_RADIANS(angle));
+            s1 = sin(DEGREES_TO_RADIANS(angle));
+            quad = (angle / 45) % 8;
+            switch (quad) {
+            case 0:
+                *y0 = y - r2;
+                *x0 = (int)(x + s1 * r2 / c1);
+                break;
+            case 1:
+                *x0 = x + r2 + 1;
+                *y0 = (int)(y - c1 * r2 / s1);
+                break;
+            case 2:
+                *x0 = x + r2 + 1;
+                *y0 = (int)(y - c1 * r2 / s1);
+                break;
+            case 3:
+                *y0 = y + r2;
+                *x0 = (int)(x - s1 * r2 / c1);
+                break;
+            case 4:
+                *y0 = y + r2;
+                *x0 = (int)(x - s1 * r2 / c1);
+                break;
+            case 5:
+                *x0 = x - r2;
+                *y0 = (int)(y + c1 * r2 / s1);
+                break;
+            case 6:
+                *x0 = x - r2;
+                *y0 = (int)(y + c1 * r2 / s1);
+                break;
+            case 7:
+                *y0 = y - r2;
+                *x0 = (int)(x + s1 * r2 / c1);
+                break;
+        }
+    }
+}
+
+static void graphics_hline(int x0, int x1, int y, int f, int ints_per_line,
+                           uint32_t* br) {  // draw a horizontal line
+    uint32_t w1, xx1, w0, xx0, x, xn, i;
+    const uint32_t a[] = {
+        0xFFFFFFFF, 0x7FFFFFFF, 0x3FFFFFFF, 0x1FFFFFFF, 0xFFFFFFF, 0x7FFFFFF, 0x3FFFFFF, 0x1FFFFFF,
+        0xFFFFFF,   0x7FFFFF,   0x3FFFFF,   0x1FFFFF,   0xFFFFF,   0x7FFFF,   0x3FFFF,   0x1FFFF,
+        0xFFFF,     0x7FFF,     0x3FFF,     0x1FFF,     0xFFF,     0x7FF,     0x3FF,     0x1FF,
+        0xFF,       0x7F,       0x3F,       0x1F,       0x0F,      0x07,      0x03,      0x01};
+    const uint32_t b[] = {0x80000000, 0xC0000000, 0xe0000000, 0xf0000000, 0xf8000000, 0xfc000000,
+                          0xfe000000, 0xff000000, 0xff800000, 0xffC00000, 0xffe00000, 0xfff00000,
+                          0xfff80000, 0xfffc0000, 0xfffe0000, 0xffff0000, 0xffff8000, 0xffffC000,
+                          0xffffe000, 0xfffff000, 0xfffff800, 0xfffffc00, 0xfffffe00, 0xffffff00,
+                          0xffffff80, 0xffffffC0, 0xffffffe0, 0xfffffff0, 0xfffffff8, 0xfffffffc,
+                          0xfffffffe, 0xffffffff};
+    w0 = y * (ints_per_line);
+    xx0 = 0;
+    w1 = y * (ints_per_line) + x1 / 32;
+    xx1 = (x1 & 0x1F);
+    w0 = y * (ints_per_line) + x0 / 32;
+    xx0 = (x0 & 0x1F);
+    w1 = y * (ints_per_line) + x1 / 32;
+    xx1 = (x1 & 0x1F);
+    if (w1 == w0) {  // special case both inside same word
+        x = (a[xx0] & b[xx1]);
+        xn = ~x;
+        if (f)
+            br[w0] |= x;
+        else
+            br[w0] &= xn;  // turn on the pixel
+    } else {
+        if (w1 - w0 > 1) {  // first deal with full words
+            for (i = w0 + 1; i < w1; i++) {
+                // draw the pixel
+                br[i] = 0;
+                if (f) br[i] = 0xFFFFFFFF;  // turn on the pixels
+            }
+        }
+        x = ~a[xx0];
+        br[w0] &= x;
+        x = ~x;
+        if (f) br[w0] |= x;  // turn on the pixel
+        x = ~b[xx1];
+        br[w1] &= x;
+        x = ~x;
+        if (f) br[w1] |= x;  // turn on the pixel
+    }
+}
+
+static MmResult graphics_clear_triangle(MmSurface *surface, int x0, int y0, int x1, int y1, int x2,
+                                        int y2, int ints_per_line, uint32_t* br) {
+    if (x0 * (y1 - y2) + x1 * (y2 - y0) + x2 * (y0 - y1) == 0) return kOk;
+    long a, b, y, last;
+    long  dx01, dy01, dx02, dy02, dx12, dy12, sa, sb;
+
+    if (y0 > y1) {
+        SWAP(int, y0, y1);
+        SWAP(int, x0, x1);
+    }
+    if (y1 > y2) {
+        SWAP(int, y2, y1);
+        SWAP(int, x2, x1);
+    }
+    if (y0 > y1) {
+        SWAP(int, y0, y1);
+        SWAP(int, x0, x1);
+    }
+
+    dx01 = x1 - x0;  dy01 = y1 - y0;  dx02 = x2 - x0;
+    dy02 = y2 - y0; dx12 = x2 - x1;  dy12 = y2 - y1;
+    sa = 0; sb = 0;
+    if (y1 == y2) {
+        last = y1;  // Include y1 scanline
+    }
+    else {
+        last = y1 - 1;  // Skip it
+    }
+    for (y = y0; y <= last; y++) {
+        a = x0 + sa / dy01;
+        b = x0 + sb / dy02;
+        sa = sa + dx01;
+        sb = sb + dx02;
+        a = x0 + (x1 - x0) * (y - y0) / (y1 - y0);
+        b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
+        if (a > b)SWAP(int, a, b);
+        graphics_hline(a, b, y, 0, ints_per_line, br);
+    }
+    sa = dx12 * (y - y1);
+    sb = dx02 * (y - y0);
+    while (y <= y2) {
+        a = x1 + sa / dy12;
+        b = x0 + sb / dy02;
+        sa = sa + dx12;
+        sb = sb + dx02;
+        a = x1 + (x2 - x1) * (y - y1) / (y2 - y1);
+        b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
+        if (a > b) SWAP(int, a, b);
+        graphics_hline(a, b, y, 0, ints_per_line, br);
+        y = y + 1;
+    }
+
+    return kOk;
+}
+
+MmResult graphics_draw_arc(MmSurface *surface, int x, int y, int r1, int r2, int arcrad1,
+                           int arcrad2, MmGraphicsColour colour) {
+    int arcrad3 = arcrad1 + 360;
+    int rstart = arcrad2;
+    int quad1 = (arcrad1 / 45) % 8;
+    int x2 = x;
+    int y2 = y;
+    int ints_per_line = RoundUptoInt((r2 * 2) + 1) / 32;
+    uint32_t *br = (uint32_t *) GetTempMemory(((ints_per_line + 1) * ((r2 * 2) + 1)) * 4);
+    int k, x0, y0, x1, y1, xr, yr;
+
+    graphics_draw_filled_circle(x, y, r2, r2, 1, ints_per_line, br, 1.0, 1.0);
+    graphics_draw_filled_circle(x, y, r1, r2, 0, ints_per_line, br, 1.0, 1.0);
+
+    while (rstart < arcrad3) {
+        pointcalc(rstart, x, y, r2, &x0, &y0);
+        int quadr = (rstart / 45) % 8;
+        if (quadr == quad1 && arcrad3 - rstart < 45) {
+            pointcalc(arcrad3, x, y, r2, &x1, &y1);
+            graphics_clear_triangle(surface, x0 - x + r2, y0 - y + r2, x1 - x + r2, y1 - y + r2,
+                                    x2 - x + r2, y2 - y + r2, ints_per_line, br);
+            rstart = arcrad3;
+        }
+        else {
+            rstart += 45;
+            rstart -= (rstart % 45);
+            pointcalc(rstart, x, y, r2, &xr, &yr);
+            graphics_clear_triangle(surface ,x0 - x + r2, y0 - y + r2, xr - x + r2, yr - y + r2,
+                                    x2 - x + r2, y2 - y + r2, ints_per_line, br);
+        }
+    }
+
+    int xs = -1;
+    int xi = 0;
+    for (int j = 0; j < r2 * 2 + 1; j++) {
+        for (int i = 0; i < ints_per_line; i++) {
+            k = br[i + j * ints_per_line];
+            for (int m = 0; m < 32; m++) {
+                if (xs == -1 && (k & 0x80000000)) {
+                    xs = m;
+                    xi = i;
+                }
+                if (xs != -1 && !(k & 0x80000000)) {
+                    graphics_draw_rectangle(surface, x - r2 + xs + xi * 32, y - r2 + j,
+                                            x - r2 + m + i * 32, y - r2 + j, colour);
+                    xs = -1;
+                }
+                k <<= 1;
+            }
+        }
+        if (xs != -1) {
+            const int i = ints_per_line;
+            const int m = 32;
+            graphics_draw_rectangle(surface, x - r2 + xs + xi * 32, y - r2 + j, x - r2 + m + i * 32,
+                                    y - r2 + j, colour);
+            xs = -1;
+        }
+    }
+
+    return kOk;
+}
+
 MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0, MMFLOAT y0, MMFLOAT x1, MMFLOAT y1,
                                MmGraphicsColour colour, int w) {
     ERROR_UNIMPLEMENTED("graphics_draw_aa_line");
@@ -671,54 +920,6 @@ MmResult graphics_draw_buffered(MmSurface *surface, int xti, int yti, MmGraphics
     return kOk;
 }
 
-static void graphics_hline(int x0, int x1, int y, int f, int ints_per_line,
-                           uint32_t* br) {  // draw a horizontal line
-    uint32_t w1, xx1, w0, xx0, x, xn, i;
-    const uint32_t a[] = {
-        0xFFFFFFFF, 0x7FFFFFFF, 0x3FFFFFFF, 0x1FFFFFFF, 0xFFFFFFF, 0x7FFFFFF, 0x3FFFFFF, 0x1FFFFFF,
-        0xFFFFFF,   0x7FFFFF,   0x3FFFFF,   0x1FFFFF,   0xFFFFF,   0x7FFFF,   0x3FFFF,   0x1FFFF,
-        0xFFFF,     0x7FFF,     0x3FFF,     0x1FFF,     0xFFF,     0x7FF,     0x3FF,     0x1FF,
-        0xFF,       0x7F,       0x3F,       0x1F,       0x0F,      0x07,      0x03,      0x01};
-    const uint32_t b[] = {0x80000000, 0xC0000000, 0xe0000000, 0xf0000000, 0xf8000000, 0xfc000000,
-                          0xfe000000, 0xff000000, 0xff800000, 0xffC00000, 0xffe00000, 0xfff00000,
-                          0xfff80000, 0xfffc0000, 0xfffe0000, 0xffff0000, 0xffff8000, 0xffffC000,
-                          0xffffe000, 0xfffff000, 0xfffff800, 0xfffffc00, 0xfffffe00, 0xffffff00,
-                          0xffffff80, 0xffffffC0, 0xffffffe0, 0xfffffff0, 0xfffffff8, 0xfffffffc,
-                          0xfffffffe, 0xffffffff};
-    w0 = y * (ints_per_line);
-    xx0 = 0;
-    w1 = y * (ints_per_line) + x1 / 32;
-    xx1 = (x1 & 0x1F);
-    w0 = y * (ints_per_line) + x0 / 32;
-    xx0 = (x0 & 0x1F);
-    w1 = y * (ints_per_line) + x1 / 32;
-    xx1 = (x1 & 0x1F);
-    if (w1 == w0) {  // special case both inside same word
-        x = (a[xx0] & b[xx1]);
-        xn = ~x;
-        if (f)
-            br[w0] |= x;
-        else
-            br[w0] &= xn;  // turn on the pixel
-    } else {
-        if (w1 - w0 > 1) {  // first deal with full words
-            for (i = w0 + 1; i < w1; i++) {
-                // draw the pixel
-                br[i] = 0;
-                if (f) br[i] = 0xFFFFFFFF;  // turn on the pixels
-            }
-        }
-        x = ~a[xx0];
-        br[w0] &= x;
-        x = ~x;
-        if (f) br[w0] |= x;  // turn on the pixel
-        x = ~b[xx1];
-        br[w1] &= x;
-        x = ~x;
-        if (f) br[w1] |= x;  // turn on the pixel
-    }
-}
-
 MmResult graphics_draw_filled_circle(int x, int y, int radius, int r,
                                      MmGraphicsColour fill, int ints_per_line, uint32_t* br,
                                      MMFLOAT aspect, MMFLOAT aspect2) {
@@ -746,8 +947,6 @@ MmResult graphics_draw_filled_circle(int x, int y, int radius, int r,
 
     return kOk;
 }
-
-#define RoundUptoInt(a) (((a) + (32 - 1)) & (~(32 - 1)))  // round up to the nearest whole integer
 
 MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, int w,
                               MmGraphicsColour colour, MmGraphicsColour fill, MMFLOAT aspect) {
