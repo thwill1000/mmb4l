@@ -79,14 +79,14 @@ void ListNewLine(int *ListCnt, int all) { }
 
 #define PROGRAM_TEST_DIR  TMP_DIR "/ProgramTest"
 
-#define CMD_CSUB        "\x93\x80"
-#define CMD_DATA        "\x95\x80"
-#define CMD_DEFINEFONT  "\x96\x80"
-#define CMD_DIM         "\x98\x80"
-#define CMD_END         "\x9E\x80"
-#define CMD_LET         "\xBF\x80"
-#define CMD_MMDEBUG     "\xCB\x80"
-#define CMD_PRINT       "\xD8\x80"
+#define CMD_CSUB        "\x94\x80"
+#define CMD_DATA        "\x96\x80"
+#define CMD_DEFINEFONT  "\x97\x80"
+#define CMD_DIM         "\x99\x80"
+#define CMD_END         "\x9F\x80"
+#define CMD_LET         "\xC0\x80"
+#define CMD_MMDEBUG     "\xCC\x80"
+#define CMD_PRINT       "\xD9\x80"
 #define OP_EQUALS       "\xF5"
 
 #define EXPECT_PROGRAM_EQ(prog) \
