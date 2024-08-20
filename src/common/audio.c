@@ -73,6 +73,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AUDIO_SAMPLE_RATE  44100UL
 #define PWM_FREQ           AUDIO_SAMPLE_RATE
 #define WAV_BUFFER_SIZE    16384
+#define LEFT_CHANNEL       0
+#define RIGHT_CHANNEL      1
 
 typedef enum {
     P_NOTHING,
@@ -97,8 +99,7 @@ static uint64_t bcount[3] = {0, 0, 0};  // Number of bytes(?) of data in audio b
 static uint64_t bcounte[3] = {0, 0, 0};
 static AudioState audio_state = P_NOTHING;
 //static AudioState audio_statee = P_NOTHING;
-static float fFilterVolumeL = 1.0f;
-static float fFilterVolumeR = 1.0f;
+static float audio_filter_volume[2] = { 1.0f, 1.0f };
 //static int mono;
 static int nextbuf = 0;  // Index of the buffer to fill.
 static int nextbufe = 0;
@@ -270,7 +271,7 @@ MmResult audio_close(bool all) {
     return kOk;
 }
 
-static float audio_callback_tone(int nChannel) {
+static float audio_callback_tone(int channel) {
     if (audio_tone_duration <= 0) {
         interrupt_fire(kInterruptAudio);
         CloseAudio(1);
@@ -278,7 +279,7 @@ static float audio_callback_tone(int nChannel) {
     } else {
         int v;
         audio_tone_duration--;
-        if (nChannel == 0) {
+        if (channel == 0) {
             v = ((((sine_table[(int)PhaseAC_left] - 2000) * mapping[vol_left]) / 2000) + 2000);
             PhaseAC_left = PhaseAC_left + PhaseM_left;
             if (PhaseAC_left >= 4096.0) PhaseAC_left -= 4096.0;
@@ -291,7 +292,7 @@ static float audio_callback_tone(int nChannel) {
     }
 }
 
-static float audio_callback_mod(int nChannel) {
+static float audio_callback_mod(int channel) {
     float value = 0, valuee = 0;
 
     if (swingbuf) {  // buffer is primed
@@ -301,8 +302,7 @@ static float audio_callback_mod(int nChannel) {
         //printf("ppos = %ld, bcount[swingbuf] = %ld\n", ppos, bcount[swingbuf]);
         if (ppos < bcount[swingbuf]) {
             //printf("flacbuff[%ld] = %d\n", ppos, flacbuff[ppos]);
-            value = (float)buf[ppos++] / 32768.0f *
-                    (nChannel == 0 ? fFilterVolumeL : fFilterVolumeR);
+            value = (float)buf[ppos++] / 32768.0f * audio_filter_volume[channel];
         }
 
         // If we are now at the end of the buffer ...
@@ -329,14 +329,14 @@ static float audio_callback_mod(int nChannel) {
     //         if (mono) {
     //             if (toggle)
     //                 valuee = (float)flacbuff[ppose++] *
-    //                          (nChannel == 0 ? fFilterVolumeL : fFilterVolumeR);
+    //                          (channel == 0 ? fFilterVolumeL : fFilterVolumeR);
     //             else
     //                 valuee =
-    //                     (float)flacbuff[ppose] * (nChannel == 0 ? fFilterVolumeL : fFilterVolumeR);
+    //                     (float)flacbuff[ppose] * (channel == 0 ? fFilterVolumeL : fFilterVolumeR);
     //             toggle = !toggle;
     //         } else {
     //             valuee =
-    //                 (float)flacbuff[ppose++] * (nChannel == 0 ? fFilterVolumeL : fFilterVolumeR);
+    //                 (float)flacbuff[ppose++] * (channel == 0 ? fFilterVolumeL : fFilterVolumeR);
     //         }
     //     }
     //     if (ppose == bcounte[swingbufe]) {
@@ -364,55 +364,43 @@ static float audio_callback_mod(int nChannel) {
     return value + valuee;
 }
 
-// Also flac.
-static float audio_callback_mp3(int nChannel) {
-    // printf("audio_callback_mp3()\n");
-    // printf("  nChannel = %d\n", nChannel);
-    float *flacbuff;
+// Callback for FLAC, MP3 and WAV files.
+static float audio_callback_track(int channel) {
     float value = 0;
-//    ;
-//    if (bcount[1] == 0 && bcount[2] == 0 && audio_file_finished) {
-        //                HAL_TIM_Base_Stop_IT(&htim4);
-//    }
+
     if (swingbuf) {  // buffer is primed
-        if (swingbuf == 1)
-            flacbuff = (float *)sbuff1;
-        else
-            flacbuff = (float *)sbuff2;
+        float *flacbuff = (swingbuf == 1) ? (float *) sbuff1 : (float *) sbuff2;
+
         if (ppos < bcount[swingbuf]) {
-            value = (float)flacbuff[ppos++] * (nChannel == 0 ? fFilterVolumeL : fFilterVolumeR);
+            value = flacbuff[ppos++] * audio_filter_volume[channel];
         }
+
         if (ppos == bcount[swingbuf]) {
-            int psave = ppos;
+            // Reached end of currently playing buffer.
+            const int psave = ppos;
             bcount[swingbuf] = 0;
             ppos = 0;
-            if (swingbuf == 1)
-                swingbuf = 2;
-            else
-                swingbuf = 1;
-            if (bcount[swingbuf] == 0 && !audio_file_finished) {  // nothing ready yet so flip back
-                if (swingbuf == 1) {
-                    swingbuf = 2;
-                    nextbuf = 1;
-                } else {
-                    swingbuf = 1;
-                    nextbuf = 2;
-                }
+            swingbuf = (swingbuf == 1) ? 2 : 1;
+            if (bcount[swingbuf] == 0 && !audio_file_finished) {
+                // Nothing ready yet so flip back.
+                swingbuf = (swingbuf == 1) ? 2 : 1;
+                nextbuf = (swingbuf == 1) ? 2 : 1;
                 bcount[swingbuf] = psave;
                 ppos = 0;
             }
         }
     }
+
     return value;
 }
 
-static float audio_callback_sound(int nChannel) {
+static float audio_callback_sound(int channel) {
     static int noisedwellleft[MAXSOUNDS] = {0}, noisedwellright[MAXSOUNDS] = {0};
     static uint32_t noiseleft[MAXSOUNDS] = {0}, noiseright[MAXSOUNDS] = {0};
     int i, j;
     int leftv = 0, rightv = 0;
     for (i = 0; i < MAXSOUNDS; i++) {  // first update the 8 sound pointers
-        if (nChannel == 0) {
+        if (channel == 0) {
             if (sound_mode_left[i] != null_table) {
                 // printf("Hello 0\n");
                 if (sound_mode_left[i] != white_noise_table) {
@@ -459,7 +447,7 @@ static float audio_callback_sound(int nChannel) {
     leftv += 2000;
     rightv += 2000;
     // printf("leftv = %d, rightv = %d\n", leftv, rightv);
-    if (nChannel == 0)
+    if (channel == 0)
         return ((float)leftv - 2000.0f) / 2000.0f;
     else
         return ((float)rightv - 2000.0f) / 2000.0f;
@@ -483,8 +471,8 @@ static void audio_callback(void *userdata, Uint8 *stream, int len) {
             case P_MP3:
             case P_WAV:
             case P_FLAC:
-                fstream[i] = audio_callback_mp3(0);
-                if (len == 8) fstream[i + 1] = audio_callback_mp3(1);
+                fstream[i] = audio_callback_track(0);
+                if (len == 8) fstream[i + 1] = audio_callback_track(1);
                 break;
             case P_SOUND:
                 fstream[i] = audio_callback_sound(0);
@@ -1170,7 +1158,7 @@ MmResult audio_background_tasks() {
 }
 
 MmResult audio_set_volume(uint8_t left, uint8_t right) {
-    fFilterVolumeL = (float)mapping[left] / 2001.0f;
-    fFilterVolumeR = (float)mapping[right] / 2001.0f;
+    audio_filter_volume[LEFT_CHANNEL] = (float) mapping[left] / 2001.0f;
+    audio_filter_volume[RIGHT_CHANNEL] = (float) mapping[right] / 2001.0f;
     return kOk;
 }
