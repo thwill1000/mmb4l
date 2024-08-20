@@ -75,6 +75,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define WAV_BUFFER_SIZE    16384
 #define LEFT_CHANNEL       0
 #define RIGHT_CHANNEL      1
+#define TONE_VOLUME        100
 
 typedef enum {
     P_NOTHING,
@@ -102,20 +103,18 @@ static AudioState audio_state = P_NOTHING;
 static float audio_filter_volume[2] = { 1.0f, 1.0f };
 //static int mono;
 static int nextbuf = 0;  // Index of the buffer to fill.
-static int nextbufe = 0;
-static float PhaseM_left = 0.0f;
-static float PhaseM_right = 0.0f;
-static float PhaseAC_left = 0.0f;
-static float PhaseAC_right = 0.0f;
+//static int nextbufe = 0;
+static float audio_phase_m[2] = { 0.0f, 0.0f };
+static float audio_phase_ac[2] = { 0.0f, 0.0f };
 static bool audio_file_finished = true;
-static bool audio_file_finishede = true;
+//static bool audio_file_finishede = true;
 static uint64_t ppos = 0;  // Playing position in the currently playing buffer.
 //static uint64_t ppose = 0;
 static uint64_t audio_tone_duration;
 static char *sbuff1 = NULL;
-static char *sbuff1e = NULL;
+//static char *sbuff1e = NULL;
 static char *sbuff2 = NULL;
-static char *sbuff2e = NULL;
+//static char *sbuff2e = NULL;
 static const unsigned short *sound_mode_left[MAXSOUNDS] = {null_table, null_table, null_table,
                                                            null_table};
 static const unsigned short *sound_mode_right[MAXSOUNDS] = {null_table, null_table, null_table,
@@ -127,9 +126,7 @@ static float sound_PhaseM_right[MAXSOUNDS] = {0};
 static int sound_v_left[MAXSOUNDS] = {0};
 static int sound_v_right[MAXSOUNDS] = {0};
 static int swingbuf = 0;  // Index of the buffer to play.
-static int swingbufe = 0;
-static int vol_left = 100;
-static int vol_right = 100;
+//static int swingbufe = 0;
 
 static const char* NO_ERROR = "";
 static bool audio_initialised = false;
@@ -235,8 +232,8 @@ MmResult audio_close(bool all) {
     swingbuf = nextbuf = 0;
     audio_file_finished = false;
     memset(bcounte, 0, sizeof(bcounte));
-    swingbufe = nextbufe = 0;
-    audio_file_finishede = false;
+    //swingbufe = nextbufe = 0;
+    //audio_file_finishede = false;
     // WAVInterrupt = NULL;
     // if (was_playing == P_MP3 || was_playing == P_PAUSE_MP3) drmp3_uninit(&mymp3);
     // if (was_playing == P_FLAC || was_playing == P_PAUSE_FLAC) FreeMemorySafe((void **)&myflac);
@@ -244,8 +241,8 @@ MmResult audio_close(bool all) {
     // FreeMemorySafe((void **)&modbuff);
     FreeMemory((void *) sbuff1); sbuff1 = NULL; // FreeMemorySafe((void **)&sbuff1);
     FreeMemory((void *) sbuff2); sbuff2 = NULL; // FreeMemorySafe((void **)&sbuff2);
-    FreeMemory((void *) sbuff1e); sbuff1e = NULL; // FreeMemorySafe((void **)&sbuff1e);
-    FreeMemory((void *) sbuff2e); sbuff2e = NULL; // FreeMemorySafe((void **)&sbuff2e);
+    //FreeMemory((void *) sbuff1e); sbuff1e = NULL; // FreeMemorySafe((void **)&sbuff1e);
+    //FreeMemory((void *) sbuff2e); sbuff2e = NULL; // FreeMemorySafe((void **)&sbuff2e);
     // FreeMemorySafe((void **)&mymp3);
     // memset(&mywav, 0, sizeof(drwav));
     // if (all) {
@@ -277,17 +274,10 @@ static float audio_callback_tone(int channel) {
         CloseAudio(1);
         return 0.0f;
     } else {
-        int v;
         audio_tone_duration--;
-        if (channel == 0) {
-            v = ((((sine_table[(int)PhaseAC_left] - 2000) * mapping[vol_left]) / 2000) + 2000);
-            PhaseAC_left = PhaseAC_left + PhaseM_left;
-            if (PhaseAC_left >= 4096.0) PhaseAC_left -= 4096.0;
-        } else {
-            v = ((((sine_table[(int)PhaseAC_right] - 2000) * mapping[vol_right]) / 2000) + 2000);
-            PhaseAC_right = PhaseAC_right + PhaseM_right;
-            if (PhaseAC_right >= 4096.0) PhaseAC_right -= 4096.0;
-        }
+        const int v = (((sine_table[(int)audio_phase_ac[channel]] - 2000) * mapping[TONE_VOLUME]) / 2000) + 2000;
+        audio_phase_ac[channel] += audio_phase_m[channel];
+        if (audio_phase_ac[channel] >= 4096.0) audio_phase_ac[channel] -= 4096.0;
         return ((float)v - 2000.0f) / 2000.0f;
     }
 }
@@ -831,8 +821,8 @@ MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const ch
             int x = (int)((float)(play_duration) / hw) + 1;
             play_duration = (uint64_t)((float)x * hw);
         }
-        PhaseM_left = f_left / (float)PWM_FREQ * 4096.0f;
-        PhaseM_right = f_right / (float)PWM_FREQ * 4096.0f;
+        audio_phase_m[LEFT_CHANNEL] = f_left / (float)PWM_FREQ * 4096.0f;
+        audio_phase_m[RIGHT_CHANNEL] = f_right / (float)PWM_FREQ * 4096.0f;
 
         audio_tone_duration = play_duration;
         audio_state = P_TONE;
