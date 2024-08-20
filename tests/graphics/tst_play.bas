@@ -54,7 +54,40 @@ End Sub
 
 Sub test_sound()
   Const MIDDLE_C = 261.63
-  Play Sound 1, B, S, MIDDLE_C
+  Local i%
+
+  For i% = 1 To 4
+    ? "Sound " + Str$(i%) + " - BOTH"
+    Play Sound i%, B, S, MIDDLE_C
+    Pause 1000
+  Next
+
+  For i% = 1 To 4
+    Play Sound i%, B, O
+  Next
+  Pause 1000
+
+  For i% = 1 To 4
+    ? "Sound " + Str$(i%) + " - LEFT"
+    Play Sound i%, L, S, MIDDLE_C
+    Pause 1000
+  Next
+
+  For i% = 1 To 4
+    Play Sound i%, B, O
+  Next
+  Pause 1000
+
+  For i% = 1 To 4
+    ? "Sound " + Str$(i%) + " - RIGHT"
+    Play Sound i%, R, S, MIDDLE_C
+    Pause 1000
+  Next
+
+  For i% = 1 To 4
+    Play Sound i%, B, O
+  Next
+  Pause 1000
 End Sub
 
 Sub test_tone()

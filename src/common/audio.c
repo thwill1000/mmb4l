@@ -115,16 +115,20 @@ static char *sbuff1 = NULL;
 //static char *sbuff1e = NULL;
 static char *sbuff2 = NULL;
 //static char *sbuff2e = NULL;
-static const unsigned short *sound_mode_left[MAXSOUNDS] = {null_table, null_table, null_table,
-                                                           null_table};
-static const unsigned short *sound_mode_right[MAXSOUNDS] = {null_table, null_table, null_table,
-                                                            null_table};
-static float sound_PhaseAC_left[MAXSOUNDS] = {0};
-static float sound_PhaseAC_right[MAXSOUNDS] = {0};
-static float sound_PhaseM_left[MAXSOUNDS] = {0};
-static float sound_PhaseM_right[MAXSOUNDS] = {0};
-static int sound_v_left[MAXSOUNDS] = {0};
-static int sound_v_right[MAXSOUNDS] = {0};
+static const uint16_t *sound_mode[2][MAXSOUNDS] = {
+    { null_table, null_table, null_table, null_table },
+    { null_table, null_table, null_table, null_table }
+};
+
+//                                                           null_table};
+// static const unsigned short *sound_mode[RIGHT_CHANNEL][MAXSOUNDS] = {null_table, null_table, null_table,
+//                                                            null_table};
+static float sound_PhaseAC[2][MAXSOUNDS] = {0};
+//static float sound_PhaseAC_right[MAXSOUNDS] = {0};
+static float sound_PhaseM[2][MAXSOUNDS] = {0};
+//static float sound_PhaseM[RIGHT_CHANNEL][i][MAXSOUNDS] = {0};
+static int sound_v[2][MAXSOUNDS] = {0};
+//static int sound_v_right[MAXSOUNDS] = {0};
 static int swingbuf = 0;  // Index of the buffer to play.
 //static int swingbufe = 0;
 
@@ -253,12 +257,12 @@ MmResult audio_close(bool all) {
     audio_tone_duration = 0;
     ppos = 0;
     for (int i = 0; i < MAXSOUNDS; i++) {
-        sound_PhaseM_left[i] = 0;
-        sound_PhaseM_right[i] = 0;
-        sound_PhaseAC_left[i] = 0;
-        sound_PhaseAC_right[i] = 0;
-        sound_mode_left[i] = (uint16_t *)null_table;
-        sound_mode_right[i] = (uint16_t *)null_table;
+        sound_PhaseM[LEFT_CHANNEL][i] = 0.0f;
+        sound_PhaseM[RIGHT_CHANNEL][i] = 0.0f;
+        sound_PhaseAC[LEFT_CHANNEL][i] = 0.0f;
+        sound_PhaseAC[RIGHT_CHANNEL][i] = 0;
+        sound_mode[LEFT_CHANNEL][i] = null_table;
+        sound_mode[RIGHT_CHANNEL][i] = null_table;
     }
 
     // interrupt_disable(kInterruptAudio);
@@ -385,62 +389,32 @@ static float audio_callback_track(int channel) {
 }
 
 static float audio_callback_sound(int channel) {
-    static int noisedwellleft[MAXSOUNDS] = {0}, noisedwellright[MAXSOUNDS] = {0};
-    static uint32_t noiseleft[MAXSOUNDS] = {0}, noiseright[MAXSOUNDS] = {0};
-    int i, j;
-    int leftv = 0, rightv = 0;
-    for (i = 0; i < MAXSOUNDS; i++) {  // first update the 8 sound pointers
-        if (channel == 0) {
-            if (sound_mode_left[i] != null_table) {
-                // printf("Hello 0\n");
-                if (sound_mode_left[i] != white_noise_table) {
-                    // printf("Hello 0\n");
-                    sound_PhaseAC_left[i] = sound_PhaseAC_left[i] + sound_PhaseM_left[i];
-                    if (sound_PhaseAC_left[i] >= 4096.0) sound_PhaseAC_left[i] -= 4096.0;
-                    j = (int)sound_mode_left[i][(int)sound_PhaseAC_left[i]];
-                    j = (j - 2000) * mapping[sound_v_left[i]] / 2000;
-                    leftv += j;
-                } else {
-                    if (noisedwellleft[i] <= 0) {
-                        noisedwellleft[i] = (int)sound_PhaseM_left[i];
-                        noiseleft[i] = rand() % 3700 + 100;
-                    }
-                    if (noisedwellleft[i]) noisedwellleft[i]--;
-                    j = (int)noiseleft[i];
-                    j = (j - 2000) * mapping[sound_v_left[i]] / 2000;
-                    leftv += j;
-                }
-            }
+    static int noisedwell[2][MAXSOUNDS] = { 0 };
+    static uint32_t noise[2][MAXSOUNDS] = { 0 };
+
+    int volume = 0;
+    int delta;
+
+    for (int i = 0; i < MAXSOUNDS; ++i) {
+        if (sound_mode[channel][i] == null_table) continue;
+
+        if (sound_mode[channel][i] != white_noise_table) {
+            sound_PhaseAC[channel][i] = sound_PhaseAC[channel][i] + sound_PhaseM[channel][i];
+            if (sound_PhaseAC[channel][i] >= 4096.0) sound_PhaseAC[channel][i] -= 4096.0;
+            delta = sound_mode[channel][i][(int)sound_PhaseAC[channel][i]];
         } else {
-            if (sound_mode_right[i] != null_table) {
-                // printf("Hello 1\n");
-                if (sound_mode_right[i] != white_noise_table) {
-                    // printf("Hello 1\n");
-                    sound_PhaseAC_right[i] = sound_PhaseAC_right[i] + sound_PhaseM_right[i];
-                    if (sound_PhaseAC_right[i] >= 4096.0) sound_PhaseAC_right[i] -= 4096.0;
-                    j = (int)sound_mode_right[i][(int)sound_PhaseAC_right[i]];
-                    j = (j - 2000) * mapping[sound_v_right[i]] / 2000;
-                    rightv += j;
-                } else {
-                    if (noisedwellright[i] <= 0) {
-                        noisedwellright[i] = (int)sound_PhaseM_right[i];
-                        noiseright[i] = rand() % 3700 + 100;
-                    }
-                    if (noisedwellright[i]) noisedwellright[i]--;
-                    j = (int)noiseright[i];
-                    j = (j - 2000) * mapping[sound_v_right[i]] / 2000;
-                    rightv += j;
-                }
+            if (noisedwell[channel][i] <= 0) {
+                noisedwell[channel][i] = (int)sound_PhaseM[channel][i];
+                noise[channel][i] = rand() % 3700 + 100;
             }
+            if (noisedwell[channel][i]) noisedwell[channel][i]--;
+            delta = noise[channel][i];
         }
+        delta = (delta - 2000) * mapping[sound_v[channel][i]] / 2000;
+        volume += delta;
     }
-    leftv += 2000;
-    rightv += 2000;
-    // printf("leftv = %d, rightv = %d\n", leftv, rightv);
-    if (channel == 0)
-        return ((float)leftv - 2000.0f) / 2000.0f;
-    else
-        return ((float)rightv - 2000.0f) / 2000.0f;
+
+    return ((float)volume) / 2000.0f;
 }
 
 
@@ -695,59 +669,46 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
         result = kSoundInUse;
     }
 
-    // sound_no--; // In BASIC this is 1-4, but in C it is 0-3.
-    // float f_in, PhaseM;
-    // int channel, left = 0, right = 0;
-    // uint16_t* lastleft = NULL, * lastright = NULL;
-    // setnoise(); 
-    // WAV_fnbr = 0;
-    // channel = (int)getint(argv[0], 1, MAXSOUNDS) - 1;
-    uint16_t *last_left = (uint16_t*)sound_mode_left[sound_no];
-    uint16_t *last_right = (uint16_t*)sound_mode_right[sound_no];
-
-    // printf("Type = %d\n", type);
-    // printf("Sound no = %d\n", sound_no);
-    // printf("sine_table = %p\n", sine_table);
-
-    switch (type) {
-        case kSoundTypeSine:
-            if (channel & kChannelLeft) sound_mode_left[sound_no] = (uint16_t *) sine_table;
-            if (channel & kChannelRight) sound_mode_right[sound_no] = (uint16_t *) sine_table;
-            break;
-        case kSoundTypeSquare:
-            if (channel & kChannelLeft) sound_mode_left[sound_no] = (uint16_t *) square_table;
-            if (channel & kChannelRight) sound_mode_right[sound_no] = (uint16_t *) square_table;
-            break;
-        case kSoundTypeTriangular:
-            if (channel & kChannelLeft) sound_mode_left[sound_no] = (uint16_t *) triangular_table;
-            if (channel & kChannelRight) sound_mode_right[sound_no] = (uint16_t *) triangular_table;
-            break;
-        case kSoundTypeSawTooth:
-            if (channel & kChannelLeft) sound_mode_left[sound_no] = (uint16_t *) saw_tooth_table;
-            if (channel & kChannelRight) sound_mode_right[sound_no] = (uint16_t *) saw_tooth_table;
-            break;
-        case kSoundTypePeriodicNoise:
-            if (channel & kChannelLeft) sound_mode_left[sound_no] = (uint16_t *) periodic_noise_table;
-            if (channel & kChannelRight) sound_mode_right[sound_no] = (uint16_t *) periodic_noise_table;
-            break;
-        case kSoundTypeWhiteNoise:
-            if (channel & kChannelLeft) sound_mode_left[sound_no] = (uint16_t *) white_noise_table;
-            if (channel & kChannelRight) sound_mode_right[sound_no] = (uint16_t *) white_noise_table;
-            break;
-        case kSoundTypeNull:
-            if (channel & kChannelLeft) sound_mode_left[sound_no] = (uint16_t *) null_table;
-            if (channel & kChannelRight) sound_mode_right[sound_no] = (uint16_t *) null_table;
-            break;
-        default:
-            result = kInternalFault;
-    }
-
-    // printf("sound_mode_left = %p\n", sound_mode_left[sound_no]);
-    // printf("sound_mode_right = %p\n", sound_mode_right[sound_no]);
-
-    // Should it be < 1.0 ? "Valid is 1Hz to 20KHz"
     if (SUCCEEDED(result) && !audio_is_valid_frequency(frequency)) {
         result = kSoundInvalidFrequency;
+    }
+
+    const uint16_t *previous[2] = { sound_mode[LEFT_CHANNEL][sound_no], sound_mode[RIGHT_CHANNEL][sound_no] } ;
+
+    sound_mode[LEFT_CHANNEL][sound_no] = null_table;
+    sound_mode[RIGHT_CHANNEL][sound_no] = null_table;
+
+    for (int c = LEFT_CHANNEL /* 0 */; c <= RIGHT_CHANNEL /* 1 */; ++c) {
+        if (c == LEFT_CHANNEL && !(channel & kChannelLeft)) {
+            continue;
+        } else if (c == RIGHT_CHANNEL && !(channel & kChannelRight)) {
+            continue;
+        }
+        switch (type) {
+            case kSoundTypeSine:
+                sound_mode[c][sound_no] = sine_table;
+                break;
+            case kSoundTypeSquare:
+                sound_mode[c][sound_no] = square_table;
+                break;
+            case kSoundTypeTriangular:
+                sound_mode[c][sound_no] = triangular_table;
+                break;
+            case kSoundTypeSawTooth:
+                sound_mode[c][sound_no] = saw_tooth_table;
+                break;
+            case kSoundTypePeriodicNoise:
+                sound_mode[c][sound_no] = periodic_noise_table;
+                break;
+            case kSoundTypeWhiteNoise:
+                sound_mode[c][sound_no] = white_noise_table;
+                break;
+            case kSoundTypeNull:
+                // Already set to null_table.
+                break;
+            default:
+                result = kInternalFault;
+        }
     }
 
     if (SUCCEEDED(result)) {
@@ -755,25 +716,18 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
     }
 
     if (SUCCEEDED(result)) {
+        for (int c = LEFT_CHANNEL /* 0 */; c <= RIGHT_CHANNEL /* 1 */; ++c) {
+            if (c == LEFT_CHANNEL && !(channel & kChannelLeft)) {
+                continue;
+            } else if (c == RIGHT_CHANNEL && !(channel & kChannelRight)) {
+                continue;
+            }
 
-        if (channel & kChannelLeft) {
-            const float phase_m = sound_mode_left[sound_no] == white_noise_table
+            if (previous[c] == null_table) sound_PhaseAC[c][sound_no] = 0.0f;
+            sound_PhaseM[c][sound_no] = sound_mode[c][sound_no] == white_noise_table
                     ? frequency
                     : frequency / (float)PWM_FREQ * 4096.0f;
-            if (last_left == (uint16_t*) null_table) sound_PhaseAC_left[sound_no] = 0.0;
-            sound_PhaseM_left[sound_no] = phase_m;
-            sound_v_left[sound_no] = (volume * 41) / 25;
-            // printf("LEFT: %g, %d\n", phase_m, sound_v_left[sound_no]);
-        }
-
-        if (channel & kChannelRight) {
-            const float phase_m = sound_mode_right[sound_no] == white_noise_table
-                    ? frequency
-                    : frequency / (float)PWM_FREQ * 4096.0f;
-            if (last_right == (uint16_t*) null_table) sound_PhaseAC_right[sound_no] = 0.0;
-            sound_PhaseM_right[sound_no] = phase_m;
-            sound_v_right[sound_no] = (volume * 41) / 25;
-            // printf("RIGHT: %g, %d\n", phase_m, sound_v_left[sound_no]);
+            sound_v[c][sound_no] = (volume * 41) / 25;
         }
 
         audio_state = P_SOUND;
