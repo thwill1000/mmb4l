@@ -12,6 +12,8 @@ ElseIf InStr(Mm.CmdLine$, "mod") Then
   play_mode$ = "mod"
 ElseIf InStr(Mm.CmdLine$, "mp3") Then
   play_mode$ = "mp3"
+ElseIf InStr(Mm.CmdLine$, "tone") Then
+  play_mode$ = "tone"
 ElseIf InStr(Mm.CmdLine$, "wav") Then
   play_mode$ = "wav"
 Else
@@ -45,6 +47,15 @@ Sub test_mp3()
     Play Mp3 "stereo-test.mp3", on_interrupt
   Else
     Play Mp3 "stereo-test.mp3"
+  EndIf
+End Sub
+
+Sub test_tone()
+  Const MIDDLE_C = 261.63
+  If ENABLE_INTERRUPT Then
+    Play Tone MIDDLE_C, MIDDLE_C, 1000, on_interrupt
+  Else 
+    Play Tone MIDDLE_C, MIDDLE_C, 1000
   EndIf
 End Sub
 
