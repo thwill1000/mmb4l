@@ -288,12 +288,8 @@ static float audio_callback_mod(int channel) {
     float value = 0, valuee = 0;
 
     if (swingbuf) {  // buffer is primed
-        int16_t *buf = (swingbuf == 1)
-                ? (int16_t *)sbuff1
-                : (int16_t *)sbuff2;
-        //printf("ppos = %ld, bcount[swingbuf] = %ld\n", ppos, bcount[swingbuf]);
+        int16_t *buf = (swingbuf == 1) ? (int16_t *)sbuff1 : (int16_t *)sbuff2;
         if (ppos < bcount[swingbuf]) {
-            //printf("flacbuff[%ld] = %d\n", ppos, flacbuff[ppos]);
             value = (float)buf[ppos++] / 32768.0f * audio_filter_volume[channel];
         }
 
@@ -310,49 +306,7 @@ static float audio_callback_mod(int channel) {
             ppos = 0;
         }
     }
-    // if (audio_statee == P_WAV) {
-    //     static int toggle = 0;
-    //     float *flacbuff;
-    //     if (swingbufe == 1)
-    //         flacbuff = (float *)sbuff1e;
-    //     else
-    //         flacbuff = (float *)sbuff2e;
-    //     if (ppose < bcounte[swingbufe]) {
-    //         if (mono) {
-    //             if (toggle)
-    //                 valuee = (float)flacbuff[ppose++] *
-    //                          (channel == 0 ? fFilterVolumeL : fFilterVolumeR);
-    //             else
-    //                 valuee =
-    //                     (float)flacbuff[ppose] * (channel == 0 ? fFilterVolumeL : fFilterVolumeR);
-    //             toggle = !toggle;
-    //         } else {
-    //             valuee =
-    //                 (float)flacbuff[ppose++] * (channel == 0 ? fFilterVolumeL : fFilterVolumeR);
-    //         }
-    //     }
-    //     if (ppose == bcounte[swingbufe]) {
-    //         int psave = ppose;
-    //         bcounte[swingbufe] = 0;
-    //         ppose = 0;
-    //         if (swingbufe == 1)
-    //             swingbufe = 2;
-    //         else
-    //             swingbufe = 1;
-    //         if (bcounte[swingbufe] == 0 && !audio_file_finishede) {  // nothing ready yet so flip back
-    //             if (swingbufe == 1) {
-    //                 swingbufe = 2;
-    //                 nextbufe = 1;
-    //             } else {
-    //                 swingbufe = 1;
-    //                 nextbufe = 2;
-    //             }
-    //             bcounte[swingbufe] = psave;
-    //             ppose = 0;
-    //         }
-    //     }
-    // }
-    //printf("value = %g\n", value + valuee);
+
     return value + valuee;
 }
 
@@ -529,98 +483,56 @@ MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const ch
         if (FAILED(result)) return result;
     }
 
-    if (!audio_is_valid_sample_rate(sample_rate)) return kAudioInvalidSampleRate;
+    SDL_PauseAudio(1);
 
-    SDL_LockAudioDevice(1);
-
-    if (audio_state != P_NOTHING) {
-        SDL_UnlockAudioDevice(1);
-        return kSoundInUse;
+    if (!audio_is_valid_sample_rate(sample_rate)) {
+        result = kAudioInvalidSampleRate;
     }
 
-    SDL_UnlockAudioDevice(1);
-    result = audio_configure(sample_rate, 2);
-    SDL_LockAudioDevice(1);
-    if (FAILED(result)) return result;
-
-    sbuff1 = (char *)GetMemory(WAV_BUFFER_SIZE);
-    sbuff2 = (char *)GetMemory(WAV_BUFFER_SIZE);
-
-    result = audio_open_file(filename, ".MOD");
-    if (FAILED(result)) {
-        SDL_UnlockAudioDevice(1);
-        return kSoundInUse;
+    if (SUCCEEDED(result) && audio_state != P_NOTHING) {
+        result = kSoundInUse;
     }
 
-    // TODO: Get MOD interrupt working.
-    // audio_mod_noloop = interrupt != NULL;
+    if (SUCCEEDED(result)) {
+        result = audio_configure(sample_rate, 2);
+    }
 
-    // Read the file.
-    // TODO: Could leave audio device locked!
-    int size = file_lof(audio_fnbr);
-    audio_modbuff = (char *)GetMemory(size + 256);
-    file_read(audio_fnbr, audio_modbuff, size);
-    result = file_close(audio_fnbr);
-    if (FAILED(result)) return result;
+    if (SUCCEEDED(result)) {
+        result = audio_open_file(filename, ".MOD");
+    }
 
-    // for (int i = 0; i < size; ++i) {
-    //     printf("%x, ", audio_modbuff[i]);
-    // }
-    // printf("\n");
+    // Read the file into 'audio_modbuff'
+    // TODO: If file_lof() or file_read() report error this will leave audio device paused.
+    int size = 0;
+    if (SUCCEEDED(result)) {
+        size = file_lof(audio_fnbr);
+        audio_modbuff = (char *)GetMemory(size + 256);
+        file_read(audio_fnbr, audio_modbuff, size);
+        result = file_close(audio_fnbr);
+    }
 
-    // char filename[STRINGSIZE] = { 0 };
-    // char* p, * r;
-    // int i = 0, size;
-    // modfilesamplerate = 44100;
-    // p = (char *)getFstring(argv[0]);                                    // get the file name
-    // fullfilename(p, filename, ".MOD");
-    // WAVInterrupt = NULL;
-    // WAVcomplete = 0;
-    // // open the file
-    // if (argc == 3)modfilesamplerate = (int)getinteger(argv[2]);
-    // if (!(modfilesamplerate == 8000 || modfilesamplerate == 16000 || modfilesamplerate == 22050 || modfilesamplerate == 44100 || modfilesamplerate == 48000))error((char *)"Valid rates are 8000, 16000, 22050, 44100, 48000");
-    // WAV_fnbr = FindFreeFileNbr();
-    // if (!BasicFileOpen(filename, WAV_fnbr, (char *)"rb")) return;
-    // i = 0;
-    // fseek(FileTable[WAV_fnbr].fptr, 0L, SEEK_END);
-    // size = ftell(FileTable[WAV_fnbr].fptr);
-    // fseek(FileTable[WAV_fnbr].fptr, 0L, SEEK_SET);
-    // modbuff = r = (char *)GetMemory(size + 256);
-    // while (!MMfeof(WAV_fnbr)) {                                     // while waiting for the end of file
-    //     *r++ = FileGetChar(WAV_fnbr);
-    //     i++;
-    // }
-    // FileClose(WAV_fnbr);
-    hxcmod_init(&audio_mod_context);
-    hxcmod_setcfg(&audio_mod_context, sample_rate, 1, 1);
-    hxcmod_load(&audio_mod_context, (void*)audio_modbuff, size);
-    hxcmod_fillbuffer(&audio_mod_context, (msample*)sbuff1, WAV_BUFFER_SIZE / 4, NULL,
-                      audio_mod_noloop ? 1 : 0);
-    // for (int i = 0; i < WAV_BUFFER_SIZE / 4; ++i) {
-    //     printf("%x, ", sbuff1[i]);
-    // }
-    // // }
-    // printf("\n");
-    // exit(0);
+    if (SUCCEEDED(result)) {
+        sbuff1 = (char *)GetMemory(WAV_BUFFER_SIZE);
+        sbuff2 = (char *)GetMemory(WAV_BUFFER_SIZE);
 
- //       wav_filesize = WAV_BUFFER_SIZE / 2;
-    bcount[1] = WAV_BUFFER_SIZE / 2;
-    bcount[2] = 0;
+        hxcmod_init(&audio_mod_context);
+        hxcmod_setcfg(&audio_mod_context, sample_rate, 1, 1);
+        hxcmod_load(&audio_mod_context, (void*)audio_modbuff, size);
+        hxcmod_fillbuffer(&audio_mod_context, (msample*)sbuff1, WAV_BUFFER_SIZE / 4, NULL,
+                        audio_mod_noloop ? 1 : 0);
+        bcount[1] = WAV_BUFFER_SIZE / 2;
+        bcount[2] = 0;
+        swingbuf = 1;
+        nextbuf = 2;
+        ppos = 0;
+        audio_file_finished = false;
+        audio_state = P_MOD;
+        // TODO: Get MOD interrupt working.
+        // audio_mod_noloop = interrupt != NULL;
+        interrupt_enable(kInterruptAudio, interrupt);
+    }
 
-    SDL_UnlockAudioDevice(1);
-    result = audio_configure(sample_rate, 2);
-    SDL_LockAudioDevice(1);
-    if (FAILED(result)) return result;
-
-    swingbuf = 1;
-    nextbuf = 2;
-    ppos = 0;
-    audio_file_finished = false;
-    audio_state = P_MOD;
-
-    interrupt_enable(kInterruptAudio, interrupt);
-
-    SDL_UnlockAudioDevice(1);
+    SDL_PauseAudio(0);
     return kOk;
 }
 
