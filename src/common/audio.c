@@ -193,7 +193,7 @@ static MmResult audio_configure(int sample_rate, int num_channels) {
       .freq = sample_rate,
       .samples = BUFFER_SIZE,
       .callback = audio_callback,
-	};
+    };
 
     if (SUCCEEDED(SDL_OpenAudio(&audio_current_spec, NULL))) {
         SDL_PauseAudio(0);
@@ -368,10 +368,10 @@ static float audio_callback_mp3(int nChannel) {
     // printf("  nChannel = %d\n", nChannel);
     float *flacbuff;
     float value = 0;
-    ;
-    if (bcount[1] == 0 && bcount[2] == 0 && audio_file_finished) {
-        //				HAL_TIM_Base_Stop_IT(&htim4);
-    }
+//    ;
+//    if (bcount[1] == 0 && bcount[2] == 0 && audio_file_finished) {
+        //                HAL_TIM_Base_Stop_IT(&htim4);
+//    }
     if (swingbuf) {  // buffer is primed
         if (swingbuf == 1)
             flacbuff = (float *)sbuff1;
@@ -600,7 +600,8 @@ MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const ch
         return kSoundInUse;
     }
 
-    audio_mod_noloop = interrupt != NULL;
+    // TODO: Get MOD interrupt working.
+    // audio_mod_noloop = interrupt != NULL;
 
     // Read the file.
     // TODO: Could leave audio device locked!
@@ -620,12 +621,12 @@ MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const ch
     // int i = 0, size;
     // modfilesamplerate = 44100;
     // p = (char *)getFstring(argv[0]);                                    // get the file name
-	// fullfilename(p, filename, ".MOD");
-	// WAVInterrupt = NULL;
+    // fullfilename(p, filename, ".MOD");
+    // WAVInterrupt = NULL;
     // WAVcomplete = 0;
     // // open the file
-	// if (argc == 3)modfilesamplerate = (int)getinteger(argv[2]);
-	// if (!(modfilesamplerate == 8000 || modfilesamplerate == 16000 || modfilesamplerate == 22050 || modfilesamplerate == 44100 || modfilesamplerate == 48000))error((char *)"Valid rates are 8000, 16000, 22050, 44100, 48000");
+    // if (argc == 3)modfilesamplerate = (int)getinteger(argv[2]);
+    // if (!(modfilesamplerate == 8000 || modfilesamplerate == 16000 || modfilesamplerate == 22050 || modfilesamplerate == 44100 || modfilesamplerate == 48000))error((char *)"Valid rates are 8000, 16000, 22050, 44100, 48000");
     // WAV_fnbr = FindFreeFileNbr();
     // if (!BasicFileOpen(filename, WAV_fnbr, (char *)"rb")) return;
     // i = 0;
@@ -713,13 +714,13 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
 
     // sound_no--; // In BASIC this is 1-4, but in C it is 0-3.
     // float f_in, PhaseM;
-	// int channel, left = 0, right = 0;
-	// uint16_t* lastleft = NULL, * lastright = NULL;
-	// setnoise(); 
-	// WAV_fnbr = 0;
-	// channel = (int)getint(argv[0], 1, MAXSOUNDS) - 1;
-	uint16_t *lastleft = (uint16_t*)sound_mode_left[sound_no];
-	uint16_t *lastright = (uint16_t*)sound_mode_right[sound_no];
+    // int channel, left = 0, right = 0;
+    // uint16_t* lastleft = NULL, * lastright = NULL;
+    // setnoise(); 
+    // WAV_fnbr = 0;
+    // channel = (int)getint(argv[0], 1, MAXSOUNDS) - 1;
+    uint16_t *lastleft = (uint16_t*)sound_mode_left[sound_no];
+    uint16_t *lastright = (uint16_t*)sound_mode_right[sound_no];
 
     // printf("Type = %d\n", type);
     // printf("Sound no = %d\n", sound_no);
@@ -768,37 +769,37 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
         return kSoundInvalidFrequency;
     }
 
-	// f_in = 10.0;
+    // f_in = 10.0;
 
-	if (channel & kChannelLeft) {
+    if (channel & kChannelLeft) {
         const float phase_m = sound_mode_left[sound_no] == white_noise_table
                 ? frequency
                 : frequency / (float)PWM_FREQ * 4096.0f;
-		if (lastleft == (uint16_t*) null_table) sound_PhaseAC_left[sound_no] = 0.0;
-		sound_PhaseM_left[sound_no] = phase_m;
+        if (lastleft == (uint16_t*) null_table) sound_PhaseAC_left[sound_no] = 0.0;
+        sound_PhaseM_left[sound_no] = phase_m;
         sound_v_left[sound_no] = (volume * 41) / 25;
         // printf("LEFT: %g, %d\n", phase_m, sound_v_left[sound_no]);
-	}
+    }
 
-	if (channel & kChannelRight) {
+    if (channel & kChannelRight) {
         const float phase_m = sound_mode_right[sound_no] == white_noise_table
                 ? frequency
                 : frequency / (float)PWM_FREQ * 4096.0f;
-		if (lastright == (uint16_t*) null_table) sound_PhaseAC_right[sound_no] = 0.0;
-		sound_PhaseM_right[sound_no] = phase_m;
+        if (lastright == (uint16_t*) null_table) sound_PhaseAC_right[sound_no] = 0.0;
+        sound_PhaseM_right[sound_no] = phase_m;
         sound_v_right[sound_no] = (volume * 41) / 25;
         // printf("RIGHT: %g, %d\n", phase_m, sound_v_left[sound_no]);
-	}
+    }
 
     SDL_UnlockAudioDevice(1);
     result = audio_configure(44100, 2);
     SDL_LockAudioDevice(1);
     if (FAILED(result)) return result;
 
-	audio_state = P_SOUND;
+    audio_state = P_SOUND;
 
     SDL_UnlockAudioDevice(1);
-	return kOk;
+    return kOk;
 }
 
 MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const char *interrupt) {
@@ -925,7 +926,7 @@ static MmResult audio_play_flac_internal(const char *filename) {
     SDL_LockAudioDevice(1);
     if (FAILED(result)) return result;
 
-	bcount[1] = drflac_read_pcm_frames_f32(audio_flac_struct, WAV_BUFFER_SIZE / 2,
+    bcount[1] = drflac_read_pcm_frames_f32(audio_flac_struct, WAV_BUFFER_SIZE / 2,
                                            (float*) sbuff1) * audio_flac_struct->channels;
     audio_file_size = (int) bcount[1];
     swingbuf = 1;
@@ -934,14 +935,14 @@ static MmResult audio_play_flac_internal(const char *filename) {
     audio_file_finished = false;
     audio_state = P_FLAC;
 
-	// for (int i = 0; i < MAXSOUNDS; i++) {
-	// 	sound_PhaseM_left[i] = 0;
-	// 	sound_PhaseM_right[i] = 0;
-	// 	sound_PhaseAC_left[i] = 0;
-	// 	sound_PhaseAC_right[i] = 0;
-	// 	sound_mode_left[i] = (uint16_t*)nulltable;
-	// 	sound_mode_right[i] = (uint16_t*)nulltable;
-	// }
+    // for (int i = 0; i < MAXSOUNDS; i++) {
+    //     sound_PhaseM_left[i] = 0;
+    //     sound_PhaseM_right[i] = 0;
+    //     sound_PhaseAC_left[i] = 0;
+    //     sound_PhaseAC_right[i] = 0;
+    //     sound_mode_left[i] = (uint16_t*)nulltable;
+    //     sound_mode_right[i] = (uint16_t*)nulltable;
+    // }
 
     return result;
 }
@@ -992,7 +993,7 @@ static MmResult audio_play_mp3_internal(const char *filename) {
     SDL_LockAudioDevice(1);
     if (FAILED(result)) return result;
 
-	bcount[1] = drmp3_read_pcm_frames_f32(&audio_mp3_struct, WAV_BUFFER_SIZE / 2,
+    bcount[1] = drmp3_read_pcm_frames_f32(&audio_mp3_struct, WAV_BUFFER_SIZE / 2,
                                           (float*) sbuff1) * audio_mp3_struct.channels;
 
     audio_file_size = (int) bcount[1];
@@ -1033,8 +1034,8 @@ static MmResult audio_play_wav_internal(const char *filename) {
     MmResult result = audio_open_file(filename, ".WAV");
     if (FAILED(result)) return result;
 
-	// char filename[STRINGSIZE] = { 0 };
-	// fullfilename(p, filename, ".WAV");
+    // char filename[STRINGSIZE] = { 0 };
+    // fullfilename(p, filename, ".WAV");
     // if (CurrentlyPlaying == P_WAV) {
     //     CloseAudio(0);
     // }
@@ -1050,7 +1051,7 @@ static MmResult audio_play_wav_internal(const char *filename) {
         return kAudioWavInitialisationFailed;
     // printf("%d, %d\n", audio_wav_struct.sampleRate, audio_wav_struct.channels);
 //    PInt(mywav.channels);MMPrintString((char *)" Channels\r\n");
-//	PInt(mywav.bitsPerSample);MMPrintString((char*)" Bits per sample\r\n");
+//    PInt(mywav.bitsPerSample);MMPrintString((char*)" Bits per sample\r\n");
 //    PInt(mywav.sampleRate);MMPrintString((char*)" Sample rate\r\n");
     result = audio_alloc_buffers();
     if (FAILED(result)) return result;
@@ -1097,12 +1098,22 @@ MmResult audio_play_wav(const char *filename, const char *interrupt) {
     return result;
 }
 
-void audio_service_buffers() {
+MmResult audio_background_tasks() {
+    switch (audio_state) {
+        case P_FLAC:
+        case P_MOD:
+        case P_MP3:
+        case P_WAV:
+            break;
+        default:
+            // Nothing to do.
+            return kOk;
+    }
+
     if (swingbuf != nextbuf) {
         char *buf = (nextbuf == 1) ? sbuff1 : sbuff2;
         switch (audio_state) {
             case P_FLAC: {
-                
                 bcount[nextbuf] = drflac_read_pcm_frames_f32(audio_flac_struct, WAV_BUFFER_SIZE / 2,
                                                              (float*) buf)
                                   * audio_flac_struct->channels;
@@ -1143,7 +1154,11 @@ void audio_service_buffers() {
     if (audio_file_size <= 0) {
         switch (audio_state) {
             case P_FLAC:
+                (void) drflac_close(audio_flac_struct);
+                break;
             case P_MP3:
+                (void) drmp3_uninit(&audio_mp3_struct);
+                break;
             case P_WAV:
                 audio_file_finished = true;
                 break;
@@ -1180,6 +1195,8 @@ void audio_service_buffers() {
             printf("UNEXPECTED\n");
         }
     }
+
+    return kOk;
 }
 
 MmResult audio_set_volume(uint8_t left, uint8_t right) {

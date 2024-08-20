@@ -149,7 +149,7 @@ MmResult audio_play_mp3(const char *filename, const char *interrupt);
  */
 MmResult audio_play_wav(const char *filename, const char *interrupt);
 
-void audio_service_buffers();
+MmResult audio_background_tasks();
 
 /**
  * Sets the audio volume.

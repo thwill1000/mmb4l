@@ -409,7 +409,7 @@ static void perform_background_tasks() {
 
     events_pump();
     graphics_refresh_windows();
-    audio_service_buffers();
+    ERROR_ON_FAILURE(audio_background_tasks());
 }
 
 void CheckAbort(void) {
