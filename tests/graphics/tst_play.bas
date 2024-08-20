@@ -12,6 +12,8 @@ ElseIf InStr(Mm.CmdLine$, "mod") Then
   play_mode$ = "mod"
 ElseIf InStr(Mm.CmdLine$, "mp3") Then
   play_mode$ = "mp3"
+ElseIf InStr(Mm.CmdLine$, "sound") Then
+  play_mode$ = "sound"
 ElseIf InStr(Mm.CmdLine$, "tone") Then
   play_mode$ = "tone"
 ElseIf InStr(Mm.CmdLine$, "wav") Then
@@ -48,6 +50,11 @@ Sub test_mp3()
   Else
     Play Mp3 "stereo-test.mp3"
   EndIf
+End Sub
+
+Sub test_sound()
+  Const MIDDLE_C = 261.63
+  Play Sound 1, B, S, MIDDLE_C
 End Sub
 
 Sub test_tone()

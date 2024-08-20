@@ -236,7 +236,7 @@ static MmResult cmd_play_tone(const char *p) {
     float f_left = (float)getnumber(argv[0]);
     float f_right = (float)getnumber(argv[2]);
     int64_t duration = (argc > 4) ? getint(argv[4], 0, INT_MAX) : -1;
-    const char *interrupt = (argc == 7) ? argv[6] : NULL;
+    const char *interrupt = (argc == 7) ? GetIntAddress(argv[6]) : NULL;
 
     return audio_play_tone(f_left, f_right, duration, interrupt);
 }

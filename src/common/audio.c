@@ -263,7 +263,7 @@ MmResult audio_close(bool all) {
         sound_mode_right[i] = (uint16_t *)null_table;
     }
 
-    interrupt_disable(kInterruptAudio);
+    // interrupt_disable(kInterruptAudio);
 
     SDL_UnlockAudioDevice(1);
 
@@ -272,8 +272,8 @@ MmResult audio_close(bool all) {
 
 static float audio_callback_tone(int nChannel) {
     if (audio_tone_duration <= 0) {
-        CloseAudio(1);
         interrupt_fire(kInterruptAudio);
+        CloseAudio(1);
         return 0.0f;
     } else {
         int v;
@@ -691,10 +691,15 @@ MmResult audio_play_modsample(uint8_t sample_num, uint8_t channel_num, uint8_t v
     }
 
     hxcmod_playsoundeffect(&audio_mod_context, sample_num - 1, channel_num - 1, max(0, volume - 1),
-            3579545 / sample_rate);
+                           3579545 / sample_rate);
 
     SDL_UnlockAudioDevice(1);
     return kOk;
+}
+
+static inline bool audio_is_valid_frequency(MMFLOAT f) {
+    // Should it be < 1.0 ? "Valid is 1Hz to 20KHz"
+    return f >= 0.0 && f <= 20000.0;
 }
 
 MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, float frequency,
@@ -706,12 +711,10 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
         if (FAILED(result)) return result;
     }
 
-    SDL_LockAudioDevice(1);
+    SDL_PauseAudio(1);
 
-    if (!(audio_state == P_NOTHING || audio_state == P_SOUND ||
-          audio_state == P_PAUSE_SOUND)) {
-        SDL_UnlockAudioDevice(1);
-        return kSoundInUse;
+    if (audio_state != P_NOTHING && audio_state != P_SOUND && audio_state != P_PAUSE_SOUND) {
+        result = kSoundInUse;
     }
 
     // sound_no--; // In BASIC this is 1-4, but in C it is 0-3.
@@ -721,8 +724,8 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
     // setnoise(); 
     // WAV_fnbr = 0;
     // channel = (int)getint(argv[0], 1, MAXSOUNDS) - 1;
-    uint16_t *lastleft = (uint16_t*)sound_mode_left[sound_no];
-    uint16_t *lastright = (uint16_t*)sound_mode_right[sound_no];
+    uint16_t *last_left = (uint16_t*)sound_mode_left[sound_no];
+    uint16_t *last_right = (uint16_t*)sound_mode_right[sound_no];
 
     // printf("Type = %d\n", type);
     // printf("Sound no = %d\n", sound_no);
@@ -758,54 +761,48 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
             if (channel & kChannelRight) sound_mode_right[sound_no] = (uint16_t *) null_table;
             break;
         default:
-            SDL_UnlockAudioDevice(1);
-            return kInternalFault;
+            result = kInternalFault;
     }
 
     // printf("sound_mode_left = %p\n", sound_mode_left[sound_no]);
     // printf("sound_mode_right = %p\n", sound_mode_right[sound_no]);
 
     // Should it be < 1.0 ? "Valid is 1Hz to 20KHz"
-    if (frequency < 0.0 || frequency > 20000.0) {
-        SDL_UnlockAudioDevice(1);
-        return kSoundInvalidFrequency;
+    if (SUCCEEDED(result) && !audio_is_valid_frequency(frequency)) {
+        result = kSoundInvalidFrequency;
     }
 
-    // f_in = 10.0;
-
-    if (channel & kChannelLeft) {
-        const float phase_m = sound_mode_left[sound_no] == white_noise_table
-                ? frequency
-                : frequency / (float)PWM_FREQ * 4096.0f;
-        if (lastleft == (uint16_t*) null_table) sound_PhaseAC_left[sound_no] = 0.0;
-        sound_PhaseM_left[sound_no] = phase_m;
-        sound_v_left[sound_no] = (volume * 41) / 25;
-        // printf("LEFT: %g, %d\n", phase_m, sound_v_left[sound_no]);
+    if (SUCCEEDED(result)) {
+        result = audio_configure(44100, 2);
     }
 
-    if (channel & kChannelRight) {
-        const float phase_m = sound_mode_right[sound_no] == white_noise_table
-                ? frequency
-                : frequency / (float)PWM_FREQ * 4096.0f;
-        if (lastright == (uint16_t*) null_table) sound_PhaseAC_right[sound_no] = 0.0;
-        sound_PhaseM_right[sound_no] = phase_m;
-        sound_v_right[sound_no] = (volume * 41) / 25;
-        // printf("RIGHT: %g, %d\n", phase_m, sound_v_left[sound_no]);
+    if (SUCCEEDED(result)) {
+
+        if (channel & kChannelLeft) {
+            const float phase_m = sound_mode_left[sound_no] == white_noise_table
+                    ? frequency
+                    : frequency / (float)PWM_FREQ * 4096.0f;
+            if (last_left == (uint16_t*) null_table) sound_PhaseAC_left[sound_no] = 0.0;
+            sound_PhaseM_left[sound_no] = phase_m;
+            sound_v_left[sound_no] = (volume * 41) / 25;
+            // printf("LEFT: %g, %d\n", phase_m, sound_v_left[sound_no]);
+        }
+
+        if (channel & kChannelRight) {
+            const float phase_m = sound_mode_right[sound_no] == white_noise_table
+                    ? frequency
+                    : frequency / (float)PWM_FREQ * 4096.0f;
+            if (last_right == (uint16_t*) null_table) sound_PhaseAC_right[sound_no] = 0.0;
+            sound_PhaseM_right[sound_no] = phase_m;
+            sound_v_right[sound_no] = (volume * 41) / 25;
+            // printf("RIGHT: %g, %d\n", phase_m, sound_v_left[sound_no]);
+        }
+
+        audio_state = P_SOUND;
     }
 
-    SDL_UnlockAudioDevice(1);
-    result = audio_configure(44100, 2);
-    SDL_LockAudioDevice(1);
-    if (FAILED(result)) return result;
-
-    audio_state = P_SOUND;
-
-    SDL_UnlockAudioDevice(1);
+    SDL_PauseAudio(0);
     return kOk;
-}
-
-static inline bool audio_is_valid_frequency(MMFLOAT f) {
-    return f >= 0.0 && f <= 20000.0;
 }
 
 MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const char *interrupt) {
