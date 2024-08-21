@@ -260,6 +260,16 @@ static MmResult audio_effect_alloc_buffers(size_t size) {
     return kOk;
 }
 
+static void audio_free_mod_buf() {
+    if (audio_mod_buf) FreeMemory((void *)audio_mod_buf);
+    audio_mod_buf = NULL;
+}
+
+static void audio_alloc_mod_buf(size_t size) {
+    audio_free_mod_buf();
+    audio_mod_buf = (char *)GetMemory(size + 256);
+}
+
 static MmResult audio_close_file() {
     if (audio_fnbr != -1) {
         MmResult result = file_close(audio_fnbr);
@@ -305,7 +315,7 @@ static MmResult audio_fill_track_list(const char *filename, const char *extensio
         }
     }
 
-    // Try various capitalisations of the extensions.
+    // Try various capitalisations of the extension.
     char ext[3][32];
     if (FAILED(cstring_cpy(ext[0], extension, 32))) return kStringTooLong;
     cstring_toupper(ext[0]);
@@ -348,7 +358,7 @@ static MmResult audio_fill_track_list(const char *filename, const char *extensio
     return kOk;
 }
 
-MmResult audio_term() {
+MmResult audio_stop() {
     if (!audio_initialised) return kOk;
 
     SDL_LockAudioDevice(1);
@@ -358,7 +368,7 @@ MmResult audio_term() {
     audio_effect_state = P_NOTHING;
     audio_free_buffers();
     audio_effect_free_buffers();
-    audio_tone_duration = 0;
+    audio_free_mod_buf();
     for (int snd = 0; snd < MAXSOUNDS; ++snd) {
         for (int channel = LEFT_CHANNEL; channel <= RIGHT_CHANNEL; ++channel) {
             audio_phase_m[channel][snd] = 0.0f;
@@ -366,6 +376,8 @@ MmResult audio_term() {
             audio_sound[channel][snd] = null_table;
         }
     }
+    if (audio_flac_struct) (void)drflac_close(audio_flac_struct);
+    audio_flac_struct = NULL;
 
     // DO NOT call interrupt_disable() as this may clear an audio interrupt that has been fired
     // but not yet processed.
@@ -375,10 +387,17 @@ MmResult audio_term() {
     return kOk;
 }
 
+MmResult audio_term() {
+    if (!audio_initialised) return kOk;
+    MmResult result = audio_stop();
+    audio_initialised = false;
+    return result;
+}
+
 static float audio_callback_tone(int channel) {
     if (audio_tone_duration <= 0) {
         interrupt_fire(kInterruptAudio1);
-        audio_term();
+        (void) audio_stop();
         return 0.0f;
     } else {
         audio_tone_duration--;
@@ -514,14 +533,15 @@ static void audio_callback(void *userdata, Uint8 *stream, int len) {
 }
 
 MmResult audio_pause() {
+    MmResult result = kOk;
+
     if (!audio_initialised) {
-        MmResult result = audio_init();
+        result = audio_init();
         if (FAILED(result)) return result;
     }
 
     SDL_LockAudioDevice(1);
 
-    MmResult result = kOk;
     switch (audio_state) {
         case P_TONE:
             audio_state = P_PAUSE_TONE;
@@ -566,6 +586,7 @@ static MmResult audio_open_file(const char *filename) {
 }
 
 static MmResult audio_play_effect_internal(const char *filename) {
+    // TODO: Handle missing file-extension.
     MmResult result = audio_open_file(filename);
 
     if (SUCCEEDED(result)) {
@@ -637,7 +658,7 @@ static MmResult audio_play_modfile_internal(const char *filename) {
     int size = 0;
     if (SUCCEEDED(result)) {
         size = file_lof(audio_fnbr);
-        audio_mod_buf = (char *)GetMemory(size + 256);
+        audio_alloc_mod_buf(size);
         file_read(audio_fnbr, audio_mod_buf, size);
         result = audio_close_file();
     }
@@ -973,14 +994,15 @@ MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const ch
 }
 
 MmResult audio_resume() {
+    MmResult result = kOk;
+
     if (!audio_initialised) {
-        MmResult result = audio_init();
+        result = audio_init();
         if (FAILED(result)) return result;
     }
 
     SDL_LockAudioDevice(1);
 
-    MmResult result = kOk;
     switch (audio_state) {
         case P_PAUSE_TONE:
             audio_state = P_TONE;
@@ -1123,6 +1145,7 @@ MmResult audio_background_tasks() {
         switch (audio_state) {
             case P_FLAC:
                 (void)drflac_close(audio_flac_struct);
+                audio_flac_struct = NULL;
                 break;
             case P_MP3:
                 (void)drmp3_uninit(&audio_mp3_struct);
@@ -1138,7 +1161,7 @@ MmResult audio_background_tasks() {
         MmResult result = audio_play_next_track();
         SDL_PauseAudio(0);
         if (FAILED(result)) {
-            audio_term();
+            audio_stop();
             interrupt_fire(kInterruptAudio1);
         }
     }

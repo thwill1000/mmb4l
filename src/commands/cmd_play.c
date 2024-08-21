@@ -226,7 +226,7 @@ static MmResult cmd_play_sound(const char *p) {
 static MmResult cmd_play_stop(const char *p) {
     skipspace(p);
     if (!parse_is_end(p)) error_throw(kUnexpectedText);
-    return audio_term();
+    return audio_stop();
 }
 
 /** PLAY TONE left [, right [, dur] [, interrupt]]] */

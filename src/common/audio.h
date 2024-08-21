@@ -74,6 +74,9 @@ MmResult audio_init();
 /** Terminates the audio module. */
 MmResult audio_term();
 
+/** Stops all playing audio. */
+MmResult audio_stop();
+
 /** Perform audio background tasks, e.g. keeping the sound buffers filled. */
 MmResult audio_background_tasks();
 
