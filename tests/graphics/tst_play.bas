@@ -113,7 +113,7 @@ End Sub
 
 Sub test_wav()
   If ENABLE_INTERRUPT Then
-    Play Wav "CantinaBand3.wav", on_interrupt
+    Play Wav "stereo-test.wav", on_interrupt
   Else
     Play Wav "stereo-test.wav"
   EndIf

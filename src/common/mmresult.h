@@ -155,6 +155,7 @@ typedef enum {
     kAudioNoModFile,
     kAudioNothingToResume,
     kAudioNothingToPause,
+    kAudioSampleRateMismatch,
     kAudioWavInitialisationFailed,
     kGpioInvalidPin,
     kGpioInvalidPulseWidth,

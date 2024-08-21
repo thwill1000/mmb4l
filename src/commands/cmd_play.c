@@ -286,9 +286,9 @@ void cmd_play(void) {
     } else if ((p = checkstring(cmdline, "CONTINUE"))) {
         result = cmd_play_continue(p);
     } else if ((p = checkstring(cmdline, "CONTINUE"))) {
-        cmd_play_continue(p);
+        result = cmd_play_continue(p);
     } else if ((p = checkstring(cmdline, "EFFECT"))) {
-        cmd_play_effect(p);
+        result = cmd_play_effect(p);
     } else if ((p = checkstring(cmdline, "FLAC"))) {
         result = cmd_play_flac(p);
     } else if ((p = checkstring(cmdline, "HALT"))) {

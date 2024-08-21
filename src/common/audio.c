@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "audio.h"
 
+#include <assert.h>
 #include <SDL.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -133,11 +134,14 @@ static int audio_dummy_data;
 ////////////////////////////////////////////////////////////////////////////////
 // Variables used by PLAY MODFILE
 ////////////////////////////////////////////////////////////////////////////////
-static char *audio_modbuff = NULL;
+static char *audio_mod_buf = NULL;
 static modcontext audio_mod_context = {0};
 
-/** Set true to continuously loop MOD track. */
+/** Set true to continuously loop MOD file. */
 static bool audio_mod_loop = true;
+
+/** Sample rate of MOD file. */
+static uint32_t audio_mod_sample_rate = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Variables used by PLAY EFFECT
@@ -148,19 +152,6 @@ static AudioBuffer audio_effect_buf[2] = {0};
 static AudioBuffer *audio_effect_fill_buf = NULL;
 static AudioBuffer *audio_effect_play_buf = NULL;
 static uint64_t audio_effect_pos = 0;
-
-// static uint64_t bcounte[3] = {0, 0, 0};
-// static AudioState audio_statee = P_NOTHING;
-// static int mono;
-// static int nextbufe = 0;
-// static float audio_phase_m[2] = { 0.0f, 0.0f };
-// static float audio_phase_ac[2] = { 0.0f, 0.0f };
-// static bool audio_file_finishede = true;
-// static uint64_t audio_pose = 0;
-// static char *sbuff1e = NULL;
-// static char *sbuff2e = NULL;
-
-// static int swingbufe = 0;
 
 static void audio_callback(void *userdata, Uint8 *stream, int len);
 
@@ -188,7 +179,7 @@ static drmp3_bool32 audio_on_seek(void *pUserData, int offset, drmp3_seek_origin
 /** Configures the SDL Audio sample rate and number of channels. */
 static MmResult audio_configure(int sample_rate, int num_channels) {
     // printf("audio_configure()\n");
-    printf("  sample_rate = %d\n", sample_rate);
+    // printf("  sample_rate = %d\n", sample_rate);
     // printf("  num_channels = %d\n", num_channels);
 
     if (audio_initialised && audio_current_spec.freq == sample_rate &&
@@ -321,6 +312,10 @@ static float audio_callback_mod(int channel) {
 
         if (audio_effect_pos < audio_effect_play_buf->byte_count) {
             effect_value = buf[audio_effect_pos++] * audio_filter_volume[channel];
+            if (audio_effect_state == P_WAV && channel == LEFT_CHANNEL && audio_effect_struct.channels == 1) {
+                // Handle mono WAV playback.
+                audio_effect_pos--;
+            }
         }
 
         if (audio_effect_pos == audio_effect_play_buf->byte_count) {
@@ -342,6 +337,10 @@ static float audio_callback_track(int channel) {
 
     if (audio_pos < audio_play_buf->byte_count) {
         value = buf[audio_pos++] * audio_filter_volume[channel];
+        if (audio_state == P_WAV && channel == LEFT_CHANNEL && audio_wav_struct.channels == 1) {
+            // Handle mono WAV playback.
+            audio_pos--;
+        }
     }
 
     if (audio_pos == audio_play_buf->byte_count) {
@@ -382,32 +381,33 @@ static float audio_callback_sound(int channel) {
     return (float)volume / 2000.0f;
 }
 
-// For the moment len will always be 4 bytes (1 sample) for mono or 8 bytes (2 samples) for stereo.
+// For the moment 'len' is expected to always be 8 bytes (2 samples) for stereo.
 static void audio_callback(void *userdata, Uint8 *stream, int len) {
+    assert(len == 8);
     float *fstream = (float *)stream;
     for (int i = 0; i < BUFFER_SIZE; i += 2) {  // The 2 is irrelevant, BUFFER_SIZE = 1.
         switch (audio_state) {
             case P_TONE:
                 fstream[i] = audio_callback_tone(0);
-                if (len == 8) fstream[i + 1] = audio_callback_tone(1);
+                fstream[i + 1] = audio_callback_tone(1);
                 break;
             case P_MOD:
                 fstream[i] = audio_callback_mod(0);
-                if (len == 8) fstream[i + 1] = audio_callback_mod(1);
+                fstream[i + 1] = audio_callback_mod(1);
                 break;
             case P_MP3:
             case P_WAV:
             case P_FLAC:
                 fstream[i] = audio_callback_track(0);
-                if (len == 8) fstream[i + 1] = audio_callback_track(1);
+                fstream[i + 1] = audio_callback_track(1);
                 break;
             case P_SOUND:
                 fstream[i] = audio_callback_sound(0);
-                if (len == 8) fstream[i + 1] = audio_callback_sound(1);
+                fstream[i + 1] = audio_callback_sound(1);
                 break;
             default:
                 fstream[i] = 0.0f;
-                if (len == 8) fstream[i + 1] = 0.0f;
+                fstream[i + 1] = 0.0f;
                 break;
         }
     }
@@ -501,13 +501,13 @@ static MmResult audio_play_effect_internal(const char *filename) {
             result = kAudioWavInitialisationFailed;
     }
 
+    if (SUCCEEDED(result) && audio_effect_struct.sampleRate != audio_mod_sample_rate) {
+        result = kAudioSampleRateMismatch;
+    }
+
     if (SUCCEEDED(result)) {
         result = audio_effect_alloc_buffers(WAV_BUFFER_SIZE * 4);
     }
-
-    // if (SUCCEEDED(result)) {
-    //     result = audio_configure(audio_wav_struct.sampleRate, audio_wav_struct.channels);
-    // }
 
     if (SUCCEEDED(result)) {
         audio_effect_buf[0].byte_count = drwav_read_pcm_frames_f32(&audio_effect_struct, WAV_BUFFER_SIZE / 2,
@@ -566,13 +566,13 @@ MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const ch
         result = audio_open_file(filename, ".MOD");
     }
 
-    // Read the file into 'audio_modbuff'
+    // Read the file into 'audio_mod_buf'
     // TODO: If file_lof() or file_read() report error this will leave audio device paused.
     int size = 0;
     if (SUCCEEDED(result)) {
         size = file_lof(audio_fnbr);
-        audio_modbuff = (char *)GetMemory(size + 256);
-        file_read(audio_fnbr, audio_modbuff, size);
+        audio_mod_buf = (char *)GetMemory(size + 256);
+        file_read(audio_fnbr, audio_mod_buf, size);
         result = audio_close_file();
     }
 
@@ -580,10 +580,11 @@ MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const ch
         audio_alloc_buffers(WAV_BUFFER_SIZE);
 
         audio_mod_loop = (interrupt == NULL);
+        audio_mod_sample_rate = sample_rate;
 
         hxcmod_init(&audio_mod_context);
         hxcmod_setcfg(&audio_mod_context, sample_rate, 1, 1);
-        hxcmod_load(&audio_mod_context, (void *)audio_modbuff, size);
+        hxcmod_load(&audio_mod_context, (void *)audio_mod_buf, size);
         (void)hxcmod_fillbuffer(&audio_mod_context, (msample *)audio_buf[0].data,
                                 WAV_BUFFER_SIZE / 4, NULL, audio_mod_loop ? 0 : 1);
         audio_buf[0].byte_count = WAV_BUFFER_SIZE / 2;
@@ -937,7 +938,7 @@ static MmResult audio_play_wav_internal(const char *filename) {
     }
 
     if (SUCCEEDED(result)) {
-        result = audio_configure(audio_wav_struct.sampleRate, audio_wav_struct.channels);
+        result = audio_configure(audio_wav_struct.sampleRate, 2 /*audio_wav_struct.channels*/);
     }
 
     if (SUCCEEDED(result)) {

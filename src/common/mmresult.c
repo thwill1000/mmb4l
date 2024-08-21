@@ -181,6 +181,7 @@ const char *mmresult_to_string(MmResult result) {
         case kAudioNoModFile:             return "No MOD file playing";
         case kAudioNothingToResume:       return "Nothing to resume";
         case kAudioNothingToPause:        return "Nothing playing";
+        case kAudioSampleRateMismatch:    return "WAV file has different sample rate to MOD file";
         case kAudioWavInitialisationFailed: return "WAV file initialisation failed";    
         case kGpioInvalidPin:             return "Invalid pin";
         case kGpioInvalidPulseWidth:      return "Invalid pulse width";
