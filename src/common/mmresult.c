@@ -179,6 +179,7 @@ const char *mmresult_to_string(MmResult result) {
         case kAudioInvalidSampleRate:     return "Invalid audio sample rate";
         case kAudioMp3InitialisationFailed: return "MP3 file initialisation failed";    
         case kAudioNoModFile:             return "No MOD file playing";
+        case kAudioNoMoreTracks:          return "No more audio tracks";
         case kAudioNothingToResume:       return "Nothing to resume";
         case kAudioNothingToPause:        return "Nothing playing";
         case kAudioSampleRateMismatch:    return "WAV file has different sample rate to MOD file";

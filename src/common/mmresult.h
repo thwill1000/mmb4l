@@ -153,6 +153,7 @@ typedef enum {
     kAudioInvalidSampleRate,
     kAudioMp3InitialisationFailed,
     kAudioNoModFile,
+    kAudioNoMoreTracks,
     kAudioNothingToResume,
     kAudioNothingToPause,
     kAudioSampleRateMismatch,

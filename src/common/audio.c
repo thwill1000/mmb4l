@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 #include <assert.h>
+#include <dirent.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -71,6 +72,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define WAV_BUFFER_SIZE 16384
 #define LEFT_CHANNEL 0
 #define RIGHT_CHANNEL 1
+#define MAX_TRACKS 100
 #define TONE_VOLUME 100
 
 typedef enum {
@@ -111,6 +113,8 @@ static float audio_phase_ac[2][MAXSOUNDS] = {0};
 static float audio_phase_m[2][MAXSOUNDS] = {0};
 static int audio_sound_volume[2][MAXSOUNDS] = {0};
 static uint64_t audio_tone_duration;
+static char audio_track_list[MAX_TRACKS][STRINGSIZE];
+static unsigned audio_track_current = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Variables used by PLAY FLAC, PLAY MOD, PLAY_MP3 and PLAY_WAV
@@ -264,6 +268,84 @@ static MmResult audio_close_file() {
     } else {
         return kOk;
     }
+}
+
+static void audio_clear_track_list() {
+    for (int counter = 0; counter < 100; ++counter) {
+        audio_track_list[counter++][0] = '\0';
+    }
+    audio_track_current = -1;
+}
+
+static void audio_dump_track_list() {
+    printf("-- START --\n");
+    for (int i = 0; i < MAX_TRACKS; ++i) {
+        if (audio_track_list[i][0]) {
+            printf("[%d] %s\n", i, audio_track_list[i]);
+        }
+    }
+    printf("-- END --\n");
+}
+
+// TODO: Move directory listing code to 'path.c'.
+static MmResult audio_fill_track_list(const char *filename, const char *extension) {
+    audio_clear_track_list();
+
+    char tmp[STRINGSIZE];
+    char canonical[STRINGSIZE];
+    MmResult result = path_get_canonical(filename, canonical, STRINGSIZE);
+    if (FAILED(result)) return result;
+
+    // Check for an exact match.
+    if (path_exists(canonical) && path_has_suffix(canonical, extension, true)) {
+        if (SUCCEEDED(cstring_cpy(audio_track_list[0], canonical, STRINGSIZE))) {
+            return kOk;
+        } else {
+            return kFilenameTooLong;
+        }
+    }
+
+    // Try various capitalisations of the extensions.
+    char ext[3][32];
+    if (FAILED(cstring_cpy(ext[0], extension, 32))) return kStringTooLong;
+    cstring_toupper(ext[0]);
+    if (FAILED(cstring_cpy(ext[1], extension, 32))) return kStringTooLong;
+    cstring_tolower(ext[1]);
+    if (FAILED(cstring_cpy(ext[2], extension, 32))) return kStringTooLong;
+    cstring_tolower(ext[2]);
+    ext[2][0] = toupper(ext[2][0]);
+    for (int i = 0; i < 3; ++i) {
+        if (FAILED(cstring_cpy(tmp, canonical, STRINGSIZE))) return kFilenameTooLong;
+        if (FAILED(cstring_cat(tmp, ext[i], STRINGSIZE))) return kFilenameTooLong;
+        if (!path_exists(tmp)) continue;
+        if (SUCCEEDED(cstring_cpy(audio_track_list[0], tmp, STRINGSIZE))) {
+            return kOk;
+        } else {
+            return kFilenameTooLong;
+        }
+    }
+
+    // Treat as a directory to search.
+    DIR *dir;
+    struct dirent *ent;
+    size_t counter = 0;
+    if ((dir = opendir(canonical)) != NULL) {
+        while ((ent = readdir(dir)) != NULL) {
+            if (!path_has_suffix(ent->d_name, extension, true)) continue;
+            if (FAILED(cstring_cpy(tmp, canonical, STRINGSIZE))) {
+                return kFilenameTooLong;
+            }
+            if (FAILED(path_append(tmp, ent->d_name, audio_track_list[counter++], STRINGSIZE))) {
+                return kFilenameTooLong;
+            }
+            if (counter == MAX_TRACKS) break;
+        }
+        closedir(dir);
+    } else {
+        return errno;
+    }
+
+    return kOk;
 }
 
 MmResult audio_term() {
@@ -476,26 +558,15 @@ static bool audio_is_valid_sample_rate(unsigned sample_rate) {
 /**
  * Opens an audio file.
  *
- * @param  filename   Name of the file, with optional extension.
- * @param  extension  Extension to append if missing.
+ * @param  filename  Name of the file including extension.
  */
-static MmResult audio_open_file(const char *filename, const char *extension) {
-    MmResult result = kOk;
-
-    char filename_with_ext[STRINGSIZE];
-    cstring_cpy(filename_with_ext, filename, STRINGSIZE);
-    if (!path_has_suffix(filename_with_ext, extension, true)) {
-        // TODO: Handle file-extension in a case-insensitive manner.
-        result = cstring_cat(filename_with_ext, extension, STRINGSIZE);
-        if (FAILED(result)) return result;
-    }
-
+static MmResult audio_open_file(const char *filename) {
     audio_fnbr = file_find_free();
-    return file_open(filename_with_ext, "rb", audio_fnbr);
+    return file_open(filename, "rb", audio_fnbr);
 }
 
 static MmResult audio_play_effect_internal(const char *filename) {
-    MmResult result = audio_open_file(filename, ".WAV");
+    MmResult result = audio_open_file(filename);
 
     if (SUCCEEDED(result)) {
         drwav_allocation_callbacks allocationCallbacks;
@@ -547,31 +618,8 @@ MmResult audio_play_effect(const char *filename, const char *interrupt) {
     return result;
 }
 
-MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const char *interrupt) {
-    MmResult result = kOk;
-
-    if (!audio_initialised) {
-        result = audio_init();
-        if (FAILED(result)) return result;
-    }
-
-    SDL_PauseAudio(1);
-
-    if (!audio_is_valid_sample_rate(sample_rate)) {
-        result = kAudioInvalidSampleRate;
-    }
-
-    if (SUCCEEDED(result) && audio_state != P_NOTHING) {
-        result = kSoundInUse;
-    }
-
-    if (SUCCEEDED(result)) {
-        result = audio_configure(sample_rate, 2);
-    }
-
-    if (SUCCEEDED(result)) {
-        result = audio_open_file(filename, ".MOD");
-    }
+static MmResult audio_play_modfile_internal(const char *filename) {
+    MmResult result = audio_open_file(filename);
 
     // Read the file into 'audio_mod_buf'
     // TODO: If file_lof() or file_read() report error this will leave audio device paused.
@@ -585,19 +633,61 @@ MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const ch
 
     if (SUCCEEDED(result)) {
         audio_alloc_buffers(WAV_BUFFER_SIZE);
-
-        audio_mod_loop = (interrupt == NULL);
-        audio_mod_sample_rate = sample_rate;
-
         hxcmod_init(&audio_mod_context);
-        hxcmod_setcfg(&audio_mod_context, sample_rate, 1, 1);
+        hxcmod_setcfg(&audio_mod_context, audio_mod_sample_rate, 1, 1);
         hxcmod_load(&audio_mod_context, (void *)audio_mod_buf, size);
         (void)hxcmod_fillbuffer(&audio_mod_context, (msample *)audio_buf[0].data,
                                 WAV_BUFFER_SIZE / 4, NULL, audio_mod_loop ? 0 : 1);
         audio_buf[0].byte_count = WAV_BUFFER_SIZE / 2;
         audio_state = P_MOD;
-        interrupt_enable(kInterruptAudio1, interrupt);
     }
+
+    return result;
+}
+
+static MmResult audio_play_flac_internal(const char *filename);
+static MmResult audio_play_mp3_internal(const char *filename);
+static MmResult audio_play_wav_internal(const char *filename);
+
+static MmResult audio_play_next_track() {
+    audio_track_current++;
+    const char *next_track = audio_track_list[audio_track_current];
+    if (!*next_track) return kAudioNoMoreTracks;
+    MmResult result = kOk;
+    if (path_has_suffix(next_track, ".FLAC", true)) {
+        result = audio_play_flac_internal(next_track);
+    } else if (path_has_suffix(next_track, ".MOD", true)) {
+        result = audio_play_modfile_internal(next_track);
+    } else if (path_has_suffix(next_track, ".MP3", true)) {
+        result = audio_play_mp3_internal(next_track);
+    } else if (path_has_suffix(next_track, ".WAV", true)) {
+        result = audio_play_wav_internal(next_track);
+    } else {
+        result = kInternalFault;
+    }
+    return result;
+}
+
+MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const char *interrupt) {
+    MmResult result = kOk;
+
+    if (!audio_initialised) {
+        result = audio_init();
+        if (FAILED(result)) return result;
+    }
+
+    SDL_PauseAudio(1);
+
+    if (!audio_is_valid_sample_rate(sample_rate)) result = kAudioInvalidSampleRate;
+    if (SUCCEEDED(result) && audio_state != P_NOTHING) result = kSoundInUse;
+    if (SUCCEEDED(result)) result = audio_configure(sample_rate, 2);
+    if (SUCCEEDED(result)) result = audio_fill_track_list(filename, ".MOD");
+    if (SUCCEEDED(result)) {
+        audio_mod_loop = (interrupt == NULL);
+        audio_mod_sample_rate = sample_rate;
+        result = audio_play_next_track();
+    }
+    if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio1, interrupt);
 
     SDL_PauseAudio(0);
     return result;
@@ -812,7 +902,7 @@ MmResult audio_resume() {
 }
 
 static MmResult audio_play_flac_internal(const char *filename) {
-    MmResult result = audio_open_file(filename, ".FLAC");
+    MmResult result = audio_open_file(filename);
 
     if (SUCCEEDED(result)) {
         drflac_allocation_callbacks allocationCallbacks;
@@ -856,7 +946,8 @@ MmResult audio_play_flac(const char *filename, const char *interrupt) {
     SDL_PauseAudio(1);
 
     if (audio_state != P_NOTHING) result = kSoundInUse;
-    if (SUCCEEDED(result)) result = audio_play_flac_internal(filename);
+    if (SUCCEEDED(result)) result = audio_fill_track_list(filename, ".FLAC");
+    if (SUCCEEDED(result)) result = audio_play_next_track();
     if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio1, interrupt);
 
     SDL_PauseAudio(0);
@@ -864,7 +955,7 @@ MmResult audio_play_flac(const char *filename, const char *interrupt) {
 }
 
 static MmResult audio_play_mp3_internal(const char *filename) {
-    MmResult result = audio_open_file(filename, ".MP3");
+    MmResult result = audio_open_file(filename);
 
     if (SUCCEEDED(result)) {
         drmp3_allocation_callbacks allocationCallbacks;
@@ -908,7 +999,8 @@ MmResult audio_play_mp3(const char *filename, const char *interrupt) {
     SDL_PauseAudio(1);
 
     if (audio_state != P_NOTHING) result = kSoundInUse;
-    if (SUCCEEDED(result)) result = audio_play_mp3_internal(filename);
+    if (SUCCEEDED(result)) result = audio_fill_track_list(filename, ".MP3");
+    if (SUCCEEDED(result)) result = audio_play_next_track();
     if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio1, interrupt);
 
     SDL_PauseAudio(0);
@@ -916,7 +1008,7 @@ MmResult audio_play_mp3(const char *filename, const char *interrupt) {
 }
 
 static MmResult audio_play_wav_internal(const char *filename) {
-    MmResult result = audio_open_file(filename, ".WAV");
+    MmResult result = audio_open_file(filename);
 
     if (SUCCEEDED(result)) {
         drwav_allocation_callbacks allocationCallbacks;
@@ -959,7 +1051,8 @@ MmResult audio_play_wav(const char *filename, const char *interrupt) {
     SDL_PauseAudio(1);
 
     if (audio_state != P_NOTHING) result = kSoundInUse;
-    if (SUCCEEDED(result)) result = audio_play_wav_internal(filename);
+    if (SUCCEEDED(result)) result = audio_fill_track_list(filename, ".WAV");
+    if (SUCCEEDED(result)) result = audio_play_next_track();
     if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio1, interrupt);
 
     SDL_PauseAudio(0);
@@ -1059,8 +1152,13 @@ MmResult audio_background_tasks() {
                 break;
         }
 
-        audio_term();
-        interrupt_fire(kInterruptAudio1);
+        SDL_PauseAudio(1);
+        MmResult result = audio_play_next_track();
+        SDL_PauseAudio(0);
+        if (FAILED(result)) {
+            audio_term();
+            interrupt_fire(kInterruptAudio1);
+        }
     }
 
     // Check if WAV effect playback has finished.
