@@ -102,7 +102,7 @@ static bool audio_initialised = false;
 static AudioState audio_state = P_NOTHING;
 
 // Variables used by PLAY SOUND and PLAY TONE.
-static const uint16_t *sound_mode[2][MAXSOUNDS] = {
+static const uint16_t *audio_sound[2][MAXSOUNDS] = {
     {null_table, null_table, null_table, null_table},
     {null_table, null_table, null_table, null_table}};
 static float audio_phase_ac[2][MAXSOUNDS] = {0};
@@ -113,21 +113,25 @@ static uint64_t audio_tone_duration;
 // Variables used by PLAY FLAC, PLAY MOD, PLAY_MP3 and PLAY_WAV
 static int audio_fnbr = 0;
 static float audio_filter_volume[2] = {1.0f, 1.0f};
-static uint64_t ppos = 0;  // Playing position in the currently playing buffer.
+
+/** Playing position in the currently playing buffer. */
+static uint64_t audio_pos = 0;
+
 static AudioBuffer audio_buf[2] = {0};
 static AudioBuffer *audio_fill_buf = NULL;
 static AudioBuffer *audio_play_buf = NULL;
 static drwav audio_wav_struct;
 static drmp3 audio_mp3_struct;
 static drflac *audio_flac_struct = NULL;
-static uint64_t audio_file_size;
 static SDL_AudioSpec audio_current_spec;
 static int audio_dummy_data;
 
 // Variables used by PLAY MODFILE
 static char *audio_modbuff = NULL;
 static modcontext audio_mod_context = {0};
-static bool audio_mod_noloop = false;
+
+/** Set true to continuously loop MOD track. */
+static bool audio_mod_loop = true;
 
 // static uint64_t bcounte[3] = {0, 0, 0};
 // static AudioState audio_statee = P_NOTHING;
@@ -136,7 +140,7 @@ static bool audio_mod_noloop = false;
 // static float audio_phase_m[2] = { 0.0f, 0.0f };
 // static float audio_phase_ac[2] = { 0.0f, 0.0f };
 // static bool audio_file_finishede = true;
-// static uint64_t ppose = 0;
+// static uint64_t audio_pose = 0;
 // static char *sbuff1e = NULL;
 // static char *sbuff2e = NULL;
 
@@ -232,12 +236,12 @@ MmResult audio_close(bool all) {
     audio_fill_buf = NULL;
     audio_play_buf = NULL;
     audio_tone_duration = 0;
-    ppos = 0;
+    audio_pos = 0;
     for (int snd = 0; snd < MAXSOUNDS; ++snd) {
         for (int channel = LEFT_CHANNEL; channel <= RIGHT_CHANNEL; ++channel) {
             audio_phase_m[channel][snd] = 0.0f;
             audio_phase_ac[channel][snd] = 0.0f;
-            sound_mode[channel][snd] = null_table;
+            audio_sound[channel][snd] = null_table;
         }
     }
 
@@ -267,14 +271,14 @@ static float audio_callback_mod(int channel) {
     float value = 0.0f;
     int16_t *buf = (int16_t *)audio_play_buf->data;
 
-    if (ppos < audio_play_buf->byte_count) {
-        value = (float)buf[ppos++] / 32768.0f * audio_filter_volume[channel];
+    if (audio_pos < audio_play_buf->byte_count) {
+        value = (float)buf[audio_pos++] / 32768.0f * audio_filter_volume[channel];
     }
 
-    if (ppos == audio_play_buf->byte_count) {
+    if (audio_pos == audio_play_buf->byte_count) {
         audio_play_buf->byte_count = 0;
         SWAP(AudioBuffer *, audio_fill_buf, audio_play_buf);
-        ppos = 0;
+        audio_pos = 0;
     }
 
     return value;
@@ -287,14 +291,14 @@ static float audio_callback_track(int channel) {
     float value = 0.0f;
     float *buf = (float *)audio_play_buf->data;
 
-    if (ppos < audio_play_buf->byte_count) {
-        value = buf[ppos++] * audio_filter_volume[channel];
+    if (audio_pos < audio_play_buf->byte_count) {
+        value = buf[audio_pos++] * audio_filter_volume[channel];
     }
 
-    if (ppos == audio_play_buf->byte_count) {
+    if (audio_pos == audio_play_buf->byte_count) {
         audio_play_buf->byte_count = 0;
         SWAP(AudioBuffer *, audio_fill_buf, audio_play_buf);
-        ppos = 0;
+        audio_pos = 0;
     }
 
     return value;
@@ -308,10 +312,10 @@ static float audio_callback_sound(int channel) {
     int delta;
 
     for (int i = 0; i < MAXSOUNDS; ++i) {
-        if (sound_mode[channel][i] == null_table) continue;
+        if (audio_sound[channel][i] == null_table) continue;
 
-        if (sound_mode[channel][i] != white_noise_table) {
-            delta = sound_mode[channel][i][(int)audio_phase_ac[channel][i]];
+        if (audio_sound[channel][i] != white_noise_table) {
+            delta = audio_sound[channel][i][(int)audio_phase_ac[channel][i]];
             audio_phase_ac[channel][i] += audio_phase_m[channel][i];
             if (audio_phase_ac[channel][i] >= 4096.0) audio_phase_ac[channel][i] -= 4096.0;
         } else {
@@ -464,16 +468,18 @@ MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const ch
     if (SUCCEEDED(result)) {
         audio_alloc_buffers(WAV_BUFFER_SIZE);
 
+        audio_mod_loop = (interrupt == NULL);
+
         hxcmod_init(&audio_mod_context);
         hxcmod_setcfg(&audio_mod_context, sample_rate, 1, 1);
         hxcmod_load(&audio_mod_context, (void *)audio_modbuff, size);
-        hxcmod_fillbuffer(&audio_mod_context, (msample *)audio_buf[0].data, WAV_BUFFER_SIZE / 4,
-                          NULL, audio_mod_noloop ? 1 : 0);
+        (void)hxcmod_fillbuffer(&audio_mod_context, (msample *)audio_buf[0].data,
+                                WAV_BUFFER_SIZE / 4, NULL, audio_mod_loop ? 0 : 1);
         audio_buf[0].byte_count = WAV_BUFFER_SIZE / 2;
         audio_buf[1].byte_count = 0;
         audio_play_buf = &audio_buf[0];
         audio_fill_buf = &audio_buf[1];
-        ppos = 0;
+        audio_pos = 0;
         audio_state = P_MOD;
         // TODO: Get MOD interrupt working.
         // audio_mod_noloop = interrupt != NULL;
@@ -537,11 +543,11 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
         result = kSoundInvalidFrequency;
     }
 
-    const uint16_t *previous[2] = {sound_mode[LEFT_CHANNEL][sound_no],
-                                   sound_mode[RIGHT_CHANNEL][sound_no]};
+    const uint16_t *previous[2] = {audio_sound[LEFT_CHANNEL][sound_no],
+                                   audio_sound[RIGHT_CHANNEL][sound_no]};
 
-    sound_mode[LEFT_CHANNEL][sound_no] = null_table;
-    sound_mode[RIGHT_CHANNEL][sound_no] = null_table;
+    audio_sound[LEFT_CHANNEL][sound_no] = null_table;
+    audio_sound[RIGHT_CHANNEL][sound_no] = null_table;
 
     for (int c = LEFT_CHANNEL /* 0 */; c <= RIGHT_CHANNEL /* 1 */; ++c) {
         if (c == LEFT_CHANNEL && !(channel & kChannelLeft)) {
@@ -551,22 +557,22 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
         }
         switch (type) {
             case kSoundTypeSine:
-                sound_mode[c][sound_no] = sine_table;
+                audio_sound[c][sound_no] = sine_table;
                 break;
             case kSoundTypeSquare:
-                sound_mode[c][sound_no] = square_table;
+                audio_sound[c][sound_no] = square_table;
                 break;
             case kSoundTypeTriangular:
-                sound_mode[c][sound_no] = triangular_table;
+                audio_sound[c][sound_no] = triangular_table;
                 break;
             case kSoundTypeSawTooth:
-                sound_mode[c][sound_no] = saw_tooth_table;
+                audio_sound[c][sound_no] = saw_tooth_table;
                 break;
             case kSoundTypePeriodicNoise:
-                sound_mode[c][sound_no] = periodic_noise_table;
+                audio_sound[c][sound_no] = periodic_noise_table;
                 break;
             case kSoundTypeWhiteNoise:
-                sound_mode[c][sound_no] = white_noise_table;
+                audio_sound[c][sound_no] = white_noise_table;
                 break;
             case kSoundTypeNull:
                 // Already set to null_table.
@@ -589,7 +595,7 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
             }
 
             if (previous[c] == null_table) audio_phase_ac[c][sound_no] = 0.0f;
-            audio_phase_m[c][sound_no] = sound_mode[c][sound_no] == white_noise_table
+            audio_phase_m[c][sound_no] = audio_sound[c][sound_no] == white_noise_table
                                              ? frequency
                                              : frequency / (float)AUDIO_SAMPLE_RATE * 4096.0f;
             audio_sound_volume[c][sound_no] = (volume * 41) / 25;
@@ -720,10 +726,9 @@ static MmResult audio_play_flac_internal(const char *filename) {
         audio_buf[0].byte_count = drflac_read_pcm_frames_f32(audio_flac_struct, WAV_BUFFER_SIZE / 2,
                                                              (float *)audio_buf[0].data) *
                                   audio_flac_struct->channels;
-        audio_file_size = audio_buf[0].byte_count;
         audio_play_buf = &audio_buf[0];
         audio_fill_buf = &audio_buf[1];
-        ppos = 0;
+        audio_pos = 0;
         audio_state = P_FLAC;
     }
 
@@ -776,10 +781,9 @@ static MmResult audio_play_mp3_internal(const char *filename) {
         audio_buf[0].byte_count = drmp3_read_pcm_frames_f32(&audio_mp3_struct, WAV_BUFFER_SIZE / 2,
                                                             (float *)audio_buf[0].data) *
                                   audio_mp3_struct.channels;
-        audio_file_size = audio_buf[0].byte_count;
         audio_play_buf = &audio_buf[0];
         audio_fill_buf = &audio_buf[1];
-        ppos = 0;
+        audio_pos = 0;
         audio_state = P_MP3;
     }
 
@@ -831,10 +835,9 @@ static MmResult audio_play_wav_internal(const char *filename) {
         audio_buf[0].byte_count = drwav_read_pcm_frames_f32(&audio_wav_struct, WAV_BUFFER_SIZE / 2,
                                                             (float *)audio_buf[0].data) *
                                   audio_wav_struct.channels;
-        audio_file_size = audio_buf[0].byte_count;
         audio_play_buf = &audio_buf[0];
         audio_fill_buf = &audio_buf[1];
-        ppos = 0;
+        audio_pos = 0;
         audio_state = P_WAV;
     }
 
@@ -882,14 +885,18 @@ MmResult audio_background_tasks() {
                     drflac_read_pcm_frames_f32(audio_flac_struct, WAV_BUFFER_SIZE / 2,
                                                (float *)buf) *
                     audio_flac_struct->channels;
-                audio_file_size = audio_fill_buf->byte_count;
                 break;
             }
 
             case P_MOD: {
-                hxcmod_fillbuffer(&audio_mod_context, (msample *)buf, WAV_BUFFER_SIZE / 4, NULL,
-                                  audio_mod_noloop ? 1 : 0);
-                audio_fill_buf->byte_count = WAV_BUFFER_SIZE / 2;
+                if (hxcmod_fillbuffer(&audio_mod_context, (msample *)buf, WAV_BUFFER_SIZE / 4, NULL,
+                                      audio_mod_loop ? 0 : 1)) {
+                    // Stop the music!
+                    audio_fill_buf->byte_count = 0;
+                    audio_play_buf->byte_count = 0;
+                } else {
+                    audio_fill_buf->byte_count = WAV_BUFFER_SIZE / 2;
+                }
                 break;
             }
 
@@ -898,7 +905,6 @@ MmResult audio_background_tasks() {
                     drwav_read_pcm_frames_f32(&audio_wav_struct, WAV_BUFFER_SIZE / 2,
                                               (float *)buf) *
                     audio_wav_struct.channels;
-                audio_file_size = audio_fill_buf->byte_count;
                 break;
             }
 
@@ -907,7 +913,6 @@ MmResult audio_background_tasks() {
                     drmp3_read_pcm_frames_f32(&audio_mp3_struct, WAV_BUFFER_SIZE / 2,
                                               (float *)buf) *
                     audio_mp3_struct.channels;
-                audio_file_size = audio_fill_buf->byte_count;
                 break;
             }
 
@@ -916,7 +921,7 @@ MmResult audio_background_tasks() {
         }
     }
 
-    // Check if FLAC, MP3 or WAV playback has finished.
+    // Check if FLAC, MOD, MP3 or WAV playback has finished.
     if (audio_fill_buf->byte_count == 0 && audio_play_buf->byte_count == 0) {
         switch (audio_state) {
             case P_FLAC:
