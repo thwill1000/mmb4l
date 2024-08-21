@@ -44,8 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "audio.h"
 
-#include <assert.h>
 #include <SDL.h>
+#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -225,11 +225,16 @@ static void audio_free_buffers() {
         audio_buf[i].data = NULL;
         audio_buf[i].byte_count = 0;
     }
+    audio_play_buf = NULL;
+    audio_fill_buf = NULL;
+    audio_pos = 0;
 }
 
 static MmResult audio_alloc_buffers(size_t size) {
     audio_free_buffers();
     for (int i = 0; i < 2; ++i) audio_buf[i].data = (char *)GetMemory(size);
+    audio_play_buf = &audio_buf[0];
+    audio_fill_buf = &audio_buf[1];
     return kOk;
 }
 
@@ -239,25 +244,40 @@ static void audio_effect_free_buffers() {
         audio_effect_buf[i].data = NULL;
         audio_effect_buf[i].byte_count = 0;
     }
+    audio_effect_play_buf = NULL;
+    audio_effect_fill_buf = NULL;
+    audio_effect_pos = 0;
 }
 
 static MmResult audio_effect_alloc_buffers(size_t size) {
     audio_effect_free_buffers();
     for (int i = 0; i < 2; ++i) audio_effect_buf[i].data = (char *)GetMemory(size);
+    audio_effect_play_buf = &audio_effect_buf[0];
+    audio_effect_fill_buf = &audio_effect_buf[1];
     return kOk;
 }
 
-MmResult audio_close(bool all) {
+static MmResult audio_close_file() {
+    if (audio_fnbr != -1) {
+        MmResult result = file_close(audio_fnbr);
+        audio_fnbr = -1;
+        return result;
+    } else {
+        return kOk;
+    }
+}
+
+MmResult audio_term() {
     if (!audio_initialised) return kOk;
 
     SDL_LockAudioDevice(1);
 
+    (void)audio_close_file();
     audio_state = P_NOTHING;
+    audio_effect_state = P_NOTHING;
     audio_free_buffers();
-    audio_fill_buf = NULL;
-    audio_play_buf = NULL;
+    audio_effect_free_buffers();
     audio_tone_duration = 0;
-    audio_pos = 0;
     for (int snd = 0; snd < MAXSOUNDS; ++snd) {
         for (int channel = LEFT_CHANNEL; channel <= RIGHT_CHANNEL; ++channel) {
             audio_phase_m[channel][snd] = 0.0f;
@@ -265,6 +285,9 @@ MmResult audio_close(bool all) {
             audio_sound[channel][snd] = null_table;
         }
     }
+
+    // DO NOT call interrupt_disable() as this may clear an audio interrupt that has been fired
+    // but not yet processed.
 
     SDL_UnlockAudioDevice(1);
 
@@ -274,7 +297,7 @@ MmResult audio_close(bool all) {
 static float audio_callback_tone(int channel) {
     if (audio_tone_duration <= 0) {
         interrupt_fire(kInterruptAudio1);
-        audio_close(1);
+        audio_term();
         return 0.0f;
     } else {
         audio_tone_duration--;
@@ -312,7 +335,8 @@ static float audio_callback_mod(int channel) {
 
         if (audio_effect_pos < audio_effect_play_buf->byte_count) {
             effect_value = buf[audio_effect_pos++] * audio_filter_volume[channel];
-            if (audio_effect_state == P_WAV && channel == LEFT_CHANNEL && audio_effect_struct.channels == 1) {
+            if (audio_effect_state == P_WAV && channel == LEFT_CHANNEL &&
+                audio_effect_struct.channels == 1) {
                 // Handle mono WAV playback.
                 audio_effect_pos--;
             }
@@ -476,16 +500,6 @@ static MmResult audio_open_file(const char *filename, const char *extension) {
     return file_open(filename_with_ext, "rb", audio_fnbr);
 }
 
-static MmResult audio_close_file() {
-    if (audio_fnbr != -1) {
-        MmResult result = file_close(audio_fnbr);
-        audio_fnbr = -1;
-        return result;
-    } else {
-        return kOk;
-    }
-}
-
 static MmResult audio_play_effect_internal(const char *filename) {
     MmResult result = audio_open_file(filename, ".WAV");
 
@@ -510,11 +524,10 @@ static MmResult audio_play_effect_internal(const char *filename) {
     }
 
     if (SUCCEEDED(result)) {
-        audio_effect_buf[0].byte_count = drwav_read_pcm_frames_f32(&audio_effect_struct, WAV_BUFFER_SIZE / 2,
-                                                                   (float *)audio_effect_buf[0].data) *
-                                  audio_effect_struct.channels;
-        audio_effect_play_buf = &audio_effect_buf[0];
-        audio_effect_fill_buf = &audio_effect_buf[1];
+        audio_effect_buf[0].byte_count =
+            drwav_read_pcm_frames_f32(&audio_effect_struct, WAV_BUFFER_SIZE / 2,
+                                      (float *)audio_effect_buf[0].data) *
+            audio_effect_struct.channels;
         audio_effect_pos = 0;
         audio_effect_state = P_WAV;
     }
@@ -588,10 +601,6 @@ MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const ch
         (void)hxcmod_fillbuffer(&audio_mod_context, (msample *)audio_buf[0].data,
                                 WAV_BUFFER_SIZE / 4, NULL, audio_mod_loop ? 0 : 1);
         audio_buf[0].byte_count = WAV_BUFFER_SIZE / 2;
-        audio_buf[1].byte_count = 0;
-        audio_play_buf = &audio_buf[0];
-        audio_fill_buf = &audio_buf[1];
-        audio_pos = 0;
         audio_state = P_MOD;
         interrupt_enable(kInterruptAudio1, interrupt);
     }
@@ -836,9 +845,6 @@ static MmResult audio_play_flac_internal(const char *filename) {
         audio_buf[0].byte_count = drflac_read_pcm_frames_f32(audio_flac_struct, WAV_BUFFER_SIZE / 2,
                                                              (float *)audio_buf[0].data) *
                                   audio_flac_struct->channels;
-        audio_play_buf = &audio_buf[0];
-        audio_fill_buf = &audio_buf[1];
-        audio_pos = 0;
         audio_state = P_FLAC;
     }
 
@@ -891,9 +897,6 @@ static MmResult audio_play_mp3_internal(const char *filename) {
         audio_buf[0].byte_count = drmp3_read_pcm_frames_f32(&audio_mp3_struct, WAV_BUFFER_SIZE / 2,
                                                             (float *)audio_buf[0].data) *
                                   audio_mp3_struct.channels;
-        audio_play_buf = &audio_buf[0];
-        audio_fill_buf = &audio_buf[1];
-        audio_pos = 0;
         audio_state = P_MP3;
     }
 
@@ -945,9 +948,6 @@ static MmResult audio_play_wav_internal(const char *filename) {
         audio_buf[0].byte_count = drwav_read_pcm_frames_f32(&audio_wav_struct, WAV_BUFFER_SIZE / 2,
                                                             (float *)audio_buf[0].data) *
                                   audio_wav_struct.channels;
-        audio_play_buf = &audio_buf[0];
-        audio_fill_buf = &audio_buf[1];
-        audio_pos = 0;
         audio_state = P_WAV;
     }
 
@@ -1065,17 +1065,13 @@ MmResult audio_background_tasks() {
                 break;
         }
 
-        audio_free_buffers();
-        audio_effect_free_buffers();
-        // FreeMemory((void *) alist);
-        audio_state = P_NOTHING;
-        audio_close_file();
+        audio_term();
         interrupt_fire(kInterruptAudio1);
     }
 
     // Check if WAV effect playback has finished.
-    if (audio_effect_state == P_WAV && audio_effect_fill_buf->byte_count == 0
-        && audio_effect_play_buf->byte_count == 0) {
+    if (audio_effect_state == P_WAV && audio_effect_fill_buf->byte_count == 0 &&
+        audio_effect_play_buf->byte_count == 0) {
         (void)drwav_uninit(&audio_effect_struct);
         audio_effect_free_buffers();
         audio_effect_state = P_NOTHING;
