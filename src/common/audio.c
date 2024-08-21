@@ -67,7 +67,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "path.h"
 #include "utility.h"
 
-#define BUFFER_SIZE 1
 #define AUDIO_SAMPLE_RATE 44100UL
 #define WAV_BUFFER_SIZE 16384
 #define LEFT_CHANNEL 0
@@ -191,7 +190,7 @@ static MmResult audio_configure(int sample_rate, int num_channels) {
         .format = AUDIO_F32,
         .channels = num_channels,
         .freq = sample_rate,
-        .samples = BUFFER_SIZE,
+        .samples = 1,  // TODO: Support a bigger sample buffer.
         .callback = audio_callback,
     };
 
@@ -409,29 +408,24 @@ static float audio_callback_sound(int channel) {
 static void audio_callback(void *userdata, Uint8 *stream, int len) {
     assert(len == 8);
     float *fstream = (float *)stream;
-    for (int i = 0; i < BUFFER_SIZE; i += 2) {  // The 2 is irrelevant, BUFFER_SIZE = 1.
+    for (int i = 0; i < 2; ++i) {
         switch (audio_state) {
             case P_TONE:
-                fstream[i] = audio_callback_tone(0);
-                fstream[i + 1] = audio_callback_tone(1);
+                fstream[i] = audio_callback_tone(i);
                 break;
             case P_MOD:
-                fstream[i] = audio_callback_mod(0);
-                fstream[i + 1] = audio_callback_mod(1);
+                fstream[i] = audio_callback_mod(i);
                 break;
             case P_MP3:
             case P_WAV:
             case P_FLAC:
-                fstream[i] = audio_callback_track(0);
-                fstream[i + 1] = audio_callback_track(1);
+                fstream[i] = audio_callback_track(i);
                 break;
             case P_SOUND:
-                fstream[i] = audio_callback_sound(0);
-                fstream[i + 1] = audio_callback_sound(1);
+                fstream[i] = audio_callback_sound(i);
                 break;
             default:
                 fstream[i] = 0.0f;
-                fstream[i + 1] = 0.0f;
                 break;
         }
     }
