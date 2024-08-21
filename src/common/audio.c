@@ -53,11 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 #include "path.h"
 #include "utility.h"
-#define DR_FLAC_IMPLEMENTATION
 #include "../third_party/dr_flac.h"
-#define DR_MP3_IMPLEMENTATION
 #include "../third_party/dr_mp3.h"
-#define DR_WAV_IMPLEMENTATION
 #include "../third_party/dr_wav.h"
 #include "../third_party/hxcmod.h"
 
@@ -71,7 +68,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define BUFFER_SIZE        1
 #define AUDIO_SAMPLE_RATE  44100UL
-#define PWM_FREQ           AUDIO_SAMPLE_RATE
 #define WAV_BUFFER_SIZE    16384
 #define LEFT_CHANNEL       0
 #define RIGHT_CHANNEL      1
@@ -195,20 +191,16 @@ static MmResult audio_configure(int sample_rate, int num_channels) {
       .callback = audio_callback,
     };
 
-    if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) {
+    if (SUCCEEDED(SDL_OpenAudio(&audio_current_spec, NULL))) {
+        return kOk;
+    } else {
         return kAudioApiError;
     }
-
-    return kOk;
 }
 
 MmResult audio_init() {
     if (audio_initialised) return kOk;
     MmResult result = events_init();
-
-    if (SUCCEEDED(result)) {
-        result = audio_configure(AUDIO_SAMPLE_RATE, 2);
-    }
 
     if (SUCCEEDED(result)) {
         audio_tables_init();
@@ -268,10 +260,10 @@ static float audio_callback_tone(int channel) {
         return 0.0f;
     } else {
         audio_tone_duration--;
-        const int v = (((sine_table[(int)audio_phase_ac[0][channel]] - 2000) * mapping[TONE_VOLUME]) / 2000) + 2000;
-        audio_phase_ac[0][channel] += audio_phase_m[0][channel];
-        if (audio_phase_ac[0][channel] >= 4096.0) audio_phase_ac[0][channel] -= 4096.0;
-        return ((float)v - 2000.0f) / 2000.0f;
+        const int volume = (sine_table[(int)audio_phase_ac[channel][0]] - 2000) * mapping[TONE_VOLUME] / 2000;
+        audio_phase_ac[channel][0] += audio_phase_m[channel][0];
+        if (audio_phase_ac[channel][0] >= 4096.0) audio_phase_ac[channel][0] -= 4096.0;
+        return (float) volume / 2000.0f;
     }
 }
 
@@ -325,9 +317,9 @@ static float audio_callback_sound(int channel) {
         if (sound_mode[channel][i] == null_table) continue;
 
         if (sound_mode[channel][i] != white_noise_table) {
-            audio_phase_ac[channel][i] = audio_phase_ac[channel][i] + audio_phase_m[channel][i];
-            if (audio_phase_ac[channel][i] >= 4096.0) audio_phase_ac[channel][i] -= 4096.0;
             delta = sound_mode[channel][i][(int)audio_phase_ac[channel][i]];
+            audio_phase_ac[channel][i] += audio_phase_m[channel][i];
+            if (audio_phase_ac[channel][i] >= 4096.0) audio_phase_ac[channel][i] -= 4096.0;
         } else {
             if (noisedwell[channel][i] <= 0) {
                 noisedwell[channel][i] = (int)audio_phase_m[channel][i];
@@ -340,9 +332,8 @@ static float audio_callback_sound(int channel) {
         volume += delta;
     }
 
-    return ((float)volume) / 2000.0f;
+    return (float) volume / 2000.0f;
 }
-
 
 // For the moment len will always be 4 bytes (1 sample) for mono or 8 bytes (2 samples) for stereo.
 static void audio_callback(void *userdata, Uint8 *stream, int len) {
@@ -501,30 +492,36 @@ MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const ch
     }
 
     SDL_PauseAudio(0);
-    return kOk;
+    return result;
 }
 
 MmResult audio_play_modsample(uint8_t sample_num, uint8_t channel_num, uint8_t volume,
                               unsigned sample_rate) {
+    MmResult result = kOk;
+
     if (!audio_initialised) {
-        MmResult result = audio_init();
+        result = audio_init();
         if (FAILED(result)) return result;
     }
 
-    if (!audio_is_valid_sample_rate(sample_rate)) return kAudioInvalidSampleRate;
+    if (!audio_is_valid_sample_rate(sample_rate)) {
+        result = kAudioInvalidSampleRate;
+    }
 
     SDL_LockAudioDevice(1);
 
-    if (audio_state != P_MOD) {
-        SDL_UnlockAudioDevice(1);
-        return kAudioNoModFile;
+    if (SUCCEEDED(result) && audio_state != P_MOD) {
+        result = kAudioNoModFile;
     }
 
-    hxcmod_playsoundeffect(&audio_mod_context, sample_num - 1, channel_num - 1, max(0, volume - 1),
-                           3579545 / sample_rate);
+    if (SUCCEEDED(result)) {
+        hxcmod_playsoundeffect(&audio_mod_context, sample_num - 1, channel_num - 1,
+                               max(0, volume - 1), 3579545 / sample_rate);
+    }
 
     SDL_UnlockAudioDevice(1);
-    return kOk;
+
+    return result;
 }
 
 static inline bool audio_is_valid_frequency(MMFLOAT f) {
@@ -604,7 +601,7 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
             if (previous[c] == null_table) audio_phase_ac[c][sound_no] = 0.0f;
             audio_phase_m[c][sound_no] = sound_mode[c][sound_no] == white_noise_table
                     ? frequency
-                    : frequency / (float)PWM_FREQ * 4096.0f;
+                    : frequency / (float)AUDIO_SAMPLE_RATE * 4096.0f;
             audio_sound_volume[c][sound_no] = (volume * 41) / 25;
         }
 
@@ -612,7 +609,7 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
     }
 
     SDL_PauseAudio(0);
-    return kOk;
+    return result;
 }
 
 MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const char *interrupt) {
@@ -646,15 +643,15 @@ MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const ch
     }
 
     if (SUCCEEDED(result)) {
-        uint64_t play_duration = duration == -1 ? 0xFFFFFFFFFFFFFFFF : PWM_FREQ * duration / 1000;
+        uint64_t play_duration = duration == -1 ? 0xFFFFFFFFFFFFFFFF : AUDIO_SAMPLE_RATE * duration / 1000;
 
         if (play_duration != 0xffffffffffffffff && f_left >= 10.0) {
-            float hw = ((float)PWM_FREQ / f_left);
+            float hw = ((float)AUDIO_SAMPLE_RATE / f_left);
             int x = (int)((float)(play_duration) / hw) + 1;
             play_duration = (uint64_t)((float)x * hw);
         }
-        audio_phase_m[0][LEFT_CHANNEL] = f_left / (float)PWM_FREQ * 4096.0f;
-        audio_phase_m[0][RIGHT_CHANNEL] = f_right / (float)PWM_FREQ * 4096.0f;
+        audio_phase_m[0][LEFT_CHANNEL] = f_left / (float)AUDIO_SAMPLE_RATE * 4096.0f;
+        audio_phase_m[0][RIGHT_CHANNEL] = f_right / (float)AUDIO_SAMPLE_RATE * 4096.0f;
 
         audio_tone_duration = play_duration;
         audio_state = P_TONE;
@@ -663,7 +660,7 @@ MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const ch
     }
 
     SDL_PauseAudio(0);
-    return kOk;
+    return result;
 }
 
 MmResult audio_resume() {

@@ -215,6 +215,7 @@ set(MMB4L_COMMON_SOURCE_FILES
 )
 
 set(MMB4L_THIRD_PARTY_SOURCE_FILES
+    src/third_party/dr_audio.c
     src/third_party/hxcmod.c
 )
 
