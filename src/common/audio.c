@@ -600,6 +600,16 @@ static MmResult audio_play_effect_internal(const char *filename) {
     return result;
 }
 
+static MmResult audio_stop_effect() {
+    if (audio_effect_state == P_WAV) {
+        (void)drwav_uninit(&audio_effect_struct);
+        audio_effect_free_buffers();
+        audio_effect_state = P_NOTHING;
+        audio_close_file();
+    }
+    return kOk;
+}
+
 MmResult audio_play_effect(const char *filename, const char *interrupt) {
     MmResult result = kOk;
 
@@ -611,6 +621,7 @@ MmResult audio_play_effect(const char *filename, const char *interrupt) {
     SDL_PauseAudio(1);
 
     if (audio_state != P_MOD) result = kAudioNoModFile;
+    if (SUCCEEDED(result)) result = audio_stop_effect();
     if (SUCCEEDED(result)) result = audio_play_effect_internal(filename);
     if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio2, interrupt);
 
@@ -998,7 +1009,8 @@ MmResult audio_resume() {
     return result;
 }
 
-static MmResult audio_play_file(const char *filename, const char *extension, const char *interrupt) {
+static MmResult audio_play_file(const char *filename, const char *extension,
+                                const char *interrupt) {
     MmResult result = kOk;
 
     if (!audio_initialised) {
@@ -1134,10 +1146,7 @@ MmResult audio_background_tasks() {
     // Check if WAV effect playback has finished.
     if (audio_effect_state == P_WAV && audio_effect_fill_buf->byte_count == 0 &&
         audio_effect_play_buf->byte_count == 0) {
-        (void)drwav_uninit(&audio_effect_struct);
-        audio_effect_free_buffers();
-        audio_effect_state = P_NOTHING;
-        audio_close_file();
+        (void)audio_stop_effect();
         interrupt_fire(kInterruptAudio2);
     }
 
