@@ -376,16 +376,14 @@ void interrupt_fire_window_close(MmSurfaceId id) {
 }
 
 void interrupt_enable(InterruptType type, const char *fn) {
-    assert(fn);
+    if (interrupt_list[type].fn) interrupt_count--;
     interrupt_list[type].fn = fn;
     interrupt_list[type].fired = false;
-    interrupt_count++;
+    if (fn) interrupt_count++;
 }
 
 void interrupt_disable(InterruptType type) {
-    interrupt_list[type].fn = NULL;
-    interrupt_list[type].fired = false;
-    interrupt_count--;
+    interrupt_enable(type, NULL);
 }
 
 void interrupt_fire(InterruptType type) {

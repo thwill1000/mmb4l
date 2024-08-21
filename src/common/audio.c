@@ -101,7 +101,9 @@ static const char *NO_ERROR = "";
 static bool audio_initialised = false;
 static AudioState audio_state = P_NOTHING;
 
+////////////////////////////////////////////////////////////////////////////////
 // Variables used by PLAY SOUND and PLAY TONE.
+////////////////////////////////////////////////////////////////////////////////
 static const uint16_t *audio_sound[2][MAXSOUNDS] = {
     {null_table, null_table, null_table, null_table},
     {null_table, null_table, null_table, null_table}};
@@ -110,8 +112,10 @@ static float audio_phase_m[2][MAXSOUNDS] = {0};
 static int audio_sound_volume[2][MAXSOUNDS] = {0};
 static uint64_t audio_tone_duration;
 
+////////////////////////////////////////////////////////////////////////////////
 // Variables used by PLAY FLAC, PLAY MOD, PLAY_MP3 and PLAY_WAV
-static int audio_fnbr = 0;
+////////////////////////////////////////////////////////////////////////////////
+static int audio_fnbr = -1;
 static float audio_filter_volume[2] = {1.0f, 1.0f};
 
 /** Playing position in the currently playing buffer. */
@@ -126,12 +130,24 @@ static drflac *audio_flac_struct = NULL;
 static SDL_AudioSpec audio_current_spec;
 static int audio_dummy_data;
 
+////////////////////////////////////////////////////////////////////////////////
 // Variables used by PLAY MODFILE
+////////////////////////////////////////////////////////////////////////////////
 static char *audio_modbuff = NULL;
 static modcontext audio_mod_context = {0};
 
 /** Set true to continuously loop MOD track. */
 static bool audio_mod_loop = true;
+
+////////////////////////////////////////////////////////////////////////////////
+// Variables used by PLAY EFFECT
+////////////////////////////////////////////////////////////////////////////////
+static AudioState audio_effect_state = P_NOTHING;
+static drwav audio_effect_struct;
+static AudioBuffer audio_effect_buf[2] = {0};
+static AudioBuffer *audio_effect_fill_buf = NULL;
+static AudioBuffer *audio_effect_play_buf = NULL;
+static uint64_t audio_effect_pos = 0;
 
 // static uint64_t bcounte[3] = {0, 0, 0};
 // static AudioState audio_statee = P_NOTHING;
@@ -172,7 +188,7 @@ static drmp3_bool32 audio_on_seek(void *pUserData, int offset, drmp3_seek_origin
 /** Configures the SDL Audio sample rate and number of channels. */
 static MmResult audio_configure(int sample_rate, int num_channels) {
     // printf("audio_configure()\n");
-    // printf("  sample_rate = %d\n", sample_rate);
+    printf("  sample_rate = %d\n", sample_rate);
     // printf("  num_channels = %d\n", num_channels);
 
     if (audio_initialised && audio_current_spec.freq == sample_rate &&
@@ -226,6 +242,20 @@ static MmResult audio_alloc_buffers(size_t size) {
     return kOk;
 }
 
+static void audio_effect_free_buffers() {
+    for (int i = 0; i < 2; ++i) {
+        FreeMemory((void *)audio_effect_buf[i].data);
+        audio_effect_buf[i].data = NULL;
+        audio_effect_buf[i].byte_count = 0;
+    }
+}
+
+static MmResult audio_effect_alloc_buffers(size_t size) {
+    audio_effect_free_buffers();
+    for (int i = 0; i < 2; ++i) audio_effect_buf[i].data = (char *)GetMemory(size);
+    return kOk;
+}
+
 MmResult audio_close(bool all) {
     if (!audio_initialised) return kOk;
 
@@ -252,7 +282,7 @@ MmResult audio_close(bool all) {
 
 static float audio_callback_tone(int channel) {
     if (audio_tone_duration <= 0) {
-        interrupt_fire(kInterruptAudio);
+        interrupt_fire(kInterruptAudio1);
         audio_close(1);
         return 0.0f;
     } else {
@@ -269,19 +299,38 @@ static float audio_callback_mod(int channel) {
     if (audio_play_buf->byte_count == 0) return 0.0f;
 
     float value = 0.0f;
-    int16_t *buf = (int16_t *)audio_play_buf->data;
+    // Main MOD trac.
+    {
+        int16_t *buf = (int16_t *)audio_play_buf->data;
 
-    if (audio_pos < audio_play_buf->byte_count) {
-        value = (float)buf[audio_pos++] / 32768.0f * audio_filter_volume[channel];
+        if (audio_pos < audio_play_buf->byte_count) {
+            value = (float)buf[audio_pos++] / 32768.0f * audio_filter_volume[channel];
+        }
+
+        if (audio_pos == audio_play_buf->byte_count) {
+            audio_play_buf->byte_count = 0;
+            SWAP(AudioBuffer *, audio_fill_buf, audio_play_buf);
+            audio_pos = 0;
+        }
     }
 
-    if (audio_pos == audio_play_buf->byte_count) {
-        audio_play_buf->byte_count = 0;
-        SWAP(AudioBuffer *, audio_fill_buf, audio_play_buf);
-        audio_pos = 0;
+    float effect_value = 0.0f;
+    // Effect WAV trac.
+    if (audio_effect_state == P_WAV && audio_effect_play_buf->byte_count > 0) {
+        float *buf = (float *)audio_effect_play_buf->data;
+
+        if (audio_effect_pos < audio_effect_play_buf->byte_count) {
+            effect_value = buf[audio_effect_pos++] * audio_filter_volume[channel];
+        }
+
+        if (audio_effect_pos == audio_effect_play_buf->byte_count) {
+            audio_effect_play_buf->byte_count = 0;
+            SWAP(AudioBuffer *, audio_effect_fill_buf, audio_effect_play_buf);
+            audio_effect_pos = 0;
+        }
     }
 
-    return value;
+    return value + effect_value;
 }
 
 // Callback for FLAC, MP3 and WAV files.
@@ -406,8 +455,6 @@ static bool audio_is_valid_sample_rate(unsigned sample_rate) {
            sample_rate == 44100 || sample_rate == 48000;
 }
 
-MmResult audio_play_effect(const char *filename, const char *interrupt) { return kOk; }
-
 /**
  * Opens an audio file.
  *
@@ -427,6 +474,70 @@ static MmResult audio_open_file(const char *filename, const char *extension) {
 
     audio_fnbr = file_find_free();
     return file_open(filename_with_ext, "rb", audio_fnbr);
+}
+
+static MmResult audio_close_file() {
+    if (audio_fnbr != -1) {
+        MmResult result = file_close(audio_fnbr);
+        audio_fnbr = -1;
+        return result;
+    } else {
+        return kOk;
+    }
+}
+
+static MmResult audio_play_effect_internal(const char *filename) {
+    MmResult result = audio_open_file(filename, ".WAV");
+
+    if (SUCCEEDED(result)) {
+        drwav_allocation_callbacks allocationCallbacks;
+        allocationCallbacks.pUserData = &audio_dummy_data;
+        allocationCallbacks.onMalloc = audio_malloc;
+        allocationCallbacks.onRealloc = audio_realloc;
+        allocationCallbacks.onFree = audio_free_memory;
+
+        if (drwav_init(&audio_effect_struct, (drwav_read_proc)audio_on_read,
+                       (drwav_seek_proc)audio_on_seek, NULL, &allocationCallbacks) == DRWAV_FALSE)
+            result = kAudioWavInitialisationFailed;
+    }
+
+    if (SUCCEEDED(result)) {
+        result = audio_effect_alloc_buffers(WAV_BUFFER_SIZE * 4);
+    }
+
+    // if (SUCCEEDED(result)) {
+    //     result = audio_configure(audio_wav_struct.sampleRate, audio_wav_struct.channels);
+    // }
+
+    if (SUCCEEDED(result)) {
+        audio_effect_buf[0].byte_count = drwav_read_pcm_frames_f32(&audio_effect_struct, WAV_BUFFER_SIZE / 2,
+                                                                   (float *)audio_effect_buf[0].data) *
+                                  audio_effect_struct.channels;
+        audio_effect_play_buf = &audio_effect_buf[0];
+        audio_effect_fill_buf = &audio_effect_buf[1];
+        audio_effect_pos = 0;
+        audio_effect_state = P_WAV;
+    }
+
+    return result;
+}
+
+MmResult audio_play_effect(const char *filename, const char *interrupt) {
+    MmResult result = kOk;
+
+    if (!audio_initialised) {
+        result = audio_init();
+        if (FAILED(result)) return result;
+    }
+
+    SDL_PauseAudio(1);
+
+    if (audio_state != P_MOD) result = kAudioNoModFile;
+    if (SUCCEEDED(result)) result = audio_play_effect_internal(filename);
+    if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio2, interrupt);
+
+    SDL_PauseAudio(0);
+    return result;
 }
 
 MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const char *interrupt) {
@@ -462,7 +573,7 @@ MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const ch
         size = file_lof(audio_fnbr);
         audio_modbuff = (char *)GetMemory(size + 256);
         file_read(audio_fnbr, audio_modbuff, size);
-        result = file_close(audio_fnbr);
+        result = audio_close_file();
     }
 
     if (SUCCEEDED(result)) {
@@ -481,9 +592,7 @@ MmResult audio_play_modfile(const char *filename, unsigned sample_rate, const ch
         audio_fill_buf = &audio_buf[1];
         audio_pos = 0;
         audio_state = P_MOD;
-        // TODO: Get MOD interrupt working.
-        // audio_mod_noloop = interrupt != NULL;
-        interrupt_enable(kInterruptAudio, interrupt);
+        interrupt_enable(kInterruptAudio1, interrupt);
     }
 
     SDL_PauseAudio(0);
@@ -654,7 +763,7 @@ MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const ch
         audio_tone_duration = play_duration;
         audio_state = P_TONE;
 
-        interrupt_enable(kInterruptAudio, interrupt);
+        interrupt_enable(kInterruptAudio1, interrupt);
     }
 
     SDL_PauseAudio(0);
@@ -747,7 +856,7 @@ MmResult audio_play_flac(const char *filename, const char *interrupt) {
 
     if (audio_state != P_NOTHING) result = kSoundInUse;
     if (SUCCEEDED(result)) result = audio_play_flac_internal(filename);
-    if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio, interrupt);
+    if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio1, interrupt);
 
     SDL_PauseAudio(0);
     return result;
@@ -802,7 +911,7 @@ MmResult audio_play_mp3(const char *filename, const char *interrupt) {
 
     if (audio_state != P_NOTHING) result = kSoundInUse;
     if (SUCCEEDED(result)) result = audio_play_mp3_internal(filename);
-    if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio, interrupt);
+    if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio1, interrupt);
 
     SDL_PauseAudio(0);
     return result;
@@ -856,7 +965,7 @@ MmResult audio_play_wav(const char *filename, const char *interrupt) {
 
     if (audio_state != P_NOTHING) result = kSoundInUse;
     if (SUCCEEDED(result)) result = audio_play_wav_internal(filename);
-    if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio, interrupt);
+    if (SUCCEEDED(result)) interrupt_enable(kInterruptAudio1, interrupt);
 
     SDL_PauseAudio(0);
     return result;
@@ -877,6 +986,7 @@ MmResult audio_background_tasks() {
             return kOk;
     }
 
+    // Fill the main trac buffer empty.
     if (audio_fill_buf->byte_count == 0) {
         char *buf = audio_fill_buf->data;
         switch (audio_state) {
@@ -921,6 +1031,23 @@ MmResult audio_background_tasks() {
         }
     }
 
+    // Fill the effect buffer if empty.
+    if (audio_effect_state == P_WAV && audio_effect_fill_buf->byte_count == 0) {
+        char *buf = audio_effect_fill_buf->data;
+        switch (audio_effect_state) {
+            case P_WAV: {
+                audio_effect_fill_buf->byte_count =
+                    drwav_read_pcm_frames_f32(&audio_effect_struct, WAV_BUFFER_SIZE / 2,
+                                              (float *)buf) *
+                    audio_effect_struct.channels;
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
+
     // Check if FLAC, MOD, MP3 or WAV playback has finished.
     if (audio_fill_buf->byte_count == 0 && audio_play_buf->byte_count == 0) {
         switch (audio_state) {
@@ -938,10 +1065,21 @@ MmResult audio_background_tasks() {
         }
 
         audio_free_buffers();
+        audio_effect_free_buffers();
         // FreeMemory((void *) alist);
         audio_state = P_NOTHING;
-        (void)file_close(audio_fnbr);
-        interrupt_fire(kInterruptAudio);
+        audio_close_file();
+        interrupt_fire(kInterruptAudio1);
+    }
+
+    // Check if WAV effect playback has finished.
+    if (audio_effect_state == P_WAV && audio_effect_fill_buf->byte_count == 0
+        && audio_effect_play_buf->byte_count == 0) {
+        (void)drwav_uninit(&audio_effect_struct);
+        audio_effect_free_buffers();
+        audio_effect_state = P_NOTHING;
+        audio_close_file();
+        interrupt_fire(kInterruptAudio2);
     }
 
     SDL_UnlockAudioDevice(1);

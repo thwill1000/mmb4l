@@ -26,7 +26,18 @@ If ENABLE_INTERRUPT Then ? "Interrupt enabled"
 
 Execute "test_" + play_mode$
 ? "Press Ctrl-C to exit"
-Do : Loop
+Do
+  If UCase$(Inkey$) = "W" And play_mode$ = "mod" Then test_wav_effect()
+Loop
+
+Sub test_wav_effect()
+  ? "Effect!"
+  If ENABLE_INTERRUPT Then
+    Play Effect "CantinaBand3.wav", on_effect_interrupt
+  Else
+    Play Effect "CantinaBand3.wav"
+  EndIf
+End Sub
 
 Sub test_flac()
   If ENABLE_INTERRUPT Then
@@ -38,10 +49,11 @@ End Sub
 
 Sub test_mod()
   If ENABLE_INTERRUPT Then
-    Play ModFile "gems-n-rocks.mod", 44100, on_interrupt
+    Play ModFile "gems-n-rocks.mod", 22050, on_interrupt
   Else
-    Play ModFile "gems-n-rocks.mod", 44100
+    Play ModFile "gems-n-rocks.mod", 22050
   EndIf
+  ? "Press W to play WAV sound effect"
 End Sub
 
 Sub test_mp3()
@@ -101,12 +113,16 @@ End Sub
 
 Sub test_wav()
   If ENABLE_INTERRUPT Then
-    Play Wav "stereo-test.wav", on_interrupt
+    Play Wav "CantinaBand3.wav", on_interrupt
   Else
     Play Wav "stereo-test.wav"
   EndIf
 End Sub
 
 Sub on_interrupt()
-  ? "Interrupt fired"
+  ? "Main interrupt fired"
+End Sub
+
+Sub on_effect_interrupt()
+  ? "Effect interrupt fired"
 End Sub
