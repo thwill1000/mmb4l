@@ -180,8 +180,9 @@ const char *mmresult_to_string(MmResult result) {
         case kAudioMp3InitialisationFailed: return "MP3 file initialisation failed";    
         case kAudioNoModFile:             return "No MOD file playing";
         case kAudioNoMoreTracks:          return "No more audio tracks";
+        case kAudioNothingToPause:        return "Nothing to pause";
+        case kAudioNothingToPlay:         return "Nothing to play";
         case kAudioNothingToResume:       return "Nothing to resume";
-        case kAudioNothingToPause:        return "Nothing playing";
         case kAudioSampleRateMismatch:    return "WAV file has different sample rate to MOD file";
         case kAudioWavInitialisationFailed: return "WAV file initialisation failed";    
         case kGpioInvalidPin:             return "Invalid pin";

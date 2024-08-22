@@ -99,8 +99,9 @@ static MmResult cmd_play_midifile(const char *p) {
 }
 
 static MmResult cmd_play_next(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY NEXT");
-    return kUnimplemented;
+    skipspace(p);
+    if (!parse_is_end(p)) error_throw(kUnexpectedText);
+    return audio_play_next();
 }
 
 static MmResult cmd_play_note(const char *p) {
@@ -164,7 +165,7 @@ static MmResult cmd_play_pause(const char *p) {
 static MmResult cmd_play_previous(const char *p) { 
     skipspace(p);
     if (!parse_is_end(p)) error_throw(kUnexpectedText);
-    return audio_pause();
+    return audio_play_previous();
 }
 
 static MmResult cmd_play_resume(const char *p) {

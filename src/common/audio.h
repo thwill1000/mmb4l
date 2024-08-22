@@ -83,8 +83,14 @@ MmResult audio_background_tasks();
 /** Gets the last (presumably audio related) error message from the SDL API */
 const char *audio_last_error();
 
+/** Plays next FLAC, MP3 or WAV track. */
+MmResult audio_play_next();
+
 /** Pauses playing audio. */
 MmResult audio_pause();
+
+/** Plays previous FLAC, MP3 or WAV track. */
+MmResult audio_play_previous();
 
 /** Resumes playing audio. */
 MmResult audio_resume();
