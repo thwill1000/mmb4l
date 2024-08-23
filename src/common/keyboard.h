@@ -87,6 +87,9 @@ int keyboard_get_modifiers();
 /** Gets a bitmask of the keyboard lock keys currently held down. */
 int keyboard_get_locks();
 
+/** Gets the PS2 scancode of the last key press/release. */
+uint64_t keyboard_get_last_ps2_scancode();
+
 /** Writes current keydown state to STDOUT. */
 void keyboard_dump_keys();
 
