@@ -520,6 +520,7 @@ add_executable(
   test_keyboard
   src/common/keyboard.c
   src/common/gtest/keyboard_test.cxx
+  src/common/gtest/stubs/interrupt_stubs.c
 )
 
 target_include_directories(test_keyboard PUBLIC
