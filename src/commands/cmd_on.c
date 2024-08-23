@@ -53,45 +53,51 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int g_key_complete = 0;
 
-static void on_error_abort(const char* p) {
+static MmResult on_error_abort(const char* p) {
     // Historically does not clear the error state, is this a bug or a feature?
     mmb_error_state_ptr->skip = 0;
+    return kOk;
 }
 
-static void on_error_clear(const char *p) {
+static MmResult on_error_clear(const char *p) {
     error_init(mmb_error_state_ptr);
+    return kOk;
 }
 
-static void on_error_ignore(const char *p) {
+static MmResult on_error_ignore(const char *p) {
     error_init(mmb_error_state_ptr);
     mmb_error_state_ptr->skip = -1;
+    return kOk;
 }
 
-static void on_error_skip(const char *p) {
+static MmResult on_error_skip(const char *p) {
     error_init(mmb_error_state_ptr);
     mmb_error_state_ptr->skip = (*p == 0 || *p == '\'') ? 2 : getint(p, 1, 10000) + 1;
+    return kOk;
 }
 
-static void on_error(const char *p) {
+static MmResult on_error(const char *p) {
+    MmResult result = kOk;
     const char *p2;
     if ((p2 = checkstring(p, "ABORT"))) {
-        on_error_abort(p2);
+        result = on_error_abort(p2);
     } else if ((p2 = checkstring(p, "CLEAR"))) {
-        on_error_clear(p2);
+        result = on_error_clear(p2);
     } else if ((p2 = checkstring(p, "IGNORE"))) {
-        on_error_ignore(p2);
+        result = on_error_ignore(p2);
     } else if ((p2 = checkstring(p, "SKIP"))) {
-        on_error_skip(p2);
+        result = on_error_skip(p2);
     } else {
-        ERROR_SYNTAX;
+        ERROR_UNKNOWN_SUBCOMMAND("ON ERROR");
     }
+    return result;
 }
 
 /**
- * ON KEY target
- * ON KEY ASCIIcode, target
+ * ON KEY { interrupt | 0 }
+ * ON KEY ASCIIcode, { interrupt | 0 }
  */
-static void on_key(const char *p) {
+static MmResult on_key(const char *p) {
     getargs(&p, 3, ",");
     if (argc == 1) {
         if (*argv[0] == '0' && !isdigit(*(argv[0] + 1))) {
@@ -99,7 +105,7 @@ static void on_key(const char *p) {
         } else {
             interrupt_enable_any_key(GetIntAddress(argv[0]));
         }
-    } else {
+    } else if (argc == 3) {
         int key = getint(argv[0], 0, 255);
         if (key == 0) {
             interrupt_disable_specific_key();
@@ -110,45 +116,63 @@ static void on_key(const char *p) {
                 interrupt_enable_specific_key(key, GetIntAddress(argv[2]));
             }
         }
+    } else {
+        return kArgumentCount;
     }
+    return kOk;
 }
 
 /** ON nbr GOTO | GOSUB target[,target, target,...] */
-static void on_number(const char *p) {
-    int r;
+static MmResult on_number(const char *p) {
     char ss[4] = {tokenGOTO, tokenGOSUB, ',', 0};
-    {  // start a new block
-        getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ss);  // getargs macro must be the first executable stmt in a block
-        if (argc < 3 || !(*argv[1] == ss[0] || *argv[1] == ss[1])) ERROR_SYNTAX;
-        if (argc % 2 == 0) ERROR_SYNTAX;
 
-        r = getint(argv[0], 0, 255);  // evaluate the expression controlling the statement
-        if (r == 0 || r > argc / 2) return;  // microsoft say that we just go on to the next line
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ss);
+    if (argc < 3 || argc % 2 == 0) return kArgumentCount;
+    if (*argv[1] != ss[0] && *argv[1] != ss[1]) return kSyntax;
 
-        if (*argv[1] == ss[1]) {
-            // this is a GOSUB, same as a GOTO but we need to first push the
-            // return pointer
-            if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_NESTED_GOSUB;
-            errorstack[gosubindex] = CurrentLinePtr;
-            gosubstack[gosubindex++] = nextstmt;
-            LocalIndex++;
-        }
+    int r = getint(argv[0], 0, 255);  // evaluate the expression controlling the statement
+    if (r == 0 || r > argc / 2) return kOk;  // microsoft say that we just go on to the next line
 
-        if (isnamestart(*argv[r * 2]))
-            nextstmt = findlabel(argv[r * 2]);  // must be a label
-        else
-            nextstmt = findline(getinteger(argv[r * 2]), true);  // try for a line number
+    if (*argv[1] == ss[1]) {
+        // this is a GOSUB, same as a GOTO but we need to first push the return pointer.
+        if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_NESTED_GOSUB;
+        errorstack[gosubindex] = CurrentLinePtr;
+        gosubstack[gosubindex++] = nextstmt;
+        LocalIndex++;
+    }
+
+    if (isnamestart(*argv[r * 2])) {
+        nextstmt = findlabel(argv[r * 2]);  // must be a label
+    } else {
+        nextstmt = findline(getinteger(argv[r * 2]), true);  // try for a line number
     }
     IgnorePIN = false;
+    return kOk;
+}
+
+/** ON PS2 { interrupt | 0 } */
+static MmResult on_ps2(const char *p) {
+	getargs(&p, 1, ",");
+    if (argc != 1) return kArgumentCount;
+	if (*argv[0] == '0' && !isdigit(*(argv[0] + 1))) {
+        interrupt_disable(kInterruptKeyboardPs2);
+    } else {
+        interrupt_enable(kInterruptKeyboardPs2, GetIntAddress(argv[0]));
+    }
+    return kOk;
 }
 
 void cmd_on(void) {
+    MmResult result = kOk;
     const char *p;
     if ((p = checkstring(cmdline, "ERROR"))) {
-        on_error(p);
+        result = on_error(p);
     } else if ((p = checkstring(cmdline, "KEY"))) {
-        on_key(p);
+        result = on_key(p);
+    } else if ((p = checkstring(cmdline, "PS2"))) {
+        result = on_ps2(p);
     } else {
-        on_number(p);
+        result = on_number(p);
     }
+    ERROR_ON_FAILURE(result);
 }

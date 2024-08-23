@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
 #include "../common/graphics.h"
+#include "../common/keyboard.h"
 #include "../common/mmtime.h"
 #include "../common/parse.h"
 #include "../common/path.h"
@@ -437,6 +438,12 @@ static void mminfo_platform(const char *p) {
     CtoM(g_string_rtn);
 }
 
+static void mminfo_ps2(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_rtn_type = T_INT;
+    g_integer_rtn = keyboard_get_last_ps2_scancode();
+}
+
 static void mminfo_sdcard(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_STR;
@@ -548,6 +555,8 @@ void fun_mminfo(void) {
         mminfo_pin_no(p);
     } else if ((p = checkstring(ep, "PLATFORM"))) {
         mminfo_platform(p);
+    } else if ((p = checkstring(ep, "PS2"))) {
+        mminfo_ps2(p);
     } else if ((p = checkstring(ep, "SDCARD"))) {
         mminfo_sdcard(p);
     } else if ((p = checkstring(ep, "VERSION"))) {
