@@ -43,7 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "console.h"
+#include "interrupt.h"
 #include "keyboard.h"
+#include "keyboard_ps2.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -126,10 +128,12 @@ static const char uk_key_map[512] = {
 static bool keyboard_initialised = false;
 static char keyboard_keys[MAX_KEYS];
 static int keyboard_keys_count = 0;
+static uint64_t keyboard_last_ps2_scancode = 0;
 
 void keyboard_init() {
     keyboard_initialised = true;
     keyboard_keys_count = 0;
+    keyboard_last_ps2_scancode = 0;
     memset(keyboard_keys, 0, sizeof(keyboard_keys));
 }
 
@@ -264,6 +268,26 @@ static void keyboard_keys_remove(char ch) {
     if (keyboard_keys_count < 10) keyboard_keys[MAX_KEYS - 1] = '\0';
 }
 
+static MmResult keyboard_update_last_ps2_scancode(const SDL_Keysym* keysym, bool up) {
+    if (keysym->scancode > MAX_SCANCODE) return kKeyboardUnknownKey;
+    keyboard_last_ps2_scancode = keyboard_ps2_map[keysym->scancode];
+    if (up) {
+        if (keysym->scancode == SDL_SCANCODE_PAUSE) {
+            // No PS2 code or PS2 interrupt for "breaking" the PAUSE key.
+            keyboard_last_ps2_scancode = 0x00;
+            return kOk;
+        } else if (keysym->scancode == SDL_SCANCODE_PRINTSCREEN) {
+            keyboard_last_ps2_scancode = 0xE0F07CE0F012;
+        } else if ((keyboard_last_ps2_scancode & 0xFF00) == 0x0) {
+            keyboard_last_ps2_scancode |= 0xF000;
+        } else if ((keyboard_last_ps2_scancode & 0xE000) == 0xE000) {
+            keyboard_last_ps2_scancode = 0xE0F000 | (keyboard_last_ps2_scancode & 0xFF);
+        }
+    }
+    interrupt_fire(kInterruptKeyboardPs2);
+    return kOk;
+}
+
 MmResult keyboard_key_down(const SDL_Keysym* keysym) {
     assert(keyboard_initialised);
     char ch = keyboard_convert(keysym);
@@ -271,7 +295,7 @@ MmResult keyboard_key_down(const SDL_Keysym* keysym) {
         keyboard_keys_add(ch);
         console_put_keypress(ch);
     }
-    return kOk;
+    return keyboard_update_last_ps2_scancode(keysym, false);
 }
 
 MmResult keyboard_key_up(const SDL_Keysym* keysym) {
@@ -280,7 +304,7 @@ MmResult keyboard_key_up(const SDL_Keysym* keysym) {
     if (ch) {
         keyboard_keys_remove(ch);
     }
-    return kOk;
+    return keyboard_update_last_ps2_scancode(keysym, true);
 }
 
 int keyboard_num_keys() {
@@ -319,6 +343,10 @@ int keyboard_get_locks() {
     if (sdl_mods & KMOD_SCROLL) locks |= kScrollLock;
 #endif
     return locks;
+}
+
+uint64_t keyboard_get_last_ps2_scancode() {
+    return keyboard_last_ps2_scancode;
 }
 
 void keyboard_dump_keys() {

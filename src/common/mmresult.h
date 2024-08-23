@@ -162,6 +162,7 @@ typedef enum {
     kGpioInvalidPin,
     kGpioInvalidPulseWidth,
     kGpioPinIsNotAnOutput,
+    kKeyboardUnknownKey,
     kNotParsed,
     kFileInvalidFileNumber,
     kFileAlreadyOpen,
