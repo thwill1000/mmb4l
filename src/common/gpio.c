@@ -193,8 +193,15 @@ static MmResult gpio_configure_pin_picomite_vga(uint8_t pin_num, GpioPinConfig c
         case GPIO_SNES_B_LATCH:
             return gpio_configure_snes_latch(2, GPIO_SNES_B_LATCH, config);
 
-        default:
+        case GPIO_SNES_A_CLOCK:
+        case GPIO_SNES_A_DATA:
+        case GPIO_SNES_B_CLOCK:
+        case GPIO_SNES_B_DATA:
             return kOk;
+
+        default:
+            // Only the pins used by the PicoGAME VGA SNES controllers are supported.
+            return kUnsupportedParameterOnCurrentDevice;
     }
 }
 
