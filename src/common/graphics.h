@@ -165,6 +165,11 @@ typedef struct MmSurfaceStruct {
     int width;
     uint32_t *pixels;
     const char *interrupt_addr;
+
+    /**
+     * Only used for PicoMiteVGA support, it is the colour of the LAYER buffer that should be
+     * treated as transparent when blitting/merging it onto the display window.
+     */
     MmGraphicsColour transparent;
 
     // The following fields are only used for type == kGraphicsSprite | kGraphicsInactiveSprite.
