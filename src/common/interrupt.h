@@ -52,6 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 
 typedef enum {
+  kInterruptAudio1,
+  kInterruptAudio2,
   kInterruptGamepad1,
   kInterruptGamepad2,
   kInterruptGamepad3,
