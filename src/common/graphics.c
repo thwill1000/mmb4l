@@ -53,9 +53,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmb4l.h"
 #include "path.h"
 #include "sprite.h"
-#include "upng.h"
 #include "utility.h"
 #include "../third_party/spbmp.h"
+#include "../third_party/upng.h"
 
 #include <assert.h>
 #include <stdbool.h>

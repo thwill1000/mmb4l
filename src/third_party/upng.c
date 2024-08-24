@@ -1,4 +1,6 @@
 /*
+https://github.com/elanthis/upng
+
 uPNG -- derived from LodePNG version 20100808
 Copyright (c) 2005-2010 Lode Vandevenne
 Copyright (c) 2010 Sean Middleditch
@@ -18,11 +20,11 @@ freely, subject to the following restrictions:
         distribution.
 */
 
-#include "error.h"
-#include "file.h"
-#include "memory.h"
 #include "upng.h"
-#include "utility.h"
+#include "../common/error.h"
+#include "../common/file.h"
+#include "../common/memory.h"
+#include "../common/utility.h"
 
 #include <stdlib.h>
 #include <string.h>
