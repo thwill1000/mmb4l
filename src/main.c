@@ -203,7 +203,7 @@ void longjmp_handler(int jmp_state) {
     console_show_cursor(true);
     console_reset();
     if (MMCharPos > 1) console_puts("\r\n");
-    audio_close(true);
+    audio_term();
 
     int do_exit = false;
     switch (jmp_state) {
@@ -409,7 +409,7 @@ static void perform_background_tasks() {
 
     events_pump();
     graphics_refresh_windows();
-    audio_service_buffers();
+    ERROR_ON_FAILURE(audio_background_tasks());
 }
 
 void CheckAbort(void) {

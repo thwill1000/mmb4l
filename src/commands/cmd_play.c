@@ -56,14 +56,26 @@ static MmResult cmd_play_continue(const char *p) {
     return kUnimplemented;
 }
 
+/** PLAY EFFECT file$ [, interrupt]*/
 static MmResult cmd_play_effect(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY EFFECT");
-    return kUnimplemented;
+    getargs(&p, 3, ",");
+    if (argc != 1 && argc != 3) return kArgumentCount;
+
+    const char *filename = getCstring(argv[0]);
+    const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
+
+    return audio_play_effect(filename, interrupt);
 }
 
+/** PLAY FLAC filename$ [, interrupt] */
 static MmResult cmd_play_flac(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY FLAC");
-    return kUnimplemented;
+    getargs(&p, 3, ",");
+    if (argc != 1 && argc != 3) return kArgumentCount;
+
+    const char *filename = getCstring(argv[0]);
+    const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
+
+    return audio_play_flac(filename, interrupt);
 }
 
 static MmResult cmd_play_halt(const char *p) {
@@ -87,8 +99,9 @@ static MmResult cmd_play_midifile(const char *p) {
 }
 
 static MmResult cmd_play_next(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY NEXT");
-    return kUnimplemented;
+    skipspace(p);
+    if (!parse_is_end(p)) error_throw(kUnexpectedText);
+    return audio_play_next();
 }
 
 static MmResult cmd_play_note(const char *p) {
@@ -96,14 +109,39 @@ static MmResult cmd_play_note(const char *p) {
     return kUnimplemented;
 }
 
-/** PLAY MODFILE file$ [,interrupt] */
+/**
+ * PLAY MODFILE file$ [, sample_rate] [, interrupt]
+ *
+ * PicoMite{VGA}: 'sample_rate' argument is unsupported.
+ * CMM2/MMB4W:    'interrupt' argument is unsupported.
+ */
 static MmResult cmd_play_modfile(const char *p) {
-    getargs(&p, 3, ",");
-    if (argc != 1 && argc != 3) return kArgumentCount;
-    const char *filename = getCstring(argv[0]);
-    const char *interrupt = (argc == 3) ? GetIntAddress(argv[2]) : NULL;
+    getargs(&p, 5, ",");
+    if (argc != 1 && argc != 3 && argc != 5) return kArgumentCount;
 
-    return audio_play_modfile(filename, interrupt);
+    const char *filename = getCstring(argv[0]);
+    unsigned sample_rate = 44100;
+    const char *interrupt = NULL;
+    switch (mmb_options.simulate) {
+        case kSimulateMmb4l:
+            sample_rate = (argc > 1) ? getint(argv[2], 0, 48000) : 44100;
+            interrupt = (argc > 3) ? GetIntAddress(argv[4]) : NULL;
+            break;
+        case kSimulateGameMite:
+        case kSimulatePicoMiteVga:
+            if (argc == 5) return kUnsupportedParameterOnCurrentDevice;
+            interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
+            break;
+        case kSimulateCmm2:
+        case kSimulateMmb4w:
+            if (argc == 5) return kUnsupportedParameterOnCurrentDevice;
+            sample_rate = (argc > 1) ? getint(argv[2], 0, 48000) : 44100;
+            break;
+        default:
+            return kInternalFault;
+    }
+
+    return audio_play_modfile(filename, sample_rate, interrupt);
 }
 
 /** PLAY MODSAMPLE sample_num, channel_num [, volume] [, sample_rate] */
@@ -113,7 +151,7 @@ static MmResult cmd_play_modsample(const char *p) {
     const uint8_t sample_num = (uint8_t) getint(argv[0], 1, 32);
     const uint8_t channel_num = (uint8_t) getint(argv[2], 1, 4);
     const uint8_t volume = max(0, (argc >= 5) ? (uint8_t) getint(argv[4], 0, 64) : 64);
-    const uint32_t sample_rate = (argc == 7) ? (uint32_t) getint(argv[6], 150, 500000) : 16000;
+    const unsigned sample_rate = (argc == 7) ? (uint32_t) getint(argv[6], 150, 500000) : 16000;
 
     return audio_play_modsample(sample_num, channel_num, volume, sample_rate);
 }
@@ -127,7 +165,7 @@ static MmResult cmd_play_pause(const char *p) {
 static MmResult cmd_play_previous(const char *p) { 
     skipspace(p);
     if (!parse_is_end(p)) error_throw(kUnexpectedText);
-    return audio_pause();
+    return audio_play_previous();
 }
 
 static MmResult cmd_play_resume(const char *p) {
@@ -189,7 +227,7 @@ static MmResult cmd_play_sound(const char *p) {
 static MmResult cmd_play_stop(const char *p) {
     skipspace(p);
     if (!parse_is_end(p)) error_throw(kUnexpectedText);
-    return audio_close(true);
+    return audio_stop();
 }
 
 /** PLAY TONE left [, right [, dur] [, interrupt]]] */
@@ -199,7 +237,7 @@ static MmResult cmd_play_tone(const char *p) {
     float f_left = (float)getnumber(argv[0]);
     float f_right = (float)getnumber(argv[2]);
     int64_t duration = (argc > 4) ? getint(argv[4], 0, INT_MAX) : -1;
-    const char *interrupt = (argc == 7) ? argv[6] : NULL;
+    const char *interrupt = (argc == 7) ? GetIntAddress(argv[6]) : NULL;
 
     return audio_play_tone(f_left, f_right, duration, interrupt);
 }
@@ -209,9 +247,15 @@ static MmResult cmd_play_stream(const char *p) {
     return kUnimplemented;
 }
 
+/** PLAY MP3 filename$ [, interrupt] */
 static MmResult cmd_play_mp3(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY MP3");
-    return kUnimplemented;
+    getargs(&p, 3, ",");
+    if (argc != 1 && argc != 3) return kArgumentCount;
+
+    const char *filename = getCstring(argv[0]);
+    const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
+
+    return audio_play_mp3(filename, interrupt);
 }
 
 /** PLAY VOLUME left [, right] */
@@ -224,9 +268,15 @@ static MmResult cmd_play_volume(const char *p) {
     return audio_set_volume(left, right);
 }
 
+/** PLAY WAV filename$ [, interrupt] */
 static MmResult cmd_play_wav(const char *p) {
-    ERROR_UNIMPLEMENTED("PLAY WAV");
-    return kUnimplemented;
+    getargs(&p, 3, ",");
+    if (argc != 1 && argc != 3) return kArgumentCount;
+
+    const char *filename = getCstring(argv[0]);
+    const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
+
+    return audio_play_wav(filename, interrupt);
 }
 
 void cmd_play(void) {
@@ -237,9 +287,9 @@ void cmd_play(void) {
     } else if ((p = checkstring(cmdline, "CONTINUE"))) {
         result = cmd_play_continue(p);
     } else if ((p = checkstring(cmdline, "CONTINUE"))) {
-        cmd_play_continue(p);
+        result = cmd_play_continue(p);
     } else if ((p = checkstring(cmdline, "EFFECT"))) {
-        cmd_play_effect(p);
+        result = cmd_play_effect(p);
     } else if ((p = checkstring(cmdline, "FLAC"))) {
         result = cmd_play_flac(p);
     } else if ((p = checkstring(cmdline, "HALT"))) {
