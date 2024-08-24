@@ -45,13 +45,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAPPING_TABLE_SIZE   101
 #define WAVEFORM_TABLE_SIZE  4096
 
+#include <stdint.h>
+
 extern const int mapping[];
-extern /*const*/ unsigned short null_table[];
-extern const unsigned short square_table[];
-extern const unsigned short triangular_table[];
-extern const unsigned short saw_tooth_table[];
-extern const unsigned short sine_table[];
-extern /*const*/ unsigned short periodic_noise_table[];
-extern const unsigned short white_noise_table[];
+extern /*const*/ uint16_t null_table[];
+extern const uint16_t square_table[];
+extern const uint16_t triangular_table[];
+extern const uint16_t saw_tooth_table[];
+extern const uint16_t sine_table[];
+extern /*const*/ uint16_t periodic_noise_table[];
+extern const uint16_t white_noise_table[];
 
 void audio_tables_init();

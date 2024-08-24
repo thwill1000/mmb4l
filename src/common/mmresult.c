@@ -121,9 +121,6 @@ const char *mmresult_to_string(MmResult result) {
         case kProgramTooLong:             return "Program too long";
         case kUnterminatedComment:        return "Unterminated multiline comment";
         case kNoCommentToTerminate:       return "No comment to terminate";
-        case kAudioApiError:
-            formatAudioApiError();
-            return mmresult_last_msg;
         case kEventsApiError:
             formatEventsApiError();
             return mmresult_last_msg;
@@ -177,11 +174,21 @@ const char *mmresult_to_string(MmResult result) {
         case kGamepadInvalidId:           return "Invalid gamepad ID";
         case kGamepadNotOpen:             return "Gamepad not open";
         case kGamepadUnknownFunction:     return "Unknown gamepad function";
-        case kSoundInUse:                 return "Sound output in use";
-        case kSoundInvalidFrequency:      return "Valid is 0Hz to 20KHz";
+        case kAudioApiError:
+            formatAudioApiError();
+            return mmresult_last_msg;
+        case kAudioFlacInitialisationFailed: return "FLAC file initialisation failed";    
+        case kAudioInUse:                 return "Sound output in use";
+        case kAudioInvalidFrequency:      return "Valid is 0Hz to 20KHz";
+        case kAudioInvalidSampleRate:     return "Invalid audio sample rate";
+        case kAudioMp3InitialisationFailed: return "MP3 file initialisation failed";    
         case kAudioNoModFile:             return "No MOD file playing";
+        case kAudioNoMoreTracks:          return "No more audio tracks";
+        case kAudioNothingToPause:        return "Nothing to pause";
+        case kAudioNothingToPlay:         return "Nothing to play";
         case kAudioNothingToResume:       return "Nothing to resume";
-        case kAudioNothingToPause:        return "Nothing playing";
+        case kAudioSampleRateMismatch:    return "WAV file has different sample rate to MOD file";
+        case kAudioWavInitialisationFailed: return "WAV file initialisation failed";    
         case kGpioInvalidPin:             return "Invalid pin";
         case kGpioInvalidPulseWidth:      return "Invalid pulse width";
         case kGpioPinIsNotAnOutput:       return "Pin is not an output";
