@@ -76,8 +76,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_TRACKS 100
 #define TONE_VOLUME 100
 
+#if 0
 #define LOCK_AUDIO(s)    printf("%s: lock audio\n", s); SDL_LockAudio()
 #define UNLOCK_AUDIO(s)  printf("%s: unlock audio\n", s); SDL_UnlockAudio()
+#else
+#define LOCK_AUDIO(s)    SDL_LockAudio()
+#define UNLOCK_AUDIO(s)  SDL_UnlockAudio()
+#endif
 
 typedef enum {
     P_NOTHING,
@@ -311,7 +316,7 @@ static MmResult audio_close_file() {
 
 static void audio_clear_track_list() {
     for (int counter = 0; counter < 100; ++counter) {
-        audio_track_list[counter++][0] = '\0';
+        audio_track_list[counter][0] = '\0';
     }
     audio_track_current = -1;
 }
@@ -404,8 +409,6 @@ static MmResult audio_fill_track_list(const char *filename, const char *extensio
     } else {
         return errno;
     }
-
-    audio_dump_track_list();
 
     return kOk;
 }
@@ -921,10 +924,17 @@ static MmResult audio_play_wav_internal(const char *filename) {
     return result;
 }
 
+extern const char *CurrentLinePtr; // MMBasic.c
+
 static MmResult audio_play_next_track() {
     audio_track_current++;
     const char *next_track = audio_track_list[audio_track_current];
     if (!*next_track) return kAudioNoMoreTracks;
+    if (!CurrentLinePtr) {
+        console_puts("Now playing: ");
+        console_puts(next_track);
+        console_puts("\r\n");
+    }
     MmResult result = kOk;
     if (path_has_suffix(next_track, ".FLAC", true)) {
         result = audio_play_flac_internal(next_track);
@@ -1069,7 +1079,7 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
                                              : frequency / (float)AUDIO_SAMPLE_RATE * 4096.0f;
             audio_sound_volume[c][sound_no] = (volume * 41) / 25;
         }
-        result = audio_configure(44100, 2);
+        result = audio_configure(AUDIO_SAMPLE_RATE, 2);
     }
 
     if (SUCCEEDED(result)) {
@@ -1118,7 +1128,7 @@ MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const ch
 
         audio_tone_duration = play_duration;
 
-        result = audio_configure(44100, 2);
+        result = audio_configure(AUDIO_SAMPLE_RATE, 2);
     }
 
     if (SUCCEEDED(result)) {
