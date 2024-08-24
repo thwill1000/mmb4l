@@ -324,3 +324,71 @@ INSTANTIATE_TEST_SUITE_P(
     [](const testing::TestParamInfo<GameMiteControllerSimulationTest::ParamType> &info) {
         return std::get<0>(info.param);
     });
+
+class PicoMiteVgaConfigurePinTest
+    : public ::testing::TestWithParam<std::tuple<uint8_t, bool>> {
+   protected:
+    void SetUp() override {
+        memset(&mmb_options, 0x0, sizeof(Options));
+        gpio_init();
+    }
+
+    void TearDown() override {
+        gpio_term();
+    }
+};
+
+/** Tests that only the pins used by the PicoGAME VGA SNES controllers are supported. */
+TEST_P(PicoMiteVgaConfigurePinTest, ConfigurePin) {
+    mmb_options.simulate = kSimulatePicoMiteVga;
+    uint8_t pin_num;
+    MmResult result = gpio_translate_from_pin_gp(std::get<0>(GetParam()), &pin_num);
+    EXPECT_EQ(kOk, result);
+
+    result = gpio_configure_pin(pin_num, kGpioPinDIn);
+
+    if (std::get<1>(GetParam())) {
+        EXPECT_EQ(kOk, result);
+    } else {
+        EXPECT_EQ(kUnsupportedParameterOnCurrentDevice, result);
+    }
+}
+
+// clang-format off
+INSTANTIATE_TEST_SUITE_P(
+    , PicoMiteVgaConfigurePinTest,
+    ::testing::Values(std::make_tuple(1, true),
+                      std::make_tuple(2, true),
+                      std::make_tuple(3, true),
+                      std::make_tuple(4, true),
+                      std::make_tuple(5, true),
+                      std::make_tuple(6, false),
+                      std::make_tuple(7, false),
+                      std::make_tuple(8, false),
+                      std::make_tuple(9, false),
+                      std::make_tuple(10, false),
+                      std::make_tuple(11, false),
+                      std::make_tuple(12, false),
+                      std::make_tuple(13, false),
+                      std::make_tuple(14, false),
+                      std::make_tuple(15, false),
+                      std::make_tuple(16, false),
+                      std::make_tuple(17, false),
+                      std::make_tuple(18, false),
+                      std::make_tuple(19, false),
+                      std::make_tuple(20, false),
+                      std::make_tuple(21, false),
+                      std::make_tuple(22, true),
+                      std::make_tuple(23, false),
+                      std::make_tuple(24, false),
+                      std::make_tuple(25, false),
+                      std::make_tuple(26, false),
+                      std::make_tuple(27, false),
+                      std::make_tuple(28, false)),
+    [](const testing::TestParamInfo<PicoMiteVgaConfigurePinTest::ParamType> &info) {
+        char buf[32];
+        sprintf(buf, "Gp_%d_is_%s", std::get<0>(info.param),
+                std::get<1>(info.param) ? "Supported" : "Unsupported");
+        return std::string(buf);
+    });
+// clang-format on
