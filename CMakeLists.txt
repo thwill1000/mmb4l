@@ -206,7 +206,6 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/rx_buf.c
     src/common/serial.c
     src/common/sprite.c
-    src/common/upng.c
     src/common/utility.c
     src/common/xmodem.c
 )
@@ -215,6 +214,7 @@ set(MMB4L_THIRD_PARTY_SOURCE_FILES
     src/third_party/dr_audio.c
     src/third_party/hxcmod.c
     src/third_party/spbmp.c
+    src/third_party/upng.c
 )
 
 set(MMB4L_SOURCE_FILES
@@ -476,11 +476,11 @@ add_executable(
   src/common/mmresult.c
   src/common/options.c
   src/common/path.c
-  src/common/upng.c
   src/common/gtest/graphics_test.cxx
   src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
   src/common/gtest/stubs/sdl2_stubs.c
+  src/third_party/upng.c
 )
 
 target_include_directories(test_graphics PUBLIC
@@ -720,12 +720,12 @@ add_executable(
   src/common/mmresult.c
   src/common/options.c
   src/common/path.c
-  src/common/upng.c
   src/common/sprite.c
   src/common/gtest/sprite_test.cxx
   src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
   src/common/gtest/stubs/sdl2_stubs.c
+  src/third_party/upng.c
 )
 
 target_include_directories(test_sprite PUBLIC
