@@ -1283,22 +1283,6 @@ MmResult graphics_load_sprite(const char *filename_in, uint8_t start_sprite_id, 
     return file_close(fnbr);
 }
 
-static void *pixelcpy_transparent(void* dst, const void* src, size_t count, uint32_t transparent) {
-    assert(count % 4 == 0);
-    uint32_t *dst_word = (uint32_t *)dst;
-    const uint32_t *src_word = (const uint32_t *)src;
-    const size_t word_count = count / 4;
-    for (size_t i = 0; i < word_count; ++i) {
-        if (*src_word != transparent) {
-            *dst_word++ = *src_word++;
-        } else {
-            dst_word++;
-            src_word++;
-        }
-    }
-    return dst;
-}
-
 MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
                        MmSurface *src_surface, MmSurface *dst_surface, unsigned flags,
                        MmGraphicsColour transparent) {
