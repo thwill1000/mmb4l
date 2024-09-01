@@ -237,6 +237,7 @@ void ExecuteProgram(const char *p) {
                     if (p[0] >= C_BASETOKEN && p[1] >= C_BASETOKEN) {
                         cmdtoken = commandtbl_decode(p);
                         targ = T_CMD;
+                        mmresult_clear();
                         commandtbl[cmdtoken].fptr();                // execute the command
                     } else {
                         if (!isnamestart(*p)) error("Invalid character: %", (int)(*p));
@@ -1217,6 +1218,7 @@ const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo
             sarg1 = sa1; sarg2 = sa2;                               // ditto string args
             iarg1 = ia1; iarg2 = ia2;                               // ditto integer args
             targ = t1;                                              // this is what both args are
+            mmresult_clear();
             tokentbl[o1].fptr();                                    // call the operator function
             *fa = fret;
             *ia = iret;
