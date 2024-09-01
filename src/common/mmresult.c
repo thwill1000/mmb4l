@@ -53,29 +53,31 @@ const char *events_last_error();
 const char *gamepad_last_error();
 const char *graphics_last_error();
 
-static char mmresult_buffer[STRINGSIZE] = { 0 };
+MmResult mmresult_last_code = kOk;
+char mmresult_last_msg[STRINGSIZE] = { 0 };
 
 static void formatAudioApiError() {
-    cstring_cpy(mmresult_buffer, "Audio error: ", STRINGSIZE);
-    cstring_cat(mmresult_buffer, audio_last_error(), STRINGSIZE);
+    snprintf(mmresult_last_msg, STRINGSIZE, "Audio error: %s", audio_last_error());
 }
 
 static void formatEventsApiError() {
-    cstring_cpy(mmresult_buffer, "Events error: ", STRINGSIZE);
-    cstring_cat(mmresult_buffer, events_last_error(), STRINGSIZE);
+    snprintf(mmresult_last_msg, STRINGSIZE, "Events error: %s", events_last_error());
 }
 
 static void formatGamepadApiError() {
-    cstring_cpy(mmresult_buffer, "Gamepad error: ", STRINGSIZE);
-    cstring_cat(mmresult_buffer, gamepad_last_error(), STRINGSIZE);
+    snprintf(mmresult_last_msg, STRINGSIZE, "Gamepad error: %s", gamepad_last_error());
 }
 
 static void formatGraphicsApiError() {
-    cstring_cpy(mmresult_buffer, "Graphics error: ", STRINGSIZE);
-    cstring_cat(mmresult_buffer, graphics_last_error(), STRINGSIZE);
+    snprintf(mmresult_last_msg, STRINGSIZE, "Graphics error: %s", graphics_last_error());
 }
 
 const char *mmresult_to_string(MmResult result) {
+    if (result && result == mmresult_last_code) {
+        // Use cached message.
+        return mmresult_last_msg;
+    }
+
     if (result > kOk && result < kError) {
         if (result == kFilenameTooLong) return "Pathname too long";
         return strerror(result);
@@ -90,6 +92,10 @@ const char *mmresult_to_string(MmResult result) {
         case kStringTooLong: return "String too long";
         case kInvalidFormat: return "Invalid format";
         case kUnknownOption: return "Unknown option";
+        case kInvalidArray:  return "Invalid array value";
+        case kInvalidBool:   return "Invalid boolean value";
+        case kInvalidFloat:  return "Invalid float value";
+        case kInvalidInt:    return "Invalid integer value";
         case kInvalidString: return "Invalid string value";
         case kInvalidValue:  return "Invalid value";
         case kUnknownSystemCommand: return "Unknown system command";
@@ -116,17 +122,17 @@ const char *mmresult_to_string(MmResult result) {
         case kNoCommentToTerminate:       return "No comment to terminate";
         case kAudioApiError:
             formatAudioApiError();
-            return mmresult_buffer;
+            return mmresult_last_msg;
         case kEventsApiError:
             formatEventsApiError();
-            return mmresult_buffer;
+            return mmresult_last_msg;
         case kGamepadApiError:
             formatGamepadApiError();
-            return mmresult_buffer;
+            return mmresult_last_msg;
         case kGraphicsApiError:
             formatGraphicsApiError();
-            return mmresult_buffer;
-        case kGraphicsInvalidId:          return "Invalid graphics surface id";
+            return mmresult_last_msg;
+        case kGraphicsInvalidId:          return "Invalid graphics surface ID";
         case kGraphicsSurfaceNotCreated:  return "Graphics surface could not be created";
         case kGraphicsSurfaceNotFound:    return "Graphics surface does not exist";
         case kGraphicsSurfaceExists:      return "Graphics surface already exists";
