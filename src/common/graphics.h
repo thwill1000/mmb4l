@@ -342,6 +342,18 @@ MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, int 
                               MmGraphicsColour colour, MmGraphicsColour fill, MMFLOAT aspect);
 
 /**
+ * Draws a filled polygon.
+ *
+ * @param  n   Number of points (vertices + 1).
+ * @param  px  X-coordinates, px[0] == px[n - 1].
+ * @param  py  Y-coordinates, py[0] == py[n - 1]
+ * @param  c   Line colour.
+ * @param  f   Fill colour.
+ */
+MmResult graphics_draw_filled_polygon(MmSurface *surface, int n, float *px, float *py,
+                                      MmGraphicsColour c, MmGraphicsColour f);
+
+/**
  * Draws a straight line.
  *
  * @param  x1, y1  Coordinates of the start of the line.
@@ -349,7 +361,7 @@ MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, int 
  * @param  width   Width of the line; currently only for horizontal and vertical lines.
  * @param  colour  Colour of the line.
  */
-MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, int w,
+MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, int width,
                             MmGraphicsColour colour);
 
 /**
@@ -359,7 +371,17 @@ MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, 
  * @param  colour  Colour of the pixel.
  */
 MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour colour);
-MmResult graphics_draw_polygon(MmSurface *surface, unsigned char *p, int close);
+
+/**
+ * Draws multiple connected lines.
+ *
+ * @param  n      Number of points.
+ * @param  px     Array of x-coordinates.
+ * @param  py     Array of y-coordinates.
+ * @param  c      Colour for the line segments.
+ */
+MmResult graphics_draw_polyline(MmSurface *surface, int n, float *px, float *py,
+                                MmGraphicsColour c);
 
 /**
  * Draws a box with rounded corners.
