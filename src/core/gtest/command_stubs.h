@@ -80,6 +80,7 @@ void cmd_pin() { }
 void cmd_pixel() { }
 void cmd_play() { }
 void cmd_poke() { }
+void cmd_polygon() { }
 void cmd_print() { }
 void cmd_pulse() { }
 void cmd_quit() { }

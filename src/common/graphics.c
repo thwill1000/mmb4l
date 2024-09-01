@@ -1069,13 +1069,13 @@ MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, int 
     return kOk;
 }
 
-MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, int w,
+MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, int width,
                             MmGraphicsColour colour) {
     if (y1 == y2) {
-        return graphics_draw_rectangle(surface, x1, y1, x2, y2 + w - 1, colour);  // horiz line
+        return graphics_draw_rectangle(surface, x1, y1, x2, y2 + width - 1, colour);  // horiz line
     }
     if (x1 == x2) {
-        return graphics_draw_rectangle(surface, x1, y1, x2 + w - 1, y2, colour);  // vert line
+        return graphics_draw_rectangle(surface, x1, y1, x2 + width - 1, y2, colour);  // vert line
     }
     int dx, dy, sx, sy, err, e2;
     dx = abs(x2 - x1);
@@ -1195,14 +1195,9 @@ MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int 
         graphics_draw_line(surface, x0, y0, x2, y2, 1, colour);
     }
     else {
-        if (fill == -1) {
-            // draw only the outline
-            graphics_draw_line(surface, x0, y0, x1, y1, 1, colour);
-            graphics_draw_line(surface, x1, y1, x2, y2, 1, colour);
-            graphics_draw_line(surface, x2, y2, x0, y0, 1, colour);
-        }
-        else {
-            //we are drawing a filled triangle which may also have an outline
+        if (fill != -1) {
+            // Draw a filled triangle.
+
             int a, b, y, last;
 
             if (y0 > y1) {
@@ -1217,11 +1212,6 @@ MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int 
                 SWAP(int, y0, y1);
                 SWAP(int, x0, x1);
             }
-
-            // We only care about what is visible.
-            y0 = min(max(0, y0), surface->height - 1);
-            y1 = min(max(0, y1), surface->height - 1);
-            y2 = min(max(0, y2), surface->height - 1);
 
             if (y1 == y2) {
                 last = y1;                                          //Include y1 scanline
@@ -1244,12 +1234,13 @@ MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int 
                 graphics_draw_rectangle(surface, a, y, b, y, fill);
                 y = y + 1;
             }
-            // we also need an outline but we do this last to overwrite the edge of the fill area
-            if (colour != fill) {
-                graphics_draw_line(surface, x0, y0, x1, y1, 1, colour);
-                graphics_draw_line(surface, x1, y1, x2, y2, 1, colour);
-                graphics_draw_line(surface, x2, y2, x0, y0, 1, colour);
-            }
+        }
+
+        // Draw the outline.
+        if (colour != fill) {
+            graphics_draw_line(surface, x0, y0, x1, y1, 1, colour);
+            graphics_draw_line(surface, x1, y1, x2, y2, 1, colour);
+            graphics_draw_line(surface, x2, y2, x0, y0, 1, colour);
         }
     }
 
@@ -2153,4 +2144,101 @@ MmResult graphics_simulate_display(OptionsSimulate platform, unsigned mode, unsi
         default:
             return kInternalFault;
     }
+}
+
+static MmResult graphics_draw_filled_polygon_internal(MmSurface *surface, int n, float *px,
+                                                      float *py, MmGraphicsColour c,
+                                                      MmGraphicsColour f) {
+    // Based on public-domain fill algorithm in C by Darel Rex Finley, 2007
+    // http://alienryderflex.com/polygon_fill/
+
+    int y_max = 0, y_min = 1000000;
+    for (int i = 0; i < n; ++i) {
+        y_max = max(y_max, py[i]);
+        y_min = min(y_min, py[i]);
+    }
+
+    float *nodeX=GetMemory(n * sizeof(float));  // x-coords of polygon intercepts
+    int nodes;                                  // size of nodeX
+    MmResult result = kOk;
+
+    // Loop through the rows of the image.
+    for (int y = y_min, j = 0; SUCCEEDED(result) && y <= y_max; ++y) {
+
+        // Build a list of polygon intercepts/nodes on the current line.
+        nodes = 0;
+        j = n - 1;
+        for (int i = 0; i < n; i++) {
+            if ((py[i] < (float)y && py[j] >= (float)y) ||
+                (py[j] < (float)y && py[i] >= (float)y)) {
+
+                // intercept found; record it
+                nodeX[nodes++] = roundf(px[i] + ((float)y - py[i]) / (py[j] - py[i]) * (px[j] - px[i]));
+            }
+            j = i;
+        }
+
+        // Sort the nodes via simple insertion sort.
+        for (int i = 1; i < nodes; i++) {
+            float temp = nodeX[i];
+            for (j = i; j > 0 && temp < nodeX[j-1]; j--) {
+                nodeX[j] = nodeX[j-1];
+            }
+            nodeX[j] = temp;
+        }
+
+        // Fill the pixels between node pairs.
+        for (int i = 0; SUCCEEDED(result) && i < nodes; i += 2) {
+            result = graphics_draw_line(graphics_current, nodeX[i], y, nodeX[i + 1], y, 1, f);
+        }
+    }
+
+    // Draw the outline.
+    if (SUCCEEDED(result)) result = graphics_draw_polyline(graphics_current, n, px, py, c);
+
+    FreeMemory((void *)nodeX);
+
+    return result;
+}
+
+MmResult graphics_draw_filled_polygon(MmSurface *surface, int n, float *px, float *py,
+                                      MmGraphicsColour c, MmGraphicsColour f) {
+    assert(f >= 0);
+    assert(px[0] == px[n - 1]);
+    assert(py[0] == py[n - 1]);
+
+    MmResult result = kOk;
+    if (n > 5) {
+        result = graphics_draw_filled_polygon_internal(surface, n, px, py, c, f);
+    } else if (n == 5) {
+        // Despite n == 5, this is the quadrilateral case.
+        result = graphics_draw_triangle(graphics_current, px[0], py[0], px[1], py[1], px[2], py[2],
+                                        f, f);
+        if (SUCCEEDED(result)) result = graphics_draw_triangle(graphics_current, px[0], py[0],
+                                                               px[2], py[2], px[3], py[3], f, f);
+        if (SUCCEEDED(result) && f != c) {
+            for (int i = 0; SUCCEEDED(result) && i < 4; ++i) {
+                result = graphics_draw_line(graphics_current, px[i], py[i], px[i + 1], py[i + 1], 1,
+                                            c);
+            }
+        }
+    } else if (n == 4) {
+        // And this is the triangle case.
+        result = graphics_draw_triangle(graphics_current, px[0], py[0], px[1], py[1], px[2], py[2],
+                                        c, f);
+    } else {
+        result = kInternalFault;
+    }
+
+    return result;
+}
+
+MmResult graphics_draw_polyline(MmSurface *surface, int n, float *px, float *py,
+                                MmGraphicsColour c) {
+    MmResult result = kOk;
+    for (int i = 0; SUCCEEDED(result) && i < n - 1; ++i) {
+        result = graphics_draw_line(graphics_current, roundf(px[i]), roundf(py[i]),
+                                    roundf(px[i + 1]), roundf(py[i + 1]), 1, c);
+    }
+    return result;
 }

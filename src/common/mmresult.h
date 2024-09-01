@@ -112,6 +112,7 @@ typedef enum {
     kGraphicsInvalidReadSurface,
     kGraphicsInvalidSprite,
     kGraphicsInvalidSurface,
+    kGraphicsInvalidVertices,
     kGraphicsInvalidWriteSurface,
     kGraphicsLoadBitmapFailed,
     kGraphicsReadAndWriteSurfaceSame,

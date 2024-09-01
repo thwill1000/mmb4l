@@ -86,7 +86,7 @@ void ListNewLine(int *ListCnt, int all) { }
 #define CMD_END         "\x9F\x80"
 #define CMD_LET         "\xC0\x80"
 #define CMD_MMDEBUG     "\xCC\x80"
-#define CMD_PRINT       "\xD9\x80"
+#define CMD_PRINT       "\xDA\x80"
 #define OP_EQUALS       "\xF5"
 
 #define EXPECT_PROGRAM_EQ(prog) \
