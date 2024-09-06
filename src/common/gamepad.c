@@ -300,10 +300,12 @@ MmGamepadId gamepad_transform_wii_i2c(int32_t i2c) {
 
 MmResult gamepad_vibrate(MmGamepadId id, uint16_t low_freq, uint16_t high_freq, uint32_t duration_ms) {
     CHECK_GAMEPAD(id);
+#if SDL_VERSION_ATLEAST(2,0,18)
     if (SDL_GameControllerHasRumble(gamepad->controller)) {
         if (FAILED(SDL_GameControllerRumble(gamepad->controller, low_freq, high_freq, duration_ms))) {
             return kGamepadApiError;
         }
     }
+#endif
     return kOk;
 }
