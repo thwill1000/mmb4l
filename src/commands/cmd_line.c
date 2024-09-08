@@ -111,7 +111,7 @@ static MmResult cmd_line_plot(const char *p) {
     if (argc >= 7 && *argv[6]) xinc = getint(argv[6], 1, HRes - 1);
     if (argc >= 9 && *argv[8]) ys = getint(argv[8], 0, n - 1);
     if (argc >= 11 && *argv[10]) yinc = getint(argv[10], 1, n - 1);
-    uint32_t w = 1;  // setup the defaults
+    int w = 1;  // setup the defaults
     MmGraphicsColour colour = (argc == 13) ? getint(argv[12], RGB_BLACK, RGB_WHITE) : graphics_fcolour;
 
     MmResult result = kOk;
@@ -171,7 +171,7 @@ static MmResult cmd_line_aa(const char *p) {
     y1 = getnumber(argv[2]);
     x2 = getnumber(argv[4]);
     y2 = getnumber(argv[6]);
-    uint32_t width = (argc > 7 && *argv[8]) ? getint(argv[8], 1, 100) : 1;
+    int width = (argc > 7 && *argv[8]) ? getint(argv[8], 1, 100) : 1;
     MmGraphicsColour colour = (argc == 11)
             ? getint(argv[10], RGB_BLACK, RGB_WHITE)
             : graphics_fcolour;
@@ -203,13 +203,13 @@ static MmResult cmd_line_default(const char *p) {
         int y1 = getinteger(argv[2]);
         int x2 = getinteger(argv[4]);
         int y2 = getinteger(argv[6]);
-        uint32_t w = (argc > 7 && *argv[8]) ? getint(argv[8], 1, 100) : 1;
+        int w = (argc > 7 && *argv[8]) ? getint(argv[8], 1, 100) : 1;
         MmGraphicsColour colour = (argc == 11) ? getint(argv[10], RGB_BLACK, RGB_WHITE) : graphics_fcolour;
         return graphics_draw_line(graphics_current, x1, y1, x2, y2, w, colour);
     } else {
         int nc = 0, nw = 0;
         MMINTEGER *wptr, *cptr;
-        int32_t w = 1;
+        int w = 1;
         MmGraphicsColour colour = graphics_fcolour;
         MMFLOAT *wfptr, *cfptr;
         if (argc > 7 && *argv[8]) {

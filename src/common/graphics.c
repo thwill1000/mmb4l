@@ -229,7 +229,7 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0, MMFLOAT y0, MMFLO
     return kUnimplemented;
 }
 
-MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t width,
+MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, int width,
                            MmGraphicsColour colour, MmGraphicsColour fill) {
     MmResult result = kOk;
 
@@ -237,7 +237,7 @@ MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, u
     if (x1 > x2) SWAP(int, x1, x2);
     if (y1 > y2) SWAP(int, x1, x2);
 
-    width = min(min(width, (uint32_t) (x2 - x1)), (uint32_t) (y2 - y1));
+    width = min(min(width, x2 - x1), y2 - y1);
     if (width > 0) {
         width--;
         result = graphics_draw_rectangle(surface, x1, y1, x2, y1 + width, colour);  // Top border.
