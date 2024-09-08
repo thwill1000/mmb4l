@@ -229,13 +229,13 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x0, MMFLOAT y0, MMFLO
     return kUnimplemented;
 }
 
-MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w,
+MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, int w,
                            MmGraphicsColour colour, MmGraphicsColour fill) {
     // Make sure the coordinates are in the right sequence.
     if (x1 > x2) SWAP(int, x1, x2);
     if (y1 > y2) SWAP(int, x1, x2);
 
-    w = min(min(w, (uint32_t) (x2 - x1)), (uint32_t) (y2 - y1));
+    w = min(min(w, x2 - x1), y2 - y1);
     if (w > 0) {
         w--;
         graphics_draw_rectangle(surface, x1, y1, x2, y1 + w, colour);  // Draw the top horiz line.
@@ -383,7 +383,7 @@ MmResult graphics_draw_filled_circle(int x, int y, int radius, int r,
 
 #define RoundUptoInt(a) (((a) + (32 - 1)) & (~(32 - 1)))  // round up to the nearest whole integer
 
-MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, uint32_t w,
+MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, int w,
                               MmGraphicsColour colour, MmGraphicsColour fill, MMFLOAT aspect) {
     if (!surface || surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
     int a, b, P;

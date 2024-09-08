@@ -129,6 +129,17 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
 }
 
 /**
+ * Draws an anti-aliased straight line.
+ *
+ * @param  x1, y1  Coordinates of the start of the line.
+ * @param  x2, y2  Coordinates of the end of the line.
+ * @param  width   Width of the line; valid for horizontal, vertical AND diagonal lines.
+ * @param  colour  Colour of the line.
+ */
+MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x1, MMFLOAT y1, MMFLOAT x2,
+                               MMFLOAT y2, MmGraphicsColour colour, int w);
+
+/**
  * Draws a box.
  *
  * @param  x1, y1  start coordinates.
@@ -137,7 +148,7 @@ static inline bool graphics_surface_exists(MmSurfaceId id) {
  * @param  colour  colour to use for sides of the box.
  * @param  fill    colour to fill the box (-1 for no fill).
  */
-MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t w,
+MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, int w,
                            MmGraphicsColour colour, MmGraphicsColour fill);
 
 /** 
@@ -150,19 +161,8 @@ MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, u
  * @param  fill    colour to use for the fill or -1 if no fill.
  * @param  aspect  ratio of the x and y axis (a MMFLOAT). 1.0 gives a prefect circle.
  */
-MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, uint32_t w,
+MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, int w,
                               MmGraphicsColour colour, MmGraphicsColour fill, MMFLOAT aspect);
-
-/**
- * Draws an anti-aliased straight line.
- *
- * @param  x1, y1  Coordinates of the start of the line.
- * @param  x2, y2  Coordinates of the end of the line.
- * @param  width   Width of the line; valid for horizontal, vertical AND diagonal lines.
- * @param  colour  Colour of the line.
- */
-MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x1, MMFLOAT y1, MMFLOAT x2,
-                               MMFLOAT y2, MmGraphicsColour colour, int w);
 
 /**
  * Draws a straight line.
