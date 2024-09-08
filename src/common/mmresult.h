@@ -108,6 +108,7 @@ typedef enum {
     kGraphicsSurfaceNotCreated,
     kGraphicsSurfaceNotFound,
     kGraphicsSurfaceExists,
+    kGraphicsSurfaceSizeMismatch,
     kGraphicsSurfaceTooLarge,
     kImageTooLarge,
     kImageInvalidFormat
