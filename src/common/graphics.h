@@ -161,7 +161,7 @@ MmResult graphics_draw_aa_line(MmSurface *surface, MMFLOAT x1, MMFLOAT y1, MMFLO
  * @param  colour  Colour to use for sides of the box.
  * @param  fill    Colour to fill the box (-1 for no fill).
  */
-MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, uint32_t width,
+MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, int width,
                            MmGraphicsColour colour, MmGraphicsColour fill);
 
 /** 
