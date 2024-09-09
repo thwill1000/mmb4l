@@ -45,11 +45,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "error.h"
 #include "events.h"
+#include "file.h"
 #include "fonttbl.h"
 #include "graphics.h"
 #include "memory.h"
+#include "mmb4l.h"
+#include "path.h"
 #include "upng.h"
 #include "utility.h"
+#include "../third_party/spbmp.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -860,6 +864,47 @@ void graphics_draw_buffer(MmSurface *surface, int x1, int y1, int x2, int y2,
     //     }
     // }
     // if (cursorhidden)showcursor(0, xcursor,ycursor);
+}
+
+static size_t spbmp_file_read_cb(void *file, void *buffer, size_t size, size_t count,
+                                 void *userdata) {
+    return fread(buffer, size, count, (FILE *) file);
+}
+
+static void spbmp_set_pixel_cb(int x, int y, SpColourRgba colour, void *userdata) {
+    graphics_set_pixel_safe((MmSurface *) userdata, x, y, (MmGraphicsColour) colour);
+}
+
+static int spbmp_abort_check_cb(void *userdata) {
+    CheckAbort();
+    return 0;
+}
+
+MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
+    MmResult result = kOk;
+
+    if (!path_has_suffix(filename, ".BMP", true)) {
+        // TODO: What if the file-extension is ".bmp" ?
+        result = cstring_cat(filename, ".BMP", STRINGSIZE);
+        if (FAILED(result)) return result;
+    }
+
+    int fnbr = file_find_free();
+    file_open(filename, "rb", fnbr);
+    // result = file_open(filename, "rb", fnbr);
+    // if (FAILED(result)) return result;
+    spbmp_init(spbmp_file_read_cb, spbmp_set_pixel_cb, spbmp_abort_check_cb);
+    SpBmpResult bmp_result = spbmp_load(file_table[fnbr].file_ptr, x, y, surface);
+    surface->dirty = true;
+    if (FAILED(bmp_result)) {
+        (void) file_close(fnbr);
+        result = kGraphicsLoadBitmapFailed;
+    } else {
+        file_close(fnbr);
+        // result = file_close(fnbr);
+    }
+
+    return result;
 }
 
 MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
