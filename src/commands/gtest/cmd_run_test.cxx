@@ -9,7 +9,6 @@
 extern "C" {
 
 #include "../../Hardware_Includes.h"
-#include "../../common/graphics.h"
 #include "../../common/gtest/test_helper.h"
 #include "../../core/Commands.h"
 #include "../../core/MMBasic.h"

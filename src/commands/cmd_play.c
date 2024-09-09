@@ -157,14 +157,14 @@ static MmResult cmd_play_modsample(const char *p) {
 }
 
 /** PLAY PAUSE */
-static MmResult cmd_play_pause(const char *p) { 
+static MmResult cmd_play_pause(const char *p) {
     skipspace(p);
     if (!parse_is_end(p)) return kUnexpectedText;
     return audio_pause();
 }
 
 /** PLAY PREVIOUS */
-static MmResult cmd_play_previous(const char *p) { 
+static MmResult cmd_play_previous(const char *p) {
     skipspace(p);
     if (!parse_is_end(p)) return kUnexpectedText;
     return audio_play_previous();

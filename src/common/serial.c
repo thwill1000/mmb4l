@@ -371,12 +371,12 @@ MmResult serial_close(int fnbr) {
 
 void serial_pump_input(int fnbr) {
     assert(file_table[fnbr].type == fet_serial);
-    
+
     char tmp[256];
     errno = 0;
     ssize_t count = read(file_table[fnbr].serial_fd, tmp, 256);
     if (count == -1) error_throw(errno);
-    
+
     if (count > 0) {
         for (ssize_t i = 0; i < count; ++i) {
             rx_buf_put(&file_table[fnbr].rx_buf, tmp[i]);
