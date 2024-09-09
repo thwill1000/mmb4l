@@ -52,7 +52,7 @@ void fun_keydown(void) {
 
     // Clear anything in the input buffer.
     while (console_getc() != -1);
- 
+
     switch (n) {
         case 0:
           iret = keyboard_num_keys();

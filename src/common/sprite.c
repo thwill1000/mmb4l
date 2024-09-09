@@ -460,7 +460,7 @@ MmResult sprite_update_collisions(MmSurface *sprite) {
 
     bool has_collision = false;
 
-    // Check for collisions with other sprites.   
+    // Check for collisions with other sprites.
     for (MmSurface *other = sprite_first_active(); other; other = sprite_next_active(other)) {
         //printf("  %d\n", other->id - 128);
         has_collision |= sprite_check_for_sprite_collision(sprite, other);
