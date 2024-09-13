@@ -2,7 +2,147 @@ ChangeLog
 ---------
 
 Version 0.7 alpha 1 - ??-???-2024:
-  - ...
+  - Added a significant sub-set of the graphics/audio/gamepad functionality
+    from the PicoMite{VGA}/CMM2/MMB4W.
+
+  - Added OPTION SIMULATE device$
+    - This is a non-persistent option that causes MMB4L to make a
+      "minimum effort" attempt to simulate the basic graphics/audio/gamepad
+      functionality of a named MMBasic device/platform.
+    - Causes MM.DEVICE$, MM.INFO$(DEVICE) and MM.INFO$(PLATFORM) to return
+      the appropriate simulated value.
+      - MM.INFO$(DEVICE X) can be used to retrieve the real device name;
+        this conveniently works on all MMBasic platforms due to MM.INFO$()
+        not being rigourous with validating its parameter(s).
+    - The supported devices and the additional functionality they support are:
+      - "Colour Maximite 2"
+        - CLASSIC({B|LX|LY|RX|RY|L|R|T} [, i2c])
+        - CONTROLLER CLASSIC CLOSE [i2c]
+        - CONTROLLER CLASSIC OPEN [i2c] [, interrupt] [, bitmask]
+          - Up to 3 Wii Classic (I2C 1-3) controllers are simulated by USB controllers.
+        - MODE, PAGE COPY, PAGE WRITE, PAGE SCROLL
+      - "Game*Mite"
+        - Simulates enough GPIO to support a USB controller acting as the Game*Mite controller.
+            i.e. PORT(), SETPIN
+        - Commands: FRAMEBUFFER, BLIT FRAMEBUFFER, FLASH DISK LOAD
+        - Functions: MM.INFO(FLASH ADDRESS), MM.INFO(PINNO GPxx)
+      - "MMB4L" (the default)
+      - "MMBasic for Windows"
+        - MODE, PAGE COPY, PAGE WRITE, PAGE SCROLL, GAMEPAD, GAMEPAD()
+      - "PicoMiteVGA"
+        - Simulates enough GPIO to support 2x USB controllers acting as SNES controllers wired
+          according to the PicoGAME VGA 2.0 schematic.
+            i.e. PIN command/function, PULSE, SETPIN
+        - Commands: FRAMEBUFFER, BLIT FRAMEBUFFER, FLASH DISK LOAD, MODE
+        - Functions: MM.INFO(FLASH ADDRESS), MM.INFO(PINNO GPxx)
+
+       - Support the MODE and PAGE commands where appropriate
+       - Support GAMEPAD / CONTROLLER commands & functions
+       -
+
+  - Added standard MMBasic commands:
+    - ARC x, y, r1, [r2], arcrad1, arcrad2 [, colour]
+    - BLIT
+        x1, y1, x2, y2, width, height [, src_id] [, flags]
+        CLOSE [#]id
+        CLOSE ALL
+        COMPRESSED address, x, y [, transparent]
+        MEMORY address, x, y [, transparent]
+        READ [#]dst_id, x, y, width, height [, src_id]
+        WRITE [#]src_id, x, y [, orientation]
+    - BOX x, y, w, h [, lw] [, c] [, fill]
+    - CIRCLE x, y, radius [, line_width] [, aspect_ratio] [, colour] [, fill]
+    - CLS [colour]
+    - FONT [#]font_id [, scale]
+    - GUI BITMAP x, y, bits [, width] [, height] [, scale] [, fcolour] [, bcolour]
+    - IMAGE RESIZE_FAST x, y, width, height, new_x, new_y, new_width,
+                        new_height [, src_id] [, flag]
+    - LINE
+        x1, y1, x2, y2 [, width [, colour]]
+        GRAPH x(), y() [, colour]
+        PLOT ydata() [, nbr] [, xstart] [, xinc] [, ystart] [, yinc] [, colour]
+    - LOAD
+        BMP file$ [, x] [, y]
+        IMAGE file$ [, x] [, y]
+        PNG file$ [, x] [, y] [, transparency_cut_off]
+    - ON PS2 {interrupt|0}
+    - OPTION ANGLE {DEGREES|RADIANS}
+    - PIXEL x, y [, colour]
+    - PLAY
+        EFFECT file$ [, interrupt]
+        FLAC file$ [, interrupt]
+        MODFILE file$ [, sample_rate] [, interrupt]
+        MODSAMPLE sample_num, channel_num [, volume] [, sample_rate]
+        MP3 file$ [, interrupt]
+        PAUSE
+        PREVIOUS
+        RESUME
+        SOUND sound_no, channel_no, type [, frequency] [, volume]
+        STOP
+        TONE left [, right] [, dur] [, interrupt]
+        VOLUME left [, right]
+        WAV file$ [, interrupt]
+    - POLYGON n, x(), y() [, bordercolour] [, fillcolour]
+    - RBOX x, y, width, height [, radius] [, colour] [, fill]
+    - SPRITE
+        CLOSE [#]id
+        CLOSE ALL
+        HIDE [#]id
+        INTERRUPT interrupt
+        HIDE ALL
+        HIDE SAFE [#]id
+        LOAD file$ [, start_sprite] [, colour_mode]
+        MOVE
+        NEXT [#]id, x, y
+        NOINTERRUPT
+        READ [#]id, x, y, w, h [, src_id]
+        RESTORE
+        SCROLL x, y [, colour]
+        SET TRANSPARENT rgb121_colour
+        SHOW [#]id, x, y, layer [, flags]
+        SHOW SAFE [#]id, x, y, layer [, flags] [, ontop]
+        WRITE [#]id, x, y [, flags]
+    - TEXT x, y, string$ [, alignment$] [, font] [, scale] [, fcolour]
+           [, bcolour]
+    - TRIANGLE x1, y1, x2, y2, x3, y3 [, colour] [, fill]
+
+  - NOTE: If the PicoMite version of a drawing command allows arrays instead of
+          scalars then the MMB4L version does too.
+
+  - Added standard MMBasic functions:
+    - ATAN2
+    - KEYDOWN(n)
+    - MM.INFO(PS2)
+    - SPRITE
+        (A, [#]id)
+        (C, [#]id [, m])
+        (D, [#]id1, [#]id2)
+        (E, [#]id)
+        (H, [#]id)
+        (L, [#]id)
+        (N [, layer])
+        (S)
+        (V, [#]id1, [#]id2)
+        (T, [#]id)
+        (W, [#]id)
+        (X, [#]id)
+        (Y, [#]id)
+
+  - Added MMB4L specific commands:
+    - DEVICE GAMEPAD
+        CLOSE id
+        OPEN id [, interrupt] [, bitmask]
+        VIBRATE id [, low_freq] [, high_freq] [, duration_ms]
+        VIBRATE id OFF
+    - GRAPHICS
+        BUFFER id, width, height
+        COPY src_id TO dst_id [, when] [, transparent]
+        DESTROY { id | ALL }
+        WINDOW id, x, y, width, height [, scale] [, interrupt]
+        WRITE id
+  - Added MMB4L specific functions:
+    - DEVICE(GAMEPAD id, {B|LX|LY|RX|RY|L|R})
+    - MM.INFO$(GAMEPAD id)
 
 Version 0.6.1 - 28-Sep-2024:
   - Fixed bug where would show endless 'Cannot determine terminal size' errors.
