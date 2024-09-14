@@ -5,7 +5,7 @@ Option Explicit
 Option Simulate "PicoMiteVGA"
 
 'If Mm.Device$ = "MMB4L" Then
-'  Graphics Window 0, -1, -1, 320, 240
+'  Graphics Window 0, 320, 240
 '  Graphics Write 0
 'EndIf
 

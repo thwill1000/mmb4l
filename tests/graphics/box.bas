@@ -3,7 +3,7 @@ Option Default None
 Option Explicit
 
 If Mm.Device$ = "MMB4L" Then
-  Graphics Window 0, -1, -1, 640, 480
+  Graphics Window 0, 640, 480
   Graphics Write 0
 EndIf
 
