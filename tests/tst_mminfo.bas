@@ -569,6 +569,8 @@ Sub test_font_address()
 End Sub
 
 Sub test_fontheight()
+  Font 1
+
   assert_int_equals(EXPECTED_FONT_HEIGHT%, Mm.Info(FontHeight))
 
   If sys.is_platform%("mmb4l") Then
@@ -583,6 +585,8 @@ Sub test_fontheight()
 End Sub
 
 Sub test_fontwidth()
+  Font 1
+
   assert_int_equals(EXPECTED_FONT_WIDTH%, Mm.Info(FontWidth))
 
   If sys.is_platform%("mmb4l") Then
@@ -633,7 +637,7 @@ End Sub
 Sub test_line()
   Const line$ = Mm.Info$(Line)
   If sys.is_platform%("mmb4l") Then
-    assert_int_equals(634, Val(Field$(line$, 1, ",")))
+    assert_int_equals(638, Val(Field$(line$, 1, ",")))
     assert_string_equals(Mm.Info$(Current), Field$(line$, 2, ","))
   Else
     ' Line number refers to the transpiled file.
@@ -990,17 +994,25 @@ Sub test_pinno()
   assert_int_equals(27, Mm.Info(PinNo GP21))
   assert_int_equals(29, Mm.Info(PinNo GP22))
 
-  On Error Skip
-  p% = Mm.Info(PinNo GP23)
-  assert_raw_error("Invalid pin")
+  ' TODO: Clarify whether MMB4L should report these as "Invalid pin" when
+  '       simulating PicoMite.
+  If Mm.Info(Device X) = "MMB4L" Then
+    assert_int_equals(41, Mm.Info(PinNo GP23))
+    assert_int_equals(42, Mm.Info(PinNo GP24))
+    assert_int_equals(43, Mm.Info(PinNo GP25))
+  Else
+    On Error Skip
+    p% = Mm.Info(PinNo GP23)
+    assert_raw_error("Invalid pin")
 
-  On Error Skip
-  p% = Mm.Info(PinNo GP24)
-  assert_raw_error("Invalid pin")
+    On Error Skip
+    p% = Mm.Info(PinNo GP24)
+    assert_raw_error("Invalid pin")
 
-  On Error Skip
-  p% = Mm.Info(PinNo GP25)
-  assert_raw_error("Invalid pin")
+    On Error Skip
+    p% = Mm.Info(PinNo GP25)
+    assert_raw_error("Invalid pin")
+  EndIf
 
   assert_int_equals(31, Mm.Info(PinNo GP26))
   assert_int_equals(32, Mm.Info(PinNo GP27))
