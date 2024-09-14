@@ -138,7 +138,7 @@ Version 0.7 alpha 1 - ??-???-2024:
         BUFFER id, width, height
         COPY src_id TO dst_id [, when] [, transparent]
         DESTROY { id | ALL }
-        WINDOW id, x, y, width, height [, scale] [, interrupt]
+        WINDOW id, width, height [, x] [, y] [, title$] [, scale] [, interrupt]
         WRITE id
   - Added MMB4L specific functions:
     - DEVICE(GAMEPAD id, {B|LX|LY|RX|RY|L|R})
