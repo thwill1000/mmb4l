@@ -15,7 +15,7 @@ If Mm.Device$ = "MMB4L" Then
 EndIf
 
 If Mm.Device$ = "MMB4L" Then
-  Graphics Window 0, -1, -1, 1024, 768
+  Graphics Window 0, 1024, 768
   Graphics Buffer 1, 1024, 768
   Graphics Write 1
   Const BASE_SPRITE = 1
