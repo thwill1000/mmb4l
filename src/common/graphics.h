@@ -215,7 +215,7 @@ MmResult graphics_buffer_create(MmSurfaceId id, int width, int height);
 MmResult graphics_sprite_create(MmSurfaceId id, int width, int height);
 
 /** Creates a window. */
-MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int height, int scale,
+MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, int y, int scale,
                                 const char *title, const char *interrupt_addr);
 
 /** Destroys a graphics surface. */

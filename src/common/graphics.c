@@ -432,7 +432,7 @@ MmResult graphics_sprite_create(MmSurfaceId id, int width, int height) {
     return result;
 }
 
-MmResult graphics_window_create(MmSurfaceId id, int x, int y, int width, int height, int scale,
+MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, int y, int scale,
                                 const char *title, const char *interrupt_addr) {
     MmResult result = graphics_surface_create(id, kGraphicsWindow, width, height);
     MmSurface *s = &graphics_surfaces[id];
@@ -2047,7 +2047,7 @@ static MmResult graphics_simulate_cmm2(unsigned mode, unsigned colour_depth,
         // Create window for page 0.
         char title[32];
         sprintf(title, "Colour Maximite 2 - Mode %d", mode);
-        graphics_window_create(0, -1, -1, mode_def->width, mode_def->height, 10, title, NULL);
+        graphics_window_create(0, mode_def->width, mode_def->height, -1, -1, 10, title, NULL);
     }
     if (SUCCEEDED(result)) {
         // Create buffers for remaining pages.
@@ -2073,7 +2073,7 @@ static MmResult graphics_simulate_gamemite(unsigned mode) {
 
     MmResult result = graphics_destroy_surfaces_0_to_63();
     if (SUCCEEDED(result)) {
-        result = graphics_window_create(0, -1, -1, 320, 240, 10, "Game*Mite", NULL);
+        result = graphics_window_create(0, 320, 240, -1, -1, 10, "Game*Mite", NULL);
     }
     if (SUCCEEDED(result)) {
         result = graphics_buffer_create(GRAPHICS_SURFACE_N, 320, 240);
@@ -2099,7 +2099,7 @@ static MmResult graphics_simulate_picomite_vga(unsigned mode) {
     if (SUCCEEDED(result)) {
         char title[32];
         sprintf(title, "PicoMiteVGA - Mode %d", mode);
-        result = graphics_window_create(0, -1, -1, mode_def->width, mode_def->height, 10, title,
+        result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1, 10, title,
                                         NULL);
     }
     if (SUCCEEDED(result)) {

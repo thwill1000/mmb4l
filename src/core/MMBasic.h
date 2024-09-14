@@ -142,6 +142,8 @@ extern char DefaultType;                              // the default type if a v
 // s = a string of characters to be used in detecting where to split the text (char *)
 #define getargs(x, y, s) char argbuf[STRINGSIZE + STRINGSIZE/2]; char *argv[y]; int argc; makeargs(x, y, argbuf, argv, &argc, s)
 
+#define has_arg(x)  ((argc >= (x) + 1) && *argv[(x)])
+
 extern volatile int MMAbort;
 extern jmp_buf mark;                            // longjump to recover from an error
 #if !defined(__mmb4l__)

@@ -103,17 +103,17 @@ MmResult cmd_graphics_copy(const char *p) {
                          dst_surface, transparent_black ? 0x4 : 0x0, RGB_BLACK);
 }
 
-/** GRAPHICS WINDOW id, x, y, width, height [, scale] [, interrupt] */
+/** GRAPHICS WINDOW id, width, height [, x] [, y] [, scale] [, interrupt] */
 static MmResult cmd_graphics_window(const char *p) {
     getargs(&p, 13, ",");
-    if (argc < 9 || argc > 13) return kArgumentCount;
+    if (argc < 5 || argc > 13 || !(argc % 2)) return kArgumentCount;
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
-    const int x = getint(argv[2], -1, WINDOW_MAX_X);
-    const int y = getint(argv[4], -1, WINDOW_MAX_Y);
-    const int width = getint(argv[6], 8, WINDOW_MAX_WIDTH);
-    const int height = getint(argv[8], 8, WINDOW_MAX_HEIGHT);
-    const int scale = (argc == 11) ? getint(argv[10], 1, WINDOW_MAX_SCALE) : 1;
-    const char* interrupt_addr = argc == 13 ? GetIntAddress(argv[12]): NULL;
+    const int width = getint(argv[2], 8, WINDOW_MAX_WIDTH);
+    const int height = getint(argv[4], 8, WINDOW_MAX_HEIGHT);
+    const int x = has_arg(6) ? getint(argv[6], 0, WINDOW_MAX_X) : -1;
+    const int y = has_arg(8) ? getint(argv[8], 0, WINDOW_MAX_Y) : -1;
+    const int scale = has_arg(10) ? getint(argv[10], 1, WINDOW_MAX_SCALE) : 1;
+    const char* interrupt_addr = has_arg(12) ? GetIntAddress(argv[12]) : NULL;
     if (interrupt_addr) {
         // Check interrupt is a SUB with the correct signature.
         FunctionSignature *fn = (FunctionSignature *) GetTempMemory(sizeof(FunctionSignature));
@@ -137,7 +137,7 @@ static MmResult cmd_graphics_window(const char *p) {
 
     char title[256];
     sprintf(title, "MMB4L: %d", id);
-    return graphics_window_create(id, x, y, width, height, scale, title, interrupt_addr);
+    return graphics_window_create(id, width, height, x, y, scale, title, interrupt_addr);
 }
 
 /** GRAPHICS DESTROY { id | ALL } */

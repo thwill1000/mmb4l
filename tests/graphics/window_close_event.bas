@@ -11,7 +11,7 @@ For count% = 0 To 19
   y% = Int(1000 * Rnd()) + 20
   w% = Int(300 * Rnd()) + 100
   h% = Int(300 * Rnd()) + 100
-  Graphics Window count%, x%, y%, w%, h%, 1, on_window_close
+  Graphics Window count%, w%, h%, x%, y%, 1, on_window_close
 Next
 
 On Key on_key

@@ -1,3 +1,7 @@
+Option Base 0
+Option Default None
+Option Explicit
+
 #Include "../../sptools/src/splib/system.inc"
 #Include "../../sptools/src/splib/ctrl.inc"
 
@@ -8,7 +12,7 @@ For i% = Bound(ctrl.scan_map%(), 0) To Bound(ctrl.scan_map%(), 1)
   Read ctrl.scan_map%(i%)
 Next
 
-Graphics Window 0, -1, -1, 640, 400
+Graphics Window 0, 640, 400
 Graphics Write 0
 Text 320, 200, "With window focused press any key", CM, 4
 

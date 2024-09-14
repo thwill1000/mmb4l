@@ -4,7 +4,7 @@ Option Explicit
 
 If Mm.Device$ <> "MMB4L" Then Error "Test for MMB4L only"
 
-Graphics Window 0, -1, -1, 640, 480
+Graphics Window 0, 640, 480
 Graphics Write 0
 
 ' Test CLOSE and CLOSE ALL.
