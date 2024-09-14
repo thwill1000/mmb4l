@@ -442,7 +442,7 @@ TEST_F(ProgramTest, GetIncFile_GivenRelativePath) {
 }
 
 TEST_F(ProgramTest, HardcodedTokenValuesAreCorrect) {
-    char buf[3];
+    char buf[3] = "  ";
     char *p = buf;
     commandtbl_encode(&p, commandtbl_get("CSub"));
     EXPECT_STREQ(CMD_CSUB, buf);
