@@ -103,17 +103,18 @@ MmResult cmd_graphics_copy(const char *p) {
                          dst_surface, transparent_black ? 0x4 : 0x0, RGB_BLACK);
 }
 
-/** GRAPHICS WINDOW id, width, height [, x] [, y] [, scale] [, interrupt] */
+/** GRAPHICS WINDOW id, width, height [, x] [, y] [, title$] [, scale] [, interrupt] */
 static MmResult cmd_graphics_window(const char *p) {
-    getargs(&p, 13, ",");
-    if (argc < 5 || argc > 13 || !(argc % 2)) return kArgumentCount;
+    getargs(&p, 15, ",");
+    if (argc < 5 || argc > 15 || !(argc % 2)) return kArgumentCount;
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     const int width = getint(argv[2], 8, WINDOW_MAX_WIDTH);
     const int height = getint(argv[4], 8, WINDOW_MAX_HEIGHT);
     const int x = has_arg(6) ? getint(argv[6], 0, WINDOW_MAX_X) : -1;
     const int y = has_arg(8) ? getint(argv[8], 0, WINDOW_MAX_Y) : -1;
-    const int scale = has_arg(10) ? getint(argv[10], 1, WINDOW_MAX_SCALE) : 1;
-    const char* interrupt_addr = has_arg(12) ? GetIntAddress(argv[12]) : NULL;
+    const char *title = has_arg(10) ? getCstring(argv[10]) : NULL;
+    const int scale = has_arg(12) ? getint(argv[12], 1, WINDOW_MAX_SCALE) : 1;
+    const char *interrupt_addr = has_arg(14) ? GetIntAddress(argv[12]) : NULL;
     if (interrupt_addr) {
         // Check interrupt is a SUB with the correct signature.
         FunctionSignature *fn = (FunctionSignature *) GetTempMemory(sizeof(FunctionSignature));
@@ -135,9 +136,13 @@ static MmResult cmd_graphics_window(const char *p) {
     // TODO: width & height should be divisible by 8.
     // TODO: check window has not already been created.
 
-    char title[256];
-    sprintf(title, "MMB4L: %d", id);
-    return graphics_window_create(id, width, height, x, y, scale, title, interrupt_addr);
+    if (title) {
+        return graphics_window_create(id, width, height, x, y, scale, title, interrupt_addr);
+    } else {
+        char title[256];
+        sprintf(title, "MMB4L: %d", id);
+        return graphics_window_create(id, width, height, x, y, scale, title, interrupt_addr);
+    }
 }
 
 /** GRAPHICS DESTROY { id | ALL } */
