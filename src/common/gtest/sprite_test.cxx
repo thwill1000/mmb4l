@@ -53,6 +53,9 @@ MmResult error_throw_legacy(const char *msg, ...) { return error_throw_ex(kError
 MmResult keyboard_key_down(const SDL_Keysym *keysym) { return kError; }
 MmResult keyboard_key_up(const SDL_Keysym *keysym) { return kError; }
 
+// Defined in "common/program.c"
+char CurrentFile[STRINGSIZE];
+
 // Defined in "common/serial.c"
 MmResult serial_close(int fnbr) { return kError; }
 int serial_eof(int fnbr) { return -1; }
@@ -491,7 +494,7 @@ TEST_F(SpriteTest, SpritesDoNotCollideWithBuffers) {
 }
 
 TEST_F(SpriteTest, SpritesDoNotCollideWithWindows) {
-    EXPECT_EQ(kOk, graphics_window_create(20, 10, 10, 0, 0, 1, "title", NULL));
+    EXPECT_EQ(kOk, graphics_window_create(20, 10, 10, 0, 0, 1, NULL, NULL));
     GivenSurfacesOverlapping(1, 20);
 
     uint32_t count;
@@ -514,7 +517,7 @@ TEST_F(SpriteTest, BuffersDoNotCollideWithEdges) {
 }
 
 TEST_F(SpriteTest, WindowsDoNotCollideWithEdges) {
-    EXPECT_EQ(kOk, graphics_window_create(20, 10, 10, 0, 0, 1, "title", NULL));
+    EXPECT_EQ(kOk, graphics_window_create(20, 10, 10, 0, 0, 1, NULL, NULL));
     GivenSurfaceOverlappingEdge(20, kSpriteEdgeLeft);
     EXPECT_EQ(kOk, sprite_update_all_collisions());
 

@@ -51,6 +51,9 @@ MmResult error_throw_legacy(const char *msg, ...) { return error_throw_ex(kError
 MmResult keyboard_key_down(const SDL_Keysym *keysym) { return kError; }
 MmResult keyboard_key_up(const SDL_Keysym *keysym) { return kError; }
 
+// Defined in "common/program.c"
+char CurrentFile[STRINGSIZE];
+
 // Defined in "common/serial.c"
 MmResult serial_close(int fnbr) { return kError; }
 int serial_eof(int fnbr) { return -1; }
@@ -445,4 +448,76 @@ TEST_F(GraphicsTest, Blit_GivenWithTransparency_AndPartOfSource) {
     EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
                 ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
         << format_pixels(dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsTest, GetDefaultWindowTitle_GivenNoCurrentFile) {
+    char title[STRINGSIZE];
+    CurrentFile[0] = '\0';
+
+    mmb_options.simulate = kSimulateMmb4l;
+    graphics_mode = 2;
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
+    EXPECT_STREQ("MMBasic - Window 0", title);
+    EXPECT_EQ(kOk, graphics_get_default_window_title(1, title, STRINGSIZE));
+    EXPECT_STREQ("MMBasic - Window 1", title);
+
+    mmb_options.simulate = kSimulateCmm2;
+    graphics_mode = 2;
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
+    EXPECT_STREQ("Colour Maximite 2 - Mode 2", title);
+
+    mmb_options.simulate = kSimulateMmb4w;
+    graphics_mode = 2;
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
+    EXPECT_STREQ("MMBasic for Windows - Mode 2", title);
+
+    mmb_options.simulate = kSimulateGameMite;
+    graphics_mode = 2;
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
+    EXPECT_STREQ("Game*Mite", title);
+
+    mmb_options.simulate = kSimulatePicoMiteVga;
+    graphics_mode = 2;
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
+    EXPECT_STREQ("PicoMiteVGA - Mode 2", title);
+}
+
+TEST_F(GraphicsTest, GetDefaultWindowTitle_GivenCurrentFile) {
+    char title[STRINGSIZE];
+    snprintf(CurrentFile, STRINGSIZE, "foo/bar");
+
+    mmb_options.simulate = kSimulateMmb4l;
+    graphics_mode = 2;
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
+    EXPECT_STREQ("MMBasic - Window 0: foo/bar", title);
+    EXPECT_EQ(kOk, graphics_get_default_window_title(1, title, STRINGSIZE));
+    EXPECT_STREQ("MMBasic - Window 1: foo/bar", title);
+
+    mmb_options.simulate = kSimulateCmm2;
+    graphics_mode = 2;
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
+    EXPECT_STREQ("Colour Maximite 2 - Mode 2: foo/bar", title);
+
+    mmb_options.simulate = kSimulateMmb4w;
+    graphics_mode = 2;
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
+    EXPECT_STREQ("MMBasic for Windows - Mode 2: foo/bar", title);
+
+    mmb_options.simulate = kSimulateGameMite;
+    graphics_mode = 2;
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
+    EXPECT_STREQ("Game*Mite: foo/bar", title);
+
+    mmb_options.simulate = kSimulatePicoMiteVga;
+    graphics_mode = 2;
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
+    EXPECT_STREQ("PicoMiteVGA - Mode 2: foo/bar", title);
+
+    // Title will exactly fill the buffer.
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, 30));
+    EXPECT_STREQ("PicoMiteVGA - Mode 2: foo/bar", title);
+
+    // Title is longer than the buffer.
+    EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, 29));
+    EXPECT_STREQ("PicoMiteVGA - Mode 2: foo/ba", title);
 }

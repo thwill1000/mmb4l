@@ -195,6 +195,9 @@ extern MmGraphicsColour graphics_fcolour;
 extern MmGraphicsColour graphics_bcolour;
 extern uint32_t graphics_font;
 
+/** The current graphics mode, for CMM2, PicoMiteVGA and MMB4W. */
+extern unsigned graphics_mode;
+
 /** Initialises 'graphics' module. */
 MmResult graphics_init();
 
@@ -214,7 +217,19 @@ MmResult graphics_buffer_create(MmSurfaceId id, int width, int height);
 /** Creates a sprite. */
 MmResult graphics_sprite_create(MmSurfaceId id, int width, int height);
 
-/** Creates a window. */
+/**
+ * Creates a window.
+ *
+ * @param  id      Window/surface id (1 .. GRAPHICS_MAX_ID).
+ * @param  width   Initial window width.
+ * @param  height  Initial window height.
+ * @param  x       Initial window x-coordinate.
+ * @param  y       Initial window y-coordinate.
+ * @param  scale   Scale factor for window, this is only a suggestion and will be reduced if
+ *                 necessary to fit the window on the display.
+ * @param  title   Title for the window, may be NULL to use a default title.
+ * @param  interrupt_addr  Address of interrupt routine to call if an SDL window event is caught.
+ */
 MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, int y, int scale,
                                 const char *title, const char *interrupt_addr);
 
@@ -450,6 +465,15 @@ MmResult graphics_draw_string(MmSurface *surface, int x, int y, uint32_t font, T
  */
 MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int y1, int x2, int y2,
                                 MmGraphicsColour colour, MmGraphicsColour fill);
+
+/**
+ * Gets the default title to use for a new window.
+ *
+ * @param      id        Window id (or MODE if currently simulating other MMBasic platform).
+ * @param[out] title     Pointer to buffer that on exit will contain the title.
+ * @param[in]  title_sz  Size of the buffer.
+ */
+MmResult graphics_get_default_window_title(MmSurfaceId id, char *title, size_t title_sz);
 
 /**
  * Loads a .bmp image.
