@@ -2242,3 +2242,9 @@ MmResult graphics_draw_polyline(MmSurface *surface, int n, float *px, float *py,
     }
     return result;
 }
+
+MmResult graphics_window_set_title(MmSurface *window, const char *title) {
+    if (!window || window->type != kGraphicsWindow) return kGraphicsInvalidWindow;
+    SDL_SetWindowTitle(window->window, title); // Has void return.
+    return kOk;
+}
