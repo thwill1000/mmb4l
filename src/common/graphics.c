@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "memory.h"
 #include "mmb4l.h"
 #include "path.h"
+#include "program.h"
 #include "sprite.h"
 #include "utility.h"
 #include "../third_party/spbmp.h"
@@ -167,6 +168,7 @@ MmSurface* graphics_current = NULL;
 MmGraphicsColour graphics_fcolour = RGB_WHITE;
 MmGraphicsColour graphics_bcolour = RGB_BLACK;
 uint32_t graphics_font = 0x11; // Font 1, scale 1.
+unsigned graphics_mode = 0;
 static uint64_t frameEnd = 0;
 
 /**
@@ -214,6 +216,7 @@ MmResult graphics_term() {
     if (SUCCEEDED(result)) {
         graphics_fcolour = RGB_WHITE;
         graphics_bcolour = RGB_BLACK;
+        graphics_mode = 0;
         graphics_initialised = false;
     }
     return result;
@@ -451,12 +454,19 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
         }
     }
 
+    // Determine the title for the window.
+    char *title2 = (char *) title;
+    if (SUCCEEDED(result) && !title2) {
+        title2 = GetTempStrMemory();
+        result = graphics_get_default_window_title(id, title2, STRINGSIZE);
+    }
+
     // Create SDL window.
     SDL_Window *window = NULL;
     if (SUCCEEDED(result)) {
-        window = SDL_CreateWindow(title, x == -1 ? (int)SDL_WINDOWPOS_CENTERED : x,
-                                            y == -1 ? (int)SDL_WINDOWPOS_CENTERED : y,
-                                            width * fscale, height * fscale, SDL_WINDOW_SHOWN);
+        window = SDL_CreateWindow(title2, x == -1 ? (int)SDL_WINDOWPOS_CENTERED : x,
+                                  y == -1 ? (int)SDL_WINDOWPOS_CENTERED : y, width * fscale,
+                                  height * fscale, SDL_WINDOW_SHOWN);
         if (!window) result = kGraphicsApiError;
     }
 
@@ -2037,17 +2047,48 @@ MmResult graphics_scroll(MmSurface *surface, int x, int y, MmGraphicsColour fill
     return result;
 }
 
+MmResult graphics_get_default_window_title(MmSurfaceId id, char *title, size_t title_sz) {
+    MmResult result = kOk;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+    switch (mmb_options.simulate) {
+        case kSimulateCmm2:
+        case kSimulateMmb4w:
+        case kSimulatePicoMiteVga: {
+            char device[256];
+            result = options_get_string_value(&mmb_options, kOptionSimulate, device);
+            if (SUCCEEDED(result)) snprintf(title, title_sz, "%s - Mode %d", device, graphics_mode);
+            break;
+        }
+        case kSimulateMmb4l:
+            snprintf(title, title_sz, "MMBasic - Window %d", id);
+            break;
+        case kSimulateGameMite:
+            snprintf(title, title_sz, "Game*Mite");
+            break;
+        default:
+            result = kInternalFault;
+            break;
+    }
+#pragma GCC diagnostic pop
+    if (SUCCEEDED(result) && *CurrentFile) {
+        (void) cstring_cat(title, ": ", title_sz);
+        (void) cstring_cat(title, CurrentFile, title_sz);
+    }
+    return result;
+}
+
 static MmResult graphics_simulate_cmm2(unsigned mode, unsigned colour_depth,
                                        MmGraphicsColour background) {
     if (mode < MIN_CMM2_MODE || mode > MAX_CMM2_MODE) return kInvalidMode;
     const ModeDefinition *mode_def = &CMM2_MODES[mode];
+    graphics_mode = mode;
 
     MmResult result = graphics_destroy_surfaces_0_to_63();
     if (SUCCEEDED(result)) {
         // Create window for page 0.
-        char title[32];
-        sprintf(title, "Colour Maximite 2 - Mode %d", mode);
-        graphics_window_create(0, mode_def->width, mode_def->height, -1, -1, 10, title, NULL);
+        result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1, 10, NULL,
+                                        NULL);
     }
     if (SUCCEEDED(result)) {
         // Create buffers for remaining pages.
@@ -2070,10 +2111,11 @@ static MmResult graphics_simulate_cmm2(unsigned mode, unsigned colour_depth,
 
 static MmResult graphics_simulate_gamemite(unsigned mode) {
     if (mode != 0) return kInvalidMode;
+    graphics_mode = mode;
 
     MmResult result = graphics_destroy_surfaces_0_to_63();
     if (SUCCEEDED(result)) {
-        result = graphics_window_create(0, 320, 240, -1, -1, 10, "Game*Mite", NULL);
+        result = graphics_window_create(0, 320, 240, -1, -1, 10, NULL, NULL);
     }
     if (SUCCEEDED(result)) {
         result = graphics_buffer_create(GRAPHICS_SURFACE_N, 320, 240);
@@ -2094,12 +2136,11 @@ static MmResult graphics_simulate_gamemite(unsigned mode) {
 static MmResult graphics_simulate_picomite_vga(unsigned mode) {
     if (mode < MIN_PMVGA_MODE || mode > MAX_PMVGA_MODE) return kInvalidMode;
     const ModeDefinition *mode_def = &PICOMITE_VGA_MODES[mode];
+    graphics_mode = mode;
 
     MmResult result = graphics_destroy_surfaces_0_to_63();
     if (SUCCEEDED(result)) {
-        char title[32];
-        sprintf(title, "PicoMiteVGA - Mode %d", mode);
-        result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1, 10, title,
+        result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1, 10, NULL,
                                         NULL);
     }
     if (SUCCEEDED(result)) {
