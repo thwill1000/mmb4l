@@ -141,6 +141,7 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsInvalidSprite:      return "Invalid sprite";
         case kGraphicsInvalidSurface:     return "Invalid graphics surface";
         case kGraphicsInvalidVertices:    return "Invalid number of vertices";
+        case kGraphicsInvalidWindow:      return "Invalid window";
         case kGraphicsInvalidWriteSurface: return "Invalid graphics write surface";
         case kGraphicsLoadBitmapFailed:   return "Bitmap could not be loaded";
         case kGraphicsReadAndWriteSurfaceSame: return "Graphics read and write surfaces are the same";
