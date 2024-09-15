@@ -135,6 +135,9 @@ int SDL_SetRenderDrawBlendMode(SDL_Renderer * renderer, SDL_BlendMode blendMode)
     return 0;
 }
 
+void SDL_SetWindowTitle(SDL_Window * window, const char *title) {
+}
+
 int SDL_SetTextureBlendMode(SDL_Texture * texture, SDL_BlendMode blendMode) {
     return 0;
 }

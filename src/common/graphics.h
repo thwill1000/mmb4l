@@ -511,10 +511,17 @@ MmResult graphics_set_font(uint32_t font_id, int scale);
  *                         background     -- bottom
  *                       Pixels in the higher layer overwrite those in the lower levels as defined
  *                       by the transparency/alpha levels of the individual pixels.
-
  * @param  background    Background colour when transparency == true.
  */
 MmResult graphics_simulate_display(OptionsSimulate platform, unsigned mode, unsigned colour_depth,
                                    MmGraphicsColour background);
+
+/**
+ * Sets the title of a window.
+ *
+ * @param  window  The window.
+ * @param  title   The new title.
+ */
+MmResult graphics_window_set_title(MmSurface *window, const char *title);
 
 #endif // #if !defined(MMBASIC_GRAPHICS_H)
