@@ -129,6 +129,7 @@ Version 0.7 alpha 1 - ??-???-2024:
         (Y, [#]id)
 
   - Added MMB4L specific commands:
+    - CLS CONSOLE
     - DEVICE GAMEPAD
         CLOSE id
         OPEN id [, interrupt] [, bitmask]
