@@ -430,7 +430,7 @@ target_link_libraries(
   gmock_main
 )
 
-gtest_discover_tests(test_gpio)
+gtest_discover_tests(test_gpio NO_PRETTY_VALUES)
 
 ################################################################################
 # test_gamepad
