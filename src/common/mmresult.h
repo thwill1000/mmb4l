@@ -126,6 +126,7 @@ typedef enum {
     kGraphicsNotASprite,
     kImageTooLarge,
     kImageInvalidFormat,
+    kInvalidEnvironmentVariableName,
     kInvalidFont,
     kInvalidFontScaling,
     kUnexpectedText,

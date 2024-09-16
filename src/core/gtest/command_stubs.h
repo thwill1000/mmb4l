@@ -96,6 +96,7 @@ void cmd_run() { }
 #endif
 void cmd_seek() { }
 void cmd_select() { }
+void cmd_setenv() { }
 void cmd_setpin() { }
 void cmd_settick() { }
 void cmd_settitle() { }

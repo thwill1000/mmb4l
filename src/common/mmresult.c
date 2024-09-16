@@ -96,6 +96,7 @@ const char *mmresult_to_string(MmResult result) {
         case kUnknownOption: return "Unknown option";
         case kInvalidArray:  return "Invalid array value";
         case kInvalidBool:   return "Invalid boolean value";
+        case kInvalidEnvironmentVariableName: return "Invalid environment variable name";
         case kInvalidFloat:  return "Invalid float value";
         case kInvalidInt:    return "Invalid integer value";
         case kInvalidString: return "Invalid string value";
