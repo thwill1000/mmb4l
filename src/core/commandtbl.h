@@ -159,6 +159,7 @@ void cmd_rmdir(void);
 void cmd_run(void);
 void cmd_seek(void);
 void cmd_select(void);
+void cmd_setenv(void);
 void cmd_setpin(void);
 void cmd_settick(void);
 void cmd_settitle(void);
