@@ -48,9 +48,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
 
+/** CLS CONSOLE */
+static MmResult cmd_cls_console(const char *p) {
+    if (!parse_is_end(p)) return kArgumentCount;
+    console_clear();
+    return kOk;
+}
+
 /** CLS [colour] */
-void cmd_cls(void) {
-    getargs(&cmdline, 1, ",");
+static MmResult cmd_cls_default(const char *p) {
+    getargs(&p, 1, ",");
     const MmSurface *layer = &graphics_surfaces[GRAPHICS_SURFACE_L];
     MmGraphicsColour colour = -1;
     if (argc == 1) {
@@ -61,10 +68,21 @@ void cmd_cls(void) {
         colour = graphics_bcolour;
     }
     if (graphics_current) {
-        ERROR_ON_FAILURE(graphics_draw_rectangle(graphics_current, 0, 0,
-                                                 graphics_current->width - 1,
-                                                 graphics_current->height - 1, colour));
+        return graphics_draw_rectangle(graphics_current, 0, 0, graphics_current->width - 1,
+                                       graphics_current->height - 1, colour);
     } else {
         console_clear();
+        return kOk;
     }
+}
+
+void cmd_cls(void) {
+    MmResult result = kOk;
+    const char *p;
+    if ((p = checkstring(cmdline, "CONSOLE"))) {
+        result = cmd_cls_console(p);
+    } else {
+        result = cmd_cls_default(cmdline);
+    }
+    ERROR_ON_FAILURE(result);
 }
