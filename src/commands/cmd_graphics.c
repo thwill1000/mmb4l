@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
 #include <stdio.h>
 
 #include "../common/mmb4l.h"
@@ -153,22 +154,25 @@ static MmResult cmd_graphics_window(const char *p) {
 static MmResult cmd_graphics_destroy(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) return kArgumentCount;
-    MmResult result = kOk;
     if ((p = checkstring(argv[0], "ALL"))) {
-        result = graphics_surface_destroy_all();
+        return graphics_surface_destroy_all();
     } else {
         MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
-        result = graphics_surface_destroy(&graphics_surfaces[id]);
+        return graphics_surface_destroy(&graphics_surfaces[id]);
     }
-    return result;
 }
 
-/** GRAPHICS WRITE id */
+/** GRAPHICS WRITE { id | NONE } */
 MmResult cmd_graphics_write(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) return kArgumentCount;
-    const MmSurfaceId id = getint(argv[0], -1, GRAPHICS_MAX_ID);
-    return graphics_surface_write(id);
+    if ((p = checkstring(argv[0], "NONE"))) {
+        return graphics_surface_write(GRAPHICS_NONE);
+    } else {
+        assert(GRAPHICS_NONE == -1);
+        MmSurfaceId id = getint(argv[0], -1, GRAPHICS_MAX_ID);
+        return graphics_surface_write(id);
+    }
 }
 
 void cmd_graphics(void) {
