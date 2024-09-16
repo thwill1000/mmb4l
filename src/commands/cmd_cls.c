@@ -57,7 +57,7 @@ static MmResult cmd_cls_console(const char *p) {
 
 /** CLS [colour] */
 static MmResult cmd_cls_default(const char *p) {
-    getargs(&cmdline, 1, ",");
+    getargs(&p, 1, ",");
     const MmSurface *layer = &graphics_surfaces[GRAPHICS_SURFACE_L];
     MmGraphicsColour colour = -1;
     if (argc == 1) {
