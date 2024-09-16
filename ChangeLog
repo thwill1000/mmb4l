@@ -140,7 +140,7 @@ Version 0.7 alpha 1 - ??-???-2024:
         DESTROY { id | ALL }
         SETTITLE id, title$
         WINDOW id, width, height [, x] [, y] [, title$] [, scale] [, interrupt]
-        WRITE id
+        WRITE { id | NONE }
   - Added MMB4L specific functions:
     - DEVICE(GAMEPAD id, {B|LX|LY|RX|RY|L|R})
     - MM.INFO$(GAMEPAD id)
