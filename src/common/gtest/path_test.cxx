@@ -597,3 +597,67 @@ TEST_F(PathTest, Complete_GivenRootPath) {
     TEST_COMPLETE("/tmp/../bi", "n");
     TEST_COMPLETE("/tmp/../me", "dia");
 }
+
+
+TEST_F(PathTest, TryExtension) {
+    #define FILE_ONE    PATH_TEST_DIR "/ResolveWithExtension/one.bas"
+    #define FILE_TWO    PATH_TEST_DIR "/ResolveWithExtension/two.Bas"
+    #define FILE_THREE  PATH_TEST_DIR "/ResolveWithExtension/three.BAS"
+
+    SYSTEM_CALL("mkdir " PATH_TEST_DIR "/ResolveWithExtension");
+    SYSTEM_CALL("touch " FILE_ONE);
+    SYSTEM_CALL("touch " FILE_TWO);
+    SYSTEM_CALL("touch " FILE_THREE);
+    char f_out[STRINGSIZE];
+
+    const char *filename = FILE_ONE;
+    EXPECT_EQ(kOk, path_try_extension(filename, ".bas", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_ONE, f_out);
+    EXPECT_EQ(kOk, path_try_extension(filename, ".BAS", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_ONE, f_out);
+
+    filename = PATH_TEST_DIR "/ResolveWithExtension/one";
+    EXPECT_EQ(kOk, path_try_extension(filename, ".bas", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_ONE, f_out);
+    EXPECT_EQ(kOk, path_try_extension(filename, ".BAS", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_ONE, f_out);
+
+    filename = PATH_TEST_DIR "/ResolveWithExtension/two";
+    EXPECT_EQ(kOk, path_try_extension(filename, ".bas", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_TWO, f_out);
+    EXPECT_EQ(kOk, path_try_extension(filename, ".BAS", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_TWO, f_out);
+
+    filename = PATH_TEST_DIR "/ResolveWithExtension/three";
+    EXPECT_EQ(kOk, path_try_extension(filename, ".bas", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_THREE, f_out);
+    EXPECT_EQ(kOk, path_try_extension(filename, ".BAS", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_THREE, f_out);
+
+    #undef FILE_ONE
+    #undef FILE_TWO
+    #undef FILE_THREE
+}
+
+TEST_F(PathTest, TryExtension_GivenInvalidExtension) {
+    #define FILE_ONE  PATH_TEST_DIR "/ResolveWithExtension_GivenInvalidExtension/one.bas"
+
+    const char *filename = FILE_ONE;
+    char f_out[STRINGSIZE];
+
+    EXPECT_EQ(kFileInvalidExtension, path_try_extension(filename, "", f_out, STRINGSIZE));
+    EXPECT_EQ(kFileInvalidExtension, path_try_extension(filename, "BAS", f_out, STRINGSIZE));
+
+    #undef FILE_ONE
+}
+
+TEST_F(PathTest, TryExtension_GivenNoMatchingFile) {
+        #define FILE_ONE  PATH_TEST_DIR "/ResolveWithExtension_GivenInvalidExtension/one.bas"
+
+    const char *filename = FILE_ONE;
+    char f_out[STRINGSIZE];
+
+    EXPECT_EQ(kFileNotFound, path_try_extension(filename, ".bas", f_out, STRINGSIZE));
+
+    #undef FILE_ONE
+}
