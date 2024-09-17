@@ -185,7 +185,7 @@ void cmd_edit(void) {
     // If we have just edited a .bas file then load it.
     if (path_exists(file_path)
             && path_is_regular(file_path)
-            && path_has_suffix(file_path, ".bas", true)) {
+            && path_has_extension(file_path, ".bas", true)) {
         MmResult result = program_load_file(file_path);
         if (FAILED(result)) error_throw(result);
     }

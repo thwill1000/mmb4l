@@ -355,7 +355,7 @@ static MmResult audio_fill_track_list(const char *filename, const char *extensio
     size_t counter = 0;
     if ((dir = opendir(canonical)) != NULL) {
         while ((ent = readdir(dir)) != NULL) {
-            if (!path_has_suffix(ent->d_name, extension, true)) continue;
+            if (!path_has_extension(ent->d_name, extension, true)) continue;
             if (FAILED(cstring_cpy(_filename, canonical, STRINGSIZE))) {
                 return kFilenameTooLong;
             }
@@ -895,13 +895,13 @@ static MmResult audio_play_next_track() {
         console_puts("\r\n");
     }
     MmResult result = kOk;
-    if (path_has_suffix(next_track, ".FLAC", true)) {
+    if (path_has_extension(next_track, ".FLAC", true)) {
         result = audio_play_flac_internal(next_track);
-    } else if (path_has_suffix(next_track, ".MOD", true)) {
+    } else if (path_has_extension(next_track, ".MOD", true)) {
         result = audio_play_modfile_internal(next_track);
-    } else if (path_has_suffix(next_track, ".MP3", true)) {
+    } else if (path_has_extension(next_track, ".MP3", true)) {
         result = audio_play_mp3_internal(next_track);
-    } else if (path_has_suffix(next_track, ".WAV", true)) {
+    } else if (path_has_extension(next_track, ".WAV", true)) {
         result = audio_play_wav_internal(next_track);
     } else {
         result = kInternalFault;

@@ -83,14 +83,15 @@ bool path_is_regular(const char *path) {
     return (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? true : false;
 }
 
-bool path_has_suffix(const char *path, const char *suffix, bool case_insensitive) {
-    int start = strlen(path) - strlen(suffix);
+bool path_has_extension(const char *path, const char *extension, bool case_insensitive) {
+    if (extension[0] != '.') return false;
+    int start = strlen(path) - strlen(extension);
     if (start < 0) return 0;
-    for (size_t i = 0; i < strlen(suffix); ++i) {
+    for (size_t i = 0; i < strlen(extension); ++i) {
         if (case_insensitive) {
-            if (toupper(path[i + start]) != toupper(suffix[i])) return false;
+            if (toupper(path[i + start]) != toupper(extension[i])) return false;
         } else {
-            if (path[i + start] != suffix[i]) return false;
+            if (path[i + start] != extension[i]) return false;
         }
     }
     return true;
@@ -540,7 +541,7 @@ MmResult path_try_extension(const char *path, const char *extension, char *out, 
     if (extension[0] != '.') return kFileInvalidExtension;
 
     // Check for an exact match.
-    if (path_exists(path) && path_has_suffix(path, extension, true)) {
+    if (path_exists(path) && path_has_extension(path, extension, true)) {
         if (SUCCEEDED(cstring_cpy(out, path, out_sz))) {
             return kOk;
         } else {

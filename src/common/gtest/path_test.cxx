@@ -457,11 +457,19 @@ TEST_F(PathTest, IsRegular) {
     EXPECT_EQ(path_is_regular("/bin"), false);
 }
 
-TEST_F(PathTest, HasSuffix) {
-    EXPECT_EQ(path_has_suffix("foo.bas", ".bas", false), true);
-    EXPECT_EQ(path_has_suffix("foo.bas", ".BAS", false), false);
-    EXPECT_EQ(path_has_suffix("foo.bas", ".BAS", true), true);
-    EXPECT_EQ(path_has_suffix("foo.bas", ".inc", true), false);
+TEST_F(PathTest, HasExtension) {
+    EXPECT_EQ(true, path_has_extension("foo.bas", ".bas", false));
+    EXPECT_EQ(false, path_has_extension("foo.bas", ".BAS", false));
+    EXPECT_EQ(true, path_has_extension("foo.bas", ".BAS", true));
+    EXPECT_EQ(false, path_has_extension("foo.bas", ".inc", true));
+}
+
+TEST_F(PathTest, HasExtension_GivenMalformedExtension_ReturnsFalse) {
+    // Should always return false if you forget the leading period.
+    EXPECT_EQ(false, path_has_extension("foo.bas", "bas", false));
+    EXPECT_EQ(false, path_has_extension("foo.bas", "BAS", false));
+    EXPECT_EQ(false, path_has_extension("foo.bas", "BAS", true));
+    EXPECT_EQ(false, path_has_extension("foo.bas", "inc", true));
 }
 
 TEST_F(PathTest, MkDir) {
