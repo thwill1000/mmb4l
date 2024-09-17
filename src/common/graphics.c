@@ -1356,16 +1356,13 @@ static int spbmp_abort_check_cb(void *userdata) {
 }
 
 MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
-    MmResult result = kOk;
-
-    if (!path_has_extension(filename, ".BMP", true)) {
-        // TODO: What if the file-extension is ".bmp" ?
-        result = cstring_cat(filename, ".BMP", STRINGSIZE);
-        if (FAILED(result)) return result;
-    }
+    if (!surface || surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
+    char _filename[STRINGSIZE];
+    MmResult result = path_try_extension(filename, ".bmp", _filename, STRINGSIZE);
+    if (FAILED(result)) return result;
 
     int fnbr = file_find_free();
-    result = file_open(filename, "rb", fnbr);
+    result = file_open(_filename, "rb", fnbr);
     if (FAILED(result)) return result;
     spbmp_init(spbmp_file_read_cb, spbmp_set_pixel_cb, spbmp_abort_check_cb);
     SpBmpResult bmp_result = spbmp_load(file_table[fnbr].file_ptr, x, y, surface);
@@ -1382,8 +1379,12 @@ MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
 
 MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
                            int force) {
-    if (strchr(filename, '.') == NULL) cstring_cat(filename, ".PNG", STRINGSIZE);
-    upng_t *upng = upng_new_from_file(filename);
+    if (!surface || surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
+    char _filename[STRINGSIZE];
+    MmResult result = path_try_extension(filename, ".png", _filename, STRINGSIZE);
+    if (FAILED(result)) return result;
+
+    upng_t *upng = upng_new_from_file(_filename);
     // routinechecks(1);
     upng_header(upng);
     const int w = upng_get_width(upng);
@@ -1414,17 +1415,13 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
     return kOk;
 }
 
-MmResult graphics_load_sprite(const char *filename_in, uint8_t start_sprite_id, uint8_t colour_mode) {
-    char filename[STRINGSIZE];
-    cstring_cpy(filename, filename_in, STRINGSIZE);
-    if (!path_has_extension(filename, ".spr", true)) {
-        // TODO: What if the file-extension is ".SPR" ?
-        MmResult result = cstring_cat(filename, ".spr", STRINGSIZE);
-        if (FAILED(result)) return result;
-    }
+MmResult graphics_load_sprite(const char *filename, uint8_t start_sprite_id, uint8_t colour_mode) {
+    char _filename[STRINGSIZE];
+    MmResult result = path_try_extension(filename, ".spr", _filename, STRINGSIZE);
+    if (FAILED(result)) return result;
 
     int fnbr = file_find_free();
-    MmResult result = file_open(filename, "r", fnbr);
+    result = file_open(_filename, "r", fnbr);
     if (FAILED(result)) return result;
 
     const bool is_picomite = (mmb_options.simulate == kSimulateGameMite)

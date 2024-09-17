@@ -198,6 +198,7 @@ const char *mmresult_to_string(MmResult result) {
         case kGpioPinIsNotAnOutput:       return "Pin is not an output";
         case kKeyboardUnknownKey:         return "Unknown key pressed";
         case kNotParsed:                  return "Not parsed";
+        case kFileInvalidExtension:       return "Invalid file extension; must begin with '.'";
         case kFileInvalidFileNumber:      return "Invalid file number";
         case kFileAlreadyOpen:            return "File or device already open";
         case kFileNotOpen:                return "File or device not open";

@@ -331,60 +331,19 @@ static void audio_dump_track_list() {
     printf("-- END --\n");
 }
 
-/**
- * Finds a named file with a specified case-insensitive extension.
- *
- * @param[in]   filename   Name of the file with optional extension.
- * @param[in]   extension  The expected case-insensitive extension.
- * @param[out]  out        Buffer which on exit will contain the name of the file found with its
- *                         extension.
- * @param[in]   out_sz     Size of the out buffer.
- * @return                 kOk if the file is found,
- *                         kFileNotFound if the file is not found,
- *                         other values on error.
- */
-static MmResult audio_find_file(const char *filename, const char *extension,
-                                char *out, size_t out_sz) {
-    // Check for an exact match.
-    if (path_exists(filename) && path_has_extension(filename, extension, true)) {
-        if (SUCCEEDED(cstring_cpy(out, filename, out_sz))) {
-            return kOk;
-        } else {
-            return kFilenameTooLong;
-        }
-    }
-
-    // Try various capitalisations of the extension.
-    char ext[3][32];
-    if (FAILED(cstring_cpy(ext[0], extension, 32))) return kStringTooLong;
-    cstring_tolower(ext[0]); // All lower-case
-    if (FAILED(cstring_cpy(ext[1], extension, 32))) return kStringTooLong;
-    cstring_tolower(ext[1]);
-    ext[1][0] = toupper(ext[1][0]); // First letter capital, others lower-case.
-    if (FAILED(cstring_cpy(ext[2], extension, 32))) return kStringTooLong;
-    cstring_toupper(ext[2]); // All upper-case.
-    for (int i = 0; i < 3; ++i) {
-        if (FAILED(cstring_cpy(out, filename, out_sz))) return kFilenameTooLong;
-        if (FAILED(cstring_cat(out, ext[i], out_sz))) return kFilenameTooLong;
-        if (path_exists(out)) return kOk;
-    }
-
-    return kFileNotFound;
-}
-
 // TODO: Move directory listing code to 'path.c'.
 static MmResult audio_fill_track_list(const char *filename, const char *extension) {
     audio_clear_track_list();
 
-    char f_out[STRINGSIZE];
+    char _filename[STRINGSIZE];
     char canonical[STRINGSIZE];
     MmResult result = path_get_canonical(filename, canonical, STRINGSIZE);
     if (FAILED(result)) return result;
 
     // Check for a single file.
-    result = audio_find_file(canonical, extension, f_out, STRINGSIZE);
+    result = path_try_extension(canonical, extension, _filename, STRINGSIZE);
     if (SUCCEEDED(result)) {
-        cstring_cpy(audio_track_list[0], f_out, STRINGSIZE);
+        cstring_cpy(audio_track_list[0], _filename, STRINGSIZE);
         return kOk;
     } else if (result != kFileNotFound) {
         return result;
@@ -397,10 +356,10 @@ static MmResult audio_fill_track_list(const char *filename, const char *extensio
     if ((dir = opendir(canonical)) != NULL) {
         while ((ent = readdir(dir)) != NULL) {
             if (!path_has_extension(ent->d_name, extension, true)) continue;
-            if (FAILED(cstring_cpy(f_out, canonical, STRINGSIZE))) {
+            if (FAILED(cstring_cpy(_filename, canonical, STRINGSIZE))) {
                 return kFilenameTooLong;
             }
-            if (FAILED(path_append(f_out, ent->d_name, audio_track_list[counter++], STRINGSIZE))) {
+            if (FAILED(path_append(_filename, ent->d_name, audio_track_list[counter++], STRINGSIZE))) {
                 return kFilenameTooLong;
             }
             if (counter == MAX_TRACKS) break;
@@ -733,11 +692,11 @@ static MmResult audio_stop_effect() {
 }
 
 static MmResult audio_play_effect_internal(const char *filename) {
-    char f_out[STRINGSIZE];
-    MmResult result = audio_find_file(filename, ".WAV", f_out, STRINGSIZE);
+    char _filename[STRINGSIZE];
+    MmResult result = path_try_extension(filename, ".WAV", _filename, STRINGSIZE);
 
     if (SUCCEEDED(result)) {
-        result = audio_open_file(f_out);
+        result = audio_open_file(_filename);
     }
 
     if (SUCCEEDED(result)) {
