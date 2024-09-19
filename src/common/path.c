@@ -540,14 +540,11 @@ MmResult path_complete(const char *path, char *out, size_t sz) {
 MmResult path_try_extension(const char *path, const char *extension, char *out, size_t out_sz) {
     if (extension[0] != '.') return kFileInvalidExtension;
 
+    MmResult result = path_munge(path, out, STRINGSIZE);
+    if (FAILED(result)) return result;
+
     // Check for an exact match.
-    if (path_exists(path) && path_has_extension(path, extension, true)) {
-        if (SUCCEEDED(cstring_cpy(out, path, out_sz))) {
-            return kOk;
-        } else {
-            return kFilenameTooLong;
-        }
-    }
+    if (path_exists(out) && path_has_extension(out, extension, true)) return kOk;
 
     // Try various capitalisations of the extension.
     char ext[3][32];
@@ -560,9 +557,9 @@ MmResult path_try_extension(const char *path, const char *extension, char *out, 
     if (FAILED(cstring_cpy(ext[2], extension, 32))) return kStringTooLong;
     cstring_toupper(ext[2]); // All upper-case.
     for (int i = 0; i < 3; ++i) {
-        if (FAILED(cstring_cpy(out, path, out_sz))) return kFilenameTooLong;
         if (FAILED(cstring_cat(out, ext[i], out_sz))) return kFilenameTooLong;
         if (path_exists(out)) return kOk;
+        out[strlen(out) - strlen(ext[i])] = '\0'; // Remove the extension.
     }
 
     return kFileNotFound;
