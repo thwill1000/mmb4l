@@ -139,6 +139,7 @@ Version 0.7 alpha 1 - ??-???-2024:
         BUFFER id, width, height
         COPY src_id TO dst_id [, when] [, transparent]
         DESTROY { id | ALL }
+        LIST
         SETTITLE id, title$
         WINDOW id, width, height [, x] [, y] [, title$] [, scale] [, interrupt]
         WRITE { id | NONE }
