@@ -229,9 +229,10 @@ MmResult graphics_sprite_create(MmSurfaceId id, int width, int height);
  *                 necessary to fit the window on the display.
  * @param  title   Title for the window, may be NULL to use a default title.
  * @param  interrupt_addr  Address of interrupt routine to call if an SDL window event is caught.
+ * @param  show    If true then show the window on creation, otherwise keep it hidden.
  */
 MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, int y, int scale,
-                                const char *title, const char *interrupt_addr);
+                                const char *title, const char *interrupt_addr, bool show);
 
 /** Destroys a graphics surface. */
 MmResult graphics_surface_destroy(MmSurface *surface);
@@ -525,9 +526,8 @@ MmResult graphics_scroll(MmSurface *surface, int x, int y, MmGraphicsColour fill
 MmResult graphics_set_font(uint32_t font_id, int scale);
 
 /**
- * Configures graphics surfaces to simulate a given device/platform/mode.
+ * Sets the current graphics mode.
  *
- * @param  platform      The device/platform to simulate (not kSimulateMmb4l).
  * @param  mode          The graphics mode.
  * @param  colour_depth  If == 12 then simulate a three layer CMM2 display:
  *                         page/surface 1 -- top
@@ -537,8 +537,7 @@ MmResult graphics_set_font(uint32_t font_id, int scale);
  *                       by the transparency/alpha levels of the individual pixels.
  * @param  background    Background colour when transparency == true.
  */
-MmResult graphics_simulate_display(OptionsSimulate platform, unsigned mode, unsigned colour_depth,
-                                   MmGraphicsColour background);
+MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColour background);
 
 /**
  * Gets a human-readable type for a given surface.
