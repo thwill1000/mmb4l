@@ -2281,6 +2281,78 @@ MmResult graphics_draw_polyline(MmSurface *surface, int n, float *px, float *py,
     return result;
 }
 
+MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
+    assert(surface);
+    assert(out);
+
+    // There are 3 variations: MMB4L, CMM2-like and PicoMite-like.
+    OptionsSimulate simulate = mmb_options.simulate;
+    switch (simulate) {
+        case kSimulateGameMite: // PicoMite-like
+            simulate = kSimulatePicoMiteVga;
+            break;
+        case kSimulateMmb4w: // CMM2-like
+            simulate = kSimulateCmm2;
+            break;
+        default:
+            break;
+    }
+
+    MmResult result = kOk;
+    const MmSurfaceId id = surface->id;
+    switch (surface->type) {
+        case kGraphicsNone:
+            (void) snprintf(out, out_sz, "None");
+            break;
+        case kGraphicsBuffer:
+            if (simulate == kSimulatePicoMiteVga && id == GRAPHICS_SURFACE_N) {
+                (void) snprintf(out, out_sz, "Buffer N");
+            } else if (simulate == kSimulatePicoMiteVga && id == GRAPHICS_SURFACE_F) {
+                (void) snprintf(out, out_sz, "Buffer F");
+            } else if (simulate == kSimulatePicoMiteVga && id == GRAPHICS_SURFACE_L) {
+                (void) snprintf(out, out_sz, "Buffer L");
+            } else if (simulate == kSimulateCmm2 && id <= CMM2_BLIT_BASE) {
+                (void) snprintf(out, out_sz, "Page %d", surface->id);
+            } else if (simulate != kSimulateMmb4l
+                    && id > CMM2_BLIT_BASE && id <= CMM2_BLIT_BASE + CMM2_BLIT_COUNT) {
+                (void) snprintf(out, out_sz, "Buffer %d", surface->id - CMM2_BLIT_BASE);
+            } else {
+                (void) snprintf(out, out_sz, "Buffer");
+            }
+            break;
+        case kGraphicsSprite:
+            if (simulate != kSimulateMmb4l
+                    && id > CMM2_SPRITE_BASE && id <= CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT) {
+                (void) snprintf(out, out_sz, "Sprite %d (Active)", surface->id - CMM2_SPRITE_BASE);
+            } else {
+                (void) snprintf(out, out_sz, "Sprite (Active)");
+            }
+            break;
+        case kGraphicsInactiveSprite:
+            if (simulate != kSimulateMmb4l
+                    && id > CMM2_SPRITE_BASE && id <= CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT) {
+                (void) snprintf(out, out_sz, "Sprite %d (Inactive)",
+                                surface->id - CMM2_SPRITE_BASE);
+            } else {
+                (void) snprintf(out, out_sz, "Sprite (Inactive)");
+            }
+            break;
+        case kGraphicsWindow:
+            if (simulate == kSimulatePicoMiteVga && id == 0) {
+                (void) snprintf(out, out_sz, "Display");
+            } else if (simulate == kSimulateCmm2 && id <= CMM2_BLIT_BASE) {
+                (void) snprintf(out, out_sz, "Page %d", surface->id);
+            } else {
+                (void) snprintf(out, out_sz, "Window");
+            }
+            break;
+        default:
+            result = kInternalFault;
+            break;
+    }
+    return result;
+}
+
 MmResult graphics_window_set_title(MmSurface *window, const char *title) {
     if (!window || window->type != kGraphicsWindow) return kGraphicsInvalidWindow;
     SDL_SetWindowTitle(window->window, title); // Has void return.
