@@ -132,6 +132,17 @@ static MmResult cmd_graphics_set_title(const char *p) {
     return graphics_window_set_title(&graphics_surfaces[id], title);
 }
 
+/** GRAPHICS SPRITE id, width, height */
+static MmResult cmd_graphics_sprite(const char *p) {
+    getargs(&p, 5, ",");
+    if (argc != 5) return kArgumentCount;
+    const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+    const int width = getint(argv[2], 8, WINDOW_MAX_WIDTH);
+    const int height = getint(argv[4], 8, WINDOW_MAX_HEIGHT);
+
+    return graphics_sprite_create(id, width, height);
+}
+
 /** GRAPHICS WINDOW id, width, height [, x] [, y] [, title$] [, scale] [, interrupt] */
 static MmResult cmd_graphics_window(const char *p) {
     getargs(&p, 15, ",");
@@ -247,6 +258,8 @@ void cmd_graphics(void) {
         result = cmd_graphics_list(p);
     } else if ((p = checkstring(cmdline, "SETTITLE"))) {
         result = cmd_graphics_set_title(p);
+    } else if ((p = checkstring(cmdline, "SPRITE"))) {
+        result = cmd_graphics_sprite(p);
     } else if ((p = checkstring(cmdline, "WINDOW"))) {
         result = cmd_graphics_window(p);
     } else if ((p = checkstring(cmdline, "WRITE"))) {
