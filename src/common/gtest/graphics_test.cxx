@@ -122,6 +122,7 @@ class GraphicsTest : public ::testing::Test {
    protected:
     void SetUp() override {
         graphics_init();
+        mmb_options.simulate = kSimulateMmb4l;
 
         const MmSurfaceId srcId = 1;
         EXPECT_EQ(kOk, graphics_buffer_create(srcId, 7, 9));
@@ -134,7 +135,9 @@ class GraphicsTest : public ::testing::Test {
         memcpy(dst->pixels, DEFAULT_DST_PIXELS, sizeof(DEFAULT_DST_PIXELS));
     }
 
-    void TearDown() override { graphics_term(); }
+    void TearDown() override {
+        EXPECT_EQ(kOk, graphics_term());
+    }
 
     MmSurface *src;
     MmSurface *dst;
@@ -520,4 +523,214 @@ TEST_F(GraphicsTest, GetDefaultWindowTitle_GivenCurrentFile) {
     // Title is longer than the buffer.
     EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, 29));
     EXPECT_STREQ("PicoMiteVGA - Mode 2: foo/ba", title);
+}
+
+#define EXPECT_SURFACE_TYPE(id, type_, expected) \
+    { \
+        char out[STRINGSIZE]; \
+        graphics_surfaces[id].type = type_; \
+        EXPECT_EQ(kOk, graphics_type_as_string(&graphics_surfaces[id], out, STRINGSIZE)); \
+        EXPECT_STREQ(expected, out); \
+    }
+
+TEST_F(GraphicsTest, TypeAsString_GivenMmb4l) {
+    mmb_options.simulate = kSimulateMmb4l;
+
+    // Initialise all the surfaces as (tiny) buffers.
+    EXPECT_EQ(kOk, graphics_surface_destroy_all());
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        EXPECT_EQ(kOk, graphics_buffer_create(id, 8, 8));
+    }
+
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        EXPECT_SURFACE_TYPE(id, kGraphicsNone, "None");
+        EXPECT_SURFACE_TYPE(id, kGraphicsWindow, "Window");
+        EXPECT_SURFACE_TYPE(id, kGraphicsBuffer, "Buffer");
+        EXPECT_SURFACE_TYPE(id, kGraphicsSprite, "Sprite (Active)");
+        EXPECT_SURFACE_TYPE(id, kGraphicsInactiveSprite, "Sprite (Inactive)");
+    }
+}
+
+TEST_F(GraphicsTest, TypeAsString_GivenCmm2) {
+    mmb_options.simulate = kSimulateCmm2;
+
+    // Initialise all the surfaces as (tiny) buffers.
+    EXPECT_EQ(kOk, graphics_surface_destroy_all());
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        EXPECT_EQ(kOk, graphics_buffer_create(id, 8, 8));
+    }
+
+    // Window with 0 <= id <= 63 is a "Page <id>"
+    EXPECT_SURFACE_TYPE(0, kGraphicsWindow, "Page 0");
+    EXPECT_SURFACE_TYPE(63, kGraphicsWindow, "Page 63");
+
+    // Window with id >= 64 is a "Window"
+    EXPECT_SURFACE_TYPE(64, kGraphicsWindow, "Window");
+
+    // Buffer with 0 <= id <= 63 is a "Page <id>"
+    EXPECT_SURFACE_TYPE(0, kGraphicsBuffer, "Page 0");
+    EXPECT_SURFACE_TYPE(63, kGraphicsBuffer, "Page 63");
+
+    // Buffer with 64 <= id <= 127 is a "Buffer <id - 63>"
+    EXPECT_SURFACE_TYPE(64, kGraphicsBuffer, "Buffer 1");
+    EXPECT_SURFACE_TYPE(127, kGraphicsBuffer, "Buffer 64");
+
+    // Buffer with id >= 128 is a "Buffer"
+    EXPECT_SURFACE_TYPE(128, kGraphicsBuffer, "Buffer");
+
+    // Inactive Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Inactive)"
+    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite 1 (Inactive)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite 64 (Inactive)");
+
+    // Inactive Sprite with id >= 192 is a "Sprite id (Inactive)"
+    EXPECT_SURFACE_TYPE(192, kGraphicsInactiveSprite, "Sprite (Inactive)");
+
+    // Active Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Active)"
+    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite 1 (Active)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite 64 (Active)");
+
+    // Active Sprite with id >= 192 is a "Sprite id (Inactive)"
+    EXPECT_SURFACE_TYPE(192, kGraphicsSprite, "Sprite (Active)");
+}
+
+TEST_F(GraphicsTest, TypeAsString_GivenMmb4w) {
+    mmb_options.simulate = kSimulateMmb4w;
+
+    // Initialise all the surfaces as (tiny) buffers.
+    EXPECT_EQ(kOk, graphics_surface_destroy_all());
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        EXPECT_EQ(kOk, graphics_buffer_create(id, 8, 8));
+    }
+
+    // Window with 0 <= id <= 63 is a "Page <id>"
+    EXPECT_SURFACE_TYPE(0, kGraphicsWindow, "Page 0");
+    EXPECT_SURFACE_TYPE(63, kGraphicsWindow, "Page 63");
+
+    // Window with id >= 64 is a "Window"
+    EXPECT_SURFACE_TYPE(64, kGraphicsWindow, "Window");
+
+    // Buffer with 0 <= id <= 63 is a "Page <id>"
+    EXPECT_SURFACE_TYPE(0, kGraphicsBuffer, "Page 0");
+    EXPECT_SURFACE_TYPE(63, kGraphicsBuffer, "Page 63");
+
+    // Buffer with 64 <= id <= 127 is a "Buffer <id - 63>"
+    EXPECT_SURFACE_TYPE(64, kGraphicsBuffer, "Buffer 1");
+    EXPECT_SURFACE_TYPE(127, kGraphicsBuffer, "Buffer 64");
+
+    // Buffer with id >= 128 is a "Buffer"
+    EXPECT_SURFACE_TYPE(128, kGraphicsBuffer, "Buffer");
+
+    // Inactive Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Inactive)"
+    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite 1 (Inactive)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite 64 (Inactive)");
+
+    // Inactive Sprite with id >= 192 is a "Sprite id (Inactive)"
+    EXPECT_SURFACE_TYPE(192, kGraphicsInactiveSprite, "Sprite (Inactive)");
+
+    // Active Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Active)"
+    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite 1 (Active)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite 64 (Active)");
+
+    // Active Sprite with id >= 192 is a "Sprite id (Inactive)"
+    EXPECT_SURFACE_TYPE(192, kGraphicsSprite, "Sprite (Active)");
+}
+
+TEST_F(GraphicsTest, TypeAsString_GivenGameMite) {
+    mmb_options.simulate = kSimulateGameMite;
+
+    // Initialise all the surfaces as (tiny) buffers.
+    EXPECT_EQ(kOk, graphics_surface_destroy_all());
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        EXPECT_EQ(kOk, graphics_buffer_create(id, 8, 8));
+    }
+
+    // Window with id == 0 is the "Display"
+    EXPECT_SURFACE_TYPE(0, kGraphicsWindow, "Display");
+
+    // Buffer with id == 1 is "Buffer N"
+    EXPECT_SURFACE_TYPE(1, kGraphicsBuffer, "Buffer N");
+
+    // Buffer with id == 2 is "Buffer F"
+    EXPECT_SURFACE_TYPE(2, kGraphicsBuffer, "Buffer F");
+
+    // Buffer with id == 3 is "Buffer L"
+    EXPECT_SURFACE_TYPE(3, kGraphicsBuffer, "Buffer L");
+
+    // Window with id >= 1 is a "Window"
+    EXPECT_SURFACE_TYPE(1, kGraphicsWindow, "Window");
+
+    // Buffer with 4 <= id <= 63 is a "Buffer"
+    EXPECT_SURFACE_TYPE(4, kGraphicsBuffer, "Buffer");
+    EXPECT_SURFACE_TYPE(63, kGraphicsBuffer, "Buffer");
+
+    // Buffer with 64 <= id <= 127 is a "Buffer <id - 63>"
+    EXPECT_SURFACE_TYPE(64, kGraphicsBuffer, "Buffer 1");
+    EXPECT_SURFACE_TYPE(127, kGraphicsBuffer, "Buffer 64");
+
+    // Buffer with id >= 128 is a "Buffer"
+    EXPECT_SURFACE_TYPE(128, kGraphicsBuffer, "Buffer");
+
+    // Inactive Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Inactive)"
+    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite 1 (Inactive)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite 64 (Inactive)");
+
+    // Inactive Sprite with id >= 192 is a "Sprite id (Inactive)"
+    EXPECT_SURFACE_TYPE(192, kGraphicsInactiveSprite, "Sprite (Inactive)");
+
+    // Active Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Active)"
+    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite 1 (Active)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite 64 (Active)");
+
+    // Active Sprite with id >= 192 is a "Sprite id (Inactive)"
+    EXPECT_SURFACE_TYPE(192, kGraphicsSprite, "Sprite (Active)");
+}
+
+TEST_F(GraphicsTest, TypeAsString_GivenPicoMiteVga) {
+    mmb_options.simulate = kSimulatePicoMiteVga;
+
+    // Initialise all the surfaces as (tiny) buffers.
+    EXPECT_EQ(kOk, graphics_surface_destroy_all());
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        EXPECT_EQ(kOk, graphics_buffer_create(id, 8, 8));
+    }
+
+    // Window with id == 0 is the "Display"
+    EXPECT_SURFACE_TYPE(0, kGraphicsWindow, "Display");
+
+    // Buffer with id == 1 is "Buffer N"
+    EXPECT_SURFACE_TYPE(1, kGraphicsBuffer, "Buffer N");
+
+    // Buffer with id == 2 is "Buffer F"
+    EXPECT_SURFACE_TYPE(2, kGraphicsBuffer, "Buffer F");
+
+    // Buffer with id == 3 is "Buffer L"
+    EXPECT_SURFACE_TYPE(3, kGraphicsBuffer, "Buffer L");
+
+    // Window with id >= 1 is a "Window"
+    EXPECT_SURFACE_TYPE(1, kGraphicsWindow, "Window");
+
+    // Buffer with 4 <= id <= 63 is a "Buffer"
+    EXPECT_SURFACE_TYPE(4, kGraphicsBuffer, "Buffer");
+    EXPECT_SURFACE_TYPE(63, kGraphicsBuffer, "Buffer");
+
+    // Buffer with 64 <= id <= 127 is a "Buffer <id - 63>"
+    EXPECT_SURFACE_TYPE(64, kGraphicsBuffer, "Buffer 1");
+    EXPECT_SURFACE_TYPE(127, kGraphicsBuffer, "Buffer 64");
+
+    // Buffer with id >= 128 is a "Buffer"
+    EXPECT_SURFACE_TYPE(128, kGraphicsBuffer, "Buffer");
+
+    // Inactive Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Inactive)"
+    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite 1 (Inactive)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite 64 (Inactive)");
+
+    // Inactive Sprite with id >= 192 is a "Sprite id (Inactive)"
+    EXPECT_SURFACE_TYPE(192, kGraphicsInactiveSprite, "Sprite (Inactive)");
+
+    // Active Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Active)"
+    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite 1 (Active)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite 64 (Active)");
+
+    // Active Sprite with id >= 192 is a "Sprite id (Inactive)"
+    EXPECT_SURFACE_TYPE(192, kGraphicsSprite, "Sprite (Active)");
 }

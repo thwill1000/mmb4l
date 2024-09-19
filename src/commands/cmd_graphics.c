@@ -45,9 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <stdio.h>
 
-#include "../common/mmb4l.h"
+#include "../common/console.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 #include "../common/graphics.h"
+#include "../common/mmb4l.h"
 #include "../core/tokentbl.h"
 
 /** GRAPHICS BUFFER id, width, height */
@@ -162,6 +164,45 @@ static MmResult cmd_graphics_destroy(const char *p) {
     }
 }
 
+/** GRAPHICS LIST */
+MmResult cmd_graphics_list(const char *p) {
+    if (!parse_is_end(p)) return kArgumentCount;
+
+    MmResult result = kOk;
+    char buf[STRINGSIZE];
+
+    if (mmb_options.simulate != kSimulateMmb4l) {
+        result = options_get_string_value(&mmb_options, kOptionSimulate, buf);
+        if (FAILED(result)) return result;
+        console_puts(buf);
+        if (mmb_options.simulate == kSimulateGameMite) {
+            console_puts("\r\n");
+        } else {
+            (void) snprintf(buf, STRINGSIZE, " - Mode %d\r\n", graphics_mode);
+            console_puts(buf);
+        }
+    }
+
+    const MmSurfaceId current_id = graphics_current ? graphics_current->id : -1;
+    char type[64];
+    int count = 0;
+    for (MmSurfaceId id  = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        MmSurface *s = &graphics_surfaces[id];
+        if (s->type == kGraphicsNone) continue;
+        result = graphics_type_as_string(s, type, 64);
+        if (FAILED(result)) break;
+        snprintf(buf, STRINGSIZE, "%c %3d) %s: %d x %d\r\n", id == current_id ? '*' : ' ',
+                 id, type, s->width, s->height);
+        console_puts(buf);
+        count++;
+    }
+    if (SUCCEEDED(result) && count == 0) {
+        console_puts("No graphics surfaces");
+    }
+
+    return result;
+}
+
 /** GRAPHICS WRITE { id | NONE } */
 MmResult cmd_graphics_write(const char *p) {
     getargs(&p, 1, ",");
@@ -184,6 +225,8 @@ void cmd_graphics(void) {
         result = cmd_graphics_copy(p);
     } else if ((p = checkstring(cmdline, "DESTROY"))) {
         result = cmd_graphics_destroy(p);
+    } else if ((p = checkstring(cmdline, "LIST"))) {
+        result = cmd_graphics_list(p);
     } else if ((p = checkstring(cmdline, "SETTITLE"))) {
         result = cmd_graphics_set_title(p);
     } else if ((p = checkstring(cmdline, "WINDOW"))) {

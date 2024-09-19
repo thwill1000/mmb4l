@@ -57,8 +57,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define ERROR_NOTHING_TO_LIST  error_throw_ex(kError, "Nothing to list")
 
-void cmd_files_internal(const char *);  // cmd_files.c
-void cmd_option_list(const char *);     // cmd_option.c
+void cmd_files_internal(const char *);      // cmd_files.c
+MmResult cmd_graphics_list(const char *p);  // cmd_graphics.c
+void cmd_option_list(const char *);         // cmd_option.c
 
 /* qsort C-string comparison function */
 static int cstring_cmp(const void *a, const void *b)  {
@@ -246,6 +247,8 @@ void cmd_list(void) {
     } else if ((p = checkstring(cmdline, "FUNCTIONS"))) {
         if (!parse_is_end(p)) ERROR_SYNTAX;
         list_functions();
+    } else if ((p = checkstring(cmdline, "GRAPHICS"))) {
+        ERROR_ON_FAILURE(cmd_graphics_list(p));
     } else if ((p = checkstring(cmdline, "OPTIONS"))) {
         list_options(p);
     } else {
