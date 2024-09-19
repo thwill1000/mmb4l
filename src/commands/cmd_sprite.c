@@ -141,7 +141,7 @@ static MmResult cmd_sprite_next(const char *p) {
     if (argc != 5) return kArgumentCount;
 
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], false, &sprite_id);
+    MmResult result = parse_sprite_id(argv[0], true, &sprite_id);
     if (FAILED(result)) return result;
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
