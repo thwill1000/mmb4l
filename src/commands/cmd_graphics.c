@@ -56,11 +56,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static MmResult cmd_graphics_buffer(const char *p) {
     getargs(&p, 5, ",");
     if (argc != 5) return kArgumentCount;
-    int id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+    MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     int width = getint(argv[2], 8, WINDOW_MAX_WIDTH);
     int height = getint(argv[4], 8, WINDOW_MAX_HEIGHT);
 
     return graphics_buffer_create(id, width, height);
+}
+
+/** GRAPHICS CLS id [, colour] */
+static MmResult cmd_graphics_cls(const char *p) {
+    getargs(&p, 3, ",");
+    if (argc % 2 != 1) return kArgumentCount;
+    const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+    MmSurface *surface = &graphics_surfaces[id];
+    const MmSurface *layer = (mmb_options.simulate == kSimulatePicoMiteVga)
+            ?  &graphics_surfaces[GRAPHICS_SURFACE_L]
+            : NULL;
+    MmGraphicsColour colour = has_arg(2)
+            ? getint(argv[2], RGB_BLACK, RGB_WHITE)
+            : (surface == layer) ? layer->transparent : graphics_bcolour;
+
+    return graphics_cls(surface, colour);
 }
 
 /** GRAPHICS COPY src_id TO dst_id [, when] [, transparent] */
@@ -221,6 +237,8 @@ void cmd_graphics(void) {
     const char *p;
     if ((p = checkstring(cmdline, "BUFFER"))) {
         result = cmd_graphics_buffer(p);
+    } else if ((p = checkstring(cmdline, "CLS"))) {
+        result = cmd_graphics_cls(p);
     } else if ((p = checkstring(cmdline, "COPY"))) {
         result = cmd_graphics_copy(p);
     } else if ((p = checkstring(cmdline, "DESTROY"))) {

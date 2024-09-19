@@ -292,6 +292,14 @@ MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x
                                            int h, int transparent);
 
 /**
+ * Clears a graphics surface.
+ *
+ * @param  surface  The surface to clear.
+ * @param  colour   The colout to clear with.
+ */
+MmResult graphics_cls(MmSurface *surface, MmGraphicsColour colour);
+
+/**
  * Draws an anti-aliased straight line.
  *
  * @param  x1, y1  Start coordinates.
