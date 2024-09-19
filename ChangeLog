@@ -137,10 +137,12 @@ Version 0.7 alpha 1 - ??-???-2024:
         VIBRATE id OFF
     - GRAPHICS
         BUFFER id, width, height
+        CLS id [, colour]
         COPY src_id TO dst_id [, when] [, transparent]
         DESTROY { id | ALL }
         LIST
         SETTITLE id, title$
+        SPRITE id, width, height
         WINDOW id, width, height [, x] [, y] [, title$] [, scale] [, interrupt]
         WRITE { id | NONE }
     - SETENV name$ = value$
