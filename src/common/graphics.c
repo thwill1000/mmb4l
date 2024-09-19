@@ -63,9 +63,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
-#define HRes graphics_current->width
-#define VRes graphics_current->height
-
 /** Sprite colours on CMM2. */
 const MmGraphicsColour GRAPHICS_CMM2_SPRITE_COLOURS[] = {
     RGB_BLACK,
@@ -1168,6 +1165,8 @@ MmResult graphics_draw_rbox(MmSurface *surface, int x1, int y1, int x2, int y2, 
 
 MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int y2,
                                  MmGraphicsColour colour) {
+    if (surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
+
     // Do not draw anything if entire rectangle is off the screen.
     if ((x1 < 0 && x2 < 0) || (y1 < 0 && y2 < 0) ||
         (x1 >= surface->width && x2 >= surface->width) ||
@@ -1175,10 +1174,10 @@ MmResult graphics_draw_rectangle(MmSurface *surface, int x1, int y1, int x2, int
         return kOk;
     }
 
-    x1 = min(max(0, x1), HRes - 1);
-    x2 = min(max(0, x2), HRes - 1);
-    y1 = min(max(0, y1), VRes - 1);
-    y2 = min(max(0, y2), VRes - 1);
+    x1 = min(max(0, x1), surface->width - 1);
+    x2 = min(max(0, x2), surface->width - 1);
+    y1 = min(max(0, y1), surface->height - 1);
+    y2 = min(max(0, y2), surface->height - 1);
     if (x1 > x2) SWAP(int, x1, x2);
     if (y1 > y2) SWAP(int, y1, y2);
     for (int y = y1; y <= y2; y++) {
@@ -1650,6 +1649,10 @@ MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x
     surface->dirty = true;
 
     return kOk;
+}
+
+MmResult graphics_cls(MmSurface *surface, MmGraphicsColour colour) {
+    return graphics_draw_rectangle(surface, 0, 0, surface->width - 1, surface->height - 1, colour);
 }
 
 MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,

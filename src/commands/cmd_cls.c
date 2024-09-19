@@ -58,22 +58,19 @@ static MmResult cmd_cls_console(const char *p) {
 /** CLS [colour] */
 static MmResult cmd_cls_default(const char *p) {
     getargs(&p, 1, ",");
-    const MmSurface *layer = &graphics_surfaces[GRAPHICS_SURFACE_L];
-    MmGraphicsColour colour = -1;
-    if (argc == 1) {
-        colour = getint(argv[0], RGB_BLACK, RGB_WHITE);
-    } else if (mmb_options.simulate == kSimulatePicoMiteVga && graphics_current == layer) {
-        colour = layer->transparent;
-    } else {
-        colour = graphics_bcolour;
-    }
-    if (graphics_current) {
-        return graphics_draw_rectangle(graphics_current, 0, 0, graphics_current->width - 1,
-                                       graphics_current->height - 1, colour);
-    } else {
+
+    if (!graphics_current) {
         console_clear();
         return kOk;
     }
+
+    const MmSurface *layer = (mmb_options.simulate == kSimulatePicoMiteVga)
+            ? &graphics_surfaces[GRAPHICS_SURFACE_L]
+            : NULL;
+    const MmGraphicsColour colour = has_arg(0)
+            ? getint(argv[0], RGB_BLACK, RGB_WHITE)
+            : (graphics_current == layer) ? layer->transparent : graphics_bcolour;
+    return graphics_cls(graphics_current, colour);
 }
 
 void cmd_cls(void) {
