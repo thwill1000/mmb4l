@@ -541,6 +541,15 @@ MmResult graphics_simulate_display(OptionsSimulate platform, unsigned mode, unsi
                                    MmGraphicsColour background);
 
 /**
+ * Gets a human-readable type for a given surface.
+ *
+ * @param  surface  The surface.
+ * @param  out      The human-readable type is returned in this buffer.
+ * @param  out_sz   Size of the \p out buffer.
+ */
+MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz);
+
+/**
  * Sets the title of a window.
  *
  * @param  window  The window.
