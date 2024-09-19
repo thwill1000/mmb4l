@@ -84,6 +84,10 @@ Uint32 SDL_GetTicks(void) {
     return 0;
 }
 
+Uint32 SDL_GetWindowFlags(SDL_Window *window) {
+    return 0x0;
+}
+
 Uint32 SDL_GetWindowID(SDL_Window *window) {
     return 0;
 }
@@ -135,11 +139,14 @@ int SDL_SetRenderDrawBlendMode(SDL_Renderer * renderer, SDL_BlendMode blendMode)
     return 0;
 }
 
-void SDL_SetWindowTitle(SDL_Window * window, const char *title) {
+void SDL_SetWindowTitle(SDL_Window *window, const char *title) {
 }
 
-int SDL_SetTextureBlendMode(SDL_Texture * texture, SDL_BlendMode blendMode) {
+int SDL_SetTextureBlendMode(SDL_Texture *texture, SDL_BlendMode blendMode) {
     return 0;
+}
+
+void SDL_ShowWindow(SDL_Window *window) {
 }
 
 int SDL_UpdateTexture(SDL_Texture *texture, const SDL_Rect *rect, const void *pixels, int pitch) {

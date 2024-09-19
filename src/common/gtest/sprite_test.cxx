@@ -494,7 +494,7 @@ TEST_F(SpriteTest, SpritesDoNotCollideWithBuffers) {
 }
 
 TEST_F(SpriteTest, SpritesDoNotCollideWithWindows) {
-    EXPECT_EQ(kOk, graphics_window_create(20, 10, 10, 0, 0, 1, NULL, NULL));
+    EXPECT_EQ(kOk, graphics_window_create(20, 10, 10, 0, 0, 1, NULL, NULL, true));
     GivenSurfacesOverlapping(1, 20);
 
     uint32_t count;
@@ -517,7 +517,7 @@ TEST_F(SpriteTest, BuffersDoNotCollideWithEdges) {
 }
 
 TEST_F(SpriteTest, WindowsDoNotCollideWithEdges) {
-    EXPECT_EQ(kOk, graphics_window_create(20, 10, 10, 0, 0, 1, NULL, NULL));
+    EXPECT_EQ(kOk, graphics_window_create(20, 10, 10, 0, 0, 1, NULL, NULL, true));
     GivenSurfaceOverlappingEdge(20, kSpriteEdgeLeft);
     EXPECT_EQ(kOk, sprite_update_all_collisions());
 

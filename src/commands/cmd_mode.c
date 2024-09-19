@@ -74,7 +74,7 @@ static MmResult cmd_mode_cmm2(void) {
             ? getint(argv[4], RGB_BLACK, RGB_WHITE)
             : RGB_BLACK;
     // 'interrupt' parameter is ignored by MMB4L.
-    return graphics_simulate_display(mmb_options.simulate, mode, colour_depth, background);
+    return graphics_set_mode(mode, colour_depth, background);
 }
 
 static MmResult cmd_mode_pmvga(void) {
@@ -82,7 +82,7 @@ static MmResult cmd_mode_pmvga(void) {
     if (argc != 1) return kArgumentCount;
 
     const unsigned mode = getint(argv[0], MIN_PMVGA_MODE, MAX_PMVGA_MODE);
-    return graphics_simulate_display(kSimulatePicoMiteVga, mode, 32, RGB_BLACK);
+    return graphics_set_mode(mode, 32, RGB_BLACK);
 }
 
 void cmd_mode(void) {

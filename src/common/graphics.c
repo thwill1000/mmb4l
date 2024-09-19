@@ -269,6 +269,7 @@ static MmResult graphics_refresh_cmm2_window() {
     SDL_RenderCopy(renderer, texture, NULL, NULL);
 
     SDL_RenderPresent(renderer);
+    if (SDL_GetWindowFlags(window->window) & SDL_WINDOW_HIDDEN) SDL_ShowWindow(window->window);
 
     window->dirty = false;
     page1->dirty = false;
@@ -350,6 +351,7 @@ void graphics_refresh_windows() {
                 SDL_RenderCopy((SDL_Renderer *) s->renderer, (SDL_Texture *) s->texture, NULL,
                                NULL);
                 SDL_RenderPresent((SDL_Renderer *) s->renderer);
+                if (SDL_GetWindowFlags(s->window) & SDL_WINDOW_HIDDEN) SDL_ShowWindow(s->window);
                 s->dirty = false;
             }
         }
@@ -436,7 +438,7 @@ MmResult graphics_sprite_create(MmSurfaceId id, int width, int height) {
 }
 
 MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, int y, int scale,
-                                const char *title, const char *interrupt_addr) {
+                                const char *title, const char *interrupt_addr, bool show) {
     MmResult result = graphics_surface_create(id, kGraphicsWindow, width, height);
     MmSurface *s = &graphics_surfaces[id];
 
@@ -466,7 +468,7 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
     if (SUCCEEDED(result)) {
         window = SDL_CreateWindow(title2, x == -1 ? (int)SDL_WINDOWPOS_CENTERED : x,
                                   y == -1 ? (int)SDL_WINDOWPOS_CENTERED : y, width * fscale,
-                                  height * fscale, SDL_WINDOW_SHOWN);
+                                  height * fscale, show ? SDL_WINDOW_SHOWN : SDL_WINDOW_HIDDEN);
         if (!window) result = kGraphicsApiError;
     }
 
@@ -2075,7 +2077,7 @@ MmResult graphics_get_default_window_title(MmSurfaceId id, char *title, size_t t
     return result;
 }
 
-static MmResult graphics_simulate_cmm2(unsigned mode, unsigned colour_depth,
+static MmResult graphics_set_mode_cmm2(unsigned mode, unsigned colour_depth,
                                        MmGraphicsColour background) {
     if (mode < MIN_CMM2_MODE || mode > MAX_CMM2_MODE) return kInvalidMode;
     const ModeDefinition *mode_def = &CMM2_MODES[mode];
@@ -2085,7 +2087,7 @@ static MmResult graphics_simulate_cmm2(unsigned mode, unsigned colour_depth,
     if (SUCCEEDED(result)) {
         // Create window for page 0.
         result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1, 10, NULL,
-                                        NULL);
+                                        NULL, false);
     }
     if (SUCCEEDED(result)) {
         // Create buffers for remaining pages.
@@ -2106,13 +2108,13 @@ static MmResult graphics_simulate_cmm2(unsigned mode, unsigned colour_depth,
     return result;
 }
 
-static MmResult graphics_simulate_gamemite(unsigned mode) {
-    if (mode != 0) return kInvalidMode;
+static MmResult graphics_set_mode_gamemite(unsigned mode) {
+    if (mode != 1) return kInvalidMode;
     graphics_mode = mode;
 
     MmResult result = graphics_destroy_surfaces_0_to_63();
     if (SUCCEEDED(result)) {
-        result = graphics_window_create(0, 320, 240, -1, -1, 10, NULL, NULL);
+        result = graphics_window_create(0, 320, 240, -1, -1, 10, NULL, NULL, false);
     }
     if (SUCCEEDED(result)) {
         result = graphics_buffer_create(GRAPHICS_SURFACE_N, 320, 240);
@@ -2130,7 +2132,7 @@ static MmResult graphics_simulate_gamemite(unsigned mode) {
     return result;
 }
 
-static MmResult graphics_simulate_picomite_vga(unsigned mode) {
+static MmResult graphics_set_mode_pmvga(unsigned mode) {
     if (mode < MIN_PMVGA_MODE || mode > MAX_PMVGA_MODE) return kInvalidMode;
     const ModeDefinition *mode_def = &PICOMITE_VGA_MODES[mode];
     graphics_mode = mode;
@@ -2138,7 +2140,7 @@ static MmResult graphics_simulate_picomite_vga(unsigned mode) {
     MmResult result = graphics_destroy_surfaces_0_to_63();
     if (SUCCEEDED(result)) {
         result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1, 10, NULL,
-                                        NULL);
+                                        NULL, false);
     }
     if (SUCCEEDED(result)) {
         result = graphics_buffer_create(GRAPHICS_SURFACE_N, mode_def->width, mode_def->height);
@@ -2156,11 +2158,18 @@ static MmResult graphics_simulate_picomite_vga(unsigned mode) {
     return result;
 }
 
-MmResult graphics_simulate_display(OptionsSimulate platform, unsigned mode, unsigned colour_depth,
-                                   MmGraphicsColour background) {
+static MmResult graphics_set_mode_mmb4l(unsigned mode) {
+    if (mode != 1) return kInvalidMode;
+    graphics_mode = mode;
+    // Keeps all existing surfaces and properties untouched.
+    return kOk;
+}
+
+MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColour background) {
+    const OptionsSimulate simulate = mmb_options.simulate;
     switch (colour_depth) {
         case 12:
-            if (platform != kSimulateCmm2 && platform != kSimulateMmb4w) {
+            if (simulate != kSimulateCmm2 && simulate != kSimulateMmb4w) {
                 return kGraphicsInvalidColourDepth;
             }
             break;
@@ -2171,14 +2180,16 @@ MmResult graphics_simulate_display(OptionsSimulate platform, unsigned mode, unsi
             return kGraphicsInvalidColourDepth;
     }
 
-    switch (platform) {
+    switch (simulate) {
         case kSimulateCmm2:
         case kSimulateMmb4w:
-            return graphics_simulate_cmm2(mode, colour_depth, background);
-        case kSimulatePicoMiteVga:
-            return graphics_simulate_picomite_vga(mode);
+            return graphics_set_mode_cmm2(mode, colour_depth, background);
         case kSimulateGameMite:
-            return graphics_simulate_gamemite(mode);
+            return graphics_set_mode_gamemite(mode);
+        case kSimulateMmb4l:
+            return graphics_set_mode_mmb4l(mode);
+        case kSimulatePicoMiteVga:
+            return graphics_set_mode_pmvga(mode);
         default:
             return kInternalFault;
     }
