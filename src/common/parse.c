@@ -667,6 +667,7 @@ MmResult parse_write_page(const char *p, MmSurfaceId *page_id) {
 MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id) {
     skipspace(p);
     if (*p == '#') p++;
+    if (!*p) return kSyntax;
     if (mmb_options.simulate == kSimulateMmb4l) {
         *blit_id = getint(p, 0, GRAPHICS_MAX_ID);
     } else {
@@ -681,15 +682,23 @@ MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id) {
 MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id) {
     skipspace(p);
     if (*p == '#') p++;
+    if (!*p) return kSyntax;
     if (mmb_options.simulate == kSimulateMmb4l) {
         *sprite_id = getint(p, 0, GRAPHICS_MAX_ID);
     } else {
         *sprite_id = getint(p, 1, CMM2_SPRITE_COUNT) + CMM2_SPRITE_BASE;
     }
-    if (existing
-            && graphics_surfaces[*sprite_id].type != kGraphicsSprite
-            && graphics_surfaces[*sprite_id].type != kGraphicsInactiveSprite) {
-        return kGraphicsInvalidSprite;
+
+    switch (graphics_surfaces[*sprite_id].type) {
+        case kGraphicsNone:
+            if (existing) return kGraphicsInvalidSprite;
+            CASE_FALLTHROUGH;
+        case kGraphicsInactiveSprite:
+        case kGraphicsSprite:
+            break;
+        default:
+            return kGraphicsInvalidSprite;
     }
+
     return kOk;
 }

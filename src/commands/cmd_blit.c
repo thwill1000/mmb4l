@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/error.h"
 #include "../common/graphics.h"
+#include "../common/sprite.h"
 #include "../common/mmb4l.h"
 
 /** BLIT CLOSE [#]id */
@@ -158,60 +159,114 @@ MmResult cmd_blit_memory(const char *p) {
 
 /**
  * BLIT READ [#]dst_id, x, y, width, height [, src_id]
- *  - <dst_id> parameter unsupported on PicoMite{VGA}.
+ *  - <src_id> parameter unsupported on PicoMite{VGA}.
+ *
+ * @param  sprite  If true then parse as SPRITE READ instead of BLIT READ.
  */
-MmResult cmd_blit_read(const char *p) {
+MmResult cmd_blit_read(const char *p, bool sprite) {
     getargs(&p, 11, ",");
-    if (!(argc == 9 || argc == 11)) return kArgumentCount;
-    MmSurfaceId dst_id = -1;
-    MmResult result = parse_blit_id(argv[0], false, &dst_id);
-    if (result == kGraphicsInvalidSurface) result = kGraphicsInvalidWriteSurface;
-    if (FAILED(result)) return result;
-    const int x = getint(argv[2], 0, WINDOW_MAX_X);
-    const int y = getint(argv[4], 0, WINDOW_MAX_Y);
-    const int width = getint(argv[6], 0, WINDOW_MAX_WIDTH);
-    const int height = getint(argv[8], 0, WINDOW_MAX_HEIGHT);
-    if (width < 1 || height < 1) return kOk;
+    if (argc != 9 && argc != 11) return kArgumentCount;
 
-    MmSurface *dst_surface = &graphics_surfaces[dst_id];
-    if (dst_surface->type == kGraphicsNone) {
-        MmResult result = graphics_buffer_create(dst_id, width, height);
-        if (FAILED(result)) return result;
-    } else if (dst_surface->width != width || dst_surface->height != height) {
-        return kGraphicsSurfaceSizeMismatch;
+    if (has_arg(10) && (mmb_options.simulate == kSimulateGameMite
+            || mmb_options.simulate == kSimulatePicoMiteVga)) {
+        return kUnsupportedParameterOnCurrentDevice;
     }
 
+    MmResult result = kOk;
+    MmSurface *dst_surface = NULL;
+    {
+        MmSurfaceId dst_id = -1;
+        result = sprite
+            ? parse_sprite_id(argv[0], false, &dst_id)
+            : parse_blit_id(argv[0], false, &dst_id);
+        if (result == kGraphicsInvalidSurface) result = kGraphicsInvalidWriteSurface;
+        if (FAILED(result)) return result;
+        dst_surface = &graphics_surfaces[dst_id];
+    }
+
+    // if (sprite && dst_surface->type != kGraphicsSprite
+    //         && dst_surface->type != kGraphicsInactiveSprite) {
+    //     return kGraphicsInvalidSprite;
+    // }
+
+    int x = getint(argv[2], 0, WINDOW_MAX_X);
+    int y = getint(argv[4], 0, WINDOW_MAX_Y);
+    int width = getint(argv[6], 0, WINDOW_MAX_WIDTH);
+    int height = getint(argv[8], 0, WINDOW_MAX_HEIGHT);
+    if (width < 1 || height < 1) return kOk;
+
     MmSurface *src_surface = graphics_current;
-    if (argc == 11) {
-        if (mmb_options.simulate == kSimulateGameMite
-                || mmb_options.simulate == kSimulatePicoMiteVga) {
-            return kUnsupportedParameterOnCurrentDevice;
-        }
+    if (has_arg(10)) {
         MmSurfaceId src_id = -1;
-        MmResult result = parse_read_page(argv[10], &src_id);
+        result = parse_read_page(argv[10], &src_id);
         if (FAILED(result)) return result;
         src_surface = &graphics_surfaces[src_id];
+    }
+
+    if (src_surface->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
+
+    // Not sure we should be doing this.
+    if (x < 0) { width += x; x = 0; }
+    if (y < 0) { height += y; y = 0; }
+    if (x + width > src_surface->width) width = src_surface->width - x;
+    if (y + height > src_surface->height) height = src_surface->height - y;
+    if (width < 1 || height < 1
+            || x < 0 || x + width > src_surface->width
+            || y < 0 || y + height > src_surface->height) return kOk;
+
+    // Create destination sprite/buffer if it does not exist.
+    if (dst_surface->type == kGraphicsNone) {
+        MmResult result = sprite
+                ? graphics_sprite_create(dst_surface->id, width, height)
+                : graphics_buffer_create(dst_surface->id, width, height);
+        if (FAILED(result)) return result;
+    } else {
+        if (dst_surface->width != width || dst_surface->height != height) {
+            return kGraphicsSurfaceSizeMismatch;
+        }
     }
 
     return graphics_blit(x, y, 0, 0, width, height, src_surface, dst_surface, 0x0, RGB_BLACK);
 }
 
-/** BLIT WRITE [#]src_id, x, y [, orientation] */
-MmResult cmd_blit_write(const char *p) {
+/**
+ * BLIT WRITE [#]src_id, x, y [, flags]
+ *
+ * 'flags' is a Bitwise AND of:
+ *     0x01 = mirrored left to right.
+ *     0x02 = mirrored top to bottom.
+ *     0x04 = don't copy transparent pixels
+ * Where 0x0 is the default when unspecified.
+ *
+ * @param  sprite  If true then parse as SPRITE WRITE instead of BLIT WRITE,
+ *                 in which case the default for flags is 0x04.
+ */
+MmResult cmd_blit_write(const char *p, bool sprite) {
     getargs(&p, 7, ",");
-    if (!(argc == 5 || argc == 7)) return kArgumentCount;
-    MmSurfaceId src_id = -1;
-    MmResult result = parse_blit_id(argv[0], true, &src_id);
-    if (result == kGraphicsInvalidSurface) result = kGraphicsInvalidReadSurface;
-    if (FAILED(result)) return result;
-    MmSurface *src_surface = &graphics_surfaces[src_id];
+    if (argc != 5 && argc != 7) return kArgumentCount;
+
+    MmSurface *src_surface = NULL;
+    {
+        MmSurfaceId src_id = -1;
+        MmResult result = sprite
+                ? parse_sprite_id(argv[0], true, &src_id)
+                : parse_blit_id(argv[0], true, &src_id);
+        if (result == kGraphicsInvalidSurface) result = kGraphicsInvalidReadSurface;
+        if (FAILED(result)) return result;
+        src_surface = &graphics_surfaces[src_id];
+    }
 
     const int x = getint(argv[2], -src_surface->width + 1, WINDOW_MAX_X);
     const int y = getint(argv[4], -src_surface->height + 1, WINDOW_MAX_Y);
 
+    const unsigned flags = has_arg(6)
+            ? getint(argv[6], 0, 7)
+            : sprite ? 0x04 : 0x0;
+
     MmSurface *dst_surface = graphics_current;
+    const MmGraphicsColour transparent_colour = sprite ? sprite_transparent_colour : RGB_BLACK;
     return graphics_blit(0, 0, x, y, src_surface->width, src_surface->height, src_surface,
-                         dst_surface, 0x0, RGB_BLACK);
+                         dst_surface, flags, transparent_colour);
 }
 
 /**
@@ -259,9 +314,9 @@ void cmd_blit(void) {
     } else if ((p = checkstring(cmdline, "MEMORY"))) {
         result = cmd_blit_memory(p);
     } else if ((p = checkstring(cmdline, "READ"))) {
-        result = cmd_blit_read(p);
+        result = cmd_blit_read(p, false);
     } else if ((p = checkstring(cmdline, "WRITE"))) {
-        result = cmd_blit_write(p);
+        result = cmd_blit_write(p, false);
     } else {
         result = cmd_blit_default(cmdline);
     }

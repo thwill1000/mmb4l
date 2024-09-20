@@ -519,12 +519,14 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
 MmResult graphics_surface_destroy(MmSurface *surface) {
     assert(surface);
     if (surface->type != kGraphicsNone) {
+        const MmSurfaceId old_id = surface->id;
         SDL_DestroyTexture((SDL_Texture *) surface->texture);
         SDL_DestroyRenderer((SDL_Renderer *) surface->renderer);
         SDL_DestroyWindow((SDL_Window *) surface->window);
         free(surface->pixels);
         free(surface->background);
         memset(surface, 0, sizeof(MmSurface));
+        surface->id = old_id;
         if (graphics_current == surface) graphics_current = NULL;
     }
     return kOk;
