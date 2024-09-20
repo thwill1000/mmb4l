@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <limits.h>
 #include <stdint.h>
+#include <strings.h>
 
 static MmResult cmd_play_continue(const char *p) {
     ERROR_UNIMPLEMENTED("PLAY CONTINUE");
@@ -192,7 +193,17 @@ static MmResult cmd_play_sound(const char *p) {
     } else if (checkstring(argv[2], "B")) {
         channel = kChannelBoth;
     } else {
-        error_throw_ex(kSyntax, "Channel number must be L, R or B");
+        char *s = getCstring(argv[2]);
+        if (strcasecmp("L", s) == 0) {
+            channel = kChannelLeft;
+        } else if (strcasecmp("R", s) == 0) {
+            channel = kChannelRight;
+        } else if (strcasecmp("B", s) == 0) {
+            channel = kChannelBoth;
+        } else {
+            MMRESULT_RETURN_EX(kSyntax, "Channel number must be L, R or B");
+        }
+        ClearSpecificTempMemory(s);
     }
 
     SoundType type = kSoundTypeNull;
@@ -211,18 +222,31 @@ static MmResult cmd_play_sound(const char *p) {
     } else if (checkstring(argv[4], "W")) {
         type = kSoundTypeSawTooth;
     } else {
-        error_throw_ex(kSyntax, "Sound type must be N, O, P, Q, S, T or W");
+        char *s = getCstring(argv[4]);
+        if (strcasecmp("N", s) == 0) {
+            type = kSoundTypeWhiteNoise;
+        } else if (strcasecmp("O", s) == 0) {
+            type = kSoundTypeNull;
+        } else if (strcasecmp("P", s) == 0) {
+            type = kSoundTypePeriodicNoise;
+        } else if (strcasecmp("Q", s) == 0) {
+            type = kSoundTypeSquare;
+        } else if (strcasecmp("S", s) == 0) {
+            type = kSoundTypeSine;
+        } else if (strcasecmp("T", s) == 0) {
+            type = kSoundTypeTriangular;
+        } else if (strcasecmp("W", s) == 0) {
+            type = kSoundTypeSawTooth;
+        } else {
+            MMRESULT_RETURN_EX(kSyntax, "Sound type must be N, O, P, Q, S, T or W");
+        }
+        ClearSpecificTempMemory(s);
     }
 
-    if (type == kSoundTypeNull) {
-        if (argc != 5) return kArgumentCount;
-    } else if (argc < 7) {
-        return kArgumentCount;
-    }
+    if (type != kSoundTypeNull && argc < 7) return kArgumentCount;
 
-    float frequency = (argc > 5) ? (float)getnumber(argv[6]) : 0.0;
-
-    int volume = (argc > 7) ? getint(argv[8], 0, 100 / MAXSOUNDS) : 100 / MAXSOUNDS;
+    float frequency = has_arg(6) ? (float)getnumber(argv[6]) : 0.0;
+    int volume = has_arg(8) ? getint(argv[8], 0, 100 / MAXSOUNDS) : 100 / MAXSOUNDS;
 
     return audio_play_sound(sound_no, channel, type, frequency, volume);
 }
