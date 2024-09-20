@@ -1467,3 +1467,124 @@ TEST_F(ParseTest, ParseWritePage_GivenValidNonExistingPageId_AndNonPicomite) {
     EXPECT_EQ(kGraphicsInvalidWriteSurface, parse_write_page(p, &page_id));
     EXPECT_EQ(1, page_id);
 }
+
+TEST_F(ParseTest, ParseBlitId_GivenSurfaceDoesNotExist) {
+    tokenise_and_append("BLIT READ 1"); // Incomplete command but good enough for test.
+    const char *p = ProgMemory + 8;
+
+    graphics_surfaces[1].type = kGraphicsNone;
+    MmSurfaceId blit_id = -1;
+    EXPECT_EQ(kOk, parse_blit_id(p, false, &blit_id));
+    EXPECT_EQ(1, blit_id);
+
+    EXPECT_EQ(kGraphicsInvalidSurface, parse_blit_id(p, true, &blit_id));
+    EXPECT_EQ(1, blit_id);
+}
+
+TEST_F(ParseTest, ParseBlitId_GivenSurfaceDoesExist) {
+    tokenise_and_append("BLIT READ 1"); // Incomplete command but good enough for test.
+    const char *p = ProgMemory + 8;
+
+    {
+        graphics_surfaces[1].type = kGraphicsBuffer;
+        MmSurfaceId blit_id = -1;
+        EXPECT_EQ(kOk, parse_blit_id(p, false, &blit_id));
+        EXPECT_EQ(1, blit_id);
+
+        EXPECT_EQ(kOk, parse_blit_id(p, true, &blit_id));
+        EXPECT_EQ(1, blit_id);
+    }
+
+    {
+        graphics_surfaces[1].type = kGraphicsSprite;
+        MmSurfaceId blit_id = -1;
+        EXPECT_EQ(kOk, parse_blit_id(p, false, &blit_id));
+        EXPECT_EQ(1, blit_id);
+
+        EXPECT_EQ(kOk, parse_blit_id(p, true, &blit_id));
+        EXPECT_EQ(1, blit_id);
+    }
+
+    {
+        graphics_surfaces[1].type = kGraphicsInactiveSprite;
+        MmSurfaceId blit_id = -1;
+        EXPECT_EQ(kOk, parse_blit_id(p, false, &blit_id));
+        EXPECT_EQ(1, blit_id);
+
+        EXPECT_EQ(kOk, parse_blit_id(p, true, &blit_id));
+        EXPECT_EQ(1, blit_id);
+    }
+
+    {
+        graphics_surfaces[1].type = kGraphicsWindow;
+        MmSurfaceId blit_id = -1;
+        EXPECT_EQ(kOk, parse_blit_id(p, false, &blit_id));
+        EXPECT_EQ(1, blit_id);
+
+        EXPECT_EQ(kOk, parse_blit_id(p, true, &blit_id));
+        EXPECT_EQ(1, blit_id);
+    }
+}
+
+TEST_F(ParseTest, ParseSpriteId_GivenSurfaceDoesNotExist) {
+    tokenise_and_append("SPRITE READ 1"); // Incomplete command but good enough for test.
+    const char *p = ProgMemory + 8;
+
+    graphics_surfaces[1].type = kGraphicsNone;
+    MmSurfaceId sprite_id = -1;
+    EXPECT_EQ(kOk, parse_sprite_id(p, false, &sprite_id));
+    EXPECT_EQ(1, sprite_id);
+
+    EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, true, &sprite_id));
+    EXPECT_EQ(1, sprite_id);
+}
+
+TEST_F(ParseTest, ParseSpriteId_GivenSurfaceExists_AndIsSprite) {
+    tokenise_and_append("SPRITE READ 1"); // Incomplete command but good enough for test.
+    const char *p = ProgMemory + 8;
+
+    {
+        graphics_surfaces[1].type = kGraphicsSprite;
+        MmSurfaceId sprite_id = -1;
+        EXPECT_EQ(kOk, parse_sprite_id(p, false, &sprite_id));
+        EXPECT_EQ(1, sprite_id);
+
+        EXPECT_EQ(kOk, parse_sprite_id(p, true, &sprite_id));
+        EXPECT_EQ(1, sprite_id);
+    }
+
+    {
+        graphics_surfaces[1].type = kGraphicsInactiveSprite;
+        MmSurfaceId sprite_id = -1;
+        EXPECT_EQ(kOk, parse_sprite_id(p, false, &sprite_id));
+        EXPECT_EQ(1, sprite_id);
+
+        EXPECT_EQ(kOk, parse_sprite_id(p, true, &sprite_id));
+        EXPECT_EQ(1, sprite_id);
+    }
+}
+
+TEST_F(ParseTest, ParseSpriteId_GivenSurfaceExists_ButIsNotSprite) {
+    tokenise_and_append("BLIT READ 1"); // Incomplete command but good enough for test.
+    const char *p = ProgMemory + 8;
+
+    {
+        graphics_surfaces[1].type = kGraphicsBuffer;
+        MmSurfaceId sprite_id = -1;
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, false, &sprite_id));
+        EXPECT_EQ(1, sprite_id);
+
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, true, &sprite_id));
+        EXPECT_EQ(1, sprite_id);
+    }
+
+    {
+        graphics_surfaces[1].type = kGraphicsWindow;
+        MmSurfaceId sprite_id = -1;
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, false, &sprite_id));
+        EXPECT_EQ(1, sprite_id);
+
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, true, &sprite_id));
+        EXPECT_EQ(1, sprite_id);
+    }
+}

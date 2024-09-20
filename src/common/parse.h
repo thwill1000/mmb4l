@@ -181,24 +181,25 @@ MmResult parse_read_page(const char *p, MmSurfaceId *page_id);
 MmResult parse_write_page(const char *p, MmSurfaceId *page_id);
 
 /**
- * Parses a blit/buffer/surface ID.
+ * Parses a surface ID for use as the 'this' argument in a BLIT command.
  *
  * @param[in]   p         Parse from this pointer.
- * @param[in]   existing  Return an error if blit/buffer/surface does not exist.
- * @param[out]  blit_id   On exit, the blit/buffer/surface ID.
- * @return                kGraphicsInvalidSurface if the blit/buffer/surface
- *                        does not exist and existing == true.
+ * @param[in]   existing  Return an error if surface does not exist.
+ * @param[out]  blit_id   On exit, the surface ID.
+ * @return                kGraphicsSurfaceNotFound if the surface does not exist
+ *                        and existing == true.
  */
 MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id);
 
 /**
- * Parses a sprite/surface ID.
+ * Parses a surface ID for use as the 'this' argument in a SPRITE command/function.
  *
  * @param[in]   p          Parse from this pointer.
- * @param[in]   existing   Return an error if sprite/surface does not exist.
- * @param[out]  sprite_id  On exit, the sprite/surface ID.
- * @return                 kGraphicsInvalidSprite if the sprite/surface does not exist
- *                         and existing == true.
+ * @param[in]   existing   Return an error if surface does not exist.
+ * @param[out]  sprite_id  On exit, the surface ID.
+ * @return                 kGraphicsSurfaceNotFound if the surface does not exist and
+ *                         existing == true.
+ *                         kInvalidSprite if the surface does exist but is not a sprite.
  */
 MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id);
 
