@@ -50,6 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 MmResult cmd_blit_compressed(const char *p);
 MmResult cmd_blit_framebuffer(const char *p);
 MmResult cmd_blit_memory(const char *p);
+MmResult cmd_blit_read(const char *p, bool sprite);
+MmResult cmd_blit_write(const char *p, bool sprite);
 
 /** SPRITE CLOSE [#]id */
 static MmResult cmd_sprite_close(const char *p) {
@@ -159,60 +161,12 @@ static MmResult cmd_sprite_nointerrupt(const char *p) {
     return kOk;
 }
 
-/** SPRITE READ [#]id, x, y, w, h [, src_id] */
-static MmResult cmd_sprite_read(const char *p) {
-    getargs(&p, 11, ",");
-    if (argc != 9 && argc != 11) return kArgumentCount;
-
-    MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], false, &sprite_id);
-    if (FAILED(result)) return result;
-    MmSurface *sprite = &graphics_surfaces[sprite_id];
-
-    int x = getint(argv[2], 0, WINDOW_MAX_X);
-    int y = getint(argv[4], 0, WINDOW_MAX_Y);
-    int w = getint(argv[6], 0, WINDOW_MAX_WIDTH);
-    int h = getint(argv[8], 0, WINDOW_MAX_HEIGHT);
-
-    MmSurfaceId src_id = -1;
-    result = (argc == 11) ? parse_read_page(argv[10], &src_id) : kOk;
-    if (FAILED(result)) return result;
-    MmSurface *src_surface = (src_id == -1) ? graphics_current : &graphics_surfaces[src_id];
-    if (src_surface->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
-
-    if (x < 0) { w += x; x = 0; }
-    if (y < 0) { h += y; y = 0; }
-    if (x + w > src_surface->width) w = src_surface->width - x;
-    if (y + w > src_surface->height) h = src_surface->height - y;
-    if (w < 1 || h < 1 || x < 0 || x + w > src_surface->width || y < 0
-            || y + h > src_surface->height) return kOk;
-
-    switch (sprite->type) {
-        case kGraphicsNone: {
-            MmResult result = graphics_sprite_create(sprite_id, w, h);
-            if (FAILED(result)) return result;
-            break;
-        }
-
-        case kGraphicsSprite:
-        case kGraphicsInactiveSprite: {
-            if (sprite->width != w || sprite->height != h) {
-                return kGraphicsSurfaceSizeMismatch;
-            }
-            break;
-        }
-
-        case kGraphicsBuffer:
-        case kGraphicsWindow: {
-            return kGraphicsInvalidSprite;
-        }
-
-        default: {
-            return kInternalFault;
-        }
-    }
-
-    return graphics_blit(x, y, 0, 0, w, h, src_surface, sprite, 0x0, RGB_BLACK);
+/**
+ * SPRITE READ [#]id, x, y, width, height [, src_id] 
+ *  - <src_id> parameter unsupported on PicoMite{VGA}.
+ */
+static inline MmResult cmd_sprite_read(const char *p) {
+    return cmd_blit_read(p, true);
 }
 
 /** SPRITE RESTORE */
@@ -318,21 +272,8 @@ static MmResult cmd_sprite_show_safe(const char *p) {
  *     0x04 = don't copy transparent pixels
  * Where 0x04 is the default when unspecified.
  */
-MmResult cmd_sprite_write(const char *p) {
-    getargs(&p, 7, ",");
-    if (argc != 5 && argc != 7) return kArgumentCount;
-
-    MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], true, &sprite_id);
-    if (FAILED(result)) return result;
-    MmSurface *sprite = &graphics_surfaces[sprite_id];
-
-    const int x = getint(argv[2], -sprite->width + 1, WINDOW_MAX_X);
-    const int y = getint(argv[4], -sprite->height + 1, WINDOW_MAX_Y);
-    unsigned flags = (argc == 7) ? getint(argv[6], 0, 7) : 0x04;
-
-    return graphics_blit(0, 0, x, y, sprite->width, sprite->height, sprite, graphics_current, flags,
-                         sprite_transparent_colour);
+static inline MmResult cmd_sprite_write(const char *p) {
+    return cmd_blit_write(p, true);
 }
 
 #define ELSE_IF_UNIMPLEMENTED(s) \
