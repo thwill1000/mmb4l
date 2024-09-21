@@ -25,6 +25,7 @@ Dim cmd$
 Dim gamepad_present%(2)
 
 Console Clear
+Cls
 
 On Error Skip
 snes_a(ctrl.OPEN)

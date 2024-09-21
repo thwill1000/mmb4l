@@ -2,7 +2,10 @@ Option Base 0
 Option Default None
 Option Explicit
 
-Option Simulate "Game*Mite"
+If Mm.Device$ = "MMB4L" Then
+  Option Simulate "Game*Mite"
+  ' Graphics Write None
+EndIf
 
 Const ctrl.OPEN = -1
 Const ctrl.CLOSE = -2
@@ -11,7 +14,7 @@ Const ctrl.SOFT_CLOSE = -3
 Dim cmd$
 Dim gamepad_present%(1)
 
-Console Clear
+Cls
 
 On Error Ignore
 ctrl.gamemite(ctrl.OPEN)
