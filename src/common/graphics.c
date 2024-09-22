@@ -1499,11 +1499,13 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
     if (!src_surface || src_surface->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
     if (!dst_surface || dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
 
-    if (flags == 0x0 && src_x == 0 && src_y == 0 && dst_x == 0 && dst_y == 0
+    if (src_surface != dst_surface && flags == 0x0
+            && src_x == 0 && src_y == 0 && dst_x == 0 && dst_y == 0
             && src_surface->width == w && dst_surface->width == w
             && src_surface->height == h && dst_surface->height == h) {
         // Simplest case, blit the whole buffer without any transformations.
         memcpy(dst_surface->pixels, src_surface->pixels, w * h * sizeof(uint32_t));
+        dst_surface->dirty = true;
         return kOk;
     }
 
@@ -1567,6 +1569,23 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
 
     if (w == 0 || h == 0) return kOk;
 
+    // If source and destination surfaces overlap then copy source surface to temporary surface.
+    MmSurface tmp_surface = { .width = w, .height = h, .pixels = NULL };
+    if (src_surface == dst_surface) {
+        tmp_surface.pixels = GetTempMemory(w * h * sizeof(uint32_t));
+        if (!tmp_surface.pixels) return kOutOfMemory;
+        uint32_t *src = src_surface->pixels + (src_y * src_surface->width) + src_x;
+        uint32_t *dst = tmp_surface.pixels;
+        for (int i = 0; i < h; ++i) {
+            memcpy(dst, src, w << 2);
+            src += src_surface->width;
+            dst += tmp_surface.width;
+        }
+        src_surface = &tmp_surface;
+        src_x = 0;
+        src_y = 0;
+    }
+
     uint32_t *src = src_surface->pixels + (src_y * src_surface->width) + src_x;
     uint32_t *dst = dst_surface->pixels;
     int pdelta = 0; // Added to dst after writing each pixel.
@@ -1574,22 +1593,23 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
 
     dst_surface->dirty = true;
 
-    // TODO: If read and write surfaces overlap then copy read surface to temporary buffer.
-
     switch (flags & 0x3) {
         case kBlitNormal: {
             dst += (dst_y * dst_surface->width) + dst_x;
-            if (!(flags & kBlitWithTransparency)) {
+            if (flags & kBlitWithTransparency) {
+                pdelta = 1;
+                ldelta = dst_surface->width - w;
+            } else {
                 // Optimised using memcpy.
-                for (int i = 0; i < h; i++) {
+                for (int i = 0; i < h; ++i) {
                     memcpy(dst, src, w << 2);
                     src += src_surface->width;
                     dst += dst_surface->width;
                 }
-                return kOk;
+                // Set height == width == 0 to skip copying by later code.
+                w = 0;
+                h = 0;
             }
-            pdelta = 1;
-            ldelta = dst_surface->width - w;
             break;
         }
 
@@ -1629,8 +1649,8 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
     // printf("pdelta:              %d\n", pdelta);
     // printf("ldelta:              %d\n", ldelta);
 
-    for (int i = 0; i < h; i++) {
-        for (int j = 0; j < w; j++) {
+    for (int i = 0; i < h; ++i) {
+        for (int j = 0; j < w; ++j) {
             if ((flags & kBlitWithTransparency) && *src == transparent) {
                 src++;
             } else {
@@ -1642,6 +1662,7 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
         dst += ldelta;
     }
 
+    if (tmp_surface.pixels) ClearSpecificTempMemory(tmp_surface.pixels);
     return kOk;
 }
 

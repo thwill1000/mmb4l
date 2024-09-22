@@ -697,7 +697,7 @@ TEST_F(GraphicsTest, Blit_GivenHorizontalFlip_AndVerticalFlip_AndDestinationArea
         << format_pixels(dst->pixels, dst->width, dst->height);
 }
 
-TEST_F(GraphicsTest, Blit_GivenPartOfSource) {
+TEST_F(GraphicsTest, Blit_GivenPartialSurface) {
     EXPECT_EQ(kOk, graphics_blit(1, 1, 2, 3, 4, 5, src, dst, kBlitNormal, 0));
 
     // clang-format off
@@ -717,7 +717,7 @@ TEST_F(GraphicsTest, Blit_GivenPartOfSource) {
         << format_pixels(dst->pixels, dst->width, dst->height);
 }
 
-TEST_F(GraphicsTest, Blit_GivenWithTransparency_AndPartOfSource) {
+TEST_F(GraphicsTest, Blit_GivenWithTransparency_AndPartialSurface) {
     EXPECT_EQ(kOk, graphics_blit(1, 1, 2, 3, 4, 5, src, dst, kBlitWithTransparency, 0));
 
     // clang-format off
@@ -737,7 +737,7 @@ TEST_F(GraphicsTest, Blit_GivenWithTransparency_AndPartOfSource) {
         << format_pixels(dst->pixels, dst->width, dst->height);
 }
 
-TEST_F(GraphicsTest, Blit_GivenHorizontalFlip_AndPartOfSource) {
+TEST_F(GraphicsTest, Blit_GivenHorizontalFlip_AndPartialSurface) {
     EXPECT_EQ(kOk, graphics_blit(1, 1, 2, 3, 4, 5, src, dst, kBlitHorizontalFlip, 0));
 
     // clang-format off
@@ -757,7 +757,7 @@ TEST_F(GraphicsTest, Blit_GivenHorizontalFlip_AndPartOfSource) {
         << format_pixels(dst->pixels, dst->width, dst->height);
 }
 
-TEST_F(GraphicsTest, Blit_GivenVerticalFlip_AndPartOfSource) {
+TEST_F(GraphicsTest, Blit_GivenVerticalFlip_AndPartialSurface) {
     EXPECT_EQ(kOk, graphics_blit(1, 1, 2, 3, 4, 5, src, dst, kBlitVerticalFlip, 0));
 
     // clang-format off
@@ -777,7 +777,7 @@ TEST_F(GraphicsTest, Blit_GivenVerticalFlip_AndPartOfSource) {
         << format_pixels(dst->pixels, dst->width, dst->height);
 }
 
-TEST_F(GraphicsTest, Blit_GivenHorizontalFlip_AndVerticalFlip_AndPartOfSource) {
+TEST_F(GraphicsTest, Blit_GivenHorizontalFlip_AndVerticalFlip_AndPartialSurface) {
     EXPECT_EQ(kOk, graphics_blit(1, 1, 2, 3, 4, 5, src, dst,
                                  kBlitHorizontalFlip | kBlitVerticalFlip, 0));
 
@@ -792,6 +792,85 @@ TEST_F(GraphicsTest, Blit_GivenHorizontalFlip_AndVerticalFlip_AndPartOfSource) {
         9, 9, 0, 1, 0, 0, 9,
         9, 9, 0, 1, 0, 0, 9,
         9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
+                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
+        << format_pixels(dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsTest, Blit_GivenWholeSurface_GivenSameSurface) {
+    graphics_blit(0, 0, 0, 0, 7, 9, src, dst, kBlitNormal, 0);
+
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 0, 0, 7, 9, dst, dst, kBlitNormal, 0));
+
+    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
+                ::testing::ElementsAreArray(DEFAULT_SRC_PIXELS,
+                                            sizeof(DEFAULT_SRC_PIXELS) / sizeof(uint32_t)))
+        << format_pixels(dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsTest, Blit_GivenHorizonalFlip_AndVerticalFlip_AndWholeSurface_AndSameSurface) {
+    graphics_blit(0, 0, 0, 0, 7, 9, src, dst, kBlitNormal, 0);
+
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 0, 0, 7, 9, dst, dst,
+                                 kBlitHorizontalFlip | kBlitVerticalFlip, 0));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        2, 2, 2, 5, 4, 4, 4,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0 };
+    // clang-format on
+    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
+                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
+        << format_pixels(dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsTest, Blit_GivenHorizonalFlip_AndVerticalFlip_AndPartialSurface_AndSameSurface) {
+    graphics_blit(0, 0, 0, 0, 7, 9, src, dst, kBlitNormal, 0);
+
+    EXPECT_EQ(kOk, graphics_blit(2, 2, 2, 2, 3, 5, dst, dst,
+                                 kBlitHorizontalFlip | kBlitVerticalFlip, 0));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        4, 4, 2, 5, 4, 2, 2,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0 };
+    // clang-format on
+    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
+                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
+        << format_pixels(dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsTest, Blit_GivenHorizonalFlip_AndVerticalFlip_AndPositiveSourceOffset_AndSameSurface) {
+    graphics_blit(0, 0, 0, 0, 7, 9, src, dst, kBlitNormal, 0);
+    EXPECT_EQ(kOk, graphics_blit(1, 2, 0, 0, 7, 9, dst, dst,
+                                 kBlitHorizontalFlip | kBlitVerticalFlip, 0));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 0, 3, 0, 0,
+        0, 0, 0, 0, 3, 0, 0,
+        4, 0, 0, 0, 3, 0, 0,
+        0, 0, 0, 0, 3, 0, 0,
+        0, 2, 2, 2, 5, 4, 4,
+        0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0 };
     // clang-format on
     EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
                 ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
