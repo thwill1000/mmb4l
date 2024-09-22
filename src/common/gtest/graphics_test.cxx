@@ -85,15 +85,15 @@ void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *arg
 
 // clang-format off
 static const uint32_t DEFAULT_SRC_PIXELS[] = {
-    0, 0, 1, 0, 0, 0, 0,
-    0, 0, 2, 0, 0, 0, 0,
-    0, 0, 3, 0, 0, 0, 0,
-    4, 5, 6, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0 };
+    0, 0, 0, 1, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0,
+    4, 4, 4, 5, 2, 2, 2,
+    0, 0, 0, 3, 0, 0, 0,
+    0, 0, 0, 3, 0, 0, 0,
+    0, 0, 0, 3, 0, 0, 0,
+    0, 0, 0, 3, 0, 0, 0 };
 
 static const uint32_t DEFAULT_DST_PIXELS[] = {
     9, 9, 9, 9, 9, 9, 9,
@@ -157,15 +157,15 @@ TEST_F(GraphicsTest, Blit_GivenHorizontalFlip) {
 
     // clang-format off
     const uint32_t expected[] = {
-        0, 0, 0, 0, 1, 0, 0,
-        0, 0, 0, 0, 2, 0, 0,
-        0, 0, 0, 0, 3, 0, 0,
-        0, 0, 0, 0, 6, 5, 4,
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0 };
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        2, 2, 2, 5, 4, 4, 4,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0 };
     // clang-format on
     EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
                 ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
@@ -177,15 +177,15 @@ TEST_F(GraphicsTest, Blit_GivenVerticalFlip) {
 
     // clang-format off
     const uint32_t expected[] = {
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        4, 5, 6, 0, 0, 0, 0,
-        0, 0, 3, 0, 0, 0, 0,
-        0, 0, 2, 0, 0, 0, 0,
-        0, 0, 1, 0, 0, 0, 0 };
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        4, 4, 4, 5, 2, 2, 2,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0 };
     // clang-format on
     EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
                 ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
@@ -198,15 +198,15 @@ TEST_F(GraphicsTest, Blit_GivenHorizontalFlip_AndVerticalFlip) {
 
     // clang-format off
     const uint32_t expected[] = {
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 6, 5, 4,
-        0, 0, 0, 0, 3, 0, 0,
-        0, 0, 0, 0, 2, 0, 0,
-        0, 0, 0, 0, 1, 0, 0 };
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        0, 0, 0, 3, 0, 0, 0,
+        2, 2, 2, 5, 4, 4, 4,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0 };
     // clang-format on
     EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
                 ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
@@ -218,15 +218,15 @@ TEST_F(GraphicsTest, Blit_GivenWithTransparency) {
 
     // clang-format off
     const uint32_t expected[] = {
-        9, 9, 1, 9, 9, 9, 9,
-        9, 9, 2, 9, 9, 9, 9,
-        9, 9, 3, 9, 9, 9, 9,
-        4, 5, 6, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9 };
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        4, 4, 4, 5, 2, 2, 2,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9 };
     // clang-format on
     EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
                 ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
@@ -239,15 +239,15 @@ TEST_F(GraphicsTest, Blit_GivenWithTransparency_AndHorizontalFlip) {
 
     // clang-format off
     const uint32_t expected[] = {
-        9, 9, 9, 9, 1, 9, 9,
-        9, 9, 9, 9, 2, 9, 9,
-        9, 9, 9, 9, 3, 9, 9,
-        9, 9, 9, 9, 6, 5, 4,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9 };
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        2, 2, 2, 5, 4, 4, 4,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9 };
     // clang-format on
     EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
                 ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
@@ -260,15 +260,15 @@ TEST_F(GraphicsTest, Blit_GivenWithTransparency_AndVerticalFlip) {
 
     // clang-format off
     const uint32_t expected[] = {
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        4, 5, 6, 9, 9, 9, 9,
-        9, 9, 3, 9, 9, 9, 9,
-        9, 9, 2, 9, 9, 9, 9,
-        9, 9, 1, 9, 9, 9, 9 };
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        4, 4, 4, 5, 2, 2, 2,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9 };
     // clang-format on
     EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
                 ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
@@ -282,15 +282,15 @@ TEST_F(GraphicsTest, Blit_GivenWithTransparency_AndHorizontalFlip_AndVerticalFli
 
     // clang-format off
     const uint32_t expected[] = {
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 6, 5, 4,
-        9, 9, 9, 9, 3, 9, 9,
-        9, 9, 9, 9, 2, 9, 9,
-        9, 9, 9, 9, 1, 9, 9 };
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        9, 9, 9, 3, 9, 9, 9,
+        2, 2, 2, 5, 4, 4, 4,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9,
+        9, 9, 9, 1, 9, 9, 9 };
     // clang-format on
     EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
                 ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
@@ -305,12 +305,12 @@ TEST_F(GraphicsTest, Blit_GivenNegativeSourceOffset) {
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9,
-        9, 9, 0, 0, 1, 0, 0,
-        9, 9, 0, 0, 2, 0, 0,
-        9, 9, 0, 0, 3, 0, 0,
-        9, 9, 4, 5, 6, 0, 0,
-        9, 9, 0, 0, 0, 0, 0,
-        9, 9, 0, 0, 0, 0, 0 };
+        9, 9, 0, 0, 0, 1, 0,
+        9, 9, 0, 0, 0, 1, 0,
+        9, 9, 0, 0, 0, 1, 0,
+        9, 9, 0, 0, 0, 1, 0,
+        9, 9, 4, 4, 4, 5, 2,
+        9, 9, 0, 0, 0, 3, 0 };
     // clang-format on
     EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
                 ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
@@ -322,13 +322,13 @@ TEST_F(GraphicsTest, Blit_GivenPositiveSourceOffset) {
 
     // clang-format off
     const uint32_t expected[] = {
-        0, 3, 0, 0, 0, 0, 9,
-        5, 6, 0, 0, 0, 0, 9,
-        0, 0, 0, 0, 0, 0, 9,
-        0, 0, 0, 0, 0, 0, 9,
-        0, 0, 0, 0, 0, 0, 9,
-        0, 0, 0, 0, 0, 0, 9,
-        0, 0, 0, 0, 0, 0, 9,
+        0, 0, 1, 0, 0, 0, 9,
+        0, 0, 1, 0, 0, 0, 9,
+        4, 4, 5, 2, 2, 2, 9,
+        0, 0, 3, 0, 0, 0, 9,
+        0, 0, 3, 0, 0, 0, 9,
+        0, 0, 3, 0, 0, 0, 9,
+        0, 0, 3, 0, 0, 0, 9,
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
@@ -342,13 +342,13 @@ TEST_F(GraphicsTest, Blit_GivenNegativeDestinationOffset) {
 
     // clang-format off
     const uint32_t expected[] = {
-        0, 3, 0, 0, 0, 0, 9,
-        5, 6, 0, 0, 0, 0, 9,
-        0, 0, 0, 0, 0, 0, 9,
-        0, 0, 0, 0, 0, 0, 9,
-        0, 0, 0, 0, 0, 0, 9,
-        0, 0, 0, 0, 0, 0, 9,
-        0, 0, 0, 0, 0, 0, 9,
+        0, 0, 1, 0, 0, 0, 9,
+        0, 0, 1, 0, 0, 0, 9,
+        4, 4, 5, 2, 2, 2, 9,
+        0, 0, 3, 0, 0, 0, 9,
+        0, 0, 3, 0, 0, 0, 9,
+        0, 0, 3, 0, 0, 0, 9,
+        0, 0, 3, 0, 0, 0, 9,
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
@@ -365,12 +365,12 @@ TEST_F(GraphicsTest, Blit_GivenPositiveDestinationOffset) {
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9,
-        9, 9, 0, 0, 1, 0, 0,
-        9, 9, 0, 0, 2, 0, 0,
-        9, 9, 0, 0, 3, 0, 0,
-        9, 9, 4, 5, 6, 0, 0,
-        9, 9, 0, 0, 0, 0, 0,
-        9, 9, 0, 0, 0, 0, 0 };
+        9, 9, 0, 0, 0, 1, 0,
+        9, 9, 0, 0, 0, 1, 0,
+        9, 9, 0, 0, 0, 1, 0,
+        9, 9, 0, 0, 0, 1, 0,
+        9, 9, 4, 4, 4, 5, 2,
+        9, 9, 0, 0, 0, 3, 0 };
     // clang-format on
     EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
                 ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
@@ -414,17 +414,17 @@ TEST_F(GraphicsTest, Blit_GivenDestinationAreaOffBottomRightOfDestinationSurface
 }
 
 TEST_F(GraphicsTest, Blit_GivenPartOfSource) {
-    EXPECT_EQ(kOk, graphics_blit(1, 1, 4, 4, 2, 3, src, dst, kBlitNormal, 0));
+    EXPECT_EQ(kOk, graphics_blit(1, 1, 2, 3, 4, 4, src, dst, kBlitNormal, 0));
 
     // clang-format off
     const uint32_t expected[] = {
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 0, 2, 9,
-        9, 9, 9, 9, 0, 3, 9,
-        9, 9, 9, 9, 5, 6, 9,
+        9, 9, 0, 0, 1, 0, 9,
+        9, 9, 0, 0, 1, 0, 9,
+        9, 9, 0, 0, 1, 0, 9,
+        9, 9, 4, 4, 5, 2, 9,
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
@@ -434,17 +434,17 @@ TEST_F(GraphicsTest, Blit_GivenPartOfSource) {
 }
 
 TEST_F(GraphicsTest, Blit_GivenWithTransparency_AndPartOfSource) {
-    EXPECT_EQ(kOk, graphics_blit(1, 1, 4, 4, 2, 3, src, dst, kBlitWithTransparency, 0));
+    EXPECT_EQ(kOk, graphics_blit(1, 1, 2, 3, 4, 4, src, dst, kBlitWithTransparency, 0));
 
     // clang-format off
     const uint32_t expected[] = {
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 9, 9,
-        9, 9, 9, 9, 9, 2, 9,
-        9, 9, 9, 9, 9, 3, 9,
-        9, 9, 9, 9, 5, 6, 9,
+        9, 9, 9, 9, 1, 9, 9,
+        9, 9, 9, 9, 1, 9, 9,
+        9, 9, 9, 9, 1, 9, 9,
+        9, 9, 4, 4, 5, 2, 9,
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
