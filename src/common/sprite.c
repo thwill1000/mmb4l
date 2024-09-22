@@ -169,7 +169,8 @@ static inline MmResult sprite_render_background(MmSurface *sprite, MmSurface *ds
     assert(dst);
     assert(dst->type != kGraphicsNone);
     MmSurface background =
-        { .width = sprite->width, .height = sprite->height, .pixels = sprite->background };
+        { .type = kGraphicsBuffer, .width = sprite->width, .height = sprite->height,
+          .pixels = sprite->background };
     return graphics_blit(0, 0, sprite->x, sprite->y, sprite->width, sprite->height, &background,
                          dst, 0x0, -1);
 }
@@ -186,7 +187,8 @@ static inline MmResult sprite_update_background(MmSurface *sprite, MmSurface *sr
     assert(src);
     assert(src->type != kGraphicsNone);
     MmSurface background =
-        { .width = sprite->width, .height = sprite->height, .pixels = sprite->background };
+        { .type = kGraphicsBuffer, .width = sprite->width, .height = sprite->height,
+          .pixels = sprite->background };
     return graphics_blit(sprite->x, sprite->y, 0, 0, sprite->width, sprite->height, src,
                          &background, 0x0, -1);
 }
