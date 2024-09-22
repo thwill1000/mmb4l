@@ -1493,38 +1493,76 @@ MmResult graphics_load_sprite(const char *filename, uint8_t start_sprite_id, uin
 MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
                        MmSurface *src_surface, MmSurface *dst_surface, unsigned flags,
                        MmGraphicsColour transparent) {
-    // printf("graphics_blit: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, src_id = %d, dst_id = %d\n",
+    // printf("graphics_blit - BEFORE: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, src_id = %d, dst_id = %d\n",
     //       src_x, src_y, dst_x, dst_y, w, h, src_surface->id, dst_surface->id);
+
+    if (!src_surface || src_surface->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
+    if (!dst_surface || dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
+
+    if (flags == 0x0 && src_x == 0 && src_y == 0 && dst_x == 0 && dst_y == 0
+            && src_surface->width == w && dst_surface->width == w
+            && src_surface->height == h && dst_surface->height == h) {
+        // Simplest case, blit the whole buffer without any transformations.
+        memcpy(dst_surface->pixels, src_surface->pixels, w * h * sizeof(uint32_t));
+        return kOk;
+    }
+
+    // I'm not entirely convinced by this jiggery-pokery as it was arrived at
+    // through trial, error and unit testing rather than real understanding.
+    if (flags & kBlitHorizontalFlip) {
+        if ((src_x > 0) && (src_x + w >= src_surface->width)) {
+            dst_x += src_x;
+        } else if ((dst_x > 0) && (dst_x + w >= dst_surface->width)) {
+            src_x += dst_x;
+        }
+    } else {
+        if (src_x < 0) dst_x -= src_x;
+    }
+
+    // Likewise ...
+    if (flags & kBlitVerticalFlip) {
+        if ((src_y > 0) && (src_y + h >= src_surface->height)) {
+            dst_y += src_y;
+        } else if ((dst_y > 0) && (dst_y + h >= dst_surface->height)) {
+            src_y += dst_y;
+        }
+    } else {
+        if (src_y < 0) dst_y -= src_y;
+    }
 
     if (src_x < 0) {
         w = max(0, w + src_x);
-        dst_x -= src_x;
         src_x = 0;
     }
     if (src_x + w >= src_surface->width) w = max(0, src_surface->width - src_x);
 
     if (src_y < 0) {
         h = max(0, h + src_y);
-        dst_y -= src_y;
         src_y = 0;
     }
     if (src_y + h >= src_surface->height) h = max(0, src_surface->height - src_y);
 
     if (dst_x < 0) {
         w = max(0, w + dst_x);
-        src_x -= dst_x;
+        if (!(flags & kBlitHorizontalFlip)) {
+            // Likewise ...
+            src_x -= dst_x;
+        }
         dst_x = 0;
     }
     if (dst_x + w >= dst_surface->width) w = max(0, dst_surface->width - dst_x);
 
     if (dst_y < 0) {
         h = max(0, h + dst_y);
-        src_y -= dst_y;
+        if (!(flags & kBlitVerticalFlip)) {
+            // Likewise ...
+            src_y -= dst_y;
+        }
         dst_y = 0;
     }
     if (dst_y + h >= dst_surface->height) h = max(0, dst_surface->height - dst_y);
 
-    // printf("graphics_blit: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, src_id = %d, dst_id = %d\n",
+    // printf("graphics_blit - AFTER: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, src_id = %d, dst_id = %d\n",
     //       src_x, src_y, dst_x, dst_y, w, h, src_surface->id, dst_surface->id);
 
     if (w == 0 || h == 0) return kOk;
@@ -1576,13 +1614,20 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
         {
             dst += ((dst_y + h - 1) * dst_surface->width) + dst_x + w - 1;
             pdelta = -1;
-            ldelta = 0;
+            ldelta = -(dst_surface->width - w);
             break;
         }
 
         default:
             return kInternalFault;
     }
+
+    // printf("src_surface->pixels: %p\n", src_surface->pixels);
+    // printf("src:                 %p\n", src);
+    // printf("dst_surface->pixels: %p\n", dst_surface->pixels);
+    // printf("dst:                 %p\n", dst);
+    // printf("pdelta:              %d\n", pdelta);
+    // printf("ldelta:              %d\n", ldelta);
 
     for (int i = 0; i < h; i++) {
         for (int j = 0; j < w; j++) {
