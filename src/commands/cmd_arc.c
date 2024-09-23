@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param  r2  Outer radius of the arc, can be omitted if 1 pixel wide.
  */
 void cmd_arc(void) {
-    if (!graphics_current) error_throw(kGraphicsSurfaceNotFound);
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
     getargs(&cmdline, 13, ",");
     if (argc != 11 && argc != 13) error_throw(kArgumentCount);

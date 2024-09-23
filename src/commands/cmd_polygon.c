@@ -208,7 +208,7 @@ static MmResult cmd_polygon_multiple(int argc, char **argv) {
  * POLYGON n(), x(), y() [, bordercolour()] [, fillcolour()]
  */
 void cmd_polygon(void) {
-    if (!graphics_current) error_throw(kGraphicsSurfaceNotFound);
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
     getargs(&cmdline, 9, ",");
 

@@ -148,7 +148,8 @@ static void cmd_triangle_default(const char *p) {
 }
 
 void cmd_triangle(void) {
-    if (!graphics_current) error_throw(kGraphicsSurfaceNotFound);
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
+
     const char *p;
     if ((p = checkstring(cmdline, "SAVE"))) {
         cmd_triangle_save(p);

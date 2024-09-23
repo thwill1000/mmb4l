@@ -196,7 +196,7 @@ static void cmd_circle_default(void) {
 }
 
 void cmd_circle(void) {
-    if (!graphics_current) error_throw(kGraphicsSurfaceNotFound);
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
     if (false /*CMM1*/) {
         cmd_circle_cmm1();

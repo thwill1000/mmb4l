@@ -106,7 +106,7 @@ static bool GetJustification(char* p, TextHAlign* jh, TextVAlign* jv, TextOrient
 
 /** TEXT x, y, string$ [, alignment$] [, font] [, scale] [, fcolour] [, bcolour] */
 void cmd_text(void) {
-    if (!graphics_current) error_throw(kGraphicsSurfaceNotFound);
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
     TextHAlign jh = 0;
     TextVAlign jv = 0;

@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   - width, colour and fill may optionally be arrays.
  */
 void cmd_box(void) {
-    if (!graphics_current) error_throw(kGraphicsSurfaceNotFound);
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
     int x1, y1, wi, h, w = 0, n = 0, i, nc = 0, nw = 0, nf = 0, hmod, wmod;
     MMINTEGER *x1ptr, *y1ptr, *wiptr, *hptr, *wptr, *cptr, *fptr;

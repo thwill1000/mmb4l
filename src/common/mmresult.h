@@ -118,8 +118,6 @@ typedef enum {
     kGraphicsLoadBitmapFailed,
     kGraphicsReadAndWriteSurfaceSame,
     kGraphicsSurfaceAlreadyExists,
-    kGraphicsSurfaceNotCreated,
-    kGraphicsSurfaceNotFound,
     kGraphicsSurfaceSizeMismatch,
     kGraphicsSurfaceTooLarge,
     kGraphicsTooManySprites,

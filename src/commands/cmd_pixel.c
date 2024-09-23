@@ -114,7 +114,8 @@ static MmResult cmd_pixel_default(const char *p) {
 }
 
 void cmd_pixel(void) {
-    if (!graphics_current) error_throw(kGraphicsSurfaceNotFound);
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
+
     MmResult result = kOk;
     if (false /* CMM1 */) {
         result = cmd_pixel_cmm1(cmdline);

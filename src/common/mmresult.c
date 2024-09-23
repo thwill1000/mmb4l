@@ -147,8 +147,6 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsLoadBitmapFailed:   return "Bitmap could not be loaded";
         case kGraphicsReadAndWriteSurfaceSame: return "Graphics read and write surfaces are the same";
         case kGraphicsSurfaceAlreadyExists: return "Graphics surface already exists";
-        case kGraphicsSurfaceNotCreated:  return "Graphics surface could not be created";
-        case kGraphicsSurfaceNotFound:    return "Graphics surface does not exist";
         case kGraphicsSurfaceSizeMismatch: return "Graphics surface size mismatch";
         case kGraphicsSurfaceTooLarge:    return "Graphics surface too large";
         case kGraphicsTooManySprites:     return "Maximum of 64 sprites";

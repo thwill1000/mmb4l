@@ -89,7 +89,7 @@ static MmResult cmd_load_jpg(const char *p) {
 
 /** LOAD PNG file$ [, x] [, y] [, transparency_cut_off] */
 static MmResult cmd_load_png(const char *p) {
-    if (!graphics_current) return kGraphicsSurfaceNotFound;
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
 	getargs(&p, 7, ",");
     if (argc == 0 || argc > 7) return kArgumentCount;
