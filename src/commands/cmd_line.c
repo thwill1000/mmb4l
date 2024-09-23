@@ -254,7 +254,8 @@ static MmResult cmd_line_default(const char *p) {
 }
 
 void cmd_line(void) {
-    if (!graphics_current) error_throw(kGraphicsSurfaceNotFound);
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
+
     MmResult result = kOk;
     const char *p;
     if (false /* CMM1 */) {
