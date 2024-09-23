@@ -300,6 +300,18 @@ MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x
 MmResult graphics_cls(MmSurface *surface, MmGraphicsColour colour);
 
 /**
+ * Copies the entirety of one surface to another.
+ *
+ * The source will be copied to the top left corner of the destination.
+ * The size of the surfaces does not have to match.
+ *
+ * @param  src          The surface to copy from.
+ * @param  dst          The surface to copy to.
+ * @param  transparent  Colour on the source surface to treat as transparent, -1 for none.
+ */
+MmResult graphics_copy(MmSurface *src, MmSurface *dst, MmGraphicsColour transparent);
+
+/**
  * Draws an anti-aliased straight line.
  *
  * @param  x1, y1  Start coordinates.
