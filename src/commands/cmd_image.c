@@ -152,7 +152,7 @@ static MmResult cmd_image_warp_v(const char *p) {
 }
 
 void cmd_image(void) {
-    if (!graphics_current) error_throw(kGraphicsSurfaceNotFound);
+    if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
     MmResult result = kOk;
     const char *p;

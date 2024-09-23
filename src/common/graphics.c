@@ -564,7 +564,7 @@ MmResult graphics_surface_write(MmSurfaceId id) {
     if (id == GRAPHICS_NONE) {
         graphics_current = NULL;
     } else if (!graphics_surface_exists(id)) {
-        return kGraphicsSurfaceNotFound;
+        return kGraphicsInvalidWriteSurface;
     } else {
         graphics_current = &graphics_surfaces[id];
     }
