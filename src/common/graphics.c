@@ -274,6 +274,25 @@ static MmResult graphics_refresh_cmm2_window() {
     return kOk;
 }
 
+/** Fastest copy between two surfaces of the same size. */
+static inline MmResult graphics_copy_internal(MmSurface *src, MmSurface *dst) {
+    assert(src);
+    assert(src->type != kGraphicsNone);
+    assert(src->pixels);
+    assert(dst);
+    assert(dst->type != kGraphicsNone);
+    assert(dst->pixels);
+    assert(src->height == dst->height);
+    assert(src->width == dst->width);
+
+    if (src != dst) {
+        memcpy(dst->pixels, src->pixels, src->width * src->height * sizeof(uint32_t));
+        dst->dirty = true;
+    }
+
+    return kOk;
+}
+
 /**
  * Copies frame buffer N (surface 1) to the display (surface 0).
  */
@@ -283,7 +302,7 @@ static MmResult graphics_refresh_gamemite_window() {
     MmResult result = kOk;
     if (graphics_surface_exists(GRAPHICS_SURFACE_N)) {
         MmSurface *window = &graphics_surfaces[0];
-        result = graphics_blit(0, 0, 0, 0, 320, 240, buffer_N, window, 0x0, RGB_BLACK);
+        result = graphics_copy_internal(buffer_N, window);
     }
     if (SUCCEEDED(result)) buffer_N->dirty = false;
     return kOk;
@@ -307,11 +326,12 @@ static MmResult graphics_refresh_picomite_vga_window() {
     MmResult result = kOk;
 
     if (graphics_surface_exists(GRAPHICS_SURFACE_N)) {
-        result = graphics_blit(0, 0, 0, 0, w, h, buffer_N, window, 0x0, RGB_BLACK);
+        result = graphics_copy_internal(buffer_N, window);
     }
 
     if (SUCCEEDED(result) && graphics_surface_exists(GRAPHICS_SURFACE_L)) {
-        result = graphics_blit(0, 0, 0, 0, w, h, buffer_L, window, 0x4, buffer_L->transparent);
+        result = graphics_blit(0, 0, 0, 0, w, h, buffer_L, window, kBlitWithTransparency,
+                               buffer_L->transparent);
     }
 
     if (SUCCEEDED(result)) {
@@ -1499,14 +1519,11 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
     if (!src_surface || src_surface->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
     if (!dst_surface || dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
 
-    if (src_surface != dst_surface && flags == 0x0
+    if (flags == 0x0
             && src_x == 0 && src_y == 0 && dst_x == 0 && dst_y == 0
             && src_surface->width == w && dst_surface->width == w
             && src_surface->height == h && dst_surface->height == h) {
-        // Simplest case, blit the whole buffer without any transformations.
-        memcpy(dst_surface->pixels, src_surface->pixels, w * h * sizeof(uint32_t));
-        dst_surface->dirty = true;
-        return kOk;
+        return graphics_copy_internal(src_surface, dst_surface);
     }
 
     // I'm not entirely convinced by this jiggery-pokery as it was arrived at
@@ -1721,6 +1738,23 @@ MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x
 
 MmResult graphics_cls(MmSurface *surface, MmGraphicsColour colour) {
     return graphics_draw_rectangle(surface, 0, 0, surface->width - 1, surface->height - 1, colour);
+}
+
+MmResult graphics_copy(MmSurface *src, MmSurface *dst, MmGraphicsColour transparent) {
+    assert(src);
+    assert(dst);
+
+    if (!src || src->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
+    if (!dst || dst->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
+
+    // Anything non-trivial is delegated to graphics_blit().
+    if (transparent != -1 || src->width != dst->width || src->height != dst->height) {
+        return graphics_blit(0, 0, 0, 0, src->width, src->height, src, dst,
+                             (transparent == -1) ? kBlitNormal : kBlitWithTransparency,
+                             transparent);
+    }
+
+    return graphics_copy_internal(src, dst);
 }
 
 MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,

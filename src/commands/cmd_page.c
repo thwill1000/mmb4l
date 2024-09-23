@@ -52,6 +52,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 MmResult cmd_graphics_copy(const char *p);
 MmResult cmd_graphics_write(const char *p);
 
+/** PAGE COPY src_id TO dst_id [, when] [, transparent] */
+static inline MmResult cmd_page_copy(const char *p) {
+    return cmd_graphics_copy(p);
+}
+
 /** PAGE DISPLAY n [, page] */
 static MmResult cmd_page_display(const char *p) {
     ERROR_UNIMPLEMENTED("PAGE DISPLAY");
@@ -117,7 +122,7 @@ void cmd_page(void) {
     if ((p = checkstring(cmdline, "WRITE"))) {
         result = cmd_graphics_write(p);
     } else if ((p = checkstring(cmdline, "COPY"))) {
-        result = cmd_graphics_copy(p);
+        result = cmd_page_copy(p);
     } else if ((p = checkstring(cmdline, "DISPLAY"))) {
         result = cmd_page_display(p);
     } else if ((p = checkstring(cmdline, "RESIZE"))) {

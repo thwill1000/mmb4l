@@ -79,28 +79,33 @@ static MmResult cmd_graphics_cls(const char *p) {
     return graphics_cls(surface, colour);
 }
 
-/** GRAPHICS COPY src_id TO dst_id [, when] [, transparent] */
+/**
+ * GRAPHICS COPY src_id TO dst_id [, when] [, transparent]
+ *
+ * @param  when         Ignored for the moment by MMB4L.
+ * @param  transparent  If T or 1 then treat BLACK as transparent when copying.
+ */
 MmResult cmd_graphics_copy(const char *p) {
-    bool transparent_black = false;
     char ss[3];
     ss[0] = tokenTO;
     ss[1] =',';
     ss[2] = 0;
     getargs(&p, 7, ss);
-    if (argc<3) return kArgumentCount;
+    if (argc < 3 || !(argc % 2)) return kArgumentCount;
+
     MmSurfaceId src_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
-    MmSurfaceId dst_id = getint(argv[2], 0, GRAPHICS_MAX_ID);
-
     if (!graphics_surface_exists(src_id)) return kGraphicsInvalidReadSurface;
-    if (!graphics_surface_exists(dst_id)) return kGraphicsInvalidWriteSurface;
-
     MmSurface* src_surface = &graphics_surfaces[src_id];
+
+    MmSurfaceId dst_id = getint(argv[2], 0, GRAPHICS_MAX_ID);
+    if (!graphics_surface_exists(dst_id)) return kGraphicsInvalidWriteSurface;
     MmSurface* dst_surface = &graphics_surfaces[dst_id];
 
-    if (src_surface->width != dst_surface->width || src_surface->height != dst_surface->height)
-        return kGraphicsSurfaceSizeMismatch;
+    // if (src_surface->width != dst_surface->width || src_surface->height != dst_surface->height) {
+    //     return kGraphicsSurfaceSizeMismatch;
+    // }
 
-    if (argc >= 5 && *argv[4]) {
+    if (has_arg(4)) {
         const char *p = argv[4];
         switch (toupper(*p)) {
             case 'I':
@@ -113,13 +118,13 @@ MmResult cmd_graphics_copy(const char *p) {
         }
     }
 
-    if (argc == 7) {
+    MmGraphicsColour transparent = -1;
+    if (has_arg(6)) {
         const char *p = argv[6];
-        if (toupper(*p) == 'T' || *p == '1') transparent_black = true;
+        if (toupper(*p) == 'T' || *p == '1') transparent = RGB_BLACK;
     }
 
-    return graphics_blit(0, 0, 0, 0, src_surface->width, src_surface->height, src_surface,
-                         dst_surface, transparent_black ? 0x4 : 0x0, RGB_BLACK);
+    return graphics_copy(src_surface, dst_surface, transparent);
 }
 
 /** GRAPHICS SETTITLE id, title$ */
