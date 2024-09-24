@@ -74,6 +74,7 @@ MmResult sprite_init() { return kOk; }
 MmResult sprite_term() { return kOk; }
 
 // Defined in "core/MMBasic.c"
+const char *CurrentLinePtr = NULL;
 int LocalIndex = 0;
 
 long long int getinteger(char *p) { return 0; }
