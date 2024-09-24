@@ -150,6 +150,18 @@ Version 0.7 alpha 1 - ??-???-2024:
     - DEVICE(GAMEPAD id, {B|LX|LY|RX|RY|L|R})
     - MM.INFO$(GAMEPAD id)
 
+  - Changed TIME$, DATE$(), DATETIME$() and DAY$() to be consistent with other
+    MMBasic implementations that do not have timezone support whilst returning
+    local timezone values where most appropriate:
+      TIME$()          - returns current time in local timezone.
+      DATE$()          - returns current date in local timezone.
+      DATETIME$(NOW)   - returns current date/time in local timezone.
+      DATETIME$(epoch) - returns date/time in UTC.
+      DAY$(NOW)        - returns current day in local timezone.
+      DAY$(epoch)      - returns day in UTC.
+    Additionally:
+      EPOCH(datetme$)  - assumes the date/time is in UTC.
+
 Version 0.6.1 - 28-Sep-2024:
   - Fixed bug where would show endless 'Cannot determine terminal size' errors.
   - Minor corrections to v0.6.0 ChangeLog entry.
