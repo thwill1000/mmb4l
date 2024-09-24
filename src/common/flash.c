@@ -86,12 +86,12 @@ MmResult flash_get_addr(unsigned index, char **addr) {
     return kOk;
 }
 
-MmResult flash_disk_load(unsigned index, const char *file, bool overwrite) {
+MmResult flash_disk_load(unsigned index, const char *filename, bool overwrite) {
     // TODO: overwrite / already programmed.
     if (!flash_initialised) return kFlashModuleNotInitialised;
     if (index >= FLASH_NUM_SLOTS) return kFlashInvalidIndex;
     int fnbr = file_find_free();
-    MmResult result = file_open(file, "rb", fnbr);
+    MmResult result = file_open(filename, "rb", fnbr);
     int size = -1;
     if (SUCCEEDED(result)) {
         size = file_lof(fnbr);

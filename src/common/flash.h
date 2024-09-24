@@ -55,6 +55,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 MmResult flash_init();
 MmResult flash_term();
 MmResult flash_get_addr(unsigned index, char **addr);
-MmResult flash_disk_load(unsigned index, const char *file, bool overwrite);
+MmResult flash_disk_load(unsigned index, const char *filename, bool overwrite);
 
 #endif // #if !defined(MMB4L_FLASH)

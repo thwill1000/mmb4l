@@ -203,4 +203,14 @@ MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id);
  */
 MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id);
 
+/**
+ * Parses a file path/name.
+ *
+ * @param[in]   p       Parse from this pointer.
+ * @param[out]  out     Buffer which on exit will contain the parsed file path/name.
+ *                      This will already have been munged; see path_munge().
+ * @param[in]   out_sz  Size of the \p out buffer.
+ */
+MmResult parse_filename(const char *p, char *out, size_t out_sz);
+
 #endif

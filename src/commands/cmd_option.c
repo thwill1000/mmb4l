@@ -89,11 +89,11 @@ void cmd_option_list(const char *p) {
 
 void cmd_option_load(const char *p) {
     getargs(&p, 1, ",");
-    if (argc != 1) ERROR_SYNTAX;
+    if (argc != 1) ON_FAILURE_LONGJMP(kArgumentCount);
 
-    const char *filename = getCstring(argv[0]);
-    MmResult result = options_load(&mmb_options, filename, NULL);
-    if FAILED(result) error_throw(result);
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_LONGJMP(parse_filename(argv[0], filename, STRINGSIZE));
+    ON_FAILURE_LONGJMP(options_load(&mmb_options, filename, NULL));
 }
 
 static MmResult cmd_option_reset_all(const char *p) {
@@ -151,11 +151,11 @@ void cmd_option_reset(const char *p) {
 
 void cmd_option_save(const char *p) {
     getargs(&p, 1, ",");
-    if (argc != 1) ERROR_SYNTAX;
+    if (argc != 1) ON_FAILURE_LONGJMP(kArgumentCount);
 
-    const char *filename = getCstring(argv[0]);
-    MmResult result = options_save(&mmb_options, filename);
-    if FAILED(result) error_throw(result);
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_LONGJMP(parse_filename(argv[0], filename, STRINGSIZE));
+    ON_FAILURE_LONGJMP(options_save(&mmb_options, filename));
 }
 
 static MmResult cmd_option_set_integer(const char *p, const OptionsDefinition *def) {

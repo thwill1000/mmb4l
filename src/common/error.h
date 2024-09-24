@@ -72,9 +72,22 @@ MmResult error_throw_ex(MmResult result, const char *msg, ...);
 MmResult error_throw_legacy(const char *msg, ...);
 uint8_t error_to_exit_code(MmResult result);
 
-#define ERROR_ON_FAILURE(x)  { \
-  MmResult rezult = x; \
+#define ON_FAILURE_LONGJMP(x)  { \
+  const MmResult rezult = x; \
   if (FAILED(rezult)) { error_throw(rezult); return; } \
+}
+
+/** New code should use ON_FAILURE_LONGJMP. */
+#define ERROR_ON_FAILURE(x)  ON_FAILURE_LONGJMP(x)
+
+#define ON_FAILURE_LONGJMP_EX(x, y)  { \
+  const MmResult rezult = x; \
+  if (FAILED(rezult)) { error_throw(rezult); return y; } \
+}
+
+#define ON_FAILURE_RETURN(x)  { \
+  const MmResult rezult = x; \
+  if (FAILED(rezult)) { return rezult; } \
 }
 
 #define ERROR_ARGUMENT_COUNT              error_throw(kArgumentCount)

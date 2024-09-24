@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/error.h"
 #include "../common/flash.h"
+#include "../common/parse.h"
 #include "../common/mmb4l.h"
 
 /** FLASH DISK LOAD n, file$ [, O[VERWRITE]] */
@@ -52,7 +53,10 @@ MmResult cmd_flash_disk_load(const char *p) {
     if (argc != 3 && argc != 5) return kArgumentCount;
 
     unsigned flash_index = getint(argv[0], 1, FLASH_NUM_SLOTS) - 1;
-    char *file = getCstring(argv[2]);
+
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[2], filename, STRINGSIZE));
+
     bool overwrite = false;
     if (argc == 5) {
         if (checkstring(argv[4], "O") || checkstring(argv[4], "OVERWRITE")) {
@@ -62,7 +66,7 @@ MmResult cmd_flash_disk_load(const char *p) {
         }
     }
 
-    return flash_disk_load(flash_index, file, overwrite);
+    return flash_disk_load(flash_index, filename, overwrite);
 }
 
 #define ELSE_IF_UNIMPLEMENTED(s) \
@@ -72,7 +76,7 @@ MmResult cmd_flash_disk_load(const char *p) {
 
 void cmd_flash(void) {
     if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
-        ERROR_ON_FAILURE(kUnsupportedOnCurrentDevice);
+        ON_FAILURE_LONGJMP(kUnsupportedOnCurrentDevice);
     }
     MmResult result = kOk;
     const char *p;
@@ -92,5 +96,5 @@ void cmd_flash(void) {
         ERROR_UNKNOWN_SUBCOMMAND("FLASH");
     }
 
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_LONGJMP(result);
 }

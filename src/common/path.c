@@ -540,8 +540,7 @@ MmResult path_complete(const char *path, char *out, size_t sz) {
 MmResult path_try_extension(const char *path, const char *extension, char *out, size_t out_sz) {
     if (extension[0] != '.') return kFileInvalidExtension;
 
-    MmResult result = path_munge(path, out, STRINGSIZE);
-    if (FAILED(result)) return result;
+    if (FAILED(cstring_cpy(out, path, out_sz))) return kStringTooLong;
 
     // Check for an exact match.
     if (path_exists(out) && path_has_extension(out, extension, true)) return kOk;

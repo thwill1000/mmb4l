@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/audio_tables.h"
 #include "../common/error.h"
 #include "../common/mmb4l.h"
+#include "../common/parse.h"
 #include "../common/utility.h"
 
 #include <limits.h>
@@ -62,10 +63,12 @@ static MmResult cmd_play_effect(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 1 && argc != 3) return kArgumentCount;
 
-    const char *file = getCstring(argv[0]);
-    const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
 
-    return audio_play_effect(file, interrupt);
+    const char *interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
+
+    return audio_play_effect(filename, interrupt);
 }
 
 /** PLAY FLAC file$ [, interrupt] */
@@ -73,10 +76,12 @@ static MmResult cmd_play_flac(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 1 && argc != 3) return kArgumentCount;
 
-    const char *file = getCstring(argv[0]);
-    const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
 
-    return audio_play_flac(file, interrupt);
+    const char *interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
+
+    return audio_play_flac(filename, interrupt);
 }
 
 static MmResult cmd_play_halt(const char *p) {
@@ -120,23 +125,25 @@ static MmResult cmd_play_modfile(const char *p) {
     getargs(&p, 5, ",");
     if (argc != 1 && argc != 3 && argc != 5) return kArgumentCount;
 
-    const char *filename = getCstring(argv[0]);
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
+
     unsigned sample_rate = 44100;
     const char *interrupt = NULL;
     switch (mmb_options.simulate) {
         case kSimulateMmb4l:
-            sample_rate = (argc > 1) ? getint(argv[2], 0, 48000) : 44100;
-            interrupt = (argc > 3) ? GetIntAddress(argv[4]) : NULL;
+            sample_rate = has_arg(2) ? getint(argv[2], 0, 48000) : 44100;
+            interrupt = has_arg(4) ? GetIntAddress(argv[4]) : NULL;
             break;
         case kSimulateGameMite:
         case kSimulatePicoMiteVga:
-            if (argc == 5) return kUnsupportedParameterOnCurrentDevice;
-            interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
+            if (has_arg(4)) return kUnsupportedParameterOnCurrentDevice;
+            interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
             break;
         case kSimulateCmm2:
         case kSimulateMmb4w:
-            if (argc == 5) return kUnsupportedParameterOnCurrentDevice;
-            sample_rate = (argc > 1) ? getint(argv[2], 0, 48000) : 44100;
+            if (has_arg(4)) return kUnsupportedParameterOnCurrentDevice;
+            sample_rate = has_arg(2) ? getint(argv[2], 0, 48000) : 44100;
             break;
         default:
             return kInternalFault;
@@ -151,8 +158,8 @@ static MmResult cmd_play_modsample(const char *p) {
     if (argc != 3 && argc != 5 && argc != 7) return kArgumentCount;
     const uint8_t sample_num = (uint8_t) getint(argv[0], 1, 32);
     const uint8_t channel_num = (uint8_t) getint(argv[2], 1, 4);
-    const uint8_t volume = max(0, (argc >= 5) ? (uint8_t) getint(argv[4], 0, 64) : 64);
-    const unsigned sample_rate = (argc == 7) ? (uint32_t) getint(argv[6], 150, 500000) : 16000;
+    const uint8_t volume = max(0, has_arg(4) ? (uint8_t) getint(argv[4], 0, 64) : 64);
+    const unsigned sample_rate = has_arg(6) ? (uint32_t) getint(argv[6], 150, 500000) : 16000;
 
     return audio_play_modsample(sample_num, channel_num, volume, sample_rate);
 }
@@ -264,8 +271,8 @@ static MmResult cmd_play_tone(const char *p) {
     if (argc != 3 && argc != 5 && argc != 7) return kArgumentCount;
     float f_left = (float)getnumber(argv[0]);
     float f_right = (float)getnumber(argv[2]);
-    int64_t duration = (argc > 4) ? getint(argv[4], 0, INT_MAX) : -1;
-    const char *interrupt = (argc == 7) ? GetIntAddress(argv[6]) : NULL;
+    int64_t duration = has_arg(4) ? getint(argv[4], 0, INT_MAX) : -1;
+    const char *interrupt = has_arg(6) ? GetIntAddress(argv[6]) : NULL;
 
     return audio_play_tone(f_left, f_right, duration, interrupt);
 }
@@ -280,10 +287,12 @@ static MmResult cmd_play_mp3(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 1 && argc != 3) return kArgumentCount;
 
-    const char *file = getCstring(argv[0]);
-    const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
 
-    return audio_play_mp3(file, interrupt);
+    const char *interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
+
+    return audio_play_mp3(filename, interrupt);
 }
 
 /** PLAY VOLUME left [, right] */
@@ -291,7 +300,7 @@ static MmResult cmd_play_volume(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 1 && argc != 3) return kArgumentCount;
     uint8_t left = (uint8_t)getint(argv[0], 0, 100);
-    uint8_t right = (argc == 3) ? (uint8_t)getint(argv[2], 0, 100) : left;
+    uint8_t right = has_arg(2) ? (uint8_t)getint(argv[2], 0, 100) : left;
 
     return audio_set_volume(left, right);
 }
@@ -301,10 +310,12 @@ static MmResult cmd_play_wav(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 1 && argc != 3) return kArgumentCount;
 
-    const char *file = getCstring(argv[0]);
-    const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
 
-    return audio_play_wav(file, interrupt);
+    const char *interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
+
+    return audio_play_wav(filename, interrupt);
 }
 
 void cmd_play(void) {

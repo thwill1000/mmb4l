@@ -44,23 +44,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/path.h"
+#include "../common/parse.h"
 #include "../common/utility.h"
 #include "../core/tokentbl.h"
 
 void cmd_rename(void) {
     char ss[2] = { tokenAS, 0 };
-    getargs(&cmdline, 3, ss);  // must be first executable statement in block
-    if (argc != 3) ERROR_SYNTAX;
+    getargs(&cmdline, 3, ss);
+    if (argc != 3) ON_FAILURE_LONGJMP(kArgumentCount);
 
-    char *old_path = GetTempStrMemory();
-    MmResult result = path_munge(getCstring(argv[0]), old_path, STRINGSIZE);
-    if (FAILED(result)) error_throw(result);
+    char *old_filename = GetTempStrMemory();
+    ON_FAILURE_LONGJMP(parse_filename(argv[0], old_filename, STRINGSIZE));
 
-    char *new_path = GetTempStrMemory();
-    result = path_munge(getCstring(argv[2]), new_path, STRINGSIZE);
-    if (FAILED(result)) error_throw(result);
+    char *new_filename = GetTempStrMemory();
+    ON_FAILURE_LONGJMP(parse_filename(argv[2], new_filename, STRINGSIZE));
 
     errno = 0;
-    if FAILED(rename(old_path, new_path)) error_throw(errno);
+    if FAILED(rename(old_filename, new_filename)) ON_FAILURE_LONGJMP(errno);
 }

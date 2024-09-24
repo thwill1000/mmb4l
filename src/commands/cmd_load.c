@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/graphics.h"
+#include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
@@ -56,9 +57,11 @@ static MmResult cmd_load_bmp(const char *p) {
     getargs(&p, 5, ",");
     if (argc == 0) return kArgumentCount;
 
-    char *filename = getCstring(argv[0]);
-    const int x = (argc >= 3 && *argv[2]) ? getinteger(argv[2]) : 0;
-    const int y = (argc >= 5 && *argv[4]) ? getinteger(argv[4]) : 0;
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
+
+    const int x = has_arg(2) ? getinteger(argv[2]) : 0;
+    const int y = has_arg(4) ? getinteger(argv[4]) : 0;
 
     return graphics_load_bmp(graphics_current, filename, x, y);
 }
@@ -93,10 +96,13 @@ static MmResult cmd_load_png(const char *p) {
 
 	getargs(&p, 7, ",");
     if (argc == 0 || argc > 7) return kArgumentCount;
-    char *filename = getCstring(argv[0]);
-    const int x = (argc >= 3 && *argv[2]) ? getinteger(argv[2]) : 0;
-    const int y = (argc >= 5 && *argv[4]) ? getinteger(argv[4]) : 0;
-    int transparent = (argc == 7) ? getint(argv[6], 0, 15) : 0;
+
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
+
+    const int x = has_arg(2) ? getinteger(argv[2]) : 0;
+    const int y = has_arg(4) ? getinteger(argv[4]) : 0;
+    int transparent = has_arg(6) ? getint(argv[6], 0, 15) : 0;
     int force = 0;
     if (transparent > 4) {
         force = transparent << 4;
@@ -109,12 +115,12 @@ static MmResult cmd_load_png(const char *p) {
 /** LOAD file$ */
 static MmResult cmd_load_default(const char *p) {
     getargs(&p, 1, " ,");
-    if (argc == 1) {
-        const char *filename = getCstring(argv[0]);
-        return program_load_file(filename);
-    } else {
-        return kArgumentCount;;
-    }
+    if (argc != 1) return kArgumentCount;
+
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
+
+    return program_load_file(filename);
 }
 
 void cmd_load(void) {

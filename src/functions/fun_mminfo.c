@@ -178,8 +178,7 @@ static void mminfo_errno(const char *p) {
 
 static char *get_path(const char *p) {
     char *path = GetTempStrMemory();
-    MmResult result = path_munge(getCstring(p), path, STRINGSIZE);
-    if (FAILED(result)) error_throw(result);
+    ON_FAILURE_LONGJMP_EX(parse_filename(p, path, STRINGSIZE), NULL);
     return path;
 }
 

@@ -53,18 +53,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string.h>
 
-/** Gets the path of the file to write to. */
-static void cmd_autosave_get_file_path(char *file_path) {
-    char *filename = getCstring(cmdline);
-    MmResult result = path_munge(filename, file_path, STRINGSIZE);
-    if (FAILED(result)) error_throw(result);
-
-    if (strlen(path_get_extension(file_path)) == 0) {
-        if (strlen(file_path) > MAXSTRLEN - 4) ERROR_PATH_TOO_LONG;
-        cstring_cat(file_path, ".bas", STRINGSIZE);
-    }
-}
-
 /** Reads input from the console into the buffer. */
 static int cmd_autosave_read(char *buf) {
     int ch;
@@ -122,35 +110,35 @@ cmd_autosave_read_exit:
 }
 
 /** Writes out the file. */
-static void cmd_autosave_write_file(char *file_path, char *buf) {
+static void cmd_autosave_write_file(char *filename, char *buf) {
     int fnbr = file_find_free();
-    MmResult result = file_open(file_path, "wb", fnbr);
-    if (FAILED(result)) {
-        error_throw(result);
-        return;
-    }
+    ON_FAILURE_LONGJMP(file_open(filename, "wb", fnbr));
     char *p = buf;
     while (*p) {
         file_putc(fnbr, *p++);
     }
-    result = file_close(fnbr);
-    if (FAILED(result)) error_throw(result);
+    ON_FAILURE_LONGJMP(file_close(fnbr));
 }
 
 void cmd_autosave(void) {
     if (CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
 
-    char file_path[STRINGSIZE]; // Don't use GetTempStrMemory() because it will
-                                // be cleared when we call ClearProgram() later.
-    cmd_autosave_get_file_path(file_path);
+    char filename[STRINGSIZE]; // Don't use GetTempStrMemory() because it will
+                               // be cleared when we call ClearProgram() later.
+    ON_FAILURE_LONGJMP(parse_filename(cmdline, filename, STRINGSIZE));
+    if (strlen(path_get_extension(filename)) == 0) {
+        if (FAILED(cstring_cat(filename, ".bas", STRINGSIZE))) {
+            ON_FAILURE_LONGJMP(kFilenameTooLong);
+        }
+    }
+
     ClearProgram();             // Clear leftovers from the previous program.
     char *buf = GetTempMemory(EDIT_BUFFER_SIZE);
     int exit_key = cmd_autosave_read(buf);
-    cmd_autosave_write_file(file_path, buf);
+    cmd_autosave_write_file(filename, buf);
 
-    if (path_has_extension(file_path, ".bas", true)) {
-        MmResult result = program_load_file(file_path);
-        if (FAILED(result)) error_throw(result);
+    if (path_has_extension(filename, ".bas", true)) {
+        ON_FAILURE_LONGJMP(program_load_file(filename));
         if (exit_key == F2) {
             strcpy(inpbuf, "RUN\n");
             tokenise(true);
