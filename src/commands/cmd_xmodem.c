@@ -66,25 +66,16 @@ void cmd_xmodem(void) {
     getargs(&p, 5, ",");
     if (argc != 3 && argc != 5) ERROR_ARGUMENT_COUNT;
 
-    const char *filename = getCstring(argv[0]);
-    int serial_fnbr = parse_file_number(argv[2], false);
-    if (serial_fnbr == -1) {
-        error_throw(kFileInvalidFileNumber);
-        return;
-    }
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_LONGJMP(parse_filename(argv[0], filename, STRINGSIZE));
 
-    bool verbose = false;
-    if (argc == 5) {
-        MMINTEGER i = getint(argv[4], 0, 1);
-        verbose = i == 1;
-    }
+    int serial_fnbr = parse_file_number(argv[2], false);
+    if (serial_fnbr == -1) ON_FAILURE_LONGJMP(kFileInvalidFileNumber);
+
+    const bool verbose = has_arg(4) ? getint(argv[4], 0, 1) == 1 : 0;
 
     int file_fnbr = file_find_free();
-    MmResult result = file_open(filename, receive ? "wb" : "rb", file_fnbr);
-    if (FAILED(result)) {
-        error_throw(result);
-        return;
-    }
+    ON_FAILURE_LONGJMP(file_open(filename, receive ? "wb" : "rb", file_fnbr));
 
     if (receive) {
         xmodem_receive(file_fnbr, serial_fnbr, verbose);
@@ -92,6 +83,5 @@ void cmd_xmodem(void) {
         xmodem_send(file_fnbr, serial_fnbr, verbose);
     }
 
-    result = file_close(file_fnbr);
-    if (FAILED(result)) error_throw(result);
+    ON_FAILURE_LONGJMP(file_close(file_fnbr));
 }

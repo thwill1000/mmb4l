@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/interrupt.h"
 #include "../common/mmb4l.h"
+#include "../common/parse.h"
 #include "../common/sprite.h"
 
 MmResult cmd_blit_compressed(const char *p);
@@ -117,17 +118,19 @@ static MmResult cmd_sprite_load(const char *p) {
     getargs(&p, 5, ",");
     if (argc != 1 && argc !=3 && argc != 5) return kArgumentCount;
 
-    const char *file = getCstring(argv[0]);
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
+
     uint8_t start_sprite_id = 0;
     if (mmb_options.simulate == kSimulateMmb4l) {
-        if (argc >= 3) start_sprite_id = getint(argv[2], 0, GRAPHICS_MAX_ID);
+        if has_arg(2) start_sprite_id = getint(argv[2], 0, GRAPHICS_MAX_ID);
     } else {
         start_sprite_id = 1;
-        if (argc >= 3) start_sprite_id = getint(argv[2], 1, CMM2_SPRITE_COUNT);
+        if has_arg(2) start_sprite_id = getint(argv[2], 1, CMM2_SPRITE_COUNT);
         start_sprite_id += CMM2_SPRITE_BASE;
     }
-    uint8_t colour_mode = (argc >= 5) ? getint(argv[4], 0, 1) : 0;
-    return graphics_load_sprite(file, start_sprite_id, colour_mode);
+    uint8_t colour_mode = has_arg(4) ? getint(argv[4], 0, 1) : 0;
+    return graphics_load_sprite(filename, start_sprite_id, colour_mode);
 }
 
 /** SPRITE MOVE */

@@ -53,6 +53,9 @@ MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return k
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 MmResult graphics_term(void) { return kOk; }
 
+// Defined in "common/path.c"
+MmResult path_munge(const char *original_path, char *new_path, size_t sz) { return kOk; }
+
 // Defined in "common/program.c"
 char CurrentFile[STRINGSIZE];
 MmResult program_load_file(char *filename) { return kError; }
