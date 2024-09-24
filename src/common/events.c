@@ -54,6 +54,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
+// Defined in "core/MMBasic.c"
+extern const char *CurrentLinePtr;
+
 static const char* NO_ERROR = "";
 static bool events_initialised = false;
 
@@ -104,9 +107,17 @@ void events_pump() {
 
             case SDL_WINDOWEVENT:
                 switch (event.window.event) {
-                    case SDL_WINDOWEVENT_CLOSE:
-                        interrupt_fire_window_close(graphics_find_window(event.window.windowID));
+                    case SDL_WINDOWEVENT_CLOSE: {
+                        MmSurfaceId windowId = graphics_find_window(event.window.windowID);
+                        if (windowId == -1) ERROR_ON_FAILURE(kInternalFault);
+                        if (CurrentLinePtr) {
+                            interrupt_fire_window_close(windowId);
+                        } else {
+                            ERROR_ON_FAILURE(
+                                graphics_surface_destroy(&graphics_surfaces[windowId]));
+                        }
                         break;
+                    }
 
                     default:
                         break;
