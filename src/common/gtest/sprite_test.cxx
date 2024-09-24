@@ -72,6 +72,7 @@ void spbmp_init(
 SpBmpResult spbmp_load(void *userdata, int x, int y, void *file) { return kSpBmpError; }
 
 // Defined in "core/MMBasic.c"
+const char *CurrentLinePtr = NULL;
 int LocalIndex = 0;
 
 long long int getinteger(char *p) { return 0; }

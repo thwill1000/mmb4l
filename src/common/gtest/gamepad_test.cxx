@@ -32,12 +32,18 @@ MmResult error_throw_ex(MmResult result, const char *msg, ...) {
 MmResult error_throw_legacy(const char *msg, ...) { return error_throw_ex(kError, msg); }
 
 // Defined in "common/graphics.c"
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
+
 MmSurfaceId graphics_find_window(uint32_t window_id) { return 0; }
 const char *graphics_last_error() { return ""; }
+MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }
 
 // Defined in "common/keyboard.c"
 MmResult keyboard_key_down(const SDL_Keysym *keysym) { return kError; }
 MmResult keyboard_key_up(const SDL_Keysym *keysym) { return kError; }
+
+// Defined in "core/MMBasic.c"
+const char *CurrentLinePtr = NULL;
 
 } // extern "C"
 
