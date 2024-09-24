@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_dir.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -155,18 +155,11 @@ void fun_dir(void) {
         // This must be the first call eg:  DIR$("*.*", FILE)
 
         char *path = GetTempStrMemory();
-        MmResult result = path_munge(getCstring(argv[0]), path, STRINGSIZE);
-        if (FAILED(result)) {
-            error_throw(result);
-            return;
-        }
+        ON_FAILURE_LONGJMP(parse_filename(argv[0], path, STRINGSIZE));
 
         strcpy(pp, basename(path));
         dp = opendir(dirname(path));
-        if (!dp) {
-            error_throw(errno);
-            return;
-        }
+        if (!dp) ON_FAILURE_LONGJMP(errno);
     }
 
     struct dirent *entry;

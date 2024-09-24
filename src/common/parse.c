@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "gpio.h"
 #include "parse.h"
+#include "path.h"
 #include "sprite.h"
 #include "utility.h"
 #include "../core/tokentbl.h"
@@ -701,4 +702,11 @@ MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id) {
     }
 
     return kOk;
+}
+
+MmResult parse_filename(const char *p, char *out, size_t out_sz) {
+    char *f = getCstring(p);
+    MmResult result = path_munge(getCstring(p), out, out_sz);
+    ClearSpecificTempMemory(f);
+    return result;
 }

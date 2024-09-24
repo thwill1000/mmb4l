@@ -28,6 +28,9 @@ MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return k
 // Defined in "common/graphics.c"
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 
+// Defined in "common/path.c"
+MmResult path_munge(const char *original_path, char *new_path, size_t sz) { return kOk; }
+
 // Defined in "core/commandtbl.c"
 CommandToken cmdFUN = 0x0;
 CommandToken cmdSUB = 0x0;

@@ -48,50 +48,38 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/utility.h"
 #include "../core/tokentbl.h"
 
-void cmd_copy(void) {  // thanks to Bryan Rentoul for the contribution
-    char *oldf, *newf, ss[2];
-    char c;
-    int of, nf;
-    MmResult result = kOk;
+void cmd_copy(void) {
+    char ss[2] = { tokenTO, '\0' };
+    getargs(&cmdline, 3, ss);
+    if (argc != 3) ERROR_ON_FAILURE(kArgumentCount);
 
-    ss[0] = tokenTO;  // this will be used to split up the argument line
-    ss[1] = 0;
-    {
-        getargs(&cmdline, 3, ss);    // getargs macro must be the first executable stmt in a block
-        if (argc != 3) ERROR_SYNTAX;
-        oldf = getCstring(argv[0]);  // get the old file name and convert to a
-                                     // standard C string
-        newf = getCstring(argv[2]);  // get the new file name and convert to a
-                                     // standard C string
+    char *src_filename = GetTempStrMemory();
+    ON_FAILURE_LONGJMP(parse_filename(argv[0], src_filename, STRINGSIZE));
 
-        of = file_find_free();
-        result = file_open(oldf, "r", of);
-        if (FAILED(result)) {
-            error_throw(result);
-            return;
-        }
+    char *dst_filename = GetTempStrMemory();
+    ON_FAILURE_LONGJMP(parse_filename(argv[2], dst_filename, STRINGSIZE));
 
-        nf = file_find_free();
-        result = file_open(newf, "w", nf);  // We'll just overwrite any existing file
-        if (FAILED(result)) {
-            (void) file_close(of);
-            error_throw(result);
-            return;
-        }
-    }
+    const int src_fnbr = file_find_free();
+    ON_FAILURE_LONGJMP(file_open(src_filename, "r", src_fnbr));
 
-    while (1) {
-        if (file_eof(of)) break;
-        c = file_getc(of);
-        file_putc(nf, c);
-    }
-
-    result = file_close(of);
+    const int dst_fnbr = file_find_free();
+    MmResult result = file_open(dst_filename, "w", dst_fnbr);  // We'll just overwrite any existing file
     if (FAILED(result)) {
-        (void) file_close(nf);
-        error_throw(result);
-        return;
+        (void) file_close(src_fnbr);
+        ON_FAILURE_LONGJMP(result);
     }
-    result = file_close(nf);
-    if (FAILED(result)) error_throw(result);
+
+    char c;
+    while (1) {
+        if (file_eof(src_fnbr)) break;
+        c = file_getc(src_fnbr);
+        file_putc(dst_fnbr, c);
+    }
+
+    result = file_close(src_fnbr);
+    if (FAILED(result)) {
+        (void) file_close(dst_fnbr);
+        ON_FAILURE_LONGJMP(result);
+    }
+    ON_FAILURE_LONGJMP(file_close(dst_fnbr));
 }
