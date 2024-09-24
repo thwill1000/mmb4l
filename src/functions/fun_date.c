@@ -48,6 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void fun_date(void) {
     targ = T_STR;
     sret = GetTempStrMemory();
-    mmtime_date_string(mmtime_now_ns(), sret);
+    mmtime_date_string(mmtime_now_ns(), true, sret);
     CtoM(sret);
 }

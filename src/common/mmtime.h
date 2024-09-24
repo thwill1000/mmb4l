@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMTIME_H)
 #define MMTIME_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
 
@@ -71,22 +72,25 @@ int64_t mmtime_get_timer_ns(void);
 void mmtime_set_timer_ns(int64_t timer_ns);
 
 /**
- * Converts nanoseconds elapsed since the epoch into a date 'DD-MM-YYYY'
- * in the local time zone.
+ * Converts nanoseconds elapsed since the epoch into a date 'DD-MM-YYYY'.
+ *
+ * @param  localtz  If true then returns a date in the local timezone, if false then in UTC.
  */
-void mmtime_date_string(int64_t time_ns, char *buf);
+void mmtime_date_string(int64_t time_ns, bool localtz, char *buf);
 
 /**
- * Converts nanoseconds elapsed since the epoch into a time 'HH:MM:SS'
- * in the local time zone.
+ * Converts nanoseconds elapsed since the epoch into a time 'HH:MM:SS'.
+ * 
+ * @param  localtz  If true then returns a time in the local timezone, if false then in UTC.
  */
-void mmtime_time_string(int64_t time_ns, char *buf);
+void mmtime_time_string(int64_t time_ns, bool localtz, char *buf);
 
 /**
- * Converts nanoseconds elapsed since the epoch into a day
- * in the GMT time zone.
+ * Converts nanoseconds elapsed since the epoch into a day.
+ * 
+ * @param  localtz  If true then returns a day in the local timezone, if false then in UTC.
  */
-void mmtime_day_of_week(int64_t time_ns, char* buf);
+void mmtime_day_of_week(int64_t time_ns, bool localtz, char* buf);
 
 /** Sleeps for a given number of nanoseconds. */
 void mmtime_sleep_ns(int64_t duration_ns);

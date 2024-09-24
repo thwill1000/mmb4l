@@ -49,9 +49,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmtime.h"
 
 void fun_day(void) {
+    const bool now = checkstring(ep, "NOW");
     int64_t time;
 
-    if (checkstring(ep, "NOW")) {
+    if (now) {
         time = mmtime_now_ns();
     } else {
         const char *arg = getCstring(ep);
@@ -77,6 +78,6 @@ void fun_day(void) {
 
     targ = T_STR;
     sret = GetTempStrMemory();
-    mmtime_day_of_week(time, sret);
+    mmtime_day_of_week(time, now, sret);
     CtoM(sret);
 }
