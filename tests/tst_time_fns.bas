@@ -60,8 +60,10 @@ End Sub
 
 Sub test_datetime()
   If Mm.Device$ = "MMB4L" Then
+    ' DateTime$(Now) is different in that it always returns the
+    ' value based on the local timezone rather than UTC.
     Local expected$
-    System "date -u '+%d-%m-%Y %H:%M:%S'", expected$
+    System "date '+%d-%m-%Y %H:%M:%S'", expected$
     assert_string_equals(expected$, DateTime$(Now))
   Else
     Local t$ = Time$
@@ -97,19 +99,19 @@ Sub test_day()
 End Sub
 
 Sub test_epoch()
+  If Mm.Device$ = "MMB4L" Then
+    Local expected$
+    System "date +%s", expected$
+    assert_int_equals(Val(expected$), Epoch(Now))
+  Else
+    assert_int_equals(Epoch(DateTime$(Now)), Epoch(Now))
+  EndIf
+
   assert_int_equals(0, Epoch("01-01-1970 00:00:00"))
   assert_int_equals(126473796, Epoch("03-01-1974 19:36:36"))
   assert_int_equals(946684800, Epoch("01-01-2000 00:00:00"))
   assert_int_equals(1440504732, Epoch("25-08-2015 12:12:12"))
   assert_int_equals(-1000, Epoch("31-12-1969 23:43:20"))
-
-  If Mm.Device$ = "MMB4L" Then
-    Local expected$
-    System "date '+%s'", expected$
-    assert_int_equals(Val(expected$), Epoch(Now))
-  Else
-    assert_int_equals(Epoch(DateTime$(Now)), Epoch(Now))
-  EndIf
 
   On Error Skip
   Local e% = Epoch("01-01-1900 00:00:00")
