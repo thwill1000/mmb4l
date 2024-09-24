@@ -80,23 +80,21 @@ void mmtime_set_timer_ns(int64_t timer_ns) {
     mmtime_base_ns = mmtime_now_ns() - timer_ns;
 }
 
-void mmtime_date_string(int64_t time_ns, char *buf) {
-    time_t t = NANOSECONDS_TO_SECONDS(time_ns);
-    struct tm *tmbuf;
-    tmbuf = localtime(&t);
+void mmtime_date_string(int64_t time_ns, bool localtz, char *buf) {
+    const time_t t = NANOSECONDS_TO_SECONDS(time_ns);
+    const struct tm *tmbuf = localtz ? localtime(&t) : gmtime(&t);
     sprintf(buf, "%02d-%02d-%04d", tmbuf->tm_mday, tmbuf->tm_mon + 1, tmbuf->tm_year + 1900);
 }
 
-void mmtime_time_string(int64_t time_ns, char *buf) {
-    time_t t = NANOSECONDS_TO_SECONDS(time_ns);
-    struct tm *tmbuf;
-    tmbuf = localtime(&t);
+void mmtime_time_string(int64_t time_ns, bool localtz, char *buf) {
+    const time_t t = NANOSECONDS_TO_SECONDS(time_ns);
+    const struct tm *tmbuf = localtz ? localtime(&t) : gmtime(&t);
     sprintf(buf, "%02d:%02d:%02d", tmbuf->tm_hour, tmbuf->tm_min, tmbuf->tm_sec);
 }
 
-void mmtime_day_of_week(int64_t time_ns, char* buf) {
-    time_t t = NANOSECONDS_TO_SECONDS(time_ns);
-    struct tm *tmbuf = gmtime(&t);
+void mmtime_day_of_week(int64_t time_ns, bool localtz, char* buf) {
+    const time_t t = NANOSECONDS_TO_SECONDS(time_ns);
+    const struct tm *tmbuf = localtz ? localtime(&t) : gmtime(&t);
     sprintf(buf, "%s", DAYS_OF_WEEK[tmbuf->tm_wday]);
 }
 
