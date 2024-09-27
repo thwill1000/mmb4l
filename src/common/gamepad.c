@@ -54,6 +54,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static const char* NO_ERROR = "";
 
+static const SDL_GameControllerAxis SUPPORTED_SDL_CONTROLLER_AXES[] = {
+    SDL_CONTROLLER_AXIS_LEFTX,
+    SDL_CONTROLLER_AXIS_LEFTY,
+    SDL_CONTROLLER_AXIS_RIGHTX,
+    SDL_CONTROLLER_AXIS_RIGHTY,
+    SDL_CONTROLLER_AXIS_TRIGGERLEFT,
+    SDL_CONTROLLER_AXIS_TRIGGERRIGHT,
+    SDL_CONTROLLER_AXIS_MAX
+};
+
+static const SDL_GameControllerButton SUPPORTED_SDL_CONTROLLER_BUTTONS[] = {
+    SDL_CONTROLLER_BUTTON_A,
+    SDL_CONTROLLER_BUTTON_B,
+    SDL_CONTROLLER_BUTTON_X,
+    SDL_CONTROLLER_BUTTON_Y,
+    SDL_CONTROLLER_BUTTON_BACK,
+    SDL_CONTROLLER_BUTTON_GUIDE,
+    SDL_CONTROLLER_BUTTON_START,
+    SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
+    SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
+    SDL_CONTROLLER_BUTTON_DPAD_UP,
+    SDL_CONTROLLER_BUTTON_DPAD_DOWN,
+    SDL_CONTROLLER_BUTTON_DPAD_LEFT,
+    SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
+    SDL_CONTROLLER_BUTTON_MAX
+};
+
 static bool gamepad_initialised = false;
 GamepadDevice gamepad_devices[MAX_GAMEPADS + 1]; // 0'th element is unused.
 
@@ -63,6 +90,9 @@ MmResult gamepad_init() {
     if (FAILED(result)) return result;
 
     memset(gamepad_devices, 0, sizeof(gamepad_devices));
+    for (MmGamepadId id = 1; id <= MAX_GAMEPADS; ++id) {
+        gamepad_devices[id].id = id;
+    }
 
     // Configure SDL so that controllers send events.
     SDL_GameControllerEventState(SDL_ENABLE);
@@ -95,6 +125,12 @@ MmResult gamepad_info(MmGamepadId id, char *buf) {
     return kOk;
 }
 
+static inline MmResult gamepad_on_button_down_internal(GamepadDevice *gamepad,
+                                                       SDL_GameControllerButton sdlButton);
+
+static inline MmResult gamepad_on_analog_internal(GamepadDevice *gamepad,
+                                                  SDL_GameControllerAxis sdlAxis, int16_t value);
+
 MmResult gamepad_open(MmGamepadId id, const char *interrupt, uint16_t bitmask) {
     if (!gamepad_initialised) gamepad_init();
     if (id < 1 || id > 4) return kGamepadInvalidId;
@@ -107,12 +143,39 @@ MmResult gamepad_open(MmGamepadId id, const char *interrupt, uint16_t bitmask) {
     if (!gamepad->controller) return kGamepadApiError;
     gamepad->sdlId = SDL_JoystickInstanceID(gamepad->joystick);
 
-    gamepad->interrupt_bitmask = bitmask ? bitmask : GAMEPAD_BITMASK_ALL;
-    if (interrupt) {
-        interrupt_enable(kInterruptGamepad1 + id - 1, interrupt);
+    // Read initial button state because buttons may already be down before event
+    // processing starts,
+    // TODO: Eliminate the cache entirely and always directly query the controller ?
+    MmResult result = kOk;
+    gamepad->buttons = 0x0;
+    gamepad->interrupt_bitmask = 0x0; // So no interrupts are fired.
+    for (size_t i = 0; SUCCEEDED(result); ++i) {
+        const SDL_GameControllerButton sdlButton = SUPPORTED_SDL_CONTROLLER_BUTTONS[i];
+        if (sdlButton == SDL_CONTROLLER_BUTTON_MAX) break;
+        if (SDL_GameControllerGetButton(gamepad->controller, sdlButton)) {
+            gamepad_on_button_down_internal(gamepad, sdlButton);
+        }
     }
 
-    return kOk;
+    // Read initial axes state.
+    for (size_t i = 0; SUCCEEDED(result); ++i) {
+        const SDL_GameControllerAxis sdlAxis = SUPPORTED_SDL_CONTROLLER_AXES[i];
+        if (sdlAxis == SDL_CONTROLLER_AXIS_MAX) break;
+        result = gamepad_on_analog_internal(gamepad, sdlAxis,
+                                            SDL_GameControllerGetAxis(gamepad->controller,
+                                                                      sdlAxis));
+    }
+
+    // Enabling interrupts occurs after the initial reads so they do not fire
+    // interrupts.
+    if (SUCCEEDED(result)) {
+        gamepad->interrupt_bitmask = bitmask ? bitmask : GAMEPAD_BITMASK_ALL;
+        if (interrupt) {
+            interrupt_enable(kInterruptGamepad1 + id - 1, interrupt);
+        }
+    }
+
+    return result;
 }
 
 MmResult gamepad_close(MmGamepadId id) {
@@ -142,15 +205,8 @@ MmResult gamepad_close_all() {
     return result;
 }
 
-MmResult gamepad_on_analog(int32_t sdlId, uint8_t sdlAxis, int16_t value) {
-    GamepadDevice *gamepad = NULL;
-    for (MmGamepadId i = 1; i <= MAX_GAMEPADS; ++i) {
-        if (sdlId == gamepad_devices[i].sdlId) {
-            gamepad = &gamepad_devices[i];
-            break;
-        }
-    }
-
+static inline MmResult gamepad_on_analog_internal(GamepadDevice *gamepad,
+                                                  SDL_GameControllerAxis sdlAxis, int16_t value) {
     if (!gamepad) return kInternalFault;
 
     switch (sdlAxis) {
@@ -189,7 +245,18 @@ MmResult gamepad_on_analog(int32_t sdlId, uint8_t sdlAxis, int16_t value) {
     return kOk;
 }
 
-static inline GamepadButton gamepad_map_button(uint8_t sdlButton) {
+MmResult gamepad_on_analog(int32_t sdlId, uint8_t sdlAxis, int16_t value) {
+    GamepadDevice *gamepad = NULL;
+    for (MmGamepadId i = 1; i <= MAX_GAMEPADS; ++i) {
+        if (sdlId == gamepad_devices[i].sdlId) {
+            gamepad = &gamepad_devices[i];
+            break;
+        }
+    }
+    return gamepad_on_analog_internal(gamepad, sdlAxis, value);
+}
+
+static inline GamepadButton gamepad_map_button(SDL_GameControllerButton sdlButton) {
     switch (sdlButton) {
         case SDL_CONTROLLER_BUTTON_A:             return kButtonA;
         case SDL_CONTROLLER_BUTTON_B:             return kButtonB;
@@ -213,15 +280,22 @@ static inline GamepadButton gamepad_map_button(uint8_t sdlButton) {
     }
 }
 
+static inline MmResult gamepad_on_button_down_internal(GamepadDevice *gamepad,
+                                                       SDL_GameControllerButton sdlButton) {
+    if (!gamepad) return kInternalFault;
+
+    const GamepadButton btn = gamepad_map_button(sdlButton);
+    gamepad->buttons |= btn;
+    if (btn & gamepad->interrupt_bitmask) {
+        interrupt_fire(kInterruptGamepad1 + gamepad->id - 1);
+    }
+    return kOk;
+}
+
 MmResult gamepad_on_button_down(int32_t sdlId, uint8_t sdlButton) {
     for (MmGamepadId id = 1; id <= MAX_GAMEPADS; ++id) {
         if (sdlId == gamepad_devices[id].sdlId) {
-            const GamepadButton btn = gamepad_map_button(sdlButton);
-            gamepad_devices[id].buttons |= btn;
-            if (btn & gamepad_devices[id].interrupt_bitmask) {
-                interrupt_fire(kInterruptGamepad1 + id - 1);
-            }
-            return kOk;
+            return gamepad_on_button_down_internal(&gamepad_devices[id], sdlButton);
         }
     }
     return kInternalFault;
