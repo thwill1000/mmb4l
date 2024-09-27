@@ -43,6 +43,15 @@ void SDL_DestroyWindow(SDL_Window *window) {
 void SDL_GameControllerClose(SDL_GameController *gamecontroller) {
 }
 
+Sint16 SDL_GameControllerGetAxis(SDL_GameController *gamecontroller, SDL_GameControllerAxis axis) {
+    return 0;
+}
+
+Uint8 SDL_GameControllerGetButton(SDL_GameController *gamecontroller,
+                                  SDL_GameControllerButton button) {
+    return 0;
+}
+
 char *SDL_GameControllerMapping(SDL_GameController *gamecontroller) {
     return NULL;
 }

@@ -50,7 +50,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
+#include "gamepad.h"
+
 typedef struct {
+    MmGamepadId id;
     SDL_Joystick *joystick;
     SDL_GameController *controller;
     SDL_JoystickID sdlId;

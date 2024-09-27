@@ -177,9 +177,11 @@ static MmResult gpio_configure_pin_gamemite(uint8_t pin_num, GpioPinConfig confi
  */
 static MmResult gpio_configure_snes_latch(MmGamepadId id, uint8_t pin_num, GpioPinConfig config) {
     MmResult result = kOk;
-    if (config == kGpioPinDOut && gpio_pins[pin_num].config == kGpioPinOff) {
+    if (config == kGpioPinDOut) {
+        // Configuring to DOut always opens gamepad irrespective of current config.
         result = gamepad_open(id, NULL, 0);
-    } else if (config == kGpioPinOff && gpio_pins[pin_num].config == kGpioPinDOut) {
+    } else if (config == kGpioPinOff) {
+        // Configuring to DOff always closes gamepad irrespective of current config.
         result = gamepad_close(id);
     }
     return result;

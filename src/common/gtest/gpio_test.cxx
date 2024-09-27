@@ -13,8 +13,8 @@ extern "C" {
 #include "../gpio.h"
 #include "../mmresult.h"
 
-static int64_t gamepad_1_buttons = 0x0;
-static int64_t gamepad_2_buttons = 0x0;
+static int64_t gamepad_button_state[3] = { 0x0, 0x0, 0x0 };
+static bool gamepad_open_state[3] = { false, false, false };
 
 // Defined in "audio.c"
 const char *audio_last_error() { return NULL; }
@@ -25,16 +25,22 @@ const char *events_last_error() { return NULL; }
 
 // Defined in "gamepad.c"
 const char *gamepad_last_error() { return NULL; }
-MmResult gamepad_open(MmGamepadId id, const char *interrupt, uint16_t bitmask) { return kOk; }
-MmResult gamepad_close(MmGamepadId id) { return kOk; }
+MmResult gamepad_open(MmGamepadId id, const char *interrupt, uint16_t bitmask) {
+    gamepad_open_state[id] = true;
+    return kOk;
+}
+MmResult gamepad_close(MmGamepadId id) {
+    gamepad_open_state[id] = false;
+    return kOk;
+}
 
 MmResult gamepad_read_buttons(MmGamepadId id, int64_t *out) {
     switch (id) {
         case 1:
-            *out = gamepad_1_buttons;
+            *out = gamepad_button_state[1];
             break;
         case 2:
-            *out = gamepad_2_buttons;
+            *out = gamepad_button_state[2];
             break;
         default:
             break;
@@ -187,6 +193,10 @@ class SnesControllerSimulationTest
    protected:
     void SetUp() override {
         memset(&mmb_options, 0x0, sizeof(Options));
+        for (int i = 0; i < 3; ++i) {
+            gamepad_button_state[i] = 0x0;
+            gamepad_open_state[i] = false;
+        }
         gpio_init();
     }
 
@@ -202,11 +212,11 @@ TEST_P(SnesControllerSimulationTest, ControllerA) {
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_A_CLOCK, kGpioPinDOut));
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_A_DATA, kGpioPinDIn));
 
-    gamepad_1_buttons = std::get<1>(GetParam());
+    gamepad_button_state[1] = std::get<1>(GetParam());
     EXPECT_EQ(std::get<2>(GetParam()),
               read_snes(GPIO_SNES_A_LATCH, GPIO_SNES_A_CLOCK, GPIO_SNES_A_DATA));
 
-    gamepad_1_buttons = 0x0;
+    gamepad_button_state[1] = 0x0;
     EXPECT_EQ(0b1111111111111111,
               read_snes(GPIO_SNES_A_LATCH, GPIO_SNES_A_CLOCK, GPIO_SNES_A_DATA));
 }
@@ -218,13 +228,105 @@ TEST_P(SnesControllerSimulationTest, ControllerB) {
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_B_CLOCK, kGpioPinDOut));
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_B_DATA, kGpioPinDIn));
 
-    gamepad_2_buttons = std::get<1>(GetParam());
+    gamepad_button_state[2] = std::get<1>(GetParam());
     EXPECT_EQ(std::get<2>(GetParam()),
               read_snes(GPIO_SNES_B_LATCH, GPIO_SNES_B_CLOCK, GPIO_SNES_B_DATA));
 
-    gamepad_2_buttons = 0x0;
+    gamepad_button_state[2] = 0x0;
     EXPECT_EQ(0b1111111111111111,
               read_snes(GPIO_SNES_B_LATCH, GPIO_SNES_B_CLOCK, GPIO_SNES_B_DATA));
+}
+
+TEST_F(SnesControllerSimulationTest, ConfiguringSnesALatchPinAsDOut_OpensGamepad1) {
+    mmb_options.simulate = kSimulatePicoMiteVga;
+
+    uint8_t params[][3] = {
+        { kGpioPinOff, kGpioPinOff, false },
+        { kGpioPinOff, kGpioPinDIn, false },
+        { kGpioPinOff, kGpioPinDOut, true },
+        { kGpioPinDIn, kGpioPinOff, false },
+        { kGpioPinDIn, kGpioPinDIn, false },
+        { kGpioPinDIn, kGpioPinDOut, true },
+        { kGpioPinDOut, kGpioPinOff, false },
+        { kGpioPinDOut, kGpioPinDIn, false },
+        { kGpioPinDOut, kGpioPinDOut, true },
+    };
+
+    for (size_t i = 0; i < 9; ++i) {
+        EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_A_LATCH, (GpioPinConfig) params[i][0]));
+        gamepad_open_state[1] = false;
+        EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_A_LATCH, (GpioPinConfig) params[i][1]));
+        EXPECT_EQ(params[i][2], gamepad_open_state[1]);
+    }
+}
+
+TEST_F(SnesControllerSimulationTest, ConfiguringSnesBLatchPinAsDOut_OpensGamepad2) {
+    mmb_options.simulate = kSimulatePicoMiteVga;
+
+    uint8_t params[][3] = {
+        { kGpioPinOff, kGpioPinOff, false },
+        { kGpioPinOff, kGpioPinDIn, false },
+        { kGpioPinOff, kGpioPinDOut, true },
+        { kGpioPinDIn, kGpioPinOff, false },
+        { kGpioPinDIn, kGpioPinDIn, false },
+        { kGpioPinDIn, kGpioPinDOut, true },
+        { kGpioPinDOut, kGpioPinOff, false },
+        { kGpioPinDOut, kGpioPinDIn, false },
+        { kGpioPinDOut, kGpioPinDOut, true },
+    };
+
+    for (size_t i = 0; i < 9; ++i) {
+        EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_B_LATCH, (GpioPinConfig) params[i][0]));
+        gamepad_open_state[2] = false;
+        EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_B_LATCH, (GpioPinConfig) params[i][1]));
+        EXPECT_EQ(params[i][2], gamepad_open_state[2]);
+    }
+}
+
+TEST_F(SnesControllerSimulationTest, ConfiguringSnesALatchPinAsOff_ClosesGamepad1) {
+    mmb_options.simulate = kSimulatePicoMiteVga;
+
+    uint8_t params[][3] = {
+        { kGpioPinOff, kGpioPinOff, false },
+        { kGpioPinOff, kGpioPinDIn, true },
+        { kGpioPinOff, kGpioPinDOut, true },
+        { kGpioPinDIn, kGpioPinOff, false },
+        { kGpioPinDIn, kGpioPinDIn, true },
+        { kGpioPinDIn, kGpioPinDOut, true },
+        { kGpioPinDOut, kGpioPinOff, false },
+        { kGpioPinDOut, kGpioPinDIn, true },
+        { kGpioPinDOut, kGpioPinDOut, true },
+    };
+
+    for (size_t i = 0; i < 9; ++i) {
+        EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_A_LATCH, (GpioPinConfig) params[i][0]));
+        gamepad_open_state[1] = true;
+        EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_A_LATCH, (GpioPinConfig) params[i][1]));
+        EXPECT_EQ(params[i][2], gamepad_open_state[1]);
+    }
+}
+
+TEST_F(SnesControllerSimulationTest, ConfiguringSnesBLatchPinAsOff_ClosesGamepad2) {
+    mmb_options.simulate = kSimulatePicoMiteVga;
+
+    uint8_t params[][3] = {
+        { kGpioPinOff, kGpioPinOff, false },
+        { kGpioPinOff, kGpioPinDIn, true },
+        { kGpioPinOff, kGpioPinDOut, true },
+        { kGpioPinDIn, kGpioPinOff, false },
+        { kGpioPinDIn, kGpioPinDIn, true },
+        { kGpioPinDIn, kGpioPinDOut, true },
+        { kGpioPinDOut, kGpioPinOff, false },
+        { kGpioPinDOut, kGpioPinDIn, true },
+        { kGpioPinDOut, kGpioPinDOut, true },
+    };
+
+    for (size_t i = 0; i < 9; ++i) {
+        EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_B_LATCH, (GpioPinConfig) params[i][0]));
+        gamepad_open_state[2] = true;
+        EXPECT_EQ(kOk, gpio_configure_pin(GPIO_SNES_B_LATCH, (GpioPinConfig) params[i][1]));
+        EXPECT_EQ(params[i][2], gamepad_open_state[2]);
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -296,10 +398,10 @@ TEST_P(GameMiteControllerSimulationTest, ControllerA) {
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP14, kGpioPinDIn));
     EXPECT_EQ(kOk, gpio_configure_pin(GPIO_GP15, kGpioPinDIn));
 
-    gamepad_1_buttons = std::get<1>(GetParam());
+    gamepad_button_state[1] = std::get<1>(GetParam());
     EXPECT_EQ(std::get<2>(GetParam()), read_gamemite());
 
-    gamepad_1_buttons = 0x0;
+    gamepad_button_state[1] = 0x0;
     EXPECT_EQ(0b11111111, read_gamemite());
 }
 
