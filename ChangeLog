@@ -1,6 +1,10 @@
 ChangeLog
 ---------
 
+Version 0.6.1 - 28-Sep-2024:
+  - Fixed bug where would show endless 'Cannot determine terminal size' errors.
+  - Minor corrections to v0.6.0 ChangeLog entry.
+
 Version 0.6.0 - 4-Feb-2024:
   - Added BIN2STR$() and STR2BIN() functions.
   - Added MM.INFO(LINE) function to return the number of the current line.

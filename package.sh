@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export version="0.5.0"
+export version="0.6.1"
 export arch=`uname -m`
 export distrib=mmb4l-${version}-${arch}
 
