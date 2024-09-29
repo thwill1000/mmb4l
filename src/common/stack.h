@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 stack.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -49,30 +49,37 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 
-typedef int64_t StackElement;
+typedef void *StackElement;
 
 typedef struct {
   size_t element_size;
   char *storage;
   char *top;   // Insertion point for next element.
   char *limit; // Cannot insert once 'top' reaches this.
+  bool (*equals_fn)(const void *, const void *);
 } Stack;
 
 /**
  * Initialises a Stack structure including allocating storage.
  *
- * @param  s         Pointer to the Stack structure to initialise.
- * @param  type      Element type, e.g. uint8_t, int32_t, void *
- * @param  capacity  Maximum number of elements that the stack should be able to hold.
+ * @param  s          Pointer to the Stack structure to initialise.
+ * @param  type       Element type, e.g. uint8_t, int32_t, void *
+ * @param  capacity   Maximum number of elements that the stack should be able to hold.
+ * @param  equals_fn  Function to use to compare elements for equality.
+ *                    If NULL then uses memcmp() but this is not appropriate if elements
+ *                    are structures due to potential random padding characters.
  */
-#define stack_init(s, type, capacity)  stack_init_internal(s, sizeof(type), capacity)
+#define stack_init(s, type, capacity, equals_fn)  \
+    stack_init_internal(s, sizeof(type), capacity, equals_fn)
 
-static MmResult stack_init_internal(Stack *s, size_t element_size, size_t capacity) {
+static MmResult stack_init_internal(Stack *s, size_t element_size, size_t capacity,
+                                    bool (*equals_fn)(const void *, const void *)) {
     s->element_size = element_size;
     s->storage = (char *) malloc(capacity * element_size);
     if (!s->storage) return kOutOfMemory;
     s->top = s->storage;
     s->limit = s->storage + capacity * element_size;
+    s->equals_fn = equals_fn;
     return kOk;
 }
 
@@ -83,8 +90,7 @@ static MmResult stack_init_internal(Stack *s, size_t element_size, size_t capaci
  */
 static MmResult stack_term(Stack *s) {
     free(s->storage);
-    s->storage = NULL;
-    s->top = NULL;
+    memset(s, 0x0, sizeof(Stack));
     return kOk;
 }
 
@@ -92,13 +98,11 @@ static MmResult stack_term(Stack *s) {
  * Gets the top element of the stack WITHOUT removing it.
  *
  * @param[in]  s  Pointer to the Stack.
- * @param[out] e  On exit contains the value of the top element.
- * @return        kStackEmpty if the stack is empty.
+ * @param[out] e  On exit contains a shallow copy of the top element.
+ * @return        kContainerEmpty if the stack is empty.
  */
-#define stack_peek(s, e)  stack_peek_internal(s, (StackElement *) (e))
-
-static inline MmResult stack_peek_internal(Stack *s, StackElement *element) {
-    if (s->top == s->storage) return kStackEmpty;
+static inline MmResult stack_peek(const Stack *s, StackElement element) {
+    if (s->top == s->storage) return kContainerEmpty;
     memcpy(element, s->top - s->element_size, s->element_size);
     return kOk;
 }
@@ -107,13 +111,11 @@ static inline MmResult stack_peek_internal(Stack *s, StackElement *element) {
  * Gets the top element of the stack AND removes it.
  *
  * @param[in]  s  Pointer to the Stack.
- * @param[out] e  On exit contains the value of the (now removed) top element.
- * @return        kStackEmpty if the stack is empty.
+ * @param[out] e  On exit contains a shallow copy of the (now removed) top element.
+ * @return        kContainerEmpty if the stack is empty.
  */
-#define stack_pop(s, e)  stack_pop_internal(s, (StackElement *) (e))
-
-static inline MmResult stack_pop_internal(Stack *s, StackElement *element) {
-    if (s->top == s->storage) return kStackEmpty;
+static inline MmResult stack_pop(Stack *s, StackElement element) {
+    if (s->top == s->storage) return kContainerEmpty;
     s->top -= s->element_size;
     memcpy(element, s->top, s->element_size);
     return kOk;
@@ -124,13 +126,13 @@ static inline MmResult stack_pop_internal(Stack *s, StackElement *element) {
  *
  * @param[in]  s  Pointer to the Stack.
  * @param[in]  e  The element to add.
- * @return        kStackFull if the stack is full.
+ * @return        kContainerFull if the stack is full.
  */
-#define stack_push(s, e)  stack_push_internal(s, (StackElement) (e))
+#define stack_push(s, e)  stack_push_internal(s, (StackElement) &(e))
 
-static inline MmResult stack_push_internal(Stack *s, StackElement element) {
-    if (s->top == s->limit) return kStackFull;
-    memcpy(s->top, &element, s->element_size);
+static inline MmResult stack_push_internal(Stack *s, const StackElement element) {
+    if (s->top == s->limit) return kContainerFull;
+    memcpy(s->top, element, s->element_size);
     s->top += s->element_size;
     return kOk;
 }
@@ -140,12 +142,10 @@ static inline MmResult stack_push_internal(Stack *s, StackElement element) {
  *
  * @param[in]  s  Pointer to the Stack.
  * @param[in]  i  Index of the element to get.
- * @param[out] e  On exit contains the value of the indexed element.
+ * @param[out] e  On exit contains a shallow copy of the indexed element.
  * @return        kStackIndexOutOfBounds if i >= the number of elements in the stack.
  */
-#define stack_get(s, i, e)  stack_get_internal(s, i, (StackElement *) (e))
-
-static inline MmResult stack_get_internal(Stack *s, size_t idx, StackElement *element) {
+static inline MmResult stack_get(const Stack *s, size_t idx, StackElement element) {
     if (s->storage + idx * s->element_size >= s->top) return kStackIndexOutOfBounds;
     memcpy(element, s->storage + idx * s->element_size, s->element_size);
     return kOk;
@@ -158,13 +158,16 @@ static inline MmResult stack_get_internal(Stack *s, size_t idx, StackElement *el
  * @param[in]  e  The element to remove.
  * @return        kStackElementNotFound if no matching element is found.
  */
-#define stack_remove(s, e)  stack_remove_internal(s, (StackElement) (e))
+#define stack_remove(s, e)  stack_remove_internal(s, (StackElement) &(e))
 
-static inline MmResult stack_remove_internal(Stack *s, StackElement element) {
+static inline MmResult stack_remove_internal(Stack *s, const StackElement element) {
     for (char *p = s->top - s->element_size;
-         p >= s->storage;
-         p -= s->element_size) {
-        if (memcmp(p, &element, s->element_size) == 0) {
+        p >= s->storage;
+        p -= s->element_size) {
+        const bool equal = s->equals_fn
+                ? s->equals_fn((void *) p, (void *) element)
+                : (memcmp(p, element, s->element_size) == 0);
+        if (equal) {
             s->top -= s->element_size;
             memmove(p, p + s->element_size, s->top - p);
             return kOk;
@@ -182,15 +185,18 @@ static inline MmResult stack_remove_internal(Stack *s, StackElement element) {
  * @return        kStackElementNotFound if no matching element is found.
  */
 #define stack_replace(s, f, r) \
-    stack_replace_internal(s, (StackElement) (f), (StackElement) (r))
+    stack_replace_internal(s, (StackElement) &(f), (StackElement) &(r))
 
-static inline MmResult stack_replace_internal(Stack *s, StackElement find, StackElement replace)
-{
+static inline MmResult stack_replace_internal(Stack *s, const StackElement find,
+                                              const StackElement replace) {
     for (char *p = s->top - s->element_size;
          p >= s->storage;
          p -= s->element_size) {
-        if (memcmp(p, &find, s->element_size) == 0) {
-            memcpy(p, &replace, s->element_size);
+        const bool equal = s->equals_fn
+                ? s->equals_fn((void *) p, (void *) find)
+                : (memcmp(p, find, s->element_size) == 0);
+        if (equal) {
+            memcpy(p, replace, s->element_size);
             return kOk;
         }
     }
@@ -200,24 +206,23 @@ static inline MmResult stack_replace_internal(Stack *s, StackElement find, Stack
 /**
  * Gets the size of the stack.
  *
- * @param[in]  s    Pointer to the Stack.
- * @param[out] size On exit contains the size of the stack.
+ * @param[in]  s  Pointer to the Stack.
+ * @return        The size of the Stack.
  */
-static inline MmResult stack_size(Stack *s, size_t *size) {
-    *size = (s->top - s->storage) / s->element_size;
-    return kOk;
+static inline size_t stack_size(const Stack *s) {
+    return (s->top - s->storage) / s->element_size;
 }
 
 /**
  * Dumps the contents of the stack to STDOUT.
  */
-static void stack_dump(Stack *s) {
+static void stack_dump(const Stack *s) {
     printf("--- BASE ---\n");
     size_t size = (s->top - s->storage) / s->element_size;
     StackElement element;
     for (size_t idx = 0; idx < size; ++idx) {
         (void) stack_get(s, idx, &element);
-        printf("  %lx\n", element);
+        printf("  0x%p\n", element);
     }
     printf("--- TOP  ---\n");
 }
