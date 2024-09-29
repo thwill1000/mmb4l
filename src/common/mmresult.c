@@ -208,8 +208,6 @@ const char *mmresult_to_string(MmResult result) {
         case kSpritesAreHidden:           return "Sprites are hidden";
         case kSpritesNotHidden:           return "Sprites are not hidden";
         case kStackElementNotFound:       return "Stack element not found";
-        case kStackEmpty:                 return "Stack empty";
-        case kStackFull:                  return "Stack full";
         case kStackIndexOutOfBounds:      return "Stack index out of bounds";
         default:                          return "Unknown result code";
     }

@@ -60,7 +60,7 @@ MmResult sprite_init() {
     if (sprite_initialised) return kOk;
     MmResult result = kOk;
     for (size_t ii = 0; SUCCEEDED(result) && ii < 2; ++ii) {
-        result = stack_init(&sprite_stack[ii], MmSurfaceId, GRAPHICS_MAX_SURFACES);
+        result = stack_init(&sprite_stack[ii], MmSurfaceId, GRAPHICS_MAX_SURFACES, NULL);
     }
     sprite_all_hidden = false;
     sprite_initialised = true;
@@ -95,9 +95,7 @@ MmResult sprite_count(size_t *total) {
     *total = 0;
     MmResult result = kOk;
     for (size_t i = 0; SUCCEEDED(result) && i < 2; ++i) {
-        size_t count = 0;
-        result = stack_size(&sprite_stack[i], &count);
-        if (SUCCEEDED(result)) *total += count;
+        *total += stack_size(&sprite_stack[i]);
     }
     return result;
 }
@@ -105,7 +103,7 @@ MmResult sprite_count(size_t *total) {
 MmResult sprite_count_on_layer(unsigned layer, size_t *total) {
     MmResult result = kOk;
     if (layer == 0) {
-        result = stack_size(&sprite_stack[0], total);
+        *total = stack_size(&sprite_stack[0]);
     } else {
         *total = 0;
         const MmSurfaceId *base = (MmSurfaceId *) sprite_stack[1].storage;
