@@ -123,6 +123,8 @@ const char *mmresult_to_string(MmResult result) {
         case kProgramTooLong:             return "Program too long";
         case kUnterminatedComment:        return "Unterminated multiline comment";
         case kNoCommentToTerminate:       return "No comment to terminate";
+        case kContainerEmpty:             return "Container empty";
+        case kContainerFull:              return "Container full";
         case kEventsApiError:
             formatEventsApiError();
             return mmresult_last_msg;
