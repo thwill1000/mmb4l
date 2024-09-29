@@ -686,6 +686,24 @@ target_link_libraries(
 gtest_discover_tests(test_prompt)
 
 ################################################################################
+# test_queue
+################################################################################
+
+add_executable(
+  test_queue
+  src/common/gtest/queue_test.cxx
+)
+
+target_link_libraries(
+  test_queue
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_queue)
+
+################################################################################
 # test_rx_buf
 ################################################################################
 

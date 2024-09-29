@@ -100,6 +100,8 @@ typedef enum {
     kProgramTooLong,
     kUnterminatedComment,
     kNoCommentToTerminate,
+    kContainerEmpty,
+    kContainerFull,
     kEventsApiError,
     kFlashFileTooBig,
     kFlashInvalidIndex,
