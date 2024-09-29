@@ -178,8 +178,6 @@ typedef enum {
     kSpritesAreHidden,
     kSpritesNotHidden,
     kStackElementNotFound,
-    kStackEmpty,
-    kStackFull,
     kStackIndexOutOfBounds,
 } MmResultCode;
 
