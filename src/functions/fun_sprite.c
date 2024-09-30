@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/sprite.h"
+#include "../common/utility.h"
 
 /** SPRITE(A, [#]id) */
 static MmResult fun_sprite_address(int argc, char **argv) {

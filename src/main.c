@@ -65,6 +65,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <unistd.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#define MM_VERSION_STR  xstr(MM_MAJOR) "." xstr(MM_MINOR) "." xstr(MM_MICRO)
+static const char version[] __attribute__ ((used))
+        = "@(#) MMB4L v" MM_VERSION_STR " " __DATE__ " " __TIME__;
+#pragma GCC diagnostic pop
+
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
 volatile int MMAbort = false;

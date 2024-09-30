@@ -45,12 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMBASIC_GRAPHICS_H)
 #define MMBASIC_GRAPHICS_H
 
+#include <stdbool.h>
+
 #include "mmresult.h"
 #include "options.h"
-#include "utility.h"
 #include "../Configuration.h"
-
-#include <stdbool.h>
 
 #define GRAPHICS_NONE            -1
 #define GRAPHICS_MAX_SURFACES    256

@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/flash.h"
 #include "../common/parse.h"
 #include "../common/mmb4l.h"
+#include "../common/utility.h"
 
 /** FLASH DISK LOAD n, file$ [, O[VERWRITE]] */
 MmResult cmd_flash_disk_load(const char *p) {

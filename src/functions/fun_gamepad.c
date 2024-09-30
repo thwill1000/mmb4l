@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
+#include "../common/utility.h"
 
 MmResult fun_device_gamepad(const char *p, bool mmb4w_compatibility);
 

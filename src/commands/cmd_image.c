@@ -42,10 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdlib.h>
+
 #include "../common/mmb4l.h"
 #include "../common/graphics.h"
-
-#include <stdlib.h>
+#include "../common/utility.h"
 
 static MmResult cmd_image_resize(const char *p) {
     ERROR_UNIMPLEMENTED("IMAGE RESIZE");
