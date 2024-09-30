@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
+#include "../common/utility.h"
 
 /** GUI BITMAP x, y, bits [, width] [, height] [, scale] [, fcolour] [, bcolour] */
 MmResult cmd_gui_bitmap(const char *p) {

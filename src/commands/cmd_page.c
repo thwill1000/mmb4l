@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/graphics.h"
-#include "../core/tokentbl.h"
+#include "../common/utility.h"
 
 MmResult cmd_graphics_copy(const char *p);
 MmResult cmd_graphics_write(const char *p);

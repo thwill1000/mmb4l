@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "interrupt.h"
 #include "sprite.h"
 #include "stack.h"
+#include "utility.h"
 
 MmSurfaceId sprite_last_collision = SPRITE_NO_COLLISION;
 MmGraphicsColour sprite_transparent_colour = RGB_BLACK;
