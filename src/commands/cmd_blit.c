@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/graphics.h"
 #include "../common/sprite.h"
 #include "../common/mmb4l.h"
+#include "../common/utility.h"
 
 /** BLIT CLOSE [#]id */
 static MmResult cmd_blit_close(const char *p) {

@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
+#include "../common/utility.h"
 
 static void cmd_triangle_save(const char *p) {
     ERROR_UNIMPLEMENTED("TRIANGLE SAVE");

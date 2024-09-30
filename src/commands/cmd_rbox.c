@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
+#include "../common/utility.h"
 
 /**
  * RBOX x, y, width, height [, radius] [, colour] [, fill]

@@ -45,13 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <string.h>
 
-#include "mmb4l.h"
 #include "console.h"
 #include "error.h"
 #include "exit_codes.h"
 #include "interrupt.h"
+#include "mmb4l.h"
 #include "mmtime.h"
 #include "serial.h"
+#include "utility.h"
 #include "../core/commandtbl.h"
 
 #define ERROR_NOT_AN_INTERRUPT  error_throw_ex(kError, "Not in interrupt")

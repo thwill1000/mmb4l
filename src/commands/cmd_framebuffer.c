@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
+#include "../common/utility.h"
 
 /** FRAMEBUFFER CLOSE [{F|L}] */
 static MmResult cmd_framebuffer_close(const char *p) {

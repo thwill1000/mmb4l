@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/graphics.h"
+#include "../common/utility.h"
 
 static MmResult fun_rgb_parse_colour(const char *p, MmGraphicsColour *colour) {
     MmResult result = kOk;

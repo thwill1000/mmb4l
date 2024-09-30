@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/fonttbl.h"
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
+#include "../common/utility.h"
 
 /** FONT [#]font_id [, scale] */
 void cmd_font(void) {

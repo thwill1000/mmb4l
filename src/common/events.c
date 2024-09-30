@@ -42,6 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdbool.h>
+
+#include <SDL.h>
+
 #include "console.h"
 #include "error.h"
 #include "events.h"
@@ -49,10 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "graphics.h"
 #include "interrupt.h"
 #include "keyboard.h"
-
-#include <stdbool.h>
-
-#include <SDL.h>
+#include "utility.h"
 
 // Defined in "core/MMBasic.c"
 extern const char *CurrentLinePtr;

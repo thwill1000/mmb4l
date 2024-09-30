@@ -42,12 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <ctype.h>
+
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/interrupt.h"
+#include "../common/utility.h"
 #include "../core/tokentbl.h"
-
-#include <ctype.h>
 
 #define ERROR_TOO_MANY_NESTED_GOSUB  error_throw_ex(kError, "Too many nested GOSUB")
 

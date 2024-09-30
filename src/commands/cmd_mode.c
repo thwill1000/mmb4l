@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/graphics.h"
 #include "../common/error.h"
 #include "../common/parse.h"
+#include "../common/utility.h"
 
 /**
  * MODE mode [, colour_depth [, background [, interrupt]]]

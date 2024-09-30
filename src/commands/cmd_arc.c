@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
+#include "../common/utility.h"
 
 /**
  * ARC x, y, r1, [r2], arcrad1, arcrad2 [, colour]

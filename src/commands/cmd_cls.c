@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
+#include "../common/utility.h"
 
 /** CLS CONSOLE */
 static MmResult cmd_cls_console(const char *p) {

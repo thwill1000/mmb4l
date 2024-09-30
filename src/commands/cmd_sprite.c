@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/sprite.h"
+#include "../common/utility.h"
 
 MmResult cmd_blit_compressed(const char *p);
 MmResult cmd_blit_framebuffer(const char *p);

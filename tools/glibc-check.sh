@@ -3,9 +3,31 @@
 # This scripts lets you check which minimum GLIBC version an executable requires.
 # Simply run './glibc-check.sh path/to/your/binary'
 #
-# You can set `MAX_VER` however low you want, although I (fasterthanlime)
+# You can set `VER_LIMIT` however low you want, although I (fasterthanlime)
 # feel like `2.13` is a good target (For reference, Ubuntu 12.04 has GLIBC 2.15)
-MAX_VER="${MAX_VER:-2.29}"
+# VER_LIMIT="${VER_LIMIT:-2.29}"
+VER_LIMIT="${VER_LIMIT:-2.34}"
+
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -m|--max)
+      MAX_ONLY_FLAG=1
+      shift
+      ;;
+    -*|--*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1") # save positional arg
+      shift # past argument
+      ;;
+  esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 
 BINARY="$1"
 
@@ -38,13 +60,24 @@ vercomp() {
 
 IFS="
 "
+
+# This sets VERS to be a list of all the GLIBC version numbers sorted alphabetically
+# (or so it appears.)
 VERS=$(objdump -T "$BINARY" | grep GLIBC | sed 's/.*GLIBC_\([.0-9]*\).*/\1/g' | sort -u)
+
+MAX_VER="0.0"
 
 for VER in $VERS; do
   vercomp "$VER" "$MAX_VER"
   COMP=$?
   if [[ $COMP -eq 1 ]]; then
-    echo "Error! ${BINARY} requests GLIBC ${VER}, which is higher than target ${MAX_VER}"
+    MAX_VER=${VER}
+  fi
+
+  vercomp "$VER" "$VER_LIMIT"
+  COMP=$?
+  if [[ $COMP -eq 1 ]]; then
+    echo "Error! ${BINARY} requests GLIBC ${VER}, which is higher than target ${VER_LIMIT}"
     echo "Affected symbols:"
     objdump -T "$BINARY" | grep -F "GLIBC_${VER}"
     echo "Looking for symbols in libraries..."
@@ -54,6 +87,12 @@ for VER in $VERS; do
     done
     exit 27
   else
-    echo "Found version ${VER}"
+    if [ -z "$MAX_ONLY_FLAG" ]; then
+      echo "Found version ${VER}"
+    fi
   fi
 done
+
+if [ -n "$MAX_ONLY_FLAG" ]; then
+  echo $MAX_VER
+fi

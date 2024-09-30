@@ -49,9 +49,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // To output the value of a macro during compilation do:
 //   #pragma message(VAR_NAME_VALUE(macro))
-#define VALUE_TO_STRING(x) #x
-#define VALUE(x) VALUE_TO_STRING(x)
-#define VAR_NAME_VALUE(var) #var "=" VALUE(var)
+#define str(a) #a
+#define xstr(a) str(a)
+#define VAR_NAME_VALUE(var) #var "=" xstr(var)
 
 #if __GNUC__ >= 11
 #define CASE_FALLTHROUGH  [[fallthrough]]
