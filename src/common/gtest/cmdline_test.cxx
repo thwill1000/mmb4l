@@ -22,11 +22,21 @@ int getint(char *p, int min, int max) { return 0; }
 // Defined in "main.c"
 Options mmb_options;
 
+// Defined in "common/audio.c"
+const char *audio_last_error() { return ""; }
+
+// Defined in "common/events.c"
+const char *events_last_error() { return ""; }
+
 // Defined in "common/gpio.c"
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
+// Defined in "common/gamepad.c"
+const char *gamepad_last_error() { return ""; }
+
 // Defined in "common/graphics.c"
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
+const char *graphics_last_error() { return ""; }
 
 // Defined in "common/path.c"
 MmResult path_munge(const char *original_path, char *new_path, size_t sz) { return kOk; }

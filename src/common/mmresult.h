@@ -123,7 +123,6 @@ typedef enum {
     kGraphicsSurfaceSizeMismatch,
     kGraphicsSurfaceTooLarge,
     kGraphicsTooManySprites,
-    kGraphicsNotASprite,
     kImageTooLarge,
     kImageInvalidFormat,
     kInvalidEnvironmentVariableName,

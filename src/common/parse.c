@@ -692,13 +692,15 @@ MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id) {
 
     switch (graphics_surfaces[*sprite_id].type) {
         case kGraphicsNone:
-            if (existing) return kGraphicsInvalidSprite;
-            CASE_FALLTHROUGH;
+            if (existing) {
+                MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", *sprite_id);
+            }
+            break;
         case kGraphicsInactiveSprite:
         case kGraphicsSprite:
             break;
         default:
-            return kGraphicsInvalidSprite;
+            MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", *sprite_id);
     }
 
     return kOk;

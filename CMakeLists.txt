@@ -270,6 +270,7 @@ add_executable(
   src/common/cmdline.c
   src/common/cstring.c
   src/common/memory.c
+  src/common/mmresult.c
   src/common/parse.c
   src/common/gtest/cmdline_test.cxx
 )
