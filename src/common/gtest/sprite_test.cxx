@@ -754,5 +754,51 @@ TEST_F(SpriteTest, Show_Fails_GivenHideAllActive) {
                                              sprite1->layer, 0x0));
 }
 
+TEST_F(SpriteTest, Hide_ClearsAllSpritesCollisions) {
+    GivenSpriteOverlappingAllOtherSpritesAndEdge();
+    EXPECT_EQ(kOk, sprite_update_all_collisions());
+    MmSurface *sprite1 = &graphics_surfaces[1];
+    uint32_t count;
+    EXPECT_EQ(kOk, sprite_get_num_collisions(sprite1, &count));
+    EXPECT_EQ(10, count); // 9 other sprites + edge(s).
+
+    EXPECT_EQ(kOk, sprite_hide(sprite1));
+
+    // sprite1 should not believe it has any collisions.
+    EXPECT_EQ(0x0, sprite1->edge_collisions);
+    for (MmSurfaceId id = 0; id < GRAPHICS_MAX_ID; ++id) {
+        EXPECT_EQ(false, bitset_get(sprite1->sprite_collisions, id));
+    }
+
+    // None of the other sprites should believe they have collided with sprite1.
+    for (MmSurfaceId id = 2; id <= 10; ++id) {
+        MmSurface *other = &graphics_surfaces[id];
+        EXPECT_EQ(false, bitset_get(other->sprite_collisions, 1));
+    }
+}
+
+TEST_F(SpriteTest, Destroy_ClearsAllSpritesCollisions) {
+    GivenSpriteOverlappingAllOtherSpritesAndEdge();
+    EXPECT_EQ(kOk, sprite_update_all_collisions());
+    MmSurface *sprite1 = &graphics_surfaces[1];
+    uint32_t count;
+    EXPECT_EQ(kOk, sprite_get_num_collisions(sprite1, &count));
+    EXPECT_EQ(10, count); // 9 other sprites + edge(s).
+
+    EXPECT_EQ(kOk, sprite_destroy(sprite1));
+
+    // sprite1 should not believe it has any collisions.
+    EXPECT_EQ(0x0, sprite1->edge_collisions);
+    for (MmSurfaceId id = 0; id < GRAPHICS_MAX_ID; ++id) {
+        EXPECT_EQ(false, bitset_get(sprite1->sprite_collisions, id));
+    }
+
+    // None of the other sprites should believe they have collided with sprite1.
+    for (MmSurfaceId id = 2; id <= 10; ++id) {
+        MmSurface *other = &graphics_surfaces[id];
+        EXPECT_EQ(false, bitset_get(other->sprite_collisions, 1));
+    }
+}
+
 // TODO:
 //  - interrupt data
