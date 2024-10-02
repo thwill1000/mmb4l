@@ -62,9 +62,3 @@ void tokenise_and_append(const char* untokenised) {
     *pmem++ = '\0';
     *pmem++ = '\0';
 }
-
-const char *audio_last_error() { return ""; }
-
-const char *events_last_error() { return ""; }
-
-const char *graphics_last_error() { return ""; }

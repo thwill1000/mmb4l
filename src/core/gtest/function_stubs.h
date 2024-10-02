@@ -80,7 +80,11 @@ void fun_rnd() { }
 void fun_sgn() { }
 void fun_sin() { }
 void fun_space() { }
+#if defined(DO_NOT_STUB_FUN_SPRITE)
+void fun_sprite();
+#else
 void fun_sprite() { }
+#endif
 void fun_sqr() { }
 void fun_str() { }
 void fun_string() { }

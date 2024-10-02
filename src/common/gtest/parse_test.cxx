@@ -52,10 +52,6 @@ MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) {
     return mock_gpio_translate_from_pin_gp(pin_gp, pin_num);
 }
 
-// Defined in "common/graphics.c"
-MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
-MmResult graphics_term(void) { return kOk; }
-
 // Defined in "core/Commands.c"
 char DimUsed;
 int doindex;
@@ -111,7 +107,7 @@ protected:
 
     void TearDown() override {
         ClearTempMemory();
-        memset(graphics_surfaces, 0x0, sizeof(graphics_surfaces));
+        (void) graphics_term();
     }
 };
 

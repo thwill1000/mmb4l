@@ -49,10 +49,6 @@ void file_close_all(void) { }
 void gpio_term() { }
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
-// Defined in "common/graphics.c"
-MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
-MmResult graphics_term(void) { return kOk; }
-
 // Defined in "common/path.c"
 MmResult path_munge(const char *original_path, char *new_path, size_t sz) { return kOk; }
 
