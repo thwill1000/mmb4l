@@ -183,7 +183,6 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/cmdline.c
     src/common/codepage.c
     src/common/console.c
-    src/common/cJSON.c
     src/common/cstring.c
     src/common/error.c
     src/common/events.c
@@ -212,6 +211,7 @@ set(MMB4L_COMMON_SOURCE_FILES
 )
 
 set(MMB4L_THIRD_PARTY_SOURCE_FILES
+    src/third_party/cJSON.c
     src/third_party/dr_audio.c
     src/third_party/hxcmod.c
     src/third_party/spbmp.c
