@@ -152,7 +152,6 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsSurfaceSizeMismatch: return "Graphics surface size mismatch";
         case kGraphicsSurfaceTooLarge:    return "Graphics surface too large";
         case kGraphicsTooManySprites:     return "Maximum of 64 sprites";
-        case kGraphicsNotASprite:         return "Not a sprite";
         case kImageTooLarge:              return "Image too large";
         case kImageInvalidFormat:         return "Invalid image format";
         case kInvalidFont:                return "Invalid font";

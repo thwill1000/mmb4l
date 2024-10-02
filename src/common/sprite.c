@@ -266,7 +266,7 @@ MmResult sprite_hide(MmSurface *sprite) {
     switch (sprite->type) {
         case kGraphicsSprite: break;
         case kGraphicsInactiveSprite: return kSpriteInactive;
-        default: return kGraphicsInvalidSprite;
+        default: MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
     }
 
     MmResult result = sprite_render_background(sprite, graphics_current);
@@ -281,6 +281,14 @@ MmResult sprite_hide(MmSurface *sprite) {
     sprite->next_y = GRAPHICS_OFF_SCREEN;
     sprite_clear_collision_data(sprite);
     sprite->type = kGraphicsInactiveSprite;
+
+    // Clear other sprite's collisions with this sprite.
+    // There may be more 'elegant' ways to do this, but I suspect just clearing the appropriate bit
+    // for all surfaces without any checking logic may be fastest.
+    for (MmSurfaceId id = 0; id < GRAPHICS_MAX_ID; ++id) {
+        bitset_clear(graphics_surfaces[id].sprite_collisions, sprite->id);
+    }
+
     return result;
 }
 
@@ -331,7 +339,7 @@ MmResult sprite_hide_safe(MmSurface *sprite) {
     switch (sprite->type) {
         case kGraphicsSprite: break;
         case kGraphicsInactiveSprite: return kSpriteInactive;
-        default: return kGraphicsInvalidSprite;
+        default: MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
     }
 
     unsigned layer = sprite->layer;
@@ -524,8 +532,9 @@ MmResult sprite_update_all_collisions() {
 }
 
 MmResult sprite_get_collision_bitset(MmSurface *sprite, uint8_t start, uint64_t *bitset) {
-    if (sprite->type != kGraphicsSprite && sprite->type != kGraphicsInactiveSprite)
-        return kGraphicsNotASprite;
+    if (sprite->type != kGraphicsSprite && sprite->type != kGraphicsInactiveSprite) {
+        MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
+    }
     if (start % 64 != 0) return kInternalFault;
     *bitset = ((uint64_t *) sprite->sprite_collisions)[start / 64];
     return kOk;
@@ -596,8 +605,9 @@ MmResult sprite_scroll(int x, int y, MmGraphicsColour colour) {
 MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
                      unsigned layer, unsigned flags) {
     if (sprite_all_hidden) return kSpritesAreHidden;
-    if (sprite->type != kGraphicsSprite
-            && sprite->type != kGraphicsInactiveSprite) return kGraphicsNotASprite;
+    if (sprite->type != kGraphicsSprite && sprite->type != kGraphicsInactiveSprite) {
+        MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
+    }
     if (dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
 
     MmResult result = kOk;
@@ -645,7 +655,9 @@ MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int 
     }
 
     if (sprite_all_hidden) return kSpritesAreHidden;
-    if (sprite->type != kGraphicsSprite) return kGraphicsNotASprite;
+    if (sprite->type != kGraphicsSprite) {
+        MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
+    }
     if (dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
 
     // 1) Temporarily hide all sprites shown after this sprite.
