@@ -61,16 +61,36 @@ static MmResult fun_sprite_address(int argc, char **argv) {
     return result;
 }
 
-/** SPRITE(C, [#]sprite_id [, m]) */
+/**
+ * SPRITE(C, [#]sprite_id [, m])
+ *
+ * If m == 0 (unset) returns the number of currently active collisions for sprite_id.
+ *   If sprite_id == -1 (0 for CMM2, etc.) returns the number of sprites that have a currently
+ *   active collision following a SPRITE SCROLL command
+ *
+ * If m != 0 returns the id of the sprite which caused the "m”th collision of sprite_id.
+ *   If sprite_id == -1 (0 for CMM2, etc.) returns the id of “m”th sprite that has a currently
+ *   active collision following a SPRITE SCROLL command.
+ *
+ *   If the collision was with the edge of the screen then the return value will be:
+ *     0xFFF1 - collision with left of screen.
+ *     0xFFF2 - collision with top of screen.
+ *     0xFFF4 - collision with right of screen.
+ *     0xFFF8 - collision with bottom of screen.
+ */
 static MmResult fun_sprite_collision(int argc, char **argv) {
     if (argc != 3 && argc != 5) return kArgumentCount;
 
     // We allow id == -1 (or 0 on CMM2/PicoMite/etc.)
     MmSurfaceId sprite_id = getinteger(argv[2]);
     if (mmb_options.simulate == kSimulateMmb4l) {
-        if (sprite_id < -1 || sprite_id > GRAPHICS_MAX_ID) return kGraphicsInvalidSprite;
+        if (sprite_id < -1 || sprite_id > GRAPHICS_MAX_ID) {
+            MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite_id);
+        }
     } else {
-        if (sprite_id < 0 || sprite_id > 64) return kGraphicsInvalidSprite;
+        if (sprite_id < 0 || sprite_id > 64) {
+            MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite_id);
+        }
         if (sprite_id == 0) sprite_id = -1;
     }
 
@@ -97,6 +117,14 @@ static MmResult fun_sprite_collision(int argc, char **argv) {
             }
         }
     }
+
+    // For compatibility with other MMBasic implementations despite
+    // my initial inclination being that this should be an error.
+    if (result == kGraphicsInvalidSprite) {
+        iret = (mmb_options.simulate == kSimulateMmb4l) ? -1 : 0;
+        result = kOk;
+    }
+
     return result;
 }
 

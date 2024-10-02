@@ -300,7 +300,10 @@ add_executable(
   src/common/parse.c
   src/common/utility.c
   src/common/gtest/test_helper.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
@@ -334,7 +337,10 @@ add_executable(
   src/common/parse.c
   src/common/utility.c
   src/common/gtest/test_helper.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
@@ -407,6 +413,55 @@ target_link_libraries(
   gmock
   gmock_main
 )
+
+################################################################################
+# test_fun_sprite
+################################################################################
+
+add_executable(
+  test_fun_sprite
+  src/functions/gtest/test_fun_sprite.cxx
+  src/common/codepage.c
+  src/common/cstring.c
+  src/common/events.c
+  src/common/file.c
+  src/common/fonttbl.c
+  src/common/memory.c
+  src/common/mmresult.c
+  src/common/parse.c
+  src/common/path.c
+  src/common/graphics.c
+  src/common/options.c
+  src/common/sprite.c
+  src/common/utility.c
+  src/common/gtest/test_helper.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
+  src/common/gtest/stubs/sdl2_stubs.c
+  src/core/commandtbl.c
+  src/core/funtbl.c
+  src/core/MMBasic.c
+  src/core/tokentbl.c
+  src/core/vartbl.c
+  src/functions/fun_sprite.c
+  src/third_party/spbmp.c
+  src/third_party/upng.c
+)
+
+target_include_directories(test_fun_sprite PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_fun_sprite
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_fun_sprite)
 
 ################################################################################
 # test_gpio
@@ -586,7 +641,10 @@ add_executable(
   src/common/utility.c
   src/common/gtest/parse_test.cxx
   src/common/gtest/test_helper.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
@@ -646,7 +704,10 @@ add_executable(
   src/common/utility.c
   src/common/gtest/program_test.cxx
   src/common/gtest/test_helper.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
@@ -798,7 +859,10 @@ add_executable(
   src/common/serial.c
   src/common/utility.c
   src/common/gtest/test_helper.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
   src/core/commandtbl.c
   src/core/funtbl.c
