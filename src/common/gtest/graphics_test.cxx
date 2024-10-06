@@ -144,6 +144,10 @@ class GraphicsTest : public ::testing::Test {
     MmSurface *dst;
 };
 
+TEST_F(GraphicsTest, SpriteCreate_WithIdZero_Fails) {
+    EXPECT_EQ(kGraphicsInvalidSpriteIdZero, graphics_sprite_create(0, 100, 100));
+}
+
 TEST_F(GraphicsTest, Blit_GivenNormal) {
     EXPECT_EQ(kOk, graphics_blit(0, 0, 0, 0, 7, 9, src, dst, kBlitNormal, 0));
 
@@ -958,7 +962,7 @@ TEST_F(GraphicsTest, GetDefaultWindowTitle_GivenCurrentFile) {
         EXPECT_STREQ(expected, out); \
     }
 
-TEST_F(GraphicsTest, TypeAsString_GivenMmb4l) {
+TEST_F(GraphicsTest, TypeAsString_GivenNotSimulatingOther) {
     mmb_options.simulate = kSimulateMmb4l;
 
     // Initialise all the surfaces as (tiny) buffers.
@@ -976,7 +980,7 @@ TEST_F(GraphicsTest, TypeAsString_GivenMmb4l) {
     }
 }
 
-TEST_F(GraphicsTest, TypeAsString_GivenCmm2) {
+TEST_F(GraphicsTest, TypeAsString_GivenSimulatingCmm2) {
     mmb_options.simulate = kSimulateCmm2;
 
     // Initialise all the surfaces as (tiny) buffers.
@@ -1004,21 +1008,21 @@ TEST_F(GraphicsTest, TypeAsString_GivenCmm2) {
     EXPECT_SURFACE_TYPE(128, kGraphicsBuffer, "Buffer");
 
     // Inactive Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Inactive)"
-    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite 1 (Inactive)");
-    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite 64 (Inactive)");
+    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite #1 (Inactive)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite #64 (Inactive)");
 
     // Inactive Sprite with id >= 192 is a "Sprite id (Inactive)"
     EXPECT_SURFACE_TYPE(192, kGraphicsInactiveSprite, "Sprite (Inactive)");
 
     // Active Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Active)"
-    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite 1 (Active)");
-    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite 64 (Active)");
+    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite #1 (Active)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite #64 (Active)");
 
     // Active Sprite with id >= 192 is a "Sprite id (Inactive)"
     EXPECT_SURFACE_TYPE(192, kGraphicsSprite, "Sprite (Active)");
 }
 
-TEST_F(GraphicsTest, TypeAsString_GivenMmb4w) {
+TEST_F(GraphicsTest, TypeAsString_GivenSimulatingMmb4w) {
     mmb_options.simulate = kSimulateMmb4w;
 
     // Initialise all the surfaces as (tiny) buffers.
@@ -1046,21 +1050,21 @@ TEST_F(GraphicsTest, TypeAsString_GivenMmb4w) {
     EXPECT_SURFACE_TYPE(128, kGraphicsBuffer, "Buffer");
 
     // Inactive Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Inactive)"
-    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite 1 (Inactive)");
-    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite 64 (Inactive)");
+    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite #1 (Inactive)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite #64 (Inactive)");
 
     // Inactive Sprite with id >= 192 is a "Sprite id (Inactive)"
     EXPECT_SURFACE_TYPE(192, kGraphicsInactiveSprite, "Sprite (Inactive)");
 
     // Active Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Active)"
-    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite 1 (Active)");
-    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite 64 (Active)");
+    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite #1 (Active)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite #64 (Active)");
 
     // Active Sprite with id >= 192 is a "Sprite id (Inactive)"
     EXPECT_SURFACE_TYPE(192, kGraphicsSprite, "Sprite (Active)");
 }
 
-TEST_F(GraphicsTest, TypeAsString_GivenGameMite) {
+TEST_F(GraphicsTest, TypeAsString_GivenSimulatingGameMite) {
     mmb_options.simulate = kSimulateGameMite;
 
     // Initialise all the surfaces as (tiny) buffers.
@@ -1096,21 +1100,21 @@ TEST_F(GraphicsTest, TypeAsString_GivenGameMite) {
     EXPECT_SURFACE_TYPE(128, kGraphicsBuffer, "Buffer");
 
     // Inactive Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Inactive)"
-    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite 1 (Inactive)");
-    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite 64 (Inactive)");
+    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite #1 (Inactive)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite #64 (Inactive)");
 
     // Inactive Sprite with id >= 192 is a "Sprite id (Inactive)"
     EXPECT_SURFACE_TYPE(192, kGraphicsInactiveSprite, "Sprite (Inactive)");
 
     // Active Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Active)"
-    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite 1 (Active)");
-    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite 64 (Active)");
+    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite #1 (Active)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite #64 (Active)");
 
     // Active Sprite with id >= 192 is a "Sprite id (Inactive)"
     EXPECT_SURFACE_TYPE(192, kGraphicsSprite, "Sprite (Active)");
 }
 
-TEST_F(GraphicsTest, TypeAsString_GivenPicoMiteVga) {
+TEST_F(GraphicsTest, TypeAsString_GivenSimulatingPicoMiteVga) {
     mmb_options.simulate = kSimulatePicoMiteVga;
 
     // Initialise all the surfaces as (tiny) buffers.
@@ -1146,15 +1150,15 @@ TEST_F(GraphicsTest, TypeAsString_GivenPicoMiteVga) {
     EXPECT_SURFACE_TYPE(128, kGraphicsBuffer, "Buffer");
 
     // Inactive Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Inactive)"
-    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite 1 (Inactive)");
-    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite 64 (Inactive)");
+    EXPECT_SURFACE_TYPE(128, kGraphicsInactiveSprite, "Sprite #1 (Inactive)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsInactiveSprite, "Sprite #64 (Inactive)");
 
     // Inactive Sprite with id >= 192 is a "Sprite id (Inactive)"
     EXPECT_SURFACE_TYPE(192, kGraphicsInactiveSprite, "Sprite (Inactive)");
 
     // Active Sprite with 128 <= id <= 191 is a "Sprite <id - 127> (Active)"
-    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite 1 (Active)");
-    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite 64 (Active)");
+    EXPECT_SURFACE_TYPE(128, kGraphicsSprite, "Sprite #1 (Active)");
+    EXPECT_SURFACE_TYPE(191, kGraphicsSprite, "Sprite #64 (Active)");
 
     // Active Sprite with id >= 192 is a "Sprite id (Inactive)"
     EXPECT_SURFACE_TYPE(192, kGraphicsSprite, "Sprite (Active)");
