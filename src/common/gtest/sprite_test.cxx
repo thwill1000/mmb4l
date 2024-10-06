@@ -885,6 +885,28 @@ TEST_F(SpriteTest, IdFromSurfaceId_GivenInvalidId_ReturnsMinusOne) {
     }
 }
 
+TEST_F(SpriteTest, IdIsInRange) {
+    mmb_options.simulate = kSimulateMmb4l;
+    EXPECT_EQ(false, sprite_id_is_in_range(0));
+    EXPECT_EQ(true, sprite_id_is_in_range(1));
+    EXPECT_EQ(true, sprite_id_is_in_range(255));
+    EXPECT_EQ(false, sprite_id_is_in_range(256));
+
+    const OptionsSimulate sim[] = {
+        kSimulateMmb4w,
+        kSimulateCmm2,
+        kSimulatePicoMiteVga,
+        kSimulateGameMite
+    };
+    for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
+        mmb_options.simulate = sim[i];
+        EXPECT_EQ(false, sprite_id_is_in_range(0));
+        EXPECT_EQ(true, sprite_id_is_in_range(1));
+        EXPECT_EQ(true, sprite_id_is_in_range(64));
+        EXPECT_EQ(false, sprite_id_is_in_range(65));
+    }
+}
+
 TEST_F(SpriteTest, MaxId) {
     mmb_options.simulate = kSimulateMmb4l;
     EXPECT_EQ(255, sprite_max_id());

@@ -142,11 +142,12 @@ static MmResult cmd_graphics_set_title(const char *p) {
 static MmResult cmd_graphics_sprite(const char *p) {
     getargs(&p, 5, ",");
     if (argc != 5) return kArgumentCount;
-    const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
+    MmSurfaceId sprite_id = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], 0x0, &sprite_id));
     const int width = getint(argv[2], 8, WINDOW_MAX_WIDTH);
     const int height = getint(argv[4], 8, WINDOW_MAX_HEIGHT);
 
-    return graphics_sprite_create(id, width, height);
+    return graphics_sprite_create(sprite_id, width, height);
 }
 
 /** GRAPHICS WINDOW id, width, height [, x] [, y] [, title$] [, scale] [, interrupt] */

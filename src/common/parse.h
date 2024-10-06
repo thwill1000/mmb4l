@@ -191,17 +191,22 @@ MmResult parse_write_page(const char *p, MmSurfaceId *page_id);
  */
 MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id);
 
+typedef enum {
+   kParseSpriteIdMustExist = 0x1, // Error if {In}active sprite with given ID does not exist.
+   kParseSpriteIdAllowZero = 0x2  // Not an error if ID == 0.
+} ParseSpriteIdFlags;
+
 /**
  * Parses a surface ID for use as the 'this' argument in a SPRITE command/function.
  *
- * @param[in]   p          Parse from this pointer.
- * @param[in]   existing   Return an error if surface does not exist.
- * @param[out]  sprite_id  On exit, the surface ID.
- * @return                 kGraphicsSurfaceNotFound if the surface does not exist and
- *                         existing == true.
- *                         kInvalidSprite if the surface does exist but is not a sprite.
+ * @param[in]   p           Parse from this pointer.
+ * @param[in]   flags       Bitwise OR of ParseSpriteIdFlags
+ * @param[out]  sprite_id   On exit, the surface ID.
+ * @return                  kGraphicsSurfaceNotFound if the surface does not exist and
+ *                          existing == true.
+ *                          kInvalidSprite if the surface does exist but is not a sprite.
  */
-MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id);
+MmResult parse_sprite_id(const char *p, uint64_t flags, MmSurfaceId *sprite_id);
 
 /**
  * Parses a file path/name.

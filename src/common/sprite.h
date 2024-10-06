@@ -188,6 +188,17 @@ static inline MmSurfaceId sprite_id_from_surface_id(MmSurfaceId surface_id) {
    }
 }
 
+/**
+ * Is a given sprite id in the valid range for an MMBasic command.
+ *
+ * @return  true for in range 1..64 if simulating a legacy MMBasic,
+ *          true for in range 1..255 for default MMB4L,
+ *          false otherwise.
+ */
+static inline bool sprite_id_is_in_range(MmSurfaceId sprite_id) {
+   return sprite_id >= 1 && sprite_id <= sprite_max_id();
+}
+
 /** TODO */
 MmResult sprite_move();
 

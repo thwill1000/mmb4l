@@ -52,24 +52,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** SPRITE(A, [#]id) */
 static MmResult fun_sprite_address(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
+
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], true, &sprite_id);
-    if (SUCCEEDED(result)) {
-        targ = T_INT;
-        iret = (MMINTEGER) graphics_surfaces[sprite_id].pixels;
-    }
-    return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[2], kParseSpriteIdMustExist, &sprite_id));
+
+    targ = T_INT;
+    iret = (MMINTEGER) graphics_surfaces[sprite_id].pixels;
+
+    return kOk;
 }
 
 /**
  * SPRITE(C, [#]sprite_id [, m])
  *
  * If m == 0 (unset) returns the number of currently active collisions for sprite_id.
- *   If sprite_id == -1 (0 for CMM2, etc.) returns the number of sprites that have a currently
+ *   If sprite_id == 0 returns the number of sprites that have a currently
  *   active collision following a SPRITE SCROLL command
  *
  * If m != 0 returns the id of the sprite which caused the "m”th collision of sprite_id.
- *   If sprite_id == -1 (0 for CMM2, etc.) returns the id of “m”th sprite that has a currently
+ *   If sprite_id == 0 returns the id of “m”th sprite that has a currently
  *   active collision following a SPRITE SCROLL command.
  *
  *   If the collision was with the edge of the screen then the return value will be:
@@ -81,24 +82,13 @@ static MmResult fun_sprite_address(int argc, char **argv) {
 static MmResult fun_sprite_collision(int argc, char **argv) {
     if (argc != 3 && argc != 5) return kArgumentCount;
 
-    // We allow id == -1 (or 0 on CMM2/PicoMite/etc.)
-    MmSurfaceId sprite_id = getinteger(argv[2]);
-    if (mmb_options.simulate == kSimulateMmb4l) {
-        if (sprite_id < -1 || sprite_id > GRAPHICS_MAX_ID) {
-            MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite_id);
-        }
-    } else {
-        if (sprite_id < 0 || sprite_id > 64) {
-            MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite_id);
-        }
-        if (sprite_id == 0) sprite_id = -1;
-    }
+    MmSurfaceId surface_id = -1;
+    MmResult result = parse_sprite_id(argv[2], kParseSpriteIdMustExist | kParseSpriteIdAllowZero,
+                                      &surface_id);
 
-    MmResult result = kOk;
-    if (sprite_id != -1) result = parse_sprite_id(argv[2], true, &sprite_id);
     targ = T_INT;
     if (SUCCEEDED(result)) {
-        MmSurface *sprite = (sprite_id == -1) ? NULL : &graphics_surfaces[sprite_id];
+        MmSurface *sprite = (surface_id == 0) ? NULL : &graphics_surfaces[surface_id];
         if (argc == 3) {
             uint32_t count = 0;
             result = sprite
@@ -111,17 +101,15 @@ static MmResult fun_sprite_collision(int argc, char **argv) {
             result = sprite
                     ? sprite_get_collision(sprite, m, &id)
                     : sprite_get_collided_sprite(m, &id);
-            if (SUCCEEDED(result)) iret = (MMINTEGER) id;
-            if (mmb_options.simulate != kSimulateMmb4l) {
-                iret = (iret == -1) ? 0 : sprite_id_from_surface_id(iret);
-            }
+            if (id == -1) id = 0;
+            if (SUCCEEDED(result)) iret = (MMINTEGER) sprite_id_from_surface_id(id);
         }
     }
 
     // For compatibility with other MMBasic implementations despite
     // my initial inclination being that this should be an error.
     if (result == kGraphicsInvalidSprite) {
-        iret = (mmb_options.simulate == kSimulateMmb4l) ? -1 : 0;
+        iret = 0;
         result = kOk;
     }
 
@@ -131,24 +119,27 @@ static MmResult fun_sprite_collision(int argc, char **argv) {
 /** SPRITE(D, [#]id1, [#]id2) */
 static MmResult fun_sprite_distance(int argc, char **argv) {
     if (argc != 5) return kArgumentCount;
-    MmSurfaceId sprite_id1 = -1, sprite_id2 = -1;
-    MmResult result = parse_sprite_id(argv[2], true, &sprite_id1);
-    if (SUCCEEDED(result)) result = parse_sprite_id(argv[4], true, &sprite_id2);
-    if (SUCCEEDED(result)) {
-        targ = T_NBR;
-        MmSurface *sprite1 = &graphics_surfaces[sprite_id1];
-        MmSurface *sprite2 = &graphics_surfaces[sprite_id2];
-        if (sprite1->type == kGraphicsSprite && sprite2->type == kGraphicsSprite) {
-            const int32_t x1 = sprite1->x + (sprite1->width / 2);
-            const int32_t y1 = sprite1->y + (sprite1->height / 2);
-            const int32_t x2 = sprite2->x + (sprite2->width / 2);
-            const int32_t y2 = sprite2->y + (sprite2->height / 2);
-            fret = sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-        } else {
-            fret = (MMFLOAT) -1.0;
-        }
+
+    MmSurfaceId sprite_id1 = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[2], kParseSpriteIdMustExist, &sprite_id1));
+    MmSurface *sprite1 = &graphics_surfaces[sprite_id1];
+
+    MmSurfaceId sprite_id2 = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[4], kParseSpriteIdMustExist, &sprite_id2));
+    MmSurface *sprite2 = &graphics_surfaces[sprite_id2];
+
+    targ = T_NBR;
+    if (sprite1->type == kGraphicsSprite && sprite2->type == kGraphicsSprite) {
+        const int32_t x1 = sprite1->x + (sprite1->width / 2);
+        const int32_t y1 = sprite1->y + (sprite1->height / 2);
+        const int32_t x2 = sprite2->x + (sprite2->width / 2);
+        const int32_t y2 = sprite2->y + (sprite2->height / 2);
+        fret = sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+    } else {
+        fret = (MMFLOAT) -1.0;
     }
-    return result;
+
+    return kOk;
 }
 
 /**
@@ -160,14 +151,15 @@ static MmResult fun_sprite_distance(int argc, char **argv) {
  */
 static MmResult fun_sprite_edges(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
+
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
-    if (SUCCEEDED(result)) {
-        MmSurface *sprite = &graphics_surfaces[sprite_id];
-        targ = T_INT;
-        iret = (sprite->type == kGraphicsSprite) ? (MMINTEGER) sprite->edge_collisions : 0x0;
-    }
-    return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[2], kParseSpriteIdMustExist, &sprite_id));
+    MmSurface *sprite = &graphics_surfaces[sprite_id];
+
+    targ = T_INT;
+    iret = (sprite->type == kGraphicsSprite) ? (MMINTEGER) sprite->edge_collisions : 0x0;
+
+    return kOk;
 }
 
 /**
@@ -179,14 +171,15 @@ static MmResult fun_sprite_edges(int argc, char **argv) {
  */
 static MmResult fun_sprite_height(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
+
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
-    if (SUCCEEDED(result)) {
-        MmSurface *sprite = &graphics_surfaces[sprite_id];
-        targ = T_INT;
-        iret = (sprite->type == kGraphicsSprite) ? sprite->height : -1;
-    }
-    return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[2], 0x0, &sprite_id));
+    MmSurface *sprite = &graphics_surfaces[sprite_id];
+
+    targ = T_INT;
+    iret = (sprite->type == kGraphicsSprite) ? sprite->height : -1;
+
+    return kOk;
 }
 
 /**
@@ -198,14 +191,15 @@ static MmResult fun_sprite_height(int argc, char **argv) {
  */
 static MmResult fun_sprite_layer(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
+
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
-    if (SUCCEEDED(result)) {
-        MmSurface *sprite = &graphics_surfaces[sprite_id];
-        targ = T_INT;
-        iret = (sprite->type == kGraphicsSprite) ? (MMINTEGER) sprite->layer : -1;
-    }
-    return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[2], kParseSpriteIdMustExist, &sprite_id));
+    MmSurface *sprite = &graphics_surfaces[sprite_id];
+
+    targ = T_INT;
+    iret = (sprite->type == kGraphicsSprite) ? (MMINTEGER) sprite->layer : -1;
+
+    return kOk;
 }
 
 /** SPRITE(N [, layer]) */
@@ -225,23 +219,27 @@ static MmResult fun_sprite_count(int argc, char **argv) {
     return result;
 }
 
-/** SPRITE(S) */
+/**
+ * SPRITE(S)
+ *
+ * Returns the id of the last sprite which caused a collision.
+ *   If -1 then no collision recorded.
+ *   If 0 then the collision was the result of a SPRITE SCROLL command and the
+ *   SPRITE(C ...) function should be used to find out how many and which sprites collided.
+ */
 static MmResult fun_sprite_last_collision(int argc, char **argv) {
     if (argc != 1) return kArgumentCount;
     targ = T_INT;
-    iret = (MMINTEGER) sprite_last_collision;
-    if (mmb_options.simulate != kSimulateMmb4l) {
-        switch (iret) {
-            case SPRITE_NO_COLLISION:
-                iret = -1;
-                break;
-            case SPRITE_SCROLL_COLLISION:
-                iret = 0;
-                break;
-            default:
-                iret = sprite_id_from_surface_id(iret);
-                break;
-        }
+    switch (sprite_last_collision) {
+        case SPRITE_NO_COLLISION:
+            iret = -1;
+            break;
+        case SPRITE_SCROLL_COLLISION:
+            iret = 0;
+            break;
+        default:
+            iret = (MMINTEGER) sprite_id_from_surface_id(sprite_last_collision);
+            break;
     }
     return kOk;
 }
@@ -249,43 +247,48 @@ static MmResult fun_sprite_last_collision(int argc, char **argv) {
 /** SPRITE(V, [#]id1, [#]id2) */
 static MmResult fun_sprite_vector(int argc, char **argv) {
     if (argc != 5) return kArgumentCount;
-    MmSurfaceId sprite_id1 = -1, sprite_id2 = -1;
-    MmResult result = parse_sprite_id(argv[2], true, &sprite_id1);
-    if (SUCCEEDED(result)) result = parse_sprite_id(argv[4], true, &sprite_id2);
-    if (SUCCEEDED(result)) {
-        MmSurface *sprite1 = &graphics_surfaces[sprite_id1];
-        MmSurface *sprite2 = &graphics_surfaces[sprite_id2];
-        targ = T_NBR;
-        if (sprite1->type == kGraphicsSprite && sprite2->type == kGraphicsSprite) {
-            const int32_t x1 = sprite1->x + (sprite1->width / 2);
-            const int32_t y1 = sprite1->y + (sprite1->height / 2);
-            const int32_t x2 = sprite2->x + (sprite2->width / 2);
-            const int32_t y2 = sprite2->y + (sprite2->height / 2);
-            double vector = atan2(y2 - y1, x2 - x1) + M_PI_2;
-            if (vector < 0) vector += (2 * M_PI);
-            fret = (MMFLOAT) vector;
-        } else {
-            fret = (MMFLOAT) -1.0;
-        }
+
+    MmSurfaceId sprite_id1 = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[2], kParseSpriteIdMustExist, &sprite_id1));
+    MmSurface *sprite1 = &graphics_surfaces[sprite_id1];
+
+    MmSurfaceId sprite_id2 = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[4], kParseSpriteIdMustExist, &sprite_id2));
+    MmSurface *sprite2 = &graphics_surfaces[sprite_id2];
+
+    targ = T_NBR;
+    if (sprite1->type == kGraphicsSprite && sprite2->type == kGraphicsSprite) {
+        const int32_t x1 = sprite1->x + (sprite1->width / 2);
+        const int32_t y1 = sprite1->y + (sprite1->height / 2);
+        const int32_t x2 = sprite2->x + (sprite2->width / 2);
+        const int32_t y2 = sprite2->y + (sprite2->height / 2);
+        double vector = atan2(y2 - y1, x2 - x1) + M_PI_2;
+        if (vector < 0) vector += (2 * M_PI);
+        fret = (MMFLOAT) vector;
+    } else {
+        fret = (MMFLOAT) -1.0;
     }
-    return result;
+
+    return kOk;
 }
 
 /** SPRITE(T, [#]id) */
 static MmResult fun_sprite_touching(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
+
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], true, &sprite_id);
-    if (SUCCEEDED(result)) {
-        targ = T_INT;
-        MmSurface *sprite = &graphics_surfaces[sprite_id];
-        if (sprite->type == kGraphicsSprite) {
-            result = sprite_get_collision_bitset(sprite, CMM2_SPRITE_BASE + 1, (uint64_t *) &iret);
-        } else {
-            iret = 0x0;
-        }
+    ON_FAILURE_RETURN(parse_sprite_id(argv[2], kParseSpriteIdMustExist, &sprite_id));
+    MmSurface *sprite = &graphics_surfaces[sprite_id];
+
+    targ = T_INT;
+    if (sprite->type == kGraphicsSprite) {
+        ON_FAILURE_RETURN(sprite_get_collision_bitset(sprite, CMM2_SPRITE_BASE + 1,
+                                                    (uint64_t *) &iret));
+    } else {
+        iret = 0x0;
     }
-    return result;
+
+    return kOk;
 }
 
 /**
@@ -297,14 +300,15 @@ static MmResult fun_sprite_touching(int argc, char **argv) {
  */
 static MmResult fun_sprite_width(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
+
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
-    if (SUCCEEDED(result)) {
-        MmSurface *sprite = &graphics_surfaces[sprite_id];
-        targ = T_INT;
-        iret = (sprite->type == kGraphicsSprite) ? (MMINTEGER) sprite->width : -1;
-    }
-    return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[2], 0x0, &sprite_id));
+    MmSurface *sprite = &graphics_surfaces[sprite_id];
+
+    targ = T_INT;
+    iret = (sprite->type == kGraphicsSprite) ? (MMINTEGER) sprite->width : -1;
+
+    return kOk;
 }
 
 /**
@@ -316,14 +320,15 @@ static MmResult fun_sprite_width(int argc, char **argv) {
  */
 static MmResult fun_sprite_x(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
+
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
-    if (SUCCEEDED(result)) {
-        MmSurface *sprite = &graphics_surfaces[sprite_id];
-        targ = T_INT;
-        iret = (sprite->type == kGraphicsSprite) ? (MMINTEGER) sprite->x : GRAPHICS_OFF_SCREEN;
-    }
-    return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[2], 0x0, &sprite_id));
+    MmSurface *sprite = &graphics_surfaces[sprite_id];
+
+    targ = T_INT;
+    iret = (sprite->type == kGraphicsSprite) ? (MMINTEGER) sprite->x : GRAPHICS_OFF_SCREEN;
+
+    return kOk;
 }
 
 /**
@@ -335,14 +340,15 @@ static MmResult fun_sprite_x(int argc, char **argv) {
  */
 static MmResult fun_sprite_y(int argc, char **argv) {
     if (argc != 3) return kArgumentCount;
+
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[2], false, &sprite_id);
-    if (SUCCEEDED(result)) {
-        MmSurface *sprite = &graphics_surfaces[sprite_id];
-        targ = T_INT;
-        iret = (sprite->type == kGraphicsSprite) ? (MMINTEGER) sprite->y : GRAPHICS_OFF_SCREEN;
-    }
-    return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[2], 0x0, &sprite_id));
+    MmSurface *sprite = &graphics_surfaces[sprite_id];
+
+    targ = T_INT;
+    iret = (sprite->type == kGraphicsSprite) ? (MMINTEGER) sprite->y : GRAPHICS_OFF_SCREEN;
+
+    return kOk;
 }
 
 void fun_sprite(void) {

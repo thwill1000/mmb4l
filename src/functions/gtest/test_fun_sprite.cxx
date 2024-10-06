@@ -116,8 +116,8 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus2_Fails) {
 
     fun_sprite();
 
-    EXPECT_EQ(9999, iret);
-    EXPECT_STREQ("Invalid sprite: -2", error_msg);
+    EXPECT_EQ(0, iret);
+    EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEquals256_Fails) {
@@ -127,8 +127,8 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEquals256_Fails) {
 
     fun_sprite();
 
-    EXPECT_EQ(9999, iret);
-    EXPECT_STREQ("Invalid sprite: 256", error_msg);
+    EXPECT_EQ(0, iret);
+    EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus1_AndSimulatingClassicMmBasic_Fails) {
@@ -141,8 +141,8 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus1_AndSimulatingCla
 
     fun_sprite();
 
-    EXPECT_EQ(9999, iret);
-    EXPECT_STREQ("Invalid sprite: -1", error_msg);
+    EXPECT_EQ(0, iret);
+    EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEquals65_AndSimulatingClassicMmBasic_Fails) {
@@ -154,11 +154,11 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEquals65_AndSimulatingClassic
 
     fun_sprite();
 
-    EXPECT_EQ(9999, iret);
-    EXPECT_STREQ("Invalid sprite: 65", error_msg);
+    EXPECT_EQ(0, iret);
+    EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
 }
 
-TEST_F(FunSpriteTest, SpriteCollision_GivenNotASprite_ReturnsMinus1) {
+TEST_F(FunSpriteTest, SpriteCollision_GivenNotASprite_ReturnsZero) {
     graphics_surfaces[0].type = kGraphicsBuffer;
     const char *args = "C, 0";
     ep = args;
@@ -166,7 +166,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenNotASprite_ReturnsMinus1) {
 
     fun_sprite();
 
-    EXPECT_EQ(-1, iret);
+    EXPECT_EQ(0, iret);
     EXPECT_STREQ("", error_msg);
 }
 
@@ -213,7 +213,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSprite1CollidedWithSprite2_ReturnsExp
 
         fun_sprite();
 
-        EXPECT_EQ(-1, iret);
+        EXPECT_EQ(0, iret);
         EXPECT_STREQ("", error_msg);
     }
 }

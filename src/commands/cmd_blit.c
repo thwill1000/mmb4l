@@ -178,7 +178,7 @@ MmResult cmd_blit_read(const char *p, bool sprite) {
     {
         MmSurfaceId dst_id = -1;
         result = sprite
-            ? parse_sprite_id(argv[0], false, &dst_id)
+            ? parse_sprite_id(argv[0], 0x0, &dst_id)
             : parse_blit_id(argv[0], false, &dst_id);
         if (result == kGraphicsInvalidSurface) result = kGraphicsInvalidWriteSurface;
         if (FAILED(result)) return result;
@@ -250,7 +250,7 @@ MmResult cmd_blit_write(const char *p, bool sprite) {
     {
         MmSurfaceId src_id = -1;
         MmResult result = sprite
-                ? parse_sprite_id(argv[0], true, &src_id)
+                ? parse_sprite_id(argv[0], kParseSpriteIdMustExist, &src_id)
                 : parse_blit_id(argv[0], true, &src_id);
         if (result == kGraphicsInvalidSurface) result = kGraphicsInvalidReadSurface;
         if (FAILED(result)) return result;

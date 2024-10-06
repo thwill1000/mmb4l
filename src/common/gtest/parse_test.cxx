@@ -1531,12 +1531,12 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
         const char *p = ProgMemory + 8;
 
         MmSurfaceId actual_sprite_id = -1;
-        EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+        EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
         // Currently reports error through legacy error reporting.
         EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
     }
 
-    // Minimum sprite id = 0.
+    // 0 is not a valid sprite id.
     {
         error_msg[0] = '\0';
         clear_prog_memory();
@@ -1544,8 +1544,21 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
         const char *p = ProgMemory + 8;
 
         MmSurfaceId actual_sprite_id = -1;
-        EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
-        EXPECT_EQ(0, actual_sprite_id);
+        EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
+        // Currently reports error through legacy error reporting.
+        EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+    }
+
+    // Minimum sprite id = 1.
+    {
+        error_msg[0] = '\0';
+        clear_prog_memory();
+        tokenise_and_append("BLIT READ 1");
+        const char *p = ProgMemory + 8;
+
+        MmSurfaceId actual_sprite_id = -1;
+        EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
+        EXPECT_EQ(1, actual_sprite_id);
         EXPECT_STREQ("", error_msg);
     }
 
@@ -1557,7 +1570,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
         const char *p = ProgMemory + 8;
 
         MmSurfaceId actual_sprite_id = -1;
-        EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+        EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
         EXPECT_EQ(255, actual_sprite_id);
         EXPECT_STREQ("", error_msg);
     }
@@ -1570,7 +1583,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
         const char *p = ProgMemory + 8;
 
         MmSurfaceId actual_sprite_id = -1;
-        EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+        EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
         EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
     }
 }
@@ -1594,7 +1607,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
             const char *p = ProgMemory + 8;
 
             MmSurfaceId actual_sprite_id = -1;
-            EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+            EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
             EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
         }
 
@@ -1606,7 +1619,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
             const char *p = ProgMemory + 8;
 
             MmSurfaceId actual_sprite_id = -1;
-            EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+            EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
             EXPECT_EQ(128, actual_sprite_id);
             EXPECT_STREQ("", error_msg);
         }
@@ -1619,7 +1632,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
             const char *p = ProgMemory + 8;
 
             MmSurfaceId actual_sprite_id = -1;
-            EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+            EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
             EXPECT_EQ(191, actual_sprite_id);
             EXPECT_STREQ("", error_msg);
         }
@@ -1632,7 +1645,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
             const char *p = ProgMemory + 8;
 
             MmSurfaceId actual_sprite_id = -1;
-            EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+            EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
             EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
         }
     }
@@ -1644,10 +1657,10 @@ TEST_F(ParseTest, ParseSpriteId_GivenExistingSpriteRequired_ButSurfaceDoesNotExi
 
     graphics_surfaces[1].type = kGraphicsNone;
     MmSurfaceId sprite_id = -1;
-    EXPECT_EQ(kOk, parse_sprite_id(p, false, &sprite_id));
+    EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &sprite_id));
     EXPECT_EQ(1, sprite_id);
 
-    EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, true, &sprite_id));
+    EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, kParseSpriteIdMustExist, &sprite_id));
     EXPECT_EQ(1, sprite_id);
 }
 
@@ -1658,20 +1671,20 @@ TEST_F(ParseTest, ParseSpriteId_GivenExistingSpriteRequired_AndSpriteExists) {
     {
         graphics_surfaces[1].type = kGraphicsSprite;
         MmSurfaceId sprite_id = -1;
-        EXPECT_EQ(kOk, parse_sprite_id(p, false, &sprite_id));
+        EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &sprite_id));
         EXPECT_EQ(1, sprite_id);
 
-        EXPECT_EQ(kOk, parse_sprite_id(p, true, &sprite_id));
+        EXPECT_EQ(kOk, parse_sprite_id(p, kParseSpriteIdMustExist, &sprite_id));
         EXPECT_EQ(1, sprite_id);
     }
 
     {
         graphics_surfaces[1].type = kGraphicsInactiveSprite;
         MmSurfaceId sprite_id = -1;
-        EXPECT_EQ(kOk, parse_sprite_id(p, false, &sprite_id));
+        EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &sprite_id));
         EXPECT_EQ(1, sprite_id);
 
-        EXPECT_EQ(kOk, parse_sprite_id(p, true, &sprite_id));
+        EXPECT_EQ(kOk, parse_sprite_id(p, kParseSpriteIdMustExist, &sprite_id));
         EXPECT_EQ(1, sprite_id);
     }
 }
@@ -1683,20 +1696,44 @@ TEST_F(ParseTest, ParseSpriteId_GivenExistingSpriteRequired_ButSurfaceIsNotASpri
     {
         graphics_surfaces[1].type = kGraphicsBuffer;
         MmSurfaceId sprite_id = -1;
-        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, false, &sprite_id));
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, 0x0, &sprite_id));
         EXPECT_EQ(1, sprite_id);
 
-        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, true, &sprite_id));
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, kParseSpriteIdMustExist, &sprite_id));
         EXPECT_EQ(1, sprite_id);
     }
 
     {
         graphics_surfaces[1].type = kGraphicsWindow;
         MmSurfaceId sprite_id = -1;
-        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, false, &sprite_id));
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, 0x0, &sprite_id));
         EXPECT_EQ(1, sprite_id);
 
-        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, true, &sprite_id));
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, kParseSpriteIdMustExist, &sprite_id));
         EXPECT_EQ(1, sprite_id);
+    }
+}
+
+TEST_F(ParseTest, ParseSpriteId_GivenFlag_AllowsZeroValue) {
+    const OptionsSimulate sim[] = {
+        kSimulateMmb4l,
+        kSimulateMmb4w,
+        kSimulateCmm2,
+        kSimulatePicoMiteVga,
+        kSimulateGameMite
+    };
+
+    for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
+        mmb_options.simulate = sim[i];
+
+        error_msg[0] = '\0';
+        clear_prog_memory();
+        tokenise_and_append("BLIT READ 0");
+        const char *p = ProgMemory + 8;
+
+        MmSurfaceId actual_sprite_id = -1;
+        EXPECT_EQ(kOk, parse_sprite_id(p, kParseSpriteIdAllowZero, &actual_sprite_id));
+        EXPECT_EQ(0, actual_sprite_id);
+        EXPECT_STREQ("", error_msg);
     }
 }

@@ -680,18 +680,20 @@ MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id) {
     return kOk;
 }
 
-MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id) {
+MmResult parse_sprite_id(const char *p, uint64_t flags, MmSurfaceId *sprite_id) {
     skipspace(p);
     if (*p == '#') p++;
     if (!*p) return kSyntax;
-    const MmSurfaceId min_id = (mmb_options.simulate == kSimulateMmb4l) ? 0 : 1;
-    const MmSurfaceId max_id = (mmb_options.simulate == kSimulateMmb4l)
-            ? GRAPHICS_MAX_ID : CMM2_SPRITE_COUNT;
-    *sprite_id = sprite_id_to_surface_id(getint(p, min_id, max_id));
+    *sprite_id = sprite_id_to_surface_id(
+            getint(p, flags & kParseSpriteIdAllowZero ? 0 : 1, sprite_max_id()));
+
+    // If allowed then 0 does not mean surface 0;
+    // it is a special value used by some of the SPRITE() functions.
+    if (*sprite_id == 0) return kOk;
 
     switch (graphics_surfaces[*sprite_id].type) {
         case kGraphicsNone:
-            if (existing) {
+            if (flags & kParseSpriteIdMustExist) {
                 MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", *sprite_id);
             }
             break;

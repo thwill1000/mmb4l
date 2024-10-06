@@ -60,7 +60,7 @@ static MmResult cmd_sprite_close(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) return kArgumentCount;
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
     if (SUCCEEDED(result)) result = sprite_destroy(&graphics_surfaces[sprite_id]);
     return result;
 }
@@ -78,7 +78,7 @@ static MmResult cmd_sprite_hide(const char *p) {
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
     if (FAILED(result)) return result;
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
@@ -107,7 +107,7 @@ static MmResult cmd_sprite_hide_safe(const char *p) {
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
     if (FAILED(result)) return result;
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
@@ -122,14 +122,8 @@ static MmResult cmd_sprite_load(const char *p) {
     char *filename = GetTempStrMemory();
     ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
 
-    MmSurfaceId start_sprite_id = (mmb_options.simulate == kSimulateMmb4l) ? 0 : 1;
-    if (has_arg(2)) {
-        const MmSurfaceId min_id = (mmb_options.simulate == kSimulateMmb4l) ? 0 : 1;
-        const MmSurfaceId max_id = (mmb_options.simulate == kSimulateMmb4l)
-                ? GRAPHICS_MAX_ID : CMM2_SPRITE_COUNT;
-        start_sprite_id = getint(argv[2], min_id, max_id);
-    }
-    start_sprite_id = sprite_id_to_surface_id(start_sprite_id);
+    const MmSurfaceId start_sprite_id = sprite_id_to_surface_id(
+            has_arg(2) ? getint(argv[2], 1, sprite_max_id()) : 1);
 
     uint8_t colour_mode = has_arg(4) ? getint(argv[4], 0, 1) : 0;
 
@@ -149,7 +143,7 @@ static MmResult cmd_sprite_next(const char *p) {
     if (argc != 5) return kArgumentCount;
 
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
     if (FAILED(result)) return result;
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
@@ -223,7 +217,7 @@ static MmResult cmd_sprite_show(const char *p) {
     if (argc != 7 && argc != 9) return kArgumentCount;
 
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
     if (FAILED(result)) return result;
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
@@ -253,7 +247,7 @@ static MmResult cmd_sprite_show_safe(const char *p) {
     if (argc != 7 && argc != 9 && argc != 11) return kArgumentCount;
 
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], true, &sprite_id);
+    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
     if (FAILED(result)) return result;
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
