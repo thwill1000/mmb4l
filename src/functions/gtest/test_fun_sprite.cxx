@@ -13,6 +13,7 @@ extern "C" {
 #include "../../Hardware_Includes.h"
 #include "../../common/bitset.h"
 #include "../../common/mmresult.h"
+#include "../../common/sprite.h"
 #include "../../common/utility.h"
 #include "../../common/gtest/test_helper.h"
 #include "../../core/Commands.h"
@@ -239,6 +240,68 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSprite1CollidedWithSprite2_AndSimulat
         fun_sprite();
 
         EXPECT_EQ(2, iret);
+        EXPECT_STREQ("", error_msg);
+    }
+
+    { // There is no 2nd collision.
+        const char *args = "C, 1, 2";
+        ep = args;
+        iret = 9999;
+
+        fun_sprite();
+
+        EXPECT_EQ(0, iret);
+        EXPECT_STREQ("", error_msg);
+    }
+}
+
+TEST_F(FunSpriteTest, SpriteCollision_GivenCollisionWithEdge_ReturnsExpectedCollisions) {
+    (void) graphics_sprite_create(1, 10, 10);
+    MmSurface *sprite1 = &graphics_surfaces[1];
+    sprite1->type = kGraphicsSprite;
+
+    sprite1->edge_collisions = kSpriteEdgeLeft | kSpriteEdgeBottom;
+
+    { // 1st collision is with sprite edge.
+        const char *args = "C, 1, 1";
+        ep = args;
+        iret = 9999;
+
+        fun_sprite();
+
+        EXPECT_EQ(0xFFF1 | 0xFFF8, iret);
+        EXPECT_STREQ("", error_msg);
+    }
+
+    { // There is no 2nd collision.
+        const char *args = "C, 1, 2";
+        ep = args;
+        iret = 9999;
+
+        fun_sprite();
+
+        EXPECT_EQ(0, iret);
+        EXPECT_STREQ("", error_msg);
+    }
+}
+
+TEST_F(FunSpriteTest, SpriteCollision_GivenCollisionWithEdge_AndSimulatingClassicMmBasic_ReturnsExpectedCollisions) {
+    mmb_options.simulate = kSimulateCmm2;
+
+    (void) graphics_sprite_create(CMM2_SPRITE_BASE + 1, 10, 10);
+    MmSurface *sprite1 = &graphics_surfaces[CMM2_SPRITE_BASE + 1];
+    sprite1->type = kGraphicsSprite;
+
+    sprite1->edge_collisions = kSpriteEdgeLeft | kSpriteEdgeBottom;
+
+    { // 1st collision is with sprite edge.
+        const char *args = "C, 1, 1";
+        ep = args;
+        iret = 9999;
+
+        fun_sprite();
+
+        EXPECT_EQ(0xF1 | 0xF8, iret);
         EXPECT_STREQ("", error_msg);
     }
 

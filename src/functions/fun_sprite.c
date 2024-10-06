@@ -101,8 +101,20 @@ static MmResult fun_sprite_collision(int argc, char **argv) {
             result = sprite
                     ? sprite_get_collision(sprite, m, &id)
                     : sprite_get_collided_sprite(m, &id);
-            if (id == -1) id = 0;
-            if (SUCCEEDED(result)) iret = (MMINTEGER) sprite_id_from_surface_id(id);
+            if (SUCCEEDED(result)) {
+                if (id == -1) {
+                    iret = 0;
+                } else if (id & 0xFF00) {
+                    // Edge collision.
+                    if (mmb_options.simulate == kSimulateMmb4l) {
+                        iret = (MMINTEGER) id;
+                    } else {
+                        iret = (MMINTEGER) (id & 0xFF);
+                    }
+                } else {
+                    iret = (MMINTEGER) sprite_id_from_surface_id(id);
+                }
+            }
         }
     }
 
