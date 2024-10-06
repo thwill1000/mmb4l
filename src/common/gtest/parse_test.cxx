@@ -1522,7 +1522,123 @@ TEST_F(ParseTest, ParseBlitId_GivenSurfaceDoesExist) {
     }
 }
 
-TEST_F(ParseTest, ParseSpriteId_GivenSurfaceDoesNotExist) {
+TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits) {
+    // -1 is not a valid sprite id.
+    {
+        error_msg[0] = '\0';
+        clear_prog_memory();
+        tokenise_and_append("BLIT READ -1");
+        const char *p = ProgMemory + 8;
+
+        MmSurfaceId actual_sprite_id = -1;
+        EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+        // Currently reports error through legacy error reporting.
+        EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+    }
+
+    // Minimum sprite id = 0.
+    {
+        error_msg[0] = '\0';
+        clear_prog_memory();
+        tokenise_and_append("BLIT READ 0");
+        const char *p = ProgMemory + 8;
+
+        MmSurfaceId actual_sprite_id = -1;
+        EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+        EXPECT_EQ(0, actual_sprite_id);
+        EXPECT_STREQ("", error_msg);
+    }
+
+    // Maximum sprite id = 255.
+    {
+        EXPECT_STREQ("", error_msg);
+        clear_prog_memory();
+        tokenise_and_append("BLIT READ 255");
+        const char *p = ProgMemory + 8;
+
+        MmSurfaceId actual_sprite_id = -1;
+        EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+        EXPECT_EQ(255, actual_sprite_id);
+        EXPECT_STREQ("", error_msg);
+    }
+
+    // Greater than the maximum sprite id.
+    {
+        EXPECT_STREQ("", error_msg);
+        clear_prog_memory();
+        tokenise_and_append("BLIT READ 256");
+        const char *p = ProgMemory + 8;
+
+        MmSurfaceId actual_sprite_id = -1;
+        EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+        EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+    }
+}
+
+TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_AndAdds63ToSpriteId) {
+    const OptionsSimulate sim[] = {
+        kSimulateMmb4w,
+        kSimulateCmm2,
+        kSimulatePicoMiteVga,
+        kSimulateGameMite
+    };
+
+    for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
+        mmb_options.simulate = sim[i];
+
+        // 0 is not a valid sprite id.
+        {
+            error_msg[0] = '\0';
+            clear_prog_memory();
+            tokenise_and_append("BLIT READ 0");
+            const char *p = ProgMemory + 8;
+
+            MmSurfaceId actual_sprite_id = -1;
+            EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+            EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+        }
+
+        // Minimum sprite id = 1.
+        {
+            error_msg[0] = '\0';
+            clear_prog_memory();
+            tokenise_and_append("BLIT READ 1");
+            const char *p = ProgMemory + 8;
+
+            MmSurfaceId actual_sprite_id = -1;
+            EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+            EXPECT_EQ(128, actual_sprite_id);
+            EXPECT_STREQ("", error_msg);
+        }
+
+        // Maximum sprite id = 64.
+        {
+            EXPECT_STREQ("", error_msg);
+            clear_prog_memory();
+            tokenise_and_append("BLIT READ 64");
+            const char *p = ProgMemory + 8;
+
+            MmSurfaceId actual_sprite_id = -1;
+            EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+            EXPECT_EQ(191, actual_sprite_id);
+            EXPECT_STREQ("", error_msg);
+        }
+
+        // Greater than the maximum sprite id.
+        {
+            EXPECT_STREQ("", error_msg);
+            clear_prog_memory();
+            tokenise_and_append("BLIT READ 65");
+            const char *p = ProgMemory + 8;
+
+            MmSurfaceId actual_sprite_id = -1;
+            EXPECT_EQ(kOk, parse_sprite_id(p, false, &actual_sprite_id));
+            EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+        }
+    }
+}
+
+TEST_F(ParseTest, ParseSpriteId_GivenExistingSpriteRequired_ButSurfaceDoesNotExist) {
     tokenise_and_append("SPRITE READ 1"); // Incomplete command but good enough for test.
     const char *p = ProgMemory + 8;
 
@@ -1535,7 +1651,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenSurfaceDoesNotExist) {
     EXPECT_EQ(1, sprite_id);
 }
 
-TEST_F(ParseTest, ParseSpriteId_GivenSurfaceExists_AndIsSprite) {
+TEST_F(ParseTest, ParseSpriteId_GivenExistingSpriteRequired_AndSpriteExists) {
     tokenise_and_append("SPRITE READ 1"); // Incomplete command but good enough for test.
     const char *p = ProgMemory + 8;
 
@@ -1560,7 +1676,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenSurfaceExists_AndIsSprite) {
     }
 }
 
-TEST_F(ParseTest, ParseSpriteId_GivenSurfaceExists_ButIsNotSprite) {
+TEST_F(ParseTest, ParseSpriteId_GivenExistingSpriteRequired_ButSurfaceIsNotASprite) {
     tokenise_and_append("BLIT READ 1"); // Incomplete command but good enough for test.
     const char *p = ProgMemory + 8;
 

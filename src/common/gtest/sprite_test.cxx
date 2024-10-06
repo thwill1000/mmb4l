@@ -800,5 +800,106 @@ TEST_F(SpriteTest, Destroy_ClearsAllSpritesCollisions) {
     }
 }
 
+TEST_F(SpriteTest, IdToSurfaceId_GivenValidId_Succeeds) {
+    mmb_options.simulate = kSimulateMmb4l;
+    for (MmSurfaceId sprite_id = 0; sprite_id <= 255; ++sprite_id) {
+        const MmSurfaceId expected_surface_id = sprite_id;
+        EXPECT_EQ(expected_surface_id, sprite_id_to_surface_id(sprite_id));
+    }
+
+    const OptionsSimulate sim[] = {
+        kSimulateMmb4w,
+        kSimulateCmm2,
+        kSimulatePicoMiteVga,
+        kSimulateGameMite
+    };
+
+    for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
+        mmb_options.simulate = sim[i];
+        for (MmSurfaceId sprite_id = 0; sprite_id <= 64; ++sprite_id) {
+            const MmSurfaceId expected_surface_id = (sprite_id == 0) ? 0 : sprite_id + 127;
+            EXPECT_EQ(expected_surface_id, sprite_id_to_surface_id(sprite_id));
+        }
+    }
+}
+
+TEST_F(SpriteTest, IdToSurfaceId_GivenInvalidId_ReturnsMinusOne) {
+    mmb_options.simulate = kSimulateMmb4l;
+    EXPECT_EQ(-1, sprite_id_to_surface_id(-1));
+    EXPECT_EQ(-1, sprite_id_to_surface_id(256));
+
+    const OptionsSimulate sim[] = {
+        kSimulateMmb4w,
+        kSimulateCmm2,
+        kSimulatePicoMiteVga,
+        kSimulateGameMite
+    };
+
+    for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
+        mmb_options.simulate = sim[i];
+        EXPECT_EQ(-1, sprite_id_to_surface_id(-1));
+        EXPECT_EQ(-1, sprite_id_to_surface_id(65));
+    }
+}
+
+TEST_F(SpriteTest, IdFromSurfaceId_GivenValidId_Succeeds) {
+    mmb_options.simulate = kSimulateMmb4l;
+
+    for (MmSurfaceId surface_id = 0; surface_id <= 255; ++surface_id) {
+        const MmSurfaceId expected_sprite_id = surface_id;
+        EXPECT_EQ(expected_sprite_id, sprite_id_from_surface_id(surface_id));
+    }
+
+    const OptionsSimulate sim[] = {
+        kSimulateMmb4w,
+        kSimulateCmm2,
+        kSimulatePicoMiteVga,
+        kSimulateGameMite
+    };
+
+    for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
+        mmb_options.simulate = sim[i];
+        for (MmSurfaceId surface_id = 128; surface_id <= 191; ++surface_id) {
+            const MmSurfaceId expected_sprite_id = (surface_id == 0) ? 0 : surface_id - 127;
+            EXPECT_EQ(expected_sprite_id, sprite_id_from_surface_id(surface_id));
+        }
+    }
+}
+
+TEST_F(SpriteTest, IdFromSurfaceId_GivenInvalidId_ReturnsMinusOne) {
+    mmb_options.simulate = kSimulateMmb4l;
+    EXPECT_EQ(-1, sprite_id_from_surface_id(-1));
+    EXPECT_EQ(-1, sprite_id_from_surface_id(256));
+
+    const OptionsSimulate sim[] = {
+        kSimulateMmb4w,
+        kSimulateCmm2,
+        kSimulatePicoMiteVga,
+        kSimulateGameMite
+    };
+
+    for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
+        mmb_options.simulate = sim[i];
+        EXPECT_EQ(-1, sprite_id_from_surface_id(CMM2_SPRITE_BASE));
+        EXPECT_EQ(-1, sprite_id_from_surface_id(CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT + 1));
+    }
+}
+
+TEST_F(SpriteTest, MaxId) {
+    mmb_options.simulate = kSimulateMmb4l;
+    EXPECT_EQ(255, sprite_max_id());
+
+    const OptionsSimulate sim[] = {
+        kSimulateMmb4w,
+        kSimulateCmm2,
+        kSimulatePicoMiteVga,
+        kSimulateGameMite
+    };
+    for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
+        mmb_options.simulate = sim[i];
+        EXPECT_EQ(64, sprite_max_id());
+    }
+}
+
 // TODO:
 //  - interrupt data
