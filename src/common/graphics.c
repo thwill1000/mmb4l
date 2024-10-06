@@ -2439,7 +2439,7 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
         case kGraphicsSprite:
             if (simulate != kSimulateMmb4l
                     && id > CMM2_SPRITE_BASE && id <= CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT) {
-                (void) snprintf(out, out_sz, "Sprite %d (Active)", surface->id - CMM2_SPRITE_BASE);
+                (void) snprintf(out, out_sz, "Sprite %d (Active)", sprite_id_from_surface_id(id));
             } else {
                 (void) snprintf(out, out_sz, "Sprite (Active)");
             }
@@ -2448,7 +2448,7 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
             if (simulate != kSimulateMmb4l
                     && id > CMM2_SPRITE_BASE && id <= CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT) {
                 (void) snprintf(out, out_sz, "Sprite %d (Inactive)",
-                                surface->id - CMM2_SPRITE_BASE);
+                                sprite_id_from_surface_id(id));
             } else {
                 (void) snprintf(out, out_sz, "Sprite (Inactive)");
             }

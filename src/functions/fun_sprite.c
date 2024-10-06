@@ -113,7 +113,7 @@ static MmResult fun_sprite_collision(int argc, char **argv) {
                     : sprite_get_collided_sprite(m, &id);
             if (SUCCEEDED(result)) iret = (MMINTEGER) id;
             if (mmb_options.simulate != kSimulateMmb4l) {
-                iret = (iret == -1) ? 0 : iret - CMM2_SPRITE_BASE;
+                iret = (iret == -1) ? 0 : sprite_id_from_surface_id(iret);
             }
         }
     }
@@ -239,7 +239,7 @@ static MmResult fun_sprite_last_collision(int argc, char **argv) {
                 iret = 0;
                 break;
             default:
-                iret -= CMM2_SPRITE_BASE;
+                iret = sprite_id_from_surface_id(iret);
                 break;
         }
     }
