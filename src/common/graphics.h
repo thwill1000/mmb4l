@@ -519,12 +519,13 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
 /**
  * Loads a Colour Maximite sprite file.
  *
- * @param  filename      Name of file to load the sprite(s) from.
- * @param  start_sprite  Number to be given for the first sprite.
- * @param  colour_mode   0 to use the original CMM1/CMM2 colour mapping,
- *                       1 to use the PicoMite RGB121 colour mapping.
+ * @param  filename         Name of file to load the sprite(s) from.
+ * @param  start_sprite_id  ID for the first sprite.
+ * @param  colour_mode      0 to use the original CMM1/CMM2 colour mapping,
+ *                          1 to use the PicoMite RGB121 colour mapping.
  */
-MmResult graphics_load_sprite(const char *filename, uint8_t start_sprite, uint8_t colour_mode);
+MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
+                              uint8_t colour_mode);
 
 /**
  * Scrolls surface.

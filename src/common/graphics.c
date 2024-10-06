@@ -436,6 +436,10 @@ MmResult graphics_buffer_create(MmSurfaceId id, int width, int height) {
 }
 
 MmResult graphics_sprite_create(MmSurfaceId id, int width, int height) {
+    // For backward compatibility with microcontroller MMBasic we do not allow surface 0 to be a
+    // sprite; a return value of 0 has a special meaning for some of the SPRITE() functions.
+    if (id == 0) return kGraphicsInvalidSpriteIdZero;
+
     MmResult result = graphics_surface_create(id, kGraphicsInactiveSprite, width, height);
     MmSurface *s = &graphics_surfaces[id];
 
@@ -1438,7 +1442,7 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
     return kOk;
 }
 
-MmResult graphics_load_sprite(const char *filename, uint8_t start_sprite_id, uint8_t colour_mode) {
+MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id, uint8_t colour_mode) {
     char _filename[STRINGSIZE];
     MmResult result = path_try_extension(filename, ".spr", _filename, STRINGSIZE);
     if (FAILED(result)) return result;
@@ -1463,11 +1467,12 @@ MmResult graphics_load_sprite(const char *filename, uint8_t start_sprite_id, uin
     MmSurfaceId number = getinteger(argv[2]);
     unsigned height = (argc == 5) ? getinteger(argv[4]) : width;
 
-    if (mmb_options.simulate != kSimulateMmb4l) {
-        if (start_sprite_id + number > CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT) {
-            (void) file_close(fnbr);
-            return kGraphicsTooManySprites;
-        }
+    const MmSurfaceId max_sprite_id = (mmb_options.simulate == kSimulateMmb4l)
+            ? GRAPHICS_MAX_ID
+            : CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT;
+    if (start_sprite_id + number > max_sprite_id) {
+        (void) file_close(fnbr);
+        return kGraphicsTooManySprites;
     }
 
     bool new_sprite = true;
@@ -2437,17 +2442,17 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
             }
             break;
         case kGraphicsSprite:
-            if (simulate != kSimulateMmb4l
-                    && id > CMM2_SPRITE_BASE && id <= CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT) {
-                (void) snprintf(out, out_sz, "Sprite %d (Active)", sprite_id_from_surface_id(id));
+            if (simulate != kSimulateMmb4l && sprite_id_is_in_range(sprite_id_from_surface_id(id)))
+            {
+                (void) snprintf(out, out_sz, "Sprite #%d (Active)", sprite_id_from_surface_id(id));
             } else {
                 (void) snprintf(out, out_sz, "Sprite (Active)");
             }
             break;
         case kGraphicsInactiveSprite:
-            if (simulate != kSimulateMmb4l
-                    && id > CMM2_SPRITE_BASE && id <= CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT) {
-                (void) snprintf(out, out_sz, "Sprite %d (Inactive)",
+            if (simulate != kSimulateMmb4l && sprite_id_is_in_range(sprite_id_from_surface_id(id)))
+            {
+                (void) snprintf(out, out_sz, "Sprite #%d (Inactive)",
                                 sprite_id_from_surface_id(id));
             } else {
                 (void) snprintf(out, out_sz, "Sprite (Inactive)");

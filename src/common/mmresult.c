@@ -142,6 +142,7 @@ const char *mmresult_to_string(MmResult result) {
         case kGraphicsInvalidId:          return "Invalid graphics surface ID";
         case kGraphicsInvalidReadSurface: return "Invalid graphics read surface";
         case kGraphicsInvalidSprite:      return "Invalid sprite";
+        case kGraphicsInvalidSpriteIdZero: return "Invalid sprite 0";
         case kGraphicsInvalidSurface:     return "Invalid graphics surface";
         case kGraphicsInvalidVertices:    return "Invalid number of vertices";
         case kGraphicsInvalidWindow:      return "Invalid window";
