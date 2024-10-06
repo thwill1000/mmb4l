@@ -684,11 +684,10 @@ MmResult parse_sprite_id(const char *p, bool existing, MmSurfaceId *sprite_id) {
     skipspace(p);
     if (*p == '#') p++;
     if (!*p) return kSyntax;
-    if (mmb_options.simulate == kSimulateMmb4l) {
-        *sprite_id = getint(p, 0, GRAPHICS_MAX_ID);
-    } else {
-        *sprite_id = getint(p, 1, CMM2_SPRITE_COUNT) + CMM2_SPRITE_BASE;
-    }
+    const MmSurfaceId min_id = (mmb_options.simulate == kSimulateMmb4l) ? 0 : 1;
+    const MmSurfaceId max_id = (mmb_options.simulate == kSimulateMmb4l)
+            ? GRAPHICS_MAX_ID : CMM2_SPRITE_COUNT;
+    *sprite_id = sprite_id_to_surface_id(getint(p, min_id, max_id));
 
     switch (graphics_surfaces[*sprite_id].type) {
         case kGraphicsNone:

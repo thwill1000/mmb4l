@@ -45,9 +45,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMBASIC_SPRITE_H)
 #define MMBASIC_SPRITE_H
 
-#include "graphics.h"
-
+#include <assert.h>
 #include <stdbool.h>
+
+#include "graphics.h"
 
 #define SPRITE_SCROLL_COLLISION  -1
 #define SPRITE_NO_COLLISION  -2
@@ -135,6 +136,57 @@ MmResult sprite_hide_safe(MmSurface *sprite);
 
 /** TODO */
 MmResult sprite_hide_all();
+
+/**
+ * Gets the maximum sprite id for an MMBasic command.
+ *
+ * @return  64 if simulating a legacy MMBasic,
+ *          255 otherwise.
+ */
+static inline MmSurfaceId sprite_max_id() {
+   return (mmb_options.simulate == kSimulateMmb4l) ? GRAPHICS_MAX_ID : CMM2_SPRITE_COUNT;
+}
+
+/**
+ * Transforms a "sprite id" received as the input to an MMBasic command/function to a "surface id"
+ * to be used internally by MMB4L.
+ *
+ * These will be the same value unless simulating CMM2, etc. in which case we add 127 to all
+ * values except 0.
+ *
+ * @param  sprite_id  Incoming sprite id.
+ * @return            Surface id to use internally, -1 if invalid.
+ */
+static inline MmSurfaceId sprite_id_to_surface_id(MmSurfaceId sprite_id) {
+   if (sprite_id < 0 || sprite_id > sprite_max_id()) {
+      return -1;
+   } else if (sprite_id == 0 || mmb_options.simulate == kSimulateMmb4l) {
+      return sprite_id;
+   } else {
+      return sprite_id + CMM2_SPRITE_BASE;
+   }
+}
+
+/**
+ * Transforms a "surface id" used internally by MMB4L into a "sprite id" that should be returned in
+ * the output of an MMBasic command/function.
+ *
+ * These will be the same value unless simulating CMM2, etc. in which case we subtract 127 from all
+ * values except 0.
+ *
+ * @param  surface_id  Surface id being used internally.
+ * @return             Outgoing sprite id, -1 if invalid.
+ */
+static inline MmSurfaceId sprite_id_from_surface_id(MmSurfaceId surface_id) {
+   if (surface_id < 0 || surface_id > GRAPHICS_MAX_ID) {
+      return -1;
+   } else if (surface_id == 0 || mmb_options.simulate == kSimulateMmb4l) {
+      return surface_id;
+   } else {
+      const MmSurfaceId sprite_id = surface_id - CMM2_SPRITE_BASE;
+      return (sprite_id >= 1 && sprite_id <= sprite_max_id()) ? sprite_id : -1;
+   }
+}
 
 /** TODO */
 MmResult sprite_move();

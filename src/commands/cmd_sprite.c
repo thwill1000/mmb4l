@@ -122,15 +122,17 @@ static MmResult cmd_sprite_load(const char *p) {
     char *filename = GetTempStrMemory();
     ON_FAILURE_RETURN(parse_filename(argv[0], filename, STRINGSIZE));
 
-    uint8_t start_sprite_id = 0;
-    if (mmb_options.simulate == kSimulateMmb4l) {
-        if has_arg(2) start_sprite_id = getint(argv[2], 0, GRAPHICS_MAX_ID);
-    } else {
-        start_sprite_id = 1;
-        if has_arg(2) start_sprite_id = getint(argv[2], 1, CMM2_SPRITE_COUNT);
-        start_sprite_id += CMM2_SPRITE_BASE;
+    MmSurfaceId start_sprite_id = (mmb_options.simulate == kSimulateMmb4l) ? 0 : 1;
+    if (has_arg(2)) {
+        const MmSurfaceId min_id = (mmb_options.simulate == kSimulateMmb4l) ? 0 : 1;
+        const MmSurfaceId max_id = (mmb_options.simulate == kSimulateMmb4l)
+                ? GRAPHICS_MAX_ID : CMM2_SPRITE_COUNT;
+        start_sprite_id = getint(argv[2], min_id, max_id);
     }
+    start_sprite_id = sprite_id_to_surface_id(start_sprite_id);
+
     uint8_t colour_mode = has_arg(4) ? getint(argv[4], 0, 1) : 0;
+
     return graphics_load_sprite(filename, start_sprite_id, colour_mode);
 }
 
