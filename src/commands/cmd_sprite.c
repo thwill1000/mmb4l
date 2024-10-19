@@ -59,10 +59,16 @@ MmResult cmd_blit_write(const char *p, bool sprite);
 static MmResult cmd_sprite_close(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) return kArgumentCount;
-    MmSurfaceId sprite_id = -1;
-    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
 
-    return sprite_destroy(&graphics_surfaces[sprite_id]);
+    MmSurfaceId surface_id = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &surface_id));
+    MmSurface *sprite = &graphics_surfaces[surface_id];
+
+#if defined(SPRITE_DEBUG)
+    printf("SPRITE CLOSE #%d (%d)\n", sprite_id_from_surface_id(surface_id), surface_id);
+#endif
+
+    return sprite_destroy(sprite);
 }
 
 /** SPRITE CLOSE ALL */
@@ -77,9 +83,13 @@ static MmResult cmd_sprite_hide(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) return kArgumentCount;
 
-    MmSurfaceId sprite_id = -1;
-    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
-    MmSurface *sprite = &graphics_surfaces[sprite_id];
+    MmSurfaceId surface_id = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &surface_id));
+    MmSurface *sprite = &graphics_surfaces[surface_id];
+
+#if defined(SPRITE_DEBUG)
+    printf("SPRITE HIDE #%d (%d)\n", sprite_id_from_surface_id(surface_id), surface_id);
+#endif
 
     return sprite_hide(sprite);
 }
@@ -105,9 +115,13 @@ static MmResult cmd_sprite_hide_safe(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) return kArgumentCount;
 
-    MmSurfaceId sprite_id = -1;
-    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
-    MmSurface *sprite = &graphics_surfaces[sprite_id];
+    MmSurfaceId surface_id = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &surface_id));
+    MmSurface *sprite = &graphics_surfaces[surface_id];
+
+#if defined(SPRITE_DEBUG)
+    printf("SPRITE HIDE SAFE #%d (%d)\n", sprite_id_from_surface_id(surface_id), surface_id);
+#endif
 
     return sprite_hide_safe(sprite);
 }
@@ -140,9 +154,9 @@ static MmResult cmd_sprite_next(const char *p) {
     getargs(&p, 5, ",");
     if (argc != 5) return kArgumentCount;
 
-    MmSurfaceId sprite_id = -1;
-    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
-    MmSurface *sprite = &graphics_surfaces[sprite_id];
+    MmSurfaceId surface_id = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &surface_id));
+    MmSurface *sprite = &graphics_surfaces[surface_id];
 
     sprite->next_x = getint(argv[2], 1 - sprite->width, graphics_current->width - 1);
     sprite->next_y = getint(argv[4], 1 - sprite->height, graphics_current->height - 1);
@@ -213,14 +227,20 @@ static MmResult cmd_sprite_show(const char *p) {
     getargs(&p, 9, ",");
     if (argc != 7 && argc != 9) return kArgumentCount;
 
-    MmSurfaceId sprite_id = -1;
-    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
-    MmSurface *sprite = &graphics_surfaces[sprite_id];
+    MmSurfaceId surface_id = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &surface_id));
+    MmSurface *sprite = &graphics_surfaces[surface_id];
 
     const int x = getint(argv[2], -sprite->width + 1, graphics_current->width - 1);
     const int y = getint(argv[4], -sprite->height + 1, graphics_current->height - 1);
     const unsigned layer = getint(argv[6], 0, GRAPHICS_MAX_LAYER);
     const int flags = has_arg(8) ? getint(argv[8], 0, 7) : -1;
+
+#if defined(SPRITE_DEBUG)
+    printf("SPRITE SHOW #%d (%d), %d, %d, layer = %d, flags = %x - surface %d\n",
+           sprite_id_from_surface_id(surface_id), surface_id, x, y, layer, flags,
+           graphics_current->id);
+#endif
 
     // Invert transparency flag to match blit.
     ON_FAILURE_RETURN(sprite_show(sprite, graphics_current, x, y, layer,
@@ -241,15 +261,23 @@ static MmResult cmd_sprite_show_safe(const char *p) {
     getargs(&p, 11, ",");
     if (argc != 7 && argc != 9 && argc != 11) return kArgumentCount;
 
-    MmSurfaceId sprite_id = -1;
-    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
-    MmSurface *sprite = &graphics_surfaces[sprite_id];
+    MmSurfaceId surface_id = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &surface_id));
+    MmSurface *sprite = &graphics_surfaces[surface_id];
 
     const int x = getint(argv[2], -sprite->width + 1, graphics_current->width - 1);
     const int y = getint(argv[4], -sprite->height + 1, graphics_current->height - 1);
     const unsigned layer = getint(argv[6], 0, GRAPHICS_MAX_LAYER);
     const int flags = has_arg(8) ? getint(argv[8], 0, 7) : -1;
     const unsigned ontop = has_arg(10) ? getint(argv[10], 0, 1) : 0;
+
+#if defined(SPRITE_DEBUG)
+    if (surface_id != 128) {
+        printf("SPRITE SHOW SAFE #%d (%d), %d, %d, layer = %d, flags = %x, ontop = %d - surface %d\n",
+            sprite_id_from_surface_id(surface_id), surface_id, x, y, layer, flags, ontop,
+            graphics_current->id);
+    }
+#endif
 
     // Invert transparency flag to match blit.
     ON_FAILURE_RETURN(sprite_show_safe(sprite, graphics_current, x, y, layer,
