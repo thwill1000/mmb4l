@@ -149,9 +149,8 @@ static inline MmResult sprite_render(MmSurface *sprite, MmSurface *dst) {
     assert(sprite->type == kGraphicsSprite || sprite->type == kGraphicsInactiveSprite);
     assert(dst);
     assert(dst->type != kGraphicsNone);
-    // TODO: sprite should remember show flags!
     return graphics_blit(0, 0, sprite->x, sprite->y, sprite->width, sprite->height, sprite, dst,
-                         0x04, sprite_transparent_colour);
+                         sprite->blit_flags, sprite_transparent_colour);
 }
 
 /**
@@ -606,7 +605,7 @@ MmResult sprite_scroll(int x, int y, MmGraphicsColour colour) {
 }
 
 MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
-                     unsigned layer, unsigned flags) {
+                     unsigned layer, int blit_flags) {
     if (sprite_all_hidden) return kSpritesAreHidden;
     if (sprite->type != kGraphicsSprite && sprite->type != kGraphicsInactiveSprite) {
         MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
@@ -624,6 +623,7 @@ MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
 
     sprite->x = x;
     sprite->y = y;
+    if (blit_flags != -1) sprite->blit_flags = (unsigned) blit_flags;
 
     // Save the background at the destination.
     ON_FAILURE_RETURN(sprite_update_background(sprite, dst_surface));
@@ -633,9 +633,7 @@ MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
     ON_FAILURE_RETURN(stack_push(&sprite_stack[sprite->layer == 0 ? 0 : 1], sprite->id));
 
     // Display the sprite.
-    // Note inversion of the 3rd bit of 'flags'.
-    ON_FAILURE_RETURN(graphics_blit(0, 0, sprite->x, sprite->y, sprite->width, sprite->height,
-                                    sprite, dst_surface, flags ^ 0x04, sprite_transparent_colour));
+    ON_FAILURE_RETURN(sprite_render(sprite, dst_surface));
 
     // Flag the sprite as active / visible.
     sprite->type = kGraphicsSprite;
@@ -644,9 +642,9 @@ MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
 }
 
 MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
-                          unsigned layer, unsigned flags, bool ontop) {
+                          unsigned layer, int blit_flags, bool ontop) {
     if (sprite->type == kGraphicsInactiveSprite) {
-        return sprite_show(sprite, dst_surface, x, y, layer, flags);
+        return sprite_show(sprite, dst_surface, x, y, layer, blit_flags);
     }
 
     if (sprite_all_hidden) return kSpritesAreHidden;
@@ -659,15 +657,15 @@ MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int 
     ON_FAILURE_RETURN(sprite_tmp_hide(&sprite_stack[1], sprite));
     if (layer == 0) ON_FAILURE_RETURN(sprite_tmp_hide(&sprite_stack[0], sprite));
 
-    // 2) If ontop != true then properly show this sprite.
-    if (!ontop) ON_FAILURE_RETURN(sprite_show(sprite, dst_surface, x, y, layer, flags));
+    // 2) If ontop == false then properly show this sprite.
+    if (!ontop) ON_FAILURE_RETURN(sprite_show(sprite, dst_surface, x, y, layer, blit_flags));
 
     // 3) Restore sprites from step (1).
     if (layer == 0) ON_FAILURE_RETURN(sprite_tmp_restore(&sprite_stack[0]));
     ON_FAILURE_RETURN(sprite_tmp_restore(&sprite_stack[1]));
 
     // 4) If ontop == true then properly show this sprite.
-    if (ontop) ON_FAILURE_RETURN(sprite_show(sprite, dst_surface, x, y, layer, flags));
+    if (ontop) ON_FAILURE_RETURN(sprite_show(sprite, dst_surface, x, y, layer, blit_flags));
 
     return kOk;
 }

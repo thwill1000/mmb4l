@@ -179,11 +179,14 @@ typedef struct MmSurfaceStruct {
     int next_y; 
     uint8_t layer;
 
+    /** Bitwise OR of GraphicsBlitType flags. */
+    unsigned blit_flags;
+
     /** Is the sprite collided with the surface/screen edge? */
     uint8_t edge_collisions;
 
-    /** Is the sprite collided with another sprite? */
-    int sprite_collisions[32 / sizeof(int)]; // 256 bits.
+    /** Is the sprite collided with another sprite? (256 bits) */
+    int sprite_collisions[32 / sizeof(int)];
 } MmSurface;
 
 extern const MmGraphicsColour GRAPHICS_RGB121_COLOURS[];

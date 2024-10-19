@@ -264,13 +264,11 @@ MmResult sprite_set_transparent_colour(MmGraphicsColour colour);
  * @param  dst_surface  Surface to blit the sprite to.
  * @param  x, y         Top left coordinates on the destination surface.
  * @param  layer        'Layer' that the sprite is to be shown on.
- * @param  flags        Bitwise AND of:
- *                          0x01 = mirrored left to right.
- *                          0x02 = mirrored top to bottom.
- *                          0x04 = no transparency, all pixels opaque.
+ * @param  blit_flags   -1 for unspecified (use existing flags),
+ *                      or bitwise OR of GraphicsBlitType flags.
  */
 MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y, unsigned layer,
-                     unsigned flags);
+                     int blit_flags);
 
 /**
  * Shows (blits and makes active) a sprite compensating for other sprites that overlap it.
@@ -279,6 +277,6 @@ MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y, un
  *                sprite so it will sit on top of any other sprite it overlaps.
  */
 MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
-                          unsigned layer, unsigned flags, bool ontop);
+                          unsigned layer, int blit_flags, bool ontop);
 
 #endif // #if !defined(MMBASIC_SPRITE_H)
