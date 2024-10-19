@@ -178,6 +178,7 @@ typedef struct MmSurfaceStruct {
     int next_x;
     int next_y; 
     uint8_t layer;
+    unsigned blit_flags;
 
     /** Is the sprite collided with the surface/screen edge? */
     uint8_t edge_collisions;

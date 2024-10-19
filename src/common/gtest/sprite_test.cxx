@@ -154,6 +154,7 @@ TEST_F(SpriteTest, Create) {
     EXPECT_EQ(GRAPHICS_OFF_SCREEN, sprite->x);
     EXPECT_EQ(GRAPHICS_OFF_SCREEN, sprite->y);
     EXPECT_EQ(0xFF, sprite->layer);
+    EXPECT_EQ(kBlitWithTransparency, sprite->blit_flags);
     EXPECT_EQ(0x0, sprite->edge_collisions);
     for (size_t ii = 0; ii < 32 / sizeof(int); ++ii) {
         EXPECT_EQ(0x0, sprite->sprite_collisions[ii]);
