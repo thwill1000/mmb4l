@@ -47,8 +47,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "graphics.h"
+#include "stack.h"
 
 #define SPRITE_SCROLL_COLLISION  -1
 #define SPRITE_NO_COLLISION  -2
@@ -201,6 +203,16 @@ static inline bool sprite_id_is_in_range(MmSurfaceId sprite_id) {
 
 /** TODO */
 MmResult sprite_move();
+
+/**
+ * @VisibleForTesting
+ *
+ * Gets one of the two sprite stacks.
+ *
+ * @param  stack_num  0 or 1.
+ * @return            Pointer to the requested sprite stack.
+ */
+Stack *sprite_get_stack(unsigned stack_num);
 
 /** TODO */
 MmResult sprite_update_all_collisions();

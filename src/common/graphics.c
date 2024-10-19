@@ -394,6 +394,32 @@ static MmSurfaceId graphics_next_active_sprite(MmSurfaceId start) {
     return -1;
 }
 
+static MmResult graphics_surface_reset(MmSurfaceId id) {
+    MmSurface *s = &graphics_surfaces[id];
+    memset(s, 0, sizeof(MmSurface));
+    s->id = id;
+    s->type = kGraphicsNone;
+    s->window = NULL;
+    s->renderer = NULL;
+    s->texture = NULL;
+    s->dirty = false;
+    s->pixels = NULL;
+    s->background = NULL;
+    s->height = -1;
+    s->width = -1;
+    s->interrupt_addr = NULL;
+    s->transparent = -1;
+    s->background = NULL;
+    s->x = GRAPHICS_OFF_SCREEN;
+    s->y = GRAPHICS_OFF_SCREEN;
+    s->next_x = GRAPHICS_OFF_SCREEN;
+    s->next_y = GRAPHICS_OFF_SCREEN;
+    s->layer = 0xFF;
+    s->edge_collisions = 0x0;
+    bitset_reset(s->sprite_collisions, 256);
+    return kOk;
+}
+
 static MmResult graphics_surface_create(MmSurfaceId id, GraphicsSurfaceType type, int width,
                                         int height) {
     if (!graphics_initialised) {
@@ -405,28 +431,14 @@ static MmResult graphics_surface_create(MmSurfaceId id, GraphicsSurfaceType type
     if (graphics_surfaces[id].type != kGraphicsNone) return kGraphicsSurfaceAlreadyExists;
     if (width > WINDOW_MAX_WIDTH || height > WINDOW_MAX_HEIGHT) return kGraphicsSurfaceTooLarge;
 
+    ON_FAILURE_RETURN(graphics_surface_reset(id));
+
     MmSurface *s = &graphics_surfaces[id];
-    s->id = id;
     s->type = type;
-    s->window = NULL;
-    s->renderer = NULL;
-    s->texture = NULL;
-    s->dirty = false;
     s->pixels = calloc(width * height, sizeof(uint32_t));
     if (!s->pixels) return kOutOfMemory;
-    s->background = NULL;
-    s->height = height;
     s->width = width;
-    s->interrupt_addr = NULL;
-    s->transparent = -1;
-    s->background = NULL;
-    s->x = GRAPHICS_OFF_SCREEN;
-    s->y = GRAPHICS_OFF_SCREEN;
-    s->next_x = GRAPHICS_OFF_SCREEN;
-    s->next_y = GRAPHICS_OFF_SCREEN;
-    s->layer = 0xFF;
-    s->edge_collisions = 0x0;
-    bitset_reset(s->sprite_collisions, 256);
+    s->height = height;
 
     return kOk;
 }
@@ -542,26 +554,40 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
 
 MmResult graphics_surface_destroy(MmSurface *surface) {
     assert(surface);
-    if (surface->type != kGraphicsNone) {
-        const MmSurfaceId old_id = surface->id;
-        SDL_DestroyTexture((SDL_Texture *) surface->texture);
-        SDL_DestroyRenderer((SDL_Renderer *) surface->renderer);
-        SDL_DestroyWindow((SDL_Window *) surface->window);
-        free(surface->pixels);
-        free(surface->background);
-        memset(surface, 0, sizeof(MmSurface));
-        surface->id = old_id;
-        if (graphics_current == surface) graphics_current = NULL;
-    }
+
+    if (surface->type == kGraphicsNone) return kOk;
+
+    // TODO: Sprites should remember which surface they are rendered to.
+    //       Currently hiding the sprite will "mess things up" if the sprite
+    //       is currently rendered to a surface other than 'graphic_current'.
+    if (surface->type == kGraphicsSprite) (void) sprite_hide(surface);
+
+    SDL_DestroyTexture((SDL_Texture *) surface->texture);
+    SDL_DestroyRenderer((SDL_Renderer *) surface->renderer);
+    SDL_DestroyWindow((SDL_Window *) surface->window);
+
+    free(surface->pixels);
+    free(surface->background);
+
+    ON_FAILURE_RETURN(graphics_surface_reset(surface->id));
+
+    if (graphics_current == surface) graphics_current = NULL;
+
     return kOk;
 }
 
 MmResult graphics_surface_destroy_all() {
-    MmResult result = kOk;
-    for (MmSurfaceId id = 0; SUCCEEDED(result) && id <= GRAPHICS_MAX_ID; ++id) {
-        result = graphics_surface_destroy(&graphics_surfaces[id]);
+    // Destroy all surfaces other than the current surface.
+    for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        MmSurface *surface = &graphics_surfaces[id];
+        if (surface == graphics_current) continue;
+        ON_FAILURE_RETURN(graphics_surface_destroy(surface));
     }
-    return result;
+
+    // Destroy the current surface.
+    if (graphics_current) ON_FAILURE_RETURN(graphics_surface_destroy(graphics_current));
+
+    return kOk;
 }
 
 MmResult graphics_surface_write(MmSurfaceId id) {
