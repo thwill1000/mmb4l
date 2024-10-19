@@ -118,9 +118,7 @@ MmResult sprite_count_on_layer(unsigned layer, size_t *total) {
 }
 
 MmResult sprite_destroy(MmSurface *sprite) {
-    MmResult result = sprite_hide(sprite);
-    if (result == kOk || result == kSpriteInactive) result = graphics_surface_destroy(sprite);
-    return result;
+    return graphics_surface_destroy(sprite);
 }
 
 MmResult sprite_destroy_all() {
