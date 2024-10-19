@@ -154,6 +154,7 @@ TEST_F(SpriteTest, Create) {
     EXPECT_EQ(GRAPHICS_OFF_SCREEN, sprite->x);
     EXPECT_EQ(GRAPHICS_OFF_SCREEN, sprite->y);
     EXPECT_EQ(0xFF, sprite->layer);
+    EXPECT_EQ(kBlitWithTransparency, sprite->blit_flags);
     EXPECT_EQ(0x0, sprite->edge_collisions);
     for (size_t ii = 0; ii < 32 / sizeof(int); ++ii) {
         EXPECT_EQ(0x0, sprite->sprite_collisions[ii]);
@@ -935,6 +936,23 @@ TEST_F(SpriteTest, MaxId) {
         mmb_options.simulate = sim[i];
         EXPECT_EQ(64, sprite_max_id());
     }
+}
+
+TEST_F(SpriteTest, Show_GivenBlitFlagsMinus1_KeepsExistingBlitFlags) {
+    MmSurface *sprite1 = &graphics_surfaces[1];
+    EXPECT_EQ(kOk, graphics_surface_destroy(sprite1));
+    EXPECT_EQ(kOk, graphics_sprite_create(1, 20, 20));
+
+    // By default sprites are transparent.
+    EXPECT_EQ(kBlitWithTransparency, sprite1->blit_flags);
+
+    // Explicitly set blit flags.
+    EXPECT_EQ(kOk, sprite_show(sprite1, graphics_current, 50, 50, 1, kBlitHorizontalFlip));
+    EXPECT_EQ(kBlitHorizontalFlip, sprite1->blit_flags);
+
+    // Use a value of 1 to keep existing blit flags.
+    EXPECT_EQ(kOk, sprite_show(sprite1, graphics_current, 50, 50, 1, -1));
+    EXPECT_EQ(kBlitHorizontalFlip, sprite1->blit_flags);
 }
 
 // TODO:

@@ -415,6 +415,7 @@ static MmResult graphics_surface_reset(MmSurfaceId id) {
     s->next_x = GRAPHICS_OFF_SCREEN;
     s->next_y = GRAPHICS_OFF_SCREEN;
     s->layer = 0xFF;
+    s->blit_flags = 0x0;
     s->edge_collisions = 0x0;
     bitset_reset(s->sprite_collisions, 256);
     return kOk;
@@ -454,6 +455,7 @@ MmResult graphics_sprite_create(MmSurfaceId id, int width, int height) {
 
     MmResult result = graphics_surface_create(id, kGraphicsInactiveSprite, width, height);
     MmSurface *s = &graphics_surfaces[id];
+    s->blit_flags = kBlitWithTransparency;
 
     if (SUCCEEDED(result)) {
         s->background = calloc(width * height, sizeof(uint32_t));

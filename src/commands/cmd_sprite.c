@@ -220,9 +220,11 @@ static MmResult cmd_sprite_show(const char *p) {
     const int x = getint(argv[2], -sprite->width + 1, graphics_current->width - 1);
     const int y = getint(argv[4], -sprite->height + 1, graphics_current->height - 1);
     const unsigned layer = getint(argv[6], 0, GRAPHICS_MAX_LAYER);
-    const unsigned flags = (argc == 9) ? getint(argv[8], 0, 7) : 0;
+    const int flags = has_arg(8) ? getint(argv[8], 0, 7) : -1;
 
-    ON_FAILURE_RETURN(sprite_show(sprite, graphics_current, x, y, layer, flags));
+    // Invert transparency flag to match blit.
+    ON_FAILURE_RETURN(sprite_show(sprite, graphics_current, x, y, layer,
+                                  flags == -1 ? -1 : flags ^ kBlitWithTransparency));
 
     return sprite_update_collisions(sprite);
 }
@@ -246,10 +248,12 @@ static MmResult cmd_sprite_show_safe(const char *p) {
     const int x = getint(argv[2], -sprite->width + 1, graphics_current->width - 1);
     const int y = getint(argv[4], -sprite->height + 1, graphics_current->height - 1);
     const unsigned layer = getint(argv[6], 0, GRAPHICS_MAX_LAYER);
-    const unsigned flags = (argc == 9) ? getint(argv[8], 0, 7) : 0;
-    const unsigned ontop = (argc == 11) ? getint(argv[10], 0, 1) : 0;
+    const int flags = has_arg(8) ? getint(argv[8], 0, 7) : -1;
+    const unsigned ontop = has_arg(10) ? getint(argv[10], 0, 1) : 0;
 
-    ON_FAILURE_RETURN(sprite_show_safe(sprite, graphics_current, x, y, layer, flags,
+    // Invert transparency flag to match blit.
+    ON_FAILURE_RETURN(sprite_show_safe(sprite, graphics_current, x, y, layer,
+                                       flags == -1 ? -1 : flags ^ kBlitWithTransparency,
                                        ontop ? true : false));
 
     return sprite_update_collisions(sprite);
