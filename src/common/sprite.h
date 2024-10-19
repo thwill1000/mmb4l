@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 
 #include "graphics.h"
+#include "stack.h"
 
 #define SPRITE_SCROLL_COLLISION  -1
 #define SPRITE_NO_COLLISION  -2
@@ -68,6 +69,9 @@ typedef enum {
 extern MmSurfaceId sprite_last_collision;
 
 extern MmGraphicsColour sprite_transparent_colour;
+
+/** Visible for unit-testing. */
+extern Stack sprite_stack[2];
 
 /** Initialises sprite module. */
 MmResult sprite_init();

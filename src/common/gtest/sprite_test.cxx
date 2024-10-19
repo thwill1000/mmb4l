@@ -137,6 +137,15 @@ class SpriteTest : public ::testing::Test {
         sprite->x = x;
         sprite->y = y;
     }
+
+    void GivenAllSpritesHidden() {
+        // Hide all the sprites and check the stacks are empty.
+        for (MmSurfaceId id = 1; id <= 10; ++id) {
+            EXPECT_EQ(kOk, sprite_hide(&graphics_surfaces[id]));
+        }
+        EXPECT_EQ(0, stack_size(&sprite_stack[0]));
+        EXPECT_EQ(0, stack_size(&sprite_stack[1]));
+    }
 };
 
 TEST_F(SpriteTest, Create) {
@@ -924,5 +933,50 @@ TEST_F(SpriteTest, MaxId) {
     }
 }
 
-// TODO:
-//  - interrupt data
+TEST_F(SpriteTest, ShowSafe_GivenOntop_AddsSpriteToTopOfStack) {
+    GivenAllSpritesHidden();
+
+    MmSurface *sprite1 = &graphics_surfaces[1];
+    MmSurface *sprite2 = &graphics_surfaces[2];
+    MmSurface *sprite3 = &graphics_surfaces[3];
+    MmSurfaceId out;
+
+    EXPECT_EQ(kOk, sprite_show_safe(sprite1, graphics_current, 0, 0, 1, 0x0, true));
+    EXPECT_EQ(1, stack_size(&sprite_stack[1]));
+    EXPECT_EQ(kOk, stack_get(&sprite_stack[1], 0, &out));
+    EXPECT_EQ(1, out);
+
+    EXPECT_EQ(kOk, sprite_show_safe(sprite2, graphics_current, 0, 0, 1, 0x0, true));
+    EXPECT_EQ(2, stack_size(&sprite_stack[1]));
+    EXPECT_EQ(kOk, stack_get(&sprite_stack[1], 1, &out));
+    EXPECT_EQ(2, out);
+
+    EXPECT_EQ(kOk, sprite_show_safe(sprite3, graphics_current, 0, 0, 1, 0x0, true));
+    EXPECT_EQ(3, stack_size(&sprite_stack[1]));
+    EXPECT_EQ(kOk, stack_get(&sprite_stack[1], 2, &out));
+    EXPECT_EQ(3, out);
+}
+
+TEST_F(SpriteTest, ShowSafe_GivenNotOntop_InsertsSpriteCorrectlyIntoStack) {
+    GivenAllSpritesHidden();
+
+    MmSurface *sprite1 = &graphics_surfaces[1];
+    MmSurface *sprite2 = &graphics_surfaces[2];
+    MmSurface *sprite3 = &graphics_surfaces[3];
+    EXPECT_EQ(kOk, sprite_show_safe(sprite1, graphics_current, 0, 0, 1, 0x0, true));
+    EXPECT_EQ(kOk, sprite_show_safe(sprite2, graphics_current, 0, 0, 1, 0x0, true));
+    EXPECT_EQ(kOk, sprite_show_safe(sprite3, graphics_current, 0, 0, 1, 0x0, true));
+
+    // Show sprite 2 again with ontop == false.
+    EXPECT_EQ(kOk, sprite_show_safe(sprite2, graphics_current, 0, 0, 1, 0x0, false));
+
+    // Sprite 2 should still be in element 1 of the stack (0 based).
+    MmSurfaceId out;
+    EXPECT_EQ(3, stack_size(&sprite_stack[1]));
+    EXPECT_EQ(kOk, stack_get(&sprite_stack[1], 0, &out));
+    EXPECT_EQ(1, out);
+    EXPECT_EQ(kOk, stack_get(&sprite_stack[1], 1, &out));
+    EXPECT_EQ(2, out);
+    EXPECT_EQ(kOk, stack_get(&sprite_stack[1], 2, &out));
+    EXPECT_EQ(3, out);
+}
