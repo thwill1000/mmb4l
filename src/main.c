@@ -102,16 +102,16 @@ void print_banner() {
     char s[128];
     sprintf(
         s,
-        "%s MMBasic Version %d.%d%s%d\n",
+        "MMBasic for %s v%d.%d%s%d\n",
         MM_ARCH,
         MM_MAJOR,
         MM_MINOR,
         MM_MICRO < 100
-            ? " alpha "
+            ? "-alpha."
             : MM_MICRO < 200
-                ? " beta "
+                ? "-beta."
                 : MM_MICRO < 300
-                    ? " RC "
+                    ? "-rc."
                     : ".",
         MM_MICRO < 100
             ? MM_MICRO
