@@ -260,6 +260,7 @@ MmResult sprite_get_collided_sprite(uint32_t n, MmSurfaceId *id) {
 
 static inline void sprite_clear_collision_data(MmSurface *sprite) {
     bitset_reset(sprite->sprite_collisions, 256);
+    // TODO: Clear this sprite from all other sprites collision bitsets.
     sprite->edge_collisions = 0x0;
 }
 
@@ -655,10 +656,21 @@ MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int 
 
     // 1) Temporarily hide all sprites shown after this sprite.
     ON_FAILURE_RETURN(sprite_tmp_hide(&sprite_stack[1], sprite));
+
     if (layer == 0) ON_FAILURE_RETURN(sprite_tmp_hide(&sprite_stack[0], sprite));
 
+    // Restore the background for this sprite.
+    ON_FAILURE_RETURN(sprite_render_background(sprite, dst_surface));
+
     // 2) If ontop == false then properly show this sprite.
-    if (!ontop) ON_FAILURE_RETURN(sprite_show(sprite, dst_surface, x, y, layer, blit_flags));
+    if (!ontop) {
+        sprite->x = x;
+        sprite->y = y;
+        sprite->layer = layer;
+        if (blit_flags != -1) sprite->blit_flags = (unsigned) blit_flags;
+        ON_FAILURE_RETURN(sprite_update_background(sprite, dst_surface));
+        ON_FAILURE_RETURN(sprite_render(sprite, dst_surface));
+    }
 
     // 3) Restore sprites from step (1).
     if (layer == 0) ON_FAILURE_RETURN(sprite_tmp_restore(&sprite_stack[0]));
