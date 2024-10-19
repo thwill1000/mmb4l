@@ -40,6 +40,20 @@ class UInt8StackTest : public ::testing::Test {
     Stack stack;
 };
 
+TEST_F(UInt8StackTest, Contains_GivenElementPresent_ReturnsTrue) {
+    GivenStackFull();
+
+    const uint8_t element_in = 1;
+    EXPECT_TRUE(stack_contains(&stack, element_in));
+}
+
+TEST_F(UInt8StackTest, Contains_GivenElementNotPresent_ReturnsFalse) {
+    GivenStackFull();
+
+    const uint8_t element_in = 42;
+    EXPECT_FALSE(stack_contains(&stack, element_in));
+}
+
 TEST_F(UInt8StackTest, Peek_Succeeds_GivenStackNotEmpty) {
     const uint8_t element_in = 42;
     EXPECT_EQ(kOk, stack_push(&stack, element_in));
@@ -251,6 +265,20 @@ class Int32StackTest : public ::testing::Test {
 
     Stack stack;
 };
+
+TEST_F(Int32StackTest, Contains_GivenElementPresent_ReturnsTrue) {
+    GivenStackFull();
+
+    const int32_t element_in = 3;
+    EXPECT_TRUE(stack_contains(&stack, element_in));
+}
+
+TEST_F(Int32StackTest, Contains_GivenElementNotPresent_ReturnsFalse) {
+    GivenStackFull();
+
+    const int32_t element_in = 42;
+    EXPECT_FALSE(stack_contains(&stack, element_in));
+}
 
 TEST_F(Int32StackTest, Peek_Succeeds_GivenStackNotEmpty) {
     const int32_t element_in = 42;
@@ -467,6 +495,20 @@ class PointerStackTest : public ::testing::Test {
 
     Stack stack;
 };
+
+TEST_F(PointerStackTest, Contains_GivenElementPresent_ReturnsTrue) {
+    GivenStackFull();
+
+    const uint64_t *element_in = (uint64_t *) &stack + 1;
+    EXPECT_TRUE(stack_contains(&stack, element_in));
+}
+
+TEST_F(PointerStackTest, Contains_GivenElementNotPresent_ReturnsFalse) {
+    GivenStackFull();
+
+    const uint64_t *element_in = (uint64_t *) &stack + 42;
+    EXPECT_FALSE(stack_contains(&stack, element_in));
+}
 
 TEST_F(PointerStackTest, Peek_Succeeds_GivenStackNotEmpty) {
     uint64_t data = 42;
@@ -805,6 +847,20 @@ class StructStackTest : public ::testing::Test {
 
     Stack stack;
 };
+
+TEST_F(StructStackTest, Contains_GivenElementPresent_ReturnsTrue) {
+    GivenStackFull();
+
+    const MyStruct element_in = MY_STRUCT_VALUE(1);
+    EXPECT_TRUE(stack_contains(&stack, element_in));
+}
+
+TEST_F(StructStackTest, Contains_GivenElementNotPresent_ReturnsFalse) {
+    GivenStackFull();
+
+    const MyStruct element_in = MY_STRUCT_VALUE(42);
+    EXPECT_FALSE(stack_contains(&stack, element_in));
+}
 
 TEST_F(StructStackTest, Peek_Succeeds_GivenStackNotEmpty) {
     const MyStruct element_in = MY_STRUCT_VALUE(42);

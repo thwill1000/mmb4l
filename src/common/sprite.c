@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "bitset.h"
 #include "interrupt.h"
 #include "sprite.h"
-#include "stack.h"
 #include "utility.h"
 
 MmSurfaceId sprite_last_collision = SPRITE_NO_COLLISION;
@@ -118,9 +117,7 @@ MmResult sprite_count_on_layer(unsigned layer, size_t *total) {
 }
 
 MmResult sprite_destroy(MmSurface *sprite) {
-    MmResult result = sprite_hide(sprite);
-    if (result == kOk || result == kSpriteInactive) result = graphics_surface_destroy(sprite);
-    return result;
+    return graphics_surface_destroy(sprite);
 }
 
 MmResult sprite_destroy_all() {
@@ -221,6 +218,11 @@ MmResult sprite_get_collision(MmSurface *sprite, uint32_t n, MmSurfaceId *id) {
         }
     }
     return kOk;
+}
+
+Stack *sprite_get_stack(unsigned stack_num) {
+    assert(stack_num == 1 || stack_num == 0);
+    return sprite_stack + stack_num;
 }
 
 static inline bool sprite_has_collided(MmSurface *sprite) {

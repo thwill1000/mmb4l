@@ -70,6 +70,7 @@ void spbmp_init(
 SpBmpResult spbmp_load(void *userdata, int x, int y, void *file) { return kSpBmpError; }
 
 // Defined in "common/sprite.c"
+MmResult sprite_hide(MmSurface *sprite) { return kOk; }
 MmResult sprite_init() { return kOk; }
 MmResult sprite_term() { return kOk; }
 

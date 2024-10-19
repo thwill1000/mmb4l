@@ -95,6 +95,28 @@ static MmResult stack_term(Stack *s) {
 }
 
 /**
+ * Does the stack contain a given element?
+ *
+ * @param[in]  s  Pointer to the Stack.
+ * @param[in]  e  The element to search for.
+ * @return        true if the stack contains the element, otherwise false.
+ */
+#define stack_contains(s, e)  stack_contains_internal(s, (StackElement) &(e))
+
+static inline bool stack_contains_internal(const Stack *s, StackElement element) {
+    // For no particular reason searches from the top of the stack down.
+    for (char *p = s->top - s->element_size;
+        p >= s->storage;
+        p -= s->element_size) {
+        const bool equal = s->equals_fn
+                ? s->equals_fn((void *) p, (void *) element)
+                : (memcmp(p, element, s->element_size) == 0);
+        if (equal) return true;
+    }
+    return false;
+}
+
+/**
  * Gets the top element of the stack WITHOUT removing it.
  *
  * @param[in]  s  Pointer to the Stack.
