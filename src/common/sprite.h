@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "graphics.h"
 #include "stack.h"
 
+// #define SPRITE_DEBUG  1
 #define SPRITE_SCROLL_COLLISION  -1
 #define SPRITE_NO_COLLISION  -2
 

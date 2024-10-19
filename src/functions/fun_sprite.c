@@ -86,21 +86,64 @@ static MmResult fun_sprite_collision(int argc, char **argv) {
     MmResult result = parse_sprite_id(argv[2], kParseSpriteIdMustExist | kParseSpriteIdAllowZero,
                                       &surface_id);
 
+    const int m = has_arg(4) ? getint(argv[4], 1, GRAPHICS_MAX_SURFACES) : -1;
+
+#if defined(SPRITE_DEBUG)
+    if (m == -1) {
+        if (surface_id == 0) {
+            printf("SPRITE(C, 0)\n");
+        } else {
+            printf("SPRITE(C, #%d (%d))\n", sprite_id_from_surface_id(surface_id), surface_id);
+        }
+    } else {
+        if (surface_id == 0) {
+            printf("SPRITE(C, 0, %d)\n", m);
+        } else {
+            printf("SPRITE(C, #%d (%d), %d)\n",
+                   sprite_id_from_surface_id(surface_id), surface_id, m);
+        }
+    }
+#endif
+
     targ = T_INT;
+    MmSurfaceId id = -1;
     if (SUCCEEDED(result)) {
         MmSurface *sprite = (surface_id == 0) ? NULL : &graphics_surfaces[surface_id];
-        if (argc == 3) {
-            uint32_t count = 0;
-            result = sprite
-                    ? sprite_get_num_collisions(sprite, &count)
-                    : sprite_get_num_collided_sprites(&count);
+
+        if (m == -1) { // Number of collisions.
+            uint32_t count = -1;
+            if (sprite) { // Collision with a specific sprite
+                result = sprite_get_num_collisions(sprite, &count);
+            } else { // Collision after a SCROLL.
+                result = sprite_get_num_collided_sprites(&count);
+            }
             if (SUCCEEDED(result)) iret = (MMINTEGER) count;
-        } else {
-            MmSurfaceId id = -1;
-            const uint32_t m = getint(argv[4], 1, GRAPHICS_MAX_SURFACES);
-            result = sprite
-                    ? sprite_get_collision(sprite, m, &id)
-                    : sprite_get_collided_sprite(m, &id);
+
+#if defined(SPRITE_DEBUG)
+            printf("  count = %d\n", count);
+            for (uint32_t i = 1; i <= count; ++i) {
+                if (sprite) {
+                    sprite_get_collision(sprite, i, &id);
+                } else {
+                    sprite_get_collided_sprite(i, &id);
+                }
+                if (id == -1) {
+                    printf("    %d) -1 (none)\n", i);
+                } else if (id & 0xFF00) {
+                    printf("    %d) 0x%X\n", i, id);
+                } else {
+                    printf("    %d) %d\n", i, id);
+                }
+            }
+#endif
+
+        } else { // m'th collision.
+            if (sprite) { // Collision with a specific sprite
+                result = sprite_get_collision(sprite, m, &id);
+            } else { // Collision after a SCROLL.
+                result = sprite_get_collided_sprite(m, &id);
+            }
+            // NOTE: id == -1 means there was no m'th collided sprite.
             if (SUCCEEDED(result)) {
                 if (id == -1) {
                     iret = 0;
@@ -115,6 +158,16 @@ static MmResult fun_sprite_collision(int argc, char **argv) {
                     iret = (MMINTEGER) sprite_id_from_surface_id(id);
                 }
             }
+
+#if defined(SPRITE_DEBUG)
+            if (id == -1) {
+                printf("  collision = -1 (none)\n");
+            } else if (id & 0xFF00) {
+                printf("  collision = 0x%X (#%lX)\n", id, iret);
+            } else {
+                printf("  collision = %d (#%ld)\n", id, iret);
+            }
+#endif
         }
     }
 
@@ -123,6 +176,9 @@ static MmResult fun_sprite_collision(int argc, char **argv) {
     if (result == kGraphicsInvalidSprite) {
         iret = 0;
         result = kOk;
+#if defined(SPRITE_DEBUG)
+        printf("  Invalid sprite, returning %ld\n", iret);
+#endif
     }
 
     return result;
