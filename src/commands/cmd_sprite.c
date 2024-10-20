@@ -60,9 +60,9 @@ static MmResult cmd_sprite_close(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) return kArgumentCount;
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
-    if (SUCCEEDED(result)) result = sprite_destroy(&graphics_surfaces[sprite_id]);
-    return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
+
+    return sprite_destroy(&graphics_surfaces[sprite_id]);
 }
 
 /** SPRITE CLOSE ALL */
@@ -78,8 +78,7 @@ static MmResult cmd_sprite_hide(const char *p) {
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
     return sprite_hide(sprite);
@@ -107,8 +106,7 @@ static MmResult cmd_sprite_hide_safe(const char *p) {
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
     return sprite_hide_safe(sprite);
@@ -143,8 +141,7 @@ static MmResult cmd_sprite_next(const char *p) {
     if (argc != 5) return kArgumentCount;
 
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
     sprite->next_x = getint(argv[2], 1 - sprite->width, graphics_current->width - 1);
@@ -207,7 +204,7 @@ static MmResult cmd_sprite_set_transparent(const char *p) {
 /**
  * SPRITE SHOW [#]id, x, y, layer [, flags]
  *
- * 'flags' is a bitwise AND of:
+ * 'flags' is a bitwise OR of:
  *     0x01 = mirrored left to right.
  *     0x02 = mirrored top to bottom.
  *     0x04 = no transparency, all pixels opaque.
@@ -217,8 +214,7 @@ static MmResult cmd_sprite_show(const char *p) {
     if (argc != 7 && argc != 9) return kArgumentCount;
 
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
     const int x = getint(argv[2], -sprite->width + 1, graphics_current->width - 1);
@@ -226,18 +222,15 @@ static MmResult cmd_sprite_show(const char *p) {
     const unsigned layer = getint(argv[6], 0, GRAPHICS_MAX_LAYER);
     const unsigned flags = (argc == 9) ? getint(argv[8], 0, 7) : 0;
 
-    result = sprite_show(sprite, graphics_current, x, y, layer, flags);
-    if (SUCCEEDED(result)) {
-        result = sprite_update_collisions(sprite);
-    }
+    ON_FAILURE_RETURN(sprite_show(sprite, graphics_current, x, y, layer, flags));
 
-    return result;
+    return sprite_update_collisions(sprite);
 }
 
 /**
  * SPRITE SHOW SAFE [#]id, x, y, layer [, flags] [, ontop]
  *
- * 'flags' is a bitwise AND of:
+ * 'flags' is a bitwise OR of:
  *     0x01 = mirrored left to right.
  *     0x02 = mirrored top to bottom.
  *     0x04 = no transparency, all pixels opaque.
@@ -247,8 +240,7 @@ static MmResult cmd_sprite_show_safe(const char *p) {
     if (argc != 7 && argc != 9 && argc != 11) return kArgumentCount;
 
     MmSurfaceId sprite_id = -1;
-    MmResult result = parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], kParseSpriteIdMustExist, &sprite_id));
     MmSurface *sprite = &graphics_surfaces[sprite_id];
 
     const int x = getint(argv[2], -sprite->width + 1, graphics_current->width - 1);
@@ -257,10 +249,10 @@ static MmResult cmd_sprite_show_safe(const char *p) {
     const unsigned flags = (argc == 9) ? getint(argv[8], 0, 7) : 0;
     const unsigned ontop = (argc == 11) ? getint(argv[10], 0, 1) : 0;
 
-    result = sprite_show_safe(sprite, graphics_current, x, y, layer, flags, ontop ? true : false);
-    if (SUCCEEDED(result)) result = sprite_update_collisions(sprite);
+    ON_FAILURE_RETURN(sprite_show_safe(sprite, graphics_current, x, y, layer, flags,
+                                       ontop ? true : false));
 
-    return result;
+    return sprite_update_collisions(sprite);
 }
 
 /**
