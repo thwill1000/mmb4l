@@ -207,7 +207,7 @@ static MmResult cmd_sprite_set_transparent(const char *p) {
 /**
  * SPRITE SHOW [#]id, x, y, layer [, flags]
  *
- * 'flags' is a bitwise AND of:
+ * 'flags' is a bitwise OR of:
  *     0x01 = mirrored left to right.
  *     0x02 = mirrored top to bottom.
  *     0x04 = no transparency, all pixels opaque.
@@ -226,18 +226,15 @@ static MmResult cmd_sprite_show(const char *p) {
     const unsigned layer = getint(argv[6], 0, GRAPHICS_MAX_LAYER);
     const unsigned flags = (argc == 9) ? getint(argv[8], 0, 7) : 0;
 
-    result = sprite_show(sprite, graphics_current, x, y, layer, flags);
-    if (SUCCEEDED(result)) {
-        result = sprite_update_collisions(sprite);
-    }
+    ON_FAILURE_RETURN(sprite_show(sprite, graphics_current, x, y, layer, flags));
 
-    return result;
+    return sprite_update_collisions(sprite);
 }
 
 /**
  * SPRITE SHOW SAFE [#]id, x, y, layer [, flags] [, ontop]
  *
- * 'flags' is a bitwise AND of:
+ * 'flags' is a bitwise OR of:
  *     0x01 = mirrored left to right.
  *     0x02 = mirrored top to bottom.
  *     0x04 = no transparency, all pixels opaque.
@@ -257,10 +254,10 @@ static MmResult cmd_sprite_show_safe(const char *p) {
     const unsigned flags = (argc == 9) ? getint(argv[8], 0, 7) : 0;
     const unsigned ontop = (argc == 11) ? getint(argv[10], 0, 1) : 0;
 
-    result = sprite_show_safe(sprite, graphics_current, x, y, layer, flags, ontop ? true : false);
-    if (SUCCEEDED(result)) result = sprite_update_collisions(sprite);
+    ON_FAILURE_RETURN(sprite_show_safe(sprite, graphics_current, x, y, layer, flags,
+                                       ontop ? true : false));
 
-    return result;
+    return sprite_update_collisions(sprite);
 }
 
 /**
