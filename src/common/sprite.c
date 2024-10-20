@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-sprite.h
+sprite.c
 
 Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 
 #include "bitset.h"
+#include "error.h"
 #include "interrupt.h"
 #include "sprite.h"
 #include "utility.h"
@@ -612,42 +613,34 @@ MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
     }
     if (dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
 
-    MmResult result = kOk;
-
     // If the sprite is already visible then ...
     if (sprite->type == kGraphicsSprite) {
         // ... redraw the background where it was.
-        result = sprite_render_background(sprite, dst_surface);
+        ON_FAILURE_RETURN(sprite_render_background(sprite, dst_surface));
 
         // ... and remove it from the appropriate old layer stack.
-        if (SUCCEEDED(result)) {
-            result = stack_remove(&sprite_stack[sprite->layer == 0 ? 0 : 1], sprite->id);
-        }
+        ON_FAILURE_RETURN(stack_remove(&sprite_stack[sprite->layer == 0 ? 0 : 1], sprite->id));
     }
 
     sprite->x = x;
     sprite->y = y;
 
     // Save the background at the destination.
-    if (SUCCEEDED(result)) result = sprite_update_background(sprite, dst_surface);
+    ON_FAILURE_RETURN(sprite_update_background(sprite, dst_surface));
 
     // Add the sprite to the appropriate new layer stack.
-    if (SUCCEEDED(result)) {
-        sprite->layer = layer;
-        result = stack_push(&sprite_stack[sprite->layer == 0 ? 0 : 1], sprite->id);
-    }
+    sprite->layer = layer;
+    ON_FAILURE_RETURN(stack_push(&sprite_stack[sprite->layer == 0 ? 0 : 1], sprite->id));
 
     // Display the sprite.
     // Note inversion of the 3rd bit of 'flags'.
-    if (SUCCEEDED(result)) {
-        result = graphics_blit(0, 0, sprite->x, sprite->y, sprite->width, sprite->height, sprite,
-                               dst_surface, flags ^ 0x04, sprite_transparent_colour);
-    }
+    ON_FAILURE_RETURN(graphics_blit(0, 0, sprite->x, sprite->y, sprite->width, sprite->height,
+                                    sprite, dst_surface, flags ^ 0x04, sprite_transparent_colour));
 
     // Flag the sprite as active / visible.
-    if (SUCCEEDED(result)) sprite->type = kGraphicsSprite;
+    sprite->type = kGraphicsSprite;
 
-    return result;
+    return kOk;
 }
 
 MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
@@ -663,20 +656,20 @@ MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int 
     if (dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
 
     // 1) Temporarily hide all sprites shown after this sprite.
-    MmResult result = sprite_tmp_hide(&sprite_stack[1], sprite);
-    if (SUCCEEDED(result) && layer == 0) result = sprite_tmp_hide(&sprite_stack[0], sprite);
+    ON_FAILURE_RETURN(sprite_tmp_hide(&sprite_stack[1], sprite));
+    if (layer == 0) ON_FAILURE_RETURN(sprite_tmp_hide(&sprite_stack[0], sprite));
 
     // 2) If ontop != true then properly show this sprite.
-    if (SUCCEEDED(result) && !ontop) result = sprite_show(sprite, dst_surface, x, y, layer, flags);
+    if (!ontop) ON_FAILURE_RETURN(sprite_show(sprite, dst_surface, x, y, layer, flags));
 
     // 3) Restore sprites from step (1).
-    if (SUCCEEDED(result) && layer == 0) result = sprite_tmp_restore(&sprite_stack[0]);
-    if (SUCCEEDED(result)) result = sprite_tmp_restore(&sprite_stack[1]);
+    if (layer == 0) ON_FAILURE_RETURN(sprite_tmp_restore(&sprite_stack[0]));
+    ON_FAILURE_RETURN(sprite_tmp_restore(&sprite_stack[1]));
 
     // 4) If ontop == true then properly show this sprite.
-    if (SUCCEEDED(result) && ontop) result = sprite_show(sprite, dst_surface, x, y, layer, flags);
+    if (ontop) ON_FAILURE_RETURN(sprite_show(sprite, dst_surface, x, y, layer, flags));
 
-    return result;
+    return kOk;
 }
 
 MmResult sprite_set_transparent_colour(MmGraphicsColour colour) {
