@@ -128,6 +128,9 @@ int SDL_PollEvent(SDL_Event *event) {
     return 0;
 }
 
+void SDL_RaiseWindow(SDL_Window *window) {
+}
+
 int SDL_RenderClear(SDL_Renderer* renderer) {
     return 0;
 }
