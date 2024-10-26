@@ -367,8 +367,14 @@ void graphics_refresh_windows() {
                 SDL_UpdateTexture((SDL_Texture *) s->texture, NULL, s->pixels, s->width * 4);
                 SDL_RenderCopy((SDL_Renderer *) s->renderer, (SDL_Texture *) s->texture, NULL,
                                NULL);
+
+                // Window must be shown before calling SDL_RenderPresent().
+                if (SDL_GetWindowFlags(s->window) & SDL_WINDOW_HIDDEN) {
+                    SDL_ShowWindow(s->window);
+                    SDL_RaiseWindow(s->window);
+                }
+
                 SDL_RenderPresent((SDL_Renderer *) s->renderer);
-                if (SDL_GetWindowFlags(s->window) & SDL_WINDOW_HIDDEN) SDL_ShowWindow(s->window);
                 s->dirty = false;
             }
         }
