@@ -52,17 +52,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 MmSurfaceId sprite_last_collision = SPRITE_NO_COLLISION;
 MmGraphicsColour sprite_transparent_colour = RGB_BLACK;
+Stack sprite_z_stack;
 
 static bool sprite_initialised = false;
 static bool sprite_all_hidden = false;
-static Stack sprite_stack[2];
 
 MmResult sprite_init() {
     if (sprite_initialised) return kOk;
-    MmResult result = kOk;
-    for (size_t ii = 0; SUCCEEDED(result) && ii < 2; ++ii) {
-        result = stack_init(&sprite_stack[ii], MmSurfaceId, GRAPHICS_MAX_SURFACES, NULL);
-    }
+    ON_FAILURE_RETURN(stack_init(&sprite_z_stack, MmSurfaceId, GRAPHICS_MAX_SURFACES, NULL);)
     sprite_all_hidden = false;
     sprite_initialised = true;
     sprite_last_collision = SPRITE_NO_COLLISION;
@@ -71,9 +68,7 @@ MmResult sprite_init() {
 
 MmResult sprite_term() {
     if (!sprite_initialised) return kOk;
-    for (size_t ii = 0; ii < 2; ++ii) {
-        (void) stack_term(&sprite_stack[ii]);
-    }
+    ON_FAILURE_RETURN(stack_term(&sprite_z_stack));
     sprite_initialised = false;
     return kOk;
 }
@@ -93,28 +88,19 @@ static inline MmSurface *sprite_next_active(MmSurface *sprite) {
 }
 
 MmResult sprite_count(size_t *total) {
-    *total = 0;
-    MmResult result = kOk;
-    for (size_t i = 0; SUCCEEDED(result) && i < 2; ++i) {
-        *total += stack_size(&sprite_stack[i]);
-    }
-    return result;
+    *total = stack_size(&sprite_z_stack);
+    return kOk;
 }
 
 MmResult sprite_count_on_layer(unsigned layer, size_t *total) {
-    MmResult result = kOk;
-    if (layer == 0) {
-        *total = stack_size(&sprite_stack[0]);
-    } else {
-        *total = 0;
-        const MmSurfaceId *base = (MmSurfaceId *) sprite_stack[1].storage;
-        const MmSurfaceId *top = (MmSurfaceId *) sprite_stack[1].top;
-        for (const MmSurfaceId *pid = top - 1; SUCCEEDED(result) && pid >= base; --pid) {
-            MmSurface *s = &graphics_surfaces[*pid];
-            if (s->type == kGraphicsSprite && s->layer == layer) (*total)++;
-        }
+    *total = 0;
+    const MmSurfaceId *base = (MmSurfaceId *) sprite_z_stack.storage;
+    const MmSurfaceId *top = (MmSurfaceId *) sprite_z_stack.top;
+    for (const MmSurfaceId *pid = top - 1; pid >= base; --pid) {
+        MmSurface *s = &graphics_surfaces[*pid];
+        if (s->type == kGraphicsSprite && s->layer == layer) (*total)++;
     }
-    return result;
+    return kOk;
 }
 
 MmResult sprite_destroy(MmSurface *sprite) {
@@ -220,11 +206,6 @@ MmResult sprite_get_collision(MmSurface *sprite, uint32_t n, MmSurfaceId *id) {
     return kOk;
 }
 
-Stack *sprite_get_stack(unsigned stack_num) {
-    assert(stack_num == 1 || stack_num == 0);
-    return sprite_stack + stack_num;
-}
-
 static inline bool sprite_has_collided(MmSurface *sprite) {
     if (sprite->edge_collisions) return true;
     const size_t limit = 32 / sizeof(int);
@@ -258,10 +239,19 @@ MmResult sprite_get_collided_sprite(uint32_t n, MmSurfaceId *id) {
     return kOk;
 }
 
-static inline void sprite_clear_collision_data(MmSurface *sprite) {
-    bitset_reset(sprite->sprite_collisions, 256);
-    // TODO: Clear this sprite from all other sprites collision bitsets.
-    sprite->edge_collisions = 0x0;
+static inline MmResult sprite_hide_internal(MmSurface *sprite, MmSurface *dst_surface) {
+    assert(sprite->type == kGraphicsSprite);
+
+    ON_FAILURE_RETURN(sprite_render_background(sprite, dst_surface));
+    ON_FAILURE_RETURN(stack_remove(&sprite_z_stack, sprite->id));
+    sprite->x = GRAPHICS_OFF_SCREEN;
+    sprite->y = GRAPHICS_OFF_SCREEN;
+    sprite->layer = 0xFF;
+    sprite->next_x = GRAPHICS_OFF_SCREEN;
+    sprite->next_y = GRAPHICS_OFF_SCREEN;
+    sprite->type = kGraphicsInactiveSprite;
+
+    return kOk;
 }
 
 MmResult sprite_hide(MmSurface *sprite) {
@@ -271,43 +261,23 @@ MmResult sprite_hide(MmSurface *sprite) {
         case kGraphicsInactiveSprite: return kSpriteInactive;
         default: MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
     }
-
-    MmResult result = sprite_render_background(sprite, graphics_current);
-    if (FAILED(result)) return result;
-    // layer_in_use[spritebuff[bnbr].layer]--;
-    sprite->x = GRAPHICS_OFF_SCREEN;
-    sprite->y = GRAPHICS_OFF_SCREEN;
-    result = stack_remove(&sprite_stack[sprite->layer == 0 ? 0 : 1], sprite->id);
-    if (FAILED(result)) return result;
-    sprite->layer = 0xFF;
-    sprite->next_x = GRAPHICS_OFF_SCREEN;
-    sprite->next_y = GRAPHICS_OFF_SCREEN;
-    sprite_clear_collision_data(sprite);
-    sprite->type = kGraphicsInactiveSprite;
-
-    // Clear other sprite's collisions with this sprite.
-    // There may be more 'elegant' ways to do this, but I suspect just clearing the appropriate bit
-    // for all surfaces without any checking logic may be fastest.
-    for (MmSurfaceId id = 0; id < GRAPHICS_MAX_ID; ++id) {
-        bitset_clear(graphics_surfaces[id].sprite_collisions, sprite->id);
-    }
-
-    return result;
+    ON_FAILURE_RETURN(sprite_hide_internal(sprite, graphics_current));
+    return sprite_update_collisions(sprite);
 }
 
 /**
- * Temporarily hides sprites in a Stack.
+ * Temporarily hides sprites.
  *
  * Specifically restores their background and changes them to type == kGraphicsInactiveSprite.
  *
- * @param  stack   The Stack of MmSurfaceIds to process.
  * @param  sprite  If not NULL then stop hiding sprites when we reach this sprite.
- *                 WITHOUT hiding that sprite.
+ *                 WITHOUT hiding this sprite.
  */
-static MmResult sprite_tmp_hide(Stack *stack, MmSurface *sprite) {
-    MmResult result = kOk;
+static MmResult sprite_tmp_hide(MmSurface *sprite) {
+    const Stack *stack = &sprite_z_stack;
     const MmSurfaceId *base = (MmSurfaceId *) stack->storage;
     const MmSurfaceId *top = (MmSurfaceId *) stack->top;
+    MmResult result = kOk;
     for (const MmSurfaceId *pid = top - 1; SUCCEEDED(result) && pid >= base; --pid) {
         MmSurface *s = &graphics_surfaces[*pid];
         if (s == sprite) break;
@@ -318,14 +288,15 @@ static MmResult sprite_tmp_hide(Stack *stack, MmSurface *sprite) {
 }
 
 /**
- * Restores sprites temporarily hidden by calling stack_tmp_hide().
+ * Restores sprites temporarily hidden by calling sprite_tmp_hide().
  *
  * Specifically re-blits them and changes them to type == kGraphicsSprite.
  */
-static MmResult sprite_tmp_restore(Stack *stack) {
-    MmResult result = kOk;
+static MmResult sprite_tmp_restore() {
+    const Stack *stack = &sprite_z_stack;
     const MmSurfaceId *base = (MmSurfaceId *) stack->storage;
     const MmSurfaceId *top = (MmSurfaceId *) stack->top;
+    MmResult result = kOk;
     for (const MmSurfaceId *pid = base; SUCCEEDED(result) && pid < top; ++pid) {
         MmSurface *s = &graphics_surfaces[*pid];
         if (s->type == kGraphicsInactiveSprite) {
@@ -345,56 +316,51 @@ MmResult sprite_hide_safe(MmSurface *sprite) {
         default: MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
     }
 
-    unsigned layer = sprite->layer;
-
     // 1) Temporarily hide all sprites shown after this sprite.
-    MmResult result = sprite_tmp_hide(&sprite_stack[1], sprite);
-    if (SUCCEEDED(result) && layer == 0) result = sprite_tmp_hide(&sprite_stack[0], sprite);
+    ON_FAILURE_RETURN(sprite_tmp_hide(sprite));
 
     // 2) Properly hide this sprite.
-    if (SUCCEEDED(result)) result = sprite_hide(sprite);
+    ON_FAILURE_RETURN(sprite_hide(sprite));
 
     // 3) Restore sprites from step (1).
-    if (SUCCEEDED(result) && layer == 0) result = sprite_tmp_restore(&sprite_stack[0]);
-    if (SUCCEEDED(result)) result = sprite_tmp_restore(&sprite_stack[1]);
+    ON_FAILURE_RETURN(sprite_tmp_restore());
 
-    return result;
+    // 4) Update collisions for this sprite.
+    return sprite_update_collisions(sprite);
 }
 
 MmResult sprite_hide_all() {
     if (sprite_all_hidden) return kSpritesAreHidden;
-    MmResult result = sprite_tmp_hide(&sprite_stack[1], NULL);
-    if (SUCCEEDED(result)) result = sprite_tmp_hide(&sprite_stack[0], NULL);
-    if (SUCCEEDED(result)) sprite_all_hidden = true;
-    return result;
+    ON_FAILURE_RETURN(sprite_tmp_hide(NULL));
+    sprite_all_hidden = true;
+    return kOk;
 }
 
-static inline MmResult sprite_update_all_positions(Stack *stack) {
+static inline void sprite_update_position(MmSurface *sprite) {
+    if (sprite->next_x != GRAPHICS_OFF_SCREEN) {
+        sprite->x = sprite->next_x;
+        sprite->next_x = GRAPHICS_OFF_SCREEN;
+    }
+    if (sprite->next_y != GRAPHICS_OFF_SCREEN) {
+        sprite->y = sprite->next_y;
+        sprite->next_y = GRAPHICS_OFF_SCREEN;
+    }
+}
+
+static inline MmResult sprite_update_all_positions() {
+    const Stack *stack = &sprite_z_stack;
     const MmSurfaceId *base = (MmSurfaceId *) stack->storage;
     const MmSurfaceId *top = (MmSurfaceId *) stack->top;
     for (const MmSurfaceId *pid = base; pid < top; ++pid) {
-        MmSurface *sprite = &graphics_surfaces[*pid];
-        if (sprite->next_x != GRAPHICS_OFF_SCREEN) {
-            sprite->x = sprite->next_x;
-            sprite->next_x = GRAPHICS_OFF_SCREEN;
-        }
-        if (sprite->next_y != GRAPHICS_OFF_SCREEN) {
-            sprite->y = sprite->next_y;
-            sprite->next_y = GRAPHICS_OFF_SCREEN;
-        }
+        sprite_update_position(&graphics_surfaces[*pid]);
     }
     return kOk;
 }
 
 MmResult sprite_move() {
-    MmResult result = sprite_hide_all();
-    if (SUCCEEDED(result)) {
-        for (int i = 0; SUCCEEDED(result) && i < 2; ++i) {
-            result = sprite_update_all_positions(&sprite_stack[i]);
-        }
-    }
-    if (SUCCEEDED(result)) result = sprite_restore_all();
-    return result;
+    ON_FAILURE_RETURN(sprite_hide_all());
+    ON_FAILURE_RETURN(sprite_update_all_positions());
+    return sprite_restore_all();
 }
 
 static inline bool sprite_check_for_edge_collision(MmSurface *sprite, MmSurface *surface) {
@@ -458,17 +424,34 @@ static inline bool sprite_check_for_sprite_collision(MmSurface *sprite, MmSurfac
     return collision;
 }
 
+static inline void sprite_clear_collisions(MmSurface *sprite) {
+    // Clear this sprites collisions with other sprites.
+    bitset_reset(sprite->sprite_collisions, 256);
+
+    // Clear other sprite's collisions with this sprite.
+    // There may be more 'elegant' ways to do this, but I suspect just clearing the appropriate bit
+    // for all surfaces without any checking logic may be fastest.
+    for (MmSurfaceId id = 0; id < GRAPHICS_MAX_ID; ++id) {
+        bitset_clear(graphics_surfaces[id].sprite_collisions, sprite->id);
+    }
+
+    // Clear this sprites collisions with edges.
+    sprite->edge_collisions = 0x0;
+}
+
 MmResult sprite_update_collisions(MmSurface *sprite) {
     assert(sprite);
+
+    sprite_clear_collisions(sprite);
+
+    switch (sprite->type) {
+        case kGraphicsSprite: break;
+        case kGraphicsInactiveSprite: return kOk;
+        default: MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
+    }
     assert(sprite->type == kGraphicsSprite);
 
     //printf("Update collisions for %d\n", sprite->id - 128);
-
-    // Clear 'global' sprite state.
-    //sprite_clear_state();
-
-    // Clear collision data for this sprite.
-    sprite_clear_collision_data(sprite);
 
     bool has_collision = false;
 
@@ -506,11 +489,16 @@ MmResult sprite_update_collisions(MmSurface *sprite) {
     return kOk;
 }
 
-MmResult sprite_update_all_collisions() {
-    // Clear collision data for all active sprites.
+/** Clears all collisions for active sprites. */
+static inline void sprite_clear_all_collisions() {
     for (MmSurface *sprite = sprite_first_active(); sprite; sprite = sprite_next_active(sprite)) {
-        sprite_clear_collision_data(sprite);
+        bitset_reset(sprite->sprite_collisions, 256);
+        sprite->edge_collisions = 0x0;
     }
+}
+
+MmResult sprite_update_all_collisions() {
+    sprite_clear_all_collisions();
 
     bool has_collision = false;
 
@@ -545,64 +533,74 @@ MmResult sprite_get_collision_bitset(MmSurface *sprite, uint8_t start, uint64_t 
 
 MmResult sprite_restore_all() {
     if (!sprite_all_hidden) return kSpritesNotHidden;
-    MmResult result = sprite_tmp_restore(&sprite_stack[0]);
-    if (SUCCEEDED(result)) result = sprite_tmp_restore(&sprite_stack[1]);
-    if (SUCCEEDED(result)) sprite_all_hidden = false;
-    if (SUCCEEDED(result)) result = sprite_update_all_collisions();
-    return result;
+    ON_FAILURE_RETURN(sprite_tmp_restore());
+    sprite_all_hidden = false;
+    return sprite_update_all_collisions();
 }
 
-MmResult sprite_scroll(int x, int y, MmGraphicsColour colour) {
-    if (x == 0 && y == 0) return kOk;
+static inline void sprite_translate(MmSurface *sprite, int dx, int dy) {
+    int xs = sprite->x + (sprite->width >> 1); // Add half the width.
+    xs += dx;
+    if (xs >= graphics_current->width) {
+        xs -= graphics_current->width;
+    } else if (xs < 0) {
+        xs += graphics_current->width;
+    }
+    sprite->x = xs - (sprite->width >> 1);
+
+    int ys = sprite->y + (sprite->height >> 1); // Add half the height.
+    ys += dy;
+    if (ys >= graphics_current->height) {
+        ys -= graphics_current->height;
+    } else if (ys < 0) {
+        ys += graphics_current->height;
+    }
+    sprite->y = ys - (sprite->height >> 1);
+}
+
+MmResult sprite_scroll(int dx, int dy, MmGraphicsColour colour) {
+    if (dx == 0 && dy == 0) return kOk;
 
     // Temporarily hide all sprites.
-    MmResult result = sprite_tmp_hide(&sprite_stack[1], NULL);
-    if (SUCCEEDED(result)) result = sprite_tmp_hide(&sprite_stack[0], NULL);
+    ON_FAILURE_RETURN(sprite_tmp_hide(NULL));
 
-    // Translate all layer 0 sprites.
-    {
-        const MmSurfaceId *base = (MmSurfaceId *) sprite_stack[0].storage;
-        const MmSurfaceId *top = (MmSurfaceId *) sprite_stack[0].top;
-        for (const MmSurfaceId *pid = top - 1; pid >= base; --pid) {
-            MmSurface *s = &graphics_surfaces[*pid];
-
-            int xs = s->x + (s->width >> 1); // Add half the width.
-            xs += x;
-            if (xs >= graphics_current->width) {
-                xs -= graphics_current->width;
-            } else if (xs < 0) {
-                xs += graphics_current->width;
-            }
-            s->x = xs - (s->width >> 1);
-
-            int ys = s->y + (s->height >> 1); // Add half the height.
-            ys += y;
-            if (ys >= graphics_current->height) {
-                ys -= graphics_current->height;
-            } else if (ys < 0) {
-                ys += graphics_current->height;
-            }
-            s->y = ys - (s->height >> 1);
+    const MmSurfaceId *base = (MmSurfaceId *) sprite_z_stack.storage;
+    const MmSurfaceId *top = (MmSurfaceId *) sprite_z_stack.top;
+    for (const MmSurfaceId *pid = top - 1; pid >= base; --pid) {
+        MmSurface *sprite = &graphics_surfaces[*pid];
+        if (sprite->layer == 0) {
+            // Translate all layer 0 sprites.
+            sprite_translate(sprite, dx, dy);
+        } else {
+            // Update position of other sprites.
+            sprite_update_position(sprite);
         }
     }
 
     // Scroll the background.
-    if (SUCCEEDED(result)) {
-        if (colour < -2) colour = RGB_WHITE;
-        result = graphics_scroll(graphics_current, x, y, colour);
-    }
-
-    // Apply any pending updates to positions of sprites not on layer 0.
-    if (SUCCEEDED(result)) result = sprite_update_all_positions(&sprite_stack[1]);
+    if (colour < -2) colour = RGB_WHITE;
+    ON_FAILURE_RETURN(graphics_scroll(graphics_current, dx, dy, colour));
 
     // Restore temporarily hidden sprites.
-    if (SUCCEEDED(result)) result = sprite_tmp_restore(&sprite_stack[0]);
-    if (SUCCEEDED(result)) result = sprite_tmp_restore(&sprite_stack[1]);
+    ON_FAILURE_RETURN(sprite_tmp_restore());
 
     // Update collision state.
-    if (SUCCEEDED(result)) result = sprite_update_all_collisions();
+    return sprite_update_all_collisions();
+}
 
-    return result;
+static inline MmResult sprite_show_internal(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
+                                            unsigned layer, int blit_flags, bool add_to_stack) {
+    assert(add_to_stack || stack_contains(&sprite_z_stack, sprite->id));
+
+    sprite->x = x;
+    sprite->y = y;
+    sprite->layer = layer;
+    if (blit_flags != -1) sprite->blit_flags = (unsigned) blit_flags;
+    ON_FAILURE_RETURN(sprite_update_background(sprite, dst_surface));
+    if (add_to_stack) ON_FAILURE_RETURN(stack_push(&sprite_z_stack, sprite->id));
+    ON_FAILURE_RETURN(sprite_render(sprite, dst_surface));
+    sprite->type = kGraphicsSprite;
+    return kOk;
 }
 
 MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
@@ -613,33 +611,12 @@ MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
     }
     if (dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
 
-    // If the sprite is already visible then ...
-    if (sprite->type == kGraphicsSprite) {
-        // ... redraw the background where it was.
-        ON_FAILURE_RETURN(sprite_render_background(sprite, dst_surface));
+    // Hide already visible sprite.
+    if (sprite->type == kGraphicsSprite) sprite_hide_internal(sprite, dst_surface);
 
-        // ... and remove it from the appropriate old layer stack.
-        ON_FAILURE_RETURN(stack_remove(&sprite_stack[sprite->layer == 0 ? 0 : 1], sprite->id));
-    }
+    ON_FAILURE_RETURN(sprite_show_internal(sprite, dst_surface, x, y, layer, blit_flags, true));
+    return sprite_update_collisions(sprite);
 
-    sprite->x = x;
-    sprite->y = y;
-    if (blit_flags != -1) sprite->blit_flags = (unsigned) blit_flags;
-
-    // Save the background at the destination.
-    ON_FAILURE_RETURN(sprite_update_background(sprite, dst_surface));
-
-    // Add the sprite to the appropriate new layer stack.
-    sprite->layer = layer;
-    ON_FAILURE_RETURN(stack_push(&sprite_stack[sprite->layer == 0 ? 0 : 1], sprite->id));
-
-    // Display the sprite.
-    ON_FAILURE_RETURN(sprite_render(sprite, dst_surface));
-
-    // Flag the sprite as active / visible.
-    sprite->type = kGraphicsSprite;
-
-    return kOk;
 }
 
 MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
@@ -655,31 +632,28 @@ MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int 
     if (dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
 
     // 1) Temporarily hide all sprites shown after this sprite.
-    ON_FAILURE_RETURN(sprite_tmp_hide(&sprite_stack[1], sprite));
+    ON_FAILURE_RETURN(sprite_tmp_hide(sprite));
 
-    if (layer == 0) ON_FAILURE_RETURN(sprite_tmp_hide(&sprite_stack[0], sprite));
-
-    // Restore the background for this sprite.
+    // 2) Restore the background for this sprite.
     ON_FAILURE_RETURN(sprite_render_background(sprite, dst_surface));
 
-    // 2) If ontop == false then properly show this sprite.
-    if (!ontop) {
-        sprite->x = x;
-        sprite->y = y;
-        sprite->layer = layer;
-        if (blit_flags != -1) sprite->blit_flags = (unsigned) blit_flags;
-        ON_FAILURE_RETURN(sprite_update_background(sprite, dst_surface));
-        ON_FAILURE_RETURN(sprite_render(sprite, dst_surface));
+    if (ontop) {
+        // 4) Remove the sprite from the Z-order stack.
+        ON_FAILURE_RETURN(stack_remove(&sprite_z_stack, sprite->id));
+    } else {
+        // 4) Properly show this sprite.
+        ON_FAILURE_RETURN(sprite_show_internal(sprite, dst_surface, x, y, layer, blit_flags,
+                                               false));
     }
 
-    // 3) Restore sprites from step (1).
-    if (layer == 0) ON_FAILURE_RETURN(sprite_tmp_restore(&sprite_stack[0]));
-    ON_FAILURE_RETURN(sprite_tmp_restore(&sprite_stack[1]));
+    // 5) Restore sprites from step (1).
+    ON_FAILURE_RETURN(sprite_tmp_restore());
 
-    // 4) If ontop == true then properly show this sprite.
-    if (ontop) ON_FAILURE_RETURN(sprite_show(sprite, dst_surface, x, y, layer, blit_flags));
+    // 6) If ontop == true then properly show this sprite.
+    if (ontop) ON_FAILURE_RETURN(sprite_show_internal(sprite, dst_surface, x, y, layer, blit_flags,
+                                                      true));
 
-    return kOk;
+    return sprite_update_collisions(sprite);
 }
 
 MmResult sprite_set_transparent_colour(MmGraphicsColour colour) {
