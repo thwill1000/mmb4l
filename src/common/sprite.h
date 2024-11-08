@@ -70,7 +70,16 @@ typedef enum {
  */
 extern MmSurfaceId sprite_last_collision;
 
+/** The colour that is considered to be transparent when blitting sprites. */
 extern MmGraphicsColour sprite_transparent_colour;
+
+/**
+ * Stack recording the Z-order of active sprites.
+ *
+ * The earliest/bottom sprite is at the base of the stack and the latest/top sprite at the top.
+ * All active sprites should be in this stack.
+ */
+extern Stack sprite_z_stack;
 
 /** Initialises sprite module. */
 MmResult sprite_init();
@@ -87,7 +96,7 @@ MmResult sprite_count_on_layer(unsigned layer, size_t *total);
 /**
  * Closes/destroys the given sprite.
  *
- * @param[in]   sprite  Pointer to the sprite.
+ * @param[in]  sprite  Pointer to the sprite.
  */
 MmResult sprite_destroy(MmSurface *sprite);
 
@@ -131,13 +140,37 @@ MmResult sprite_get_num_collided_sprites(uint32_t *count);
  */
 MmResult sprite_get_collided_sprite(uint32_t n, MmSurfaceId *id);
 
-/** TODO */
+/**
+ * Hides a given sprite, will cause display artifacts if the sprite was beneath any other sprites.
+ *
+ * @param[in]  sprite  Pointer to the sprite.
+ */
 MmResult sprite_hide(MmSurface *sprite);
 
-/** TODO */
+/**
+ * Hides a given sprite, ensures that there are no display artifacts even if the sprite was beneath
+ * any other sprites.
+ *
+ * @param[in]  sprite  Pointer to the sprite.
+ */
 MmResult sprite_hide_safe(MmSurface *sprite);
 
-/** TODO */
+/**
+ * Temporarily "hides" all sprites.
+ *
+ * This is not a full hide as performed by sprite_hide() instead is just restores their background
+ * without artifacts and sets them to kGraphicsSpriteInactive. It does not remove them from the
+ * Z-order stack or recalculate their collisions.
+ *
+ * The following operations cannot be performed whilst all sprites are hidden:
+ *   sprite_hide()
+ *   sprite_hide_safe()
+ *   sprite_hide_all()
+ *   sprite_show()
+ *   sprite_show_safe()
+ *
+ * The reverse operation is sprite_restore_all().
+ */
 MmResult sprite_hide_all();
 
 /**
@@ -202,54 +235,62 @@ static inline bool sprite_id_is_in_range(MmSurfaceId sprite_id) {
    return sprite_id >= 1 && sprite_id <= sprite_max_id();
 }
 
-/** TODO */
+/**
+ * Moves all sprites to their (next_x, next_y) positions ensuring that sprites are hidden and
+ * redrawn so that there are no display artifacts.
+ */
 MmResult sprite_move();
 
 /**
  * @VisibleForTesting
  *
- * Gets one of the two sprite stacks.
- *
- * @param  stack_num  0 or 1.
- * @return            Pointer to the requested sprite stack.
+ * Updates the collision state for all sprites.
  */
-Stack *sprite_get_stack(unsigned stack_num);
-
-/** TODO */
 MmResult sprite_update_all_collisions();
 
-/** TODO */
+/**
+ * @VisibleForTesting
+ *
+ * Updates the collision state for a given sprite.
+ *
+ * This includes updating the state of other sprites to indicate if they are in collision with this
+ * one.
+ *
+ * @param[in]  sprite  Pointer to the sprite.
+ */
 MmResult sprite_update_collisions(MmSurface *sprite);
 
 /**
  * Gets a 64-bit slice of the bitset of sprites that a given sprite is currently collided with.
  *
- * @param[in]   id      The ID of the sprite to query.
+ * @param[in]   sprite  Pointer to the sprite.
  * @param[in]   start   Bit to start the slice from; must be 0, 64, 128 or 192.
  * @param[out]  bitset  64-bit set. Bit x is set if the sprite being queried is currently
  *                      collided with sprite start_id + x.
  */
 MmResult sprite_get_collision_bitset(MmSurface *sprite, uint8_t start, uint64_t *bitset);
 
-// TODO
+/**
+ * Reverses sprite_hide_all().
+ */
 MmResult sprite_restore_all();
 
 /**
- * Scrolls the background and any sprites on layer 0 'x' pixels to the right and 'y'
- * pixels up. 'x' can be any number between -MM.HRES-1 and MM.HRES-1,
- * 'y' can be any number between -MM.VRES-1 and MM.VRES-1.
+ * Scrolls the background and any sprites on layer 0 \p dx pixels to the right and \p dy
+ * pixels up. \p dx can be any number between -MM.HRES-1 and MM.HRES-1,
+ * \p dy can be any number between -MM.VRES-1 and MM.VRES-1.
  * Sprites on any layer other than zero will remain fixed in position on the
- * screen. By default the scroll wraps the image round. If 'col' is specified the
- * colour will replace the area behind the scrolled image. If 'col' is set to -1 the
+ * screen. By default the scroll wraps the image round. If \p colour is specified the
+ * colour will replace the area behind the scrolled image. If \p colour is set to -1 the
  * scrolled area will be left untouched.
  *
- * @param  x       Number of pixels to scroll the background right (may be -ve).
- * @param  y       Number of pixels to scroll the background down (may be -ve).
+ * @param  dx      Number of pixels to scroll the background right (may be -ve).
+ * @param  dy      Number of pixels to scroll the background down (may be -ve).
  * @param  colour  Colour to replace the area behind the scrolled image.
  *                 -1 = leave scrolled area untouched.
  *                 -2 = wrap scrolled area around.
  */
-MmResult sprite_scroll(int x, int y, MmGraphicsColour colour);
+MmResult sprite_scroll(int dx, int dy, MmGraphicsColour colour);
 
 /**
  * Sets the transparent colour for sprites.

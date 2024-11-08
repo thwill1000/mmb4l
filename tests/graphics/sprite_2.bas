@@ -87,15 +87,27 @@ Sub set_sprite_start_positions()
 End Sub
 
 Sub show_sprites()
-  Const LAYER = 1
-  Local i%
+  Local i%, layer%
   For i% = 1 To NUM_SPRITES
-    Sprite Show i% + BASE_SPRITE, atom.x%(i%), atom.y%(i%), LAYER
+    layer% = Int(Rnd() * 2)
+    Sprite Show i% + BASE_SPRITE, atom.x%(i%), atom.y%(i%), layer%
   Next
   copy_buffer_to_display()
 End Sub
 
+Sub move_sprites()
+  Local i%
+  For i% = 1 To NUM_SPRITES
+    Sprite Next i% + BASE_SPRITE, atom.x%(i%), atom.y%(i%)
+  Next
+  Sprite Move
+  copy_buffer_to_display()
+End Sub
+
 Sub draw_background()
+  Cls Rgb(Myrtle)
+  Box 0, 0, Mm.HRes, Mm.VRes
+
   Local c%, i%, x%, y%, r%
   For i% = 1 To 100
     x% = Rnd() * Mm.HRes
@@ -104,6 +116,7 @@ Sub draw_background()
     c% = Rgb(Rnd()*255, Rnd()*255, Rnd()*255)
     Circle x%, y%, r%, , , , c%
   Next
+
   copy_buffer_to_display()
 End Sub
 
@@ -160,13 +173,16 @@ Sub test_sprite_scroll()
   If InStr(Mm.Device$, "PicoMite") Then col%(1) = 15
   For i% = 1 To 3
     For j% = 1 To 4
+      If i% <> 1 Or j% <> 1 Then Sprite Hide All
+
       set_sprite_start_positions()
-      Sprite Hide All
       draw_background()
-      Sprite Restore
-      show_sprites()
-      Pause 500
-      ? i%, j%
+      If i% = 1 And j% = 1 Then
+        show_sprites()
+      Else
+        Sprite Restore
+        move_sprites()
+      EndIf
 
       For k% = 1 To 20
         Select Case j%

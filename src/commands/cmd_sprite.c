@@ -243,10 +243,8 @@ static MmResult cmd_sprite_show(const char *p) {
 #endif
 
     // Invert transparency flag to match blit.
-    ON_FAILURE_RETURN(sprite_show(sprite, graphics_current, x, y, layer,
-                                  flags == -1 ? -1 : flags ^ kBlitWithTransparency));
-
-    return sprite_update_collisions(sprite);
+    return sprite_show(sprite, graphics_current, x, y, layer,
+                       flags == -1 ? -1 : flags ^ kBlitWithTransparency);
 }
 
 /**
@@ -280,11 +278,8 @@ static MmResult cmd_sprite_show_safe(const char *p) {
 #endif
 
     // Invert transparency flag to match blit.
-    ON_FAILURE_RETURN(sprite_show_safe(sprite, graphics_current, x, y, layer,
-                                       flags == -1 ? -1 : flags ^ kBlitWithTransparency,
-                                       ontop ? true : false));
-
-    return sprite_update_collisions(sprite);
+    return sprite_show_safe(sprite, graphics_current, x, y, layer,
+                            flags == -1 ? -1 : flags ^ kBlitWithTransparency, ontop ? true : false);
 }
 
 /**
