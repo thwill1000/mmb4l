@@ -141,11 +141,9 @@ static void mminfo_directory(const char *p) {
     if (!getcwd(g_string_rtn, STRINGSIZE)) error_throw(errno);
 
     // Add a trailing '/' if one is not already present.
-    // TODO: error handling if path too long.
     size_t len = strlen(g_string_rtn);
-    if (g_string_rtn[len - 1] != '/') {
-        g_string_rtn[len] = '/';
-        g_string_rtn[len + 1] = '\0';
+    if (g_string_rtn[len - 1] != '/' && FAILED(cstring_cat(g_string_rtn, "/", STRINGSIZE))) {
+        ON_FAILURE_LONGJMP(kStringTooLong);
     }
 
     CtoM(g_string_rtn);
@@ -319,7 +317,7 @@ static void mminfo_line(const char *p) {
         strcpy(g_string_rtn, "UNKNOWN");
     } else {
         sprintf(g_string_rtn, "%d,", line);
-        if (FAILED(cstring_cat(g_string_rtn, file, STRINGSIZE))) ERROR_STRING_TOO_LONG;
+        if (FAILED(cstring_cat(g_string_rtn, file, STRINGSIZE))) ON_FAILURE_LONGJMP(kStringTooLong);
     }
     CtoM(sret);
 }
@@ -368,10 +366,7 @@ static void mminfo_path(const char *p) {
         if (FAILED(path_get_parent(CurrentFile, g_string_rtn, STRINGSIZE))) {
             ERROR_COULD_NOT("determine path");
         }
-        // TODO: error handling if path too long.
-        size_t len = strlen(g_string_rtn);
-        g_string_rtn[len] = '/';
-        g_string_rtn[len + 1] = '\0';
+        if (FAILED(cstring_cat(g_string_rtn, "/", STRINGSIZE))) ON_FAILURE_LONGJMP(kStringTooLong);
     }
 
     CtoM(g_string_rtn);

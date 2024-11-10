@@ -249,8 +249,9 @@ void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
 
     // Received data interrupt location.
     if (argc >= 7) {
-        // InterruptUsed = true;
-        argv[6] = cstring_toupper(argv[6]); // TODO: is this needed ?
+        // We have to explicitly convert to upper-case because the interrupt name was embedded
+        // within an MMBasic STRING rather than being read from tokenised code.
+        argv[6] = cstring_toupper(argv[6]);
         comspec->rx_interrupt_addr = GetIntAddress(argv[6]);
     }
 
