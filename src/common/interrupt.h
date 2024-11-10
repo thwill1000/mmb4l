@@ -45,11 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_INTERRUPT_H)
 #define MMB4L_INTERRUPT_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "graphics.h"
 #include "../Configuration.h"
 
-#include <stdbool.h>
-#include <stdint.h>
+typedef struct SDL_WindowEvent SDL_WindowEvent;
 
 typedef enum {
   kInterruptAudio1,
@@ -129,8 +131,8 @@ void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_a
 
 void interrupt_disable_serial_rx(int fnbr);
 
-/** Fires a window closed interrupt. */
-void interrupt_fire_window_close(MmSurfaceId id);
+/** Fires a window event interrupt. */
+void interrupt_fire_window_event(SDL_WindowEvent *event);
 
 /** Enables an interrupt. */
 void interrupt_enable(InterruptType type, const char *fn);

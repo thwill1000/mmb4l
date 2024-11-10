@@ -161,7 +161,7 @@ static MmResult cmd_graphics_window(const char *p) {
     const int y = has_arg(8) ? getint(argv[8], 0, WINDOW_MAX_Y) : -1;
     const char *title = has_arg(10) ? getCstring(argv[10]) : NULL;
     const int scale = has_arg(12) ? getint(argv[12], 1, WINDOW_MAX_SCALE) : 1;
-    const char *interrupt_addr = has_arg(14) ? GetIntAddress(argv[12]) : NULL;
+    const char *interrupt_addr = has_arg(14) ? GetIntAddress(argv[14]) : NULL;
     if (interrupt_addr) {
         // Check interrupt is a SUB with the correct signature.
         FunctionSignature *fn = (FunctionSignature *) GetTempMemory(sizeof(FunctionSignature));
