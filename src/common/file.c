@@ -278,8 +278,7 @@ int file_eof(int fnbr) {
 
 size_t file_read(int fnbr, char *buf, size_t sz) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        error_throw(kFileInvalidFileNumber);
-        return 0;
+        ON_FAILURE_LONGJMP_EX(kFileInvalidFileNumber, 0);
     }
     assert(fnbr != 0); // if (fnbr == 0) return console_write(buf, sz);
 
@@ -300,8 +299,9 @@ size_t file_read(int fnbr, char *buf, size_t sz) {
             break;
     }
 
-    ERROR_INTERNAL_FAULT;
-    return -1; // TODO: returning -ve value from a size_t.
+    ON_FAILURE_LONGJMP_EX(kInternalFault, 0);
+
+    return 0;
 }
 
 void file_seek(int fnbr, int idx) {

@@ -154,6 +154,7 @@ static MmResult cmd_graphics_sprite(const char *p) {
 static MmResult cmd_graphics_window(const char *p) {
     getargs(&p, 15, ",");
     if (argc < 5 || argc > 15 || !(argc % 2)) return kArgumentCount;
+
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     const int width = getint(argv[2], 8, WINDOW_MAX_WIDTH);
     const int height = getint(argv[4], 8, WINDOW_MAX_HEIGHT);
@@ -161,6 +162,7 @@ static MmResult cmd_graphics_window(const char *p) {
     const int y = has_arg(8) ? getint(argv[8], 0, WINDOW_MAX_Y) : -1;
     const char *title = has_arg(10) ? getCstring(argv[10]) : NULL;
     const int scale = has_arg(12) ? getint(argv[12], 1, WINDOW_MAX_SCALE) : 1;
+
     const char *interrupt_addr = has_arg(14) ? GetIntAddress(argv[14]) : NULL;
     if (interrupt_addr) {
         // Check interrupt is a SUB with the correct signature.
@@ -168,8 +170,7 @@ static MmResult cmd_graphics_window(const char *p) {
         const char *p2 = interrupt_addr;
         const char *cached_line_ptr = CurrentLinePtr;
         CurrentLinePtr = interrupt_addr; // So any error is reported on the correct line.
-        MmResult result = parse_fn_sig(&p2, fn);
-        if (FAILED(result)) return result;
+        ON_FAILURE_RETURN(parse_fn_sig(&p2, fn));
         CurrentLinePtr = cached_line_ptr;
         if (fn->token != cmdSUB
             || fn->num_params != 2
@@ -179,9 +180,6 @@ static MmResult cmd_graphics_window(const char *p) {
             || fn->params[1].array) return kInvalidInterruptSignature;
         ClearSpecificTempMemory(fn);
     }
-
-    // TODO: width & height should be divisible by 8.
-    // TODO: check window has not already been created.
 
     return graphics_window_create(id, width, height, x, y, scale, title, interrupt_addr, true);
 }

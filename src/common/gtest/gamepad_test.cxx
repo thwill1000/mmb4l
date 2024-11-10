@@ -483,4 +483,4 @@ TEST_F(GamepadTest, ReadButtons_DoesNotReturnZR_GivenTriggerRightUp) {
     EXPECT_EQ(0x0, out);
 }
 
-// TODO: gamepad_term()
+// TODO: Test gamepad_term()

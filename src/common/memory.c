@@ -248,7 +248,6 @@ void heapstats(char *m1) {
 uintptr_t get_poke_addr(const char *p) {
     return (uintptr_t) getinteger(p);
 
-    // TODO
     // if ((i > (unsigned int)DOS_vartbl &&
     //      i < (unsigned int)DOS_vartbl + sizeof(struct s_vartbl) * MAXVARS) ||
     //     (i > (unsigned int)MMHeap && i < (unsigned int)MMHeap + HEAP_SIZE))
