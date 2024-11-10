@@ -45,18 +45,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <string.h>
 
+#include <SDL.h>
+
 #include "console.h"
 #include "error.h"
 #include "exit_codes.h"
 #include "interrupt.h"
 #include "mmb4l.h"
 #include "mmtime.h"
+#include "queue.h"
 #include "serial.h"
 #include "utility.h"
 #include "../core/commandtbl.h"
 
 #define ERROR_NOT_AN_INTERRUPT  error_throw_ex(kError, "Not in interrupt")
 #define ERROR_TOO_MANY_SUBS     error_throw_ex(kError, "Too many SUBs for interrupt")
+#define WINDOW_EVENT_QUEUE_CAPACITY  10
 
 #define skipelement(x)  while(*x) x++
 
@@ -83,18 +87,26 @@ static const char *interrupt_specific_key_addr = NULL;
 static TickStruct interrupt_ticks[NBRSETTICKS + 1];
 static SerialRxStruct interrupt_serial_rx[MAXOPENFILES + 1];
 static ErrorState interrupt_error_state;
-static MmSurfaceId interrupt_window_close_id;
-
+static Queue interrupt_window_event_queue;
 static Interrupt interrupt_list[kInterruptLast];
 
 void interrupt_init() {
+    // Only expected to be called once on application startup.
+    static bool called = false;
+    if (called) ON_FAILURE_LONGJMP(kInternalFault);
+    called = true;
+
     interrupt_clear();
+
+    ON_FAILURE_LONGJMP(queue_init(&interrupt_window_event_queue, SDL_WindowEvent,
+                                  WINDOW_EVENT_QUEUE_CAPACITY));
+
     char *p = DUMMY_IRETURN;
     commandtbl_encode(&p, cmdIRET);
     *p = '\0';
 }
 
-void interrupt_clear() {
+void interrupt_clear(void) {
     interrupt_count = 0;
     interrupt_return_stmt = NULL;
     interrupt_any_key_addr = NULL;
@@ -111,7 +123,7 @@ void interrupt_clear() {
         interrupt_serial_rx[i].count = 0;
         interrupt_serial_rx[i].interrupt_addr = NULL;
     }
-    interrupt_window_close_id = -1;
+    queue_clear(&interrupt_window_event_queue);
     for (size_t i = 0; i < kInterruptLast; ++i) memset(interrupt_list + i, 0, sizeof(Interrupt));
 }
 
@@ -145,18 +157,43 @@ static int handle_interrupt(const char *interrupt_address) {
     return true;
 }
 
-static int handle_window_interrupt() {
-    MmSurfaceId window_id = interrupt_window_close_id;
-    interrupt_window_close_id = -1; // Clear the interrupt.
-    interrupt_count--;
+static inline void interrupt_add_local_integer_const(const char *name, MMINTEGER value) {
+    int var_idx;
+    ON_FAILURE_LONGJMP(vartbl_add(name, T_INT | T_CONST | T_IMPLIED, LocalIndex, NULL, 0,
+                                  &var_idx));
+    vartbl[var_idx].val.i = value;
+}
 
-    if (!graphics_surface_exists(window_id)) error_throw(kInternalFault);
+static int handle_window_interrupt() {
+    // Get the oldest window event.
+    SDL_WindowEvent event;
+    MmResult result = queue_dequeue(&interrupt_window_event_queue, &event);
+    ON_FAILURE_LONGJMP_EX(result, false);
+
+    // If this was the last event then reduce the number of interrupts.
+    if (queue_is_empty(&interrupt_window_event_queue)) interrupt_count--;
+
+    // Get the MMB4L window.
+    MmSurfaceId window_id = graphics_find_window(event.windowID);
+    if (!graphics_surface_exists(window_id)) {
+        if (event.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+            // We can receive this event after the window has been destroyed.
+            return true;
+        }
+        ON_FAILURE_LONGJMP_EX(kInternalFault, false);
+    }
     MmSurface *window = &graphics_surfaces[window_id];
 
+    // If there is no interrupt routine registered then we ignore the event unless is is a
+    // CLOSE event in which case we destroy the window and END the program.
     if (!window->interrupt_addr) {
-        (void) graphics_surface_destroy(window);
-        mmb_exit_code = EX_OK;
-        longjmp(mark, JMP_END);
+        if (event.type == SDL_WINDOWEVENT_CLOSE) {
+            (void) graphics_surface_destroy(window);
+            mmb_exit_code = EX_OK;
+            longjmp(mark, JMP_END);
+        } else {
+            return true;
+        }
     }
 
     // Get interrupt SUB signature.
@@ -165,8 +202,7 @@ static int handle_window_interrupt() {
     const char *p2 = window->interrupt_addr;
     const char *cached_line_ptr = CurrentLinePtr;
     CurrentLinePtr = window->interrupt_addr; // So any error is reported on the correct line.
-    MmResult result = parse_fn_sig(&p2, fn);
-    if (FAILED(result)) error_throw(result);
+    ON_FAILURE_LONGJMP_EX(parse_fn_sig(&p2, fn), false);
     CurrentLinePtr = cached_line_ptr;
 
     // Setup stack and return state.
@@ -185,13 +221,20 @@ static int handle_window_interrupt() {
     char name[MAXVARLEN + 1];
     for (uint8_t i = 0; i < 2; ++i) {
         const char *p = fn->addr + fn->params[i].name_offset;
-        result = parse_name(&p, name);
-        if (FAILED(result)) error_throw(result);
-        result = vartbl_add(name, fn->params[i].type, LocalIndex, NULL, 0, &var_idx[i]);
-        if (FAILED(result)) error_throw(result);
+        ON_FAILURE_LONGJMP_EX(parse_name(&p, name), false);
+        ON_FAILURE_LONGJMP_EX(vartbl_add(name, fn->params[i].type, LocalIndex, NULL, 0,
+                                         &var_idx[i]), false);
     }
     vartbl[var_idx[0]].val.i = window_id;
-    vartbl[var_idx[1]].val.i = 1; // event_id
+    vartbl[var_idx[1]].val.i = event.event; // event_id
+
+    // Setup local constants corresponding to event constants.
+    interrupt_add_local_integer_const("WINDOW_EVENT_CLOSE", SDL_WINDOWEVENT_CLOSE);
+    interrupt_add_local_integer_const("WINDOW_EVENT_FOCUS_GAINED", SDL_WINDOWEVENT_FOCUS_GAINED);
+    interrupt_add_local_integer_const("WINDOW_EVENT_FOCUS_LOST", SDL_WINDOWEVENT_FOCUS_LOST);
+    interrupt_add_local_integer_const("WINDOW_EVENT_MINIMISED", SDL_WINDOWEVENT_MINIMIZED);
+    interrupt_add_local_integer_const("WINDOW_EVENT_MAXIMISED", SDL_WINDOWEVENT_MAXIMIZED);
+    interrupt_add_local_integer_const("WINDOW_EVENT_RESTORED", SDL_WINDOWEVENT_RESTORED);
 
     ClearSpecificTempMemory(fn);
 
@@ -249,7 +292,7 @@ bool interrupt_check(void) {
     }
 
     // Check for window interrupts.
-    if (interrupt_window_close_id != -1) handle_window_interrupt();
+    if (!queue_is_empty(&interrupt_window_event_queue)) handle_window_interrupt();
 
     // All other interrupts.
     for (size_t i = 0; i < kInterruptLast; ++i) {
@@ -369,11 +412,16 @@ void interrupt_disable_serial_rx(int fnbr) {
     }
 }
 
-void interrupt_fire_window_close(MmSurfaceId id) {
-    if (interrupt_window_close_id == -1) {
-        interrupt_count++;
-        interrupt_window_close_id = id;
+void interrupt_fire_window_event(SDL_WindowEvent *event) {
+    MmResult result = queue_enqueue(&interrupt_window_event_queue, *event);
+    if (result == kContainerFull) {
+        // Discard the oldest event.
+        SDL_WindowEvent tmp;
+        ON_FAILURE_LONGJMP(queue_dequeue(&interrupt_window_event_queue, &tmp));
+        result = queue_enqueue(&interrupt_window_event_queue, *event);
     }
+    ON_FAILURE_LONGJMP(result);
+    if (queue_size(&interrupt_window_event_queue) == 1) interrupt_count++;
 }
 
 void interrupt_enable(InterruptType type, const char *fn) {

@@ -69,7 +69,7 @@ typedef struct {
  * @param  type      Element type, e.g. uint8_t, int32_t, void *
  * @param  capacity  Maximum number of elements that the queue should be able to hold.
  */
-#define queue_init(s, type, capacity)  queue_init_internal(s, sizeof(type), capacity)
+#define queue_init(q, type, capacity)  queue_init_internal(q, sizeof(type), capacity)
 
 static inline MmResult queue_init_internal(Queue *q, size_t element_size, size_t capacity) {
     q->element_size = element_size;

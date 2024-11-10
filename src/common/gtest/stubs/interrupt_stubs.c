@@ -12,4 +12,4 @@ void interrupt_disable_serial_rx(int fnbr) {}
 void interrupt_enable(InterruptType type, const char *fn) {}
 void interrupt_enable_serial_rx(int fnbr, int64_t count, const char *interrupt_addr) {}
 void interrupt_fire(InterruptType type) {}
-void interrupt_fire_window_close(MmSurfaceId id) {}
+void interrupt_fire_window_event(SDL_WindowEvent *event) {}

@@ -78,44 +78,55 @@ const char* events_last_error() {
 void events_pump() {
     if (!events_initialised) return;
 
-    MmResult result = kOk;
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_CONTROLLERAXISMOTION:
-                // printf("Controller axis: device idx: %d, axis: %d, value: %d\n", event.caxis.which, event.caxis.axis, event.caxis.value);
-                result = gamepad_on_analog(event.caxis.which, event.caxis.axis, event.caxis.value);
+                // printf("Controller axis: device idx: %d, axis: %d, value: %d\n",
+                //        event.caxis.which, event.caxis.axis, event.caxis.value);
+                ON_FAILURE_LONGJMP(gamepad_on_analog(event.caxis.which, event.caxis.axis,
+                                                   event.caxis.value));
                 break;
+
             case SDL_CONTROLLERBUTTONDOWN:
-                result = gamepad_on_button_down(event.cbutton.which, event.cbutton.button);
+                ON_FAILURE_LONGJMP(gamepad_on_button_down(event.cbutton.which, event.cbutton.button));
                 break;
+
             case SDL_CONTROLLERBUTTONUP:
-                result = gamepad_on_button_up(event.cbutton.which, event.cbutton.button);
+                ON_FAILURE_LONGJMP(gamepad_on_button_up(event.cbutton.which, event.cbutton.button));
                 break;
+
             case SDL_CONTROLLERDEVICEADDED:
                 // printf("Controller added, device idx: %d\n", event.cdevice.which);
                 break;
+
             case SDL_CONTROLLERDEVICEREMOVED:
                 // printf("Controller removed, instance id: %d\n", event.cdevice.which);
                 break;
+
             case SDL_KEYDOWN:
-                result = keyboard_key_down(&event.key.keysym);
+                ON_FAILURE_LONGJMP(keyboard_key_down(&event.key.keysym));
                 break;
 
             case SDL_KEYUP:
-                result = keyboard_key_up(&event.key.keysym);
+                ON_FAILURE_LONGJMP(keyboard_key_up(&event.key.keysym));
                 break;
 
             case SDL_WINDOWEVENT:
                 switch (event.window.event) {
-                    case SDL_WINDOWEVENT_CLOSE: {
-                        MmSurfaceId windowId = graphics_find_window(event.window.windowID);
-                        if (windowId == -1) ERROR_ON_FAILURE(kInternalFault);
+                    case SDL_WINDOWEVENT_CLOSE:
+                    case SDL_WINDOWEVENT_FOCUS_GAINED:
+                    case SDL_WINDOWEVENT_FOCUS_LOST:
+                    case SDL_WINDOWEVENT_MINIMIZED:
+                    case SDL_WINDOWEVENT_MAXIMIZED:
+                    case SDL_WINDOWEVENT_RESTORED: {
                         if (CurrentLinePtr) {
-                            interrupt_fire_window_close(windowId);
-                        } else {
-                            ERROR_ON_FAILURE(
-                                graphics_surface_destroy(&graphics_surfaces[windowId]));
+                            interrupt_fire_window_event(&event.window);
+                        } else if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
+                            MmSurfaceId window_id = graphics_find_window(event.window.windowID);
+                            if (window_id == -1) ON_FAILURE_LONGJMP(kInternalFault);
+                            ON_FAILURE_LONGJMP(
+                                graphics_surface_destroy(&graphics_surfaces[window_id]));
                         }
                         break;
                     }
@@ -128,6 +139,5 @@ void events_pump() {
             default:
                 break;
         }
-        if (FAILED(result)) error_throw(result);
     }
 }
