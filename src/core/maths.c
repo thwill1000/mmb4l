@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/mmtime.h"
 #include "../core/MMBasic.h"
+#include "../core/maths.h"
 #include "../core/Functions.h"
 #include "../Hardware_Includes.h"
 
@@ -118,7 +119,7 @@ MMFLOAT PI;
 typedef MMFLOAT complex cplx;
 typedef float complex fcplx;
 void cmd_FFT(const char *pp);
-const double chitable[51][15]={
+const MMFLOAT chitable[51][15]={
 		{0.995,0.99,0.975,0.95,0.9,0.5,0.2,0.1,0.05,0.025,0.02,0.01,0.005,0.002,0.001},
 		{0.0000397,0.000157,0.000982,0.00393,0.0158,0.455,1.642,2.706,3.841,5.024,5.412,6.635,7.879,9.550,10.828},
 		{0.0100,0.020,0.051,0.103,0.211,1.386,3.219,4.605,5.991,7.378,7.824,9.210,10.597,12.429,13.816},
@@ -484,8 +485,8 @@ unsigned long genRandLong(MTRand* rand) {
 /**
  * Generates a pseudo-randomly generated double in the range [0..1].
  */
-double genRand(MTRand* rand) {
-  return((double)genRandLong(rand) / (unsigned long)0xffffffff);
+MMFLOAT genRand(MTRand* rand) {
+  return((MMFLOAT)genRandLong(rand) / (unsigned long)0xffffffff);
 }
 
 MMFLOAT determinant(MMFLOAT **matrix,int size);
@@ -2508,7 +2509,40 @@ void fun_math(void){
 				}
 			}
 			targ=T_NBR;
-			fret=sqrt(var/card1);
+
+            // Standard Deviation Formula
+            //
+            // There are two formulas for standard deviation: one for population standard deviation
+            // and another for sample standard deviation.
+            //
+            // Population Standard Deviation Formula σ (sigma) = √[(Σ(X - μ)²) / N]
+            //
+            // where:
+            //   σ (sigma) is the population standard deviation
+            //   X is each data point
+            //   μ (mu) is the population mean
+            //   Σ (sigma) represents the sum of
+            //   N is the population size
+            //
+            // Sample Standard Deviation Formula
+            //
+            // s = √[(Σ(X - x̄)²) / (n - 1)]
+            //
+            // where:
+            //   s is the sample standard deviation
+            //   X is each data point
+            //   x̄ (x-bar) is the sample mean
+            //   Σ (sigma) represents the sum of
+            //   n is the sample size
+            //
+            // Note the difference between the two formulas: the population standard deviation
+            // formula uses N (population size) in the denominator, while the sample standard
+            // deviation formula uses n - 1 (degrees of freedom) in the denominator. This is because
+            // the sample standard deviation is an estimate of the population standard deviation,
+            // and the degrees of freedom account for the uncertainty in the estimate.
+
+			// MMBasic uses the "Sample Standard Deviation Formula".
+			fret=sqrt(var/(card1-1));
 			return;
 		}
 
