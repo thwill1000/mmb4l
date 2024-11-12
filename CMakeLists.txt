@@ -301,6 +301,7 @@ add_executable(
   src/common/utility.c
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/graphics_stubs.c
@@ -336,8 +337,8 @@ add_executable(
   src/common/mmresult.c
   src/common/parse.c
   src/common/utility.c
-  src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/graphics_stubs.c
@@ -436,6 +437,7 @@ add_executable(
   src/common/utility.c
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
   src/common/gtest/stubs/sdl2_stubs.c
@@ -500,6 +502,7 @@ add_executable(
   src/common/gamepad.c
   src/common/mmresult.c
   src/common/gtest/gamepad_test.cxx
+  src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
   src/common/gtest/stubs/sdl2_stubs.c
 )
@@ -534,6 +537,7 @@ add_executable(
   src/common/options.c
   src/common/path.c
   src/common/gtest/graphics_test.cxx
+  src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
   src/common/gtest/stubs/sdl2_stubs.c
@@ -642,6 +646,7 @@ add_executable(
   src/common/gtest/parse_test.cxx
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/graphics_stubs.c
@@ -705,6 +710,7 @@ add_executable(
   src/common/gtest/program_test.cxx
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/graphics_stubs.c
@@ -803,6 +809,7 @@ add_executable(
   src/common/path.c
   src/common/sprite.c
   src/common/gtest/sprite_test.cxx
+  src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
   src/common/gtest/stubs/sdl2_stubs.c
@@ -860,6 +867,7 @@ add_executable(
   src/common/utility.c
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/graphics_stubs.c

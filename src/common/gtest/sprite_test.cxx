@@ -16,8 +16,6 @@ extern "C" {
 #include "../sprite.h"
 #include "../../third_party/spbmp.h"
 
-char error_msg[256];
-
 // Defined in "main.c"
 char *CFunctionFlash;
 char *CFunctionLibrary;
@@ -39,15 +37,6 @@ char console_putc(char c) { return c; }
 void console_puts(const char *s) {}
 void console_set_title(const char *title) {}
 size_t console_write(const char *buf, size_t sz) { return 0; }
-
-// Defined in "common/error.c"
-void error_init(ErrorState *error_state) {}
-MmResult error_throw(MmResult result) { return error_throw_ex(result, mmresult_to_string(result)); }
-MmResult error_throw_ex(MmResult result, const char *msg, ...) {
-    strcpy(error_msg, msg);
-    return result;
-}
-MmResult error_throw_legacy(const char *msg, ...) { return error_throw_ex(kError, msg); }
 
 // Defined in "common/keyboard.c"
 MmResult keyboard_key_down(const SDL_Keysym *keysym) { return kError; }

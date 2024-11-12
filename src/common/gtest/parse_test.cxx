@@ -8,8 +8,8 @@
 extern "C" {
 
 #include "test_helper.h"
+#include "stubs/error_stubs.h"
 #include "../cstring.h"
-#include "../error.h"
 #include "../graphics.h"
 #include "../options.h"
 #include "../memory.h"
