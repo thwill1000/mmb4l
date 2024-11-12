@@ -17,19 +17,8 @@ extern "C" {
 #include "../graphics.h"
 #include "../interrupt.h"
 
-char error_msg[256];
-
 // Defined in "common/audio.c"
 const char *audio_last_error() { return ""; }
-
-// Defined in "common/error.c"
-void error_init(ErrorState *error_state) {}
-MmResult error_throw(MmResult result) { return error_throw_ex(result, mmresult_to_string(result)); }
-MmResult error_throw_ex(MmResult result, const char *msg, ...) {
-    strcpy(error_msg, msg);
-    return result;
-}
-MmResult error_throw_legacy(const char *msg, ...) { return error_throw_ex(kError, msg); }
 
 // Defined in "common/graphics.c"
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };

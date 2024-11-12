@@ -3,33 +3,12 @@
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
-#include "../error.h"
-#include "../memory.h"
-#include "../mmresult.h"
-#include "../../Configuration.h"
-#include "../../core/MMBasic.h"
 #include "test_helper.h"
+#include "stubs/error_stubs.h"
+#include "../memory.h"
+#include "../../core/MMBasic.h"
 
 #include <string.h>
-
-char error_msg[256];
-
-// Defined in "common/error.c"
-void error_init(ErrorState *error_state) { }
-
-MmResult error_throw(MmResult result) {
-    return error_throw_ex(result, mmresult_to_string(result));
-}
-
-MmResult error_throw_ex(MmResult result, const char *msg, ...) {
-    strcpy(error_msg, msg);
-    return result;
-}
-
-MmResult error_throw_legacy(const char *msg, ...) {
-    strcpy(error_msg, msg);
-    return kOk;
-}
 
 void clear_prog_memory() {
     ProgMemory[0] = '\0'; // Program ends "\0\0\xFF".

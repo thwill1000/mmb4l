@@ -13,7 +13,7 @@
 extern "C" {
 
 #include "test_helper.h"
-#include "../error.h"
+#include "stubs/error_stubs.h"
 #include "../graphics.h"
 #include "../memory.h"
 #include "../options.h"

@@ -11,6 +11,7 @@ extern "C" {
 #include "../../Hardware_Includes.h"
 #include "../../common/utility.h"
 #include "../../common/gtest/test_helper.h"
+#include "../../common/gtest/stubs/error_stubs.h"
 #include "../../core/Commands.h"
 #include "../../core/MMBasic.h"
 #include "../../core/commandtbl.h"

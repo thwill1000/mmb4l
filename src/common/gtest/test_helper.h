@@ -6,8 +6,6 @@
 #if !defined(HELPER_H)
 #define HELPER_H
 
-extern char error_msg[256];
-
 void clear_prog_memory();
 
 // TODO: can I just use program_tokenise() instead ?

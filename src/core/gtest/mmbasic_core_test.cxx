@@ -19,6 +19,7 @@ extern "C" {
 #include "../../common/parse.h"
 #include "../../common/program.h"
 #include "../../common/gtest/test_helper.h"
+#include "../../common/gtest/stubs/error_stubs.h"
 #include "command_stubs.h"
 #include "function_stubs.h"
 #include "operation_stubs.h"

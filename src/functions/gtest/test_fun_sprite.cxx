@@ -16,6 +16,7 @@ extern "C" {
 #include "../../common/sprite.h"
 #include "../../common/utility.h"
 #include "../../common/gtest/test_helper.h"
+#include "../../common/gtest/stubs/error_stubs.h"
 #include "../../core/Commands.h"
 #include "../../core/MMBasic.h"
 #include "../../core/tokentbl.h"
