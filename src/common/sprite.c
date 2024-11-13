@@ -259,7 +259,7 @@ MmResult sprite_hide(MmSurface *sprite) {
     switch (sprite->type) {
         case kGraphicsSprite: break;
         case kGraphicsInactiveSprite: return kSpriteInactive;
-        default: MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
+        default: return mmresult_ex(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
     }
     ON_FAILURE_RETURN(sprite_hide_internal(sprite, graphics_current));
     return sprite_update_collisions(sprite);
@@ -313,7 +313,7 @@ MmResult sprite_hide_safe(MmSurface *sprite) {
     switch (sprite->type) {
         case kGraphicsSprite: break;
         case kGraphicsInactiveSprite: return kSpriteInactive;
-        default: MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
+        default: return mmresult_ex(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
     }
 
     // 1) Temporarily hide all sprites shown after this sprite.
@@ -447,7 +447,7 @@ MmResult sprite_update_collisions(MmSurface *sprite) {
     switch (sprite->type) {
         case kGraphicsSprite: break;
         case kGraphicsInactiveSprite: return kOk;
-        default: MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
+        default: return mmresult_ex(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
     }
     assert(sprite->type == kGraphicsSprite);
 
@@ -524,7 +524,7 @@ MmResult sprite_update_all_collisions() {
 
 MmResult sprite_get_collision_bitset(MmSurface *sprite, uint8_t start, uint64_t *bitset) {
     if (sprite->type != kGraphicsSprite && sprite->type != kGraphicsInactiveSprite) {
-        MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
+        return mmresult_ex(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
     }
     if (start % 64 != 0) return kInternalFault;
     *bitset = ((uint64_t *) sprite->sprite_collisions)[start / 64];
@@ -607,7 +607,7 @@ MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
                      unsigned layer, int blit_flags) {
     if (sprite_all_hidden) return kSpritesAreHidden;
     if (sprite->type != kGraphicsSprite && sprite->type != kGraphicsInactiveSprite) {
-        MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
+        return mmresult_ex(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
     }
     if (dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
 
@@ -627,7 +627,7 @@ MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int 
 
     if (sprite_all_hidden) return kSpritesAreHidden;
     if (sprite->type != kGraphicsSprite) {
-        MMRESULT_RETURN_EX(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
+        return mmresult_ex(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
     }
     if (dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
 

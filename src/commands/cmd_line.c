@@ -142,13 +142,13 @@ static MmResult cmd_line_graph(const char *p) {
     MMFLOAT *pfx = NULL; // Pointer to x-coordinates (if FLOAT).
     int nx = 0; // Number of x-coordinates.
     getargaddress(argv[0], &px, &pfx, &nx);
-    if (nx < 3) MMRESULT_RETURN_EX(kInvalidArray, "X Dimensions %d", nx);
+    if (nx < 3) return mmresult_ex(kInvalidArray, "X Dimensions %d", nx);
 
     MMINTEGER *py = NULL; // Pointer to y-coordinates (if INTEGER).
     MMFLOAT *pfy = NULL; // Pointer to y-coordinates (if FLOAT).
     int ny = 0; // Number of y-coordinates.
     getargaddress(argv[2], &py, &pfy, &ny);
-    if (ny != nx) MMRESULT_RETURN_EX(kInvalidArray, "Y Dimensions %d", ny);
+    if (ny != nx) return mmresult_ex(kInvalidArray, "Y Dimensions %d", ny);
 
     MmGraphicsColour c = (argc == 5) ? getint(argv[4], RGB_BLACK, RGB_WHITE) : graphics_fcolour;
 

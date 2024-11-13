@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 #include "../Configuration.h"
 
+#include <stdarg.h>
 #include <string.h>
 
 const char *audio_last_error();
@@ -70,6 +71,20 @@ static void formatGamepadApiError() {
 
 static void formatGraphicsApiError() {
     snprintf(mmresult_last_msg, STRINGSIZE, "Graphics error: %s", graphics_last_error());
+}
+
+void mmresult_clear() {
+   mmresult_last_code = kOk;
+   mmresult_last_msg[0] = '\0';
+}
+
+MmResult mmresult_ex(MmResult result, const char *format, ...) {
+    mmresult_last_code = result;
+    va_list args;
+    va_start(args, format);
+    vsnprintf(mmresult_last_msg, STRINGSIZE, format, args);
+    va_end(args);
+    return result;
 }
 
 const char *mmresult_to_string(MmResult result) {
