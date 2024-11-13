@@ -111,12 +111,16 @@ bool cstring_isquoted(const char *s);
 /**
  * @brief Replaces substrings in a C string.
  *
- * @param [in,out] target       string to apply replacements to.
+ * @param [in,out] haystack     string to apply replacements to.
+ * @param [in]     haystack_sz  size of the \p haystack buffer, which should be greater than
+ *                              the length of the string if the \p replacement is longer than
+ *                              the \p needle.
  * @param [in]     needle       replace this ...
  * @param [in]     replacement  ... with this
  * @return                      0 on success, -1 on failure.
  */
-int cstring_replace(char *target, const char *needle, const char *replacement);
+int cstring_replace(char *haystack, size_t haystack_sz, const char *needle,
+                    const char *replacement);
 
 /**
  * @brief Performs inplace conversion of a C-string to lower-case.

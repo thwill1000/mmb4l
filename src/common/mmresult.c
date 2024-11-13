@@ -111,6 +111,7 @@ const char *mmresult_to_string(MmResult result) {
         case kUnknownOption: return "Unknown option";
         case kInvalidArray:  return "Invalid array value";
         case kInvalidBool:   return "Invalid boolean value";
+        case kInvalidEditor: return "Invalid editor";
         case kInvalidEnvironmentVariableName: return "Invalid environment variable name";
         case kInvalidFloat:  return "Invalid float value";
         case kInvalidInt:    return "Invalid integer value";
@@ -219,6 +220,7 @@ const char *mmresult_to_string(MmResult result) {
         case kFileNotOpen:                return "File or device not open";
         case kFileInvalidSeekPosition:    return "Invalid seek position";
         case kNotEnoughData:              return "Not enough data";
+        case kPreprocessorReplaceFailed:  return "Preprocessor string replacement failed";
         case kSpriteInactive:             return "Sprite not showing";
         case kSpritesAreHidden:           return "Sprites are hidden";
         case kSpritesNotHidden:           return "Sprites are not hidden";
