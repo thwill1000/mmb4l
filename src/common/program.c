@@ -108,7 +108,8 @@ static size_t program_comment_level = 0;  // Level of nesting within /* */ style
 
 static bool program_debug_on = false;  // Is there an active #MMDEBUG ON directive ?
 
-static void STR_REPLACE(char *target, const char *needle, const char *replacement) {
+static MmResult program_apply_replacement(char *target, const char *needle,
+                                          const char *replacement) {
     char *ip = target;
     bool in_quotes = false;
     while (*ip) {
@@ -126,7 +127,10 @@ static void STR_REPLACE(char *target, const char *needle, const char *replacemen
         }
         ip++;
     }
-    cstring_replace(target, needle, replacement);
+
+    if (FAILED(cstring_replace(target, STRINGSIZE, needle, replacement)))
+        return kPreprocessorReplaceFailed;
+
     ip = target;
     while (*ip) {
         if (*ip == 0xFF) *ip = ' ';
@@ -134,9 +138,11 @@ static void STR_REPLACE(char *target, const char *needle, const char *replacemen
         if (*ip == 0xFD) *ip = '=';
         ip++;
     }
+
+    return kOk;
 }
 
-static void program_apply_replacements(char *line) {
+static MmResult program_apply_all_replacements(char *line) {
     int i = program_replace_map->size;
     while (i--) {
         char *p = program_replace_map->items[i].from;
@@ -149,11 +155,13 @@ static void program_apply_replacements(char *line) {
             *p = toupper(*p);
             p++;
         }
-        STR_REPLACE(
+        ON_FAILURE_RETURN(program_apply_replacement(
                 line,
                 program_replace_map->items[i].from,
-                program_replace_map->items[i].to);
+                program_replace_map->items[i].to));
     }
+
+    return kOk;
 }
 
 static int cmpstr(const char *s1, const char *s2) {
@@ -462,7 +470,7 @@ static MmResult program_process_line(char *line) {
     *op = '\0';
 
     // Apply replacements unless the line starts with a directive.
-    if (*line != '#') program_apply_replacements(line);
+    if (*line != '#') ON_FAILURE_RETURN(program_apply_all_replacements(line));
 
     return kOk;
 }

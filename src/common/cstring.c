@@ -94,40 +94,26 @@ bool cstring_isquoted(const char *s) {
     return len > 1 && s[0] == '"' && s[len - 1] == '"';
 }
 
-// TODO: be smart and safe about not overrunning target.
-// TODO: unit test this better.
-int cstring_replace(char *target, const char *needle, const char *replacement) {
-    char buffer[288] = {0};
-    char *insert_point = &buffer[0];
-    const char *tmp = target;
-    size_t needle_len = strlen(needle);
-    size_t repl_len = strlen(replacement);
+int cstring_replace(char *haystack, size_t haystack_sz, const char *needle,
+                    const char *replacement) {
+    if (*needle == '\0') return -1;
 
-    if (needle_len <= 0) return -1;
+    char *p = strstr(haystack, needle);
+    if (!p) return 0; // Nothing to do.
 
-    while (1) {
-        const char *p = strstr(tmp, needle);
+    size_t haystack_len = strlen(haystack);
+    const size_t needle_len = strlen(needle);
+    const size_t replacement_len = strlen(replacement);
 
-        // walked past last occurrence of needle; copy remaining part
-        if (p == NULL) {
-            strcpy(insert_point, tmp);
-            break;
-        }
-
-        // copy part before needle
-        memcpy(insert_point, tmp, p - tmp);
-        insert_point += p - tmp;
-
-        // copy replacement string
-        memcpy(insert_point, replacement, repl_len);
-        insert_point += repl_len;
-
-        // adjust pointers, move on
-        tmp = p + needle_len;
+    while (p) {
+        if (haystack_len + replacement_len - needle_len >= haystack_sz) return -1;
+        memmove(p + replacement_len, p + needle_len, haystack_len - needle_len + haystack - p);
+        if (replacement_len != 0) memcpy(p, replacement, replacement_len);
+        haystack_len += replacement_len - needle_len;
+        if (p + replacement_len >= haystack + haystack_len) break;
+        p = strstr(p + replacement_len, needle);
     }
-
-    // write altered string back to target
-    strcpy(target, buffer);
+    haystack[haystack_len] = '\0';
 
     return 0;
 }

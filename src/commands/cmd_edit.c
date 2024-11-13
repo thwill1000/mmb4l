@@ -53,11 +53,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <unistd.h>
 
+#define CMD_SIZE  (STRINGSIZE * 2)
+
 #define ERROR_EDITOR_FAILED              error_throw_ex(kError, "Editor could not be run")
 #define ERROR_FAILED_TO_DELETE_TMP_FILE  error_throw_ex(kError, "Temporary file could not be deleted")
 #define ERROR_FILE_COULD_NOT_BE_CREATED  error_throw_ex(kError, "File could not be created")
 #define ERROR_NOTHING_TO_EDIT            error_throw_ex(kError, "Nothing to edit")
-#define ERROR_UNKNOWN_EDITOR(s)          error_throw_ex(kError, "Unknown editor '$'", s)
 
 static void get_mmbasic_nanorc(char *path) {
     *path = '\0';
@@ -69,7 +70,7 @@ static void get_mmbasic_nanorc(char *path) {
     }
 }
 
-static int get_editor_command(const char *file_path, int line, char *command, bool *blocking) {
+static MmResult get_editor_command(const char *file_path, int line, char *command, bool *blocking) {
     *command = '\0';
     *blocking = false;
     for (const OptionsEditor *editor = options_editors; editor->name; ++editor) {
@@ -95,11 +96,15 @@ static int get_editor_command(const char *file_path, int line, char *command, bo
 
     char replacement[STRINGSIZE + 2];
     snprintf(replacement, STRINGSIZE + 2, "\"%s\"", file_path);
-    cstring_replace(command, "${file}", replacement);
+    if (FAILED(cstring_replace(command, CMD_SIZE, "${file}", replacement))) {
+        return mmresult_ex(kInvalidEditor, "Editor ${file} replace failed: %s", mmb_options.editor);
+    }
     snprintf(replacement, STRINGSIZE + 2, "%d", line);
-    cstring_replace(command, "${line}", replacement);
+    if (FAILED(cstring_replace(command, CMD_SIZE,  "${line}", replacement))) {
+        return mmresult_ex(kInvalidEditor, "Editor ${line} replace failed: %s", mmb_options.editor);
+    }
 
-    return 0;
+    return kOk;
 }
 
 static int create_empty_file(char *file_path) {
@@ -166,11 +171,9 @@ void cmd_edit(void) {
     }
 
     // Edit the file.
-    char command[STRINGSIZE * 2] = { 0 };
+    char command[CMD_SIZE] = { 0 };
     bool blocking = false;
-    if (FAILED(get_editor_command(file_path, line > 1 ? line : 1, command, &blocking))) {
-        ERROR_UNKNOWN_EDITOR(mmb_options.editor);
-    }
+    ON_FAILURE_LONGJMP(get_editor_command(file_path, line > 1 ? line : 1, command, &blocking));
     errno = 0;
     if (FAILED(system(command))) ERROR_EDITOR_FAILED;
 
