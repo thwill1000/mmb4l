@@ -53,7 +53,7 @@ typedef struct {
     char interactive;
     char version;
     char run_cmd[INPBUF_SIZE];
-    char directory[256];
+    char directory[STRINGSIZE];
 } CmdLineArgs;
 
 MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out);
