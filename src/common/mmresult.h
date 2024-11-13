@@ -49,6 +49,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <stdio.h>
 
+#if !defined(STRINGSIZE)
+#define STRINGSIZE 256
+#endif
+
 // MmResult encompasses both the standard C errno in range 1 .. 255
 // plus MMBasic specific error codes.
 
@@ -181,27 +185,13 @@ typedef enum {
     kStackIndexOutOfBounds,
 } MmResultCode;
 
-#if !defined(STRINGSIZE)
-#define STRINGSIZE 256
-#endif
+/** @brief Clears cached MmResult. */
+void mmresult_clear();
 
-extern MmResult mmresult_last_code;
-extern char mmresult_last_msg[STRINGSIZE];
+/** @brief Creates an extended MmResult. */
+MmResult mmresult_ex(MmResult result, const char *format, ...);
 
-#define MMRESULT_RETURN_EX(result, format, ...) { \
-    mmresult_last_code = result; \
-    snprintf(mmresult_last_msg, STRINGSIZE, format, ##__VA_ARGS__); \
-    return result; \
-}
-
-static inline void mmresult_clear() {
-   mmresult_last_code = kOk;
-   mmresult_last_msg[0] = '\0';
-}
-
-/**
- * @brief Gets the string corresponding to a given result code.
- */
+/** @brief Gets the string corresponding to a given result code. */
 const char *mmresult_to_string(MmResult result);
 
 #endif

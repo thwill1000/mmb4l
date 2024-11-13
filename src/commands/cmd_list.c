@@ -140,7 +140,7 @@ static MmResult cmd_list_csubs(const char *p) {
     const bool all = p2;
     p2 = p2 ? p2 : p;
     if (!parse_is_end(p2)) return kUnexpectedText;
-    if (!CurrentFile[0]) MMRESULT_RETURN_EX(kError, "Nothing to list");
+    if (!CurrentFile[0]) return mmresult_ex(kError, "Nothing to list");
 
     // Make sure we are looking at the latest (on disk) version of the program.
     ON_FAILURE_RETURN(program_load_file(CurrentFile));
@@ -156,7 +156,7 @@ static MmResult cmd_list_flash(const char *p) {
     const bool all = p2;
     p2 = p2 ? p2 : p;
     if (!parse_is_end(p2)) return kUnexpectedText;
-    if (!CurrentFile[0]) MMRESULT_RETURN_EX(kError, "Nothing to list");
+    if (!CurrentFile[0]) return mmresult_ex(kError, "Nothing to list");
 
     // Make sure we are looking at the latest (on disk) version of the program.
     ON_FAILURE_RETURN(program_load_file(CurrentFile));
@@ -185,7 +185,7 @@ static MmResult cmd_list_default(const char *p) {
     char *filename = GetTempStrMemory();
     if (parse_is_end(p2)) {
         if (!CurrentFile[0]) {
-            MMRESULT_RETURN_EX(kError, "Nothing to list");
+            return mmresult_ex(kError, "Nothing to list");
         } else if (FAILED(cstring_cpy(filename, CurrentFile, STRINGSIZE))) {
             return kFilenameTooLong;
         }

@@ -66,8 +66,8 @@ static MmResult cmd_polygon_single(int argc, char **argv) {
 
     if (n == 0) n = nx;
     if (n == 1 || n == 2 || n > 9999) return kGraphicsInvalidVertices;
-    if (nx < n) MMRESULT_RETURN_EX(kInvalidArray, "X Dimensions %d", nx);
-    if (ny < n) MMRESULT_RETURN_EX(kInvalidArray, "Y Dimensions %d", ny);
+    if (nx < n) return mmresult_ex(kInvalidArray, "X Dimensions %d", nx);
+    if (ny < n) return mmresult_ex(kInvalidArray, "Y Dimensions %d", ny);
 
     MmGraphicsColour c =
         (argc > 5 && *argv[6]) ? getint(argv[6], RGB_BLACK, RGB_WHITE) : graphics_fcolour;
@@ -108,7 +108,7 @@ static MmResult cmd_polygon_multiple(int argc, char **argv) {
     for (int i = 0; i < count; ++i) {
         const int n = pfn ? (int) pfn[i] : (int) pn[i];
         if (n == 1 || n == 2 || n > 9999) {
-            MMRESULT_RETURN_EX(kGraphicsInvalidVertices,
+            return mmresult_ex(kGraphicsInvalidVertices,
                                "Invalid number of vertices, polygon %i", i);
         }
         total_n += n;
@@ -120,14 +120,14 @@ static MmResult cmd_polygon_multiple(int argc, char **argv) {
     MMFLOAT *xfptr = NULL; // Pointer to x-coordinates (if FLOAT).
     int nx = 0; // Number of x-coordinates.
     getargaddress(argv[2], &xptr, &xfptr, &nx);
-    if (nx < total_n) MMRESULT_RETURN_EX(kInvalidArray, "X Dimensions %d", nx);
+    if (nx < total_n) return mmresult_ex(kInvalidArray, "X Dimensions %d", nx);
 
     // Read and validate the y-coordinates.
     MMINTEGER *yptr = NULL; // Pointer to y-coordinates (if INTEGER).
     MMFLOAT *yfptr = NULL; // Pointer to y-coordinates (if FLOAT).
     int ny = 0; // Number of y-coordinates.
     getargaddress(argv[4], &yptr, &yfptr, &ny);
-    if (ny < total_n) MMRESULT_RETURN_EX(kInvalidArray, "Y Dimensions %d", nx);
+    if (ny < total_n) return mmresult_ex(kInvalidArray, "Y Dimensions %d", nx);
 
     // Read and validate the line colour.
     MmGraphicsColour c = graphics_fcolour;
@@ -139,11 +139,11 @@ static MmResult cmd_polygon_multiple(int argc, char **argv) {
       if (nc == 1) {
         c = getint(argv[6], RGB_BLACK, RGB_WHITE);
       } else {
-        if (nc < count) MMRESULT_RETURN_EX(kInvalidArray, "Line colour Dimensions %d", nc);
+        if (nc < count) return mmresult_ex(kInvalidArray, "Line colour Dimensions %d", nc);
         for (int i = 0; i < nc; ++i) {
             c = pfc ? (MmGraphicsColour) pfc[i] : (MmGraphicsColour) pc[i];
             if (c < RGB_BLACK || c > RGB_WHITE)
-                MMRESULT_RETURN_EX(kInvalidValue, "%ld is invalid (valid is %d to %d)", c,
+                return mmresult_ex(kInvalidValue, "%ld is invalid (valid is %d to %d)", c,
                                    RGB_BLACK, RGB_WHITE);
 
             }
@@ -160,11 +160,11 @@ static MmResult cmd_polygon_multiple(int argc, char **argv) {
       if (nf == 1) {
         f = getint(argv[8], -1, RGB_WHITE);
       } else {
-        if (nf < count) MMRESULT_RETURN_EX(kInvalidArray, "Fill colour Dimensions %d", nf);
+        if (nf < count) return mmresult_ex(kInvalidArray, "Fill colour Dimensions %d", nf);
         for (int i = 0; i < nf; ++i) {
             f = pff ? (MmGraphicsColour) pff[i] : (MmGraphicsColour) pf[i];
             if (f < -1 || f > RGB_WHITE)
-                MMRESULT_RETURN_EX(kInvalidValue, "%ld is invalid (valid is -1 to %d)", f,
+                return mmresult_ex(kInvalidValue, "%ld is invalid (valid is -1 to %d)", f,
                                    RGB_WHITE);
 
             }

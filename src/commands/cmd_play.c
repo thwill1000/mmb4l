@@ -208,7 +208,7 @@ static MmResult cmd_play_sound(const char *p) {
         } else if (strcasecmp("B", s) == 0) {
             channel = kChannelBoth;
         } else {
-            MMRESULT_RETURN_EX(kSyntax, "Channel number must be L, R or B");
+            return mmresult_ex(kSyntax, "Channel number must be L, R or B");
         }
         ClearSpecificTempMemory(s);
     }
@@ -245,7 +245,7 @@ static MmResult cmd_play_sound(const char *p) {
         } else if (strcasecmp("W", s) == 0) {
             type = kSoundTypeSawTooth;
         } else {
-            MMRESULT_RETURN_EX(kSyntax, "Sound type must be N, O, P, Q, S, T or W");
+            return mmresult_ex(kSyntax, "Sound type must be N, O, P, Q, S, T or W");
         }
         ClearSpecificTempMemory(s);
     }
