@@ -42,8 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(UTILITY_H)
-#define UTILITY_H
+#if !defined(MMBASIC_UTILITY_H)
+#define MMBASIC_UTILITY_H
 
 #include <stdio.h>
 
@@ -79,6 +79,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RADCONV   57.2957795130823229
 #define DEGREES_TO_RADIANS(angle)  (((MMFLOAT) angle) / RADCONV)
 
+#define CHAR_IS_SIGNED ((char) -1 < 0)
+
 void utility_dump_memory(const char *p);
 
-#endif // #if !defined(UTILITY_H)
+#endif // #if !defined(MMBASIC_UTILITY_H)

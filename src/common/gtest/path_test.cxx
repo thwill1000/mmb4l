@@ -145,7 +145,7 @@ TEST_F(PathTest, Unwind) {
         EXPECT_EQ(kOk, result); \
         EXPECT_STREQ(expected, out)
 
-TEST_F(PathTest, Munge) {
+TEST_F(PathTest, Munge_Succeeds) {
     char out[256];
     MmResult result;
 
@@ -221,6 +221,16 @@ TEST_F(PathTest, Munge) {
     TEST_MUNGE("~\\..\\foo",      HOME_PARENT "/foo");
     TEST_MUNGE("foo\\bar",        "foo/bar");
     TEST_MUNGE("..\\..\\..\\foo", "../../../foo");
+}
+
+// Not comprehensive at all.
+TEST_F(PathTest, Munge_Fails_GivenNewPathBufferTooSmall) {
+    char out[256];
+
+    EXPECT_EQ(kOk, path_munge("/foo/bar", out, 9));
+    EXPECT_EQ(kFilenameTooLong, path_munge("/foo/bar", out, 8));
+
+    EXPECT_EQ(kFilenameTooLong, path_munge("~/foo", out, 10));
 }
 
 #define TEST_GET_CANONICAL(path, expected)  memset(out, '\0', 256); \
@@ -416,6 +426,15 @@ TEST_F(PathTest, GetCanonical_ResolvesSymbolicLinks) {
     TEST_GET_CANONICAL("../homelink/foo.bas",            (m_home + "/foo.bas").c_str());
     TEST_GET_CANONICAL("../wtflink",                     "/");
     TEST_GET_CANONICAL("../wtflink/foo.bas",             "/foo.bas");
+}
+
+// Not comprehensive at all.
+TEST_F(PathTest, GetCanonical_Fails_GivenDstBufferTooSmall) {
+    char out[34] = { 0 };
+    out[32] = 'X';
+
+    EXPECT_EQ(kFilenameTooLong, path_get_canonical(PATH_TEST_DIR "/barlink/foolink.bas", out, 32));
+    EXPECT_STREQ("/tmp/PathTest/barlink/foolink.baX", out);
 }
 
 TEST_F(PathTest, GetExtension) {
