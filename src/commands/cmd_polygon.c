@@ -221,5 +221,5 @@ void cmd_polygon(void) {
     MmResult result = (count == 1)
         ? cmd_polygon_single(argc, argv)
         : cmd_polygon_multiple(argc, argv);
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

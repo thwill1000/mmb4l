@@ -51,8 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void cmd_mkdir(void) {
     char *dirname = GetTempStrMemory();
-    ON_FAILURE_LONGJMP(parse_filename(cmdline, dirname, STRINGSIZE));
+    ON_FAILURE_ERROR(parse_filename(cmdline, dirname, STRINGSIZE));
     // TODO: check/validate mode/permissions.
     errno = 0;
-    if (FAILED(mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) ON_FAILURE_LONGJMP(errno);
+    if (FAILED(mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) ON_FAILURE_ERROR(errno);
 }

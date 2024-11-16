@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static void cmd_open_file(int argc, char **argv) {
     char *filename = GetTempStrMemory();
-    ON_FAILURE_LONGJMP(parse_filename(argv[0], filename, STRINGSIZE));
+    ON_FAILURE_ERROR(parse_filename(argv[0], filename, STRINGSIZE));
 
     const char *mode = NULL;
     if (strcasecmp(argv[2], "OUTPUT") == 0) {
@@ -77,7 +77,7 @@ static void cmd_open_file(int argc, char **argv) {
     } else {
         result = file_open(filename, mode, fnbr);
     }
-    ON_FAILURE_LONGJMP(result);
+    ON_FAILURE_ERROR(result);
 }
 
 static void cmd_open_gps(int argc, char **argv) {

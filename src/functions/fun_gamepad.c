@@ -48,6 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 MmResult fun_device_gamepad(const char *p, bool mmb4w_compatibility);
 
 void fun_gamepad(void) {
-    if (mmb_options.simulate != kSimulateMmb4w) ERROR_ON_FAILURE(kUnsupportedOnCurrentDevice);
-    ERROR_ON_FAILURE(fun_device_gamepad(ep, true));
+    if (mmb_options.simulate != kSimulateMmb4w) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+    ON_FAILURE_ERROR(fun_device_gamepad(ep, true));
 }

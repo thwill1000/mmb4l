@@ -112,12 +112,12 @@ cmd_autosave_read_exit:
 /** Writes out the file. */
 static void cmd_autosave_write_file(char *filename, char *buf) {
     int fnbr = file_find_free();
-    ON_FAILURE_LONGJMP(file_open(filename, "wb", fnbr));
+    ON_FAILURE_ERROR(file_open(filename, "wb", fnbr));
     char *p = buf;
     while (*p) {
         file_putc(fnbr, *p++);
     }
-    ON_FAILURE_LONGJMP(file_close(fnbr));
+    ON_FAILURE_ERROR(file_close(fnbr));
 }
 
 void cmd_autosave(void) {
@@ -125,10 +125,10 @@ void cmd_autosave(void) {
 
     char filename[STRINGSIZE]; // Don't use GetTempStrMemory() because it will
                                // be cleared when we call ClearProgram() later.
-    ON_FAILURE_LONGJMP(parse_filename(cmdline, filename, STRINGSIZE));
+    ON_FAILURE_ERROR(parse_filename(cmdline, filename, STRINGSIZE));
     if (strlen(path_get_extension(filename)) == 0) {
         if (FAILED(cstring_cat(filename, ".bas", STRINGSIZE))) {
-            ON_FAILURE_LONGJMP(kFilenameTooLong);
+            ON_FAILURE_ERROR(kFilenameTooLong);
         }
     }
 
@@ -138,7 +138,7 @@ void cmd_autosave(void) {
     cmd_autosave_write_file(filename, buf);
 
     if (path_has_extension(filename, ".bas", true)) {
-        ON_FAILURE_LONGJMP(program_load_file(filename));
+        ON_FAILURE_ERROR(program_load_file(filename));
         if (exit_key == F2) {
             strcpy(inpbuf, "RUN\n");
             tokenise(true);

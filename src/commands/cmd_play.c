@@ -370,5 +370,5 @@ void cmd_play(void) {
     } else {
         ERROR_UNKNOWN_SUBCOMMAND("PLAY");
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

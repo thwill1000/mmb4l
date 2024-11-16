@@ -181,5 +181,5 @@ void cmd_image(void) {
         ERROR_UNKNOWN_SUBCOMMAND("IMAGE");
         result = kSyntax;
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

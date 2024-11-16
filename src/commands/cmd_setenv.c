@@ -58,22 +58,22 @@ void cmd_setenv(void) {
     ss[1] =',';
     ss[2] = 0;
     getargs(&cmdline, 3, ss);
-    if (argc != 3) ERROR_ON_FAILURE(kArgumentCount);
+    if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
     const char *name = getCstring(argv[0]);
     const char *value = getCstring(argv[2]);
 
     // 'name' restricted to uppercase letters, digits and '_'.
     // It should not begin with a digit.
-    if (strlen(name) == 0) ERROR_ON_FAILURE(kInvalidEnvironmentVariableName);
+    if (strlen(name) == 0) ON_FAILURE_ERROR(kInvalidEnvironmentVariableName);
     bool first = true;
     for (const char *p = name; *p; ++p) {
         if (first) {
-            if (!isupper(*p) && *p != '_') ERROR_ON_FAILURE(kInvalidEnvironmentVariableName);
+            if (!isupper(*p) && *p != '_') ON_FAILURE_ERROR(kInvalidEnvironmentVariableName);
             first = false;
         } else {
-            if (!isupper(*p) && !isdigit(*p) && *p != '_') ERROR_ON_FAILURE(kInvalidEnvironmentVariableName);
+            if (!isupper(*p) && !isdigit(*p) && *p != '_') ON_FAILURE_ERROR(kInvalidEnvironmentVariableName);
         }
     }
 
-    if (FAILED(setenv(name, value, 1))) ERROR_ON_FAILURE(errno);
+    if (FAILED(setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
 }

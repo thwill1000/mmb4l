@@ -123,5 +123,5 @@ void cmd_pixel(void) {
     } else {
         result = cmd_pixel_default(cmdline);
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

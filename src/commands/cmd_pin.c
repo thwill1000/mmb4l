@@ -54,26 +54,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** PIN(pin) = {1|0} */
 void cmd_pin(void) {
     if (mmb_options.simulate != kSimulatePicoMiteVga) {
-        ERROR_ON_FAILURE(kUnsupportedOnCurrentDevice);
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
     getargs(&cmdline, 1, ",");
-    if (argc != 1) ERROR_ON_FAILURE(kArgumentCount);
+    if (argc != 1) ON_FAILURE_ERROR(kArgumentCount);
 
     uint8_t pin_num = 0;
     bool is_gp = false;
     const char *p = argv[0];
-    ERROR_ON_FAILURE(parse_pin_num(&p, &pin_num, &is_gp));
+    ON_FAILURE_ERROR(parse_pin_num(&p, &pin_num, &is_gp));
 
     // Skip expression and expect closing bracket.
     p = skipexpression(cmdline);
     skipspace(p);
-    if (*p != ')') ERROR_ON_FAILURE(kUnexpectedText);
+    if (*p != ')') ON_FAILURE_ERROR(kUnexpectedText);
     ++p;
 
     // Equals operator expected.
     skipspace(p);
-    if (tokenfunction(*p) != op_equal) ERROR_ON_FAILURE(kSyntax);
+    if (tokenfunction(*p) != op_equal) ON_FAILURE_ERROR(kSyntax);
     ++p;
 
     // 0 or 1 expected.

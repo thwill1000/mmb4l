@@ -143,7 +143,7 @@ static void mminfo_directory(const char *p) {
     // Add a trailing '/' if one is not already present.
     size_t len = strlen(g_string_rtn);
     if (g_string_rtn[len - 1] != '/' && FAILED(cstring_cat(g_string_rtn, "/", STRINGSIZE))) {
-        ON_FAILURE_LONGJMP(kStringTooLong);
+        ON_FAILURE_ERROR(kStringTooLong);
     }
 
     CtoM(g_string_rtn);
@@ -176,7 +176,7 @@ static void mminfo_errno(const char *p) {
 
 static char *get_path(const char *p) {
     char *path = GetTempStrMemory();
-    ON_FAILURE_LONGJMP_EX(parse_filename(p, path, STRINGSIZE), NULL);
+    ON_FAILURE_ERROR_EX(parse_filename(p, path, STRINGSIZE), NULL);
     return path;
 }
 
@@ -244,13 +244,13 @@ static void mminfo_filesize(const char *p) {
 
 static void mminfo_flash_address(const char *p) {
     if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
-        ERROR_ON_FAILURE(kUnsupportedOnCurrentDevice);
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
     getargs(&p, 1, ",");
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     const int flash_index = getint(argv[0], 1, FLASH_NUM_SLOTS) - 1;
     g_rtn_type = T_INT;
-    ERROR_ON_FAILURE(flash_get_addr(flash_index, (char **) &g_integer_rtn));
+    ON_FAILURE_ERROR(flash_get_addr(flash_index, (char **) &g_integer_rtn));
 }
 
 static void mminfo_fontheight(const char *p) {
@@ -317,7 +317,7 @@ static void mminfo_line(const char *p) {
         strcpy(g_string_rtn, "UNKNOWN");
     } else {
         sprintf(g_string_rtn, "%d,", line);
-        if (FAILED(cstring_cat(g_string_rtn, file, STRINGSIZE))) ON_FAILURE_LONGJMP(kStringTooLong);
+        if (FAILED(cstring_cat(g_string_rtn, file, STRINGSIZE))) ON_FAILURE_ERROR(kStringTooLong);
     }
     CtoM(sret);
 }
@@ -366,7 +366,7 @@ static void mminfo_path(const char *p) {
         if (FAILED(path_get_parent(CurrentFile, g_string_rtn, STRINGSIZE))) {
             ERROR_COULD_NOT("determine path");
         }
-        if (FAILED(cstring_cat(g_string_rtn, "/", STRINGSIZE))) ON_FAILURE_LONGJMP(kStringTooLong);
+        if (FAILED(cstring_cat(g_string_rtn, "/", STRINGSIZE))) ON_FAILURE_ERROR(kStringTooLong);
     }
 
     CtoM(g_string_rtn);

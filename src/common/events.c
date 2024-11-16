@@ -84,16 +84,16 @@ void events_pump() {
             case SDL_CONTROLLERAXISMOTION:
                 // printf("Controller axis: device idx: %d, axis: %d, value: %d\n",
                 //        event.caxis.which, event.caxis.axis, event.caxis.value);
-                ON_FAILURE_LONGJMP(gamepad_on_analog(event.caxis.which, event.caxis.axis,
+                ON_FAILURE_ERROR(gamepad_on_analog(event.caxis.which, event.caxis.axis,
                                                    event.caxis.value));
                 break;
 
             case SDL_CONTROLLERBUTTONDOWN:
-                ON_FAILURE_LONGJMP(gamepad_on_button_down(event.cbutton.which, event.cbutton.button));
+                ON_FAILURE_ERROR(gamepad_on_button_down(event.cbutton.which, event.cbutton.button));
                 break;
 
             case SDL_CONTROLLERBUTTONUP:
-                ON_FAILURE_LONGJMP(gamepad_on_button_up(event.cbutton.which, event.cbutton.button));
+                ON_FAILURE_ERROR(gamepad_on_button_up(event.cbutton.which, event.cbutton.button));
                 break;
 
             case SDL_CONTROLLERDEVICEADDED:
@@ -105,11 +105,11 @@ void events_pump() {
                 break;
 
             case SDL_KEYDOWN:
-                ON_FAILURE_LONGJMP(keyboard_key_down(&event.key.keysym));
+                ON_FAILURE_ERROR(keyboard_key_down(&event.key.keysym));
                 break;
 
             case SDL_KEYUP:
-                ON_FAILURE_LONGJMP(keyboard_key_up(&event.key.keysym));
+                ON_FAILURE_ERROR(keyboard_key_up(&event.key.keysym));
                 break;
 
             case SDL_WINDOWEVENT:
@@ -124,8 +124,8 @@ void events_pump() {
                             interrupt_fire_window_event(&event.window);
                         } else if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
                             MmSurfaceId window_id = graphics_find_window(event.window.windowID);
-                            if (window_id == -1) ON_FAILURE_LONGJMP(kInternalFault);
-                            ON_FAILURE_LONGJMP(
+                            if (window_id == -1) ON_FAILURE_ERROR(kInternalFault);
+                            ON_FAILURE_ERROR(
                                 graphics_surface_destroy(&graphics_surfaces[window_id]));
                         }
                         break;

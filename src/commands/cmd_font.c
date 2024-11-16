@@ -55,5 +55,5 @@ void cmd_font(void) {
     if (*argv[0] == '#') ++argv[0];
     uint32_t font_id = getint(argv[0], 1, FONT_TABLE_SIZE - 1);
     uint32_t scale = (argc == 3) ? getint(argv[0], 1, 15) : 1;
-    ERROR_ON_FAILURE(graphics_set_font(font_id, scale));
+    ON_FAILURE_ERROR(graphics_set_font(font_id, scale));
 }

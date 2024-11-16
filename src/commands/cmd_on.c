@@ -175,5 +175,5 @@ void cmd_on(void) {
     } else {
         result = on_number(p);
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

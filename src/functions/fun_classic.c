@@ -88,5 +88,5 @@ void fun_classic(void) {
     } else {
         error_throw_ex(kSyntax, "Unknown gamepad function");
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

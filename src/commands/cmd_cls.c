@@ -82,5 +82,5 @@ void cmd_cls(void) {
     } else {
         result = cmd_cls_default(cmdline);
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

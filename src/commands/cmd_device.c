@@ -159,5 +159,5 @@ void cmd_device(void) {
     } else {
         ERROR_UNKNOWN_SUBCOMMAND("DEVICE");
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }
