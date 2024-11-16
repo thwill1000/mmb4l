@@ -558,6 +558,24 @@ target_link_libraries(
 gtest_discover_tests(test_graphics)
 
 ################################################################################
+# test_safe_buffer
+################################################################################
+
+add_executable(
+  test_safe_buffer
+  src/common/gtest/safe_buffer_test.cxx
+)
+
+target_link_libraries(
+  test_safe_buffer
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_safe_buffer)
+
+################################################################################
 # test_hash
 ################################################################################
 
