@@ -331,42 +331,43 @@ static void audio_dump_track_list() {
     printf("-- END --\n");
 }
 
-// TODO: Move directory listing code to 'path.c'.
 static MmResult audio_fill_track_list(const char *filename, const char *extension) {
     audio_clear_track_list();
 
-    char _filename[STRINGSIZE];
     char canonical[STRINGSIZE];
-    MmResult result = path_get_canonical(filename, canonical, STRINGSIZE);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_get_canonical(filename, canonical, STRINGSIZE));
+    char tmp[STRINGSIZE];
 
     // Check for a single file.
-    result = path_try_extension(canonical, extension, _filename, STRINGSIZE);
-    if (SUCCEEDED(result)) {
-        cstring_cpy(audio_track_list[0], _filename, STRINGSIZE);
-        return kOk;
-    } else if (result != kFileNotFound) {
-        return result;
+    {
+        MmResult result = path_try_extension(canonical, extension, tmp, STRINGSIZE);
+        if (SUCCEEDED(result)) {
+            cstring_cpy(audio_track_list[0], tmp, STRINGSIZE);
+            return kOk;
+        } else if (result != kFileNotFound) {
+            return result;
+        }
     }
 
     // Treat 'canonical' as a directory to search.
-    DIR *dir;
-    struct dirent *ent;
-    size_t counter = 0;
-    if ((dir = opendir(canonical)) != NULL) {
-        while ((ent = readdir(dir)) != NULL) {
-            if (!path_has_extension(ent->d_name, extension, true)) continue;
-            if (FAILED(cstring_cpy(_filename, canonical, STRINGSIZE))) {
-                return kFilenameTooLong;
+    {
+        const char *dirname = canonical;
+        DIR *dir = opendir(dirname);
+        if (!dir) return errno;
+        struct dirent *ent;
+        size_t counter = 0;
+        while (counter != MAX_TRACKS && (ent = readdir(dir)) != NULL) {
+            if (path_has_extension(ent->d_name, extension, true)) {
+                if (FAILED(cstring_cpy(tmp, dirname, STRINGSIZE))) {
+                    return kFilenameTooLong;
+                }
+                if (FAILED(path_append(tmp, ent->d_name, audio_track_list[counter++],
+                                       STRINGSIZE))) {
+                    return kFilenameTooLong;
+                }
             }
-            if (FAILED(path_append(_filename, ent->d_name, audio_track_list[counter++], STRINGSIZE))) {
-                return kFilenameTooLong;
-            }
-            if (counter == MAX_TRACKS) break;
         }
         closedir(dir);
-    } else {
-        return errno;
     }
 
     return kOk;
