@@ -93,12 +93,12 @@ static Interrupt interrupt_list[kInterruptLast];
 void interrupt_init() {
     // Only expected to be called once on application startup.
     static bool called = false;
-    if (called) ON_FAILURE_LONGJMP(kInternalFault);
+    if (called) ON_FAILURE_ERROR(kInternalFault);
     called = true;
 
     interrupt_clear();
 
-    ON_FAILURE_LONGJMP(queue_init(&interrupt_window_event_queue, SDL_WindowEvent,
+    ON_FAILURE_ERROR(queue_init(&interrupt_window_event_queue, SDL_WindowEvent,
                                   WINDOW_EVENT_QUEUE_CAPACITY));
 
     char *p = DUMMY_IRETURN;
@@ -159,7 +159,7 @@ static int handle_interrupt(const char *interrupt_address) {
 
 static inline void interrupt_add_local_integer_const(const char *name, MMINTEGER value) {
     int var_idx;
-    ON_FAILURE_LONGJMP(vartbl_add(name, T_INT | T_CONST | T_IMPLIED, LocalIndex, NULL, 0,
+    ON_FAILURE_ERROR(vartbl_add(name, T_INT | T_CONST | T_IMPLIED, LocalIndex, NULL, 0,
                                   &var_idx));
     vartbl[var_idx].val.i = value;
 }
@@ -168,7 +168,7 @@ static int handle_window_interrupt() {
     // Get the oldest window event.
     SDL_WindowEvent event;
     MmResult result = queue_dequeue(&interrupt_window_event_queue, &event);
-    ON_FAILURE_LONGJMP_EX(result, false);
+    ON_FAILURE_ERROR_EX(result, false);
 
     // If this was the last event then reduce the number of interrupts.
     if (queue_is_empty(&interrupt_window_event_queue)) interrupt_count--;
@@ -180,7 +180,7 @@ static int handle_window_interrupt() {
             // We can receive this event after the window has been destroyed.
             return true;
         }
-        ON_FAILURE_LONGJMP_EX(kInternalFault, false);
+        ON_FAILURE_ERROR_EX(kInternalFault, false);
     }
     MmSurface *window = &graphics_surfaces[window_id];
 
@@ -202,7 +202,7 @@ static int handle_window_interrupt() {
     const char *p2 = window->interrupt_addr;
     const char *cached_line_ptr = CurrentLinePtr;
     CurrentLinePtr = window->interrupt_addr; // So any error is reported on the correct line.
-    ON_FAILURE_LONGJMP_EX(parse_fn_sig(&p2, fn), false);
+    ON_FAILURE_ERROR_EX(parse_fn_sig(&p2, fn), false);
     CurrentLinePtr = cached_line_ptr;
 
     // Setup stack and return state.
@@ -221,8 +221,8 @@ static int handle_window_interrupt() {
     char name[MAXVARLEN + 1];
     for (uint8_t i = 0; i < 2; ++i) {
         const char *p = fn->addr + fn->params[i].name_offset;
-        ON_FAILURE_LONGJMP_EX(parse_name(&p, name), false);
-        ON_FAILURE_LONGJMP_EX(vartbl_add(name, fn->params[i].type, LocalIndex, NULL, 0,
+        ON_FAILURE_ERROR_EX(parse_name(&p, name), false);
+        ON_FAILURE_ERROR_EX(vartbl_add(name, fn->params[i].type, LocalIndex, NULL, 0,
                                          &var_idx[i]), false);
     }
     vartbl[var_idx[0]].val.i = window_id;
@@ -417,10 +417,10 @@ void interrupt_fire_window_event(SDL_WindowEvent *event) {
     if (result == kContainerFull) {
         // Discard the oldest event.
         SDL_WindowEvent tmp;
-        ON_FAILURE_LONGJMP(queue_dequeue(&interrupt_window_event_queue, &tmp));
+        ON_FAILURE_ERROR(queue_dequeue(&interrupt_window_event_queue, &tmp));
         result = queue_enqueue(&interrupt_window_event_queue, *event);
     }
-    ON_FAILURE_LONGJMP(result);
+    ON_FAILURE_ERROR(result);
     if (queue_size(&interrupt_window_event_queue) == 1) interrupt_count++;
 }
 

@@ -173,7 +173,7 @@ void cmd_edit(void) {
     // Edit the file.
     char command[CMD_SIZE] = { 0 };
     bool blocking = false;
-    ON_FAILURE_LONGJMP(get_editor_command(file_path, line > 1 ? line : 1, command, &blocking));
+    ON_FAILURE_ERROR(get_editor_command(file_path, line > 1 ? line : 1, command, &blocking));
     errno = 0;
     if (FAILED(system(command))) ERROR_EDITOR_FAILED;
 

@@ -246,5 +246,5 @@ void cmd_list(void) {
     } else {
         result = cmd_list_default(cmdline);
     }
-    ON_FAILURE_LONGJMP(result);
+    ON_FAILURE_ERROR(result);
 }

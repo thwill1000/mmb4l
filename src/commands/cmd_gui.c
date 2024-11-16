@@ -129,5 +129,5 @@ void cmd_gui(void) {
         ERROR_UNKNOWN_SUBCOMMAND("GUI");
     }
 
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

@@ -452,5 +452,5 @@ void fun_sprite(void) {
         ERROR_UNKNOWN_SUBFUNCTION("SPRITE");
     }
 
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

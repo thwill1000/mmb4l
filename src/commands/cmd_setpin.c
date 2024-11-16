@@ -51,16 +51,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** SETPIN pin, { DIN | DOUT | OFF } [, PULLUP] */
 void cmd_setpin(void) {
     if (mmb_options.simulate != kSimulatePicoMiteVga && mmb_options.simulate != kSimulateGameMite) {
-        ERROR_ON_FAILURE(kUnsupportedOnCurrentDevice);
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
     getargs(&cmdline, 5, ",");
-    if (argc != 3 && argc != 5) ERROR_ON_FAILURE(kArgumentCount);
+    if (argc != 3 && argc != 5) ON_FAILURE_ERROR(kArgumentCount);
 
     uint8_t pin_num = 0;
     bool is_gp = false;
     const char *p = argv[0];
-    ERROR_ON_FAILURE(parse_pin_num(&p, &pin_num, &is_gp));
+    ON_FAILURE_ERROR(parse_pin_num(&p, &pin_num, &is_gp));
 
     MmResult result = kOk;
     if ((p = parse_check_string(argv[2], "DIN"))) {
@@ -81,5 +81,5 @@ void cmd_setpin(void) {
         }
     }
 
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

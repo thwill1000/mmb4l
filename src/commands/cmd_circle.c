@@ -132,7 +132,7 @@ static void cmd_circle_default(void) {
         if (argc > 7 && *argv[8]) a = getnumber(argv[8]);
         if (argc > 9 && *argv[10]) colour = getint(argv[10], RGB_BLACK, RGB_WHITE);
         if (argc > 11) fill = getint(argv[12], -1, RGB_WHITE);
-        ERROR_ON_FAILURE(graphics_draw_circle(graphics_current, x, y, r, w, colour, fill, a));
+        ON_FAILURE_ERROR(graphics_draw_circle(graphics_current, x, y, r, w, colour, fill, a));
     } else {
         int w = 1;
         MmGraphicsColour colour = graphics_fcolour;
@@ -191,7 +191,7 @@ static void cmd_circle_default(void) {
             if (nc > 1) colour = (cfptr == NULL ? cptr[i] : (MmGraphicsColour) cfptr[i]);
             if (nf > 1) fill = (ffptr == NULL ? fptr[i] : (MmGraphicsColour) ffptr[i]);
             if (na > 1) a = (afptr == NULL ? (MMFLOAT)aptr[i] : afptr[i]);
-            ERROR_ON_FAILURE(graphics_draw_circle(graphics_current, x, y, r, w, colour, fill, a));
+            ON_FAILURE_ERROR(graphics_draw_circle(graphics_current, x, y, r, w, colour, fill, a));
         }
     }
 }

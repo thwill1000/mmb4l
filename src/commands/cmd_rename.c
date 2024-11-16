@@ -51,14 +51,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_rename(void) {
     char ss[2] = { tokenAS, 0 };
     getargs(&cmdline, 3, ss);
-    if (argc != 3) ON_FAILURE_LONGJMP(kArgumentCount);
+    if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
 
     char *old_filename = GetTempStrMemory();
-    ON_FAILURE_LONGJMP(parse_filename(argv[0], old_filename, STRINGSIZE));
+    ON_FAILURE_ERROR(parse_filename(argv[0], old_filename, STRINGSIZE));
 
     char *new_filename = GetTempStrMemory();
-    ON_FAILURE_LONGJMP(parse_filename(argv[2], new_filename, STRINGSIZE));
+    ON_FAILURE_ERROR(parse_filename(argv[2], new_filename, STRINGSIZE));
 
     errno = 0;
-    if FAILED(rename(old_filename, new_filename)) ON_FAILURE_LONGJMP(errno);
+    if FAILED(rename(old_filename, new_filename)) ON_FAILURE_ERROR(errno);
 }

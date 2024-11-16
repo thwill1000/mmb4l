@@ -272,5 +272,5 @@ void cmd_graphics(void) {
     } else {
         ERROR_UNKNOWN_SUBCOMMAND("GRAPHICS");
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

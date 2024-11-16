@@ -142,6 +142,6 @@ void cmd_text(void) {
 
     if (argc == 15) bcolour = (MmGraphicsColour) getint(argv[14], -1, RGB_WHITE);
 
-    ERROR_ON_FAILURE(graphics_draw_string(graphics_current, x, y, (font_id << 4) | scale, jh,
+    ON_FAILURE_ERROR(graphics_draw_string(graphics_current, x, y, (font_id << 4) | scale, jh,
                                           jv, jo, fcolour, bcolour, s));
 }

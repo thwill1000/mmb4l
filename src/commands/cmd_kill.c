@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void cmd_kill(void) {
     char *filename = GetTempStrMemory();
-    ON_FAILURE_LONGJMP(parse_filename(cmdline, filename, STRINGSIZE));
+    ON_FAILURE_ERROR(parse_filename(cmdline, filename, STRINGSIZE));
     errno = 0;
-    if (FAILED(remove(filename))) ON_FAILURE_LONGJMP(errno);
+    if (FAILED(remove(filename))) ON_FAILURE_ERROR(errno);
 }

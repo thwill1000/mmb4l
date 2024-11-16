@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void cmd_rmdir(void) {
     char *dirname = GetTempStrMemory();
-    ON_FAILURE_LONGJMP(parse_filename(cmdline, dirname, STRINGSIZE));
+    ON_FAILURE_ERROR(parse_filename(cmdline, dirname, STRINGSIZE));
     errno = 0;
-    if (FAILED(rmdir(dirname))) ON_FAILURE_LONGJMP(errno);
+    if (FAILED(rmdir(dirname))) ON_FAILURE_ERROR(errno);
 }

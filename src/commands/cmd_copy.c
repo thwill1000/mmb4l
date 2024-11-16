@@ -51,22 +51,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_copy(void) {
     char ss[2] = { tokenTO, '\0' };
     getargs(&cmdline, 3, ss);
-    if (argc != 3) ERROR_ON_FAILURE(kArgumentCount);
+    if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
 
     char *src_filename = GetTempStrMemory();
-    ON_FAILURE_LONGJMP(parse_filename(argv[0], src_filename, STRINGSIZE));
+    ON_FAILURE_ERROR(parse_filename(argv[0], src_filename, STRINGSIZE));
 
     char *dst_filename = GetTempStrMemory();
-    ON_FAILURE_LONGJMP(parse_filename(argv[2], dst_filename, STRINGSIZE));
+    ON_FAILURE_ERROR(parse_filename(argv[2], dst_filename, STRINGSIZE));
 
     const int src_fnbr = file_find_free();
-    ON_FAILURE_LONGJMP(file_open(src_filename, "r", src_fnbr));
+    ON_FAILURE_ERROR(file_open(src_filename, "r", src_fnbr));
 
     const int dst_fnbr = file_find_free();
     MmResult result = file_open(dst_filename, "w", dst_fnbr);  // We'll just overwrite any existing file
     if (FAILED(result)) {
         (void) file_close(src_fnbr);
-        ON_FAILURE_LONGJMP(result);
+        ON_FAILURE_ERROR(result);
     }
 
     char c;
@@ -79,7 +79,7 @@ void cmd_copy(void) {
     result = file_close(src_fnbr);
     if (FAILED(result)) {
         (void) file_close(dst_fnbr);
-        ON_FAILURE_LONGJMP(result);
+        ON_FAILURE_ERROR(result);
     }
-    ON_FAILURE_LONGJMP(file_close(dst_fnbr));
+    ON_FAILURE_ERROR(file_close(dst_fnbr));
 }

@@ -80,7 +80,7 @@ void cmd_box(void) {
         if (argc > 9 && *argv[10]) c = getint(argv[10], RGB_BLACK, RGB_WHITE);
         if (argc == 13) f = getint(argv[12], -1, RGB_WHITE);
         if (wi != 0 && h != 0) {
-            ERROR_ON_FAILURE(graphics_draw_box(graphics_current, x1, y1, x1 + wi + wmod,
+            ON_FAILURE_ERROR(graphics_draw_box(graphics_current, x1, y1, x1 + wi + wmod,
                                                y1 + h + hmod, w, c, f));
         }
     } else {
@@ -136,7 +136,7 @@ void cmd_box(void) {
             if (nc > 1) c = (cfptr == NULL ? cptr[i] : (int)cfptr[i]);
             if (nf > 1) f = (ffptr == NULL ? fptr[i] : (int)ffptr[i]);
             if (wi != 0 && h != 0)
-                ERROR_ON_FAILURE(graphics_draw_box(graphics_current, x1, y1, x1 + wi + wmod,
+                ON_FAILURE_ERROR(graphics_draw_box(graphics_current, x1, y1, x1 + wi + wmod,
                                                    y1 + h + hmod, w, c, f));
         }
     }

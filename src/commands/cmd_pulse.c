@@ -51,18 +51,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** PULSE pin, width */
 void cmd_pulse(void) {
     if (mmb_options.simulate != kSimulatePicoMiteVga) {
-        ERROR_ON_FAILURE(kUnsupportedOnCurrentDevice);
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
     getargs(&cmdline, 3, ",");
-    if (argc != 3) ERROR_ON_FAILURE(kArgumentCount);
+    if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
 
     uint8_t pin_num = 0;
     bool is_gp = false;
     const char *p = argv[0];
-    ERROR_ON_FAILURE(parse_pin_num(&p, &pin_num, &is_gp));
+    ON_FAILURE_ERROR(parse_pin_num(&p, &pin_num, &is_gp));
 
     MMFLOAT width = getnumber(argv[2]);
 
-    ERROR_ON_FAILURE(gpio_pulse_pin(pin_num, width));
+    ON_FAILURE_ERROR(gpio_pulse_pin(pin_num, width));
 }

@@ -278,7 +278,7 @@ int file_eof(int fnbr) {
 
 size_t file_read(int fnbr, char *buf, size_t sz) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_LONGJMP_EX(kFileInvalidFileNumber, 0);
+        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, 0);
     }
     assert(fnbr != 0); // if (fnbr == 0) return console_write(buf, sz);
 
@@ -299,7 +299,7 @@ size_t file_read(int fnbr, char *buf, size_t sz) {
             break;
     }
 
-    ON_FAILURE_LONGJMP_EX(kInternalFault, 0);
+    ON_FAILURE_ERROR_EX(kInternalFault, 0);
 
     return 0;
 }

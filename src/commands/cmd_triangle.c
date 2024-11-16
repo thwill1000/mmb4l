@@ -94,7 +94,7 @@ static void cmd_triangle_default(const char *p) {
         y3 = getinteger(argv[10]);
         if (argc >= 13 && *argv[12]) colour = getint(argv[12], RGB_BLACK, RGB_WHITE);
         if (argc == 15) fill = getint(argv[14], -1, RGB_WHITE);
-        ERROR_ON_FAILURE(graphics_draw_triangle(graphics_current, x1, y1, x2, y2, x3, y3, colour,
+        ON_FAILURE_ERROR(graphics_draw_triangle(graphics_current, x1, y1, x2, y2, x3, y3, colour,
                                                 fill));
         return;
     }
@@ -143,7 +143,7 @@ static void cmd_triangle_default(const char *p) {
         if (x1 == x2 && x1 == x3 && y1 == y2 && y1 == y3 && x1 == -1 && y1 == -1) return;
         if (nc > 1) colour = (cfptr == NULL ? cptr[i] : (MmGraphicsColour) cfptr[i]);
         if (nf > 1) fill = (ffptr == NULL ? fptr[i] : (MmGraphicsColour) ffptr[i]);
-        ERROR_ON_FAILURE(graphics_draw_triangle(graphics_current, x1, y1, x2, y2, x3, y3, colour,
+        ON_FAILURE_ERROR(graphics_draw_triangle(graphics_current, x1, y1, x2, y2, x3, y3, colour,
                                                 fill));
     }
 }

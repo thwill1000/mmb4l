@@ -138,7 +138,7 @@ void fun_rgb(void) {
             result = kArgumentCount;
             break;
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
     iret = colour;
     targ = T_INT;
 }

@@ -102,5 +102,5 @@ void cmd_mode(void) {
             result = kUnsupportedOnCurrentDevice;
             break;
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

@@ -348,13 +348,13 @@ void graphics_refresh_windows() {
         switch (mmb_options.simulate) {
             case kSimulateCmm2:
             case kSimulateMmb4w:
-                ERROR_ON_FAILURE(graphics_refresh_cmm2_window());
+                ON_FAILURE_ERROR(graphics_refresh_cmm2_window());
                 break;
             case kSimulateGameMite:
-                ERROR_ON_FAILURE(graphics_refresh_gamemite_window());
+                ON_FAILURE_ERROR(graphics_refresh_gamemite_window());
                 break;
             case kSimulatePicoMiteVga:
-                ERROR_ON_FAILURE(graphics_refresh_picomite_vga_window());
+                ON_FAILURE_ERROR(graphics_refresh_picomite_vga_window());
                 break;
             default:
                 break;

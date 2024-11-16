@@ -99,5 +99,5 @@ void fun_device(void) {
     } else {
         ERROR_UNKNOWN_SUBFUNCTION("DEVICE");
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

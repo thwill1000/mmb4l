@@ -78,7 +78,7 @@ static MmResult cmd_gamepad_vibrate(const char *p) {
 }
 
 void cmd_gamepad(void) {
-    if (mmb_options.simulate != kSimulateMmb4w) ERROR_ON_FAILURE(kUnsupportedOnCurrentDevice);
+    if (mmb_options.simulate != kSimulateMmb4w) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     MmResult result = kOk;
     const char *p;
     if ((p = checkstring(cmdline, "ON"))) {
@@ -92,5 +92,5 @@ void cmd_gamepad(void) {
     } else {
         ERROR_UNKNOWN_SUBCOMMAND("GAMEPAD");
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

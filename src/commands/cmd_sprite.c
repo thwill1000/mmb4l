@@ -354,5 +354,5 @@ void cmd_sprite(void) {
         ERROR_UNKNOWN_SUBCOMMAND("SPRITE");
     }
 
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

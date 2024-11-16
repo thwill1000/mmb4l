@@ -416,7 +416,7 @@ static void perform_background_tasks() {
 
     events_pump();
     graphics_refresh_windows();
-    ERROR_ON_FAILURE(audio_background_tasks());
+    ON_FAILURE_ERROR(audio_background_tasks());
 }
 
 void CheckAbort(void) {

@@ -60,7 +60,7 @@ static MmGraphicsColour getColour(char *p, bool allow_minus) {
 /** COLOUR foreground [, background] */
 void cmd_colour(void) {
     getargs(&cmdline, 3, ",");
-    if (argc % 2 != 1 ) ERROR_ON_FAILURE(kArgumentCount);
+    if (argc % 2 != 1 ) ON_FAILURE_ERROR(kArgumentCount);
     graphics_fcolour = getColour(argv[0], false);
     if (has_arg(2)) graphics_bcolour = getColour(argv[2], false);
 }

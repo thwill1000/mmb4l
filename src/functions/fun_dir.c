@@ -155,11 +155,11 @@ void fun_dir(void) {
         // This must be the first call eg:  DIR$("*.*", FILE)
 
         char *path = GetTempStrMemory();
-        ON_FAILURE_LONGJMP(parse_filename(argv[0], path, STRINGSIZE));
+        ON_FAILURE_ERROR(parse_filename(argv[0], path, STRINGSIZE));
 
         strcpy(pp, basename(path));
         dp = opendir(dirname(path));
-        if (!dp) ON_FAILURE_LONGJMP(errno);
+        if (!dp) ON_FAILURE_ERROR(errno);
     }
 
     struct dirent *entry;

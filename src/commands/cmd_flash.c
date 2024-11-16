@@ -77,7 +77,7 @@ MmResult cmd_flash_disk_load(const char *p) {
 
 void cmd_flash(void) {
     if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
-        ON_FAILURE_LONGJMP(kUnsupportedOnCurrentDevice);
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
     MmResult result = kOk;
     const char *p;
@@ -97,5 +97,5 @@ void cmd_flash(void) {
         ERROR_UNKNOWN_SUBCOMMAND("FLASH");
     }
 
-    ON_FAILURE_LONGJMP(result);
+    ON_FAILURE_ERROR(result);
 }

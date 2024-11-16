@@ -78,5 +78,5 @@ void cmd_arc(void) {
     const MmGraphicsColour colour =
         (argc == 13) ? getint(argv[12], RGB_BLACK, RGB_WHITE) : graphics_fcolour;
 
-    ERROR_ON_FAILURE(graphics_draw_arc(graphics_current, x, y, r1, r2, arcrad1, arcrad2, colour));
+    ON_FAILURE_ERROR(graphics_draw_arc(graphics_current, x, y, r1, r2, arcrad1, arcrad2, colour));
 }

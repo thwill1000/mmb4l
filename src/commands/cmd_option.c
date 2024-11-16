@@ -89,11 +89,11 @@ void cmd_option_list(const char *p) {
 
 void cmd_option_load(const char *p) {
     getargs(&p, 1, ",");
-    if (argc != 1) ON_FAILURE_LONGJMP(kArgumentCount);
+    if (argc != 1) ON_FAILURE_ERROR(kArgumentCount);
 
     char *filename = GetTempStrMemory();
-    ON_FAILURE_LONGJMP(parse_filename(argv[0], filename, STRINGSIZE));
-    ON_FAILURE_LONGJMP(options_load(&mmb_options, filename, NULL));
+    ON_FAILURE_ERROR(parse_filename(argv[0], filename, STRINGSIZE));
+    ON_FAILURE_ERROR(options_load(&mmb_options, filename, NULL));
 }
 
 static MmResult cmd_option_reset_all(const char *p) {
@@ -151,11 +151,11 @@ void cmd_option_reset(const char *p) {
 
 void cmd_option_save(const char *p) {
     getargs(&p, 1, ",");
-    if (argc != 1) ON_FAILURE_LONGJMP(kArgumentCount);
+    if (argc != 1) ON_FAILURE_ERROR(kArgumentCount);
 
     char *filename = GetTempStrMemory();
-    ON_FAILURE_LONGJMP(parse_filename(argv[0], filename, STRINGSIZE));
-    ON_FAILURE_LONGJMP(options_save(&mmb_options, filename));
+    ON_FAILURE_ERROR(parse_filename(argv[0], filename, STRINGSIZE));
+    ON_FAILURE_ERROR(options_save(&mmb_options, filename));
 }
 
 static MmResult cmd_option_set_integer(const char *p, const OptionsDefinition *def) {
@@ -240,17 +240,17 @@ static void cmd_option_set(const char *p) {
         switch (mmb_options.simulate) {
             case kSimulateGameMite:
             case kSimulatePicoMiteVga:
-                ERROR_ON_FAILURE(graphics_set_mode(1, 32, RGB_BLACK));
-                ERROR_ON_FAILURE(flash_init());
+                ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
+                ON_FAILURE_ERROR(flash_init());
                 break;
             case kSimulateCmm2:
             case kSimulateMmb4l:
             case kSimulateMmb4w:
-                ERROR_ON_FAILURE(graphics_set_mode(1, 32, RGB_BLACK));
-                ERROR_ON_FAILURE(flash_term());
+                ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
+                ON_FAILURE_ERROR(flash_term());
                 break;
             default:
-                ERROR_ON_FAILURE(kInternalFault);
+                ON_FAILURE_ERROR(kInternalFault);
         }
     }
 }

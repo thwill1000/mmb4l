@@ -115,7 +115,7 @@ static MmResult cmd_page_xor_pixels(const char *p) {
 void cmd_page(void) {
     if (mmb_options.simulate != kSimulateCmm2
             && mmb_options.simulate != kSimulateMmb4w) {
-        ERROR_ON_FAILURE(kUnsupportedOnCurrentDevice);
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
     MmResult result = kOk;
     const char *p;
@@ -141,5 +141,5 @@ void cmd_page(void) {
         ERROR_UNKNOWN_SUBCOMMAND("PAGE");
     }
 
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

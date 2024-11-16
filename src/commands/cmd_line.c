@@ -270,5 +270,5 @@ void cmd_line(void) {
     } else {
         result = cmd_line_default(cmdline);
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }

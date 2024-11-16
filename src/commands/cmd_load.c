@@ -143,5 +143,5 @@ void cmd_load(void) {
     } else {
         result = cmd_load_default(cmdline);
     }
-    ERROR_ON_FAILURE(result);
+    ON_FAILURE_ERROR(result);
 }
