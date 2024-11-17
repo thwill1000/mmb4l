@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_system.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -46,10 +46,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/cstring.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
+#include "../core/tokentbl.h"
+
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 /**
  * @brief  Reads value of an environment variable into a buffer.
@@ -128,15 +131,32 @@ static void cmd_system_getenv(const char *p) {
  * @brief  Implements SYSTEM SETENV sub-command.
  *
  * SYSTEM SETENV name$, value$
- * SYSTEM SETENV name$, value%()
+ * SYSTEM SETENV name$, longstring%()
+ * SYSTEM SETENV name$ = value$
+ * SYSTEM SETENV name$ = longstring%()
  */
-static void cmd_system_setenv(const char *p) {
-    getargs(&p, 3, ",");
-    if (argc != 3) ERROR_SYNTAX;
+void cmd_system_setenv(const char *p) {
+    char ss[3];
+    ss[0] = tokenEQUAL;
+    ss[1] =',';
+    ss[2] = 0;
+    getargs(&p, 3, ss);
+    if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
 
-    char *name = getCstring(p);
-    char *value = NULL;
-    MmResult result = kSyntax;
+    // 'name' restricted to uppercase letters, digits and '_'.
+    // It should not begin with a digit.
+    char *name = getCstring(argv[0]);
+    if (strlen(name) == 0) ON_FAILURE_ERROR(kInvalidEnvironmentVariableName);
+    bool first = true;
+    for (const char *p2 = name; *p2; ++p2) {
+        if (first) {
+            if (!isupper(*p2) && *p2 != '_') ON_FAILURE_ERROR(kInvalidEnvironmentVariableName);
+            first = false;
+        } else {
+            if (!isupper(*p2) && !isdigit(*p2) && *p2 != '_')
+                ON_FAILURE_ERROR(kInvalidEnvironmentVariableName);
+        }
+    }
 
     // Is the value a LONGSTRING ?
     if (parse_matches_longstring_pattern(argv[2])) {
@@ -145,20 +165,17 @@ static void cmd_system_setenv(const char *p) {
                 && (vartbl[VarIndex].dims[0] > 0)
                 && (vartbl[VarIndex].dims[1] == 0)) {
             int64_t sz = *((int64_t *) var_ptr);
-            value = GetTempMemory(sz + 1);
+            char *value = GetTempMemory(sz + 1);
             memcpy(value, var_ptr + 8, sz);
             value[sz] = 0;
-            result = setenv(name, value, 1);
-            ClearSpecificTempMemory(value);
+            if (FAILED(setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
+            return;
         }
     }
 
-    if (result != kOk) {
-        value = getCstring(argv[2]);
-        result = setenv(name, value, 1);
-    }
-
-    if (result != kOk) error_throw(result);
+    // Otherwise it should be a STRING.
+    char *value = getCstring(argv[2]);
+    if (FAILED(setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
 }
 
 /**

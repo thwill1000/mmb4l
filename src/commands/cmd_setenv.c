@@ -42,38 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "../common/error.h"
 #include "../common/mmb4l.h"
-#include "../common/utility.h"
-#include "../core/tokentbl.h"
 
-/** SETENV name$ = value$ */
+void cmd_system_setenv(const char *p);
+
+/**
+ * SETENV name$, value$
+ * SETENV name$, longstring%()
+ * SETENV name$ = value$
+ * SETENV name$ = longstring%()
+ */
 void cmd_setenv(void) {
-    char ss[3];
-    ss[0] = tokenEQUAL;
-    ss[1] =',';
-    ss[2] = 0;
-    getargs(&cmdline, 3, ss);
-    if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
-    const char *name = getCstring(argv[0]);
-    const char *value = getCstring(argv[2]);
-
-    // 'name' restricted to uppercase letters, digits and '_'.
-    // It should not begin with a digit.
-    if (strlen(name) == 0) ON_FAILURE_ERROR(kInvalidEnvironmentVariableName);
-    bool first = true;
-    for (const char *p = name; *p; ++p) {
-        if (first) {
-            if (!isupper(*p) && *p != '_') ON_FAILURE_ERROR(kInvalidEnvironmentVariableName);
-            first = false;
-        } else {
-            if (!isupper(*p) && !isdigit(*p) && *p != '_') ON_FAILURE_ERROR(kInvalidEnvironmentVariableName);
-        }
-    }
-
-    if (FAILED(setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
+    cmd_system_setenv(cmdline);
 }
