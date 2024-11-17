@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 path.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -69,9 +69,8 @@ bool path_is_empty(const char *path);
 /** Is the path a regular file, or a symbolic link to a regular file? */
 bool path_is_regular(const char *path);
 
-/** Does the filename have a given suffix? */
-bool path_has_suffix(
-        const char *path, const char *suffix, bool case_insensitive);
+/** Does the filename have a given file-extension? */
+bool path_has_extension(const char *path, const char *extension, bool case_insensitive);
 
 /**
  * Gets the canonicalized absolute pathname.

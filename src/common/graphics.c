@@ -1358,7 +1358,7 @@ static int spbmp_abort_check_cb(void *userdata) {
 MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
     MmResult result = kOk;
 
-    if (!path_has_suffix(filename, ".BMP", true)) {
+    if (!path_has_extension(filename, ".BMP", true)) {
         // TODO: What if the file-extension is ".bmp" ?
         result = cstring_cat(filename, ".BMP", STRINGSIZE);
         if (FAILED(result)) return result;
@@ -1417,7 +1417,7 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
 MmResult graphics_load_sprite(const char *filename_in, uint8_t start_sprite_id, uint8_t colour_mode) {
     char filename[STRINGSIZE];
     cstring_cpy(filename, filename_in, STRINGSIZE);
-    if (!path_has_suffix(filename, ".spr", true)) {
+    if (!path_has_extension(filename, ".spr", true)) {
         // TODO: What if the file-extension is ".SPR" ?
         MmResult result = cstring_cat(filename, ".spr", STRINGSIZE);
         if (FAILED(result)) return result;
