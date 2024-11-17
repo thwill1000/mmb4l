@@ -2,20 +2,23 @@ Option Base 0
 Option Default None
 Option Explicit
 
-Option Simulate "MMBasic for Windows"
+If Mm.Device$ = "MMB4L" Then Option Simulate "MMBasic for Windows"
 
 Dim cmd$
 Dim gamepad_present%(1)
 Dim gamepad_interrupt%(1)
 
-Cls
+Console Clear
+Cls ' Required to show the graphics window.
 
 cmd$ = "Gamepad On on_gamepad1"
 On Error Skip
 Execute cmd$
 If Not Mm.ErrNo Then gamepad_present%(1) = 1
+Print "*** Focus must be on the MMBasic for Windows window ***"
 print_gamepad(1)
 
+Print
 Print
 Print "A - Start rumble, B - Stop rumble, X - Interrupt cursors, Left - Interrupt all"
 
@@ -27,7 +30,7 @@ Do
 Loop
 
 Sub print_gamepad(id%)
-  Const y% = (id% - 1) * 8
+  Const y% = (id% - 1) * 8 + 2
   Print @(0, y%) "Gamepad " + Str$(id%) + " - " + Choice(gamepad_present%(id%), "PRESENT", "NOT PRESENT")
   Print "Buttons:                  ########"
   Print "Left  Analog Button:      ########"
@@ -39,7 +42,7 @@ End Sub
 Sub update_gamepad(id%)
   If Not gamepad_present%(id%) Then Exit Sub
 
-  Const y% = (id% - 1) * 8
+  Const y% = (id% - 1) * 8 + 2
 
   Const btn% = Gamepad(B)
   Const b$ = str.rpad$(buttons_as_string$(btn%), 40)

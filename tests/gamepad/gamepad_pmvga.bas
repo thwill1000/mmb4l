@@ -2,7 +2,7 @@ Option Base 0
 Option Default None
 Option Explicit
 
-Option Simulate "PicoMiteVGA"
+If Mm.Device$ = "MMB4L" Then Option Simulate "PicoMiteVGA"
 
 Const ctrl.OPEN = -1
 Const ctrl.CLOSE = -2
@@ -25,6 +25,9 @@ Dim cmd$
 Dim gamepad_present%(2)
 
 Console Clear
+Cls ' Required to show the graphics window.
+
+Print "*** Focus must be on the MMBasic for Windows window ***"
 
 On Error Skip
 snes_a(ctrl.OPEN)
@@ -45,7 +48,7 @@ Do
 Loop
 
 Sub print_gamepad(id%)
-  Const y% = (id% - 1) * 4
+  Const y% = (id% - 1) * 3 + 2
   Const controller$ = "PicoMiteVGA SNES " + Choice(id% = 1, "A", "B")
   Print @(0, y%) controller$ + " - " + Choice(gamepad_present%(id%), "PRESENT", "NOT PRESENT")
   Print "Buttons: ########"
@@ -54,7 +57,7 @@ End Sub
 Sub update_gamepad(id%)
   If Not gamepad_present%(id%) Then Exit Sub
 
-  Const y% = (id% - 1) * 4
+  Const y% = (id% - 1) * 3 + 2
   Local btn%
   If id% = 1 Then
     snes_a(btn%)
