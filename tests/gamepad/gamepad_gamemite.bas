@@ -2,7 +2,7 @@ Option Base 0
 Option Default None
 Option Explicit
 
-Option Simulate "Game*Mite"
+If Mm.Device$ = "MMB4L" Then Option Simulate "Game*Mite"
 
 Const ctrl.OPEN = -1
 Const ctrl.CLOSE = -2
@@ -12,6 +12,7 @@ Dim cmd$
 Dim gamepad_present%(1)
 
 Console Clear
+Cls ' Required to show the graphics window.
 
 On Error Ignore
 ctrl.gamemite(ctrl.OPEN)
@@ -28,15 +29,16 @@ Loop
 
 Sub print_gamepad(id%)
   Const y% = (id% - 1) * 8
-  Print @(0, y%) "Game*Mite - " + Choice(gamepad_present%(id%), "PRESENT", "NOT PRESENT")
-  Print "IMPORTANT - focus needs to be on Game*Mite window"
+  Print @(0, y%) "*** Focus must be be on Game*Mite window ***"
+  Print
+  Print "Game*Mite - " + Choice(gamepad_present%(id%), "PRESENT", "NOT PRESENT")
   Print "Buttons: ########"
 End Sub
 
 Sub update_gamepad(id%)
   If Not gamepad_present%(id%) Then Exit Sub
 
-  Const y% = (id% - 1) * 8
+  Const y% = (id% - 1) * 8 + 1
   Local btn%
   ctrl.gamemite(btn%)
   Const b$ = str.rpad$(buttons_as_string$(btn%), 40)

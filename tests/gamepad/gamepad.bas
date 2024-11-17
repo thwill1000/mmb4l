@@ -17,6 +17,7 @@ For id% = 1 To 4
 Next
 
 Print
+Print
 Print "A - Start rumble, B - Stop rumble, X - Interrupt cursors, Left - Interrupt all"
 
 Do
