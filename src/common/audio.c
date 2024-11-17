@@ -346,7 +346,7 @@ static void audio_dump_track_list() {
 static MmResult audio_find_file(const char *filename, const char *extension,
                                 char *out, size_t out_sz) {
     // Check for an exact match.
-    if (path_exists(filename) && path_has_suffix(filename, extension, true)) {
+    if (path_exists(filename) && path_has_extension(filename, extension, true)) {
         if (SUCCEEDED(cstring_cpy(out, filename, out_sz))) {
             return kOk;
         } else {
@@ -396,7 +396,7 @@ static MmResult audio_fill_track_list(const char *filename, const char *extensio
     size_t counter = 0;
     if ((dir = opendir(canonical)) != NULL) {
         while ((ent = readdir(dir)) != NULL) {
-            if (!path_has_suffix(ent->d_name, extension, true)) continue;
+            if (!path_has_extension(ent->d_name, extension, true)) continue;
             if (FAILED(cstring_cpy(f_out, canonical, STRINGSIZE))) {
                 return kFilenameTooLong;
             }
@@ -936,13 +936,13 @@ static MmResult audio_play_next_track() {
         console_puts("\r\n");
     }
     MmResult result = kOk;
-    if (path_has_suffix(next_track, ".FLAC", true)) {
+    if (path_has_extension(next_track, ".FLAC", true)) {
         result = audio_play_flac_internal(next_track);
-    } else if (path_has_suffix(next_track, ".MOD", true)) {
+    } else if (path_has_extension(next_track, ".MOD", true)) {
         result = audio_play_modfile_internal(next_track);
-    } else if (path_has_suffix(next_track, ".MP3", true)) {
+    } else if (path_has_extension(next_track, ".MP3", true)) {
         result = audio_play_mp3_internal(next_track);
-    } else if (path_has_suffix(next_track, ".WAV", true)) {
+    } else if (path_has_extension(next_track, ".WAV", true)) {
         result = audio_play_wav_internal(next_track);
     } else {
         result = kInternalFault;

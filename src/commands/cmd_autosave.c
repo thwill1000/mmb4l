@@ -148,7 +148,7 @@ void cmd_autosave(void) {
     int exit_key = cmd_autosave_read(buf);
     cmd_autosave_write_file(file_path, buf);
 
-    if (path_has_suffix(file_path, ".bas", true)) {
+    if (path_has_extension(file_path, ".bas", true)) {
         MmResult result = program_load_file(file_path);
         if (FAILED(result)) error_throw(result);
         if (exit_key == F2) {
