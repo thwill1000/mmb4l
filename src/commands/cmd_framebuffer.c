@@ -142,11 +142,10 @@ static MmResult cmd_framebuffer_layer(const char *p) {
     skipspace(p);
     uint8_t transparent = parse_is_end(p) ? 0 : getint(p, 0, 15);
 
-    MmResult result = graphics_buffer_create(
+    ON_FAILURE_RETURN(graphics_buffer_create(
         GRAPHICS_SURFACE_L,
         graphics_surfaces[GRAPHICS_SURFACE_N].width,
-        graphics_surfaces[GRAPHICS_SURFACE_N].height);
-    if (FAILED(result)) return result;
+        graphics_surfaces[GRAPHICS_SURFACE_N].height));
 
     MmSurface *layer = &graphics_surfaces[GRAPHICS_SURFACE_L];
     layer->transparent = GRAPHICS_RGB121_COLOURS[transparent];
