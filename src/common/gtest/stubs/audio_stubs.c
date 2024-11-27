@@ -3,4 +3,7 @@
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
-const char *audio_last_error() { return ""; }
+#include "../../audio.h"
+
+const char *audio_last_error(void) { return ""; }
+MmResult audio_term() { return kOk; }
