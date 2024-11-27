@@ -187,7 +187,7 @@ static int handle_window_interrupt() {
     // If there is no interrupt routine registered then we ignore the event unless is is a
     // CLOSE event in which case we destroy the window and END the program.
     if (!window->interrupt_addr) {
-        if (event.type == SDL_WINDOWEVENT_CLOSE) {
+        if (event.event == SDL_WINDOWEVENT_CLOSE) {
             (void) graphics_surface_destroy(window);
             mmb_exit_code = EX_OK;
             longjmp(mark, JMP_END);
