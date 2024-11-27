@@ -57,7 +57,7 @@ static MmResult fun_sprite_address(int argc, char **argv) {
     ON_FAILURE_RETURN(parse_sprite_id(argv[2], kParseSpriteIdMustExist, &sprite_id));
 
     targ = T_INT;
-    iret = (MMINTEGER) graphics_surfaces[sprite_id].pixels;
+    iret = (uintptr_t) graphics_surfaces[sprite_id].pixels;
 
     return kOk;
 }

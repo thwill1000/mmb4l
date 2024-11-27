@@ -15,7 +15,7 @@ extern "C" {
     { \
         element_type element_out; \
         EXPECT_EQ(expected_num, stack_size(&stack)); \
-        for (uint8_t ii = 0; ii < expected_num; ++ii) { \
+        for (ssize_t ii = 0; ii < expected_num; ++ii) { \
             EXPECT_EQ(kOk, stack_get(&stack, ii, &element_out)); \
             EXPECT_EQ(expected_elements[ii], element_out); \
         } \
@@ -32,7 +32,7 @@ class UInt8StackTest : public ::testing::Test {
     }
 
     void GivenStackFull() {
-        for (uint8_t element_in = 1; element_in <= 10; ++element_in) {
+        for (size_t element_in = 1; element_in <= 10; ++element_in) {
             EXPECT_EQ(kOk, stack_push(&stack, element_in));
         }
     }
@@ -938,7 +938,7 @@ TEST_F(StructStackTest, FillAndThenEmpty_Succeeds) {
     { \
         MyStruct element_out; \
         EXPECT_EQ(expected_num, stack_size(&stack)); \
-        for (uint8_t ii = 0; ii < expected_num; ++ii) { \
+        for (ssize_t ii = 0; ii < expected_num; ++ii) { \
             EXPECT_EQ(kOk, stack_get(&stack, ii, &element_out)); \
             EXPECT_MY_STRUCT_EQ(expected_elements[ii], element_out); \
         } \
