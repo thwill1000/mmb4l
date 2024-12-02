@@ -128,8 +128,8 @@ MmResult cmd_graphics_copy(const char *p) {
     return graphics_copy(src_surface, dst_surface, transparent);
 }
 
-/** GRAPHICS SETTITLE id, title$ */
-static MmResult cmd_graphics_set_title(const char *p) {
+/** GRAPHICS TITLE id, title$ */
+static MmResult cmd_graphics_title(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 3) return kArgumentCount;
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
@@ -261,10 +261,10 @@ void cmd_graphics(void) {
         result = cmd_graphics_destroy(p);
     } else if ((p = checkstring(cmdline, "LIST"))) {
         result = cmd_graphics_list(p);
-    } else if ((p = checkstring(cmdline, "SETTITLE"))) {
-        result = cmd_graphics_set_title(p);
     } else if ((p = checkstring(cmdline, "SPRITE"))) {
         result = cmd_graphics_sprite(p);
+    } else if ((p = checkstring(cmdline, "TITLE"))) {
+        result = cmd_graphics_title(p);
     } else if ((p = checkstring(cmdline, "WINDOW"))) {
         result = cmd_graphics_window(p);
     } else if ((p = checkstring(cmdline, "WRITE"))) {
