@@ -101,20 +101,22 @@ static MmResult on_error(const char *p) {
 static MmResult on_key(const char *p) {
     getargs(&p, 3, ",");
     if (argc == 1) {
-        if (*argv[0] == '0' && !isdigit(*(argv[0] + 1))) {
-            interrupt_disable_any_key();
+        const char *interrupt_addr = GetIntAddressOrNull(argv[0]);
+        if (interrupt_addr) {
+            interrupt_enable_any_key(interrupt_addr);
         } else {
-            interrupt_enable_any_key(GetIntAddress(argv[0]));
+            interrupt_disable_any_key();
         }
     } else if (argc == 3) {
         int key = getint(argv[0], 0, 255);
         if (key == 0) {
             interrupt_disable_specific_key();
         } else {
-            if (*argv[2] == '0' && !isdigit(*(argv[2] + 1))) {
-                interrupt_disable_specific_key();
+            const char *interrupt_addr = GetIntAddressOrNull(argv[2]);
+            if (interrupt_addr) {
+                interrupt_enable_specific_key(key, interrupt_addr);
             } else {
-                interrupt_enable_specific_key(key, GetIntAddress(argv[2]));
+                interrupt_disable_specific_key();
             }
         }
     } else {
@@ -155,10 +157,11 @@ static MmResult on_number(const char *p) {
 static MmResult on_ps2(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) return kArgumentCount;
-    if (*argv[0] == '0' && !isdigit(*(argv[0] + 1))) {
-        interrupt_disable(kInterruptKeyboardPs2);
+    const char *interrupt_addr = GetIntAddressOrNull(argv[0]);
+    if (interrupt_addr) {
+        interrupt_enable(kInterruptKeyboardPs2, interrupt_addr);
     } else {
-        interrupt_enable(kInterruptKeyboardPs2, GetIntAddress(argv[0]));
+        interrupt_disable(kInterruptKeyboardPs2);
     }
     return kOk;
 }

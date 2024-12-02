@@ -221,6 +221,7 @@ const char *getclosebracket(const char *p);
 void makeupper(char *p);
 void checkend(const char *p);
 const char *GetIntAddress(const char *p);
+const char *GetIntAddressOrNull(const char *p);
 #define checkstring  parse_check_string
 int GetLineLength(char *p);
 char *MtoC(char *p);

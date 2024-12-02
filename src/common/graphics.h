@@ -572,6 +572,15 @@ MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColou
 MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz);
 
 /**
+ * Sets the interrupt handler for a window.
+ *
+ * @param  window          The window.
+ * @param  interrupt_addr  Address of interrupt routine to call if an SDL window event is caught,
+ *                         or NULL to disable.
+ */
+MmResult graphics_window_set_interrupt(MmSurface *window, const char *interrupt_addr);
+
+/**
  * Sets the title of a window.
  *
  * @param  window  The window.

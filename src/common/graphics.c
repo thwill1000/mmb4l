@@ -2508,6 +2508,12 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
     return result;
 }
 
+MmResult graphics_window_set_interrupt(MmSurface *window, const char *interrupt_addr) {
+    if (!window || window->type != kGraphicsWindow) return kGraphicsInvalidWindow;
+    window->interrupt_addr = interrupt_addr;
+    return kOk;
+}
+
 MmResult graphics_window_set_title(MmSurface *window, const char *title) {
     if (!window || window->type != kGraphicsWindow) return kGraphicsInvalidWindow;
     SDL_SetWindowTitle(window->window, title); // Has void return.

@@ -2686,7 +2686,6 @@ const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType)
 }
 
 
-
 /**
  * Gets the address for a MMBasic interrupt.
  *
@@ -2719,6 +2718,15 @@ const char *GetIntAddress(const char *p) {
     }
 
     return findline(getinteger(p), true);  // otherwise try for a line number
+}
+
+
+const char *GetIntAddressOrNull(const char *p) {
+    if (*p == '0' && !isdigit(*(p + 1))) {
+        return NULL;
+    } else {
+        return GetIntAddress(p);
+    }
 }
 
 
