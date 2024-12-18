@@ -86,6 +86,16 @@ static void mminfo_cmdline(const char *p) {
     CtoM(g_string_rtn);
 }
 
+static void mminfo_cpuspeed(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    if (mmb_options.simulate != kSimulatePicoMiteVga && mmb_options.simulate != kSimulateGameMite) {
+        ON_FAILURE_ERROR(kUnsupportedParameterOnCurrentDevice);
+    }
+    g_rtn_type = T_STR;
+    strcpy(g_string_rtn, "378000000");
+    CtoM(g_string_rtn);
+}
+
 static void mminfo_cputime(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
@@ -128,6 +138,16 @@ static void mminfo_device(const char *p) {
             return;
         }
     }
+    CtoM(g_string_rtn);
+}
+
+static void mminfo_drive(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    if (mmb_options.simulate != kSimulatePicoMiteVga && mmb_options.simulate != kSimulateGameMite) {
+        ON_FAILURE_ERROR(kUnsupportedParameterOnCurrentDevice);
+    }
+    g_rtn_type = T_STR;
+    strcpy(g_string_rtn, "A:");
     CtoM(g_string_rtn);
 }
 
@@ -506,12 +526,16 @@ void fun_mminfo(void) {
         mminfo_calldepth(p);
     } else if ((p = checkstring(ep, "CMDLINE"))) {
         mminfo_cmdline(p);
+    } else if ((p = checkstring(ep, "CPUSPEED"))) {
+        mminfo_cpuspeed(p);
     } else if ((p = checkstring(ep, "CPUTIME"))) {
         mminfo_cputime(p);
     } else if ((p = checkstring(ep, "CURRENT"))) {
         mminfo_current(p);
     } else if ((p = checkstring(ep, "DEVICE"))) {
         mminfo_device(p);
+    } else if ((p = checkstring(ep, "DRIVE"))) {
+        mminfo_drive(p);
     } else if ((p = checkstring(ep, "DIRECTORY"))) {
         mminfo_directory(p);
     } else if ((p = checkstring(ep, "ENVVAR"))) {
