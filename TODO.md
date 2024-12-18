@@ -1,5 +1,10 @@
 # TODO
 
+ - Add MATH AES128 command from PicoMite
+ - Add extended END command from PicoMite
+ - Look at initialising audio/graphics/gamepads all together and inserting a pause after audio initialisation to see if that helps with audio glitches; beware of messing up TICK interrupt timing, perhaps need an explicit GFX INIT command
+ - Add functionality to allow Gamepad compatibility to be configured, e.g. SNES vs. NES vs. Atari JS for PicoMiteVGA
+ - Change program_apply_replacement() so that it does not replace within comments (single + multi-line) or within quoted strings
  - Correctly support sprites on multiple different surfaces, e.g.
      - restore background on correct surface
      - collisions should only occur between sprites on same surface
