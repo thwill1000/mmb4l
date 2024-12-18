@@ -1799,6 +1799,9 @@ MmResult graphics_copy(MmSurface *src, MmSurface *dst, MmGraphicsColour transpar
 MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
                             MmGraphicsColour fcolour, MmGraphicsColour bcolour, char c,
                             TextOrientation orientation) {
+    const uint32_t font_id = font >> 4;
+    if (FontTable[font_id] == NULL) return kInvalidFont;
+
     unsigned char *p, *fp, *np = NULL;
     int BitNumber, BitPos, newx, newy, modx, mody, scale = font & 0b1111;
     MmResult result = kOk;
@@ -1822,12 +1825,13 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
     }
 
     // To get the +, - and = chars for font 6 we fudge them by scaling up font 1.
-    if ((font & 0xf0) == 0x60 && (c == '-' || c == '+' || c == '=')) {
+    if (font_id == 6 && (c == '-' || c == '+' || c == '=')) {
         fp = (unsigned char *) FontTable[1];
         scale = scale * 4;
     }
-    else
-        fp = (unsigned char *) FontTable[font >> 4];
+    else {
+        fp = (unsigned char *) FontTable[font_id];
+    }
 
     int height = fp[1];
     int width = fp[0];
@@ -1913,7 +1917,7 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
     if (FAILED(result)) return result;
 
     // To get the . and degree symbols for font 6 we draw a small circle.
-    if ((font & 0xf0) == 0x60) {
+    if (font_id == 6) {
         if (orientation > kOrientVert) {
             if (orientation == kOrientInverted) {
                 if (c == '.') {

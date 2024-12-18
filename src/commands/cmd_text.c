@@ -130,17 +130,17 @@ void cmd_text(void) {
     MmGraphicsColour fcolour = graphics_fcolour;
     MmGraphicsColour bcolour = graphics_bcolour;
 
-    if (argc > 7 && *argv[8]) {
+    if (has_arg(8)) {
         if (*argv[8] == '#') argv[8]++;
         font_id = (uint32_t) getint(argv[8], 1, FONT_TABLE_SIZE);
+        scale = 1;
     }
-    if (FontTable[font_id] == NULL) error_throw_ex(kInvalidFont, "Invalid font #%", font_id);
 
-    if (argc > 9 && *argv[10]) scale = (uint32_t)getint(argv[10], 1, 15);
+    if (has_arg(10)) scale = (uint32_t)getint(argv[10], 1, 15);
 
-    if (argc > 11 && *argv[12]) fcolour = (MmGraphicsColour) getint(argv[12], RGB_BLACK, RGB_WHITE);
+    if (has_arg(12)) fcolour = (MmGraphicsColour) getint(argv[12], RGB_BLACK, RGB_WHITE);
 
-    if (argc == 15) bcolour = (MmGraphicsColour) getint(argv[14], -1, RGB_WHITE);
+    if (has_arg(14)) bcolour = (MmGraphicsColour) getint(argv[14], -1, RGB_WHITE);
 
     ON_FAILURE_ERROR(graphics_draw_string(graphics_current, x, y, (font_id << 4) | scale, jh,
                                           jv, jo, fcolour, bcolour, s));
