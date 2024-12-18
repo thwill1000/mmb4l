@@ -2271,7 +2271,7 @@ static MmResult graphics_set_mode_gamemite(unsigned mode) {
         graphics_bcolour = RGB_BLACK;
         graphics_colour_depth = 32;
         graphics_cmm2_background = RGB_BLACK;
-        result = graphics_set_font(7, 1);
+        result = graphics_set_font(1, 1);
     }
     return result;
 }
