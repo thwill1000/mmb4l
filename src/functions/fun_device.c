@@ -61,28 +61,29 @@ static int transform_analog_for_mmb4w(int in) {
     return out;
 }
 
+/** DEVICE(GAMEPAD id%, funct) */
 MmResult fun_device_gamepad(const char *p, bool mmb4w_compatibility) {
     getargs(&p, 3, ",");
     if (argc != 1 && argc != 3) ERROR_ARGUMENT_COUNT;
     MmGamepadId gamepad_id = (argc == 3) ? getint(argv[0], 1, 4) : 1;
-    const char *flag = argv[argc - 1];
+    const char *funct = argv[argc - 1];
     const char *p2;
     MmResult result = kOk;
     targ = T_INT;
-    if ((p2 = checkstring(flag, "B"))) {
+    if ((p2 = checkstring(funct, "B"))) {
         result = gamepad_read_buttons(gamepad_id, &iret);
         return result;
-    } else if ((p2 = checkstring(flag, "LX"))) {
+    } else if ((p2 = checkstring(funct, "LX"))) {
         result = gamepad_read_left_x(gamepad_id, &iret);
-    } else if ((p2 = checkstring(flag, "LY"))) {
+    } else if ((p2 = checkstring(funct, "LY"))) {
         result = gamepad_read_left_y(gamepad_id, &iret);
-    } else if ((p2 = checkstring(flag, "RX"))) {
+    } else if ((p2 = checkstring(funct, "RX"))) {
         result = gamepad_read_right_x(gamepad_id, &iret);
-    } else if ((p2 = checkstring(flag, "RY"))) {
+    } else if ((p2 = checkstring(funct, "RY"))) {
         result = gamepad_read_right_y(gamepad_id, &iret);
-    } else if ((p2 = checkstring(flag, "L"))) {
+    } else if ((p2 = checkstring(funct, "L"))) {
         result = gamepad_read_left_analog_button(gamepad_id, &iret);
-    } else if ((p2 = checkstring(flag, "R"))) {
+    } else if ((p2 = checkstring(funct, "R"))) {
         result = gamepad_read_right_analog_button(gamepad_id, &iret);
     } else {
         result = kGamepadUnknownFunction;
