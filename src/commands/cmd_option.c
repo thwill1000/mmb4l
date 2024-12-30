@@ -158,6 +158,14 @@ void cmd_option_save(const char *p) {
     ON_FAILURE_ERROR(options_save(&mmb_options, filename));
 }
 
+static MmResult cmd_option_set_boolean(const char *p, const OptionsDefinition *def) {
+    getargs(&p, 1, ",");
+    bool value = true; // With no arguments sets option true.
+    if (argc > 1) return kSyntax;
+    if (argc) value = parse_bool(argv[0]);
+    return options_set_integer_value(&mmb_options, def->id, value ? 1 : 0);
+}
+
 static MmResult cmd_option_set_integer(const char *p, const OptionsDefinition *def) {
     if (def->id == kOptionBase && DimUsed) ERROR_INVALID_OPTION_BASE;
     return options_set_integer_value(&mmb_options, def->id, getinteger(p));
@@ -180,7 +188,7 @@ static MmResult cmd_option_set_string(const char *p, const OptionsDefinition *de
             break;
     }
 
-    if (argc != 1) ERROR_SYNTAX;
+    if (argc != 1) return kSyntax;
 
     // First try looking up unquoted token in the options enum map.
     const char *svalue = NULL;
@@ -212,6 +220,8 @@ static void cmd_option_set(const char *p) {
 
     switch (def->type) {
         case kOptionTypeBoolean:
+            result = cmd_option_set_boolean(p2, def);
+            break;
         case kOptionTypeFloat:
             result = kUnimplemented;
             break;

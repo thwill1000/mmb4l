@@ -2234,8 +2234,8 @@ static MmResult graphics_set_mode_cmm2(unsigned mode, unsigned colour_depth,
     MmResult result = graphics_destroy_surfaces_0_to_63();
     if (SUCCEEDED(result)) {
         // Create window for page 0.
-        result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1, 10, NULL,
-                                        NULL, false);
+        result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1,
+                                        mmb_options.auto_scale ? 10 : 1, NULL, NULL, false);
     }
     if (SUCCEEDED(result)) {
         // Create buffers for remaining pages.
@@ -2262,7 +2262,8 @@ static MmResult graphics_set_mode_gamemite(unsigned mode) {
 
     MmResult result = graphics_destroy_surfaces_0_to_63();
     if (SUCCEEDED(result)) {
-        result = graphics_window_create(0, 320, 240, -1, -1, 10, NULL, NULL, false);
+        result = graphics_window_create(0, 320, 240, -1, -1, mmb_options.auto_scale ? 10 : 1, NULL,
+                                        NULL, false);
     }
     if (SUCCEEDED(result)) {
         result = graphics_buffer_create(GRAPHICS_SURFACE_N, 320, 240);
@@ -2287,8 +2288,8 @@ static MmResult graphics_set_mode_pmvga(unsigned mode) {
 
     MmResult result = graphics_destroy_surfaces_0_to_63();
     if (SUCCEEDED(result)) {
-        result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1, 10, NULL,
-                                        NULL, false);
+        result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1,
+                                        mmb_options.auto_scale ? 10 : 1, NULL, NULL, false);
     }
     if (SUCCEEDED(result)) {
         result = graphics_buffer_create(GRAPHICS_SURFACE_N, mode_def->width, mode_def->height);

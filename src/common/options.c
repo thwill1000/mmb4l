@@ -133,6 +133,7 @@ static const NameOrdinalPair options_simulate_map[] = {
 
 OptionsDefinition options_definitions[] = {
     { "Angle",       kOptionAngle,        kOptionTypeString,  false, "Radians",                 options_angle_map },
+    { "AutoScale",   kOptionAutoScale,    kOptionTypeBoolean, true,  "On",                      NULL },
     { "Base",        kOptionBase,         kOptionTypeInteger, false, "0",                       NULL },
     { "Break",       kOptionBreakKey,     kOptionTypeInteger, false, "3" /* Ctrl-C */,          NULL },
     { "Case",        kOptionListCase,     kOptionTypeString,  true,  "Title",                   options_list_case_map },
@@ -562,6 +563,9 @@ MmResult options_get_float_value(const Options *options, OptionsId id, MMFLOAT *
 MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEGER *ivalue) {
     MmResult result = kOk;
     switch (id) {
+        case kOptionAutoScale:
+            *ivalue = options->auto_scale;
+            break;
         case kOptionBase:
             *ivalue = options->base;
             break;
@@ -668,6 +672,13 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
                     svalue);
             break;
 
+        case kOptionAutoScale: {
+            MMINTEGER ivalue;
+            result = options_get_integer_value(options, id, &ivalue);
+            if (SUCCEEDED(result)) sprintf(svalue, "%s", ivalue ? "On" : "Off");
+            return result;
+        }
+
         case kOptionCodePage:
             if (FAILED(options_get_codepage(options, svalue))) {
                 strcpy(svalue, INVALID_VALUE);
@@ -764,6 +775,15 @@ static MmResult options_set_angle(Options *options, const char *svalue) {
         }
     }
     return kInvalidValue;
+}
+
+static MmResult options_set_auto_scale(Options *options, int ivalue) {
+    if (ivalue == 0 || ivalue == 1) {
+        options->auto_scale = ivalue;
+        return kOk;
+    } else {
+        return kInvalidValue;
+    }
 }
 
 static MmResult options_set_base(Options *options, int ivalue) {
@@ -920,9 +940,10 @@ MmResult options_set_float_value(Options *options, OptionsId id, MMFLOAT fvalue)
 
 MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER ivalue) {
     switch (id) {
-        case kOptionBase:     return options_set_base(options, ivalue);
-        case kOptionBreakKey: return options_set_break_key(options, ivalue);
-        case kOptionTab:      return options_set_tab(options, ivalue);
+        case kOptionAutoScale: return options_set_auto_scale(options, ivalue);
+        case kOptionBase:      return options_set_base(options, ivalue);
+        case kOptionBreakKey:  return options_set_break_key(options, ivalue);
+        case kOptionTab:       return options_set_tab(options, ivalue);
 
 #if defined(OPTION_TESTS)
         case kOptionZBoolean:

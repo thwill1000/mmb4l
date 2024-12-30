@@ -60,6 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef enum {
     kOptionAngle = 0,
+    kOptionAutoScale,
     kOptionBase,
     kOptionBreakKey,
     kOptionListCase, // Alphabetically ordered as if it were kOptionCase.
@@ -138,6 +139,7 @@ typedef enum { kCharacter, kPixel } OptionsResolution;
 typedef struct {
     OptionsAngle angle;
     int autorun;
+    bool auto_scale;
     int base;
     char break_key;
     const char *codepage; // Pointer to one of the arrays/maps declared in 'codepage.h'

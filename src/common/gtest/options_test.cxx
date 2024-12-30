@@ -59,6 +59,7 @@ static void write_line_to_buf(const char *line) {
 static void expect_options_have_defaults(Options *options) {
     EXPECT_EQ(kRadians, options->angle);
     EXPECT_EQ(0, options->autorun);
+    EXPECT_EQ(1, options->auto_scale);
     EXPECT_EQ(0, options->base);
     EXPECT_EQ(3, options->break_key);
     EXPECT_EQ(NULL, options->codepage);
@@ -626,6 +627,9 @@ TEST_F(OptionsTest, GetDisplayValue) {
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionAngle, svalue));
     EXPECT_STREQ("Radians", svalue);
 
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionAutoScale, svalue));
+    EXPECT_STREQ("On", svalue);
+
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionBase, svalue));
     EXPECT_STREQ("0", svalue);
 
@@ -770,6 +774,20 @@ TEST_F(OptionsTest, GetFloatValue_ForNonFloat) {
     EXPECT_EQ(0.0, fvalue);
 }
 
+TEST_F(OptionsTest, GetIntegerValue_ForAutoScale) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    options.auto_scale = 0;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionAutoScale, &ivalue));
+    EXPECT_EQ(0, ivalue);
+
+    options.auto_scale = 1;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionAutoScale, &ivalue));
+    EXPECT_EQ(1, ivalue);
+}
+
 TEST_F(OptionsTest, GetIntegerValue_ForBase) {
     Options options;
     options_init(&options);
@@ -853,6 +871,20 @@ TEST_F(OptionsTest, GetStringValue_ForAngle) {
     options.angle = kDegrees;
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAngle, svalue));
     EXPECT_STREQ("Degrees", svalue);
+}
+
+TEST_F(OptionsTest, GetStringValue_ForAutoScale) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.auto_scale = 0;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAutoScale, svalue));
+    EXPECT_STREQ("Off", svalue);
+
+    options.auto_scale = 1;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAutoScale, svalue));
+    EXPECT_STREQ("On", svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForBase) {
@@ -1159,6 +1191,19 @@ TEST_F(OptionsTest, SetFloatValue_ForNonFloat) {
     EXPECT_EQ(kInternalFault, options_set_float_value(&options, kOptionZString, 1.2345));
 }
 
+TEST_F(OptionsTest, SetIntegerValue_ForAutoScale) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionAutoScale, 0));
+    EXPECT_EQ(0, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionAutoScale, 1));
+    EXPECT_EQ(1, options.auto_scale);
+
+    EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionAutoScale, 2));
+}
+
 TEST_F(OptionsTest, SetIntegerValue_ForBase) {
     Options options;
     options_init(&options);
@@ -1241,6 +1286,38 @@ TEST_F(OptionsTest, SetStringValue_ForAngle) {
     EXPECT_EQ(kRadians, options.angle);
 
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAngle, "wombat"));
+}
+
+TEST_F(OptionsTest, SetStringValue_ForAutoScale) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "false"));
+    EXPECT_EQ(false, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "true"));
+    EXPECT_EQ(true, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "Off"));
+    EXPECT_EQ(false, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "On"));
+    EXPECT_EQ(true, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "0"));
+    EXPECT_EQ(false, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "1"));
+    EXPECT_EQ(true, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "FALSE"));
+    EXPECT_EQ(false, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "ON"));
+    EXPECT_EQ(true, options.auto_scale);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAutoScale, "2"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAutoScale, "wombat"));
 }
 
 TEST_F(OptionsTest, SetStringValue_ForBase) {
