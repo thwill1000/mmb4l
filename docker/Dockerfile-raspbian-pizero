@@ -1,0 +1,6 @@
+FROM thwill/raspbian-pizero-base
+
+RUN apt-get -y install libsdl2-image-dev
+
+USER thwill
+WORKDIR /home/thwill

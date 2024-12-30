@@ -1178,7 +1178,10 @@ static void drmp3_L3_decode_scalefactors(const drmp3_uint8* hdr, drmp3_uint8* is
         { 9,9,6,12,9,9,9,9,9,9,12,6,18,18,0,0,12,12,12,0,12, 9,9,6,15,12,9,0 }
     };
     const drmp3_uint8* scf_partition = g_scf_partitions[!!gr->n_short_sfb + !gr->n_long_sfb];
-    drmp3_uint8 scf_size[4], iscf[40];
+    // drmp3_uint8 scf_size[4], iscf[40];
+    drmp3_uint8 scf_size[4], iscf[42]; // THW 24-Dec-2024: Extra 2-bytes in 'iscf' shouldn't be
+                                       // required, but without them get a probably incorrect
+                                       // -Werror=stringop-overflow error on some versions of GCC.
     int i, scf_shift = gr->scalefac_scale + 1, gain_exp, scfsi = gr->scfsi;
     float gain;
 

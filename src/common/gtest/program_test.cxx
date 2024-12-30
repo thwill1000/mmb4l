@@ -171,7 +171,10 @@ protected:
         while ((next_file = readdir(dir)) != NULL) {
             if (strcmp(next_file->d_name, ".") != 0
                     && strcmp(next_file->d_name, "..") != 0) {
-                sprintf(file_path, "%s/%s", dir_path, next_file->d_name);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+                snprintf(file_path, PATH_MAX, "%s/%s", dir_path, next_file->d_name);
+#pragma GCC diagnostic pop
                 if (next_file->d_type == DT_DIR) RemoveRecursively(file_path);
                 if (FAILED(remove(file_path))) {
                     utility_perror_ext("remove(\"%s\") failed", file_path);

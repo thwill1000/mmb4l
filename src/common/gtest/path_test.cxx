@@ -20,7 +20,7 @@ extern "C" {
 #else
 #define HOME_PARENT       "/home"
 #endif
-#define FILE_THAT_EXISTS  BIN_DIR "/cp"
+#define FILE_THAT_EXISTS  "/etc/passwd"
 #define PATH_TEST_DIR     TMP_DIR "/PathTest"
 
 class PathTest : public ::testing::Test {

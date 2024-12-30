@@ -23,8 +23,10 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenOneKeyDown_AddsKeyToBuffer) {
     keyboard_init();
 
     SDL_Keysym keysym = {
-        .sym = SDLK_a,
-        .mod = 0x0,
+        scancode : SDL_SCANCODE_UNKNOWN,
+        sym : SDLK_a,
+        mod : 0x0,
+        unused : 0,
     };
     EXPECT_EQ(kOk, keyboard_key_down(&keysym));
 
@@ -39,8 +41,10 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenTwoKeysDown_AddsBothKeysToBuffer) {
     keyboard_init();
 
     SDL_Keysym keysym = {
-        .sym = SDLK_a,
-        .mod = 0x0,
+        scancode : SDL_SCANCODE_UNKNOWN,
+        sym : SDLK_a,
+        mod : 0x0,
+        unused : 0,
     };
     EXPECT_EQ(kOk, keyboard_key_down(&keysym));
     keysym.sym = SDLK_b;
@@ -58,8 +62,10 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenKeyAlreadyDown_MovesKeyToEndOfBuffer) {
     keyboard_init();
 
     SDL_Keysym keysym = {
-        .sym = SDLK_a,
-        .mod = 0x0,
+        scancode : SDL_SCANCODE_UNKNOWN,
+        sym : SDLK_a,
+        mod : 0x0,
+        unused : 0,
     };
     EXPECT_EQ(kOk, keyboard_key_down(&keysym));
     keysym.sym = SDLK_b;
@@ -79,8 +85,10 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenBufferFull_Succeeds) {
     keyboard_init();
 
     SDL_Keysym keysym = {
-        .sym = SDLK_a,
-        .mod = 0x0,
+        scancode : SDL_SCANCODE_UNKNOWN,
+        sym : SDLK_a,
+        mod : 0x0,
+        unused : 0,
     };
     EXPECT_EQ(kOk, keyboard_key_down(&keysym));
     for (int i = 1; i < 20; ++i) {
@@ -107,8 +115,10 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenKeyUp_RemovesKeyFromBuffer) {
     keyboard_init();
 
     SDL_Keysym keysym = {
-        .sym = SDLK_a,
-        .mod = 0x0,
+        scancode : SDL_SCANCODE_UNKNOWN,
+        sym : SDLK_a,
+        mod : 0x0,
+        unused : 0,
     };
     EXPECT_EQ(kOk, keyboard_key_down(&keysym));
     keysym.sym = SDLK_b;
@@ -127,8 +137,10 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenKeyUp_WithEmptyBuffer_Succeeds) {
     keyboard_init();
 
     SDL_Keysym keysym = {
-        .sym = SDLK_a,
-        .mod = 0x0,
+        scancode : SDL_SCANCODE_UNKNOWN,
+        sym : SDLK_a,
+        mod : 0x0,
+        unused : 0,
     };
     EXPECT_EQ(kOk, keyboard_key_up(&keysym));
 

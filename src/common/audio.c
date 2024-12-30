@@ -1076,10 +1076,11 @@ MmResult audio_play_tone(float f_left, float f_right, int64_t duration, const ch
     }
 
     if (SUCCEEDED(result)) {
-        uint64_t play_duration =
-            duration == -1 ? 0xFFFFFFFFFFFFFFFF : AUDIO_SAMPLE_RATE * duration / 1000;
+        uint64_t play_duration = duration == -1
+                ? UINT64_MAX
+                : AUDIO_SAMPLE_RATE * (uint64_t) duration / 1000;
 
-        if (play_duration != 0xFFFFFFFFFFFFFFFF && f_left >= 10.0) {
+        if (play_duration != UINT64_MAX && f_left >= 10.0) {
             float hw = ((float)AUDIO_SAMPLE_RATE / f_left);
             int x = (int)((float)(play_duration) / hw) + 1;
             play_duration = (uint64_t)((float)x * hw);

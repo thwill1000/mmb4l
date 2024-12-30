@@ -1022,12 +1022,18 @@ void cmd_math(void){
 			i=dimcount-1;
 			while(i>=0){
 				off[i]=1;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 				for(j=0; j<i; j++)off[i]*=(dim[j]+1);
+#pragma GCC diagnostic pop
 				i--;
 			}
 			start=1;
 			for(i=0;i<dimcount;i++){
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 				start+= (pos[i]*off[i]);
+#pragma GCC diagnostic pop
 			}
 			start--;
 			increment=off[target];
@@ -1774,12 +1780,18 @@ void cmd_math(void){
 			i=dimcount-1;
 			while(i>=0){
 				off[i]=1;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 				for(j=0; j<i; j++)off[i]*=(dim[j]+1);
+#pragma GCC diagnostic pop
 				i--;
 			}
 			start=1;
 			for(i=0;i<dimcount;i++){
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 				start+= (pos[i]*off[i]);
+#pragma GCC diagnostic pop
 			}
 			start--;
 			increment=off[target];

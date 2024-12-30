@@ -1,27 +1,19 @@
 /*
- * Copyright (c) 2022 Thomas Hugo Williams
+ * Copyright (c) 2022-2024 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
 #if !defined(MMB4L_TEST_CONFIG_H)
 #define MMB4L_TEST_CONFIG_H
 
-#define BIN_DIR           "/usr/bin"
-#define TMP_DIR           "/tmp"
+#define TMP_DIR  "/tmp"
 
 #if defined(__ANDROID__)
 
-#define TERMUX_ROOT       "/data/data/com.termux"
-#define TERMUX_FILES      TERMUX_ROOT  "/files"
-#undef  BIN_DIR
-#define BIN_DIR           TERMUX_FILES "/usr/bin"
+#define TERMUX_ROOT   "/data/data/com.termux"
+#define TERMUX_FILES  TERMUX_ROOT  "/files"
 #undef  TMP_DIR
-#define TMP_DIR           TERMUX_FILES "/usr/tmp"
-
-#elif defined(__arm__)
-
-#undef  BIN_DIR
-#define BIN_DIR           "/bin"
+#define TMP_DIR       TERMUX_FILES "/usr/tmp"
 
 #endif
 

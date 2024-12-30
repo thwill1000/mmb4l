@@ -411,7 +411,7 @@ TEST_F(OptionsTest, Load_GivenFileDoesNotExist) {
 }
 
 TEST_F(OptionsTest, Load_GivenDirectory) {
-    const char *filename = BIN_DIR;
+    const char *filename = "/etc";
     options_test_buf[0] = '\0';
     Options options;
     options_init(&options);
@@ -1540,13 +1540,13 @@ TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
     // Path to a directory that exists.
     // Note: this will set the SEARCH PATH property to the canonical path
     // corresponding to the value supplied.
-    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, BIN_DIR));
-    EXPECT_STREQ(BIN_DIR, options.search_path);
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, "/etc"));
+    EXPECT_STREQ("/etc", options.search_path);
 
     // Path to a file that exists.
     EXPECT_EQ(
             kNotADirectory,
-            options_set_string_value(&options, kOptionSearchPath, BIN_DIR "/cp"));
+            options_set_string_value(&options, kOptionSearchPath, "/etc/passwd"));
 
     // Path that does not exist.
     EXPECT_EQ(
