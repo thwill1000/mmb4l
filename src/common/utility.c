@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "stdarg.h"
 #include "utility.h"
 
 void utility_dump_memory(const char *start) {
@@ -66,4 +67,13 @@ void utility_dump_memory(const char *start) {
     }
 
     printf("\n");
+}
+
+void utility_perror_ext(const char *format, ...) {
+    char buf[4096 * 2];
+    va_list arg_ptr;
+    va_start(arg_ptr, format);
+    vsnprintf(buf, 4096 * 2, format, arg_ptr);
+    va_end(arg_ptr);
+    perror(buf);
 }

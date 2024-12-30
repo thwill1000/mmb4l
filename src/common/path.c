@@ -525,7 +525,8 @@ MmResult path_complete(const char *path, char *out, size_t sz) {
         }
     }
 
-    return kOk;
+    // readdir() will have set errno if it fails.
+    return (MmResult) errno;
 }
 
 MmResult path_try_extension(const char *path, const char *extension, char *out, size_t out_sz) {

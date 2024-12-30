@@ -148,7 +148,7 @@ protected:
     std::string PathToFileInCwd(const char* path) {
         char cwd[PATH_MAX];
         if (!getcwd(cwd, sizeof(cwd))) {
-            perror("getcwd() error");
+            perror("getcwd() failed");
             return "";
         }
         return std::string(cwd) + "/" + path;
@@ -158,7 +158,13 @@ protected:
         struct stat st = { 0 };
         if (stat(dir_path, &st) == -1) return; // Does not exist.
 
+        errno = 0;
         DIR *dir = opendir(dir_path);
+        if (!dir) {
+            utility_perror_ext("opendir(\"%s\") failed", dir_path);
+            return;
+        }
+
         struct dirent *next_file;
         char file_path[PATH_MAX];
 
@@ -167,11 +173,17 @@ protected:
                     && strcmp(next_file->d_name, "..") != 0) {
                 sprintf(file_path, "%s/%s", dir_path, next_file->d_name);
                 if (next_file->d_type == DT_DIR) RemoveRecursively(file_path);
-                remove(file_path);
+                if (FAILED(remove(file_path))) {
+                    utility_perror_ext("remove(\"%s\") failed", file_path);
+                    errno = 0;
+                    break;
+                }
             }
         }
 
-        closedir(dir);
+        if (errno) utility_perror_ext("readdir(\"%s\") failed", dir_path);
+
+        if (FAILED(closedir(dir))) utility_perror_ext("closedir(\"%s\") failed", dir_path);
     }
 
     void RemoveDir(const char *path) {
@@ -180,9 +192,7 @@ protected:
 
     void RemoveFile(const char *path) {
         if (FAILED(remove(path)) && errno != ENOENT) {
-            char buf[PATH_MAX];
-            sprintf(buf, "remove(\"%s\") failed", path);
-            perror(buf);
+            utility_perror_ext("remove(\"%s\") failed", path);
         }
     }
 

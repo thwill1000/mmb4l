@@ -118,6 +118,7 @@ void fun_dir(void) {
     static char pp[32];
     getargs(&ep, 3, ",");
     g_rtn_type = T_STR;
+    errno = 0;
 
     switch (argc) {
         case 0:
@@ -181,4 +182,5 @@ void fun_dir(void) {
     }
 
     CtoM(g_string_rtn);
+    ON_FAILURE_ERROR(errno);
 }

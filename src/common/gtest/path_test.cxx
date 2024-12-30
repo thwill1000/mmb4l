@@ -542,7 +542,7 @@ TEST_F(PathTest, Append) {
         EXPECT_EQ(kOk, path_complete(input, out, 256)); \
         EXPECT_STREQ(expected, out)
 
-TEST_F(PathTest, GivenRelativePath) {
+TEST_F(PathTest, Complete_GivenRelativePath) {
     char out[256];
 
     MAKE_FILE(PATH_TEST_DIR "/foo");

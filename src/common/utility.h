@@ -83,4 +83,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void utility_dump_memory(const char *p);
 
+/** perror() with formatted string support. */
+void utility_perror_ext(const char *format, ...);
+
 #endif // #if !defined(MMBASIC_UTILITY_H)

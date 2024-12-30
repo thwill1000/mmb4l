@@ -351,6 +351,7 @@ static MmResult audio_fill_track_list(const char *filename, const char *extensio
 
     // Treat 'canonical' as a directory to search.
     {
+        errno = 0;
         const char *dirname = canonical;
         DIR *dir = opendir(dirname);
         if (!dir) return errno;
@@ -370,7 +371,7 @@ static MmResult audio_fill_track_list(const char *filename, const char *extensio
         closedir(dir);
     }
 
-    return kOk;
+    return (MmResult) errno;
 }
 
 MmResult audio_stop() {
