@@ -325,8 +325,6 @@ void cmd_play(void) {
         result = cmd_play_stop(p); // CLOSE is a synonym of STOP.
     } else if ((p = checkstring(cmdline, "CONTINUE"))) {
         result = cmd_play_continue(p);
-    } else if ((p = checkstring(cmdline, "CONTINUE"))) {
-        result = cmd_play_continue(p);
     } else if ((p = checkstring(cmdline, "EFFECT"))) {
         result = cmd_play_effect(p);
     } else if ((p = checkstring(cmdline, "FLAC"))) {
