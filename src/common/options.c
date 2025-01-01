@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 options.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -133,6 +133,7 @@ static const NameOrdinalPair options_simulate_map[] = {
 
 OptionsDefinition options_definitions[] = {
     { "Angle",       kOptionAngle,        kOptionTypeString,  false, "Radians",                 options_angle_map },
+    { "Audio",       kOptionAudio,        kOptionTypeBoolean, true,  "On",                      NULL },
     { "AutoScale",   kOptionAutoScale,    kOptionTypeBoolean, true,  "On",                      NULL },
     { "Base",        kOptionBase,         kOptionTypeInteger, false, "0",                       NULL },
     { "Break",       kOptionBreakKey,     kOptionTypeInteger, false, "3" /* Ctrl-C */,          NULL },
@@ -563,6 +564,9 @@ MmResult options_get_float_value(const Options *options, OptionsId id, MMFLOAT *
 MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEGER *ivalue) {
     MmResult result = kOk;
     switch (id) {
+        case kOptionAudio:
+            *ivalue = options->audio;
+            break;
         case kOptionAutoScale:
             *ivalue = options->auto_scale;
             break;
@@ -672,6 +676,7 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
                     svalue);
             break;
 
+        case kOptionAudio:
         case kOptionAutoScale: {
             MMINTEGER ivalue;
             result = options_get_integer_value(options, id, &ivalue);
@@ -775,6 +780,15 @@ static MmResult options_set_angle(Options *options, const char *svalue) {
         }
     }
     return kInvalidValue;
+}
+
+static MmResult options_set_audio(Options *options, int ivalue) {
+    if (ivalue == 0 || ivalue == 1) {
+        options->audio = ivalue;
+        return kOk;
+    } else {
+        return kInvalidValue;
+    }
 }
 
 static MmResult options_set_auto_scale(Options *options, int ivalue) {
@@ -940,6 +954,7 @@ MmResult options_set_float_value(Options *options, OptionsId id, MMFLOAT fvalue)
 
 MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER ivalue) {
     switch (id) {
+        case kOptionAudio:     return options_set_audio(options, ivalue);
         case kOptionAutoScale: return options_set_auto_scale(options, ivalue);
         case kOptionBase:      return options_set_base(options, ivalue);
         case kOptionBreakKey:  return options_set_break_key(options, ivalue);

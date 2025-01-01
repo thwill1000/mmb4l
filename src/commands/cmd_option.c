@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_option.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "../common/mmb4l.h"
+#include "../common/audio.h"
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/flash.h"
@@ -246,22 +247,31 @@ static void cmd_option_set(const char *p) {
         }
     }
 
-    if (def->id == kOptionSimulate) {
-        switch (mmb_options.simulate) {
-            case kSimulateGameMite:
-            case kSimulatePicoMiteVga:
-                ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
-                ON_FAILURE_ERROR(flash_init());
-                break;
-            case kSimulateCmm2:
-            case kSimulateMmb4l:
-            case kSimulateMmb4w:
-                ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
-                ON_FAILURE_ERROR(flash_term());
-                break;
-            default:
-                ON_FAILURE_ERROR(kInternalFault);
-        }
+    switch (def->id) {
+        case kOptionAudio:
+            ON_FAILURE_ERROR(audio_term());
+            break;
+
+        case kOptionSimulate:
+            switch (mmb_options.simulate) {
+                case kSimulateGameMite:
+                case kSimulatePicoMiteVga:
+                    ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
+                    ON_FAILURE_ERROR(flash_init());
+                    break;
+                case kSimulateCmm2:
+                case kSimulateMmb4l:
+                case kSimulateMmb4w:
+                    ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
+                    ON_FAILURE_ERROR(flash_term());
+                    break;
+                default:
+                    ON_FAILURE_ERROR(kInternalFault);
+            }
+            break;
+
+        default:
+            break;
     }
 }
 

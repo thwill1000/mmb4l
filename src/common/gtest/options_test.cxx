@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Thomas Hugo Williams
+ * Copyright (c) 2021-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -58,6 +58,7 @@ static void write_line_to_buf(const char *line) {
 
 static void expect_options_have_defaults(Options *options) {
     EXPECT_EQ(kRadians, options->angle);
+    EXPECT_EQ(1, options->audio);
     EXPECT_EQ(0, options->autorun);
     EXPECT_EQ(1, options->auto_scale);
     EXPECT_EQ(0, options->base);
@@ -774,6 +775,20 @@ TEST_F(OptionsTest, GetFloatValue_ForNonFloat) {
     EXPECT_EQ(0.0, fvalue);
 }
 
+TEST_F(OptionsTest, GetIntegerValue_ForAudio) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    options.audio = 0;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionAudio, &ivalue));
+    EXPECT_EQ(0, ivalue);
+
+    options.audio = 1;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionAudio, &ivalue));
+    EXPECT_EQ(1, ivalue);
+}
+
 TEST_F(OptionsTest, GetIntegerValue_ForAutoScale) {
     Options options;
     options_init(&options);
@@ -871,6 +886,20 @@ TEST_F(OptionsTest, GetStringValue_ForAngle) {
     options.angle = kDegrees;
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAngle, svalue));
     EXPECT_STREQ("Degrees", svalue);
+}
+
+TEST_F(OptionsTest, GetStringValue_ForAudio) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.audio = 0;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAudio, svalue));
+    EXPECT_STREQ("Off", svalue);
+
+    options.audio = 1;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAudio, svalue));
+    EXPECT_STREQ("On", svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForAutoScale) {
@@ -1191,6 +1220,19 @@ TEST_F(OptionsTest, SetFloatValue_ForNonFloat) {
     EXPECT_EQ(kInternalFault, options_set_float_value(&options, kOptionZString, 1.2345));
 }
 
+TEST_F(OptionsTest, SetIntegerValue_ForAudio) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionAudio, 0));
+    EXPECT_EQ(0, options.audio);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionAudio, 1));
+    EXPECT_EQ(1, options.audio);
+
+    EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionAudio, 2));
+}
+
 TEST_F(OptionsTest, SetIntegerValue_ForAutoScale) {
     Options options;
     options_init(&options);
@@ -1286,6 +1328,38 @@ TEST_F(OptionsTest, SetStringValue_ForAngle) {
     EXPECT_EQ(kRadians, options.angle);
 
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAngle, "wombat"));
+}
+
+TEST_F(OptionsTest, SetStringValue_ForAudio) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "false"));
+    EXPECT_EQ(false, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "true"));
+    EXPECT_EQ(true, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "Off"));
+    EXPECT_EQ(false, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "On"));
+    EXPECT_EQ(true, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "0"));
+    EXPECT_EQ(false, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "1"));
+    EXPECT_EQ(true, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "FALSE"));
+    EXPECT_EQ(false, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "ON"));
+    EXPECT_EQ(true, options.audio);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAudio, "2"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAudio, "wombat"));
 }
 
 TEST_F(OptionsTest, SetStringValue_ForAutoScale) {

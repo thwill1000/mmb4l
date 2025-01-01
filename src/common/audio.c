@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 audio.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -206,7 +206,9 @@ static MmResult audio_configure(int sample_rate, int num_channels) {
     MmResult result = kOk;
     if (audio_current_spec.freq != sample_rate || audio_current_spec.channels != num_channels) {
         UNLOCK_AUDIO("audio_configure"); // Release lock on the old audio.
+
         SDL_CloseAudio();
+
         audio_current_spec = (SDL_AudioSpec){
             .format = AUDIO_F32,
             .channels = num_channels,
@@ -215,14 +217,17 @@ static MmResult audio_configure(int sample_rate, int num_channels) {
             .callback = audio_callback,
         };
 
-        if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) result = kAudioApiError;
+        if (mmb_options.audio) {
+            if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) result = kAudioApiError;
+        }
+
         LOCK_AUDIO("audio_configure"); // Acquire lock on the new audio.
     }
 
     // A new device starts paused, this will resume it.
     // In the event we have not created a new device it is harmless to resume an existing unpaused
     // device.
-    SDL_PauseAudio(0);
+    if (mmb_options.audio) SDL_PauseAudio(0);
     return result;
 }
 
@@ -245,7 +250,9 @@ MmResult audio_init() {
             .callback = audio_callback,
         };
 
-        if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) result = kAudioApiError;
+        if (mmb_options.audio) {
+            if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) result = kAudioApiError;
+        }
     }
 
     return result;
@@ -406,7 +413,7 @@ MmResult audio_stop() {
 MmResult audio_term() {
     if (!audio_initialised) return kOk;
     MmResult result = audio_stop();
-    SDL_CloseAudio();
+    if (mmb_options.audio) SDL_CloseAudio();
     audio_initialised = false;
     return result;
 }
