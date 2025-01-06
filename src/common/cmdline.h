@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmdline.h
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef struct {
     char help;
-    char interactive;
+    char show_prompt;
     char version;
     char run_cmd[INPBUF_SIZE];
     char directory[STRINGSIZE];

@@ -60,7 +60,7 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
     // TODO: should perhaps be rewritten to use getopt().
 
     memset(out, 0, sizeof(CmdLineArgs));
-    out->interactive = 255;
+    out->show_prompt = 255;
 
     // Looking for flags.
     int i = 1;
@@ -81,7 +81,7 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
         } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             out->help = 1;
         } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--interactive") == 0) {
-            out->interactive = 1;
+            out->show_prompt = 1;
         } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
             out->version = 1;
         } else {
@@ -105,7 +105,7 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
     result = parse_transform_input_buffer(out->run_cmd);
     if (FAILED(result)) return result;
 
-    if (out->interactive == 255) out->interactive = (out->run_cmd[0] == '\0');
+    if (out->show_prompt == 255) out->show_prompt = (out->run_cmd[0] == '\0');
 
     return kOk;
 }

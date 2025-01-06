@@ -207,7 +207,7 @@ static void reset_console_title() {
 /** Handle return via longjmp(). */
 void longjmp_handler(int jmp_state) {
 
-    if (mmb_args.interactive) {
+    if (mmb_args.show_prompt) {
         console_show_cursor(true);
         console_reset();
         if (MMCharPos > 1) console_puts("\r\n");
@@ -219,18 +219,18 @@ void longjmp_handler(int jmp_state) {
     switch (jmp_state) {
         case JMP_BREAK:
             mmb_exit_code = EX_BREAK;
-            do_exit = !mmb_args.interactive;
+            do_exit = !mmb_args.show_prompt;
             break;
 
         case JMP_END:
-            do_exit = !mmb_args.interactive;
+            do_exit = !mmb_args.show_prompt;
             break;
 
         case JMP_ERROR:
             console_puts(mmb_error_state_ptr->message);
             console_puts("\r\n");
             mmb_exit_code = error_to_exit_code(mmb_error_state_ptr->code);
-            do_exit = !mmb_args.interactive;
+            do_exit = !mmb_args.show_prompt;
             break;
 
         case JMP_NEW:
@@ -285,11 +285,11 @@ int main(int argc, char *argv[]) {
 
     InitHeap();  // init memory allocation
 
-    console_init(!mmb_args.interactive);
+    console_init(!mmb_args.show_prompt);
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
 
-    if (mmb_args.interactive) {
+    if (mmb_args.show_prompt) {
         reset_console_title();
         console_reset();
         console_clear();
@@ -351,7 +351,7 @@ int main(int argc, char *argv[]) {
         //     ErrorInPrompt = true;
         //     ExecuteProgram("MM.PROMPT\0");
         // } else {
-        if (mmb_args.interactive) {
+        if (mmb_args.show_prompt) {
             console_puts("> ");  // print the prompt
         }
         // }
@@ -365,7 +365,7 @@ int main(int argc, char *argv[]) {
 
         memset(inpbuf, 0, INPBUF_SIZE);
         if (run_flag) {
-            if (mmb_args.interactive) {
+            if (mmb_args.show_prompt) {
                 console_puts(mmb_args.run_cmd);
                 console_puts("\r\n");
             }
