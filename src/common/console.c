@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 console.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -64,15 +64,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static struct termios orig_termios;
 static char console_rx_buf_data[CONSOLE_RX_BUF_SIZE];
 static RxBuf console_rx_buf;
+static bool console_no_title = false;
 
 int ListCnt = 0;
 int MMCharPos = 0;
 
-void console_init(void) {
+void console_init(bool no_title) {
     rx_buf_init(
             &console_rx_buf,
             console_rx_buf_data,
             sizeof(console_rx_buf_data));
+    console_no_title = no_title;
 }
 
 void console_bell(void) {
@@ -312,7 +314,8 @@ void console_puts(const char *s) {
     fflush(stdout);
 }
 
-void console_set_title(const char *title) {
+void console_set_title(const char *title, bool command) {
+    if (!command && console_no_title) return;
     printf("\x1b]0;%s\x7", title);
     fflush(stdout);
 }

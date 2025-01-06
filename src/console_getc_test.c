@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 
     options_init(&mmb_options);
     mmb_options.break_key = 0; // So that it isn't caught.
-    console_init();
+    console_init(false);
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
 

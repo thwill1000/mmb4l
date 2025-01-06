@@ -196,7 +196,7 @@ static void cmd_console_set_size(const char *p) {
 static void cmd_console_title(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) ERROR_ARGUMENT_COUNT;
-    console_set_title(getCstring(argv[0]));
+    console_set_title(getCstring(argv[0]), true);
 }
 
 static void cmd_console_show_cursor(const char *p) {

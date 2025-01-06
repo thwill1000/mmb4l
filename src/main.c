@@ -201,15 +201,18 @@ void set_start_directory() {
 static void reset_console_title() {
     char title[STRINGSIZE + 10];
     sprintf(title, "MMBasic - %s", CurrentFile[0] == '\0' ? "Untitled" : CurrentFile);
-    console_set_title(title);
+    console_set_title(title, false);
 }
 
 /** Handle return via longjmp(). */
 void longjmp_handler(int jmp_state) {
 
-    console_show_cursor(true);
-    console_reset();
-    if (MMCharPos > 1) console_puts("\r\n");
+    if (mmb_args.interactive) {
+        console_show_cursor(true);
+        console_reset();
+        if (MMCharPos > 1) console_puts("\r\n");
+    }
+
     audio_term();
 
     int do_exit = false;
@@ -282,7 +285,7 @@ int main(int argc, char *argv[]) {
 
     InitHeap();  // init memory allocation
 
-    console_init();
+    console_init(!mmb_args.interactive);
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
 
@@ -394,7 +397,7 @@ void IntHandler(int signo) {
 
 void FlashWriteInit() {
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
-    console_set_title("MMBasic - Untitled");
+    console_set_title("MMBasic - Untitled", false);
     CurrentFile[0] = 0;
 }
 

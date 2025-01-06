@@ -989,7 +989,7 @@ MmResult program_load_file(const char *filename) {
         // Set the console window title.
         char title[STRINGSIZE + 10];
         sprintf(title, "MMBasic - %s", CurrentFile);
-        console_set_title(title);
+        console_set_title(title, false);
     }
 
     // TODO: Is the 'errno' check really necessary?
