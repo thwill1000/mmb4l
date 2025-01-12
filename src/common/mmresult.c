@@ -93,6 +93,25 @@ const char *mmresult_to_string(MmResult result) {
         return mmresult_last_msg;
     }
 
+    switch (result) {
+        case kEventsApiError:
+            formatEventsApiError();
+            return mmresult_last_msg;
+        case kGamepadApiError:
+            formatGamepadApiError();
+            return mmresult_last_msg;
+        case kGraphicsApiError:
+            formatGraphicsApiError();
+            return mmresult_last_msg;
+        case kAudioApiError:
+            formatAudioApiError();
+            return mmresult_last_msg;
+        default:
+            return mmresult_to_default_string(result);
+    }
+}
+
+const char *mmresult_to_default_string(MmResult result) {
     if (result > kOk && result < kError) {
         if (result == kFilenameTooLong) return "Pathname too long";
         return strerror(result);
@@ -141,18 +160,12 @@ const char *mmresult_to_string(MmResult result) {
         case kNoCommentToTerminate:       return "No comment to terminate";
         case kContainerEmpty:             return "Container empty";
         case kContainerFull:              return "Container full";
-        case kEventsApiError:
-            formatEventsApiError();
-            return mmresult_last_msg;
-        case kFlashFileTooBig:               return "File too large to load into flash";
-        case kFlashInvalidIndex:             return "Invalid flash slot";
-        case kFlashModuleNotInitialised:     return "Flash simulation module not initialised";
-        case kGamepadApiError:
-            formatGamepadApiError();
-            return mmresult_last_msg;
-        case kGraphicsApiError:
-            formatGraphicsApiError();
-            return mmresult_last_msg;
+        case kEventsApiError:             return "SDL events error";
+        case kFlashFileTooBig:            return "File too large to load into flash";
+        case kFlashInvalidIndex:          return "Invalid flash slot";
+        case kFlashModuleNotInitialised:  return "Flash simulation module not initialised";
+        case kGamepadApiError:            return "SDL gamepad error";
+        case kGraphicsApiError:           return "SDL graphics error";
         case kGraphicsInvalidColour:      return "Invalid colour";
         case kGraphicsInvalidColourDepth: return "Invalid colour depth";
         case kGraphicsInvalidId:          return "Invalid graphics surface ID";
@@ -194,9 +207,7 @@ const char *mmresult_to_string(MmResult result) {
         case kGamepadInvalidId:           return "Invalid gamepad ID";
         case kGamepadNotOpen:             return "Gamepad not open";
         case kGamepadUnknownFunction:     return "Unknown gamepad function";
-        case kAudioApiError:
-            formatAudioApiError();
-            return mmresult_last_msg;
+        case kAudioApiError:              return "SDL audio error";
         case kAudioFlacInitialisationFailed: return "FLAC file initialisation failed";
         case kAudioInUse:                 return "Sound output in use";
         case kAudioInvalidFrequency:      return "Valid is 0Hz to 20KHz";

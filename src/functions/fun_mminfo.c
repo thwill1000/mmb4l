@@ -181,10 +181,19 @@ static void mminfo_envvar(const char *p) {
 }
 
 static void mminfo_errmsg(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
+    getargs(&p, 1, ",");
+    if (argc > 1) ERROR_ARGUMENT_COUNT;
+
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
-    strcpy(g_string_rtn, mmb_error_state_ptr->message);
+
+    if (argc == 0) {
+        strcpy(g_string_rtn, mmb_error_state_ptr->message);
+    } else {
+        MmResult result = (MmResult) getinteger(argv[0]);
+        strcpy(g_string_rtn, mmresult_to_default_string(result));
+    }
+
     CtoM(g_string_rtn);
 }
 

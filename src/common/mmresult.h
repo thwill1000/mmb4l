@@ -193,7 +193,20 @@ void mmresult_clear();
 /** @brief Creates an extended MmResult. */
 MmResult mmresult_ex(MmResult result, const char *format, ...);
 
-/** @brief Gets the string corresponding to a given result code. */
+/**
+ * @brief Gets the context sensitive string corresponding to a given result code.
+ *
+ * This takes into account the context of the current error, i.e. if a specific message has been
+ * set, or it is an SDL API error with extra information to append.
+ */
 const char *mmresult_to_string(MmResult result);
+
+/**
+ * @brief Gets the default string corresponding to a given result code.
+ *
+ * This ignores the context of the current error and returns the simple error message corresponding
+ * to the MmResult.
+ */
+const char *mmresult_to_default_string(MmResult result);
 
 #endif
