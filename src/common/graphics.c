@@ -487,13 +487,17 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
     MmSurface *s = &graphics_surfaces[id];
 
     // Reduce scale to fit display.
+    // To allow for window decorations and window manager toolbars restict
+    // the window dimensions to no more than 85% of the display dimensions.
     float fscale = scale;
     if (SUCCEEDED(result)) {
         SDL_DisplayMode dm;
         if (SUCCEEDED(SDL_GetCurrentDisplayMode(0, &dm))) {
-            while (width * fscale > dm.w * 0.9 || height * fscale > dm.h * 0.9) {
-                fscale -= fscale > 2.0 ? 1.0 : 0.1;
-                if (fscale < 0.1) return kGraphicsSurfaceTooLarge;
+            const float maxW = 0.85 * dm.w;
+            const float maxH = 0.85 * dm.h;
+            while ((float) width * fscale > maxW || (float) height * fscale > maxH) {
+                fscale -= fscale > 2.0 ? 1.0 : 0.05;
+                if (fscale < 0.5) return kGraphicsSurfaceTooLarge;
             }
         } else {
             result = kGraphicsApiError;
