@@ -78,9 +78,9 @@ function create_distribution() {
   cp $BASE_DIR/LICENSE* $DISTRIB_NAME
   cp $BASE_DIR/README.md $DISTRIB_NAME
 
-  tar -czvf $DISTRIB_NAME.tar.gz $DISTRIB_NAME
+  tar -czvf $DISTRIB_NAME.tgz $DISTRIB_NAME
   mkdir -p $BASE_DIR/dist
-  cp $DISTRIB_NAME.tar.gz $BASE_DIR/dist
+  cp $DISTRIB_NAME.tgz $BASE_DIR/dist
 }
 
 source /etc/os-release
@@ -230,5 +230,5 @@ make -j4
 # Test.
 ctest
 
-# Create distribution .tar.gz.
+# Create distribution .tgz.
 create_distribution
