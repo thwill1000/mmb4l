@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-cmd_cls.c
+cmd_mode.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,12 +43,64 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
-#include "../common/console.h"
+#include "../common/graphics.h"
 #include "../common/error.h"
 #include "../common/parse.h"
+#include "../common/utility.h"
+
+/**
+ * MODE mode [, colour_depth [, background [, interrupt]]]
+ *
+ * @param  colour_depth  On the real CMM2 this is the colour depth (8, 12, 16 or 32) of the video
+ *                       page.
+ *                       In MMB4L all the "video pages" are 32-bit and only the values 12 and 32
+ *                       have any meaning (the same as MMB4W). A value of 12 makes MMB4L simulate
+ *                       a three layer CMM2 display:
+ *                         page/surface 1 -- top
+ *                         page/surface 0
+ *                         background     -- bottom
+ *                       Pixels in the higher layer overwrite those in the lower levels as defined
+ *                       by the transparency/alpha levels of the individual pixels.
+ * @param  background    Colour of background layer when colour_depth == 12.
+ * @param  interrupt     Unused by MMB4L; on the real CMM2 this is an interrupt routine called at
+ *                       the start of frame blanking.
+ */
+static MmResult cmd_mode_cmm2(void) {
+    getargs(&cmdline, 7, ",");
+    if ((argc % 2 == 0) || argc < 1) return kArgumentCount;
+
+    const unsigned mode = getint(argv[0], MIN_CMM2_MODE, MAX_CMM2_MODE);
+    const unsigned colour_depth = (argc >= 3) ? getint(argv[2], 0, 32) : 32;
+    const MmGraphicsColour background = (argc >= 5)
+            ? getint(argv[4], RGB_BLACK, RGB_WHITE)
+            : RGB_BLACK;
+    // 'interrupt' parameter is ignored by MMB4L.
+    return graphics_set_mode(mode, colour_depth, background);
+}
+
+static MmResult cmd_mode_pmvga(void) {
+    getargs(&cmdline, 1, ",");
+    if (argc != 1) return kArgumentCount;
+
+    const unsigned mode = getint(argv[0], MIN_PMVGA_MODE, MAX_PMVGA_MODE);
+    return graphics_set_mode(mode, 32, RGB_BLACK);
+}
 
 void cmd_mode(void) {
-    //skipspace(cmdline);
-    //if (!parse_is_end(cmdline)) ERROR_SYNTAX;
-    console_clear();
+    MmResult result = kOk;
+    switch (mmb_options.simulate) {
+        case kSimulateCmm2:
+        case kSimulateMmb4w:
+            result = cmd_mode_cmm2();
+            break;
+
+        case kSimulatePicoMiteVga:
+            result = cmd_mode_pmvga();
+            break;
+
+        default:
+            result = kUnsupportedOnCurrentDevice;
+            break;
+    }
+    ON_FAILURE_ERROR(result);
 }

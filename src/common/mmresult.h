@@ -47,6 +47,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <errno.h>
 #include <stdint.h>
+#include <stdio.h>
+
+#if !defined(STRINGSIZE)
+#define STRINGSIZE 256
+#endif
 
 // MmResult encompasses both the standard C errno in range 1 .. 255
 // plus MMBasic specific error codes.
@@ -65,10 +70,14 @@ typedef enum {
     kError                = 256,
     kInternalFault,
     kSyntax,
+    kArgumentCount,
     kStringLength,
     kStringTooLong,
+    kInvalidArgument,
+    kInvalidArgumentType,
     kInvalidFormat,
     kUnknownOption,
+    kInvalidArray,
     kInvalidBool,
     kInvalidFloat,
     kInvalidInt,
@@ -88,12 +97,116 @@ typedef enum {
     kInvalidName,
     kInvalidArrayDimensions,
     kFunctionTypeMismatch,
-    kInvalidCommandLine
+    kInvalidCommandLine,
+    kTooManyDefines,
+    kOutOfMemory,
+    kLineTooLong,
+    kProgramTooLong,
+    kUnterminatedComment,
+    kNoCommentToTerminate,
+    kContainerEmpty,
+    kContainerFull,
+    kEventsApiError,
+    kFlashFileTooBig,
+    kFlashInvalidIndex,
+    kFlashModuleNotInitialised,
+    kGamepadApiError,
+    kGraphicsApiError,
+    kGraphicsInvalidColour,
+    kGraphicsInvalidColourDepth,
+    kGraphicsInvalidId,
+    kGraphicsInvalidReadSurface,
+    kGraphicsInvalidSprite,
+    kGraphicsInvalidSpriteIdZero,
+    kGraphicsInvalidSurface,
+    kGraphicsInvalidVertices,
+    kGraphicsInvalidWindow,
+    kGraphicsInvalidWriteSurface,
+    kGraphicsLoadBitmapFailed,
+    kGraphicsReadAndWriteSurfaceSame,
+    kGraphicsSurfaceAlreadyExists,
+    kGraphicsSurfaceSizeMismatch,
+    kGraphicsSurfaceTooLarge,
+    kGraphicsTooManySprites,
+    kImageTooLarge,
+    kImageInvalidFormat,
+    kInvalidEditor,
+    kInvalidEnvironmentVariableName,
+    kInvalidFont,
+    kInvalidFontScaling,
+    kUnexpectedText,
+    kUnknownDevice,
+    kUnsupportedOnCurrentDevice,
+    kUnsupportedParameterOnCurrentDevice,
+    kInvalidMode,
+    kInvalidFlag,
+    kCannotBlitCloseWindow,
+    kMissingType,
+    kTypeSpecifiedTwice,
+    kInvalidFunctionDefinition,
+    kInvalidSubDefinition,
+    kMissingCloseBracket,
+    kMissingOpenBracket,
+    kUnexpectedCloseBracket,
+    kInvalidArrayParameter,
+    kTooManyParameters,
+    kInvalidInterruptSignature,
+    kGamepadNotFound,
+    kGamepadInvalidId,
+    kGamepadNotOpen,
+    kGamepadUnknownFunction,
+    kAudioApiError,
+    kAudioFlacInitialisationFailed,
+    kAudioInUse,
+    kAudioInvalidFrequency,
+    kAudioInvalidSampleRate,
+    kAudioMp3InitialisationFailed,
+    kAudioNoModFile,
+    kAudioNoMoreTracks,
+    kAudioNothingToPause,
+    kAudioNothingToPlay,
+    kAudioNothingToResume,
+    kAudioSampleRateMismatch,
+    kAudioWavInitialisationFailed,
+    kGpioInvalidPin,
+    kGpioInvalidPulseWidth,
+    kGpioPinIsNotAnOutput,
+    kKeyboardUnknownKey,
+    kNotParsed,
+    kFileInvalidFileNumber,
+    kFileAlreadyOpen,
+    kFileNotOpen,
+    kFileInvalidExtension,
+    kFileInvalidSeekPosition,
+    kPreprocessorReplaceFailed,
+    kNotEnoughData,
+    kSpriteInactive,
+    kSpritesAreHidden,
+    kSpritesNotHidden,
+    kStackElementNotFound,
+    kStackIndexOutOfBounds,
 } MmResultCode;
 
+/** @brief Clears cached MmResult. */
+void mmresult_clear();
+
+/** @brief Creates an extended MmResult. */
+MmResult mmresult_ex(MmResult result, const char *format, ...);
+
 /**
- * @brief Gets the string corresponding to a given result code.
+ * @brief Gets the context sensitive string corresponding to a given result code.
+ *
+ * This takes into account the context of the current error, i.e. if a specific message has been
+ * set, or it is an SDL API error with extra information to append.
  */
 const char *mmresult_to_string(MmResult result);
+
+/**
+ * @brief Gets the default string corresponding to a given result code.
+ *
+ * This ignores the context of the current error and returns the simple error message corresponding
+ * to the MmResult.
+ */
+const char *mmresult_to_default_string(MmResult result);
 
 #endif

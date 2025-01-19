@@ -23,6 +23,7 @@ add_test("test_peek_short")
 add_test("test_peek_var")
 add_test("test_peek_word")
 add_test("test_peek_cfunaddr")
+add_test("test_peek_cfunaddr_given_string")
 add_test("test_peek_progmem")
 add_test("test_peek_vartbl")
 add_test("test_peek_varheader")
@@ -172,6 +173,26 @@ Sub test_peek_cfunaddr()
   Next
 End Sub
 
+Sub test_peek_cfunaddr_given_string()
+  Local ad%, i%, offset%
+
+  If Mm.Device$ = "MMBasic for Windows" Then Exit Sub
+
+  ad% = Peek(CFunAddr "data1")
+  offset% = 0
+  For i% = 1 To &hC
+    assert_hex_equals(i%, Peek(Word ad% + 4 * offset%))
+    Inc offset%
+  Next
+
+  ad% = Peek(CFunAddr "data2")
+  offset% = 0
+  For i% = &hD To &hA Step -1
+    assert_hex_equals(i%, Peek(Word ad% + 4 * offset%))
+    Inc offset%
+  Next
+End Sub
+
 CSub data1()
   00000000
   00000001 00000002 00000003 00000004
@@ -212,7 +233,7 @@ Sub test_peek_progmem()
 
   ' Different token ids for OPTION on different platforms.
   If sys.is_platform%("mmb4l") Then
-    assert_string_equals(Chr$(204) + "EXPLICIT ON'|5" + Chr$(0), s$)
+    assert_string_equals(Chr$(210) + Chr$(128) + "EXPLICIT ON'|5" + Chr$(0), s$)
   ElseIf sys.is_platform%("cmm2*") Then
     assert_string_equals(Chr$(197) + "EXPLICIT ON'|5" + Chr$(0), s$)
   ElseIf sys.is_platform%("pm*") Then

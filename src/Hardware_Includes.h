@@ -65,9 +65,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/interrupt.h"
 #include "common/memory.h"
 #include "common/options.h"
-#include "commands/mmb4l_commands.h"
-#include "functions/mmb4l_functions.h"
-#include "operators/mmb4l_operators.h"
 
 // Redefine the standard float routines used in MMBasic to their double versions
 #define powf pow
@@ -84,9 +81,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Global variables used in MMBasic but must be maintained outside of the interpreter
 extern int IgnorePIN;
-
-#define FONT_BUILTIN_NBR 0
-#define FONT_TABLE_SIZE 0
 
 // Aliases for functions using "legacy" names in MMBasic core:
 #define check_interrupt    interrupt_check
@@ -128,7 +122,6 @@ int MMgetchar(void);
 
 extern char *CFunctionFlash;
 extern char *CFunctionLibrary;
-extern char **FontTable;
 
 // various debug macros
 #if defined(DEBUGMODE)

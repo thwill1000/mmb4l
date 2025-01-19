@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_sort.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <ctype.h>
+#include <string.h>
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
@@ -135,7 +136,7 @@ static void floatsort(MMFLOAT *farray, int n, int64_t *index, int flags,
 }
 
 static void stringsort(unsigned char *sarray, int n, int offset, int64_t *index,
-                int flags, int startpoint) {
+                       int flags, int startpoint) {
     int ii, i, s = 1, isave;
     int k;
     unsigned char *s1, *s2, *p1, *p2;
@@ -194,11 +195,53 @@ static void stringsort(unsigned char *sarray, int n, int offset, int64_t *index,
                     index[i + startpoint] = isave;
                 }
             }
-            // routinechecks(1);
         }
     }
+
+    // Handle empty strings according to flag bit 2.
+    // TODO: This should probably be done as part of the comparison step instead of post-processing.
+    if ((flags & 0b101) == 0b101) {
+        // Reverse sort, empty strings considered "biggest".
+        for (i = n - 1; i >= 0; i--) {
+            s2 = i * offset + sarray;
+            if (*s2 != 0) break;
+        }
+        i++;
+        if (i) {
+            s2 = (n - i) * offset + sarray;
+            memmove(s2, sarray, offset * i);
+            memset(sarray, 0, offset * (n - i));
+            if (index != NULL) {
+                MMINTEGER *newindex = (MMINTEGER *)GetTempMemory(n * sizeof(MMINTEGER));
+                memmove(&newindex[n - i], &index[startpoint], i * sizeof(MMINTEGER));
+                memmove(newindex, &index[startpoint + i], (n - i) * sizeof(MMINTEGER));
+                memmove(&index[startpoint], newindex, n * sizeof(MMINTEGER));
+            }
+        }
+    } else if (flags & 0b100) {
+        // Normal sort, empty strings considered "biggest".
+        for (i = 0; i < n; i++) {
+            s2 = i * offset + sarray;
+            if (*s2 != 0) break;
+        }
+        if (i) {
+            s2 = i * offset + sarray;
+            memmove(sarray, s2, offset * (n - i));
+            s2 = (n - i) * offset + sarray;
+            memset(s2, 0, offset * i);
+            if (index != NULL) {
+                MMINTEGER *newindex = (MMINTEGER *)GetTempMemory(n * sizeof(MMINTEGER));
+                memmove(newindex, &index[startpoint + i], (n - i) * sizeof(MMINTEGER));
+                memmove(&newindex[n - i], &index[startpoint], i * sizeof(MMINTEGER));
+                memmove(&index[startpoint], newindex, n * sizeof(MMINTEGER));
+            }
+         }
+     }
 }
 
+/**
+ * SORT array() [, indexarray()] [, flags] [, startposition] [, elementstosort]
+ */
 void cmd_sort(void) {
     void *ptr1 = NULL;
     void *ptr2 = NULL;
@@ -236,7 +279,7 @@ void cmd_sort(void) {
         // if ((uint32_t)ptr2 != (uint32_t)vartbl[VarIndex].val.s)
         if (ptr2 != vartbl[VarIndex].val.s) ERROR_ARG_NOT_INTEGER_ARRAY(2);
     }
-    if (argc >= 5 && *argv[4]) flags = getint(argv[4], 0, 3);
+    if (argc >= 5 && *argv[4]) flags = getint(argv[4], 0b0, 0b111);
     if (argc >= 7 && *argv[6])
         startpoint = getint(argv[6], mmb_options.base, size + mmb_options.base);
     size -= startpoint;

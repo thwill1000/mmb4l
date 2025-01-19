@@ -11,6 +11,7 @@ void fun_acos() { }
 void fun_asc() { }
 void fun_asin() { }
 void fun_at() { }
+void fun_atan2() { }
 void fun_atn() { }
 void fun_bin() { }
 void fun_bin2str() { }
@@ -19,12 +20,14 @@ void fun_call() { }
 void fun_choice() { }
 void fun_chr() { }
 void fun_cint() { }
+void fun_classic() { }
 void fun_cos() { }
 void fun_cwd() { }
 void fun_date() { }
 void fun_datetime() { }
 void fun_day() { }
 void fun_deg() { }
+void fun_device() { }
 void fun_dir() { }
 void fun_eof() { }
 void fun_epoch() { }
@@ -35,6 +38,7 @@ void fun_exp() { }
 void fun_field() { }
 void fun_fix() { }
 void fun_format() { }
+void fun_gamepad() { }
 void fun_hex() { }
 void fun_hres() { }
 void fun_inkey() { }
@@ -42,6 +46,7 @@ void fun_inputstr() { }
 void fun_instr() { }
 void fun_int() { }
 void fun_json() { }
+void fun_keydown() { }
 void fun_lcase() { }
 void fun_lcompare() { }
 void fun_left() { }
@@ -65,6 +70,8 @@ void fun_mminfo() { }
 void fun_oct() { }
 void fun_peek() { }
 void fun_pi() { }
+void fun_pin() { }
+void fun_port() { }
 void fun_pos() { }
 void fun_rad() { }
 void fun_rgb() { }
@@ -73,6 +80,11 @@ void fun_rnd() { }
 void fun_sgn() { }
 void fun_sin() { }
 void fun_space() { }
+#if defined(DO_NOT_STUB_FUN_SPRITE)
+void fun_sprite();
+#else
+void fun_sprite() { }
+#endif
 void fun_sqr() { }
 void fun_str() { }
 void fun_string() { }

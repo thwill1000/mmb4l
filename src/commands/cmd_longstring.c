@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_longstring.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -275,7 +275,10 @@ static void longstring_print(const char *tp) {
     if (argc > 0 && *argv[0] == '#') {
         // First argument is a file number.
         fnbr = parse_file_number(argv[0], true);
-        if (fnbr == -1) ERROR_INVALID_FILE_NUMBER;
+        if (fnbr == -1) {
+            error_throw(kFileInvalidFileNumber);
+            return;
+        }
         // Set the next argument to be looked at.
         i = 1;
         if (argc >= 2 && *argv[1] == ',') i = 2;

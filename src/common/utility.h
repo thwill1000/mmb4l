@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 utility.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,10 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(UTILITY_H)
-#define UTILITY_H
+#if !defined(MMBASIC_UTILITY_H)
+#define MMBASIC_UTILITY_H
 
 #include <stdio.h>
+
+// To output the value of a macro during compilation do:
+//   #pragma message(VAR_NAME_VALUE(macro))
+#define str(a) #a
+#define xstr(a) str(a)
+#define VAR_NAME_VALUE(var) #var "=" xstr(var)
 
 #if __GNUC__ >= 11
 #define CASE_FALLTHROUGH  [[fallthrough]]
@@ -68,4 +74,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FAILED(x) (x != 0)
 #define SUCCEEDED(x) (x == 0)
 
-#endif // #if !defined(UTILITY_H)
+#define SWAP(T, a, b) do { T tmp = a; a = b; b = tmp; } while (0)
+
+#define RADCONV   57.2957795130823229
+#define DEGREES_TO_RADIANS(angle)  (((MMFLOAT) angle) / RADCONV)
+
+#define CHAR_IS_SIGNED ((char) -1 < 0)
+
+void utility_dump_memory(const char *p);
+
+/** perror() with formatted string support. */
+void utility_perror_ext(const char *format, ...);
+
+#endif // #if !defined(MMBASIC_UTILITY_H)

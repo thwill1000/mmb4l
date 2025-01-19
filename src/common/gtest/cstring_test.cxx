@@ -12,6 +12,11 @@ extern "C" {
 
 }
 
+static void init_string(char *s, size_t len) {
+    memset(s, 'X', len);
+    s[len - 1] = '\0';
+}
+
 TEST(CstringTest, Cat) {
     char s[10];
 
@@ -58,6 +63,45 @@ TEST(CstringTest, Cat) {
     EXPECT_STREQ("", s);
     EXPECT_STREQ("XXXXXXXX", s + strlen(s) + 1);
 }
+
+TEST(CstringTest, CatInt64) {
+    char s[32];
+
+    init_string(s, sizeof(s));
+    strcpy(s, "abc");
+    EXPECT_EQ(0, cstring_cat_int64(s, 42, sizeof(s) - 2));
+    EXPECT_STREQ("abc42", s);
+    EXPECT_STREQ("XXXXXXXXXXXXXXXXXXXXXXXXX", s + strlen(s) + 1);
+
+    // Maximum int64_t.
+    init_string(s, sizeof(s));
+    strcpy(s, "abc");
+    EXPECT_EQ(0, cstring_cat_int64(s, INT64_MAX, sizeof(s) - 2));
+    EXPECT_STREQ("abc9223372036854775807", s);
+    EXPECT_STREQ("XXXXXXXX", s + strlen(s) + 1);
+
+    // Minimum int64_t.
+    init_string(s, sizeof(s));
+    strcpy(s, "abc");
+    EXPECT_EQ(0, cstring_cat_int64(s, INT64_MIN, sizeof(s) - 2));
+    EXPECT_STREQ("abc-9223372036854775808", s);
+    EXPECT_STREQ("XXXXXXX", s + strlen(s) + 1);
+
+    // Exactly at the size limit.
+    init_string(s, sizeof(s));
+    strcpy(s, "01234567890123456789012345_");
+    EXPECT_EQ(0, cstring_cat_int64(s, 42, sizeof(s) - 2));
+    EXPECT_STREQ("01234567890123456789012345_42", s);
+    EXPECT_STREQ("X", s + strlen(s) + 1);
+
+    // One beyond the size limit.
+    init_string(s, sizeof(s));
+    strcpy(s, "012345678901234567890123456_");
+    EXPECT_EQ(-1, cstring_cat_int64(s, 42, sizeof(s) - 2));
+    EXPECT_STREQ("012345678901234567890123456_4", s);
+    EXPECT_STREQ("X", s + strlen(s) + 1);
+}
+
 
 TEST(CstringTest, Cpy) {
     char dst[10] = { 0 };
@@ -158,12 +202,118 @@ TEST(CstringTest, IsQuoted) {
     EXPECT_FALSE(cstring_isquoted("\""));
 }
 
-TEST(CstringTest, Replace) {
-    char s[256] = "cat dog fish cat";
+TEST(CstringTest, Replace_GivenOneLongerReplacement) {
+    char s[32] = "cat dog fish hamster";
 
-    cstring_replace(s, "cat", "elephant");
+    EXPECT_EQ(0, cstring_replace(s, 32, "dog", "elephant"));
+    EXPECT_STREQ("cat elephant fish hamster", s);
+}
 
-    EXPECT_STREQ("elephant dog fish elephant", s);
+TEST(CstringTest, Replace_GivenOneShorterReplacement) {
+    char s[32] = "cat dog fish hamster";
+
+    EXPECT_EQ(0, cstring_replace(s, 32, "dog", "a"));
+    EXPECT_STREQ("cat a fish hamster", s);
+}
+
+TEST(CstringTest, Replace_GivenMultipleLongerReplacements) {
+    char s[32] = "dog cat fish dog";
+
+    EXPECT_EQ(0, cstring_replace(s, 32, "dog", "elephant"));
+    EXPECT_STREQ("elephant cat fish elephant", s);
+}
+
+TEST(CstringTest, Replace_GivenMultipleShorterReplacements) {
+    char s[32] = "dog cat fish dog";
+
+    EXPECT_EQ(0, cstring_replace(s, 32, "dog", "a"));
+    EXPECT_STREQ("a cat fish a", s);
+}
+
+TEST(CstringTest, Replace_GivenReplacementContainsNeedle) {
+    char s[32] = "cat dog fish hamster";
+
+    EXPECT_EQ(0, cstring_replace(s, 32, "dog", "foo_dog_foo"));
+    EXPECT_STREQ("cat foo_dog_foo fish hamster", s);
+}
+
+TEST(CstringTest, Replace_GivenEmptyTarget) {
+    char s[32] = "";
+
+    EXPECT_EQ(0, cstring_replace(s, 32, "cat", "elephant"));
+    EXPECT_STREQ("", s);
+}
+
+TEST(CstringTest, Replace_GivenEmptyNeedle) {
+    char s[32] = "cat dog fish cat";
+
+    EXPECT_EQ(-1, cstring_replace(s, 32, "", "elephant"));
+    EXPECT_STREQ("cat dog fish cat", s);
+}
+
+TEST(CstringTest, Replace_GivenMultipleConsecutiveNeedles) {
+    char s[32] = "catcatcatcat";
+
+    EXPECT_EQ(0, cstring_replace(s, 32, "cat", "fish"));
+    EXPECT_STREQ("fishfishfishfish", s);
+}
+
+TEST(CstringTest, Replace_GivenNeedleMatchesEntireHaystack) {
+    char s[32] = "cat dog fish cat";
+
+    EXPECT_EQ(0, cstring_replace(s, 32, "cat dog fish cat", "elephant"));
+    EXPECT_STREQ("elephant", s);
+}
+
+TEST(CstringTest, Replace_GivenReplacementMatchesNeedle) {
+    char s[42] = "cat dog fish hamster";
+
+    EXPECT_EQ(0, cstring_replace(s, 42, "dog", "dog"));
+
+    EXPECT_STREQ("cat dog fish hamster", s);
+}
+
+TEST(CstringTest, Replace_GivenResultEmpty) {
+    char s[32] = "cat dog fish cat";
+
+    EXPECT_EQ(0, cstring_replace(s, 32, "cat dog fish cat", ""));
+    EXPECT_STREQ("", s);
+}
+
+TEST(CstringTest, Replace_GivenResultMaximumLength) {
+    char s[43] = "cat dog fish hamster";
+
+    EXPECT_EQ(0, cstring_replace(s, 43, "dog", "enormous man eating shark"));
+
+    EXPECT_STREQ("cat enormous man eating shark fish hamster", s);
+}
+
+TEST(CstringTest, Replace_GivenResultTooLong) {
+    char s[42] = "cat dog fish hamster";
+
+    EXPECT_EQ(-1, cstring_replace(s, 42, "dog", "enormous man eating shark"));
+
+    EXPECT_STREQ("cat dog fish hamster", s);
+}
+
+TEST(CstringTest, Replace_GivenTryingToCauseRecursion) {
+    {
+        char s[32] = "aaaa";
+        EXPECT_EQ(0, cstring_replace(s, 42, "a", "aa"));
+        EXPECT_STREQ("aaaaaaaa", s);
+    }
+
+    {
+        char s[32] = "aaaaaaaa";
+        EXPECT_EQ(0, cstring_replace(s, 42, "aa", "a"));
+        EXPECT_STREQ("aaaa", s);
+    }
+
+    {
+        char s[32] = "abbb";
+        EXPECT_EQ(0, cstring_replace(s, 42, "ab", "a"));
+        EXPECT_STREQ("abb", s);
+    }
 }
 
 TEST(CstringTest, ToLower) {

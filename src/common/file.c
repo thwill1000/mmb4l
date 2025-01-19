@@ -60,15 +60,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 FileEntry file_table[MAXOPENFILES + 1] = { 0 };
 
 /**
- * @param  fname  filename in C-string style, not MMBasic style.
+ * @param  filename  filename in C-string style, not MMBasic style.
  */
-void file_open(const char *fname, const char *mode, int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
-    if (file_table[fnbr].type != fet_closed) ERROR_ALREADY_OPEN;
-
-    char path[STRINGSIZE];
-    MmResult result = path_munge(fname, path, STRINGSIZE);
-    if (FAILED(result)) error_throw(result);
+MmResult file_open(const char *filename, const char *mode, int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
+    if (file_table[fnbr].type != fet_closed) return kFileAlreadyOpen;
 
     // random writing is not allowed when a file is opened for append so open it
     // first for read+update and if that does not work open it for
@@ -77,61 +73,66 @@ void file_open(const char *fname, const char *mode, int fnbr) {
     FILE *f = NULL;
     if (*mode == 'x') {
         errno = 0;
-        f = fopen(path, "rb+");
+        f = fopen(filename, "rb+");
         if (!f) {
             errno = 0;
-            f = fopen(path, "wb+");
-            if (!f) error_throw(errno);
+            f = fopen(filename, "wb+");
+            if (!f) return errno;
         }
         errno = 0;
-        if (FAILED(fseek(f, 0, SEEK_END))) error_throw(errno);
+        if (FAILED(fseek(f, 0, SEEK_END))) return errno;
     } else {
         errno = 0;
-        f = fopen(path, mode);
-        if (!f) error_throw(errno);
+        f = fopen(filename, mode);
+        if (!f) return errno;
     }
 
     file_table[fnbr].type = fet_file;
     file_table[fnbr].file_ptr = f;
+
+    return kOk;
 }
 
-void file_close(int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+MmResult file_close(int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ERROR_NOT_OPEN;
-            break;
+            return kFileNotOpen;
 
         case fet_file: {
             errno = 0;
             int result = fclose(file_table[fnbr].file_ptr);
             file_table[fnbr].type = fet_closed;
             file_table[fnbr].file_ptr = NULL;
-            if (FAILED(result)) error_throw(errno);
+            if (FAILED(result)) return errno;
             break;
         }
 
         case fet_serial:
-            serial_close(fnbr);
-            break;
+            return serial_close(fnbr);
     }
+
+    return kOk;
 }
 
 void file_close_all(void) {
     for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
-        if (file_table[fnbr].type != fet_closed) file_close(fnbr);
+        if (file_table[fnbr].type != fet_closed) (void) file_close(fnbr);
     }
 }
 
 int file_getc(int fnbr) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr < 0 || fnbr > MAXOPENFILES) {
+        error_throw(kFileInvalidFileNumber);
+        return -1;
+    }
     if (fnbr == 0) return MMgetchar();
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ERROR_NOT_OPEN;
-            break;
+            error_throw(kFileNotOpen);
+            return -1;
 
         case fet_file: {
             errno = 0;
@@ -155,13 +156,15 @@ int file_getc(int fnbr) {
 }
 
 int file_loc(int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr < 1 || fnbr > MAXOPENFILES) {
+        error_throw(kFileInvalidFileNumber);
+        return -1;
+    }
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ERROR_NOT_OPEN;
-            assert(false);
-            break;
+            error_throw(kFileNotOpen);
+            return -1;
 
         case fet_file:
             errno = 0;
@@ -179,13 +182,15 @@ int file_loc(int fnbr) {
 }
 
 int file_lof(int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr < 1 || fnbr > MAXOPENFILES) {
+        error_throw(kFileInvalidFileNumber);
+        return -1;
+    }
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ERROR_NOT_OPEN;
-            assert(false);
-            break;
+            error_throw(kFileNotOpen);
+            return -1;
 
         case fet_file: {
             errno = 0;
@@ -209,13 +214,16 @@ int file_lof(int fnbr) {
 }
 
 int file_putc(int fnbr, int ch) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr < 0 || fnbr > MAXOPENFILES) {
+        error_throw(kFileInvalidFileNumber);
+        return -1;
+    }
     if (fnbr == 0) return console_putc(ch);
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ERROR_NOT_OPEN;
-            break;
+            error_throw(kFileNotOpen);
+            return -1;
 
         case fet_file: {
             errno = 0;
@@ -237,13 +245,16 @@ int file_putc(int fnbr, int ch) {
 }
 
 int file_eof(int fnbr) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr < 0 || fnbr > MAXOPENFILES) {
+        error_throw(kFileInvalidFileNumber);
+        return 0;
+    }
     if (fnbr == 0) return 0;
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ERROR_NOT_OPEN;
-            break;
+            error_throw(kFileNotOpen);
+            return 0;
 
         case fet_file: {
             FILE *f = file_table[fnbr].file_ptr;
@@ -266,13 +277,15 @@ int file_eof(int fnbr) {
 }
 
 size_t file_read(int fnbr, char *buf, size_t sz) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr < 0 || fnbr > MAXOPENFILES) {
+        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, 0);
+    }
     assert(fnbr != 0); // if (fnbr == 0) return console_write(buf, sz);
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ERROR_NOT_OPEN;
-            break;
+            error_throw(kFileNotOpen);
+            return 0;
 
         case fet_file: {
             errno = 0;
@@ -286,15 +299,25 @@ size_t file_read(int fnbr, char *buf, size_t sz) {
             break;
     }
 
-    ERROR_INTERNAL_FAULT;
-    return -1; // TODO: returning -ve value from a size_t.
+    ON_FAILURE_ERROR_EX(kInternalFault, 0);
+
+    return 0;
 }
 
 void file_seek(int fnbr, int idx) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
-    if (idx < 1) ERROR_INVALID("seek position");
+    if (fnbr < 1 || fnbr > MAXOPENFILES) {
+        error_throw(kFileInvalidFileNumber);
+        return;
+    }
+    if (idx < 1) {
+        error_throw(kFileInvalidSeekPosition);
+        return;
+    }
 
-    if (file_table[fnbr].type == fet_closed) ERROR_NOT_OPEN;
+    if (file_table[fnbr].type == fet_closed) {
+        error_throw(kFileNotOpen);
+        return;
+    }
     FILE *f = file_table[fnbr].file_ptr;
 
     errno = 0;
@@ -312,13 +335,16 @@ int file_find_free(void) {
 }
 
 size_t file_write(int fnbr, const char *buf, size_t sz) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+    if (fnbr < 0 || fnbr > MAXOPENFILES) {
+        error_throw(kFileInvalidFileNumber);
+        return 0;
+    }
     if (fnbr == 0) return console_write(buf, sz);
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ERROR_NOT_OPEN;
-            break;
+            error_throw(kFileNotOpen);
+            return 0;
 
         case fet_file: {
             errno = 0;

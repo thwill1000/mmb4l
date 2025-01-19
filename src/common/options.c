@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 options.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -52,9 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <ctype.h>
-//#include <errno.h>
-//#include <sys/stat.h>
 
 #define INVALID_VALUE  "???"
 
@@ -70,6 +67,12 @@ OptionsEditor options_editors[] = {
     { "VSCode",  "code -g ${file}:${line}",          false },
     { "Xed",     "xed +${line} ${file} &",           false },
     { NULL, NULL, false }
+};
+
+static const NameOrdinalPair options_angle_map[] = {
+    { "Radians", kRadians },
+    { "Degrees", kDegrees },
+    { NULL,      -1 }
 };
 
 static const NameOrdinalPair options_console_map[] = {
@@ -114,10 +117,24 @@ static const NameOrdinalPair options_list_case_map[] = {
 static const NameOrdinalPair options_resolution_map[] = {
     { "Character", kCharacter },
     { "Pixel",     kPixel },
+    { NULL,        -1 }
+};
+
+static const NameOrdinalPair options_simulate_map[] = {
+    { "MMB4L",             kSimulateMmb4l },
+    { "MMBasic for Windows", kSimulateMmb4w },
+    { "MMB4W",             kSimulateMmb4w },
+    { "Colour Maximite 2", kSimulateCmm2 },
+    { "CMM2",              kSimulateCmm2 },
+    { "PicoMiteVGA",       kSimulatePicoMiteVga },
+    { "Game*Mite",         kSimulateGameMite },
     { NULL,    -1 }
 };
 
 OptionsDefinition options_definitions[] = {
+    { "Angle",       kOptionAngle,        kOptionTypeString,  false, "Radians",                 options_angle_map },
+    { "Audio",       kOptionAudio,        kOptionTypeBoolean, true,  "On",                      NULL },
+    { "AutoScale",   kOptionAutoScale,    kOptionTypeBoolean, true,  "On",                      NULL },
     { "Base",        kOptionBase,         kOptionTypeInteger, false, "0",                       NULL },
     { "Break",       kOptionBreakKey,     kOptionTypeInteger, false, "3" /* Ctrl-C */,          NULL },
     { "Case",        kOptionListCase,     kOptionTypeString,  true,  "Title",                   options_list_case_map },
@@ -140,6 +157,7 @@ OptionsDefinition options_definitions[] = {
     { "F12",         kOptionF12,          kOptionTypeString,  true,  "",                        NULL },
     { "Resolution",  kOptionResolution,   kOptionTypeString,  false, "Character",               options_resolution_map },
     { "Search Path", kOptionSearchPath,   kOptionTypeString,  true,  "",                        NULL },
+    { "Simulate",    kOptionSimulate,     kOptionTypeString,  false, "MMB4L",                   options_simulate_map },
     { "Tab",         kOptionTab,          kOptionTypeInteger, true,  "4",                       NULL },
 #if defined(OPTION_TESTS)
     { "ZBoolean",    kOptionZBoolean,     kOptionTypeBoolean, true,  "On",                      NULL },
@@ -546,6 +564,12 @@ MmResult options_get_float_value(const Options *options, OptionsId id, MMFLOAT *
 MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEGER *ivalue) {
     MmResult result = kOk;
     switch (id) {
+        case kOptionAudio:
+            *ivalue = options->audio;
+            break;
+        case kOptionAutoScale:
+            *ivalue = options->auto_scale;
+            break;
         case kOptionBase:
             *ivalue = options->base;
             break;
@@ -644,6 +668,22 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
 
     switch (id) {
 
+        case kOptionAngle:
+            assert(options->angle >= kRadians && options->angle <= kDegrees);
+            options_ordinal_to_name(
+                    options_definitions[kOptionAngle].enum_map,
+                    options->angle,
+                    svalue);
+            break;
+
+        case kOptionAudio:
+        case kOptionAutoScale: {
+            MMINTEGER ivalue;
+            result = options_get_integer_value(options, id, &ivalue);
+            if (SUCCEEDED(result)) sprintf(svalue, "%s", ivalue ? "On" : "Off");
+            return result;
+        }
+
         case kOptionCodePage:
             if (FAILED(options_get_codepage(options, svalue))) {
                 strcpy(svalue, INVALID_VALUE);
@@ -712,6 +752,14 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
             strcpy(svalue, options->search_path);
             break;
 
+        case kOptionSimulate:
+            assert(options->simulate >= kSimulateMmb4l && options->simulate <= kSimulateGameMite);
+            options_ordinal_to_name(
+                    options_definitions[kOptionSimulate].enum_map,
+                    options->simulate,
+                    svalue);
+            break;
+
 #if defined(OPTION_TESTS)
         case kOptionZString:
             strcpy(svalue, options->zstring);
@@ -722,6 +770,34 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
             result = kInternalFault;
     }
     return result;
+}
+
+static MmResult options_set_angle(Options *options, const char *svalue) {
+    for (const NameOrdinalPair *entry = options_angle_map; entry->name; ++entry) {
+        if (strcasecmp(svalue, entry->name) == 0) {
+            options->angle = entry->ordinal;
+            return kOk;
+        }
+    }
+    return kInvalidValue;
+}
+
+static MmResult options_set_audio(Options *options, int ivalue) {
+    if (ivalue == 0 || ivalue == 1) {
+        options->audio = ivalue;
+        return kOk;
+    } else {
+        return kInvalidValue;
+    }
+}
+
+static MmResult options_set_auto_scale(Options *options, int ivalue) {
+    if (ivalue == 0 || ivalue == 1) {
+        options->auto_scale = ivalue;
+        return kOk;
+    } else {
+        return kInvalidValue;
+    }
 }
 
 static MmResult options_set_base(Options *options, int ivalue) {
@@ -844,6 +920,16 @@ static MmResult options_set_search_path(Options *options, const char *svalue) {
     return kOk;
 }
 
+static MmResult options_set_simulate(Options *options, const char *svalue) {
+    for (const NameOrdinalPair *entry = options_simulate_map; entry->name; ++entry) {
+        if (strcasecmp(svalue, entry->name) == 0) {
+            options->simulate = entry->ordinal;
+            return kOk;
+        }
+    }
+    return kInvalidValue;
+}
+
 static MmResult options_set_tab(Options *options, int ivalue) {
     if (ivalue == 2 || ivalue == 4 || ivalue == 8) {
         options->tab = (char) ivalue;
@@ -868,9 +954,11 @@ MmResult options_set_float_value(Options *options, OptionsId id, MMFLOAT fvalue)
 
 MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER ivalue) {
     switch (id) {
-        case kOptionBase:     return options_set_base(options, ivalue);
-        case kOptionBreakKey: return options_set_break_key(options, ivalue);
-        case kOptionTab:      return options_set_tab(options, ivalue);
+        case kOptionAudio:     return options_set_audio(options, ivalue);
+        case kOptionAutoScale: return options_set_auto_scale(options, ivalue);
+        case kOptionBase:      return options_set_base(options, ivalue);
+        case kOptionBreakKey:  return options_set_break_key(options, ivalue);
+        case kOptionTab:       return options_set_tab(options, ivalue);
 
 #if defined(OPTION_TESTS)
         case kOptionZBoolean:
@@ -922,6 +1010,7 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
     }
 
     switch (id) {
+        case kOptionAngle:        return options_set_angle(options, svalue);
         case kOptionCodePage:     return options_set_codepage(options, svalue);
         case kOptionConsole:      return options_set_console(options, svalue);
         case kOptionDefaultType:  return options_set_default_type(options, svalue);
@@ -942,6 +1031,7 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
         case kOptionListCase:     return options_set_list_case(options, svalue);
         case kOptionResolution:   return options_set_resolution(options, svalue);
         case kOptionSearchPath:   return options_set_search_path(options, svalue);
+        case kOptionSimulate:     return options_set_simulate(options, svalue);
 
 #if defined(OPTION_TESTS)
         case kOptionZString:

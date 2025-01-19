@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Thomas Hugo Williams
+ * Copyright (c) 2021-2024 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -20,7 +20,7 @@ extern "C" {
 #else
 #define HOME_PARENT       "/home"
 #endif
-#define FILE_THAT_EXISTS  BIN_DIR "/cp"
+#define FILE_THAT_EXISTS  "/etc/passwd"
 #define PATH_TEST_DIR     TMP_DIR "/PathTest"
 
 class PathTest : public ::testing::Test {
@@ -145,7 +145,7 @@ TEST_F(PathTest, Unwind) {
         EXPECT_EQ(kOk, result); \
         EXPECT_STREQ(expected, out)
 
-TEST_F(PathTest, Munge) {
+TEST_F(PathTest, Munge_Succeeds) {
     char out[256];
     MmResult result;
 
@@ -221,6 +221,16 @@ TEST_F(PathTest, Munge) {
     TEST_MUNGE("~\\..\\foo",      HOME_PARENT "/foo");
     TEST_MUNGE("foo\\bar",        "foo/bar");
     TEST_MUNGE("..\\..\\..\\foo", "../../../foo");
+}
+
+// Not comprehensive at all.
+TEST_F(PathTest, Munge_Fails_GivenNewPathBufferTooSmall) {
+    char out[256];
+
+    EXPECT_EQ(kOk, path_munge("/foo/bar", out, 9));
+    EXPECT_EQ(kFilenameTooLong, path_munge("/foo/bar", out, 8));
+
+    EXPECT_EQ(kFilenameTooLong, path_munge("~/foo", out, 10));
 }
 
 #define TEST_GET_CANONICAL(path, expected)  memset(out, '\0', 256); \
@@ -418,6 +428,15 @@ TEST_F(PathTest, GetCanonical_ResolvesSymbolicLinks) {
     TEST_GET_CANONICAL("../wtflink/foo.bas",             "/foo.bas");
 }
 
+// Not comprehensive at all.
+TEST_F(PathTest, GetCanonical_Fails_GivenDstBufferTooSmall) {
+    char out[34] = { 0 };
+    out[32] = 'X';
+
+    EXPECT_EQ(kFilenameTooLong, path_get_canonical(PATH_TEST_DIR "/barlink/foolink.bas", out, 32));
+    EXPECT_STREQ("/tmp/PathTest/barlink/foolink.baX", out);
+}
+
 TEST_F(PathTest, GetExtension) {
     const char *filename = "foo.bas";
     const char *empty = "";
@@ -457,11 +476,19 @@ TEST_F(PathTest, IsRegular) {
     EXPECT_EQ(path_is_regular("/bin"), false);
 }
 
-TEST_F(PathTest, HasSuffix) {
-    EXPECT_EQ(path_has_suffix("foo.bas", ".bas", false), true);
-    EXPECT_EQ(path_has_suffix("foo.bas", ".BAS", false), false);
-    EXPECT_EQ(path_has_suffix("foo.bas", ".BAS", true), true);
-    EXPECT_EQ(path_has_suffix("foo.bas", ".inc", true), false);
+TEST_F(PathTest, HasExtension) {
+    EXPECT_EQ(true, path_has_extension("foo.bas", ".bas", false));
+    EXPECT_EQ(false, path_has_extension("foo.bas", ".BAS", false));
+    EXPECT_EQ(true, path_has_extension("foo.bas", ".BAS", true));
+    EXPECT_EQ(false, path_has_extension("foo.bas", ".inc", true));
+}
+
+TEST_F(PathTest, HasExtension_GivenMalformedExtension_ReturnsFalse) {
+    // Should always return false if you forget the leading period.
+    EXPECT_EQ(false, path_has_extension("foo.bas", "bas", false));
+    EXPECT_EQ(false, path_has_extension("foo.bas", "BAS", false));
+    EXPECT_EQ(false, path_has_extension("foo.bas", "BAS", true));
+    EXPECT_EQ(false, path_has_extension("foo.bas", "inc", true));
 }
 
 TEST_F(PathTest, MkDir) {
@@ -515,7 +542,7 @@ TEST_F(PathTest, Append) {
         EXPECT_EQ(kOk, path_complete(input, out, 256)); \
         EXPECT_STREQ(expected, out)
 
-TEST_F(PathTest, GivenRelativePath) {
+TEST_F(PathTest, Complete_GivenRelativePath) {
     char out[256];
 
     MAKE_FILE(PATH_TEST_DIR "/foo");
@@ -588,4 +615,68 @@ TEST_F(PathTest, Complete_GivenRootPath) {
     TEST_COMPLETE("/tmp/..",    "");
     TEST_COMPLETE("/tmp/../bi", "n");
     TEST_COMPLETE("/tmp/../me", "dia");
+}
+
+
+TEST_F(PathTest, TryExtension) {
+    #define FILE_ONE    PATH_TEST_DIR "/ResolveWithExtension/one.bas"
+    #define FILE_TWO    PATH_TEST_DIR "/ResolveWithExtension/two.Bas"
+    #define FILE_THREE  PATH_TEST_DIR "/ResolveWithExtension/three.BAS"
+
+    SYSTEM_CALL("mkdir " PATH_TEST_DIR "/ResolveWithExtension");
+    SYSTEM_CALL("touch " FILE_ONE);
+    SYSTEM_CALL("touch " FILE_TWO);
+    SYSTEM_CALL("touch " FILE_THREE);
+    char f_out[STRINGSIZE];
+
+    const char *filename = FILE_ONE;
+    EXPECT_EQ(kOk, path_try_extension(filename, ".bas", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_ONE, f_out);
+    EXPECT_EQ(kOk, path_try_extension(filename, ".BAS", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_ONE, f_out);
+
+    filename = PATH_TEST_DIR "/ResolveWithExtension/one";
+    EXPECT_EQ(kOk, path_try_extension(filename, ".bas", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_ONE, f_out);
+    EXPECT_EQ(kOk, path_try_extension(filename, ".BAS", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_ONE, f_out);
+
+    filename = PATH_TEST_DIR "/ResolveWithExtension/two";
+    EXPECT_EQ(kOk, path_try_extension(filename, ".bas", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_TWO, f_out);
+    EXPECT_EQ(kOk, path_try_extension(filename, ".BAS", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_TWO, f_out);
+
+    filename = PATH_TEST_DIR "/ResolveWithExtension/three";
+    EXPECT_EQ(kOk, path_try_extension(filename, ".bas", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_THREE, f_out);
+    EXPECT_EQ(kOk, path_try_extension(filename, ".BAS", f_out, STRINGSIZE));
+    EXPECT_STREQ(FILE_THREE, f_out);
+
+    #undef FILE_ONE
+    #undef FILE_TWO
+    #undef FILE_THREE
+}
+
+TEST_F(PathTest, TryExtension_GivenInvalidExtension) {
+    #define FILE_ONE  PATH_TEST_DIR "/ResolveWithExtension_GivenInvalidExtension/one.bas"
+
+    const char *filename = FILE_ONE;
+    char f_out[STRINGSIZE];
+
+    EXPECT_EQ(kFileInvalidExtension, path_try_extension(filename, "", f_out, STRINGSIZE));
+    EXPECT_EQ(kFileInvalidExtension, path_try_extension(filename, "BAS", f_out, STRINGSIZE));
+
+    #undef FILE_ONE
+}
+
+TEST_F(PathTest, TryExtension_GivenNoMatchingFile) {
+        #define FILE_ONE  PATH_TEST_DIR "/ResolveWithExtension_GivenInvalidExtension/one.bas"
+
+    const char *filename = FILE_ONE;
+    char f_out[STRINGSIZE];
+
+    EXPECT_EQ(kFileNotFound, path_try_extension(filename, ".bas", f_out, STRINGSIZE));
+
+    #undef FILE_ONE
 }

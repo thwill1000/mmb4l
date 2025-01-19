@@ -248,7 +248,6 @@ void heapstats(char *m1) {
 uintptr_t get_poke_addr(const char *p) {
     return (uintptr_t) getinteger(p);
 
-    // TODO
     // if ((i > (unsigned int)DOS_vartbl &&
     //      i < (unsigned int)DOS_vartbl + sizeof(struct s_vartbl) * MAXVARS) ||
     //     (i > (unsigned int)MMHeap && i < (unsigned int)MMHeap + HEAP_SIZE))
@@ -260,4 +259,30 @@ uintptr_t get_poke_addr(const char *p) {
 
 uintptr_t get_peek_addr(const char *p) {
     return (uintptr_t) getinteger(p);
+}
+
+static int MemSize(void* addr) { //returns the amount of heap memory allocated to an address
+    int i = 0;
+    int bits;
+    if (addr >= (void*)MMHeap && addr < (void*)(MMHeap + HEAP_SIZE)) {
+        do {
+            bits = MBitsGet((unsigned char*)addr);
+            addr = (unsigned char*)addr + PAGESIZE;
+            i += PAGESIZE;
+        } while (bits != (PUSED | PLAST));
+    }
+    return i;
+}
+
+void* ReAllocMemory(void* addr, size_t msize) {
+    int size = MemSize(addr);
+    if (msize <= (size_t)size)return addr;
+    void* newaddr = GetMemory(msize);
+    if (addr != NULL && size != 0) {
+        memcpy(newaddr, addr, MemSize(addr));
+        FreeMemory((unsigned char *)addr);
+        addr = NULL;
+
+    }
+    return newaddr;
 }

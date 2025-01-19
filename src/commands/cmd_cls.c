@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_cls.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,13 +42,45 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"
+#include "../common/graphics.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
+#include "../common/utility.h"
+
+/** CLS CONSOLE */
+static MmResult cmd_cls_console(const char *p) {
+    if (!parse_is_end(p)) return kArgumentCount;
+    console_clear();
+    return kOk;
+}
+
+/** CLS [colour] */
+static MmResult cmd_cls_default(const char *p) {
+    getargs(&p, 1, ",");
+
+    if (!graphics_current) {
+        console_clear();
+        return kOk;
+    }
+
+    const MmSurface *layer = (mmb_options.simulate == kSimulatePicoMiteVga)
+            ? &graphics_surfaces[GRAPHICS_SURFACE_L]
+            : NULL;
+    const MmGraphicsColour colour = has_arg(0)
+            ? getint(argv[0], RGB_BLACK, RGB_WHITE)
+            : (graphics_current == layer) ? layer->transparent : graphics_bcolour;
+    return graphics_cls(graphics_current, colour);
+}
 
 void cmd_cls(void) {
-    skipspace(cmdline);
-    if (!parse_is_end(cmdline)) ERROR_SYNTAX;
-    console_clear();
+    MmResult result = kOk;
+    const char *p;
+    if ((p = checkstring(cmdline, "CONSOLE"))) {
+        result = cmd_cls_console(p);
+    } else {
+        result = cmd_cls_default(cmdline);
+    }
+    ON_FAILURE_ERROR(result);
 }

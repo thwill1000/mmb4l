@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Thomas Hugo Williams
+ * Copyright (c) 2021-2024 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -10,12 +10,47 @@ extern "C" {
 #include "../cmdline.h"
 #include "../cstring.h"
 #include "../parse.h"
+#include "../options.h"
 
 int LocalIndex = 0;
 
+void error_throw(MmResult error) { }
 void error_throw_ex(MmResult error, char *msg, ...) { }
 long long int getinteger(char *p) { return 0; }
 int getint(char *p, int min, int max) { return 0; }
+
+// Defined in "main.c"
+Options mmb_options;
+
+// Defined in "common/audio.c"
+const char *audio_last_error() { return ""; }
+
+// Defined in "common/events.c"
+const char *events_last_error() { return ""; }
+
+// Defined in "common/gpio.c"
+MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
+
+// Defined in "common/gamepad.c"
+const char *gamepad_last_error() { return ""; }
+
+// Defined in "common/graphics.c"
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
+const char *graphics_last_error() { return ""; }
+
+// Defined in "common/path.c"
+MmResult path_munge(const char *original_path, char *new_path, size_t sz) { return kOk; }
+
+// Defined in "core/commandtbl.c"
+CommandToken cmdFUN = 0x0;
+CommandToken cmdSUB = 0x0;
+
+// Defined in "core/MMBasic.c"
+char *getCstring(const char *p) { return NULL; }
+const char *skipexpression(const char *p) { return NULL; }
+
+// Defined in "core/tokentbl.c"
+char tokenAS = 0x0;
 
 }
 
@@ -26,7 +61,7 @@ TEST(CmdLineTest, Parse_GivenNoAdditionalArguments) {
     CmdLineArgs args = { 0 };
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -41,17 +76,17 @@ TEST(CmdLineTest, Parse_GivenHelpFlag) {
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(1, args.help);
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
 
-    args.interactive = 0;
+    args.show_prompt = 0;
     argv[1] = "--help";
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(1, args.help);
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -66,17 +101,17 @@ TEST(CmdLineTest, Parse_GivenInteractiveFlag) {
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
 
-    args.interactive = 0;
+    args.show_prompt = 0;
     argv[1] = "--interactive";
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -91,7 +126,7 @@ TEST(CmdLineTest, Parse_GivenVersionFlag) {
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(1, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -101,7 +136,7 @@ TEST(CmdLineTest, Parse_GivenVersionFlag) {
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(1, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -117,7 +152,7 @@ TEST(CmdLineTest, Parse_GivenInteractiveAndVersionFlags) {
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(1, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -132,7 +167,7 @@ TEST(CmdLineTest, Parse_GivenProgramArgument) {
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
-    EXPECT_EQ(0, args.interactive);
+    EXPECT_EQ(0, args.show_prompt);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("RUN \"myprogram.bas\"", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -153,7 +188,7 @@ TEST(CmdLineTest, Parse_GivenProgramArgumentWithFlags) {
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
-    EXPECT_EQ(0, args.interactive);
+    EXPECT_EQ(0, args.show_prompt);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("RUN \"myprogram.bas\", \"--foo -i -v --interactive --version \" + Chr$(34) + \"wom bat\" + Chr$(34)", args.run_cmd);
     EXPECT_STREQ("", args.directory);
@@ -169,7 +204,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
     EXPECT_EQ(0, args.help);
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("some/directory", args.directory);
@@ -178,7 +213,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
     argv[2] = "foo/bar/wom bat";
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("foo/bar/wom bat", args.directory);
@@ -187,7 +222,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
     argv[1] = "-d=some/directory";
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("some/directory", args.directory);
@@ -195,7 +230,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
     argv[1] = "--directory=\"foo/bar/wom bat\"";
 
     EXPECT_EQ(kOk, cmdline_parse(argc, argv, &args));
-    EXPECT_EQ(1, args.interactive);
+    EXPECT_EQ(1, args.show_prompt);
     EXPECT_EQ(0, args.version);
     EXPECT_STREQ("", args.run_cmd);
     EXPECT_STREQ("foo/bar/wom bat", args.directory);

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Functions.c
 
-Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,7 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Provides all the core functions in MMBasic.
 
 #include "../Hardware_Includes.h"
-#include "MMBasic_Includes.h"
+#include "MMBasic.h"
+#include "Functions.h"
 
 /********************************************************************************************************************************************
  basic functions
@@ -105,7 +106,19 @@ void fun_asc(void) {
 
 // return the arctangent of a number in radians
 void fun_atn(void) {
-    fret = atanf(getnumber(ep));
+    fret = atanf(getnumber(ep)) * ANGLE_CONVERSION;
+    targ = T_NBR;
+}
+
+
+
+void fun_atan2(void) {
+    getargs(&ep, 3, ",");
+    if (argc != 3) ERROR_SYNTAX;
+    MMFLOAT y = getnumber(argv[0]);
+    MMFLOAT x = getnumber(argv[2]);
+    MMFLOAT z = atan2(y, x);
+    fret = z * ANGLE_CONVERSION;
     targ = T_NBR;
 }
 
@@ -137,7 +150,7 @@ void fun_cint(void) {
 
 // return the cosine of a number in radians
 void fun_cos(void) {
-    fret = cosf(getnumber(ep));
+    fret = cosf(getnumber(ep) / ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -394,7 +407,7 @@ void fun_sgn(void) {
 // Return the sine of the argument 'number' in radians.
 // n = SIN( number )
 void fun_sin(void) {
-    fret = sinf(getnumber(ep));
+    fret = sinf(getnumber(ep) / ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -415,7 +428,7 @@ void fun_sqr(void) {
 // Return the tangent of the argument 'number' in radians.
 // n = TAN( number )
 void fun_tan(void) {
-    fret = tanf(getnumber(ep));
+    fret = tanf(getnumber(ep)/ ANGLE_CONVERSION);
     targ = T_NBR;
 }
 
@@ -458,7 +471,6 @@ void fun_val(void) {
 
 
 
-//#if !defined(MX170)
 void fun_eval(void) {
     char *s, *st;
     char *temp_tknbuf = GetTempMemory(TKNBUF_SIZE);
@@ -470,7 +482,7 @@ void fun_eval(void) {
     inpbuf[0] = 'r'; inpbuf[1] = '=';                               // place a dummy assignment in the input buffer to keep the tokeniser happy
     strcpy(inpbuf + 2, st);
     tokenise(true);                                                 // and tokenise it (the result is in tknbuf)
-    strcpy(st, tknbuf + 3);
+    strcpy(st, tknbuf + 2 + sizeof(CommandToken));
     targ = T_NOTYPE;
     evaluate(st, &fret, &iret, &s, &targ, false);                   // get the value and type of the argument
     if(targ & T_STR) {
@@ -479,7 +491,6 @@ void fun_eval(void) {
     }
     strcpy(tknbuf, temp_tknbuf);                                    // restore the saved token buffer
 }
-//#endif
 
 
 
@@ -525,7 +536,7 @@ void fun_str(void) {
     const char *p;
 
     getargs(&ep, 7, ",");
-    if((argc & 1) != 1) error("Syntax");
+    if((argc & 1) != 1) ERROR_SYNTAX;
     t = T_NOTYPE;
     p = evaluate(argv[0], &f, &i64, &s, &t, false);                 // get the value and type of the argument
     if(t & T_STR) error("Expected a number");
@@ -566,7 +577,7 @@ void fun_string(void) {
     void *p;
 
     getargs(&ep, 3, ",");
-    if(argc != 3) error("Syntax");
+    if(argc != 3) ERROR_SYNTAX;
 
     i = getint(argv[0], 0, MAXSTRLEN);
     p = DoExpression(argv[2], &t);                                  // get the value and type of the argument
@@ -698,6 +709,7 @@ void fun_asin(void) {
      } else {
           fret = arcsinus(f);
      }
+    fret *= ANGLE_CONVERSION;
     targ = T_NBR;
 }
 
@@ -714,6 +726,7 @@ void fun_acos(void) {
      } else {
           fret = PI_VALUE/2 - arcsinus(f);
      }
+     fret *= ANGLE_CONVERSION;
      targ = T_NBR;
 }
 
@@ -724,7 +737,7 @@ void do_max_min(int cmp) {
     int i;
     MMFLOAT nbr, f;
     getargs(&ep, (MAX_ARG_COUNT * 2) - 1, ",");
-    if((argc & 1) != 1) error("Syntax");
+    if((argc & 1) != 1) ERROR_SYNTAX;
     if(cmp) nbr = -FLT_MAX; else nbr = FLT_MAX;
     for(i = 0; i < argc; i += 2) {
         f = getnumber(argv[i]);

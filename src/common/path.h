@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 path.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -69,9 +69,8 @@ bool path_is_empty(const char *path);
 /** Is the path a regular file, or a symbolic link to a regular file? */
 bool path_is_regular(const char *path);
 
-/** Does the filename have a given suffix? */
-bool path_has_suffix(
-        const char *path, const char *suffix, bool case_insensitive);
+/** Does the filename have a given file-extension? */
+bool path_has_extension(const char *path, const char *extension, bool case_insensitive);
 
 /**
  * Gets the canonicalized absolute pathname.
@@ -148,4 +147,23 @@ const char *path_get_extension(const char *path);
  */
 MmResult path_complete(const char *path, char *out, size_t sz);
 
-#endif
+/**
+ * Check for an existing file with a specified case-insensitive extension.
+ *
+ * @param[in]   path       Path to the file with optional extension.
+ * @param[in]   extension  The expected case-insensitive extension.
+ *                         If the path does not already have this extension then this function will
+ *                         check for a file with the extension:
+ *                           1) all in lower-case
+ *                           2) first letter in upper-case all others in lower-case
+ *                           3) all in upper-case
+ * @param[out]  out        Buffer which on exit will contain the path to the file found with its
+ *                         extension.
+ * @param[in]   out_sz     Size of the \p out buffer.
+ * @return                 kOk if the file is found,
+ *                         kFileNotFound if the file is not found,
+ *                         other values on error.
+ */
+MmResult path_try_extension(const char *path, const char *extension, char *out, size_t out_sz);
+
+#endif // #if !defined(MMB4L_PATH_H)

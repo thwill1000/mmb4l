@@ -1,6 +1,243 @@
 ChangeLog
 ---------
 
+Version 0.7 alpha 1 - 19-Jan-2025:
+  - Added support for hi-res graphics:
+    - The GRAPHICS command is used to create and manipulate up to 256 hi-res
+      surfaces with ids 0 - 255:
+        GRAPHICS BUFFER id, width, height
+          - Creates an off-screen buffer surface.
+          - Note that surface 0 cannot be a buffer.
+        GRAPHICS CLS id [, colour]
+          - Clears a surface.
+        GRAPHICS COPY src_id TO dst_id [, when] [, transparent]
+          - Copies one surface to another (c.f. PAGE COPY on the CMM2).
+        GRAPHICS DESTROY { id | ALL }
+          - Destroys a surface.
+        GRAPHICS INTERRUPT id, {interrupt|0}
+          - Sets or clears the interrupt handler for a window surface.
+        GRAPHICS LIST
+          - Lists all surfaces.
+        GRAPHICS SPRITE id, width, height
+          - Creates a sprite surface.
+          - Note that all graphics primitive commands can be used on sprite
+            surfaces; this is different to other MMBasics.
+          - Note that surface 0 cannot be a sprite.
+        GRAPHICS TITLE id, title$
+          - Sets the title of a window surface.
+        GRAPHICS WINDOW id, width, height [, x] [, y] [, title$] [, scale]
+                        [, interrupt]
+          - Creates a window surface.
+          - Note that surface 0 can (only) be a window.
+        GRAPHICS WRITE { id | NONE }
+          - Selects the surface to direct other graphics commands to
+            (c.f. PAGE WRITE on the CMM2).
+
+    - The following standard MMBasic graphics commands are implemented including
+      supporting array parameters where appropriate:
+        ARC x, y, r1, [r2], arcrad1, arcrad2 [, colour]
+        BLIT x1, y1, x2, y2, width, height [, src_id] [, flags]
+        BLIT CLOSE [#]id
+        BLIT CLOSE ALL
+        BLIT COMPRESSED address, x, y [, transparent]
+        BLIT MEMORY address, x, y [, transparent]
+        BLIT READ [#]dst_id, x, y, width, height [, src_id]
+        BLIT WRITE [#]src_id, x, y [, orientation]
+        BOX x, y, w, h [, lw] [, c] [, fill]
+        CIRCLE x, y, radius [, line_width] [, aspect_ratio] [, colour] [, fill]
+        CLS [colour]
+          - Note that if there is no current graphics write surface then this
+            will clear the console. To clear the console explicitly use the
+            CLS CONSOLE or CONSOLE CLEAR commands.
+        DEFINEFONT [#]font_id
+        FONT [#]font_id [, scale]
+        GUI BITMAP x, y, bits [, width] [, height] [, scale] [, fcolour] [, bcolour]
+        IMAGE RESIZE_FAST x, y, width, height, new_x, new_y, new_width, new_height [, src_id]
+                          [, flag]
+        LINE x1, y1, x2, y2 [, width [, colour]]
+        LINE GRAPH x(), y() [, colour]
+        LINE PLOT ydata() [, nbr] [, xstart] [, xinc] [, ystart] [, yinc] [, colour]
+        LOAD BMP file$ [, x] [, y]
+        LOAD IMAGE file$ [, x] [, y]
+        LOAD PNG file$ [, x] [, y] [, transparency_cut_off]
+        PIXEL x, y [, colour]
+        POLYGON n, x(), y() [, bordercolour] [, fillcolour]
+        RBOX x, y, width, height [, radius] [, colour] [, fill]
+        SPRITE CLOSE [#]id
+        SPRITE CLOSE ALL
+        SPRITE HIDE [#]id
+        SPRITE INTERRUPT interrupt
+        SPRITE HIDE ALL
+        SPRITE HIDE SAFE [#]id
+        SPRITE LOAD file$ [, start_sprite] [, colour_mode]
+        SPRITE MOVE
+        SPRITE NEXT [#]id, x, y
+        SPRITE NOINTERRUPT
+        SPRITE READ [#]id, x, y, w, h [, src_id]
+        SPRITE RESTORE
+        SPRITE SCROLL x, y [, colour]
+        SPRITE SET TRANSPARENT rgb121_colour
+        SPRITE SHOW [#]id, x, y, layer [, flags]
+        SPRITE SHOW SAFE [#]id, x, y, layer [, flags] [, ontop]
+        SPRITE WRITE [#]id, x, y [, flags]
+        TEXT x, y, string$ [, alignment$] [, font] [, scale] [, fcolour] [, bcolour]
+        TRIANGLE x1, y1, x2, y2, x3, y3 [, colour] [, fill]
+
+    - The following standard MMBasic SPRITE functions are implemented:
+        SPRITE(A, [#]id)
+        SPRITE(C, [#]id [, m])
+        SPRITE(D, [#]id1, [#]id2)
+        SPRITE(E, [#]id)
+        SPRITE(H, [#]id)
+        SPRITE(L, [#]id)
+        SPRITE(N [, layer])
+        SPRITE(S)
+        SPRITE(V, [#]id1, [#]id2)
+        SPRITE(T, [#]id)
+        SPRITE(W, [#]id)
+        SPRITE(X, [#]id)
+        SPRITE(Y, [#]id)
+
+  - Added support for music and sound-fx playback.
+    - The following standard MMBasic audio commands are supported:
+        PLAY EFFECT file$ [, interrupt]
+        PLAY FLAC file$ [, interrupt]
+        PLAY MODFILE file$ [, sample_rate] [, interrupt]
+        PLAY MODSAMPLE sample_num, channel_num [, volume] [, sample_rate]
+        PLAY MP3 file$ [, interrupt]
+        PLAY PAUSE
+        PLAY PREVIOUS
+        PLAY RESUME
+        PLAY SOUND sound_no, channel_no, type [, frequency] [, volume]
+        PLAY STOP
+        PLAY TONE left [, right] [, duration] [, interrupt]
+        PLAY VOLUME left [, right]
+        PLAY WAV file$ [, interrupt]
+
+  - Added support for up to 4 USB gamepads:
+    - Commands:
+        DEVICE GAMEPAD CLOSE id
+        DEVICE GAMEPAD OPEN id [, interrupt] [, bitmask]
+        DEVICE GAMEPAD VIBRATE id [, low_freq] [, high_freq] [, duration_ms]
+        DEVICE GAMEPAD VIBRATE id OFF
+    - Functions:
+        DEVICE(GAMEPAD id, funct)
+        MM.INFO$(GAMEPAD id)
+          - Retrieves SDL mapping for gamepad.
+
+  - Added OPTION SIMULATE to enable platform specific compatibility with other
+    MMBasics.
+      OPTION SIMULATE device$
+        - device$ is one of "Colour Maximite 2", "Game*Mite", "PicoMiteVGA",
+          "MMBasic for Windows" or "MMB4L" to return to default behaviour.
+    - Causes MM.DEVICE$, MM.INFO$(DEVICE) and MM.INFO$(PLATFORM) to return
+      the appropriate simulated value.
+    - If required MM.INFO$(DEVICE X) can be used to retrieve the real device
+      name; this relies on the lenient error checking currently exhibited by
+      other MMBasic platforms not reporting the "extraneous" X as a syntax
+      error.
+
+      Colour Maximite 2:
+        - Simulates USB controllers 1-3 being read as if they were Wii Classic
+          controllers attached to I2C channels 1-3:
+          - USB1 = I2C3, USB2 = I2C1, USB1 = I2C2.
+        - Commands:
+            CONTROLLER CLASSIC CLOSE [i2c]
+            CONTROLLER CLASSIC OPEN [i2c] [, interrupt] [, bitmask]
+            MODE, PAGE COPY, PAGE SCROLL, PAGE WRITE
+        - Functions:
+            CLASSIC({B | LX | LY | RX | RY | L | R | T} [, i2c])
+
+      Game*Mite (RP2040):
+        - Simulates sufficient GPIO to support USB controller 1 being read
+          using SETPIN and PORT() as if it were the 8-button Game*Mite
+          controller.
+        - Commands:
+            FRAMEBUFFER, BLIT FRAMEBUFFER, FLASH DISK LOAD, SETPIN
+        - Functions:
+            MM.INFO(CPUSPEED), MM.INFO(DRIVE), MM.INFO(FLASH ADDRESS),
+            MM.INFO(PINNO GPxx), PORT()
+
+      MMBasic for Windows:
+        - As "Colour Maximite 2" except supports a single USB controller being
+          read with the GAMEPAD command and function.
+
+      PicoMiteVGA (RP2040):
+        - Simulates sufficient GPIO to support USB controllers 1 & 2 being
+          read using PIN, PULSE and SETPIN as if they were 12-button SNES
+          controllers wired according to the PicoGAME VGA 2.0 schematic.
+        - Commands:
+            FRAMEBUFFER, BLIT FRAMEBUFFER, FLASH DISK LOAD, MODE, PIN,
+            PULSE, SETPIN
+        - Functions:
+            MM.INFO(CPUSPEED), MM.INFO(DRIVE), MMM.INFO(FLASH ADDRESS),
+            MM.INFO(PINNO GPxx), PIN()
+        - Note that MODE 1 coloured tiles are not currently supported.
+
+    Added other commands:
+        ON PS2 {interrupt | 0}
+          - As per PicoMite.
+        OPTION ANGLE {DEGREES | RADIANS}
+          - As per PicoMite.
+        OPTION AUDIO {ON | OFF}
+          - Persistent option to enable/disable audio.
+          - Default ON.
+          - The intended purpose of this OPTION is to allow MMB4L to be
+            easily run on Linux devices (in particular Docker containers)
+            where the SDL audio is too difficult for the user to be bothered to
+            configure ;-).
+          - Note that when OFF all the underlying audio boilerplate is still
+            executed except for the bit that makes the noise and the calling of
+            audio interrupts.
+        OPTION AUTOSCALE {ON | OFF}
+          - Persistent option to enable/disable automatic scaling of windows when
+            using OPTION SIMULATE.
+          - Default ON.
+          - When ON the window for the simulated device will be scaled up (in
+            whole number multipliers) to be the largest that will fit on the
+            display.
+        SETENV name$ = value$
+          - Synonym for existing SYSTEM SETENV.
+          - Note that the value may also be an integer array containing a
+            LONGSTRING.
+
+    Added other functions:
+        ATAN2(y, x)
+        KEYDOWN(n)
+        MM.INFO(PS2)
+
+  - Added CONSOLE TITLE command as preferred synonym for CONSOLE SETTITLE so
+    as to match the GRAPHICS TITLE command.
+
+  - Added optional parameter to MM.INFO$(ERRMSG [errno%]) so it can now be used
+    to retrieve the default message for any given 'errno%' as well as the
+    current error message (when errno% is not specified).
+    - Note that currently error numbers are not stable between MMB4L releases.
+
+  - Changed DATE$(), DATETIME$(), DAY$() and TIME$() to be consistent with other
+    MMBasics that do not have timezone support whilst returning local timezone
+    values where most appropriate:
+      TIME$()          - returns current time in local timezone.
+      DATE$()          - returns current date in local timezone.
+      DATETIME$(NOW)   - returns current date/time in local timezone.
+      DATETIME$(epoch) - returns date/time in UTC.
+      DAY$(NOW)        - returns current day in local timezone.
+      DAY$(epoch)      - returns day in UTC.
+    Additionally:
+      EPOCH(datetme$)  - assumes the date/time is in UTC.
+
+  - Changed MATH(SD a()) function to use "Sample Standard Deviation Formula"
+    instead of "Population Standard Deviation Formula".
+    - This matches PicoMite MMBasic v6.0.0.
+
+  - Changed SORT to allow bit 2 of the 'flags' to be set when sorting strings so
+    that empty strings are considered to have the "biggest" value.
+    - This matches PicoMite MMBasic v0.6.0
+
+  - Fixed bug where ANSI control codes for setting the terminal title, showing
+    the cursor, and resetting graphics styles and colours were written to
+    STDOUT even when running without the MMBasic prompt.
+
 Version 0.6.1 - 28-Sep-2024:
   - Fixed bug where would show endless 'Cannot determine terminal size' errors.
   - Minor corrections to v0.6.0 ChangeLog entry.

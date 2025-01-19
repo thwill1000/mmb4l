@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_run.c
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/cstring.h"
 #include "../common/program.h"
 #include "../common/utility.h"
+#include "../core/tokentbl.h"
 
 #include <string.h>
 
@@ -150,7 +151,8 @@ MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args) {
     // WARNING! do not clear 'run_args' at the start of this function,
     // its existing value may need to be evaluated to calculate its new value.
 
-    if (!*p) {
+    skipspace(p);
+    if (!*p || *p == '\'') {
         *run_args = '\0';
         return kOk;
     }
@@ -214,7 +216,8 @@ void cmd_run(void) {
         }
     }
 
-    if (FAILED(program_load_file(filename))) return;
+    result = program_load_file(filename);
+    if (FAILED(result)) error_throw(result);
 
     ClearRuntime();
     WatchdogSet = false;

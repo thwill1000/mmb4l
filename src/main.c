@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 main.c
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,12 +43,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "common/mmb4l.h"
+#include "common/audio.h"
 #include "common/cmdline.h"
 #include "common/console.h"
 #include "common/cstring.h"
+#include "common/events.h"
 #include "common/exit_codes.h"
 #include "common/file.h"
 #include "common/interrupt.h"
+#include "common/keyboard.h"
 #include "common/mmtime.h"
 #include "common/parse.h"
 #include "common/path.h"
@@ -56,10 +59,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/prompt.h"
 #include "common/serial.h"
 #include "common/utility.h"
+#include "core/tokentbl.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#define MM_VERSION_STR  xstr(MM_MAJOR) "." xstr(MM_MINOR) "." xstr(MM_MICRO)
+static const char version[] __attribute__ ((used))
+        = "@(#) MMB4L v" MM_VERSION_STR " " __DATE__ " " __TIME__;
+#pragma GCC diagnostic pop
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
@@ -69,7 +80,7 @@ ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Options mmb_options;
 int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
-char *CFunctionFlash, *CFunctionLibrary, **FontTable;
+char *CFunctionFlash, *CFunctionLibrary;
 
 CmdLineArgs mmb_args = { 0 };
 uint8_t mmb_exit_code = EX_OK;
@@ -91,16 +102,16 @@ void print_banner() {
     char s[128];
     sprintf(
         s,
-        "%s MMBasic Version %d.%d%s%d\n",
+        "MMBasic for %s v%d.%d%s%d\n",
         MM_ARCH,
         MM_MAJOR,
         MM_MINOR,
         MM_MICRO < 100
-            ? " alpha "
+            ? "-alpha."
             : MM_MICRO < 200
-                ? " beta "
+                ? "-beta."
                 : MM_MICRO < 300
-                    ? " RC "
+                    ? "-rc."
                     : ".",
         MM_MICRO < 100
             ? MM_MICRO
@@ -190,32 +201,36 @@ void set_start_directory() {
 static void reset_console_title() {
     char title[STRINGSIZE + 10];
     sprintf(title, "MMBasic - %s", CurrentFile[0] == '\0' ? "Untitled" : CurrentFile);
-    console_set_title(title);
+    console_set_title(title, false);
 }
 
 /** Handle return via longjmp(). */
 void longjmp_handler(int jmp_state) {
 
-    console_show_cursor(true);
-    console_reset();
-    if (MMCharPos > 1) console_puts("\r\n");
+    if (mmb_args.show_prompt) {
+        console_show_cursor(true);
+        console_reset();
+        if (MMCharPos > 1) console_puts("\r\n");
+    }
+
+    audio_term();
 
     int do_exit = false;
     switch (jmp_state) {
         case JMP_BREAK:
             mmb_exit_code = EX_BREAK;
-            do_exit = !mmb_args.interactive;
+            do_exit = !mmb_args.show_prompt;
             break;
 
         case JMP_END:
-            do_exit = !mmb_args.interactive;
+            do_exit = !mmb_args.show_prompt;
             break;
 
         case JMP_ERROR:
             console_puts(mmb_error_state_ptr->message);
             console_puts("\r\n");
             mmb_exit_code = error_to_exit_code(mmb_error_state_ptr->code);
-            do_exit = !mmb_args.interactive;
+            do_exit = !mmb_args.show_prompt;
             break;
 
         case JMP_NEW:
@@ -270,11 +285,11 @@ int main(int argc, char *argv[]) {
 
     InitHeap();  // init memory allocation
 
-    console_init();
+    console_init(!mmb_args.show_prompt);
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
 
-    if (mmb_args.interactive) {
+    if (mmb_args.show_prompt) {
         reset_console_title();
         console_reset();
         console_clear();
@@ -287,6 +302,7 @@ int main(int argc, char *argv[]) {
     init_mmbasic_config_dir();
     init_options();
     error_init(mmb_error_state_ptr);
+    keyboard_init();
 
     InitBasic();
 
@@ -335,7 +351,7 @@ int main(int argc, char *argv[]) {
         //     ErrorInPrompt = true;
         //     ExecuteProgram("MM.PROMPT\0");
         // } else {
-        if (mmb_args.interactive) {
+        if (mmb_args.show_prompt) {
             console_puts("> ");  // print the prompt
         }
         // }
@@ -349,7 +365,7 @@ int main(int argc, char *argv[]) {
 
         memset(inpbuf, 0, INPBUF_SIZE);
         if (run_flag) {
-            if (mmb_args.interactive) {
+            if (mmb_args.show_prompt) {
                 console_puts(mmb_args.run_cmd);
                 console_puts("\r\n");
             }
@@ -381,7 +397,7 @@ void IntHandler(int signo) {
 
 void FlashWriteInit() {
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
-    console_set_title("MMBasic - Untitled");
+    console_set_title("MMBasic - Untitled", false);
     CurrentFile[0] = 0;
 }
 
@@ -400,6 +416,10 @@ static void perform_background_tasks() {
             serial_pump_input(i);
         }
     }
+
+    events_pump();
+    graphics_refresh_windows();
+    ON_FAILURE_ERROR(audio_background_tasks());
 }
 
 void CheckAbort(void) {
@@ -439,88 +459,6 @@ int MMgetchar(void) {
     }
     prevchar = c;
     return c == '\n' ? '\r' : c;
-}
-
-// get a line from the keyboard or a file handle
-void MMgetline(int filenbr, char *p) {
-    int c, nbrchars = 0;
-    const char *tp;
-
-    while (1) {
-        CheckAbort();  // jump right out if CTRL-C
-
-        if ((file_table[filenbr].type == fet_file) && file_eof(filenbr)) break; // End of file.
-        c = file_getc(filenbr);
-
-        // -1 - no character.
-        //  0 - the null character which we ignore.
-        if (c <= 0) continue;
-
-        // if this is the console, check for a programmed function key and
-        // insert the text
-        if (filenbr == 0) {
-            tp = NULL;
-            if (c == F2) tp = "RUN";
-            if (c == F3) tp = "LIST";
-            if (c == F4) tp = "EDIT";
-            if (c == F5) tp = "WEDIT";
-            if (tp) {
-                strcpy(p, tp);
-                console_puts(tp);
-                console_puts("\r\n");
-                return;
-            }
-        }
-
-        if (c == '\t') {  // expand tabs to spaces
-            do {
-                if (++nbrchars > MAXSTRLEN) ERROR_LINE_TOO_LONG;
-                *p++ = ' ';
-                if (filenbr == 0) console_putc(' ');
-            } while (nbrchars % mmb_options.tab);
-            continue;
-        }
-
-        if (c == '\b') {  // handle the backspace
-            if (nbrchars) {
-                if (filenbr == 0) console_puts("\b \b");
-                nbrchars--;
-                p--;
-            }
-            continue;
-        }
-
-        if (c == '\n') {  // what to do with a newline
-            break;        // a newline terminates a line (for a file or serial)
-        }
-
-        if (c == '\r') {
-            if (filenbr == 0) {
-                console_puts("\r\n");
-                break;  // on the console this means the end of the line
-                        // - stop collecting
-            } else {
-                continue;  // for files and serial loop around looking for the
-                           // following newline
-            }
-        }
-
-        if (isprint(c) && (filenbr == 0)) {
-            console_putc(c);  // The console requires that chars be echoed
-        }
-
-        if (++nbrchars > MAXSTRLEN) ERROR_LINE_TOO_LONG;  // stop collecting if maximum length
-
-        // TODO: currently this function can return strings containing control
-        //       characters, i.e. c < 32.
-        //       Perhaps we should replace these with another character such as
-        //       '?' or with a hex code <02> or <0x02>.
-        //       The same might apply to c = 0 which we currently ignore.
-        //       Possibly the behaviour could be controlled by an OPTION.
-
-        *p++ = c;  // save our char
-    }
-    *p = 0;
 }
 
 // dump a memory area to the console

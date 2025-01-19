@@ -43,19 +43,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include "../common/mmb4l.h"
 #include "../common/mmtime.h"
 
 void fun_datetime(void) {
-    time_t t;
-    if (checkstring(ep, "NOW")) {
-        t = NANOSECONDS_TO_SECONDS(mmtime_now_ns());
-    } else {
-        t = getint(ep, 0x80000000, 0x7FFFFFFF);
-    }
-    struct tm *tmbuf;
-    tmbuf = gmtime(&t);
+    const bool now = checkstring(ep, "NOW");
+    const time_t t = now
+            ? NANOSECONDS_TO_SECONDS(mmtime_now_ns())
+            : getint(ep, INT32_MIN, INT32_MAX);
+
+    // Note that we use the local timezone if NOW is explicitly specified,
+    // otherwise we use UTC.
+    const struct tm *tmbuf = now ? localtime(&t) : gmtime(&t);
 
     targ = T_STR;
     sret = GetTempStrMemory();

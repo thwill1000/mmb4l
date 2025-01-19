@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_cfunction.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,12 +43,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
+#include "../core/commandtbl.h"
 #include "../common/error.h"
 
-#define ERROR_MISSING_END  error_throw_ex(kError, "Missing END statement")
+#define ERROR_MISSING_END  error_throw_ex(kSyntax, "Missing END statement")
 
 void cmd_cfunction(void) {
-    int end_token = GetCommandValue("End CSub");  // this terminates a CSUB
+    CommandToken end_token = (cmdtoken == cmdCSUB)
+            ? cmdEND_CSUB
+            : GetCommandValue("End DefineFont");
     const char *p = cmdline;
     while (*p != 0xff) {
         if (*p == 0) p++;  // if it is at the end of an element skip the zero marker
@@ -60,7 +63,7 @@ void cmd_cfunction(void) {
             p += p[1] + 2;  // skip over the label
             skipspace(p);   // and any following spaces
         }
-        if (*p == end_token) {  // found an END token
+        if (commandtbl_decode(p) == end_token) {
             nextstmt = p;
             skipelement(nextstmt);
             return;

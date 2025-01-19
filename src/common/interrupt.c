@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 interrupt.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,16 +43,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <assert.h>
+#include <string.h>
 
-#include "mmb4l.h"
+#include <SDL.h>
+
 #include "console.h"
 #include "error.h"
+#include "exit_codes.h"
 #include "interrupt.h"
+#include "mmb4l.h"
 #include "mmtime.h"
+#include "queue.h"
 #include "serial.h"
+#include "utility.h"
+#include "../core/commandtbl.h"
 
 #define ERROR_NOT_AN_INTERRUPT  error_throw_ex(kError, "Not in interrupt")
 #define ERROR_TOO_MANY_SUBS     error_throw_ex(kError, "Too many SUBs for interrupt")
+#define WINDOW_EVENT_QUEUE_CAPACITY  10
 
 #define skipelement(x)  while(*x) x++
 
@@ -67,7 +75,9 @@ typedef struct {
     const char *interrupt_addr;
 } SerialRxStruct;
 
+static char DUMMY_IRETURN[3]; // Dummy IRETURN call.
 static int interrupt_count = 0;
+static bool interrupt_legacy = false; // Is the current interrupt using a label/line number ?
 static const char *interrupt_any_key_addr = NULL;
 static bool interrupt_pause_flag = false;
 static const char *interrupt_return_stmt = NULL;
@@ -77,12 +87,26 @@ static const char *interrupt_specific_key_addr = NULL;
 static TickStruct interrupt_ticks[NBRSETTICKS + 1];
 static SerialRxStruct interrupt_serial_rx[MAXOPENFILES + 1];
 static ErrorState interrupt_error_state;
+static Queue interrupt_window_event_queue;
+static Interrupt interrupt_list[kInterruptLast];
 
 void interrupt_init() {
+    // Only expected to be called once on application startup.
+    static bool called = false;
+    if (called) ON_FAILURE_ERROR(kInternalFault);
+    called = true;
+
     interrupt_clear();
+
+    ON_FAILURE_ERROR(queue_init(&interrupt_window_event_queue, SDL_WindowEvent,
+                                  WINDOW_EVENT_QUEUE_CAPACITY));
+
+    char *p = DUMMY_IRETURN;
+    commandtbl_encode(&p, cmdIRET);
+    *p = '\0';
 }
 
-void interrupt_clear() {
+void interrupt_clear(void) {
     interrupt_count = 0;
     interrupt_return_stmt = NULL;
     interrupt_any_key_addr = NULL;
@@ -99,6 +123,8 @@ void interrupt_clear() {
         interrupt_serial_rx[i].count = 0;
         interrupt_serial_rx[i].interrupt_addr = NULL;
     }
+    queue_clear(&interrupt_window_event_queue);
+    for (size_t i = 0; i < kInterruptLast; ++i) memset(interrupt_list + i, 0, sizeof(Interrupt));
 }
 
 bool interrupt_running() {
@@ -106,24 +132,117 @@ bool interrupt_running() {
 }
 
 static int handle_interrupt(const char *interrupt_address) {
-    static char rti[2]; // TODO: does this really need to be static ?
+    LocalIndex++;  // IRETURN will decrement this unless the interrupt routine is a SUB in which
+                   // case exiting the SUB decrements it.
+    mmb_error_state_ptr = &interrupt_error_state; // Swap to the interrupt error state
+    error_init(mmb_error_state_ptr);              //   and clear it
+    interrupt_return_stmt = nextstmt;             //   for when IRETURN is executed.
 
-    LocalIndex++;                                                   // IRETURN will decrement this
-    mmb_error_state_ptr = &interrupt_error_state;                   // swap to the interrupt error state
-    error_init(mmb_error_state_ptr);                                // and clear it
-    interrupt_return_stmt = nextstmt;                               // for when IRETURN is executed
-    // if the interrupt is pointing to a SUB token we need to call a subroutine
-    if  (*interrupt_address == cmdSUB) {
-        rti[0] = cmdIRET;                                           // setup a dummy IRETURN command
-        rti[1] = 0;
+    const CommandToken token = commandtbl_decode(interrupt_address);
+    if (token == cmdSUB) {
         if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_SUBS;
         errorstack[gosubindex] = CurrentLinePtr;
-        gosubstack[gosubindex++] = rti;                             // return from the subroutine to the dummy IRETURN command
-        LocalIndex++;                                               // return from the subroutine will decrement LocalIndex
-        skipelement(interrupt_address);                             // point to the body of the subroutine
+        gosubstack[gosubindex++] = DUMMY_IRETURN;  // Return from the subroutine to the dummy IRETURN command.
+        skipelement(interrupt_address);            // Point to the body of the SUB.
+        interrupt_legacy = false;
+    } else if (token == cmdFUN) {
+        return kInternalFault;
+    } else {
+        // Label or line number.
+        interrupt_legacy = true;
     }
 
-    nextstmt = interrupt_address;                                   // the next command will be in the interrupt routine
+    // Set the next command to be the body of the interrupt routine.
+    nextstmt = interrupt_address;
+    return true;
+}
+
+static inline void interrupt_add_local_integer_const(const char *name, MMINTEGER value) {
+    int var_idx;
+    ON_FAILURE_ERROR(vartbl_add(name, T_INT | T_CONST | T_IMPLIED, LocalIndex, NULL, 0,
+                                  &var_idx));
+    vartbl[var_idx].val.i = value;
+}
+
+static int handle_window_interrupt() {
+    // Get the oldest window event.
+    SDL_WindowEvent event;
+    MmResult result = queue_dequeue(&interrupt_window_event_queue, &event);
+    ON_FAILURE_ERROR_EX(result, false);
+
+    // If this was the last event then reduce the number of interrupts.
+    if (queue_is_empty(&interrupt_window_event_queue)) interrupt_count--;
+
+    // Get the MMB4L window.
+    MmSurfaceId window_id = graphics_find_window(event.windowID);
+    if (!graphics_surface_exists(window_id)) {
+        if (event.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+            // We can receive this event after the window has been destroyed.
+            return true;
+        }
+        ON_FAILURE_ERROR_EX(kInternalFault, false);
+    }
+    MmSurface *window = &graphics_surfaces[window_id];
+
+    // If there is no interrupt routine registered then we ignore the event unless is is a
+    // CLOSE event in which case we destroy the window and END the program.
+    if (!window->interrupt_addr) {
+        if (event.event == SDL_WINDOWEVENT_CLOSE) {
+            (void) graphics_surface_destroy(window);
+            mmb_exit_code = EX_OK;
+            longjmp(mark, JMP_END);
+        } else {
+            return true;
+        }
+    }
+
+    // Get interrupt SUB signature.
+    // It should already have been validated when the window was created.
+    FunctionSignature *fn = (FunctionSignature *) GetTempMemory(sizeof(FunctionSignature));
+    const char *p2 = window->interrupt_addr;
+    const char *cached_line_ptr = CurrentLinePtr;
+    CurrentLinePtr = window->interrupt_addr; // So any error is reported on the correct line.
+    ON_FAILURE_ERROR_EX(parse_fn_sig(&p2, fn), false);
+    CurrentLinePtr = cached_line_ptr;
+
+    // Setup stack and return state.
+    LocalIndex++;  // IRETURN will decrement this unless the interrupt routine is a SUB in which
+                   // case exiting the SUB decrements it.
+    mmb_error_state_ptr = &interrupt_error_state;  // Swap to the interrupt error state
+    error_init(mmb_error_state_ptr);               //   and clear it
+    interrupt_return_stmt = nextstmt;              //   for when IRETURN is executed
+    if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_SUBS;
+    errorstack[gosubindex] = CurrentLinePtr;
+    gosubstack[gosubindex++] = DUMMY_IRETURN;  // Return from the subroutine to the dummy IRETURN command.
+    interrupt_legacy = false;
+
+    // Setup local variables corresponding to parameters.
+    int var_idx[2];
+    char name[MAXVARLEN + 1];
+    for (uint8_t i = 0; i < 2; ++i) {
+        const char *p = fn->addr + fn->params[i].name_offset;
+        ON_FAILURE_ERROR_EX(parse_name(&p, name), false);
+        ON_FAILURE_ERROR_EX(vartbl_add(name, fn->params[i].type, LocalIndex, NULL, 0,
+                                         &var_idx[i]), false);
+    }
+    vartbl[var_idx[0]].val.i = window_id;
+    vartbl[var_idx[1]].val.i = event.event; // event_id
+
+    // Setup local constants corresponding to event constants.
+    interrupt_add_local_integer_const("WINDOW_EVENT_CLOSE", SDL_WINDOWEVENT_CLOSE);
+    interrupt_add_local_integer_const("WINDOW_EVENT_FOCUS_GAINED", SDL_WINDOWEVENT_FOCUS_GAINED);
+    interrupt_add_local_integer_const("WINDOW_EVENT_FOCUS_LOST", SDL_WINDOWEVENT_FOCUS_LOST);
+    interrupt_add_local_integer_const("WINDOW_EVENT_MINIMISED", SDL_WINDOWEVENT_MINIMIZED);
+    interrupt_add_local_integer_const("WINDOW_EVENT_MAXIMISED", SDL_WINDOWEVENT_MAXIMIZED);
+    interrupt_add_local_integer_const("WINDOW_EVENT_RESTORED", SDL_WINDOWEVENT_RESTORED);
+
+    ClearSpecificTempMemory(fn);
+
+    // Set the next command to be the body of the interrupt SUB.
+    const char *interrupt_addr = window->interrupt_addr;
+    skipelement(interrupt_addr);
+    nextstmt = interrupt_addr;
+
     return true;
 }
 
@@ -172,6 +291,18 @@ bool interrupt_check(void) {
         }
     }
 
+    // Check for window interrupts.
+    if (!queue_is_empty(&interrupt_window_event_queue)) handle_window_interrupt();
+
+    // All other interrupts.
+    for (size_t i = 0; i < kInterruptLast; ++i) {
+        Interrupt *interrupt = interrupt_list + i;
+        if (interrupt->fn && interrupt->fired) {
+            interrupt->fired = false;
+            return handle_interrupt(interrupt->fn);
+        }
+    }
+
     return false;
 }
 
@@ -179,7 +310,11 @@ void interrupt_return(void) {
     if (interrupt_return_stmt == NULL) ERROR_NOT_AN_INTERRUPT;
     checkend(cmdline);
     nextstmt = interrupt_return_stmt;
-    if (LocalIndex) ClearVars(LocalIndex--);  // delete any local variables
+    if (interrupt_legacy && LocalIndex > 0) {
+        // If the interrupt routine was not a SUB then clear local variables and decrement
+        // LocalIndex. If it was a SUB then leaving the SUB will have handled this.
+        ClearVars(LocalIndex--);
+    }
     TempMemoryIsChanged = true;  // signal that temporary memory should be checked
     *CurrentInterruptName = 0;
     interrupt_return_stmt = NULL;
@@ -275,4 +410,31 @@ void interrupt_disable_serial_rx(int fnbr) {
         interrupt_serial_rx[fnbr].interrupt_addr = NULL;
         interrupt_count--;
     }
+}
+
+void interrupt_fire_window_event(SDL_WindowEvent *event) {
+    MmResult result = queue_enqueue(&interrupt_window_event_queue, *event);
+    if (result == kContainerFull) {
+        // Discard the oldest event.
+        SDL_WindowEvent tmp;
+        ON_FAILURE_ERROR(queue_dequeue(&interrupt_window_event_queue, &tmp));
+        result = queue_enqueue(&interrupt_window_event_queue, *event);
+    }
+    ON_FAILURE_ERROR(result);
+    if (queue_size(&interrupt_window_event_queue) == 1) interrupt_count++;
+}
+
+void interrupt_enable(InterruptType type, const char *fn) {
+    if (interrupt_list[type].fn) interrupt_count--;
+    interrupt_list[type].fn = fn;
+    interrupt_list[type].fired = false;
+    if (fn) interrupt_count++;
+}
+
+void interrupt_disable(InterruptType type) {
+    interrupt_enable(type, NULL);
+}
+
+void interrupt_fire(InterruptType type) {
+    interrupt_list[type].fired = true;
 }

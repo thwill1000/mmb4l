@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmb4l.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined MMB4L_H
+#if !defined(MMB4L_H)
 #define MMB4L_H
 
 #include "../Version.h"
@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "memory.h"
 #include "options.h"
+#include "parse.h"
 
 #define PI_VALUE  3.14159265358979323
 
@@ -68,10 +69,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define g_subfun           subfun
 #define g_var_tbl          vartbl
 
+#define checkstring        parse_check_string
+
 void CheckAbort(void);
 void FlashWriteInit();
-void ListProgram(char *p, int all);
-char *llist(char *b, const char *p);
+void ListProgram(const char *p, int all);
+const char *llist(char *b, const char *p);
 int MMgetchar(void);
 void cmd_dummy(void);
 void op_equal(void);
@@ -100,4 +103,4 @@ typedef struct {
     uint32_t next_data;
 } DataReadPointer;
 
-#endif
+#endif // #if !defined(MMB4L_H)

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_mminfo.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/cstring.h"
+#include "../common/flash.h"
+#include "../common/fonttbl.h"
+#include "../common/gamepad.h"
+#include "../common/gpio.h"
+#include "../common/graphics.h"
+#include "../common/keyboard.h"
 #include "../common/mmtime.h"
 #include "../common/parse.h"
 #include "../common/path.h"
@@ -56,9 +62,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define FONT_HEIGHT  12
-#define FONT_WIDTH   8
-
 extern char cmd_run_args[STRINGSIZE];
 
 static void mminfo_architecture(const char *p) {
@@ -69,11 +72,27 @@ static void mminfo_architecture(const char *p) {
     CtoM(g_string_rtn);
 }
 
+static void mminfo_calldepth(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_integer_rtn = LocalIndex;
+    g_rtn_type = T_INT;
+}
+
 static void mminfo_cmdline(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
     strcpy(g_string_rtn, cmd_run_args);
+    CtoM(g_string_rtn);
+}
+
+static void mminfo_cpuspeed(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    if (mmb_options.simulate != kSimulatePicoMiteVga && mmb_options.simulate != kSimulateGameMite) {
+        ON_FAILURE_ERROR(kUnsupportedParameterOnCurrentDevice);
+    }
+    g_rtn_type = T_STR;
+    strcpy(g_string_rtn, "378000000");
     CtoM(g_string_rtn);
 }
 
@@ -91,15 +110,44 @@ static void mminfo_current(const char *p) {
     CtoM(g_string_rtn);
 }
 
-void get_mmdevice(char *device) {
-    strcpy(device, MM_DEVICE);
+MmResult get_mmdevice(char *device) {
+    if (mmb_options.simulate == kSimulateGameMite) {
+        strcpy(device, "PicoMite");
+    } else {
+        MmResult result = options_get_string_value(&mmb_options, kOptionSimulate, device);
+        if (FAILED(result)) return kUnknownDevice;
+    }
+    return kOk;
 }
 
 static void mminfo_device(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_string_rtn = GetTempStrMemory();
+    const char *p2;
     g_rtn_type = T_STR;
-    get_mmdevice(g_string_rtn);
+    if ((p2 = checkstring(p, "X"))) {
+        // With the 'X' flag we always return the real device, i.e. "MMB4L".
+        if (!parse_is_end(p2)) error_throw(kUnexpectedText);
+        g_string_rtn = GetTempStrMemory();
+        strcpy(g_string_rtn, "MMB4L");
+    } else {
+        // Without the 'X' flag we can return a value set using OPTION SIMULATE.
+        if (!parse_is_end(p)) error_throw(kUnexpectedText);
+        g_string_rtn = GetTempStrMemory();
+        MmResult result = get_mmdevice(g_string_rtn);
+        if (FAILED(result)) {
+            error_throw(result);
+            return;
+        }
+    }
+    CtoM(g_string_rtn);
+}
+
+static void mminfo_drive(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    if (mmb_options.simulate != kSimulatePicoMiteVga && mmb_options.simulate != kSimulateGameMite) {
+        ON_FAILURE_ERROR(kUnsupportedParameterOnCurrentDevice);
+    }
+    g_rtn_type = T_STR;
+    strcpy(g_string_rtn, "A:");
     CtoM(g_string_rtn);
 }
 
@@ -113,11 +161,9 @@ static void mminfo_directory(const char *p) {
     if (!getcwd(g_string_rtn, STRINGSIZE)) error_throw(errno);
 
     // Add a trailing '/' if one is not already present.
-    // TODO: error handling if path too long.
     size_t len = strlen(g_string_rtn);
-    if (g_string_rtn[len - 1] != '/') {
-        g_string_rtn[len] = '/';
-        g_string_rtn[len + 1] = '\0';
+    if (g_string_rtn[len - 1] != '/' && FAILED(cstring_cat(g_string_rtn, "/", STRINGSIZE))) {
+        ON_FAILURE_ERROR(kStringTooLong);
     }
 
     CtoM(g_string_rtn);
@@ -135,10 +181,19 @@ static void mminfo_envvar(const char *p) {
 }
 
 static void mminfo_errmsg(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
+    getargs(&p, 1, ",");
+    if (argc > 1) ERROR_ARGUMENT_COUNT;
+
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
-    strcpy(g_string_rtn, mmb_error_state_ptr->message);
+
+    if (argc == 0) {
+        strcpy(g_string_rtn, mmb_error_state_ptr->message);
+    } else {
+        MmResult result = (MmResult) getinteger(argv[0]);
+        strcpy(g_string_rtn, mmresult_to_default_string(result));
+    }
+
     CtoM(g_string_rtn);
 }
 
@@ -150,8 +205,7 @@ static void mminfo_errno(const char *p) {
 
 static char *get_path(const char *p) {
     char *path = GetTempStrMemory();
-    MmResult result = path_munge(getCstring(p), path, STRINGSIZE);
-    if (FAILED(result)) error_throw(result);
+    ON_FAILURE_ERROR_EX(parse_filename(p, path, STRINGSIZE), NULL);
     return path;
 }
 
@@ -217,33 +271,57 @@ static void mminfo_filesize(const char *p) {
     g_rtn_type = T_INT;
 }
 
+static void mminfo_flash_address(const char *p) {
+    if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+    }
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    const int flash_index = getint(argv[0], 1, FLASH_NUM_SLOTS) - 1;
+    g_rtn_type = T_INT;
+    ON_FAILURE_ERROR(flash_get_addr(flash_index, (char **) &g_integer_rtn));
+}
+
 static void mminfo_fontheight(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_integer_rtn = FONT_HEIGHT;
+    g_integer_rtn = font_height(graphics_font);
     g_rtn_type = T_INT;
 }
 
 static void mminfo_fontwidth(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_integer_rtn = FONT_WIDTH;
+    g_integer_rtn = font_width(graphics_font);
     g_rtn_type = T_INT;
 }
 
-static void mminfo_calldepth(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_integer_rtn = LocalIndex;
-    g_rtn_type = T_INT;
+static void mminfo_gamepad(const char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    MMINTEGER id = getint(argv[0], 1, 4);
+    g_string_rtn = GetTempStrMemory();
+    MmResult result = gamepad_info(id, g_string_rtn);
+    if (result == kGamepadNotFound) {
+        strcpy(g_string_rtn, "");
+    } else if (FAILED(result)) {
+        error_throw(result);
+    }
+    g_rtn_type = T_STR;
+    CtoM(g_string_rtn);
 }
 
 void mminfo_hres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    int width, height;
-    if (FAILED(console_get_size(&width, &height, 0))) {
-        ERROR_UNKNOWN_TERMINAL_SIZE;
-    }
-    int scale = mmb_options.resolution == kPixel ? FONT_WIDTH : 1;
-    g_integer_rtn = width * scale;
     g_rtn_type = T_INT;
+    if (graphics_current) {
+        g_integer_rtn = graphics_current->width;
+    } else {
+        int width, height;
+        if (FAILED(console_get_size(&width, &height, 0))) {
+            ERROR_UNKNOWN_TERMINAL_SIZE;
+        }
+        int scale = mmb_options.resolution == kPixel ? font_width(graphics_font) : 1;
+        g_integer_rtn = width * scale;
+    }
 }
 
 static void mminfo_hpos(const char *p) {
@@ -252,7 +330,7 @@ static void mminfo_hpos(const char *p) {
     if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
-    int scale = mmb_options.resolution == kPixel ? FONT_WIDTH : 1;
+    int scale = mmb_options.resolution == kPixel ? font_width(graphics_font) : 1;
     g_integer_rtn = x * scale;
     g_rtn_type = T_INT;
 }
@@ -268,7 +346,7 @@ static void mminfo_line(const char *p) {
         strcpy(g_string_rtn, "UNKNOWN");
     } else {
         sprintf(g_string_rtn, "%d,", line);
-        if (FAILED(cstring_cat(g_string_rtn, file, STRINGSIZE))) ERROR_STRING_TOO_LONG;
+        if (FAILED(cstring_cat(g_string_rtn, file, STRINGSIZE))) ON_FAILURE_ERROR(kStringTooLong);
     }
     CtoM(sret);
 }
@@ -317,10 +395,7 @@ static void mminfo_path(const char *p) {
         if (FAILED(path_get_parent(CurrentFile, g_string_rtn, STRINGSIZE))) {
             ERROR_COULD_NOT("determine path");
         }
-        // TODO: error handling if path too long.
-        size_t len = strlen(g_string_rtn);
-        g_string_rtn[len] = '/';
-        g_string_rtn[len + 1] = '\0';
+        if (FAILED(cstring_cat(g_string_rtn, "/", STRINGSIZE))) ON_FAILURE_ERROR(kStringTooLong);
     }
 
     CtoM(g_string_rtn);
@@ -330,6 +405,73 @@ static void mminfo_pid(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
     g_integer_rtn = (MMINTEGER) getpid();
+}
+
+static void mminfo_pin_no(const char *p) {
+    if (mmb_options.simulate != kSimulatePicoMiteVga
+            && mmb_options.simulate != kSimulateGameMite) {
+        error_throw(kUnsupportedOnCurrentDevice);
+        return;
+    }
+
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+
+    uint8_t pin_gp = 0;
+    const char *tp = argv[0];
+    // First try parsing arg as literal GPnn.
+    MmResult result = parse_gp_pin(&tp, &pin_gp);
+    if (result == kNotParsed) {
+        // If that fails treat it as a string expression instead.
+        const char *s = getCstring(tp);
+        result = parse_gp_pin(&s, &pin_gp);
+        if (SUCCEEDED(result)) tp = skipexpression(tp);
+    }
+
+    if (FAILED(result)) {
+        error_throw(result);
+        return;
+    }
+
+    if (!parse_is_end(tp)) {
+        error_throw(kUnexpectedText);
+        return;
+    }
+
+    uint8_t pin_num = 0;
+    result = gpio_translate_from_pin_gp(pin_gp, &pin_num);
+    if (FAILED(result)) {
+        error_throw(result);
+        return;
+    }
+
+    g_rtn_type = T_INT;
+    g_integer_rtn = pin_num;
+}
+
+static void mminfo_platform(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_string_rtn = GetTempStrMemory();
+    g_rtn_type = T_STR;
+    if (mmb_options.simulate == kSimulateGameMite) {
+        strcpy(g_string_rtn, "Game*Mite");
+    } else {
+        strcpy(g_string_rtn, "");
+    }
+    CtoM(g_string_rtn);
+}
+
+static void mminfo_ps2(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_rtn_type = T_INT;
+    g_integer_rtn = keyboard_get_last_ps2_scancode();
+}
+
+static void mminfo_sdcard(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_rtn_type = T_STR;
+    strcpy(g_string_rtn, "READY");
+    CtoM(g_string_rtn);
 }
 
 static void mminfo_version(const char *p) {
@@ -356,13 +498,17 @@ static void mminfo_version(const char *p) {
 
 void mminfo_vres(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    int width, height;
-    if (FAILED(console_get_size(&width, &height, 0))) {
-        ERROR_UNKNOWN_TERMINAL_SIZE;
-    }
-    int scale = mmb_options.resolution == kPixel ? FONT_HEIGHT : 1;
-    g_integer_rtn = height * scale;
     g_rtn_type = T_INT;
+    if (graphics_current) {
+        g_integer_rtn = graphics_current->height;
+    } else {
+        int width, height;
+        if (FAILED(console_get_size(&width, &height, 0))) {
+            ERROR_UNKNOWN_TERMINAL_SIZE;
+        }
+        int scale = mmb_options.resolution == kPixel ? font_height(graphics_font) : 1;
+        g_integer_rtn = height * scale;
+    }
 }
 
 static void mminfo_vpos(const char *p) {
@@ -371,23 +517,34 @@ static void mminfo_vpos(const char *p) {
     if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
         ERROR_COULD_NOT("determine cursor position");
     }
-    int scale = mmb_options.resolution == kPixel ? FONT_HEIGHT : 1;
+    int scale = mmb_options.resolution == kPixel ? font_height(graphics_font) : 1;
     g_integer_rtn = y * scale;
     g_rtn_type = T_INT;
+}
+
+static void mminfo_writebuff(const char *p) {
+    error_throw_ex(kUnsupportedParameterOnCurrentDevice,
+                   "MMB4L does not support direct access to display WriteBuff");
 }
 
 void fun_mminfo(void) {
     const char *p;
     if ((p = checkstring(ep, "ARCH"))) {
         mminfo_architecture(p);
+    } else if ((p = checkstring(ep, "CALLDEPTH"))) {
+        mminfo_calldepth(p);
     } else if ((p = checkstring(ep, "CMDLINE"))) {
         mminfo_cmdline(p);
+    } else if ((p = checkstring(ep, "CPUSPEED"))) {
+        mminfo_cpuspeed(p);
     } else if ((p = checkstring(ep, "CPUTIME"))) {
         mminfo_cputime(p);
     } else if ((p = checkstring(ep, "CURRENT"))) {
         mminfo_current(p);
     } else if ((p = checkstring(ep, "DEVICE"))) {
         mminfo_device(p);
+    } else if ((p = checkstring(ep, "DRIVE"))) {
+        mminfo_drive(p);
     } else if ((p = checkstring(ep, "DIRECTORY"))) {
         mminfo_directory(p);
     } else if ((p = checkstring(ep, "ENVVAR"))) {
@@ -402,12 +559,14 @@ void fun_mminfo(void) {
         mminfo_exitcode(p);
     } else if ((p = checkstring(ep, "FILESIZE"))) {
         mminfo_filesize(p);
+    } else if ((p = checkstring(ep, "FLASH ADDRESS"))) {
+        mminfo_flash_address(p);
     } else if ((p = checkstring(ep, "FONTHEIGHT"))) {
         mminfo_fontheight(p);
     } else if ((p = checkstring(ep, "FONTWIDTH"))) {
         mminfo_fontwidth(p);
-    } else if ((p = checkstring(ep, "CALLDEPTH"))) {
-        mminfo_calldepth(p);
+    } else if ((p = checkstring(ep, "GAMEPAD"))) {
+        mminfo_gamepad(p);
     } else if ((p = checkstring(ep, "HRES"))) {
         mminfo_hres(p);
     } else if ((p = checkstring(ep, "HPOS"))) {
@@ -420,12 +579,22 @@ void fun_mminfo(void) {
         mminfo_path(p);
     } else if ((p = checkstring(ep, "PID"))) {
         mminfo_pid(p);
+    } else if ((p = checkstring(ep, "PINNO"))) {
+        mminfo_pin_no(p);
+    } else if ((p = checkstring(ep, "PLATFORM"))) {
+        mminfo_platform(p);
+    } else if ((p = checkstring(ep, "PS2"))) {
+        mminfo_ps2(p);
+    } else if ((p = checkstring(ep, "SDCARD"))) {
+        mminfo_sdcard(p);
     } else if ((p = checkstring(ep, "VERSION"))) {
         mminfo_version(p);
     } else if ((p = checkstring(ep, "VRES"))) {
         mminfo_vres(p);
     } else if ((p = checkstring(ep, "VPOS"))) {
         mminfo_vpos(p);
+    } else if ((p = checkstring(ep, "WRITEBUFF"))) {
+        mminfo_writebuff(p);
     } else {
         ERROR_UNKNOWN_ARGUMENT;
     }

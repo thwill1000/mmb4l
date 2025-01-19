@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 program.c
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,28 +42,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "program.h"
-
-#include "mmb4l.h"
 #include "console.h"
 #include "cstring.h"
 #include "file.h"
+#include "fonttbl.h"
+#include "mmb4l.h"
+#include "parse.h"
 #include "path.h"
+#include "program.h"
 #include "utility.h"
+#include "../core/commandtbl.h"
 
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
 
-#define ERROR_CANNOT_INCLUDE_FROM_INCLUDE  error_throw_ex(kError, "Can't import from an import")
-#define ERROR_FUNCTION_NAME                error_throw_ex(kError, "Function name")
-#define ERROR_INCLUDE_FILE_NOT_FOUND(s)    error_throw_ex(kFileNotFound, "Include file '$' not found", s)
-#define ERROR_INVALID_HEX                  ERROR_INVALID("hex word")
-#define ERROR_MISSING_END                  error_throw_ex(kError, "Missing END declaration")
-#define ERROR_PROGRAM_FILE_NOT_FOUND       error_throw_ex(kFileNotFound, "Program file not found")
-#define ERROR_TOO_MANY_DEFINES             error_throw_ex(kError, "Too many #DEFINE statements")
+#define ERROR_INVALID_FUNCTION_NAME  error_throw_ex(kInvalidName, "Invalid function name")
+#define ERROR_INVALID_HEX            ERROR_INVALID("hex word")
+#define ERROR_MISSING_END            error_throw_ex(kError, "Missing END command")
 
 #define MAXDEFINES  256
+
+#define SINGLE_QUOTE  '\''
 
 // Repetition of last element is deliberate, see implementations of
 // program_get_bas_file() and program_get_inc_file().
@@ -72,37 +72,65 @@ static const char *INC_FILE_EXTENSIONS[] = { ".inc", ".INC", ".Inc", ".inc" };
 
 char CurrentFile[STRINGSIZE];
 
-static int nDefines = 0;
-
-typedef struct sa_dlist {
+typedef struct {
     char from[STRINGSIZE];
     char to[STRINGSIZE];
-} a_dlist;
+} Replace;
 
-static a_dlist *dlist;
+typedef struct {
+    size_t size;
+    Replace items[MAXDEFINES];
+} ReplaceMap;
 
-static void STR_REPLACE(char *target, const char *needle, const char *replacement) {
+static ReplaceMap *program_replace_map = NULL;
+
+typedef struct {
+    char filename[STRINGSIZE];
+    int fnbr;
+    int line_num;
+} ProgramFile;
+
+typedef struct {
+  size_t size;
+  ProgramFile files[MAXOPENFILES];
+  ProgramFile *head;
+} ProgramFileStack;
+
+static ProgramFileStack *program_file_stack = NULL;
+
+/** Current insertion point into ProgramMemory. */
+static char *program_progmem_insert = NULL;
+
+/** Maximum extent of the program. */
+static char *program_progmem_limit = NULL;
+
+static size_t program_comment_level = 0;  // Level of nesting within /* */ style comment ?
+
+static bool program_debug_on = false;  // Is there an active #MMDEBUG ON directive ?
+
+static MmResult program_apply_replacement(char *target, const char *needle,
+                                          const char *replacement) {
     char *ip = target;
-    int toggle = 0;
+    bool in_quotes = false;
     while (*ip) {
-        if (*ip == 34) {
-            if (toggle == 0)
-                toggle = 1;
-            else
-                toggle = 0;
+        if (*ip == '"') {
+            in_quotes = !in_quotes;
         }
-        if (toggle && *ip == ' ') {
+        if (in_quotes && *ip == ' ') {
             *ip = 0xFF;
         }
-        if (toggle && *ip == '.') {
+        if (in_quotes && *ip == '.') {
             *ip = 0xFE;
         }
-        if (toggle && *ip == '=') {
+        if (in_quotes && *ip == '=') {
             *ip = 0xFD;
         }
         ip++;
     }
-    cstring_replace(target, needle, replacement);
+
+    if (FAILED(cstring_replace(target, STRINGSIZE, needle, replacement)))
+        return kPreprocessorReplaceFailed;
+
     ip = target;
     while (*ip) {
         if (*ip == 0xFF) *ip = ' ';
@@ -110,41 +138,30 @@ static void STR_REPLACE(char *target, const char *needle, const char *replacemen
         if (*ip == 0xFD) *ip = '=';
         ip++;
     }
+
+    return kOk;
 }
 
-static int massage(char *buff) {
-    int i = nDefines;
+static MmResult program_apply_all_replacements(char *line) {
+    int i = program_replace_map->size;
     while (i--) {
-        char *p = dlist[i].from;
+        char *p = program_replace_map->items[i].from;
         while (*p) {
             *p = toupper(*p);
             p++;
         }
-        p = dlist[i].to;
+        p = program_replace_map->items[i].to;
         while (*p) {
             *p = toupper(*p);
             p++;
         }
-        STR_REPLACE(buff, dlist[i].from, dlist[i].to);
+        ON_FAILURE_RETURN(program_apply_replacement(
+                line,
+                program_replace_map->items[i].from,
+                program_replace_map->items[i].to));
     }
-    STR_REPLACE(buff, "=<", "<=");
-    STR_REPLACE(buff, "=>", ">=");
-    STR_REPLACE(buff, " ,", ",");
-    STR_REPLACE(buff, ", ", ",");
-    STR_REPLACE(buff, " *", "*");
-    STR_REPLACE(buff, "* ", "*");
-    STR_REPLACE(buff, "- ", "-");
-    STR_REPLACE(buff, " /", "/");
-    STR_REPLACE(buff, "/ ", "/");
-    STR_REPLACE(buff, "= ", "=");
-    STR_REPLACE(buff, "+ ", "+");
-    STR_REPLACE(buff, " )", ")");
-    STR_REPLACE(buff, ") ", ")");
-    STR_REPLACE(buff, "( ", "(");
-    STR_REPLACE(buff, "> ", ">");
-    STR_REPLACE(buff, "< ", "<");
-    STR_REPLACE(buff, " '", "'");
-    return strlen(buff);
+
+    return kOk;
 }
 
 static int cmpstr(const char *s1, const char *s2) {
@@ -163,101 +180,49 @@ static int cmpstr(const char *s1, const char *s2) {
     return c1 - c2;
 }
 
-static void program_transform_line(char *line) {
-    STR_REPLACE(line,"MM.INFO$","MM.INFO");
-}
-
 void program_dump_memory() {
-    size_t column = 0;
-    size_t count = 0;
-    for (const char *p = ProgMemory; count != 2; ++p) {
-        if (*p > 32 && *p < 127) {
-            count = 0;
-            printf(" %c ", *p);
-        } else {
-            count = (*p == '\0') ? count + 1 : 0;
-            printf("%02X ", *p);
-        }
-
-        column++;
-        if (column == 10) {
-            printf("    ");
-        } else if (column == 20) {
-            printf("\n");
-            column = 0;
-        }
-    }
-
-    printf("\n");
+    utility_dump_memory(ProgMemory);
 }
 
-// Tokenize the string in the edit buffer
-static void program_tokenise(const char *file_path, const char *edit_buf) {
-    //const char *p = edit_buf;
-    //p++;
-    //printf("<begin>\n");
-    //printf("%s", edit_buf);
-    //printf("<end>\n");
-
-    strcpy(CurrentFile, file_path);
-
-    char *pmem = ProgMemory;
-
-    // First line in the program memory should be a comment containing the 'file_path'.
-    memset(inpbuf, 0, INPBUF_SIZE);
-    sprintf(inpbuf, "'%s", file_path);
-    tokenise(false);
-    memcpy(pmem, tknbuf, strlen(tknbuf) + 1);
-    pmem += strlen(tknbuf);
-    pmem++;
-
-    // Maximum extent of the program;
-    // 4 characters are required for termination with 2-3 '\0' and a '\xFF'.
-    const char *limit  = (const char *) ProgMemory + PROG_FLASH_SIZE - 5;
-
-    // Loop while data
-    // Read a line from edit_buf into tkn_buf
-    // Tokenize the line.
-    // Copy tokenized result into pmem
-    char *pend;
-    char *pstart = (char *) edit_buf;
-    while (*pstart != '\0') {
-
-        // Note that all lines in the edit buffer should just have a '\n' line-end.
-        pend = pstart;
-        while (*pend != '\n') pend++;
-        if (pend - pstart > STRINGSIZE - 1) ERROR_LINE_TOO_LONG; // TODO: what cleans up the edit buffer ?
-        memset(inpbuf, 0, INPBUF_SIZE);
-        memcpy(inpbuf, pstart, pend - pstart);
-        //printf("%s\n", inpbuf);
-
-        program_transform_line(inpbuf);
-        tokenise(false);
-
-        //printf("* %s\n", tknbuf);
-
-        for (char *pbuf = tknbuf; !(pbuf[0] == 0 && pbuf[1] == 0); pmem++, pbuf++) {
-            if (pmem > limit) ERROR_OUT_OF_MEMORY;
-            *pmem = *pbuf;
-        }
-        *pmem++ = '\0';  // write the terminating zero char
-
-        pstart = pend + 1;
+static MmResult program_append_to_progmem(const char *src) {
+    for (const char *p = src; !(p[0] == '\0' && p[1] == '\0'); program_progmem_insert++, p++) {
+        if (program_progmem_insert > program_progmem_limit) return kProgramTooLong;
+        *program_progmem_insert = *p;
     }
+    *program_progmem_insert++ = '\0';  // Include terminating \0.
+    return kOk;
+}
 
-    //printf("DONE\n");
+/**
+ * The first line in the ProgramMemory should be a comment containing the CurrentFile.
+ */
+static MmResult program_append_header() {
+    memset(inpbuf, 0, INPBUF_SIZE);
+    sprintf(inpbuf, "'%s", CurrentFile);
+    tokenise(false);
+    MmResult result = program_append_to_progmem(tknbuf);
+    return result;
+}
 
-    *pmem++ = '\0';
-    *pmem++ = '\0';    // Two zeros terminate the program, but add an extra just in case.
-    *pmem++ = '\xFF';  // A terminating 0xFF may also be expected; it's not completely clear.
+static MmResult program_append_footer() {
+    // Ensure program has a final END command.
+    memset(inpbuf, 0, INPBUF_SIZE);
+    sprintf(inpbuf, "END");  // NOTE: There is no line number comment on this line.
+    tokenise(false);
+    MmResult result = program_append_to_progmem(tknbuf);
+    if (FAILED(result)) return result;
+
+    // The program should be terminated by at least two zeroes (NOTE: it may already have one).
+    // A terminating 0xFF may also be expected; it's not completely clear.
+    *program_progmem_insert++ = '\0';
+    *program_progmem_insert++ = '\0';
+    *program_progmem_insert++ = '\xFF';
 
     // We want CFunctionFlash to start on a 64-bit boundary.
-    while ((uintptr_t) pmem % 8 != 0) *pmem++ = '\0';
-    CFunctionFlash = pmem;
+    while ((uintptr_t) program_progmem_insert % 8 != 0) *program_progmem_insert++ = '\0';
+    CFunctionFlash = program_progmem_insert;
 
-    if (errno != 0) error_throw(errno); // Is this really necessary?
-
-    // program_dump_memory();
+    return kOk;
 }
 
 MmResult program_get_inc_file(const char *parent_file, const char *filename, char *out) {
@@ -300,143 +265,398 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
     return path_get_canonical(path, out, STRINGSIZE);
 }
 
-static void importfile(char *parent_file, char *tp, char **p, char *edit_buffer, int convertdebug) {
+/**
+ * @brief Allocates memory for internal data-structures.
+ *
+ * Only visible for unit-testing.
+ */
+static void program_internal_alloc() {
+    program_replace_map = GetTempMemory(sizeof(ReplaceMap));
+    program_replace_map->size = 0;
+    program_file_stack = GetTempMemory(sizeof(ProgramFileStack));
+    program_file_stack->size = 0;
+    program_progmem_insert = ProgMemory;
 
-    char line_buffer[STRINGSIZE];
-    char num[10];
-    int importlines = 0;
-    int ignore = 0;
-    char *filename, *sbuff, *op, *ip;
-    size_t c, slen, data;
-    int fnbr = file_find_free();
-    char *q;
-    if ((q = strchr(tp, 34)) == 0) ERROR_SYNTAX;
-    q++;
-    if ((q = strchr(q, 34)) == 0) ERROR_SYNTAX;
-    filename = getCstring(tp);
+    // 4 characters are required for termination with 2-3 '\0' and a '\xFF'.
+    program_progmem_limit = ProgMemory + PROG_FLASH_SIZE - 5;
+}
 
-    char file_path[STRINGSIZE];
-    MmResult result = program_get_inc_file(parent_file, filename, file_path);
-    switch (result) {
-        case kOk:
-            break;
-        case kFileNotFound:
-            ERROR_INCLUDE_FILE_NOT_FOUND(filename);
-            break;
-        case kFilenameTooLong:
-            ERROR_PATH_TOO_LONG;
-            break;
-        default:
-            error_throw(result);
-            break;
-    }
+/**
+ * @brief Frees memory for internal data-structures.
+ *
+ * Only visible for unit-testing.
+ */
+static void program_internal_free() {
+    ClearSpecificTempMemory(program_replace_map);
+    program_replace_map = NULL;
+    ClearSpecificTempMemory(program_file_stack);
+    program_file_stack = NULL;
+    program_progmem_insert = NULL;
+    program_progmem_limit = NULL;
+}
 
-    file_open(file_path, "rb", fnbr);
-    //    while(!FileEOF(fnbr)) {
-    while (!file_eof(fnbr)) {
-        size_t toggle = 0, len = 0;  // while waiting for the end of file
-        sbuff = line_buffer;
-        if ((*p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6) ERROR_OUT_OF_MEMORY;
-        //        mymemset(buff,0,256);
-        memset(line_buffer, 0, STRINGSIZE);
-        MMgetline(fnbr, line_buffer);  // get the input line
-        data = 0;
-        importlines++;
-        //        routinechecks(1);
-        len = strlen(line_buffer);
-        toggle = 0;
-        for (c = 0; c < strlen(line_buffer); c++) {
-            if (line_buffer[c] == TAB) line_buffer[c] = ' ';
-        }
-        while (*sbuff == ' ') {
-            sbuff++;
-            len--;
-        }
-        if (ignore && sbuff[0] != '#') *sbuff = '\'';
-        if (strncasecmp(sbuff, "rem ", 4) == 0 ||
-            (len == 3 && strncasecmp(sbuff, "rem", 3) == 0)) {
-            sbuff += 2;
-            *sbuff = '\'';
+/**
+ * @brief Add an entry to the string replacement map.
+ *
+ * @param  from  The 'from' string.
+ * @param  to    The 'to' string.
+ * @return       kOk on success,
+ *               kTooManyDefines if there are too many #DEFINEs.
+ */
+static MmResult program_add_define(const char *from, const char *to) {
+    if (program_replace_map->size >= MAXDEFINES) return kTooManyDefines;
+    strcpy(program_replace_map->items[program_replace_map->size].from, from);
+    strcpy(program_replace_map->items[program_replace_map->size].to, to);
+    program_replace_map->size++;
+    return kOk;
+}
+
+/**
+ * @brief Gets the number of entries in the string replacement map.
+ */
+static int program_get_num_defines() {
+    return program_replace_map->size;
+}
+
+/**
+ * @brief Gets an entry from the string replacement map.
+ *
+ * @param       idx   Index of the entry to get.
+ * @param[out]  from  On exit points to the entry's 'from' property.
+ * @param[out]  to    On exit points to the entry's 'from' property.
+ * @return            kOk on success.
+ */
+static MmResult program_get_define(size_t idx, const char **from, const char **to) {
+    if (idx >= program_replace_map->size) return kInternalFault;
+    *from = program_replace_map->items[program_replace_map->size - 1].from;
+    *to = program_replace_map->items[program_replace_map->size - 1].to;
+    return kOk;
+}
+
+/**
+ * @brief Pre-process a single line of the program (in place).
+ *
+ * @param[in,out]  line  The line to pre-process.
+ * @return               kOk on success.
+ */
+static MmResult program_process_line(char *line) {
+    char *op = line;
+    const char *ip = line;
+    bool expecting_command = true;  // Are we expecing a BASIC command ?
+    bool in_data = false;           // Are we processing a DATA command ?
+    bool in_quotes = false;         // Are we within double-quotes ?
+
+    while (*ip) {
+
+        // Handle multiline /* */ comments.
+        if (program_comment_level) {
+            if (*ip == '*' && *(ip + 1) == '/') {
+                program_comment_level--;
+                ip++;
+            } else if (*ip == '/' && *(ip + 1) == '*') {
+                program_comment_level++;
+                ip++;
+            } else if (*ip == '#') {
+                // ... and CMM2 style #COMMENT {START|END}.
+                const char *q, *r;
+                if ((q = checkstring(ip + 1, "COMMENT"))) {
+                    if ((r = checkstring(q, "START"))) {
+                        program_comment_level++;
+                        ip = r;
+                    } else if ((r = checkstring(q, "END"))) {
+                        program_comment_level--;
+                        ip = r;
+                    } else {
+                        return kSyntax;
+                    }
+                    if (!parse_is_end(r)) return kSyntax;
+                }
+            }
+            ip++;
             continue;
         }
-        if (strncasecmp(sbuff, "data ", 5) == 0) data = 1;
-        slen = len;
-        op = sbuff;
-        ip = sbuff;
-        while (*ip) {
-            if (*ip == 34) {
-                if (toggle == 0)
-                    toggle = 1;
-                else
-                    toggle = 0;
-            }
-            if (!toggle && (*ip == ' ' || *ip == ':')) {
-                *op++ = *ip++;  // copy the first space
-                while (*ip == ' ') {
-                    ip++;
-                    len--;
-                }
-            } else
+
+        switch (*ip) {
+            case '"':
+                in_quotes = !in_quotes;
                 *op++ = *ip++;
+                break;
+
+            case ' ':
+            case TAB:
+                if (expecting_command) {
+                    // Ignore leading spaces before a command.
+                    while (*ip == ' ' || *ip == TAB) ip++;
+                    continue;  // So we don't set expecting_command = false.
+                }
+                // Convert tabs into spaces.
+                //   ... though this may be irrelevant since lines will have been processed
+                //       by MMgetline which already expands tabs according to the value of
+                //       mmb_options.tab.
+                *op++ = ' ';
+                ip++;
+                if (!in_quotes) {
+                    // Compress multiple spaces except within a string
+                    while (*ip == ' ' || *ip == TAB) ip++;
+                }
+                break;
+
+            case SINGLE_QUOTE:
+                if (in_quotes) {
+                    *op++ = *ip++;
+                } else {
+                    // Strip single-quote comments.
+                    while (*ip) ip++;
+                }
+                break;
+
+            case ':':
+                *op++ = *ip++;
+                if (!in_quotes) {
+                    expecting_command = true;
+                    continue;  // So we don't set expecting_command = false.
+                }
+                break;
+
+            case '/':
+                if (!in_quotes && *(ip + 1) == '*') {
+                    program_comment_level++;
+                    ip += 2;
+                } else {
+                    *op++ = *ip++;
+                }
+                break;
+
+            case '*':
+                if (!in_quotes && *(ip + 1) == '/') return kNoCommentToTerminate;
+                *op++ = *ip++;
+                break;
+
+            default:
+                if (expecting_command) {
+                    if (strncasecmp(ip, "DATA", 4) == 0 && !isnamechar(*(ip + 4))) {
+                        in_data = true;
+                    } else if (strncasecmp(ip, "MMDEBUG", 7) == 0 && !isnamechar(*(ip + 7))) {
+                        if (!program_debug_on) {
+                            // If not within #MMDEBUG ON then strip line.
+                            // BUG! Strips entire line even if there are multiple commands.
+                            while (*ip) ip++;
+                            break;
+                        }
+                    } else if (strncasecmp(ip, "REM", 3) == 0 && !isnamechar(*(ip + 3))) {
+                        // Strip REM comments.
+                        while (*ip) ip++;
+                        break;
+                    }
+                }
+                // Convert to upper-case except within strings or DATA commands.
+                *op++ = (in_quotes || in_data) ? *ip++ : toupper(*ip++);
+                break;
         }
-        slen = len;
-        for (c = 0; c < slen; c++) {
-            if (sbuff[c] == 34) {
-                if (toggle == 0)
-                    toggle = 1;
-                else
-                    toggle = 0;
+        expecting_command = false;
+    }
+
+    // Strip trailing spaces.
+    // NOTE: We do not naively strip trailing ':' because they may terminate a label.
+     while (op != line && *(op - 1) == ' ') op--;
+
+    // Close any open-quote.
+    if (in_quotes) {
+        if (op - line >= STRINGSIZE - 1) return kLineTooLong;
+        *op++ = '"';
+    }
+
+    // Terminate the buffer.
+    *op = '\0';
+
+    // Apply replacements unless the line starts with a directive.
+    if (*line != '#') ON_FAILURE_RETURN(program_apply_all_replacements(line));
+
+    return kOk;
+}
+
+static MmResult program_open_file(const char *filename) {
+    char full_path[STRINGSIZE];
+    MmResult result = program_file_stack->size == 0
+            ? program_get_bas_file(filename, full_path)
+            : program_get_inc_file(program_file_stack->files[0].filename, filename, full_path);
+    if (FAILED(result)) return result;
+    if (!path_exists(full_path)) return kFileNotFound;
+
+    int fnbr = file_find_free();
+    result = file_open(full_path, "rb", fnbr);
+    if (FAILED(result)) return result;
+    program_file_stack->head = &program_file_stack->files[program_file_stack->size];
+    program_file_stack->head->fnbr = fnbr;
+    program_file_stack->head->line_num = 0;
+    program_file_stack->size++;
+
+    if (program_file_stack->size == 1) {
+        strcpy(CurrentFile, full_path);
+        strcpy(program_file_stack->head->filename, full_path);
+    } else {
+        strcpy(program_file_stack->head->filename, filename);
+    }
+
+    // Override default error handling to report file/line even though we are
+    // not yet executing a program.
+    mmb_error_state_ptr->override_line = true;
+    mmb_error_state_ptr->line = 0;
+    strcpy(mmb_error_state_ptr->file, program_file_stack->head->filename);
+
+    return kOk;
+}
+
+static MmResult program_close_file() {
+    if (program_file_stack->size == 0) return kInternalFault;
+    MmResult result = file_close(program_file_stack->head->fnbr);
+    if (FAILED(result)) return result;
+    program_file_stack->head->filename[0] = '\0';
+    program_file_stack->head->fnbr = -1;
+    program_file_stack->head->line_num = -1;
+    program_file_stack->size--;
+    program_file_stack->head = program_file_stack->size == 0
+            ? NULL
+            : &program_file_stack->files[program_file_stack->size - 1];
+
+    if (program_file_stack->head) {
+        strcpy(mmb_error_state_ptr->file, program_file_stack->head->filename);
+    }
+
+    return kOk;
+}
+
+static MmResult program_handle_comment_directive(const char *p) {
+    const char *q;
+    if ((q = checkstring(p, "START"))) {
+        program_comment_level++;
+    } else if ((q = checkstring(p, "END"))) {
+        // Should never get here, instead handled in program_process_line().
+        return kInternalFault;
+    } else {
+        return kSyntax;
+    }
+    return parse_is_end(q) ? kOk : kSyntax;
+}
+
+static MmResult program_handle_define_directive(const char *p) {
+    getargs(&p, 3, ",");
+    if (argc != 3) return kSyntax;
+    /*const*/ char *from = getCstring(argv[0]);
+    /*const*/ char *to = getCstring(argv[2]);
+    MmResult result = program_add_define(from, to);
+    ClearSpecificTempMemory(from);
+    ClearSpecificTempMemory(to);
+    return result;
+}
+
+static MmResult program_handle_include_directive(const char *p) {
+    char *q;
+    if ((q = strchr(p, '"')) == 0) return kSyntax;
+    q++;
+    if ((q = strchr(q, '"')) == 0) return kSyntax;
+    /*const*/ char *include_filename = getCstring(p);
+    MmResult result = program_open_file(include_filename);
+    ClearSpecificTempMemory(include_filename);
+    return result;
+}
+
+static MmResult program_handle_mmdebug_directive(const char *p) {
+    const char *q;
+    if ((q = checkstring(p, "ON"))) {
+        // NOTE: There is no error/warning if already ON.
+        program_debug_on = true;
+    } else if ((q = checkstring(p, "OFF"))) {
+        // NOTE: There is no error/warning if already OFF.
+        program_debug_on = false;
+    } else {
+        return kSyntax;
+    }
+    return parse_is_end(q) ? kOk : kSyntax;
+}
+
+static MmResult program_handle_directive(const char *line) {
+    const char *p;
+    if ((p = checkstring(line, "#COMMENT"))) {
+        return program_handle_comment_directive(p);
+    } else if ((p = checkstring(line, "#DEFINE"))) {
+        return program_handle_define_directive(p);
+    } else if ((p = checkstring(line, "#INCLUDE"))) {
+        return program_handle_include_directive(p);
+    } else if ((p = checkstring(line, "#MMDEBUG"))) {
+        return program_handle_mmdebug_directive(p);
+    } else {
+        // Unknown directives are ignored.
+        return kOk;
+    }
+}
+
+/**
+ * @brief Process files from the stack a line at a time.
+ *
+ * @return  kOk on success.
+ */
+MmResult program_process_file() {
+    MmResult result = kOk;
+    program_comment_level = 0;
+
+    for (;;) {
+        if (file_eof(program_file_stack->head->fnbr)) {
+            result = program_close_file();
+            if (FAILED(result)) break;
+            if (!program_file_stack->head) break;
+        }
+
+        program_file_stack->head->line_num++;
+        mmb_error_state_ptr->line = program_file_stack->head->line_num;
+
+        // Read a program line.
+        memset(inpbuf, 0, STRINGSIZE);
+        MMgetline(program_file_stack->head->fnbr, inpbuf);
+
+        // Pre-process the line.
+        result = program_process_line(inpbuf);
+        if (FAILED(result)) break;
+
+        // Handle pre-processor directives.
+        // A directive must be the first/only thing on a line. Do not catch illegal usage here
+        // but instead rely on the interpreter reporting invalid usage of the # character.
+        if (*inpbuf == '#') {
+            result = program_handle_directive(inpbuf);
+            if (FAILED(result)) break;
+            continue; // Don't write to ProgMemory.
+        }
+
+        if (*inpbuf) {
+            // Append file and line-number.
+            result = cstring_cat(inpbuf, "'|", STRINGSIZE);
+            if (program_file_stack->size > 1) {
+                if (SUCCEEDED(result)) result = cstring_cat(inpbuf, program_file_stack->head->filename, STRINGSIZE);
+                if (SUCCEEDED(result)) result = cstring_cat(inpbuf, ",", STRINGSIZE);
             }
-            if (!(toggle || data)) sbuff[c] = toupper(sbuff[c]);
-            if (!toggle && sbuff[c] == 39 && len == slen) {
-                len = c;  // get rid of comments
+            if (SUCCEEDED(result)) result = cstring_cat_int64(inpbuf, program_file_stack->head->line_num, STRINGSIZE);
+            if (FAILED(result)) {
+                result = kLineTooLong;
                 break;
             }
-        }
-        if (sbuff[0] == '#') {
-            const char *tp = checkstring(&sbuff[1], "DEFINE");
-            if (tp) {
-                getargs(&tp, 3, ",");
-                if (nDefines >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;
-                strcpy(dlist[nDefines].from, getCstring(argv[0]));
-                strcpy(dlist[nDefines].to, getCstring(argv[2]));
-                nDefines++;
-            } else {
-                if (cmpstr("COMMENT END", &sbuff[1]) == 0) ignore = 0;
-                if (cmpstr("COMMENT START", &sbuff[1]) == 0) ignore = 1;
-                //if (cmpstr("MMDEBUG ON", &sbuff[1]) == 0) convertdebug = 0;
-                //if (cmpstr("MMDEBUG OFF", &sbuff[1]) == 0) convertdebug = 1;
-                if (cmpstr("INCLUDE ", &sbuff[1]) == 0) ERROR_CANNOT_INCLUDE_FROM_INCLUDE;
-            }
-        } else {
-            if (toggle) sbuff[len++] = 34;
-            sbuff[len++] = 39;
-            sbuff[len++] = '|';
-            memcpy(&sbuff[len], filename, strlen(filename));
-            len += strlen(filename);
-            sbuff[len++] = ',';
-            IntToStr(num, importlines, 10);
-            strcpy(&sbuff[len], num);
-            len += strlen(num);
-            if (len > 254) ERROR_LINE_TOO_LONG;
-            sbuff[len] = 0;
-            len = massage(sbuff);  // can't risk crushing lines with a quote in them
-            if ((sbuff[0] != 39) || (sbuff[0] == 39 && sbuff[1] == 39)) {
-                // if(Option.profile){
-                //     while(strlen(sbuff)<9){
-                //         cstring_cat(sbuff, " ", STRINGSIZE);
-                //         len++;
-                //     }
-                // }
-                memcpy(*p, sbuff, len);
-                *p += len;
-                **p = '\n';
-                *p += 1;
-            }
+
+            // Tokenise and append to program.
+            tokenise(false);
+            result = program_append_to_progmem(tknbuf);
+            if (FAILED(result)) break;
         }
     }
 
-    file_close(fnbr);
+    if (SUCCEEDED(result) && program_comment_level) {
+        result = kUnterminatedComment;
+    }
+
+    if (SUCCEEDED(result)) {
+        // Restore default error handling.
+        mmb_error_state_ptr->override_line = false;
+    }
+
+    return result;
 }
 
 static bool program_path_exists(const char *root, const char *stem, const char *extension) {
@@ -535,33 +755,35 @@ MmResult program_get_bas_file(const char *filename, char *out) {
     return path_get_canonical(cwd, out, STRINGSIZE);
 }
 
-// now we must scan the program looking for CFUNCTION/CSUB/DEFINEFONT
-// statements, extract their data and program it into the flash used by
-// CFUNCTIONs programs are terminated with two zero bytes and one or more
-// bytes of 0xff.  The CFunction area starts immediately after that.
-//
-// The format of a CFunction/CSub/Font in flash is:
-//
-//   uint64_t     - Address of the CFunction/CSub in program memory (points to
-//                  the token representing the "CFunction" keyword) or NULL if
-//                  it is a font.
-//   uint32_t     - The length of the CFunction/CSub/Font in bytes including
-//                  the Offset (see below) but not including any zero padding at
-//                  the end.
-//   uint32_t     - The Offset (in words) to the main() function (ie, the
-//                  entry point to the CFunction/CSub). Omitted in a font.
-//   word1..wordN - The CFunction/CSub/Font code (words are 32-bit).
-//                - Padding with zeroes to the next 64-bit boundary.
-//
-// The next CFunction/CSub/Font starts immediately following the last word
-// of the previous CFunction/CSub/Font
-static void program_process_csubs() {
-    char end_token = '\0';
-    uint32_t *flash_ptr = (uint32_t *) CFunctionFlash;
-    uint32_t *save_addr = NULL;
+/**
+ * Scans ProgMemory looking for CFUNCTION/CSUB/DEFINEFONT statements, extract their data and
+ * store it after the program. Programs are terminated with two zero bytes and one or more
+ * bytes of 0xFF.  The CFunction area starts immediately after that.
+ *
+ * The format of a CFunction/CSub/Font in memory is:
+ *
+ *   uint64_t     - Address of the CFunction/CSub in program memory (points to
+ *                  the token representing the "CFunction" keyword) or NULL if
+ *                  it is a font.
+ *   uint32_t     - The length of the CFunction/CSub/Font in bytes including
+ *                  the Offset (see below) but not including any zero padding at
+ *                  the end.
+ *   uint32_t     - The Offset (in words) to the main() function (ie, the
+ *                  entry point to the CFunction/CSub). Omitted in a font.
+ *   word1..wordN - The CFunction/CSub/Font code (words are 32-bit).
+ *                - Padding with zeroes to the next 64-bit boundary.
+ *
+ * The next CFunction/CSub/Font starts immediately following the last word
+ * of the previous CFunction/CSub/Font.
+ */
+static void program_process_blobs() {
+    CommandToken end_token = INVALID_COMMAND_TOKEN;
+    char *flash_ptr = CFunctionFlash;
+    char *save_addr = NULL;
     char *p = (char *) ProgMemory;  // start scanning program memory
+    uint32_t fontnbr = 0;
 
-    while (*p != 0xff) {
+    while (*p != 0xFF) {
         if (*p == 0) p++;    // if it is at the end of an element skip the zero marker
         if (*p == 0) break;  // end of the program
         if (*p == T_NEWLINE) {
@@ -576,66 +798,95 @@ static void program_process_csubs() {
             skipspace(p);   // and any following spaces
         }
 
-        if (*p == cmdCSUB) {
+        const CommandToken cmd = commandtbl_decode(p);
+        if (cmd == cmdCSUB || cmd == cmdDEFINEFONT) {
+            if (cmd == cmdDEFINEFONT) {
+                end_token = cmdEND_DEFINEFONT;
 
-            end_token = GetCommandValue("End CSub");
-            *((uint64_t *) flash_ptr) = (uintptr_t) p;
-            flash_ptr += 2;
+                // Step over the command token.
+                p += sizeof(CommandToken);
+                skipspace(p);
+
+                // Read font number.
+                if (*p == '#') p++;
+                fontnbr = getint(p, 1, FONT_TABLE_SIZE);
+                // Font 6 has some special characters, some of which depend on font 1.
+                if (fontnbr == 1 || fontnbr == 6 || fontnbr == 7) {
+                    error_throw_ex(kError, "Cannot redefine fonts 1, 6 or 7");
+                }
+                skipspace(p);
+
+                // Store the font number - 1.
+                *((uint64_t *) flash_ptr) = fontnbr - 1;
+            } else {
+                end_token = cmdEND_CSUB;
+                // Store the address of the CSUB token in the program.
+                *((uint64_t *) flash_ptr) = (uintptr_t) p;
+
+                // Step over the command token.
+                p += sizeof(CommandToken);
+                skipspace(p);
+
+                // Read CSub/Function name.
+                if (!isnamestart(*p)) ERROR_INVALID_FUNCTION_NAME;
+                do {
+                    p++;
+                } while (isnamechar(*p));
+                skipspace(p);
+            }
+
+            flash_ptr += 8;
             save_addr = flash_ptr; // Save where we are so that we can write the CSub size in here
-            flash_ptr ++;
-            p++;
-            skipspace(p);
-            if (!isnamestart(*p)) ERROR_FUNCTION_NAME;
-            do {
-                p++;
-            } while (isnamechar(*p));
-            skipspace(p);
+            flash_ptr += 4;
+
+            // Unless the binary data starts immediately (at least 3 hex digits)
+            // we skip to the beginning of the next statement.
             if (!(isxdigit(p[0]) && isxdigit(p[1]) && isxdigit(p[2]))) {
                 skipelement(p);
                 p++;
+            }
+
+            for (;;) {
                 if (*p == T_NEWLINE) {
                     CurrentLinePtr = p;
                     p++;  // skip the newline token
                 }
-                if (*p == T_LINENBR) p += 3;  // skip over a line number
-            }
-            do {
-                while (*p && *p != '\'') {
+                if (*p == T_LINENBR) p += 3;  // skip over any line number
+                skipspace(p);
+                if (commandtbl_decode(p) == end_token) break;
+
+                while (*p && *p != SINGLE_QUOTE) {
                     skipspace(p);
                     int n = 0;
                     for (int i = 0; i < 8; i++) {
                         if (!isxdigit(*p)) ERROR_INVALID_HEX;
                         n = n << 4;
-                        if (*p <= '9')
+                        if (*p <= '9') {
                             n |= (*p - '0');
-                        else
+                        } else {
                             n |= (toupper(*p) - 'A' + 10);
+                        }
                         p++;
                     }
                     if ((char *) flash_ptr >= (char *) ProgMemory + PROG_FLASH_SIZE - 9) ERROR_OUT_OF_MEMORY;
-                    *flash_ptr = n;
-                    flash_ptr ++;
+                    *((uint32_t *) flash_ptr) = n;
+                    flash_ptr += 4;
                     skipspace(p);
                 }
-                // we are at the end of a embedded code line
-                while (*p)
-                    p++;  // make sure that we move to the end of the line
-                p++;      // step to the start of the next line
+
+                // We are at the end of an embedded code line.
+                while (*p) p++;  // Make sure that we move to the end of the line.
+                p++;             // Step to the start of the next line.
                 if (*p == 0) ERROR_MISSING_END;
-                if (*p == T_NEWLINE) {
-                    CurrentLinePtr = p;
-                    p++;  // skip the newline token
-                }
-                if (*p == T_LINENBR) p += 3;  // skip over the line number
-                skipspace(p);
-            } while (*p != end_token);
+            }
 
             // Write back the size of the CSUB (in bytes) to the 32-bit slot reserved previously.
-            *save_addr = 4 * (flash_ptr - save_addr - 1);
+            *((uint32_t *) save_addr) = flash_ptr - save_addr - 4;
 
             // Pad to the next 64-bit boundary with zeroes.
-            while ((uintptr_t) flash_ptr % 2 != 0) *flash_ptr++ = 0;
+            while ((uintptr_t) flash_ptr % 8 != 0) *flash_ptr++ = 0;
         }
+
         while (*p) p++;  // look for the zero marking the start of the next element
     }
 
@@ -713,184 +964,34 @@ void program_list_csubs(int all) {
     print_line("", &line_count, all);
 }
 
-static int program_load_file_internal(char *filename) {
-
-    char file_path[STRINGSIZE];
-    MmResult result = program_get_bas_file(filename, file_path);
-    switch (result) {
-        case kOk:
-            break;
-        case kFileNotFound:
-            ERROR_PROGRAM_FILE_NOT_FOUND;
-            break;
-        case kFilenameTooLong:
-            ERROR_PATH_TOO_LONG;
-            break;
-        default:
-            error_throw(result);
-            break;
-    }
-
-    char *p, *op, *ip, *edit_buffer, *sbuff;
-    char line_buffer[STRINGSIZE];
-    char num[10];
-    size_t c;
-    int convertdebug = 1;
-    int ignore = 0;
-    nDefines = 0;
-    int importlines = 0, data;
-
-    ClearProgram();
-    int fnbr = file_find_free();
-    file_open(file_path, "rb", fnbr);
-
-    // TODO: are these being properly released after a longjmp() ?
-    p = edit_buffer = GetTempMemory(EDIT_BUFFER_SIZE);
-    dlist = GetTempMemory(sizeof(a_dlist) * MAXDEFINES);
-
-    while (!file_eof(fnbr)) {
-        size_t toggle = 0, len = 0, slen;  // while waiting for the end of file
-        sbuff = line_buffer;
-        if ((p - edit_buffer) >= EDIT_BUFFER_SIZE - 256 * 6)
-            ERROR_OUT_OF_MEMORY;
-        //        mymemset(buff,0,256);
-        memset(line_buffer, 0, STRINGSIZE);
-        MMgetline(fnbr, line_buffer);  // get the input line
-        data = 0;
-        importlines++;
-        //        routinechecks(1);
-        len = strlen(line_buffer);
-        toggle = 0;
-        for (c = 0; c < strlen(line_buffer); c++) {
-            if (line_buffer[c] == TAB) line_buffer[c] = ' ';
-        }
-        while (sbuff[0] == ' ') {  // strip leading spaces
-            sbuff++;
-            len--;
-        }
-        if (ignore && sbuff[0] != '#') *sbuff = '\'';
-        if (strncasecmp(sbuff, "rem ", 4) == 0 ||
-            (len == 3 && strncasecmp(sbuff, "rem", 3) == 0)) {
-            sbuff += 2;
-            *sbuff = '\'';
-            continue;
-        }
-        if (strncasecmp(sbuff, "mmdebug ", 7) == 0 && convertdebug == 1) {
-            sbuff += 6;
-            *sbuff = '\'';
-            continue;
-        }
-        if (strncasecmp(sbuff, "data ", 5) == 0) data = 1;
-        slen = len;
-        op = sbuff;
-        ip = sbuff;
-        while (*ip) {
-            if (*ip == 34) {
-                if (toggle == 0)
-                    toggle = 1;
-                else
-                    toggle = 0;
-            }
-            if (!toggle && (*ip == ' ' || *ip == ':')) {
-                *op++ = *ip++;  // copy the first space
-                while (*ip == ' ') {
-                    ip++;
-                    len--;
-                }
-            } else
-                *op++ = *ip++;
-        }
-        slen = len;
-        if (sbuff[0] == '#') {
-            const char *tp = checkstring(&sbuff[1], "DEFINE");
-            if (tp) {
-                getargs(&tp, 3, ",");
-                if (nDefines >= MAXDEFINES) ERROR_TOO_MANY_DEFINES;
-                strcpy(dlist[nDefines].from, getCstring(argv[0]));
-                strcpy(dlist[nDefines].to, getCstring(argv[2]));
-                nDefines++;
-            } else {
-                if (cmpstr("COMMENT END", &sbuff[1]) == 0) ignore = 0;
-                if (cmpstr("COMMENT START", &sbuff[1]) == 0) ignore = 1;
-                if (cmpstr("MMDEBUG ON", &sbuff[1]) == 0) convertdebug = 0;
-                if (cmpstr("MMDEBUG OFF", &sbuff[1]) == 0) convertdebug = 1;
-                if (cmpstr("INCLUDE", &sbuff[1]) == 0) {
-                    importfile(file_path, &sbuff[8], &p, edit_buffer, convertdebug);
-                }
-            }
-        } else {
-            toggle = 0;
-            for (c = 0; c < slen; c++) {
-                if (sbuff[c] == 34) {
-                    if (toggle == 0)
-                        toggle = 1;
-                    else
-                        toggle = 0;
-                }
-                if (!(toggle || data)) sbuff[c] = toupper(sbuff[c]);
-                if (!toggle && sbuff[c] == 39 && len == slen) {
-                    len = c;  // get rid of comments
-                    break;
-                }
-            }
-            if (toggle) sbuff[len++] = 34;
-            sbuff[len++] = 39;
-            sbuff[len++] = '|';
-            IntToStr(num, importlines, 10);
-            strcpy(&sbuff[len], num);
-            len += strlen(num);
-            if (len > 254) ERROR_LINE_TOO_LONG;
-            sbuff[len] = 0;
-            len = massage(sbuff);  // can't risk crushing lines with a quote in them
-            if ((sbuff[0] != 39) || (sbuff[0] == 39 && sbuff[1] == 39)) {
-                // if(Option.profile){
-                //     while(strlen(sbuff)<9){
-                //         cstring_cat(sbuff, " ", STRINGSIZE);
-                //         len++;
-                //     }
-                // }
-                //                mycpy(p,sbuff,len);
-                memcpy(p, sbuff, len);
-                p += len;
-                *p++ = '\n';
-            }
-        }
-    }
-
-    file_close(fnbr);
-
-    // Ensure every program has an END (and a terminating '\0').
-    if (p - edit_buffer > EDIT_BUFFER_SIZE - 5) ERROR_OUT_OF_MEMORY;
-    memcpy(p, "END\n", 5);
-    p += 5;
-
-    program_tokenise(file_path, edit_buffer);
-
-    ClearSpecificTempMemory(edit_buffer);
-    ClearSpecificTempMemory(dlist);
-
-    program_process_csubs();
-    // program_list_csubs(1);
-
-    return 0; // Success
-}
-
-int program_load_file(char *filename) {
+MmResult program_load_file(const char *filename) {
     // Store the current token buffer incase we are at the command prompt.
     char tmp[TKNBUF_SIZE];
     memcpy(tmp, tknbuf, TKNBUF_SIZE);
 
-    int result = program_load_file_internal(filename);
+    // Store a copy of the filename on the stack so it is not trampled on by ClearProgram().
+    char filename2[STRINGSIZE];
+    strcpy(filename2, filename);
 
-    // Restore the token buffer.
-    memcpy(tknbuf, tmp, TKNBUF_SIZE);
+    ClearProgram();
 
-    // Set the console window title.
-    char title[STRINGSIZE + 10];
-    sprintf(title, "MMBasic - %s", CurrentFile);
-    console_set_title(title);
+    program_internal_alloc();
 
-    if (errno != 0) error_throw(errno); // Is this really necessary?
+    MmResult result = program_open_file(filename2);
+    if (SUCCEEDED(result)) result = program_append_header();
+    if (SUCCEEDED(result)) result = program_process_file();
+    if (SUCCEEDED(result)) result = program_append_footer();
+    program_internal_free();
+    if (SUCCEEDED(result)) program_process_blobs();
+    memcpy(tknbuf, tmp, TKNBUF_SIZE);  // Restore the token buffer.
 
-    return result;
+    if (SUCCEEDED(result)) {
+        // Set the console window title.
+        char title[STRINGSIZE + 10];
+        sprintf(title, "MMBasic - %s", CurrentFile);
+        console_set_title(title, false);
+    }
+
+    // TODO: Is the 'errno' check really necessary?
+    return SUCCEEDED(result) ? errno : result;
 }

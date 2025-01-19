@@ -65,6 +65,7 @@ void error_init(ErrorState *error_state) {
     error_state->line = -1;
     *error_state->message = '\0';
     error_state->skip = 0;
+    error_state->override_line = false;
 }
 
 void error_get_line_and_file(int *line, char *file_path) {
@@ -148,7 +149,11 @@ static void verror(MmResult error, const char *msg, va_list argp) {
     options_load(&mmb_options, OPTIONS_FILE_NAME, NULL);  // make sure that the option struct is in a clean state
 
     mmb_error_state_ptr->code = error;
-    error_get_line_and_file(&mmb_error_state_ptr->line, mmb_error_state_ptr->file);
+    if (!mmb_error_state_ptr->override_line) {
+        // Unless explicitly overridden we automatically determine error line/file.
+        error_get_line_and_file(&mmb_error_state_ptr->line, mmb_error_state_ptr->file);
+    }
+    mmb_error_state_ptr->override_line = false;
 
     char buf[STRINGSIZE * 2];
 
@@ -192,28 +197,30 @@ static void verror(MmResult error, const char *msg, va_list argp) {
     }
 }
 
-void error_throw_legacy(const char *msg, ...) {
+MmResult error_throw_legacy(const char *msg, ...) {
     va_list argp;
     va_start(argp, msg);
     verror(kError, msg, argp);
     assert(0); // Don't expect to get here because of long_jmp().
     va_end(argp);
+    return kError;
 }
 
-void error_throw_ex(MmResult error, const char *msg, ...) {
+MmResult error_throw_ex(MmResult result, const char *msg, ...) {
     va_list argp;
     va_start(argp, msg);
-    verror(error, msg, argp);
+    verror(result, msg, argp);
     assert(0); // Don't expect to get here because of long_jmp().
     va_end(argp);
+    return result;
 }
 
-void error_throw(MmResult error) {
-    error_throw_ex(error, mmresult_to_string(error));
+MmResult error_throw(MmResult result) {
+    return error_throw_ex(result, mmresult_to_string(result));
 }
 
-uint8_t error_to_exit_code(MmResult error) {
-    switch (error) {
+uint8_t error_to_exit_code(MmResult result) {
+    switch (result) {
         default:
             return EX_FAIL;
     }

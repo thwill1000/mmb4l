@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.h
 
-Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -65,8 +65,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T_OPER      0x20                            // an operator
 #define T_FUN       0x40                            // a function (also used for a function that can operate as a command)
 #define T_FNA       0x80                            // a function that has no arguments
-
-#define C_BASETOKEN 0x80                            // the base of the token numbers
 
 // flags used in the program lines
 #define T_CMDEND    0                               // end of a command
@@ -138,21 +136,13 @@ extern char DefaultType;                              // the default type if a v
 #define isnamechar(c)   (isalnum(c) || c == '_' || c == '.')        // true if valid part of a variable name
 #define isnameend(c)    (isalnum(c) || c == '_' || c == '.' || c == '$' || c == '!' || c == '%')        // true if valid at the end of a variable name
 
-#define tokentype(i)    ((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].type) : 0)             // get the type of a token
-#define tokenfunction(i)((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].fptr) : (tokentbl[0].fptr))    // get the function pointer  of a token
-#define tokenname(i)    ((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].name) : "")            // get the name of a token
-
-#define commandtype(i)  ((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].type) : 0)             // get the type of a token
-#define commandfunction(i)((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].fptr) : (commandtbl[0].fptr))    // get the function pointer  of a token
-#define commandname(i)  ((i >= C_BASETOKEN && i < CommandTableSize - 1 + C_BASETOKEN) ? (commandtbl[i - C_BASETOKEN].name) : "")        // get the name of a command
-
 // this macro will allocate temporary memory space and build an argument table in it
 // x = pointer to the basic text to be split up (char *)
 // y = maximum number of args (will throw an error if exceeded) (int)
 // s = a string of characters to be used in detecting where to split the text (char *)
 #define getargs(x, y, s) char argbuf[STRINGSIZE + STRINGSIZE/2]; char *argv[y]; int argc; makeargs(x, y, argbuf, argv, &argc, s)
 
-extern int CommandTableSize, TokenTableSize;
+#define has_arg(x)  ((argc >= (x) + 1) && *argv[(x)])
 
 extern volatile int MMAbort;
 extern jmp_buf mark;                            // longjump to recover from an error
@@ -176,7 +166,9 @@ extern MMINTEGER iarg1, iarg2, iret;            // Global integer variables used
 extern char *sarg1, *sarg2, *sret;              // Global string pointers used by operators
 extern int targ;                                // Global type of argument (string or MMFLOAT) returned by an operator
 
-extern int cmdtoken;                            // Token number of the command
+typedef uint16_t CommandToken;
+
+extern CommandToken cmdtoken;                   // Token number of the command
 extern const char *cmdline;                     // Command line terminated with a zero char and trimmed of spaces
 extern const char *nextstmt;                    // Pointer to the next statement to be executed.
 extern const char *ep;                          // Pointer to the argument to a function
@@ -191,54 +183,33 @@ extern char MMErrMsg[MAXERRMSG];                // array holding the error msg
 extern char CurrentSubFunName[MAXVARLEN + 2];   // the name of the current sub or fun
 extern char CurrentInterruptName[MAXVARLEN + 2];// the name of the current interrupt function
 
-struct s_tokentbl {                             // structure of the token table
-    const char *name;                           // the string (eg, PRINT, FOR, ASC(, etc)
-    char type;                                  // the type returned (T_NBR, T_STR, T_INT)
-    char precedence;                            // precedence used by operators only.  operators with equal precedence are processed left to right.
-    void (*fptr)(void);                         // pointer to the function that will interpret that token
-};
-extern const struct s_tokentbl tokentbl[];
-extern const struct s_tokentbl commandtbl[];
-
 // used for the trace function
 extern int TraceOn;
 extern const char *TraceBuff[TRACE_BUFF_SIZE];  // TRACE_BUFF_SIZE defined in 'Configuration.h'
 extern int TraceBuffIndex;
 
-// used to store commonly used tokens for faster token checking
-extern char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP, tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
-extern char cmdIF, cmdENDIF, cmdEND_IF, cmdELSEIF, cmdELSE_IF, cmdELSE, cmdSELECT_CASE, cmdCASE, cmdCASE_ELSE, cmdEND_SELECT;
-extern char cmdSUB, cmdFUN, cmdCFUN, cmdCSUB, cmdIRET;
+void InitBasic(void);
 
-#if !defined(__mmb4l__)
-void MIPS16 error(char *, ...);
-#endif
-void MIPS16 InitBasic(void);
-
-#if defined(__mmb4l__)
 int32_t FloatToInt32(MMFLOAT x);
-#else
-int FloatToInt32(MMFLOAT);
-#endif
 MMINTEGER FloatToInt64(MMFLOAT x);
 
 void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc, const char *delim);
 void *findvar(const char *, int);
 void erasearray(char *n);
-void MIPS16 ClearVars(int level);
-void MIPS16 ClearStack(void);
-void MIPS16 ClearRuntime(void);
-void MIPS16 ClearProgram(void);
+void ClearVars(int level);
+void ClearStack(void);
+void ClearRuntime(void);
+void ClearProgram(void);
 void *DoExpression(const char *p, int *t);
 const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int noerror);
 const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *t);
 MMFLOAT getnumber(const char *p);
 MMINTEGER getinteger(const char *p);
-int getint(const char *p, int min, int max);
+MMINTEGER getint(const char *p, MMINTEGER min, MMINTEGER max);
 char *getstring(const char *p);
-void MIPS16 tokenise(int console);
+void tokenise(int console);
 void ExecuteProgram(const char *);
-void MIPS16 SaveProgramToFlash(char *pm, int msg);
+void SaveProgramToFlash(char *pm, int msg);
 //void AddProgramLine(int append);
 char *findline(int, int);
 const char *findlabel(const char *labelptr);
@@ -249,10 +220,9 @@ int FunctionType(char *p);
 const char *getclosebracket(const char *p);
 void makeupper(char *p);
 void checkend(const char *p);
-int GetCommandValue(const char *n);
 const char *GetIntAddress(const char *p);
-int GetTokenValue(const char *n);
-const char *checkstring(const char *p, const char *tkn);
+const char *GetIntAddressOrNull(const char *p);
+#define checkstring  parse_check_string
 int GetLineLength(char *p);
 char *MtoC(char *p);
 char *CtoM(char *p);
@@ -262,18 +232,12 @@ int Mstrcmp(const char *s1, const char *s2);
 char *getCstring(const char *p);
 int IsValidLine(int line);
 void InsertLastcmd(char *s);
-int MIPS16 CountLines(const char *target);
+int CountLines(const char *target);
 void DefinedSubFun(int iscmd, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64, char **sa, int *t);
 int FindSubFun(const char *p, uint8_t type);
-void MIPS16 PrepareProgram(int);
-#if !defined(__mmb4l__)
-void MMPrintString(const char* s);
-void MMfputs(const char *p, int filenbr);
-#endif
+void PrepareProgram(int);
 void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix);
 void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
-int str_equal(const char *s1, const char *s2);
-int strncasecmp (const char *s1, const char *s2, size_t n);
-int mem_equal(const char *s1, const char *s2, int i);
 const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType);
+void getargaddress(char *p, MMINTEGER **ip, MMFLOAT **fp, int *n);

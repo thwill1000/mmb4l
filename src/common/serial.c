@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 serial.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -249,8 +249,9 @@ void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
 
     // Received data interrupt location.
     if (argc >= 7) {
-        // InterruptUsed = true;
-        argv[6] = cstring_toupper(argv[6]); // TODO: is this needed ?
+        // We have to explicitly convert to upper-case because the interrupt name was embedded
+        // within an MMBasic STRING rather than being read from tokenised code.
+        argv[6] = cstring_toupper(argv[6]);
         comspec->rx_interrupt_addr = GetIntAddress(argv[6]);
     }
 
@@ -263,10 +264,10 @@ void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
     }
 }
 
-void serial_open(const char *comspec_str, int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) ERROR_INVALID_FILE_NUMBER;
+MmResult serial_open(const char *comspec_str, int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
     FileEntry *entry = &(file_table[fnbr]);
-    if (entry->type != fet_closed) ERROR_ALREADY_OPEN;
+    if (entry->type != fet_closed) return kFileAlreadyOpen;
 
     ComSpec comspec = { 0 };
     serial_parse_comspec(comspec_str, &comspec);
@@ -354,9 +355,11 @@ void serial_open(const char *comspec_str, int fnbr) {
 
     char *data = GetMemory(comspec.bufsize); // Should already be zeroed.
     rx_buf_init(&(entry->rx_buf), data, comspec.bufsize);
+
+    return kOk;
 }
 
-void serial_close(int fnbr) {
+MmResult serial_close(int fnbr) {
     FileEntry *entry = &(file_table[fnbr]);
     assert(entry->type == fet_serial);
     close(entry->serial_fd);
@@ -364,16 +367,17 @@ void serial_close(int fnbr) {
     entry->serial_fd = 0;
     FreeMemory(entry->rx_buf.data);
     interrupt_disable_serial_rx(fnbr);
+    return kOk;
 }
 
 void serial_pump_input(int fnbr) {
     assert(file_table[fnbr].type == fet_serial);
-    
+
     char tmp[256];
     errno = 0;
     ssize_t count = read(file_table[fnbr].serial_fd, tmp, 256);
     if (count == -1) error_throw(errno);
-    
+
     if (count > 0) {
         for (ssize_t i = 0; i < count; ++i) {
             rx_buf_put(&file_table[fnbr].rx_buf, tmp[i]);

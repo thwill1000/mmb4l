@@ -98,8 +98,12 @@ Sub test_atan3()
 End Sub
 
 Sub test_sd()
-  ' Standard deviation of a sine wave is equal to the square root of 1/2 (0.707)
-  assert_float_equals(Sqr(1/2), Math(Sd sin_amp1!()), 1e-10)
+  ' MMBasic uses the "Sample Standard Deviation Formula".
+  assert_float_equals(0.7077983283, Math(Sd sin_amp1!()), 1e-10)
+
+  ' If we were using the "Population Standard Deviation Formula" then the standard deviation of a
+  ' sine wave would be equal to the square root of 1/2 (0.707)
+  ' assert_float_equals(Sqr(1/2), Math(Sd sin_amp1!()), 1e-10)
 End Sub
 
 Sub test_set()

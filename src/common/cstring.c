@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cstring.c
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -51,6 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "utility.h"
 
+#include "../Version.h"  // For the ENV32BIT definition.
+
 int cstring_cat(char *dst, const char *src, size_t dst_sz) {
     size_t dst_len = strlen(dst);
     size_t src_len = strlen(src);
@@ -60,6 +62,16 @@ int cstring_cat(char *dst, const char *src, size_t dst_sz) {
         dst[dst_len + n] = '\0';
     }
     return dst_len + src_len < dst_sz ? 0 : -1;
+}
+
+int cstring_cat_int64(char *dst, int64_t src, size_t dst_sz) {
+    char buf[32];
+#if defined(ENV32BIT)
+    sprintf(buf, "%lld", src);
+#else
+    sprintf(buf, "%ld", src);
+#endif
+    return cstring_cat(dst, buf, dst_sz);
 }
 
 int cstring_cpy(char *dst, const char *src, size_t dst_sz) {
@@ -88,38 +100,28 @@ bool cstring_isquoted(const char *s) {
     return len > 1 && s[0] == '"' && s[len - 1] == '"';
 }
 
-// TODO: be smart and safe about not overrunning target.
-// TODO: unit test this better.
-void cstring_replace(char *target, const char *needle, const char *replacement) {
-    char buffer[288] = {0};
-    char *insert_point = &buffer[0];
-    const char *tmp = target;
-    size_t needle_len = strlen(needle);
-    size_t repl_len = strlen(replacement);
+int cstring_replace(char *haystack, size_t haystack_sz, const char *needle,
+                    const char *replacement) {
+    if (*needle == '\0') return -1;
 
-    while (1) {
-        const char *p = strstr(tmp, needle);
+    char *p = strstr(haystack, needle);
+    if (!p) return 0; // Nothing to do.
 
-        // walked past last occurrence of needle; copy remaining part
-        if (p == NULL) {
-            strcpy(insert_point, tmp);
-            break;
-        }
+    size_t haystack_len = strlen(haystack);
+    const size_t needle_len = strlen(needle);
+    const size_t replacement_len = strlen(replacement);
 
-        // copy part before needle
-        memcpy(insert_point, tmp, p - tmp);
-        insert_point += p - tmp;
-
-        // copy replacement string
-        memcpy(insert_point, replacement, repl_len);
-        insert_point += repl_len;
-
-        // adjust pointers, move on
-        tmp = p + needle_len;
+    while (p) {
+        if (haystack_len + replacement_len - needle_len >= haystack_sz) return -1;
+        memmove(p + replacement_len, p + needle_len, haystack_len - needle_len + haystack - p);
+        if (replacement_len != 0) memcpy(p, replacement, replacement_len);
+        haystack_len += replacement_len - needle_len;
+        if (p + replacement_len >= haystack + haystack_len) break;
+        p = strstr(p + replacement_len, needle);
     }
+    haystack[haystack_len] = '\0';
 
-    // write altered string back to target
-    strcpy(target, buffer);
+    return 0;
 }
 
 char *cstring_tolower(char *s) {

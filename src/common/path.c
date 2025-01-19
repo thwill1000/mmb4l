@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 path.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -55,7 +55,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 
 #include "cstring.h"
+#include "error.h"
 #include "path.h"
+#include "safe_buffer.h"
 #include "utility.h"
 
 bool path_exists(const char *path) {
@@ -83,15 +85,15 @@ bool path_is_regular(const char *path) {
     return (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? true : false;
 }
 
-bool path_has_suffix(
-        const char *path, const char *suffix, bool case_insensitive) {
-    int start = strlen(path) - strlen(suffix);
+bool path_has_extension(const char *path, const char *extension, bool case_insensitive) {
+    if (extension[0] != '.') return false;
+    int start = strlen(path) - strlen(extension);
     if (start < 0) return 0;
-    for (size_t i = 0; i < strlen(suffix); ++i) {
+    for (size_t i = 0; i < strlen(extension); ++i) {
         if (case_insensitive) {
-            if (toupper(path[i + start]) != toupper(suffix[i])) return false;
+            if (toupper(path[i + start]) != toupper(extension[i])) return false;
         } else {
-            if (path[i + start] != suffix[i]) return false;
+            if (path[i + start] != extension[i]) return false;
         }
     }
     return true;
@@ -145,11 +147,9 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
         absolute = true;
     }
 
-    // TODO: better checking for buffer overrun.
-    if (sz <= len || sz <= 2) return kFilenameTooLong;
-
-    char *pdst = new_path;
-    *pdst = '\0';
+    memset(new_path, 0, sz);
+    SafeBuffer safe_dst;
+    safe_buffer_init(&safe_dst, new_path, sz);
     PathState state = kPathStateStart;
     do {
         switch (*psrc) {
@@ -157,19 +157,14 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
             case '\0':
                 switch (state) {
                     case kPathStateStartDotDot:
-                        *pdst++ = '.';
-                        *pdst++ = '.';
+                        safe_buffer_append_bytes(&safe_dst, "..", 2);
                         break;
                     case kPathStateSlashDotDot: {
-                        char *p = path_unwind(new_path, pdst);
-                        if (p == pdst) {
-                            *pdst++ = '/';
-                            if (!absolute) {
-                                *pdst++ = '.';
-                                *pdst++ = '.';
-                            }
+                        char *p = path_unwind(new_path, safe_dst.ptr);
+                        if (p == safe_dst.ptr) {
+                            safe_buffer_append_bytes(&safe_dst, "/..", absolute ? 1 : 3);
                         } else {
-                            pdst = p;
+                            safe_buffer_set_ptr(&safe_dst, p);
                         }
                         break;
                     }
@@ -177,7 +172,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         break;
                 }
 
-                *pdst++ = *psrc; // Copies the '/0'
+                safe_buffer_append(&safe_dst, *psrc); // Copies the '/0'
                 break;
 
             case '.':
@@ -195,7 +190,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         state = kPathStateSlashDotDot;
                         break;
                     default:
-                        *pdst++ = '.';
+                        safe_buffer_append(&safe_dst, '.');
                         break;
                 }
                 break;
@@ -208,8 +203,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         state = kPathStateDefault;
                         break;
                     case kPathStateStartDotDot:
-                        *pdst++ = '.';
-                        *pdst++ = '.';
+                        safe_buffer_append_bytes(&safe_dst, "..", 2);
                         state = kPathStateSlash;
                         break;
                     case kPathStateSlash:
@@ -220,17 +214,13 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         state = kPathStateSlash;
                         break;
                     case kPathStateSlashDotDot: {
-                        char *p = path_unwind(new_path, pdst);
-                        if (p == pdst) {
-                            *pdst++ = '/';
-                            if (!absolute) {
-                                *pdst++ = '.';
-                                *pdst++ = '.';
-                            }
+                        char *p = path_unwind(new_path, safe_dst.ptr);
+                        if (p == safe_dst.ptr) {
+                            safe_buffer_append_bytes(&safe_dst, "/..", absolute ? 1 : 3);
                             state = kPathStateSlash;
                         } else {
                             state = *p == '/' ? kPathStateSlash : kPathStateDefault;
-                            pdst = p;
+                            safe_buffer_set_ptr(&safe_dst, p);
                         }
                         break;
                     }
@@ -247,11 +237,10 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         errno = 0;
                         const char *home = getenv("HOME");
                         if (!home) return errno; // Probably never happens.
-                        while (*home != '\0') {
-                            *pdst++ = *home++;
-                        }
+                        safe_buffer_append_string(&safe_dst, home);
+                        safe_buffer_inc_ptr(&safe_dst, -1);  // Back off trailing '\0'.
                     } else {
-                        *pdst++ = '~';
+                        safe_buffer_append(&safe_dst, '~');
                     }
                     psrc--;
                     state = kPathStateDefault;
@@ -263,34 +252,30 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
             default:
                 switch (state) {
                     case kPathStateStartDot:
-                        *pdst++ = '.';
+                        safe_buffer_append(&safe_dst, '.');
                         break;
                     case kPathStateStartDotDot:
-                        *pdst++ = '.';
-                        *pdst++ = '.';
+                        safe_buffer_append_bytes(&safe_dst, "..", 2);
                         break;
                     case kPathStateSlash:
-                        *pdst++ = '/';
+                        safe_buffer_append(&safe_dst, '/');
                         break;
                     case kPathStateSlashDot:
-                        *pdst++ = '/';
-                        *pdst++ = '.';
+                        safe_buffer_append_bytes(&safe_dst, "/.", 2);
                         break;
                     case kPathStateSlashDotDot:
-                        *pdst++ = '/';
-                        *pdst++ = '.';
-                        *pdst++ = '.';
+                        safe_buffer_append_bytes(&safe_dst, "/..", 3);
                         break;
                     default:
                         break;
                 }
                 state = kPathStateDefault;
-                *pdst++ = *psrc;
+                safe_buffer_append(&safe_dst, *psrc);
                 break;
 
-        } // select
+        } // switch
 
-    } while (*psrc++);
+    } while (*psrc++ && !safe_dst.overrun);
 
     if (!*new_path) {
         // Empty absolute path is '/' whereas empty relative path is '.'
@@ -298,7 +283,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
         new_path[1] = '\0';
     }
 
-    return kOk;
+    return (new_path[sz - 1] != '\0' || safe_dst.overrun) ? kFilenameTooLong : kOk;
 }
 
 /**
@@ -310,52 +295,58 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
  * @return     kOk on success.
  */
 static MmResult path_resolve_symlinks(const char *src, char *dst, size_t sz) {
-
-    // TODO: Handle 'dst' buffer overrun.
-
     size_t count = 0;
     const char *psrc = src;
-    char *pdst = dst;
-    char buf[PATH_MAX];
-    MmResult result;
+    SafeBuffer safe_dst;
+    safe_buffer_init(&safe_dst, dst, sz);
+    char buf[PATH_MAX] = { 0 };
+
+    // Note 1: In various places we ensure that the current dst is '\0' is null terminated but
+    //         then back off one byte in safe_dst.ptr to ensure any further appends are made after
+    //         the (non-terminated) content.
+
     do {
         if (*psrc == '/' || *psrc == '\0') {
 try_again:
-            *pdst = '\0';
+            safe_buffer_append(&safe_dst, '\0');
+            if (safe_dst.overrun) break;
+            safe_buffer_inc_ptr(&safe_dst, -1);  // See note 1.
             ssize_t num = readlink(dst, buf, PATH_MAX);
+
+            // On success update 'dst' with target of link.
             if (num != -1) {
-                // On success replace 'dst' with target of link.
-                // On failure leave contents of 'dst' intact.
+
+                if (++count > 16) return kTooManySymbolicLinks;
 
                 if (buf[0] == '/') {
                     // Handle absolute symbolic link.
-                    pdst = dst;
+                    safe_buffer_reset(&safe_dst);
                 } else {
                     // Handle relative symbolic link.
-                    memcpy(pdst, "/../", 4);
-                    pdst += 4;
+                    safe_buffer_append_bytes(&safe_dst, "/../", 4);
                 }
 
-                count++;
-                if (count >= 32) return kTooManySymbolicLinks;  // TODO: test this case
-
-                memcpy(pdst, buf, num);
-                pdst += num;
-                *pdst = '\0';
-                result = path_munge(dst, buf, PATH_MAX);
-                if (FAILED(result)) return result;
-                strcpy(dst, buf);
-                pdst = dst + strlen(dst);
+                safe_buffer_append_bytes(&safe_dst, buf, num);
+                safe_buffer_append(&safe_dst, '\0');
+                if (safe_dst.overrun) break;
+                safe_buffer_inc_ptr(&safe_dst, -1);  // See note 1.
+                ON_FAILURE_RETURN(path_munge(dst, buf, PATH_MAX));
+                safe_buffer_reset(&safe_dst);
+                safe_buffer_append_string(&safe_dst, buf);
+                if (safe_dst.overrun) break;
+                safe_buffer_inc_ptr(&safe_dst, -1);  // See note 1.
 
                 goto try_again;  // Handle symbolic links to symbolic links.
             }
 
             // Handle edge case of a symbolic link to root.
-            if (*psrc == '/' && *(pdst - 1) == '/') pdst--;
+            if (*psrc == '/' && safe_buffer_last(&safe_dst) == '/')
+                safe_buffer_inc_ptr(&safe_dst, -1);
         }
-        *pdst++ = *psrc;
-    } while (*psrc++ != '\0');
-    return kOk;
+        safe_buffer_append(&safe_dst, *psrc);
+    } while (*psrc++ != '\0' && !safe_dst.overrun);
+
+    return (dst[sz - 1] != '\0' || safe_dst.overrun) ? kFilenameTooLong : kOk;
 }
 
 MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
@@ -417,7 +408,7 @@ bool path_is_absolute(const char *path) {
 
 MmResult path_get_parent(const char *path, char *parent_path, size_t sz) {
     bool absolute = path_is_absolute(path);
-    MmResult result = path_munge(path, parent_path, PATH_MAX);
+    MmResult result = path_munge(path, parent_path, sz);
     if (FAILED(result)) return result;
     char *p = strrchr(parent_path, '/');
     if (!p) return kFileNotFound;
@@ -534,5 +525,33 @@ MmResult path_complete(const char *path, char *out, size_t sz) {
         }
     }
 
-    return kOk;
+    // readdir() will have set errno if it fails.
+    return (MmResult) errno;
+}
+
+MmResult path_try_extension(const char *path, const char *extension, char *out, size_t out_sz) {
+    if (extension[0] != '.') return kFileInvalidExtension;
+
+    if (FAILED(cstring_cpy(out, path, out_sz))) return kStringTooLong;
+
+    // Check for an exact match.
+    if (path_exists(out) && path_has_extension(out, extension, true)) return kOk;
+
+    // Try various capitalisations of the extension.
+    char ext[3][32];
+    if (FAILED(cstring_cpy(ext[0], extension, 32))) return kStringTooLong;
+    cstring_tolower(ext[0]); // All lower-case
+    if (FAILED(cstring_cpy(ext[1], extension, 32))) return kStringTooLong;
+    cstring_tolower(ext[1]);
+    ext[1][1] = toupper(ext[1][1]); // Capital letter immediately after the period,
+                                    // remainder lower-case.
+    if (FAILED(cstring_cpy(ext[2], extension, 32))) return kStringTooLong;
+    cstring_toupper(ext[2]); // All upper-case.
+    for (int i = 0; i < 3; ++i) {
+        if (FAILED(cstring_cat(out, ext[i], out_sz))) return kFilenameTooLong;
+        if (path_exists(out)) return kOk;
+        out[strlen(out) - strlen(ext[i])] = '\0'; // Remove the extension.
+    }
+
+    return kFileNotFound;
 }

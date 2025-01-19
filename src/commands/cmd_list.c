@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_list.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -44,20 +44,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/console.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 #include "../common/file.h"
 #include "../common/parse.h"
-#include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
+#include "../core/tokentbl.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 #define ERROR_NOTHING_TO_LIST  error_throw_ex(kError, "Nothing to list")
 
-void cmd_files_internal(const char *);  // cmd_files.c
-void cmd_option_list(const char *);     // cmd_option.c
+void cmd_files_internal(const char *);      // cmd_files.c
+MmResult cmd_graphics_list(const char *p);  // cmd_graphics.c
+void cmd_option_list(const char *);         // cmd_option.c
 
 /* qsort C-string comparison function */
 static int cstring_cmp(const void *a, const void *b)  {
@@ -66,7 +68,8 @@ static int cstring_cmp(const void *a, const void *b)  {
     return strcasecmp(*ia, *ib);
 }
 
-static void list_tokens(const char *title, const struct s_tokentbl *primary, const char **secondary) {
+static MmResult cmd_list_tokens(const char *title, const struct s_tokentbl *primary,
+                                const char **secondary) {
     int num_primary = 0;
     struct s_tokentbl *ptok = (struct s_tokentbl *) primary;
     while (ptok->name[0] != '\0') {
@@ -80,25 +83,23 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, con
 
     const int total = num_primary + num_secondary;
 
-    char **tbl = (char **) GetTempMemory(
-            total * sizeof(char *) // Memory for char pointers.
-            + total * 20);         // Memory for 20 character strings.
+    char **tbl = (char **) GetTempMemory(total * sizeof(char *));
+    char *storage = (char *) GetTempMemory(total * 20);
 
     // Initialise char pointers.
-    for (int i = 0; i < total; i++) {
-        tbl[i] = (char *) (tbl + total + i * 20);
+    for (int i = 0; i < total; ++i) {
+        tbl[i] = storage + i * 20;
     }
 
     // Copy primary items.
     ptok = (struct s_tokentbl *) primary;
-    for (int i = 0; ptok->name[0] != '\0'; ) {
-        if (ptok->fptr != cmd_dummy) strcpy(tbl[i++], ptok->name);
-        ptok++;
+    for (int i = 0; ptok->name[0] != '\0' && ptok->fptr != cmd_dummy; ++i, ++ptok) {
+        strcpy(tbl[i], ptok->name);
     }
 
     // Copy secondary items.
     char buf[STRINGSIZE];
-    for (int i = num_primary; i < total; i++) {
+    for (int i = num_primary; i < total; ++i) {
         sprintf(buf, "%s (*)", secondary[i - num_primary]);
         strcpy(tbl[i], buf);
     }
@@ -119,38 +120,83 @@ static void list_tokens(const char *title, const struct s_tokentbl *primary, con
     }
     sprintf(buf, "Total of %d %s using %d slots\r\n\r\n", total, title, num_primary);
     console_puts(buf);
+
+    return kOk;
 }
 
-static void list_commands() {
+/** LIST COMMANDS */
+static MmResult cmd_list_commands(const char *p) {
+    if (!parse_is_end(p)) return kUnexpectedText;
     const char *secondary_commands[] = {
             // "foo",
             // "bar",
             (char *) NULL };
-    list_tokens("commands", commandtbl, secondary_commands);
+    return cmd_list_tokens("commands", commandtbl, secondary_commands);
 }
 
-static void list_functions() {
+/** LIST {CSUB|CSUBS} [ALL] */
+static MmResult cmd_list_csubs(const char *p) {
+    const char *p2 = checkstring(p, "ALL");
+    const bool all = p2;
+    p2 = p2 ? p2 : p;
+    if (!parse_is_end(p2)) return kUnexpectedText;
+    if (!CurrentFile[0]) return mmresult_ex(kError, "Nothing to list");
+
+    // Make sure we are looking at the latest (on disk) version of the program.
+    ON_FAILURE_RETURN(program_load_file(CurrentFile));
+
+    program_list_csubs(all);
+
+    return kOk;
+}
+
+/** LIST FLASH [ALL] */
+static MmResult cmd_list_flash(const char *p) {
+    const char *p2 = checkstring(p, "ALL");
+    const bool all = p2;
+    p2 = p2 ? p2 : p;
+    if (!parse_is_end(p2)) return kUnexpectedText;
+    if (!CurrentFile[0]) return mmresult_ex(kError, "Nothing to list");
+
+    // Make sure we are looking at the latest (on disk) version of the program.
+    ON_FAILURE_RETURN(program_load_file(CurrentFile));
+
+    ListProgram(ProgMemory, all);
+    console_puts("\r\n");
+
+    return kOk;
+}
+
+/** LIST FUNCTIONS */
+static MmResult cmd_list_functions(const char *p) {
+    if (!parse_is_end(p)) return kUnexpectedText;
     const char *secondary_functions[] = {
             // "foo",
             // "bar",
             (char *) NULL };
-    list_tokens("functions", tokentbl, secondary_functions);
+    return cmd_list_tokens("functions", tokentbl, secondary_functions);
 }
 
-static void list_file(const char *filename, int all) {
-    if (!filename && CurrentFile[0] == '\0') {
-        ERROR_NOTHING_TO_LIST;
-        return;
+/** LIST [ALL] file$ */
+static MmResult cmd_list_default(const char *p) {
+    const char *p2 = checkstring(p, "ALL");
+    const bool all = p2;
+    p2 = p2 ? p2 : p;
+    char *filename = GetTempStrMemory();
+    if (parse_is_end(p2)) {
+        if (!CurrentFile[0]) {
+            return mmresult_ex(kError, "Nothing to list");
+        } else if (FAILED(cstring_cpy(filename, CurrentFile, STRINGSIZE))) {
+            return kFilenameTooLong;
+        }
+    } else {
+        ON_FAILURE_RETURN(parse_filename(p2, filename, STRINGSIZE));
     }
-
-    char file_path[STRINGSIZE];
-    MmResult result = path_munge(filename ? filename : CurrentFile, file_path, STRINGSIZE);
-    if (FAILED(result)) error_throw(result);
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;
     int fnbr = file_find_free();
-    file_open(file_path, "rb", fnbr);
+    ON_FAILURE_RETURN(file_open(filename, "rb", fnbr));
     while (!file_eof(fnbr)) {
         memset(line_buffer, 0, STRINGSIZE);
         MMgetline(fnbr, line_buffer);
@@ -161,40 +207,11 @@ static void list_file(const char *filename, int all) {
         list_count += strlen(line_buffer) / mmb_options.width;
         ListNewLine(&list_count, all);
     }
-    file_close(fnbr);
 
     // Ensure listing is followed by an empty line.
     if (strcmp(line_buffer, "") != 0) console_puts("\r\n");
-}
 
-static void list_flash(int all) {
-    if (CurrentFile[0] == '\0') {
-        ERROR_NOTHING_TO_LIST;
-        return;
-    }
-
-    // Make sure we are looking at the latest (on disk) version of the program.
-    if (FAILED(program_load_file(CurrentFile))) return;
-
-    ListProgram(ProgMemory, all);
-
-    console_puts("\r\n");
-}
-
-static void list_csubs(int all) {
-    if (CurrentFile[0] == '\0') {
-        ERROR_NOTHING_TO_LIST;
-        return;
-    }
-
-    // Make sure we are looking at the latest (on disk) version of the program.
-    if (FAILED(program_load_file(CurrentFile))) return;
-
-    program_list_csubs(all);
-}
-
-static void list_options(const char *p) {
-    cmd_option_list(p);
+    return file_close(fnbr);
 }
 
 void cmd_list(void) {
@@ -206,45 +223,28 @@ void cmd_list(void) {
         ERROR_UNKNOWN_TERMINAL_SIZE;
     }
 
-    if (parse_is_end(cmdline)) {
-        list_file(NULL, false);
-    } else if ((p = checkstring(cmdline, "COMMANDS"))) {
-        if (!parse_is_end(p)) ERROR_SYNTAX;
-        list_commands();
-    } else if ((p = checkstring(cmdline, "CSUB")) || (p = checkstring(cmdline, "CSUBS"))) {
-        if (parse_is_end(p)) {
-            list_csubs(false);
-        } else if ((p = checkstring(p, "ALL"))) {
-            if (!parse_is_end(p)) ERROR_SYNTAX;
-            list_csubs(true);
-        } else {
-            ERROR_SYNTAX;
-        }
+    MmResult result = kOk;
+    if ((p = checkstring(cmdline, "COMMANDS"))) {
+        result = cmd_list_commands(p);
+    } else if ((p = checkstring(cmdline, "CSUB"))) {
+        result = cmd_list_csubs(p);
+    } else if ((p = checkstring(cmdline, "CSUBS"))) {
+        result = cmd_list_csubs(p);
     } else if ((p = checkstring(cmdline, "FILES"))) {
+        // LIST FILES
         cmd_files_internal(p);
     } else if ((p = checkstring(cmdline, "FLASH"))) {
-        if (parse_is_end(p)) {
-            list_flash(false);
-        } else if ((p = checkstring(p, "ALL"))) {
-            if (!parse_is_end(p)) ERROR_SYNTAX;
-            list_flash(true);
-        } else {
-            ERROR_SYNTAX;
-        }
+        result = cmd_list_flash(p);
     } else if ((p = checkstring(cmdline, "FUNCTIONS"))) {
-        if (!parse_is_end(p)) ERROR_SYNTAX;
-        list_functions();
+        result = cmd_list_functions(p);
+    } else if ((p = checkstring(cmdline, "GRAPHICS"))) {
+        // LIST GRAPHICS
+        result = cmd_graphics_list(p);
     } else if ((p = checkstring(cmdline, "OPTIONS"))) {
-        list_options(p);
+        // LIST OPTIONS
+        cmd_option_list(p);
     } else {
-        if ((p = checkstring(cmdline, "ALL"))) {
-            if (parse_is_end(p)) {
-                list_file(NULL, true);
-            } else {
-                list_file(getCstring(p), true);
-            }
-        } else {
-            list_file(getCstring(cmdline), false);
-        }
+        result = cmd_list_default(cmdline);
     }
+    ON_FAILURE_ERROR(result);
 }

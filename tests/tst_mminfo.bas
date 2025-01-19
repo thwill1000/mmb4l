@@ -18,7 +18,7 @@ Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
 If sys.is_platform%("mmb4l") Then
-  Const EXPECTED_VERSION$ = "63000000"
+  Const EXPECTED_VERSION$ = "70010000"
 ElseIf sys.is_platform%("mmb4w") Then
   Const EXPECTED_VERSION$ = "5.0703"
 ElseIf sys.is_platform%("pm*") Then
@@ -64,6 +64,7 @@ add_test("test_option_serial")
 add_test("test_option_tab")
 add_test("test_path")
 add_test("test_pid")
+add_test("test_pinno")
 add_test("test_version")
 add_test("test_vpos")
 add_test("test_vres")
@@ -568,6 +569,8 @@ Sub test_font_address()
 End Sub
 
 Sub test_fontheight()
+  Font 1
+
   assert_int_equals(EXPECTED_FONT_HEIGHT%, Mm.Info(FontHeight))
 
   If sys.is_platform%("mmb4l") Then
@@ -582,6 +585,8 @@ Sub test_fontheight()
 End Sub
 
 Sub test_fontwidth()
+  Font 1
+
   assert_int_equals(EXPECTED_FONT_WIDTH%, Mm.Info(FontWidth))
 
   If sys.is_platform%("mmb4l") Then
@@ -632,7 +637,7 @@ End Sub
 Sub test_line()
   Const line$ = Mm.Info$(Line)
   If sys.is_platform%("mmb4l") Then
-    assert_int_equals(633, Val(Field$(line$, 1, ",")))
+    assert_int_equals(638, Val(Field$(line$, 1, ",")))
     assert_string_equals(Mm.Info$(Current), Field$(line$, 2, ","))
   Else
     ' Line number refers to the transpiled file.
@@ -878,11 +883,7 @@ Sub test_option_search_path()
   ' Set the SEARCH PATH to a path that is too long.
   On Error Skip
   Option Search Path String$(255, "a")
-  Select Case Mm.Device$
-    Case "MMB4L" :               assert_raw_error("File name too long")
-    Case "MMBasic for Windows" : assert_raw_error("Pathname too long")
-    Case Else :                  assert_raw_error("Pathname too long")
-  End Select
+  assert_raw_error("Pathname too long")
 
   ' Unset the SEARCH PATH.
   Option Search Path ""
@@ -956,6 +957,110 @@ Sub test_pid()
   assert_int_equals(Val(out$), Mm.Info(PID))
 End Sub
 
+Sub test_pinno()
+  Local p%
+
+  If sys.is_platform%("mmb4l") Then
+    On Error Skip
+    p% = Mm.Info(PinNo GP10)
+    assert_raw_error("Unsupported on current device/platform")
+
+    Option Simulate PicoMiteVGA
+  ElseIf Not sys.is_platform%("pm*") Then
+    Exit Sub
+  EndIf
+
+  assert_int_equals(1, Mm.Info(PinNo GP0))
+  assert_int_equals(2, Mm.Info(PinNo GP1))
+  assert_int_equals(4, Mm.Info(PinNo GP2))
+  assert_int_equals(5, Mm.Info(PinNo GP3))
+  assert_int_equals(6, Mm.Info(PinNo GP4))
+  assert_int_equals(7, Mm.Info(PinNo GP5))
+  assert_int_equals(9, Mm.Info(PinNo GP6))
+  assert_int_equals(10, Mm.Info(PinNo GP7))
+  assert_int_equals(11, Mm.Info(PinNo GP8))
+  assert_int_equals(12, Mm.Info(PinNo GP9))
+  assert_int_equals(14, Mm.Info(PinNo GP10))
+  assert_int_equals(15, Mm.Info(PinNo GP11))
+  assert_int_equals(16, Mm.Info(PinNo GP12))
+  assert_int_equals(17, Mm.Info(PinNo GP13))
+  assert_int_equals(19, Mm.Info(PinNo GP14))
+  assert_int_equals(20, Mm.Info(PinNo GP15))
+  assert_int_equals(21, Mm.Info(PinNo GP16))
+  assert_int_equals(22, Mm.Info(PinNo GP17))
+  assert_int_equals(24, Mm.Info(PinNo GP18))
+  assert_int_equals(25, Mm.Info(PinNo GP19))
+  assert_int_equals(26, Mm.Info(PinNo GP20))
+  assert_int_equals(27, Mm.Info(PinNo GP21))
+  assert_int_equals(29, Mm.Info(PinNo GP22))
+
+  ' TODO: Clarify whether MMB4L should report these as "Invalid pin" when
+  '       simulating PicoMite.
+  If Mm.Info(Device X) = "MMB4L" Then
+    assert_int_equals(41, Mm.Info(PinNo GP23))
+    assert_int_equals(42, Mm.Info(PinNo GP24))
+    assert_int_equals(43, Mm.Info(PinNo GP25))
+  Else
+    On Error Skip
+    p% = Mm.Info(PinNo GP23)
+    assert_raw_error("Invalid pin")
+
+    On Error Skip
+    p% = Mm.Info(PinNo GP24)
+    assert_raw_error("Invalid pin")
+
+    On Error Skip
+    p% = Mm.Info(PinNo GP25)
+    assert_raw_error("Invalid pin")
+  EndIf
+
+  assert_int_equals(31, Mm.Info(PinNo GP26))
+  assert_int_equals(32, Mm.Info(PinNo GP27))
+  assert_int_equals(34, Mm.Info(PinNo GP28))
+
+  On Error Skip
+  p% = Mm.Info(PinNo GP29)
+  assert_raw_error("Invalid pin")
+
+  ' Test with string.
+  assert_int_equals(14, Mm.Info(PinNo "GP10"))
+
+  ' Test with string expression.
+  assert_int_equals(14, Mm.Info(PinNo "GP" + "10"))
+
+  ' Test with variable.
+  Local s$ = "GP10"
+  assert_int_equals(14, Mm.Info(PinNo s$))
+
+  ' Test with unknown.
+  On Error Skip
+  p% = Mm.Info(PinNo foo)
+  assert_raw_error("FOO is not declared")
+
+  ' Test with integer.
+  On Error Skip
+  p% = Mm.Info(PinNo 10)
+  assert_raw_error("Expected a string")
+
+  ' Test with too many digits.
+  On Error Skip
+  p% = Mm.Info(PinNo GP100)
+  assert_raw_error("Syntax")
+
+  ' Test with leading zero.
+  On Error Skip
+  p% = Mm.Info(PinNo GP05)
+  assert_raw_error("Syntax")
+
+  ' Test with leading/trailing space.
+  assert_int_equals(14, Mm.Info(PinNo    GP10    ))
+
+  ' Test with trailing text.
+  On Error Skip
+  p% = Mm.Info(PinNo GP10 trailing)
+  assert_raw_error("Unexpected text")
+End Sub
+
 Sub test_vpos()
   If Not sys.is_platform%("mmb4l") Then Exit Sub
 
@@ -995,8 +1100,8 @@ Sub test_version()
 
   If sys.is_platform%("mmb4l") Then
     assert_int_equals(0, Mm.Info(Version Major))
-    assert_int_equals(6, Mm.Info(Version Minor))
-    assert_int_equals(300, Mm.Info(Version Micro))
+    assert_int_equals(7, Mm.Info(Version Minor))
+    assert_int_equals(1, Mm.Info(Version Micro))
     assert_int_equals(0, Mm.Info(Version Build))
   End If
 End Sub

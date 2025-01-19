@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_xmodem.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/file.h"
 #include "../common/parse.h"
 #include "../common/xmodem.h"
+#include "../common/utility.h"
 
 // TODO: Disable and restore break key ?
 
@@ -65,18 +66,16 @@ void cmd_xmodem(void) {
     getargs(&p, 5, ",");
     if (argc != 3 && argc != 5) ERROR_ARGUMENT_COUNT;
 
-    const char *filename = getCstring(argv[0]);
-    int serial_fnbr = parse_file_number(argv[2], false);
-    if (serial_fnbr == -1) ERROR_INVALID_FILE_NUMBER;
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_ERROR(parse_filename(argv[0], filename, STRINGSIZE));
 
-    bool verbose = false;
-    if (argc == 5) {
-        MMINTEGER i = getint(argv[4], 0, 1);
-        verbose = i == 1;
-    }
+    int serial_fnbr = parse_file_number(argv[2], false);
+    if (serial_fnbr == -1) ON_FAILURE_ERROR(kFileInvalidFileNumber);
+
+    const bool verbose = has_arg(4) ? getint(argv[4], 0, 1) == 1 : 0;
 
     int file_fnbr = file_find_free();
-    file_open(filename, receive ? "wb" : "rb", file_fnbr);
+    ON_FAILURE_ERROR(file_open(filename, receive ? "wb" : "rb", file_fnbr));
 
     if (receive) {
         xmodem_receive(file_fnbr, serial_fnbr, verbose);
@@ -84,5 +83,5 @@ void cmd_xmodem(void) {
         xmodem_send(file_fnbr, serial_fnbr, verbose);
     }
 
-    file_close(file_fnbr);
+    ON_FAILURE_ERROR(file_close(file_fnbr));
 }

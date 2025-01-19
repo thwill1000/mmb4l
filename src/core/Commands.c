@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Commands.c
 
-Copyright 2011-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,17 +45,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Provides all the core commands in MMBasic.
 
 #include "../Hardware_Includes.h"
-#include "MMBasic_Includes.h"
+#include "MMBasic.h"
+#include "Commands.h"
+#include "commandtbl.h"
+#include "tokentbl.h"
 #include "funtbl.h"
 #include "vartbl.h"
 #include "../common/cstring.h"
+#include "../common/parse.h"
 #include "../common/utility.h"
 
 void flist(int, int, int);
 void clearprog(void);
 void execute_one_command(char *p);
-
-
+void op_equal(void);
 
 // stack to keep track of nested FOR/NEXT loops
 struct s_forstack forstack[MAXFORLOOPS + 1];
@@ -166,7 +169,7 @@ void cmd_let(void) {
     // check that we have a straight forward variable
     const char *p2 = skipvar(cmdline, false);
     skipspace(p2);
-    if (p1 != p2) error("Syntax");
+    if (p1 != p2) ERROR_SYNTAX;
 
     // create the variable and get the length if it is a string
     char *pvar = findvar(cmdline, V_FIND);
@@ -200,21 +203,6 @@ void cmd_let(void) {
 }
 
 
-#if !defined(__mmb4l__)
-void MIPS16 cmd_list(void) {
-    char *p;
-
-    if((p = checkstring(cmdline, "ALL"))) {
-        ListProgram(ProgMemory, true);
-        checkend(p);
-    } else {
-        ListProgram(ProgMemory, false);
-        checkend(cmdline);
-    }
-}
-#endif
-
-
 
 void ListNewLine(int *ListCnt, int all) {
     MMPrintString("\r\n");
@@ -228,7 +216,7 @@ void ListNewLine(int *ListCnt, int all) {
 }
 
 
-void MIPS16 ListProgram(char *p, int all) {
+void ListProgram(const char *p, int all) {
     char b[STRINGSIZE];
     char *pp;
     int ListCnt = 1;
@@ -253,34 +241,7 @@ void MIPS16 ListProgram(char *p, int all) {
 
 
 
-#if !defined(__mmb4l__)
-void MIPS16 cmd_run(void) {
-#if !defined(MX170)
-    skipspace(cmdline);
-    if(*cmdline && *cmdline != '\'')
-        if(!FileLoadProgram(cmdline))
-            return;
-#endif
-#if defined(MICROMITE)
-    if(CurrentLinePtr) {
-        _excep_code = RESTART_DOAUTORUN;
-        SoftReset();                                                // if we are in a program simply restart the processor
-    }
-#endif
-    // we must be at the command line or a non Maximite version
-    ClearRuntime();
-    WatchdogSet = false;
-    PrepareProgram(true);
-    IgnorePIN = false;
-    if(Option.ProgFlashSize != PROG_FLASH_SIZE) ExecuteProgram(ProgMemory + Option.ProgFlashSize);       // run anything that might be in the library
-    if(*ProgMemory != T_NEWLINE) return;                            // no program to run
-    nextstmt = ProgMemory;
-}
-#endif
-
-
-
-void MIPS16 cmd_continue(void) {
+void cmd_continue(void) {
     if(*cmdline == tokenFOR) {
         if(forindex == 0) error("No FOR loop is in effect");
         nextstmt = forstack[forindex - 1].nextptr;
@@ -298,57 +259,6 @@ void MIPS16 cmd_continue(void) {
     IgnorePIN = false;
     nextstmt = ContinuePoint;
 }
-
-
-
-#if !defined(__mmb4l__)
-void MIPS16 cmd_new(void) {
-    // if(CurrentLinePtr) error("Invalid in a program");
-    checkend(cmdline);
-    ClearSavedVars();                                               // clear any saved variables
-    FlashWriteInit(ProgMemory, Option.ProgFlashSize);
-    ClearProgram();
-    WatchdogSet = false;
-    Option.Autorun = false;
-    SaveOptions();
-    longjmp(mark, 1);                                               // jump back to the input prompt
-}
-#endif
-
-
-
-#if !defined(__mmb4l__)
-void cmd_erase(void) {
-    int i,j,k, len;
-    char p[MAXVARLEN + 1], *s, *x;
-
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
-    if((argc & 0x01) == 0) error("Argument count");
-
-    for(i = 0; i < argc; i += 2) {
-        strcpy((char *)p, argv[i]);
-        while(!isnamechar(p[strlen(p) - 1])) p[strlen(p) - 1] = 0;
-
-        makeupper(p);                                               // all variables are stored as uppercase
-        for(j = 0; j < varcnt; j++) {
-            s = p;  x = vartbl[j].name; len = strlen(p);
-            while(len > 0 && *s == *x) {                            // compare the variable to the name that we have
-                len--; s++; x++;
-            }
-            if(!(len == 0 && (*x == 0 || strlen(p) == MAXVARLEN))) continue;
-
-            // found the variable
-            FreeMemory(vartbl[j].val.s);                            // free the memory, note that FreeMemory() will ignore an invalid argument
-            vartbl[j].type = T_NOTYPE;                              // empty slot
-            *vartbl[j].name = 0;                                    // safety precaution
-            for(k = 0; k < MAXDIM; k++) vartbl[j].dims[k] = 0;      // and again
-            if(j == varcnt - 1) { j--; varcnt--; }
-            break;
-        }
-        if(j == varcnt) error("Cannot find $", p);
-    }
-}
-#endif
 
 
 
@@ -399,10 +309,10 @@ retest_an_if:
         }
 
         // allow for IF statements embedded inside this IF
-        if(argc >= 3 && *argv[2] == cmdIF) argc = 3;                // this is IF xx=yy THEN IF ... so we want to evaluate only the first 3
-        if(argc >= 5 && *argv[4] == cmdIF) argc = 5;                // this is IF xx=yy THEN cmd ELSE IF ... so we want to evaluate only the first 5
+        if (argc >= 3 && commandtbl_decode(argv[2]) == cmdIF) argc = 3;  // this is IF xx=yy THEN IF ... so we want to evaluate only the first 3
+        if (argc >= 5 && commandtbl_decode(argv[4]) == cmdIF) argc = 5;  // this is IF xx=yy THEN cmd ELSE IF ... so we want to evaluate only the first 5
 
-        if(argc == 4 || (argc == 5 && *argv[3] != ss[1])) error("Syntax");
+        if(argc == 4 || (argc == 5 && *argv[3] != ss[1])) ERROR_SYNTAX;
 
         r = (getnumber(argv[0]) != 0);                              // evaluate the expression controlling the if statement
 
@@ -443,10 +353,11 @@ retest_an_if:
                 i = 1; p = nextstmt;
                 while(1) {
                     p = GetNextCommand(p, &rp, "No matching ENDIF");
-                    if(*p == cmdtoken) {
+                    const CommandToken cmd = commandtbl_decode(p);
+                    if (cmd == cmdtoken) {
                         // found a nested IF command, we now need to determine if it is a single or multiline IF
                         // search for a THEN, then check if only white space follows.  If so, it is multiline.
-                        tp = p + 1;
+                        tp = p + sizeof(CommandToken);
                         while(*tp && *tp != ss[0]) tp++;
                         if(*tp) tp++;                               // step over the THEN
                         skipspace(tp);
@@ -457,21 +368,21 @@ retest_an_if:
                         continue;
                     }
 
-                    if(*p == cmdELSE && i == 1) {
+                    if (cmd == cmdELSE && i == 1) {
                         // found an ELSE at the same level as this IF.  Step over it and continue with the statement after it
                         skipelement(p);
                         nextstmt = p;
                         break;
                     }
 
-                    if((*p == cmdELSEIF || *p == cmdELSE_IF) && i == 1) {
+                    if((cmd == cmdELSEIF || cmd == cmdELSE_IF) && i == 1) {
                         // we have found an ELSEIF statement at the same level as our IF statement
                         // setup the environment to make this function evaluate the test following ELSEIF and jump back
                         // to the start of the function.  This is not very clean (it uses the dreaded goto for a start) but it works
-                        p++;                                        // step over the token
+                        p += sizeof(CommandToken);                  // step over the token
                         skipspace(p);
                         CurrentLinePtr = rp;
-                        if(*p == 0) error("Syntax");                // there must be a test after the elseif
+                        if(*p == 0) ERROR_SYNTAX;                   // there must be a test after the elseif
                         cmdline = p;
                         skipelement(p);
                         nextstmt = p;
@@ -480,7 +391,7 @@ retest_an_if:
                         goto retest_an_if;
                     }
 
-                    if(*p == cmdENDIF || *p == cmdEND_IF) i--;      // found an ENDIF so decrement our nested counter
+                    if(cmd == cmdENDIF || cmd == cmdEND_IF) i--;    // found an ENDIF so decrement our nested counter
                     if(i == 0) {
                         // found our matching ENDIF stmt.  Step over it and continue with the statement after it
                         skipelement(p);
@@ -522,36 +433,28 @@ void cmd_else(void) {
     // search for the next ENDIF and pass control to the following line
     i = 1; p = nextstmt;
 
-    if(cmdtoken ==  cmdELSE) checkend(cmdline);
+    if (cmdtoken == cmdELSE) checkend(cmdline);
 
     while(1) {
         p = GetNextCommand(p, NULL, "No matching ENDIF");
-        if(*p == cmdIF) {
+        const CommandToken cmd = commandtbl_decode(p);
+        if(cmd == cmdIF) {
             // found a nested IF command, we now need to determine if it is a single or multiline IF
             // search for a THEN, then check if only white space follows.  If so, it is multiline.
-            tp = p + 1;
+            tp = p + sizeof(CommandToken);
             while(*tp && *tp != tokenTHEN) tp++;
             if(*tp) tp++;                                           // step over the THEN
             skipspace(tp);
             if(*tp == 0 || *tp == '\'')                             // yes, only whitespace follows
                 i++;                                                // count it as a nested IF
         }
-        if(*p == cmdENDIF || *p == cmdEND_IF) i--;                  // found an ENDIF so decrement our nested counter
+        if(cmd == cmdENDIF || cmd == cmdEND_IF) i--;                // found an ENDIF so decrement our nested counter
         if(i == 0) break;                                           // found our matching ENDIF stmt
     }
     // found a matching ENDIF.  Step over it and continue with the statement after it
     skipelement(p);
     nextstmt = p;
 }
-
-
-
-#if !defined(__mmb4l__)
-void cmd_end(void) {
-    checkend(cmdline);
-    longjmp(mark, 1);                                               // jump back to the input prompt
-}
-#endif
 
 
 
@@ -579,17 +482,19 @@ void cmd_select(void) {
     i = 1; p = nextstmt;
     while(1) {
         p = GetNextCommand(p, &rp, "No matching END SELECT");
+        const CommandToken cmd = commandtbl_decode(p);
 
-        if(*p == cmdSELECT_CASE) i++;                               // found a nested SELECT CASE command, increase the nested count and carry on searching
+        if (cmd == cmdSELECT_CASE) i++;                             // found a nested SELECT CASE command, increase the nested count and carry on searching
 
         // is this a CASE stmt at the same level as this SELECT CASE.
-        if(*p == cmdCASE && i == 1) {
+        if (cmd == cmdCASE && i == 1) {
             int t;
             MMFLOAT ft, ftt;
             MMINTEGER i64t, i64tt;
             char *st, *stt;
 
             CurrentLinePtr = rp;                                    // and report errors at the line we are on
+            p += sizeof(CommandToken) - 1;
 
             // loop through the comparison elements on the CASE line.  Each element is separated by a comma
             do {
@@ -605,12 +510,12 @@ void cmd_select(void) {
                     if(tokentype(*p) & T_OPER)
                         o = *p++ - C_BASETOKEN;                     // get the operator
                     else
-                        error("Syntax");
+                        ERROR_SYNTAX;
                     if(type & T_NBR) ft = f;
                     if(type & T_INT) i64t = i64;
                     if(type & T_STR) st = s;
                     while(o != E_END) p = doexpr(p, &ft, &i64t, &st, &o, &t); // get the right hand side of the expression and evaluate the operator in o
-                    if(!(t & T_INT)) error("Syntax");               // comparisons must always return an integer
+                    if(!(t & T_INT)) ERROR_SYNTAX;                  // comparisons must always return an integer
                     if(i64t) {                                      // evaluates to true
                         skipelement(p);
                         nextstmt = p;
@@ -656,8 +561,8 @@ void cmd_select(void) {
 
         // test if we have found a CASE ELSE statement at the same level as this SELECT CASE
         // if true it means that we did not find a matching CASE - so execute this code
-        if(*p == cmdCASE_ELSE && i == 1) {
-            p++;                                                    // step over the token
+        if (cmd == cmdCASE_ELSE && i == 1) {
+            p += sizeof(CommandToken);                              // step over the token
             checkend(p);
             skipelement(p);
             nextstmt = p;
@@ -665,9 +570,12 @@ void cmd_select(void) {
             return;
         }
 
-        if(*p == cmdEND_SELECT) i--;                                // found an END SELECT so decrement our nested counter
+        if (cmd == cmdEND_SELECT) {                                 // found an END SELECT so decrement our nested counter
+            i--;
+            p += sizeof(CommandToken) - 1;
+        }
 
-        if(i == 0) {
+        if (i == 0) {
             // found our matching END SELECT stmt.  Step over it and continue with the statement after it
             skipelement(p);
             nextstmt = p;
@@ -689,10 +597,11 @@ void cmd_case(void) {
     i = 1; p = nextstmt;
     while(1) {
         p = GetNextCommand(p, NULL, "No matching END SELECT");
+        const CommandToken cmd = commandtbl_decode(p);
 
-        if(*p == cmdSELECT_CASE) i++;                               // found a nested SELECT CASE command, we now need to search for its END CASE
+        if (cmd == cmdSELECT_CASE) i++;                             // found a nested SELECT CASE command, we now need to search for its END CASE
 
-        if(*p == cmdEND_SELECT) i--;                                // found an END SELECT so decrement our nested counter
+        if (cmd == cmdEND_SELECT) i--;                              // found an END SELECT so decrement our nested counter
         if(i == 0) {
             // found our matching END SELECT stmt.  Step over it and continue with the statement after it
             skipelement(p);
@@ -732,7 +641,7 @@ void cmd_input(void) {
         }
     }
 
-    if(argc - i < 1) error("Syntax");                               // no variable to input to
+    if(argc - i < 1) ERROR_SYNTAX;                                  // no variable to input to
 
     MMgetline(fnbr, inpbuf);                                        // get the line
     p = inpbuf;
@@ -826,11 +735,6 @@ void cmd_for(void) {
     const char *p, *tp, *xp;
     void *vptr;
     char *vname, vtype;
-    static char fortoken, nexttoken;
-
-    // cache these tokens for speed
-    if(!fortoken) fortoken = GetCommandValue("For");
-    if(!nexttoken) nexttoken = GetCommandValue("Next");
 
     ss[0] = tokenEQUAL;
     ss[1] = tokenTO;
@@ -840,7 +744,7 @@ void cmd_for(void) {
     {                                                               // start a new block
         getargs(&cmdline, 7, ss);                                   // getargs macro must be the first executable stmt in a block
         if(argc < 5 || argc == 6 || *argv[1] != ss[0] || *argv[3] != ss[1]) error("FOR with misplaced = or TO");
-        if(argc == 6 || (argc == 7 && *argv[5] != ss[2])) error("Syntax");
+        if(argc == 6 || (argc == 7 && *argv[5] != ss[2])) ERROR_SYNTAX;
 
         // get the variable name and trim any spaces
         vname = argv[0];
@@ -901,9 +805,10 @@ void cmd_for(void) {
         t = 1; p = nextstmt;
         while(1) {
             p = GetNextCommand(p, &tp, "No matching NEXT");
-            if(*p == fortoken) t++;                                 // count the FOR
-            if(*p == nexttoken) {                                   // is it NEXT
-                xp = p + 1;                                         // point to after the NEXT token
+            const CommandToken cmd = commandtbl_decode(p);
+            if (cmd == cmdFOR) t++;                                 // count the FOR
+            if (cmd == cmdNEXT) {                                   // is it NEXT
+                xp = p + sizeof(CommandToken);                      // point to after the NEXT token
                 while(*xp && strncasecmp(xp, vname, vlen)) xp++;    // step through looking for our variable
                 if(*xp && !isnamechar(xp[vlen]))                    // is it terminated correctly?
                     t = 0;                                          // yes, found the matching NEXT
@@ -945,7 +850,7 @@ void cmd_next(void) {
 
     for(vcnt = i = 0; i < argc; i++) {
         if(i & 0x01) {
-            if(*argv[i] != ',') error("Syntax");
+            if(*argv[i] != ',') ERROR_SYNTAX;
         } else
             vtbl[vcnt++] = findvar(argv[i], V_FIND | V_NOFIND_ERR); // find the variable and error if not found
     }
@@ -961,7 +866,7 @@ loopback:
         // if no variables specified search the for stack looking for an entry with the same program position as
         // this NEXT statement. This cheats by using the cmdline as an identifier and may not work inside an IF THEN ELSE
         for(i = 0; i < forindex; i++) {
-            p = forstack[i].nextptr + 1;
+            p = forstack[i].nextptr + sizeof(CommandToken);
             skipspace(p);
             if(p == cmdline) goto breakout;
         }
@@ -1013,140 +918,6 @@ breakout:
 
 
 
-void cmd_do(void) {
-    int i, whileloop;
-    const char *p, *tp, *evalp;
-    char looptoken, whiletoken;
-
-    whiletoken = GetCommandValue("While");
-    whileloop = (cmdtoken == whiletoken);
-    if(whileloop)
-        looptoken = GetCommandValue("WEnd");
-    else {
-        looptoken = GetCommandValue("Loop");
-        whiletoken = tokenWHILE;
-    }
-
-    if(whileloop)
-        // if it is a WHILE WEND loop we can just point to the command line
-        evalp = cmdline;
-    else {
-        // if it is a DO loop find the WHILE token and (if found) get a pointer to its expression
-        while(*cmdline && *cmdline != whiletoken) cmdline++;
-        if(*cmdline == whiletoken) {
-            evalp = ++cmdline;
-        }
-        else
-            evalp = NULL;
-    }
-
-    // check if this loop is already in the stack and remove it if it is
-    // this is necessary as the program can jump out of the loop without hitting
-    // the LOOP or WEND stmt and this will eventually result in a stack overflow
-    for(i = 0; i < doindex ;i++) {
-        if(dostack[i].doptr == nextstmt) {
-            while(i < doindex - 1) {
-                dostack[i].evalptr = dostack[i+1].evalptr;
-                dostack[i].loopptr = dostack[i+1].loopptr;
-                dostack[i].doptr = dostack[i+1].doptr;
-                dostack[i].level = dostack[i+1].level;
-                i++;
-            }
-            doindex--;
-            break;
-        }
-    }
-
-    // add our pointers to the top of the stack
-    if(doindex == MAXDOLOOPS) error("Too many nested DO or WHILE loops");
-    dostack[doindex].evalptr = evalp;
-    dostack[doindex].doptr = nextstmt;
-    dostack[doindex].level = LocalIndex;
-
-    // now find the matching LOOP command
-    i = 1; p = nextstmt;
-    while(1) {
-        p = GetNextCommand(p, &tp, "No matching LOOP");
-        if(*p == cmdtoken) i++;                                     // entered a nested DO or WHILE loop
-        if(*p == looptoken) i--;                                    // exited a nested loop
-        if(i == 0) {                                                // found our matching LOOP or WEND stmt
-            dostack[doindex].loopptr = p;
-            break;
-        }
-    }
-
-    if(!whileloop && dostack[doindex].evalptr != NULL) {
-        // if this is a DO WHILE ... LOOP statement
-        // search the LOOP statement for a WHILE or UNTIL token (p is pointing to the matching LOOP statement)
-        p++;
-        while(*p && *p < 0x80) p++;
-        if(*p == tokenWHILE) error("LOOP has a WHILE test");
-        if(*p == tokenUNTIL) error("LOOP has an UNTIL test");
-    }
-
-    doindex++;
-
-    // do the evaluation (if there is something to evaluate) and if false go straight to the command after the LOOP or WEND statement
-    if(dostack[doindex - 1].evalptr != NULL && getnumber(dostack[doindex - 1].evalptr) == 0) {
-        doindex--;                                                  // remove the entry in the table
-        nextstmt = dostack[doindex].loopptr;                        // point to the LOOP or WEND statement
-        skipelement(nextstmt);                                      // skip to the next command
-    }
-
-}
-
-
-
-void cmd_loop(void) {
-    const char *p;
-    int tst = 0;                                                    // initialise tst to stop the compiler from complaining
-    int i;
-
-    // search the do table looking for an entry with the same program position as this LOOP statement
-    for(i = 0; i < doindex ;i++) {
-        p = dostack[i].loopptr + 1;
-        skipspace(p);
-        if(p == cmdline) {
-            // found a match
-            // first check if the DO statement had a WHILE component
-            // if not find the WHILE statement here and evaluate it
-            if(dostack[i].evalptr == NULL) {                        // if it was a DO without a WHILE
-                if(*cmdline >= 0x80) {                              // if there is something
-                    if(*cmdline == tokenWHILE)
-                        tst = (getnumber(++cmdline) != 0);          // evaluate the expression
-                    else if(*cmdline == tokenUNTIL)
-                        tst = (getnumber(++cmdline) == 0);          // evaluate the expression
-                    else
-                        error("Syntax");
-                }
-                else {
-                    tst = 1;                                        // and loop forever
-                    checkend(cmdline);                              // make sure that there is nothing else
-                }
-            }
-            else {                                                  // if was DO WHILE
-                tst = (getnumber(dostack[i].evalptr) != 0);         // evaluate its expression
-                checkend(cmdline);                                  // make sure that there is nothing else
-            }
-
-            // test the expression value and reset the program pointer if we are still looping
-            // otherwise remove this entry from the do stack
-            if(tst)
-                nextstmt = dostack[i].doptr;                        // loop again
-            else {
-                // the loop has terminated
-                // remove the entry in the table, then just let the default nextstmt run and continue on from there
-                doindex = i;
-                // just let the default nextstmt run
-            }
-            return;
-        }
-    }
-    error("LOOP without a matching DO");
-}
-
-
-
 void cmd_exitfor(void) {
     if(forindex == 0) error("No FOR loop is in effect");
     nextstmt = forstack[--forindex].nextptr;
@@ -1192,24 +963,25 @@ void cmd_randomize(void) {
 // it simply skips over text until it finds the end of it
 void cmd_subfun(void) {
     const char *p;
-    int returntoken;
-    int errtoken;
+    CommandToken returntoken;
+    CommandToken errtoken;
 
     if(gosubindex != 0) error("No matching END declaration");       // We have hit a SUB/FUNCTION while in another SUB or FUN.
                                                                     // This can also happen if we GOSUB somewhere and then
                                                                     // encounter SUB/FUNCTION before we RETURN.
-    if(cmdtoken == cmdSUB) {
-        returntoken = GetCommandValue("End Sub");
-        errtoken = GetCommandValue("End Function");
+    if (cmdtoken == cmdSUB) {
+        returntoken = cmdEND_SUB;
+        errtoken = cmdEND_FUNCTION;
     } else {
-        returntoken = GetCommandValue("End Function");
-        errtoken = GetCommandValue("End Sub");
-      }
+        returntoken = cmdEND_FUNCTION;
+        errtoken = cmdEND_SUB;
+    }
     p = nextstmt;
     while(1) {
         p = GetNextCommand(p, NULL, "No matching END declaration");
-        if(*p == cmdSUB || *p == cmdFUN || *p == errtoken) error("No matching END declaration");
-        if(*p == returntoken) {                                     // found the next return
+        const CommandToken cmd = commandtbl_decode(p);
+        if (cmd == cmdSUB || cmd == cmdFUN || cmd == errtoken) error("No matching END declaration");
+        if (cmd == returntoken) {                                   // found the next return
             skipelement(p);
             nextstmt = p;                                           // point to the next command
             break;
@@ -1257,128 +1029,11 @@ void cmd_endfun(void) {
 
 
 
-#if !defined(__mmb4l__)
-void cmd_read(void) {
-    int i, len;
-    char *p, datatoken, *lineptr = NULL, *x;
-    char *vtbl[MAX_ARG_COUNT];
-    int vtype[MAX_ARG_COUNT];
-    int vsize[MAX_ARG_COUNT];
-    int vcnt, vidx;
-
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
-    if(argc == 0) error("Syntax");
-
-    // step through the arguments and save the pointer and type
-    for(vcnt = i = 0; i < argc; i++) {
-        if(i & 0x01) {
-            if(*argv[i] != ',') error("Syntax");
-        }
-        else {
-            vtbl[vcnt] = findvar(argv[i], V_FIND);
-            if(vartbl[VarIndex].type & T_CONST) error("Cannot change a constant");
-            vtype[vcnt] = TypeMask(vartbl[VarIndex].type);
-            vsize[vcnt] = vartbl[VarIndex].size;
-            vcnt++;
-        }
-    }
-
-    // setup for a search through the whole memory
-    vidx = 0;
-    datatoken = GetCommandValue("Data");
-    p = lineptr = NextDataLine;
-    if(*p == 0xff) error("No DATA to read");                        // error if there is no program
-
-  // search looking for a DATA statement.  We keep returning to this point until all the data is found
-search_again:
-    while(1) {
-        if(*p == 0) p++;                                            // if it is at the end of an element skip the zero marker
-        if(*p == 0 || *p == 0xff) error("No DATA to read");         // end of the program and we still need more data
-        if(*p == T_NEWLINE) lineptr = p++;
-        if(*p == T_LINENBR) p += 3;
-        skipspace(p);
-        if(*p == T_LABEL) {                                         // if there is a label here
-            p += p[1] + 2;                                          // skip over the label
-            skipspace(p);                                           // and any following spaces
-        }
-        if(*p == datatoken) break;                                  // found a DATA statement
-        while(*p) p++;                                              // look for the zero marking the start of the next element
-    }
-    NextDataLine = lineptr;
-    p++;                                                            // step over the token
-    skipspace(p);
-    if(!*p || *p == '\'') { CurrentLinePtr = lineptr; error("No DATA to read"); }
-
-        // we have a DATA statement, first split the line into arguments
-        {                                                           // new block, the getargs macro must be the first executable stmt in a block
-        getargs(&p, (MAX_ARG_COUNT * 2) - 1, ",");
-        if((argc & 1) == 0) { CurrentLinePtr = lineptr; error("Syntax"); }
-        // now step through the variables on the READ line and get their new values from the argument list
-        // we set the line number to the number of the DATA stmt so that any errors are reported correctly
-        while(vidx < vcnt) {
-            // check that there is some data to read if not look for another DATA stmt
-            if(NextData > argc) {
-                skipline(p);
-                NextData = 0;
-                goto search_again;
-            }
-            x = CurrentLinePtr;
-            CurrentLinePtr = lineptr;
-            if(vtype[vidx] & T_STR) {
-                char *p1, *p2;
-                if(*argv[NextData] == '"') {                               // if quoted string
-                    for(len = 0, p1 = vtbl[vidx], p2 = argv[NextData] + 1; *p2 && *p2 != '"'; len++, p1++, p2++) {
-                       *p1 = *p2;                                   // copy up to the quote
-                    }
-                } else {                                            // else if not quoted
-                    for(len = 0, p1 = vtbl[vidx], p2 = argv[NextData]; *p2 && *p2 != '\'' ; len++, p1++, p2++) {
-                        if(*p2 < 0x20 || *p2 >= 0x7f) error("Invalid character");
-                        *p1 = *p2;                                  // copy up to the comma
-                    }
-                }
-                if(len > vsize[vidx]) error("String too long");
-                *p1 = 0;                                            // terminate the string
-                CtoM(vtbl[vidx]);                                   // convert to a MMBasic string
-            }
-            else if(vtype[vidx] & T_INT)
-                *((MMINTEGER *)vtbl[vidx]) = getinteger(argv[NextData]); // much easier if integer variable
-            else
-                *((MMFLOAT *)vtbl[vidx]) = getnumber(argv[NextData]);      // same for numeric variable
-
-            vidx++;
-            NextData += 2;
-        }
-    }
-}
-#endif
-
-
-
-#if !defined(__mmb4l__)
-void cmd_restore(void) {
-    if(*cmdline == 0 || *cmdline == '\'') {
-        if (CurrentLinePtr >= (char *) (ProgMemory + Option.ProgFlashSize))
-            NextDataLine = ProgMemory + Option.ProgFlashSize;
-        else
-            NextDataLine = ProgMemory;
-        NextData = 0;
-    } else {
-        if(isnamestart(*cmdline))
-            NextDataLine = findlabel(cmdline);                      // must be a label
-        else
-            NextDataLine = findline(getinteger(cmdline), true);     // try for a line number
-        NextData = 0;
-    }
-}
-#endif
-
-
-
 void cmd_lineinput(void) {
     char *vp;
     int i, fnbr;
     getargs(&cmdline, 3, ",;");                                     // this is a macro and must be the first executable stmt
-    if(argc == 0 || argc == 2) error("Syntax");
+    if(argc == 0 || argc == 2) ERROR_SYNTAX;
 
     i = 0;
     fnbr = 0;
@@ -1390,13 +1045,13 @@ void cmd_lineinput(void) {
         }
         else {
             // is the first argument a prompt?  if so, print it otherwise there are too many arguments
-            if(*argv[1] != ',' && *argv[1] != ';') error("Syntax");
+            if(*argv[1] != ',' && *argv[1] != ';') ERROR_SYNTAX;
             MMfputs(getstring(argv[0]), 0);
         }
         i = 2;
     }
 
-    if(argc - i != 1) error("Syntax");
+    if(argc - i != 1) ERROR_SYNTAX;
     vp = findvar(argv[i], V_FIND);
     if(vartbl[VarIndex].type & T_CONST) error("Cannot change a constant");
     if(!(vartbl[VarIndex].type & T_STR)) error("Invalid variable");
@@ -1446,7 +1101,7 @@ void cmd_on(void) {
                 OptionErrorSkip = getint(p, 1, 10000) + 1;
             return;
         }
-        error("Syntax");
+        ERROR_SYNTAX;
     }
 
     // if we got here the command must be the traditional:  ON nbr GOTO|GOSUB line1, line2,... etc
@@ -1457,8 +1112,8 @@ void cmd_on(void) {
     ss[3] = 0;
     {                                                               // start a new block
         getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ss);             // getargs macro must be the first executable stmt in a block
-        if(argc < 3 || !(*argv[1] == ss[0] || *argv[1] == ss[1])) error("Syntax");
-        if(argc%2 == 0) error("Syntax");
+        if(argc < 3 || !(*argv[1] == ss[0] || *argv[1] == ss[1])) ERROR_SYNTAX;
+        if(argc%2 == 0) ERROR_SYNTAX;
 
         r = getint(argv[0], 0, 255);                                // evaluate the expression controlling the statement
         if(r == 0 || r > argc/2) return;                            // microsoft say that we just go on to the next line
@@ -1515,7 +1170,7 @@ const char *SetValue(const char *p, int t, void *v) {
 // define a variable
 // DIM [AS INTEGER|FLOAT|STRING] var[(d1 [,d2,...]] [AS INTEGER|FLOAT|STRING] [, ..., ...]
 // LOCAL also uses this function the routines only differ in that LOCAL can only be used in a sub/fun
-void MIPS16 cmd_dim(void) {
+void cmd_dim(void) {
     int i, j, k, type, typeSave, ImpliedType = 0, VIndexSave, StaticVar = false;
     char chSave, *chPosit;
     char VarName[STRINGSIZE];
@@ -1526,7 +1181,7 @@ void MIPS16 cmd_dim(void) {
     ImpliedType = type;
     {                                                               // getargs macro must be the first executable stmt in a block
         getargs(&pconst, (MAX_ARG_COUNT * 2) - 1, ",");
-        if((argc & 0x01) == 0) error("Syntax");
+        if((argc & 0x01) == 0) ERROR_SYNTAX;
 
         // 'p' will be pointing into the items of argv[] which we know are not
         // constants so we can cast away const-ness as necessary to remove
@@ -1629,18 +1284,18 @@ void MIPS16 cmd_dim(void) {
 
 
 
-void MIPS16 cmd_const(void) {
+void cmd_const(void) {
     const char *p;
     void *v;
     int i, type;
 
     getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
-    if((argc & 0x01) == 0) error("Syntax");
+    if((argc & 0x01) == 0) ERROR_SYNTAX;
 
     for(i = 0; i < argc; i += 2) {
         p = skipvar(argv[i], false);                                // point to after the variable
         skipspace(p);
-        if(tokenfunction(*p) != op_equal) error("Syntax");          // must be followed by an equals sign
+        if(tokenfunction(*p) != op_equal) ERROR_SYNTAX;             // must be followed by an equals sign
         p++;                                                        // step over the equals sign
         type = T_NOTYPE;
         v = DoExpression(p, &type);                                 // evaluate the constant's value
@@ -1707,7 +1362,7 @@ void strCopyWithCase(char *d, const char *s) {
 // list a line into a buffer (b) given a pointer to the beginning of the line (p).
 // the returned string is a C style string (terminated with a zero)
 // this is used by cmd_list(), cmd_edit() and cmd_xmodem()
-char MIPS16 *llist(char *b, char *p) {
+const char *llist(char *b, const char *p) {
     int i, firstnonwhite = true;
     char *b_start = b;
 
@@ -1736,14 +1391,16 @@ char MIPS16 *llist(char *b, char *p) {
 
         if(*p >= C_BASETOKEN) {
             if(firstnonwhite) {
-                if(*p == GetCommandValue("Let"))
+                const CommandToken cmd = commandtbl_decode(p);
+                if (cmd == cmdLET)
                     *b = 0;                                         // use nothing if it LET
                 else {
-                    strCopyWithCase(b, commandname(*p));            // expand the command (if it is not LET)
+                    strCopyWithCase(b, commandname(cmd));           // expand the command (if it is not LET)
                     b += strlen(b);                                 // update pointer to the end of the buffer
                     if(isalpha(*(b - 1))) *b++ = ' ';               // add a space to the end of the command name
                 }
                 firstnonwhite = false;
+                p += sizeof(CommandToken);
             } else {                                                // not a command so must be a token
                 strCopyWithCase(b, tokenname(*p));                  // expand the token
                 b += strlen(b);                                     // update pointer to the end of the buffer
@@ -1751,8 +1408,8 @@ char MIPS16 *llist(char *b, char *p) {
                     firstnonwhite = true;
                 else
                     firstnonwhite = false;
+                p++;
             }
-            p++;
             continue;
         }
 
@@ -1783,21 +1440,19 @@ char MIPS16 *llist(char *b, char *p) {
 
 
 void execute_one_command(char *p) {
-    int cmd, i;
-
     CheckAbort();
     targ = T_CMD;
     skipspace(p);                                                   // skip any whitespace
-    if(*p >= C_BASETOKEN && *p - C_BASETOKEN < CommandTableSize - 1 && (commandtbl[*p - C_BASETOKEN].type & T_CMD)) {
-        cmd = *p  - C_BASETOKEN;
-        if(*p == GetCommandValue("While") || *p == GetCommandValue("Do") || *p == GetCommandValue("For")) error("Invalid inside THEN ... ELSE") ;
-        cmdtoken = *p;
-        cmdline = p + 1;
+    if (p[0]>= C_BASETOKEN && p[1]>=C_BASETOKEN) {
+        const CommandToken cmd = commandtbl_decode(p);
+        if (cmd == cmdWHILE || cmd== cmdDO || cmd == cmdFOR) error("Invalid inside THEN ... ELSE") ;
+        cmdtoken = cmd;
+        cmdline = p + sizeof(CommandToken);
         skipspace(cmdline);
-        commandtbl[cmd].fptr();                                     // execute the command
+        commandtbl[cmd].fptr(); // execute the command
     } else {
         if(!isnamestart(*p)) error("Invalid character");
-        i = FindSubFun(p, kSub);                                    // find a subroutine.
+        int i = FindSubFun(p, kSub);                                // find a subroutine.
         if(i >= 0)                                                  // >= 0 means it is a user defined command
             DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
         else

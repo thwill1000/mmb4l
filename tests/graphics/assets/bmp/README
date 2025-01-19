@@ -1,0 +1,51 @@
+The Bitmap Test Suite 0.9
+-------------------------
+
+The Bitmap Test Suite provides a set of Windows bitmap files
+that yield near-complete code coverage of bitmap processing software.
+It includes a sampling of various well-formed bitmap encodings,
+as well as an extensive set of malformed bitmap files.
+
+It includes bitmaps of all legal bit depths, both uncompressed RGB
+and RLE compressed bitmaps, and various widths (to test padding).
+
+It also includes an extensive set of unconventional, malformed,
+and even malicious bitmaps.
+
+At this time, it does NOT include any JPEG or PNG compressed bitmaps.
+The full set of missing test cases are described in the TODO file.
+
+Organization
+============
+The bitmaps are put into three directories: valid, questionable, and
+corrupt.
+
+The "valid" directory contains bitmap files that all conforming bitmap
+processors should be able to process.
+
+The "questionable" directory contains bitmap files that malformed in
+some non-critical way.
+A conforming bitmap processor may reject any of these bitmaps but
+most will ignore the error and process them anyway.
+
+The "corrupt" directory contains bitmap files that are seriously
+malformed, possibly even malicious.
+A conforming bitmap processor may reject any of these files,
+but should not crash or leak memory when asked to process any of them.
+A superior bitmap processor will display an informative, accurate
+diagnostic for each file that it cannot process.
+
+
+Web Resources
+=============
+The project status, as well as the latest version of the bitmap test
+suite, is available online at SourceForge:
+
+  http://bitmaptestsuite.sourceforge.net
+
+
+Copyrights
+==========
+The Bitmap Test Suite has been dedicated into the public domain.
+I did this (instead of licensing it under the BSD or GPL) because I
+didn't want any legal concerns to inhibit the testing of software.

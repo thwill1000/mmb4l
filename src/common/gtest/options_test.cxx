@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Thomas Hugo Williams
+ * Copyright (c) 2021-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -13,6 +13,11 @@ extern "C" {
 #include "../cstring.h"
 #include "../options.h"
 #include "../utility.h"
+
+const char *audio_last_error() { return ""; }
+const char *events_last_error() { return ""; }
+const char *gamepad_last_error() { return ""; }
+const char *graphics_last_error() { return ""; }
 
 }
 
@@ -52,7 +57,10 @@ static void write_line_to_buf(const char *line) {
 }
 
 static void expect_options_have_defaults(Options *options) {
+    EXPECT_EQ(kRadians, options->angle);
+    EXPECT_EQ(1, options->audio);
     EXPECT_EQ(0, options->autorun);
+    EXPECT_EQ(1, options->auto_scale);
     EXPECT_EQ(0, options->base);
     EXPECT_EQ(3, options->break_key);
     EXPECT_EQ(NULL, options->codepage);
@@ -92,9 +100,11 @@ TEST_F(OptionsTest, Init) {
 }
 
 static void given_non_default_options(Options *options) {
+    options->angle = kDegrees;
     strcpy(options->editor, "Vi");
     options->list_case = kLower;
     strcpy(options->search_path, "/foo/bar");
+    options->simulate = kSimulateCmm2;
     options->tab = 8;
     options->zboolean = false;
     options->zfloat = 3.142;
@@ -113,9 +123,11 @@ TEST_F(OptionsTest, HasDefaultValue) {
     given_non_default_options(&options);
     for (const OptionsDefinition *def = options_definitions; def->name; ++def) {
         switch (def->id) {
-            case kOptionListCase:
+            case kOptionAngle:
             case kOptionEditor:
+            case kOptionListCase:
             case kOptionSearchPath:
+            case kOptionSimulate:
             case kOptionTab:
             case kOptionZBoolean:
             case kOptionZFloat:
@@ -400,7 +412,7 @@ TEST_F(OptionsTest, Load_GivenFileDoesNotExist) {
 }
 
 TEST_F(OptionsTest, Load_GivenDirectory) {
-    const char *filename = BIN_DIR;
+    const char *filename = "/etc";
     options_test_buf[0] = '\0';
     Options options;
     options_init(&options);
@@ -613,6 +625,12 @@ TEST_F(OptionsTest, GetDisplayValue) {
     options_init(&options);
     char svalue[STRINGSIZE];
 
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionAngle, svalue));
+    EXPECT_STREQ("Radians", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionAutoScale, svalue));
+    EXPECT_STREQ("On", svalue);
+
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionBase, svalue));
     EXPECT_STREQ("0", svalue);
 
@@ -651,6 +669,9 @@ TEST_F(OptionsTest, GetDisplayValue) {
 
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionSearchPath, svalue));
     EXPECT_STREQ("<unset>", svalue);
+
+    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("MMB4L", svalue);
 
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionTab, svalue));
     EXPECT_STREQ("4", svalue);
@@ -754,6 +775,34 @@ TEST_F(OptionsTest, GetFloatValue_ForNonFloat) {
     EXPECT_EQ(0.0, fvalue);
 }
 
+TEST_F(OptionsTest, GetIntegerValue_ForAudio) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    options.audio = 0;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionAudio, &ivalue));
+    EXPECT_EQ(0, ivalue);
+
+    options.audio = 1;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionAudio, &ivalue));
+    EXPECT_EQ(1, ivalue);
+}
+
+TEST_F(OptionsTest, GetIntegerValue_ForAutoScale) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    options.auto_scale = 0;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionAutoScale, &ivalue));
+    EXPECT_EQ(0, ivalue);
+
+    options.auto_scale = 1;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionAutoScale, &ivalue));
+    EXPECT_EQ(1, ivalue);
+}
+
 TEST_F(OptionsTest, GetIntegerValue_ForBase) {
     Options options;
     options_init(&options);
@@ -823,6 +872,48 @@ TEST_F(OptionsTest, GetIntegerValue_ForNonInteger) {
     EXPECT_EQ(0, ivalue);
     EXPECT_EQ(kInternalFault, options_get_integer_value(&options, kOptionZString, &ivalue));
     EXPECT_EQ(0, ivalue);
+}
+
+TEST_F(OptionsTest, GetStringValue_ForAngle) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.angle = kRadians;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAngle, svalue));
+    EXPECT_STREQ("Radians", svalue);
+
+    options.angle = kDegrees;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAngle, svalue));
+    EXPECT_STREQ("Degrees", svalue);
+}
+
+TEST_F(OptionsTest, GetStringValue_ForAudio) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.audio = 0;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAudio, svalue));
+    EXPECT_STREQ("Off", svalue);
+
+    options.audio = 1;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAudio, svalue));
+    EXPECT_STREQ("On", svalue);
+}
+
+TEST_F(OptionsTest, GetStringValue_ForAutoScale) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.auto_scale = 0;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAutoScale, svalue));
+    EXPECT_STREQ("Off", svalue);
+
+    options.auto_scale = 1;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionAutoScale, svalue));
+    EXPECT_STREQ("On", svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForBase) {
@@ -1032,6 +1123,32 @@ TEST_F(OptionsTest, GetStringValue_ForSearchPath) {
     EXPECT_STREQ((m_home + "/foo").c_str(), svalue);
 }
 
+TEST_F(OptionsTest, GetStringValue_ForSimulate) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.simulate = kSimulateMmb4l;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("MMB4L", svalue);
+
+    options.simulate = kSimulateMmb4w;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("MMBasic for Windows", svalue);
+
+    options.simulate = kSimulateCmm2;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("Colour Maximite 2", svalue);
+
+    options.simulate = kSimulatePicoMiteVga;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("PicoMiteVGA", svalue);
+
+    options.simulate = kSimulateGameMite;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("Game*Mite", svalue);
+}
+
 TEST_F(OptionsTest, GetStringValue_ForTab) {
     Options options;
     options_init(&options);
@@ -1103,6 +1220,32 @@ TEST_F(OptionsTest, SetFloatValue_ForNonFloat) {
     EXPECT_EQ(kInternalFault, options_set_float_value(&options, kOptionZString, 1.2345));
 }
 
+TEST_F(OptionsTest, SetIntegerValue_ForAudio) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionAudio, 0));
+    EXPECT_EQ(0, options.audio);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionAudio, 1));
+    EXPECT_EQ(1, options.audio);
+
+    EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionAudio, 2));
+}
+
+TEST_F(OptionsTest, SetIntegerValue_ForAutoScale) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionAutoScale, 0));
+    EXPECT_EQ(0, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionAutoScale, 1));
+    EXPECT_EQ(1, options.auto_scale);
+
+    EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionAutoScale, 2));
+}
+
 TEST_F(OptionsTest, SetIntegerValue_ForBase) {
     Options options;
     options_init(&options);
@@ -1168,6 +1311,87 @@ TEST_F(OptionsTest, SetIntegerValue_ForNonInteger) {
 
     EXPECT_EQ(kInternalFault, options_set_integer_value(&options, kOptionZFloat, 42));
     EXPECT_EQ(kInternalFault, options_set_integer_value(&options, kOptionZString, 42));
+}
+
+TEST_F(OptionsTest, SetStringValue_ForAngle) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAngle, "Radians"));
+    EXPECT_EQ(kRadians, options.angle);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAngle, "Degrees"));
+    EXPECT_EQ(kDegrees, options.angle);
+
+    // Test case-insensitivity.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAngle, "RADians"));
+    EXPECT_EQ(kRadians, options.angle);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAngle, "wombat"));
+}
+
+TEST_F(OptionsTest, SetStringValue_ForAudio) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "false"));
+    EXPECT_EQ(false, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "true"));
+    EXPECT_EQ(true, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "Off"));
+    EXPECT_EQ(false, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "On"));
+    EXPECT_EQ(true, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "0"));
+    EXPECT_EQ(false, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "1"));
+    EXPECT_EQ(true, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "FALSE"));
+    EXPECT_EQ(false, options.audio);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAudio, "ON"));
+    EXPECT_EQ(true, options.audio);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAudio, "2"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAudio, "wombat"));
+}
+
+TEST_F(OptionsTest, SetStringValue_ForAutoScale) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "false"));
+    EXPECT_EQ(false, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "true"));
+    EXPECT_EQ(true, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "Off"));
+    EXPECT_EQ(false, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "On"));
+    EXPECT_EQ(true, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "0"));
+    EXPECT_EQ(false, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "1"));
+    EXPECT_EQ(true, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "FALSE"));
+    EXPECT_EQ(false, options.auto_scale);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionAutoScale, "ON"));
+    EXPECT_EQ(true, options.auto_scale);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAutoScale, "2"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionAutoScale, "wombat"));
 }
 
 TEST_F(OptionsTest, SetStringValue_ForBase) {
@@ -1390,13 +1614,13 @@ TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
     // Path to a directory that exists.
     // Note: this will set the SEARCH PATH property to the canonical path
     // corresponding to the value supplied.
-    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, BIN_DIR));
-    EXPECT_STREQ(BIN_DIR, options.search_path);
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSearchPath, "/etc"));
+    EXPECT_STREQ("/etc", options.search_path);
 
     // Path to a file that exists.
     EXPECT_EQ(
             kNotADirectory,
-            options_set_string_value(&options, kOptionSearchPath, BIN_DIR "/cp"));
+            options_set_string_value(&options, kOptionSearchPath, "/etc/passwd"));
 
     // Path that does not exist.
     EXPECT_EQ(
@@ -1410,6 +1634,38 @@ TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
     EXPECT_EQ(
             kFilenameTooLong,
             options_set_string_value(&options, kOptionSearchPath, svalue));
+}
+
+TEST_F(OptionsTest, SetStringValue_ForSimulate) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "MMB4L"));
+    EXPECT_EQ(kSimulateMmb4l, options.simulate);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "MMBasic for Windows"));
+    EXPECT_EQ(kSimulateMmb4w, options.simulate);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "MMB4W"));
+    EXPECT_EQ(kSimulateMmb4w, options.simulate);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "Colour Maximite 2"));
+    EXPECT_EQ(kSimulateCmm2, options.simulate);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "CMM2"));
+    EXPECT_EQ(kSimulateCmm2, options.simulate);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "PicoMiteVGA"));
+    EXPECT_EQ(kSimulatePicoMiteVga, options.simulate);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "Game*Mite"));
+    EXPECT_EQ(kSimulateGameMite, options.simulate);
+
+    // Test case-insensitivity.
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "COLOUR maximite 2"));
+    EXPECT_EQ(kSimulateCmm2, options.simulate);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionSimulate, "wombat"));
 }
 
 TEST_F(OptionsTest, SetStringValue_ForTab) {

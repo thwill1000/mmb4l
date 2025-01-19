@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_console.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -193,10 +193,10 @@ static void cmd_console_set_size(const char *p) {
     }
 }
 
-static void cmd_console_set_title(const char *p) {
+static void cmd_console_title(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) ERROR_ARGUMENT_COUNT;
-    console_set_title(getCstring(argv[0]));
+    console_set_title(getCstring(argv[0]), true);
 }
 
 static void cmd_console_show_cursor(const char *p) {
@@ -239,10 +239,12 @@ void cmd_console(void) {
     } else if ((p = parse_check_string(cmdline, "SETSIZE"))) {
         cmd_console_set_size(p);
     } else if ((p = parse_check_string(cmdline, "SETTITLE"))) {
-        cmd_console_set_title(p);
+        cmd_console_title(p);
+    } else if ((p = parse_check_string(cmdline, "TITLE"))) {
+        cmd_console_title(p);
     } else if ((p = parse_check_string(cmdline, "SHOWCURSOR"))) {
         cmd_console_show_cursor(p);
     } else {
-        ERROR_UNKNOWN_SUBCOMMAND;
+        ERROR_UNKNOWN_SUBCOMMAND("CONSOLE");
     }
 }

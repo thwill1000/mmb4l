@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_copy.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,35 +45,41 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../common/utility.h"
+#include "../core/tokentbl.h"
 
-void cmd_copy(void) {  // thanks to Bryan Rentoul for the contribution
-    char *oldf, *newf, ss[2];
+void cmd_copy(void) {
+    char ss[2] = { tokenTO, '\0' };
+    getargs(&cmdline, 3, ss);
+    if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
+
+    char *src_filename = GetTempStrMemory();
+    ON_FAILURE_ERROR(parse_filename(argv[0], src_filename, STRINGSIZE));
+
+    char *dst_filename = GetTempStrMemory();
+    ON_FAILURE_ERROR(parse_filename(argv[2], dst_filename, STRINGSIZE));
+
+    const int src_fnbr = file_find_free();
+    ON_FAILURE_ERROR(file_open(src_filename, "r", src_fnbr));
+
+    const int dst_fnbr = file_find_free();
+    MmResult result = file_open(dst_filename, "w", dst_fnbr);  // We'll just overwrite any existing file
+    if (FAILED(result)) {
+        (void) file_close(src_fnbr);
+        ON_FAILURE_ERROR(result);
+    }
+
     char c;
-    int of, nf;
-
-    ss[0] = tokenTO;  // this will be used to split up the argument line
-    ss[1] = 0;
-    {
-        getargs(&cmdline, 3, ss);    // getargs macro must be the first executable stmt in a block
-        if (argc != 3) ERROR_SYNTAX;
-        oldf = getCstring(argv[0]);  // get the old file name and convert to a
-                                     // standard C string
-        newf = getCstring(argv[2]);  // get the new file name and convert to a
-                                     // standard C string
-
-        of = file_find_free();
-        file_open(oldf, "r", of);
-
-        nf = file_find_free();
-        file_open(newf, "w", nf);  // We'll just overwrite any existing file
-    }
-
     while (1) {
-        if (file_eof(of)) break;
-        c = file_getc(of);
-        file_putc(nf, c);
+        if (file_eof(src_fnbr)) break;
+        c = file_getc(src_fnbr);
+        file_putc(dst_fnbr, c);
     }
 
-    file_close(of);
-    file_close(nf);
+    result = file_close(src_fnbr);
+    if (FAILED(result)) {
+        (void) file_close(dst_fnbr);
+        ON_FAILURE_ERROR(result);
+    }
+    ON_FAILURE_ERROR(file_close(dst_fnbr));
 }

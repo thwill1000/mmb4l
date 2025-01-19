@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cstring.h
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMMB4L_CSTRING_H
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /**
  * @brief  Safely concatenates strings.
@@ -59,6 +61,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                allowing for a terminating '\0'.
  */
 int cstring_cat(char *dst, const char *src, size_t dst_sz);
+
+/**
+ * @brief  Safely concatenates an integer with a string.
+ *
+ * @param dst     the string buffer to append to.
+ * @param src     the integer to append.
+ * @param dst_sz  the size of the \p dst buffer.
+ * @return        0 on success, -1 if the 'dst' buffer was too small to hold
+ *                the result without overrun. On failure the \p dst buffer will
+ *                contain the result truncated to avoid an overrun whilst still
+ *                allowing for a terminating '\0'.
+ */
+int cstring_cat_int64(char *dst, int64_t src, size_t dst_sz);
 
 /**
  * @brief  Safely copies strings.
@@ -96,11 +111,16 @@ bool cstring_isquoted(const char *s);
 /**
  * @brief Replaces substrings in a C string.
  *
- * @param [in,out] target       string to apply replacements to.
+ * @param [in,out] haystack     string to apply replacements to.
+ * @param [in]     haystack_sz  size of the \p haystack buffer, which should be greater than
+ *                              the length of the string if the \p replacement is longer than
+ *                              the \p needle.
  * @param [in]     needle       replace this ...
  * @param [in]     replacement  ... with this
+ * @return                      0 on success, -1 on failure.
  */
-void cstring_replace(char *target, const char *needle, const char *replacement);
+int cstring_replace(char *haystack, size_t haystack_sz, const char *needle,
+                    const char *replacement);
 
 /**
  * @brief Performs inplace conversion of a C-string to lower-case.

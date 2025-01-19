@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 console.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -46,12 +46,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONSOLE_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 // the values returned by the standard control keys
 #define TAB 0x9
 #define BKSP 0x8
 #define ENTER 0xa
 #define ESC 0x1b
+#define BREAK 0x9e
+#define PSCRN 0x9d
 
 // the values returned by the function keys
 #define F1 0x91
@@ -82,6 +85,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SLOCK 0x8c
 #define ALT 0x8b
 
+// Shifted values
+#define STAB    0x9F
+#define SDEL    0xA0
+#define SDOWN   0xA1
+#define SRIGHT  0xA3
+
 // Ordinals match those used by MMBasic for DOS and original CMM.
 #define BLACK           0
 #define BLUE            1
@@ -105,7 +114,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern int ListCnt;
 extern int MMCharPos;
 
-void console_init();
+/** @param  no_title  Set true to make console_set_title() a NOP. */
+void console_init(bool no_title);
+
 void console_background(int colour);
 void console_bell();
 void console_cursor_up(int i);
@@ -153,7 +164,7 @@ int console_kbhit(void);
 /** Writes a character to the console. */
 char console_putc(char c);
 
-/** Write a NULL terminated stirng to the console. */
+/** Write a NULL terminated string to the console. */
 void console_puts(const char *s);
 
 void console_reset(void);
@@ -175,9 +186,23 @@ void console_set_cursor_pos(int x, int y);
  */
 int console_set_size(int width, int height);
 
-void console_set_title(const char *title);
+/**
+ * Sets the console title.
+ *
+ * @param  title    The new title.
+ * @param  command  If true then title change was explicitly requested by a
+ *                  command in the running MMBasic program. If false then the
+ *                  title change is in response to a program being loaded or
+ *                  the NEW command.
+ */
+void console_set_title(const char *title, bool command);
+
+/** Shows or hides cursor. */
 void console_show_cursor(bool show);
 
 size_t console_write(const char *buf, size_t sz);
+
+/** Adds a character to the console input buffer. */
+void console_put_keypress(char ch);
 
 #endif

@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2022 Thomas Hugo Williams
+# Copyright (c) 2021-2024 Thomas Hugo Williams
 # License MIT <https://opensource.org/licenses/MIT>
 
 cmake_minimum_required(VERSION 3.14)
@@ -10,9 +10,14 @@ project(MMB4L)
 set(CMAKE_CXX_STANDARD 11)
 
 include(FetchContent)
+#FetchContent_Declare(
+#  googletest
+#  URL https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip
+#)
 FetchContent_Declare(
   googletest
-  URL https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        v1.14.0
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -28,29 +33,39 @@ if (MMB4L_COVERAGE)
 endif()
 
 set(XTRA_WARNING_FLAGS "-Wwrite-strings -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-function -Wno-unused-result -Werror")
-set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${XTRA_WARNING_FLAGS}")
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${XTRA_WARNING_FLAGS}")
+set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${XTRA_WARNING_FLAGS} -D_FILE_OFFSET_BITS=64")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${XTRA_WARNING_FLAGS} -D_FILE_OFFSET_BITS=64")
 set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
 
 set(MMB4L_CORE_SOURCE_FILES
+    src/core/commandtbl.c
     src/core/Commands.c
     src/core/Functions.c
     src/core/funtbl.c
+    src/core/maths.c
     src/core/MMBasic.c
     src/core/Operators.c
+    src/core/tokentbl.c
     src/core/vartbl.c
 )
 
 set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_autosave.c
+    src/commands/cmd_arc.c
+    src/commands/cmd_blit.c
+    src/commands/cmd_box.c
     src/commands/cmd_call.c
     src/commands/cmd_cfunction.c
     src/commands/cmd_chdir.c
+    src/commands/cmd_circle.c
     src/commands/cmd_cls.c
     src/commands/cmd_close.c
+    src/commands/cmd_colour.c
     src/commands/cmd_console.c
     src/commands/cmd_copy.c
     src/commands/cmd_cursor.c
+    src/commands/cmd_device.c
+    src/commands/cmd_do.c
     src/commands/cmd_dummy.c
     src/commands/cmd_edit.c
     src/commands/cmd_end.c
@@ -58,37 +73,59 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_error.c
     src/commands/cmd_execute.c
     src/commands/cmd_files.c
+    src/commands/cmd_flash.c
+    src/commands/cmd_font.c
+    src/commands/cmd_framebuffer.c
+    src/commands/cmd_gamepad.c
+    src/commands/cmd_graphics.c
+    src/commands/cmd_gui.c
+    src/commands/cmd_image.c
     src/commands/cmd_inc.c
     src/commands/cmd_ireturn.c
     src/commands/cmd_kill.c
+    src/commands/cmd_line.c
     src/commands/cmd_list.c
     src/commands/cmd_load.c
+    src/commands/cmd_loop.c
     src/commands/cmd_longstring.c
-    src/commands/cmd_math.c
     src/commands/cmd_memory.c
     src/commands/cmd_mid.c
     src/commands/cmd_mkdir.c
+    src/commands/cmd_mmdebug.c
     src/commands/cmd_mode.c
     src/commands/cmd_new.c
     src/commands/cmd_on.c
     src/commands/cmd_open.c
     src/commands/cmd_option.c
+    src/commands/cmd_page.c
     src/commands/cmd_pause.c
+    src/commands/cmd_pin.c
+    src/commands/cmd_pixel.c
+    src/commands/cmd_play.c
     src/commands/cmd_poke.c
     src/commands/cmd_print.c
+    src/commands/cmd_pulse.c
+    src/commands/cmd_pin.c
+    src/commands/cmd_polygon.c
     src/commands/cmd_quit.c
+    src/commands/cmd_rbox.c
     src/commands/cmd_read.c
     src/commands/cmd_rename.c
     src/commands/cmd_restore.c
     src/commands/cmd_rmdir.c
     src/commands/cmd_run.c
     src/commands/cmd_seek.c
+    src/commands/cmd_setenv.c
+    src/commands/cmd_setpin.c
     src/commands/cmd_settick.c
     src/commands/cmd_settitle.c
     src/commands/cmd_sort.c
+    src/commands/cmd_sprite.c
     src/commands/cmd_system.c
+    src/commands/cmd_text.c
     src/commands/cmd_timer.c
     src/commands/cmd_trace.c
+    src/commands/cmd_triangle.c
     src/commands/cmd_xmodem.c
 )
 
@@ -99,18 +136,22 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_call.c
     src/functions/fun_choice.c
     src/functions/fun_chr.c
+    src/functions/fun_classic.c
     src/functions/fun_cwd.c
     src/functions/fun_date.c
     src/functions/fun_datetime.c
     src/functions/fun_day.c
+    src/functions/fun_device.c
     src/functions/fun_dir.c
     src/functions/fun_eof.c
     src/functions/fun_epoch.c
     src/functions/fun_format.c
     src/functions/fun_field.c
+    src/functions/fun_gamepad.c
     src/functions/fun_hres.c
     src/functions/fun_inputstr.c
     src/functions/fun_json.c
+    src/functions/fun_keydown.c
     src/functions/fun_lcompare.c
     src/functions/fun_lgetbyte.c
     src/functions/fun_lgetstr.c
@@ -118,12 +159,14 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_llen.c
     src/functions/fun_loc.c
     src/functions/fun_lof.c
-    src/functions/fun_math.c
     src/functions/fun_mmcmdline.c
     src/functions/fun_mmdevice.c
     src/functions/fun_mminfo.c
     src/functions/fun_peek.c
+    src/functions/fun_pin.c
+    src/functions/fun_port.c
     src/functions/fun_rgb.c
+    src/functions/fun_sprite.c
     src/functions/fun_str2bin.c
     src/functions/fun_time.c
     src/functions/fun_timer.c
@@ -135,16 +178,24 @@ set(MMB4L_OPERATORS_SOURCE_FILES
 )
 
 set(MMB4L_COMMON_SOURCE_FILES
+    src/common/audio.c
+    src/common/audio_tables.c
     src/common/cmdline.c
     src/common/codepage.c
     src/common/console.c
-    src/common/cJSON.c
     src/common/cstring.c
     src/common/error.c
+    src/common/events.c
     src/common/file.c
+    src/common/flash.c
+    src/common/fonttbl.c
+    src/common/gamepad.c
+    src/common/gpio.c
+    src/common/graphics.c
     src/common/interrupt.c
-    src/common/maths.c
+    src/common/keyboard.c
     src/common/memory.c
+    src/common/mmgetline.c
     src/common/mmresult.c
     src/common/mmtime.c
     src/common/options.c
@@ -154,7 +205,17 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/prompt.c
     src/common/rx_buf.c
     src/common/serial.c
+    src/common/sprite.c
+    src/common/utility.c
     src/common/xmodem.c
+)
+
+set(MMB4L_THIRD_PARTY_SOURCE_FILES
+    src/third_party/cJSON.c
+    src/third_party/dr_audio.c
+    src/third_party/hxcmod.c
+    src/third_party/spbmp.c
+    src/third_party/upng.c
 )
 
 set(MMB4L_SOURCE_FILES
@@ -162,13 +223,29 @@ set(MMB4L_SOURCE_FILES
     ${MMB4L_FUNCTIONS_SOURCE_FILES}
     ${MMB4L_OPERATORS_SOURCE_FILES}
     ${MMB4L_COMMON_SOURCE_FILES}
+    ${MMB4L_THIRD_PARTY_SOURCE_FILES}
     src/main.c)
 
 # add the executable
 add_executable(mmbasic ${MMB4L_CORE_SOURCE_FILES} ${MMB4L_SOURCE_FILES})
 
-add_executable(test_keyboard
-    src/keyboard_test.c
+target_include_directories(mmbasic PUBLIC
+    /usr/include/SDL2
+)
+
+target_link_libraries(
+    mmbasic
+    m
+    ${GCOV_LINK_LIBRARY}
+    SDL2
+)
+
+################################################################################
+# test_console_getc
+################################################################################
+
+add_executable(test_console_getc
+    src/console_getc_test.c
     src/common/rx_buf.c
     src/common/codepage.c
     src/common/console.c
@@ -177,12 +254,6 @@ add_executable(test_keyboard
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c)
-
-target_link_libraries(
-    mmbasic
-    m
-    ${GCOV_LINK_LIBRARY}
-)
 
 # GoogleTest
 
@@ -199,6 +270,7 @@ add_executable(
   src/common/cmdline.c
   src/common/cstring.c
   src/common/memory.c
+  src/common/mmresult.c
   src/common/parse.c
   src/common/gtest/cmdline_test.cxx
 )
@@ -214,6 +286,44 @@ target_link_libraries(
 gtest_discover_tests(test_cmdline)
 
 ################################################################################
+# test_cmd_do
+################################################################################
+
+add_executable(
+  test_cmd_do
+  src/commands/cmd_do.c
+  src/commands/gtest/cmd_do_test.cxx
+  src/common/cstring.c
+  src/common/fonttbl.c
+  src/common/memory.c
+  src/common/mmresult.c
+  src/common/parse.c
+  src/common/utility.c
+  src/common/gtest/test_helper.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/events_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
+  src/core/commandtbl.c
+  src/core/funtbl.c
+  src/core/MMBasic.c
+  src/core/tokentbl.c
+  src/core/vartbl.c
+)
+
+target_link_libraries(
+  test_cmd_do
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_cmd_do)
+
+################################################################################
 # test_cmd_run
 ################################################################################
 
@@ -222,11 +332,21 @@ add_executable(
   src/commands/cmd_run.c
   src/commands/gtest/cmd_run_test.cxx
   src/common/cstring.c
+  src/common/fonttbl.c
   src/common/memory.c
   src/common/mmresult.c
   src/common/parse.c
+  src/common/utility.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/events_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
+  src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
+  src/core/tokentbl.c
   src/core/vartbl.c
   src/functions/fun_mmcmdline.c
 )
@@ -240,6 +360,24 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_cmd_run)
+
+################################################################################
+# test_bitset
+################################################################################
+
+add_executable(
+  test_bitset
+  src/common/gtest/bitset_test.cxx
+)
+
+target_link_libraries(
+  test_bitset
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_bitset)
 
 ################################################################################
 # test_cstring
@@ -277,7 +415,165 @@ target_link_libraries(
   gmock_main
 )
 
-gtest_discover_tests(test_funtbl)
+################################################################################
+# test_fun_sprite
+################################################################################
+
+add_executable(
+  test_fun_sprite
+  src/functions/gtest/test_fun_sprite.cxx
+  src/common/codepage.c
+  src/common/cstring.c
+  src/common/events.c
+  src/common/file.c
+  src/common/fonttbl.c
+  src/common/memory.c
+  src/common/mmresult.c
+  src/common/parse.c
+  src/common/path.c
+  src/common/graphics.c
+  src/common/options.c
+  src/common/sprite.c
+  src/common/utility.c
+  src/common/gtest/test_helper.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
+  src/common/gtest/stubs/sdl2_stubs.c
+  src/core/commandtbl.c
+  src/core/funtbl.c
+  src/core/MMBasic.c
+  src/core/tokentbl.c
+  src/core/vartbl.c
+  src/functions/fun_sprite.c
+  src/third_party/spbmp.c
+  src/third_party/upng.c
+)
+
+target_include_directories(test_fun_sprite PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_fun_sprite
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_fun_sprite)
+
+################################################################################
+# test_gpio
+################################################################################
+
+add_executable(
+  test_gpio
+  src/common/cstring.c
+  src/common/gpio.c
+  src/common/mmresult.c
+  src/common/mmtime.c
+  src/common/gtest/gpio_test.cxx
+)
+
+target_include_directories(test_gpio PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_gpio
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_gpio NO_PRETTY_VALUES)
+
+################################################################################
+# test_gamepad
+################################################################################
+
+add_executable(
+  test_gamepad
+  src/common/cstring.c
+  src/common/events.c
+  src/common/gamepad.c
+  src/common/mmresult.c
+  src/common/gtest/gamepad_test.cxx
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
+  src/common/gtest/stubs/sdl2_stubs.c
+)
+
+target_include_directories(test_gamepad PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_gamepad
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_gamepad)
+
+################################################################################
+# test_graphics
+################################################################################
+
+add_executable(
+  test_graphics
+  src/common/codepage.c
+  src/common/cstring.c
+  src/common/events.c
+  src/common/file.c
+  src/common/fonttbl.c
+  src/common/graphics.c
+  src/common/memory.c
+  src/common/mmresult.c
+  src/common/options.c
+  src/common/path.c
+  src/common/gtest/graphics_test.cxx
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
+  src/common/gtest/stubs/sdl2_stubs.c
+  src/third_party/upng.c
+)
+
+target_include_directories(test_graphics PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_graphics
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_graphics)
+
+################################################################################
+# test_safe_buffer
+################################################################################
+
+add_executable(
+  test_safe_buffer
+  src/common/gtest/safe_buffer_test.cxx
+)
+
+target_link_libraries(
+  test_safe_buffer
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_safe_buffer)
 
 ################################################################################
 # test_hash
@@ -296,6 +592,30 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_hash)
+
+################################################################################
+# test_keyboard
+################################################################################
+
+add_executable(
+  test_keyboard
+  src/common/keyboard.c
+  src/common/gtest/keyboard_test.cxx
+  src/common/gtest/stubs/interrupt_stubs.c
+)
+
+target_include_directories(test_keyboard PUBLIC
+    /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_keyboard
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_keyboard)
 
 ################################################################################
 # test_options
@@ -330,9 +650,30 @@ gtest_discover_tests(test_options)
 add_executable(
   test_parse
   src/common/cstring.c
+  src/common/file.c
   src/common/memory.c
+  src/common/mmgetline.c
+  src/common/mmresult.c
+  src/common/mmtime.c
   src/common/parse.c
+  src/common/path.c
+  src/common/program.c
+  src/common/rx_buf.c
+  src/common/serial.c
+  src/common/utility.c
   src/common/gtest/parse_test.cxx
+  src/common/gtest/test_helper.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/events_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
+  src/core/commandtbl.c
+  src/core/funtbl.c
+  src/core/MMBasic.c
+  src/core/tokentbl.c
+  src/core/vartbl.c
 )
 
 target_link_libraries(
@@ -373,9 +714,30 @@ gtest_discover_tests(test_path)
 add_executable(
   test_program
   src/common/cstring.c
+  src/common/file.c
+  src/common/memory.c
+  src/common/mmgetline.c
+  src/common/mmresult.c
+  src/common/mmtime.c
   src/common/path.c
+  src/common/parse.c
   src/common/program.c
+  src/common/rx_buf.c
+  src/common/serial.c
+  src/common/utility.c
   src/common/gtest/program_test.cxx
+  src/common/gtest/test_helper.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/events_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
+  src/core/commandtbl.c
+  src/core/funtbl.c
+  src/core/MMBasic.c
+  src/core/tokentbl.c
+  src/core/vartbl.c
 )
 
 target_link_libraries(
@@ -410,6 +772,24 @@ target_link_libraries(
 gtest_discover_tests(test_prompt)
 
 ################################################################################
+# test_queue
+################################################################################
+
+add_executable(
+  test_queue
+  src/common/gtest/queue_test.cxx
+)
+
+target_link_libraries(
+  test_queue
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_queue)
+
+################################################################################
 # test_rx_buf
 ################################################################################
 
@@ -430,6 +810,62 @@ target_link_libraries(
 gtest_discover_tests(test_rx_buf)
 
 ################################################################################
+# test_sprite
+################################################################################
+
+add_executable(
+  test_sprite
+  src/common/codepage.c
+  src/common/cstring.c
+  src/common/events.c
+  src/common/file.c
+  src/common/fonttbl.c
+  src/common/graphics.c
+  src/common/memory.c
+  src/common/mmresult.c
+  src/common/options.c
+  src/common/path.c
+  src/common/sprite.c
+  src/common/gtest/sprite_test.cxx
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
+  src/common/gtest/stubs/sdl2_stubs.c
+  src/third_party/upng.c
+)
+
+target_include_directories(test_sprite PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_sprite
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_sprite)
+
+################################################################################
+# test_stack
+################################################################################
+
+add_executable(
+  test_stack
+  src/common/gtest/stack_test.cxx
+)
+
+target_link_libraries(
+  test_stack
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_stack)
+
+################################################################################
 # test_mmbasic_core
 ################################################################################
 
@@ -437,7 +873,7 @@ add_executable(
   test_mmbasic_core
   src/common/cstring.c
   src/common/file.c
-  src/common/interrupt.c
+  src/common/fonttbl.c
   src/common/memory.c
   src/common/mmresult.c
   src/common/mmtime.c
@@ -446,8 +882,18 @@ add_executable(
   src/common/program.c
   src/common/rx_buf.c
   src/common/serial.c
+  src/common/utility.c
+  src/common/gtest/test_helper.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/events_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
+  src/core/commandtbl.c
   src/core/funtbl.c
   src/core/MMBasic.c
+  src/core/tokentbl.c
   src/core/vartbl.c
   src/core/gtest/mmbasic_core_test.cxx
 )

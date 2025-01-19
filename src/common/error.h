@@ -48,8 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Configuration.h" // for STRINGSIZE
 #include "mmresult.h"
 
+#include <stdbool.h>
+
 typedef struct {
-   int code;
+   MmResult code;
    char file[STRINGSIZE];   // File that error was reported from.
    int line;                // Line that error was reported from.
    char message[MAXERRMSG];
@@ -57,6 +59,7 @@ typedef struct {
                             //   0 = abort
                             //  -1 = ignore
                             //  >0 = skip errors from this many statements
+   bool override_line;      // Set to override automatic determination of line/file.
 } ErrorState;
 
 extern ErrorState *mmb_error_state_ptr;
@@ -64,13 +67,27 @@ extern ErrorState mmb_normal_error_state;
 
 void error_get_line_and_file(int *line, char *file_path);
 void error_init(ErrorState *error_state);
-void error_throw(MmResult error);
-void error_throw_ex(MmResult error, const char *msg, ...);
-void error_throw_legacy(const char *msg, ...);
-uint8_t error_to_exit_code(MmResult error);
+MmResult error_throw(MmResult result);
+MmResult error_throw_ex(MmResult result, const char *msg, ...);
+MmResult error_throw_legacy(const char *msg, ...);
+uint8_t error_to_exit_code(MmResult result);
 
-#define ERROR_ALREADY_OPEN                error_throw_ex(kError, "File or device already open")
-#define ERROR_ARGUMENT_COUNT              error_throw_ex(kSyntax, "Argument count")
+#define ON_FAILURE_ERROR(x)  { \
+  const MmResult rezult = x; \
+  if (FAILED(rezult)) { error_throw(rezult); return; } \
+}
+
+#define ON_FAILURE_ERROR_EX(x, y)  { \
+  const MmResult rezult = x; \
+  if (FAILED(rezult)) { error_throw(rezult); return y; } \
+}
+
+#define ON_FAILURE_RETURN(x)  { \
+  const MmResult rezult = x; \
+  if (FAILED(rezult)) { return rezult; } \
+}
+
+#define ERROR_ARGUMENT_COUNT              error_throw(kArgumentCount)
 #define ERROR_ARRAY_NOT_SQUARE            error_throw_ex(kError, "Array must be square")
 #define ERROR_ARRAY_SIZE_MISMATCH         error_throw_ex(kError, "Array size mismatch")
 #define ERROR_ARG_NOT_ARRAY(i)            error_throw_ex(kError, "Argument % must be an array")
@@ -91,19 +108,17 @@ uint8_t error_to_exit_code(MmResult error);
 #define ERROR_INVALID_ADDRESS             ERROR_INVALID("address")
 #define ERROR_INVALID_ARGUMENT            ERROR_INVALID("argument")
 #define ERROR_INVALID_CHARACTER           ERROR_INVALID("character")
-#define ERROR_INVALID_FILE_NUMBER         ERROR_INVALID("file number")
 #define ERROR_INVALID_IN_PROGRAM          ERROR_INVALID("in a program")
+#define ERROR_INVALID_INTEGER_RANGE(i,j,k)  error_throw_ex(kError, "\% is invalid (valid is \% to \%)")
 #define ERROR_INVALID_OPTION_VALUE        ERROR_INVALID("value for option")
 #define ERROR_INVALID_VARIABLE            ERROR_INVALID("variable")
 #define ERROR_LINE_LENGTH                 error_throw_ex(kStringTooLong, "Line length")
-#define ERROR_LINE_TOO_LONG               error_throw_ex(kStringTooLong, "Line too long")
 #define ERROR_NOT_ALLOWED(s)              error_throw_ex(kError, "$ not allowed", s)
-#define ERROR_NOT_OPEN                    error_throw_ex(kError, "File or device not open")
 #define ERROR_NOT_SERIAL_PORT             error_throw_ex(kError, "Not a serial port")
 #define ERROR_NUMBER_OUT_OF_BOUNDS        error_throw_ex(kError, "Number out of bounds")
-#define ERROR_OUT_OF_MEMORY               error_throw_ex(kError, "Not enough memory")
+#define ERROR_OUT_OF_MEMORY               error_throw(kOutOfMemory);
 #define ERROR_OVERFLOW                    error_throw(kOverflow)
-#define ERROR_PATH_TOO_LONG               error_throw_ex(kFilenameTooLong, "Path too long")
+#define ERROR_PATH_TOO_LONG               error_throw(kFilenameTooLong);
 #define ERROR_SIZE_MISMATCH               error_throw_ex(kError, "Size mismatch")
 #define ERROR_STRING_LENGTH               error_throw(kStringLength)
 #define ERROR_STRING_TOO_LONG             error_throw(kStringTooLong)
@@ -114,7 +129,8 @@ uint8_t error_to_exit_code(MmResult error);
 #define ERROR_UNKNOWN_ARGUMENT            error_throw_ex(kError, "Unknown argument")
 #define ERROR_UNKNOWN_COMMAND             error_throw_ex(kSyntax, "Unknown command")
 #define ERROR_UNKNOWN_OPTION              error_throw(kUnknownOption)
-#define ERROR_UNKNOWN_SUBCOMMAND          error_throw_ex(kSyntax, "Unknown subcommand")
+#define ERROR_UNKNOWN_SUBCOMMAND(s)       error_throw_ex(kSyntax, "Unknown $ subcommand", s)
+#define ERROR_UNKNOWN_SUBFUNCTION(s)      error_throw_ex(kSyntax, "Unknown $ subfunction", s)
 #define ERROR_UNKNOWN_TERMINAL_SIZE       error_throw_ex(kError, "Cannot determine terminal size")
 #define ERROR_UNKNOWN_USER_ERROR          error_throw_ex(kError, "Unspecified error")
 #define ERROR_UNSUPPORTED_FLAG(s)         error_throw_ex(kError, "Unsupported flag: $", s)

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 options.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -59,7 +59,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OPTIONS_MAX_FN_KEY_LEN  64
 
 typedef enum {
-    kOptionBase = 0,
+    kOptionAngle = 0,
+    kOptionAudio,
+    kOptionAutoScale,
+    kOptionBase,
     kOptionBreakKey,
     kOptionListCase, // Alphabetically ordered as if it were kOptionCase.
     kOptionCodePage,
@@ -81,6 +84,7 @@ typedef enum {
     kOptionF12,
     kOptionResolution,
     kOptionSearchPath,
+    kOptionSimulate,
     kOptionTab,
 #if defined(OPTION_TESTS)
     kOptionZBoolean,
@@ -117,14 +121,27 @@ typedef struct {
     bool blocking;       // Does the editor command block.
 } OptionsEditor;
 
+typedef enum { kRadians, kDegrees } OptionsAngle;
+
 typedef enum { kBoth, kScreen, kSerial } OptionsConsole;
+
+typedef enum {
+    kSimulateMmb4l,
+    kSimulateMmb4w,
+    kSimulateCmm2,
+    kSimulatePicoMiteVga,
+    kSimulateGameMite
+} OptionsSimulate;
 
 typedef enum { kTitle, kLower, kUpper } OptionsListCase;
 
 typedef enum { kCharacter, kPixel } OptionsResolution;
 
 typedef struct {
+    OptionsAngle angle;
     int autorun;
+    bool audio;
+    bool auto_scale;
     int base;
     char break_key;
     const char *codepage; // Pointer to one of the arrays/maps declared in 'codepage.h'
@@ -137,6 +154,7 @@ typedef struct {
     OptionsListCase list_case;
     OptionsResolution resolution;
     char search_path[STRINGSIZE];
+    OptionsSimulate simulate;
     char tab;
     int  width;
 

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_option.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,8 +48,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "../common/mmb4l.h"
+#include "../common/audio.h"
 #include "../common/console.h"
 #include "../common/error.h"
+#include "../common/flash.h"
+#include "../common/graphics.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
 
@@ -87,11 +90,11 @@ void cmd_option_list(const char *p) {
 
 void cmd_option_load(const char *p) {
     getargs(&p, 1, ",");
-    if (argc != 1) ERROR_SYNTAX;
+    if (argc != 1) ON_FAILURE_ERROR(kArgumentCount);
 
-    const char *filename = getCstring(argv[0]);
-    MmResult result = options_load(&mmb_options, filename, NULL);
-    if FAILED(result) error_throw(result);
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_ERROR(parse_filename(argv[0], filename, STRINGSIZE));
+    ON_FAILURE_ERROR(options_load(&mmb_options, filename, NULL));
 }
 
 static MmResult cmd_option_reset_all(const char *p) {
@@ -149,11 +152,19 @@ void cmd_option_reset(const char *p) {
 
 void cmd_option_save(const char *p) {
     getargs(&p, 1, ",");
-    if (argc != 1) ERROR_SYNTAX;
+    if (argc != 1) ON_FAILURE_ERROR(kArgumentCount);
 
-    const char *filename = getCstring(argv[0]);
-    MmResult result = options_save(&mmb_options, filename);
-    if FAILED(result) error_throw(result);
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_ERROR(parse_filename(argv[0], filename, STRINGSIZE));
+    ON_FAILURE_ERROR(options_save(&mmb_options, filename));
+}
+
+static MmResult cmd_option_set_boolean(const char *p, const OptionsDefinition *def) {
+    getargs(&p, 1, ",");
+    bool value = true; // With no arguments sets option true.
+    if (argc > 1) return kSyntax;
+    if (argc) value = parse_bool(argv[0]);
+    return options_set_integer_value(&mmb_options, def->id, value ? 1 : 0);
 }
 
 static MmResult cmd_option_set_integer(const char *p, const OptionsDefinition *def) {
@@ -178,7 +189,7 @@ static MmResult cmd_option_set_string(const char *p, const OptionsDefinition *de
             break;
     }
 
-    if (argc != 1) ERROR_SYNTAX;
+    if (argc != 1) return kSyntax;
 
     // First try looking up unquoted token in the options enum map.
     const char *svalue = NULL;
@@ -210,6 +221,8 @@ static void cmd_option_set(const char *p) {
 
     switch (def->type) {
         case kOptionTypeBoolean:
+            result = cmd_option_set_boolean(p2, def);
+            break;
         case kOptionTypeFloat:
             result = kUnimplemented;
             break;
@@ -232,6 +245,33 @@ static void cmd_option_set(const char *p) {
             console_puts(mmresult_to_string(result));
             console_puts("\r\n");
         }
+    }
+
+    switch (def->id) {
+        case kOptionAudio:
+            ON_FAILURE_ERROR(audio_term());
+            break;
+
+        case kOptionSimulate:
+            switch (mmb_options.simulate) {
+                case kSimulateGameMite:
+                case kSimulatePicoMiteVga:
+                    ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
+                    ON_FAILURE_ERROR(flash_init());
+                    break;
+                case kSimulateCmm2:
+                case kSimulateMmb4l:
+                case kSimulateMmb4w:
+                    ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
+                    ON_FAILURE_ERROR(flash_term());
+                    break;
+                default:
+                    ON_FAILURE_ERROR(kInternalFault);
+            }
+            break;
+
+        default:
+            break;
     }
 }
 

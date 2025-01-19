@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_read.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
+#include "../core/commandtbl.h"
 
 #include <assert.h>
 #include <string.h>
@@ -104,7 +105,6 @@ void cmd_read_data(void) {
 
     // setup for a search through the whole memory
     vidx = 0;
-    int datatoken = GetCommandValue("Data");
     p = lineptr = NextDataLine;
     if (*p == 0xff) ERROR_NO_DATA;  // error if there is no program
 
@@ -120,11 +120,11 @@ search_again:
             p += p[1] + 2;                                          // skip over the label
             skipspace(p);                                           // and any following spaces
         }
-        if(*p == datatoken) break;                                  // found a DATA statement
+        if (commandtbl_decode(p) == cmdDATA) break;                 // found a DATA statement
         while(*p) p++;                                              // look for the zero marking the start of the next element
     }
     NextDataLine = lineptr;
-    p++;                                                            // step over the token
+    p += sizeof(CommandToken);                                      // step over the token
     skipspace(p);
     if(!*p || *p == '\'') { CurrentLinePtr = lineptr; ERROR_NO_DATA; }
 

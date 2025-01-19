@@ -27,6 +27,7 @@ add_test("test_unary_plus")
 add_test("test_error_correct_after_goto")
 add_test("test_error_correct_after_gosub")
 add_test("test_equals_as_string_terminator")
+add_test("test_if_then_if_then")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -278,3 +279,8 @@ Function expected_error_msg$(line%, msg$)
     expected_error_msg$ = "Error in line " + Str$(line%) + ": " + msg$
   EndIf
 End Function
+
+Sub test_if_then_if_then()
+  If 1 Then If 1 Then assert_true(1) : Exit Sub
+  assert_fail("IF THEN IF THEN failed")
+End Sub
