@@ -1,6 +1,9 @@
 ChangeLog
 ---------
 
+Version 0.8.0 - ??-???-2025:
+  - ...
+
 Version 0.7 alpha 1 - 19-Jan-2025:
   - Added support for hi-res graphics:
     - The GRAPHICS command is used to create and manipulate up to 256 hi-res
