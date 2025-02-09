@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_play.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -137,6 +137,7 @@ static MmResult cmd_play_modfile(const char *p) {
             break;
         case kSimulateGameMite:
         case kSimulatePicoMiteVga:
+        case kSimulatePicoMiteVgaUsb:
             if (has_arg(4)) return kUnsupportedParameterOnCurrentDevice;
             interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
             break;

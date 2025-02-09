@@ -100,7 +100,13 @@ static MmResult cmd_device_gamepad_close(const char *p) {
 static MmResult cmd_device_gamepad_interrupt_disable(const char *p) {
     getargs(&p, 1, ",");
     if (argc != 1) return kArgumentCount;
-    const MmGamepadId gamepad_id = getint(argv[0], 1, 4);
+    MmGamepadId gamepad_id = getint(argv[0], 1, 4);
+
+    if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+        gamepad_id -= 2;
+        ON_FAILURE_RETURN(gamepad_open(gamepad_id));
+    }
+
     return gamepad_interrupt_disable(gamepad_id);
 }
 
@@ -108,9 +114,15 @@ static MmResult cmd_device_gamepad_interrupt_disable(const char *p) {
 static MmResult cmd_device_gamepad_interrupt_enable(const char *p) {
     getargs(&p, 5, ",");
     if (!(argc & 1) || argc < 3) return kArgumentCount;
-    const MmGamepadId gamepad_id = getint(argv[0], 1, 4);
+    MmGamepadId gamepad_id = getint(argv[0], 1, 4);
     const char *interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
     const uint16_t bitmask = has_arg(4) ? getint(argv[4], 0, UINT16_MAX) : GAMEPAD_BITMASK_ALL;
+
+    if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+        gamepad_id -= 2;
+        ON_FAILURE_RETURN(gamepad_open(gamepad_id));
+    }
+
     return gamepad_interrupt_enable(gamepad_id, interrupt, bitmask);
 }
 
@@ -205,6 +217,59 @@ static MmResult cmd_device_gamepad(const char *p) {
     return result;
 }
 
+/** DEVICE GAMEPAD COLOUR id, colour */
+static MmResult cmd_device_gamepad_colour(const char *p) {
+    getargs(&p, 3, ",");
+    if (argc != 3) return kArgumentCount;
+    MmGamepadId gamepad_id = getint(argv[0], 1, 4);
+    const MMINTEGER colour = getint(argv[2], 0, 0xFFFFFF);
+
+    if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+        gamepad_id -= 2;
+        ON_FAILURE_RETURN(gamepad_open(gamepad_id));
+    }
+
+    ON_FAILURE_RETURN(gamepad_set_led(gamepad_id,
+                                      colour >> 16, (colour >> 8) & 0xFF, colour & 0xFF));
+    return kOk;
+}
+
+/** DEVICE GAMEPAD HAPTIC id, left, right */
+static MmResult cmd_device_gamepad_haptic(const char *p) {
+    getargs(&p, 5, ",");
+    if (argc != 5) return kArgumentCount;
+    MmGamepadId gamepad_id = getint(argv[0], 1, 4);
+    const MMINTEGER left = getint(argv[2], 0, 255) << 8;
+    const MMINTEGER right = getint(argv[4], 0, 255) << 8;
+
+    if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+        gamepad_id -= 2;
+        ON_FAILURE_RETURN(gamepad_open(gamepad_id));
+    }
+
+    // ON_FAILURE_RETURN(gamepad_rumble_triggers(gamepad_id, left, right, DEFAULT_RUMBLE_DURATION));
+    ON_FAILURE_RETURN(gamepad_rumble(gamepad_id, left, right, DEFAULT_RUMBLE_DURATION));
+    return kOk;
+}
+
+MmResult cmd_device_gamepad_pmvga_usb(const char *p) {
+    MmResult result = kOk;
+    const char *p2;
+    if ((p2 = checkstring(p, "COLOUR"))) {
+        result = cmd_device_gamepad_colour(p2);
+    } else if ((p2 = checkstring(p, "INTERRUPT ENABLE"))) {
+        result = cmd_device_gamepad_interrupt_enable(p2);
+    } else if ((p2 = checkstring(p, "INTERRUPT DISABLE"))) {
+        result = cmd_device_gamepad_interrupt_disable(p2);
+    } else if ((p2 = checkstring(p, "HAPTIC"))) {
+        result = cmd_device_gamepad_haptic(p2);
+    } else {
+        ERROR_UNKNOWN_SUBCOMMAND("DEVICE GAMEPAD");
+        result = kUnimplemented;
+    }
+    return result;
+}
+
 static MmResult cmd_device_mouse(const char *p) {
     ERROR_UNIMPLEMENTED("DEVICE MOUSE");
     return kUnimplemented;
@@ -216,7 +281,11 @@ void cmd_device(void) {
     if ((p = checkstring(cmdline, "CLASSIC"))) {
         result = cmd_device_classic(p);
     } else if ((p = checkstring(cmdline, "GAMEPAD"))) {
-        result = cmd_device_gamepad(p);
+        if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+            result = cmd_device_gamepad_pmvga_usb(p);
+        } else {
+            result = cmd_device_gamepad(p);
+        }
     } else if ((p = checkstring(cmdline, "MOUSE"))) {
         result = cmd_device_mouse(p);
     } else if ((p = checkstring(cmdline, "NUNCHUK"))) {

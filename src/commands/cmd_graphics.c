@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_graphics.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -70,9 +70,10 @@ static MmResult cmd_graphics_cls(const char *p) {
     if (argc % 2 != 1) return kArgumentCount;
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     MmSurface *surface = &graphics_surfaces[id];
-    const MmSurface *layer = (mmb_options.simulate == kSimulatePicoMiteVga)
-            ?  &graphics_surfaces[GRAPHICS_SURFACE_L]
-            : NULL;
+    const MmSurface *layer = (mmb_options.simulate == kSimulatePicoMiteVga
+            || mmb_options.simulate == kSimulatePicoMiteVgaUsb)
+                    ?  &graphics_surfaces[GRAPHICS_SURFACE_L]
+                    : NULL;
     MmGraphicsColour colour = has_arg(2)
             ? getint(argv[2], RGB_BLACK, RGB_WHITE)
             : (surface == layer) ? layer->transparent : graphics_bcolour;

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 error.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -126,7 +126,6 @@ uint8_t error_to_exit_code(MmResult result);
 #define ERROR_SYSTEM_COMMAND_FAILED       error_throw_ex(kError, "System command failed")
 #define ERROR_TOO_MANY_OPEN_FILES         error_throw_ex(kError, "Too many open files")
 #define ERROR_UNIMPLEMENTED(s)            error_throw_ex(kUnimplemented, "Unimplemented: $", s)
-#define ERROR_UNKNOWN_ARGUMENT            error_throw_ex(kError, "Unknown argument")
 #define ERROR_UNKNOWN_COMMAND             error_throw_ex(kSyntax, "Unknown command")
 #define ERROR_UNKNOWN_OPTION              error_throw(kUnknownOption)
 #define ERROR_UNKNOWN_SUBCOMMAND(s)       error_throw_ex(kSyntax, "Unknown $ subcommand", s)

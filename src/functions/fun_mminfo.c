@@ -88,8 +88,10 @@ static void mminfo_cmdline(const char *p) {
 
 static void mminfo_cpuspeed(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    if (mmb_options.simulate != kSimulatePicoMiteVga && mmb_options.simulate != kSimulateGameMite) {
-        ON_FAILURE_ERROR(kUnsupportedParameterOnCurrentDevice);
+    if (mmb_options.simulate != kSimulateGameMite
+            && mmb_options.simulate != kSimulatePicoMiteVga
+            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
     g_rtn_type = T_STR;
     strcpy(g_string_rtn, "378000000");
@@ -143,8 +145,10 @@ static void mminfo_device(const char *p) {
 
 static void mminfo_drive(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    if (mmb_options.simulate != kSimulatePicoMiteVga && mmb_options.simulate != kSimulateGameMite) {
-        ON_FAILURE_ERROR(kUnsupportedParameterOnCurrentDevice);
+    if (mmb_options.simulate != kSimulateGameMite
+            && mmb_options.simulate != kSimulatePicoMiteVga
+            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
     g_rtn_type = T_STR;
     strcpy(g_string_rtn, "A:");
@@ -272,7 +276,9 @@ static void mminfo_filesize(const char *p) {
 }
 
 static void mminfo_flash_address(const char *p) {
-    if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
+    if (mmb_options.simulate != kSimulateGameMite
+            && mmb_options.simulate != kSimulatePicoMiteVga
+            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
         ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
     getargs(&p, 1, ",");
@@ -408,10 +414,10 @@ static void mminfo_pid(const char *p) {
 }
 
 static void mminfo_pin_no(const char *p) {
-    if (mmb_options.simulate != kSimulatePicoMiteVga
-            && mmb_options.simulate != kSimulateGameMite) {
-        error_throw(kUnsupportedOnCurrentDevice);
-        return;
+    if (mmb_options.simulate != kSimulateGameMite
+            && mmb_options.simulate != kSimulatePicoMiteVga
+            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
     getargs(&p, 1, ",");
@@ -463,6 +469,9 @@ static void mminfo_platform(const char *p) {
 
 static void mminfo_ps2(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
+    if (mmb_options.simulate == kSimulateCmm2 || mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+    }
     g_rtn_type = T_INT;
     g_integer_rtn = keyboard_get_last_ps2_scancode();
 }
@@ -472,6 +481,85 @@ static void mminfo_sdcard(const char *p) {
     g_rtn_type = T_STR;
     strcpy(g_string_rtn, "READY");
     CtoM(g_string_rtn);
+}
+
+static void mminfo_usb(const char *p) {
+    if (mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+    }
+
+    getargs(&p, 1, ",");
+    if (argc != 1) ERROR_ARGUMENT_COUNT;
+    const MMINTEGER channel = getint(argv[0], 1, 4);
+
+    g_rtn_type = T_INT;
+    g_integer_rtn = 0;
+    switch (channel) {
+        case 1:
+            g_integer_rtn = 1; // Keyboard
+            break;
+        case 2:
+            g_integer_rtn = 2; // Mouse
+            break;
+        case 3:
+        case 4: {
+            char *tmp = GetTempMemory(512);
+            const MmResult result = gamepad_info(channel - 2, tmp);
+            if (SUCCEEDED(result)) {
+                if (strstr(tmp, "rightstick") != NULL && strstr(tmp, "leftstick") != NULL) {
+                    g_integer_rtn = 129; // Simulate a PS3 Controller
+                } else {
+                    g_integer_rtn = 130; // Simulate a NEXT SNES Controller
+                }
+            }
+            ClearSpecificTempMemory(tmp);
+            break;
+        }
+        default:
+            ON_FAILURE_ERROR(kInternalFault);
+    }
+}
+
+static void mminfo_usb_pid(const char *p) {
+    mminfo_usb(p);
+    switch (g_integer_rtn) {
+        case 1:
+            g_integer_rtn = 0x0001;
+            break;
+        case 2:
+            g_integer_rtn = 0x0002;
+            break;
+        case 129:
+            g_integer_rtn = 0x0268; // Simulate a PS3 Controller
+            break;
+        case 130:
+            g_integer_rtn = 0xE501; // Simulate a NEXT SNES Controller
+            break;
+        default:
+            g_integer_rtn = 0;
+            break;
+    }
+}
+
+static void mminfo_usb_vid(const char *p) {
+    mminfo_usb(p);
+    switch (g_integer_rtn) {
+        case 1:
+            g_integer_rtn = 0xABCD;
+            break;
+        case 2:
+            g_integer_rtn = 0xABCD;
+            break;
+        case 129:
+            g_integer_rtn = 0x054C; // Simulate a PS3 Controller
+            break;
+        case 130:
+            g_integer_rtn = 0x0810; // Simulate a NEXT SNES Controller
+            break;
+        default:
+            g_integer_rtn = 0;
+            break;
+    }
 }
 
 static void mminfo_version(const char *p) {
@@ -587,6 +675,12 @@ void fun_mminfo(void) {
         mminfo_ps2(p);
     } else if ((p = checkstring(ep, "SDCARD"))) {
         mminfo_sdcard(p);
+    } else if ((p = checkstring(ep, "USB PID"))) {
+        mminfo_usb_pid(p);
+    } else if ((p = checkstring(ep, "USB VID"))) {
+        mminfo_usb_vid(p);
+    } else if ((p = checkstring(ep, "USB"))) {
+        mminfo_usb(p);
     } else if ((p = checkstring(ep, "VERSION"))) {
         mminfo_version(p);
     } else if ((p = checkstring(ep, "VRES"))) {
@@ -596,6 +690,6 @@ void fun_mminfo(void) {
     } else if ((p = checkstring(ep, "WRITEBUFF"))) {
         mminfo_writebuff(p);
     } else {
-        ERROR_UNKNOWN_ARGUMENT;
+        ERROR_UNKNOWN_SUBFUNCTION("MM.INFO");
     }
 }
