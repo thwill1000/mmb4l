@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_gamepad.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,9 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/utility.h"
 
-MmResult fun_device_gamepad(const char *p, bool mmb4w_compatibility);
+MmResult fun_device_gamepad(const char *p);
 
 void fun_gamepad(void) {
     if (mmb_options.simulate != kSimulateMmb4w) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    ON_FAILURE_ERROR(fun_device_gamepad(ep, true));
+    ON_FAILURE_ERROR(fun_device_gamepad(ep));
 }

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_device.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/utility.h"
 
 /** Adjusts range of signed 16-bit value (-32768 .. 32767) to an unsigned 8-bit value. */
-static int transform_analog_for_mmb4w(int in) {
+static int transform_analog_int16_to_uint8(int in) {
     int out = 128;
     if (in < INT16_MIN) {
         out = 0;
@@ -62,7 +62,7 @@ static int transform_analog_for_mmb4w(int in) {
 }
 
 /** DEVICE(GAMEPAD id%, funct) */
-MmResult fun_device_gamepad(const char *p, bool mmb4w_compatibility) {
+MmResult fun_device_gamepad(const char *p) {
     getargs(&p, 3, ",");
     if (argc != 1 && argc != 3) ERROR_ARGUMENT_COUNT;
     MmGamepadId gamepad_id = (argc == 3) ? getint(argv[0], 1, 4) : 1;
@@ -88,7 +88,9 @@ MmResult fun_device_gamepad(const char *p, bool mmb4w_compatibility) {
     } else {
         result = kGamepadUnknownFunction;
     }
-    if (SUCCEEDED(result) && mmb4w_compatibility) iret = transform_analog_for_mmb4w(iret);
+    if (SUCCEEDED(result) && (mmb_options.simulate == kSimulateMmb4w)) {
+        iret = transform_analog_int16_to_uint8(iret);
+    }
     return result;
 }
 
@@ -96,7 +98,7 @@ void fun_device(void) {
     MmResult result = kOk;
     const char *p;
     if ((p = checkstring(ep, "GAMEPAD"))) {
-        result = fun_device_gamepad(p, false);
+        result = fun_device_gamepad(p);
     } else {
         ERROR_UNKNOWN_SUBFUNCTION("DEVICE");
     }
