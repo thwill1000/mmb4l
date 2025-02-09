@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 gamepad.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMBASIC_GAMEPAD_H)
 #define MMBASIC_GAMEPAD_H
 
+#include <stdbool.h>
+
 #include "mmresult.h"
 
 /** Bitmask to pass to gamepad_open() to interrupt on all digital button presses. */
@@ -74,9 +76,12 @@ MmResult gamepad_init();
 MmResult gamepad_term();
 const char *gamepad_last_error();
 MmResult gamepad_info(MmGamepadId id, char *buf);
-MmResult gamepad_open(MmGamepadId id, const char *interrupt, uint16_t bitmask);
+MmResult gamepad_is_open(MmGamepadId id, bool *is_open);
+MmResult gamepad_open(MmGamepadId id);
 MmResult gamepad_close(MmGamepadId id);
 MmResult gamepad_close_all();
+MmResult gamepad_interrupt_disable(MmGamepadId id);
+MmResult gamepad_interrupt_enable(MmGamepadId id, const char *interrupt, uint16_t bitmask);
 MmResult gamepad_on_analog(int32_t sdlId, uint8_t sdlAxis, int16_t value);
 MmResult gamepad_on_button_down(int32_t sdlId, uint8_t sdlButton);
 MmResult gamepad_on_button_up(int32_t sdlId, uint8_t sdlButton);
@@ -87,7 +92,11 @@ MmResult gamepad_read_right_x(MmGamepadId id, int64_t *out);
 MmResult gamepad_read_right_y(MmGamepadId id, int64_t *out);
 MmResult gamepad_read_left_analog_button(MmGamepadId id, int64_t *out);
 MmResult gamepad_read_right_analog_button(MmGamepadId id, int64_t *out);
-MmResult gamepad_vibrate(MmGamepadId id, uint16_t low_freq, uint16_t high_freq, uint32_t duration_ms);
+MmResult gamepad_rumble(MmGamepadId id, uint16_t low_freq, uint16_t high_freq,
+                        uint32_t duration_ms);
+MmResult gamepad_rumble_triggers(MmGamepadId id, uint16_t left, uint16_t right,
+                                 uint32_t duration_ms);
+MmResult gamepad_set_led(MmGamepadId id, uint8_t red, uint8_t green, uint8_t blue);
 
 /**
  * Transforms CMM2 Wii Classic Controller i2c channel to a corresponding MmGamepadId.

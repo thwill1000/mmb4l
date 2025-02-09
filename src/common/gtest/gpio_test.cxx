@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2024 Thomas Hugo Williams
+ * Copyright (c) 2024-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -25,7 +25,7 @@ const char *events_last_error() { return NULL; }
 
 // Defined in "gamepad.c"
 const char *gamepad_last_error() { return NULL; }
-MmResult gamepad_open(MmGamepadId id, const char *interrupt, uint16_t bitmask) {
+MmResult gamepad_open(MmGamepadId id) {
     gamepad_open_state[id] = true;
     return kOk;
 }

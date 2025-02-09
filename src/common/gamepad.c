@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 gamepad.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -51,6 +51,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Configuration.h"
 
 #define MAX_GAMEPADS  4
+
+#define CHECK_GAMEPAD_OPEN(id) \
+    if (id < 1 || id > MAX_GAMEPADS) return kGamepadInvalidId; \
+    GamepadDevice *gamepad = &gamepad_devices[id]; \
+    if (!gamepad->controller) return kGamepadNotOpen;
 
 static const char* NO_ERROR = "";
 
@@ -125,13 +130,34 @@ MmResult gamepad_info(MmGamepadId id, char *buf) {
     return kOk;
 }
 
+MmResult gamepad_interrupt_disable(MmGamepadId id) {
+    CHECK_GAMEPAD_OPEN(id);
+    gamepad->interrupt_bitmask = 0x0;
+    interrupt_disable(kInterruptGamepad1 + id - 1);
+    return kOk;
+}
+
+MmResult gamepad_interrupt_enable(MmGamepadId id, const char *interrupt, uint16_t bitmask) {
+    CHECK_GAMEPAD_OPEN(id);
+    gamepad->interrupt_bitmask = bitmask;
+    interrupt_enable(kInterruptGamepad1 + id - 1, interrupt);
+    return kOk;
+}
+
+MmResult gamepad_is_open(MmGamepadId id, bool *is_open) {
+    if (!gamepad_initialised) gamepad_init();
+    if (id < 1 || id > 4) return kGamepadInvalidId;
+    *is_open = gamepad_devices[id].joystick != NULL;
+    return kOk;
+}
+
 static inline MmResult gamepad_on_button_down_internal(GamepadDevice *gamepad,
                                                        SDL_GameControllerButton sdlButton);
 
 static inline MmResult gamepad_on_analog_internal(GamepadDevice *gamepad,
                                                   SDL_GameControllerAxis sdlAxis, int16_t value);
 
-MmResult gamepad_open(MmGamepadId id, const char *interrupt, uint16_t bitmask) {
+MmResult gamepad_open(MmGamepadId id) {
     if (!gamepad_initialised) gamepad_init();
     if (id < 1 || id > 4) return kGamepadInvalidId;
     GamepadDevice *gamepad = &gamepad_devices[id];
@@ -164,15 +190,6 @@ MmResult gamepad_open(MmGamepadId id, const char *interrupt, uint16_t bitmask) {
         result = gamepad_on_analog_internal(gamepad, sdlAxis,
                                             SDL_GameControllerGetAxis(gamepad->controller,
                                                                       sdlAxis));
-    }
-
-    // Enabling interrupts occurs after the initial reads so they do not fire
-    // interrupts.
-    if (SUCCEEDED(result)) {
-        gamepad->interrupt_bitmask = bitmask ? bitmask : GAMEPAD_BITMASK_ALL;
-        if (interrupt) {
-            interrupt_enable(kInterruptGamepad1 + id - 1, interrupt);
-        }
     }
 
     return result;
@@ -312,50 +329,45 @@ MmResult gamepad_on_button_up(int32_t sdlId, uint8_t sdlButton) {
     return kInternalFault;
 }
 
-#define CHECK_GAMEPAD(id) \
-    if (id < 1 || id > 4) return kGamepadInvalidId; \
-    GamepadDevice *gamepad = &gamepad_devices[id]; \
-    if (!gamepad->controller) return kGamepadNotOpen;
-
 MmResult gamepad_read_buttons(MmGamepadId id, int64_t *out) {
-    CHECK_GAMEPAD(id);
+    CHECK_GAMEPAD_OPEN(id);
     *out = gamepad->buttons;
     // printf("0x%lx\n", *out);
     return kOk;
 }
 
 MmResult gamepad_read_left_x(MmGamepadId id, int64_t *out) {
-    CHECK_GAMEPAD(id);
+    CHECK_GAMEPAD_OPEN(id);
     *out = gamepad->left_analog_x;
     return kOk;
 }
 
 MmResult gamepad_read_left_y(MmGamepadId id, int64_t *out) {
-    CHECK_GAMEPAD(id);
+    CHECK_GAMEPAD_OPEN(id);
     *out = gamepad->left_analog_y;
     return kOk;
 }
 
 MmResult gamepad_read_right_x(MmGamepadId id, int64_t *out) {
-    CHECK_GAMEPAD(id);
+    CHECK_GAMEPAD_OPEN(id);
     *out = gamepad->right_analog_x;
     return kOk;
 }
 
 MmResult gamepad_read_right_y(MmGamepadId id, int64_t *out) {
-    CHECK_GAMEPAD(id);
+    CHECK_GAMEPAD_OPEN(id);
     *out = gamepad->right_analog_y;
     return kOk;
 }
 
 MmResult gamepad_read_left_analog_button(MmGamepadId id, int64_t *out) {
-    CHECK_GAMEPAD(id);
+    CHECK_GAMEPAD_OPEN(id);
     *out = gamepad->left_analog_button;
     return kOk;
 }
 
 MmResult gamepad_read_right_analog_button(MmGamepadId id, int64_t *out) {
-    CHECK_GAMEPAD(id);
+    CHECK_GAMEPAD_OPEN(id);
     *out = gamepad->right_analog_button;
     return kOk;
 }
@@ -373,14 +385,39 @@ MmGamepadId gamepad_transform_wii_i2c(int32_t i2c) {
     }
 }
 
-MmResult gamepad_vibrate(MmGamepadId id, uint16_t low_freq, uint16_t high_freq, uint32_t duration_ms) {
-    CHECK_GAMEPAD(id);
+MmResult gamepad_rumble(MmGamepadId id, uint16_t low_freq, uint16_t high_freq,
+                        uint32_t duration_ms) {
+    CHECK_GAMEPAD_OPEN(id);
 #if SDL_VERSION_ATLEAST(2,0,18)
     if (SDL_GameControllerHasRumble(gamepad->controller)) {
-        if (FAILED(SDL_GameControllerRumble(gamepad->controller, low_freq, high_freq, duration_ms))) {
+        if (FAILED(SDL_GameControllerRumble(gamepad->controller, low_freq, high_freq,
+                                            duration_ms))) {
             return kGamepadApiError;
         }
     }
+#endif
+    return kOk;
+}
+
+MmResult gamepad_rumble_triggers(MmGamepadId id, uint16_t left, uint16_t right,
+                                 uint32_t duration_ms) {
+    CHECK_GAMEPAD_OPEN(id);
+#if SDL_VERSION_ATLEAST(2,0,14)
+    if (SDL_GameControllerHasRumbleTriggers(gamepad->controller)) {
+        if (FAILED(SDL_GameControllerRumbleTriggers(gamepad->controller, left, right,
+                                                    duration_ms))) {
+            return kGamepadApiError;
+        }
+    }
+#endif
+    return kOk;
+}
+
+MmResult gamepad_set_led(MmGamepadId id, uint8_t red, uint8_t green, uint8_t blue) {
+    CHECK_GAMEPAD_OPEN(id);
+#if SDL_VERSION_ATLEAST(2,0,14)
+    // Does nothing if not supported.
+    (void) SDL_GameControllerSetLED(gamepad->controller, red, green, blue);
 #endif
     return kOk;
 }
