@@ -70,7 +70,8 @@ static MmResult cmd_mode_cmm2(void) {
     if ((argc % 2 == 0) || argc < 1) return kArgumentCount;
 
     const unsigned mode = getint(argv[0], MIN_CMM2_MODE, MAX_CMM2_MODE);
-    const unsigned colour_depth = (argc >= 3) ? getint(argv[2], 0, 32) : 32;
+    unsigned colour_depth = (argc >= 3) ? getint(argv[2], 0, 32) : 32;
+    if (colour_depth == 8 || colour_depth == 16) colour_depth = 32;
     const MmGraphicsColour background = (argc >= 5)
             ? getint(argv[4], RGB_BLACK, RGB_WHITE)
             : RGB_BLACK;
