@@ -189,6 +189,7 @@ MmResult gamepad_close(MmGamepadId id) {
         SDL_JoystickClose(gamepad->joystick);
         memset(gamepad, 0x0, sizeof(GamepadDevice));
         gamepad->sdlId = -1;
+        gamepad->id = id;
     }
 
     interrupt_disable(kInterruptGamepad1 + id - 1);
