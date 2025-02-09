@@ -130,6 +130,7 @@ typedef enum {
     kSimulateMmb4w,
     kSimulateCmm2,
     kSimulatePicoMiteVga,
+    kSimulatePicoMiteVgaUsb,
     kSimulateGameMite
 } OptionsSimulate;
 

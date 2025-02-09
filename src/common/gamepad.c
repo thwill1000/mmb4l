@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "cstring.h"
+#include "error.h"
 #include "events.h"
 #include "gamepad.h"
 #include "gamepad_private.h"
@@ -144,13 +145,6 @@ MmResult gamepad_interrupt_enable(MmGamepadId id, const char *interrupt, uint16_
     return kOk;
 }
 
-MmResult gamepad_is_open(MmGamepadId id, bool *is_open) {
-    if (!gamepad_initialised) gamepad_init();
-    if (id < 1 || id > 4) return kGamepadInvalidId;
-    *is_open = gamepad_devices[id].joystick != NULL;
-    return kOk;
-}
-
 static inline MmResult gamepad_on_button_down_internal(GamepadDevice *gamepad,
                                                        SDL_GameControllerButton sdlButton);
 
@@ -161,7 +155,7 @@ MmResult gamepad_open(MmGamepadId id) {
     if (!gamepad_initialised) gamepad_init();
     if (id < 1 || id > 4) return kGamepadInvalidId;
     GamepadDevice *gamepad = &gamepad_devices[id];
-    if (gamepad->controller) return kOk;
+    if (gamepad->controller) return kOk; // Safe to open an already open controller.
 
     gamepad->joystick = SDL_JoystickOpen(id - 1);
     if (!gamepad->joystick) return kGamepadApiError;

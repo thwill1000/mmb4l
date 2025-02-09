@@ -641,6 +641,7 @@ MmResult parse_page(const char *p, MmSurfaceId *page_id) {
     switch (mmb_options.simulate) {
         case kSimulateGameMite:
         case kSimulatePicoMiteVga:
+        case kSimulatePicoMiteVgaUsb:
             result = parse_picomite_page(p, page_id);
             break;
         default:

@@ -105,7 +105,9 @@ MmResult cmd_blit_compressed(const char *p) {
 
 /** BLIT FRAMEBUFFER from, to, x1, y1, x2, y2, w, h [, transparent] */
 MmResult cmd_blit_framebuffer(const char *p) {
-    if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
+    if (mmb_options.simulate != kSimulateGameMite
+            && mmb_options.simulate != kSimulatePicoMiteVga
+            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
         return kUnsupportedOnCurrentDevice;
     }
 
@@ -168,8 +170,10 @@ MmResult cmd_blit_read(const char *p, bool sprite) {
     getargs(&p, 11, ",");
     if (argc != 9 && argc != 11) return kArgumentCount;
 
-    if (has_arg(10) && (mmb_options.simulate == kSimulateGameMite
-            || mmb_options.simulate == kSimulatePicoMiteVga)) {
+    if (has_arg(10) && (
+               mmb_options.simulate == kSimulateGameMite
+            || mmb_options.simulate == kSimulatePicoMiteVga
+            || mmb_options.simulate == kSimulatePicoMiteVgaUsb)) {
         return kUnsupportedParameterOnCurrentDevice;
     }
 
@@ -288,7 +292,9 @@ static MmResult cmd_blit_default(const char *p) {
     const int height = getinteger(argv[10]);
     MmSurface *src_surface = graphics_current;
     if (argc >= 13) {
-        if (mmb_options.simulate == kSimulateGameMite || mmb_options.simulate == kSimulatePicoMiteVga) {
+        if (mmb_options.simulate == kSimulateGameMite
+                || mmb_options.simulate == kSimulatePicoMiteVga
+                || mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
             return kUnsupportedParameterOnCurrentDevice;
         }
         MmSurfaceId src_id = -1;
