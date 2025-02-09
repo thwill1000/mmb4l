@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 gpio.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -155,7 +155,7 @@ static MmResult gpio_configure_pin_gamemite(uint8_t pin_num, GpioPinConfig confi
     switch (pin_num) {
         case GPIO_GP8:
             if (config == kGpioPinDIn && gpio_pins[pin_num].config == kGpioPinOff) {
-                result = gamepad_open(1, NULL, 0);
+                result = gamepad_open(1);
             } else if (config == kGpioPinOff && gpio_pins[pin_num].config == kGpioPinDIn) {
                 result = gamepad_close(1);
             }
@@ -179,7 +179,7 @@ static MmResult gpio_configure_snes_latch(MmGamepadId id, uint8_t pin_num, GpioP
     MmResult result = kOk;
     if (config == kGpioPinDOut) {
         // Configuring to DOut always opens gamepad irrespective of current config.
-        result = gamepad_open(id, NULL, 0);
+        result = gamepad_open(id);
     } else if (config == kGpioPinOff) {
         // Configuring to DOff always closes gamepad irrespective of current config.
         result = gamepad_close(id);

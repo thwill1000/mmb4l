@@ -60,24 +60,27 @@ Sub update_gamepad(id%)
   Print @(40, y% + 4) ly$
   Print @(26, y% + 5) rx$
   Print @(40, y% + 5) ry$
-  Print @(0, y% + 6) Choice(gamepad_interrupt%(id%), "*INTERRUPT*", "           ")
+  Print @(0, y% + 6) Choice(gamepad_interrupt%(id%) > 0, "*INTERRUPT*", "           ")
+  If gamepad_interrupt%(id%) > 0 Then Inc gamepad_interrupt%(id%), -1
 
   Local cmd$
   Select Case btn%
     Case &h100 ' Left
-      Device Gamepad Close id%
-      cmd$ = "Device Gamepad Open id%, on_gamepad" + Str$(id%)
+      'Device Gamepad Close id%
+      'cmd$ = "Device Gamepad Open id%, on_gamepad" + Str$(id%)
+      cmd$ = "Device Gamepad Interrupt Enable id%, on_gamepad" + Str$(id%)
       On Error Skip
       Execute cmd$
     Case &h400 ' X
-      Device Gamepad Close id%
-      cmd$ = "Device Gamepad Open id%, on_gamepad" + Str$(id%) + ", &b000000011110000"
+      'Device Gamepad Close id%
+      'cmd$ = "Device Gamepad Open id%, on_gamepad" + Str$(id%) + ", &b0000000111100000"
+      cmd$ = "Device Gamepad Interrupt Enable id%, on_gamepad" + Str$(id%) + ", &b0000000111100000"
       On Error Skip
       Execute cmd$
     Case &h800 ' A
-      Device Gamepad Vibrate id%, &hFFFF, &hFFFF, 10000
+      Device Gamepad Rumble id%, &hFFFF, &hFFFF, 10000
     Case &h2000 ' B
-      Device Gamepad Vibrate id%, Off
+      Device Gamepad Rumble id%, Off
   End Select
 End Sub
 
@@ -113,7 +116,7 @@ Function buttons_as_string$(btn%)
 End Function
 
 Sub on_gamepad(id%)
-  gamepad_interrupt%(id%) = Not gamepad_interrupt%(id%)
+  gamepad_interrupt%(id%) = 20
 End Sub
 
 Sub on_gamepad1()
