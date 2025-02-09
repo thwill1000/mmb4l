@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/utility.h"
 
+#define DEFAULT_RUMBLE_DURATION  10000
+
 /** CONTROLLER CLASSIC CLOSE [i2c] */
 static MmResult cmd_device_classic_close(const char *p) {
     getargs(&p, 1, ",");
@@ -65,7 +67,9 @@ static MmResult cmd_device_classic_open(const char *p) {
     if (gamepad_id == -1) return kInternalFault;
     const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
     uint16_t bitmask = (argc > 3) ? getint(argv[4], 0, UINT16_MAX) : GAMEPAD_BITMASK_ALL;
-    return gamepad_open(gamepad_id, interrupt, bitmask);
+    ON_FAILURE_RETURN(gamepad_open(gamepad_id));
+    if (interrupt) ON_FAILURE_RETURN(gamepad_interrupt_enable(gamepad_id, interrupt, bitmask));
+    return kOk;
 }
 
 /**
@@ -92,34 +96,89 @@ static MmResult cmd_device_gamepad_close(const char *p) {
     return gamepad_close(gamepad_id);
 }
 
+/** DEVICE GAMEPAD INTERRUPT DISABLE id */
+static MmResult cmd_device_gamepad_interrupt_disable(const char *p) {
+    getargs(&p, 1, ",");
+    if (argc != 1) return kArgumentCount;
+    const MmGamepadId gamepad_id = getint(argv[0], 1, 4);
+    return gamepad_interrupt_disable(gamepad_id);
+}
+
+/** DEVICE GAMEPAD INTERRUPT ENABLE id, interrupt [, bitmask] */
+static MmResult cmd_device_gamepad_interrupt_enable(const char *p) {
+    getargs(&p, 5, ",");
+    if (!(argc & 1) || argc < 3) return kArgumentCount;
+    const MmGamepadId gamepad_id = getint(argv[0], 1, 4);
+    const char *interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
+    const uint16_t bitmask = has_arg(4) ? getint(argv[4], 0, UINT16_MAX) : GAMEPAD_BITMASK_ALL;
+    return gamepad_interrupt_enable(gamepad_id, interrupt, bitmask);
+}
+
+/** DEVICE GAMEPAD LED id, red, green, blue */
+static MmResult cmd_device_gamepad_led(const char *p) {
+    getargs(&p, 7, ",");
+    if (argc != 7) return kArgumentCount;
+    const MmGamepadId gamepad_id = getint(argv[0], 1, 4);
+    const uint8_t red = getint(argv[2], 0, 0xFF);
+    const uint8_t green = getint(argv[4], 0, 0xFF);
+    const uint8_t blue = getint(argv[6], 0, 0xFF);
+    return gamepad_set_led(gamepad_id, red, green, blue);
+}
+
 /** DEVICE GAMEPAD OPEN id [, interrupt] [, bitmask] */
 static MmResult cmd_device_gamepad_open(const char *p) {
     getargs(&p, 5, ",");
-    if (!(argc & 1) || argc > 5) return kArgumentCount;
+    if (!(argc & 1)) return kArgumentCount;
     MmGamepadId gamepad_id = getint(argv[0], 1, 4);
     const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
     uint16_t bitmask = (argc > 3) ? getint(argv[4], 0, UINT16_MAX) : GAMEPAD_BITMASK_ALL;
-    return gamepad_open(gamepad_id, interrupt, bitmask);
+    ON_FAILURE_RETURN(gamepad_open(gamepad_id));
+    if (interrupt) ON_FAILURE_RETURN(gamepad_interrupt_enable(gamepad_id, interrupt, bitmask));
+    return kOk;
 }
 
 /**
- * DEVICE GAMEPAD VIBRATE id [, low_freq] [, high_freq] [, duration_ms]
- * DEVICE GAMEPAD VIBRATE id OFF
+ * DEVICE GAMEPAD RUMBLE id [, low_freq] [, high_freq] [, duration_ms]
+ * DEVICE GAMEPAD RUMBLE id, OFF
  */
-static MmResult cmd_device_gamepad_vibrate(const char *p) {
+static MmResult cmd_device_gamepad_rumble(const char *p) {
     getargs(&p, 7, ",");
-    if (!(argc & 1) || argc > 7) return kArgumentCount;
-    MmGamepadId gamepad_id = getint(argv[0], 1, 4);
-    if (argc == 3) {
-        const char *p2;
-        if ((p2 = checkstring(argv[2], "OFF"))) {
-            return gamepad_vibrate(gamepad_id, 0, 0, 0);
-        }
+    if (!(argc & 1)) return kArgumentCount;
+    const MmGamepadId gamepad_id = getint(argv[0], 1, 4);
+    uint16_t low_freq = 0;
+    uint16_t high_freq = 0;
+    uint32_t duration = 0;
+    const char *p2;
+    if ((p2 = checkstring(argv[2], "OFF"))) {
+        if (argc != 3) return kArgumentCount;
+    } else {
+        low_freq = has_arg(2) ? getint(argv[2], 0, UINT16_MAX) : UINT16_MAX;
+        high_freq = has_arg(4) ? getint(argv[4], 0, UINT16_MAX) : UINT16_MAX;
+        duration = has_arg(6) ? getint(argv[6], 0, UINT32_MAX) : DEFAULT_RUMBLE_DURATION;
     }
-    uint16_t low_freq = (argc > 1) ? getint(argv[2], 0, UINT16_MAX) : 0xFFFF;
-    uint16_t high_freq = (argc > 3) ? getint(argv[4], 0, UINT16_MAX) : 0xFFFF;
-    uint32_t duration = (argc > 5) ? getint(argv[6], 0, UINT32_MAX) : 10000;
-    return gamepad_vibrate(gamepad_id, low_freq, high_freq, duration);
+    return gamepad_rumble(gamepad_id, low_freq, high_freq, duration);
+}
+
+/**
+ * DEVICE GAMEPAD RUMBLE TRIGGERS id [, left] [, right] [, duration_ms]
+ * DEVICE GAMEPAD RUMBLE TRIGGERS id, OFF
+ */
+static MmResult cmd_device_gamepad_rumble_triggers(const char *p) {
+    getargs(&p, 7, ",");
+    if (!(argc & 1)) return kArgumentCount;
+    const MmGamepadId gamepad_id = getint(argv[0], 1, 4);
+    uint16_t left = 0;
+    uint16_t right = 0;
+    uint32_t duration = 0;
+    const char *p2;
+    if ((p2 = checkstring(argv[2], "OFF"))) {
+        if (argc != 3) return kArgumentCount;
+    } else {
+        left = has_arg(2) ? getint(argv[2], 0, UINT16_MAX) : UINT16_MAX;
+        right = has_arg(4) ? getint(argv[4], 0, UINT16_MAX) : UINT16_MAX;
+        duration = has_arg(6) ? getint(argv[6], 0, UINT32_MAX) : DEFAULT_RUMBLE_DURATION;
+    }
+    return gamepad_rumble_triggers(gamepad_id, left, right, duration);
 }
 
 static MmResult cmd_device_gamepad(const char *p) {
@@ -127,10 +186,18 @@ static MmResult cmd_device_gamepad(const char *p) {
     const char *p2;
     if ((p2 = checkstring(p, "CLOSE"))) {
         result = cmd_device_gamepad_close(p2);
+    } else if ((p2 = checkstring(p, "INTERRUPT DISABLE"))) {
+        result = cmd_device_gamepad_interrupt_disable(p2);
+    } else if ((p2 = checkstring(p, "INTERRUPT ENABLE"))) {
+        result = cmd_device_gamepad_interrupt_enable(p2);
+    } else if ((p2 = checkstring(p, "LED"))) {
+        result = cmd_device_gamepad_led(p2);
     } else if ((p2 = checkstring(p, "OPEN"))) {
         result = cmd_device_gamepad_open(p2);
-    } else if ((p2 = checkstring(p, "VIBRATE"))) {
-        result = cmd_device_gamepad_vibrate(p2);
+    } else if ((p2 = checkstring(p, "RUMBLE TRIGGERS"))) {
+        result = cmd_device_gamepad_rumble_triggers(p2);
+    } else if ((p2 = checkstring(p, "RUMBLE"))) {
+        result = cmd_device_gamepad_rumble(p2);
     } else {
         ERROR_UNKNOWN_SUBCOMMAND("DEVICE GAMEPAD");
         result = kUnimplemented;

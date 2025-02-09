@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_gamepad.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -58,23 +58,25 @@ static MmResult cmd_gamepad_off(const char *p) {
 static MmResult cmd_gamepad_on(const char *p) {
     getargs(&p, 3, ",");
     if (argc > 3) return kArgumentCount;
-    const char* interrupt_addr = (argc > 0) ? GetIntAddress(argv[0]) : NULL;
-    uint16_t bitmask = (argc == 3) ? getint(argv[2], 0, GAMEPAD_BITMASK_ALL) : GAMEPAD_BITMASK_ALL;
-    return gamepad_open(1, interrupt_addr, bitmask);
+    const char* interrupt = has_arg(0) ? GetIntAddress(argv[0]) : NULL;
+    uint16_t bitmask = has_arg(2) ? getint(argv[2], 0, GAMEPAD_BITMASK_ALL) : GAMEPAD_BITMASK_ALL;
+    ON_FAILURE_RETURN(gamepad_open(1));
+    if (interrupt) ON_FAILURE_RETURN(gamepad_interrupt_enable(1, interrupt, bitmask));
+    return kOk;
 }
 
 /** GAMEPAD STOP */
 static MmResult cmd_gamepad_stop(const char *p) {
     skipspace(p);
     if (!parse_is_end(p)) return kUnexpectedText;
-    return gamepad_vibrate(1, 0, 0, 0);
+    return gamepad_rumble(1, 0, 0, 0);
 }
 
 /** GAMEPAD VIBRATE */
 static MmResult cmd_gamepad_vibrate(const char *p) {
     skipspace(p);
     if (!parse_is_end(p)) return kUnexpectedText;
-    return gamepad_vibrate(1, UINT16_MAX, UINT16_MAX, 10000);
+    return gamepad_rumble(1, UINT16_MAX, UINT16_MAX, 10000);
 }
 
 void cmd_gamepad(void) {

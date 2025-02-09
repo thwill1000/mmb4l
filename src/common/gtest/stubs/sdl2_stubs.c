@@ -70,8 +70,22 @@ SDL_bool SDL_GameControllerHasRumble(SDL_GameController *gamecontroller) {
     return SDL_FALSE;
 }
 
+SDL_bool SDL_GameControllerHasRumbleTriggers(SDL_GameController *gamecontroller) {
+    return SDL_FALSE;
+}
+
 int SDL_GameControllerRumble(SDL_GameController *gamecontroller, Uint16 low_frequency_rumble,
                              Uint16 high_frequency_rumble, Uint32 duration_ms) {
+    return 0;
+}
+
+int SDL_GameControllerRumbleTriggers(SDL_GameController *gamecontroller, Uint16 left_rumble,
+                                     Uint16 right_rumble, Uint32 duration_ms) {
+    return 0;
+}
+
+int SDL_GameControllerSetLED(SDL_GameController *gamecontroller, Uint8 ref, Uint8 green,
+                             Uint8 blue) {
     return 0;
 }
 
