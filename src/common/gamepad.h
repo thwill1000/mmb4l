@@ -76,7 +76,6 @@ MmResult gamepad_init();
 MmResult gamepad_term();
 const char *gamepad_last_error();
 MmResult gamepad_info(MmGamepadId id, char *buf);
-MmResult gamepad_is_open(MmGamepadId id, bool *is_open);
 MmResult gamepad_open(MmGamepadId id);
 MmResult gamepad_close(MmGamepadId id);
 MmResult gamepad_close_all();

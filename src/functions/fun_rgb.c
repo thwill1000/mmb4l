@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_rgb.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,6 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/utility.h"
 
 static MmResult fun_rgb_parse_colour(const char *p, MmGraphicsColour *colour) {
+    bool is_picomite = mmb_options.simulate == kSimulateGameMite
+            || mmb_options.simulate == kSimulatePicoMiteVga
+            || mmb_options.simulate == kSimulatePicoMiteVgaUsb;
     MmResult result = kOk;
     if (checkstring(p, "WHITE"))
         *colour = RGB_WHITE;
@@ -60,8 +63,7 @@ static MmResult fun_rgb_parse_colour(const char *p, MmGraphicsColour *colour) {
     else if (checkstring(p, "BLUE"))
         *colour = RGB_BLUE;
     else if (checkstring(p, "BROWN"))
-        *colour = (mmb_options.simulate == kSimulateGameMite || mmb_options.simulate == kSimulatePicoMiteVga)
-                ? RGB_BROWN_4BIT : RGB_BROWN;
+        *colour = is_picomite ?  RGB_BROWN_4BIT : RGB_BROWN;
     else if (checkstring(p, "GREEN"))
         *colour = RGB_GREEN;
     else if (checkstring(p, "CERULEAN"))
@@ -85,8 +87,7 @@ static MmResult fun_rgb_parse_colour(const char *p, MmGraphicsColour *colour) {
     else if (checkstring(p, "LILAC"))
         *colour = RGB_LILAC;
     else if (checkstring(p, "MAGENTA"))
-        *colour = (mmb_options.simulate == kSimulateGameMite || mmb_options.simulate == kSimulatePicoMiteVga)
-                ? RGB_MAGENTA_4BIT : RGB_MAGENTA;
+        *colour = is_picomite ? RGB_MAGENTA_4BIT : RGB_MAGENTA;
     else if (checkstring(p, "MIDGREEN"))
         *colour = RGB_MIDGREEN;
     else if (checkstring(p, "MYRTLE"))

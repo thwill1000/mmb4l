@@ -95,6 +95,7 @@ void cmd_mode(void) {
             break;
 
         case kSimulatePicoMiteVga:
+        case kSimulatePicoMiteVgaUsb:
             result = cmd_mode_pmvga();
             break;
 

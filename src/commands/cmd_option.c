@@ -256,6 +256,7 @@ static void cmd_option_set(const char *p) {
             switch (mmb_options.simulate) {
                 case kSimulateGameMite:
                 case kSimulatePicoMiteVga:
+                case kSimulatePicoMiteVgaUsb:
                     ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
                     ON_FAILURE_ERROR(flash_init());
                     break;

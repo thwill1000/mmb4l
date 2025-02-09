@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_sprite.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -198,6 +198,7 @@ MmResult cmd_sprite_scroll(const char *p) {
         switch (mmb_options.simulate) {
             case kSimulateGameMite:
             case kSimulatePicoMiteVga:
+            case kSimulatePicoMiteVgaUsb:
                 colour = getint(argv[4], -2, 15);
                 if (colour >= 0) colour = GRAPHICS_RGB121_COLOURS[colour];
                 break;

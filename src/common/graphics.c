@@ -354,6 +354,7 @@ void graphics_refresh_windows() {
                 ON_FAILURE_ERROR(graphics_refresh_gamemite_window());
                 break;
             case kSimulatePicoMiteVga:
+            case kSimulatePicoMiteVgaUsb:
                 ON_FAILURE_ERROR(graphics_refresh_picomite_vga_window());
                 break;
             default:
@@ -1493,7 +1494,8 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     if (FAILED(result)) return result;
 
     const bool is_picomite = (mmb_options.simulate == kSimulateGameMite)
-            || (mmb_options.simulate == kSimulatePicoMiteVga);
+            || (mmb_options.simulate == kSimulatePicoMiteVga)
+            || (mmb_options.simulate == kSimulatePicoMiteVgaUsb);
     const MmGraphicsColour *sprite_colours = (colour_mode == 0)
             ? (is_picomite) ? GRAPHICS_CMM2_SPRITE_COLOURS_RGB121 : GRAPHICS_CMM2_SPRITE_COLOURS
             : GRAPHICS_RGB121_COLOURS;
@@ -2208,7 +2210,8 @@ MmResult graphics_get_default_window_title(MmSurfaceId id, char *title, size_t t
     switch (mmb_options.simulate) {
         case kSimulateCmm2:
         case kSimulateMmb4w:
-        case kSimulatePicoMiteVga: {
+        case kSimulatePicoMiteVga:
+        case kSimulatePicoMiteVgaUsb: {
             char device[256];
             result = options_get_string_value(&mmb_options, kOptionSimulate, device);
             if (SUCCEEDED(result)) snprintf(title, title_sz, "%s - Mode %d", device, graphics_mode);
@@ -2345,6 +2348,7 @@ MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColou
         case kSimulateMmb4l:
             return graphics_set_mode_mmb4l(mode);
         case kSimulatePicoMiteVga:
+        case kSimulatePicoMiteVgaUsb:
             return graphics_set_mode_pmvga(mode);
         default:
             return kInternalFault;
@@ -2456,6 +2460,7 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
     OptionsSimulate simulate = mmb_options.simulate;
     switch (simulate) {
         case kSimulateGameMite: // PicoMite-like
+        case kSimulatePicoMiteVgaUsb:
             simulate = kSimulatePicoMiteVga;
             break;
         case kSimulateMmb4w: // CMM2-like

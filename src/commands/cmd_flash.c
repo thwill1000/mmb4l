@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_flash.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -76,7 +76,9 @@ MmResult cmd_flash_disk_load(const char *p) {
     }
 
 void cmd_flash(void) {
-    if (mmb_options.simulate != kSimulateGameMite && mmb_options.simulate != kSimulatePicoMiteVga) {
+    if (mmb_options.simulate != kSimulateGameMite
+            && mmb_options.simulate != kSimulatePicoMiteVga
+            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
         ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
     MmResult result = kOk;
