@@ -396,7 +396,7 @@ MmResult gamepad_rumble(MmGamepadId id, uint16_t low_freq, uint16_t high_freq,
 MmResult gamepad_rumble_triggers(MmGamepadId id, uint16_t left, uint16_t right,
                                  uint32_t duration_ms) {
     CHECK_GAMEPAD_OPEN(id);
-#if SDL_VERSION_ATLEAST(2,0,14)
+#if SDL_VERSION_ATLEAST(2,0,18)
     if (SDL_GameControllerHasRumbleTriggers(gamepad->controller)) {
         if (FAILED(SDL_GameControllerRumbleTriggers(gamepad->controller, left, right,
                                                     duration_ms))) {
