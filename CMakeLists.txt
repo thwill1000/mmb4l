@@ -65,6 +65,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_copy.c
     src/commands/cmd_cursor.c
     src/commands/cmd_device.c
+    src/commands/cmd_dim.c
     src/commands/cmd_do.c
     src/commands/cmd_dummy.c
     src/commands/cmd_edit.c
