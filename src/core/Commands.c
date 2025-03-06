@@ -91,63 +91,6 @@ void cmd_null(void) {
   // do nothing (this is just a placeholder for commands that have no action)
 }
 
-#if !defined(__mmb4l__)
-// the PRINT command
-void cmd_print(void) {
-    char *s, *p;
-    MMFLOAT f;
-    MMINTEGER i64;
-    int i, t, fnbr;
-    int docrlf;                                                     // this is used to suppress the cr/lf if needed
-
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ";,");               // this is a macro and must be the first executable stmt
-
-    // s = 0; *s = 56;                                              // for testing the exception handler
-
-    docrlf = true;
-
-    if(argc > 0 && *argv[0] == '#') {                               // check if the first arg is a file number
-        argv[0]++;
-        fnbr = getinteger(argv[0]);                                 // get the number
-        i = 1;
-        if(argc >= 2 && *argv[1] == ',') i = 2;                     // and set the next argument to be looked at
-    } else {
-        fnbr = 0;                                                   // no file number so default to the standard output
-        i = 0;
-    }
-
-    for(; i < argc; i++) {                                          // step through the arguments
-        if(*argv[i] == ',') {
-            MMfputc('\t', fnbr);                                    // print a tab for a comma
-            docrlf = false;                                         // a trailing comma should suppress CR/LF
-        }
-        else if(*argv[i] == ';') {
-            docrlf = false;                                         // other than suppress cr/lf do nothing for a semicolon
-        }
-        else {                                                      // we have a normal expression
-            p = argv[i];
-            while(*p) {
-                t = T_NOTYPE;
-                p = evaluate(p, &f, &i64, &s, &t, true);            // get the value and type of the argument
-                if(t & T_NBR) {
-                    *inpbuf = ' ';                                  // preload a space
-                    FloatToStr(inpbuf + ((f >= 0) ? 1:0), f, 0, STR_AUTO_PRECISION, ' ');// if positive output a space instead of the sign
-                    MMfputs(CtoM(inpbuf), fnbr);                    // convert to a MMBasic string and output
-                } else if(t & T_INT) {
-                    *inpbuf = ' ';                                  // preload a space
-                    IntToStr(inpbuf + ((i64 >= 0) ? 1:0), i64, 10); // if positive output a space instead of the sign
-                    MMfputs(CtoM(inpbuf), fnbr);                    // convert to a MMBasic string and output
-                } else if(t & T_STR) {
-                    MMfputs(s, fnbr);                               // print if a string (s is a MMBasic string)
-                }
-            }
-            docrlf = true;
-        }
-    }
-    if(docrlf) MMfputs("\2\r\n", fnbr);                             // print the terminating cr/lf unless it has been suppressed
-}
-#endif
-
 
 
 void ListNewLine(int *ListCnt, int all) {
@@ -641,39 +584,6 @@ void cmd_troff(void) {
 
 
 
-#if !defined(__mmb4l__)
-void cmd_trace(void) {
-    if(checkstring(cmdline, "ON"))
-        TraceOn = true;
-    else if(checkstring(cmdline, "OFF"))
-        TraceOn = false;
-#if !defined(MX170)
-    else if(checkstring(cmdline, "LIST")) {
-        int i;
-        cmdline += 4;
-        skipspace(cmdline);
-        if(*cmdline == 0 || *cmdline =='\'')  //'
-            i = TRACE_BUFF_SIZE - 1;
-        else
-            i = getint(cmdline, 0, TRACE_BUFF_SIZE - 1);
-        i = TraceBuffIndex - i;
-        if(i < 0) i += TRACE_BUFF_SIZE;
-        while(i != TraceBuffIndex) {
-            inpbuf[0] = '[';
-            IntToStr(inpbuf + 1, CountLines(TraceBuff[i]), 10);
-            strcat(inpbuf, "]");
-            MMPrintString(inpbuf);
-            if(++i >= TRACE_BUFF_SIZE) i = 0;
-        }
-    }
-#endif
-    else
-        error("Unknown command");
-}
-#endif
-
-
-
 // FOR command
 void cmd_for(void) {
     int i, t, vlen, test;
@@ -882,21 +792,6 @@ void cmd_exit(void) {
 
 
 
-#if !defined(__mmb4l__)
-void cmd_error(void) {
-    char *s;
-    if(*cmdline && *cmdline != '\'') {
-        s = getCstring(cmdline);
-        CurrentLinePtr = NULL; // suppress printing the line that caused the issue
-        error(s);
-    }
-    else
-        error("");
-}
-#endif
-
-
-
 void cmd_randomize(void) {
     int i;
     i = getint(cmdline, 0, INT_MAX);
@@ -1005,134 +900,6 @@ void cmd_lineinput(void) {
     if(strlen(inpbuf) > vartbl[VarIndex].size) error("String too long");
     strcpy(vp, inpbuf);
     CtoM(vp);                                                       // convert to a MMBasic string
-}
-
-
-
-#if !defined(__mmb4l__)
-void cmd_on(void) {
-    int r;
-    char ss[4];                                                     // this will be used to split up the argument line
-    char *p;
-
- #if !defined(__386__)
-    // first check if this is:   ON KEY location
-    if((p = checkstring(cmdline, "KEY")) != NULL) {
-        if(*p == '0' && !isdigit(*(p+1)))
-            OnKeyGOSUB = NULL;                                      // the program wants to turn the interrupt off
-        else {
-            OnKeyGOSUB = GetIntAddress(p);                          // get a pointer to the interrupt routine
-            InterruptUsed = true;
-        }
-        return;
-    }
-#endif
-    p = checkstring(cmdline, "ERROR");
-    if(p) {
-        if(checkstring(p, "ABORT")) {
-            OptionErrorSkip = 0;
-            return;
-        }
-        MMerrno = 0;                                                // clear the error flags
-        *MMErrMsg = 0;
-        if(checkstring(p, "CLEAR")) return;
-        if(checkstring(p, "IGNORE")) {
-            OptionErrorSkip = -1;
-            return;
-        }
-        if((p = checkstring(p, "SKIP"))) {
-            if(*p == 0 || *p == '\'')
-                OptionErrorSkip = 2;
-            else
-                OptionErrorSkip = getint(p, 1, 10000) + 1;
-            return;
-        }
-        ERROR_SYNTAX;
-    }
-
-    // if we got here the command must be the traditional:  ON nbr GOTO|GOSUB line1, line2,... etc
-
-    ss[0] = tokenGOTO;
-    ss[1] = tokenGOSUB;
-    ss[2] = ',';
-    ss[3] = 0;
-    {                                                               // start a new block
-        getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ss);             // getargs macro must be the first executable stmt in a block
-        if(argc < 3 || !(*argv[1] == ss[0] || *argv[1] == ss[1])) ERROR_SYNTAX;
-        if(argc%2 == 0) ERROR_SYNTAX;
-
-        r = getint(argv[0], 0, 255);                                // evaluate the expression controlling the statement
-        if(r == 0 || r > argc/2) return;                            // microsoft say that we just go on to the next line
-
-        if(*argv[1] == ss[1]) {
-            // this is a GOSUB, same as a GOTO but we need to first push the return pointer
-            if(gosubindex >= MAXGOSUB) error("Too many nested GOSUB");
-            errorstack[gosubindex] = CurrentLinePtr;
-            gosubstack[gosubindex++] = nextstmt;
-            LocalIndex++;
-        }
-
-        if(isnamestart(*argv[r*2]))
-            nextstmt = findlabel(argv[r*2]);                        // must be a label
-        else
-            nextstmt = findline(getinteger(argv[r*2]), true);       // try for a line number
-    }
-    IgnorePIN = false;
-}
-#endif
-
-
-
-void cmd_const(void) {
-    const char *p;
-    void *v;
-    int i, type;
-
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
-    if((argc & 0x01) == 0) ERROR_SYNTAX;
-
-    for(i = 0; i < argc; i += 2) {
-        p = skipvar(argv[i], false);                                // point to after the variable
-        skipspace(p);
-        if(tokenfunction(*p) != op_equal) ERROR_SYNTAX;             // must be followed by an equals sign
-        p++;                                                        // step over the equals sign
-        type = T_NOTYPE;
-        v = DoExpression(p, &type);                                 // evaluate the constant's value
-        type = TypeMask(type);
-        type |= V_FIND | V_DIM_VAR | T_CONST | T_IMPLIED;
-        if(LocalIndex != 0) type |= V_LOCAL;                        // local if defined in a sub/fun
-        findvar(argv[i], type);                                     // create the variable
-        if(vartbl[VarIndex].dims[0] != 0) error("Invalid constant");
-        if(TypeMask(vartbl[VarIndex].type) != TypeMask(type)) error("Invalid constant");
-        else {
-            if(type & T_NBR) vartbl[VarIndex].val.f = *(MMFLOAT *)v; // and set its value
-            if(type & T_INT) vartbl[VarIndex].val.i = *(MMINTEGER *)v;
-            if(type & T_STR) Mstrcpy(vartbl[VarIndex].val.s, (char *)v);
-        }
-    }
-}
-
-
-
-void cmd_auto(void) {
-#if 0
-    getargs(&cmdline, 3, ",");
-    if(CurrentLinePtr) error("Invalid in a program");
-    if(argc == 0) {                                                                                                        // if there are no arguments just stuff the lines into program memory
-        ClearRuntime();                                                                                                // clear any leftovers from the previous program
-        while(1) {                                                                                                        // while forever (actually until CTRL-C)
-            *inpbuf = 0;                                                                                        // clear the input buffer
-            EditInputLine();                                                                                // get the input
-            tokenise(false);                                                                                // turn into executable code
-            AddProgramLine(true);                                   // add to program memory
-        }
-    }
-
-    if(argc == 2) error("Invalid syntax");
-    if(argc >= 1) autoNext = getinteger(argv[0]);
-    if(argc == 3) autoIncr = getinteger(argv[2]);
-    autoOn = true;
-#endif
 }
 
 
