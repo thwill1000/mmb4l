@@ -150,60 +150,6 @@ void cmd_print(void) {
 
 
 
-// the LET command
-// because the LET is implied (ie, line does not have a recognisable command)
-// it ends up as the place where mistyped commands are discovered.  This is why
-// the error message is "Unknown command"
-void cmd_let(void) {
-    int t, size;
-    MMFLOAT f;
-    MMINTEGER i64;
-    char *s;
-
-    const char *p1 = cmdline;
-
-    // search through the line looking for the equals sign
-    while(*p1 && tokenfunction(*p1) != op_equal) p1++;
-    if(!*p1) error("Unknown command");
-
-    // check that we have a straight forward variable
-    const char *p2 = skipvar(cmdline, false);
-    skipspace(p2);
-    if (p1 != p2) ERROR_SYNTAX;
-
-    // create the variable and get the length if it is a string
-    char *pvar = findvar(cmdline, V_FIND);
-    size = vartbl[VarIndex].size;
-    if(vartbl[VarIndex].type & T_CONST) error("Cannot change a constant");
-
-    // step over the equals sign, evaluate the rest of the command and save in the variable
-    p1++;
-    if(vartbl[VarIndex].type & T_STR) {
-        t = T_STR;
-        p1 = evaluate(p1, &f, &i64, &s, &t, false);
-        if(*s > size) error("String too long");
-        Mstrcpy(pvar, s);
-    }
-    else if(vartbl[VarIndex].type & T_NBR) {
-        t = T_NBR;
-        p1 = evaluate(p1, &f, &i64, &s, &t, false);
-        if(t & T_NBR)
-            (*(MMFLOAT *)pvar) = f;
-        else
-            (*(MMFLOAT *)pvar) = (MMFLOAT)i64;
-    } else {
-        t = T_INT;
-        p1 = evaluate(p1, &f, &i64, &s, &t, false);
-        if(t & T_INT)
-            (*(MMINTEGER *)pvar) = i64;
-        else
-            (*(MMINTEGER *)pvar) = FloatToInt64(f);
-    }
-    checkend(p1);
-}
-
-
-
 void ListNewLine(int *ListCnt, int all) {
     MMPrintString("\r\n");
     (*ListCnt)++;
