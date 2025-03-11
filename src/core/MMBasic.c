@@ -1626,9 +1626,9 @@ routines for storing and manipulating variables
 //  - T_INT integer variable
 //
 // A variable can have a number of characteristics
-//  - T_PTR the variable points to another variable's data
-//  - T_IMPLIED  the variables type does not have to be specified with a suffix
-//  - T_CONST the contents of this variable cannot be changed
+//  - T_PTR     the variable points to another variable's data
+//  - T_IMPLIED the variables type does not have to be specified with a suffix
+//  - T_CONST   the contents of this variable cannot be changed
 //
 // storage of the variable's data:
 //      if it is type T_NBR or T_INT the value is held in the variable slot
