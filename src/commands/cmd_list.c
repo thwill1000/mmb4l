@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_list.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -177,6 +177,102 @@ static MmResult cmd_list_functions(const char *p) {
     return cmd_list_tokens("functions", tokentbl, secondary_functions);
 }
 
+/** LIST VARIABLES [ALL|GLOBAL|LOCAL|level%] */
+static MmResult cmd_list_variables(const char *p) {
+    getargs(&p, 1, ",");
+    int level = -1; // ALL
+    if (argc == 1) {
+        if (checkstring(argv[0], "ALL")) {
+            // Do nothing, level = -1 is correct.
+        } else if (checkstring(argv[0], "GLOBAL")) {
+            level = 0;
+        } else if (checkstring(argv[0], "LOCAL")) {
+            level = LocalIndex;
+        } else {
+            level = getint(p, 0, 1000);
+        }
+    }
+
+    char name[MAXVARLEN + 2];
+    char type[15];
+    char dimensions[STRINGSIZE];
+    char latest[MAXVARLEN + 2] = "";
+    int idx = -1;
+    int count = 0;
+
+    console_puts("+------------------------------------------------------------------------------+\r\n");
+    console_puts("| Name                              | Type          | Level | Dimensions       |\r\n");
+    console_puts("| --------------------------------- | ------------- | ----- | ---------------- |\r\n");
+    for (;;) {
+        // Determine next variable in alphabetical order.
+        memset(name, 255, MAXVARLEN + 2);
+        idx = -1;
+        for (int i = 0; i < MAXVARS; ++i) {
+            const struct s_vartbl *var = &vartbl[i];
+            if (!var->type) continue;
+            if (level != -1 && level != var->level) continue;
+            if (memcmp(name, var->name, MAXVARLEN) > 0
+                    && memcmp(latest, var->name, MAXVARLEN) < 0) {
+                memset(name, 0, MAXVARLEN + 2);
+                memcpy(name, var->name, MAXVARLEN);
+                idx = i;
+            }
+        }
+
+        if (idx == -1) break; // Reached the end of the variables.
+
+        strcpy(latest, name);
+
+        const struct s_vartbl *var = &vartbl[idx];
+
+        // Add type extension to name.
+        if (var->type & T_IMPLIED) {
+            cstring_cat(name, "*", MAXVARLEN + 2);
+        } else {
+            if (var->type & T_INT) cstring_cat(name, "\%", MAXVARLEN + 2);
+            if (var->type & T_STR) cstring_cat(name, "$", MAXVARLEN + 2);
+            if (var->type & T_NBR) cstring_cat(name, "!", MAXVARLEN + 2);
+        }
+
+        // Type.
+        type[0] = '\0';
+        if (var->type & T_CONST) cstring_cat(type, "CONST ", sizeof(type));
+        if (var->type & T_PTR) cstring_cat(type, "PTR ", sizeof(type));
+        if (var->type & T_INT) cstring_cat(type, "INT ", sizeof(type));
+        if (var->type & T_STR) {
+            cstring_cat(type, "STR ", sizeof(type));
+            cstring_cat_int64(type, var->size, sizeof(type));
+            cstring_cat(type, " ", sizeof(type));
+        }
+        if (var->type & T_NBR) cstring_cat(type, "NBR ", sizeof(type));
+        type[strlen(type) - 1] = '\0'; // Remove trailing space.
+
+        // Dimensions.
+        dimensions[0] = '\0';
+        if (var->dims[0] == 0) {
+            cstring_cat(dimensions, "-", STRINGSIZE);
+        } else {
+            for (int j = 0; j < MAXDIM; ++j) {
+                if (var->dims[j] == 0) break;
+                if (j != 0) cstring_cat(dimensions, ",", STRINGSIZE);
+                cstring_cat_int64(dimensions, var->dims[j], STRINGSIZE);
+            }
+        }
+
+        sprintf(inpbuf, "| %-33s | %-13s | %-5d | %-16s | \r\n", name, type, var->level,
+                dimensions);
+        console_puts(inpbuf);
+        count++;
+    }
+    if (count == 0) {
+        sprintf(inpbuf, "| %-33s | %-13s | %-5d | %-16s | \r\n", "No variables declared", "", 0, "");
+        console_puts(inpbuf);
+    }
+    console_puts("+------------------------------------------------------------------------------+\r\n");
+
+    return kOk;
+}
+
 /** LIST [ALL] file$ */
 static MmResult cmd_list_default(const char *p) {
     const char *p2 = checkstring(p, "ALL");
@@ -243,6 +339,10 @@ void cmd_list(void) {
     } else if ((p = checkstring(cmdline, "OPTIONS"))) {
         // LIST OPTIONS
         cmd_option_list(p);
+    } else if ((p = checkstring(cmdline, "VARIABLES"))) {
+        cmd_list_variables(p);
+    } else if ((p = checkstring(cmdline, "VARS"))) {
+        result = cmd_list_variables(p);
     } else {
         result = cmd_list_default(cmdline);
     }
