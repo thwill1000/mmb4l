@@ -187,12 +187,12 @@ const struct s_tokentbl commandtbl[] = {
     { "",            0,                  0, cmd_null,    }  // This dummy entry is always at the end.
 };
 
-CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDEFINEFONT, cmdDO;
+CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDEFINEFONT, cmdDIM, cmdDO;
 CommandToken cmdELSE, cmdELSEIF, cmdELSE_IF, cmdENDIF, cmdEND_CSUB, cmdEND_DEFINEFONT;
 CommandToken cmdEND_FUNCTION;
 CommandToken cmdENDIF, cmdEND_IF, cmdEND_SELECT, cmdEND_SUB, cmdFOR, cmdFUN;
-CommandToken cmdIF, cmdIRET, cmdLET, cmdLOOP, cmdNEXT, cmdPRINT;
-CommandToken cmdREM, cmdSELECT_CASE, cmdSUB, cmdWEND, cmdWHILE;
+CommandToken cmdIF, cmdIRET, cmdLET, cmdLOCAL, cmdLOOP, cmdNEXT, cmdPRINT;
+CommandToken cmdREM, cmdRUN, cmdSELECT_CASE, cmdSTATIC, cmdSUB, cmdWEND, cmdWHILE;
 
 void commandtbl_init() {
     commandtbl_size = sizeof(commandtbl) / sizeof(struct s_tokentbl);
@@ -203,6 +203,7 @@ void commandtbl_init() {
     cmdCSUB = commandtbl_get("CSub");
     cmdDATA = commandtbl_get("Data");
     cmdDEFINEFONT = commandtbl_get("DefineFont");
+    cmdDIM = commandtbl_get("Dim");
     cmdDO = commandtbl_get("Do");
     cmdELSE = commandtbl_get("Else");
     cmdELSEIF = commandtbl_get("ElseIf");
@@ -219,11 +220,14 @@ void commandtbl_init() {
     cmdIF = commandtbl_get("If");
     cmdIRET = commandtbl_get("IReturn");
     cmdLET = commandtbl_get("Let");
+    cmdLOCAL = commandtbl_get("Local");
     cmdLOOP = commandtbl_get("Loop");
     cmdNEXT = commandtbl_get("Next");
     cmdPRINT = commandtbl_get("Print");
     cmdREM = commandtbl_get("Rem");
+    cmdRUN = commandtbl_get("Run");
     cmdSELECT_CASE = commandtbl_get("Select Case");
+    cmdSTATIC = commandtbl_get("Static");
     cmdSUB = commandtbl_get("Sub");
     cmdWEND = commandtbl_get("WEnd");
     cmdWHILE = commandtbl_get("While");

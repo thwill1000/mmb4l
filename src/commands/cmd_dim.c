@@ -109,12 +109,12 @@ void cmd_dim(void) {
                 if(!(type & T_IMPLIED)) error_throw_legacy("Variable type");
             }
 
-            if(cmdtoken == GetCommandValue("Local")) {
+            if(cmdtoken == cmdLOCAL) {
                 if(LocalIndex == 0) error_throw_legacy("Invalid here");
                 type |= V_LOCAL;                                    // local if defined in a sub/fun
             }
 
-            if (cmdtoken == GetCommandValue("Static")) {
+            if (cmdtoken == cmdSTATIC) {
                 if (LocalIndex == 0) error_throw_legacy("Invalid here");
                 // Create a unique global name by prefixing variable name with sub/fun name.
                 if (*CurrentInterruptName) {
