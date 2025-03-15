@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -188,12 +188,15 @@ const struct s_tokentbl tokentbl[] = {
     { "",            0,                              0, cmd_null,    }  // This dummy entry is always at the end.
 };
 
-char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP;
-char tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
+FunctionToken tokenADD, tokenSUBTRACT;
+FunctionToken tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP;
+FunctionToken tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
 
 void tokentbl_init() {
     tokentbl_size = sizeof(tokentbl) / sizeof(struct s_tokentbl);
 
+    tokenADD   = tokentbl_get("+");
+    tokenSUBTRACT = tokentbl_get("-");
     tokenTHEN  = tokentbl_get("Then");
     tokenELSE  = tokentbl_get("Else");
     tokenGOTO  = tokentbl_get("GoTo");

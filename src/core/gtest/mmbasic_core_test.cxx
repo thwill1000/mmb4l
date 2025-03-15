@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024 Thomas Hugo Williams
+ * Copyright (c) 2022-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -859,7 +859,7 @@ TEST_F(MmBasicCoreTest, Tokenise_DimStatement) {
             T_NEWLINE,
             (GetCommandValue("Dim") & 0x7F) + C_BASETOKEN,
             (GetCommandValue("Dim") >> 7) + C_BASETOKEN,
-            GetTokenValue("="));
+            tokenEQUAL);
     EXPECT_STREQ(expected, tknbuf);
 }
 
@@ -875,9 +875,9 @@ TEST_F(MmBasicCoreTest, Tokenise_RunStatement) {
             T_NEWLINE,
             (GetCommandValue("Run") & 0x7F) + C_BASETOKEN,
             (GetCommandValue("Run") >> 7) + C_BASETOKEN,
-            GetTokenValue("-"),
-            GetTokenValue("-"),
-            GetTokenValue("="));
+            tokenSUBTRACT,
+            tokenSUBTRACT,
+            tokenEQUAL);
     EXPECT_STREQ(expected, tknbuf);
 }
 
