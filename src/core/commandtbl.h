@@ -60,16 +60,15 @@ struct s_tokentbl {      // structure of the command and token tables.
 #define INVALID_COMMAND_TOKEN  0xFFFF   
 
 #define GetCommandValue(s)  commandtbl_get(s)
-#define CommandTableSize    commandtbl_size
 
 /** Gets the type of a command. */
-#define commandtype(i)  ((i < CommandTableSize - 1) ? commandtbl[i].type : 0)
+#define commandtype(i)  ((i < commandtbl_size - 1) ? commandtbl[i].type : 0)
 
 /** Gets the function pointer of a command. */
-#define commandfunction(i)  ((i < CommandTableSize - 1) ? commandtbl[i].fptr : commandtbl[0].fptr)
+#define commandfunction(i)  ((i < commandtbl_size - 1) ? commandtbl[i].fptr : commandtbl[0].fptr)
 
 /** Gets the name of a command. */
-#define commandname(i)  ((i < CommandTableSize - 1) ? commandtbl[i].name : "")
+#define commandname(i)  ((i < commandtbl_size - 1) ? commandtbl[i].name : "")
 
 void cmd_arc(void);
 void cmd_autosave(void);
@@ -135,7 +134,6 @@ void cmd_mode(void);
 void cmd_new(void);
 void cmd_next(void);
 void cmd_null(void);
-void cmd_null(void);
 void cmd_on(void);
 void cmd_open(void);
 void cmd_option(void);
@@ -179,12 +177,12 @@ void commandtbl_init();
 CommandToken commandtbl_get(const char *s);
 
 static inline CommandToken commandtbl_decode(const char *p) {
-   return ((CommandToken)(p[0] & 0x7F)) | ((CommandToken)(p[1] & 0x7F) << 7);
+    return ((CommandToken)(p[0] & 0x7F)) | ((CommandToken)(p[1] & 0x7F) << 7);
 }
 
 static inline void commandtbl_encode(char **p, CommandToken cmd) {
-  *((*p)++) = (char) (cmd & 0x7F) + C_BASETOKEN;
-  *((*p)++) = (char) (cmd >> 7) + C_BASETOKEN;
+    *((*p)++) = (char) (cmd & 0x7F) + C_BASETOKEN;
+    *((*p)++) = (char) (cmd >> 7) + C_BASETOKEN;
 }
 
 extern const struct s_tokentbl commandtbl[];

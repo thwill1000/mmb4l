@@ -49,6 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <strings.h>
 
+int commandtbl_size;
+
 /**
  * This is the command table that defines the various tokens for MMBasic commands.
  *

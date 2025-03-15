@@ -66,9 +66,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern int ListCnt;
 extern int MMCharPos;
 
-// these are initialised at startup
-int CommandTableSize;
-
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables
 #if !defined(__mmb4l__)
@@ -929,7 +926,7 @@ void tokenise(int console) {
                 // this is needed because we need to differentiate between END and END SUB for example.
                 // without looking for the longest match we might think that we have a match when we found just END.
                 const char *tp;
-                for(i = 0 ; i < CommandTableSize - 1; i++) {
+                for(i = 0 ; i < commandtbl_size - 1; i++) {
                     tp2 = p;
                     tp = commandtbl[i].name;
                     while(toupper(*tp2) == toupper(*tp) && *tp != 0) {
