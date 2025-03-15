@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Thomas Hugo Williams
+ * Copyright (c) 202-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -112,7 +112,7 @@ protected:
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus2_Fails) {
     char args[STRINGSIZE];
-    sprintf(args, "C, %c2", tokentbl_get("-")); // "C, -2"
+    sprintf(args, "C, %c2", tokenSUBTRACT); // "C, -2"
     ep = args;
     iret = 9999;
 
@@ -137,7 +137,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus1_AndSimulatingCla
     mmb_options.simulate = kSimulateCmm2;
 
     char args[STRINGSIZE];
-    sprintf(args, "C, %c1", tokentbl_get("-")); // "C, -1"
+    sprintf(args, "C, %c1", tokenSUBTRACT); // "C, -1"
     ep = args;
     iret = 9999;
 

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -47,7 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "commandtbl.h"
 
-#define GetTokenValue(s)  tokentbl_get(s)
+typedef char FunctionToken;
+
 #define TokenTableSize    tokentbl_size
 
 /** Gets the type of a token. */
@@ -174,7 +175,8 @@ extern const struct s_tokentbl tokentbl[];
 extern int tokentbl_size;
 
 // Store commonly used tokens for faster token checking.
-extern char tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP;
-extern char tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
+extern FunctionToken tokenADD, tokenSUBTRACT;
+extern FunctionToken tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP;
+extern FunctionToken tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
 
 #endif
