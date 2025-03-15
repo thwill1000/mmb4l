@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_cfunction.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_cfunction(void) {
     CommandToken end_token = (cmdtoken == cmdCSUB)
             ? cmdEND_CSUB
-            : GetCommandValue("End DefineFont");
+            : cmdEND_DEFINEFONT;
     const char *p = cmdline;
     while (*p != 0xff) {
         if (*p == 0) p++;  // if it is at the end of an element skip the zero marker

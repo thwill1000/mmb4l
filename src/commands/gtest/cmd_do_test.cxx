@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Thomas Hugo Williams
+ * Copyright (c) 2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -103,7 +103,7 @@ protected:
 TEST_F(CmdDoTest, GivenOneLineDoLoop) {
     TokeniseAndAppend("Do : Print : Loop");
     PrepareProgram(1);
-    cmdtoken = GetCommandValue("Do");
+    cmdtoken = cmdDO;
     nextstmt = cmdline = ProgMemory + 1 + sizeof(CommandToken);
     skipspace(cmdline);
     skipelement(nextstmt);
