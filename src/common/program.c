@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 program.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -181,7 +181,7 @@ static int cmpstr(const char *s1, const char *s2) {
 }
 
 void program_dump_memory() {
-    utility_dump_memory(ProgMemory);
+    utility_dump_memory(ProgMemory, 0, 0, 2);
 }
 
 static MmResult program_append_to_progmem(const char *src) {
