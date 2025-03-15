@@ -49,16 +49,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef char FunctionToken;
 
-#define TokenTableSize    tokentbl_size
-
 /** Gets the type of a token. */
-#define tokentype(i)  ((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].type) : 0)
+#define tokentype(i)  ((i >= C_BASETOKEN && i < tokentbl_size - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].type) : 0)
 
 /** Gets the function pointer of a token. */
-#define tokenfunction(i)  ((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].fptr) : (tokentbl[0].fptr))
+#define tokenfunction(i)  ((i >= C_BASETOKEN && i < tokentbl_size - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].fptr) : (tokentbl[0].fptr))
 
 /** Gets the name of a token. */
-#define tokenname(i)  ((i >= C_BASETOKEN && i < TokenTableSize - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].name) : "")
+#define tokenname(i)  ((i >= C_BASETOKEN && i < tokentbl_size - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].name) : "")
 
 void fun_abs(void);
 void fun_acos(void);
