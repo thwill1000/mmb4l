@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 utility.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -81,7 +81,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define CHAR_IS_SIGNED ((char) -1 < 0)
 
-void utility_dump_memory(const char *p);
+/**
+ * Dump contents of memory to stdout.
+ *
+ * @param  p          Pointer to start of memory.
+ * @param  num_bytes  Number of bytes to dump.
+ *                    If <= 0 then stop when encounter eight consecutive 0xFF.
+ * @param  indent     Number of spaces of indent for each line of the dump.
+ * @param  cols       Number of 8-byte columns.
+ */
+void utility_dump_memory(const char *p, int num_bytes, size_t indent, size_t cols);
 
 /** perror() with formatted string support. */
 void utility_perror_ext(const char *format, ...);
