@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2024 Thomas Hugo Williams
+ * Copyright (c) 2021-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -476,7 +476,7 @@ TEST_F(ProgramTest, HardcodedTokenValuesAreCorrect) {
     commandtbl_encode(&p, commandtbl_get("Print"));
     EXPECT_STREQ(CMD_PRINT, buf);
 
-    sprintf(buf, "%c", (char) tokentbl_get("="));
+    sprintf(buf, "%c", (char) tokenEQUAL);
     EXPECT_STREQ(OP_EQUALS, buf);
 }
 
