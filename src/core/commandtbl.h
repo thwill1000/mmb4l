@@ -59,8 +59,6 @@ struct s_tokentbl {      // structure of the command and token tables.
 #define C_BASETOKEN            0x80  // the base of the token numbers
 #define INVALID_COMMAND_TOKEN  0xFFFF   
 
-#define GetCommandValue(s)  commandtbl_get(s)
-
 /** Gets the type of a command. */
 #define commandtype(i)  ((i < commandtbl_size - 1) ? commandtbl[i].type : 0)
 
@@ -189,11 +187,11 @@ extern const struct s_tokentbl commandtbl[];
 extern int commandtbl_size;
 
 // Store commonly used commands for faster token checking.
-extern CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDEFINEFONT, cmdDO;
+extern CommandToken cmdCASE, cmdCASE_ELSE, cmdCFUN, cmdCSUB, cmdDATA, cmdDEFINEFONT, cmdDIM, cmdDO;
 extern CommandToken cmdELSE, cmdELSEIF, cmdELSE_IF, cmdENDIF, cmdEND_CSUB, cmdEND_DEFINEFONT;
 extern CommandToken cmdEND_FUNCTION;
 extern CommandToken cmdENDIF, cmdEND_IF, cmdEND_SELECT, cmdEND_SUB, cmdFOR, cmdFUN;
-extern CommandToken cmdIF, cmdIRET, cmdLET, cmdLOOP, cmdNEXT, cmdPRINT;
-extern CommandToken cmdREM, cmdSELECT_CASE, cmdSUB, cmdWEND, cmdWHILE;
+extern CommandToken cmdIF, cmdIRET, cmdLET, cmdLOCAL, cmdLOOP, cmdNEXT, cmdPRINT;
+extern CommandToken cmdREM, cmdRUN, cmdSELECT_CASE, cmdSTATIC, cmdSUB, cmdWEND, cmdWHILE;
 
 #endif

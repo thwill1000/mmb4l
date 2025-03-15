@@ -857,8 +857,8 @@ TEST_F(MmBasicCoreTest, Tokenise_DimStatement) {
             expected,
             "%c%c%ca %c 1",
             T_NEWLINE,
-            (GetCommandValue("Dim") & 0x7F) + C_BASETOKEN,
-            (GetCommandValue("Dim") >> 7) + C_BASETOKEN,
+            (cmdDIM & 0x7F) + C_BASETOKEN,
+            (cmdDIM >> 7) + C_BASETOKEN,
             tokenEQUAL);
     EXPECT_STREQ(expected, tknbuf);
 }
@@ -873,8 +873,8 @@ TEST_F(MmBasicCoreTest, Tokenise_RunStatement) {
             expected,
             "%c%c%c\"foo\", %c%cbase%c1",
             T_NEWLINE,
-            (GetCommandValue("Run") & 0x7F) + C_BASETOKEN,
-            (GetCommandValue("Run") >> 7) + C_BASETOKEN,
+            (cmdRUN & 0x7F) + C_BASETOKEN,
+            (cmdRUN >> 7) + C_BASETOKEN,
             tokenSUBTRACT,
             tokenSUBTRACT,
             tokenEQUAL);
