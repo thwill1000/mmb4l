@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -67,7 +67,7 @@ extern int ListCnt;
 extern int MMCharPos;
 
 // these are initialised at startup
-int CommandTableSize, TokenTableSize;
+int CommandTableSize;
 
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables
@@ -986,7 +986,7 @@ void tokenise(int console) {
             // check to see if it is a function or keyword
             const char *tp;
             char *tp2 = NULL;
-            for(i = 0 ; i < TokenTableSize - 1; i++) {
+            for(i = 0 ; i < tokentbl_size - 1; i++) {
                 tp2 = p;
                 tp = tokentbl[i].name;
                 // check this entry
@@ -996,7 +996,7 @@ void tokenise(int console) {
                 }
                 if(*tp == 0 && (!isnameend(*(tp - 1)) || !isnamechar(*tp2))) break;
             }
-            if(i != TokenTableSize - 1) {
+            if(i != tokentbl_size - 1) {
                 // we have a  match
                 i += C_BASETOKEN;
                 *op++ = i;                                          // insert the token found
