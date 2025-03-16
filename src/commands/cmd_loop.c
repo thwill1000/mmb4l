@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_loop.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -93,5 +93,6 @@ void cmd_loop(void) {
             return;
         }
     }
-    error_throw_ex(kError, "LOOP without a matching DO");
+    error_throw_ex(kSyntax,
+        cmdtoken == cmdWEND ? "WEND without a matching WHILE" : "LOOP without a matching DO");
 }
