@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_do.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -62,22 +62,29 @@ void cmd_do(void) {
         whiletoken = tokenWHILE;
     }
 
-    if(whileloop)
-        // if it is a WHILE WEND loop we can just point to the command line
+    if (whileloop) {
+        // If it is a WHILE ... WEND loop we can just point to the command line.
         evalp = cmdline;
-    else {
-        // if it is a DO loop find the WHILE token and (if found) get a pointer to its expression
-        while(*cmdline && *cmdline != whiletoken) cmdline++;
-        if(*cmdline == whiletoken) {
+    } else {
+        // If it is a DO loop find the WHILE token and (if found) get a pointer to its expression.
+        skipspace(cmdline);
+        if (*cmdline == whiletoken) {
             evalp = ++cmdline;
-        }
-        else
+        } else if (*cmdline == '\0' || *cmdline == '\'') {
             evalp = NULL;
+        } else {
+            evalp = NULL;
+            if (*cmdline == tokenUNTIL) {
+                error_throw_ex(kSyntax, "DO has an UNTIL test");
+            } else {
+                error_throw(kSyntax);
+            }
+        }
     }
 
-    // check if this loop is already in the stack and remove it if it is
+    // Check if this loop is already in the stack and remove it if it is
     // this is necessary as the program can jump out of the loop without hitting
-    // the LOOP or WEND stmt and this will eventually result in a stack overflow
+    // the LOOP or WEND stmt and this will eventually result in a stack overflow.
     for(i = 0; i < doindex ;i++) {
         if(dostack[i].doptr == nextstmt) {
             while(i < doindex - 1) {
@@ -101,7 +108,7 @@ void cmd_do(void) {
     // now find the matching LOOP command
     i = 1; p = nextstmt;
     while(1) {
-        p = GetNextCommand(p, &tp, "No matching LOOP");
+        p = GetNextCommand(p, &tp, looptoken == cmdWEND ? "No matching WEND" : "No matching LOOP");
         const CommandToken cmd = commandtbl_decode(p);
         if (cmd == cmdtoken) i++;                                   // entered a nested DO or WHILE loop
         if (cmd == looptoken) i--;                                  // exited a nested loop
@@ -116,8 +123,11 @@ void cmd_do(void) {
         // search the LOOP statement for a WHILE or UNTIL token (p is pointing to the matching LOOP statement)
         p += sizeof(CommandToken);
         while(*p && *p < 0x80) p++;
-        if(*p == tokenWHILE) error_throw_ex(kError, "LOOP has a WHILE test");
-        if(*p == tokenUNTIL) error_throw_ex(kError, "LOOP has an UNTIL test");
+        if (*p == tokenWHILE) {
+            error_throw_ex(kSyntax, "LOOP has a WHILE test");
+        } else if(*p == tokenUNTIL) {
+            error_throw_ex(kSyntax, "LOOP has an UNTIL test");
+        }
     }
 
     doindex++;
