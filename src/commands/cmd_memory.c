@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_memory.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -240,7 +240,7 @@ static void memory_report(const char *unused) {
     count_program_size_and_lines(&num_bytes, &num_lines);
     sprintf(
             inpbuf,
-            "    Program:%4dK (%2d%%) used %3dK free (%d line%s)\r\n",
+            "  Program: %4dK (%2d%%) used %4dK free (%d line%s)\r\n",
             (num_bytes + 512) / 1024,
             (num_bytes * 100) / PROG_FLASH_SIZE,
             (PROG_FLASH_SIZE - num_bytes + 512) / 1024,
@@ -248,34 +248,45 @@ static void memory_report(const char *unused) {
             num_lines == 1 ? "" : "s");
     console_puts(inpbuf);
 
-    int32_t vcnt = count_variables();
-    int32_t size = sizeof(struct s_vartbl);
+    const int fcnt = funtbl_count;
+    const int fsize = sizeof(struct s_funtbl);
     sprintf(
             inpbuf,
-            "  Variables:%4dK (%2d%%) used %3dK free (%d variables)\r\n",
-            (int32_t) ((vcnt * size + 512) / 1024),
-            (int32_t) (vcnt * 100 / MAXVARS),
-            (int32_t) (((MAXVARS * size + 512) / 1024) - ((vcnt * size + 512) / 1024)),
-            vcnt);
+            "Functions: %4dK (%2d%%) used %4dK free (%d of %d functions)\r\n",
+            (int) ((fcnt * fsize + 512) / 1024),
+            (int) (fcnt * 100 / MAXSUBFUN),
+            (int) (((MAXSUBFUN * fsize + 512) / 1024) - ((fcnt * fsize + 512) / 1024)),
+            (int) fcnt,
+            MAXSUBFUN);
     console_puts(inpbuf);
 
-    int ram_used = (UsedHeap() + 512) / 1024;
-    int percent_used = ((UsedHeap() + 512) * 100) / HEAP_SIZE;
+    const int vcnt = count_variables();
+    const int vsize = sizeof(struct s_vartbl);
     sprintf(
             inpbuf,
-            "General RAM:%4dK (%2d%%) used %3dK free\r\n",
+            "Variables: %4dK (%2d%%) used %4dK free (%d of %d variables)\r\n",
+            (int) ((vcnt * vsize + 512) / 1024),
+            (int) (vcnt * 100 / MAXVARS),
+            (int) (((MAXVARS * vsize + 512) / 1024) - ((vcnt * vsize + 512) / 1024)),
+            vcnt,
+            MAXVARS);
+    console_puts(inpbuf);
+
+    const int ram_used = (UsedHeap() + 512) / 1024;
+    const int percent_used = ((UsedHeap() + 512) * 100) / HEAP_SIZE;
+    const int pages_used = UsedHeap() / PAGESIZE;
+    sprintf(
+            inpbuf,
+            "     Heap: %4dK (%2d%%) used %4dK free (%d of %d pages)\r\n",
             ram_used,
             percent_used,
-            (HEAP_SIZE / 1024) - ram_used);
+            (HEAP_SIZE / 1024) - ram_used,
+            pages_used,
+            HEAP_SIZE / PAGESIZE);
     console_puts(inpbuf);
 }
 
 void cmd_memory(void) {
-    // getargs(&cmdline, 10, ",");
-    // for (int i = 0; i < argc; ++i) {
-    //     printf("%d: %s, ", i, argv[i]);
-    // }
-    // printf("\n");
     const char *p;
     if ((p = checkstring(cmdline, "COPY"))) {
         memory_copy(p);
