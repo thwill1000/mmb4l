@@ -50,17 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void cmd_do(void) {
     int i;
-    const char *p, *tp, *evalp;
-    CommandToken looptoken;
-
-    CommandToken whiletoken = cmdWHILE;
-    char whileloop = (cmdtoken == whiletoken);
-    if(whileloop)
-        looptoken = cmdWEND;
-    else {
-        looptoken = cmdLOOP;
-        whiletoken = tokenWHILE;
-    }
+    const char *p, *tp, *evalp = NULL;
+    const bool whileloop = (cmdtoken == cmdWHILE);
+    CommandToken looptoken = whileloop ? cmdWEND : cmdLOOP;
 
     if (whileloop) {
         // If it is a WHILE ... WEND loop we can just point to the command line.
@@ -68,17 +60,14 @@ void cmd_do(void) {
     } else {
         // If it is a DO loop find the WHILE token and (if found) get a pointer to its expression.
         skipspace(cmdline);
-        if (*cmdline == whiletoken) {
+        if (*cmdline == tokenWHILE) {
             evalp = ++cmdline;
         } else if (*cmdline == '\0' || *cmdline == '\'') {
             evalp = NULL;
+        } else if (*cmdline == tokenUNTIL) {
+            error_throw_ex(kSyntax, "DO has an UNTIL test");
         } else {
-            evalp = NULL;
-            if (*cmdline == tokenUNTIL) {
-                error_throw_ex(kSyntax, "DO has an UNTIL test");
-            } else {
-                error_throw(kSyntax);
-            }
+            error_throw(kSyntax);
         }
     }
 
