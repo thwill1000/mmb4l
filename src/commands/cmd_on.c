@@ -125,18 +125,19 @@ static MmResult on_key(const char *p) {
     return kOk;
 }
 
-/** ON nbr GOTO | GOSUB target[,target, target,...] */
+/** ON nbr GOTO | GOSUB target [,target, target,...] */
 static MmResult on_number(const char *p) {
     const DelimType delim[] = { tokenGOTO, tokenGOSUB, ',', 0 };
     getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, delim);
 
     if (argc < 3 || argc % 2 == 0) return kArgumentCount;
-    if (*argv[1] != delim[0] && *argv[1] != delim[1]) return kSyntax; // TODO: needs testing
+    const FunctionToken funtok = tokentbl_peek(argv[1]);
+    if (funtok != tokenGOTO && funtok != tokenGOSUB) return kSyntax;
 
     int r = getint(argv[0], 0, 255);  // evaluate the expression controlling the statement
     if (r == 0 || r > argc / 2) return kOk;  // microsoft say that we just go on to the next line
 
-    if (*argv[1] == delim[1]) { // TODO: needs testing
+    if (funtok == tokenGOSUB) {
         // this is a GOSUB, same as a GOTO but we need to first push the return pointer.
         if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_NESTED_GOSUB;
         errorstack[gosubindex] = CurrentLinePtr;

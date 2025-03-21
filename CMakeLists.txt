@@ -389,6 +389,8 @@ add_executable(
   src/functions/fun_mmcmdline.c
 )
 
+target_compile_definitions(test_cmd_run PUBLIC ENABLE_GTEST_EXTRAS)
+
 target_link_libraries(
   test_cmd_run
   gtest_main
@@ -951,6 +953,32 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_mmbasic_core)
+
+################################################################################
+# test_tokentbl
+################################################################################
+
+add_executable(
+  test_tokentbl
+  src/common/mmresult.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/events_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
+  src/core/tokentbl.c
+  src/core/gtest/tokentbl_test.cxx
+)
+
+target_link_libraries(
+  test_tokentbl
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_tokentbl)
 
 ################################################################################
 # test_vartbl

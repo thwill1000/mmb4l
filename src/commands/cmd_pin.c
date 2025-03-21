@@ -73,8 +73,7 @@ void cmd_pin(void) {
 
     // Equals operator expected.
     skipspace(p);
-    if (tokenfunction(*p) != op_equal) ON_FAILURE_ERROR(kSyntax);
-    ++p;
+    if (tokentbl_read(&p) != tokenEQUAL) ON_FAILURE_ERROR(kSyntax);
 
     // 0 or 1 expected.
     uint8_t value = getint(p, 0, 1);

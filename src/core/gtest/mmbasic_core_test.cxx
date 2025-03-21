@@ -19,6 +19,7 @@ extern "C" {
 #include "../tokentbl.h"
 #include "../vartbl.h"
 #include "../MMBasic.h"
+#include "../../common/cstring.h"
 #include "../../common/graphics.h"
 #include "../../common/parse.h"
 #include "../../common/program.h"
@@ -1140,11 +1141,15 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenMixOfFunctionsLabelsAndSubs) {
 
     EXPECT_STREQ("BBB", funtbl[3].name);
     EXPECT_EQ(kLabel, funtbl[3].type);
-    EXPECT_EQ(ProgMemory + 90, funtbl[3].addr);
+    EXPECT_EQ(
+        ProgMemory + 86 + 2 * tokensize(tokenAS) + tokensize(tokenEQUAL) + tokensize(tokenINT),
+        funtbl[3].addr);
 
     EXPECT_STREQ("BBB", funtbl[4].name);
     EXPECT_EQ(kFunction, funtbl[4].type);
-    EXPECT_EQ(ProgMemory + 101, funtbl[4].addr);
+    EXPECT_EQ(
+        ProgMemory + 97 + 2 * tokensize(tokenAS) + tokensize(tokenEQUAL) + tokensize(tokenINT),
+        funtbl[4].addr);
 }
 
 TEST_F(MmBasicCoreTest, FindSubFun_Errors_GivenFunctionNameTooLong) {
@@ -1649,7 +1654,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenInternalFunctionCallInBrackets) {
     const char *actual = skipvar(p, 0);
 
     EXPECT_STREQ("", error_msg);
-    EXPECT_EQ(ProgMemory + 11, actual);
+    EXPECT_EQ(ProgMemory + 10 + tokensize(tokenINT), actual);
 }
 
 TEST_F(MmBasicCoreTest, SkipVar_GivenUserFunctionCallInBrackets) {
@@ -1750,7 +1755,7 @@ TEST_F(MmBasicCoreTest, MakeArgs_GivenIfWithoutElse_Succeeds) {
     TokeniseAndAppend("If foo = -1 Then Error \"bar\"");
     PrepareProgram(true);
     const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
-    char argbuf[STRINGSIZE];
+    char argbuf[ARGBUF_SIZE];
     char *argv[10];
     int argc;
     const DelimType delim[] = { tokenTHEN, tokenELSE, 0 };
@@ -1772,7 +1777,7 @@ TEST_F(MmBasicCoreTest, MakeArgs_GivenFunctionWithoutParameters_Succeeds) {
     TokeniseAndAppend("If Not 1 Then Error \"bar\"");
     PrepareProgram(true);
     const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
-    char argbuf[STRINGSIZE];
+    char argbuf[ARGBUF_SIZE];
     char *argv[10];
     int argc;
     const DelimType delim[] = { tokenTHEN, tokenELSE, 0 };
@@ -1794,7 +1799,7 @@ TEST_F(MmBasicCoreTest, MakeArgs_GivenFunctionWithParameters_Succeeds) {
     TokeniseAndAppend("If Peek(Var f_$, i%) = 92 Then Poke Var f_$, i%, 47");
     PrepareProgram(true);
     const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
-    char argbuf[STRINGSIZE];
+    char argbuf[ARGBUF_SIZE];
     char *argv[10];
     int argc;
     const DelimType delim[] = { tokenTHEN, tokenELSE, 0 };
@@ -1810,4 +1815,57 @@ TEST_F(MmBasicCoreTest, MakeArgs_GivenFunctionWithParameters_Succeeds) {
     EXPECT_STREQ(expected, argv[1]);
     sprintf(expected, "%sVar f_$, i%%, 47", commandtbl_encoded("POKE"));
     EXPECT_STREQ(expected, argv[2]);
+}
+
+TEST_F(MmBasicCoreTest, MakeArgs_GivenInputOverflows_Fails) {
+    char untokenised[INPBUF_SIZE];
+    sprintf(untokenised, "%s", "Print a");
+    for (int i = 0; i < 150; ++i) cstring_cat(untokenised, "+ a", INPBUF_SIZE);
+    TokeniseAndAppend(untokenised);
+    PrepareProgram(true);
+    const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
+    char argbuf[ARGBUF_SIZE] = { 0x00 };
+    char *argv[10];
+    int argc;
+
+    makeargs(&p, 10, argbuf, argv, &argc, DELIM_COMMA);
+
+    EXPECT_STREQ("Argument buffer overflow", error_msg);
+    EXPECT_EQ(0x00, argbuf[ARGBUF_SIZE - 1]);
+}
+
+TEST_F(MmBasicCoreTest, MakeArgs_GivenBracketedExpressionOverflows_Fails) {
+    char untokenised[INPBUF_SIZE];
+    sprintf(untokenised, "%s", "Print (a ");
+    for (int i = 0; i < 150; ++i) cstring_cat(untokenised, "+ a", INPBUF_SIZE);
+    cstring_cat(untokenised, ")", INPBUF_SIZE);
+    TokeniseAndAppend(untokenised);
+    PrepareProgram(true);
+    const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
+    char argbuf[ARGBUF_SIZE] = { 0xFF };
+    char *argv[10];
+    int argc;
+
+    makeargs(&p, 10, argbuf, argv, &argc, DELIM_COMMA);
+
+    EXPECT_STREQ("Argument buffer overflow", error_msg);
+    EXPECT_EQ(0x00, argbuf[ARGBUF_SIZE - 1]);
+}
+
+TEST_F(MmBasicCoreTest, MakeArgs_GivenStringOverflows_Fails) {
+    char untokenised[INPBUF_SIZE];
+    sprintf(untokenised, "%s", "Print \"hello ");
+    for (int i = 0; i < 100; ++i) cstring_cat(untokenised, " hello", INPBUF_SIZE);
+    cstring_cat(untokenised, "\"", INPBUF_SIZE);
+    TokeniseAndAppend(untokenised);
+    PrepareProgram(true);
+    const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
+    char argbuf[ARGBUF_SIZE] = { 0xFF };
+    char *argv[10];
+    int argc;
+
+    makeargs(&p, 10, argbuf, argv, &argc, DELIM_COMMA);
+
+    EXPECT_STREQ("Argument buffer overflow", error_msg);
+    EXPECT_EQ(0x00, argbuf[ARGBUF_SIZE - 1]);
 }

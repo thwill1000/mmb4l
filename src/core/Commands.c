@@ -135,13 +135,13 @@ const char *llist(char *b, const char *p) {
                 firstnonwhite = false;
                 p += sizeof(CommandToken);
             } else {                                                // not a command so must be a token
-                strCopyWithCase(b, tokenname(*p));                  // expand the token
+                const FunctionToken funtok = tokentbl_read(&p);
+                strCopyWithCase(b, tokenname(funtok));              // expand the token
                 b += strlen(b);                                     // update pointer to the end of the buffer
-                if(*p == tokenTHEN || *p == tokenELSE)
+                if (funtok == tokenTHEN || funtok == tokenELSE)
                     firstnonwhite = true;
                 else
                     firstnonwhite = false;
-                p++;
             }
             continue;
         }

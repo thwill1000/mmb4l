@@ -46,23 +46,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/tokentbl.h"
 
 void cmd_else(void) {
-    int i;
-    const char *p, *tp;
-
     // search for the next ENDIF and pass control to the following line
-    i = 1; p = nextstmt;
+    const char *p = nextstmt;
 
     if (cmdtoken == cmdELSE) checkend(cmdline);
 
+    int i = 1;
     while(1) {
         p = GetNextCommand(p, NULL, "No matching ENDIF");
         const CommandToken cmd = commandtbl_decode(p);
         if(cmd == cmdIF) {
             // found a nested IF command, we now need to determine if it is a single or multiline IF
             // search for a THEN, then check if only white space follows.  If so, it is multiline.
-            tp = p + sizeof(CommandToken);
-            while(*tp && *tp != tokenTHEN) tp++;
-            if(*tp) tp++;                                           // step over the THEN
+            const char *tp = p + sizeof(CommandToken);
+            while (*tp && tokentbl_read(&tp) != tokenTHEN) { }      // step over the THEN
             skipspace(tp);
             if(*tp == 0 || *tp == '\'')                             // yes, only whitespace follows
                 i++;                                                // count it as a nested IF

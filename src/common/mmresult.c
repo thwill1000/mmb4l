@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmresult.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -122,6 +122,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kError:         return "MMBasic error";
         case kInternalFault: return "Internal fault (sorry)";
         case kSyntax:        return "Syntax";
+        case kArgumentBufferOverflow: return "Argument buffer overflow";
         case kArgumentCount: return "Argument count";
         case kStringTooLong: return "String too long";
         case kInvalidArgument: return "Invalid argument";

@@ -58,8 +58,10 @@ void cmd_let(void) {
     const char *p1 = cmdline;
 
     // search through the line looking for the equals sign
-    while(*p1 && tokenfunction(*p1) != op_equal) p1++;
+    while (*p1 && tokentbl_read(&p1) != tokenEQUAL) { }
     if(!*p1) error_throw_legacy("Unknown command");
+
+    p1 -= tokensize(tokenEQUAL);
 
     // check that we have a straight forward variable
     const char *p2 = skipvar(cmdline, false);
@@ -72,7 +74,7 @@ void cmd_let(void) {
     if(vartbl[VarIndex].type & T_CONST) error_throw_legacy("Cannot change a constant");
 
     // step over the equals sign, evaluate the rest of the command and save in the variable
-    p1++;
+    p1 += tokensize(tokenEQUAL);
     if(vartbl[VarIndex].type & T_STR) {
         t = T_STR;
         p1 = evaluate(p1, &f, &i64, &s, &t, false);

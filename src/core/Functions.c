@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Hardware_Includes.h"
 #include "MMBasic.h"
 #include "Functions.h"
+#include "tokentbl.h"
 
 /********************************************************************************************************************************************
  basic functions

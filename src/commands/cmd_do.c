@@ -60,11 +60,12 @@ void cmd_do(void) {
     } else {
         // If it is a DO loop find the WHILE token and (if found) get a pointer to its expression.
         skipspace(cmdline);
-        if (*cmdline == tokenWHILE) {
-            evalp = ++cmdline;
-        } else if (*cmdline == '\0' || *cmdline == '\'') {
+        const FunctionToken funtok = tokentbl_read(&cmdline);
+        if (funtok == '\0' || funtok == '\'') {
             evalp = NULL;
-        } else if (*cmdline == tokenUNTIL) {
+        } else if (funtok == tokenWHILE) {
+            evalp = cmdline;
+        } else if (funtok == tokenUNTIL) {
             error_throw_ex(kSyntax, "DO has an UNTIL test");
         } else {
             error_throw(kSyntax);
@@ -112,9 +113,10 @@ void cmd_do(void) {
         // search the LOOP statement for a WHILE or UNTIL token (p is pointing to the matching LOOP statement)
         p += sizeof(CommandToken);
         while(*p && *p < 0x80) p++;
-        if (*p == tokenWHILE) {
+        const FunctionToken funtok = tokentbl_peek(p);
+        if (funtok == tokenWHILE) {
             error_throw_ex(kSyntax, "LOOP has a WHILE test");
-        } else if(*p == tokenUNTIL) {
+        } else if (funtok == tokenUNTIL) {
             error_throw_ex(kSyntax, "LOOP has an UNTIL test");
         }
     }

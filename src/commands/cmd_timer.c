@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_timer.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -53,10 +53,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // search through the line looking for the equals sign and step over it,
 // evaluate the rest of the command and save in the timer
 void cmd_timer(void) {
-    while (*cmdline && *cmdline != tokenEQUAL) cmdline++;
+    while (*cmdline && tokentbl_read(&cmdline) != tokenEQUAL) { }
     if (!*cmdline) ERROR_SYNTAX;
 
-    int64_t msec = getinteger(++cmdline);
+    const int64_t msec = getinteger(cmdline);
 
     mmtime_set_timer_ns(MILLISECONDS_TO_NANOSECONDS(msec));
 }
