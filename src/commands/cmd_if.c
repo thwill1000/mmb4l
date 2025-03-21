@@ -69,6 +69,9 @@ static void execute_one_command(char *p) {
     ClearTempMemory();                                              // at the end of each command we need to clear any temporary string vars
 }
 
+/**
+ * IF <condition> THEN <statement> ELSE <statement>
+ */
 void cmd_if(void) {
     int r, i, testgoto, testelseif;
     DelimType delim[] = { tokenTHEN, tokenELSE, 0 };
@@ -85,7 +88,7 @@ retest_an_if:
         if(testelseif && argc > 2) error_throw_legacy("Unexpected text");
 
         // if there is no THEN token retry the test with a GOTO.  If that fails flag an error
-        if(argc < 2 || *argv[1] != delim[0]) { // TODO: Test
+        if(argc < 2 || tokentbl_peek(argv[1]) != delim[0]) {
             if(testgoto) error_throw_legacy("IF without THEN");
             delim[0] = tokenGOTO;
             testgoto = true;
@@ -96,7 +99,7 @@ retest_an_if:
         if (argc >= 3 && commandtbl_decode(argv[2]) == cmdIF) argc = 3;  // this is IF xx=yy THEN IF ... so we want to evaluate only the first 3
         if (argc >= 5 && commandtbl_decode(argv[4]) == cmdIF) argc = 5;  // this is IF xx=yy THEN cmd ELSE IF ... so we want to evaluate only the first 5
 
-        if(argc == 4 || (argc == 5 && *argv[3] != delim[1])) ERROR_SYNTAX; // TODO: Test
+        if (argc == 4 || (argc == 5 && tokentbl_peek(argv[3]) != tokenELSE)) ERROR_SYNTAX;
 
         r = (getnumber(argv[0]) != 0);                              // evaluate the expression controlling the if statement
 
@@ -110,22 +113,21 @@ retest_an_if:
             else {
                 // This is a standard single line IF statement
                 // Because the test was TRUE we are just interested in the THEN cmd stage.
-                if(*argv[1] == tokenGOTO) {
+                if (tokentbl_peek(argv[1]) == tokenGOTO) {
+                    // IF <condition> GOTO <line>
                     cmdline = argv[2];
                     cmd_goto();
                     return;
-                } else if(isdigit(*argv[2])) {
+                } else if (isdigit(*argv[2])) {
+                    // IF <condition> THEN <line>
                     nextstmt = findline(getinteger(argv[2]), true);
+                } else if (argc == 5) {
+                    // IF <condition> THEN <statement1> ELSE <statement2>
+                    execute_one_command(argv[2]);
                 } else {
-                    if(argc == 5) {
-                        // this is a full IF THEN ELSE and the statement we want to execute is between the THEN & ELSE
-                        // this is handled by a special routine
-                        execute_one_command(argv[2]);
-                    } else {
-                        // easy - there is no ELSE clause so just point the next statement pointer to the byte after the THEN token
-                        for(p = cmdline; *p && *p != delim[0]; p++);  // search for the token - TODO: Test
-                        nextstmt = p + 1;                             // and point to the byte after
-                    }
+                    // IF <condition> THEN <statement>
+                    for (p = cmdline; *p && tokentbl_read(&p) != tokenTHEN; ) { }
+                    nextstmt = p;  // The statement after the THEN token.
                 }
             }
         } else {
@@ -142,8 +144,7 @@ retest_an_if:
                         // found a nested IF command, we now need to determine if it is a single or multiline IF
                         // search for a THEN, then check if only white space follows.  If so, it is multiline.
                         tp = p + sizeof(CommandToken);
-                        while(*tp && *tp != delim[0]) tp++; // TODO: Test
-                        if(*tp) tp++;                               // step over the THEN
+                        while (*tp && tokentbl_read(&tp) != delim[0]) { }  // find and step over THEN
                         skipspace(tp);
                         if(*tp == 0 || *tp == '\'')                 // yes, only whitespace follows
                             i++;                                    // count it as a nested IF
@@ -187,15 +188,15 @@ retest_an_if:
             else {
                 // this must be a single line IF statement
                 // check if there is an ELSE on the same line
-                if(argc == 5) {
-                    // there is an ELSE command
-                    if(isdigit(*argv[4]))
-                        // and it is just a number, so get it and find the line
+                if (argc == 5) {
+                    // There is an ELSE command
+                    if (isdigit(*argv[4])) {
+                        // IF <condition> THEN <statement> ELSE <line>
                         nextstmt = findline(getinteger(argv[4]), true);
-                    else {
-                        // there is a statement after the ELSE clause  so just point to it (the byte after the ELSE token)
-                        for(p = cmdline; *p && *p != delim[1]; p++);  // search for the token - TODO: Test
-                        nextstmt = p + 1;                             // and point to the byte after
+                    } else {
+                        // IF <condition> THEN <statement1> ELSE <statement2>
+                        for (p = cmdline; *p && tokentbl_read(&p) != tokenELSE; ) { }
+                        nextstmt = p;  // The statement after the ELSE token.
                     }
                 } else {
                     // no ELSE on a single line IF statement, so just continue with the next statement

@@ -16,6 +16,7 @@ extern "C" {
 #include "../parse.h"
 #include "../utility.h"
 #include "../../core/Commands.h"
+#include "../../core/tokentbl.h"
 #include "../../core/MMBasic.h"
 #include "../../core/vartbl.h"
 #include "../../core/gtest/command_stubs.h"
@@ -69,6 +70,8 @@ void ListNewLine(int *ListCnt, int all) { }
 
 }
 
+FunctionToken tokenINFO = 0x0;
+
 bool operator==(const ParameterSignature& lhs, const ParameterSignature& rhs)
 {
     return lhs.name_offset == rhs.name_offset
@@ -103,6 +106,7 @@ protected:
         InitBasic();
         clear_prog_memory();
         mock_gpio_translate_from_pin_gp = NULL;
+        tokenINFO = tokentbl_get("MM.INFO(");
     }
 
     void TearDown() override {
@@ -505,7 +509,7 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedIntegerType_Succeeds) {
         .num_params = 0
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(18, p - ProgMemory);
+    EXPECT_EQ(17 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedStringType_Succeeds) {
@@ -524,7 +528,7 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedStringType_Succeeds) {
         .num_params = 0
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(17, p - ProgMemory);
+    EXPECT_EQ(16 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedFloatType_Succeeds) {
@@ -543,7 +547,7 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedFloatType_Succeeds) {
         .num_params = 0
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(16, p - ProgMemory);
+    EXPECT_EQ(15 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExplicitIntegerType_Succeeds) {
@@ -624,7 +628,7 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithImpliedIntegerParameter_Succeeds)
         .type = T_IMPLIED | T_INT,
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(20, p - ProgMemory);
+    EXPECT_EQ(19 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithNoType_AndDefaultType_Succeeds) {
@@ -717,12 +721,12 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithTwoParameters_Succeeds) {
         .type = T_IMPLIED | T_INT,
     };
     expected.params[1] = {
-        .name_offset = 20,
+        .name_offset = (uint8_t) (19 + tokensize(tokenAS)),
         .name_len = 3,
         .type = T_IMPLIED | T_NBR,
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(33, p - ProgMemory);
+    EXPECT_EQ(31 + 2 * tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithArrayParameters_Succeeds) {
@@ -753,13 +757,13 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithArrayParameters_Succeeds) {
         .array = true,
     };
     expected.params[2] = {
-        .name_offset = 29,
+        .name_offset = (uint8_t) (28 + tokensize(tokenAS)),
         .name_len = 3,
         .type = T_IMPLIED | T_STR,
         .array = true,
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(45, p - ProgMemory);
+    EXPECT_EQ(43 + 2 * tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExtraWhitespace_Succeeds) {
@@ -783,12 +787,12 @@ TEST_F(ParseTest, ParseFnSig_GivenFunction_WithExtraWhitespace_Succeeds) {
         .type = T_IMPLIED | T_STR,
     };
     expected.params[1] = {
-        .name_offset = 33,
+        .name_offset = (uint8_t) (32 + tokensize(tokenAS)),
         .name_len = 1,
         .type = T_INT,
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(43, p - ProgMemory);
+    EXPECT_EQ(42 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenFunction_With32CharacterName_Succeeds) {
@@ -1056,7 +1060,7 @@ TEST_F(ParseTest, ParseFnSig_GivenSub_WithImpliedIntegerParameter_Succeeds) {
         .type = T_IMPLIED | T_INT,
     };
     EXPECT_EQ(expected, actual);
-    EXPECT_EQ(19, p - ProgMemory);
+    EXPECT_EQ(18 + tokensize(tokenAS), p - ProgMemory);
 }
 
 TEST_F(ParseTest, ParseFnSig_GivenSub_WithInvalidName_Fails) {
@@ -1136,67 +1140,66 @@ TEST_F(ParseTest, ParseFnSig_GivenNotAFunctionOrSub_Fails) {
 
 TEST_F(ParseTest, ParseGpPin_GivenGpZero_Succeeds) {
     tokenise_and_append("Print Mm.Info(PinNo GP0)");
-
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kOk, parse_gp_pin(&p, &gp));
     EXPECT_EQ(0, gp);
-    EXPECT_EQ(ProgMemory + 13, p);
+    EXPECT_EQ(ProgMemory + 12 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ParseTest, ParseGpPin_GivenOneDigitGp_Succeeds) {
     tokenise_and_append("Print Mm.Info(PinNo GP1)");
 
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kOk, parse_gp_pin(&p, &gp));
     EXPECT_EQ(1, gp);
-    EXPECT_EQ(ProgMemory + 13, p);
+    EXPECT_EQ(ProgMemory + 12 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ParseTest, ParseGpPin_GivenTwoDigitGp_Succeeds) {
     tokenise_and_append("Print Mm.Info(PinNo GP42)");
 
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kOk, parse_gp_pin(&p, &gp));
     EXPECT_EQ(42, gp);
-    EXPECT_EQ(ProgMemory + 14, p);
+    EXPECT_EQ(ProgMemory + 13 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ParseTest, ParseGpPin_GivenGpWithLeadingZero_Fails) {
     tokenise_and_append("Print Mm.Info(PinNo GP01)");
 
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kSyntax, parse_gp_pin(&p, &gp));
     EXPECT_EQ(0, gp);
-    EXPECT_EQ(ProgMemory + 10, p);
+    EXPECT_EQ(ProgMemory + 9 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ParseTest, ParseGpPin_GivenThreeDigitGp_Fails) {
     tokenise_and_append("Print Mm.Info(PinNo GP100)");
 
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kSyntax, parse_gp_pin(&p, &gp));
     EXPECT_EQ(0, gp);
-    EXPECT_EQ(ProgMemory + 10, p);
+    EXPECT_EQ(ProgMemory + 9 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
 TEST_F(ParseTest, ParseGpPin_GivenNotGp_Fails) {
     tokenise_and_append("Print Mm.Info(PinNo s$)");
 
-    const char *p = ProgMemory + 10; // Skip to the start of the GP parameter.
+    const char *p = ProgMemory + 9 + tokensize(tokenINFO); // Skip to the start of the GP parameter.
     uint8_t gp = 0;
     EXPECT_EQ(kNotParsed, parse_gp_pin(&p, &gp));
     EXPECT_EQ(0, gp);
-    EXPECT_EQ(ProgMemory + 10, p);
+    EXPECT_EQ(ProgMemory + 9 + tokensize(tokenINFO), p);
     EXPECT_STREQ("", error_msg);
 }
 
@@ -1276,7 +1279,7 @@ TEST_F(ParseTest, ParsePinNum_GivenIntegerExpression_Succeeds) {
     EXPECT_EQ(kOk, parse_pin_num(&p, &pin_num, &is_gp));
     EXPECT_EQ(14, pin_num);
     EXPECT_EQ(false, is_gp);
-    EXPECT_EQ(ProgMemory + 6, p);
+    EXPECT_EQ(ProgMemory + 5 + tokensize(tokenADD), p);
     EXPECT_STREQ("", error_msg);
 }
 

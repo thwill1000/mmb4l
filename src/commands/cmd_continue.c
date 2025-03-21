@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/tokentbl.h"
 
 void cmd_continue(void) {
-    if(*cmdline == tokenFOR) {
+    if (tokentbl_peek(cmdline) == tokenFOR) {
         if(forindex == 0) error_throw_legacy("No FOR loop is in effect");
         nextstmt = forstack[forindex - 1].nextptr;
         return;

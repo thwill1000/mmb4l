@@ -106,11 +106,14 @@ void cmd_open(void) {
     const DelimType delim[] = { tokenFOR, tokenAS, ',', 0 };
     getargs(&cmdline, 7, delim);
 
-    if (argc == 5 && *argv[1] == tokenFOR && *argv[3] == tokenAS) {
+    const FunctionToken arg1 = tokentbl_peek(argv[1]);
+    const FunctionToken arg3 = (argc == 5) ? tokentbl_peek(argv[3]) : INVALID_TOKEN;
+
+    if (argc == 5 && arg1 == tokenFOR && arg3 == tokenAS) {
         cmd_open_file(argc, argv);
-    } else if (argc > 2 && argc < 8 && *argv[1] == tokenAS && strcasecmp(argv[2], "GPS") == 0) {
+    } else if (argc > 2 && argc < 8 && arg1 == tokenAS && strcasecmp(argv[2], "GPS") == 0) {
         cmd_open_gps(argc, argv);
-    } else if (argc == 3 && *argv[1] == tokenAS) {
+    } else if (argc == 3 && arg1 == tokenAS) {
         cmd_open_serial(argc, argv);
     } else {
         ERROR_SYNTAX;

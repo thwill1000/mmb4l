@@ -62,13 +62,15 @@ void cmd_loop(void) {
             // first check if the DO statement had a WHILE component
             // if not find the WHILE statement here and evaluate it
             if(dostack[i].evalptr == NULL) {                        // if it was a DO without a WHILE
-                if(*cmdline >= 0x80) {                              // if there is something
-                    if(*cmdline == tokenWHILE)
-                        tst = (getnumber(++cmdline) != 0);          // evaluate the expression
-                    else if(*cmdline == tokenUNTIL)
-                        tst = (getnumber(++cmdline) == 0);          // evaluate the expression
-                    else
+                if (*cmdline >= C_BASETOKEN) {                      // if there is something
+                    FunctionToken funtok = tokentbl_read(&cmdline);
+                    if (funtok == tokenWHILE) {
+                        tst = (getnumber(cmdline) != 0);            // evaluate the expression
+                    } else if (funtok == tokenUNTIL) {
+                        tst = (getnumber(cmdline) == 0);            // evaluate the expression
+                    } else {
                         ERROR_SYNTAX;
+                    }
                 }
                 else {
                     tst = 1;                                        // and loop forever

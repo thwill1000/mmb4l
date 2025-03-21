@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 parse.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -505,8 +505,8 @@ MmResult parse_fn_sig(const char **p, FunctionSignature *signature) {
             }
 
             // Parse optional trailing AS FLOAT|INTEGER|STRING.
-            if (**p == tokenAS) {
-                (*p)++; // Jump over the AS token.
+            if (tokentbl_peek(*p) == tokenAS) {
+                tokentbl_read(p); // Jump over the AS token.
                 if (param->type) return kTypeSpecifiedTwice;
                 skipspace((*p));
                 result = parse_implied_type(p, &(param->type));
@@ -540,10 +540,10 @@ MmResult parse_fn_sig(const char **p, FunctionSignature *signature) {
         bracket_count--;
         (*p)++; // Jump over the closing bracket.
         skipspace((*p));
-        if (**p == tokenAS) {
+        if (tokentbl_peek(*p) == tokenAS) {
+            tokentbl_read(p); // Jump over the AS token.
             if (signature->token == cmdSUB) return kInvalidSubDefinition;
             if (signature->type) return kTypeSpecifiedTwice;
-            (*p)++; // Jump over the AS token.
             skipspace((*p));
             result = parse_implied_type(p, &signature->type);
             if (FAILED(result)) return result;
