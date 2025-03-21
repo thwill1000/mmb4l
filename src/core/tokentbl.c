@@ -221,19 +221,19 @@ void tokentbl_init() {
 #if defined(ENABLE_GTEST_EXTRAS)
     for (size_t i = 0; i < TOKENTBL_SIZE - 1; i++) {
         char *buf = ENCODED_FUNCTIONS[i];
-        sprintf(buf, "%c", (char) (i + C_BASETOKEN));
+        tokentbl_write(&buf, i + C_BASETOKEN);
     }
 #endif
 }
 
-int tokentbl_get(const char *s) {
-    for (int i = 0; i < tokentbl_size - 1; i++) {
+FunctionToken tokentbl_get(const char *s) {
+    for (size_t i = 0; i < TOKENTBL_SIZE - 1; i++) {
         if (strcasecmp(s, tokentbl[i].name) == 0) {
-            return i + C_BASETOKEN;
+            return (FunctionToken) (i + C_BASETOKEN);
         }
     }
     ERROR_INTERNAL_FAULT;
-    return 0;
+    return INVALID_TOKEN;
 }
 
 #if defined(ENABLE_GTEST_EXTRAS)

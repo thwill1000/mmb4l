@@ -56,8 +56,8 @@ void cmd_const(void) {
     for(i = 0; i < argc; i += 2) {
         p = skipvar(argv[i], false);                                // point to after the variable
         skipspace(p);
-        if(tokenfunction(*p) != op_equal) ERROR_SYNTAX;             // must be followed by an equals sign
-        p++;                                                        // step over the equals sign
+        const FunctionToken funtok = tokentbl_read(&p);
+        if (funtok != tokenEQUAL) ERROR_SYNTAX;                     // must be followed by an equals sign
         type = T_NOTYPE;
         v = DoExpression(p, &type);                                 // evaluate the constant's value
         type = TypeMask(type);

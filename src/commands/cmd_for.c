@@ -57,11 +57,14 @@ void cmd_for(void) {
 
     {
         getargs(&cmdline, 7, delim);
-        // TODO: Unit test when move to multi-byte tokens/delimiters.
-        if(argc < 5 || argc == 6 || *argv[1] != delim[0] || *argv[3] != delim[1]) {
+        if (argc < 5 ||
+            argc == 6 ||
+            tokentbl_peek(argv[1]) != tokenEQUAL ||
+            tokentbl_peek(argv[3]) != tokenTO
+        ) {
             error_throw_legacy("FOR with misplaced = or TO");
         }
-        if(argc == 6 || (argc == 7 && *argv[5] != delim[2])) ERROR_SYNTAX;
+        if (argc == 6 || (argc == 7 && tokentbl_peek(argv[5]) != tokenSTEP)) ERROR_SYNTAX;
 
         // get the variable name and trim any spaces
         vname = argv[0];

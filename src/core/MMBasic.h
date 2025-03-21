@@ -72,8 +72,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T_LINENBR   2                               // three bytes for a line number
 #define T_LABEL     3                               // variable length indicating a label
 
-#define E_END       255                             // dummy last operator in an expression
-
 // these constants are used in the second argument of the findvar() function, they should be or'd together
 #define V_FIND              0x0000                    // a straight forward find, if the variable is not found it is created and set to zero
 #define V_NOFIND_ERR        0x0200                    // throw an error if not found
@@ -140,7 +138,8 @@ extern char DefaultType;                              // the default type if a v
 // x = pointer to the basic text to be split up (char *)
 // y = maximum number of args (will throw an error if exceeded) (int)
 // s = a string of characters to be used in detecting where to split the text (char *)
-#define getargs(x, y, s) char argbuf[STRINGSIZE + STRINGSIZE/2]; char *argv[y]; int argc; makeargs(x, y, argbuf, argv, &argc, s)
+#define ARGBUF_SIZE  STRINGSIZE + STRINGSIZE/2
+#define getargs(x, y, s) char argbuf[ARGBUF_SIZE]; char *argv[y]; int argc; makeargs(x, y, argbuf, argv, &argc, s)
 
 #define has_arg(x)  ((argc >= (x) + 1) && *argv[(x)])
 
@@ -167,7 +166,8 @@ extern char *sarg1, *sarg2, *sret;              // Global string pointers used b
 extern int targ;                                // Global type of argument (string or MMFLOAT) returned by an operator
 
 typedef uint16_t CommandToken;
-typedef uint16_t DelimType;
+typedef uint16_t FunctionToken;
+typedef FunctionToken DelimType;
 
 extern CommandToken cmdtoken;                   // Token number of the command
 extern const char *cmdline;                     // Command line terminated with a zero char and trimmed of spaces
@@ -207,7 +207,7 @@ void ClearRuntime(void);
 void ClearProgram(void);
 void *DoExpression(const char *p, int *t);
 const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int noerror);
-const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *t);
+const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, FunctionToken *oo, int *t);
 MMFLOAT getnumber(const char *p);
 MMINTEGER getinteger(const char *p);
 MMINTEGER getint(const char *p, MMINTEGER min, MMINTEGER max);

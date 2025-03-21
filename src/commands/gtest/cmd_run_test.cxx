@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024 Thomas Hugo Williams
+ * Copyright (c) 2022-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -9,8 +9,10 @@
 extern "C" {
 
 #include "../../Hardware_Includes.h"
+#include "../../common/gtest/stubs/error_stubs.h"
 #include "../../core/Commands.h"
 #include "../../core/MMBasic.h"
+#include "../../core/tokentbl.h"
 #include "../../core/vartbl.h"
 #define DO_NOT_STUB_CMD_RUN
 #include "../../core/gtest/command_stubs.h"
@@ -274,13 +276,14 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
 }
 
 TEST_F(CmdRunTest, ParseArgs_DoesNotOverrunBuffer) {
-    memset(inpbuf, '+', 255);
+    memset(inpbuf, '+', tokensize(tokenADD) == 2 ? 145 : 255);
     memcpy(inpbuf, "RUN \"foo\", -bar", 15);
     inpbuf[255] = '\0';
     tokenise(1);
     EXPECT_EQ(
         kOk,
         cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+    EXPECT_STREQ("", error_msg);
     EXPECT_STREQ("foo", m_filename);
     EXPECT_EQ(255, strlen(m_run_args));
     EXPECT_STREQ(

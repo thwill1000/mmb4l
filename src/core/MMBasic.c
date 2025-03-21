@@ -141,7 +141,7 @@ const DelimType DELIM_BRA_COMMA[] = { '(', ',', 0 };
 //
 void getexpr(char *);
 void checktype(int *, int);
-const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta);
+const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, FunctionToken *oo, int *ta);
 
 
 /********************************************************************************************************************************************
@@ -561,8 +561,8 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     if(isfun) {
         ttp = skipvar(ttp, false);                                  // point to after the function name and bracketed arguments
         skipspace(ttp);
-        if(*ttp == tokenAS) {                                       // are we using Microsoft syntax (eg, AS INTEGER)?
-            ttp++;                                                  // step over the AS token
+        if (tokentbl_peek(ttp) == tokenAS) {                        // are we using Microsoft syntax (eg, AS INTEGER)?
+            tokentbl_read(&ttp);                                    // step over the AS token
             ttp = CheckIfTypeSpecified(ttp, &FunType, true);        // get the type
             if(!(FunType & T_IMPLIED)) error("Variable type");
         }
@@ -731,8 +731,9 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         int ArgType = T_NOTYPE;
         tp2 = (char *) skipvar(args->v2[i], false);                 // point to after the variable
         skipspace(tp2);
-        if (*tp2 == tokenAS) {                                      // are we using Microsoft syntax (eg, AS INTEGER)?
+        if (tokentbl_peek(tp2) == tokenAS) {                        // are we using Microsoft syntax (eg, AS INTEGER)?
             *tp2++ = '\0';                                          // terminate the string and step over the AS token
+            for (int i = 1; i < tokensize(tokenAS); ++i) *tp2++ = ' ';
             tp2 = (char *) CheckIfTypeSpecified(tp2, &ArgType, true);  // and get the type
             if(!(ArgType & T_IMPLIED)) error("Variable type");
         }
@@ -1040,15 +1041,15 @@ void tokenise(int console) {
                 }
                 if(*tp == 0 && (!isnameend(*(tp - 1)) || !isnamechar(*tp2))) break;
             }
-            if(i != tokentbl_size - 1) {
+            if (i != tokentbl_size - 1) {
                 // we have a  match
-                i += C_BASETOKEN;
-                *op++ = i;                                          // insert the token found
+                const FunctionToken funtok = i + C_BASETOKEN;
+                tokentbl_write(&op, funtok);
                 p = tp2;                                            // and step over it in the source text
-//                if(isalpha(*(p-1)) && *p == ' ') {                  // if the token is an alpha string followed by a space
-//                    p++;                                            // skip over it (llist will restore the space)
+//                if(isalpha(*(p-1)) && *p == ' ') {                // if the token is an alpha string followed by a space
+//                    p++;                                          // skip over it (llist will restore the space)
 //                }
-                if(i == tokenTHEN || i == tokenELSE)
+                if (funtok == tokenTHEN || funtok == tokenELSE)
                     firstnonwhite = true;                           // a command is valid after a THEN or ELSE
                 else
                     firstnonwhite = false;
@@ -1136,7 +1137,7 @@ void *DoExpression(const char *p, int *t) {
 //  if *t = T_NOTYPE it will not throw an error and will return the type found in *t
 // this will check that the expression is terminated correctly and throw an error if not.  flags & E_NOERROR will suppress that check
 const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int flags) {
-    int o;
+    FunctionToken o;
     int t = *ta;
     char *s;
 
@@ -1157,7 +1158,9 @@ const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *
     // check that the expression is terminated correctly
     if(!(flags & E_NOERROR)) {
         skipspace(p);
-        if(!(*p == 0 || *p == ',' || *p == ')' || *p == '\''))  error("Expression syntax");
+        if (!(*p == 0 || *p == ',' || *p == ')' || *p == '\'')) {
+            error("Expression syntax");
+        }
     }
     return p;
 }
@@ -1227,10 +1230,10 @@ char *getCstring(const char *p) {
 
 
 // recursively evaluate an expression observing the rules of operator precedence
-const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo, int *ta) {
+const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, FunctionToken *oo, int *ta) {
     MMFLOAT fa1, fa2;
     MMINTEGER ia1, ia2;
-    int o1, o2;
+    FunctionToken o1, o2;
     int t1, t2;
     char *sa1, *sa2;
 
@@ -1243,9 +1246,9 @@ const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo
     o1 = *oo;
     p = getvalue(p, &fa2, &ia2, &sa2, &o2, &t2);
     while(1) {
-        if(o2 == E_END || tokentbl[o1].precedence <= tokentbl[o2].precedence) {
+        if(o2 == E_END || tokenprecedence(o1) <= tokenprecedence(o2)) {
             if((t1 & T_STR) != (t2 & T_STR)) error("Incompatible types in expression");
-            targ = tokentbl[o1].type & (T_NBR | T_INT);
+            targ = tokentype(o1) & (T_NBR | T_INT);
             if(targ == T_NBR) {                                     // if the operator does not work with ints convert the args to floats
                 if(t1 & T_INT) { fa1 = ia1; t1 = T_NBR; }           // at this time the only example of this is op_div (/)
                 if(t2 & T_INT) { fa2 = ia2; t2 = T_NBR; }
@@ -1258,7 +1261,7 @@ const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo
                 if(t1 & T_NBR && t2 & T_INT) { fa2 = ia2; t2 = T_NBR; } // if one arg is float convert the other to a float
                 if(t1 & T_INT && t2 & T_NBR) { fa1 = ia1; t1 = T_NBR; }
             }
-            if(!(tokentbl[o1].type & T_OPER) || !(tokentbl[o1].type & t1)) {
+            if(!(tokentype(o1) & T_OPER) || !(tokentype(o1) & t1)) {
                 error("Invalid operator");
             }
             farg1 = fa1; farg2 = fa2;                               // setup the float args (incase it is a float)
@@ -1266,7 +1269,7 @@ const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo
             iarg1 = ia1; iarg2 = ia2;                               // ditto integer args
             targ = t1;                                              // this is what both args are
             mmresult_clear();
-            tokentbl[o1].fptr();                                    // call the operator function
+            tokenfunction(o1)();                                    // call the operator function
             *fa = fret;
             *ia = iret;
             *sa = sret;
@@ -1284,7 +1287,7 @@ const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *oo
 
 // get a value, either from a constant, function or variable
 // also returns the next operator to the right of the value or E_END if no operator
-const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* oo, int* ta) {
+const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, FunctionToken* oo, int* ta) {
     MMFLOAT f = 0;
     MMINTEGER i64 = 0;
     char *s = NULL;
@@ -1294,11 +1297,13 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
 
     skipspace(p);
     if (*p >= C_BASETOKEN) { //don't waste time if not a built-in function
+        const FunctionToken funtok = tokentbl_peek(p);
         // special processing for the NOT operator
         // just get the next value and invert its logical value
-        if (tokenfunction(*p) == op_not) {
-            int ro;
-            p++; t = T_NOTYPE;
+        if (tokenfunction(funtok) == op_not) {
+            FunctionToken ro;
+            p += tokensize(funtok);
+            t = T_NOTYPE;
             p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
             if (t & T_NBR)
                 f = (MMFLOAT)((f != 0) ? 0 : 1);                        // invert the value returned
@@ -1315,10 +1320,11 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
             return p;                                                   // return straight away as we already have the next operator
         }
 
-        if (tokenfunction(*p) == op_inv) {
-            int ro;
+        if (tokenfunction(funtok) == op_inv) {
+            FunctionToken ro;
             uint64_t ut;
-            p++; t = T_NOTYPE;
+            p += tokensize(funtok);
+            t = T_NOTYPE;
             p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
             if (t & T_NBR)
                 i64 = FloatToInt64(f);
@@ -1338,9 +1344,10 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
 
         // special processing for the unary - operator
         // just get the next value and negate it
-        if (tokenfunction(*p) == op_subtract) {
-            int ro;
-            p++; t = T_NOTYPE;
+        if (tokenfunction(funtok) == op_subtract) {
+            FunctionToken ro;
+            p += tokensize(funtok);
+            t = T_NOTYPE;
             p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
             if (t & T_NBR)
                 f = -f;                                                 // negate the MMFLOAT returned
@@ -1357,9 +1364,10 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
             return p;                                                   // return straight away as we already have the next operator
         }
 
-        if (tokenfunction(*p) == op_add) {
-            int ro;
-            p++; t = T_NOTYPE;
+        if (tokenfunction(funtok) == op_add) {
+            FunctionToken ro;
+            p += tokensize(funtok);
+            t = T_NOTYPE;
             p = getvalue(p, &f, &i64, &s, &ro, &t);                     // get the next value
             skipspace(p);
             *fa = f;                                                    // save what we have
@@ -1371,22 +1379,24 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
         }
 
         // if a function execute it and save the result
-        if (tokentype(*p) & (T_FUN | T_FNA)) {
+        if (tokentype(funtok) & (T_FUN | T_FNA)) {
             int tmp;
             tp = p;
-            // if it is a function with arguments we need to locate the closing bracket and copy the argument to
-            // a temporary variable so that functions like getarg() will work.
-            if (tokentype(*p) & T_FUN) {
-                const char *p1 = p + 1;
+            // if it is a function with arguments we need to locate the closing bracket
+            // and copy the argument to a temporary variable so that functions like getarg() will work.
+            if (tokentype(funtok) & T_FUN) {
+                const char *p1 = p + tokensize(funtok);
                 p = getclosebracket(p);                                 // find the closing bracket
                 char *p2 = (char *) GetTempMemory(STRINGSIZE);          // this will last for the life of the command
                 ep = p2;
                 while (p1 != p) *p2++ = *p1++;
+                p++;
+            } else {
+                p += tokensize(funtok);
             }
-            p++;                                                        // point to after the function (without argument) or after the closing bracket
-            targ = TypeMask(tokentype(*tp));                            // set the type of the function (which might need to know this)
+            targ = TypeMask(tokentype(funtok));                         // set the type of the function (which might need to know this)
             tmp = targ;
-            tokenfunction(*tp)();                                       // execute the function
+            tokenfunction(funtok)();                                    // execute the function
             if ((tmp & targ) == 0) error_throw(kInternalFault);         // as a safety check the function must return a type the same as set in the header
             t = targ;                                                   // save the type of the function
             f = fret; i64 = iret; s = sret;                             // save the result
@@ -1517,8 +1527,8 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
     *ta = t;
 
     // get the next operator, if there is not an operator set the operator to end of expression (E_END)
-    if (tokentype(*p) & T_OPER)
-        *oo = *p++ - C_BASETOKEN;
+    if (tokentype(tokentbl_peek(p)) & T_OPER)
+        *oo = tokentbl_read(&p);
     else
         *oo = E_END;
 
@@ -1928,10 +1938,16 @@ void *findvar(const char *p, int action) {
             int i = 0;
             if (*p == '(') {
                 do {
-                    if (*p == '(') i++;
-                    if (tokentype(*p) & T_FUN) i++;
-                    if (*p == ')') i--;
-                    p++;
+                    if (*p == '(') {
+                        i++;
+                        p++;
+                    } else if (*p == ')') {
+                        i--;
+                        p++;
+                    } else {
+                        const FunctionToken funtok = tokentbl_read(&p);
+                        if (tokentype(funtok) & T_FUN) i++;
+                    }
                 } while (i);
             }
             skipspace(p);
@@ -1940,9 +1956,14 @@ void *findvar(const char *p, int action) {
                 slen = getint(p2, 1, MAXSTRLEN);
                 if (slen == 0) return NULL;
             } else {
-                if (!(*p == ',' || *p == 0 || tokenfunction(*p) == op_equal || tokenfunction(*p) == op_invalid)) {
-                    error("Unexpected text: $", p);
-                    return NULL;
+                if (*p == ',' || *p == 0) {
+                    // Do nothing.
+                } else {
+                    const FunctionToken funtok = tokentbl_peek(p);
+                    if (tokenfunction(funtok) != op_equal && tokenfunction(funtok) != op_invalid) {
+                        error("Unexpected text: $", p);
+                        return NULL;
+                    }
                 }
             }
         }
@@ -1982,7 +2003,7 @@ void *findvar(const char *p, int action) {
  by centralising these routines it is hoped that bugs can be more easily found and corrected (unlike bwBasic !)
 *********************************************************************************************************************************************/
 
-static inline bool is_delim(const DelimType *delim, char c) {
+static inline bool is_delim(const DelimType *delim, uint16_t c) {
     for (; *delim; ++delim) {
         if (c == *delim) return true;
     }
@@ -2006,7 +2027,7 @@ static inline bool is_delim(const DelimType *delim, char c) {
 void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc,
               const DelimType *delim) {
     TestStackOverflow();                                            // throw an error if we have overflowed the PIC32's stack
-
+    char * const limit = argbuf + ARGBUF_SIZE - 4;
     const char *tp = *p;
     char *op = argbuf;
     *argc = 0;
@@ -2020,15 +2041,15 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
     // check if we are processing a list enclosed in brackets and if so
     //  - skip the opening bracket
     //  - flag that a closing bracket should be found
-    if (*delim == '(') {
-        if (*tp != '(') ERROR_SYNTAX;
+    if (delim[0] == '(') {
+        if (*tp != '(') ON_FAILURE_ERROR(kSyntax);
         expect_bracket = true;
         delim++;
         tp++;
     }
 
     // the main processing loop
-    while(*tp) {
+    while (*tp && op < limit) {
 
         if(expect_bracket == true && *tp == ')') break;
 
@@ -2039,8 +2060,10 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
 
         // the special characters that cause the line to be split up are in the string delim
         // any other chars form part of the one argument
-        if(is_delim(delim, *tp) && !expect_cmd) {
-            if(*tp == tokenTHEN || *tp == tokenELSE) expect_cmd = true;
+        FunctionToken funtok = tokentbl_peek(tp);
+        if (is_delim(delim, funtok) && !expect_cmd) {
+            funtok = tokentbl_read(&tp);
+            if (funtok == tokenTHEN || funtok == tokenELSE) expect_cmd = true;
             if(inarg) {                                             // if we have been processing an argument
                 while(op > argbuf && *(op - 1) == ' ') op--;        // trim trailing spaces
                 *op++ = 0;                                          // terminate it
@@ -2050,16 +2073,15 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
             }
 
             inarg = false;
-            if (*argc >= maxargs) ERROR_SYNTAX;
+            if (*argc >= maxargs) ON_FAILURE_ERROR(kSyntax);
             argv[(*argc)++] = op;                                   // save the pointer for this delimiter
-            *op++ = *tp++;                                          // copy the token or char (always one)
+            tokentbl_write(&op, funtok);
             *op++ = 0;                                              // terminate it
             continue;
         }
 
         // check if we have a THEN or ELSE token and if so flag that a command should be next
-        if(*tp == tokenTHEN || *tp == tokenELSE) expect_cmd = true;
-
+        if (funtok == tokenTHEN || funtok == tokenELSE) expect_cmd = true;
 
         // remove all spaces (outside of quoted text and bracketed text)
         if(!inarg && *tp == ' ') {
@@ -2069,16 +2091,20 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
 
         // not a special char so we must start a new argument
         if(!inarg) {
-            if (*argc >= maxargs) ERROR_SYNTAX;
+            if (*argc >= maxargs) ON_FAILURE_ERROR(kSyntax);
             argv[(*argc)++] = op;                                   // save the pointer for this arg
             inarg = true;
         }
 
         // if an opening bracket '(' copy everything until we hit the matching closing bracket
         // this includes special characters such as , and ; and keeps track of any nested brackets
-        if(*tp == '(' || ((tokentype(*tp) & T_FUN) && !expect_cmd)) {
+        if (*tp == '(' || ((tokentype(funtok) & T_FUN) && !expect_cmd)) {
             int x;
             x = (getclosebracket(tp) - tp) + 1;
+            if (op + x >= limit) {
+                op = limit;
+                break;
+            }
             memcpy(op, tp, x);
             op += x; tp += x;
             continue;
@@ -2090,20 +2116,28 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
         if(*tp == '"') {
             do {
                 *op++ = *tp++;
-                if(*tp == 0) ERROR_SYNTAX;
-            } while(*tp != '"');
+                if(*tp == 0) ON_FAILURE_ERROR(kSyntax);
+            } while(*tp != '"' && op < limit);
             *op++ = *tp++;
             continue;
         }
 
-        // anything else is just copied into the argument
-        *op++ = *tp++;
         if (expect_cmd) {
             *op++ = *tp++;
+            *op++ = *tp++;
             expect_cmd = false;
+        } else {
+            funtok = tokentbl_read(&tp);
+            tokentbl_write(&op, funtok);
         }
     }
-    if (expect_bracket && *tp != ')') ERROR_SYNTAX;
+
+    if (op >= limit) {
+        *argc = 0;
+        ON_FAILURE_ERROR(kArgumentBufferOverflow);
+    }
+
+    if (expect_bracket && *tp != ')') ON_FAILURE_ERROR(kSyntax);
     while(op - 1 > argbuf && *(op-1) == ' ') --op;                  // trim any trailing spaces on the last argument
     *op = 0;                                                        // terminate the last argument
 }
@@ -2495,20 +2529,38 @@ const char *skipvar(const char *p, int noerror) {
 
         // step over the parameters keeping track of nested brackets
         i = 1;
-        while(1) {
-            if(*p == '\"') inquote = !inquote;
-            if(*p == 0) {
-                if(noerror) return p;
-                error("Expected closing bracket");
-                return NULL;
+        while(i) {
+            switch (*p) {
+                case '\0':
+                    if (noerror) return p;
+                    error("Expected closing bracket");
+                    return NULL;
+
+                case '\"':
+                    inquote = !inquote;
+                    break;
+
+                case ')':
+                    if (!inquote) i--;
+                    break;
+
+                case '(':
+                    if (!inquote) i++;
+                    break;
+
+                default: {
+                    if (!inquote) {
+                        const FunctionToken funtok = tokentbl_read(&p);
+                        p--;
+                        if (tokentype(funtok) & T_FUN) i++;
+                    }
+                    break;
+                }
             }
-            if(!inquote) {
-                if(*p == ')') if(--i == 0) break;
-                if(*p == '(' || (tokentype(*p) & T_FUN)) i++;
-            }
-            p++;
+
+            if (i > 0) p++;
         }
-        p++;        // step over the closing bracket
+        p++;  // step over the closing bracket
     }
     return p;
 }
@@ -2523,7 +2575,7 @@ const char *skipexpression(const char *p) {
         if(*p == '\"') inquote = !inquote;
         if(!inquote) {
             if(*p == ')') i--;
-            if(*p == '(' || (tokentype(*p) & T_FUN)) i++;
+            if(*p == '(' || (tokentype(tokentbl_peek(p)) & T_FUN)) i++;
         }
         if(i < 0 || (i == 0 && (*p == ',' || *p == '\''))) break;
     }
@@ -2567,6 +2619,7 @@ const char *GetNextCommand(const char *p, const char **CLine, const char *EOFMsg
 // it will handle nested strings, brackets and functions
 // it expects to be called pointing at the opening bracket or a function token
 const char *getclosebracket(const char *p) {
+    assert((*p == '(') || (tokentype(tokentbl_peek(p)) & T_FUN));
     int i = 0;
     int inquote = false;
 
@@ -2574,8 +2627,20 @@ const char *getclosebracket(const char *p) {
         if(*p == 0) error("Expected closing bracket");
         if(*p == '\"') inquote = !inquote;
         if(!inquote) {
-            if(*p == ')') i--;
-            if(*p == '(' || (tokentype(*p) & T_FUN)) i++;
+            switch (*p) {
+                case ')':
+                    i--;
+                    break;
+                case '(':
+                    i++;
+                    break;
+                default: {
+                    const FunctionToken funtok = tokentbl_read(&p);
+                    if (tokentype(funtok) & T_FUN) i++;
+                    p--;
+                    break;
+                }
+            }
         }
         p++;
     } while(i);

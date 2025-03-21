@@ -45,18 +45,40 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(TOKENTBL_H)
 #define TOKENTBL_H
 
+#include <assert.h>
+
 #include "commandtbl.h"
 
-typedef char FunctionToken;
+// Uncomment this to use 2-byte representation for all function tokens.
+//#define USE_TWO_BYTE_TOKENS
 
-/** Gets the type of a token. */
+// A function/operator token in the tokenised MMBasic.
+//   <  128    an ASCII character.
+//   >= 128    a real function token, subtract C_BASETOKEN (128) to get an
+//             index into the tokentbl[].
+typedef uint16_t FunctionToken;
+
+#define INVALID_TOKEN  0xFFFF
+#define E_END          0xFFFE  // dummy last operator in an expression
+
+/** Gets the type of a function/operator. */
 #define tokentype(i)  ((i >= C_BASETOKEN && i < tokentbl_size - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].type) : 0)
 
-/** Gets the function pointer of a token. */
+/** Gets the function pointer of a function/operator. */
 #define tokenfunction(i)  ((i >= C_BASETOKEN && i < tokentbl_size - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].fptr) : (tokentbl[0].fptr))
 
-/** Gets the name of a token. */
+/** Gets the name of a function/operator. */
 #define tokenname(i)  ((i >= C_BASETOKEN && i < tokentbl_size - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].name) : "")
+
+/** Gets the precedence of a function/operator. */
+#define tokenprecedence(i)  ((i >= C_BASETOKEN && i < tokentbl_size - 1 + C_BASETOKEN) ? (tokentbl[i - C_BASETOKEN].precedence) : 0)
+
+/** Gets the number of bytes a function/operator uses in the program memory. */
+#if defined(USE_TWO_BYTE_TOKENS)
+  #define tokensize(i)  ((i < 0x80) ? 1 : 2)
+#else
+  #define tokensize(i)  ((i < 0xFF) ? 1 : 3)
+#endif
 
 void fun_abs(void);
 void fun_acos(void);
@@ -168,7 +190,70 @@ void op_subtract(void);
 void op_xor(void);
 
 void tokentbl_init();
-int tokentbl_get(const char *s);
+FunctionToken tokentbl_get(const char *s);
+
+/**
+ * Peeks a FunctionToken from the program memory.
+ * DOES NOT advance the pointer.
+ */
+static inline FunctionToken tokentbl_peek(const char *p) {
+#if defined(USE_TWO_BYTE_TOKENS)
+   if (*p < 0x80) {
+      return *p;
+   } else {
+      return (p[0] & 0x7F) + ((p[1] & 0x7F) << 7) + 0x80;
+   }
+#else
+    if (*p < 0xFF) {
+        return *p;
+    } else {
+        return (p[1] & 0x7F) + ((p[2] & 0x7F) << 7) + 0x80;
+    }
+#endif
+}
+
+/**
+ * Reads a FunctionToken from the program memory
+ * and advances the pointer by the number of bytes read.
+ */
+static inline FunctionToken tokentbl_read(const char **p) {
+   const FunctionToken result = tokentbl_peek(*p);
+   (*p) += tokensize(result);
+   return result;
+}
+
+/**
+ * Writes a FunctionToken to the program memory
+ * and advances the pointer by the number of bytes written.
+ *
+ * @return  The number of bytes written.
+ */
+static inline unsigned tokentbl_write(char **p, FunctionToken tok) {
+#if defined(USE_TWO_BYTE_TOKENS)
+    if (tok < 0x80) {
+        // Tokens 0 .. 127.
+        *((*p)++) = tok & 0xFF;
+        return 1;
+    } else {
+        tok -= 0x80;
+        *((*p)++) = (char) (tok & 0x7F) | 0x80;
+        *((*p)++) = (char) (tok >> 7) | 0x80;
+        return 2;
+    }
+#else
+    if (tok < 0xFF) {
+        // Tokens 0 .. 254.
+        *((*p)++) = tok & 0xFF;
+        return 1;
+    } else {
+        tok -= 0x80;
+        *((*p)++) = (char) 0xFF;
+        *((*p)++) = (char) (tok & 0x7F) | 0x80;
+        *((*p)++) = (char) (tok >> 7) | 0x80;
+        return 3;
+     }
+#endif
+}
 
 extern const struct s_tokentbl tokentbl[];
 extern int tokentbl_size;

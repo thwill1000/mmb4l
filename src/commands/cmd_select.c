@@ -45,28 +45,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../core/tokentbl.h"
 
+/**
+ * SELECT CASE ...
+ *
+ * Note that 'SELECT CASE' is a single command token.
+ */
 void cmd_select(void) {
-    int i, type;
-    const char *p, *rp = NULL, *SaveCurrentLinePtr;
-    void *v;
+    const char *rp = NULL, *SaveCurrentLinePtr;
     MMFLOAT f = 0;
     MMINTEGER i64 = 0;
     char s[STRINGSIZE];
 
-    // these are the tokens that we will be searching for
-    // they are cached the first time this command is called
-
-    type = T_NOTYPE;
-    v = DoExpression(cmdline, &type);                               // evaluate the select case value
+    int type = T_NOTYPE;
+    void *v = DoExpression(cmdline, &type);                         // evaluate the select case value
     type = TypeMask(type);
     if(type & T_NBR) f = *(MMFLOAT *)v;
     if(type & T_INT) i64 = *(MMINTEGER *)v;
     if(type & T_STR) Mstrcpy(s, (char *)v);
 
-    // now search through the program looking for a matching CASE statement
+    // Now search through the program looking for a matching END SELECT statement
     // i tracks the nesting level of any nested SELECT CASE commands
     SaveCurrentLinePtr = CurrentLinePtr;                            // save where we are because we will have to fake CurrentLinePtr to get errors reported correctly
-    i = 1; p = nextstmt;
+    int i = 1;
+    const char *p = nextstmt;
     while(1) {
         p = GetNextCommand(p, &rp, "No matching END SELECT");
         const CommandToken cmd = commandtbl_decode(p);
@@ -81,23 +82,28 @@ void cmd_select(void) {
             char *st, *stt;
 
             CurrentLinePtr = rp;                                    // and report errors at the line we are on
-            p += sizeof(CommandToken) - 1;
+            p += sizeof(CommandToken) - 1;                          // step over the CASE command
 
             // loop through the comparison elements on the CASE line.  Each element is separated by a comma
             do {
-                p++;
+                p++;                                                // step over the comma, or the last byte of the CASE command token.
                 skipspace(p);
                 t = type;
                 // check for CASE IS,  eg  CASE IS > 5  -or-  CASE > 5  and process it if it is
                 // an operator can be >, <>, etc but it can also be a prefix + or - so we must not catch them
-                if((SaveCurrentLinePtr = checkstring(p, "IS")) || ((tokentype(*p) & T_OPER) && !(*p == tokenADD || *p == tokenSUBTRACT))) {
-                    int o = 0;
-                    if(SaveCurrentLinePtr) p += 2;
+                FunctionToken funtok = tokentbl_peek(p);
+                if (
+                    (SaveCurrentLinePtr = checkstring(p, "IS")) ||
+                    (
+                        (tokentype(funtok) & T_OPER) &&
+                        funtok != tokenADD &&
+                        funtok != tokenSUBTRACT
+                    )
+                ) {
+                    if(SaveCurrentLinePtr) p += 2;                  // step over the IS keyword
                     skipspace(p);
-                    if(tokentype(*p) & T_OPER)
-                        o = *p++ - C_BASETOKEN;                     // get the operator
-                    else
-                        ERROR_SYNTAX;
+                    FunctionToken o = tokentbl_read(&p);            // get the operator
+                    if (!(tokentype(o) & T_OPER)) ERROR_SYNTAX;
                     if(type & T_NBR) ft = f;
                     if(type & T_INT) i64t = i64;
                     if(type & T_STR) st = s;
@@ -118,8 +124,8 @@ void cmd_select(void) {
                 // evaluate the first value
                 p = evaluate(p, &ft, &i64t, &st, &t, true);
                 skipspace(p);
-                if(*p == tokenTO) {                                 // is there is a TO keyword?
-                    p++;
+                if (tokentbl_peek(p) == tokenTO) {                  // is there is a TO keyword?
+                    tokentbl_read(&p);
                     t = type;
                     p = evaluate(p, &ftt, &i64tt, &stt, &t, false); // evaluate the right hand side of the TO expression
                     if(((type & T_NBR) && f >= ft && f <= ftt) || ((type & T_INT) && i64 >= i64t && i64 <= i64tt) || (((type & T_STR) && Mstrcmp(s, st) >= 0) && (Mstrcmp(s, stt) <= 0))) {
@@ -134,7 +140,7 @@ void cmd_select(void) {
                 }
 
                 // if we got to here the element must be just a single match.  So make the test
-                if(((type & T_NBR) && f == ft) ||  ((type & T_INT) && i64 == i64t) ||  ((type & T_STR) && Mstrcmp(s, st) == 0)) {
+                if (((type & T_NBR) && f == ft) || ((type & T_INT) && i64 == i64t) || ((type & T_STR) && Mstrcmp(s, st) == 0)) {
                     skipelement(p);
                     nextstmt = p;
                     CurrentLinePtr = SaveCurrentLinePtr;
@@ -159,11 +165,11 @@ void cmd_select(void) {
 
         if (cmd == cmdEND_SELECT) {                                 // found an END SELECT so decrement our nested counter
             i--;
-            p += sizeof(CommandToken) - 1;
+            p += sizeof(CommandToken);                              // step over the token
         }
 
         if (i == 0) {
-            // found our matching END SELECT stmt.  Step over it and continue with the statement after it
+            // found our matching END SELECT stmt. Continue with the statement after it
             skipelement(p);
             nextstmt = p;
             CurrentLinePtr = SaveCurrentLinePtr;

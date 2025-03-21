@@ -62,13 +62,17 @@ char cmd_run_args[STRINGSIZE];
  * required short-term on the CMM2 and MMB4W to support old versions of
  * "The Welcome Tape" and tools by @thwill.
  *
- * @return true   if the 'cmd_args' contain the MMBasic minus-sign token
+ * @return true   if the 'cmd_args' contain the MMBasic subtract token
  *                or if the 'filename' contains "menu/menu.bas" AND the
  *                'cmd_args' start with "MENU_".
  *         false  otherwise.
  */
 static bool cmd_run_is_legacy_args(const char *filename, const char *run_args) {
-    if (strchr(run_args, tokenSUBTRACT)) return true;
+    // Seach for subtract token.
+    for (const char *p = run_args; *p; ) {
+        if (tokentbl_read(&p) == tokenSUBTRACT) return true;
+    }
+
     if (filename
             && strstr(filename, "menu/menu.bas")
             && strstr(run_args, "MENU_") == run_args) return true;
@@ -88,44 +92,40 @@ static bool cmd_run_is_legacy_args(const char *filename, const char *run_args) {
 static void cmd_run_transform_legacy_args(char *run_args) {
     char *tmp = (char *) GetTempMemory(STRINGSIZE + 32); // Extra space to avoid string overrun.
     char *ptmp = tmp;
-    for (char *p = run_args; *p; ++p) {
-        char *tok = (char *) tokenname((unsigned char) *p);
-        if (*tok) {
-            // Convert tokens backs to literals and try to do sensible things
+    for (const char *p = run_args; *p; ) {
+        const FunctionToken funtok = tokentbl_read(&p);
+        if (funtok >= C_BASETOKEN) {
+            // Convert tokens back to literals and try to do sensible things
             // regarding spaces.
             if (ptmp != tmp && *(ptmp - 1) != ' ') {
-                switch (*tok) {
-                    case '-':
-                        if (*(ptmp - 1) != '-' && !isalnum(*(ptmp - 1))) *ptmp++ = ' ';
-                        break;
-                    case '=':
-                        if (!isalnum(*(ptmp - 1))) *ptmp++ = ' ';
-                        break;
-                    default:
-                        *ptmp++ = ' ';
-                        break;
+                if (funtok == tokenSUBTRACT) {
+                    if (*(ptmp - 1) != '-' && !isalnum(*(ptmp - 1))) *ptmp++ = ' ';
+                } else if (funtok == tokenEQUAL) {
+                    if (!isalnum(*(ptmp - 1))) *ptmp++ = ' ';
+                } else {
+                    *ptmp++ = ' ';
                 }
             }
-            memcpy(ptmp, tok, strlen(tok));
-            ptmp += strlen(tok);
-        } else if (*p == '"') {
+            const char *fnname = tokenname(funtok);
+            memcpy(ptmp, fnname, strlen(fnname));
+            ptmp += strlen(fnname);
+        } else if (funtok == '"') {
             // Do not mangle quoted sections.
-            *ptmp++ = *p++;
+            *ptmp++ = (char) funtok;
             for (; *p; ++p) {
                 *ptmp++ = *p;
                 if (*p == '"') break;
             }
+            p++;
+        } else if (funtok == ' ' && ptmp != tmp) {
+            // Compress consecutive spaces.
+            if (*(ptmp - 1) != ' ') *ptmp++ = ' ';
         } else {
-            if (*p == ' ' && ptmp != tmp) {
-                // Compress consecutive spaces.
-                if (*(ptmp - 1) != ' ') *ptmp++ = ' ';
-            } else {
-                // Though the current MMB4L tokeniser preserves case, that in
-                // MMB4W and other MMBasic ports by Peter will have converted
-                // unquoted legacy arguments to upper-case. On the balance of
-                // probabilities we convert them to lower-case here.
-                *ptmp++ = tolower(*p);
-            }
+            // Though the current MMB4L tokeniser preserves case, that in
+            // MMB4W and other MMBasic ports by Peter will have converted
+            // unquoted legacy arguments to upper-case. On the balance of
+            // probabilities we convert them to lower-case here.
+            *ptmp++ = tolower((char) funtok);
         }
 
         if (ptmp - tmp >= STRINGSIZE - 1) break;

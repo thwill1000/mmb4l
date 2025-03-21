@@ -60,16 +60,17 @@ void cmd_restore(void) {
     }
     else {
         skipspace(cmdline);
-        if (*cmdline == '"') {
+        const FunctionToken funtok = tokentbl_peek(cmdline);
+        if (funtok == '"') {
             // Restore target starts with a literal string.
             NextDataLine = findlabel(getCstring(cmdline));
             NextData = 0;
         }
-        else if (isdigit(*cmdline)
-                || *cmdline == tokenADD
-                || *cmdline == tokenSUBTRACT
-                || *cmdline == '.'
-                || *cmdline == '&') {
+        else if (isdigit(funtok)
+                || funtok == tokenADD
+                || funtok == tokenSUBTRACT
+                || funtok == '.'
+                || funtok == '&') {
             // Restore target starts with a number.
             NextDataLine = findline(getinteger(cmdline), true);
             NextData = 0;

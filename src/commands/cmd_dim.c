@@ -86,7 +86,7 @@ void cmd_dim(void) {
     char VarName[STRINGSIZE];
     void *v, *tv;
 
-    if (*cmdline == tokenAS) cmdline++;                             // this means that we can use DIM AS INTEGER a, b, etc
+    if (tokentbl_peek(cmdline) == tokenAS) cmdline += tokensize(tokenAS); // this means that we can use DIM AS INTEGER a, b, etc
     const char *pconst = CheckIfTypeSpecified(cmdline, &type, true);  // check for DIM FLOAT A, B, ...
     ImpliedType = type;
     {
@@ -99,12 +99,16 @@ void cmd_dim(void) {
         char *p;
         for(i = 0; i < argc; i += 2) {
             p = (char *) skipvar(argv[i], false);                   // point to after the variable
-            while(!(*p == 0 || *p == tokenAS || *p == '\'' || *p == tokenEQUAL))
-                p++;                                                // skip over a LENGTH keyword if there and see if we can find "AS"
+            FunctionToken funtok = INVALID_TOKEN;
+            while (*p != 0 && *p != '\'') {                         // skip over a LENGTH keyword if there and see if we can find "AS"
+                funtok = tokentbl_peek(p);
+                if (funtok == tokenAS || funtok == tokenEQUAL) break;
+                p += tokensize(funtok);
+            }
             chSave = *p; chPosit = p; *p = 0;                       // save the char then terminate the string so that LENGTH is evaluated correctly
-            if(chSave == tokenAS) {                                 // are we using Microsoft syntax (eg, AS INTEGER)?
+            if (funtok == tokenAS) {                                // are we using Microsoft syntax (eg, AS INTEGER)?
                 if(ImpliedType & T_IMPLIED) error_throw_legacy("Type specified twice");
-                p++;                                                // step over the AS token
+                p += tokensize(tokenAS);                            // step over the AS token
                 p = (char *) CheckIfTypeSpecified(p, &type, true);  // and get the type
                 if(!(type & T_IMPLIED)) error_throw_legacy("Variable type");
             }
@@ -147,9 +151,11 @@ void cmd_dim(void) {
                     DimUsed = true;                                 // prevent OPTION BASE from being used
                     v = vartbl[VarIndex].val.s;
                 }
-                while(*p && *p != '\'' && tokenfunction(*p) != op_equal) p++;   // search through the line looking for the equals sign
-                if(tokenfunction(*p) == op_equal) {
-                    p++;                                            // step over the equals sign
+                FunctionToken funtok = INVALID_TOKEN;
+                while (*p != 0 && *p != '\'' && funtok != tokenEQUAL) {  // search through the line looking for the equals sign
+                    funtok = tokentbl_read((const char **) &p);
+                }
+                if (funtok == tokenEQUAL) {
                     skipspace(p);
                     if(vartbl[VarIndex].dims[0] > 0 && *p == '(') {
                         // calculate the overall size of the array
