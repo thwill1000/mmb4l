@@ -82,6 +82,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_gamepad.c
     src/commands/cmd_graphics.c
     src/commands/cmd_gui.c
+    src/commands/cmd_if.c
     src/commands/cmd_image.c
     src/commands/cmd_inc.c
     src/commands/cmd_ireturn.c
