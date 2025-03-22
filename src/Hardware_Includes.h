@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmb4l_hardware_includes.h
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -89,7 +89,6 @@ extern int IgnorePIN;
 #define MMfeof             file_eof
 #define MMfgetc            file_getc
 #define MMfputc(ch, fnbr)  file_putc(fnbr, ch)
-#define MMfputs(mmbstr, fnbr)  file_write(fnbr, mmbstr + 1, mmbstr[0])
 #define MMputchar          console_putc
 #define MMPrintString      console_puts
 #define error              error_throw_legacy

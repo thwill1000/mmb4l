@@ -2554,34 +2554,6 @@ int GetLineLength(char *p) {
 
 
 /********************************************************************************************************************************************
-A couple of I/O routines that do not belong anywhere else
-*********************************************************************************************************************************************/
-
-
-// print a string to the console interfaces
-#if !defined(__mmb4l__)
-void MMPrintString(const char* s) {
-  while(*s) {
-      MMputchar(*s);
-      s++;
-  }
-}
-#endif
-
-// output a string to a file
-// the string must be a MMBasic string
-#if !defined(__mmb4l__)
-void MMfputs(const char *p, int filenbr) {
-  int i;
-  i = *p++;
-  while(i--) MMfputc(*p++, filenbr);
-}
-#endif
-
-
-
-
-/********************************************************************************************************************************************
  string routines
  these routines form a library of functions for manipulating MMBasic strings.  These strings differ from ordinary C strings in that the length
  of the string is stored in the first byte and the string is NOT terminated with a zero valued byte.  This type of string can store the full
