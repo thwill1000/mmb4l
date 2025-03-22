@@ -122,6 +122,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_rmdir.c
     src/commands/cmd_run.c
     src/commands/cmd_seek.c
+    src/commands/cmd_select.c
     src/commands/cmd_setenv.c
     src/commands/cmd_setpin.c
     src/commands/cmd_settick.c
