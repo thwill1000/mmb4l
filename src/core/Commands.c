@@ -130,13 +130,6 @@ void ListProgram(const char *p, int all) {
 
 
 
-void cmd_tron(void) {
-    checkend(cmdline);
-    TraceOn = true;
-}
-
-
-
 void cmd_troff(void) {
     checkend(cmdline);
     TraceOn = false;
