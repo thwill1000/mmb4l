@@ -134,6 +134,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_settitle.c
     src/commands/cmd_sort.c
     src/commands/cmd_sprite.c
+    src/commands/cmd_subfun.c
     src/commands/cmd_system.c
     src/commands/cmd_text.c
     src/commands/cmd_timer.c
