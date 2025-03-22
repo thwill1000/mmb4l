@@ -130,15 +130,6 @@ void ListProgram(const char *p, int all) {
 
 
 
-void cmd_exitfor(void) {
-    if(forindex == 0) error("No FOR loop is in effect");
-    nextstmt = forstack[--forindex].nextptr;
-    checkend(cmdline);
-    skipelement(nextstmt);
-}
-
-
-
 void cmd_exit(void) {
     if(doindex == 0) error("No DO loop is in effect");
     nextstmt = dostack[--doindex].loopptr;

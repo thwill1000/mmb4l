@@ -78,6 +78,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_erase.c
     src/commands/cmd_error.c
     src/commands/cmd_execute.c
+    src/commands/cmd_exitfor.c
     src/commands/cmd_files.c
     src/commands/cmd_flash.c
     src/commands/cmd_font.c
