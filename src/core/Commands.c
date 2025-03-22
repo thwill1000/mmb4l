@@ -124,14 +124,6 @@ void ListProgram(const char *p, int all) {
 
 
 
-void cmd_randomize(void) {
-    int i;
-    i = getint(cmdline, 0, INT_MAX);
-    srand(i);
-}
-
-
-
 void cmd_endfun(void) {
     checkend(cmdline);
     if(gosubindex == 0 || gosubstack[gosubindex - 1] != NULL) error("Nothing to return to");
