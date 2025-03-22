@@ -45,8 +45,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../core/tokentbl.h"
 
-// Commands.c
-void execute_one_command(char *p);
+static void execute_one_command(char *p) {
+    CheckAbort();
+    targ = T_CMD;
+    skipspace(p);                                                   // skip any whitespace
+    if (p[0]>= C_BASETOKEN && p[1]>=C_BASETOKEN) {
+        const CommandToken cmd = commandtbl_decode(p);
+        if (cmd == cmdWHILE || cmd== cmdDO || cmd == cmdFOR) {
+            error_throw_legacy("Invalid inside THEN ... ELSE") ;
+        }
+        cmdtoken = cmd;
+        cmdline = p + sizeof(CommandToken);
+        skipspace(cmdline);
+        commandtbl[cmd].fptr(); // execute the command
+    } else {
+        if(!isnamestart(*p)) error_throw_legacy("Invalid character");
+        int i = FindSubFun(p, kSub);                                // find a subroutine.
+        if(i >= 0)                                                  // >= 0 means it is a user defined command
+            DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
+        else
+            error_throw_legacy("Unknown command");
+    }
+    ClearTempMemory();                                              // at the end of each command we need to clear any temporary string vars
+}
 
 void cmd_if(void) {
     int r, i, testgoto, testelseif;

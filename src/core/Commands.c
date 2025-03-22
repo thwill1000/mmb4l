@@ -107,7 +107,7 @@ utility functions used by the various commands
 
 // utility function used by llist() below
 // it copys a command or function honouring the case selected by the user
-void strCopyWithCase(char *d, const char *s) {
+static void strCopyWithCase(char *d, const char *s) {
     if(Option.Listcase == CONFIG_LOWER) {
         while(*s) *d++ = tolower(*s++);
     } else if(Option.Listcase == CONFIG_UPPER) {
@@ -196,28 +196,4 @@ const char *llist(char *b, const char *p) {
         *b = 0;                                                     // terminate the output buffer
         return ++p;
     } // end while
-}
-
-
-
-void execute_one_command(char *p) {
-    CheckAbort();
-    targ = T_CMD;
-    skipspace(p);                                                   // skip any whitespace
-    if (p[0]>= C_BASETOKEN && p[1]>=C_BASETOKEN) {
-        const CommandToken cmd = commandtbl_decode(p);
-        if (cmd == cmdWHILE || cmd== cmdDO || cmd == cmdFOR) error("Invalid inside THEN ... ELSE") ;
-        cmdtoken = cmd;
-        cmdline = p + sizeof(CommandToken);
-        skipspace(cmdline);
-        commandtbl[cmd].fptr(); // execute the command
-    } else {
-        if(!isnamestart(*p)) error("Invalid character");
-        int i = FindSubFun(p, kSub);                                // find a subroutine.
-        if(i >= 0)                                                  // >= 0 means it is a user defined command
-            DefinedSubFun(false, p, i, NULL, NULL, NULL, NULL);
-        else
-            error("Unknown command");
-    }
-    ClearTempMemory();                                              // at the end of each command we need to clear any temporary string vars
 }
