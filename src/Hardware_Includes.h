@@ -94,13 +94,9 @@ extern int IgnorePIN;
 
 // Aliases for identifiers using "legacy" names in MMBasic core:
 #define Autorun          autorun
-#define CONFIG_LOWER     kLower
-#define CONFIG_UPPER     kUpper
 #define DefaultType      mmb_options.default_type
 #define error_file       mmb_error_state_ptr->file
 #define error_line       mmb_error_state_ptr->line
-#define Height           height
-#define Listcase         list_case
 #define MMErrMsg         mmb_error_state_ptr->message
 #define MMerrno          mmb_error_state_ptr->code
 #define Option           mmb_options
