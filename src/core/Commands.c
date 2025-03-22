@@ -87,12 +87,6 @@ char MMErrMsg[MAXERRMSG];                                           // the error
 
 
 
-void cmd_null(void) {
-  // do nothing (this is just a placeholder for commands that have no action)
-}
-
-
-
 void ListNewLine(int *ListCnt, int all) {
     MMPrintString("\r\n");
     (*ListCnt)++;
