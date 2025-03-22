@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Commands.h
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -76,14 +76,8 @@ extern const char *errorstack[MAXGOSUB];
 extern int gosubindex;
 extern char DimUsed;
 
-void ListProgram(const char *p, int all);
+void ListNewLine(int *ListCnt, int all);
 const char *llist(char *b, const char *p);
-
-#if !defined(__mmb4l__)
-#define CONFIG_TITLE      0
-#define CONFIG_LOWER      1
-#define CONFIG_UPPER      2
-#endif
 
 extern unsigned int BusSpeed;
 extern char *OnKeyGOSUB;
