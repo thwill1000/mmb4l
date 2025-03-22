@@ -124,15 +124,6 @@ void ListProgram(const char *p, int all) {
 
 
 
-void cmd_exit(void) {
-    if(doindex == 0) error("No DO loop is in effect");
-    nextstmt = dostack[--doindex].loopptr;
-    checkend(cmdline);
-    skipelement(nextstmt);
-}
-
-
-
 void cmd_randomize(void) {
     int i;
     i = getint(cmdline, 0, INT_MAX);
