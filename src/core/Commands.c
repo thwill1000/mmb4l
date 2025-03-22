@@ -170,25 +170,6 @@ void cmd_randomize(void) {
 
 
 
-void cmd_gosub(void) {
-    if(gosubindex >= MAXGOSUB) error("Too many nested GOSUB");
-    const char *return_to = nextstmt;
-    if(isnamestart(*cmdline))
-        nextstmt = findlabel(cmdline);                              // must be a label
-    else
-        nextstmt = findline(getinteger(cmdline), true);             // try for a line number
-    IgnorePIN = false;
-
-    // Do not update the interpreter state until successfully finding
-    // the target line/label.
-    errorstack[gosubindex] = CurrentLinePtr;
-    gosubstack[gosubindex++] = return_to;
-    LocalIndex++;
-    CurrentLinePtr = nextstmt;
-}
-
-
-
 void cmd_return(void) {
     checkend(cmdline);
     if(gosubindex == 0 || gosubstack[gosubindex - 1] == NULL) error("Nothing to return to");
