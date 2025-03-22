@@ -208,40 +208,6 @@ void cmd_endfun(void) {
 
 
 
-void cmd_lineinput(void) {
-    char *vp;
-    int i, fnbr;
-    getargs(&cmdline, 3, ",;");                                     // this is a macro and must be the first executable stmt
-    if(argc == 0 || argc == 2) ERROR_SYNTAX;
-
-    i = 0;
-    fnbr = 0;
-    if(argc == 3) {
-        // is the first argument a file number specifier?  If so, get it
-        if(*argv[0] == '#' && *argv[1] == ',') {
-            argv[0]++;
-            fnbr = getinteger(argv[0]);
-        }
-        else {
-            // is the first argument a prompt?  if so, print it otherwise there are too many arguments
-            if(*argv[1] != ',' && *argv[1] != ';') ERROR_SYNTAX;
-            MMfputs(getstring(argv[0]), 0);
-        }
-        i = 2;
-    }
-
-    if(argc - i != 1) ERROR_SYNTAX;
-    vp = findvar(argv[i], V_FIND);
-    if(vartbl[VarIndex].type & T_CONST) error("Cannot change a constant");
-    if(!(vartbl[VarIndex].type & T_STR)) error("Invalid variable");
-    MMgetline(fnbr, inpbuf);                                        // get the input line
-    if(strlen(inpbuf) > vartbl[VarIndex].size) error("String too long");
-    strcpy(vp, inpbuf);
-    CtoM(vp);                                                       // convert to a MMBasic string
-}
-
-
-
 /***********************************************************************************************
 utility functions used by the various commands
 ************************************************************************************************/
