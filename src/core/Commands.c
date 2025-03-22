@@ -130,13 +130,6 @@ void ListProgram(const char *p, int all) {
 
 
 
-void cmd_troff(void) {
-    checkend(cmdline);
-    TraceOn = false;
-}
-
-
-
 void cmd_exitfor(void) {
     if(forindex == 0) error("No FOR loop is in effect");
     nextstmt = forstack[--forindex].nextptr;
