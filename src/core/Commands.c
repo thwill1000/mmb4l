@@ -86,7 +86,6 @@ char MMErrMsg[MAXERRMSG];                                           // the error
 #endif
 
 
-
 void ListNewLine(int *ListCnt, int all) {
     MMPrintString("\r\n");
     (*ListCnt)++;
@@ -95,30 +94,6 @@ void ListNewLine(int *ListCnt, int all) {
         MMgetchar();
         MMPrintString("\r                 \r");
         *ListCnt = 1;
-    }
-}
-
-
-void ListProgram(const char *p, int all) {
-    char b[STRINGSIZE];
-    char *pp;
-    int ListCnt = 1;
-
-#if defined(__386__)
-  GetConsoleSize();                                                 // this allows the user to change screen size anytime
-#endif
-
-    while(!(*p == 0 || *p == 0xff)) {                               // normally a LIST ends at the break so this is a safety precaution
-        if(*p == T_NEWLINE) {
-            p = llist(b, p);                                        // otherwise expand the line
-            pp = b;
-            while(*pp) {
-                if(MMCharPos >= Option.Width) ListNewLine(&ListCnt, all);
-                MMputchar(*pp++);
-            }
-            ListNewLine(&ListCnt, all);
-            if(p[0] == 0 && p[1] == 0) break;                       // end of the listing ?
-        }
     }
 }
 
