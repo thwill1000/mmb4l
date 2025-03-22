@@ -58,6 +58,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_cfunction.c
     src/commands/cmd_chdir.c
     src/commands/cmd_circle.c
+    src/commands/cmd_clear.c
     src/commands/cmd_cls.c
     src/commands/cmd_close.c
     src/commands/cmd_colour.c

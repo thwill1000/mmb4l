@@ -130,13 +130,6 @@ void ListProgram(const char *p, int all) {
 
 
 
-void cmd_clear(void) {
-    checkend(cmdline);
-    ClearVars(0);
-}
-
-
-
 void cmd_goto(void) {
     if(isnamestart(*cmdline))
         nextstmt = findlabel(cmdline);                              // must be a label
