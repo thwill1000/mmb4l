@@ -130,18 +130,6 @@ void ListProgram(const char *p, int all) {
 
 
 
-void cmd_goto(void) {
-    if(isnamestart(*cmdline))
-        nextstmt = findlabel(cmdline);                              // must be a label
-    else
-        nextstmt = findline(getinteger(cmdline), true);             // try for a line number
-    IgnorePIN = false;
-
-    CurrentLinePtr = nextstmt;
-}
-
-
-
 // if we have hit a CASE or CASE ELSE we must search for a END SELECT at this level and resume at that point
 void cmd_case(void) {
     int i;
