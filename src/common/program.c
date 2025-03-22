@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "path.h"
 #include "program.h"
 #include "utility.h"
+#include "../core/Commands.h"
 #include "../core/commandtbl.h"
 
 #include <assert.h>

@@ -42,23 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-// Provides all the core commands in MMBasic.
+#include <string.h>
 
-#include "../Hardware_Includes.h"
-#include "MMBasic.h"
+#include "../common/console.h"
+#include "../common/mmb4l.h"
 #include "Commands.h"
-#include "commandtbl.h"
 #include "tokentbl.h"
-#include "funtbl.h"
-#include "vartbl.h"
-#include "../common/cstring.h"
-#include "../common/parse.h"
-#include "../common/utility.h"
-
-void flist(int, int, int);
-void clearprog(void);
-void execute_one_command(char *p);
-void op_equal(void);
 
 // stack to keep track of nested FOR/NEXT loops
 struct s_forstack forstack[MAXFORLOOPS + 1];
@@ -79,46 +68,29 @@ int TraceOn;                                                        // used to t
 const char *TraceBuff[TRACE_BUFF_SIZE];
 int TraceBuffIndex;                                                 // used for listing the contents of the trace buffer
 
-#if !defined(__mmb4l__)
-int OptionErrorSkip;                                                // how to handle an error
-int MMerrno;                                                        // the error number
-char MMErrMsg[MAXERRMSG];                                           // the error message
-#endif
-
-
 void ListNewLine(int *ListCnt, int all) {
-    MMPrintString("\r\n");
+    console_puts("\r\n");
     (*ListCnt)++;
-    if(!all && *ListCnt >= Option.Height) {
-        MMPrintString("PRESS ANY KEY ...");
+    if(!all && *ListCnt >= mmb_options.height) {
+        console_puts("PRESS ANY KEY ...");
         MMgetchar();
-        MMPrintString("\r                 \r");
+        console_puts("\r                 \r");
         *ListCnt = 1;
     }
 }
 
-
-
-/***********************************************************************************************
-utility functions used by the various commands
-************************************************************************************************/
-
-
-
 // utility function used by llist() below
 // it copys a command or function honouring the case selected by the user
 static void strCopyWithCase(char *d, const char *s) {
-    if(Option.Listcase == CONFIG_LOWER) {
+    if(mmb_options.list_case == kLower) {
         while(*s) *d++ = tolower(*s++);
-    } else if(Option.Listcase == CONFIG_UPPER) {
+    } else if(mmb_options.list_case == kUpper) {
         while(*s) *d++ = toupper(*s++);
     } else {
         while(*s) *d++ = *s++;
     }
     *d = 0;
 }
-
-
 
 // list a line into a buffer (b) given a pointer to the beginning of the line (p).
 // the returned string is a C style string (terminated with a zero)
