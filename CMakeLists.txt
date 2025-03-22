@@ -109,6 +109,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_mode.c
     src/commands/cmd_new.c
     src/commands/cmd_next.c
+    src/commands/cmd_null.c
     src/commands/cmd_on.c
     src/commands/cmd_open.c
     src/commands/cmd_option.c
