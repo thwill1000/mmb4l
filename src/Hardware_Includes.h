@@ -89,7 +89,6 @@ extern int IgnorePIN;
 #define MMfeof             file_eof
 #define MMfgetc            file_getc
 #define MMfputc(ch, fnbr)  file_putc(fnbr, ch)
-#define MMputchar          console_putc
 #define MMPrintString      console_puts
 #define error              error_throw_legacy
 
@@ -108,7 +107,6 @@ extern int IgnorePIN;
 #define OptionBase       mmb_options.base
 #define OptionErrorSkip  mmb_error_state_ptr->skip
 #define OptionExplicit   mmb_options.explicit_type
-#define Width            width
 
 // Functions not used in MMB4L ... so make them go away
 #define uSec(a)  {}

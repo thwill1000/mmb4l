@@ -61,6 +61,29 @@ void cmd_files_internal(const char *);      // cmd_files.c
 MmResult cmd_graphics_list(const char *p);  // cmd_graphics.c
 void cmd_option_list(const char *);         // cmd_option.c
 
+static void ListProgram(const char *p, int all) {
+    char b[STRINGSIZE];
+    char *pp;
+    int ListCnt = 1;
+
+#if defined(__386__)
+  GetConsoleSize();                                                 // this allows the user to change screen size anytime
+#endif
+
+    while(!(*p == 0 || *p == 0xff)) {                               // normally a LIST ends at the break so this is a safety precaution
+        if(*p == T_NEWLINE) {
+            p = llist(b, p);                                        // otherwise expand the line
+            pp = b;
+            while(*pp) {
+                if(MMCharPos >= mmb_options.width) ListNewLine(&ListCnt, all);
+                console_putc(*pp++);
+            }
+            ListNewLine(&ListCnt, all);
+            if(p[0] == 0 && p[1] == 0) break;                       // end of the listing ?
+        }
+    }
+}
+
 /* qsort C-string comparison function */
 static int cstring_cmp(const void *a, const void *b)  {
     const char **ia = (const char **)a;
