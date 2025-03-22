@@ -90,6 +90,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_if.c
     src/commands/cmd_image.c
     src/commands/cmd_inc.c
+    src/commands/cmd_input.c
     src/commands/cmd_ireturn.c
     src/commands/cmd_kill.c
     src/commands/cmd_let.c
