@@ -130,27 +130,6 @@ void ListProgram(const char *p, int all) {
 
 
 
-void cmd_continue(void) {
-    if(*cmdline == tokenFOR) {
-        if(forindex == 0) error("No FOR loop is in effect");
-        nextstmt = forstack[forindex - 1].nextptr;
-        return;
-    }
-    if(checkstring(cmdline, "DO")) {
-        if(doindex == 0) error("No DO loop is in effect");
-        nextstmt = dostack[doindex - 1].loopptr;
-        return;
-    }
-    // must be a normal CONTINUE
-    checkend(cmdline);
-    if(CurrentLinePtr) error("Invalid in a program");
-    if(ContinuePoint == NULL) error("Cannot continue");
-    IgnorePIN = false;
-    nextstmt = ContinuePoint;
-}
-
-
-
 void cmd_clear(void) {
     checkend(cmdline);
     ClearVars(0);
