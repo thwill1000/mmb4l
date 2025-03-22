@@ -78,6 +78,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_files.c
     src/commands/cmd_flash.c
     src/commands/cmd_font.c
+    src/commands/cmd_for.c
     src/commands/cmd_framebuffer.c
     src/commands/cmd_gamepad.c
     src/commands/cmd_graphics.c
