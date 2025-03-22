@@ -63,6 +63,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_colour.c
     src/commands/cmd_console.c
     src/commands/cmd_const.c
+    src/commands/cmd_continue.c
     src/commands/cmd_copy.c
     src/commands/cmd_cursor.c
     src/commands/cmd_device.c
