@@ -143,6 +143,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_timer.c
     src/commands/cmd_trace.c
     src/commands/cmd_triangle.c
+    src/commands/cmd_troff.c
     src/commands/cmd_tron.c
     src/commands/cmd_xmodem.c
 )
