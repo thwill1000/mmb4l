@@ -170,38 +170,6 @@ void cmd_randomize(void) {
 
 
 
-// this is the Sub or Fun command
-// it simply skips over text until it finds the end of it
-void cmd_subfun(void) {
-    const char *p;
-    CommandToken returntoken;
-    CommandToken errtoken;
-
-    if(gosubindex != 0) error("No matching END declaration");       // We have hit a SUB/FUNCTION while in another SUB or FUN.
-                                                                    // This can also happen if we GOSUB somewhere and then
-                                                                    // encounter SUB/FUNCTION before we RETURN.
-    if (cmdtoken == cmdSUB) {
-        returntoken = cmdEND_SUB;
-        errtoken = cmdEND_FUNCTION;
-    } else {
-        returntoken = cmdEND_FUNCTION;
-        errtoken = cmdEND_SUB;
-    }
-    p = nextstmt;
-    while(1) {
-        p = GetNextCommand(p, NULL, "No matching END declaration");
-        const CommandToken cmd = commandtbl_decode(p);
-        if (cmd == cmdSUB || cmd == cmdFUN || cmd == errtoken) error("No matching END declaration");
-        if (cmd == returntoken) {                                   // found the next return
-            skipelement(p);
-            nextstmt = p;                                           // point to the next command
-            break;
-        }
-    }
-}
-
-
-
 void cmd_gosub(void) {
     if(gosubindex >= MAXGOSUB) error("Too many nested GOSUB");
     const char *return_to = nextstmt;
