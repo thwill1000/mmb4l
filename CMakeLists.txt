@@ -83,6 +83,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_for.c
     src/commands/cmd_framebuffer.c
     src/commands/cmd_gamepad.c
+    src/commands/cmd_goto.c
     src/commands/cmd_graphics.c
     src/commands/cmd_gui.c
     src/commands/cmd_if.c
