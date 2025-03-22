@@ -55,6 +55,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_blit.c
     src/commands/cmd_box.c
     src/commands/cmd_call.c
+    src/commands/cmd_case.c
     src/commands/cmd_cfunction.c
     src/commands/cmd_chdir.c
     src/commands/cmd_circle.c

@@ -130,32 +130,6 @@ void ListProgram(const char *p, int all) {
 
 
 
-// if we have hit a CASE or CASE ELSE we must search for a END SELECT at this level and resume at that point
-void cmd_case(void) {
-    int i;
-    const char *p;
-
-    // search through the program looking for a END SELECT statement
-    // i tracks the nesting level of any nested SELECT CASE commands
-    i = 1; p = nextstmt;
-    while(1) {
-        p = GetNextCommand(p, NULL, "No matching END SELECT");
-        const CommandToken cmd = commandtbl_decode(p);
-
-        if (cmd == cmdSELECT_CASE) i++;                             // found a nested SELECT CASE command, we now need to search for its END CASE
-
-        if (cmd == cmdEND_SELECT) i--;                              // found an END SELECT so decrement our nested counter
-        if(i == 0) {
-            // found our matching END SELECT stmt.  Step over it and continue with the statement after it
-            skipelement(p);
-            nextstmt = p;
-            break;
-        }
-    }
-}
-
-
-
 void cmd_input(void) {
     char s[STRINGSIZE];
     char *p, *sp, *tp;
