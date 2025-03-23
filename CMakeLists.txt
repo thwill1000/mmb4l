@@ -188,6 +188,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_llen.c
     src/functions/fun_loc.c
     src/functions/fun_lof.c
+    src/functions/fun_mid.c
     src/functions/fun_mmcmdline.c
     src/functions/fun_mmdevice.c
     src/functions/fun_mminfo.c
