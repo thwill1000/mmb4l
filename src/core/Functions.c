@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Functions.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -107,18 +107,6 @@ void fun_asc(void) {
 // return the arctangent of a number in radians
 void fun_atn(void) {
     fret = atanf(getnumber(ep)) * ANGLE_CONVERSION;
-    targ = T_NBR;
-}
-
-
-
-void fun_atan2(void) {
-    getargs(&ep, 3, ",");
-    if (argc != 3) ERROR_SYNTAX;
-    MMFLOAT y = getnumber(argv[0]);
-    MMFLOAT x = getnumber(argv[2]);
-    MMFLOAT z = atan2(y, x);
-    fret = z * ANGLE_CONVERSION;
     targ = T_NBR;
 }
 
