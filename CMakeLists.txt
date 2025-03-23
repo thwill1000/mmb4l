@@ -155,6 +155,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
 
 set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_at.c
+    src/functions/fun_atan2.c
     src/functions/fun_bin2str.c
     src/functions/fun_bound.c
     src/functions/fun_call.c
