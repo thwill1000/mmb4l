@@ -57,7 +57,7 @@ void fun_str(void) {
     char ch;
     const char *p;
 
-    getargs(&ep, 7, ",");
+    getargs(&ep, 7, DELIM_COMMA);
     if((argc & 1) != 1) ERROR_SYNTAX;
     t = T_NOTYPE;
     p = evaluate(argv[0], &f, &i64, &s, &t, false);                 // get the value and type of the argument

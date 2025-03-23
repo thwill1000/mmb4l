@@ -58,7 +58,7 @@ static MmResult cmd_gamepad_off(const char *p) {
 
 /** GAMEPAD ON [interrupt] [, bitmask] */
 static MmResult cmd_gamepad_on(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc > 3) return kArgumentCount;
     const char* interrupt = has_arg(0) ? GetIntAddress(argv[0]) : NULL;
     uint16_t bitmask = has_arg(2) ? getint(argv[2], 0, GAMEPAD_BITMASK_ALL) : GAMEPAD_BITMASK_ALL;

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 graphics.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -1514,7 +1514,8 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     while (buf[0] == 39) MMgetline(fnbr, buf);  // Skip lines beginning with single quote.
     const char *z = buf;
 
-    getargs(&z, 5, ", ");
+    const DelimType delim[] = { ',', ' ', 0 };
+    getargs(&z, 5, delim);
     unsigned width = getinteger(argv[0]);
     MmSurfaceId number = getinteger(argv[2]);
     unsigned height = (argc == 5) ? getinteger(argv[4]) : width;

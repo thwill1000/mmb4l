@@ -58,7 +58,7 @@ static MmResult cmd_cls_console(const char *p) {
 
 /** CLS [colour] */
 static MmResult cmd_cls_default(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
 
     if (!graphics_current) {
         console_clear();

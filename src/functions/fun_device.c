@@ -63,7 +63,7 @@ static int transform_analog_int16_to_uint8(int in) {
 
 /** DEVICE(GAMEPAD id%, funct) */
 MmResult fun_device_gamepad(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
     MmGamepadId gamepad_id = (argc == 3) ? getint(argv[0], 1, 4) : 1;
     const char *funct = argv[argc - 1];

@@ -203,7 +203,7 @@ static MmResult cmd_list_functions(const char *p) {
 
 /** LIST VARIABLES [ALL|GLOBAL|LOCAL|level%] */
 static MmResult cmd_list_variables(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     int level = -1; // ALL
     if (argc == 1) {
         if (checkstring(argv[0], "ALL")) {

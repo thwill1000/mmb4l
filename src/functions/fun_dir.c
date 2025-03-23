@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_dir.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -116,7 +116,7 @@ pattern_matching(                 /* 0:not matched, 1:matched */
 void fun_dir(void) {
     static DIR *dp = NULL;
     static char pp[32];
-    getargs(&ep, 3, ",");
+    getargs(&ep, 3, DELIM_COMMA);
     g_rtn_type = T_STR;
     errno = 0;
 

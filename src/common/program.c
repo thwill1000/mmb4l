@@ -541,7 +541,7 @@ static MmResult program_handle_comment_directive(const char *p) {
 }
 
 static MmResult program_handle_define_directive(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) return kSyntax;
     /*const*/ char *from = getCstring(argv[0]);
     /*const*/ char *to = getCstring(argv[2]);

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_pixel.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -77,7 +77,7 @@ static MmResult cmd_pixel_default(const char *p) {
     MMINTEGER *x1ptr, *y1ptr, *cptr;
     MMFLOAT *x1fptr, *y1fptr, *cfptr;
 
-    getargs(&cmdline, 5, ",");
+    getargs(&cmdline, 5, DELIM_COMMA);
     if (argc != 3 && argc != 5) return kArgumentCount;
     getargaddress(argv[0], &x1ptr, &x1fptr, &n);
     if (n != 1) getargaddress(argv[2], &y1ptr, &y1fptr, &n);

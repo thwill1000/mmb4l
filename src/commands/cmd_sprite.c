@@ -57,7 +57,7 @@ MmResult cmd_blit_write(const char *p, bool sprite);
 
 /** SPRITE CLOSE [#]id */
 static MmResult cmd_sprite_close(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;
@@ -80,7 +80,7 @@ static MmResult cmd_sprite_close_all(const char *p) {
 
 /** SPRITE HIDE [#]id */
 static MmResult cmd_sprite_hide(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;
@@ -96,7 +96,7 @@ static MmResult cmd_sprite_hide(const char *p) {
 
 /** SPRITE INTERRUPT interrupt */
 static MmResult cmd_sprite_interrupt(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
     const char* interrupt_addr = GetIntAddress(argv[0]);
     interrupt_enable(kInterruptSpriteCollision, interrupt_addr);
@@ -112,7 +112,7 @@ static inline MmResult cmd_sprite_hide_all(const char *p) {
 
 /** SPRITE HIDE SAFE [#]id */
 static MmResult cmd_sprite_hide_safe(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;
@@ -128,7 +128,7 @@ static MmResult cmd_sprite_hide_safe(const char *p) {
 
 /** SPRITE LOAD file$ [, start_sprite] [, colour_mode] */
 static MmResult cmd_sprite_load(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 1 && argc !=3 && argc != 5) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -151,7 +151,7 @@ static MmResult cmd_sprite_move(const char *p) {
 
 /** SPRITE NEXT [#]id, x, y */
 static MmResult cmd_sprite_next(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;
@@ -187,7 +187,7 @@ static MmResult cmd_sprite_restore(const char *p) {
 
 /** SPRITE SCROLL x, y [, colour] */
 MmResult cmd_sprite_scroll(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 3 && argc != 5) return kArgumentCount;
     const int maxW = graphics_current->width;
     const int maxH = graphics_current->height;
@@ -225,7 +225,7 @@ static MmResult cmd_sprite_set_transparent(const char *p) {
  *     0x04 = no transparency, all pixels opaque.
  */
 static MmResult cmd_sprite_show(const char *p) {
-    getargs(&p, 9, ",");
+    getargs(&p, 9, DELIM_COMMA);
     if (argc != 7 && argc != 9) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;
@@ -257,7 +257,7 @@ static MmResult cmd_sprite_show(const char *p) {
  *     0x04 = no transparency, all pixels opaque.
  */
 static MmResult cmd_sprite_show_safe(const char *p) {
-    getargs(&p, 11, ",");
+    getargs(&p, 11, DELIM_COMMA);
     if (argc != 7 && argc != 9 && argc != 11) return kArgumentCount;
 
     MmSurfaceId surface_id = -1;

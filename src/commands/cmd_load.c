@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_load.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * LOAD IMAGE file$ [, x] [, y]
  */
 static MmResult cmd_load_bmp(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc == 0) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -94,7 +94,7 @@ static MmResult cmd_load_jpg(const char *p) {
 static MmResult cmd_load_png(const char *p) {
     if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
-	getargs(&p, 7, ",");
+	getargs(&p, 7, DELIM_COMMA);
     if (argc == 0 || argc > 7) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -114,7 +114,8 @@ static MmResult cmd_load_png(const char *p) {
 
 /** LOAD file$ */
 static MmResult cmd_load_default(const char *p) {
-    getargs(&p, 1, " ,");
+    const DelimType delim[] = { ' ', ',' , 0 };
+    getargs(&p, 1, delim);
     if (argc != 1) return kArgumentCount;
 
     char *filename = GetTempStrMemory();

@@ -75,7 +75,7 @@ static int64_t getint64(const char *p, int64_t min, int64_t max) {
 //   WORD    - 4 bytes
 
 static void memory_copy_internal(const char *p, size_t element_size) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) ERROR_SYNTAX;
     uintptr_t src = get_poke_addr(argv[0]);
     if (src % element_size) ERROR_SRC_ADDRESS_NOT_DIVISIBLE_BY(element_size);
@@ -129,7 +129,7 @@ static void memory_copy(const char *p) {
 }
 
 static void memory_set_internal(const char *p, size_t element_size, int64_t min, int64_t max) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) ERROR_SYNTAX;
     uintptr_t to = get_poke_addr(argv[0]);
     if ((uintptr_t) to % element_size) ERROR_ADDRESS_NOT_DIVISIBLE_BY(element_size);
@@ -151,7 +151,7 @@ static void memory_set_byte(const char *p) {
 
 /** MEMORY SET FLOAT address, float_value, number_of_floats */
 static void memory_set_float(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) ERROR_SYNTAX;
     uintptr_t to = get_poke_addr(argv[0]);
     if ((uintptr_t) to % 8) ERROR_ADDRESS_NOT_DIVISIBLE_BY(8);

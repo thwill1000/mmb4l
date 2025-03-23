@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_sort.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -249,7 +249,7 @@ void cmd_sort(void) {
     int64_t *a3int = NULL, *a4int = NULL;
     unsigned char *a3str = NULL;
     int i, size, truesize, flags = 0, maxsize = 0, startpoint = 0;
-    getargs(&cmdline, 9, ",");
+    getargs(&cmdline, 9, DELIM_COMMA);
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
     if (vartbl[VarIndex].type & T_NBR) {
         if (vartbl[VarIndex].dims[1] != 0) ERROR_INVALID_VARIABLE;

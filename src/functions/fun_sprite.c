@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_sprite.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -421,7 +421,7 @@ static MmResult fun_sprite_y(int argc, char **argv) {
 
 void fun_sprite(void) {
     MmResult result = kOk;
-    getargs(&ep, 5, ",");
+    getargs(&ep, 5, DELIM_COMMA);
     if (checkstring(argv[0], "A")) {
         result = fun_sprite_address(argc, argv);
     } else if (checkstring(argv[0], "C")) {

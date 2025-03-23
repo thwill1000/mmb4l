@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 maths.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -844,7 +844,7 @@ int parsefloatrarray(const char *tp, MMFLOAT **a1float, int argno, int dimension
 }
 int parsearrays(const char *tp, MMFLOAT **a1float, MMFLOAT **a2float,MMFLOAT **a3float, int64_t **a1int, int64_t **a2int, int64_t **a3int){
 	int card1,card2,card3;
-	getargs(&tp, 5, ",");
+	getargs(&tp, 5, DELIM_COMMA);
 	if(!(argc == 5)) error_throw_legacy("Argument count");
 	card1=parsenumberarray(argv[0],a1float,a1int,1,0, NULL, false);
 	card2=parsenumberarray(argv[2],a2float,a2int,2,0, NULL, false);
@@ -919,7 +919,7 @@ void cmd_math(void){
 			int i,card1=1;
 			MMFLOAT *a1float=NULL;
 			int64_t *a1int=NULL;
-			getargs(&tp, 3, ",");
+			getargs(&tp, 3, DELIM_COMMA);
 			if(!(argc == 3)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[2],&a1float,&a1int,2,0, dims, true);
 		    evaluate(argv[0], &f, &i64, &s, &t, false);
@@ -938,7 +938,7 @@ void cmd_math(void){
 			int i,card1=1, card2=1;
 			MMFLOAT *a1float=NULL,*a2float=NULL, scale;
 			int64_t *a1int=NULL, *a2int=NULL;
-			getargs(&tp, 5, ",");
+			getargs(&tp, 5, DELIM_COMMA);
 			if(!(argc == 5)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[0],&a1float,&a1int,1,0, dims, false);
 		    evaluate(argv[2], &f, &i64, &s, &t, false);
@@ -973,7 +973,7 @@ void cmd_math(void){
 		if(tp) {
 			int i, card1=1, card2=1;
 			int64_t *a1int=NULL, *a2int=NULL;
-			getargs(&tp, 7, ",");
+			getargs(&tp, 7, DELIM_COMMA);
 			if(!(argc == 5 || argc==7)) error_throw_legacy("Argument count");
 			card1=parseintegerarray(argv[0],&a1int,1,0, dims, false);
 		    evaluate(argv[2], &f, &i64, &s, &t, false);
@@ -996,7 +996,7 @@ void cmd_math(void){
 			int i, j, start, increment, dim[MAXDIM], pos[MAXDIM],off[MAXDIM], dimcount=0, target=-1, toarray=0;
 			int64_t *a1int=NULL,*a2int=NULL;
 			MMFLOAT *afloat=NULL;
-			getargs(&tp, 13, ",");
+			getargs(&tp, 13, DELIM_COMMA);
 			if(argc<7)error_throw_legacy("Argument count");
 			parsenumberarray(argv[0],&afloat,&a1int,1,0,dims, false);
 			if(!a1int)a1int=(int64_t *)afloat;
@@ -1167,7 +1167,7 @@ void cmd_math(void){
 		if(tp) {
 			int i,j, numcols=0, numrows=0;
 			MMFLOAT *a1float=NULL,*a2float=NULL,*a2sfloat=NULL,*a3float=NULL;
-			getargs(&tp, 5, ",");
+			getargs(&tp, 5, DELIM_COMMA);
 			if(!(argc == 5)) error_throw_legacy("Argument count");
 			parsefloatrarray(argv[0],&a1float,1,2,dims,false);
 			numcols=dims[0] - mmb_options.base;
@@ -1194,7 +1194,7 @@ void cmd_math(void){
 		tp = checkstring(cmdline,  "V_ROTATE");
 		if(tp) {
 	    // xorigin!, yorigin!,angle!,xin!(), yin!(),xout(1), yout!()
-			getargs(&tp, 13, ",");
+			getargs(&tp, 13, DELIM_COMMA);
 			if(!(argc == 13)) error_throw_legacy("Argument count");
 			MMFLOAT xorigin=getnumber(argv[0]);
 			MMFLOAT yorigin=getnumber(argv[2]);
@@ -1227,7 +1227,7 @@ void cmd_math(void){
 		if(tp) {
 			int j, numrows=0, card2;
 			MMFLOAT *a1float=NULL,*a1sfloat=NULL,*a2float=NULL,mag=0.0;
-			getargs(&tp, 3, ",");
+			getargs(&tp, 3, DELIM_COMMA);
 			if(!(argc == 3)) error_throw_legacy("Argument count");
 			numrows=parsefloatrarray(argv[0],&a1float,1,1, dims, false);
 			a1sfloat=a1float;
@@ -1249,7 +1249,7 @@ void cmd_math(void){
 			int j, numcols=0;
 			MMFLOAT *a1float=NULL,*a2float=NULL,*a3float=NULL;
 			MMFLOAT a[3],b[3];
-			getargs(&tp, 5, ",");
+			getargs(&tp, 5, DELIM_COMMA);
 			if(!(argc == 5)) error_throw_legacy("Argument count");
 			numcols=parsefloatrarray(argv[0],&a1float,1,1, dims, false);
 			if(numcols!=3)error_throw_legacy("Argument 1 must be a 3 element floating point array");
@@ -1271,7 +1271,7 @@ void cmd_math(void){
 			int j, numcols=0;
 			MMFLOAT *a1float=NULL;
 			int64_t *a1int=NULL;
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			numcols=parsenumberarray(argv[0],&a1float,&a1int,1,1, dims, false);
 			if(a1float!=NULL){
@@ -1290,7 +1290,7 @@ void cmd_math(void){
 		if(tp){
 			int i, j, n, numcols=0, numrows=0;
 			MMFLOAT *a1float=NULL, *a2float=NULL,det;
-			getargs(&tp, 3, ",");
+			getargs(&tp, 3, DELIM_COMMA);
 			if(!(argc == 3)) error_throw_legacy("Argument count");
 			parsefloatrarray(argv[0], &a1float, 1,2,dims, false);
 			numcols=dims[0] - mmb_options.base;
@@ -1327,7 +1327,7 @@ void cmd_math(void){
 		if(tp) {
 			int i,j, numcols1=0, numrows1=0, numcols2=0, numrows2=0;
 			MMFLOAT *a1float=NULL,*a2float=NULL;
-			getargs(&tp, 3, ",");
+			getargs(&tp, 3, DELIM_COMMA);
 			if(!(argc == 3)) error_throw_legacy("Argument count");
 			parsefloatrarray(argv[0], &a1float, 1,2,dims, false);
 			numcols1=numrows2=dims[0] - mmb_options.base;
@@ -1365,7 +1365,7 @@ void cmd_math(void){
 		if(tp) {
 			int i,j, k, numcols1=0, numrows1=0, numcols2=0, numrows2=0, numcols3=0, numrows3=0;
 			MMFLOAT *a1float=NULL,*a2float=NULL,*a3float=NULL;
-			getargs(&tp, 5, ",");
+			getargs(&tp, 5, DELIM_COMMA);
 			if(!(argc == 5)) error_throw_legacy("Argument count");
 			parsefloatrarray(argv[0], &a1float, 1, 2, dims, false);
 			numcols1=numrows2=dims[0] - mmb_options.base + 1;
@@ -1418,7 +1418,7 @@ void cmd_math(void){
 			MMFLOAT *a1float=NULL;
 			int64_t *a1int=NULL;
 			// need three arrays with same cardinality, second array must be 2 dimensional
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			parsenumberarray(argv[0],&a1float,&a1int,1,2,dims, false);
 			numcols=dims[0]+1-mmb_options.base;
@@ -1465,7 +1465,7 @@ void cmd_math(void){
 		if(tp) {
 			int card;
 			MMFLOAT *q=NULL,*n=NULL;
-			getargs(&tp, 3, ",");
+			getargs(&tp, 3, DELIM_COMMA);
 			if(!(argc == 3)) error_throw_legacy("Argument count");
 			card=parsefloatrarray(argv[0],&q,1,1, dims, false);
 			if(card!=5)error_throw_legacy("Argument 1 must be a 5 element floating point array");
@@ -1480,7 +1480,7 @@ void cmd_math(void){
 			int card;
 			MMFLOAT *q=NULL;
 			MMFLOAT mag=0.0;
-			getargs(&tp, 7, ",");
+			getargs(&tp, 7, DELIM_COMMA);
 			if(!(argc == 7)) error_throw_legacy("Argument count");
 			MMFLOAT x=getnumber(argv[0]);
 			MMFLOAT y=getnumber(argv[2]);
@@ -1500,7 +1500,7 @@ void cmd_math(void){
 		if(tp) {
 			int card;
 			MMFLOAT *q=NULL;
-			getargs(&tp, 7, ",");
+			getargs(&tp, 7, DELIM_COMMA);
 			if(!(argc == 7)) error_throw_legacy("Argument count");
 			MMFLOAT yaw=-getnumber(argv[0])/ANGLE_CONVERSION;
 			MMFLOAT pitch=getnumber(argv[2])/ANGLE_CONVERSION;
@@ -1526,7 +1526,7 @@ void cmd_math(void){
 			int card;
 			MMFLOAT *q=NULL;
 			MMFLOAT mag=0.0;
-			getargs(&tp, 9, ",");
+			getargs(&tp, 9, DELIM_COMMA);
 			if(!(argc == 9)) error_throw_legacy("Argument count");
 			MMFLOAT theta=getnumber(argv[0]);
 			MMFLOAT x=getnumber(argv[2]);
@@ -1552,7 +1552,7 @@ void cmd_math(void){
 		if(tp) {
 			MMFLOAT *q1=NULL,*q2=NULL,*n=NULL;
 			int card;
-			getargs(&tp, 5, ",");
+			getargs(&tp, 5, DELIM_COMMA);
 			if(!(argc == 5)) error_throw_legacy("Argument count");
 			card=parsefloatrarray(argv[0],&q1,1,1, dims, false);
 			if(card!=5)error_throw_legacy("Argument 1 must be a 5 element floating point array");
@@ -1569,7 +1569,7 @@ void cmd_math(void){
 			int card;
 			MMFLOAT *q1=NULL,*v1=NULL,*n=NULL;
 			MMFLOAT temp[5], qtemp[5];
-			getargs(&tp, 5, ",");
+			getargs(&tp, 5, DELIM_COMMA);
 			if(!(argc == 5)) error_throw_legacy("Argument count");
 			card=parsefloatrarray(argv[0],&q1,1,1, dims, false);
 			if(card!=5)error_throw_legacy("Argument 1 must be a 5 element floating point array");
@@ -1588,7 +1588,7 @@ void cmd_math(void){
 			int i,card1=1, card2=1;
 			MMFLOAT *a1float=NULL,*a2float=NULL, scale;
 			int64_t *a1int=NULL, *a2int=NULL;
-			getargs(&tp, 5, ",");
+			getargs(&tp, 5, DELIM_COMMA);
 			if(!(argc == 5)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[0], &a1float, &a1int, 1, 0,dims, false);
 		    evaluate(argv[2], &f, &i64, &s, &t, false);
@@ -1624,7 +1624,7 @@ void cmd_math(void){
 			int i,card1=1, card2=1;
 			MMFLOAT *a1float=NULL,*a2float=NULL, scale;
 			int64_t *a1int=NULL, *a2int=NULL;
-			getargs(&tp, 5, ",");
+			getargs(&tp, 5, DELIM_COMMA);
 			if(!(argc == 5)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[0], &a1float, &a1int, 1, 0,dims, false);
 		    evaluate(argv[2], &f, &i64, &s, &t, false);
@@ -1661,7 +1661,7 @@ void cmd_math(void){
 			int i,card1=1, card2=1;
 			MMFLOAT *a1float=NULL,*a2float=NULL, outmin,outmax, inmin=1.5e+308 , inmax=-1.5e308;
 			int64_t *a1int=NULL, *a2int=NULL;
-			getargs(&tp, 11, ",");
+			getargs(&tp, 11, DELIM_COMMA);
 			if(!(argc == 7 || argc==11)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[0], &a1float, &a1int, 1, 0,dims, false);
 		    outmin=getnumber(argv[2]);
@@ -1703,7 +1703,7 @@ void cmd_math(void){
 		tp = checkstring(cmdline,  "RANDOMIZE");
 		if(tp) {
 			int i;
-			getargs(&tp,1, ",");
+			getargs(&tp,1, DELIM_COMMA);
 			if(argc==1)i = getinteger(argv[0]);
 			else i= mmtime_now_ns() / 1000; // time_us_32();
 			if(i < 0) error_throw_legacy("Number out of bounds");
@@ -1716,7 +1716,7 @@ void cmd_math(void){
 			int i,card1, card2, card3;
 			MMFLOAT *a1float=NULL,*a2float=NULL, *a3float=NULL, scale, tmp1, tmp2, tmp3;
 			int64_t *a1int=NULL, *a2int=NULL, *a3int=NULL;
-			getargs(&tp, 7, ",");
+			getargs(&tp, 7, DELIM_COMMA);
 			if(!(argc == 7)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[0], &a1float, &a1int, 1, 0, dims, false);
 		    evaluate(argv[4], &f, &i64, &s, &t, false);
@@ -1753,7 +1753,7 @@ void cmd_math(void){
 			int i, j, start, increment, dim[MAXDIM], pos[MAXDIM],off[MAXDIM], dimcount=0, target=-1;
 			int64_t *a1int=NULL,*a2int=NULL;
 			MMFLOAT *afloat=NULL;
-			getargs(&tp, 13, ",");
+			getargs(&tp, 13, DELIM_COMMA);
 			if(argc<7)error_throw_legacy("Argument count");
 			parsenumberarray(argv[0],&afloat,&a1int,1,0,dims, false);
 			if(!a1int)a1int=(int64_t *)afloat;
@@ -1827,7 +1827,7 @@ void fun_math(void){
 		tp = checkstring(ep,  "ATAN3");
 		if(tp) {
 			MMFLOAT y,x,z;
-			getargs(&tp, 3, ",");
+			getargs(&tp, 3, DELIM_COMMA);
 			if(argc != 3)ERROR_SYNTAX;
 			y=getnumber(argv[0]);
 			x=getnumber(argv[2]);
@@ -1863,23 +1863,23 @@ void fun_math(void){
 				fret=(MMFLOAT)cargf(getComplex(tp));
 				targ=T_NBR;
 			} else if((tp=checkstring(&ep[2], "ADD"))){
-				getargs(&tp,3, ",");
+				getargs(&tp,3, DELIM_COMMA);
 				fcplx x=getComplex(argv[0])+getComplex(argv[2]);
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "MUL"))){
-				getargs(&tp,3, ",");
+				getargs(&tp,3, DELIM_COMMA);
 				fcplx x=getComplex(argv[0])*getComplex(argv[2]);
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "SUB"))){
-				getargs(&tp,3, ",");
+				getargs(&tp,3, DELIM_COMMA);
 				fcplx x=getComplex(argv[0])-getComplex(argv[2]);
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "DIV"))){
-				getargs(&tp,3, ",");
+				getargs(&tp,3, DELIM_COMMA);
 				fcplx x=getComplex(argv[0])/getComplex(argv[2]);
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "POW"))){
-				getargs(&tp,3, ",");
+				getargs(&tp,3, DELIM_COMMA);
 				fcplx x=cpowf(getComplex(argv[0]),getComplex(argv[2]));
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "CONJ"))){
@@ -1937,11 +1937,11 @@ void fun_math(void){
 				fcplx x=cprojf(getComplex(tp));
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "CPLX"))){
-				getargs(&tp,3, ",");
+				getargs(&tp,3, DELIM_COMMA);
 				fcplx x=(float)(getnumber(argv[0]))+(float)(getnumber(argv[2]))*I;
 				retComplex(x);
 			} else if((tp=checkstring(&ep[2], "POLAR"))){
-				getargs(&tp,3, ",");
+				getargs(&tp,3, DELIM_COMMA);
 				MMFLOAT r=getnumber(argv[0]);
 				MMFLOAT theta=getnumber(argv[2])/ANGLE_CONVERSION;
 				MMFLOAT stheta=sin(theta)*r;
@@ -1956,7 +1956,7 @@ void fun_math(void){
 		    int i;
 		    MMFLOAT *a1float=NULL;
 		    int64_t *a1int=NULL;
-			getargs(&tp,13, ",");
+			getargs(&tp,13, DELIM_COMMA);
 			if(argc<1)ERROR_SYNTAX;
 			uint8_t polynome=CRC8_DEFAULT_POLYNOME;
 			uint8_t startmask=0;
@@ -1991,7 +1991,7 @@ void fun_math(void){
 		    int i;
 		    MMFLOAT *a1float=NULL;
 		    int64_t *a1int=NULL;
-			getargs(&tp,13, ",");
+			getargs(&tp,13, DELIM_COMMA);
 			if(argc<1)ERROR_SYNTAX;
 			uint16_t polynome=CRC12_DEFAULT_POLYNOME;
 			uint16_t startmask=0;
@@ -2026,7 +2026,7 @@ void fun_math(void){
 		    int i;
 		    MMFLOAT *a1float=NULL;
 		    int64_t *a1int=NULL;
-			getargs(&tp,13, ",");
+			getargs(&tp,13, DELIM_COMMA);
 			if(argc<1)ERROR_SYNTAX;
 			uint16_t polynome=CRC16_DEFAULT_POLYNOME;
 			uint16_t startmask=0;
@@ -2061,7 +2061,7 @@ void fun_math(void){
 		    int i;
 		    MMFLOAT *a1float=NULL;
 		    int64_t *a1int=NULL;
-			getargs(&tp,13, ",");
+			getargs(&tp,13, DELIM_COMMA);
 			if(argc<1)ERROR_SYNTAX;
 			uint32_t polynome=CRC32_DEFAULT_POLYNOME;
 			uint32_t startmask=0;
@@ -2093,7 +2093,7 @@ void fun_math(void){
 		}
 		tp = checkstring(ep,  "COSH");
 		if(tp) {
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			fret=cosh(getnumber(argv[0]));
 			targ=T_NBR;
@@ -2107,7 +2107,7 @@ void fun_math(void){
 			MMFLOAT crossing=0.0;
 			int direction=1;
 			int found=-1;
-			getargs(&tp,5, ",");
+			getargs(&tp,5, DELIM_COMMA);
 			if(argc<1)ERROR_SYNTAX;
 			if(argc>=3 && *argv[2])crossing = getnumber(argv[2]);
 			if(argc==5) direction=getint(argv[4],-1,1);
@@ -2176,7 +2176,7 @@ void fun_math(void){
 		    MMFLOAT *a3float=NULL, *a4float=NULL;
 		    MMFLOAT axb=0, a2=0, b2=0;
 		    int64_t *a1int=NULL, *a2int=NULL;
-		    getargs(&tp, 3, ",");
+		    getargs(&tp, 3, DELIM_COMMA);
 		    if(!(argc == 3)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[0],&a1float,&a1int,1,0,dims, false);
 			card2=parsenumberarray(argv[2],&a2float,&a2int,2,0,dims, false);
@@ -2223,7 +2223,7 @@ void fun_math(void){
 			MMFLOAT total=0.0;
 			int64_t *a1int=NULL;
 			{
-				getargs(&tp, 1, ",");
+				getargs(&tp, 1, DELIM_COMMA);
 				if(!(argc == 1)) error_throw_legacy("Argument count");
 				parsenumberarray(argv[0],&a1float,&a1int,1,2,dims, false);
 				numcols=dims[0];
@@ -2294,7 +2294,7 @@ void fun_math(void){
 			int card1,card2;
 			MMFLOAT *a1float=NULL, *a2float=NULL;
 			// need two arrays with same cardinality
-			getargs(&tp, 3, ",");
+			getargs(&tp, 3, DELIM_COMMA);
 			if(!(argc == 3)) error_throw_legacy("Argument count");
 			card1=parsefloatrarray(argv[0],&a1float,1,1,dims, false);
 			card2=parsefloatrarray(argv[2],&a2float,2,1,dims, false);
@@ -2309,7 +2309,7 @@ void fun_math(void){
 	} else if(toupper(*ep)=='L') {
 		tp = checkstring(ep,  "LOG10");
 		if(tp) {
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			fret=log10(getnumber(argv[0]));
 			targ=T_NBR;
@@ -2321,7 +2321,7 @@ void fun_math(void){
 		if(tp){
 			int i, j, n, numcols=0, numrows=0;
 			MMFLOAT *a1float=NULL;
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			parsefloatrarray(argv[0],&a1float,1,2,dims, false);
 			numcols=dims[0]+1-mmb_options.base;
@@ -2347,7 +2347,7 @@ void fun_math(void){
 			MMFLOAT *a1float=NULL, max=-3.0e+38;
 			int64_t *a1int=NULL;
 			long long int *temp=NULL;
-			getargs(&tp, 3, ",");
+			getargs(&tp, 3, DELIM_COMMA);
 //			if(!(argc == 1)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[0],&a1float,&a1int,1,0,dims, false);
 			if(argc==3){
@@ -2389,7 +2389,7 @@ void fun_math(void){
 			MMFLOAT *a1float=NULL, min=3.0e+38;
 			int64_t *a1int=NULL;
 			long long int *temp=NULL;
-			getargs(&tp, 3, ",");
+			getargs(&tp, 3, DELIM_COMMA);
 //			if(!(argc == 1)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[0],&a1float,&a1int,1,0,dims, false);
 			if(argc==3){
@@ -2430,7 +2430,7 @@ void fun_math(void){
 			int numcols=0;
 			MMFLOAT *a1float=NULL;
 			MMFLOAT mag=0.0;
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			numcols=parsefloatrarray(argv[0],&a1float,1,0,dims, false);
 			for(i=0;i<numcols;i++){
@@ -2447,7 +2447,7 @@ void fun_math(void){
 			int i,card1=1;
 			MMFLOAT *a1float=NULL, mean=0;
 			int64_t *a1int=NULL;
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[0],&a1float,&a1int,1,0,dims, false);
 			if(a1float!=NULL){
@@ -2465,7 +2465,7 @@ void fun_math(void){
 			int i,card1, card2=1;
 			MMFLOAT *a1float=NULL, *a2float=NULL;
 			int64_t *a2int=NULL;
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			card2=parsenumberarray(argv[0],&a2float,&a2int,1,0,dims,false);
 			card1=card2;
@@ -2486,7 +2486,7 @@ void fun_math(void){
 
 		tp = checkstring(ep,  "SINH");
 		if(tp) {
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			fret=sinh(getnumber(argv[0]));
 			targ=T_NBR;
@@ -2498,7 +2498,7 @@ void fun_math(void){
 			int i,card1=1;
 			MMFLOAT *a2float=NULL, *a1float=NULL, mean=0, var=0, deviation;
 			int64_t *a2int=NULL, *a1int=NULL;
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[0],&a1float,&a1int,1,0,dims, false);
 			if(a1float!=NULL){
@@ -2563,7 +2563,7 @@ void fun_math(void){
 			int i,card1=1;
 			MMFLOAT *a1float=NULL, sum=0;
 			int64_t *a1int=NULL;
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			card1=parsenumberarray(argv[0],&a1float,&a1int,1,0,dims, false);
 			if(a1float!=NULL){
@@ -2579,7 +2579,7 @@ void fun_math(void){
 
 		tp = checkstring(ep,  "TANH");
 		if(tp) {
-			getargs(&tp, 1, ",");
+			getargs(&tp, 1, DELIM_COMMA);
 			if(!(argc == 1)) error_throw_legacy("Argument count");
 			fret=tanh(getnumber(argv[0]));
 			targ=T_NBR;
@@ -2664,7 +2664,7 @@ void cmd_FFT(const char *pp){
     int i, card1,card2, powerof2=0;
 	tp = checkstring(pp,  "MAGNITUDE");
 	if(tp) {
-		getargs(&tp,3, ",");
+		getargs(&tp,3, DELIM_COMMA);
 		card1=parsefloatrarray(argv[0],&a3float,1,1,dims, false);
 		card2=parsefloatrarray(argv[2],&a4float,2,1,dims, true);
 	    if(card1 !=card2)error_throw_legacy("Array size mismatch");
@@ -2682,7 +2682,7 @@ void cmd_FFT(const char *pp){
 	}
 	tp = checkstring(pp,  "PHASE");
 	if(tp) {
-		getargs(&tp,3, ",");
+		getargs(&tp,3, DELIM_COMMA);
 		card1=parsefloatrarray(argv[0],&a3float,1,1,dims, false);
 		card2=parsefloatrarray(argv[2],&a4float,2,1,dims, true);
 	    if(card1 !=card2)error_throw_legacy("Array size mismatch");
@@ -2700,7 +2700,7 @@ void cmd_FFT(const char *pp){
 	}
 	tp = checkstring(pp,  "INVERSE");
 	if(tp) {
-		getargs(&tp,3, ",");
+		getargs(&tp,3, DELIM_COMMA);
 		card1=parsefloatrarray(argv[0],&a4float,1,2,dims, false);
 		int size=dims[1] - mmb_options.base +1;
 		a1cplx=(cplx *)a4float;
@@ -2719,7 +2719,7 @@ void cmd_FFT(const char *pp){
 	    for(i=0;i<card2;i++)a3float[i]=creal(a2cplx[i]);
 	    return;
 	}
-	getargs(&pp,3, ",");
+	getargs(&pp,3, DELIM_COMMA);
 	card1=parsefloatrarray(argv[0],&a3float,1,1,dims, false);
 	card2=parsefloatrarray(argv[2],&a4float,2,2,dims, true);
     a2cplx = (cplx *)a4float;
@@ -2735,7 +2735,7 @@ void cmd_FFT(const char *pp){
 // void cmd_SensorFusion(char *passcmdline){
 //     char *p;
 //     if((p = checkstring( passcmdline,  "MADGWICK")) != NULL) {
-//     getargs(&p, 25, ",");
+//     getargs(&p, 25, DELIM_COMMA);
 //     if(argc < 23) error_throw_legacy("Incorrect number of parameters");
 //         MMFLOAT t;
 //         MMFLOAT *pitch, *yaw, *roll;
@@ -2764,7 +2764,7 @@ void cmd_FFT(const char *pp){
 //         return;
 //     }
 //     if((p = checkstring( passcmdline,  "MAHONY")) != NULL) {
-//     getargs(&p, 27, ",");
+//     getargs(&p, 27, DELIM_COMMA);
 //     if(argc < 23) error_throw_legacy("Incorrect number of parameters");
 //         MMFLOAT t;
 //         MMFLOAT *pitch, *yaw, *roll;

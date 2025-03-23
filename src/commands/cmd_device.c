@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_device.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** CONTROLLER CLASSIC CLOSE [i2c] */
 static MmResult cmd_device_classic_close(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc > 1) return kArgumentCount;
     int wii_i2c = (argc > 0) ? getint(argv[0], 1, 3) : 3;
     MmGamepadId gamepad_id = gamepad_transform_wii_i2c(wii_i2c);
@@ -60,7 +60,7 @@ static MmResult cmd_device_classic_close(const char *p) {
 
 /** CONTROLLER CLASSIC OPEN [i2c] [, interrupt] [, bitmask] */
 static MmResult cmd_device_classic_open(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 0 && argc != 1 && argc != 3 && argc != 5) return kArgumentCount;
     int wii_i2c = (argc > 0) ? getint(argv[0], 1, 3) : 3;
     MmGamepadId gamepad_id = gamepad_transform_wii_i2c(wii_i2c);
@@ -90,7 +90,7 @@ static MmResult cmd_device_classic(const char *p) {
 
 /** DEVICE GAMEPAD CLOSE id */
 static MmResult cmd_device_gamepad_close(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
     MmGamepadId gamepad_id = getint(argv[0], 1, 4);
     return gamepad_close(gamepad_id);
@@ -98,7 +98,7 @@ static MmResult cmd_device_gamepad_close(const char *p) {
 
 /** DEVICE GAMEPAD INTERRUPT DISABLE id */
 static MmResult cmd_device_gamepad_interrupt_disable(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
     MmGamepadId gamepad_id = getint(argv[0], 1, 4);
 
@@ -112,7 +112,7 @@ static MmResult cmd_device_gamepad_interrupt_disable(const char *p) {
 
 /** DEVICE GAMEPAD INTERRUPT ENABLE id, interrupt [, bitmask] */
 static MmResult cmd_device_gamepad_interrupt_enable(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (!(argc & 1) || argc < 3) return kArgumentCount;
     MmGamepadId gamepad_id = getint(argv[0], 1, 4);
     const char *interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
@@ -128,7 +128,7 @@ static MmResult cmd_device_gamepad_interrupt_enable(const char *p) {
 
 /** DEVICE GAMEPAD LED id, red, green, blue */
 static MmResult cmd_device_gamepad_led(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 7) return kArgumentCount;
     const MmGamepadId gamepad_id = getint(argv[0], 1, 4);
     const uint8_t red = getint(argv[2], 0, 0xFF);
@@ -139,7 +139,7 @@ static MmResult cmd_device_gamepad_led(const char *p) {
 
 /** DEVICE GAMEPAD OPEN id [, interrupt] [, bitmask] */
 static MmResult cmd_device_gamepad_open(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (!(argc & 1)) return kArgumentCount;
     MmGamepadId gamepad_id = getint(argv[0], 1, 4);
     const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
@@ -154,7 +154,7 @@ static MmResult cmd_device_gamepad_open(const char *p) {
  * DEVICE GAMEPAD RUMBLE id, OFF
  */
 static MmResult cmd_device_gamepad_rumble(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (!(argc & 1)) return kArgumentCount;
     const MmGamepadId gamepad_id = getint(argv[0], 1, 4);
     uint16_t low_freq = 0;
@@ -176,7 +176,7 @@ static MmResult cmd_device_gamepad_rumble(const char *p) {
  * DEVICE GAMEPAD RUMBLE TRIGGERS id, OFF
  */
 static MmResult cmd_device_gamepad_rumble_triggers(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (!(argc & 1)) return kArgumentCount;
     const MmGamepadId gamepad_id = getint(argv[0], 1, 4);
     uint16_t left = 0;
@@ -219,7 +219,7 @@ static MmResult cmd_device_gamepad(const char *p) {
 
 /** DEVICE GAMEPAD COLOUR id, colour */
 static MmResult cmd_device_gamepad_colour(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) return kArgumentCount;
     MmGamepadId gamepad_id = getint(argv[0], 1, 4);
     const MMINTEGER colour = getint(argv[2], 0, 0xFFFFFF);
@@ -236,7 +236,7 @@ static MmResult cmd_device_gamepad_colour(const char *p) {
 
 /** DEVICE GAMEPAD HAPTIC id, left, right */
 static MmResult cmd_device_gamepad_haptic(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) return kArgumentCount;
     MmGamepadId gamepad_id = getint(argv[0], 1, 4);
     const MMINTEGER left = getint(argv[2], 0, 255) << 8;

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_gui.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** GUI BITMAP x, y, bits [, width] [, height] [, scale] [, fcolour] [, bcolour] */
 MmResult cmd_gui_bitmap(const char *p) {
-    getargs(&p, 15, ",");
+    getargs(&p, 15, DELIM_COMMA);
     if (!(argc & 1) || argc < 5) return kArgumentCount;
 
     int x = getinteger(argv[0]);

@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** FLASH DISK LOAD n, file$ [, O[VERWRITE]] */
 MmResult cmd_flash_disk_load(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 3 && argc != 5) return kArgumentCount;
 
     unsigned flash_index = getint(argv[0], 1, FLASH_NUM_SLOTS) - 1;

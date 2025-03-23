@@ -89,8 +89,8 @@ void cmd_dim(void) {
     if (*cmdline == tokenAS) cmdline++;                             // this means that we can use DIM AS INTEGER a, b, etc
     const char *pconst = CheckIfTypeSpecified(cmdline, &type, true);  // check for DIM FLOAT A, B, ...
     ImpliedType = type;
-    {                                                               // getargs macro must be the first executable stmt in a block
-        getargs(&pconst, (MAX_ARG_COUNT * 2) - 1, ",");
+    {
+        getargs(&pconst, (MAX_ARG_COUNT * 2) - 1, DELIM_COMMA);
         if((argc & 0x01) == 0) ERROR_SYNTAX;
 
         // 'p' will be pointing into the items of argv[] which we know are not

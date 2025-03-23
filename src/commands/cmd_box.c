@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_box.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -58,7 +58,7 @@ void cmd_box(void) {
     int x1, y1, wi, h, w = 0, n = 0, i, nc = 0, nw = 0, nf = 0, hmod, wmod;
     MMINTEGER *x1ptr, *y1ptr, *wiptr, *hptr, *wptr, *cptr, *fptr;
     MMFLOAT *x1fptr, *y1fptr, *wifptr, *hfptr, *wfptr, *cfptr, *ffptr;
-    getargs(&cmdline, 13, ",");
+    getargs(&cmdline, 13, DELIM_COMMA);
     if (!(argc & 1) || argc < 7) ERROR_ARGUMENT_COUNT;
     getargaddress(argv[0], &x1ptr, &x1fptr, &n);
     if (n != 1) {

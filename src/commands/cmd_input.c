@@ -53,7 +53,8 @@ void cmd_input(void) {
     char s[STRINGSIZE];
     char *p, *sp, *tp;
     int i, fnbr;
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",;");               // this is a macro and must be the first executable stmt
+    const DelimType delim[] = { ',', ';', 0 };
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, delim);
 
     // is the first argument a file number specifier?  If so, get it
     if(argc >= 3 && *argv[0] == '#') {

@@ -50,20 +50,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void cmd_for(void) {
     int i, t, vlen, test;
-    char ss[4];                                                     // this will be used to split up the argument line
+    const DelimType delim[] = { tokenEQUAL, tokenTO, tokenSTEP, 0 };
     const char *p, *tp, *xp;
     void *vptr;
     char *vname, vtype;
 
-    ss[0] = tokenEQUAL;
-    ss[1] = tokenTO;
-    ss[2] = tokenSTEP;
-    ss[3] = 0;
-
-    {                                                               // start a new block
-        getargs(&cmdline, 7, ss);                                   // getargs macro must be the first executable stmt in a block
-        if(argc < 5 || argc == 6 || *argv[1] != ss[0] || *argv[3] != ss[1]) error_throw_legacy("FOR with misplaced = or TO");
-        if(argc == 6 || (argc == 7 && *argv[5] != ss[2])) ERROR_SYNTAX;
+    {
+        getargs(&cmdline, 7, delim);
+        // TODO: Unit test when move to multi-byte tokens/delimiters.
+        if(argc < 5 || argc == 6 || *argv[1] != delim[0] || *argv[3] != delim[1]) {
+            error_throw_legacy("FOR with misplaced = or TO");
+        }
+        if(argc == 6 || (argc == 7 && *argv[5] != delim[2])) ERROR_SYNTAX;
 
         // get the variable name and trim any spaces
         vname = argv[0];

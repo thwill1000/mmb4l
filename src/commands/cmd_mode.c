@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_mode.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -66,7 +66,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                       the start of frame blanking.
  */
 static MmResult cmd_mode_cmm2(void) {
-    getargs(&cmdline, 7, ",");
+    getargs(&cmdline, 7, DELIM_COMMA);
     if ((argc % 2 == 0) || argc < 1) return kArgumentCount;
 
     const unsigned mode = getint(argv[0], MIN_CMM2_MODE, MAX_CMM2_MODE);
@@ -80,7 +80,7 @@ static MmResult cmd_mode_cmm2(void) {
 }
 
 static MmResult cmd_mode_pmvga(void) {
-    getargs(&cmdline, 1, ",");
+    getargs(&cmdline, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
     const unsigned mode = getint(argv[0], MIN_PMVGA_MODE, MAX_PMVGA_MODE);

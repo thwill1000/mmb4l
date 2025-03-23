@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_mminfo.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -185,7 +185,7 @@ static void mminfo_envvar(const char *p) {
 }
 
 static void mminfo_errmsg(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc > 1) ERROR_ARGUMENT_COUNT;
 
     g_string_rtn = GetTempStrMemory();
@@ -281,7 +281,7 @@ static void mminfo_flash_address(const char *p) {
             && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
         ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     const int flash_index = getint(argv[0], 1, FLASH_NUM_SLOTS) - 1;
     g_rtn_type = T_INT;
@@ -301,7 +301,7 @@ static void mminfo_fontwidth(const char *p) {
 }
 
 static void mminfo_gamepad(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     MMINTEGER id = getint(argv[0], 1, 4);
     g_string_rtn = GetTempStrMemory();
@@ -420,7 +420,7 @@ static void mminfo_pin_no(const char *p) {
         ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
 
     uint8_t pin_gp = 0;
@@ -488,7 +488,7 @@ static void mminfo_usb(const char *p) {
         ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     const MMINTEGER channel = getint(argv[0], 1, 4);
 

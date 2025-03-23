@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_inc.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_inc(void) {
     char *p, *q;
     int vtype;
-    getargs(&cmdline, 3, ",");
+    getargs(&cmdline, 3, DELIM_COMMA);
     if (argc == 1) {
         p = findvar(argv[0], V_FIND);
         if (vartbl[VarIndex].type & T_CONST) ERROR_CANNOT_CHANGE_A_CONSTANT;

@@ -115,7 +115,7 @@ static MmResult fun_rgb_parse_colour(const char *p, MmGraphicsColour *colour) {
  * RGB(shortcut [, trans])
  */
 void fun_rgb(void) {
-    getargs(&ep, 7, ",");
+    getargs(&ep, 7, DELIM_COMMA);
     MmResult result = kOk;
     MmGraphicsColour colour = -1;
     switch (argc) {

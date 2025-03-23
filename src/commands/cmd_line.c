@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_line.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -57,7 +57,7 @@ static MmResult cmd_line_cmm1(const char *p) {
     return kUnimplemented;
 #if 0
     int x1, y1, x2, y2, colour, box, fill;
-    getargs(&cmdline, 5, ",");
+    getargs(&cmdline, 5, DELIM_COMMA);
 
     // check if it is actually a LINE INPUT command
     if (argc < 1) ERROR_SYNTAX;
@@ -102,7 +102,7 @@ static MmResult cmd_line_plot(const char *p) {
     MMFLOAT *y1fptr;
     int xs = 0, xinc = 1;
     int ys = 0, yinc = 1;
-    getargs(&p, 13, ",");
+    getargs(&p, 13, DELIM_COMMA);
     getargaddress(argv[0], &y1ptr, &y1fptr, &n);
     if (n == 1) ERROR_ARG_NOT_ARRAY(1);
     int nc = n;
@@ -135,7 +135,7 @@ static MmResult cmd_line_plot(const char *p) {
 
 /** LINE GRAPH x(), y() [, colour] */
 static MmResult cmd_line_graph(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 3 && argc != 5) return kArgumentCount;
 
     MMINTEGER *px = NULL; // Pointer to x-coordinates (if INTEGER).
@@ -167,7 +167,7 @@ static MmResult cmd_line_graph(const char *p) {
 /** LINE AA x1, y1, x2, y2 [, width [, colour]] */
 static MmResult cmd_line_aa(const char *p) {
     MMFLOAT x1, y1, x2, y2;
-    getargs(&p, 11, ",");
+    getargs(&p, 11, DELIM_COMMA);
     x1 = getnumber(argv[0]);
     y1 = getnumber(argv[2]);
     x2 = getnumber(argv[4]);
@@ -189,7 +189,7 @@ static MmResult cmd_line_default(const char *p) {
     MMINTEGER *x1ptr, *y1ptr, *x2ptr, *y2ptr;
     MMFLOAT *x1fptr, *y1fptr, *x2fptr, *y2fptr;
 
-    getargs(&cmdline, 11, ",");
+    getargs(&cmdline, 11, DELIM_COMMA);
     if (!(argc & 1) || argc < 3) return kArgumentCount;
     getargaddress(argv[0], &x1ptr, &x1fptr, &n);
     if (n != 1) {

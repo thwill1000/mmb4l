@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_lgetbyte.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 
 void fun_lgetbyte(void) {
-    getargs(&ep, 3, ",");
+    getargs(&ep, 3, DELIM_COMMA);
 
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 

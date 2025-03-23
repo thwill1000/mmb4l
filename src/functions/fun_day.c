@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_day.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -56,8 +56,8 @@ void fun_day(void) {
         time = mmtime_now_ns();
     } else {
         const char *arg = getCstring(ep);
-        getargs(&arg, 5, "-/");  // this is a macro and must be the first
-                                 // executable stmt in a block
+        const DelimType delim[] = { '-', '/', 0 };
+        getargs(&arg, 5, delim);
         if (argc != 5) ERROR_SYNTAX;
         int d = atoi(argv[0]);
         int m = atoi(argv[2]);
