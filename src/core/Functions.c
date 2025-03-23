@@ -477,31 +477,3 @@ void fun_acos(void) {
      fret *= ANGLE_CONVERSION;
      targ = T_NBR;
 }
-
-
-// utility function to do the max/min comparison and return the value
-// it is only called by fun_max() and fun_min() below.
-void do_max_min(int cmp) {
-    int i;
-    MMFLOAT nbr, f;
-    getargs(&ep, (MAX_ARG_COUNT * 2) - 1, ",");
-    if((argc & 1) != 1) ERROR_SYNTAX;
-    if(cmp) nbr = -FLT_MAX; else nbr = FLT_MAX;
-    for(i = 0; i < argc; i += 2) {
-        f = getnumber(argv[i]);
-        if(cmp && f > nbr) nbr = f;
-        if(!cmp && f < nbr) nbr = f;
-    }
-    fret = nbr;
-    targ = T_NBR;
-}
-
-
-void fun_max(void) {
-    do_max_min(1);
-}
-
-
-void fun_min(void) {
-    do_max_min(0);
-}
