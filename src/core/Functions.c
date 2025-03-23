@@ -161,24 +161,6 @@ void fun_fix(void) {
 
 
 
-// Return a substring offset by a number of characters from the left (beginning) of the string.
-// s$ = LEFT$( string$, nbr )
-void fun_left(void) {
-    int i;
-    char *s;
-    getargs(&ep, 3, ",");
-
-    if(argc != 3) error("Argument count");
-    s = GetTempStrMemory();                                         // this will last for the life of the command
-    Mstrcpy(s, getstring(argv[0]));
-    i = getint(argv[2], 0, MAXSTRLEN);
-    if(i < *s) *s = i;                                              // truncate if it is less than the current string length
-    sret = s;
-    targ = T_STR;
-}
-
-
-
 // Return a substring of ?string$? with ?number-of-chars? from the right (end) of the string.
 // s$ = RIGHT$( string$, number-of-chars )
 void fun_right(void) {

@@ -181,6 +181,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_json.c
     src/functions/fun_keydown.c
     src/functions/fun_lcompare.c
+    src/functions/fun_left.c
     src/functions/fun_lgetbyte.c
     src/functions/fun_lgetstr.c
     src/functions/fun_linstr.c
