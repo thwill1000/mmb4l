@@ -177,6 +177,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_hex.c
     src/functions/fun_hres.c
     src/functions/fun_inputstr.c
+    src/functions/fun_instr.c
     src/functions/fun_json.c
     src/functions/fun_keydown.c
     src/functions/fun_lcompare.c
