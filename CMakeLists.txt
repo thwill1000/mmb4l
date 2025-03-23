@@ -200,6 +200,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_rgb.c
     src/functions/fun_sprite.c
     src/functions/fun_str.c
+    src/functions/fun_string.c
     src/functions/fun_str2bin.c
     src/functions/fun_time.c
     src/functions/fun_timer.c

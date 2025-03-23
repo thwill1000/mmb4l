@@ -346,35 +346,6 @@ void fun_space(void) {
 
 
 
-// Returns a string 'nbr' bytes long
-// s$ = STRING$( nbr,  string$ )
-// s$ = STRING$( nbr,  number )
-void fun_string(void) {
-    int i, j, t = T_NOTYPE;
-    void *p;
-
-    getargs(&ep, 3, ",");
-    if(argc != 3) ERROR_SYNTAX;
-
-    i = getint(argv[0], 0, MAXSTRLEN);
-    p = DoExpression(argv[2], &t);                                  // get the value and type of the argument
-    if(t & T_STR) {
-        if(!*(char *)p) error("Argument value: $", argv[2]);
-        j = *((char *)p + 1);
-    } else if(t & T_INT)
-        j = *(MMINTEGER *)p;
-    else
-        j = FloatToInt32(*((MMFLOAT *)p));
-    if(j < 0 || j > 255) error("Argument value: $", argv[2]);
-
-    sret = GetTempStrMemory();                                      // this will last for the life of the command
-    memset(sret + 1, j, i);
-    *sret = i;
-    targ = T_STR;
-}
-
-
-
 // Returns string$ converted to uppercase characters.
 // s$ = UCASE$( string$ )
 void fun_ucase(void) {
