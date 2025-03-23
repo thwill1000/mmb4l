@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_edit.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -124,7 +124,7 @@ static int delete_if_empty(char *file_path) {
 }
 
 void cmd_edit(void) {
-    getargs(&cmdline, 1, ",");
+    getargs(&cmdline, 1, DELIM_COMMA);
 
     if (CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
 

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_llen.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void fun_llen(void) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
-    getargs(&ep, 1, ",");
+    getargs(&ep, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {

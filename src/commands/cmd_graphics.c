@@ -55,7 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** GRAPHICS BUFFER id, width, height */
 static MmResult cmd_graphics_buffer(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) return kArgumentCount;
     MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     int width = getint(argv[2], 8, WINDOW_MAX_WIDTH);
@@ -66,7 +66,7 @@ static MmResult cmd_graphics_buffer(const char *p) {
 
 /** GRAPHICS CLS id [, colour] */
 static MmResult cmd_graphics_cls(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc % 2 != 1) return kArgumentCount;
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     MmSurface *surface = &graphics_surfaces[id];
@@ -88,11 +88,8 @@ static MmResult cmd_graphics_cls(const char *p) {
  * @param  transparent  If T or 1 then treat BLACK as transparent when copying.
  */
 MmResult cmd_graphics_copy(const char *p) {
-    char ss[3];
-    ss[0] = tokenTO;
-    ss[1] =',';
-    ss[2] = 0;
-    getargs(&p, 7, ss);
+    const DelimType delim[] = { tokenTO, ',', 0 };
+    getargs(&p, 7, delim);
     if (argc < 3 || !(argc % 2)) return kArgumentCount;
 
     MmSurfaceId src_id = getint(argv[0], 0, GRAPHICS_MAX_ID);
@@ -131,7 +128,7 @@ MmResult cmd_graphics_copy(const char *p) {
 
 /** GRAPHICS TITLE id, title$ */
 static MmResult cmd_graphics_title(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) return kArgumentCount;
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     const char *title = getCstring(argv[2]);
@@ -141,7 +138,7 @@ static MmResult cmd_graphics_title(const char *p) {
 
 /** GRAPHICS SPRITE id, width, height */
 static MmResult cmd_graphics_sprite(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 5) return kArgumentCount;
     MmSurfaceId sprite_id = -1;
     ON_FAILURE_RETURN(parse_sprite_id(argv[0], 0x0, &sprite_id));
@@ -172,7 +169,7 @@ static MmResult cmd_graphics_check_window_interrupt(const char *interrupt_addr) 
 
 /** GRAPHICS WINDOW id, width, height [, x] [, y] [, title$] [, scale] [, interrupt] */
 static MmResult cmd_graphics_window(const char *p) {
-    getargs(&p, 15, ",");
+    getargs(&p, 15, DELIM_COMMA);
     if (argc < 5 || argc > 15 || !(argc % 2)) return kArgumentCount;
 
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
@@ -190,7 +187,7 @@ static MmResult cmd_graphics_window(const char *p) {
 
 /** GRAPHICS DESTROY { id | ALL } */
 static MmResult cmd_graphics_destroy(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
     if ((p = checkstring(argv[0], "ALL"))) {
         return graphics_surface_destroy_all();
@@ -202,7 +199,7 @@ static MmResult cmd_graphics_destroy(const char *p) {
 
 /** GRAPHICS INTERRUPT id, {interrupt|0} */
 static MmResult cmd_graphics_interrupt(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) return kArgumentCount;
 
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
@@ -253,7 +250,7 @@ MmResult cmd_graphics_list(const char *p) {
 
 /** GRAPHICS WRITE { id | NONE } */
 MmResult cmd_graphics_write(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
     if ((p = checkstring(argv[0], "NONE"))) {
         return graphics_surface_write(GRAPHICS_NONE);

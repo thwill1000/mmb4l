@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_peek.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -96,7 +96,7 @@ static void peek_cfunaddr(int argc, char **argv, const char *p) {
 
     // Or a string expression evaluating to a function / sub name.
     if (idx == -1) {
-        getargs(&p, 1, ",");
+        getargs(&p, 1, DELIM_COMMA);
         if (argc != 1) ERROR_ARGUMENT_COUNT;
         char *s = getCstring(argv[0]);
         idx = FindSubFun(s, kFunction | kSub);
@@ -218,7 +218,7 @@ static void peek_word(int argc, char **argv, const char *p) {
 }
 
 void fun_peek(void) {
-    getargs(&ep, 3, ",");
+    getargs(&ep, 3, DELIM_COMMA);
 
     const char* p;
     if ((p = checkstring(argv[0], "BYTE"))) {

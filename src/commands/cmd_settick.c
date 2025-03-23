@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_settick.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -57,7 +57,7 @@ void cmd_settick(void) {
         // return;
     }
 
-    getargs(&cmdline, 5, ",");
+    getargs(&cmdline, 5, DELIM_COMMA);
     if (argc != 3 && argc != 5) ERROR_ARGUMENT_COUNT;
 
     int64_t period_ns = MILLISECONDS_TO_NANOSECONDS(getint(argv[0], 0, INT_MAX));

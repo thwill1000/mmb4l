@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/Functions.h"
 
 void fun_atan2(void) {
-    getargs(&ep, 3, ",");
+    getargs(&ep, 3, DELIM_COMMA);
     if (argc != 3) ERROR_SYNTAX;
     MMFLOAT y = getnumber(argv[0]);
     MMFLOAT x = getnumber(argv[2]);

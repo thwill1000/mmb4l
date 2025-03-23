@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_linstr.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void fun_instr(void) {
     char *s1 = NULL, *s2 = NULL;
     int start = 0;
-    getargs(&ep, 5, ",");
+    getargs(&ep, 5, DELIM_COMMA);
 
     if(argc == 5) {
         start = getint(argv[0], 1, MAXSTRLEN + 1) - 1;

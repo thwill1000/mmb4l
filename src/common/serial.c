@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 serial.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -174,7 +174,8 @@ static void serial_dump_spec(ComSpec *comspec) {
 }
 
 void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
-    getargs(&comspec_str, 21, ":,");
+    const DelimType delim[] = { ':', ',', 0 };
+    getargs(&comspec_str, 21, delim);
     if (argc != 2 && (argc & 0x01) == 0) ERROR_COM_SPECIFICATION;
 
     memset(comspec, 0, sizeof(ComSpec));

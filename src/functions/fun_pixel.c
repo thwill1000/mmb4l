@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void fun_pixel(void) {
     if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
-    getargs(&ep, 3, ",");
+    getargs(&ep, 3, DELIM_COMMA);
     if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
     const int x = getinteger(argv[0]);
     const int y = getinteger(argv[2]);

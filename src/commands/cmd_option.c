@@ -89,7 +89,7 @@ void cmd_option_list(const char *p) {
 }
 
 void cmd_option_load(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ON_FAILURE_ERROR(kArgumentCount);
 
     char *filename = GetTempStrMemory();
@@ -151,7 +151,7 @@ void cmd_option_reset(const char *p) {
 }
 
 void cmd_option_save(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ON_FAILURE_ERROR(kArgumentCount);
 
     char *filename = GetTempStrMemory();
@@ -160,7 +160,7 @@ void cmd_option_save(const char *p) {
 }
 
 static MmResult cmd_option_set_boolean(const char *p, const OptionsDefinition *def) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     bool value = true; // With no arguments sets option true.
     if (argc > 1) return kSyntax;
     if (argc) value = parse_bool(argv[0]);
@@ -173,7 +173,7 @@ static MmResult cmd_option_set_integer(const char *p, const OptionsDefinition *d
 }
 
 static MmResult cmd_option_set_string(const char *p, const OptionsDefinition *def) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
 
     // Some hacked behaviour.
     switch (def->id) {

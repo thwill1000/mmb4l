@@ -53,7 +53,7 @@ void fun_string(void) {
     int i, j, t = T_NOTYPE;
     void *p;
 
-    getargs(&ep, 3, ",");
+    getargs(&ep, 3, DELIM_COMMA);
     if(argc != 3) ERROR_SYNTAX;
 
     i = getint(argv[0], 0, MAXSTRLEN);

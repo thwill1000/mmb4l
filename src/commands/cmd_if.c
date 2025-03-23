@@ -71,27 +71,23 @@ static void execute_one_command(char *p) {
 
 void cmd_if(void) {
     int r, i, testgoto, testelseif;
-    char ss[3];                                                     // this will be used to split up the argument line
+    DelimType delim[] = { tokenTHEN, tokenELSE, 0 };
     const char *p, *tp;
     const char *rp = NULL;
-
-    ss[0] = tokenTHEN;
-    ss[1] = tokenELSE;
-    ss[2] = 0;
 
     testgoto = false;
     testelseif = false;
 
 retest_an_if:
-    {                                                               // start a new block
-        getargs(&cmdline, 20, ss);                                  // getargs macro must be the first executable stmt in a block
+    {
+        getargs(&cmdline, 20, delim);
 
         if(testelseif && argc > 2) error_throw_legacy("Unexpected text");
 
         // if there is no THEN token retry the test with a GOTO.  If that fails flag an error
-        if(argc < 2 || *argv[1] != ss[0]) {
+        if(argc < 2 || *argv[1] != delim[0]) { // TODO: Test
             if(testgoto) error_throw_legacy("IF without THEN");
-            ss[0] = tokenGOTO;
+            delim[0] = tokenGOTO;
             testgoto = true;
             goto retest_an_if;
         }
@@ -100,7 +96,7 @@ retest_an_if:
         if (argc >= 3 && commandtbl_decode(argv[2]) == cmdIF) argc = 3;  // this is IF xx=yy THEN IF ... so we want to evaluate only the first 3
         if (argc >= 5 && commandtbl_decode(argv[4]) == cmdIF) argc = 5;  // this is IF xx=yy THEN cmd ELSE IF ... so we want to evaluate only the first 5
 
-        if(argc == 4 || (argc == 5 && *argv[3] != ss[1])) ERROR_SYNTAX;
+        if(argc == 4 || (argc == 5 && *argv[3] != delim[1])) ERROR_SYNTAX; // TODO: Test
 
         r = (getnumber(argv[0]) != 0);                              // evaluate the expression controlling the if statement
 
@@ -127,8 +123,8 @@ retest_an_if:
                         execute_one_command(argv[2]);
                     } else {
                         // easy - there is no ELSE clause so just point the next statement pointer to the byte after the THEN token
-                        for(p = cmdline; *p && *p != ss[0]; p++);   // search for the token
-                        nextstmt = p + 1;                           // and point to the byte after
+                        for(p = cmdline; *p && *p != delim[0]; p++);  // search for the token - TODO: Test
+                        nextstmt = p + 1;                             // and point to the byte after
                     }
                 }
             }
@@ -146,7 +142,7 @@ retest_an_if:
                         // found a nested IF command, we now need to determine if it is a single or multiline IF
                         // search for a THEN, then check if only white space follows.  If so, it is multiline.
                         tp = p + sizeof(CommandToken);
-                        while(*tp && *tp != ss[0]) tp++;
+                        while(*tp && *tp != delim[0]) tp++; // TODO: Test
                         if(*tp) tp++;                               // step over the THEN
                         skipspace(tp);
                         if(*tp == 0 || *tp == '\'')                 // yes, only whitespace follows
@@ -198,8 +194,8 @@ retest_an_if:
                         nextstmt = findline(getinteger(argv[4]), true);
                     else {
                         // there is a statement after the ELSE clause  so just point to it (the byte after the ELSE token)
-                        for(p = cmdline; *p && *p != ss[1]; p++);   // search for the token
-                        nextstmt = p + 1;                           // and point to the byte after
+                        for(p = cmdline; *p && *p != delim[1]; p++);  // search for the token - TODO: Test
+                        nextstmt = p + 1;                             // and point to the byte after
                     }
                 } else {
                     // no ELSE on a single line IF statement, so just continue with the next statement

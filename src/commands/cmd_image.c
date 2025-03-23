@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_image.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -75,7 +75,7 @@ static void read_buffer_fast(MmSurface *surface, uint32_t* dst, int x1, int y1, 
  * IMAGE RESIZE_FAST x, y, width, height, new_x, new_y, new_width, new_height [, src_id] [, flag]
  */
 static MmResult cmd_image_resize_fast(const char *p) {
-    getargs(&p, 19, ",");
+    getargs(&p, 19, DELIM_COMMA);
     if (argc < 15) return kArgumentCount;
 
     const MmSurfaceId src_id = (argc >= 17 && *argv[16])

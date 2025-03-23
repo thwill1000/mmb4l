@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_mid.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,17 +42,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <string.h>
+
 #include "../common/mmb4l.h"
 #include "../core/tokentbl.h"
-
-#include <string.h>
 
 #define ERROR_NOT_A_STRING              error_throw_ex(kError, "Not a string")
 #define ERROR_SELECTION_EXCEEDS_LENGTH  error_throw_ex(kError, "Selection exceeds length of string")
 #define ERROR_STRING_TOO_SHORT          error_throw_ex(kError, "Supplied string too short")
 
 void cmd_mid(void){
-    getargs(&cmdline, 5, ",");
+    getargs(&cmdline, 5, DELIM_COMMA);
     findvar(argv[0], V_NOFIND_ERR);
     if (vartbl[VarIndex].type & T_CONST) ERROR_CANNOT_CHANGE_A_CONSTANT;
     if (!(vartbl[VarIndex].type & T_STR)) ERROR_NOT_A_STRING;

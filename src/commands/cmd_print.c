@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_print.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -56,7 +56,8 @@ void cmd_print(void) {
     int i, t, fnbr;
     bool docrlf = true;                                             // this is used to suppress the cr/lf if needed
 
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ";,");               // this is a macro and must be the first executable stmt
+    const DelimType delim[] = { ';', ',', 0 };
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, delim);              // this is a macro and must be the first executable stmt
 
     if (argc > 0 && *argv[0] == '#') {
         // First argument is a file number.

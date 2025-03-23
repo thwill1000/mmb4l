@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void do_max_min(int cmp) {
     int i;
     MMFLOAT nbr, f;
-    getargs(&ep, (MAX_ARG_COUNT * 2) - 1, ",");
+    getargs(&ep, (MAX_ARG_COUNT * 2) - 1, DELIM_COMMA);
     if((argc & 1) != 1) ERROR_SYNTAX;
     if(cmp) nbr = -FLT_MAX; else nbr = FLT_MAX;
     for(i = 0; i < argc; i += 2) {

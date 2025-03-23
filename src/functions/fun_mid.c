@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void fun_mid(void) {
     char *s, *p1, *p2;
     int spos, nbr = 0, i;
-    getargs(&ep, 5, ",");
+    getargs(&ep, 5, DELIM_COMMA);
 
     if(argc == 5) {                                                   // we have MID$(s, n, m)
         nbr = getint(argv[4], 0, MAXSTRLEN);                          // nbr of chars to return

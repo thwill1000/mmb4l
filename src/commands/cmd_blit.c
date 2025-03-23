@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_blit.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** BLIT CLOSE [#]id */
 static MmResult cmd_blit_close(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
     MmSurfaceId blit_id = -1;
     MmResult result = parse_blit_id(p, true, &blit_id);
@@ -88,7 +88,7 @@ static MmResult cmd_blit_close_all(const char *p) {
 
 /** BLIT COMPRESSED address, x, y [, transparent] */
 MmResult cmd_blit_compressed(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 5 && argc != 7) return kArgumentCount;
     char *data = (char *) get_peek_addr(argv[0]);
     const int x = getint(argv[2], INT32_MIN, INT32_MAX);
@@ -111,7 +111,7 @@ MmResult cmd_blit_framebuffer(const char *p) {
         return kUnsupportedOnCurrentDevice;
     }
 
-    getargs(&p, 17, ",");
+    getargs(&p, 17, DELIM_COMMA);
     if (argc < 15) return kArgumentCount;
 
     MmSurfaceId src_id = -1;
@@ -142,7 +142,7 @@ MmResult cmd_blit_framebuffer(const char *p) {
 
 /** BLIT MEMORY address, x, y [, transparent] */
 MmResult cmd_blit_memory(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 5 && argc != 7) return kArgumentCount;
     char *data = (char *) get_peek_addr(argv[0]);
     const int x = getint(argv[2], INT32_MIN, INT32_MAX);
@@ -167,7 +167,7 @@ MmResult cmd_blit_memory(const char *p) {
  * @param  sprite  If true then parse as SPRITE READ instead of BLIT READ.
  */
 MmResult cmd_blit_read(const char *p, bool sprite) {
-    getargs(&p, 11, ",");
+    getargs(&p, 11, DELIM_COMMA);
     if (argc != 9 && argc != 11) return kArgumentCount;
 
     if (has_arg(10) && (
@@ -247,7 +247,7 @@ MmResult cmd_blit_read(const char *p, bool sprite) {
  *                 in which case the default for flags is 0x04.
  */
 MmResult cmd_blit_write(const char *p, bool sprite) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 5 && argc != 7) return kArgumentCount;
 
     MmSurface *src_surface = NULL;
@@ -282,7 +282,7 @@ MmResult cmd_blit_write(const char *p, bool sprite) {
 static MmResult cmd_blit_default(const char *p) {
     if (!graphics_current) return kGraphicsInvalidWriteSurface;
 
-    getargs(&p, 15, ",");
+    getargs(&p, 15, DELIM_COMMA);
     if (argc < 11 || argc > 15) return kArgumentCount;
     const int x1 = getinteger(argv[0]);
     const int y1 = getinteger(argv[2]);

@@ -60,7 +60,7 @@ static MmResult cmd_play_continue(const char *p) {
 
 /** PLAY EFFECT file$ [, interrupt] */
 static MmResult cmd_play_effect(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 1 && argc != 3) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -73,7 +73,7 @@ static MmResult cmd_play_effect(const char *p) {
 
 /** PLAY FLAC file$ [, interrupt] */
 static MmResult cmd_play_flac(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 1 && argc != 3) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -122,7 +122,7 @@ static MmResult cmd_play_note(const char *p) {
  * CMM2/MMB4W:    'interrupt' argument is unsupported.
  */
 static MmResult cmd_play_modfile(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 1 && argc != 3 && argc != 5) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -155,7 +155,7 @@ static MmResult cmd_play_modfile(const char *p) {
 
 /** PLAY MODSAMPLE sample_num, channel_num [, volume] [, sample_rate] */
 static MmResult cmd_play_modsample(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 3 && argc != 5 && argc != 7) return kArgumentCount;
     const uint8_t sample_num = (uint8_t) getint(argv[0], 1, 32);
     const uint8_t channel_num = (uint8_t) getint(argv[2], 1, 4);
@@ -188,7 +188,7 @@ static MmResult cmd_play_resume(const char *p) {
 
 /** PLAY SOUND sound_no, channel_no, type [, frequency] [, volume] */
 static MmResult cmd_play_sound(const char *p) {
-    getargs(&p, 9, ",");
+    getargs(&p, 9, DELIM_COMMA);
     if (argc != 5 && argc != 7 && argc != 9) return kArgumentCount;
 
     int sound_no = getint(argv[0], 1, MAXSOUNDS) - 1;
@@ -268,7 +268,7 @@ static MmResult cmd_play_stop(const char *p) {
 
 /** PLAY TONE left [, right] [, dur] [, interrupt] */
 static MmResult cmd_play_tone(const char *p) {
-    getargs(&p, 7, ",");
+    getargs(&p, 7, DELIM_COMMA);
     if (argc != 3 && argc != 5 && argc != 7) return kArgumentCount;
     float f_left = (float)getnumber(argv[0]);
     float f_right = (float)getnumber(argv[2]);
@@ -285,7 +285,7 @@ static MmResult cmd_play_stream(const char *p) {
 
 /** PLAY MP3 file$ [, interrupt] */
 static MmResult cmd_play_mp3(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 1 && argc != 3) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -298,7 +298,7 @@ static MmResult cmd_play_mp3(const char *p) {
 
 /** PLAY VOLUME left [, right] */
 static MmResult cmd_play_volume(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 1 && argc != 3) return kArgumentCount;
     uint8_t left = (uint8_t)getint(argv[0], 0, 100);
     uint8_t right = has_arg(2) ? (uint8_t)getint(argv[2], 0, 100) : left;
@@ -308,7 +308,7 @@ static MmResult cmd_play_volume(const char *p) {
 
 /** PLAY WAV file$ [, interrupt] */
 static MmResult cmd_play_wav(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 1 && argc != 3) return kArgumentCount;
 
     char *filename = GetTempStrMemory();

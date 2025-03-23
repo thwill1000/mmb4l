@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_open.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <strings.h>
+
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/file.h"
@@ -49,8 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/serial.h"
 #include "../common/utility.h"
 #include "../core/tokentbl.h"
-
-#include <strings.h>
 
 static void cmd_open_file(int argc, char **argv) {
     char *filename = GetTempStrMemory();
@@ -103,8 +103,8 @@ static void cmd_open_serial(int argc, char **argv) {
  * OPEN comspec$ AS GPS [,timezone_offset] [,monitor]
  */
 void cmd_open(void) {
-    char separators[4] = { tokenFOR, tokenAS, ',', '\0' };
-    getargs(&cmdline, 7, separators);
+    const DelimType delim[] = { tokenFOR, tokenAS, ',', 0 };
+    getargs(&cmdline, 7, delim);
 
     if (argc == 5 && *argv[1] == tokenFOR && *argv[3] == tokenAS) {
         cmd_open_file(argc, argv);

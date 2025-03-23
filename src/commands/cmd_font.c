@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_font.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** FONT [#]font_id [, scale] */
 void cmd_font(void) {
-    getargs(&cmdline, 3, ",");
+    getargs(&cmdline, 3, DELIM_COMMA);
     if (argc != 1 && argc != 3) ERROR_ARGUMENT_COUNT;
     if (*argv[0] == '#') ++argv[0];
     uint32_t font_id = getint(argv[0], 1, FONT_TABLE_SIZE - 1);

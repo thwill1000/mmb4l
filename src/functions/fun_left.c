@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void fun_left(void) {
     int i;
     char *s;
-    getargs(&ep, 3, ",");
+    getargs(&ep, 3, DELIM_COMMA);
 
     if(argc != 3) error_throw_legacy("Argument count");
     s = GetTempStrMemory();                                         // this will last for the life of the command
