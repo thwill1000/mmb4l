@@ -112,22 +112,6 @@ void fun_atn(void) {
 
 
 
-#if !defined(__mmb4l__)
-// convert a number into a one character string
-// s$ = CHR$(nbr)
-void fun_chr(void) {
-    int i;
-
-    i = getint(ep, 0, 0xff);
-    sret = GetTempStrMemory();                                      // this will last for the life of the command
-    sret[0] = 1;
-    sret[1] = i;
-    targ = T_STR;
-}
-#endif
-
-
-
 // Round numbers with fractional portions up or down to the next whole number or integer.
 void fun_cint(void) {
     iret = getinteger(ep);
@@ -156,45 +140,6 @@ void fun_deg(void) {
 void fun_exp(void) {
     fret = expf(getnumber(ep));
     targ = T_NBR;
-}
-
-
-
-// syntax:  nbr = INSTR([start,] string1, string2)
-//          find the position of string2 in string1 starting at start chars in string1
-// returns an integer
-void fun_instr(void) {
-    char *s1 = NULL, *s2 = NULL;
-    int start = 0;
-    getargs(&ep, 5, ",");
-
-    if(argc == 5) {
-        start = getint(argv[0], 1, MAXSTRLEN + 1) - 1;
-        s1 = getstring(argv[2]);
-        s2 = getstring(argv[4]);
-    }
-    else if(argc == 3) {
-        start = 0;
-        s1 = getstring(argv[0]);
-        s2 = getstring(argv[2]);
-    }
-    else
-        error("Argument count");
-
-    targ = T_INT;
-    if(start > *s1 - *s2 + 1 || *s2 == 0)
-        iret = 0;
-    else {
-        // find s2 in s1 using MMBasic strings
-        int i;
-        for(i = start; i < *s1 - *s2 + 1; i++) {
-            if(memcmp(s1 + i + 1, s2 + 1, *s2) == 0) {
-                iret = i + 1;
-                return;
-            }
-        }
-    }
-    iret = 0;
 }
 
 
