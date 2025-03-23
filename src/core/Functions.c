@@ -346,51 +346,6 @@ void fun_space(void) {
 
 
 
-// Returns a string in the decimal (base 10) representation of  'number'.
-// s$ = STR$( number, m, n, c$ )
-void fun_str(void) {
-    char *s;
-    MMFLOAT f;
-    MMINTEGER i64;
-    int t;
-    int m, n;
-    char ch;
-    const char *p;
-
-    getargs(&ep, 7, ",");
-    if((argc & 1) != 1) ERROR_SYNTAX;
-    t = T_NOTYPE;
-    p = evaluate(argv[0], &f, &i64, &s, &t, false);                 // get the value and type of the argument
-    if(t & T_STR) error("Expected a number");
-    m = 0; n = STR_AUTO_PRECISION; ch = ' ';
-    if(argc > 2) m = getint(argv[2], -128, 128);                    // get the number of digits before the point
-    if(argc > 4) n = getint(argv[4], -20, 20);                      // get the number of digits after the point
-    if(argc == 7) {
-        p = getstring(argv[6]);
-        if(*p == 0) error("Zero length argument");
-        ch = ((unsigned char)p[1] & 0x7f);
-    }
-
-    sret = GetTempStrMemory();                                      // this will last for the life of the command
-    if(t & T_NBR)
-        FloatToStr(sret, f, m, n, ch);                              // convert the float
-    else {
-        if(n < 0)
-            FloatToStr(sret, i64, m, n, ch);                        // convert as a float
-        else {
-            IntToStrPad(sret, i64, ch, m, 10);                      // convert the integer
-            if(n != STR_AUTO_PRECISION && n > 0) {
-                strcat(sret, ".");
-                while(n--) strcat(sret, "0");                       // and add on any zeros after the point
-            }
-        }
-    }
-    CtoM(sret);
-    targ = T_STR;
-}
-
-
-
 // Returns a string 'nbr' bytes long
 // s$ = STRING$( nbr,  string$ )
 // s$ = STRING$( nbr,  number )
