@@ -161,26 +161,6 @@ void fun_fix(void) {
 
 
 
-// Return a substring of ?string$? with ?number-of-chars? from the right (end) of the string.
-// s$ = RIGHT$( string$, number-of-chars )
-void fun_right(void) {
-    int nbr;
-    char *s, *p1, *p2;
-    getargs(&ep, 3, ",");
-
-    if(argc != 3) error("Argument count");
-    s = getstring(argv[0]);
-    nbr = getint(argv[2], 0, MAXSTRLEN);
-    if(nbr > *s) nbr = *s;                                            // get the number of chars to copy
-    sret = GetTempStrMemory();                                        // this will last for the life of the command
-    p1 = sret; p2 = s + (*s - nbr) + 1;
-    *p1++ = nbr;                                                      // inset the length of the returned string
-    while(nbr--) *p1++ = *p2++;                                       // and copy the characters
-    targ = T_STR;
-}
-
-
-
 // return the length of a string
 // nbr = LEN( string$ )
 void fun_len(void) {
