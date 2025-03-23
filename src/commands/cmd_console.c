@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_console.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -63,7 +63,7 @@ static void cmd_console_bell(const char *p) {
 }
 
 static void cmd_console_clear(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 0) ERROR_SYNTAX;
     console_clear();
 }
@@ -76,7 +76,7 @@ static void cmd_console_foreground(const char *p) {
 }
 
 static void cmd_console_get_cursor(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     void *px = findvar(argv[0], V_FIND | V_EMPTY_OK);
@@ -101,7 +101,7 @@ static void cmd_console_get_cursor(const char *p) {
 }
 
 static void cmd_console_get_size(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
     void *pwidth = findvar(argv[0], V_FIND | V_EMPTY_OK);
@@ -126,7 +126,7 @@ static void cmd_console_get_size(const char *p) {
 }
 
 static void cmd_console_hide_cursor(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     bool hide = true;
     if (argc == 1) {
         hide = parse_bool(argv[0]);
@@ -140,7 +140,7 @@ static void cmd_console_home(const char *p) {
 }
 
 static void cmd_console_invert(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     int invert = 1;
     if (argc == 1) {
         invert = parse_bool(argv[0]);
@@ -157,7 +157,7 @@ static void cmd_console_reset(const char *p) {
 #define MAX_CURSOR_Y  1023
 
 static void cmd_console_set_cursor(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
     int x = getint(argv[0], 0, MAX_CURSOR_X);
     int y = getint(argv[2], 0, MAX_CURSOR_Y);
@@ -171,8 +171,8 @@ static void cmd_console_set_size(const char *p) {
     if (!p2) p2 = p;
 
     int width, height;
-    { // getargs() should be first executable statement in a block.
-        getargs(&p2, 3, ",");
+    {
+        getargs(&p2, 3, DELIM_COMMA);
         if (argc != 3) ERROR_ARGUMENT_COUNT;
         width = getint(argv[0], 0, MAX_CURSOR_X + 1);
         height = getint(argv[2], 0, MAX_CURSOR_Y + 1);
@@ -194,13 +194,13 @@ static void cmd_console_set_size(const char *p) {
 }
 
 static void cmd_console_title(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     console_set_title(getCstring(argv[0]), true);
 }
 
 static void cmd_console_show_cursor(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     bool show = 1;
     if (argc == 1) {
         show = parse_bool(argv[0]);

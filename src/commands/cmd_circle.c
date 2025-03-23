@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_circle.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -61,8 +61,7 @@ static void getcoord(const char *p, int *x, int *y) {
     const char *ttp = b + 1;
     // kludge (todo: fix this)
     {
-        getargs(&ttp, 3, ",");  // this is a macro and must be the first executable
-                                // stmt in a block
+        getargs(&ttp, 3, DELIM_COMMA);
         if (argc != 3) ERROR_SYNTAX;
         *x = getinteger(argv[0]);
         *y = getinteger(argv[2]);
@@ -75,7 +74,7 @@ static void cmd_circle_cmm1(void) {
 #if 0
     int x, y, radius, colour, fill;
     float aspect;
-    getargs(&cmdline, 9, ",");
+    getargs(&cmdline, 9, DELIM_COMMA);
     if (argc % 2 == 0 || argc < 3) ERROR_SYNTAX;
     if (*argv[0] != '(') ERROR_SYNTAX;  // Expected opening bracket.
     if (toupper(*argv[argc - 1]) == 'F') {
@@ -113,7 +112,7 @@ static void cmd_circle_default(void) {
     MMFLOAT a;
     MMINTEGER *xptr, *yptr, *rptr, *fptr, *wptr, *cptr, *aptr;
     MMFLOAT *xfptr, *yfptr, *rfptr, *ffptr, *wfptr, *cfptr, *afptr;
-    getargs(&cmdline, 13, ",");
+    getargs(&cmdline, 13, DELIM_COMMA);
     if (!(argc & 1) || argc < 5) ERROR_ARGUMENT_COUNT;
     getargaddress(argv[0], &xptr, &xfptr, &n);
     if (n != 1) {

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_xmodem.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -63,7 +63,7 @@ void cmd_xmodem(void) {
         receive = false;
     }
 
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 3 && argc != 5) ERROR_ARGUMENT_COUNT;
 
     char *filename = GetTempStrMemory();

@@ -133,6 +133,8 @@ const char *nextstmt;                                               // Pointer t
 const char *CurrentLinePtr;                                         // Pointer to the current line (used in error reporting)
 const char *ContinuePoint;                                          // Where to continue from if using the continue statement
 
+const DelimType DELIM_COMMA[] = { ',', 0 };
+const DelimType DELIM_BRA_COMMA[] = { '(', ',', 0 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // Functions only used within MMBasic.c
@@ -646,13 +648,13 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     CurrentLinePtr = caller_state.line_ptr;                         // report errors at the caller
     args->c1 = 0;
     if (*tp) makeargs(&tp, MAX_ARG_COUNT, args->buf1, args->v1, &args->c1,
-                      (*tp == '(') ? "(," : ",");
+                      (*tp == '(') ? DELIM_BRA_COMMA : DELIM_COMMA);
 
     // split up the arguments in the definition
     CurrentLinePtr = SubLinePtr;                                    // report errors at the definition
     args->c2 = 0;
     if (*p) makeargs(&p, MAX_ARG_COUNT, args->buf2, args->v2, &args->c2,
-                     (*p == '(') ? "(," : ",");
+                     (*p == '(') ? DELIM_BRA_COMMA : DELIM_COMMA);
 
     // error checking
     if (args->c2 && (args->c2 & 1) == 0) error("Argument list");
@@ -1737,7 +1739,7 @@ void *findvar(const char *p, int action) {
             // split the argument into individual elements
             // find the value of each dimension and store in dims[]
             // the bracket in "(," is a signal to getargs that the list is in brackets
-            getargs(&p, MAXDIM * 2, "(,");
+            getargs(&p, MAXDIM * 2, DELIM_BRA_COMMA);
             if ((argc & 0x01) == 0) {
                 error_throw(kInvalidArrayDimensions);
                 return NULL;
@@ -1980,6 +1982,13 @@ void *findvar(const char *p, int action) {
  by centralising these routines it is hoped that bugs can be more easily found and corrected (unlike bwBasic !)
 *********************************************************************************************************************************************/
 
+static inline bool is_delim(const DelimType *delim, char c) {
+    for (; *delim; ++delim) {
+        if (c == *delim) return true;
+    }
+    return false;
+}
+
 // take a line of basic code and split it into arguments
 // this function should always be called via the macro getargs
 //
@@ -1994,7 +2003,8 @@ void *findvar(const char *p, int action) {
 //   pointer to an integer that will contain (after the function has returned) the number of arguments found
 //   pointer to a string that contains the characters to be used in spliting up the line.  If the first char of that
 //   string is an opening bracket '(' this function will expect the arg list to be enclosed in brackets.
-void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc, const char *delim) {
+void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc,
+              const DelimType *delim) {
     TestStackOverflow();                                            // throw an error if we have overflowed the PIC32's stack
 
     const char *tp = *p;
@@ -2029,7 +2039,7 @@ void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc
 
         // the special characters that cause the line to be split up are in the string delim
         // any other chars form part of the one argument
-        if(strchr(delim, *tp) != NULL && !expect_cmd) {
+        if(is_delim(delim, *tp) && !expect_cmd) {
             if(*tp == tokenTHEN || *tp == tokenELSE) expect_cmd = true;
             if(inarg) {                                             // if we have been processing an argument
                 while(op > argbuf && *(op - 1) == ' ') op--;        // trim trailing spaces

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_triangle.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -64,7 +64,7 @@ static void cmd_triangle_default(const char *p) {
     int x1, y1, x2, y2, x3, y3, n = 0;
     MMINTEGER *x3ptr, *y3ptr, *x1ptr, *y1ptr, *x2ptr, *y2ptr, *fptr, *cptr;
     MMFLOAT *x3fptr, *y3fptr, *x1fptr, *y1fptr, *x2fptr, *y2fptr, *ffptr, *cfptr;
-    getargs(&cmdline, 15, ",");
+    getargs(&cmdline, 15, DELIM_COMMA);
     if (!(argc & 1) || argc < 11) ERROR_ARGUMENT_COUNT;
     getargaddress(argv[0], &x1ptr, &x1fptr, &n);
     if (n != 1) {

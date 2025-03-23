@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_system.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,17 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
 #include "../core/tokentbl.h"
-
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 /**
  * @brief  Reads value of an environment variable into a buffer.
@@ -81,7 +80,7 @@ static MmResult cmd_system_getenv_to_buf(const char *name, char *buf, size_t *sz
  * SYSTEM GETENV name$, value%()
  */
 static void cmd_system_getenv(const char *p) {
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) ERROR_SYNTAX;
 
     // Name of environment variable to query.
@@ -136,11 +135,8 @@ static void cmd_system_getenv(const char *p) {
  * SYSTEM SETENV name$ = longstring%()
  */
 void cmd_system_setenv(const char *p) {
-    char ss[3];
-    ss[0] = tokenEQUAL;
-    ss[1] =',';
-    ss[2] = 0;
-    getargs(&p, 3, ss);
+    const DelimType delim[] = { tokenEQUAL, ',', 0 };
+    getargs(&p, 3, delim);
     if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
 
     // 'name' restricted to uppercase letters, digits and '_'.
@@ -230,7 +226,7 @@ static MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exi
  * SYSTEM command$ [, output%() [, exit_code%]]
  */
 static void cmd_system_execute(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 1 && argc != 3 && argc != 5) ERROR_SYNTAX;
 
     // System command to run.

@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void fun_right(void) {
     int nbr;
     char *s, *p1, *p2;
-    getargs(&ep, 3, ",");
+    getargs(&ep, 3, DELIM_COMMA);
 
     if(argc != 3) error_throw_legacy("Argument count");
     s = getstring(argv[0]);

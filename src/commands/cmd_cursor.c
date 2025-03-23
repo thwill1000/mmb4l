@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_cursor.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 
 void cmd_cursor(void) {
-    getargs(&cmdline, 3, ",");
+    getargs(&cmdline, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
     int x = getint(argv[0], 0, 255);
     int y = getint(argv[2], 0, 255);

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_lgetstr.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -51,7 +51,7 @@ void fun_lgetstr(void) {
     char *s = NULL;
     int64_t *src = NULL;
     int start, nbr, j;
-    getargs(&ep, 5, ",");
+    getargs(&ep, 5, DELIM_COMMA);
     if (argc != 5) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {

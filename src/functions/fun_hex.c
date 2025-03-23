@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void DoHexOctBin(int base) {
     UNSIGNED_MMINTEGER i;
     int j = 1;
-    getargs(&ep, 3, ",");
+    getargs(&ep, 3, DELIM_COMMA);
     i = (UNSIGNED_MMINTEGER) getinteger(argv[0]);                   // get the number
     if(argc == 3) j = getint(argv[2], 0, MAXSTRLEN);                // get the optional number of chars to return
     sret = GetTempStrMemory();                                      // this will last for the life of the command

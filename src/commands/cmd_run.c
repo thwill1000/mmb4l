@@ -157,7 +157,7 @@ MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args) {
         return kOk;
     }
 
-    getargs(&p, 3, ",");
+    getargs(&p, 3, DELIM_COMMA);
     int filename_idx = -1;  // Index into argv[] for filename.
     int run_args_idx = -1;  // Index into argv[] for additional arguments.
 

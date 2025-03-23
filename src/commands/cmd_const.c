@@ -50,7 +50,7 @@ void cmd_const(void) {
     void *v;
     int i, type;
 
-    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, ",");                // getargs macro must be the first executable stmt in a block
+    getargs(&cmdline, (MAX_ARG_COUNT * 2) - 1, DELIM_COMMA);
     if((argc & 0x01) == 0) ERROR_SYNTAX;
 
     for(i = 0; i < argc; i += 2) {

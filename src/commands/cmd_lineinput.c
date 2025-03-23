@@ -52,7 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_lineinput(void) {
     char *vp;
     int i, fnbr;
-    getargs(&cmdline, 3, ",;");                                     // this is a macro and must be the first executable stmt
+    const DelimType delim[] = { ',', ';', 0 };
+    getargs(&cmdline, 3, delim);
     if(argc == 0 || argc == 2) ERROR_SYNTAX;
 
     i = 0;

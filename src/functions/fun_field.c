@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_field.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -80,7 +80,7 @@ static int scan_for_delimiter(int start, const char *p, const char *delims, cons
 void fun_field(void) {
     const char *p, *delims = "\1,", *quotes = "\0";
     int fnbr, i, j, k;
-    getargs(&ep, 7, ",");
+    getargs(&ep, 7, DELIM_COMMA);
     if (!(argc == 3 || argc == 5 || argc == 7)) ERROR_SYNTAX;
     p = getstring(argv[0]);                // the string containing the fields
     fnbr = getint(argv[2], 1, MAXSTRLEN);  // field nbr to return

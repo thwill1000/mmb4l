@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_text.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -113,7 +113,7 @@ void cmd_text(void) {
     TextVAlign jv = 0;
     TextOrientation jo = 0;
 
-    getargs(&cmdline, 17, ",");
+    getargs(&cmdline, 17, DELIM_COMMA);
     if (!(argc & 1) || argc < 5) ERROR_ARGUMENT_COUNT;
     MMINTEGER x = getinteger(argv[0]);
     MMINTEGER y = getinteger(argv[2]);

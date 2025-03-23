@@ -1757,10 +1757,7 @@ TEST_F(MmBasicCoreTest, MakeArgs) {
     char argbuf[STRINGSIZE];
     char *argv[10];
     int argc[10];
-    char ss[3];
-    ss[0] = tokenTHEN;
-    ss[1] = tokenELSE;
-    ss[2] = 0;
+    const DelimType delim[] = { tokenTHEN, tokenELSE, 0 };
 
-    makeargs(&p, 10, argbuf, argv, argc, ss);
+    makeargs(&p, 10, argbuf, argv, argc, delim);
 }

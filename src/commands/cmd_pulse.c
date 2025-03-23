@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_pulse.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -54,7 +54,7 @@ void cmd_pulse(void) {
         ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
-    getargs(&cmdline, 3, ",");
+    getargs(&cmdline, 3, DELIM_COMMA);
     if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
 
     uint8_t pin_num = 0;

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_framebuffer.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -83,7 +83,7 @@ static MmResult cmd_framebuffer_close(const char *p) {
 
 /** FRAMEBUFFER COPY from, to [, B] */
 static MmResult cmd_framebuffer_copy(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc != 3 && argc != 5) return kArgumentCount;
 
     MmSurfaceId src_id = -1;
@@ -155,7 +155,7 @@ static MmResult cmd_framebuffer_layer(const char *p) {
 
 /** FRAMEBUFFER MERGE [colour] [, mode] [, update rate] */
 static MmResult cmd_framebuffer_merge(const char *p) {
-    getargs(&p, 5, ",");
+    getargs(&p, 5, DELIM_COMMA);
     if (argc == 2 || argc == 4) return kArgumentCount;
 
     uint8_t transparent = (argc > 0) ? getint(argv[0], 0, 15) : 0;
@@ -185,7 +185,7 @@ static MmResult cmd_framebuffer_wait(const char *p) {
 
 /** FRAMEBUFFER WRITE {N|F|L} */
 static MmResult cmd_framebuffer_write(const char *p) {
-    getargs(&p, 1, ",");
+    getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
     MmSurfaceId dst_id = -1;

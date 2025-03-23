@@ -167,11 +167,15 @@ extern char *sarg1, *sarg2, *sret;              // Global string pointers used b
 extern int targ;                                // Global type of argument (string or MMFLOAT) returned by an operator
 
 typedef uint16_t CommandToken;
+typedef uint16_t DelimType;
 
 extern CommandToken cmdtoken;                   // Token number of the command
 extern const char *cmdline;                     // Command line terminated with a zero char and trimmed of spaces
 extern const char *nextstmt;                    // Pointer to the next statement to be executed.
 extern const char *ep;                          // Pointer to the argument to a function
+
+extern const DelimType DELIM_COMMA[];
+extern const DelimType DELIM_BRA_COMMA[];
 
 #if !defined(__mmb4l__)
 extern int OptionErrorSkip;                     // value of OPTION ERROR
@@ -193,7 +197,8 @@ void InitBasic(void);
 int32_t FloatToInt32(MMFLOAT x);
 MMINTEGER FloatToInt64(MMFLOAT x);
 
-void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc, const char *delim);
+void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc,
+              const DelimType *delim);
 void *findvar(const char *, int);
 void erasearray(char *n);
 void ClearVars(int level);

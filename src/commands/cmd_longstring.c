@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_longstring.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -53,7 +53,7 @@ static void longstring_append(const char *tp) {
     char *p = NULL;
     char *q = NULL;
     int i, j, nbr;
-    getargs(&tp, 3, ",");
+    getargs(&tp, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -74,7 +74,7 @@ static void longstring_append(const char *tp) {
 static void longstring_clear(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
-    getargs(&tp, 1, ",");
+    getargs(&tp, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -92,7 +92,7 @@ static void longstring_copy(const char *tp) {
     char *p = NULL;
     char *q = NULL;
     int i = 0, j;
-    getargs(&tp, 3, ",");
+    getargs(&tp, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -123,7 +123,7 @@ static void longstring_concat(const char *tp) {
     char *p = NULL;
     char *q = NULL;
     int i = 0, j, d = 0, s = 0;
-    getargs(&tp, 3, ",");
+    getargs(&tp, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -153,7 +153,7 @@ static void longstring_lcase(const char *tp) {
     int64_t *dest = NULL;
     char *q = NULL;
     int i;
-    getargs(&tp, 1, ",");
+    getargs(&tp, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -176,7 +176,7 @@ static void longstring_left(const char *tp) {
     char *p = NULL;
     char *q = NULL;
     int i, j, nbr;
-    getargs(&tp, 5, ",");
+    getargs(&tp, 5, DELIM_COMMA);
     if (argc != 5) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -206,7 +206,7 @@ static void longstring_load(const char *tp) {
     char *p;
     char *q = NULL;
     int i, j;
-    getargs(&tp, 5, ",");
+    getargs(&tp, 5, DELIM_COMMA);
     if (argc != 5) ERROR_ARGUMENT_COUNT;
     int64_t nbr = getinteger(argv[2]);
     i = nbr;
@@ -235,7 +235,7 @@ static void longstring_mid(const char *tp) {
     char *p = NULL;
     char *q = NULL;
     int i, j, nbr, start;
-    getargs(&tp, 7, ",");
+    getargs(&tp, 7, DELIM_COMMA);
     if (argc != 7) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -269,7 +269,8 @@ static void longstring_print(const char *tp) {
     int64_t *dest = NULL;
     char *q = NULL;
     int i, j, fnbr;
-    getargs(&tp, 5, ",;");
+    const DelimType delim[] = { ',', ';', 0 };
+    getargs(&tp, 5, delim);
     if (argc < 1 || argc > 4) ERROR_ARGUMENT_COUNT;
 
     if (argc > 0 && *argv[0] == '#') {
@@ -324,7 +325,7 @@ static void longstring_replace(const char *tp) {
     char *p = NULL;
     char *q = NULL;
     int i, nbr;
-    getargs(&tp, 5, ",");
+    getargs(&tp, 5, DELIM_COMMA);
     if (argc != 5) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -344,7 +345,7 @@ static void longstring_resize(const char *tp) {
     void *ptr1 = NULL;
     int64_t *dest = NULL;
     int j = 0;
-    getargs(&tp, 3, ",");
+    getargs(&tp, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -365,7 +366,7 @@ static void longstring_right(const char *tp) {
     char *p = NULL;
     char *q = NULL;
     int i, j, nbr;
-    getargs(&tp, 5, ",");
+    getargs(&tp, 5, DELIM_COMMA);
     if (argc != 5) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -399,7 +400,7 @@ void longstring_setbyte(const char *tp) {
     uint8_t *q = NULL;
     int nbr;
     int j = 0;
-    getargs(&tp, 5, ",");
+    getargs(&tp, 5, DELIM_COMMA);
     if (argc != 5) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -421,7 +422,7 @@ void longstring_trim(const char *tp) {
     uint32_t trim;
     char *p, *q = NULL;
     int i;
-    getargs(&tp, 3, ",");
+    getargs(&tp, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {
@@ -442,7 +443,7 @@ void longstring_ucase(const char *tp) {
     int64_t *dest = NULL;
     char *q = NULL;
     int i;
-    getargs(&tp, 1, ",");
+    getargs(&tp, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     ptr1 = findvar(argv[0], V_FIND | V_EMPTY_OK);
     if (vartbl[VarIndex].type & T_INT) {

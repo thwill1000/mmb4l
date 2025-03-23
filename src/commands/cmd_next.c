@@ -50,7 +50,7 @@ void cmd_next(void) {
     void *vtbl[MAXFORLOOPS];
     int vcnt;
     const char *p;
-    getargs(&cmdline, MAXFORLOOPS * 2, ",");                        // getargs macro must be the first executable stmt in a block
+    getargs(&cmdline, MAXFORLOOPS * 2, DELIM_COMMA);                // getargs macro must be the first executable stmt in a block
 
     vindex = 0;                                                     // keep lint happy
 
