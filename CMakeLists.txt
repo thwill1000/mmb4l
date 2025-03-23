@@ -156,6 +156,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
 set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_at.c
     src/functions/fun_atan2.c
+    src/functions/fun_bin.c
     src/functions/fun_bin2str.c
     src/functions/fun_bound.c
     src/functions/fun_call.c
@@ -173,6 +174,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_format.c
     src/functions/fun_field.c
     src/functions/fun_gamepad.c
+    src/functions/fun_hex.c
     src/functions/fun_hres.c
     src/functions/fun_inputstr.c
     src/functions/fun_json.c
@@ -187,6 +189,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_mmcmdline.c
     src/functions/fun_mmdevice.c
     src/functions/fun_mminfo.c
+    src/functions/fun_oct.c
     src/functions/fun_peek.c
     src/functions/fun_pin.c
     src/functions/fun_port.c

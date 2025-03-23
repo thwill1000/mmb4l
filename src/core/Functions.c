@@ -160,45 +160,6 @@ void fun_exp(void) {
 
 
 
-// utility function used by HEX$(), OCT$() and BIN$()
-void DoHexOctBin(int base) {
-    UNSIGNED_MMINTEGER i;
-    int j = 1;
-    getargs(&ep, 3, ",");
-    i = (UNSIGNED_MMINTEGER) getinteger(argv[0]);                   // get the number
-    if(argc == 3) j = getint(argv[2], 0, MAXSTRLEN);                // get the optional number of chars to return
-    sret = GetTempStrMemory();                                      // this will last for the life of the command
-    IntToStrPad(sret, (MMINTEGER) i, '0', j, base);
-    CtoM(sret);
-    targ = T_STR;
-}
-
-
-
-// return the hexadecimal representation of a number
-// s$ = HEX$(nbr)
-void fun_hex(void) {
-    DoHexOctBin(16);
-}
-
-
-
-// return the octal representation of a number
-// s$ = OCT$(nbr)
-void fun_oct(void) {
-    DoHexOctBin(8);
-}
-
-
-
-// return the binary representation of a number
-// s$ = BIN$(nbr)
-void fun_bin(void) {
-    DoHexOctBin(2);
-}
-
-
-
 // syntax:  nbr = INSTR([start,] string1, string2)
 //          find the position of string2 in string1 starting at start chars in string1
 // returns an integer
