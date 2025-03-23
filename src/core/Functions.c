@@ -183,40 +183,6 @@ void fun_log(void) {
 
 
 
-// Returns a substring of ?string$? beginning at ?start? and continuing for ?nbr? characters.
-// S$ = MID$(s, spos [, nbr])
-void fun_mid(void) {
-    char *s, *p1, *p2;
-    int spos, nbr = 0, i;
-    getargs(&ep, 5, ",");
-
-    if(argc == 5) {                                                   // we have MID$(s, n, m)
-        nbr = getint(argv[4], 0, MAXSTRLEN);                          // nbr of chars to return
-    }
-    else if(argc == 3) {                                              // we have MID$(s, n)
-        nbr = MAXSTRLEN;                                              // default to all chars
-    }
-    else
-        error("Argument count");
-
-    s = getstring(argv[0]);                                           // the string
-    spos = getint(argv[2], 1, MAXSTRLEN);                             // the mid position
-
-    sret = GetTempStrMemory();                                        // this will last for the life of the command
-    targ = T_STR;
-    if(spos > *s || nbr == 0)                                         // if the numeric args are not in the string
-        return;                                                       // return a null string
-    else {
-        i = *s - spos + 1;                                            // find how many chars remaining in the string
-        if(i > nbr) i = nbr;                                          // reduce it if we don't need that many
-        p1 = sret; p2 = s + spos;
-        *p1++ = i;                                                    // set the length of the MMBasic string
-        while(i--) *p1++ = *p2++;                                     // copy the nbr chars required
-    }
-}
-
-
-
 // Return the value of Pi.  Thanks to Alan Williams for the contribution
 // n = PI
 void fun_pi(void) {
