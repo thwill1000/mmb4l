@@ -128,7 +128,7 @@ icolor cyan "(^|^[[:space:]]*)(EXIT\ DO)"
 
 ## keywords
 icolor cyan "\<(and|append|arch|as)\>"
-icolor cyan "\<(background|black|blue|bound|bright|byte)\>"
+icolor cyan "\<(background|black|blue|bound|bright|byref|byte|byval)\>"
 icolor cyan "\<(case|cat|chdir|clear|console|cfunaddr|choice|close|color|colour|const|csub|cyan)\>"
 icolor cyan "\<(default|device|din|dim|directory|dout)\>"
 icolor cyan "\<(else|elseif|end|envvar|errno|error|exit|exists)\>"
