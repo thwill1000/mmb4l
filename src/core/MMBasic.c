@@ -637,6 +637,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         char *v1[MAX_ARG_COUNT];
         char buf2[STRINGSIZE];
         char *v2[MAX_ARG_COUNT];
+        bool byref[MAX_ARG_COUNT];
         int c1;
         int c2;
     } *args = GetTempMemory(sizeof(struct s_args));
@@ -680,6 +681,23 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
                         args->type[i] |= T_PTR;                                     // flag this as a pointer
                     }
                 }
+            }
+
+            // check for BYVAL or BYREF in sub/fun definition
+            args->byref[i] = false;
+            skipspace(args->v2[i]);
+            if(toupper(*args->v2[i]) == 'B' && toupper(*(args->v2[i]+1)) == 'Y') {
+                if((checkstring(args->v2[i] + 2, "VAL")) != NULL) {                 // if BYVAL
+                    args->type[i] = 0;                                              // remove any pointer flag in the caller
+                    args->v2[i] += 5;                                               // skip to the variable start
+                } else {
+                    if((checkstring(args->v2[i] + 2, "REF")) != NULL) {             // if BYREF
+                        if((args->type[i] & T_PTR) == 0) error("Variable required for BYREF");
+                        args->v2[i] += 5;                                           // skip to the variable start
+                    }
+                    args->byref[i] = true;
+                }
+                skipspace(args->v2[i]);
             }
 
             // if argument is present and is not a pointer to a variable then evaluate it as an expression
@@ -736,6 +754,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
 
         // if this is a pointer check and the type is NOT the same as that requested in the sub/fun definition
         if((args->type[i] & T_PTR) && TypeMask(vartbl[VarIndex].type) != TypeMask(args->type[i])) {
+            if (args->byref[i]) error("BYREF requires same types: $", args->v1[i]);
             if((TypeMask(vartbl[VarIndex].type) & T_STR) || (TypeMask(args->type[i]) & T_STR))
                 error("Incompatible type: $", args->v1[i]);
             // make this into an ordinary argument
