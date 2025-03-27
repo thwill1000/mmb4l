@@ -474,6 +474,40 @@ int FindSubFun(const char *p, uint8_t type_mask) {
 
 
 
+typedef struct {
+    const char *line_ptr;
+    const char *nextstmt;
+    CommandToken cmdtoken;
+    const char *cmdline;
+    int gosubindex;
+    int localindex;
+} DefinedSubFunState;
+
+void DefinedSubFunSaveState(DefinedSubFunState *state) {
+    state->line_ptr = CurrentLinePtr;
+    state->nextstmt = nextstmt;
+    state->cmdtoken = cmdtoken;
+    state->cmdline = cmdline;
+    state->gosubindex = gosubindex;
+    state->localindex = LocalIndex;
+}
+
+void DefinedSubFunRestoreState(DefinedSubFunState *state) {
+    if (LocalIndex != state->localindex) ClearVars(LocalIndex);  // delete any local variables
+    TempMemoryIsChanged = true;
+
+    CurrentLinePtr = state->line_ptr;
+    nextstmt = state->nextstmt;
+    cmdtoken = state->cmdtoken;
+    cmdline = state->cmdline;
+    gosubindex = state->gosubindex;
+    LocalIndex = state->localindex;
+}
+
+void DefinedSubFunRestoreStateCb(void *state) {
+    DefinedSubFunRestoreState((DefinedSubFunState *) state);
+}
+
 // This function is responsible for executing a defined subroutine or function.
 // As these two are similar they are processed in the one lump of code.
 //
@@ -483,7 +517,9 @@ int FindSubFun(const char *p, uint8_t type_mask) {
 //   index    = index into funtbl[i] which points to the definition of the sub or funct
 //   fa, i64a, sa and typ are pointers to where the return value is to be stored (used by functions only)
 void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a, char **sa, int *typ) {
-    const char *CallersLinePtr = CurrentLinePtr;
+    DefinedSubFunState caller_state;
+    DefinedSubFunSaveState(&caller_state);
+    error_set_callback(DefinedSubFunRestoreStateCb, &caller_state);
     const char *SubLinePtr = funtbl[index].addr;                    // used for error reporting
     const char *p =  SubLinePtr + sizeof(CommandToken);             // point to the sub or function definition
     skipspace(p);
@@ -508,7 +544,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     if(isfun && *p != '(' && (*SubLinePtr != cmdCFUN)) error("Function definition");
 
     // find the end of the caller's identifier, tp is left pointing to the start of the caller's argument list
-    CurrentLinePtr = CallersLinePtr;                                // report errors at the caller
+    CurrentLinePtr = caller_state.line_ptr;                         // report errors at the caller
     const char *tp = cmd + 1;
     while(isnamechar(*tp)) tp++;
     if(*tp == '$' || *tp == '%' || *tp == '!') {
@@ -582,7 +618,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     // from now on we have a user defined sub or function (not a C routine)
 
     if(gosubindex >= MAXGOSUB) error("Too many nested SUB/FUN");
-    errorstack[gosubindex] = CallersLinePtr;
+    errorstack[gosubindex] = caller_state.line_ptr;
     gosubstack[gosubindex++] = isfun ? NULL : nextstmt;             // NULL signifies that this is returned to by ending ExecuteProgram()
 
     // allocate memory for processing the arguments
@@ -606,20 +642,20 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     } *args = GetTempMemory(sizeof(struct s_args));
 
     // now split up the arguments in the caller
-    CurrentLinePtr = CallersLinePtr;                                // report errors at the caller
+    CurrentLinePtr = caller_state.line_ptr;                         // report errors at the caller
     args->c1 = 0;
     if (*tp) makeargs(&tp, MAX_ARG_COUNT, args->buf1, args->v1, &args->c1,
                       (*tp == '(') ? "(," : ",");
 
     // split up the arguments in the definition
-    CurrentLinePtr = SubLinePtr;                                    // any errors must be at the definition
+    CurrentLinePtr = SubLinePtr;                                    // report errors at the definition
     args->c2 = 0;
     if (*p) makeargs(&p, MAX_ARG_COUNT, args->buf2, args->v2, &args->c2,
                      (*p == '(') ? "(," : ",");
 
     // error checking
     if (args->c2 && (args->c2 & 1) == 0) error("Argument list");
-    CurrentLinePtr = CallersLinePtr;                                // report errors at the caller
+    CurrentLinePtr = caller_state.line_ptr;                         // report errors at the caller
     if (args->c1 > args->c2 || (args->c1 && (args->c1 & 1) == 0)) error("Argument list");
 
     // step through the arguments supplied by the caller and get the value supplied
@@ -663,13 +699,15 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
 
     // now we step through the parameters in the definition of the sub/fun
     // for each one we create the local variable and compare its type to that supplied in the callers list
-    CurrentLinePtr = SubLinePtr;                                    // any errors must be at the definition
     LocalIndex++;
     char *tp2;                                                      // temporary non-const char *
                                                                     // it will be pointing into the items of args->v2[] which we know
                                                                     // are not constants so we can cast away const-ness as necessary
                                                                     // to remove warnings.
+
     for (int i = 0; i < args->c2; i += 2) {                         // count through the arguments in the definition of the sub/fun
+        CurrentLinePtr = SubLinePtr;                                // report errors at the definition
+
         int ArgType = T_NOTYPE;
         tp2 = (char *) skipvar(args->v2[i], false);                 // point to after the variable
         skipspace(tp2);
@@ -682,7 +720,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         (void) findvar(args->v2[i], ArgType);                       // declare the local variable
         if(vartbl[VarIndex].dims[0] > 0) error("Argument list");    // if it is an array it must be an empty array
 
-        CurrentLinePtr = CallersLinePtr;                            // report errors at the caller
+        CurrentLinePtr = caller_state.line_ptr;                     // report errors at the caller
 
         // if the definition called for an array, special processing and checking will be required
         if(vartbl[VarIndex].dims[0] == -1) {
@@ -732,7 +770,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
                 vartbl[VarIndex].val.i = args->val[i].i;
             else if((vartbl[VarIndex].type & T_INT) && (args->type[i] & T_NBR))   // need an integer but was supplied with a MMFLOAT
                 vartbl[VarIndex].val.i = FloatToInt64(args->val[i].f);
-            else
+            else 
                 error("Incompatible type: $", args->v1[i]);
         }
     }
@@ -748,6 +786,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     if(!isfun) {
         skipelement(p);
         nextstmt = p;                                               // point to the body of the subroutine
+        error_clear_callback();
         return;
     }
 
@@ -770,16 +809,8 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     }
     skipelement(p);                                                 // point to the body of the function
 
-    const char *cached_nextstmt = nextstmt;                         // save the globals used by commands
-    CommandToken cached_cmdtoken = cmdtoken;
-    const char *cached_cmdline = cmdline;
-
+    error_clear_callback();
     ExecuteProgram(p);                                              // execute the function's code
-    CurrentLinePtr = CallersLinePtr;                                // report errors at the caller
-
-    cmdline = cached_cmdline;                                       // restore the globals
-    cmdtoken = cached_cmdtoken;
-    nextstmt = cached_nextstmt;
 
     // return the value of the function's variable to the caller
     if(FunType & T_NBR)
@@ -789,9 +820,8 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     else
         *sa = pvar;                                                 // for a string we just need to return the local memory
     *typ = FunType;                                                 // save the function type for the caller
-    ClearVars(LocalIndex--);                                        // delete any local variables
-    TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
-    gosubindex--;
+
+    DefinedSubFunRestoreState(&caller_state);
 }
 
 
@@ -1351,9 +1381,7 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, int* 
             i = -1;
             if (*tp == '(') i = FindSubFun(p, kFunction);               // if terminated with a bracket it could be a function
             if (i >= 0) {                                               // >= 0 means it is a user defined function
-                const char *SaveCurrentLinePtr = CurrentLinePtr;        // in case the code in DefinedSubFun messes with this
                 DefinedSubFun(true, p, i, &f, &i64, &s, &t);
-                CurrentLinePtr = SaveCurrentLinePtr;
             }
             else {
                 s = (char *) findvar(p, V_FIND);                        // if it is a string then the string pointer is automatically set

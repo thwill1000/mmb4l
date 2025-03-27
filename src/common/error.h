@@ -52,14 +52,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef struct {
    MmResult code;
-   char file[STRINGSIZE];   // File that error was reported from.
-   int line;                // Line that error was reported from.
+   char file[STRINGSIZE];     // File that error was reported from.
+   int line;                  // Line that error was reported from.
    char message[MAXERRMSG];
-   int skip;                // How to handle error.
-                            //   0 = abort
-                            //  -1 = ignore
-                            //  >0 = skip errors from this many statements
-   bool override_line;      // Set to override automatic determination of line/file.
+   int skip;                  // How to handle error.
+                              //   0 = abort
+                              //  -1 = ignore
+                              //  >0 = skip errors from this many statements
+   bool override_line;        // Set to override automatic determination of line/file.
+   void (*callback)(void *);  // Callback function to call before longjmp.
+   void *callback_data;       // Data to pass to callback function.
 } ErrorState;
 
 extern ErrorState *mmb_error_state_ptr;
@@ -71,6 +73,12 @@ MmResult error_throw(MmResult result);
 MmResult error_throw_ex(MmResult result, const char *msg, ...);
 MmResult error_throw_legacy(const char *msg, ...);
 uint8_t error_to_exit_code(MmResult result);
+
+/** Registers a callback function to be called before longjmp(). */
+void error_set_callback(void (*fn)(void *), void *data);
+
+/** Clears callback function. */
+void error_clear_callback();
 
 #define ON_FAILURE_ERROR(x)  { \
   const MmResult rezult = x; \
