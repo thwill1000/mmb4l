@@ -25,3 +25,7 @@ MmResult error_throw_legacy(const char *msg, ...) {
     strcpy(error_msg, msg);
     return kOk;
 }
+
+void error_set_callback(void (*fn)(void *), void *data) { }
+
+void error_clear_callback() { }

@@ -66,6 +66,8 @@ void error_init(ErrorState *error_state) {
     *error_state->message = '\0';
     error_state->skip = 0;
     error_state->override_line = false;
+    error_state->callback = NULL;
+    error_state->callback_data = NULL;
 }
 
 void error_get_line_and_file(int *line, char *file_path) {
@@ -188,6 +190,12 @@ static void verror(MmResult error, const char *msg, va_list argp) {
 
     cstring_cpy(mmb_error_state_ptr->message, buf, MAXERRMSG);
 
+    // If an error callback has been registered then call it.
+    if (mmb_error_state_ptr->callback) {
+        mmb_error_state_ptr->callback(mmb_error_state_ptr->callback_data);
+        error_clear_callback();
+    }
+
     if (mmb_error_state_ptr->skip) {
         *mmb_error_state_ptr->file = '\0';
         mmb_error_state_ptr->line = -1;
@@ -224,4 +232,14 @@ uint8_t error_to_exit_code(MmResult result) {
         default:
             return EX_FAIL;
     }
+}
+
+void error_set_callback(void (*fn)(void *), void *data) {
+    mmb_error_state_ptr->callback = fn;
+    mmb_error_state_ptr->callback_data = data;
+}
+
+void error_clear_callback() {
+    mmb_error_state_ptr->callback = NULL;
+    mmb_error_state_ptr->callback_data = NULL;
 }
