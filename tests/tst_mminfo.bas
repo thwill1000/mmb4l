@@ -1,6 +1,5 @@
-' Copyright (c) 2021-2024 Thomas Hugo Williams
+' Copyright (c) 2021-2025 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For MMBasic 5.07
 
 Option Explicit On
 Option Default None
@@ -18,7 +17,7 @@ Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
 If sys.is_platform%("mmb4l") Then
-  Const EXPECTED_VERSION$ = "70010000"
+  Const EXPECTED_VERSION$ = "70020000"
 ElseIf sys.is_platform%("mmb4w") Then
   Const EXPECTED_VERSION$ = "5.0703"
 ElseIf sys.is_platform%("pm*") Then
@@ -577,7 +576,7 @@ Sub test_fontheight()
     ' Expect error if there is a space between FONT and HEIGHT.
     On Error Skip
     Local i% = Mm.Info(Font Height)
-    assert_raw_error("Unknown argument")
+    assert_raw_error("Unknown MM.INFO subfunction")
   Else
     ' Incorrectly reports result of MM.INFO(FONT).
     assert_int_equals(1, Mm.Info(Font Height))
@@ -593,7 +592,7 @@ Sub test_fontwidth()
     ' Expect error if there is a space between FONT and WIDTH.
     On Error Skip
     Local i% = Mm.Info(Font Width)
-    assert_raw_error("Unknown argument")
+    assert_raw_error("Unknown MM.INFO subfunction")
   Else
     ' Incorrectly reports result of MM.INFO(FONT).
     assert_int_equals(1, Mm.Info(Font Width))
@@ -637,7 +636,7 @@ End Sub
 Sub test_line()
   Const line$ = Mm.Info$(Line)
   If sys.is_platform%("mmb4l") Then
-    assert_int_equals(638, Val(Field$(line$, 1, ",")))
+    assert_int_equals(637, Val(Field$(line$, 1, ",")))
     assert_string_equals(Mm.Info$(Current), Field$(line$, 2, ","))
   Else
     ' Line number refers to the transpiled file.
