@@ -633,6 +633,15 @@ MmResult graphics_draw_pixel(MmSurface *surface, int x, int y, MmGraphicsColour 
     return kOk;
 }
 
+MmResult graphics_get_pixel(MmSurface *surface, int x, int y, MmGraphicsColour *colour) {
+    if (x >= 0 && y >= 0 && x < surface->width && y < surface->height) {
+        *colour = surface->pixels[y*surface->width + x];
+    } else {
+        *colour = -1;
+    }
+    return kOk;
+}
+
 #define RoundUptoInt(a) (((a) + (32 - 1)) & (~(32 - 1)))  // round up to the nearest whole integer
 
 MmResult graphics_draw_filled_circle(int x, int y, int radius, int r,
