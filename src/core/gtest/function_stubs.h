@@ -71,6 +71,7 @@ void fun_oct() { }
 void fun_peek() { }
 void fun_pi() { }
 void fun_pin() { }
+void fun_pixel() { }
 void fun_port() { }
 void fun_pos() { }
 void fun_rad() { }
