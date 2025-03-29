@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 graphics.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -497,6 +497,17 @@ MmResult graphics_draw_triangle(MmSurface *surface, int x0, int y0, int x1, int 
  * @param[in]  title_sz  Size of the buffer.
  */
 MmResult graphics_get_default_window_title(MmSurfaceId id, char *title, size_t title_sz);
+
+/**
+ * Gets the colour value of a single pixel.
+ *
+ * @param       surface  Surface to get the pixel from.
+ * @param       x        x-coordinate of pixel.
+ * @param       y        y-coordinate of pixel.
+ * @param[out]  colour   On exit the colour of the pixel,
+ *                       or -1 if the coordinates are outside the graphics surface.
+ */
+MmResult graphics_get_pixel(MmSurface *surface, int x, int y, MmGraphicsColour *colour);
 
 /**
  * Loads a .bmp image.

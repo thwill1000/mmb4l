@@ -82,7 +82,7 @@ void ListNewLine(int *ListCnt, int all) { }
 #define CMD_LET         "\xC0\x80"
 #define CMD_MMDEBUG     "\xCC\x80"
 #define CMD_PRINT       "\xDA\x80"
-#define OP_EQUALS       "\xF5"
+#define OP_EQUALS       "\xF6"
 
 #define EXPECT_PROGRAM_EQ(prog) \
     EXPECT_THAT(std::vector<char>(ProgMemory, ProgMemory + prog.length()), \

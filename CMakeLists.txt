@@ -198,6 +198,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_oct.c
     src/functions/fun_peek.c
     src/functions/fun_pin.c
+    src/functions/fun_pixel.c
     src/functions/fun_port.c
     src/functions/fun_right.c
     src/functions/fun_rgb.c
