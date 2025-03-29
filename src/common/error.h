@@ -45,10 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_ERROR_H)
 #define MMB4L_ERROR_H
 
+#include <stdbool.h>
+
 #include "../Configuration.h" // for STRINGSIZE
 #include "mmresult.h"
-
-#include <stdbool.h>
+#include "utility.h"
 
 typedef struct {
    MmResult code;

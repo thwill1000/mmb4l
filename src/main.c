@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 main.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,6 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "common/mmb4l.h"
 #include "common/audio.h"
 #include "common/cmdline.h"
@@ -61,13 +65,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/utility.h"
 #include "core/tokentbl.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
-#define MM_VERSION_STR  xstr(MM_MAJOR) "." xstr(MM_MINOR) "." xstr(MM_MICRO)
+#define MM_VERSION_STR  xstringify(MM_MAJOR) "." xstringify(MM_MINOR) "." xstringify(MM_MICRO)
 static const char version[] __attribute__ ((used))
         = "@(#) MMB4L v" MM_VERSION_STR " " __DATE__ " " __TIME__;
 #pragma GCC diagnostic pop
