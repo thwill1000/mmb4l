@@ -592,62 +592,70 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         MMFLOAT *fa;                                                // pointer to the allocated memory if it is an array of floats
         MMINTEGER *ia;                                              // pointer to the allocated memory if it is an array of integers
         char *s;                                                    // pointer to the allocated memory if it is a string
-    } *argval = GetTempMemory(MAX_ARG_COUNT * sizeof(union u_argval));
-    int *argtype = GetTempMemory(MAX_ARG_COUNT * sizeof(int));
-    int *argVarIndex = GetTempMemory(MAX_ARG_COUNT * sizeof(int));
-    char *argbuf1 = GetTempMemory(STRINGSIZE);
-    char **argv1 = GetTempMemory(MAX_ARG_COUNT * sizeof(char *));  // these are for the caller
-    char *argbuf2 = GetTempMemory(STRINGSIZE);
-    char **argv2 = GetTempMemory(MAX_ARG_COUNT * sizeof(char *));  // and these for the definition of the sub or function
+    };
+    struct s_args {
+        union u_argval val[MAX_ARG_COUNT];
+        int type[MAX_ARG_COUNT];
+        int varIndex[MAX_ARG_COUNT];
+        char buf1[STRINGSIZE];
+        char *v1[MAX_ARG_COUNT];
+        char buf2[STRINGSIZE];
+        char *v2[MAX_ARG_COUNT];
+        int c1;
+        int c2;
+    } *args = GetTempMemory(sizeof(struct s_args));
 
     // now split up the arguments in the caller
     CurrentLinePtr = CallersLinePtr;                                // report errors at the caller
-    int argc1 = 0;
-    if(*tp) makeargs(&tp, MAX_ARG_COUNT, argbuf1, argv1, &argc1, (*tp == '(') ? "(," : ",");
+    args->c1 = 0;
+    if (*tp) makeargs(&tp, MAX_ARG_COUNT, args->buf1, args->v1, &args->c1,
+                      (*tp == '(') ? "(," : ",");
 
     // split up the arguments in the definition
     CurrentLinePtr = SubLinePtr;                                    // any errors must be at the definition
-    int argc2 = 0;
-    if(*p) makeargs(&p, MAX_ARG_COUNT, argbuf2, argv2, &argc2, (*p == '(') ? "(," : ",");
+    args->c2 = 0;
+    if (*p) makeargs(&p, MAX_ARG_COUNT, args->buf2, args->v2, &args->c2,
+                     (*p == '(') ? "(," : ",");
 
     // error checking
-    if(argc2 && (argc2 & 1) == 0) error("Argument list");
+    if (args->c2 && (args->c2 & 1) == 0) error("Argument list");
     CurrentLinePtr = CallersLinePtr;                                // report errors at the caller
-    if(argc1 > argc2 || (argc1 && (argc1 & 1) == 0)) error("Argument list");
+    if (args->c1 > args->c2 || (args->c1 && (args->c1 & 1) == 0)) error("Argument list");
 
     // step through the arguments supplied by the caller and get the value supplied
     // these can be:
     //    - missing (ie, caller did not supply that parameter)
     //    - a variable, in which case we need to get a pointer to that variable's data and save its index so later we can get its type
     //    - an expression, in which case we evaluate the expression and get its value and type
-    for (int i = 0; i < argc2; i += 2) {                            // count through the arguments in the definition of the sub/fun
-        if(i < argc1 && *argv1[i]) {
+    for (int i = 0; i < args->c2; i += 2) {  // count through the arguments in the definition of the sub/fun
+        if(i < args->c1 && *args->v1[i]) {
             // check if the argument is a valid variable
-            if(i < argc1 && isnamestart(*argv1[i]) && *skipvar(argv1[i], false) == 0) {
+            if(i < args->c1 && isnamestart(*args->v1[i]) && *skipvar(args->v1[i], false) == 0) {
                 // yes, it is a variable (or perhaps a user defined function which looks the same)?
-                if(!(FindSubFun(argv1[i], kFunction) >= 0 && strchr(argv1[i], '(') != NULL)) {
-                    // yes, this is a valid variable.  set argvalue to point to the variable's data and argtype to its type
-                    argval[i].s = findvar(argv1[i], V_FIND | V_EMPTY_OK);        // get a pointer to the variable's data
-                    argtype[i] = vartbl[VarIndex].type;                          // and the variable's type
-                    argVarIndex[i] = VarIndex;
-                    if(argtype[i] & T_CONST) {
-                        argtype[i] = 0;                                          // we don't want to point to a constant
+                if(!(FindSubFun(args->v1[i], kFunction) >= 0 && strchr(args->v1[i], '(') != NULL)) {
+                    // This is a valid variable.
+                    // Set args->value to point to the variable's data and args->type to its type.
+                    args->val[i].s = findvar(args->v1[i], V_FIND | V_EMPTY_OK);     // get a pointer to the variable's data
+                    args->type[i] = vartbl[VarIndex].type;                          // and the variable's type
+                    args->varIndex[i] = VarIndex;
+                    if(args->type[i] & T_CONST) {
+                        args->type[i] = 0;                                          // we don't want to point to a constant
                     } else {
-                        argtype[i] |= T_PTR;                                     // flag this as a pointer
+                        args->type[i] |= T_PTR;                                     // flag this as a pointer
                     }
                 }
             }
 
             // if argument is present and is not a pointer to a variable then evaluate it as an expression
-            if(argtype[i] == 0) {
+            if(args->type[i] == 0) {
                 MMINTEGER ia;
                 char *s;
-                evaluate(argv1[i], &argval[i].f, &ia, &s, &argtype[i], false);   // get the value and type of the argument
-                if(argtype[i] & T_INT)
-                    argval[i].i = ia;
-                else if(argtype[i] & T_STR) {
-                    argval[i].s = GetTempStrMemory();
-                    Mstrcpy(argval[i].s, s);
+                evaluate(args->v1[i], &args->val[i].f, &ia, &s, &args->type[i], false);  // get the value and type of the argument
+                if(args->type[i] & T_INT)
+                    args->val[i].i = ia;
+                else if(args->type[i] & T_STR) {
+                    args->val[i].s = GetTempStrMemory();
+                    Mstrcpy(args->val[i].s, s);
                 }
             }
         }
@@ -658,12 +666,12 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     CurrentLinePtr = SubLinePtr;                                    // any errors must be at the definition
     LocalIndex++;
     char *tp2;                                                      // temporary non-const char *
-                                                                    // it will be pointing into the items of argv2[] which we know
+                                                                    // it will be pointing into the items of args->v2[] which we know
                                                                     // are not constants so we can cast away const-ness as necessary
                                                                     // to remove warnings.
-    for (int i = 0; i < argc2; i += 2) {                            // count through the arguments in the definition of the sub/fun
+    for (int i = 0; i < args->c2; i += 2) {                         // count through the arguments in the definition of the sub/fun
         int ArgType = T_NOTYPE;
-        tp2 = (char *) skipvar(argv2[i], false);                    // point to after the variable
+        tp2 = (char *) skipvar(args->v2[i], false);                 // point to after the variable
         skipspace(tp2);
         if (*tp2 == tokenAS) {                                      // are we using Microsoft syntax (eg, AS INTEGER)?
             *tp2++ = '\0';                                          // terminate the string and step over the AS token
@@ -671,7 +679,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
             if(!(ArgType & T_IMPLIED)) error("Variable type");
         }
         ArgType |= (V_FIND | V_DIM_VAR | V_LOCAL | V_EMPTY_OK);
-        (void) findvar(argv2[i], ArgType);                          // declare the local variable
+        (void) findvar(args->v2[i], ArgType);                       // declare the local variable
         if(vartbl[VarIndex].dims[0] > 0) error("Argument list");    // if it is an array it must be an empty array
 
         CurrentLinePtr = CallersLinePtr;                            // report errors at the caller
@@ -679,62 +687,58 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         // if the definition called for an array, special processing and checking will be required
         if(vartbl[VarIndex].dims[0] == -1) {
             int j;
-            if(vartbl[argVarIndex[i]].dims[0] == 0) error("Expected an array");
-            if(TypeMask(vartbl[VarIndex].type) != TypeMask(argtype[i])) error("Incompatible type: $", argv1[i]);
+            if(vartbl[args->varIndex[i]].dims[0] == 0) error("Expected an array");
+            if(TypeMask(vartbl[VarIndex].type) != TypeMask(args->type[i])) {
+                error("Incompatible type: $", args->v1[i]);
+            }
             vartbl[VarIndex].val.s = NULL;
             for(j = 0; j < MAXDIM; j++)                             // copy the dimensions of the supplied variable into our local variable
-                vartbl[VarIndex].dims[j] = vartbl[argVarIndex[i]].dims[j];
+                vartbl[VarIndex].dims[j] = vartbl[args->varIndex[i]].dims[j];
         }
 
         // if this is a pointer check and the type is NOT the same as that requested in the sub/fun definition
-        if((argtype[i] & T_PTR) && TypeMask(vartbl[VarIndex].type) != TypeMask(argtype[i])) {
-            if((TypeMask(vartbl[VarIndex].type) & T_STR) || (TypeMask(argtype[i]) & T_STR))
-                error("Incompatible type: $", argv1[i]);
+        if((args->type[i] & T_PTR) && TypeMask(vartbl[VarIndex].type) != TypeMask(args->type[i])) {
+            if((TypeMask(vartbl[VarIndex].type) & T_STR) || (TypeMask(args->type[i]) & T_STR))
+                error("Incompatible type: $", args->v1[i]);
             // make this into an ordinary argument
-            if(vartbl[argVarIndex[i]].type & T_PTR) {
-                argval[i].i = *vartbl[argVarIndex[i]].val.ia;       // get the value if the supplied argument is a pointer
+            if(vartbl[args->varIndex[i]].type & T_PTR) {
+                args->val[i].i = *vartbl[args->varIndex[i]].val.ia; // get the value if the supplied argument is a pointer
             } else {
-                argval[i].i = *(MMINTEGER *)argval[i].s;            // get the value if the supplied argument is an ordinary variable
+                args->val[i].i = *(MMINTEGER *)args->val[i].s;      // get the value if the supplied argument is an ordinary variable
             }
-            argtype[i] &= ~T_PTR;                                   // and remove the pointer flag
+            args->type[i] &= ~T_PTR;                                // and remove the pointer flag
         }
 
         // if this is a pointer (note: at this point the caller type and the required type must be the same)
-        if(argtype[i] & T_PTR) {
+        if(args->type[i] & T_PTR) {
             // the argument supplied was a variable so we must setup the local variable as a pointer
             if((vartbl[VarIndex].type & T_STR) && vartbl[VarIndex].val.s != NULL) {
                 FreeMemory(vartbl[VarIndex].val.s);                            // free up the local variable's memory if it is a pointer to a string
             }
-            vartbl[VarIndex].val.s = argval[i].s;                              // point to the data of the variable supplied as an argument
+            vartbl[VarIndex].val.s = args->val[i].s;                           // point to the data of the variable supplied as an argument
             vartbl[VarIndex].type |= T_PTR;                                    // set the type to a pointer
-            vartbl[VarIndex].size = vartbl[argVarIndex[i]].size;               // just in case it is a string copy the size
+            vartbl[VarIndex].size = vartbl[args->varIndex[i]].size;            // just in case it is a string copy the size
         // this is not a pointer
-        } else if(argtype[i] != 0) {                                           // in getting the memory argtype[] is initialised to zero
+        } else if(args->type[i] != 0) {                                        // in getting the memory args->type[] is initialised to zero
             // the parameter was an expression or a just straight variables with different types (therefore not a pointer))
-            if((vartbl[VarIndex].type & T_STR) && (argtype[i] & T_STR)) {      // both are a string
-                Mstrcpy(vartbl[VarIndex].val.s, argval[i].s);
-                ClearSpecificTempMemory(argval[i].s);
-            } else if((vartbl[VarIndex].type & T_NBR) && (argtype[i] & T_NBR)) // both are a float
-                vartbl[VarIndex].val.f = argval[i].f;
-            else if((vartbl[VarIndex].type & T_NBR) && (argtype[i] & T_INT))   // need a float but supplied an integer
-                vartbl[VarIndex].val.f = argval[i].i;
-            else if((vartbl[VarIndex].type & T_INT) && (argtype[i] & T_INT))   // both are integers
-                vartbl[VarIndex].val.i = argval[i].i;
-            else if((vartbl[VarIndex].type & T_INT) && (argtype[i] & T_NBR))   // need an integer but was supplied with a MMFLOAT
-                vartbl[VarIndex].val.i = FloatToInt64(argval[i].f);
+            if((vartbl[VarIndex].type & T_STR) && (args->type[i] & T_STR)) {   // both are a string
+                Mstrcpy(vartbl[VarIndex].val.s, args->val[i].s);
+                ClearSpecificTempMemory(args->val[i].s);
+            } else if((vartbl[VarIndex].type & T_NBR) && (args->type[i] & T_NBR)) // both are a float
+                vartbl[VarIndex].val.f = args->val[i].f;
+            else if((vartbl[VarIndex].type & T_NBR) && (args->type[i] & T_INT))   // need a float but supplied an integer
+                vartbl[VarIndex].val.f = args->val[i].i;
+            else if((vartbl[VarIndex].type & T_INT) && (args->type[i] & T_INT))   // both are integers
+                vartbl[VarIndex].val.i = args->val[i].i;
+            else if((vartbl[VarIndex].type & T_INT) && (args->type[i] & T_NBR))   // need an integer but was supplied with a MMFLOAT
+                vartbl[VarIndex].val.i = FloatToInt64(args->val[i].f);
             else
-                error("Incompatible type: $", argv1[i]);
+                error("Incompatible type: $", args->v1[i]);
         }
     }
 
     // temp memory used in setting up the arguments can be deleted now
-    ClearSpecificTempMemory(argval);
-    ClearSpecificTempMemory(argtype);
-    ClearSpecificTempMemory(argVarIndex);
-    ClearSpecificTempMemory(argbuf1);
-    ClearSpecificTempMemory(argv1);
-    ClearSpecificTempMemory(argbuf2);
-    ClearSpecificTempMemory(argv2);
+    ClearSpecificTempMemory(args);
 
     // set the CurrentSubFunName which is used to create static variables
     strcpy(CurrentSubFunName, fun_name);
