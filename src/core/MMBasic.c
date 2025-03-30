@@ -46,6 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // words into tokens, storage and management of the program in memory, storage and management of variables,
 // the expression execution engine and other useful functions.
 
+#include <assert.h>
+#include <sys/types.h>
+
 #include "../Hardware_Includes.h"
 #include "MMBasic.h"
 #include "Commands.h"
@@ -60,8 +63,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/graphics.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
-
-#include <assert.h>
 
 extern int ListCnt;
 extern int MMCharPos;
@@ -482,34 +483,16 @@ int FindSubFun(const char *p, uint8_t type_mask) {
 //   index    = index into funtbl[i] which points to the definition of the sub or funct
 //   fa, i64a, sa and typ are pointers to where the return value is to be stored (used by functions only)
 void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64a, char **sa, int *typ) {
-    const char *p;
-    const char *ttp;
-    char *s;
-    const char *CallersLinePtr, *SubLinePtr = NULL;
-    char *argbuf1; char **argv1; int argc1;
-    char *argbuf2; char **argv2; int argc2;
-    char fun_name[MAXVARLEN + 1];
-    int i;
-    int ArgType, FunType;
-    int *argtype;
-    union u_argval {
-        MMFLOAT f;                                                  // the value if it is a float
-        MMINTEGER i;                                                // the value if it is an integer
-        MMFLOAT *fa;                                                // pointer to the allocated memory if it is an array of floats
-        MMINTEGER *ia;                                              // pointer to the allocated memory if it is an array of integers
-        char *s;                                                    // pointer to the allocated memory if it is a string
-    } *argval;
-    int *argVarIndex;
-
-    CallersLinePtr = CurrentLinePtr;
-    SubLinePtr = funtbl[index].addr;                                // used for error reporting
-    p =  SubLinePtr + sizeof(CommandToken);                         // point to the sub or function definition
+    const char *CallersLinePtr = CurrentLinePtr;
+    const char *SubLinePtr = funtbl[index].addr;                    // used for error reporting
+    const char *p =  SubLinePtr + sizeof(CommandToken);             // point to the sub or function definition
     skipspace(p);
-    ttp = p;
+    const char *ttp = p;
 
     // copy the sub/fun name from the definition into temp storage and terminate
     // p is left pointing to the end of the name (ie, start of the argument list in the definition)
     CurrentLinePtr = SubLinePtr;                                    // report errors at the definition
+    char fun_name[MAXVARLEN + 1];
     {
         char *tp = fun_name;
         *tp++ = *p++; while(isnamechar(*p)) *tp++ = *p++;
@@ -536,7 +519,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
 
     // if this is a function we check to find if the function's type has been specified with AS <type> and save it
     CurrentLinePtr = SubLinePtr;                                    // report errors at the definition
-    FunType = T_NOTYPE;
+    int FunType = T_NOTYPE;
     if(isfun) {
         ttp = skipvar(ttp, false);                                  // point to after the function name and bracketed arguments
         skipspace(ttp);
@@ -603,20 +586,28 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     gosubstack[gosubindex++] = isfun ? NULL : nextstmt;             // NULL signifies that this is returned to by ending ExecuteProgram()
 
     // allocate memory for processing the arguments
-    argval = GetTempMemory(MAX_ARG_COUNT * sizeof(union u_argval));
-    argtype = GetTempMemory(MAX_ARG_COUNT * sizeof(int));
-    argVarIndex = GetTempMemory(MAX_ARG_COUNT * sizeof(int));
-    argbuf1 = GetTempMemory(STRINGSIZE); argv1 = GetTempMemory(MAX_ARG_COUNT * sizeof(char *));  // these are for the caller
-    argbuf2 = GetTempMemory(STRINGSIZE); argv2 = GetTempMemory(MAX_ARG_COUNT * sizeof(char *));  // and these for the definition of the sub or function
+    union u_argval {
+        MMFLOAT f;                                                  // the value if it is a float
+        MMINTEGER i;                                                // the value if it is an integer
+        MMFLOAT *fa;                                                // pointer to the allocated memory if it is an array of floats
+        MMINTEGER *ia;                                              // pointer to the allocated memory if it is an array of integers
+        char *s;                                                    // pointer to the allocated memory if it is a string
+    } *argval = GetTempMemory(MAX_ARG_COUNT * sizeof(union u_argval));
+    int *argtype = GetTempMemory(MAX_ARG_COUNT * sizeof(int));
+    int *argVarIndex = GetTempMemory(MAX_ARG_COUNT * sizeof(int));
+    char *argbuf1 = GetTempMemory(STRINGSIZE);
+    char **argv1 = GetTempMemory(MAX_ARG_COUNT * sizeof(char *));  // these are for the caller
+    char *argbuf2 = GetTempMemory(STRINGSIZE);
+    char **argv2 = GetTempMemory(MAX_ARG_COUNT * sizeof(char *));  // and these for the definition of the sub or function
 
     // now split up the arguments in the caller
     CurrentLinePtr = CallersLinePtr;                                // report errors at the caller
-    argc1 = 0;
+    int argc1 = 0;
     if(*tp) makeargs(&tp, MAX_ARG_COUNT, argbuf1, argv1, &argc1, (*tp == '(') ? "(," : ",");
 
     // split up the arguments in the definition
     CurrentLinePtr = SubLinePtr;                                    // any errors must be at the definition
-    argc2 = 0;
+    int argc2 = 0;
     if(*p) makeargs(&p, MAX_ARG_COUNT, argbuf2, argv2, &argc2, (*p == '(') ? "(," : ",");
 
     // error checking
@@ -629,7 +620,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
     //    - missing (ie, caller did not supply that parameter)
     //    - a variable, in which case we need to get a pointer to that variable's data and save its index so later we can get its type
     //    - an expression, in which case we evaluate the expression and get its value and type
-    for(i = 0; i < argc2; i += 2) {                                 // count through the arguments in the definition of the sub/fun
+    for (int i = 0; i < argc2; i += 2) {                            // count through the arguments in the definition of the sub/fun
         if(i < argc1 && *argv1[i]) {
             // check if the argument is a valid variable
             if(i < argc1 && isnamestart(*argv1[i]) && *skipvar(argv1[i], false) == 0) {
@@ -650,6 +641,7 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
             // if argument is present and is not a pointer to a variable then evaluate it as an expression
             if(argtype[i] == 0) {
                 MMINTEGER ia;
+                char *s;
                 evaluate(argv1[i], &argval[i].f, &ia, &s, &argtype[i], false);   // get the value and type of the argument
                 if(argtype[i] & T_INT)
                     argval[i].i = ia;
@@ -669,8 +661,8 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
                                                                     // it will be pointing into the items of argv2[] which we know
                                                                     // are not constants so we can cast away const-ness as necessary
                                                                     // to remove warnings.
-    for(i = 0; i < argc2; i += 2) {                                 // count through the arguments in the definition of the sub/fun
-        ArgType = T_NOTYPE;
+    for (int i = 0; i < argc2; i += 2) {                            // count through the arguments in the definition of the sub/fun
+        int ArgType = T_NOTYPE;
         tp2 = (char *) skipvar(argv2[i], false);                    // point to after the variable
         skipspace(tp2);
         if (*tp2 == tokenAS) {                                      // are we using Microsoft syntax (eg, AS INTEGER)?
