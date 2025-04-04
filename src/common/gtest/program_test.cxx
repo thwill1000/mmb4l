@@ -169,6 +169,7 @@ protected:
         char file_path[PATH_MAX];
 
         while ((next_file = readdir(dir)) != NULL) {
+            errno = 0; // Strange that readdir() both returns a value and sets errno.
             if (strcmp(next_file->d_name, ".") != 0
                     && strcmp(next_file->d_name, "..") != 0) {
 #pragma GCC diagnostic push
