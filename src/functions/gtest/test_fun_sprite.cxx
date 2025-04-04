@@ -1,10 +1,14 @@
 /*
- * Copyright (c) 202-2025 Thomas Hugo Williams
+ * Copyright (c) 2024-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h> // Needed for EXPECT_THAT.
+
+#if !defined(ENABLE_GTEST_EXTRAS)
+#define ENABLE_GTEST_EXTRAS
+#endif
 
 extern "C" {
 
@@ -120,7 +124,7 @@ protected:
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus2_Fails) {
     char args[STRINGSIZE];
-    sprintf(args, "C, %c2", tokenSUBTRACT); // "C, -2"
+    sprintf(args, "C, %s2", tokentbl_encoded("-")); // "C, -2"
     ep = args;
     iret = 9999;
 
@@ -145,7 +149,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus1_AndSimulatingCla
     mmb_options.simulate = kSimulateCmm2;
 
     char args[STRINGSIZE];
-    sprintf(args, "C, %c1", tokenSUBTRACT); // "C, -1"
+    sprintf(args, "C, %s1", tokentbl_encoded("-")); // "C, -1"
     ep = args;
     iret = 9999;
 

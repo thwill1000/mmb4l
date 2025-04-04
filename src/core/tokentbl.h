@@ -178,4 +178,16 @@ extern FunctionToken tokenADD, tokenSUBTRACT;
 extern FunctionToken tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP;
 extern FunctionToken tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
 
+#if defined(ENABLE_GTEST_EXTRAS)
+/**
+ * For unit-tests only
+ *
+ * Gets the encoded representation of a function / operator token.
+ *
+ * @return  pointer to encoded representation.
+ *          The caller SHOULD NOT free this.
+ */
+const char *tokentbl_encoded(const char *name);
 #endif
+
+#endif // #if !defined(TOKENTBL_H)
