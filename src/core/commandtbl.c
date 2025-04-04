@@ -194,8 +194,14 @@ CommandToken cmdENDIF, cmdEND_IF, cmdEND_SELECT, cmdEND_SUB, cmdFOR, cmdFUN;
 CommandToken cmdIF, cmdIRET, cmdLET, cmdLOCAL, cmdLOOP, cmdNEXT, cmdPRINT;
 CommandToken cmdREM, cmdRUN, cmdSELECT_CASE, cmdSTATIC, cmdSUB, cmdWEND, cmdWHILE;
 
+#define COMMANDTBL_SIZE  sizeof(commandtbl) / sizeof(struct s_tokentbl)
+
+#if defined(ENABLE_GTEST_EXTRAS)
+static char ENCODED_COMMANDS[COMMANDTBL_SIZE][4] = { 0 };
+#endif
+
 void commandtbl_init() {
-    commandtbl_size = sizeof(commandtbl) / sizeof(struct s_tokentbl);
+    commandtbl_size = COMMANDTBL_SIZE;
 
     cmdCASE = commandtbl_get("Case");
     cmdCASE_ELSE = commandtbl_get("Case Else");
@@ -231,10 +237,17 @@ void commandtbl_init() {
     cmdSUB = commandtbl_get("Sub");
     cmdWEND = commandtbl_get("WEnd");
     cmdWHILE = commandtbl_get("While");
+
+#if defined(ENABLE_GTEST_EXTRAS)
+    for (size_t i = 0; i < COMMANDTBL_SIZE - 1; i++) {
+        char *buf = ENCODED_COMMANDS[i];
+        commandtbl_encode(&buf, i);
+    }
+#endif
 }
 
 CommandToken commandtbl_get(const char *s) {
-    for (int i = 0; i < commandtbl_size - 1; i++) {
+    for (size_t i = 0; i < COMMANDTBL_SIZE - 1; i++) {
         if (strcasecmp(s, commandtbl[i].name) == 0) {
             return i;
         }
@@ -242,3 +255,9 @@ CommandToken commandtbl_get(const char *s) {
     ERROR_INTERNAL_FAULT;
     return INVALID_COMMAND_TOKEN;
 }
+
+#if defined(ENABLE_GTEST_EXTRAS)
+const char *commandtbl_encoded(const char *name) {
+    return ENCODED_COMMANDS[commandtbl_get(name)];
+}
+#endif

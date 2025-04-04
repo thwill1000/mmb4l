@@ -6,6 +6,10 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h> // Needed for EXPECT_THAT.
 
+#if !defined(ENABLE_GTEST_EXTRAS)
+#define ENABLE_GTEST_EXTRAS
+#endif
+
 extern "C" {
 
 #include "../../Hardware_Includes.h"
@@ -68,6 +72,8 @@ void ListNewLine(int *ListCnt, int all) { }
 #define MAX_LENGTH_NAME  "_32_character_name_9012345678901"
 #define TOO_LONG_NAME    "_33_character_name_90123456789012"
 
+FunctionToken tokenINT = 0x0;
+
 class MmBasicCoreTest : public ::testing::Test {
 
 protected:
@@ -81,6 +87,7 @@ protected:
         m_program[0] = '\0';
         VarIndex = 999;
         ClearProgMemory();
+        tokenINT = tokentbl_get("INT(");
     }
 
     void TearDown() override {
@@ -675,18 +682,9 @@ TEST_F(MmBasicCoreTest, FindVar_GivenFindWithDimensionLessThanOptionBase) {
     sprintf(m_program, "foo(2,5) = ...");
     (void) findvar(m_program, V_DIM_VAR);
 
-    // We can't just put a literal negative value for one of the bounds,
-    // we need to insert the token for the subtract operator.
-    char SUBTRACT_TOKEN = 0;
-    for (int ii = 0; tokentbl[ii].fptr; ++ii) {
-        if (tokentbl[ii].fptr == op_subtract) {
-            SUBTRACT_TOKEN = ii + C_BASETOKEN;
-        }
-    }
-
     error_msg[0] = '\0';
     mmb_options.base = 0;
-    sprintf(m_program, "foo(1,%c1) = ...", SUBTRACT_TOKEN);
+    sprintf(m_program, "foo(1,%s1) = ...", tokentbl_encoded("-"));
     (void) findvar(m_program, V_FIND);
     EXPECT_STREQ("Dimensions", error_msg);
 
@@ -855,11 +853,10 @@ TEST_F(MmBasicCoreTest, Tokenise_DimStatement) {
     char expected[TKNBUF_SIZE];
     sprintf(
             expected,
-            "%c%c%ca %c 1",
+            "%c%sa %s 1",
             T_NEWLINE,
-            (cmdDIM & 0x7F) + C_BASETOKEN,
-            (cmdDIM >> 7) + C_BASETOKEN,
-            tokenEQUAL);
+            commandtbl_encoded("DIM"),
+            tokentbl_encoded("="));
     EXPECT_STREQ(expected, tknbuf);
 }
 
@@ -871,13 +868,12 @@ TEST_F(MmBasicCoreTest, Tokenise_RunStatement) {
     char expected[TKNBUF_SIZE];
     sprintf(
             expected,
-            "%c%c%c\"foo\", %c%cbase%c1",
+            "%c%s\"foo\", %s%sbase%s1",
             T_NEWLINE,
-            (cmdRUN & 0x7F) + C_BASETOKEN,
-            (cmdRUN >> 7) + C_BASETOKEN,
-            tokenSUBTRACT,
-            tokenSUBTRACT,
-            tokenEQUAL);
+            commandtbl_encoded("RUN"),
+            tokentbl_encoded("-"),
+            tokentbl_encoded("-"),
+            tokentbl_encoded("="));
     EXPECT_STREQ(expected, tknbuf);
 }
 
@@ -1750,14 +1746,68 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenTargetNameTooLong) {
     EXPECT_EQ(NULL, actual);
 }
 
-TEST_F(MmBasicCoreTest, MakeArgs) {
+TEST_F(MmBasicCoreTest, MakeArgs_GivenIfWithoutElse_Succeeds) {
     TokeniseAndAppend("If foo = -1 Then Error \"bar\"");
     PrepareProgram(true);
     const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
     char argbuf[STRINGSIZE];
     char *argv[10];
-    int argc[10];
+    int argc;
     const DelimType delim[] = { tokenTHEN, tokenELSE, 0 };
 
-    makeargs(&p, 10, argbuf, argv, argc, delim);
+    makeargs(&p, 10, argbuf, argv, &argc, delim);
+
+    EXPECT_EQ(3, argc);
+    EXPECT_STREQ("", error_msg);
+    char expected[STRINGSIZE];
+    sprintf(expected, "foo %s %s1", tokentbl_encoded("="), tokentbl_encoded("-"));
+    EXPECT_STREQ(expected, argv[0]);
+    sprintf(expected, "%s", tokentbl_encoded("THEN"));
+    EXPECT_STREQ(expected, argv[1]);
+    sprintf(expected, "%s\"bar\"", commandtbl_encoded("ERROR"));
+    EXPECT_STREQ(expected, argv[2]);
+}
+
+TEST_F(MmBasicCoreTest, MakeArgs_GivenFunctionWithoutParameters_Succeeds) {
+    TokeniseAndAppend("If Not 1 Then Error \"bar\"");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
+    char argbuf[STRINGSIZE];
+    char *argv[10];
+    int argc;
+    const DelimType delim[] = { tokenTHEN, tokenELSE, 0 };
+
+    makeargs(&p, 10, argbuf, argv, &argc, delim);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(3, argc);
+    char expected[STRINGSIZE];
+    sprintf(expected, "%s 1", tokentbl_encoded("NOT"));
+    EXPECT_STREQ(expected, argv[0]);
+    sprintf(expected, "%s", tokentbl_encoded("THEN"));
+    EXPECT_STREQ(expected, argv[1]);
+    sprintf(expected, "%s\"bar\"", commandtbl_encoded("ERROR"));
+    EXPECT_STREQ(expected, argv[2]);
+}
+
+TEST_F(MmBasicCoreTest, MakeArgs_GivenFunctionWithParameters_Succeeds) {
+    TokeniseAndAppend("If Peek(Var f_$, i%) = 92 Then Poke Var f_$, i%, 47");
+    PrepareProgram(true);
+    const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
+    char argbuf[STRINGSIZE];
+    char *argv[10];
+    int argc;
+    const DelimType delim[] = { tokenTHEN, tokenELSE, 0 };
+
+    makeargs(&p, 10, argbuf, argv, &argc, delim);
+
+    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(3, argc);
+    char expected[STRINGSIZE];
+    sprintf(expected, "%sVar f_$, i%%) %s 92", tokentbl_encoded("PEEK("), tokentbl_encoded("="));
+    EXPECT_STREQ(expected, argv[0]);
+    sprintf(expected, "%s", tokentbl_encoded("THEN"));
+    EXPECT_STREQ(expected, argv[1]);
+    sprintf(expected, "%sVar f_$, i%%, 47", commandtbl_encoded("POKE"));
+    EXPECT_STREQ(expected, argv[2]);
 }

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -56,8 +56,8 @@ struct s_tokentbl {      // structure of the command and token tables.
     void (*fptr)(void);  // pointer to the function that will interpret that token
 };
 
-#define C_BASETOKEN            0x80  // the base of the token numbers
-#define INVALID_COMMAND_TOKEN  0xFFFF   
+#define C_BASETOKEN            ((CommandToken) 0x80)  // the base of the token numbers
+#define INVALID_COMMAND_TOKEN  ((CommandToken) 0xFFFF)
 
 /** Gets the type of a command. */
 #define commandtype(i)  ((i < commandtbl_size - 1) ? commandtbl[i].type : 0)
@@ -193,5 +193,17 @@ extern CommandToken cmdEND_FUNCTION;
 extern CommandToken cmdENDIF, cmdEND_IF, cmdEND_SELECT, cmdEND_SUB, cmdFOR, cmdFUN;
 extern CommandToken cmdIF, cmdIRET, cmdLET, cmdLOCAL, cmdLOOP, cmdNEXT, cmdPRINT;
 extern CommandToken cmdREM, cmdRUN, cmdSELECT_CASE, cmdSTATIC, cmdSUB, cmdWEND, cmdWHILE;
+
+#if defined(ENABLE_GTEST_EXTRAS)
+/**
+ * For unit-tests only
+ *
+ * Gets the encoded representation of a command token.
+ *
+ * @return  pointer to encoded representation.
+ *          The caller SHOULD NOT free this.
+ */
+const char *commandtbl_encoded(const char *name);
+#endif
 
 #endif

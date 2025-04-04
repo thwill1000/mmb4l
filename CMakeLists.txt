@@ -489,6 +489,8 @@ add_executable(
   src/third_party/upng.c
 )
 
+target_compile_definitions(test_fun_sprite PUBLIC ENABLE_GTEST_EXTRAS)
+
 target_include_directories(test_fun_sprite PUBLIC
   /usr/include/SDL2
 )
@@ -778,6 +780,8 @@ add_executable(
   src/core/vartbl.c
 )
 
+target_compile_definitions(test_program PUBLIC ENABLE_GTEST_EXTRAS)
+
 target_link_libraries(
   test_program
   gtest_main
@@ -935,6 +939,8 @@ add_executable(
   src/core/vartbl.c
   src/core/gtest/mmbasic_core_test.cxx
 )
+
+target_compile_definitions(test_mmbasic_core PUBLIC ENABLE_GTEST_EXTRAS)
 
 target_link_libraries(
   test_mmbasic_core

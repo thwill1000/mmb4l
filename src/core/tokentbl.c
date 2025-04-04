@@ -195,8 +195,14 @@ FunctionToken tokenADD, tokenSUBTRACT;
 FunctionToken tokenTHEN, tokenELSE, tokenGOTO, tokenEQUAL, tokenTO, tokenSTEP;
 FunctionToken tokenWHILE, tokenUNTIL, tokenGOSUB, tokenAS, tokenFOR;
 
+#define TOKENTBL_SIZE  sizeof(tokentbl) / sizeof(struct s_tokentbl)
+
+#if defined(ENABLE_GTEST_EXTRAS)
+static char ENCODED_FUNCTIONS[TOKENTBL_SIZE][4] = { 0 };
+#endif
+
 void tokentbl_init() {
-    tokentbl_size = sizeof(tokentbl) / sizeof(struct s_tokentbl);
+    tokentbl_size = TOKENTBL_SIZE;
 
     tokenADD   = tokentbl_get("+");
     tokenSUBTRACT = tokentbl_get("-");
@@ -211,6 +217,13 @@ void tokentbl_init() {
     tokenGOSUB = tokentbl_get("GoSub");
     tokenAS    = tokentbl_get("As");
     tokenFOR   = tokentbl_get("For");
+
+#if defined(ENABLE_GTEST_EXTRAS)
+    for (size_t i = 0; i < TOKENTBL_SIZE - 1; i++) {
+        char *buf = ENCODED_FUNCTIONS[i];
+        sprintf(buf, "%c", (char) (i + C_BASETOKEN));
+    }
+#endif
 }
 
 int tokentbl_get(const char *s) {
@@ -222,3 +235,9 @@ int tokentbl_get(const char *s) {
     ERROR_INTERNAL_FAULT;
     return 0;
 }
+
+#if defined(ENABLE_GTEST_EXTRAS)
+const char *tokentbl_encoded(const char *name) {
+    return ENCODED_FUNCTIONS[tokentbl_get(name) - C_BASETOKEN];
+}
+#endif

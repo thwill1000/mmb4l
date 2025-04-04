@@ -8,6 +8,10 @@
 #include <climits>
 #include <dirent.h>
 
+#if !defined(ENABLE_GTEST_EXTRAS)
+#define ENABLE_GTEST_EXTRAS
+#endif
+
 #include "test_config.h"
 
 extern "C" {
@@ -451,34 +455,15 @@ TEST_F(ProgramTest, GetIncFile_GivenRelativePath) {
 }
 
 TEST_F(ProgramTest, HardcodedTokenValuesAreCorrect) {
-    char buf[3] = "  ";
-    char *p = buf;
-    commandtbl_encode(&p, commandtbl_get("CSub"));
-    EXPECT_STREQ(CMD_CSUB, buf);
-    p = buf;
-    commandtbl_encode(&p, commandtbl_get("Data"));
-    EXPECT_STREQ(CMD_DATA, buf);
-    p = buf;
-    commandtbl_encode(&p, commandtbl_get("DefineFont"));
-    EXPECT_STREQ(CMD_DEFINEFONT, buf);
-    p = buf;
-    commandtbl_encode(&p, commandtbl_get("Dim"));
-    EXPECT_STREQ(CMD_DIM, buf);
-    p = buf;
-    commandtbl_encode(&p, commandtbl_get("End"));
-    EXPECT_STREQ(CMD_END, buf);
-    p = buf;
-    commandtbl_encode(&p, commandtbl_get("Let"));
-    EXPECT_STREQ(CMD_LET, buf);
-    p = buf;
-    commandtbl_encode(&p, commandtbl_get("MmDebug"));
-    EXPECT_STREQ(CMD_MMDEBUG, buf);
-    p = buf;
-    commandtbl_encode(&p, commandtbl_get("Print"));
-    EXPECT_STREQ(CMD_PRINT, buf);
-
-    sprintf(buf, "%c", (char) tokenEQUAL);
-    EXPECT_STREQ(OP_EQUALS, buf);
+    EXPECT_STREQ(CMD_CSUB, commandtbl_encoded("CSub"));
+    EXPECT_STREQ(CMD_DATA, commandtbl_encoded("Data"));
+    EXPECT_STREQ(CMD_DEFINEFONT, commandtbl_encoded("DefineFont"));
+    EXPECT_STREQ(CMD_DIM, commandtbl_encoded("Dim"));
+    EXPECT_STREQ(CMD_END, commandtbl_encoded("End"));
+    EXPECT_STREQ(CMD_LET, commandtbl_encoded("Let"));
+    EXPECT_STREQ(CMD_MMDEBUG, commandtbl_encoded("MmDebug"));
+    EXPECT_STREQ(CMD_PRINT, commandtbl_encoded("Print"));
+    EXPECT_STREQ(OP_EQUALS, tokentbl_encoded("="));
 }
 
 TEST_F(ProgramTest, LoadFile_GivenFileNotFound) {
