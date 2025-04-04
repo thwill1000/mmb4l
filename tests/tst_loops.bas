@@ -27,6 +27,13 @@ add_test("test_do_while_loop_while")
 add_test("test_do_while_wend")
 add_test("test_while_loop")
 add_test("test_while_wend")
+add_test("test_for")
+add_test("test_for_given_at_limit")
+add_test("test_for_given_beyond_limit")
+add_test("test_for_given_positive_step")
+add_test("test_for_given_negative_step")
+add_test("test_for_given_floats")
+add_test("test_for_given_errors")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -171,4 +178,105 @@ Sub test_while_wend()
   Wend
 
   assert_int_equals(10, i%)
+End Sub
+
+Sub test_for()
+  Local i%, j%
+  For i% = 1 To 10
+    Inc j%, 2
+  Next
+
+  assert_int_equals(11, i%)
+  assert_int_equals(20, j%)
+End Sub
+
+Sub test_for_given_at_limit()
+  Local i%, j%
+  For i% = 5 To 5
+    Inc j%, 2
+  Next
+
+  assert_int_equals(6, i%)
+  assert_int_equals(2, j%)
+End Sub
+
+Sub test_for_given_beyond_limit()
+  Local i%, j%
+  For i% = 6 To 5
+    Inc j%, 2
+  Next
+
+  assert_int_equals(6, i%)
+  assert_int_equals(0, j%)
+End Sub
+
+Sub test_for_given_positive_step()
+  Local i%, j%
+  For i% = 1 To 10 Step 2
+    Inc j%, 2
+  Next
+
+  assert_int_equals(11, i%)
+  assert_int_equals(10, j%)
+End Sub
+
+Sub test_for_given_negative_step()
+  Local i%, j%
+  For i% = 12 To 0 Step -3
+    Inc j%, 2
+  Next
+
+  assert_int_equals(-3, i%)
+  assert_int_equals(10, j%)
+End Sub
+
+Sub test_for_given_floats()
+  Local f!, j%
+  For f! = 3.14 To 4.14 Step 0.5
+    Inc j%, 2
+  Next
+
+  assert_float_equals(4.14, f!, 1e-8)
+  assert_int_equals(4, j%)
+End Sub
+
+Sub test_for_given_errors()
+  Local i%
+
+  On Error Ignore
+  For i% = 12
+  assert_raw_error("FOR with misplaced = or TO")
+  On Error Abort
+
+  On Error Ignore
+  For i% To 12
+  assert_raw_error("FOR with misplaced = or TO")
+  On Error Abort
+
+  On Error Ignore
+  For i% To 1 = 12
+  assert_raw_error("FOR with misplaced = or TO")
+  On Error Abort
+
+  On Error Ignore
+  For i% = 1 To 12 To 6
+  assert_raw_error("Syntax")
+  On Error Abort
+
+  Const ci% = 5
+  On Error Ignore
+  For ci% = 1 To 10
+  assert_raw_error("Cannot change a constant")
+  On Error Abort
+
+  Local s$
+  On Error Ignore
+  For s$ = "foo" To "bar"
+  assert_raw_error("Invalid variable")
+  On Error Abort
+
+  On Error Ignore
+  For i% = 1 To 10
+  assert_raw_error("No matching NEXT")
+  On Error Abort
 End Sub
