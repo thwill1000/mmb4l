@@ -97,6 +97,14 @@ protected:
     }
 
     void TearDown() override {
+        // Some of these tests set the type to kGraphicsSprite naively rather than properly
+        // showing the sprite, we need to reverse this or destroying the sprites will hit an
+        // assertion.
+        for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+            MmSurface *surface = &graphics_surfaces[id];
+            if (surface->type == kGraphicsSprite) surface->type = kGraphicsInactiveSprite;
+        }
+        graphics_term();
     }
 
     void ClearProgMemory() {
