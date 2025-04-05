@@ -293,29 +293,6 @@ void fun_val(void) {
 
 
 
-void fun_eval(void) {
-    char *s, *st;
-    char *temp_tknbuf = GetTempMemory(TKNBUF_SIZE);
-    strcpy(temp_tknbuf, tknbuf);                                    // first save the current token buffer in case we are in immediate mode
-    // we have to fool the tokeniser into thinking that it is processing a program line entered at the console
-    st = GetTempStrMemory();
-    strcpy(st, getstring(ep));                                      // then copy the argument
-    MtoC(st);                                                       // and convert to a C string
-    inpbuf[0] = 'r'; inpbuf[1] = '=';                               // place a dummy assignment in the input buffer to keep the tokeniser happy
-    strcpy(inpbuf + 2, st);
-    tokenise(true);                                                 // and tokenise it (the result is in tknbuf)
-    strcpy(st, tknbuf + 2 + sizeof(CommandToken));
-    targ = T_NOTYPE;
-    evaluate(st, &fret, &iret, &s, &targ, false);                   // get the value and type of the argument
-    if(targ & T_STR) {
-        Mstrcpy(st, s);                                             // if it is a string then save it
-        sret = st;
-    }
-    strcpy(tknbuf, temp_tknbuf);                                    // restore the saved token buffer
-}
-
-
-
 void fun_errno(void) {
     iret = MMerrno;
     targ = T_INT;

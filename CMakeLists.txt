@@ -171,6 +171,7 @@ set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_dir.c
     src/functions/fun_eof.c
     src/functions/fun_epoch.c
+    src/functions/fun_eval.c
     src/functions/fun_format.c
     src/functions/fun_field.c
     src/functions/fun_gamepad.c
