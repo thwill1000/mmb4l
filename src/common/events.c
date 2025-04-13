@@ -131,7 +131,8 @@ void events_pump() {
                         break;
                     }
 
-                    case SDL_WINDOWEVENT_EXPOSED: {
+                    case SDL_WINDOWEVENT_EXPOSED:
+                    case SDL_WINDOWEVENT_SHOWN: {
                         MmSurfaceId window_id = graphics_find_window(event.window.windowID);
                         if (window_id == -1) ON_FAILURE_ERROR(kInternalFault);
                         graphics_surfaces[window_id].dirty = true;
