@@ -52,6 +52,7 @@ void cmd_gui() { }
 void cmd_if() { }
 void cmd_image() { }
 void cmd_inc() { }
+void cmd_in() { }
 void cmd_input() { }
 void cmd_ireturn() { }
 void cmd_kill() { }
@@ -74,6 +75,7 @@ void cmd_null() { }
 void cmd_on() { }
 void cmd_open() { }
 void cmd_option() { }
+void cmd_out() { }
 void cmd_page() { }
 void cmd_pause() { }
 void cmd_pin() { }

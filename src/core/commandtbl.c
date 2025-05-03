@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -122,6 +122,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Gui",         T_CMD,              0, cmd_gui      },
     { "If",          T_CMD,              0, cmd_if       },
     { "Image",       T_CMD,              0, cmd_image    },
+    { "In",          T_CMD,              0, cmd_in       },
     { "Inc",         T_CMD,              0, cmd_inc      },
     { "Input",       T_CMD,              0, cmd_input    },
     { "IReturn",     T_CMD,              0, cmd_ireturn  },
@@ -144,8 +145,9 @@ const struct s_tokentbl commandtbl[] = {
     { "Next",        T_CMD,              0, cmd_next     },
     { "On",          T_CMD,              0, cmd_on       },
     { "Open",        T_CMD,              0, cmd_open     },
-    { "Option",      T_CMD,              0, cmd_option   },
+    { "Out",         T_CMD,              0, cmd_out      },
     { "Page",        T_CMD,              0, cmd_page     },
+    { "Option",      T_CMD,              0, cmd_option   },
     { "Pause",       T_CMD,              0, cmd_pause    },
     { "Play",        T_CMD,              0, cmd_play     },
     { "Pin(",        T_CMD | T_FUN,      0, cmd_pin      },

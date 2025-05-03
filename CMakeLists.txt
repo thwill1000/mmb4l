@@ -93,6 +93,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_gui.c
     src/commands/cmd_if.c
     src/commands/cmd_image.c
+    src/commands/cmd_in.c
     src/commands/cmd_inc.c
     src/commands/cmd_input.c
     src/commands/cmd_ireturn.c
@@ -115,6 +116,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_on.c
     src/commands/cmd_open.c
     src/commands/cmd_option.c
+    src/commands/cmd_out.c
     src/commands/cmd_page.c
     src/commands/cmd_pause.c
     src/commands/cmd_pin.c
