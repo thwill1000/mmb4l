@@ -1599,6 +1599,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
         kSimulateMmb4w,
         kSimulateCmm2,
         kSimulateGamemite,
+        kSimulatePicocalc,
         kSimulatePicomiteVga,
         kSimulatePicomiteVgaUsb,
     };
@@ -1726,6 +1727,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenFlag_AllowsZeroValue) {
         kSimulateMmb4w,
         kSimulateCmm2,
         kSimulateGamemite,
+        kSimulatePicocalc,
         kSimulatePicomiteVga,
         kSimulatePicomiteVgaUsb,
     };

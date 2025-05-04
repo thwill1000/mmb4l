@@ -126,6 +126,7 @@ static const NameOrdinalPair options_simulate_map[] = {
     { "MMB4W",             kSimulateMmb4w },
     { "Colour Maximite 2", kSimulateCmm2 },
     { "CMM2",              kSimulateCmm2 },
+    { "PicoCalc",          kSimulatePicocalc },
     { "PicoMiteVGA",       kSimulatePicomiteVga },
     { "PicoMiteVGAUSB",    kSimulatePicomiteVgaUsb },
     { "Game*Mite",         kSimulateGamemite },
