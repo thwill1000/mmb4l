@@ -11,6 +11,7 @@ extern "C" {
 #include <SDL.h>
 
 #include "../error.h"
+#include "../features.h"
 #include "../graphics.h"
 #include "../../third_party/spbmp.h"
 
@@ -18,6 +19,7 @@ extern "C" {
 char *CFunctionFlash;
 char *CFunctionLibrary;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
+Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 uint8_t mmb_exit_code = 0;
@@ -113,7 +115,7 @@ class GraphicsTest : public ::testing::Test {
    protected:
     void SetUp() override {
         graphics_init();
-        mmb_options.simulate = kSimulateMmb4l;
+        OPTIONS_SET_SIMULATE(kSimulateMmb4l);
 
         const MmSurfaceId srcId = 1;
         EXPECT_EQ(kOk, graphics_buffer_create(srcId, 7, 9));
@@ -876,29 +878,29 @@ TEST_F(GraphicsTest, GetDefaultWindowTitle_GivenNoCurrentFile) {
     char title[STRINGSIZE];
     CurrentFile[0] = '\0';
 
-    mmb_options.simulate = kSimulateMmb4l;
+    OPTIONS_SET_SIMULATE(kSimulateMmb4l);
     graphics_mode = 2;
     EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
     EXPECT_STREQ("MMBasic - Window 0", title);
     EXPECT_EQ(kOk, graphics_get_default_window_title(1, title, STRINGSIZE));
     EXPECT_STREQ("MMBasic - Window 1", title);
 
-    mmb_options.simulate = kSimulateCmm2;
+    OPTIONS_SET_SIMULATE(kSimulateCmm2);
     graphics_mode = 2;
     EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
     EXPECT_STREQ("Colour Maximite 2 - Mode 2", title);
 
-    mmb_options.simulate = kSimulateMmb4w;
+    OPTIONS_SET_SIMULATE(kSimulateMmb4w);
     graphics_mode = 2;
     EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
     EXPECT_STREQ("MMBasic for Windows - Mode 2", title);
 
-    mmb_options.simulate = kSimulateGameMite;
+    OPTIONS_SET_SIMULATE(kSimulateGamemite);
     graphics_mode = 2;
     EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
     EXPECT_STREQ("Game*Mite", title);
 
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     graphics_mode = 2;
     EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
     EXPECT_STREQ("PicoMiteVGA - Mode 2", title);
@@ -908,29 +910,29 @@ TEST_F(GraphicsTest, GetDefaultWindowTitle_GivenCurrentFile) {
     char title[STRINGSIZE];
     snprintf(CurrentFile, STRINGSIZE, "foo/bar");
 
-    mmb_options.simulate = kSimulateMmb4l;
+    OPTIONS_SET_SIMULATE(kSimulateMmb4l);
     graphics_mode = 2;
     EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
     EXPECT_STREQ("MMBasic - Window 0: foo/bar", title);
     EXPECT_EQ(kOk, graphics_get_default_window_title(1, title, STRINGSIZE));
     EXPECT_STREQ("MMBasic - Window 1: foo/bar", title);
 
-    mmb_options.simulate = kSimulateCmm2;
+    OPTIONS_SET_SIMULATE(kSimulateCmm2);
     graphics_mode = 2;
     EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
     EXPECT_STREQ("Colour Maximite 2 - Mode 2: foo/bar", title);
 
-    mmb_options.simulate = kSimulateMmb4w;
+    OPTIONS_SET_SIMULATE(kSimulateMmb4w);
     graphics_mode = 2;
     EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
     EXPECT_STREQ("MMBasic for Windows - Mode 2: foo/bar", title);
 
-    mmb_options.simulate = kSimulateGameMite;
+    OPTIONS_SET_SIMULATE(kSimulateGamemite);
     graphics_mode = 2;
     EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
     EXPECT_STREQ("Game*Mite: foo/bar", title);
 
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     graphics_mode = 2;
     EXPECT_EQ(kOk, graphics_get_default_window_title(0, title, STRINGSIZE));
     EXPECT_STREQ("PicoMiteVGA - Mode 2: foo/bar", title);
@@ -953,7 +955,7 @@ TEST_F(GraphicsTest, GetDefaultWindowTitle_GivenCurrentFile) {
     }
 
 TEST_F(GraphicsTest, TypeAsString_GivenNotSimulatingOther) {
-    mmb_options.simulate = kSimulateMmb4l;
+    OPTIONS_SET_SIMULATE(kSimulateMmb4l);
 
     // Initialise all the surfaces as (tiny) buffers.
     EXPECT_EQ(kOk, graphics_surface_destroy_all());
@@ -971,7 +973,7 @@ TEST_F(GraphicsTest, TypeAsString_GivenNotSimulatingOther) {
 }
 
 TEST_F(GraphicsTest, TypeAsString_GivenSimulatingCmm2) {
-    mmb_options.simulate = kSimulateCmm2;
+    OPTIONS_SET_SIMULATE(kSimulateCmm2);
 
     // Initialise all the surfaces as (tiny) buffers.
     EXPECT_EQ(kOk, graphics_surface_destroy_all());
@@ -1013,7 +1015,7 @@ TEST_F(GraphicsTest, TypeAsString_GivenSimulatingCmm2) {
 }
 
 TEST_F(GraphicsTest, TypeAsString_GivenSimulatingMmb4w) {
-    mmb_options.simulate = kSimulateMmb4w;
+    OPTIONS_SET_SIMULATE(kSimulateMmb4w);
 
     // Initialise all the surfaces as (tiny) buffers.
     EXPECT_EQ(kOk, graphics_surface_destroy_all());
@@ -1054,8 +1056,8 @@ TEST_F(GraphicsTest, TypeAsString_GivenSimulatingMmb4w) {
     EXPECT_SURFACE_TYPE(192, kGraphicsSprite, "Sprite (Active)");
 }
 
-TEST_F(GraphicsTest, TypeAsString_GivenSimulatingGameMite) {
-    mmb_options.simulate = kSimulateGameMite;
+TEST_F(GraphicsTest, TypeAsString_GivenSimulatingGamemite) {
+    OPTIONS_SET_SIMULATE(kSimulateGamemite);
 
     // Initialise all the surfaces as (tiny) buffers.
     EXPECT_EQ(kOk, graphics_surface_destroy_all());
@@ -1104,8 +1106,8 @@ TEST_F(GraphicsTest, TypeAsString_GivenSimulatingGameMite) {
     EXPECT_SURFACE_TYPE(192, kGraphicsSprite, "Sprite (Active)");
 }
 
-TEST_F(GraphicsTest, TypeAsString_GivenSimulatingPicoMiteVga) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+TEST_F(GraphicsTest, TypeAsString_GivenSimulatingPicomiteVga) {
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
 
     // Initialise all the surfaces as (tiny) buffers.
     EXPECT_EQ(kOk, graphics_surface_destroy_all());

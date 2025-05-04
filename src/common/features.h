@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-fun_keydown.c
+features.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,32 +42,58 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/console.h"
-#include "../common/keyboard.h"
-#include "../common/mmb4l.h"
+#if !defined(MMB4L_FEATURES_H)
+#define MMB4L_FEATURES_H
 
-/** KEYDOWN(n) */
-void fun_keydown(void) {
-    if (!mmb_features.has_fun_keydown) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+#include <stdbool.h>
 
-    int n = getint(ep, 0, 8);
+#include "mmresult.h"
+#include "options.h"
 
-    // Clear anything in the input buffer.
-    while (console_getc() != -1);
+typedef enum {
+    kGraphicsTypeCmm2,
+    kGraphicsTypeMmb4l,
+    kGraphicsTypePicomiteLcd,
+    kGraphicsTypePicomiteVga
+} FeaturesGraphicsType;
 
-    switch (n) {
-        case 0:
-          iret = keyboard_num_keys();
-          break;
-        case 7:
-          iret = keyboard_get_modifiers();
-          break;
-        case 8:
-          iret = keyboard_get_locks();
-          break;
-        default:
-          iret = keyboard_get_key(n - 1);
-          break;
-    }
-    targ = T_INT;
-}
+typedef enum {
+    kGamepadTypeCmm2,
+    kGamepadTypeGamemite,
+    kGamepadTypeMmb4l,
+    kGamepadTypeMmb4w,
+    kGamepadTypeNone,
+    kGamepadTypePicomiteSnes,
+    kGamepadTypePicomiteUsb
+} FeaturesGamepadType;
+
+typedef enum {
+    kPlayModfileTypeWithBoth,
+    kPlayModfileTypeWithInterrupt,
+    kPlayModfileTypeWithSampleRate,
+} FeaturesPlayModfileParams;
+
+typedef struct {
+    const char *device;
+    const char *platform;
+    FeaturesGraphicsType graphics_type;
+    FeaturesGamepadType gamepad_type;
+    FeaturesPlayModfileParams play_modfile_params;
+    bool has_cmd_flash;                      // Supports FLASH
+    bool has_cmd_framebuffer;                // Supports FRAMEBUFFER and BLIT FRAMEBUFFER
+    bool has_cmd_mode;                       // Supports MODE
+    bool has_cmd_page;                       // Supports PAGE
+    bool has_fun_keydown;                    // Supports KEYDOWN()
+    bool has_mminfo_drive;                   // Supports MM.INFO(DRIVE)
+    bool has_mminfo_cpuspeed;                // Supports MM.INFO(CPUSPEED)
+    bool has_mminfo_pin;                     // Supports MM.INFO(PIN)
+    bool has_mminfo_ps2;                     // Supports MM.INFO(PS2)
+    bool has_mminfo_usb;                     // Supports MM.INFO(USB)
+    int hres;
+    int vres;
+} Features;
+
+MmResult features_init(Features *features, OptionsSimulate optionSimulate);
+
+#endif // #if !defined(MMB4L_FEATURES_H)
+

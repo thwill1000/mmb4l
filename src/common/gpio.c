@@ -187,7 +187,7 @@ static MmResult gpio_configure_snes_latch(MmGamepadId id, uint8_t pin_num, GpioP
     return result;
 }
 
-static MmResult gpio_configure_pin_picomite_vga(uint8_t pin_num, GpioPinConfig config) {
+static MmResult gpio_configure_pin_picomite_snes(uint8_t pin_num, GpioPinConfig config) {
     switch (pin_num) {
         case GPIO_SNES_A_LATCH:
             return gpio_configure_snes_latch(1, GPIO_SNES_A_LATCH, config);
@@ -213,12 +213,12 @@ MmResult gpio_configure_pin(uint8_t pin_num, GpioPinConfig config) {
 
     MmResult result = kOk;
 
-    switch (mmb_options.simulate) {
-        case kSimulateGameMite:
+    switch (mmb_features.gamepad_type) {
+        case kGamepadTypeGamemite:
             result = gpio_configure_pin_gamemite(pin_num, config);
             break;
-        case kSimulatePicoMiteVga:
-            result = gpio_configure_pin_picomite_vga(pin_num, config);
+        case kGamepadTypePicomiteSnes:
+            result = gpio_configure_pin_picomite_snes(pin_num, config);
             break;
         default:
             break;
@@ -258,7 +258,7 @@ MmResult gpio_get_pin_value(uint8_t pin_num, uint8_t *value) {
     if (!gpio_is_valid_pin_num(pin_num)) return kGpioInvalidPin;
 
     MmResult result = kOk;
-    if (mmb_options.simulate == kSimulateGameMite) {
+    if (mmb_features.gamepad_type == kGamepadTypeGamemite) {
         GamepadButton button = 0x0;
         switch (pin_num) {
             case GPIO_GP8:
@@ -326,7 +326,7 @@ static MmResult gpio_on_pin_high_to_low(uint8_t pin_num) { return kOk; }
 
 /** Called BEFORE a pin transitions from low to high. */
 static MmResult gpio_on_pin_low_to_high(uint8_t pin_num) {
-    if (mmb_options.simulate == kSimulatePicoMiteVga) {
+    if (mmb_features.gamepad_type == kGamepadTypePicomiteSnes) {
         switch (pin_num) {
             case GPIO_SNES_A_LATCH: {
                 gpio_read_snes_bits(1, &gpio_snes_a);

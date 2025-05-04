@@ -126,9 +126,10 @@ static const NameOrdinalPair options_simulate_map[] = {
     { "MMB4W",             kSimulateMmb4w },
     { "Colour Maximite 2", kSimulateCmm2 },
     { "CMM2",              kSimulateCmm2 },
-    { "PicoMiteVGA",       kSimulatePicoMiteVga },
-    { "PicoMiteVGAUSB",    kSimulatePicoMiteVgaUsb },
-    { "Game*Mite",         kSimulateGameMite },
+    { "PicoCalc",          kSimulatePicocalc },
+    { "PicoMiteVGA",       kSimulatePicomiteVga },
+    { "PicoMiteVGAUSB",    kSimulatePicomiteVgaUsb },
+    { "Game*Mite",         kSimulateGamemite },
     { NULL,    -1 }
 };
 
@@ -754,7 +755,8 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
             break;
 
         case kOptionSimulate:
-            assert(options->simulate >= kSimulateMmb4l && options->simulate <= kSimulateGameMite);
+            assert(options->simulate >= kSimulateMmb4l &&
+                   options->simulate <= kSimulatePicomiteVgaUsb);
             options_ordinal_to_name(
                     options_definitions[kOptionSimulate].enum_map,
                     options->simulate,

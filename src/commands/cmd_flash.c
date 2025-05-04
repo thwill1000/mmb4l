@@ -76,11 +76,8 @@ MmResult cmd_flash_disk_load(const char *p) {
     }
 
 void cmd_flash(void) {
-    if (mmb_options.simulate != kSimulateGameMite
-            && mmb_options.simulate != kSimulatePicoMiteVga
-            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    }
+    if (!mmb_features.has_cmd_flash) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     MmResult result = kOk;
     const char *p;
 

@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/utility.h"
 
-MmResult cmd_device_gamepad_pmvga_usb(const char *p);
+MmResult cmd_device_gamepad_picomite_usb(const char *p);
 
 /** GAMEPAD OFF */
 static MmResult cmd_gamepad_off(const char *p) {
@@ -82,11 +82,17 @@ static MmResult cmd_gamepad_vibrate(const char *p) {
 }
 
 void cmd_gamepad(void) {
-    if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
-        ON_FAILURE_ERROR(cmd_device_gamepad_pmvga_usb(cmdline));
+    switch (mmb_features.gamepad_type) {
+        case kGamepadTypePicomiteUsb:
+            ON_FAILURE_ERROR(cmd_device_gamepad_picomite_usb(cmdline));
+            return;
+        case kGamepadTypeMmb4w:
+            break;
+        default:
+            ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+            break;
     }
 
-    if (mmb_options.simulate != kSimulateMmb4w) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     MmResult result = kOk;
     const char *p;
     if ((p = checkstring(cmdline, "ON"))) {

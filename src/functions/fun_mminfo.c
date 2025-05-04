@@ -88,11 +88,7 @@ static void mminfo_cmdline(const char *p) {
 
 static void mminfo_cpuspeed(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    if (mmb_options.simulate != kSimulateGameMite
-            && mmb_options.simulate != kSimulatePicoMiteVga
-            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    }
+    if (!mmb_features.has_mminfo_cpuspeed) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     g_rtn_type = T_STR;
     strcpy(g_string_rtn, "378000000");
     CtoM(g_string_rtn);
@@ -113,12 +109,7 @@ static void mminfo_current(const char *p) {
 }
 
 MmResult get_mmdevice(char *device) {
-    if (mmb_options.simulate == kSimulateGameMite) {
-        strcpy(device, "PicoMite");
-    } else {
-        MmResult result = options_get_string_value(&mmb_options, kOptionSimulate, device);
-        if (FAILED(result)) return kUnknownDevice;
-    }
+    strcpy(device, mmb_features.device);
     return kOk;
 }
 
@@ -145,11 +136,7 @@ static void mminfo_device(const char *p) {
 
 static void mminfo_drive(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    if (mmb_options.simulate != kSimulateGameMite
-            && mmb_options.simulate != kSimulatePicoMiteVga
-            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    }
+    if (!mmb_features.has_mminfo_drive) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     g_rtn_type = T_STR;
     strcpy(g_string_rtn, "A:");
     CtoM(g_string_rtn);
@@ -276,11 +263,7 @@ static void mminfo_filesize(const char *p) {
 }
 
 static void mminfo_flash_address(const char *p) {
-    if (mmb_options.simulate != kSimulateGameMite
-            && mmb_options.simulate != kSimulatePicoMiteVga
-            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    }
+    if (!mmb_features.has_cmd_flash) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     const int flash_index = getint(argv[0], 1, FLASH_NUM_SLOTS) - 1;
@@ -414,11 +397,7 @@ static void mminfo_pid(const char *p) {
 }
 
 static void mminfo_pin_no(const char *p) {
-    if (mmb_options.simulate != kSimulateGameMite
-            && mmb_options.simulate != kSimulatePicoMiteVga
-            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    }
+    if (!mmb_features.has_mminfo_pin) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
 
     getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
@@ -459,19 +438,13 @@ static void mminfo_platform(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_string_rtn = GetTempStrMemory();
     g_rtn_type = T_STR;
-    if (mmb_options.simulate == kSimulateGameMite) {
-        strcpy(g_string_rtn, "Game*Mite");
-    } else {
-        strcpy(g_string_rtn, "");
-    }
+    strcpy(g_string_rtn, mmb_features.platform);
     CtoM(g_string_rtn);
 }
 
 static void mminfo_ps2(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    if (mmb_options.simulate == kSimulateCmm2 || mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    }
+    if (!mmb_features.has_mminfo_ps2) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     g_rtn_type = T_INT;
     g_integer_rtn = keyboard_get_last_ps2_scancode();
 }
@@ -484,9 +457,7 @@ static void mminfo_sdcard(const char *p) {
 }
 
 static void mminfo_usb(const char *p) {
-    if (mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    }
+    if (!mmb_features.has_mminfo_usb) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
 
     getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;

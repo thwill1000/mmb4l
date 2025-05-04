@@ -58,6 +58,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Maximum length of string that can be assigned to a programmable function key. */
 #define OPTIONS_MAX_FN_KEY_LEN  64
 
+/** Helper macro to conveniently set the global simulate option and update the features. */
+#define OPTIONS_SET_SIMULATE(s) \
+    mmb_options.simulate = s; \
+    (void) features_init(&mmb_features, s);
+
 typedef enum {
     kOptionAngle = 0,
     kOptionAudio,
@@ -129,9 +134,10 @@ typedef enum {
     kSimulateMmb4l,
     kSimulateMmb4w,
     kSimulateCmm2,
-    kSimulatePicoMiteVga,
-    kSimulatePicoMiteVgaUsb,
-    kSimulateGameMite
+    kSimulateGamemite,
+    kSimulatePicocalc,
+    kSimulatePicomiteVga,
+    kSimulatePicomiteVgaUsb,
 } OptionsSimulate;
 
 typedef enum { kTitle, kLower, kUpper } OptionsListCase;

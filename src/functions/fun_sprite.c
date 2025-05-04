@@ -149,7 +149,7 @@ static MmResult fun_sprite_collision(int argc, char **argv) {
                     iret = 0;
                 } else if (id & 0xFF00) {
                     // Edge collision.
-                    if (mmb_options.simulate == kSimulateMmb4l) {
+                    if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
                         iret = (MMINTEGER) id;
                     } else {
                         iret = (MMINTEGER) (id & 0xFF);

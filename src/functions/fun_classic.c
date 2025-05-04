@@ -48,9 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** CLASSIC({B|LX|LY|RX|RY|L|R|T} [, i2c]) */
 void fun_classic(void) {
-    if (mmb_options.simulate != kSimulateCmm2) {
-        error_throw(kUnsupportedOnCurrentDevice);
-        return;
+    if (!mmb_features.gamepad_type == kGamepadTypeCmm2) {
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
     getargs(&ep, 3, DELIM_COMMA);

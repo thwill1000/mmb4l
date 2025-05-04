@@ -65,8 +65,7 @@ static MmResult cmd_cls_default(const char *p) {
         return kOk;
     }
 
-    const MmSurface *layer = (mmb_options.simulate == kSimulatePicoMiteVga
-        || mmb_options.simulate == kSimulatePicoMiteVgaUsb)
+    const MmSurface *layer = mmb_features.graphics_type == kGraphicsTypePicomiteVga
             ? &graphics_surfaces[GRAPHICS_SURFACE_L]
             : NULL;
     const MmGraphicsColour colour = has_arg(0)

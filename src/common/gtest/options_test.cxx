@@ -1140,11 +1140,15 @@ TEST_F(OptionsTest, GetStringValue_ForSimulate) {
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
     EXPECT_STREQ("Colour Maximite 2", svalue);
 
-    options.simulate = kSimulatePicoMiteVga;
+    options.simulate = kSimulatePicocalc;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
+    EXPECT_STREQ("PicoCalc", svalue);
+
+    options.simulate = kSimulatePicomiteVga;
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
     EXPECT_STREQ("PicoMiteVGA", svalue);
 
-    options.simulate = kSimulateGameMite;
+    options.simulate = kSimulateGamemite;
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSimulate, svalue));
     EXPECT_STREQ("Game*Mite", svalue);
 }
@@ -1655,11 +1659,14 @@ TEST_F(OptionsTest, SetStringValue_ForSimulate) {
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "CMM2"));
     EXPECT_EQ(kSimulateCmm2, options.simulate);
 
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "PicoCalc"));
+    EXPECT_EQ(kSimulatePicocalc, options.simulate);
+
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "PicoMiteVGA"));
-    EXPECT_EQ(kSimulatePicoMiteVga, options.simulate);
+    EXPECT_EQ(kSimulatePicomiteVga, options.simulate);
 
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "Game*Mite"));
-    EXPECT_EQ(kSimulateGameMite, options.simulate);
+    EXPECT_EQ(kSimulateGamemite, options.simulate);
 
     // Test case-insensitivity.
     EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSimulate, "COLOUR maximite 2"));

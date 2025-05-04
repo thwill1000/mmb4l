@@ -70,10 +70,10 @@ static MmResult cmd_blit_close_all(const char *p) {
     skipspace(p);
     if (!parse_is_end(p)) return kUnexpectedText;
     MmResult result = kOk;
-    const MmSurfaceId start_id = (mmb_options.simulate == kSimulateMmb4l)
+    const MmSurfaceId start_id = (mmb_features.graphics_type == kGraphicsTypeMmb4l)
             ? 0
             : CMM2_BLIT_BASE + 1; // 64
-    const MmSurfaceId end_id = (mmb_options.simulate == kSimulateMmb4l)
+    const MmSurfaceId end_id = (mmb_features.graphics_type == kGraphicsTypeMmb4l)
             ? GRAPHICS_MAX_ID
             : CMM2_BLIT_BASE + CMM2_BLIT_COUNT; // 127
     for (MmSurfaceId surface_id = start_id; surface_id <= end_id; ++surface_id) {
@@ -105,11 +105,7 @@ MmResult cmd_blit_compressed(const char *p) {
 
 /** BLIT FRAMEBUFFER from, to, x1, y1, x2, y2, w, h [, transparent] */
 MmResult cmd_blit_framebuffer(const char *p) {
-    if (mmb_options.simulate != kSimulateGameMite
-            && mmb_options.simulate != kSimulatePicoMiteVga
-            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
-        return kUnsupportedOnCurrentDevice;
-    }
+    if (!mmb_features.has_cmd_framebuffer) return kUnsupportedOnCurrentDevice;
 
     getargs(&p, 17, DELIM_COMMA);
     if (argc < 15) return kArgumentCount;
@@ -171,9 +167,8 @@ MmResult cmd_blit_read(const char *p, bool sprite) {
     if (argc != 9 && argc != 11) return kArgumentCount;
 
     if (has_arg(10) && (
-               mmb_options.simulate == kSimulateGameMite
-            || mmb_options.simulate == kSimulatePicoMiteVga
-            || mmb_options.simulate == kSimulatePicoMiteVgaUsb)) {
+               mmb_features.graphics_type == kGraphicsTypePicomiteLcd
+            || mmb_features.graphics_type == kGraphicsTypePicomiteVga)) {
         return kUnsupportedParameterOnCurrentDevice;
     }
 
@@ -292,9 +287,8 @@ static MmResult cmd_blit_default(const char *p) {
     const int height = getinteger(argv[10]);
     MmSurface *src_surface = graphics_current;
     if (argc >= 13) {
-        if (mmb_options.simulate == kSimulateGameMite
-                || mmb_options.simulate == kSimulatePicoMiteVga
-                || mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+        if (mmb_features.graphics_type == kGraphicsTypePicomiteLcd
+                || mmb_features.graphics_type == kGraphicsTypePicomiteVga) {
             return kUnsupportedParameterOnCurrentDevice;
         }
         MmSurfaceId src_id = -1;

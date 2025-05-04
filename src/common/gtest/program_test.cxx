@@ -18,6 +18,7 @@ extern "C" {
 
 #include "test_helper.h"
 #include "stubs/error_stubs.h"
+#include "../features.h"
 #include "../graphics.h"
 #include "../memory.h"
 #include "../options.h"
@@ -36,6 +37,7 @@ char *CFunctionFlash;
 char *CFunctionLibrary;
 char **FontTable;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
+Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 uint8_t mmb_exit_code = 0;
