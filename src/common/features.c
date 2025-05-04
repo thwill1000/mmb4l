@@ -93,6 +93,21 @@ static Features features_mmb4w = {
     .has_fun_keydown = true
 };
 
+static Features features_picocalc = {
+    .device = "PicoMite",
+    .platform = "PicoCalc",
+    .gamepad_type = kGamepadTypeNone,
+    .graphics_type = kGraphicsTypePicomiteLcd,
+    .play_modfile_params = kPlayModfileTypeWithInterrupt,
+    .has_cmd_flash = true,
+    .has_cmd_framebuffer = true,
+    .has_mminfo_cpuspeed = true,
+    .has_mminfo_drive = true,
+    .has_mminfo_pin = true,
+    .hres = 320,
+    .vres = 320
+};
+
 static Features features_picomite_vga = {
     .device = "PicoMiteVGA",
     .platform = "",
@@ -139,6 +154,9 @@ MmResult features_init(Features *features, OptionsSimulate simulate) {
             break;
         case kSimulateGamemite:
             new_features = &features_gamemite;
+            break;
+        case kSimulatePicocalc:
+            new_features = &features_picocalc;
             break;
         case kSimulatePicomiteVga:
             new_features = &features_picomite_vga;
