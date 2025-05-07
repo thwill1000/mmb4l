@@ -342,43 +342,62 @@ static MmResult graphics_refresh_picomite_vga_window() {
     return result;
 }
 
+#define COUNTER_MAX  20
+
 void graphics_refresh_windows() {
+    static uint32_t counter = 0;
+
     // if (SDL_GetTicks64() > frameEnd) {
     if (SDL_GetTicks() > frameEnd) {
-        switch (mmb_features.graphics_type) {
-            case kGraphicsTypeCmm2:
-                ON_FAILURE_ERROR(graphics_refresh_cmm2_window());
-                break;
-            case kGraphicsTypePicomiteLcd:
-                ON_FAILURE_ERROR(graphics_refresh_picomite_lcd_window());
-                break;
-            case kGraphicsTypePicomiteVga:
-                ON_FAILURE_ERROR(graphics_refresh_picomite_vga_window());
-                break;
-            default:
-                break;
-        }
 
         // TODO: Optimise by using linked-list of windows.
-        for (int id = 0; id <= GRAPHICS_MAX_ID; ++id) {
+        for (uint32_t id = 0;
+                id <= GRAPHICS_MAX_ID && graphics_surfaces[id].type == kGraphicsWindow;
+                ++id) {
             MmSurface* s = &graphics_surfaces[id];
-            if (s->type == kGraphicsWindow && s->dirty) {
-                SDL_UpdateTexture((SDL_Texture *) s->texture, NULL, s->pixels, s->width * 4);
-                SDL_RenderCopy((SDL_Renderer *) s->renderer, (SDL_Texture *) s->texture, NULL,
-                               NULL);
+            const SDL_WindowFlags flags = SDL_GetWindowFlags(s->window);
 
-                // Window must be shown before calling SDL_RenderPresent().
-                if (SDL_GetWindowFlags(s->window) & SDL_WINDOW_HIDDEN) {
-                    SDL_ShowWindow(s->window);
-                    SDL_RaiseWindow(s->window);
+            // Refresh 'display' when simulating other 'Mites.
+            if (id == 0 && (counter == 0 || (flags & SDL_WINDOW_INPUT_FOCUS))) {
+                switch (mmb_features.graphics_type) {
+                    case kGraphicsTypeCmm2:
+                        ON_FAILURE_ERROR(graphics_refresh_cmm2_window());
+                        break;
+                    case kGraphicsTypePicomiteLcd:
+                        ON_FAILURE_ERROR(graphics_refresh_picomite_lcd_window());
+                        break;
+                    case kGraphicsTypePicomiteVga:
+                        ON_FAILURE_ERROR(graphics_refresh_picomite_vga_window());
+                        break;
+                    default:
+                        break;
                 }
-
-                SDL_RenderPresent((SDL_Renderer *) s->renderer);
-                s->dirty = false;
             }
+
+            if (!s->dirty) continue;
+
+            // If the window is hidden then show it, bring it to the front and give it input
+            // focus.
+            if (flags & SDL_WINDOW_HIDDEN) {
+                SDL_ShowWindow(s->window);
+                SDL_RaiseWindow(s->window);
+            }
+
+            // If a window does not have the input focus then only update it infrequently so as to
+            // try and keep the console responsive when the windows are not on top.
+            if (!((flags & SDL_WINDOW_INPUT_FOCUS) || counter == id % COUNTER_MAX)) continue;
+
+            SDL_UpdateTexture((SDL_Texture *) s->texture, NULL, s->pixels, s->width * 4);
+            SDL_RenderCopy((SDL_Renderer *) s->renderer, (SDL_Texture *) s->texture, NULL,
+                           NULL);
+            SDL_RenderPresent((SDL_Renderer *) s->renderer);
+
+            s->dirty = false;
         }
         // frameEnd = SDL_GetTicks64() + 15;
         frameEnd = SDL_GetTicks() + 15;
+        counter++;
+        counter %= COUNTER_MAX;
     }
 }
 
