@@ -283,6 +283,12 @@ static void mminfo_flash_address(const char *p) {
     ON_FAILURE_ERROR(flash_get_addr(flash_index, (char **) &g_integer_rtn));
 }
 
+static void mminfo_font(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_integer_rtn = graphics_font >> 4;
+    g_rtn_type = T_INT;
+}
+
 static void mminfo_fontheight(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_integer_rtn = font_height(graphics_font);
@@ -640,6 +646,8 @@ void fun_mminfo(void) {
         mminfo_filesize(p);
     } else if ((p = checkstring(ep, "FLASH ADDRESS"))) {
         mminfo_flash_address(p);
+    } else if ((p = checkstring(ep, "FONT"))) {
+        mminfo_font(p);
     } else if ((p = checkstring(ep, "FONTHEIGHT"))) {
         mminfo_fontheight(p);
     } else if ((p = checkstring(ep, "FONTWIDTH"))) {
