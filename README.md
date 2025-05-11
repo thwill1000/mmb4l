@@ -20,12 +20,12 @@
     * [OPTION AUDIO](#option-audio)
     * [OPTION AUTOSCALE](#option-autoscale)
     * [OPTION CODEPAGE](#option-codepage)
-    * [OPTION CONSOLE](#option-console)
     * [OPTION EDITOR](#option-editor)
     * [OPTION F\<num>](#option-fnum)
     * [OPTION LIST](#option-list)
     * [OPTION LOAD](#option-load)
     * [OPTION RESET](#option-reset)
+    * [OPTION RESOLUTION](#option-resolution)
     * [OPTION SAVE](#option-save)
     * [OPTION SIMULATE](#option-simulate)
 9. [Commands](#8-commands)
@@ -305,13 +305,13 @@ MMB4L supports reading these additional properties:
 
   * `MM.INFO(HPOS)`
      * Gets the current horizontal position (in characters) following the last `PRINT` command.
-         * `OPTION CONSOLE PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
+         * `OPTION RESOLUTION PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
      * Unlike the PicoMite, drawing graphics and using the TEXT command does not change the reported position.
 
  * `MM.INFO(HRES)`
      * Gets the height of the current graphics window in pixels.
      * If no graphics window is selected then returns the height of the console in characters.
-         * `OPTION CONSOLE PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
+         * `OPTION RESOLUTION PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
 
  * `MM.INFO(LINE)`
      *  Gets the current MMBasic line number being executed.
@@ -335,13 +335,13 @@ MMB4L supports reading these additional properties:
 
   * `MM.INFO(VPOS)`
      * Gets the current vertical position (in characters) following the last `PRINT` command.
-         * `OPTION CONSOLE PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
+         * `OPTION RESOLUTION PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
      * Unlike the PicoMite, drawing graphics and using the TEXT command does not change the reported position.
 
  * `MM.INFO(VRES)`
      * Gets the width of the current graphics window in pixels.
      * If no graphics window is selected then returns the width of the console in characters.
-         * `OPTION CONSOLE PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
+         * `OPTION RESOLUTION PIXEL` can be used to change this to return a value in pixels based on a nominal 8x12 font.
 
 ### MM.HRES
 
@@ -388,15 +388,6 @@ Supported code pages are:
  * `CP437` - characters 128-255 of the original IBM PC code 437. Note this was a non-ANSI code page which also included characters 1-31 which are not available in this mapping, but see "MMB4L".
  * `CP1252` - the classic Windows-1252 Latin alphabet code page.
  * `MMB4L` - same as `CP437` but with characters 129-159 replaced by the original non-ANSI CP437 characters 1-31 and with additional "useful" characters in positions 128, 161-170 and 255.
-
-### OPTION CONSOLE
-
-`OPTION CONSOLE {PIXEL|CHARACTER}`
-
-Controls the resolution used for the return values of `HRES`, `VRES`, `MM.INFO(HPOS)`, `MM.INFO(HRES)`, `MM.INFO(VPOS)` and `MM.INFO(VRES)` when no graphics surface is selected, i.e. when writing to the console.
-
- * Default `CHARACTER`.
- * If `PIXEL` then the returned values are based on a nominal 8x12 font.
 
 ### OPTION EDITOR
 
@@ -456,6 +447,15 @@ Loads permanent options from the named file and where possible applies them imme
 Resets options to their default values.
    * If `ALL` is specified then all options are reset.
    * Otherwise only the named option is reset.
+
+### OPTION RESOLUTION
+
+`OPTION RESOLUTION {PIXEL|CHARACTER}`
+
+Controls the resolution used for the return values of `HRES`, `VRES`, `MM.INFO(HPOS)`, `MM.INFO(HRES)`, `MM.INFO(VPOS)` and `MM.INFO(VRES)` when no graphics surface is selected, i.e. when writing to the console.
+
+ * Default `CHARACTER`.
+ * If `PIXEL` then the returned values are based on a nominal 8x12 font.
 
 ### OPTION SAVE
 
