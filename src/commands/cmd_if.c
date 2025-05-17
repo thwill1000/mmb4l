@@ -195,7 +195,21 @@ retest_an_if:
                         nextstmt = findline(getinteger(argv[4]), true);
                     } else {
                         // IF <condition> THEN <statement1> ELSE <statement2>
-                        for (p = cmdline; *p && tokentbl_read(&p) != tokenELSE; ) { }
+
+                        // Find and read the THEN function token.
+                        //
+                        // IMPORTANT! we cannot simply start from the beginning of the IF statement
+                        // and look for the ELSE token because <statement1> might begin with a
+                        // command that has a command token ID equal to the ELSE function token ID.
+                        for (p = cmdline; *p && (tokentbl_read(&p) != tokenTHEN); ) { }
+
+                        // Skip the command that <statement1> must start with.
+                        skipspace(p);
+                        p += sizeof(CommandToken);
+
+                        // Find and read the ELSE function token.
+                        for (; *p && (tokentbl_read(&p) != tokenELSE); ) { }
+
                         nextstmt = p;  // The statement after the ELSE token.
                     }
                 } else {
