@@ -93,8 +93,9 @@ static void mminfo_cmdline(const char *p) {
 }
 
 static void mminfo_cpuspeed(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
     if (!mmb_features.has_mminfo_cpuspeed) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
+    if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_STR;
     strcpy(g_string_rtn, "378000000");
     CtoM(g_string_rtn);
@@ -141,8 +142,9 @@ static void mminfo_device(const char *p) {
 }
 
 static void mminfo_drive(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
     if (!mmb_features.has_mminfo_drive) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
+    if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_STR;
     strcpy(g_string_rtn, "A:");
     CtoM(g_string_rtn);
@@ -276,6 +278,7 @@ static void mminfo_filesize(const char *p) {
 
 static void mminfo_flash_address(const char *p) {
     if (!mmb_features.has_cmd_flash) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     getargs(&p, 1, DELIM_COMMA);
     if (argc != 1) ERROR_ARGUMENT_COUNT;
     const int flash_index = getint(argv[0], 1, FLASH_NUM_SLOTS) - 1;
@@ -316,7 +319,9 @@ static void mminfo_gamepad(const char *p) {
     CtoM(g_string_rtn);
 }
 
-void mminfo_hres(const char *p) {
+void mminfo_hres(const char *p, bool check_feature) {
+    if (check_feature && !mmb_features.has_mminfo_res) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     bool pixel = true;
     const char *p2;
     if ((p2 = checkstring(p, "C")) || (p2 = checkstring(p, "CHAR"))) {
@@ -463,8 +468,9 @@ static void mminfo_platform(const char *p) {
 }
 
 static void mminfo_ps2(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
     if (!mmb_features.has_mminfo_ps2) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
+    if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
     g_integer_rtn = keyboard_get_last_ps2_scancode();
 }
@@ -575,7 +581,9 @@ static void mminfo_version(const char *p) {
     }
 }
 
-void mminfo_vres(const char *p) {
+void mminfo_vres(const char *p, bool check_feature) {
+    if (check_feature && !mmb_features.has_mminfo_res) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     bool pixel = true;
     const char *p2;
     if ((p2 = checkstring(p, "C")) || (p2 = checkstring(p, "CHAR"))) {
@@ -659,7 +667,7 @@ void fun_mminfo(void) {
     } else if ((p = checkstring(ep, "GAMEPAD"))) {
         mminfo_gamepad(p);
     } else if ((p = checkstring(ep, "HRES"))) {
-        mminfo_hres(p);
+        mminfo_hres(p, true);
     } else if ((p = checkstring(ep, "HPOS"))) {
         mminfo_hpos(p);
     } else if ((p = checkstring(ep, "LINE"))) {
@@ -687,7 +695,7 @@ void fun_mminfo(void) {
     } else if ((p = checkstring(ep, "VERSION"))) {
         mminfo_version(p);
     } else if ((p = checkstring(ep, "VRES"))) {
-        mminfo_vres(p);
+        mminfo_vres(p, true);
     } else if ((p = checkstring(ep, "VPOS"))) {
         mminfo_vpos(p);
     } else if ((p = checkstring(ep, "WRITEBUFF"))) {

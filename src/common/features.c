@@ -85,6 +85,7 @@ static Features features_mmb4l = {
    .graphics_type = kGraphicsTypeMmb4l,
    .play_modfile_params = kPlayModfileTypeWithBoth,
    .has_mminfo_ps2 = true,
+   .has_mminfo_res = true,
    .has_fun_keydown = true,
    .foreground = RGB_WHITE,
    .background = RGB_BLACK,

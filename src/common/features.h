@@ -90,6 +90,7 @@ typedef struct {
     bool has_mminfo_pin;                     // Supports MM.INFO(PIN)
     bool has_mminfo_ps2;                     // Supports MM.INFO(PS2)
     bool has_mminfo_usb;                     // Supports MM.INFO(USB)
+    bool has_mminfo_res;                     // Supports MM.INFO(HRES) and MM.INFO(VRES)
     int hres;
     int vres;
     MmGraphicsColour foreground;
