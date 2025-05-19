@@ -42,8 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-void mminfo_hres(const char *unused); // fun_mminfo.c
+#include <stdbool.h>
+
+void mminfo_hres(const char *unused, bool check_feature); // fun_mminfo.c
 
 void fun_hres(void) {
-    mminfo_hres("");
+    mminfo_hres("", false);
 }
