@@ -225,6 +225,16 @@ TEST_F(ParseTest, ParseTransformInputBuffer_GivenStarCommand) {
     EXPECT_EQ(kOk, parse_transform_input_buffer(input));
     EXPECT_STREQ("RUN \"foo\", Chr$(34) + \"wom\" + Chr$(34) + \" \" + Chr$(34) + \"bat\" + Chr$(34)", input);
 
+    // Given device with file.
+    strcpy(input, "*PicoCalc foo");
+    EXPECT_EQ(kOk, parse_transform_input_buffer(input));
+    EXPECT_STREQ("RUN \"foo\" AS PicoCalc", input);
+
+    // Given device with file and argument.
+    strcpy(input, "*Cmm2 foo --wombat");
+    EXPECT_EQ(kOk, parse_transform_input_buffer(input));
+    EXPECT_STREQ("RUN \"foo\", \"--wombat\" AS CMM2", input);
+
     // Given maximum length input.
     input[0] = '\0';
     cstring_cat(input, "*foo \"", INPBUF_SIZE);

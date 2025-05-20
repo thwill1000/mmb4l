@@ -311,10 +311,13 @@ include(GoogleTest)
 add_executable(
   test_cmdline
   src/common/cmdline.c
+  src/common/codepage.c
   src/common/cstring.c
   src/common/memory.c
   src/common/mmresult.c
+  src/common/options.c
   src/common/parse.c
+  src/common/path.c
   src/common/gtest/cmdline_test.cxx
 )
 
@@ -336,12 +339,15 @@ add_executable(
   test_cmd_do
   src/commands/cmd_do.c
   src/commands/gtest/cmd_do_test.cxx
+  src/common/codepage.c
   src/common/cstring.c
   src/common/features.c
   src/common/fonttbl.c
+  src/common/options.c
   src/common/memory.c
   src/common/mmresult.c
   src/common/parse.c
+  src/common/path.c
   src/common/utility.c
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
@@ -738,6 +744,7 @@ gtest_discover_tests(test_options)
 
 add_executable(
   test_parse
+  src/common/codepage.c
   src/common/cstring.c
   src/common/features.c
   src/common/file.c
@@ -745,6 +752,7 @@ add_executable(
   src/common/mmgetline.c
   src/common/mmresult.c
   src/common/mmtime.c
+  src/common/options.c
   src/common/parse.c
   src/common/path.c
   src/common/program.c
@@ -804,6 +812,7 @@ gtest_discover_tests(test_path)
 
 add_executable(
   test_program
+  src/common/codepage.c
   src/common/cstring.c
   src/common/features.c
   src/common/file.c
@@ -811,6 +820,7 @@ add_executable(
   src/common/mmgetline.c
   src/common/mmresult.c
   src/common/mmtime.c
+  src/common/options.c
   src/common/path.c
   src/common/parse.c
   src/common/program.c
@@ -974,6 +984,7 @@ gtest_discover_tests(test_stack)
 
 add_executable(
   test_mmbasic_core
+  src/common/codepage.c
   src/common/cstring.c
   src/common/features.c
   src/common/file.c
@@ -981,6 +992,7 @@ add_executable(
   src/common/memory.c
   src/common/mmresult.c
   src/common/mmtime.c
+  src/common/options.c
   src/common/parse.c
   src/common/path.c
   src/common/program.c

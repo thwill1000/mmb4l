@@ -40,9 +40,6 @@ const char *gamepad_last_error() { return ""; }
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 const char *graphics_last_error() { return ""; }
 
-// Defined in "common/path.c"
-MmResult path_munge(const char *original_path, char *new_path, size_t sz) { return kOk; }
-
 // Defined in "core/commandtbl.c"
 CommandToken cmdFUN = 0x0;
 CommandToken cmdSUB = 0x0;

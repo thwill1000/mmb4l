@@ -229,6 +229,11 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
 /**
  * Gets the OptionsSimulate enum value corresponding to a string, or -1 if unmatched.
  */
-int options_lookup_simulate(const char *s);
+int options_simulate_from_string(const char *s);
+
+/**
+ * Gets the OptionsSimulate string value corresponding to an enum value.
+ */
+const char *options_simulate_to_string(OptionsSimulate simulate);
 
 #endif // #if !defined(MMB4L_OPTIONS_H)
