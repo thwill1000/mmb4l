@@ -900,7 +900,7 @@ static MmResult options_set_search_path(Options *options, const char *svalue) {
 }
 
 static MmResult options_set_simulate(Options *options, const char *svalue) {
-    int match = options_lookup_simulate(svalue);
+    int match = options_simulate_from_string(svalue);
     if (match == -1) return kInvalidValue;
     options->simulate = (OptionsSimulate) match;
     return kOk;
@@ -1019,11 +1019,18 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
     }
 }
 
-int options_lookup_simulate(const char *s) {
+int options_simulate_from_string(const char *s) {
     for (const NameOrdinalPair *entry = options_simulate_map; entry->name; ++entry) {
         if (strcasecmp(s, entry->name) == 0) {
             return entry->ordinal;
         }
     }
     return -1;
+}
+
+const char *options_simulate_to_string(OptionsSimulate simulate) {
+    for (const NameOrdinalPair *entry = options_simulate_map; entry->name; entry++) {
+        if (entry->ordinal == (int) simulate) return entry->name;
+    }
+    return NULL;
 }

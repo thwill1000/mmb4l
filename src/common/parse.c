@@ -169,27 +169,42 @@ MmResult parse_name(const char **p, char *name) {
  * @brief Transforms input beginning with * into a corresponding RUN command.
  *
  * e.g.
- *   *foo              =>  RUN "foo"
- *   *"foo bar"        =>  RUN "foo bar"
- *   *foo --wombat     =>  RUN "foo", "--wombat"
- *   *foo "wom"        =>  RUN "foo", Chr$(34) + "wom" + Chr$(34)
- *   *foo "wom" "bat"  =>  RUN "foo", Chr$(34) + "wom" + Chr$(34) + " " + Chr$(34) + "bat" + Chr$(34)
- *   *foo --wom="bat"  =>  RUN "foo", "--wom=" + Chr$(34) + "bat" + Chr$(34)
+ *   *foo                =>  RUN "foo"
+ *   *"foo bar"          =>  RUN "foo bar"
+ *   *foo --wombat       =>  RUN "foo", "--wombat"
+ *   *foo "wom"          =>  RUN "foo", Chr$(34) + "wom" + Chr$(34)
+ *   *foo "wom" "bat"    =>  RUN "foo", Chr$(34) + "wom" + Chr$(34) + " " + Chr$(34) + "bat" + Chr$(34)
+ *   *foo --wom="bat"    =>  RUN "foo", "--wom=" + Chr$(34) + "bat" + Chr$(34)
+ *   *PicoCalc foo       =>  RUN "foo" AS PicoCalc
+ *   *Cmm2 foo --wombat  =>  RUN "foo", "--wombat" As Cmm2
  */
 static MmResult parse_transform_star_command(char *input) {
-    char *src = input;
-    while (isspace(*src)) src++; // Skip leading whitespace.
-    if (*src != '*') return kInternalFault;
-    src++;
+    // Skip past any leading whitespace and verify it really is a '*' command.
+    char *start = input;
+    while (isspace(*start)) start++;
+    if (*start != '*') return kInternalFault;
+    start++;
 
     // Trim any trailing whitespace from the input.
     char *end = input + strlen(input) - 1;
     while (isspace(*end)) *end-- = '\0';
 
-    // Allocate extra space to avoid string overrun.
+    // Allocate working string with extra space to avoid string overrun.
     char *tmp = (char *) GetTempMemory(INPBUF_SIZE + 32);
+
+    // Check if the input starts with the name of a device to simulate.
+    char *dst = tmp;
+    char *src = start;
+    while (*src && !isspace(*src)) *dst++ = *src++;
+    while (isspace(*src)) src++; // Skip whitespace.
+    *dst++ = '\0';
+    int match = options_simulate_from_string(tmp);
+    OptionsSimulate simulate = match == -1 ? kSimulateMmb4l : (OptionsSimulate) match;
+    if (match == -1) src = start;
+
+    // Start constructing the RUN command.
     strcpy(tmp, "RUN");
-    char *dst = tmp + 3;
+    dst = tmp + 3;
 
     if (*src == '"') {
         // Everything before the second quote is the name of the file to RUN.
@@ -250,20 +265,25 @@ static MmResult parse_transform_star_command(char *input) {
 
         // End with a double quote unless 'src' ended with one.
         if (*(src - 1) != '"') *dst++ = '\"';
-
-        *dst = '\0';
     }
 
-    if (dst - tmp >= INPBUF_SIZE) {
-        ClearSpecificTempMemory(tmp);
-        return kStringTooLong;
-    }
+    *dst = '\0';
+
+    MmResult result = kOk;
 
     // Copy transformed string back into the input buffer.
-    cstring_cpy(input, tmp, INPBUF_SIZE);
+    if (FAILED(cstring_cpy(input, tmp, INPBUF_SIZE))) result = kStringTooLong;
+
+    // Append the device to simulate, if any.
+    if (SUCCEEDED(result) && simulate != kSimulateMmb4l) {
+        if (FAILED(cstring_cat(input, " AS ", INPBUF_SIZE)) ||
+                FAILED(cstring_cat(input, options_simulate_to_string(simulate), INPBUF_SIZE))) {
+            result = kStringTooLong;
+        }
+    }
 
     ClearSpecificTempMemory(tmp);
-    return kOk;
+    return result;
 }
 
 static MmResult parse_transform_bang_cd_command(char *input, char *src) {
