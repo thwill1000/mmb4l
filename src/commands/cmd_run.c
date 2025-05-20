@@ -161,12 +161,12 @@ MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *file
     // Check for trailing "AS <simulate option>".
     if (argc >= 2 && tokentbl_peek(argv[argc - 2]) == tokenAS) {
         // First check for the <device> as a "keyword".
-        int match = options_lookup_simulate(argv[argc - 1]);
+        int match = options_simulate_from_string(argv[argc - 1]);
 
         // If unmatched then check for the <device> as a string.
         if (match == -1) {
             const char *s = getCstring(argv[argc - 1]);
-            match = options_lookup_simulate(s);
+            match = options_simulate_from_string(s);
         }
 
         if (match == -1) ON_FAILURE_RETURN(kUnknownDevice);
