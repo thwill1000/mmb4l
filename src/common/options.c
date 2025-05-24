@@ -61,6 +61,7 @@ OptionsEditor options_editors[] = {
     { "Gedit",   "gedit ${file} +${line} &",         false },
     { "Leafpad", "leafpad --jump=${line} ${file} &", false },
     { "Nano",    "nano +${line} ${file}",            true  },
+    { "PicoMite", "internal pmedit ${file} ${line}", true  },
     { "Sublime", "subl ${file}:${line}",             false },
     { "Vi",      "vi +${line} ${file}",              true  },
     { "Vim",     "vim +${line} ${file}",             true  },
@@ -157,6 +158,7 @@ OptionsDefinition options_definitions[] = {
     { "F12",         kOptionF12,          kOptionTypeString,  true,  "",                        NULL },
     { "Search Path", kOptionSearchPath,   kOptionTypeString,  true,  "",                        NULL },
     { "Simulate",    kOptionSimulate,     kOptionTypeString,  false, "MMB4L",                   options_simulate_map },
+    { "Syntax Highlight", kOptionSyntaxHighlight, kOptionTypeBoolean, true, "On",               NULL },
     { "Tab",         kOptionTab,          kOptionTypeInteger, true,  "4",                       NULL },
 #if defined(OPTION_TESTS)
     { "ZBoolean",    kOptionZBoolean,     kOptionTypeBoolean, true,  "On",                      NULL },
@@ -575,6 +577,9 @@ MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEG
         case kOptionBreakKey:
             *ivalue = options->break_key;
             break;
+        case kOptionSyntaxHighlight:
+            *ivalue = options->syntax_highlight;
+            break;
         case kOptionTab:
             *ivalue = options->tab;
             break;
@@ -918,6 +923,15 @@ static MmResult options_set_tab(Options *options, int ivalue) {
     }
 }
 
+static MmResult options_set_syntax_highlight(Options *options, int ivalue) {
+    if (ivalue == 0 || ivalue == 1) {
+        options->syntax_highlight = ivalue;
+        return kOk;
+    } else {
+        return kInvalidValue;
+    }
+}
+
 MmResult options_set_float_value(Options *options, OptionsId id, MMFLOAT fvalue) {
     switch (id) {
 
@@ -938,6 +952,7 @@ MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER iva
         case kOptionBase:      return options_set_base(options, ivalue);
         case kOptionBreakKey:  return options_set_break_key(options, ivalue);
         case kOptionTab:       return options_set_tab(options, ivalue);
+        case kOptionSyntaxHighlight:  return options_set_syntax_highlight(options, ivalue);
 
 #if defined(OPTION_TESTS)
         case kOptionZBoolean:
