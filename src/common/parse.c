@@ -276,8 +276,10 @@ static MmResult parse_transform_star_command(char *input) {
 
     // Append the device to simulate, if any.
     if (SUCCEEDED(result) && simulate != kSimulateMmb4l) {
+        Features features;
+        ON_FAILURE_RETURN(features_init(&features, simulate));
         if (FAILED(cstring_cat(input, " AS ", INPBUF_SIZE)) ||
-                FAILED(cstring_cat(input, options_simulate_to_string(simulate), INPBUF_SIZE))) {
+                FAILED(cstring_cat(input, features.simple_name, INPBUF_SIZE))) {
             result = kStringTooLong;
         }
     }

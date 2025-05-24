@@ -313,6 +313,7 @@ add_executable(
   src/common/cmdline.c
   src/common/codepage.c
   src/common/cstring.c
+  src/common/features.c
   src/common/memory.c
   src/common/mmresult.c
   src/common/options.c
