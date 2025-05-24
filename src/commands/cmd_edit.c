@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
+#include "../common/editor.h"
 #include "../common/file.h"
 #include "../common/path.h"
 #include "../common/program.h"
@@ -185,12 +186,18 @@ void cmd_edit(void) {
     }
 
     // Edit the file.
-    char command[CMD_SIZE] = { 0 };
     bool blocking = false;
-    ON_FAILURE_ERROR(
-        get_editor_command(editor, file_path, line > 1 ? line : 1, command, &blocking));
-    errno = 0;
-    if (FAILED(system(command))) ERROR_EDITOR_FAILED;
+    if (strcasecmp(editor, "picomite") == 0) {
+        // Use the internal "PicoMite" editor.
+        blocking = true;
+        ON_FAILURE_ERROR(editor_show(file_path, line > 1 ? line : 1));
+    } else {
+        char command[CMD_SIZE] = { 0 };
+        ON_FAILURE_ERROR(
+                get_editor_command(editor, file_path, line > 1 ? line : 1, command, &blocking));
+        errno = 0;
+        if (FAILED(system(command))) ERROR_EDITOR_FAILED;
+    }
 
     // If we created a new file and it is still empty after editing with an
     // editor that blocks then delete it.

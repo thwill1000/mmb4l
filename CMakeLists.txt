@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2025 Thomas Hugo Williams
+# Copyright (c) 2021-2026 Thomas Hugo Williams
 # License MIT <https://opensource.org/licenses/MIT>
 
 cmake_minimum_required(VERSION 3.14)
@@ -6,8 +6,13 @@ cmake_minimum_required(VERSION 3.14)
 # set the project name
 project(MMB4L)
 
-# GoogleTests require at least C++17
-set(CMAKE_CXX_STANDARD 17)
+# Unit tests require at least C++20
+#  - GoogleTest framework requires at least C++17
+#  - Some C++ tests use C style designated initializers (C++20)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(FetchContent)
 #FetchContent_Declare(
@@ -23,8 +28,6 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_definitions(-funsigned-char)
-
 if (MMB4L_COVERAGE)
     message("** Configuring with code-coverage")
     set(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
@@ -32,9 +35,17 @@ if (MMB4L_COVERAGE)
     set(GCOV_LINK_LIBRARY          gcov)
 endif()
 
-set(XTRA_WARNING_FLAGS "-Wwrite-strings -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-function -Wno-unused-result -Werror")
-set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${XTRA_WARNING_FLAGS} -D_FILE_OFFSET_BITS=64 -D_REENTRANT")
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${XTRA_WARNING_FLAGS} -D_FILE_OFFSET_BITS=64  -D_REENTRANT")
+add_compile_options(
+    "-Wwrite-strings;-Wall;-Wextra;-Wno-unused-parameter;-Wno-missing-field-initializers;-Wno-unused-function;-Wno-unused-result;-Werror"
+    ${GCC_COVERAGE_COMPILE_FLAGS}
+    -funsigned-char
+)
+
+add_compile_definitions(
+    _FILE_OFFSET_BITS=64
+    _REENTRANT
+)
+
 set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
 
 set(MMB4L_CORE_SOURCE_FILES
@@ -248,6 +259,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/options.c
     src/common/parse.c
     src/common/path.c
+    src/common/editor.c
     src/common/process.c
     src/common/program.c
     src/common/prompt.c
@@ -521,6 +533,34 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_display)
+
+################################################################################
+# test_editor
+################################################################################
+
+add_executable(test_editor
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/gtest/editor_test.cxx
+    src/common/editor.c
+    src/common/logger.c
+    src/common/memory.c
+    src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/streamio_stubs.c
+    src/core/commandtbl.c
+    src/core/tokentbl.c
+)
+
+target_compile_definitions(test_editor PUBLIC ENABLE_GTEST_EXTRAS)
+
+target_link_libraries(test_editor
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_editor)
 
 ################################################################################
 # test_funtbl
