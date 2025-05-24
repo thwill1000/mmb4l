@@ -59,10 +59,10 @@ static void write_line_to_buf(const char *line) {
 
 static void expect_options_have_defaults(Options *options) {
     EXPECT_EQ(kRadians, options->angle);
-    EXPECT_EQ(1, options->audio);
-    EXPECT_EQ(0, options->autorun);
-    EXPECT_EQ(1, options->auto_scale);
-    EXPECT_EQ(0, options->base);
+    EXPECT_EQ(true, options->audio);
+    EXPECT_EQ(false, options->autorun);
+    EXPECT_EQ(true, options->auto_scale);
+    EXPECT_EQ(false, options->base);
     EXPECT_EQ(3, options->break_key);
     EXPECT_EQ(NULL, options->codepage);
     EXPECT_EQ(kSerial, options->console);
@@ -83,6 +83,7 @@ static void expect_options_have_defaults(Options *options) {
     EXPECT_STREQ("", options->fn_keys[11]);
     EXPECT_EQ(kTitle, options->list_case);
     EXPECT_STREQ("", options->search_path);
+    EXPECT_EQ(true, options->syntax_highlight);
     EXPECT_EQ(4, options->tab);
     EXPECT_EQ(true, options->zboolean);
     EXPECT_EQ(2.71828, options->zfloat);
@@ -826,6 +827,20 @@ TEST_F(OptionsTest, GetIntegerValue_ForBreakKey) {
     EXPECT_EQ(4, ivalue);
 }
 
+TEST_F(OptionsTest, GetIntegerValue_ForSyntaxHighlight) {
+    Options options;
+    options_init(&options);
+    MMINTEGER ivalue = 0;
+
+    options.syntax_highlight = false;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionSyntaxHighlight, &ivalue));
+    EXPECT_EQ(0, ivalue);
+
+    options.syntax_highlight = true;
+    EXPECT_EQ(kOk, options_get_integer_value(&options, kOptionSyntaxHighlight, &ivalue));
+    EXPECT_EQ(1, ivalue);
+}
+
 TEST_F(OptionsTest, GetIntegerValue_ForTab) {
     Options options;
     options_init(&options);
@@ -1134,6 +1149,20 @@ TEST_F(OptionsTest, GetStringValue_ForSimulate) {
     EXPECT_STREQ("Game*Mite", svalue);
 }
 
+TEST_F(OptionsTest, GetStringValue_ForSyntaxHighlight) {
+    Options options;
+    options_init(&options);
+    char svalue[STRINGSIZE];
+
+    options.syntax_highlight = false;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSyntaxHighlight, svalue));
+    EXPECT_STREQ("Off", svalue);
+
+    options.syntax_highlight = true;
+    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionSyntaxHighlight, svalue));
+    EXPECT_STREQ("On", svalue);
+}
+
 TEST_F(OptionsTest, GetStringValue_ForTab) {
     Options options;
     options_init(&options);
@@ -1253,6 +1282,19 @@ TEST_F(OptionsTest, SetIntegerValue_ForBreakKey) {
 
     EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionBreakKey, 0));
     EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionBreakKey, 256));
+}
+
+TEST_F(OptionsTest, SetIntegerValue_ForSyntaxHighlight) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionSyntaxHighlight, 0));
+    EXPECT_EQ(false, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_integer_value(&options, kOptionSyntaxHighlight, 1));
+    EXPECT_EQ(true, options.syntax_highlight);
+
+    EXPECT_EQ(kInvalidValue, options_set_integer_value(&options, kOptionSyntaxHighlight, 2));
 }
 
 TEST_F(OptionsTest, SetIntegerValue_ForTab) {
@@ -1638,6 +1680,39 @@ TEST_F(OptionsTest, SetStringValue_ForSimulate) {
 
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionSimulate, "wombat"));
 }
+
+TEST_F(OptionsTest, SetStringValue_ForSyntaxHighlight) {
+    Options options;
+    options_init(&options);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "false"));
+    EXPECT_EQ(false, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "true"));
+    EXPECT_EQ(true, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "Off"));
+    EXPECT_EQ(false, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "On"));
+    EXPECT_EQ(true, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "0"));
+    EXPECT_EQ(false, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "1"));
+    EXPECT_EQ(true, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "FALSE"));
+    EXPECT_EQ(false, options.syntax_highlight);
+
+    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionSyntaxHighlight, "ON"));
+    EXPECT_EQ(true, options.syntax_highlight);
+
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionSyntaxHighlight, "2"));
+    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionSyntaxHighlight, "wombat"));
+}
+
 
 TEST_F(OptionsTest, SetStringValue_ForTab) {
     Options options;
