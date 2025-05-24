@@ -47,6 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "features.h"
 
 static Features features_cmm2 = {
+    .name = "Colour Maximite 2",
+    .simple_name = "CMM2",
     .device = "Colour Maximite 2",
     .platform = "",
     .gamepad_type = kGamepadTypeCmm2,
@@ -61,6 +63,8 @@ static Features features_cmm2 = {
 };
 
 static Features features_gamemite = {
+    .name = "Game*Mite",
+    .simple_name = "GameMite",
     .device = "PicoMite",
     .platform = "Game*Mite",
     .gamepad_type = kGamepadTypeGamemite,
@@ -79,6 +83,8 @@ static Features features_gamemite = {
 };
 
 static Features features_mmb4l = {
+    .name = "MMB4L",
+    .simple_name = "MMB4L",
     .device = "MMB4L",
     .platform = "",
     .gamepad_type = kGamepadTypeMmb4l,
@@ -93,6 +99,8 @@ static Features features_mmb4l = {
 };
 
 static Features features_mmb4w = {
+    .name = "MMBasic for Windows",
+    .simple_name = "MMB4W",
     .device = "MMBasic for Windows",
     .platform = "",
     .gamepad_type = kGamepadTypeMmb4w,
@@ -107,6 +115,8 @@ static Features features_mmb4w = {
 };
 
 static Features features_picocalc = {
+    .name = "PicoCalc",
+    .simple_name = "PicoCalc",
     .device = "PicoMite",
     .platform = "PicoCalc",
     .gamepad_type = kGamepadTypeNone,
@@ -125,6 +135,8 @@ static Features features_picocalc = {
 };
 
 static Features features_picomite_vga = {
+    .name = "PicoMiteVGA",
+    .simple_name = "PicoMiteVGA",
     .device = "PicoMiteVGA",
     .platform = "",
     .gamepad_type = kGamepadTypePicomiteSnes,
@@ -143,6 +155,8 @@ static Features features_picomite_vga = {
 };
 
 static Features features_picomite_vga_usb = {
+    .name = "PicoMiteVGAUSB",
+    .simple_name = "PicoMiteVGAUSB",
     .device = "PicoMiteVGAUSB",
     .platform = "",
     .gamepad_type = kGamepadTypePicomiteUsb,

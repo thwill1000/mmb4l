@@ -75,6 +75,8 @@ typedef enum {
 } FeaturesPlayModfileParams;
 
 typedef struct {
+    const char *name;
+    const char *simple_name;
     const char *device;
     const char *platform;
     FeaturesGraphicsType graphics_type;
