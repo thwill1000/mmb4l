@@ -61,6 +61,7 @@ OptionsEditor options_editors[] = {
     { "Gedit",   "gedit ${file} +${line} &",         false },
     { "Leafpad", "leafpad --jump=${line} ${file} &", false },
     { "Nano",    "nano +${line} ${file}",            true  },
+    { "PicoMite", "internal pmedit ${file} ${line}", true  },
     { "Sublime", "subl ${file}:${line}",             false },
     { "Vi",      "vi +${line} ${file}",              true  },
     { "Vim",     "vim +${line} ${file}",             true  },

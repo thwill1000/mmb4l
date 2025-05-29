@@ -124,6 +124,7 @@ void ClearTempMemory(void) {
 }
 
 void ClearSpecificTempMemory(void *addr) {
+    if (!addr) return;
     int i;
 //dpIGClearSpecificTempMemory(%p)", addr);
     for(i = 0; i < MAXTEMPSTRINGS; i++) {

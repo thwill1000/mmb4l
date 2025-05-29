@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
 #include "../common/path.h"
+#include "../common/pmeditor.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
@@ -174,8 +175,14 @@ void cmd_edit(void) {
     char command[CMD_SIZE] = { 0 };
     bool blocking = false;
     ON_FAILURE_ERROR(get_editor_command(file_path, line > 1 ? line : 1, command, &blocking));
-    errno = 0;
-    if (FAILED(system(command))) ERROR_EDITOR_FAILED;
+    const char *pedit_prefix = "internal pmedit ";
+    if (strncmp(pedit_prefix, command, strlen(pedit_prefix)) == 0) {
+        // Use the internal "PicoMite" editor.
+        ON_FAILURE_ERROR(pmeditor(file_path, line > 1 ? line : 1));
+    } else {
+        errno = 0;
+        if (FAILED(system(command))) ERROR_EDITOR_FAILED;
+    }
 
     // If we created a new file and it is still empty after editing with an
     // editor that blocks then delete it.

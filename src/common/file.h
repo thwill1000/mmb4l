@@ -77,6 +77,12 @@ MmResult file_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *,
 /** Finds the first available free file number. */
 int file_find_free(void);
 
+/** Does the named file exist? */
+bool file_exists(const char *filename);
+
+/** Gets the size of the file in bytes. */
+int64_t file_size(int fnbr);
+
 MmResult file_open(const char *filename, const char *mode, int fnbr);
 MmResult file_close(int fnbr);
 void file_close_all(void);

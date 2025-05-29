@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "mmb4l.h"
@@ -382,4 +383,20 @@ size_t file_write(int fnbr, const char *buf, size_t sz) {
 
     ERROR_INTERNAL_FAULT;
     return -1;
+}
+
+bool file_exists(const char *filename) {
+    struct stat st;
+    return (stat(filename, &st) == 0) && S_ISREG(st.st_mode) ? true : false;
+}
+
+int64_t file_size(int fnbr) {
+    struct stat st;
+    if (fstat(fileno(file_table[fnbr].file_ptr), &st) == 0) {
+        return st.st_size;
+    } else {
+        // File probably doesn't exist.
+        // TODO: Check errno.
+        return -1;
+    }
 }
