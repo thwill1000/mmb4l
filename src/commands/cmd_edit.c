@@ -70,20 +70,21 @@ static void get_mmbasic_nanorc(char *path) {
     }
 }
 
-static MmResult get_editor_command(const char *file_path, int line, char *command, bool *blocking) {
+static MmResult get_editor_command(const char *editor, const char *file_path, int line,
+                                   char *command, bool *blocking) {
     *command = '\0';
     *blocking = false;
-    for (const OptionsEditor *editor = options_editors; editor->name; ++editor) {
-        if (strcasecmp(mmb_options.editor, editor->name) == 0) {
-            strcpy(command, editor->command);
-            *blocking = editor->blocking;
+    for (const OptionsEditor *e = options_editors; e->name; ++e) {
+        if (strcasecmp(editor, e->name) == 0) {
+            strcpy(command, e->command);
+            *blocking = e->blocking;
         }
     }
 
     // Special magic for Nano when we the 'mmbasic.nano.rc' file is installed.
     // Note early values or nano, such as the default version for Raspbian
     // do not support the --rcfile flag.
-    if (strcasecmp(mmb_options.editor, "nano") == 0) {
+    if (strcasecmp(editor, "nano") == 0) {
         char nanorc[STRINGSIZE];
         get_mmbasic_nanorc(nanorc);
         if (*nanorc) sprintf(command, "nano --rcfile=%s +${line} ${file}", nanorc);
@@ -91,17 +92,17 @@ static MmResult get_editor_command(const char *file_path, int line, char *comman
 
     if (!*command) {
         // Manually specified editor.
-        strcpy(command, mmb_options.editor);
+        strcpy(command, editor);
     }
 
     char replacement[STRINGSIZE + 2];
     snprintf(replacement, STRINGSIZE + 2, "\"%s\"", file_path);
     if (FAILED(cstring_replace(command, CMD_SIZE, "${file}", replacement))) {
-        return mmresult_ex(kInvalidEditor, "Editor ${file} replace failed: %s", mmb_options.editor);
+        return mmresult_ex(kInvalidEditor, "Editor ${file} replace failed: %s", editor);
     }
     snprintf(replacement, STRINGSIZE + 2, "%d", line);
     if (FAILED(cstring_replace(command, CMD_SIZE,  "${line}", replacement))) {
-        return mmresult_ex(kInvalidEditor, "Editor ${line} replace failed: %s", mmb_options.editor);
+        return mmresult_ex(kInvalidEditor, "Editor ${line} replace failed: %s", editor);
     }
 
     return kOk;
@@ -124,7 +125,18 @@ static MmResult delete_if_empty(char *file_path) {
 }
 
 void cmd_edit(void) {
-    getargs(&cmdline, 1, DELIM_COMMA);
+    // Check if the first argument overides the EDITOR option.
+    const char *editor = mmb_options.editor;
+    const char *p = NULL;
+    for (const OptionsEditor *e = options_editors; e->name; ++e) {
+        if ((p = checkstring(cmdline, e->name))) {
+            editor = e->name;
+            break;
+        }
+    }
+    if (!p) p = cmdline;
+
+    getargs(&p, 1, DELIM_COMMA);
 
     if (CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
 
@@ -173,7 +185,8 @@ void cmd_edit(void) {
     // Edit the file.
     char command[CMD_SIZE] = { 0 };
     bool blocking = false;
-    ON_FAILURE_ERROR(get_editor_command(file_path, line > 1 ? line : 1, command, &blocking));
+    ON_FAILURE_ERROR(
+        get_editor_command(editor, file_path, line > 1 ? line : 1, command, &blocking));
     errno = 0;
     if (FAILED(system(command))) ERROR_EDITOR_FAILED;
 
