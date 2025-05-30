@@ -42,9 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <strings.h>
-
 #include "../common/mmb4l.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 #include "../common/file.h"
 #include "../common/parse.h"
@@ -57,14 +56,14 @@ static void cmd_open_file(int argc, char **argv) {
     ON_FAILURE_ERROR(parse_filename(argv[0], filename, STRINGSIZE));
 
     const char *mode = NULL;
-    if (strcasecmp(argv[2], "OUTPUT") == 0) {
+    if (cstring_casecmp(argv[2], "OUTPUT") == 0) {
         mode = "wb";  // binary mode so that we do not have lf to cr/lf
                       // translation
-    } else if (strcasecmp(argv[2], "APPEND") == 0) {
+    } else if (cstring_casecmp(argv[2], "APPEND") == 0) {
         mode = "ab";  // binary mode is used in MMfopen()
-    } else if (strcasecmp(argv[2], "INPUT") == 0) {
+    } else if (cstring_casecmp(argv[2], "INPUT") == 0) {
         mode = "rb";  // note binary mode
-    } else if (strcasecmp(argv[2], "RANDOM") == 0) {
+    } else if (cstring_casecmp(argv[2], "RANDOM") == 0) {
         mode = "x";  // a special mode for MMfopen()
     } else {
         ERROR_INVALID("file access mode");
@@ -111,7 +110,7 @@ void cmd_open(void) {
 
     if (argc == 5 && arg1 == tokenFOR && arg3 == tokenAS) {
         cmd_open_file(argc, argv);
-    } else if (argc > 2 && argc < 8 && arg1 == tokenAS && strcasecmp(argv[2], "GPS") == 0) {
+    } else if (argc > 2 && argc < 8 && arg1 == tokenAS && cstring_casecmp(argv[2], "GPS") == 0) {
         cmd_open_gps(argc, argv);
     } else if (argc == 3 && arg1 == tokenAS) {
         cmd_open_serial(argc, argv);

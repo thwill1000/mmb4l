@@ -45,9 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Configuration.h"
 #include "MMBasic.h"
 #include "commandtbl.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
-
-#include <strings.h>
 
 int commandtbl_size;
 
@@ -250,7 +249,7 @@ void commandtbl_init() {
 
 CommandToken commandtbl_get(const char *s) {
     for (size_t i = 0; i < COMMANDTBL_SIZE - 1; i++) {
-        if (strcasecmp(s, commandtbl[i].name) == 0) {
+        if (cstring_casecmp(s, commandtbl[i].name) == 0) {
             return i;
         }
     }

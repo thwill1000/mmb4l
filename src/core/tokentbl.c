@@ -45,9 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Configuration.h"
 #include "MMBasic.h"
 #include "tokentbl.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
-
-#include <strings.h>
 
 int tokentbl_size;
 
@@ -229,7 +228,7 @@ void tokentbl_init() {
 
 FunctionToken tokentbl_get(const char *s) {
     for (size_t i = 0; i < TOKENTBL_SIZE - 1; i++) {
-        if (strcasecmp(s, tokentbl[i].name) == 0) {
+        if (cstring_casecmp(s, tokentbl[i].name) == 0) {
             return (FunctionToken) (i + C_BASETOKEN);
         }
     }
