@@ -42,16 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <limits.h>
+#include <stdint.h>
+
 #include "../common/audio.h"
 #include "../common/audio_tables.h"
+#include "../common/cstring.h"
 #include "../common/error.h"
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
-
-#include <limits.h>
-#include <stdint.h>
-#include <strings.h>
 
 static MmResult cmd_play_continue(const char *p) {
     ERROR_UNIMPLEMENTED("PLAY CONTINUE");
@@ -199,11 +199,11 @@ static MmResult cmd_play_sound(const char *p) {
         channel = kChannelBoth;
     } else {
         char *s = getCstring(argv[2]);
-        if (strcasecmp("L", s) == 0) {
+        if (cstring_casecmp("L", s) == 0) {
             channel = kChannelLeft;
-        } else if (strcasecmp("R", s) == 0) {
+        } else if (cstring_casecmp("R", s) == 0) {
             channel = kChannelRight;
-        } else if (strcasecmp("B", s) == 0) {
+        } else if (cstring_casecmp("B", s) == 0) {
             channel = kChannelBoth;
         } else {
             return mmresult_ex(kSyntax, "Channel number must be L, R or B");
@@ -228,19 +228,19 @@ static MmResult cmd_play_sound(const char *p) {
         type = kSoundTypeSawTooth;
     } else {
         char *s = getCstring(argv[4]);
-        if (strcasecmp("N", s) == 0) {
+        if (cstring_casecmp("N", s) == 0) {
             type = kSoundTypeWhiteNoise;
-        } else if (strcasecmp("O", s) == 0) {
+        } else if (cstring_casecmp("O", s) == 0) {
             type = kSoundTypeNull;
-        } else if (strcasecmp("P", s) == 0) {
+        } else if (cstring_casecmp("P", s) == 0) {
             type = kSoundTypePeriodicNoise;
-        } else if (strcasecmp("Q", s) == 0) {
+        } else if (cstring_casecmp("Q", s) == 0) {
             type = kSoundTypeSquare;
-        } else if (strcasecmp("S", s) == 0) {
+        } else if (cstring_casecmp("S", s) == 0) {
             type = kSoundTypeSine;
-        } else if (strcasecmp("T", s) == 0) {
+        } else if (cstring_casecmp("T", s) == 0) {
             type = kSoundTypeTriangular;
-        } else if (strcasecmp("W", s) == 0) {
+        } else if (cstring_casecmp("W", s) == 0) {
             type = kSoundTypeSawTooth;
         } else {
             return mmresult_ex(kSyntax, "Sound type must be N, O, P, Q, S, T or W");

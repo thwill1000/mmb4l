@@ -42,8 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <strings.h>
-
+#include "../common/cstring.h"
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
 #include "../common/utility.h"
@@ -107,7 +106,7 @@ static MmResult cmd_framebuffer_copy(const char *p) {
             background = true;
         } else { // Allow string expression.
             const char *s= getCstring(argv[4]);
-            if (strcasecmp(s, "B")) {
+            if (cstring_casecmp(s, "B") == 0) {
                 background = true;
             } else {
                 return kSyntax;

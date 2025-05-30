@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "../common/mmb4l.h"
+#include "../common/cstring.h"
 #include "../core/Commands.h"
 #include "../core/tokentbl.h"
 
@@ -129,7 +130,7 @@ void cmd_for(void) {
             if (cmd == cmdFOR) t++;                                 // count the FOR
             if (cmd == cmdNEXT) {                                   // is it NEXT
                 xp = p + sizeof(CommandToken);                      // point to after the NEXT token
-                while(*xp && strncasecmp(xp, vname, vlen)) xp++;    // step through looking for our variable
+                while(*xp && cstring_ncasecmp(xp, vname, vlen)) xp++;  // step through looking for our variable
                 if(*xp && !isnamechar(xp[vlen]))                    // is it terminated correctly?
                     t = 0;                                          // yes, found the matching NEXT
                 else
