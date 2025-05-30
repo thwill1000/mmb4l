@@ -238,12 +238,13 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/interrupt.c
     src/common/keyboard.c
     src/common/memory.c
-    src/common/mmgetline.c
+    src/common/mmgetchar.c
     src/common/mmresult.c
     src/common/mmtime.c
     src/common/options.c
     src/common/parse.c
     src/common/path.c
+    src/common/process.c
     src/common/program.c
     src/common/prompt.c
     src/common/rx_buf.c
@@ -750,7 +751,7 @@ add_executable(
   src/common/features.c
   src/common/file.c
   src/common/memory.c
-  src/common/mmgetline.c
+  src/common/mmgetchar.c
   src/common/mmresult.c
   src/common/mmtime.c
   src/common/options.c
@@ -793,8 +794,19 @@ gtest_discover_tests(test_parse)
 add_executable(
   test_path
   src/common/cstring.c
+  src/common/file.c
+  src/common/memory.c
+  src/common/mmresult.c
   src/common/path.c
+  src/common/rx_buf.c
+  src/common/serial.c
   src/common/gtest/path_test.cxx
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/events_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
+  src/common/gtest/stubs/interrupt_stubs.c
 )
 
 target_link_libraries(
@@ -818,7 +830,7 @@ add_executable(
   src/common/features.c
   src/common/file.c
   src/common/memory.c
-  src/common/mmgetline.c
+  src/common/mmgetchar.c
   src/common/mmresult.c
   src/common/mmtime.c
   src/common/options.c

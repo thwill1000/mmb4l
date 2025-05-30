@@ -42,16 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
 #include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 
 #define CMD_SIZE  (STRINGSIZE * 2)
 

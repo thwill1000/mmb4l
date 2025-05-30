@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 file.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_FILE)
 #define MMB4L_FILE
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 
@@ -78,14 +79,18 @@ MmResult file_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *,
 int file_find_free(void);
 
 MmResult file_open(const char *filename, const char *mode, int fnbr);
+MmResult file_chdir(const char *dirname);
 MmResult file_close(int fnbr);
 void file_close_all(void);
 int file_eof(int fnbr);
 int file_getc(int fnbr);
+MmResult file_getcwd(char *buf, size_t size);
 int file_loc(int fnbr);
 int file_lof(int fnbr);
 int file_putc(int fnbr, int ch);
 size_t file_read(int fnbr, char *buf, size_t sz);
+MmResult file_readlink(const char *path, char *buf, size_t *bufsiz);
+MmResult file_rmdir(const char *dirname);
 void file_seek(int fnbr, int idx);
 size_t file_write(int fnbr, const char *buf, size_t sz);
 

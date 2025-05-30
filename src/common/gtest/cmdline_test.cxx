@@ -30,6 +30,10 @@ const char *audio_last_error() { return ""; }
 // Defined in "common/events.c"
 const char *events_last_error() { return ""; }
 
+// Defined in "common/file.c"
+MmResult file_getcwd(char *buf, size_t size) { return kError; }
+MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) { return kError; }
+
 // Defined in "common/gpio.c"
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
