@@ -52,10 +52,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include "cstring.h"
 #include "error.h"
+#include "file.h"
 #include "path.h"
 #include "safe_buffer.h"
 #include "utility.h"
@@ -311,10 +311,10 @@ try_again:
             safe_buffer_append(&safe_dst, '\0');
             if (safe_dst.overrun) break;
             safe_buffer_inc_ptr(&safe_dst, -1);  // See note 1.
-            ssize_t num = readlink(dst, buf, PATH_MAX);
 
             // On success update 'dst' with target of link.
-            if (num != -1) {
+            size_t buf_sz = PATH_MAX;
+            if (SUCCEEDED(file_readlink(dst, buf, &buf_sz))) {
 
                 if (++count > 16) return kTooManySymbolicLinks;
 
@@ -326,7 +326,7 @@ try_again:
                     safe_buffer_append_bytes(&safe_dst, "/../", 4);
                 }
 
-                safe_buffer_append_bytes(&safe_dst, buf, num);
+                safe_buffer_append_bytes(&safe_dst, buf, buf_sz);
                 safe_buffer_append(&safe_dst, '\0');
                 if (safe_dst.overrun) break;
                 safe_buffer_inc_ptr(&safe_dst, -1);  // See note 1.
@@ -377,8 +377,7 @@ MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
     // If the 'path' is not absolute then copy the current working directory
     // into 'tmp_path'.
     if (!absolute) {
-        errno = 0;
-        if (!getcwd(tmp_path, PATH_MAX)) return errno;
+        ON_FAILURE_RETURN(file_getcwd(tmp_path, PATH_MAX));
         if (FAILED(cstring_cat(tmp_path, "/", PATH_MAX))) return kFilenameTooLong;
     }
 

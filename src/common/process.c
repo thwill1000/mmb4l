@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-cmd_chdir.c
+process.c
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,13 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
-#include "../common/error.h"
-#include "../common/file.h"
-#include "../common/parse.h"
+#include <unistd.h>
 
-void cmd_chdir(void) {
-    char *dirname = GetTempStrMemory();
-    ON_FAILURE_ERROR(parse_filename(cmdline, dirname, STRINGSIZE));
-    ON_FAILURE_ERROR(file_chdir(dirname));
+#include "process.h"
+
+int process_getpid() {
+   return (int) getpid();
 }

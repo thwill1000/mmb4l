@@ -45,11 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
 #include "../common/display.h"
+#include "../common/file.h"
 #include "../common/flash.h"
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
@@ -59,6 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmtime.h"
 #include "../common/parse.h"
 #include "../common/path.h"
+#include "../common/process.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
@@ -155,9 +156,7 @@ static void mminfo_directory(const char *p) {
 
     g_rtn_type = T_STR;
     g_string_rtn = GetTempStrMemory();
-
-    errno = 0;
-    if (!getcwd(g_string_rtn, STRINGSIZE)) error_throw(errno);
+    ON_FAILURE_ERROR(file_getcwd(g_string_rtn, STRINGSIZE));
 
     // Add a trailing '/' if one is not already present.
     size_t len = strlen(g_string_rtn);
@@ -418,7 +417,7 @@ static void mminfo_path(const char *p) {
 static void mminfo_pid(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
-    g_integer_rtn = (MMINTEGER) getpid();
+    g_integer_rtn = process_getpid();
 }
 
 static void mminfo_pin_no(const char *p) {

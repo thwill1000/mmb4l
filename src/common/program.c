@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "console.h"
 #include "cstring.h"
@@ -708,8 +707,7 @@ MmResult program_get_bas_file(const char *filename, char *out) {
 
     // Get the path resolved relative to the current working directory (CWD).
     char cwd[STRINGSIZE] = { '\0'};
-    errno = 0;
-    if (!getcwd(cwd, STRINGSIZE)) return errno;
+    ON_FAILURE_RETURN(file_getcwd(cwd, STRINGSIZE));
     if (FAILED(cstring_cat(cwd, "/", STRINGSIZE))
             || FAILED(cstring_cat(cwd, path, STRINGSIZE)))
         return kFilenameTooLong;

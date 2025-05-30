@@ -25,6 +25,10 @@ Options mmb_options;
 uint32_t font_height(uint32_t font) { return 12; }
 uint32_t font_width(uint32_t font) { return 8; }
 
+// Defined in "common/file.c"
+MmResult file_getcwd(char *buf, size_t size) { return kError; }
+MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) { return kError; }
+
 // Defined in "common/graphics.c"
 uint32_t graphics_font;
 
