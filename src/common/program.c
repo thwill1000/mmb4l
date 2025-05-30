@@ -439,16 +439,16 @@ static MmResult program_process_line(char *line) {
 
             default:
                 if (expecting_command) {
-                    if (strncasecmp(ip, "DATA", 4) == 0 && !isnamechar(*(ip + 4))) {
+                    if (cstring_ncasecmp(ip, "DATA", 4) == 0 && !isnamechar(*(ip + 4))) {
                         in_data = true;
-                    } else if (strncasecmp(ip, "MMDEBUG", 7) == 0 && !isnamechar(*(ip + 7))) {
+                    } else if (cstring_ncasecmp(ip, "MMDEBUG", 7) == 0 && !isnamechar(*(ip + 7))) {
                         if (!program_debug_on) {
                             // If not within #MMDEBUG ON then strip line.
                             // BUG! Strips entire line even if there are multiple commands.
                             while (*ip) ip++;
                             break;
                         }
-                    } else if (strncasecmp(ip, "REM", 3) == 0 && !isnamechar(*(ip + 3))) {
+                    } else if (cstring_ncasecmp(ip, "REM", 3) == 0 && !isnamechar(*(ip + 3))) {
                         // Strip REM comments.
                         while (*ip) ip++;
                         break;

@@ -48,6 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <strings.h>
+
+#define cstring_casecmp(s1, s2)  strcasecmp(s1, s2)
+#define cstring_ncasecmp(s1, s2, n)  strncasecmp(s1, s2, n)
 
 /**
  * @brief  Safely concatenates strings.
