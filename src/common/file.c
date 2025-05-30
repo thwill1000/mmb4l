@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 file.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -398,5 +398,34 @@ int64_t file_size(int fnbr) {
         // File probably doesn't exist.
         // TODO: Check errno.
         return -1;
+    }
+}
+
+MmResult file_chdir(const char *dirname) {
+    errno = 0;
+    if (FAILED(chdir(dirname))) return errno;
+    return kOk;
+}
+
+MmResult file_rmdir(const char *dirname) {
+    errno = 0;
+    if (FAILED(rmdir(dirname))) return errno;
+    return kOk;
+}
+
+MmResult file_getcwd(char *buf, size_t size) {
+    errno = 0;
+    if (!getcwd(buf, size)) return errno;
+    return kOk;
+}
+
+MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) {
+    errno = 0;
+    ssize_t result = readlink(path, buf, *bufsiz);
+    if (result == -1) {
+        return errno;
+    } else {
+        *bufsiz = (size_t) result;
+        return kOk;
     }
 }

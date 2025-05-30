@@ -45,6 +45,8 @@ MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *file
 
 // Defined in "common/file.c"
 void file_close_all(void) { }
+MmResult file_getcwd(char *buf, size_t size) { return kError; }
+MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) { return kError; }
 
 // Defined in "common/flash.c"
 MmResult flash_init() { return kOk; }

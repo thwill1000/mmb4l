@@ -190,12 +190,12 @@ void set_start_directory() {
     cstring_unquote(p);
     if (p[0] == '\0') return;
 
-    errno = 0;
-    if (chdir(p) != 0) {
+    MmResult result = file_chdir(p);
+    if (FAILED(result)) {
         display_puts("Error: could not set starting directory '");
         display_puts(p);
         display_puts("'.\r\n");
-        display_puts(strerror(errno));
+        display_puts(mmresult_to_string(result));
         display_puts(".\r\n");
         display_puts("\r\n");
     }

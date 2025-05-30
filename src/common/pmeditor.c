@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "fonttbl.h"
 #include "graphics.h"
+#include "keycodes.h"
 #include "memory.h"
 #include "mmb4l.h"
 #include "mmtime.h"
@@ -524,7 +525,7 @@ int TextChanged;      // true if the program has been modified and therefor a sa
 MmResult pmeditor_set_cursor(int x, int y) {
     ON_FAILURE_RETURN(
             pmeditor_graphics_set_cursor(x * gui_font_width, y * gui_font_height));
-    console_set_cursor_char_pos(x, y);
+    console_set_cursor_pos(x, y);
     pmeditor_cursor_x = x;
     pmeditor_cursor_y = y;
     return kOk;

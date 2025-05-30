@@ -19,6 +19,10 @@ const char *events_last_error() { return ""; }
 const char *gamepad_last_error() { return ""; }
 const char *graphics_last_error() { return ""; }
 
+// Defined in "common/file.c"
+MmResult file_getcwd(char *buf, size_t size) { return kError; }
+MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) { return kError; }
+
 }
 
 #define OPTIONS_TEST_DIR  TMP_DIR "/OptionsTest"

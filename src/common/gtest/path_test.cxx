@@ -10,8 +10,23 @@
 
 extern "C" {
 
+#include "stubs/error_stubs.h"
 #include "../path.h"
 #include "../utility.h"
+
+// Defined in "main.c"
+int MMgetchar(void) { return 0; }
+
+// Defined in "common/console.c"
+char console_putc(char c) { return c; }
+size_t console_write(const char *buf, size_t sz) { return 0; }
+
+// Defined in "core/MMBasic.c"
+const char *GetIntAddress(const char *p) { return NULL; }
+long long int getinteger(char *p) { return 0; }
+void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc,
+              const char *delim) {}
+int LocalIndex = 0;
 
 }
 
