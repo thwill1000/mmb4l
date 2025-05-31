@@ -75,7 +75,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void CheckAbort(void);
 void FlashWriteInit();
 const char *llist(char *b, const char *p);
-int MMgetchar(void);
 void cmd_dummy(void);
 void op_equal(void);
 

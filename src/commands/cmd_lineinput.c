@@ -44,12 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string.h>
 
-#include "../common/file.h"
 #include "../common/mmb4l.h"
+#include "../common/mmgetchar.h"
+#include "../common/file.h"
 
 #define MMfputs(mmbstr, fnbr)  file_write(fnbr, mmbstr + 1, mmbstr[0])
-
-void MMgetline(int filenbr, char *p);
 
 void cmd_lineinput(void) {
     char *vp;

@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "file.h"
 #include "mmb4l.h"
+#include "mmgetchar.h"
 #include "path.h"
 #include "serial.h"
 #include "utility.h"

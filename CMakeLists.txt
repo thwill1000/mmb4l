@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024 Thomas Hugo Williams
+# Copyright (c) 2021-2025 Thomas Hugo Williams
 # License MIT <https://opensource.org/licenses/MIT>
 
 cmake_minimum_required(VERSION 3.14)

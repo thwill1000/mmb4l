@@ -45,12 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/mmb4l.h"
 #include "../common/cstring.h"
 #include "../common/display.h"
 #include "../common/error.h"
 #include "../common/file.h"
 #include "../common/keycodes.h"
+#include "../common/mmb4l.h"
+#include "../common/mmgetchar.h"
 #include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/utility.h"
@@ -62,7 +63,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_files_internal(const char *);      // cmd_files.c
 MmResult cmd_graphics_list(const char *p);  // cmd_graphics.c
 void cmd_option_list(const char *);         // cmd_option.c
-void MMgetline(int filenbr, char *p);
 
 static void ListProgram(const char *p, int all) {
     char b[STRINGSIZE];

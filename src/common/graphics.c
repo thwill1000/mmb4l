@@ -56,14 +56,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "graphics.h"
 #include "memory.h"
 #include "mmb4l.h"
+#include "mmgetchar.h"
 #include "path.h"
 #include "program.h"
 #include "sprite.h"
 #include "utility.h"
 #include "../third_party/spbmp.h"
 #include "../third_party/upng.h"
-
-void MMgetline(int filenbr, char *p);
 
 /** Sprite colours on CMM2. */
 const MmGraphicsColour GRAPHICS_CMM2_SPRITE_COLOURS[] = {
