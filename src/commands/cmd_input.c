@@ -46,10 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "../common/display.h"
-#include "../common/file.h"
 #include "../common/mmb4l.h"
-
-void MMgetline(int filenbr, char *p);
+#include "../common/mmgetchar.h"
 
 void cmd_input(void) {
     char s[STRINGSIZE];

@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "keycodes.h"
 #include "memory.h"
 #include "mmb4l.h"
+#include "mmgetchar.h"
 #include "mmtime.h"
 #include "program.h"
 #include "../core/commandtbl.h"
@@ -95,10 +96,6 @@ const char *ANSI_FG_CYAN       = "\033[36m";
 const char *ANSI_FG_WHITE      = "\033[37m";
 
 const char *llist(char *b, const char *p);
-int MMgetchar(void);
-
-//#include "Hardware_Includes.h"
-//#include "MMBasic_Includes.h"
 
 #define CTRLKEY(a) (a & 0x1f)
 

@@ -436,39 +436,6 @@ void CheckAbort(void) {
     }
 }
 
-// get a keystroke.  Will wait forever for input
-// if the char is a lf then replace it with a cr
-// unless it was preceded by a cr and in that case throw away the char
-// so console end of line is always cr
-int MMgetchar(void) {
-    static char prevchar = 0;
-    int c;
-    for (;;) {
-        display_show_cursor();
-        c = console_getc();
-        if (c == -1) {
-            if (!isatty(STDIN_FILENO)) {
-                // In this case there will never be anything to read.
-                if (MMCharPos > 1) display_puts("\r\n");
-                display_puts("Error: STDIN exhausted\r\n");
-                mmb_exit_code = 1;
-                display_hide_cursor();
-                longjmp(mark, JMP_QUIT);
-            }
-            nanosleep(&ONE_MILLISECOND, NULL);
-        // } else if (c == 3) {
-        //     longjmp(mark, JMP_BREAK); // jump back to the input prompt if CTRL-C
-        } else if (c == '\n' && prevchar == '\r') {
-            prevchar = 0;
-        } else {
-            break;
-        }
-    }
-    prevchar = c;
-    display_hide_cursor();
-    return c == '\n' ? '\r' : c;
-}
-
 // dump a memory area to the console
 // for debugging
 void dump(char *p, int nbr) {

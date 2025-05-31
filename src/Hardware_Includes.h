@@ -104,7 +104,6 @@ extern int IgnorePIN;
 #define ClearExternalIO()         // same
 
 void CheckAbort(void);
-int MMgetchar(void);
 
 extern char *CFunctionFlash;
 extern char *CFunctionLibrary;
