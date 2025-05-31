@@ -44,9 +44,6 @@ void MMgetline(int filenbr, char *p) { }
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
 
-// Defined in "common/console.c"
-void console_set_title(const char *title, bool command) { }
-
 // Defined in "common/gpio.c"
 void gpio_term() { }
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }

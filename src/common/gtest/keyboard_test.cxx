@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2024 Thomas Hugo Williams
+ * Copyright (c) 2024-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -15,7 +15,6 @@ int mod_state = 0x0;
 
 const char* SDL_GetKeyName(SDL_Keycode key) { return NULL; }
 SDL_Keymod SDL_GetModState() { return (SDL_Keymod) mod_state; }
-void console_put_keypress(char ch) { }
 
 }
 

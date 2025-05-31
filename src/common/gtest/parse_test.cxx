@@ -37,10 +37,6 @@ uint8_t mmb_exit_code = 0;
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
 
-// Defined in "common/console.c"
-int console_getc(void) { return -1; }
-void console_set_title(const char *title) { }
-
 // Defined in "common/fonttbl.c"
 void font_clear_user_defined(void) { }
 
