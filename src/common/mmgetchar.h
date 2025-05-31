@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-mmresult.c
+mmgetchar.h
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,26 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <string.h>
+#if !defined(MMB4L_GETCHAR)
+#define MMB4L_GETCHAR
 
-#include "../common/display.h"
-#include "../common/mmb4l.h"
-#include "../common/mmgetchar.h"
+int MMgetchar(void);
+void MMgetline(int filenbr, char *p);
 
-void cmd_print(void);
-void execute_other(void);
-
-void cmd_mmdebug(void) {
-    const char *p;
-    if ((p = checkstring(cmdline, "BREAK"))) {
-        while (true) {
-            display_puts("DEBUG> ");
-            MMgetline(0, inpbuf);
-            if ((p = checkstring(inpbuf, "CONTINUE"))) break;
-            execute_other();
-            memset(inpbuf, 0, STRINGSIZE);
-        }
-    } else {
-        cmd_print();
-    }
-}
+#endif // #if !defined(MMB4L_GETCHAR)

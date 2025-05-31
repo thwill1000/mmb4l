@@ -52,14 +52,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "fonttbl.h"
 #include "keycodes.h"
 #include "mmb4l.h"
+#include "mmgetchar.h"
 #include "parse.h"
 #include "path.h"
 #include "program.h"
 #include "utility.h"
 #include "../core/Commands.h"
 #include "../core/commandtbl.h"
-
-void MMgetline(int filenbr, char *p);
 
 #define ERROR_INVALID_FUNCTION_NAME  error_throw_ex(kInvalidName, "Invalid function name")
 #define ERROR_INVALID_HEX            ERROR_INVALID("hex word")

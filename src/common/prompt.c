@@ -47,14 +47,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 
 #include "display.h"
-#include "file.h"
 #include "keycodes.h"
 #include "mmb4l.h"
+#include "mmgetchar.h"
 #include "path.h"
 #include "prompt.h"
 #include "utility.h"
-
-void MMgetline(int filenbr, char *p);
 
 #define HISTORY_SIZE  4 * STRINGSIZE
 #define ERROR_LINE_TOO_LONG_TO_EDIT  error_throw_ex(kStringTooLong, "Line is too long to edit")

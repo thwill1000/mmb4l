@@ -33,12 +33,12 @@ Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 uint8_t mmb_exit_code = 0;
-int MMgetchar(void) { return 0; }
 
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
 
 // Defined in "common/console.c"
+int console_getc(void) { return -1; }
 void console_set_title(const char *title) { }
 
 // Defined in "common/fonttbl.c"
@@ -65,6 +65,9 @@ const char *TraceBuff[TRACE_BUFF_SIZE];
 int TraceOn;
 void CheckAbort(void) { }
 void ListNewLine(int *ListCnt, int all) { }
+
+// Defined in "core/MMBasic.c"
+int MMCharPos = 0;
 
 }
 
