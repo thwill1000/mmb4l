@@ -11,12 +11,12 @@
 #include "common/console.h"
 
 void console_key_to_string(int ch, char *buf);
-MmResult error_throw(MmResult result) { return result; }
-MmResult error_throw_ex(MmResult result, const char *msg, ...) { return result; }
-const char *audio_last_error() { return ""; }
-const char *events_last_error() { return ""; }
-const char *gamepad_last_error() { return ""; }
-const char *graphics_last_error() { return ""; }
+// MmResult error_throw(MmResult result) { return result; }
+// MmResult error_throw_ex(MmResult result, const char *msg, ...) { return result; }
+// const char *audio_last_error() { return ""; }
+// const char *events_last_error() { return ""; }
+// const char *gamepad_last_error() { return ""; }
+// const char *graphics_last_error() { return ""; }
 
 volatile int MMAbort;
 Options mmb_options;

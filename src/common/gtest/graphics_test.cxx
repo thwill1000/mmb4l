@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Thomas Hugo Williams
+ * Copyright (c) 2024-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -28,23 +28,12 @@ void CheckAbort(void) {}
 int MMgetchar(void) { return 0; }
 void MMgetline(int fnbr, char *p) {}
 
-// Defined in "common/audio.c"
-const char *audio_last_error() { return NULL; }
-
 // Defined in "common/keyboard.c"
 MmResult keyboard_key_down(const SDL_Keysym *keysym) { return kError; }
 MmResult keyboard_key_up(const SDL_Keysym *keysym) { return kError; }
 
 // Defined in "common/program.c"
 char CurrentFile[STRINGSIZE];
-
-// Defined in "common/serial.c"
-MmResult serial_close(int fnbr) { return kError; }
-int serial_eof(int fnbr) { return -1; }
-int serial_getc(int fnbr) { return -1; }
-int serial_putc(int fnbr, int ch) { return -1; }
-int serial_rx_queue_size(int fnbr) { return -1; }
-int serial_write(int fnbr, const char *buf, size_t sz) { return -1; }
 
 // Defined in "common/spbmp.c"
 void spbmp_init(
