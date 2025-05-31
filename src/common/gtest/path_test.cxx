@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2024 Thomas Hugo Williams
+ * Copyright (c) 2021-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -16,10 +16,6 @@ extern "C" {
 
 // Defined in "main.c"
 int MMgetchar(void) { return 0; }
-
-// Defined in "common/console.c"
-char console_putc(char c) { return c; }
-size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "core/MMBasic.c"
 const char *GetIntAddress(const char *p) { return NULL; }
