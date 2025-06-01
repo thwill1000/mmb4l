@@ -147,7 +147,7 @@ int file_getc(int fnbr) {
             char ch;
             if (fread(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
                 if (ferror(file_table[fnbr].file_ptr) == 0) {
-                    ch = -1;
+                    return -1;
                 } else {
                     error_throw(errno);
                 }
