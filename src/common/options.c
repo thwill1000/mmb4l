@@ -120,7 +120,7 @@ static const NameOrdinalPair options_resolution_map[] = {
     { NULL,        -1 }
 };
 
-static const NameOrdinalPair options_simulate_map[] = {
+const NameOrdinalPair options_simulate_map[] = {
     { "MMB4L",             kSimulateMmb4l },
     { "MMBasic for Windows", kSimulateMmb4w },
     { "MMB4W",             kSimulateMmb4w },
@@ -130,6 +130,7 @@ static const NameOrdinalPair options_simulate_map[] = {
     { "PicoMiteVGA",       kSimulatePicomiteVga },
     { "PicoMiteVGAUSB",    kSimulatePicomiteVgaUsb },
     { "Game*Mite",         kSimulateGamemite },
+    { "GameMite",          kSimulateGamemite },
     { NULL,    -1 }
 };
 
@@ -924,13 +925,10 @@ static MmResult options_set_search_path(Options *options, const char *svalue) {
 }
 
 static MmResult options_set_simulate(Options *options, const char *svalue) {
-    for (const NameOrdinalPair *entry = options_simulate_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
-            options->simulate = entry->ordinal;
-            return kOk;
-        }
-    }
-    return kInvalidValue;
+    int match = options_lookup_simulate(svalue);
+    if (match == -1) return kInvalidValue;
+    options->simulate = (OptionsSimulate) match;
+    return kOk;
 }
 
 static MmResult options_set_tab(Options *options, int ivalue) {
@@ -1045,4 +1043,13 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
 
         default: return kUnknownOption;
     }
+}
+
+int options_lookup_simulate(const char *s) {
+    for (const NameOrdinalPair *entry = options_simulate_map; entry->name; ++entry) {
+        if (strcasecmp(s, entry->name) == 0) {
+            return entry->ordinal;
+        }
+    }
+    return -1;
 }

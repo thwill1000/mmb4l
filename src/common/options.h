@@ -230,4 +230,9 @@ MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER iva
 /** @brief Sets the value for the given option from a C-string. */
 MmResult options_set_string_value(Options *options, OptionsId id, const char *svalue);
 
+/**
+ * Gets the OptionsSimulate enum value corresponding to a string, or -1 if unmatched.
+ */
+int options_lookup_simulate(const char *s);
+
 #endif // #if !defined(MMB4L_OPTIONS_H)

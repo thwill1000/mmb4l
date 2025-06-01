@@ -373,12 +373,15 @@ add_executable(
   test_cmd_run
   src/commands/cmd_run.c
   src/commands/gtest/cmd_run_test.cxx
+  src/common/codepage.c
   src/common/cstring.c
   src/common/features.c
   src/common/fonttbl.c
   src/common/memory.c
   src/common/mmresult.c
+  src/common/options.c
   src/common/parse.c
+  src/common/path.c
   src/common/utility.c
   src/common/gtest/stubs/audio_stubs.c
   src/common/gtest/stubs/error_stubs.c
