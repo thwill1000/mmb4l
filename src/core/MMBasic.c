@@ -2397,7 +2397,6 @@ void ClearRuntime(void) {
     mmb_options.codepage = NULL;
     mmb_options.simulate = kSimulateMmb4l;
     features_init(&mmb_features, mmb_options.simulate);
-    mmb_options.resolution = kCharacter;
 #endif
 #if defined(MICROMITE) && !defined(LITE)
     ds18b20Timers = NULL;                                           // InitHeap() will recover the memory allocated to this array
