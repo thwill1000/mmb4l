@@ -82,7 +82,6 @@ static void expect_options_have_defaults(Options *options) {
     EXPECT_STREQ("", options->fn_keys[11]);
     EXPECT_EQ(0, options->height);
     EXPECT_EQ(kTitle, options->list_case);
-    EXPECT_EQ(kCharacter, options->resolution);
     EXPECT_STREQ("", options->search_path);
     EXPECT_EQ(4, options->tab);
     EXPECT_EQ(0, options->width);
@@ -664,9 +663,6 @@ TEST_F(OptionsTest, GetDisplayValue) {
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionF11, svalue));
     EXPECT_STREQ("<unset>", svalue);
 
-    EXPECT_EQ(kOk, options_get_display_value(&options, kOptionResolution, svalue));
-    EXPECT_STREQ("Character", svalue);
-
     EXPECT_EQ(kOk, options_get_display_value(&options, kOptionSearchPath, svalue));
     EXPECT_STREQ("<unset>", svalue);
 
@@ -1093,20 +1089,6 @@ TEST_F(OptionsTest, GetStringValue_ForListCase) {
     options.list_case = kUpper;
     EXPECT_EQ(kOk, options_get_string_value(&options, kOptionListCase, svalue));
     EXPECT_STREQ("Upper", svalue);
-}
-
-TEST_F(OptionsTest, GetStringValue_ForResolution) {
-    Options options;
-    options_init(&options);
-    char svalue[STRINGSIZE];
-
-    options.resolution = kCharacter;
-    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionResolution, svalue));
-    EXPECT_STREQ("Character", svalue);
-
-    options.resolution = kPixel;
-    EXPECT_EQ(kOk, options_get_string_value(&options, kOptionResolution, svalue));
-    EXPECT_STREQ("Pixel", svalue);
 }
 
 TEST_F(OptionsTest, GetStringValue_ForSearchPath) {
@@ -1588,23 +1570,6 @@ TEST_F(OptionsTest, SetStringValue_ForListCase) {
     EXPECT_EQ(kLower, options.list_case);
 
     EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionListCase, "wombat"));
-}
-
-TEST_F(OptionsTest, SetStringValue_ForResolution) {
-    Options options;
-    options_init(&options);
-
-    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionResolution, "Character"));
-    EXPECT_EQ(kCharacter, options.resolution);
-
-    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionResolution, "Pixel"));
-    EXPECT_EQ(kPixel, options.resolution);
-
-    // Test case-insensitivity.
-    EXPECT_EQ(kOk, options_set_string_value(&options, kOptionResolution, "CHARacter"));
-    EXPECT_EQ(kCharacter, options.resolution);
-
-    EXPECT_EQ(kInvalidValue, options_set_string_value(&options, kOptionResolution, "wombat"));
 }
 
 TEST_F(OptionsTest, SetStringValue_ForSearchPath) {
