@@ -170,12 +170,20 @@ void console_puts(const char *s);
 void console_reset(void);
 
 /**
- * Sets the cursor position.
+ * Sets the cursor position in character coordinates.
  *
  * @param  x  the new x-position.
  * @param  y  the new y-position.
  */
-void console_set_cursor_pos(int x, int y);
+void console_set_cursor_char_pos(int x, int y);
+
+/**
+ * Sets the cursor position in pixel coordinates.
+ *
+ * @param  x  the new x-position.
+ * @param  y  the new y-position.
+ */
+void console_set_cursor_pixel_pos(int x, int y);
 
 /**
  * Resizes the console.
