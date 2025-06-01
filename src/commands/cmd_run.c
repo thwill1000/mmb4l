@@ -42,15 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <string.h>
+
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
+#include "../common/flash.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 #include "../core/tokentbl.h"
-
-#include <string.h>
-
-#define ERROR_NOTHING_TO_RUN  error_throw_ex(kError, "Nothing to run")
 
 char cmd_run_args[STRINGSIZE];
 
@@ -139,30 +138,48 @@ static void cmd_run_transform_legacy_args(char *run_args) {
  * Parses filename and RUN arguments from a token buffer.
  *
  * @param[in]   p            pointer to the buffer.
+ * @param[out]  simulate     on exit the device/platform to simulate.
  * @param[out]  filename     buffer to hold the filename, should be at least STRINGSIZE.
  * @param[in,out]  run_args  buffer to hold the RUN args, should be at least STRINGSIZE.
  *                             on entry: the RUN args that were passed to the current program.
  *                             on exit:  the RUN args to pass to the new program.
  * @return                   kOk on success.
  */
-MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args) {
+MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *filename,
+                            char *run_args) {
+    *simulate = kSimulateMmb4l;
     *filename = '\0';
 
     // WARNING! do not clear 'run_args' at the start of this function,
     // its existing value may need to be evaluated to calculate its new value.
 
-    skipspace(p);
-    if (!*p || *p == '\'') {
-        *run_args = '\0';
-        return kOk;
-    }
-
-    getargs(&p, 3, DELIM_COMMA);
+    const DelimType delim[] = { ',', tokenAS, 0 };
+    getargs(&p, 5, delim);
     int filename_idx = -1;  // Index into argv[] for filename.
     int run_args_idx = -1;  // Index into argv[] for additional arguments.
 
+    // Check for trailing "AS <simulate option>".
+    if (argc >= 2 && tokentbl_peek(argv[argc - 2]) == tokenAS) {
+        // First check for the <device> as a "keyword".
+        int match = options_lookup_simulate(argv[argc - 1]);
+
+        // If unmatched then check for the <device> as a string.
+        if (match == -1) {
+            const char *s = getCstring(argv[argc - 1]);
+            match = options_lookup_simulate(s);
+        }
+
+        if (match == -1) ON_FAILURE_RETURN(kUnknownDevice);
+
+        *simulate = (OptionsSimulate) match;
+        argc -= 2;
+    }
+
     // Note for legacy compatibility we need to allow the trailing comma.
-    if (argc == 1 && *(argv[0]) == ',') {
+    if (argc == 0) {
+        // RUN
+        // Do nothing.
+    } else if (argc == 1 && *(argv[0]) == ',') {
         // RUN ,
         // Don't set filename, and clear cmd_run_args.
     } else if (argc == 1) {
@@ -171,15 +188,15 @@ MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args) {
     } else if (argc == 2 && *(argv[0]) == ',') {
         // RUN , args$
         run_args_idx = 1;
-    } else if (argc == 2) {
+    } else if (argc == 2 && (*argv[1]) == ',') {
         // RUN file$ ,
         filename_idx = 0;
-    } else if (argc == 3) {
+    } else if (argc == 3 && (*argv[1]) == ',') {
         // RUN file$ , args$
         filename_idx = 0;
         run_args_idx = 2;
     } else {
-        return kInternalFault;
+        return kSyntax;
     }
 
     if (filename_idx >= 0) strcpy(filename, getCstring(argv[0]));
@@ -199,27 +216,31 @@ MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args) {
 }
 
 void cmd_run(void) {
+    OptionsSimulate simulate = kSimulateMmb4l;
     char filename[STRINGSIZE];  // Filename to RUN.
 
-    MmResult result = cmd_run_parse_args(cmdline, filename, cmd_run_args);
-    if (FAILED(result)) {
-        error_throw(result);
-        return;
-    }
+    ON_FAILURE_ERROR(cmd_run_parse_args(cmdline, &simulate, filename, cmd_run_args));
 
     if (!*filename) {
         if (*CurrentFile != '\0') {
             strcpy(filename, CurrentFile);
         } else {
-            ERROR_NOTHING_TO_RUN;
-            return;
+            ON_FAILURE_ERROR(mmresult_ex(kError, "Nothing to run"));
         }
     }
 
-    result = program_load_file(filename);
-    if (FAILED(result)) error_throw(result);
+    ON_FAILURE_ERROR(program_load_file(filename));
 
     ClearRuntime();
+
+    if (simulate != mmb_options.simulate) {
+        mmb_options.simulate = simulate;
+        // TODO: Eliminate duplication with cmd_option().
+        ON_FAILURE_ERROR(features_init(&mmb_features, simulate));
+        ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
+        ON_FAILURE_ERROR(mmb_features.has_cmd_flash ? flash_init() : flash_term());
+    }
+
     WatchdogSet = false;
     PrepareProgram(true);
     IgnorePIN = false;

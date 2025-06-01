@@ -40,7 +40,8 @@ void cmd_read_clear_cache()  { }
 extern char cmd_run_args[STRINGSIZE];
 
 // Defined in "commands/cmd_run.c"
-MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args);
+MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *filename,
+                            char *run_args);
 
 // Defined in "common/console.c"
 void console_puts(const char *s) { }
@@ -48,12 +49,18 @@ void console_puts(const char *s) { }
 // Defined in "common/file.c"
 void file_close_all(void) { }
 
+// Defined in "common/flash.c"
+MmResult flash_init() { return kOk; }
+MmResult flash_term() { return kOk; }
+
 // Defined in "common/gpio.c"
 void gpio_term() { }
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
-// Defined in "common/path.c"
-MmResult path_munge(const char *original_path, char *new_path, size_t sz) { return kOk; }
+// Defined in "common/graphics.c"
+MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColour background) {
+    return kOk;
+}
 
 // Defined in "common/program.c"
 char CurrentFile[STRINGSIZE];
@@ -78,10 +85,12 @@ class CmdRunTest : public ::testing::Test {
 
 protected:
 
+    OptionsSimulate m_simulate;
     char m_filename[STRINGSIZE];
     char m_run_args[STRINGSIZE];
 
     void SetUp() override {
+        m_simulate = kSimulateMmb4l;
         *m_filename = '\0';
         *m_run_args = '\0';
         vartbl_init_called = false;
@@ -113,7 +122,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenEmptyString) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("", m_filename);
     EXPECT_STREQ("", m_run_args);
 }
@@ -123,7 +132,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenJustAComma) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("", m_filename);
     EXPECT_STREQ("", m_run_args);
 }
@@ -133,7 +142,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenFilename) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("", m_run_args);
 }
@@ -143,7 +152,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenFilenameWithTrailingComma) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("", m_run_args);
 }
@@ -153,7 +162,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenCmdArgs) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("", m_filename);
     EXPECT_STREQ("foo", m_run_args);
 }
@@ -163,7 +172,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenFilenameAndCmdArgs) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("bar", m_run_args);
 }
@@ -173,7 +182,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenStringExpressions) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foobar", m_filename);
     EXPECT_STREQ("wombat", m_run_args);
 }
@@ -184,7 +193,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenNewCmdArgsDependOnExistingMmCmdLine) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foobar", m_filename);
     EXPECT_STREQ("wombat", m_run_args);
 }
@@ -195,7 +204,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("-wom bat", m_run_args);
 
@@ -205,7 +214,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("my/menu/menu.bas", m_filename);
     EXPECT_STREQ("menu_item", m_run_args);
 
@@ -215,7 +224,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("--wom bat", m_run_args);
 
@@ -225,7 +234,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("-wom=bat", m_run_args);
 
@@ -235,7 +244,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("wom-bat=2", m_run_args);
 
@@ -244,7 +253,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("-wom bat", m_run_args);
 
@@ -254,7 +263,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("/ - = - / = -", m_run_args);
 
@@ -263,7 +272,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("wom -bat", m_run_args);
 
@@ -272,7 +281,7 @@ TEST_F(CmdRunTest, ParseArgs_GivenLegacyArgs) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("foo", m_filename);
     EXPECT_STREQ("-wom \"/-=-/=- -WOM BAT  \" bat", m_run_args);
 }
@@ -284,7 +293,7 @@ TEST_F(CmdRunTest, ParseArgs_DoesNotOverrunBuffer) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("", error_msg);
     EXPECT_STREQ("foo", m_filename);
     EXPECT_EQ(255, strlen(m_run_args));
@@ -302,7 +311,61 @@ TEST_F(CmdRunTest, ParseArgs_GivenJustAComment) {
     tokenise(1);
     EXPECT_EQ(
         kOk,
-        cmd_run_parse_args(tknbuf + sizeof(CommandToken), m_filename, m_run_args));
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
     EXPECT_STREQ("", m_filename);
     EXPECT_STREQ("", m_run_args);
+}
+
+TEST_F(CmdRunTest, ParseArgs_GivenAsKnownSimulationOption_Succeeds) {
+    strcpy(inpbuf, "RUN AS cmm2");
+    tokenise(1);
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
+    EXPECT_EQ(kSimulateCmm2, m_simulate);
+    EXPECT_STREQ("", m_filename);
+    EXPECT_STREQ("", m_run_args);
+}
+
+TEST_F(CmdRunTest, ParseArgs_GivenAsUnknownSimulationOption_ReportsUnknownDeviceError) {
+    strcpy(inpbuf, "RUN AS foo");
+    tokenise(1);
+    EXPECT_EQ(
+        kUnknownDevice,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
+}
+
+TEST_F(CmdRunTest, ParseArgs_GivenAsKnownSimulationOptionString_Succeeds) {
+    strcpy(inpbuf, "RUN AS \"PicoMiteVGA\"");
+    tokenise(1);
+    EXPECT_EQ(
+        kOk,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
+    EXPECT_EQ(kSimulatePicomiteVga, m_simulate);
+    EXPECT_STREQ("", m_filename);
+    EXPECT_STREQ("", m_run_args);
+}
+
+TEST_F(CmdRunTest, ParseArgs_GivenAsUnknownSimulationOptionString_ReportsUnknownDeviceError) {
+    strcpy(inpbuf, "RUN AS \"foo\"");
+    tokenise(1);
+    EXPECT_EQ(
+        kUnknownDevice,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
+}
+
+TEST_F(CmdRunTest, ParseArgs_GivenTrailingAs_ReportsSyntaxError) {
+    strcpy(inpbuf, "RUN \"foo\" AS");
+    tokenise(1);
+    EXPECT_EQ(
+        kSyntax,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
+}
+
+TEST_F(CmdRunTest, ParseArgs_GivenAsBetweenFileAndArgs_ReportsSyntaxError) {
+    strcpy(inpbuf, "RUN \"foo\" AS \"bar\" AS cmm2");
+    tokenise(1);
+    EXPECT_EQ(
+        kSyntax,
+        cmd_run_parse_args(tknbuf + sizeof(CommandToken), &m_simulate, m_filename, m_run_args));
 }
