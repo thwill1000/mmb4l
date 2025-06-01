@@ -53,13 +53,13 @@ void fun_at(void) {
     if (commandfunction(cmdtoken) != cmd_print) ERROR_INVALID("function");
     if (argc != 3) ERROR_ARGUMENT_COUNT;
 
-    int64_t x = getinteger(argv[0]);
-    int64_t y = getinteger(argv[2]);
+    int x = (int) getinteger(argv[0]);
+    int y = (int) getinteger(argv[2]);
 
     if (x < 0) ERROR_INVALID("x-coordinate");
     if (y < 0) ERROR_INVALID("y-coordinate");
 
-    console_set_cursor_pos((int) x, (int) y);
+    console_set_cursor_char_pos(x, y);
 
     targ = T_STR;
     sret = GetTempStrMemory();
