@@ -159,9 +159,9 @@ static void cmd_console_reset(const char *p) {
 static void cmd_console_set_cursor(const char *p) {
     getargs(&p, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
-    int x = getint(argv[0], 0, MAX_CURSOR_X);
-    int y = getint(argv[2], 0, MAX_CURSOR_Y);
-    console_set_cursor_pos(x, y);
+    const int x = (int) getint(argv[0], 0, MAX_CURSOR_X);
+    const int y = (int) getint(argv[2], 0, MAX_CURSOR_Y);
+    console_set_cursor_char_pos(x, y);
 }
 
 static void cmd_console_set_size(const char *p) {

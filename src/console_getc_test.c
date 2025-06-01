@@ -21,6 +21,13 @@ const char *graphics_last_error() { return ""; }
 volatile int MMAbort;
 Options mmb_options;
 
+// Defined in "common/fonttbl.c"
+uint32_t font_height(uint32_t font) { return 12; }
+uint32_t font_width(uint32_t font) { return 8; }
+
+// Defined in "common/graphics.c"
+uint32_t graphics_font;
+
 bool interrupt_check_key_press(char ch) { return false; }
 
 void CheckAbort(void) { console_pump_input(); }

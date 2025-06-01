@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_cursor(void) {
     getargs(&cmdline, 3, DELIM_COMMA);
     if (argc != 3) ERROR_ARGUMENT_COUNT;
-    int x = getint(argv[0], 0, 255);
-    int y = getint(argv[2], 0, 255);
-    console_set_cursor_pos(x, y);
+    const int x = (int) getint(argv[0], 0, 255);
+    const int y = (int) getint(argv[2], 0, 255);
+    console_set_cursor_char_pos(x, y);
 }
