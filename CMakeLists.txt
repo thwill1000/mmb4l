@@ -157,6 +157,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
 
 set(MMB4L_FUNCTIONS_SOURCE_FILES
     src/functions/fun_at.c
+    src/functions/fun_atchar.c
     src/functions/fun_atan2.c
     src/functions/fun_bin.c
     src/functions/fun_bin2str.c
@@ -224,6 +225,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/codepage.c
     src/common/console.c
     src/common/cstring.c
+    src/common/display.c
     src/common/error.c
     src/common/events.c
     src/common/features.c
@@ -445,6 +447,37 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_cstring)
+
+################################################################################
+# test_display
+################################################################################
+
+add_executable(
+  test_display
+  src/common/display.c
+  src/common/mmresult.c
+  # src/common/features.c
+  src/common/fonttbl.c
+  src/common/gtest/display_test.cxx
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/events_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/sdl2_stubs.c
+)
+
+target_include_directories(test_display PUBLIC
+  /usr/include/SDL2
+)
+
+target_link_libraries(
+  test_display
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_display)
 
 ################################################################################
 # test_funtbl

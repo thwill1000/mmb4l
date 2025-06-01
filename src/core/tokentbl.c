@@ -64,6 +64,7 @@ int tokentbl_size;
  */
 const struct s_tokentbl tokentbl[] = {
     { "@(",          T_FUN | T_STR,      0, fun_at       },
+    { "@c(",         T_FUN | T_STR,      0, fun_atchar   },
     { "Abs(",        T_FUN | T_NBR | T_INT, 0, fun_abs   },
     { "ACos(",       T_FUN | T_NBR,      0, fun_acos     },
     { "Asc(",        T_FUN | T_INT,      0, fun_asc      },

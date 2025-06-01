@@ -1,0 +1,187 @@
+/*
+ * Copyright (c) 2025 Thomas Hugo Williams
+ * License MIT <https://opensource.org/licenses/MIT>
+ */
+
+#include <gtest/gtest.h>
+
+extern "C" {
+
+#include "../display.h"
+#include "../graphics.h"
+
+#define FONT_1_WIDTH   8
+#define FONT_1_HEIGHT  12
+
+int (*mock_console_get_cursor_pos)(int *, int *, int);
+int (*mock_console_get_size)(int *, int *, int);
+void (*mock_console_set_cursor_pos)(int, int);
+
+int console_cursor_x;
+int console_cursor_y;
+int console_width;
+int console_height;
+
+// Defined in "common/console.c"
+int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
+    return mock_console_get_cursor_pos(x, y, timeout_ms);
+}
+int console_get_size(int *width, int *height, int timeout_ms) {
+    return mock_console_get_size(width, height, timeout_ms);
+}
+void console_set_cursor_pos(int x, int y) {
+    mock_console_set_cursor_pos(x, y);
+}
+
+// Defined in "common/graphics.c"
+MmSurface *graphics_current = NULL;
+uint32_t graphics_font = (1 << 4) + 1; // Font 1, Scale 1.
+const char* graphics_last_error() { return ""; }
+
+MmSurface graphics_display;
+
+} // extern "C"
+
+class DisplayTest : public ::testing::Test {
+
+protected:
+
+    void SetUp() override {
+        console_cursor_x = 30;
+        console_cursor_y = 60;
+        console_width = 80;
+        console_height = 40;
+        mock_console_get_cursor_pos = [](int *x, int *y, int timeout_ms) {
+            *x = console_cursor_x;
+            *y = console_cursor_y;
+            return 0;
+        };
+        mock_console_get_size = [](int *width, int *height, int timeout_ms) {
+            *width = console_width;
+            *height = console_height;
+            return 0;
+        };
+        mock_console_set_cursor_pos = [](int x, int y) {
+            console_cursor_x = x;
+            console_cursor_y = y;
+        };
+        graphics_display.height = 480;
+        graphics_display.width = 640;
+    }
+
+    void TearDown() override { }
+};
+
+void GivenGraphicsDisplay() {
+    graphics_current = &graphics_display;
+}
+
+void GivenConsoleDisplay() {
+    graphics_current = NULL;
+}
+
+void GivenConsoleGetCursorPosFails() {
+    mock_console_get_cursor_pos = [](int *x, int *y, int timeout_ms) { return -1; };
+}
+
+void GivenConsoleGetSizeFails() {
+    mock_console_get_size = [](int *width, int *height, int timeout_ms) { return -1; };
+}
+
+TEST_F(DisplayTest, GetCursorPos_InPixels_GivenGraphicsDisplay_FailsWithUnimplementedError) {
+    GivenGraphicsDisplay();
+    int x, y;
+    EXPECT_EQ(kUnimplemented, display_get_cursor_pos(true, &x, &y));
+}
+
+TEST_F(DisplayTest, GetCursorPos_InPixels_GivenConsoleDisplay_Succeeds) {
+    GivenConsoleDisplay();
+    int x, y;
+    EXPECT_EQ(kOk, display_get_cursor_pos(true, &x, &y));
+    EXPECT_EQ(30 * FONT_1_WIDTH, x);
+    EXPECT_EQ(60 * FONT_1_HEIGHT, y);
+};
+
+TEST_F(DisplayTest, GetCursorPos_InCharacters_GivenGraphicsDisplay_FailsWithUnimplementedError) {
+    GivenGraphicsDisplay();
+    int x, y;
+    EXPECT_EQ(kUnimplemented, display_get_cursor_pos(false, &x, &y));
+}
+
+TEST_F(DisplayTest, GetCursorPos_InCharacters_GivenConsoleDisplay_Succeeds) {
+    GivenConsoleDisplay();
+    int x, y;
+    EXPECT_EQ(kOk, display_get_cursor_pos(false, &x, &y));
+    EXPECT_EQ(30, x);
+    EXPECT_EQ(60, y);
+}
+
+TEST_F(DisplayTest, GetCursorPos_GivenConsoleDisplay_AndConsoleGetCursorPosFails_Fails) {
+    GivenConsoleDisplay();
+    GivenConsoleGetCursorPosFails();
+    int x, y;
+    EXPECT_EQ(kError, display_get_cursor_pos(false, &x, &y));
+}
+
+TEST_F(DisplayTest, GetSize_InPixels_GivenGraphicsDisplay_Succeeds) {
+    GivenGraphicsDisplay();
+    int w, h;
+    EXPECT_EQ(kOk, display_get_size(true, &w, &h));
+    EXPECT_EQ(640, w);
+    EXPECT_EQ(480, h);
+}
+
+TEST_F(DisplayTest, GetSize_InPixels_GivenConsoleDisplay_Succeeds) {
+    GivenConsoleDisplay();
+    int w, h;
+    EXPECT_EQ(kOk, display_get_size(true, &w, &h));
+    EXPECT_EQ(80 * FONT_1_WIDTH, w);
+    EXPECT_EQ(40 * FONT_1_HEIGHT, h);
+}
+
+TEST_F(DisplayTest, GetSize_InCharacters_GivenGraphicsDisplay_Succeeds) {
+    GivenGraphicsDisplay();
+    int w, h;
+    EXPECT_EQ(kOk, display_get_size(false, &w, &h));
+    EXPECT_EQ(640 / FONT_1_WIDTH, w);
+    EXPECT_EQ(480 / FONT_1_HEIGHT, h);
+}
+
+TEST_F(DisplayTest, GetSize_InCharacters_GivenConsoleDisplay_Succeeds) {
+    GivenConsoleDisplay();
+    int w, h;
+    EXPECT_EQ(kOk, display_get_size(false, &w, &h));
+    EXPECT_EQ(80, w);
+    EXPECT_EQ(40, h);
+}
+
+TEST_F(DisplayTest, GetSize_GivenConsoleDisplay_AndConsoleGetSizeFails_Fails) {
+    GivenConsoleDisplay();
+    GivenConsoleGetSizeFails();
+    int w, h;
+    EXPECT_EQ(kError, display_get_size(false, &w, &h));
+}
+
+TEST_F(DisplayTest, SetCursorPos_InPixels_GivenGraphicsDisplay_FailsWithUnimplementedError) {
+    GivenGraphicsDisplay();
+    EXPECT_EQ(kUnimplemented, display_set_cursor_pos(true, 100, 200));
+}
+
+TEST_F(DisplayTest, SetCursorPos_InPixels_GivenConsoleDisplay_Succeeds) {
+    GivenConsoleDisplay();
+    EXPECT_EQ(kOk, display_set_cursor_pos(true, 100, 200));
+    EXPECT_EQ((int) (100 / FONT_1_WIDTH), console_cursor_x);
+    EXPECT_EQ((int) (200 / FONT_1_HEIGHT), console_cursor_y);
+}
+
+TEST_F(DisplayTest, SetCursorPos_InCharacters_GivenGraphicsDisplay_FailsWithUnimplementedError) {
+    GivenGraphicsDisplay();
+    EXPECT_EQ(kUnimplemented, display_set_cursor_pos(false, 100, 200));
+}
+
+TEST_F(DisplayTest, SetCursorPos_InCharacters_GivenConsoleDisplay_Succeeds) {
+    GivenConsoleDisplay();
+    EXPECT_EQ(kOk, display_set_cursor_pos(false, 10, 20));
+    EXPECT_EQ(10, console_cursor_x);
+    EXPECT_EQ(20, console_cursor_y);
+}

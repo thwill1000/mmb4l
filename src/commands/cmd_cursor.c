@@ -51,5 +51,5 @@ void cmd_cursor(void) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
     const int x = (int) getint(argv[0], 0, 255);
     const int y = (int) getint(argv[2], 0, 255);
-    console_set_cursor_char_pos(x, y);
+    console_set_cursor_pos(x, y);
 }
