@@ -114,12 +114,6 @@ static const NameOrdinalPair options_list_case_map[] = {
     { NULL,    -1 }
 };
 
-static const NameOrdinalPair options_resolution_map[] = {
-    { "Character", kCharacter },
-    { "Pixel",     kPixel },
-    { NULL,        -1 }
-};
-
 const NameOrdinalPair options_simulate_map[] = {
     { "MMB4L",             kSimulateMmb4l },
     { "MMBasic for Windows", kSimulateMmb4w },
@@ -158,7 +152,6 @@ OptionsDefinition options_definitions[] = {
     { "F10",         kOptionF10,          kOptionTypeString,  true,  "RUN \"\"\202",            NULL },
     { "F11",         kOptionF11,          kOptionTypeString,  true,  "",                        NULL },
     { "F12",         kOptionF12,          kOptionTypeString,  true,  "",                        NULL },
-    { "Resolution",  kOptionResolution,   kOptionTypeString,  false, "Character",               options_resolution_map },
     { "Search Path", kOptionSearchPath,   kOptionTypeString,  true,  "",                        NULL },
     { "Simulate",    kOptionSimulate,     kOptionTypeString,  false, "MMB4L",                   options_simulate_map },
     { "Tab",         kOptionTab,          kOptionTypeInteger, true,  "4",                       NULL },
@@ -743,14 +736,6 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
                     svalue);
             break;
 
-        case kOptionResolution:
-            assert(options->resolution >= kCharacter && options->resolution <= kPixel);
-            options_ordinal_to_name(
-                    options_definitions[kOptionResolution].enum_map,
-                    options->resolution,
-                    svalue);
-            break;
-
         case kOptionSearchPath:
             strcpy(svalue, options->search_path);
             break;
@@ -898,16 +883,6 @@ static MmResult options_set_list_case(Options *options, const char *svalue) {
     return kInvalidValue;
 }
 
-static MmResult options_set_resolution(Options *options, const char *svalue) {
-    for (const NameOrdinalPair *entry = options_resolution_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
-            options->resolution = entry->ordinal;
-            return kOk;
-        }
-    }
-    return kInvalidValue;
-}
-
 static MmResult options_set_search_path(Options *options, const char *svalue) {
     if (svalue[0] == '\0') {
         strcpy(options->search_path, "");
@@ -1030,7 +1005,6 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
         case kOptionF11:
         case kOptionF12:          return options_set_fn_key(options, id, svalue);
         case kOptionListCase:     return options_set_list_case(options, svalue);
-        case kOptionResolution:   return options_set_resolution(options, svalue);
         case kOptionSearchPath:   return options_set_search_path(options, svalue);
         case kOptionSimulate:     return options_set_simulate(options, svalue);
 

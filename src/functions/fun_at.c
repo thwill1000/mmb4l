@@ -59,7 +59,7 @@ void fun_at(void) {
     if (x < 0) ERROR_INVALID("x-coordinate");
     if (y < 0) ERROR_INVALID("y-coordinate");
 
-    console_set_cursor_char_pos(x, y);
+    console_set_cursor_pixel_pos(x, y);
 
     targ = T_STR;
     sret = GetTempStrMemory();

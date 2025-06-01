@@ -87,7 +87,6 @@ typedef enum {
     kOptionF10,
     kOptionF11,
     kOptionF12,
-    kOptionResolution,
     kOptionSearchPath,
     kOptionSimulate,
     kOptionTab,
@@ -142,8 +141,6 @@ typedef enum {
 
 typedef enum { kTitle, kLower, kUpper } OptionsListCase;
 
-typedef enum { kCharacter, kPixel } OptionsResolution;
-
 typedef struct {
     OptionsAngle angle;
     int autorun;
@@ -159,7 +156,6 @@ typedef struct {
     char fn_keys[OPTIONS_NUM_FN_KEYS][OPTIONS_MAX_FN_KEY_LEN + 1];
     int  height;
     OptionsListCase list_case;
-    OptionsResolution resolution;
     char search_path[STRINGSIZE];
     OptionsSimulate simulate;
     char tab;
