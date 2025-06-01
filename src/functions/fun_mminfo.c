@@ -42,6 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/cstring.h"
@@ -57,11 +62,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/program.h"
 #include "../common/utility.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 extern char cmd_run_args[STRINGSIZE];
 
 static void mminfo_architecture(const char *p) {
@@ -70,6 +70,12 @@ static void mminfo_architecture(const char *p) {
     g_rtn_type = T_STR;
     strcpy(g_string_rtn, MM_ARCH);
     CtoM(g_string_rtn);
+}
+
+static void mminfo_bcolour(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_integer_rtn = graphics_bcolour;
+    g_rtn_type = T_INT;
 }
 
 static void mminfo_calldepth(const char *p) {
@@ -242,6 +248,12 @@ static void mminfo_exitcode(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
     g_integer_rtn = mmb_exit_code;
+}
+
+static void mminfo_fcolour(const char *p) {
+    if (!parse_is_end(p)) ERROR_SYNTAX;
+    g_integer_rtn = graphics_fcolour;
+    g_rtn_type = T_INT;
 }
 
 static void mminfo_filesize(const char *p) {
@@ -590,6 +602,10 @@ void fun_mminfo(void) {
     const char *p;
     if ((p = checkstring(ep, "ARCH"))) {
         mminfo_architecture(p);
+    } else if ((p = checkstring(ep, "BCOLOUR"))) {
+        mminfo_bcolour(p);
+    } else if ((p = checkstring(ep, "BCOLOR"))) {
+        mminfo_bcolour(p);
     } else if ((p = checkstring(ep, "CALLDEPTH"))) {
         mminfo_calldepth(p);
     } else if ((p = checkstring(ep, "CMDLINE"))) {
@@ -616,6 +632,10 @@ void fun_mminfo(void) {
         mminfo_exists(p);
     } else if ((p = checkstring(ep, "EXITCODE"))) {
         mminfo_exitcode(p);
+    } else if ((p = checkstring(ep, "FCOLOUR"))) {
+        mminfo_fcolour(p);
+    } else if ((p = checkstring(ep, "FCOLOR"))) {
+        mminfo_fcolour(p);
     } else if ((p = checkstring(ep, "FILESIZE"))) {
         mminfo_filesize(p);
     } else if ((p = checkstring(ep, "FLASH ADDRESS"))) {
