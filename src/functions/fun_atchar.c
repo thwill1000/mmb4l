@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-fun_at.c
+fun_atchar.c
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,30 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
-#include "../common/display.h"
-#include "../common/error.h"
-#include "../core/commandtbl.h"
+#include <stdbool.h>
 
-void fun_at_internal(bool pixel) {
-    getargs(&ep, 3, DELIM_COMMA);
+void fun_at_internal(bool pixel);
 
-    if (commandfunction(cmdtoken) != cmd_print) ERROR_INVALID("function");
-    if (argc != 3) ERROR_ARGUMENT_COUNT;
-
-    int x = (int) getinteger(argv[0]);
-    int y = (int) getinteger(argv[2]);
-
-    if (x < 0) ERROR_INVALID("x-coordinate");
-    if (y < 0) ERROR_INVALID("y-coordinate");
-
-    ON_FAILURE_ERROR(display_set_cursor_pos(pixel, x, y));
-
-    targ = T_STR;
-    sret = GetTempStrMemory();
-    sret[0] = '\0';
-}
-
-void fun_at(void) {
-    fun_at_internal(true);
+void fun_atchar(void) {
+   fun_at_internal(false);
 }

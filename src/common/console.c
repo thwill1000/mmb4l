@@ -424,15 +424,9 @@ void console_home_cursor(void) {
     fflush(stdout);
 }
 
-void console_set_cursor_char_pos(int x, int y) {
+void console_set_cursor_pos(int x, int y) {
     printf("\033[%d;%dH", y + 1, x + 1); // VT100 origin is (1,1) not (0,0).
     fflush(stdout);
-}
-
-void console_set_cursor_pixel_pos(int x, int y) {
-    x /= font_width(graphics_font);
-    y /= font_height(graphics_font);
-    console_set_cursor_char_pos(x, y);
 }
 
 int console_set_size(int width, int height) {

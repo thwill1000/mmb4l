@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-fun_at.c
+display.h
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,30 +42,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
-#include "../common/display.h"
-#include "../common/error.h"
-#include "../core/commandtbl.h"
+#if !defined(DISPLAY_H)
+#define DISPLAY_H
 
-void fun_at_internal(bool pixel) {
-    getargs(&ep, 3, DELIM_COMMA);
+#include <stdbool.h>
 
-    if (commandfunction(cmdtoken) != cmd_print) ERROR_INVALID("function");
-    if (argc != 3) ERROR_ARGUMENT_COUNT;
+#include "mmresult.h"
 
-    int x = (int) getinteger(argv[0]);
-    int y = (int) getinteger(argv[2]);
+/**
+ * Gets the current text cursor position.
+ *
+ * @param[in]   pixel  true:  to get value in pixels,
+ *                     false: to get value in characters.
+ * @param[out]  x      on exit, the x-coordinate of the cursor.
+ * @param[out]  y      on exit, the y-coordinate of the cursor.
+ * @return             kOK on success.
+ */
+MmResult display_get_cursor_pos(bool pixel, int *x, int *y);
 
-    if (x < 0) ERROR_INVALID("x-coordinate");
-    if (y < 0) ERROR_INVALID("y-coordinate");
+/**
+ * Gets the size of the display.
+ *
+ * @param[in]   pixel   true:  to get value in pixels,
+ *                      false: to get value in characters.
+ * @param[out]  width   on exit, the width of the display.
+ * @param[out]  height  on exit, the height of the display.
+ * @return              kOK on success.
+ */
+MmResult display_get_size(bool pixel, int *width, int *height);
 
-    ON_FAILURE_ERROR(display_set_cursor_pos(pixel, x, y));
+/**
+ * Gets the new text cursor position.
+ *
+ * @param[in]   pixel  true:  to set value in pixels,
+ *                     false: to set value in characters.
+ * @param[in]  x       the x-coordinate of the cursor.
+ * @param[in]  y       the y-coordinate of the cursor.
+ * @return             kOK on success.
+ */
+MmResult display_set_cursor_pos(bool pixel, int x, int y);
 
-    targ = T_STR;
-    sret = GetTempStrMemory();
-    sret[0] = '\0';
-}
-
-void fun_at(void) {
-    fun_at_internal(true);
-}
+#endif // #if !defined(DISPLAY_H)

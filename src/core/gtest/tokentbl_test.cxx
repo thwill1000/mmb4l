@@ -68,9 +68,9 @@ protected:
 TEST_F(TokentblTest, Get) {
     // Expect these to change as functions are added/deleted/removed
     // from tokentbl[].
-    EXPECT_EQ(1 + C_BASETOKEN, tokentbl_get("ABS("));
-    EXPECT_EQ(89 + C_BASETOKEN, tokentbl_get("VAL("));
-    EXPECT_EQ(105 + C_BASETOKEN, tokentbl_get("+"));
+    EXPECT_EQ(2 + C_BASETOKEN, tokentbl_get("ABS("));
+    EXPECT_EQ(90 + C_BASETOKEN, tokentbl_get("VAL("));
+    EXPECT_EQ(106 + C_BASETOKEN, tokentbl_get("+"));
 }
 
 TEST_F(TokentblTest, Peek) {

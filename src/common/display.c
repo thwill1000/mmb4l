@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-fun_at.c
+display.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,30 +42,65 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
-#include "../common/display.h"
-#include "../common/error.h"
-#include "../core/commandtbl.h"
+#include "console.h"
+#include "display.h"
+#include "error.h"
+#include "fonttbl.h"
+#include "graphics.h"
 
-void fun_at_internal(bool pixel) {
-    getargs(&ep, 3, DELIM_COMMA);
-
-    if (commandfunction(cmdtoken) != cmd_print) ERROR_INVALID("function");
-    if (argc != 3) ERROR_ARGUMENT_COUNT;
-
-    int x = (int) getinteger(argv[0]);
-    int y = (int) getinteger(argv[2]);
-
-    if (x < 0) ERROR_INVALID("x-coordinate");
-    if (y < 0) ERROR_INVALID("y-coordinate");
-
-    ON_FAILURE_ERROR(display_set_cursor_pos(pixel, x, y));
-
-    targ = T_STR;
-    sret = GetTempStrMemory();
-    sret[0] = '\0';
+MmResult display_get_cursor_pos(bool pixel, int *x, int *y) {
+    if (graphics_current) {
+        return kUnimplemented;
+    } else {
+        int console_x, console_y;
+        if (FAILED(console_get_cursor_pos(&console_x, &console_y, 10000))) {
+           ON_FAILURE_RETURN(mmresult_ex(kError, "Cannot determine terminal cursor position"));
+        }
+        if (pixel) {
+            *x = console_x * font_width(graphics_font);
+            *y = console_y * font_height(graphics_font);
+        } else {
+            *x = console_x;
+            *y = console_y;
+        }
+    }
+    return kOk;
 }
 
-void fun_at(void) {
-    fun_at_internal(true);
+MmResult display_get_size(bool pixel, int *width, int *height) {
+    if (graphics_current) {
+        if (pixel) {
+            *width = graphics_current->width;
+            *height = graphics_current->height;
+        } else {
+            *width = graphics_current->width / font_width(graphics_font);
+            *height = graphics_current->height / font_height(graphics_font);
+        }
+    } else {
+        int console_width, console_height;
+        if (FAILED(console_get_size(&console_width, &console_height, 0))) {
+            ON_FAILURE_RETURN(mmresult_ex(kError, "Cannot determine terminal size"));
+        }
+        if (pixel) {
+            *width = console_width * font_width(graphics_font);
+            *height = console_height * font_height(graphics_font);
+        } else {
+            *width = console_width;
+            *height = console_height;
+        }
+    }
+    return kOk;
+}
+
+MmResult display_set_cursor_pos(bool pixel, int x, int y) {
+   if (graphics_current) {
+      return kUnimplemented;
+   } else {
+      if (pixel) {
+         x /= font_width(graphics_font);
+         y /= font_height(graphics_font);
+      }
+      console_set_cursor_pos(x, y);
+   }
+   return kOk;
 }
