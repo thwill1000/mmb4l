@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 
 #include "../common/mmb4l.h"
-#include "../common/console.h"
 #include "../common/cstring.h"
+#include "../common/display.h"
 #include "../common/flash.h"
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
@@ -317,27 +317,31 @@ static void mminfo_gamepad(const char *p) {
 }
 
 void mminfo_hres(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_rtn_type = T_INT;
-    if (graphics_current) {
-        g_integer_rtn = graphics_current->width;
-    } else {
-        int width, height;
-        if (FAILED(console_get_size(&width, &height, 0))) {
-            ERROR_UNKNOWN_TERMINAL_SIZE;
-        }
-        g_integer_rtn = width * font_width(graphics_font);
+    bool pixel = true;
+    const char *p2;
+    if ((p2 = checkstring(p, "C")) || (p2 = checkstring(p, "CHAR"))) {
+        pixel = false;
+    } else if (!parse_is_end(p)) {
+        ERROR_SYNTAX;
     }
+    int width, height;
+    ON_FAILURE_ERROR(display_get_size(pixel, &width, &height));
+    g_rtn_type = T_INT;
+    g_integer_rtn = width;
 }
 
 static void mminfo_hpos(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    int x, y;
-    if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
-        ERROR_COULD_NOT("determine cursor position");
+    bool pixel = true;
+    const char *p2;
+    if ((p2 = checkstring(p, "C")) || (p2 = checkstring(p, "CHAR"))) {
+        pixel = false;
+    } else if (!parse_is_end(p)) {
+        ERROR_SYNTAX;
     }
-    g_integer_rtn = x * font_width(graphics_font);
+    int x, y;
+    ON_FAILURE_ERROR(display_get_cursor_pos(pixel, &x, &y));
     g_rtn_type = T_INT;
+    g_integer_rtn = x;
 }
 
 static void mminfo_line(const char *p) {
@@ -572,27 +576,31 @@ static void mminfo_version(const char *p) {
 }
 
 void mminfo_vres(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    g_rtn_type = T_INT;
-    if (graphics_current) {
-        g_integer_rtn = graphics_current->height;
-    } else {
-        int width, height;
-        if (FAILED(console_get_size(&width, &height, 0))) {
-            ERROR_UNKNOWN_TERMINAL_SIZE;
-        }
-        g_integer_rtn = height * font_height(graphics_font);
+    bool pixel = true;
+    const char *p2;
+    if ((p2 = checkstring(p, "C")) || (p2 = checkstring(p, "CHAR"))) {
+        pixel = false;
+    } else if (!parse_is_end(p)) {
+        ERROR_SYNTAX;
     }
+    int width, height;
+    ON_FAILURE_ERROR(display_get_size(pixel, &width, &height));
+    g_rtn_type = T_INT;
+    g_integer_rtn = height;
 }
 
 static void mminfo_vpos(const char *p) {
-    if (!parse_is_end(p)) ERROR_SYNTAX;
-    int x, y;
-    if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
-        ERROR_COULD_NOT("determine cursor position");
+    bool pixel = true;
+    const char *p2;
+    if ((p2 = checkstring(p, "C")) || (p2 = checkstring(p, "CHAR"))) {
+        pixel = false;
+    } else if (!parse_is_end(p)) {
+        ERROR_SYNTAX;
     }
-    g_integer_rtn = y * font_height(graphics_font);
+    int x, y;
+    ON_FAILURE_ERROR(display_get_cursor_pos(pixel, &x, &y));
     g_rtn_type = T_INT;
+    g_integer_rtn = y;
 }
 
 static void mminfo_writebuff(const char *p) {

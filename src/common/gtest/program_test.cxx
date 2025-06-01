@@ -89,9 +89,9 @@ void ListNewLine(int *ListCnt, int all) { }
 #define CMD_MMDEBUG     "\xCD\x80"
 #define CMD_PRINT       "\xDC\x80"
 #if defined(USE_TWO_BYTE_TOKENS)
-#define OP_EQUALS       "\xF6\x80"
+#define OP_EQUALS       "\xF7\x80"
 #else
-#define OP_EQUALS       "\xF6"
+#define OP_EQUALS       "\xF7"
 #endif
 
 #define EXPECT_PROGRAM_EQ(prog) \

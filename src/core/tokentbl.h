@@ -85,6 +85,7 @@ void fun_acos(void);
 void fun_asc(void);
 void fun_asin(void);
 void fun_at(void);
+void fun_atchar(void);
 void fun_atan2(void);
 void fun_atn(void);
 void fun_bin2str(void);

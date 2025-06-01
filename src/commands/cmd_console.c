@@ -161,7 +161,7 @@ static void cmd_console_set_cursor(const char *p) {
     if (argc != 3) ERROR_ARGUMENT_COUNT;
     const int x = (int) getint(argv[0], 0, MAX_CURSOR_X);
     const int y = (int) getint(argv[2], 0, MAX_CURSOR_Y);
-    console_set_cursor_char_pos(x, y);
+    console_set_cursor_pos(x, y);
 }
 
 static void cmd_console_set_size(const char *p) {
