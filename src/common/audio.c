@@ -42,8 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "audio.h"
-
 #include <SDL.h>
 #include <assert.h>
 #include <dirent.h>
@@ -53,13 +51,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
-#include "../third_party/dr_flac.h"
-#include "../third_party/dr_mp3.h"
-#include "../third_party/dr_wav.h"
-#include "../third_party/hxcmod.h"
+#include "audio.h"
 #include "audio_tables.h"
-#include "console.h"
 #include "cstring.h"
+#include "display.h"
 #include "error.h"
 #include "events.h"
 #include "file.h"
@@ -68,6 +63,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 #include "path.h"
 #include "utility.h"
+#include "../third_party/dr_flac.h"
+#include "../third_party/dr_mp3.h"
+#include "../third_party/dr_wav.h"
+#include "../third_party/hxcmod.h"
 
 #define AUDIO_SAMPLE_RATE 44100UL
 #define WAV_BUFFER_SIZE 16384
@@ -586,7 +585,7 @@ MmResult audio_play_next() {
         case P_MP3:
         case P_WAV:
             if (audio_is_last_track()) {
-                console_puts("Last track is playing\r\n");
+                display_puts("Last track is playing\r\n");
             } else {
                 result = audio_play_next_track();
             }
@@ -657,7 +656,7 @@ MmResult audio_play_previous() {
         case P_MP3:
         case P_WAV:
             if (audio_is_first_track()) {
-                console_puts("First track is playing\r\n");
+                display_puts("First track is playing\r\n");
             } else {
                 audio_track_current -= 2;
                 result = audio_play_next_track();
@@ -899,9 +898,9 @@ static MmResult audio_play_next_track() {
     const char *next_track = audio_track_list[audio_track_current];
     if (!*next_track) return kAudioNoMoreTracks;
     if (!CurrentLinePtr) {
-        console_puts("Now playing: ");
-        console_puts(next_track);
-        console_puts("\r\n");
+        display_puts("Now playing: ");
+        display_puts(next_track);
+        display_puts("\r\n");
     }
     MmResult result = kOk;
     if (path_has_extension(next_track, ".FLAC", true)) {

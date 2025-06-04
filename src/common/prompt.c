@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 prompt.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,15 +42,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+#include <string.h>
+#include <sys/types.h>
+
 #include "mmb4l.h"
-#include "console.h"
+#include "display.h"
 #include "file.h"
+#include "keycodes.h"
 #include "path.h"
 #include "prompt.h"
 #include "utility.h"
 
-#include <assert.h>
-#include <string.h>
+void MMgetline(int filenbr, char *p);
 
 #define HISTORY_SIZE  4 * STRINGSIZE
 #define ERROR_LINE_TOO_LONG_TO_EDIT  error_throw_ex(kStringTooLong, "Line is too long to edit")
@@ -64,21 +68,21 @@ static void dump_history() {
     char s[STRINGSIZE];
     char *p = history;
     char *start = p;
-    console_puts("[BEGIN]\r\n");
+    display_puts("[BEGIN]\r\n");
     for (; p < history + HISTORY_SIZE; ++p) {
         if (*p == '\0') {
             int len = p - start;
             if (len == 0) break;
             memset(s, 0, STRINGSIZE);
             memcpy(s, start, len);
-            console_puts("~");
-            console_puts(s);
-            console_puts("~\r\n");
+            display_puts("~");
+            display_puts(s);
+            display_puts("~\r\n");
             start = p + 1;
         }
     }
-    console_puts("[END]\r\n");
-    console_puts("\r\n");
+    display_puts("[END]\r\n");
+    display_puts("\r\n");
 }
 
 /** Gets an item from the 'history' buffer. */
@@ -151,14 +155,14 @@ static void handle_backspace(PromptState *pstate) {
         *p = *(p + 1);  // remove the char from inpbuf
     }
     while (pstate->char_index) {
-        console_putc('\b');
+        display_putc('\b');
         pstate->char_index--;
     }  // go to the beginning of the line
-    console_puts(inpbuf);
-    console_putc(' ');
-    console_putc('\b');  // display the line and erase the last char
+    display_puts(inpbuf);
+    display_putc(' ');
+    display_putc('\b');  // display the line and erase the last char
     for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
-        console_putc('\b');  // return the cursor to the right position
+        display_putc('\b');  // return the cursor to the right position
     }
 }
 
@@ -170,14 +174,14 @@ static void handle_delete(PromptState *pstate) {
         *p = *(p + 1);  // remove the char from inpbuf
     }
     while (pstate->char_index) {
-        console_putc('\b');
+        display_putc('\b');
         pstate->char_index--;
     }  // go to the beginning of the line
-    console_puts(inpbuf);
-    console_putc(' ');
-    console_putc('\b');  // display the line and erase the last char
+    display_puts(inpbuf);
+    display_putc(' ');
+    display_putc('\b');  // display the line and erase the last char
     for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
-        console_putc('\b');  // return the cursor to the right position
+        display_putc('\b');  // return the cursor to the right position
     }
 }
 
@@ -186,12 +190,12 @@ static void prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
     strcpy(inpbuf, new_inpbuf);
 
     // Erase existing input from the console.
-    for (int i = 0; i < pstate->char_index; ++i) console_putc('\b');
-    for (int i = 0; i < pstate->char_index; ++i) console_putc(' ');
-    for (int i = 0; i < pstate->char_index; ++i) console_putc('\b');
+    for (int i = 0; i < pstate->char_index; ++i) display_putc('\b');
+    for (int i = 0; i < pstate->char_index; ++i) display_putc(' ');
+    for (int i = 0; i < pstate->char_index; ++i) display_putc('\b');
 
     // Display the new contents of the input buffer.
-    console_puts(inpbuf);
+    display_puts(inpbuf);
 
     // Handle the new input buffer being too long.
     if ((ssize_t) strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
@@ -216,7 +220,7 @@ static void handle_down(PromptState *pstate) {
 
 static void handle_end(PromptState *pstate) {
     while (pstate->char_index < (ssize_t) strlen(inpbuf)) {
-        console_putc(inpbuf[pstate->char_index++]);
+        display_putc(inpbuf[pstate->char_index++]);
     }
 }
 
@@ -244,7 +248,7 @@ static void handle_home(PromptState *pstate) {
     }
 
     while (pstate->char_index) {
-        console_putc('\b');
+        display_putc('\b');
         pstate->char_index--;
     }
 }
@@ -259,7 +263,7 @@ static void handle_left(PromptState *pstate) {
     if (pstate->char_index == (ssize_t) strlen(inpbuf)) {
         pstate->insert = true;
     }
-    console_putc('\b');
+    display_putc('\b');
     pstate->char_index--;
 }
 
@@ -278,17 +282,17 @@ static void handle_other(PromptState *pstate) {
             *(p + 1) = *p;
         }
         inpbuf[pstate->char_index] = pstate->buf[0];  // insert the char
-        console_puts(&inpbuf[pstate->char_index]);   // display new part of
+        display_puts(&inpbuf[pstate->char_index]);   // display new part of
                                                       // the line
         pstate->char_index++;
         for (j = strlen(inpbuf); j > pstate->char_index; j--) {
-            console_putc('\b');  // return the cursor to the right position
+            display_putc('\b');  // return the cursor to the right position
         }
     } else {
         inpbuf[strlen(inpbuf) + 1] = 0;  // incase we are adding to the end
                                          // of the string
         inpbuf[pstate->char_index++] = pstate->buf[0];  // overwrite the char
-        console_putc(pstate->buf[0]);                      // display it
+        display_putc(pstate->buf[0]);                      // display it
         if (pstate->char_index + pstate->start_line >=
             pstate->max_chars) {  // has the input gone beyond the
                                   // end of the line?
@@ -304,7 +308,7 @@ static void handle_other(PromptState *pstate) {
 static void handle_right(PromptState *pstate) {
     if (pstate->char_index >= (ssize_t) strlen(inpbuf)) return;
 
-    console_putc(inpbuf[pstate->char_index]);
+    display_putc(inpbuf[pstate->char_index]);
     pstate->char_index++;
 }
 
@@ -329,7 +333,7 @@ void prompt_handle_tab(PromptState *pstate) {
 
     if (FAILED(path_complete(pstart, pstate->buf + 1, sizeof(pstate->buf) - 1)))
         pstate->buf[1] = '\0';
-    if (pstate->buf[1] == '\0') console_bell();
+    if (pstate->buf[1] == '\0') display_bell();
 }
 
 static void handle_up(PromptState *pstate) {
@@ -343,7 +347,7 @@ static void handle_up(PromptState *pstate) {
 
 void prompt_get_input(void) {
     int width, height;
-    if (FAILED(console_get_size(&width, &height, 1000))) ERROR_UNKNOWN_TERMINAL_SIZE;
+    ON_FAILURE_ERROR(display_get_size(false, &width, &height));
 
     PromptState state = { 0 };
     state.char_index = strlen(inpbuf); // get the current cursor position in the line
@@ -351,7 +355,7 @@ void prompt_get_input(void) {
     state.max_chars = width;
     state.history_idx = -1;
 
-    console_puts(inpbuf);  // display the contents of the input buffer (if any)
+    display_puts(inpbuf);  // display the contents of the input buffer (if any)
 
     if ((ssize_t) strlen(inpbuf) >= state.max_chars) {
         ERROR_LINE_TOO_LONG_TO_EDIT;
@@ -448,7 +452,7 @@ void prompt_get_input(void) {
     }
 
 saveline:
-    console_puts("\r\n");
+    display_puts("\r\n");
 
     put_history_item(inpbuf);
 }

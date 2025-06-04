@@ -48,11 +48,7 @@ int MMgetchar(void) { return 0; }
 void cmd_read_clear_cache()  { }
 
 // Defined in "common/console.c"
-int console_kbhit(void) { return 0; }
-char console_putc(char c) { return c; }
-void console_puts(const char *s) { }
 void console_set_title(const char *title) { }
-size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "common/fonttbl.c"
 void font_clear_user_defined() { }

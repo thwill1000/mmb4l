@@ -42,6 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+#include <stdbool.h>
+
+#include <SDL.h>
+
 #include "bitset.h"
 #include "cstring.h"
 #include "error.h"
@@ -58,10 +63,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../third_party/spbmp.h"
 #include "../third_party/upng.h"
 
-#include <assert.h>
-#include <stdbool.h>
-
-#include <SDL.h>
+void MMgetline(int filenbr, char *p);
 
 /** Sprite colours on CMM2. */
 const MmGraphicsColour GRAPHICS_CMM2_SPRITE_COLOURS[] = {

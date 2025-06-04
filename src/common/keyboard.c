@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 keyboard.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,16 +42,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "console.h"
-#include "interrupt.h"
-#include "keyboard.h"
-#include "keyboard_ps2.h"
-
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 
 #include <SDL.h>
+
+#include "console.h"
+#include "interrupt.h"
+#include "keyboard.h"
+#include "keyboard_ps2.h"
+#include "keycodes.h"
 
 #define MAX_KEYS  10
 

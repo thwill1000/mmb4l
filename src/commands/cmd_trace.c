@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_trace.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
-#include "../common/console.h"
+#include "../common/display.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -74,20 +74,20 @@ int TraceLines(const char *target) {
                     i--;
                 }
                 if (cpos != NULL) {
-                    console_puts("[");
+                    display_puts("[");
                     if ((ename = strchr(cpos, ',')) != NULL) {
                         *ename = 0;
                         cpos++;
                         ename++;
-                        console_puts(cpos);
-                        console_puts(":");
-                        console_puts(ename);
+                        display_puts(cpos);
+                        display_puts(":");
+                        display_puts(ename);
                     } else {
                         cpos++;
                         IntToStr(buff, atoi(cpos), 10);
-                        console_puts(buff);
+                        display_puts(buff);
                     }
-                    console_puts("] ");
+                    display_puts("] ");
                 }
             }
             continue;

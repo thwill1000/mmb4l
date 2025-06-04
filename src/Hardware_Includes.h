@@ -83,13 +83,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern int IgnorePIN;
 
 // Aliases for functions using "legacy" names in MMBasic core:
-#define check_interrupt    interrupt_check
-#define CloseAllFiles      file_close_all
-#define getConsole         console_getc
-#define MMfeof             file_eof
-#define MMfgetc            file_getc
-#define MMfputc(ch, fnbr)  file_putc(fnbr, ch)
-#define MMPrintString      console_puts
 #define error              error_throw_legacy
 
 // Aliases for identifiers using "legacy" names in MMBasic core:
@@ -121,15 +114,15 @@ extern char *CFunctionLibrary;
     void dump(char *p, int nbr);   // defined in Main.c,  dump an area of memory in hex and ascii
     void DumpVarTbl(void);         // defined in MMBasic.c,  dump the variable table
 
-    #define dp(...) {char s[140];sprintf(s,  __VA_ARGS__); MMPrintString(s); MMPrintString("\r\n");}
+    #define dp(...) {char s[140];sprintf(s,  __VA_ARGS__); display_puts(s); display_puts("\r\n");}
 
-    #define db(i) {IntToStr(inpbuf, i, 10); MMPrintString(inpbuf); MMPrintString("\r\n");}
-    #define db2(i1, i2) {IntToStr(inpbuf, i1, 10); MMPrintString(inpbuf); MMPrintString("  "); IntToStr(inpbuf, i2, 10); MMPrintString(inpbuf); MMPrintString("\r\n");}
-    #define db3(i1, i2, i3) {IntToStr(inpbuf, i1, 10); MMPrintString(inpbuf); MMPrintString("  "); IntToStr(inpbuf, i2, 10); MMPrintString(inpbuf); MMPrintString("  "); IntToStr(inpbuf, i3, 10); MMPrintString(inpbuf); MMPrintString("\r\n");}
+    #define db(i) {IntToStr(inpbuf, i, 10); display_puts(inpbuf); display_puts("\r\n");}
+    #define db2(i1, i2) {IntToStr(inpbuf, i1, 10); display_puts(inpbuf); display_puts("  "); IntToStr(inpbuf, i2, 10); display_puts(inpbuf); display_puts("\r\n");}
+    #define db3(i1, i2, i3) {IntToStr(inpbuf, i1, 10); display_puts(inpbuf); display_puts("  "); IntToStr(inpbuf, i2, 10); display_puts(inpbuf); display_puts("  "); IntToStr(inpbuf, i3, 10); display_puts(inpbuf); display_puts("\r\n");}
 
-    #define ds(s) {MMPrintString(s); MMPrintString("\r\n");}
-    #define ds2(s1, s2) {MMPrintString(s1); MMPrintString(s2); MMPrintString("\r\n");}
-    #define ds3(s1, s2, s3) {MMPrintString(s1); MMPrintString(s2); MMPrintString(s3); MMPrintString("\r\n");}
+    #define ds(s) {display_puts(s); display_puts("\r\n");}
+    #define ds2(s1, s2) {display_puts(s1); display_puts(s2); display_puts("\r\n");}
+    #define ds3(s1, s2, s3) {display_puts(s1); display_puts(s2); display_puts(s3); display_puts("\r\n");}
 
 #endif
 

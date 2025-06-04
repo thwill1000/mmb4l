@@ -45,8 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_FILE)
 #define MMB4L_FILE
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <stddef.h>
 #include <stdio.h>
 
 #include "../Configuration.h"
@@ -66,7 +65,14 @@ typedef struct {
 
 extern FileEntry file_table[MAXOPENFILES + 1];
 
-void MMgetline(int fnbr, char *p); // main.c
+/**
+ * Initialises the 'file' module.
+ *
+ * @param[in]  putc_fn   function that should be used for putting a character to the console.
+ * @param[in]  write_fn  function that should be used for writing characters to the console.
+ * @return               kOk on success.
+ */
+MmResult file_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *, size_t *));
 
 /** Finds the first available free file number. */
 int file_find_free(void);

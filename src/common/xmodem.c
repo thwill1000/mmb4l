@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 xmodem.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,15 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "xmodem.h"
+#include <string.h>
 
 #include "mmb4l.h"
-#include "console.h"
+#include "display.h"
 #include "file.h"
 #include "mmtime.h"
 #include "serial.h"
-
-#include <string.h>
+#include "xmodem.h"
 
 /*
  * Derived from the work of Georges Menie (www.menie.org) Copyright 2001-2010
@@ -146,9 +145,9 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
             xbuff[2] = ~packetno;
 
             if (verbose) {
-                if (total > 0) console_cursor_up(1);
+                if (total > 0) display_cursor_up(1);
                 sprintf(sbuf, "Sent %d bytes\n", total);
-                console_puts(sbuf);
+                display_puts(sbuf);
             }
 
             // Copy data from the file into the packet.
@@ -223,9 +222,9 @@ void xmodem_receive(int file_fnbr, int serial_fnbr, bool verbose) {
     // first establish communication with the remote
     while (1) {
         if (verbose) {
-            if (total > 0) console_cursor_up(1);
+            if (total > 0) display_cursor_up(1);
             sprintf(sbuf, "Received %d bytes\n", total);
-            console_puts(sbuf);
+            display_puts(sbuf);
         }
 
         for (retry = 0; retry < 32; ++retry) {

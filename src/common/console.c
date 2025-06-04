@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "console.h"
 #include "error.h"
 #include "interrupt.h"
+#include "keycodes.h"
 #include "mmtime.h"
 #include "utility.h"
 #include "rx_buf.h"

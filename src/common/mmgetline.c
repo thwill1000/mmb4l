@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmgetline.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,13 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "console.h"
-#include "error.h"
-#include "file.h"
-#include "options.h"
-
 #include <ctype.h>
 #include <string.h>
+
+#include "display.h"
+#include "error.h"
+#include "file.h"
+#include "keycodes.h"
+#include "options.h"
 
 void CheckAbort(void);
 
@@ -77,8 +78,8 @@ void MMgetline(int filenbr, char *p) {
             if (c == F5) tp = "WEDIT";
             if (tp) {
                 strcpy(p, tp);
-                console_puts(tp);
-                console_puts("\r\n");
+                display_puts(tp);
+                display_puts("\r\n");
                 return;
             }
         }
@@ -87,14 +88,14 @@ void MMgetline(int filenbr, char *p) {
             do {
                 if (++nbrchars > MAXSTRLEN) error_throw(kLineTooLong);
                 *p++ = ' ';
-                if (filenbr == 0) console_putc(' ');
+                if (filenbr == 0) display_putc(' ');
             } while (nbrchars % mmb_options.tab);
             continue;
         }
 
         if (c == '\b') {  // handle the backspace
             if (nbrchars) {
-                if (filenbr == 0) console_puts("\b \b");
+                if (filenbr == 0) display_puts("\b \b");
                 nbrchars--;
                 p--;
             }
@@ -107,7 +108,7 @@ void MMgetline(int filenbr, char *p) {
 
         if (c == '\r') {
             if (filenbr == 0) {
-                console_puts("\r\n");
+                display_puts("\r\n");
                 break;  // on the console this means the end of the line
                         // - stop collecting
             } else {
@@ -117,7 +118,7 @@ void MMgetline(int filenbr, char *p) {
         }
 
         if (isprint(c) && (filenbr == 0)) {
-            console_putc(c);  // The console requires that chars be echoed
+            display_putc(c);  // The console requires that chars be echoed
         }
 
         if (++nbrchars > MAXSTRLEN) error_throw(kLineTooLong);  // stop collecting if maximum length

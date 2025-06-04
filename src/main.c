@@ -123,8 +123,8 @@ void print_banner() {
                 : MM_MICRO < 300
                     ? MM_MICRO - 200
                     : MM_MICRO - 300);
-    console_puts(s);
-    console_puts(COPYRIGHT);
+    display_puts(s);
+    display_puts(COPYRIGHT);
 }
 
 static void init_mmbasic_config_dir() {
@@ -143,18 +143,18 @@ static void init_options_cb(const char *msg) {
     static int count = 0;
 
     if (strcmp(msg, "END") == 0) {
-        if (count > 0) console_puts("\r\n");
+        if (count > 0) display_puts("\r\n");
         return;
     }
 
     if (count == 0) {
-        console_puts("Warnings in '");
-        console_puts(OPTIONS_FILE_NAME);
-        console_puts("':\r\n");
+        display_puts("Warnings in '");
+        display_puts(OPTIONS_FILE_NAME);
+        display_puts("':\r\n");
     }
 
-    console_puts(msg);
-    console_puts("\r\n");
+    display_puts(msg);
+    display_puts("\r\n");
 
     count++;
 }
@@ -192,12 +192,12 @@ void set_start_directory() {
 
     errno = 0;
     if (chdir(p) != 0) {
-        console_puts("Error: could not set starting directory '");
-        console_puts(p);
-        console_puts("'.\r\n");
-        console_puts(strerror(errno));
-        console_puts(".\r\n");
-        console_puts("\r\n");
+        display_puts("Error: could not set starting directory '");
+        display_puts(p);
+        display_puts("'.\r\n");
+        display_puts(strerror(errno));
+        display_puts(".\r\n");
+        display_puts("\r\n");
     }
 }
 
@@ -213,7 +213,7 @@ void longjmp_handler(int jmp_state) {
     if (mmb_args.show_prompt) {
         console_show_cursor(true);
         console_reset();
-        if (MMCharPos > 1) console_puts("\r\n");
+        if (MMCharPos > 1) display_puts("\r\n");
     }
 
     audio_term();
@@ -230,8 +230,8 @@ void longjmp_handler(int jmp_state) {
             break;
 
         case JMP_ERROR:
-            console_puts(mmb_error_state_ptr->message);
-            console_puts("\r\n");
+            display_puts(mmb_error_state_ptr->message);
+            display_puts("\r\n");
             mmb_exit_code = error_to_exit_code(mmb_error_state_ptr->code);
             do_exit = !mmb_args.show_prompt;
             break;
@@ -299,7 +299,7 @@ int main(int argc, char *argv[]) {
         console_show_cursor(true);
 
         print_banner();
-        console_puts("\r\n");
+        display_puts("\r\n");
     }
 
     init_mmbasic_config_dir();
@@ -321,6 +321,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, IntHandler);
 #endif
 
+    file_init(&display_putc, &display_write);
     interrupt_init();
     mmtime_init();
     srand(0);  // seed the random generator with zero
@@ -348,7 +349,7 @@ int main(int argc, char *argv[]) {
                             // the prompt)
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
         if (MMCharPos > 1) {
-            console_puts("\r\n");  // prompt should be on a new line
+            display_puts("\r\n");  // prompt should be on a new line
         }
         //PrepareProgram(false); // This seems superflous so comment it out and see what breaks!
         // if (!ErrorInPrompt && FindSubFun("MM.PROMPT", kSub) >= 0) {
@@ -356,7 +357,7 @@ int main(int argc, char *argv[]) {
         //     ExecuteProgram("MM.PROMPT\0");
         // } else {
         if (mmb_args.show_prompt) {
-            console_puts("> ");  // print the prompt
+            display_puts("> ");  // print the prompt
         }
         // }
         // ErrorInPrompt = false;
@@ -370,8 +371,8 @@ int main(int argc, char *argv[]) {
         memset(inpbuf, 0, INPBUF_SIZE);
         if (run_flag) {
             if (mmb_args.show_prompt) {
-                console_puts(mmb_args.run_cmd);
-                console_puts("\r\n");
+                display_puts(mmb_args.run_cmd);
+                display_puts("\r\n");
             }
             strcpy(inpbuf, mmb_args.run_cmd);
             run_flag = false;
@@ -448,8 +449,8 @@ int MMgetchar(void) {
         if (c == -1) {
             if (!isatty(STDIN_FILENO)) {
                 // In this case there will never be anything to read.
-                if (MMCharPos > 1) console_puts("\r\n");
-                console_puts("Error: STDIN exhausted\r\n");
+                if (MMCharPos > 1) display_puts("\r\n");
+                display_puts("Error: STDIN exhausted\r\n");
                 mmb_exit_code = 1;
                 display_hide_cursor();
                 longjmp(mark, JMP_QUIT);
@@ -474,7 +475,7 @@ void dump(char *p, int nbr) {
     char buf1[80], buf2[80], *b1, *b2, *pt;
     b1 = buf1;
     b2 = buf2;
-    console_puts(
+    display_puts(
         "   addr    0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F    "
         "0123456789ABCDEF\r\n");
 #if defined(ENV64BIT)
@@ -492,9 +493,9 @@ void dump(char *p, int nbr) {
         p++;
         nbr--;
         if ((uintptr_t)p % 16 == 0) {
-            console_puts(buf1);
-            console_puts("   ");
-            console_puts(buf2);
+            display_puts(buf1);
+            display_puts("   ");
+            display_puts(buf2);
             b1 = buf1;
             b2 = buf2;
 #if defined(ENV64BIT)
@@ -505,14 +506,14 @@ void dump(char *p, int nbr) {
         }
     }
     if (b2 != buf2) {
-        console_puts(buf1);
-        console_puts("   ");
+        display_puts(buf1);
+        display_puts("   ");
         for (pt = p; (uintptr_t)pt % 16 != 0; pt++) {
-            console_puts("   ");
+            display_puts("   ");
         }
-        console_puts(buf2);
+        display_puts(buf2);
     }
-    console_puts("\r\n");
+    display_puts("\r\n");
 }
 
 void dump_token_table(const struct s_tokentbl* tbl) {

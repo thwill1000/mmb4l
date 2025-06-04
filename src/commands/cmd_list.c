@@ -46,10 +46,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "../common/mmb4l.h"
-#include "../common/console.h"
 #include "../common/cstring.h"
+#include "../common/display.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../common/keycodes.h"
 #include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/utility.h"
@@ -61,15 +62,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_files_internal(const char *);      // cmd_files.c
 MmResult cmd_graphics_list(const char *p);  // cmd_graphics.c
 void cmd_option_list(const char *);         // cmd_option.c
+void MMgetline(int filenbr, char *p);
 
 static void ListProgram(const char *p, int all) {
     char b[STRINGSIZE];
     char *pp;
     int ListCnt = 1;
-
-#if defined(__386__)
-  GetConsoleSize();                                                 // this allows the user to change screen size anytime
-#endif
 
     while(!(*p == 0 || *p == 0xff)) {                               // normally a LIST ends at the break so this is a safety precaution
         if(*p == T_NEWLINE) {
@@ -77,7 +75,7 @@ static void ListProgram(const char *p, int all) {
             pp = b;
             while(*pp) {
                 if(MMCharPos >= mmb_options.width) ListNewLine(&ListCnt, all);
-                console_putc(*pp++);
+                (void) display_putc(*pp++);
             }
             ListNewLine(&ListCnt, all);
             if(p[0] == 0 && p[1] == 0) break;                       // end of the listing ?
@@ -135,15 +133,15 @@ static MmResult cmd_list_tokens(const char *title, const struct s_tokentbl *prim
     for (int i = 0; i < total; i += step) {
         for (int k = 0; k < step; k++) {
             if (i + k < total) {
-                console_puts(tbl[i + k]);
+                display_puts(tbl[i + k]);
                 if (k != (step - 1))
-                    for (int j = strlen(tbl[i + k]); j < 19; j++) console_puts(" ");
+                    for (int j = strlen(tbl[i + k]); j < 19; j++) display_puts(" ");
             }
         }
-        console_puts("\r\n");
+        display_puts("\r\n");
     }
     sprintf(buf, "Total of %d %s using %d slots\r\n\r\n", total, title, num_primary);
-    console_puts(buf);
+    display_puts(buf);
 
     return kOk;
 }
@@ -186,7 +184,7 @@ static MmResult cmd_list_flash(const char *p) {
     ON_FAILURE_RETURN(program_load_file(CurrentFile));
 
     ListProgram(ProgMemory, all);
-    console_puts("\r\n");
+    display_puts("\r\n");
 
     return kOk;
 }
@@ -224,9 +222,9 @@ static MmResult cmd_list_variables(const char *p) {
     int idx = -1;
     int count = 0;
 
-    console_puts("+------------------------------------------------------------------------------+\r\n");
-    console_puts("| Name                              | Type          | Level | Dimensions       |\r\n");
-    console_puts("| --------------------------------- | ------------- | ----- | ---------------- |\r\n");
+    display_puts("+------------------------------------------------------------------------------+\r\n");
+    display_puts("| Name                              | Type          | Level | Dimensions       |\r\n");
+    display_puts("| --------------------------------- | ------------- | ----- | ---------------- |\r\n");
     for (;;) {
         // Determine next variable in alphabetical order.
         memset(name, 255, MAXVARLEN + 2);
@@ -285,14 +283,14 @@ static MmResult cmd_list_variables(const char *p) {
 
         sprintf(inpbuf, "| %-33s | %-13s | %-5d | %-16s | \r\n", name, type, var->level,
                 dimensions);
-        console_puts(inpbuf);
+        display_puts(inpbuf);
         count++;
     }
     if (count == 0) {
         sprintf(inpbuf, "| %-33s | %-13s | %-5d | %-16s | \r\n", "No variables declared", "", 0, "");
-        console_puts(inpbuf);
+        display_puts(inpbuf);
     }
-    console_puts("+------------------------------------------------------------------------------+\r\n");
+    display_puts("+------------------------------------------------------------------------------+\r\n");
 
     return kOk;
 }
@@ -323,13 +321,13 @@ static MmResult cmd_list_default(const char *p) {
         for (size_t i = 0; i < strlen(line_buffer); i++) {
             if (line_buffer[i] == TAB) line_buffer[i] = ' ';
         }
-        console_puts(line_buffer);
+        display_puts(line_buffer);
         list_count += strlen(line_buffer) / mmb_options.width;
         ListNewLine(&list_count, all);
     }
 
     // Ensure listing is followed by an empty line.
-    if (strcmp(line_buffer, "") != 0) console_puts("\r\n");
+    if (strcmp(line_buffer, "") != 0) display_puts("\r\n");
 
     return file_close(fnbr);
 }
@@ -338,10 +336,8 @@ void cmd_list(void) {
     const char *p;
     skipspace(cmdline);
 
-    // Use the current console dimensions for the output of the LIST command.
-    if (FAILED(console_get_size(&mmb_options.width, &mmb_options.height, 0))) {
-        ERROR_UNKNOWN_TERMINAL_SIZE;
-    }
+    // Use the current display dimensions for the output of the LIST command.
+    ON_FAILURE_ERROR(display_get_size(false, &mmb_options.width, &mmb_options.height));
 
     MmResult result = kOk;
     if ((p = checkstring(cmdline, "COMMANDS"))) {

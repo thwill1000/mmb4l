@@ -24,6 +24,8 @@ int console_width;
 int console_height;
 
 // Defined in "common/console.c"
+void console_bell() { }
+void console_cursor_up(int i) { }
 int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
     return mock_console_get_cursor_pos(x, y, timeout_ms);
 }
@@ -35,6 +37,7 @@ void console_puts(const char *s) { }
 void console_set_cursor_pos(int x, int y) {
     mock_console_set_cursor_pos(x, y);
 }
+size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "common/graphics.c"
 MmSurface *graphics_current = NULL;

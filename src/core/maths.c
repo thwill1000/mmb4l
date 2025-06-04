@@ -42,17 +42,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <complex.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include "../common/display.h"
 #include "../common/mmb4l.h"
 #include "../common/mmtime.h"
 #include "../core/MMBasic.h"
 #include "../core/maths.h"
 #include "../core/Functions.h"
 #include "../Hardware_Includes.h"
-
-#include <complex.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
 
 #define CRC4_DEFAULT_POLYNOME       0x03
 #define CRC4_ITU                    0x03
@@ -190,26 +191,26 @@ struct tagMTRand *g_myrand=NULL;
 #define TEMPERING_MASK_C	0xefc60000
 
 void PFlt(MMFLOAT flt){
-	   char s[20];
-	   FloatToStr(s, flt, 4,4, ' ');
-	    MMPrintString(s);
+    char s[20];
+    FloatToStr(s, flt, 4,4, ' ');
+    display_puts(s);
 }
 void PFltComma(MMFLOAT n) {
-    MMPrintString(", "); PFlt(n);
+    display_puts(", "); PFlt(n);
 }
 
 void PRet(void){
-    MMPrintString("\r\n");
+    display_puts("\r\n");
 }
 
 void PInt(int64_t n) {
     char s[20];
     IntToStr(s, (int64_t)n, 10);
-    MMPrintString(s);
+    display_puts(s);
 }
 
 void PIntComma(int64_t n) {
-    MMPrintString(", "); PInt(n);
+    display_puts(", "); PInt(n);
 }
 
 void MadgwickQuaternionUpdate(MMFLOAT ax, MMFLOAT ay, MMFLOAT az, MMFLOAT gx, MMFLOAT gy, MMFLOAT gz, MMFLOAT mx, MMFLOAT my, MMFLOAT mz, MMFLOAT beta, MMFLOAT deltat, MMFLOAT *pitch, MMFLOAT *yaw, MMFLOAT *roll)

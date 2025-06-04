@@ -49,6 +49,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmresult.h"
 
+/** Makes a "bell" noise. */
+MmResult display_bell();
+
+/**
+ * Moves the cursor up.
+ *
+ * @param[in]  i  number of characters to move up.
+ * @return        kOk on success.
+ */
+MmResult display_cursor_up(int i);
+
 /**
  * Gets the current text cursor position.
  *
@@ -111,5 +122,15 @@ MmResult display_set_cursor_pos(bool pixel, int x, int y);
  * @return  kOK on success.
  */
 MmResult display_show_cursor();
+
+/**
+ * Write characters to the display.
+ *
+ * @param[in]       buf  write characters from this buffer.
+ * @param[in, out]  sz   on entry, number of characters to write.
+ *                       on exit, number of characters written.
+ * @return               kOk on success.
+ */
+MmResult display_write(const char *buf, size_t *sz);
 
 #endif //  !defined(MMB4L_DISPLAY_H)

@@ -53,8 +53,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define CURSOR_PERIOD  SECONDS_TO_NANOSECONDS(1) / 2
 
-static inline bool display_active() {
-    return (mmb_options.console != kSerial) && graphics_current;
+MmResult display_bell() {
+    console_bell();
+    return kOk;
+}
+
+MmResult display_cursor_up(int i) {
+    assert(i > 0);
+    console_cursor_up(i);
+    if (graphics_current && mmb_options.console != kSerial) {
+        graphics_current->cursor_y -= font_height(graphics_font);
+    }
+    return kOk;
 }
 
 MmResult display_get_cursor_pos(bool pixel, int *x, int *y) {
@@ -230,4 +240,16 @@ MmResult display_show_cursor() {
     visible = new_visible;
 
     return display_draw_cursor(visible ? graphics_fcolour : graphics_bcolour);
+}
+
+MmResult display_write(const char *buf, size_t *sz) {
+    *sz = console_write(buf, *sz);
+
+    if (graphics_current && mmb_options.console != kSerial) {
+        for (size_t idx = 0; idx < *sz; ++idx) {
+            ON_FAILURE_RETURN(display_putc_graphics(buf[idx]));
+        }
+    }
+
+    return kOk;
 }

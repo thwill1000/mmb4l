@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <stdio.h>
 
-#include "../common/console.h"
 #include "../common/cstring.h"
+#include "../common/display.h"
 #include "../common/error.h"
 #include "../common/graphics.h"
 #include "../common/mmb4l.h"
@@ -218,12 +218,12 @@ MmResult cmd_graphics_list(const char *p) {
     if (mmb_features.graphics_type != kGraphicsTypeMmb4l) {
         result = options_get_string_value(&mmb_options, kOptionSimulate, buf);
         if (FAILED(result)) return result;
-        console_puts(buf);
+        display_puts(buf);
         if (mmb_features.has_cmd_mode) {
             (void) snprintf(buf, STRINGSIZE, " - Mode %d", graphics_mode);
-            console_puts(buf);
+            display_puts(buf);
         }
-        console_puts("\r\n");
+        display_puts("\r\n");
     }
 
     const MmSurfaceId current_id = graphics_current ? graphics_current->id : -1;
@@ -236,11 +236,11 @@ MmResult cmd_graphics_list(const char *p) {
         if (FAILED(result)) break;
         snprintf(buf, STRINGSIZE, "%c %3d) %s: %d x %d\r\n", id == current_id ? '*' : ' ',
                  id, type, s->width, s->height);
-        console_puts(buf);
+        display_puts(buf);
         count++;
     }
     if (SUCCEEDED(result) && count == 0) {
-        console_puts("No graphics surfaces");
+        display_puts("No graphics surfaces");
     }
 
     return result;
