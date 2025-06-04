@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tokentbl.h"
 #include "vartbl.h"
 #include "../common/audio.h"
+#include "../common/display.h"
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
@@ -189,7 +190,7 @@ void ExecuteProgram(const char *p) {
                 // Copied from the CMM2,
                 // looks like it has duplication with cmd_trace.c#TraceLines()
                 char buf[STRINGSIZE], buff[10];
-                MMPrintString("[");
+                display_puts("[");
                 memcpy(buf, p, STRINGSIZE);
                 char *ename, *cpos = NULL;
                 i = 0;
@@ -204,21 +205,21 @@ void ExecuteProgram(const char *p) {
                         cpos++;
                         ename++;
                         if (*cpos == '\'') cpos++;
-                        MMPrintString(cpos);
-                        MMPrintString(":");
-                        MMPrintString(ename);
+                        display_puts(cpos);
+                        display_puts(":");
+                        display_puts(ename);
                     } else {
                         cpos++;
                         IntToStr(buff, atoi(cpos), 10);
-                        MMPrintString(buff);
+                        display_puts(buff);
                     }
                 }
-                MMPrintString("]");
+                display_puts("]");
 #else
                 inpbuf[0] = '[';
                 IntToStr(inpbuf + 1, CountLines(p), 10);
                 strcat(inpbuf, "]");
-                MMPrintString(inpbuf);
+                display_puts(inpbuf);
 #endif
                 uSec(1000);
             }
@@ -261,7 +262,7 @@ void ExecuteProgram(const char *p) {
                 if(OptionErrorSkip > 0) OptionErrorSkip--;          // if OPTION ERROR SKIP decrement the count - we do not error if it is greater than zero
                 if(TempMemoryIsChanged) ClearTempMemory();          // at the end of each command we need to clear any temporary string vars
                 CheckAbort();
-                check_interrupt();                                  // check for an MMBasic interrupt and handle it
+                interrupt_check();                                  // check for an MMBasic interrupt and handle it
             }
             p = nextstmt;
         }
@@ -2401,7 +2402,7 @@ void ClearRuntime(void) {
 #if defined(MICROMITE) && !defined(LITE)
     ds18b20Timers = NULL;                                           // InitHeap() will recover the memory allocated to this array
 #endif
-    CloseAllFiles();
+    file_close_all();
     ClearExternalIO();                                              // this MUST come before InitHeap()
 #if defined(__mmb4l__)
     mmb_error_state_ptr = &mmb_normal_error_state;

@@ -53,7 +53,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "console.h"
 #include "error.h"
-#include "fonttbl.h"
 #include "interrupt.h"
 #include "keycodes.h"
 #include "mmb4l.h"

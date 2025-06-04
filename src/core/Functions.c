@@ -403,11 +403,9 @@ void fun_tab(void) {
 // get a character from the console input queue
 // s$ = INKEY$
 void fun_inkey(void){
-    int i;
-
     sret = GetTempStrMemory();                                      // this buffer is automatically zeroed so the string is zero size
 
-    i = getConsole();
+    int i = console_getc();
     if(i != -1) {
         sret[0] = 1;                                                // this is the length
         sret[1] = i;                                                // and this is the character

@@ -45,9 +45,6 @@ extern char cmd_run_args[STRINGSIZE];
 // Defined in "commands/cmd_run.c"
 MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args);
 
-// Defined in "common/console.c"
-void console_puts(const char *s) { }
-
 // Defined in "common/file.c"
 void file_close_all(void) { }
 

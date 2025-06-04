@@ -50,9 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "console.h"
 #include "interrupt.h"
-#include "keycodes.h"
 #include "keyboard.h"
 #include "keyboard_ps2.h"
+#include "keycodes.h"
 
 #define MAX_KEYS  10
 

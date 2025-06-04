@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fonttbl.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -60,5 +60,16 @@ uint32_t font_height(uint32_t font);
 
 /** Gets the width of a font. */
 uint32_t font_width(uint32_t font);
+
+/** Gets the first character for which the font has a glyph. */
+static inline char font_first_char(uint32_t font) {
+    return FontTable[font >> 4][2];
+}
+
+/** Gets the last character for which the font has a glyph. */
+static inline char font_last_char(uint32_t font) {
+   return FontTable[font >> 4][2] + FontTable[font >> 4][3] - 1;
+}
+
 
 #endif // #if !defined(MMBASIC_FONTTBL_H)

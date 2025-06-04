@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 
 #include "mmresult.h"
+#include "graphics.h"
 #include "options.h"
 
 typedef enum {
@@ -91,6 +92,9 @@ typedef struct {
     bool has_mminfo_usb;                     // Supports MM.INFO(USB)
     int hres;
     int vres;
+    MmGraphicsColour foreground;
+    MmGraphicsColour background;
+    OptionsConsole console;
 } Features;
 
 MmResult features_init(Features *features, OptionsSimulate optionSimulate);

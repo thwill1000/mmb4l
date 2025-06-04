@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
+#include "../common/display.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
 #include "../core/tokentbl.h"
@@ -185,15 +186,12 @@ void cmd_system_setenv(const char *p) {
  *                               On exit the number of characters in the buffer.
  * @param[out]      exit_status  On exit the exit status of the executed system command.
  */
-static MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_status) {
+MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_status) {
 
-    if (!buf) {
-        // Special handling when we are not capturing the output.
-        *exit_status = system(cmd);
-    } else {
-        FILE *f = popen(cmd, "r");
-        if (!f) return errno;
+    FILE *f = popen(cmd, "r");
+    if (!f) return errno;
 
+    if (buf) {
         ssize_t i;
         for (i = 0; i < (ssize_t) *sz; ++i) {
             int ch = fgetc(f);
@@ -206,10 +204,16 @@ static MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exi
         if (i > -1 && buf[i] == '\n') i--;
         if (i > -1 && buf[i] == '\r') i--;
         *sz = i + 1;
-
-        *exit_status = pclose(f);
+    } else {
+        for (;;) {
+            int ch = fgetc(f);
+            if (ch == EOF) break;
+            if (ch == '\n') (void) display_putc('\r');
+            (void) display_putc(ch);
+        }
     }
 
+    *exit_status = pclose(f);
     if (*exit_status == -1) {
         return errno;
     } else {

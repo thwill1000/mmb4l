@@ -345,6 +345,7 @@ add_executable(
   src/common/utility.c
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/display_stubs.c
   src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
@@ -386,6 +387,7 @@ add_executable(
   src/common/path.c
   src/common/utility.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/display_stubs.c
   src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
@@ -519,6 +521,7 @@ add_executable(
   src/common/utility.c
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/display_stubs.c
   src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
   src/common/gtest/stubs/interrupt_stubs.c
@@ -751,6 +754,7 @@ add_executable(
   src/common/gtest/parse_test.cxx
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/display_stubs.c
   src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
@@ -816,6 +820,7 @@ add_executable(
   src/common/gtest/program_test.cxx
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/display_stubs.c
   src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c
@@ -848,7 +853,14 @@ add_executable(
   test_prompt
   src/common/cstring.c
   src/common/prompt.c
+  src/common/mmresult.c
   src/common/gtest/prompt_test.cxx
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/display_stubs.c
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/events_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
 )
 
 target_link_libraries(
@@ -977,6 +989,7 @@ add_executable(
   src/common/utility.c
   src/common/gtest/test_helper.c
   src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/display_stubs.c
   src/common/gtest/stubs/error_stubs.c
   src/common/gtest/stubs/events_stubs.c
   src/common/gtest/stubs/gamepad_stubs.c

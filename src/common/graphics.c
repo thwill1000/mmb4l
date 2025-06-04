@@ -42,6 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+#include <stdbool.h>
+
+#include <SDL.h>
+
 #include "bitset.h"
 #include "cstring.h"
 #include "error.h"
@@ -58,10 +63,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../third_party/spbmp.h"
 #include "../third_party/upng.h"
 
-#include <assert.h>
-#include <stdbool.h>
-
-#include <SDL.h>
+void MMgetline(int filenbr, char *p);
 
 /** Sprite colours on CMM2. */
 const MmGraphicsColour GRAPHICS_CMM2_SPRITE_COLOURS[] = {
@@ -1809,6 +1811,8 @@ MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x
 }
 
 MmResult graphics_cls(MmSurface *surface, MmGraphicsColour colour) {
+    surface->cursor_x = 0;
+    surface->cursor_y = 0;
     return graphics_draw_rectangle(surface, 0, 0, surface->width - 1, surface->height - 1, colour);
 }
 
@@ -2271,8 +2275,8 @@ static MmResult graphics_set_mode_cmm2(unsigned mode, unsigned colour_depth,
         result = graphics_surface_write(0);
     }
     if (SUCCEEDED(result)) {
-        graphics_fcolour = RGB_WHITE;
-        graphics_bcolour = RGB_BLACK;
+        graphics_fcolour = mmb_features.foreground;
+        graphics_bcolour = mmb_features.background;
         graphics_colour_depth = colour_depth;
         graphics_cmm2_background = background;
         result = graphics_set_font(mode_def->font, 1);
@@ -2291,8 +2295,8 @@ static MmResult graphics_set_mode_picomite_lcd(unsigned mode) {
                                              mmb_features.vres));
     ON_FAILURE_RETURN(graphics_surface_write(GRAPHICS_SURFACE_N));
 
-    graphics_fcolour = RGB_WHITE;
-    graphics_bcolour = RGB_BLACK;
+    graphics_fcolour = mmb_features.foreground;
+    graphics_bcolour = mmb_features.background;
     graphics_colour_depth = 32;
     graphics_cmm2_background = RGB_BLACK;
 
@@ -2316,8 +2320,8 @@ static MmResult graphics_set_mode_picomite_vga(unsigned mode) {
         result = graphics_surface_write(GRAPHICS_SURFACE_N);
     }
     if (SUCCEEDED(result)) {
-        graphics_fcolour = RGB_WHITE;
-        graphics_bcolour = RGB_BLACK;
+        graphics_fcolour = mmb_features.foreground;
+        graphics_bcolour = mmb_features.background;
         graphics_colour_depth = 32;
         graphics_cmm2_background = RGB_BLACK;
         result = graphics_set_font(mode_def->font, 1);

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmresult.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,20 +42,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
-#include "../common/console.h"
-#include "../common/file.h"
-
 #include <string.h>
+
+#include "../common/mmb4l.h"
+#include "../common/display.h"
+#include "../common/file.h"
 
 void cmd_print(void);
 void execute_other(void);
+void MMgetline(int filenbr, char *p);
 
 void cmd_mmdebug(void) {
     const char *p;
     if ((p = checkstring(cmdline, "BREAK"))) {
         while (true) {
-            console_puts("DEBUG> ");
+            display_puts("DEBUG> ");
             MMgetline(0, inpbuf);
             if ((p = checkstring(inpbuf, "CONTINUE"))) break;
             execute_other();

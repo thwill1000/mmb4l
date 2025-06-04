@@ -42,17 +42,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
+#include <string.h>
+
 #include "../common/console.h"
+#include "../common/display.h"
 #include "../common/cstring.h"
 #include "../common/file.h"
 #include "../common/keycodes.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/path.h"
 #include "../common/program.h"
 #include "../common/utility.h"
-
-#include <string.h>
 
 /** Reads input from the console into the buffer. */
 static int cmd_autosave_read(char *buf) {
@@ -88,13 +89,13 @@ static int cmd_autosave_read(char *buf) {
                 || (ch == '\n')) {
             *p++ = '\n';
             count = 0;
-            console_putc('\n');
+            display_putc('\n');
         }
 
         if (isprint(ch)) {
             *p++ = ch;
             if (count++ > 240) ERROR_LINE_LENGTH;
-            console_putc(ch);
+            display_putc(ch);
         }
 
         previous = ch;
@@ -105,7 +106,7 @@ cmd_autosave_read_exit:
     if (previous == '\r') *p++ = '\n';
     *p = '\0'; // Terminate with a NULL.
 
-    if (MMCharPos > 1) console_putc('\n');
+    if (MMCharPos > 1) display_putc('\n');
 
     return ch;
 }
