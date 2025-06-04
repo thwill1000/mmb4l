@@ -42,10 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "console.h"
 #include "cstring.h"
 #include "file.h"
 #include "fonttbl.h"
+#include "keycodes.h"
 #include "mmb4l.h"
 #include "parse.h"
 #include "path.h"
@@ -53,10 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "utility.h"
 #include "../core/Commands.h"
 #include "../core/commandtbl.h"
-
-#include <assert.h>
-#include <string.h>
-#include <unistd.h>
 
 #define ERROR_INVALID_FUNCTION_NAME  error_throw_ex(kInvalidName, "Invalid function name")
 #define ERROR_INVALID_HEX            ERROR_INVALID("hex word")
