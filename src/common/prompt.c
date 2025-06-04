@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 prompt.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,15 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "mmb4l.h"
+#include <assert.h>
+#include <string.h>
+
 #include "console.h"
 #include "file.h"
+#include "keycodes.h"
+#include "mmb4l.h"
 #include "path.h"
 #include "prompt.h"
 #include "utility.h"
-
-#include <assert.h>
-#include <string.h>
 
 #define HISTORY_SIZE  4 * STRINGSIZE
 #define ERROR_LINE_TOO_LONG_TO_EDIT  error_throw_ex(kStringTooLong, "Line is too long to edit")
