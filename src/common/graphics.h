@@ -164,6 +164,8 @@ typedef struct MmSurfaceStruct {
     int width;
     uint32_t *pixels;
     const char *interrupt_addr;
+    int cursor_x;
+    int cursor_y;
 
     /**
      * Only used for PicoMiteVGA support, it is the colour of the LAYER buffer that should be

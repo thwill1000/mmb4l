@@ -42,13 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
-#include "../common/console.h"
-#include "../common/utility.h"
-#include "../core/vartbl.h"
-
 #include <stdio.h>
 #include <string.h>
+
+#include "../common/mmb4l.h"
+#include "../common/display.h"
+#include "../common/utility.h"
+#include "../core/vartbl.h"
 
 #define ERROR_ADDRESS_NOT_DIVISIBLE_BY(i)      error_throw_ex(kError, "Address not divisible by %", i)
 #define ERROR_DST_ADDRESS_NOT_DIVISIBLE_BY(i)  error_throw_ex(kError, "Destination address not divisible by %", i)
@@ -246,7 +246,7 @@ static void memory_report(const char *unused) {
             (PROG_FLASH_SIZE - num_bytes + 512) / 1024,
             num_lines,
             num_lines == 1 ? "" : "s");
-    console_puts(inpbuf);
+    display_puts(inpbuf);
 
     const int fcnt = funtbl_count;
     const int fsize = sizeof(struct s_funtbl);
@@ -258,7 +258,7 @@ static void memory_report(const char *unused) {
             (int) (((MAXSUBFUN * fsize + 512) / 1024) - ((fcnt * fsize + 512) / 1024)),
             (int) fcnt,
             MAXSUBFUN);
-    console_puts(inpbuf);
+    display_puts(inpbuf);
 
     const int vcnt = count_variables();
     const int vsize = sizeof(struct s_vartbl);
@@ -270,7 +270,7 @@ static void memory_report(const char *unused) {
             (int) (((MAXVARS * vsize + 512) / 1024) - ((vcnt * vsize + 512) / 1024)),
             vcnt,
             MAXVARS);
-    console_puts(inpbuf);
+    display_puts(inpbuf);
 
     const int ram_used = (UsedHeap() + 512) / 1024;
     const int percent_used = ((UsedHeap() + 512) * 100) / HEAP_SIZE;
@@ -283,7 +283,7 @@ static void memory_report(const char *unused) {
             (HEAP_SIZE / 1024) - ram_used,
             pages_used,
             HEAP_SIZE / PAGESIZE);
-    console_puts(inpbuf);
+    display_puts(inpbuf);
 }
 
 void cmd_memory(void) {

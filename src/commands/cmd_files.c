@@ -47,22 +47,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/console.h"
+#include "../common/error.h"
 #include "../common/memory.h"
+
+MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_status);
 
 void cmd_files_internal(const char *p) {
     char *command = GetTempStrMemory();
 
     skipspace(p);
     if (*p != '\0' && *p != '\'') {
-        snprintf(command, STRINGSIZE, "ls %s", getCstring(p));
+        snprintf(command, STRINGSIZE, "ls %s | column", getCstring(p));
     } else {
-        snprintf(command, STRINGSIZE, "ls");
+        snprintf(command, STRINGSIZE, "ls | column");
     }
 
     (void) system(command);
     // if (result != 0) ERROR_SYSTEM_COMMAND_FAILED;
-
-    console_puts("\r\n");
+    int64_t exit_status = 0;
+    ON_FAILURE_ERROR(cmd_system_to_buf(command, NULL, 0, &exit_status));
 }
 
 void cmd_files(void) {

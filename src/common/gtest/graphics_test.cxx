@@ -31,13 +31,6 @@ void MMgetline(int fnbr, char *p) {}
 // Defined in "common/audio.c"
 const char *audio_last_error() { return NULL; }
 
-// Defined in "common/console.c"
-int console_kbhit(void) { return 0; }
-char console_putc(char c) { return c; }
-void console_puts(const char *s) {}
-void console_set_title(const char *title) {}
-size_t console_write(const char *buf, size_t sz) { return 0; }
-
 // Defined in "common/keyboard.c"
 MmResult keyboard_key_down(const SDL_Keysym *keysym) { return kError; }
 MmResult keyboard_key_up(const SDL_Keysym *keysym) { return kError; }

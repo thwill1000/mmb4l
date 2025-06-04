@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "console.h"
 #include "cstring.h"
+#include "display.h"
 #include "file.h"
 #include "fonttbl.h"
 #include "keycodes.h"
@@ -58,6 +59,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "utility.h"
 #include "../core/Commands.h"
 #include "../core/commandtbl.h"
+
+void MMgetline(int filenbr, char *p);
 
 #define ERROR_INVALID_FUNCTION_NAME  error_throw_ex(kInvalidName, "Invalid function name")
 #define ERROR_INVALID_HEX            ERROR_INVALID("hex word")
@@ -905,7 +908,7 @@ static void get_csub_name(char *p, char *buf) {
 }
 
 static void print_line(const char *buf, int* line_count, int all) {
-    console_puts(buf);
+    display_puts(buf);
     ListNewLine(line_count, all);
 }
 

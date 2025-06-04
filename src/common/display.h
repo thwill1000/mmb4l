@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 display.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -49,6 +49,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmresult.h"
 
+/** Makes a "bell" noise. */
+MmResult display_bell();
+
+/**
+ * Moves the cursor up.
+ *
+ * @param[in]  i  number of characters to move up.
+ * @return        kOk on success.
+ */
+MmResult display_cursor_up(int i);
+
 /**
  * Gets the current text cursor position.
  *
@@ -59,6 +70,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @return             kOK on success.
  */
 MmResult display_get_cursor_pos(bool pixel, int *x, int *y);
+
+/**
+ * Hides the cursor.
+ *
+ * @return  kOK on success.
+ */
+MmResult display_hide_cursor();
 
 /**
  * Gets the size of the display.
@@ -72,14 +90,47 @@ MmResult display_get_cursor_pos(bool pixel, int *x, int *y);
 MmResult display_get_size(bool pixel, int *width, int *height);
 
 /**
- * Gets the new text cursor position.
+ * Writes a character to the display.
  *
- * @param[in]   pixel  true:  to set value in pixels,
- *                     false: to set value in characters.
- * @param[in]  x       the x-coordinate of the cursor.
- * @param[in]  y       the y-coordinate of the cursor.
- * @return             kOK on success.
+ * @param[in]  c  the character to write.
+ * @return        kOK on success.
+ */
+MmResult display_putc(char c);
+
+/**
+ * Writes a C-string to the display.
+ *
+ * @param[in]  s  the C-string to write.
+ * @return        kOK on success.
+ */
+MmResult display_puts(const char *s);
+
+/**
+ * Sets the new text cursor position.
+ *
+ * @param[in]  pixel  true:  to set value in pixels,
+ *                    false: to set value in characters.
+ * @param[in]  x      the x-coordinate of the cursor.
+ * @param[in]  y      the y-coordinate of the cursor.
+ * @return            kOK on success.
  */
 MmResult display_set_cursor_pos(bool pixel, int x, int y);
 
-#endif // #if !defined(DISPLAY_H)
+/**
+ * Shows the cursor.
+ *
+ * @return  kOK on success.
+ */
+MmResult display_show_cursor();
+
+/**
+ * Write characters to the display.
+ *
+ * @param[in]       buf  write characters from this buffer.
+ * @param[in, out]  sz   on entry, number of characters to write.
+ *                       on exit, number of characters written.
+ * @return               kOk on success.
+ */
+MmResult display_write(const char *buf, size_t *sz);
+
+#endif //  !defined(MMB4L_DISPLAY_H)

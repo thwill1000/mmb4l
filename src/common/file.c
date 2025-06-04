@@ -48,16 +48,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 
 #include "mmb4l.h"
-#include "console.h"
 #include "error.h"
 #include "file.h"
 #include "path.h"
 #include "serial.h"
 #include "utility.h"
 
+MmResult (*file_0_putc_fn)(char c) = NULL;
+MmResult (*file_0_write_fn)(const char *buf, size_t *sz) = NULL;
+
 // We don't use the 0'th entry, but it makes things simpler since MMBasic
 // indexes file numbers from 1.
 FileEntry file_table[MAXOPENFILES + 1] = { 0 };
+
+MmResult file_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *, size_t *)) {
+    file_0_putc_fn = putc_fn;
+    file_0_write_fn = write_fn;
+    return kOk;
+}
 
 /**
  * @param  filename  filename in C-string style, not MMBasic style.
@@ -218,7 +226,12 @@ int file_putc(int fnbr, int ch) {
         error_throw(kFileInvalidFileNumber);
         return -1;
     }
-    if (fnbr == 0) return console_putc(ch);
+
+    if (fnbr == 0) {
+        assert(file_0_putc_fn);
+        ON_FAILURE_ERROR_EX(file_0_putc_fn(ch), -1);
+        return ch;
+    }
 
     switch (file_table[fnbr].type) {
         case fet_closed:
@@ -339,7 +352,12 @@ size_t file_write(int fnbr, const char *buf, size_t sz) {
         error_throw(kFileInvalidFileNumber);
         return 0;
     }
-    if (fnbr == 0) return console_write(buf, sz);
+
+    if (fnbr == 0) {
+        assert(file_0_write_fn);
+        ON_FAILURE_ERROR_EX(file_0_write_fn(buf, &sz), 0);
+        return sz;
+    }
 
     switch (file_table[fnbr].type) {
         case fet_closed:

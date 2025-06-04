@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string.h>
 
-#include "../common/console.h"
+#include "../common/display.h"
 #include "../common/mmb4l.h"
 #include "Commands.h"
 #include "tokentbl.h"
@@ -69,12 +69,12 @@ const char *TraceBuff[TRACE_BUFF_SIZE];
 int TraceBuffIndex;                                                 // used for listing the contents of the trace buffer
 
 void ListNewLine(int *ListCnt, int all) {
-    console_puts("\r\n");
+    display_puts("\r\n");
     (*ListCnt)++;
     if(!all && *ListCnt >= mmb_options.height) {
-        console_puts("PRESS ANY KEY ...");
+        display_puts("PRESS ANY KEY ...");
         MMgetchar();
-        console_puts("\r                 \r");
+        display_puts("\r                 \r");
         *ListCnt = 1;
     }
 }

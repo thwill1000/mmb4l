@@ -45,9 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/console.h"
+#include "../common/display.h"
 #include "../common/file.h"
 #include "../common/mmb4l.h"
+
+void MMgetline(int filenbr, char *p);
 
 void cmd_input(void) {
     char s[STRINGSIZE];
@@ -69,11 +71,11 @@ void cmd_input(void) {
         if(argc >= 3 && *argv[0] == '"' && (*argv[1] == ',' || *argv[1] == ';')) {
             *(argv[0] + strlen(argv[0]) - 1) = 0;
             argv[0]++;
-            console_puts(argv[0]);
-            if(*argv[1] == ';') console_puts("? ");
+            display_puts(argv[0]);
+            if(*argv[1] == ';') display_puts("? ");
             i = 2;
         } else {
-            console_puts("? ");                                     // no prompt?  then just print the question mark
+            display_puts("? ");                                     // no prompt?  then just print the question mark
             i = 0;
         }
     }
