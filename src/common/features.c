@@ -54,7 +54,10 @@ static Features features_cmm2 = {
    .play_modfile_params = kPlayModfileTypeWithSampleRate,
    .has_cmd_mode = true,
    .has_cmd_page = true,
-   .has_fun_keydown = true
+   .has_fun_keydown = true,
+   .foreground = RGB_WHITE,
+   .background = RGB_BLACK,
+   .console = kBoth
 };
 
 static Features features_gamemite = {
@@ -69,7 +72,10 @@ static Features features_gamemite = {
    .has_mminfo_drive = true,
    .has_mminfo_pin = true,
    .hres = 320,
-   .vres = 240
+   .vres = 240,
+   .foreground = RGB_WHITE,
+   .background = RGB_BLACK,
+   .console = kScreen
 };
 
 static Features features_mmb4l = {
@@ -79,7 +85,10 @@ static Features features_mmb4l = {
    .graphics_type = kGraphicsTypeMmb4l,
    .play_modfile_params = kPlayModfileTypeWithBoth,
    .has_mminfo_ps2 = true,
-   .has_fun_keydown = true
+   .has_fun_keydown = true,
+   .foreground = RGB_WHITE,
+   .background = RGB_BLACK,
+   .console = kSerial
 };
 
 static Features features_mmb4w = {
@@ -90,7 +99,10 @@ static Features features_mmb4w = {
    .play_modfile_params = kPlayModfileTypeWithSampleRate,
    .has_cmd_mode = true,
    .has_cmd_page = true,
-   .has_fun_keydown = true
+   .has_fun_keydown = true,
+   .foreground = RGB_WHITE,
+   .background = RGB_BLACK,
+   .console = kBoth
 };
 
 static Features features_picocalc = {
@@ -105,7 +117,10 @@ static Features features_picocalc = {
    .has_mminfo_drive = true,
    .has_mminfo_pin = true,
    .hres = 320,
-   .vres = 320
+   .vres = 320,
+   .foreground = RGB_GREEN,
+   .background = RGB_BLACK,
+   .console = kBoth
 };
 
 static Features features_picomite_vga = {
@@ -120,7 +135,10 @@ static Features features_picomite_vga = {
    .has_mminfo_cpuspeed = true,
    .has_mminfo_drive = true,
    .has_mminfo_ps2 = true,
-   .has_mminfo_pin = true
+   .has_mminfo_pin = true,
+   .foreground = RGB_WHITE,
+   .background = RGB_BLACK,
+   .console = kBoth
 };
 
 static Features features_picomite_vga_usb = {
@@ -136,7 +154,10 @@ static Features features_picomite_vga_usb = {
    .has_mminfo_drive = true,
    .has_mminfo_pin = true,
    .has_mminfo_usb = true,
-   .has_fun_keydown = true
+   .has_fun_keydown = true,
+   .foreground = RGB_WHITE,
+   .background = RGB_BLACK,
+   .console = kBoth
 };
 
 MmResult features_init(Features *features, OptionsSimulate simulate) {
@@ -169,6 +190,7 @@ MmResult features_init(Features *features, OptionsSimulate simulate) {
    }
 
    memcpy(features, new_features, sizeof(Features));
+   mmb_options.console = features->console;
 
    return kOk;
 }

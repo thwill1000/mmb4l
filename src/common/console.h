@@ -111,6 +111,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BRIGHT_YELLOW   14
 #define BRIGHT_WHITE    15
 
+// Nominal dimensions of console font.
+#define CONSOLE_FONT_HEIGHT  12
+#define CONSOLE_FONT_WIDTH   8
+
 extern int ListCnt;
 extern int MMCharPos;
 

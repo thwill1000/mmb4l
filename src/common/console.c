@@ -54,7 +54,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmb4l.h"
 #include "console.h"
 #include "error.h"
-#include "fonttbl.h"
 #include "interrupt.h"
 #include "mmtime.h"
 #include "utility.h"

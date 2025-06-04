@@ -181,10 +181,6 @@ static MmResult cmd_option_set_string(const char *p, const OptionsDefinition *de
             mmb_options.explicit_type = (argc == 1 ? parse_bool(argv[0]) : true);
             return kOk;
 
-        case kOptionConsole:
-            // Allowed but ignored.
-            return argc == 1 ? kOk : kSyntax;
-
         default:
             break;
     }

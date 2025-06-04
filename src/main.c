@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/cmdline.h"
 #include "common/console.h"
 #include "common/cstring.h"
+#include "common/display.h"
 #include "common/events.h"
 #include "common/exit_codes.h"
 #include "common/features.h"
@@ -442,6 +443,7 @@ int MMgetchar(void) {
     static char prevchar = 0;
     int c;
     for (;;) {
+        display_show_cursor();
         c = console_getc();
         if (c == -1) {
             if (!isatty(STDIN_FILENO)) {
@@ -449,6 +451,7 @@ int MMgetchar(void) {
                 if (MMCharPos > 1) console_puts("\r\n");
                 console_puts("Error: STDIN exhausted\r\n");
                 mmb_exit_code = 1;
+                display_hide_cursor();
                 longjmp(mark, JMP_QUIT);
             }
             nanosleep(&ONE_MILLISECOND, NULL);
@@ -461,6 +464,7 @@ int MMgetchar(void) {
         }
     }
     prevchar = c;
+    display_hide_cursor();
     return c == '\n' ? '\r' : c;
 }
 
