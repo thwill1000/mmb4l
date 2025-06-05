@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cmdline.h"
 #include "cstring.h"
 #include "error.h"
+#include "features.h"
 #include "parse.h"
 #include "utility.h"
 
@@ -117,7 +118,9 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
     if (i < argc) {
         MmResult result = cstring_cat(out->run_cmd, "*", buf_sz);
         if (simulate != kSimulateMmb4l) {
-            result = cstring_cat(out->run_cmd, options_simulate_to_string(simulate), buf_sz);
+            Features features;
+            ON_FAILURE_RETURN(features_init(&features, simulate));
+            result = cstring_cat(out->run_cmd, features.simple_name, buf_sz);
             result = cstring_cat(out->run_cmd, " ", buf_sz);
         }
 
@@ -135,7 +138,9 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
     // Handle the case where a device was specified without a program to run.
     if (out->run_cmd[0] == '\0' && simulate != kSimulateMmb4l) {
         MmResult result = cstring_cat(out->run_cmd, "OPTION SIMULATE ", buf_sz);
-        result = cstring_cat(out->run_cmd, options_simulate_to_string(simulate), buf_sz);
+        Features features;
+        ON_FAILURE_RETURN(features_init(&features, simulate));
+        result = cstring_cat(out->run_cmd, features.simple_name, buf_sz);
         if (FAILED(result)) return kStringTooLong;
         out->show_prompt = 1;
     }

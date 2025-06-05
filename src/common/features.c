@@ -47,151 +47,165 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "features.h"
 
 static Features features_cmm2 = {
-   .device = "Colour Maximite 2",
-   .platform = "",
-   .gamepad_type = kGamepadTypeCmm2,
-   .graphics_type = kGraphicsTypeCmm2,
-   .play_modfile_params = kPlayModfileTypeWithSampleRate,
-   .has_cmd_mode = true,
-   .has_cmd_page = true,
-   .has_fun_keydown = true,
-   .foreground = RGB_WHITE,
-   .background = RGB_BLACK,
-   .console = kBoth
+    .name = "Colour Maximite 2",
+    .simple_name = "CMM2",
+    .device = "Colour Maximite 2",
+    .platform = "",
+    .gamepad_type = kGamepadTypeCmm2,
+    .graphics_type = kGraphicsTypeCmm2,
+    .play_modfile_params = kPlayModfileTypeWithSampleRate,
+    .has_cmd_mode = true,
+    .has_cmd_page = true,
+    .has_fun_keydown = true,
+    .foreground = RGB_WHITE,
+    .background = RGB_BLACK,
+    .console = kBoth
 };
 
 static Features features_gamemite = {
-   .device = "PicoMite",
-   .platform = "Game*Mite",
-   .gamepad_type = kGamepadTypeGamemite,
-   .graphics_type = kGraphicsTypePicomiteLcd,
-   .play_modfile_params = kPlayModfileTypeWithInterrupt,
-   .has_cmd_flash = true,
-   .has_cmd_framebuffer = true,
-   .has_mminfo_cpuspeed = true,
-   .has_mminfo_drive = true,
-   .has_mminfo_pin = true,
-   .hres = 320,
-   .vres = 240,
-   .foreground = RGB_WHITE,
-   .background = RGB_BLACK,
-   .console = kScreen
+    .name = "Game*Mite",
+    .simple_name = "GameMite",
+    .device = "PicoMite",
+    .platform = "Game*Mite",
+    .gamepad_type = kGamepadTypeGamemite,
+    .graphics_type = kGraphicsTypePicomiteLcd,
+    .play_modfile_params = kPlayModfileTypeWithInterrupt,
+    .has_cmd_flash = true,
+    .has_cmd_framebuffer = true,
+    .has_mminfo_cpuspeed = true,
+    .has_mminfo_drive = true,
+    .has_mminfo_pin = true,
+    .hres = 320,
+    .vres = 240,
+    .foreground = RGB_WHITE,
+    .background = RGB_BLACK,
+    .console = kScreen
 };
 
 static Features features_mmb4l = {
-   .device = "MMB4L",
-   .platform = "",
-   .gamepad_type = kGamepadTypeMmb4l,
-   .graphics_type = kGraphicsTypeMmb4l,
-   .play_modfile_params = kPlayModfileTypeWithBoth,
-   .has_mminfo_ps2 = true,
-   .has_mminfo_res = true,
-   .has_fun_keydown = true,
-   .foreground = RGB_WHITE,
-   .background = RGB_BLACK,
-   .console = kSerial
+    .name = "MMB4L",
+    .simple_name = "MMB4L",
+    .device = "MMB4L",
+    .platform = "",
+    .gamepad_type = kGamepadTypeMmb4l,
+    .graphics_type = kGraphicsTypeMmb4l,
+    .play_modfile_params = kPlayModfileTypeWithBoth,
+    .has_mminfo_ps2 = true,
+    .has_mminfo_res = true,
+    .has_fun_keydown = true,
+    .foreground = RGB_WHITE,
+    .background = RGB_BLACK,
+    .console = kSerial
 };
 
 static Features features_mmb4w = {
-   .device = "MMBasic for Windows",
-   .platform = "",
-   .gamepad_type = kGamepadTypeMmb4w,
-   .graphics_type = kGraphicsTypeCmm2,
-   .play_modfile_params = kPlayModfileTypeWithSampleRate,
-   .has_cmd_mode = true,
-   .has_cmd_page = true,
-   .has_fun_keydown = true,
-   .foreground = RGB_WHITE,
-   .background = RGB_BLACK,
-   .console = kBoth
+    .name = "MMBasic for Windows",
+    .simple_name = "MMB4W",
+    .device = "MMBasic for Windows",
+    .platform = "",
+    .gamepad_type = kGamepadTypeMmb4w,
+    .graphics_type = kGraphicsTypeCmm2,
+    .play_modfile_params = kPlayModfileTypeWithSampleRate,
+    .has_cmd_mode = true,
+    .has_cmd_page = true,
+    .has_fun_keydown = true,
+    .foreground = RGB_WHITE,
+    .background = RGB_BLACK,
+    .console = kBoth
 };
 
 static Features features_picocalc = {
-   .device = "PicoMite",
-   .platform = "PicoCalc",
-   .gamepad_type = kGamepadTypeNone,
-   .graphics_type = kGraphicsTypePicomiteLcd,
-   .play_modfile_params = kPlayModfileTypeWithInterrupt,
-   .has_cmd_flash = true,
-   .has_cmd_framebuffer = true,
-   .has_mminfo_cpuspeed = true,
-   .has_mminfo_drive = true,
-   .has_mminfo_pin = true,
-   .hres = 320,
-   .vres = 320,
-   .foreground = RGB_GREEN,
-   .background = RGB_BLACK,
-   .console = kBoth
+    .name = "PicoCalc",
+    .simple_name = "PicoCalc",
+    .device = "PicoMite",
+    .platform = "PicoCalc",
+    .gamepad_type = kGamepadTypeNone,
+    .graphics_type = kGraphicsTypePicomiteLcd,
+    .play_modfile_params = kPlayModfileTypeWithInterrupt,
+    .has_cmd_flash = true,
+    .has_cmd_framebuffer = true,
+    .has_mminfo_cpuspeed = true,
+    .has_mminfo_drive = true,
+    .has_mminfo_pin = true,
+    .hres = 320,
+    .vres = 320,
+    .foreground = RGB_GREEN,
+    .background = RGB_BLACK,
+    .console = kBoth
 };
 
 static Features features_picomite_vga = {
-   .device = "PicoMiteVGA",
-   .platform = "",
-   .gamepad_type = kGamepadTypePicomiteSnes,
-   .graphics_type = kGraphicsTypePicomiteVga,
-   .play_modfile_params = kPlayModfileTypeWithInterrupt,
-   .has_cmd_flash = true,
-   .has_cmd_framebuffer = true,
-   .has_cmd_mode = true,
-   .has_mminfo_cpuspeed = true,
-   .has_mminfo_drive = true,
-   .has_mminfo_ps2 = true,
-   .has_mminfo_pin = true,
-   .foreground = RGB_WHITE,
-   .background = RGB_BLACK,
-   .console = kBoth
+    .name = "PicoMiteVGA",
+    .simple_name = "PicoMiteVGA",
+    .device = "PicoMiteVGA",
+    .platform = "",
+    .gamepad_type = kGamepadTypePicomiteSnes,
+    .graphics_type = kGraphicsTypePicomiteVga,
+    .play_modfile_params = kPlayModfileTypeWithInterrupt,
+    .has_cmd_flash = true,
+    .has_cmd_framebuffer = true,
+    .has_cmd_mode = true,
+    .has_mminfo_cpuspeed = true,
+    .has_mminfo_drive = true,
+    .has_mminfo_ps2 = true,
+    .has_mminfo_pin = true,
+    .foreground = RGB_WHITE,
+    .background = RGB_BLACK,
+    .console = kBoth
 };
 
 static Features features_picomite_vga_usb = {
-   .device = "PicoMiteVGAUSB",
-   .platform = "",
-   .gamepad_type = kGamepadTypePicomiteUsb,
-   .graphics_type = kGraphicsTypePicomiteVga,
-   .play_modfile_params = kPlayModfileTypeWithInterrupt,
-   .has_cmd_flash = true,
-   .has_cmd_framebuffer = true,
-   .has_cmd_mode = true,
-   .has_mminfo_cpuspeed = true,
-   .has_mminfo_drive = true,
-   .has_mminfo_pin = true,
-   .has_mminfo_usb = true,
-   .has_fun_keydown = true,
-   .foreground = RGB_WHITE,
-   .background = RGB_BLACK,
-   .console = kBoth
+    .name = "PicoMiteVGAUSB",
+    .simple_name = "PicoMiteVGAUSB",
+    .device = "PicoMiteVGAUSB",
+    .platform = "",
+    .gamepad_type = kGamepadTypePicomiteUsb,
+    .graphics_type = kGraphicsTypePicomiteVga,
+    .play_modfile_params = kPlayModfileTypeWithInterrupt,
+    .has_cmd_flash = true,
+    .has_cmd_framebuffer = true,
+    .has_cmd_mode = true,
+    .has_mminfo_cpuspeed = true,
+    .has_mminfo_drive = true,
+    .has_mminfo_pin = true,
+    .has_mminfo_usb = true,
+    .has_fun_keydown = true,
+    .foreground = RGB_WHITE,
+    .background = RGB_BLACK,
+    .console = kBoth
 };
 
 MmResult features_init(Features *features, OptionsSimulate simulate) {
-   Features *new_features = NULL;
+    Features *new_features = NULL;
 
-   switch (simulate) {
-      case kSimulateCmm2:
-         new_features = &features_cmm2;
-         break;
-      case kSimulateMmb4l:
-         new_features = &features_mmb4l;
-         break;
-      case kSimulateMmb4w:
-         new_features = &features_mmb4w;
-         break;
-      case kSimulateGamemite:
-         new_features = &features_gamemite;
-         break;
-      case kSimulatePicocalc:
-         new_features = &features_picocalc;
-         break;
-      case kSimulatePicomiteVga:
-         new_features = &features_picomite_vga;
-         break;
-      case kSimulatePicomiteVgaUsb:
-         new_features = &features_picomite_vga_usb;
-         break;
-      default:
-         return kInternalFault;
-   }
+    switch (simulate) {
+        case kSimulateCmm2:
+            new_features = &features_cmm2;
+            break;
+        case kSimulateMmb4l:
+            new_features = &features_mmb4l;
+            break;
+        case kSimulateMmb4w:
+            new_features = &features_mmb4w;
+            break;
+        case kSimulateGamemite:
+            new_features = &features_gamemite;
+            break;
+        case kSimulatePicocalc:
+            new_features = &features_picocalc;
+            break;
+        case kSimulatePicomiteVga:
+            new_features = &features_picomite_vga;
+            break;
+        case kSimulatePicomiteVgaUsb:
+            new_features = &features_picomite_vga_usb;
+            break;
+        default:
+            return kInternalFault;
+    }
 
-   memcpy(features, new_features, sizeof(Features));
-   mmb_options.console = features->console;
+    memcpy(features, new_features, sizeof(Features));
+    mmb_options.console = features->console;
 
-   return kOk;
+    return kOk;
 }

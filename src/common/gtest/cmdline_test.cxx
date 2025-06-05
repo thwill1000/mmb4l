@@ -287,16 +287,16 @@ TEST(CmdLineTest, Parse_GivenCommandLineTooLong) {
 TEST(CmdLineTest, Parse_GivenSimulateKnownDevice_Succeeds) {
     typedef struct {
         const char *args[4];
-        OptionsSimulate expected;
+        const char *expected;
     } TestData;
 
     const TestData tests[] = {
-        { { "mmbasic", "--simulate", "CMM2" }, kSimulateCmm2 },
-        { { "mmbasic", "-s", "picomitevga" }, kSimulatePicomiteVga },
-        { { "mmbasic", "--simulate=GameMite", "" }, kSimulateGamemite },
-        { { "mmbasic", "-s=PicoCalc", "" }, kSimulatePicocalc },
-        { { "mmbasic", "picomitevgausb", "" }, kSimulatePicomiteVgaUsb },
-        { { NULL, NULL, NULL }, (OptionsSimulate) 0 }
+        { { "mmbasic", "--simulate", "CMM2" }, "CMM2" },
+        { { "mmbasic", "-s", "picomitevga" }, "PicoMiteVGA" },
+        { { "mmbasic", "--simulate=GameMite", "" }, "GameMite" },
+        { { "mmbasic", "-s=PicoCalc", "" }, "PicoCalc" },
+        { { "mmbasic", "picomitevgausb", "" }, "PicoMiteVGAUSB" },
+        { { NULL, NULL, NULL }, NULL }
     };
 
     for (const TestData *t = tests; t->args[0]; ++t) {
@@ -312,8 +312,7 @@ TEST(CmdLineTest, Parse_GivenSimulateKnownDevice_Succeeds) {
         EXPECT_EQ(1, args.show_prompt);
         EXPECT_EQ(0, args.version);
         char expected_run_cmd[STRINGSIZE];
-        sprintf(expected_run_cmd, "OPTION SIMULATE %s",
-                options_simulate_to_string(t->expected));
+        sprintf(expected_run_cmd, "OPTION SIMULATE %s", t->expected);
         EXPECT_STREQ(expected_run_cmd, args.run_cmd);
         EXPECT_STREQ("", args.directory);
     }
@@ -322,16 +321,16 @@ TEST(CmdLineTest, Parse_GivenSimulateKnownDevice_Succeeds) {
 TEST(CmdLineTest, Parse_GivenSimulateKnownDevice_AndProgramArgument_Succeeds) {
     typedef struct {
         const char *args[4];
-        OptionsSimulate expected;
+        const char *expected;
     } TestData;
 
     const TestData tests[] = {
-        { { "mmbasic", "--simulate", "CMM2" }, kSimulateCmm2 },
-        { { "mmbasic", "-s", "picomitevga" }, kSimulatePicomiteVga },
-        { { "mmbasic", "--simulate=GameMite", "" }, kSimulateGamemite },
-        { { "mmbasic", "-s=PicoCalc", "" }, kSimulatePicocalc },
-        { { "mmbasic", "picomitevgausb", "" }, kSimulatePicomiteVgaUsb },
-        { { NULL, NULL, NULL }, (OptionsSimulate) 0 }
+        { { "mmbasic", "--simulate", "CMM2" }, "CMM2" },
+        { { "mmbasic", "-s", "picomitevga" }, "PicoMiteVGA" },
+        { { "mmbasic", "--simulate=GameMite", "" }, "GameMite" },
+        { { "mmbasic", "-s=PicoCalc", "" }, "PicoCalc" },
+        { { "mmbasic", "picomitevgausb", "" }, "PicoMiteVGAUSB" },
+        { { NULL, NULL, NULL }, NULL }
     };
 
     for (const TestData *t = tests; t->args[0]; ++t) {
@@ -348,8 +347,7 @@ TEST(CmdLineTest, Parse_GivenSimulateKnownDevice_AndProgramArgument_Succeeds) {
         EXPECT_EQ(0, args.show_prompt);
         EXPECT_EQ(0, args.version);
         char expected_run_cmd[STRINGSIZE];
-        sprintf(expected_run_cmd, "RUN \"myprogram.bas\" AS %s",
-                options_simulate_to_string(t->expected));
+        sprintf(expected_run_cmd, "RUN \"myprogram.bas\" AS %s", t->expected);
         EXPECT_STREQ(expected_run_cmd, args.run_cmd);
         EXPECT_STREQ("", args.directory);
     }
