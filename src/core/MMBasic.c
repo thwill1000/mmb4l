@@ -633,30 +633,58 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
         MMINTEGER *ia;                                              // pointer to the allocated memory if it is an array of integers
         char *s;                                                    // pointer to the allocated memory if it is a string
     };
+
+    enum ParamConvention {
+        kParamConventionDefault,
+        kParamConventionByVal,
+        kParamConventionByRef
+    };
+
     struct s_args {
         union u_argval val[MAX_ARG_COUNT];
         int type[MAX_ARG_COUNT];
         int varIndex[MAX_ARG_COUNT];
+
+        // Arguments provided by caller.
         char buf1[STRINGSIZE];
         char *v1[MAX_ARG_COUNT];
+        int c1;
+
+        // Parameters in sub/fun definition.
         char buf2[STRINGSIZE];
         char *v2[MAX_ARG_COUNT];
-        bool byref[MAX_ARG_COUNT];
-        int c1;
+        enum ParamConvention convention[MAX_ARG_COUNT];
         int c2;
     } *args = GetTempMemory(sizeof(struct s_args));
 
-    // now split up the arguments in the caller
+    // now split up the arguments in the caller.
     CurrentLinePtr = caller_state.line_ptr;                         // report errors at the caller
     args->c1 = 0;
     if (*tp) makeargs(&tp, MAX_ARG_COUNT, args->buf1, args->v1, &args->c1,
                       (*tp == '(') ? DELIM_BRA_COMMA : DELIM_COMMA);
 
-    // split up the arguments in the definition
+    // split up the arguments in the definition.
     CurrentLinePtr = SubLinePtr;                                    // report errors at the definition
     args->c2 = 0;
     if (*p) makeargs(&p, MAX_ARG_COUNT, args->buf2, args->v2, &args->c2,
                      (*p == '(') ? DELIM_BRA_COMMA : DELIM_COMMA);
+
+    // Step through arguments in definition determining the calling convention.
+    // Note this updates the args->v2[] values to jump over the BYREF/BYVAL string
+    // and just point at the argument name.
+    for (int i = 0; i < args->c2; i += 2) {
+        args->convention[i] = kParamConventionDefault;
+        skipspace(args->v2[i]);
+        if (toupper(*args->v2[i]) != 'B' || toupper(*(args->v2[i]+1)) != 'Y') continue;
+        if ((checkstring(args->v2[i] + 2, "VAL")) != NULL) {        // if BYVAL
+            args->v2[i] += 5;                                       // skip to the variable start
+            args->convention[i] = kParamConventionByVal;
+        } else if ((checkstring(args->v2[i] + 2, "REF")) != NULL) { // if BYREF
+            args->v2[i] += 5;                                       // skip to the variable start
+            args->convention[i] = kParamConventionByRef;
+        }
+        skipspace(args->v2[i]);
+    }
 
     // error checking
     if (args->c2 && (args->c2 & 1) == 0) error("Argument list");
@@ -687,21 +715,16 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
                 }
             }
 
-            // check for BYVAL or BYREF in sub/fun definition
-            args->byref[i] = false;
-            skipspace(args->v2[i]);
-            if(toupper(*args->v2[i]) == 'B' && toupper(*(args->v2[i]+1)) == 'Y') {
-                if((checkstring(args->v2[i] + 2, "VAL")) != NULL) {                 // if BYVAL
-                    args->type[i] = 0;                                              // remove any pointer flag in the caller
-                    args->v2[i] += 5;                                               // skip to the variable start
-                } else {
-                    if((checkstring(args->v2[i] + 2, "REF")) != NULL) {             // if BYREF
-                        if((args->type[i] & T_PTR) == 0) error("Variable required for BYREF");
-                        args->v2[i] += 5;                                           // skip to the variable start
-                    }
-                    args->byref[i] = true;
-                }
-                skipspace(args->v2[i]);
+            switch (args->convention[i]) {
+                case kParamConventionByRef:
+                    if ((args->type[i] & T_PTR) == 0) error("Variable required for BYREF");
+                    break;
+                case kParamConventionByVal:
+                    args->type[i] = 0; // Remove any pointer flag in the caller.
+                    break;
+                default:
+                    // Do nothing.
+                    break;
             }
 
             // if argument is present and is not a pointer to a variable then evaluate it as an expression
@@ -757,9 +780,9 @@ void DefinedSubFun(int isfun, const char *cmd, int index, MMFLOAT *fa, MMINTEGER
                 vartbl[VarIndex].dims[j] = vartbl[args->varIndex[i]].dims[j];
         }
 
-        // if this is a pointer check and the type is NOT the same as that requested in the sub/fun definition
+        // if this is a pointer and the type is NOT the same as that requested in the sub/fun definition
         if((args->type[i] & T_PTR) && TypeMask(vartbl[VarIndex].type) != TypeMask(args->type[i])) {
-            if (args->byref[i]) error("BYREF requires same types: $", args->v1[i]);
+            if (args->convention[i] == kParamConventionByRef) error("BYREF requires same types: $", args->v1[i]);
             if((TypeMask(vartbl[VarIndex].type) & T_STR) || (TypeMask(args->type[i]) & T_STR))
                 error("Incompatible type: $", args->v1[i]);
             // make this into an ordinary argument
