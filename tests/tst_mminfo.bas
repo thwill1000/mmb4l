@@ -17,7 +17,7 @@ Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
 If sys.is_platform%("mmb4l") Then
-  Const EXPECTED_VERSION$ = "70020000"
+  Const EXPECTED_VERSION$ = "80010000"
 ElseIf sys.is_platform%("mmb4w") Then
   Const EXPECTED_VERSION$ = "5.0703"
 ElseIf sys.is_platform%("pm*") Then
@@ -57,7 +57,6 @@ add_test("test_option_default")
 add_test("test_option_explicit")
 add_test("test_option_codepage")
 add_test("test_option_fn_key")
-add_test("test_option_resolution")
 add_test("test_option_search_path")
 add_test("test_option_serial")
 add_test("test_option_tab")
@@ -576,7 +575,7 @@ Sub test_fontheight()
     ' Expect error if there is a space between FONT and HEIGHT.
     On Error Skip
     Local i% = Mm.Info(Font Height)
-    assert_raw_error("Unknown MM.INFO subfunction")
+    assert_raw_error("Syntax")
   Else
     ' Incorrectly reports result of MM.INFO(FONT).
     assert_int_equals(1, Mm.Info(Font Height))
@@ -592,7 +591,7 @@ Sub test_fontwidth()
     ' Expect error if there is a space between FONT and WIDTH.
     On Error Skip
     Local i% = Mm.Info(Font Width)
-    assert_raw_error("Unknown MM.INFO subfunction")
+    assert_raw_error("Syntax")
   Else
     ' Incorrectly reports result of MM.INFO(FONT).
     assert_int_equals(1, Mm.Info(Font Width))
@@ -602,41 +601,41 @@ End Sub
 Sub test_hpos()
   If Not sys.is_platform%("mmb4l") Then Exit Sub
 
-  Option Resolution Character
+  ' Set cursor in character coordinates.
   Local old_x%, old_y%
   Console GetCursor old_x%, old_y%
   Console SetCursor 5, 10
 
-  Local actual% = Mm.Info(HPos)
+  ' Test position in character coordinates.
+  Local actual% = Mm.Info(HPos C)
   assert_int_equals(5, actual%)
 
-  Option Resolution Pixel
+  ' Test position in pixel coordinates.
   assert_int_equals(5 * EXPECTED_FONT_WIDTH%, Mm.Info(HPos))
 
-  Option Resolution Character
+  ' Restore cursor position.
   Console SetCursor old_x%, old_y%
 End Sub
 
 Sub test_hres()
-  If sys.is_platform%("mmb4l") Then
-    Option Resolution Character
-    Local actual% = Mm.Info(HRes)
-    Local out$
-    System "tput cols", out$
-    Local expected_hres% = Val(out$)
-    assert_int_equals(expected_hres%, actual%)
-    assert_int_equals(actual%, Mm.HRes)
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
-    Option Resolution Pixel
-    assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.Info(HRes))
-    assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.HRes)
-  EndIf
+  ' Test resolution in characters.
+  Const actual% = Mm.Info(HRes C)
+  Local out$
+  System "tput cols", out$
+  Local expected_hres% = Val(out$)
+  assert_int_equals(expected_hres%, actual%)
+
+  ' Test resolution in pixels.
+  assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.Info(HRes))
+  assert_int_equals(actual% * EXPECTED_FONT_WIDTH%, Mm.HRes)
 End Sub
 
 Sub test_line()
   Const line$ = Mm.Info$(Line)
   If sys.is_platform%("mmb4l") Then
-    assert_int_equals(637, Val(Field$(line$, 1, ",")))
+    assert_int_equals(636, Val(Field$(line$, 1, ",")))
     assert_string_equals(Mm.Info$(Current), Field$(line$, 2, ","))
   Else
     ' Line number refers to the transpiled file.
@@ -835,16 +834,6 @@ Sub test_option_fn_key()
   Option Load TMPDIR$ + "/mmbasic.options.bak"
 End Sub
 
-Sub test_option_resolution()
-  If Not sys.is_platform%("mmb4l") Then Exit Sub
-
-  Option Resolution Pixel
-  assert_string_equals("Pixel", Mm.Info(Option Resolution))
-
-  Option Resolution Character
-  assert_string_equals("Character", Mm.Info(Option Resolution))
-End Sub
-
 Sub test_option_search_path()
   If sys.is_platform%("cmm2*", "pm*") Then Exit Sub
 
@@ -895,38 +884,22 @@ End Sub
 Sub test_option_serial()
   If sys.is_platform%("pm*") Then Exit Sub
 
-  If sys.is_platform%("mmb4l") Then
-
+  If Mm.Info(Device X) = "MMB4L" Then
     assert_string_equals("Serial", Mm.Info(Option Console))
-
-    ' OPTION CONSOLE is a dummy command for MMB4L and the value of the option
-    ' always remains SERIAL.
-
-    Option Console Both
-    assert_string_equals("Serial", Mm.Info(Option Console))
-
-    Option Console Screen
-    assert_string_equals("Serial", Mm.Info(Option Console))
-
-    Option Console Serial
-    assert_string_equals("Serial", Mm.Info(Option Console))
-
   Else
-
     ' Note that on "MMBasic for Windows" the default is OPTION CONSOLE SCREEN,
     ' but the unit-test framework sets OPTION CONSOLE BOTH.
     assert_string_equals("Both", Mm.Info(Option Console))
-
-    Option Console Serial
-    assert_string_equals("Serial", Mm.Info(Option Console))
-
-    Option Console Screen
-    assert_string_equals("Screen", Mm.Info(Option Console))
-
-    Option Console Both
-    assert_string_equals("Both", Mm.Info(Option Console))
-
   EndIf
+
+  Option Console Serial
+  assert_string_equals("Serial", Mm.Info(Option Console))
+
+  Option Console Screen
+  assert_string_equals("Screen", Mm.Info(Option Console))
+
+  Option Console Both
+  assert_string_equals("Both", Mm.Info(Option Console))
 End Sub
 
 Sub test_option_tab()
@@ -1058,40 +1031,47 @@ Sub test_pinno()
   On Error Skip
   p% = Mm.Info(PinNo GP10 trailing)
   assert_raw_error("Unexpected text")
+
+  If Mm.Info(Device X) = "MMB4L" Then
+    Option Simulate MMB4L
+    ' Switching back to MMB4L does not change the current graphics surface
+    ' so we need to do it explicitly.
+    Graphics Write None
+  EndIf
 End Sub
 
 Sub test_vpos()
   If Not sys.is_platform%("mmb4l") Then Exit Sub
 
-  Option Resolution Character
+  ' Set cursor position in character coordinates.
   Local old_x%, old_y%
   Console GetCursor old_x%, old_y%
-  Console SetCursor 5, 10
+  Console SetCursor 15, 20
 
-  Local actual% = Mm.Info(VPos)
-  assert_int_equals(10, actual%)
+  ' Test position in character coordinates.
+  Local actual% = Mm.Info(VPos C)
+  assert_int_equals(20, actual%)
 
-  Option Resolution Pixel
-  assert_int_equals(10 * EXPECTED_FONT_HEIGHT%, Mm.Info(VPos))
+  ' Test position in pixel coordinates.
+  assert_int_equals(20 * EXPECTED_FONT_HEIGHT%, Mm.Info(VPos))
 
-  Option Resolution Character
+  ' Restore cursor position.
   Console SetCursor old_x%, old_y%
 End Sub
 
 Sub test_vres()
-  If sys.is_platform%("mmb4l") Then
-    Option Resolution Character
-    Local actual% = Mm.Info(VRes)
-    Local out$
-    System "tput lines", out$
-    Local expected_vres% = Val(out$)
-    assert_int_equals(expected_vres%, actual%)
-    assert_int_equals(actual%, Mm.VRes)
+  If Not sys.is_platform%("mmb4l") Then Exit Sub
 
-    Option Resolution Pixel
-    assert_int_equals(actual% * Mm.Info(FontHeight), Mm.Info(VRes))
-    assert_int_equals(actual% * Mm.Info(FontHeight), Mm.VRes)
-  EndIf
+  ' Test resolution in characters.
+  Local actual% = Mm.Info(VRes C)
+  Local out$
+  System "tput lines", out$
+  Local expected_vres% = Val(out$)
+  assert_int_equals(expected_vres%, actual%)
+
+  ' Test resolution in pixels.
+  assert_int_equals(expected_vres% * EXPECTED_FONT_HEIGHT%, Mm.Info(VRes))
+  assert_int_equals(expected_vres% * EXPECTED_FONT_HEIGHT%, Mm.VRes)
 End Sub
 
 Sub test_version()
@@ -1099,7 +1079,7 @@ Sub test_version()
 
   If sys.is_platform%("mmb4l") Then
     assert_int_equals(0, Mm.Info(Version Major))
-    assert_int_equals(7, Mm.Info(Version Minor))
+    assert_int_equals(8, Mm.Info(Version Minor))
     assert_int_equals(1, Mm.Info(Version Micro))
     assert_int_equals(0, Mm.Info(Version Build))
   End If
