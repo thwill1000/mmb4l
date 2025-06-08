@@ -28,6 +28,9 @@ add_test("test_byval_given_mismatched_type")
 add_test("test_byref_given_mismatched_type")
 add_test("test_byval_given_not_a_var")
 add_test("test_byref_given_not_a_var")
+add_test("test_byval_given_missing_arg")
+add_test("test_byref_given_missing_arg")
+add_test("test_default_given_missing_arg")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -219,3 +222,46 @@ Sub test_byref_given_not_a_var()
   assert_raw_error("Variable required for BYREF")
   On Error Abort
 End Sub
+
+Sub test_byval_given_missing_arg()
+  Local a% = 5, b% = 6, c% = 7
+  assert_int_equals(5, _3_int_by_val%(a%))
+  assert_int_equals(11, _3_int_by_val%(a%, b%))
+  assert_int_equals(12, _3_int_by_val%(a%,   , c%))
+End Sub
+
+Function _3_int_by_val%(ByVal x%, ByVal y%, ByVal z%)
+  _3_int_by_val% = x% + y% + z%
+  Inc x%
+  Inc y%
+  Inc z%
+End Function
+
+Sub test_byref_given_missing_arg()
+  Local a% = 5, b% = 6, c% = 7
+
+  assert_int_equals(5, _3_int_by_ref%(a%))
+  assert_int_equals(12, _3_int_by_ref%(a%, b%))
+  assert_int_equals(14, _3_int_by_ref%(a%,   , c%))
+End Sub
+
+Function _3_int_by_ref%(ByRef x%, ByRef y%, ByRef z%)
+  _3_int_by_ref% = x% + y% + z%
+  Inc x%
+  Inc y%
+  Inc z%
+End Function
+
+Sub test_default_given_missing_arg()
+  Local a% = 5, b% = 6, c% = 7
+  assert_int_equals(5, _3_int_default%(a%))
+  assert_int_equals(12, _3_int_default%(a%, b%))
+  assert_int_equals(14, _3_int_default%(a%,   , c%))
+End Sub
+
+Function _3_int_default%(x%, y%, z%)
+  _3_int_default% = x% + y% + z%
+  Inc x%
+  Inc y%
+  Inc z%
+End Function
