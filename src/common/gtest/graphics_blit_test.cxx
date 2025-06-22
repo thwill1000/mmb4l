@@ -17,6 +17,11 @@ extern Features mmb_features;
 
 }  // extern "C"
 
+#define EXPECT_PIXELS_EQ(expected, actual, width, height) \
+    EXPECT_EQ(0, memcmp(expected, actual, sizeof(uint32_t) * width * height)) \
+        << "Actual pixels:   " << std::endl << format_pixels(actual, width, height) << std::endl \
+        << "Expected pixels: " << std::endl << format_pixels(expected, width, height)
+
 // clang-format off
 static const uint32_t DEFAULT_SRC_PIXELS[] = {
     0, 0, 0, 1, 0, 0, 0,
@@ -41,7 +46,7 @@ static const uint32_t DEFAULT_DST_PIXELS[] = {
     9, 9, 9, 9, 9, 9, 9 };
 // clang-format on
 
-static std::string format_pixels(uint32_t *pixels, uint32_t width, uint32_t height) {
+static std::string format_pixels(const uint32_t *pixels, uint32_t width, uint32_t height) {
     std::stringstream ss;
     for (uint32_t y = 0; y < height; ++y) {
         for (uint32_t x = 0; x < width; ++x) {
@@ -80,10 +85,8 @@ class GraphicsBlitTest : public ::testing::Test {
 TEST_F(GraphicsBlitTest, GivenNormal) {
     EXPECT_EQ(kOk, graphics_blit(0, 0, 0, 0, 7, 9, src, dst, kBlitNormal, 0));
 
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(DEFAULT_SRC_PIXELS,
-                                            sizeof(DEFAULT_SRC_PIXELS) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    const uint32_t *expected = DEFAULT_SRC_PIXELS;
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip) {
@@ -101,9 +104,7 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip) {
         0, 0, 0, 3, 0, 0, 0,
         0, 0, 0, 3, 0, 0, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenVerticalFlip) {
@@ -121,9 +122,7 @@ TEST_F(GraphicsBlitTest, GivenVerticalFlip) {
         0, 0, 0, 1, 0, 0, 0,
         0, 0, 0, 1, 0, 0, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip) {
@@ -142,9 +141,7 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip) {
         0, 0, 0, 1, 0, 0, 0,
         0, 0, 0, 1, 0, 0, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenWithTransparency) {
@@ -162,9 +159,7 @@ TEST_F(GraphicsBlitTest, GivenWithTransparency) {
         9, 9, 9, 3, 9, 9, 9,
         9, 9, 9, 3, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenWithTransparency_AndHorizontalFlip) {
@@ -183,9 +178,7 @@ TEST_F(GraphicsBlitTest, GivenWithTransparency_AndHorizontalFlip) {
         9, 9, 9, 3, 9, 9, 9,
         9, 9, 9, 3, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenWithTransparency_AndVerticalFlip) {
@@ -204,9 +197,7 @@ TEST_F(GraphicsBlitTest, GivenWithTransparency_AndVerticalFlip) {
         9, 9, 9, 1, 9, 9, 9,
         9, 9, 9, 1, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenWithTransparency_AndHorizontalFlip_AndVerticalFlip) {
@@ -226,9 +217,7 @@ TEST_F(GraphicsBlitTest, GivenWithTransparency_AndHorizontalFlip_AndVerticalFlip
         9, 9, 9, 1, 9, 9, 9,
         9, 9, 9, 1, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenNegativeSourceOffset) {
@@ -246,9 +235,7 @@ TEST_F(GraphicsBlitTest, GivenNegativeSourceOffset) {
         9, 9, 4, 4, 4, 5, 2,
         9, 9, 0, 0, 0, 3, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndNegativeSourceOffset) {
@@ -266,9 +253,7 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndNegativeSourceOffset) {
         2, 5, 4, 4, 4, 9, 9,
         0, 3, 0, 0, 0, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenVerticalFlip_AndNegativeSourceOffset) {
@@ -286,9 +271,7 @@ TEST_F(GraphicsBlitTest, GivenVerticalFlip_AndNegativeSourceOffset) {
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndNegativeSourceOffset) {
@@ -307,9 +290,7 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndNegativeSourceOf
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenPositiveSourceOffset) {
@@ -327,9 +308,7 @@ TEST_F(GraphicsBlitTest, GivenPositiveSourceOffset) {
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndPositiveSourceOffset) {
@@ -347,9 +326,7 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndPositiveSourceOffset) {
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenVerticalFlip_AndPositiveSourceOffset) {
@@ -367,9 +344,7 @@ TEST_F(GraphicsBlitTest, GivenVerticalFlip_AndPositiveSourceOffset) {
         0, 0, 1, 0, 0, 0, 9,
         0, 0, 1, 0, 0, 0, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndPositiveSourceOffset) {
@@ -388,9 +363,7 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndPositiveSourceOf
         9, 0, 0, 0, 1, 0, 0,
         9, 0, 0, 0, 1, 0, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenNegativeDestinationOffset) {
@@ -408,9 +381,7 @@ TEST_F(GraphicsBlitTest, GivenNegativeDestinationOffset) {
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndNegativeDestinationOffset) {
@@ -428,9 +399,7 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndNegativeDestinationOffset) {
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenVerticalFlip_AndNegativeDestinationOffset) {
@@ -448,9 +417,7 @@ TEST_F(GraphicsBlitTest, GivenVerticalFlip_AndNegativeDestinationOffset) {
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndNegativeDestinationOffset) {
@@ -469,9 +436,7 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndNegativeDestinat
         9, 9, 9, 9, 9, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenPositiveDestinationOffset) {
@@ -489,9 +454,7 @@ TEST_F(GraphicsBlitTest, GivenPositiveDestinationOffset) {
         9, 9, 4, 4, 4, 5, 2,
         9, 9, 0, 0, 0, 3, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndPositiveDestinationOffset) {
@@ -509,9 +472,7 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndPositiveDestinationOffset) {
         9, 9, 2, 2, 2, 5, 4,
         9, 9, 0, 0, 0, 3, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenVerticalFlip_AndPositiveDestinationOffset) {
@@ -529,9 +490,7 @@ TEST_F(GraphicsBlitTest, GivenVerticalFlip_AndPositiveDestinationOffset) {
         9, 9, 4, 4, 4, 5, 2,
         9, 9, 0, 0, 0, 1, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndPositiveDestinationOffset) {
@@ -550,85 +509,67 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndPositiveDestinat
         9, 9, 2, 2, 2, 5, 4,
         9, 9, 0, 0, 0, 1, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenSourceAreaOffTopLeftOfSourceSurface) {
     EXPECT_EQ(kOk, graphics_blit(-10, -20, 0, 0, 7, 9, src, dst, kBlitNormal, 0));
 
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(DEFAULT_DST_PIXELS,
-                                            sizeof(DEFAULT_DST_PIXELS) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    const uint32_t *expected = DEFAULT_DST_PIXELS;
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndSourceAreaOffTopLeftOfSourceSurface) {
     EXPECT_EQ(kOk, graphics_blit(-10, -20, 0, 0, 7, 9, src, dst,
                                  kBlitHorizontalFlip | kBlitVerticalFlip, 0));
 
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(DEFAULT_DST_PIXELS,
-                                            sizeof(DEFAULT_DST_PIXELS) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    const uint32_t *expected = DEFAULT_DST_PIXELS;
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenSourceAreaOffBottomRightOfSourceSurface) {
     EXPECT_EQ(kOk, graphics_blit(10, 20, 0, 0, 7, 9, src, dst, kBlitNormal, 0));
 
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(DEFAULT_DST_PIXELS,
-                                            sizeof(DEFAULT_DST_PIXELS) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    const uint32_t *expected = DEFAULT_DST_PIXELS;
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndSourceAreaOffBottomRightOfSourceSurface) {
     EXPECT_EQ(kOk, graphics_blit(10, 20, 0, 0, 7, 9, src, dst,
                                  kBlitHorizontalFlip | kBlitVerticalFlip, 0));
 
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(DEFAULT_DST_PIXELS,
-                                            sizeof(DEFAULT_DST_PIXELS) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    const uint32_t *expected = DEFAULT_DST_PIXELS;
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenDestinationAreaOffTopLeftOfDestinationSurface) {
     EXPECT_EQ(kOk, graphics_blit(0, 0, -10, -20, 7, 9, src, dst, kBlitNormal, 0));
 
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(DEFAULT_DST_PIXELS,
-                                            sizeof(DEFAULT_DST_PIXELS) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    const uint32_t *expected = DEFAULT_DST_PIXELS;
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndDestinationAreaOffTopLeftOfDestinationSurface) {
     EXPECT_EQ(kOk, graphics_blit(0, 0, -10, -20, 7, 9, src, dst,
                                  kBlitHorizontalFlip | kBlitVerticalFlip, 0));
 
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(DEFAULT_DST_PIXELS,
-                                            sizeof(DEFAULT_DST_PIXELS) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    const uint32_t *expected = DEFAULT_DST_PIXELS;
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenDestinationAreaOffBottomRightOfDestinationSurface) {
     EXPECT_EQ(kOk, graphics_blit(0, 0, 10, 20, 7, 9, src, dst, kBlitNormal, 0));
 
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(DEFAULT_DST_PIXELS,
-                                            sizeof(DEFAULT_DST_PIXELS) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    const uint32_t *expected = DEFAULT_DST_PIXELS;
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndDestinationAreaOffBottomRightOfDestinationSurface) {
     EXPECT_EQ(kOk, graphics_blit(0, 0, 10, 20, 7, 9, src, dst,
                                  kBlitHorizontalFlip | kBlitVerticalFlip, 0));
 
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(DEFAULT_DST_PIXELS,
-                                            sizeof(DEFAULT_DST_PIXELS) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    const uint32_t *expected = DEFAULT_DST_PIXELS;
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenPartialSurface) {
@@ -646,9 +587,7 @@ TEST_F(GraphicsBlitTest, GivenPartialSurface) {
         9, 9, 0, 0, 3, 0, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenWithTransparency_AndPartialSurface) {
@@ -666,9 +605,7 @@ TEST_F(GraphicsBlitTest, GivenWithTransparency_AndPartialSurface) {
         9, 9, 9, 9, 3, 9, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndPartialSurface) {
@@ -686,9 +623,7 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndPartialSurface) {
         9, 9, 0, 3, 0, 0, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenVerticalFlip_AndPartialSurface) {
@@ -706,9 +641,7 @@ TEST_F(GraphicsBlitTest, GivenVerticalFlip_AndPartialSurface) {
         9, 9, 0, 0, 1, 0, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndPartialSurface) {
@@ -727,9 +660,7 @@ TEST_F(GraphicsBlitTest, GivenHorizontalFlip_AndVerticalFlip_AndPartialSurface) 
         9, 9, 0, 1, 0, 0, 9,
         9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenWholeSurface_GivenSameSurface) {
@@ -737,10 +668,8 @@ TEST_F(GraphicsBlitTest, GivenWholeSurface_GivenSameSurface) {
 
     EXPECT_EQ(kOk, graphics_blit(0, 0, 0, 0, 7, 9, dst, dst, kBlitNormal, 0));
 
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(DEFAULT_SRC_PIXELS,
-                                            sizeof(DEFAULT_SRC_PIXELS) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    const uint32_t *expected = DEFAULT_SRC_PIXELS;
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizonalFlip_AndVerticalFlip_AndWholeSurface_AndSameSurface) {
@@ -761,9 +690,7 @@ TEST_F(GraphicsBlitTest, GivenHorizonalFlip_AndVerticalFlip_AndWholeSurface_AndS
         0, 0, 0, 1, 0, 0, 0,
         0, 0, 0, 1, 0, 0, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizonalFlip_AndVerticalFlip_AndPartialSurface_AndSameSurface) {
@@ -784,9 +711,7 @@ TEST_F(GraphicsBlitTest, GivenHorizonalFlip_AndVerticalFlip_AndPartialSurface_An
         0, 0, 0, 3, 0, 0, 0,
         0, 0, 0, 3, 0, 0, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
 
 TEST_F(GraphicsBlitTest, GivenHorizonalFlip_AndVerticalFlip_AndPositiveSourceOffset_AndSameSurface) {
@@ -806,7 +731,5 @@ TEST_F(GraphicsBlitTest, GivenHorizonalFlip_AndVerticalFlip_AndPositiveSourceOff
         0, 0, 0, 0, 1, 0, 0,
         0, 0, 0, 0, 1, 0, 0 };
     // clang-format on
-    EXPECT_THAT(std::vector<uint32_t>(dst->pixels, dst->pixels + dst->width * dst->height),
-                ::testing::ElementsAreArray(expected, sizeof(expected) / sizeof(uint32_t)))
-        << format_pixels(dst->pixels, dst->width, dst->height);
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
