@@ -135,6 +135,7 @@ typedef enum {
     kSimulateCmm2,
     kSimulateGamemite,
     kSimulatePicocalc,
+    kSimulatePicomiteHdmi,
     kSimulatePicomiteVga,
     kSimulatePicomiteVgaUsb,
 } OptionsSimulate;
