@@ -12,6 +12,7 @@ extern "C" {
 
 #include "../features.h"
 #include "../graphics.h"
+#include "../logger.h"
 
 extern Features mmb_features;
 
@@ -44,6 +45,10 @@ static const uint32_t DEFAULT_DST_PIXELS[] = {
     9, 9, 9, 9, 9, 9, 9,
     9, 9, 9, 9, 9, 9, 9,
     9, 9, 9, 9, 9, 9, 9 };
+
+const uint32_t SRC_2_PIXELS[] = {
+    1, 2,
+    3, 4 };
 // clang-format on
 
 static std::string format_pixels(const uint32_t *pixels, uint32_t width, uint32_t height) {
@@ -60,6 +65,7 @@ static std::string format_pixels(const uint32_t *pixels, uint32_t width, uint32_
 class GraphicsBlitTest : public ::testing::Test {
    protected:
     void SetUp() override {
+        // logger_init("");
         graphics_init();
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
 
@@ -72,14 +78,20 @@ class GraphicsBlitTest : public ::testing::Test {
         EXPECT_EQ(kOk, graphics_buffer_create(dstId, 7, 9));
         dst = &graphics_surfaces[dstId];
         memcpy(dst->pixels, DEFAULT_DST_PIXELS, sizeof(DEFAULT_DST_PIXELS));
+
+        const MmSurfaceId src2Id = 3;
+        EXPECT_EQ(kOk, graphics_buffer_create(src2Id, 2, 5));
+        src2 = &graphics_surfaces[src2Id];
+        memcpy(src2->pixels, SRC_2_PIXELS, sizeof(SRC_2_PIXELS));
     }
 
     void TearDown() override {
         EXPECT_EQ(kOk, graphics_term());
     }
 
-    MmSurface *src;
     MmSurface *dst;
+    MmSurface *src;
+    MmSurface *src2;
 };
 
 TEST_F(GraphicsBlitTest, GivenNormal) {
@@ -730,6 +742,510 @@ TEST_F(GraphicsBlitTest, GivenHorizonalFlip_AndVerticalFlip_AndPositiveSourceOff
         0, 2, 2, 2, 5, 4, 4,
         0, 0, 0, 0, 1, 0, 0,
         0, 0, 0, 0, 1, 0, 0 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtEastEdge) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 5, 3, 2, 2, src2, dst, 0x0, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 1, 2,
+        9, 9, 9, 9, 9, 3, 4,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtEastEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 5, 3, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 2, 1,
+        9, 9, 9, 9, 9, 4, 3,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_OverlappingEastEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 6, 3, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 2,
+        9, 9, 9, 9, 9, 9, 4,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_BeyondEastEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 7, 3, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtEastEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 5, 3, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 3, 4,
+        9, 9, 9, 9, 9, 1, 2,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_OverlappingEastEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 6, 3, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 3,
+        9, 9, 9, 9, 9, 9, 1,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_BeyondEastEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 7, 3, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtWestEdge) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 0, 3, 2, 2, src2, dst, 0x0, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        1, 2, 9, 9, 9, 9, 9,
+        3, 4, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtWestEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 0, 3, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        2, 1, 9, 9, 9, 9, 9,
+        4, 3, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_OverlappingWestEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, -1, 3, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        1, 9, 9, 9, 9, 9, 9,
+        3, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_BeyondWestEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, -2, 3, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtWestEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 0, 3, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        3, 4, 9, 9, 9, 9, 9,
+        1, 2, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_OverlappingWestEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, -1, 3, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        4, 9, 9, 9, 9, 9, 9,
+        2, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_BeyondWestEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, -2, 3, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtNorthEdge) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, 0, 2, 2, src2, dst, 0x0, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 1, 2, 9, 9, 9,
+        9, 9, 3, 4, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtNorthEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, 0, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 2, 1, 9, 9, 9,
+        9, 9, 4, 3, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_OverlappingNorthEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, -1, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 4, 3, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_BeyondNorthEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, -2, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtNorthEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, 0, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 3, 4, 9, 9, 9,
+        9, 9, 1, 2, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_OverlappingNorthEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, -1, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 1, 2, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_BeyondNorthEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, -2, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtSouthEdge) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, 7, 2, 2, src2, dst, 0x0, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 1, 2, 9, 9, 9,
+        9, 9, 3, 4, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtSouthEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, 7, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 2, 1, 9, 9, 9,
+        9, 9, 4, 3, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_OverlappingSouthEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, 8, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 2, 1, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_BeyondSouthEdge_AndHorizontalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, 9, 2, 2, src2, dst, kBlitHorizontalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_AtSouthEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, 7, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 3, 4, 9, 9, 9,
+        9, 9, 1, 2, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_OverlappingSouthEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, 8, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 3, 4, 9, 9, 9 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+}
+
+TEST_F(GraphicsBlitTest, GivenSmallSource_BeyondSouthEdge_AndVerticalFlip) {
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 2, 9, 2, 2, src2, dst, kBlitVerticalFlip, -1));
+
+    // clang-format off
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9,
+        9, 9, 9, 9, 9, 9, 9 };
     // clang-format on
     EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
