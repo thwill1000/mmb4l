@@ -269,6 +269,8 @@ void cmd_option(void) {
         cmd_option_reset(p);
     } else if ((p = checkstring(cmdline, "SAVE"))) {
         cmd_option_save(p);
+    } else if ((p = checkstring(cmdline, "KEYBOARD"))) {
+        // Ignored for now.
     } else {
         cmd_option_set(cmdline);
     }

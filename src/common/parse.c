@@ -733,3 +733,49 @@ MmResult parse_filename(const char *p, char *out, size_t out_sz) {
     ClearSpecificTempMemory(f);
     return result;
 }
+
+int parse_number_array(char *tp, MMFLOAT **a1float, MMINTEGER **a1int, int argno, int dimensions,
+                       short *dims, bool disallowConstant) {
+    void *ptr1 = findvar(tp, V_FIND | V_EMPTY_OK | V_NOFIND_ERR);
+
+    if ((vartbl[VarIndex].type & T_CONST) && disallowConstant) {
+        ON_FAILURE_ERROR_EX(mmresult_ex(kInvalidArgument, "Cannot change a constant"), 0);
+    }
+
+    if (dims == NULL) dims = vartbl[VarIndex].dims;
+
+    if (vartbl[VarIndex].type & (T_INT | T_NBR)) {
+        memcpy(dims, vartbl[VarIndex].dims, MAXDIM * sizeof(short));
+        if (vartbl[VarIndex].type & T_NBR) {
+            *a1float = (MMFLOAT *) ptr1;
+        } else {
+            *a1int = (MMINTEGER *) ptr1;
+        }
+
+        // TODO: Not sure about this, copied from PicoMite, I think it might be a check that it
+        //       is not a very short array that is storing the values in the s_vartbl struct itself.
+        if (ptr1 != (void *) vartbl[VarIndex].val.s) ON_FAILURE_ERROR_EX(kSyntax, 0);
+    } else {
+        ON_FAILURE_ERROR_EX(
+                mmresult_ex(kInvalidArgument, "Argument %d must be a numerical array", argno), 0);
+    }
+
+    if (dimensions == 1 && (dims[0]<=0 || dims[1]>0)) {
+        ON_FAILURE_ERROR_EX(
+                mmresult_ex(kInvalidArgument, "Argument %d must be a 1D numerical array", argno),
+                0);
+    }
+
+    if (dimensions == 2 && (dims[0]<=0 || dims[1]<=0 || dims[2]>0)) {
+        ON_FAILURE_ERROR_EX(
+                mmresult_ex(kInvalidArgument, "Argument %d must be a 2D numerical array", argno),
+                0);
+    }
+
+    int card = 1;
+    for (int i = 0; i < MAXDIM; i++){
+        const int j = dims[i] - mmb_options.base + 1;
+        if (j) card *= j;
+    }
+    return card;
+}

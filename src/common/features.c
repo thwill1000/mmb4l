@@ -134,6 +134,26 @@ static Features features_picocalc = {
     .console = kBoth
 };
 
+static Features features_picomite_hdmi = {
+    .name = "PicoMiteHDMI",
+    .simple_name = "PicoMiteHDMI",
+    .device = "PicoMiteHDMI",
+    .platform = "",
+    .gamepad_type = kGamepadTypePicomiteSnes,
+    .graphics_type = kGraphicsTypePicomiteHdmi,
+    .play_modfile_params = kPlayModfileTypeWithInterrupt,
+    .has_cmd_flash = true,
+    .has_cmd_framebuffer = true,
+    .has_cmd_mode = true,
+    .has_mminfo_cpuspeed = true,
+    .has_mminfo_drive = true,
+    .has_mminfo_ps2 = true,
+    .has_mminfo_pin = true,
+    .foreground = RGB_WHITE,
+    .background = RGB_BLACK,
+    .console = kBoth
+};
+
 static Features features_picomite_vga = {
     .name = "PicoMiteVGA",
     .simple_name = "PicoMiteVGA",
@@ -193,6 +213,9 @@ MmResult features_init(Features *features, OptionsSimulate simulate) {
             break;
         case kSimulatePicocalc:
             new_features = &features_picocalc;
+            break;
+        case kSimulatePicomiteHdmi:
+            new_features = &features_picomite_hdmi;
             break;
         case kSimulatePicomiteVga:
             new_features = &features_picomite_vga;

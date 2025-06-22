@@ -108,6 +108,12 @@ void interrupt_enable_specific_key(int key, const char *interrupt_addr);
 /** Enables the specified 'SETTICK' interrupt. */
 void interrupt_enable_tick(int irq, int64_t period_ns, const char *interrupt_addr);
 
+/** Pauses the specified 'SETTICK' interrupt. */
+MmResult interrupt_pause_tick(int irq);
+
+/** Resumes the specified 'SETTICK' interrupt. */
+MmResult interrupt_resume_tick(int irq);
+
 /**
  * Checks if the specified character matches that set for the 'ON KEY ASCIIcode'
  * interrupt.

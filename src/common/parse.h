@@ -218,4 +218,8 @@ MmResult parse_sprite_id(const char *p, uint64_t flags, MmSurfaceId *sprite_id);
  */
 MmResult parse_filename(const char *p, char *out, size_t out_sz);
 
+/** TODO */
+int parse_number_array(char *tp, MMFLOAT **a1float, MMINTEGER **a1int, int argno, int dimensions,
+                       short *dims, bool disallowConstant);
+
 #endif

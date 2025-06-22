@@ -154,6 +154,15 @@ static const ModeDefinition CMM2_MODES[] = {
     { 17, 384, 240, 39, 1 },
 };
 
+static const ModeDefinition PICOMITE_HDMI_MODES[] = {
+    { 0, 0, 0, 0, 0 },
+    { 1, 640, 480, 1, 1 },
+    { 2, 320, 240, 1, 7 },
+    { 3, 640, 480, 1, 1 },
+    { 4, 320, 240, 1, 7 },
+    { 5, 320, 240, 1, 7 },
+};
+
 static const ModeDefinition PICOMITE_VGA_MODES[] = {
     { 0, 0, 0, 0, 0 },
     { 1, 640, 480, 1, 1 },
@@ -368,6 +377,7 @@ void graphics_refresh_windows() {
                     case kGraphicsTypePicomiteLcd:
                         ON_FAILURE_ERROR(graphics_refresh_picomite_lcd_window());
                         break;
+                    case kGraphicsTypePicomiteHdmi:
                     case kGraphicsTypePicomiteVga:
                         ON_FAILURE_ERROR(graphics_refresh_picomite_vga_window());
                         break;
@@ -2321,8 +2331,34 @@ static MmResult graphics_set_mode_picomite_lcd(unsigned mode) {
     return graphics_set_font(1, 1);
 }
 
+static MmResult graphics_set_mode_picomite_hdmi(unsigned mode) {
+    if (mode < MIN_PICOMITE_HDMI_MODE || mode > MAX_PICOMITE_HDMI_MODE) return kInvalidMode;
+    const ModeDefinition *mode_def = &PICOMITE_HDMI_MODES[mode];
+    graphics_mode = mode;
+
+    MmResult result = graphics_destroy_surfaces_0_to_63();
+    if (SUCCEEDED(result)) {
+        result = graphics_window_create(0, mode_def->width, mode_def->height, -1, -1,
+                                        mmb_options.auto_scale ? 10 : 1, NULL, NULL, false);
+    }
+    if (SUCCEEDED(result)) {
+        result = graphics_buffer_create(GRAPHICS_SURFACE_N, mode_def->width, mode_def->height);
+    }
+    if (SUCCEEDED(result)) {
+        result = graphics_surface_write(GRAPHICS_SURFACE_N);
+    }
+    if (SUCCEEDED(result)) {
+        graphics_fcolour = mmb_features.foreground;
+        graphics_bcolour = mmb_features.background;
+        graphics_colour_depth = 32;
+        graphics_cmm2_background = RGB_BLACK;
+        result = graphics_set_font(mode_def->font, 1);
+    }
+    return result;
+}
+
 static MmResult graphics_set_mode_picomite_vga(unsigned mode) {
-    if (mode < MIN_PMVGA_MODE || mode > MAX_PMVGA_MODE) return kInvalidMode;
+    if (mode < MIN_PICOMITE_VGA_MODE || mode > MAX_PICOMITE_VGA_MODE) return kInvalidMode;
     const ModeDefinition *mode_def = &PICOMITE_VGA_MODES[mode];
     graphics_mode = mode;
 
@@ -2371,12 +2407,15 @@ MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColou
             return graphics_set_mode_cmm2(mode, colour_depth, background);
         case kGraphicsTypeMmb4l:
             return graphics_set_mode_mmb4l(mode);
+        case kGraphicsTypePicomiteHdmi:
+            return graphics_set_mode_picomite_hdmi(mode);
         case kGraphicsTypePicomiteLcd:
             return graphics_set_mode_picomite_lcd(mode);
         case kGraphicsTypePicomiteVga:
             return graphics_set_mode_picomite_vga(mode);
         default:
-            return kInternalFault;
+            return mmresult_ex(kInternalFault, "Unknown GraphicsType: %d",
+                               mmb_features.graphics_type);
     }
 }
 

@@ -54,8 +54,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef enum {
     kGraphicsTypeCmm2,
     kGraphicsTypeMmb4l,
+    kGraphicsTypePicomiteHdmi,
     kGraphicsTypePicomiteLcd,
-    kGraphicsTypePicomiteVga
+    kGraphicsTypePicomiteVga,
 } FeaturesGraphicsType;
 
 typedef enum {
