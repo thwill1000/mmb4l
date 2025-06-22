@@ -237,6 +237,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/graphics.c
     src/common/interrupt.c
     src/common/keyboard.c
+    src/common/logger.c
     src/common/memory.c
     src/common/mmgetchar.c
     src/common/mmresult.c
@@ -328,6 +329,7 @@ add_executable(
   src/common/parse.c
   src/common/path.c
   src/common/gtest/cmdline_test.cxx
+  src/core/vartbl.c
 )
 
 target_link_libraries(
@@ -531,6 +533,7 @@ add_executable(
   src/common/parse.c
   src/common/path.c
   src/common/graphics.c
+  src/common/logger.c
   src/common/options.c
   src/common/sprite.c
   src/common/utility.c
@@ -637,6 +640,7 @@ add_executable(
   src/common/file.c
   src/common/fonttbl.c
   src/common/graphics.c
+  src/common/logger.c
   src/common/memory.c
   src/common/mmresult.c
   src/common/options.c
@@ -964,6 +968,7 @@ add_executable(
   src/common/file.c
   src/common/fonttbl.c
   src/common/graphics.c
+  src/common/logger.c
   src/common/memory.c
   src/common/mmresult.c
   src/common/options.c

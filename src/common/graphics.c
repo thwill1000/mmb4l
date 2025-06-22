@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "fonttbl.h"
 #include "graphics.h"
+#include "logger.h"
 #include "memory.h"
 #include "mmb4l.h"
 #include "mmgetchar.h"
@@ -1583,11 +1584,26 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     return file_close(fnbr);
 }
 
+static const char *graphics_blit_flags_to_string(unsigned flags) {
+    static char buf[64];
+    sprintf(buf, "0x%02X ", flags);
+    if (flags & kBlitHorizontalFlip) strcat(buf, "H");
+    if (flags & kBlitVerticalFlip) strcat(buf, "V");
+    if (flags & kBlitWithTransparency) strcat(buf, "T");
+    if (strlen(buf) > 63) {
+        buf[63] = '\0';  // Ensure null-termination.
+    }
+    return buf;
+}
+
 MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
                        MmSurface *src_surface, MmSurface *dst_surface, unsigned flags,
                        MmGraphicsColour transparent) {
-    // printf("graphics_blit - BEFORE: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, src_id = %d, dst_id = %d\n",
-    //       src_x, src_y, dst_x, dst_y, w, h, src_surface->id, dst_surface->id);
+    LOG_DEBUG("graphics_blit(src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, "
+             "src_id = %d, dst_id = %d, flags = %s)",
+             src_x, src_y, dst_x, dst_y, w, h,
+             src_surface ? src_surface->id : -1, dst_surface ? dst_surface->id : -1,
+             graphics_blit_flags_to_string(flags));
 
     if (!src_surface || src_surface->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
     if (!dst_surface || dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
@@ -1602,10 +1618,10 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
     // I'm not entirely convinced by this jiggery-pokery as it was arrived at
     // through trial, error and unit testing rather than real understanding.
     if (flags & kBlitHorizontalFlip) {
-        if ((src_x > 0) && (src_x + w >= src_surface->width)) {
+        if ((src_x > 0) && (src_x + w > src_surface->width)) {
             dst_x += src_x;
-        } else if ((dst_x > 0) && (dst_x + w >= dst_surface->width)) {
-            src_x += dst_x;
+        } else if ((dst_x > 0) && (dst_x + w > dst_surface->width)) {
+            src_x += dst_x + w - dst_surface->width;;
         }
     } else {
         if (src_x < 0) dst_x -= src_x;
@@ -1613,10 +1629,10 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
 
     // Likewise ...
     if (flags & kBlitVerticalFlip) {
-        if ((src_y > 0) && (src_y + h >= src_surface->height)) {
+        if ((src_y > 0) && (src_y + h > src_surface->height)) {
             dst_y += src_y;
-        } else if ((dst_y > 0) && (dst_y + h >= dst_surface->height)) {
-            src_y += dst_y;
+        } else if ((dst_y > 0) && (dst_y + h > dst_surface->height)) {
+            src_y += dst_y + h - dst_surface->height;;
         }
     } else {
         if (src_y < 0) dst_y -= src_y;
@@ -1654,8 +1670,11 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
     }
     if (dst_y + h >= dst_surface->height) h = max(0, dst_surface->height - dst_y);
 
-    // printf("graphics_blit - AFTER: src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, src_id = %d, dst_id = %d\n",
-    //       src_x, src_y, dst_x, dst_y, w, h, src_surface->id, dst_surface->id);
+    LOG_DEBUG("graphics_blit(src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, "
+             "src_id = %d, dst_id = %d, flags = %s)",
+             src_x, src_y, dst_x, dst_y, w, h,
+             src_surface ? src_surface->id : -1, dst_surface ? dst_surface->id : -1,
+             graphics_blit_flags_to_string(flags));
 
     if (w == 0 || h == 0) return kOk;
 
