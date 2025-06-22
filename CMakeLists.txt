@@ -642,6 +642,7 @@ add_executable(
   src/common/options.c
   src/common/path.c
   src/common/gtest/graphics_test.cxx
+  src/common/gtest/graphics_blit_test.cxx
   src/common/gtest/stubs/audio_stubs.c
   src/common/gtest/stubs/console_stubs.c
   src/common/gtest/stubs/error_stubs.c
