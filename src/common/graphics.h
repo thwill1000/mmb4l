@@ -149,6 +149,16 @@ typedef enum {
     kOrientClockwise
 } TextOrientation;
 
+typedef enum {
+    kBmpFormatRgb121,
+    kBmpFormatRgb121Rle4,
+    kBmpFormatRgb222,
+    kBmpFormatRgb222Rle8,
+    kBmpFormatRgb332,
+    kBmpFormatRgb332Rle8,
+    kBmpFormat24bpp,
+} BmpFormat;
+
 typedef int32_t MmSurfaceId;
 typedef int64_t MmGraphicsColour; // 32-bit colour, -1 for transparent background colour.
 typedef void* MmWindowPtr;
@@ -544,6 +554,20 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
  */
 MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
                               uint8_t colour_mode);
+
+/**
+ * Saves a .bmp image to a file.
+ *
+ * @param  surface   Surface to read the image from.
+ * @param  filename  Name of file to save the image to.
+ * @param  format    BMP format to use of the saved image.
+ * @param  x         X-coordinate for top left corner of image to save.
+ * @param  y         Y-coordinate for top left corner of image to save.
+ * @param  width     Width or image to save.
+ * @param  height    Height of image to save.
+ */
+MmResult graphics_save_bmp(MmSurface *surface, char *filename, BmpFormat format, int x, int y,
+                           int width, int height);
 
 /**
  * Scrolls surface.

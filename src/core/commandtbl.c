@@ -165,6 +165,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Return",      T_CMD,              0, cmd_return,  },
     { "Rmdir",       T_CMD,              0, cmd_rmdir    },
     { "Run",         T_CMD,              0, cmd_run      },
+    { "Save",        T_CMD,              0, cmd_save     },
     { "Seek",        T_CMD,              0, cmd_seek     },
     { "Select Case", T_CMD,              0, cmd_select   },
     { "SetEnv",      T_CMD,              0, cmd_setenv   },

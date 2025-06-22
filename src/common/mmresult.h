@@ -125,6 +125,7 @@ typedef enum {
     kGraphicsInvalidWriteSurface,
     kGraphicsLoadBitmapFailed,
     kGraphicsReadAndWriteSurfaceSame,
+    kGraphicsSaveBitmapFailed,
     kGraphicsSurfaceAlreadyExists,
     kGraphicsSurfaceSizeMismatch,
     kGraphicsSurfaceTooLarge,

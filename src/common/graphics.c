@@ -1453,6 +1453,17 @@ static size_t spbmp_file_read_cb(void *file, void *buffer, size_t size, size_t c
     return fread(buffer, size, count, (FILE *) file);
 }
 
+static size_t spbmp_file_write_cb(void *file, const void *buffer, size_t size, size_t count,
+                                 void *userdata) {
+    return fwrite(buffer, size, count, (FILE *) file);
+}
+
+static SpColourRgba spbmp_get_pixel_cb(int x, int y, void *userdata) {
+    MmGraphicsColour colour = RGB_BLACK;
+    assert(graphics_get_pixel((MmSurface *) userdata, x, y, &colour) == kOk);
+    return (SpColourRgba) colour;
+}
+
 static void spbmp_set_pixel_cb(int x, int y, SpColourRgba colour, void *userdata) {
     graphics_set_pixel_safe((MmSurface *) userdata, x, y, (MmGraphicsColour) colour);
 }
@@ -1471,7 +1482,7 @@ MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
     int fnbr = file_find_free();
     result = file_open(_filename, "rb", fnbr);
     if (FAILED(result)) return result;
-    spbmp_init(spbmp_file_read_cb, spbmp_set_pixel_cb, spbmp_abort_check_cb);
+    spbmp_init(spbmp_file_read_cb, NULL, NULL, spbmp_set_pixel_cb, spbmp_abort_check_cb);
     SpBmpResult bmp_result = spbmp_load(file_table[fnbr].file_ptr, x, y, surface);
     surface->dirty = true;
     if (FAILED(bmp_result)) {
@@ -1592,6 +1603,60 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     }
 
     return file_close(fnbr);
+}
+
+MmResult graphics_save_bmp(MmSurface *surface, char *filename, BmpFormat format, int x, int y,
+                           int width, int height) {
+    if (!surface || surface->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
+    char _filename[STRINGSIZE];
+    sprintf(_filename, "%s", filename);
+
+    // If the filename does not have a ".bmp" extension then add one.
+    if (strcasecmp(path_get_extension(_filename), ".bmp") != 0) {
+        if (FAILED(cstring_cat(_filename, ".bmp", STRINGSIZE))) {
+            return kFilenameTooLong;
+        }
+    }
+
+    SpBmpFormat spFormat;
+    switch (format) {
+        case kBmpFormatRgb121:
+            spFormat = kSpBmpRgb121;
+            break;
+        case kBmpFormatRgb121Rle4:
+            spFormat = kSpBmpRgb121Rle4;
+            break;
+        case kBmpFormatRgb222:
+            spFormat = kSpBmpRgb222;
+            break;
+        case kBmpFormatRgb222Rle8:
+            spFormat = kSpBmpRgb222Rle8;
+            break;
+        case kBmpFormatRgb332:
+            spFormat = kSpBmpRgb332;
+            break;
+        case kBmpFormatRgb332Rle8:
+            spFormat = kSpBmpRgb332Rle8;
+            break;
+        case kBmpFormat24bpp:
+            spFormat = kSpBmp24bpp;
+            break;
+        default:
+            return kImageInvalidFormat;
+    }
+
+    // Open the file for writing.
+    int fnbr = file_find_free();
+    ON_FAILURE_RETURN(file_open(_filename, "wb", fnbr));
+
+    // Write the bitmap to the file.
+    spbmp_init(NULL, spbmp_file_write_cb, spbmp_get_pixel_cb, NULL, spbmp_abort_check_cb);
+    SpBmpResult bmp_result = spbmp_save(file_table[fnbr].file_ptr, spFormat, surface, x, y,
+                                        width, height);
+
+    (void) file_close(fnbr);
+
+    return FAILED(bmp_result) ? kGraphicsSaveBitmapFailed : kOk;
 }
 
 static const char *graphics_blit_flags_to_string(unsigned flags) {

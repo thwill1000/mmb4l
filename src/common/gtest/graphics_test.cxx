@@ -38,9 +38,15 @@ char CurrentFile[STRINGSIZE];
 // Defined in "common/spbmp.c"
 void spbmp_init(
     SpBmpFileReadCb file_read_cb,
+    SpBmpFileWriteCb file_write_cb,
+    SpBmpGetPixelCb get_pixel_cb,
     SpBmpSetPixelCb set_pixel_cb,
     SpBmpAbortCheckCb abort_check_cb) {}
-SpBmpResult spbmp_load(void *userdata, int x, int y, void *file) { return kSpBmpError; }
+SpBmpResult spbmp_load(void *file, int x, int y, void *userdata) { return kSpBmpError; }
+SpBmpResult spbmp_save(void *file, SpBmpFormat format, void *userdata, int x, int y, int width,
+                       int height) {
+    return kSpBmpError;
+}
 
 // Defined in "common/sprite.c"
 MmResult sprite_hide(MmSurface *sprite) { return kOk; }
