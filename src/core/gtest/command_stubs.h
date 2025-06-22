@@ -96,6 +96,7 @@ void cmd_rmdir() { }
 #if !defined(DO_NOT_STUB_CMD_RUN)
 void cmd_run() { }
 #endif
+void cmd_save() { }
 void cmd_seek() { }
 void cmd_select() { }
 void cmd_setenv() { }

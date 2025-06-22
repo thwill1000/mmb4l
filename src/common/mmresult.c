@@ -179,6 +179,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kGraphicsInvalidWriteSurface: return "Invalid graphics write surface";
         case kGraphicsLoadBitmapFailed:   return "Bitmap could not be loaded";
         case kGraphicsReadAndWriteSurfaceSame: return "Graphics read and write surfaces are the same";
+        case kGraphicsSaveBitmapFailed:   return "Bitmap could not be saved";
         case kGraphicsSurfaceAlreadyExists: return "Graphics surface already exists";
         case kGraphicsSurfaceSizeMismatch: return "Graphics surface size mismatch";
         case kGraphicsSurfaceTooLarge:    return "Graphics surface too large";

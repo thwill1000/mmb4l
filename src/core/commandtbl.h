@@ -155,6 +155,7 @@ void cmd_restore(void);
 void cmd_return(void);
 void cmd_rmdir(void);
 void cmd_run(void);
+void cmd_save(void);
 void cmd_seek(void);
 void cmd_select(void);
 void cmd_setenv(void);

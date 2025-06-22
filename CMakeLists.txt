@@ -136,6 +136,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     src/commands/cmd_return.c
     src/commands/cmd_rmdir.c
     src/commands/cmd_run.c
+    src/commands/cmd_save.c
     src/commands/cmd_seek.c
     src/commands/cmd_select.c
     src/commands/cmd_setenv.c
@@ -1112,3 +1113,24 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_vartbl)
+
+################################################################################
+# third_party/test_spbmp
+################################################################################
+
+add_executable(
+  test_spbmp
+  src/common/utility.c
+  src/third_party/spbmp.c
+  src/third_party/gtest/spbmp_test.cxx
+)
+
+target_link_libraries(
+  test_spbmp
+  gtest_main
+  gmock
+  gmock_main
+  ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_spbmp)
