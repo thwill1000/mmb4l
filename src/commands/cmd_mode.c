@@ -79,11 +79,19 @@ static MmResult cmd_mode_cmm2(void) {
     return graphics_set_mode(mode, colour_depth, background);
 }
 
+static MmResult cmd_mode_picomite_hdmi(void) {
+    getargs(&cmdline, 1, DELIM_COMMA);
+    if (argc != 1) return kArgumentCount;
+
+    const unsigned mode = getint(argv[0], MIN_PICOMITE_HDMI_MODE, MAX_PICOMITE_HDMI_MODE);
+    return graphics_set_mode(mode, 32, RGB_BLACK);
+}
+
 static MmResult cmd_mode_picomite_vga(void) {
     getargs(&cmdline, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
-    const unsigned mode = getint(argv[0], MIN_PMVGA_MODE, MAX_PMVGA_MODE);
+    const unsigned mode = getint(argv[0], MIN_PICOMITE_VGA_MODE, MAX_PICOMITE_VGA_MODE);
     return graphics_set_mode(mode, 32, RGB_BLACK);
 }
 
@@ -96,12 +104,17 @@ void cmd_mode(void) {
             result = cmd_mode_cmm2();
             break;
 
+        case kGraphicsTypePicomiteHdmi:
+            result = cmd_mode_picomite_hdmi();
+            break;
+
         case kGraphicsTypePicomiteVga:
             result = cmd_mode_picomite_vga();
             break;
 
         default:
-            result = kInternalFault;
+            result = mmresult_ex(kInternalFault, "Unknown GraphicsType: %d",
+                                 mmb_features.graphics_type);
             break;
     }
     ON_FAILURE_ERROR(result);

@@ -66,8 +66,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GRAPHICS_MAX_COLLISIONS  4
 #define MIN_CMM2_MODE            1
 #define MAX_CMM2_MODE            17
-#define MIN_PMVGA_MODE           1
-#define MAX_PMVGA_MODE           2
+#define MIN_PICOMITE_HDMI_MODE   1
+#define MAX_PICOMITE_HDMI_MODE   5
+#define MIN_PICOMITE_VGA_MODE    1
+#define MAX_PICOMITE_VGA_MODE    2
 
 #define RGB(red, green, blue, trans) (uint32_t) (((trans & 0xFF) << 24) | ((red & 0xFF) << 16) | ((green & 0xFF) << 8) | (blue & 0xFF))
 

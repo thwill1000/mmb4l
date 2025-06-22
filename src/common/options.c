@@ -122,6 +122,7 @@ const NameOrdinalPair options_simulate_map[] = {
     { "CMM2",              kSimulateCmm2 },
     { "PicoCalc",          kSimulatePicocalc },
     { "PicoMiteVGA",       kSimulatePicomiteVga },
+    { "PicoMiteHDMI",      kSimulatePicomiteHdmi },
     { "PicoMiteVGAUSB",    kSimulatePicomiteVgaUsb },
     { "Game*Mite",         kSimulateGamemite },
     { "GameMite",          kSimulateGamemite },
