@@ -46,7 +46,7 @@ static inline void safe_buffer_init(SafeBuffer *sb, char *raw, size_t raw_sz) {
 }
 
 /**
- * @brief Resets a SafeBuffer's append position and overrun flag.
+ * @brief Resets a SafeBuffer's read/write position and overrun flag.
  *
  * Resets the current position pointer to the beginning of the buffer and
  * clears the overrun flag, allowing the buffer to be reused.
@@ -149,53 +149,33 @@ static inline size_t safe_buffer_write_objects(SafeBuffer *sb, const void *src,
 }
 
 /**
- * @brief Appends a single character to a SafeBuffer.
+ * @brief Writes a single character to a SafeBuffer.
  *
- * Appends one character to the current position in the buffer. If the buffer
+ * Writes one character to the current position in the buffer. If the buffer
  * would overrun, the overrun flag is set instead.
  *
  * @param[in,out] sb  Pointer to the SafeBuffer
- * @param[in]     c   Character to append
- * @return            0 on success,
- *                   -1 if the buffer has already overrun, or would overrun
+ * @param[in]     c   Character to write
+ * @return            The number of characters written (0 or 1).
  */
-static inline int safe_buffer_append(SafeBuffer *sb, char c) {
-    return safe_buffer_write_objects(sb, &c, 1, 1) == 1 ? 0 : -1;
+static inline size_t safe_buffer_write_char(SafeBuffer *sb, char c) {
+    return safe_buffer_write_objects(sb, &c, 1, 1);
 }
 
 /**
- * @brief Appends multiple bytes to a SafeBuffer.
+ * @brief Writes a C-string including trailing null terminator to a SafeBuffer.
  *
- * Appends the specified number of bytes to the current position in the buffer.
- * If the buffer would overrun, appends as many bytes as possible and sets the
- * overrun flag.
- *
- * @param[in,out] sb      Pointer to the SafeBuffer
- * @param[in]     buf     Buffer containing bytes to append
- * @param[in]     buf_sz  Number of bytes to append
- * @return                0 on success,
- *                       -1 if the buffer has already overrun, or would overrun
- */
-static inline int safe_buffer_append_bytes(SafeBuffer *sb, const char *buf,
-                                           size_t buf_sz) {
-    return safe_buffer_write(sb, buf, buf_sz) == buf_sz ? 0 : -1;
-}
-
-/**
- * @brief Appends a C-string including trailing null terminator to a SafeBuffer.
- *
- * Appends a null-terminated string to the current position in the buffer,
- * including the null terminator. If the buffer would overrun, appends as many
+ * Writes a null-terminated string to the current position in the buffer,
+ * including the null terminator. If the buffer would overrun, writes as many
  * bytes as possible and sets the overrun flag.
  *
  * @param[in,out] sb  Pointer to the SafeBuffer
- * @param[in]     s   Null-terminated string to append
- * @return            0 on success,
- *                   -1 if the buffer has already overrun, or would overrun
+ * @param[in]     s   Null-terminated string to write
+ * @return            The number of characters/bytes written.
  */
-static inline int safe_buffer_append_string(SafeBuffer *sb, const char *s) {
+static inline size_t safe_buffer_write_string(SafeBuffer *sb, const char *s) {
     const size_t count = strlen(s) + 1;
-    return safe_buffer_write(sb, s, count) == count ? 0 : -1;
+    return safe_buffer_write(sb, s, count);
 }
 
 /**
