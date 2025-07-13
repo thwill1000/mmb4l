@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 path.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -160,11 +160,11 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         safe_buffer_append_bytes(&safe_dst, "..", 2);
                         break;
                     case kPathStateSlashDotDot: {
-                        char *p = path_unwind(new_path, safe_dst.ptr);
-                        if (p == safe_dst.ptr) {
+                        char *p = path_unwind(new_path, safe_dst.pos);
+                        if (p == safe_dst.pos) {
                             safe_buffer_append_bytes(&safe_dst, "/..", absolute ? 1 : 3);
                         } else {
-                            safe_buffer_set_ptr(&safe_dst, p);
+                            safe_buffer_set_pos(&safe_dst, p);
                         }
                         break;
                     }
@@ -214,13 +214,13 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         state = kPathStateSlash;
                         break;
                     case kPathStateSlashDotDot: {
-                        char *p = path_unwind(new_path, safe_dst.ptr);
-                        if (p == safe_dst.ptr) {
+                        char *p = path_unwind(new_path, safe_dst.pos);
+                        if (p == safe_dst.pos) {
                             safe_buffer_append_bytes(&safe_dst, "/..", absolute ? 1 : 3);
                             state = kPathStateSlash;
                         } else {
                             state = *p == '/' ? kPathStateSlash : kPathStateDefault;
-                            safe_buffer_set_ptr(&safe_dst, p);
+                            safe_buffer_set_pos(&safe_dst, p);
                         }
                         break;
                     }
@@ -238,7 +238,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         const char *home = getenv("HOME");
                         if (!home) return errno; // Probably never happens.
                         safe_buffer_append_string(&safe_dst, home);
-                        safe_buffer_inc_ptr(&safe_dst, -1);  // Back off trailing '\0'.
+                        safe_buffer_inc_pos(&safe_dst, -1);  // Back off trailing '\0'.
                     } else {
                         safe_buffer_append(&safe_dst, '~');
                     }
@@ -310,7 +310,7 @@ static MmResult path_resolve_symlinks(const char *src, char *dst, size_t sz) {
 try_again:
             safe_buffer_append(&safe_dst, '\0');
             if (safe_dst.overrun) break;
-            safe_buffer_inc_ptr(&safe_dst, -1);  // See note 1.
+            safe_buffer_inc_pos(&safe_dst, -1);  // See note 1.
 
             // On success update 'dst' with target of link.
             size_t buf_sz = PATH_MAX;
@@ -329,19 +329,19 @@ try_again:
                 safe_buffer_append_bytes(&safe_dst, buf, buf_sz);
                 safe_buffer_append(&safe_dst, '\0');
                 if (safe_dst.overrun) break;
-                safe_buffer_inc_ptr(&safe_dst, -1);  // See note 1.
+                safe_buffer_inc_pos(&safe_dst, -1);  // See note 1.
                 ON_FAILURE_RETURN(path_munge(dst, buf, PATH_MAX));
                 safe_buffer_reset(&safe_dst);
                 safe_buffer_append_string(&safe_dst, buf);
                 if (safe_dst.overrun) break;
-                safe_buffer_inc_ptr(&safe_dst, -1);  // See note 1.
+                safe_buffer_inc_pos(&safe_dst, -1);  // See note 1.
 
                 goto try_again;  // Handle symbolic links to symbolic links.
             }
 
             // Handle edge case of a symbolic link to root.
-            if (*psrc == '/' && safe_buffer_last(&safe_dst) == '/')
-                safe_buffer_inc_ptr(&safe_dst, -1);
+            if (*psrc == '/' && *(safe_dst.pos - 1) == '/')
+                safe_buffer_inc_pos(&safe_dst, -1);
         }
         safe_buffer_append(&safe_dst, *psrc);
     } while (*psrc++ != '\0' && !safe_dst.overrun);
