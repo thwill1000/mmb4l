@@ -163,45 +163,34 @@ TEST_F(SafeBufferTest, ReadObjectsTest) {
     EXPECT_FALSE(sb.overrun);
 }
 
-// Test single character append (now using write internally)
-TEST_F(SafeBufferTest, AppendSingleCharTest) {
+// Test single character write (now using write internally)
+TEST_F(SafeBufferTest, WriteSingleCharTest) {
     safe_buffer_init(&sb, buffer, BUFFER_SIZE);
-    EXPECT_EQ(0, safe_buffer_append(&sb, 'A'));
+    EXPECT_EQ(1, safe_buffer_write_char(&sb, 'A'));
     EXPECT_EQ(sb.pos, sb.base + 1);
     EXPECT_EQ(buffer[0], 'A');
     EXPECT_FALSE(sb.overrun);
 }
 
-// Test append_bytes (now using `write()` internally)
-TEST_F(SafeBufferTest, AppendBytesTest) {
-    safe_buffer_init(&sb, buffer, BUFFER_SIZE);
-    const char *test_data = "Hello";
-    size_t test_len = strlen(test_data);
-    EXPECT_EQ(0, safe_buffer_append_bytes(&sb, test_data, test_len));
-    EXPECT_EQ(sb.pos, sb.base + test_len);
-    EXPECT_EQ(0, memcmp(buffer, test_data, test_len));
-    EXPECT_FALSE(sb.overrun);
-}
-
-// Test append_string (now using `write()` internally)
-TEST_F(SafeBufferTest, AppendStringTest) {
+// Test `write_string()` (now using `write()` internally)
+TEST_F(SafeBufferTest, WriteStringTest) {
     safe_buffer_init(&sb, buffer, BUFFER_SIZE);
     const char *test_str = "Hello";
-    EXPECT_EQ(0, safe_buffer_append_string(&sb, test_str));
+    EXPECT_EQ(6, safe_buffer_write_string(&sb, test_str));
     EXPECT_EQ(sb.pos, sb.base + strlen(test_str) + 1); // +1 for null terminator
     EXPECT_STREQ(buffer, test_str);
     EXPECT_FALSE(sb.overrun);
 }
 
-// Test append functions with overflow
-TEST_F(SafeBufferTest, AppendOverflowTest) {
+// Test `write_char()` function with overflow
+TEST_F(SafeBufferTest, WriteCharOverflowTest) {
     safe_buffer_init(&sb, buffer, BUFFER_SIZE);
     // Fill buffer to capacity
     for (size_t i = 0; i < BUFFER_SIZE; ++i) {
-        EXPECT_EQ(0, safe_buffer_append(&sb, 'A'));
+        EXPECT_EQ(1, safe_buffer_write_char(&sb, 'A'));
     }
-    // Next append should fail and set overrun
-    EXPECT_EQ(-1, safe_buffer_append(&sb, 'X'));
+    // Next write should fail and set overrun
+    EXPECT_EQ(0, safe_buffer_write_char(&sb, 'X'));
     EXPECT_TRUE(sb.overrun);
 }
 
@@ -211,7 +200,7 @@ TEST_F(SafeBufferTest, IsFullTest) {
     EXPECT_FALSE(safe_buffer_is_full(&sb));
     // Fill buffer
     for (size_t i = 0; i < BUFFER_SIZE; ++i) {
-        safe_buffer_append(&sb, 'A');
+        safe_buffer_write_char(&sb, 'A');
     }
     EXPECT_TRUE(safe_buffer_is_full(&sb));
 }
@@ -300,25 +289,25 @@ TEST_F(SafeBufferTest, StateConsistencyAfterOverrunTest) {
     safe_buffer_write(&sb, long_data, strlen(long_data));
     EXPECT_TRUE(sb.overrun);
     // Read/write operations should fail consistently after overrun
-    EXPECT_EQ(-1, safe_buffer_append(&sb, 'X'));
+    EXPECT_EQ(0, safe_buffer_write_char(&sb, 'X'));
     EXPECT_EQ(0, safe_buffer_write(&sb, "test", 4));
     EXPECT_EQ(0, safe_buffer_read(&sb, buffer, 4));
     // Position manipulation functions should succeed AND clear overrun flag
     EXPECT_EQ(0, safe_buffer_inc_pos(&sb, -20));
     EXPECT_FALSE(sb.overrun);  // overrun flag should be cleared
     // After position manipulation, operations should work again
-    EXPECT_EQ(0, safe_buffer_append(&sb, 'X'));
+    EXPECT_EQ(1, safe_buffer_write_char(&sb, 'X'));
     // Test the other position function
     safe_buffer_write(&sb, long_data, strlen(long_data));  // Cause overrun again
     EXPECT_TRUE(sb.overrun);
     EXPECT_EQ(0, safe_buffer_set_pos(&sb, sb.base + 1));
     EXPECT_FALSE(sb.overrun);  // overrun flag should be cleared
     // After set_pos, operations should work again
-    EXPECT_EQ(0, safe_buffer_append(&sb, 'Y'));
+    EXPECT_EQ(1, safe_buffer_write_char(&sb, 'Y'));
     // Reset should still restore functionality
     safe_buffer_reset(&sb);
     EXPECT_FALSE(sb.overrun);
-    EXPECT_EQ(0, safe_buffer_append(&sb, 'A'));
+    EXPECT_EQ(1, safe_buffer_write_char(&sb, 'A'));
 }
 
 // Test boundary conditions for read/write

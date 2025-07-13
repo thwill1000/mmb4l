@@ -157,12 +157,12 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
             case '\0':
                 switch (state) {
                     case kPathStateStartDotDot:
-                        safe_buffer_append_bytes(&safe_dst, "..", 2);
+                        safe_buffer_write(&safe_dst, "..", 2);
                         break;
                     case kPathStateSlashDotDot: {
                         char *p = path_unwind(new_path, safe_dst.pos);
                         if (p == safe_dst.pos) {
-                            safe_buffer_append_bytes(&safe_dst, "/..", absolute ? 1 : 3);
+                            safe_buffer_write(&safe_dst, "/..", absolute ? 1 : 3);
                         } else {
                             safe_buffer_set_pos(&safe_dst, p);
                         }
@@ -172,7 +172,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         break;
                 }
 
-                safe_buffer_append(&safe_dst, *psrc); // Copies the '/0'
+                safe_buffer_write_char(&safe_dst, *psrc); // Copies the '/0'
                 break;
 
             case '.':
@@ -190,7 +190,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         state = kPathStateSlashDotDot;
                         break;
                     default:
-                        safe_buffer_append(&safe_dst, '.');
+                        safe_buffer_write_char(&safe_dst, '.');
                         break;
                 }
                 break;
@@ -203,7 +203,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         state = kPathStateDefault;
                         break;
                     case kPathStateStartDotDot:
-                        safe_buffer_append_bytes(&safe_dst, "..", 2);
+                        safe_buffer_write(&safe_dst, "..", 2);
                         state = kPathStateSlash;
                         break;
                     case kPathStateSlash:
@@ -216,7 +216,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                     case kPathStateSlashDotDot: {
                         char *p = path_unwind(new_path, safe_dst.pos);
                         if (p == safe_dst.pos) {
-                            safe_buffer_append_bytes(&safe_dst, "/..", absolute ? 1 : 3);
+                            safe_buffer_write(&safe_dst, "/..", absolute ? 1 : 3);
                             state = kPathStateSlash;
                         } else {
                             state = *p == '/' ? kPathStateSlash : kPathStateDefault;
@@ -237,10 +237,10 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                         errno = 0;
                         const char *home = getenv("HOME");
                         if (!home) return errno; // Probably never happens.
-                        safe_buffer_append_string(&safe_dst, home);
+                        safe_buffer_write_string(&safe_dst, home);
                         safe_buffer_inc_pos(&safe_dst, -1);  // Back off trailing '\0'.
                     } else {
-                        safe_buffer_append(&safe_dst, '~');
+                        safe_buffer_write_char(&safe_dst, '~');
                     }
                     psrc--;
                     state = kPathStateDefault;
@@ -252,25 +252,25 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
             default:
                 switch (state) {
                     case kPathStateStartDot:
-                        safe_buffer_append(&safe_dst, '.');
+                        safe_buffer_write_char(&safe_dst, '.');
                         break;
                     case kPathStateStartDotDot:
-                        safe_buffer_append_bytes(&safe_dst, "..", 2);
+                        safe_buffer_write(&safe_dst, "..", 2);
                         break;
                     case kPathStateSlash:
-                        safe_buffer_append(&safe_dst, '/');
+                        safe_buffer_write_char(&safe_dst, '/');
                         break;
                     case kPathStateSlashDot:
-                        safe_buffer_append_bytes(&safe_dst, "/.", 2);
+                        safe_buffer_write(&safe_dst, "/.", 2);
                         break;
                     case kPathStateSlashDotDot:
-                        safe_buffer_append_bytes(&safe_dst, "/..", 3);
+                        safe_buffer_write(&safe_dst, "/..", 3);
                         break;
                     default:
                         break;
                 }
                 state = kPathStateDefault;
-                safe_buffer_append(&safe_dst, *psrc);
+                safe_buffer_write_char(&safe_dst, *psrc);
                 break;
 
         } // switch
@@ -308,7 +308,7 @@ static MmResult path_resolve_symlinks(const char *src, char *dst, size_t sz) {
     do {
         if (*psrc == '/' || *psrc == '\0') {
 try_again:
-            safe_buffer_append(&safe_dst, '\0');
+            safe_buffer_write_char(&safe_dst, '\0');
             if (safe_dst.overrun) break;
             safe_buffer_inc_pos(&safe_dst, -1);  // See note 1.
 
@@ -323,16 +323,16 @@ try_again:
                     safe_buffer_reset(&safe_dst);
                 } else {
                     // Handle relative symbolic link.
-                    safe_buffer_append_bytes(&safe_dst, "/../", 4);
+                    safe_buffer_write(&safe_dst, "/../", 4);
                 }
 
-                safe_buffer_append_bytes(&safe_dst, buf, buf_sz);
-                safe_buffer_append(&safe_dst, '\0');
+                safe_buffer_write(&safe_dst, buf, buf_sz);
+                safe_buffer_write_char(&safe_dst, '\0');
                 if (safe_dst.overrun) break;
                 safe_buffer_inc_pos(&safe_dst, -1);  // See note 1.
                 ON_FAILURE_RETURN(path_munge(dst, buf, PATH_MAX));
                 safe_buffer_reset(&safe_dst);
-                safe_buffer_append_string(&safe_dst, buf);
+                safe_buffer_write_string(&safe_dst, buf);
                 if (safe_dst.overrun) break;
                 safe_buffer_inc_pos(&safe_dst, -1);  // See note 1.
 
@@ -343,7 +343,7 @@ try_again:
             if (*psrc == '/' && *(safe_dst.pos - 1) == '/')
                 safe_buffer_inc_pos(&safe_dst, -1);
         }
-        safe_buffer_append(&safe_dst, *psrc);
+        safe_buffer_write_char(&safe_dst, *psrc);
     } while (*psrc++ != '\0' && !safe_dst.overrun);
 
     return (dst[sz - 1] != '\0' || safe_dst.overrun) ? kFilenameTooLong : kOk;
