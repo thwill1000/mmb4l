@@ -1,19 +1,14 @@
 // spBMP - a Microsoft Windows .bmp decoder.
-// Copyright (c) 2024 Thomas Hugo Williams
+// Copyright (c) 2024-2025 Thomas Hugo Williams
 // License MIT <https://opensource.org/licenses/MIT>
 //
 // 09-Sep-2024: Version 1.0.2 - Corrected error value returned for unsupported bits per pixel.
 // 08-Sep-2024: Version 1.0.1 - Simplified BmpHeader and made some cosmetic changes.
 // 08-Sep-2024: Version 1.0.0 - Initial offering.
 
-#include "spbmp.h"
-
-#include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
-#define RGBA(r, g, b, a) \
-    (SpColourRgba)(((a & 0xFF) << 24) | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF))
+#include "spbmp_private.h"
 
 #define RGB_TABLE_ENTRY(_idx) RGBA( \
     header->colour_table[_idx][0], \
@@ -21,51 +16,12 @@
     header->colour_table[_idx][2], \
     header->colour_table[_idx][3])
 
-#define DEFAULT_PIXELS_PER_METRE  2835
-
 typedef enum {
     BI_RGB = 0,
     BI_RLE8 = 1,
     BI_RLE4 = 2,
     BI_BITFIELDS = 3,
 } BmpCompression;
-
-typedef struct {
-    uint32_t file_size;
-    uint32_t pixel_array_offset;
-    uint32_t header_size;
-    int32_t width;
-    int32_t height;
-    uint16_t num_planes;
-    uint16_t bits_per_pixel;
-    uint32_t compression_type;
-    uint32_t image_size;
-    uint32_t x_pixels_per_metre;
-    uint32_t y_pixels_per_metre;
-    uint32_t colour_table_size;
-    uint32_t important_colour_count;
-    uint8_t colour_table[256][4];  // 4 elements = RGBA.
-    bool rgb565_flag;
-} BmpHeader;
-
-const uint8_t rgb121_colour_table[16][4] = {
-    { 0x00, 0x00, 0x00, 0xFF },
-    { 0x00, 0x00, 0xFF, 0xFF },
-    { 0x00, 0x40, 0x00, 0xFF },
-    { 0x00, 0x40, 0xFF, 0xFF },
-    { 0x00, 0x80, 0x00, 0xFF },
-    { 0x00, 0x80, 0xFF, 0xFF },
-    { 0x00, 0xFF, 0x00, 0xFF },
-    { 0x00, 0xFF, 0xFF, 0xFF },
-    { 0xFF, 0x00, 0x00, 0xFF },
-    { 0xFF, 0x00, 0xFF, 0xFF },
-    { 0xFF, 0x40, 0x00, 0xFF },
-    { 0xFF, 0x40, 0xFF, 0xFF },
-    { 0xFF, 0x80, 0x00, 0xFF },
-    { 0xFF, 0x80, 0xFF, 0xFF },
-    { 0xFF, 0xFF, 0x00, 0xFF },
-    { 0xFF, 0xFF, 0xFF, 0xFF }
-};
 
 static SpBmpFileReadCb spbmp_file_read_cb;
 static SpBmpFileWriteCb spbmp_file_write_cb;
@@ -912,6 +868,26 @@ static SpBmpResult spbmp_write_rgb121_rle4(void *file, void *userdata, int x_ori
     return kSpBmpOk;
 }
 
+static SpBmpResult spbmp_write_rgb222(void *file, void *userdata, int x_origin, int y_origin,
+                                      int width, int height) {
+    return kSpBmpOk;
+}
+
+static SpBmpResult spbmp_write_rgb332(void *file, void *userdata, int x_origin, int y_origin,
+                                      int width, int height) {
+    return kSpBmpError;
+}
+
+static SpBmpResult spbmp_write_rgb222_rle8(void *file, void *userdata, int x_origin, int y_origin,
+                                           int width, int height) {
+    return kSpBmpError;
+}
+
+static SpBmpResult spbmp_write_rgb332_rle8(void *file, void *userdata, int x_origin, int y_origin,
+                                           int width, int height) {
+    return kSpBmpError;
+}
+
 SpBmpResult spbmp_save(void *file, SpBmpFormat format, void *userdata, int x_origin, int y_origin,
                        int width, int height) {
     BmpHeader header = {
@@ -941,7 +917,18 @@ SpBmpResult spbmp_save(void *file, SpBmpFormat format, void *userdata, int x_ori
             header.compression_type = (format == kSpBmpCompressedRgb121) ? BI_RLE4 : BI_RGB;
             header.colour_table_size = 16;
             header.important_colour_count = 16;
-            mempcpy(header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
+            memcpy(header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
+            break;
+
+        case kSpBmpRgb222:
+            header.image_size = width * height;
+            header.pixel_array_offset = 54 + 64 * 4;
+            header.file_size = header.pixel_array_offset + header.image_size;
+            header.bits_per_pixel = 8;
+            header.compression_type = BI_RGB;
+            header.colour_table_size = 64;
+            header.important_colour_count = 64;
+            memcpy(header.colour_table, rgb222_colour_table, sizeof(rgb222_colour_table));
             break;
 
         default:
@@ -957,8 +944,20 @@ SpBmpResult spbmp_save(void *file, SpBmpFormat format, void *userdata, int x_ori
         case kSpBmpRgb121:
             return spbmp_write_rgb121(file, userdata, x_origin, y_origin, width, height);
 
+        case kSpBmpRgb222:
+            return spbmp_write_rgb222(file, userdata, x_origin, y_origin, width, height);
+
+        case kSpBmpRgb332:
+            return spbmp_write_rgb332(file, userdata, x_origin, y_origin, width, height);
+
         case kSpBmpCompressedRgb121:
             return spbmp_write_rgb121_rle4(file, userdata, x_origin, y_origin, width, height);
+
+        case kSpBmpCompressedRgb222:
+            return spbmp_write_rgb222_rle8(file, userdata, x_origin, y_origin, width, height);
+
+        case kSpBmpCompressedRgb332:
+            return spbmp_write_rgb332_rle8(file, userdata, x_origin, y_origin, width, height);
 
         default:
             return kSpBmpUnknownFormat;

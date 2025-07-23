@@ -1,5 +1,5 @@
 // spBMP - a Microsoft Windows .bmp decoder.
-// Copyright (c) 2024 Thomas Hugo Williams
+// Copyright (c) 2024-2025 Thomas Hugo Williams
 // License MIT <https://opensource.org/licenses/MIT>
 //
 // 09-Sep-2024: Version 1.0.2 - Corrected error value returned for unsupported bits per pixel.
@@ -9,6 +9,7 @@
 #if !defined(SPBMP_H)
 #define SPBMP_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -21,9 +22,13 @@ typedef enum {
 } SpBmpResult;
 
 typedef enum {
-    kSpBmp24bpp,
     kSpBmpRgb121,
-    kSpBmpCompressedRgb121
+    kSpBmpRgb222,
+    kSpBmpRgb332,
+    kSpBmp24bpp,
+    kSpBmpCompressedRgb121,
+    kSpBmpCompressedRgb222,
+    kSpBmpCompressedRgb332,
 } SpBmpFormat;
 
 typedef uint32_t SpColourRgba;

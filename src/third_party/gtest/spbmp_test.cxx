@@ -7,6 +7,7 @@ extern "C" {
 
 #include "../../common/safe_buffer.h"
 #include "../spbmp.h"
+#include "../spbmp_private.h"
 
 typedef struct {
     SpColourRgba *pixels;
@@ -40,29 +41,6 @@ static int abort_check_cb(void *userdata) {
 
 } // extern "C"
 
-#define RGBA(r, g, b, a) \
-    (SpColourRgba)(((a & 0xFF) << 24) | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF))
-
-// RGB121 Color Table (RGBA).
-const uint8_t rgb121_table[16][4] = {
-    { 0x00, 0x00, 0x00, 0xFF },  // 0: Black
-    { 0x00, 0x00, 0xFF, 0xFF },  // 1: Blue
-    { 0x00, 0x40, 0x00, 0xFF },  // 2: Dark Green
-    { 0x00, 0x40, 0xFF, 0xFF },  // 3: Dark Green + Blue
-    { 0x00, 0x80, 0x00, 0xFF },  // 4: Medium Green
-    { 0x00, 0x80, 0xFF, 0xFF },  // 5: Medium Green + Blue
-    { 0x00, 0xFF, 0x00, 0xFF },  // 6: Bright Green
-    { 0x00, 0xFF, 0xFF, 0xFF },  // 7: Cyan
-    { 0xFF, 0x00, 0x00, 0xFF },  // 8: Red
-    { 0xFF, 0x00, 0xFF, 0xFF },  // 9: Magenta
-    { 0xFF, 0x40, 0x00, 0xFF },  // 10: Red + Dark Green
-    { 0xFF, 0x40, 0xFF, 0xFF },  // 11: Red + Dark Green + Blue
-    { 0xFF, 0x80, 0x00, 0xFF },  // 12: Red + Medium Green
-    { 0xFF, 0x80, 0xFF, 0xFF },  // 13: Red + Medium Green + Blue
-    { 0xFF, 0xFF, 0x00, 0xFF },  // 14: Yellow
-    { 0xFF, 0xFF, 0xFF, 0xFF }   // 15: White
-};
-
 class SpBmpTest : public ::testing::Test {
    protected:
     void SetUp() override {
@@ -72,6 +50,8 @@ class SpBmpTest : public ::testing::Test {
     void TearDown() override {
     }
 };
+
+void ValidateHeader(const BmpHeader *expected_header, char *bmp_data);
 
 TEST_F(SpBmpTest, Load_1bpp_1x1) {
     SpColourRgba pixels[1];  // 1 pixel
@@ -157,19 +137,19 @@ TEST_F(SpBmpTest, Load_16bpp_555_1x1) {
     pixels[0] = 0x000000;  // Black color
     TestSurface surface = { pixels, 1, 1 };
 
-    char data[58] = {
-            0x42, 0x4d, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x36, 0x00, 0x00, 0x00, 0x28, 0x00,
-            0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
-            0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00,  // 0x10 = 16 bpp
-            0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0xe8, 0x03,
-            0x00, 0x00, 0xe8, 0x03, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x00,
-            0xcc, 0xcc
+    char bmp_data[] = {
+        0x42, 0x4d, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x36, 0x00, 0x00, 0x00, 0x28, 0x00,
+        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
+        0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00,  // 0x10 = 16 bpp
+        0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0xe8, 0x03,
+        0x00, 0x00, 0xe8, 0x03, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x00,
+        0xcc, 0xcc
     };
     SafeBuffer file;
-    safe_buffer_init(&file, data, sizeof(data));
-    file.end = file.base + sizeof(data);
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
+    file.end = file.base + sizeof(bmp_data);
 
     EXPECT_EQ(kSpBmpOk, spbmp_load(&file, 0, 0, &surface));
     EXPECT_EQ(RGBA(0, 0, 0xF8, 0xFF), pixels[0]);  // Blue color
@@ -181,20 +161,20 @@ TEST_F(SpBmpTest, Load_16bpp_565_1x1) {
     pixels[0] = 0x000000;  // Black color
     TestSurface surface = { pixels, 1, 1 };
 
-    char data[70] = {
-            0x42, 0x4d, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x42, 0x00, 0x00, 0x00, 0x28, 0x00,
-            0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
-            0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x03, 0x00,  // 0x10 = 16 bpp
-            0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0xe8, 0x03,
-            0x00, 0x00, 0xe8, 0x03, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf8,
-            0x00, 0x00, 0xe0, 0x07, 0x00, 0x00, 0x1f, 0x00,
-            0x00, 0x00, 0x1f, 0x00, 0xcc, 0xcc
+    char bmp_data[] = {
+        0x42, 0x4d, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x42, 0x00, 0x00, 0x00, 0x28, 0x00,
+        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
+        0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x03, 0x00,  // 0x10 = 16 bpp
+        0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0xe8, 0x03,
+        0x00, 0x00, 0xe8, 0x03, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf8,
+        0x00, 0x00, 0xe0, 0x07, 0x00, 0x00, 0x1f, 0x00,
+        0x00, 0x00, 0x1f, 0x00, 0xcc, 0xcc
     };
     SafeBuffer file;
-    safe_buffer_init(&file, data, sizeof(data));
-    file.end = file.base + sizeof(data);
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
+    file.end = file.base + sizeof(bmp_data);
 
     EXPECT_EQ(kSpBmpOk, spbmp_load(&file, 0, 0, &surface));
     EXPECT_EQ(RGBA(0, 0, 0xF8, 0xFF), pixels[0]);  // Blue color
@@ -249,100 +229,65 @@ TEST_F(SpBmpTest, Load_32bpp_1x1) {
     EXPECT_EQ(false, file.overrun);
 }
 
-void ValidateCompressedRgb121Header(char *data, int32_t expected_width, int32_t expected_height) {
-    // Validate BMP File Header (14 bytes)
-    EXPECT_EQ('B', data[0]);
-    EXPECT_EQ('M', data[1]);
-    // File size (should be header + color table + compressed data)
-    uint32_t file_size = *reinterpret_cast<uint32_t*>(&data[2]);
-    EXPECT_GE(file_size, 118);  // At least header (54) + color table (64) bytes
-    // Reserved fields should be 0
-    EXPECT_EQ(0, *reinterpret_cast<uint32_t*>(&data[6]));
-    // Pixel array offset (54 + 64 = 118)
-    uint32_t pixel_offset = *reinterpret_cast<uint32_t*>(&data[10]);
-    EXPECT_EQ(118, pixel_offset);
-
-    // Validate DIB Header (40 bytes starting at offset 14)
-    uint32_t header_size = *reinterpret_cast<uint32_t*>(&data[14]);
-    EXPECT_EQ(40, header_size);
-    // Image dimensions
-    int32_t width = *reinterpret_cast<int32_t*>(&data[18]);
-    int32_t height = *reinterpret_cast<int32_t*>(&data[22]);
-    EXPECT_EQ(expected_width, width);
-    EXPECT_EQ(expected_height, height);
-    // Number of planes
-    uint16_t planes = *reinterpret_cast<uint16_t*>(&data[26]);
-    EXPECT_EQ(1, planes);
-    // Bits per pixel
-    uint16_t bits_per_pixel = *reinterpret_cast<uint16_t*>(&data[28]);
-    EXPECT_EQ(4, bits_per_pixel);
-    // Compression type (BI_RLE4 = 2)
-    uint32_t compression = *reinterpret_cast<uint32_t*>(&data[30]);
-    EXPECT_EQ(2, compression);  // BI_RLE4
-    // Pixels per meter (should be DEFAULT_PIXELS_PER_METRE = 2835)
-    uint32_t x_ppm = *reinterpret_cast<uint32_t*>(&data[38]);
-    uint32_t y_ppm = *reinterpret_cast<uint32_t*>(&data[42]);
-    EXPECT_EQ(2835, x_ppm);
-    EXPECT_EQ(2835, y_ppm);
-    // Color table size
-    uint32_t color_table_size = *reinterpret_cast<uint32_t*>(&data[46]);
-    EXPECT_EQ(16, color_table_size);
-    // Important color count
-    uint32_t important_colors = *reinterpret_cast<uint32_t*>(&data[50]);
-    EXPECT_EQ(16, important_colors);
-    // RGB121 Color Table (16 entries × 4 bytes each, starting at offset 54)
-    for (int i = 0; i < 16; ++i) {
-        int offset = 54 + i * 4;
-        // BMP color table stores as BGRA, but the expected table above is RGBA
-        // So we need to check: [B, G, R, A] in file vs [R, G, B, A] in expected
-        EXPECT_EQ(rgb121_table[i][2], data[offset]);     // Blue
-        EXPECT_EQ(rgb121_table[i][1], data[offset + 1]); // Green
-        EXPECT_EQ(rgb121_table[i][0], data[offset + 2]); // Red
-        EXPECT_EQ(rgb121_table[i][3], data[offset + 3]); // Alpha
-    }
-}
-
-TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenSinglePixel) {
+TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenSinglePixel) {
     SpColourRgba pixels[1];  // 1 pixel
     pixels[0] = 0xFF0000;  // Red color
     TestSurface surface = { pixels, 1, 1 };
-    char raw[256] = { 0 };
-    SafeBuffer sb;
-    safe_buffer_init(&sb, raw, sizeof(raw));
+    char bmp_data[256] = { 0 };
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
-    EXPECT_EQ(kSpBmpOk, spbmp_save(&sb, kSpBmpCompressedRgb121, &surface, 0, 0, 1, 1));
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpCompressedRgb121, &surface, 0, 0, 1, 1));
 
     // Validate header.
-    ValidateCompressedRgb121Header(raw, 1, 1);
+    BmpHeader expected_header = {
+        .pixel_array_offset = 118,  // Pixel array offset (54 + 16 * 4 = 118)
+        .width = 1,
+        .height = 1,
+        .bits_per_pixel = 4,
+        .compression_type = 2,      // BI_RLE4
+        .colour_table_size = 16,
+        .important_colour_count = 16,
+    };
+    ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 1x1 image of a red pixel we expect:
     // 01 88 00 00 (run of 1 pixel, value 8, end of line)
     // End of bitmap:  00 01
     int offset = 118;
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset]));
-    EXPECT_EQ(0x88, static_cast<uint8_t>(raw[offset + 1]));
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));
+    EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1]));
 
     // End of line marker.
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 2]));
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 3]));
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 2]));
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 3]));
     // End of bitmap marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 4])); // End of bitmap
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset + 5])); // End of bitmap
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 4])); // End of bitmap
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 5])); // End of bitmap
 }
 
-TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenTwoDifferentPixels) {
+TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenTwoDifferentPixels) {
     SpColourRgba pixels[2];  // 2 pixels
     pixels[0] = 0xFF0000;  // Red color
     pixels[1] = 0x0000FF;  // Blue color
     TestSurface surface = { pixels, 2, 1 };
-    char raw[256] = { 0 };
-    SafeBuffer sb;
-    safe_buffer_init(&sb, raw, sizeof(raw));
+    char bmp_data[256] = { 0 };
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
-    EXPECT_EQ(kSpBmpOk, spbmp_save(&sb, kSpBmpCompressedRgb121, &surface, 0, 0, 2, 1));
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpCompressedRgb121, &surface, 0, 0, 2, 1));
 
     // Validate header.
-    ValidateCompressedRgb121Header(raw, 2, 1);
+    BmpHeader expected_header = {
+        .pixel_array_offset = 118,  // Pixel array offset (54 + 16 * 4 = 118)
+        .width = 2,
+        .height = 1,
+        .bits_per_pixel = 4,
+        .compression_type = 2,      // BI_RLE4
+        .colour_table_size = 16,
+        .important_colour_count = 16,
+    };
+    ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 2x1 image of a red pixel and a blue pixel we expect:
     // 01 88 01 11 00 00 (run of 1 pixel, value 8, run of 1 pixel, value 1, end of line)
@@ -350,34 +295,43 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenTwoDifferentPixels) {
     // IMPORTANT! We don't expect to use abolute mode because there aren't at least 3 different
     //            pixels.
     int offset = 118;
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset]));
-    EXPECT_EQ(0x88, static_cast<uint8_t>(raw[offset + 1]));
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset + 2]));
-    EXPECT_EQ(0x11, static_cast<uint8_t>(raw[offset + 3]));
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));
+    EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1]));
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 2]));
+    EXPECT_EQ(0x11, static_cast<uint8_t>(bmp_data[offset + 3]));
 
     // End of line marker.
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 4]));
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 5]));
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 4]));
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 5]));
     // End of bitmap marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 6])); // End of bitmap
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset + 7])); // End of bitmap
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 6])); // End of bitmap
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 7])); // End of bitmap
 }
 
 
-TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenEachPixelSame) {
+TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenEachPixelSame) {
     SpColourRgba pixels[15];  // 5x3 = 15 pixels
     for (size_t i = 0; i < 15; ++i) {
         pixels[i] = 0xFF0000;  // Red color
     }
     TestSurface surface = { pixels, 5, 3 };
-    char raw[256] = { 0 };
-    SafeBuffer sb;
-    safe_buffer_init(&sb, raw, sizeof(raw));
+    char bmp_data[256] = { 0 };
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
-    EXPECT_EQ(kSpBmpOk, spbmp_save(&sb, kSpBmpCompressedRgb121, &surface, 0, 0, 5, 3));
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpCompressedRgb121, &surface, 0, 0, 5, 3));
 
     // Validate header.
-    ValidateCompressedRgb121Header(raw, 5, 3);
+    BmpHeader expected_header = {
+        .pixel_array_offset = 118,  // Pixel array offset (54 + 16 * 4 = 118)
+        .width = 5,
+        .height = 3,
+        .bits_per_pixel = 4,
+        .compression_type = 2,      // BI_RLE4
+        .colour_table_size = 16,
+        .important_colour_count = 16,
+    };
+    ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 5x3 image of all red pixels (RGB121 value = 8), we expect:
     // Row 2 (bottom): 05 88 00 00 (run of 5 pixels, value 8, end of line)
@@ -388,31 +342,40 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenEachPixelSame) {
     // Each row should be: 05 88 00 00 (5 pixels of color 8, end of line)
     for (int row = 0; row < 3; ++row) {
         int row_offset = rle_offset + row * 4;
-        EXPECT_EQ(0x05, static_cast<uint8_t>(raw[row_offset]));     // Run length = 5
-        EXPECT_EQ(0x88, static_cast<uint8_t>(raw[row_offset + 1])); // Color 8 in both nibbles
-        EXPECT_EQ(0x00, static_cast<uint8_t>(raw[row_offset + 2])); // End of line marker
-        EXPECT_EQ(0x00, static_cast<uint8_t>(raw[row_offset + 3])); // End of line marker
+        EXPECT_EQ(0x05, static_cast<uint8_t>(bmp_data[row_offset]));     // Run length = 5
+        EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[row_offset + 1])); // Color 8 in both nibbles
+        EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[row_offset + 2])); // End of line marker
+        EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[row_offset + 3])); // End of line marker
     }
     // End of bitmap marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset + 12])); // End of bitmap
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[rle_offset + 13])); // End of bitmap
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset + 12])); // End of bitmap
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[rle_offset + 13])); // End of bitmap
 }
 
-TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenEachPixelDifferent) {
+TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenEachPixelDifferent) {
     SpColourRgba pixels[15];  // 5x3 = 15 pixels
     for (size_t i = 0; i < 15; ++i) {
-        pixels[i] = RGBA(rgb121_table[i][0], rgb121_table[i][1], rgb121_table[i][2],
-                         rgb121_table[i][3]);
+        pixels[i] = RGBA(rgb121_colour_table[i][0], rgb121_colour_table[i][1],
+                         rgb121_colour_table[i][2], rgb121_colour_table[i][3]);
     }
     TestSurface surface = { pixels, 5, 3 };
-    char raw[256] = { 0 };
-    SafeBuffer sb;
-    safe_buffer_init(&sb, raw, sizeof(raw));
+    char bmp_data[256] = { 0 };
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
-    EXPECT_EQ(kSpBmpOk, spbmp_save(&sb, kSpBmpCompressedRgb121, &surface, 0, 0, 5, 3));
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpCompressedRgb121, &surface, 0, 0, 5, 3));
 
     // Validate header.
-    ValidateCompressedRgb121Header(raw, 5, 3);
+    BmpHeader expected_header = {
+        .pixel_array_offset = 118,  // Pixel array offset (54 + 16 * 4 = 118)
+        .width = 5,
+        .height = 3,
+        .bits_per_pixel = 4,
+        .compression_type = 2,      // BI_RLE4
+        .colour_table_size = 16,
+        .important_colour_count = 16,
+    };
+    ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 5x3 image with all different pixels, we use absolute mode:
     //
@@ -428,42 +391,42 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenEachPixelDifferent) {
     int rle_offset = 118;
     // Row 2 (bottom): pixels 10,11,12,13,14 = colors A,B,C,D,E
     // RLE4 absolute mode: 00 05 AB CD E0 00 00 (5 pixels, then word-align, then end-of-line)
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset]));     // Escape code
-    EXPECT_EQ(0x05, static_cast<uint8_t>(raw[rle_offset + 1])); // 5 pixels in absolute mode
-    EXPECT_EQ(0xAB, static_cast<uint8_t>(raw[rle_offset + 2])); // Colors A,B (10,11)
-    EXPECT_EQ(0xCD, static_cast<uint8_t>(raw[rle_offset + 3])); // Colors C,D (12,13)
-    EXPECT_EQ(0xE0, static_cast<uint8_t>(raw[rle_offset + 4])); // Color E,0 (14,padding)
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset + 5])); // Word alignment padding
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset + 6])); // End of line marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset + 7])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset]));     // Escape code
+    EXPECT_EQ(0x05, static_cast<uint8_t>(bmp_data[rle_offset + 1])); // 5 pixels in absolute mode
+    EXPECT_EQ(0xAB, static_cast<uint8_t>(bmp_data[rle_offset + 2])); // Colors A,B (10,11)
+    EXPECT_EQ(0xCD, static_cast<uint8_t>(bmp_data[rle_offset + 3])); // Colors C,D (12,13)
+    EXPECT_EQ(0xE0, static_cast<uint8_t>(bmp_data[rle_offset + 4])); // Color E,0 (14,padding)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset + 5])); // Word alignment padding
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset + 6])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset + 7])); // End of line marker
     // Row 1 (middle): pixels 5,6,7,8,9 = colors 5,6,7,8,9
     // RLE4 absolute mode: 00 05 56 78 90 00 00 00
     int row1_offset = rle_offset + 8;
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[row1_offset]));     // Escape code
-    EXPECT_EQ(0x05, static_cast<uint8_t>(raw[row1_offset + 1])); // 5 pixels in absolute mode
-    EXPECT_EQ(0x56, static_cast<uint8_t>(raw[row1_offset + 2])); // Colors 5,6
-    EXPECT_EQ(0x78, static_cast<uint8_t>(raw[row1_offset + 3])); // Colors 7,8
-    EXPECT_EQ(0x90, static_cast<uint8_t>(raw[row1_offset + 4])); // Color 9,0 (padding)
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[row1_offset + 5])); // Word alignment padding
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[row1_offset + 6])); // End of line marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[row1_offset + 7])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[row1_offset]));     // Escape code
+    EXPECT_EQ(0x05, static_cast<uint8_t>(bmp_data[row1_offset + 1])); // 5 pixels in absolute mode
+    EXPECT_EQ(0x56, static_cast<uint8_t>(bmp_data[row1_offset + 2])); // Colors 5,6
+    EXPECT_EQ(0x78, static_cast<uint8_t>(bmp_data[row1_offset + 3])); // Colors 7,8
+    EXPECT_EQ(0x90, static_cast<uint8_t>(bmp_data[row1_offset + 4])); // Color 9,0 (padding)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[row1_offset + 5])); // Word alignment padding
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[row1_offset + 6])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[row1_offset + 7])); // End of line marker
     // Row 0 (top): pixels 0,1,2,3,4 = colors 0,1,2,3,4
     // RLE4 absolute mode: 00 05 01 23 40 00 00 00
     int row0_offset = rle_offset + 16;
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[row0_offset]));     // Escape code
-    EXPECT_EQ(0x05, static_cast<uint8_t>(raw[row0_offset + 1])); // 5 pixels in absolute mode
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[row0_offset + 2])); // Colors 0,1
-    EXPECT_EQ(0x23, static_cast<uint8_t>(raw[row0_offset + 3])); // Colors 2,3
-    EXPECT_EQ(0x40, static_cast<uint8_t>(raw[row0_offset + 4])); // Color 4,0 (padding)
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[row0_offset + 5])); // Word alignment padding
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[row0_offset + 6])); // End of line marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[row0_offset + 7])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[row0_offset]));     // Escape code
+    EXPECT_EQ(0x05, static_cast<uint8_t>(bmp_data[row0_offset + 1])); // 5 pixels in absolute mode
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[row0_offset + 2])); // Colors 0,1
+    EXPECT_EQ(0x23, static_cast<uint8_t>(bmp_data[row0_offset + 3])); // Colors 2,3
+    EXPECT_EQ(0x40, static_cast<uint8_t>(bmp_data[row0_offset + 4])); // Color 4,0 (padding)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[row0_offset + 5])); // Word alignment padding
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[row0_offset + 6])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[row0_offset + 7])); // End of line marker
     // End of bitmap marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset + 24])); // End of bitmap
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[rle_offset + 25])); // End of bitmap
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset + 24])); // End of bitmap
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[rle_offset + 25])); // End of bitmap
 }
 
-TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenMixedRunsAndAbsolute) {
+TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenMixedRunsAndAbsolute) {
     // Create a 8x3 image with mixed encoding patterns:
     // Row 0 (top):    [0, 0, 0, 1, 2, 3, 4, 4]  - run of 3 zeros, absolute 1,2,3, run of 2 fours
     // Row 1 (middle): [5, 6, 7, 8, 8, 8, 8, 9]  - absolute 5,6,7, run of 4 eights, single 9
@@ -471,38 +434,47 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenMixedRunsAndAbsolute) {
     SpColourRgba pixels[24];  // 8x3 = 24 pixels
     // Row 0: [0, 0, 0, 1, 2, 3, 4, 4]
     for (int i = 0; i < 3; ++i) {
-        pixels[i] = RGBA(rgb121_table[0][0], rgb121_table[0][1], rgb121_table[0][2], rgb121_table[0][3]);
+        pixels[i] = RGBA(rgb121_colour_table[0][0], rgb121_colour_table[0][1], rgb121_colour_table[0][2], rgb121_colour_table[0][3]);
     }
-    pixels[3] = RGBA(rgb121_table[1][0], rgb121_table[1][1], rgb121_table[1][2], rgb121_table[1][3]);
-    pixels[4] = RGBA(rgb121_table[2][0], rgb121_table[2][1], rgb121_table[2][2], rgb121_table[2][3]);
-    pixels[5] = RGBA(rgb121_table[3][0], rgb121_table[3][1], rgb121_table[3][2], rgb121_table[3][3]);
+    pixels[3] = RGBA(rgb121_colour_table[1][0], rgb121_colour_table[1][1], rgb121_colour_table[1][2], rgb121_colour_table[1][3]);
+    pixels[4] = RGBA(rgb121_colour_table[2][0], rgb121_colour_table[2][1], rgb121_colour_table[2][2], rgb121_colour_table[2][3]);
+    pixels[5] = RGBA(rgb121_colour_table[3][0], rgb121_colour_table[3][1], rgb121_colour_table[3][2], rgb121_colour_table[3][3]);
     for (int i = 6; i < 8; ++i) {
-        pixels[i] = RGBA(rgb121_table[4][0], rgb121_table[4][1], rgb121_table[4][2], rgb121_table[4][3]);
+        pixels[i] = RGBA(rgb121_colour_table[4][0], rgb121_colour_table[4][1], rgb121_colour_table[4][2], rgb121_colour_table[4][3]);
     }
     // Row 1: [5, 6, 7, 8, 8, 8, 8, 9]
-    pixels[8] = RGBA(rgb121_table[5][0], rgb121_table[5][1], rgb121_table[5][2], rgb121_table[5][3]);
-    pixels[9] = RGBA(rgb121_table[6][0], rgb121_table[6][1], rgb121_table[6][2], rgb121_table[6][3]);
-    pixels[10] = RGBA(rgb121_table[7][0], rgb121_table[7][1], rgb121_table[7][2], rgb121_table[7][3]);
+    pixels[8] = RGBA(rgb121_colour_table[5][0], rgb121_colour_table[5][1], rgb121_colour_table[5][2], rgb121_colour_table[5][3]);
+    pixels[9] = RGBA(rgb121_colour_table[6][0], rgb121_colour_table[6][1], rgb121_colour_table[6][2], rgb121_colour_table[6][3]);
+    pixels[10] = RGBA(rgb121_colour_table[7][0], rgb121_colour_table[7][1], rgb121_colour_table[7][2], rgb121_colour_table[7][3]);
     for (int i = 11; i < 15; ++i) {
-        pixels[i] = RGBA(rgb121_table[8][0], rgb121_table[8][1], rgb121_table[8][2], rgb121_table[8][3]);
+        pixels[i] = RGBA(rgb121_colour_table[8][0], rgb121_colour_table[8][1], rgb121_colour_table[8][2], rgb121_colour_table[8][3]);
     }
-    pixels[15] = RGBA(rgb121_table[9][0], rgb121_table[9][1], rgb121_table[9][2], rgb121_table[9][3]);
+    pixels[15] = RGBA(rgb121_colour_table[9][0], rgb121_colour_table[9][1], rgb121_colour_table[9][2], rgb121_colour_table[9][3]);
     // Row 2: [10, 10, 10, 10, 10, 11, 12, 13]
     for (int i = 16; i < 21; ++i) {
-        pixels[i] = RGBA(rgb121_table[10][0], rgb121_table[10][1], rgb121_table[10][2], rgb121_table[10][3]);
+        pixels[i] = RGBA(rgb121_colour_table[10][0], rgb121_colour_table[10][1], rgb121_colour_table[10][2], rgb121_colour_table[10][3]);
     }
-    pixels[21] = RGBA(rgb121_table[11][0], rgb121_table[11][1], rgb121_table[11][2], rgb121_table[11][3]);
-    pixels[22] = RGBA(rgb121_table[12][0], rgb121_table[12][1], rgb121_table[12][2], rgb121_table[12][3]);
-    pixels[23] = RGBA(rgb121_table[13][0], rgb121_table[13][1], rgb121_table[13][2], rgb121_table[13][3]);
+    pixels[21] = RGBA(rgb121_colour_table[11][0], rgb121_colour_table[11][1], rgb121_colour_table[11][2], rgb121_colour_table[11][3]);
+    pixels[22] = RGBA(rgb121_colour_table[12][0], rgb121_colour_table[12][1], rgb121_colour_table[12][2], rgb121_colour_table[12][3]);
+    pixels[23] = RGBA(rgb121_colour_table[13][0], rgb121_colour_table[13][1], rgb121_colour_table[13][2], rgb121_colour_table[13][3]);
     TestSurface surface = { pixels, 8, 3 };
-    char raw[512] = { 0 };  // Larger buffer for more complex data
-    SafeBuffer sb;
-    safe_buffer_init(&sb, raw, sizeof(raw));
+    char bmp_data[512] = { 0 };  // Larger buffer for more complex data
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
-    EXPECT_EQ(kSpBmpOk, spbmp_save(&sb, kSpBmpCompressedRgb121, &surface, 0, 0, 8, 3));
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpCompressedRgb121, &surface, 0, 0, 8, 3));
 
     // Validate header.
-    ValidateCompressedRgb121Header(raw, 8, 3);
+    BmpHeader expected_header = {
+        .pixel_array_offset = 118,  // Pixel array offset (54 + 16 * 4 = 118)
+        .width = 8,
+        .height = 3,
+        .bits_per_pixel = 4,
+        .compression_type = 2,      // BI_RLE4
+        .colour_table_size = 16,
+        .important_colour_count = 16,
+    };
+    ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // BMP stores bottom-to-top, so compression order is:
     // Row 2 (bottom): [10, 10, 10, 10, 10, 11, 12, 13] = [A, A, A, A, A, B, C, D]
@@ -512,55 +484,55 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenMixedRunsAndAbsolute) {
     int offset = rle_offset;
     // Row 2 (bottom): [A, A, A, A, A, B, C, D] = [10, 10, 10, 10, 10, 11, 12, 13]
     // Expected: 05 AA 00 03 BC D0 00 00 (run of 5 A's, then absolute 3 pixels B,C,D with padding, then end-of-line)
-    EXPECT_EQ(0x05, static_cast<uint8_t>(raw[offset]));     // Run length = 5
-    EXPECT_EQ(0xAA, static_cast<uint8_t>(raw[offset + 1])); // Color A (10) in both nibbles
+    EXPECT_EQ(0x05, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 5
+    EXPECT_EQ(0xAA, static_cast<uint8_t>(bmp_data[offset + 1])); // Color A (10) in both nibbles
     offset += 2;
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // Escape code
-    EXPECT_EQ(0x03, static_cast<uint8_t>(raw[offset + 1])); // 3 pixels in absolute mode
-    EXPECT_EQ(0xBC, static_cast<uint8_t>(raw[offset + 2])); // Colors B,C (11,12)
-    EXPECT_EQ(0xD0, static_cast<uint8_t>(raw[offset + 3])); // Color D,0 (13,padding)
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 4])); // End of line marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 5])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // Escape code
+    EXPECT_EQ(0x03, static_cast<uint8_t>(bmp_data[offset + 1])); // 3 pixels in absolute mode
+    EXPECT_EQ(0xBC, static_cast<uint8_t>(bmp_data[offset + 2])); // Colors B,C (11,12)
+    EXPECT_EQ(0xD0, static_cast<uint8_t>(bmp_data[offset + 3])); // Color D,0 (13,padding)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 4])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 5])); // End of line marker
     offset += 6;
 
     // Row 1 (middle): [5, 6, 7, 8, 8, 8, 8, 9]
     // Expected: 00 03 56 70 04 88 01 99 00 00 (absolute 5,6,7 with padding, run of 4 eights, run of 1 nine, then end-of-line)
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // Escape code
-    EXPECT_EQ(0x03, static_cast<uint8_t>(raw[offset + 1])); // 3 pixels in absolute mode
-    EXPECT_EQ(0x56, static_cast<uint8_t>(raw[offset + 2])); // Colors 5,6
-    EXPECT_EQ(0x70, static_cast<uint8_t>(raw[offset + 3])); // Color 7,0 (padding)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // Escape code
+    EXPECT_EQ(0x03, static_cast<uint8_t>(bmp_data[offset + 1])); // 3 pixels in absolute mode
+    EXPECT_EQ(0x56, static_cast<uint8_t>(bmp_data[offset + 2])); // Colors 5,6
+    EXPECT_EQ(0x70, static_cast<uint8_t>(bmp_data[offset + 3])); // Color 7,0 (padding)
     offset += 4;
-    EXPECT_EQ(0x04, static_cast<uint8_t>(raw[offset]));     // Run length = 4
-    EXPECT_EQ(0x88, static_cast<uint8_t>(raw[offset + 1])); // Color 8 in both nibbles
+    EXPECT_EQ(0x04, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 4
+    EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 8 in both nibbles
     offset += 2;
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset]));     // Run length = 1
-    EXPECT_EQ(0x99, static_cast<uint8_t>(raw[offset + 1])); // Color 9 in both nibbles
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 1
+    EXPECT_EQ(0x99, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 9 in both nibbles
     offset += 2;
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // End of line marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // End of line marker
     offset += 2;
     // Row 0 (top): [0, 0, 0, 1, 2, 3, 4, 4]
     // Expected: 03 00 00 03 12 30 02 44 00 00 (run of 3 zeros, absolute 1,2,3 with padding, run of 2 fours, then end-of-line)
-    EXPECT_EQ(0x03, static_cast<uint8_t>(raw[offset]));     // Run length = 3
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // Color 0 in both nibbles
+    EXPECT_EQ(0x03, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 3
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 0 in both nibbles
     offset += 2;
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // Escape code
-    EXPECT_EQ(0x03, static_cast<uint8_t>(raw[offset + 1])); // 3 pixels in absolute mode
-    EXPECT_EQ(0x12, static_cast<uint8_t>(raw[offset + 2])); // Colors 1,2
-    EXPECT_EQ(0x30, static_cast<uint8_t>(raw[offset + 3])); // Color 3,0 (padding)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // Escape code
+    EXPECT_EQ(0x03, static_cast<uint8_t>(bmp_data[offset + 1])); // 3 pixels in absolute mode
+    EXPECT_EQ(0x12, static_cast<uint8_t>(bmp_data[offset + 2])); // Colors 1,2
+    EXPECT_EQ(0x30, static_cast<uint8_t>(bmp_data[offset + 3])); // Color 3,0 (padding)
     offset += 4;
-    EXPECT_EQ(0x02, static_cast<uint8_t>(raw[offset]));     // Run length = 2
-    EXPECT_EQ(0x44, static_cast<uint8_t>(raw[offset + 1])); // Color 4 in both nibbles
+    EXPECT_EQ(0x02, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 2
+    EXPECT_EQ(0x44, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 4 in both nibbles
     offset += 2;
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // End of line marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // End of line marker
     offset += 2;
     // End of bitmap marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // End of bitmap
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset + 1])); // End of bitmap
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // End of bitmap
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 1])); // End of bitmap
 }
 
-TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenRunLongerThan255Pixels) {
+TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenRunLongerThan255Pixels) {
     // Create a 300x1 image with all pixels the same color (red)
     // This tests that runs > 255 pixels are properly split into multiple RLE4 entries
     // since RLE4 run length is stored in a single byte (max 255)
@@ -572,14 +544,23 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenRunLongerThan255Pixels) 
         pixels[i] = 0xFF0000;  // Red color (RGB121 index 8)
     }
     TestSurface surface = { pixels, width, height };
-    char raw[512] = { 0 };  // Buffer for compressed data
-    SafeBuffer sb;
-    safe_buffer_init(&sb, raw, sizeof(raw));
+    char bmp_data[512] = { 0 };  // Buffer for compressed data
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
-    EXPECT_EQ(kSpBmpOk, spbmp_save(&sb, kSpBmpCompressedRgb121, &surface, 0, 0, width, height));
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpCompressedRgb121, &surface, 0, 0, width, height));
 
     // Validate header
-    ValidateCompressedRgb121Header(raw, width, height);
+    BmpHeader expected_header = {
+        .pixel_array_offset = 118,  // Pixel array offset (54 + 16 * 4 = 118)
+        .width = width,
+        .height = height,
+        .bits_per_pixel = 4,
+        .compression_type = 2,      // BI_RLE4
+        .colour_table_size = 16,
+        .important_colour_count = 16,
+    };
+    ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 300-pixel run of red (color 8), we expect it to be split into:
     // - First run: 255 pixels (FF 88)
@@ -588,20 +569,20 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenRunLongerThan255Pixels) 
     // - End of bitmap: 00 01
     int rle_offset = 118;
     // First run: 255 pixels of color 8
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(raw[rle_offset]));     // Run length = 255 (max)
-    EXPECT_EQ(0x88, static_cast<uint8_t>(raw[rle_offset + 1])); // Color 8 in both nibbles
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[rle_offset]));     // Run length = 255 (max)
+    EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[rle_offset + 1])); // Color 8 in both nibbles
     // Second run: 45 pixels of color 8
-    EXPECT_EQ(0x2D, static_cast<uint8_t>(raw[rle_offset + 2])); // Run length = 45 (300 - 255)
-    EXPECT_EQ(0x88, static_cast<uint8_t>(raw[rle_offset + 3])); // Color 8 in both nibbles
+    EXPECT_EQ(0x2D, static_cast<uint8_t>(bmp_data[rle_offset + 2])); // Run length = 45 (300 - 255)
+    EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[rle_offset + 3])); // Color 8 in both nibbles
     // End of line marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset + 4])); // End of line
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset + 5])); // End of line
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset + 4])); // End of line
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset + 5])); // End of line
     // End of bitmap marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset + 6])); // End of bitmap
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[rle_offset + 7])); // End of bitmap
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset + 6])); // End of bitmap
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[rle_offset + 7])); // End of bitmap
 }
 
-TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenMultipleLongRuns) {
+TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenMultipleLongRuns) {
     // Create a 2x300 image with alternating long runs to test multiple splits
     // Row 0: 300 red pixels (should split into 255 + 45)
     // Row 1: 300 blue pixels (should split into 255 + 45)
@@ -618,14 +599,23 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenMultipleLongRuns) {
         pixels[i] = 0x0000FF;  // Blue color (RGB121 index 1)
     }
     TestSurface surface = { pixels, width, height };
-    char raw[512] = { 0 };
-    SafeBuffer sb;
-    safe_buffer_init(&sb, raw, sizeof(raw));
+    char bmp_data[512] = { 0 };
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
-    EXPECT_EQ(kSpBmpOk, spbmp_save(&sb, kSpBmpCompressedRgb121, &surface, 0, 0, width, height));
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpCompressedRgb121, &surface, 0, 0, width, height));
 
     // Validate header
-    ValidateCompressedRgb121Header(raw, width, height);
+    BmpHeader expected_header = {
+        .pixel_array_offset = 118,  // Pixel array offset (54 + 16 * 4 = 118)
+        .width = width,
+        .height = height,
+        .bits_per_pixel = 4,
+        .compression_type = 2,      // BI_RLE4
+        .colour_table_size = 16,
+        .important_colour_count = 16,
+    };
+    ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // BMP stores bottom-to-top, so compression order is:
     // Row 1 (bottom): 300 blue pixels = 255 + 45
@@ -633,33 +623,33 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenMultipleLongRuns) {
     int rle_offset = 118;
     int offset = rle_offset;
     // Row 1 (bottom): 300 blue pixels (color 1)
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(raw[offset]));     // Run length = 255
-    EXPECT_EQ(0x11, static_cast<uint8_t>(raw[offset + 1])); // Color 1 in both nibbles
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 255
+    EXPECT_EQ(0x11, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 1 in both nibbles
     offset += 2;
-    EXPECT_EQ(0x2D, static_cast<uint8_t>(raw[offset]));     // Run length = 45
-    EXPECT_EQ(0x11, static_cast<uint8_t>(raw[offset + 1])); // Color 1 in both nibbles
+    EXPECT_EQ(0x2D, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 45
+    EXPECT_EQ(0x11, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 1 in both nibbles
     offset += 2;
     // End of line
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // End of line
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // End of line
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // End of line
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // End of line
     offset += 2;
     // Row 0 (top): 300 red pixels (color 8)
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(raw[offset]));     // Run length = 255
-    EXPECT_EQ(0x88, static_cast<uint8_t>(raw[offset + 1])); // Color 8 in both nibbles
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 255
+    EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 8 in both nibbles
     offset += 2;
-    EXPECT_EQ(0x2D, static_cast<uint8_t>(raw[offset]));     // Run length = 45
-    EXPECT_EQ(0x88, static_cast<uint8_t>(raw[offset + 1])); // Color 8 in both nibbles
+    EXPECT_EQ(0x2D, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 45
+    EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 8 in both nibbles
     offset += 2;
     // End of line
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // End of line
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // End of line
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // End of line
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // End of line
     offset += 2;
     // End of bitmap
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // End of bitmap
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset + 1])); // End of bitmap
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // End of bitmap
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 1])); // End of bitmap
 }
 
-TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenExactly510PixelRun) {
+TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenExactly510PixelRun) {
     // Create a 510x1 image (exactly 2 * 255) to test the boundary case
     // This should result in exactly two maximum-length runs
     const int width = 510;
@@ -670,14 +660,23 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenExactly510PixelRun) {
         pixels[i] = 0x00FF00;  // Green color (RGB121 index 6)
     }
     TestSurface surface = { pixels, width, height };
-    char raw[512] = { 0 };
-    SafeBuffer sb;
-    safe_buffer_init(&sb, raw, sizeof(raw));
+    char bmp_data[512] = { 0 };
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
-    EXPECT_EQ(kSpBmpOk, spbmp_save(&sb, kSpBmpCompressedRgb121, &surface, 0, 0, width, height));
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpCompressedRgb121, &surface, 0, 0, width, height));
 
     // Validate header
-    ValidateCompressedRgb121Header(raw, width, height);
+    BmpHeader expected_header = {
+        .pixel_array_offset = 118,  // Pixel array offset (54 + 16 * 4 = 118)
+        .width = width,
+        .height = height,
+        .bits_per_pixel = 4,
+        .compression_type = 2,      // BI_RLE4
+        .colour_table_size = 16,
+        .important_colour_count = 16,
+    };
+    ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 510-pixel run of green (color 6), we expect:
     // - First run: 255 pixels (FF 66)
@@ -686,20 +685,20 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenExactly510PixelRun) {
     // - End of bitmap: 00 01
     int rle_offset = 118;
     // First run: 255 pixels of color 6
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(raw[rle_offset]));     // Run length = 255
-    EXPECT_EQ(0x66, static_cast<uint8_t>(raw[rle_offset + 1])); // Color 6 in both nibbles
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[rle_offset]));     // Run length = 255
+    EXPECT_EQ(0x66, static_cast<uint8_t>(bmp_data[rle_offset + 1])); // Color 6 in both nibbles
     // Second run: 255 pixels of color 6
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(raw[rle_offset + 2])); // Run length = 255
-    EXPECT_EQ(0x66, static_cast<uint8_t>(raw[rle_offset + 3])); // Color 6 in both nibbles
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[rle_offset + 2])); // Run length = 255
+    EXPECT_EQ(0x66, static_cast<uint8_t>(bmp_data[rle_offset + 3])); // Color 6 in both nibbles
     // End of line marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset + 4])); // End of line
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset + 5])); // End of line
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset + 4])); // End of line
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset + 5])); // End of line
     // End of bitmap marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[rle_offset + 6])); // End of bitmap
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[rle_offset + 7])); // End of bitmap
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[rle_offset + 6])); // End of bitmap
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[rle_offset + 7])); // End of bitmap
 }
 
-TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenComplexPattern320Width) {
+TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenComplexPattern320Width) {
     // Create a 320x3 image with complex encoding patterns:
     // Row 1 (top):    1 black, 1 white, 104 red, 106 green, 106 blue, 1 white, 1 black
     // Row 2 (middle): 1 black, 318 white, 1 black
@@ -707,40 +706,49 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenComplexPattern320Width) 
     SpColourRgba pixels[960];  // 320x3 = 960 pixels
     // Assuming color mappings in RGB121 format:
     // Black = 0, White = 15, Red = 8, Green = 4, Blue = 1
-    // (These would need to match your actual rgb121_table values)
+    // (These would need to match your actual rgb121_colour_table values)
     // Row 1 (top): 1 black, 1 white, 104 red, 106 green, 106 blue, 1 white, 1 black (pixels[0-319])
-    pixels[0] = RGBA(rgb121_table[0][0], rgb121_table[0][1], rgb121_table[0][2], rgb121_table[0][3]);   // Black
-    pixels[1] = RGBA(rgb121_table[15][0], rgb121_table[15][1], rgb121_table[15][2], rgb121_table[15][3]); // White
+    pixels[0] = RGBA(rgb121_colour_table[0][0], rgb121_colour_table[0][1], rgb121_colour_table[0][2], rgb121_colour_table[0][3]);   // Black
+    pixels[1] = RGBA(rgb121_colour_table[15][0], rgb121_colour_table[15][1], rgb121_colour_table[15][2], rgb121_colour_table[15][3]); // White
     for (int i = 2; i < 106; ++i) { // 104 red pixels
-        pixels[i] = RGBA(rgb121_table[8][0], rgb121_table[8][1], rgb121_table[8][2], rgb121_table[8][3]); // Red
+        pixels[i] = RGBA(rgb121_colour_table[8][0], rgb121_colour_table[8][1], rgb121_colour_table[8][2], rgb121_colour_table[8][3]); // Red
     }
     for (int i = 106; i < 212; ++i) { // 106 green pixels
-        pixels[i] = RGBA(rgb121_table[4][0], rgb121_table[4][1], rgb121_table[4][2], rgb121_table[4][3]); // Green
+        pixels[i] = RGBA(rgb121_colour_table[4][0], rgb121_colour_table[4][1], rgb121_colour_table[4][2], rgb121_colour_table[4][3]); // Green
     }
     for (int i = 212; i < 318; ++i) { // 106 blue pixels
-        pixels[i] = RGBA(rgb121_table[1][0], rgb121_table[1][1], rgb121_table[1][2], rgb121_table[1][3]); // Blue
+        pixels[i] = RGBA(rgb121_colour_table[1][0], rgb121_colour_table[1][1], rgb121_colour_table[1][2], rgb121_colour_table[1][3]); // Blue
     }
-    pixels[318] = RGBA(rgb121_table[15][0], rgb121_table[15][1], rgb121_table[15][2], rgb121_table[15][3]); // White
-    pixels[319] = RGBA(rgb121_table[0][0], rgb121_table[0][1], rgb121_table[0][2], rgb121_table[0][3]);   // Black
+    pixels[318] = RGBA(rgb121_colour_table[15][0], rgb121_colour_table[15][1], rgb121_colour_table[15][2], rgb121_colour_table[15][3]); // White
+    pixels[319] = RGBA(rgb121_colour_table[0][0], rgb121_colour_table[0][1], rgb121_colour_table[0][2], rgb121_colour_table[0][3]);   // Black
     // Row 2 (middle): 1 black, 318 white, 1 black (pixels[320-639])
-    pixels[320] = RGBA(rgb121_table[0][0], rgb121_table[0][1], rgb121_table[0][2], rgb121_table[0][3]); // Black
+    pixels[320] = RGBA(rgb121_colour_table[0][0], rgb121_colour_table[0][1], rgb121_colour_table[0][2], rgb121_colour_table[0][3]); // Black
     for (int i = 321; i < 639; ++i) {
-        pixels[i] = RGBA(rgb121_table[15][0], rgb121_table[15][1], rgb121_table[15][2], rgb121_table[15][3]); // White
+        pixels[i] = RGBA(rgb121_colour_table[15][0], rgb121_colour_table[15][1], rgb121_colour_table[15][2], rgb121_colour_table[15][3]); // White
     }
-    pixels[639] = RGBA(rgb121_table[0][0], rgb121_table[0][1], rgb121_table[0][2], rgb121_table[0][3]); // Black
+    pixels[639] = RGBA(rgb121_colour_table[0][0], rgb121_colour_table[0][1], rgb121_colour_table[0][2], rgb121_colour_table[0][3]); // Black
     // Row 3 (bottom): 320 black pixels (pixels[640-959])
     for (int i = 640; i < 960; ++i) {
-        pixels[i] = RGBA(rgb121_table[0][0], rgb121_table[0][1], rgb121_table[0][2], rgb121_table[0][3]); // Black
+        pixels[i] = RGBA(rgb121_colour_table[0][0], rgb121_colour_table[0][1], rgb121_colour_table[0][2], rgb121_colour_table[0][3]); // Black
     }
     TestSurface surface = { pixels, 320, 3 };
-    char raw[2048] = { 0 };  // Large buffer for 320-width image
-    SafeBuffer sb;
-    safe_buffer_init(&sb, raw, sizeof(raw));
+    char bmp_data[2048] = { 0 };  // Large buffer for 320-width image
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
-    EXPECT_EQ(kSpBmpOk, spbmp_save(&sb, kSpBmpCompressedRgb121, &surface, 0, 0, 320, 3));
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpCompressedRgb121, &surface, 0, 0, 320, 3));
 
     // Validate header.
-    ValidateCompressedRgb121Header(raw, 320, 3);
+    BmpHeader expected_header = {
+        .pixel_array_offset = 118,  // Pixel array offset (54 + 16 * 4 = 118)
+        .width = 320,
+        .height = 3,
+        .bits_per_pixel = 4,
+        .compression_type = 2,      // BI_RLE4
+        .colour_table_size = 16,
+        .important_colour_count = 16,
+    };
+    ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // BMP stores bottom-to-top, so compression order is:
     // Row 3 (bottom): 320 black pixels
@@ -752,68 +760,330 @@ TEST_F(SpBmpTest, Save_UsingCompressedRgb121Format_GivenComplexPattern320Width) 
     // RLE4 can encode maximum 255 pixels in one run, so we need multiple runs
     // Expected: FF 00 41 00 00 00 (255 black pixels, 65 black pixels, end-of-line)
     // Note: 320 = 255 + 65, and 65 = 0x41
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(raw[offset]));     // Maximum run length = 255
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // Color 0 (black) in both nibbles
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[offset]));     // Maximum run length = 255
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 0 (black) in both nibbles
     offset += 2;
-    EXPECT_EQ(0x41, static_cast<uint8_t>(raw[offset]));     // Remaining run length = 65
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // Color 0 (black) in both nibbles
+    EXPECT_EQ(0x41, static_cast<uint8_t>(bmp_data[offset]));     // Remaining run length = 65
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 0 (black) in both nibbles
     offset += 2;
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // End of line marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // End of line marker
     offset += 2;
     // Row 2 (middle): 1 black, 318 white, 1 black
     // The first black and first white should be encoded in absolute mode
     // Expected: 01 00 FF FF 3F FF 01 00 00 00
     // (encode mode: 1 black run, 255 white run, 63 white run, 1 black run, end-of-line)
     // Note: 63 = 0x3F
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset]));     // Run length = 1
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // Colour (0) black in both nibbles
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 1
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // Colour (0) black in both nibbles
     offset += 2;
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(raw[offset]));     // Run length = 255
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(raw[offset + 1])); // Color F (white) in both nibbles
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 255
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[offset + 1])); // Color F (white) in both nibbles
     offset += 2;
-    EXPECT_EQ(0x3F, static_cast<uint8_t>(raw[offset]));     // Run length = 63
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(raw[offset + 1])); // Color F (white) in both nibbles
+    EXPECT_EQ(0x3F, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 63
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[offset + 1])); // Color F (white) in both nibbles
     offset += 2;
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset]));     // Run length = 1
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // Color 0 (black) in both nibbles
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 1
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 0 (black) in both nibbles
     offset += 2;
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // End of line marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // End of line marker
     offset += 2;
     // Row 1 (top): 1 black, 1 white, 104 red, 106 green, 106 blue, 1 white, 1 black
     // Expected: 01 00 01 FF 68 88 6A 44 6A 11 01 FF 01 00 00 00
     // (1 black, 1 white, 104 red, 106 green, 106 blue, 1 white, 1 black, end-of-line)
     // Note: 104 = 0x68, 106 = 0x6A
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset]));     // Run length = 1
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // Colour (0) black in both nibbles
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 1
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // Colour (0) black in both nibbles
     offset += 2;
 
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset]));     // Run length = 1
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(raw[offset + 1])); // Colour (15) white in both nibbles
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 1
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[offset + 1])); // Colour (15) white in both nibbles
     offset += 2;
 
-    EXPECT_EQ(0x68, static_cast<uint8_t>(raw[offset]));     // Run length = 104
-    EXPECT_EQ(0x88, static_cast<uint8_t>(raw[offset + 1])); // Color 8 (red) in both nibbles
+    EXPECT_EQ(0x68, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 104
+    EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 8 (red) in both nibbles
     offset += 2;
-    EXPECT_EQ(0x6A, static_cast<uint8_t>(raw[offset]));     // Run length = 106
-    EXPECT_EQ(0x44, static_cast<uint8_t>(raw[offset + 1])); // Color 4 (green) in both nibbles
+    EXPECT_EQ(0x6A, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 106
+    EXPECT_EQ(0x44, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 4 (green) in both nibbles
     offset += 2;
-    EXPECT_EQ(0x6A, static_cast<uint8_t>(raw[offset]));     // Run length = 106
-    EXPECT_EQ(0x11, static_cast<uint8_t>(raw[offset + 1])); // Color 1 (blue) in both nibbles
-    offset += 2;
-
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset]));     // Run length = 1
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(raw[offset + 1])); // Colour (15) white in both nibbles
+    EXPECT_EQ(0x6A, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 106
+    EXPECT_EQ(0x11, static_cast<uint8_t>(bmp_data[offset + 1])); // Color 1 (blue) in both nibbles
     offset += 2;
 
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset]));     // Run length = 1
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // Colour (0) black in both nibbles
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 1
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[offset + 1])); // Colour (15) white in both nibbles
     offset += 2;
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // End of line marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset + 1])); // End of line marker
+
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));     // Run length = 1
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // Colour (0) black in both nibbles
+    offset += 2;
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // End of line marker
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // End of line marker
     offset += 2;
     // End of bitmap marker
-    EXPECT_EQ(0x00, static_cast<uint8_t>(raw[offset]));     // End of bitmap
-    EXPECT_EQ(0x01, static_cast<uint8_t>(raw[offset + 1])); // End of bitmap
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset]));     // End of bitmap
+    EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 1])); // End of bitmap
+}
+
+TEST_F(SpBmpTest, Save_Rgb121Format_GivenSingleRedPixel) {
+    SpColourRgba pixels[1];  // 1 pixel
+    pixels[0] = 0xFF0000;  // Red color
+    TestSurface surface = { pixels, 1, 1 };
+    char bmp_data[512];
+    memset(bmp_data, 0xAB, sizeof(bmp_data));
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
+
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpRgb121, &surface, 0, 0, 1, 1));
+
+    // Validate header.
+    BmpHeader expected_header = {
+        .pixel_array_offset = 118,  // Pixel array offset (54 + 16 * 4 = 118)
+        .width = 1,
+        .height = 1,
+        .bits_per_pixel = 4,
+        .compression_type = 0,      // BI_RGB (uncompressed)
+        .colour_table_size = 16,
+        .important_colour_count = 16,
+    };
+    ValidateHeader(&expected_header, bmp_data);
+
+    // Validate uncompressed 4-bit data starts at offset 118 (54-byte header + 64-byte palette)
+    // For a 1x1 image of a red pixel we expect:
+    // 80 (pixel value 8 in high nibble, padded with 0 in low nibble)
+    // Each scanline must be padded to 4-byte boundary
+    int offset = 118;
+    EXPECT_EQ(0x80, static_cast<uint8_t>(bmp_data[offset]));
+
+    // Check for 4-byte alignment padding (3 additional bytes for 1x1 4-bit image)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 1])); // Padding
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 2])); // Padding
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 3])); // Padding
+}
+
+TEST_F(SpBmpTest, Save_Rgb222Format_GivenSingleRedPixel) {
+    SpColourRgba pixels[1];  // 1 pixel
+    pixels[0] = 0xFF0000;  // Red color
+    TestSurface surface = { pixels, 1, 1 };
+    char bmp_data[512] = { 0 };
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
+
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpRgb222, &surface, 0, 0, 1, 1));
+
+    // Validate header.
+    BmpHeader expected_header = {
+        .pixel_array_offset = 310,  // Pixel array offset (54 + 64 * 4 = 320)
+        .width = 1,
+        .height = 1,
+        .bits_per_pixel = 8,        // 8 bits per pixel for 256-color mode
+        .compression_type = 0,      // BI_RGB (uncompressed)
+        .colour_table_size = 64,    // RGB222 uses 64 colors (2^2 * 2^2 * 2^2)
+        .important_colour_count = 64,
+    };
+    ValidateHeader(&expected_header, bmp_data);
+
+    // Validate RGB222 palette starts at offset 54 (after 54-byte header)
+    // RGB222 palette has 64 entries, each 4 bytes (BGRA format)
+    // Red color 0xFF0000 should map to RGB222 value (3,0,0) = palette index 48
+    // Index 48 = 3*16 + 0*4 + 0*1 = 48 (where R=3, G=0, B=0 in 2-bit values)
+    int palette_offset = 54;
+    int red_palette_index = 48; // RGB222: (3,0,0) -> 3*16 + 0*4 + 0 = 48
+    int red_palette_offset = palette_offset + (red_palette_index * 4);
+
+    // Check the red entry in palette (BGRA format in little-endian)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[red_palette_offset]));     // Blue = 0
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[red_palette_offset + 1])); // Green = 0  
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[red_palette_offset + 2])); // Red = 255 (3*85)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[red_palette_offset + 3])); // Alpha = 0
+
+    // Validate pixel data starts at offset 310 (54-byte header + 256-byte palette)
+    // For a 1x1 image of a red pixel we expect:
+    // Palette index 48 (0x30)
+    // Each scanline padded to 4-byte boundary
+    int pixel_offset = 310;
+    EXPECT_EQ(48, static_cast<uint8_t>(bmp_data[pixel_offset])); // Red pixel = palette index 48
+
+    // Check for 4-byte alignment padding (3 additional bytes for 1x1 8-bit image)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[pixel_offset + 1])); // Padding
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[pixel_offset + 2])); // Padding
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[pixel_offset + 3])); // Padding
+}
+
+#if 0
+TEST_F(SpBmpTest, Save_CompressedRgb222Format_GivenSingleRedPixel) {
+    SpColourRgba pixels[1];  // 1 pixel
+    pixels[0] = 0xFF0000;  // Red color
+    TestSurface surface = { pixels, 1, 1 };
+    char bmp_data[512] = { 0 };
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
+
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpCompressedRgb222, &surface, 0, 0, 1, 1));
+
+    // Validate header.
+    BmpHeader expected_header;
+    expected_header.width = 1;
+    expected_header.height = 1;
+    ValidateHeader(&expected_header, bmp_data);
+    // // Validate RLE4 compressed data starts at offset 118
+    // // For a 1x1 image of a red pixel we expect:
+    // // 01 88 00 00 (run of 1 pixel, value 8, end of line)
+    // // End of bitmap:  00 01
+    // int offset = 118;
+    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));
+    // EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1]));
+
+    // // End of line marker.
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 2]));
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 3]));
+    // // End of bitmap marker
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 4])); // End of bitmap
+    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 5])); // End of bitmap
+}
+
+TEST_F(SpBmpTest, Save_Rgb332Format_GivenSingleRedPixel) {
+    SpColourRgba pixels[1];  // 1 pixel
+    pixels[0] = 0xFF0000;  // Red color
+    TestSurface surface = { pixels, 1, 1 };
+    char bmp_data[512] = { 0 };
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
+
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpRgb332, &surface, 0, 0, 1, 1));
+
+    // Validate header.
+    BmpHeader expected_header;
+    expected_header.width = 1;
+    expected_header.height = 1;
+    ValidateHeader(&expected_header, bmp_data);
+    // // Validate RLE4 compressed data starts at offset 118
+    // // For a 1x1 image of a red pixel we expect:
+    // // 01 88 00 00 (run of 1 pixel, value 8, end of line)
+    // // End of bitmap:  00 01
+    // int offset = 118;
+    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));
+    // EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1]));
+
+    // // End of line marker.
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 2]));
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 3]));
+    // // End of bitmap marker
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 4])); // End of bitmap
+    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 5])); // End of bitmap
+}
+
+TEST_F(SpBmpTest, Save_CompressedRgb332Format_GivenSingleRedPixel) {
+    SpColourRgba pixels[1];  // 1 pixel
+    pixels[0] = 0xFF0000;  // Red color
+    TestSurface surface = { pixels, 1, 1 };
+    char bmp_data[512] = { 0 };
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
+
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpCompressedRgb222, &surface, 0, 0, 1, 1));
+
+    // Validate header.
+    BmpHeader expected_header;
+    expected_header.width = 1;
+    expected_header.height = 1;
+    ValidateHeader(&expected_header, bmp_data);
+    // // Validate RLE4 compressed data starts at offset 118
+    // // For a 1x1 image of a red pixel we expect:
+    // // 01 88 00 00 (run of 1 pixel, value 8, end of line)
+    // // End of bitmap:  00 01
+    // int offset = 118;
+    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));
+    // EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1]));
+
+    // // End of line marker.
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 2]));
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 3]));
+    // // End of bitmap marker
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 4])); // End of bitmap
+    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 5])); // End of bitmap
+}
+
+TEST_F(SpBmpTest, Save_24bppFormat_GivenSingleRedPixel) {
+    SpColourRgba pixels[1];  // 1 pixel
+    pixels[0] = 0xFF0000;  // Red color
+    TestSurface surface = { pixels, 1, 1 };
+    char bmp_data[512] = { 0 };
+    SafeBuffer file;
+    safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
+
+    EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmp24bpp, &surface, 0, 0, 1, 1));
+
+    // Validate header.
+    BmpHeader expected_header;
+    expected_header.width = 1;
+    expected_header.height = 1;
+    ValidateHeader(&expected_header, bmp_data);
+    // // Validate RLE4 compressed data starts at offset 118
+    // // For a 1x1 image of a red pixel we expect:
+    // // 01 88 00 00 (run of 1 pixel, value 8, end of line)
+    // // End of bitmap:  00 01
+    // int offset = 118;
+    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));
+    // EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1]));
+
+    // // End of line marker.
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 2]));
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 3]));
+    // // End of bitmap marker
+    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 4])); // End of bitmap
+    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 5])); // End of bitmap
+}
+#endif
+
+void ValidateHeader(const BmpHeader *expected_header, char *bmp_data) {
+        // Validate BMP File Header (14 bytes)
+    EXPECT_EQ('B', bmp_data[0]);
+    EXPECT_EQ('M', bmp_data[1]);
+    // File size (should be header + color table + compressed data)
+    uint32_t file_size = *reinterpret_cast<uint32_t*>(&bmp_data[2]);
+    EXPECT_GE(file_size, 118);  // At least header (54) + color table (64) bytes
+    // Reserved fields should be 0
+    EXPECT_EQ(0, *reinterpret_cast<uint32_t*>(&bmp_data[6]));
+    uint32_t pixel_offset = *reinterpret_cast<uint32_t*>(&bmp_data[10]);
+    EXPECT_EQ(expected_header->pixel_array_offset, pixel_offset);
+
+    // Validate DIB Header (40 bytes starting at offset 14)
+    uint32_t header_size = *reinterpret_cast<uint32_t*>(&bmp_data[14]);
+    EXPECT_EQ(40, header_size);
+    // Image dimensions
+    int32_t width = *reinterpret_cast<int32_t*>(&bmp_data[18]);
+    int32_t height = *reinterpret_cast<int32_t*>(&bmp_data[22]);
+    EXPECT_EQ(expected_header->width, width);
+    EXPECT_EQ(expected_header->height, height);
+    // Number of planes
+    uint16_t planes = *reinterpret_cast<uint16_t*>(&bmp_data[26]);
+    EXPECT_EQ(1, planes);
+    // Bits per pixel
+    uint16_t bits_per_pixel = *reinterpret_cast<uint16_t*>(&bmp_data[28]);
+    EXPECT_EQ(expected_header->bits_per_pixel, bits_per_pixel);
+    uint32_t compression = *reinterpret_cast<uint32_t*>(&bmp_data[30]);
+    EXPECT_EQ(expected_header->compression_type, compression);
+    // Pixels per meter (should be DEFAULT_PIXELS_PER_METRE = 2835)
+    uint32_t x_ppm = *reinterpret_cast<uint32_t*>(&bmp_data[38]);
+    uint32_t y_ppm = *reinterpret_cast<uint32_t*>(&bmp_data[42]);
+    EXPECT_EQ(2835, x_ppm);
+    EXPECT_EQ(2835, y_ppm);
+    // Color table size
+    uint32_t colour_table_size = *reinterpret_cast<uint32_t*>(&bmp_data[46]);
+    EXPECT_EQ(expected_header->colour_table_size, colour_table_size);
+    // Important color count
+    uint32_t important_colors = *reinterpret_cast<uint32_t*>(&bmp_data[50]);
+    EXPECT_EQ(expected_header->important_colour_count, important_colors);
+    // RGB121 Color Table (each entry 4 bytes, starting at offset 54)
+    for (size_t i = 0; i < expected_header->colour_table_size; ++i) {
+        int offset = 54 + i * 4;
+        // BMP color table stores as BGRA, but the expected table above is RGBA
+        // So we need to check: [B, G, R, A] in file vs [R, G, B, A] in expected
+        EXPECT_EQ(rgb121_colour_table[i][2], bmp_data[offset]);     // Blue
+        EXPECT_EQ(rgb121_colour_table[i][1], bmp_data[offset + 1]); // Green
+        EXPECT_EQ(rgb121_colour_table[i][0], bmp_data[offset + 2]); // Red
+        EXPECT_EQ(rgb121_colour_table[i][3], bmp_data[offset + 3]); // Alpha
+    }
 }
