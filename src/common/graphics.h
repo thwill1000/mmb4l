@@ -153,6 +153,8 @@ typedef enum {
     kBmpFormat24bpp,
     kBmpFormatRgb121,
     kBmpFormatCompressedRgb121,
+    kBmpFormatRgb222,
+    kBmpFormatCompressedRgb222,
 } BmpFormat;
 
 typedef int32_t MmSurfaceId;

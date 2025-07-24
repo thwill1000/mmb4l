@@ -31,6 +31,7 @@ typedef enum {
     kSpBmpCompressedRgb332,
 } SpBmpFormat;
 
+// TODO: This is actually ARGB rather than RGBA.
 typedef uint32_t SpColourRgba;
 
 /**

@@ -23,8 +23,8 @@ Dim f$ = Dir$(PATH$ + "*.bmp", File)
 
 ' Sort filenames$()
 
-filenames$(0) = "565-1x1.bmp"
-' filenames$(0) = "555-1x1.bmp"
+'filenames$(0) = "565-1x1.bmp"
+filenames$(0) = "BaboonRGB.bmp"
 
 For i% = 0 To MAX_NAMES - 1
   f$ = filenames$(i%)
@@ -40,24 +40,25 @@ For i% = 0 To MAX_NAMES - 1
   ' Do While Inkey$ = "" : Loop
   Pause 2000
 
-  f_out$ = "24bpp-" + f$
+  ' f_out$ = "24bpp-" + f$
 
+  ' ? "SAVE IMAGE " + Chr$(34) + f_out$ + Chr$(34), 20, 20, w%, h%
+  ' Save Image f_out$, 20, 20, w%, h%
+
+  ' Cls Rgb(Grey)
+  ' Pause 100
+
+  ' ? "LOAD BMP " + Chr$(34) + f_out$ + Chr$(34)
+  ' Load Bmp f_out$, 20, 20
+  ' If Mm.ErrNo Then Print "ERROR: " + Mm.ErrMsg$
+  ' Text 0, 0, "File: " + f_out$,,,,, Rgb(Grey)
+
+  ' Pause 500
+
+  f_out$ = "rgb222-" + f$
   ? "SAVE IMAGE " + Chr$(34) + f_out$ + Chr$(34), 20, 20, w%, h%
-  Save Image f_out$, 20, 20, w%, h%
-
-  Cls Rgb(Grey)
-  Pause 100
-
-  ? "LOAD BMP " + Chr$(34) + f_out$ + Chr$(34)
-  Load Bmp f_out$, 20, 20
-  If Mm.ErrNo Then Print "ERROR: " + Mm.ErrMsg$
-  Text 0, 0, "File: " + f_out$,,,,, Rgb(Grey)
-
-  Pause 500
-
-  f_out$ = "rgb121-" + f$
-  ? "SAVE IMAGE " + Chr$(34) + f_out$ + Chr$(34), 20, 20, w%, h%
-  Save Compressed Image Rgb121 f_out$, 20, 20, w%, h%
+  'Save Compressed Image Rgb121 f_out$, 20, 20, w%, h%
+  Save Image Rgb222 f_out$, 20, 20, w%, h%
 
   Cls Rgb(Grey)
   Pause 100

@@ -55,6 +55,8 @@ static MmResult cmd_save_image(const char *p, bool compressed) {
         // Do nothing.
     } else if ((p2 = checkstring(p, "RGB121"))) {
         format = compressed ? kBmpFormatCompressedRgb121 : kBmpFormatRgb121;
+    } else if ((p2 = checkstring(p, "RGB222"))) {
+        format = compressed ? kBmpFormatCompressedRgb222 : kBmpFormatRgb222;
     } else {
         p2 = p;
     }

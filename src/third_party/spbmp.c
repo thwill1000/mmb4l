@@ -706,36 +706,6 @@ static SpBmpResult spbmp_write_24bpp(void *file, void *userdata, int x_origin, i
     return kSpBmpOk;
 }
 
-static SpBmpResult spbmp_write_rgb121(void *file, void *userdata, int x_origin, int y_origin,
-                                      int width, int height) {
-
-    uint8_t buf;
-    const int y_start = height - 1;
-    const int y_end = -1;
-    const int y_delta = -1;
-    const int width8 = (width % 8) ? width + (8 - width % 8) : width;
-
-    for (int y = y_start; y != y_end; y += y_delta) {
-        if (spbmp_abort_check_cb(userdata) != 0) return kSpBmpAborted;
-
-        for (int x = 0; x < width8; ++x) {
-            const int nibble = x % 2;
-            const SpColourRgba colour = (x < width) ? spbmp_get_pixel_cb(x + x_origin, y + y_origin, userdata) : 0x0;
-            const uint8_t rgb121 = ((colour & 0x800000) >> 20)
-                    | ((colour & 0xC000) >> 13)
-                    | ((colour & 0x80) >> 7);
-            if (nibble == 0) {
-                buf = rgb121 << 4;
-            } else {
-                buf |= rgb121;
-                ON_FAILURE_RETURN(spbmp_write(file, &buf, 1, 1, userdata));
-            }
-        }
-    }
-
-    return kSpBmpOk;
-}
-
 static inline uint8_t spbmp_get_pixel_rgb121(int x, int y, void *userdata) {
     const SpColourRgba pixel = spbmp_get_pixel_cb(x, y, userdata);
 //    printf("x = %d, y = %d, pixel: 0x%08x\n", x, y, pixel);
@@ -743,6 +713,36 @@ static inline uint8_t spbmp_get_pixel_rgb121(int x, int y, void *userdata) {
 }
 
 #define GET_RGB_121(x, y)  spbmp_get_pixel_rgb121((x) + x_origin, (y) + y_origin, userdata)
+
+static SpBmpResult spbmp_write_rgb121(void *file, void *userdata, int x_origin, int y_origin,
+                                      int width, int height) {
+
+    uint8_t buf;
+    const int y_start = height - 1;
+    const int y_end = -1;
+    const int y_delta = -1;
+    const int bytes_per_row = (width + 1) / 2;  // 2 pixels per byte, round up
+    const int padding = (4 - (bytes_per_row % 4)) % 4;  // Pad to 32-bit boundary
+
+    for (int y = y_start; y != y_end; y += y_delta) {
+        if (spbmp_abort_check_cb(userdata) != 0) return kSpBmpAborted;
+
+        for (int x = 0; x < width; x += 2) {
+            const uint8_t pixel1 = GET_RGB_121(x, y);
+            const uint8_t pixel2 = (x + 1 < width) ? GET_RGB_121(x + 1, y) : 0x0;
+            buf = (pixel1 << 4) | (pixel2 & 0x0F);
+            ON_FAILURE_RETURN(spbmp_write(file, &buf, 1, 1, userdata));
+        }
+
+        // Pad each row to 32-bit boundary.
+        buf = 0x0;
+        for (int x = 0; x < padding; ++x) {
+           ON_FAILURE_RETURN(spbmp_write(file, &buf, 1, 1, userdata));
+        }
+    }
+
+    return kSpBmpOk;
+}
 
 static inline SpBmpResult spbmp_write_rle4_encoded(void *file, void *userdata, int run_length,
                                                    uint8_t pixel) {
@@ -868,8 +868,35 @@ static SpBmpResult spbmp_write_rgb121_rle4(void *file, void *userdata, int x_ori
     return kSpBmpOk;
 }
 
+static inline uint8_t spbmp_get_pixel_rgb222(int x, int y, void *userdata) {
+    const SpColourRgba pixel = spbmp_get_pixel_cb(x, y, userdata);
+//    printf("x = %d, y = %d, pixel: 0x%08x\n", x, y, pixel);
+    return ((pixel & 0xC00000) >> 18) | ((pixel & 0xC000) >> 12) | ((pixel & 0xC0) >> 6);
+}
+
+#define GET_RGB_222(x, y)  spbmp_get_pixel_rgb222((x) + x_origin, (y) + y_origin, userdata)
+
 static SpBmpResult spbmp_write_rgb222(void *file, void *userdata, int x_origin, int y_origin,
                                       int width, int height) {
+    const int y_start = height - 1;
+    const int y_end = -1;
+    const int y_delta = -1;
+    const int padding = (4 - (width % 4)) % 4;  // Pad to 32-bit boundary
+
+    for (int y = y_start; y != y_end; y += y_delta) {
+        if (spbmp_abort_check_cb(userdata) != 0) return kSpBmpAborted;
+        for (int x = 0; x < width; x++) {
+            const uint8_t pixel = GET_RGB_222(x, y);
+            ON_FAILURE_RETURN(spbmp_write(file, &pixel, 1, 1, userdata));
+        }
+
+        // Pad each row to 32-bit boundary.
+        for (int x = 0; x < padding; ++x) {
+            const uint8_t pixel = 0x0;
+            ON_FAILURE_RETURN(spbmp_write(file, &pixel, 1, 1, userdata));
+        }
+    }
+
     return kSpBmpOk;
 }
 

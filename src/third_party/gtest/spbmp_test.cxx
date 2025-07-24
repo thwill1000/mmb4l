@@ -249,6 +249,7 @@ TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenSinglePixel) {
         .colour_table_size = 16,
         .important_colour_count = 16,
     };
+    memcpy(expected_header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
     ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 1x1 image of a red pixel we expect:
@@ -287,6 +288,7 @@ TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenTwoDifferentPixels) {
         .colour_table_size = 16,
         .important_colour_count = 16,
     };
+    memcpy(expected_header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
     ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 2x1 image of a red pixel and a blue pixel we expect:
@@ -331,6 +333,7 @@ TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenEachPixelSame) {
         .colour_table_size = 16,
         .important_colour_count = 16,
     };
+    memcpy(expected_header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
     ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 5x3 image of all red pixels (RGB121 value = 8), we expect:
@@ -375,6 +378,7 @@ TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenEachPixelDifferent) {
         .colour_table_size = 16,
         .important_colour_count = 16,
     };
+    memcpy(expected_header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
     ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 5x3 image with all different pixels, we use absolute mode:
@@ -474,6 +478,7 @@ TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenMixedRunsAndAbsolute) {
         .colour_table_size = 16,
         .important_colour_count = 16,
     };
+    memcpy(expected_header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
     ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // BMP stores bottom-to-top, so compression order is:
@@ -560,6 +565,7 @@ TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenRunLongerThan255Pixels) {
         .colour_table_size = 16,
         .important_colour_count = 16,
     };
+    memcpy(expected_header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
     ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 300-pixel run of red (color 8), we expect it to be split into:
@@ -615,6 +621,7 @@ TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenMultipleLongRuns) {
         .colour_table_size = 16,
         .important_colour_count = 16,
     };
+    memcpy(expected_header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
     ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // BMP stores bottom-to-top, so compression order is:
@@ -676,6 +683,7 @@ TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenExactly510PixelRun) {
         .colour_table_size = 16,
         .important_colour_count = 16,
     };
+    memcpy(expected_header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
     ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // For a 510-pixel run of green (color 6), we expect:
@@ -748,6 +756,7 @@ TEST_F(SpBmpTest, Save_CompressedRgb121Format_GivenComplexPattern320Width) {
         .colour_table_size = 16,
         .important_colour_count = 16,
     };
+    memcpy(expected_header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
     ValidateHeader(&expected_header, bmp_data);
     // Validate RLE4 compressed data starts at offset 118
     // BMP stores bottom-to-top, so compression order is:
@@ -847,6 +856,7 @@ TEST_F(SpBmpTest, Save_Rgb121Format_GivenSingleRedPixel) {
         .colour_table_size = 16,
         .important_colour_count = 16,
     };
+    memcpy(expected_header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
     ValidateHeader(&expected_header, bmp_data);
 
     // Validate uncompressed 4-bit data starts at offset 118 (54-byte header + 64-byte palette)
@@ -866,7 +876,8 @@ TEST_F(SpBmpTest, Save_Rgb222Format_GivenSingleRedPixel) {
     SpColourRgba pixels[1];  // 1 pixel
     pixels[0] = 0xFF0000;  // Red color
     TestSurface surface = { pixels, 1, 1 };
-    char bmp_data[512] = { 0 };
+    char bmp_data[512];
+    memset(bmp_data, 0xAB, sizeof(bmp_data));
     SafeBuffer file;
     safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
@@ -882,21 +893,8 @@ TEST_F(SpBmpTest, Save_Rgb222Format_GivenSingleRedPixel) {
         .colour_table_size = 64,    // RGB222 uses 64 colors (2^2 * 2^2 * 2^2)
         .important_colour_count = 64,
     };
+    memcpy(expected_header.colour_table, rgb222_colour_table, sizeof(rgb222_colour_table));
     ValidateHeader(&expected_header, bmp_data);
-
-    // Validate RGB222 palette starts at offset 54 (after 54-byte header)
-    // RGB222 palette has 64 entries, each 4 bytes (BGRA format)
-    // Red color 0xFF0000 should map to RGB222 value (3,0,0) = palette index 48
-    // Index 48 = 3*16 + 0*4 + 0*1 = 48 (where R=3, G=0, B=0 in 2-bit values)
-    int palette_offset = 54;
-    int red_palette_index = 48; // RGB222: (3,0,0) -> 3*16 + 0*4 + 0 = 48
-    int red_palette_offset = palette_offset + (red_palette_index * 4);
-
-    // Check the red entry in palette (BGRA format in little-endian)
-    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[red_palette_offset]));     // Blue = 0
-    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[red_palette_offset + 1])); // Green = 0  
-    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[red_palette_offset + 2])); // Red = 255 (3*85)
-    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[red_palette_offset + 3])); // Alpha = 0
 
     // Validate pixel data starts at offset 310 (54-byte header + 256-byte palette)
     // For a 1x1 image of a red pixel we expect:
@@ -1081,9 +1079,9 @@ void ValidateHeader(const BmpHeader *expected_header, char *bmp_data) {
         int offset = 54 + i * 4;
         // BMP color table stores as BGRA, but the expected table above is RGBA
         // So we need to check: [B, G, R, A] in file vs [R, G, B, A] in expected
-        EXPECT_EQ(rgb121_colour_table[i][2], bmp_data[offset]);     // Blue
-        EXPECT_EQ(rgb121_colour_table[i][1], bmp_data[offset + 1]); // Green
-        EXPECT_EQ(rgb121_colour_table[i][0], bmp_data[offset + 2]); // Red
-        EXPECT_EQ(rgb121_colour_table[i][3], bmp_data[offset + 3]); // Alpha
+        EXPECT_EQ(expected_header->colour_table[i][2], bmp_data[offset]);     // Blue
+        EXPECT_EQ(expected_header->colour_table[i][1], bmp_data[offset + 1]); // Green
+        EXPECT_EQ(expected_header->colour_table[i][0], bmp_data[offset + 2]); // Red
+        EXPECT_EQ(expected_header->colour_table[i][3], bmp_data[offset + 3]); // Alpha
     }
 }
