@@ -43,29 +43,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/mmb4l.h"
+#include "../common/features.h"
 #include "../common/graphics.h"
 
-/** SAVE [ COMPRESSED ] IMAGE [ 24BPP | RGB121 ] file$ [, x, y, w, h] */
-static MmResult cmd_save_image(const char *p, bool compressed) {
+/** SAVE [COMPRESSED|IMAGE|24BPP|RGB121|RGB121_RLE4|RGB222|RGB332]
+         file$ [, x, y, w, h] */
+static MmResult cmd_save_image(const char *p, BmpFormat format) {
     if (!graphics_current) error_throw(kGraphicsInvalidReadSurface);
 
-    BmpFormat format = kBmpFormat24bpp;
-    const char *p2;
-    if ((p2 = checkstring(p, "24BPP"))) {
-        // Do nothing.
-    } else if ((p2 = checkstring(p, "RGB121"))) {
-        format = compressed ? kBmpFormatCompressedRgb121 : kBmpFormatRgb121;
-    } else if ((p2 = checkstring(p, "RGB222"))) {
-        format = compressed ? kBmpFormatCompressedRgb222 : kBmpFormatRgb222;
-    } else {
-        p2 = p;
-    }
-
-    if (format == kBmpFormat24bpp && compressed) {
-        return kImageInvalidFormat;
-    }
-
-    getargs(&p2, 9, DELIM_COMMA);
+    getargs(&p, 9, DELIM_COMMA);
     if (argc != 1 && argc != 9) return kArgumentCount;
 
     char *filename = GetTempStrMemory();
@@ -83,9 +69,25 @@ void cmd_save(void) {
     MmResult result = kOk;
     const char *p;
     if ((p = checkstring(cmdline, "COMPRESSED IMAGE"))) {
-        result = cmd_save_image(p, true);
+        result = cmd_save_image(p, kBmpFormatCompressedRgb121);
     } else if ((p = checkstring(cmdline, "IMAGE"))) {
-        result = cmd_save_image(p, false);
+        if (mmb_features.graphics_type == kGraphicsTypePicomiteHdmi
+            || mmb_features.graphics_type == kGraphicsTypePicomiteLcd
+            || mmb_features.graphics_type == kGraphicsTypePicomiteVga) {
+            result = cmd_save_image(p, kBmpFormatRgb121);
+        } else {
+            result = cmd_save_image(p, kBmpFormat24bpp);
+        }
+    } else if ((p = checkstring(cmdline, "RGB121"))) {
+        result = cmd_save_image(p, kBmpFormatRgb121);
+    } else if ((p = checkstring(cmdline, "RGB121_RLE4"))) {
+        result = cmd_save_image(p, kBmpFormatCompressedRgb121);
+    } else if ((p = checkstring(cmdline, "RGB222"))) {
+        result = cmd_save_image(p, kBmpFormatRgb222);
+    } else if ((p = checkstring(cmdline, "RGB332"))) {
+        result = cmd_save_image(p, kBmpFormatRgb332);
+    } else if ((p = checkstring(cmdline, "24BPP"))) {
+        result = cmd_save_image(p, kBmpFormat24bpp);
     } else {
         result = mmresult_ex(kSyntax, "Unknown SAVE subcommand: %s", cmdline);
     }

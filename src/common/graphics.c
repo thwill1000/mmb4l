@@ -1635,6 +1635,9 @@ MmResult graphics_save_bmp(MmSurface *surface, char *filename, BmpFormat format,
         case kBmpFormatCompressedRgb222:
             spFormat = kSpBmpCompressedRgb222;
             break;
+        case kBmpFormatRgb332:
+            spFormat = kSpBmpRgb332;
+            break;
         default:
             return kImageInvalidFormat;
     }

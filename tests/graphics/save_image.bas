@@ -10,9 +10,9 @@ EndIf
 Const PATH$ = Mm.Info(Path) + "assets/bmp/valid/"
 Const MAX_NAMES = 100
 
-Dim counter% = 0, i% = 0, t% = Timer
+Dim counter% = 0, i% = 0, j% = 0, t% = Timer
 Dim filenames$(MAX_NAMES - 1) Length 64
-Dim f_out$, w%, h%
+Dim cmd$, f_out$, w%, h%
 
 Dim f$ = Dir$(PATH$ + "*.bmp", File)
 ' Do While f$ <> ""
@@ -25,6 +25,8 @@ Dim f$ = Dir$(PATH$ + "*.bmp", File)
 
 'filenames$(0) = "565-1x1.bmp"
 filenames$(0) = "BaboonRGB.bmp"
+
+Dim formats$(4) = ("rgb121", "rgb121_rle4", "rgb222", "rgb332", "24bpp")
 
 For i% = 0 To MAX_NAMES - 1
   f$ = filenames$(i%)
@@ -40,37 +42,28 @@ For i% = 0 To MAX_NAMES - 1
   ' Do While Inkey$ = "" : Loop
   Pause 2000
 
-  ' f_out$ = "24bpp-" + f$
+  ' Save image in all supported formats.
+  For j% = 0 To Bound(formats$(), 1)
+    f_out$ = formats$(j%) + "-" + f$
+    cmd$ = "SAVE " + UCase$(formats$(j%)) + Chr$(34) + f_out$ + Chr$(34)
+    Cat cmd$, " , 20, 20, " + Str$(w%) + ", " + Str$(h%)
+    ? cmd$
+    Execute cmd$
+  Next j%
 
-  ' ? "SAVE IMAGE " + Chr$(34) + f_out$ + Chr$(34), 20, 20, w%, h%
-  ' Save Image f_out$, 20, 20, w%, h%
+  ' Load image in all supported formats.
+  For j% = 0 To Bound(formats$(), 1)
+    Cls Rgb(Grey)
+    Pause 100
 
-  ' Cls Rgb(Grey)
-  ' Pause 100
+    f_out$ = formats$(j%) + "-" + f$
+    ? "LOAD BMP " + Chr$(34) + f_out$ + Chr$(34)
+    Load Bmp f_out$, 20, 20
+    If Mm.ErrNo Then Print "ERROR: " + Mm.ErrMsg$
+    Text 0, 0, "File: " + f_out$,,,,, Rgb(Grey)
 
-  ' ? "LOAD BMP " + Chr$(34) + f_out$ + Chr$(34)
-  ' Load Bmp f_out$, 20, 20
-  ' If Mm.ErrNo Then Print "ERROR: " + Mm.ErrMsg$
-  ' Text 0, 0, "File: " + f_out$,,,,, Rgb(Grey)
-
-  ' Pause 500
-
-  f_out$ = "rgb222-" + f$
-  ? "SAVE IMAGE " + Chr$(34) + f_out$ + Chr$(34), 20, 20, w%, h%
-  'Save Compressed Image Rgb121 f_out$, 20, 20, w%, h%
-  Save Image Rgb222 f_out$, 20, 20, w%, h%
-
-  Cls Rgb(Grey)
-  Pause 100
-
-  ? "LOAD BMP " + Chr$(34) + f_out$ + Chr$(34)
-  get_bmp_size(f_out$, w%, h%)
-'  ? w%, h%
-  Load Bmp f_out$, 20, 20
-  If Mm.ErrNo Then Print "ERROR: " + Mm.ErrMsg$
-  Text 0, 0, "File: " + f_out$,,,,, Rgb(Grey)
-
-  Pause 500
+    Pause 1000
+  Next
 
   Inc counter%
 Next

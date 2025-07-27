@@ -1008,46 +1008,50 @@ TEST_F(SpBmpTest, Save_CompressedRgb332Format_GivenSingleRedPixel) {
     // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 4])); // End of bitmap
     // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 5])); // End of bitmap
 }
-
+#endif
 TEST_F(SpBmpTest, Save_24bppFormat_GivenSingleRedPixel) {
     SpColourRgba pixels[1];  // 1 pixel
     pixels[0] = 0xFF0000;  // Red color
     TestSurface surface = { pixels, 1, 1 };
-    char bmp_data[512] = { 0 };
+    char bmp_data[2 * 1024];
+    memset(bmp_data, 0xAB, sizeof(bmp_data));
     SafeBuffer file;
     safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
     EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmp24bpp, &surface, 0, 0, 1, 1));
 
     // Validate header.
-    BmpHeader expected_header;
-    expected_header.width = 1;
-    expected_header.height = 1;
+    BmpHeader expected_header = {
+        .pixel_array_offset = 54,  // Pixel array offset (54 + 256 * 4 = 1078)
+        .width = 1,
+        .height = 1,
+        .bits_per_pixel = 24,   // 24 bits per pixel "True Colour"
+        .compression_type = 0,  // BI_RGB (uncompressed)
+        .colour_table_size = 0,
+        .important_colour_count = 0,
+    };
     ValidateHeader(&expected_header, bmp_data);
-    // // Validate RLE4 compressed data starts at offset 118
-    // // For a 1x1 image of a red pixel we expect:
-    // // 01 88 00 00 (run of 1 pixel, value 8, end of line)
-    // // End of bitmap:  00 01
-    // int offset = 118;
-    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));
-    // EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1]));
 
-    // // End of line marker.
-    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 2]));
-    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 3]));
-    // // End of bitmap marker
-    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 4])); // End of bitmap
-    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 5])); // End of bitmap
+    // Validate pixel data starts at offset 54 (immediately after header)
+    // For a 1x1 image of a red pixel we expect:
+    // Blue Green Red value 0x00 0x00 0xFF
+    // Each scanline padded to 4-byte boundary
+    int pixel_offset = 54;
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[pixel_offset])); // No Blue
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[pixel_offset + 1])); // No Green
+    EXPECT_EQ(0xFF, static_cast<uint8_t>(bmp_data[pixel_offset + 2])); // Red
+
+    // Check for 4-byte alignment padding (1 additional byte)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[pixel_offset + 3])); // Padding
 }
-#endif
 
 void ValidateHeader(const BmpHeader *expected_header, char *bmp_data) {
-        // Validate BMP File Header (14 bytes)
+    // Validate BMP File Header (14 bytes)
     EXPECT_EQ('B', bmp_data[0]);
     EXPECT_EQ('M', bmp_data[1]);
     // File size (should be header + color table + compressed data)
     uint32_t file_size = *reinterpret_cast<uint32_t*>(&bmp_data[2]);
-    EXPECT_GE(file_size, 118);  // At least header (54) + color table (64) bytes
+    EXPECT_GE(file_size, 54 + expected_header->colour_table_size * 4);
     // Reserved fields should be 0
     EXPECT_EQ(0, *reinterpret_cast<uint32_t*>(&bmp_data[6]));
     uint32_t pixel_offset = *reinterpret_cast<uint32_t*>(&bmp_data[10]);
