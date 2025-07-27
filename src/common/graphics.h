@@ -150,12 +150,13 @@ typedef enum {
 } TextOrientation;
 
 typedef enum {
-    kBmpFormat24bpp,
     kBmpFormatRgb121,
-    kBmpFormatCompressedRgb121,
+    kBmpFormatRgb121Rle4,
     kBmpFormatRgb222,
-    kBmpFormatCompressedRgb222,
+    kBmpFormatRgb222Rle8,
     kBmpFormatRgb332,
+    kBmpFormatRgb332Rle8,
+    kBmpFormat24bpp,
 } BmpFormat;
 
 typedef int32_t MmSurfaceId;

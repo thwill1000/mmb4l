@@ -69,7 +69,7 @@ void cmd_save(void) {
     MmResult result = kOk;
     const char *p;
     if ((p = checkstring(cmdline, "COMPRESSED IMAGE"))) {
-        result = cmd_save_image(p, kBmpFormatCompressedRgb121);
+        result = cmd_save_image(p, kBmpFormatRgb121Rle4);
     } else if ((p = checkstring(cmdline, "IMAGE"))) {
         if (mmb_features.graphics_type == kGraphicsTypePicomiteHdmi
             || mmb_features.graphics_type == kGraphicsTypePicomiteLcd
@@ -81,11 +81,15 @@ void cmd_save(void) {
     } else if ((p = checkstring(cmdline, "RGB121"))) {
         result = cmd_save_image(p, kBmpFormatRgb121);
     } else if ((p = checkstring(cmdline, "RGB121_RLE4"))) {
-        result = cmd_save_image(p, kBmpFormatCompressedRgb121);
+        result = cmd_save_image(p, kBmpFormatRgb121Rle4);
     } else if ((p = checkstring(cmdline, "RGB222"))) {
         result = cmd_save_image(p, kBmpFormatRgb222);
+    } else if ((p = checkstring(cmdline, "RGB222_RLE8"))) {
+        result = cmd_save_image(p, kBmpFormatRgb222Rle8);
     } else if ((p = checkstring(cmdline, "RGB332"))) {
         result = cmd_save_image(p, kBmpFormatRgb332);
+    } else if ((p = checkstring(cmdline, "RGB332_RLE8"))) {
+        result = cmd_save_image(p, kBmpFormatRgb332Rle8);
     } else if ((p = checkstring(cmdline, "24BPP"))) {
         result = cmd_save_image(p, kBmpFormat24bpp);
     } else {

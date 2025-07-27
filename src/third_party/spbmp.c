@@ -868,16 +868,21 @@ static SpBmpResult spbmp_write_rgb121_rle4(void *file, void *userdata, int x_ori
     return kSpBmpOk;
 }
 
+// TODO: FixNamingConvention
+// Typedef for a function pointer that returns uint8_t and takes
+// int x, int y, and void *userdata as arguments.
+typedef uint8_t (*spbmp_get_pixel_8bpp)(int x, int y, void *userdata);
+
 static inline uint8_t spbmp_get_pixel_rgb222(int x, int y, void *userdata) {
     const SpColourRgba pixel = spbmp_get_pixel_cb(x, y, userdata);
-//    printf("x = %d, y = %d, pixel: 0x%08x\n", x, y, pixel);
     return ((pixel & 0xC00000) >> 18) | ((pixel & 0xC000) >> 12) | ((pixel & 0xC0) >> 6);
 }
 
-#define GET_RGB_222(x, y)  spbmp_get_pixel_rgb222((x) + x_origin, (y) + y_origin, userdata)
+// TODO: Can this become GET_PIXEL and be used in other functions ?
+#define GET_RGB_8BPP(x, y)  get_pixel_fn((x) + x_origin, (y) + y_origin, userdata)
 
-static SpBmpResult spbmp_write_rgb222(void *file, void *userdata, int x_origin, int y_origin,
-                                      int width, int height) {
+static SpBmpResult spbmp_write_8bpp(void *file, void *userdata, spbmp_get_pixel_8bpp get_pixel_fn, int x_origin, int y_origin,
+                                    int width, int height) {
     const int y_start = height - 1;
     const int y_end = -1;
     const int y_delta = -1;
@@ -886,7 +891,7 @@ static SpBmpResult spbmp_write_rgb222(void *file, void *userdata, int x_origin, 
     for (int y = y_start; y != y_end; y += y_delta) {
         if (spbmp_abort_check_cb(userdata) != 0) return kSpBmpAborted;
         for (int x = 0; x < width; x++) {
-            const uint8_t pixel = GET_RGB_222(x, y);
+            const uint8_t pixel = GET_RGB_8BPP(x, y);
             ON_FAILURE_RETURN(spbmp_write(file, &pixel, 1, 1, userdata));
         }
 
@@ -905,40 +910,123 @@ static inline uint8_t spbmp_get_pixel_rgb332(int x, int y, void *userdata) {
     return ((pixel & 0xE00000) >> 16) | ((pixel & 0xE000) >> 11) | ((pixel & 0xC0) >> 6);
 }
 
-#define GET_RGB_332(x, y)  spbmp_get_pixel_rgb332((x) + x_origin, (y) + y_origin, userdata)
-
-static SpBmpResult spbmp_write_rgb332(void *file, void *userdata, int x_origin, int y_origin,
-                                      int width, int height) {
-    const int y_start = height - 1;
-    const int y_end = -1;
-    const int y_delta = -1;
-    const int padding = (4 - (width % 4)) % 4;  // Pad to 32-bit boundary
-
-    for (int y = y_start; y != y_end; y += y_delta) {
-        if (spbmp_abort_check_cb(userdata) != 0) return kSpBmpAborted;
-        for (int x = 0; x < width; x++) {
-            const uint8_t pixel = GET_RGB_332(x, y);
-            ON_FAILURE_RETURN(spbmp_write(file, &pixel, 1, 1, userdata));
-        }
-
-        // Pad each row to 32-bit boundary.
-        for (int x = 0; x < padding; ++x) {
-            const uint8_t pixel = 0x0;
-            ON_FAILURE_RETURN(spbmp_write(file, &pixel, 1, 1, userdata));
-        }
-    }
-
+static inline SpBmpResult spbmp_write_rle8_encoded(void *file, void *userdata, int run_length,
+                                                   uint8_t pixel) {
+    ON_FAILURE_RETURN(spbmp_write(file, &run_length, 1, 1, userdata));
+    ON_FAILURE_RETURN(spbmp_write(file, &pixel, 1, 1, userdata));
     return kSpBmpOk;
 }
 
-static SpBmpResult spbmp_write_rgb222_rle8(void *file, void *userdata, int x_origin, int y_origin,
-                                           int width, int height) {
-    return kSpBmpError;
+static inline SpBmpResult spbmp_write_rle8_absolute(void *file, void *userdata, int count,
+                                                    const uint8_t *pixels) {
+    // printf("Absolute mode: count = %d, colours = ", count);
+    // for (int i = 0; i < count; i++) {
+    //     printf("%02x ", pixels[i]);
+    // }
+
+    uint8_t buf = 0x0;
+    ON_FAILURE_RETURN(spbmp_write(file, &buf, 1, 1, userdata));
+    buf = (uint8_t)count;
+    ON_FAILURE_RETURN(spbmp_write(file, &buf, 1, 1, userdata));
+    // printf("\n  0x00 0x%02x ", count);
+
+    // Pack two 4-bit pixels per byte
+    for (int i = 0; i < count; i += 2) {
+        uint8_t first = pixels[i];
+        uint8_t second = (i + 1 < count) ? pixels[i + 1] : 0;
+        buf = (first << 4) | second;
+        ON_FAILURE_RETURN(spbmp_write(file, &buf, 1, 1, userdata));
+        // printf("0x%02x ", buf);
+    }
+
+    // Pad to a 16-bit word boundary.
+    int pixel_data_bytes = (count + 1) / 2;
+    if (pixel_data_bytes % 2 != 0) {
+        // printf("0x00 ");
+        buf = 0x0;
+        ON_FAILURE_RETURN(spbmp_write(file, &buf, 1, 1, userdata));
+    }
+
+    // printf("\n");
+    return kSpBmpOk;
 }
 
-static SpBmpResult spbmp_write_rgb332_rle8(void *file, void *userdata, int x_origin, int y_origin,
-                                           int width, int height) {
-    return kSpBmpError;
+static SpBmpResult spbmp_write_8bpp_rle8(void *file, void *userdata, spbmp_get_pixel_8bpp get_pixel_fn, int x_origin, int y_origin,
+                                         int width, int height) {
+    uint8_t buf;
+    const int y_start = height - 1;
+    const int y_end = -1;
+    const int y_delta = -1;
+
+    for (int y = y_start; y != y_end; y += y_delta) {
+        // printf("NEW LINE: y = %d\n", y);
+        if (spbmp_abort_check_cb(userdata) != 0) return kSpBmpAborted;
+
+        int x = 0;
+        while (x < width) {
+            // Check for run of repeated pixels.
+            uint8_t pixel = GET_RGB_8BPP(x, y);
+            int run_length = 1;
+            x++;
+            while (x < width && run_length < 255) {
+                if (GET_RGB_8BPP(x, y) == pixel) {
+                    run_length++;
+                    x++;
+                } else {
+                    break;
+                }
+            }
+
+            if (run_length > 1 || x == width) {
+                ON_FAILURE_RETURN(spbmp_write_rle8_encoded(file, userdata, run_length, pixel));
+                continue;
+            }
+
+            int count = 0;
+            uint8_t pixels[255];
+            pixels[count++] = pixel;
+
+            while (x < width && count < 255) {
+                pixels[count++] = GET_RGB_8BPP(x, y);
+                x++;
+                // Check for the start of a new run.
+                if (x < width) {
+                    if (GET_RGB_8BPP(x, y) == pixels[count - 1]) {
+                        count--;
+                        x--;
+                        break;
+                    }
+                }
+            }
+
+            // We can only use absolute mode where count > 2.
+            switch (count) {
+                case 1:
+                    ON_FAILURE_RETURN(spbmp_write_rle8_encoded(file, userdata, 1, pixels[0]));
+                    break;
+                case 2:
+                    ON_FAILURE_RETURN(spbmp_write_rle8_encoded(file, userdata, 1, pixels[0]));
+                    ON_FAILURE_RETURN(spbmp_write_rle8_encoded(file, userdata, 1, pixels[1]));
+                    break;
+                default:
+                    ON_FAILURE_RETURN(spbmp_write_rle8_absolute(file, userdata, count, pixels));
+                    break;
+            }
+        }
+
+        // End of line marker.
+        buf = 0x0;
+        ON_FAILURE_RETURN(spbmp_write(file, &buf, 1, 1, userdata));
+        ON_FAILURE_RETURN(spbmp_write(file, &buf, 1, 1, userdata));
+    }
+
+    // End of bitmap marker.
+    buf = 0x0;
+    ON_FAILURE_RETURN(spbmp_write(file, &buf, 1, 1, userdata));
+    buf = 0x1;
+    ON_FAILURE_RETURN(spbmp_write(file, &buf, 1, 1, userdata));
+
+    return kSpBmpOk;
 }
 
 SpBmpResult spbmp_save(void *file, SpBmpFormat format, void *userdata, int x_origin, int y_origin,
@@ -962,34 +1050,36 @@ SpBmpResult spbmp_save(void *file, SpBmpFormat format, void *userdata, int x_ori
             break;
 
         case kSpBmpRgb121:
-        case kSpBmpCompressedRgb121:
+        case kSpBmpRgb121Rle4:
             header.image_size = width * height / 2;
             header.pixel_array_offset = 54 + 16 * 4;
             header.file_size = header.pixel_array_offset + header.image_size;
             header.bits_per_pixel = 4;
-            header.compression_type = (format == kSpBmpCompressedRgb121) ? BI_RLE4 : BI_RGB;
+            header.compression_type = (format == kSpBmpRgb121) ? BI_RGB : BI_RLE4;
             header.colour_table_size = 16;
             header.important_colour_count = 16;
             memcpy(header.colour_table, rgb121_colour_table, sizeof(rgb121_colour_table));
             break;
 
         case kSpBmpRgb222:
+        case kSpBmpRgb222Rle8:
             header.image_size = width * height;
             header.pixel_array_offset = 54 + 64 * 4;
             header.file_size = header.pixel_array_offset + header.image_size;
             header.bits_per_pixel = 8;
-            header.compression_type = BI_RGB;
+            header.compression_type = (format == kSpBmpRgb222) ? BI_RGB : BI_RLE8;
             header.colour_table_size = 64;
             header.important_colour_count = 64;
             memcpy(header.colour_table, rgb222_colour_table, sizeof(rgb222_colour_table));
             break;
 
         case kSpBmpRgb332:
+        case kSpBmpRgb332Rle8:
             header.image_size = width * height;
             header.pixel_array_offset = 54 + 256 * 4;
             header.file_size = header.pixel_array_offset + header.image_size;
             header.bits_per_pixel = 8;
-            header.compression_type = BI_RGB;
+            header.compression_type = (format == kSpBmpRgb332) ? BI_RGB : BI_RLE8;
             header.colour_table_size = 256;
             header.important_colour_count = 256;
             memcpy(header.colour_table, rgb332_colour_table, sizeof(rgb332_colour_table));
@@ -1002,26 +1092,33 @@ SpBmpResult spbmp_save(void *file, SpBmpFormat format, void *userdata, int x_ori
     ON_FAILURE_RETURN(spbmp_write_header(file, userdata, &header));
 
     switch (format) {
-        case kSpBmp24bpp:
-            return spbmp_write_24bpp(file, userdata, x_origin, y_origin, width, height);
-
         case kSpBmpRgb121:
-            return spbmp_write_rgb121(file, userdata, x_origin, y_origin, width, height);
+            return spbmp_write_rgb121(file, userdata, x_origin, y_origin, width,
+                                      height);
+
+        case kSpBmpRgb121Rle4:
+            return spbmp_write_rgb121_rle4(file, userdata, x_origin, y_origin,
+                                           width, height);
 
         case kSpBmpRgb222:
-            return spbmp_write_rgb222(file, userdata, x_origin, y_origin, width, height);
+            return spbmp_write_8bpp(file, userdata, spbmp_get_pixel_rgb222,
+                                    x_origin, y_origin, width, height);
+
+        case kSpBmpRgb222Rle8:
+            return spbmp_write_8bpp_rle8(file, userdata, spbmp_get_pixel_rgb222,
+                                         x_origin, y_origin, width, height);
 
         case kSpBmpRgb332:
-            return spbmp_write_rgb332(file, userdata, x_origin, y_origin, width, height);
+            return spbmp_write_8bpp(file, userdata, spbmp_get_pixel_rgb332,
+                                    x_origin, y_origin, width, height);
 
-        case kSpBmpCompressedRgb121:
-            return spbmp_write_rgb121_rle4(file, userdata, x_origin, y_origin, width, height);
+        case kSpBmpRgb332Rle8:
+            return spbmp_write_8bpp_rle8(file, userdata, spbmp_get_pixel_rgb332,
+                                         x_origin, y_origin, width, height);
 
-        case kSpBmpCompressedRgb222:
-            return spbmp_write_rgb222_rle8(file, userdata, x_origin, y_origin, width, height);
-
-        case kSpBmpCompressedRgb332:
-            return spbmp_write_rgb332_rle8(file, userdata, x_origin, y_origin, width, height);
+        case kSpBmp24bpp:
+            return spbmp_write_24bpp(file, userdata, x_origin, y_origin, width,
+                                     height);
 
         default:
             return kSpBmpUnknownFormat;

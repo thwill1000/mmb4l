@@ -23,12 +23,12 @@ typedef enum {
 
 typedef enum {
     kSpBmpRgb121,
+    kSpBmpRgb121Rle4,
     kSpBmpRgb222,
+    kSpBmpRgb222Rle8,
     kSpBmpRgb332,
+    kSpBmpRgb332Rle8,
     kSpBmp24bpp,
-    kSpBmpCompressedRgb121,
-    kSpBmpCompressedRgb222,
-    kSpBmpCompressedRgb332,
 } SpBmpFormat;
 
 // TODO: This is actually ARGB rather than RGBA.
