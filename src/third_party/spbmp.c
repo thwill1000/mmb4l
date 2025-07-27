@@ -900,9 +900,35 @@ static SpBmpResult spbmp_write_rgb222(void *file, void *userdata, int x_origin, 
     return kSpBmpOk;
 }
 
+static inline uint8_t spbmp_get_pixel_rgb332(int x, int y, void *userdata) {
+    const SpColourRgba pixel = spbmp_get_pixel_cb(x, y, userdata);
+    return ((pixel & 0xE00000) >> 16) | ((pixel & 0xE000) >> 11) | ((pixel & 0xC0) >> 6);
+}
+
+#define GET_RGB_332(x, y)  spbmp_get_pixel_rgb332((x) + x_origin, (y) + y_origin, userdata)
+
 static SpBmpResult spbmp_write_rgb332(void *file, void *userdata, int x_origin, int y_origin,
                                       int width, int height) {
-    return kSpBmpError;
+    const int y_start = height - 1;
+    const int y_end = -1;
+    const int y_delta = -1;
+    const int padding = (4 - (width % 4)) % 4;  // Pad to 32-bit boundary
+
+    for (int y = y_start; y != y_end; y += y_delta) {
+        if (spbmp_abort_check_cb(userdata) != 0) return kSpBmpAborted;
+        for (int x = 0; x < width; x++) {
+            const uint8_t pixel = GET_RGB_332(x, y);
+            ON_FAILURE_RETURN(spbmp_write(file, &pixel, 1, 1, userdata));
+        }
+
+        // Pad each row to 32-bit boundary.
+        for (int x = 0; x < padding; ++x) {
+            const uint8_t pixel = 0x0;
+            ON_FAILURE_RETURN(spbmp_write(file, &pixel, 1, 1, userdata));
+        }
+    }
+
+    return kSpBmpOk;
 }
 
 static SpBmpResult spbmp_write_rgb222_rle8(void *file, void *userdata, int x_origin, int y_origin,
@@ -956,6 +982,17 @@ SpBmpResult spbmp_save(void *file, SpBmpFormat format, void *userdata, int x_ori
             header.colour_table_size = 64;
             header.important_colour_count = 64;
             memcpy(header.colour_table, rgb222_colour_table, sizeof(rgb222_colour_table));
+            break;
+
+        case kSpBmpRgb332:
+            header.image_size = width * height;
+            header.pixel_array_offset = 54 + 256 * 4;
+            header.file_size = header.pixel_array_offset + header.image_size;
+            header.bits_per_pixel = 8;
+            header.compression_type = BI_RGB;
+            header.colour_table_size = 256;
+            header.important_colour_count = 256;
+            memcpy(header.colour_table, rgb332_colour_table, sizeof(rgb332_colour_table));
             break;
 
         default:

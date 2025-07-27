@@ -940,38 +940,44 @@ TEST_F(SpBmpTest, Save_CompressedRgb222Format_GivenSingleRedPixel) {
     // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 4])); // End of bitmap
     // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 5])); // End of bitmap
 }
-
+#endif
 TEST_F(SpBmpTest, Save_Rgb332Format_GivenSingleRedPixel) {
     SpColourRgba pixels[1];  // 1 pixel
     pixels[0] = 0xFF0000;  // Red color
     TestSurface surface = { pixels, 1, 1 };
-    char bmp_data[512] = { 0 };
+    char bmp_data[2 * 1024];
+    memset(bmp_data, 0xAB, sizeof(bmp_data));
     SafeBuffer file;
     safe_buffer_init(&file, bmp_data, sizeof(bmp_data));
 
     EXPECT_EQ(kSpBmpOk, spbmp_save(&file, kSpBmpRgb332, &surface, 0, 0, 1, 1));
 
     // Validate header.
-    BmpHeader expected_header;
-    expected_header.width = 1;
-    expected_header.height = 1;
+    BmpHeader expected_header = {
+        .pixel_array_offset = 1078,  // Pixel array offset (54 + 256 * 4 = 1078)
+        .width = 1,
+        .height = 1,
+        .bits_per_pixel = 8,         // 8 bits per pixel for 256-color mode
+        .compression_type = 0,       // BI_RGB (uncompressed)
+        .colour_table_size = 256,    // RGB332 uses 256 colors (2^3 * 2^3 * 2^2)
+        .important_colour_count = 256,
+    };
+    memcpy(expected_header.colour_table, rgb332_colour_table, sizeof(rgb332_colour_table));
     ValidateHeader(&expected_header, bmp_data);
-    // // Validate RLE4 compressed data starts at offset 118
-    // // For a 1x1 image of a red pixel we expect:
-    // // 01 88 00 00 (run of 1 pixel, value 8, end of line)
-    // // End of bitmap:  00 01
-    // int offset = 118;
-    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset]));
-    // EXPECT_EQ(0x88, static_cast<uint8_t>(bmp_data[offset + 1]));
 
-    // // End of line marker.
-    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 2]));
-    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 3]));
-    // // End of bitmap marker
-    // EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[offset + 4])); // End of bitmap
-    // EXPECT_EQ(0x01, static_cast<uint8_t>(bmp_data[offset + 5])); // End of bitmap
+    // Validate pixel data starts at offset 1078 (54-byte header + 1024-byte palette)
+    // For a 1x1 image of a red pixel we expect:
+    // Palette index 224 (0xE0)
+    // Each scanline padded to 4-byte boundary
+    int pixel_offset = 1078;
+    EXPECT_EQ(224, static_cast<uint8_t>(bmp_data[pixel_offset])); // Red pixel = palette index 48
+
+    // Check for 4-byte alignment padding (3 additional bytes for 1x1 8-bit image)
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[pixel_offset + 1])); // Padding
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[pixel_offset + 2])); // Padding
+    EXPECT_EQ(0x00, static_cast<uint8_t>(bmp_data[pixel_offset + 3])); // Padding
 }
-
+#if 0
 TEST_F(SpBmpTest, Save_CompressedRgb332Format_GivenSingleRedPixel) {
     SpColourRgba pixels[1];  // 1 pixel
     pixels[0] = 0xFF0000;  // Red color
