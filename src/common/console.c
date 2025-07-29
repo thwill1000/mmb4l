@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "console.h"
 #include "error.h"
 #include "interrupt.h"
+#include "logger.h"
 #include "keycodes.h"
 #include "mmtime.h"
 #include "utility.h"
@@ -305,12 +306,14 @@ static char console_putc_noflush(char c) {
 }
 
 char console_putc(char c) {
+    LOG_INFO("STDOUT: %c", c);
     char rval = console_putc_noflush(c);
     fflush(stdout);
     return rval;
 }
 
 void console_puts(const char *s) {
+    LOG_INFO("STDOUT: %s", s);
     while (*s) (void) console_putc_noflush(*s++);
     fflush(stdout);
 }

@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** CLASSIC({B|LX|LY|RX|RY|L|R|T} [, i2c]) */
 void fun_classic(void) {
-    if (!mmb_features.gamepad_type == kGamepadTypeCmm2) {
+    if (mmb_features.gamepad_type != kGamepadTypeCmm2) {
         ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 

@@ -345,7 +345,7 @@ static void handle_up(PromptState *pstate) {
 
 void prompt_get_input(void) {
     int width, height;
-    ON_FAILURE_ERROR(display_get_size(false, &width, &height));
+//    ON_FAILURE_ERROR(display_get_size(false, &width, &height));
 
     PromptState state = { 0 };
     state.char_index = strlen(inpbuf); // get the current cursor position in the line

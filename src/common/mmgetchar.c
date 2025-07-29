@@ -68,14 +68,14 @@ int MMgetchar(void) {
         display_show_cursor();
         c = console_getc();
         if (c == -1) {
-            if (!isatty(STDIN_FILENO)) {
-                // In this case there will never be anything to read.
-                if (MMCharPos > 1) display_puts("\r\n");
-                display_puts("Error: STDIN exhausted\r\n");
-                mmb_exit_code = 1;
-                display_hide_cursor();
-                longjmp(mark, JMP_QUIT);
-            }
+            // if (!isatty(STDIN_FILENO)) {
+            //     // In this case there will never be anything to read.
+            //     if (MMCharPos > 1) display_puts("\r\n");
+            //     display_puts("Error: STDIN exhausted\r\n");
+            //     mmb_exit_code = 1;
+            //     display_hide_cursor();
+            //     longjmp(mark, JMP_QUIT);
+            // }
             nanosleep(&ONE_MILLISECOND, NULL);
         // } else if (c == 3) {
         //     longjmp(mark, JMP_BREAK); // jump back to the input prompt if CTRL-C

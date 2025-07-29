@@ -1031,10 +1031,14 @@ void cmd_math(void){
 			}
 			start=1;
 			for(i=0;i<dimcount;i++){
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 				start+= (pos[i]*off[i]);
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 			}
 			start--;
 			increment=off[target];
@@ -1789,10 +1793,14 @@ void cmd_math(void){
 			}
 			start=1;
 			for(i=0;i<dimcount;i++){
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 				start+= (pos[i]*off[i]);
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 			}
 			start--;
 			increment=off[target];

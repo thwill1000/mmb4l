@@ -595,7 +595,7 @@ void Scroll(void);
 void ScrollDown(void);
 void MarkMode(char *cb, char *buf);
 void PositionCursor(char *curp);
-void setterminal() {}
+void setterminal(int height, int width) {}
 static int multilinecomment = false;
 bool modmode = false;
 int oldfont;
@@ -1423,6 +1423,7 @@ void FullScreenEditor(int xx, int yy, const char *fname, int edit_buff_size) {
                 case CTRLKEY('W'):  // Save, exit and run
                 case F2:            // Save, exit and run
                                     //                            if(OPTION_CONTINUATION){
+                {
                     int line = 0;
                     int i = find_longest_line_length((char *)EdBuff, &line);
                     if (i > 255) {
@@ -1547,7 +1548,7 @@ void FullScreenEditor(int xx, int yy, const char *fname, int edit_buff_size) {
                     clearrepeat();
 #endif
                     return;
-
+                }
                 // Search
                 case CTRLKEY('R'):
                 case F3:

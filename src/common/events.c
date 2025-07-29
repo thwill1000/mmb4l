@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gamepad.h"
 #include "graphics.h"
 #include "interrupt.h"
+#include "logger.h"
 #include "keyboard.h"
 #include "utility.h"
 
@@ -104,11 +105,21 @@ void events_pump() {
                 // printf("Controller removed, instance id: %d\n", event.cdevice.which);
                 break;
 
+            case SDL_FINGERDOWN:
+                LOG_INFO("Touch down at: %.3f, %.3f", event.tfinger.x, event.tfinger.y);
+                break;
+
+            case SDL_FINGERUP:
+                LOG_INFO("Touch up at: %.3f, %.3f", event.tfinger.x, event.tfinger.y);
+                break;
+
             case SDL_KEYDOWN:
+                LOG_INFO("KeyDown");
                 ON_FAILURE_ERROR(keyboard_key_down(&event.key.keysym));
                 break;
 
             case SDL_KEYUP:
+                LOG_INFO("KeyUp");
                 ON_FAILURE_ERROR(keyboard_key_up(&event.key.keysym));
                 break;
 

@@ -1,0 +1,43 @@
+services:
+  mmb4a-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mmb4a-dev
+    volumes:
+      # Mount your project directory
+      - ./projects:/workspace/projects
+      # Mount the MMB4L directory
+      - ..:/workspace/mmb4l
+      # Persist Gradle cache
+      - gradle-cache:/root/.gradle
+      # Persist Android SDK updates
+      - android-cache:/opt/android-sdk/.android
+      # For GUI applications and emulator
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # Persist AVD (emulator) data
+      - avd-cache:/root/.android
+      # USB device access for real Android devices
+      - /dev/bus/usb:/dev/bus/usb
+    ports:
+      # ADB port for device debugging
+      - "5037:5037"
+      # Emulator console port
+      - "5554:5554"
+      - "5555:5555"
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      # Enable hardware acceleration for emulator
+      - QT_X11_NO_MITSHM=1
+    # Required for emulator hardware acceleration AND USB device access
+    privileged: true
+    devices:
+      - /dev/kvm:/dev/kvm
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+
+volumes:
+  gradle-cache:
+  android-cache:
+  avd-cache:

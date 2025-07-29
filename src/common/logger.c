@@ -47,6 +47,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <time.h>
 
+#if defined(__ANDROID__)
+#include <android/log.h>
+#define LOG_TAG "MMB4A"
+#endif
+
 #include "logger.h"
 
 FILE *logger = NULL;
@@ -72,6 +77,38 @@ MmResult logger_term(void) {
    }
    return kOk;
 }
+
+#if defined(__ANDROID__)
+
+void logger_write(LoggerLevel level, const char *file, unsigned line, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    int prio;
+    switch (level) {
+        case kLoggerLevelDebug:
+            prio = ANDROID_LOG_DEBUG;
+            break;
+        case kLoggerLevelInfo:
+            prio = ANDROID_LOG_INFO;
+            break;
+        case kLoggerLevelWarning:
+            prio = ANDROID_LOG_WARN;
+            break;
+        case kLoggerLevelError:
+            prio = ANDROID_LOG_ERROR;
+            break;
+        case kLoggerLevelFatal:
+            prio = ANDROID_LOG_FATAL;
+            break;
+        default:
+            prio = ANDROID_LOG_FATAL;
+            break;
+    }
+    __android_log_vprint(prio, LOG_TAG, format, args);
+    va_end(args);
+}
+
+#else
 
 void logger_write(LoggerLevel level, const char *file, unsigned line, const char *format, ...) {
    if (!logger) return;
@@ -116,3 +153,6 @@ void logger_write(LoggerLevel level, const char *file, unsigned line, const char
    fprintf(logger, "\n");
    fflush(logger);
 }
+
+#endif
+

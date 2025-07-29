@@ -1,0 +1,57 @@
+#include <SDL.h>
+#include <SDL_opengles2.h>
+#include <android/log.h>
+
+#define LOG_TAG "SDL2App"
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+
+int main(int argc, char* argv[]) {
+    LOGI("Starting SDL2 Application");
+    
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        LOGI("SDL_Init failed: %s", SDL_GetError());
+        return 1;
+    }
+    
+    SDL_Window* window = SDL_CreateWindow("SDL2 Android App",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+    
+    if (!window) {
+        LOGI("SDL_CreateWindow failed: %s", SDL_GetError());
+        SDL_Quit();
+        return 1;
+    }
+    
+    SDL_GLContext context = SDL_GL_CreateContext(window);
+    if (!context) {
+        LOGI("SDL_GL_CreateContext failed: %s", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+    
+    bool running = true;
+    SDL_Event event;
+    
+    while (running) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = false;
+            }
+        }
+        
+        // Clear screen with blue color
+        glClearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+        SDL_GL_SwapWindow(window);
+        SDL_Delay(16); // ~60 FPS
+    }
+    
+    SDL_GL_DeleteContext(context);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    
+    return 0;
+}

@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/file.h"
 #include "common/interrupt.h"
 #include "common/keyboard.h"
+#include "common/logger.h"
 #include "common/mmb4l.h"
 #include "common/mmtime.h"
 #include "common/parse.h"
@@ -67,6 +68,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/streamio.h"
 #include "common/utility.h"
 #include "core/tokentbl.h"
+
+//#if defined(__ANDROID__)
+#include <SDL.h>
+#include <SDL_opengles2.h>
+//#endif
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -102,8 +108,10 @@ void dump_token_table(const struct s_tokentbl* tbl);
  */
 static bool run_flag;
 
-void print_banner() {
-    char s[128];
+/** Gets static string containing the MMBasic name and version. */
+static const char *get_name_and_version() {
+    static char s[128] = {};
+    if (*s) return s;
     sprintf(
         s,
         "MMBasic for %s v%d.%d%s%d\n",
@@ -124,7 +132,11 @@ void print_banner() {
                 : MM_MICRO < 300
                     ? MM_MICRO - 200
                     : MM_MICRO - 300);
-    display_puts(s);
+    return s;
+}
+
+static void print_banner() {
+    display_puts(get_name_and_version());
     display_puts(COPYRIGHT);
 }
 
@@ -263,7 +275,59 @@ void longjmp_handler(int jmp_state) {
     reset_console_title();
 }
 
+int android_main(int argc, char* argv[]) {
+#if defined(__ANDROID__)
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        LOG_INFO("SDL_Init failed: %s", SDL_GetError());
+        return 1;
+    }
+
+    SDL_Window* window = SDL_CreateWindow("SDL2 Android App",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+
+    if (!window) {
+        LOG_INFO("SDL_CreateWindow failed: %s", SDL_GetError());
+        SDL_Quit();
+        return 1;
+    }
+
+    SDL_GLContext context = SDL_GL_CreateContext(window);
+    if (!context) {
+        LOG_INFO("SDL_GL_CreateContext failed: %s", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+
+    bool running = true;
+    SDL_Event event;
+
+    while (running) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = false;
+            }
+        }
+
+        // Clear screen with blue color
+        glClearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        SDL_GL_SwapWindow(window);
+        SDL_Delay(16); // ~60 FPS
+    }
+
+    SDL_GL_DeleteContext(context);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+#endif
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
+    LOG_INFO("Starting %s", get_name_and_version());
+
     MmResult result = cmdline_parse(argc, (const char **) argv, &mmb_args);
     if (FAILED(result)) {
         if (result == kStringTooLong) {
@@ -328,6 +392,7 @@ int main(int argc, char *argv[]) {
     srand(0);  // seed the random generator with zero
     set_start_directory();
 
+    sprintf(mmb_args.run_cmd, "Option Simulate PicoCalc");
     run_flag = mmb_args.run_cmd[0] != '\0';
 
     // Note that weird restrictions on what you can do with the return value
@@ -341,6 +406,11 @@ int main(int argc, char *argv[]) {
         case JMP_QUIT:  longjmp_handler(JMP_QUIT); break;
         default:        longjmp_handler(JMP_UNEXPECTED); break;
     }
+
+    LOG_INFO("wombat2");
+//#if defined(__ANDROID__)
+//    return android_main(argc, argv);
+//#endif
 
     while (1) {
         MMAbort = false;
@@ -446,11 +516,7 @@ void dump(char *p, int nbr) {
     display_puts(
         "   addr    0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F    "
         "0123456789ABCDEF\r\n");
-#if defined(ENV64BIT)
-    b1 += sprintf(b1, "%8lx: ", (uintptr_t) p);
-#else
-    b1 += sprintf(b1, "%8ix: ", (uintptr_t) p);
-#endif
+    b1 += sprintf(b1, "%8" PRIxPTR ": ", (uintptr_t) p);
     for (pt = p; (uintptr_t)pt % 16 != 0; pt--) {
         b1 += sprintf(b1, "   ");
         b2 += sprintf(b2, " ");
@@ -466,11 +532,7 @@ void dump(char *p, int nbr) {
             display_puts(buf2);
             b1 = buf1;
             b2 = buf2;
-#if defined(ENV64BIT)
-            b1 += sprintf(b1, "\r\n%8lx: ", (uintptr_t) p);
-#else
-            b1 += sprintf(b1, "\r\n%8ix: ", (uintptr_t) p);
-#endif
+            b1 += sprintf(b1, "\r\n%8" PRIxPTR ": ", (uintptr_t) p);
         }
     }
     if (b2 != buf2) {
