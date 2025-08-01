@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "display.h"
 #include "keycodes.h"
+#include "logger.h"
 #include "mmb4l.h"
 #include "mmgetchar.h"
 #include "path.h"
@@ -345,7 +346,7 @@ static void handle_up(PromptState *pstate) {
 
 void prompt_get_input(void) {
     int width, height;
-//    ON_FAILURE_ERROR(display_get_size(false, &width, &height));
+    ON_FAILURE_ERROR(display_get_size(false, &width, &height));
 
     PromptState state = { 0 };
     state.char_index = strlen(inpbuf); // get the current cursor position in the line
@@ -354,6 +355,8 @@ void prompt_get_input(void) {
     state.history_idx = -1;
 
     display_puts(inpbuf);  // display the contents of the input buffer (if any)
+    LOG_INFO("[%s]", inpbuf);
+    LOG_INFO("max chars = %d", state.max_chars);
 
     if ((ssize_t) strlen(inpbuf) >= state.max_chars) {
         ERROR_LINE_TOO_LONG_TO_EDIT;

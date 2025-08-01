@@ -407,7 +407,6 @@ int main(int argc, char *argv[]) {
         default:        longjmp_handler(JMP_UNEXPECTED); break;
     }
 
-    LOG_INFO("wombat2");
 //#if defined(__ANDROID__)
 //    return android_main(argc, argv);
 //#endif

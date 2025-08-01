@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
+#include "android.h"
 #include "bitset.h"
 #include "cstring.h"
 #include "error.h"
@@ -2442,6 +2443,7 @@ static MmResult graphics_set_mode_picomite_vga(unsigned mode) {
         graphics_cmm2_background = RGB_BLACK;
         result = graphics_set_font(mode_def->font, 1);
     }
+
     return result;
 }
 
@@ -2464,21 +2466,34 @@ MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColou
             return kGraphicsInvalidColourDepth;
     }
 
+    MmResult result = kOk;
     switch (mmb_features.graphics_type) {
         case kGraphicsTypeCmm2:
-            return graphics_set_mode_cmm2(mode, colour_depth, background);
+            result = graphics_set_mode_cmm2(mode, colour_depth, background);
+            break;
         case kGraphicsTypeMmb4l:
-            return graphics_set_mode_mmb4l(mode);
+            result = graphics_set_mode_mmb4l(mode);
+            break;
         case kGraphicsTypePicomiteHdmi:
-            return graphics_set_mode_picomite_hdmi(mode);
+            result = graphics_set_mode_picomite_hdmi(mode);
+            break;
         case kGraphicsTypePicomiteLcd:
-            return graphics_set_mode_picomite_lcd(mode);
+            result = graphics_set_mode_picomite_lcd(mode);
+            break;
         case kGraphicsTypePicomiteVga:
-            return graphics_set_mode_picomite_vga(mode);
+            result = graphics_set_mode_picomite_vga(mode);
+            break;
         default:
-            return mmresult_ex(kInternalFault, "Unknown GraphicsType: %d",
-                               mmb_features.graphics_type);
+            result = mmresult_ex(kInternalFault, "Unknown GraphicsType: %d",
+                                 mmb_features.graphics_type);
+            break;
     }
+
+    if (SUCCEEDED(result)) {
+        android_show_soft_keyboard();
+    }
+
+    return result;
 }
 
 static MmResult graphics_draw_filled_polygon_internal(MmSurface *surface, int n, float *px,

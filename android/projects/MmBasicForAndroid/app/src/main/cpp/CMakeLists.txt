@@ -205,6 +205,7 @@ set(MMB4L_OPERATORS_SOURCE_FILES
 )
 
 set(MMB4L_COMMON_SOURCE_FILES
+    ${MMB4L_SRC_DIR}/common/android.c
     ${MMB4L_SRC_DIR}/common/audio.c
     ${MMB4L_SRC_DIR}/common/audio_tables.c
     ${MMB4L_SRC_DIR}/common/cmdline.c
