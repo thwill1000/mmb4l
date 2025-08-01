@@ -399,8 +399,16 @@ int main(int argc, char *argv[]) {
     srand(0);  // seed the random generator with zero
     set_start_directory();
 
-    sprintf(mmb_args.run_cmd, "Option Simulate PicoCalc");
     run_flag = mmb_args.run_cmd[0] != '\0';
+
+    if (is_android()) {
+        mmb_options.simulate = kSimulatePicocalc;
+        (void) features_init(&mmb_features, mmb_options.simulate);
+        (void) graphics_set_mode(1, 32, RGB_BLACK);
+        // ON_FAILURE_ERROR(mmb_features.has_cmd_flash ? flash_init() : flash_term());
+        print_banner();
+        display_puts("\r\n");
+    }
 
     // Note that weird restrictions on what you can do with the return value
     // from setjmp() mean we cannot simply write longjmp_handler(setjmp(mark));
