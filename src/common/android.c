@@ -47,6 +47,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "android.h"
 #include "logger.h"
 
+void android_init(void) {
+#if defined(__ANDROID__)
+   LOG_INFO("Internal storage path: %s", android_path());
+#endif
+}
+
+const char *android_path(void) {
+#if defined(__ANDROID__)
+   return SDL_AndroidGetInternalStoragePath();
+#else
+   return "/"; // TODO
+#endif
+}
+
 void android_show_soft_keyboard(void) {
 #if defined(__ANDROID__)
     LOG_INFO("Starting text input...");

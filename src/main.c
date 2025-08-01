@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/android.h"
 #include "common/audio.h"
 #include "common/cmdline.h"
 #include "common/console.h"
@@ -192,11 +193,15 @@ static void init_options() {
 }
 
 void set_start_directory() {
+    if (is_android()) {
+        snprintf(mmb_args.directory, STRINGSIZE, "%s", android_path());
+    }
+
     if (mmb_args.directory[0] == '\0') {
         char *MMDIR = getenv("MMDIR");
         if (MMDIR) {
-            snprintf(mmb_args.directory, 256, "%s", MMDIR);
-            mmb_args.directory[255] = '\0';
+            snprintf(mmb_args.directory, STRINGSIZE, "%s", MMDIR);
+            mmb_args.directory[MAXSTRLEN] = '\0';
         }
     }
     char *p = mmb_args.directory;
@@ -327,6 +332,8 @@ int android_main(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
     LOG_INFO("Starting %s", get_name_and_version());
+
+    android_init();
 
     MmResult result = cmdline_parse(argc, (const char **) argv, &mmb_args);
     if (FAILED(result)) {

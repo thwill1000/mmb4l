@@ -45,6 +45,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_ANDROID_H)
 #define MMB4L_ANDROID_H
 
+#include <stdbool.h>
+
+static inline bool is_android() {
+#if defined(__ANDROID__)
+    return true;
+#else
+    return false;
+#endif
+}
+
+/** Android/MMB4A specific initialisation. */
+void android_init(void);
+
+/** Get the internal storage path (always writable, private to your app). */
+const char *android_path(void);
+
 /** Shows the software keyboard. */
 void android_show_soft_keyboard(void);
 
