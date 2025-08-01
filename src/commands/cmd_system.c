@@ -186,7 +186,7 @@ void cmd_system_setenv(const char *p) {
  *                               On exit the number of characters in the buffer.
  * @param[out]      exit_status  On exit the exit status of the executed system command.
  */
-MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_status) {
+static MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_status) {
 
     FILE *f = popen(cmd, "r");
     if (!f) return errno;
@@ -229,7 +229,7 @@ MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_statu
  * SYSTEM command$ [, output$   [, exit_code%]]
  * SYSTEM command$ [, output%() [, exit_code%]]
  */
-static void cmd_system_execute(const char *p) {
+void cmd_system_execute(const char *p) {
     getargs(&p, 5, DELIM_COMMA);
     if (argc != 1 && argc != 3 && argc != 5) ERROR_SYNTAX;
 

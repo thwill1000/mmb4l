@@ -46,13 +46,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <time.h>
 
-#include "../common/cstring.h"
 #include "../common/display.h"
 #include "../common/error.h"
 #include "../common/file.h"
 #include "../common/memory.h"
 #include "../common/mmb4l.h"
-#include "../core/Commands.h"
 
 void cmd_files_internal(const char *p) {
     getargs(&p, 3, DELIM_COMMA);
