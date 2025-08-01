@@ -115,7 +115,7 @@ static const char *get_name_and_version() {
     if (*s) return s;
     sprintf(
         s,
-        "MMBasic for %s v%d.%d%s%d\n",
+        "MMBasic for %s v%d.%d%s%d\r\n",
         MM_ARCH,
         MM_MAJOR,
         MM_MINOR,
