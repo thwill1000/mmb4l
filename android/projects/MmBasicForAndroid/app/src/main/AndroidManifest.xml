@@ -16,7 +16,7 @@
                   android:launchMode="singleInstance"
                   android:configChanges="layoutDirection|locale|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboardHidden"
                   android:exported="true"
-                  android:screenOrientation="landscape"
+                  android:screenOrientation="portrait"
                   android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
