@@ -64,4 +64,12 @@ const char *android_path(void);
 /** Shows the software keyboard. */
 void android_show_soft_keyboard(void);
 
+void request_documents_access();
+int has_documents_access();
+char** list_documents_files(int* count);
+unsigned char* read_documents_file(const char* fileName, size_t* fileSize);
+void free_file_list(char** fileNames, int count);
+void ensure_permissions_persisted();
+void example_documents_usage();
+
 #endif

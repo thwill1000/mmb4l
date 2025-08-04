@@ -95,6 +95,7 @@ char *CFunctionFlash, *CFunctionLibrary;
 
 CmdLineArgs mmb_args = { 0 };
 uint8_t mmb_exit_code = EX_OK;
+bool mmb_exiting = false;
 
 static const char mmbasic_dir[] = "~/.mmbasic";
 
@@ -236,42 +237,39 @@ void longjmp_handler(int jmp_state) {
 
     audio_term();
 
-    int do_exit = false;
     switch (jmp_state) {
         case JMP_BREAK:
             mmb_exit_code = EX_BREAK;
-            do_exit = !mmb_args.show_prompt;
+            mmb_exiting = !mmb_args.show_prompt;
             break;
 
         case JMP_END:
-            do_exit = !mmb_args.show_prompt;
+            mmb_exiting = !mmb_args.show_prompt;
             break;
 
         case JMP_ERROR:
             display_puts(mmb_error_state_ptr->message);
             display_puts("\r\n");
             mmb_exit_code = error_to_exit_code(mmb_error_state_ptr->code);
-            do_exit = !mmb_args.show_prompt;
+            mmb_exiting = !mmb_args.show_prompt;
             break;
 
         case JMP_NEW:
             mmb_exit_code = EX_OK; // Probably not necessary.
-            do_exit = false;
             break;
 
         case JMP_QUIT:
-            do_exit = true;
+            mmb_exiting = true;
             break;
 
         default:
             fprintf(stderr, "Unexpected return value from setjmp()");
-            exit(EX_FAIL);
+            mmb_exiting = true;
+            mmb_exit_code = EX_FAIL;
             break;
     }
 
-    if (do_exit) {
-        exit(mmb_exit_code);
-    }
+    if (mmb_exiting) return;
 
     ContinuePoint = nextstmt;  // In case the user wants to use the continue command
     *tknbuf = 0;               // we do not want to run whatever is in the token buffer
@@ -426,7 +424,7 @@ int main(int argc, char *argv[]) {
 //    return android_main(argc, argv);
 //#endif
 
-    while (1) {
+    while (!mmb_exiting) {
         MMAbort = false;
         LocalIndex = 0;     // this should not be needed but it ensures that all
                             // space will be cleared
@@ -475,6 +473,10 @@ int main(int argc, char *argv[]) {
 
         ExecuteProgram(tknbuf);  // execute the line straight away
     }
+
+    ensure_permissions_persisted();
+    SDL_Quit(); // TODO: Why is this needed / what does it do ?
+    return mmb_exit_code;
 }
 
 void IntHandler(int signo) {

@@ -42,7 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <jni.h>
 #include <SDL.h>
+#include <android/log.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "android.h"
 #include "logger.h"
@@ -50,6 +54,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void android_init(void) {
 #if defined(__ANDROID__)
    LOG_INFO("Internal storage path: %s", android_path());
+   if (!has_documents_access()) {
+      request_documents_access();
+   }
 #endif
 }
 
@@ -67,4 +74,249 @@ void android_show_soft_keyboard(void) {
     SDL_StartTextInput();
     LOG_INFO("Text input active: %d", SDL_IsTextInputActive());            
 #endif
+}
+
+// #include <jni.h>
+// #include <SDL.h>
+// #include <android/log.h>
+// #include <string.h>
+// #include <stdlib.h>
+
+// #define LOG_TAG "DocumentsAccess"
+// #define LOG_INFO(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+// #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
+// Global state
+static int documents_access_granted = 0;
+static int documents_access_requested = 0;
+
+// Function to request documents access from native code
+void request_documents_access() {
+    LOG_INFO("Requesting document access");
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+    
+    if (!env || !activity) {
+        LOG_ERROR("Failed to get JNI environment or activity");
+        return;
+    }
+    
+    jclass activityClass = (*env)->GetObjectClass(env, activity);
+    jmethodID requestMethod = (*env)->GetStaticMethodID(env, activityClass, 
+                                                       "requestDocumentsAccess", "()V");
+    
+    if (requestMethod) {
+        (*env)->CallStaticVoidMethod(env, activityClass, requestMethod);
+        documents_access_requested = 1;
+        LOG_INFO("Documents access requested");
+    } else {
+        LOG_ERROR("Failed to find requestDocumentsAccess method");
+    }
+    
+    (*env)->DeleteLocalRef(env, activityClass);
+}
+
+// Function to check if we have documents access
+int has_documents_access() {
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+    
+    if (!env || !activity) {
+        return 0;
+    }
+    
+    jclass activityClass = (*env)->GetObjectClass(env, activity);
+    jmethodID hasAccessMethod = (*env)->GetStaticMethodID(env, activityClass, 
+                                                         "hasDocumentsAccess", "()Z");
+    
+    jboolean result = JNI_FALSE;
+    if (hasAccessMethod) {
+        result = (*env)->CallStaticBooleanMethod(env, activityClass, hasAccessMethod);
+    }
+    
+    (*env)->DeleteLocalRef(env, activityClass);
+    return result == JNI_TRUE ? 1 : 0;
+}
+
+// Function to list files in Documents directory
+char** list_documents_files(int* count) {
+    *count = 0;
+    
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+    
+    if (!env || !activity) {
+        return NULL;
+    }
+    
+    jclass activityClass = (*env)->GetObjectClass(env, activity);
+    jmethodID listMethod = (*env)->GetStaticMethodID(env, activityClass, 
+                                                    "listDocumentsFiles", "()[Ljava/lang/String;");
+    
+    if (!listMethod) {
+        (*env)->DeleteLocalRef(env, activityClass);
+        return NULL;
+    }
+    
+    jobjectArray fileArray = (jobjectArray)(*env)->CallStaticObjectMethod(env, activityClass, listMethod);
+    
+    if (!fileArray) {
+        (*env)->DeleteLocalRef(env, activityClass);
+        return NULL;
+    }
+    
+    jsize arrayLength = (*env)->GetArrayLength(env, fileArray);
+    *count = arrayLength;
+    
+    if (arrayLength == 0) {
+        (*env)->DeleteLocalRef(env, fileArray);
+        (*env)->DeleteLocalRef(env, activityClass);
+        return NULL;
+    }
+    
+    char** fileNames = malloc(arrayLength * sizeof(char*));
+    
+    for (int i = 0; i < arrayLength; i++) {
+        jstring fileName = (jstring)(*env)->GetObjectArrayElement(env, fileArray, i);
+        const char* fileNameStr = (*env)->GetStringUTFChars(env, fileName, NULL);
+        
+        fileNames[i] = malloc(strlen(fileNameStr) + 1);
+        strcpy(fileNames[i], fileNameStr);
+        
+        (*env)->ReleaseStringUTFChars(env, fileName, fileNameStr);
+        (*env)->DeleteLocalRef(env, fileName);
+    }
+    
+    (*env)->DeleteLocalRef(env, fileArray);
+    (*env)->DeleteLocalRef(env, activityClass);
+    
+    return fileNames;
+}
+
+// Function to read a file from Documents directory
+unsigned char* read_documents_file(const char* fileName, size_t* fileSize) {
+    *fileSize = 0;
+    
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+    
+    if (!env || !activity) {
+        return NULL;
+    }
+    
+    jclass activityClass = (*env)->GetObjectClass(env, activity);
+    jmethodID readMethod = (*env)->GetStaticMethodID(env, activityClass, 
+                                                    "readDocumentFile", "(Ljava/lang/String;)[B");
+    
+    if (!readMethod) {
+        (*env)->DeleteLocalRef(env, activityClass);
+        return NULL;
+    }
+    
+    jstring jFileName = (*env)->NewStringUTF(env, fileName);
+    jbyteArray byteArray = (jbyteArray)(*env)->CallStaticObjectMethod(env, activityClass, 
+                                                                      readMethod, jFileName);
+    
+    if (!byteArray) {
+        (*env)->DeleteLocalRef(env, jFileName);
+        (*env)->DeleteLocalRef(env, activityClass);
+        return NULL;
+    }
+    
+    jsize arrayLength = (*env)->GetArrayLength(env, byteArray);
+    *fileSize = arrayLength;
+    
+    unsigned char* fileData = malloc(arrayLength);
+    (*env)->GetByteArrayRegion(env, byteArray, 0, arrayLength, (jbyte*)fileData);
+    
+    (*env)->DeleteLocalRef(env, byteArray);
+    (*env)->DeleteLocalRef(env, jFileName);
+    (*env)->DeleteLocalRef(env, activityClass);
+    
+    return fileData;
+}
+
+// Free file list memory
+void free_file_list(char** fileNames, int count) {
+    if (fileNames) {
+        for (int i = 0; i < count; i++) {
+            free(fileNames[i]);
+        }
+        free(fileNames);
+    }
+}
+
+// JNI callbacks from Java
+JNIEXPORT void JNICALL 
+Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnDocumentsAccessGranted(JNIEnv* env, jobject obj) {
+    documents_access_granted = 1;
+    LOG_INFO("Documents access granted");
+    
+    // You can add your own callback here or set a flag that your main loop checks
+}
+
+JNIEXPORT void JNICALL 
+Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnDocumentsAccessDenied(JNIEnv* env, jobject obj) {
+    documents_access_granted = 0;
+    LOG_INFO("Documents access denied");
+    
+    // Handle denial - maybe show a message to the user
+}
+
+// Function to ensure permissions are saved before app exit
+void ensure_permissions_persisted() {
+    LOG_INFO("Persist permissions");
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+    
+    if (!env || !activity) {
+        return;
+    }
+    
+    jclass activityClass = (*env)->GetObjectClass(env, activity);
+    jmethodID ensureMethod = (*env)->GetStaticMethodID(env, activityClass, 
+                                                      "ensurePermissionsPersisted", "()V");
+    
+    if (ensureMethod) {
+        (*env)->CallStaticVoidMethod(env, activityClass, ensureMethod);
+        LOG_INFO("Permissions persistence ensured");
+        
+        // Give Android time to save
+        SDL_Delay(200);
+    } else {
+        LOG_ERROR("Failed to find ensurePermissionsPersisted method");
+    }
+    
+    (*env)->DeleteLocalRef(env, activityClass);
+}
+
+// Example usage function you can call from your main SDL loop
+void example_documents_usage() {
+    if (!has_documents_access()) {
+        LOG_INFO("No documents access, requesting...");
+        request_documents_access();
+        return;
+    }
+    
+    // List files
+    int fileCount;
+    char** files = list_documents_files(&fileCount);
+    
+    LOG_INFO("Found %d files in Documents:", fileCount);
+    for (int i = 0; i < fileCount; i++) {
+        LOG_INFO("  - %s", files[i]);
+        
+        // Try to read the first file as an example
+        if (i == 0) {
+            size_t fileSize;
+            unsigned char* fileData = read_documents_file(files[i], &fileSize);
+            if (fileData) {
+                LOG_INFO("Read %zu bytes from %s", fileSize, files[i]);
+                // Process your file data here
+                free(fileData);
+            }
+        }
+    }
+    
+    free_file_list(files, fileCount);
 }
