@@ -42,10 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdio.h>
+
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/parse.h"
-#include "../common/utility.h"
 #include "../core/tokentbl.h"
 
 void cmd_rename(void) {

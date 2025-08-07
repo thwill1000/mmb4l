@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <errno.h>
 #include <stdint.h>
-#include <stdio.h>
 
 #if !defined(STRINGSIZE)
 #define STRINGSIZE 256

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 stack.h
 
-Copyright 2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2024-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmresult.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -239,15 +240,6 @@ static inline size_t stack_size(const Stack *s) {
 /**
  * Dumps the contents of the stack to STDOUT.
  */
-static void stack_dump(const Stack *s) {
-    printf("--- BASE ---\n");
-    size_t size = (s->top - s->storage) / s->element_size;
-    StackElement element;
-    for (size_t idx = 0; idx < size; ++idx) {
-        (void) stack_get(s, idx, &element);
-        printf("  0x%p\n", element);
-    }
-    printf("--- TOP  ---\n");
-}
+void stack_dump(const Stack *s);
 
 #endif // #if !defined(MMB4L_STACK_H)

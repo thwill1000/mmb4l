@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMBASIC_UTILITY_H)
 #define MMBASIC_UTILITY_H
 
-#include <stdio.h>
+#include <stddef.h>
 
 // To output the value of a macro during compilation do:
 //   #pragma message(VAR_NAME_VALUE(macro))
