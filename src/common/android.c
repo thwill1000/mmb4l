@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <jni.h>
 #include <SDL.h>
+#include <SDL_thread.h>
 #include <android/log.h>
 #include <string.h>
 #include <stdlib.h>
@@ -51,12 +52,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "android.h"
 #include "logger.h"
 
+void request_documents_access();
+int has_mmbasic_folder();
+void show_mmbasic_folder_missing();
+
+SDL_sem* completionSemaphore;
+
 void android_init(void) {
 #if defined(__ANDROID__)
-   LOG_INFO("Internal storage path: %s", android_path());
-   if (!has_documents_access()) {
-      request_documents_access();
-   }
+    LOG_INFO("Internal storage path: %s", android_path());
+    completionSemaphore = SDL_CreateSemaphore(0);
+    // TODO: What if this fails.
+    if (!has_documents_access()) {
+        request_documents_access();
+        SDL_SemWait(completionSemaphore);
+        SDL_DestroySemaphore(completionSemaphore);
+        if (!has_mmbasic_folder()) {
+            LOG_INFO("Create new semaphore");
+            completionSemaphore = SDL_CreateSemaphore(0);
+            LOG_INFO("Show MMBasic folder missing dialog");
+            show_mmbasic_folder_missing();
+            SDL_SemWait(completionSemaphore);
+        }
+        LOG_INFO("Wallaby");
+    }
 #endif
 }
 
@@ -251,6 +270,7 @@ JNIEXPORT void JNICALL
 Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnDocumentsAccessGranted(JNIEnv* env, jobject obj) {
     documents_access_granted = 1;
     LOG_INFO("Documents access granted");
+    SDL_SemPost(completionSemaphore);
     
     // You can add your own callback here or set a flag that your main loop checks
 }
@@ -259,6 +279,7 @@ JNIEXPORT void JNICALL
 Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnDocumentsAccessDenied(JNIEnv* env, jobject obj) {
     documents_access_granted = 0;
     LOG_INFO("Documents access denied");
+    SDL_SemPost(completionSemaphore);
     
     // Handle denial - maybe show a message to the user
 }
@@ -319,4 +340,48 @@ void example_documents_usage() {
     }
     
     free_file_list(files, fileCount);
+}
+
+// Function to check if mmbasic folder exists
+int has_mmbasic_folder() {
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+    
+    if (!env || !activity) {
+        return 0;
+    }
+    
+    jclass activityClass = (*env)->GetObjectClass(env, activity);
+    jmethodID hasFolderMethod = (*env)->GetStaticMethodID(env, activityClass, 
+                                                         "hasMmbasicFolder", "()Z");
+    
+    jboolean result = JNI_FALSE;
+    if (hasFolderMethod) {
+        result = (*env)->CallStaticBooleanMethod(env, activityClass, hasFolderMethod);
+    }
+    
+    (*env)->DeleteLocalRef(env, activityClass);
+    return result == JNI_TRUE ? 1 : 0;
+}
+
+// Function to show mmbasic folder missing dialog
+void show_mmbasic_folder_missing() {
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+    
+    if (!env || !activity) {
+        return;
+    }
+    
+    jclass activityClass = (*env)->GetObjectClass(env, activity);
+    jmethodID showMethod = (*env)->GetStaticMethodID(env, activityClass, 
+                                                    "showMmbasicFolderMissing", "()V");
+    
+    if (showMethod) {
+        (*env)->CallStaticVoidMethod(env, activityClass, showMethod);
+    } else {
+        LOG_ERROR("Failed to find showMmbasicFolderMissing method");
+    }
+    
+    (*env)->DeleteLocalRef(env, activityClass);
 }

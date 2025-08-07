@@ -1,6 +1,8 @@
 package com.sockpuppetstudios.mmb4a;
 
 import org.libsdl.app.SDLActivity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.UriPermission;
 import android.net.Uri;
@@ -42,10 +44,16 @@ public class MainActivity extends SDLActivity {
         };
     }
     
+    // public static void requestDocumentsAccess() {
+    //     if (instance != null) {
+    //         instance.requestDocumentsAccessInternal();
+    //     }
+    // }
     // JNI methods called from native code
     public static void requestDocumentsAccess() {
+        android.util.Log.i(LOG_TAG, "requestDocumentAccess()");
         if (instance != null) {
-            instance.requestDocumentsAccessInternal();
+            instance.showSetupDialog();
         }
     }
     
@@ -95,6 +103,7 @@ public class MainActivity extends SDLActivity {
         if (requestCode == REQUEST_CODE_OPEN_DOCUMENT_TREE && resultCode == RESULT_OK) {
             if (data != null && data.getData() != null) {
                 documentsTreeUri = data.getData();
+                android.util.Log.i(LOG_TAG, "documentsTreeUri = " + documentsTreeUri.toString());
                 
                 // Take persistent permission
                 getContentResolver().takePersistableUriPermission(
@@ -255,7 +264,135 @@ public class MainActivity extends SDLActivity {
         ensurePermissionsPersisted();
         super.onPause();
     }
+
+    // Show setup dialog before requesting access
+    private void showSetupDialog() {
+        android.util.Log.i(LOG_TAG, "showSetupDialog()");
+                // Ensure this runs on the main UI thread.
+        // It's already the main thread when called from a Java event, but good practice.
+        runOnUiThread(() -> {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("MMBasic: Initial Setup");
+        builder.setMessage("To load BASIC files, please:\n\n" +
+                          "1. Create a folder called 'mmbasic' in your Documents folder\n" +
+                          "2. Put your .BAS files in Documents/mmbasic/\n" +
+                          "3. Grant access to the Documents folder\n\n" +
+                          "Ready to select your Documents folder?");
+        android.util.Log.i(LOG_TAG, "one");        
+        builder.setPositiveButton("Select Documents Folder", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                requestDocumentsAccessInternal();
+            }
+        });
+
+        android.util.Log.i(LOG_TAG, "two");
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                nativeOnDocumentsAccessDenied();
+            }
+        });
+        
+        android.util.Log.i(LOG_TAG, "three");
+        builder.setCancelable(false);
+        android.util.Log.i(LOG_TAG, "four");
+        try {
+            AlertDialog dialog = builder.create();
+            android.util.Log.i(LOG_TAG, "Calling dialog.show()");
+            dialog.show();
+        } catch (Exception ex) {
+            android.util.Log.i(LOG_TAG, ex.getMessage());
+        }
+        });
+    }
+
+    public static boolean hasMmbasicFolder() {
+        android.util.Log.i(LOG_TAG, "hasMmbasicFolder()");
+
+        if (instance != null && instance.documentsTreeUri != null) {
+            return instance.checkMmbasicFolderExists();
+        }
+        return false;
+    }
     
+    private boolean checkMmbasicFolderExists() {
+        android.util.Log.i(LOG_TAG, "checkMmbasicFolderExists()");
+
+        ContentResolver resolver = getContentResolver();
+        
+        try {
+            Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+                documentsTreeUri, DocumentsContract.getTreeDocumentId(documentsTreeUri)
+            );
+            
+            android.util.Log.i(LOG_TAG, "foo");
+
+            try (Cursor cursor = resolver.query(
+                childrenUri,
+                new String[]{DocumentsContract.Document.COLUMN_DISPLAY_NAME, 
+                           DocumentsContract.Document.COLUMN_MIME_TYPE},
+                null, null, null
+            )) {
+                if (cursor != null) {
+                    while (cursor.moveToNext()) {
+                        String displayName = cursor.getString(0);
+                        String mimeType = cursor.getString(1);
+                        
+                        // Check if it's the mmbasic directory
+                        if ("mmbasic".equals(displayName) && 
+                            DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            android.util.Log.i(LOG_TAG, "bar");
+        } catch (Exception e) {
+            android.util.Log.i(LOG_TAG, "snafu");
+            e.printStackTrace();
+        }
+        
+        return false;
+    }
+
+    // Show dialog if mmbasic folder is not found
+    public static void showMmbasicFolderMissing() {
+        if (instance != null) {
+            instance.showMmbasicMissingDialog();
+        }
+    }
+
+    private void showMmbasicMissingDialog() {
+        android.util.Log.i(LOG_TAG, "showMmbasicMissingDialog()");
+
+        runOnUiThread(() -> {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("MMBasic Folder Not Found");
+            builder.setMessage("Could not find 'mmbasic' folder in Documents.\n\n" +
+                            "Please create Documents/mmbasic/ and put your .BAS files there.\n\n" +
+                            "Would you like to select the Documents folder again?");
+            
+            builder.setPositiveButton("Select Again", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    requestDocumentsAccessInternal();
+                }
+            });
+            
+            builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+            
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        });
+    }
+
     // Native methods to implement in your C/C++ code
     public native void nativeOnDocumentsAccessGranted();
     public native void nativeOnDocumentsAccessDenied();
