@@ -458,3 +458,12 @@ MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) {
         return kOk;
     }
 }
+
+MmResult file_rename(const char *old_filename, const char *new_filename) {
+    errno = 0;
+    if FAILED(rename(old_filename, new_filename)) {
+        return errno;
+    } else {
+        return kOk;
+    }
+}
