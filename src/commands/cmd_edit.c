@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
+#include "../common/file.h"
 #include "../common/path.h"
 #include "../common/pmeditor.h"
 #include "../common/program.h"
@@ -116,12 +117,12 @@ static int create_empty_file(char *file_path) {
     return true;
 }
 
-static int delete_if_empty(char *file_path) {
-    errno = 0;
+static MmResult delete_if_empty(char *file_path) {
     if (path_exists(file_path) && path_is_empty(file_path)) {
-        return remove(file_path) == 0;
+        return file_delete(file_path);
+    } else {
+        return kOk;
     }
-    return 1;
 }
 
 void cmd_edit(void) {
@@ -199,7 +200,7 @@ void cmd_edit(void) {
     // If we created a new file and it is still empty after editing with an
     // editor that blocks then delete it.
     if (new_file && blocking) {
-        if (!delete_if_empty(file_path)) {
+        if (FAILED(delete_if_empty(file_path))) {
             ERROR_FAILED_TO_DELETE_TMP_FILE;
         }
     }

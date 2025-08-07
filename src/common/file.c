@@ -133,6 +133,15 @@ void file_close_all(void) {
     }
 }
 
+MmResult file_delete(const char *filename) {
+    errno = 0;
+    if (SUCCEEDED(remove(filename))) {
+        return kOk;
+    } else {
+        return errno;
+    }
+}
+
 int file_getc(int fnbr) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
         error_throw(kFileInvalidFileNumber);
