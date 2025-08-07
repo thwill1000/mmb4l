@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 funtbl.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,12 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdio.h>
+
 #include "../Hardware_Includes.h"
 #include "../common/utility.h"
 #include "MMBasic.h"
 #include "funtbl.h"
-
-#include <stddef.h>
 
 struct s_funtbl funtbl[MAXSUBFUN];
 FunHashValue funtbl_hashmap[FUN_HASHMAP_SIZE];

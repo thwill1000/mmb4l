@@ -252,6 +252,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/rx_buf.c
     src/common/serial.c
     src/common/sprite.c
+    src/common/stack.c
     src/common/utility.c
     src/common/xmodem.c
 )
