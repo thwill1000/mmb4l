@@ -96,15 +96,15 @@ int MMgetchar(void) {
 }
 
 // get a line from the keyboard or a file handle
-void MMgetline(int filenbr, char *p) {
+void MMgetline(int fnbr, char *p) {
     int c, nbrchars = 0;
     const char *tp;
 
     while (1) {
         CheckAbort();  // jump right out if CTRL-C
 
-        if ((file_table[filenbr].type == fet_file) && file_eof(filenbr)) break; // End of file.
-        c = file_getc(filenbr);
+        if (file_is_file(fnbr) && file_eof(fnbr)) break; // End of file.
+        c = file_getc(fnbr);
 
         // -1 - no character.
         //  0 - the null character which we ignore.
@@ -112,7 +112,7 @@ void MMgetline(int filenbr, char *p) {
 
         // if this is the console, check for a programmed function key and
         // insert the text
-        if (filenbr == 0) {
+        if (fnbr == 0) {
             tp = NULL;
             if (c == F2) tp = "RUN";
             if (c == F3) tp = "LIST";
@@ -130,14 +130,14 @@ void MMgetline(int filenbr, char *p) {
             do {
                 if (++nbrchars > MAXSTRLEN) error_throw(kLineTooLong);
                 *p++ = ' ';
-                if (filenbr == 0) display_putc(' ');
+                if (fnbr == 0) display_putc(' ');
             } while (nbrchars % mmb_options.tab);
             continue;
         }
 
         if (c == '\b') {  // handle the backspace
             if (nbrchars) {
-                if (filenbr == 0) display_puts("\b \b");
+                if (fnbr == 0) display_puts("\b \b");
                 nbrchars--;
                 p--;
             }
@@ -149,7 +149,7 @@ void MMgetline(int filenbr, char *p) {
         }
 
         if (c == '\r') {
-            if (filenbr == 0) {
+            if (fnbr == 0) {
                 display_puts("\r\n");
                 break;  // on the console this means the end of the line
                         // - stop collecting
@@ -159,7 +159,7 @@ void MMgetline(int filenbr, char *p) {
             }
         }
 
-        if (isprint(c) && (filenbr == 0)) {
+        if (isprint(c) && (fnbr == 0)) {
             display_putc(c);  // The console requires that chars be echoed
         }
 
