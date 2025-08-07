@@ -47,24 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h>
 
-#include "../Configuration.h"
 #include "mmresult.h"
-#include "rx_buf.h"
-
-enum FileEntryType { fet_closed, fet_file, fet_serial };
-
-typedef struct {
-    enum FileEntryType type;
-    union {
-        FILE *file_ptr;
-        int serial_fd;
-    };
-    RxBuf rx_buf;
-} FileEntry;
-
-extern FileEntry file_table[MAXOPENFILES + 1];
 
 /**
  * Initialises the 'file' module.
@@ -91,6 +75,8 @@ void file_close_all(void);
 int file_eof(int fnbr);
 int file_getc(int fnbr);
 MmResult file_getcwd(char *buf, size_t size);
+bool file_is_file(int fnbr);
+bool file_is_serial(int fnbr);
 int file_loc(int fnbr);
 int file_lof(int fnbr);
 int file_putc(int fnbr, int ch);
@@ -100,4 +86,4 @@ MmResult file_rmdir(const char *dirname);
 void file_seek(int fnbr, int idx);
 size_t file_write(int fnbr, const char *buf, size_t sz);
 
-#endif
+#endif // #if !defined(MMB4L_FILE)

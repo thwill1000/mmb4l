@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "error.h"
 #include "file.h"
+#include "file_private.h"
 #include "interrupt.h"
 #include "serial.h"
 #include "utility.h"

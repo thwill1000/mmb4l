@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmb4l.h"
 #include "error.h"
 #include "file.h"
+#include "file_private.h"
 #include "mmgetchar.h"
 #include "path.h"
 #include "serial.h"
@@ -418,6 +419,24 @@ MmResult file_getcwd(char *buf, size_t size) {
     errno = 0;
     if (!getcwd(buf, size)) return errno;
     return kOk;
+}
+
+bool file_is_file(int fnbr) {
+    assert(fnbr >= 0 && fnbr <= MAXOPENFILES);
+    if (fnbr >= 0 && fnbr <= MAXOPENFILES) {
+        return file_table[fnbr].type == fet_file;
+    } else {
+        return false;
+    }
+}
+
+bool file_is_serial(int fnbr) {
+    assert(fnbr >= 0 && fnbr <= MAXOPENFILES);
+    if (fnbr >= 0 && fnbr <= MAXOPENFILES) {
+        return file_table[fnbr].type == fet_serial;
+    } else {
+        return false;
+    }
 }
 
 MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) {
