@@ -66,6 +66,7 @@ MmResult file_open(const char *filename, const char *mode, int fnbr);
 MmResult file_chdir(const char *dirname);
 MmResult file_close(int fnbr);
 void file_close_all(void);
+MmResult file_delete(const char *filename);
 int file_eof(int fnbr);
 int file_getc(int fnbr);
 MmResult file_getcwd(char *buf, size_t size);
