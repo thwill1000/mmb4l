@@ -416,9 +416,9 @@ static void perform_background_tasks() {
     console_pump_input();
 
     // Pump all the serial port connections for input.
-    for (int i = 1; i <= MAXOPENFILES; ++i) {
-        if (file_table[i].type == fet_serial) {
-            serial_pump_input(i);
+    for (int fnbr = 1; fnbr <= MAXOPENFILES; ++fnbr) {
+        if (file_is_serial(fnbr)) {
+            serial_pump_input(fnbr);
         }
     }
 

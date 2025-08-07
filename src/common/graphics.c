@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "events.h"
 #include "file.h"
+#include "file_private.h"
 #include "fonttbl.h"
 #include "graphics.h"
 #include "logger.h"
