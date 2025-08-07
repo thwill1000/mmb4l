@@ -42,10 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdio.h>
-
 #include "../common/mmb4l.h"
 #include "../common/error.h"
+#include "../common/file.h"
 #include "../common/parse.h"
 #include "../core/tokentbl.h"
 
@@ -60,6 +59,5 @@ void cmd_rename(void) {
     char *new_filename = GetTempStrMemory();
     ON_FAILURE_ERROR(parse_filename(argv[2], new_filename, STRINGSIZE));
 
-    errno = 0;
-    if FAILED(rename(old_filename, new_filename)) ON_FAILURE_ERROR(errno);
+    ON_FAILURE_ERROR(file_rename(old_filename, new_filename));
 }
