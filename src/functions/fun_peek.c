@@ -42,14 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/memory.h"
 #include "../common/utility.h"
 #include "../core/commandtbl.h"
 #include "../core/funtbl.h"
-
-#include <assert.h>
 
 /** PEEK(BYTE addr%) */
 static void peek_byte(int argc, char **argv, const char *p) {
@@ -116,8 +116,6 @@ static void peek_cfunaddr(int argc, char **argv, const char *p) {
     g_rtn_type = T_INT;
     g_integer_rtn = (uintptr_t) addr;
 }
-
-#include <stdio.h>
 
 /** PEEK(DATAPTR) */
 static void peek_dataptr(int argc, char **argv, const char *p) {

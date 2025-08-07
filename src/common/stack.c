@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-utility.c
+stack.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2024-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,60 +42,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdarg.h>
 #include <stdio.h>
-#include <stdint.h>
 
-#include "utility.h"
+#include "stack.h"
 
-void utility_dump_memory(const char *start, int num_bytes, size_t indent, size_t cols) {
-    // Align start and end on 64-bit boundaries.
-    const char *start64 = start;
-    while ((uintptr_t) start64 % 8) start64--;
-    const char *end64 = num_bytes <= 0
-        ? (char *) UINTPTR_MAX
-        : start + num_bytes - 1;
-    if (num_bytes > 0) {
-        while ((uintptr_t) end64 % 8 != 7) end64++;
+void stack_dump(const Stack *s) {
+    printf("--- BASE ---\n");
+    size_t size = (s->top - s->storage) / s->element_size;
+    StackElement element;
+    for (size_t idx = 0; idx < size; ++idx) {
+        (void) stack_get(s, idx, &element);
+        printf("  0x%p\n", element);
     }
-
-    size_t column = 0;
-    size_t count = 0;
-    for (const char *p = start64; p <= end64; ++p) {
-        if (column == 0) {
-            for (size_t i = 0; i < indent; ++i) printf(" ");
-            printf("%p: ", p);
-        }
-
-        if (p < start || (num_bytes > 0 && p >= start + num_bytes)) {
-            printf(".. ");
-        } else if (*p > 32 && *p < 127) {
-            count = 0;
-            printf(" %c ", *p);
-        } else {
-            count = (*p == 0xFF) ? count + 1 : 0;
-            printf("%02X ", *p);
-        }
-
-        column++;
-        if (column == cols * 8) {
-            printf("\n");
-            column = 0;
-        } else if (column % 8 == 0) {
-            printf("    ");
-        }
-
-        if (count == 8 && num_bytes <= 0) break;
-    }
-
-    if (column != 0) printf("\n");
-}
-
-void utility_perror_ext(const char *format, ...) {
-    char buf[4096 * 2];
-    va_list arg_ptr;
-    va_start(arg_ptr, format);
-    vsnprintf(buf, 4096 * 2, format, arg_ptr);
-    va_end(arg_ptr);
-    perror(buf);
+    printf("--- TOP  ---\n");
 }

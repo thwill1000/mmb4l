@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <stdint.h>
-#include <stdio.h>
 
 #include "../common/error.h"
 #include "../common/gpio.h"

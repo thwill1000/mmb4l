@@ -50,14 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "display.h"
 #include "error.h"
 #include "file.h"
+#include "keycodes.h"
 #include "mmb4l.h"
 #include "mmtime.h"
-#include "options.h"
-
-#include "display.h"
-#include "error.h"
-#include "file.h"
-#include "keycodes.h"
 #include "options.h"
 
 void CheckAbort(void);

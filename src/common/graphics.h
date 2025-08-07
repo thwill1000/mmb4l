@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMBASIC_GRAPHICS_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "mmresult.h"
 #include "options.h"
