@@ -83,6 +83,7 @@ int file_lof(int fnbr);
 int file_putc(int fnbr, int ch);
 size_t file_read(int fnbr, char *buf, size_t sz);
 MmResult file_readlink(const char *path, char *buf, size_t *bufsiz);
+MmResult file_rename(const char *old_filename, const char *new_filename);
 MmResult file_rmdir(const char *dirname);
 void file_seek(int fnbr, int idx);
 size_t file_write(int fnbr, const char *buf, size_t sz);
