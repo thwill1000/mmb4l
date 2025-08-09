@@ -6,8 +6,8 @@ cmake_minimum_required(VERSION 3.14)
 # set the project name
 project(MMB4L)
 
-# GoogleTest requires at least C++11
-set(CMAKE_CXX_STANDARD 11)
+# GoogleTests require at least C++17
+set(CMAKE_CXX_STANDARD 17)
 
 include(FetchContent)
 #FetchContent_Declare(
@@ -467,6 +467,37 @@ target_link_libraries(
 )
 
 gtest_discover_tests(test_cstring)
+
+################################################################################
+# test_file
+################################################################################
+
+add_executable(
+  test_file
+  src/common/cstring.c
+  src/common/file.c
+  src/common/mmresult.c
+  src/common/gtest/file_test.cxx
+  src/common/gtest/stubs/error_stubs.c
+  src/common/gtest/stubs/audio_stubs.c
+  src/common/gtest/stubs/events_stubs.c
+  src/common/gtest/stubs/graphics_stubs.c
+  src/common/gtest/stubs/gamepad_stubs.c
+  src/common/gtest/stubs/serial_stubs.c
+)
+
+# target_include_directories(test_display PUBLIC
+#   /usr/include/SDL2
+# )
+
+target_link_libraries(
+  test_file
+  gtest_main
+  gmock
+  gmock_main
+)
+
+gtest_discover_tests(test_file)
 
 ################################################################################
 # test_display
