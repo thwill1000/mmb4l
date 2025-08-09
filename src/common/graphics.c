@@ -1460,7 +1460,7 @@ static size_t spbmp_file_write_cb(void *file, const void *buffer, size_t size, s
 }
 
 static SpColourRgba spbmp_get_pixel_cb(int x, int y, void *userdata) {
-    MmGraphicsColour colour;
+    MmGraphicsColour colour = RGB_BLACK;
     assert(graphics_get_pixel((MmSurface *) userdata, x, y, &colour) == kOk);
     return (SpColourRgba) colour;
 }
