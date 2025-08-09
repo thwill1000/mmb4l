@@ -50,6 +50,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmresult.h"
 
+struct s_DirStream;
+
+typedef struct s_DirStream DirStream;
+
+typedef enum {
+   kFileTypeBlockDevice,
+   kFileTypeCharacterDevice,
+   kFileTypeDirectory,
+   kFileTypeNamedPipe,
+   kFileTypeSymbolicLink,
+   kFileTypeRegularFile,
+   kFileTypeSocket,
+   kFileTypeUnknown,
+} FileType;
+
+typedef struct {
+    char name[STRINGSIZE];
+    FileType type;
+} DirEntry;
+
 /**
  * Initialises the 'file' module.
  *
@@ -69,10 +89,13 @@ bool file_exists(const char *filename);
 int64_t file_size(int fnbr);
 
 MmResult file_open(const char *filename, const char *mode, int fnbr);
+char *file_basename(char *path);
 MmResult file_chdir(const char *dirname);
 MmResult file_close(int fnbr);
 void file_close_all(void);
+MmResult file_closedir(DirStream *stream);
 MmResult file_delete(const char *filename);
+char *file_dirname(char *path);
 int file_eof(int fnbr);
 int file_getc(int fnbr);
 MmResult file_getcwd(char *buf, size_t size);
@@ -80,6 +103,8 @@ bool file_is_file(int fnbr);
 bool file_is_serial(int fnbr);
 int file_loc(int fnbr);
 int file_lof(int fnbr);
+MmResult file_opendir(const char *dirname, DirStream **stream);
+MmResult file_readdir(DirStream *stream, DirEntry **entry);
 int file_putc(int fnbr, int ch);
 size_t file_read(int fnbr, char *buf, size_t sz);
 MmResult file_readlink(const char *path, char *buf, size_t *bufsiz);

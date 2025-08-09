@@ -42,17 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "../common/file.h"
 #include "../common/mmb4l.h"
 #include "../common/path.h"
 #include "../common/utility.h"
 
-#include <dirent.h>
-#include <libgen.h>
 #include <string.h>
 
 #define ERROR_INVALID_FLAG_SPECIFICATION  error_throw_ex(kError, "Invalid flag specification")
-
-int32_t dirflags;
 
 static char get_achar(/* Get a character and advances ptr 1 or 2 */
                       const char **ptr /* Pointer to pointer to the
@@ -114,11 +111,11 @@ pattern_matching(                 /* 0:not matched, 1:matched */
 }
 
 void fun_dir(void) {
-    static DIR *dp = NULL;
+    static DirStream *dp = NULL;
+    static int file_type = -1;
     static char pp[32];
     getargs(&ep, 3, DELIM_COMMA);
     g_rtn_type = T_STR;
-    errno = 0;
 
     switch (argc) {
         case 0:
@@ -131,16 +128,16 @@ void fun_dir(void) {
             break;
 
         case 1:
-            dirflags = DT_REG;
+            file_type = kFileTypeRegularFile;
             break;
 
         case 3:
             if (checkstring(argv[2], "DIR")) {
-                dirflags = DT_DIR;
+                file_type = kFileTypeDirectory;
             } else if (checkstring(argv[2], "FILE")) {
-                dirflags = DT_REG;
+                file_type = kFileTypeRegularFile;
             } else if (checkstring(argv[2], "ALL")) {
-                dirflags = 0;
+                file_type = -1;
             } else {
                 ERROR_INVALID_FLAG_SPECIFICATION;
                 return;
@@ -154,31 +151,34 @@ void fun_dir(void) {
 
     if (argc != 0) {
         // This must be the first call eg:  DIR$("*.*", FILE)
+        if (dp) file_closedir(dp);
+        dp = NULL;
 
         char *path = GetTempStrMemory();
         ON_FAILURE_ERROR(parse_filename(argv[0], path, STRINGSIZE));
 
-        strcpy(pp, basename(path));
-        dp = opendir(dirname(path));
-        if (!dp) ON_FAILURE_ERROR(errno);
+        strcpy(pp, file_basename(path));
+        ON_FAILURE_ERROR(file_opendir(file_dirname(path), &dp));
     }
 
-    struct dirent *entry;
-    while ((entry = readdir(dp))) {
-        if (strcmp(entry->d_name, ".") != 0
-                && strcmp(entry->d_name, "..") != 0
-                && pattern_matching(pp, entry->d_name, 0, 0)
-                && (!dirflags || entry->d_type == dirflags)) break;
+    DirEntry *entry;
+    for (;;) {
+        ON_FAILURE_ERROR(file_readdir(dp, &entry));
+        if (!entry) break;
+        if (strcmp(entry->name, ".") != 0
+                && strcmp(entry->name, "..") != 0
+                && pattern_matching(pp, entry->name, 0, 0)
+                && (file_type == -1 || entry->type == (FileType) file_type)) break;
     }
 
     g_string_rtn = GetTempStrMemory();
 
     if (entry) {
-        strcpy(sret, entry->d_name);
+        strcpy(g_string_rtn, entry->name);
     } else {
-        closedir(dp);
-        g_string_rtn[0] = 0;
+        file_closedir(dp);
         dp = NULL;
+        g_string_rtn[0] = 0;
     }
 
     CtoM(g_string_rtn);

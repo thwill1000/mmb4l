@@ -44,18 +44,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
+#include <libgen.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "mmb4l.h"
+#include "cstring.h"
 #include "error.h"
 #include "file.h"
 #include "file_private.h"
+#include "mmb4l.h"
 #include "mmgetchar.h"
 #include "path.h"
 #include "serial.h"
 #include "utility.h"
+
+struct s_DirStream {
+    DIR *dir;
+    DirEntry entry;
+};
 
 MmResult (*file_0_putc_fn)(char c) = NULL;
 MmResult (*file_0_write_fn)(const char *buf, size_t *sz) = NULL;
@@ -102,6 +111,14 @@ MmResult file_open(const char *filename, const char *mode, int fnbr) {
     file_table[fnbr].file_ptr = f;
 
     return kOk;
+}
+
+char *file_basename(char *path) {
+    return basename(path);
+}
+
+char *file_dirname(char *path) {
+    return dirname(path);
 }
 
 MmResult file_close(int fnbr) {
@@ -465,5 +482,87 @@ MmResult file_rename(const char *old_filename, const char *new_filename) {
         return errno;
     } else {
         return kOk;
+    }
+}
+
+MmResult file_opendir(const char *dirname, DirStream **stream) {
+    if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
+    errno = 0;
+    DIR *dir = opendir(dirname);
+    if (dir) {
+        DirStream *ds = (DirStream *) malloc(sizeof(DirStream));
+        if (!ds) {
+            closedir(dir);
+            return kOutOfMemory;
+        }
+        ds->dir = dir;
+        *stream = ds;
+        return kOk;
+    } else {
+        *stream = NULL;
+        return errno;
+    }
+}
+
+MmResult file_readdir(DirStream *stream, DirEntry **entry) {
+    if (!stream) return mmresult_ex(kInternalFault, "stream == NULL");
+    errno = 0;
+    struct dirent *e = readdir(stream->dir);
+    if (!e) {
+        if (errno == 0) {
+            // End of directory, not an error
+            *entry = NULL;
+            return kOk;
+        } else {
+            *entry = NULL;
+            return errno;
+        }
+    }
+
+    if (FAILED(cstring_cpy(stream->entry.name, e->d_name, STRINGSIZE))) {
+        *entry = NULL;
+        return kStringTooLong;
+    }
+
+    switch (e->d_type) {
+        case DT_BLK:
+            stream->entry.type = kFileTypeBlockDevice;
+            break;
+        case DT_CHR:
+            stream->entry.type = kFileTypeCharacterDevice;
+            break;
+        case DT_DIR:
+            stream->entry.type = kFileTypeDirectory;
+            break;
+        case DT_FIFO:
+            stream->entry.type = kFileTypeNamedPipe;
+            break;
+        case DT_LNK:
+            stream->entry.type = kFileTypeSymbolicLink;
+            break;
+        case DT_REG:
+            stream->entry.type = kFileTypeRegularFile;
+            break;
+        case DT_SOCK:
+            stream->entry.type = kFileTypeSocket;
+            break;
+        default:
+            stream->entry.type = kFileTypeUnknown;
+            break;
+    }
+
+    *entry = &(stream->entry);
+    return kOk;
+}
+
+MmResult file_closedir(DirStream *stream) {
+    if (!stream) return mmresult_ex(kInternalFault, "stream == NULL");
+    errno = 0;
+    if (SUCCEEDED(closedir(stream->dir))) {
+        free(stream);
+        return kOk;
+    } else {
+        free(stream);
+        return errno;
     }
 }
