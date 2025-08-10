@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 serial.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -44,6 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if !defined(MMB4L_SERIAL_H)
 #define MMB4L_SERIAL_H
+
+#include <stddef.h>
 
 #include "mmresult.h"
 

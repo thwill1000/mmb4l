@@ -42,12 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "cstring.h"
 #include "mmresult.h"
 #include "../Configuration.h"
-
-#include <stdarg.h>
-#include <string.h>
 
 const char *audio_last_error();
 const char *events_last_error();
