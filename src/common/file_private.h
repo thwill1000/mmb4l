@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-mmgetchar.h
+file_private.h
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,10 +42,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_GETCHAR)
-#define MMB4L_GETCHAR
+#if !defined(MMB4L_FILE_PRIVATE)
+#define MMB4L_FILE_PRIVATE
 
-int MMgetchar(void);
-void MMgetline(int fnbr, char *p);
+#include <stdio.h>
 
-#endif // #if !defined(MMB4L_GETCHAR)
+#include "../Configuration.h"
+#include "rx_buf.h"
+
+enum FileEntryType { fet_closed, fet_file, fet_serial };
+
+typedef struct {
+    enum FileEntryType type;
+    union {
+        FILE *file_ptr;
+        int serial_fd;
+    };
+    RxBuf rx_buf;
+} FileEntry;
+
+extern FileEntry file_table[MAXOPENFILES + 1];
+
+#endif // #if !defined(MMB4L_FILE_PRIVATE)
