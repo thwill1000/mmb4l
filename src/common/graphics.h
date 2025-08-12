@@ -218,8 +218,6 @@ extern unsigned graphics_mode;
 /** Initialises 'graphics' module. */
 MmResult graphics_init();
 
-/** Gets the last error message reported by the underlying SDL implementation. */
-const char* graphics_last_error();
 MmSurfaceId graphics_find_window(uint32_t window_id);
 
 /** Redraws all 'dirty' windows (if the time is right). */

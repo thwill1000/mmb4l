@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 events.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -58,21 +58,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Defined in "core/MMBasic.c"
 extern const char *CurrentLinePtr;
 
-static const char* NO_ERROR = "";
 static bool events_initialised = false;
+
+static MmResult events_api_error() {
+    const char* emsg = SDL_GetError();
+    if (!emsg) emsg = "none";
+    return mmresult_ex(kEventsApiError, "Events error: %s", emsg);
+}
 
 MmResult events_init() {
     if (events_initialised) return kOk;
     if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER | SDL_INIT_VIDEO) < 0) {
-        return kEventsApiError;
+        return events_api_error();
     }
     events_initialised = true;
     return kOk;
-}
-
-const char* events_last_error() {
-    const char* emsg = SDL_GetError();
-    return emsg && *emsg ? emsg : NO_ERROR;
 }
 
 void events_pump() {

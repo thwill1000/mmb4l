@@ -50,29 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 #include "../Configuration.h"
 
-const char *audio_last_error();
-const char *events_last_error();
-const char *gamepad_last_error();
-const char *graphics_last_error();
-
 MmResult mmresult_last_code = kOk;
 char mmresult_last_msg[STRINGSIZE] = { 0 };
-
-static void formatAudioApiError() {
-    snprintf(mmresult_last_msg, STRINGSIZE, "Audio error: %s", audio_last_error());
-}
-
-static void formatEventsApiError() {
-    snprintf(mmresult_last_msg, STRINGSIZE, "Events error: %s", events_last_error());
-}
-
-static void formatGamepadApiError() {
-    snprintf(mmresult_last_msg, STRINGSIZE, "Gamepad error: %s", gamepad_last_error());
-}
-
-static void formatGraphicsApiError() {
-    snprintf(mmresult_last_msg, STRINGSIZE, "Graphics error: %s", graphics_last_error());
-}
 
 void mmresult_clear() {
    mmresult_last_code = kOk;
@@ -94,22 +73,7 @@ const char *mmresult_to_string(MmResult result) {
         return mmresult_last_msg;
     }
 
-    switch (result) {
-        case kEventsApiError:
-            formatEventsApiError();
-            return mmresult_last_msg;
-        case kGamepadApiError:
-            formatGamepadApiError();
-            return mmresult_last_msg;
-        case kGraphicsApiError:
-            formatGraphicsApiError();
-            return mmresult_last_msg;
-        case kAudioApiError:
-            formatAudioApiError();
-            return mmresult_last_msg;
-        default:
-            return mmresult_to_default_string(result);
-    }
+    return mmresult_to_default_string(result);
 }
 
 const char *mmresult_to_default_string(MmResult result) {

@@ -265,6 +265,14 @@ set(MMB4L_THIRD_PARTY_SOURCE_FILES
     src/third_party/upng.c
 )
 
+set(MMB4L_COMMON_TEST_FILES
+    src/common/codepage.c
+    src/common/cstring.c
+    src/common/mmresult.c
+    src/common/utility.c
+    src/common/gtest/stubs/error_stubs.c
+)
+
 set(MMB4L_SOURCE_FILES
     ${MMB4L_COMMANDS_SOURCE_FILES}
     ${MMB4L_FUNCTIONS_SOURCE_FILES}
@@ -292,21 +300,14 @@ target_link_libraries(
 ################################################################################
 
 add_executable(test_console_getc
+    ${MMB4L_COMMON_TEST_FILES}
     src/console_getc_test.c
     src/common/rx_buf.c
-    src/common/codepage.c
     src/common/console.c
-    src/common/cstring.c
-    src/common/mmresult.c
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c
-    src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/display_stubs.c
-    src/common/gtest/stubs/error_stubs.c
-    src/common/gtest/stubs/events_stubs.c
-    src/common/gtest/stubs/graphics_stubs.c
-    src/common/gtest/stubs/gamepad_stubs.c
 )
 
 # GoogleTest
@@ -319,27 +320,24 @@ include(GoogleTest)
 # test_cmdline
 ################################################################################
 
-add_executable(
-  test_cmdline
-  src/common/cmdline.c
-  src/common/codepage.c
-  src/common/cstring.c
-  src/common/features.c
-  src/common/memory.c
-  src/common/mmresult.c
-  src/common/options.c
-  src/common/parse.c
-  src/common/path.c
-  src/common/gtest/cmdline_test.cxx
-  src/core/vartbl.c
+add_executable(test_cmdline
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/cmdline.c
+    src/common/features.c
+    src/common/memory.c
+    src/common/mmresult.c
+    src/common/options.c
+    src/common/parse.c
+    src/common/path.c
+    src/common/gtest/cmdline_test.cxx
+    src/core/vartbl.c
 )
 
-target_link_libraries(
-  test_cmdline
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_cmdline
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_cmdline)
@@ -348,41 +346,34 @@ gtest_discover_tests(test_cmdline)
 # test_cmd_do
 ################################################################################
 
-add_executable(
-  test_cmd_do
-  src/commands/cmd_do.c
-  src/commands/gtest/cmd_do_test.cxx
-  src/common/codepage.c
-  src/common/cstring.c
-  src/common/features.c
-  src/common/fonttbl.c
-  src/common/options.c
-  src/common/memory.c
-  src/common/mmresult.c
-  src/common/parse.c
-  src/common/path.c
-  src/common/utility.c
-  src/common/gtest/test_helper.c
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/display_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/events_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/graphics_stubs.c
-  src/common/gtest/stubs/interrupt_stubs.c
-  src/core/commandtbl.c
-  src/core/funtbl.c
-  src/core/MMBasic.c
-  src/core/tokentbl.c
-  src/core/vartbl.c
+add_executable(test_cmd_do
+    ${MMB4L_COMMON_TEST_FILES}
+    src/commands/cmd_do.c
+    src/commands/gtest/cmd_do_test.cxx
+    src/common/features.c
+    src/common/fonttbl.c
+    src/common/options.c
+    src/common/memory.c
+    src/common/parse.c
+    src/common/path.c
+    src/common/gtest/test_helper.c
+    src/common/gtest/stubs/audio_stubs.c
+    src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/gamepad_stubs.c
+    src/common/gtest/stubs/graphics_stubs.c
+    src/common/gtest/stubs/interrupt_stubs.c
+    src/core/commandtbl.c
+    src/core/funtbl.c
+    src/core/MMBasic.c
+    src/core/tokentbl.c
+    src/core/vartbl.c
 )
 
-target_link_libraries(
-  test_cmd_do
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_cmd_do
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_cmd_do)
@@ -391,43 +382,37 @@ gtest_discover_tests(test_cmd_do)
 # test_cmd_run
 ################################################################################
 
-add_executable(
-  test_cmd_run
-  src/commands/cmd_run.c
-  src/commands/gtest/cmd_run_test.cxx
-  src/common/codepage.c
-  src/common/cstring.c
-  src/common/features.c
-  src/common/fonttbl.c
-  src/common/memory.c
-  src/common/mmresult.c
-  src/common/options.c
-  src/common/parse.c
-  src/common/path.c
-  src/common/utility.c
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/display_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/events_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/graphics_stubs.c
-  src/common/gtest/stubs/interrupt_stubs.c
-  src/core/commandtbl.c
-  src/core/funtbl.c
-  src/core/MMBasic.c
-  src/core/tokentbl.c
-  src/core/vartbl.c
-  src/functions/fun_mmcmdline.c
+add_executable(test_cmd_run
+    ${MMB4L_COMMON_TEST_FILES}
+    src/commands/cmd_run.c
+    src/commands/gtest/cmd_run_test.cxx
+    src/common/features.c
+    src/common/fonttbl.c
+    src/common/memory.c
+    src/common/mmresult.c
+    src/common/options.c
+    src/common/parse.c
+    src/common/path.c
+    src/common/gtest/stubs/audio_stubs.c
+    src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/gamepad_stubs.c
+    src/common/gtest/stubs/graphics_stubs.c
+    src/common/gtest/stubs/interrupt_stubs.c
+    src/core/commandtbl.c
+    src/core/funtbl.c
+    src/core/MMBasic.c
+    src/core/tokentbl.c
+    src/core/vartbl.c
+    src/functions/fun_mmcmdline.c
 )
 
 target_compile_definitions(test_cmd_run PUBLIC ENABLE_GTEST_EXTRAS)
 
-target_link_libraries(
-  test_cmd_run
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_cmd_run
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_cmd_run)
@@ -436,16 +421,16 @@ gtest_discover_tests(test_cmd_run)
 # test_bitset
 ################################################################################
 
-add_executable(
-  test_bitset
-  src/common/gtest/bitset_test.cxx
+add_executable(test_bitset
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/gtest/bitset_test.cxx
 )
 
 target_link_libraries(
-  test_bitset
-  gtest_main
-  gmock
-  gmock_main
+    test_bitset
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_bitset)
@@ -454,17 +439,15 @@ gtest_discover_tests(test_bitset)
 # test_cstring
 ################################################################################
 
-add_executable(
-  test_cstring
-  src/common/cstring.c
-  src/common/gtest/cstring_test.cxx
+add_executable(test_cstring
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/gtest/cstring_test.cxx
 )
 
-target_link_libraries(
-  test_cstring
-  gtest_main
-  gmock
-  gmock_main
+target_link_libraries(test_cstring
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_cstring)
@@ -473,29 +456,17 @@ gtest_discover_tests(test_cstring)
 # test_file
 ################################################################################
 
-add_executable(
-  test_file
-  src/common/cstring.c
-  src/common/file.c
-  src/common/mmresult.c
-  src/common/gtest/file_test.cxx
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/events_stubs.c
-  src/common/gtest/stubs/graphics_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/serial_stubs.c
+add_executable(test_file
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/file.c
+    src/common/gtest/file_test.cxx
+    src/common/gtest/stubs/serial_stubs.c
 )
 
-# target_include_directories(test_display PUBLIC
-#   /usr/include/SDL2
-# )
-
-target_link_libraries(
-  test_file
-  gtest_main
-  gmock
-  gmock_main
+target_link_libraries(test_file
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_file)
@@ -504,29 +475,23 @@ gtest_discover_tests(test_file)
 # test_display
 ################################################################################
 
-add_executable(
-  test_display
-  src/common/display.c
-  src/common/mmresult.c
-  # src/common/features.c
-  src/common/fonttbl.c
-  src/common/gtest/display_test.cxx
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/events_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/sdl2_stubs.c
+add_executable(test_display
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/display.c
+    src/common/fonttbl.c
+    src/common/gtest/display_test.cxx
+    src/common/gtest/stubs/sdl2_stubs.c
 )
 
 target_include_directories(test_display PUBLIC
-  /usr/include/SDL2
+    /usr/include/SDL2
 )
 
 target_link_libraries(
-  test_display
-  gtest_main
-  gmock
-  gmock_main
+    test_display
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_display)
@@ -535,71 +500,66 @@ gtest_discover_tests(test_display)
 # test_funtbl
 ################################################################################
 
-add_executable(
-  test_funtbl
-  src/core/funtbl.c
-  src/core/gtest/funtbl_test.cxx
+add_executable(test_funtbl
+    ${MMB4L_COMMON_TEST_FILES}
+    src/core/funtbl.c
+    src/core/gtest/funtbl_test.cxx
 )
 
 target_link_libraries(
-  test_funtbl
-  gtest_main
-  gmock
-  gmock_main
+    test_funtbl
+    gtest_main
+    gmock
+    gmock_main
 )
 
 ################################################################################
 # test_fun_sprite
 ################################################################################
 
-add_executable(
-  test_fun_sprite
-  src/functions/gtest/test_fun_sprite.cxx
-  src/common/codepage.c
-  src/common/cstring.c
-  src/common/events.c
-  src/common/features.c
-  src/common/file.c
-  src/common/fonttbl.c
-  src/common/memory.c
-  src/common/mmresult.c
-  src/common/parse.c
-  src/common/path.c
-  src/common/graphics.c
-  src/common/logger.c
-  src/common/options.c
-  src/common/sprite.c
-  src/common/utility.c
-  src/common/gtest/test_helper.c
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/display_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/interrupt_stubs.c
-  src/common/gtest/stubs/serial_stubs.c
-  src/common/gtest/stubs/sdl2_stubs.c
-  src/core/commandtbl.c
-  src/core/funtbl.c
-  src/core/MMBasic.c
-  src/core/tokentbl.c
-  src/core/vartbl.c
-  src/functions/fun_sprite.c
-  src/third_party/spbmp.c
-  src/third_party/upng.c
+add_executable(test_fun_sprite
+    ${MMB4L_COMMON_TEST_FILES}
+    src/functions/gtest/test_fun_sprite.cxx
+    src/common/events.c
+    src/common/features.c
+    src/common/file.c
+    src/common/fonttbl.c
+    src/common/memory.c
+    src/common/mmresult.c
+    src/common/parse.c
+    src/common/path.c
+    src/common/graphics.c
+    src/common/logger.c
+    src/common/options.c
+    src/common/sprite.c
+    src/common/gtest/test_helper.c
+    src/common/gtest/stubs/audio_stubs.c
+    src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/gamepad_stubs.c
+    src/common/gtest/stubs/interrupt_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
+    src/common/gtest/stubs/sdl2_stubs.c
+    src/core/commandtbl.c
+    src/core/funtbl.c
+    src/core/MMBasic.c
+    src/core/tokentbl.c
+    src/core/vartbl.c
+    src/functions/fun_sprite.c
+    src/third_party/spbmp.c
+    src/third_party/upng.c
 )
 
 target_compile_definitions(test_fun_sprite PUBLIC ENABLE_GTEST_EXTRAS)
 
 target_include_directories(test_fun_sprite PUBLIC
-  /usr/include/SDL2
+    /usr/include/SDL2
 )
 
-target_link_libraries(
-  test_fun_sprite
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_fun_sprite
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_fun_sprite)
@@ -608,25 +568,22 @@ gtest_discover_tests(test_fun_sprite)
 # test_gpio
 ################################################################################
 
-add_executable(
-  test_gpio
-  src/common/cstring.c
-  src/common/features.c
-  src/common/gpio.c
-  src/common/mmresult.c
-  src/common/mmtime.c
-  src/common/gtest/gpio_test.cxx
+add_executable(test_gpio
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/features.c
+    src/common/gpio.c
+    src/common/mmtime.c
+    src/common/gtest/gpio_test.cxx
 )
 
 target_include_directories(test_gpio PUBLIC
   /usr/include/SDL2
 )
 
-target_link_libraries(
-  test_gpio
-  gtest_main
-  gmock
-  gmock_main
+target_link_libraries(test_gpio
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_gpio NO_PRETTY_VALUES)
@@ -635,27 +592,23 @@ gtest_discover_tests(test_gpio NO_PRETTY_VALUES)
 # test_gamepad
 ################################################################################
 
-add_executable(
-  test_gamepad
-  src/common/cstring.c
-  src/common/events.c
-  src/common/gamepad.c
-  src/common/mmresult.c
-  src/common/gtest/gamepad_test.cxx
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/interrupt_stubs.c
-  src/common/gtest/stubs/sdl2_stubs.c
+add_executable(test_gamepad
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/events.c
+    src/common/gamepad.c
+    src/common/gtest/gamepad_test.cxx
+    src/common/gtest/stubs/interrupt_stubs.c
+    src/common/gtest/stubs/sdl2_stubs.c
 )
 
 target_include_directories(test_gamepad PUBLIC
-  /usr/include/SDL2
+    /usr/include/SDL2
 )
 
-target_link_libraries(
-  test_gamepad
-  gtest_main
-  gmock
-  gmock_main
+target_link_libraries(test_gamepad
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_gamepad)
@@ -664,41 +617,36 @@ gtest_discover_tests(test_gamepad)
 # test_graphics
 ################################################################################
 
-add_executable(
-  test_graphics
-  src/common/codepage.c
-  src/common/cstring.c
-  src/common/events.c
-  src/common/features.c
-  src/common/file.c
-  src/common/fonttbl.c
-  src/common/graphics.c
-  src/common/logger.c
-  src/common/memory.c
-  src/common/mmresult.c
-  src/common/options.c
-  src/common/path.c
-  src/common/gtest/graphics_test.cxx
-  src/common/gtest/graphics_blit_test.cxx
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/console_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/interrupt_stubs.c
-  src/common/gtest/stubs/serial_stubs.c
-  src/common/gtest/stubs/sdl2_stubs.c
-  src/third_party/upng.c
+add_executable(test_graphics
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/events.c
+    src/common/features.c
+    src/common/file.c
+    src/common/fonttbl.c
+    src/common/graphics.c
+    src/common/logger.c
+    src/common/memory.c
+    src/common/mmresult.c
+    src/common/options.c
+    src/common/path.c
+    src/common/gtest/graphics_test.cxx
+    src/common/gtest/graphics_blit_test.cxx
+    src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/gamepad_stubs.c
+    src/common/gtest/stubs/interrupt_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
+    src/common/gtest/stubs/sdl2_stubs.c
+    src/third_party/upng.c
 )
 
 target_include_directories(test_graphics PUBLIC
-  /usr/include/SDL2
+    /usr/include/SDL2
 )
 
-target_link_libraries(
-  test_graphics
-  gtest_main
-  gmock
-  gmock_main
+target_link_libraries(test_graphics
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_graphics)
@@ -707,16 +655,15 @@ gtest_discover_tests(test_graphics)
 # test_safe_buffer
 ################################################################################
 
-add_executable(
-  test_safe_buffer
-  src/common/gtest/safe_buffer_test.cxx
+add_executable(test_safe_buffer
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/gtest/safe_buffer_test.cxx
 )
 
-target_link_libraries(
-  test_safe_buffer
-  gtest_main
-  gmock
-  gmock_main
+target_link_libraries(test_safe_buffer
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_safe_buffer)
@@ -725,16 +672,15 @@ gtest_discover_tests(test_safe_buffer)
 # test_hash
 ################################################################################
 
-add_executable(
-  test_hash
-  src/common/gtest/hash_test.cxx
+add_executable(test_hash
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/gtest/hash_test.cxx
 )
 
-target_link_libraries(
-  test_hash
-  gtest_main
-  gmock
-  gmock_main
+target_link_libraries(test_hash
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_hash)
@@ -743,23 +689,22 @@ gtest_discover_tests(test_hash)
 # test_keyboard
 ################################################################################
 
-add_executable(
-  test_keyboard
-  src/common/keyboard.c
-  src/common/gtest/keyboard_test.cxx
-  src/common/gtest/stubs/console_stubs.c
-  src/common/gtest/stubs/interrupt_stubs.c
+add_executable(test_keyboard
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/keyboard.c
+    src/common/gtest/keyboard_test.cxx
+    src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/interrupt_stubs.c
 )
 
 target_include_directories(test_keyboard PUBLIC
     /usr/include/SDL2
 )
 
-target_link_libraries(
-  test_keyboard
-  gtest_main
-  gmock
-  gmock_main
+target_link_libraries(test_keyboard
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_keyboard)
@@ -768,24 +713,20 @@ gtest_discover_tests(test_keyboard)
 # test_options
 ################################################################################
 
-add_executable(
-  test_options
-  src/common/codepage.c
-  src/common/cstring.c
-  src/common/options.c
-  src/common/mmresult.c
-  src/common/path.c
-  src/common/gtest/options_test.cxx
+add_executable(test_options
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/options.c
+    src/common/path.c
+    src/common/gtest/options_test.cxx
 )
 
 target_compile_definitions(test_options PUBLIC OPTION_TESTS)
 
-target_link_libraries(
-  test_options
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_options
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_options)
@@ -794,46 +735,40 @@ gtest_discover_tests(test_options)
 # test_parse
 ################################################################################
 
-add_executable(
-  test_parse
-  src/common/codepage.c
-  src/common/cstring.c
-  src/common/features.c
-  src/common/file.c
-  src/common/memory.c
-  src/common/mmgetchar.c
-  src/common/mmresult.c
-  src/common/mmtime.c
-  src/common/options.c
-  src/common/parse.c
-  src/common/path.c
-  src/common/program.c
-  src/common/rx_buf.c
-  src/common/serial.c
-  src/common/utility.c
-  src/common/gtest/parse_test.cxx
-  src/common/gtest/test_helper.c
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/console_stubs.c
-  src/common/gtest/stubs/display_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/events_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/graphics_stubs.c
-  src/common/gtest/stubs/interrupt_stubs.c
-  src/core/commandtbl.c
-  src/core/funtbl.c
-  src/core/MMBasic.c
-  src/core/tokentbl.c
-  src/core/vartbl.c
+add_executable(test_parse
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/features.c
+    src/common/file.c
+    src/common/memory.c
+    src/common/mmgetchar.c
+    src/common/mmresult.c
+    src/common/mmtime.c
+    src/common/options.c
+    src/common/parse.c
+    src/common/path.c
+    src/common/program.c
+    src/common/rx_buf.c
+    src/common/serial.c
+    src/common/gtest/parse_test.cxx
+    src/common/gtest/test_helper.c
+    src/common/gtest/stubs/audio_stubs.c
+    src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/gamepad_stubs.c
+    src/common/gtest/stubs/graphics_stubs.c
+    src/common/gtest/stubs/interrupt_stubs.c
+    src/core/commandtbl.c
+    src/core/funtbl.c
+    src/core/MMBasic.c
+    src/core/tokentbl.c
+    src/core/vartbl.c
 )
 
-target_link_libraries(
-  test_parse
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_parse
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_parse)
@@ -842,31 +777,23 @@ gtest_discover_tests(test_parse)
 # test_path
 ################################################################################
 
-add_executable(
-  test_path
-  src/common/cstring.c
-  src/common/file.c
-  src/common/memory.c
-  src/common/mmresult.c
-  src/common/path.c
-  src/common/rx_buf.c
-  src/common/serial.c
-  src/common/gtest/path_test.cxx
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/console_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/events_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/graphics_stubs.c
-  src/common/gtest/stubs/interrupt_stubs.c
+add_executable(test_path
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/file.c
+    src/common/memory.c
+    src/common/path.c
+    src/common/rx_buf.c
+    src/common/serial.c
+    src/common/gtest/path_test.cxx
+    src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/interrupt_stubs.c
 )
 
-target_link_libraries(
-  test_path
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_path
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_path)
@@ -875,48 +802,41 @@ gtest_discover_tests(test_path)
 # test_program
 ################################################################################
 
-add_executable(
-  test_program
-  src/common/codepage.c
-  src/common/cstring.c
-  src/common/features.c
-  src/common/file.c
-  src/common/memory.c
-  src/common/mmgetchar.c
-  src/common/mmresult.c
-  src/common/mmtime.c
-  src/common/options.c
-  src/common/path.c
-  src/common/parse.c
-  src/common/program.c
-  src/common/rx_buf.c
-  src/common/serial.c
-  src/common/utility.c
-  src/common/gtest/program_test.cxx
-  src/common/gtest/test_helper.c
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/console_stubs.c
-  src/common/gtest/stubs/display_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/events_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/graphics_stubs.c
-  src/common/gtest/stubs/interrupt_stubs.c
-  src/core/commandtbl.c
-  src/core/funtbl.c
-  src/core/MMBasic.c
-  src/core/tokentbl.c
-  src/core/vartbl.c
+add_executable(test_program
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/features.c
+    src/common/file.c
+    src/common/memory.c
+    src/common/mmgetchar.c
+    src/common/mmtime.c
+    src/common/options.c
+    src/common/path.c
+    src/common/parse.c
+    src/common/program.c
+    src/common/rx_buf.c
+    src/common/serial.c
+    src/common/gtest/program_test.cxx
+    src/common/gtest/test_helper.c
+    src/common/gtest/stubs/audio_stubs.c
+    src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/gamepad_stubs.c
+    src/common/gtest/stubs/graphics_stubs.c
+    src/common/gtest/stubs/interrupt_stubs.c
+    src/core/commandtbl.c
+    src/core/funtbl.c
+    src/core/MMBasic.c
+    src/core/tokentbl.c
+    src/core/vartbl.c
 )
 
 target_compile_definitions(test_program PUBLIC ENABLE_GTEST_EXTRAS)
 
-target_link_libraries(
-  test_program
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_program
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_program)
@@ -925,27 +845,18 @@ gtest_discover_tests(test_program)
 # test_prompt
 ################################################################################
 
-add_executable(
-  test_prompt
-  src/common/cstring.c
-  src/common/mmresult.c
-  src/common/prompt.c
-  src/common/mmresult.c
-  src/common/gtest/prompt_test.cxx
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/display_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/events_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/graphics_stubs.c
+add_executable(test_prompt
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/prompt.c
+    src/common/gtest/prompt_test.cxx
+    src/common/gtest/stubs/display_stubs.c
 )
 
-target_link_libraries(
-  test_prompt
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_prompt
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_prompt)
@@ -954,16 +865,15 @@ gtest_discover_tests(test_prompt)
 # test_queue
 ################################################################################
 
-add_executable(
-  test_queue
-  src/common/gtest/queue_test.cxx
+add_executable(test_queue
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/gtest/queue_test.cxx
 )
 
-target_link_libraries(
-  test_queue
-  gtest_main
-  gmock
-  gmock_main
+target_link_libraries(test_queue
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_queue)
@@ -972,14 +882,13 @@ gtest_discover_tests(test_queue)
 # test_rx_buf
 ################################################################################
 
-add_executable(
-  test_rx_buf
-  src/common/rx_buf.c
-  src/common/gtest/rx_buf_test.cxx
+add_executable(test_rx_buf
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/rx_buf.c
+    src/common/gtest/rx_buf_test.cxx
 )
 
-target_link_libraries(
-  test_rx_buf
+target_link_libraries(test_rx_buf
   gtest_main
   gmock
   gmock_main
@@ -992,41 +901,35 @@ gtest_discover_tests(test_rx_buf)
 # test_sprite
 ################################################################################
 
-add_executable(
-  test_sprite
-  src/common/codepage.c
-  src/common/cstring.c
-  src/common/events.c
-  src/common/features.c
-  src/common/file.c
-  src/common/fonttbl.c
-  src/common/graphics.c
-  src/common/logger.c
-  src/common/memory.c
-  src/common/mmresult.c
-  src/common/options.c
-  src/common/path.c
-  src/common/sprite.c
-  src/common/gtest/sprite_test.cxx
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/console_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/interrupt_stubs.c
-  src/common/gtest/stubs/serial_stubs.c
-  src/common/gtest/stubs/sdl2_stubs.c
-  src/third_party/upng.c
+add_executable(test_sprite
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/events.c
+    src/common/features.c
+    src/common/file.c
+    src/common/fonttbl.c
+    src/common/graphics.c
+    src/common/logger.c
+    src/common/memory.c
+    src/common/options.c
+    src/common/path.c
+    src/common/sprite.c
+    src/common/gtest/sprite_test.cxx
+    src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/gamepad_stubs.c
+    src/common/gtest/stubs/interrupt_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
+    src/common/gtest/stubs/sdl2_stubs.c
+    src/third_party/upng.c
 )
 
 target_include_directories(test_sprite PUBLIC
-  /usr/include/SDL2
+    /usr/include/SDL2
 )
 
-target_link_libraries(
-  test_sprite
-  gtest_main
-  gmock
-  gmock_main
+target_link_libraries(test_sprite
+    gtest_main
+    gmock
+    gmock_main
 )
 
 gtest_discover_tests(test_sprite)
@@ -1035,13 +938,12 @@ gtest_discover_tests(test_sprite)
 # test_stack
 ################################################################################
 
-add_executable(
-  test_stack
-  src/common/gtest/stack_test.cxx
+add_executable(test_stack
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/gtest/stack_test.cxx
 )
 
-target_link_libraries(
-  test_stack
+target_link_libraries(test_stack
   gtest_main
   gmock
   gmock_main
@@ -1053,48 +955,41 @@ gtest_discover_tests(test_stack)
 # test_mmbasic_core
 ################################################################################
 
-add_executable(
-  test_mmbasic_core
-  src/common/codepage.c
-  src/common/cstring.c
-  src/common/features.c
-  src/common/file.c
-  src/common/fonttbl.c
-  src/common/memory.c
-  src/common/mmresult.c
-  src/common/mmtime.c
-  src/common/options.c
-  src/common/parse.c
-  src/common/path.c
-  src/common/program.c
-  src/common/rx_buf.c
-  src/common/serial.c
-  src/common/utility.c
-  src/common/gtest/test_helper.c
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/console_stubs.c
-  src/common/gtest/stubs/display_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/events_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/graphics_stubs.c
-  src/common/gtest/stubs/interrupt_stubs.c
-  src/core/commandtbl.c
-  src/core/funtbl.c
-  src/core/MMBasic.c
-  src/core/tokentbl.c
-  src/core/vartbl.c
-  src/core/gtest/mmbasic_core_test.cxx
+add_executable(test_mmbasic_core
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/features.c
+    src/common/file.c
+    src/common/fonttbl.c
+    src/common/memory.c
+    src/common/mmtime.c
+    src/common/options.c
+    src/common/parse.c
+    src/common/path.c
+    src/common/program.c
+    src/common/rx_buf.c
+    src/common/serial.c
+    src/common/gtest/test_helper.c
+    src/common/gtest/stubs/audio_stubs.c
+    src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/gamepad_stubs.c
+    src/common/gtest/stubs/graphics_stubs.c
+    src/common/gtest/stubs/interrupt_stubs.c
+    src/core/commandtbl.c
+    src/core/funtbl.c
+    src/core/MMBasic.c
+    src/core/tokentbl.c
+    src/core/vartbl.c
+    src/core/gtest/mmbasic_core_test.cxx
 )
 
 target_compile_definitions(test_mmbasic_core PUBLIC ENABLE_GTEST_EXTRAS)
 
-target_link_libraries(
-  test_mmbasic_core
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_mmbasic_core
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_mmbasic_core)
@@ -1103,24 +998,17 @@ gtest_discover_tests(test_mmbasic_core)
 # test_tokentbl
 ################################################################################
 
-add_executable(
-  test_tokentbl
-  src/common/mmresult.c
-  src/common/gtest/stubs/audio_stubs.c
-  src/common/gtest/stubs/error_stubs.c
-  src/common/gtest/stubs/events_stubs.c
-  src/common/gtest/stubs/gamepad_stubs.c
-  src/common/gtest/stubs/graphics_stubs.c
-  src/core/tokentbl.c
-  src/core/gtest/tokentbl_test.cxx
+add_executable(test_tokentbl
+    ${MMB4L_COMMON_TEST_FILES}
+    src/core/tokentbl.c
+    src/core/gtest/tokentbl_test.cxx
 )
 
-target_link_libraries(
-  test_tokentbl
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_tokentbl
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_tokentbl)
@@ -1129,18 +1017,17 @@ gtest_discover_tests(test_tokentbl)
 # test_vartbl
 ################################################################################
 
-add_executable(
-  test_vartbl
-  src/core/vartbl.c
-  src/core/gtest/vartbl_test.cxx
+add_executable(test_vartbl
+    ${MMB4L_COMMON_TEST_FILES}
+    src/core/vartbl.c
+    src/core/gtest/vartbl_test.cxx
 )
 
-target_link_libraries(
-  test_vartbl
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_vartbl
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_vartbl)
@@ -1149,19 +1036,17 @@ gtest_discover_tests(test_vartbl)
 # third_party/test_spbmp
 ################################################################################
 
-add_executable(
-  test_spbmp
-  src/common/utility.c
-  src/third_party/spbmp.c
-  src/third_party/gtest/spbmp_test.cxx
+add_executable(test_spbmp
+    ${MMB4L_COMMON_TEST_FILES}
+    src/third_party/spbmp.c
+    src/third_party/gtest/spbmp_test.cxx
 )
 
-target_link_libraries(
-  test_spbmp
-  gtest_main
-  gmock
-  gmock_main
-  ${GCOV_LINK_LIBRARY}
+target_link_libraries(test_spbmp
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
 )
 
 gtest_discover_tests(test_spbmp)
