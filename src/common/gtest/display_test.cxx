@@ -44,7 +44,6 @@ MmSurface *graphics_current = NULL;
 MmGraphicsColour graphics_bcolour;
 MmGraphicsColour graphics_fcolour;
 uint32_t graphics_font = (1 << 4) + 1; // Font 1, Scale 1.
-const char* graphics_last_error() { return ""; }
 MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
                             MmGraphicsColour fcolour, MmGraphicsColour bcolour, char c,
                             TextOrientation orientation) { return kOk; }

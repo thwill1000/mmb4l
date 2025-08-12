@@ -170,7 +170,6 @@ static const ModeDefinition PICOMITE_VGA_MODES[] = {
     { 2, 320, 240, 1, 7 },
 };
 
-static const char* NO_ERROR = "";
 static bool graphics_initialised = false;
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 MmSurface* graphics_current = NULL;
@@ -196,6 +195,12 @@ unsigned graphics_colour_depth = 32;
  */
 MmGraphicsColour graphics_cmm2_background = RGB_BLACK;
 
+static MmResult graphics_api_error() {
+    const char* emsg = SDL_GetError();
+    if (!emsg) emsg = "none";
+    return mmresult_ex(kGraphicsApiError, "Graphics error: %s", emsg);
+}
+
 MmResult graphics_init() {
     if (graphics_initialised) return kOk;
     MmResult result = events_init();
@@ -211,11 +216,6 @@ MmResult graphics_init() {
     if (FAILED(result)) return result;
     graphics_initialised = true;
     return kOk;
-}
-
-const char *graphics_last_error() {
-    const char* emsg = SDL_GetError();
-    return emsg && *emsg ? emsg : NO_ERROR;
 }
 
 MmResult graphics_term() {
@@ -531,7 +531,7 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
                 if (fscale < 0.5) return kGraphicsSurfaceTooLarge;
             }
         } else {
-            result = kGraphicsApiError;
+            result = graphics_api_error();
         }
     }
 
@@ -548,14 +548,14 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
         window = SDL_CreateWindow(title2, x == -1 ? (int)SDL_WINDOWPOS_CENTERED : x,
                                   y == -1 ? (int)SDL_WINDOWPOS_CENTERED : y, width * fscale,
                                   height * fscale, show ? SDL_WINDOW_SHOWN : SDL_WINDOW_HIDDEN);
-        if (!window) result = kGraphicsApiError;
+        if (!window) result = graphics_api_error();
     }
 
     // Create SDL renderer with V-Sync enabled.
     SDL_Renderer *renderer = NULL;
     if (SUCCEEDED(result)) {
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
-        if (!renderer) result = kGraphicsApiError;
+        if (!renderer) result = graphics_api_error();
     }
 
     // Create SDL streaming texture.
@@ -563,16 +563,16 @@ MmResult graphics_window_create(MmSurfaceId id, int width, int height, int x, in
     if (SUCCEEDED(result)) {
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
                                     SDL_TEXTUREACCESS_STREAMING, width, height);
-        if (!texture) result = kGraphicsApiError;
+        if (!texture) result = graphics_api_error();
     }
 
     if (SUCCEEDED(result)) {
         result = SUCCEEDED(SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE))
-                ? kOk : kGraphicsApiError;
+                ? kOk : graphics_api_error();
     }
 
     if (SUCCEEDED(result)) {
-        result = SUCCEEDED(SDL_RenderClear(renderer)) ? kOk : kGraphicsApiError;
+        result = SUCCEEDED(SDL_RenderClear(renderer)) ? kOk : graphics_api_error();
     }
 
     if (SUCCEEDED(result)) SDL_RenderPresent(renderer);

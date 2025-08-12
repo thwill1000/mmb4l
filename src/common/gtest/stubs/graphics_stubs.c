@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Thomas Hugo Williams
+ * Copyright (c) 2024-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -8,8 +8,6 @@
 #include "../../graphics.h"
 
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
-
-const char *graphics_last_error() { return ""; }
 
 MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }
 
