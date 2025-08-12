@@ -1542,8 +1542,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
         const char *p = ProgMemory + 8;
 
         MmSurfaceId actual_sprite_id = -1;
-        EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
-        // Currently reports error through legacy error reporting.
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, 0x0, &actual_sprite_id));
         EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
     }
 
@@ -1594,7 +1593,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
         const char *p = ProgMemory + 8;
 
         MmSurfaceId actual_sprite_id = -1;
-        EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
+        EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, 0x0, &actual_sprite_id));
         EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
     }
 }
@@ -1658,7 +1657,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
             const char *p = ProgMemory + 8;
 
             MmSurfaceId actual_sprite_id = -1;
-            EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
+            EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, 0x0, &actual_sprite_id));
             EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
         }
     }

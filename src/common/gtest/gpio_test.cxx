@@ -20,15 +20,10 @@ static bool gamepad_open_state[3] = { false, false, false };
 // Defined in main.c
 Features mmb_features;
 
-// Defined in "audio.c"
-const char *audio_last_error() { return NULL; }
-
 // Defined in "events.c"
 MmResult events_init() { return kOk; }
-const char *events_last_error() { return NULL; }
 
 // Defined in "gamepad.c"
-const char *gamepad_last_error() { return NULL; }
 MmResult gamepad_open(MmGamepadId id) {
     gamepad_open_state[id] = true;
     return kOk;
@@ -51,9 +46,6 @@ MmResult gamepad_read_buttons(MmGamepadId id, int64_t *out) {
     }
     return kOk;
 }
-
-// Defined in "graphics.c"
-const char *graphics_last_error() { return NULL; }
 
 // Defined in "options.c"
 Options mmb_options;

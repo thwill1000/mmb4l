@@ -107,8 +107,6 @@ typedef struct {
     char *data;
 } AudioBuffer;
 
-static const char *NO_ERROR = "";
-
 static bool audio_initialised = false;
 static AudioState audio_state = P_NOTHING;
 
@@ -190,6 +188,12 @@ static drmp3_bool32 audio_on_seek(void *pUserData, int offset, drmp3_seek_origin
     return 1;
 }
 
+static MmResult audio_api_error() {
+    const char* emsg = SDL_GetError();
+    if (!emsg) emsg = "none";
+    return mmresult_ex(kAudioApiError, "Audio error: %s", emsg);
+}
+
 /**
  * Configures the SDL Audio sample rate and number of channels.
  *
@@ -218,7 +222,9 @@ static MmResult audio_configure(int sample_rate, int num_channels) {
         };
 
         if (mmb_options.audio) {
-            if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) result = kAudioApiError;
+            if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) {
+                result = audio_api_error();
+            }
         }
 
         LOCK_AUDIO("audio_configure"); // Acquire lock on the new audio.
@@ -251,16 +257,13 @@ MmResult audio_init() {
         };
 
         if (mmb_options.audio) {
-            if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) result = kAudioApiError;
+            if (FAILED(SDL_OpenAudio(&audio_current_spec, NULL))) {
+                result = audio_api_error();
+            }
         }
     }
 
     return result;
-}
-
-const char *audio_last_error() {
-    const char *emsg = SDL_GetError();
-    return emsg && *emsg ? emsg : NO_ERROR;
 }
 
 static void audio_free_buffers() {

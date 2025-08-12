@@ -17,14 +17,10 @@ extern "C" {
 #include "../graphics.h"
 #include "../interrupt.h"
 
-// Defined in "common/audio.c"
-const char *audio_last_error() { return ""; }
-
 // Defined in "common/graphics.c"
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 
 MmSurfaceId graphics_find_window(uint32_t window_id) { return 0; }
-const char *graphics_last_error() { return ""; }
 MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }
 
 // Defined in "common/keyboard.c"
