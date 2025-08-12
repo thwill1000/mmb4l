@@ -1418,12 +1418,13 @@ TEST_F(ParseTest, ParsePage_GivenUnknownStringPageId_AndPicomite) {
 }
 
 TEST_F(ParseTest, ParsePage_GivenUnknownNonStringPageId_AndPicomite) {
-    GTEST_SKIP() << "Segfaults due to longjmp() error handling";
     OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     tokenise_and_append("PAGE WRITE 1");
 
     const char *p = ProgMemory + 9;
     MmSurfaceId page_id = -1;
+    // NOTE: in production parse_page() will currently do a longjmp() error
+    //       rather than return this error code.
     EXPECT_EQ(kSyntax, parse_page(p, &page_id));
     EXPECT_EQ(-1, page_id);
 }
