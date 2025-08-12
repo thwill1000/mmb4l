@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.h
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ctype.h>
 #include <setjmp.h>
 #include <stddef.h>
+
+#include "../common/mmresult.h"
 
 // Types used to define an item of data. Often they are ORed together.
 // Used in tokens, variables and arguments to functions
@@ -231,7 +233,7 @@ const char *GetIntAddressOrNull(const char *p);
 int GetLineLength(char *p);
 char *MtoC(char *p);
 char *CtoM(char *p);
-void Mstrcpy(char *dest, const char *src);
+MmResult Mstrcpy(char *dest, const char *src);
 void Mstrcat(char *dest, const char *src);
 int Mstrcmp(const char *s1, const char *s2);
 char *getCstring(const char *p);
