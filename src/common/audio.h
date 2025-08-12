@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 audio.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -79,9 +79,6 @@ MmResult audio_stop();
 
 /** Perform audio background tasks, e.g. keeping the sound buffers filled. */
 MmResult audio_background_tasks();
-
-/** Gets the last (presumably audio related) error message from the SDL API */
-const char *audio_last_error();
 
 /** Plays next FLAC, MP3 or WAV track. */
 MmResult audio_play_next();

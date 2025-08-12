@@ -15,20 +15,12 @@ extern "C" {
 
 int LocalIndex = 0;
 
-void error_throw(MmResult error) { }
-void error_throw_ex(MmResult error, char *msg, ...) { }
 long long int getinteger(char *p) { return 0; }
 int getint(char *p, int min, int max) { return 0; }
 
 // Defined in "main.c"
 Features mmb_features;
 Options mmb_options;
-
-// Defined in "common/audio.c"
-const char *audio_last_error() { return ""; }
-
-// Defined in "common/events.c"
-const char *events_last_error() { return ""; }
 
 // Defined in "common/file.c"
 MmResult file_getcwd(char *buf, size_t size) { return kError; }
@@ -37,12 +29,8 @@ MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) { return kEr
 // Defined in "common/gpio.c"
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
-// Defined in "common/gamepad.c"
-const char *gamepad_last_error() { return ""; }
-
 // Defined in "common/graphics.c"
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
-const char *graphics_last_error() { return ""; }
 
 // Defined in "core/commandtbl.c"
 CommandToken cmdFUN = 0x0;
