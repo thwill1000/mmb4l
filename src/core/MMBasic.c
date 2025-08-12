@@ -1247,7 +1247,10 @@ char *getstring(const char *p) {
 char *getCstring(const char *p) {
     char *tp;
     tp = GetTempStrMemory();                                        // this will last for the life of the command
-    Mstrcpy(tp, getstring(p));                                      // get the string and save in a temp place
+    if (FAILED(Mstrcpy(tp, getstring(p)))) {                        // get the string and save in a temp place
+        ClearSpecificTempMemory(tp);
+        return NULL;
+    }
     MtoC(tp);                                                       // convert to a C style string
     return tp;
 }
@@ -2734,10 +2737,12 @@ char *CtoM(char *p) {
 
 
 // copy a MMBasic string to a new location
-void Mstrcpy(char *dest, const char *src) {
+MmResult Mstrcpy(char *dest, const char *src) {
+    if (!src) return kInvalidString;
     int i;
     i = *src + 1;
     while(i--) *dest++ = *src++;
+    return kOk;
 }
 
 
