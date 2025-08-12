@@ -58,8 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     GamepadDevice *gamepad = &gamepad_devices[id]; \
     if (!gamepad->controller) return kGamepadNotOpen;
 
-static const char* NO_ERROR = "";
-
 static const SDL_GameControllerAxis SUPPORTED_SDL_CONTROLLER_AXES[] = {
     SDL_CONTROLLER_AXIS_LEFTX,
     SDL_CONTROLLER_AXIS_LEFTY,
@@ -90,6 +88,12 @@ static const SDL_GameControllerButton SUPPORTED_SDL_CONTROLLER_BUTTONS[] = {
 static bool gamepad_initialised = false;
 GamepadDevice gamepad_devices[MAX_GAMEPADS + 1]; // 0'th element is unused.
 
+static MmResult gamepad_api_error() {
+    const char* emsg = SDL_GetError();
+    if (!emsg) emsg = "none";
+    return mmresult_ex(kGamepadApiError, "Gamepad error: %s", emsg);
+}
+
 MmResult gamepad_init() {
     if (gamepad_initialised) return kOk;
     MmResult result = events_init();
@@ -114,19 +118,18 @@ MmResult gamepad_term() {
     return result;
 }
 
-const char *gamepad_last_error() {
-    const char* emsg = SDL_GetError();
-    return emsg && *emsg ? emsg : NO_ERROR;
-}
-
 MmResult gamepad_info(MmGamepadId id, char *buf) {
     if (!gamepad_initialised) gamepad_init();
     buf[0] = '\0';
     if (SDL_NumJoysticks() < id) return kGamepadNotFound;
     SDL_GameController *controller = SDL_GameControllerOpen(id - 1);
-    if (!controller) return kGamepadApiError;
+    if (!controller) {
+        return gamepad_api_error();
+    }
     char *mapping = SDL_GameControllerMapping(controller);
-    if (!mapping) return kGamepadApiError;
+    if (!mapping) {
+        return gamepad_api_error();
+    }
     cstring_cpy(buf, mapping, MAXSTRLEN);
     return kOk;
 }
@@ -158,9 +161,13 @@ MmResult gamepad_open(MmGamepadId id) {
     if (gamepad->controller) return kOk; // Safe to open an already open controller.
 
     gamepad->joystick = SDL_JoystickOpen(id - 1);
-    if (!gamepad->joystick) return kGamepadApiError;
+    if (!gamepad->joystick) {
+        return gamepad_api_error();
+    }
     gamepad->controller = SDL_GameControllerOpen(id - 1);
-    if (!gamepad->controller) return kGamepadApiError;
+    if (!gamepad->controller) {
+        return gamepad_api_error();
+    }
     gamepad->sdlId = SDL_JoystickInstanceID(gamepad->joystick);
 
     // Read initial button state because buttons may already be down before event
@@ -386,7 +393,7 @@ MmResult gamepad_rumble(MmGamepadId id, uint16_t low_freq, uint16_t high_freq,
     if (SDL_GameControllerHasRumble(gamepad->controller)) {
         if (FAILED(SDL_GameControllerRumble(gamepad->controller, low_freq, high_freq,
                                             duration_ms))) {
-            return kGamepadApiError;
+            return gamepad_api_error();
         }
     }
 #endif
@@ -400,7 +407,7 @@ MmResult gamepad_rumble_triggers(MmGamepadId id, uint16_t left, uint16_t right,
     if (SDL_GameControllerHasRumbleTriggers(gamepad->controller)) {
         if (FAILED(SDL_GameControllerRumbleTriggers(gamepad->controller, left, right,
                                                     duration_ms))) {
-            return kGamepadApiError;
+            return gamepad_api_error();
         }
     }
 #endif

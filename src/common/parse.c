@@ -706,6 +706,7 @@ MmResult parse_sprite_id(const char *p, uint64_t flags, MmSurfaceId *sprite_id) 
     if (!*p) return kSyntax;
     *sprite_id = sprite_id_to_surface_id(
             getint(p, flags & kParseSpriteIdAllowZero ? 0 : 1, sprite_max_id()));
+    if (*sprite_id == -1) return kGraphicsInvalidSprite;
 
     // If allowed then 0 does not mean surface 0;
     // it is a special value used by some of the SPRITE() functions.
