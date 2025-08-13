@@ -2,11 +2,13 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <string>
-#include <vector>
+#include <thread>
 #include <unordered_set>
+#include <vector>
 
 extern "C" {
 
@@ -313,4 +315,881 @@ TEST_F(DirectoryApiTest, CloseNullStream) {
 
     EXPECT_EQ(kInternalFault, result);
     EXPECT_STREQ("stream == NULL", mmresult_to_string(result));
+}
+
+// Unit tests for file_exists_dir() function
+class FileExistsDirTest : public FileTest {
+protected:
+    void SetUp() override {
+        FileTest::SetUp(); // Call parent setup
+
+        // Create additional test directories for comprehensive testing
+        std::filesystem::create_directories(test_dir / "existing_dir");
+        std::filesystem::create_directories(test_dir / "nested" / "deep" / "directory");
+        std::filesystem::create_directories(test_dir / "empty_dir");
+
+        // Create some files for negative testing
+        std::ofstream(test_dir / "regular_file.txt") << "content";
+        std::ofstream(test_dir / "file_without_extension") << "content";
+
+        // Create directory with special characters (if supported)
+        try {
+            std::filesystem::create_directories(test_dir / "dir with spaces");
+            std::filesystem::create_directories(test_dir / "dir-with-dashes");
+        } catch (const std::exception&) {
+            // Some filesystems might not support these characters
+        }
+    }
+};
+
+// Test basic functionality - existing directory
+TEST_F(FileExistsDirTest, ExistingDirectory_ReturnsTrue) {
+    std::string dir_path = (test_dir / "existing_dir").string();
+
+    bool result = file_exists_dir(dir_path.c_str());
+
+    EXPECT_TRUE(result);
+}
+
+// Test non-existent directory
+TEST_F(FileExistsDirTest, NonExistentDirectory_ReturnsFalse) {
+    std::string dir_path = (test_dir / "nonexistent_dir").string();
+
+    bool result = file_exists_dir(dir_path.c_str());
+
+    EXPECT_FALSE(result);
+}
+
+// Test that regular files return false
+TEST_F(FileExistsDirTest, RegularFile_ReturnsFalse) {
+    std::string file_path = (test_dir / "regular_file.txt").string();
+
+    bool result = file_exists_dir(file_path.c_str());
+
+    EXPECT_FALSE(result);
+}
+
+// Test file without extension
+TEST_F(FileExistsDirTest, FileWithoutExtension_ReturnsFalse) {
+    std::string file_path = (test_dir / "file_without_extension").string();
+
+    bool result = file_exists_dir(file_path.c_str());
+
+    EXPECT_FALSE(result);
+}
+
+// Test null pointer
+TEST_F(FileExistsDirTest, NullPointer_ReturnsFalse) {
+    bool result = file_exists_dir(nullptr);
+
+    EXPECT_FALSE(result);
+}
+
+// Test empty string
+TEST_F(FileExistsDirTest, EmptyString_ReturnsFalse) {
+    bool result = file_exists_dir("");
+
+    EXPECT_FALSE(result);
+}
+
+// Test current directory
+TEST_F(FileExistsDirTest, CurrentDirectory_ReturnsTrue) {
+    bool result = file_exists_dir(".");
+
+    EXPECT_TRUE(result);
+}
+
+// Test parent directory
+TEST_F(FileExistsDirTest, ParentDirectory_ReturnsTrue) {
+    bool result = file_exists_dir("..");
+
+    EXPECT_TRUE(result);
+}
+
+// Test absolute path to existing directory
+TEST_F(FileExistsDirTest, AbsolutePath_ExistingDirectory_ReturnsTrue) {
+    std::string abs_path = std::filesystem::absolute(test_dir / "existing_dir").string();
+
+    bool result = file_exists_dir(abs_path.c_str());
+
+    EXPECT_TRUE(result);
+}
+
+// Test nested directory
+TEST_F(FileExistsDirTest, NestedDirectory_ReturnsTrue) {
+    std::string nested_path = (test_dir / "nested" / "deep" / "directory").string();
+
+    bool result = file_exists_dir(nested_path.c_str());
+
+    EXPECT_TRUE(result);
+}
+
+// Test parent of nested directory
+TEST_F(FileExistsDirTest, ParentOfNestedDirectory_ReturnsTrue) {
+    std::string parent_path = (test_dir / "nested" / "deep").string();
+
+    bool result = file_exists_dir(parent_path.c_str());
+
+    EXPECT_TRUE(result);
+}
+
+// Test empty directory
+TEST_F(FileExistsDirTest, EmptyDirectory_ReturnsTrue) {
+    std::string empty_dir_path = (test_dir / "empty_dir").string();
+
+    bool result = file_exists_dir(empty_dir_path.c_str());
+
+    EXPECT_TRUE(result);
+}
+
+// Test directory with spaces in name
+TEST_F(FileExistsDirTest, DirectoryWithSpaces_ReturnsTrue) {
+    std::string dir_path = (test_dir / "dir with spaces").string();
+
+    // Only test if the directory was successfully created
+    if (std::filesystem::exists(dir_path)) {
+        bool result = file_exists_dir(dir_path.c_str());
+        EXPECT_TRUE(result);
+    }
+}
+
+// Test directory with dashes in name
+TEST_F(FileExistsDirTest, DirectoryWithDashes_ReturnsTrue) {
+    std::string dir_path = (test_dir / "dir-with-dashes").string();
+
+    // Only test if the directory was successfully created
+    if (std::filesystem::exists(dir_path)) {
+        bool result = file_exists_dir(dir_path.c_str());
+        EXPECT_TRUE(result);
+    }
+}
+
+// Test very long directory name
+TEST_F(FileExistsDirTest, LongDirectoryName_Works) {
+    // Create a directory with a long name (but within filesystem limits)
+    std::string long_name(200, 'x');  // 200 character name
+    std::string long_dir_path = (test_dir / long_name).string();
+
+    try {
+        std::filesystem::create_directory(long_dir_path);
+
+        bool result = file_exists_dir(long_dir_path.c_str());
+        EXPECT_TRUE(result);
+
+    } catch (const std::exception&) {
+        // Skip test if filesystem doesn't support long names
+        GTEST_SKIP() << "Filesystem doesn't support long directory names";
+    }
+}
+
+// Test case sensitivity (behavior depends on filesystem)
+TEST_F(FileExistsDirTest, CaseSensitivity) {
+    // Create directory with specific case
+    std::string original_path = (test_dir / "CaseSensitiveDir").string();
+    std::string different_case_path = (test_dir / "casesensitivedir").string();
+
+    std::filesystem::create_directory(original_path);
+
+    bool original_result = file_exists_dir(original_path.c_str());
+    bool different_case_result = file_exists_dir(different_case_path.c_str());
+
+    EXPECT_TRUE(original_result);
+
+    // On case-sensitive filesystems, different case should return false
+    // On case-insensitive filesystems, it might return true
+    // We just ensure the function doesn't crash and behaves consistently
+    // The actual result depends on the filesystem
+    EXPECT_FALSE(different_case_result);
+}
+
+// Test trailing slash handling
+TEST_F(FileExistsDirTest, TrailingSlash_Works) {
+    std::string dir_path = (test_dir / "existing_dir").string();
+    std::string dir_path_with_slash = dir_path + "/";
+
+    bool without_slash = file_exists_dir(dir_path.c_str());
+    bool with_slash = file_exists_dir(dir_path_with_slash.c_str());
+
+    EXPECT_TRUE(without_slash);
+    EXPECT_TRUE(with_slash);  // Both should work
+}
+
+// Test path with double slashes
+TEST_F(FileExistsDirTest, DoubleSlashes_Works) {
+    std::string dir_path = (test_dir / "existing_dir").string();
+
+    // Insert double slash in the middle of the path
+    size_t pos = dir_path.find_last_of('/');
+    if (pos != std::string::npos && pos > 0) {
+        std::string double_slash_path = dir_path.substr(0, pos) + "//" + dir_path.substr(pos + 1);
+
+        bool result = file_exists_dir(double_slash_path.c_str());
+        EXPECT_TRUE(result);  // Should still work
+    }
+}
+
+// Test symbolic link to directory (if supported)
+TEST_F(FileExistsDirTest, SymlinkToDirectory_ReturnsTrue) {
+    std::string target_dir = (test_dir / "existing_dir").string();
+    std::string link_path = (test_dir / "link_to_dir").string();
+
+    try {
+        std::filesystem::create_symlink(target_dir, link_path);
+
+        bool result = file_exists_dir(link_path.c_str());
+        EXPECT_TRUE(result);  // Should follow the symlink
+
+    } catch (const std::exception&) {
+        // Skip test if symlinks not supported
+        GTEST_SKIP() << "Symbolic links not supported on this system";
+    }
+}
+
+// Test consistency with filesystem operations
+TEST_F(FileExistsDirTest, ConsistencyWithFilesystem) {
+    std::string dir_path = (test_dir / "consistency_test").string();
+
+    // Initially should not exist
+    EXPECT_FALSE(file_exists_dir(dir_path.c_str()));
+    EXPECT_FALSE(std::filesystem::exists(dir_path));
+
+    // Create directory
+    std::filesystem::create_directory(dir_path);
+
+    // Now both should report it exists
+    EXPECT_TRUE(file_exists_dir(dir_path.c_str()));
+    EXPECT_TRUE(std::filesystem::exists(dir_path));
+
+    // Remove directory
+    std::filesystem::remove(dir_path);
+
+    // Both should report it doesn't exist
+    EXPECT_FALSE(file_exists_dir(dir_path.c_str()));
+    EXPECT_FALSE(std::filesystem::exists(dir_path));
+}
+
+// Performance test with many directories
+TEST_F(FileExistsDirTest, Performance_ManyDirectories) {
+    // Create multiple directories
+    const int num_dirs = 50;
+    std::vector<std::string> dir_paths;
+
+    for (int i = 0; i < num_dirs; i++) {
+        std::string dir_name = "perf_test_dir_" + std::to_string(i);
+        std::string dir_path = (test_dir / dir_name).string();
+        std::filesystem::create_directory(dir_path);
+        dir_paths.push_back(dir_path);
+    }
+
+    // Test all directories exist
+    for (const auto& path : dir_paths) {
+        bool result = file_exists_dir(path.c_str());
+        EXPECT_TRUE(result) << "Directory not found: " << path;
+    }
+
+    // Test some non-existent directories
+    for (int i = 0; i < 10; i++) {
+        std::string nonexistent = (test_dir / ("nonexistent_" + std::to_string(i))).string();
+        bool result = file_exists_dir(nonexistent.c_str());
+        EXPECT_FALSE(result);
+    }
+}
+
+// Unit tests for file_list() function
+class FileListTest : public FileTest {
+protected:
+    void SetUp() override {
+        FileTest::SetUp(); // Call parent setup
+
+        // Create additional test files for more comprehensive testing
+        create_test_files();
+    }
+
+    void create_test_files() {
+        // Create files with different extensions
+        std::ofstream(test_dir / "document.txt") << "text document";
+        std::ofstream(test_dir / "image.jpg") << "fake image data";
+        std::ofstream(test_dir / "script.sh") << "#!/bin/bash\necho hello";
+        std::ofstream(test_dir / "data.csv") << "name,age\nJohn,30";
+        std::ofstream(test_dir / "README") << "This is a readme file";
+
+        // Create files with different sizes
+        std::ofstream small_file(test_dir / "small.bin");
+        small_file << "small";  // 5 bytes
+        small_file.close();
+
+        std::ofstream medium_file(test_dir / "medium.bin");
+        std::string medium_content(1024, 'M');  // 1KB
+        medium_file << medium_content;
+        medium_file.close();
+
+        std::ofstream large_file(test_dir / "large.bin");
+        std::string large_content(10240, 'L');  // 10KB
+        large_file << large_content;
+        large_file.close();
+
+        // Create hidden files
+        std::ofstream(test_dir / ".hidden_file") << "hidden content";
+        std::ofstream(test_dir / ".bashrc") << "export PATH=/usr/bin";
+
+        // Create files with special characters (if filesystem supports them)
+        try {
+            std::ofstream(test_dir / "file with spaces.txt") << "spaces in name";
+            std::ofstream(test_dir / "file-with-dashes.log") << "dashes in name";
+        } catch (const std::exception&) {
+            // Some filesystems might not support these characters
+        }
+
+        // Sleep briefly to ensure different modification times
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+        // Create a newer file for time-based sorting tests
+        std::ofstream(test_dir / "newer_file.txt") << "this file is newer";
+    }
+
+    // Helper to convert FileList to vector of names for easier testing
+    std::vector<std::string> get_file_names(const FileList& list, size_t max_count = SIZE_MAX) {
+        std::vector<std::string> names;
+        size_t count = std::min(list.count, std::min(max_count, (size_t)FILE_LIST_MAX));
+        for (size_t i = 0; i < count; i++) {
+            names.push_back(std::string(list.files[i].name));
+        }
+        return names;
+    }
+
+    // Helper to check if vector is sorted
+    template<typename T>
+    bool is_sorted(const std::vector<T>& vec) {
+        return std::is_sorted(vec.begin(), vec.end());
+    }
+
+    // Helper function for C++11 compatible starts_with
+    bool starts_with(const std::string& str, const std::string& prefix) {
+        return str.length() >= prefix.length() &&
+               str.substr(0, prefix.length()) == prefix;
+    }
+
+    // Helper function for C++11 compatible ends_with
+    bool ends_with(const std::string& str, const std::string& suffix) {
+        return str.length() >= suffix.length() &&
+               str.substr(str.length() - suffix.length()) == suffix;
+    }
+
+    // Helper to check if files are sorted by size
+    bool is_sorted_by_size(const FileList& list) {
+        for (size_t i = 1; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+            if (list.files[i-1].size > list.files[i].size) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Helper to check if files are sorted by time
+    bool is_sorted_by_time(const FileList& list) {
+        for (size_t i = 1; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+            if (list.files[i-1].time > list.files[i].time) {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
+// Test basic functionality - list all files
+TEST_F(FileListTest, ListAllFiles) {
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_GT(list.count, 0);
+    EXPECT_FALSE(list.buf_full);
+
+    auto names = get_file_names(list);
+    EXPECT_TRUE(is_sorted(names));
+
+    // Check that all expected files found
+    std::unordered_set<std::string> expected_files = {
+        ".", "..", "link_to_file1", "subdir",
+        "file1.txt", "file2.txt", "document.txt", "image.jpg",
+        "script.sh", "data.csv", "README", "small.bin",
+        "medium.bin", "large.bin", ".hidden_file", ".bashrc",
+        "file with spaces.txt", "file-with-dashes.log", "newer_file.txt"
+    };
+
+    for (const auto& name : names) {
+        EXPECT_TRUE(expected_files.count(name)) << "Unexpected file found: " << name;
+    }
+}
+
+// Test wildcard pattern matching
+TEST_F(FileListTest, WildcardPatterns) {
+    FileList list;
+
+    // Test *.txt pattern
+    std::string txt_pattern = test_dir.string() + "/*.txt";
+    MmResult result = file_list(txt_pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_GT(list.count, 0);
+
+    auto names = get_file_names(list);
+    for (const auto& name : names) {
+        EXPECT_TRUE(ends_with(name, ".txt")) << "Non-txt file found: " << name;
+    }
+}
+
+// Test sorting by name
+TEST_F(FileListTest, SortByName) {
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    auto names = get_file_names(list);
+    EXPECT_TRUE(is_sorted(names));
+}
+
+// Test sorting by size
+TEST_F(FileListTest, SortBySize) {
+    FileList list;
+    std::string pattern = test_dir.string() + "/*.bin";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortBySize, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_GT(list.count, 0);
+    EXPECT_TRUE(is_sorted_by_size(list));
+
+    // Verify we have files of different sizes
+    bool found_small = false, found_large = false;
+    for (size_t i = 0; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+        if (list.files[i].size < 100) found_small = true;
+        if (list.files[i].size > 1000) found_large = true;
+    }
+    EXPECT_TRUE(found_small && found_large);
+}
+
+// Test sorting by time
+TEST_F(FileListTest, SortByTime) {
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByTime, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_GT(list.count, 0);
+    EXPECT_TRUE(is_sorted_by_time(list));
+}
+
+// Test sorting by file extension
+TEST_F(FileListTest, SortByExtension) {
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByExtension, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_GT(list.count, 0);
+
+    // Verify files are grouped by extension
+    auto names = get_file_names(list);
+    std::string prev_extension;
+    for (const auto& name : names) {
+        std::string extension;
+        size_t dot_pos = name.find_last_of('.');
+        if (dot_pos != std::string::npos) {
+            extension = name.substr(dot_pos);
+        }
+
+        if (!prev_extension.empty() && !extension.empty()) {
+            EXPECT_LE(prev_extension, extension)
+                << "Files not sorted by extension: " << prev_extension << " > " << extension;
+        }
+        prev_extension = extension;
+    }
+}
+
+// Test hidden files pattern
+TEST_F(FileListTest, HiddenFilesPattern) {
+    FileList list;
+    std::string pattern = test_dir.string() + "/.*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_GT(list.count, 0);
+
+    auto names = get_file_names(list);
+    for (const auto& name : names) {
+        EXPECT_EQ(name[0], '.') << "Non-hidden file found: " << name;
+    }
+}
+
+// Test specific file patterns
+TEST_F(FileListTest, SpecificPatterns) {
+    FileList list;
+
+    // Test pattern with question mark
+    std::string pattern = test_dir.string() + "/file?.txt";
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    auto names = get_file_names(list);
+
+    // Should match file1.txt and file2.txt
+    EXPECT_GE(names.size(), 2);
+    for (const auto& name : names) {
+        EXPECT_TRUE(name == "file1.txt" || name == "file2.txt" ||
+                   (name.length() == 9 && starts_with(name, "file") && ends_with(name, ".txt")));
+    }
+}
+
+// Test empty directory
+TEST_F(FileListTest, EmptyDirectory) {
+    // Create an empty subdirectory
+    std::filesystem::path empty_dir = test_dir / "empty";
+    std::filesystem::create_directory(empty_dir);
+
+    FileList list;
+    std::string pattern = empty_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_EQ(list.count, 2); // . and ..
+    EXPECT_FALSE(list.buf_full);
+}
+
+// Test invalid directory
+TEST_F(FileListTest, InvalidDirectory) {
+    FileList list;
+    std::string pattern = "/nonexistent/directory/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_NE(result, kOk);
+    EXPECT_EQ(list.count, 0);
+}
+
+// Test null parameters
+TEST_F(FileListTest, NullParameters) {
+    FileList list;
+
+    // Test null fspec
+    MmResult result = file_list(nullptr, kFileSortByName, &list);
+    EXPECT_EQ(result, kInternalFault);
+
+    // Test null list
+    std::string pattern = test_dir.string() + "/*";
+    result = file_list(pattern.c_str(), kFileSortByName, nullptr);
+    EXPECT_EQ(result, kInternalFault);
+}
+
+// Test current directory pattern
+TEST_F(FileListTest, CurrentDirectoryPattern) {
+    // Change to test directory
+    std::filesystem::current_path(test_dir);
+
+    FileList list;
+    MmResult result = file_list("*", kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_GT(list.count, 0);
+
+    // Restore original directory (cleanup is handled by TearDown)
+}
+
+// Test file information accuracy
+TEST_F(FileListTest, FileInformationAccuracy) {
+    FileList list;
+    std::string pattern = test_dir.string() + "/small.bin";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_EQ(list.count, 1);
+
+    // Check file size is correct (should be 5 bytes for "small")
+    EXPECT_EQ(list.files[0].size, 5);
+    EXPECT_STREQ(list.files[0].name, "small.bin");
+    EXPECT_GT(list.files[0].time, 0);
+}
+
+// Test buffer limits (if we can create enough files)
+TEST_F(FileListTest, BufferLimits) {
+    // This test is more theoretical since FILE_LIST_MAX is typically large
+    // But we test the logic
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+
+    // Even if buffer isn't full, count should be consistent
+    if (list.count <= FILE_LIST_MAX) {
+        EXPECT_FALSE(list.buf_full);
+        EXPECT_EQ(list.count, get_file_names(list).size());
+    }
+}
+
+// Test mixed file types
+TEST_F(FileListTest, MixedFileTypes) {
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_GT(list.count, 0);
+
+    // Should have files with different extensions
+    auto names = get_file_names(list);
+    bool has_txt = false, has_jpg = false, has_no_ext = false;
+
+    for (const auto& name : names) {
+        if (ends_with(name, ".txt")) has_txt = true;
+        if (ends_with(name, ".jpg")) has_jpg = true;
+        if (name.find('.') == std::string::npos) has_no_ext = true;
+    }
+
+    EXPECT_TRUE(has_txt);
+    EXPECT_TRUE(has_jpg);
+    EXPECT_TRUE(has_no_ext);
+}
+
+// Test case sensitivity (depends on filesystem)
+TEST_F(FileListTest, CaseSensitivity) {
+    // Create files with different cases
+    std::ofstream(test_dir / "File.TXT") << "uppercase extension";
+    std::ofstream(test_dir / "FILE.txt") << "mixed case";
+
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+
+    auto names = get_file_names(list);
+    bool found_upper = false, found_mixed = false;
+
+    for (const auto& name : names) {
+        if (name == "File.TXT") found_upper = true;
+        if (name == "FILE.txt") found_mixed = true;
+    }
+
+    // On case-sensitive filesystems, both should exist
+    // On case-insensitive filesystems, behavior may vary
+    // We just verify the function doesn't crash
+    EXPECT_TRUE(found_upper || found_mixed);
+}
+
+// Test that directory path is populated correctly
+TEST_F(FileListTest, DirectoryPathPopulated) {
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_STREQ(list.directory, test_dir.c_str());
+}
+
+// Test that free space is populated and reasonable
+TEST_F(FileListTest, FreeSpacePopulated) {
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    // Free space should be greater than 0 on most systems
+    // (unless the disk is completely full, which is unlikely in tests)
+    EXPECT_GT(list.free_space, 0);
+
+    // Sanity check: free space shouldn't be ridiculously large
+    // (more than 1 exabyte would be suspicious)
+    EXPECT_LT(list.free_space, 1ULL << 60);
+}
+
+// Test current directory pattern with new fields
+TEST_F(FileListTest, CurrentDirectoryWithNewFields) {
+    // Change to test directory
+    std::filesystem::current_path(test_dir);
+
+    FileList list;
+    MmResult result = file_list("*", kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_GT(list.count, 0);
+    EXPECT_STREQ(list.directory, test_dir.c_str());
+    EXPECT_GT(list.free_space, 0);
+
+    // Also test that we can get the same free space using the helper function
+    uint64_t helper_free_space;
+    EXPECT_EQ(file_get_free_space(".", &helper_free_space), kOk);
+    EXPECT_EQ(list.free_space, helper_free_space);
+}
+
+// Test subdirectory path handling
+TEST_F(FileListTest, SubdirectoryPathHandling) {
+    FileList list;
+    std::string pattern = (test_dir / "subdir").string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_STREQ(list.directory, (test_dir / "subdir").c_str());
+    EXPECT_GT(list.free_space, 0); // Should still have free space info
+}
+
+// Test file_get_free_space function directly
+TEST_F(FileListTest, GetFreeSpaceFunction) {
+    uint64_t free_space;
+
+    // Test with valid directory
+    MmResult result = file_get_free_space(test_dir.c_str(), &free_space);
+    EXPECT_EQ(result, kOk);
+    EXPECT_GT(free_space, 0);
+
+    // Test with valid file
+    std::string file_path = (test_dir / "file1.txt").string();
+    uint64_t file_free_space;
+    result = file_get_free_space(file_path.c_str(), &file_free_space);
+    EXPECT_EQ(result, kOk);
+    EXPECT_EQ(free_space, file_free_space); // Should be same filesystem
+
+    // Test with invalid path
+    result = file_get_free_space("/nonexistent/path", &free_space);
+    EXPECT_NE(result, kOk);
+
+    // Test with null parameters
+    result = file_get_free_space(nullptr, &free_space);
+    EXPECT_EQ(result, kInternalFault);
+
+    result = file_get_free_space(test_dir.c_str(), nullptr);
+    EXPECT_EQ(result, kInternalFault);
+}
+
+// Test free space consistency across multiple calls
+TEST_F(FileListTest, FreeSpaceConsistency) {
+    FileList list1, list2;
+    std::string pattern = test_dir.string() + "/*";
+
+    // Get free space twice in quick succession
+    MmResult result1 = file_list(pattern.c_str(), kFileSortByName, &list1);
+    MmResult result2 = file_list(pattern.c_str(), kFileSortByName, &list2);
+
+    EXPECT_EQ(result1, kOk);
+    EXPECT_EQ(result2, kOk);
+
+    // Free space should be very close (within a reasonable margin)
+    // Allow for small differences due to system activity
+    uint64_t diff = (list1.free_space > list2.free_space) ?
+                    list1.free_space - list2.free_space :
+                    list2.free_space - list1.free_space;
+
+    // Difference should be less than 1MB (very generous margin)
+    EXPECT_LT(diff, 1024 * 1024);
+}
+
+TEST_F(FileListTest, FileTypesPopulated) {
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+    EXPECT_GT(list.count, 0);
+
+    // Verify that all files have valid file types
+    for (size_t i = 0; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+        EXPECT_NE(list.files[i].type, kFileTypeUnknown)
+            << "File " << list.files[i].name << " has unknown type";
+
+        // Verify type makes sense for the filename
+        std::string name(list.files[i].name);
+
+        if (name == "subdir" || name == "." || name == "..") {
+            EXPECT_EQ(list.files[i].type, kFileTypeDirectory);
+        } else if (name.find('.') != std::string::npos) {
+            // Most files with extensions should be regular files
+            EXPECT_EQ(list.files[i].type, kFileTypeRegularFile);
+        }
+    }
+}
+
+// Test file type detection for different file types
+TEST_F(FileListTest, FileTypeDetection) {
+    // Create additional files for testing
+    std::filesystem::create_directories(test_dir / "test_subdir");
+
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+
+    MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
+
+    EXPECT_EQ(result, kOk);
+
+    // Check specific file types
+    std::unordered_map<std::string, FileType> expected_types = {
+        {"test_subdir", kFileTypeDirectory},
+        {"subdir", kFileTypeDirectory}
+    };
+
+    for (size_t i = 0; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+        std::string name(list.files[i].name);
+
+        if (expected_types.find(name) != expected_types.end()) {
+            EXPECT_EQ(list.files[i].type, expected_types[name])
+                << "Wrong type for " << name;
+        } else if (name.find('.') != std::string::npos && name != "." && name != "..") {
+            // Most files with extensions should be regular files
+            EXPECT_EQ(list.files[i].type, kFileTypeRegularFile)
+                << "Expected regular file for " << name;
+        }
+    }
+}
+
+// Test FileType consistency between file_list and file_readdir
+TEST_F(FileListTest, FileTypeConsistencyWithReaddir) {
+    // Get file types from file_list
+    FileList list;
+    std::string pattern = test_dir.string() + "/*";
+    ASSERT_EQ(file_list(pattern.c_str(), kFileSortByName, &list), kOk);
+
+    // Get file types from directory reading
+    DirStream *stream = nullptr;
+    ASSERT_EQ(file_opendir(test_dir.c_str(), &stream), kOk);
+
+    std::unordered_map<std::string, FileType> readdir_types;
+    DirEntry *entry;
+    while (file_readdir(stream, &entry) == kOk && entry != nullptr) {
+        if (strcmp(entry->name, ".") != 0 && strcmp(entry->name, "..") != 0) {
+            readdir_types[entry->name] = entry->type;
+        }
+    }
+    file_closedir(stream);
+
+    // Compare types (note: they might differ for symlinks due to stat vs readdir)
+    for (size_t i = 0; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+        std::string name(list.files[i].name);
+
+        if (readdir_types.find(name) != readdir_types.end()) {
+            FileType list_type = list.files[i].type;
+            FileType readdir_type = readdir_types[name];
+
+            // Types should match, except for symlinks where stat() might resolve the link
+            if (readdir_type != kFileTypeSymbolicLink) {
+                EXPECT_EQ(list_type, readdir_type)
+                    << "Type mismatch for " << name
+                    << ": list=" << list_type << ", readdir=" << readdir_type;
+            }
+        }
+    }
 }

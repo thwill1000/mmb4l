@@ -46,9 +46,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#include <fnmatch.h>
 #include <libgen.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <unistd.h>
 
 #include "cstring.h"
@@ -159,6 +163,24 @@ MmResult file_delete(const char *filename) {
     }
 }
 
+MmResult file_get_free_space(const char *path, uint64_t *free_space) {
+    if (!path || !free_space) {
+        return mmresult_ex(kInternalFault, "Invalid parameter");
+    }
+
+    struct statvfs fs_stat;
+    errno = 0;
+    if (statvfs(path, &fs_stat) != 0) {
+        return errno;
+    }
+
+    // Calculate free space: available blocks * block size
+    // Use f_bavail (blocks available to non-privileged users) rather than f_bfree
+    *free_space = (uint64_t)fs_stat.f_bavail * (uint64_t)fs_stat.f_frsize;
+    
+    return kOk;
+}
+
 int file_getc(int fnbr) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
         error_throw(kFileInvalidFileNumber);
@@ -190,6 +212,226 @@ int file_getc(int fnbr) {
 
     ERROR_INTERNAL_FAULT;
     return -1;
+}
+
+/**
+ * Comparison function for qsort to sort by filename.
+ */
+static int compare_by_name(const void *a, const void *b) {
+    const FileMatch *file_a = (const FileMatch *)a;
+    const FileMatch *file_b = (const FileMatch *)b;
+
+    return strcmp(file_a->name, file_b->name);
+}
+
+/**
+ * Comparison functions for qsort to sort by file size.
+ */
+static int compare_by_size(const void *a, const void *b) {
+    const FileMatch *file_a = (const FileMatch *)a;
+    const FileMatch *file_b = (const FileMatch *)b;
+
+    if (file_a->size < file_b->size) return -1;
+    if (file_a->size > file_b->size) return 1;
+    return strcmp(file_a->name, file_b->name); // Secondary sort by name
+}
+
+/**
+ * Comparison functions for qsort to sort by file modification time.
+ */
+static int compare_by_time(const void *a, const void *b) {
+    const FileMatch *file_a = (const FileMatch *)a;
+    const FileMatch *file_b = (const FileMatch *)b;
+
+    if (file_a->time < file_b->time) return -1;
+    if (file_a->time > file_b->time) return 1;
+    return strcmp(file_a->name, file_b->name); // Secondary sort by name
+}
+
+/**
+ * Comparison functions for qsort to sort by file extension.
+ */
+static int compare_by_extension(const void *a, const void *b) {
+    const FileMatch *file_a = (const FileMatch *)a;
+    const FileMatch *file_b = (const FileMatch *)b;
+
+    // Sort by extension, then by name
+    const char *ext_a = strrchr(file_a->name, '.');
+    const char *ext_b = strrchr(file_b->name, '.');
+
+    // Files without extensions sort before files with extensions
+    if (!ext_a && !ext_b) return strcmp(file_a->name, file_b->name);
+    if (!ext_a) return -1;
+    if (!ext_b) return 1;
+
+    int ext_cmp = strcmp(ext_a, ext_b);
+    if (ext_cmp != 0) return ext_cmp;
+    return strcmp(file_a->name, file_b->name); // Same extension, sort by name
+}
+
+/**
+ * Helper function to extract directory and pattern from file specification
+ */
+static MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern) {
+    if (!fspec || !dirname || !pattern) {
+        return mmresult_ex(kInternalFault, "Invalid parameter");
+    }
+
+    ON_FAILURE_RETURN(path_get_canonical(fspec, dirname, PATH_MAX));
+
+    // If the fspec is just a directory name then return all files
+    if (file_exists_dir(dirname)) {
+        strcpy(pattern, "*");
+        return kOk;
+    }
+
+    // Find the last slash to separate directory from pattern
+    char *last_slash = strrchr(dirname, '/');
+    if (!last_slash) ON_FAILURE_RETURN(kInternalFault);
+    if (FAILED(cstring_cpy(pattern, last_slash + 1, STRINGSIZE))) {
+        return kStringTooLong;
+    }
+
+    // Omit pattern from directory
+    *last_slash = '\0';
+
+    return kOk;
+}
+
+MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
+    if (!fspec || !list) {
+        return mmresult_ex(kInternalFault, "Invalid parameter");
+    }
+
+    // Initialize the list
+    memset(list, 0, sizeof(FileList));
+    list->count = 0;
+    list->buf_full = false;
+
+    char pattern[STRINGSIZE];
+
+    // Parse the file specification
+    ON_FAILURE_RETURN(file_parse_fspec(fspec, list->directory, pattern));
+
+    // Store the remaining free space in the list
+    MmResult result = file_get_free_space(list->directory, &(list->free_space));
+    if (FAILED(result)) list->free_space = 0;
+
+    // Open the directory
+    DirStream *stream = NULL;
+    ON_FAILURE_RETURN(file_opendir(list->directory, &stream));
+
+    char *buf_ptr = list->buf;
+    size_t buf_remaining = sizeof(list->buf);
+    size_t files_added = 0;
+
+    DirEntry *entry;
+    while (true) {
+        MmResult result = file_readdir(stream, &entry);
+        if (FAILED(result)) {
+            file_closedir(stream);
+            return result;
+        }
+
+        if (!entry) break; // End of directory
+
+        // Skip if the filename does not match the pattern
+        if (fnmatch(pattern, entry->name, 0x0) != 0) {
+            continue;
+        }
+
+        // Skip if we've reached the maximum number of files
+        if (files_added >= FILE_LIST_MAX) {
+            list->count++;
+            continue;
+        }
+
+        // Check if we have enough buffer space for the filename
+        size_t name_len = strlen(entry->name) + 1; // +1 for null terminator
+        if (name_len > buf_remaining) {
+            list->buf_full = true;
+            list->count++;
+            continue;
+        }
+
+        // Get file statistics
+        char full_path[PATH_MAX];
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+        snprintf(full_path, sizeof(full_path), "%s/%s", list->directory, entry->name);
+#pragma GCC diagnostic pop
+
+        struct stat st;
+        if (stat(full_path, &st) != 0) {
+            // If we can't stat the file, make stuff up, perhaps we should omit it ?
+            st.st_size = 0;
+            st.st_mtime = 0;
+        }
+
+        // Add the file to our list
+        FileMatch *fmatch = &list->files[files_added];
+
+        // Copy the filename to the buffer
+        strcpy(buf_ptr, entry->name);
+        fmatch->name = buf_ptr;
+        fmatch->size = st.st_size;
+        fmatch->time = st.st_mtime;
+
+        // Set file type based on stat information
+        // Note: We use stat() result rather than DirEntry#type for more reliable results
+        if (S_ISREG(st.st_mode)) {
+            fmatch->type = kFileTypeRegularFile;
+        } else if (S_ISDIR(st.st_mode)) {
+            fmatch->type = kFileTypeDirectory;
+        } else if (S_ISLNK(st.st_mode)) {
+            fmatch->type = kFileTypeSymbolicLink;
+        } else if (S_ISBLK(st.st_mode)) {
+            fmatch->type = kFileTypeBlockDevice;
+        } else if (S_ISCHR(st.st_mode)) {
+            fmatch->type = kFileTypeCharacterDevice;
+        } else if (S_ISFIFO(st.st_mode)) {
+            fmatch->type = kFileTypeNamedPipe;
+        } else if (S_ISSOCK(st.st_mode)) {
+            fmatch->type = kFileTypeSocket;
+        } else {
+            fmatch->type = kFileTypeUnknown;
+        }
+
+        // Update buffer pointer and remaining space
+        buf_ptr += name_len;
+        buf_remaining -= name_len;
+        files_added++;
+        list->count++;
+    }
+
+    file_closedir(stream);
+
+    // Sort the files we successfully added
+    if (files_added > 1) {
+        int (*compare_func)(const void *, const void *);
+
+        switch (sort) {
+            case kFileSortByName:
+                compare_func = compare_by_name;
+                break;
+            case kFileSortBySize:
+                compare_func = compare_by_size;
+                break;
+            case kFileSortByTime:
+                compare_func = compare_by_time;
+                break;
+            case kFileSortByExtension:
+                compare_func = compare_by_extension;
+                break;
+            default:
+                compare_func = compare_by_name;
+                break;
+        }
+
+        qsort(list->files, files_added, sizeof(FileMatch), compare_func);
+    }
+
+    return kOk;
 }
 
 int file_loc(int fnbr) {
@@ -416,6 +658,13 @@ size_t file_write(int fnbr, const char *buf, size_t sz) {
 bool file_exists(const char *filename) {
     struct stat st;
     return (stat(filename, &st) == 0) && S_ISREG(st.st_mode) ? true : false;
+}
+
+bool file_exists_dir(const char *dirname) {
+    if (!dirname) return false;
+
+    struct stat st;
+    return (stat(dirname, &st) == 0) && S_ISDIR(st.st_mode) ? true : false;
 }
 
 int64_t file_size(int fnbr) {
