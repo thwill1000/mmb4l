@@ -50,67 +50,274 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmresult.h"
 
+// Forward declaration for directory stream structure
 struct s_DirStream;
 
+// Opaque handle for directory operations
 typedef struct s_DirStream DirStream;
 
+/**
+ * Enumeration of different file system entry types
+ * Used to classify directory entries when traversing directories
+ */
 typedef enum {
-   kFileTypeBlockDevice,
-   kFileTypeCharacterDevice,
-   kFileTypeDirectory,
-   kFileTypeNamedPipe,
-   kFileTypeSymbolicLink,
-   kFileTypeRegularFile,
-   kFileTypeSocket,
-   kFileTypeUnknown,
+   kFileTypeBlockDevice,      ///< Block device (e.g., hard drives, SSDs)
+   kFileTypeCharacterDevice,  ///< Character device (e.g., terminals, serial ports)
+   kFileTypeDirectory,        ///< Directory/folder
+   kFileTypeNamedPipe,        ///< Named pipe (FIFO)
+   kFileTypeSymbolicLink,     ///< Symbolic link to another file/directory
+   kFileTypeRegularFile,      ///< Regular file
+   kFileTypeSocket,           ///< Unix domain socket
+   kFileTypeUnknown,          ///< Unknown or unsupported entry type
 } FileType;
 
+/**
+ * Structure representing a directory entry
+ * Contains the name and type information for files/directories
+ */
 typedef struct {
-    char name[STRINGSIZE];
-    FileType type;
+    char name[STRINGSIZE];  ///< Name of the file/directory (null-terminated string)
+    FileType type;          ///< Type of the entry (file, directory, etc.)
 } DirEntry;
 
 /**
  * Initialises the 'file' module.
+ * Sets up function pointers for console I/O operations.
  *
- * @param[in]  putc_fn   function that should be used for putting a character to the console.
- * @param[in]  write_fn  function that should be used for writing characters to the console.
- * @return               kOk on success.
+ * @param[in]  putc_fn   Function pointer for outputting a single character to console
+ * @param[in]  write_fn  Function pointer for writing a buffer of characters to console
+ * @return               kOk on success, error code on failure
  */
 MmResult file_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *, size_t *));
 
-/** Finds the first available free file number. */
+/**
+ * Finds the first available free file number.
+ * Scans the file table to locate an unused slot.
+ *
+ * @return  Available file number (1-MAXOPENFILES), or -1 if none available
+ */
 int file_find_free(void);
 
-/** Does the named file exist? */
+/**
+ * Checks if a named file exists in the filesystem.
+ *
+ * @param[in]  filename  Path to the file to check
+ * @return               true if file exists and is a regular file, false otherwise
+ */
 bool file_exists(const char *filename);
 
-/** Gets the size of the file in bytes. */
+/**
+ * Gets the size of an open file in bytes.
+ *
+ * @param[in]  fnbr  File number of the open file
+ * @return           Size in bytes, or -1 on error
+ */
 int64_t file_size(int fnbr);
 
+/**
+ * Opens a file with the specified mode.
+ *
+ * @param[in]  filename  Path to the file to open
+ * @param[in]  mode      File open mode (e.g., "r", "w", "a", "r+", "w+", "x")
+ * @param[in]  fnbr      File number to assign (1-MAXOPENFILES)
+ * @return               kOk on success, error code on failure
+ */
 MmResult file_open(const char *filename, const char *mode, int fnbr);
+
+/**
+ * Extracts the basename (filename without directory) from a path.
+ *
+ * @param[in]  path  File path (may be modified by the function)
+ * @return           Pointer to the basename portion of the path
+ */
 char *file_basename(char *path);
+
+/**
+ * Changes the current working directory.
+ *
+ * @param[in]  dirname  Path to the new working directory
+ * @return              kOk on success, error code on failure
+ */
 MmResult file_chdir(const char *dirname);
+
+/**
+ * Closes an open file.
+ *
+ * @param[in]  fnbr  File number to close
+ * @return           kOk on success, error code on failure
+ */
 MmResult file_close(int fnbr);
+
+/**
+ * Closes all open files.
+ * Used for cleanup operations, typically on program exit.
+ */
 void file_close_all(void);
+
+/**
+ * Closes a directory stream.
+ *
+ * @param[in]  stream  Directory stream to close
+ * @return             kOk on success, error code on failure
+ */
 MmResult file_closedir(DirStream *stream);
+
+/**
+ * Deletes a file from the filesystem.
+ *
+ * @param[in]  filename  Path to the file to delete
+ * @return               kOk on success, error code on failure
+ */
 MmResult file_delete(const char *filename);
+
+/**
+ * Extracts the directory name (path without filename) from a path.
+ *
+ * @param[in]  path  File path (may be modified by the function)
+ * @return           Pointer to the directory portion of the path
+ */
 char *file_dirname(char *path);
+
+/**
+ * Checks if end-of-file has been reached.
+ *
+ * @param[in]  fnbr  File number to check
+ * @return           1 if at EOF, 0 if not at EOF, 0 on error
+ */
 int file_eof(int fnbr);
+
+/**
+ * Reads a single character from a file.
+ *
+ * @param[in]  fnbr  File number to read from (0 for console input)
+ * @return           Character read (0-255), or -1 on EOF/error
+ */
 int file_getc(int fnbr);
+
+/**
+ * Gets the current working directory.
+ *
+ * @param[out] buf   Buffer to store the directory path
+ * @param[in]  size  Size of the buffer
+ * @return           kOk on success, error code on failure
+ */
 MmResult file_getcwd(char *buf, size_t size);
+
+/**
+ * Checks if a file number refers to a regular file.
+ *
+ * @param[in]  fnbr  File number to check
+ * @return           true if it's a regular file, false otherwise
+ */
 bool file_is_file(int fnbr);
+
+/**
+ * Checks if a file number refers to a serial port.
+ *
+ * @param[in]  fnbr  File number to check
+ * @return           true if it's a serial port, false otherwise
+ */
 bool file_is_serial(int fnbr);
+
+/**
+ * Gets the current file position (1-based).
+ * For serial ports, returns the number of bytes in the receive queue.
+ *
+ * @param[in]  fnbr  File number
+ * @return           Current position (1-based), or -1 on error
+ */
 int file_loc(int fnbr);
+
+/**
+ * Gets the length of file in bytes.
+ * For serial ports, always returns 0 (unbuffered).
+ *
+ * @param[in]  fnbr  File number
+ * @return           File length in bytes, or -1 on error
+ */
 int file_lof(int fnbr);
+
+/**
+ * Opens a directory for reading.
+ *
+ * @param[in]  dirname  Path to the directory to open
+ * @param[out] stream   Pointer to store the directory stream handle
+ * @return              kOk on success, error code on failure
+ */
 MmResult file_opendir(const char *dirname, DirStream **stream);
+
+/**
+ * Reads the next entry from a directory stream.
+ *
+ * @param[in]  stream  Directory stream to read from
+ * @param[out] entry   Pointer to store the directory entry (NULL if end of directory)
+ * @return             kOk on success, error code on failure
+ */
 MmResult file_readdir(DirStream *stream, DirEntry **entry);
+
+/**
+ * Writes a single character to a file.
+ *
+ * @param[in]  fnbr  File number to write to (0 for console output)
+ * @param[in]  ch    Character to write
+ * @return           Character written, or -1 on error
+ */
 int file_putc(int fnbr, int ch);
+
+/**
+ * Reads data from a file into a buffer.
+ *
+ * @param[in]  fnbr  File number to read from
+ * @param[out] buf   Buffer to store the data
+ * @param[in]  sz    Number of bytes to read
+ * @return           Number of bytes actually read
+ */
 size_t file_read(int fnbr, char *buf, size_t sz);
+
+/**
+ * Reads the target of a symbolic link.
+ *
+ * @param[in]    path     Path to the symbolic link
+ * @param[out]   buf      Buffer to store the link target
+ * @param[in,out] bufsiz  Input: buffer size, Output: actual bytes read
+ * @return                kOk on success, error code on failure
+ */
 MmResult file_readlink(const char *path, char *buf, size_t *bufsiz);
+
+/**
+ * Renames a file or directory.
+ *
+ * @param[in]  old_filename  Current name/path
+ * @param[in]  new_filename  New name/path
+ * @return                   kOk on success, error code on failure
+ */
 MmResult file_rename(const char *old_filename, const char *new_filename);
+
+/**
+ * Removes an empty directory.
+ *
+ * @param[in]  dirname  Path to the directory to remove
+ * @return              kOk on success, error code on failure
+ */
 MmResult file_rmdir(const char *dirname);
+
+/**
+ * Seeks to a specific position in a file.
+ * Position is 1-based (MMBasic convention).
+ *
+ * @param[in]  fnbr  File number
+ * @param[in]  idx   Position to seek to (1-based)
+ */
 void file_seek(int fnbr, int idx);
+
+/**
+ * Writes data from a buffer to a file.
+ *
+ * @param[in]  fnbr  File number to write to (0 for console output)
+ * @param[in]  buf   Buffer containing data to write
+ * @param[in]  sz    Number of bytes to write
+ * @return           Number of bytes actually written
+ */
 size_t file_write(int fnbr, const char *buf, size_t sz);
 
 #endif // #if !defined(MMB4L_FILE)
