@@ -45,10 +45,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_FILE)
 #define MMB4L_FILE
 
+#include <linux/limits.h> // For PATH_MAX
 #include <stdbool.h>
 #include <stddef.h>
+#include <sys/types.h>
 
 #include "mmresult.h"
+
+// Maximum number of files returned by file_list()
+#define FILE_LIST_MAX  512
 
 // Forward declaration for directory stream structure
 struct s_DirStream;
@@ -80,6 +85,29 @@ typedef struct {
     FileType type;          ///< Type of the entry (file, directory, etc.)
 } DirEntry;
 
+typedef enum {
+    kFileSortByName,
+    kFileSortBySize,
+    kFileSortByTime,
+    kFileSortByExtension,
+} FileSort;
+
+typedef struct {
+    char   *name;  ///< Pointer to filename (in FileList#buf)
+    off_t  size;   ///< File size
+    time_t time;   ///< File modification time/date
+    FileType type; ///< File type (regular file, directory, symlink, etc.)
+} FileMatch;
+
+typedef struct {
+    char      directory[PATH_MAX];  ///< The directory path
+    FileMatch files[FILE_LIST_MAX]; ///< The matched files
+    size_t    count;                ///< Number of matched files, may be > FILE_LIST_MAX
+    bool      buf_full;             ///< True if `buf` is full
+    uint64_t  free_space;           ///< Remaining free space on the drive in bytes
+    char buf[32 * FILE_LIST_MAX];   ///< Storage for file names
+} FileList;
+
 /**
  * Initialises the 'file' module.
  * Sets up function pointers for console I/O operations.
@@ -105,6 +133,44 @@ int file_find_free(void);
  * @return               true if file exists and is a regular file, false otherwise
  */
 bool file_exists(const char *filename);
+
+/**
+ * Checks if a named directory exists in the filesystem.
+ *
+ * @param[in]  dirname  Path to the directory to check
+ * @return              true if file exists and is a directory, false otherwise
+ */
+bool file_exists_dir(const char *dirname);
+
+/**
+ * Gets the amount of free space on the filesystem containing the specified path.
+ * 
+ * This function uses the statvfs() system call to query filesystem statistics
+ * and returns the number of bytes available to non-privileged users. The path
+ * can refer to either a file or directory - the function will determine the
+ * filesystem containing that path.
+ *
+ * @param[in]  path        Path to check (can be file or directory, relative or absolute)
+ * @param[out] free_space  Pointer to store the free space in bytes
+ * @return                 kOk on success, error code on failure
+ * 
+ * @note The returned value represents space available to non-privileged users
+ *       (f_bavail), which may be less than the total free space (f_bfree) if
+ *       the filesystem reserves space for the superuser.
+ * 
+ * @note On filesystems that don't support space queries or if the path doesn't
+ *       exist, this function will return an appropriate error code.
+ * 
+ * @example
+ * @code
+ * uint64_t free_bytes;
+ * MmResult result = file_get_free_space("/home/user", &free_bytes);
+ * if (result == kOk) {
+ *     printf("Free space: %llu bytes\n", (unsigned long long)free_bytes);
+ * }
+ * @endcode
+ */
+MmResult file_get_free_space(const char *path, uint64_t *free_space);
 
 /**
  * Gets the size of an open file in bytes.
@@ -218,6 +284,20 @@ bool file_is_file(int fnbr);
  * @return           true if it's a serial port, false otherwise
  */
 bool file_is_serial(int fnbr);
+
+/**
+ * Gets sorted list of files matching a specification.
+ *
+ * @param[in]  fspec  File/path specification, e.g.
+ *                      *        find all entries
+ *                      *.txt    find all entries with an extension of .txt
+ *                      E*.*     find all entries starting with E
+ *                      x?x.*    find all three letter file names starting and ending with x
+ *                      mydir/ * find all entries in directory mydir
+ * @param[in]  sort   Sort order
+ * @param[out] list   Pointer to store the file list
+ */
+MmResult file_list(const char *fspec, FileSort sort, FileList *list);
 
 /**
  * Gets the current file position (1-based).

@@ -460,6 +460,7 @@ gtest_discover_tests(test_cstring)
 add_executable(test_file
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
+    src/common/path.c
     src/common/gtest/file_test.cxx
     src/common/gtest/stubs/serial_stubs.c
 )
