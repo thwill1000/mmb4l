@@ -133,7 +133,6 @@ void error_clear_callback();
 #define ERROR_STRING_TOO_LONG             error_throw(kStringTooLong)
 #define ERROR_SYNTAX                      error_throw(kSyntax)
 #define ERROR_SYSTEM_COMMAND_FAILED       error_throw_ex(kError, "System command failed")
-#define ERROR_TOO_MANY_OPEN_FILES         error_throw_ex(kError, "Too many open files")
 #define ERROR_UNIMPLEMENTED(s)            error_throw_ex(kUnimplemented, "Unimplemented: $", s)
 #define ERROR_UNKNOWN_COMMAND             error_throw_ex(kSyntax, "Unknown command")
 #define ERROR_UNKNOWN_OPTION              error_throw(kUnknownOption)
