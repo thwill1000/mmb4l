@@ -167,6 +167,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kMissingOpenBracket:         return "Missing open bracket";
         case kUnexpectedCloseBracket:     return "Unexpected close bracket";
         case kInvalidArrayParameter:      return "Invalid array parameter";
+        case kTooManyOpenFiles:           return "Too many open files";
         case kTooManyParameters:          return "Too many parameters";
         case kInvalidInterruptSignature:  return "Invalid interrupt signature";
         case kGamepadNotFound:            return "Gamepad not found";
