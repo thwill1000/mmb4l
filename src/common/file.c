@@ -210,7 +210,7 @@ int file_getc(int fnbr) {
             return serial_getc(fnbr);
     }
 
-    ERROR_INTERNAL_FAULT;
+    error_throw(kInternalFault);
     return -1;
 }
 
@@ -524,7 +524,7 @@ int file_putc(int fnbr, int ch) {
             return serial_putc(fnbr, ch);
     }
 
-    ERROR_INTERNAL_FAULT;
+    error_throw(kInternalFault);
     return -1;
 }
 
@@ -556,7 +556,7 @@ int file_eof(int fnbr) {
             return serial_eof(fnbr);
     }
 
-    ERROR_INTERNAL_FAULT;
+    error_throw(kInternalFault);
     return 1;
 }
 
@@ -614,7 +614,7 @@ int file_find_free(void) {
     for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
         if (file_table[fnbr].type == fet_closed) return fnbr;
     }
-    ERROR_TOO_MANY_OPEN_FILES;
+    error_throw(kTooManyOpenFiles);
     return -1;
 }
 
@@ -651,7 +651,7 @@ size_t file_write(int fnbr, const char *buf, size_t sz) {
             break;
     }
 
-    ERROR_INTERNAL_FAULT;
+    error_throw(kInternalFault);
     return -1;
 }
 

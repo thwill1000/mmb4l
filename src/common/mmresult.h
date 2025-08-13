@@ -149,6 +149,7 @@ typedef enum {
     kMissingOpenBracket,
     kUnexpectedCloseBracket,
     kInvalidArrayParameter,
+    kTooManyOpenFiles,
     kTooManyParameters,
     kInvalidInterruptSignature,
     kGamepadNotFound,
