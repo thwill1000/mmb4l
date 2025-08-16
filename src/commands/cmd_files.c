@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_files.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,31 +43,134 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
-#include "../common/mmb4l.h"
-#include "../common/console.h"
+#include "../common/cstring.h"
+#include "../common/display.h"
 #include "../common/error.h"
+#include "../common/file.h"
 #include "../common/memory.h"
-
-MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_status);
+#include "../common/mmb4l.h"
+#include "../core/Commands.h"
 
 void cmd_files_internal(const char *p) {
-    char *command = GetTempStrMemory();
-
-    skipspace(p);
-    if (*p != '\0' && *p != '\'') {
-        snprintf(command, STRINGSIZE, "ls %s | column", getCstring(p));
-    } else {
-        snprintf(command, STRINGSIZE, "ls | column");
+    getargs(&p, 3, DELIM_COMMA);
+    if (argc != 0 && argc != 1 && argc != 3) ON_FAILURE_ERROR(kArgumentCount);
+    const char *fspec = has_arg(0) ? getCstring(argv[0]) : "";
+    FileSort sort = kFileSortByName;
+    if (has_arg(2)) {
+        if (checkstring(argv[2], "NAME")) {
+            sort = kFileSortByName;
+        } else if (checkstring(argv[2], "TIME")) {
+            sort = kFileSortByTime;
+        } else if (checkstring(argv[2], "SIZE")) {
+            sort = kFileSortBySize;
+        } else if (checkstring(argv[2], "TYPE")) {
+            sort = kFileSortByExtension;
+        } else {
+            ON_FAILURE_ERROR(kSyntax);
+        }
     }
 
-    (void) system(command);
-    // if (result != 0) ERROR_SYSTEM_COMMAND_FAILED;
-    int64_t exit_status = 0;
-    ON_FAILURE_ERROR(cmd_system_to_buf(command, NULL, 0, &exit_status));
+    FileList *flist = GetTempMemory(sizeof(FileList));
+    ON_FAILURE_ERROR(file_list(fspec, sort, flist));
+
+    char *buf = GetTempStrMemory();
+    size_t dir_count = 0;
+    size_t file_count = 0;
+
+    // Use the current display dimensions for list control
+    ON_FAILURE_ERROR(display_get_size(false, &mmb_options.width, &mmb_options.height));
+    int list_count = 2;
+    const bool compact = mmb_options.width <= 80;
+
+    // Print queried directory
+    display_puts(flist->directory);
+    // TODO: ListNewLine() should take the line to display and be reponsible
+    //       for handling lines that are wider than the display.
+    list_count += ((strlen(flist->directory) + mmb_options.width - 1) / mmb_options.width) - 1;
+    ListNewLine(&list_count, 0);
+
+    // List directories first
+    for (size_t i = 0; i < min(flist->count, (size_t) FILE_LIST_MAX); ++i) {
+        FileMatch *file = &(flist->files[i]);
+        if (file->type != kFileTypeDirectory) continue;
+        (void) snprintf(buf, STRINGSIZE, "   <DIR>  %s", file->name);
+        display_puts(buf);
+        dir_count++;
+        // TODO: See above
+        list_count += ((strlen(buf) + mmb_options.width - 1) / mmb_options.width) - 1;
+        ListNewLine(&list_count, 0);
+    }
+
+    // List everything else
+    char time_buf[32];
+    for (size_t i = 0; i < min(flist->count, (size_t) FILE_LIST_MAX); ++i) {
+        FileMatch *file = &(flist->files[i]);
+        if (file->type == kFileTypeDirectory) continue;
+        struct tm *tm_info;
+        tm_info = localtime(&(file->time));
+        if (compact) {
+            strftime(time_buf, 32, "%d/%m/%y %H:%M", tm_info);
+            char size_buf[32];
+            if (file->size >= 1024 * 1024 * 1024) {
+                (void) snprintf(size_buf, 32, "%.1fG",
+                                (double) file->size / (1024.0 * 1024.0 * 1024.0));
+            } else if (file->size >= 1024 * 1024) {
+                (void) snprintf(size_buf, 32, "%.1fM", (double) file->size / (1024.0 * 1024.0));
+            } else if (file->size >= 1024) {
+                (void) snprintf(size_buf, 32, "%.1fK", (double) file->size / 1024.0);
+            } else {
+                (void) snprintf(size_buf, 32, "%ld ", file->size);
+            }
+            (void) snprintf(buf, STRINGSIZE, "%s %6s %s", time_buf, size_buf,
+                            file->name);
+        } else {
+            strftime(time_buf, 32, "%d/%m/%Y  %H:%M:%S", tm_info);
+            (void) snprintf(buf, STRINGSIZE, "%s  %8ld  %s", time_buf, file->size,
+                            file->name);
+        }
+        display_puts(buf);
+        file_count++;
+        // TODO: See above
+        list_count += ((strlen(buf) + mmb_options.width - 1) / mmb_options.width) - 1;
+        ListNewLine(&list_count, 0);
+    }
+
+    if (flist->count > FILE_LIST_MAX) {
+        (void) snprintf(buf, STRINGSIZE, "WARNING! too many files (> %d) to list", FILE_LIST_MAX);
+        display_puts(buf);
+        ListNewLine(&list_count, 0);
+    }
+
+    if (flist->buf_full) {
+        display_puts("WARNING! filename buffer overrun");
+        ListNewLine(&list_count, 0);
+    }
+
+    // Print summary
+    uint64_t mb_free;
+    ON_FAILURE_ERROR(file_get_free_space(flist->directory, &mb_free));
+    mb_free /= (1024 * 1024);
+    if (dir_count == 1 && file_count == 1) {
+        (void) snprintf(buf, STRINGSIZE, "%ld directory, %ld file, %ld MB free",
+                        dir_count, file_count, mb_free);
+    } else if (dir_count == 1) {
+        (void) snprintf(buf, STRINGSIZE, "%ld directory, %ld files, %ld MB free",
+                        dir_count, file_count, mb_free);
+    } else if (file_count == 1) {
+        (void) snprintf(buf, STRINGSIZE, "%ld directories, %ld file, %ld MB free",
+                        dir_count, file_count, mb_free);
+    } else {
+        (void) snprintf(buf, STRINGSIZE, "%ld directories, %ld files, %ld MB free",
+                        dir_count, file_count, mb_free);
+    }
+    display_puts(buf);
+    ListNewLine(&list_count, 0);
 }
 
+/** FILES [fspec$] [, sort] */
 void cmd_files(void) {
     cmd_files_internal(cmdline);
 }
