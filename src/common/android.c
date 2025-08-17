@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#if 0
+
 #include <jni.h>
 #include <SDL.h>
 #include <SDL_thread.h>
@@ -385,3 +387,5 @@ void show_mmbasic_folder_missing() {
     
     (*env)->DeleteLocalRef(env, activityClass);
 }
+
+#endif

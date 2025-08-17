@@ -221,7 +221,6 @@ set(MMB4L_OPERATORS_SOURCE_FILES
 )
 
 set(MMB4L_COMMON_SOURCE_FILES
-    src/common/android.c
     src/common/audio.c
     src/common/audio_tables.c
     src/common/cmdline.c

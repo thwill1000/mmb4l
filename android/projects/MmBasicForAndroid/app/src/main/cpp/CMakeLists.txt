@@ -261,7 +261,7 @@ set(MMB4L_SOURCE_FILES
 
 # Create our main library
 add_library(main SHARED
-#    main.cpp
+     saf_bridge.cpp
      ${MMB4L_CORE_SOURCE_FILES}
      ${MMB4L_SOURCE_FILES}
 )

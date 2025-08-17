@@ -11,8 +11,8 @@ android {
         applicationId 'com.sockpuppetstudios.mmb4a'
         minSdk 26
         targetSdk 33
-        versionCode 1
-        versionName "1.0"
+        versionCode 1000010000
+        versionName "1.0-alpha.1"
 
         externalNativeBuild {
             cmake {
@@ -56,5 +56,6 @@ android {
 }
 
 dependencies {
-    // Minimal dependencies - just what we need for SDL2
+    // Add this line for DocumentFile support
+    implementation 'androidx.documentfile:documentfile:1.0.1'
 }
