@@ -87,21 +87,39 @@ struct s_DirStream {
     size_t next;
 };
 
+static std::string file_cwd = "/";
+
+namespace {
+
+MmResult canonical_path(const char *path, std::string& canonical_path) {
+    char tmp_path[PATH_MAX]; // TODO: Allocate from heap ?
+    ON_FAILURE_RETURN(path_get_canonical(path, tmp_path, PATH_MAX));
+    canonical_path = tmp_path;
+    return kOk;
+}
+
+} // namespace
+
 MmResult file_opendir(const char *dirname, DirStream **stream) {
-    LOG_INFO("Entered %s()", __func__);
+    LOG_INFO("Entered %s(%s)", __func__, dirname);
     if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
+
+    std::string path;
+    ON_FAILURE_RETURN(canonical_path(dirname, path));
+
     struct s_DirStream *ds = new s_DirStream();
-    ds->files = saf_list_files();
-    // LOG_INFO("saf_list_files() returned");
+    ds->files = saf_list_files(path);
     ds->next = 0;
     *stream = ds;
-    LOG_INFO("Exited %s()", __func__);
+
     return kOk;
 }
 
 MmResult file_readdir(DirStream *stream, DirEntry **entry) {
     LOG_INFO("Entered %s()", __func__);
     if (!stream) return mmresult_ex(kInternalFault, "stream == NULL");
+
+    LOG_INFO("Num files = %d", stream->files.size());
 
     if (stream->next >= stream->files.size()) {
         *entry = NULL;
@@ -126,6 +144,49 @@ MmResult file_closedir(DirStream *stream) {
     return kOk;
 }
 
+MmResult file_chdir(const char *dirname) {
+    char canonical_path[PATH_MAX]; // TODO: Allocate from heap ?
+    ON_FAILURE_RETURN(path_get_canonical(dirname, canonical_path, PATH_MAX));
+
+// path_get_canonical(const char *path, char *canonical_path, size_t sz);
+
+
+//     std::string absolute;
+//     if (path_is_absolute(dirname)) {
+//         absolute = dirname;
+//     } else {
+//         if (file_cwd == "/") {
+//             absolute = "/" + std::string(dirname);
+//         } else {
+//             absolute = file_cwd + "/" + dirname;
+//         }
+//     }
+    LOG_INFO("file_chdir: %s", canonical_path);
+    auto info = saf_get_file_info(canonical_path);
+    if (!info.exists) return kFileNotFound;
+    if (!info.is_directory) return kNotADirectory;
+    file_cwd = canonical_path;
+    return kOk;
+}
+
+MmResult file_delete(const char *filename) {
+    return kUnimplemented;
+}
+
+bool file_exists_symlink(const char *path) {
+    if (!path) return mmresult_ex(kInternalFault, "path == NULL");
+
+    // No symlink support in MMBasic for Android.
+    return false;
+}
+
+MmResult file_getcwd(char *buf, size_t size) {
+    if (FAILED(cstring_cpy(buf, file_cwd.c_str(), size))) {
+        return kFilenameTooLong;
+    }
+    return kOk;
+}
+
 MmResult file_get_free_space(const char *path, uint64_t *free_space) {
     if (!path || !free_space) {
         return mmresult_ex(kInternalFault, "Invalid parameter");
@@ -140,13 +201,33 @@ MmResult file_info(const char *filename, FileInfo *info) {
     if (!filename) return mmresult_ex(kInternalFault, "filename == NULL");
     if (!info) return mmresult_ex(kInternalFault, "info == NULL");
 
-    // HACK!
-    filename += 2;
+    std::string path;
+    ON_FAILURE_RETURN(canonical_path(filename, path));
 
-    SAFFileInfo saf_info = saf_get_file_info(filename);
+    SAFFileInfo saf_info = saf_get_file_info(path);
     info->size = saf_info.size;
-    info->time = saf_info.last_modified / 1000;
+    info->mtime = saf_info.last_modified / 1000;
     info->type = saf_info.is_file ? kFileTypeRegularFile : kFileTypeDirectory;
 
     return kOk;
+}
+
+MmResult file_mkdir(const char *dirname) {
+    return kUnimplemented;
+}
+
+MmResult file_mkfile(const char *filename) {
+    return kUnimplemented;
+}
+
+MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) {
+    return kUnimplemented;
+}
+
+MmResult file_rename(const char *old_filename, const char *new_filename) {
+    return kUnimplemented;
+}
+
+MmResult file_rmdir(const char *dirname) {
+    return kUnimplemented;
 }

@@ -277,19 +277,51 @@ public class MainActivity extends SDLActivity {
     /**
      * Called from native code to list files in the directory
      */
-    public static String[] listFiles() {
-        Log.v(TAG, "listFiles called");
+    public static String[] listFiles(String dirname) {
+        Log.v(TAG, "listFiles: " + dirname);
         if (!hasDirectoryAccess()) {
             Log.w(TAG, "listFiles: No directory access");
             return new String[0];
         }
 
+        if (!dirname.startsWith("/")) {
+            Log.e(TAG, "dirName does not start with '/'");
+            return new String[0];
+        }
+
+        dirname = dirname.trim();
+
         try {
-            DocumentFile[] files = instance.mmbasicDirectory.listFiles();
+            DocumentFile targetDirectory = instance.mmbasicDirectory;
+
+            // Navigate to subdirectory if specified
+            if (!dirname.isEmpty()) {
+                // Split path by '/' and navigate step by step
+                String[] pathParts = dirname.split("/");
+
+                for (String part : pathParts) {
+                    if (!part.isEmpty()) {
+                        DocumentFile nextDir = targetDirectory.findFile(part);
+                        if (nextDir == null || !nextDir.exists() || !nextDir.isDirectory()) {
+                            Log.w(TAG, "listFiles: Subdirectory not found: " + part + " in path: " + dirname);
+                            return new String[0];
+                        }
+                        targetDirectory = nextDir;
+                        Log.v(TAG, "listFiles: Navigated to: " + part);
+                    }
+                }
+            }
+
+            DocumentFile[] files = targetDirectory.listFiles();
+            if (files == null) {
+                Log.w(TAG, "listFiles: listFiles() returned null for path: " + dirname);
+                return new String[0];
+            }
+
             List<String> fileNames = new ArrayList<>();
 
             for (DocumentFile file : files) {
-                if (file.getName() != null) {
+                if (file != null && file.getName() != null) {
                     // Include both files AND directories
                     if (file.isFile()) {
                         fileNames.add(file.getName());
@@ -301,7 +333,7 @@ public class MainActivity extends SDLActivity {
                 }
             }
 
-            Log.d(TAG, "listFiles: Found " + fileNames.size() + " items total");
+            Log.d(TAG, "listFiles: Found " + fileNames.size() + " items in path: " + dirname);
             return fileNames.toArray(new String[0]);
 
         } catch (Exception e) {
@@ -720,6 +752,53 @@ public class MainActivity extends SDLActivity {
     }
 
     /**
+     * Helper method to find a file by relative path from mmbasic directory
+     * Supports paths like "subfolder/file.txt" or just "file.txt"
+     */
+    private static DocumentFile findFileByPath(String filePath) {
+        if (filePath == null || filePath.isEmpty()) {
+            return null;
+        }
+
+        // Remove any leading "/".
+        if (filePath.startsWith("/")) {
+            filePath = filePath.substring(1);
+        }
+
+        DocumentFile currentDir = instance.mmbasicDirectory;
+
+        // Split the path into components
+        String[] pathParts = filePath.split("/");
+
+        // Navigate through directories (all parts except the last)
+        for (int i = 0; i < pathParts.length - 1; i++) {
+            String dirName = pathParts[i];
+            if (!dirName.isEmpty()) {
+                DocumentFile nextDir = currentDir.findFile(dirName);
+                if (nextDir == null || !nextDir.exists() || !nextDir.isDirectory()) {
+                    Log.w(TAG, "findFileByPath: Directory not found: " + dirName +
+                        " in path: " + filePath);
+                    return null;
+                }
+                currentDir = nextDir;
+                Log.v(TAG, "findFileByPath: Navigated to directory: " + dirName);
+            }
+        }
+
+        // Find the final file/directory
+        String targetName = pathParts[pathParts.length - 1];
+        if (targetName.isEmpty()) {
+            // Path ended with '/' - return the directory itself
+            return currentDir;
+        }
+
+        DocumentFile targetFile = currentDir.findFile(targetName);
+        Log.v(TAG, "findFileByPath: Looking for '" + targetName + "' in final directory");
+
+        return targetFile;
+    }
+
+    /**
      * Alternative method that returns stats as separate values via JNI object
      * This version might be easier to use from C++ if you prefer individual calls
      */
@@ -729,8 +808,19 @@ public class MainActivity extends SDLActivity {
             return false;
         }
 
+        // if (filename.equals("/")) {
+        //     outStats[0] = 1;     // exists
+        //     outStats[1] = 0;     // Not a file
+        //     outStats[2] = 1;     // Is a directory
+        //     outStats[3] = -1;
+        //     outStats[4] = 0;     // TODO: 00:00:00 UTC, January 1, 1970
+        //     outStats[5] = 0x11;  // Read and Write permissions
+
+        //     return true;
+        // }
+
         try {
-            DocumentFile file = instance.mmbasicDirectory.findFile(filename);
+            DocumentFile file = findFileByPath(filename);
             if (file == null || !file.exists()) {
                 return false;
             }

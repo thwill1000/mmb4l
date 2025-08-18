@@ -165,7 +165,7 @@ bool saf_is_activity_available() {
  */
 
 // List files in the mmbasic directory
-std::vector<std::string> saf_list_files() {
+std::vector<std::string> saf_list_files(std::string dirname) {
     std::vector<std::string> files;
 
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
@@ -173,10 +173,11 @@ std::vector<std::string> saf_list_files() {
         return files;
     }
 
-    jmethodID method = env->GetStaticMethodID(g_mainActivityClass, "listFiles", "()[Ljava/lang/String;");
+    jmethodID method = env->GetStaticMethodID(g_mainActivityClass, "listFiles", "(Ljava/lang/String;)[Ljava/lang/String;");
     if (!method) return files;
 
-    jobjectArray jfileArray = (jobjectArray)env->CallStaticObjectMethod(g_mainActivityClass, method);
+    jstring jdirname = env->NewStringUTF(dirname.c_str());
+    jobjectArray jfileArray = (jobjectArray)env->CallStaticObjectMethod(g_mainActivityClass, method, jdirname);
     if (!jfileArray) return files;
 
     //LOGD("foobar");
@@ -194,6 +195,7 @@ std::vector<std::string> saf_list_files() {
     }
 
     //LOGD("Calling DeleteLocalRef(jfileArray)");
+    env->DeleteLocalRef(jdirname);
     env->DeleteLocalRef(jfileArray);
     //LOGD("Returning");
     return files;
@@ -738,9 +740,10 @@ long saf_free_space() {
     }
 
     jmethodID method = env->GetStaticMethodID(g_mainActivityClass, "getFreeSpace", "()J");
-    if (method) {
+    if (!method) {
         LOGE("Failed to get method: MainActivity#getFreeSpace");
-        return env->CallStaticLongMethod(g_mainActivityClass, method);
+        return -1;
     }
-    return -1;
+
+    return env->CallStaticLongMethod(g_mainActivityClass, method);
 }

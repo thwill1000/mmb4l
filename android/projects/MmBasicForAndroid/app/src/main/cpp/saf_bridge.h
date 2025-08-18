@@ -153,7 +153,7 @@ long saf_get_file_size(const std::string& filename);
  *
  * @return Vector of filenames (without path)
  */
-std::vector<std::string> saf_list_files();
+std::vector<std::string> saf_list_files(const std::string dirname);
 
 /*
  * Text File Convenience Functions

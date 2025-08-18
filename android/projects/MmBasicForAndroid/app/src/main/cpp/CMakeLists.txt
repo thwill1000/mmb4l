@@ -93,6 +93,7 @@ set(MMB4L_COMMANDS_SOURCE_FILES
     ${MMB4L_SRC_DIR}/commands/cmd_memory.c
     ${MMB4L_SRC_DIR}/commands/cmd_mid.c
     ${MMB4L_SRC_DIR}/commands/cmd_mkdir.c
+    ${MMB4L_SRC_DIR}/commands/cmd_mkfile.c
     ${MMB4L_SRC_DIR}/commands/cmd_mmdebug.c
     ${MMB4L_SRC_DIR}/commands/cmd_mode.c
     ${MMB4L_SRC_DIR}/commands/cmd_new.c
