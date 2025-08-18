@@ -205,7 +205,7 @@ set(MMB4L_OPERATORS_SOURCE_FILES
 )
 
 set(MMB4L_COMMON_SOURCE_FILES
-    ${MMB4L_SRC_DIR}/common/android.c
+    ${MMB4L_SRC_DIR}/common/android.cpp
     ${MMB4L_SRC_DIR}/common/audio.c
     ${MMB4L_SRC_DIR}/common/audio_tables.c
     ${MMB4L_SRC_DIR}/common/cmdline.c
@@ -217,6 +217,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     ${MMB4L_SRC_DIR}/common/events.c
     ${MMB4L_SRC_DIR}/common/features.c
     ${MMB4L_SRC_DIR}/common/file.c
+    ${MMB4L_SRC_DIR}/common/file_android.cpp
     ${MMB4L_SRC_DIR}/common/flash.c
     ${MMB4L_SRC_DIR}/common/fonttbl.c
     ${MMB4L_SRC_DIR}/common/gamepad.c
@@ -280,5 +281,6 @@ target_link_libraries(main
 
 # Include SDL2 headers
 target_include_directories(main PRIVATE
+    .
     ${SDL2_DIR}/include
 )

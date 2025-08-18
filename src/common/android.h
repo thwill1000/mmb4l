@@ -45,6 +45,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_ANDROID_H)
 #define MMB4L_ANDROID_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 
 static inline bool is_android() {
@@ -57,6 +61,9 @@ static inline bool is_android() {
 
 /** Android/MMB4A specific initialisation. */
 void android_init(void);
+
+/** Android/MMB4A specific termination. */
+void android_term(void);
 
 /** Get the internal storage path (always writable, private to your app). */
 const char *android_path(void);
@@ -71,5 +78,9 @@ unsigned char* read_documents_file(const char* fileName, size_t* fileSize);
 void free_file_list(char** fileNames, int count);
 void ensure_permissions_persisted();
 void example_documents_usage();
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif

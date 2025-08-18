@@ -130,7 +130,7 @@ static int compare_by_extension(const void *a, const void *b) {
 /**
  * Helper function to extract directory and pattern from file specification
  */
-static MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern) {
+MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern) {
     if (!fspec || !dirname || !pattern) {
         return mmresult_ex(kInternalFault, "Invalid parameter");
     }

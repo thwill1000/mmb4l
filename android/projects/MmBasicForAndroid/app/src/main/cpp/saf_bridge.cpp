@@ -178,17 +178,24 @@ std::vector<std::string> saf_list_files() {
     
     jobjectArray jfileArray = (jobjectArray)env->CallStaticObjectMethod(g_mainActivityClass, method);
     if (!jfileArray) return files;
-    
+
+    //LOGD("foobar");
+
     int count = env->GetArrayLength(jfileArray);
     for (int i = 0; i < count; i++) {
         jstring jfilename = (jstring)env->GetObjectArrayElement(jfileArray, i);
         const char* filename = env->GetStringUTFChars(jfilename, nullptr);
+        //LOGD("%s", filename);
         files.push_back(std::string(filename));
+        //LOGD("Calling ReleaseStringUTFChars");
         env->ReleaseStringUTFChars(jfilename, filename);
+        //LOGD("Calling DeleteLocalRef(jfilename)");
         env->DeleteLocalRef(jfilename);
     }
-    
+
+    //LOGD("Calling DeleteLocalRef(jfileArray)");
     env->DeleteLocalRef(jfileArray);
+    //LOGD("Returning");
     return files;
 }
 
@@ -587,7 +594,7 @@ void initialize_saf_system() {
     if (!saf_has_directory_access()) {
         LOGD("No directory access - will need to request from user");
         // You can request immediately or wait for user action
-        // saf_request_directory_access();
+        saf_request_directory_access();
     } else {
         LOGD("Directory access already granted");
         g_directoryReady = true;

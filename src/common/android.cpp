@@ -42,17 +42,39 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <SDL.h>
+
+#include "android.h"
+#include "saf_bridge.h"
+
+extern "C" {
+#include "logger.h"
+} // extern "C"
+
+void android_init(void) {
+    initialize_saf_system();
+}
+
+void android_term(void) {
+    cleanup_saf_system();    
+}
+
+void android_show_soft_keyboard(void) {
+#if defined(__ANDROID__)
+    LOG_INFO("Starting text input...");
+    SDL_StartTextInput();
+    LOG_INFO("Text input active: %d", SDL_IsTextInputActive());            
+#endif
+}
+
 #if 0
 
 #include <jni.h>
-#include <SDL.h>
 #include <SDL_thread.h>
 #include <android/log.h>
 #include <string.h>
 #include <stdlib.h>
 
-#include "android.h"
-#include "logger.h"
 
 void request_documents_access();
 int has_mmbasic_folder();
@@ -86,14 +108,6 @@ const char *android_path(void) {
    return SDL_AndroidGetInternalStoragePath();
 #else
    return "/"; // TODO
-#endif
-}
-
-void android_show_soft_keyboard(void) {
-#if defined(__ANDROID__)
-    LOG_INFO("Starting text input...");
-    SDL_StartTextInput();
-    LOG_INFO("Text input active: %d", SDL_IsTextInputActive());            
 #endif
 }
 

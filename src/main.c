@@ -194,9 +194,9 @@ static void init_options() {
 }
 
 void set_start_directory() {
-    if (is_android()) {
-        snprintf(mmb_args.directory, STRINGSIZE, "%s", android_path());
-    }
+    // if (is_android()) {
+    //     snprintf(mmb_args.directory, STRINGSIZE, "%s", android_path());
+    // }
 
     if (mmb_args.directory[0] == '\0') {
         char *MMDIR = getenv("MMDIR");
@@ -474,7 +474,7 @@ int main(int argc, char *argv[]) {
         ExecuteProgram(tknbuf);  // execute the line straight away
     }
 
-    ensure_permissions_persisted();
+    android_term();
     SDL_Quit(); // TODO: Why is this needed / what does it do ?
     return mmb_exit_code;
 }

@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-file_private.h
+file_android.cpp
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,28 +42,86 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_FILE_PRIVATE)
-#define MMB4L_FILE_PRIVATE
+#include <cstdlib>
+#include <fnmatch.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <vector>
 
-#include <stdio.h>
+extern "C" {
 
-#include "../Configuration.h"
-#include "mmresult.h"
-#include "rx_buf.h"
+#include "cstring.h"
+#include "error.h"
+#include "file.h"
+#include "file_private.h"
+#include "logger.h"
+#include "mmb4l.h"
+#include "mmgetchar.h"
+#include "path.h"
+#include "serial.h"
+#include "utility.h"
 
-enum FileEntryType { fet_closed, fet_file, fet_serial };
+} // extern "C"
 
-typedef struct {
-    enum FileEntryType type;
-    union {
-        FILE *file_ptr;
-        int serial_fd;
-    };
-    RxBuf rx_buf;
-} FileEntry;
+#include "saf_bridge.h"
 
-extern FileEntry file_table[MAXOPENFILES + 1];
+// MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
+//     if (!fspec || !list) {
+//         return mmresult_ex(kInternalFault, "Invalid parameter");
+//     }
 
-MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern);
+//     auto files = saf_list_files();
+//     if (files.empty()) {
+//         LOG_INFO("No files found");
+//     }
+//     for (const auto &file : files) {
+//         LOG_INFO("Found file: %s", file.c_str());
+//     }
 
-#endif // #if !defined(MMB4L_FILE_PRIVATE)
+//     return mmresult_ex(kInternalFault, "Not implemented for Android");
+// }
+
+struct s_DirStream {
+    std::vector<std::string> files;
+    DirEntry entry;
+    size_t next;
+};
+
+MmResult file_opendir(const char *dirname, DirStream **stream) {
+    LOG_INFO("Entered %s()", __func__);
+    if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
+    struct s_DirStream *ds = new s_DirStream();
+    ds->files = saf_list_files();
+    // LOG_INFO("saf_list_files() returned");
+    ds->next = 0;
+    *stream = ds;
+    LOG_INFO("Exited %s()", __func__);
+    return kOk;
+}
+
+MmResult file_readdir(DirStream *stream, DirEntry **entry) {
+    LOG_INFO("Entered %s()", __func__);
+    if (!stream) return mmresult_ex(kInternalFault, "stream == NULL");
+
+    if (stream->next >= stream->files.size()) {
+        *entry = NULL;
+        return kOk;
+    }
+
+    if (FAILED(cstring_cpy(stream->entry.name, stream->files[stream->next].c_str(), STRINGSIZE))) {
+        *entry = NULL;
+        return kStringTooLong;
+    }
+
+    stream->next++;
+
+    *entry = &(stream->entry);
+    return kOk;
+}
+
+MmResult file_closedir(DirStream *stream) {
+    LOG_INFO("Entered %s()", __func__);
+    free(stream);
+    LOG_INFO("Exited %s()", __func__);
+    return kOk;
+}
