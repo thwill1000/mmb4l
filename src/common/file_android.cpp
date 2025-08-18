@@ -125,3 +125,28 @@ MmResult file_closedir(DirStream *stream) {
     LOG_INFO("Exited %s()", __func__);
     return kOk;
 }
+
+MmResult file_get_free_space(const char *path, uint64_t *free_space) {
+    if (!path || !free_space) {
+        return mmresult_ex(kInternalFault, "Invalid parameter");
+    }
+
+    *free_space = saf_free_space();
+
+    return kOk;
+}
+
+MmResult file_info(const char *filename, FileInfo *info) {
+    if (!filename) return mmresult_ex(kInternalFault, "filename == NULL");
+    if (!info) return mmresult_ex(kInternalFault, "info == NULL");
+
+    // HACK!
+    filename += 2;
+
+    SAFFileInfo saf_info = saf_get_file_info(filename);
+    info->size = saf_info.size;
+    info->time = saf_info.last_modified / 1000;
+    info->type = saf_info.is_file ? kFileTypeRegularFile : kFileTypeDirectory;
+
+    return kOk;
+}

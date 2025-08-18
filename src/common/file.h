@@ -139,7 +139,7 @@ bool file_exists_dir(const char *dirname);
 
 /**
  * Gets the amount of free space on the filesystem containing the specified path.
- * 
+ *
  * This function uses the statvfs() system call to query filesystem statistics
  * and returns the number of bytes available to non-privileged users. The path
  * can refer to either a file or directory - the function will determine the
@@ -148,14 +148,14 @@ bool file_exists_dir(const char *dirname);
  * @param[in]  path        Path to check (can be file or directory, relative or absolute)
  * @param[out] free_space  Pointer to store the free space in bytes
  * @return                 kOk on success, error code on failure
- * 
+ *
  * @note The returned value represents space available to non-privileged users
  *       (f_bavail), which may be less than the total free space (f_bfree) if
  *       the filesystem reserves space for the superuser.
- * 
+ *
  * @note On filesystems that don't support space queries or if the path doesn't
  *       exist, this function will return an appropriate error code.
- * 
+ *
  * @example
  * @code
  * uint64_t free_bytes;
@@ -312,5 +312,8 @@ MmResult file_rename(const char *old_filename, const char *new_filename);
  * @return              kOk on success, error code on failure
  */
 MmResult file_rmdir(const char *dirname);
+
+/** TODO: Comment this. */
+MmResult file_info(const char *filename, FileInfo *info);
 
 #endif // #if !defined(MMB4L_FILE)

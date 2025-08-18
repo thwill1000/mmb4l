@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "file.h"
 #include "file_private.h"
+#include "logger.h"
 #include "mmb4l.h"
 #include "path.h"
 #include "utility.h"
@@ -233,7 +234,7 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
         // Copy the filename to the buffer
         strcpy(buf_ptr, entry->name);
         fmatch->name = buf_ptr;
-
+        
         // Update buffer pointer and remaining space
         buf_ptr += name_len;
         buf_remaining -= name_len;

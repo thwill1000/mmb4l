@@ -1,9 +1,9 @@
 /*
  * MainActivity.java - Complete SAF Bridge Android Activity for SDL2/NDK
- * 
+ *
  * This Activity extends SDLActivity and provides the Java-side implementation
  * of Storage Access Framework (SAF) operations for MMBasic Android app.
- * 
+ *
  * Features:
  * - Persistent directory access to Documents/mmbasic
  * - Complete file and directory operations via SAF
@@ -19,7 +19,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.os.StatFs;
 import android.provider.DocumentsContract;
 import android.content.ContentResolver;
 import android.database.Cursor;
@@ -29,6 +31,7 @@ import androidx.documentfile.provider.DocumentFile;
 
 import org.libsdl.app.SDLActivity;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.FileNotFoundException;
@@ -40,53 +43,53 @@ import java.util.Map;
 
 public class MainActivity extends SDLActivity {
     private static final String TAG = "MMB4A";
-    
+
     // Request codes for Activity results
     private static final int REQUEST_CODE_OPEN_DIRECTORY = 1001;
     private static final int REQUEST_CODE_OPEN_FILE = 1002;
     private static final int REQUEST_CODE_CREATE_FILE = 1003;
-    
+
     // Preferences key for storing directory URI
     private static final String PREFS_NAME = "mmbasic_prefs";
     private static final String KEY_DIRECTORY_URI = "mmbasic_directory_uri";
-    
+
     // Static instance for native code access
     private static MainActivity instance;
-    
+
     // SAF directory access
     private Uri mmbasicDirectoryUri = null;
     private DocumentFile mmbasicDirectory = null;
-    
+
     // File descriptor management for streaming I/O
     private static Map<Integer, ParcelFileDescriptor> openFileDescriptors = new HashMap<>();
     private static int nextFdId = 1;
-    
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate called");
         super.onCreate(savedInstanceState);
         instance = this;
-        
+
         // Try to restore previously granted directory access
         restoreDirectoryAccess();
-        
+
         Log.d(TAG, "MainActivity created, directory access: " + hasDirectoryAccess());
     }
-    
+
     @Override
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume called");
         nativeOnActivityResume();
     }
-    
+
     @Override
     protected void onPause() {
         super.onPause();
         Log.d(TAG, "onPause called");
         nativeOnActivityPause();
     }
-    
+
     @Override
     protected void onDestroy() {
         Log.d(TAG, "onDestroy called");
@@ -95,23 +98,23 @@ public class MainActivity extends SDLActivity {
         instance = null;
         super.onDestroy();
     }
-    
+
     /*
      * Directory Access Management
      */
-    
+
     /**
      * Restore directory access from saved preferences
      */
     private void restoreDirectoryAccess() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String savedUriString = prefs.getString(KEY_DIRECTORY_URI, null);
-        
+
         if (savedUriString != null) {
             try {
                 mmbasicDirectoryUri = Uri.parse(savedUriString);
                 mmbasicDirectory = DocumentFile.fromTreeUri(this, mmbasicDirectoryUri);
-                
+
                 // Verify the directory still exists and we have permissions
                 if (mmbasicDirectory == null || !mmbasicDirectory.exists() || !mmbasicDirectory.canRead()) {
                     Log.w(TAG, "Saved directory URI is no longer valid");
@@ -125,18 +128,18 @@ public class MainActivity extends SDLActivity {
             }
         }
     }
-    
+
     /**
      * Clear directory access and remove from preferences
      */
     private void clearDirectoryAccess() {
         mmbasicDirectoryUri = null;
         mmbasicDirectory = null;
-        
+
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         prefs.edit().remove(KEY_DIRECTORY_URI).apply();
     }
-    
+
     /**
      * Called from native code to request directory access
      */
@@ -148,37 +151,37 @@ public class MainActivity extends SDLActivity {
             Log.e(TAG, "MainActivity instance is null");
         }
     }
-    
+
     /**
      * Show the system directory picker
      */
     private void openDirectoryPicker() {
         Log.d(TAG, "Opening directory picker");
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        
+
         // Try to start in Documents directory
         try {
             Uri documentsUri = DocumentsContract.buildDocumentUri(
-                "com.android.externalstorage.documents", 
+                "com.android.externalstorage.documents",
                 "primary:Documents"
             );
             intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, documentsUri);
         } catch (Exception e) {
             Log.w(TAG, "Could not set initial directory", e);
         }
-        
+
         try {
             startActivityForResult(intent, REQUEST_CODE_OPEN_DIRECTORY);
         } catch (Exception e) {
             Log.e(TAG, "Failed to start directory picker", e);
         }
     }
-    
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         Log.d(TAG, "onActivityResult: requestCode=" + requestCode + ", resultCode=" + resultCode);
-        
+
         if (requestCode == REQUEST_CODE_OPEN_DIRECTORY && resultCode == RESULT_OK) {
             if (data != null && data.getData() != null) {
                 handleDirectoryAccessGranted(data.getData());
@@ -187,23 +190,23 @@ public class MainActivity extends SDLActivity {
             }
         }
     }
-    
+
     /**
      * Handle directory access being granted by user
      */
     private void handleDirectoryAccessGranted(Uri treeUri) {
         Log.d(TAG, "Directory access granted: " + treeUri.toString());
-        
+
         try {
             // Take persistent permission
             getContentResolver().takePersistableUriPermission(
                 treeUri,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             );
-            
+
             mmbasicDirectoryUri = treeUri;
             mmbasicDirectory = DocumentFile.fromTreeUri(this, treeUri);
-            
+
             if (mmbasicDirectory != null) {
                 // Create mmbasic subdirectory if it doesn't exist
                 DocumentFile mmbasicSubDir = mmbasicDirectory.findFile("mmbasic");
@@ -211,16 +214,16 @@ public class MainActivity extends SDLActivity {
                     Log.d(TAG, "Creating mmbasic subdirectory");
                     mmbasicSubDir = mmbasicDirectory.createDirectory("mmbasic");
                 }
-                
+
                 if (mmbasicSubDir != null && mmbasicSubDir.exists()) {
                     mmbasicDirectory = mmbasicSubDir;
-                    
+
                     // Save URI for future use
                     SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
                     prefs.edit().putString(KEY_DIRECTORY_URI, treeUri.toString()).apply();
-                    
+
                     Log.d(TAG, "MMBasic directory ready");
-                    
+
                     // Notify native code
                     nativeOnDirectoryReady();
                 } else {
@@ -231,7 +234,7 @@ public class MainActivity extends SDLActivity {
                 Log.e(TAG, "Failed to create DocumentFile from tree URI");
                 clearDirectoryAccess();
             }
-            
+
         } catch (SecurityException e) {
             Log.e(TAG, "Failed to take persistent permission", e);
             clearDirectoryAccess();
@@ -240,37 +243,37 @@ public class MainActivity extends SDLActivity {
             clearDirectoryAccess();
         }
     }
-    
+
     /*
      * Native Method Declarations
      */
-    
+
     public static native void nativeOnDirectoryReady();
     public static native void nativeOnActivityPause();
     public static native void nativeOnActivityResume();
     public static native void nativeOnActivityDestroy();
-    
+
     /*
      * Directory and File Status Functions
      */
-    
+
     /**
      * Called from native code to check if directory access is available
      */
     public static boolean hasDirectoryAccess() {
-        boolean hasAccess = instance != null && 
-                           instance.mmbasicDirectory != null && 
-                           instance.mmbasicDirectory.exists() && 
+        boolean hasAccess = instance != null &&
+                           instance.mmbasicDirectory != null &&
+                           instance.mmbasicDirectory.exists() &&
                            instance.mmbasicDirectory.canRead();
-        
+
         Log.v(TAG, "hasDirectoryAccess: " + hasAccess);
         return hasAccess;
     }
-    
+
     /*
      * File Operations
      */
-    
+
     /**
      * Called from native code to list files in the directory
      */
@@ -280,26 +283,33 @@ public class MainActivity extends SDLActivity {
             Log.w(TAG, "listFiles: No directory access");
             return new String[0];
         }
-        
+
         try {
             DocumentFile[] files = instance.mmbasicDirectory.listFiles();
             List<String> fileNames = new ArrayList<>();
-            
+
             for (DocumentFile file : files) {
-                if (file.isFile() && file.getName() != null) {
-                    fileNames.add(file.getName());
+                if (file.getName() != null) {
+                    // Include both files AND directories
+                    if (file.isFile()) {
+                        fileNames.add(file.getName());
+                        Log.v(TAG, "Found file: " + file.getName());
+                    } else if (file.isDirectory()) {
+                        fileNames.add(file.getName()); //  + "/");  // Optional: add trailing slash for directories
+                        Log.v(TAG, "Found directory: " + file.getName());
+                    }
                 }
             }
-            
-            Log.d(TAG, "listFiles: Found " + fileNames.size() + " files");
+
+            Log.d(TAG, "listFiles: Found " + fileNames.size() + " items total");
             return fileNames.toArray(new String[0]);
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Error listing files", e);
             return new String[0];
         }
     }
-    
+
     /**
      * Called from native code to read a file
      */
@@ -309,45 +319,45 @@ public class MainActivity extends SDLActivity {
             Log.w(TAG, "readFile: No directory access");
             return null;
         }
-        
+
         try {
             DocumentFile file = instance.mmbasicDirectory.findFile(filename);
             if (file == null || !file.exists() || !file.canRead()) {
                 Log.w(TAG, "readFile: File not found or not readable: " + filename);
                 return null;
             }
-            
+
             InputStream inputStream = instance.getContentResolver().openInputStream(file.getUri());
             if (inputStream == null) {
                 Log.e(TAG, "readFile: Failed to open input stream for: " + filename);
                 return null;
             }
-            
+
             try {
                 byte[] buffer = new byte[(int) file.length()];
                 int totalBytesRead = 0;
                 int bytesRead;
-                
-                while (totalBytesRead < buffer.length && 
-                       (bytesRead = inputStream.read(buffer, totalBytesRead, 
+
+                while (totalBytesRead < buffer.length &&
+                       (bytesRead = inputStream.read(buffer, totalBytesRead,
                                                    buffer.length - totalBytesRead)) != -1) {
                     totalBytesRead += bytesRead;
                 }
-                
+
                 if (totalBytesRead != buffer.length) {
                     Log.w(TAG, "readFile: Expected " + buffer.length + " bytes, got " + totalBytesRead);
                     byte[] actualBuffer = new byte[totalBytesRead];
                     System.arraycopy(buffer, 0, actualBuffer, 0, totalBytesRead);
                     return actualBuffer;
                 }
-                
+
                 Log.d(TAG, "readFile: Successfully read " + totalBytesRead + " bytes from " + filename);
                 return buffer;
-                
+
             } finally {
                 inputStream.close();
             }
-            
+
         } catch (IOException e) {
             Log.e(TAG, "IO error reading file: " + filename, e);
             return null;
@@ -356,7 +366,7 @@ public class MainActivity extends SDLActivity {
             return null;
         }
     }
-    
+
     /**
      * Called from native code to write a file
      */
@@ -366,7 +376,7 @@ public class MainActivity extends SDLActivity {
             Log.w(TAG, "writeFile: No directory access");
             return false;
         }
-        
+
         try {
             // Check if file exists, create if not
             DocumentFile file = instance.mmbasicDirectory.findFile(filename);
@@ -374,28 +384,28 @@ public class MainActivity extends SDLActivity {
                 file = instance.mmbasicDirectory.createFile("application/octet-stream", filename);
                 Log.d(TAG, "writeFile: Created new file: " + filename);
             }
-            
+
             if (file == null || !file.canWrite()) {
                 Log.e(TAG, "writeFile: Cannot write to file: " + filename);
                 return false;
             }
-            
+
             OutputStream outputStream = instance.getContentResolver().openOutputStream(file.getUri(), "wt");
             if (outputStream == null) {
                 Log.e(TAG, "writeFile: Failed to open output stream for: " + filename);
                 return false;
             }
-            
+
             try {
                 outputStream.write(data);
                 outputStream.flush();
                 Log.d(TAG, "writeFile: Successfully wrote " + data.length + " bytes to " + filename);
                 return true;
-                
+
             } finally {
                 outputStream.close();
             }
-            
+
         } catch (IOException e) {
             Log.e(TAG, "IO error writing file: " + filename, e);
             return false;
@@ -404,7 +414,7 @@ public class MainActivity extends SDLActivity {
             return false;
         }
     }
-    
+
     /**
      * Called from native code to delete a file
      *
@@ -417,7 +427,7 @@ public class MainActivity extends SDLActivity {
             Log.w(TAG, "safDeleteFile: No directory access");
             return false;
         }
-        
+
         try {
             DocumentFile file = instance.mmbasicDirectory.findFile(filename);
             if (file != null && file.exists()) {
@@ -433,7 +443,7 @@ public class MainActivity extends SDLActivity {
             return false;
         }
     }
-    
+
     /**
      * Called from native code to check if a file exists
      */
@@ -442,7 +452,7 @@ public class MainActivity extends SDLActivity {
         if (!hasDirectoryAccess()) {
             return false;
         }
-        
+
         try {
             DocumentFile file = instance.mmbasicDirectory.findFile(filename);
             boolean exists = file != null && file.exists();
@@ -453,7 +463,7 @@ public class MainActivity extends SDLActivity {
             return false;
         }
     }
-    
+
     /**
      * Called from native code to get file size
      */
@@ -462,7 +472,7 @@ public class MainActivity extends SDLActivity {
         if (!hasDirectoryAccess()) {
             return -1;
         }
-        
+
         try {
             DocumentFile file = instance.mmbasicDirectory.findFile(filename);
             if (file != null && file.exists() && file.isFile()) {
@@ -473,15 +483,15 @@ public class MainActivity extends SDLActivity {
         } catch (Exception e) {
             Log.e(TAG, "Error getting file size: " + filename, e);
         }
-        
+
         Log.v(TAG, "getFileSize: " + filename + " = -1 (not found)");
         return -1;
     }
-    
+
     /*
      * Directory Operations
      */
-    
+
     /**
      * Called from native code to create a subdirectory
      */
@@ -491,7 +501,7 @@ public class MainActivity extends SDLActivity {
             Log.w(TAG, "createDirectory: No directory access");
             return false;
         }
-        
+
         try {
             DocumentFile existingDir = instance.mmbasicDirectory.findFile(dirname);
             if (existingDir != null && existingDir.exists()) {
@@ -499,18 +509,18 @@ public class MainActivity extends SDLActivity {
                 Log.d(TAG, "createDirectory: " + dirname + " already exists, isDirectory: " + isDir);
                 return isDir; // Return true if already exists as directory
             }
-            
+
             DocumentFile newDir = instance.mmbasicDirectory.createDirectory(dirname);
             boolean success = newDir != null;
             Log.d(TAG, "createDirectory: " + dirname + " result: " + success);
             return success;
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Error creating directory: " + dirname, e);
             return false;
         }
     }
-    
+
     /**
      * Called from native code to delete a directory (must be empty)
      */
@@ -520,7 +530,7 @@ public class MainActivity extends SDLActivity {
             Log.w(TAG, "deleteDirectory: No directory access");
             return false;
         }
-        
+
         try {
             DocumentFile dir = instance.mmbasicDirectory.findFile(dirname);
             if (dir != null && dir.exists() && dir.isDirectory()) {
@@ -536,7 +546,7 @@ public class MainActivity extends SDLActivity {
             return false;
         }
     }
-    
+
     /**
      * Called from native code to check if a directory exists
      */
@@ -545,7 +555,7 @@ public class MainActivity extends SDLActivity {
         if (!hasDirectoryAccess()) {
             return false;
         }
-        
+
         try {
             DocumentFile dir = instance.mmbasicDirectory.findFile(dirname);
             boolean exists = dir != null && dir.exists() && dir.isDirectory();
@@ -556,7 +566,7 @@ public class MainActivity extends SDLActivity {
             return false;
         }
     }
-    
+
     /**
      * Called from native code to list subdirectories
      */
@@ -566,30 +576,30 @@ public class MainActivity extends SDLActivity {
             Log.w(TAG, "listDirectories: No directory access");
             return new String[0];
         }
-        
+
         try {
             DocumentFile[] files = instance.mmbasicDirectory.listFiles();
             List<String> dirNames = new ArrayList<>();
-            
+
             for (DocumentFile file : files) {
                 if (file.isDirectory() && file.getName() != null) {
                     dirNames.add(file.getName());
                 }
             }
-            
+
             Log.d(TAG, "listDirectories: Found " + dirNames.size() + " directories");
             return dirNames.toArray(new String[0]);
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Error listing directories", e);
             return new String[0];
         }
     }
-    
+
     /*
      * Streaming I/O Support - File Descriptor Management
      */
-    
+
     /**
      * Open a file and return a native file descriptor ID
      */
@@ -599,10 +609,10 @@ public class MainActivity extends SDLActivity {
             Log.w(TAG, "openFileForStreaming: No directory access");
             return -1;
         }
-        
+
         try {
             DocumentFile file = null;
-            
+
             // Check if file exists or needs to be created
             if (mode.contains("w") || mode.contains("a")) {
                 // Writing mode - create file if it doesn't exist
@@ -615,12 +625,12 @@ public class MainActivity extends SDLActivity {
                 // Reading mode - file must exist
                 file = instance.mmbasicDirectory.findFile(filename);
             }
-            
+
             if (file == null || !file.exists()) {
                 Log.w(TAG, "openFileForStreaming: File not found: " + filename);
                 return -1;
             }
-            
+
             // Determine the ParcelFileDescriptor mode
             String pfdMode;
             if (mode.equals("r") || mode.equals("rb")) {
@@ -637,10 +647,10 @@ public class MainActivity extends SDLActivity {
                 Log.e(TAG, "openFileForStreaming: Unsupported mode: " + mode);
                 return -1;
             }
-            
+
             ParcelFileDescriptor pfd = instance.getContentResolver()
                 .openFileDescriptor(file.getUri(), pfdMode);
-            
+
             if (pfd != null) {
                 int fdId = nextFdId++;
                 openFileDescriptors.put(fdId, pfd);
@@ -649,16 +659,16 @@ public class MainActivity extends SDLActivity {
             } else {
                 Log.e(TAG, "openFileForStreaming: Failed to get ParcelFileDescriptor for: " + filename);
             }
-            
+
         } catch (FileNotFoundException e) {
             Log.e(TAG, "File not found for streaming: " + filename, e);
         } catch (Exception e) {
             Log.e(TAG, "Error opening file for streaming: " + filename, e);
         }
-        
+
         return -1;
     }
-    
+
     /**
      * Get the actual native file descriptor from our ID
      */
@@ -673,7 +683,7 @@ public class MainActivity extends SDLActivity {
         Log.w(TAG, "getNativeFileDescriptor: FD ID not found: " + fdId);
         return -1;
     }
-    
+
     /**
      * Close a file descriptor
      */
@@ -693,7 +703,7 @@ public class MainActivity extends SDLActivity {
         }
         return false;
     }
-    
+
     /**
      * Clean up all open file descriptors (call this in onDestroy)
      */
@@ -707,5 +717,47 @@ public class MainActivity extends SDLActivity {
             }
         }
         openFileDescriptors.clear();
+    }
+
+    /**
+     * Alternative method that returns stats as separate values via JNI object
+     * This version might be easier to use from C++ if you prefer individual calls
+     */
+    public static boolean getFileInfo(String filename, long[] outStats) {
+        Log.v(TAG, "getFileInfo: " + filename);
+        if (!hasDirectoryAccess() || outStats == null || outStats.length < 6) {
+            return false;
+        }
+
+        try {
+            DocumentFile file = instance.mmbasicDirectory.findFile(filename);
+            if (file == null || !file.exists()) {
+                return false;
+            }
+
+            outStats[0] = 1;  // exists
+            outStats[1] = file.isFile() ? 1 : 0;
+            outStats[2] = file.isDirectory() ? 1 : 0;
+            outStats[3] = file.isFile() ? file.length() : -1;
+            outStats[4] = file.lastModified();
+            outStats[5] = (file.canRead() ? 1 : 0) | (file.canWrite() ? 2 : 0);
+
+            return true;
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting file info: " + filename, e);
+            return false;
+        }
+    }
+
+    public static long getFreeSpace() {
+        Log.v(TAG, "getFreeSpace");
+
+        // TODO: DataDirectory may not be same drive as Documents/mmbasic directory.
+        File path = Environment.getDataDirectory();
+        StatFs statFs = new StatFs(path.getPath());
+        long blockSize = statFs.getBlockSizeLong();
+        long availableBlocks = statFs.getAvailableBlocksLong();
+        return availableBlocks * blockSize;
     }
 }
