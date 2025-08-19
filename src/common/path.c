@@ -439,10 +439,7 @@ static MmResult path_mkdir_internal(const char *path) {
         return path_is_directory(path) ? kOk : kNotADirectory;
     }
 
-    errno = 0;
-    if (FAILED(mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) return errno;
-
-    return kOk;
+    return file_mkdir(path);
 }
 
 MmResult path_mkdir(const char *path) {

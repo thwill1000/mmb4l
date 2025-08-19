@@ -318,6 +318,14 @@ int file_loc(int fnbr);
 int file_lof(int fnbr);
 
 /**
+ * Creates a new directory
+ *
+ * @param[in]  dirname  Path to the new directory
+ * @return              kOk on success, error code on failure
+ */
+MmResult file_mkdir(const char *dirname);
+
+/**
  * Opens a directory for reading.
  *
  * @param[in]  dirname  Path to the directory to open

@@ -14,9 +14,8 @@ extern "C" {
 #include "../options.h"
 #include "../utility.h"
 
-// Defined in "common/file.c"
-MmResult file_getcwd(char *buf, size_t size) { return kError; }
-MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) { return kError; }
+// Defined in "common/mmgetchar.c"
+int MMgetchar(void) { return -1; }
 
 }
 

@@ -43,11 +43,6 @@ extern char cmd_run_args[STRINGSIZE];
 MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *filename,
                             char *run_args);
 
-// Defined in "common/file.c"
-void file_close_all(void) { }
-MmResult file_getcwd(char *buf, size_t size) { return kError; }
-MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) { return kError; }
-
 // Defined in "common/flash.c"
 MmResult flash_init() { return kOk; }
 MmResult flash_term() { return kOk; }
@@ -64,6 +59,9 @@ MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColou
 // Defined in "common/program.c"
 char CurrentFile[STRINGSIZE];
 MmResult program_load_file(char *filename) { return kError; }
+
+// Defined in "common/mmgetchar.c"
+int MMgetchar(void) { return -1; }
 
 // Defined in "core/Commands.c"
 char DimUsed;
