@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-cmd_mkdir.c
+cmd_mkfile.c
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -47,9 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/parse.h"
 #include "../common/mmb4l.h"
 
-/** MKDIR filename$ */
-void cmd_mkdir(void) {
-    char *dirname = GetTempStrMemory();
-    ON_FAILURE_ERROR(parse_filename(cmdline, dirname, STRINGSIZE));
-    ON_FAILURE_ERROR(file_mkdir(dirname));
+/** MKFILE filename$ */
+void cmd_mkfile(void) {
+    char *filename = GetTempStrMemory();
+    ON_FAILURE_ERROR(parse_filename(cmdline, filename, STRINGSIZE));
+    ON_FAILURE_ERROR(file_mkfile(filename));
 }
