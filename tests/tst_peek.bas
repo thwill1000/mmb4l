@@ -1,4 +1,4 @@
-' Copyright (c) 2020-2024 Thomas Hugo Williams
+' Copyright (c) 2020-2025 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -233,7 +233,7 @@ Sub test_peek_progmem()
 
   ' Different token ids for OPTION on different platforms.
   If sys.is_platform%("mmb4l") Then
-    assert_string_equals(Chr$(213) + Chr$(128) + "EXPLICIT ON'|5" + Chr$(0), s$)
+    assert_string_equals(Chr$(214) + Chr$(128) + "EXPLICIT ON'|5" + Chr$(0), s$)
   ElseIf sys.is_platform%("cmm2*") Then
     assert_string_equals(Chr$(197) + "EXPLICIT ON'|5" + Chr$(0), s$)
   ElseIf sys.is_platform%("pm*") Then

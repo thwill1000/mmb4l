@@ -320,10 +320,18 @@ int file_lof(int fnbr);
 /**
  * Creates a new directory
  *
- * @param[in]  dirname  Path to the new directory
+ * @param[in]  dirname  Path to the directory to create
  * @return              kOk on success, error code on failure
  */
 MmResult file_mkdir(const char *dirname);
+
+/**
+ * Creates a new empty file
+ *
+ * @param[in]  filename  Path to the file to create
+ * @return               kOk on success, error code on failure
+ */
+MmResult file_mkfile(const char *filename);
 
 /**
  * Opens a directory for reading.
