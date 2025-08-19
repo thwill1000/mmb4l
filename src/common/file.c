@@ -177,7 +177,7 @@ MmResult file_get_free_space(const char *path, uint64_t *free_space) {
     // Calculate free space: available blocks * block size
     // Use f_bavail (blocks available to non-privileged users) rather than f_bfree
     *free_space = (uint64_t)fs_stat.f_bavail * (uint64_t)fs_stat.f_frsize;
-    
+
     return kOk;
 }
 
@@ -742,6 +742,19 @@ MmResult file_mkdir(const char *dirname) {
     } else {
         return kOk;
     }
+}
+
+MmResult file_mkfile(const char *filename) {
+    if (file_exists(filename)) return kFileExists;
+
+    errno = 0;
+    FILE* file = fopen(filename, "w");
+    if (!file) {
+        return errno;
+    }
+
+    fclose(file);
+    return kOk;
 }
 
 MmResult file_opendir(const char *dirname, DirStream **stream) {
