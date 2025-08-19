@@ -734,6 +734,16 @@ MmResult file_rename(const char *old_filename, const char *new_filename) {
     }
 }
 
+MmResult file_mkdir(const char *dirname) {
+    // TODO: check/validate mode/permissions.
+    errno = 0;
+    if (FAILED(mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) {
+        return errno;
+    } else {
+        return kOk;
+    }
+}
+
 MmResult file_opendir(const char *dirname, DirStream **stream) {
     if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
     errno = 0;
