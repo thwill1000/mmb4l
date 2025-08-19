@@ -44,15 +44,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <errno.h>
 #include <fnmatch.h>
 #include <libgen.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/statvfs.h>
 #include <unistd.h>
 
 #include "cstring.h"
@@ -64,11 +61,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "path.h"
 #include "serial.h"
 #include "utility.h"
-
-struct s_DirStream {
-    DIR *dir;
-    DirEntry entry;
-};
 
 MmResult (*file_0_putc_fn)(char c) = NULL;
 MmResult (*file_0_write_fn)(const char *buf, size_t *sz) = NULL;
@@ -154,33 +146,6 @@ void file_close_all(void) {
     }
 }
 
-MmResult file_delete(const char *filename) {
-    errno = 0;
-    if (SUCCEEDED(remove(filename))) {
-        return kOk;
-    } else {
-        return errno;
-    }
-}
-
-MmResult file_get_free_space(const char *path, uint64_t *free_space) {
-    if (!path || !free_space) {
-        return mmresult_ex(kInternalFault, "Invalid parameter");
-    }
-
-    struct statvfs fs_stat;
-    errno = 0;
-    if (statvfs(path, &fs_stat) != 0) {
-        return errno;
-    }
-
-    // Calculate free space: available blocks * block size
-    // Use f_bavail (blocks available to non-privileged users) rather than f_bfree
-    *free_space = (uint64_t)fs_stat.f_bavail * (uint64_t)fs_stat.f_frsize;
-
-    return kOk;
-}
-
 int file_getc(int fnbr) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
         error_throw(kFileInvalidFileNumber);
@@ -231,8 +196,8 @@ static int compare_by_size(const void *a, const void *b) {
     const FileMatch *file_a = (const FileMatch *)a;
     const FileMatch *file_b = (const FileMatch *)b;
 
-    if (file_a->size < file_b->size) return -1;
-    if (file_a->size > file_b->size) return 1;
+    if (file_a->info.size < file_b->info.size) return -1;
+    if (file_a->info.size > file_b->info.size) return 1;
     return strcmp(file_a->name, file_b->name); // Secondary sort by name
 }
 
@@ -243,8 +208,8 @@ static int compare_by_time(const void *a, const void *b) {
     const FileMatch *file_a = (const FileMatch *)a;
     const FileMatch *file_b = (const FileMatch *)b;
 
-    if (file_a->time < file_b->time) return -1;
-    if (file_a->time > file_b->time) return 1;
+    if (file_a->info.mtime < file_b->info.mtime) return -1;
+    if (file_a->info.mtime > file_b->info.mtime) return 1;
     return strcmp(file_a->name, file_b->name); // Secondary sort by name
 }
 
@@ -361,41 +326,20 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
         snprintf(full_path, sizeof(full_path), "%s/%s", list->directory, entry->name);
 #pragma GCC diagnostic pop
 
-        struct stat st;
-        if (stat(full_path, &st) != 0) {
-            // If we can't stat the file, make stuff up, perhaps we should omit it ?
-            st.st_size = 0;
-            st.st_mtime = 0;
+        FileInfo info;
+        result = file_info(full_path, &info);
+        if (FAILED(result)) {
+            file_closedir(stream);
+            return result;
         }
 
         // Add the file to our list
         FileMatch *fmatch = &list->files[files_added];
+        fmatch->info = info;
 
         // Copy the filename to the buffer
         strcpy(buf_ptr, entry->name);
         fmatch->name = buf_ptr;
-        fmatch->size = st.st_size;
-        fmatch->time = st.st_mtime;
-
-        // Set file type based on stat information
-        // Note: We use stat() result rather than DirEntry#type for more reliable results
-        if (S_ISREG(st.st_mode)) {
-            fmatch->type = kFileTypeRegularFile;
-        } else if (S_ISDIR(st.st_mode)) {
-            fmatch->type = kFileTypeDirectory;
-        } else if (S_ISLNK(st.st_mode)) {
-            fmatch->type = kFileTypeSymbolicLink;
-        } else if (S_ISBLK(st.st_mode)) {
-            fmatch->type = kFileTypeBlockDevice;
-        } else if (S_ISCHR(st.st_mode)) {
-            fmatch->type = kFileTypeCharacterDevice;
-        } else if (S_ISFIFO(st.st_mode)) {
-            fmatch->type = kFileTypeNamedPipe;
-        } else if (S_ISSOCK(st.st_mode)) {
-            fmatch->type = kFileTypeSocket;
-        } else {
-            fmatch->type = kFileTypeUnknown;
-        }
 
         // Update buffer pointer and remaining space
         buf_ptr += name_len;
@@ -655,44 +599,33 @@ size_t file_write(int fnbr, const char *buf, size_t sz) {
     return -1;
 }
 
-bool file_exists(const char *filename) {
-    struct stat st;
-    return (stat(filename, &st) == 0) && S_ISREG(st.st_mode) ? true : false;
+bool file_exists_regular(const char *filename) {
+    if (!filename) return false;
+
+    FileInfo info;
+    if (SUCCEEDED(file_info(filename, &info))) {
+        return info.exists && (info.type == kFileTypeRegularFile);
+    } else {
+        return false;
+    }
 }
 
 bool file_exists_dir(const char *dirname) {
     if (!dirname) return false;
 
-    struct stat st;
-    return (stat(dirname, &st) == 0) && S_ISDIR(st.st_mode) ? true : false;
-}
-
-int64_t file_size(int fnbr) {
-    struct stat st;
-    if (fstat(fileno(file_table[fnbr].file_ptr), &st) == 0) {
-        return st.st_size;
+    FileInfo info;
+    if (SUCCEEDED(file_info(dirname, &info))) {
+        return info.exists && (info.type == kFileTypeDirectory);
     } else {
-        // File probably doesn't exist.
-        // TODO: Check errno.
-        return -1;
+        return false;
     }
 }
 
-MmResult file_chdir(const char *dirname) {
-    errno = 0;
-    if (FAILED(chdir(dirname))) return errno;
-    return kOk;
-}
-
-MmResult file_rmdir(const char *dirname) {
-    errno = 0;
-    if (FAILED(rmdir(dirname))) return errno;
-    return kOk;
-}
-
-MmResult file_getcwd(char *buf, size_t size) {
-    errno = 0;
-    if (!getcwd(buf, size)) return errno;
+MmResult file_size(const char *path, off_t *size) {
+    FileInfo info;
+    ON_FAILURE_RETURN(file_info(path, &info));
+    if (!info.exists) return kFileNotFound;
+    *size = info.size;
     return kOk;
 }
 
@@ -711,130 +644,5 @@ bool file_is_serial(int fnbr) {
         return file_table[fnbr].type == fet_serial;
     } else {
         return false;
-    }
-}
-
-MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) {
-    errno = 0;
-    ssize_t result = readlink(path, buf, *bufsiz);
-    if (result == -1) {
-        return errno;
-    } else {
-        *bufsiz = (size_t) result;
-        return kOk;
-    }
-}
-
-MmResult file_rename(const char *old_filename, const char *new_filename) {
-    errno = 0;
-    if FAILED(rename(old_filename, new_filename)) {
-        return errno;
-    } else {
-        return kOk;
-    }
-}
-
-MmResult file_mkdir(const char *dirname) {
-    // TODO: check/validate mode/permissions.
-    errno = 0;
-    if (FAILED(mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) {
-        return errno;
-    } else {
-        return kOk;
-    }
-}
-
-MmResult file_mkfile(const char *filename) {
-    if (file_exists(filename)) return kFileExists;
-
-    errno = 0;
-    FILE* file = fopen(filename, "w");
-    if (!file) {
-        return errno;
-    }
-
-    fclose(file);
-    return kOk;
-}
-
-MmResult file_opendir(const char *dirname, DirStream **stream) {
-    if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
-    errno = 0;
-    DIR *dir = opendir(dirname);
-    if (dir) {
-        DirStream *ds = (DirStream *) malloc(sizeof(DirStream));
-        if (!ds) {
-            closedir(dir);
-            return kOutOfMemory;
-        }
-        ds->dir = dir;
-        *stream = ds;
-        return kOk;
-    } else {
-        *stream = NULL;
-        return errno;
-    }
-}
-
-MmResult file_readdir(DirStream *stream, DirEntry **entry) {
-    if (!stream) return mmresult_ex(kInternalFault, "stream == NULL");
-    errno = 0;
-    struct dirent *e = readdir(stream->dir);
-    if (!e) {
-        if (errno == 0) {
-            // End of directory, not an error
-            *entry = NULL;
-            return kOk;
-        } else {
-            *entry = NULL;
-            return errno;
-        }
-    }
-
-    if (FAILED(cstring_cpy(stream->entry.name, e->d_name, STRINGSIZE))) {
-        *entry = NULL;
-        return kStringTooLong;
-    }
-
-    switch (e->d_type) {
-        case DT_BLK:
-            stream->entry.type = kFileTypeBlockDevice;
-            break;
-        case DT_CHR:
-            stream->entry.type = kFileTypeCharacterDevice;
-            break;
-        case DT_DIR:
-            stream->entry.type = kFileTypeDirectory;
-            break;
-        case DT_FIFO:
-            stream->entry.type = kFileTypeNamedPipe;
-            break;
-        case DT_LNK:
-            stream->entry.type = kFileTypeSymbolicLink;
-            break;
-        case DT_REG:
-            stream->entry.type = kFileTypeRegularFile;
-            break;
-        case DT_SOCK:
-            stream->entry.type = kFileTypeSocket;
-            break;
-        default:
-            stream->entry.type = kFileTypeUnknown;
-            break;
-    }
-
-    *entry = &(stream->entry);
-    return kOk;
-}
-
-MmResult file_closedir(DirStream *stream) {
-    if (!stream) return mmresult_ex(kInternalFault, "stream == NULL");
-    errno = 0;
-    if (SUCCEEDED(closedir(stream->dir))) {
-        free(stream);
-        return kOk;
-    } else {
-        free(stream);
-        return errno;
     }
 }

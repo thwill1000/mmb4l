@@ -85,27 +85,40 @@ typedef struct {
     FileType type;          ///< Type of the entry (file, directory, etc.)
 } DirEntry;
 
+/**
+ * Structure containing information about a file or directory entry.
+ * Used to store metadata retrieved from filesystem queries.
+ */
+typedef struct {
+    bool exists;    ///< True if the file/directory exists, false otherwise
+    FileType type;  ///< Type of entry (file, directory, symbolic link, etc.)
+    off_t size;     ///< Size of the file in bytes
+    time_t mtime;   ///< Last modification time as Unix timestamp
+} FileInfo;
+
+/**
+ * Enumeration of file sorting options for directory listings
+ * Determines the order in which files are returned by file_list()
+ */
 typedef enum {
-    kFileSortByName,
-    kFileSortBySize,
-    kFileSortByTime,
-    kFileSortByExtension,
+    kFileSortByName,       ///< Sort alphabetically by filename
+    kFileSortBySize,       ///< Sort by file size (smallest to largest)
+    kFileSortByTime,       ///< Sort by modification time (oldest to newest)
+    kFileSortByExtension,  ///< Sort by file extension, then by name
 } FileSort;
 
 typedef struct {
-    char   *name;  ///< Pointer to filename (in FileList#buf)
-    off_t  size;   ///< File size
-    time_t time;   ///< File modification time/date
-    FileType type; ///< File type (regular file, directory, symlink, etc.)
+    char      *name;  ///< Pointer to filename (in FileList#buf)
+    FileInfo  info;   ///< File size, modification time/date, type, etc.
 } FileMatch;
 
 typedef struct {
-    char      directory[PATH_MAX];  ///< The directory path
-    FileMatch files[FILE_LIST_MAX]; ///< The matched files
-    size_t    count;                ///< Number of matched files, may be > FILE_LIST_MAX
-    bool      buf_full;             ///< True if `buf` is full
-    uint64_t  free_space;           ///< Remaining free space on the drive in bytes
-    char buf[32 * FILE_LIST_MAX];   ///< Storage for file names
+    char      directory[PATH_MAX];   ///< The directory path
+    FileMatch files[FILE_LIST_MAX];  ///< The matched files
+    size_t    count;                 ///< Number of matched files, may be > FILE_LIST_MAX
+    bool      buf_full;              ///< True if `buf` is full
+    uint64_t  free_space;            ///< Remaining free space on the drive in bytes
+    char buf[32 * FILE_LIST_MAX];    ///< Storage for file names
 } FileList;
 
 /**
@@ -127,12 +140,12 @@ MmResult file_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *,
 int file_find_free(void);
 
 /**
- * Checks if a named file exists in the filesystem.
+ * Checks if a named regulat file exists in the filesystem.
  *
  * @param[in]  filename  Path to the file to check
  * @return               true if file exists and is a regular file, false otherwise
  */
-bool file_exists(const char *filename);
+bool file_exists_regular(const char *filename);
 
 /**
  * Checks if a named directory exists in the filesystem.
@@ -173,12 +186,13 @@ bool file_exists_dir(const char *dirname);
 MmResult file_get_free_space(const char *path, uint64_t *free_space);
 
 /**
- * Gets the size of an open file in bytes.
+ * Gets the size of a file in bytes.
  *
- * @param[in]  fnbr  File number of the open file
- * @return           Size in bytes, or -1 on error
+ * @param[in]  path  Path to the file
+ * @param[out] size  Pointer to store the size
+ * @return           kOk on success, error code on failure
  */
-int64_t file_size(int fnbr);
+MmResult file_size(const char *path, off_t *size);
 
 /**
  * Opens a file with the specified mode.
@@ -268,6 +282,19 @@ int file_getc(int fnbr);
  * @return           kOk on success, error code on failure
  */
 MmResult file_getcwd(char *buf, size_t size);
+
+/**
+ * Gets information about a file.
+ */
+MmResult file_info(const char *filename, FileInfo *info);
+
+/**
+ * Does the path exist and correspond to a symbolic link?
+ *
+ * @param[in]  path  Path to check
+ * @return           true if path exists and corresponds to a symbolic link
+ */
+bool file_exists_symlink(const char *path);
 
 /**
  * Checks if a file number refers to a regular file.
