@@ -80,8 +80,8 @@ int MMCharPos = 0;
 #define CMD_DIM         "\x99\x80"
 #define CMD_END         "\x9F\x80"
 #define CMD_LET         "\xC1\x80"
-#define CMD_MMDEBUG     "\xCD\x80"
-#define CMD_PRINT       "\xDC\x80"
+#define CMD_MMDEBUG     "\xCE\x80"
+#define CMD_PRINT       "\xDD\x80"
 #if defined(USE_TWO_BYTE_TOKENS)
 #define OP_EQUALS       "\xF7\x80"
 #else
