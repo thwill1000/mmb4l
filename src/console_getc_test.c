@@ -10,25 +10,26 @@
 #include "common/mmb4l.h"
 #include "common/console.h"
 
-void console_key_to_string(int ch, char *buf);
-
-volatile int MMAbort;
+// Defined in "main.c"
 Options mmb_options;
+volatile int MMAbort;
+void CheckAbort(void) { console_pump_input(); }
+
+// Defined in "common/console.c"
+void console_key_to_string(int ch, char *buf);
 
 // Defined in "common/fonttbl.c"
 uint32_t font_height(uint32_t font) { return 12; }
 uint32_t font_width(uint32_t font) { return 8; }
 
-// Defined in "common/file.c"
-MmResult file_getcwd(char *buf, size_t size) { return kError; }
-MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) { return kError; }
-
 // Defined in "common/graphics.c"
 uint32_t graphics_font;
 
+// Defined in "common/interrupt.c"
 bool interrupt_check_key_press(char ch) { return false; }
 
-void CheckAbort(void) { console_pump_input(); }
+// Defined in "common/mmgetchar.c"
+int MMgetchar(void) { return -1; }
 
 int main(int argc, char **argv) {
     printf("Press Keys\n");

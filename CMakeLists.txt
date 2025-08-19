@@ -303,10 +303,12 @@ add_executable(test_console_getc
     src/console_getc_test.c
     src/common/rx_buf.c
     src/common/console.c
+    src/common/file.c
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c
     src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
 )
 
 # GoogleTest
@@ -322,6 +324,7 @@ include(GoogleTest)
 add_executable(test_cmdline
     ${MMB4L_COMMON_TEST_FILES}
     src/common/cmdline.c
+    src/common/file.c
     src/common/features.c
     src/common/memory.c
     src/common/mmresult.c
@@ -329,6 +332,7 @@ add_executable(test_cmdline
     src/common/parse.c
     src/common/path.c
     src/common/gtest/cmdline_test.cxx
+    src/common/gtest/stubs/serial_stubs.c
     src/core/vartbl.c
 )
 
@@ -350,6 +354,7 @@ add_executable(test_cmd_do
     src/commands/cmd_do.c
     src/commands/gtest/cmd_do_test.cxx
     src/common/features.c
+    src/common/file.c
     src/common/fonttbl.c
     src/common/options.c
     src/common/memory.c
@@ -361,6 +366,7 @@ add_executable(test_cmd_do
     src/common/gtest/stubs/gamepad_stubs.c
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
@@ -386,6 +392,7 @@ add_executable(test_cmd_run
     src/commands/cmd_run.c
     src/commands/gtest/cmd_run_test.cxx
     src/common/features.c
+    src/common/file.c
     src/common/fonttbl.c
     src/common/memory.c
     src/common/mmresult.c
@@ -397,6 +404,7 @@ add_executable(test_cmd_run
     src/common/gtest/stubs/gamepad_stubs.c
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
@@ -715,9 +723,11 @@ gtest_discover_tests(test_keyboard)
 
 add_executable(test_options
     ${MMB4L_COMMON_TEST_FILES}
+    src/common/file.c
     src/common/options.c
     src/common/path.c
     src/common/gtest/options_test.cxx
+    src/common/gtest/stubs/serial_stubs.c
 )
 
 target_compile_definitions(test_options PUBLIC OPTION_TESTS)

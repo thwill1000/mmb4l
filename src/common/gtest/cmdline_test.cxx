@@ -13,18 +13,9 @@ extern "C" {
 #include "../parse.h"
 #include "../options.h"
 
-int LocalIndex = 0;
-
-long long int getinteger(char *p) { return 0; }
-int getint(char *p, int min, int max) { return 0; }
-
 // Defined in "main.c"
 Features mmb_features;
 Options mmb_options;
-
-// Defined in "common/file.c"
-MmResult file_getcwd(char *buf, size_t size) { return kError; }
-MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) { return kError; }
 
 // Defined in "common/gpio.c"
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
@@ -32,15 +23,21 @@ MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return k
 // Defined in "common/graphics.c"
 MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
 
+// Defined in "common/mmgetchar.c"
+int MMgetchar(void) { return -1; }
+
 // Defined in "core/commandtbl.c"
 CommandToken cmdFUN = 0x0;
 CommandToken cmdSUB = 0x0;
 
 // Defined in "core/MMBasic.c"
+int LocalIndex = 0;
 int VarIndex;
 char *getCstring(const char *p) { return NULL; }
 void *findvar(const char *p, int action)  { return NULL; }
 const char *skipexpression(const char *p) { return NULL; }
+long long int getinteger(char *p) { return 0; }
+int getint(char *p, int min, int max) { return 0; }
 
 // Defined in "core/tokentbl.c"
 char tokenAS = 0x0;
