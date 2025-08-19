@@ -95,7 +95,7 @@ void cmd_files_internal(const char *p) {
     // List directories first
     for (size_t i = 0; i < min(flist->count, (size_t) FILE_LIST_MAX); ++i) {
         FileMatch *file = &(flist->files[i]);
-        if (file->type != kFileTypeDirectory) continue;
+        if (file->info.type != kFileTypeDirectory) continue;
         (void) snprintf(buf, STRINGSIZE, "   <DIR>  %s", file->name);
         display_puts(buf);
         dir_count++;
@@ -108,27 +108,29 @@ void cmd_files_internal(const char *p) {
     char time_buf[32];
     for (size_t i = 0; i < min(flist->count, (size_t) FILE_LIST_MAX); ++i) {
         FileMatch *file = &(flist->files[i]);
-        if (file->type == kFileTypeDirectory) continue;
+        if (file->info.type == kFileTypeDirectory) continue;
         struct tm *tm_info;
-        tm_info = localtime(&(file->time));
+        tm_info = localtime(&(file->info.mtime));
         if (compact) {
             strftime(time_buf, 32, "%d/%m/%y %H:%M", tm_info);
             char size_buf[32];
-            if (file->size >= 1024 * 1024 * 1024) {
+            if (file->info.size >= 1024 * 1024 * 1024) {
                 (void) snprintf(size_buf, 32, "%.1fG",
-                                (double) file->size / (1024.0 * 1024.0 * 1024.0));
-            } else if (file->size >= 1024 * 1024) {
-                (void) snprintf(size_buf, 32, "%.1fM", (double) file->size / (1024.0 * 1024.0));
-            } else if (file->size >= 1024) {
-                (void) snprintf(size_buf, 32, "%.1fK", (double) file->size / 1024.0);
+                                (double) file->info.size / (1024.0 * 1024.0 * 1024.0));
+            } else if (file->info.size >= 1024 * 1024) {
+                (void) snprintf(size_buf, 32, "%.1fM",
+                                (double) file->info.size / (1024.0 * 1024.0));
+            } else if (file->info.size >= 1024) {
+                (void) snprintf(size_buf, 32, "%.1fK",
+                                (double) file->info.size / 1024.0);
             } else {
-                (void) snprintf(size_buf, 32, "%ld ", file->size);
+                (void) snprintf(size_buf, 32, "%ld ", file->info.size);
             }
             (void) snprintf(buf, STRINGSIZE, "%s %6s %s", time_buf, size_buf,
                             file->name);
         } else {
             strftime(time_buf, 32, "%d/%m/%Y  %H:%M:%S", tm_info);
-            (void) snprintf(buf, STRINGSIZE, "%s  %8ld  %s", time_buf, file->size,
+            (void) snprintf(buf, STRINGSIZE, "%s  %8ld  %s", time_buf, file->info.size,
                             file->name);
         }
         display_puts(buf);

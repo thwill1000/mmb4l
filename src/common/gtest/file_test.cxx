@@ -678,7 +678,7 @@ protected:
     // Helper to check if files are sorted by size
     bool is_sorted_by_size(const FileList& list) {
         for (size_t i = 1; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
-            if (list.files[i-1].size > list.files[i].size) {
+            if (list.files[i-1].info.size > list.files[i].info.size) {
                 return false;
             }
         }
@@ -688,7 +688,7 @@ protected:
     // Helper to check if files are sorted by time
     bool is_sorted_by_time(const FileList& list) {
         for (size_t i = 1; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
-            if (list.files[i-1].time > list.files[i].time) {
+            if (list.files[i-1].info.mtime > list.files[i].info.mtime) {
                 return false;
             }
         }
@@ -767,8 +767,8 @@ TEST_F(FileListTest, SortBySize) {
     // Verify we have files of different sizes
     bool found_small = false, found_large = false;
     for (size_t i = 0; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
-        if (list.files[i].size < 100) found_small = true;
-        if (list.files[i].size > 1000) found_large = true;
+        if (list.files[i].info.size < 100) found_small = true;
+        if (list.files[i].info.size > 1000) found_large = true;
     }
     EXPECT_TRUE(found_small && found_large);
 }
@@ -914,9 +914,9 @@ TEST_F(FileListTest, FileInformationAccuracy) {
     EXPECT_EQ(list.count, 1);
 
     // Check file size is correct (should be 5 bytes for "small")
-    EXPECT_EQ(list.files[0].size, 5);
+    EXPECT_EQ(list.files[0].info.size, 5);
     EXPECT_STREQ(list.files[0].name, "small.bin");
-    EXPECT_GT(list.files[0].time, 0);
+    EXPECT_GT(list.files[0].info.mtime, 0);
 }
 
 // Test buffer limits (if we can create enough files)
@@ -1109,17 +1109,17 @@ TEST_F(FileListTest, FileTypesPopulated) {
 
     // Verify that all files have valid file types
     for (size_t i = 0; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
-        EXPECT_NE(list.files[i].type, kFileTypeUnknown)
+        EXPECT_NE(list.files[i].info.type, kFileTypeUnknown)
             << "File " << list.files[i].name << " has unknown type";
 
         // Verify type makes sense for the filename
         std::string name(list.files[i].name);
 
         if (name == "subdir" || name == "." || name == "..") {
-            EXPECT_EQ(list.files[i].type, kFileTypeDirectory);
+            EXPECT_EQ(list.files[i].info.type, kFileTypeDirectory);
         } else if (name.find('.') != std::string::npos) {
             // Most files with extensions should be regular files
-            EXPECT_EQ(list.files[i].type, kFileTypeRegularFile);
+            EXPECT_EQ(list.files[i].info.type, kFileTypeRegularFile);
         }
     }
 }
@@ -1146,11 +1146,11 @@ TEST_F(FileListTest, FileTypeDetection) {
         std::string name(list.files[i].name);
 
         if (expected_types.find(name) != expected_types.end()) {
-            EXPECT_EQ(list.files[i].type, expected_types[name])
+            EXPECT_EQ(list.files[i].info.type, expected_types[name])
                 << "Wrong type for " << name;
         } else if (name.find('.') != std::string::npos && name != "." && name != "..") {
             // Most files with extensions should be regular files
-            EXPECT_EQ(list.files[i].type, kFileTypeRegularFile)
+            EXPECT_EQ(list.files[i].info.type, kFileTypeRegularFile)
                 << "Expected regular file for " << name;
         }
     }
@@ -1181,7 +1181,7 @@ TEST_F(FileListTest, FileTypeConsistencyWithReaddir) {
         std::string name(list.files[i].name);
 
         if (readdir_types.find(name) != readdir_types.end()) {
-            FileType list_type = list.files[i].type;
+            FileType list_type = list.files[i].info.type;
             FileType readdir_type = readdir_types[name];
 
             // Types should match, except for symlinks where stat() might resolve the link

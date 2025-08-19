@@ -231,6 +231,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/events.c
     src/common/features.c
     src/common/file.c
+    src/common/file_linux.c
     src/common/flash.c
     src/common/fonttbl.c
     src/common/gamepad.c
@@ -305,6 +306,7 @@ add_executable(test_console_getc
     src/common/rx_buf.c
     src/common/console.c
     src/common/file.c
+    src/common/file_linux.c
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c
@@ -326,6 +328,7 @@ add_executable(test_cmdline
     ${MMB4L_COMMON_TEST_FILES}
     src/common/cmdline.c
     src/common/file.c
+    src/common/file_linux.c
     src/common/features.c
     src/common/memory.c
     src/common/mmresult.c
@@ -356,6 +359,7 @@ add_executable(test_cmd_do
     src/commands/gtest/cmd_do_test.cxx
     src/common/features.c
     src/common/file.c
+    src/common/file_linux.c
     src/common/fonttbl.c
     src/common/options.c
     src/common/memory.c
@@ -394,6 +398,7 @@ add_executable(test_cmd_run
     src/commands/gtest/cmd_run_test.cxx
     src/common/features.c
     src/common/file.c
+    src/common/file_linux.c
     src/common/fonttbl.c
     src/common/memory.c
     src/common/mmresult.c
@@ -467,6 +472,7 @@ gtest_discover_tests(test_cstring)
 add_executable(test_file
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
+    src/common/file_linux.c
     src/common/path.c
     src/common/gtest/file_test.cxx
     src/common/gtest/stubs/serial_stubs.c
@@ -532,6 +538,7 @@ add_executable(test_fun_sprite
     src/common/events.c
     src/common/features.c
     src/common/file.c
+    src/common/file_linux.c
     src/common/fonttbl.c
     src/common/memory.c
     src/common/mmresult.c
@@ -631,6 +638,7 @@ add_executable(test_graphics
     src/common/events.c
     src/common/features.c
     src/common/file.c
+    src/common/file_linux.c
     src/common/fonttbl.c
     src/common/graphics.c
     src/common/logger.c
@@ -725,6 +733,7 @@ gtest_discover_tests(test_keyboard)
 add_executable(test_options
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
+    src/common/file_linux.c
     src/common/options.c
     src/common/path.c
     src/common/gtest/options_test.cxx
@@ -750,6 +759,7 @@ add_executable(test_parse
     ${MMB4L_COMMON_TEST_FILES}
     src/common/features.c
     src/common/file.c
+    src/common/file_linux.c
     src/common/memory.c
     src/common/mmgetchar.c
     src/common/mmresult.c
@@ -791,6 +801,7 @@ gtest_discover_tests(test_parse)
 add_executable(test_path
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
+    src/common/file_linux.c
     src/common/memory.c
     src/common/path.c
     src/common/rx_buf.c
@@ -817,6 +828,7 @@ add_executable(test_program
     ${MMB4L_COMMON_TEST_FILES}
     src/common/features.c
     src/common/file.c
+    src/common/file_linux.c
     src/common/memory.c
     src/common/mmgetchar.c
     src/common/mmtime.c
@@ -917,6 +929,7 @@ add_executable(test_sprite
     src/common/events.c
     src/common/features.c
     src/common/file.c
+    src/common/file_linux.c
     src/common/fonttbl.c
     src/common/graphics.c
     src/common/logger.c
@@ -970,6 +983,7 @@ add_executable(test_mmbasic_core
     ${MMB4L_COMMON_TEST_FILES}
     src/common/features.c
     src/common/file.c
+    src/common/file_linux.c
     src/common/fonttbl.c
     src/common/memory.c
     src/common/mmtime.c

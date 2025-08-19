@@ -45,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
@@ -209,25 +208,25 @@ static char *get_path(const char *p) {
 }
 
 static void mminfo_exists_dir(const char *p) {
-    char *path = get_path(p);
-    struct stat st;
-    g_integer_rtn = (stat(path, &st) == 0) && S_ISDIR(st.st_mode) ? 1 : 0;
+    const char *path = get_path(p);
+    FileInfo info;
+    ON_FAILURE_ERROR(file_info(path, &info));
     g_rtn_type = T_INT;
+    g_integer_rtn = info.exists && (info.type == kFileTypeDirectory);
 }
 
 static void mminfo_exists_file(const char *p) {
-    char *path = get_path(p);
-    struct stat st;
-    g_integer_rtn = (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? 1 : 0;
+    const char *path = get_path(p);
+    FileInfo info;
+    ON_FAILURE_ERROR(file_info(path, &info));
     g_rtn_type = T_INT;
+    g_integer_rtn = info.exists && (info.type == kFileTypeRegularFile);
 }
 
 static void mminfo_exists_symlink(const char *p) {
-    char *path = get_path(p);
-    struct stat st;
-    // Note use of lstat() rather than stat(), the latter would follow the symbolic link.
-    g_integer_rtn = (lstat(path, &st) == 0) && S_ISLNK(st.st_mode) ? 1 : 0;
+    const char *path = get_path(p);
     g_rtn_type = T_INT;
+    g_integer_rtn = file_exists_symlink(path);
 }
 
 static void mminfo_exists(const char *p) {
@@ -240,9 +239,10 @@ static void mminfo_exists(const char *p) {
         mminfo_exists_symlink(p2);
     } else {
         const char *path = get_path(p);
-        struct stat st;
-        g_integer_rtn = (stat(path, &st) == 0);
+        FileInfo info;
+        ON_FAILURE_ERROR(file_info(path, &info));
         g_rtn_type = T_INT;
+        g_integer_rtn = info.exists ? 1 : 0;
     }
 }
 
@@ -259,21 +259,20 @@ static void mminfo_fcolour(const char *p) {
 }
 
 static void mminfo_filesize(const char *p) {
-    char *path = get_path(p);
-
-    struct stat st;
-    if (stat(path, &st) == 0) {
-        if (S_ISDIR(st.st_mode)) {
-            g_integer_rtn = -2; // TODO: this matches CMM2, but probably better
-                                // just to return st.st_size.
+    const char *path = get_path(p);
+    FileInfo info;
+    ON_FAILURE_ERROR(file_info(path, &info));
+    g_rtn_type = T_INT;
+    if (info.exists) {
+        if (info.type == kFileTypeDirectory) {
+            g_integer_rtn = -2; // TODO: this matches the Colour Maximite 2,
+                                // but possibly it should return info.size.
         } else {
-            g_integer_rtn = st.st_size;
+            g_integer_rtn = info.size;
         }
     } else {
-        g_integer_rtn = -1; // Does not exist.
+        g_integer_rtn = -1;
     }
-
-    g_rtn_type = T_INT;
 }
 
 static void mminfo_flash_address(const char *p) {

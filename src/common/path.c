@@ -51,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 
 #include "cstring.h"
 #include "error.h"
@@ -61,28 +60,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "utility.h"
 
 bool path_exists(const char *path) {
-    struct stat st;
-    errno = 0;
-    return stat(path, &st) == 0;
+    FileInfo info;
+    ON_FAILURE_ERROR_EX(file_info(path, &info), false);
+    return info.exists;
 }
 
 bool path_is_directory(const char *path) {
-    struct stat st;
-    errno = 0;
-    return (stat(path, &st) == 0) && S_ISDIR(st.st_mode) ? true : false;
+    FileInfo info;
+    ON_FAILURE_ERROR_EX(file_info(path, &info), false);
+    return info.exists && (info.type == kFileTypeDirectory);
 }
 
 bool path_is_empty(const char *path) {
-    struct stat st;
-    errno = 0;
-    stat(path, &st);
-    return st.st_size == 0;
+    FileInfo info;
+    ON_FAILURE_ERROR_EX(file_info(path, &info), false);
+    return info.exists && (info.size == 0);
 }
 
 bool path_is_regular(const char *path) {
-    struct stat st;
-    errno = 0;
-    return (stat(path, &st) == 0) && S_ISREG(st.st_mode) ? true : false;
+    FileInfo info;
+    ON_FAILURE_ERROR_EX(file_info(path, &info), false);
+    return info.exists && (info.type == kFileTypeRegularFile);
 }
 
 bool path_has_extension(const char *path, const char *extension, bool case_insensitive) {
