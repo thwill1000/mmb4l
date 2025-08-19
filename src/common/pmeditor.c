@@ -741,23 +741,24 @@ void edit(const char *cmdline, bool cmdfile) {
     } else {
         //        char *fname = (char *)filename;
         char c;
-        int fsize;
+        off_t fsize;
         //        strcpy(name,fname);
-        if (!file_exists(filename)) {
+        if (!file_exists_regular(filename)) {
             if (strchr(filename, '.') == NULL) strcat(filename, ".bas");
         }
         // if (!fstrstr(filename, ".bas")) OPTION_COLOUR_CODE = 0;
-        if (file_exists(filename)) {
+        if (file_exists_regular(filename)) {
+            ON_FAILURE_ERROR(file_size(filename, &fsize));
+            if (fsize > EDIT_BUFFER_SIZE - 10) ON_FAILURE_ERROR(kOutOfMemory);
+
             int fnbr1;
             fnbr1 = file_find_free();
             ON_FAILURE_ERROR(file_open(filename, "rb", fnbr1));
             // BasicFileOpen(filename, fnbr1, FA_READ);
-            fsize = file_size(fnbr1);
             // if (filesource[fnbr1] != FLASHFILE)
             //     fsize = f_size(FileTable[fnbr1].fptr);
             // else
             //     fsize = lfs_file_size(&lfs, FileTable[fnbr1].lfsptr);
-            if (fsize > EDIT_BUFFER_SIZE - 10) error_throw_legacy("Out of memory");
             p = EdBuff;
             // char *q = (char *)EdBuff;
             do {  // while waiting for the end of file
@@ -849,7 +850,7 @@ int find_longest_line_length(const char *text, int *linein) {
 static MmResult pmeditor_save_file(const char *filename) {
     int fnbr;
 
-    if (file_exists(filename)) {
+    if (file_exists_regular(filename)) {
         char backup[FF_MAX_LFN];
         strcpy(backup, filename);
         strcat(backup, ".bak");
