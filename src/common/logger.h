@@ -69,15 +69,21 @@ MmResult logger_term(void);
 /** Writes a message to the log. */
 void logger_write(LoggerLevel level, const char *file, unsigned line, const char *format, ...);
 
-#define LOG_INFO(...)     logger_write(kLoggerLevelInfo, __FILE__, __LINE__, __VA_ARGS__)
-#define LOG_WARNING(...)  logger_write(kLoggerLevelWarning, __FILE__, __LINE__, __VA_ARGS__)
-#define LOG_ERROR(...)    logger_write(kLoggerLevelError, __FILE__, __LINE__, __VA_ARGS__)
-#define LOG_FATAL(...)    logger_write(kLoggerLevelFatal, __FILE__, __LINE__, __VA_ARGS__)
+#define LOG_INFO(...)   logger_write(kLoggerLevelInfo, __FILE__, __LINE__, __VA_ARGS__)
+#define LOG_WARN(...)   logger_write(kLoggerLevelWarning, __FILE__, __LINE__, __VA_ARGS__)
+#define LOG_ERROR(...)  logger_write(kLoggerLevelError, __FILE__, __LINE__, __VA_ARGS__)
+#define LOG_FATAL(...)  logger_write(kLoggerLevelFatal, __FILE__, __LINE__, __VA_ARGS__)
 
 #if defined(NDEBUG)
 #define LOG_DEBUG(...)
 #else
-#define LOG_DEBUG(...)    logger_write(kLoggerLevelDebug, __FILE__, __LINE__, __VA_ARGS__)
+#define LOG_DEBUG(...)  logger_write(kLoggerLevelDebug, __FILE__, __LINE__, __VA_ARGS__)
 #endif // NDEBUG
+
+#define LOG_FN_ENTRY(fmt, ...) \
+    LOG_INFO("Entering %s() at %s:%d - " fmt, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
+
+#define LOG_FN_EXIT(fmt, ...) \
+    LOG_INFO("Exiting %s() at %s:%d - " fmt, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
 #endif // MMB4L_LOGGER_H

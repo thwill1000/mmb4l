@@ -226,6 +226,15 @@ char *file_dirname(char *path);
 MmResult file_getcwd(char *buf, size_t size);
 
 /**
+ * Gets the current user's home directory.
+ *
+ * @param[out] buf   Buffer to store the directory path
+ * @param[in]  size  Size of the buffer
+ * @return           kOk on success, error code on failure
+ */
+MmResult file_get_home(char *buf, size_t size);
+
+/**
  * Gets information about a file.
  */
 MmResult file_info(const char *filename, FileInfo *info);

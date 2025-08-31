@@ -132,6 +132,8 @@ static int compare_by_extension(const void *a, const void *b) {
  * Helper function to extract directory and pattern from file specification
  */
 MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern) {
+    LOG_FN_ENTRY("fspec=%s", fspec);
+
     if (!fspec || !dirname || !pattern) {
         return mmresult_ex(kInternalFault, "Invalid parameter");
     }
@@ -139,6 +141,7 @@ MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern) {
     ON_FAILURE_RETURN(path_get_canonical(fspec, dirname, PATH_MAX));
 
     // If the fspec is just a directory name then return all files
+    LOG_DEBUG("dirname = %s", dirname);
     if (file_exists_dir(dirname)) {
         strcpy(pattern, "*");
         return kOk;
@@ -158,6 +161,8 @@ MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern) {
 }
 
 MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
+    LOG_FN_ENTRY("fspec=%s, sort=%d, list=%p", fspec, sort, list);
+
     if (!fspec || !list) {
         return mmresult_ex(kInternalFault, "Invalid parameter");
     }
@@ -285,22 +290,27 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
     return kOk;
 }
 
-bool file_exists_regular(const char *filename) {
-    if (!filename) return false;
+bool file_exists_regular(const char *path) {
+    if (!path) return false;
 
     FileInfo info;
-    if (SUCCEEDED(file_info(filename, &info))) {
+    if (SUCCEEDED(file_info(path, &info))) {
         return info.exists && (info.type == kFileTypeRegularFile);
     } else {
         return false;
     }
 }
 
-bool file_exists_dir(const char *dirname) {
-    if (!dirname) return false;
+bool file_exists_dir(const char *path) {
+    LOG_FN_ENTRY("path=%s", path);
+
+    if (!path) return false;
 
     FileInfo info;
-    if (SUCCEEDED(file_info(dirname, &info))) {
+    if (SUCCEEDED(file_info(path, &info))) {
+        LOG_INFO("info.exists = %d", info.exists);
+        LOG_INFO("info.type == kFileTypeDirectory = %d", info.type == kFileTypeDirectory);
+        LOG_INFO("exists_dir = %d", info.exists && (info.type == kFileTypeDirectory));
         return info.exists && (info.type == kFileTypeDirectory);
     } else {
         return false;
@@ -308,6 +318,8 @@ bool file_exists_dir(const char *dirname) {
 }
 
 MmResult file_size(const char *path, off_t *size) {
+    LOG_FN_ENTRY("path=%s, size=%p", path, size);
+
     FileInfo info;
     ON_FAILURE_RETURN(file_info(path, &info));
     if (!info.exists) return kFileNotFound;

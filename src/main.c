@@ -143,6 +143,8 @@ static void print_banner() {
 }
 
 static void init_mmbasic_config_dir() {
+    LOG_FN_ENTRY();
+
     MmResult result = path_mkdir(mmbasic_dir);
     if (FAILED(result)) {
         fprintf(
@@ -329,6 +331,7 @@ int android_main(int argc, char* argv[]) {
 }
 
 int main(int argc, char *argv[]) {
+    LOG_FN_ENTRY("argc=%d, argv=%p", argc, argv);
     LOG_INFO("Starting %s", get_name_and_version());
 
     android_init();

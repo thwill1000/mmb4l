@@ -453,25 +453,26 @@ public class MainActivity extends SDLActivity {
      * We cannot call it deleteFile() because android.content.Context which
      * this class extends already includes a method of that name.
      */
-    public static boolean safDeleteFile(String filename) {
-        Log.v(TAG, "safDeleteFile: " + filename);
+    public static boolean safDeleteFile(String path) {
+        final String LOG_PREFIX = "MainActivity#safDeleteFile: ";
+        Log.d(TAG, LOG_PREFIX + "path=" + path);
         if (!hasDirectoryAccess()) {
-            Log.w(TAG, "safDeleteFile: No directory access");
+            Log.w(TAG, LOG_PREFIX + "No directory access");
             return false;
         }
 
         try {
-            DocumentFile file = instance.mmbasicDirectory.findFile(filename);
+            DocumentFile file = findFileByPath(path);
             if (file != null && file.exists()) {
                 boolean result = file.delete();
-                Log.d(TAG, "safDeleteFile: " + filename + " result: " + result);
+                Log.d(TAG, LOG_PREFIX + " result=" + result);
                 return result;
             } else {
-                Log.w(TAG, "safDeleteFile: File not found: " + filename);
+                Log.w(TAG, LOG_PREFIX + "File not found: " + path);
                 return false;
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error deleting file: " + filename, e);
+            Log.e(TAG, LOG_PREFIX + "Error deleting file: " + path, e);
             return false;
         }
     }
@@ -527,28 +528,51 @@ public class MainActivity extends SDLActivity {
     /**
      * Called from native code to create a subdirectory
      */
-    public static boolean createDirectory(String dirname) {
-        Log.v(TAG, "createDirectory: " + dirname);
+    public static boolean createDirectory(String path) {
+        Log.d(TAG, "MainActivity#createDirectory() - path=" + path);
         if (!hasDirectoryAccess()) {
-            Log.w(TAG, "createDirectory: No directory access");
+            Log.w(TAG, "createDirectory: no directory access");
             return false;
         }
 
         try {
-            DocumentFile existingDir = instance.mmbasicDirectory.findFile(dirname);
-            if (existingDir != null && existingDir.exists()) {
-                boolean isDir = existingDir.isDirectory();
-                Log.d(TAG, "createDirectory: " + dirname + " already exists, isDirectory: " + isDir);
+            DocumentFile dir = findFileByPath(path);
+            if (dir != null && dir.exists()) {
+                boolean isDir = dir.isDirectory();
+                Log.d(TAG, "createDirectory: " + path + " already exists, isDirectory: " + isDir);
                 return isDir; // Return true if already exists as directory
             }
 
-            DocumentFile newDir = instance.mmbasicDirectory.createDirectory(dirname);
+            // Extract parent directory and directory name.
+            int lastSlashIndex = path.lastIndexOf('/');
+            String parentPath = null;
+            String dirname = null;
+            if (lastSlashIndex == 0) {
+                parentPath = "/";
+                dirname = path.substring(1);
+            } else if (lastSlashIndex > 0) {
+                parentPath = path.substring(0, lastSlashIndex);
+                dirname = path.substring(lastSlashIndex + 1);
+            } else {
+                Log.e(TAG, "createDirectory: " + parentPath + " has no parent directory");
+                return false;
+            }
+
+            Log.d(TAG, "createDirectory: parentPath=" + parentPath + ", dirname=" + dirname);
+
+            dir = findFileByPath(parentPath);
+            if (dir == null || !dir.exists() || !dir.isDirectory()) {
+                Log.e(TAG, "createDirectory: " + parentPath + " not found or is not a directory");
+                return false;
+            }
+
+            DocumentFile newDir = dir.createDirectory(dirname);
             boolean success = newDir != null;
-            Log.d(TAG, "createDirectory: " + dirname + " result: " + success);
+            Log.d(TAG, "createDirectory: result=" + success);
             return success;
 
         } catch (Exception e) {
-            Log.e(TAG, "Error creating directory: " + dirname, e);
+            Log.e(TAG, "Error creating directory: " + path, e);
             return false;
         }
     }
@@ -564,7 +588,7 @@ public class MainActivity extends SDLActivity {
         }
 
         try {
-            DocumentFile dir = instance.mmbasicDirectory.findFile(dirname);
+            DocumentFile dir = findFileByPath(dirname);
             if (dir != null && dir.exists() && dir.isDirectory()) {
                 boolean result = dir.delete();
                 Log.d(TAG, "deleteDirectory: " + dirname + " result: " + result);

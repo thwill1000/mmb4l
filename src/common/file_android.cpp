@@ -169,8 +169,36 @@ MmResult file_chdir(const char *dirname) {
     return kOk;
 }
 
-MmResult file_delete(const char *filename) {
-    return kUnimplemented;
+MmResult file_delete(const char *path) {
+    LOG_FN_ENTRY("path=%s", path);
+
+    if (!path) return mmresult_ex(kInternalFault, "path == NULL");
+
+    std::string path_abs;
+    ON_FAILURE_RETURN(canonical_path(path, path_abs));
+
+    // Check if file exists
+    SAFFileInfo info = saf_get_file_info(path_abs);
+    if (!info.exists) {
+        LOG_DEBUG("File does not exist: %s", path_abs.c_str());
+        return kFileNotFound;
+    }
+
+    // Check file is not a directory
+    if (info.is_directory) {
+        LOG_WARN("File is a directory: %s", path_abs.c_str());
+        return kPermissionDenied;
+    }
+
+    // Use SAF bridge to delete the file
+    bool success = saf_delete_file(path_abs);
+    if (success) {
+        LOG_DEBUG("Successfully deleted file: %s", path_abs.c_str());
+        return kOk;
+    } else {
+        LOG_DEBUG("Failed to delete file: %s", path_abs.c_str());
+        return kPermissionDenied;
+    }
 }
 
 bool file_exists_symlink(const char *path) {
@@ -197,27 +225,120 @@ MmResult file_get_free_space(const char *path, uint64_t *free_space) {
     return kOk;
 }
 
-MmResult file_info(const char *filename, FileInfo *info) {
-    if (!filename) return mmresult_ex(kInternalFault, "filename == NULL");
+MmResult file_get_home(char *buf, size_t size) {
+    if (FAILED(cstring_cpy(buf, "/", size))) {
+        return kFilenameTooLong;
+    }
+    return kOk;
+}
+
+MmResult file_info(const char *path, FileInfo *info) {
+    LOG_FN_ENTRY("path=%s, info=%p", path, info);
+
+    if (!path) return mmresult_ex(kInternalFault, "path == NULL");
     if (!info) return mmresult_ex(kInternalFault, "info == NULL");
 
-    std::string path;
-    ON_FAILURE_RETURN(canonical_path(filename, path));
+    std::string path_abs;
+    ON_FAILURE_RETURN(canonical_path(path, path_abs));
 
-    SAFFileInfo saf_info = saf_get_file_info(path);
+    SAFFileInfo saf_info = saf_get_file_info(path_abs);
+    info->exists = saf_info.exists;
     info->size = saf_info.size;
     info->mtime = saf_info.last_modified / 1000;
     info->type = saf_info.is_file ? kFileTypeRegularFile : kFileTypeDirectory;
 
+    LOG_INFO("info->type=%d", info->type);
+
     return kOk;
 }
 
-MmResult file_mkdir(const char *dirname) {
-    return kUnimplemented;
+MmResult file_mkdir(const char *path) {
+    LOG_FN_ENTRY("path=%s", path);
+
+    if (!path) return mmresult_ex(kInternalFault, "path == NULL");
+
+    std::string path_abs;
+    ON_FAILURE_RETURN(canonical_path(path, path_abs));
+
+    // Check if directory already exists
+    SAFFileInfo info = saf_get_file_info(path_abs);
+    if (info.exists) {
+        if (info.is_directory) {
+            LOG_INFO("Directory already exists: %s", path_abs.c_str());
+            return kOk; // Directory already exists - success
+        } else {
+            LOG_WARN("Path exists but is not a directory: %s", path_abs.c_str());
+            return kFileExists; // Path exists but is a file
+        }
+    }
+
+    LOG_DEBUG("foo bar");
+
+    // Extract the parent directory and new directory name
+    size_t last_slash = path_abs.find_last_of('/');
+    // if (last_slash == std::string::npos || last_slash == 0) {
+    //     // Trying to create a directory at the root level
+    //     LOG_ERROR("Cannot create directory at root level: %s", path_abs.c_str());
+    //     return kPermissionDenied;
+    // }
+
+    std::string parent_path = path_abs.substr(0, last_slash);
+    if (parent_path == "") parent_path = "/";
+    std::string dir_name = path_abs.substr(last_slash + 1);
+
+    // Check if parent directory exists
+    SAFFileInfo parent_info = saf_get_file_info(parent_path);
+    if (!parent_info.exists || !parent_info.is_directory) {
+        LOG_FN_EXIT("result=%d", kFileNotFound);
+        return kFileNotFound;
+    }
+
+    // Use SAF bridge to create the directory
+    bool success = saf_create_directory(path_abs);
+    if (success) {
+        LOG_FN_EXIT("result=%d", kOk);
+        return kOk;
+    } else {
+        LOG_FN_EXIT("result=%d", kPermissionDenied);
+        return kPermissionDenied; // Could also be kInsufficientSpace or other errors
+    }
 }
 
-MmResult file_mkfile(const char *filename) {
-    return kUnimplemented;
+MmResult file_mkfile(const char *path) {
+    LOG_FN_ENTRY("path=%s", path);
+
+    if (!path) return mmresult_ex(kInternalFault, "path == NULL");
+
+    std::string path_abs;
+    ON_FAILURE_RETURN(canonical_path(path, path_abs));
+
+    // Check if file already exists
+    SAFFileInfo info = saf_get_file_info(path_abs);
+    if (info.exists) {
+        if (info.is_file) {
+            return kFileExists;
+        } else {
+            return kIsADirectory;
+        }
+    }
+
+    // Try to create the file by opening it in write mode and immediately closing it
+    // This will create an empty file if it doesn't exist
+    int handle = saf_fopen(path_abs, "w");
+    if (handle < 0) {
+        // Failed to create file - could be due to invalid path or permissions
+        return kFileNotFound; // Or kPermissionDenied depending on the specific error
+    }
+
+    // Successfully opened, now close it to create an empty file
+    if (!saf_fclose(handle)) {
+        // This is unusual - file was created but failed to close
+        // The file should still exist, so we can consider this a success
+        LOG_WARN("file_mkfile: Failed to close file handle, but file was created: %s",
+                 path_abs.c_str());
+    }
+
+    return kOk;
 }
 
 MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) {
@@ -228,6 +349,39 @@ MmResult file_rename(const char *old_filename, const char *new_filename) {
     return kUnimplemented;
 }
 
-MmResult file_rmdir(const char *dirname) {
-    return kUnimplemented;
+MmResult file_rmdir(const char *path) {
+    LOG_FN_ENTRY("path=%s", path);
+
+    if (!path) return mmresult_ex(kInternalFault, "path == NULL");
+
+    std::string path_abs;
+    ON_FAILURE_RETURN(canonical_path(path, path_abs));
+
+    // Check if directory exists
+    SAFFileInfo info = saf_get_file_info(path_abs);
+    if (!info.exists) {
+        LOG_WARN("Directory does not exist: %s", path_abs.c_str());
+        return kFileNotFound;
+    }
+
+    if (!info.is_directory) {
+        LOG_WARN("Path is not a directory: %s", path_abs.c_str());
+        return kNotADirectory;
+    }
+
+    // Prevent deletion of root directory.
+    if (path_abs == "") {
+        LOG_DEBUG("Cannot delete root directory");
+        return kPermissionDenied;
+    }
+
+    // Use SAF bridge to delete the directory
+    bool success = saf_delete_directory(path_abs);
+    if (success) {
+        LOG_DEBUG("Successfully deleted directory: %s", path_abs.c_str());
+        return kOk;
+    } else {
+        LOG_DEBUG("Failed to delete directory: %s", path_abs.c_str());
+        return kPermissionDenied; // Could also be kDirectoryNotEmpty or other errors
+    }
 }

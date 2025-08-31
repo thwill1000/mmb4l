@@ -306,14 +306,14 @@ static char console_putc_noflush(char c) {
 }
 
 char console_putc(char c) {
-    LOG_INFO("STDOUT: %c", c);
+    //LOG_INFO("STDOUT: %c", c);
     char rval = console_putc_noflush(c);
     fflush(stdout);
     return rval;
 }
 
 void console_puts(const char *s) {
-    LOG_INFO("STDOUT: %s", s);
+    //LOG_INFO("STDOUT: %s", s);
     while (*s) (void) console_putc_noflush(*s++);
     fflush(stdout);
 }
