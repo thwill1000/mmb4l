@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <assert.h>
+
 #include "error.h"
 #include "file_private.h"
 #include "iodevice.h"
@@ -82,6 +84,15 @@ int iodevice_find_free(void) {
         if (file_table[fnbr].type == fet_closed) return fnbr;
     }
     ON_FAILURE_ERROR_EX(kTooManyOpenFiles, -1);
+}
+
+bool iodevice_is_file(int fnbr) {
+    assert(fnbr >= 0 && fnbr <= MAXOPENFILES);
+    if (fnbr >= 0 && fnbr <= MAXOPENFILES) {
+        return file_table[fnbr].type == fet_file;
+    } else {
+        return false;
+    }
 }
 
 MmResult iodevice_open(const char *path, const char *mode, int fnbr) {

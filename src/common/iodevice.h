@@ -69,6 +69,15 @@ void iodevice_close_all(void);
  */
 int iodevice_find_free(void);
 
+
+/**
+ * Checks if a file number refers to a regular file.
+ *
+ * @param[in]  fnbr  File number to check
+ * @return           true if it's a regular file, false otherwise
+ */
+bool iodevice_is_file(int fnbr);
+
 /**
  * Opens an I/O device (e.g. file) with the specified mode.
  *
