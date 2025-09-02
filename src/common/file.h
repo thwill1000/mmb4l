@@ -356,13 +356,4 @@ MmResult file_rename(const char *old_filename, const char *new_filename);
  */
 MmResult file_rmdir(const char *dirname);
 
-/**
- * Seeks to a specific position in a file.
- * Position is 1-based (MMBasic convention).
- *
- * @param[in]  fnbr  File number
- * @param[in]  idx   Position to seek to (1-based)
- */
-void file_seek(int fnbr, int idx);
-
 #endif // #if !defined(MMB4L_FILE)

@@ -44,13 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/file.h"
 #include "../common/parse.h"
+#include "../common/streamio.h"
 #include "../common/utility.h"
 
 void cmd_seek(void) {
     getargs(&cmdline, 3, DELIM_COMMA);
-    if (argc != 3) ERROR_SYNTAX;
+    if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
 
     int fnbr = parse_file_number(argv[0], false);
     int seekPosition = getinteger(argv[2]);
@@ -60,7 +60,7 @@ void cmd_seek(void) {
     } else if (seekPosition < 1) {
         result = kFileInvalidSeekPosition;
     } else {
-        file_seek(fnbr, seekPosition);
+        streamio_seek(fnbr, seekPosition);
     }
-    if (FAILED(result)) error_throw(result);
+    ON_FAILURE_ERROR(result);
 }
