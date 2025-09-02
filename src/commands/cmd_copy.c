@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/error.h"
-#include "../common/file.h"
 #include "../common/mmb4l.h"
 #include "../common/streamio.h"
 #include "../common/utility.h"
@@ -72,7 +71,7 @@ void cmd_copy(void) {
 
     char c;
     while (1) {
-        if (file_eof(src_fnbr)) break;
+        if (streamio_eof(src_fnbr)) break;
         c = streamio_getc(src_fnbr);
         streamio_putc(dst_fnbr, c);
     }

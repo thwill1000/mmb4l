@@ -49,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "console.h"
 #include "display.h"
 #include "error.h"
-#include "file.h"
 #include "keycodes.h"
 #include "mmb4l.h"
 #include "mmtime.h"
@@ -99,7 +98,7 @@ void MMgetline(int fnbr, char *p) {
     while (1) {
         CheckAbort();  // jump right out if CTRL-C
 
-        if (streamio_is_file(fnbr) && file_eof(fnbr)) break; // End of file.
+        if (streamio_is_file(fnbr) && streamio_eof(fnbr)) break; // End of file.
         c = streamio_getc(fnbr);
 
         // -1 - no character.
