@@ -132,14 +132,6 @@ typedef struct {
 MmResult file_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *, size_t *));
 
 /**
- * Finds the first available free file number.
- * Scans the file table to locate an unused slot.
- *
- * @return  Available file number (1-MAXOPENFILES), or -1 if none available
- */
-int file_find_free(void);
-
-/**
  * Checks if a named regulat file exists in the filesystem.
  *
  * @param[in]  filename  Path to the file to check

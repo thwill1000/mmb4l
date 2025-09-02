@@ -75,7 +75,7 @@ void cmd_xmodem(void) {
 
     const bool verbose = has_arg(4) ? getint(argv[4], 0, 1) == 1 : 0;
 
-    int file_fnbr = file_find_free();
+    int file_fnbr = iodevice_find_free();
     ON_FAILURE_ERROR(iodevice_open(filename, receive ? "wb" : "rb", file_fnbr));
 
     if (receive) {

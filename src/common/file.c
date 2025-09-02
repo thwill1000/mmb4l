@@ -520,14 +520,6 @@ void file_seek(int fnbr, int idx) {
     if (FAILED(fseek(f, idx - 1, SEEK_SET))) error_throw(errno); // MMBasic indexes from 1, not 0.
 }
 
-int file_find_free(void) {
-    for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
-        if (file_table[fnbr].type == fet_closed) return fnbr;
-    }
-    error_throw(kTooManyOpenFiles);
-    return -1;
-}
-
 size_t file_write(int fnbr, const char *buf, size_t sz) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
         error_throw(kFileInvalidFileNumber);

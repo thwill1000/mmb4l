@@ -60,10 +60,10 @@ void cmd_copy(void) {
     char *dst_filename = GetTempStrMemory();
     ON_FAILURE_ERROR(parse_filename(argv[2], dst_filename, STRINGSIZE));
 
-    const int src_fnbr = file_find_free();
+    const int src_fnbr = iodevice_find_free();
     ON_FAILURE_ERROR(iodevice_open(src_filename, "r", src_fnbr));
 
-    const int dst_fnbr = file_find_free();
+    const int dst_fnbr = iodevice_find_free();
     MmResult result = iodevice_open(dst_filename, "w", dst_fnbr);  // We'll just overwrite any existing file
     if (FAILED(result)) {
         (void) file_close(src_fnbr);

@@ -1179,7 +1179,7 @@ upng_t* upng_new_from_file(char *filename)
     }
 
     if(strchr(filename, '.') == NULL) strcat(filename, ".png");
-    fnbr = file_find_free();
+    fnbr = iodevice_find_free();
     // if(!BasicFileOpen(filename, fnbr, FA_READ)) return 0;
     ON_FAILURE_ERROR_EX(iodevice_open(filename, "rb", fnbr), NULL);
 
