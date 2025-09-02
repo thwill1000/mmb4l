@@ -434,28 +434,6 @@ int file_eof(int fnbr) {
     return 1;
 }
 
-void file_seek(int fnbr, int idx) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) {
-        error_throw(kFileInvalidFileNumber);
-        return;
-    }
-    if (idx < 1) {
-        error_throw(kFileInvalidSeekPosition);
-        return;
-    }
-
-    if (file_table[fnbr].type == fet_closed) {
-        error_throw(kFileNotOpen);
-        return;
-    }
-    FILE *f = file_table[fnbr].file_ptr;
-
-    errno = 0;
-    if (FAILED(fflush(f))) error_throw(errno);
-    if (FAILED(fsync(fileno(f)))) error_throw(errno);
-    if (FAILED(fseek(f, idx - 1, SEEK_SET))) error_throw(errno); // MMBasic indexes from 1, not 0.
-}
-
 bool file_exists_regular(const char *filename) {
     if (!filename) return false;
 
