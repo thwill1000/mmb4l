@@ -74,7 +74,7 @@ void cmd_copy(void) {
     while (1) {
         if (file_eof(src_fnbr)) break;
         c = file_getc(src_fnbr);
-        file_putc(dst_fnbr, c);
+        streamio_putc(dst_fnbr, c);
     }
 
     result = streamio_close(src_fnbr);
