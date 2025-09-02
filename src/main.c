@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/exit_codes.h"
 #include "common/features.h"
 #include "common/file.h"
+#include "common/iodevice.h"
 #include "common/interrupt.h"
 #include "common/keyboard.h"
 #include "common/mmtime.h"
@@ -417,7 +418,7 @@ static void perform_background_tasks() {
 
     // Pump all the serial port connections for input.
     for (int fnbr = 1; fnbr <= MAXOPENFILES; ++fnbr) {
-        if (file_is_serial(fnbr)) {
+        if (iodevice_is_serial(fnbr)) {
             serial_pump_input(fnbr);
         }
     }
