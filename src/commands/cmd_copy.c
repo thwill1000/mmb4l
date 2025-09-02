@@ -42,10 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/file.h"
-#include "../common/iodevice.h"
+#include "../common/mmb4l.h"
+#include "../common/streamio.h"
 #include "../common/utility.h"
 #include "../core/tokentbl.h"
 
@@ -60,13 +60,13 @@ void cmd_copy(void) {
     char *dst_filename = GetTempStrMemory();
     ON_FAILURE_ERROR(parse_filename(argv[2], dst_filename, STRINGSIZE));
 
-    const int src_fnbr = iodevice_find_free();
-    ON_FAILURE_ERROR(iodevice_open(src_filename, "r", src_fnbr));
+    const int src_fnbr = streamio_find_free();
+    ON_FAILURE_ERROR(streamio_open(src_filename, "r", src_fnbr));
 
-    const int dst_fnbr = iodevice_find_free();
-    MmResult result = iodevice_open(dst_filename, "w", dst_fnbr);  // We'll just overwrite any existing file
+    const int dst_fnbr = streamio_find_free();
+    MmResult result = streamio_open(dst_filename, "w", dst_fnbr);  // We'll just overwrite any existing file
     if (FAILED(result)) {
-        (void) iodevice_close(src_fnbr);
+        (void) streamio_close(src_fnbr);
         ON_FAILURE_ERROR(result);
     }
 
@@ -77,10 +77,10 @@ void cmd_copy(void) {
         file_putc(dst_fnbr, c);
     }
 
-    result = iodevice_close(src_fnbr);
+    result = streamio_close(src_fnbr);
     if (FAILED(result)) {
-        (void) iodevice_close(dst_fnbr);
+        (void) streamio_close(dst_fnbr);
         ON_FAILURE_ERROR(result);
     }
-    ON_FAILURE_ERROR(iodevice_close(dst_fnbr));
+    ON_FAILURE_ERROR(streamio_close(dst_fnbr));
 }

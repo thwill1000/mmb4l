@@ -50,12 +50,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/display.h"
 #include "../common/error.h"
 #include "../common/file.h"
-#include "../common/iodevice.h"
 #include "../common/keycodes.h"
 #include "../common/mmb4l.h"
 #include "../common/mmgetchar.h"
 #include "../common/parse.h"
 #include "../common/program.h"
+#include "../common/streamio.h"
 #include "../common/utility.h"
 #include "../core/Commands.h"
 #include "../core/tokentbl.h"
@@ -315,8 +315,8 @@ static MmResult cmd_list_default(const char *p) {
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;
-    int fnbr = iodevice_find_free();
-    ON_FAILURE_RETURN(iodevice_open(filename, "rb", fnbr));
+    int fnbr = streamio_find_free();
+    ON_FAILURE_RETURN(streamio_open(filename, "rb", fnbr));
     while (!file_eof(fnbr)) {
         memset(line_buffer, 0, STRINGSIZE);
         MMgetline(fnbr, line_buffer);
@@ -331,7 +331,7 @@ static MmResult cmd_list_default(const char *p) {
     // Ensure listing is followed by an empty line.
     if (strcmp(line_buffer, "") != 0) display_puts("\r\n");
 
-    return iodevice_close(fnbr);
+    return streamio_close(fnbr);
 }
 
 void cmd_list(void) {
