@@ -177,7 +177,7 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
     // Parse the file specification
     ON_FAILURE_RETURN(file_parse_fspec(fspec, list->directory, pattern));
 
-    LOG_INFO("Pattern: [%s]", pattern);
+    LOG_DEBUG("Pattern: [%s]", pattern);
 
     // Store the remaining free space in the list
     MmResult result = file_get_free_space(list->directory, &(list->free_space));
@@ -195,30 +195,23 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
     while (true) {
         MmResult result = file_readdir(stream, &entry);
         if (FAILED(result)) {
-            LOG_INFO("foo");
             file_closedir(stream);
             return result;
         }
-            LOG_INFO("bar");
 
         if (!entry) break; // End of directory
-            LOG_INFO("wom");
-        LOG_INFO("name: [%s]", entry->name);
+        LOG_DEBUG("name: [%s]", entry->name);
 
         // Skip if the filename does not match the pattern
         if (fnmatch(pattern, entry->name, 0x0) != 0) {
             continue;
         }
 
-                    LOG_INFO("one");
-
         // Skip if we've reached the maximum number of files
         if (files_added >= FILE_LIST_MAX) {
             list->count++;
             continue;
         }
-
-                    LOG_INFO("two");
 
         // Check if we have enough buffer space for the filename
         size_t name_len = strlen(entry->name) + 1; // +1 for null terminator
@@ -227,9 +220,6 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
             list->count++;
             continue;
         }
-
-            LOG_INFO("three");
-
 
         // Get file statistics
         char full_path[PATH_MAX];
@@ -308,9 +298,9 @@ bool file_exists_dir(const char *path) {
 
     FileInfo info;
     if (SUCCEEDED(file_info(path, &info))) {
-        LOG_INFO("info.exists = %d", info.exists);
-        LOG_INFO("info.type == kFileTypeDirectory = %d", info.type == kFileTypeDirectory);
-        LOG_INFO("exists_dir = %d", info.exists && (info.type == kFileTypeDirectory));
+        LOG_DEBUG("info.exists = %d", info.exists);
+        LOG_DEBUG("info.type == kFileTypeDirectory = %d", info.type == kFileTypeDirectory);
+        LOG_DEBUG("exists_dir = %d", info.exists && (info.type == kFileTypeDirectory));
         return info.exists && (info.type == kFileTypeDirectory);
     } else {
         return false;

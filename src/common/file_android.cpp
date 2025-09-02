@@ -272,8 +272,6 @@ MmResult file_mkdir(const char *path) {
         }
     }
 
-    LOG_DEBUG("foo bar");
-
     // Extract the parent directory and new directory name
     size_t last_slash = path_abs.find_last_of('/');
     // if (last_slash == std::string::npos || last_slash == 0) {

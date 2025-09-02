@@ -543,20 +543,8 @@ public class MainActivity extends SDLActivity {
                 return isDir; // Return true if already exists as directory
             }
 
-            // Extract parent directory and directory name.
-            int lastSlashIndex = path.lastIndexOf('/');
-            String parentPath = null;
-            String dirname = null;
-            if (lastSlashIndex == 0) {
-                parentPath = "/";
-                dirname = path.substring(1);
-            } else if (lastSlashIndex > 0) {
-                parentPath = path.substring(0, lastSlashIndex);
-                dirname = path.substring(lastSlashIndex + 1);
-            } else {
-                Log.e(TAG, "createDirectory: " + parentPath + " has no parent directory");
-                return false;
-            }
+            String parentPath = getParentPath(path);
+            String dirname = getFilename(path);
 
             Log.d(TAG, "createDirectory: parentPath=" + parentPath + ", dirname=" + dirname);
 
@@ -659,31 +647,44 @@ public class MainActivity extends SDLActivity {
     /**
      * Open a file and return a native file descriptor ID
      */
-    public static int openFileForStreaming(String filename, String mode) {
-        Log.v(TAG, "openFileForStreaming: " + filename + ", mode: " + mode);
+    public static int openFileForStreaming(String path, String mode) {
+        final String LOG_PREFIX = "MainActivity#safDeleteFile: ";
+        Log.v(TAG, LOG_PREFIX + " path=" + path + ", mode=" + mode);
         if (!hasDirectoryAccess()) {
-            Log.w(TAG, "openFileForStreaming: No directory access");
+            Log.w(TAG, LOG_PREFIX + " No directory access");
             return -1;
         }
 
         try {
-            DocumentFile file = null;
+            DocumentFile file = findFileByPath(path);
+
+            // Check that the file is not a pre-existing directory
+            if (file != null && file.exists() && file.isDirectory()) {
+                Log.w(TAG, LOG_PREFIX + " Existing file is a directory");
+                return -1;
+            }
 
             // Check if file exists or needs to be created
             if (mode.contains("w") || mode.contains("a")) {
                 // Writing mode - create file if it doesn't exist
-                file = instance.mmbasicDirectory.findFile(filename);
-                if (file == null) {
-                    file = instance.mmbasicDirectory.createFile("application/octet-stream", filename);
-                    Log.d(TAG, "openFileForStreaming: Created new file: " + filename);
+                if (file == null || !file.exists()) {
+                    String parentPath = getParentPath(path);
+                    String filename = getFilename(path);
+                    DocumentFile dir = findFileByPath(parentPath);
+                    if (dir == null || !dir.exists() || !dir.isDirectory()) {
+                        Log.e(TAG, LOG_PREFIX + parentPath + " not found or is not a directory");
+                        return -1;
+                    }
+
+                    file = dir.createFile("application/octet-stream", filename);
+                    Log.d(TAG, LOG_PREFIX + "Created new file: " + filename);
                 }
             } else {
                 // Reading mode - file must exist
-                file = instance.mmbasicDirectory.findFile(filename);
             }
 
             if (file == null || !file.exists()) {
-                Log.w(TAG, "openFileForStreaming: File not found: " + filename);
+                Log.w(TAG, LOG_PREFIX + " File not found: " + path);
                 return -1;
             }
 
@@ -700,7 +701,7 @@ public class MainActivity extends SDLActivity {
             } else if (mode.equals("w+") || mode.equals("wb+") || mode.equals("w+b")) {
                 pfdMode = "rwt"; // Read/write with truncate
             } else {
-                Log.e(TAG, "openFileForStreaming: Unsupported mode: " + mode);
+                Log.e(TAG, LOG_PREFIX + " Unsupported mode: " + mode);
                 return -1;
             }
 
@@ -710,19 +711,45 @@ public class MainActivity extends SDLActivity {
             if (pfd != null) {
                 int fdId = nextFdId++;
                 openFileDescriptors.put(fdId, pfd);
-                Log.d(TAG, "openFileForStreaming: Opened " + filename + " with FD ID: " + fdId);
+                Log.d(TAG, LOG_PREFIX + "Opened " + path + " with FD ID: " + fdId);
                 return fdId;
             } else {
-                Log.e(TAG, "openFileForStreaming: Failed to get ParcelFileDescriptor for: " + filename);
+                Log.e(TAG, LOG_PREFIX + "Failed to get ParcelFileDescriptor for: " + path);
             }
 
         } catch (FileNotFoundException e) {
-            Log.e(TAG, "File not found for streaming: " + filename, e);
+            Log.e(TAG, LOG_PREFIX + "File not found for streaming: " + path, e);
         } catch (Exception e) {
-            Log.e(TAG, "Error opening file for streaming: " + filename, e);
+            Log.e(TAG, LOG_PREFIX + "Error opening file for streaming: " + path, e);
         }
 
         return -1;
+    }
+
+    static String getParentPath(String path) throws IOException {
+        int lastSlashIndex = path.lastIndexOf('/');
+        String parentPath = null;
+        if (lastSlashIndex == 0) {
+            parentPath = "/";
+        } else if (lastSlashIndex > 0) {
+            parentPath = path.substring(0, lastSlashIndex);
+        } else {
+            throw new IOException("Malformed absolute path: " + path);
+        }
+        return parentPath;
+    }
+
+    static String getFilename(String path) throws IOException {
+        int lastSlashIndex = path.lastIndexOf('/');
+        String filename = null;
+        if (lastSlashIndex == 0) {
+            filename = path.substring(1);
+        } else if (lastSlashIndex > 0) {
+            filename = path.substring(lastSlashIndex + 1);
+        } else {
+            throw new IOException("Malformed absolute path: " + path);
+        }
+        return filename;
     }
 
     /**

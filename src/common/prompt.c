@@ -355,8 +355,8 @@ void prompt_get_input(void) {
     state.history_idx = -1;
 
     display_puts(inpbuf);  // display the contents of the input buffer (if any)
-    LOG_INFO("[%s]", inpbuf);
-    LOG_INFO("max chars = %d", state.max_chars);
+    // LOG_DEBUG("[%s]", inpbuf);
+    // LOG_DEBUG("max chars = %d", state.max_chars);
 
     if ((ssize_t) strlen(inpbuf) >= state.max_chars) {
         ERROR_LINE_TOO_LONG_TO_EDIT;
