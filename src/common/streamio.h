@@ -107,6 +107,15 @@ bool streamio_is_serial(int fnbr);
 MmResult streamio_open(const char *path, const char *mode, int fnbr);
 
 /**
+ * Writes a single character to an I/O stream.
+ *
+ * @param[in]  fnbr  File number to write to (0 for console output)
+ * @param[in]  ch    Character to write
+ * @return           Character written, or -1 on error
+ */
+int streamio_putc(int fnbr, int ch);
+
+/**
  * Reads data from an I/O stream into a buffer.
  *
  * @param[in]  fnbr  File number to read from

@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/console.h"
 #include "../common/display.h"
 #include "../common/cstring.h"
-#include "../common/file.h"
 #include "../common/keycodes.h"
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
@@ -118,7 +117,7 @@ static void cmd_autosave_write_file(char *filename, char *buf) {
     ON_FAILURE_ERROR(streamio_open(filename, "wb", fnbr));
     char *p = buf;
     while (*p) {
-        file_putc(fnbr, *p++);
+        streamio_putc(fnbr, *p++);
     }
     ON_FAILURE_ERROR(streamio_close(fnbr));
 }
