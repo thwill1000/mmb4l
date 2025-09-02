@@ -145,6 +145,41 @@ MmResult streamio_open(const char *path, const char *mode, int fnbr) {
     return kOk;
 }
 
+int streamio_putc(int fnbr, int ch) {
+    if (fnbr < 0 || fnbr > MAXOPENFILES) {
+        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);
+    }
+
+    if (fnbr == 0) {
+        assert(streamio_0_putc_fn);
+        ON_FAILURE_ERROR_EX(streamio_0_putc_fn(ch), -1);
+        return ch;
+    }
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
+            break;
+
+        case fet_file: {
+            errno = 0;
+            if (fwrite(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
+                if (ferror(file_table[fnbr].file_ptr)) error_throw(errno);
+                assert(false); // Always expect ferror to have been set.
+            }
+            // TODO: Do I really want to be flushing every character ?
+            if (FAILED(fflush(file_table[fnbr].file_ptr))) error_throw(errno);
+            return (int) ch;
+        }
+
+        case fet_serial:
+            return serial_putc(fnbr, ch);
+    }
+
+    error_throw(kInternalFault);
+    return -1;
+}
+
 size_t streamio_read(int fnbr, char *buf, size_t sz) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
         ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, 0);

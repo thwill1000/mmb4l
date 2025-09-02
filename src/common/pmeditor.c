@@ -862,7 +862,7 @@ static MmResult pmeditor_save_file(const char *filename) {
         ON_FAILURE_RETURN(streamio_open(backup, "wb", fnbr_bak));
         // BasicFileOpen(backup, fnbr_bak, FA_WRITE | FA_CREATE_ALWAYS);
         while (!file_eof(fnbr)) {  // while waiting for the end of file
-            file_putc(fnbr_bak, file_getc(fnbr));
+            streamio_putc(fnbr_bak, file_getc(fnbr));
         }
         streamio_close(fnbr);
         streamio_close(fnbr_bak);
@@ -885,8 +885,8 @@ static MmResult pmeditor_save_file(const char *filename) {
     // }
     do {
         const char ch = *p++;
-        if (ch == '\n') file_putc(fnbr, '\r');
-        file_putc(fnbr, ch);
+        if (ch == '\n') streamio_putc(fnbr, '\r');
+        streamio_putc(fnbr, ch);
     } while (*p);
 
     return streamio_close(fnbr);
