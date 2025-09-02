@@ -203,14 +203,6 @@ char *file_basename(char *path);
 MmResult file_chdir(const char *dirname);
 
 /**
- * Closes an open file.
- *
- * @param[in]  fnbr  File number to close
- * @return           kOk on success, error code on failure
- */
-MmResult file_close(int fnbr);
-
-/**
  * Closes all open files.
  * Used for cleanup operations, typically on program exit.
  */

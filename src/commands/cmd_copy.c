@@ -66,7 +66,7 @@ void cmd_copy(void) {
     const int dst_fnbr = iodevice_find_free();
     MmResult result = iodevice_open(dst_filename, "w", dst_fnbr);  // We'll just overwrite any existing file
     if (FAILED(result)) {
-        (void) file_close(src_fnbr);
+        (void) iodevice_close(src_fnbr);
         ON_FAILURE_ERROR(result);
     }
 
@@ -77,10 +77,10 @@ void cmd_copy(void) {
         file_putc(dst_fnbr, c);
     }
 
-    result = file_close(src_fnbr);
+    result = iodevice_close(src_fnbr);
     if (FAILED(result)) {
-        (void) file_close(dst_fnbr);
+        (void) iodevice_close(dst_fnbr);
         ON_FAILURE_ERROR(result);
     }
-    ON_FAILURE_ERROR(file_close(dst_fnbr));
+    ON_FAILURE_ERROR(iodevice_close(dst_fnbr));
 }

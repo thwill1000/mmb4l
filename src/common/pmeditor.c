@@ -778,7 +778,7 @@ void edit(const char *cmdline, bool cmdfile) {
                 *p++ = c;
             } while (!file_eof(fnbr1));
             p++;
-            ON_FAILURE_ERROR(file_close(fnbr1));
+            ON_FAILURE_ERROR(iodevice_close(fnbr1));
         }
         txtp = EdBuff;
         tempx = x = 0;
@@ -864,8 +864,8 @@ static MmResult pmeditor_save_file(const char *filename) {
         while (!file_eof(fnbr)) {  // while waiting for the end of file
             file_putc(fnbr_bak, file_getc(fnbr));
         }
-        file_close(fnbr);
-        file_close(fnbr_bak);
+        iodevice_close(fnbr);
+        iodevice_close(fnbr_bak);
     }
 
     fnbr = iodevice_find_free();
@@ -889,7 +889,7 @@ static MmResult pmeditor_save_file(const char *filename) {
         file_putc(fnbr, ch);
     } while (*p);
 
-    return file_close(fnbr);
+    return iodevice_close(fnbr);
 }
 
 /*
@@ -2555,7 +2555,7 @@ static MmResult pmeditor_load_file(const char *filename) {
             if (ch == '\n') pmeditor_num_lines++;
         }
     }
-    return file_close(fnbr);
+    return iodevice_close(fnbr);
 }
 
 /**
