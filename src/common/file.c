@@ -334,38 +334,6 @@ int file_loc(int fnbr) {
     return -1;
 }
 
-int file_lof(int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) {
-        error_throw(kFileInvalidFileNumber);
-        return -1;
-    }
-
-    switch (file_table[fnbr].type) {
-        case fet_closed:
-            error_throw(kFileNotOpen);
-            return -1;
-
-        case fet_file: {
-            errno = 0;
-            FILE *f = file_table[fnbr].file_ptr;
-            long int current = ftell(f);
-            if (current == -1L) error_throw(errno);
-            if (FAILED(fseek(f, 0L, SEEK_END))) error_throw(errno);
-            long int result = ftell(f);
-            if (result == -1L) error_throw(errno);
-            if (FAILED(fseek(f, current, SEEK_SET))) error_throw(errno);
-            return result;
-            break;
-        }
-
-        case fet_serial:
-            return 0; // Serial I/O ports are unbuffered.
-            break;
-    }
-
-    return -1;
-}
-
 int file_eof(int fnbr) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
         error_throw(kFileInvalidFileNumber);

@@ -114,6 +114,37 @@ bool streamio_is_serial(int fnbr) {
     }
 }
 
+int streamio_lof(int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) {
+        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);
+    }
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
+            break;
+
+        case fet_file: {
+            errno = 0;
+            FILE *f = file_table[fnbr].file_ptr;
+            long int current = ftell(f);
+            if (current == -1L) error_throw(errno);
+            if (FAILED(fseek(f, 0L, SEEK_END))) error_throw(errno);
+            long int result = ftell(f);
+            if (result == -1L) error_throw(errno);
+            if (FAILED(fseek(f, current, SEEK_SET))) error_throw(errno);
+            return result;
+            break;
+        }
+
+        case fet_serial:
+            return 0; // Serial I/O ports are unbuffered.
+            break;
+    }
+
+    return -1;
+}
+
 MmResult streamio_open(const char *path, const char *mode, int fnbr) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
     if (file_table[fnbr].type != fet_closed) return kFileAlreadyOpen;

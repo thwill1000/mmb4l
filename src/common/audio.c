@@ -770,7 +770,7 @@ static MmResult audio_play_modfile_internal(const char *filename) {
     // TODO: If file_lof() or file_read() report error this will leave audio device paused.
     int size = 0;
     if (SUCCEEDED(result)) {
-        size = file_lof(audio_fnbr);
+        size = streamio_lof(audio_fnbr);
         audio_alloc_mod_buf(size);
         streamio_read(audio_fnbr, audio_mod_buf, size);
         result = audio_close_file();
