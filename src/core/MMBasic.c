@@ -61,8 +61,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
-#include "../common/iodevice.h"
 #include "../common/parse.h"
+#include "../common/streamio.h"
 #include "../common/utility.h"
 
 extern int ListCnt;
@@ -2428,7 +2428,7 @@ void ClearRuntime(void) {
 #if defined(MICROMITE) && !defined(LITE)
     ds18b20Timers = NULL;                                           // InitHeap() will recover the memory allocated to this array
 #endif
-    iodevice_close_all();
+    streamio_close_all();
     ClearExternalIO();                                              // this MUST come before InitHeap()
 #if defined(__mmb4l__)
     mmb_error_state_ptr = &mmb_normal_error_state;
