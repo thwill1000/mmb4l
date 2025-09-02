@@ -71,6 +71,11 @@ MmResult iodevice_close(int fnbr) {
     return kOk;
 }
 
+void iodevice_close_all(void) {
+    for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
+        if (file_table[fnbr].type != fet_closed) (void) iodevice_close(fnbr);
+    }
+}
 
 int iodevice_find_free(void) {
     for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {

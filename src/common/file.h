@@ -203,12 +203,6 @@ char *file_basename(char *path);
 MmResult file_chdir(const char *dirname);
 
 /**
- * Closes all open files.
- * Used for cleanup operations, typically on program exit.
- */
-void file_close_all(void);
-
-/**
  * Closes a directory stream.
  *
  * @param[in]  stream  Directory stream to close
