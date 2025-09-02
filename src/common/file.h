@@ -122,16 +122,6 @@ typedef struct {
 } FileList;
 
 /**
- * Initialises the 'file' module.
- * Sets up function pointers for console I/O operations.
- *
- * @param[in]  putc_fn   Function pointer for outputting a single character to console
- * @param[in]  write_fn  Function pointer for writing a buffer of characters to console
- * @return               kOk on success, error code on failure
- */
-MmResult file_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *, size_t *));
-
-/**
  * Checks if a named regulat file exists in the filesystem.
  *
  * @param[in]  filename  Path to the file to check
@@ -384,15 +374,5 @@ MmResult file_rmdir(const char *dirname);
  * @param[in]  idx   Position to seek to (1-based)
  */
 void file_seek(int fnbr, int idx);
-
-/**
- * Writes data from a buffer to a file.
- *
- * @param[in]  fnbr  File number to write to (0 for console output)
- * @param[in]  buf   Buffer containing data to write
- * @param[in]  sz    Number of bytes to write
- * @return           Number of bytes actually written
- */
-size_t file_write(int fnbr, const char *buf, size_t sz);
 
 #endif // #if !defined(MMB4L_FILE)

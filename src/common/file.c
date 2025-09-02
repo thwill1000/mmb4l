@@ -62,18 +62,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "serial.h"
 #include "utility.h"
 
-MmResult (*file_0_putc_fn)(char c) = NULL;
-MmResult (*file_0_write_fn)(const char *buf, size_t *sz) = NULL;
+extern MmResult (*streamio_0_putc_fn)(char c);
 
 // We don't use the 0'th entry, but it makes things simpler since MMBasic
 // indexes file numbers from 1.
 FileEntry file_table[MAXOPENFILES + 1] = { 0 };
-
-MmResult file_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *, size_t *)) {
-    file_0_putc_fn = putc_fn;
-    file_0_write_fn = write_fn;
-    return kOk;
-}
 
 char *file_basename(char *path) {
     return basename(path);
@@ -380,8 +373,8 @@ int file_putc(int fnbr, int ch) {
     }
 
     if (fnbr == 0) {
-        assert(file_0_putc_fn);
-        ON_FAILURE_ERROR_EX(file_0_putc_fn(ch), -1);
+        assert(streamio_0_putc_fn);
+        ON_FAILURE_ERROR_EX(streamio_0_putc_fn(ch), -1);
         return ch;
     }
 
@@ -489,43 +482,6 @@ void file_seek(int fnbr, int idx) {
     if (FAILED(fflush(f))) error_throw(errno);
     if (FAILED(fsync(fileno(f)))) error_throw(errno);
     if (FAILED(fseek(f, idx - 1, SEEK_SET))) error_throw(errno); // MMBasic indexes from 1, not 0.
-}
-
-size_t file_write(int fnbr, const char *buf, size_t sz) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        error_throw(kFileInvalidFileNumber);
-        return 0;
-    }
-
-    if (fnbr == 0) {
-        assert(file_0_write_fn);
-        ON_FAILURE_ERROR_EX(file_0_write_fn(buf, &sz), 0);
-        return sz;
-    }
-
-    switch (file_table[fnbr].type) {
-        case fet_closed:
-            error_throw(kFileNotOpen);
-            return 0;
-
-        case fet_file: {
-            errno = 0;
-            size_t result = fwrite(buf, 1, sz, file_table[fnbr].file_ptr);
-            if (result != sz) {
-                if (ferror(file_table[fnbr].file_ptr)) error_throw(errno);
-                assert(false); // Always expect ferror to have been set.
-            }
-            if (FAILED(fflush(file_table[fnbr].file_ptr))) error_throw(errno);
-            return result;
-        }
-
-        case fet_serial:
-            return serial_write(fnbr, buf, sz);
-            break;
-    }
-
-    error_throw(kInternalFault);
-    return -1;
 }
 
 bool file_exists_regular(const char *filename) {
