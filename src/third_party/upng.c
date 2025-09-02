@@ -23,6 +23,7 @@ freely, subject to the following restrictions:
 #include "upng.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../common/iodevice.h"
 #include "../common/memory.h"
 #include "../common/utility.h"
 
@@ -1180,11 +1181,7 @@ upng_t* upng_new_from_file(char *filename)
     if(strchr(filename, '.') == NULL) strcat(filename, ".png");
     fnbr = file_find_free();
     // if(!BasicFileOpen(filename, fnbr, FA_READ)) return 0;
-	MmResult result = file_open(filename, "rb", fnbr);
-    if (FAILED(result)) {
-        error_throw(result);
-        return NULL;
-    }
+    ON_FAILURE_ERROR_EX(iodevice_open(filename, "rb", fnbr), NULL);
 
     /* get filesize */
     // f_lseek(FileTable[fnbr].fptr, f_size(FileTable[fnbr].fptr));
@@ -1203,7 +1200,7 @@ upng_t* upng_new_from_file(char *filename)
         size-=sizeread;
         buffer+=sizeread;
     }
-    result = file_close(fnbr);
+    MmResult result = file_close(fnbr);
     if (FAILED(result)) {
         upng_free(upng);
         error_throw(result);

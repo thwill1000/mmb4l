@@ -75,40 +75,6 @@ MmResult file_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *,
     return kOk;
 }
 
-/**
- * @param  filename  filename in C-string style, not MMBasic style.
- */
-MmResult file_open(const char *filename, const char *mode, int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
-    if (file_table[fnbr].type != fet_closed) return kFileAlreadyOpen;
-
-    // random writing is not allowed when a file is opened for append so open it
-    // first for read+update and if that does not work open it for
-    // writing+update.  This has the same effect as opening for append+update
-    // but will allow writing
-    FILE *f = NULL;
-    if (*mode == 'x') {
-        errno = 0;
-        f = fopen(filename, "rb+");
-        if (!f) {
-            errno = 0;
-            f = fopen(filename, "wb+");
-            if (!f) return errno;
-        }
-        errno = 0;
-        if (FAILED(fseek(f, 0, SEEK_END))) return errno;
-    } else {
-        errno = 0;
-        f = fopen(filename, mode);
-        if (!f) return errno;
-    }
-
-    file_table[fnbr].type = fet_file;
-    file_table[fnbr].file_ptr = f;
-
-    return kOk;
-}
-
 char *file_basename(char *path) {
     return basename(path);
 }

@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-flash.c
+iodevice.h
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,75 +42,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdlib.h>
+#if !defined(MMB4L_IODEVICE_H)
+#define MMB4L_IODEVICE_H
 
-#include "file.h"
-#include "flash.h"
-#include "iodevice.h"
-#include "utility.h"
+#include "mmresult.h"
 
-/** Is the 'flash' module initialised */
-static bool flash_initialised = false;
+/**
+ * Opens an I/O device (e.g. file) with the specified mode.
+ *
+ * @param[in]  path  Path to the device to open
+ * @param[in]  mode  File open mode (e.g., "r", "w", "a", "r+", "w+", "x")
+ * @param[in]  fnbr  File number to assign (1-MAXOPENFILES)
+ * @return           kOk on success, error code on failure
+ */
+MmResult iodevice_open(const char *path, const char *mode, int fnbr);
 
-static char* flash_slots[FLASH_NUM_SLOTS];
-
-MmResult flash_init() {
-    if (flash_initialised) return kOk;
-    MmResult result = kOk;
-    for (size_t i = 0; i < FLASH_NUM_SLOTS && SUCCEEDED(result); ++i) {
-        flash_slots[i] = calloc(FLASH_SLOT_SIZE, 1);
-        if (!flash_slots[i]) result = kOutOfMemory;
-    }
-    if (SUCCEEDED(result)) {
-        flash_initialised = true;
-    } else {
-        for (size_t i = 0; i < FLASH_NUM_SLOTS; ++i) {
-            free(flash_slots[i]);
-        }
-    }
-    return result;
-}
-
-MmResult flash_term() {
-    if (!flash_initialised) return kOk;
-    for (size_t i = 0; i < FLASH_NUM_SLOTS; ++i) {
-        free(flash_slots[i]);
-    }
-    flash_initialised = false;
-    return kOk;
-}
-
-MmResult flash_get_addr(unsigned index, char **addr) {
-    if (!flash_initialised) return kFlashModuleNotInitialised;
-    if (index >= FLASH_NUM_SLOTS) return kFlashInvalidIndex;
-    *addr = flash_slots[index];
-    return kOk;
-}
-
-MmResult flash_disk_load(unsigned index, const char *filename, bool overwrite) {
-    // TODO: overwrite / already programmed.
-    if (!flash_initialised) return kFlashModuleNotInitialised;
-    if (index >= FLASH_NUM_SLOTS) return kFlashInvalidIndex;
-    int fnbr = file_find_free();
-    MmResult result = iodevice_open(filename, "rb", fnbr);
-    int size = -1;
-    if (SUCCEEDED(result)) {
-        size = file_lof(fnbr);
-        if (size <= 0 || size > FLASH_SLOT_SIZE) result = kFlashFileTooBig;
-    }
-    if (SUCCEEDED(result)) {
-        size_t count = file_read(fnbr, flash_slots[index], size);
-        if (count == (size_t) size) {
-            // Pad with 0xFF.
-            for (size_t i = count; i < FLASH_SLOT_SIZE; ++i) flash_slots[index][i] = 0xFF;
-        } else {
-            result = kInternalFault;
-        }
-    }
-    if (FAILED(result)) {
-        (void) file_close(fnbr);
-    } else {
-        result = file_close(fnbr);
-    }
-    return result;
-}
+#endif // #if !defined(MMB4L_IODEVICE_H)

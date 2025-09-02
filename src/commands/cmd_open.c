@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/cstring.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../common/iodevice.h"
 #include "../common/parse.h"
 #include "../common/serial.h"
 #include "../common/utility.h"
@@ -74,7 +75,7 @@ static void cmd_open_file(int argc, char **argv) {
     if (fnbr == -1) {
         result = kFileInvalidFileNumber;
     } else {
-        result = file_open(filename, mode, fnbr);
+        result = iodevice_open(filename, mode, fnbr);
     }
     ON_FAILURE_ERROR(result);
 }
