@@ -26,7 +26,6 @@ freely, subject to the following restrictions:
 
 #include "upng.h"
 #include "../common/error.h"
-#include "../common/file.h"
 #include "../common/memory.h"
 #include "../common/streamio.h"
 #include "../common/utility.h"
@@ -1185,7 +1184,7 @@ upng_t* upng_new_from_file(char *filename)
 
     /* get filesize */
     // f_lseek(FileTable[fnbr].fptr, f_size(FileTable[fnbr].fptr));
-    size = fullsize = file_lof(fnbr); // f_tell(FileTable[fnbr].fptr);
+    size = fullsize = streamio_lof(fnbr); // f_tell(FileTable[fnbr].fptr);
     // f_lseek(FileTable[fnbr].fptr, 0);
     buffer = buff = GetMemory(size);
 

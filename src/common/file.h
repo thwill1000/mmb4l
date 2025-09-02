@@ -278,15 +278,6 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list);
 int file_loc(int fnbr);
 
 /**
- * Gets the length of file in bytes.
- * For serial ports, always returns 0 (unbuffered).
- *
- * @param[in]  fnbr  File number
- * @return           File length in bytes, or -1 on error
- */
-int file_lof(int fnbr);
-
-/**
  * Creates a new directory
  *
  * @param[in]  dirname  Path to the directory to create
