@@ -73,6 +73,14 @@ MmResult streamio_close(int fnbr);
 void streamio_close_all(void);
 
 /**
+ * Checks if end-of-file has been reached.
+ *
+ * @param[in]  fnbr  File number to check
+ * @return           1 if at EOF, 0 if not at EOF, 0 on error
+ */
+int streamio_eof(int fnbr);
+
+/**
  * Finds the first available free I/O device number.
  * Scans the file table to locate an unused slot.
  *

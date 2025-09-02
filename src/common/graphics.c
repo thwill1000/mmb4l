@@ -51,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "error.h"
 #include "events.h"
-#include "file.h"
 #include "file_private.h"
 #include "fonttbl.h"
 #include "graphics.h"
@@ -1556,7 +1555,7 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     uint8_t lc = 0;
     uint32_t *p = NULL;
     MmSurfaceId surface_id = start_sprite_id;
-    while (!file_eof(fnbr) && surface_id <= number + start_sprite_id) {
+    while (!streamio_eof(fnbr) && surface_id <= number + start_sprite_id) {
         if (new_sprite) {
             new_sprite = false;
             MmResult result = graphics_sprite_create(surface_id, width, height);

@@ -42,21 +42,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/file.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
+#include "../common/streamio.h"
 
 void fun_eof(void) {
     getargs(&ep, 1, DELIM_COMMA);
-    if (argc == 0) ERROR_SYNTAX;
+    if (argc == 0) ON_FAILURE_ERROR(kArgumentCount);
 
     int fnbr = parse_file_number(argv[0], true);
-    if (fnbr == -1) {
-        error_throw(kFileInvalidFileNumber);
-        return;
-    }
+    if (fnbr == -1) ON_FAILURE_ERROR(kFileInvalidFileNumber);
 
     targ = T_INT;
-    iret = file_eof(fnbr);
+    iret = streamio_eof(fnbr);
 }

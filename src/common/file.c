@@ -58,10 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file_private.h"
 #include "mmb4l.h"
 #include "path.h"
-#include "serial.h"
 #include "utility.h"
-
-extern MmResult (*streamio_0_putc_fn)(char c);
 
 // We don't use the 0'th entry, but it makes things simpler since MMBasic
 // indexes file numbers from 1.
@@ -272,38 +269,6 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
     }
 
     return kOk;
-}
-
-int file_eof(int fnbr) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        error_throw(kFileInvalidFileNumber);
-        return 0;
-    }
-    if (fnbr == 0) return 0;
-
-    switch (file_table[fnbr].type) {
-        case fet_closed:
-            error_throw(kFileNotOpen);
-            return 0;
-
-        case fet_file: {
-            FILE *f = file_table[fnbr].file_ptr;
-            errno = 0;
-            int ch = fgetc(f); // Try to read beyond the end of the file.
-            if (ch == EOF) {
-                if (ferror(f)) error_throw(errno);
-            } else {
-                if (ungetc(ch, f) == EOF) error_throw(errno);
-            }
-            return ch == EOF;
-        }
-
-        case fet_serial:
-            return serial_eof(fnbr);
-    }
-
-    error_throw(kInternalFault);
-    return 1;
 }
 
 bool file_exists_regular(const char *filename) {
