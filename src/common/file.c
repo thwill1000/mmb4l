@@ -57,7 +57,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "file_private.h"
 #include "mmb4l.h"
-#include "mmgetchar.h"
 #include "path.h"
 #include "serial.h"
 #include "utility.h"
@@ -74,39 +73,6 @@ char *file_basename(char *path) {
 
 char *file_dirname(char *path) {
     return dirname(path);
-}
-
-int file_getc(int fnbr) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        error_throw(kFileInvalidFileNumber);
-        return -1;
-    }
-    if (fnbr == 0) return MMgetchar();
-
-    switch (file_table[fnbr].type) {
-        case fet_closed:
-            error_throw(kFileNotOpen);
-            return -1;
-
-        case fet_file: {
-            errno = 0;
-            char ch;
-            if (fread(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
-                if (ferror(file_table[fnbr].file_ptr) == 0) {
-                    return -1;
-                } else {
-                    error_throw(errno);
-                }
-            }
-            return (int) ch;
-        }
-
-        case fet_serial:
-            return serial_getc(fnbr);
-    }
-
-    error_throw(kInternalFault);
-    return -1;
 }
 
 /**

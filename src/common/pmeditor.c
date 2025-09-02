@@ -763,7 +763,7 @@ void edit(const char *cmdline, bool cmdfile) {
             p = EdBuff;
             // char *q = (char *)EdBuff;
             do {  // while waiting for the end of file
-                c = file_getc(fnbr1);
+                c = streamio_getc(fnbr1);
                 if (c == '\n') {
                     nbrlines++;
                     // if (OPTION_CONTINUATION) {
@@ -862,7 +862,7 @@ static MmResult pmeditor_save_file(const char *filename) {
         ON_FAILURE_RETURN(streamio_open(backup, "wb", fnbr_bak));
         // BasicFileOpen(backup, fnbr_bak, FA_WRITE | FA_CREATE_ALWAYS);
         while (!file_eof(fnbr)) {  // while waiting for the end of file
-            streamio_putc(fnbr_bak, file_getc(fnbr));
+            streamio_putc(fnbr_bak, streamio_getc(fnbr));
         }
         streamio_close(fnbr);
         streamio_close(fnbr_bak);
@@ -2548,7 +2548,7 @@ static MmResult pmeditor_load_file(const char *filename) {
     ON_FAILURE_RETURN(streamio_open(filename, "rb", fnbr));
     if (!file_eof(fnbr)) {
         for (;;) {
-            int ch = file_getc(fnbr);
+            int ch = streamio_getc(fnbr);
             if (ch == -1) break;
             // TODO: Handle overrun.
             *p++ = ch;

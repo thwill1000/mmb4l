@@ -225,14 +225,6 @@ char *file_dirname(char *path);
 int file_eof(int fnbr);
 
 /**
- * Reads a single character from a file.
- *
- * @param[in]  fnbr  File number to read from (0 for console input)
- * @return           Character read (0-255), or -1 on EOF/error
- */
-int file_getc(int fnbr);
-
-/**
  * Gets the current working directory.
  *
  * @param[out] buf   Buffer to store the directory path
