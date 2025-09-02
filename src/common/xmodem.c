@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "mmtime.h"
 #include "serial.h"
+#include "streamio.h"
 #include "xmodem.h"
 
 /*
@@ -152,7 +153,7 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
             }
 
             // Copy data from the file into the packet.
-            len = file_read(file_fnbr, xbuff + 3, 128);
+            len = streamio_read(file_fnbr, xbuff + 3, 128);
 //            for (len = 0; len < 128 && !file_eof(file_fnbr); len++) {
 //                xbuff[len + 3] = file_getc(file_fnbr);
 //            }
