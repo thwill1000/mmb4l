@@ -114,6 +114,31 @@ bool streamio_is_serial(int fnbr) {
     }
 }
 
+int streamio_loc(int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) {
+        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);
+    }
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
+            break;
+
+        case fet_file:
+            errno = 0;
+            long int result = ftell(file_table[fnbr].file_ptr);
+            if (result == -1L) error_throw(errno);
+            return (int) (result + 1);
+            break;
+
+        case fet_serial:
+            return serial_rx_queue_size(fnbr);
+            break;
+    }
+
+    return -1;
+}
+
 int streamio_lof(int fnbr) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) {
         ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);

@@ -269,15 +269,6 @@ bool file_exists_symlink(const char *path);
 MmResult file_list(const char *fspec, FileSort sort, FileList *list);
 
 /**
- * Gets the current file position (1-based).
- * For serial ports, returns the number of bytes in the receive queue.
- *
- * @param[in]  fnbr  File number
- * @return           Current position (1-based), or -1 on error
- */
-int file_loc(int fnbr);
-
-/**
  * Creates a new directory
  *
  * @param[in]  dirname  Path to the directory to create
