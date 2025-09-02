@@ -434,34 +434,6 @@ int file_eof(int fnbr) {
     return 1;
 }
 
-size_t file_read(int fnbr, char *buf, size_t sz) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, 0);
-    }
-    assert(fnbr != 0); // if (fnbr == 0) return console_write(buf, sz);
-
-    switch (file_table[fnbr].type) {
-        case fet_closed:
-            error_throw(kFileNotOpen);
-            return 0;
-
-        case fet_file: {
-            errno = 0;
-            size_t result = fread(buf, 1, sz, file_table[fnbr].file_ptr);
-            if (result < sz && ferror(file_table[fnbr].file_ptr)) error_throw(errno);
-            return result;
-        }
-
-        case fet_serial:
-            assert(false); // return serial_write(fnbr, buf, sz);
-            break;
-    }
-
-    ON_FAILURE_ERROR_EX(kInternalFault, 0);
-
-    return 0;
-}
-
 void file_seek(int fnbr, int idx) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) {
         error_throw(kFileInvalidFileNumber);

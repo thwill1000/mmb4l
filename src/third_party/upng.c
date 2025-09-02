@@ -1196,7 +1196,7 @@ upng_t* upng_new_from_file(char *filename)
         return upng;
     }
     while(size>0){
-        sizeread = file_read(fnbr, buffer, 512); // f_read(FileTable[fnbr].fptr, buffer, 512, &sizeread);
+        sizeread = streamio_read(fnbr, buffer, 512); // f_read(FileTable[fnbr].fptr, buffer, 512, &sizeread);
         size-=sizeread;
         buffer+=sizeread;
     }
