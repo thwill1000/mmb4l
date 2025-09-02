@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "display.h"
 #include "error.h"
 #include "file.h"
+#include "iodevice.h"
 #include "keycodes.h"
 #include "mmb4l.h"
 #include "mmtime.h"
@@ -98,7 +99,7 @@ void MMgetline(int fnbr, char *p) {
     while (1) {
         CheckAbort();  // jump right out if CTRL-C
 
-        if (file_is_file(fnbr) && file_eof(fnbr)) break; // End of file.
+        if (iodevice_is_file(fnbr) && file_eof(fnbr)) break; // End of file.
         c = file_getc(fnbr);
 
         // -1 - no character.

@@ -558,15 +558,6 @@ MmResult file_size(const char *path, off_t *size) {
     return kOk;
 }
 
-bool file_is_file(int fnbr) {
-    assert(fnbr >= 0 && fnbr <= MAXOPENFILES);
-    if (fnbr >= 0 && fnbr <= MAXOPENFILES) {
-        return file_table[fnbr].type == fet_file;
-    } else {
-        return false;
-    }
-}
-
 bool file_is_serial(int fnbr) {
     assert(fnbr >= 0 && fnbr <= MAXOPENFILES);
     if (fnbr >= 0 && fnbr <= MAXOPENFILES) {
