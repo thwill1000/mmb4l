@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "fonttbl.h"
 #include "graphics.h"
+#include "iodevice.h"
 #include "keycodes.h"
 #include "memory.h"
 #include "mmb4l.h"
@@ -753,7 +754,7 @@ void edit(const char *cmdline, bool cmdfile) {
 
             int fnbr1;
             fnbr1 = file_find_free();
-            ON_FAILURE_ERROR(file_open(filename, "rb", fnbr1));
+            ON_FAILURE_ERROR(iodevice_open(filename, "rb", fnbr1));
             // BasicFileOpen(filename, fnbr1, FA_READ);
             // if (filesource[fnbr1] != FLASHFILE)
             //     fsize = f_size(FileTable[fnbr1].fptr);
@@ -855,10 +856,10 @@ static MmResult pmeditor_save_file(const char *filename) {
         strcpy(backup, filename);
         strcat(backup, ".bak");
         fnbr = file_find_free();
-        ON_FAILURE_RETURN(file_open(filename, "rb", fnbr));
+        ON_FAILURE_RETURN(iodevice_open(filename, "rb", fnbr));
         // BasicFileOpen(fname, fnbr1, FA_READ);
         const int fnbr_bak = file_find_free();
-        ON_FAILURE_RETURN(file_open(backup, "wb", fnbr_bak));
+        ON_FAILURE_RETURN(iodevice_open(backup, "wb", fnbr_bak));
         // BasicFileOpen(backup, fnbr_bak, FA_WRITE | FA_CREATE_ALWAYS);
         while (!file_eof(fnbr)) {  // while waiting for the end of file
             file_putc(fnbr_bak, file_getc(fnbr));
@@ -868,7 +869,7 @@ static MmResult pmeditor_save_file(const char *filename) {
     }
 
     fnbr = file_find_free();
-    ON_FAILURE_RETURN(file_open(filename, "wb", fnbr));
+    ON_FAILURE_RETURN(iodevice_open(filename, "wb", fnbr));
     // BasicFileOpen(fname, fnbr1, FA_WRITE | FA_CREATE_ALWAYS);
     char *p = EdBuff;
     // if (OPTION_CONTINUATION) {
@@ -2544,7 +2545,7 @@ static MmResult pmeditor_load_file(const char *filename) {
     pmeditor_num_lines = 0;
     char *p = pmeditor_buf;
     const int fnbr = file_find_free();
-    ON_FAILURE_RETURN(file_open(filename, "rb", fnbr));
+    ON_FAILURE_RETURN(iodevice_open(filename, "rb", fnbr));
     if (!file_eof(fnbr)) {
         for (;;) {
             int ch = file_getc(fnbr);

@@ -195,16 +195,6 @@ MmResult file_get_free_space(const char *path, uint64_t *free_space);
 MmResult file_size(const char *path, off_t *size);
 
 /**
- * Opens a file with the specified mode.
- *
- * @param[in]  filename  Path to the file to open
- * @param[in]  mode      File open mode (e.g., "r", "w", "a", "r+", "w+", "x")
- * @param[in]  fnbr      File number to assign (1-MAXOPENFILES)
- * @return               kOk on success, error code on failure
- */
-MmResult file_open(const char *filename, const char *mode, int fnbr);
-
-/**
  * Extracts the basename (filename without directory) from a path.
  *
  * @param[in]  path  File path (may be modified by the function)

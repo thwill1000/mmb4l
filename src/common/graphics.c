@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file_private.h"
 #include "fonttbl.h"
 #include "graphics.h"
+#include "iodevice.h"
 #include "logger.h"
 #include "memory.h"
 #include "mmb4l.h"
@@ -1477,23 +1478,19 @@ static int spbmp_abort_check_cb(void *userdata) {
 MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
     if (!surface || surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
     char _filename[STRINGSIZE];
-    MmResult result = path_try_extension(filename, ".bmp", _filename, STRINGSIZE);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_try_extension(filename, ".bmp", _filename, STRINGSIZE));
 
     int fnbr = file_find_free();
-    result = file_open(_filename, "rb", fnbr);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(iodevice_open(_filename, "rb", fnbr));
     spbmp_init(spbmp_file_read_cb, NULL, NULL, spbmp_set_pixel_cb, spbmp_abort_check_cb);
     SpBmpResult bmp_result = spbmp_load(file_table[fnbr].file_ptr, x, y, surface);
     surface->dirty = true;
     if (FAILED(bmp_result)) {
         (void) file_close(fnbr);
-        result = kGraphicsLoadBitmapFailed;
-    } else {
-        result = file_close(fnbr);
+        ON_FAILURE_RETURN(kGraphicsLoadBitmapFailed);
     }
 
-    return result;
+    return file_close(fnbr);
 }
 
 MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
@@ -1539,7 +1536,7 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     ON_FAILURE_RETURN(path_try_extension(filename, ".spr", _filename, STRINGSIZE));
 
     int fnbr = file_find_free();
-    ON_FAILURE_RETURN(file_open(_filename, "r", fnbr));
+    ON_FAILURE_RETURN(iodevice_open(_filename, "r", fnbr));
 
     const bool is_picomite = mmb_features.graphics_type == kGraphicsTypePicomiteLcd
             || mmb_features.graphics_type == kGraphicsTypePicomiteVga;
@@ -1648,7 +1645,7 @@ MmResult graphics_save_bmp(MmSurface *surface, char *filename, BmpFormat format,
 
     // Open the file for writing.
     int fnbr = file_find_free();
-    ON_FAILURE_RETURN(file_open(_filename, "wb", fnbr));
+    ON_FAILURE_RETURN(iodevice_open(_filename, "wb", fnbr));
 
     // Write the bitmap to the file.
     spbmp_init(NULL, spbmp_file_write_cb, spbmp_get_pixel_cb, NULL, spbmp_abort_check_cb);

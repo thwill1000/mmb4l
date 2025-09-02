@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/display.h"
 #include "../common/cstring.h"
 #include "../common/file.h"
+#include "../common/iodevice.h"
 #include "../common/keycodes.h"
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
@@ -114,7 +115,7 @@ cmd_autosave_read_exit:
 /** Writes out the file. */
 static void cmd_autosave_write_file(char *filename, char *buf) {
     int fnbr = file_find_free();
-    ON_FAILURE_ERROR(file_open(filename, "wb", fnbr));
+    ON_FAILURE_ERROR(iodevice_open(filename, "wb", fnbr));
     char *p = buf;
     while (*p) {
         file_putc(fnbr, *p++);

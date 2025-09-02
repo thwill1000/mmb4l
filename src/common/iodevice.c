@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-flash.c
+iodevice.c
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,75 +42,37 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdlib.h>
-
-#include "file.h"
-#include "flash.h"
+#include "file_private.h"
 #include "iodevice.h"
 #include "utility.h"
 
-/** Is the 'flash' module initialised */
-static bool flash_initialised = false;
+MmResult iodevice_open(const char *path, const char *mode, int fnbr) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
+    if (file_table[fnbr].type != fet_closed) return kFileAlreadyOpen;
 
-static char* flash_slots[FLASH_NUM_SLOTS];
-
-MmResult flash_init() {
-    if (flash_initialised) return kOk;
-    MmResult result = kOk;
-    for (size_t i = 0; i < FLASH_NUM_SLOTS && SUCCEEDED(result); ++i) {
-        flash_slots[i] = calloc(FLASH_SLOT_SIZE, 1);
-        if (!flash_slots[i]) result = kOutOfMemory;
-    }
-    if (SUCCEEDED(result)) {
-        flash_initialised = true;
-    } else {
-        for (size_t i = 0; i < FLASH_NUM_SLOTS; ++i) {
-            free(flash_slots[i]);
+    // random writing is not allowed when a file is opened for append so open it
+    // first for read+update and if that does not work open it for
+    // writing+update.  This has the same effect as opening for append+update
+    // but will allow writing
+    FILE *f = NULL;
+    if (*mode == 'x') {
+        errno = 0;
+        f = fopen(path, "rb+");
+        if (!f) {
+            errno = 0;
+            f = fopen(path, "wb+");
+            if (!f) return errno;
         }
-    }
-    return result;
-}
-
-MmResult flash_term() {
-    if (!flash_initialised) return kOk;
-    for (size_t i = 0; i < FLASH_NUM_SLOTS; ++i) {
-        free(flash_slots[i]);
-    }
-    flash_initialised = false;
-    return kOk;
-}
-
-MmResult flash_get_addr(unsigned index, char **addr) {
-    if (!flash_initialised) return kFlashModuleNotInitialised;
-    if (index >= FLASH_NUM_SLOTS) return kFlashInvalidIndex;
-    *addr = flash_slots[index];
-    return kOk;
-}
-
-MmResult flash_disk_load(unsigned index, const char *filename, bool overwrite) {
-    // TODO: overwrite / already programmed.
-    if (!flash_initialised) return kFlashModuleNotInitialised;
-    if (index >= FLASH_NUM_SLOTS) return kFlashInvalidIndex;
-    int fnbr = file_find_free();
-    MmResult result = iodevice_open(filename, "rb", fnbr);
-    int size = -1;
-    if (SUCCEEDED(result)) {
-        size = file_lof(fnbr);
-        if (size <= 0 || size > FLASH_SLOT_SIZE) result = kFlashFileTooBig;
-    }
-    if (SUCCEEDED(result)) {
-        size_t count = file_read(fnbr, flash_slots[index], size);
-        if (count == (size_t) size) {
-            // Pad with 0xFF.
-            for (size_t i = count; i < FLASH_SLOT_SIZE; ++i) flash_slots[index][i] = 0xFF;
-        } else {
-            result = kInternalFault;
-        }
-    }
-    if (FAILED(result)) {
-        (void) file_close(fnbr);
+        errno = 0;
+        if (FAILED(fseek(f, 0, SEEK_END))) return errno;
     } else {
-        result = file_close(fnbr);
+        errno = 0;
+        f = fopen(path, mode);
+        if (!f) return errno;
     }
-    return result;
+
+    file_table[fnbr].type = fet_file;
+    file_table[fnbr].file_ptr = f;
+
+    return kOk;
 }

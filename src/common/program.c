@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "display.h"
 #include "file.h"
 #include "fonttbl.h"
+#include "iodevice.h"
 #include "keycodes.h"
 #include "mmgetchar.h"
 #include "parse.h"
@@ -488,8 +489,7 @@ static MmResult program_open_file(const char *filename) {
     if (!path_exists(full_path)) return kFileNotFound;
 
     int fnbr = file_find_free();
-    result = file_open(full_path, "rb", fnbr);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(iodevice_open(full_path, "rb", fnbr));
     program_file_stack->head = &program_file_stack->files[program_file_stack->size];
     program_file_stack->head->fnbr = fnbr;
     program_file_stack->head->line_num = 0;
