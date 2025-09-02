@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/display.h"
 #include "../common/error.h"
 #include "../common/keycodes.h"
+#include "../common/logger.h"
 #include "../common/mmb4l.h"
 #include "../common/mmgetchar.h"
 #include "../common/parse.h"
@@ -298,6 +299,8 @@ static MmResult cmd_list_variables(const char *p) {
 
 /** LIST [ALL] file$ */
 static MmResult cmd_list_default(const char *p) {
+    LOG_FN_ENTRY("p=", p);
+
     const char *p2 = checkstring(p, "ALL");
     const bool all = p2;
     p2 = p2 ? p2 : p;
@@ -311,6 +314,8 @@ static MmResult cmd_list_default(const char *p) {
     } else {
         ON_FAILURE_RETURN(parse_filename(p2, filename, STRINGSIZE));
     }
+
+    LOG_DEBUG("foo");
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;
