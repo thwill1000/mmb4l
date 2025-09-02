@@ -56,7 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "file.h"
 #include "file_private.h"
-#include "iodevice.h"
 #include "mmb4l.h"
 #include "mmgetchar.h"
 #include "path.h"
@@ -82,12 +81,6 @@ char *file_basename(char *path) {
 
 char *file_dirname(char *path) {
     return dirname(path);
-}
-
-void file_close_all(void) {
-    for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
-        if (file_table[fnbr].type != fet_closed) (void) iodevice_close(fnbr);
-    }
 }
 
 int file_getc(int fnbr) {
