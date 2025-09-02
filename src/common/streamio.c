@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <assert.h>
+#include <unistd.h>
 
 #include "error.h"
 #include "file_private.h"
@@ -170,6 +171,26 @@ size_t streamio_read(int fnbr, char *buf, size_t sz) {
     ON_FAILURE_ERROR_EX(kInternalFault, 0);
 
     return 0;
+}
+
+void streamio_seek(int fnbr, int idx) {
+    if (fnbr < 1 || fnbr > MAXOPENFILES) {
+        ON_FAILURE_ERROR(kFileInvalidFileNumber);
+    }
+    if (idx < 1) {
+        ON_FAILURE_ERROR(kFileInvalidSeekPosition);
+    }
+
+    if (file_table[fnbr].type == fet_closed) {
+        ON_FAILURE_ERROR(kFileNotOpen);
+    }
+
+    FILE *f = file_table[fnbr].file_ptr;
+
+    errno = 0;
+    if (FAILED(fflush(f))) error_throw(errno);
+    if (FAILED(fsync(fileno(f)))) error_throw(errno);
+    if (FAILED(fseek(f, idx - 1, SEEK_SET))) error_throw(errno); // MMBasic indexes from 1, not 0.
 }
 
 size_t streamio_write(int fnbr, const char *buf, size_t sz) {
