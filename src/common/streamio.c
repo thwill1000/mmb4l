@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-iodevice.c
+streamio.c
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -46,11 +46,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "error.h"
 #include "file_private.h"
-#include "iodevice.h"
+#include "streamio.h"
 #include "serial.h"
 #include "utility.h"
 
-MmResult iodevice_close(int fnbr) {
+MmResult streamio_close(int fnbr) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
 
     switch (file_table[fnbr].type) {
@@ -73,13 +73,13 @@ MmResult iodevice_close(int fnbr) {
     return kOk;
 }
 
-void iodevice_close_all(void) {
+void streamio_close_all(void) {
     for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
-        if (file_table[fnbr].type != fet_closed) (void) iodevice_close(fnbr);
+        if (file_table[fnbr].type != fet_closed) (void) streamio_close(fnbr);
     }
 }
 
-int iodevice_find_free(void) {
+int streamio_find_free(void) {
     for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
         if (file_table[fnbr].type == fet_closed) return fnbr;
     }
@@ -87,7 +87,7 @@ int iodevice_find_free(void) {
     return -1;
 }
 
-bool iodevice_is_file(int fnbr) {
+bool streamio_is_file(int fnbr) {
     assert(fnbr >= 0 && fnbr <= MAXOPENFILES);
     if (fnbr >= 0 && fnbr <= MAXOPENFILES) {
         return file_table[fnbr].type == fet_file;
@@ -96,7 +96,7 @@ bool iodevice_is_file(int fnbr) {
     }
 }
 
-bool iodevice_is_serial(int fnbr) {
+bool streamio_is_serial(int fnbr) {
     assert(fnbr >= 0 && fnbr <= MAXOPENFILES);
     if (fnbr >= 0 && fnbr <= MAXOPENFILES) {
         return file_table[fnbr].type == fet_serial;
@@ -105,7 +105,7 @@ bool iodevice_is_serial(int fnbr) {
     }
 }
 
-MmResult iodevice_open(const char *path, const char *mode, int fnbr) {
+MmResult streamio_open(const char *path, const char *mode, int fnbr) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
     if (file_table[fnbr].type != fet_closed) return kFileAlreadyOpen;
 

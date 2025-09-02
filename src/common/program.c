@@ -51,13 +51,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "display.h"
 #include "file.h"
 #include "fonttbl.h"
-#include "iodevice.h"
 #include "keycodes.h"
 #include "mmb4l.h"
 #include "mmgetchar.h"
 #include "parse.h"
 #include "path.h"
 #include "program.h"
+#include "streamio.h"
 #include "utility.h"
 #include "../core/Commands.h"
 #include "../core/commandtbl.h"
@@ -488,8 +488,8 @@ static MmResult program_open_file(const char *filename) {
     if (FAILED(result)) return result;
     if (!path_exists(full_path)) return kFileNotFound;
 
-    int fnbr = iodevice_find_free();
-    ON_FAILURE_RETURN(iodevice_open(full_path, "rb", fnbr));
+    int fnbr = streamio_find_free();
+    ON_FAILURE_RETURN(streamio_open(full_path, "rb", fnbr));
     program_file_stack->head = &program_file_stack->files[program_file_stack->size];
     program_file_stack->head->fnbr = fnbr;
     program_file_stack->head->line_num = 0;
@@ -513,7 +513,7 @@ static MmResult program_open_file(const char *filename) {
 
 static MmResult program_close_file() {
     if (program_file_stack->size == 0) return kInternalFault;
-    ON_FAILURE_RETURN(iodevice_close(program_file_stack->head->fnbr));
+    ON_FAILURE_RETURN(streamio_close(program_file_stack->head->fnbr));
     program_file_stack->head->filename[0] = '\0';
     program_file_stack->head->fnbr = -1;
     program_file_stack->head->line_num = -1;

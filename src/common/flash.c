@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "file.h"
 #include "flash.h"
-#include "iodevice.h"
+#include "streamio.h"
 #include "utility.h"
 
 /** Is the 'flash' module initialised */
@@ -91,8 +91,8 @@ MmResult flash_disk_load(unsigned index, const char *filename, bool overwrite) {
     // TODO: overwrite / already programmed.
     if (!flash_initialised) return kFlashModuleNotInitialised;
     if (index >= FLASH_NUM_SLOTS) return kFlashInvalidIndex;
-    int fnbr = iodevice_find_free();
-    MmResult result = iodevice_open(filename, "rb", fnbr);
+    int fnbr = streamio_find_free();
+    MmResult result = streamio_open(filename, "rb", fnbr);
     int size = -1;
     if (SUCCEEDED(result)) {
         size = file_lof(fnbr);
@@ -108,9 +108,9 @@ MmResult flash_disk_load(unsigned index, const char *filename, bool overwrite) {
         }
     }
     if (FAILED(result)) {
-        (void) iodevice_close(fnbr);
+        (void) streamio_close(fnbr);
     } else {
-        result = iodevice_close(fnbr);
+        result = streamio_close(fnbr);
     }
     return result;
 }
