@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../common/iodevice.h"
 #include "../common/parse.h"
 #include "../common/xmodem.h"
 #include "../common/utility.h"
@@ -75,7 +76,7 @@ void cmd_xmodem(void) {
     const bool verbose = has_arg(4) ? getint(argv[4], 0, 1) == 1 : 0;
 
     int file_fnbr = file_find_free();
-    ON_FAILURE_ERROR(file_open(filename, receive ? "wb" : "rb", file_fnbr));
+    ON_FAILURE_ERROR(iodevice_open(filename, receive ? "wb" : "rb", file_fnbr));
 
     if (receive) {
         xmodem_receive(file_fnbr, serial_fnbr, verbose);

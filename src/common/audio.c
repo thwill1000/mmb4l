@@ -60,6 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "file_private.h"
 #include "interrupt.h"
+#include "iodevice.h"
 #include "memory.h"
 #include "mmresult.h"
 #include "path.h"
@@ -688,7 +689,7 @@ static MmResult audio_open_file(const char *filename) {
     MmResult result = audio_close_file();
     if (SUCCEEDED(result)) {
         audio_fnbr = file_find_free();
-        result = file_open(filename, "rb", audio_fnbr);
+        result = iodevice_open(filename, "rb", audio_fnbr);
     }
     return result;
 }
