@@ -100,7 +100,7 @@ void MMgetline(int fnbr, char *p) {
         CheckAbort();  // jump right out if CTRL-C
 
         if (streamio_is_file(fnbr) && file_eof(fnbr)) break; // End of file.
-        c = file_getc(fnbr);
+        c = streamio_getc(fnbr);
 
         // -1 - no character.
         //  0 - the null character which we ignore.

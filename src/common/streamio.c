@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "error.h"
 #include "file_private.h"
+#include "mmgetchar.h"
 #include "streamio.h"
 #include "serial.h"
 #include "utility.h"
@@ -94,6 +95,39 @@ int streamio_find_free(void) {
         if (file_table[fnbr].type == fet_closed) return fnbr;
     }
     ON_FAILURE_ERROR_EX(kTooManyOpenFiles, -1);
+}
+
+int streamio_getc(int fnbr) {
+    if (fnbr < 0 || fnbr > MAXOPENFILES) {
+        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);
+    }
+
+    if (fnbr == 0) return MMgetchar();
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
+            break;
+
+        case fet_file: {
+            errno = 0;
+            char ch;
+            if (fread(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
+                if (ferror(file_table[fnbr].file_ptr) == 0) {
+                    return -1;
+                } else {
+                    error_throw(errno);
+                }
+            }
+            return (int) ch;
+        }
+
+        case fet_serial:
+            return serial_getc(fnbr);
+    }
+
+    ON_FAILURE_ERROR_EX(kInternalFault, -1);
+    return -1;
 }
 
 bool streamio_is_file(int fnbr) {

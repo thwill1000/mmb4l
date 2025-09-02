@@ -42,11 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
+#include "../common/streamio.h"
 
 void fun_inputstr(void) {
     getargs(&ep, 3, DELIM_COMMA);
@@ -69,7 +70,7 @@ void fun_inputstr(void) {
         *sret = nbr;         // set the length of the returned string
         while (nbr) {
             if (file_eof(fnbr)) break;
-            *p++ = file_getc(fnbr);
+            *p++ = streamio_getc(fnbr);
             nbr--;
         }
         *sret -= nbr;  // correct if we get less than nbr chars

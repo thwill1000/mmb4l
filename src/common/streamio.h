@@ -81,6 +81,14 @@ void streamio_close_all(void);
 int streamio_find_free(void);
 
 /**
+ * Reads a single character from an I/O stream.
+ *
+ * @param[in]  fnbr  File number to read from (0 for console input)
+ * @return           Character read (0-255), or -1 on EOF/error
+ */
+int streamio_getc(int fnbr);
+
+/**
  * Checks if a file number refers to a regular file.
  *
  * @param[in]  fnbr  File number to check
