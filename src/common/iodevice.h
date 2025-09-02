@@ -48,6 +48,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 
 /**
+ * Closes an open I/O device.
+ *
+ * @param[in]  fnbr  File number to close
+ * @return           kOk on success, error code on failure
+ */
+MmResult iodevice_close(int fnbr);
+
+/**
  * Finds the first available free I/O device number.
  * Scans the file table to locate an unused slot.
  *
