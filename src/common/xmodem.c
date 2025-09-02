@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmb4l.h"
 #include "display.h"
-#include "file.h"
 #include "mmtime.h"
 #include "serial.h"
 #include "streamio.h"
@@ -268,7 +267,7 @@ void xmodem_receive(int file_fnbr, int serial_fnbr, bool verbose) {
             xmodem_check(&xbuff[3], X_BLOCK_SIZE)) {
             if (xbuff[1] == packetno) {
                 for (i = 0; i < X_BLOCK_SIZE; i++) {
-                    file_putc(file_fnbr, xbuff[i + 3]);
+                    streamio_putc(file_fnbr, xbuff[i + 3]);
                 }
                 ++packetno;
                 retrans = MAXRETRANS + 1;

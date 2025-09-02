@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include "../common/error.h"
-#include "../common/file.h"
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/streamio.h"
@@ -310,7 +309,7 @@ static void longstring_print(const char *tp) {
         }
         j = dest[0];
         while (j--) {
-            file_putc(fnbr, *q++);
+            streamio_putc(fnbr, *q++);
         }
         i++;
     }

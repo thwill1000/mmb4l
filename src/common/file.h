@@ -321,15 +321,6 @@ MmResult file_opendir(const char *dirname, DirStream **stream);
 MmResult file_readdir(DirStream *stream, DirEntry **entry);
 
 /**
- * Writes a single character to a file.
- *
- * @param[in]  fnbr  File number to write to (0 for console output)
- * @param[in]  ch    Character to write
- * @return           Character written, or -1 on error
- */
-int file_putc(int fnbr, int ch);
-
-/**
  * Reads the target of a symbolic link.
  *
  * @param[in]    path     Path to the symbolic link
