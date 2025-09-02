@@ -114,7 +114,7 @@ cmd_autosave_read_exit:
 
 /** Writes out the file. */
 static void cmd_autosave_write_file(char *filename, char *buf) {
-    int fnbr = file_find_free();
+    int fnbr = iodevice_find_free();
     ON_FAILURE_ERROR(iodevice_open(filename, "wb", fnbr));
     char *p = buf;
     while (*p) {

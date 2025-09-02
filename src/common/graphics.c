@@ -1480,7 +1480,7 @@ MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
     char _filename[STRINGSIZE];
     ON_FAILURE_RETURN(path_try_extension(filename, ".bmp", _filename, STRINGSIZE));
 
-    int fnbr = file_find_free();
+    int fnbr = iodevice_find_free();
     ON_FAILURE_RETURN(iodevice_open(_filename, "rb", fnbr));
     spbmp_init(spbmp_file_read_cb, NULL, NULL, spbmp_set_pixel_cb, spbmp_abort_check_cb);
     SpBmpResult bmp_result = spbmp_load(file_table[fnbr].file_ptr, x, y, surface);
@@ -1535,7 +1535,7 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     char _filename[STRINGSIZE];
     ON_FAILURE_RETURN(path_try_extension(filename, ".spr", _filename, STRINGSIZE));
 
-    int fnbr = file_find_free();
+    int fnbr = iodevice_find_free();
     ON_FAILURE_RETURN(iodevice_open(_filename, "r", fnbr));
 
     const bool is_picomite = mmb_features.graphics_type == kGraphicsTypePicomiteLcd
@@ -1644,7 +1644,7 @@ MmResult graphics_save_bmp(MmSurface *surface, char *filename, BmpFormat format,
     }
 
     // Open the file for writing.
-    int fnbr = file_find_free();
+    int fnbr = iodevice_find_free();
     ON_FAILURE_RETURN(iodevice_open(_filename, "wb", fnbr));
 
     // Write the bitmap to the file.

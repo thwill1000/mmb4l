@@ -753,7 +753,7 @@ void edit(const char *cmdline, bool cmdfile) {
             if (fsize > EDIT_BUFFER_SIZE - 10) ON_FAILURE_ERROR(kOutOfMemory);
 
             int fnbr1;
-            fnbr1 = file_find_free();
+            fnbr1 = iodevice_find_free();
             ON_FAILURE_ERROR(iodevice_open(filename, "rb", fnbr1));
             // BasicFileOpen(filename, fnbr1, FA_READ);
             // if (filesource[fnbr1] != FLASHFILE)
@@ -855,10 +855,10 @@ static MmResult pmeditor_save_file(const char *filename) {
         char backup[FF_MAX_LFN];
         strcpy(backup, filename);
         strcat(backup, ".bak");
-        fnbr = file_find_free();
+        fnbr = iodevice_find_free();
         ON_FAILURE_RETURN(iodevice_open(filename, "rb", fnbr));
         // BasicFileOpen(fname, fnbr1, FA_READ);
-        const int fnbr_bak = file_find_free();
+        const int fnbr_bak = iodevice_find_free();
         ON_FAILURE_RETURN(iodevice_open(backup, "wb", fnbr_bak));
         // BasicFileOpen(backup, fnbr_bak, FA_WRITE | FA_CREATE_ALWAYS);
         while (!file_eof(fnbr)) {  // while waiting for the end of file
@@ -868,7 +868,7 @@ static MmResult pmeditor_save_file(const char *filename) {
         file_close(fnbr_bak);
     }
 
-    fnbr = file_find_free();
+    fnbr = iodevice_find_free();
     ON_FAILURE_RETURN(iodevice_open(filename, "wb", fnbr));
     // BasicFileOpen(fname, fnbr1, FA_WRITE | FA_CREATE_ALWAYS);
     char *p = EdBuff;
@@ -2544,7 +2544,7 @@ static MmResult pmeditor_alloc_buf() {
 static MmResult pmeditor_load_file(const char *filename) {
     pmeditor_num_lines = 0;
     char *p = pmeditor_buf;
-    const int fnbr = file_find_free();
+    const int fnbr = iodevice_find_free();
     ON_FAILURE_RETURN(iodevice_open(filename, "rb", fnbr));
     if (!file_eof(fnbr)) {
         for (;;) {

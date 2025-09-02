@@ -688,7 +688,7 @@ static bool audio_is_valid_sample_rate(unsigned sample_rate) {
 static MmResult audio_open_file(const char *filename) {
     MmResult result = audio_close_file();
     if (SUCCEEDED(result)) {
-        audio_fnbr = file_find_free();
+        audio_fnbr = iodevice_find_free();
         result = iodevice_open(filename, "rb", audio_fnbr);
     }
     return result;
