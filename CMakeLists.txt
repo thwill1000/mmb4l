@@ -238,6 +238,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/gpio.c
     src/common/graphics.c
     src/common/interrupt.c
+    src/common/iodevice.c
     src/common/keyboard.c
     src/common/logger.c
     src/common/memory.c
@@ -540,6 +541,7 @@ add_executable(test_fun_sprite
     src/common/file.c
     src/common/file_linux.c
     src/common/fonttbl.c
+    src/common/iodevice.c
     src/common/memory.c
     src/common/mmresult.c
     src/common/parse.c
@@ -641,6 +643,7 @@ add_executable(test_graphics
     src/common/file_linux.c
     src/common/fonttbl.c
     src/common/graphics.c
+    src/common/iodevice.c
     src/common/logger.c
     src/common/memory.c
     src/common/mmresult.c
@@ -760,6 +763,7 @@ add_executable(test_parse
     src/common/features.c
     src/common/file.c
     src/common/file_linux.c
+    src/common/iodevice.c
     src/common/memory.c
     src/common/mmgetchar.c
     src/common/mmresult.c
@@ -829,6 +833,7 @@ add_executable(test_program
     src/common/features.c
     src/common/file.c
     src/common/file_linux.c
+    src/common/iodevice.c
     src/common/memory.c
     src/common/mmgetchar.c
     src/common/mmtime.c
@@ -931,6 +936,7 @@ add_executable(test_sprite
     src/common/file.c
     src/common/file_linux.c
     src/common/fonttbl.c
+    src/common/iodevice.c
     src/common/graphics.c
     src/common/logger.c
     src/common/memory.c
@@ -985,6 +991,7 @@ add_executable(test_mmbasic_core
     src/common/file.c
     src/common/file_linux.c
     src/common/fonttbl.c
+    src/common/iodevice.c
     src/common/memory.c
     src/common/mmtime.c
     src/common/options.c
