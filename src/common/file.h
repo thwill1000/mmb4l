@@ -265,14 +265,6 @@ MmResult file_info(const char *filename, FileInfo *info);
 bool file_exists_symlink(const char *path);
 
 /**
- * Checks if a file number refers to a regular file.
- *
- * @param[in]  fnbr  File number to check
- * @return           true if it's a regular file, false otherwise
- */
-bool file_is_file(int fnbr);
-
-/**
  * Checks if a file number refers to a serial port.
  *
  * @param[in]  fnbr  File number to check
