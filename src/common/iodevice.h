@@ -56,6 +56,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 MmResult iodevice_close(int fnbr);
 
 /**
+ * Closes all open I/O devices.
+ * Used for cleanup operations, typically on program exit.
+ */
+void iodevice_close_all(void);
+
+/**
  * Finds the first available free I/O device number.
  * Scans the file table to locate an unused slot.
  *
