@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "file.h"
 #include "file_private.h"
+#include "iodevice.h"
 #include "mmb4l.h"
 #include "mmgetchar.h"
 #include "path.h"
@@ -83,32 +84,9 @@ char *file_dirname(char *path) {
     return dirname(path);
 }
 
-MmResult file_close(int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
-
-    switch (file_table[fnbr].type) {
-        case fet_closed:
-            return kFileNotOpen;
-
-        case fet_file: {
-            errno = 0;
-            int result = fclose(file_table[fnbr].file_ptr);
-            file_table[fnbr].type = fet_closed;
-            file_table[fnbr].file_ptr = NULL;
-            if (FAILED(result)) return errno;
-            break;
-        }
-
-        case fet_serial:
-            return serial_close(fnbr);
-    }
-
-    return kOk;
-}
-
 void file_close_all(void) {
     for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
-        if (file_table[fnbr].type != fet_closed) (void) file_close(fnbr);
+        if (file_table[fnbr].type != fet_closed) (void) iodevice_close(fnbr);
     }
 }
 

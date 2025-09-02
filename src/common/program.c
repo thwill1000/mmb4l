@@ -513,8 +513,7 @@ static MmResult program_open_file(const char *filename) {
 
 static MmResult program_close_file() {
     if (program_file_stack->size == 0) return kInternalFault;
-    MmResult result = file_close(program_file_stack->head->fnbr);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(iodevice_close(program_file_stack->head->fnbr));
     program_file_stack->head->filename[0] = '\0';
     program_file_stack->head->fnbr = -1;
     program_file_stack->head->line_num = -1;

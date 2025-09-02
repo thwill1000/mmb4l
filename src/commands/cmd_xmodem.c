@@ -84,5 +84,5 @@ void cmd_xmodem(void) {
         xmodem_send(file_fnbr, serial_fnbr, verbose);
     }
 
-    ON_FAILURE_ERROR(file_close(file_fnbr));
+    ON_FAILURE_ERROR(iodevice_close(file_fnbr));
 }

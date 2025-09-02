@@ -1475,11 +1475,11 @@ MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
     SpBmpResult bmp_result = spbmp_load(file_table[fnbr].file_ptr, x, y, surface);
     surface->dirty = true;
     if (FAILED(bmp_result)) {
-        (void) file_close(fnbr);
+        (void) iodevice_close(fnbr);
         ON_FAILURE_RETURN(kGraphicsLoadBitmapFailed);
     }
 
-    return file_close(fnbr);
+    return iodevice_close(fnbr);
 }
 
 MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
@@ -1548,7 +1548,7 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
             ? GRAPHICS_MAX_ID
             : CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT;
     if (start_sprite_id + number > max_sprite_id) {
-        (void) file_close(fnbr);
+        (void) iodevice_close(fnbr);
         return kGraphicsTooManySprites;
     }
 
@@ -1561,7 +1561,7 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
             new_sprite = false;
             MmResult result = graphics_sprite_create(surface_id, width, height);
             if (FAILED(result)) {
-                (void) file_close(fnbr);
+                (void) iodevice_close(fnbr);
                 return result;
             }
             lc = height;
@@ -1589,7 +1589,7 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
         new_sprite = true;
     }
 
-    return file_close(fnbr);
+    return iodevice_close(fnbr);
 }
 
 static const char *graphics_blit_flags_to_string(unsigned flags) {
