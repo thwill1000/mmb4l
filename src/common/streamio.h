@@ -48,6 +48,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 
 /**
+ * Initialises the 'streamio' module.
+ * Sets up function pointers for console I/O operations.
+ *
+ * @param[in]  putc_fn   Function pointer for outputting a single character to console
+ * @param[in]  write_fn  Function pointer for writing a buffer of characters to console
+ * @return               kOk on success, error code on failure
+ */
+MmResult streamio_init(MmResult (*putc_fn)(char),
+                       MmResult (*write_fn)(const char *, size_t *));
+
+/**
  * Closes an open I/O device.
  *
  * @param[in]  fnbr  File number to close
@@ -94,5 +105,15 @@ bool streamio_is_serial(int fnbr);
  * @return           kOk on success, error code on failure
  */
 MmResult streamio_open(const char *path, const char *mode, int fnbr);
+
+/**
+ * Writes data from a buffer to an I/O stream.
+ *
+ * @param[in]  fnbr  File number to write to (0 for console output)
+ * @param[in]  buf   Buffer containing data to write
+ * @param[in]  sz    Number of bytes to write
+ * @return           Number of bytes actually written
+ */
+size_t streamio_write(int fnbr, const char *buf, size_t sz);
 
 #endif // #if !defined(MMB4L_STREAMIO_H)

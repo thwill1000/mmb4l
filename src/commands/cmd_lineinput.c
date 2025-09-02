@@ -46,9 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/mmgetchar.h"
-#include "../common/file.h"
+#include "../common/streamio.h"
 
-#define MMfputs(mmbstr, fnbr)  file_write(fnbr, mmbstr + 1, mmbstr[0])
+#define MMfputs(mmbstr, fnbr)  streamio_write(fnbr, mmbstr + 1, mmbstr[0])
 
 void cmd_lineinput(void) {
     char *vp;

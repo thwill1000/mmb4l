@@ -50,6 +50,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "serial.h"
 #include "utility.h"
 
+MmResult (*streamio_0_putc_fn)(char c) = NULL;
+MmResult (*streamio_0_write_fn)(const char *buf, size_t *sz) = NULL;
+
+MmResult streamio_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *, size_t *)) {
+    streamio_0_putc_fn = putc_fn;
+    streamio_0_write_fn = write_fn;
+    return kOk;
+}
+
 MmResult streamio_close(int fnbr) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
 
@@ -133,4 +142,40 @@ MmResult streamio_open(const char *path, const char *mode, int fnbr) {
     file_table[fnbr].file_ptr = f;
 
     return kOk;
+}
+
+size_t streamio_write(int fnbr, const char *buf, size_t sz) {
+    if (fnbr < 0 || fnbr > MAXOPENFILES) {
+        error_throw(kFileInvalidFileNumber);
+        return 0;
+    }
+
+    if (fnbr == 0) {
+        assert(streamio_0_write_fn);
+        ON_FAILURE_ERROR_EX(streamio_0_write_fn(buf, &sz), 0);
+        return sz;
+    }
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ON_FAILURE_ERROR_EX(kFileNotOpen, 0);
+            break;
+
+        case fet_file: {
+            errno = 0;
+            size_t result = fwrite(buf, 1, sz, file_table[fnbr].file_ptr);
+            if (result != sz) {
+                if (ferror(file_table[fnbr].file_ptr)) error_throw(errno);
+                assert(false); // Always expect ferror to have been set.
+            }
+            if (FAILED(fflush(file_table[fnbr].file_ptr))) error_throw(errno);
+            return result;
+        }
+
+        case fet_serial:
+            return serial_write(fnbr, buf, sz);
+            break;
+    }
+
+    ON_FAILURE_ERROR_EX(kInternalFault, -1);
 }
