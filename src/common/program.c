@@ -488,7 +488,7 @@ static MmResult program_open_file(const char *filename) {
     if (FAILED(result)) return result;
     if (!path_exists(full_path)) return kFileNotFound;
 
-    int fnbr = file_find_free();
+    int fnbr = iodevice_find_free();
     ON_FAILURE_RETURN(iodevice_open(full_path, "rb", fnbr));
     program_file_stack->head = &program_file_stack->files[program_file_stack->size];
     program_file_stack->head->fnbr = fnbr;
