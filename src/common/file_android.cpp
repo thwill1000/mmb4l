@@ -343,8 +343,71 @@ MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) {
     return kUnimplemented;
 }
 
-MmResult file_rename(const char *old_filename, const char *new_filename) {
-    return kUnimplemented;
+MmResult file_rename(const char *old_path, const char *new_path) {
+    LOG_FN_ENTRY("old_path=%s, new_path=%s", old_path, new_path);
+
+    if (!old_path) return mmresult_ex(kInternalFault, "old_path == NULL");
+    if (!new_path) return mmresult_ex(kInternalFault, "new_path == NULL");
+
+    std::string old_path_abs;
+    std::string new_path_abs;
+    ON_FAILURE_RETURN(canonical_path(old_path, old_path_abs));
+    ON_FAILURE_RETURN(canonical_path(new_path, new_path_abs));
+
+    // Check if source file/directory exists
+    SAFFileInfo old_info = saf_get_file_info(old_path_abs);
+    if (!old_info.exists) {
+        LOG_WARN("Source does not exist: %s", old_path_abs.c_str());
+        return kFileNotFound;
+    }
+
+    // Check if destination already exists
+    SAFFileInfo new_info = saf_get_file_info(new_path_abs);
+    if (new_info.exists) {
+        LOG_WARN("Destination already exists: %s", new_path_abs.c_str());
+        return kFileExists;
+    }
+
+    // Extract parent directories for both paths
+    size_t old_last_slash = old_path_abs.find_last_of('/');
+    size_t new_last_slash = new_path_abs.find_last_of('/');
+
+    if (old_last_slash == std::string::npos || new_last_slash == std::string::npos) {
+        LOG_ERROR("Invalid path format");
+        return kInternalFault;
+    }
+
+    std::string old_parent = old_path_abs.substr(0, old_last_slash);
+    std::string new_parent = new_path_abs.substr(0, new_last_slash);
+    std::string old_name = old_path_abs.substr(old_last_slash + 1);
+    std::string new_name = new_path_abs.substr(new_last_slash + 1);
+
+    if (old_parent.empty()) old_parent = "/";
+    if (new_parent.empty()) new_parent = "/";
+
+    // Check if we're moving between different directories
+    if (old_parent != new_parent) {
+        LOG_ERROR("Cross-directory moves not supported: %s -> %s",
+                  old_parent.c_str(), new_parent.c_str());
+        return kUnimplemented; // SAF doesn't easily support moving between directories
+    }
+
+    // Verify parent directory exists
+    SAFFileInfo parent_info = saf_get_file_info(old_parent);
+    if (!parent_info.exists || !parent_info.is_directory) {
+        LOG_ERROR("Parent directory does not exist: %s", old_parent.c_str());
+        return kFileNotFound;
+    }
+
+    // Use SAF bridge to rename the file/directory
+    bool success = saf_rename_file(old_name, new_name);
+    if (success) {
+        LOG_INFO("Successfully renamed %s to %s", old_path_abs.c_str(), new_path_abs.c_str());
+        return kOk;
+    } else {
+        LOG_ERROR("Failed to rename %s to %s", old_path_abs.c_str(), new_path_abs.c_str());
+        return kPermissionDenied;
+    }
 }
 
 MmResult file_rmdir(const char *path) {

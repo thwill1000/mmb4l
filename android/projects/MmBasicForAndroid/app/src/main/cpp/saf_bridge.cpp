@@ -542,6 +542,26 @@ int saf_ferror(int handleId) {
     return ferror(file);
 }
 
+bool saf_rename_file(const std::string& old_path, const std::string& new_path) {
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    if (!env) {
+        return false;
+    }
+
+    jmethodID method = env->GetStaticMethodID(g_mainActivityClass, "renameFile", "(Ljava/lang/String;Ljava/lang/String;)Z");
+    if (!method) return false;
+
+    jstring jOldPath = env->NewStringUTF(old_path.c_str());
+    jstring jNewPath = env->NewStringUTF(new_path.c_str());
+
+    bool result = env->CallStaticBooleanMethod(g_mainActivityClass, method, jOldPath, jNewPath);
+
+    env->DeleteLocalRef(jOldPath);
+    env->DeleteLocalRef(jNewPath);
+
+    return result;
+}
+
 void saf_rewind(int handleId) {
     FILE* file = saf_get_file_pointer(handleId);
     if (file) {

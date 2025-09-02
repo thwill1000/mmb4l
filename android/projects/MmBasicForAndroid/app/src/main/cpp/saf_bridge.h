@@ -307,6 +307,15 @@ int saf_feof(int handleId);
 int saf_ferror(int handleId);
 
 /**
+ * Renames a file.
+ *
+ * @param old_path  Absolute path to the old file
+ * @param new_path  Absolute path to the new file
+ * @return          true on success, otherwise false
+ */
+bool saf_rename_file(const std::string& old_path, const std::string& new_path);
+
+/**
  * Reset file position to beginning.
  *
  * @param handleId File handle ID returned by saf_fopen()

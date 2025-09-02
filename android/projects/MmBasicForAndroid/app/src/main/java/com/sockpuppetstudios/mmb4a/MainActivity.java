@@ -901,4 +901,58 @@ public class MainActivity extends SDLActivity {
         long availableBlocks = statFs.getAvailableBlocksLong();
         return availableBlocks * blockSize;
     }
+
+    /**
+     * Called from native code to rename a file or directory
+     * Note: This only supports renaming within the same directory due to SAF limitations
+     */
+    public static boolean renameFile(String oldName, String newName) {
+        final String LOG_PREFIX = "MainActivity#renameFile: ";
+        Log.v(TAG, LOG_PREFIX + "oldName=" + oldName + ", newName=" + newName);
+        if (!hasDirectoryAccess()) {
+            Log.w(TAG, LOG_PREFIX + "No directory access");
+            return false;
+        }
+
+        if (oldName == null || newName == null || oldName.isEmpty() || newName.isEmpty()) {
+            Log.e(TAG, LOG_PREFIX + "Invalid file names");
+            return false;
+        }
+
+        // Prevent renaming to the same name
+        if (oldName.equals(newName)) {
+            Log.d(TAG, LOG_PREFIX + "Source and destination are the same");
+            return true;
+        }
+
+        try {
+            // Find the source file/directory
+            DocumentFile sourceFile = instance.mmbasicDirectory.findFile(oldName);
+            if (sourceFile == null || !sourceFile.exists()) {
+                Log.w(TAG, LOG_PREFIX + "Source file not found: " + oldName);
+                return false;
+            }
+
+            // Check if destination already exists
+            DocumentFile destFile = instance.mmbasicDirectory.findFile(newName);
+            if (destFile != null && destFile.exists()) {
+                Log.w(TAG, LOG_PREFIX + "Destination already exists: " + newName);
+                return false;
+            }
+
+            boolean result = sourceFile.renameTo(newName);
+
+            if (result) {
+                Log.d(TAG, LOG_PREFIX + "Successfully renamed " + oldName + " to " + newName);
+            } else {
+                Log.e(TAG, LOG_PREFIX + "Failed to rename " + oldName + " to " + newName);
+            }
+
+            return result;
+
+        } catch (Exception e) {
+            Log.e(TAG, LOG_PREFIX + "Error renaming file: " + oldName + " -> " + newName, e);
+            return false;
+        }
+    }
 }
