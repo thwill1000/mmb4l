@@ -73,7 +73,7 @@ void cmd_copy(void) {
     char c;
     while (1) {
         if (file_eof(src_fnbr)) break;
-        c = file_getc(src_fnbr);
+        c = streamio_getc(src_fnbr);
         streamio_putc(dst_fnbr, c);
     }
 
