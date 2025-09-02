@@ -42,9 +42,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "error.h"
 #include "file_private.h"
 #include "iodevice.h"
 #include "utility.h"
+
+int iodevice_find_free(void) {
+    for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
+        if (file_table[fnbr].type == fet_closed) return fnbr;
+    }
+    ON_FAILURE_ERROR_EX(kTooManyOpenFiles, -1);
+}
 
 MmResult iodevice_open(const char *path, const char *mode, int fnbr) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;

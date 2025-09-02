@@ -91,7 +91,7 @@ MmResult flash_disk_load(unsigned index, const char *filename, bool overwrite) {
     // TODO: overwrite / already programmed.
     if (!flash_initialised) return kFlashModuleNotInitialised;
     if (index >= FLASH_NUM_SLOTS) return kFlashInvalidIndex;
-    int fnbr = file_find_free();
+    int fnbr = iodevice_find_free();
     MmResult result = iodevice_open(filename, "rb", fnbr);
     int size = -1;
     if (SUCCEEDED(result)) {
