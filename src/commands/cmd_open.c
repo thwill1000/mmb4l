@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/cstring.h"
 #include "../common/error.h"
-#include "../common/file.h"
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/serial.h"

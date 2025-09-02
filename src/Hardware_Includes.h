@@ -61,7 +61,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Configuration.h"
 #include "common/console.h"
 #include "common/error.h"
-#include "common/file.h"
 #include "common/interrupt.h"
 #include "common/memory.h"
 #include "common/options.h"
