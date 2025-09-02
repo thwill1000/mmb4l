@@ -308,32 +308,6 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
     return kOk;
 }
 
-int file_loc(int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) {
-        error_throw(kFileInvalidFileNumber);
-        return -1;
-    }
-
-    switch (file_table[fnbr].type) {
-        case fet_closed:
-            error_throw(kFileNotOpen);
-            return -1;
-
-        case fet_file:
-            errno = 0;
-            long int result = ftell(file_table[fnbr].file_ptr);
-            if (result == -1L) error_throw(errno);
-            return (int) (result + 1);
-            break;
-
-        case fet_serial:
-            return serial_rx_queue_size(fnbr);
-            break;
-    }
-
-    return -1;
-}
-
 int file_eof(int fnbr) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
         error_throw(kFileInvalidFileNumber);
