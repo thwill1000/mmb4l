@@ -315,7 +315,7 @@ static MmResult cmd_list_default(const char *p) {
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;
-    int fnbr = file_find_free();
+    int fnbr = iodevice_find_free();
     ON_FAILURE_RETURN(iodevice_open(filename, "rb", fnbr));
     while (!file_eof(fnbr)) {
         memset(line_buffer, 0, STRINGSIZE);

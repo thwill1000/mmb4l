@@ -48,6 +48,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 
 /**
+ * Finds the first available free I/O device number.
+ * Scans the file table to locate an unused slot.
+ *
+ * @return  Available file number (1-MAXOPENFILES), or -1 if none available
+ */
+int iodevice_find_free(void);
+
+/**
  * Opens an I/O device (e.g. file) with the specified mode.
  *
  * @param[in]  path  Path to the device to open
