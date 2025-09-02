@@ -117,6 +117,15 @@ MmResult streamio_open(const char *path, const char *mode, int fnbr);
 size_t streamio_read(int fnbr, char *buf, size_t sz);
 
 /**
+ * Seeks to a specific position in an I/O stream.
+ * Position is 1-based (MMBasic convention).
+ *
+ * @param[in]  fnbr  File number
+ * @param[in]  idx   Position to seek to (1-based)
+ */
+void streamio_seek(int fnbr, int idx);
+
+/**
  * Writes data from a buffer to an I/O stream.
  *
  * @param[in]  fnbr  File number to write to (0 for console output)
