@@ -44,14 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/console.h"
 #include "../common/error.h"
-#include "../common/file.h"
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/streamio.h"
 
 void fun_inputstr(void) {
     getargs(&ep, 3, DELIM_COMMA);
-    if (argc != 3) ERROR_SYNTAX;
+    if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
 
     int nbr = getint(argv[0], 1, MAXSTRLEN);
     int fnbr = parse_file_number(argv[2], true);
@@ -69,7 +68,7 @@ void fun_inputstr(void) {
         char *p = sret + 1;  // point to the start of the char array
         *sret = nbr;         // set the length of the returned string
         while (nbr) {
-            if (file_eof(fnbr)) break;
+            if (streamio_eof(fnbr)) break;
             *p++ = streamio_getc(fnbr);
             nbr--;
         }

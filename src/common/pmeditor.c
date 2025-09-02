@@ -776,7 +776,7 @@ void edit(const char *cmdline, bool cmdfile) {
                 }
                 if (c == '\r') continue;
                 *p++ = c;
-            } while (!file_eof(fnbr1));
+            } while (!streamio_eof(fnbr1));
             p++;
             ON_FAILURE_ERROR(streamio_close(fnbr1));
         }
@@ -861,7 +861,7 @@ static MmResult pmeditor_save_file(const char *filename) {
         const int fnbr_bak = streamio_find_free();
         ON_FAILURE_RETURN(streamio_open(backup, "wb", fnbr_bak));
         // BasicFileOpen(backup, fnbr_bak, FA_WRITE | FA_CREATE_ALWAYS);
-        while (!file_eof(fnbr)) {  // while waiting for the end of file
+        while (!streamio_eof(fnbr)) {  // while waiting for the end of file
             streamio_putc(fnbr_bak, streamio_getc(fnbr));
         }
         streamio_close(fnbr);
@@ -2546,7 +2546,7 @@ static MmResult pmeditor_load_file(const char *filename) {
     char *p = pmeditor_buf;
     const int fnbr = streamio_find_free();
     ON_FAILURE_RETURN(streamio_open(filename, "rb", fnbr));
-    if (!file_eof(fnbr)) {
+    if (!streamio_eof(fnbr)) {
         for (;;) {
             int ch = streamio_getc(fnbr);
             if (ch == -1) break;

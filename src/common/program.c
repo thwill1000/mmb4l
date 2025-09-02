@@ -604,7 +604,7 @@ MmResult program_process_file() {
     program_comment_level = 0;
 
     for (;;) {
-        if (file_eof(program_file_stack->head->fnbr)) {
+        if (streamio_eof(program_file_stack->head->fnbr)) {
             result = program_close_file();
             if (FAILED(result)) break;
             if (!program_file_stack->head) break;
