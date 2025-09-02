@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-iodevice.h
+streamio.h
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,8 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_IODEVICE_H)
-#define MMB4L_IODEVICE_H
+#if !defined(MMB4L_STREAMIO_H)
+#define MMB4L_STREAMIO_H
 
 #include "mmresult.h"
 
@@ -53,13 +53,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param[in]  fnbr  File number to close
  * @return           kOk on success, error code on failure
  */
-MmResult iodevice_close(int fnbr);
+MmResult streamio_close(int fnbr);
 
 /**
  * Closes all open I/O devices.
  * Used for cleanup operations, typically on program exit.
  */
-void iodevice_close_all(void);
+void streamio_close_all(void);
 
 /**
  * Finds the first available free I/O device number.
@@ -67,7 +67,7 @@ void iodevice_close_all(void);
  *
  * @return  Available file number (1-MAXOPENFILES), or -1 if none available
  */
-int iodevice_find_free(void);
+int streamio_find_free(void);
 
 /**
  * Checks if a file number refers to a regular file.
@@ -75,7 +75,7 @@ int iodevice_find_free(void);
  * @param[in]  fnbr  File number to check
  * @return           true if it's a regular file, false otherwise
  */
-bool iodevice_is_file(int fnbr);
+bool streamio_is_file(int fnbr);
 
 /**
  * Checks if a file number refers to a serial port.
@@ -83,7 +83,7 @@ bool iodevice_is_file(int fnbr);
  * @param[in]  fnbr  File number to check
  * @return           true if it's a serial port, false otherwise
  */
-bool iodevice_is_serial(int fnbr);
+bool streamio_is_serial(int fnbr);
 
 /**
  * Opens an I/O device (e.g. file) with the specified mode.
@@ -93,6 +93,6 @@ bool iodevice_is_serial(int fnbr);
  * @param[in]  fnbr  File number to assign (1-MAXOPENFILES)
  * @return           kOk on success, error code on failure
  */
-MmResult iodevice_open(const char *path, const char *mode, int fnbr);
+MmResult streamio_open(const char *path, const char *mode, int fnbr);
 
-#endif // #if !defined(MMB4L_IODEVICE_H)
+#endif // #if !defined(MMB4L_STREAMIO_H)

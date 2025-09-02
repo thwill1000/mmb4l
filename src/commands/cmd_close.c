@@ -44,8 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/iodevice.h"
 #include "../common/parse.h"
+#include "../common/streamio.h"
 #include "../common/utility.h"
 
 void cmd_close(void) {
@@ -55,6 +55,6 @@ void cmd_close(void) {
     for (int i = 0; i < argc; i += 2) {
         int fnbr = parse_file_number(argv[i], false);
         if (fnbr == -1) ON_FAILURE_ERROR(kFileInvalidFileNumber);
-        ON_FAILURE_ERROR(iodevice_close(fnbr));
+        ON_FAILURE_ERROR(streamio_close(fnbr));
     }
 }

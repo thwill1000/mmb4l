@@ -20,16 +20,16 @@ freely, subject to the following restrictions:
         distribution.
 */
 
-#include "upng.h"
-#include "../common/error.h"
-#include "../common/file.h"
-#include "../common/iodevice.h"
-#include "../common/memory.h"
-#include "../common/utility.h"
-
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+
+#include "upng.h"
+#include "../common/error.h"
+#include "../common/file.h"
+#include "../common/memory.h"
+#include "../common/streamio.h"
+#include "../common/utility.h"
 
 #define MAKE_BYTE(b) ((b) & 0xFF)
 #define MAKE_DWORD(a,b,c,d) ((MAKE_BYTE(a) << 24) | (MAKE_BYTE(b) << 16) | (MAKE_BYTE(c) << 8) | MAKE_BYTE(d))
@@ -1179,9 +1179,9 @@ upng_t* upng_new_from_file(char *filename)
     }
 
     if(strchr(filename, '.') == NULL) strcat(filename, ".png");
-    fnbr = iodevice_find_free();
+    fnbr = streamio_find_free();
     // if(!BasicFileOpen(filename, fnbr, FA_READ)) return 0;
-    ON_FAILURE_ERROR_EX(iodevice_open(filename, "rb", fnbr), NULL);
+    ON_FAILURE_ERROR_EX(streamio_open(filename, "rb", fnbr), NULL);
 
     /* get filesize */
     // f_lseek(FileTable[fnbr].fptr, f_size(FileTable[fnbr].fptr));
@@ -1191,7 +1191,7 @@ upng_t* upng_new_from_file(char *filename)
 
     /* read contents of the file into the vector */
     if (buffer == NULL) {
-        (void) iodevice_close(fnbr);
+        (void) streamio_close(fnbr);
         error_throw_ex(kError, "UPNG_ENOMEM");
         return upng;
     }
@@ -1200,7 +1200,7 @@ upng_t* upng_new_from_file(char *filename)
         size-=sizeread;
         buffer+=sizeread;
     }
-    MmResult result = iodevice_close(fnbr);
+    MmResult result = streamio_close(fnbr);
     if (FAILED(result)) {
         upng_free(upng);
         error_throw(result);

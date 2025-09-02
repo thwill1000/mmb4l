@@ -54,13 +54,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "fonttbl.h"
 #include "graphics.h"
-#include "iodevice.h"
 #include "keycodes.h"
 #include "memory.h"
 #include "mmb4l.h"
 #include "mmgetchar.h"
 #include "mmtime.h"
 #include "program.h"
+#include "streamio.h"
 #include "../core/commandtbl.h"
 #include "../core/MMBasic.h"
 #include "../core/tokentbl.h"
@@ -753,8 +753,8 @@ void edit(const char *cmdline, bool cmdfile) {
             if (fsize > EDIT_BUFFER_SIZE - 10) ON_FAILURE_ERROR(kOutOfMemory);
 
             int fnbr1;
-            fnbr1 = iodevice_find_free();
-            ON_FAILURE_ERROR(iodevice_open(filename, "rb", fnbr1));
+            fnbr1 = streamio_find_free();
+            ON_FAILURE_ERROR(streamio_open(filename, "rb", fnbr1));
             // BasicFileOpen(filename, fnbr1, FA_READ);
             // if (filesource[fnbr1] != FLASHFILE)
             //     fsize = f_size(FileTable[fnbr1].fptr);
@@ -778,7 +778,7 @@ void edit(const char *cmdline, bool cmdfile) {
                 *p++ = c;
             } while (!file_eof(fnbr1));
             p++;
-            ON_FAILURE_ERROR(iodevice_close(fnbr1));
+            ON_FAILURE_ERROR(streamio_close(fnbr1));
         }
         txtp = EdBuff;
         tempx = x = 0;
@@ -855,21 +855,21 @@ static MmResult pmeditor_save_file(const char *filename) {
         char backup[FF_MAX_LFN];
         strcpy(backup, filename);
         strcat(backup, ".bak");
-        fnbr = iodevice_find_free();
-        ON_FAILURE_RETURN(iodevice_open(filename, "rb", fnbr));
+        fnbr = streamio_find_free();
+        ON_FAILURE_RETURN(streamio_open(filename, "rb", fnbr));
         // BasicFileOpen(fname, fnbr1, FA_READ);
-        const int fnbr_bak = iodevice_find_free();
-        ON_FAILURE_RETURN(iodevice_open(backup, "wb", fnbr_bak));
+        const int fnbr_bak = streamio_find_free();
+        ON_FAILURE_RETURN(streamio_open(backup, "wb", fnbr_bak));
         // BasicFileOpen(backup, fnbr_bak, FA_WRITE | FA_CREATE_ALWAYS);
         while (!file_eof(fnbr)) {  // while waiting for the end of file
             file_putc(fnbr_bak, file_getc(fnbr));
         }
-        iodevice_close(fnbr);
-        iodevice_close(fnbr_bak);
+        streamio_close(fnbr);
+        streamio_close(fnbr_bak);
     }
 
-    fnbr = iodevice_find_free();
-    ON_FAILURE_RETURN(iodevice_open(filename, "wb", fnbr));
+    fnbr = streamio_find_free();
+    ON_FAILURE_RETURN(streamio_open(filename, "wb", fnbr));
     // BasicFileOpen(fname, fnbr1, FA_WRITE | FA_CREATE_ALWAYS);
     char *p = EdBuff;
     // if (OPTION_CONTINUATION) {
@@ -889,7 +889,7 @@ static MmResult pmeditor_save_file(const char *filename) {
         file_putc(fnbr, ch);
     } while (*p);
 
-    return iodevice_close(fnbr);
+    return streamio_close(fnbr);
 }
 
 /*
@@ -2544,8 +2544,8 @@ static MmResult pmeditor_alloc_buf() {
 static MmResult pmeditor_load_file(const char *filename) {
     pmeditor_num_lines = 0;
     char *p = pmeditor_buf;
-    const int fnbr = iodevice_find_free();
-    ON_FAILURE_RETURN(iodevice_open(filename, "rb", fnbr));
+    const int fnbr = streamio_find_free();
+    ON_FAILURE_RETURN(streamio_open(filename, "rb", fnbr));
     if (!file_eof(fnbr)) {
         for (;;) {
             int ch = file_getc(fnbr);
@@ -2555,7 +2555,7 @@ static MmResult pmeditor_load_file(const char *filename) {
             if (ch == '\n') pmeditor_num_lines++;
         }
     }
-    return iodevice_close(fnbr);
+    return streamio_close(fnbr);
 }
 
 /**

@@ -60,10 +60,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "file_private.h"
 #include "interrupt.h"
-#include "iodevice.h"
 #include "memory.h"
 #include "mmresult.h"
 #include "path.h"
+#include "streamio.h"
 #include "utility.h"
 #include "../third_party/dr_flac.h"
 #include "../third_party/dr_mp3.h"
@@ -317,7 +317,7 @@ static void audio_alloc_mod_buf(size_t size) {
 
 static MmResult audio_close_file() {
     if (audio_fnbr != -1) {
-        MmResult result = iodevice_close(audio_fnbr);
+        MmResult result = streamio_close(audio_fnbr);
         audio_fnbr = -1;
         return result;
     } else {
@@ -688,8 +688,8 @@ static bool audio_is_valid_sample_rate(unsigned sample_rate) {
 static MmResult audio_open_file(const char *filename) {
     MmResult result = audio_close_file();
     if (SUCCEEDED(result)) {
-        audio_fnbr = iodevice_find_free();
-        result = iodevice_open(filename, "rb", audio_fnbr);
+        audio_fnbr = streamio_find_free();
+        result = streamio_open(filename, "rb", audio_fnbr);
     }
     return result;
 }

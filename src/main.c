@@ -46,7 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
-#include "common/mmb4l.h"
 #include "common/audio.h"
 #include "common/cmdline.h"
 #include "common/console.h"
@@ -56,15 +55,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/exit_codes.h"
 #include "common/features.h"
 #include "common/file.h"
-#include "common/iodevice.h"
 #include "common/interrupt.h"
 #include "common/keyboard.h"
+#include "common/mmb4l.h"
 #include "common/mmtime.h"
 #include "common/parse.h"
 #include "common/path.h"
 #include "common/program.h"
 #include "common/prompt.h"
 #include "common/serial.h"
+#include "common/streamio.h"
 #include "common/utility.h"
 #include "core/tokentbl.h"
 
@@ -418,7 +418,7 @@ static void perform_background_tasks() {
 
     // Pump all the serial port connections for input.
     for (int fnbr = 1; fnbr <= MAXOPENFILES; ++fnbr) {
-        if (iodevice_is_serial(fnbr)) {
+        if (streamio_is_serial(fnbr)) {
             serial_pump_input(fnbr);
         }
     }

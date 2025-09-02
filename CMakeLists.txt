@@ -239,7 +239,6 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/gpio.c
     src/common/graphics.c
     src/common/interrupt.c
-    src/common/iodevice.c
     src/common/keyboard.c
     src/common/logger.c
     src/common/memory.c
@@ -257,6 +256,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/serial.c
     src/common/sprite.c
     src/common/stack.c
+    src/common/streamio.c
     src/common/utility.c
     src/common/xmodem.c
 )
@@ -310,10 +310,10 @@ add_executable(test_console_getc
     src/common/console.c
     src/common/file.c
     src/common/file_linux.c
-    src/common/iodevice.c
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c
+    src/common/streamio.c
     src/common/gtest/stubs/display_stubs.c
     src/common/gtest/stubs/serial_stubs.c
 )
@@ -334,12 +334,12 @@ add_executable(test_cmdline
     src/common/file.c
     src/common/file_linux.c
     src/common/features.c
-    src/common/iodevice.c
     src/common/memory.c
     src/common/mmresult.c
     src/common/options.c
     src/common/parse.c
     src/common/path.c
+    src/common/streamio.c
     src/common/gtest/cmdline_test.cxx
     src/common/gtest/stubs/serial_stubs.c
     src/core/vartbl.c
@@ -366,11 +366,11 @@ add_executable(test_cmd_do
     src/common/file.c
     src/common/file_linux.c
     src/common/fonttbl.c
-    src/common/iodevice.c
     src/common/options.c
     src/common/memory.c
     src/common/parse.c
     src/common/path.c
+    src/common/streamio.c
     src/common/gtest/test_helper.c
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/display_stubs.c
@@ -406,12 +406,12 @@ add_executable(test_cmd_run
     src/common/file.c
     src/common/file_linux.c
     src/common/fonttbl.c
-    src/common/iodevice.c
     src/common/memory.c
     src/common/mmresult.c
     src/common/options.c
     src/common/parse.c
     src/common/path.c
+    src/common/streamio.c
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/display_stubs.c
     src/common/gtest/stubs/gamepad_stubs.c
@@ -480,8 +480,8 @@ add_executable(test_file
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
     src/common/file_linux.c
-    src/common/iodevice.c
     src/common/path.c
+    src/common/streamio.c
     src/common/gtest/file_test.cxx
     src/common/gtest/stubs/serial_stubs.c
 )
@@ -548,15 +548,15 @@ add_executable(test_fun_sprite
     src/common/file.c
     src/common/file_linux.c
     src/common/fonttbl.c
-    src/common/iodevice.c
-    src/common/memory.c
-    src/common/mmresult.c
-    src/common/parse.c
-    src/common/path.c
     src/common/graphics.c
     src/common/logger.c
+    src/common/memory.c
+    src/common/mmresult.c
     src/common/options.c
+    src/common/parse.c
+    src/common/path.c
     src/common/sprite.c
+    src/common/streamio.c
     src/common/gtest/test_helper.c
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/display_stubs.c
@@ -650,12 +650,12 @@ add_executable(test_graphics
     src/common/file_linux.c
     src/common/fonttbl.c
     src/common/graphics.c
-    src/common/iodevice.c
     src/common/logger.c
     src/common/memory.c
     src/common/mmresult.c
     src/common/options.c
     src/common/path.c
+    src/common/streamio.c
     src/common/gtest/graphics_test.cxx
     src/common/gtest/graphics_blit_test.cxx
     src/common/gtest/stubs/console_stubs.c
@@ -744,9 +744,9 @@ add_executable(test_options
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
     src/common/file_linux.c
-    src/common/iodevice.c
     src/common/options.c
     src/common/path.c
+    src/common/streamio.c
     src/common/gtest/options_test.cxx
     src/common/gtest/stubs/serial_stubs.c
 )
@@ -771,7 +771,6 @@ add_executable(test_parse
     src/common/features.c
     src/common/file.c
     src/common/file_linux.c
-    src/common/iodevice.c
     src/common/memory.c
     src/common/mmgetchar.c
     src/common/mmresult.c
@@ -782,6 +781,7 @@ add_executable(test_parse
     src/common/program.c
     src/common/rx_buf.c
     src/common/serial.c
+    src/common/streamio.c
     src/common/gtest/parse_test.cxx
     src/common/gtest/test_helper.c
     src/common/gtest/stubs/audio_stubs.c
@@ -814,11 +814,11 @@ add_executable(test_path
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
     src/common/file_linux.c
-    src/common/iodevice.c
     src/common/memory.c
     src/common/path.c
     src/common/rx_buf.c
     src/common/serial.c
+    src/common/streamio.c
     src/common/gtest/path_test.cxx
     src/common/gtest/stubs/console_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
@@ -842,7 +842,7 @@ add_executable(test_program
     src/common/features.c
     src/common/file.c
     src/common/file_linux.c
-    src/common/iodevice.c
+    src/common/streamio.c
     src/common/memory.c
     src/common/mmgetchar.c
     src/common/mmtime.c
@@ -945,7 +945,7 @@ add_executable(test_sprite
     src/common/file.c
     src/common/file_linux.c
     src/common/fonttbl.c
-    src/common/iodevice.c
+    src/common/streamio.c
     src/common/graphics.c
     src/common/logger.c
     src/common/memory.c
@@ -1000,7 +1000,7 @@ add_executable(test_mmbasic_core
     src/common/file.c
     src/common/file_linux.c
     src/common/fonttbl.c
-    src/common/iodevice.c
+    src/common/streamio.c
     src/common/memory.c
     src/common/mmtime.c
     src/common/options.c
