@@ -217,14 +217,6 @@ MmResult file_delete(const char *filename);
 char *file_dirname(char *path);
 
 /**
- * Checks if end-of-file has been reached.
- *
- * @param[in]  fnbr  File number to check
- * @return           1 if at EOF, 0 if not at EOF, 0 on error
- */
-int file_eof(int fnbr);
-
-/**
  * Gets the current working directory.
  *
  * @param[out] buf   Buffer to store the directory path
