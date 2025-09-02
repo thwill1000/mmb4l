@@ -90,6 +90,38 @@ void streamio_close_all(void) {
     }
 }
 
+int streamio_eof(int fnbr) {
+    if (fnbr < 0 || fnbr > MAXOPENFILES) {
+        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, 0);
+    }
+
+    if (fnbr == 0) return 0;
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ON_FAILURE_ERROR_EX(kFileNotOpen, 0);
+            break;
+
+        case fet_file: {
+            FILE *f = file_table[fnbr].file_ptr;
+            errno = 0;
+            int ch = fgetc(f); // Try to read beyond the end of the file.
+            if (ch == EOF) {
+                if (ferror(f)) error_throw(errno);
+            } else {
+                if (ungetc(ch, f) == EOF) error_throw(errno);
+            }
+            return ch == EOF;
+        }
+
+        case fet_serial:
+            return serial_eof(fnbr);
+    }
+
+    ON_FAILURE_ERROR_EX(kInternalFault, 1);
+    return 1;
+}
+
 int streamio_find_free(void) {
     for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
         if (file_table[fnbr].type == fet_closed) return fnbr;
