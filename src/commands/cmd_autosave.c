@@ -120,7 +120,7 @@ static void cmd_autosave_write_file(char *filename, char *buf) {
     while (*p) {
         file_putc(fnbr, *p++);
     }
-    ON_FAILURE_ERROR(file_close(fnbr));
+    ON_FAILURE_ERROR(iodevice_close(fnbr));
 }
 
 void cmd_autosave(void) {

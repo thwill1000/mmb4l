@@ -309,6 +309,7 @@ add_executable(test_console_getc
     src/common/console.c
     src/common/file.c
     src/common/file_linux.c
+    src/common/iodevice.c
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c
@@ -332,6 +333,7 @@ add_executable(test_cmdline
     src/common/file.c
     src/common/file_linux.c
     src/common/features.c
+    src/common/iodevice.c
     src/common/memory.c
     src/common/mmresult.c
     src/common/options.c
@@ -363,6 +365,7 @@ add_executable(test_cmd_do
     src/common/file.c
     src/common/file_linux.c
     src/common/fonttbl.c
+    src/common/iodevice.c
     src/common/options.c
     src/common/memory.c
     src/common/parse.c
@@ -402,6 +405,7 @@ add_executable(test_cmd_run
     src/common/file.c
     src/common/file_linux.c
     src/common/fonttbl.c
+    src/common/iodevice.c
     src/common/memory.c
     src/common/mmresult.c
     src/common/options.c
@@ -475,6 +479,7 @@ add_executable(test_file
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
     src/common/file_linux.c
+    src/common/iodevice.c
     src/common/path.c
     src/common/gtest/file_test.cxx
     src/common/gtest/stubs/serial_stubs.c
@@ -738,6 +743,7 @@ add_executable(test_options
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
     src/common/file_linux.c
+    src/common/iodevice.c
     src/common/options.c
     src/common/path.c
     src/common/gtest/options_test.cxx
@@ -807,6 +813,7 @@ add_executable(test_path
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
     src/common/file_linux.c
+    src/common/iodevice.c
     src/common/memory.c
     src/common/path.c
     src/common/rx_buf.c

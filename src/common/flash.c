@@ -108,9 +108,9 @@ MmResult flash_disk_load(unsigned index, const char *filename, bool overwrite) {
         }
     }
     if (FAILED(result)) {
-        (void) file_close(fnbr);
+        (void) iodevice_close(fnbr);
     } else {
-        result = file_close(fnbr);
+        result = iodevice_close(fnbr);
     }
     return result;
 }

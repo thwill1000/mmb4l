@@ -317,7 +317,7 @@ static void audio_alloc_mod_buf(size_t size) {
 
 static MmResult audio_close_file() {
     if (audio_fnbr != -1) {
-        MmResult result = file_close(audio_fnbr);
+        MmResult result = iodevice_close(audio_fnbr);
         audio_fnbr = -1;
         return result;
     } else {

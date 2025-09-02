@@ -331,7 +331,7 @@ static MmResult cmd_list_default(const char *p) {
     // Ensure listing is followed by an empty line.
     if (strcmp(line_buffer, "") != 0) display_puts("\r\n");
 
-    return file_close(fnbr);
+    return iodevice_close(fnbr);
 }
 
 void cmd_list(void) {
