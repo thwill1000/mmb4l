@@ -97,6 +97,15 @@ bool streamio_is_file(int fnbr);
 bool streamio_is_serial(int fnbr);
 
 /**
+ * Gets the current I/O stream position (1-based).
+ * For serial ports, returns the number of bytes in the receive queue.
+ *
+ * @param[in]  fnbr  File number
+ * @return           Current position (1-based), or -1 on error
+ */
+int streamio_loc(int fnbr);
+
+/**
  * Gets the length of I/O stream in bytes.
  * For serial ports, always returns 0 (unbuffered).
  *
