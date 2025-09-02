@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../common/iodevice.h"
 #include "../common/utility.h"
 #include "../core/tokentbl.h"
 
@@ -60,10 +61,10 @@ void cmd_copy(void) {
     ON_FAILURE_ERROR(parse_filename(argv[2], dst_filename, STRINGSIZE));
 
     const int src_fnbr = file_find_free();
-    ON_FAILURE_ERROR(file_open(src_filename, "r", src_fnbr));
+    ON_FAILURE_ERROR(iodevice_open(src_filename, "r", src_fnbr));
 
     const int dst_fnbr = file_find_free();
-    MmResult result = file_open(dst_filename, "w", dst_fnbr);  // We'll just overwrite any existing file
+    MmResult result = iodevice_open(dst_filename, "w", dst_fnbr);  // We'll just overwrite any existing file
     if (FAILED(result)) {
         (void) file_close(src_fnbr);
         ON_FAILURE_ERROR(result);
