@@ -44,8 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
-#include "../common/file.h"
 #include "../common/parse.h"
+#include "../common/streamio.h"
 
 void cmd_print(void) {
 
@@ -77,7 +77,7 @@ void cmd_print(void) {
 
     for (; i < argc; i++) {                                         // step through the arguments
         if (*argv[i] == ',') {
-            file_write(fnbr, "\t", 1);                              // print a tab for a comma
+            streamio_write(fnbr, "\t", 1);                          // print a tab for a comma
             docrlf = false;                                         // a trailing comma should suppress CR/LF
         }
         else if (*argv[i] == ';') {
@@ -102,11 +102,11 @@ void cmd_print(void) {
                     ERROR_INTERNAL_FAULT;
                 }
 
-                file_write(fnbr, s + 1, (size_t) s[0]);
+                streamio_write(fnbr, s + 1, (size_t) s[0]);
             }
             docrlf = true;
         }
     }
 
-    if (docrlf) file_write(fnbr, "\r\n", 2);                        // print the terminating cr/lf unless it has been suppressed
+    if (docrlf) streamio_write(fnbr, "\r\n", 2);                    // print the terminating cr/lf unless it has been suppressed
 }
