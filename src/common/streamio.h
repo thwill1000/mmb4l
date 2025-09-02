@@ -97,6 +97,15 @@ bool streamio_is_file(int fnbr);
 bool streamio_is_serial(int fnbr);
 
 /**
+ * Gets the length of I/O stream in bytes.
+ * For serial ports, always returns 0 (unbuffered).
+ *
+ * @param[in]  fnbr  File number
+ * @return           File length in bytes, or -1 on error
+ */
+int streamio_lof(int fnbr);
+
+/**
  * Opens an I/O device (e.g. file) with the specified mode.
  *
  * @param[in]  path  Path to the device to open

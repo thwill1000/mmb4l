@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 
-#include "file.h"
 #include "flash.h"
 #include "streamio.h"
 #include "utility.h"
@@ -95,7 +94,7 @@ MmResult flash_disk_load(unsigned index, const char *filename, bool overwrite) {
     MmResult result = streamio_open(filename, "rb", fnbr);
     int size = -1;
     if (SUCCEEDED(result)) {
-        size = file_lof(fnbr);
+        size = streamio_lof(fnbr);
         if (size <= 0 || size > FLASH_SLOT_SIZE) result = kFlashFileTooBig;
     }
     if (SUCCEEDED(result)) {
