@@ -96,6 +96,15 @@ bool iodevice_is_file(int fnbr) {
     }
 }
 
+bool iodevice_is_serial(int fnbr) {
+    assert(fnbr >= 0 && fnbr <= MAXOPENFILES);
+    if (fnbr >= 0 && fnbr <= MAXOPENFILES) {
+        return file_table[fnbr].type == fet_serial;
+    } else {
+        return false;
+    }
+}
+
 MmResult iodevice_open(const char *path, const char *mode, int fnbr) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
     if (file_table[fnbr].type != fet_closed) return kFileAlreadyOpen;
