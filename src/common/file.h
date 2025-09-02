@@ -330,16 +330,6 @@ MmResult file_readdir(DirStream *stream, DirEntry **entry);
 int file_putc(int fnbr, int ch);
 
 /**
- * Reads data from a file into a buffer.
- *
- * @param[in]  fnbr  File number to read from
- * @param[out] buf   Buffer to store the data
- * @param[in]  sz    Number of bytes to read
- * @return           Number of bytes actually read
- */
-size_t file_read(int fnbr, char *buf, size_t sz);
-
-/**
  * Reads the target of a symbolic link.
  *
  * @param[in]    path     Path to the symbolic link

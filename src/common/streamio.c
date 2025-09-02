@@ -144,6 +144,34 @@ MmResult streamio_open(const char *path, const char *mode, int fnbr) {
     return kOk;
 }
 
+size_t streamio_read(int fnbr, char *buf, size_t sz) {
+    if (fnbr < 0 || fnbr > MAXOPENFILES) {
+        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, 0);
+    }
+    assert(fnbr != 0); // if (fnbr == 0) return console_write(buf, sz);
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            ON_FAILURE_ERROR_EX(kFileNotOpen, 0);
+            break;
+
+        case fet_file: {
+            errno = 0;
+            size_t result = fread(buf, 1, sz, file_table[fnbr].file_ptr);
+            if (result < sz && ferror(file_table[fnbr].file_ptr)) error_throw(errno);
+            return result;
+        }
+
+        case fet_serial:
+            assert(false); // return serial_write(fnbr, buf, sz);
+            break;
+    }
+
+    ON_FAILURE_ERROR_EX(kInternalFault, 0);
+
+    return 0;
+}
+
 size_t streamio_write(int fnbr, const char *buf, size_t sz) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
         error_throw(kFileInvalidFileNumber);

@@ -99,7 +99,7 @@ MmResult flash_disk_load(unsigned index, const char *filename, bool overwrite) {
         if (size <= 0 || size > FLASH_SLOT_SIZE) result = kFlashFileTooBig;
     }
     if (SUCCEEDED(result)) {
-        size_t count = file_read(fnbr, flash_slots[index], size);
+        size_t count = streamio_read(fnbr, flash_slots[index], size);
         if (count == (size_t) size) {
             // Pad with 0xFF.
             for (size_t i = count; i < FLASH_SLOT_SIZE; ++i) flash_slots[index][i] = 0xFF;
