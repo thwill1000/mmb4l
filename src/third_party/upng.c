@@ -1191,7 +1191,7 @@ upng_t* upng_new_from_file(char *filename)
 
     /* read contents of the file into the vector */
     if (buffer == NULL) {
-        (void) file_close(fnbr);
+        (void) iodevice_close(fnbr);
         error_throw_ex(kError, "UPNG_ENOMEM");
         return upng;
     }
@@ -1200,7 +1200,7 @@ upng_t* upng_new_from_file(char *filename)
         size-=sizeread;
         buffer+=sizeread;
     }
-    MmResult result = file_close(fnbr);
+    MmResult result = iodevice_close(fnbr);
     if (FAILED(result)) {
         upng_free(upng);
         error_throw(result);
