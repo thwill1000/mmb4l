@@ -42,10 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/file.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
+#include "../common/streamio.h"
 
 static void longstring_append(const char *tp) {
     void *ptr1 = NULL;
@@ -316,7 +317,7 @@ static void longstring_print(const char *tp) {
     if (argc > i) {
         if (*argv[i] == ';') return;
     }
-    file_write(fnbr, "\r\n", 2);
+    streamio_write(fnbr, "\r\n", 2);
 }
 
 static void longstring_replace(const char *tp) {

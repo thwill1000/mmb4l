@@ -322,7 +322,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, IntHandler);
 #endif
 
-    file_init(&display_putc, &display_write);
+    streamio_init(&display_putc, &display_write);
     interrupt_init();
     mmtime_init();
     srand(0);  // seed the random generator with zero
