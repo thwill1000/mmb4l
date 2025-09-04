@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "fonttbl.h"
 #include "graphics.h"
+#include "logger.h"
 #include "mmtime.h"
 
 #define CURSOR_PERIOD  SECONDS_TO_NANOSECONDS(1) / 2
@@ -190,6 +191,7 @@ static MmResult display_putc_graphics(char c) {
 }
 
 MmResult display_putc(char c) {
+    LOG_FN_ENTRY("c=%c", c);
     console_putc(c);
     if (graphics_current && mmb_options.console != kSerial) {
         return display_putc_graphics(c);
@@ -198,6 +200,7 @@ MmResult display_putc(char c) {
 }
 
 MmResult display_puts(const char *s) {
+    LOG_FN_ENTRY("s=%s", s);
     console_puts(s);
     if (graphics_current && mmb_options.console != kSerial) {
         while (*s) ON_FAILURE_RETURN(display_putc_graphics(*s++));
@@ -243,8 +246,11 @@ MmResult display_show_cursor() {
 }
 
 MmResult display_write(const char *buf, size_t *sz) {
+    LOG_FN_ENTRY("buf=%s, sz=%d", buf, *sz);
+
     *sz = console_write(buf, *sz);
 
+    LOG_DEBUG("graphics_current=%p, mmb_options.console=%d", graphics_current, mmb_options.console);
     if (graphics_current && mmb_options.console != kSerial) {
         for (size_t idx = 0; idx < *sz; ++idx) {
             ON_FAILURE_RETURN(display_putc_graphics(buf[idx]));

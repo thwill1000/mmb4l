@@ -66,7 +66,7 @@ bool path_exists(const char *path) {
     FileInfo info;
     ON_FAILURE_ERROR_EX(file_info(path, &info), false);
 
-    LOG_FN_EXIT("result=%d", info.exists);
+    LOG_FN_EXIT("result=%s", info.exists ? "true" : "false");
     return info.exists;
 }
 

@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <linux/limits.h> // For PATH_MAX
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <sys/types.h>
 
 #include "mmresult.h"
@@ -277,6 +278,9 @@ MmResult file_mkdir(const char *dirname);
  */
 MmResult file_mkfile(const char *filename);
 
+/** TODO: Comment this. */
+MmResult file_open(const char *path, const char *mode, FILE **file);
+
 /**
  * Opens a directory for reading.
  *
@@ -321,8 +325,5 @@ MmResult file_rename(const char *old_filename, const char *new_filename);
  * @return              kOk on success, error code on failure
  */
 MmResult file_rmdir(const char *dirname);
-
-/** TODO: Comment this. */
-MmResult file_info(const char *filename, FileInfo *info);
 
 #endif // #if !defined(MMB4L_FILE)

@@ -299,7 +299,7 @@ static MmResult cmd_list_variables(const char *p) {
 
 /** LIST [ALL] file$ */
 static MmResult cmd_list_default(const char *p) {
-    LOG_FN_ENTRY("p=", p);
+    LOG_FN_ENTRY("p=%s", p);
 
     const char *p2 = checkstring(p, "ALL");
     const bool all = p2;
@@ -314,8 +314,6 @@ static MmResult cmd_list_default(const char *p) {
     } else {
         ON_FAILURE_RETURN(parse_filename(p2, filename, STRINGSIZE));
     }
-
-    LOG_DEBUG("foo");
 
     char line_buffer[STRINGSIZE];
     int list_count = 1;

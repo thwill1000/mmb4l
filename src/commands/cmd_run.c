@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
 #include "../common/flash.h"
+#include "../common/logger.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 #include "../core/tokentbl.h"
@@ -216,7 +217,13 @@ MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *file
 }
 
 void cmd_run(void) {
+    LOG_FN_ENTRY("cmdline=%s", cmdline);
+
+#if defined(__ANDROID__)
+    OptionsSimulate simulate = kSimulatePicocalc;
+#else
     OptionsSimulate simulate = kSimulateMmb4l;
+#endif
     char filename[STRINGSIZE];  // Filename to RUN.
 
     ON_FAILURE_ERROR(cmd_run_parse_args(cmdline, &simulate, filename, cmd_run_args));
@@ -233,6 +240,7 @@ void cmd_run(void) {
 
     ClearRuntime();
 
+    simulate = kSimulatePicocalc;
     if (simulate != mmb_options.simulate) {
         mmb_options.simulate = simulate;
         // TODO: Eliminate duplication with cmd_option().
@@ -246,4 +254,6 @@ void cmd_run(void) {
     IgnorePIN = false;
     if (*ProgMemory != T_NEWLINE) return;  // no program to run
     nextstmt = ProgMemory;
+
+    LOG_FN_EXIT();
 }

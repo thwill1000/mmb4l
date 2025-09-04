@@ -42,12 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
 #include "../common/error.h"
+#include "../common/logger.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/streamio.h"
 
 void cmd_print(void) {
+    LOG_FN_ENTRY("cmdline=%s", cmdline);
 
     char *s;
     const char *p;
@@ -109,4 +111,6 @@ void cmd_print(void) {
     }
 
     if (docrlf) streamio_write(fnbr, "\r\n", 2);                    // print the terminating cr/lf unless it has been suppressed
+
+    LOG_FN_EXIT();
 }

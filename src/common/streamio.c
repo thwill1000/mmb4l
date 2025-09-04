@@ -46,7 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 
 #include "error.h"
+#include "file.h"
 #include "file_private.h"
+#include "logger.h"
 #include "mmgetchar.h"
 #include "streamio.h"
 #include "serial.h"
@@ -237,29 +239,33 @@ int streamio_lof(int fnbr) {
 }
 
 MmResult streamio_open(const char *path, const char *mode, int fnbr) {
+    LOG_FN_ENTRY("path=%s, mode=%s, fnbr=%d", path, mode, fnbr);
+
     if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
     if (file_table[fnbr].type != fet_closed) return kFileAlreadyOpen;
 
-    // random writing is not allowed when a file is opened for append so open it
-    // first for read+update and if that does not work open it for
-    // writing+update.  This has the same effect as opening for append+update
-    // but will allow writing
     FILE *f = NULL;
-    if (*mode == 'x') {
-        errno = 0;
-        f = fopen(path, "rb+");
-        if (!f) {
-            errno = 0;
-            f = fopen(path, "wb+");
-            if (!f) return errno;
-        }
-        errno = 0;
-        if (FAILED(fseek(f, 0, SEEK_END))) return errno;
-    } else {
-        errno = 0;
-        f = fopen(path, mode);
-        if (!f) return errno;
-    }
+    ON_FAILURE_RETURN(file_open(path, mode, &f));
+    // // random writing is not allowed when a file is opened for append so open it
+    // // first for read+update and if that does not work open it for
+    // // writing+update.  This has the same effect as opening for append+update
+    // // but will allow writing
+    // FILE *f = NULL;
+    // if (*mode == 'x') {
+    //     errno = 0;
+    //     f = fopen(path, "rb+");
+    //     if (!f) {
+    //         errno = 0;
+    //         f = fopen(path, "wb+");
+    //         if (!f) return errno;
+    //     }
+    //     errno = 0;
+    //     if (FAILED(fseek(f, 0, SEEK_END))) return errno;
+    // } else {
+    //     errno = 0;
+    //     f = fopen(path, mode);
+    //     if (!f) return errno;
+    // }
 
     file_table[fnbr].type = fet_file;
     file_table[fnbr].file_ptr = f;
@@ -351,6 +357,8 @@ void streamio_seek(int fnbr, int idx) {
 }
 
 size_t streamio_write(int fnbr, const char *buf, size_t sz) {
+    LOG_FN_ENTRY("fnbr=%d, buf=%s, sz=%d", fnbr, buf, sz);
+
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
         error_throw(kFileInvalidFileNumber);
         return 0;

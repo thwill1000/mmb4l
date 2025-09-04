@@ -241,6 +241,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     ${MMB4L_SRC_DIR}/common/rx_buf.c
     ${MMB4L_SRC_DIR}/common/serial.c
     ${MMB4L_SRC_DIR}/common/sprite.c
+    ${MMB4L_SRC_DIR}/common/streamio.c
     ${MMB4L_SRC_DIR}/common/utility.c
     ${MMB4L_SRC_DIR}/common/xmodem.c
 )
@@ -283,5 +284,6 @@ target_link_libraries(main
 # Include SDL2 headers
 target_include_directories(main PRIVATE
     .
+    ${MMB4L_SRC_DIR}
     ${SDL2_DIR}/include
 )

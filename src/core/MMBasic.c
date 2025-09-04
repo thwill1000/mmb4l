@@ -61,6 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
+#include "../common/logger.h"
 #include "../common/parse.h"
 #include "../common/streamio.h"
 #include "../common/utility.h"
@@ -153,7 +154,7 @@ const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Funct
 // Initialise MMBasic
 void InitBasic(void) {
     DefaultType = T_NBR;
-    features_init(&mmb_features, mmb_options.simulate);
+    (void) features_init(&mmb_features, mmb_options.simulate);
     commandtbl_init();
     tokentbl_init();
     vartbl_init();
@@ -171,6 +172,8 @@ void InitBasic(void) {
 #pragma GCC diagnostic ignored "-Wclobbered"
 #endif
 void ExecuteProgram(const char *p) {
+    LOG_FN_ENTRY("p=%s", p);
+
     int i;
     int SaveLocalIndex = 0;
     jmp_buf SaveErrNext;                                            // we call ExecuteProgram() recursively so we need
@@ -178,6 +181,7 @@ void ExecuteProgram(const char *p) {
     skipspace(p);                                                   // just in case, skip any whitespace
     while(1) {
         if(*p == 0) p++;                                            // step over the zero byte marking the beginning of a new element
+        // LOG_DEBUG("Executing %s", p);
         if(*p == T_NEWLINE) {
             CurrentLinePtr = p;                                     // and pointer to the line for error reporting
 #if !defined(MX170)
@@ -273,6 +277,8 @@ void ExecuteProgram(const char *p) {
     }
 
     memcpy(ErrNext, SaveErrNext, sizeof(jmp_buf));                  // restore jump buffer
+
+    LOG_FN_EXIT();
 }
 #pragma GCC diagnostic pop
 
@@ -410,8 +416,12 @@ static void PrepareFontTable() {
 }
 
 void PrepareProgram(int ErrAbort) {
+    LOG_FN_ENTRY("ErrAbort=%d", ErrAbort);
+
     PrepareFunctionTable(ErrAbort);
     PrepareFontTable();
+
+    LOG_FN_EXIT();
 }
 
 /**
@@ -2404,6 +2414,8 @@ void ClearStack(void) {
 // clear the runtime (eg, variables, external I/O, etc) includes ClearStack() and ClearVars()
 // this is done before running a program
 void ClearRuntime(void) {
+    LOG_FN_ENTRY();
+
     gamepad_term();
     graphics_term();
     audio_term();
@@ -2420,13 +2432,15 @@ void ClearRuntime(void) {
 //    ClearVars(0);
     OptionExplicit = false;
     DefaultType = T_NBR;
-#if defined(__mmb4l__)
     mmb_options.codepage = NULL;
+#if defined(__ANDROID__)
+    mmb_options.simulate = kSimulatePicocalc;
+    (void) features_init(&mmb_features, mmb_options.simulate);
+    LOG_DEBUG("mmb_options.console=%d", mmb_options.console);
+    (void) graphics_set_mode(1, 32, RGB_BLACK);
+#else
     mmb_options.simulate = kSimulateMmb4l;
-    features_init(&mmb_features, mmb_options.simulate);
-#endif
-#if defined(MICROMITE) && !defined(LITE)
-    ds18b20Timers = NULL;                                           // InitHeap() will recover the memory allocated to this array
+    (void) features_init(&mmb_features, mmb_options.simulate);
 #endif
     streamio_close_all();
     ClearExternalIO();                                              // this MUST come before InitHeap()
@@ -2442,6 +2456,9 @@ void ClearRuntime(void) {
     ClearVars(0);
     CurrentLinePtr = ContinuePoint = NULL;
     funtbl_clear();
+
+    LOG_DEBUG("mmb_options.console=%d", mmb_options.console);
+    LOG_FN_EXIT();
 }
 
 
@@ -2449,6 +2466,8 @@ void ClearRuntime(void) {
 // clear everything including program memory (includes ClearStack() and ClearRuntime())
 // this is used before loading a program
 void ClearProgram(void) {
+    LOG_FN_ENTRY();
+
     ClearRuntime();
 #if defined(__mmb4l__)
     memset(error_file, 0, STRINGSIZE);
@@ -2458,6 +2477,8 @@ void ClearProgram(void) {
     StartEditChar = 0;
 #endif
     TraceOn = false;
+
+    LOG_FN_EXIT();
 }
 
 

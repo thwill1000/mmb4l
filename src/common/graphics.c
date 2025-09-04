@@ -310,6 +310,7 @@ static inline MmResult graphics_copy_internal(MmSurface *src, MmSurface *dst) {
  * Copies frame buffer N (surface 1) to the display (surface 0).
  */
 static MmResult graphics_refresh_picomite_lcd_window() {
+    // LOG_FN_ENTRY();
     MmSurface *buffer_N = &graphics_surfaces[GRAPHICS_SURFACE_N];
     if (!buffer_N->dirty) return kOk;
     MmResult result = kOk;
@@ -318,6 +319,7 @@ static MmResult graphics_refresh_picomite_lcd_window() {
         result = graphics_copy_internal(buffer_N, window);
     }
     if (SUCCEEDED(result)) buffer_N->dirty = false;
+    // LOG_FN_EXIT("result=%d", kOk);
     return kOk;
 }
 
@@ -362,6 +364,8 @@ void graphics_refresh_windows() {
 
     // if (SDL_GetTicks64() > frameEnd) {
     if (SDL_GetTicks() > frameEnd) {
+
+        // LOG_DEBUG("Refresh windows");
 
         // TODO: Optimise by using linked-list of windows.
         for (uint32_t id = 0;

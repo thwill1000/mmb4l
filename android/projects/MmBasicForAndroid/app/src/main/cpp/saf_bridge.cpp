@@ -25,10 +25,9 @@
 
 #include "saf_bridge.h"
 
-// #define LOG_TAG "MMBasic_SAF"
-#define LOG_TAG "MMB4A"
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+extern "C" {
+#include "common/logger.h"
+}
 
 // Global state
 static JavaVM* g_jvm = nullptr;
@@ -55,22 +54,22 @@ static int g_nextHandle = 1;
 extern "C" JNIEXPORT void JNICALL
 Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnDirectoryReady(JNIEnv* env, jclass clazz) {
     g_directoryReady = true;
-    LOGD("Directory access ready");
+    LOG_DEBUG("Directory access ready");
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnActivityPause(JNIEnv* env, jclass clazz) {
-    LOGD("Activity paused - SAF operations may be suspended");
+    LOG_DEBUG("Activity paused - SAF operations may be suspended");
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnActivityResume(JNIEnv* env, jclass clazz) {
-    LOGD("Activity resumed - SAF operations available");
+    LOG_DEBUG("Activity resumed - SAF operations available");
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnActivityDestroy(JNIEnv* env, jclass clazz) {
-    LOGD("Activity destroyed - cleaning up SAF bridge");
+    LOG_DEBUG("Activity destroyed - cleaning up SAF bridge");
     // Cleanup will be called from the main cleanup function
 }
 
@@ -82,28 +81,28 @@ Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnActivityDestroy(JNIEnv* en
 bool saf_init() {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
-        LOGE("Failed to get JNI environment");
+        LOG_ERROR("Failed to get JNI environment");
         return false;
     }
 
     // Get the Activity instance from SDL
     jobject activity = (jobject)SDL_AndroidGetActivity();
     if (!activity) {
-        LOGE("Failed to get SDL Activity");
+        LOG_ERROR("Failed to get SDL Activity");
         return false;
     }
 
     // Create global reference to the activity
     g_activityInstance = env->NewGlobalRef(activity);
     if (!g_activityInstance) {
-        LOGE("Failed to create global reference to Activity");
+        LOG_ERROR("Failed to create global reference to Activity");
         return false;
     }
 
     // Get the Activity's class
     jclass localClass = env->GetObjectClass(activity);
     if (!localClass) {
-        LOGE("Failed to get Activity class");
+        LOG_ERROR("Failed to get Activity class");
         return false;
     }
 
@@ -111,11 +110,11 @@ bool saf_init() {
     env->DeleteLocalRef(localClass);
 
     if (!g_mainActivityClass) {
-        LOGE("Failed to create global reference to Activity class");
+        LOG_ERROR("Failed to create global reference to Activity class");
         return false;
     }
 
-    LOGD("SAF bridge initialized successfully");
+    LOG_DEBUG("SAF bridge initialized successfully");
     return true;
 }
 
@@ -123,7 +122,7 @@ bool saf_init() {
 void saf_request_directory_access() {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env || !g_activityInstance) {
-        LOGE("Environment or Activity not available");
+        LOG_ERROR("Environment or Activity not available");
         return;
     }
 
@@ -132,7 +131,7 @@ void saf_request_directory_access() {
     if (method) {
         env->CallStaticVoidMethod(g_mainActivityClass, method);
     } else {
-        LOGE("Could not find requestDirectoryAccess method");
+        LOG_ERROR("Could not find requestDirectoryAccess method");
     }
 
     if (env->ExceptionCheck()) {
@@ -180,24 +179,24 @@ std::vector<std::string> saf_list_files(std::string dirname) {
     jobjectArray jfileArray = (jobjectArray)env->CallStaticObjectMethod(g_mainActivityClass, method, jdirname);
     if (!jfileArray) return files;
 
-    //LOGD("foobar");
+    //LOG_DEBUG("foobar");
 
     int count = env->GetArrayLength(jfileArray);
     for (int i = 0; i < count; i++) {
         jstring jfilename = (jstring)env->GetObjectArrayElement(jfileArray, i);
         const char* filename = env->GetStringUTFChars(jfilename, nullptr);
-        //LOGD("%s", filename);
+        //LOG_DEBUG("%s", filename);
         files.push_back(std::string(filename));
-        //LOGD("Calling ReleaseStringUTFChars");
+        //LOG_DEBUG("Calling ReleaseStringUTFChars");
         env->ReleaseStringUTFChars(jfilename, filename);
-        //LOGD("Calling DeleteLocalRef(jfilename)");
+        //LOG_DEBUG("Calling DeleteLocalRef(jfilename)");
         env->DeleteLocalRef(jfilename);
     }
 
-    //LOGD("Calling DeleteLocalRef(jfileArray)");
+    //LOG_DEBUG("Calling DeleteLocalRef(jfileArray)");
     env->DeleteLocalRef(jdirname);
     env->DeleteLocalRef(jfileArray);
-    //LOGD("Returning");
+    //LOG_DEBUG("Returning");
     return files;
 }
 
@@ -597,7 +596,7 @@ void saf_cleanup() {
         }
     }
     g_directoryReady = false;
-    LOGD("SAF bridge cleaned up");
+    LOG_DEBUG("SAF bridge cleaned up");
 }
 
 /*
@@ -607,18 +606,18 @@ void saf_cleanup() {
 // Call this in your main SDL loop initialization
 void initialize_saf_system() {
     if (!saf_init()) {
-        LOGE("Failed to initialize SAF system");
+        LOG_ERROR("Failed to initialize SAF system");
         // Handle error - maybe fall back to internal storage
         return;
     }
 
     // Check if we already have directory access
     if (!saf_has_directory_access()) {
-        LOGD("No directory access - will need to request from user");
+        LOG_DEBUG("No directory access - will need to request from user");
         // You can request immediately or wait for user action
         saf_request_directory_access();
     } else {
-        LOGD("Directory access already granted");
+        LOG_DEBUG("Directory access already granted");
         g_directoryReady = true;
     }
 }
@@ -658,24 +657,24 @@ bool saf_is_ready() {
  * This version uses the alternative Java method that takes an output array
  */
 SAFFileInfo saf_get_file_info(const std::string& filename) {
-    LOGD("saf_get_file_info(%s)", filename.c_str());
+    LOG_FN_ENTRY("filename=%s", filename.c_str());
     SAFFileInfo info = {};  // Initialize all fields to 0/false
 
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
-        LOGE("saf_get_file_info: No JNI environment");
+        LOG_FN_EXIT("No JNI environment");
         return info;
     }
 
     if (!g_mainActivityClass) {
-        LOGE("saf_get_file_info: No activity class");
+        LOG_FN_EXIT("No activity class");
         return info;
     }
 
     // Create a long array to receive the info
     jlongArray joutInfo = env->NewLongArray(6);
     if (!joutInfo) {
-        LOGE("saf_get_file_info: Failed to create output array");
+        LOG_FN_EXIT("Failed to create output array");
         return info;
     }
 
@@ -683,14 +682,14 @@ SAFFileInfo saf_get_file_info(const std::string& filename) {
     jmethodID method = env->GetStaticMethodID(g_mainActivityClass, "getFileInfo",
                                              "(Ljava/lang/String;[J)Z");
     if (!method) {
-        LOGE("saf_get_file_info: Method getFileInfo not found");
+        LOG_FN_EXIT("Method getFileInfo not found");
         env->DeleteLocalRef(joutInfo);
         return info;
     }
 
     jstring jfilename = env->NewStringUTF(filename.c_str());
     if (!jfilename) {
-        LOGE("saf_get_file_info: Failed to create Java string");
+        LOG_FN_EXIT("Failed to create Java string");
         env->DeleteLocalRef(joutInfo);
         return info;
     }
@@ -701,13 +700,13 @@ SAFFileInfo saf_get_file_info(const std::string& filename) {
     if (env->ExceptionCheck()) {
         env->ExceptionDescribe();
         env->ExceptionClear();
-        LOGE("saf_get_file_info: Java exception occurred");
+        LOG_FN_EXIT("Java exception occurred");
         env->DeleteLocalRef(joutInfo);
         return info;
     }
 
     if (!result) {
-        LOGD("saf_get_file_info: File not found or error: %s", filename.c_str());
+        LOG_FN_EXIT("File not found or error: %s", filename.c_str());
         env->DeleteLocalRef(joutInfo);
         return info;  // exists = false
     }
@@ -725,11 +724,11 @@ SAFFileInfo saf_get_file_info(const std::string& filename) {
 
         env->ReleaseLongArrayElements(joutInfo, infoData, JNI_ABORT);
 
-        LOGD("saf_get_file_info: %s - exists:%d, file:%d, dir:%d, size:%ld, modified:%ld, read:%d, write:%d",
+        LOG_FN_EXIT("%s - exists:%d, file:%d, dir:%d, size:%ld, modified:%ld, read:%d, write:%d",
              filename.c_str(), info.exists, info.is_file, info.is_directory,
              info.size, info.last_modified, info.can_read, info.can_write);
     } else {
-        LOGE("saf_get_file_info: Failed to get info array elements");
+        LOG_FN_EXIT("Failed to get info array elements");
     }
 
     env->DeleteLocalRef(joutInfo);
@@ -755,13 +754,13 @@ bool saf_is_file(const std::string& path) {
 long saf_free_space() {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
-        LOGE("Failed to get JNI environment");
+        LOG_ERROR("Failed to get JNI environment");
         return -1;
     }
 
     jmethodID method = env->GetStaticMethodID(g_mainActivityClass, "getFreeSpace", "()J");
     if (!method) {
-        LOGE("Failed to get method: MainActivity#getFreeSpace");
+        LOG_ERROR("Failed to get method: MainActivity#getFreeSpace");
         return -1;
     }
 

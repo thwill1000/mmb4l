@@ -81,9 +81,9 @@ void logger_write(LoggerLevel level, const char *file, unsigned line, const char
 #endif // NDEBUG
 
 #define LOG_FN_ENTRY(fmt, ...) \
-    LOG_INFO("Entering %s() at %s:%d - " fmt, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
+    LOG_DEBUG("Entering %s() at %s:%d - " fmt, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
 #define LOG_FN_EXIT(fmt, ...) \
-    LOG_INFO("Exiting %s() at %s:%d - " fmt, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
+    LOG_DEBUG("Exiting %s() at %s:%d - " fmt, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
 #endif // MMB4L_LOGGER_H

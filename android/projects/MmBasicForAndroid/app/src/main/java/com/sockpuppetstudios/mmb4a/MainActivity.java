@@ -26,6 +26,9 @@ import android.provider.DocumentsContract;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.util.Log;
+import android.view.inputmethod.InputMethodManager;
+import android.content.Context;
+import android.view.View;
 
 import androidx.documentfile.provider.DocumentFile;
 
@@ -266,7 +269,7 @@ public class MainActivity extends SDLActivity {
                            instance.mmbasicDirectory.exists() &&
                            instance.mmbasicDirectory.canRead();
 
-        Log.v(TAG, "hasDirectoryAccess: " + hasAccess);
+        // Log.v(TAG, "hasDirectoryAccess: " + hasAccess);
         return hasAccess;
     }
 
@@ -832,7 +835,7 @@ public class MainActivity extends SDLActivity {
                     return null;
                 }
                 currentDir = nextDir;
-                Log.v(TAG, "findFileByPath: Navigated to directory: " + dirName);
+                // Log.v(TAG, "findFileByPath: Navigated to directory: " + dirName);
             }
         }
 
@@ -844,7 +847,7 @@ public class MainActivity extends SDLActivity {
         }
 
         DocumentFile targetFile = currentDir.findFile(targetName);
-        Log.v(TAG, "findFileByPath: Looking for '" + targetName + "' in final directory");
+        // Log.v(TAG, "findFileByPath: Looking for '" + targetName + "' in final directory");
 
         return targetFile;
     }
@@ -854,7 +857,8 @@ public class MainActivity extends SDLActivity {
      * This version might be easier to use from C++ if you prefer individual calls
      */
     public static boolean getFileInfo(String filename, long[] outStats) {
-        Log.v(TAG, "getFileInfo: " + filename);
+        final String LOG_PREFIX = "MainActivity#getFileInfo: ";
+        Log.v(TAG, LOG_PREFIX + "filename=" + filename);
         if (!hasDirectoryAccess() || outStats == null || outStats.length < 6) {
             return false;
         }
@@ -886,7 +890,7 @@ public class MainActivity extends SDLActivity {
             return true;
 
         } catch (Exception e) {
-            Log.e(TAG, "Error getting file info: " + filename, e);
+            Log.e(TAG, LOG_PREFIX + "Error getting file info: " + filename, e);
             return false;
         }
     }
@@ -954,5 +958,28 @@ public class MainActivity extends SDLActivity {
             Log.e(TAG, LOG_PREFIX + "Error renaming file: " + oldName + " -> " + newName, e);
             return false;
         }
+    }
+
+    // Add this to your MainActivity class
+    public static boolean showSoftKeyboard() {
+        Activity activity = (Activity) mSingleton;
+        if (activity == null) {
+            return false;
+        }
+        
+        InputMethodManager imm = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm == null) {
+            return false;
+        }
+        
+        View view = activity.getCurrentFocus();
+        if (view == null) {
+            // If no view has focus, create a dummy view to show the keyboard
+            view = new View(activity);
+            view.setFocusableInTouchMode(true);
+            view.requestFocus();
+        }
+        
+        return imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
     }
 }

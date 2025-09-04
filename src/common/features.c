@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "features.h"
+#include "logger.h"
 
 static Features features_cmm2 = {
     .name = "Colour Maximite 2",
@@ -196,6 +197,8 @@ static Features features_picomite_vga_usb = {
 };
 
 MmResult features_init(Features *features, OptionsSimulate simulate) {
+    LOG_FN_ENTRY("features=%p, simulate=%d", features, simulate);
+
     Features *new_features = NULL;
 
     switch (simulate) {
@@ -224,11 +227,13 @@ MmResult features_init(Features *features, OptionsSimulate simulate) {
             new_features = &features_picomite_vga_usb;
             break;
         default:
+            LOG_FN_EXIT("result=%d", kInternalFault);
             return kInternalFault;
     }
 
     memcpy(features, new_features, sizeof(Features));
     mmb_options.console = features->console;
 
+    LOG_FN_EXIT("result=%d", kOk);
     return kOk;
 }

@@ -100,8 +100,42 @@ MmResult canonical_path(const char *path, std::string& canonical_path) {
 
 } // namespace
 
+MmResult file_open(const char *path, const char *mode, FILE **file) {
+    LOG_FN_ENTRY("path=%s, mode=%s, file=%p", path, mode, file);
+    if (!path) return mmresult_ex(kInternalFault, "path == NULL");
+    if (!mode) return mmresult_ex(kInternalFault, "mode == NULL");
+    if (!file) return mmresult_ex(kInternalFault, "file == NULL");
+
+    std::string path_abs;
+    ON_FAILURE_RETURN(canonical_path(path, path_abs));
+
+    // Check that file opened for reading exists
+    SAFFileInfo info = saf_get_file_info(path_abs);
+    if (mode[0] == 'r' && !info.exists) {
+         LOG_DEBUG("File does not exist: %s", path_abs.c_str());
+         return kFileNotFound;
+    }
+
+    // Check file is not a directory
+    if (info.exists && info.is_directory) {
+        LOG_DEBUG("File is a directory: %s", path_abs.c_str());
+        return kIsADirectory;
+    }
+
+    // Use SAF bridge to open the file
+    int handleId = saf_fopen(path, mode);
+    if (handleId == -1) {
+        LOG_DEBUG("Failed to open file: %s", path_abs.c_str());
+        return kPermissionDenied;
+    }
+
+    LOG_DEBUG("Successfully opened file: %s", path_abs.c_str());
+    *file = saf_get_file_pointer(handleId);
+    return kOk;
+}
+
 MmResult file_opendir(const char *dirname, DirStream **stream) {
-    LOG_INFO("Entered %s(%s)", __func__, dirname);
+    LOG_FN_ENTRY("dirname=%s", dirname);
     if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
 
     std::string path;
@@ -116,10 +150,10 @@ MmResult file_opendir(const char *dirname, DirStream **stream) {
 }
 
 MmResult file_readdir(DirStream *stream, DirEntry **entry) {
-    LOG_INFO("Entered %s()", __func__);
+    LOG_FN_ENTRY("stream=%p", stream);
     if (!stream) return mmresult_ex(kInternalFault, "stream == NULL");
 
-    LOG_INFO("Num files = %d", stream->files.size());
+    LOG_DEBUG("Num files = %d", stream->files.size());
 
     if (stream->next >= stream->files.size()) {
         *entry = NULL;
@@ -138,13 +172,14 @@ MmResult file_readdir(DirStream *stream, DirEntry **entry) {
 }
 
 MmResult file_closedir(DirStream *stream) {
-    LOG_INFO("Entered %s()", __func__);
+    LOG_FN_ENTRY("stream=%p", stream);
     free(stream);
-    LOG_INFO("Exited %s()", __func__);
+    LOG_FN_EXIT("result=%d", kOk);
     return kOk;
 }
 
 MmResult file_chdir(const char *dirname) {
+    LOG_FN_ENTRY("dirname=%s", dirname);
     char canonical_path[PATH_MAX]; // TODO: Allocate from heap ?
     ON_FAILURE_RETURN(path_get_canonical(dirname, canonical_path, PATH_MAX));
 
@@ -161,7 +196,6 @@ MmResult file_chdir(const char *dirname) {
 //             absolute = file_cwd + "/" + dirname;
 //         }
 //     }
-    LOG_INFO("file_chdir: %s", canonical_path);
     auto info = saf_get_file_info(canonical_path);
     if (!info.exists) return kFileNotFound;
     if (!info.is_directory) return kNotADirectory;
@@ -247,7 +281,7 @@ MmResult file_info(const char *path, FileInfo *info) {
     info->mtime = saf_info.last_modified / 1000;
     info->type = saf_info.is_file ? kFileTypeRegularFile : kFileTypeDirectory;
 
-    LOG_INFO("info->type=%d", info->type);
+    // LOG_DEBUG("info->type=%d", info->type);
 
     return kOk;
 }
