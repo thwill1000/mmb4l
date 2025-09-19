@@ -84,23 +84,9 @@ extern int IgnorePIN;
 // Aliases for functions using "legacy" names in MMBasic core:
 #define error              error_throw_legacy
 
-// Aliases for identifiers using "legacy" names in MMBasic core:
-#define Autorun          autorun
-#define DefaultType      mmb_options.default_type
-#define error_file       mmb_error_state_ptr->file
-#define error_line       mmb_error_state_ptr->line
-#define MMErrMsg         mmb_error_state_ptr->message
-#define MMerrno          mmb_error_state_ptr->code
-#define Option           mmb_options
-#define OptionBase       mmb_options.base
-#define OptionErrorSkip  mmb_error_state_ptr->skip
-#define OptionExplicit   mmb_options.explicit_type
-
 // Functions not used in MMB4L ... so make them go away
 #define uSec(a)  {}
 #define TestStackOverflow()  {}
-
-#define ClearExternalIO()         // same
 
 void CheckAbort(void);
 

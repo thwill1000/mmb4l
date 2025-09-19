@@ -152,7 +152,7 @@ const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Funct
 
 // Initialise MMBasic
 void InitBasic(void) {
-    DefaultType = T_NBR;
+    mmb_options.default_type = T_NBR;
     features_init(&mmb_features, mmb_options.simulate);
     commandtbl_init();
     tokentbl_init();
@@ -259,8 +259,8 @@ void ExecuteProgram(const char *p) {
                     ClearTempMemory();
                 }
 
-                if(OptionErrorSkip > 0) OptionErrorSkip--;          // if OPTION ERROR SKIP decrement the count - we do not error if it is greater than zero
-                if(TempMemoryIsChanged) ClearTempMemory();          // at the end of each command we need to clear any temporary string vars
+                if (mmb_error_state_ptr->skip > 0) mmb_error_state_ptr->skip--;  // if OPTION ERROR SKIP decrement the count - we do not error if it is greater than zero
+                if (TempMemoryIsChanged) ClearTempMemory();          // at the end of each command we need to clear any temporary string vars
                 CheckAbort();
                 interrupt_check();                                  // check for an MMBasic interrupt and handle it
             }
@@ -1757,7 +1757,8 @@ void *findvar(const char *p, int action) {
         }
         vtype = T_NBR;
         p++;
-    } else if ((action & V_DIM_VAR) && DefaultType == T_NOTYPE && !(action & T_IMPLIED)) {
+    } else if ((action & V_DIM_VAR) && mmb_options.default_type == T_NOTYPE &&
+               !(action & T_IMPLIED)) {
         error("Variable type not specified");
         return NULL;
     }
@@ -1800,7 +1801,7 @@ void *findvar(const char *p, int action) {
                     return NULL;
                 }
                 dim[i / 2] = in;
-                if (dim[i / 2] < OptionBase) {
+                if (dim[i / 2] < mmb_options.base) {
                     error_throw(kInvalidArrayDimensions);
                     return NULL;
                 }
@@ -1856,7 +1857,7 @@ void *findvar(const char *p, int action) {
         }
 
         if (vtype == T_NOTYPE) {
-            if (!(vartbl[var_idx].type & (DefaultType | T_IMPLIED))) {
+            if (!(vartbl[var_idx].type & (mmb_options.default_type | T_IMPLIED))) {
                 error("$ already declared", name);
                 return NULL;
             }
@@ -1887,18 +1888,18 @@ void *findvar(const char *p, int action) {
             return NULL;
         }
         for (int i = 0; i < dnbr; i++) {
-            if (dim[i] > vartbl[var_idx].dims[i] || dim[i] < OptionBase) {
+            if (dim[i] > vartbl[var_idx].dims[i] || dim[i] < mmb_options.base) {
                 error("Index out of bounds");
                 return NULL;
             }
         }
 
         // then calculate the index into the array.  Bug fix by Gerard Sexton.
-        int nbr = dim[0] - OptionBase;
+        int nbr = dim[0] - mmb_options.base;
         int j = 1;
         for (int i = 1; i < dnbr; i++) {
-            j *= (vartbl[var_idx].dims[i - 1] + 1 - OptionBase);
-            nbr += (dim[i] - OptionBase) * j;
+            j *= (vartbl[var_idx].dims[i - 1] + 1 - mmb_options.base);
+            nbr += (dim[i] - mmb_options.base) * j;
         }
         // finally return a pointer to the value
         if (vartbl[var_idx].type & T_NBR) {
@@ -1916,7 +1917,7 @@ void *findvar(const char *p, int action) {
         return NULL;
     }
     if (action & V_NOFIND_NULL) return NULL;
-    if ((OptionExplicit || dnbr != 0) && !(action & V_DIM_VAR)) {
+    if ((mmb_options.explicit_type || dnbr != 0) && !(action & V_DIM_VAR)) {
         error("$ is not declared", name);
         return NULL;
     }
@@ -1924,7 +1925,7 @@ void *findvar(const char *p, int action) {
         if (action & T_IMPLIED)
             vtype = (action & (T_NBR | T_INT | T_STR));
         else
-            vtype = DefaultType;
+            vtype = mmb_options.default_type;
     }
 
     // Check the sub/fun table to make sure that there is not a sub/fun with the same name.
@@ -2376,7 +2377,7 @@ void ClearVars(int level) {
     LocalIndex = 0;                                                 // signal that all space is to be cleared
     ClearTempMemory();                                              // clear temp string space
 
-    OptionBase = 0;
+    mmb_options.base = 0;
     DimUsed = false;
 }
 
@@ -2408,36 +2409,15 @@ void ClearRuntime(void) {
     graphics_term();
     audio_term();
     gpio_term();
-#if defined(MX470)
-    //have to stop audio before we clear variables to avoid exception
-    CloseAudio();
-    vol_left = 100; vol_right = 100;
-#endif
-#if defined(MX470) || defined(__386__)
-    OptionFileErrorAbort = true;
-#endif
     ClearStack();
-//    ClearVars(0);
-    OptionExplicit = false;
-    DefaultType = T_NBR;
-#if defined(__mmb4l__)
+    mmb_options.explicit_type = false;
+    mmb_options.default_type = T_NBR;
     mmb_options.codepage = NULL;
     mmb_options.simulate = kSimulateMmb4l;
     features_init(&mmb_features, mmb_options.simulate);
-#endif
-#if defined(MICROMITE) && !defined(LITE)
-    ds18b20Timers = NULL;                                           // InitHeap() will recover the memory allocated to this array
-#endif
     streamio_close_all();
-    ClearExternalIO();                                              // this MUST come before InitHeap()
-#if defined(__mmb4l__)
     mmb_error_state_ptr = &mmb_normal_error_state;
     error_init(mmb_error_state_ptr);
-#else
-    OptionErrorSkip = 0;
-    MMerrno = 0;                                                    // clear the error flags
-    *MMErrMsg = 0;
-#endif
     InitHeap();
     ClearVars(0);
     CurrentLinePtr = ContinuePoint = NULL;
@@ -2451,8 +2431,8 @@ void ClearRuntime(void) {
 void ClearProgram(void) {
     ClearRuntime();
 #if defined(__mmb4l__)
-    memset(error_file, 0, STRINGSIZE);
-    error_line = -1;
+    memset(mmb_error_state_ptr->file, 0, STRINGSIZE);
+    mmb_error_state_ptr->line = -1;
 #else
     StartEditPoint = NULL;
     StartEditChar = 0;
@@ -2797,7 +2777,7 @@ const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType)
     else {
         if(!AllowDefaultType) error("Variable type");
         tp = p;
-        *type = DefaultType;                                        // if the type is not specified use the default
+        *type = mmb_options.default_type;  // if the type is not specified use the default
     }
     return tp;
 }
@@ -2879,10 +2859,10 @@ void getargaddress(char *p, MMINTEGER **ip, MMFLOAT **fp, int *n) {
             return;
         } else {  // array or array element
             if (*n == 0)
-                *n = vartbl[VarIndex].dims[0] + 1 - OptionBase;
+                *n = vartbl[VarIndex].dims[0] + 1 - mmb_options.base;
             else
-                *n = (vartbl[VarIndex].dims[0] + 1 - OptionBase) < *n
-                         ? (vartbl[VarIndex].dims[0] + 1 - OptionBase)
+                *n = (vartbl[VarIndex].dims[0] + 1 - mmb_options.base) < *n
+                         ? (vartbl[VarIndex].dims[0] + 1 - mmb_options.base)
                          : *n;
             skipspace(p);
             do {

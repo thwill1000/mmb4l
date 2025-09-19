@@ -385,4 +385,5 @@ size_t streamio_write(int fnbr, const char *buf, size_t sz) {
     }
 
     ON_FAILURE_ERROR_EX(kInternalFault, -1);
+    return -1;
 }
