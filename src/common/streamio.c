@@ -127,6 +127,7 @@ int streamio_find_free(void) {
         if (file_table[fnbr].type == fet_closed) return fnbr;
     }
     ON_FAILURE_ERROR_EX(kTooManyOpenFiles, -1);
+    return -1;
 }
 
 int streamio_getc(int fnbr) {
@@ -384,4 +385,5 @@ size_t streamio_write(int fnbr, const char *buf, size_t sz) {
     }
 
     ON_FAILURE_ERROR_EX(kInternalFault, -1);
+    return -1;
 }
