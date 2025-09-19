@@ -295,7 +295,7 @@ void fun_val(void) {
 
 
 void fun_errno(void) {
-    iret = MMerrno;
+    iret = mmb_error_state_ptr->code;
     targ = T_INT;
 }
 
@@ -303,7 +303,7 @@ void fun_errno(void) {
 
 void fun_errmsg(void) {
     sret = GetTempStrMemory();
-    strcpy(sret, MMErrMsg);
+    strcpy(sret, mmb_error_state_ptr->message);
     CtoM(sret);
     targ = T_STR;
 }
