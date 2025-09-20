@@ -48,10 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <string.h>
 
+#include "../Configuration.h"
+
 #include "cstring.h"
 #include "utility.h"
-
-#include "../Version.h"  // For the ENV32BIT definition.
 
 int cstring_cat(char *dst, const char *src, size_t dst_sz) {
     size_t dst_len = strlen(dst);
