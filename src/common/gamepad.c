@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "../Configuration.h"
 #include "cstring.h"
 #include "error.h"
 #include "events.h"
@@ -49,7 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gamepad_private.h"
 #include "interrupt.h"
 #include "utility.h"
-#include "../Configuration.h"
 
 #define MAX_GAMEPADS  4
 

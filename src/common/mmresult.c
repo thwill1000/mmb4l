@@ -46,9 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <string.h>
 
+#include "../Configuration.h"
 #include "cstring.h"
 #include "mmresult.h"
-#include "../Configuration.h"
 
 MmResult mmresult_last_code = kOk;
 char mmresult_last_msg[STRINGSIZE] = { 0 };

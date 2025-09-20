@@ -45,10 +45,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_MEMORY_H)
 #define MMB4L_MEMORY_H
 
-#include "../Configuration.h"
-
 #include <stddef.h>
 #include <stdint.h>
+
+#include "../Configuration.h"
 
 extern char *StrTmp[];                                      // used to track temporary string space on the heap
 extern int TempMemoryTop;                                   // this is the last index used for allocating temp memory

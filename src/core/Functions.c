@@ -51,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Functions.h"
 #include "MMBasic.h"
 #include "tokentbl.h"
-#include "../Version.h"
 #include "../common/console.h"
 #include "../common/error.h"
 #include "../common/memory.h"

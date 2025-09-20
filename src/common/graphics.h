@@ -48,9 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "../Configuration.h"
 #include "mmresult.h"
 #include "options.h"
-#include "../Configuration.h"
 
 #define GRAPHICS_NONE            -1
 #define GRAPHICS_MAX_SURFACES    256
