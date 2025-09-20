@@ -44,10 +44,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Provides all the core functions in MMBasic.
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/mmmath.h"  // Before all other MMBasic headers
 #include "Functions.h"
 #include "MMBasic.h"
 #include "tokentbl.h"

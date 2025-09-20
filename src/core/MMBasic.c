@@ -48,11 +48,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 #include <limits.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 
-#include "../common/mmmath.h"  // Before all other MMBasic headers
 #include "MMBasic.h"
 #include "Commands.h"
 #include "commandtbl.h"

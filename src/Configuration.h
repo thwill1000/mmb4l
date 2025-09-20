@@ -90,3 +90,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define BREAK_KEY            3
 
+
+// Redefine the standard float routines used in MMBasic to their double versions
+// TODO: Just use the double versions directly
+#define powf pow
+#define log10f log10
+#define floorf floor
+#define fabsf fabs
+#define atanf atan
+#define cosf cos
+#define expf exp
+#define logf log
+#define sinf sin
+#define sqrtf sqrt
+#define tanf tan
