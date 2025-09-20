@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // the expression execution engine and other useful functions.
 
 #include <assert.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 
 #include "../Hardware_Includes.h"
