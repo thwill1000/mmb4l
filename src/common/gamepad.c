@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <math.h>
+
 #include "../Configuration.h"
 #include "cstring.h"
 #include "error.h"
