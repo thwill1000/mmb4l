@@ -49,6 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <time.h>
 
+#define MICROSECONDS_TO_NANOSECONDS(x)  ((int64_t) x * 1000L)
+#define NANOSECONDS_TO_MICROSECONDS(x)  ((int64_t) x / 1000L)
 #define MILLISECONDS_TO_NANOSECONDS(x)  ((int64_t) x * 1000000L)
 #define NANOSECONDS_TO_MILLISECONDS(x)  ((int64_t) x / 1000000L)
 #define NANOSECONDS_TO_SECONDS(x)       ((int64_t) x / 1000000000L)

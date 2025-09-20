@@ -51,9 +51,6 @@ MmResult graphics_draw_line(MmSurface *surface, int x1, int y1, int x2, int y2, 
                             MmGraphicsColour colour) { return kOk; }
 MmResult graphics_scroll(MmSurface *surface, int x, int y, MmGraphicsColour fill) { return kOk; }
 
-// Defined in "common/mmtime.c"
-int64_t mmtime_now_ns() { return 0; }
-
 // Defined in "main.c"
 Options mmb_options;
 
