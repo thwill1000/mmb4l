@@ -53,7 +53,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 
 #include "../common/mmmath.h"  // Before all other MMBasic headers
-#include "../Hardware_Includes.h"
 #include "MMBasic.h"
 #include "Commands.h"
 #include "commandtbl.h"
@@ -66,9 +65,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
 #include "../common/interrupt.h"
+#include "../common/mmtime.h"
 #include "../common/parse.h"
 #include "../common/streamio.h"
 #include "../common/utility.h"
+
+#define error error_throw_legacy
 
 extern int ListCnt;
 extern int MMCharPos;
@@ -226,7 +228,7 @@ void ExecuteProgram(const char *p) {
                 strcat(inpbuf, "]");
                 display_puts(inpbuf);
 #endif
-                uSec(1000);
+                mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1000));  // TODO: Why?
             }
             p++;                                                    // and step over the token
         }

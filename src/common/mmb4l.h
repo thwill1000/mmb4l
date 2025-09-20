@@ -103,4 +103,21 @@ typedef struct {
     uint32_t next_data;
 } DataReadPointer;
 
+// various debug macros
+#if defined(DEBUGMODE)
+    void dump(char *p, int nbr);   // defined in Main.c,  dump an area of memory in hex and ascii
+    void DumpVarTbl(void);         // defined in MMBasic.c,  dump the variable table
+
+    #define dp(...) {char s[140];sprintf(s,  __VA_ARGS__); display_puts(s); display_puts("\r\n");}
+
+    #define db(i) {IntToStr(inpbuf, i, 10); display_puts(inpbuf); display_puts("\r\n");}
+    #define db2(i1, i2) {IntToStr(inpbuf, i1, 10); display_puts(inpbuf); display_puts("  "); IntToStr(inpbuf, i2, 10); display_puts(inpbuf); display_puts("\r\n");}
+    #define db3(i1, i2, i3) {IntToStr(inpbuf, i1, 10); display_puts(inpbuf); display_puts("  "); IntToStr(inpbuf, i2, 10); display_puts(inpbuf); display_puts("  "); IntToStr(inpbuf, i3, 10); display_puts(inpbuf); display_puts("\r\n");}
+
+    #define ds(s) {display_puts(s); display_puts("\r\n");}
+    #define ds2(s1, s2) {display_puts(s1); display_puts(s2); display_puts("\r\n");}
+    #define ds3(s1, s2, s3) {display_puts(s1); display_puts(s2); display_puts(s3); display_puts("\r\n");}
+
+#endif
+
 #endif // #if !defined(MMB4L_H)

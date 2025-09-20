@@ -51,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Functions.h"
 #include "MMBasic.h"
 #include "tokentbl.h"
-#include "../Hardware_Includes.h"
 #include "../Version.h"
 #include "../common/console.h"
 #include "../common/error.h"
@@ -185,8 +184,8 @@ void fun_len(void) {
 void fun_log(void) {
     MMFLOAT f;
     f = getnumber(ep);
-    if(f == 0) error("Divide by zero");
-    if(f < 0) error("Negative argument");
+    if(f == 0) error_throw_legacy("Divide by zero");
+    if(f < 0) error_throw_legacy("Negative argument");
     fret = logf(f);
     targ = T_NBR;
 }
@@ -250,7 +249,7 @@ void fun_sin(void) {
 void fun_sqr(void) {
     MMFLOAT f;
     f = getnumber(ep);
-    if(f < 0) error("Negative argument");
+    if(f < 0) error_throw_legacy("Negative argument");
     fret = sqrtf(f);
     targ = T_NBR;
 }
@@ -434,7 +433,7 @@ MMFLOAT arcsinus(MMFLOAT x) {
 // n = ASIN(number)
 void fun_asin(void) {
      MMFLOAT f = getnumber(ep);
-     if(f < -1.0 || f > 1.0) error("Number out of bounds");
+     if(f < -1.0 || f > 1.0) error_throw_legacy("Number out of bounds");
      if (f == 1.0) {
           fret = PI_VALUE/2;
      } else if (f == -1.0) {
@@ -451,7 +450,7 @@ void fun_asin(void) {
 // n = ACOS(number)
 void fun_acos(void) {
      MMFLOAT f = getnumber(ep);
-     if(f < -1.0L || f > 1.0L) error("Number out of bounds");
+     if(f < -1.0L || f > 1.0L) error_throw_legacy("Number out of bounds");
      if (f == 1.0L) {
           fret = 0.0L;
      } else if (f == -1.0L) {

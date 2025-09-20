@@ -53,7 +53,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/MMBasic.h"
 #include "../core/maths.h"
 #include "../core/Functions.h"
-#include "../Hardware_Includes.h"
 
 #define CRC4_DEFAULT_POLYNOME       0x03
 #define CRC4_ITU                    0x03
