@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-mmb4l_hardware_includes.h
+mmmath.h
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,41 +42,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-// Definitions required to build the MMBasic "core" for MMB4L.
+#if !defined(MMB4L_MATH_H)
+#define MMB4L_MATH_H
 
-#if !defined(MMB4L_HARDWARE_INCLUDES_H)
-#define MMB4L_HARDWARE_INCLUDES_H
+#include <math.h>
 
-// Global variables used in MMBasic but must be maintained outside of the interpreter
-extern int IgnorePIN;
-
-// Aliases for functions using "legacy" names in MMBasic core:
-#define error              error_throw_legacy
-
-// Functions not used in MMB4L ... so make them go away
-#define uSec(a)  {}
-#define TestStackOverflow()  {}
-
-void CheckAbort(void);
-
-extern char *CFunctionFlash;
-extern char *CFunctionLibrary;
-
-// various debug macros
-#if defined(DEBUGMODE)
-    void dump(char *p, int nbr);   // defined in Main.c,  dump an area of memory in hex and ascii
-    void DumpVarTbl(void);         // defined in MMBasic.c,  dump the variable table
-
-    #define dp(...) {char s[140];sprintf(s,  __VA_ARGS__); display_puts(s); display_puts("\r\n");}
-
-    #define db(i) {IntToStr(inpbuf, i, 10); display_puts(inpbuf); display_puts("\r\n");}
-    #define db2(i1, i2) {IntToStr(inpbuf, i1, 10); display_puts(inpbuf); display_puts("  "); IntToStr(inpbuf, i2, 10); display_puts(inpbuf); display_puts("\r\n");}
-    #define db3(i1, i2, i3) {IntToStr(inpbuf, i1, 10); display_puts(inpbuf); display_puts("  "); IntToStr(inpbuf, i2, 10); display_puts(inpbuf); display_puts("  "); IntToStr(inpbuf, i3, 10); display_puts(inpbuf); display_puts("\r\n");}
-
-    #define ds(s) {display_puts(s); display_puts("\r\n");}
-    #define ds2(s1, s2) {display_puts(s1); display_puts(s2); display_puts("\r\n");}
-    #define ds3(s1, s2, s3) {display_puts(s1); display_puts(s2); display_puts(s3); display_puts("\r\n");}
-
-#endif
+// Redefine the standard float routines used in MMBasic to their double versions
+#define powf pow
+#define log10f log10
+#define floorf floor
+#define fabsf fabs
+#define atanf atan
+#define cosf cos
+#define expf exp
+#define logf log
+#define sinf sin
+#define sqrtf sqrt
+#define tanf tan
 
 #endif

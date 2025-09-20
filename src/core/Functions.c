@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
+#include "../common/mmmath.h"  // Before all other MMBasic headers
 #include "Functions.h"
 #include "MMBasic.h"
 #include "tokentbl.h"

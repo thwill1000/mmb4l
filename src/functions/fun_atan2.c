@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <math.h>
+
 #include "../Hardware_Includes.h"
 #include "../common/mmb4l.h"
 #include "../core/Functions.h"
