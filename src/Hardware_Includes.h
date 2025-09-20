@@ -47,15 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_HARDWARE_INCLUDES_H)
 #define MMB4L_HARDWARE_INCLUDES_H
 
-#include <errno.h>
-#include <ctype.h>
-#include <float.h>
-#include <limits.h>
 #include <math.h>
-#include <setjmp.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 // Redefine the standard float routines used in MMBasic to their double versions
 #define powf pow
