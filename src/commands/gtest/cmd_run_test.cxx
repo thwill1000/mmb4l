@@ -8,8 +8,8 @@
 
 extern "C" {
 
-#include "../../Hardware_Includes.h"
 #include "../../common/features.h"
+#include "../../common/memory.h"
 #include "../../common/gtest/stubs/error_stubs.h"
 #include "../../core/Commands.h"
 #include "../../core/MMBasic.h"
@@ -100,7 +100,7 @@ protected:
             } else if(targ & T_INT) {
                 iret = iarg1 + iarg2;
             } else {
-                if(*sarg1 + *sarg2 > MAXSTRLEN) error("String too long");
+                if(*sarg1 + *sarg2 > MAXSTRLEN) ON_FAILURE_ERROR(kStringTooLong);
                 sret = (char *) GetTempStrMemory();
                 Mstrcpy(sret, sarg1);
                 Mstrcat(sret, sarg2);
