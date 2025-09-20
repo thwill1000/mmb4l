@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <stdio.h>
+#include <string.h>
 
 #include "../Hardware_Includes.h"
 #include "../Version.h"
