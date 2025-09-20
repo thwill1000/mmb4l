@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <sys/types.h>
 
+#include "../common/mmmath.h"  // Before all other MMBasic headers
 #include "../Hardware_Includes.h"
 #include "MMBasic.h"
 #include "Commands.h"
