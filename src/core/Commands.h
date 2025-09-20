@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include "../Configuration.h"
+
 struct s_forstack {
     const char *forptr;                     // pointer to the FOR command in program memory
     const char *nextptr;                    // pointer to the NEXT command in program memory

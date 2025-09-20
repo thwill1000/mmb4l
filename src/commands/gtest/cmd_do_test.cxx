@@ -8,8 +8,8 @@
 
 extern "C" {
 
-#include "../../Hardware_Includes.h"
 #include "../../common/features.h"
+#include "../../common/memory.h"
 #include "../../common/utility.h"
 #include "../../common/gtest/test_helper.h"
 #include "../../common/gtest/stubs/error_stubs.h"

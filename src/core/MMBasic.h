@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <setjmp.h>
 #include <stddef.h>
 
+#include "../Configuration.h"
 #include "../common/mmresult.h"
 
 // Types used to define an item of data. Often they are ORed together.

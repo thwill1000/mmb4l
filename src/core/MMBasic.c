@@ -61,6 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
+#include "../common/interrupt.h"
 #include "../common/parse.h"
 #include "../common/streamio.h"
 #include "../common/utility.h"
