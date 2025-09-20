@@ -42,7 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../Configuration.h"
 #include "../common/error.h"
 #include "../core/Commands.h"
 #include "../core/MMBasic.h"

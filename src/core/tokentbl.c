@@ -42,7 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../Configuration.h"
 #include "MMBasic.h"
 #include "tokentbl.h"
 #include "../common/cstring.h"
