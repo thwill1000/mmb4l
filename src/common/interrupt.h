@@ -49,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 
 #include "graphics.h"
-#include "../Configuration.h"
 
 typedef struct SDL_WindowEvent SDL_WindowEvent;
 

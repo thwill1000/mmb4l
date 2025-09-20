@@ -44,6 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdint.h>
 
+#include "Version.h"
+
 #define MMFLOAT double                              // precision of all floating point operations
 #define MMINTEGER int64_t
 #define UNSIGNED_MMINTEGER uint64_t
