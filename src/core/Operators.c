@@ -45,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Provides all the operator functions used in MMBasic, i.e. +, -, *, etc.
 
 #include "../common/mmmath.h"  // Before all other MMBasic headers
-#include "../Hardware_Includes.h"
 #include "MMBasic.h"
 #include "../common/error.h"
 #include "../common/memory.h"

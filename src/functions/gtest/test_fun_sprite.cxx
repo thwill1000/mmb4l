@@ -14,7 +14,6 @@ extern "C" {
 
 #include <SDL.h>
 
-#include "../../Hardware_Includes.h"
 #include "../../common/bitset.h"
 #include "../../common/features.h"
 #include "../../common/options.h"

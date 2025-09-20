@@ -271,6 +271,7 @@ set(MMB4L_COMMON_TEST_FILES
     src/common/codepage.c
     src/common/cstring.c
     src/common/mmresult.c
+    src/common/mmtime.c
     src/common/utility.c
     src/common/gtest/stubs/error_stubs.c
 )
