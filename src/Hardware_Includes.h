@@ -57,14 +57,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
-#include "Version.h"
-#include "Configuration.h"
-#include "common/console.h"
-#include "common/error.h"
-#include "common/interrupt.h"
-#include "common/memory.h"
-#include "common/options.h"
-
 // Redefine the standard float routines used in MMBasic to their double versions
 #define powf pow
 #define log10f log10

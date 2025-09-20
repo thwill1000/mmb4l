@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "../Hardware_Includes.h"
+#include "../Version.h"
+#include "../common/memory.h"
 #include "../common/utility.h"
 #include "MMBasic.h"
 #include "funtbl.h"

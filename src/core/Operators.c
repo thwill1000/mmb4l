@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Operators.c
 
-Copyright 2011-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Hardware_Includes.h"
 #include "MMBasic.h"
+#include "../common/error.h"
+#include "../common/memory.h"
 
 /********************************************************************************************************************************************
  basic operators
@@ -72,7 +74,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 void op_invalid(void) {
-  error("Syntax error");
+  ON_FAILURE_ERROR(kSyntax);
 }
 
 
@@ -88,7 +90,7 @@ void op_exp(void) {
         } else
             for(iret = i = 1; i <= iarg2; i++) iret *= iarg1;
     }
-    if(errno) error("Overflow");
+    if(errno) error_throw_legacy("Overflow");
 }
 
 
@@ -102,14 +104,14 @@ void op_mul(void) {
 
 // division will always return a float even if given integer arguments
 void op_div(void) {
-    if(farg2 == 0) error("Divide by zero");
+    if(farg2 == 0) error_throw_legacy("Divide by zero");
     fret = farg1 / farg2;
     targ = T_NBR;
 }
 
 
 void op_divint(void) {
-    if(iarg2 == 0) error("Divide by zero");
+    if(iarg2 == 0) error_throw_legacy("Divide by zero");
     iret = iarg1 / iarg2;
 }
 
@@ -120,7 +122,7 @@ void op_add(void) {
   else if(targ & T_INT)
       iret = iarg1 + iarg2;
     else {
-      if(*sarg1 + *sarg2 > MAXSTRLEN) error("String too long");
+      if(*sarg1 + *sarg2 > MAXSTRLEN) ON_FAILURE_ERROR(kStringTooLong);
       sret = GetTempStrMemory();                                    // this will last for the life of the command
       Mstrcpy(sret, sarg1);
       Mstrcat(sret, sarg2);
@@ -138,7 +140,7 @@ void op_subtract(void) {
 
 
 void op_mod(void) {
-    if(iarg2 == 0) error("Divide by zero");
+    if(iarg2 == 0) error_throw_legacy("Divide by zero");
     iret = iarg1 % iarg2;
 }
 
@@ -230,6 +232,5 @@ void op_xor(void) {
 
 void op_not(void){
   // don't do anything, just a place holder
-  error("Syntax error");
+  ON_FAILURE_ERROR(kSyntax);
 }
-
