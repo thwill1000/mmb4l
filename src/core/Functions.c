@@ -44,10 +44,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Provides all the core functions in MMBasic.
 
-#include "../Hardware_Includes.h"
-#include "MMBasic.h"
 #include "Functions.h"
+#include "MMBasic.h"
 #include "tokentbl.h"
+#include "../Hardware_Includes.h"
+#include "../Version.h"
+#include "../common/console.h"
+#include "../common/error.h"
+#include "../common/memory.h"
+#include "../common/options.h"
 
 /********************************************************************************************************************************************
  basic functions

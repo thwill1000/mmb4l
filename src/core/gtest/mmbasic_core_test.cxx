@@ -12,7 +12,6 @@
 
 extern "C" {
 
-#include "../../Hardware_Includes.h"
 #include "../Commands.h"
 #include "../commandtbl.h"
 #include "../funtbl.h"
@@ -22,6 +21,7 @@ extern "C" {
 #include "../../common/cstring.h"
 #include "../../common/features.h"
 #include "../../common/graphics.h"
+#include "../../common/memory.h"
 #include "../../common/parse.h"
 #include "../../common/program.h"
 #include "../../common/gtest/test_helper.h"
