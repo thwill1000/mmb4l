@@ -409,12 +409,6 @@ void IntHandler(int signo) {
     MMAbort = true;
 }
 
-void FlashWriteInit() {
-    ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
-    console_set_title("MMBasic - Untitled", false);
-    CurrentFile[0] = 0;
-}
-
 /**
  * Peforms "background" tasks:
  *  - pump for console input

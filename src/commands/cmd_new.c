@@ -45,14 +45,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "../common/mmb4l.h"
+#include "../common/console.h"
 #include "../common/display.h"
 #include "../common/options.h"
+#include "../common/program.h"
 #include "../common/utility.h"
 
 void cmd_new(void) {
 //    if(CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
     checkend(cmdline);
-    FlashWriteInit();
+    console_set_title("MMBasic - Untitled", false);
+    ProgMemory[0] = '\0';
+    ProgMemory[1] = '\0';
+    ProgMemory[2] = '\0';
+    CurrentFile[0] = '\0';
     ON_FAILURE_ERROR(ClearRuntime());
     WatchdogSet = false;
     mmb_options.autorun = false;
