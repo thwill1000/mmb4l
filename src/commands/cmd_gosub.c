@@ -51,7 +51,6 @@ void cmd_gosub(void) {
         nextstmt = findlabel(cmdline);                              // must be a label
     else
         nextstmt = findline(getinteger(cmdline), true);             // try for a line number
-    IgnorePIN = false;
 
     // Do not update the interpreter state until successfully finding
     // the target line/label.

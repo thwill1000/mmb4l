@@ -82,7 +82,6 @@ ErrorState mmb_normal_error_state;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Options mmb_options;
 Features mmb_features;
-int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary;
 

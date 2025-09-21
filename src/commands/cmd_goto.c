@@ -45,11 +45,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmb4l.h"
 
 void cmd_goto(void) {
-    if(isnamestart(*cmdline))
-        nextstmt = findlabel(cmdline);                              // must be a label
-    else
-        nextstmt = findline(getinteger(cmdline), true);             // try for a line number
-    IgnorePIN = false;
-
+    if (isnamestart(*cmdline)) {
+        // Must be a label.
+        nextstmt = findlabel(cmdline);
+    } else {
+        // Try for a line number.
+        nextstmt = findline(getinteger(cmdline), true);
+    }
     CurrentLinePtr = nextstmt;
 }
