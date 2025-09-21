@@ -56,7 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define PI_VALUE  3.14159265358979323
 
-#define ClearSavedVars()    {}
 #define TestStackOverflow()  {}
 
 // Aliases for MMBasic's global variables, all prefixed with g_
