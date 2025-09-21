@@ -101,7 +101,7 @@ protected:
         vartbl_init_called = false;
         errno = 0;
         strcpy(error_msg, "");
-        InitBasic();
+        EXPECT_EQ(kOk, InitBasic());
         clear_prog_memory();
         mock_gpio_translate_from_pin_gp = NULL;
         tokenINFO = tokentbl_get("MM.INFO(");

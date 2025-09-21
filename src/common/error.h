@@ -96,6 +96,11 @@ void error_clear_callback();
   if (FAILED(rezult)) { return rezult; } \
 }
 
+#define ON_FAILURE_EXIT(x)  { \
+  const MmResult rezult = x; \
+  if (FAILED(rezult)) { fprintf(stderr, "%s\n", mmresult_to_string(rezult)); exit(EX_FAIL); } \
+}
+
 #define ERROR_ARGUMENT_COUNT              error_throw(kArgumentCount)
 #define ERROR_ARRAY_NOT_SQUARE            error_throw_ex(kError, "Array must be square")
 #define ERROR_ARRAY_SIZE_MISMATCH         error_throw_ex(kError, "Array size mismatch")

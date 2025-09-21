@@ -76,7 +76,7 @@ protected:
 
     void SetUp() override {
         vartbl_init_called = false;
-        InitBasic();
+        EXPECT_EQ(kOk, InitBasic());
         ClearRuntime();
         funtbl_clear(); // TODO: remove this
         error_msg[0] = '\0';

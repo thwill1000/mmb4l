@@ -158,13 +158,14 @@ const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Funct
 *********************************************************************************************************************************************/
 
 // Initialise MMBasic
-void InitBasic(void) {
+MmResult InitBasic(void) {
     mmb_options.default_type = T_NBR;
-    features_init(&mmb_features, mmb_options.simulate);
+    ON_FAILURE_RETURN(features_init(&mmb_features, mmb_options.simulate));
     commandtbl_init();
     tokentbl_init();
     vartbl_init();
     ClearProgram();
+    return kOk;
 }
 
 
