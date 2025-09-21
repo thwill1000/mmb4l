@@ -309,7 +309,7 @@ int main(int argc, char *argv[]) {
     error_init(mmb_error_state_ptr);
     keyboard_init();
 
-    InitBasic();
+    ON_FAILURE_EXIT(InitBasic());
 
     //printf("Commands\n--------\n");
     //dump_token_table(commandtbl);
