@@ -7,8 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "common/mmb4l.h"
 #include "common/console.h"
+#include "common/error.h"
+#include "common/exit_codes.h"
+#include "common/options.h"
 
 // Defined in "main.c"
 Options mmb_options;
@@ -36,7 +38,7 @@ int main(int argc, char **argv) {
 
     options_init(&mmb_options);
     mmb_options.break_key = 0; // So that it isn't caught.
-    console_init(false);
+    ON_FAILURE_EXIT(console_init(false));
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
 

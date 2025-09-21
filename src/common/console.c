@@ -70,12 +70,13 @@ static bool console_no_title = false;
 int ListCnt = 0;
 int MMCharPos = 0;
 
-void console_init(bool no_title) {
+MmResult console_init(bool no_title) {
     rx_buf_init(
             &console_rx_buf,
             console_rx_buf_data,
             sizeof(console_rx_buf_data));
     console_no_title = no_title;
+    return kOk;
 }
 
 void console_bell(void) {

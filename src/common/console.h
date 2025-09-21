@@ -48,6 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "mmresult.h"
+
 // Ordinals match those used by MMBasic for DOS and original CMM.
 #define BLACK           0
 #define BLUE            1
@@ -76,7 +78,7 @@ extern int ListCnt;
 extern int MMCharPos;
 
 /** @param  no_title  Set true to make console_set_title() a NOP. */
-void console_init(bool no_title);
+MmResult console_init(bool no_title);
 
 void console_background(int colour);
 void console_bell();
