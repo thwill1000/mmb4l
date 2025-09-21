@@ -243,9 +243,7 @@ void cmd_run(void) {
         ON_FAILURE_ERROR(mmb_features.has_cmd_flash ? flash_init() : flash_term());
     }
 
-    WatchdogSet = false;
     PrepareProgram(true);
-    IgnorePIN = false;
     if (*ProgMemory != T_NEWLINE) return;  // no program to run
     nextstmt = ProgMemory;
 }

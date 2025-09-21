@@ -28,8 +28,6 @@ ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
-int WatchdogSet;
-int IgnorePIN;
 
 void CheckAbort(void) { }
 

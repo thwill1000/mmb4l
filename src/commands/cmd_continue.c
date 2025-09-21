@@ -61,6 +61,5 @@ void cmd_continue(void) {
     checkend(cmdline);
     if(CurrentLinePtr) error_throw_legacy("Invalid in a program");
     if(ContinuePoint == NULL) error_throw_legacy("Cannot continue");
-    IgnorePIN = false;
     nextstmt = ContinuePoint;
 }

@@ -150,7 +150,6 @@ static MmResult on_number(const char *p) {
     } else {
         nextstmt = findline(getinteger(argv[r * 2]), true);  // try for a line number
     }
-    IgnorePIN = false;
     return kOk;
 }
 
