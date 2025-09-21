@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ctype.h>
 #include <setjmp.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 #include "../Configuration.h"
@@ -94,25 +95,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern int VarIndex;                                  // index of the current variable.  set after the findvar() function has found/created a variable
 extern int LocalIndex;                                // used to track the level of local variables
-
-#if !defined(__mmb4l__)
-extern int OptionBase;                                // value of OPTION BASE
-extern char OptionExplicit;                           // true if OPTION EXPLICIT has been used
-extern char DefaultType;                              // the default type if a variable is not specifically typed
-#endif
-
-//#if !defined(BOOL_ALREADY_DEFINED)
-//    #define BOOL_ALREADY_DEFINED
-//    typedef enum _BOOL { FALSE = 0, TRUE } BOOL;    // Undefined size
-//#endif
-
-#ifndef true
-    #define true        1
-#endif
-
-#ifndef false
-    #define false       0
-#endif
 
 #define MAXLINENBR          65001                                   // maximim acceptable line number
 
@@ -180,18 +162,12 @@ extern const char *ep;                          // Pointer to the argument to a 
 extern const DelimType DELIM_COMMA[];
 extern const DelimType DELIM_BRA_COMMA[];
 
-#if !defined(__mmb4l__)
-extern int OptionErrorSkip;                     // value of OPTION ERROR
-extern int MMerrno;
-extern char MMErrMsg[MAXERRMSG];                // array holding the error msg
-#endif
-
                                                 // require extra byte to store optional type suffix
 extern char CurrentSubFunName[MAXVARLEN + 2];   // the name of the current sub or fun
 extern char CurrentInterruptName[MAXVARLEN + 2];// the name of the current interrupt function
 
 // used for the trace function
-extern int TraceOn;
+extern bool TraceOn;
 extern const char *TraceBuff[TRACE_BUFF_SIZE];  // TRACE_BUFF_SIZE defined in 'Configuration.h'
 extern int TraceBuffIndex;
 
