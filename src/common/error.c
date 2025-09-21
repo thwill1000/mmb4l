@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 error.c
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -59,7 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern jmp_buf ErrNext;
 
-void error_init(ErrorState *error_state) {
+MmResult error_init(ErrorState *error_state) {
     error_state->code = 0;
     *error_state->file = '\0';
     error_state->line = -1;
@@ -68,6 +68,7 @@ void error_init(ErrorState *error_state) {
     error_state->override_line = false;
     error_state->callback = NULL;
     error_state->callback_data = NULL;
+    return kOk;
 }
 
 void error_get_line_and_file(int *line, char *file_path) {
