@@ -98,10 +98,11 @@ MmResult funtbl_add(
     return kOk;
 }
 
-void funtbl_clear() {
+MmResult funtbl_clear() {
     memset(funtbl, 0, sizeof(funtbl));
     memset(funtbl_hashmap, 0xFF, sizeof(funtbl_hashmap));
     funtbl_count = 0;
+    return kOk;
 }
 
 void funtbl_dump() {
