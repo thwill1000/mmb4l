@@ -67,7 +67,7 @@ typedef enum {
 } KeyboardLock;
 
 /** Initialises the keyboard module. */
-void keyboard_init();
+MmResult keyboard_init();
 
 /** Handles a key press. */
 MmResult keyboard_key_down(const SDL_Keysym* keysym);

@@ -19,7 +19,7 @@ SDL_Keymod SDL_GetModState() { return (SDL_Keymod) mod_state; }
 }
 
 TEST(KeyboardTest, KeyboardKeyDown_GivenOneKeyDown_AddsKeyToBuffer) {
-    keyboard_init();
+    ASSERT_EQ(kOk, keyboard_init());
 
     SDL_Keysym keysym = {
         scancode : SDL_SCANCODE_UNKNOWN,
@@ -37,7 +37,7 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenOneKeyDown_AddsKeyToBuffer) {
 }
 
 TEST(KeyboardTest, KeyboardKeyDown_GivenTwoKeysDown_AddsBothKeysToBuffer) {
-    keyboard_init();
+    ASSERT_EQ(kOk, keyboard_init());
 
     SDL_Keysym keysym = {
         scancode : SDL_SCANCODE_UNKNOWN,
@@ -58,7 +58,7 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenTwoKeysDown_AddsBothKeysToBuffer) {
 }
 
 TEST(KeyboardTest, KeyboardKeyDown_GivenKeyAlreadyDown_MovesKeyToEndOfBuffer) {
-    keyboard_init();
+    ASSERT_EQ(kOk, keyboard_init());
 
     SDL_Keysym keysym = {
         scancode : SDL_SCANCODE_UNKNOWN,
@@ -81,7 +81,7 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenKeyAlreadyDown_MovesKeyToEndOfBuffer) {
 }
 
 TEST(KeyboardTest, KeyboardKeyDown_GivenBufferFull_Succeeds) {
-    keyboard_init();
+    ASSERT_EQ(kOk, keyboard_init());
 
     SDL_Keysym keysym = {
         scancode : SDL_SCANCODE_UNKNOWN,
@@ -111,7 +111,7 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenBufferFull_Succeeds) {
 }
 
 TEST(KeyboardTest, KeyboardKeyDown_GivenKeyUp_RemovesKeyFromBuffer) {
-    keyboard_init();
+    ASSERT_EQ(kOk, keyboard_init());
 
     SDL_Keysym keysym = {
         scancode : SDL_SCANCODE_UNKNOWN,
@@ -133,7 +133,7 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenKeyUp_RemovesKeyFromBuffer) {
 }
 
 TEST(KeyboardTest, KeyboardKeyDown_GivenKeyUp_WithEmptyBuffer_Succeeds) {
-    keyboard_init();
+    ASSERT_EQ(kOk, keyboard_init());
 
     SDL_Keysym keysym = {
         scancode : SDL_SCANCODE_UNKNOWN,
@@ -150,7 +150,7 @@ TEST(KeyboardTest, KeyboardKeyDown_GivenKeyUp_WithEmptyBuffer_Succeeds) {
 }
 
 TEST(KeyboardTest, GetModifiers) {
-    keyboard_init();
+    ASSERT_EQ(kOk, keyboard_init());
     mod_state = 0x0;
 
     EXPECT_EQ(0x0, keyboard_get_modifiers());
@@ -186,7 +186,7 @@ TEST(KeyboardTest, GetModifiers) {
 }
 
 TEST(KeyboardTest, GetLocks) {
-    keyboard_init();
+    ASSERT_EQ(kOk, keyboard_init());
     mod_state = 0x0;
 
     EXPECT_EQ(0x0, keyboard_get_locks());
