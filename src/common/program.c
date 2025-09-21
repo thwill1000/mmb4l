@@ -971,11 +971,11 @@ MmResult program_load_file(const char *filename) {
     char tmp[TKNBUF_SIZE];
     memcpy(tmp, tknbuf, TKNBUF_SIZE);
 
-    // Store a copy of the filename on the stack so it is not trampled on by ClearProgram().
+    // Store a copy of the filename on the stack so it is not trampled on by ClearRuntime().
     char filename2[STRINGSIZE];
     strcpy(filename2, filename);
 
-    ON_FAILURE_RETURN(ClearProgram());
+    ON_FAILURE_RETURN(ClearRuntime());
 
     program_internal_alloc();
 

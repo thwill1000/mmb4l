@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/flash.h"
 #include "../common/program.h"
 #include "../common/utility.h"
+#include "../core/MMBasic.h"
 #include "../core/tokentbl.h"
 
 char cmd_run_args[STRINGSIZE];
@@ -229,9 +230,10 @@ void cmd_run(void) {
         }
     }
 
+    bool trace_on_bak = TraceOn;
     ON_FAILURE_ERROR(program_load_file(filename));
-
     ON_FAILURE_ERROR(ClearRuntime());
+    TraceOn = trace_on_bak;
 
     if (simulate != mmb_options.simulate) {
         mmb_options.simulate = simulate;

@@ -126,7 +126,7 @@ void cmd_autosave(void) {
     if (CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
 
     char filename[STRINGSIZE]; // Don't use GetTempStrMemory() because it will
-                               // be cleared when we call ClearProgram() later.
+                               // be cleared when we call ClearRuntime() later.
     ON_FAILURE_ERROR(parse_filename(cmdline, filename, STRINGSIZE));
     if (strlen(path_get_extension(filename)) == 0) {
         if (FAILED(cstring_cat(filename, ".bas", STRINGSIZE))) {
@@ -134,7 +134,7 @@ void cmd_autosave(void) {
         }
     }
 
-    ON_FAILURE_ERROR(ClearProgram());  // Clear leftovers from the previous program.
+    ON_FAILURE_ERROR(ClearRuntime());
     char *buf = GetTempMemory(EDIT_BUFFER_SIZE);
     int exit_key = cmd_autosave_read(buf);
     cmd_autosave_write_file(filename, buf);
