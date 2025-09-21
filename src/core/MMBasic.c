@@ -164,7 +164,7 @@ MmResult InitBasic(void) {
     commandtbl_init();
     tokentbl_init();
     vartbl_init();
-    ClearProgram();
+    ON_FAILURE_RETURN(ClearProgram());
     return kOk;
 }
 
@@ -2436,7 +2436,7 @@ void ClearRuntime(void) {
 
 // clear everything including program memory (includes ClearStack() and ClearRuntime())
 // this is used before loading a program
-void ClearProgram(void) {
+MmResult ClearProgram(void) {
     ClearRuntime();
 #if defined(__mmb4l__)
     memset(mmb_error_state_ptr->file, 0, STRINGSIZE);
@@ -2446,6 +2446,7 @@ void ClearProgram(void) {
     StartEditChar = 0;
 #endif
     TraceOn = false;
+    return kOk;
 }
 
 
