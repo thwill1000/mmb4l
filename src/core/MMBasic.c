@@ -72,15 +72,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define error error_throw_legacy
 
-extern int ListCnt;
-
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables
-#if !defined(__mmb4l__)
-char OptionExplicit;                                                // used to force the declaration of variables before their use
-char DefaultType;                                                   // the default type if a variable is not specifically typed
-#endif
-
                                                                     // require extra byte to store optional type suffix
 char CurrentSubFunName[MAXVARLEN + 2];                              // the name of the current sub or fun
 char CurrentInterruptName[MAXVARLEN + 2];                           // the name of the current interrupt function
@@ -157,12 +150,10 @@ const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Funct
 
 // Initialise MMBasic
 MmResult InitBasic(void) {
-    mmb_options.default_type = T_NBR;
-    ON_FAILURE_RETURN(features_init(&mmb_features, mmb_options.simulate));
     commandtbl_init();
     tokentbl_init();
     vartbl_init();
-    ON_FAILURE_RETURN(ClearProgram());
+    ON_FAILURE_RETURN(ClearRuntime());
     return kOk;
 }
 
@@ -2426,24 +2417,9 @@ MmResult ClearRuntime(void) {
     error_init(mmb_error_state_ptr);
     InitHeap();
     ClearVars(0);
-    CurrentLinePtr = ContinuePoint = NULL;
+    CurrentLinePtr = NULL;
+    ContinuePoint = NULL;
     funtbl_clear();
-    return kOk;
-}
-
-
-
-// clear everything including program memory (includes ClearStack() and ClearRuntime())
-// this is used before loading a program
-MmResult ClearProgram(void) {
-    ON_FAILURE_RETURN(ClearRuntime());
-#if defined(__mmb4l__)
-    memset(mmb_error_state_ptr->file, 0, STRINGSIZE);
-    mmb_error_state_ptr->line = -1;
-#else
-    StartEditPoint = NULL;
-    StartEditChar = 0;
-#endif
     TraceOn = false;
     return kOk;
 }

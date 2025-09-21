@@ -52,15 +52,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_new(void) {
 //    if(CurrentLinePtr) ERROR_INVALID_IN_PROGRAM;
     checkend(cmdline);
-    ClearSavedVars();
     FlashWriteInit();
-    ON_FAILURE_ERROR(ClearProgram());
+    ON_FAILURE_ERROR(ClearRuntime());
     WatchdogSet = false;
     mmb_options.autorun = false;
     MmResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);
     if (FAILED(result)) {
         char buf[STRINGSIZE];
-        sprintf(buf, "Warning: failed to save options: %s", mmresult_to_string(result));
+        snprintf(buf, STRINGSIZE, "Warning: failed to save options: %s",
+                 mmresult_to_string(result));
         display_puts(buf);
     }
     longjmp(mark, JMP_NEW);
