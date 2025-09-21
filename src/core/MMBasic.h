@@ -218,7 +218,7 @@ void InsertLastcmd(char *s);
 int CountLines(const char *target);
 void DefinedSubFun(int iscmd, const char *cmd, int index, MMFLOAT *fa, MMINTEGER *i64, char **sa, int *t);
 int FindSubFun(const char *p, uint8_t type);
-void PrepareProgram(int);
+MmResult PrepareProgram(bool abort_on_error);
 void IntToStrPad(char *p, MMINTEGER nbr, signed char padch, int maxch, int radix);
 void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);

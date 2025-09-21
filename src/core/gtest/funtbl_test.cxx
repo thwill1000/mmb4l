@@ -40,7 +40,7 @@ class FuntblTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
-        funtbl_clear();
+        ASSERT_EQ(kOk, funtbl_clear());
     }
 
     void TearDown() override {
