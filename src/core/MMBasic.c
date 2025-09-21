@@ -2409,7 +2409,7 @@ MmResult ClearRuntime(void) {
     ON_FAILURE_RETURN(features_init(&mmb_features, mmb_options.simulate));
     streamio_close_all();
     mmb_error_state_ptr = &mmb_normal_error_state;
-    error_init(mmb_error_state_ptr);
+    ON_FAILURE_RETURN(error_init(mmb_error_state_ptr));
     ON_FAILURE_RETURN(memory_clear_heap());
     ClearVars(0);
     CurrentLinePtr = NULL;

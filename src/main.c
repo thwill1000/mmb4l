@@ -312,8 +312,8 @@ int main(int argc, char *argv[]) {
 
     init_mmbasic_config_dir();
     init_options();
-    features_init(&mmb_features, mmb_options.simulate);
-    error_init(mmb_error_state_ptr);
+    ON_FAILURE_EXIT(features_init(&mmb_features, mmb_options.simulate));
+    ON_FAILURE_EXIT(error_init(mmb_error_state_ptr));
     ON_FAILURE_EXIT(keyboard_init());
 
     ON_FAILURE_EXIT(InitBasic());
@@ -329,7 +329,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, IntHandler);
 #endif
 
-    streamio_init(&display_putc, &display_write);
+    ON_FAILURE_EXIT(streamio_init(&display_putc, &display_write));
     ON_FAILURE_EXIT(interrupt_init());
     ON_FAILURE_EXIT(mmtime_init());
     srand(0);  // seed the random generator with zero
