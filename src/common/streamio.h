@@ -70,7 +70,7 @@ MmResult streamio_close(int fnbr);
  * Closes all open I/O devices.
  * Used for cleanup operations, typically on program exit.
  */
-void streamio_close_all(void);
+MmResult streamio_close_all(void);
 
 /**
  * Checks if end-of-file has been reached.
