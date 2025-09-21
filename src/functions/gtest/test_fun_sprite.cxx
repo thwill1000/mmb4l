@@ -17,6 +17,7 @@ extern "C" {
 #include "../../common/bitset.h"
 #include "../../common/features.h"
 #include "../../common/options.h"
+#include "../../common/memory.h"
 #include "../../common/mmresult.h"
 #include "../../common/sprite.h"
 #include "../../common/utility.h"
@@ -77,10 +78,11 @@ protected:
 
     void SetUp() override {
         vartbl_init_called = false;
-        EXPECT_EQ(kOk, InitBasic());
+        ASSERT_EQ(kOk, memory_init());
+        ASSERT_EQ(kOk, InitBasic());
         error_msg[0] = '\0';
         ClearProgMemory();
-        graphics_init();
+        ASSERT_EQ(kOk, graphics_init());
     }
 
     void TearDown() override {
@@ -91,7 +93,8 @@ protected:
             MmSurface *surface = &graphics_surfaces[id];
             if (surface->type == kGraphicsSprite) surface->type = kGraphicsInactiveSprite;
         }
-        graphics_term();
+        ASSERT_EQ(kOk, graphics_term());
+        ASSERT_EQ(kOk, memory_term());
     }
 
     void ClearProgMemory() {

@@ -276,6 +276,8 @@ static MmResult init_prompt() {
 }
 
 int main(int argc, char *argv[]) {
+    ON_FAILURE_EXIT(memory_init());
+
     MmResult result = cmdline_parse(argc, (const char **) argv, &mmb_args);
     if (FAILED(result)) {
         if (result == kStringTooLong) {
@@ -300,8 +302,6 @@ int main(int argc, char *argv[]) {
     }
 
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
-
-    InitHeap();  // init memory allocation
 
     console_init(!mmb_args.show_prompt);
     console_enable_raw_mode();

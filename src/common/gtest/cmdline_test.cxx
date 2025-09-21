@@ -10,6 +10,7 @@ extern "C" {
 #include "../cmdline.h"
 #include "../cstring.h"
 #include "../features.h"
+#include "../memory.h"
 #include "../parse.h"
 #include "../options.h"
 
@@ -44,7 +45,20 @@ char tokenAS = 0x0;
 
 }
 
-TEST(CmdLineTest, Parse_GivenNoAdditionalArguments) {
+class CmdLineTest : public ::testing::Test {
+
+protected:
+
+    void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
+    }
+
+    void TearDown() override {
+        ASSERT_EQ(kOk, memory_term());
+    }
+};
+
+TEST_F(CmdLineTest, Parse_GivenNoAdditionalArguments) {
     int argc = 1;
     const char *argv[10];
     argv[0] = "mmbasic";
@@ -57,7 +71,7 @@ TEST(CmdLineTest, Parse_GivenNoAdditionalArguments) {
     EXPECT_STREQ("", args.directory);
 }
 
-TEST(CmdLineTest, Parse_GivenHelpFlag) {
+TEST_F(CmdLineTest, Parse_GivenHelpFlag) {
     int argc = 2;
     const char *argv[10];
     argv[0] = "mmbasic";
@@ -82,7 +96,7 @@ TEST(CmdLineTest, Parse_GivenHelpFlag) {
     EXPECT_STREQ("", args.directory);
 }
 
-TEST(CmdLineTest, Parse_GivenInteractiveFlag) {
+TEST_F(CmdLineTest, Parse_GivenInteractiveFlag) {
     int argc = 2;
     const char *argv[10];
     argv[0] = "mmbasic";
@@ -107,7 +121,7 @@ TEST(CmdLineTest, Parse_GivenInteractiveFlag) {
     EXPECT_STREQ("", args.directory);
 }
 
-TEST(CmdLineTest, Parse_GivenVersionFlag) {
+TEST_F(CmdLineTest, Parse_GivenVersionFlag) {
     int argc = 2;
     const char *argv[10];
     argv[0] = "mmbasic";
@@ -132,7 +146,7 @@ TEST(CmdLineTest, Parse_GivenVersionFlag) {
     EXPECT_STREQ("", args.directory);
 }
 
-TEST(CmdLineTest, Parse_GivenInteractiveAndVersionFlags) {
+TEST_F(CmdLineTest, Parse_GivenInteractiveAndVersionFlags) {
     int argc = 3;
     const char *argv[10];
     argv[0] = "mmbasic";
@@ -148,7 +162,7 @@ TEST(CmdLineTest, Parse_GivenInteractiveAndVersionFlags) {
     EXPECT_STREQ("", args.directory);
 }
 
-TEST(CmdLineTest, Parse_GivenProgramArgument) {
+TEST_F(CmdLineTest, Parse_GivenProgramArgument) {
     int argc = 2;
     const char *argv[10];
     argv[0] = "mmbasic";
@@ -163,7 +177,7 @@ TEST(CmdLineTest, Parse_GivenProgramArgument) {
     EXPECT_STREQ("", args.directory);
 }
 
-TEST(CmdLineTest, Parse_GivenProgramArgumentWithFlags) {
+TEST_F(CmdLineTest, Parse_GivenProgramArgumentWithFlags) {
     int argc = 8;
     const char *argv[10];
     argv[0] = "mmbasic";
@@ -184,7 +198,7 @@ TEST(CmdLineTest, Parse_GivenProgramArgumentWithFlags) {
     EXPECT_STREQ("", args.directory);
 }
 
-TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
+TEST_F(CmdLineTest, Parse_GivenDirectoryFlag) {
     int argc = 3;
     const char *argv[10];
     argv[0] = "mmbasic";
@@ -226,7 +240,7 @@ TEST(CmdLineTest, Parse_GivenDirectoryFlag) {
     EXPECT_STREQ("foo/bar/wom bat", args.directory);
 }
 
-TEST(CmdLineTest, Parse_GivenUnknownFlag) {
+TEST_F(CmdLineTest, Parse_GivenUnknownFlag) {
     int argc = 2;
     const char *argv[10];
     argv[0] = "mmbasic";
@@ -236,7 +250,7 @@ TEST(CmdLineTest, Parse_GivenUnknownFlag) {
     EXPECT_EQ(kInvalidCommandLine, cmdline_parse(argc, argv, &args));
 }
 
-TEST(CmdLineTest, Parse_GivenCommandLineMaxLength) {
+TEST_F(CmdLineTest, Parse_GivenCommandLineMaxLength) {
     char input[INPBUF_SIZE] = { 0 };
     cstring_cat(input, "\"", INPBUF_SIZE);
     for (int i = 0; i < INPBUF_SIZE - 7; ++i) cstring_cat(input, "A", INPBUF_SIZE);
@@ -256,7 +270,7 @@ TEST(CmdLineTest, Parse_GivenCommandLineMaxLength) {
     EXPECT_STREQ(expected, args.run_cmd);
 }
 
-TEST(CmdLineTest, Parse_GivenCommandLineTooLong) {
+TEST_F(CmdLineTest, Parse_GivenCommandLineTooLong) {
     char input[INPBUF_SIZE] = { 0 };
     cstring_cat(input, "\"", INPBUF_SIZE);
     for (int i = 0; i < INPBUF_SIZE - 6; ++i) cstring_cat(input, "A", INPBUF_SIZE);
@@ -271,7 +285,7 @@ TEST(CmdLineTest, Parse_GivenCommandLineTooLong) {
     EXPECT_EQ(kStringTooLong, cmdline_parse(argc, argv, &args));
 }
 
-TEST(CmdLineTest, Parse_GivenSimulateKnownDevice_Succeeds) {
+TEST_F(CmdLineTest, Parse_GivenSimulateKnownDevice_Succeeds) {
     typedef struct {
         const char *args[4];
         const char *expected;
@@ -305,7 +319,7 @@ TEST(CmdLineTest, Parse_GivenSimulateKnownDevice_Succeeds) {
     }
 }
 
-TEST(CmdLineTest, Parse_GivenSimulateKnownDevice_AndProgramArgument_Succeeds) {
+TEST_F(CmdLineTest, Parse_GivenSimulateKnownDevice_AndProgramArgument_Succeeds) {
     typedef struct {
         const char *args[4];
         const char *expected;
@@ -340,7 +354,7 @@ TEST(CmdLineTest, Parse_GivenSimulateKnownDevice_AndProgramArgument_Succeeds) {
     }
 }
 
-TEST(CmdLineTest, Parse_GivenSimulateUnknownDevice_Fails) {
+TEST_F(CmdLineTest, Parse_GivenSimulateUnknownDevice_Fails) {
     typedef struct {
         const char *args[3];
         MmResult expected;

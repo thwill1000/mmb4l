@@ -45,14 +45,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_MEMORY_H)
 #define MMB4L_MEMORY_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #include "../Configuration.h"
+#include "mmresult.h"
 
-extern char *StrTmp[];                                      // used to track temporary string space on the heap
-extern int TempMemoryTop;                                   // this is the last index used for allocating temp memory
-extern int TempMemoryIsChanged;                             // used to prevent unnecessary scanning of strtmp[]
+extern bool TempMemoryIsChanged;  // Used to prevent unnecessary scanning of strtmp[]
+extern char ProgMemory[];
+
+MmResult memory_init(void);
+MmResult memory_term(void);
+MmResult memory_clear_heap(void);
 
 void *GetMemory(size_t msize);
 void *GetTempMemory(int NbrBytes);
@@ -60,7 +65,6 @@ void *GetTempStrMemory(void);
 void ClearTempMemory(void);
 void ClearSpecificTempMemory(void *addr);
 void FreeMemory(void *addr);
-void InitHeap(void);
 unsigned int UsedHeap(void);
 int FreeSpaceOnHeap(void);
 uintptr_t get_poke_addr(const char *p);
@@ -92,7 +96,5 @@ void* ReAllocMemory(void* addr, size_t msize);
 
 #define PAGESPERWORD    ((sizeof(uint32_t) * 8)/PAGEBITS)
 // #define MRoundUp(a)     (((a) + (PAGESIZE - 1)) & (~(PAGESIZE - 1)))// round up to the nearest page size
-
-extern char ProgMemory[];
 
 #endif

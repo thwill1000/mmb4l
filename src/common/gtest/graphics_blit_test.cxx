@@ -13,6 +13,7 @@ extern "C" {
 #include "../features.h"
 #include "../graphics.h"
 #include "../logger.h"
+#include "../memory.h"
 
 extern Features mmb_features;
 
@@ -65,8 +66,10 @@ static std::string format_pixels(const uint32_t *pixels, uint32_t width, uint32_
 class GraphicsBlitTest : public ::testing::Test {
    protected:
     void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
+
         // logger_init("");
-        graphics_init();
+        ASSERT_EQ(kOk, graphics_init());
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
 
         const MmSurfaceId srcId = 1;
@@ -86,7 +89,8 @@ class GraphicsBlitTest : public ::testing::Test {
     }
 
     void TearDown() override {
-        EXPECT_EQ(kOk, graphics_term());
+        ASSERT_EQ(kOk, graphics_term());
+        ASSERT_EQ(kOk, memory_term());
     }
 
     MmSurface *dst;
