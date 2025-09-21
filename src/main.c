@@ -314,7 +314,7 @@ int main(int argc, char *argv[]) {
     init_options();
     features_init(&mmb_features, mmb_options.simulate);
     error_init(mmb_error_state_ptr);
-    keyboard_init();
+    ON_FAILURE_EXIT(keyboard_init());
 
     ON_FAILURE_EXIT(InitBasic());
 

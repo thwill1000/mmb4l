@@ -130,11 +130,12 @@ static char keyboard_keys[MAX_KEYS];
 static int keyboard_keys_count = 0;
 static uint64_t keyboard_last_ps2_scancode = 0;
 
-void keyboard_init() {
+MmResult keyboard_init() {
     keyboard_initialised = true;
     keyboard_keys_count = 0;
     keyboard_last_ps2_scancode = 0;
     memset(keyboard_keys, 0, sizeof(keyboard_keys));
+    return kOk;
 }
 
 /* Prints key modifier info. */
