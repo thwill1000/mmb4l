@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 interrupt.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -91,20 +91,24 @@ static ErrorState interrupt_error_state;
 static Queue interrupt_window_event_queue;
 static Interrupt interrupt_list[kInterruptLast];
 
-void interrupt_init() {
+MmResult interrupt_init() {
     // Only expected to be called once on application startup.
     static bool called = false;
-    if (called) ON_FAILURE_ERROR(kInternalFault);
+    if (called) {
+        return mmresult_ex(kInternalFault, "Internal fault: interrupt module already initialised");
+    }
     called = true;
 
     interrupt_clear();
 
-    ON_FAILURE_ERROR(queue_init(&interrupt_window_event_queue, SDL_WindowEvent,
-                                  WINDOW_EVENT_QUEUE_CAPACITY));
+    ON_FAILURE_RETURN(
+        queue_init(&interrupt_window_event_queue, SDL_WindowEvent, WINDOW_EVENT_QUEUE_CAPACITY));
 
     char *p = DUMMY_IRETURN;
     commandtbl_encode(&p, cmdIRET);
     *p = '\0';
+
+    return kOk;
 }
 
 void interrupt_clear(void) {

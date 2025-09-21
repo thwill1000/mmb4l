@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2024 Thomas Hugo Williams
+ * Copyright (c) 2024-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
 #include "../../interrupt.h"
 
+MmResult interrupt_init() { return kOk; }
 bool interrupt_check() { return true; }
 void interrupt_clear() { }
 void interrupt_disable(InterruptType type) {}
