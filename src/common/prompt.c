@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <sys/types.h>
 
+#include "console.h"
 #include "display.h"
 #include "keycodes.h"
 #include "mmb4l.h"

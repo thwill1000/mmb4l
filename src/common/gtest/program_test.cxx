@@ -45,6 +45,9 @@ uint8_t mmb_exit_code = 0;
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
 
+// Defined in "common/console.c"
+int MMCharPos = 0;
+
 // Defined in "common/fonttbl.c"
 void font_clear_user_defined() { }
 
@@ -61,14 +64,8 @@ int forindex;
 struct s_forstack forstack[MAXFORLOOPS + 1];
 int gosubindex;
 const char *gosubstack[MAXGOSUB];
-int TraceBuffIndex;
-const char *TraceBuff[TRACE_BUFF_SIZE];
-int TraceOn;
 void CheckAbort(void) { }
 void ListNewLine(int *ListCnt, int all) { }
-
-// Defined in "core/MMBasic.c"
-int MMCharPos = 0;
 
 } // extern "C"
 

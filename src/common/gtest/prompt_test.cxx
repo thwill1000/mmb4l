@@ -17,7 +17,6 @@ extern "C" {
 extern bool display_bell_sounded;
 
 char inpbuf[INPBUF_SIZE] = { '\0' };
-int MMCharPos = 0;
 Options mmb_options;
 PromptState prompt_state;
 MmResult path_complete_canned_result;
@@ -25,6 +24,9 @@ char path_complete_captured_path[STRINGSIZE];
 
 int MMgetchar(void) { return -1; }
 void MMgetline(int filenbr, char *p) { }
+
+// Defined in "common/console.c"
+int MMCharPos = 0;
 
 MmResult path_complete(const char *path, char *out, size_t sz) {
     strcpy(path_complete_captured_path, path); // Capture path.
