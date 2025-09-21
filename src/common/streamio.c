@@ -84,10 +84,11 @@ MmResult streamio_close(int fnbr) {
     return kOk;
 }
 
-void streamio_close_all(void) {
+MmResult streamio_close_all(void) {
     for (int fnbr = 1; fnbr <= MAXOPENFILES; fnbr++) {
         if (file_table[fnbr].type != fet_closed) (void) streamio_close(fnbr);
     }
+    return kOk;
 }
 
 int streamio_eof(int fnbr) {

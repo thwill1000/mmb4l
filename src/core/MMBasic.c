@@ -2407,7 +2407,7 @@ MmResult ClearRuntime(void) {
     mmb_options.codepage = NULL;
     mmb_options.simulate = kSimulateMmb4l;
     ON_FAILURE_RETURN(features_init(&mmb_features, mmb_options.simulate));
-    streamio_close_all();
+    ON_FAILURE_RETURN(streamio_close_all());
     mmb_error_state_ptr = &mmb_normal_error_state;
     ON_FAILURE_RETURN(error_init(mmb_error_state_ptr));
     ON_FAILURE_RETURN(memory_clear_heap());
