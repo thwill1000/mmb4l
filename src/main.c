@@ -102,11 +102,11 @@ void dump_token_table(const struct s_tokentbl* tbl);
  */
 static bool run_flag;
 
-void print_banner() {
-    char s[128];
-    sprintf(
-        s,
-        "MMBasic for %s v%d.%d%s%d\n",
+static MmResult get_banner(char *buf, size_t buf_sz) {
+    (void) snprintf(
+        buf,
+        buf_sz,
+        "MMBasic for %s v%d.%d%s%d\r\n",
         MM_ARCH,
         MM_MAJOR,
         MM_MINOR,
@@ -124,8 +124,8 @@ void print_banner() {
                 : MM_MICRO < 300
                     ? MM_MICRO - 200
                     : MM_MICRO - 300);
-    display_puts(s);
-    display_puts(COPYRIGHT);
+    if (FAILED(cstring_cat(buf, COPYRIGHT, buf_sz))) return kStringTooLong;
+    return kOk;
 }
 
 static void init_mmbasic_config_dir() {
@@ -263,6 +263,18 @@ void longjmp_handler(int jmp_state) {
     reset_console_title();
 }
 
+static MmResult init_prompt() {
+    reset_console_title();
+    console_reset();
+    console_clear();
+    console_show_cursor(true);
+    char banner[1024];
+    ON_FAILURE_RETURN(get_banner(banner, sizeof(banner)));
+    ON_FAILURE_RETURN(display_puts(banner));
+    ON_FAILURE_RETURN(display_puts("\r\n"));
+    return kOk;
+}
+
 int main(int argc, char *argv[]) {
     MmResult result = cmdline_parse(argc, (const char **) argv, &mmb_args);
     if (FAILED(result)) {
@@ -281,7 +293,9 @@ int main(int argc, char *argv[]) {
     }
 
     if (mmb_args.version) {
-        print_banner();
+        char banner[1024];
+        ON_FAILURE_EXIT(get_banner(banner, sizeof(banner)));
+        ON_FAILURE_EXIT(display_puts(banner));
         exit(EX_OK);
     }
 
@@ -294,13 +308,7 @@ int main(int argc, char *argv[]) {
     atexit(console_disable_raw_mode);
 
     if (mmb_args.show_prompt) {
-        reset_console_title();
-        console_reset();
-        console_clear();
-        console_show_cursor(true);
-
-        print_banner();
-        display_puts("\r\n");
+        ON_FAILURE_EXIT(init_prompt());
     }
 
     init_mmbasic_config_dir();
