@@ -94,7 +94,7 @@ protected:
 
 TEST_F(CmdDoTest, GivenOneLineDoLoop) {
     TokeniseAndAppend("Do : Print : Loop");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     cmdtoken = cmdDO;
     nextstmt = cmdline = ProgMemory + 1 + sizeof(CommandToken);
     skipspace(cmdline);

@@ -189,6 +189,8 @@ typedef enum {
     kStackIndexOutOfBounds,
 } MmResultCode;
 
+extern char mmresult_last_msg[];
+
 /** @brief Clears cached MmResult. */
 void mmresult_clear();
 
