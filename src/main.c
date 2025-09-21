@@ -330,7 +330,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     streamio_init(&display_putc, &display_write);
-    interrupt_init();
+    ON_FAILURE_EXIT(interrupt_init());
     mmtime_init();
     srand(0);  // seed the random generator with zero
     set_start_directory();
