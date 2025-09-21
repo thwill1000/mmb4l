@@ -65,10 +65,6 @@ int gosubindex;
 
 char DimUsed = false;                                               // used to catch OPTION BASE after DIM has been used
 
-int TraceOn;                                                        // used to track the state of TRON/TROFF
-const char *TraceBuff[TRACE_BUFF_SIZE];
-int TraceBuffIndex;                                                 // used for listing the contents of the trace buffer
-
 void ListNewLine(int *ListCnt, int all) {
     display_puts("\r\n");
     (*ListCnt)++;

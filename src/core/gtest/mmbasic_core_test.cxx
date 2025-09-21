@@ -57,9 +57,6 @@ int forindex;
 struct s_forstack forstack[MAXFORLOOPS + 1];
 int gosubindex;
 const char *gosubstack[MAXGOSUB];
-int TraceBuffIndex;
-const char *TraceBuff[TRACE_BUFF_SIZE];
-int TraceOn;
 void CheckAbort(void) { }
 void ListNewLine(int *ListCnt, int all) { }
 

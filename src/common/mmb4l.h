@@ -93,7 +93,6 @@ extern const char *errorstack[MAXGOSUB];
 extern int gosubindex;
 extern const char *gosubstack[MAXGOSUB];
 extern int IgnorePIN;
-extern int MMCharPos;
 extern int WatchdogSet;
 
 typedef struct {
