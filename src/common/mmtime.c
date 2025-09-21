@@ -62,8 +62,9 @@ const char *DAYS_OF_WEEK[] = {
 
 int64_t mmtime_base_ns;
 
-void mmtime_init(void) {
+MmResult mmtime_init(void) {
     mmtime_base_ns = mmtime_now_ns();
+    return kOk;
 }
 
 int64_t mmtime_now_ns() {

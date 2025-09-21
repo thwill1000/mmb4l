@@ -49,6 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <time.h>
 
+#include "mmresult.h"
+
 #define MICROSECONDS_TO_NANOSECONDS(x)  ((int64_t) x * 1000L)
 #define NANOSECONDS_TO_MICROSECONDS(x)  ((int64_t) x / 1000L)
 #define MILLISECONDS_TO_NANOSECONDS(x)  ((int64_t) x * 1000000L)
@@ -59,7 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern const struct timespec ONE_MICROSECOND;
 extern const struct timespec ONE_MILLISECOND;
 
-void mmtime_init(void);
+MmResult mmtime_init(void);
 
 /**
  * Gets the number of nanoseconds elapsed since the epoch
