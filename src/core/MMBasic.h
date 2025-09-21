@@ -195,7 +195,7 @@ extern int TraceOn;
 extern const char *TraceBuff[TRACE_BUFF_SIZE];  // TRACE_BUFF_SIZE defined in 'Configuration.h'
 extern int TraceBuffIndex;
 
-void InitBasic(void);
+MmResult InitBasic(void);
 
 int32_t FloatToInt32(MMFLOAT x);
 MMINTEGER FloatToInt64(MMFLOAT x);

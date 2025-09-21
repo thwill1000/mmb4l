@@ -224,7 +224,7 @@ protected:
         vartbl_init_called = false;
         errno = 0;
         strcpy(error_msg, "");
-        InitBasic();
+        EXPECT_EQ(kOk, InitBasic());
         clear_prog_memory();
     }
 

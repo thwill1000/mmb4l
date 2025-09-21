@@ -77,7 +77,7 @@ protected:
 
     void SetUp() override {
         vartbl_init_called = false;
-        InitBasic();
+        EXPECT_EQ(kOk, InitBasic());
         ClearRuntime();
         error_msg[0] = '\0';
         ClearProgMemory();

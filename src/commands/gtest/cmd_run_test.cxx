@@ -91,7 +91,7 @@ protected:
         *m_filename = '\0';
         *m_run_args = '\0';
         vartbl_init_called = false;
-        InitBasic();
+        EXPECT_EQ(kOk, InitBasic());
         ClearRuntime();
 
         mock_op_add = [](){
