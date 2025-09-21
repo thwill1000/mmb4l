@@ -2412,17 +2412,17 @@ void ClearStack(void) {
 
 // clear the runtime (eg, variables, external I/O, etc) includes ClearStack() and ClearVars()
 // this is done before running a program
-void ClearRuntime(void) {
-    gamepad_term();
-    graphics_term();
-    audio_term();
-    gpio_term();
+MmResult ClearRuntime(void) {
+    ON_FAILURE_RETURN(gamepad_term());
+    ON_FAILURE_RETURN(graphics_term());
+    ON_FAILURE_RETURN(audio_term());
+    ON_FAILURE_RETURN(gpio_term());
     ClearStack();
     mmb_options.explicit_type = false;
     mmb_options.default_type = T_NBR;
     mmb_options.codepage = NULL;
     mmb_options.simulate = kSimulateMmb4l;
-    features_init(&mmb_features, mmb_options.simulate);
+    ON_FAILURE_RETURN(features_init(&mmb_features, mmb_options.simulate));
     streamio_close_all();
     mmb_error_state_ptr = &mmb_normal_error_state;
     error_init(mmb_error_state_ptr);
@@ -2430,6 +2430,7 @@ void ClearRuntime(void) {
     ClearVars(0);
     CurrentLinePtr = ContinuePoint = NULL;
     funtbl_clear();
+    return kOk;
 }
 
 
@@ -2437,7 +2438,7 @@ void ClearRuntime(void) {
 // clear everything including program memory (includes ClearStack() and ClearRuntime())
 // this is used before loading a program
 MmResult ClearProgram(void) {
-    ClearRuntime();
+    ON_FAILURE_RETURN(ClearRuntime());
 #if defined(__mmb4l__)
     memset(mmb_error_state_ptr->file, 0, STRINGSIZE);
     mmb_error_state_ptr->line = -1;

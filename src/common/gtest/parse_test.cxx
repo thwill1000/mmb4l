@@ -41,7 +41,7 @@ void cmd_read_clear_cache()  { }
 void font_clear_user_defined(void) { }
 
 // Defined in "common/gpio.c"
-void gpio_term() { }
+MmResult gpio_term() { return kOk; }
 MmResult (*mock_gpio_translate_from_pin_gp)(uint8_t pin_gp, uint8_t *pin_num) = NULL;
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) {
     return mock_gpio_translate_from_pin_gp(pin_gp, pin_num);
