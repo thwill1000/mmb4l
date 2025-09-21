@@ -7,7 +7,7 @@
 
 bool console_bell_sounded = false;
 
-void console_init(bool no_title) { }
+MmResult console_init(bool no_title) { return kOk; }
 void console_background(int colour) { }
 void console_bell() { console_bell_sounded = true; }
 void console_cursor_up(int i) { }

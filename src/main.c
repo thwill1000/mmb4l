@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
 
     ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
 
-    console_init(!mmb_args.show_prompt);
+    ON_FAILURE_EXIT(console_init(!mmb_args.show_prompt));
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
 
