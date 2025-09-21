@@ -69,7 +69,7 @@ extern ErrorState *mmb_error_state_ptr;
 extern ErrorState mmb_normal_error_state;
 
 void error_get_line_and_file(int *line, char *file_path);
-void error_init(ErrorState *error_state);
+MmResult error_init(ErrorState *error_state);
 MmResult error_throw(MmResult result);
 MmResult error_throw_ex(MmResult result, const char *msg, ...);
 MmResult error_throw_legacy(const char *msg, ...);

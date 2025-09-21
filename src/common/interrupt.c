@@ -137,12 +137,12 @@ bool interrupt_running() {
     return interrupt_return_stmt != NULL;
 }
 
-static int handle_interrupt(const char *interrupt_address) {
+static bool handle_interrupt(const char *interrupt_address) {
     LocalIndex++;  // IRETURN will decrement this unless the interrupt routine is a SUB in which
                    // case exiting the SUB decrements it.
-    mmb_error_state_ptr = &interrupt_error_state; // Swap to the interrupt error state
-    error_init(mmb_error_state_ptr);              //   and clear it
-    interrupt_return_stmt = nextstmt;             //   for when IRETURN is executed.
+    mmb_error_state_ptr = &interrupt_error_state;                 // Swap to the interrupt error state
+    ON_FAILURE_ERROR_EX(error_init(mmb_error_state_ptr), false);  //   and clear it
+    interrupt_return_stmt = nextstmt;                             //   for when IRETURN is executed.
 
     const CommandToken token = commandtbl_decode(interrupt_address);
     if (token == cmdSUB) {
@@ -170,7 +170,7 @@ static inline void interrupt_add_local_integer_const(const char *name, MMINTEGER
     vartbl[var_idx].val.i = value;
 }
 
-static int handle_window_interrupt() {
+static bool handle_window_interrupt() {
     // Get the oldest window event.
     SDL_WindowEvent event;
     MmResult result = queue_dequeue(&interrupt_window_event_queue, &event);
@@ -214,9 +214,9 @@ static int handle_window_interrupt() {
     // Setup stack and return state.
     LocalIndex++;  // IRETURN will decrement this unless the interrupt routine is a SUB in which
                    // case exiting the SUB decrements it.
-    mmb_error_state_ptr = &interrupt_error_state;  // Swap to the interrupt error state
-    error_init(mmb_error_state_ptr);               //   and clear it
-    interrupt_return_stmt = nextstmt;              //   for when IRETURN is executed
+    mmb_error_state_ptr = &interrupt_error_state;                 // Swap to the interrupt error state
+    ON_FAILURE_ERROR_EX(error_init(mmb_error_state_ptr), false);  //   and clear it
+    interrupt_return_stmt = nextstmt;                             //   for when IRETURN is executed
     if (gosubindex >= MAXGOSUB) ERROR_TOO_MANY_SUBS;
     errorstack[gosubindex] = CurrentLinePtr;
     gosubstack[gosubindex++] = DUMMY_IRETURN;  // Return from the subroutine to the dummy IRETURN command.
