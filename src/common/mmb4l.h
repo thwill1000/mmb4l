@@ -88,8 +88,6 @@ extern char DimUsed;
 extern const char *errorstack[MAXGOSUB];
 extern int gosubindex;
 extern const char *gosubstack[MAXGOSUB];
-extern int IgnorePIN;
-extern int WatchdogSet;
 
 typedef struct {
     uint32_t next_line_offset;
