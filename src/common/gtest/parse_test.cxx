@@ -98,15 +98,16 @@ protected:
         vartbl_init_called = false;
         errno = 0;
         strcpy(error_msg, "");
-        EXPECT_EQ(kOk, InitBasic());
+        ASSERT_EQ(kOk, memory_init());
+        ASSERT_EQ(kOk, InitBasic());
         clear_prog_memory();
         mock_gpio_translate_from_pin_gp = NULL;
         tokenINFO = tokentbl_get("MM.INFO(");
     }
 
     void TearDown() override {
-        ClearTempMemory();
-        (void) graphics_term();
+        ASSERT_EQ(kOk, graphics_term());
+        ASSERT_EQ(kOk, memory_term());
     }
 };
 

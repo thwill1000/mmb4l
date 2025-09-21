@@ -88,7 +88,8 @@ protected:
         *m_filename = '\0';
         *m_run_args = '\0';
         vartbl_init_called = false;
-        EXPECT_EQ(kOk, InitBasic());
+        ASSERT_EQ(kOk, memory_init());
+        ASSERT_EQ(kOk, InitBasic());
 
         mock_op_add = [](){
             if (targ & T_NBR) {
@@ -106,6 +107,7 @@ protected:
 
     void TearDown() override {
         mock_op_add = NULL;
+        ASSERT_EQ(kOk, memory_term());
     }
 
 };

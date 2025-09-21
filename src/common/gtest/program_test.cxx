@@ -221,12 +221,14 @@ protected:
         vartbl_init_called = false;
         errno = 0;
         strcpy(error_msg, "");
-        EXPECT_EQ(kOk, InitBasic());
+        ASSERT_EQ(kOk, memory_init());
+        ASSERT_EQ(kOk, InitBasic());
         clear_prog_memory();
     }
 
     void TearDown() override {
         RemoveTemporaryFiles();
+        ASSERT_EQ(kOk, memory_term());
     }
 };
 
