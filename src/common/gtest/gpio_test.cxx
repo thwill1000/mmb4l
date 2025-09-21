@@ -59,7 +59,7 @@ class GpioPinTest : public ::testing::TestWithParam<std::tuple<uint8_t, uint8_t,
     }
 
     void TearDown() override {
-        gpio_term();
+        EXPECT_EQ(kOk, gpio_term());
     }
 };
 
@@ -197,7 +197,7 @@ class SnesControllerSimulationTest
     }
 
     void TearDown() override {
-        gpio_term();
+        EXPECT_EQ(kOk, gpio_term());
     }
 };
 
@@ -378,7 +378,7 @@ class GamemiteControllerSimulationTest
     }
 
     void TearDown() override {
-        gpio_term();
+        EXPECT_EQ(kOk, gpio_term());
     }
 };
 
@@ -432,7 +432,7 @@ class PicomiteVgaConfigurePinTest
     }
 
     void TearDown() override {
-        gpio_term();
+        EXPECT_EQ(kOk, gpio_term());
     }
 };
 

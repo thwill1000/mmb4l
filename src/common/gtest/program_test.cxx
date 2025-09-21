@@ -49,7 +49,7 @@ void cmd_read_clear_cache()  { }
 void font_clear_user_defined() { }
 
 // Defined in "common/gpio.c"
-void gpio_term() { }
+MmResult gpio_term() { return kOk; }
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
 // Defined in "core/Commands.c"

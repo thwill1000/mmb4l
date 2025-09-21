@@ -134,11 +134,12 @@ void gpio_init() {
     }
 }
 
-void gpio_term() {
+MmResult gpio_term() {
     if (gpio_initialised) {
         gpio_reset();
         gpio_initialised = false;
     }
+    return kOk;
 }
 
 /**
