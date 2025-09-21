@@ -206,7 +206,7 @@ void *findvar(const char *, int);
 void erasearray(char *n);
 void ClearVars(int level);
 void ClearStack(void);
-void ClearRuntime(void);
+MmResult ClearRuntime(void);
 MmResult ClearProgram(void);
 void *DoExpression(const char *p, int *t);
 const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int noerror);

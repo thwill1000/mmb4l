@@ -91,7 +91,7 @@ void gpio_init();
 /**
  * Terminates the 'gpio' module.
  */
-void gpio_term();
+MmResult gpio_term();
 
 /**
  * Is a hardware pin number (not GPnn) valid?

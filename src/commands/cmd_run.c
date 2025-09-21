@@ -231,7 +231,7 @@ void cmd_run(void) {
 
     ON_FAILURE_ERROR(program_load_file(filename));
 
-    ClearRuntime();
+    ON_FAILURE_ERROR(ClearRuntime());
 
     if (simulate != mmb_options.simulate) {
         mmb_options.simulate = simulate;
