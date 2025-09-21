@@ -207,7 +207,7 @@ void erasearray(char *n);
 void ClearVars(int level);
 void ClearStack(void);
 void ClearRuntime(void);
-void ClearProgram(void);
+MmResult ClearProgram(void);
 void *DoExpression(const char *p, int *t);
 const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int noerror);
 const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, FunctionToken *oo, int *t);

@@ -975,7 +975,7 @@ MmResult program_load_file(const char *filename) {
     char filename2[STRINGSIZE];
     strcpy(filename2, filename);
 
-    ClearProgram();
+    ON_FAILURE_RETURN(ClearProgram());
 
     program_internal_alloc();
 
