@@ -48,7 +48,7 @@ MmResult flash_init() { return kOk; }
 MmResult flash_term() { return kOk; }
 
 // Defined in "common/gpio.c"
-void gpio_term() { }
+MmResult gpio_term() { return kOk; }
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
 // Defined in "common/graphics.c"
@@ -92,7 +92,6 @@ protected:
         *m_run_args = '\0';
         vartbl_init_called = false;
         EXPECT_EQ(kOk, InitBasic());
-        ClearRuntime();
 
         mock_op_add = [](){
             if (targ & T_NBR) {

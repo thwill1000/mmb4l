@@ -46,7 +46,7 @@ extern char cmd_run_args[STRINGSIZE];
 MmResult cmd_run_parse_args(const char *p, char *filename, char *run_args);
 
 // Defined in "common/gpio.c"
-void gpio_term() { }
+MmResult gpio_term() { return kOk; }
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
 // Defined in "common/program.c"
@@ -78,7 +78,6 @@ protected:
     void SetUp() override {
         vartbl_init_called = false;
         EXPECT_EQ(kOk, InitBasic());
-        ClearRuntime();
         error_msg[0] = '\0';
         ClearProgMemory();
     }

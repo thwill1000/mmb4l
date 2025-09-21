@@ -45,7 +45,7 @@ void MMgetline(int filenbr, char *p) { }
 void cmd_read_clear_cache()  { }
 
 // Defined in "common/gpio.c"
-void gpio_term() { }
+MmResult gpio_term() { return kOk; }
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
 // Defined in "core/Commands.c"
@@ -77,7 +77,6 @@ protected:
     void SetUp() override {
         vartbl_init_called = false;
         EXPECT_EQ(kOk, InitBasic());
-        ClearRuntime();
         funtbl_clear(); // TODO: remove this
         error_msg[0] = '\0';
         m_program[0] = '\0';
