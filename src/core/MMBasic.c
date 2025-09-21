@@ -334,11 +334,11 @@ static MmResult AddFunction(const char **p, FunType type, const char *addr) {
  * @brief  Populates the function table by searching ProgMemory for functions,
  *         labels and subroutines.
  */
-static void PrepareFunctionTable(bool abort_on_error) {
+static MmResult PrepareFunctionTable(bool abort_on_error) {
     const char *p = ProgMemory;
     CurrentLinePtr = NULL;
 
-    funtbl_clear();
+    ON_FAILURE_RETURN(funtbl_clear());
 
     for (;;) {
 
@@ -360,7 +360,7 @@ static void PrepareFunctionTable(bool abort_on_error) {
             p += 2; // Step over the token and the length byte.
             MmResult result = AddFunction(&p, kLabel, CurrentLinePtr);
             if (FAILED(result) && abort_on_error) {
-                error_throw_ex(result, FormatAddFunctionError(result, kLabel));
+                return mmresult_ex(result, FormatAddFunctionError(result, kLabel));
             }
             skipspace(p);
         }
@@ -373,21 +373,23 @@ static void PrepareFunctionTable(bool abort_on_error) {
             p += sizeof(CommandToken); // Step over the token.
             MmResult result = AddFunction(&p, type, addr);
             if (FAILED(result) && abort_on_error) {
-                error_throw_ex(result, FormatAddFunctionError(result, type));
+                return mmresult_ex(result, FormatAddFunctionError(result, type));
             }
         }
     }
+
+    return kOk;
 }
 
 /**
  * @brief  Populates the font table by searching for font entries in CFunctionFlash.
  */
-static void PrepareFontTable() {
+static MmResult PrepareFontTable() {
     font_clear_user_defined();
 
     uint32_t *p = (uint32_t *) CFunctionFlash;
 
-    if (!p) return; // To handle unit-tests that have not setup CFunctionFlash.
+    if (!p) return kOk; // To handle unit-tests that have not setup CFunctionFlash.
 
     while (*p != 0xFFFFFFFF) {
         const uint64_t font_id = *((uint64_t *) p) + 1;
@@ -400,15 +402,18 @@ static void PrepareFontTable() {
         p += length / 4;  // Skip the data.
         while ((uintptr_t) p % 8 != 0) {
             // Expect zeroes until the next 64-bit boundary.
-            if (*p != 0x00) ERROR_INTERNAL_FAULT;
+            if (*p != 0x00) return kInternalFault;
             p++;
         }
     }
+
+    return kOk;
 }
 
-void PrepareProgram(int ErrAbort) {
-    PrepareFunctionTable(ErrAbort);
-    PrepareFontTable();
+MmResult PrepareProgram(bool abort_on_error) {
+    ON_FAILURE_RETURN(PrepareFunctionTable(abort_on_error));
+    ON_FAILURE_RETURN(PrepareFontTable());
+    return kOk;
 }
 
 /**
@@ -2414,7 +2419,7 @@ MmResult ClearRuntime(void) {
     ClearVars(0);
     CurrentLinePtr = NULL;
     ContinuePoint = NULL;
-    funtbl_clear();
+    ON_FAILURE_RETURN(funtbl_clear());
     TraceOn = false;
     return kOk;
 }

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 funtbl.h
 
-Copyright 2021-2023 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -107,7 +107,7 @@ extern size_t funtbl_count;
 MmResult funtbl_add(
        const char *name, FunType type, const char *addr, int *fun_idx);
 
-void funtbl_clear();
+MmResult funtbl_clear();
 void funtbl_dump();
 
 /**

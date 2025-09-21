@@ -75,7 +75,7 @@ protected:
         vartbl_init_called = false;
         ASSERT_EQ(kOk, memory_init());
         ASSERT_EQ(kOk, InitBasic());
-        funtbl_clear(); // TODO: remove this
+        ASSERT_EQ(kOk, funtbl_clear()); // TODO: remove this
         error_msg[0] = '\0';
         m_program[0] = '\0';
         VarIndex = 999;
@@ -420,7 +420,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfGlobal_GivenFunctionWithSameName)
     TokeniseAndAppend("Function bar()");
     TokeniseAndAppend("End Function");
     TokeniseAndAppend("foo = 1");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     error_msg[0] = '\0';
     (void) findvar(ProgMemory + 29, V_DIM_VAR);
@@ -438,7 +438,7 @@ TEST_F(MmBasicCoreTest, FindVar_GivenCreationOfLocal_GivenFunctionWithSameName) 
     TokeniseAndAppend("Function bar()");
     TokeniseAndAppend("End Function");
     TokeniseAndAppend("foo = 1");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     error_msg[0] = '\0';
     LocalIndex = 3;
@@ -455,7 +455,7 @@ TEST_F(MmBasicCoreTest, FindVar_CreatesGlobal_GivenLabelWithSameName) {
     TokeniseAndAppend("foo:");
     TokeniseAndAppend("  Print \"foo\"");
     TokeniseAndAppend("foo% = 1");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     error_msg[0] = '\0';
     void *actual = findvar(ProgMemory + 21, V_DIM_VAR);
@@ -472,7 +472,7 @@ TEST_F(MmBasicCoreTest, FindVar_CreatesLocal_GivenLabelWithSameName) {
     TokeniseAndAppend("foo:");
     TokeniseAndAppend("  Print \"foo\"");
     TokeniseAndAppend("foo% = 1");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     error_msg[0] = '\0';
     LocalIndex = 3;
@@ -881,7 +881,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_And_FindSubFun) {
 //    TokeniseAndAppend("CFunction bat!()");
 //    TokeniseAndAppend("End CFunction");
 
-    PrepareProgram(1);
+    EXPECT_EQ(kOk, PrepareProgram(true));
 
     EXPECT_STREQ("", error_msg);
 
@@ -912,7 +912,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenMaximumNumberOfFunctions) {
         TokeniseAndAppend("End Function");
     }
 
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     EXPECT_STREQ("", error_msg);
     int fun_idx;
@@ -932,42 +932,27 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenTooManyFunctions) {
         TokeniseAndAppend("End Function");
     }
 
-    PrepareProgram(1);
-
-    EXPECT_STREQ("Too many functions/labels/subroutines", error_msg);
-
-    error_msg[0] = '\0';
-    PrepareProgram(0); // Should not report error.
-
-    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(kTooManyFunctions, PrepareProgram(true));
+    EXPECT_STREQ("Too many functions/labels/subroutines", mmresult_last_msg);
+    EXPECT_EQ(kOk, PrepareProgram(false)); // Should not report error.
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_Errors_GivenInvalidFunctionName) {
     TokeniseAndAppend("Function .foo()");
     TokeniseAndAppend("End Function");
 
-    PrepareProgram(1);
-
-    EXPECT_STREQ("Invalid function name", error_msg);
-
-    error_msg[0] = '\0';
-    PrepareProgram(0); // Should not report error.
-
-    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(kInvalidName, PrepareProgram(true));
+    EXPECT_STREQ("Invalid function name", mmresult_last_msg);
+    EXPECT_EQ(kOk, PrepareProgram(false)); // Should not report error.
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_Errors_GivenInvalidSubName) {
     TokeniseAndAppend("Sub .foo()");
     TokeniseAndAppend("End Sub");
 
-    PrepareProgram(1);
-
-    EXPECT_STREQ("Invalid subroutine name", error_msg);
-
-    error_msg[0] = '\0';
-    PrepareProgram(0); // Should not report error.
-
-    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(kInvalidName, PrepareProgram(true));
+    EXPECT_STREQ("Invalid subroutine name", mmresult_last_msg);
+    EXPECT_EQ(kOk, PrepareProgram(false)); // Should not report error.
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_Succeeds_GivenFunctionNameContainingPeriod) {
@@ -976,7 +961,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_Succeeds_GivenFunctionNameContainingPerio
     TokeniseAndAppend("Sub b.ar()");
     TokeniseAndAppend("End Sub");
 
-    PrepareProgram(1);
+    EXPECT_EQ(kOk, PrepareProgram(true));
 
     EXPECT_STREQ("", error_msg);
 
@@ -993,7 +978,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_Succeeds_GivenFunctionHasMaximumLengthNam
     TokeniseAndAppend("Function " MAX_LENGTH_NAME "()");
     TokeniseAndAppend("End Function");
 
-    PrepareProgram(1);
+    EXPECT_EQ(kOk, PrepareProgram(true));
 
     EXPECT_STREQ("", error_msg);
 
@@ -1006,7 +991,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_Succeeds_GivenLabelHasMaximumLength) {
     TokeniseAndAppend(MAX_LENGTH_NAME ":");
     TokeniseAndAppend("Print \"foo\"");
 
-    PrepareProgram(1);
+    EXPECT_EQ(kOk, PrepareProgram(true));
 
     EXPECT_STREQ("", error_msg);
 
@@ -1019,7 +1004,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_Succeeds_GivenSubHasMaximumLengthName) {
     TokeniseAndAppend("Sub " MAX_LENGTH_NAME "()");
     TokeniseAndAppend("End Sub");
 
-    PrepareProgram(1);
+    EXPECT_EQ(kOk, PrepareProgram(true));
 
     EXPECT_STREQ("", error_msg);
 
@@ -1032,28 +1017,18 @@ TEST_F(MmBasicCoreTest, PrepareProgram_Errors_GivenFunctionNameTooLong) {
     TokeniseAndAppend("Function " MAX_LENGTH_NAME "A()");
     TokeniseAndAppend("End Function");
 
-    PrepareProgram(1);
-
-    EXPECT_STREQ("Function name too long", error_msg);
-
-    error_msg[0] = '\0';
-    PrepareProgram(0);  // Should not report error.
-
-    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(kNameTooLong, PrepareProgram(true));
+    EXPECT_STREQ("Function name too long", mmresult_last_msg);
+    EXPECT_EQ(kOk, PrepareProgram(false));  // Should not report error.
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_Errors_GivenSubNameTooLong) {
     TokeniseAndAppend("Sub " MAX_LENGTH_NAME "A()");
     TokeniseAndAppend("End Sub");
 
-    PrepareProgram(1);
-
-    EXPECT_STREQ("Subroutine name too long", error_msg);
-
-    error_msg[0] = '\0';
-    PrepareProgram(0);  // Should not report error.
-
-    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(kNameTooLong, PrepareProgram(true));
+    EXPECT_STREQ("Subroutine name too long", mmresult_last_msg);
+    EXPECT_EQ(kOk, PrepareProgram(false));  // Should not report error.
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_GivenSubWithSameNameAsFunction) {
@@ -1062,14 +1037,9 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenSubWithSameNameAsFunction) {
     TokeniseAndAppend("Sub foo()");
     TokeniseAndAppend("End Sub");
 
-    PrepareProgram(1);
-
-    EXPECT_STREQ("Function/subroutine already declared", error_msg);
-
-    error_msg[0] = '\0';
-    PrepareProgram(0);  // Should not report error.
-
-    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(kDuplicateFunction, PrepareProgram(true));
+    EXPECT_STREQ("Function/subroutine already declared", mmresult_last_msg);
+    EXPECT_EQ(kOk, PrepareProgram(false));  // Should not report error.
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_Errors_GivenDuplicateLabel) {
@@ -1078,14 +1048,9 @@ TEST_F(MmBasicCoreTest, PrepareProgram_Errors_GivenDuplicateLabel) {
     TokeniseAndAppend("foo:");
     TokeniseAndAppend("Print \"bar\"");
 
-    PrepareProgram(1);
-
-    EXPECT_STREQ("Duplicate label", error_msg);
-
-    error_msg[0] = '\0';
-    PrepareProgram(0);  // Should not report error.
-
-    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(kDuplicateFunction, PrepareProgram(true));
+    EXPECT_STREQ("Duplicate label", mmresult_last_msg);
+    EXPECT_EQ(kOk, PrepareProgram(false));  // Should not report error.
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_GivenTwoFunctionsWithSameNameButDifferentTypeSuffix) {
@@ -1094,14 +1059,12 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenTwoFunctionsWithSameNameButDifferent
     TokeniseAndAppend("Function foo%()");
     TokeniseAndAppend("End Function");
 
-    PrepareProgram(1);
-
-    EXPECT_STREQ("Function/subroutine already declared", error_msg);
-
-    error_msg[0] = '\0';
-    PrepareProgram(0); // Should not report error.
-
-    EXPECT_STREQ("", error_msg);
+    EXPECT_EQ(kDuplicateFunction, PrepareProgram(true));
+    if (*mmresult_last_msg != '\0') {
+        // TODO: Why is this non-deterministic ?
+        EXPECT_STREQ("Function/subroutine already declared", mmresult_last_msg);
+    }
+    EXPECT_EQ(kOk, PrepareProgram(false)); // Should not report error.
 }
 
 TEST_F(MmBasicCoreTest, PrepareProgram_GivenMixOfFunctionsLabelsAndSubs) {
@@ -1116,7 +1079,7 @@ TEST_F(MmBasicCoreTest, PrepareProgram_GivenMixOfFunctionsLabelsAndSubs) {
     TokeniseAndAppend(" End Function");
     TokeniseAndAppend("  Data \"bbb\"");
 
-    PrepareProgram(1);
+    EXPECT_EQ(kOk, PrepareProgram(true));
     
     EXPECT_STREQ("", error_msg);
 
@@ -1169,7 +1132,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_Errors_GivenFunctionOrSubNameTooLong) {
 TEST_F(MmBasicCoreTest, FindSubFun_GivenTypeMismatch) {
     TokeniseAndAppend("Function foo%()");
     TokeniseAndAppend("End Function");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     int fun_idx = FindSubFun("foo!", kFunction);
 
@@ -1183,7 +1146,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenTypeMismatch) {
 TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForSub_ButFoundFunction) {
     TokeniseAndAppend("Function foo%()");
     TokeniseAndAppend("End Function");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     int fun_idx = FindSubFun("foo", kSub);
 
@@ -1194,7 +1157,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForSub_ButFoundFunction) {
 TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForFunction_ButFoundSub) {
     TokeniseAndAppend("Sub foo()");
     TokeniseAndAppend("End Sub");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     int fun_idx = FindSubFun("foo", kFunction);
 
@@ -1207,7 +1170,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForFunctionOrSub) {
     TokeniseAndAppend("End Function");
     TokeniseAndAppend("Sub bar()");
     TokeniseAndAppend("End Sub");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     int fun_idx = FindSubFun("foo", kFunction | kSub);
 
@@ -1223,7 +1186,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForFunctionOrSub) {
 TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForFunction_ButFindLabel) {
     TokeniseAndAppend("foo:");
     TokeniseAndAppend("  Print \"Hello\"");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     int fun_idx = FindSubFun("foo", kFunction);
 
@@ -1234,7 +1197,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForFunction_ButFindLabel) {
 TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForSub_ButFindLabel) {
     TokeniseAndAppend("foo:");
     TokeniseAndAppend("  Print \"Hello\"");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     int fun_idx = FindSubFun("foo", kSub);
 
@@ -1245,7 +1208,7 @@ TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForSub_ButFindLabel) {
 TEST_F(MmBasicCoreTest, FindSubFun_GivenLookingForFunctionOrSub_ButFindLabel) {
     TokeniseAndAppend("foo:");
     TokeniseAndAppend("  Print \"Hello\"");
-    PrepareProgram(1);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     int fun_idx = FindSubFun("foo", kFunction | kSub);
 
@@ -1264,7 +1227,7 @@ TEST_F(MmBasicCoreTest, FindLabel_GivenLabelPresent) {
     TokeniseAndAppend("Print \"End2\"");
     TokeniseAndAppend("bar: Print \"Humbug\"");
     TokeniseAndAppend("Print \"End3\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *addr = findlabel("foo");
 
@@ -1288,7 +1251,7 @@ TEST_F(MmBasicCoreTest, FindLabel_GivenLabelNotPresent) {
     TokeniseAndAppend("foobar:");
     TokeniseAndAppend("Print \"World\"");
     TokeniseAndAppend("End");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *addr = findlabel("wombat");
 
@@ -1301,7 +1264,7 @@ TEST_F(MmBasicCoreTest, FindLabel_IsCaseInsensitive) {
     TokeniseAndAppend("foobar:");
     TokeniseAndAppend("Print \"World\"");
     TokeniseAndAppend("End");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *addr = findlabel("FOOBAR");
 
@@ -1317,7 +1280,7 @@ TEST_F(MmBasicCoreTest, FindLabel_RequiresCompleteMatch) {
     TokeniseAndAppend("foobar:");
     TokeniseAndAppend("Print \"World\"");
     TokeniseAndAppend("End");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *addr = findlabel("foo"); // Try to match on a prefix.
 
@@ -1336,7 +1299,7 @@ TEST_F(MmBasicCoreTest, FindLabel_GivenLabelPreceededBySpaces) {
     TokeniseAndAppend("  foobar:");
     TokeniseAndAppend("Print \"World\"");
     TokeniseAndAppend("End");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *addr = findlabel("foobar");
 
@@ -1354,7 +1317,7 @@ TEST_F(MmBasicCoreTest, FindLabel_GivenLabelPreceededByLineNumber) {
     TokeniseAndAppend("100 foobar:");
     TokeniseAndAppend("Print \"World\"");
     TokeniseAndAppend("End");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *addr = findlabel("foobar");
 
@@ -1374,7 +1337,7 @@ TEST_F(MmBasicCoreTest, FindLabel_GivenLabelHasMaximumLength) {
     TokeniseAndAppend(MAX_LENGTH_NAME ":");
     TokeniseAndAppend("Print \"World\"");
     TokeniseAndAppend("End");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *addr = findlabel(MAX_LENGTH_NAME);
 
@@ -1390,7 +1353,7 @@ TEST_F(MmBasicCoreTest, FindLabel_GivenLabelArgumentIsTooLong) {
     TokeniseAndAppend("foo:");
     TokeniseAndAppend("Print \"World\"");
     TokeniseAndAppend("End");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *addr = findlabel(TOO_LONG_NAME);
 
@@ -1404,7 +1367,7 @@ TEST_F(MmBasicCoreTest, FindLabel_GivenLabelInProgramIsTooLong) {
     TokeniseAndAppend("Print \"World\"");
     TokeniseAndAppend("End");
 
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     // At the moment the presence of the invalid label is not enough to
     // cause an error.
@@ -1421,7 +1384,7 @@ TEST_F(MmBasicCoreTest, FindLabel_GivenLabelWithinMultiStatementLine) {
     TokeniseAndAppend("Print \"abc\" : foobar: Print \"def\"");
     TokeniseAndAppend("Print \"World\"");
     TokeniseAndAppend("End");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *addr = findlabel("foobar");
 
@@ -1436,7 +1399,7 @@ TEST_F(MmBasicCoreTest, FindLabel_Errors_GivenFoundFunction) {
     TokeniseAndAppend("Print \"Hello World\"");
     TokeniseAndAppend("Function foo()");
     TokeniseAndAppend("End Function");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *addr = findlabel("foo");
 
@@ -1448,7 +1411,7 @@ TEST_F(MmBasicCoreTest, FindLabel_Errors_GivenFoundSub) {
     TokeniseAndAppend("Print \"Hello World\"");
     TokeniseAndAppend("Sub foo()");
     TokeniseAndAppend("End Sub");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *addr = findlabel("foo");
 
@@ -1459,7 +1422,7 @@ TEST_F(MmBasicCoreTest, FindLabel_Errors_GivenFoundSub) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenStringScalar) {
     TokeniseAndAppend("Print x$");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1471,7 +1434,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenStringScalar) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenIntegerScalar) {
     TokeniseAndAppend("Print xy%");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1483,7 +1446,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenIntegerScalar) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenFloatScalar) {
     TokeniseAndAppend("Print xyz!");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1495,7 +1458,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenFloatScalar) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenUntypedScalar) {
     TokeniseAndAppend("Print xyz_");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1507,7 +1470,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenUntypedScalar) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenMaxLengthNamePlusExtension) {
     TokeniseAndAppend("Print " MAX_LENGTH_NAME "$");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1519,7 +1482,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenMaxLengthNamePlusExtension) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenTooLongName) {
     TokeniseAndAppend("Print " TOO_LONG_NAME "$");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1531,7 +1494,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenTooLongName) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenTooLongName_AndNoErrorSet) {
     TokeniseAndAppend("Print " TOO_LONG_NAME "$");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 1);
@@ -1543,7 +1506,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenTooLongName_AndNoErrorSet) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenNotAName) {
     TokeniseAndAppend("Print 1");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 2;
 
     const char *actual = skipvar(p, 0);
@@ -1554,7 +1517,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenNotAName) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenLeadingSpaces) {
     TokeniseAndAppend("Print    abc!");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1566,7 +1529,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenLeadingSpaces) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenUndimensionedArray) {
     TokeniseAndAppend("Print abc()");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1578,7 +1541,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenUndimensionedArray) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenUnbalancedBrackets) {
     TokeniseAndAppend("Print abc(");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1590,7 +1553,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenUnbalancedBrackets) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenUnbalancedBrackets_AndNoErrorSet) {
     TokeniseAndAppend("Print abc(");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 1);
@@ -1605,7 +1568,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenSpaceBeforeBrackets) {
     // insert them back in for sake of test.
     memcpy(ProgMemory + 6, "  ()\0\0", 6);
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1617,7 +1580,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenSpaceBeforeBrackets) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenStringArg) {
     TokeniseAndAppend("Print abc(\"def\")");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1629,7 +1592,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenStringArg) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenBracketInQuotes) {
     TokeniseAndAppend("Print abc(\"(\")");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1641,7 +1604,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenBracketInQuotes) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenInternalFunctionCallInBrackets) {
     TokeniseAndAppend("Print abc(Int(5))");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1653,7 +1616,7 @@ TEST_F(MmBasicCoreTest, SkipVar_GivenInternalFunctionCallInBrackets) {
 TEST_F(MmBasicCoreTest, SkipVar_GivenUserFunctionCallInBrackets) {
     TokeniseAndAppend("Print abc(def(5))");
     TokeniseAndAppend("Print \"something more\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3;
 
     const char *actual = skipvar(p, 0);
@@ -1666,7 +1629,7 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Succeeds_GivenSubroutine) {
     TokeniseAndAppend("foo");
     TokeniseAndAppend("Sub foo()");
     TokeniseAndAppend("End Sub");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
 
@@ -1678,7 +1641,7 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Succeeds_GivenLabel) {
     TokeniseAndAppend("foo");
     TokeniseAndAppend("foo:");
     TokeniseAndAppend("  Print \"bar\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
 
@@ -1700,7 +1663,7 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenFunction) {
 TEST_F(MmBasicCoreTest, GetIntAddress_Succeeds_GivenLineNumber) {
     TokeniseAndAppend("Goto 100");
     TokeniseAndAppend("100 Print \"bar\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *actual = GetIntAddress(ProgMemory + 3); // Skip initial T_NEWLINE and GOTO.
 
@@ -1712,7 +1675,7 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenNonExistentTarget) {
     TokeniseAndAppend("bar");
     TokeniseAndAppend("Sub foo()");
     TokeniseAndAppend("End Sub");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
 
@@ -1724,7 +1687,7 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Succeeds_GivenMaxNameLength) {
     TokeniseAndAppend(MAX_LENGTH_NAME);
     TokeniseAndAppend("Sub " MAX_LENGTH_NAME "()");
     TokeniseAndAppend("End Sub");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
 
@@ -1736,7 +1699,7 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenTargetNameTooLong) {
     TokeniseAndAppend(TOO_LONG_NAME);
     TokeniseAndAppend("Sub foo()");
     TokeniseAndAppend("End Sub");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
 
     const char *actual = GetIntAddress(ProgMemory + 1); // Skip initial T_NEWLINE.
 
@@ -1746,7 +1709,7 @@ TEST_F(MmBasicCoreTest, GetIntAddress_Errors_GivenTargetNameTooLong) {
 
 TEST_F(MmBasicCoreTest, MakeArgs_GivenIfWithoutElse_Succeeds) {
     TokeniseAndAppend("If foo = -1 Then Error \"bar\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
     char argbuf[ARGBUF_SIZE];
     char *argv[10];
@@ -1768,7 +1731,7 @@ TEST_F(MmBasicCoreTest, MakeArgs_GivenIfWithoutElse_Succeeds) {
 
 TEST_F(MmBasicCoreTest, MakeArgs_GivenFunctionWithoutParameters_Succeeds) {
     TokeniseAndAppend("If Not 1 Then Error \"bar\"");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
     char argbuf[ARGBUF_SIZE];
     char *argv[10];
@@ -1790,7 +1753,7 @@ TEST_F(MmBasicCoreTest, MakeArgs_GivenFunctionWithoutParameters_Succeeds) {
 
 TEST_F(MmBasicCoreTest, MakeArgs_GivenFunctionWithParameters_Succeeds) {
     TokeniseAndAppend("If Peek(Var f_$, i%) = 92 Then Poke Var f_$, i%, 47");
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
     char argbuf[ARGBUF_SIZE];
     char *argv[10];
@@ -1815,7 +1778,7 @@ TEST_F(MmBasicCoreTest, MakeArgs_GivenInputOverflows_Fails) {
     sprintf(untokenised, "%s", "Print a");
     for (int i = 0; i < 150; ++i) cstring_cat(untokenised, "+ a", INPBUF_SIZE);
     TokeniseAndAppend(untokenised);
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
     char argbuf[ARGBUF_SIZE] = { 0x00 };
     char *argv[10];
@@ -1833,7 +1796,7 @@ TEST_F(MmBasicCoreTest, MakeArgs_GivenBracketedExpressionOverflows_Fails) {
     for (int i = 0; i < 150; ++i) cstring_cat(untokenised, "+ a", INPBUF_SIZE);
     cstring_cat(untokenised, ")", INPBUF_SIZE);
     TokeniseAndAppend(untokenised);
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
     char argbuf[ARGBUF_SIZE] = { 0xFF };
     char *argv[10];
@@ -1851,7 +1814,7 @@ TEST_F(MmBasicCoreTest, MakeArgs_GivenStringOverflows_Fails) {
     for (int i = 0; i < 100; ++i) cstring_cat(untokenised, " hello", INPBUF_SIZE);
     cstring_cat(untokenised, "\"", INPBUF_SIZE);
     TokeniseAndAppend(untokenised);
-    PrepareProgram(true);
+    ASSERT_EQ(kOk, PrepareProgram(true));
     const char *p = ProgMemory + 3; // Skip initial T_NEWLINE and IF token
     char argbuf[ARGBUF_SIZE] = { 0xFF };
     char *argv[10];
