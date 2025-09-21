@@ -73,7 +73,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define error error_throw_legacy
 
 extern int ListCnt;
-extern int MMCharPos;
 
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables
@@ -112,11 +111,10 @@ const char DIGIT_CHARS[256] = {
 
 int NextData;                                                       // used to track the next item to read in DATA & READ stmts
 const char *NextDataLine;                                           // used to track the next line to read in DATA & READ stmts
-#if !defined(__mmb4l__)
-int OptionBase;                                                     // track the state of OPTION BASE
-#endif
 
-
+bool TraceOn;                                                       // used to track the state of TRON/TROFF
+const char *TraceBuff[TRACE_BUFF_SIZE];
+int TraceBuffIndex;                                                 // used for listing the contents of the trace buffer
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // Global information used by operators and functions

@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "../common/cstring.h"
+#include "../common/console.h"
 #include "../common/display.h"
 #include "../common/error.h"
 #include "../common/keycodes.h"
