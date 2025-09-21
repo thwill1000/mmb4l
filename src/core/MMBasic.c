@@ -1262,8 +1262,6 @@ const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Functio
     int t1, t2;
     char *sa1, *sa2;
 
-    TestStackOverflow();                                            // throw an error if we have overflowed the PIC32's stack
-
     fa1 = *fa;
     ia1 = *ia;
     sa1 = *sa;
@@ -1712,8 +1710,6 @@ routines for storing and manipulating variables
 //      for T_STR a block of memory of MAXSTRLEN size (or size determined by the LENGTH keyword) will be malloc'ed and the pointer stored in the variable slot.
 void *findvar(const char *p, int action) {
 
-    TestStackOverflow();  // Test if we have overflowed the PIC32's stack.
-
     // Get the name.
     char name[MAXVARLEN + 1] = {0};
     MmResult result = parse_name(&p, name);
@@ -2052,7 +2048,6 @@ static inline bool is_delim(const DelimType *delim, uint16_t c) {
 //   string is an opening bracket '(' this function will expect the arg list to be enclosed in brackets.
 void makeargs(const char **p, int maxargs, char *argbuf, char *argv[], int *argc,
               const DelimType *delim) {
-    TestStackOverflow();                                            // throw an error if we have overflowed the PIC32's stack
     char * const limit = argbuf + ARGBUF_SIZE - 4;
     const char *tp = *p;
     char *op = argbuf;
@@ -2415,7 +2410,7 @@ MmResult ClearRuntime(void) {
     streamio_close_all();
     mmb_error_state_ptr = &mmb_normal_error_state;
     error_init(mmb_error_state_ptr);
-    InitHeap();
+    ON_FAILURE_RETURN(memory_clear_heap());
     ClearVars(0);
     CurrentLinePtr = NULL;
     ContinuePoint = NULL;

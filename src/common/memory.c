@@ -44,15 +44,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // This module manages all memory allocation for MMBasic.
 
-#include "mmb4l.h"
-
+#include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "error.h"
+#include "memory.h"
 
 // allocate static memory for programs, variables and the heap
 // this is simple memory management because DOS has plenty of memory
 
 #define MMAP_SIZE  ((HEAP_SIZE / PAGESIZE) / PAGESPERWORD) + 1
+
+bool memory_initialised = false;
 
 // memory for the program
 char ProgMemory[PROG_FLASH_SIZE];
@@ -68,20 +73,63 @@ char __attribute__ ((aligned (8))) MMHeap[HEAP_SIZE];
 // arrays used to track temporary strings
 char *StrTmp[MAXTEMPSTRINGS];           // used to track temporary string space on the heap
 char StrTmpLocalIndex[MAXTEMPSTRINGS];  // used to track the LocalIndex for each temporary string space on the heap
-int TempMemoryIsChanged = false;        // used to prevent unnecessary scanning of strtmp[]
+bool TempMemoryIsChanged = false;       // used to prevent unnecessary scanning of strtmp[]
 
-// global functions
-unsigned int MBitsGet(void *addr);
-void MBitsSet(void *addr, int bits);
-void *getheap(int size);
+// Defined in "core/MMBasic.c"
+extern int LocalIndex;
+MMINTEGER getinteger(const char *p);
+
+// Forward declarations
+static unsigned int MBitsGet(void *addr);
+static void MBitsSet(void *addr, int bits);
+static int MemSize(void* addr);
+static void *getheap(int size);
 
 /***********************************************************************************************************************
  Public memory management functions
 ************************************************************************************************************************/
 
+MmResult memory_clear_heap(void) {
+    if (!memory_initialised) {
+        return mmresult_ex(kInternalFault, "Internal fault: memory module not initialised");
+    }
+    for (size_t i = 0; i < MMAP_SIZE; i++) mmap[i] = 0;
+    for (size_t i = 0; i < MAXTEMPSTRINGS; i++) StrTmp[i] = NULL;
+    MBitsSet((char *) RAMEND, PUSED | PLAST);
+    return kOk;
+}
+
+MmResult memory_init(void) {
+    if (memory_initialised) {
+        return mmresult_ex(kInternalFault, "Internal fault: memory module already initialised");
+    }
+#if 0
+    printf("MMHeap = %lX\n", MMHeap);
+    printf("ProgMemory = %lX\n", ProgMemory);
+    printf("HEAP_SIZE = %ld\n", HEAP_SIZE);
+    printf("PAGESIZE = %ld\n", PAGESIZE);
+    printf("PAGESPERWORD = %ld\n", PAGESPERWORD);
+    printf("RAMEND = %lX\n", RAMEND);
+    printf("MMAP SIZE = %d\n", MMAP_SIZE);
+#endif
+    memory_initialised = true;
+    MmResult result = memory_clear_heap();
+    if (FAILED(result)) memory_initialised = false;
+    return result;
+}
+
+MmResult memory_term(void) {
+    if (!memory_initialised) {
+        return mmresult_ex(kInternalFault, "Internal fault: memory module not initialised");
+    }
+    ON_FAILURE_RETURN(memory_clear_heap());
+    memory_initialised = false;
+    return kOk;
+}
+
 // get some memory from the heap
 void *GetMemory(size_t msize) {
-    TestStackOverflow();                                            // throw an error if we have overflowed the PIC32's stack
+    assert(memory_initialised);
     return getheap(msize);                                          // allocate space
 }
 
@@ -90,6 +138,7 @@ void *GetMemory(size_t msize) {
 // A pointer to the space is also saved in strtmp[] so that the memory can be automatically freed at the end of the command
 // StrTmpLocalIndex[] is used to track the sub/fun nesting level at which it was created
 void *GetTempMemory(int NbrBytes) {
+    assert(memory_initialised);
     int i;
     for(i = 0; i < MAXTEMPSTRINGS; i++)
         if(StrTmp[i] == NULL) {
@@ -105,6 +154,7 @@ void *GetTempMemory(int NbrBytes) {
 // get a temporary string buffer
 // this is used by many BASIC string functions.  The space only lasts for the length of the command.
 void *GetTempStrMemory(void) {
+    assert(memory_initialised);
     return GetTempMemory(STRINGSIZE);
 }
 
@@ -112,6 +162,7 @@ void *GetTempStrMemory(void) {
 // this will not clear memory allocated with a local index less than LocalIndex, sub/funs will increment LocalIndex
 // and this prevents the automatic use of ClearTempMemory from clearing memory allocated before calling the sub/fun
 void ClearTempMemory(void) {
+    assert(memory_initialised);
     int i;
 //dp("ClearTempMemory");
     for(i = 0; i < MAXTEMPSTRINGS; i++) {
@@ -124,6 +175,7 @@ void ClearTempMemory(void) {
 }
 
 void ClearSpecificTempMemory(void *addr) {
+    assert(memory_initialised);
     int i;
 //dpIGClearSpecificTempMemory(%p)", addr);
     for(i = 0; i < MAXTEMPSTRINGS; i++) {
@@ -136,6 +188,7 @@ void ClearSpecificTempMemory(void *addr) {
 }
 
 void FreeMemory(void *addr) {
+    assert(memory_initialised);
     int bits;
     // dp("FreeMemory(%p)", addr);
     do {
@@ -146,26 +199,47 @@ void FreeMemory(void *addr) {
     } while (bits != (PUSED | PLAST));
 }
 
-void InitHeap(void) {
-#if 0
-    printf("MMHeap = %lX\n", MMHeap);
-    printf("ProgMemory = %lX\n", ProgMemory);
-    printf("HEAP_SIZE = %ld\n", HEAP_SIZE);
-    printf("PAGESIZE = %ld\n", PAGESIZE);
-    printf("PAGESPERWORD = %ld\n", PAGESPERWORD);
-    printf("RAMEND = %lX\n", RAMEND);
-    printf("MMAP SIZE = %d\n", MMAP_SIZE);
-#endif
-    for (size_t i = 0; i < MMAP_SIZE; i++) mmap[i] = 0;
-    for (size_t i = 0; i < MAXTEMPSTRINGS; i++) StrTmp[i] = NULL;
-    MBitsSet((char *) RAMEND, PUSED | PLAST);
+/** Counts the unused pages of heap and returns the result multiplied by PAGESIZE. */
+int FreeSpaceOnHeap(void) {
+    assert(memory_initialised);
+    unsigned int nbr;
+    char *addr;
+    nbr = 0;
+    for(addr = (char *) RAMEND -  PAGESIZE; addr > MMHeap; addr -= PAGESIZE)
+        if(!(MBitsGet(addr) & PUSED)) nbr++;
+    return nbr * PAGESIZE;
+}
+
+/** Counts the used pages of heap and returns the result multiplied by PAGESIZE. */
+unsigned int UsedHeap(void) {
+    assert(memory_initialised);
+    unsigned int nbr;
+    char *addr;
+    nbr = 0;
+    for(addr = (char *) RAMEND -  PAGESIZE; addr > MMHeap; addr -= PAGESIZE)
+        if(MBitsGet(addr) & PUSED) nbr++;
+    return nbr * PAGESIZE;
+}
+
+void* ReAllocMemory(void* addr, size_t msize) {
+    assert(memory_initialised);
+    int size = MemSize(addr);
+    if (msize <= (size_t)size)return addr;
+    void* newaddr = GetMemory(msize);
+    if (addr != NULL && size != 0) {
+        memcpy(newaddr, addr, MemSize(addr));
+        FreeMemory((unsigned char *)addr);
+        addr = NULL;
+
+    }
+    return newaddr;
 }
 
 /***********************************************************************************************************************
  Private memory management functions
 ************************************************************************************************************************/
 
-unsigned int MBitsGet(void *addr) {
+static unsigned int MBitsGet(void *addr) {
     unsigned int i, *p;
     // addr -= (int)MMHeap;
     uintptr_t addrx = (uintptr_t)addr - (uintptr_t)MMHeap;
@@ -174,7 +248,7 @@ unsigned int MBitsGet(void *addr) {
     return (*p >> i) & ((1 << PAGEBITS) - 1);
 }
 
-void MBitsSet(void *addr, int bits) {
+static void MBitsSet(void *addr, int bits) {
     unsigned int i, *p;
     // addr -= (int)MMHeap;
     uintptr_t addrx = (uintptr_t)addr - (uintptr_t)MMHeap;
@@ -183,7 +257,7 @@ void MBitsSet(void *addr, int bits) {
     *p = (bits << i) | (*p & (~(((1 << PAGEBITS) - 1) << i)));
 }
 
-void *getheap(int size) {
+static void *getheap(int size) {
     unsigned int j, n;
     char *addr;
     j = n = (size + PAGESIZE - 1)/PAGESIZE;                         // nbr of pages rounded up
@@ -205,26 +279,6 @@ void *getheap(int size) {
     ClearTempMemory();                                              // hopefully this will give us enough to print the prompt
     ERROR_OUT_OF_MEMORY;
     return NULL;                                                    // keep the compiler happy
-}
-
-/** Counts the unused pages of heap and returns the result multiplied by PAGESIZE. */
-int FreeSpaceOnHeap(void) {
-    unsigned int nbr;
-    char *addr;
-    nbr = 0;
-    for(addr = (char *) RAMEND -  PAGESIZE; addr > MMHeap; addr -= PAGESIZE)
-        if(!(MBitsGet(addr) & PUSED)) nbr++;
-    return nbr * PAGESIZE;
-}
-
-/** Counts the used pages of heap and returns the result multiplied by PAGESIZE. */
-unsigned int UsedHeap(void) {
-    unsigned int nbr;
-    char *addr;
-    nbr = 0;
-    for(addr = (char *) RAMEND -  PAGESIZE; addr > MMHeap; addr -= PAGESIZE)
-        if(MBitsGet(addr) & PUSED) nbr++;
-    return nbr * PAGESIZE;
 }
 
 #ifdef __xDEBUG
@@ -272,17 +326,4 @@ static int MemSize(void* addr) { //returns the amount of heap memory allocated t
         } while (bits != (PUSED | PLAST));
     }
     return i;
-}
-
-void* ReAllocMemory(void* addr, size_t msize) {
-    int size = MemSize(addr);
-    if (msize <= (size_t)size)return addr;
-    void* newaddr = GetMemory(msize);
-    if (addr != NULL && size != 0) {
-        memcpy(newaddr, addr, MemSize(addr));
-        FreeMemory((unsigned char *)addr);
-        addr = NULL;
-
-    }
-    return newaddr;
 }

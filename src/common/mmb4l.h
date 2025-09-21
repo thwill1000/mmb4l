@@ -56,8 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define PI_VALUE  3.14159265358979323
 
-#define TestStackOverflow()  {}
-
 // Aliases for MMBasic's global variables, all prefixed with g_
 #define g_current_var_idx  VarIndex
 #define g_float_rtn        fret
