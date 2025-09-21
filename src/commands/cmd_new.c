@@ -54,7 +54,7 @@ void cmd_new(void) {
     checkend(cmdline);
     ClearSavedVars();
     FlashWriteInit();
-    ClearProgram();
+    ON_FAILURE_ERROR(ClearProgram());
     WatchdogSet = false;
     mmb_options.autorun = false;
     MmResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);

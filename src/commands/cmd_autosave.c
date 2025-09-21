@@ -134,7 +134,7 @@ void cmd_autosave(void) {
         }
     }
 
-    ClearProgram();             // Clear leftovers from the previous program.
+    ON_FAILURE_ERROR(ClearProgram());  // Clear leftovers from the previous program.
     char *buf = GetTempMemory(EDIT_BUFFER_SIZE);
     int exit_key = cmd_autosave_read(buf);
     cmd_autosave_write_file(filename, buf);
