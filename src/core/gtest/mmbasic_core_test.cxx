@@ -73,7 +73,8 @@ protected:
 
     void SetUp() override {
         vartbl_init_called = false;
-        EXPECT_EQ(kOk, InitBasic());
+        ASSERT_EQ(kOk, memory_init());
+        ASSERT_EQ(kOk, InitBasic());
         funtbl_clear(); // TODO: remove this
         error_msg[0] = '\0';
         m_program[0] = '\0';
@@ -83,6 +84,7 @@ protected:
     }
 
     void TearDown() override {
+        ASSERT_EQ(kOk, memory_term());
     }
 
     void ClearProgMemory() {

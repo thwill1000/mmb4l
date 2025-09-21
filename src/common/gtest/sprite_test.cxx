@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Thomas Hugo Williams
+ * Copyright (c) 2024-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -14,6 +14,7 @@ extern "C" {
 #include "../error.h"
 #include "../features.h"
 #include "../interrupt.h"
+#include "../memory.h"
 #include "../sprite.h"
 #include "../../third_party/spbmp.h"
 
@@ -58,8 +59,10 @@ void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *arg
 class SpriteTest : public ::testing::Test {
    protected:
     void SetUp() override {
+        ASSERT_EQ(kOk, memory_init());
+
         OPTIONS_SET_SIMULATE(kSimulateMmb4l);
-        graphics_init();
+        ASSERT_EQ(kOk, graphics_init());
 
         // Create a surface for the sprites to sit on.
         (void) graphics_buffer_create(0, 640, 480);
@@ -77,7 +80,10 @@ class SpriteTest : public ::testing::Test {
         GivenNoCollisions();
     }
 
-    void TearDown() override { graphics_term(); }
+    void TearDown() override {
+        ASSERT_EQ(kOk, graphics_term());
+        ASSERT_EQ(kOk, memory_term());
+    }
 
     void GivenNoCollisions() {
         for (MmSurfaceId id = 1; id <= 10; ++id) {
