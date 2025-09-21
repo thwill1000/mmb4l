@@ -61,18 +61,17 @@ static MmResult on_error_abort(const char* p) {
 }
 
 static MmResult on_error_clear(const char *p) {
-    error_init(mmb_error_state_ptr);
-    return kOk;
+    return error_init(mmb_error_state_ptr);
 }
 
 static MmResult on_error_ignore(const char *p) {
-    error_init(mmb_error_state_ptr);
+    ON_FAILURE_RETURN(error_init(mmb_error_state_ptr));
     mmb_error_state_ptr->skip = -1;
     return kOk;
 }
 
 static MmResult on_error_skip(const char *p) {
-    error_init(mmb_error_state_ptr);
+    ON_FAILURE_RETURN(error_init(mmb_error_state_ptr));
     mmb_error_state_ptr->skip = (*p == 0 || *p == '\'') ? 2 : getint(p, 1, 10000) + 1;
     return kOk;
 }
