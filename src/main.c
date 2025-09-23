@@ -304,8 +304,10 @@ int main(int argc, char *argv[]) {
     atexit(console_disable_raw_mode);
     init_mmbasic_config_dir();
     init_options();
-    ON_FAILURE_EXIT(keyboard_init());
+    mmb_state.default_simulate =
+        (mmb_args.simulate == kSimulateUnspecified) ? kSimulateMmb4l : mmb_args.simulate;
     ON_FAILURE_EXIT(InitBasic());
+    ON_FAILURE_EXIT(keyboard_init());
 
     //printf("Commands\n--------\n");
     //dump_token_table(commandtbl);
@@ -313,7 +315,7 @@ int main(int argc, char *argv[]) {
     //printf("Tokens\n--------\n");
     //dump_token_table(tokentbl);
 
-# if 0
+#if 0
     signal(SIGBREAK, IntHandler);  // CTRL-C handler
     signal(SIGINT, IntHandler);
 #endif

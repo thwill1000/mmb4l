@@ -60,6 +60,7 @@ void cmd_new(void) {
     ProgMemory[2] = '\0';
     CurrentFile[0] = '\0';
     ON_FAILURE_ERROR(ClearRuntime());
+    ON_FAILURE_ERROR(SwitchPlatform(kSimulateUnspecified));
     mmb_options.autorun = false;
     MmResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);
     if (FAILED(result)) {

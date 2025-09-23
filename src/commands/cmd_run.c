@@ -44,9 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string.h>
 
-#include "../common/mmb4l.h"
 #include "../common/cstring.h"
-#include "../common/flash.h"
+#include "../common/error.h"
+#include "../common/memory.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 #include "../core/MMBasic.h"
@@ -148,7 +148,7 @@ static void cmd_run_transform_legacy_args(char *run_args) {
  */
 MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *filename,
                             char *run_args) {
-    *simulate = kSimulateMmb4l;
+    *simulate = kSimulateUnspecified;
     *filename = '\0';
 
     // WARNING! do not clear 'run_args' at the start of this function,
@@ -233,16 +233,8 @@ void cmd_run(void) {
     bool trace_on_bak = TraceOn;
     ON_FAILURE_ERROR(program_load_file(filename));
     ON_FAILURE_ERROR(ClearRuntime());
-    TraceOn = trace_on_bak;
-
-    if (simulate != mmb_options.simulate) {
-        mmb_options.simulate = simulate;
-        // TODO: Eliminate duplication with cmd_option().
-        ON_FAILURE_ERROR(features_init(&mmb_features, simulate));
-        ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
-        ON_FAILURE_ERROR(mmb_features.has_cmd_flash ? flash_init() : flash_term());
-    }
-
+    TraceOn = trace_on_bak;    
+    ON_FAILURE_ERROR(SwitchPlatform(simulate));
     ON_FAILURE_ERROR(PrepareProgram(true));
     if (*ProgMemory != T_NEWLINE) return;  // no program to run
     nextstmt = ProgMemory;

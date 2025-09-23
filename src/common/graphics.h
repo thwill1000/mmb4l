@@ -208,6 +208,9 @@ extern unsigned graphics_mode;
 /** Initialises 'graphics' module. */
 MmResult graphics_init();
 
+/** Resets graphics state to the default for the currently simulated platform. */
+MmResult graphics_reset();
+
 MmSurfaceId graphics_find_window(uint32_t window_id);
 
 /** Redraws all 'dirty' windows (if the time is right). */

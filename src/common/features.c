@@ -224,7 +224,8 @@ MmResult features_init(Features *features, OptionsSimulate simulate) {
             new_features = &features_picomite_vga_usb;
             break;
         default:
-            return kInternalFault;
+            return mmresult_ex(kInternalFault, "Internal fault: unknown OptionSimulate value %d",
+                               simulate);
     }
 
     memcpy(features, new_features, sizeof(Features));
