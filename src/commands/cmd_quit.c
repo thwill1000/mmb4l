@@ -47,6 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void cmd_quit(void) {
     getargs(&cmdline, 1, DELIM_COMMA);
-    mmb_exit_code = (argc == 1) ? getint(argv[0], 0, 255) : EX_OK;
+    mmb_state.exit_code = (argc == 1) ? getint(argv[0], 0, 255) : EX_OK;
     longjmp(mark, JMP_QUIT);
 }

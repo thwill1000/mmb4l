@@ -13,6 +13,7 @@ extern "C" {
 #include "../error.h"
 #include "../features.h"
 #include "../graphics.h"
+#include "../mmb4l.h"
 #include "../../third_party/spbmp.h"
 
 // Defined in "main.c"
@@ -22,7 +23,6 @@ ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
-uint8_t mmb_exit_code = 0;
 
 void CheckAbort(void) {}
 int MMgetchar(void) { return 0; }
@@ -51,10 +51,10 @@ MmResult sprite_term() { return kOk; }
 const char *CurrentLinePtr = NULL;
 int LocalIndex = 0;
 
-long long int getinteger(char *p) { return 0; }
-int getint(char *p, int min, int max) { return 0; }
+MMINTEGER getinteger(const char *p) { return 0; }
+MMINTEGER getint(const char *p, MMINTEGER min, MMINTEGER max) { return 0; }
 void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc,
-              const char *delim) {}
+              const DelimType *delim) {}
 
 }  // extern "C"
 

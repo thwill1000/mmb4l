@@ -32,7 +32,6 @@ ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
-uint8_t mmb_exit_code = 0;
 
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
