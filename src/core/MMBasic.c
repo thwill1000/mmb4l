@@ -61,6 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vartbl.h"
 #include "../common/audio.h"
 #include "../common/display.h"
+#include "../common/exit_codes.h"
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
@@ -71,6 +72,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/utility.h"
 
 #define error error_throw_legacy
+
+MmBasicState mmb_state = { .exit_code = EX_OK };
 
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables

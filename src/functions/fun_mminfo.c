@@ -249,7 +249,7 @@ static void mminfo_exists(const char *p) {
 static void mminfo_exitcode(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
-    g_integer_rtn = mmb_exit_code;
+    g_integer_rtn = mmb_state.exit_code;
 }
 
 static void mminfo_fcolour(const char *p) {

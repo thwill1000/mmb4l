@@ -19,7 +19,7 @@ int MMgetchar(void) { return 0; }
 
 // Defined in "core/MMBasic.c"
 const char *GetIntAddress(const char *p) { return NULL; }
-long long int getinteger(char *p) { return 0; }
+MMINTEGER getinteger(char *p) { return 0; }
 void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc,
               const char *delim) {}
 int LocalIndex = 0;

@@ -86,7 +86,6 @@ char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary;
 
 CmdLineArgs mmb_args = { 0 };
-uint8_t mmb_exit_code = EX_OK;
 
 static const char mmbasic_dir[] = "~/.mmbasic";
 
@@ -221,7 +220,7 @@ void longjmp_handler(int jmp_state) {
     int do_exit = false;
     switch (jmp_state) {
         case JMP_BREAK:
-            mmb_exit_code = EX_BREAK;
+            mmb_state.exit_code = EX_BREAK;
             do_exit = !mmb_args.show_prompt;
             break;
 
@@ -232,12 +231,12 @@ void longjmp_handler(int jmp_state) {
         case JMP_ERROR:
             display_puts(mmb_error_state_ptr->message);
             display_puts("\r\n");
-            mmb_exit_code = error_to_exit_code(mmb_error_state_ptr->code);
+            mmb_state.exit_code = error_to_exit_code(mmb_error_state_ptr->code);
             do_exit = !mmb_args.show_prompt;
             break;
 
         case JMP_NEW:
-            mmb_exit_code = EX_OK; // Probably not necessary.
+            mmb_state.exit_code = EX_OK; // Probably not necessary.
             do_exit = false;
             break;
 
@@ -252,7 +251,7 @@ void longjmp_handler(int jmp_state) {
     }
 
     if (do_exit) {
-        exit(mmb_exit_code);
+        exit(mmb_state.exit_code);
     }
 
     ContinuePoint = nextstmt;  // In case the user wants to use the continue command

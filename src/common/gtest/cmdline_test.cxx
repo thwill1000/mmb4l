@@ -37,8 +37,8 @@ int VarIndex;
 char *getCstring(const char *p) { return NULL; }
 void *findvar(const char *p, int action)  { return NULL; }
 const char *skipexpression(const char *p) { return NULL; }
-long long int getinteger(char *p) { return 0; }
-int getint(char *p, int min, int max) { return 0; }
+MMINTEGER getinteger(char *p) { return 0; }
+MMINTEGER getint(char *p, MMINTEGER min, MMINTEGER max) { return 0; }
 
 // Defined in "core/tokentbl.c"
 char tokenAS = 0x0;

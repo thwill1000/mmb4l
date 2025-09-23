@@ -15,6 +15,7 @@ extern "C" {
 #include "../features.h"
 #include "../interrupt.h"
 #include "../memory.h"
+#include "../mmb4l.h"
 #include "../sprite.h"
 #include "../../third_party/spbmp.h"
 
@@ -25,7 +26,6 @@ ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
-uint8_t mmb_exit_code = 0;
 
 void CheckAbort(void) {}
 int MMgetchar(void) { return 0; }
@@ -55,10 +55,10 @@ SpBmpResult spbmp_save(void *file, SpBmpFormat format, void *userdata, int x, in
 const char *CurrentLinePtr = NULL;
 int LocalIndex = 0;
 
-long long int getinteger(char *p) { return 0; }
-int getint(char *p, int min, int max) { return 0; }
+MMINTEGER getinteger(const char *p) { return 0; }
+MMINTEGER getint(const char *p, MMINTEGER min, MMINTEGER max) { return 0; }
 void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc,
-              const char *delim) {}
+              const DelimType *delim) {}
 
 }  // extern "C"
 
