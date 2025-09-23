@@ -300,22 +300,12 @@ int main(int argc, char *argv[]) {
         exit(EX_OK);
     }
 
-    ProgMemory[0] = ProgMemory[1] = ProgMemory[2] = 0;
-
     ON_FAILURE_EXIT(console_init(!mmb_args.show_prompt));
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
-
-    if (mmb_args.show_prompt) {
-        ON_FAILURE_EXIT(init_prompt());
-    }
-
     init_mmbasic_config_dir();
     init_options();
-    ON_FAILURE_EXIT(features_init(&mmb_features, mmb_options.simulate));
-    ON_FAILURE_EXIT(error_init(mmb_error_state_ptr));
     ON_FAILURE_EXIT(keyboard_init());
-
     ON_FAILURE_EXIT(InitBasic());
 
     //printf("Commands\n--------\n");
@@ -329,13 +319,12 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, IntHandler);
 #endif
 
-    ON_FAILURE_EXIT(streamio_init(&display_putc, &display_write));
-    ON_FAILURE_EXIT(interrupt_init());
-    ON_FAILURE_EXIT(mmtime_init());
-    srand(0);  // seed the random generator with zero
-    set_start_directory();
-
     run_flag = mmb_args.run_cmd[0] != '\0';
+
+    if (mmb_args.show_prompt) {
+        ON_FAILURE_EXIT(init_prompt());
+    }
+    set_start_directory();
 
     // Note that weird restrictions on what you can do with the return value
     // from setjmp() mean we cannot simply write longjmp_handler(setjmp(mark));
