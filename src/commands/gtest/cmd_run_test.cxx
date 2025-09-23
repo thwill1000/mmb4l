@@ -41,18 +41,9 @@ extern char cmd_run_args[STRINGSIZE];
 MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *filename,
                             char *run_args);
 
-// Defined in "common/flash.c"
-MmResult flash_init() { return kOk; }
-MmResult flash_term() { return kOk; }
-
 // Defined in "common/gpio.c"
 MmResult gpio_term() { return kOk; }
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
-
-// Defined in "common/graphics.c"
-MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColour background) {
-    return kOk;
-}
 
 // Defined in "common/program.c"
 char CurrentFile[STRINGSIZE];
