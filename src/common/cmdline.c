@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmdline.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -61,7 +61,7 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
 
     // TODO: should perhaps be rewritten to use getopt().
 
-    OptionsSimulate simulate = kSimulateMmb4l;
+    out->simulate = kSimulateMmb4l;
     memset(out, 0, sizeof(CmdLineArgs));
     out->show_prompt = 255;
 
@@ -70,7 +70,7 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
     if (argc >= 2) {
         const int s = options_simulate_from_string(argv[i]);
         if (s != -1) {
-            simulate = (OptionsSimulate) s;
+            out->simulate = (OptionsSimulate) s;
             i++;
         }
     }
@@ -94,15 +94,15 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
             if (i == argc - 1) return kInvalidCommandLine;
             const int s = options_simulate_from_string(argv[++i]);
             if (s == -1) return kUnknownDevice;
-            simulate = (OptionsSimulate) s;
+            out->simulate = (OptionsSimulate) s;
         } else if (is_prefix("-s=", argv[i])) {
             const int s = options_simulate_from_string(argv[i] + strlen("-s="));
             if (s == -1) return kUnknownDevice;
-            simulate = (OptionsSimulate) s;
+            out->simulate = (OptionsSimulate) s;
         } else if (is_prefix("--simulate=", argv[i])) {
             const int s = options_simulate_from_string(argv[i] + strlen("--simulate="));
             if (s == -1) return kUnknownDevice;
-            simulate = (OptionsSimulate) s;
+            out->simulate = (OptionsSimulate) s;
         } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
             out->version = 1;
         } else {
@@ -117,12 +117,6 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
     const size_t buf_sz = sizeof(out->run_cmd);
     if (i < argc) {
         MmResult result = cstring_cat(out->run_cmd, "*", buf_sz);
-        if (simulate != kSimulateMmb4l) {
-            Features features;
-            ON_FAILURE_RETURN(features_init(&features, simulate));
-            result = cstring_cat(out->run_cmd, features.simple_name, buf_sz);
-            result = cstring_cat(out->run_cmd, " ", buf_sz);
-        }
 
         for (; i < argc; ++i) {
             result = cstring_cat(out->run_cmd, argv[i], buf_sz);
@@ -133,16 +127,6 @@ MmResult cmdline_parse(int argc, const char *argv[], CmdLineArgs *out) {
 
         // ... and then transform that into the RUN syntax.
         ON_FAILURE_RETURN(parse_transform_input_buffer(out->run_cmd));
-    }
-
-    // Handle the case where a device was specified without a program to run.
-    if (out->run_cmd[0] == '\0' && simulate != kSimulateMmb4l) {
-        MmResult result = cstring_cat(out->run_cmd, "OPTION SIMULATE ", buf_sz);
-        Features features;
-        ON_FAILURE_RETURN(features_init(&features, simulate));
-        result = cstring_cat(out->run_cmd, features.simple_name, buf_sz);
-        if (FAILED(result)) return kStringTooLong;
-        out->show_prompt = 1;
     }
 
     if (out->show_prompt == 255) out->show_prompt = (out->run_cmd[0] == '\0');

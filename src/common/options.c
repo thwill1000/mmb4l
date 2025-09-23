@@ -115,6 +115,7 @@ static const NameOrdinalPair options_list_case_map[] = {
 };
 
 const NameOrdinalPair options_simulate_map[] = {
+    { "Unspecified",       kSimulateUnspecified },
     { "MMB4L",             kSimulateMmb4l },
     { "MMBasic for Windows", kSimulateMmb4w },
     { "MMB4W",             kSimulateMmb4w },

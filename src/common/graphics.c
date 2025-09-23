@@ -203,8 +203,7 @@ static MmResult graphics_api_error() {
 
 MmResult graphics_init() {
     if (graphics_initialised) return kOk;
-    MmResult result = events_init();
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(events_init());
     for (MmSurfaceId id = 0; id <= GRAPHICS_MAX_ID; ++id) {
         memset(&graphics_surfaces[id], 0, sizeof(MmSurface));
         graphics_surfaces[id].id = id;
@@ -212,23 +211,58 @@ MmResult graphics_init() {
     graphics_colour_depth = 12;
     graphics_cmm2_background = RGB_BLACK;
     frameEnd = 0;
-    result = sprite_init();
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(sprite_init());
     graphics_initialised = true;
     return kOk;
 }
 
 MmResult graphics_term() {
     if (!graphics_initialised) return kOk;
-    MmResult result = sprite_term();
-    if (SUCCEEDED(result)) result = graphics_surface_destroy_all();
-    if (SUCCEEDED(result)) {
-        graphics_fcolour = RGB_WHITE;
-        graphics_bcolour = RGB_BLACK;
-        graphics_mode = 0;
-        graphics_initialised = false;
+    ON_FAILURE_RETURN(sprite_term());
+    ON_FAILURE_RETURN(graphics_surface_destroy_all());
+    graphics_fcolour = RGB_WHITE;
+    graphics_bcolour = RGB_BLACK;
+    graphics_mode = 0;
+    graphics_initialised = false;
+    return kOk;
+}
+
+MmResult graphics_reset() {
+    if (!graphics_initialised) return kOk;
+
+    MmSurfaceId start_id = 0;
+    switch (mmb_features.graphics_type) {
+        case kGraphicsTypeCmm2:
+            start_id = CMM2_MODES[graphics_mode].num_pages;
+            break;
+        case kGraphicsTypeMmb4l:
+            break;
+        case kGraphicsTypePicomiteHdmi:
+        case kGraphicsTypePicomiteLcd:
+        case kGraphicsTypePicomiteVga:
+            // 0 - window surface
+            // 1 - surface N
+            start_id = 2;
+            break;
     }
-    return result;
+
+    // Destroy non-display surfaces other than the current surface.
+    for (MmSurfaceId id = start_id; id <= GRAPHICS_MAX_ID; ++id) {
+        MmSurface *surface = &graphics_surfaces[id];
+        if (surface == graphics_current) continue;
+        ON_FAILURE_RETURN(graphics_surface_destroy(surface));
+    }
+
+    // Destroy the current surface if it is a display surface.
+    if (graphics_current && graphics_current->id >= start_id) {
+        ON_FAILURE_RETURN(graphics_surface_destroy(graphics_current));
+    }
+
+    graphics_fcolour = mmb_features.foreground;
+    graphics_bcolour = mmb_features.background;
+    graphics_font = 0x11; // Font 1, scale 1
+
+    return kOk;
 }
 
 MmSurfaceId graphics_find_window(uint32_t sdl_window_id) {
@@ -460,10 +494,7 @@ static MmResult graphics_surface_reset(MmSurfaceId id) {
 
 static MmResult graphics_surface_create(MmSurfaceId id, GraphicsSurfaceType type, int width,
                                         int height) {
-    if (!graphics_initialised) {
-        MmResult result = graphics_init();
-        if (FAILED(result)) return result;
-    }
+    if (!graphics_initialised) ON_FAILURE_RETURN(graphics_init());
 
     if (id < 0 || id > GRAPHICS_MAX_ID) return kGraphicsInvalidId;
     if (graphics_surfaces[id].type != kGraphicsNone) return kGraphicsSurfaceAlreadyExists;

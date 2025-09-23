@@ -62,6 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/audio.h"
 #include "../common/display.h"
 #include "../common/exit_codes.h"
+#include "../common/flash.h"
 #include "../common/fonttbl.h"
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
@@ -153,6 +154,7 @@ const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Funct
 
 // Initialise MMBasic
 MmResult InitBasic(void) {
+    srand(0);  // seed the random generator with zero
     ProgMemory[0] = '\0';
     ProgMemory[1] = '\0';
     ProgMemory[2] = '\0';
@@ -163,7 +165,7 @@ MmResult InitBasic(void) {
     ON_FAILURE_RETURN(streamio_init(&display_putc, &display_write));
     ON_FAILURE_RETURN(interrupt_init());
     ON_FAILURE_RETURN(mmtime_init());
-    srand(0);  // seed the random generator with zero
+    ON_FAILURE_RETURN(SwitchPlatform(mmb_state.default_simulate));
     return kOk;
 }
 
@@ -2412,16 +2414,21 @@ void ClearStack(void) {
 // clear the runtime (eg, variables, external I/O, etc) includes ClearStack() and ClearVars()
 // this is done before running a program
 MmResult ClearRuntime(void) {
+    // Facilitate unit-tests that have not initialised the state.
+    if (mmb_state.default_simulate == kSimulateUnspecified) {
+        mmb_state.default_simulate = kSimulateMmb4l;
+    }
+
     ON_FAILURE_RETURN(gamepad_term());
-    ON_FAILURE_RETURN(graphics_term());
     ON_FAILURE_RETURN(audio_term());
     ON_FAILURE_RETURN(gpio_term());
     ClearStack();
     mmb_options.explicit_type = false;
     mmb_options.default_type = T_NBR;
     mmb_options.codepage = NULL;
-    mmb_options.simulate = kSimulateMmb4l;
+    mmb_options.simulate = mmb_state.default_simulate;
     ON_FAILURE_RETURN(features_init(&mmb_features, mmb_options.simulate));
+    ON_FAILURE_RETURN(graphics_reset());
     ON_FAILURE_RETURN(streamio_close_all());
     mmb_error_state_ptr = &mmb_normal_error_state;
     ON_FAILURE_RETURN(error_init(mmb_error_state_ptr));
@@ -2434,6 +2441,31 @@ MmResult ClearRuntime(void) {
     return kOk;
 }
 
+
+MmResult SwitchPlatform(OptionsSimulate platform) {
+    mmb_options.simulate =
+        (platform == kSimulateUnspecified) ? mmb_state.default_simulate : platform;
+
+    // Take a copy of the old platform feature set and update to the new platform.
+    // The copy allows us to determine what graphics re-initialisation needs performing.
+    Features old_features;
+    memcpy(&old_features, &mmb_features, sizeof(Features));
+    ON_FAILURE_RETURN(features_init(&mmb_features, mmb_options.simulate));
+
+    // Initialise support for "flash memory".
+    ON_FAILURE_RETURN(mmb_features.has_cmd_flash ? flash_init() : flash_term());
+
+    // Initialise graphics.
+    if (mmb_features.graphics_type != kGraphicsTypeMmb4l) {
+        ON_FAILURE_RETURN(graphics_init());  // NOP if already initialised.
+        if (graphics_mode != 1 || strcmp(mmb_features.device, old_features.device) != 0 ||
+            strcmp(mmb_features.platform, old_features.platform) != 0) {
+            ON_FAILURE_RETURN(graphics_set_mode(1, 32, RGB_BLACK));
+        }
+    }
+
+    return kOk;
+}
 
 
 #if defined(__mmb4l__)

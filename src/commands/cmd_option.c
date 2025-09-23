@@ -248,9 +248,7 @@ static void cmd_option_set(const char *p) {
             break;
 
         case kOptionSimulate:
-            ON_FAILURE_ERROR(features_init(&mmb_features, mmb_options.simulate));
-            ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
-            ON_FAILURE_ERROR(mmb_features.has_cmd_flash ? flash_init() : flash_term());
+            ON_FAILURE_ERROR(SwitchPlatform(mmb_options.simulate));
             break;
 
         default:
