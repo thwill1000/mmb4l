@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Configuration.h"
 #include "../common/mmresult.h"
+#include "../common/options.h"
 
 // Types used to define an item of data. Often they are ORed together.
 // Used in tokens, variables and arguments to functions
@@ -176,6 +177,7 @@ extern int TraceBuffIndex;
 
 typedef struct {
     uint8_t exit_code;
+    OptionsSimulate default_simulate;
 } MmBasicState;
 
 extern MmBasicState mmb_state;
@@ -192,6 +194,7 @@ void erasearray(char *n);
 void ClearVars(int level);
 void ClearStack(void);
 MmResult ClearRuntime(void);
+MmResult SwitchPlatform(OptionsSimulate platform);
 void *DoExpression(const char *p, int *t);
 const char *evaluate(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, int *ta, int noerror);
 const char *doexpr(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, FunctionToken *oo, int *t);

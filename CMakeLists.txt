@@ -373,6 +373,7 @@ add_executable(test_cmd_do
     src/common/gtest/test_helper.c
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/flash_stubs.c
     src/common/gtest/stubs/gamepad_stubs.c
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
@@ -413,6 +414,7 @@ add_executable(test_cmd_run
     src/common/streamio.c
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/flash_stubs.c
     src/common/gtest/stubs/gamepad_stubs.c
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
@@ -559,6 +561,7 @@ add_executable(test_fun_sprite
     src/common/gtest/test_helper.c
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/flash_stubs.c
     src/common/gtest/stubs/gamepad_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
     src/common/gtest/stubs/serial_stubs.c
@@ -786,6 +789,7 @@ add_executable(test_parse
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/console_stubs.c
     src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/flash_stubs.c
     src/common/gtest/stubs/gamepad_stubs.c
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
@@ -856,6 +860,7 @@ add_executable(test_program
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/console_stubs.c
     src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/flash_stubs.c
     src/common/gtest/stubs/gamepad_stubs.c
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
@@ -1012,6 +1017,7 @@ add_executable(test_mmbasic_core
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/console_stubs.c
     src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/flash_stubs.c
     src/common/gtest/stubs/gamepad_stubs.c
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c

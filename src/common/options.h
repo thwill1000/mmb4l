@@ -130,6 +130,7 @@ typedef enum { kRadians, kDegrees } OptionsAngle;
 typedef enum { kBoth, kScreen, kSerial } OptionsConsole;
 
 typedef enum {
+    kSimulateUnspecified = 0,
     kSimulateMmb4l,
     kSimulateMmb4w,
     kSimulateCmm2,
