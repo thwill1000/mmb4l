@@ -22,6 +22,7 @@ extern "C" {
 #include "../../common/features.h"
 #include "../../common/graphics.h"
 #include "../../common/memory.h"
+#include "../../common/mmb4l.h"
 #include "../../common/parse.h"
 #include "../../common/program.h"
 #include "../../common/gtest/test_helper.h"
@@ -37,7 +38,6 @@ ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
-uint8_t mmb_exit_code = 0;
 int MMgetchar(void) { return 0; }
 void MMgetline(int filenbr, char *p) { }
 

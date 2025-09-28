@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "console.h"
 #include "display.h"
 #include "error.h"
+#include "exit_codes.h"
 #include "keycodes.h"
 #include "mmb4l.h"
 #include "mmtime.h"
@@ -72,7 +73,7 @@ int MMgetchar(void) {
                 // In this case there will never be anything to read.
                 if (MMCharPos > 1) display_puts("\r\n");
                 display_puts("Error: STDIN exhausted\r\n");
-                mmb_exit_code = 1;
+                mmb_state.exit_code = EX_FAIL;
                 display_hide_cursor();
                 longjmp(mark, JMP_QUIT);
             }

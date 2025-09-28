@@ -195,7 +195,7 @@ static bool handle_window_interrupt() {
     if (!window->interrupt_addr) {
         if (event.event == SDL_WINDOWEVENT_CLOSE) {
             (void) graphics_surface_destroy(window);
-            mmb_exit_code = EX_OK;
+            mmb_state.exit_code = EX_OK;
             longjmp(mark, JMP_END);
         } else {
             return true;
