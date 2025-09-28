@@ -79,7 +79,6 @@ void op_equal(void);
 #define JMP_QUIT   5
 #define JMP_UNEXPECTED  999
 
-extern uint8_t mmb_exit_code;
 extern Options mmb_options;
 extern Features mmb_features;
 

@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#if !defined(MMBASIC_H)
+#define MMBASIC_H
+
 #include <ctype.h>
 #include <setjmp.h>
 #include <stdbool.h>
@@ -171,6 +174,12 @@ extern bool TraceOn;
 extern const char *TraceBuff[TRACE_BUFF_SIZE];  // TRACE_BUFF_SIZE defined in 'Configuration.h'
 extern int TraceBuffIndex;
 
+typedef struct {
+    uint8_t exit_code;
+} MmBasicState;
+
+extern MmBasicState mmb_state;
+
 MmResult InitBasic(void);
 
 int32_t FloatToInt32(MMFLOAT x);
@@ -224,3 +233,5 @@ void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
 const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType);
 void getargaddress(char *p, MMINTEGER **ip, MMFLOAT **fp, int *n);
+
+#endif // #if !defined(MMBASIC_H)
