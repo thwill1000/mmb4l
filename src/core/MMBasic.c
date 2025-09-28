@@ -150,10 +150,17 @@ const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Funct
 
 // Initialise MMBasic
 MmResult InitBasic(void) {
+    ProgMemory[0] = '\0';
+    ProgMemory[1] = '\0';
+    ProgMemory[2] = '\0';
     commandtbl_init();
     tokentbl_init();
     vartbl_init();
     ON_FAILURE_RETURN(ClearRuntime());
+    ON_FAILURE_RETURN(streamio_init(&display_putc, &display_write));
+    ON_FAILURE_RETURN(interrupt_init());
+    ON_FAILURE_RETURN(mmtime_init());
+    srand(0);  // seed the random generator with zero
     return kOk;
 }
 
