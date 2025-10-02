@@ -68,6 +68,7 @@ typedef struct {
     int64_t due_ns;
     const char *interrupt_addr;
     int64_t period_ns;
+    bool paused;
 } TickStruct;
 
 typedef struct {
@@ -118,6 +119,7 @@ void interrupt_clear(void) {
         interrupt_ticks[i].due_ns = 0;
         interrupt_ticks[i].interrupt_addr = NULL;
         interrupt_ticks[i].period_ns = 0;
+        interrupt_ticks[i].paused = true;
     }
     for (int i = 0; i <= MAXOPENFILES; ++i) {
         interrupt_serial_rx[i].count = 0;
@@ -274,9 +276,9 @@ bool interrupt_check(void) {
         //         interrupt_ticks[i].period_ns,
         //         interrupt_ticks[i].due_ns,
         //         interrupt_ticks[i].interrupt_addr);
-        if (interrupt_ticks[i].interrupt_addr) {
-            if (now_ns >= interrupt_ticks[i].due_ns) {
-                interrupt_ticks[i].due_ns += interrupt_ticks[i].period_ns;
+        if (now_ns >= interrupt_ticks[i].due_ns) {
+            interrupt_ticks[i].due_ns += interrupt_ticks[i].period_ns;
+            if (!interrupt_ticks[i].paused) {
                 return handle_interrupt(interrupt_ticks[i].interrupt_addr);
             }
         }
@@ -350,9 +352,10 @@ void interrupt_enable_specific_key(int key, const char *interrupt_addr) {
 void interrupt_disable_tick(int irq) {
     assert(irq >= 0 && irq < NBRSETTICKS);
     if (interrupt_ticks[irq].interrupt_addr) {
-        interrupt_ticks[irq].due_ns       = 0;
+        interrupt_ticks[irq].due_ns         = 0;
         interrupt_ticks[irq].interrupt_addr = NULL;
-        interrupt_ticks[irq].period_ns    = 0;
+        interrupt_ticks[irq].period_ns      = 0;
+        interrupt_ticks[irq].paused         = true;
         interrupt_count--;
     }
 }
@@ -362,14 +365,29 @@ void interrupt_enable_tick(int irq, int64_t period_ns, const char *interrupt_add
     assert(period_ns > 0);
     assert(interrupt_addr);
     if (!interrupt_ticks[irq].interrupt_addr) interrupt_count++;
-    interrupt_ticks[irq].due_ns       = mmtime_now_ns() + period_ns;
+    interrupt_ticks[irq].due_ns         = mmtime_now_ns() + period_ns;
     interrupt_ticks[irq].interrupt_addr = interrupt_addr;
-    interrupt_ticks[irq].period_ns    = period_ns;
+    interrupt_ticks[irq].period_ns      = period_ns;
+    interrupt_ticks[irq].paused         = false;
     // printf("Interrupt %d, period = %ld, due = %ld, fn = %ld\n",
     //         irq,
     //         interrupt_ticks[irq].period_ns,
     //         interrupt_ticks[irq].due_ns,
     //         interrupt_ticks[irq].interrupt_addr);
+}
+
+MmResult interrupt_pause_tick(int irq) {
+    assert(irq >= 0 && irq < NBRSETTICKS);
+    if (!interrupt_ticks[irq].interrupt_addr) return kError;
+    interrupt_ticks[irq].paused = true;
+    return kOk;
+}
+
+MmResult interrupt_resume_tick(int irq) {
+    assert(irq >= 0 && irq < NBRSETTICKS);
+    if (!interrupt_ticks[irq].interrupt_addr) return kError;
+    interrupt_ticks[irq].paused = false;
+    return kOk;
 }
 
 bool interrupt_check_key_press(char ch) {

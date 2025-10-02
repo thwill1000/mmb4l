@@ -43,29 +43,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <limits.h>
+#include <string.h>
 
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/interrupt.h"
 #include "../common/mmtime.h"
 
+/** SETTICK { period | PAUSE | RESUME }, target [, nbr] */
 void cmd_settick(void) {
     const char *p = checkstring(cmdline, "FAST");
-    if (p) {
-        ERROR_UNIMPLEMENTED("SETTICK FAST");
-        // cmd_fasttick(p);
-        // return;
-    }
+    if (p) ERROR_UNIMPLEMENTED("SETTICK FAST");
 
     getargs(&cmdline, 5, DELIM_COMMA);
     if (argc != 3 && argc != 5) ERROR_ARGUMENT_COUNT;
 
-    int64_t period_ns = MILLISECONDS_TO_NANOSECONDS(getint(argv[0], 0, INT_MAX));
-    int irq = 0;
-    if (argc == 5) irq = getint(argv[4], 1, NBRSETTICKS) - 1;
-    if (period_ns == 0) {
-        interrupt_disable_tick(irq);
+    const int irq = has_arg(4) ? getint(argv[4], 1, NBRSETTICKS) - 1 : 0;
+
+    if (strcasecmp(argv[0], "PAUSE") == 0) {
+        ON_FAILURE_ERROR(interrupt_pause_tick(irq));
+    } else if (strcasecmp(argv[0], "RESUME") == 0){
+        ON_FAILURE_ERROR(interrupt_resume_tick(irq));
     } else {
-        interrupt_enable_tick(irq, period_ns, GetIntAddress(argv[2]));
+        int64_t period_ns = MILLISECONDS_TO_NANOSECONDS(getint(argv[0], 0, INT_MAX));
+        if (period_ns == 0) {
+            interrupt_disable_tick(irq);
+        } else {
+            interrupt_enable_tick(irq, period_ns, GetIntAddress(argv[2]));
+        }
     }
 }
