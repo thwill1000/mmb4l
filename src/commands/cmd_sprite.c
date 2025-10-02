@@ -142,6 +142,36 @@ static MmResult cmd_sprite_load(const char *p) {
     return graphics_load_sprite(filename, start_sprite_id, colour_mode);
 }
 
+/** SPRITE LOADARRAY [#]id, w, h, array%() */
+static MmResult cmd_sprite_load_array(const char *p) {
+    getargs(&p, 7, DELIM_COMMA);
+    if (argc != 7) return kArgumentCount;
+
+    MmSurfaceId sprite_id = -1;
+    ON_FAILURE_RETURN(parse_sprite_id(argv[0], 0x0, &sprite_id));
+
+    const int width = (int) getint(argv[2], 1, WINDOW_MAX_WIDTH);
+    const int height = (int) getint(argv[4], 1, WINDOW_MAX_HEIGHT);
+    MMFLOAT* a3float = NULL;
+    MMINTEGER* a3int = NULL;
+    const int size = parse_number_array(argv[6], &a3float, &a3int, 4, 1, NULL, true) - 1;
+    if (size < width * height - 1) return kInvalidArrayDimensions;
+
+    ON_FAILURE_RETURN(graphics_sprite_create(sprite_id, width, height));
+    MmSurface *sprite = &graphics_surfaces[sprite_id];
+
+    // Copy data into sprite pixel array.
+    uint32_t *q = sprite->pixels;
+    for (int i = 0; i < width * height; i++) {
+        if (a3float) {
+            *q++ = (uint32_t) a3float[i];
+        } else {
+            *q++ = (uint32_t) a3int[i];
+        }
+    }
+    return kOk;
+}
+
 /** SPRITE MOVE */
 static MmResult cmd_sprite_move(const char *p) {
     skipspace(p);
@@ -313,6 +343,8 @@ void cmd_sprite(void) {
         result = cmd_blit_framebuffer(p);
     } else if ((p = checkstring(cmdline, "LOAD"))) {
         result = cmd_sprite_load(p);
+    } else if ((p = checkstring(cmdline, "LOADARRAY"))) {
+        result = cmd_sprite_load_array(p);
     } else if ((p = checkstring(cmdline, "HIDE ALL"))) {
         result = cmd_sprite_hide_all(p);
     } else if ((p = checkstring(cmdline, "HIDE SAFE"))) {
@@ -345,7 +377,6 @@ void cmd_sprite(void) {
         result = cmd_sprite_write(p);
     }
     ELSE_IF_UNIMPLEMENTED("COPY")
-    ELSE_IF_UNIMPLEMENTED("LOADARRAY")
     ELSE_IF_UNIMPLEMENTED("LOADPNG")
     ELSE_IF_UNIMPLEMENTED("SCROLLR")
     ELSE_IF_UNIMPLEMENTED("SWAP")

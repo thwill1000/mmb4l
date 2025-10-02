@@ -49,7 +49,9 @@ CommandToken cmdFUN = 0x0;
 CommandToken cmdSUB = 0x0;
 
 // Defined in "core/MMBasic.c"
+int VarIndex;
 char *getCstring(const char *p) { return NULL; }
+void *findvar(const char *p, int action)  { return NULL; }
 const char *skipexpression(const char *p) { return NULL; }
 
 // Defined in "core/tokentbl.c"

@@ -614,9 +614,12 @@ MmResult sprite_show(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
     // Hide already visible sprite.
     if (sprite->type == kGraphicsSprite) sprite_hide_internal(sprite, dst_surface);
 
+    // printf("sprite_show #%d, %d, %d, layer = %d, flags = %x - surface %d\n",
+    //        sprite->id, x, y, layer, blit_flags,
+    //        graphics_current->id);
+
     ON_FAILURE_RETURN(sprite_show_internal(sprite, dst_surface, x, y, layer, blit_flags, true));
     return sprite_update_collisions(sprite);
-
 }
 
 MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int y,
