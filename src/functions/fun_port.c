@@ -48,9 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** PORT(start, nbr [, start, nbr] ...) */
 void fun_port(void) {
-    if (mmb_options.simulate != kSimulateGameMite) {
-        error_throw(kUnsupportedOnCurrentDevice);
-        return;
+    if (mmb_features.gamepad_type != kGamepadTypeGamemite) {
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
     getargs(&ep, GPIO_MAX_PIN_NUM * 4, DELIM_COMMA);

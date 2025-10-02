@@ -152,6 +152,7 @@ const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Funct
 // Initialise MMBasic
 void InitBasic(void) {
     DefaultType = T_NBR;
+    features_init(&mmb_features, mmb_options.simulate);
     commandtbl_init();
     tokentbl_init();
     vartbl_init();
@@ -2395,6 +2396,7 @@ void ClearRuntime(void) {
 #if defined(__mmb4l__)
     mmb_options.codepage = NULL;
     mmb_options.simulate = kSimulateMmb4l;
+    features_init(&mmb_features, mmb_options.simulate);
     mmb_options.resolution = kCharacter;
 #endif
 #if defined(MICROMITE) && !defined(LITE)

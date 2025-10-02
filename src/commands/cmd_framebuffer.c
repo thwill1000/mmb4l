@@ -195,11 +195,7 @@ static MmResult cmd_framebuffer_write(const char *p) {
 }
 
 void cmd_framebuffer(void) {
-    if (mmb_options.simulate != kSimulateGameMite
-            && mmb_options.simulate != kSimulatePicoMiteVga
-            && mmb_options.simulate != kSimulatePicoMiteVgaUsb) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    }
+    if (!mmb_features.has_cmd_framebuffer) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
 
     MmResult result = kOk;
     const char *p;

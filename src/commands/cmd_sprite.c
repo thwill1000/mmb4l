@@ -195,10 +195,9 @@ MmResult cmd_sprite_scroll(const char *p) {
     const int y = getint(argv[2], -maxH / 2 - 1, maxH);
     MmGraphicsColour colour = -2; // Background wraps around.
     if (argc == 5) {
-        switch (mmb_options.simulate) {
-            case kSimulateGameMite:
-            case kSimulatePicoMiteVga:
-            case kSimulatePicoMiteVgaUsb:
+        switch (mmb_features.graphics_type) {
+            case kGraphicsTypePicomiteLcd:
+            case kGraphicsTypePicomiteVga:
                 colour = getint(argv[4], -2, 15);
                 if (colour >= 0) colour = GRAPHICS_RGB121_COLOURS[colour];
                 break;

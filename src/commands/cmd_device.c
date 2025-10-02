@@ -76,7 +76,7 @@ static MmResult cmd_device_classic_open(const char *p) {
  * Maps CMM2 (Wii) "CLASSIC" controller commands to MMB4L "GAMEPAD" controllers.
  */
 static MmResult cmd_device_classic(const char *p) {
-    if (mmb_options.simulate != kSimulateCmm2) return kUnsupportedOnCurrentDevice;
+    if (!mmb_features.gamepad_type == kGamepadTypeCmm2) return kUnsupportedOnCurrentDevice;
     const char *p2;
     if ((p2 = checkstring(p, "CLOSE"))) {
         return cmd_device_classic_close(p2);
@@ -102,7 +102,7 @@ static MmResult cmd_device_gamepad_interrupt_disable(const char *p) {
     if (argc != 1) return kArgumentCount;
     MmGamepadId gamepad_id = getint(argv[0], 1, 4);
 
-    if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+    if (mmb_features.gamepad_type == kGamepadTypePicomiteUsb) {
         gamepad_id -= 2;
         ON_FAILURE_RETURN(gamepad_open(gamepad_id));
     }
@@ -118,7 +118,7 @@ static MmResult cmd_device_gamepad_interrupt_enable(const char *p) {
     const char *interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
     const uint16_t bitmask = has_arg(4) ? getint(argv[4], 0, UINT16_MAX) : GAMEPAD_BITMASK_ALL;
 
-    if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+    if (mmb_features.gamepad_type == kGamepadTypePicomiteUsb) {
         gamepad_id -= 2;
         ON_FAILURE_RETURN(gamepad_open(gamepad_id));
     }
@@ -224,7 +224,7 @@ static MmResult cmd_device_gamepad_colour(const char *p) {
     MmGamepadId gamepad_id = getint(argv[0], 1, 4);
     const MMINTEGER colour = getint(argv[2], 0, 0xFFFFFF);
 
-    if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+    if (mmb_features.gamepad_type == kGamepadTypePicomiteUsb) {
         gamepad_id -= 2;
         ON_FAILURE_RETURN(gamepad_open(gamepad_id));
     }
@@ -242,7 +242,7 @@ static MmResult cmd_device_gamepad_haptic(const char *p) {
     const MMINTEGER left = getint(argv[2], 0, 255) << 8;
     const MMINTEGER right = getint(argv[4], 0, 255) << 8;
 
-    if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+    if (mmb_features.gamepad_type == kGamepadTypePicomiteUsb) {
         gamepad_id -= 2;
         ON_FAILURE_RETURN(gamepad_open(gamepad_id));
     }
@@ -252,7 +252,7 @@ static MmResult cmd_device_gamepad_haptic(const char *p) {
     return kOk;
 }
 
-MmResult cmd_device_gamepad_pmvga_usb(const char *p) {
+MmResult cmd_device_gamepad_picomite_usb(const char *p) {
     MmResult result = kOk;
     const char *p2;
     if ((p2 = checkstring(p, "COLOUR"))) {
@@ -281,8 +281,8 @@ void cmd_device(void) {
     if ((p = checkstring(cmdline, "CLASSIC"))) {
         result = cmd_device_classic(p);
     } else if ((p = checkstring(cmdline, "GAMEPAD"))) {
-        if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
-            result = cmd_device_gamepad_pmvga_usb(p);
+        if (mmb_features.gamepad_type == kGamepadTypePicomiteUsb) {
+            result = cmd_device_gamepad_picomite_usb(p);
         } else {
             result = cmd_device_gamepad(p);
         }

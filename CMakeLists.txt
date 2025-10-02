@@ -226,6 +226,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/cstring.c
     src/common/error.c
     src/common/events.c
+    src/common/features.c
     src/common/file.c
     src/common/flash.c
     src/common/fonttbl.c
@@ -334,6 +335,7 @@ add_executable(
   src/commands/cmd_do.c
   src/commands/gtest/cmd_do_test.cxx
   src/common/cstring.c
+  src/common/features.c
   src/common/fonttbl.c
   src/common/memory.c
   src/common/mmresult.c
@@ -372,6 +374,7 @@ add_executable(
   src/commands/cmd_run.c
   src/commands/gtest/cmd_run_test.cxx
   src/common/cstring.c
+  src/common/features.c
   src/common/fonttbl.c
   src/common/memory.c
   src/common/mmresult.c
@@ -467,6 +470,7 @@ add_executable(
   src/common/codepage.c
   src/common/cstring.c
   src/common/events.c
+  src/common/features.c
   src/common/file.c
   src/common/fonttbl.c
   src/common/memory.c
@@ -516,6 +520,7 @@ gtest_discover_tests(test_fun_sprite)
 add_executable(
   test_gpio
   src/common/cstring.c
+  src/common/features.c
   src/common/gpio.c
   src/common/mmresult.c
   src/common/mmtime.c
@@ -573,6 +578,7 @@ add_executable(
   src/common/codepage.c
   src/common/cstring.c
   src/common/events.c
+  src/common/features.c
   src/common/file.c
   src/common/fonttbl.c
   src/common/graphics.c
@@ -694,6 +700,7 @@ gtest_discover_tests(test_options)
 add_executable(
   test_parse
   src/common/cstring.c
+  src/common/features.c
   src/common/file.c
   src/common/memory.c
   src/common/mmgetline.c
@@ -758,6 +765,7 @@ gtest_discover_tests(test_path)
 add_executable(
   test_program
   src/common/cstring.c
+  src/common/features.c
   src/common/file.c
   src/common/memory.c
   src/common/mmgetline.c
@@ -864,6 +872,7 @@ add_executable(
   src/common/codepage.c
   src/common/cstring.c
   src/common/events.c
+  src/common/features.c
   src/common/file.c
   src/common/fonttbl.c
   src/common/graphics.c
@@ -918,6 +927,7 @@ gtest_discover_tests(test_stack)
 add_executable(
   test_mmbasic_core
   src/common/cstring.c
+  src/common/features.c
   src/common/file.c
   src/common/fonttbl.c
   src/common/memory.c

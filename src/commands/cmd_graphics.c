@@ -70,10 +70,9 @@ static MmResult cmd_graphics_cls(const char *p) {
     if (argc % 2 != 1) return kArgumentCount;
     const MmSurfaceId id = getint(argv[0], 0, GRAPHICS_MAX_ID);
     MmSurface *surface = &graphics_surfaces[id];
-    const MmSurface *layer = (mmb_options.simulate == kSimulatePicoMiteVga
-            || mmb_options.simulate == kSimulatePicoMiteVgaUsb)
-                    ?  &graphics_surfaces[GRAPHICS_SURFACE_L]
-                    : NULL;
+    const MmSurface *layer = mmb_features.graphics_type == kGraphicsTypePicomiteVga
+            ?  &graphics_surfaces[GRAPHICS_SURFACE_L]
+            : NULL;
     MmGraphicsColour colour = has_arg(2)
             ? getint(argv[2], RGB_BLACK, RGB_WHITE)
             : (surface == layer) ? layer->transparent : graphics_bcolour;
@@ -216,16 +215,15 @@ MmResult cmd_graphics_list(const char *p) {
     MmResult result = kOk;
     char buf[STRINGSIZE];
 
-    if (mmb_options.simulate != kSimulateMmb4l) {
+    if (mmb_features.graphics_type != kGraphicsTypeMmb4l) {
         result = options_get_string_value(&mmb_options, kOptionSimulate, buf);
         if (FAILED(result)) return result;
         console_puts(buf);
-        if (mmb_options.simulate == kSimulateGameMite) {
-            console_puts("\r\n");
-        } else {
-            (void) snprintf(buf, STRINGSIZE, " - Mode %d\r\n", graphics_mode);
+        if (mmb_features.has_cmd_mode) {
+            (void) snprintf(buf, STRINGSIZE, " - Mode %d", graphics_mode);
             console_puts(buf);
         }
+        console_puts("\r\n");
     }
 
     const MmSurfaceId current_id = graphics_current ? graphics_current->id : -1;

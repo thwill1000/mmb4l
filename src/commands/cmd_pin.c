@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** PIN(pin) = {1|0} */
 void cmd_pin(void) {
-    if (mmb_options.simulate != kSimulatePicoMiteVga) {
+    if (mmb_features.gamepad_type != kGamepadTypePicomiteSnes) {
         ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 

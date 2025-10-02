@@ -130,19 +130,16 @@ static MmResult cmd_play_modfile(const char *p) {
 
     unsigned sample_rate = 44100;
     const char *interrupt = NULL;
-    switch (mmb_options.simulate) {
-        case kSimulateMmb4l:
+    switch (mmb_features.play_modfile_params) {
+        case kPlayModfileTypeWithBoth:
             sample_rate = has_arg(2) ? getint(argv[2], 0, 48000) : 44100;
             interrupt = has_arg(4) ? GetIntAddress(argv[4]) : NULL;
             break;
-        case kSimulateGameMite:
-        case kSimulatePicoMiteVga:
-        case kSimulatePicoMiteVgaUsb:
+        case kPlayModfileTypeWithInterrupt:
             if (has_arg(4)) return kUnsupportedParameterOnCurrentDevice;
             interrupt = has_arg(2) ? GetIntAddress(argv[2]) : NULL;
             break;
-        case kSimulateCmm2:
-        case kSimulateMmb4w:
+        case kPlayModfileTypeWithSampleRate:
             if (has_arg(4)) return kUnsupportedParameterOnCurrentDevice;
             sample_rate = has_arg(2) ? getint(argv[2], 0, 48000) : 44100;
             break;

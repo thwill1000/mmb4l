@@ -9,6 +9,7 @@
 extern "C" {
 
 #include "../../Hardware_Includes.h"
+#include "../../common/features.h"
 #include "../../common/gtest/stubs/error_stubs.h"
 #include "../../core/Commands.h"
 #include "../../core/MMBasic.h"
@@ -24,6 +25,7 @@ extern "C" {
 char *CFunctionFlash;
 char *CFunctionLibrary;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
+Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 int WatchdogSet;

@@ -16,6 +16,8 @@ extern "C" {
 
 #include "../../Hardware_Includes.h"
 #include "../../common/bitset.h"
+#include "../../common/features.h"
+#include "../../common/options.h"
 #include "../../common/mmresult.h"
 #include "../../common/sprite.h"
 #include "../../common/utility.h"
@@ -34,6 +36,7 @@ extern "C" {
 char *CFunctionFlash;
 char *CFunctionLibrary;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
+Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 int WatchdogSet;
@@ -146,7 +149,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEquals256_Fails) {
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus1_AndSimulatingClassicMmBasic_Fails) {
-    mmb_options.simulate = kSimulateCmm2;
+    OPTIONS_SET_SIMULATE(kSimulateCmm2);
 
     char args[STRINGSIZE];
     sprintf(args, "C, %s1", tokentbl_encoded("-")); // "C, -1"
@@ -160,7 +163,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEqualsMinus1_AndSimulatingCla
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenSpriteIdEquals65_AndSimulatingClassicMmBasic_Fails) {
-    mmb_options.simulate = kSimulateCmm2;
+    OPTIONS_SET_SIMULATE(kSimulateCmm2);
 
     const char *args = "C, 65";
     ep = args;
@@ -185,7 +188,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenNotASprite_ReturnsZero) {
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenNotASprite_AndSimulatingClassicMmBasic_ReturnsZero) {
-    mmb_options.simulate = kSimulateCmm2;
+    OPTIONS_SET_SIMULATE(kSimulateCmm2);
 
     graphics_surfaces[CMM2_SPRITE_BASE + 1].type = kGraphicsBuffer;
     const char *args = "C, 1";
@@ -233,7 +236,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenSprite1CollidedWithSprite2_ReturnsExp
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenSprite1CollidedWithSprite2_AndSimulatingClassicMmBasic_ReturnsExpectedCollisions) {
-    mmb_options.simulate = kSimulateCmm2;
+    OPTIONS_SET_SIMULATE(kSimulateCmm2);
 
     (void) graphics_sprite_create(CMM2_SPRITE_BASE + 1, 10, 10);
     MmSurface *sprite1 = &graphics_surfaces[CMM2_SPRITE_BASE + 1];
@@ -299,7 +302,7 @@ TEST_F(FunSpriteTest, SpriteCollision_GivenCollisionWithEdge_ReturnsExpectedColl
 }
 
 TEST_F(FunSpriteTest, SpriteCollision_GivenCollisionWithEdge_AndSimulatingClassicMmBasic_ReturnsExpectedCollisions) {
-    mmb_options.simulate = kSimulateCmm2;
+    OPTIONS_SET_SIMULATE(kSimulateCmm2);
 
     (void) graphics_sprite_create(CMM2_SPRITE_BASE + 1, 10, 10);
     MmSurface *sprite1 = &graphics_surfaces[CMM2_SPRITE_BASE + 1];

@@ -113,10 +113,8 @@ static MmResult cmd_page_xor_pixels(const char *p) {
 }
 
 void cmd_page(void) {
-    if (mmb_options.simulate != kSimulateCmm2
-            && mmb_options.simulate != kSimulateMmb4w) {
-        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
-    }
+    if (!mmb_features.has_cmd_page) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     MmResult result = kOk;
     const char *p;
     if ((p = checkstring(cmdline, "WRITE"))) {

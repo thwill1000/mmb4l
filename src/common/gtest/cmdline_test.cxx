@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2024 Thomas Hugo Williams
+ * Copyright (c) 2021-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -9,6 +9,7 @@ extern "C" {
 
 #include "../cmdline.h"
 #include "../cstring.h"
+#include "../features.h"
 #include "../parse.h"
 #include "../options.h"
 
@@ -20,6 +21,7 @@ long long int getinteger(char *p) { return 0; }
 int getint(char *p, int min, int max) { return 0; }
 
 // Defined in "main.c"
+Features mmb_features;
 Options mmb_options;
 
 // Defined in "common/audio.c"
