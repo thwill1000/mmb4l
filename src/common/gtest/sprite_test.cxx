@@ -12,6 +12,7 @@ extern "C" {
 
 #include "../bitset.h"
 #include "../error.h"
+#include "../features.h"
 #include "../interrupt.h"
 #include "../sprite.h"
 #include "../../third_party/spbmp.h"
@@ -20,6 +21,7 @@ extern "C" {
 char *CFunctionFlash;
 char *CFunctionLibrary;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
+Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 uint8_t mmb_exit_code = 0;
@@ -74,6 +76,7 @@ void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *arg
 class SpriteTest : public ::testing::Test {
    protected:
     void SetUp() override {
+        OPTIONS_SET_SIMULATE(kSimulateMmb4l);
         graphics_init();
 
         // Create a surface for the sprites to sit on.
@@ -813,7 +816,6 @@ TEST_F(SpriteTest, Destroy_RemovesSpriteFromStack) {
 }
 
 TEST_F(SpriteTest, IdToSurfaceId_GivenValidId_Succeeds) {
-    mmb_options.simulate = kSimulateMmb4l;
     for (MmSurfaceId sprite_id = 0; sprite_id <= 255; ++sprite_id) {
         const MmSurfaceId expected_surface_id = sprite_id;
         EXPECT_EQ(expected_surface_id, sprite_id_to_surface_id(sprite_id));
@@ -822,12 +824,12 @@ TEST_F(SpriteTest, IdToSurfaceId_GivenValidId_Succeeds) {
     const OptionsSimulate sim[] = {
         kSimulateMmb4w,
         kSimulateCmm2,
-        kSimulatePicoMiteVga,
-        kSimulateGameMite
+        kSimulatePicomiteVga,
+        kSimulateGamemite
     };
 
     for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
-        mmb_options.simulate = sim[i];
+        OPTIONS_SET_SIMULATE(sim[i]);
         for (MmSurfaceId sprite_id = 0; sprite_id <= 64; ++sprite_id) {
             const MmSurfaceId expected_surface_id = (sprite_id == 0) ? 0 : sprite_id + 127;
             EXPECT_EQ(expected_surface_id, sprite_id_to_surface_id(sprite_id));
@@ -836,27 +838,24 @@ TEST_F(SpriteTest, IdToSurfaceId_GivenValidId_Succeeds) {
 }
 
 TEST_F(SpriteTest, IdToSurfaceId_GivenInvalidId_ReturnsMinusOne) {
-    mmb_options.simulate = kSimulateMmb4l;
     EXPECT_EQ(-1, sprite_id_to_surface_id(-1));
     EXPECT_EQ(-1, sprite_id_to_surface_id(256));
 
     const OptionsSimulate sim[] = {
         kSimulateMmb4w,
         kSimulateCmm2,
-        kSimulatePicoMiteVga,
-        kSimulateGameMite
+        kSimulatePicomiteVga,
+        kSimulateGamemite
     };
 
     for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
-        mmb_options.simulate = sim[i];
+        OPTIONS_SET_SIMULATE(sim[i]);
         EXPECT_EQ(-1, sprite_id_to_surface_id(-1));
         EXPECT_EQ(-1, sprite_id_to_surface_id(65));
     }
 }
 
 TEST_F(SpriteTest, IdFromSurfaceId_GivenValidId_Succeeds) {
-    mmb_options.simulate = kSimulateMmb4l;
-
     for (MmSurfaceId surface_id = 0; surface_id <= 255; ++surface_id) {
         const MmSurfaceId expected_sprite_id = surface_id;
         EXPECT_EQ(expected_sprite_id, sprite_id_from_surface_id(surface_id));
@@ -865,12 +864,12 @@ TEST_F(SpriteTest, IdFromSurfaceId_GivenValidId_Succeeds) {
     const OptionsSimulate sim[] = {
         kSimulateMmb4w,
         kSimulateCmm2,
-        kSimulatePicoMiteVga,
-        kSimulateGameMite
+        kSimulatePicomiteVga,
+        kSimulateGamemite
     };
 
     for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
-        mmb_options.simulate = sim[i];
+        OPTIONS_SET_SIMULATE(sim[i]);
         for (MmSurfaceId surface_id = 128; surface_id <= 191; ++surface_id) {
             const MmSurfaceId expected_sprite_id = (surface_id == 0) ? 0 : surface_id - 127;
             EXPECT_EQ(expected_sprite_id, sprite_id_from_surface_id(surface_id));
@@ -879,26 +878,24 @@ TEST_F(SpriteTest, IdFromSurfaceId_GivenValidId_Succeeds) {
 }
 
 TEST_F(SpriteTest, IdFromSurfaceId_GivenInvalidId_ReturnsMinusOne) {
-    mmb_options.simulate = kSimulateMmb4l;
     EXPECT_EQ(-1, sprite_id_from_surface_id(-1));
     EXPECT_EQ(-1, sprite_id_from_surface_id(256));
 
     const OptionsSimulate sim[] = {
         kSimulateMmb4w,
         kSimulateCmm2,
-        kSimulatePicoMiteVga,
-        kSimulateGameMite
+        kSimulatePicomiteVga,
+        kSimulateGamemite
     };
 
     for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
-        mmb_options.simulate = sim[i];
+        OPTIONS_SET_SIMULATE(sim[i]);
         EXPECT_EQ(-1, sprite_id_from_surface_id(CMM2_SPRITE_BASE));
         EXPECT_EQ(-1, sprite_id_from_surface_id(CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT + 1));
     }
 }
 
 TEST_F(SpriteTest, IdIsInRange) {
-    mmb_options.simulate = kSimulateMmb4l;
     EXPECT_EQ(false, sprite_id_is_in_range(0));
     EXPECT_EQ(true, sprite_id_is_in_range(1));
     EXPECT_EQ(true, sprite_id_is_in_range(255));
@@ -907,11 +904,11 @@ TEST_F(SpriteTest, IdIsInRange) {
     const OptionsSimulate sim[] = {
         kSimulateMmb4w,
         kSimulateCmm2,
-        kSimulatePicoMiteVga,
-        kSimulateGameMite
+        kSimulatePicomiteVga,
+        kSimulateGamemite
     };
     for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
-        mmb_options.simulate = sim[i];
+        OPTIONS_SET_SIMULATE(sim[i]);
         EXPECT_EQ(false, sprite_id_is_in_range(0));
         EXPECT_EQ(true, sprite_id_is_in_range(1));
         EXPECT_EQ(true, sprite_id_is_in_range(64));
@@ -920,17 +917,16 @@ TEST_F(SpriteTest, IdIsInRange) {
 }
 
 TEST_F(SpriteTest, MaxId) {
-    mmb_options.simulate = kSimulateMmb4l;
     EXPECT_EQ(255, sprite_max_id());
 
     const OptionsSimulate sim[] = {
         kSimulateMmb4w,
         kSimulateCmm2,
-        kSimulatePicoMiteVga,
-        kSimulateGameMite
+        kSimulatePicomiteVga,
+        kSimulateGamemite
     };
     for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
-        mmb_options.simulate = sim[i];
+        OPTIONS_SET_SIMULATE(sim[i]);
         EXPECT_EQ(64, sprite_max_id());
     }
 }

@@ -20,6 +20,7 @@ extern "C" {
 #include "../vartbl.h"
 #include "../MMBasic.h"
 #include "../../common/cstring.h"
+#include "../../common/features.h"
 #include "../../common/graphics.h"
 #include "../../common/parse.h"
 #include "../../common/program.h"
@@ -33,6 +34,7 @@ extern "C" {
 char *CFunctionFlash;
 char *CFunctionLibrary;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
+Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 uint8_t mmb_exit_code = 0;

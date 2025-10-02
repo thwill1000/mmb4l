@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** PULSE pin, width */
 void cmd_pulse(void) {
-    if (mmb_options.simulate != kSimulatePicoMiteVga) {
+    if (mmb_features.gamepad_type != kGamepadTypePicomiteSnes) {
         ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 

@@ -48,9 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** PIN(pin) */
 void fun_pin(void) {
-    if (mmb_options.simulate != kSimulatePicoMiteVga) {
-        error_throw(kUnsupportedOnCurrentDevice);
-        return;
+    if (mmb_features.gamepad_type != kGamepadTypePicomiteSnes) {
+        ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 
     getargs(&ep, 1, DELIM_COMMA);

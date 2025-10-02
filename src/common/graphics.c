@@ -169,7 +169,7 @@ unsigned graphics_mode = 0;
 static uint64_t frameEnd = 0;
 
 /**
- * If kSimulate{Cmm2|Mmb4w} && colour depth== 12 then simulate a three layer CMM2
+ * If kGraphicsTypeCmm2 && colour depth== 12 then simulate a three layer CMM2
  * display:
  *   page/surface 1 -- top
  *   page/surface 0
@@ -180,7 +180,7 @@ static uint64_t frameEnd = 0;
 unsigned graphics_colour_depth = 32;
 
 /**
- * Colour of the background layer to be used if kSimulate{Cmm2|Mmb4w} && graphics_colour_depth == 12;
+ * Colour of the background layer to be used if kGraphicsTypeCmm2 && graphics_colour_depth == 12;
  */
 MmGraphicsColour graphics_cmm2_background = RGB_BLACK;
 
@@ -236,7 +236,7 @@ MmSurfaceId graphics_find_window(uint32_t sdl_window_id) {
  */
 static MmResult graphics_refresh_cmm2_window() {
     if (graphics_colour_depth != 12) return kOk; // Use default window refresh.
-    assert(mmb_options.simulate == kSimulateCmm2 || mmb_options.simulate == kSimulateMmb4w);
+    assert(mmb_features.graphics_type == kGraphicsTypeCmm2);
     MmSurface* window = &graphics_surfaces[0];
     MmSurface* page1 = &graphics_surfaces[1];
     assert(window->type == kGraphicsWindow);
@@ -296,7 +296,7 @@ static inline MmResult graphics_copy_internal(MmSurface *src, MmSurface *dst) {
 /**
  * Copies frame buffer N (surface 1) to the display (surface 0).
  */
-static MmResult graphics_refresh_gamemite_window() {
+static MmResult graphics_refresh_picomite_lcd_window() {
     MmSurface *buffer_N = &graphics_surfaces[GRAPHICS_SURFACE_N];
     if (!buffer_N->dirty) return kOk;
     MmResult result = kOk;
@@ -345,16 +345,14 @@ static MmResult graphics_refresh_picomite_vga_window() {
 void graphics_refresh_windows() {
     // if (SDL_GetTicks64() > frameEnd) {
     if (SDL_GetTicks() > frameEnd) {
-        switch (mmb_options.simulate) {
-            case kSimulateCmm2:
-            case kSimulateMmb4w:
+        switch (mmb_features.graphics_type) {
+            case kGraphicsTypeCmm2:
                 ON_FAILURE_ERROR(graphics_refresh_cmm2_window());
                 break;
-            case kSimulateGameMite:
-                ON_FAILURE_ERROR(graphics_refresh_gamemite_window());
+            case kGraphicsTypePicomiteLcd:
+                ON_FAILURE_ERROR(graphics_refresh_picomite_lcd_window());
                 break;
-            case kSimulatePicoMiteVga:
-            case kSimulatePicoMiteVgaUsb:
+            case kGraphicsTypePicomiteVga:
                 ON_FAILURE_ERROR(graphics_refresh_picomite_vga_window());
                 break;
             default:
@@ -1495,16 +1493,13 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
 
 MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id, uint8_t colour_mode) {
     char _filename[STRINGSIZE];
-    MmResult result = path_try_extension(filename, ".spr", _filename, STRINGSIZE);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_try_extension(filename, ".spr", _filename, STRINGSIZE));
 
     int fnbr = file_find_free();
-    result = file_open(_filename, "r", fnbr);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(file_open(_filename, "r", fnbr));
 
-    const bool is_picomite = (mmb_options.simulate == kSimulateGameMite)
-            || (mmb_options.simulate == kSimulatePicoMiteVga)
-            || (mmb_options.simulate == kSimulatePicoMiteVgaUsb);
+    const bool is_picomite = mmb_features.graphics_type == kGraphicsTypePicomiteLcd
+            || mmb_features.graphics_type == kGraphicsTypePicomiteVga;
     const MmGraphicsColour *sprite_colours = (colour_mode == 0)
             ? (is_picomite) ? GRAPHICS_CMM2_SPRITE_COLOURS_RGB121 : GRAPHICS_CMM2_SPRITE_COLOURS
             : GRAPHICS_RGB121_COLOURS;
@@ -1520,7 +1515,7 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     MmSurfaceId number = getinteger(argv[2]);
     unsigned height = (argc == 5) ? getinteger(argv[4]) : width;
 
-    const MmSurfaceId max_sprite_id = (mmb_options.simulate == kSimulateMmb4l)
+    const MmSurfaceId max_sprite_id = (mmb_features.graphics_type == kGraphicsTypeMmb4l)
             ? GRAPHICS_MAX_ID
             : CMM2_SPRITE_BASE + CMM2_SPRITE_COUNT;
     if (start_sprite_id + number > max_sprite_id) {
@@ -1535,7 +1530,7 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     while (!file_eof(fnbr) && surface_id <= number + start_sprite_id) {
         if (new_sprite) {
             new_sprite = false;
-            result = graphics_sprite_create(surface_id, width, height);
+            MmResult result = graphics_sprite_create(surface_id, width, height);
             if (FAILED(result)) {
                 (void) file_close(fnbr);
                 return result;
@@ -2214,35 +2209,25 @@ MmResult graphics_scroll(MmSurface *surface, int x, int y, MmGraphicsColour fill
 }
 
 MmResult graphics_get_default_window_title(MmSurfaceId id, char *title, size_t title_sz) {
-    MmResult result = kOk;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
-    switch (mmb_options.simulate) {
-        case kSimulateCmm2:
-        case kSimulateMmb4w:
-        case kSimulatePicoMiteVga:
-        case kSimulatePicoMiteVgaUsb: {
-            char device[256];
-            result = options_get_string_value(&mmb_options, kOptionSimulate, device);
-            if (SUCCEEDED(result)) snprintf(title, title_sz, "%s - Mode %d", device, graphics_mode);
-            break;
+    if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
+        snprintf(title, title_sz, "MMBasic - Window %d", id);
+    } else {
+        char device[256];
+        ON_FAILURE_RETURN(options_get_string_value(&mmb_options, kOptionSimulate, device));
+        if (mmb_features.has_cmd_mode) {
+            (void) snprintf(title, title_sz, "%s - Mode %d", device, graphics_mode);
+        } else {
+            (void) snprintf(title, title_sz, "%s", device);
         }
-        case kSimulateMmb4l:
-            snprintf(title, title_sz, "MMBasic - Window %d", id);
-            break;
-        case kSimulateGameMite:
-            snprintf(title, title_sz, "Game*Mite");
-            break;
-        default:
-            result = kInternalFault;
-            break;
     }
 #pragma GCC diagnostic pop
-    if (SUCCEEDED(result) && *CurrentFile) {
+    if (*CurrentFile) {
         (void) cstring_cat(title, ": ", title_sz);
         (void) cstring_cat(title, CurrentFile, title_sz);
     }
-    return result;
+    return kOk;
 }
 
 static MmResult graphics_set_mode_cmm2(unsigned mode, unsigned colour_depth,
@@ -2276,32 +2261,26 @@ static MmResult graphics_set_mode_cmm2(unsigned mode, unsigned colour_depth,
     return result;
 }
 
-static MmResult graphics_set_mode_gamemite(unsigned mode) {
+static MmResult graphics_set_mode_picomite_lcd(unsigned mode) {
     if (mode != 1) return kInvalidMode;
     graphics_mode = mode;
 
-    MmResult result = graphics_destroy_surfaces_0_to_63();
-    if (SUCCEEDED(result)) {
-        result = graphics_window_create(0, 320, 240, -1, -1, mmb_options.auto_scale ? 10 : 1, NULL,
-                                        NULL, false);
-    }
-    if (SUCCEEDED(result)) {
-        result = graphics_buffer_create(GRAPHICS_SURFACE_N, 320, 240);
-    }
-    if (SUCCEEDED(result)) {
-        result = graphics_surface_write(GRAPHICS_SURFACE_N);
-    }
-    if (SUCCEEDED(result)) {
-        graphics_fcolour = RGB_WHITE;
-        graphics_bcolour = RGB_BLACK;
-        graphics_colour_depth = 32;
-        graphics_cmm2_background = RGB_BLACK;
-        result = graphics_set_font(1, 1);
-    }
-    return result;
+    ON_FAILURE_RETURN(graphics_destroy_surfaces_0_to_63());
+    ON_FAILURE_RETURN(graphics_window_create(0, mmb_features.hres, mmb_features.vres, -1, -1,
+                                             mmb_options.auto_scale ? 10 : 1, NULL, NULL, false));
+    ON_FAILURE_RETURN(graphics_buffer_create(GRAPHICS_SURFACE_N, mmb_features.hres,
+                                             mmb_features.vres));
+    ON_FAILURE_RETURN(graphics_surface_write(GRAPHICS_SURFACE_N));
+
+    graphics_fcolour = RGB_WHITE;
+    graphics_bcolour = RGB_BLACK;
+    graphics_colour_depth = 32;
+    graphics_cmm2_background = RGB_BLACK;
+
+    return graphics_set_font(1, 1);
 }
 
-static MmResult graphics_set_mode_pmvga(unsigned mode) {
+static MmResult graphics_set_mode_picomite_vga(unsigned mode) {
     if (mode < MIN_PMVGA_MODE || mode > MAX_PMVGA_MODE) return kInvalidMode;
     const ModeDefinition *mode_def = &PICOMITE_VGA_MODES[mode];
     graphics_mode = mode;
@@ -2335,12 +2314,9 @@ static MmResult graphics_set_mode_mmb4l(unsigned mode) {
 }
 
 MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColour background) {
-    const OptionsSimulate simulate = mmb_options.simulate;
     switch (colour_depth) {
         case 12:
-            if (simulate != kSimulateCmm2 && simulate != kSimulateMmb4w) {
-                return kGraphicsInvalidColourDepth;
-            }
+            if (mmb_features.graphics_type != kGraphicsTypeCmm2) return kGraphicsInvalidColourDepth;
             break;
         case 32:
             if (background != RGB_BLACK) return kInvalidValue;
@@ -2349,17 +2325,15 @@ MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColou
             return kGraphicsInvalidColourDepth;
     }
 
-    switch (simulate) {
-        case kSimulateCmm2:
-        case kSimulateMmb4w:
+    switch (mmb_features.graphics_type) {
+        case kGraphicsTypeCmm2:
             return graphics_set_mode_cmm2(mode, colour_depth, background);
-        case kSimulateGameMite:
-            return graphics_set_mode_gamemite(mode);
-        case kSimulateMmb4l:
+        case kGraphicsTypeMmb4l:
             return graphics_set_mode_mmb4l(mode);
-        case kSimulatePicoMiteVga:
-        case kSimulatePicoMiteVgaUsb:
-            return graphics_set_mode_pmvga(mode);
+        case kGraphicsTypePicomiteLcd:
+            return graphics_set_mode_picomite_lcd(mode);
+        case kGraphicsTypePicomiteVga:
+            return graphics_set_mode_picomite_vga(mode);
         default:
             return kInternalFault;
     }
@@ -2466,20 +2440,6 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
     assert(surface);
     assert(out);
 
-    // There are 3 variations: MMB4L, CMM2-like and PicoMite-like.
-    OptionsSimulate simulate = mmb_options.simulate;
-    switch (simulate) {
-        case kSimulateGameMite: // PicoMite-like
-        case kSimulatePicoMiteVgaUsb:
-            simulate = kSimulatePicoMiteVga;
-            break;
-        case kSimulateMmb4w: // CMM2-like
-            simulate = kSimulateCmm2;
-            break;
-        default:
-            break;
-    }
-
     MmResult result = kOk;
     const MmSurfaceId id = surface->id;
     switch (surface->type) {
@@ -2487,15 +2447,15 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
             (void) snprintf(out, out_sz, "None");
             break;
         case kGraphicsBuffer:
-            if (simulate == kSimulatePicoMiteVga && id == GRAPHICS_SURFACE_N) {
+            if (mmb_features.has_cmd_framebuffer && id == GRAPHICS_SURFACE_N) {
                 (void) snprintf(out, out_sz, "Buffer N");
-            } else if (simulate == kSimulatePicoMiteVga && id == GRAPHICS_SURFACE_F) {
+            } else if (mmb_features.has_cmd_framebuffer && id == GRAPHICS_SURFACE_F) {
                 (void) snprintf(out, out_sz, "Buffer F");
-            } else if (simulate == kSimulatePicoMiteVga && id == GRAPHICS_SURFACE_L) {
+            } else if (mmb_features.has_cmd_framebuffer && id == GRAPHICS_SURFACE_L) {
                 (void) snprintf(out, out_sz, "Buffer L");
-            } else if (simulate == kSimulateCmm2 && id <= CMM2_BLIT_BASE) {
+            } else if (mmb_features.graphics_type == kGraphicsTypeCmm2 && id <= CMM2_BLIT_BASE) {
                 (void) snprintf(out, out_sz, "Page %d", surface->id);
-            } else if (simulate != kSimulateMmb4l
+            } else if (mmb_features.graphics_type != kGraphicsTypeMmb4l
                     && id > CMM2_BLIT_BASE && id <= CMM2_BLIT_BASE + CMM2_BLIT_COUNT) {
                 (void) snprintf(out, out_sz, "Buffer %d", surface->id - CMM2_BLIT_BASE);
             } else {
@@ -2503,7 +2463,8 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
             }
             break;
         case kGraphicsSprite:
-            if (simulate != kSimulateMmb4l && sprite_id_is_in_range(sprite_id_from_surface_id(id)))
+            if (mmb_features.graphics_type != kGraphicsTypeMmb4l
+                    && sprite_id_is_in_range(sprite_id_from_surface_id(id)))
             {
                 (void) snprintf(out, out_sz, "Sprite #%d (Active)", sprite_id_from_surface_id(id));
             } else {
@@ -2511,7 +2472,8 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
             }
             break;
         case kGraphicsInactiveSprite:
-            if (simulate != kSimulateMmb4l && sprite_id_is_in_range(sprite_id_from_surface_id(id)))
+            if (mmb_features.graphics_type != kGraphicsTypeMmb4l
+                    && sprite_id_is_in_range(sprite_id_from_surface_id(id)))
             {
                 (void) snprintf(out, out_sz, "Sprite #%d (Inactive)",
                                 sprite_id_from_surface_id(id));
@@ -2520,10 +2482,10 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
             }
             break;
         case kGraphicsWindow:
-            if (simulate == kSimulatePicoMiteVga && id == 0) {
-                (void) snprintf(out, out_sz, "Display");
-            } else if (simulate == kSimulateCmm2 && id <= CMM2_BLIT_BASE) {
+            if (mmb_features.graphics_type == kGraphicsTypeCmm2 && id <= CMM2_BLIT_BASE) {
                 (void) snprintf(out, out_sz, "Page %d", surface->id);
+            } else if (mmb_features.has_cmd_framebuffer && id == 0) {
+                (void) snprintf(out, out_sz, "Display");
             } else {
                 (void) snprintf(out, out_sz, "Window");
             }

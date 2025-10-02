@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2024 Thomas Hugo Williams
+ * Copyright (c) 2021-2025 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -10,6 +10,7 @@ extern "C" {
 #include "test_helper.h"
 #include "stubs/error_stubs.h"
 #include "../cstring.h"
+#include "../features.h"
 #include "../graphics.h"
 #include "../options.h"
 #include "../memory.h"
@@ -28,6 +29,7 @@ char *CFunctionFlash;
 char *CFunctionLibrary;
 char **FontTable;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
+Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 uint8_t mmb_exit_code = 0;
@@ -100,6 +102,7 @@ class ParseTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
+        mmb_options.simulate = kSimulateMmb4l;
         vartbl_init_called = false;
         errno = 0;
         strcpy(error_msg, "");
@@ -1300,7 +1303,7 @@ TEST_F(ParseTest, ParsePinNum_GivenUnknownVariable_Fails) {
     // routine that uses longjmp().
 }
 
-TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndNonPicoMite) {
+TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndNonPicomite) {
     graphics_surfaces[0].type = kGraphicsBuffer;
     graphics_surfaces[1].type = kGraphicsBuffer;
 
@@ -1325,8 +1328,8 @@ TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndNonPicoMite) {
     }
 }
 
-TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndPicoMite) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndPicomite) {
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     graphics_surfaces[GRAPHICS_SURFACE_N].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_F].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_L].type = kGraphicsBuffer;
@@ -1362,8 +1365,8 @@ TEST_F(ParseTest, ParsePage_GivenValidExistingPageId_AndPicoMite) {
     }
 }
 
-TEST_F(ParseTest, ParsePage_GivenValidExistingPageIdAsString_AndPicoMite) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+TEST_F(ParseTest, ParsePage_GivenValidExistingPageIdAsString_AndPicomite) {
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     graphics_surfaces[GRAPHICS_SURFACE_N].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_F].type = kGraphicsBuffer;
     graphics_surfaces[GRAPHICS_SURFACE_L].type = kGraphicsBuffer;
@@ -1400,7 +1403,7 @@ TEST_F(ParseTest, ParsePage_GivenValidExistingPageIdAsString_AndPicoMite) {
 }
 
 TEST_F(ParseTest, ParsePage_GivenUnknownStringPageId_AndPicomite) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     tokenise_and_append("PAGE WRITE \"A\"");
 
     const char *p = ProgMemory + 9;
@@ -1411,7 +1414,7 @@ TEST_F(ParseTest, ParsePage_GivenUnknownStringPageId_AndPicomite) {
 
 TEST_F(ParseTest, ParsePage_GivenUnknownNonStringPageId_AndPicomite) {
     GTEST_SKIP() << "Segfaults due to longjmp() error handling";
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     tokenise_and_append("PAGE WRITE 1");
 
     const char *p = ProgMemory + 9;
@@ -1421,7 +1424,7 @@ TEST_F(ParseTest, ParsePage_GivenUnknownNonStringPageId_AndPicomite) {
 }
 
 TEST_F(ParseTest, ParsePage_GivenValidNonExistingPageId_AndPicomite) {
-    mmb_options.simulate = kSimulatePicoMiteVga;
+    OPTIONS_SET_SIMULATE(kSimulatePicomiteVga);
     tokenise_and_append("PAGE WRITE \"N\"");
 
     const char *p = ProgMemory + 9;
@@ -1595,12 +1598,13 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
     const OptionsSimulate sim[] = {
         kSimulateMmb4w,
         kSimulateCmm2,
-        kSimulatePicoMiteVga,
-        kSimulateGameMite
+        kSimulateGamemite,
+        kSimulatePicomiteVga,
+        kSimulatePicomiteVgaUsb,
     };
 
     for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
-        mmb_options.simulate = sim[i];
+        OPTIONS_SET_SIMULATE(sim[i]);
 
         // 0 is not a valid sprite id.
         {
@@ -1719,15 +1723,15 @@ TEST_F(ParseTest, ParseSpriteId_GivenExistingSpriteRequired_ButSurfaceIsNotASpri
 
 TEST_F(ParseTest, ParseSpriteId_GivenFlag_AllowsZeroValue) {
     const OptionsSimulate sim[] = {
-        kSimulateMmb4l,
         kSimulateMmb4w,
         kSimulateCmm2,
-        kSimulatePicoMiteVga,
-        kSimulateGameMite
+        kSimulateGamemite,
+        kSimulatePicomiteVga,
+        kSimulatePicomiteVgaUsb,
     };
 
     for (size_t i = 0; i < sizeof(sim) / sizeof(OptionsSimulate); ++i) {
-        mmb_options.simulate = sim[i];
+        OPTIONS_SET_SIMULATE(sim[i]);
 
         error_msg[0] = '\0';
         clear_prog_memory();

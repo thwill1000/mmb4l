@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/MMBasic.h"
 #include "../core/vartbl.h"
 #include "error.h"
+#include "features.h"
 #include "memory.h"
 #include "options.h"
 #include "parse.h"
@@ -87,6 +88,7 @@ void op_equal(void);
 
 extern uint8_t mmb_exit_code;
 extern Options mmb_options;
+extern Features mmb_features;
 
 extern char *CFunctionFlash;
 extern char DimUsed;

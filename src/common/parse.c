@@ -623,7 +623,9 @@ static inline MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) 
         *page_id = GRAPHICS_SURFACE_L;
     } else { // Allow string expression.
         const char *s = getCstring(p);
-        if (strcasecmp(s, "N") == 0) {
+        if (!s) {
+            return kSyntax;
+        } else if (strcasecmp(s, "N") == 0) {
             *page_id = GRAPHICS_SURFACE_N;
         } else if (strcasecmp(s, "F") == 0) {
             *page_id = GRAPHICS_SURFACE_F;
@@ -638,16 +640,11 @@ static inline MmResult parse_picomite_page(const char *p, MmSurfaceId *page_id) 
 
 MmResult parse_page(const char *p, MmSurfaceId *page_id) {
     MmResult result = kOk;
-    switch (mmb_options.simulate) {
-        case kSimulateGameMite:
-        case kSimulatePicoMiteVga:
-        case kSimulatePicoMiteVgaUsb:
-            result = parse_picomite_page(p, page_id);
-            break;
-        default:
-            *page_id = getint(p, 0, GRAPHICS_MAX_ID);
-            result = kOk;
-            break;
+    if (mmb_features.has_cmd_framebuffer) {
+        result = parse_picomite_page(p, page_id);
+    } else {
+        *page_id = getint(p, 0, GRAPHICS_MAX_ID);
+        result = kOk;
     }
     if (SUCCEEDED(result) && !graphics_surface_exists(*page_id)) {
         return kGraphicsInvalidSurface;
@@ -670,7 +667,7 @@ MmResult parse_blit_id(const char *p, bool existing, MmSurfaceId *blit_id) {
     skipspace(p);
     if (*p == '#') p++;
     if (!*p) return kSyntax;
-    if (mmb_options.simulate == kSimulateMmb4l) {
+    if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
         *blit_id = getint(p, 0, GRAPHICS_MAX_ID);
     } else {
         *blit_id = getint(p, 1, CMM2_BLIT_COUNT) + CMM2_BLIT_BASE;

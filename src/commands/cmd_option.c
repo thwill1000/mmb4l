@@ -253,22 +253,9 @@ static void cmd_option_set(const char *p) {
             break;
 
         case kOptionSimulate:
-            switch (mmb_options.simulate) {
-                case kSimulateGameMite:
-                case kSimulatePicoMiteVga:
-                case kSimulatePicoMiteVgaUsb:
-                    ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
-                    ON_FAILURE_ERROR(flash_init());
-                    break;
-                case kSimulateCmm2:
-                case kSimulateMmb4l:
-                case kSimulateMmb4w:
-                    ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
-                    ON_FAILURE_ERROR(flash_term());
-                    break;
-                default:
-                    ON_FAILURE_ERROR(kInternalFault);
-            }
+            ON_FAILURE_ERROR(features_init(&mmb_features, mmb_options.simulate));
+            ON_FAILURE_ERROR(graphics_set_mode(1, 32, RGB_BLACK));
+            ON_FAILURE_ERROR(mmb_features.has_cmd_flash ? flash_init() : flash_term());
             break;
 
         default:

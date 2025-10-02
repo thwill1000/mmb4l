@@ -48,9 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/utility.h"
 
 static MmResult fun_rgb_parse_colour(const char *p, MmGraphicsColour *colour) {
-    bool is_picomite = mmb_options.simulate == kSimulateGameMite
-            || mmb_options.simulate == kSimulatePicoMiteVga
-            || mmb_options.simulate == kSimulatePicoMiteVgaUsb;
+    bool is_picomite = mmb_features.graphics_type == kGraphicsTypePicomiteLcd
+            || mmb_features.graphics_type == kGraphicsTypePicomiteVga;
     MmResult result = kOk;
     if (checkstring(p, "WHITE"))
         *colour = RGB_WHITE;

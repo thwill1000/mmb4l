@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/cstring.h"
 #include "common/events.h"
 #include "common/exit_codes.h"
+#include "common/features.h"
 #include "common/file.h"
 #include "common/interrupt.h"
 #include "common/keyboard.h"
@@ -78,6 +79,7 @@ volatile int MMAbort = false;
 ErrorState mmb_normal_error_state;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Options mmb_options;
+Features mmb_features;
 int WatchdogSet, IgnorePIN;
 char *OnKeyGOSUB;
 char *CFunctionFlash, *CFunctionLibrary;
@@ -301,6 +303,7 @@ int main(int argc, char *argv[]) {
 
     init_mmbasic_config_dir();
     init_options();
+    features_init(&mmb_features, mmb_options.simulate);
     error_init(mmb_error_state_ptr);
     keyboard_init();
 

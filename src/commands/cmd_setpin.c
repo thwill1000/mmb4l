@@ -50,7 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** SETPIN pin, { DIN | DOUT | OFF } [, PULLUP] */
 void cmd_setpin(void) {
-    if (mmb_options.simulate != kSimulatePicoMiteVga && mmb_options.simulate != kSimulateGameMite) {
+    if (mmb_features.gamepad_type != kGamepadTypePicomiteSnes
+            && mmb_features.gamepad_type != kGamepadTypeGamemite) {
         ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
     }
 

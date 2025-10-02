@@ -69,7 +69,7 @@ MmResult fun_device_gamepad(const char *p) {
     const char *funct = argv[argc - 1];
     const char *p2;
 
-    if (mmb_options.simulate == kSimulatePicoMiteVgaUsb) {
+    if (mmb_features.gamepad_type == kGamepadTypePicomiteUsb) {
         gamepad_id -= 2;
         ON_FAILURE_RETURN(gamepad_open(gamepad_id));
     }
@@ -96,9 +96,9 @@ MmResult fun_device_gamepad(const char *p) {
     }
 
     if (SUCCEEDED(result)) {
-        switch (mmb_options.simulate) {
-            case kSimulateMmb4w:
-            case kSimulatePicoMiteVgaUsb:
+        switch (mmb_features.gamepad_type) {
+            case kGamepadTypeMmb4w:
+            case kGamepadTypePicomiteUsb:
                 iret = transform_analog_int16_to_uint8(iret);
                 break;
             default:

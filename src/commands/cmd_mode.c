@@ -79,7 +79,7 @@ static MmResult cmd_mode_cmm2(void) {
     return graphics_set_mode(mode, colour_depth, background);
 }
 
-static MmResult cmd_mode_pmvga(void) {
+static MmResult cmd_mode_picomite_vga(void) {
     getargs(&cmdline, 1, DELIM_COMMA);
     if (argc != 1) return kArgumentCount;
 
@@ -88,20 +88,20 @@ static MmResult cmd_mode_pmvga(void) {
 }
 
 void cmd_mode(void) {
+    if (!mmb_features.has_cmd_mode) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+
     MmResult result = kOk;
-    switch (mmb_options.simulate) {
-        case kSimulateCmm2:
-        case kSimulateMmb4w:
+    switch (mmb_features.graphics_type) {
+        case kGraphicsTypeCmm2:
             result = cmd_mode_cmm2();
             break;
 
-        case kSimulatePicoMiteVga:
-        case kSimulatePicoMiteVgaUsb:
-            result = cmd_mode_pmvga();
+        case kGraphicsTypePicomiteVga:
+            result = cmd_mode_picomite_vga();
             break;
 
         default:
-            result = kUnsupportedOnCurrentDevice;
+            result = kInternalFault;
             break;
     }
     ON_FAILURE_ERROR(result);
