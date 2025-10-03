@@ -50,11 +50,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef struct {
     char backup[STRINGSIZE];
     char buf[STRINGSIZE];
-    int char_index;
+    size_t char_index;  // Insertion point
     int history_idx;
     bool insert;
     int start_line;
-    int max_chars;
+    size_t max_chars;
     bool save_line;
 } PromptState;
 
