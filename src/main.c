@@ -375,9 +375,8 @@ int main(int argc, char *argv[]) {
             strcpy(inpbuf, mmb_args.run_cmd);
             run_flag = false;
         } else {
-            prompt_get_input();
-            MmResult result = parse_transform_input_buffer(inpbuf);
-            if (FAILED(result)) error_throw(result);
+            ON_FAILURE_ERROR_EX(prompt_get_input(), EXIT_FAILURE);
+            ON_FAILURE_ERROR_EX(parse_transform_input_buffer(inpbuf), EXIT_FAILURE);
         }
 
         if (!*inpbuf) continue;  // ignore an empty line

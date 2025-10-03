@@ -56,8 +56,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "utility.h"
 
 #define HISTORY_SIZE  4 * STRINGSIZE
-#define ERROR_LINE_TOO_LONG_TO_EDIT  error_throw_ex(kStringTooLong, "Line is too long to edit")
-#define ERROR_TAB_CHAR_IN_FN_DEF     error_throw_ex(kError, "Tab character in function key definition")
+#define LINE_TOO_LONG_TO_EDIT  "Line is too long to edit"
+#define TAB_CHAR_IN_FN_DEF     "Tab character in function key definition"
 
 static char history[HISTORY_SIZE];
 static const char NO_ITEM[] = "";
@@ -146,8 +146,8 @@ void put_history_item(char *s) {
     }
 }
 
-static void handle_backspace(PromptState *pstate) {
-    if (pstate->char_index <= 0) return;
+static MmResult handle_backspace(PromptState *pstate) {
+    if (pstate->char_index <= 0) return kOk;
 
     size_t i = pstate->char_index - 1;
     for (char *p = inpbuf + i; *p; p++) {
@@ -163,10 +163,12 @@ static void handle_backspace(PromptState *pstate) {
     for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
         display_putc('\b');  // return the cursor to the right position
     }
+
+    return kOk;
 }
 
-static void handle_delete(PromptState *pstate) {
-    if (pstate->char_index >= strlen(inpbuf)) return;
+static MmResult handle_delete(PromptState *pstate) {
+    if (pstate->char_index >= strlen(inpbuf)) return kOk;
 
     size_t i = pstate->char_index;
     for (char *p = inpbuf + i; *p; p++) {
@@ -182,9 +184,11 @@ static void handle_delete(PromptState *pstate) {
     for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
         display_putc('\b');  // return the cursor to the right position
     }
+
+    return kOk;
 }
 
-static void prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
+static MmResult prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
     // Update characters in input buffer.
     strcpy(inpbuf, new_inpbuf);
 
@@ -198,32 +202,38 @@ static void prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
 
     // Handle the new input buffer being too long.
     if (strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
-        ERROR_LINE_TOO_LONG_TO_EDIT;
+        return mmresult_ex(kStringTooLong, LINE_TOO_LONG_TO_EDIT);
     }
 
     // Update 'char_index' to reflect new input buffer contents.
     pstate->char_index = strlen(inpbuf);
+
+    return kOk;
 }
 
-static void handle_down(PromptState *pstate) {
+static MmResult handle_down(PromptState *pstate) {
     assert(pstate->history_idx >= -1);
     if (pstate->history_idx > -1) {
         pstate->history_idx--;
         if (pstate->history_idx == -1) {
-            prompt_update_inpbuf(pstate, pstate->backup);
+            ON_FAILURE_RETURN(prompt_update_inpbuf(pstate, pstate->backup));
         } else {
-            prompt_update_inpbuf(pstate, get_history_item(pstate->history_idx));
+            ON_FAILURE_RETURN(prompt_update_inpbuf(pstate, get_history_item(pstate->history_idx)));
         }
     }
+
+    return kOk;
 }
 
-static void handle_end(PromptState *pstate) {
+static MmResult handle_end(PromptState *pstate) {
     while (pstate->char_index < strlen(inpbuf)) {
         display_putc(inpbuf[pstate->char_index++]);
     }
+
+    return kOk;
 }
 
-static void handle_function_key(PromptState *pstate) {
+static MmResult handle_function_key(PromptState *pstate) {
     if (pstate->buf[0] >= F1 && pstate->buf[0] <= F12) {
         strcpy(pstate->buf + 1, mmb_options.fn_keys[pstate->buf[0] - F1]);
 
@@ -233,14 +243,16 @@ static void handle_function_key(PromptState *pstate) {
         // TODO: either support it or prevent it in OPTION F<NUM>.
         char *p = pstate->buf;
         while (*p) {
-            if (*p == TAB) ERROR_TAB_CHAR_IN_FN_DEF;
+            if (*p == TAB) return mmresult_ex(kError, TAB_CHAR_IN_FN_DEF);
             p++;
         }
     }
+
+    return kOk;
 }
 
-static void handle_home(PromptState *pstate) {
-    if (pstate->char_index <= 0) return;
+static MmResult handle_home(PromptState *pstate) {
+    if (pstate->char_index <= 0) return kOk;
 
     if (pstate->char_index == strlen(inpbuf)) {
         pstate->insert = true;
@@ -250,33 +262,39 @@ static void handle_home(PromptState *pstate) {
         display_putc('\b');
         pstate->char_index--;
     }
+
+    return kOk;
 }
 
-static void handle_insert(PromptState *pstate) {
+static MmResult handle_insert(PromptState *pstate) {
     pstate->insert = !pstate->insert;
+    return kOk;
 }
 
-static void handle_left(PromptState *pstate) {
-    if (pstate->char_index <= 0) return;
+static MmResult handle_left(PromptState *pstate) {
+    if (pstate->char_index <= 0) return kOk;
 
     if (pstate->char_index == strlen(inpbuf)) {
         pstate->insert = true;
     }
     display_putc('\b');
     pstate->char_index--;
+
+    return kOk;
 }
 
-static void handle_newline(PromptState *pstate) {
+static MmResult handle_newline(PromptState *pstate) {
     pstate->save_line = 1;
+    return kOk;
 }
 
-static void handle_other(PromptState *pstate) {
-    if (pstate->buf[0] < ' ' || pstate->buf[0] >= 0x7f) return;
+static MmResult handle_other(PromptState *pstate) {
+    if (pstate->buf[0] < ' ' || pstate->buf[0] >= 0x7f) return kOk;
 
     size_t j = strlen(inpbuf);
 
     if (pstate->insert) {
-        if (strlen(inpbuf) >= pstate->max_chars - 1) return;  // sorry, line full
+        if (strlen(inpbuf) >= pstate->max_chars - 1) return kOk;  // sorry, line full
         for (char *p = inpbuf + strlen(inpbuf); j >= pstate->char_index; p--, j--) {
             *(p + 1) = *p;
         }
@@ -302,16 +320,20 @@ static void handle_other(PromptState *pstate) {
             pstate->save_line = 1;
         }
     }
+
+    return kOk;
 }
 
-static void handle_right(PromptState *pstate) {
-    if (pstate->char_index >= strlen(inpbuf)) return;
+static MmResult handle_right(PromptState *pstate) {
+    if (pstate->char_index >= strlen(inpbuf)) return kOk;
 
     display_putc(inpbuf[pstate->char_index]);
     pstate->char_index++;
+
+    return kOk;
 }
 
-void prompt_handle_tab(PromptState *pstate) {
+MmResult prompt_handle_tab(PromptState *pstate) {
     char *pstart = inpbuf;
     char *p = inpbuf;
     bool in_quote = false;
@@ -333,20 +355,25 @@ void prompt_handle_tab(PromptState *pstate) {
     if (FAILED(path_complete(pstart, pstate->buf + 1, sizeof(pstate->buf) - 1)))
         pstate->buf[1] = '\0';
     if (pstate->buf[1] == '\0') display_bell();
+
+    return kOk;
 }
 
-static void handle_up(PromptState *pstate) {
+static MmResult handle_up(PromptState *pstate) {
     assert(pstate->history_idx >= -1);
+
     if (pstate->history_idx + 1 < get_history_count()) {
         if (pstate->history_idx == -1) strcpy(pstate->backup, inpbuf);
         pstate->history_idx++;
-        prompt_update_inpbuf(pstate, get_history_item(pstate->history_idx));
+        ON_FAILURE_RETURN(prompt_update_inpbuf(pstate, get_history_item(pstate->history_idx)));
     }
+
+    return kOk;
 }
 
-void prompt_get_input(void) {
+MmResult prompt_get_input(void) {
     int width, height;
-    ON_FAILURE_ERROR(display_get_size(false, &width, &height));
+    ON_FAILURE_RETURN(display_get_size(false, &width, &height));
 
     PromptState state = { 0 };
     state.char_index = strlen(inpbuf); // get the current cursor position in the line
@@ -357,7 +384,7 @@ void prompt_get_input(void) {
     display_puts(inpbuf);  // display the contents of the input buffer (if any)
 
     if (strlen(inpbuf) >= state.max_chars) {
-        ERROR_LINE_TOO_LONG_TO_EDIT;
+        return mmresult_ex(kStringTooLong, LINE_TOO_LONG_TO_EDIT);
     }
 
     while (1) {
@@ -368,41 +395,41 @@ void prompt_get_input(void) {
             switch (state.buf[0]) {
                 case '\r':
                 case '\n':
-                    handle_newline(&state);
+                    ON_FAILURE_RETURN(handle_newline(&state));
                     break;
 
                 case '\b':
-                    handle_backspace(&state);
+                    ON_FAILURE_RETURN(handle_backspace(&state));
                     break;
 
                 // case CTRLKEY('S'):
                 case LEFT:
-                    handle_left(&state);
+                    ON_FAILURE_RETURN(handle_left(&state));
                     break;
 
                 // case CTRLKEY('D'):
                 case RIGHT:
-                    handle_right(&state);
+                    ON_FAILURE_RETURN(handle_right(&state));
                     break;
 
                 // case CTRLKEY(']'):
                 case DEL:
-                    handle_delete(&state);
+                    ON_FAILURE_RETURN(handle_delete(&state));
                     break;
 
                 // case CTRLKEY('N'):
                 case INSERT:
-                    handle_insert(&state);
+                    ON_FAILURE_RETURN(handle_insert(&state));
                     break;
 
                 // case CTRLKEY('U'):
                 case HOME:
-                    handle_home(&state);
+                    ON_FAILURE_RETURN(handle_home(&state));
                     break;
 
                 // case CTRLKEY('K'):
                 case END:
-                    handle_end(&state);
+                    ON_FAILURE_RETURN(handle_end(&state));
                     break;
 
                 case F1:
@@ -417,25 +444,25 @@ void prompt_get_input(void) {
                 case F10:
                 case F11:
                 case F12:
-                    handle_function_key(&state);
+                    ON_FAILURE_RETURN(handle_function_key(&state));
                     break;
 
                 // case CTRLKEY('E'):
                 case UP:
-                    handle_up(&state);
+                    ON_FAILURE_RETURN(handle_up(&state));
                     break;
 
                 // case CTRLKEY('X'):
                 case DOWN:
-                    handle_down(&state);
+                    ON_FAILURE_RETURN(handle_down(&state));
                     break;
 
                 case TAB:
-                    prompt_handle_tab(&state);
+                    ON_FAILURE_RETURN(prompt_handle_tab(&state));
                     break;
 
                 default:
-                    handle_other(&state);
+                    ON_FAILURE_RETURN(handle_other(&state));
                     break;
             }
 
@@ -454,4 +481,6 @@ saveline:
     display_puts("\r\n");
 
     put_history_item(inpbuf);
+
+    return kOk;
 }

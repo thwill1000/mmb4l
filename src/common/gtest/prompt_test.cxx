@@ -73,7 +73,7 @@ protected:
     strcpy(path_complete_captured_path, ""); \
     strcpy(prompt_state.buf, "\tABCDEF"); \
     display_bell_sounded = false; \
-    prompt_handle_tab(&prompt_state); \
+    EXPECT_EQ(kOk, prompt_handle_tab(&prompt_state)); \
     EXPECT_STREQ(input, inpbuf); \
     EXPECT_STREQ(expected_path, path_complete_captured_path); \
     EXPECT_STREQ(expected_buf, prompt_state.buf); \
