@@ -149,7 +149,7 @@ void put_history_item(char *s) {
 static void handle_backspace(PromptState *pstate) {
     if (pstate->char_index <= 0) return;
 
-    int i = pstate->char_index - 1;
+    size_t i = pstate->char_index - 1;
     for (char *p = inpbuf + i; *p; p++) {
         *p = *(p + 1);  // remove the char from inpbuf
     }
@@ -166,9 +166,9 @@ static void handle_backspace(PromptState *pstate) {
 }
 
 static void handle_delete(PromptState *pstate) {
-    if (pstate->char_index >= (ssize_t) strlen(inpbuf)) return;
+    if (pstate->char_index >= strlen(inpbuf)) return;
 
-    int i = pstate->char_index;
+    size_t i = pstate->char_index;
     for (char *p = inpbuf + i; *p; p++) {
         *p = *(p + 1);  // remove the char from inpbuf
     }
@@ -189,15 +189,15 @@ static void prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
     strcpy(inpbuf, new_inpbuf);
 
     // Erase existing input from the console.
-    for (int i = 0; i < pstate->char_index; ++i) display_putc('\b');
-    for (int i = 0; i < pstate->char_index; ++i) display_putc(' ');
-    for (int i = 0; i < pstate->char_index; ++i) display_putc('\b');
+    for (size_t i = 0; i < pstate->char_index; ++i) display_putc('\b');
+    for (size_t i = 0; i < pstate->char_index; ++i) display_putc(' ');
+    for (size_t i = 0; i < pstate->char_index; ++i) display_putc('\b');
 
     // Display the new contents of the input buffer.
     display_puts(inpbuf);
 
     // Handle the new input buffer being too long.
-    if ((ssize_t) strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
+    if (strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
         ERROR_LINE_TOO_LONG_TO_EDIT;
     }
 
@@ -218,7 +218,7 @@ static void handle_down(PromptState *pstate) {
 }
 
 static void handle_end(PromptState *pstate) {
-    while (pstate->char_index < (ssize_t) strlen(inpbuf)) {
+    while (pstate->char_index < strlen(inpbuf)) {
         display_putc(inpbuf[pstate->char_index++]);
     }
 }
@@ -242,7 +242,7 @@ static void handle_function_key(PromptState *pstate) {
 static void handle_home(PromptState *pstate) {
     if (pstate->char_index <= 0) return;
 
-    if (pstate->char_index == (ssize_t) strlen(inpbuf)) {
+    if (pstate->char_index == strlen(inpbuf)) {
         pstate->insert = true;
     }
 
@@ -259,7 +259,7 @@ static void handle_insert(PromptState *pstate) {
 static void handle_left(PromptState *pstate) {
     if (pstate->char_index <= 0) return;
 
-    if (pstate->char_index == (ssize_t) strlen(inpbuf)) {
+    if (pstate->char_index == strlen(inpbuf)) {
         pstate->insert = true;
     }
     display_putc('\b');
@@ -273,10 +273,10 @@ static void handle_newline(PromptState *pstate) {
 static void handle_other(PromptState *pstate) {
     if (pstate->buf[0] < ' ' || pstate->buf[0] >= 0x7f) return;
 
-    int j = strlen(inpbuf);
+    size_t j = strlen(inpbuf);
 
     if (pstate->insert) {
-        if ((ssize_t) strlen(inpbuf) >= pstate->max_chars - 1) return;  // sorry, line full
+        if (strlen(inpbuf) >= pstate->max_chars - 1) return;  // sorry, line full
         for (char *p = inpbuf + strlen(inpbuf); j >= pstate->char_index; p--, j--) {
             *(p + 1) = *p;
         }
@@ -305,7 +305,7 @@ static void handle_other(PromptState *pstate) {
 }
 
 static void handle_right(PromptState *pstate) {
-    if (pstate->char_index >= (ssize_t) strlen(inpbuf)) return;
+    if (pstate->char_index >= strlen(inpbuf)) return;
 
     display_putc(inpbuf[pstate->char_index]);
     pstate->char_index++;
@@ -356,7 +356,7 @@ void prompt_get_input(void) {
 
     display_puts(inpbuf);  // display the contents of the input buffer (if any)
 
-    if ((ssize_t) strlen(inpbuf) >= state.max_chars) {
+    if (strlen(inpbuf) >= state.max_chars) {
         ERROR_LINE_TOO_LONG_TO_EDIT;
     }
 
@@ -445,7 +445,7 @@ void prompt_get_input(void) {
             memmove(state.buf, state.buf + 1, sizeof(state.buf) - 1);
         } while (*state.buf);
 
-        if (state.char_index == (ssize_t) strlen(inpbuf)) {
+        if (state.char_index == strlen(inpbuf)) {
             state.insert = false;
         }
     }
