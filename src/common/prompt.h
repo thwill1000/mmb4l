@@ -63,11 +63,11 @@ typedef struct {
  *
  * On exit the global 'inpbuf' will contain what was typed at the prompt.
  */
-void prompt_get_input(void);
+MmResult prompt_get_input(void);
 
 /**
  * @brief Performs path completion on the contents of the global 'inpbuf'.
  */
-void prompt_handle_tab(PromptState *pstate);
+MmResult prompt_handle_tab(PromptState *pstate);
 
 #endif // #if !defined(MMB4L_PROMPT_H)
