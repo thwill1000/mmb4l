@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "console.h"
 #include "error.h"
 #include "interrupt.h"
+#include "logger.h"
 #include "keycodes.h"
 #include "mmb4l.h"
 #include "mmtime.h"
@@ -66,6 +67,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef struct {
    int width;
    int height;
+   int x;
+   int y;
    bool requires_sync;
    bool no_title;
 } ConsoleState;
@@ -76,7 +79,6 @@ static char console_rx_buf_data[CONSOLE_RX_BUF_SIZE];
 static RxBuf console_rx_buf;
 
 int ListCnt = 0;
-int MMCharPos = 0;
 
 static void handle_winch(int sig) {
     self.requires_sync = true;
@@ -95,8 +97,9 @@ MmResult console_init(bool no_title) {
             console_rx_buf_data,
             sizeof(console_rx_buf_data));
     self.no_title = no_title;
+    self.requires_sync = true;
 
-    return console_sync();
+    return kOk;
 }
 
 void console_bell(void) {
@@ -113,6 +116,8 @@ void console_cursor_up(int i) {
     assert(i > 0);
     printf("\033[%dA", i);
     fflush(stdout);
+    self.y -= i;
+    if (self.y < 0) self.y = 0;
 }
 
 void console_disable_raw_mode(void) {
@@ -296,25 +301,27 @@ int console_getc(void) {
 }
 
 static char console_putc_noflush(char c) {
+    bool printable = false; // Is 'c' a printable character?
+
     if (mmb_options.codepage && c > 127) {
         const char *ptr = mmb_options.codepage + 4 * (c - 128);
         putc(*ptr++, stdout);           // 1st byte.
         if (ptr) putc(*ptr++, stdout);  // Optional 2nd byte.
         if (ptr) putc(*ptr++, stdout);  // Optional 3rd byte.
         if (ptr) putc(*ptr++, stdout);  // Optional 4th byte.
-        MMCharPos++;
+        printable = true;
     } else {
         putc(c, stdout);
-        if (isprint(c))
-            MMCharPos++;
-        else {
+        if (isprint(c)) {
+            printable = true;
+        } else {
             switch (c) {
                 case '\b':
-                    MMCharPos--;
+                    if (self.x > 0) self.x--;
                     break;
                 case '\r':
                 case '\n':
-                    MMCharPos = 1;
+                    self.x = 0;
                     ListCnt++;
                     break;
                 default:
@@ -322,6 +329,23 @@ static char console_putc_noflush(char c) {
             }
         }
     }
+
+    if (printable) {
+        if (self.x >= self.width) {
+            // Handle "pending wrap".
+            self.x = 0;
+            self.y++;
+        }
+        self.x++;
+        // If x == self.width we have a "pending wrap".
+    }
+
+    if (self.y >= self.height) {
+        self.y = self.height - 1;
+    }
+
+    // LOG_DEBUG("EXIT:  c='%c'(0x%2x), x=%d, y=%d", printable ? c : '?', c, self.x, self.y);
+
     return c;
 }
 
@@ -342,72 +366,11 @@ void console_set_title(const char *title, bool command) {
     fflush(stdout);
 }
 
-enum ReadCursorPositionState {
-        EXPECTING_ESCAPE,
-        EXPECTING_SQUARE_BRACKET,
-        EXPECTING_ROWS,
-        EXPECTING_COLS,
-        EXPECTING_FINISHED };
-
-int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
-
-    rx_buf_clear(&console_rx_buf);
-
-    // Send escape code to report cursor position.
-    printf("\033[6n");
-    fflush(stdout);
-
-    // Read characters one at a time to match the expected pattern ESC[n;mR
-    // - fails if the pattern has not been matched within the timeout.
-    // - will sleep briefly if there is nothing to read.
-    int64_t timeout_ns = mmtime_now_ns() + MILLISECONDS_TO_NANOSECONDS(timeout_ms);
-    enum ReadCursorPositionState state = EXPECTING_ESCAPE;
-    char buf[32] = { 0 };
-    char *p = NULL;
-    while (mmtime_now_ns() < timeout_ns && state != EXPECTING_FINISHED) {
-        if (state == EXPECTING_ESCAPE) p = buf;
-        int ch = console_getc();
-        if (ch == -1) {
-            nanosleep(&ONE_MICROSECOND, NULL);
-            continue;
-        }
-        *(p++) = (char) ch;
-
-        switch (state) {
-            case EXPECTING_ESCAPE:
-                state = (ch == 0x1B ? EXPECTING_SQUARE_BRACKET : EXPECTING_ESCAPE);
-                break;
-            case EXPECTING_SQUARE_BRACKET:
-                state = (ch == '[' ? EXPECTING_ROWS : EXPECTING_ESCAPE);
-                break;
-            case EXPECTING_ROWS:
-                state = (ch == ';'
-                        ? EXPECTING_COLS
-                        : (isdigit(ch) ? EXPECTING_ROWS : EXPECTING_ESCAPE));
-                break;
-            case EXPECTING_COLS:
-                state = (ch == 'R'
-                        ? EXPECTING_FINISHED
-                        : (isdigit(ch) ? EXPECTING_COLS : EXPECTING_ESCAPE));
-                break;
-            case EXPECTING_FINISHED:
-                assert(0);  // Loop should have already exited.
-                break;
-        }
-    }
-
-    if (state == EXPECTING_FINISHED) {
-        // Parse output, rows (y) then columns (x).
-        *p++ = '\0';
-        sscanf(buf, "\033[%d;%dR", y, x);
-        (*x)--; // adjust to account for VT100 origin being (1,1) not (0,0).
-        (*y)--;
-        return 0; // Success
-    } else {
-        *x = 0;
-        *y = 0;
-        return -1; // Failure
-    }
+MmResult console_get_cursor_pos(int *x, int *y) {
+    if (self.requires_sync) ON_FAILURE_RETURN(console_sync());
+    *x = self.x;
+    *y = self.y;
+    return kOk;
 }
 
 MmResult console_get_size(int *width, int *height) {
@@ -420,11 +383,28 @@ MmResult console_get_size(int *width, int *height) {
 void console_home_cursor(void) {
     printf("\033[H");
     fflush(stdout);
+    self.x = 0;
+    self.y = 0;
 }
 
 void console_set_cursor_pos(int x, int y) {
+    if (x < 0) {
+        x = 0;
+    } else if (x >= self.width) {
+        x = self.width - 1;
+    }
+
+    if (y < 0) {
+        y = 0;
+    } else if (y >= self.height) {
+        y = self.height - 1;
+    }
+
     printf("\033[%d;%dH", y + 1, x + 1); // VT100 origin is (1,1) not (0,0).
     fflush(stdout);
+
+    self.x = x;
+    self.y = y;
 }
 
 MmResult console_set_size(int width, int height) {
@@ -558,9 +538,76 @@ static MmResult console_sync_size(int timeout_ms) {
     return kOk;
 }
 
+enum ReadCursorPositionState {
+    EXPECTING_ESCAPE,
+    EXPECTING_SQUARE_BRACKET,
+    EXPECTING_ROWS,
+    EXPECTING_COLS,
+    EXPECTING_FINISHED
+};
+
+MmResult console_sync_cursor_pos(int timeout_ms) {
+    // Send escape code to report cursor position.
+    rx_buf_clear(&console_rx_buf);
+    printf("\033[6n");
+    fflush(stdout);
+
+    // Read characters one at a time to match the expected pattern ESC[n;mR
+    // - fails if the pattern has not been matched within the timeout.
+    // - will sleep briefly if there is nothing to read.
+    int64_t timeout_ns = mmtime_now_ns() + MILLISECONDS_TO_NANOSECONDS(timeout_ms);
+    enum ReadCursorPositionState state = EXPECTING_ESCAPE;
+    char buf[32] = { 0 };
+    char *p = NULL;
+    while (mmtime_now_ns() < timeout_ns && state != EXPECTING_FINISHED) {
+        if (state == EXPECTING_ESCAPE) p = buf;
+        int ch = console_getc();
+        if (ch == -1) {
+            nanosleep(&ONE_MICROSECOND, NULL);
+            continue;
+        }
+        *(p++) = (char) ch;
+
+        switch (state) {
+            case EXPECTING_ESCAPE:
+                state = (ch == 0x1B ? EXPECTING_SQUARE_BRACKET : EXPECTING_ESCAPE);
+                break;
+            case EXPECTING_SQUARE_BRACKET:
+                state = (ch == '[' ? EXPECTING_ROWS : EXPECTING_ESCAPE);
+                break;
+            case EXPECTING_ROWS:
+                state = (ch == ';'
+                        ? EXPECTING_COLS
+                        : (isdigit(ch) ? EXPECTING_ROWS : EXPECTING_ESCAPE));
+                break;
+            case EXPECTING_COLS:
+                state = (ch == 'R'
+                        ? EXPECTING_FINISHED
+                        : (isdigit(ch) ? EXPECTING_COLS : EXPECTING_ESCAPE));
+                break;
+            case EXPECTING_FINISHED:
+                assert(0);  // Loop should have already exited.
+                break;
+        }
+    }
+
+    if (state == EXPECTING_FINISHED) {
+        // Parse output, rows (y) then columns (x).
+        *p++ = '\0';
+        sscanf(buf, "\033[%d;%dR", &self.y, &self.x);
+        self.x--; // adjust to account for VT100 origin being (1,1) not (0,0).
+        self.y--;
+        return kOk; // Success
+    } else {
+        return kError; // Failure
+    }
+}
+
 MmResult console_sync() {
     ON_FAILURE_RETURN(console_sync_size(100));
+    ON_FAILURE_RETURN(console_sync_cursor_pos(10000));
     self.requires_sync = false;
+    // LOG_DEBUG("EXIT:  width=%d, height=%d, x=%d, y=%d", self.width, self.height, self.x, self.y);
     return kOk;
 }
 

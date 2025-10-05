@@ -76,7 +76,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONSOLE_FONT_WIDTH   8
 
 extern int ListCnt;
-extern int MMCharPos;
 
 /** @param  no_title  Set true to make console_set_title() a NOP. */
 MmResult console_init(bool no_title);
@@ -118,11 +117,8 @@ int console_getc(void);
  *
  * @param   x           on return holds the x-position.
  * @param   y           on return holds the y-position.
- * @param   timeout_ms  how long (in milliseconds) to wait for a response
- *                      from the terminal before reporting a failure.
- * @return  0 on success, -1 on error.
  */
-int console_get_cursor_pos(int *x, int *y, int timeout_ms);
+MmResult console_get_cursor_pos(int *x, int *y);
 
 /**
  * Gets the console size.

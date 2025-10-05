@@ -81,7 +81,6 @@ void cmd_files_internal(const char *p) {
     size_t file_count = 0;
 
     // Use the current display dimensions for list control
-    ON_FAILURE_ERROR(display_sync())
     int width = -1, height = -1;
     ON_FAILURE_ERROR(display_get_size(false, &width, &height));
     int list_count = 2;

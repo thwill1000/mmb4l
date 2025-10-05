@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "../common/cstring.h"
-#include "../common/console.h"
 #include "../common/display.h"
 #include "../common/error.h"
 #include "../common/keycodes.h"
@@ -67,9 +66,10 @@ MmResult cmd_graphics_list(const char *p);  // cmd_graphics.c
 void cmd_option_list(const char *);         // cmd_option.c
 
 static void ListProgram(const char *p, int all) {
-    ON_FAILURE_ERROR(display_sync());
     int width = -1, height = -1;
     ON_FAILURE_ERROR(display_get_size(false, &width, &height));
+    int x = -1, y = -1;
+    ON_FAILURE_ERROR(display_get_cursor_pos(false, &x, &y));
 
     char b[STRINGSIZE];
     char *pp;
@@ -80,7 +80,7 @@ static void ListProgram(const char *p, int all) {
             p = llist(b, p);                                        // otherwise expand the line
             pp = b;
             while(*pp) {
-                if (MMCharPos >= width) ListNewLine(&ListCnt, all);
+                if (x >= width) ListNewLine(&ListCnt, all);
                 (void) display_putc(*pp++);
             }
             ListNewLine(&ListCnt, all);
@@ -98,7 +98,6 @@ static int cstring_cmp(const void *a, const void *b)  {
 
 static MmResult cmd_list_tokens(const char *title, const struct s_tokentbl *primary,
                                 const char **secondary) {
-    ON_FAILURE_RETURN(display_sync());
     int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
 
@@ -307,7 +306,6 @@ static MmResult cmd_list_variables(const char *p) {
 
 /** LIST [ALL] file$ */
 static MmResult cmd_list_default(const char *p) {
-    ON_FAILURE_RETURN(display_sync());
     int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
 
