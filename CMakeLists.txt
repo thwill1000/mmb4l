@@ -311,6 +311,7 @@ add_executable(test_console_getc
     src/common/console.c
     src/common/file.c
     src/common/file_linux.c
+    src/common/logger.c
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c

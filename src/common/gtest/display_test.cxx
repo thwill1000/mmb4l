@@ -14,7 +14,7 @@ extern "C" {
 #define FONT_1_WIDTH   8
 #define FONT_1_HEIGHT  12
 
-int (*mock_console_get_cursor_pos)(int *, int *, int);
+MmResult (*mock_console_get_cursor_pos)(int *, int *);
 MmResult (*mock_console_get_size)(int *, int *);
 void (*mock_console_set_cursor_pos)(int, int);
 
@@ -29,8 +29,8 @@ void console_clear() { }
 MmResult console_colour_bg(MmGraphicsColour argb) { return kOk; }
 MmResult console_colour_fg(MmGraphicsColour argb) { return kOk; }
 void console_cursor_up(int i) { }
-int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
-    return mock_console_get_cursor_pos(x, y, timeout_ms);
+MmResult console_get_cursor_pos(int *x, int *y) {
+    return mock_console_get_cursor_pos(x, y);
 }
 MmResult console_get_size(int *width, int *height) {
     return mock_console_get_size(width, height);
@@ -79,10 +79,10 @@ protected:
         console_cursor_y = 60;
         console_width = 80;
         console_height = 40;
-        mock_console_get_cursor_pos = [](int *x, int *y, int timeout_ms) {
+        mock_console_get_cursor_pos = [](int *x, int *y) {
             *x = console_cursor_x;
             *y = console_cursor_y;
-            return 0;
+            return (MmResult) kOk;
         };
         mock_console_get_size = [](int *width, int *height) {
             *width = console_width;
@@ -113,7 +113,7 @@ void GivenConsoleDisplay() {
 }
 
 void GivenConsoleGetCursorPosFails() {
-    mock_console_get_cursor_pos = [](int *x, int *y, int timeout_ms) { return -1; };
+    mock_console_get_cursor_pos = [](int *x, int *y) { return (MmResult) kError; };
 }
 
 void GivenConsoleGetSizeFails() {

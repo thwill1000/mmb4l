@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MMBasic.h"
 #include "tokentbl.h"
 #include "../common/console.h"
+#include "../common/display.h"
 #include "../common/error.h"
 #include "../common/memory.h"
 #include "../common/options.h"
@@ -376,9 +377,10 @@ void fun_version(void){
 
 
 // Returns the current cursor position in the line in characters.
-// n = POS
 void fun_pos(void){
-    iret = MMCharPos;
+    int x = -1, y = -1;
+    ON_FAILURE_ERROR(display_get_cursor_pos(false, &x, &y));
+    iret = x + 1; // TODO: Should this be 0-based ?
     targ = T_INT;
 }
 
@@ -387,20 +389,20 @@ void fun_pos(void){
 // Outputs spaces until the column indicated by 'number' has been reached.
 // PRINT TAB( number )
 void fun_tab(void) {
-    int i;
-    char *p;
-
-    i = getint(ep, 1, 255);
-    sret = p = GetTempStrMemory();                                  // this will last for the life of the command
-    if(MMCharPos > i) {
+    MMINTEGER i = getint(ep, 1, 255);
+    sret = GetTempStrMemory();
+    char *p = sret;
+    int x = -1, y = -1;
+    ON_FAILURE_ERROR(display_get_cursor_pos(false, &x, &y));
+    if (x >= i) {
         i--;
         *p++ = '\r';
         *p++ = '\n';
+    } else {
+        i -= x;
     }
-    else
-        i -= MMCharPos;
     memset(p, ' ', i);
-    p[i] = 0;
+    p[i] = '\0';
     CtoM(sret);
     targ = T_STR;
 }

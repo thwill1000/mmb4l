@@ -124,12 +124,7 @@ MmResult display_get_cursor_pos(bool pixel, int *x, int *y) {
     }
 
     if (TTY_TERMINAL_ENABLED()) {
-        int console_x, console_y;
-        if (FAILED(console_get_cursor_pos(&console_x, &console_y, 10000))) {
-           return mmresult_ex(kError, "Cannot determine terminal cursor position");
-        }
-        *x = console_x;
-        *y = console_y;
+        ON_FAILURE_RETURN(console_get_cursor_pos(x, y));
         if (pixel) {
             *x *= font_width(graphics_font);
             *y *= font_height(graphics_font);

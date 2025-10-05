@@ -64,6 +64,8 @@ void CheckAbort(void);
 // so console end of line is always cr
 int MMgetchar(void) {
     static char prevchar = 0;
+    int x = -1, y = -1;
+    ON_FAILURE_ERROR_EX(display_get_cursor_pos(false, &x, &y), -1)
     int c;
     ON_FAILURE_ERROR_EX(display_show_cursor(true), -1);
     for (;;) {
@@ -72,7 +74,7 @@ int MMgetchar(void) {
         if (c == -1) {
             if (!isatty(STDIN_FILENO)) {
                 // In this case there will never be anything to read.
-                if (MMCharPos > 1) display_puts("\r\n");
+                if (x > 0) display_puts("\r\n");
                 display_puts("Error: STDIN exhausted\r\n");
                 mmb_state.exit_code = EX_FAIL;
                 ON_FAILURE_ERROR_EX(display_show_cursor(false), -1);

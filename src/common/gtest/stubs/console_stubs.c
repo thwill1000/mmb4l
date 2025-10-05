@@ -19,7 +19,7 @@ void console_disable_raw_mode(void) { }
 void console_enable_raw_mode(void) { }
 void console_foreground(int colour) { }
 int console_getc(void) { return -1; }
-int console_get_cursor_pos(int *x, int *y, int timeout_ms) { return -1; }
+MmResult console_get_cursor_pos(int *x, int *y) { return kOk; }
 MmResult console_get_size(int *width, int *height) { return kOk; }
 void console_home_cursor(void) { }
 MmResult console_inverse(bool inverse) { return kOk; }
