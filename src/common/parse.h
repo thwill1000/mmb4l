@@ -218,4 +218,29 @@ MmResult parse_sprite_id(const char *p, uint64_t flags, MmSurfaceId *sprite_id);
  */
 MmResult parse_filename(const char *p, char *out, size_t out_sz);
 
+/**
+ * Parse and validate a numerical array variable argument.
+ *
+ * Locates a variable by name, validates that it is a numerical array (integer or float)
+ * with the expected number of dimensions, and returns pointers to the array data along
+ * with dimension information.
+ *
+ * @param tp               String to parse from
+ * @param a1float          Output pointer to float array data (set if array is T_NBR type)
+ * @param a1int            Output pointer to integer array data (set if array is T_INT type)
+ * @param argno            Argument number (for error messages)
+ * @param dimensions       Expected number of dimensions (1 or 2); 0 = no validation
+ * @param dims             Output array to receive dimension sizes, or NULL to use variable's dims
+ * @param disallowConstant If true, reject constant arrays (e.g., when caller needs to modify)
+ *
+ * @return Total number of elements in the array (cardinality)
+ *
+ * @throws kInvalidArgument if variable is constant and disallowConstant is true
+ * @throws kInvalidArgument if variable is not a numerical array
+ * @throws kInvalidArgument if array dimensions don't match expected dimensions parameter
+ * @throws kSyntax if array data pointer validation fails
+ */
+int parse_number_array(char *tp, MMFLOAT **a1float, MMINTEGER **a1int, int argno, int dimensions,
+                       short *dims, bool disallowConstant);
+
 #endif
