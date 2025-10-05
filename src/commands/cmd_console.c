@@ -91,8 +91,8 @@ static void cmd_console_get_cursor(const char *p) {
         ERROR_ARG_NOT_INTEGER(2);
     }
 
-    int x, y;
-    if (FAILED(console_get_cursor_pos(&x, &y, 10000))) {
+    int x = -1, y = -1;
+    if (FAILED(console_get_cursor_pos(&x, &y))) {
         ERROR_COULD_NOT("determine cursor position");
     }
 
@@ -116,8 +116,8 @@ static void cmd_console_get_size(const char *p) {
         ERROR_ARG_NOT_INTEGER(2);
     }
 
-    int width, height;
-    if (FAILED(console_sync()) || FAILED(console_get_size(&width, &height))) {
+    int width = -1, height = -1;
+    if (FAILED(console_get_size(&width, &height))) {
         ERROR_UNKNOWN_TERMINAL_SIZE;
     }
 
@@ -181,8 +181,7 @@ static void cmd_console_set_size(const char *p) {
     if (at_least) {
         int old_width = 0;
         int old_height = 0;
-        if (FAILED(console_sync())
-            || FAILED(console_get_size(&old_width, &old_height))) {
+        if (FAILED(console_get_size(&old_width, &old_height))) {
             ERROR_COULD_NOT("resize console");
         }
         width = max(width, old_width);

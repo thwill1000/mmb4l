@@ -106,7 +106,9 @@ cmd_autosave_read_exit:
     if (previous == '\r') *p++ = '\n';
     *p = '\0'; // Terminate with a NULL.
 
-    if (MMCharPos > 1) display_putc('\n');
+    int x = -1, y = -1;
+    ON_FAILURE_ERROR_EX(display_get_cursor_pos(false, &x, &y), -1);
+    if (x > 0) display_putc('\n');
 
     return ch;
 }

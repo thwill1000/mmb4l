@@ -46,7 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <sys/types.h>
 
-#include "console.h"
 #include "display.h"
 #include "keycodes.h"
 #include "mmb4l.h"
@@ -372,12 +371,14 @@ static MmResult handle_up(PromptState *pstate) {
 }
 
 MmResult prompt_get_input(void) {
-    int width, height;
+    int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
+    int x = -1, y = -1;
+    ON_FAILURE_RETURN(display_get_cursor_pos(false, &x, &y));
 
     PromptState state = { 0 };
     state.char_index = strlen(inpbuf); // get the current cursor position in the line
-    state.start_line = MMCharPos - 1;  // save the current cursor position
+    state.start_line = x;              // save the current cursor position
     state.max_chars = width;
     state.history_idx = -1;
 
