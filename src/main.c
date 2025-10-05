@@ -212,7 +212,9 @@ void longjmp_handler(int jmp_state) {
     if (mmb_args.show_prompt) {
         ON_FAILURE_EXIT(console_show_cursor(true));
         ON_FAILURE_EXIT(console_reset());
-        if (MMCharPos > 1) display_puts("\r\n");
+        int cursor_x = -1, cursor_y = -1;
+        ON_FAILURE_EXIT(display_get_cursor_pos(false, &cursor_x, &cursor_y));
+        if (cursor_x > 0) ON_FAILURE_EXIT(display_puts("\r\n"));
     }
 
     audio_term();
@@ -346,7 +348,9 @@ int main(int argc, char *argv[]) {
         ClearTempMemory();  // clear temp string space (might have been used by
                             // the prompt)
         CurrentLinePtr = NULL;  // do not use the line number in error reporting
-        if (MMCharPos > 1) {
+        int cursor_x = -1, cursor_y = -1;
+        ON_FAILURE_EXIT(display_get_cursor_pos(false, &cursor_x, &cursor_y));
+        if (cursor_x > 0) {
             display_puts("\r\n");  // prompt should be on a new line
         }
         //PrepareProgram(false); // This seems superflous so comment it out and see what breaks!

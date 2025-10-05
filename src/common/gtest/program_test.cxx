@@ -44,9 +44,6 @@ ErrorState mmb_normal_error_state;
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
 
-// Defined in "common/console.c"
-int MMCharPos = 0;
-
 // Defined in "common/fonttbl.c"
 void font_clear_user_defined() { }
 
