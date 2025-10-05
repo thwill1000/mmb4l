@@ -261,7 +261,9 @@ static void cmd_option_set(const char *p) {
 
 void cmd_option(void) {
     const char *p;
-    if ((p = checkstring(cmdline, "LIST"))) {
+    if ((p = checkstring(cmdline, "KEYBOARD"))) {
+        // Ignored for now.
+    } else if ((p = checkstring(cmdline, "LIST"))) {
         cmd_option_list(p);
     } else if ((p = checkstring(cmdline, "LOAD"))) {
         cmd_option_load(p);
