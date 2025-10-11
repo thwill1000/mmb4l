@@ -169,6 +169,13 @@ MmResult display_set_cursor_pos(bool pixel, int x, int y);
 MmResult display_show_cursor(bool show);
 
 /**
+ * Synchronizes cached TTY terminal size with actual values.
+ *
+ * @return  kOK on success.
+ */
+MmResult display_sync();
+
+/**
  * Enables or disables underline mode.
  *
  * @param[in]  underline  true:  enable underline mode,

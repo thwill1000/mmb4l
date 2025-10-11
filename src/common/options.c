@@ -170,10 +170,8 @@ OptionsDefinition options_definitions[] = {
 void options_init(Options *options) {
     memset(options, 0, sizeof(Options));
 
-    // TODO: Do these even belong in options?
+    // TODO: Does this even belong in options ?
     options->autorun = 0;
-    options->height = 0;
-    options->width = 0;
 
     for (const OptionsDefinition *def = options_definitions; def->name; def++) {
         MmResult result = options_set_string_value(options, def->id, def->default_value);

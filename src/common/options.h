@@ -161,12 +161,10 @@ typedef struct {
     char editor[STRINGSIZE];  // TODO: should probably be shorter
     char explicit_type;
     char fn_keys[OPTIONS_NUM_FN_KEYS][OPTIONS_MAX_FN_KEY_LEN + 1];
-    int  height;
     OptionsListCase list_case;
     char search_path[STRINGSIZE];
     OptionsSimulate simulate;
     char tab;
-    int  width;
 
 #if defined OPTION_TESTS
     bool    zboolean;

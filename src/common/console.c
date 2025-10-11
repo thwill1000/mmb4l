@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-console.c
+self.c
 
 Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <stdio.h>
 #include <termios.h>
+#include <signal.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 
@@ -62,21 +63,40 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define CONSOLE_RX_BUF_SIZE 256
 
+typedef struct {
+   int width;
+   int height;
+   bool requires_sync;
+   bool no_title;
+} ConsoleState;
+
+static ConsoleState self;
 static struct termios orig_termios;
 static char console_rx_buf_data[CONSOLE_RX_BUF_SIZE];
 static RxBuf console_rx_buf;
-static bool console_no_title = false;
 
 int ListCnt = 0;
 int MMCharPos = 0;
 
+static void handle_winch(int sig) {
+    self.requires_sync = true;
+}
+
 MmResult console_init(bool no_title) {
+    // Install signal handler for window size changes.
+    struct sigaction sa;
+    sa.sa_handler = handle_winch;
+    ON_FAILURE_RETURN(sigemptyset(&sa.sa_mask));
+    sa.sa_flags = 0;
+    ON_FAILURE_RETURN(sigaction(SIGWINCH, &sa, NULL));
+
     rx_buf_init(
             &console_rx_buf,
             console_rx_buf_data,
             sizeof(console_rx_buf_data));
-    console_no_title = no_title;
-    return kOk;
+    self.no_title = no_title;
+
+    return console_sync();
 }
 
 void console_bell(void) {
@@ -317,7 +337,7 @@ void console_puts(const char *s) {
 }
 
 void console_set_title(const char *title, bool command) {
-    if (!command && console_no_title) return;
+    if (!command && self.no_title) return;
     printf("\x1b]0;%s\x7", title);
     fflush(stdout);
 }
@@ -390,34 +410,11 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
     }
 }
 
-int console_get_size(int *width, int *height, int timeout_ms) {
-    static int safe_width = 80;
-    static int safe_height = 40;
-    struct winsize ws= { 0 };
-    int fd = open("/dev/tty", O_RDWR);
-    if (fd >= 0) {
-        int64_t timeout_ns = mmtime_now_ns() + MILLISECONDS_TO_NANOSECONDS(timeout_ms);
-        do {
-            // Alternatively consider: ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws)
-            if (SUCCEEDED(ioctl(fd, TIOCGWINSZ, &ws)) && ws.ws_col > 0) break;
-            nanosleep(&ONE_MICROSECOND, NULL);
-        } while (mmtime_now_ns() < timeout_ns);
-        close(fd);
-    }
-
-    if (ws.ws_col > 0) {
-        // Success.
-        safe_width = ws.ws_col;
-        safe_height = ws.ws_row;
-    }
-
-    // NOTE: Previously when the console size could not be determined this
-    //       function would return -1 and "all hell would break loose" with
-    //       endless "Cannot determine terminal size" errors being reported.
-    //       Now we return the last successful values determined, or 80x40.
-    *width = safe_width;
-    *height = safe_height;
-    return 0;
+MmResult console_get_size(int *width, int *height) {
+    if (self.requires_sync) ON_FAILURE_RETURN(console_sync());
+    *width = self.width;
+    *height = self.height;
+    return kOk;
 }
 
 void console_home_cursor(void) {
@@ -430,7 +427,7 @@ void console_set_cursor_pos(int x, int y) {
     fflush(stdout);
 }
 
-int console_set_size(int width, int height) {
+MmResult console_set_size(int width, int height) {
     printf("\033[8;%d;%dt", height, width);
     fflush(stdout);
 
@@ -440,13 +437,12 @@ int console_set_size(int width, int height) {
     // if it does not represent reality.
     mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(250));
 
-    int new_height = 0;
-    int new_width = 0;
-    if (SUCCEEDED(console_get_size(&new_width, &new_height, 0))
-            && (new_width == width)
-            && (new_height == height)) return 0; // Success
-
-    return -1; // Failure
+    ON_FAILURE_RETURN(console_sync());
+    if (self.width == width && self.height == height) {
+        return kOk;
+    } else {
+        return kError;
+    }
 }
 
 const int ANSI_COLOURS[] = { 0, 4, 2, 6, 1, 5, 3, 7, 10, 14, 12, 16, 11, 15, 13, 17 };
@@ -528,6 +524,43 @@ MmResult console_scroll_up() {
 MmResult console_show_cursor(bool show) {
     printf(show ? "\033[?25h" : "\033[?25l");
     fflush(stdout);
+    return kOk;
+}
+
+static MmResult console_sync_size(int timeout_ms) {
+    static int safe_width = 80;
+    static int safe_height = 40;
+    struct winsize ws= { 0 };
+    int fd = open("/dev/tty", O_RDWR);
+    if (fd >= 0) {
+        int64_t timeout_ns = mmtime_now_ns() + MILLISECONDS_TO_NANOSECONDS(timeout_ms);
+        do {
+            // Alternatively consider: ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws)
+            if (SUCCEEDED(ioctl(fd, TIOCGWINSZ, &ws)) && ws.ws_col > 0) break;
+            nanosleep(&ONE_MICROSECOND, NULL);
+        } while (mmtime_now_ns() < timeout_ns);
+        close(fd);
+    }
+
+    if (ws.ws_col > 0) {
+        // Success.
+        safe_width = ws.ws_col;
+        safe_height = ws.ws_row;
+    }
+
+    // NOTE: Previously when the console size could not be determined this
+    //       function would return a failure and "all hell would break loose" with
+    //       endless "Cannot determine terminal size" errors being reported.
+    //       Now we return the last successful values determined, or 80x40.
+    self.width = safe_width;
+    self.height = safe_height;
+
+    return kOk;
+}
+
+MmResult console_sync() {
+    ON_FAILURE_RETURN(console_sync_size(100));
+    self.requires_sync = false;
     return kOk;
 }
 

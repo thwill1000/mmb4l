@@ -63,12 +63,14 @@ const char *gosubstack[MAXGOSUB];
 const char *errorstack[MAXGOSUB];
 int gosubindex;
 
-char DimUsed = false;                                               // used to catch OPTION BASE after DIM has been used
+char DimUsed = false;  // used to catch OPTION BASE after DIM has been used
 
 void ListNewLine(int *ListCnt, int all) {
     display_puts("\r\n");
     (*ListCnt)++;
-    if(!all && *ListCnt >= mmb_options.height) {
+    int width = -1, height = -1;
+    ON_FAILURE_ERROR(display_get_size(false, &width, &height))
+    if(!all && *ListCnt >= width) {
         display_puts("PRESS ANY KEY ...");
         MMgetchar();
         display_puts("\r                 \r");

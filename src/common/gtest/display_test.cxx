@@ -15,7 +15,7 @@ extern "C" {
 #define FONT_1_HEIGHT  12
 
 int (*mock_console_get_cursor_pos)(int *, int *, int);
-int (*mock_console_get_size)(int *, int *, int);
+MmResult (*mock_console_get_size)(int *, int *);
 void (*mock_console_set_cursor_pos)(int, int);
 
 int console_cursor_x;
@@ -32,8 +32,8 @@ void console_cursor_up(int i) { }
 int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
     return mock_console_get_cursor_pos(x, y, timeout_ms);
 }
-int console_get_size(int *width, int *height, int timeout_ms) {
-    return mock_console_get_size(width, height, timeout_ms);
+MmResult console_get_size(int *width, int *height) {
+    return mock_console_get_size(width, height);
 }
 MmResult console_inverse(bool inverse) { return kOk; }
 char console_putc(char c) { return c; }
@@ -45,6 +45,7 @@ void console_set_cursor_pos(int x, int y) {
     mock_console_set_cursor_pos(x, y);
 }
 MmResult console_show_cursor(bool show) { return kOk; }
+MmResult console_sync() { return kOk; }
 MmResult console_underline(bool underline) { return kOk; }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 
@@ -83,10 +84,10 @@ protected:
             *y = console_cursor_y;
             return 0;
         };
-        mock_console_get_size = [](int *width, int *height, int timeout_ms) {
+        mock_console_get_size = [](int *width, int *height) {
             *width = console_width;
             *height = console_height;
-            return 0;
+            return (MmResult) kOk;
         };
         mock_console_set_cursor_pos = [](int x, int y) {
             console_cursor_x = x;
@@ -116,7 +117,7 @@ void GivenConsoleGetCursorPosFails() {
 }
 
 void GivenConsoleGetSizeFails() {
-    mock_console_get_size = [](int *width, int *height, int timeout_ms) { return -1; };
+    mock_console_get_size = [](int *width, int *height) { return (MmResult) kError; };
 }
 
 TEST_F(DisplayTest, GetCursorPos_InPixels_GivenGraphicsDisplay_Succeeds) {
