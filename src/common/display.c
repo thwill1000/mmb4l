@@ -149,12 +149,7 @@ MmResult display_get_size(bool pixel, int *width, int *height) {
     }
 
     if (TTY_TERMINAL_ENABLED()) {
-        int console_width, console_height;
-        if (FAILED(console_get_size(&console_width, &console_height, 0))) {
-            return mmresult_ex(kError, "Cannot determine terminal size");
-        }
-        *width = console_width;
-        *height = console_height;
+        ON_FAILURE_RETURN(console_get_size(width, height));
         if (pixel) {
             *width *= font_width(graphics_font);
             *height *= font_height(graphics_font);
@@ -263,6 +258,14 @@ MmResult display_show_cursor(bool show) {
     return kOk;
 }
 
+MmResult display_sync() {
+    if (TTY_TERMINAL_ENABLED()) {
+        return console_sync();
+    }
+
+    return kOk;
+}
+
 MmResult display_underline(bool underline) {
     if (mmb_options.console & kSerial) {
         ON_FAILURE_RETURN(console_underline(underline));
@@ -286,6 +289,7 @@ MmResult display_update_cursor() {
 
     return kOk;
 }
+
 
 MmResult display_write(const char *buf, size_t *sz) {
     if (TTY_TERMINAL_ENABLED()) {

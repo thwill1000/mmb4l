@@ -127,13 +127,10 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms);
 /**
  * Gets the console size.
  *
- * @param   width       on return holds the width in characters.
- * @param   height      on return holds the height in characters.
- * @param   timeout_ms  how long (in milliseconds) to retry before
- *                      reporting a failure.
- * @return  0 on success, -1 on error.
+ * @param  width   on return holds the width in characters.
+ * @param  height  on return holds the height in characters.
  */
-int console_get_size(int *width, int *height, int timeout_ms);
+MmResult console_get_size(int *width, int *height);
 
 void console_home_cursor(void);
 
@@ -189,9 +186,8 @@ void console_set_cursor_pos(int x, int y);
  *
  * @param   width   width in characters.
  * @param   height  height in characters.
- * @return  0 on success, -1 on error.
  */
-int console_set_size(int width, int height);
+MmResult console_set_size(int width, int height);
 
 /**
  * Sets the console title.
@@ -206,6 +202,13 @@ void console_set_title(const char *title, bool command);
 
 /** Shows or hides cursor. */
 MmResult console_show_cursor(bool show);
+
+/**
+ * Synchronizes cached TTY terminal size with actual values.
+ *
+ * @return  kOK on success.
+ */
+MmResult console_sync();
 
 /**
  * Enables or disables underline mode.

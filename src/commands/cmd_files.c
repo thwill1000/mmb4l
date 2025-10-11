@@ -81,15 +81,17 @@ void cmd_files_internal(const char *p) {
     size_t file_count = 0;
 
     // Use the current display dimensions for list control
-    ON_FAILURE_ERROR(display_get_size(false, &mmb_options.width, &mmb_options.height));
+    ON_FAILURE_ERROR(display_sync())
+    int width = -1, height = -1;
+    ON_FAILURE_ERROR(display_get_size(false, &width, &height));
     int list_count = 2;
-    const bool compact = mmb_options.width <= 80;
+    const bool compact = width <= 80;
 
     // Print queried directory
     display_puts(flist->directory);
     // TODO: ListNewLine() should take the line to display and be reponsible
     //       for handling lines that are wider than the display.
-    list_count += ((strlen(flist->directory) + mmb_options.width - 1) / mmb_options.width) - 1;
+    list_count += ((strlen(flist->directory) + width - 1) / width) - 1;
     ListNewLine(&list_count, 0);
 
     // List directories first
@@ -100,7 +102,7 @@ void cmd_files_internal(const char *p) {
         display_puts(buf);
         dir_count++;
         // TODO: See above
-        list_count += ((strlen(buf) + mmb_options.width - 1) / mmb_options.width) - 1;
+        list_count += ((strlen(buf) + width - 1) / width) - 1;
         ListNewLine(&list_count, 0);
     }
 
@@ -136,7 +138,7 @@ void cmd_files_internal(const char *p) {
         display_puts(buf);
         file_count++;
         // TODO: See above
-        list_count += ((strlen(buf) + mmb_options.width - 1) / mmb_options.width) - 1;
+        list_count += ((strlen(buf) + width - 1) / width) - 1;
         ListNewLine(&list_count, 0);
     }
 

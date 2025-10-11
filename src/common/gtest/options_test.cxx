@@ -78,11 +78,9 @@ static void expect_options_have_defaults(Options *options) {
     EXPECT_STREQ("RUN \"\"\202", options->fn_keys[9]);
     EXPECT_STREQ("", options->fn_keys[10]);
     EXPECT_STREQ("", options->fn_keys[11]);
-    EXPECT_EQ(0, options->height);
     EXPECT_EQ(kTitle, options->list_case);
     EXPECT_STREQ("", options->search_path);
     EXPECT_EQ(4, options->tab);
-    EXPECT_EQ(0, options->width);
     EXPECT_EQ(true, options->zboolean);
     EXPECT_EQ(2.71828, options->zfloat);
     EXPECT_EQ(1945, options->zinteger);

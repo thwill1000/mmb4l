@@ -67,6 +67,10 @@ MmResult cmd_graphics_list(const char *p);  // cmd_graphics.c
 void cmd_option_list(const char *);         // cmd_option.c
 
 static void ListProgram(const char *p, int all) {
+    ON_FAILURE_ERROR(display_sync());
+    int width = -1, height = -1;
+    ON_FAILURE_ERROR(display_get_size(false, &width, &height));
+
     char b[STRINGSIZE];
     char *pp;
     int ListCnt = 1;
@@ -76,7 +80,7 @@ static void ListProgram(const char *p, int all) {
             p = llist(b, p);                                        // otherwise expand the line
             pp = b;
             while(*pp) {
-                if(MMCharPos >= mmb_options.width) ListNewLine(&ListCnt, all);
+                if (MMCharPos >= width) ListNewLine(&ListCnt, all);
                 (void) display_putc(*pp++);
             }
             ListNewLine(&ListCnt, all);
@@ -94,6 +98,10 @@ static int cstring_cmp(const void *a, const void *b)  {
 
 static MmResult cmd_list_tokens(const char *title, const struct s_tokentbl *primary,
                                 const char **secondary) {
+    ON_FAILURE_RETURN(display_sync());
+    int width = -1, height = -1;
+    ON_FAILURE_RETURN(display_get_size(false, &width, &height));
+
     int num_primary = 0;
     struct s_tokentbl *ptok = (struct s_tokentbl *) primary;
     while (ptok->name[0] != '\0') {
@@ -131,7 +139,7 @@ static MmResult cmd_list_tokens(const char *title, const struct s_tokentbl *prim
     // Sort the table.
     qsort(tbl, total, sizeof(char *), cstring_cmp);
 
-    int step = mmb_options.width / 20;
+    int step = width / 20;
     for (int i = 0; i < total; i += step) {
         for (int k = 0; k < step; k++) {
             if (i + k < total) {
@@ -299,6 +307,10 @@ static MmResult cmd_list_variables(const char *p) {
 
 /** LIST [ALL] file$ */
 static MmResult cmd_list_default(const char *p) {
+    ON_FAILURE_RETURN(display_sync());
+    int width = -1, height = -1;
+    ON_FAILURE_RETURN(display_get_size(false, &width, &height));
+
     const char *p2 = checkstring(p, "ALL");
     const bool all = p2;
     p2 = p2 ? p2 : p;
@@ -324,7 +336,7 @@ static MmResult cmd_list_default(const char *p) {
             if (line_buffer[i] == TAB) line_buffer[i] = ' ';
         }
         display_puts(line_buffer);
-        list_count += strlen(line_buffer) / mmb_options.width;
+        list_count += strlen(line_buffer) / width;
         ListNewLine(&list_count, all);
     }
 
@@ -337,9 +349,6 @@ static MmResult cmd_list_default(const char *p) {
 void cmd_list(void) {
     const char *p;
     skipspace(cmdline);
-
-    // Use the current display dimensions for the output of the LIST command.
-    ON_FAILURE_ERROR(display_get_size(false, &mmb_options.width, &mmb_options.height));
 
     MmResult result = kOk;
     if ((p = checkstring(cmdline, "COMMANDS"))) {
