@@ -58,12 +58,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CURSOR_PERIOD  SECONDS_TO_NANOSECONDS(1) / 2
 
 typedef struct {
+    bool cursor_visible;
     bool inverse;
+    bool show_cursor;
     bool underline;
 } TermGfxState;
 
 TermGfxState self = {
+    .cursor_visible = false,
     .inverse = false,
+    .show_cursor = false,
     .underline = false
 };
 
@@ -241,25 +245,34 @@ static MmResult termgfx_draw_cursor(MmGraphicsColour colour) {
 
 MmResult termgfx_show_cursor(bool show) {
     ASSERT_GFX();
-    if (!show) {
+    self.show_cursor = show;
+    return termgfx_update_cursor();
+}
+
+MmResult termgfx_update_cursor() {
+    ASSERT_GFX();
+    static int64_t t = 0;
+
+    if (self.cursor_visible && !self.show_cursor) {
+        self.cursor_visible = false;
         return termgfx_draw_cursor(graphics_bcolour);
     }
 
-    static int64_t t = 0;
-    static bool visible = false;
-
     const int64_t now = mmtime_now_ns();
-    bool new_visible = visible;
-    if (now > t + CURSOR_PERIOD) {
-        t = now;
-        new_visible = !visible;
+
+    if (now < t + CURSOR_PERIOD) {
+        return kOk;
     }
 
-    if (new_visible == visible) return kOk;
+    t = now;
 
-    visible = new_visible;
-
-    return termgfx_draw_cursor(visible ? graphics_fcolour : graphics_bcolour);
+    if (self.cursor_visible) {
+        self.cursor_visible = false;
+        return termgfx_draw_cursor(graphics_bcolour);
+    } else {
+        self.cursor_visible = true;
+        return termgfx_draw_cursor(graphics_fcolour);
+    }
 }
 
 MmResult termgfx_underline(bool underline) {
