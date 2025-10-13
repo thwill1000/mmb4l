@@ -131,7 +131,7 @@ static void cmd_console_hide_cursor(const char *p) {
     if (argc == 1) {
         hide = parse_bool(argv[0]);
     }
-    console_show_cursor(!hide);
+    ON_FAILURE_ERROR(console_show_cursor(!hide));
 }
 
 static void cmd_console_home(const char *p) {
@@ -205,7 +205,7 @@ static void cmd_console_show_cursor(const char *p) {
     if (argc == 1) {
         show = parse_bool(argv[0]);
     }
-    console_show_cursor(show);
+    ON_FAILURE_ERROR(console_show_cursor(show));
 }
 
 void cmd_console(void) {

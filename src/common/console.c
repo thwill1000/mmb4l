@@ -525,9 +525,10 @@ MmResult console_scroll_up() {
     return kOk;
 }
 
-void console_show_cursor(bool show) {
+MmResult console_show_cursor(bool show) {
     printf(show ? "\033[?25h" : "\033[?25l");
     fflush(stdout);
+    return kOk;
 }
 
 MmResult console_underline(bool underline) {

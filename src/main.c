@@ -210,7 +210,7 @@ static void reset_console_title() {
 void longjmp_handler(int jmp_state) {
 
     if (mmb_args.show_prompt) {
-        console_show_cursor(true);
+        ON_FAILURE_EXIT(console_show_cursor(true));
         ON_FAILURE_EXIT(console_reset());
         if (MMCharPos > 1) display_puts("\r\n");
     }
@@ -265,7 +265,7 @@ static MmResult init_prompt() {
     reset_console_title();
     console_reset();
     console_clear();
-    console_show_cursor(true);
+    ON_FAILURE_RETURN(console_show_cursor(true));
     char banner[1024];
     ON_FAILURE_RETURN(get_banner(banner, sizeof(banner)));
     ON_FAILURE_RETURN(display_puts(banner));

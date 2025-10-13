@@ -205,7 +205,7 @@ int console_set_size(int width, int height);
 void console_set_title(const char *title, bool command);
 
 /** Shows or hides cursor. */
-void console_show_cursor(bool show);
+MmResult console_show_cursor(bool show);
 
 /**
  * Enables or disables underline mode.
