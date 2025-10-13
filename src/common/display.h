@@ -92,13 +92,6 @@ MmResult display_cursor_up(int i);
 MmResult display_get_cursor_pos(bool pixel, int *x, int *y);
 
 /**
- * Hides the cursor.
- *
- * @return  kOK on success.
- */
-MmResult display_hide_cursor();
-
-/**
  * Gets the size of the display.
  *
  * @param[in]   pixel   true:  to get value in pixels,
@@ -167,11 +160,13 @@ MmResult display_scroll_up();
 MmResult display_set_cursor_pos(bool pixel, int x, int y);
 
 /**
- * Shows the cursor.
+ * Shows/hides the cursor.
  *
+ * @param[in]  show  true:  show the cursor,
+ *                   false: hide the cursor.
  * @return  kOK on success.
  */
-MmResult display_show_cursor();
+MmResult display_show_cursor(bool show);
 
 /**
  * Enables or disables underline mode.

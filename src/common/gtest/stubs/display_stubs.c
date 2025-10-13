@@ -17,7 +17,6 @@ MmResult display_colour_bg(MmGraphicsColour argb) { return kOk; }
 MmResult display_colour_fg(MmGraphicsColour argb) { return kOk; }
 MmResult display_cursor_up(int i) { return kOk; }
 MmResult display_get_size(bool pixel, int *width, int *height) { return kOk; }
-MmResult display_hide_cursor() { return kOk; }
 MmResult display_inverse(bool inverse) { return kOk; }
 MmResult display_putc(char c) { return kOk; }
 
@@ -31,6 +30,6 @@ MmResult display_scroll_down() { return kOk; }
 MmResult display_scroll_up() { return kOk; }
 MmResult display_set_cursor_char_pos(int x, int y) { return kOk; }
 MmResult display_set_cursor_pixel_pos(int x, int y) { return kOk; }
-MmResult display_show_cursor() { return kOk; }
+MmResult display_show_cursor(bool show) { return kOk; }
 MmResult display_underline(bool underline) { return kOk; }
 MmResult display_write(const char *buf, size_t *sz) { return kOk; }
