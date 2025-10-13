@@ -179,12 +179,6 @@ static MmResult display_draw_cursor(MmGraphicsColour colour) {
             colour);
 }
 
-MmResult display_hide_cursor() {
-    if (!graphics_current || !(mmb_options.console & kScreen)) return kOk;
-
-    return display_draw_cursor(graphics_bcolour);
-}
-
 static MmResult termgfx_inverse(bool inverse) {
     self.inverse = inverse;
     return kOk;
@@ -350,8 +344,10 @@ MmResult display_set_cursor_pos(bool pixel, int x, int y) {
     return kOk;
 }
 
-MmResult display_show_cursor() {
-    if (!graphics_current || !(mmb_options.console & kScreen)) return kOk;
+static MmResult termgfx_show_cursor(bool show) {
+    if (!show) {
+        return display_draw_cursor(graphics_bcolour);
+    }
 
     static int64_t t = 0;
     static bool visible = false;
@@ -368,6 +364,14 @@ MmResult display_show_cursor() {
     visible = new_visible;
 
     return display_draw_cursor(visible ? graphics_fcolour : graphics_bcolour);
+}
+
+MmResult display_show_cursor(bool show) {
+    if (graphics_current && (mmb_options.console & kScreen)) {
+        ON_FAILURE_RETURN(termgfx_show_cursor(show));
+    }
+
+    return kOk;
 }
 
 static MmResult termgfx_underline(bool underline) {
