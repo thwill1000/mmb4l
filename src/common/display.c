@@ -275,6 +275,18 @@ MmResult display_underline(bool underline) {
     return kOk;
 }
 
+MmResult display_update_cursor() {
+    if (TTY_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(console_update_cursor());
+    }
+
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_update_cursor());
+    }
+
+    return kOk;
+}
+
 MmResult display_write(const char *buf, size_t *sz) {
     if (TTY_TERMINAL_ENABLED()) {
         *sz = console_write(buf, *sz);
