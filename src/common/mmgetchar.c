@@ -65,8 +65,9 @@ void CheckAbort(void);
 int MMgetchar(void) {
     static char prevchar = 0;
     int c;
+    ON_FAILURE_ERROR_EX(display_show_cursor(true), -1);
     for (;;) {
-        display_show_cursor(true);
+        ON_FAILURE_ERROR_EX(display_update_cursor(), -1);
         c = console_getc();
         if (c == -1) {
             if (!isatty(STDIN_FILENO)) {
@@ -74,7 +75,7 @@ int MMgetchar(void) {
                 if (MMCharPos > 1) display_puts("\r\n");
                 display_puts("Error: STDIN exhausted\r\n");
                 mmb_state.exit_code = EX_FAIL;
-                display_show_cursor(false);
+                ON_FAILURE_ERROR_EX(display_show_cursor(false), -1);
                 longjmp(mark, JMP_QUIT);
             }
             nanosleep(&ONE_MILLISECOND, NULL);
@@ -87,7 +88,7 @@ int MMgetchar(void) {
         }
     }
     prevchar = c;
-    display_show_cursor(false);
+    ON_FAILURE_ERROR_EX(display_show_cursor(false), -1);
     return c == '\n' ? '\r' : c;
 }
 
