@@ -87,7 +87,7 @@ MmResult display_cursor_up(int count);
  *                     false: to get value in characters.
  * @param[out]  x      on exit, the x-coordinate of the cursor.
  * @param[out]  y      on exit, the y-coordinate of the cursor.
- * @return             kOK on success.
+ * @return             kOk on success.
  */
 MmResult display_get_cursor_pos(bool pixel, int *x, int *y);
 
@@ -98,7 +98,7 @@ MmResult display_get_cursor_pos(bool pixel, int *x, int *y);
  *                      false: to get value in characters.
  * @param[out]  width   on exit, the width of the display.
  * @param[out]  height  on exit, the height of the display.
- * @return              kOK on success.
+ * @return              kOk on success.
  */
 MmResult display_get_size(bool pixel, int *width, int *height);
 
@@ -115,7 +115,7 @@ MmResult display_inverse(bool inverse);
  * Writes a character to the display.
  *
  * @param[in]  c  the character to write.
- * @return        kOK on success.
+ * @return        kOk on success.
  */
 MmResult display_putc(char c);
 
@@ -123,7 +123,7 @@ MmResult display_putc(char c);
  * Writes a C-string to the display.
  *
  * @param[in]  s  the C-string to write.
- * @return        kOK on success.
+ * @return        kOk on success.
  */
 MmResult display_puts(const char *s);
 
@@ -155,7 +155,7 @@ MmResult display_scroll_up();
  *                    false: to set value in characters.
  * @param[in]  x      the x-coordinate of the cursor.
  * @param[in]  y      the y-coordinate of the cursor.
- * @return            kOK on success.
+ * @return            kOk on success.
  */
 MmResult display_set_cursor_pos(bool pixel, int x, int y);
 
@@ -164,7 +164,7 @@ MmResult display_set_cursor_pos(bool pixel, int x, int y);
  *
  * @param[in]  show  true:  show the cursor,
  *                   false: hide the cursor.
- * @return  kOK on success.
+ * @return     kOk on success.
  */
 MmResult display_show_cursor(bool show);
 
@@ -176,6 +176,16 @@ MmResult display_show_cursor(bool show);
  * @return                kOK on success.
  */
 MmResult display_underline(bool underline);
+
+/**
+ * Tells the terminal to update/blink the cursor.
+ *
+ * A terminal implementation can ignore this if insufficient time has passed
+ * since the cursor was last blinked.
+ *
+ * @return  kOk on success.
+ */
+MmResult display_update_cursor();
 
 /**
  * Write characters to the display.
