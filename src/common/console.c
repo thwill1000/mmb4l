@@ -290,7 +290,11 @@ int console_getc(void) {
         }
 
         case DEL:
-            ch = '\b';
+            // As the result of a historical quirk of terminals:
+            //  - the [Backspace] key sends the ASCII code for "Delete" (0x7F)
+            //  - the [Delete] keys sends the escape sequence \x1b[3~ which will
+            //    be handled by the 'case ESC:' clause above.
+            ch = BKSP;
             break;
 
         default:
