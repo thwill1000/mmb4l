@@ -294,7 +294,15 @@ MmResult keyboard_key_down(const SDL_Keysym* keysym) {
     char ch = keyboard_convert(keysym);
     if (ch) {
         keyboard_keys_add(ch);
-        console_put_keypress(ch);
+        if (ch == DEL) {
+            // Escape sequence expected by console_getc() for [Delete].
+            console_put_keypress('\x1b');
+            console_put_keypress('[');
+            console_put_keypress('3');
+            console_put_keypress('~');
+        } else {
+            console_put_keypress(ch);
+        }
     }
     return keyboard_update_last_ps2_scancode(keysym, false);
 }
