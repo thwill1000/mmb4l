@@ -1,0 +1,276 @@
+/*-*****************************************************************************
+
+MMBasic for Linux (MMB4L)
+
+termgfx.c
+
+Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holders nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+
+4. The name MMBasic be used when referring to the interpreter in any
+   documentation and promotional material and the original copyright message
+   be displayed  on the console at startup (additional copyright messages may
+   be added).
+
+5. All advertising materials mentioning features or use of this software must
+   display the following acknowledgement: This product includes software
+   developed by Geoff Graham, Peter Mather and Thomas Hugo Williams.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*******************************************************************************/
+
+#include <assert.h>
+#include <string.h>
+
+#include "error.h"
+#include "fonttbl.h"
+#include "graphics.h"
+#include "mmtime.h"
+#include "termgfx.h"
+
+#define ASSERT_GFX() \
+    assert(graphics_current != NULL); \
+    assert(mmb_options.console & kScreen)
+
+#define CURSOR_PERIOD  SECONDS_TO_NANOSECONDS(1) / 2
+
+typedef struct {
+    bool inverse;
+    bool underline;
+} TermGfxState;
+
+TermGfxState self = {
+    .inverse = false,
+    .underline = false
+};
+
+MmResult termgfx_bell() {
+    ASSERT_GFX();
+    return kOk; // Currently a no-op.
+}
+
+MmResult termgfx_cls() {
+    ASSERT_GFX();
+    return graphics_cls(graphics_current, graphics_bcolour);
+}
+
+MmResult termgfx_colour_bg(MmGraphicsColour argb) {
+    ASSERT_GFX();
+    graphics_bcolour = argb;
+    return kOk;
+}
+
+MmResult termgfx_colour_fg(MmGraphicsColour argb) {
+    ASSERT_GFX();
+    graphics_fcolour = argb;
+    return kOk;
+}
+
+MmResult termgfx_cursor_up(int count) {
+    ASSERT_GFX();
+    assert(count > 0);
+    graphics_current->cursor_y -= font_height(graphics_font);
+    if (graphics_current->cursor_y < 0) graphics_current->cursor_y = 0;
+    return kOk;
+}
+
+MmResult termgfx_get_cursor_pos(bool pixel, int *x, int *y) {
+    ASSERT_GFX();
+    *x = graphics_current->cursor_x;
+    *y = graphics_current->cursor_y;
+    if (!pixel) {
+        *x /= font_width(graphics_font);
+        *y /= font_height(graphics_font);
+    }
+    return kOk;
+}
+
+MmResult termgfx_get_size(bool pixel, int *width, int *height) {
+    ASSERT_GFX();
+    *width = graphics_current->width;
+    *height = graphics_current->height;
+    if (!pixel) {
+        *width /= font_width(graphics_font);
+        *height /= font_height(graphics_font);
+    }
+    return kOk;
+}
+
+MmResult termgfx_inverse(bool inverse) {
+    self.inverse = inverse;
+    return kOk;
+}
+
+MmResult termgfx_putc(char c) {
+    ASSERT_GFX();
+
+    MmSurface *s = graphics_current;
+    const uint32_t font = graphics_font;
+    const int fh = (int) font_height(graphics_font);
+    const int fw = (int) font_width(graphics_font);
+
+    // If 'c' is printable and it is going to take us off the right hand end of
+    // the terminal then print a CRLF.
+    if (c >= font_first_char(font) && c <= font_last_char(font)) {
+        if (s->cursor_x + fw > s->width) {
+            ON_FAILURE_RETURN(termgfx_putc('\r'));
+            ON_FAILURE_RETURN(termgfx_putc('\n'));
+        }
+    }
+
+    // Handle the standard control chars.
+    switch(c) {
+        case '\b':
+            s->cursor_x -= fw;
+            if (s->cursor_x < 0) {   // Go to end of previous line
+                s->cursor_y -= fh ;  // Go up one line
+                if (s->cursor_y < 0) s->cursor_y = 0;
+                const int width = s->width  / fw;
+                s->cursor_x = (width - 1) * fw;  //go to last character
+            }
+            break;
+
+        case '\r':
+            s->cursor_x = 0;
+            break;
+
+        case '\n':
+            if (s->cursor_y + 2 * fh > s->height) {
+                ON_FAILURE_RETURN(graphics_scroll(s, 0, fh, graphics_bcolour));
+            } else {
+                s->cursor_y += fh;
+            }
+            break;
+
+        case '\t':
+            do {
+                ON_FAILURE_RETURN(termgfx_putc(' '));
+            } while ((s->cursor_x / fw) % mmb_options.tab);
+            break;
+
+        default: {
+            const MmGraphicsColour fg = self.inverse ? graphics_bcolour : graphics_fcolour;
+            const MmGraphicsColour bg = self.inverse ? graphics_fcolour : graphics_bcolour;
+            ON_FAILURE_RETURN(graphics_draw_char(s, &s->cursor_x, &s->cursor_y, graphics_font,
+                                                 fg, bg, c, kOrientNormal));
+            if (self.underline) {
+                const int x = s->cursor_x - font_width(graphics_font);
+                const int y = s->cursor_y + font_height(graphics_font) - 2;
+                ON_FAILURE_RETURN(graphics_draw_line(s, x, y, s->cursor_x, y, 1, fg));
+            }
+        }
+    }
+
+    return kOk;
+}
+
+MmResult termgfx_puts(const char *s) {
+    ASSERT_GFX();
+    while (*s) ON_FAILURE_RETURN(termgfx_putc(*s++));
+    return kOk;
+}
+
+MmResult termgfx_reset() {
+    ASSERT_GFX();
+    self.inverse = false;
+    self.underline = false;
+    // TODO: Reset colours
+    return kOk;
+}
+
+MmResult termgfx_scroll_down() {
+    ASSERT_GFX();
+    const int fh = font_height(graphics_font);
+    return graphics_scroll(graphics_current, 0, -fh, graphics_bcolour);
+}
+
+MmResult termgfx_scroll_up() {
+    ASSERT_GFX();
+    const int fh = font_height(graphics_font);
+    return graphics_scroll(graphics_current, 0, fh, graphics_bcolour);
+}
+
+
+MmResult termgfx_set_cursor_pos(bool pixel, int x, int y) {
+    ASSERT_GFX();
+    if (!pixel) {
+        x *= font_width(graphics_font);
+        y *= font_height(graphics_font);
+    }
+    graphics_current->cursor_x = x;
+    graphics_current->cursor_y = y;
+    return kOk;
+}
+
+static MmResult termgfx_draw_cursor(MmGraphicsColour colour) {
+    const int fh = (int) font_height(graphics_font);
+    const int fw = (int) font_width(graphics_font);
+    MmSurface *s = graphics_current;
+    return graphics_draw_line(
+            s,
+            s->cursor_x,
+            s->cursor_y + fh - (fh <= 12 ? 1 : 2),
+            s->cursor_x + fw - 1,
+            s->cursor_y + fh - (fh <= 12 ? 1 : 2),
+            1,
+            colour);
+}
+
+MmResult termgfx_show_cursor(bool show) {
+    ASSERT_GFX();
+    if (!show) {
+        return termgfx_draw_cursor(graphics_bcolour);
+    }
+
+    static int64_t t = 0;
+    static bool visible = false;
+
+    const int64_t now = mmtime_now_ns();
+    bool new_visible = visible;
+    if (now > t + CURSOR_PERIOD) {
+        t = now;
+        new_visible = !visible;
+    }
+
+    if (new_visible == visible) return kOk;
+
+    visible = new_visible;
+
+    return termgfx_draw_cursor(visible ? graphics_fcolour : graphics_bcolour);
+}
+
+MmResult termgfx_underline(bool underline) {
+    self.underline = underline;
+    return kOk;
+}
+
+MmResult termgfx_write(const char *buf, size_t *sz) {
+    ASSERT_GFX();
+    for (size_t idx = 0; idx < *sz; ++idx) {
+        ON_FAILURE_RETURN(termgfx_putc(buf[idx]));
+    }
+    return kOk;
+}
