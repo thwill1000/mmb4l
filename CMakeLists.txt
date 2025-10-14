@@ -255,6 +255,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/sprite.c
     src/common/stack.c
     src/common/streamio.c
+    src/common/termgfx.c
     src/common/utility.c
     src/common/xmodem.c
 )
@@ -503,6 +504,7 @@ add_executable(test_display
     ${MMB4L_COMMON_TEST_FILES}
     src/common/display.c
     src/common/fonttbl.c
+    src/common/termgfx.c
     src/common/gtest/display_test.cxx
     src/common/gtest/stubs/sdl2_stubs.c
 )
