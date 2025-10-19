@@ -93,7 +93,14 @@ void console_bell();
  */
 MmResult console_cursor_left(int count, bool wrap);
 
-void console_cursor_up(int i);
+/**
+ * Moves the cursor up.
+ *
+ * @param[in]  count  number of characters to move up.
+ * @return            kOk on success.
+ */
+MmResult console_cursor_up(int count);
+
 void console_pump_input(void);
 void console_clear(void);
 void console_disable_raw_mode(void);
