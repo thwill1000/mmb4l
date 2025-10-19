@@ -294,6 +294,12 @@ int main(int argc, char *argv[]) {
         exit(EX_OK);
     }
 
+    // Initialise the tty console.
+    ON_FAILURE_EXIT(console_init(!mmb_args.show_prompt));
+    console_enable_raw_mode();
+    atexit(console_disable_raw_mode);
+    ON_FAILURE_EXIT(console_sync());
+
     if (mmb_args.version) {
         char banner[1024];
         ON_FAILURE_EXIT(get_banner(banner, sizeof(banner)));
@@ -301,9 +307,6 @@ int main(int argc, char *argv[]) {
         exit(EX_OK);
     }
 
-    ON_FAILURE_EXIT(console_init(!mmb_args.show_prompt));
-    console_enable_raw_mode();
-    atexit(console_disable_raw_mode);
     init_mmbasic_config_dir();
     init_options();
     mmb_state.default_simulate =
