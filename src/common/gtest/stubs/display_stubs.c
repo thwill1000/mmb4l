@@ -15,6 +15,7 @@ MmResult display_bell() {
 
 MmResult display_colour_bg(MmGraphicsColour argb) { return kOk; }
 MmResult display_colour_fg(MmGraphicsColour argb) { return kOk; }
+MmResult display_cursor_left(int count, bool wrap) { return kOk; }
 MmResult display_cursor_up(int count) { return kOk; }
 MmResult display_get_cursor_pos(bool pixel, int *x, int *y) { return kOk; }
 MmResult display_get_size(bool pixel, int *width, int *height) { return kOk; }

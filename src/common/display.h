@@ -73,6 +73,16 @@ MmResult display_colour_bg(MmGraphicsColour argb);
 MmResult display_colour_fg(MmGraphicsColour argb);
 
 /**
+ * Moves the cursor left, and optionally move up a line if in first column.
+ *
+ * @param[in]  count  number of characters to move left.
+ * @param[in]  wrap   true:  move up a line if in first column,
+ *                    false: do not wrap.
+ * @return            kOk on success.
+ */
+MmResult display_cursor_left(int count, bool wrap);
+
+/**
  * Moves the cursor up.
  *
  * @param[in]  count  number of characters to move up.

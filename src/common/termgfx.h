@@ -58,7 +58,7 @@ MmResult termgfx_bell();
 MmResult termgfx_cls();
 MmResult termgfx_colour_bg(MmGraphicsColour argb);
 MmResult termgfx_colour_fg(MmGraphicsColour argb);
-MmResult termgfx_reset();
+MmResult termgfx_cursor_left(int count, bool wrap);
 MmResult termgfx_cursor_up(int count);
 MmResult termgfx_get_cursor_pos(bool pixel, int *x, int *y);
 MmResult termgfx_get_size(bool pixel, int *width, int *height);
