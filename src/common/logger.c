@@ -52,67 +52,69 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 FILE *logger = NULL;
 
 MmResult logger_init(const char *filename) {
-   if (filename && filename[0] != '\0') {
-      // Open the specified log file.
-      logger = fopen(filename, "a");
-      if (!logger) {
-         return mmresult_ex(errno, "Failed to open log file '%s': %s\n", filename, strerror(errno));
-      }
-   } else {
-      // Use stdout for logging.
-      logger = stdout;
-   }
-   return kOk;
+    if (filename && filename[0] != '\0') {
+        // Open the specified log file.
+        logger = fopen(filename, "a");
+        if (!logger) {
+            return mmresult_ex(errno, "Failed to open log file '%s': %s\n", filename,
+                               strerror(errno));
+        }
+    } else {
+        // Use stdout for logging.
+        logger = stdout;
+    }
+    return kOk;
 }
 
 MmResult logger_term(void) {
-   if (logger && logger != stdout) {
-      fclose(logger);
-      logger = NULL;
-   }
-   return kOk;
+    if (logger && logger != stdout) {
+        fclose(logger);
+        logger = NULL;
+    }
+    return kOk;
 }
 
-void logger_write(LoggerLevel level, const char *file, unsigned line, const char *format, ...) {
-   if (!logger) return;
+void logger_write(LoggerLevel level, const char *file, unsigned line, const char *function,
+                  const char *format, ...) {
+    if (!logger) return;
 
-   // Get a timestamp for the log entry.
-   time_t now = time(NULL);
-   struct tm *tm_info = localtime(&now);
-   char time_buffer[26];
-   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", tm_info);
-   fprintf(logger, "[%s] ", time_buffer);
+    // Get a timestamp for the log entry.
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+    char time_buffer[26];
+    strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", tm_info);
+    fprintf(logger, "[%s] ", time_buffer);
 
-   // Get the last element of the file path to avoid printing the full path.
-   const char *filename = strrchr(file, '/');
-   if (filename == NULL) {
-      filename = file; // No path, use the full file name.
-   } else {
-      filename++; // Skip the '/' character.
-   }
+    // Get the last element of the file path to avoid printing the full path.
+    const char *filename = strrchr(file, '/');
+    if (filename == NULL) {
+        filename = file;  // No path, use the full file name.
+    } else {
+        filename++;  // Skip the '/' character.
+    }
 
-   fprintf(logger, "[%s:%u] ", filename, line);
-   switch (level) {
-      case kLoggerLevelDebug:
-         fprintf(logger, "DEBUG: ");
-         break;
-      case kLoggerLevelInfo:
-         fprintf(logger, "INFO: ");
-         break;
-      case kLoggerLevelWarning:
-         fprintf(logger, "WARNING: ");
-         break;
-      case kLoggerLevelError:
-         fprintf(logger, "ERROR: ");
-         break;
-      case kLoggerLevelFatal:
-         fprintf(logger, "FATAL: ");
-         break;
-   }
-   va_list args;
-   va_start(args, format);
-   vfprintf(logger, format, args);
-   va_end(args);
-   fprintf(logger, "\n");
-   fflush(logger);
+    fprintf(logger, "[%s:%u:%s] ", filename, line, function);
+    switch (level) {
+        case kLoggerLevelDebug:
+            fprintf(logger, "DEBUG: ");
+            break;
+        case kLoggerLevelInfo:
+            fprintf(logger, "INFO: ");
+            break;
+        case kLoggerLevelWarning:
+            fprintf(logger, "WARNING: ");
+            break;
+        case kLoggerLevelError:
+            fprintf(logger, "ERROR: ");
+            break;
+        case kLoggerLevelFatal:
+            fprintf(logger, "FATAL: ");
+            break;
+    }
+    va_list args;
+    va_start(args, format);
+    vfprintf(logger, format, args);
+    va_end(args);
+    fprintf(logger, "\n");
+    fflush(logger);
 }
