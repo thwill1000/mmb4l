@@ -75,10 +75,10 @@ MmResult display_colour_fg(MmGraphicsColour argb);
 /**
  * Moves the cursor up.
  *
- * @param[in]  i  number of characters to move up.
- * @return        kOk on success.
+ * @param[in]  count  number of characters to move up.
+ * @return            kOk on success.
  */
-MmResult display_cursor_up(int i);
+MmResult display_cursor_up(int count);
 
 /**
  * Gets the current text cursor position.
