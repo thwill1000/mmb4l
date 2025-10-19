@@ -25,6 +25,7 @@ int console_height;
 
 // Defined in "common/console.c"
 void console_bell() { }
+void console_clear() { }
 void console_cursor_up(int i) { }
 int console_get_cursor_pos(int *x, int *y, int timeout_ms) {
     return mock_console_get_cursor_pos(x, y, timeout_ms);
@@ -44,6 +45,7 @@ MmSurface *graphics_current = NULL;
 MmGraphicsColour graphics_bcolour;
 MmGraphicsColour graphics_fcolour;
 uint32_t graphics_font = (1 << 4) + 1; // Font 1, Scale 1.
+MmResult graphics_cls(MmSurface *surface, MmGraphicsColour colour) { return kOk; }
 MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
                             MmGraphicsColour fcolour, MmGraphicsColour bcolour, char c,
                             TextOrientation orientation) { return kOk; }
