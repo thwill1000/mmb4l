@@ -11,7 +11,7 @@ MmResult console_init(bool no_title) { return kOk; }
 void console_background(int colour) { }
 void console_bell() { console_bell_sounded = true; }
 MmResult console_cursor_left(int count, bool wrap) { return kUnimplemented; }
-void console_cursor_up(int i) { }
+MmResult console_cursor_up(int count) { return kUnimplemented; }
 void console_pump_input(void) { }
 void console_clear(void) { }
 MmResult console_colour_bg(MmGraphicsColour argb) { return kOk; }
