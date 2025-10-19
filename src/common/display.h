@@ -52,6 +52,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Makes a "bell" noise. */
 MmResult display_bell();
 
+/** Clears the display and moves the cursor to the home position. */
+MmResult display_cls();
+
 /**
  * Moves the cursor up.
  *

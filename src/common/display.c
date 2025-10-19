@@ -58,6 +58,14 @@ MmResult display_bell() {
     return kOk;
 }
 
+MmResult display_cls() {
+    console_clear();
+    if (graphics_current && mmb_options.console != kSerial) {
+        ON_FAILURE_RETURN(graphics_cls(graphics_current, graphics_bcolour));
+    }
+    return kOk;
+}
+
 MmResult display_cursor_up(int i) {
     assert(i > 0);
     console_cursor_up(i);
