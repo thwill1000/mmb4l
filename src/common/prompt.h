@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 prompt.h
 
-Copyright 2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2022-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -53,9 +53,7 @@ typedef struct {
     size_t char_index;  // Insertion point
     int history_idx;
     bool insert;
-    int start_line;
-    size_t max_chars;
-    bool save_line;
+    bool finished;
 } PromptState;
 
 /**
