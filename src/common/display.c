@@ -49,35 +49,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "fonttbl.h"
 #include "graphics.h"
-#include "mmtime.h"
+#include "options.h"
+#include "termgfx.h"
 
-#define CURSOR_PERIOD  SECONDS_TO_NANOSECONDS(1) / 2
-
-typedef struct {
-    bool inverse;
-    bool underline;
-} TermGfxState;
-
-TermGfxState self = {
-    .inverse = false,
-    .underline = false
-};
+#define TTY_TERMINAL_ENABLED()  (mmb_options.console & kSerial)
+#define GFX_TERMINAL_ENABLED()  (graphics_current && (mmb_options.console & kScreen))
 
 MmResult display_bell() {
-    console_bell();
+    // Preferentially play the tty terminal bell.
+    if (TTY_TERMINAL_ENABLED()) {
+        console_bell();
+        return kOk;
+    }
+
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_bell());
+    }
+
     return kOk;
 }
 
 MmResult display_cls() {
-    console_clear();
-    if (graphics_current && (mmb_options.console & kScreen)) {
-        ON_FAILURE_RETURN(graphics_cls(graphics_current, graphics_bcolour));
+    if (TTY_TERMINAL_ENABLED()) {
+        console_clear();
     }
-    return kOk;
-}
 
-static MmResult termgfx_colour_bg(MmGraphicsColour argb) {
-    graphics_bcolour = argb;
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_cls());
+    }
+
     return kOk;
 }
 
@@ -93,11 +93,6 @@ MmResult display_colour_bg(MmGraphicsColour argb) {
     return kOk;
 }
 
-static MmResult termgfx_colour_fg(MmGraphicsColour argb) {
-    graphics_fcolour = argb;
-    return kOk;
-}
-
 MmResult display_colour_fg(MmGraphicsColour argb) {
     if (mmb_options.console & kSerial) {
         ON_FAILURE_RETURN(console_colour_fg(argb));
@@ -110,24 +105,25 @@ MmResult display_colour_fg(MmGraphicsColour argb) {
     return kOk;
 }
 
-MmResult display_cursor_up(int i) {
-    assert(i > 0);
-    console_cursor_up(i);
-    if (graphics_current && (mmb_options.console & kScreen)) {
-        graphics_current->cursor_y -= font_height(graphics_font);
+MmResult display_cursor_up(int count) {
+    if (TTY_TERMINAL_ENABLED()) {
+        console_cursor_up(count);
     }
+
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_cursor_up(count));
+    }
+
     return kOk;
 }
 
 MmResult display_get_cursor_pos(bool pixel, int *x, int *y) {
-    if (graphics_current) {
-        *x = graphics_current->cursor_x;
-        *y = graphics_current->cursor_y;
-        if (!pixel) {
-            *x /= font_width(graphics_font);
-            *y /= font_height(graphics_font);
-        }
-    } else {
+    // Preferentially get cursor position from graphics terminal.
+    if (GFX_TERMINAL_ENABLED()) {
+        return termgfx_get_cursor_pos(pixel, x, y);
+    }
+
+    if (TTY_TERMINAL_ENABLED()) {
         int console_x, console_y;
         if (FAILED(console_get_cursor_pos(&console_x, &console_y, 10000))) {
            return mmresult_ex(kError, "Cannot determine terminal cursor position");
@@ -138,19 +134,21 @@ MmResult display_get_cursor_pos(bool pixel, int *x, int *y) {
             *x *= font_width(graphics_font);
             *y *= font_height(graphics_font);
         }
+    } else {
+        *x = -1;
+        *y = -1;
     }
+
     return kOk;
 }
 
 MmResult display_get_size(bool pixel, int *width, int *height) {
-    if (graphics_current) {
-        *width = graphics_current->width;
-        *height = graphics_current->height;
-        if (!pixel) {
-            *width /= font_width(graphics_font);
-            *height /= font_height(graphics_font);
-        }
-    } else {
+    // Preferentially get termianl size from graphics terminal.
+    if (GFX_TERMINAL_ENABLED()) {
+        return termgfx_get_size(pixel, width, height);
+    }
+
+    if (TTY_TERMINAL_ENABLED()) {
         int console_width, console_height;
         if (FAILED(console_get_size(&console_width, &console_height, 0))) {
             return mmresult_ex(kError, "Cannot determine terminal size");
@@ -165,119 +163,39 @@ MmResult display_get_size(bool pixel, int *width, int *height) {
     return kOk;
 }
 
-static MmResult display_draw_cursor(MmGraphicsColour colour) {
-    const int fh = (int) font_height(graphics_font);
-    const int fw = (int) font_width(graphics_font);
-    MmSurface *s = graphics_current;
-    return graphics_draw_line(
-            s,
-            s->cursor_x,
-            s->cursor_y + fh - (fh <= 12 ? 1 : 2),
-            s->cursor_x + fw - 1,
-            s->cursor_y + fh - (fh <= 12 ? 1 : 2),
-            1,
-            colour);
-}
-
-static MmResult termgfx_inverse(bool inverse) {
-    self.inverse = inverse;
-    return kOk;
-}
-
 MmResult display_inverse(bool inverse) {
-    if (mmb_options.console & kSerial) {
+    if (TTY_TERMINAL_ENABLED()) {
         ON_FAILURE_RETURN(console_inverse(inverse));
     }
 
-    if (graphics_current && (mmb_options.console & kScreen)) {
+    if (GFX_TERMINAL_ENABLED()) {
         ON_FAILURE_RETURN(termgfx_inverse(inverse));
     }
 
     return kOk;
 }
 
-static MmResult display_putc_graphics(char c) {
-    assert(graphics_current && (mmb_options.console & kScreen));
-
-    MmSurface *s = graphics_current;
-    const uint32_t font = graphics_font;
-    const int fh = (int) font_height(graphics_font);
-    const int fw = (int) font_width(graphics_font);
-
-    // If 'c' is printable and it is going to take us off the right hand end of the display
-    // then print a CRLF.
-    if (c >= font_first_char(font) && c <= font_last_char(font)) {
-        if (s->cursor_x + fw > s->width) {
-            ON_FAILURE_RETURN(display_putc_graphics('\r'));
-            ON_FAILURE_RETURN(display_putc_graphics('\n'));
-        }
-    }
-
-    // Handle the standard control chars.
-    switch(c) {
-        case '\b':
-            s->cursor_x -= fw;
-            if (s->cursor_x < 0) {   // Go to end of previous line
-                s->cursor_y -= fh ;  // Go up one line
-                if (s->cursor_y < 0) s->cursor_y = 0;
-                const int width = s->width  / fw;
-                s->cursor_x = (width - 1) * fw;  //go to last character
-            }
-            break;
-
-        case '\r':
-            s->cursor_x = 0;
-            break;
-
-        case '\n':
-            if (s->cursor_y + 2 * fh > s->height) {
-                ON_FAILURE_RETURN(graphics_scroll(s, 0, fh, graphics_bcolour));
-            } else {
-                s->cursor_y += fh;
-            }
-            break;
-
-        case '\t':
-            do {
-                ON_FAILURE_RETURN(display_putc_graphics(' '));
-            } while ((s->cursor_x / fw) % mmb_options.tab);
-            break;
-
-        default: {
-            const MmGraphicsColour fg = self.inverse ? graphics_bcolour : graphics_fcolour;
-            const MmGraphicsColour bg = self.inverse ? graphics_fcolour : graphics_bcolour;
-            ON_FAILURE_RETURN(graphics_draw_char(s, &s->cursor_x, &s->cursor_y, graphics_font,
-                                                 fg, bg, c, kOrientNormal));
-            if (self.underline) {
-                const int x = s->cursor_x - font_width(graphics_font);
-                const int y = s->cursor_y + font_height(graphics_font) - 2;
-                ON_FAILURE_RETURN(graphics_draw_line(s, x, y, s->cursor_x, y, 1, fg));
-            }
-        }
-    }
-
-    return kOk;
-}
-
 MmResult display_putc(char c) {
-    console_putc(c);
-    if (graphics_current && (mmb_options.console & kScreen)) {
-        return display_putc_graphics(c);
+    if (TTY_TERMINAL_ENABLED()) {
+        (void) console_putc(c);
     }
+
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_putc(c));
+    }
+
     return kOk;
 }
 
 MmResult display_puts(const char *s) {
-    console_puts(s);
-    if (graphics_current && (mmb_options.console & kScreen)) {
-        while (*s) ON_FAILURE_RETURN(display_putc_graphics(*s++));
+    if (TTY_TERMINAL_ENABLED()) {
+        console_puts(s);
     }
-    return kOk;
-}
 
-static MmResult termgfx_reset() {
-    self.inverse = false;
-    self.underline = false;
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_puts(s));
+    }
+
     return kOk;
 }
 
@@ -293,11 +211,6 @@ MmResult display_reset() {
     return kOk;
 }
 
-static MmResult termgfx_scroll_down() {
-    const int fh = font_height(graphics_font);
-    return graphics_scroll(graphics_current, 0, -fh, graphics_bcolour);
-}
-
 MmResult display_scroll_down() {
     if (mmb_options.console & kSerial) {
         ON_FAILURE_RETURN(console_scroll_down());
@@ -308,11 +221,6 @@ MmResult display_scroll_down() {
     }
 
     return kOk;
-}
-
-static MmResult termgfx_scroll_up() {
-    const int fh = font_height(graphics_font);
-    return graphics_scroll(graphics_current, 0, fh, graphics_bcolour);
 }
 
 MmResult display_scroll_up() {
@@ -328,54 +236,30 @@ MmResult display_scroll_up() {
 }
 
 MmResult display_set_cursor_pos(bool pixel, int x, int y) {
-    if (pixel) {
-        console_set_cursor_pos(x / font_width(graphics_font), y / font_height(graphics_font));
-    } else {
-        console_set_cursor_pos(x, y);
-    }
-    if (graphics_current && (mmb_options.console & kScreen)) {
-        if (!pixel) {
-            x *= font_width(graphics_font);
-            y *= font_height(graphics_font);
+    if (TTY_TERMINAL_ENABLED()) {
+        if (pixel) {
+            console_set_cursor_pos(x / font_width(graphics_font), y / font_height(graphics_font));
+        } else {
+            console_set_cursor_pos(x, y);
         }
-        graphics_current->cursor_x = x;
-        graphics_current->cursor_y = y;
     }
+
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_set_cursor_pos(pixel, x, y));
+    }
+
     return kOk;
-}
-
-static MmResult termgfx_show_cursor(bool show) {
-    if (!show) {
-        return display_draw_cursor(graphics_bcolour);
-    }
-
-    static int64_t t = 0;
-    static bool visible = false;
-
-    const int64_t now = mmtime_now_ns();
-    bool new_visible = visible;
-    if (now > t + CURSOR_PERIOD) {
-        t = now;
-        new_visible = !visible;
-    }
-
-    if (new_visible == visible) return kOk;
-
-    visible = new_visible;
-
-    return display_draw_cursor(visible ? graphics_fcolour : graphics_bcolour);
 }
 
 MmResult display_show_cursor(bool show) {
-    if (graphics_current && (mmb_options.console & kScreen)) {
+    if (TTY_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(console_show_cursor(show));
+    }
+
+    if (GFX_TERMINAL_ENABLED()) {
         ON_FAILURE_RETURN(termgfx_show_cursor(show));
     }
 
-    return kOk;
-}
-
-static MmResult termgfx_underline(bool underline) {
-    self.underline = underline;
     return kOk;
 }
 
@@ -392,12 +276,12 @@ MmResult display_underline(bool underline) {
 }
 
 MmResult display_write(const char *buf, size_t *sz) {
-    *sz = console_write(buf, *sz);
+    if (TTY_TERMINAL_ENABLED()) {
+        *sz = console_write(buf, *sz);
+    }
 
-    if (graphics_current && (mmb_options.console & kScreen)) {
-        for (size_t idx = 0; idx < *sz; ++idx) {
-            ON_FAILURE_RETURN(display_putc_graphics(buf[idx]));
-        }
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_write(buf, sz));
     }
 
     return kOk;

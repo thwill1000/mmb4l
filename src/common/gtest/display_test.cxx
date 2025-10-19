@@ -44,6 +44,7 @@ MmResult console_scroll_up() { return kOk; }
 void console_set_cursor_pos(int x, int y) {
     mock_console_set_cursor_pos(x, y);
 }
+MmResult console_show_cursor(bool show) { return kOk; }
 MmResult console_underline(bool underline) { return kOk; }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 
@@ -72,7 +73,7 @@ class DisplayTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
-        mmb_options.console = kSerial;
+        mmb_options.console = kConsoleNone;
         console_cursor_x = 30;
         console_cursor_y = 60;
         console_width = 80;
@@ -101,10 +102,12 @@ protected:
 };
 
 void GivenGraphicsDisplay() {
+    mmb_options.console = kScreen;
     graphics_current = &graphics_display;
 }
 
 void GivenConsoleDisplay() {
+    mmb_options.console = kSerial;
     graphics_current = NULL;
 }
 
