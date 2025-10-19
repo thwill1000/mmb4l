@@ -297,6 +297,17 @@ MmResult display_update_cursor() {
     return kOk;
 }
 
+MmResult display_wrapline() {
+    if (TTY_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(console_wrapline());
+    }
+
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_wrapline());
+    }
+
+    return kOk;
+}
 
 MmResult display_write(const char *buf, size_t *sz) {
     if (TTY_TERMINAL_ENABLED()) {

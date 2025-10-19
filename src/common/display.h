@@ -205,6 +205,14 @@ MmResult display_underline(bool underline);
 MmResult display_update_cursor();
 
 /**
+ * If there is a "pending newline" (i.e. cursor beyond last column) then
+ * print a CRLF and place the cursor to the start of the next line.
+ *
+ * @return  kOk on success.
+ */
+MmResult display_wrapline();
+
+/**
  * Write characters to the display.
  *
  * @param[in]       buf  write characters from this buffer.

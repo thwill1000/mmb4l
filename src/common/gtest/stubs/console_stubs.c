@@ -37,5 +37,6 @@ void console_set_title(const char *title, bool command) { }
 MmResult console_show_cursor(bool show) { return kOk; }
 MmResult console_sync() { return kOk; }
 MmResult console_underline(bool underline) { return kOk; }
+MmResult console_wrapline() { return kUnimplemented; }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 void console_put_keypress(char ch) { }
