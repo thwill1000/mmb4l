@@ -28,4 +28,5 @@ MmResult termgfx_scroll_up() { return kOk; }
 MmResult termgfx_set_cursor_pos(bool pixel, int x, int y) { return kOk; }
 MmResult termgfx_show_cursor(bool show) { return kOk; }
 MmResult termgfx_underline(bool underline) { return kOk; }
+MmResult termgfx_wrapline() { return kOk; }
 MmResult termgfx_write(const char *buf, size_t *sz) { return kOk; }

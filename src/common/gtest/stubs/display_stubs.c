@@ -36,4 +36,5 @@ MmResult display_set_cursor_pos(bool pixel, int x, int y) { return kOk; }
 MmResult display_show_cursor(bool show) { return kOk; }
 MmResult display_underline(bool underline) { return kOk; }
 MmResult display_update_cursor() { return kOk; }
+MmResult display_wrapline() { return kOk; }
 MmResult display_write(const char *buf, size_t *sz) { return kOk; }

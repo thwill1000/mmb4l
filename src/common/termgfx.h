@@ -72,6 +72,7 @@ MmResult termgfx_set_cursor_pos(bool pixel, int x, int y);
 MmResult termgfx_show_cursor(bool show);
 MmResult termgfx_underline(bool underline);
 MmResult termgfx_update_cursor();
+MmResult termgfx_wrapline();
 MmResult termgfx_write(const char *buf, size_t *sz);
 
 #endif // #if !defined(TERMGFX_H)
