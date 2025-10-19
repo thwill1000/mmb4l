@@ -149,12 +149,9 @@ MmResult termgfx_putc(char c) {
     switch(c) {
         case '\b':
             s->cursor_x -= fw;
-            if (s->cursor_x < 0) {   // Go to end of previous line
-                s->cursor_y -= fh ;  // Go up one line
-                if (s->cursor_y < 0) s->cursor_y = 0;
-                const int width = s->width  / fw;
-                s->cursor_x = (width - 1) * fw;  //go to last character
-            }
+            // Note that putting the backspace character in the first column
+            // DOES NOT move the cursor up and to the end of the next line.
+            if (s->cursor_x < 0) s->cursor_x = 0;
             break;
 
         case '\r':
