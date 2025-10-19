@@ -145,6 +145,7 @@ MmResult termgfx_get_size(bool pixel, int *width, int *height) {
 }
 
 MmResult termgfx_inverse(bool inverse) {
+    ASSERT_GFX();
     self.inverse = inverse;
     return kOk;
 }
@@ -294,7 +295,18 @@ MmResult termgfx_update_cursor() {
 }
 
 MmResult termgfx_underline(bool underline) {
+    ASSERT_GFX();
     self.underline = underline;
+    return kOk;
+}
+
+MmResult termgfx_wrapline() {
+    ASSERT_GFX();
+    MmSurface *s = graphics_current;
+    const int fw = (int) font_width(graphics_font);
+    if (s->cursor_x + fw > s->width) {
+        ON_FAILURE_RETURN(termgfx_puts("\r\n"));
+    }
     return kOk;
 }
 

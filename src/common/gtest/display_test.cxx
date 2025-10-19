@@ -48,6 +48,7 @@ void console_set_cursor_pos(int x, int y) {
 MmResult console_show_cursor(bool show) { return kOk; }
 MmResult console_sync() { return kOk; }
 MmResult console_underline(bool underline) { return kOk; }
+MmResult console_wrapline() { return kOk; }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "common/graphics.c"
