@@ -48,8 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "display.h"
 #include "keycodes.h"
+#include "logger.h"
 #include "mmb4l.h"
 #include "mmgetchar.h"
+#include "mmtime.h"
 #include "path.h"
 #include "prompt.h"
 #include "utility.h"
@@ -57,30 +59,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HISTORY_SIZE  4 * STRINGSIZE
 #define LINE_TOO_LONG_TO_EDIT  "Line is too long to edit"
 #define TAB_CHAR_IN_FN_DEF     "Tab character in function key definition"
+#define PROMPT_MAX_LEN  MAXSTRLEN
 
 static char history[HISTORY_SIZE];
 static const char NO_ITEM[] = "";
 
 /** Displays the contents of the 'history' buffer. */
-static void dump_history() {
+static MmResult dump_history() {
     char s[STRINGSIZE];
     char *p = history;
     char *start = p;
-    display_puts("[BEGIN]\r\n");
+    ON_FAILURE_RETURN(display_puts("[BEGIN]\r\n"));
     for (; p < history + HISTORY_SIZE; ++p) {
         if (*p == '\0') {
             int len = p - start;
             if (len == 0) break;
             memset(s, 0, STRINGSIZE);
             memcpy(s, start, len);
-            display_puts("~");
-            display_puts(s);
-            display_puts("~\r\n");
+            ON_FAILURE_RETURN(display_puts("~"));
+            ON_FAILURE_RETURN(display_puts(s));
+            ON_FAILURE_RETURN(display_puts("~\r\n"));
             start = p + 1;
         }
     }
-    display_puts("[END]\r\n");
-    display_puts("\r\n");
+    ON_FAILURE_RETURN(display_puts("[END]\r\n"));
+    ON_FAILURE_RETURN(display_puts("\r\n"));
+
+    return kOk;
 }
 
 /** Gets an item from the 'history' buffer. */
@@ -146,61 +151,61 @@ void put_history_item(char *s) {
 }
 
 static MmResult handle_backspace(PromptState *pstate) {
-    if (pstate->char_index <= 0) return kOk;
+    if (pstate->char_index <= 0) {
+        return display_bell();
+    }
 
-    size_t i = pstate->char_index - 1;
-    for (char *p = inpbuf + i; *p; p++) {
-        *p = *(p + 1);  // remove the char from inpbuf
+    // Remove the character from inpbuf
+    pstate->char_index--;
+    for (char *p = inpbuf + pstate->char_index; *p; p++) {
+        *p = *(p + 1);
     }
-    while (pstate->char_index) {
-        display_putc('\b');
-        pstate->char_index--;
-    }  // go to the beginning of the line
-    display_puts(inpbuf);
-    display_putc(' ');
-    display_putc('\b');  // display the line and erase the last char
-    for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
-        display_putc('\b');  // return the cursor to the right position
-    }
+
+    // Redraw inpbuf from the removal point
+    ON_FAILURE_RETURN(display_cursor_left(1, true));
+    ON_FAILURE_RETURN(display_puts(inpbuf + pstate->char_index));
+    ON_FAILURE_RETURN(display_putc(' '));
+    ON_FAILURE_RETURN(display_cursor_left(strlen(inpbuf) - pstate->char_index + 1, true));
 
     return kOk;
 }
 
 static MmResult handle_delete(PromptState *pstate) {
-    if (pstate->char_index >= strlen(inpbuf)) return kOk;
+    if (pstate->char_index >= strlen(inpbuf)) {
+        return display_bell();
+    }
 
-    size_t i = pstate->char_index;
-    for (char *p = inpbuf + i; *p; p++) {
-        *p = *(p + 1);  // remove the char from inpbuf
+    // Remove the character from inpbuf
+    for (char *p = inpbuf + pstate->char_index; *p; p++) {
+        *p = *(p + 1);
     }
-    while (pstate->char_index) {
-        display_putc('\b');
-        pstate->char_index--;
-    }  // go to the beginning of the line
-    display_puts(inpbuf);
-    display_putc(' ');
-    display_putc('\b');  // display the line and erase the last char
-    for (pstate->char_index = strlen(inpbuf); pstate->char_index > i; pstate->char_index--) {
-        display_putc('\b');  // return the cursor to the right position
-    }
+
+    // Redraw inpbuf from the removal point
+    ON_FAILURE_RETURN(display_puts(inpbuf + pstate->char_index));
+    ON_FAILURE_RETURN(display_putc(' '));
+    ON_FAILURE_RETURN(display_cursor_left(strlen(inpbuf) - pstate->char_index + 1, true));
 
     return kOk;
 }
 
 static MmResult prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
+    const size_t len = strlen(inpbuf);
+
     // Update characters in input buffer.
     strcpy(inpbuf, new_inpbuf);
 
     // Erase existing input from the console.
-    for (size_t i = 0; i < pstate->char_index; ++i) display_putc('\b');
-    for (size_t i = 0; i < pstate->char_index; ++i) display_putc(' ');
-    for (size_t i = 0; i < pstate->char_index; ++i) display_putc('\b');
+    if (pstate->char_index != 0) {
+        ON_FAILURE_RETURN(display_cursor_left(pstate->char_index, true));
+        for (size_t i = 0; i < len; ++i) ON_FAILURE_RETURN(display_putc(' '));
+        ON_FAILURE_RETURN(display_cursor_left(pstate->char_index, true));
+    }
 
     // Display the new contents of the input buffer.
-    display_puts(inpbuf);
+    ON_FAILURE_RETURN(display_puts(inpbuf));
 
     // Handle the new input buffer being too long.
-    if (strlen(inpbuf) + pstate->start_line >= pstate->max_chars) {
+    if (strlen(inpbuf) > PROMPT_MAX_LEN) {
         return mmresult_ex(kStringTooLong, LINE_TOO_LONG_TO_EDIT);
     }
 
@@ -226,7 +231,7 @@ static MmResult handle_down(PromptState *pstate) {
 
 static MmResult handle_end(PromptState *pstate) {
     while (pstate->char_index < strlen(inpbuf)) {
-        display_putc(inpbuf[pstate->char_index++]);
+        ON_FAILURE_RETURN(display_putc(inpbuf[pstate->char_index++]));
     }
 
     return kOk;
@@ -257,10 +262,8 @@ static MmResult handle_home(PromptState *pstate) {
         pstate->insert = true;
     }
 
-    while (pstate->char_index) {
-        display_putc('\b');
-        pstate->char_index--;
-    }
+    ON_FAILURE_RETURN(display_cursor_left(pstate->char_index, true));
+    pstate->char_index = 0;
 
     return kOk;
 }
@@ -271,53 +274,58 @@ static MmResult handle_insert(PromptState *pstate) {
 }
 
 static MmResult handle_left(PromptState *pstate) {
-    if (pstate->char_index <= 0) return kOk;
+    if (pstate->char_index <= 0) {
+        return display_bell();
+    }
 
-    if (pstate->char_index == strlen(inpbuf)) {
+    if (pstate->char_index != strlen(inpbuf)) {
         pstate->insert = true;
     }
-    display_putc('\b');
+
+    ON_FAILURE_RETURN(display_cursor_left(1, true));
     pstate->char_index--;
 
     return kOk;
 }
 
 static MmResult handle_newline(PromptState *pstate) {
-    pstate->save_line = 1;
+    pstate->finished = true;
+    pstate->buf[0] = '\0';
     return kOk;
 }
 
 static MmResult handle_other(PromptState *pstate) {
     if (pstate->buf[0] < ' ' || pstate->buf[0] >= 0x7f) return kOk;
 
-    size_t j = strlen(inpbuf);
-
     if (pstate->insert) {
-        if (strlen(inpbuf) >= pstate->max_chars - 1) return kOk;  // sorry, line full
-        for (char *p = inpbuf + strlen(inpbuf); j >= pstate->char_index; p--, j--) {
+        if (strlen(inpbuf) >= PROMPT_MAX_LEN) {
+            return display_bell();
+        }
+
+        // Shuffle all characters past the insertion point in the inpbuf up one
+        char *pinsert = inpbuf + pstate->char_index;
+        for (char *p = inpbuf + strlen(inpbuf); p >= pinsert; p--) {
             *(p + 1) = *p;
         }
-        inpbuf[pstate->char_index] = pstate->buf[0];  // insert the char
-        display_puts(&inpbuf[pstate->char_index]);   // display new part of
-                                                      // the line
+
+        // Insert the new character
+        *pinsert = pstate->buf[0];
+
+        // Redraw the input buffer from the insertion point
+        ON_FAILURE_RETURN(display_puts(inpbuf + pstate->char_index));
         pstate->char_index++;
-        for (j = strlen(inpbuf); j > pstate->char_index; j--) {
-            display_putc('\b');  // return the cursor to the right position
-        }
+
+        // Return the cursor to the correct position
+        ON_FAILURE_RETURN(display_cursor_left(strlen(inpbuf) - pstate->char_index, true));
     } else {
-        inpbuf[strlen(inpbuf) + 1] = 0;  // incase we are adding to the end
-                                         // of the string
-        inpbuf[pstate->char_index++] = pstate->buf[0];  // overwrite the char
-        display_putc(pstate->buf[0]);                      // display it
-        if (pstate->char_index + pstate->start_line >=
-            pstate->max_chars) {  // has the input gone beyond the
-                                  // end of the line?
-            MMgetline(0, inpbuf);  // use the old fashioned way
-                                   // of getting the line
-            // if(autoOn && atoi(inpbuf) > 0) autoNext =
-            // atoi(inpbuf) + autoIncr;
-            pstate->save_line = 1;
+        if (pstate->char_index == PROMPT_MAX_LEN) {
+            return display_bell();
         }
+
+        inpbuf[strlen(inpbuf) + 1] = '\0';  // incase we are adding to the end
+                                            // of the string
+        inpbuf[pstate->char_index++] = pstate->buf[0];    // overwrite the char
+        ON_FAILURE_RETURN(display_putc(pstate->buf[0]);)  // display it
     }
 
     return kOk;
@@ -326,7 +334,7 @@ static MmResult handle_other(PromptState *pstate) {
 static MmResult handle_right(PromptState *pstate) {
     if (pstate->char_index >= strlen(inpbuf)) return kOk;
 
-    display_putc(inpbuf[pstate->char_index]);
+    ON_FAILURE_RETURN(display_putc(inpbuf[pstate->char_index]));
     pstate->char_index++;
 
     return kOk;
@@ -351,9 +359,11 @@ MmResult prompt_handle_tab(PromptState *pstate) {
         p++;
     }
 
-    if (FAILED(path_complete(pstart, pstate->buf + 1, sizeof(pstate->buf) - 1)))
+    if (FAILED(path_complete(pstart, pstate->buf + 1, sizeof(pstate->buf) - 1))) {
         pstate->buf[1] = '\0';
-    if (pstate->buf[1] == '\0') display_bell();
+    }
+
+    if (pstate->buf[1] == '\0') return display_bell();
 
     return kOk;
 }
@@ -371,20 +381,14 @@ static MmResult handle_up(PromptState *pstate) {
 }
 
 MmResult prompt_get_input(void) {
-    int width = -1, height = -1;
-    ON_FAILURE_RETURN(display_get_size(false, &width, &height));
-    int x = -1, y = -1;
-    ON_FAILURE_RETURN(display_get_cursor_pos(false, &x, &y));
-
     PromptState state = { 0 };
-    state.char_index = strlen(inpbuf); // get the current cursor position in the line
-    state.start_line = x;              // save the current cursor position
-    state.max_chars = width;
+    state.char_index = strlen(inpbuf);
     state.history_idx = -1;
 
-    display_puts(inpbuf);  // display the contents of the input buffer (if any)
+    // Display the contents of the input buffer (if any)
+    ON_FAILURE_RETURN(display_puts(inpbuf));
 
-    if (strlen(inpbuf) >= state.max_chars) {
+    if (strlen(inpbuf) > PROMPT_MAX_LEN) {
         return mmresult_ex(kStringTooLong, LINE_TOO_LONG_TO_EDIT);
     }
 
@@ -467,19 +471,20 @@ MmResult prompt_get_input(void) {
                     break;
             }
 
-            if (state.save_line) goto saveline;
-
             // Shuffle down the buffer to get the next character.
             memmove(state.buf, state.buf + 1, sizeof(state.buf) - 1);
         } while (*state.buf);
 
+        if (state.finished) break;
+
         if (state.char_index == strlen(inpbuf)) {
             state.insert = false;
         }
+
+        ON_FAILURE_RETURN(display_wrapline());
     }
 
-saveline:
-    display_puts("\r\n");
+    ON_FAILURE_RETURN(display_puts("\r\n"));
 
     put_history_item(inpbuf);
 
