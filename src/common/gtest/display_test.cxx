@@ -28,6 +28,7 @@ void console_bell() { }
 void console_clear() { }
 MmResult console_colour_bg(MmGraphicsColour argb) { return kOk; }
 MmResult console_colour_fg(MmGraphicsColour argb) { return kOk; }
+MmResult console_cursor_left(bool wrap) { return kOk; }
 void console_cursor_up(int i) { }
 MmResult console_get_cursor_pos(int *x, int *y) {
     return mock_console_get_cursor_pos(x, y);

@@ -112,6 +112,32 @@ void console_clear(void) {
     console_home_cursor();  // Which will also call fflush().
 }
 
+MmResult console_cursor_left(int count, bool wrap) {
+    // LOG_DEBUG("ENTER: count=%d, wrap=%d, x=%d, y=%d", count, wrap, self.x, self.y);
+    assert(count > 0);
+
+    if (self.requires_sync) console_sync();
+    for (; count > 0; count--) {
+        self.x--;
+        if (self.x < 0) {
+            if (wrap) {
+                self.x = self.width - 1;
+                self.y--;
+                if (self.y < 0) self.y = 0;
+            } else {
+                self.x = 0;
+            }
+        }
+    }
+
+    printf("\033[%d;%dH", self.y + 1, self.x + 1); // VT100 origin is (1,1) not (0,0).
+    fflush(stdout);
+
+    // LOG_DEBUG("EXIT:  x=%d, y=%d", self.x, self.y);
+
+    return kOk;
+}
+
 void console_cursor_up(int i) {
     assert(i > 0);
     printf("\033[%dA", i);

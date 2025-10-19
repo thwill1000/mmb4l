@@ -82,6 +82,17 @@ MmResult console_init(bool no_title);
 
 void console_background(int colour);
 void console_bell();
+
+/**
+ * Moves the cursor left, and optionally move up a line if in first column.
+ *
+ * @param[in]  count  number of characters to move left.
+ * @param[in]  wrap   true:  move up a line if in first column,
+ *                    false: do not wrap.
+ * @return            kOk on success.
+ */
+MmResult console_cursor_left(int count, bool wrap);
+
 void console_cursor_up(int i);
 void console_pump_input(void);
 void console_clear(void);
