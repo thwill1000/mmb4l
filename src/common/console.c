@@ -660,6 +660,17 @@ MmResult console_underline(bool underline) {
     return kOk;
 }
 
+MmResult console_wrapline() {
+    if (self.requires_sync) {
+        ON_FAILURE_RETURN(console_sync());
+    }
+    if (self.x >= self.width) {
+        console_puts("\r\n");
+    }
+    // LOG_DEBUG("EXIT:  x=%d, y=%d", self.x, self.y);
+    return kOk;
+}
+
 size_t console_write(const char *buf, size_t sz) {
     for (size_t idx = 0; idx < sz; ++idx) {
         console_putc_noflush(buf[idx]);

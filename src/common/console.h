@@ -236,6 +236,14 @@ MmResult console_underline(bool underline);
 /** No-op. The graphics terminal version flashes the cursor. */
 static inline MmResult console_update_cursor() { return kOk; }
 
+/**
+ * If there is a "pending newline" (i.e. cursor beyond last column) then
+ * print a CRLF and place the cursor to the start of the next line.
+ *
+ * @return  kOk on success.
+ */
+MmResult console_wrapline();
+
 size_t console_write(const char *buf, size_t sz);
 
 /** Adds a character to the console input buffer. */
