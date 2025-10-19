@@ -324,8 +324,10 @@ static char console_putc_noflush(char c) {
                     if (self.x > 0) self.x--;
                     break;
                 case '\r':
-                case '\n':
                     self.x = 0;
+                    break;
+                case '\n':
+                    self.y++;
                     ListCnt++;
                     break;
                 default:
