@@ -67,17 +67,19 @@ MmResult logger_init(const char *filename);
 MmResult logger_term(void);
 
 /** Writes a message to the log. */
-void logger_write(LoggerLevel level, const char *file, unsigned line, const char *format, ...);
+void logger_write(LoggerLevel level, const char *file, unsigned line, const char *function,
+                  const char *format, ...);
 
-#define LOG_INFO(...)     logger_write(kLoggerLevelInfo, __FILE__, __LINE__, __VA_ARGS__)
-#define LOG_WARNING(...)  logger_write(kLoggerLevelWarning, __FILE__, __LINE__, __VA_ARGS__)
-#define LOG_ERROR(...)    logger_write(kLoggerLevelError, __FILE__, __LINE__, __VA_ARGS__)
-#define LOG_FATAL(...)    logger_write(kLoggerLevelFatal, __FILE__, __LINE__, __VA_ARGS__)
+#define LOG_INFO(...) logger_write(kLoggerLevelInfo, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define LOG_WARNING(...) \
+    logger_write(kLoggerLevelWarning, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define LOG_ERROR(...) logger_write(kLoggerLevelError, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define LOG_FATAL(...) logger_write(kLoggerLevelFatal, __FILE__, __LINE__, __func__, __VA_ARGS__)
 
 #if defined(NDEBUG)
 #define LOG_DEBUG(...)
 #else
-#define LOG_DEBUG(...)    logger_write(kLoggerLevelDebug, __FILE__, __LINE__, __VA_ARGS__)
+#define LOG_DEBUG(...)    logger_write(kLoggerLevelDebug, __FILE__, __LINE__, __func__, __VA_ARGS__)
 #endif // NDEBUG
 
 #endif // MMB4L_LOGGER_H
