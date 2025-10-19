@@ -93,6 +93,27 @@ MmResult termgfx_colour_fg(MmGraphicsColour argb) {
     return kOk;
 }
 
+MmResult termgfx_cursor_left(int count, bool wrap) {
+    ASSERT_GFX();
+    MmSurface *s = graphics_current;
+    const int fh = (int)font_height(graphics_font);
+    const int fw = (int)font_width(graphics_font);
+    for (; count > 0; count--) {
+        s->cursor_x -= fw;
+        if (s->cursor_x < 0) {
+            if (wrap) {
+                const int width = s->width / fw;
+                s->cursor_x = (width - 1) * fw;
+                s->cursor_y -= fh ;
+                if (s->cursor_y < 0) s->cursor_y = 0;
+            } else {
+                s->cursor_x = 0;
+            }
+        }
+    }
+    return kOk;
+}
+
 MmResult termgfx_cursor_up(int count) {
     ASSERT_GFX();
     assert(count > 0);

@@ -105,6 +105,18 @@ MmResult display_colour_fg(MmGraphicsColour argb) {
     return kOk;
 }
 
+MmResult display_cursor_left(int count, bool wrap) {
+    if (TTY_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(console_cursor_left(count, wrap));
+    }
+
+    if (GFX_TERMINAL_ENABLED())  {
+        ON_FAILURE_RETURN(termgfx_cursor_left(count, wrap));
+    }
+
+    return kOk;
+}
+
 MmResult display_cursor_up(int count) {
     if (TTY_TERMINAL_ENABLED()) {
         console_cursor_up(count);
