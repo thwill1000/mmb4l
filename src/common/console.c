@@ -138,12 +138,19 @@ MmResult console_cursor_left(int count, bool wrap) {
     return kOk;
 }
 
-void console_cursor_up(int i) {
-    assert(i > 0);
-    printf("\033[%dA", i);
-    fflush(stdout);
-    self.y -= i;
+MmResult console_cursor_up(int count) {
+    assert(count > 0);
+
+    if (self.requires_sync) console_sync();
+    self.y -= count;
     if (self.y < 0) self.y = 0;
+
+    printf("\033[%d;%dH", self.y + 1, self.x + 1); // VT100 origin is (1,1) not (0,0).
+    fflush(stdout);
+
+    // LOG_DEBUG("EXIT:  x=%d y=%d", self.x, self.y);
+
+    return kOk;
 }
 
 void console_disable_raw_mode(void) {
