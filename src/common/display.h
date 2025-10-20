@@ -93,6 +93,15 @@ MmResult display_hide_cursor();
 MmResult display_get_size(bool pixel, int *width, int *height);
 
 /**
+ * Inverses the display colours.
+ *
+ * @param[in]  inverse  true:  to set inverse mode,
+ *                      false: to set normal mode.
+ * @return              kOK on success.
+ */
+MmResult display_inverse(bool inverse);
+
+/**
  * Writes a character to the display.
  *
  * @param[in]  c  the character to write.
