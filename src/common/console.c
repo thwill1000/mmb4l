@@ -463,9 +463,10 @@ void console_foreground(int colour) {
     fflush(stdout);
 }
 
-void console_invert(int invert) {
-    printf(invert ? "\033[7m" : "\033[27m");
+MmResult console_inverse(bool inverse) {
+    printf(inverse ? "\033[7m" : "\033[27m");
     fflush(stdout);
+    return kOk;
 }
 
 void console_reset() {
