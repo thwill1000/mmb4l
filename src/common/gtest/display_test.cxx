@@ -38,6 +38,7 @@ void console_puts(const char *s) { }
 void console_set_cursor_pos(int x, int y) {
     mock_console_set_cursor_pos(x, y);
 }
+MmResult console_underline(bool underline) { return kOk; }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "common/graphics.c"

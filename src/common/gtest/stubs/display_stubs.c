@@ -26,4 +26,5 @@ MmResult display_puts(const char *s) {
 MmResult display_set_cursor_char_pos(int x, int y) { return kOk; }
 MmResult display_set_cursor_pixel_pos(int x, int y) { return kOk; }
 MmResult display_show_cursor() { return kOk; }
+MmResult display_underline(bool underline) { return kOk; }
 MmResult display_write(const char *buf, size_t *sz) { return kOk; }

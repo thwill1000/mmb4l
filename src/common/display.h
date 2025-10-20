@@ -127,6 +127,15 @@ MmResult display_set_cursor_pos(bool pixel, int x, int y);
 MmResult display_show_cursor();
 
 /**
+ * Enables or disables underline mode.
+ *
+ * @param[in]  underline  true:  enable underline mode,
+ *                        false: disable underline mode.
+ * @return                kOK on success.
+ */
+MmResult display_underline(bool underline);
+
+/**
  * Write characters to the display.
  *
  * @param[in]       buf  write characters from this buffer.
