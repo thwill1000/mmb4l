@@ -478,6 +478,16 @@ void console_show_cursor(bool show) {
     fflush(stdout);
 }
 
+MmResult console_underline(bool underline) {
+    if (underline) {
+        printf("\033[4m"); // Enable underline.
+    } else {
+        printf("\033[24m"); // Disable underline.
+    }
+    fflush(stdout);
+    return kOk;
+}
+
 size_t console_write(const char *buf, size_t sz) {
     for (size_t idx = 0; idx < sz; ++idx) {
         console_putc_noflush(buf[idx]);

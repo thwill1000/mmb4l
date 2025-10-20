@@ -163,6 +163,15 @@ void console_set_title(const char *title, bool command);
 /** Shows or hides cursor. */
 void console_show_cursor(bool show);
 
+/**
+ * Enables or disables underline mode.
+ *
+ * @param[in]  underline  true:  enable underline mode,
+ *                        false: disable underline mode.
+ * @return                kOK on success.
+ */
+MmResult console_underline(bool underline);
+
 size_t console_write(const char *buf, size_t sz);
 
 /** Adds a character to the console input buffer. */

@@ -53,6 +53,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define CURSOR_PERIOD  SECONDS_TO_NANOSECONDS(1) / 2
 
+typedef struct {
+    bool underline;
+} TermGfxState;
+
+TermGfxState self = { .underline = false };
+
 MmResult display_bell() {
     console_bell();
     return kOk;
@@ -188,10 +194,16 @@ static MmResult display_putc_graphics(char c) {
             } while ((s->cursor_x / fw) % mmb_options.tab);
             break;
 
-        default:
-            ON_FAILURE_RETURN(
-                graphics_draw_char(s, &s->cursor_x, &s->cursor_y, graphics_font, graphics_fcolour,
-                                   graphics_bcolour, c, kOrientNormal));
+        default: {
+            ON_FAILURE_RETURN(graphics_draw_char(s, &s->cursor_x, &s->cursor_y, graphics_font,
+                                                 graphics_fcolour, graphics_bcolour, c,
+                                                 kOrientNormal));
+            if (self.underline) {
+                const int x = s->cursor_x - font_width(graphics_font);
+                const int y = s->cursor_y + font_height(graphics_font) - 2;
+                ON_FAILURE_RETURN(graphics_draw_line(s, x, y, s->cursor_x, y, 1, graphics_fcolour));
+            }
+        }
     }
 
     return kOk;
@@ -248,6 +260,23 @@ MmResult display_show_cursor() {
     visible = new_visible;
 
     return display_draw_cursor(visible ? graphics_fcolour : graphics_bcolour);
+}
+
+static MmResult termgfx_underline(bool underline) {
+    self.underline = underline;
+    return kOk;
+}
+
+MmResult display_underline(bool underline) {
+    if (mmb_options.console & kSerial) {
+        ON_FAILURE_RETURN(console_underline(underline));
+    }
+
+    if (graphics_current && (mmb_options.console & kScreen)) {
+        ON_FAILURE_RETURN(termgfx_underline(underline));
+    }
+
+    return kOk;
 }
 
 MmResult display_write(const char *buf, size_t *sz) {
