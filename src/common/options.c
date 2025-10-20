@@ -76,9 +76,10 @@ static const NameOrdinalPair options_angle_map[] = {
 };
 
 static const NameOrdinalPair options_console_map[] = {
-    { "Both",    kBoth },
+    { "None",    kConsoleNone },
+    { "Serial",  kSerial },
     { "Screen",  kScreen },
-    { "Serial" , kSerial },
+    { "Both" ,   kBoth },
     { NULL,      -1 }
 };
 
@@ -689,7 +690,7 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
             break;
 
         case kOptionConsole:
-            assert(options->console >= kBoth && options->console <= kSerial);
+            assert(options->console >= kConsoleNone && options->console <= kBoth);
             options_ordinal_to_name(
                     options_definitions[kOptionConsole].enum_map,
                     options->console,
