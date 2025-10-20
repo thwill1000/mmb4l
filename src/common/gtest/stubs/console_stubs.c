@@ -30,5 +30,6 @@ void console_set_cursor_pixel_pos(int x, int y) { }
 int console_set_size(int width, int height) { return -1; }
 void console_set_title(const char *title, bool command) { }
 void console_show_cursor(bool show) { }
+MmResult console_underline(bool underline) { return kOk; }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 void console_put_keypress(char ch) { }
