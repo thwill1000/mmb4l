@@ -60,7 +60,7 @@ MmResult display_bell() {
 
 MmResult display_cls() {
     console_clear();
-    if (graphics_current && mmb_options.console != kSerial) {
+    if (graphics_current && (mmb_options.console & kScreen)) {
         ON_FAILURE_RETURN(graphics_cls(graphics_current, graphics_bcolour));
     }
     return kOk;
@@ -69,7 +69,7 @@ MmResult display_cls() {
 MmResult display_cursor_up(int i) {
     assert(i > 0);
     console_cursor_up(i);
-    if (graphics_current && mmb_options.console != kSerial) {
+    if (graphics_current && (mmb_options.console & kScreen)) {
         graphics_current->cursor_y -= font_height(graphics_font);
     }
     return kOk;
@@ -136,13 +136,13 @@ static MmResult display_draw_cursor(MmGraphicsColour colour) {
 }
 
 MmResult display_hide_cursor() {
-    if (!graphics_current || mmb_options.console == kSerial) return kOk;
+    if (!graphics_current || !(mmb_options.console & kScreen)) return kOk;
 
     return display_draw_cursor(graphics_bcolour);
 }
 
 static MmResult display_putc_graphics(char c) {
-    assert(graphics_current && mmb_options.console != kSerial);
+    assert(graphics_current && (mmb_options.console & kScreen));
 
     MmSurface *s = graphics_current;
     const uint32_t font = graphics_font;
@@ -199,7 +199,7 @@ static MmResult display_putc_graphics(char c) {
 
 MmResult display_putc(char c) {
     console_putc(c);
-    if (graphics_current && mmb_options.console != kSerial) {
+    if (graphics_current && (mmb_options.console & kScreen)) {
         return display_putc_graphics(c);
     }
     return kOk;
@@ -207,7 +207,7 @@ MmResult display_putc(char c) {
 
 MmResult display_puts(const char *s) {
     console_puts(s);
-    if (graphics_current && mmb_options.console != kSerial) {
+    if (graphics_current && (mmb_options.console & kScreen)) {
         while (*s) ON_FAILURE_RETURN(display_putc_graphics(*s++));
     }
     return kOk;
@@ -219,7 +219,7 @@ MmResult display_set_cursor_pos(bool pixel, int x, int y) {
     } else {
         console_set_cursor_pos(x, y);
     }
-    if (graphics_current && mmb_options.console != kSerial) {
+    if (graphics_current && (mmb_options.console & kScreen)) {
         if (!pixel) {
             x *= font_width(graphics_font);
             y *= font_height(graphics_font);
@@ -231,7 +231,7 @@ MmResult display_set_cursor_pos(bool pixel, int x, int y) {
 }
 
 MmResult display_show_cursor() {
-    if (!graphics_current || mmb_options.console == kSerial) return kOk;
+    if (!graphics_current || !(mmb_options.console & kScreen)) return kOk;
 
     static int64_t t = 0;
     static bool visible = false;
@@ -253,7 +253,7 @@ MmResult display_show_cursor() {
 MmResult display_write(const char *buf, size_t *sz) {
     *sz = console_write(buf, *sz);
 
-    if (graphics_current && mmb_options.console != kSerial) {
+    if (graphics_current && (mmb_options.console & kScreen)) {
         for (size_t idx = 0; idx < *sz; ++idx) {
             ON_FAILURE_RETURN(display_putc_graphics(buf[idx]));
         }
