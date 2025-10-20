@@ -119,7 +119,15 @@ int console_get_cursor_pos(int *x, int *y, int timeout_ms);
 int console_get_size(int *width, int *height, int timeout_ms);
 
 void console_home_cursor(void);
-void console_invert(int invert);
+
+/**
+ * Enables/disables tty inverse mode.
+ *
+ * @param[in]  inverse  true:  to set inverse mode,
+ *                      false: to set normal mode.
+ * @return              kOK on success.
+ */
+MmResult console_inverse(bool inverse);
 
 /** Gets the number of characters waiting in the console input queue. */
 int console_kbhit(void);

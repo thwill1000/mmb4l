@@ -20,7 +20,7 @@ int console_getc(void) { return -1; }
 int console_get_cursor_pos(int *x, int *y, int timeout_ms) { return -1; }
 int console_get_size(int *width, int *height, int timeout_ms) { return -1; }
 void console_home_cursor(void) { }
-void console_invert(int invert) { }
+MmResult console_inverse(bool inverse) { return kOk; }
 int console_kbhit(void) { return -1; }
 char console_putc(char c) { return -1; }
 void console_puts(const char *s) { }
