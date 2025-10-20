@@ -421,7 +421,7 @@ int console_get_size(int *width, int *height, int timeout_ms) {
 }
 
 void console_home_cursor(void) {
-    printf("\x1b[H");
+    printf("\033[H");
     fflush(stdout);
 }
 
