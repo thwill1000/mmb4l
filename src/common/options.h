@@ -127,7 +127,12 @@ typedef struct {
 
 typedef enum { kRadians, kDegrees } OptionsAngle;
 
-typedef enum { kBoth, kScreen, kSerial } OptionsConsole;
+typedef enum {
+    kConsoleNone = 0x0,
+    kSerial = 0x1,
+    kScreen = 0x2,
+    kBoth = 0x3
+} OptionsConsole;
 
 typedef enum {
     kSimulateUnspecified = 0,
