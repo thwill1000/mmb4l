@@ -16,6 +16,7 @@ MmResult display_bell() {
 MmResult display_cursor_up(int i) { return kOk; }
 MmResult display_get_size(bool pixel, int *width, int *height) { return kOk; }
 MmResult display_hide_cursor() { return kOk; }
+MmResult display_inverse(bool inverse) { return kOk; }
 MmResult display_putc(char c) { return kOk; }
 
 MmResult display_puts(const char *s) {

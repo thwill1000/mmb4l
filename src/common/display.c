@@ -54,10 +54,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CURSOR_PERIOD  SECONDS_TO_NANOSECONDS(1) / 2
 
 typedef struct {
+    bool inverse;
     bool underline;
 } TermGfxState;
 
-TermGfxState self = { .underline = false };
+TermGfxState self = {
+    .inverse = false,
+    .underline = false
+};
 
 MmResult display_bell() {
     console_bell();
@@ -147,6 +151,23 @@ MmResult display_hide_cursor() {
     return display_draw_cursor(graphics_bcolour);
 }
 
+static MmResult termgfx_inverse(bool inverse) {
+    self.inverse = inverse;
+    return kOk;
+}
+
+MmResult display_inverse(bool inverse) {
+    if (mmb_options.console & kSerial) {
+        ON_FAILURE_RETURN(console_inverse(inverse));
+    }
+
+    if (graphics_current && (mmb_options.console & kScreen)) {
+        ON_FAILURE_RETURN(termgfx_inverse(inverse));
+    }
+
+    return kOk;
+}
+
 static MmResult display_putc_graphics(char c) {
     assert(graphics_current && (mmb_options.console & kScreen));
 
@@ -195,13 +216,14 @@ static MmResult display_putc_graphics(char c) {
             break;
 
         default: {
+            const MmGraphicsColour fg = self.inverse ? graphics_bcolour : graphics_fcolour;
+            const MmGraphicsColour bg = self.inverse ? graphics_fcolour : graphics_bcolour;
             ON_FAILURE_RETURN(graphics_draw_char(s, &s->cursor_x, &s->cursor_y, graphics_font,
-                                                 graphics_fcolour, graphics_bcolour, c,
-                                                 kOrientNormal));
+                                                 fg, bg, c, kOrientNormal));
             if (self.underline) {
                 const int x = s->cursor_x - font_width(graphics_font);
                 const int y = s->cursor_y + font_height(graphics_font) - 2;
-                ON_FAILURE_RETURN(graphics_draw_line(s, x, y, s->cursor_x, y, 1, graphics_fcolour));
+                ON_FAILURE_RETURN(graphics_draw_line(s, x, y, s->cursor_x, y, 1, fg));
             }
         }
     }

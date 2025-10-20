@@ -139,13 +139,13 @@ static void cmd_console_home(const char *p) {
     console_home_cursor();
 }
 
-static void cmd_console_invert(const char *p) {
+static void cmd_console_inverse(const char *p) {
     getargs(&p, 1, DELIM_COMMA);
-    int invert = 1;
+    bool inverse = true;
     if (argc == 1) {
-        invert = parse_bool(argv[0]);
+        inverse = parse_bool(argv[0]);
     }
-    console_invert(invert);
+    ON_FAILURE_ERROR(console_inverse(inverse));
 }
 
 static void cmd_console_reset(const char *p) {
@@ -227,9 +227,9 @@ void cmd_console(void) {
     } else if ((p = parse_check_string(cmdline, "HOME"))) {
         cmd_console_home(p);
     } else if ((p = parse_check_string(cmdline, "INVERSE"))) {
-        cmd_console_invert(p);
+        cmd_console_inverse(p);
     } else if ((p = parse_check_string(cmdline, "INVERT"))) {
-        cmd_console_invert(p);
+        cmd_console_inverse(p);
     } else if ((p = parse_check_string(cmdline, "RESET"))) {
         cmd_console_reset(p);
     } else if ((p = parse_check_string(cmdline, "RESIZE"))) {
