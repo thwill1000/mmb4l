@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdbool.h>
 
+#include "graphics.h"
 #include "mmresult.h"
 
 /** Makes a "bell" noise. */
@@ -54,6 +55,22 @@ MmResult display_bell();
 
 /** Clears the display and moves the cursor to the home position. */
 MmResult display_cls();
+
+/**
+ * Sets the display background colour.
+ *
+ * @param[in]  argb  the ARGB colour value.
+ * @return           kOk on success.
+ */
+MmResult display_colour_bg(MmGraphicsColour argb);
+
+/**
+ * Sets the display foreground colour.
+ *
+ * @param[in]  argb  the ARGB colour value.
+ * @return           kOk on success.
+ */
+MmResult display_colour_fg(MmGraphicsColour argb);
 
 /**
  * Moves the cursor up.
