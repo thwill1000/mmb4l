@@ -13,6 +13,8 @@ void console_bell() { console_bell_sounded = true; }
 void console_cursor_up(int i) { }
 void console_pump_input(void) { }
 void console_clear(void) { }
+MmResult console_colour_bg(MmGraphicsColour argb) { return kOk; }
+MmResult console_colour_fg(MmGraphicsColour argb) { return kOk; }
 void console_disable_raw_mode(void) { }
 void console_enable_raw_mode(void) { }
 void console_foreground(int colour) { }
