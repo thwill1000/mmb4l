@@ -265,6 +265,40 @@ MmResult display_reset() {
     return kOk;
 }
 
+static MmResult termgfx_scroll_down() {
+    const int fh = font_height(graphics_font);
+    return graphics_scroll(graphics_current, 0, -fh, graphics_bcolour);
+}
+
+MmResult display_scroll_down() {
+    if (mmb_options.console & kSerial) {
+        ON_FAILURE_RETURN(console_scroll_down());
+    }
+
+    if (graphics_current && (mmb_options.console & kScreen)) {
+        ON_FAILURE_RETURN(termgfx_scroll_down());
+    }
+
+    return kOk;
+}
+
+static MmResult termgfx_scroll_up() {
+    const int fh = font_height(graphics_font);
+    return graphics_scroll(graphics_current, 0, fh, graphics_bcolour);
+}
+
+MmResult display_scroll_up() {
+    if (mmb_options.console & kSerial) {
+        ON_FAILURE_RETURN(console_scroll_up());
+    }
+
+    if (graphics_current && (mmb_options.console & kScreen)) {
+        ON_FAILURE_RETURN(termgfx_scroll_up());
+    }
+
+    return kOk;
+}
+
 MmResult display_set_cursor_pos(bool pixel, int x, int y) {
     if (pixel) {
         console_set_cursor_pos(x / font_width(graphics_font), y / font_height(graphics_font));

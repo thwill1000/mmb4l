@@ -146,6 +146,20 @@ void console_puts(const char *s);
 MmResult console_reset(void);
 
 /**
+ * Scrolls the ANSI/tty terminal down by one text line.
+ *
+ * @return  kOK on success.
+ */
+MmResult console_scroll_down();
+
+/**
+ * Scrolls the ANSI/tty terminal up by one text line.
+ *
+ * @return  kOK on success.
+ */
+MmResult console_scroll_up();
+
+/**
  * Sets the cursor position in character coordinates.
  *
  * @param  x  the new x-position.
