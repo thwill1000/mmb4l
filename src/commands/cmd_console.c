@@ -150,7 +150,7 @@ static void cmd_console_inverse(const char *p) {
 
 static void cmd_console_reset(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
-    console_reset();
+    ON_FAILURE_ERROR(console_reset());
 }
 
 #define MAX_CURSOR_X  1023
