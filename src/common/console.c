@@ -469,9 +469,10 @@ MmResult console_inverse(bool inverse) {
     return kOk;
 }
 
-void console_reset() {
+MmResult console_reset() {
     printf("\033[0m");
     fflush(stdout);
+    return kOk;
 }
 
 void console_show_cursor(bool show) {

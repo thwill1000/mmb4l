@@ -211,7 +211,7 @@ void longjmp_handler(int jmp_state) {
 
     if (mmb_args.show_prompt) {
         console_show_cursor(true);
-        console_reset();
+        ON_FAILURE_EXIT(console_reset());
         if (MMCharPos > 1) display_puts("\r\n");
     }
 

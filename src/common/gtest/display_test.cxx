@@ -36,6 +36,7 @@ int console_get_size(int *width, int *height, int timeout_ms) {
 MmResult console_inverse(bool inverse) { return kOk; }
 char console_putc(char c) { return c; }
 void console_puts(const char *s) { }
+MmResult console_reset() { return kOk; }
 void console_set_cursor_pos(int x, int y) {
     mock_console_set_cursor_pos(x, y);
 }
