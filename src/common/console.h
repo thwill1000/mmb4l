@@ -138,7 +138,12 @@ char console_putc(char c);
 /** Write a NULL terminated string to the console. */
 void console_puts(const char *s);
 
-void console_reset(void);
+/**
+ * Resets the ANSI/tty terminal to its initial state.
+ *
+ * @return  kOK on success.
+ */
+MmResult console_reset(void);
 
 /**
  * Sets the cursor position in character coordinates.

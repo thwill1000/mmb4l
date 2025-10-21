@@ -247,6 +247,24 @@ MmResult display_puts(const char *s) {
     return kOk;
 }
 
+static MmResult termgfx_reset() {
+    self.inverse = false;
+    self.underline = false;
+    return kOk;
+}
+
+MmResult display_reset() {
+    if (mmb_options.console & kSerial) {
+        ON_FAILURE_RETURN(console_reset());
+    }
+
+    if (graphics_current && (mmb_options.console & kScreen)) {
+        ON_FAILURE_RETURN(termgfx_reset());
+    }
+
+    return kOk;
+}
+
 MmResult display_set_cursor_pos(bool pixel, int x, int y) {
     if (pixel) {
         console_set_cursor_pos(x / font_width(graphics_font), y / font_height(graphics_font));

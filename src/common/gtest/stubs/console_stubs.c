@@ -24,7 +24,7 @@ MmResult console_inverse(bool inverse) { return kOk; }
 int console_kbhit(void) { return -1; }
 char console_putc(char c) { return -1; }
 void console_puts(const char *s) { }
-void console_reset(void) { }
+MmResult console_reset(void) { return kOk; }
 void console_set_cursor_char_pos(int x, int y) { }
 void console_set_cursor_pixel_pos(int x, int y) { }
 int console_set_size(int width, int height) { return -1; }
