@@ -118,6 +118,13 @@ MmResult display_putc(char c);
 MmResult display_puts(const char *s);
 
 /**
+ * Resets the display to its initial state.
+ *
+ * @return  kOK on success.
+ */
+MmResult display_reset();
+
+/**
  * Sets the new text cursor position.
  *
  * @param[in]  pixel  true:  to set value in pixels,
