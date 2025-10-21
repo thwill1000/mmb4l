@@ -13,6 +13,8 @@ MmResult display_bell() {
     return kOk;
 }
 
+MmResult display_colour_bg(MmGraphicsColour argb) { return kOk; }
+MmResult display_colour_fg(MmGraphicsColour argb) { return kOk; }
 MmResult display_cursor_up(int i) { return kOk; }
 MmResult display_get_size(bool pixel, int *width, int *height) { return kOk; }
 MmResult display_hide_cursor() { return kOk; }

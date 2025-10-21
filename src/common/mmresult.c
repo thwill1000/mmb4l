@@ -157,6 +157,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kUnknownDevice:              return "Unknown device/platform";
         case kUnsupportedOnCurrentDevice: return "Unsupported on current device/platform";
         case kUnsupportedParameterOnCurrentDevice: return "Unsupported parameter on current device/platform";
+        case kUnsupportedTerminalColour:  return "Unsupported terminal colour";
         case kInvalidMode:                return "Invalid graphics mode for current device";
         case kInvalidFlag:                return "Invalid flag";
         case kCannotBlitCloseWindow:      return "Use GRAPHICS DESTROY to close windows";

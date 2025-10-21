@@ -139,6 +139,7 @@ typedef enum {
     kUnknownDevice,
     kUnsupportedOnCurrentDevice,
     kUnsupportedParameterOnCurrentDevice,
+    kUnsupportedTerminalColour,
     kInvalidMode,
     kInvalidFlag,
     kCannotBlitCloseWindow,

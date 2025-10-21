@@ -72,25 +72,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MIN_PICOMITE_VGA_MODE    1
 #define MAX_PICOMITE_VGA_MODE    2
 
-#define RGB(red, green, blue, trans) (uint32_t) (((trans & 0xFF) << 24) | ((red & 0xFF) << 16) | ((green & 0xFF) << 8) | (blue & 0xFF))
+// alpha == 0xFF is fully opaque.
+#define RGB(red, green, blue, alpha) (uint32_t) (((alpha & 0xFF) << 24) | ((red & 0xFF) << 16) | ((green & 0xFF) << 8) | (blue & 0xFF))
 
-#define RGB_BLACK     RGB(   0,     0,     0,     0)
-#define RGB_BLUE      RGB(   0,     0,   255,   255)
-#define RGB_GREEN     RGB(   0,   255,     0,   255)
-#define RGB_CYAN      RGB(   0,   255,   255,   255)
-#define RGB_RED       RGB( 255,     0,     0,   255)
-#define RGB_MAGENTA   RGB( 255,     0,   192,   255)
-#define RGB_YELLOW    RGB( 255,   255,     0,   255)
-#define RGB_BROWN     RGB(0xA5,  0x2A,  0x2A,   255)
-#define RGB_GRAY      RGB(  64,    64,    64,   255)
-#define RGB_LITEGRAY  RGB( 128,   128,   128,   255)
-#define RGB_WHITE     RGB( 255,   255,   255,   255)
-#define RGB_ORANGE    RGB(0xFF,  0xA5,     0,   255)
-#define RGB_PINK      RGB(0xFF,  0xA0,  0xAB,   255)
-#define RGB_GOLD      RGB(0xFF,  0xD7,  0x00,   255)
-#define RGB_SALMON    RGB(0xFA,  0x80,  0x72,   255)
-#define RGB_BEIGE     RGB(0xF5,  0xF5,  0xDC,   255)
-#define RGB_NOTBLACK  RGB(   0,     0,     0,   255)
+#define RGB_BLACK     RGB(   0,    0,    0,    0)
+#define RGB_BLUE      RGB(   0,    0, 0xFF, 0xFF)
+#define RGB_GREEN     RGB(   0, 0xFF,    0, 0xFF)
+#define RGB_CYAN      RGB(   0, 0xFF, 0xFF, 0xFF)
+#define RGB_RED       RGB(0xFF,    0,    0, 0xFF)
+#define RGB_MAGENTA   RGB(0xFF,    0, 0xFF, 0xFF)
+#define RGB_YELLOW    RGB(0xFF, 0xFF,    0, 0xFF)
+#define RGB_BROWN     RGB(0xA5, 0x2A, 0x2A, 0xFF)
+#define RGB_GREY      RGB(0x40, 0x40, 0x40, 0xFF)
+#define RGB_GRAY      RGB_GREY
+#define RGB_LITEGREY  RGB(0x80, 0x80, 0x80, 0xFF)
+#define RGB_LITEGRAY  RGB_LITEGREY
+#define RGB_WHITE     RGB(0xFF, 0xFF, 0xFF, 0xFF)
+#define RGB_ORANGE    RGB(0xFF, 0xA5,    0, 0xFF)
+#define RGB_PINK      RGB(0xFF, 0xA0, 0xAB, 0xFF)
+#define RGB_GOLD      RGB(0xFF, 0xD7,    0, 0xFF)
+#define RGB_SALMON    RGB(0xFA, 0x80, 0x72, 0xFF)
+#define RGB_BEIGE     RGB(0xF5, 0xF5, 0xDC, 0xFF)
+#define RGB_NOTBLACK  RGB(   0,    0,    0, 0xFF)
 
 // Additional 4-bit colours defined on the PicoMite.
 #define RGB_MYRTLE        RGB(   0, 0x40,    0, 0xFF)
@@ -102,6 +105,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RGB_FUCHSIA       RGB(0xFF, 0x40, 0xFF, 0xFF)
 #define RGB_BROWN_4BIT    RGB(0xFF, 0x80,    0, 0xFF)
 #define RGB_LILAC         RGB(0xFF, 0x80, 0xFF, 0xFF)
+
+// Additional ANSI colours (Windows Console).
+#define RGB_ANSI_BLACK           RGB_BLACK
+#define RGB_ANSI_RED             RGB(0x80,    0,    0, 0xFF)
+#define RGB_ANSI_GREEN           RGB(   0, 0x80,    0, 0xFF)
+#define RGB_ANSI_YELLOW          RGB(0x80, 0x80,    0, 0xFF)
+#define RGB_ANSI_BLUE            RGB(   0,    0, 0x80, 0xFF)
+#define RGB_ANSI_MAGENTA         RGB(0x80,    0, 0x80, 0xFF)
+#define RGB_ANSI_CYAN            RGB(   0, 0x80, 0x80, 0xFF)
+#define RGB_ANSI_WHITE           RGB(0xC0, 0xC0, 0xC0, 0xFF)
+#define RGB_ANSI_BRIGHT_BLACK    RGB_LITEGREY
+#define RGB_ANSI_BRIGHT_RED      RGB_RED
+#define RGB_ANSI_BRIGHT_GREEN    RGB_GREEN
+#define RGB_ANSI_BRIGHT_YELLOW   RGB_YELLOW
+#define RGB_ANSI_BRIGHT_BLUE     RGB_BLUE
+#define RGB_ANSI_BRIGHT_MAGENTA  RGB_MAGENTA
+#define RGB_ANSI_BRIGHT_CYAN     RGB_CYAN
+#define RGB_ANSI_BRIGHT_WHITE    RGB_WHITE
 
 #define CMM2_BLIT_BASE   63
 #define CMM2_BLIT_COUNT  64
