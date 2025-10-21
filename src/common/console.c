@@ -475,6 +475,18 @@ MmResult console_reset() {
     return kOk;
 }
 
+MmResult console_scroll_down() {
+    printf("\033[1T");
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_scroll_up() {
+    printf("\033[1S");
+    fflush(stdout);
+    return kOk;
+}
+
 void console_show_cursor(bool show) {
     printf(show ? "\033[?25h" : "\033[?25l");
     fflush(stdout);

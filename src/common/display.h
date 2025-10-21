@@ -125,6 +125,20 @@ MmResult display_puts(const char *s);
 MmResult display_reset();
 
 /**
+ * Scrolls the display down by one text line.
+ *
+ * @return  kOK on success.
+ */
+MmResult display_scroll_down();
+
+/**
+ * Scrolls the display up by one text line.
+ *
+ * @return  kOK on success.
+ */
+MmResult display_scroll_up();
+
+/**
  * Sets the new text cursor position.
  *
  * @param[in]  pixel  true:  to set value in pixels,

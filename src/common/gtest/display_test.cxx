@@ -37,6 +37,8 @@ MmResult console_inverse(bool inverse) { return kOk; }
 char console_putc(char c) { return c; }
 void console_puts(const char *s) { }
 MmResult console_reset() { return kOk; }
+MmResult console_scroll_down() { return kOk; }
+MmResult console_scroll_up() { return kOk; }
 void console_set_cursor_pos(int x, int y) {
     mock_console_set_cursor_pos(x, y);
 }
