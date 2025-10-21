@@ -463,6 +463,44 @@ void console_foreground(int colour) {
     fflush(stdout);
 }
 
+static int argb_to_ansi(MmGraphicsColour argb) {
+    switch (argb) {
+        case RGB_ANSI_BLACK:          return 30;
+        case RGB_ANSI_RED:            return 31;
+        case RGB_ANSI_GREEN:          return 32;
+        case RGB_ANSI_YELLOW:         return 33;
+        case RGB_ANSI_BLUE:           return 34;
+        case RGB_ANSI_MAGENTA:        return 35;
+        case RGB_ANSI_CYAN:           return 36;
+        case RGB_ANSI_WHITE:          return 37;
+        case RGB_ANSI_BRIGHT_BLACK:   return 90;
+        case RGB_ANSI_BRIGHT_RED:     return 91;
+        case RGB_ANSI_BRIGHT_GREEN:   return 92;
+        case RGB_ANSI_BRIGHT_YELLOW:  return 93;
+        case RGB_ANSI_BRIGHT_BLUE:    return 94;
+        case RGB_ANSI_BRIGHT_MAGENTA: return 95;
+        case RGB_ANSI_BRIGHT_CYAN:    return 96;
+        case RGB_ANSI_BRIGHT_WHITE:   return 97;
+        default:                      return -1;
+    }
+}
+
+MmResult console_colour_bg(MmGraphicsColour argb) {
+    const int ansi_colour = argb_to_ansi(argb) + 10;
+    if (ansi_colour == -1) return kUnsupportedTerminalColour;
+    printf("\033[%dm", ansi_colour);
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_colour_fg(MmGraphicsColour argb) {
+    const int ansi_colour = argb_to_ansi(argb);
+    if (ansi_colour == -1) return kUnsupportedTerminalColour;
+    printf("\033[%dm", ansi_colour);
+    fflush(stdout);
+    return kOk;
+}
+
 MmResult console_inverse(bool inverse) {
     printf(inverse ? "\033[7m" : "\033[27m");
     fflush(stdout);

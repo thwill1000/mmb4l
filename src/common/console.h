@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "graphics.h"
 #include "mmresult.h"
 
 // Ordinals match those used by MMBasic for DOS and original CMM.
@@ -88,6 +89,22 @@ void console_clear(void);
 void console_disable_raw_mode(void);
 void console_enable_raw_mode(void);
 void console_foreground(int colour);
+
+/**
+ * Sets the ANSI/tty terminal background colour.
+ *
+ * @param[in]  argb  the ARGB colour value.
+ * @return           kOk on success.
+ */
+MmResult console_colour_bg(MmGraphicsColour argb);
+
+/**
+ * Sets the ANSI/tty terminal foreground colour.
+ *
+ * @param[in]  argb  the ARGB colour value.
+ * @return           kOk on success.
+ */
+MmResult console_colour_fg(MmGraphicsColour argb);
 
 /**
  * Gets a character from the console without blocking.

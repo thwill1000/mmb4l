@@ -76,6 +76,40 @@ MmResult display_cls() {
     return kOk;
 }
 
+static MmResult termgfx_colour_bg(MmGraphicsColour argb) {
+    graphics_bcolour = argb;
+    return kOk;
+}
+
+MmResult display_colour_bg(MmGraphicsColour argb) {
+    if (mmb_options.console & kSerial) {
+        ON_FAILURE_RETURN(console_colour_bg(argb));
+    }
+
+    if (graphics_current && (mmb_options.console & kScreen)) {
+        ON_FAILURE_RETURN(termgfx_colour_bg(argb));
+    }
+
+    return kOk;
+}
+
+static MmResult termgfx_colour_fg(MmGraphicsColour argb) {
+    graphics_fcolour = argb;
+    return kOk;
+}
+
+MmResult display_colour_fg(MmGraphicsColour argb) {
+    if (mmb_options.console & kSerial) {
+        ON_FAILURE_RETURN(console_colour_fg(argb));
+    }
+
+    if (graphics_current && (mmb_options.console & kScreen)) {
+        ON_FAILURE_RETURN(termgfx_colour_fg(argb));
+    }
+
+    return kOk;
+}
+
 MmResult display_cursor_up(int i) {
     assert(i > 0);
     console_cursor_up(i);
