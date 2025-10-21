@@ -25,6 +25,8 @@ int console_kbhit(void) { return -1; }
 char console_putc(char c) { return -1; }
 void console_puts(const char *s) { }
 MmResult console_reset(void) { return kOk; }
+MmResult console_scroll_down() { return kOk; }
+MmResult console_scroll_up() { return kOk; }
 void console_set_cursor_char_pos(int x, int y) { }
 void console_set_cursor_pixel_pos(int x, int y) { }
 int console_set_size(int width, int height) { return -1; }
