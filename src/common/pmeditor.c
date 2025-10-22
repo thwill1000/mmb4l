@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "console.h"
+#include "cstring.h"
 #include "display.h"
 #include "error.h"
 #include "file.h"
@@ -68,7 +69,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define OPTION_CONTINUATION     false
 #define OPTION_COLOUR_CODE      true
-#define FF_MAX_LFN    63
 #define MAXCLIP 1024
 
 // const char *ANSI_UNDERLINE     = "\033[4m";
@@ -121,6 +121,7 @@ typedef struct {
     char clipboard[MAXCLIP + 2];  // Clipboard contents
     char keys[MAXCLIP + 2]; // Buffer of incoming keystrokes
     bool exit_flag;         // True if the editor should exit
+    char saved_break_key;   // Original value of mmb_options.break_key when editor entered
 } PmEditor;
 
 static PmEditor *self = NULL;
@@ -213,45 +214,33 @@ static int find_longest_line_length(const char *text, int *linein) {
 }
 
 static MmResult pmeditor_save_file(const char *filename) {
-    int fnbr;
-
+    // If the file already exists then make a backup.
     if (file_exists_regular(filename)) {
-        char backup[FF_MAX_LFN];
-        strcpy(backup, filename);
-        strcat(backup, ".bak");
-        fnbr = streamio_find_free();
+        char backup[PATH_MAX];
+        if (FAILED(cstring_cpy(backup, filename, PATH_MAX))
+                || FAILED(cstring_cat(backup, ".bak", PATH_MAX))) {
+            return kFilenameTooLong;
+        }
+        const int fnbr = streamio_find_free();
         ON_FAILURE_RETURN(streamio_open(filename, "rb", fnbr));
-        // BasicFileOpen(fname, fnbr1, FA_READ);
         const int fnbr_bak = streamio_find_free();
         ON_FAILURE_RETURN(streamio_open(backup, "wb", fnbr_bak));
-        // BasicFileOpen(backup, fnbr_bak, FA_WRITE | FA_CREATE_ALWAYS);
-        while (!streamio_eof(fnbr)) {  // while waiting for the end of file
+        while (!streamio_eof(fnbr)) {
             streamio_putc(fnbr_bak, streamio_getc(fnbr));
         }
         streamio_close(fnbr);
         streamio_close(fnbr_bak);
     }
 
-    fnbr = streamio_find_free();
+    const int fnbr = streamio_find_free();
     ON_FAILURE_RETURN(streamio_open(filename, "wb", fnbr));
-    // BasicFileOpen(fname, fnbr1, FA_WRITE | FA_CREATE_ALWAYS);
-    char *p = self->buf;
-    // if (OPTION_CONTINUATION) {
-    //     char *q = p;
-    //     while (*p) {
-    //         if (*p == OPTION_CONTINUATION && p[1] == '\n')
-    //             p += 2;  // step over the continuation characters
-    //         else
-    //             *q++ = *p++;
-    //     }
-    //     *q = 0;
-    //     p = self->buf;
-    // }
-    do {
-        const char ch = *p++;
-        if (ch == '\n') streamio_putc(fnbr, '\r');
-        streamio_putc(fnbr, ch);
-    } while (*p);
+
+    // Copy contents of edit buffer to file
+    // changing the LF line-endings to CRLF.
+    for (const char *p = self->buf; *p; ++p) {
+        if (*p == '\n') streamio_putc(fnbr, '\r');
+        streamio_putc(fnbr, *p);
+    }
 
     return streamio_close(fnbr);
 }
@@ -1396,6 +1385,7 @@ static MmResult pmeditor_cmd_save_and_run() {
 }
 
 static MmResult pmeditor_cmd_exit() {
+#if 0
     // Wait 50ms to see if anything more is coming.
     mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
 
@@ -1428,7 +1418,7 @@ static MmResult pmeditor_cmd_exit() {
         }
         return kOk;
     }
-
+#endif
     // This must be an ordinary escape (not part of an escape code)
     if (self->text_changed) {
         pmeditor_get_input((char *)"Exit and discard all changes (Y/N): ");
@@ -1529,6 +1519,10 @@ static MmResult pmeditor_cmd_char(char *multi) {
 }
 
 static char pmeditor_canonical_key(char key) {
+    if (key == self->saved_break_key) {
+        return ESC;
+    }
+
 // clang-format off
     switch (key) {
         case '\r':         return '\n';
@@ -1702,6 +1696,7 @@ MmResult pmeditor_show(const char *filename, int line) {
     self->fname = filename;
     self->insert = true;
     self->text_changed = false;
+    self->saved_break_key = mmb_options.break_key;
 
     ON_FAILURE_RETURN(pmeditor_load_file());
     ON_FAILURE_RETURN(pmeditor_resize_console());
@@ -1713,5 +1708,18 @@ MmResult pmeditor_show(const char *filename, int line) {
     pmeditor_print_status();
     pmeditor_position_cursor(self->txtp);
 
-    return pmeditor_main_loop();
+    // Disable default break key handling, within the editor the break key
+    // will be considered synonymous with ESC.
+    mmb_options.break_key = 0;
+
+    MmResult result = pmeditor_main_loop();
+
+    // Tidy up.
+    mmb_options.break_key = self->saved_break_key;
+    if (SUCCEEDED(result)) {
+        ON_FAILURE_RETURN(display_reset());
+        ON_FAILURE_RETURN(display_cls());
+    }
+
+    return result;
 }
