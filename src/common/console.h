@@ -84,6 +84,20 @@ void console_background(int colour);
 void console_bell();
 
 /**
+ * Clears from the current cursor position to the end of the line.
+ *
+ * @return  kOk on success.
+ */
+MmResult console_clear_to_end_of_line();
+
+/**
+ * Clears from the current cursor position to the end of the screen.
+ *
+ * @return  kOk on success.
+ */
+MmResult console_clear_to_end_of_screen();
+
+/**
  * Moves the cursor left, and optionally move up a line if in first column.
  *
  * @param[in]  count  number of characters to move left.

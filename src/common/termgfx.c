@@ -76,6 +76,26 @@ MmResult termgfx_bell() {
     return kOk; // Currently a no-op.
 }
 
+MmResult termgfx_clear_to_end_of_line() {
+    ASSERT_GFX();
+
+    const int x1 = graphics_current->cursor_x;
+    const int y1 = graphics_current->cursor_y;
+    const int x2 = graphics_current->width - 1;
+    const int y2 = y1 + font_height(graphics_font) - 1;
+    return graphics_draw_box(graphics_current, x1, y1, x2, y2, 0, 0, graphics_bcolour);
+}
+
+MmResult termgfx_clear_to_end_of_screen() {
+    ON_FAILURE_RETURN(termgfx_clear_to_end_of_line());
+
+    const int x1 = 0;
+    const int y1 = graphics_current->cursor_y + font_height(graphics_font);
+    const int x2 = graphics_current->width - 1;
+    const int y2 = graphics_current->height - 1;
+    return graphics_draw_box(graphics_current, x1, y1, x2, y2, 0, 0, graphics_bcolour);
+}
+
 MmResult termgfx_cls() {
     ASSERT_GFX();
     return graphics_cls(graphics_current, graphics_bcolour);
