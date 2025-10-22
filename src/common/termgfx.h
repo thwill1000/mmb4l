@@ -55,6 +55,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // See display.h for function documentation.
 
 MmResult termgfx_bell();
+MmResult termgfx_clear_to_end_of_line();
+MmResult termgfx_clear_to_end_of_screen();
 MmResult termgfx_cls();
 MmResult termgfx_colour_bg(MmGraphicsColour argb);
 MmResult termgfx_colour_fg(MmGraphicsColour argb);

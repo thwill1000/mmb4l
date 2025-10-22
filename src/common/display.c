@@ -69,6 +69,30 @@ MmResult display_bell() {
     return kOk;
 }
 
+MmResult display_clear_to_end_of_line() {
+    if (TTY_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(console_clear_to_end_of_line());
+    }
+
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_clear_to_end_of_line());
+    }
+
+    return kOk;
+}
+
+MmResult display_clear_to_end_of_screen() {
+    if (TTY_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(console_clear_to_end_of_screen());
+    }
+
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_clear_to_end_of_screen());
+    }
+
+    return kOk;
+}
+
 MmResult display_cls() {
     if (TTY_TERMINAL_ENABLED()) {
         console_clear();
