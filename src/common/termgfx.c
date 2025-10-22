@@ -142,6 +142,11 @@ MmResult termgfx_cursor_up(int count) {
     return kOk;
 }
 
+MmResult termgfx_flush() {
+    // Currently all graphical terminal output is "flushed".
+    return kOk;
+}
+
 MmResult termgfx_get_cursor_pos(bool pixel, int *x, int *y) {
     ASSERT_GFX();
     *x = graphics_current->cursor_x;
@@ -228,6 +233,11 @@ MmResult termgfx_putc(char c) {
     }
 
     return kOk;
+}
+
+MmResult termgfx_putc_noflush(char c) {
+    // Currently all graphical terminal output is "flushed".
+    return termgfx_putc(c);
 }
 
 MmResult termgfx_puts(const char *s) {

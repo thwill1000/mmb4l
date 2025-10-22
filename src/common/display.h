@@ -105,6 +105,13 @@ MmResult display_cursor_left(int count, bool wrap);
 MmResult display_cursor_up(int count);
 
 /**
+ * Flushes any buffered output to the display.
+ *
+ * @return  kOk on success.
+ */
+MmResult display_flush();
+
+/**
  * Gets the current text cursor position.
  *
  * @param[in]   pixel  true:  to get value in pixels,
@@ -142,6 +149,14 @@ MmResult display_inverse(bool inverse);
  * @return        kOk on success.
  */
 MmResult display_putc(char c);
+
+/**
+ * Writes a character to the display without flushing.
+ *
+ * @param[in]  c  the character to write.
+ * @return        kOk on success.
+ */
+MmResult display_putc_noflush(char c);
 
 /**
  * Writes a C-string to the display.
