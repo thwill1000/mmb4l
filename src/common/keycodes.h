@@ -87,7 +87,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SDEL    0xA0
 #define SDOWN   0xA1
 #define SRIGHT  0xA3
-#define SHIFT_F3 0xb3
+#define SHIFT_F3 0xB3
 
 #define CTRLKEY(a) (a & 0x1f)
 

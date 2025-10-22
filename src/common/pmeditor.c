@@ -71,19 +71,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OPTION_COLOUR_CODE      true
 #define MAXCLIP 1024
 
-// const char *ANSI_UNDERLINE     = "\033[4m";
-// const char *ANSI_RESET         = "\033[0m";
-// const char *ANSI_CLEAR_TO_EOL  = "\033[K";
-// const char *ANSI_REVERSE_VIDEO = "\033[7m";
-// const char *argb_BLACK      = "\033[30m";
-// const char *argb_RED        = "\033[31m";
-// const char *argb_GREEN      = "\033[32m";
-// const char *argb_YELLOW     = "\033[33m";
-// const char *argb_BLUE       = "\033[34m";
-// const char *argb_MAGENTA    = "\033[35m";
-// const char *argb_CYAN       = "\033[36m";
-// const char *argb_WHITE      = "\033[37m";
-
 typedef enum {
     kEditMode,
     kMarkMode,
@@ -132,7 +119,7 @@ static PmEditor *self = NULL;
  * @param  x  x-coordinate, in characters, starting at 0 (left).
  * @param  y  y-coordinate, in characters, starting at 0 (top).
  */ 
-static MmResult pmeditor_set_cursor(int x, int y) {
+static MmResult pmeditor_set_cursor_pos(int x, int y) {
     ON_FAILURE_RETURN(display_set_cursor_pos(false, x, y));
     self->cx = x;
     self->cy = y;
@@ -243,7 +230,7 @@ static MmResult pmeditor_save_file(const char *filename) {
 /**
  * Positions the display cursor to match a given position in the text.
  */
-static void pmeditor_position_cursor(char *curp) {
+static MmResult pmeditor_position_cursor(char *curp) {
     int line = 0;
     int column = 0;
 
@@ -257,13 +244,13 @@ static void pmeditor_position_cursor(char *curp) {
     }
 
     // Is the line on the page being displayed ?
-    if (line < self->py || line >= self->py + self->height) return;
+    if (line < self->py || line >= self->py + self->height) return kOk;
 
-    pmeditor_set_cursor(column, line - self->py);
+    return pmeditor_set_cursor_pos(column, line - self->py);
 }
 
 /** Prints the function keys in the status bar. */
-static void pmeditor_print_func_keys(EditorMode mode) {
+static MmResult pmeditor_print_func_keys(EditorMode mode) {
     const char *p;
 
     if (mode == kEditMode) {
@@ -284,73 +271,88 @@ static void pmeditor_print_func_keys(EditorMode mode) {
 
     const int old_x = self->cx;
     const int old_y = self->cy;
-    pmeditor_set_cursor(0, self->height);
-    pmeditor_highlight(kHighlightLine);
-    ON_FAILURE_ERROR(display_underline(true));
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(0, self->height));
+    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightLine));
+    ON_FAILURE_RETURN(display_underline(true));
     {
         char buf[STRINGSIZE];
         memset(buf, ' ', self->width);
         buf[self->width] = '\0';
-        display_puts(buf);
+        ON_FAILURE_RETURN(display_puts(buf));
     }
-    ON_FAILURE_ERROR(display_reset());
-    display_puts("\r\n");
-    pmeditor_highlight(kHighlightStatus);
-    display_puts(p);
-    pmeditor_highlight(kHighlightNormal);
-    ON_FAILURE_ERROR(display_clear_to_end_of_line());
-    pmeditor_set_cursor(old_x, old_y);
+    ON_FAILURE_RETURN(display_reset());
+    ON_FAILURE_RETURN(display_puts("\r\n"));
+    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightStatus));
+    ON_FAILURE_RETURN(display_puts(p));
+    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightNormal));
+    ON_FAILURE_RETURN(display_clear_to_end_of_line());
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(old_x, old_y));
+
+    return kOk;
 }
 
-// get an input string from the user and save into inpbuf
-static void pmeditor_get_input(const char *prompt) {
-    int i;
-    char *p;
+/**
+ * Gets input from the user with a prompt.
+ * 
+ * @param  prompt  The prompt to display.
+ * @return         kOk on success, or an error code on failure.
+ */
+static MmResult pmeditor_get_input(const char *prompt) {
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(0, self->height + 1));
+    ON_FAILURE_RETURN(display_puts(prompt));
+    ON_FAILURE_RETURN(display_clear_to_end_of_line());
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(strlen(prompt), self->height + 1));
 
-    pmeditor_set_cursor(0, self->height + 1);
-    display_puts(prompt);
-//    MX470Cursor(0, (VRes / gui_font_height) * gui_font_height - gui_font_height);
-//    MX470PutS((char *)prompt, gui_fcolour, gui_bcolour);
-    for (i = 0; i < self->width - (int) strlen(prompt); i++) {
-        display_putc(' ');
-    }
-    pmeditor_set_cursor(strlen(prompt), self->height + 1);
-//    MX470Cursor(strlen((char *)prompt) * gui_font_width,
-//                (VRes / gui_font_height) * gui_font_height - gui_font_height);
+    // TODO: Ctrl-C should exit from this.
+    // TODO: Prevent buffer overrun, deal with input too long for display.
+
+    char *p;
     for (p = inpbuf; (*p = MMgetchar()) != '\r'; p++) {  // get the input
-        if (*p == 0xb3 || *p == F3 || *p == ESC) {
-            p++;
+        if (*p == SHIFT_F3 || *p == F3 || *p == ESC) {
+            p++;  // Include the key in the buffer
             break;
-        }  // return if it is SHIFT-F3, F3 or ESC
-        if (isprint(*p)) {
-            display_putc(*p);  // echo the char
         }
+
         if (*p == '\b') {
-            p--;  // backspace over a backspace
-            if (p >= inpbuf) {
-                p--;                                           // and the char before
-                display_puts("\b \b");                          // erase on the screen
-//                MX470PutS("\b \b", gui_fcolour, gui_bcolour);  // erase on the MX470 display
+            if (p > inpbuf) {           // Check we're not at start
+                p--;                    // Remove previous character
+                display_puts("\b \b");  // Erase on screen
             }
+            p--;  // Compensate for loop increment
+            continue;
+        }
+
+        if (isprint(*p)) {
+            ON_FAILURE_RETURN(display_putc(*p));
+        } else {
+            p--;  // Don't store non-printable chars
         }
     }
     *p = 0;  // terminate the input string
-    pmeditor_print_func_keys(kEditMode);
-    pmeditor_position_cursor(self->txtp);
+
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(kEditMode));
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
+
+    return kOk;
 }
 
-/** Displays a message in the status line. */
-static void pmeditor_display_msg(const char *msg) {
-    pmeditor_set_cursor(0, self->height + 1);
-    pmeditor_highlight(kHighlightError);
-    ON_FAILURE_ERROR(display_inverse(true));
-    display_puts(msg);
-    // MX470PutS((char *)msg, BLACK, RED);
-    pmeditor_highlight(kHighlightNormal);
-    ON_FAILURE_ERROR(display_reset());
-    ON_FAILURE_ERROR(display_clear_to_end_of_line());
-    pmeditor_position_cursor(self->txtp);
+/**
+ * Displays a message in the status line.
+ * 
+ * @param  msg  The message to display.
+ * @return      kOk on success, or an error code on failure.
+ */
+static MmResult pmeditor_display_msg(const char *msg) {
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(0, self->height + 1));
+    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightError));
+    ON_FAILURE_RETURN(display_inverse(true));
+    ON_FAILURE_RETURN(display_puts(msg));
+    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightNormal));
+    ON_FAILURE_RETURN(display_reset());
+    ON_FAILURE_RETURN(display_clear_to_end_of_line());
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
     self->draw_status_line = true;
+    return kOk;
 }
 
 // move the text down by one char starting at the current position in the text
@@ -380,7 +382,7 @@ static void pmeditor_print_status(void) {
              self->px + self->cx + 1);
     strcpy(s + 19, self->insert ? "INS" : "OVR");
 
-    pmeditor_set_cursor(self->width - 25, self->height + 1);
+    pmeditor_set_cursor_pos(self->width - 25, self->height + 1);
     pmeditor_highlight(kHighlightStatus);
     display_puts(s);
     pmeditor_highlight(kHighlightNormal);
@@ -597,18 +599,25 @@ static void pmeditor_set_colour(char *p) {
 static char *pmeditor_find_line(int line, int *inmulti) {
     *inmulti = false;
     char *p = self->buf;
+
+    // Does the file start with a multline comment?
     char *q = p;
     skipspace(q);
     if (q[0] == '/' && q[1] == '*') *inmulti = true;
-    if (q[0] == '*' && q[1] == '/') *inmulti = false;
+
     while (line && *p) {
         if (*p == '\n') {
             if (*inmulti == 2) *inmulti = false;
             line--;
-            q = &p[1];
+            q = p + 1;
             skipspace(q);
-            if (q[0] == '/' && q[1] == '*') *inmulti = true;
-            if (q[0] == '*' && q[1] == '/') *inmulti = 2;
+            if (q[0] == '/' && q[1] == '*') {
+                // Entered a multiline comment
+                *inmulti = true;
+            } else if (q[0] == '*' && q[1] == '/') {
+                // Next line is not commented
+                *inmulti = 2;
+            }
         }
         p++;
     }
@@ -657,7 +666,7 @@ static void pmeditor_print_line(int line) {
 // this draws the full screen including blank areas so there is no need to clear the screen first
 // it then returns the cursor to its original position
 static void pmeditor_print_screen(void) {
-    pmeditor_set_cursor(0, 0);
+    pmeditor_set_cursor_pos(0, 0);
     for (int i = 0; i < self->height; i++) {
         pmeditor_print_line(i + self->py);
         display_puts("\r\n");
@@ -671,13 +680,13 @@ static void pmeditor_print_screen(void) {
 
 /** Scrolls editor up one line. */
 static void pmeditor_scroll_up(void) {
-    pmeditor_set_cursor(0, self->height);  // Move to end of the editing area
+    pmeditor_set_cursor_pos(0, self->height);  // Move to end of the editing area
     ON_FAILURE_ERROR(display_clear_to_end_of_screen());
     ON_FAILURE_ERROR(display_scroll_up());
     // display_puts("\033[J");                // Clear to end of screen
     // display_puts("\033[1S");               // Scroll up one line
     self->py++;
-    pmeditor_set_cursor(0, self->height - 1);
+    pmeditor_set_cursor_pos(0, self->height - 1);
     pmeditor_print_line(self->height - 1 + self->py);
     pmeditor_print_func_keys(kEditMode);
     pmeditor_position_cursor(self->txtp);
@@ -688,13 +697,13 @@ static void pmeditor_scroll_up(void) {
 
 /** Scrolls editor down one line. */
 static void pmeditor_scroll_down(void) {
-    pmeditor_set_cursor(0, self->height);  // Move to end of the editing area
+    pmeditor_set_cursor_pos(0, self->height);  // Move to end of the editing area
     ON_FAILURE_ERROR(display_clear_to_end_of_screen());
     ON_FAILURE_ERROR(display_scroll_down());
     // display_puts("\033[J");                // Clear to end of screen
     // display_puts("\033[1T");               // Scroll down one line
     self->py--;
-    pmeditor_set_cursor(0, 0);
+    pmeditor_set_cursor_pos(0, 0);
     pmeditor_print_line(self->py);
     pmeditor_print_func_keys(kEditMode);
     pmeditor_position_cursor(self->txtp);
@@ -974,7 +983,7 @@ static MmResult pmeditor_cmd_up() {
 
     if (self->cy > 2 || self->py == 0) {
         // If we are more than two lines from the top then move the cursor up
-        if (self->cy > 0) pmeditor_set_cursor(i, self->cy - 1);
+        if (self->cy > 0) pmeditor_set_cursor_pos(i, self->cy - 1);
     } else if (self->py > 0) {
         // Otherwise scroll the document down
         self->cx = i;
@@ -1005,7 +1014,7 @@ static MmResult pmeditor_cmd_down() {
 
     if (self->cy < self->height - 3 || self->py + self->height == self->num_lines) {
         // If we are less than two lines from the bottom then move the cursor down
-        if (self->cy < self->height - 1) pmeditor_set_cursor(i, self->cy + 1);
+        if (self->cy < self->height - 1) pmeditor_set_cursor_pos(i, self->cy + 1);
     } else if (self->py + self->height < self->num_lines) {
         // Otherwise scroll the document up
         self->cx = i;
@@ -1423,14 +1432,14 @@ static MmResult pmeditor_cmd_search_again() {
     if (self->py < 0) self->py = 0;   // compensate if we are near the start
     pmeditor_print_screen();
     pmeditor_position_cursor(self->txtp);
-    // pmeditor_set_cursor(x, y);
+    // pmeditor_set_cursor_pos(x, y);
     return kOk;
 }
 
 static MmResult pmeditor_cmd_search() {
     pmeditor_get_input("Find (Use SHIFT-F3 to repeat): ");
     if (*inpbuf == 0 || *inpbuf == ESC) return kOk;
-    if (!(*inpbuf == 0xb3 || *inpbuf == F3)) strcpy(tknbuf, inpbuf);
+    if (!(*inpbuf == SHIFT_F3 || *inpbuf == F3)) strcpy(tknbuf, inpbuf);
     return pmeditor_cmd_search_again();
 }
 
