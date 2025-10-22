@@ -478,6 +478,18 @@ void console_foreground(int colour) {
     fflush(stdout);
 }
 
+MmResult console_clear_to_end_of_line() {
+    printf("\033[K");
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_clear_to_end_of_screen() {
+    printf("\033[J");
+    fflush(stdout);
+    return kOk;
+}
+
 static int argb_to_ansi(MmGraphicsColour argb) {
     switch (argb) {
         case RGB_ANSI_BLACK:          return 30;

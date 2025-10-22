@@ -10,8 +10,10 @@ bool console_bell_sounded = false;
 MmResult console_init(bool no_title) { return kOk; }
 void console_background(int colour) { }
 void console_bell() { console_bell_sounded = true; }
-MmResult console_cursor_left(int count, bool wrap) { return kUnimplemented; }
-MmResult console_cursor_up(int count) { return kUnimplemented; }
+MmResult console_clear_to_end_of_line() { return kOk; }
+MmResult console_clear_to_end_of_screen() { return kOk; }
+MmResult console_cursor_left(int count, bool wrap) { return kOk; }
+MmResult console_cursor_up(int count) { return kOk; }
 void console_pump_input(void) { }
 void console_clear(void) { }
 MmResult console_colour_bg(MmGraphicsColour argb) { return kOk; }
@@ -37,6 +39,6 @@ void console_set_title(const char *title, bool command) { }
 MmResult console_show_cursor(bool show) { return kOk; }
 MmResult console_sync() { return kOk; }
 MmResult console_underline(bool underline) { return kOk; }
-MmResult console_wrapline() { return kUnimplemented; }
+MmResult console_wrapline() { return kOk; }
 size_t console_write(const char *buf, size_t sz) { return 0; }
 void console_put_keypress(char ch) { }
