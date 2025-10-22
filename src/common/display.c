@@ -153,6 +153,18 @@ MmResult display_cursor_up(int count) {
     return kOk;
 }
 
+MmResult display_flush() {
+    if (TTY_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(console_flush());
+    }
+
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_flush());
+    }
+
+    return kOk;
+}
+
 MmResult display_get_cursor_pos(bool pixel, int *x, int *y) {
     // Preferentially get cursor position from graphics terminal.
     if (GFX_TERMINAL_ENABLED()) {
@@ -208,6 +220,18 @@ MmResult display_putc(char c) {
 
     if (GFX_TERMINAL_ENABLED()) {
         ON_FAILURE_RETURN(termgfx_putc(c));
+    }
+
+    return kOk;
+}
+
+MmResult display_putc_noflush(char c) {
+    if (TTY_TERMINAL_ENABLED()) {
+        (void) console_putc_noflush(c);
+    }
+
+    if (GFX_TERMINAL_ENABLED()) {
+        ON_FAILURE_RETURN(termgfx_putc_noflush(c));
     }
 
     return kOk;

@@ -32,6 +32,7 @@ MmResult console_colour_bg(MmGraphicsColour argb) { return kOk; }
 MmResult console_colour_fg(MmGraphicsColour argb) { return kOk; }
 MmResult console_cursor_left(bool wrap) { return kOk; }
 void console_cursor_up(int i) { }
+MmResult console_flush() { return kOk; }
 MmResult console_get_cursor_pos(int *x, int *y) {
     return mock_console_get_cursor_pos(x, y);
 }
@@ -40,6 +41,7 @@ MmResult console_get_size(int *width, int *height) {
 }
 MmResult console_inverse(bool inverse) { return kOk; }
 char console_putc(char c) { return c; }
+char console_putc_noflush(char c) { return c; }
 void console_puts(const char *s) { }
 MmResult console_reset() { return kOk; }
 MmResult console_scroll_down() { return kOk; }
