@@ -126,11 +126,6 @@ typedef struct {
 
 static PmEditor *self = NULL;
 
-static void SSputchar(const char ch, int flush) {
-    display_putc(ch);
-    fflush(stdout);
-}
-
 /**
  * Sets cursor position.
  *
@@ -317,8 +312,7 @@ static void pmeditor_get_input(const char *prompt) {
 //    MX470Cursor(0, (VRes / gui_font_height) * gui_font_height - gui_font_height);
 //    MX470PutS((char *)prompt, gui_fcolour, gui_bcolour);
     for (i = 0; i < self->width - (int) strlen(prompt); i++) {
-        SSputchar(' ', 1);
-//        MX470PutC(' ');
+        display_putc(' ');
     }
     pmeditor_set_cursor(strlen(prompt), self->height + 1);
 //    MX470Cursor(strlen((char *)prompt) * gui_font_width,
@@ -329,8 +323,7 @@ static void pmeditor_get_input(const char *prompt) {
             break;
         }  // return if it is SHIFT-F3, F3 or ESC
         if (isprint(*p)) {
-            SSputchar(*p, 1);  // echo the char
-//            MX470PutC(*p);     // echo the char on the MX470 display
+            display_putc(*p);  // echo the char
         }
         if (*p == '\b') {
             p--;  // backspace over a backspace
@@ -594,21 +587,24 @@ static void pmeditor_set_colour(char *p) {
     }
 }
 
-// search through the text in the editing buffer looking for a specific line
-// enters with ln = the line required
-// exits pointing to the start of the line or pointing to a zero char if not that many lines in the
-// buffer
-static char *pmeditor_find_line(int ln, int *inmulti) {
+/**
+ * Finds the start of a given line in the text buffer.
+ * 
+ * @param line     The line number to find (0-based).
+ * @param inmulti  Pointer to an integer that will be set to true if the line
+ *                 starts inside a multi-line comment.
+ */
+static char *pmeditor_find_line(int line, int *inmulti) {
     *inmulti = false;
     char *p = self->buf;
     char *q = p;
     skipspace(q);
     if (q[0] == '/' && q[1] == '*') *inmulti = true;
     if (q[0] == '*' && q[1] == '/') *inmulti = false;
-    while (ln && *p) {
+    while (line && *p) {
         if (*p == '\n') {
             if (*inmulti == 2) *inmulti = false;
-            ln--;
+            line--;
             q = &p[1];
             skipspace(q);
             if (q[0] == '/' && q[1] == '*') *inmulti = true;
@@ -619,34 +615,17 @@ static char *pmeditor_find_line(int ln, int *inmulti) {
     return p;
 }
 
-// print a line starting at the current column (self->px) at the current cursor.
+// print a line starting at the current cursor column (self->px).
 // if the line is beyond the end of the text then just clear to the end of line
 // enters with the line number to be printed
-static void pmeditor_print_line(int ln) {
+static void pmeditor_print_line(int line) {
     int i;
     int inmulti = false;
-    // we always colour code the output to the LCD panel on the MX470 (when used as the console)
-    // if (OPTION_DISPLAY_CONSOLE) {
-    //     MX470PutC('\r');  // print on the MX470 display
-    //     p = findLine(ln, &inmulti);
-    //     // i = self->width - 1;   // I think this is wrong. Does not show last character in line G.A.
-    //     i = self->width;
-    //     while (i && *p && *p != '\n') {
-    //         if (!inmulti)
-    //             pmeditor_set_colour((char *)p, false);  // set the colour for the LCD display only
-    //         // else
-    //         //     ; // gui_fcolour = GUI_C_COMMENT;
-    //         MX470PutC(*p++);  // print on the MX470 display
-    //         i--;
-    //     }
-    //     // MX470Display(CLEAR_TO_EOL);  // clear to the end of line on the MX470 display only
-    // }
-    // pmeditor_set_colour(NULL, false);
 
-    char *p = pmeditor_find_line(ln, &inmulti);
+    char *p = pmeditor_find_line(line, &inmulti);
     if (OPTION_COLOUR_CODE) {
         // if we are colour coding we need to redraw the whole line
-        SSputchar('\r', 0);  // display the chars after the editing point
+        display_putc_noflush('\r');  // display the chars after the editing point
         // i = self->width - 1;         // I think this is wrong. Does not show last character in line
         // G.A.
         i = self->width;
@@ -665,7 +644,7 @@ static void pmeditor_print_line(int ln) {
                 pmeditor_highlight(kHighlightComment);
             }
         }
-        SSputchar(*p++, 0);  // display the chars after the editing point
+        display_putc_noflush(*p++);  // display the chars after the editing point
         i--;
     }
 
@@ -884,25 +863,21 @@ static void pmeditor_mark_mode() {
             p = oldmark;
             while (p < mark) {
                 if (*p == '\n') {
-                    SSputchar('\r', 0);
-                    //MX470PutC('\r');
-                }               // also print on the MX470 display
-                //MX470PutC(*p);  // print on the MX470 display
-                SSputchar(*p++, 0);
+                    display_putc_noflush('\r');
+                }
+                display_putc_noflush(*p++);
             }
         } else if (oldmark > mark) {
             pmeditor_position_cursor(mark);
             p = mark;
             while (oldmark > p) {
                 if (*p == '\n') {
-                    SSputchar('\r', 0);
-                    //MX470PutC('\r');
-                }               // also print on the MX470 display
-                //MX470PutC(*p);  // print on the MX470 display
-                SSputchar(*p++, 0);
+                    display_putc_noflush('\r');
+                }
+                display_putc_noflush(*p++);
             }
         }
-        fflush(stdout);
+        display_flush();
         oldmark = mark;
         oldx = x;
         oldy = y;
@@ -911,31 +886,23 @@ static void pmeditor_mark_mode() {
         if (mark < self->txtp) {
             pmeditor_position_cursor(mark);
             ON_FAILURE_ERROR(display_inverse(true));
-            // MX470Display(REVERSE_VIDEO);  // reverse video on the MX470 display only
             p = mark;
             while (p < self->txtp) {
                 if (*p == '\n') {
-                    SSputchar('\r', 0);
-                    //MX470PutC('\r');  // also print on the MX470 display
+                    display_putc_noflush('\r');
                 }
-                //MX470PutC(*p);  // print on the MX470 display
-                SSputchar(*p++, 0);
+                display_putc_noflush(*p++);
             }
-            // MX470Display(REVERSE_VIDEO);  // reverse video back to normal on the MX470 display only
         } else if (mark > self->txtp) {
             pmeditor_position_cursor(self->txtp);
             ON_FAILURE_ERROR(display_inverse(true));
-            // MX470Display(REVERSE_VIDEO);  // reverse video on the MX470 display only
             p = self->txtp;
             while (p < mark) {
                 if (*p == '\n') {
-                    SSputchar('\r', 0);
-                    //MX470PutC('\r');  // also print on the MX470 display
+                    display_putc_noflush('\r');
                 }
-                //MX470PutC(*p);  // print on the MX470 display
-                SSputchar(*p++, 0);
+                display_putc_noflush(*p++);
             }
-            // MX470Display(REVERSE_VIDEO);  // reverse video back to normal on the MX470 display only
         }
         self->mark_mode = false;
         ON_FAILURE_ERROR(display_reset());
@@ -1697,6 +1664,7 @@ MmResult pmeditor_show(const char *filename, int line) {
     self->insert = true;
     self->text_changed = false;
     self->saved_break_key = mmb_options.break_key;
+    self->multiline_comment = 0;
 
     ON_FAILURE_RETURN(pmeditor_load_file());
     ON_FAILURE_RETURN(pmeditor_resize_console());
