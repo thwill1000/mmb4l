@@ -53,6 +53,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Makes a "bell" noise. */
 MmResult display_bell();
 
+/**
+ * Clears from the current cursor position to the end of the line.
+ *
+ * @return  kOk on success.
+ */
+MmResult display_clear_to_end_of_line();
+
+/**
+ * Clears from the current cursor position to the end of the screen.
+ *
+ * @return  kOk on success.
+ */
+MmResult display_clear_to_end_of_screen();
+
 /** Clears the display and moves the cursor to the home position. */
 MmResult display_cls();
 

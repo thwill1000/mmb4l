@@ -26,6 +26,8 @@ int console_height;
 // Defined in "common/console.c"
 void console_bell() { }
 void console_clear() { }
+MmResult console_clear_to_end_of_line() { return kOk; }
+MmResult console_clear_to_end_of_screen() { return kOk; }
 MmResult console_colour_bg(MmGraphicsColour argb) { return kOk; }
 MmResult console_colour_fg(MmGraphicsColour argb) { return kOk; }
 MmResult console_cursor_left(bool wrap) { return kOk; }
@@ -57,6 +59,8 @@ MmGraphicsColour graphics_bcolour;
 MmGraphicsColour graphics_fcolour;
 uint32_t graphics_font = (1 << 4) + 1; // Font 1, Scale 1.
 MmResult graphics_cls(MmSurface *surface, MmGraphicsColour colour) { return kOk; }
+MmResult graphics_draw_box(MmSurface *surface, int x1, int y1, int x2, int y2, int width,
+                           MmGraphicsColour colour, MmGraphicsColour fill) { return kOk; }
 MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
                             MmGraphicsColour fcolour, MmGraphicsColour bcolour, char c,
                             TextOrientation orientation) { return kOk; }
