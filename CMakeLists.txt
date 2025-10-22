@@ -248,6 +248,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/options.c
     src/common/parse.c
     src/common/path.c
+    src/common/pmeditor.c
     src/common/process.c
     src/common/program.c
     src/common/prompt.c
