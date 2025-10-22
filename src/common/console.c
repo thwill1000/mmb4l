@@ -367,7 +367,7 @@ int console_getc(void) {
     return ch;
 }
 
-static char console_putc_noflush(char c) {
+char console_putc_noflush(char c) {
     bool printable = false; // Is 'c' a printable character?
 
     if (mmb_options.codepage && c > 127) {
@@ -554,6 +554,11 @@ MmResult console_colour_fg(MmGraphicsColour argb) {
     const int ansi_colour = argb_to_ansi(argb);
     if (ansi_colour == -1) return kUnsupportedTerminalColour;
     printf("\033[%dm", ansi_colour);
+    fflush(stdout);
+    return kOk;
+}
+
+MmResult console_flush() {
     fflush(stdout);
     return kOk;
 }
