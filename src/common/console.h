@@ -138,6 +138,13 @@ MmResult console_colour_bg(MmGraphicsColour argb);
 MmResult console_colour_fg(MmGraphicsColour argb);
 
 /**
+ * Flushes any buffered output to the ANSI/tty terminal.
+ *
+ * @return  kOk on success.
+ */
+MmResult console_flush();
+
+/**
  * Gets a character from the console without blocking.
  *
  * @return  -1 if no character.
@@ -174,8 +181,21 @@ MmResult console_inverse(bool inverse);
 /** Gets the number of characters waiting in the console input queue. */
 int console_kbhit(void);
 
-/** Writes a character to the console. */
+/**
+ * Writes a character to the ANSI/tty terminal.
+ *
+ * @param[in]  c  the character to write.
+ * @return        kOk on success.
+ */
 char console_putc(char c);
+
+/**
+ * Writes a character to the ANSI/tty terminal without flushing.
+ *
+ * @param[in]  c  the character to write.
+ * @return        kOk on success.
+ */
+char console_putc_noflush(char c);
 
 /** Write a NULL terminated string to the console. */
 void console_puts(const char *s);
