@@ -62,7 +62,7 @@ void MMgetline(int fnbr, char *p) {
     const char *tp;
 
     while (1) {
-        CheckAbort();  // jump right out if CTRL-C
+        perform_background_tasks();  // which will jump right out if CTRL-C
 
         if (streamio_is_file(fnbr) && streamio_eof(fnbr)) break; // End of file.
         c = streamio_getc(fnbr);

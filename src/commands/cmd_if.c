@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/tokentbl.h"
 
 static void execute_one_command(char *p) {
-    CheckAbort();
+    perform_background_tasks();
     targ = T_CMD;
     skipspace(p);                                                   // skip any whitespace
     if (p[0]>= C_BASETOKEN && p[1]>=C_BASETOKEN) {

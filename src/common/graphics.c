@@ -1490,7 +1490,7 @@ static void spbmp_set_pixel_cb(int x, int y, SpColourRgba colour, void *userdata
 }
 
 static int spbmp_abort_check_cb(void *userdata) {
-    CheckAbort();
+    perform_background_tasks();
     return 0;
 }
 

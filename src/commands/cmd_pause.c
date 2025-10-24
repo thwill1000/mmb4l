@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static void cmd_pause_in_interrupt(int64_t duration_ns) {
     int64_t wakeup = mmtime_now_ns() + duration_ns;
     while (mmtime_now_ns() < wakeup) {
-        CheckAbort();
+        perform_background_tasks();
 
         // A short sleep so we do not continue to thrash CPU when paused.
         nanosleep(&ONE_MICROSECOND, NULL);
@@ -69,7 +69,7 @@ static void cmd_pause_in_main_program(int64_t duration_ns) {
     }
 
     while (mmtime_now_ns() < wakeup) {
-        CheckAbort();
+        perform_background_tasks();
 
         if (interrupt_check()) {
             // If there is an interrupt fake the return point to the start of
