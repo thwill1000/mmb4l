@@ -46,6 +46,12 @@ MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) {
     return mock_gpio_translate_from_pin_gp(pin_gp, pin_num);
 }
 
+// Defined in "common/prompt.c"
+MmResult prompt_getc(int *ch) {
+    *ch = -1;
+    return kOk;
+}
+
 // Defined in "core/Commands.c"
 char DimUsed;
 int doindex;

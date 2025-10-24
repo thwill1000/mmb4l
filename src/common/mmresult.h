@@ -187,6 +187,7 @@ typedef enum {
     kSpritesNotHidden,
     kStackElementNotFound,
     kStackIndexOutOfBounds,
+    kStdinExhausted,
 } MmResultCode;
 
 extern char mmresult_last_msg[];

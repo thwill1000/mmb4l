@@ -58,42 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void CheckAbort(void);
 
-// get a keystroke.  Will wait forever for input
-// if the char is a lf then replace it with a cr
-// unless it was preceded by a cr and in that case throw away the char
-// so console end of line is always cr
-int MMgetchar(void) {
-    static char prevchar = 0;
-    int x = -1, y = -1;
-    ON_FAILURE_ERROR_EX(display_get_cursor_pos(false, &x, &y), -1)
-    int c;
-    ON_FAILURE_ERROR_EX(display_show_cursor(true), -1);
-    for (;;) {
-        ON_FAILURE_ERROR_EX(display_update_cursor(), -1);
-        c = console_getc();
-        if (c == -1) {
-            if (!isatty(STDIN_FILENO)) {
-                // In this case there will never be anything to read.
-                if (x > 0) display_puts("\r\n");
-                display_puts("Error: STDIN exhausted\r\n");
-                mmb_state.exit_code = EX_FAIL;
-                ON_FAILURE_ERROR_EX(display_show_cursor(false), -1);
-                longjmp(mark, JMP_QUIT);
-            }
-            nanosleep(&ONE_MILLISECOND, NULL);
-        // } else if (c == 3) {
-        //     longjmp(mark, JMP_BREAK); // jump back to the input prompt if CTRL-C
-        } else if (c == '\n' && prevchar == '\r') {
-            prevchar = 0;
-        } else {
-            break;
-        }
-    }
-    prevchar = c;
-    ON_FAILURE_ERROR_EX(display_show_cursor(false), -1);
-    return c == '\n' ? '\r' : c;
-}
-
 // get a line from the keyboard or a file handle
 void MMgetline(int fnbr, char *p) {
     int c, nbrchars = 0;

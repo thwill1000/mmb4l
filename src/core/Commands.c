@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/display.h"
 #include "../common/mmb4l.h"
-#include "../common/mmgetchar.h"
+#include "../common/prompt.h"
 #include "Commands.h"
 #include "tokentbl.h"
 
@@ -72,7 +72,8 @@ void ListNewLine(int *ListCnt, int all) {
     ON_FAILURE_ERROR(display_get_size(false, &width, &height))
     if(!all && *ListCnt >= width) {
         display_puts("PRESS ANY KEY ...");
-        MMgetchar();
+        int ch = -1;
+        ON_FAILURE_ERROR(prompt_getc(&ch));
         display_puts("\r                 \r");
         *ListCnt = 1;
     }
