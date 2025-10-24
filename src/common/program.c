@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "fonttbl.h"
 #include "keycodes.h"
 #include "mmb4l.h"
-#include "mmgetchar.h"
+#include "mmgetline.h"
 #include "parse.h"
 #include "path.h"
 #include "program.h"

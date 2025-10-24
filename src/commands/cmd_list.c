@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/error.h"
 #include "../common/keycodes.h"
 #include "../common/mmb4l.h"
-#include "../common/mmgetchar.h"
+#include "../common/mmgetline.h"
 #include "../common/parse.h"
 #include "../common/program.h"
 #include "../common/streamio.h"

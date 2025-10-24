@@ -242,7 +242,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/keyboard.c
     src/common/logger.c
     src/common/memory.c
-    src/common/mmgetchar.c
+    src/common/mmgetline.c
     src/common/mmresult.c
     src/common/mmtime.c
     src/common/options.c
@@ -774,7 +774,7 @@ add_executable(test_parse
     src/common/file.c
     src/common/file_linux.c
     src/common/memory.c
-    src/common/mmgetchar.c
+    src/common/mmgetline.c
     src/common/mmresult.c
     src/common/mmtime.c
     src/common/options.c
@@ -847,7 +847,7 @@ add_executable(test_program
     src/common/file_linux.c
     src/common/streamio.c
     src/common/memory.c
-    src/common/mmgetchar.c
+    src/common/mmgetline.c
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c
