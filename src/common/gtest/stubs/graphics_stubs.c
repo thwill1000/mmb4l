@@ -14,6 +14,9 @@ MmResult graphics_init() {
     return kOk;
 }
 
+void graphics_refresh_windows() {
+}
+
 MmResult graphics_reset() {
     return kOk;
 }
