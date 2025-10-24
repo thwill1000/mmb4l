@@ -30,9 +30,6 @@ uint32_t graphics_font;
 // Defined in "common/interrupt.c"
 bool interrupt_check_key_press(char ch) { return false; }
 
-// Defined in "common/mmgetchar.c"
-int MMgetchar(void) { return -1; }
-
 int main(int argc, char **argv) {
     printf("Press Keys\n");
 

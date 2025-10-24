@@ -15,9 +15,10 @@ extern "C" {
 #include "../file.h"
 #include "../mmresult.h"
 
-// mmgetchar.c
-int MMgetchar(void) {
-    return 0;
+// Defined in "common/prompt.c"
+MmResult prompt_getc(int *ch) {
+    *ch = -1;
+    return kOk;
 }
 
 } // extern "C"

@@ -205,6 +205,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kSpritesNotHidden:           return "Sprites are not hidden";
         case kStackElementNotFound:       return "Stack element not found";
         case kStackIndexOutOfBounds:      return "Stack index out of bounds";
+        case kStdinExhausted:             return "STDIN exhausted";
         default:                          return "Unknown result code";
     }
 }

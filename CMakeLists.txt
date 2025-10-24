@@ -314,7 +314,6 @@ add_executable(test_console_getc
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c
-    src/common/streamio.c
     src/common/gtest/stubs/display_stubs.c
     src/common/gtest/stubs/serial_stubs.c
 )
@@ -340,7 +339,6 @@ add_executable(test_cmdline
     src/common/options.c
     src/common/parse.c
     src/common/path.c
-    src/common/streamio.c
     src/common/gtest/cmdline_test.cxx
     src/common/gtest/stubs/serial_stubs.c
     src/core/vartbl.c
@@ -371,7 +369,6 @@ add_executable(test_cmd_do
     src/common/memory.c
     src/common/parse.c
     src/common/path.c
-    src/common/streamio.c
     src/common/gtest/test_helper.c
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/display_stubs.c
@@ -413,7 +410,6 @@ add_executable(test_cmd_run
     src/common/options.c
     src/common/parse.c
     src/common/path.c
-    src/common/streamio.c
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/display_stubs.c
     src/common/gtest/stubs/flash_stubs.c
