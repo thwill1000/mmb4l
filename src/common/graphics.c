@@ -57,7 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "logger.h"
 #include "memory.h"
 #include "mmb4l.h"
-#include "mmgetchar.h"
+#include "mmgetline.h"
 #include "path.h"
 #include "program.h"
 #include "sprite.h"
