@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/display.h"
 #include "../common/mmb4l.h"
-#include "../common/mmgetchar.h"
+#include "../common/mmgetline.h"
 
 void cmd_print(void);
 void execute_other(void);
