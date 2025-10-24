@@ -275,7 +275,7 @@ void ExecuteProgram(const char *p) {
 
                 if (mmb_error_state_ptr->skip > 0) mmb_error_state_ptr->skip--;  // if OPTION ERROR SKIP decrement the count - we do not error if it is greater than zero
                 if (TempMemoryIsChanged) ClearTempMemory();          // at the end of each command we need to clear any temporary string vars
-                CheckAbort();
+                perform_background_tasks();
                 interrupt_check();                                  // check for an MMBasic interrupt and handle it
             }
             p = nextstmt;
@@ -2919,12 +2919,12 @@ void getargaddress(char *p, MMINTEGER **ip, MMFLOAT **fp, int *n) {
     }
 }
 
-/**
- * Peforms "background" tasks:
- *  - pump for console input
- *  - pump for serial port input
- */
-static void perform_background_tasks() {
+void perform_background_tasks() {
+    if (MMAbort) {
+        // g_key_select = 0;
+        longjmp(mark, JMP_BREAK);  // jump back to the input prompt
+    }
+
     // TODO: consolidate with pumping the serial port connections ?
     console_pump_input();
 
@@ -2938,13 +2938,4 @@ static void perform_background_tasks() {
     events_pump();
     graphics_refresh_windows();
     ON_FAILURE_ERROR(audio_background_tasks());
-}
-
-void CheckAbort(void) {
-    if (!MMAbort) perform_background_tasks();
-
-    if (MMAbort) {
-        // g_key_select = 0;
-        longjmp(mark, JMP_BREAK);  // jump back to the input prompt
-    }
 }

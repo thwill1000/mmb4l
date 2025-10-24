@@ -236,6 +236,16 @@ void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
 const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType);
 void getargaddress(char *p, MMINTEGER **ip, MMFLOAT **fp, int *n);
-void CheckAbort(void);
+
+/**
+ * Peforms "background" tasks:
+ *  - check for an abort (CTRL-C)
+ *  - pump for console input
+ *  - pump for serial port input
+ *  - pump for events
+ *  - refresh graphics windows
+ *  - perform audio background tasks
+ */
+void perform_background_tasks();
 
 #endif // #if !defined(MMBASIC_H)

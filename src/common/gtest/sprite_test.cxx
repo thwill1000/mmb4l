@@ -27,7 +27,6 @@ Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 
-void CheckAbort(void) {}
 void MMgetline(int fnbr, char *p) {}
 
 // Defined in "common/keyboard.c"
@@ -64,6 +63,7 @@ MMINTEGER getinteger(const char *p) { return 0; }
 MMINTEGER getint(const char *p, MMINTEGER min, MMINTEGER max) { return 0; }
 void makeargs(const char **tp, int maxargs, char *argbuf, char *argv[], int *argc,
               const DelimType *delim) {}
+void perform_background_tasks() {}
 
 }  // extern "C"
 

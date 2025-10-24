@@ -14,8 +14,6 @@
 
 // Defined in "main.c"
 Options mmb_options;
-volatile int MMAbort;
-void CheckAbort(void) { console_pump_input(); }
 
 // Defined in "common/console.c"
 void console_key_to_string(int ch, char *buf);
@@ -29,6 +27,10 @@ uint32_t graphics_font;
 
 // Defined in "common/interrupt.c"
 bool interrupt_check_key_press(char ch) { return false; }
+
+// Defined in "core/MMBasic.c"
+volatile bool MMAbort;
+void perform_background_tasks() { console_pump_input(); }
 
 int main(int argc, char **argv) {
     printf("Press Keys\n");
