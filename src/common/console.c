@@ -198,7 +198,7 @@ void console_put_keypress(char ch) {
     if (ch == mmb_options.break_key) {
         // User wishes to stop the program.
         // Set the abort flag so the interpreter will halt and empty the console buffer.
-        MMAbort = 1;
+        MMAbort = true;
         rx_buf_clear(&console_rx_buf);
     } else {
         // If the buffer is full then this will throw away ch.

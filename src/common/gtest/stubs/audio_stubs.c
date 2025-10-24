@@ -5,4 +5,5 @@
 
 #include "../../audio.h"
 
+MmResult audio_background_tasks() { return kOk; }
 MmResult audio_term() { return kOk; }

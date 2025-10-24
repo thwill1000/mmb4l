@@ -43,6 +43,9 @@ void MMgetline(int filenbr, char *p) { }
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
 
+// Defined in "common/events.c"
+void events_pump() { }
+
 // Defined in "common/gpio.c"
 MmResult gpio_term() { return kOk; }
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
@@ -62,7 +65,6 @@ int forindex;
 struct s_forstack forstack[MAXFORLOOPS + 1];
 int gosubindex;
 const char *gosubstack[MAXGOSUB];
-void CheckAbort(void) { }
 void ListNewLine(int *ListCnt, int all) { }
 
 } // extern "C"
