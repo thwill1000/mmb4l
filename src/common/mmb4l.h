@@ -67,7 +67,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define checkstring        parse_check_string
 
-void CheckAbort(void);
+void perform_background_tasks();
 const char *llist(char *b, const char *p);
 void cmd_dummy(void);
 void op_equal(void);

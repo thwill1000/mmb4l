@@ -262,7 +262,9 @@ void console_ungetc(char ch) {
 int console_match_chars(char *pattern) {
     if (*pattern == '\0') return 1;
 
-    if (rx_buf_size(&console_rx_buf) == 0) CheckAbort(); // Which calls console_pump_input();
+    if (rx_buf_size(&console_rx_buf) == 0) {
+        perform_background_tasks(); // Which calls console_pump_input();
+    }
 
     int ch = rx_buf_get(&console_rx_buf);
     if (ch == -1) {
@@ -302,7 +304,7 @@ static char ESCAPE_MAP[] = {
 
 int console_getc(void) {
 
-    CheckAbort(); // Which calls console_pump_input();
+    perform_background_tasks(); // Which calls console_pump_input();
     int ch = rx_buf_get(&console_rx_buf);
 
     switch (ch) {
