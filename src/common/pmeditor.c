@@ -58,10 +58,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "keycodes.h"
 #include "memory.h"
 #include "mmb4l.h"
-#include "mmgetchar.h"
 #include "mmtime.h"
 #include "pmeditor.h"
 #include "program.h"
+#include "prompt.h"
 #include "streamio.h"
 #include "../core/commandtbl.h"
 #include "../core/MMBasic.h"
@@ -275,8 +275,10 @@ static MmResult pmeditor_print_func_keys(EditorMode mode) {
     ON_FAILURE_RETURN(pmeditor_highlight(kHighlightLine));
     ON_FAILURE_RETURN(display_underline(true));
     {
+        // Apparently some terminals (e.g. Alarcity) do not underline spaces,
+        // so we use underscores instead.
         char buf[STRINGSIZE];
-        memset(buf, ' ', self->width);
+        memset(buf, '_', self->width);
         buf[self->width] = '\0';
         ON_FAILURE_RETURN(display_puts(buf));
     }
@@ -306,9 +308,14 @@ static MmResult pmeditor_get_input(const char *prompt) {
     // TODO: Ctrl-C should exit from this.
     // TODO: Prevent buffer overrun, deal with input too long for display.
 
-    char *p;
-    for (p = inpbuf; (*p = MMgetchar()) != '\r'; p++) {  // get the input
-        if (*p == SHIFT_F3 || *p == F3 || *p == ESC) {
+    char *p = inpbuf;
+    for (;; p++) {
+        int ch = -1;
+        ON_FAILURE_RETURN(prompt_getc(&ch));
+        if (ch == '\r') break;
+        *p = (char) ch;
+
+        if (*p == SHIFT_FN(F3) || *p == F3 || *p == ESC) {
             p++;  // Include the key in the buffer
             break;
         }
@@ -1439,7 +1446,7 @@ static MmResult pmeditor_cmd_search_again() {
 static MmResult pmeditor_cmd_search() {
     pmeditor_get_input("Find (Use SHIFT-F3 to repeat): ");
     if (*inpbuf == 0 || *inpbuf == ESC) return kOk;
-    if (!(*inpbuf == SHIFT_F3 || *inpbuf == F3)) strcpy(tknbuf, inpbuf);
+    if (!(*inpbuf == SHIFT_FN(F3) || *inpbuf == F3)) strcpy(tknbuf, inpbuf);
     return pmeditor_cmd_search_again();
 }
 
@@ -1504,7 +1511,7 @@ static char pmeditor_canonical_key(char key) {
         case '\r':         return '\n';
         case CTRLKEY('D'): return RIGHT;
         case CTRLKEY('E'): return UP;
-        case CTRLKEY('G'): return SHIFT_F3;
+        case CTRLKEY('G'): return SHIFT_FN(F3);
         case CTRLKEY('K'): return END;
         case CTRLKEY('L'): return PDOWN;
         case CTRLKEY('N'): return INSERT;
@@ -1544,7 +1551,7 @@ static MmResult pmeditor_dispatch_cmd(char cmd, char *multi) {
         case F1:       return pmeditor_cmd_save_and_exit();
         case F2:       return pmeditor_cmd_save_and_run();
         case F3:       return pmeditor_cmd_search();
-        case SHIFT_F3: return pmeditor_cmd_search_again();
+        case SHIFT_FN(F3): return pmeditor_cmd_search_again();
         case F4:       return pmeditor_cmd_mark();
         case F5:       return pmeditor_cmd_paste();
         case F6:       return kOk;
