@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_PROMPT_H)
 #define MMB4L_PROMPT_H
 
+#include "mmresult.h"
 #include "options.h"
 
 typedef struct {
@@ -55,6 +56,18 @@ typedef struct {
     bool insert;
     bool finished;
 } PromptState;
+
+/**
+ * Gets a character from the prompt input.
+ *
+ * Will wait forever for input. If the char is a LF then replace it with a CR
+ * unless it was preceded by a CR in which case throw away the char so end of
+ * line is always a CR.
+ *
+ * @param[in]   ch  pointer to store the character.
+ * @return          kOk on success, error code on failure.
+ */
+MmResult prompt_getc(int *ch);
 
 /**
  * @brief Implements the MMBasic prompt.

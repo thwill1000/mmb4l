@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "error.h"
 #include "file_private.h"
-#include "mmgetchar.h"
+#include "prompt.h"
 #include "streamio.h"
 #include "serial.h"
 #include "utility.h"
@@ -136,7 +136,11 @@ int streamio_getc(int fnbr) {
         ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);
     }
 
-    if (fnbr == 0) return MMgetchar();
+    if (fnbr == 0) {
+        int ch = -1;
+        ON_FAILURE_ERROR_EX(prompt_getc(&ch), -1);
+        return ch;
+    }
 
     switch (file_table[fnbr].type) {
         case fet_closed:

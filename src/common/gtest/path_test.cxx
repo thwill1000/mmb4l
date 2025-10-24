@@ -14,8 +14,11 @@ extern "C" {
 #include "../path.h"
 #include "../utility.h"
 
-// Defined in "main.c"
-int MMgetchar(void) { return 0; }
+// Defined in "common/prompt.c"
+MmResult prompt_getc(int *ch) {
+    *ch = -1;
+    return kOk;
+}
 
 // Defined in "core/MMBasic.c"
 const char *GetIntAddress(const char *p) { return NULL; }
