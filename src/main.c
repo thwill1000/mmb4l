@@ -51,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/console.h"
 #include "common/cstring.h"
 #include "common/display.h"
-#include "common/events.h"
 #include "common/exit_codes.h"
 #include "common/features.h"
 #include "common/file.h"
@@ -64,7 +63,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/path.h"
 #include "common/program.h"
 #include "common/prompt.h"
-#include "common/serial.h"
 #include "common/streamio.h"
 #include "common/utility.h"
 #include "core/tokentbl.h"
@@ -78,7 +76,6 @@ static const char version[] __attribute__ ((used))
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
-volatile int MMAbort = false;
 ErrorState mmb_normal_error_state;
 ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Options mmb_options;
@@ -407,36 +404,6 @@ void IntHandler(int signo) {
     signal(SIGINT, IntHandler);
 #endif
     MMAbort = true;
-}
-
-/**
- * Peforms "background" tasks:
- *  - pump for console input
- *  - pump for serial port input
- */
-static void perform_background_tasks() {
-    // TODO: consolidate with pumping the serial port connections ?
-    console_pump_input();
-
-    // Pump all the serial port connections for input.
-    for (int fnbr = 1; fnbr <= MAXOPENFILES; ++fnbr) {
-        if (streamio_is_serial(fnbr)) {
-            serial_pump_input(fnbr);
-        }
-    }
-
-    events_pump();
-    graphics_refresh_windows();
-    ON_FAILURE_ERROR(audio_background_tasks());
-}
-
-void CheckAbort(void) {
-    if (!MMAbort) perform_background_tasks();
-
-    if (MMAbort) {
-        // g_key_select = 0;
-        longjmp(mark, JMP_BREAK);  // jump back to the input prompt
-    }
 }
 
 // dump a memory area to the console

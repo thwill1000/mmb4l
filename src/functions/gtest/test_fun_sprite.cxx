@@ -40,11 +40,13 @@ Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 
-void CheckAbort(void) { }
 void MMgetline(int fnbr, char *p) {}
 
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
+
+// Defined in "common/console.c"
+void console_pump_input(void) { }
 
 // Defined in "common/gpio.c"
 MmResult gpio_term() { return kOk; }

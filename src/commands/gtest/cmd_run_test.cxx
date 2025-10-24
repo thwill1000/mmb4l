@@ -29,8 +29,6 @@ Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
 
-void CheckAbort(void) { }
-
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
 
@@ -40,6 +38,12 @@ extern char cmd_run_args[STRINGSIZE];
 // Defined in "commands/cmd_run.c"
 MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *filename,
                             char *run_args);
+
+// Defined in "common/console.c"
+void console_pump_input(void) { }
+
+// Defined in "common/events.c"
+void events_pump() { }
 
 // Defined in "common/gpio.c"
 MmResult gpio_term() { return kOk; }
@@ -53,6 +57,9 @@ MmResult program_load_file(char *filename) { return kError; }
 MmResult streamio_init(MmResult (*putc_fn)(char),
                        MmResult (*write_fn)(const char *, size_t *)) {
     return kOk;
+}
+bool streamio_is_serial(int fnbr) {
+    return false;
 }
 MmResult streamio_close_all(void) {
     return kOk;

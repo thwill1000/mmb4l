@@ -39,6 +39,9 @@ void cmd_read_clear_cache()  { }
 // Defined in "common/fonttbl.c"
 void font_clear_user_defined(void) { }
 
+// Defined in "common/events.c"
+void events_pump() { }
+
 // Defined in "common/gpio.c"
 MmResult gpio_term() { return kOk; }
 MmResult (*mock_gpio_translate_from_pin_gp)(uint8_t pin_gp, uint8_t *pin_num) = NULL;
@@ -61,7 +64,6 @@ int forindex;
 struct s_forstack forstack[MAXFORLOOPS + 1];
 int gosubindex;
 const char *gosubstack[MAXGOSUB];
-void CheckAbort(void) { }
 void ListNewLine(int *ListCnt, int all) { }
 
 }
