@@ -45,12 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <string.h>
 #include <sys/types.h>
+#include <unistd.h>
 
+#include "console.h"
 #include "display.h"
 #include "keycodes.h"
 #include "logger.h"
 #include "mmb4l.h"
-#include "mmgetchar.h"
 #include "mmtime.h"
 #include "path.h"
 #include "prompt.h"
@@ -63,6 +64,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static char history[HISTORY_SIZE];
 static const char NO_ITEM[] = "";
+
+#include <stdio.h>
+
+MmResult prompt_getc(int *ch) {
+    static char prevchar = 0;
+    ON_FAILURE_RETURN(display_show_cursor(true));
+    for (;;) {
+        ON_FAILURE_RETURN(display_update_cursor());
+        *ch = console_getc();
+        if (*ch == -1) {
+            if (!isatty(STDIN_FILENO)) {
+                // For non-TTY input (pipes, files), check if it's actually EOF
+                if (feof(stdin)) {
+                    (void) display_show_cursor(false);
+                    return kStdinExhausted;
+                }
+                // If not EOF, it might just be a blocking read that returned -1
+                // Check errno to see if it's a real error
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    nanosleep(&ONE_MILLISECOND, NULL);
+                    continue;
+                }
+                // Some other error occurred
+                (void) display_show_cursor(false);
+                return kStdinExhausted;
+            }
+            nanosleep(&ONE_MILLISECOND, NULL);
+        } else if (*ch == '\n' && prevchar == '\r') {
+            prevchar = 0;
+        } else {
+            break;
+        }
+    }
+    prevchar = *ch;
+    ON_FAILURE_RETURN(display_show_cursor(false));
+    if (*ch == '\n') *ch = '\r';
+    return kOk;
+}
 
 /** Displays the contents of the 'history' buffer. */
 static MmResult dump_history() {
@@ -393,7 +432,10 @@ MmResult prompt_get_input(void) {
     }
 
     while (1) {
-        state.buf[0] = MMgetchar();
+        int ch = -1;
+        ON_FAILURE_RETURN(prompt_getc(&ch));
+        assert(ch != -1);
+        state.buf[0] = (char) ch;
         state.buf[1] = '\0';
 
         do {

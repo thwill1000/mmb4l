@@ -38,7 +38,6 @@ ErrorState *mmb_error_state_ptr = &mmb_normal_error_state;
 Features mmb_features;
 Options mmb_options;
 ErrorState mmb_normal_error_state;
-int MMgetchar(void) { return 0; }
 void MMgetline(int filenbr, char *p) { }
 
 // Defined in "commands/cmd_read.c"
@@ -47,6 +46,12 @@ void cmd_read_clear_cache()  { }
 // Defined in "common/gpio.c"
 MmResult gpio_term() { return kOk; }
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
+
+// Defined in "common/prompt.c"
+MmResult prompt_getc(int *ch) {
+    *ch = -1;
+    return kOk;
+}
 
 // Defined in "core/Commands.c"
 char DimUsed;

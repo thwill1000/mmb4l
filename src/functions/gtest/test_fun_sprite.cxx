@@ -41,7 +41,6 @@ Options mmb_options;
 ErrorState mmb_normal_error_state;
 
 void CheckAbort(void) { }
-int MMgetchar(void) { return 0; }
 void MMgetline(int fnbr, char *p) {}
 
 // Defined in "commands/cmd_read.c"
@@ -57,6 +56,12 @@ MmResult keyboard_key_up(const SDL_Keysym *keysym) { return kError; }
 
 // Defined in "common/program.c"
 char CurrentFile[STRINGSIZE];
+
+// Defined in "common/prompt.c"
+MmResult prompt_getc(int *ch) {
+    *ch = -1;
+    return kOk;
+}
 
 // Defined in "core/Commands.c"
 char DimUsed;

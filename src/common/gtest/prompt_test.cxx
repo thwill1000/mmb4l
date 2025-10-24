@@ -25,6 +25,11 @@ char path_complete_captured_path[STRINGSIZE];
 int MMgetchar(void) { return -1; }
 void MMgetline(int filenbr, char *p) { }
 
+// Defined in "common/console.c"
+int console_getc(void) {
+    return -1;
+}
+
 MmResult path_complete(const char *path, char *out, size_t sz) {
     strcpy(path_complete_captured_path, path); // Capture path.
     if (*path) {

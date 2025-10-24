@@ -45,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_GETCHAR)
 #define MMB4L_GETCHAR
 
-int MMgetchar(void);
 void MMgetline(int fnbr, char *p);
 
 #endif // #if !defined(MMB4L_GETCHAR)

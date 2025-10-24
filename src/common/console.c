@@ -460,7 +460,7 @@ MmResult console_set_size(int width, int height) {
     if (self.width == width && self.height == height) {
         return kOk;
     } else {
-        return kError;
+        return mmresult_ex(kError, "Failed to set TTY size");
     }
 }
 
@@ -650,7 +650,7 @@ MmResult console_sync_cursor_pos(int timeout_ms) {
         self.y--;
         return kOk; // Success
     } else {
-        return kError; // Failure
+        return mmresult_ex(kError, "Failed to read TTY cursor position");
     }
 }
 

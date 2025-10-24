@@ -51,8 +51,14 @@ MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return k
 char CurrentFile[STRINGSIZE];
 MmResult program_load_file(char *filename) { return kError; }
 
-// Defined in "common/mmgetchar.c"
-int MMgetchar(void) { return -1; }
+// Defined in "common/streamio.c"
+MmResult streamio_init(MmResult (*putc_fn)(char),
+                       MmResult (*write_fn)(const char *, size_t *)) {
+    return kOk;
+}
+MmResult streamio_close_all(void) {
+    return kOk;
+}
 
 // Defined in "core/Commands.c"
 char DimUsed;
