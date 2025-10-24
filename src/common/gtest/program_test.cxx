@@ -44,6 +44,9 @@ ErrorState mmb_normal_error_state;
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
 
+// Defined in "common/events.c"
+void events_pump() { }
+
 // Defined in "common/fonttbl.c"
 void font_clear_user_defined() { }
 
@@ -66,7 +69,6 @@ int forindex;
 struct s_forstack forstack[MAXFORLOOPS + 1];
 int gosubindex;
 const char *gosubstack[MAXGOSUB];
-void CheckAbort(void) { }
 void ListNewLine(int *ListCnt, int all) { }
 
 } // extern "C"

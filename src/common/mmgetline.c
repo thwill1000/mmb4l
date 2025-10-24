@@ -56,8 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "options.h"
 #include "streamio.h"
 
-void CheckAbort(void);
-
 // get a line from the keyboard or a file handle
 void MMgetline(int fnbr, char *p) {
     int c, nbrchars = 0;

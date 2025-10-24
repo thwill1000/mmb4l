@@ -132,7 +132,7 @@ extern int LocalIndex;                                // used to track the level
 
 #define has_arg(x)  ((argc >= (x) + 1) && *argv[(x)])
 
-extern volatile int MMAbort;
+extern volatile bool MMAbort;
 extern jmp_buf mark;                            // longjump to recover from an error
 #if !defined(__mmb4l__)
 extern char BreakKey;                           // console break key (defaults to CTRL-C)
@@ -236,5 +236,6 @@ void IntToStr(char *strr, MMINTEGER nbr, unsigned int base);
 void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch);
 const char *CheckIfTypeSpecified(const char *p, int *type, int AllowDefaultType);
 void getargaddress(char *p, MMINTEGER **ip, MMFLOAT **fp, int *n);
+void CheckAbort(void);
 
 #endif // #if !defined(MMBASIC_H)
