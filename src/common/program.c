@@ -486,7 +486,9 @@ static MmResult program_open_file(const char *filename) {
             ? program_get_bas_file(filename, full_path)
             : program_get_inc_file(program_file_stack->files[0].filename, filename, full_path);
     if (FAILED(result)) return result;
-    if (!path_exists(full_path)) return kFileNotFound;
+    if (!path_exists(full_path)) {
+        return mmresult_ex(kFileNotFound, "File not found: %s", full_path);
+    }
 
     int fnbr = streamio_find_free();
     ON_FAILURE_RETURN(streamio_open(full_path, "rb", fnbr));
