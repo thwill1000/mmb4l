@@ -88,4 +88,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SDOWN   0xA1
 #define SRIGHT  0xA3
 
+#define CTRLKEY(key)   ((key) & 0x1f)
+#define SHIFT_FN(key)  ((key) + 0x20)
+
 #endif // #if !defined(KEYCODES_H)
