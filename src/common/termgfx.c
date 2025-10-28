@@ -242,7 +242,29 @@ MmResult termgfx_putc_noflush(char c) {
 
 MmResult termgfx_puts(const char *s) {
     ASSERT_GFX();
-    while (*s) ON_FAILURE_RETURN(termgfx_putc(*s++));
+
+    if (!s) {
+        return mmresult_ex(kInternalFault, "Invalid null parameter: s");
+    }
+
+    // TODO: This special non-breaking space handling is to workaround an issue documented in
+    //       pmeditor.c#pmeditor_draw_line() where Alacritty does not render underlines for normal
+    //       spaces.
+    //       However as a consequence we cannot sequentially print the MMBasic graphical characters
+    //       0xC2 (box drawing: down and horizontal) and 0xA0 (pause symbol in circle).
+    //       Perhaps this should have been handled at the higher-level in pmeditor_draw_line() only.
+
+    while (*s) {
+        // Check for UTF-8 non-breaking space (0xC2 0xA0)
+        if (*s == 0xC2 && s[1] == 0xA0) {
+            // Replace non-breaking space with regular space
+            ON_FAILURE_RETURN(termgfx_putc(' '));
+            s += 2; // Skip both bytes of the UTF-8 sequence
+        } else {
+            // Regular character, output as-is
+            ON_FAILURE_RETURN(termgfx_putc(*s++));
+        }
+    }
     return kOk;
 }
 
