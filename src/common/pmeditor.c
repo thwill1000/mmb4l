@@ -249,6 +249,37 @@ static MmResult pmeditor_position_cursor(char *curp) {
     return pmeditor_set_cursor_pos(column, line - self->py);
 }
 
+/**
+ * Draws a horizontal line across the editor width.
+ *
+ * @return  kOk on success, or an error code on failure.
+ */
+static MmResult pmeditor_draw_line() {
+    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightLine));
+    ON_FAILURE_RETURN(display_underline(true));
+
+    char buf[STRINGSIZE];
+
+    // Use Unicode non-breaking spaces (U+00A0) for better terminal compatibility
+    // with underline rendering, e.g. Alacritty does not render underlines for normal spaces.
+    const char *nbsp = "\u00A0";  // Non-breaking space in UTF-8
+    const int nbsp_len = 2;       // UTF-8 encoding of U+00A0 is 2 bytes
+
+    // Fill buffer with non-breaking spaces
+    int pos = 0;
+    for (int i = 0; i < self->width && pos < STRINGSIZE - nbsp_len; i++) {
+        memcpy(buf + pos, nbsp, nbsp_len);
+        pos += nbsp_len;
+    }
+    buf[pos] = '\0';
+
+    ON_FAILURE_RETURN(display_puts(buf));
+    ON_FAILURE_RETURN(display_reset());
+    ON_FAILURE_RETURN(display_puts("\r\n"));
+
+    return kOk;
+}
+
 /** Prints the function keys in the status bar. */
 static MmResult pmeditor_print_func_keys(EditorMode mode) {
     const char *p;
@@ -272,18 +303,7 @@ static MmResult pmeditor_print_func_keys(EditorMode mode) {
     const int old_x = self->cx;
     const int old_y = self->cy;
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(0, self->height));
-    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightLine));
-    ON_FAILURE_RETURN(display_underline(true));
-    {
-        // Apparently some terminals (e.g. Alarcity) do not underline spaces,
-        // so we use underscores instead.
-        char buf[STRINGSIZE];
-        memset(buf, '_', self->width);
-        buf[self->width] = '\0';
-        ON_FAILURE_RETURN(display_puts(buf));
-    }
-    ON_FAILURE_RETURN(display_reset());
-    ON_FAILURE_RETURN(display_puts("\r\n"));
+    ON_FAILURE_RETURN(pmeditor_draw_line());
     ON_FAILURE_RETURN(pmeditor_highlight(kHighlightStatus));
     ON_FAILURE_RETURN(display_puts(p));
     ON_FAILURE_RETURN(pmeditor_highlight(kHighlightNormal));
