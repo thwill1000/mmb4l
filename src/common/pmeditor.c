@@ -60,6 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmb4l.h"
 #include "mmtime.h"
 #include "pmeditor.h"
+#include "pmeditor_private.h"
 #include "program.h"
 #include "prompt.h"
 #include "streamio.h"
@@ -69,7 +70,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define OPTION_CONTINUATION     false
 #define OPTION_COLOUR_CODE      true
-#define MAXCLIP 1024
 
 typedef enum {
     kEditMode,
@@ -86,30 +86,6 @@ typedef enum {
     kHighlightStatus,
     kHighlightError,
 } HighlightType;
-
-typedef struct {
-    const char *fname;      // Name/path of file being edited
-    char buf[EDIT_BUFFER_SIZE];  // Buffer used for editing the text
-    int num_lines;          // Number of lines of text held in the buffer
-    int width;              // Width of the editor screen in characters
-    int height;             // Height of the editor screen in characters
-    int px;                 // Column at top left hand corner of editor
-    int py;                 // Row at top left hand corner of editor
-    int cx;                 // Current cursor column (from 0)
-    int cy;                 // Current cursor row (from 0)
-    char *txtp;             // Position of the cursor in the text being edited
-    bool draw_status_line;  // True if the status line needs redrawing on next keystroke
-    bool insert;            // True if the editor is in INSERT mode
-    int tempx;              // User to track preferred x-position when up/down arrowing
-    bool text_changed;      // True if the etxt has been editor and thus may need saving
-    int multiline_comment;  // True if we are inside a multi-line comment
-    bool mark_mode;         // True if we are in mark mode
-    char last_key;          // Last key pressed
-    char clipboard[MAXCLIP + 2];  // Clipboard contents
-    char keys[MAXCLIP + 2]; // Buffer of incoming keystrokes
-    bool exit_flag;         // True if the editor should exit
-    char saved_break_key;   // Original value of mmb_options.break_key when editor entered
-} PmEditor;
 
 static PmEditor *self = NULL;
 
@@ -618,12 +594,15 @@ static void pmeditor_set_colour(char *p) {
 
 /**
  * Finds the start of a given line in the text buffer.
- * 
+ *
+ * @param self     Pointer to the PmEditor instance.
  * @param line     The line number to find (0-based).
  * @param inmulti  Pointer to an integer that will be set to true if the line
  *                 starts inside a multi-line comment.
  */
-static char *pmeditor_find_line(int line, int *inmulti) {
+char *pmeditor_find_line(PmEditor *self, int line, int *inmulti) {
+    if (!self || line < 0 || !inmulti) return NULL;
+
     *inmulti = false;
     char *p = self->buf;
 
@@ -658,7 +637,7 @@ static void pmeditor_print_line(int line) {
     int i;
     int inmulti = false;
 
-    char *p = pmeditor_find_line(line, &inmulti);
+    char *p = pmeditor_find_line(self, line, &inmulti);
     if (OPTION_COLOUR_CODE) {
         // if we are colour coding we need to redraw the whole line
         display_putc_noflush('\r');  // display the chars after the editing point
@@ -1613,7 +1592,7 @@ static MmResult pmeditor_load_file() {
 
 /** Resizes the TTY console to ensure it is at least as big as the graphical console. */
 MmResult pmeditor_resize_console() {
-    if (!graphics_current) return kOk;
+    // if (!graphics_current) return kOk;
     int cw = 0;
     int ch = 0;
     bool resize = false;
@@ -1705,7 +1684,7 @@ MmResult pmeditor_show(const char *filename, int line) {
     ON_FAILURE_RETURN(pmeditor_load_file());
     ON_FAILURE_RETURN(pmeditor_resize_console());
 
-    self->txtp = pmeditor_find_line(line - 1, &self->multiline_comment);
+    self->txtp = pmeditor_find_line(self, line - 1, &self->multiline_comment);
 
     pmeditor_print_screen();
     pmeditor_print_func_keys(kEditMode);

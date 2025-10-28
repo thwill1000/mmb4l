@@ -840,6 +840,33 @@ target_link_libraries(test_path
 gtest_discover_tests(test_path)
 
 ################################################################################
+# test_pmeditor
+################################################################################
+
+add_executable(test_pmeditor
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/gtest/pmeditor_test.cxx
+    src/common/memory.c
+    src/common/pmeditor.c
+    src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/streamio_stubs.c
+    src/core/commandtbl.c
+    src/core/tokentbl.c
+)
+
+target_compile_definitions(test_pmeditor PUBLIC ENABLE_GTEST_EXTRAS)
+
+target_link_libraries(test_pmeditor
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_pmeditor)
+
+################################################################################
 # test_program
 ################################################################################
 

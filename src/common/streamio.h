@@ -45,6 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_STREAMIO_H)
 #define MMB4L_STREAMIO_H
 
+#include <stdbool.h>
+#include <stddef.h>
+
 #include "mmresult.h"
 
 /**

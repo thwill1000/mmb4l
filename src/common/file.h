@@ -122,7 +122,7 @@ typedef struct {
 } FileList;
 
 /**
- * Checks if a named regulat file exists in the filesystem.
+ * Checks if a named regular file exists in the filesystem.
  *
  * @param[in]  filename  Path to the file to check
  * @return               true if file exists and is a regular file, false otherwise
