@@ -83,7 +83,7 @@ static PmEditor *self = NULL;
  *
  * @param  x  x-coordinate, in characters, starting at 0 (left).
  * @param  y  y-coordinate, in characters, starting at 0 (top).
- */ 
+ */
 static MmResult pmeditor_set_cursor_pos(int x, int y) {
     ON_FAILURE_RETURN(display_set_cursor_pos(false, x, y));
     self->cx = x;
@@ -282,7 +282,7 @@ static MmResult pmeditor_print_func_keys(EditorMode mode) {
 
 /**
  * Gets input from the user with a prompt.
- * 
+ *
  * @param  prompt  The prompt to display.
  * @return         kOk on success, or an error code on failure.
  */
@@ -332,7 +332,7 @@ static MmResult pmeditor_get_input(const char *prompt) {
 
 /**
  * Displays a message in the status line.
- * 
+ *
  * @param  msg  The message to display.
  * @return      kOk on success, or an error code on failure.
  */
@@ -351,7 +351,7 @@ static MmResult pmeditor_display_msg(const char *msg) {
 
 // move the text down by one char starting at the current position in the text
 // and insert a character
-static int pmeditor_insert_char(char c, char *multi) {
+static int pmeditor_insert_char(char c/*, char *multi*/) {
     char *p;
 
     for (p = self->buf; *p; p++);  // find the end of the text in memory
@@ -360,11 +360,11 @@ static int pmeditor_insert_char(char c, char *multi) {
         return false;
     }
     for (; p >= self->txtp; p--) *(p + 1) = *p;  // shift everything down
-    *multi = 0;
+    //*multi = 0;
     p = self->txtp - 1;
-    if ((c == '/' && *p == '*') || (c == '*' && *p == '/')) *multi = 1;
+    //if ((c == '/' && *p == '*') || (c == '*' && *p == '/')) *multi = 1;
     p += 2;
-    if ((c == '/' && *p == '*') || (c == '*' && *p == '/')) *multi = 1;
+    //if ((c == '/' && *p == '*') || (c == '*' && *p == '/')) *multi = 1;
     *self->txtp++ = c;  // and insert our char
     return true;
 }
@@ -401,7 +401,7 @@ static int pmeditor_edit_comp_str(char *p, const char *tkn) {
  * It keeps track of where it is in the line using static variables so it must
  * be fed all chars from the start of the line.
  *
- * @param  self  Pointer to the PmEditor instance. 
+ * @param  self  Pointer to the PmEditor instance.
  * @param  p     Pointer to the current character to be printed,
  *               or NULL to reset color.
  */
@@ -439,27 +439,32 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
     if (p == NULL) {
         innumber = inquote = inkeyword = incomment = intext = false;
         twokeyword = NULL;
-        if (!self->comment_level) {
+        if (self->comment_level == 0) {
             pmeditor_highlight(kHighlightNormal);
         }
         return;
     }
 
-    // Check for the start of a multi-line comment
+    // Check for the start of a multiline comment
     if (*p == '/' && p[1] == '*' && !inquote) {
-        pmeditor_highlight(kHighlightComment);
+        if (self->comment_level == 0) {
+            pmeditor_highlight(kHighlightComment);
+        }
         self->comment_level++;
         return;
     }
 
-    // Check for the end of a multi-line comment
-    if (*p == '*' && p[1] == '/' && !inquote) {
-        self->comment_level = 2;
+    // Check for the end of a multiline comment
+    if (p != self->buf && *p == '/' && *(p - 1) == '*' && !inquote) {
+        if (self->comment_level > 0) {
+            self->comment_level--;
+        }
         return;
     }
 
-    if (*p == '/' && !inquote && self->comment_level == 2) {
-        self->comment_level = false;
+    // Within a multiline comment all chars are comments
+    if (self->comment_level > 0) {
+        // Don't change highlight if already in comment
         return;
     }
 
@@ -666,11 +671,11 @@ static void pmeditor_print_line(int line) {
 
     while (i && *p && *p != '\n') {
         if (OPTION_COLOUR_CODE) {
-            if (!inmulti) {
+//            if (!inmulti) {
                 pmeditor_set_colour(self, p);
-            } else {
-                pmeditor_highlight(kHighlightComment);
-            }
+            // } else {
+            //     pmeditor_highlight(kHighlightComment);
+            // }
         }
         display_putc_noflush(*p++);  // display the chars after the editing point
         i--;
@@ -942,7 +947,7 @@ static void pmeditor_mark_mode() {
     }
 }
 
-static MmResult pmeditor_cmd_newline(char *multi) {
+static MmResult pmeditor_cmd_newline(/*char *multi*/) {
     int i;
     char *tp;
 
@@ -964,7 +969,7 @@ static MmResult pmeditor_cmd_newline(char *multi) {
             self->keys[i + 1] = 0;        // make sure that the end of the buffer is zeroed
         while (i) self->keys[i--] = ' ';  // now, place our spaces in the typeahead buffer
     }
-    if (!pmeditor_insert_char('\n', multi)) return kOk;  // insert the newline
+    if (!pmeditor_insert_char('\n'/*, multi*/)) return kOk;  // insert the newline
     self->text_changed = true;
     self->num_lines++;
     if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
@@ -1481,7 +1486,7 @@ static MmResult pmeditor_cmd_paste() {
     return kOk;
 }
 
-static MmResult pmeditor_cmd_char(char *multi) {
+static MmResult pmeditor_cmd_char(/*char *multi*/) {
     char c = self->keys[0];
 
     // Ignore non-printable characters
@@ -1496,7 +1501,7 @@ static MmResult pmeditor_cmd_char(char *multi) {
     self->text_changed = true;
     if (self->insert || *self->txtp == '\n' || *self->txtp == 0) {
         // Insert character
-        if (!pmeditor_insert_char(c, multi)) return kOk;
+        if (!pmeditor_insert_char(c/*, multi*/)) return kOk;
     } else {
         // Overwrite character
         *self->txtp++ = c;
@@ -1509,7 +1514,7 @@ static MmResult pmeditor_cmd_char(char *multi) {
     pmeditor_position_cursor(self->txtp);
 
     self->tempx = self->cy;  // used to track the preferred cursor position
-    if (multi && OPTION_COLOUR_CODE) pmeditor_print_screen();
+    // if (multi && OPTION_COLOUR_CODE) pmeditor_print_screen();
     return kOk;
 }
 
@@ -1543,10 +1548,10 @@ static char pmeditor_canonical_key(char key) {
 // clang-format on
 }
 
-static MmResult pmeditor_dispatch_cmd(char cmd, char *multi) {
+static MmResult pmeditor_dispatch_cmd(char cmd/*, char *multi*/) {
 // clang-format off
     switch (cmd) {
-        case '\n':     return pmeditor_cmd_newline(multi);
+        case '\n':     return pmeditor_cmd_newline(/*multi*/);
         case UP:       return pmeditor_cmd_up();
         case DOWN:     return pmeditor_cmd_down();
         case LEFT:     return pmeditor_cmd_left();
@@ -1573,7 +1578,7 @@ static MmResult pmeditor_dispatch_cmd(char cmd, char *multi) {
         case F10:      return kOk;
         case F11:      return kOk;
         case F12:      return kOk;
-        default:       return pmeditor_cmd_char(multi);
+        default:       return pmeditor_cmd_char(/*multi*/);
     }
 // clang-format on
 }
@@ -1627,7 +1632,7 @@ MmResult pmeditor_resize_console() {
 
 /** Main keyboard handling loop. */
 MmResult pmeditor_main_loop() {
-    char multi = false;
+    //char multi = false;
 
     while (true) {
         int c;
@@ -1652,7 +1657,7 @@ MmResult pmeditor_main_loop() {
             self->keys[0] = pmeditor_canonical_key(self->keys[0]);
             // if (buf[0] == BreakKeySave)
             //     buf[0] = ESC;  // if the user tried to break turn it into an escape
-            ON_FAILURE_RETURN(pmeditor_dispatch_cmd(self->keys[0], &multi));
+            ON_FAILURE_RETURN(pmeditor_dispatch_cmd(self->keys[0]/*, &multi*/));
 
             if (self->exit_flag) return kOk;
 

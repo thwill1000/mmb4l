@@ -393,14 +393,43 @@ TEST_F(PmEditorSetColourTest, MultilineCommentStart) {
     ResetState();
 
     char text[] = "/*comment*/";
-    pmeditor_set_colour(self, &text[0]); // Process '/'
-    // The function checks text[1] for '*', but doesn't change color yet
+
+    // Process the '/'
+    pmeditor_set_colour(self, &text[0]);
+    EXPECT_HIGHLIGHT(kHighlightComment);  // Should detect multiline comment start
+    EXPECT_EQ(1, self->comment_level);
 
     // Process the '*'
     pmeditor_set_colour(self, &text[1]);
+    EXPECT_HIGHLIGHT(kHighlightComment);  // Should still be in multiline comment
+    EXPECT_EQ(1, self->comment_level);
+
+    // Process the 'c'
+    pmeditor_set_colour(self, &text[2]);
+    EXPECT_HIGHLIGHT(kHighlightComment);  // Should still be in multiline comment
+    EXPECT_EQ(1, self->comment_level);
+}
+
+// Test multiline comment start detection
+TEST_F(PmEditorSetColourTest, MultilineCommentContinuation) {
+    ResetState();
+
+    char text[] = "/*comment*/";
+    pmeditor_set_colour(self, &text[0]); // Process '/'
+    // The function checks text[1] for '*', but doesn't change color yet
 
     // Should detect multiline comment start
     EXPECT_HIGHLIGHT(kHighlightComment);
+    EXPECT_EQ(1, self->comment_level);
+
+    // Process the '*'
+    pmeditor_set_colour(self, &text[1]);
+    EXPECT_HIGHLIGHT(kHighlightComment);  // Should still be in multiline comment
+    EXPECT_EQ(1, self->comment_level);
+
+    // Process the 'c'
+    pmeditor_set_colour(self, &text[2]);
+    EXPECT_HIGHLIGHT(kHighlightComment);  // Should still be in multiline comment
     EXPECT_EQ(1, self->comment_level);
 }
 
@@ -409,7 +438,7 @@ TEST_F(PmEditorSetColourTest, MultilineCommentEnd) {
     ResetState();
 
     // Start in multiline comment state
-    self->comment_level = true;
+    self->comment_level = 1;
 
     char text[] = "*/";
     pmeditor_set_colour(self, &text[0]); // Process '*'
@@ -418,6 +447,24 @@ TEST_F(PmEditorSetColourTest, MultilineCommentEnd) {
     pmeditor_set_colour(self, &text[1]);
 
     EXPECT_FALSE(self->comment_level);
+}
+
+// Test nested multiline comment start detection
+TEST_F(PmEditorSetColourTest, NestedMultilineCommentStart) {
+    ResetState();
+
+    // Start in multiline comment state
+    self->comment_level = 1;
+
+    char text[] = "/*comment2*/";
+    pmeditor_set_colour(self, &text[0]); // Process '/'
+
+    // Process the '*'
+    pmeditor_set_colour(self, &text[1]);
+
+    // Should detect multiline comment start
+    EXPECT_HIGHLIGHT(kHighlightNormal); // Still in comment, so no change
+    EXPECT_EQ(2, self->comment_level);
 }
 
 // Test quoted string detection
