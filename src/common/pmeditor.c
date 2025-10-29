@@ -76,17 +76,6 @@ typedef enum {
     kMarkMode,
 } EditorMode;
 
-typedef enum {
-    kHighlightNormal,
-    kHighlightComment,
-    kHighlightKeyword,
-    kHighlightQuote,
-    kHighlightNumber,
-    kHighlightLine,
-    kHighlightStatus,
-    kHighlightError,
-} HighlightType;
-
 static PmEditor *self = NULL;
 
 /**
@@ -102,7 +91,8 @@ static MmResult pmeditor_set_cursor_pos(int x, int y) {
     return kOk;
 }
 
-static MmResult pmeditor_highlight(HighlightType highlight) {
+#if !defined(MOCK_PMEDITOR_HIGHLIGHT)
+MmResult pmeditor_highlight(HighlightType highlight) {
     MmGraphicsColour argb = RGB_ANSI_WHITE;
 
     switch (highlight) {
@@ -136,6 +126,7 @@ static MmResult pmeditor_highlight(HighlightType highlight) {
 
     return display_colour_fg(argb);
 }
+#endif
 
 static int find_longest_line_length(const char *text, int *linein) {
     int current_length = 0;
@@ -404,13 +395,17 @@ static int pmeditor_edit_comp_str(char *p, const char *tkn) {
     return false;  // or NULL if not
 }
 
-// this function does the syntax colour coding
-// p = pointer to the current character to be printed
-//     or NULL if the colour coding is to be cmdfile to normal
-//
-// it keeps track of where it is in the line using static variables
-// so it must be fed all chars from the start of the line
-static void pmeditor_set_colour(char *p) {
+/**
+ * Sets the syntax highlighting color for the editor.
+ *
+ * It keeps track of where it is in the line using static variables so it must
+ * be fed all chars from the start of the line.
+ *
+ * @param  self  Pointer to the PmEditor instance. 
+ * @param  p     Pointer to the current character to be printed,
+ *               or NULL to reset color.
+ */
+void pmeditor_set_colour(PmEditor *self, char *p) {
     int i;
     char **pp;
     static int intext = false;
@@ -438,27 +433,33 @@ static void pmeditor_set_colour(char *p) {
     const char *specialkeywords[] = {
         "SELECT", "INTEGER", "FLOAT", "STRING", "DISPLAY", "SDCARD", "OUTPUT", "APPEND", "WRITE",
         "SLAVE", "TARGET", "PROGRAM",
-        //        ".PROGRAM", ".END PROGRAM", ".SIDE", ".LABEL" , ".LINE",".WRAP", ".WRAP TARGET",
         NULL};
 
     // cmdfile everything back to normal
     if (p == NULL) {
         innumber = inquote = inkeyword = incomment = intext = false;
         twokeyword = NULL;
-        if (!self->multiline_comment) {
-            // gui_fcolour = GUI_C_NORMAL;
+        if (!self->comment_level) {
             pmeditor_highlight(kHighlightNormal);
         }
         return;
     }
 
-    if (*p == '*' && p[1] == '/' && !inquote) {
-        self->multiline_comment = 2;
+    // Check for the start of a multi-line comment
+    if (*p == '/' && p[1] == '*' && !inquote) {
+        pmeditor_highlight(kHighlightComment);
+        self->comment_level++;
         return;
     }
 
-    if (*p == '/' && !inquote && self->multiline_comment == 2) {
-        self->multiline_comment = false;
+    // Check for the end of a multi-line comment
+    if (*p == '*' && p[1] == '/' && !inquote) {
+        self->comment_level = 2;
+        return;
+    }
+
+    if (*p == '/' && !inquote && self->comment_level == 2) {
+        self->comment_level = false;
         return;
     }
 
@@ -472,13 +473,13 @@ static void pmeditor_set_colour(char *p) {
         char *q = p;
         if (*(--q) == (char)'\n') {
             pmeditor_highlight(kHighlightComment);
-            self->multiline_comment = true;
+            self->comment_level = true;
         }
         return;
     }
 
     // once in a comment all following chars must be comments also
-    if (incomment || self->multiline_comment) return;
+    if (incomment || self->comment_level) return;
 
     // check for a quoted string
     if (*p == '\"') {
@@ -595,38 +596,50 @@ static void pmeditor_set_colour(char *p) {
 /**
  * Finds the start of a given line in the text buffer.
  *
- * @param self     Pointer to the PmEditor instance.
- * @param line     The line number to find (0-based).
- * @param inmulti  Pointer to an integer that will be set to true if the line
- *                 starts inside a multi-line comment.
+ * @param self           Pointer to the PmEditor instance.
+ * @param line           The line number to find (0-based).
+ * @param comment_level  Pointer to an integer that will be set to the multiline
+ *                       comment nesting level at the start of the line.
+ * @return                Pointer to the start of the line in the buffer,
+ *                       or NULL on error.
  */
-char *pmeditor_find_line(PmEditor *self, int line, int *inmulti) {
-    if (!self || line < 0 || !inmulti) return NULL;
+char *pmeditor_find_line(PmEditor *self, int line, int *comment_level) {
+    if (!self || line < 0 || !comment_level) return NULL;
 
-    *inmulti = false;
+    *comment_level = 0;
     char *p = self->buf;
 
-    // Does the file start with a multline comment?
-    char *q = p;
-    skipspace(q);
-    if (q[0] == '/' && q[1] == '*') *inmulti = true;
+    // TODO: If the line starts with /* then should it increment the comment_level?
+
+    // TODO: Handle quoted strings
+    // TODO: Handle CMM2 #COMMENT {START|END} construct
+    // TODO: Handle single-line comments (') and REM
 
     while (line && *p) {
-        if (*p == '\n') {
-            if (*inmulti == 2) *inmulti = false;
-            line--;
-            q = p + 1;
-            skipspace(q);
-            if (q[0] == '/' && q[1] == '*') {
-                // Entered a multiline comment
-                *inmulti = true;
-            } else if (q[0] == '*' && q[1] == '/') {
-                // Next line is not commented
-                *inmulti = 2;
-            }
+        switch (*p) {
+            case '\n':
+                line--;
+                break;
+            case '/':
+                if (p[1] == '*') {
+                    // Entered a multiline comment
+                    (*comment_level)++;
+                    p++;
+                }
+                break;
+            case '*':
+                if (p[1] == '/') {
+                    // Exited a multiline comment
+                    if (*comment_level) (*comment_level)--;
+                    p++;
+                }
+                break;
+            default:
+                break;
         }
         p++;
     }
+
     return p;
 }
 
@@ -654,7 +667,7 @@ static void pmeditor_print_line(int line) {
     while (i && *p && *p != '\n') {
         if (OPTION_COLOUR_CODE) {
             if (!inmulti) {
-                pmeditor_set_colour((char *)p);
+                pmeditor_set_colour(self, p);
             } else {
                 pmeditor_highlight(kHighlightComment);
             }
@@ -664,7 +677,7 @@ static void pmeditor_print_line(int line) {
     }
 
     ON_FAILURE_ERROR(display_clear_to_end_of_line());
-    pmeditor_set_colour(NULL);
+    pmeditor_set_colour(self, NULL);
     self->cx = self->width - 1;
 }
 
@@ -1679,12 +1692,12 @@ MmResult pmeditor_show(const char *filename, int line) {
     self->insert = true;
     self->text_changed = false;
     self->saved_break_key = mmb_options.break_key;
-    self->multiline_comment = 0;
+    self->comment_level = 0;
 
     ON_FAILURE_RETURN(pmeditor_load_file());
     ON_FAILURE_RETURN(pmeditor_resize_console());
 
-    self->txtp = pmeditor_find_line(self, line - 1, &self->multiline_comment);
+    self->txtp = pmeditor_find_line(self, line - 1, &self->comment_level);
 
     pmeditor_print_screen();
     pmeditor_print_func_keys(kEditMode);

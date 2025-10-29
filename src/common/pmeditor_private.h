@@ -47,9 +47,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdbool.h>
 
+#include "mmresult.h"
 #include "program.h" // for EDIT_BUFFER_SIZE
 
 #define MAXCLIP 1024
+
+typedef enum {
+    kHighlightNormal,
+    kHighlightComment,
+    kHighlightKeyword,
+    kHighlightQuote,
+    kHighlightNumber,
+    kHighlightLine,
+    kHighlightStatus,
+    kHighlightError,
+} HighlightType;
 
 typedef struct {
     const char *fname;      // Name/path of file being edited
@@ -66,7 +78,7 @@ typedef struct {
     bool insert;            // True if the editor is in INSERT mode
     int tempx;              // User to track preferred x-position when up/down arrowing
     bool text_changed;      // True if the etxt has been editor and thus may need saving
-    int multiline_comment;  // True if we are inside a multi-line comment
+    int comment_level;      // Current comment level (0 = not in comment, >0 = in comment)
     bool mark_mode;         // True if we are in mark mode
     char last_key;          // Last key pressed
     char clipboard[MAXCLIP + 2];  // Clipboard contents
@@ -75,6 +87,8 @@ typedef struct {
     char saved_break_key;   // Original value of mmb_options.break_key when editor entered
 } PmEditor;
 
-char *pmeditor_find_line(PmEditor *self, int line, int *inmulti);
+char *pmeditor_find_line(PmEditor *self, int line, int *comment_level);
+MmResult pmeditor_highlight(HighlightType highlight);
+void pmeditor_set_colour(PmEditor *self, char *p);
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)
