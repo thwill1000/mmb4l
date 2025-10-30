@@ -603,15 +603,13 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
  *
  * @param self           Pointer to the PmEditor instance.
  * @param line           The line number to find (0-based).
- * @param comment_level  Pointer to an integer that will be set to the multiline
- *                       comment nesting level at the start of the line.
- * @return                Pointer to the start of the line in the buffer,
+ * @return               Pointer to the start of the line in the buffer,
  *                       or NULL on error.
  */
-char *pmeditor_find_line(PmEditor *self, int line, int *comment_level) {
-    if (!self || line < 0 || !comment_level) return NULL;
+char *pmeditor_find_line(PmEditor *self, int line/*, int *comment_level*/) {
+    if (!self || line < 0) return NULL;
 
-    *comment_level = 0;
+    self->comment_level = 0;
     char *p = self->buf;
 
     // TODO: If the line starts with /* then should it increment the comment_level?
@@ -628,14 +626,14 @@ char *pmeditor_find_line(PmEditor *self, int line, int *comment_level) {
             case '/':
                 if (p[1] == '*') {
                     // Entered a multiline comment
-                    (*comment_level)++;
+                    self->comment_level++;
                     p++;
                 }
                 break;
             case '*':
                 if (p[1] == '/') {
                     // Exited a multiline comment
-                    if (*comment_level) (*comment_level)--;
+                    if (self->comment_level > 0) self->comment_level--;
                     p++;
                 }
                 break;
@@ -653,9 +651,9 @@ char *pmeditor_find_line(PmEditor *self, int line, int *comment_level) {
 // enters with the line number to be printed
 static void pmeditor_print_line(int line) {
     int i;
-    int inmulti = false;
+    // int comment_level = -1;
 
-    char *p = pmeditor_find_line(self, line, &inmulti);
+    char *p = pmeditor_find_line(self, line/*, &self->comment_level*/);
     if (OPTION_COLOUR_CODE) {
         // if we are colour coding we need to redraw the whole line
         display_putc_noflush('\r');  // display the chars after the editing point
@@ -671,7 +669,7 @@ static void pmeditor_print_line(int line) {
 
     while (i && *p && *p != '\n') {
         if (OPTION_COLOUR_CODE) {
-//            if (!inmulti) {
+//            if (self->comment_level == 0) {
                 pmeditor_set_colour(self, p);
             // } else {
             //     pmeditor_highlight(kHighlightComment);
@@ -1702,7 +1700,7 @@ MmResult pmeditor_show(const char *filename, int line) {
     ON_FAILURE_RETURN(pmeditor_load_file());
     ON_FAILURE_RETURN(pmeditor_resize_console());
 
-    self->txtp = pmeditor_find_line(self, line - 1, &self->comment_level);
+    self->txtp = pmeditor_find_line(self, line - 1/*, &self->comment_level*/);
 
     pmeditor_print_screen();
     pmeditor_print_func_keys(kEditMode);
