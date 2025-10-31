@@ -846,6 +846,7 @@ gtest_discover_tests(test_path)
 add_executable(test_pmeditor
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/pmeditor_test.cxx
+    src/common/logger.c
     src/common/memory.c
     src/common/pmeditor.c
     src/common/gtest/stubs/console_stubs.c

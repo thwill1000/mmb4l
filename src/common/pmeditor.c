@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "fonttbl.h"
 #include "keycodes.h"
+#include "logger.h"
 #include "memory.h"
 #include "mmb4l.h"
 #include "mmtime.h"
@@ -351,7 +352,8 @@ static MmResult pmeditor_display_msg(const char *msg) {
 
 // move the text down by one char starting at the current position in the text
 // and insert a character
-static int pmeditor_insert_char(char c/*, char *multi*/) {
+static bool pmeditor_insert_char(char c/*, char *multi*/) {
+    LOG_DEBUG("entered: c=%c", c);
     char *p;
 
     for (p = self->buf; *p; p++);  // find the end of the text in memory
@@ -408,12 +410,13 @@ static int pmeditor_edit_comp_str(char *p, const char *tkn) {
 void pmeditor_set_colour(PmEditor *self, char *p) {
     int i;
     char **pp;
-    static int intext = false;
-    static int incomment = false;
-    static int inkeyword = false;
+    static bool intext = false;
+    static bool incomment = false;
+    static bool inkeyword = false;
     static char *twokeyword = NULL;
-    static int inquote = false;
-    static int innumber = false;
+    static bool inquote = false;
+    static bool innumber = false;
+    static bool just_exited_comment = false;
 
     if (!OPTION_COLOUR_CODE) return;
 
@@ -437,7 +440,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
 
     // cmdfile everything back to normal
     if (p == NULL) {
-        innumber = inquote = inkeyword = incomment = intext = false;
+        innumber = inquote = inkeyword = incomment = intext = just_exited_comment = false;
         twokeyword = NULL;
         if (self->comment_level == 0) {
             pmeditor_highlight(kHighlightNormal);
@@ -455,9 +458,13 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
     }
 
     // Check for the end of a multiline comment
-    if (p != self->buf && *p == '/' && *(p - 1) == '*' && !inquote) {
+    // Watch for the edge case /*/ sequence which does not end a comment
+    if (p >= self->buf && *p == '/' && *(p - 1) == '*' && *(p - 2) != '/' && !inquote) {
         if (self->comment_level > 0) {
             self->comment_level--;
+            if (self->comment_level == 0) {
+                just_exited_comment = true;
+            }
         }
         return;
     }
@@ -591,6 +598,10 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
     // try to keep track of if we are in general text or not
     // this is to avoid recognising keywords or numbers inside variables
     if (isnamechar(*p)) {
+        if (just_exited_comment) {
+            just_exited_comment = false;
+            pmeditor_highlight(kHighlightNormal);
+        }
         intext = true;
     } else {
         intext = false;
@@ -646,20 +657,29 @@ char *pmeditor_find_line(PmEditor *self, int line/*, int *comment_level*/) {
     return p;
 }
 
-// print a line starting at the current cursor column (self->px).
-// if the line is beyond the end of the text then just clear to the end of line
-// enters with the line number to be printed
+/**
+ * Prints a line from the text buffer to the display.
+ *
+ * If the line is beyond the end of the text then it just clears to the end of line.
+ *
+ * @param line  The line number to print (0-based).
+ */
 static void pmeditor_print_line(int line) {
+    LOG_DEBUG("entered: line=%d", line);
     int i;
     // int comment_level = -1;
 
     char *p = pmeditor_find_line(self, line/*, &self->comment_level*/);
+    LOG_DEBUG("comment_level=%d", self->comment_level);
     if (OPTION_COLOUR_CODE) {
         // if we are colour coding we need to redraw the whole line
         display_putc_noflush('\r');  // display the chars after the editing point
         // i = self->width - 1;         // I think this is wrong. Does not show last character in line
         // G.A.
         i = self->width;
+        if (self->comment_level > 0) {
+            pmeditor_highlight(kHighlightComment);
+        }
     } else {
         // if we are NOT colour coding we can start drawing at the current cursor position
         i = self->cx;
@@ -667,15 +687,12 @@ static void pmeditor_print_line(int line) {
         i = self->width - self->cx;
     }
 
+    // Display the line from here to the end of the line or the screen width
     while (i && *p && *p != '\n') {
         if (OPTION_COLOUR_CODE) {
-//            if (self->comment_level == 0) {
-                pmeditor_set_colour(self, p);
-            // } else {
-            //     pmeditor_highlight(kHighlightComment);
-            // }
+            pmeditor_set_colour(self, p);
         }
-        display_putc_noflush(*p++);  // display the chars after the editing point
+        display_putc_noflush(*p++);
         i--;
     }
 
@@ -705,8 +722,6 @@ static void pmeditor_scroll_up(void) {
     pmeditor_set_cursor_pos(0, self->height);  // Move to end of the editing area
     ON_FAILURE_ERROR(display_clear_to_end_of_screen());
     ON_FAILURE_ERROR(display_scroll_up());
-    // display_puts("\033[J");                // Clear to end of screen
-    // display_puts("\033[1S");               // Scroll up one line
     self->py++;
     pmeditor_set_cursor_pos(0, self->height - 1);
     pmeditor_print_line(self->height - 1 + self->py);
@@ -722,8 +737,6 @@ static void pmeditor_scroll_down(void) {
     pmeditor_set_cursor_pos(0, self->height);  // Move to end of the editing area
     ON_FAILURE_ERROR(display_clear_to_end_of_screen());
     ON_FAILURE_ERROR(display_scroll_down());
-    // display_puts("\033[J");                // Clear to end of screen
-    // display_puts("\033[1T");               // Scroll down one line
     self->py--;
     pmeditor_set_cursor_pos(0, 0);
     pmeditor_print_line(self->py);
@@ -1196,7 +1209,6 @@ static MmResult pmeditor_cmd_home() {
         self->px = 0;
         self->py = 0;
         self->txtp = self->buf;
-        // display_cls();
         pmeditor_print_screen();
         pmeditor_print_func_keys(kEditMode);
         pmeditor_position_cursor(self->txtp);
@@ -1486,6 +1498,7 @@ static MmResult pmeditor_cmd_paste() {
 
 static MmResult pmeditor_cmd_char(/*char *multi*/) {
     char c = self->keys[0];
+    LOG_DEBUG("entered: c=%c", c);
 
     // Ignore non-printable characters
     if (c < ' ' || c > '~') return kOk;
