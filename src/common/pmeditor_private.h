@@ -63,7 +63,7 @@ typedef enum {
     kHighlightError,
 } HighlightType;
 
-typedef struct {
+typedef struct s_PmEditor {
     const char *fname;      // Name/path of file being edited
     char buf[EDIT_BUFFER_SIZE];  // Buffer used for editing the text
     int num_lines;          // Number of lines of text held in the buffer
@@ -89,7 +89,7 @@ typedef struct {
 
     // Some functions should only be called via function pointers
     // to allow them to be overridden in unit-tests.
-    MmResult (*highlight_fn)(HighlightType);
+    MmResult (*highlight_fn)(struct s_PmEditor *, HighlightType);
 } PmEditor;
 
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);

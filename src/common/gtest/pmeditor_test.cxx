@@ -41,7 +41,7 @@ MmResult ClearRuntime(void) { return kOk; }
 static HighlightType last_highlight_type = kHighlightNormal;
 static int highlight_call_count = 0;
 
-MmResult pmeditor_test_highlight(HighlightType highlight) {
+MmResult pmeditor_test_highlight(PmEditor *self, HighlightType highlight) {
     last_highlight_type = highlight;
     highlight_call_count++;
     return kOk;
