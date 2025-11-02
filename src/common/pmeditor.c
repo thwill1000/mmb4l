@@ -77,6 +77,12 @@ typedef enum {
     kMarkMode,
 } EditorMode;
 
+typedef enum {
+    kMarkBreak,
+    kMarkContinue,
+    kMarkEnd,
+} MarkState;
+
 static PmEditor *self = NULL;
 
 /**
@@ -761,163 +767,274 @@ static void pmeditor_scroll_down(void) {
     while (console_getc() != -1) {}
 }
 
-// static bool pmeditor_mark_right(void) {
-//     if (self->cx >= self->width || *mark == 0 || *mark == '\n') return true;
-//     mark++;
-//     self->cx++;
-//     return false;
-// }
+static MarkState pmeditor_mark_delete();
+
+static MarkState pmeditor_mark_copy_or_cut(bool cut) {
+    if (self->txtp - self->mark > MAXCLIP || self->mark - self->txtp > MAXCLIP) {
+        pmeditor_display_msg(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE");
+        return kMarkContinue;
+    }
+
+    char *p;
+    int cb_index = 0;
+    if (self->mark <= self->txtp) {
+        p = self->mark;
+        while (p < self->txtp) self->clipboard[cb_index++] = *p++;
+    } else {
+        p = self->txtp;
+        while (p <= self->mark - 1) self->clipboard[cb_index++] = *p++;
+    }
+    self->clipboard[cb_index] = '\0';
+
+    if (cut) {
+        return pmeditor_mark_delete();
+    } else {
+        pmeditor_position_cursor(self->txtp);
+        return kMarkEnd;
+    }
+}
+
+static MarkState pmeditor_mark_copy(void) {
+    return pmeditor_mark_copy_or_cut(false);
+}
+
+static MarkState pmeditor_mark_cut(void) {
+    return pmeditor_mark_copy_or_cut(true);
+}
+
+static MarkState pmeditor_mark_delete(void) {
+    char *p;
+    if (self->mark < self->txtp) {
+        p = self->txtp;
+        self->txtp = self->mark;
+        self->mark = p;  // swap txtp and mark
+    }
+    for (p = self->txtp; p < self->mark; p++)
+        if (*p == '\n') self->num_lines--;
+    for (p = self->txtp; *self->mark;) *p++ = *self->mark++;
+    *p++ = 0;
+    *p++ = 0;
+    self->text_changed = true;
+    pmeditor_position_cursor(self->txtp);
+    return kMarkEnd;
+}
+
+static MarkState pmeditor_mark_down(void) {
+    if (self->cy == self->height - 1) return kMarkContinue;
+    char *p;
+    int i;
+    for (p = self->mark, i = self->cx; *p != 0 && *p != '\n';
+         p++, i++);  // move to the end of this line
+    if (*p == 0)
+        return kMarkContinue;  // skip if it is at the end of the file
+                   // if(i >= self->width) {
+    if (i > self->width) {
+        pmeditor_display_msg(" LINE IS TOO LONG ");
+        return kMarkContinue;
+    }
+    self->mark = p + 1;  // step over the line terminator to the start of the next line
+    for (i = 0; i < self->px + self->cx && *self->mark != '\0' && *self->mark != '\n';
+         i++, self->mark++);  // move the cursor to the column
+    self->cx = i;
+    self->cy++;
+    return kMarkBreak;
+}
+
+static MarkState pmeditor_mark_end(void) {
+    if (*self->mark == '\0') return kMarkContinue;
+    char *p;
+    int i;
+    // Move to the end of the line
+    for (p = self->mark, i = self->cx; *p != '\0' && *p != '\n'; p++, i++);
+
+    if (i > self->width) {
+        pmeditor_display_msg(" LINE IS TOO LONG ");
+        return kMarkContinue;
+    }
+
+    self->mark = p;
+    return kMarkBreak;
+}
+
+static MarkState pmeditor_mark_escape(void) {
+    // Wait 50ms to see if anything more is coming.
+    mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
+    if (console_getc() == '[' && console_getc() == 'M') {
+        // TODO
+        // Received escape code for Tera Term reporting a mouse click.
+        // In mark mode we ignore it
+        (void) console_getc();
+        (void) console_getc();
+        (void) console_getc();
+        return kMarkContinue;
+    }
+
+    return kMarkEnd;
+}
+
+/**
+ * Moves the mark to the start of the current line.
+ *
+ * @return  true if already at the start of the buffer, false otherwise.
+ */
+static MarkState pmeditor_mark_home(void) {
+    if (self->mark == self->buf) return kMarkContinue;
+
+    // Step back over the terminator if we are right at the end of the line
+    if (*self->mark == '\n') {
+        self->mark--;
+    }
+
+    // Move to the beginning of the line
+    while (self->mark != self->buf && *self->mark != '\n') {
+        self->mark--;
+    }
+
+    // Skip if no more lines above this one
+    // TODO: understand this
+    if (*self->mark == '\n') {
+        self->mark++;
+    }
+
+    return kMarkBreak;
+}
+
+/**
+ * Moves the mark left by one character.
+ *
+ * @return  true if at the start of the line or end of buffer, false otherwise.
+ */
+static MarkState pmeditor_mark_left(void) {
+    if (self->cx >= self->width || *self->mark == '\0' || *self->mark == '\n') return kMarkContinue;
+    self->mark--;
+    self->cx--;
+    return kMarkBreak;
+}
+
+/**
+ * Moves the mark right by one character.
+ *
+ * @return  true if at the end of the line or end of buffer, false otherwise.
+ */
+static MarkState pmeditor_mark_right(void) {
+    if (self->cx >= self->width || *self->mark == '\0' || *self->mark == '\n') return kMarkContinue;
+    self->mark++;
+    self->cx++;
+    return kMarkBreak;
+}
+
+static MarkState pmeditor_mark_up(void) {
+    if (self->cy <= 0) return kMarkContinue;
+    char *p = self->mark;
+    int i;
+    if (*p == '\n') p--;  // step back over the terminator if we are right at the end of the line
+    while (p != self->buf && *p != '\n') p--;  // move to the beginning of the line
+    if (p != self->buf) {
+        p--;  // step over the terminator to the end of the previous line
+        for (i = 0; p != self->buf && *p != '\n'; p--, i++);  // move to the beginning of that line
+        if (*p == '\n') p++;                                  // and position at the start
+        // if (i >= self->width) {
+        if (i > self->width) {
+            pmeditor_display_msg(" LINE IS TOO LONG ");
+            return kMarkContinue;
+        }
+    }
+    self->mark = p;
+    for (i = 0; i < self->px + self->cx && *self->mark != '\0' && *self->mark != '\n';
+         i++, self->mark++);  // move the cursor to the column
+    self->cx = i;
+    self->cy--;
+    return kMarkBreak;
+}
+
+static char pmeditor_canonical_key(char key) {
+    if (key == self->saved_break_key) {
+        LOG_DEBUG("ESC");
+        return ESC;
+    }
+
+// clang-format off
+    switch (key) {
+        case '\r':         return '\n';
+        case CTRLKEY('D'): return RIGHT;
+        case CTRLKEY('E'): return UP;
+        case CTRLKEY('G'): return SHIFT_FN(F3);
+        case CTRLKEY('K'): return END;
+        case CTRLKEY('L'): return PDOWN;
+        case CTRLKEY('N'): return INSERT;
+        case CTRLKEY('P'): return PUP;
+        case CTRLKEY('Q'): return F1;
+        case CTRLKEY('R'): return F3;
+        case CTRLKEY('S'): return LEFT;
+        case CTRLKEY('T'): return F4;
+        case CTRLKEY('U'): return HOME;
+        case CTRLKEY('V'): return F5;
+        case CTRLKEY('W'): return F2;
+        case CTRLKEY('X'): return DOWN;
+        case CTRLKEY('Y'): return F5;
+        case CTRLKEY(']'): return DEL;
+        default:           return key;
+    }
+// clang-format on
+}
+
+static MarkState pmeditor_mark_dispatch(char cmd) {
+// clang-format off
+    switch (cmd) {
+        case ESC:   return pmeditor_mark_escape();
+        case UP:    return pmeditor_mark_up();
+        case DOWN:  return pmeditor_mark_down();
+        case LEFT:  return pmeditor_mark_left();
+        case RIGHT: return pmeditor_mark_right();
+        case HOME:  return pmeditor_mark_home();
+        case END:   return pmeditor_mark_end();
+        case F4:    return pmeditor_mark_cut();
+        case F5:    return pmeditor_mark_copy();
+        case DEL:   return pmeditor_mark_delete();
+        default:    return kMarkContinue;
+    }
+// clang-format on
+}
 
 // mark mode
 // implement the mark mode (when the user presses F4)
 static void pmeditor_mark_mode() {
     char *p, *oldmark;
-    int c = -1, x, y, i, oldx, oldy, txtpx, txtpy, errmsg = false;
+    int x, y, oldx, oldy, txtpx, txtpy;
     pmeditor_print_func_keys(kMarkMode);
     self->mark = self->txtp;
     oldmark = self->mark;
     txtpx = oldx = self->cx;
     txtpy = oldy = self->cy;
-    while (1) {
-        c = -1;
+
+    while (true) {
+        int c;
+        do {
+            display_show_cursor(true);
             c = console_getc();
-        if (c != -1 && errmsg) {
+        } while (c == -1);
+        display_show_cursor(false);
+
+        self->keys[0] = pmeditor_canonical_key(c);
+        self->keys[1] = '\0';
+
+        if (self->draw_status_line) {
             pmeditor_print_func_keys(kMarkMode);
-            errmsg = false;
+            pmeditor_print_status();
+            self->draw_status_line = false;
         }
-        switch (c) {
-            case ESC:
-                // Wait 50ms to see if anything more is coming.
-                mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
-                if (console_getc() == '[' && console_getc() == 'M') {
-                    // received escape code for Tera Term reporting a mouse click.  in mark mode we
-                    // ignore it
-                    console_getc();
-                    console_getc();
-                    console_getc();
-                    break;
-                }
-                self->cx = txtpx;
-                self->cy = txtpy;  // just an escape key
-                return;
 
-            case UP:
-                if (self->cy <= 0) continue;
-                p = self->mark;
-                if (*p == '\n')
-                    p--;  // step back over the terminator if we are right at the end of the line
-                while (p != self->buf && *p != '\n') p--;  // move to the beginning of the line
-                if (p != self->buf) {
-                    p--;  // step over the terminator to the end of the previous line
-                    for (i = 0; p != self->buf && *p != '\n';
-                         p--, i++);       // move to the beginning of that line
-                    if (*p == '\n') p++;  // and position at the start
-                    // if(i >= self->width) {
-                    if (i > self->width) {
-                        pmeditor_display_msg(" LINE IS TOO LONG ");
-                        errmsg = true;
-                        continue;
-                    }
-                }
-                self->mark = p;
-                for (i = 0; i < self->px + self->cx && *self->mark != '\0' && *self->mark != '\n';
-                     i++, self->mark++);  // move the cursor to the column
-                self->cx = i;
-                self->cy--;
-                break;
+        MarkState mark_result = pmeditor_mark_dispatch(self->keys[0]);
 
-            case DOWN:
-                if (self->cy == self->height - 1) continue;
-                for (p = self->mark, i = self->cx; *p != 0 && *p != '\n';
-                     p++, i++);         // move to the end of this line
-                if (*p == 0) continue;  // skip if it is at the end of the file
-                                        // if(i >= self->width) {
-                if (i > self->width) {
-                    pmeditor_display_msg(" LINE IS TOO LONG ");
-                    errmsg = true;
-                    continue;
-                }
-                self->mark = p + 1;  // step over the line terminator to the start of the next line
-                for (i = 0; i < self->px + self->cx && *self->mark != '\0' && *self->mark != '\n';
-                     i++, self->mark++);  // move the cursor to the column
-                self->cx = i;
-                self->cy++;
-                break;
-
-            case LEFT:
-                if (self->cx == self->px) continue;
-                self->mark--;
-                self->cx--;
-                break;
-
-            case RIGHT:
-                if (self->cx >= self->width || *self->mark == '\0' || *self->mark == '\n') continue;
-                self->mark++;
-                self->cx++;
-                break;
-
-            case HOME:
-                if (self->mark == self->buf) break;
-                if (*self->mark == '\n')
-                    self->mark--;  // step back over the terminator if we are right at the end of the line
-                while (self->mark != self->buf && *self->mark != '\n')
-                    self->mark--;                 // move to the beginning of the line
-                if (*self->mark == '\n') self->mark++;  // skip if no more lines above this one
-                break;
-
-            case END:
-                if (*self->mark == '\0') break;
-                for (p = self->mark, i = self->cx; *p != 0 && *p != '\n';
-                     p++, i++);  // move to the end of this line
-                // if(i >= self->width) {
-                if (i > self->width) {
-                    pmeditor_display_msg(" LINE IS TOO LONG ");
-                    errmsg = true;
-                    continue;
-                }
-                self->mark = p;
-                break;
-
-            case F4:  // Cut
-            case F5:  // Copy
-                if (self->txtp - self->mark > MAXCLIP || self->mark - self->txtp > MAXCLIP) {
-                    pmeditor_display_msg(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE");
-                    errmsg = true;
-                    break;
-                }
-                int cb_index = 0;
-                if (self->mark <= self->txtp) {
-                    p = self->mark;
-                    while (p < self->txtp) self->clipboard[cb_index++] = *p++;
-                } else {
-                    p = self->txtp;
-                    while (p <= self->mark - 1) self->clipboard[cb_index++] = *p++;
-                }
-                self->clipboard[cb_index] = '\0';
-                if (c == F5) {
-                    pmeditor_position_cursor(self->txtp);
-                    return;
-                }
-                // fall through
-
-            case DEL:
-                if (self->mark < self->txtp) {
-                    p = self->txtp;
-                    self->txtp = self->mark;
-                    self->mark = p;  // swap txtp and mark
-                }
-                for (p = self->txtp; p < self->mark; p++)
-                    if (*p == '\n') self->num_lines--;
-                for (p = self->txtp; *self->mark;) *p++ = *self->mark++;
-                *p++ = 0;
-                *p++ = 0;
-                self->text_changed = true;
-                pmeditor_position_cursor(self->txtp);
-                return;
-            case 9999:
-                break;
-            default:
+        switch (mark_result) {
+            case kMarkContinue:
                 continue;
+            case kMarkEnd:
+                self->cx = txtpx;
+                self->cy = txtpy;
+                return;
+            default:
+                break;
         }
 
         x = self->cx;
@@ -1551,37 +1668,7 @@ static MmResult pmeditor_cmd_char(/*char *multi*/) {
     return kOk;
 }
 
-static char pmeditor_canonical_key(char key) {
-    if (key == self->saved_break_key) {
-        return ESC;
-    }
-
-// clang-format off
-    switch (key) {
-        case '\r':         return '\n';
-        case CTRLKEY('D'): return RIGHT;
-        case CTRLKEY('E'): return UP;
-        case CTRLKEY('G'): return SHIFT_FN(F3);
-        case CTRLKEY('K'): return END;
-        case CTRLKEY('L'): return PDOWN;
-        case CTRLKEY('N'): return INSERT;
-        case CTRLKEY('P'): return PUP;
-        case CTRLKEY('Q'): return F1;
-        case CTRLKEY('R'): return F3;
-        case CTRLKEY('S'): return LEFT;
-        case CTRLKEY('T'): return F4;
-        case CTRLKEY('U'): return HOME;
-        case CTRLKEY('V'): return F5;
-        case CTRLKEY('W'): return F2;
-        case CTRLKEY('X'): return DOWN;
-        case CTRLKEY('Y'): return F5;
-        case CTRLKEY(']'): return DEL;
-        default:           return key;
-    }
-// clang-format on
-}
-
-static MmResult pmeditor_dispatch_cmd(char cmd/*, char *multi*/) {
+static MmResult pmeditor_cmd_dispatch(char cmd/*, char *multi*/) {
 // clang-format off
     switch (cmd) {
         case '\n':     return pmeditor_cmd_newline(/*multi*/);
@@ -1690,7 +1777,7 @@ MmResult pmeditor_main_loop() {
             self->keys[0] = pmeditor_canonical_key(self->keys[0]);
             // if (buf[0] == BreakKeySave)
             //     buf[0] = ESC;  // if the user tried to break turn it into an escape
-            ON_FAILURE_RETURN(pmeditor_dispatch_cmd(self->keys[0]/*, &multi*/));
+            ON_FAILURE_RETURN(pmeditor_cmd_dispatch(self->keys[0]/*, &multi*/));
 
             if (self->exit_flag) return kOk;
 
