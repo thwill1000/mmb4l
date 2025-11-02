@@ -94,6 +94,6 @@ typedef struct {
 
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 char *pmeditor_find_line(PmEditor *self, int line); // , int *comment_level);
-void pmeditor_set_colour(PmEditor *self, char *p);
+MmResult pmeditor_set_colour(PmEditor *self, char *p);
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)

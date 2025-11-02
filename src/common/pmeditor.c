@@ -375,7 +375,7 @@ static MmResult pmeditor_get_input(const char *prompt) {
         if (*p == '\b') {
             if (p > inpbuf) {           // Check we're not at start
                 p--;                    // Remove previous character
-                display_puts("\b \b");  // Erase on screen
+                ON_FAILURE_RETURN(display_puts("\b \b"));  // Erase on screen
             }
             p--;  // Compensate for loop increment
             continue;
@@ -453,18 +453,19 @@ static bool pmeditor_insert_char(char c/*, char *multi*/) {
  * Displays the current cursor position (1-based line and column numbers)
  * and the current insert/overwrite mode (INS/OVR).
  */
-static void pmeditor_print_status(void) {
+static MmResult pmeditor_print_status(void) {
     char s[64];
     snprintf(s, 64, "Ln: %d  Col: %d       ",
              self->py + self->cy + 1,
              self->px + self->cx + 1);
     strcpy(s + 19, self->insert ? "INS" : "OVR");
 
-    pmeditor_set_cursor_pos(self->width - 25, self->height + 1);
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self->width - 25, self->height + 1));
     self->highlight_fn(kHighlightStatus);
-    display_puts(s);
+    ON_FAILURE_RETURN(display_puts(s));
     self->highlight_fn(kHighlightNormal);
-    pmeditor_position_cursor(self->txtp);
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
+    return kOk;
 }
 
 /**
@@ -500,8 +501,9 @@ static bool pmeditor_edit_comp_str(char *p, const char *tkn) {
  *
  * @param  self  Pointer to the PmEditor instance.
  * @param  p     Pointer to the current character, or NULL to reset state.
+ * @return       kOk on success, or an error code on failure.
  */
-void pmeditor_set_colour(PmEditor *self, char *p) {
+MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     int i;
     char **pp;
     static bool intext = false;
@@ -512,7 +514,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
     static bool innumber = false;
     static bool just_exited_comment = false;
 
-    if (!OPTION_COLOUR_CODE) return;
+    if (!OPTION_COLOUR_CODE) return kOk;
 
     // this is a list of keywords that can come after the OPTION and GUI commands
     // the list must be terminated with a NULL
@@ -537,18 +539,18 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
         innumber = inquote = inkeyword = incomment = intext = just_exited_comment = false;
         twokeyword = NULL;
         if (self->comment_level == 0) {
-            self->highlight_fn(kHighlightNormal);
+            ON_FAILURE_RETURN(self->highlight_fn(kHighlightNormal));
         }
-        return;
+        return kOk;
     }
 
     // Check for the start of a multiline comment
     if (*p == '/' && p[1] == '*' && !inquote) {
         if (self->comment_level == 0) {
-            self->highlight_fn(kHighlightComment);
+            ON_FAILURE_RETURN(self->highlight_fn(kHighlightComment));
         }
         self->comment_level++;
-        return;
+        return kOk;
     }
 
     // Check for the end of a multiline comment
@@ -560,54 +562,53 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
                 just_exited_comment = true;
             }
         }
-        return;
+        return kOk;
     }
 
     // Within a multiline comment all chars are comments
     if (self->comment_level > 0) {
         // Don't change highlight if already in comment
-        return;
+        return kOk;
     }
 
     // check for a comment char
     if (*p == '\'' && !inquote) {
-        self->highlight_fn(kHighlightComment);
+        ON_FAILURE_RETURN(self->highlight_fn(kHighlightComment));
         incomment = true;
-        return;
+        return kOk;
     }
     if (*p == '/' && p[1] == '*' && !inquote) {
         char *q = p;
         if (*(--q) == (char)'\n') {
-            self->highlight_fn(kHighlightComment);
+            ON_FAILURE_RETURN(self->highlight_fn(kHighlightComment));
             self->comment_level = true;
         }
-        return;
+        return kOk;
     }
 
     // once in a comment all following chars must be comments also
-    if (incomment || self->comment_level) return;
+    if (incomment || self->comment_level) return kOk;
 
     // check for a quoted string
     if (*p == '\"') {
         if (!inquote) {
             inquote = true;
-            self->highlight_fn(kHighlightQuote);
-            return;
+            return self->highlight_fn(kHighlightQuote);
         } else {
             inquote = false;
-            return;
+            return kOk;
         }
     }
 
-    if (inquote) return;
+    if (inquote) return kOk;
 
     // if we are displaying a keyword check that it is still actually in the keyword and cmdfile if
     // not
     if (inkeyword) {
-        if (isnamechar(*p) || *p == '$') return;
-        self->highlight_fn(kHighlightNormal);
+        if (isnamechar(*p) || *p == '$') return kOk;
+        ON_FAILURE_RETURN(self->highlight_fn(kHighlightNormal));
         inkeyword = false;
-        return;
+        return kOk;
     }
 
     // if we are displaying a number check that we are still actually in it and cmdfile if not
@@ -615,26 +616,26 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
     if (innumber) {
         if (!isdigit(*p) && !(toupper(*p) >= 'A' && toupper(*p) <= 'F') && toupper(*p) != 'O' &&
             toupper(*p) != 'H' && *p != '.') {
-            self->highlight_fn(kHighlightNormal);
+            ON_FAILURE_RETURN(self->highlight_fn(kHighlightNormal));
             innumber = false;
-            return;
+            return kOk;
         } else {
-            return;
+            return kOk;
         }
         // check if we are starting a number
     } else if (!intext) {
         if (isdigit(*p) || *p == '&' || ((*p == '-' || *p == '+' || *p == '.') && isdigit(p[1]))) {
-            self->highlight_fn(kHighlightNumber);
+            ON_FAILURE_RETURN(self->highlight_fn(kHighlightNumber));
             innumber = true;
-            return;
+            return kOk;
         }
         // check if this is an 8 digit hex number as used in CFunctions
         for (i = 0; i < 8; i++)
             if (!isxdigit(p[i])) break;
         if (i == 8 && (p[8] == ' ' || p[8] == '\'' || p[8] == 0)) {
-            self->highlight_fn(kHighlightNumber);
+            ON_FAILURE_RETURN(self->highlight_fn(kHighlightNumber));
             innumber = true;
-            return;
+            return kOk;
         }
     }
 
@@ -645,25 +646,25 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
                 ((pmeditor_edit_comp_str((char *)&p[1], (char *)&commandtbl[i].name[1]) != 0) && *p == '.' &&
                  *commandtbl[i].name == '_')) {
                 if (pmeditor_edit_comp_str((char *)p, "REM") != 0) {  // special case, REM is a comment
-                    self->highlight_fn(kHighlightComment);
+                    ON_FAILURE_RETURN(self->highlight_fn(kHighlightComment));
                     incomment = true;
                 } else {
-                    self->highlight_fn(kHighlightKeyword);
+                    ON_FAILURE_RETURN(self->highlight_fn(kHighlightKeyword));
                     inkeyword = true;
                     if (pmeditor_edit_comp_str((char *)p, "GUI") || pmeditor_edit_comp_str((char *)p, "OPTION")) {
                         twokeyword = p;
                         while (isalnum(*twokeyword)) twokeyword++;
                         while (*twokeyword == ' ') twokeyword++;
                     }
-                    return;
+                    return kOk;
                 }
             }
         }
         for (i = 0; i < tokentbl_size - 1; i++) {  // check the token table for a match
             if (pmeditor_edit_comp_str((char *)p, (char *)tokentbl[i].name) != 0) {
-                self->highlight_fn(kHighlightKeyword);
+                ON_FAILURE_RETURN(self->highlight_fn(kHighlightKeyword));
                 inkeyword = true;
-                return;
+                return kOk;
             }
         }
 
@@ -672,9 +673,9 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
             for (pp = (char **)twokeywordtbl; *pp; pp++)
                 if (pmeditor_edit_comp_str((char *)p, (char *)*pp)) break;
             if (*pp) {
-                self->highlight_fn(kHighlightKeyword);
+                ON_FAILURE_RETURN(self->highlight_fn(kHighlightKeyword));
                 inkeyword = true;
-                return;
+                return kOk;
             }
         }
         if (p >= twokeyword) twokeyword = NULL;
@@ -683,9 +684,9 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
         for (pp = (char **)specialkeywords; *pp; pp++)
             if (pmeditor_edit_comp_str((char *)p, (char *)*pp)) break;
         if (*pp) {
-            self->highlight_fn(kHighlightKeyword);
+            ON_FAILURE_RETURN(self->highlight_fn(kHighlightKeyword));
             inkeyword = true;
-            return;
+            return kOk;
         }
     }
 
@@ -694,13 +695,15 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
     if (isnamechar(*p)) {
         if (just_exited_comment) {
             just_exited_comment = false;
-            self->highlight_fn(kHighlightNormal);
+            ON_FAILURE_RETURN(self->highlight_fn(kHighlightNormal));
         }
         intext = true;
     } else {
         intext = false;
-        self->highlight_fn(kHighlightNormal);
+        ON_FAILURE_RETURN(self->highlight_fn(kHighlightNormal));
     }
+
+    return kOk;
 }
 
 /**
@@ -774,8 +777,9 @@ char *pmeditor_find_line(PmEditor *self, int line/*, int *comment_level*/) {
  * If the line is beyond the end of the text, just clears to end of line.
  *
  * @param  line  The line number to print (0-based, relative to start of buffer).
+ * @return  kOk on success, or an error code on failure.
  */
-static void pmeditor_print_line(int line) {
+static MmResult pmeditor_print_line(int line) {
     LOG_DEBUG("entered: line=%d", line);
     int i;
     // int comment_level = -1;
@@ -784,12 +788,12 @@ static void pmeditor_print_line(int line) {
     LOG_DEBUG("comment_level=%d", self->comment_level);
     if (OPTION_COLOUR_CODE) {
         // if we are colour coding we need to redraw the whole line
-        display_putc_noflush('\r');  // display the chars after the editing point
+        ON_FAILURE_RETURN(display_putc_noflush('\r'));  // display the chars after the editing point
         // i = self->width - 1;         // I think this is wrong. Does not show last character in line
         // G.A.
         i = self->width;
         if (self->comment_level > 0) {
-            self->highlight_fn(kHighlightComment);
+            ON_FAILURE_RETURN(self->highlight_fn(kHighlightComment));
         }
     } else {
         // if we are NOT colour coding we can start drawing at the current cursor position
@@ -801,15 +805,17 @@ static void pmeditor_print_line(int line) {
     // Display the line from here to the end of the line or the screen width
     while (i && *p && *p != '\n') {
         if (OPTION_COLOUR_CODE) {
-            pmeditor_set_colour(self, p);
+            ON_FAILURE_RETURN(pmeditor_set_colour(self, p));
         }
-        display_putc_noflush(*p++);
+        ON_FAILURE_RETURN(display_putc_noflush(*p++));
         i--;
     }
 
-    ON_FAILURE_ERROR(display_clear_to_end_of_line());
-    pmeditor_set_colour(self, NULL);
+    ON_FAILURE_RETURN(display_clear_to_end_of_line());
+    ON_FAILURE_RETURN(pmeditor_set_colour(self, NULL));
     self->cx = self->width - 1;
+
+    return kOk;
 }
 
 /**
@@ -817,18 +823,22 @@ static void pmeditor_print_line(int line) {
  *
  * Prints all visible lines starting from the top-left corner specified by
  * self->px and self->py.
+ * 
+ * @return  kOk on success, or an error code on failure.
  */
-static void pmeditor_print_screen(void) {
-    pmeditor_set_cursor_pos(0, 0);
+static MmResult pmeditor_print_screen(void) {
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(0, 0));
     for (int i = 0; i < self->height; i++) {
-        pmeditor_print_line(i + self->py);
-        display_puts("\r\n");
+        ON_FAILURE_RETURN(pmeditor_print_line(i + self->py));
+        ON_FAILURE_RETURN(display_puts("\r\n"));
         self->cx = 0;
         self->cy = i + 1;
     }
 
     // Consume any keystrokes accumulated while redrawing the screen
     while (console_getc() != -1) {}
+
+    return kOk;
 }
 
 /**
@@ -836,19 +846,23 @@ static void pmeditor_print_screen(void) {
  *
  * Moves the viewport up (showing newer content at bottom), increments the
  * page offset, and redraws the newly visible bottom line.
+ *
+ * @return  kOk on success, or an error code on failure.
  */
-static void pmeditor_scroll_up(void) {
-    pmeditor_set_cursor_pos(0, self->height);  // Move to end of the editing area
-    ON_FAILURE_ERROR(display_clear_to_end_of_screen());
-    ON_FAILURE_ERROR(display_scroll_up());
+static MmResult pmeditor_scroll_up(void) {
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(0, self->height));  // Move to end of the editing area
+    ON_FAILURE_RETURN(display_clear_to_end_of_screen());
+    ON_FAILURE_RETURN(display_scroll_up());
     self->py++;
-    pmeditor_set_cursor_pos(0, self->height - 1);
-    pmeditor_print_line(self->height - 1 + self->py);
-    pmeditor_print_func_keys(kEditMode);
-    pmeditor_position_cursor(self->txtp);
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(0, self->height - 1));
+    ON_FAILURE_RETURN(pmeditor_print_line(self->height - 1 + self->py));
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(kEditMode));
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
 
     // Consume any keystrokes accumulated while redrawing the screen
     while (console_getc() != -1) {}
+
+    return kOk;
 }
 
 /**
@@ -856,19 +870,23 @@ static void pmeditor_scroll_up(void) {
  *
  * Moves the viewport down (showing older content at top), decrements the
  * page offset, and redraws the newly visible top line.
+ *
+ * @return  kOk on success, or an error code on failure.
  */
-static void pmeditor_scroll_down(void) {
-    pmeditor_set_cursor_pos(0, self->height);  // Move to end of the editing area
-    ON_FAILURE_ERROR(display_clear_to_end_of_screen());
-    ON_FAILURE_ERROR(display_scroll_down());
+static MmResult pmeditor_scroll_down(void) {
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(0, self->height));  // Move to end of the editing area
+    ON_FAILURE_RETURN(display_clear_to_end_of_screen());
+    ON_FAILURE_RETURN(display_scroll_down());
     self->py--;
-    pmeditor_set_cursor_pos(0, 0);
-    pmeditor_print_line(self->py);
-    pmeditor_print_func_keys(kEditMode);
-    pmeditor_position_cursor(self->txtp);
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(0, 0));
+    ON_FAILURE_RETURN(pmeditor_print_line(self->py));
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(kEditMode));
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
 
     // Consume any keystrokes accumulated while redrawing the screen
     while (console_getc() != -1) {}
+
+    return kOk;
 }
 
 /**
@@ -1185,10 +1203,10 @@ static MarkState pmeditor_mark_dispatch(char cmd) {
  * Enters a sub-loop handling mark mode commands, displaying selected text
  * with inverse video, and processing cut/copy/delete operations.
  */
-static void pmeditor_mark_loop() {
+static MmResult pmeditor_mark_loop() {
     char *p, *oldmark;
     int x, y, oldx, oldy, txtpx, txtpy;
-    pmeditor_print_func_keys(kMarkMode);
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(kMarkMode));
     self->mark = self->txtp;
     oldmark = self->mark;
     txtpx = oldx = self->cx;
@@ -1197,17 +1215,17 @@ static void pmeditor_mark_loop() {
     while (true) {
         int c;
         do {
-            display_show_cursor(true);
+            ON_FAILURE_RETURN(display_show_cursor(true));
             c = console_getc();
         } while (c == -1);
-        display_show_cursor(false);
+        ON_FAILURE_RETURN(display_show_cursor(false));
 
         self->keys[0] = pmeditor_canonical_key(c);
         self->keys[1] = '\0';
 
         if (self->draw_status_line) {
-            pmeditor_print_func_keys(kMarkMode);
-            pmeditor_print_status();
+            ON_FAILURE_RETURN(pmeditor_print_func_keys(kMarkMode));
+            ON_FAILURE_RETURN(pmeditor_print_status());
             self->draw_status_line = false;
         }
 
@@ -1219,7 +1237,7 @@ static void pmeditor_mark_loop() {
             case kMarkEnd:
                 self->cx = txtpx;
                 self->cy = txtpy;
-                return;
+                return kOk;
             default:
                 break;
         }
@@ -1229,58 +1247,58 @@ static void pmeditor_mark_loop() {
         self->mark_mode = true;
         // first unmark the area not marked as a result of the keystroke
         if (oldmark < self->mark) {
-            pmeditor_position_cursor(oldmark);
+            ON_FAILURE_RETURN(pmeditor_position_cursor(oldmark));
             p = oldmark;
             while (p < self->mark) {
                 if (*p == '\n') {
-                    display_putc_noflush('\r');
+                    ON_FAILURE_RETURN(display_putc_noflush('\r'));
                 }
-                display_putc_noflush(*p++);
+                ON_FAILURE_RETURN(display_putc_noflush(*p++));
             }
         } else if (oldmark > self->mark) {
-            pmeditor_position_cursor(self->mark);
+            ON_FAILURE_RETURN(pmeditor_position_cursor(self->mark));
             p = self->mark;
             while (oldmark > p) {
                 if (*p == '\n') {
-                    display_putc_noflush('\r');
+                    ON_FAILURE_RETURN(display_putc_noflush('\r'));
                 }
-                display_putc_noflush(*p++);
+                ON_FAILURE_RETURN(display_putc_noflush(*p++));
             }
         }
-        display_flush();
+        ON_FAILURE_RETURN(display_flush());
         oldmark = self->mark;
         oldx = x;
         oldy = y;
 
         // now draw the marked area
         if (self->mark < self->txtp) {
-            pmeditor_position_cursor(self->mark);
-            ON_FAILURE_ERROR(display_inverse(true));
+            ON_FAILURE_RETURN(pmeditor_position_cursor(self->mark));
+            ON_FAILURE_RETURN(display_inverse(true));
             p = self->mark;
             while (p < self->txtp) {
                 if (*p == '\n') {
-                    display_putc_noflush('\r');
+                    ON_FAILURE_RETURN(display_putc_noflush('\r'));
                 }
-                display_putc_noflush(*p++);
+                ON_FAILURE_RETURN(display_putc_noflush(*p++));
             }
         } else if (self->mark > self->txtp) {
-            pmeditor_position_cursor(self->txtp);
-            ON_FAILURE_ERROR(display_inverse(true));
+            ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
+            ON_FAILURE_RETURN(display_inverse(true));
             p = self->txtp;
             while (p < self->mark) {
                 if (*p == '\n') {
-                    display_putc_noflush('\r');
+                    ON_FAILURE_RETURN(display_putc_noflush('\r'));
                 }
-                display_putc_noflush(*p++);
+                ON_FAILURE_RETURN(display_putc_noflush(*p++));
             }
         }
         self->mark_mode = false;
-        ON_FAILURE_ERROR(display_reset());
+        ON_FAILURE_RETURN(display_reset());
 
         oldx = x;
         oldy = y;
         oldmark = self->mark;
-        pmeditor_position_cursor(self->mark);
+        ON_FAILURE_RETURN(pmeditor_position_cursor(self->mark));
     }
 }
 
@@ -1320,8 +1338,8 @@ static MmResult pmeditor_cmd_newline(/*char *multi*/) {
     self->num_lines++;
     if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
         self->py++;                     // otherwise scroll
-    pmeditor_print_screen();           // redraw everything
-    pmeditor_position_cursor(self->txtp);
+    ON_FAILURE_RETURN(pmeditor_print_screen());  // redraw everything
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
 
     return kOk;
 }
@@ -1512,18 +1530,22 @@ static MmResult pmeditor_cmd_delete() {
     }
 
     if (c == '\n') {
-        pmeditor_print_screen();
+        ON_FAILURE_RETURN(pmeditor_print_screen());
         self->num_lines--;
     } else {
-        pmeditor_print_line(self->py + self->cy);
+        ON_FAILURE_RETURN(pmeditor_print_line(self->py + self->cy));
     }
 
     self->text_changed = true;
-    pmeditor_position_cursor(self->txtp);
-    if (currdel == '/' && nextdel == '*' && OPTION_COLOUR_CODE) pmeditor_print_screen();
-    if (currdel == '*' && nextdel == '/' && OPTION_COLOUR_CODE) pmeditor_print_screen();
-    if (currdel == '/' && lastdel == '*' && OPTION_COLOUR_CODE) pmeditor_print_screen();
-    if (currdel == '*' && lastdel == '/' && OPTION_COLOUR_CODE) pmeditor_print_screen();
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
+    if (OPTION_COLOUR_CODE) {
+        if ((currdel == '/' && nextdel == '*') ||
+            (currdel == '*' && nextdel == '/') ||
+            (currdel == '/' && lastdel == '*') ||
+            (currdel == '*' && lastdel == '/')) {
+            ON_FAILURE_RETURN(pmeditor_print_screen());
+        }
+    }
 
     return kOk;
 }
@@ -1610,9 +1632,9 @@ static MmResult pmeditor_cmd_home() {
         self->px = 0;
         self->py = 0;
         self->txtp = self->buf;
-        pmeditor_print_screen();
-        pmeditor_print_func_keys(kEditMode);
-        pmeditor_position_cursor(self->txtp);
+        ON_FAILURE_RETURN(pmeditor_print_screen());
+        ON_FAILURE_RETURN(pmeditor_print_func_keys(kEditMode));
+        ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
         return kOk;
     }
 
@@ -1658,7 +1680,7 @@ static MmResult pmeditor_cmd_end() {
         // and move the cursor to the last line
         if (i >= self->height) {
             self->py = i - self->height + 1;
-            pmeditor_print_screen();
+            ON_FAILURE_RETURN(pmeditor_print_screen());
             self->cy = self->height - 1;
         } else {
             self->cy = i;
@@ -1720,8 +1742,8 @@ static MmResult pmeditor_cmd_page_up() {
     for (int i = 0; i < self->px + self->cx && *self->txtp != 0 && *self->txtp != '\n';
          i++, self->txtp++);
 
-    pmeditor_print_screen();
-    pmeditor_position_cursor(self->txtp);
+    ON_FAILURE_RETURN(pmeditor_print_screen());
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
 
     return kOk;
 }
@@ -1772,8 +1794,8 @@ static MmResult pmeditor_cmd_page_down() {
     for (int i = 0; i < self->px + self->cx && *self->txtp != 0 && *self->txtp != '\n';
          i++, self->txtp++);
 
-    pmeditor_print_screen();
-    pmeditor_position_cursor(self->txtp);
+    ON_FAILURE_RETURN(pmeditor_print_screen());
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
 
     return kOk;
 }
@@ -1806,13 +1828,12 @@ static MmResult pmeditor_cmd_save_and_exit() {
     if (line_len > 255) {
         char msg[32] = {};
         sprintf(msg, " LINE %d TOO LONG", line_len);
-        pmeditor_display_msg(msg);
-        return kOk;
+        return pmeditor_display_msg(msg);
     }
 
     // Clear and reset display
-    display_cls();
-    self->highlight_fn(kHighlightNormal);
+    ON_FAILURE_RETURN(display_cls());
+    ON_FAILURE_RETURN(self->highlight_fn(kHighlightNormal));
     ON_FAILURE_RETURN(display_reset());
 
     // Save program
@@ -1888,7 +1909,7 @@ static MmResult pmeditor_cmd_exit() {
 #endif
     // This must be an ordinary escape (not part of an escape code)
     if (self->text_changed) {
-        pmeditor_get_input((char *)"Exit and discard all changes (Y/N): ");
+        ON_FAILURE_RETURN(pmeditor_get_input("Exit and discard all changes (Y/N): "));
         if (toupper(*inpbuf) != 'Y') return kOk;
     }
 
@@ -1917,8 +1938,7 @@ static MmResult pmeditor_cmd_search_again() {
         if (memcmp(p, tknbuf, i) == 0) break;
     }
     if (p == self->txtp) {
-        pmeditor_display_msg(" NOT FOUND ");
-        return kOk;
+        return pmeditor_display_msg(" NOT FOUND ");
     }
     int y;
     for (y = 0, self->txtp = self->buf; self->txtp != p;
@@ -1929,8 +1949,8 @@ static MmResult pmeditor_cmd_search_again() {
     }
     self->py = y - self->height / 2;  // self->py is the line displayed at the top
     if (self->py < 0) self->py = 0;   // compensate if we are near the start
-    pmeditor_print_screen();
-    pmeditor_position_cursor(self->txtp);
+    ON_FAILURE_RETURN(pmeditor_print_screen());
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
     // pmeditor_set_cursor_pos(x, y);
     return kOk;
 }
@@ -1944,7 +1964,7 @@ static MmResult pmeditor_cmd_search_again() {
  * @return  kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_cmd_search() {
-    pmeditor_get_input("Find (Use SHIFT-F3 to repeat): ");
+    ON_FAILURE_RETURN(pmeditor_get_input("Find (Use SHIFT-F3 to repeat): "));
     if (*inpbuf == 0 || *inpbuf == ESC) return kOk;
     if (!(*inpbuf == SHIFT_FN(F3) || *inpbuf == F3)) strcpy(tknbuf, inpbuf);
     return pmeditor_cmd_search_again();
@@ -1959,10 +1979,10 @@ static MmResult pmeditor_cmd_search() {
  * @return  kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_cmd_mark() {
-    pmeditor_mark_loop(&self->keys[1]);
-    pmeditor_print_screen();
-    pmeditor_print_func_keys(kEditMode);
-    pmeditor_position_cursor(self->txtp);
+    ON_FAILURE_RETURN(pmeditor_mark_loop());
+    ON_FAILURE_RETURN(pmeditor_print_screen());
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(kEditMode));
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
     return kOk;
 }
 
@@ -1976,8 +1996,7 @@ static MmResult pmeditor_cmd_mark() {
  */
 static MmResult pmeditor_cmd_paste() {
     if (*self->clipboard == 0) {
-        pmeditor_display_msg(" CLIPBOARD IS EMPTY ");
-        return kOk;
+        return pmeditor_display_msg(" CLIPBOARD IS EMPTY ");
     }
     int i;
     for (i = 0; self->clipboard[i]; i++) self->keys[i + 1] = self->clipboard[i];
@@ -2003,8 +2022,7 @@ static MmResult pmeditor_cmd_char(/*char *multi*/) {
 
     // Limit line length
     if (self->cx >= self->width) {
-        pmeditor_display_msg(" LINE IS TOO LONG ");
-        return kOk;
+        return pmeditor_display_msg(" LINE IS TOO LONG ");
     }
 
     self->text_changed = true;
@@ -2017,10 +2035,10 @@ static MmResult pmeditor_cmd_char(/*char *multi*/) {
     }
 
     // Redraw the edited line
-    pmeditor_print_line(self->py + self->cy);
+    ON_FAILURE_RETURN(pmeditor_print_line(self->py + self->cy));
 
     // Update the display cursor
-    pmeditor_position_cursor(self->txtp);
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
 
     self->tempx = self->cy;  // used to track the preferred cursor position
     // if (multi && OPTION_COLOUR_CODE) pmeditor_print_screen();
@@ -2147,17 +2165,17 @@ MmResult pmeditor_edit_loop() {
     while (true) {
         int c;
         do {
-            display_show_cursor(true);
+            ON_FAILURE_RETURN(display_show_cursor(true));
             c = console_getc();
         } while (c == -1);
-        display_show_cursor(false);
+        ON_FAILURE_RETURN(display_show_cursor(false));
 
         self->keys[0] = c;
         self->keys[1] = '\0';
 
         if (self->draw_status_line) {
-            pmeditor_print_func_keys(kEditMode);
-            pmeditor_print_status();
+            ON_FAILURE_RETURN(pmeditor_print_func_keys(kEditMode));
+            ON_FAILURE_RETURN(pmeditor_print_status());
             self->draw_status_line = false;
         }
 
@@ -2182,7 +2200,9 @@ MmResult pmeditor_edit_loop() {
                 self->keys[i] = self->keys[i + 1];
             }
 
-            if (self->txtp != old_txtp) pmeditor_print_status();
+            if (self->txtp != old_txtp) {
+                ON_FAILURE_RETURN(pmeditor_print_status());
+            }
         } while (*self->keys);
     }
 }
@@ -2239,10 +2259,10 @@ MmResult pmeditor_show(const char *filename, int line) {
 
     self->txtp = pmeditor_find_line(self, line - 1/*, &self->comment_level*/);
 
-    pmeditor_print_screen();
-    pmeditor_print_func_keys(kEditMode);
-    pmeditor_print_status();
-    pmeditor_position_cursor(self->txtp);
+    ON_FAILURE_RETURN(pmeditor_print_screen());
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(kEditMode));
+    ON_FAILURE_RETURN(pmeditor_print_status());
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
 
     // Disable default break key handling, within the editor the break key
     // will be considered synonymous with ESC.
