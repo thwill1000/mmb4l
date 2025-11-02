@@ -627,10 +627,8 @@ char *pmeditor_find_line(PmEditor *self, int line/*, int *comment_level*/) {
     self->comment_level = 0;
     char *p = self->buf;
 
-    // TODO: If the line starts with /* then should it increment the comment_level?
-
     // TODO: Handle CMM2 #COMMENT {START|END} construct
-    // TODO: Handle single-line comments (') and REM
+    // TODO: Handle REM statement
 
     while (line && *p) {
         switch (*p) {
@@ -653,16 +651,14 @@ char *pmeditor_find_line(PmEditor *self, int line/*, int *comment_level*/) {
                 }
                 break;
             case '\"':
-                if (self->comment_level == 0) {
-                    if (state == NORMAL) {
-                        state = IN_QUOTE;
-                    } else if (state == IN_QUOTE) {
-                        state = NORMAL;
-                    }
+                if (state == NORMAL) {
+                    state = IN_QUOTE;
+                } else if (state == IN_QUOTE) {
+                    state = NORMAL;
                 }
                 break;
             case '\'':
-                if (self->comment_level == 0 && state == NORMAL) {
+                if (state == NORMAL) {
                     state = IN_SL_COMMENT;
                 }
                 break;

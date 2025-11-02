@@ -227,14 +227,48 @@ TEST_F(PmEditorFindLineTest, MultilineCommentStartWithinString) {
     EXPECT_EQ(0, self->comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, MultilineCommentEndWithinCommentedString) {
-    SetBuffer("/*Line 0\n\"Line 1*/\"\nLine 2");
+// Test the case where a commented out string contains the start of a multiline comment
+TEST_F(PmEditorFindLineTest, MultilineCommentStartsWithinCommentedOutString) {
+    SetBuffer("/*Line 0\n\"/*Line 1\"\nLine 2");
     self->comment_level = -1;
 
-    // Line 2 should not be in multiline comment
+    // Line 2 multiline commend depth should only be 1
     char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("/*Line 0\n\"Line 1*/\"\n"));
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(result2, self->buf + strlen("/*Line 0\n\"/*Line 1\"\n"));
+    EXPECT_EQ(1, self->comment_level);
+}
+
+// Test the case where a commented out string contains the end of a multiline comment
+TEST_F(PmEditorFindLineTest, MultilineCommentEndsWithinCommentedOutString) {
+    SetBuffer("/*Line 0\n\"*/Line 1\"\nLine 2");
+    self->comment_level = -1;
+
+    // Line 2 multiline commend depth should only be 1
+    char *result2 = pmeditor_find_line(self, 2);
+    EXPECT_EQ(result2, self->buf + strlen("/*Line 0\n\"*/Line 1\"\n"));
+    EXPECT_EQ(1, self->comment_level);
+}
+
+// Test the case where a commented out single-line comment contains the start of a multiline comment
+TEST_F(PmEditorFindLineTest, MultilineCommentStartsWithinCommentedOutSingleLineComment) {
+    SetBuffer("/*Line 0\n'/*Line 1\nLine 2");
+    self->comment_level = -1;
+
+    // Line 2 multiline commend depth should only be 1
+    char *result2 = pmeditor_find_line(self, 2);
+    EXPECT_EQ(result2, self->buf + strlen("/*Line 0\n'/*Line 1\n"));
+    EXPECT_EQ(1, self->comment_level);
+}
+
+// Test the case where a commented out single-line comment contains the end of a multiline comment
+TEST_F(PmEditorFindLineTest, MultilineCommentEndsWithinCommentedOutSingleLineComment) {
+    SetBuffer("/*Line 0\n'*/Line 1\nLine 2");
+    self->comment_level = -1;
+
+    // Line 2 multiline commend depth should only be 1
+    char *result2 = pmeditor_find_line(self, 2);
+    EXPECT_EQ(result2, self->buf + strlen("/*Line 0\n'*/Line 1\n"));
+    EXPECT_EQ(1, self->comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, MultilineCommentWithinSingleLineComment) {
