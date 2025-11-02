@@ -41,7 +41,7 @@ MmResult ClearRuntime(void) { return kOk; }
 static HighlightType last_highlight_type = kHighlightNormal;
 static int highlight_call_count = 0;
 
-MmResult pmeditor_highlight(HighlightType highlight) {
+MmResult pmeditor_test_highlight(HighlightType highlight) {
     last_highlight_type = highlight;
     highlight_call_count++;
     return kOk;
@@ -56,8 +56,9 @@ protected:
     PmEditor *self = &test_editor;
 
     void SetUp() override {
-        // Clear the buffer before each test
-        memset(self->buf, 0, EDIT_BUFFER_SIZE);
+        // Initialise the editor state
+        ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
+        self->highlight_fn = pmeditor_test_highlight;
     }
 
     void SetBuffer(const char* content) {
@@ -435,8 +436,9 @@ protected:
         // Initialize command token table
         commandtbl_init();
 
-        // Clear the editor state
-        memset(self, 0, sizeof(PmEditor));
+        // Initialise the editor state
+        ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
+        self->highlight_fn = pmeditor_test_highlight;
 
         // Reset mock state
         last_highlight_type = kHighlightNormal;

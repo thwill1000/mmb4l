@@ -99,7 +99,6 @@ static MmResult pmeditor_set_cursor_pos(int x, int y) {
     return kOk;
 }
 
-#if !defined(MOCK_PMEDITOR_HIGHLIGHT)
 /**
  * Sets the syntax highlighting color for the current character.
  *
@@ -107,6 +106,9 @@ static MmResult pmeditor_set_cursor_pos(int x, int y) {
  * comments, strings, numbers) based on the character being displayed.
  * Must be called sequentially from the start of each line to maintain
  * correct state tracking.
+ *
+ * IMPORTANT: Only call this function via the PmEditor#highlight_fn pointer so
+ *            that unit-tests can override it.
  *
  * @param  highlight  The type of highlighting to apply.
  * @return            kOk on success, or kInternalFault for invalid highlight type.
@@ -145,7 +147,6 @@ MmResult pmeditor_highlight(HighlightType highlight) {
 
     return display_colour_fg(argb);
 }
-#endif
 
 /**
  * Finds the longest line length in the text buffer.
@@ -274,7 +275,7 @@ static MmResult pmeditor_position_cursor(char *curp) {
  * @return  kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_draw_line() {
-    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightLine));
+    ON_FAILURE_RETURN(self->highlight_fn(kHighlightLine));
     ON_FAILURE_RETURN(display_underline(true));
 
     char buf[STRINGSIZE];
@@ -331,9 +332,9 @@ static MmResult pmeditor_print_func_keys(EditorMode mode) {
     const int old_y = self->cy;
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(0, self->height));
     ON_FAILURE_RETURN(pmeditor_draw_line());
-    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightStatus));
+    ON_FAILURE_RETURN(self->highlight_fn(kHighlightStatus));
     ON_FAILURE_RETURN(display_puts(p));
-    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightNormal));
+    ON_FAILURE_RETURN(self->highlight_fn(kHighlightNormal));
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(old_x, old_y));
 
@@ -406,10 +407,10 @@ static MmResult pmeditor_get_input(const char *prompt) {
  */
 static MmResult pmeditor_display_msg(const char *msg) {
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(0, self->height + 1));
-    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightError));
+    ON_FAILURE_RETURN(self->highlight_fn(kHighlightError));
     ON_FAILURE_RETURN(display_inverse(true));
     ON_FAILURE_RETURN(display_puts(msg));
-    ON_FAILURE_RETURN(pmeditor_highlight(kHighlightNormal));
+    ON_FAILURE_RETURN(self->highlight_fn(kHighlightNormal));
     ON_FAILURE_RETURN(display_reset());
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
     ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
@@ -460,9 +461,9 @@ static void pmeditor_print_status(void) {
     strcpy(s + 19, self->insert ? "INS" : "OVR");
 
     pmeditor_set_cursor_pos(self->width - 25, self->height + 1);
-    pmeditor_highlight(kHighlightStatus);
+    self->highlight_fn(kHighlightStatus);
     display_puts(s);
-    pmeditor_highlight(kHighlightNormal);
+    self->highlight_fn(kHighlightNormal);
     pmeditor_position_cursor(self->txtp);
 }
 
@@ -536,7 +537,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
         innumber = inquote = inkeyword = incomment = intext = just_exited_comment = false;
         twokeyword = NULL;
         if (self->comment_level == 0) {
-            pmeditor_highlight(kHighlightNormal);
+            self->highlight_fn(kHighlightNormal);
         }
         return;
     }
@@ -544,7 +545,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
     // Check for the start of a multiline comment
     if (*p == '/' && p[1] == '*' && !inquote) {
         if (self->comment_level == 0) {
-            pmeditor_highlight(kHighlightComment);
+            self->highlight_fn(kHighlightComment);
         }
         self->comment_level++;
         return;
@@ -570,14 +571,14 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
 
     // check for a comment char
     if (*p == '\'' && !inquote) {
-        pmeditor_highlight(kHighlightComment);
+        self->highlight_fn(kHighlightComment);
         incomment = true;
         return;
     }
     if (*p == '/' && p[1] == '*' && !inquote) {
         char *q = p;
         if (*(--q) == (char)'\n') {
-            pmeditor_highlight(kHighlightComment);
+            self->highlight_fn(kHighlightComment);
             self->comment_level = true;
         }
         return;
@@ -590,7 +591,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
     if (*p == '\"') {
         if (!inquote) {
             inquote = true;
-            pmeditor_highlight(kHighlightQuote);
+            self->highlight_fn(kHighlightQuote);
             return;
         } else {
             inquote = false;
@@ -604,7 +605,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
     // not
     if (inkeyword) {
         if (isnamechar(*p) || *p == '$') return;
-        pmeditor_highlight(kHighlightNormal);
+        self->highlight_fn(kHighlightNormal);
         inkeyword = false;
         return;
     }
@@ -614,7 +615,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
     if (innumber) {
         if (!isdigit(*p) && !(toupper(*p) >= 'A' && toupper(*p) <= 'F') && toupper(*p) != 'O' &&
             toupper(*p) != 'H' && *p != '.') {
-            pmeditor_highlight(kHighlightNormal);
+            self->highlight_fn(kHighlightNormal);
             innumber = false;
             return;
         } else {
@@ -623,7 +624,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
         // check if we are starting a number
     } else if (!intext) {
         if (isdigit(*p) || *p == '&' || ((*p == '-' || *p == '+' || *p == '.') && isdigit(p[1]))) {
-            pmeditor_highlight(kHighlightNumber);
+            self->highlight_fn(kHighlightNumber);
             innumber = true;
             return;
         }
@@ -631,7 +632,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
         for (i = 0; i < 8; i++)
             if (!isxdigit(p[i])) break;
         if (i == 8 && (p[8] == ' ' || p[8] == '\'' || p[8] == 0)) {
-            pmeditor_highlight(kHighlightNumber);
+            self->highlight_fn(kHighlightNumber);
             innumber = true;
             return;
         }
@@ -644,10 +645,10 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
                 ((pmeditor_edit_comp_str((char *)&p[1], (char *)&commandtbl[i].name[1]) != 0) && *p == '.' &&
                  *commandtbl[i].name == '_')) {
                 if (pmeditor_edit_comp_str((char *)p, "REM") != 0) {  // special case, REM is a comment
-                    pmeditor_highlight(kHighlightComment);
+                    self->highlight_fn(kHighlightComment);
                     incomment = true;
                 } else {
-                    pmeditor_highlight(kHighlightKeyword);
+                    self->highlight_fn(kHighlightKeyword);
                     inkeyword = true;
                     if (pmeditor_edit_comp_str((char *)p, "GUI") || pmeditor_edit_comp_str((char *)p, "OPTION")) {
                         twokeyword = p;
@@ -660,7 +661,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
         }
         for (i = 0; i < tokentbl_size - 1; i++) {  // check the token table for a match
             if (pmeditor_edit_comp_str((char *)p, (char *)tokentbl[i].name) != 0) {
-                pmeditor_highlight(kHighlightKeyword);
+                self->highlight_fn(kHighlightKeyword);
                 inkeyword = true;
                 return;
             }
@@ -671,7 +672,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
             for (pp = (char **)twokeywordtbl; *pp; pp++)
                 if (pmeditor_edit_comp_str((char *)p, (char *)*pp)) break;
             if (*pp) {
-                pmeditor_highlight(kHighlightKeyword);
+                self->highlight_fn(kHighlightKeyword);
                 inkeyword = true;
                 return;
             }
@@ -682,7 +683,7 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
         for (pp = (char **)specialkeywords; *pp; pp++)
             if (pmeditor_edit_comp_str((char *)p, (char *)*pp)) break;
         if (*pp) {
-            pmeditor_highlight(kHighlightKeyword);
+            self->highlight_fn(kHighlightKeyword);
             inkeyword = true;
             return;
         }
@@ -693,12 +694,12 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
     if (isnamechar(*p)) {
         if (just_exited_comment) {
             just_exited_comment = false;
-            pmeditor_highlight(kHighlightNormal);
+            self->highlight_fn(kHighlightNormal);
         }
         intext = true;
     } else {
         intext = false;
-        pmeditor_highlight(kHighlightNormal);
+        self->highlight_fn(kHighlightNormal);
     }
 }
 
@@ -788,7 +789,7 @@ static void pmeditor_print_line(int line) {
         // G.A.
         i = self->width;
         if (self->comment_level > 0) {
-            pmeditor_highlight(kHighlightComment);
+            self->highlight_fn(kHighlightComment);
         }
     } else {
         // if we are NOT colour coding we can start drawing at the current cursor position
@@ -1184,7 +1185,7 @@ static MarkState pmeditor_mark_dispatch(char cmd) {
  * Enters a sub-loop handling mark mode commands, displaying selected text
  * with inverse video, and processing cut/copy/delete operations.
  */
-static void pmeditor_mark_mode() {
+static void pmeditor_mark_loop() {
     char *p, *oldmark;
     int x, y, oldx, oldy, txtpx, txtpy;
     pmeditor_print_func_keys(kMarkMode);
@@ -1811,7 +1812,7 @@ static MmResult pmeditor_cmd_save_and_exit() {
 
     // Clear and reset display
     display_cls();
-    pmeditor_highlight(kHighlightNormal);
+    self->highlight_fn(kHighlightNormal);
     ON_FAILURE_RETURN(display_reset());
 
     // Save program
@@ -1958,7 +1959,7 @@ static MmResult pmeditor_cmd_search() {
  * @return  kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_cmd_mark() {
-    pmeditor_mark_mode(&self->keys[1]);
+    pmeditor_mark_loop(&self->keys[1]);
     pmeditor_print_screen();
     pmeditor_print_func_keys(kEditMode);
     pmeditor_position_cursor(self->txtp);
@@ -2140,7 +2141,7 @@ MmResult pmeditor_resize_console() {
  *
  * @return  kOk on success, or an error code on failure.
  */
-MmResult pmeditor_main_loop() {
+MmResult pmeditor_edit_loop() {
     //char multi = false;
 
     while (true) {
@@ -2187,6 +2188,33 @@ MmResult pmeditor_main_loop() {
 }
 
 /**
+ * Initializes a PmEditor instance with the specified parameters.
+ *
+ * Zeros out the editor structure and sets initial values for all fields.
+ * The editor height is reduced by 2 rows to accommodate the status line
+ * and function key display area. Sets insert mode as the default editing
+ * mode and saves the current break key setting for later restoration.
+ *
+ * @param  self      Pointer to the PmEditor structure to initialize.
+ * @param  filename  Path to the file being edited (not copied, pointer stored).
+ * @param  width     Width of the editor display area in characters.
+ * @param  height    Total height available in characters (status area included).
+ * @return           kOk (always succeeds).
+ */
+MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height) {
+    memset(self, 0, sizeof(PmEditor));
+    self->height = height - 2; // 2 rows for the status line
+    self->width = width;
+    self->fname = filename;
+    self->insert = true;
+    self->text_changed = false;
+    self->saved_break_key = mmb_options.break_key;
+    self->comment_level = 0;
+    self->highlight_fn = pmeditor_highlight;
+    return kOk;
+}
+
+/**
  * Main entry point for the PicoMite editor.
  *
  * Initializes the editor state, loads the specified file, sets up the
@@ -2205,14 +2233,7 @@ MmResult pmeditor_show(const char *filename, int line) {
     int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
 
-    self->height = height - 2; // 2 rows for the status line
-    self->width = width;
-    self->fname = filename;
-    self->insert = true;
-    self->text_changed = false;
-    self->saved_break_key = mmb_options.break_key;
-    self->comment_level = 0;
-
+    ON_FAILURE_RETURN(pmeditor_init(self, filename, width, height));
     ON_FAILURE_RETURN(pmeditor_load_file());
     ON_FAILURE_RETURN(pmeditor_resize_console());
 
@@ -2227,7 +2248,7 @@ MmResult pmeditor_show(const char *filename, int line) {
     // will be considered synonymous with ESC.
     mmb_options.break_key = 0;
 
-    MmResult result = pmeditor_main_loop();
+    MmResult result = pmeditor_edit_loop();
 
     // Tidy up.
     mmb_options.break_key = self->saved_break_key;

@@ -856,7 +856,7 @@ add_executable(test_pmeditor
     src/core/tokentbl.c
 )
 
-target_compile_definitions(test_pmeditor PUBLIC ENABLE_GTEST_EXTRAS MOCK_PMEDITOR_HIGHLIGHT)
+target_compile_definitions(test_pmeditor PUBLIC ENABLE_GTEST_EXTRAS)
 
 target_link_libraries(test_pmeditor
     gtest_main

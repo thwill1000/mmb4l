@@ -86,10 +86,14 @@ typedef struct {
     bool exit_flag;         // True if the editor should exit
     char saved_break_key;   // Original value of mmb_options.break_key when editor entered
     char *mark;             // Current position of the mark in mark mode
+
+    // Some functions should only be called via function pointers
+    // to allow them to be overridden in unit-tests.
+    MmResult (*highlight_fn)(HighlightType);
 } PmEditor;
 
+MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 char *pmeditor_find_line(PmEditor *self, int line); // , int *comment_level);
-MmResult pmeditor_highlight(HighlightType highlight);
 void pmeditor_set_colour(PmEditor *self, char *p);
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)
