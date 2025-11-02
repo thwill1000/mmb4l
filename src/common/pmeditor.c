@@ -78,9 +78,9 @@ typedef enum {
 } EditorMode;
 
 typedef enum {
-    kMarkUpdate,
-    kMarkContinue,
-    kMarkEnd,
+    kMarkUpdate,    ///< Update selection and continue marking
+    kMarkContinue,  ///< Continue marking
+    kMarkEnd,       ///< End marking
 } MarkState;
 
 /**
@@ -903,10 +903,11 @@ static MmResult pmeditor_scroll_down(PmEditor *self) {
  * Removes all text between self->mark and self->txtp, updating the line
  * count and setting the text changed flag.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kMarkEnd to exit mark mode after deletion.
+ * @param       self   Pointer to the PmEditor instance.
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_delete(PmEditor *self) {
+static MmResult pmeditor_mark_delete(PmEditor *self, MarkState *state) {
     char *p;
     if (self->mark < self->txtp) {
         p = self->txtp;
@@ -920,8 +921,9 @@ static MarkState pmeditor_mark_delete(PmEditor *self) {
     *p++ = 0;
     *p++ = 0;
     self->text_changed = true;
-    pmeditor_position_cursor(self, self->txtp);
-    return kMarkEnd;
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
+    *state = kMarkEnd;
+    return kOk;
 }
 
 /**
@@ -930,15 +932,17 @@ static MarkState pmeditor_mark_delete(PmEditor *self) {
  * Copies the text between self->mark and self->txtp to the clipboard buffer.
  * If cut is true, also deletes the marked text after copying.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @param  cut   If true, delete the marked text after copying (cut operation).
- *               If false, leave the text in place (copy operation).
- * @return       kMarkEnd to exit mark mode, kMarkContinue if buffer too large.
+ * @param       self   Pointer to the PmEditor instance.
+ * @param       cut    If true, delete the marked text after copying (cut operation).
+ *                     If false, leave the text in place (copy operation).
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_copy_or_cut(PmEditor *self, bool cut) {
+static MmResult pmeditor_mark_copy_or_cut(PmEditor *self, bool cut, MarkState *state) {
+    *state = kMarkContinue;
+
     if (self->txtp - self->mark > MAXCLIP || self->mark - self->txtp > MAXCLIP) {
-        pmeditor_display_msg(self, " MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE");
-        return kMarkContinue;
+        return pmeditor_display_msg(self, " MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE");
     }
 
     char *p;
@@ -953,31 +957,33 @@ static MarkState pmeditor_mark_copy_or_cut(PmEditor *self, bool cut) {
     self->clipboard[cb_index] = '\0';
 
     if (cut) {
-        return pmeditor_mark_delete(self);
+        return pmeditor_mark_delete(self, state);
     } else {
-        pmeditor_position_cursor(self, self->txtp);
-        return kMarkEnd;
+        *state = kMarkEnd;
+        return pmeditor_position_cursor(self, self->txtp);
     }
 }
 
 /**
  * Copies the marked text to the clipboard without deleting it.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kMarkEnd to exit mark mode, kMarkContinue if buffer too large.
+ * @param  self        Pointer to the PmEditor instance.
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_copy(PmEditor *self) {
-    return pmeditor_mark_copy_or_cut(self, false);
+static MmResult pmeditor_mark_copy(PmEditor *self, MarkState *state) {
+    return pmeditor_mark_copy_or_cut(self, false, state);
 }
 
 /**
  * Cuts the marked text to the clipboard (copy and delete).
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       Result from the delete operation (kMarkEnd or kMarkContinue).
+ * @param  self        Pointer to the PmEditor instance.
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_cut(PmEditor *self) {
-    return pmeditor_mark_copy_or_cut(self, true);
+static MmResult pmeditor_mark_cut(PmEditor *self, MarkState *state) {
+    return pmeditor_mark_copy_or_cut(self, true, state);
 }
 
 /**
@@ -986,52 +992,54 @@ static MarkState pmeditor_mark_cut(PmEditor *self) {
  * Attempts to maintain the same column position on the new line, or moves
  * to the end of the line if it's shorter.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kMarkUpdate to update display,
- *               kMarkContinue if at end of file or line too long.
+ * @param  self        Pointer to the PmEditor instance.
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_down(PmEditor *self) {
-    if (self->cy == self->height - 1) return kMarkContinue;
+static MmResult pmeditor_mark_down(PmEditor *self, MarkState *state) {
+    *state = kMarkContinue;
+    if (self->cy == self->height - 1) return kOk;
     char *p;
     int i;
     for (p = self->mark, i = self->cx; *p != 0 && *p != '\n';
          p++, i++);  // move to the end of this line
     if (*p == 0)
-        return kMarkContinue;  // skip if it is at the end of the file
+        return kOk;  // skip if it is at the end of the file
                    // if(i >= self->width) {
     if (i > self->width) {
-        pmeditor_display_msg(self, " LINE IS TOO LONG ");
-        return kMarkContinue;
+        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
     self->mark = p + 1;  // step over the line terminator to the start of the next line
     for (i = 0; i < self->px + self->cx && *self->mark != '\0' && *self->mark != '\n';
          i++, self->mark++);  // move the cursor to the column
     self->cx = i;
     self->cy++;
-    return kMarkUpdate;
+    *state = kMarkUpdate;
+    return kOk;
 }
 
 /**
  * Moves the mark to the end of the current line.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kMarkUpdate to update display,
- *               kMarkContinue if at end of file or line too long.
+ * @param  self        Pointer to the PmEditor instance.
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_end(PmEditor *self) {
-    if (*self->mark == '\0') return kMarkContinue;
+static MmResult pmeditor_mark_end(PmEditor *self, MarkState *state) {
+    *state = kMarkContinue;
+    if (*self->mark == '\0') return kOk;
     char *p;
     int i;
     // Move to the end of the line
     for (p = self->mark, i = self->cx; *p != '\0' && *p != '\n'; p++, i++);
 
     if (i > self->width) {
-        pmeditor_display_msg(self, " LINE IS TOO LONG ");
-        return kMarkContinue;
+        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
 
     self->mark = p;
-    return kMarkUpdate;
+    *state = kMarkUpdate;
+    return kOk;
 }
 
 /**
@@ -1040,10 +1048,12 @@ static MarkState pmeditor_mark_end(PmEditor *self) {
  * Waits briefly to distinguish between a plain ESC and escape sequences
  * (like mouse events) which it ignores.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kMarkEnd to exit mark mode, otherwise kMarkContinue.
+ * @param  self        Pointer to the PmEditor instance.
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_escape(PmEditor *self) {
+static MmResult pmeditor_mark_escape(PmEditor *self, MarkState *state) {
+    *state = kMarkContinue;
     // Wait 50ms to see if anything more is coming.
     mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
     if (console_getc() == '[' && console_getc() == 'M') {
@@ -1053,21 +1063,23 @@ static MarkState pmeditor_mark_escape(PmEditor *self) {
         (void) console_getc();
         (void) console_getc();
         (void) console_getc();
-        return kMarkContinue;
+        return kOk;
     }
 
-    return kMarkEnd;
+    *state = kMarkEnd;
+    return kOk;
 }
 
 /**
  * Moves the mark to the start of the current line in mark mode.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kMarkUpdate to update display,
- *               kMarkContinue if already at start of buffer.
+ * @param  self        Pointer to the PmEditor instance.
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_home(PmEditor *self) {
-    if (self->mark == self->buf) return kMarkContinue;
+static MmResult pmeditor_mark_home(PmEditor *self, MarkState *state) {
+    *state = kMarkContinue;
+    if (self->mark == self->buf) return kOk;
 
     // Step back over the terminator if we are right at the end of the line
     if (*self->mark == '\n') {
@@ -1085,35 +1097,40 @@ static MarkState pmeditor_mark_home(PmEditor *self) {
         self->mark++;
     }
 
-    return kMarkUpdate;
+    *state = kMarkUpdate;
+    return kOk;
 }
 
 /**
  * Moves the mark left by one character in mark mode.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kMarkUpdate to update display,
- *               kMarkContinue if at start of line, end of buffer, or line width limit reached.
+ * @param  self        Pointer to the PmEditor instance.
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_left(PmEditor *self) {
-    if (self->cx >= self->width || *self->mark == '\0' || *self->mark == '\n') return kMarkContinue;
+static MmResult pmeditor_mark_left(PmEditor *self, MarkState *state) {
+    *state = kMarkContinue;
+    if (self->cx >= self->width || *self->mark == '\0' || *self->mark == '\n') return kOk;
     self->mark--;
     self->cx--;
-    return kMarkUpdate;
+    *state = kMarkUpdate;
+    return kOk;
 }
 
 /**
  * Moves the mark right by one character in mark mode.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kMarkUpdate to update display,
- *               kMarkContinue if at end of line, end of buffer, or line width limit reached.
+ * @param  self        Pointer to the PmEditor instance.
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_right(PmEditor *self) {
-    if (self->cx >= self->width || *self->mark == '\0' || *self->mark == '\n') return kMarkContinue;
+static MmResult pmeditor_mark_right(PmEditor *self, MarkState *state) {
+    *state = kMarkContinue;
+    if (self->cx >= self->width || *self->mark == '\0' || *self->mark == '\n') return kOk;
     self->mark++;
     self->cx++;
-    return kMarkUpdate;
+    *state = kMarkUpdate;
+    return kOk;
 }
 
 /**
@@ -1122,12 +1139,13 @@ static MarkState pmeditor_mark_right(PmEditor *self) {
  * Attempts to maintain the same column position on the new line, or moves
  * to the end of the line if it's shorter.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kMarkUpdate to update display,
- *               kMarkContinue if at top of screen or line too long.
+ * @param  self        Pointer to the PmEditor instance.
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_up(PmEditor *self) {
-    if (self->cy <= 0) return kMarkContinue;
+static MmResult pmeditor_mark_up(PmEditor *self, MarkState *state) {
+    *state = kMarkContinue;
+    if (self->cy <= 0) return kOk;
     char *p = self->mark;
     int i;
     if (*p == '\n') p--;  // step back over the terminator if we are right at the end of the line
@@ -1138,8 +1156,7 @@ static MarkState pmeditor_mark_up(PmEditor *self) {
         if (*p == '\n') p++;                                  // and position at the start
         // if (i >= self->width) {
         if (i > self->width) {
-            pmeditor_display_msg(self, " LINE IS TOO LONG ");
-            return kMarkContinue;
+            return pmeditor_display_msg(self, " LINE IS TOO LONG ");
         }
     }
     self->mark = p;
@@ -1147,7 +1164,8 @@ static MarkState pmeditor_mark_up(PmEditor *self) {
          i++, self->mark++);  // move the cursor to the column
     self->cx = i;
     self->cy--;
-    return kMarkUpdate;
+    *state = kMarkUpdate;
+    return kOk;
 }
 
 /**
@@ -1196,24 +1214,28 @@ static char pmeditor_canonical_key(PmEditor *self, char key) {
  * Routes mark mode keystrokes to the appropriate handler based on the
  * command key pressed.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @param  cmd   The command key to process.
- * @return       MarkState indicating whether to continue, break, or end mark mode.
+ * @param       self   Pointer to the PmEditor instance.
+ * @param       cmd    The command key to process.
+ * @param[out]  state  Pointer to store the resulting MarkState.
+ * @return             kOk on success, or an error code on failure.
  */
-static MarkState pmeditor_mark_dispatch(PmEditor *self, char cmd) {
+static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd, MarkState *state) {
 // clang-format off
     switch (cmd) {
-        case ESC:   return pmeditor_mark_escape(self);
-        case UP:    return pmeditor_mark_up(self);
-        case DOWN:  return pmeditor_mark_down(self);
-        case LEFT:  return pmeditor_mark_left(self);
-        case RIGHT: return pmeditor_mark_right(self);
-        case HOME:  return pmeditor_mark_home(self);
-        case END:   return pmeditor_mark_end(self);
-        case F4:    return pmeditor_mark_cut(self);
-        case F5:    return pmeditor_mark_copy(self);
-        case DEL:   return pmeditor_mark_delete(self);
-        default:    return kMarkContinue;
+        case ESC:   return pmeditor_mark_escape(self, state);
+        case UP:    return pmeditor_mark_up(self, state);
+        case DOWN:  return pmeditor_mark_down(self, state);
+        case LEFT:  return pmeditor_mark_left(self, state);
+        case RIGHT: return pmeditor_mark_right(self, state);
+        case HOME:  return pmeditor_mark_home(self, state);
+        case END:   return pmeditor_mark_end(self, state);
+        case F4:    return pmeditor_mark_cut(self, state);
+        case F5:    return pmeditor_mark_copy(self, state);
+        case DEL:   return pmeditor_mark_delete(self, state);
+        default: {
+            *state = kMarkContinue;
+            return kOk;
+        }
     }
 // clang-format on
 }
@@ -1236,6 +1258,7 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
     txtpx = oldx = self->cx;
     txtpy = oldy = self->cy;
 
+    MarkState mark_state = kMarkContinue;
     while (true) {
         int c;
         do {
@@ -1253,9 +1276,9 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
             self->draw_status_line = false;
         }
 
-        MarkState mark_result = pmeditor_mark_dispatch(self, self->keys[0]);
+        ON_FAILURE_RETURN(pmeditor_mark_dispatch(self, self->keys[0], &mark_state));
 
-        switch (mark_result) {
+        switch (mark_state) {
             case kMarkContinue:
                 continue;
             case kMarkEnd:
@@ -2027,7 +2050,7 @@ static MmResult pmeditor_cmd_mark(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_cmd_paste(PmEditor *self) {
-    if (*self->clipboard == 0) {
+    if (*self->clipboard == '\0') {
         return pmeditor_display_msg(self, " CLIPBOARD IS EMPTY ");
     }
     int i;
