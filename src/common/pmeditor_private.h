@@ -85,6 +85,7 @@ typedef struct {
     char keys[MAXCLIP + 2]; // Buffer of incoming keystrokes
     bool exit_flag;         // True if the editor should exit
     char saved_break_key;   // Original value of mmb_options.break_key when editor entered
+    char *mark;             // Current position of the mark in mark mode
 } PmEditor;
 
 char *pmeditor_find_line(PmEditor *self, int line); // , int *comment_level);

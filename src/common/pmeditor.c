@@ -761,13 +761,21 @@ static void pmeditor_scroll_down(void) {
     while (console_getc() != -1) {}
 }
 
+// static bool pmeditor_mark_right(void) {
+//     if (self->cx >= self->width || *mark == 0 || *mark == '\n') return true;
+//     mark++;
+//     self->cx++;
+//     return false;
+// }
+
 // mark mode
 // implement the mark mode (when the user presses F4)
 static void pmeditor_mark_mode() {
-    char *p, *mark, *oldmark;
+    char *p, *oldmark;
     int c = -1, x, y, i, oldx, oldy, txtpx, txtpy, errmsg = false;
     pmeditor_print_func_keys(kMarkMode);
-    oldmark = mark = self->txtp;
+    self->mark = self->txtp;
+    oldmark = self->mark;
     txtpx = oldx = self->cx;
     txtpy = oldy = self->cy;
     while (1) {
@@ -795,7 +803,7 @@ static void pmeditor_mark_mode() {
 
             case UP:
                 if (self->cy <= 0) continue;
-                p = mark;
+                p = self->mark;
                 if (*p == '\n')
                     p--;  // step back over the terminator if we are right at the end of the line
                 while (p != self->buf && *p != '\n') p--;  // move to the beginning of the line
@@ -811,16 +819,16 @@ static void pmeditor_mark_mode() {
                         continue;
                     }
                 }
-                mark = p;
-                for (i = 0; i < self->px + self->cx && *mark != 0 && *mark != '\n';
-                     i++, mark++);  // move the cursor to the column
+                self->mark = p;
+                for (i = 0; i < self->px + self->cx && *self->mark != '\0' && *self->mark != '\n';
+                     i++, self->mark++);  // move the cursor to the column
                 self->cx = i;
                 self->cy--;
                 break;
 
             case DOWN:
                 if (self->cy == self->height - 1) continue;
-                for (p = mark, i = self->cx; *p != 0 && *p != '\n';
+                for (p = self->mark, i = self->cx; *p != 0 && *p != '\n';
                      p++, i++);         // move to the end of this line
                 if (*p == 0) continue;  // skip if it is at the end of the file
                                         // if(i >= self->width) {
@@ -829,37 +837,37 @@ static void pmeditor_mark_mode() {
                     errmsg = true;
                     continue;
                 }
-                mark = p + 1;  // step over the line terminator to the start of the next line
-                for (i = 0; i < self->px + self->cx && *mark != 0 && *mark != '\n';
-                     i++, mark++);  // move the cursor to the column
+                self->mark = p + 1;  // step over the line terminator to the start of the next line
+                for (i = 0; i < self->px + self->cx && *self->mark != '\0' && *self->mark != '\n';
+                     i++, self->mark++);  // move the cursor to the column
                 self->cx = i;
                 self->cy++;
                 break;
 
             case LEFT:
                 if (self->cx == self->px) continue;
-                mark--;
+                self->mark--;
                 self->cx--;
                 break;
 
             case RIGHT:
-                if (self->cx >= self->width || *mark == 0 || *mark == '\n') continue;
-                mark++;
+                if (self->cx >= self->width || *self->mark == '\0' || *self->mark == '\n') continue;
+                self->mark++;
                 self->cx++;
                 break;
 
             case HOME:
-                if (mark == self->buf) break;
-                if (*mark == '\n')
-                    mark--;  // step back over the terminator if we are right at the end of the line
-                while (mark != self->buf && *mark != '\n')
-                    mark--;                 // move to the beginning of the line
-                if (*mark == '\n') mark++;  // skip if no more lines above this one
+                if (self->mark == self->buf) break;
+                if (*self->mark == '\n')
+                    self->mark--;  // step back over the terminator if we are right at the end of the line
+                while (self->mark != self->buf && *self->mark != '\n')
+                    self->mark--;                 // move to the beginning of the line
+                if (*self->mark == '\n') self->mark++;  // skip if no more lines above this one
                 break;
 
             case END:
-                if (*mark == 0) break;
-                for (p = mark, i = self->cx; *p != 0 && *p != '\n';
+                if (*self->mark == '\0') break;
+                for (p = self->mark, i = self->cx; *p != 0 && *p != '\n';
                      p++, i++);  // move to the end of this line
                 // if(i >= self->width) {
                 if (i > self->width) {
@@ -867,23 +875,23 @@ static void pmeditor_mark_mode() {
                     errmsg = true;
                     continue;
                 }
-                mark = p;
+                self->mark = p;
                 break;
 
             case F4:  // Cut
             case F5:  // Copy
-                if (self->txtp - mark > MAXCLIP || mark - self->txtp > MAXCLIP) {
+                if (self->txtp - self->mark > MAXCLIP || self->mark - self->txtp > MAXCLIP) {
                     pmeditor_display_msg(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE");
                     errmsg = true;
                     break;
                 }
                 int cb_index = 0;
-                if (mark <= self->txtp) {
-                    p = mark;
+                if (self->mark <= self->txtp) {
+                    p = self->mark;
                     while (p < self->txtp) self->clipboard[cb_index++] = *p++;
                 } else {
                     p = self->txtp;
-                    while (p <= mark - 1) self->clipboard[cb_index++] = *p++;
+                    while (p <= self->mark - 1) self->clipboard[cb_index++] = *p++;
                 }
                 self->clipboard[cb_index] = '\0';
                 if (c == F5) {
@@ -893,14 +901,14 @@ static void pmeditor_mark_mode() {
                 // fall through
 
             case DEL:
-                if (mark < self->txtp) {
+                if (self->mark < self->txtp) {
                     p = self->txtp;
-                    self->txtp = mark;
-                    mark = p;  // swap txtp and mark
+                    self->txtp = self->mark;
+                    self->mark = p;  // swap txtp and mark
                 }
-                for (p = self->txtp; p < mark; p++)
+                for (p = self->txtp; p < self->mark; p++)
                     if (*p == '\n') self->num_lines--;
-                for (p = self->txtp; *mark;) *p++ = *mark++;
+                for (p = self->txtp; *self->mark;) *p++ = *self->mark++;
                 *p++ = 0;
                 *p++ = 0;
                 self->text_changed = true;
@@ -916,18 +924,18 @@ static void pmeditor_mark_mode() {
         y = self->cy;
         self->mark_mode = true;
         // first unmark the area not marked as a result of the keystroke
-        if (oldmark < mark) {
+        if (oldmark < self->mark) {
             pmeditor_position_cursor(oldmark);
             p = oldmark;
-            while (p < mark) {
+            while (p < self->mark) {
                 if (*p == '\n') {
                     display_putc_noflush('\r');
                 }
                 display_putc_noflush(*p++);
             }
-        } else if (oldmark > mark) {
-            pmeditor_position_cursor(mark);
-            p = mark;
+        } else if (oldmark > self->mark) {
+            pmeditor_position_cursor(self->mark);
+            p = self->mark;
             while (oldmark > p) {
                 if (*p == '\n') {
                     display_putc_noflush('\r');
@@ -936,26 +944,26 @@ static void pmeditor_mark_mode() {
             }
         }
         display_flush();
-        oldmark = mark;
+        oldmark = self->mark;
         oldx = x;
         oldy = y;
 
         // now draw the marked area
-        if (mark < self->txtp) {
-            pmeditor_position_cursor(mark);
+        if (self->mark < self->txtp) {
+            pmeditor_position_cursor(self->mark);
             ON_FAILURE_ERROR(display_inverse(true));
-            p = mark;
+            p = self->mark;
             while (p < self->txtp) {
                 if (*p == '\n') {
                     display_putc_noflush('\r');
                 }
                 display_putc_noflush(*p++);
             }
-        } else if (mark > self->txtp) {
+        } else if (self->mark > self->txtp) {
             pmeditor_position_cursor(self->txtp);
             ON_FAILURE_ERROR(display_inverse(true));
             p = self->txtp;
-            while (p < mark) {
+            while (p < self->mark) {
                 if (*p == '\n') {
                     display_putc_noflush('\r');
                 }
@@ -967,8 +975,8 @@ static void pmeditor_mark_mode() {
 
         oldx = x;
         oldy = y;
-        oldmark = mark;
-        pmeditor_position_cursor(mark);
+        oldmark = self->mark;
+        pmeditor_position_cursor(self->mark);
     }
 }
 
