@@ -219,8 +219,8 @@ static MmResult pmeditor_save_file(const char *filename) {
         while (!streamio_eof(fnbr)) {
             streamio_putc(fnbr_bak, streamio_getc(fnbr));
         }
-        streamio_close(fnbr);
-        streamio_close(fnbr_bak);
+        (void) streamio_close(fnbr);
+        (void) streamio_close(fnbr_bak);
     }
 
     const int fnbr = streamio_find_free();
@@ -229,8 +229,8 @@ static MmResult pmeditor_save_file(const char *filename) {
     // Copy contents of edit buffer to file
     // changing the LF line-endings to CRLF.
     for (const char *p = self->buf; *p; ++p) {
-        if (*p == '\n') streamio_putc(fnbr, '\r');
-        streamio_putc(fnbr, *p);
+        if (*p == '\n') (void) streamio_putc(fnbr, '\r');
+        (void) streamio_putc(fnbr, *p);
     }
 
     return streamio_close(fnbr);
@@ -573,9 +573,8 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
 
     // check for a comment char
     if (*p == '\'' && !inquote) {
-        ON_FAILURE_RETURN(self->highlight_fn(kHighlightComment));
         incomment = true;
-        return kOk;
+        return self->highlight_fn(kHighlightComment);
     }
     if (*p == '/' && p[1] == '*' && !inquote) {
         char *q = p;
@@ -606,9 +605,8 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     // not
     if (inkeyword) {
         if (isnamechar(*p) || *p == '$') return kOk;
-        ON_FAILURE_RETURN(self->highlight_fn(kHighlightNormal));
         inkeyword = false;
-        return kOk;
+        return self->highlight_fn(kHighlightNormal);
     }
 
     // if we are displaying a number check that we are still actually in it and cmdfile if not
@@ -616,26 +614,23 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     if (innumber) {
         if (!isdigit(*p) && !(toupper(*p) >= 'A' && toupper(*p) <= 'F') && toupper(*p) != 'O' &&
             toupper(*p) != 'H' && *p != '.') {
-            ON_FAILURE_RETURN(self->highlight_fn(kHighlightNormal));
             innumber = false;
-            return kOk;
+            return self->highlight_fn(kHighlightNormal);
         } else {
             return kOk;
         }
         // check if we are starting a number
     } else if (!intext) {
         if (isdigit(*p) || *p == '&' || ((*p == '-' || *p == '+' || *p == '.') && isdigit(p[1]))) {
-            ON_FAILURE_RETURN(self->highlight_fn(kHighlightNumber));
             innumber = true;
-            return kOk;
+            return self->highlight_fn(kHighlightNumber);
         }
         // check if this is an 8 digit hex number as used in CFunctions
         for (i = 0; i < 8; i++)
             if (!isxdigit(p[i])) break;
         if (i == 8 && (p[8] == ' ' || p[8] == '\'' || p[8] == 0)) {
-            ON_FAILURE_RETURN(self->highlight_fn(kHighlightNumber));
             innumber = true;
-            return kOk;
+            return self->highlight_fn(kHighlightNumber);
         }
     }
 
@@ -662,9 +657,8 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
         }
         for (i = 0; i < tokentbl_size - 1; i++) {  // check the token table for a match
             if (pmeditor_edit_comp_str((char *)p, (char *)tokentbl[i].name) != 0) {
-                ON_FAILURE_RETURN(self->highlight_fn(kHighlightKeyword));
                 inkeyword = true;
-                return kOk;
+                return self->highlight_fn(kHighlightKeyword);
             }
         }
 
@@ -673,9 +667,8 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
             for (pp = (char **)twokeywordtbl; *pp; pp++)
                 if (pmeditor_edit_comp_str((char *)p, (char *)*pp)) break;
             if (*pp) {
-                ON_FAILURE_RETURN(self->highlight_fn(kHighlightKeyword));
                 inkeyword = true;
-                return kOk;
+                return self->highlight_fn(kHighlightKeyword);
             }
         }
         if (p >= twokeyword) twokeyword = NULL;
@@ -684,9 +677,8 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
         for (pp = (char **)specialkeywords; *pp; pp++)
             if (pmeditor_edit_comp_str((char *)p, (char *)*pp)) break;
         if (*pp) {
-            ON_FAILURE_RETURN(self->highlight_fn(kHighlightKeyword));
             inkeyword = true;
-            return kOk;
+            return self->highlight_fn(kHighlightKeyword);
         }
     }
 
@@ -1339,9 +1331,8 @@ static MmResult pmeditor_cmd_newline(/*char *multi*/) {
     if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
         self->py++;                     // otherwise scroll
     ON_FAILURE_RETURN(pmeditor_print_screen());  // redraw everything
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
 
-    return kOk;
+    return pmeditor_position_cursor(self->txtp);
 }
 
 /**
@@ -1379,16 +1370,16 @@ static MmResult pmeditor_cmd_up() {
 
     if (self->cy > 2 || self->py == 0) {
         // If we are more than two lines from the top then move the cursor up
-        if (self->cy > 0) pmeditor_set_cursor_pos(i, self->cy - 1);
+        if (self->cy > 0) {
+            ON_FAILURE_RETURN(pmeditor_set_cursor_pos(i, self->cy - 1));
+        }
     } else if (self->py > 0) {
         // Otherwise scroll the document down
         self->cx = i;
-        pmeditor_scroll_down();
+        ON_FAILURE_RETURN(pmeditor_scroll_down());
     }
 
-    pmeditor_position_cursor(self->txtp);
-
-    return kOk;
+    return pmeditor_position_cursor(self->txtp);
 }
 
 /**
@@ -1422,12 +1413,10 @@ static MmResult pmeditor_cmd_down() {
     } else if (self->py + self->height < self->num_lines) {
         // Otherwise scroll the document up
         self->cx = i;
-        pmeditor_scroll_up();
+        ON_FAILURE_RETURN(pmeditor_scroll_up());
     }
 
-    pmeditor_position_cursor(self->txtp);
-
-    return kOk;
+    return pmeditor_position_cursor(self->txtp);
 }
 
 /**
@@ -1454,9 +1443,8 @@ static MmResult pmeditor_cmd_left() {
 
     // Move cursor back one character
     self->txtp--;
-    pmeditor_position_cursor(self->txtp);
 
-    return kOk;
+    return pmeditor_position_cursor(self->txtp);
 }
 
 /**
@@ -1482,15 +1470,13 @@ static MmResult pmeditor_cmd_right() {
     }
 
     if (self->cx >= self->width) {
-        pmeditor_display_msg((char *)" LINE IS TOO LONG ");
-        return kOk;
+        return pmeditor_display_msg((char *)" LINE IS TOO LONG ");
     }
 
     // Move cursor forward one character
     self->txtp++;
-    pmeditor_position_cursor(self->txtp);
 
-    return kOk;
+    return pmeditor_position_cursor(self->txtp);
 }
 
 /**
@@ -1590,12 +1576,11 @@ static MmResult pmeditor_cmd_backspace() {
             self->txtp--;
         }
         // and let the delete case take care of deleting the characters
-        pmeditor_position_cursor(self->txtp);
-        return kOk;
+        return pmeditor_position_cursor(self->txtp);
     }
     // this is just a normal backspace (not a tabbed backspace)
     self->txtp--;
-    pmeditor_position_cursor(self->txtp);
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
 
     return pmeditor_cmd_delete();
 }
@@ -1645,9 +1630,7 @@ static MmResult pmeditor_cmd_home() {
     while (self->txtp != self->buf && *self->txtp != '\n') self->txtp--;
     if (*self->txtp == '\n') self->txtp++;
 
-    pmeditor_position_cursor(self->txtp);
-
-    return kOk;
+    return pmeditor_position_cursor(self->txtp);
 }
 
 /**
@@ -1692,10 +1675,12 @@ static MmResult pmeditor_cmd_end() {
     // Move cursor to the end of the line
     while (self->cx < self->width && *self->txtp != 0 && *self->txtp != '\n') {
         self->txtp++;
-        pmeditor_position_cursor(self->txtp);
+        ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
     }
 
-    if (self->cx > self->width) pmeditor_display_msg(" LINE IS TOO LONG ");
+    if (self->cx > self->width) {
+        return pmeditor_display_msg(" LINE IS TOO LONG ");
+    }
 
     return kOk;
 }
@@ -1743,9 +1728,8 @@ static MmResult pmeditor_cmd_page_up() {
          i++, self->txtp++);
 
     ON_FAILURE_RETURN(pmeditor_print_screen());
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
 
-    return kOk;
+    return pmeditor_position_cursor(self->txtp);
 }
 
 /**
@@ -1795,9 +1779,8 @@ static MmResult pmeditor_cmd_page_down() {
          i++, self->txtp++);
 
     ON_FAILURE_RETURN(pmeditor_print_screen());
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
 
-    return kOk;
+    return pmeditor_position_cursor(self->txtp);
 }
 
 /**
@@ -1950,9 +1933,8 @@ static MmResult pmeditor_cmd_search_again() {
     self->py = y - self->height / 2;  // self->py is the line displayed at the top
     if (self->py < 0) self->py = 0;   // compensate if we are near the start
     ON_FAILURE_RETURN(pmeditor_print_screen());
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self->txtp));
-    // pmeditor_set_cursor_pos(x, y);
-    return kOk;
+
+    return pmeditor_position_cursor(self->txtp);
 }
 
 /**
