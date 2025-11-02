@@ -217,6 +217,36 @@ TEST_F(PmEditorFindLineTest, MultilineCommentEndWithSpaces) {
     EXPECT_EQ(0, self->comment_level);
 }
 
+TEST_F(PmEditorFindLineTest, MultilineCommentStartWithinString) {
+    SetBuffer("Line 0\n\"This is not a /* comment\"\nLine 2");
+    self->comment_level = -1;
+
+    // Line 2 should not be in multiline comment
+    char *result2 = pmeditor_find_line(self, 2);
+    EXPECT_EQ(result2, self->buf + strlen("Line 0\n\"This is not a /* comment\"\n"));
+    EXPECT_EQ(0, self->comment_level);
+}
+
+TEST_F(PmEditorFindLineTest, MultilineCommentEndWithinCommentedString) {
+    SetBuffer("/*Line 0\n\"Line 1*/\"\nLine 2");
+    self->comment_level = -1;
+
+    // Line 2 should not be in multiline comment
+    char *result2 = pmeditor_find_line(self, 2);
+    EXPECT_EQ(result2, self->buf + strlen("/*Line 0\n\"Line 1*/\"\n"));
+    EXPECT_EQ(0, self->comment_level);
+}
+
+TEST_F(PmEditorFindLineTest, MultilineCommentWithinSingleLineComment) {
+    SetBuffer("Line 0\n\"'/*Line 1\nLine 2");
+    self->comment_level = -1;
+
+    // Line 2 should not be in multiline comment
+    char *result2 = pmeditor_find_line(self, 2);
+    EXPECT_EQ(result2, self->buf + strlen("Line 0\n\"'/*Line 1\n"));
+    EXPECT_EQ(0, self->comment_level);
+}
+
 // Test complex multiline comment scenario
 TEST_F(PmEditorFindLineTest, ComplexMultilineComment) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
@@ -248,7 +278,7 @@ TEST_F(PmEditorFindLineTest, ComplexMultilineComment) {
 }
 
 // Test edge case: /*/ sequence
-TEST_F(PmEditorFindLineTest, MultilineCommentEdgeCase) {
+TEST_F(PmEditorFindLineTest, MultilineCommentEdgeCase1) {
     SetBuffer("Line 0\n/*/\nLine 2");
     self->comment_level = -1;
 
@@ -265,6 +295,17 @@ TEST_F(PmEditorFindLineTest, MultilineCommentEdgeCase) {
     // Line 2 should have comment_level = 1
     char *result2 = pmeditor_find_line(self, 2);
     EXPECT_EQ(result2, self->buf + strlen("Line 0\n/*/\n"));
+    EXPECT_EQ(1, self->comment_level);
+}
+
+// Test edge case where previous line contains unterminated string
+TEST_F(PmEditorFindLineTest, MultilineCommentEdgeCase2) {
+    SetBuffer("\"Line 0\n/*Line 1\nLine 2");
+    self->comment_level = -1;
+
+    // Line 2 should be in multiline comment
+    char *result2 = pmeditor_find_line(self, 2);
+    EXPECT_EQ(result2, self->buf + strlen("\"Line 0\n/*Line 1\n"));
     EXPECT_EQ(1, self->comment_level);
 }
 

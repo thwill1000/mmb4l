@@ -620,12 +620,15 @@ void pmeditor_set_colour(PmEditor *self, char *p) {
 char *pmeditor_find_line(PmEditor *self, int line/*, int *comment_level*/) {
     if (!self || line < 0) return NULL;
 
+    const int NORMAL = 0;
+    const int IN_QUOTE = 1;
+    const int IN_SL_COMMENT = 2;
+    int state = NORMAL;
     self->comment_level = 0;
     char *p = self->buf;
 
     // TODO: If the line starts with /* then should it increment the comment_level?
 
-    // TODO: Handle quoted strings
     // TODO: Handle CMM2 #COMMENT {START|END} construct
     // TODO: Handle single-line comments (') and REM
 
@@ -633,19 +636,34 @@ char *pmeditor_find_line(PmEditor *self, int line/*, int *comment_level*/) {
         switch (*p) {
             case '\n':
                 line--;
+                state = NORMAL;
                 break;
             case '/':
-                if (p[1] == '*') {
+                if (state == NORMAL && p[1] == '*') {
                     // Entered a multiline comment
                     self->comment_level++;
                     p++;
                 }
                 break;
             case '*':
-                if (p[1] == '/') {
+                if (state == NORMAL && p[1] == '/') {
                     // Exited a multiline comment
                     if (self->comment_level > 0) self->comment_level--;
                     p++;
+                }
+                break;
+            case '\"':
+                if (self->comment_level == 0) {
+                    if (state == NORMAL) {
+                        state = IN_QUOTE;
+                    } else if (state == IN_QUOTE) {
+                        state = NORMAL;
+                    }
+                }
+                break;
+            case '\'':
+                if (self->comment_level == 0 && state == NORMAL) {
+                    state = IN_SL_COMMENT;
                 }
                 break;
             default:
