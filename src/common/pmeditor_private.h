@@ -103,6 +103,7 @@ typedef struct s_PmEditor {
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_delete(PmEditor *self);
 char *pmeditor_find_line(PmEditor *self, int line); // , int *comment_level);
+MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state);
 MmResult pmeditor_set_colour(PmEditor *self, char *p);

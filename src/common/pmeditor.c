@@ -68,7 +68,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/MMBasic.h"
 #include "../core/tokentbl.h"
 
-#define OPTION_CONTINUATION     false
 #define OPTION_COLOUR_CODE      true
 
 typedef enum {
@@ -157,49 +156,46 @@ static inline MmResult pmeditor_highlight(PmEditor *self, HighlightType highligh
 }
 
 /**
- * Finds the longest line length in the text buffer.
+ * Finds the longest line in the text buffer.
  *
  * Scans through the entire text buffer to determine which line has the
- * most characters. Handles line continuation characters if OPTION_CONTINUATION
- * is enabled.
+ * most characters.
  *
- * @param  text    Pointer to the text buffer to scan.
- * @param  linein  Output parameter that receives the line number (0-based) of
- *                 the longest line.
- * @return         The length in characters of the longest line.
+ * @param       self    Pointer to the PmEditor instance.
+ * @param[out]  line    Pointer to store the resulting line number (0-based).
+ * @param[out]  length  Pointer to store the resulting line length.
+ * @return              kOk on success, or an error code on failure.
  */
-static int pmeditor_find_longest_line_length(const char *text, int *linein) {
+MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length) {
     int current_length = 0;
-    int max_length = 0;
-    const char *ptr = text;
-    int line = 0;
-    while (*ptr) {
-        if (*ptr == '\n') {
-            line++;
-            if (ptr > text && *(ptr - 1) == '_' && *(ptr - 2) == ' ' && OPTION_CONTINUATION) {
-                // Line continuation, do not reset length
-            } else {
-                // If this line exceeds the max, update
-                if (current_length > max_length) {
-                    max_length = current_length;
-                    *linein = line;
-                }
-                current_length = 0;  // Reset for a new line
+    int current_line = 0;
+    *line = 0;
+    *length = 0;
+    const char *p = self->buf;
+    while (*p) {
+        if (*p == '\n') {
+            // If this line exceeds the max, update
+            if (current_length > *length) {
+                *length = current_length;
+                *line = current_line;
             }
+            current_length = 0;  // Reset for a new line
+            current_line++;
         } else {
             // Increase length for this segment of the line
             current_length++;
         }
 
-        ptr++;
+        p++;
     }
 
     // Final check in case the last line was the longest
-    if (current_length > max_length) {
-        max_length = current_length;
+    if (current_length > *length) {
+        *length = current_length;
+        *line = current_line;
     }
 
-    return max_length;
+    return kOk;
 }
 
 /**
@@ -1913,18 +1909,19 @@ static MmResult pmeditor_cmd_tab(PmEditor *self) {
 /**
  * Handles the F1 key command (save and exit).
  *
- * Validates that no lines exceed 255 characters, saves the file if modified,
+ * Validates that no lines exceed MAXSTRLEN characters, saves the file if modified,
  * and exits the editor. Clears and resets the display.
  *
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_cmd_save_and_exit(PmEditor *self) {
-    int line_num = 0;
-    const int line_len = pmeditor_find_longest_line_length((char *)self->buf, &line_num);
-    if (line_len > 255) {
+    int line = -1;
+    int length = -1;
+    ON_FAILURE_RETURN(pmeditor_find_longest_line(self, &line, &length));
+    if (length > MAXSTRLEN) {
         char msg[32] = {};
-        sprintf(msg, " LINE %d TOO LONG", line_len);
+        sprintf(msg, " LINE %d TOO LONG ", line);
         return pmeditor_display_msg(self, msg);
     }
 

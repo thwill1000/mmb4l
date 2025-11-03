@@ -2142,3 +2142,80 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceEntireIndentedLine) {
     pmeditor_cmd_backspace(self);
     EXPECT_EQ(self->buf, self->txtp);
 }
+
+class PmEditorFindLongestLine : public ::testing::Test {
+
+    protected:
+    PmEditor test_editor;
+    PmEditor *self = &test_editor;
+
+    void SetUp() override {
+        // Initialise the editor state
+        ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
+        self->highlight_fn = pmeditor_test_highlight;
+    }
+
+    void SetBuffer(const char* content) {
+        ::SetBuffer(self, content);
+    }
+};
+
+TEST_F(PmEditorFindLongestLine, EmptyStringReturnsZero) {
+    SetBuffer("");
+
+    int line = -1;
+    int length = -1;
+    MmResult result = pmeditor_find_longest_line(self, &line, &length);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, line);
+    EXPECT_EQ(0, length);
+}
+
+TEST_F(PmEditorFindLongestLine, SingleLineReturnsCorrectLength) {
+    SetBuffer("hello");
+
+    int line = -1;
+    int length = -1;
+    MmResult result = pmeditor_find_longest_line(self, &line, &length);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, line);
+    EXPECT_EQ(5, length);
+}
+
+TEST_F(PmEditorFindLongestLine, MultipleLinesFindsLongest) {
+    SetBuffer("short\nmedium length\nloooooongest line here\nmid");
+
+    int line = -1;
+    int length = -1;
+    MmResult result = pmeditor_find_longest_line(self, &line, &length);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, line);
+    EXPECT_EQ(22, length);
+}
+
+TEST_F(PmEditorFindLongestLine, HandlesTrailingNewline) {
+    SetBuffer("abc\n1234\n");
+
+    int line = -1;
+    int length = -1;
+    MmResult result = pmeditor_find_longest_line(self, &line, &length);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(1, line);
+    EXPECT_EQ(4, length);
+}
+
+TEST_F(PmEditorFindLongestLine, LastLineIsLongest) {
+    SetBuffer("short\nmedium length\nmid\nloooooongest line here");
+
+    int line = -1;
+    int length = -1;
+    MmResult result = pmeditor_find_longest_line(self, &line, &length);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(3, line);
+    EXPECT_EQ(22, length);
+}
