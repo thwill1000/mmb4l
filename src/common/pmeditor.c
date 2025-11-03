@@ -1512,7 +1512,9 @@ static MmResult pmeditor_cmd_down(PmEditor *self) {
 
     if (self->cy < self->height - 3 || self->py + self->height == self->num_lines) {
         // If we are less than two lines from the bottom then move the cursor down
-        if (self->cy < self->height - 1) pmeditor_set_cursor_pos(self, i, self->cy + 1);
+        if (self->cy < self->height - 1) {
+            ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, i, self->cy + 1));
+        }
     } else if (self->py + self->height < self->num_lines) {
         // Otherwise scroll the document up
         self->cx = i;
@@ -1594,7 +1596,7 @@ static MmResult pmeditor_cmd_right(PmEditor* self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_delete(PmEditor *self) {
+MmResult pmeditor_cmd_delete(PmEditor *self) {
     if (*self->txtp == 0) return kOk;
 
     char *p = self->txtp;
@@ -1653,39 +1655,38 @@ static MmResult pmeditor_cmd_delete(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_backspace(PmEditor *self) {
+MmResult pmeditor_cmd_backspace(PmEditor *self) {
+    if (!self) return kInternalFault;
     if (self->txtp == self->buf) return kOk;
 
     if (*(self->txtp - 1) == '\n') {  // if at the beginning of the line wrap around
         self->keys[1] = UP;
         self->keys[2] = END;
         self->keys[3] = DEL;
-        self->keys[4] = 0;
+        self->keys[4] = '\0';
         return kOk;
     }
 
     char *p;
 
-    // find how many spaces are between the cursor and the start of the line
-    for (p = self->txtp - 1; *p == ' ' && p != self->buf; p--);
-    if ((p == self->buf || *p == '\n') && self->txtp - p > 1) {
-        int i = self->txtp - p - 1;
-        // we have have the number of continuous spaces between the cursor and the
-        // start of the line now figure out the number of backspaces to the nearest
-        // tab stop
-
-        i = (i % mmb_options.tab);
-        if (i == 0) i = mmb_options.tab;
+    // Determine number of spaces between the cursor and the start of the line
+    int num_spaces = 0;
+    for (p = self->txtp - 1; *p == ' ' && p != self->buf; p--, num_spaces++);
+    if (p == self->buf && *p == ' ') num_spaces++;
+    if (num_spaces > 0 && ((p == self->buf && *p == ' ') || *p == '\n')) {
+        num_spaces = num_spaces % mmb_options.tab;
+        if (num_spaces == 0) num_spaces = mmb_options.tab;
         // load the corresponding number of deletes in the type ahead buffer
-        self->keys[i + 1] = 0;
-        while (i--) {
-            self->keys[i + 1] = DEL;
+        self->keys[num_spaces + 1] = '\0';
+        while (num_spaces--) {
+            self->keys[num_spaces + 1] = DEL;
             self->txtp--;
         }
         // and let the delete case take care of deleting the characters
         return pmeditor_position_cursor(self, self->txtp);
     }
-    // this is just a normal backspace (not a tabbed backspace)
+
+    // This is just a normal backspace (not a tabbed backspace)
     self->txtp--;
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
 
