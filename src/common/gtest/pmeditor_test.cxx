@@ -463,9 +463,8 @@ protected:
         last_highlight_type = kHighlightNormal;
         highlight_call_count = 0;
 
-        // Enable color coding for most tests
-        // Note: OPTION_COLOUR_CODE is a #define, so we can't change it at runtime
-        // In a real implementation, you might want to make this configurable
+        // Enable syntax highlighting for most tests
+        mmb_options.syntax_highlight = true;
     }
 
     void SetBuffer(const char* content) {
@@ -1459,28 +1458,13 @@ protected:
     PmEditor *self = &test_editor;
 
     void SetUp() override {
-        // Initialize command token table
-        commandtbl_init();
-
         // Initialize the editor state
         ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
         self->highlight_fn = pmeditor_test_highlight;
         self->display_msg_fn = pmeditor_test_display_msg;
 
         // Reset mock state
-        last_highlight_type = kHighlightNormal;
-        highlight_call_count = 0;
         memset(last_message, 0, sizeof(last_message));
-
-        // Set up basic editor state
-        self->cx = 0;
-        self->cy = 0;
-        self->px = 0;
-        self->py = 0;
-        self->width = 80;
-        self->height = 23;
-        self->num_lines = 0;
-        self->text_changed = false;
 
         // Clear keyboard buffer
         memset(self->keys, 0, sizeof(self->keys));
@@ -1490,14 +1474,7 @@ protected:
     }
 
     void SetBuffer(const char* content) {
-        strncpy(self->buf, content, EDIT_BUFFER_SIZE - 1);
-        self->buf[EDIT_BUFFER_SIZE - 1] = '\0';
-
-        // Count lines in the buffer
-        self->num_lines = 0;
-        for (const char* p = self->buf; *p; p++) {
-            if (*p == '\n') self->num_lines++;
-        }
+        ::SetBuffer(self, content);
     }
 
     void SetCursorPosition(int offset) {

@@ -89,6 +89,7 @@ typedef enum {
     kOptionF12,
     kOptionSearchPath,
     kOptionSimulate,
+    kOptionSyntaxHighlight,
     kOptionTab,
 #if defined(OPTION_TESTS)
     kOptionZBoolean,
@@ -164,6 +165,7 @@ typedef struct {
     OptionsListCase list_case;
     char search_path[STRINGSIZE];
     OptionsSimulate simulate;
+    bool syntax_highlight;
     char tab;
 
 #if defined OPTION_TESTS

@@ -68,8 +68,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/MMBasic.h"
 #include "../core/tokentbl.h"
 
-#define OPTION_COLOUR_CODE      true
-
 typedef enum {
     kEditMode,
     kMarkMode,
@@ -558,7 +556,7 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     static bool innumber = false;
     static bool just_exited_comment = false;
 
-    if (!OPTION_COLOUR_CODE) return kOk;
+    if (!mmb_options.syntax_highlight) return kOk;
 
     // this is a list of keywords that can come after the OPTION and GUI commands
     // the list must be terminated with a NULL
@@ -823,7 +821,7 @@ static MmResult pmeditor_print_line(PmEditor *self, int line) {
 
     char *p = pmeditor_find_line(self, line/*, &self->comment_level*/);
     LOG_DEBUG("comment_level=%d", self->comment_level);
-    if (OPTION_COLOUR_CODE) {
+    if (mmb_options.syntax_highlight) {
         // if we are colour coding we need to redraw the whole line
         ON_FAILURE_RETURN(display_putc_noflush('\r'));  // display the chars after the editing point
         // i = self->width - 1;         // I think this is wrong. Does not show last character in line
@@ -841,7 +839,7 @@ static MmResult pmeditor_print_line(PmEditor *self, int line) {
 
     // Display the line from here to the end of the line or the screen width
     while (i && *p && *p != '\n') {
-        if (OPTION_COLOUR_CODE) {
+        if (mmb_options.syntax_highlight) {
             ON_FAILURE_RETURN(pmeditor_set_colour(self, p));
         }
         ON_FAILURE_RETURN(display_putc_noflush(*p++));
@@ -1628,7 +1626,7 @@ MmResult pmeditor_cmd_delete(PmEditor *self) {
 
     self->text_changed = true;
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
-    if (OPTION_COLOUR_CODE) {
+    if (mmb_options.syntax_highlight) {
         if ((currdel == '/' && nextdel == '*') ||
             (currdel == '*' && nextdel == '/') ||
             (currdel == '/' && lastdel == '*') ||
@@ -2138,7 +2136,7 @@ static MmResult pmeditor_cmd_char(PmEditor *self/*char *multi*/) {
         *self->txtp++ = c;
     }
 
-    if (redraw_screen && OPTION_COLOUR_CODE) {
+    if (redraw_screen && mmb_options.syntax_highlight) {
         ON_FAILURE_RETURN(pmeditor_print_screen(self));
     } else {
         ON_FAILURE_RETURN(pmeditor_print_line(self, self->py + self->cy));
