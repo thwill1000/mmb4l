@@ -451,27 +451,40 @@ static inline MmResult pmeditor_display_msg(PmEditor *self, const char *msg) {
  * room for the new character. Checks for available buffer space before
  * inserting.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @param  c     The character to insert.
- * @return       true if successful, false if buffer is full.
+ * @param       self   Pointer to the PmEditor instance.
+ * @param       ch     The character to insert.
+ * @param[out]  state  Pointer to store the resulting InsertState.
+ * @return             kOk on success, or an error code on failure.
  */
-bool pmeditor_insert_char(PmEditor *self, char c/*, char *multi*/) {
-    LOG_DEBUG("entered: c=%c", c);
-    char *p;
+MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state) {
+    *state = kInsertNormal;
 
-    for (p = self->buf; *p; p++);  // find the end of the text in memory
-    if (p >= self->buf + sizeof(self->buf) - 10) {  // and check that we have the space (allow 10 bytes for slack)
-        pmeditor_display_msg(self, " OUT OF MEMORY ");
-        return false;
+    // Find the end of the text
+    char *p;
+    for (p = self->buf; *p; p++);
+
+    // Check that the buffer is not full
+    if (p >= self->buf + sizeof(self->buf) - 1) {
+        ON_FAILURE_RETURN(pmeditor_display_msg(self, " OUT OF MEMORY "));
+        *state = kInsertFull;
+        return kOk;  // This is still considered a successful function call
     }
-    for (; p >= self->txtp; p--) *(p + 1) = *p;  // shift everything down
+
+    // Shift everything up one place to make room
+    for (; p >= self->txtp; p--) {
+        *(p + 1) = *p;
+    }
+
     //*multi = 0;
     p = self->txtp - 1;
     //if ((c == '/' && *p == '*') || (c == '*' && *p == '/')) *multi = 1;
     p += 2;
     //if ((c == '/' && *p == '*') || (c == '*' && *p == '/')) *multi = 1;
-    *self->txtp++ = c;  // and insert our char
-    return true;
+
+    // Finally insert the character
+    *self->txtp++ = ch;
+
+    return kOk;
 }
 
 /**
@@ -1401,7 +1414,12 @@ static MmResult pmeditor_cmd_newline(PmEditor *self /*char *multi*/) {
             self->keys[i + 1] = 0;        // make sure that the end of the buffer is zeroed
         while (i) self->keys[i--] = ' ';  // now, place our spaces in the typeahead buffer
     }
-    if (!pmeditor_insert_char(self, '\n'/*, multi*/)) return kOk;  // insert the newline
+
+    // Insert the newline character
+    InsertState insert_state = kInsertNormal;
+    ON_FAILURE_RETURN(pmeditor_insert_char(self, '\n', &insert_state));
+    if (insert_state == kInsertFull) return kOk;
+
     self->text_changed = true;
     self->num_lines++;
     if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
@@ -2104,7 +2122,9 @@ static MmResult pmeditor_cmd_char(PmEditor *self/*char *multi*/) {
     self->text_changed = true;
     if (self->insert || *self->txtp == '\n' || *self->txtp == 0) {
         // Insert character
-        if (!pmeditor_insert_char(self, c/*, multi*/)) return kOk;
+        InsertState insert_state = kInsertNormal;
+        ON_FAILURE_RETURN(pmeditor_insert_char(self, c, &insert_state));
+        if (insert_state == kInsertFull) return kOk;
     } else {
         // Overwrite character
         *self->txtp++ = c;

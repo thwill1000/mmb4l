@@ -63,6 +63,14 @@ typedef enum {
     kHighlightError,
 } HighlightType;
 
+typedef enum {
+    kInsertUnspecified,
+    kInsertNormal,
+    kInsertMultilineCommentStart,  ///< Insert started multiline comment
+    kInsertMultilineCommentEnd,    ///< Insert ended multiline comment
+    kInsertFull                    ///< Insert failed due to full buffer
+} InsertState;
+
 typedef struct s_PmEditor {
     const char *fname;      // Name/path of file being edited
     char buf[EDIT_BUFFER_SIZE];  // Buffer used for editing the text
@@ -95,7 +103,7 @@ typedef struct s_PmEditor {
 
 char *pmeditor_find_line(PmEditor *self, int line); // , int *comment_level);
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
-bool pmeditor_insert_char(PmEditor *self, char c);
+MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state);
 MmResult pmeditor_set_colour(PmEditor *self, char *p);
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)
