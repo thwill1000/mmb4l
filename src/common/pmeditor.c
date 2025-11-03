@@ -105,14 +105,14 @@ static MmResult pmeditor_set_cursor_pos(PmEditor *self, int x, int y) {
  * Must be called sequentially from the start of each line to maintain
  * correct state tracking.
  *
- * IMPORTANT: Only call this function via the PmEditor#highlight_fn pointer so
+ * IMPORTANT: Only call this function via the pmeditor_highlight() wrapper so
  *            that unit-tests can override it.
  *
  * @param  self       Pointer to the PmEditor instance.
  * @param  highlight  The type of highlighting to apply.
  * @return            kOk on success, or kInternalFault for invalid highlight type.
  */
-MmResult pmeditor_highlight(PmEditor *self, HighlightType highlight) {
+MmResult pmeditor_highlight_impl(PmEditor *self, HighlightType highlight) {
     MmGraphicsColour argb = RGB_ANSI_WHITE;
 
     switch (highlight) {
@@ -145,6 +145,15 @@ MmResult pmeditor_highlight(PmEditor *self, HighlightType highlight) {
     }
 
     return display_colour_fg(argb);
+}
+
+/**
+ * Wrapper for the syntax highlighting function.
+ *
+ * Calls the assigned highlight function for the editor instance.
+ */
+static inline MmResult pmeditor_highlight(PmEditor *self, HighlightType highlight) {
+    return self->highlight_fn(self, highlight);
 }
 
 /**
@@ -277,7 +286,7 @@ static MmResult pmeditor_position_cursor(PmEditor *self, char *curp) {
  * @return       kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_draw_line(PmEditor *self) {
-    ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightLine));
+    ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightLine));
     ON_FAILURE_RETURN(display_underline(true));
 
     char buf[STRINGSIZE];
@@ -335,9 +344,9 @@ static MmResult pmeditor_print_func_keys(PmEditor *self, EditorMode mode) {
     const int old_y = self->cy;
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height));
     ON_FAILURE_RETURN(pmeditor_draw_line(self));
-    ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightStatus));
+    ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightStatus));
     ON_FAILURE_RETURN(display_puts(p));
-    ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightNormal));
+    ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, old_x, old_y));
 
@@ -412,10 +421,10 @@ static MmResult pmeditor_get_input(PmEditor *self, const char *prompt) {
  */
 static MmResult pmeditor_display_msg(PmEditor *self, const char *msg) {
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height + 1));
-    ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightError));
+    ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightError));
     ON_FAILURE_RETURN(display_inverse(true));
     ON_FAILURE_RETURN(display_puts(msg));
-    ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightNormal));
+    ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
     ON_FAILURE_RETURN(display_reset());
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
@@ -470,9 +479,9 @@ static MmResult pmeditor_print_status(PmEditor *self) {
     strcpy(s + 19, self->insert ? "INS" : "OVR");
 
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, self->width - 25, self->height + 1));
-    self->highlight_fn(self, kHighlightStatus);
+    pmeditor_highlight(self, kHighlightStatus);
     ON_FAILURE_RETURN(display_puts(s));
-    self->highlight_fn(self, kHighlightNormal);
+    pmeditor_highlight(self, kHighlightNormal);
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
     return kOk;
 }
@@ -548,7 +557,7 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
         innumber = inquote = inkeyword = incomment = intext = just_exited_comment = false;
         twokeyword = NULL;
         if (self->comment_level == 0) {
-            ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightNormal));
+            ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
         }
         return kOk;
     }
@@ -556,7 +565,7 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     // Check for the start of a multiline comment
     if (*p == '/' && p[1] == '*' && !inquote) {
         if (self->comment_level == 0) {
-            ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightComment));
+            ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightComment));
         }
         self->comment_level++;
         return kOk;
@@ -583,12 +592,12 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     // check for a comment char
     if (*p == '\'' && !inquote) {
         incomment = true;
-        return self->highlight_fn(self, kHighlightComment);
+        return pmeditor_highlight(self, kHighlightComment);
     }
     if (*p == '/' && p[1] == '*' && !inquote) {
         char *q = p;
         if (*(--q) == (char)'\n') {
-            ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightComment));
+            ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightComment));
             self->comment_level = true;
         }
         return kOk;
@@ -601,7 +610,7 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     if (*p == '\"') {
         if (!inquote) {
             inquote = true;
-            return self->highlight_fn(self, kHighlightQuote);
+            return pmeditor_highlight(self, kHighlightQuote);
         } else {
             inquote = false;
             return kOk;
@@ -615,7 +624,7 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     if (inkeyword) {
         if (isnamechar(*p) || *p == '$') return kOk;
         inkeyword = false;
-        return self->highlight_fn(self, kHighlightNormal);
+        return pmeditor_highlight(self, kHighlightNormal);
     }
 
     // if we are displaying a number check that we are still actually in it and cmdfile if not
@@ -624,7 +633,7 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
         if (!isdigit(*p) && !(toupper(*p) >= 'A' && toupper(*p) <= 'F') && toupper(*p) != 'O' &&
             toupper(*p) != 'H' && *p != '.') {
             innumber = false;
-            return self->highlight_fn(self, kHighlightNormal);
+            return pmeditor_highlight(self, kHighlightNormal);
         } else {
             return kOk;
         }
@@ -632,14 +641,14 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     } else if (!intext) {
         if (isdigit(*p) || *p == '&' || ((*p == '-' || *p == '+' || *p == '.') && isdigit(p[1]))) {
             innumber = true;
-            return self->highlight_fn(self, kHighlightNumber);
+            return pmeditor_highlight(self, kHighlightNumber);
         }
         // check if this is an 8 digit hex number as used in CFunctions
         for (i = 0; i < 8; i++)
             if (!isxdigit(p[i])) break;
         if (i == 8 && (p[8] == ' ' || p[8] == '\'' || p[8] == 0)) {
             innumber = true;
-            return self->highlight_fn(self, kHighlightNumber);
+            return pmeditor_highlight(self, kHighlightNumber);
         }
     }
 
@@ -650,10 +659,10 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
                 ((pmeditor_edit_comp_str((char *)&p[1], (char *)&commandtbl[i].name[1]) != 0) && *p == '.' &&
                  *commandtbl[i].name == '_')) {
                 if (pmeditor_edit_comp_str((char *)p, "REM") != 0) {  // special case, REM is a comment
-                    ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightComment));
+                    ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightComment));
                     incomment = true;
                 } else {
-                    ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightKeyword));
+                    ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightKeyword));
                     inkeyword = true;
                     if (pmeditor_edit_comp_str((char *)p, "GUI") || pmeditor_edit_comp_str((char *)p, "OPTION")) {
                         twokeyword = p;
@@ -667,7 +676,7 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
         for (i = 0; i < tokentbl_size - 1; i++) {  // check the token table for a match
             if (pmeditor_edit_comp_str((char *)p, (char *)tokentbl[i].name) != 0) {
                 inkeyword = true;
-                return self->highlight_fn(self, kHighlightKeyword);
+                return pmeditor_highlight(self, kHighlightKeyword);
             }
         }
 
@@ -677,7 +686,7 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
                 if (pmeditor_edit_comp_str((char *)p, (char *)*pp)) break;
             if (*pp) {
                 inkeyword = true;
-                return self->highlight_fn(self, kHighlightKeyword);
+                return pmeditor_highlight(self, kHighlightKeyword);
             }
         }
         if (p >= twokeyword) twokeyword = NULL;
@@ -687,7 +696,7 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
             if (pmeditor_edit_comp_str((char *)p, (char *)*pp)) break;
         if (*pp) {
             inkeyword = true;
-            return self->highlight_fn(self, kHighlightKeyword);
+            return pmeditor_highlight(self, kHighlightKeyword);
         }
     }
 
@@ -696,12 +705,12 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     if (isnamechar(*p)) {
         if (just_exited_comment) {
             just_exited_comment = false;
-            ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightNormal));
+            ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
         }
         intext = true;
     } else {
         intext = false;
-        ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightNormal));
+        ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
     }
 
     return kOk;
@@ -795,7 +804,7 @@ static MmResult pmeditor_print_line(PmEditor *self, int line) {
         // G.A.
         i = self->width;
         if (self->comment_level > 0) {
-            ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightComment));
+            ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightComment));
         }
     } else {
         // if we are NOT colour coding we can start drawing at the current cursor position
@@ -1883,7 +1892,7 @@ static MmResult pmeditor_cmd_save_and_exit(PmEditor *self) {
 
     // Clear and reset display
     ON_FAILURE_RETURN(display_cls());
-    ON_FAILURE_RETURN(self->highlight_fn(self, kHighlightNormal));
+    ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
     ON_FAILURE_RETURN(display_reset());
 
     // Save program
@@ -2293,7 +2302,7 @@ MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int heig
     self->text_changed = false;
     self->saved_break_key = mmb_options.break_key;
     self->comment_level = 0;
-    self->highlight_fn = pmeditor_highlight;
+    self->highlight_fn = pmeditor_highlight_impl;
     return kOk;
 }
 
