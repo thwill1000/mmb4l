@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 
 #include "../Configuration.h" // for STRINGSIZE
+#include "logger.h"
 #include "mmresult.h"
 #include "utility.h"
 
@@ -100,6 +101,11 @@ void error_clear_callback();
   const MmResult rezult = x; \
   if (FAILED(rezult)) { fprintf(stderr, "%s\n", mmresult_to_string(rezult)); exit(EX_FAIL); } \
 }
+
+#define ON_FAILURE_LOG(x)  do { \
+  const MmResult rezult = x; \
+  if (FAILED(rezult)) { LOG_ERROR("%s", mmresult_to_string(rezult)); } \
+} while (0)
 
 #define ERROR_ARGUMENT_COUNT              error_throw(kArgumentCount)
 #define ERROR_ARRAY_NOT_SQUARE            error_throw_ex(kError, "Array must be square")

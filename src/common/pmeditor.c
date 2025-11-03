@@ -56,7 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "fonttbl.h"
 #include "keycodes.h"
-#include "logger.h"
 #include "memory.h"
 #include "mmb4l.h"
 #include "mmtime.h"
@@ -218,10 +217,10 @@ static MmResult pmeditor_save_file(PmEditor *self, const char *filename) {
         const int fnbr_bak = streamio_find_free();
         ON_FAILURE_RETURN(streamio_open(backup, "wb", fnbr_bak));
         while (!streamio_eof(fnbr)) {
-            streamio_putc(fnbr_bak, streamio_getc(fnbr));
+            (void) streamio_putc(fnbr_bak, streamio_getc(fnbr));
         }
-        (void) streamio_close(fnbr);
-        (void) streamio_close(fnbr_bak);
+        ON_FAILURE_LOG(streamio_close(fnbr));
+        ON_FAILURE_LOG(streamio_close(fnbr_bak));
     }
 
     const int fnbr = streamio_find_free();
@@ -2172,7 +2171,13 @@ static MmResult pmeditor_load_file(PmEditor *self) {
                 default:
                     break;
             }
-            // TODO: Handle overrun.
+
+            // Handle overrun
+            if (p >= self->buf + sizeof(self->buf) - 1) {
+                ON_FAILURE_LOG(streamio_close(fnbr));
+                return kProgramTooLong;
+            }
+
             *p++ = ch;
         }
     }
@@ -2243,8 +2248,6 @@ MmResult pmeditor_edit_loop(PmEditor *self) {
             char *old_txtp = self->txtp;
 
             self->keys[0] = pmeditor_canonical_key(self, self->keys[0]);
-            // if (buf[0] == BreakKeySave)
-            //     buf[0] = ESC;  // if the user tried to break turn it into an escape
             ON_FAILURE_RETURN(pmeditor_cmd_dispatch(self, self->keys[0]/*, &multi*/));
 
             if (self->exit_flag) return kOk;
