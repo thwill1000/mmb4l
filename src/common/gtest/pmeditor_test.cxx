@@ -971,7 +971,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferFull) {
     InsertState insert_state = kInsertUnspecified;
     EXPECT_EQ(kOk, pmeditor_insert_char(self, 'B', &insert_state));
 
-    EXPECT_EQ(kInsertFull, insert_state);
+    EXPECT_EQ(kInsertBufferFull, insert_state);
     EXPECT_STREQ(" OUT OF MEMORY ", last_message);
 }
 
@@ -990,4 +990,56 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferHasOnlyOneByteRemaining) {
     EXPECT_STREQ("", last_message);
     EXPECT_EQ(self->buf + EDIT_BUFFER_SIZE - 1, self->txtp);
     EXPECT_EQ('B', *(self->buf + EDIT_BUFFER_SIZE - 2));
+}
+
+TEST_F(PmEditorInsertCharTest, InsertForwardSlashAfterStar) {
+    const char* initial_content = "Hello*";
+    SetBuffer(initial_content);
+
+    self->txtp = self->buf + 6; // Position after '*'
+    InsertState insert_state = kInsertUnspecified;
+    EXPECT_EQ(kOk, pmeditor_insert_char(self, '/', &insert_state));
+
+    EXPECT_EQ(kInsertMultiline, insert_state);
+    EXPECT_STREQ("Hello*/", self->buf);
+    EXPECT_EQ(self->buf + 7, self->txtp);
+}
+
+TEST_F(PmEditorInsertCharTest, InsertForwardSlashBeforeStar) {
+    const char* initial_content = "*Hello";
+    SetBuffer(initial_content);
+
+    self->txtp = self->buf; // Position before '*'
+    InsertState insert_state = kInsertUnspecified;
+    EXPECT_EQ(kOk, pmeditor_insert_char(self, '/', &insert_state));
+
+    EXPECT_EQ(kInsertMultiline, insert_state);
+    EXPECT_STREQ("/*Hello", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+}
+
+TEST_F(PmEditorInsertCharTest, InsertStarAfterForwardSlash) {
+    const char* initial_content = "/Hello";
+    SetBuffer(initial_content);
+
+    self->txtp = self->buf + 1; // Position after '/'
+    InsertState insert_state = kInsertUnspecified;
+    EXPECT_EQ(kOk, pmeditor_insert_char(self, '*', &insert_state));
+
+    EXPECT_EQ(kInsertMultiline, insert_state);
+    EXPECT_STREQ("/*Hello", self->buf);
+    EXPECT_EQ(self->buf + 2, self->txtp);
+}
+
+TEST_F(PmEditorInsertCharTest, InsertStarBeforeForwardSlash) {
+    const char* initial_content = "Hello/";
+    SetBuffer(initial_content);
+
+    self->txtp = self->buf + 5; // Position before '/'
+    InsertState insert_state = kInsertUnspecified;
+    EXPECT_EQ(kOk, pmeditor_insert_char(self, '*', &insert_state));
+
+    EXPECT_EQ(kInsertMultiline, insert_state);
+    EXPECT_STREQ("Hello*/", self->buf);
+    EXPECT_EQ(self->buf + 6, self->txtp);
 }

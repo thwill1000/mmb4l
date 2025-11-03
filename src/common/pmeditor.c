@@ -466,8 +466,18 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state) {
     // Check that the buffer is not full
     if (p >= self->buf + sizeof(self->buf) - 1) {
         ON_FAILURE_RETURN(pmeditor_display_msg(self, " OUT OF MEMORY "));
-        *state = kInsertFull;
+        *state = kInsertBufferFull;
         return kOk;  // This is still considered a successful function call
+    }
+
+    // Check for interactions that might make or break multiline comments
+    char previous = (self->txtp > self->buf) ? *(self->txtp - 1) : '\0';
+    if (ch == '/' && (previous == '*' || *self->txtp == '*')) {
+        // Inserting '/' before or after '*'
+        *state = kInsertMultiline;
+    } else if (ch == '*' && (previous == '/' || *self->txtp == '/')) {
+        // Inserting '*' before or after '/'
+        *state = kInsertMultiline;
     }
 
     // Shift everything up one place to make room
@@ -475,13 +485,8 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state) {
         *(p + 1) = *p;
     }
 
-    //*multi = 0;
-    p = self->txtp - 1;
-    //if ((c == '/' && *p == '*') || (c == '*' && *p == '/')) *multi = 1;
-    p += 2;
-    //if ((c == '/' && *p == '*') || (c == '*' && *p == '/')) *multi = 1;
-
     // Finally insert the character
+    p = self->txtp + 1;
     *self->txtp++ = ch;
 
     return kOk;
@@ -1418,13 +1423,15 @@ static MmResult pmeditor_cmd_newline(PmEditor *self /*char *multi*/) {
     // Insert the newline character
     InsertState insert_state = kInsertNormal;
     ON_FAILURE_RETURN(pmeditor_insert_char(self, '\n', &insert_state));
-    if (insert_state == kInsertFull) return kOk;
+    if (insert_state == kInsertBufferFull) return kOk;
 
     self->text_changed = true;
     self->num_lines++;
     if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
         self->py++;                     // otherwise scroll
-    ON_FAILURE_RETURN(pmeditor_print_screen(self));  // redraw everything
+
+    // Always redraw everything
+    ON_FAILURE_RETURN(pmeditor_print_screen(self));
 
     return pmeditor_position_cursor(self, self->txtp);
 }
@@ -1457,10 +1464,10 @@ static MmResult pmeditor_cmd_up(PmEditor *self) {
         if (*self->txtp == '\n') self->txtp++;
     }
 
-    // Move to the same column as we were previously (self->tempx),
+    // Move to the same column as we were previously (self->preferred_x),
     // or the end of the line
     int i;
-    for (i = 0; i < self->px + self->tempx && *self->txtp != 0 && *self->txtp != '\n';
+    for (i = 0; i < self->px + self->preferred_x && *self->txtp != 0 && *self->txtp != '\n';
          i++, self->txtp++);
 
     if (self->cy > 2 || self->py == 0) {
@@ -1497,10 +1504,10 @@ static MmResult pmeditor_cmd_down(PmEditor *self) {
     // Find the start of the next line
     p++;
 
-    // Move to the same column as we were previously (self->tempx),
+    // Move to the same column as we were previously (self->preferred_x),
     // or the end of the line
     int i;
-    for (i = 0; i < self->px + self->tempx && *p != 0 && *p != '\n'; i++, p++);
+    for (i = 0; i < self->px + self->preferred_x && *p != 0 && *p != '\n'; i++, p++);
     self->txtp = p;
 
     if (self->cy < self->height - 3 || self->py + self->height == self->num_lines) {
@@ -2120,25 +2127,26 @@ static MmResult pmeditor_cmd_char(PmEditor *self/*char *multi*/) {
     }
 
     self->text_changed = true;
+    bool redraw_screen = false;
     if (self->insert || *self->txtp == '\n' || *self->txtp == 0) {
         // Insert character
         InsertState insert_state = kInsertNormal;
         ON_FAILURE_RETURN(pmeditor_insert_char(self, c, &insert_state));
-        if (insert_state == kInsertFull) return kOk;
+        if (insert_state == kInsertBufferFull) return kOk;
+        redraw_screen = (insert_state == kInsertMultiline);
     } else {
         // Overwrite character
+        // TODO: this might change comment
         *self->txtp++ = c;
     }
 
-    // Redraw the edited line
-    ON_FAILURE_RETURN(pmeditor_print_line(self, self->py + self->cy));
+    if (redraw_screen && OPTION_COLOUR_CODE) {
+        ON_FAILURE_RETURN(pmeditor_print_screen(self));
+    } else {
+        ON_FAILURE_RETURN(pmeditor_print_line(self, self->py + self->cy));
+    }
 
-    // Update the display cursor
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
-
-    self->tempx = self->cy;  // used to track the preferred cursor position
-    // if (multi && OPTION_COLOUR_CODE) pmeditor_print_screen();
-    return kOk;
+    return pmeditor_position_cursor(self, self->txtp);
 }
 
 /**
@@ -2294,8 +2302,10 @@ MmResult pmeditor_edit_loop(PmEditor *self) {
             if (self->exit_flag) return kOk;
 
             self->last_key = self->keys[0];
+
+            // Unless moving up or down, update the preferred x-position
             if (self->keys[0] != UP && self->keys[0] != DOWN) {
-                self->tempx = self->cx;
+                self->preferred_x = self->cx;
             }
 
             // Shuffle down the keyboard buffer to get the next character

@@ -66,9 +66,8 @@ typedef enum {
 typedef enum {
     kInsertUnspecified,
     kInsertNormal,
-    kInsertMultilineCommentStart,  ///< Insert started multiline comment
-    kInsertMultilineCommentEnd,    ///< Insert ended multiline comment
-    kInsertFull                    ///< Insert failed due to full buffer
+    kInsertMultiline,   ///< Inserted character may affect multiline comment state
+    kInsertBufferFull,  ///< Insert failed due to full buffer
 } InsertState;
 
 typedef struct s_PmEditor {
@@ -84,7 +83,7 @@ typedef struct s_PmEditor {
     char *txtp;             // Position of the cursor in the text being edited
     bool draw_status_line;  // True if the status line needs redrawing on next keystroke
     bool insert;            // True if the editor is in INSERT mode
-    int tempx;              // User to track preferred x-position when up/down arrowing
+    int preferred_x;        // User to track preferred x-position when up/down arrowing
     bool text_changed;      // True if the etxt has been editor and thus may need saving
     int comment_level;      // Tracks current multiline comment depth in pmeditor_print_line()
     bool mark_mode;         // True if we are in mark mode
