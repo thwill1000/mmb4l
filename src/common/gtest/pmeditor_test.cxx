@@ -40,10 +40,16 @@ MmResult ClearRuntime(void) { return kOk; }
 
 static HighlightType last_highlight_type = kHighlightNormal;
 static int highlight_call_count = 0;
+static char last_message[STRINGSIZE];
 
 MmResult pmeditor_test_highlight(PmEditor *self, HighlightType highlight) {
     last_highlight_type = highlight;
     highlight_call_count++;
+    return kOk;
+}
+
+MmResult pmeditor_test_display_msg(PmEditor *self, const char *msg) {
+    strcpy(last_message, msg);
     return kOk;
 }
 
@@ -887,4 +893,37 @@ TEST_F(PmEditorSetColourTest, NestedCommentScenarios) {
     EXPECT_HIGHLIGHT(kHighlightQuote);
 
     EXPECT_FALSE(self->comment_level);
+}
+
+class PmEditorInsertCharTest : public ::testing::Test {
+
+protected:
+    PmEditor test_editor;
+    PmEditor *self = &test_editor;
+
+    void SetUp() override {
+        // Initialise the editor state
+        ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
+        self->display_msg_fn = pmeditor_test_display_msg;
+
+        // Reset mock state
+        memset(last_message, 0, sizeof(last_message));
+    }
+
+    void SetBuffer(const char* content) {
+        strncpy(self->buf, content, EDIT_BUFFER_SIZE - 1);
+        self->buf[EDIT_BUFFER_SIZE - 1] = '\0';
+    }
+};
+
+TEST_F(PmEditorInsertCharTest, InsertCharAtBeginning) {
+    const char* initial_content = "World";
+    SetBuffer(initial_content);
+
+    self->txtp = self->buf;
+    MmResult result = pmeditor_insert_char(self, 'H');
+
+    EXPECT_TRUE(result);
+    EXPECT_STREQ("HWorld", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
 }

@@ -415,11 +415,14 @@ static MmResult pmeditor_get_input(PmEditor *self, const char *prompt) {
  * typically used for error messages or warnings. Sets a flag to redraw the
  * status line after the next user input.
  *
+ * IMPORTANT: Only call this function via the pmeditor_display_msg() wrapper so
+ *            that unit-tests can override it.
+ *
  * @param  self  Pointer to the PmEditor instance.
  * @param  msg   The message string to display.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_display_msg(PmEditor *self, const char *msg) {
+static MmResult pmeditor_display_msg_impl(PmEditor *self, const char *msg) {
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height + 1));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightError));
     ON_FAILURE_RETURN(display_inverse(true));
@@ -433,6 +436,15 @@ static MmResult pmeditor_display_msg(PmEditor *self, const char *msg) {
 }
 
 /**
+ * Wrapper for the display message function.
+ *
+ * Calls the assigned display message function for the editor instance.
+ */
+static inline MmResult pmeditor_display_msg(PmEditor *self, const char *msg) {
+    return self->display_msg_fn(self, msg);
+}
+
+/**
  * Inserts a character into the text buffer at the current position.
  *
  * Shifts all text after the current position down by one character to make
@@ -443,7 +455,7 @@ static MmResult pmeditor_display_msg(PmEditor *self, const char *msg) {
  * @param  c     The character to insert.
  * @return       true if successful, false if buffer is full.
  */
-static bool pmeditor_insert_char(PmEditor *self, char c/*, char *multi*/) {
+bool pmeditor_insert_char(PmEditor *self, char c/*, char *multi*/) {
     LOG_DEBUG("entered: c=%c", c);
     char *p;
 
@@ -2302,6 +2314,7 @@ MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int heig
     self->text_changed = false;
     self->saved_break_key = mmb_options.break_key;
     self->comment_level = 0;
+    self->display_msg_fn = pmeditor_display_msg_impl;
     self->highlight_fn = pmeditor_highlight_impl;
     return kOk;
 }

@@ -89,11 +89,13 @@ typedef struct s_PmEditor {
 
     // Some functions should only be called via function pointers
     // to allow them to be overridden in unit-tests.
+    MmResult (*display_msg_fn)(struct s_PmEditor *, const char *);
     MmResult (*highlight_fn)(struct s_PmEditor *, HighlightType);
 } PmEditor;
 
-MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 char *pmeditor_find_line(PmEditor *self, int line); // , int *comment_level);
+MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
+bool pmeditor_insert_char(PmEditor *self, char c);
 MmResult pmeditor_set_colour(PmEditor *self, char *p);
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)
