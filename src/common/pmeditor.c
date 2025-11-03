@@ -503,11 +503,11 @@ static MmResult pmeditor_print_status(PmEditor *self) {
     strcpy(s + 19, self->insert ? "INS" : "OVR");
 
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, self->width - 25, self->height + 1));
-    pmeditor_highlight(self, kHighlightStatus);
+    ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightStatus));
     ON_FAILURE_RETURN(display_puts(s));
-    pmeditor_highlight(self, kHighlightNormal);
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
-    return kOk;
+    ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
+
+    return pmeditor_position_cursor(self, self->txtp);
 }
 
 /**
