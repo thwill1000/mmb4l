@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdbool.h>
 
-#include "graphics.h"
+#include "mmcolour.h"
 #include "mmresult.h"
 
 /** Makes a "bell" noise. */
