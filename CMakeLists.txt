@@ -503,6 +503,7 @@ add_executable(test_display
     src/common/fonttbl.c
     src/common/termgfx.c
     src/common/gtest/display_test.cxx
+    src/common/gtest/stubs/console_stubs.c
     src/common/gtest/stubs/sdl2_stubs.c
 )
 
