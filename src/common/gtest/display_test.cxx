@@ -28,6 +28,7 @@ void console_bell() { }
 void console_clear() { }
 MmResult console_clear_to_end_of_line() { return kOk; }
 MmResult console_clear_to_end_of_screen() { return kOk; }
+MmResult console_colour(MmGraphicsColour fg, MmGraphicsColour bg) { return kOk; }
 MmResult console_colour_bg(MmGraphicsColour argb) { return kOk; }
 MmResult console_colour_fg(MmGraphicsColour argb) { return kOk; }
 MmResult console_cursor_left(bool wrap) { return kOk; }

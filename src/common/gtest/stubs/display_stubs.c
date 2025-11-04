@@ -15,6 +15,8 @@ MmResult display_bell() {
 
 MmResult display_clear_to_end_of_line() { return kOk; }
 MmResult display_clear_to_end_of_screen() { return kOk; }
+MmResult display_cls() { return kOk; }
+MmResult display_colour(MmGraphicsColour fg, MmGraphicsColour bg) { return kOk; }
 MmResult display_colour_bg(MmGraphicsColour argb) { return kOk; }
 MmResult display_colour_fg(MmGraphicsColour argb) { return kOk; }
 MmResult display_cursor_left(int count, bool wrap) { return kOk; }

@@ -71,6 +71,15 @@ MmResult display_clear_to_end_of_screen();
 MmResult display_cls();
 
 /**
+ * Sets the display foreground and background colours.
+ *
+ * @param[in]  fg  the ARGB foreground colour value.
+ * @param[in]  bg  the ARGB background colour value.
+ * @return         kOk on success.
+ */
+MmResult display_colour(MmGraphicsColour fg, MmGraphicsColour bg);
+
+/**
  * Sets the display background colour.
  *
  * @param[in]  argb  the ARGB colour value.

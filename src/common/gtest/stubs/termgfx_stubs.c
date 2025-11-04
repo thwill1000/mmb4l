@@ -10,6 +10,7 @@ MmResult termgfx_bell() { return kOk; }
 MmResult termgfx_clear_to_end_of_line() { return kOk; }
 MmResult termgfx_clear_to_end_of_screen() { return kOk; }
 MmResult termgfx_cls() { return kOk; }
+MmResult termgfx_colour(MmGraphicsColour fg, MmGraphicsColour bg) { return kOk; }
 MmResult termgfx_colour_bg(MmGraphicsColour argb) { return kOk; }
 MmResult termgfx_colour_fg(MmGraphicsColour argb) { return kOk; }
 MmResult termgfx_cursor_left(int count, bool wrap) { return kOk; }
