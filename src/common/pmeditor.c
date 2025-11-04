@@ -80,6 +80,55 @@ typedef enum {
 } MarkState;
 
 /**
+ * Initializes the syntax highlighting state of the editor.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @return       kOk (always succeeds).
+ */
+MmResult pmeditor_init_syntax_state(PmEditor *self) {
+    self->syntax.incomment = false;
+    self->syntax.inquote = false;
+    self->syntax.inkeyword = false;
+    self->syntax.innumber = false;
+    self->syntax.intext = false;
+    self->syntax.just_exited_comment = false;
+    self->syntax.twokeyword = NULL;
+    return kOk;
+}
+
+// Forward declarations required by pmeditor_init()
+static MmResult pmeditor_display_msg_impl(PmEditor *self, const char *msg);
+static MmResult pmeditor_highlight_impl(PmEditor *self, HighlightType highlight);
+
+/**
+ * Initializes a PmEditor instance with the specified parameters.
+ *
+ * Zeros out the editor structure and sets initial values for all fields.
+ * The editor height is reduced by 2 rows to accommodate the status line
+ * and function key display area. Sets insert mode as the default editing
+ * mode and saves the current break key setting for later restoration.
+ *
+ * @param  self      Pointer to the PmEditor structure to initialize.
+ * @param  filename  Path to the file being edited (not copied, pointer stored).
+ * @param  width     Width of the editor display area in characters.
+ * @param  height    Total height available in characters (status area included).
+ * @return           kOk (always succeeds).
+ */
+MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height) {
+    memset(self, 0, sizeof(PmEditor));
+    self->height = height - 2; // 2 rows for the status line
+    self->width = width;
+    self->fname = filename;
+    self->insert = true;
+    self->text_changed = false;
+    self->saved_break_key = mmb_options.break_key;
+    self->comment_level = 0;
+    self->display_msg_fn = pmeditor_display_msg_impl;
+    self->highlight_fn = pmeditor_highlight_impl;
+    return pmeditor_init_syntax_state(self);
+}
+
+/**
  * Sets the display cursor position and updates internal cursor coordinates.
  *
  * @param  self  Pointer to the PmEditor instance.
@@ -109,7 +158,7 @@ static MmResult pmeditor_set_cursor_pos(PmEditor *self, int x, int y) {
  * @param  highlight  The type of highlighting to apply.
  * @return            kOk on success, or kInternalFault for invalid highlight type.
  */
-MmResult pmeditor_highlight_impl(PmEditor *self, HighlightType highlight) {
+static MmResult pmeditor_highlight_impl(PmEditor *self, HighlightType highlight) {
     MmGraphicsColour argb = RGB_ANSI_WHITE;
 
     switch (highlight) {
@@ -372,7 +421,7 @@ static MmResult pmeditor_get_input(PmEditor *self, const char *prompt) {
         int ch = -1;
         ON_FAILURE_RETURN(prompt_getc(&ch));
         if (ch == '\r') break;
-        *p = (char) ch;
+        *p = ch;
 
         if (*p == SHIFT_FN(F3) || *p == F3 || *p == ESC) {
             p++;  // Include the key in the buffer
@@ -546,16 +595,6 @@ static bool pmeditor_edit_comp_str(char *p, const char *tkn) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_set_colour(PmEditor *self, char *p) {
-    int i;
-    char **pp;
-    static bool intext = false;
-    static bool incomment = false;
-    static bool inkeyword = false;
-    static char *twokeyword = NULL;
-    static bool inquote = false;
-    static bool innumber = false;
-    static bool just_exited_comment = false;
-
     if (!mmb_options.syntax_highlight) return kOk;
 
     // this is a list of keywords that can come after the OPTION and GUI commands
@@ -578,8 +617,7 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
 
     // cmdfile everything back to normal
     if (p == NULL) {
-        innumber = inquote = inkeyword = incomment = intext = just_exited_comment = false;
-        twokeyword = NULL;
+        ON_FAILURE_RETURN(pmeditor_init_syntax_state(self));
         if (self->comment_level == 0) {
             ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
         }
@@ -587,7 +625,7 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     }
 
     // Check for the start of a multiline comment
-    if (*p == '/' && p[1] == '*' && !inquote) {
+    if (*p == '/' && p[1] == '*' && !self->syntax.inquote) {
         if (self->comment_level == 0) {
             ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightComment));
         }
@@ -597,11 +635,11 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
 
     // Check for the end of a multiline comment
     // Watch for the edge case /*/ sequence which does not end a comment
-    if (p >= self->buf && *p == '/' && *(p - 1) == '*' && *(p - 2) != '/' && !inquote) {
+    if (p >= self->buf && *p == '/' && *(p - 1) == '*' && *(p - 2) != '/' && !self->syntax.inquote) {
         if (self->comment_level > 0) {
             self->comment_level--;
             if (self->comment_level == 0) {
-                just_exited_comment = true;
+                self->syntax.just_exited_comment = true;
             }
         }
         return kOk;
@@ -614,13 +652,13 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     }
 
     // check for a comment char
-    if (*p == '\'' && !inquote) {
-        incomment = true;
+    if (*p == '\'' && !self->syntax.inquote) {
+        self->syntax.incomment = true;
         return pmeditor_highlight(self, kHighlightComment);
     }
-    if (*p == '/' && p[1] == '*' && !inquote) {
+    if (*p == '/' && p[1] == '*' && !self->syntax.inquote) {
         char *q = p;
-        if (*(--q) == (char)'\n') {
+        if (*(--q) == '\n') {
             ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightComment));
             self->comment_level = true;
         }
@@ -628,112 +666,119 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
     }
 
     // once in a comment all following chars must be comments also
-    if (incomment || self->comment_level) return kOk;
+    if (self->syntax.incomment || self->comment_level) return kOk;
 
     // check for a quoted string
     if (*p == '\"') {
-        if (!inquote) {
-            inquote = true;
+        if (!self->syntax.inquote) {
+            self->syntax.inquote = true;
             return pmeditor_highlight(self, kHighlightQuote);
         } else {
-            inquote = false;
+            self->syntax.inquote = false;
             return kOk;
         }
     }
 
-    if (inquote) return kOk;
+    if (self->syntax.inquote) return kOk;
 
     // if we are displaying a keyword check that it is still actually in the keyword and cmdfile if
     // not
-    if (inkeyword) {
+    if (self->syntax.inkeyword) {
         if (isnamechar(*p) || *p == '$') return kOk;
-        inkeyword = false;
+        self->syntax.inkeyword = false;
         return pmeditor_highlight(self, kHighlightNormal);
     }
 
     // if we are displaying a number check that we are still actually in it and cmdfile if not
     // this is complicated because numbers can be in hex or scientific notation
-    if (innumber) {
+    if (self->syntax.innumber) {
         if (!isdigit(*p) && !(toupper(*p) >= 'A' && toupper(*p) <= 'F') && toupper(*p) != 'O' &&
             toupper(*p) != 'H' && *p != '.') {
-            innumber = false;
+            self->syntax.innumber = false;
             return pmeditor_highlight(self, kHighlightNormal);
         } else {
             return kOk;
         }
         // check if we are starting a number
-    } else if (!intext) {
+    } else if (!self->syntax.intext) {
         if (isdigit(*p) || *p == '&' || ((*p == '-' || *p == '+' || *p == '.') && isdigit(p[1]))) {
-            innumber = true;
+            self->syntax.innumber = true;
             return pmeditor_highlight(self, kHighlightNumber);
         }
         // check if this is an 8 digit hex number as used in CFunctions
-        for (i = 0; i < 8; i++)
+        int i = 0;
+        for (i = 0; i < 8; i++) {
             if (!isxdigit(p[i])) break;
+        }
         if (i == 8 && (p[8] == ' ' || p[8] == '\'' || p[8] == 0)) {
-            innumber = true;
+            self->syntax.innumber = true;
             return pmeditor_highlight(self, kHighlightNumber);
         }
     }
 
     // check if this is the start of a keyword
-    if (isnamechar(*p) && !intext) {
-        for (i = 0; i < commandtbl_size - 1; i++) {  // check the command table for a match
-            if (pmeditor_edit_comp_str((char *)p, (char *)commandtbl[i].name) != 0 ||
-                ((pmeditor_edit_comp_str((char *)&p[1], (char *)&commandtbl[i].name[1]) != 0) && *p == '.' &&
+    if (isnamechar(*p) && !self->syntax.intext) {
+        for (int i = 0; i < commandtbl_size - 1; i++) {  // check the command table for a match
+            if (pmeditor_edit_comp_str(p, commandtbl[i].name) != 0 ||
+                ((pmeditor_edit_comp_str(&p[1], &commandtbl[i].name[1]) != 0) && *p == '.' &&
                  *commandtbl[i].name == '_')) {
-                if (pmeditor_edit_comp_str((char *)p, "REM") != 0) {  // special case, REM is a comment
+                if (pmeditor_edit_comp_str(p, "REM") != 0) {  // special case, REM is a comment
                     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightComment));
-                    incomment = true;
+                    self->syntax.incomment = true;
                 } else {
                     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightKeyword));
-                    inkeyword = true;
-                    if (pmeditor_edit_comp_str((char *)p, "GUI") || pmeditor_edit_comp_str((char *)p, "OPTION")) {
-                        twokeyword = p;
-                        while (isalnum(*twokeyword)) twokeyword++;
-                        while (*twokeyword == ' ') twokeyword++;
+                    self->syntax.inkeyword = true;
+                    if (pmeditor_edit_comp_str(p, "GUI") || pmeditor_edit_comp_str(p, "OPTION")) {
+                        self->syntax.twokeyword = p;
+                        while (isalnum(*self->syntax.twokeyword)) self->syntax.twokeyword++;
+                        while (*self->syntax.twokeyword == ' ') self->syntax.twokeyword++;
                     }
                     return kOk;
                 }
             }
         }
-        for (i = 0; i < tokentbl_size - 1; i++) {  // check the token table for a match
-            if (pmeditor_edit_comp_str((char *)p, (char *)tokentbl[i].name) != 0) {
-                inkeyword = true;
+        for (int i = 0; i < tokentbl_size - 1; i++) {  // check the token table for a match
+            if (pmeditor_edit_comp_str(p, tokentbl[i].name) != 0) {
+                self->syntax.inkeyword = true;
                 return pmeditor_highlight(self, kHighlightKeyword);
             }
         }
 
         // check for the second keyword in two keyword commands
-        if (p == twokeyword) {
-            for (pp = (char **)twokeywordtbl; *pp; pp++)
-                if (pmeditor_edit_comp_str((char *)p, (char *)*pp)) break;
+        if (p == self->syntax.twokeyword) {
+            char **pp;
+            for (pp = (char **) twokeywordtbl; *pp; pp++) {
+                if (pmeditor_edit_comp_str(p, *pp)) break;
+            }
             if (*pp) {
-                inkeyword = true;
+                self->syntax.inkeyword = true;
                 return pmeditor_highlight(self, kHighlightKeyword);
             }
         }
-        if (p >= twokeyword) twokeyword = NULL;
+        if (p >= self->syntax.twokeyword) self->syntax.twokeyword = NULL;
 
         // check for a range of common keywords
-        for (pp = (char **)specialkeywords; *pp; pp++)
-            if (pmeditor_edit_comp_str((char *)p, (char *)*pp)) break;
-        if (*pp) {
-            inkeyword = true;
-            return pmeditor_highlight(self, kHighlightKeyword);
+        {
+            char **pp;
+            for (pp = (char **) specialkeywords; *pp; pp++)
+                if (pmeditor_edit_comp_str(p, *pp)) break;
+            if (*pp) {
+                self->syntax.inkeyword = true;
+                return pmeditor_highlight(self, kHighlightKeyword);
+            }
         }
     }
 
     // try to keep track of if we are in general text or not
     // this is to avoid recognising keywords or numbers inside variables
     if (isnamechar(*p)) {
-        if (just_exited_comment) {
-            just_exited_comment = false;
+        if (self->syntax.just_exited_comment) {
+            self->syntax.just_exited_comment = false;
             ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
         }
-        intext = true;
+        self->syntax.intext = true;
     } else {
-        intext = false;
+        self->syntax.intext = false;
         ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
     }
 
@@ -2024,7 +2069,7 @@ static MmResult pmeditor_cmd_exit(PmEditor *self) {
 static MmResult pmeditor_cmd_search_again(PmEditor *self) {
     char *p = self->txtp;
     if (*p == 0) p = self->buf - 1;
-    int i = strlen((char *)tknbuf);
+    int i = strlen(tknbuf);
     while (1) {
         p++;
         if (p == self->txtp) break;
@@ -2315,34 +2360,6 @@ MmResult pmeditor_edit_loop(PmEditor *self) {
             }
         } while (*self->keys);
     }
-}
-
-/**
- * Initializes a PmEditor instance with the specified parameters.
- *
- * Zeros out the editor structure and sets initial values for all fields.
- * The editor height is reduced by 2 rows to accommodate the status line
- * and function key display area. Sets insert mode as the default editing
- * mode and saves the current break key setting for later restoration.
- *
- * @param  self      Pointer to the PmEditor structure to initialize.
- * @param  filename  Path to the file being edited (not copied, pointer stored).
- * @param  width     Width of the editor display area in characters.
- * @param  height    Total height available in characters (status area included).
- * @return           kOk (always succeeds).
- */
-MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height) {
-    memset(self, 0, sizeof(PmEditor));
-    self->height = height - 2; // 2 rows for the status line
-    self->width = width;
-    self->fname = filename;
-    self->insert = true;
-    self->text_changed = false;
-    self->saved_break_key = mmb_options.break_key;
-    self->comment_level = 0;
-    self->display_msg_fn = pmeditor_display_msg_impl;
-    self->highlight_fn = pmeditor_highlight_impl;
-    return kOk;
 }
 
 /**

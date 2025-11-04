@@ -70,6 +70,16 @@ typedef enum {
     kInsertBufferFull,  ///< Insert failed due to full buffer
 } InsertState;
 
+typedef struct SyntaxState {
+    bool incomment;
+    bool inquote;
+    bool inkeyword;
+    bool innumber;
+    bool intext;
+    bool just_exited_comment;
+    char *twokeyword;
+} SyntaxState;
+
 typedef struct s_PmEditor {
     const char *fname;      // Name/path of file being edited
     char buf[EDIT_BUFFER_SIZE];  // Buffer used for editing the text
@@ -93,6 +103,7 @@ typedef struct s_PmEditor {
     bool exit_flag;         // True if the editor should exit
     char saved_break_key;   // Original value of mmb_options.break_key when editor entered
     char *mark;             // Current position of the mark in mark mode
+    SyntaxState syntax;     // Current syntax highlighting state
 
     // Some functions should only be called via function pointers
     // to allow them to be overridden in unit-tests.
