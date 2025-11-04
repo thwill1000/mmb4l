@@ -812,7 +812,7 @@ TEST_F(PmEditorSetColourTest, KeywordBoundary) {
 TEST_F(PmEditorSetColourTest, NumberBoundary) {
     ResetState();
 
-    SetBuffer("123 ");
+    SetBuffer("123/");
 
     // Process digits
     for (int i = 0; i < 3; i++) {
@@ -847,6 +847,21 @@ TEST_F(PmEditorSetColourTest, ScientificNotation) {
     // Process 'E' - should remain in number mode
     pmeditor_set_colour(self, self->buf + 4);
     EXPECT_HIGHLIGHT(kHighlightNumber);
+}
+
+// Test highlighting of trailing whitespace
+TEST_F(PmEditorSetColourTest, TrailingWhitespace) {
+    ResetState();
+    SetBuffer("PRINT    ");
+    for (int i = 0; i < 5; i++) {
+        EXPECT_EQ(kOk, pmeditor_set_colour(self, self->buf + i)); // Process "PRINT"
+    }
+    EXPECT_HIGHLIGHT(kHighlightKeyword);
+
+    MmResult result = pmeditor_set_colour(self, self->buf + 5); // Process first space
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_HIGHLIGHT(kHighlightTrailingWhitespace);
 }
 
 // Test that color coding can be disabled

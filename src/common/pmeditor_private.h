@@ -61,6 +61,7 @@ typedef enum {
     kHighlightLine,
     kHighlightStatus,
     kHighlightError,
+    kHighlightTrailingWhitespace,
 } HighlightType;
 
 typedef enum {

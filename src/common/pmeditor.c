@@ -159,38 +159,42 @@ static MmResult pmeditor_set_cursor_pos(PmEditor *self, int x, int y) {
  * @return            kOk on success, or kInternalFault for invalid highlight type.
  */
 static MmResult pmeditor_highlight_impl(PmEditor *self, HighlightType highlight) {
-    MmGraphicsColour argb = RGB_ANSI_WHITE;
+    MmGraphicsColour fg = RGB_ANSI_WHITE;
+    MmGraphicsColour bg = RGB_ANSI_BLACK;
 
     switch (highlight) {
         case kHighlightNormal:
-            argb = RGB_ANSI_WHITE;
+            fg = RGB_ANSI_WHITE;
             break;
         case kHighlightComment:
-            argb = RGB_ANSI_YELLOW;
+            fg = RGB_ANSI_YELLOW;
             break;
         case kHighlightKeyword:
-            argb = RGB_ANSI_CYAN;
+            fg = RGB_ANSI_CYAN;
             break;
         case kHighlightQuote:
-            argb = RGB_ANSI_MAGENTA;
+            fg = RGB_ANSI_MAGENTA;
             break;
         case kHighlightNumber:
-            argb = RGB_ANSI_GREEN;
+            fg = RGB_ANSI_GREEN;
             break;
         case kHighlightLine:
-            argb = RGB_ANSI_MAGENTA;
+            fg = RGB_ANSI_MAGENTA;
             break;
         case kHighlightStatus:
-            argb = RGB_ANSI_WHITE;
+            fg = RGB_ANSI_WHITE;
             break;
         case kHighlightError:
-            argb = RGB_ANSI_WHITE;
+            fg = RGB_ANSI_WHITE;
+            break;
+        case kHighlightTrailingWhitespace:
+            bg = RGB_ANSI_RED;
             break;
         default:
             return kInternalFault;
     }
 
-    return display_colour_fg(argb);
+    return display_colour(fg, bg);
 }
 
 /**
@@ -645,6 +649,16 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
         return kOk;
     }
 
+    // Check for trailing whitespace
+    if (*p == ' ') {
+        char *q = p + 1;
+        while (*q == ' ') q++;
+        if (*q == '\n' || *q == '\0') {
+            ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightTrailingWhitespace));
+            return kOk;
+        }
+    }
+
     // Within a multiline comment all chars are comments
     if (self->comment_level > 0) {
         // Don't change highlight if already in comment
@@ -891,8 +905,8 @@ static MmResult pmeditor_print_line(PmEditor *self, int line) {
         i--;
     }
 
-    ON_FAILURE_RETURN(display_clear_to_end_of_line());
     ON_FAILURE_RETURN(pmeditor_set_colour(self, NULL));
+    ON_FAILURE_RETURN(display_clear_to_end_of_line());
     self->cx = self->width - 1;
 
     return kOk;
