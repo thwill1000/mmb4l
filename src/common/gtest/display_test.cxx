@@ -14,47 +14,15 @@ extern "C" {
 #define FONT_1_WIDTH   8
 #define FONT_1_HEIGHT  12
 
-MmResult (*mock_console_get_cursor_pos)(int *, int *);
-MmResult (*mock_console_get_size)(int *, int *);
-void (*mock_console_set_cursor_pos)(int, int);
+// Defined in "common/gtest/stubs/console_stubs.c"
+extern MmResult (*mock_console_get_cursor_pos)(int *, int *);
+extern MmResult (*mock_console_get_size)(int *, int *);
+extern void (*mock_console_set_cursor_pos)(int, int);
 
 int console_cursor_x;
 int console_cursor_y;
 int console_width;
 int console_height;
-
-// Defined in "common/console.c"
-void console_bell() { }
-void console_clear() { }
-MmResult console_clear_to_end_of_line() { return kOk; }
-MmResult console_clear_to_end_of_screen() { return kOk; }
-MmResult console_colour(MmGraphicsColour fg, MmGraphicsColour bg) { return kOk; }
-MmResult console_colour_bg(MmGraphicsColour argb) { return kOk; }
-MmResult console_colour_fg(MmGraphicsColour argb) { return kOk; }
-MmResult console_cursor_left(bool wrap) { return kOk; }
-void console_cursor_up(int i) { }
-MmResult console_flush() { return kOk; }
-MmResult console_get_cursor_pos(int *x, int *y) {
-    return mock_console_get_cursor_pos(x, y);
-}
-MmResult console_get_size(int *width, int *height) {
-    return mock_console_get_size(width, height);
-}
-MmResult console_inverse(bool inverse) { return kOk; }
-char console_putc(char c) { return c; }
-char console_putc_noflush(char c) { return c; }
-void console_puts(const char *s) { }
-MmResult console_reset() { return kOk; }
-MmResult console_scroll_down() { return kOk; }
-MmResult console_scroll_up() { return kOk; }
-void console_set_cursor_pos(int x, int y) {
-    mock_console_set_cursor_pos(x, y);
-}
-MmResult console_show_cursor(bool show) { return kOk; }
-MmResult console_sync() { return kOk; }
-MmResult console_underline(bool underline) { return kOk; }
-MmResult console_wrapline() { return kOk; }
-size_t console_write(const char *buf, size_t sz) { return 0; }
 
 // Defined in "common/graphics.c"
 MmSurface *graphics_current = NULL;
