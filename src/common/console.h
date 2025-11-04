@@ -122,6 +122,15 @@ void console_enable_raw_mode(void);
 void console_foreground(int colour);
 
 /**
+ * Sets the ANSI/tty terminal foreground and background colours.
+ *
+ * @param[in]  fg  the ARGB foreground colour value.
+ * @param[in]  bg  the ARGB background colour value.
+ * @return         kOk on success.
+ */
+MmResult console_colour(MmGraphicsColour fg, MmGraphicsColour bg);
+
+/**
  * Sets the ANSI/tty terminal background colour.
  *
  * @param[in]  argb  the ARGB colour value.

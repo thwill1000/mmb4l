@@ -58,6 +58,7 @@ MmResult termgfx_bell();
 MmResult termgfx_clear_to_end_of_line();
 MmResult termgfx_clear_to_end_of_screen();
 MmResult termgfx_cls();
+MmResult termgfx_colour(MmGraphicsColour fg, MmGraphicsColour bg);
 MmResult termgfx_colour_bg(MmGraphicsColour argb);
 MmResult termgfx_colour_fg(MmGraphicsColour argb);
 MmResult termgfx_cursor_left(int count, bool wrap);

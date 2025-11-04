@@ -101,6 +101,13 @@ MmResult termgfx_cls() {
     return graphics_cls(graphics_current, graphics_bcolour);
 }
 
+MmResult termgfx_colour(MmGraphicsColour fg, MmGraphicsColour bg) {
+    ASSERT_GFX();
+    graphics_fcolour = fg;
+    graphics_bcolour = bg;
+    return kOk;
+}
+
 MmResult termgfx_colour_bg(MmGraphicsColour argb) {
     ASSERT_GFX();
     graphics_bcolour = argb;

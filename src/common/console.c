@@ -522,7 +522,7 @@ MmResult console_clear_to_end_of_screen() {
 
 static int argb_to_ansi(MmGraphicsColour argb) {
     switch (argb) {
-        case RGB_ANSI_BLACK:          return 30;
+        case RGB_ANSI_BLACK:          return 39; // 30 == Black, 39 == Default
         case RGB_ANSI_RED:            return 31;
         case RGB_ANSI_GREEN:          return 32;
         case RGB_ANSI_YELLOW:         return 33;
@@ -542,10 +542,19 @@ static int argb_to_ansi(MmGraphicsColour argb) {
     }
 }
 
+MmResult console_colour(MmGraphicsColour fg, MmGraphicsColour bg) {
+    const int ansi_fg = argb_to_ansi(fg);
+    const int ansi_bg = argb_to_ansi(bg);
+    if (ansi_fg == -1 || ansi_bg == -1) return kUnsupportedTerminalColour;
+    printf("\033[%d;%dm", ansi_fg, ansi_bg + 10);
+    fflush(stdout);
+    return kOk;
+}
+
 MmResult console_colour_bg(MmGraphicsColour argb) {
-    const int ansi_colour = argb_to_ansi(argb) + 10;
+    const int ansi_colour = argb_to_ansi(argb);
     if (ansi_colour == -1) return kUnsupportedTerminalColour;
-    printf("\033[%dm", ansi_colour);
+    printf("\033[%dm", ansi_colour + 10);
     fflush(stdout);
     return kOk;
 }
