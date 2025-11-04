@@ -504,6 +504,7 @@ add_executable(test_display
     src/common/termgfx.c
     src/common/gtest/display_test.cxx
     src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/sdl2_stubs.c
 )
 
