@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stddef.h>
 
 #include "../Configuration.h"
+#include "mmcolour.h"
 #include "mmresult.h"
 #include "options.h"
 
@@ -71,58 +72,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_PICOMITE_HDMI_MODE   5
 #define MIN_PICOMITE_VGA_MODE    1
 #define MAX_PICOMITE_VGA_MODE    2
-
-// alpha == 0xFF is fully opaque.
-#define RGB(red, green, blue, alpha) (uint32_t) (((alpha & 0xFF) << 24) | ((red & 0xFF) << 16) | ((green & 0xFF) << 8) | (blue & 0xFF))
-
-#define RGB_BLACK     RGB(   0,    0,    0,    0)
-#define RGB_BLUE      RGB(   0,    0, 0xFF, 0xFF)
-#define RGB_GREEN     RGB(   0, 0xFF,    0, 0xFF)
-#define RGB_CYAN      RGB(   0, 0xFF, 0xFF, 0xFF)
-#define RGB_RED       RGB(0xFF,    0,    0, 0xFF)
-#define RGB_MAGENTA   RGB(0xFF,    0, 0xFF, 0xFF)
-#define RGB_YELLOW    RGB(0xFF, 0xFF,    0, 0xFF)
-#define RGB_BROWN     RGB(0xA5, 0x2A, 0x2A, 0xFF)
-#define RGB_GREY      RGB(0x40, 0x40, 0x40, 0xFF)
-#define RGB_GRAY      RGB_GREY
-#define RGB_LITEGREY  RGB(0x80, 0x80, 0x80, 0xFF)
-#define RGB_LITEGRAY  RGB_LITEGREY
-#define RGB_WHITE     RGB(0xFF, 0xFF, 0xFF, 0xFF)
-#define RGB_ORANGE    RGB(0xFF, 0xA5,    0, 0xFF)
-#define RGB_PINK      RGB(0xFF, 0xA0, 0xAB, 0xFF)
-#define RGB_GOLD      RGB(0xFF, 0xD7,    0, 0xFF)
-#define RGB_SALMON    RGB(0xFA, 0x80, 0x72, 0xFF)
-#define RGB_BEIGE     RGB(0xF5, 0xF5, 0xDC, 0xFF)
-#define RGB_NOTBLACK  RGB(   0,    0,    0, 0xFF)
-
-// Additional 4-bit colours defined on the PicoMite.
-#define RGB_MYRTLE        RGB(   0, 0x40,    0, 0xFF)
-#define RGB_COBALT        RGB(   0, 0x40, 0xFF, 0xFF)
-#define RGB_MIDGREEN      RGB(   0, 0x80,    0, 0xFF)
-#define RGB_CERULEAN      RGB(   0, 0x80, 0xFF, 0xFF)
-#define RGB_MAGENTA_4BIT  RGB(0xFF,    0, 0xFF, 0xFF)
-#define RGB_RUST          RGB(0xFF, 0x40,    0, 0xFF)
-#define RGB_FUCHSIA       RGB(0xFF, 0x40, 0xFF, 0xFF)
-#define RGB_BROWN_4BIT    RGB(0xFF, 0x80,    0, 0xFF)
-#define RGB_LILAC         RGB(0xFF, 0x80, 0xFF, 0xFF)
-
-// Additional ANSI colours (Windows Console).
-#define RGB_ANSI_BLACK           RGB_BLACK
-#define RGB_ANSI_RED             RGB(0x80,    0,    0, 0xFF)
-#define RGB_ANSI_GREEN           RGB(   0, 0x80,    0, 0xFF)
-#define RGB_ANSI_YELLOW          RGB(0x80, 0x80,    0, 0xFF)
-#define RGB_ANSI_BLUE            RGB(   0,    0, 0x80, 0xFF)
-#define RGB_ANSI_MAGENTA         RGB(0x80,    0, 0x80, 0xFF)
-#define RGB_ANSI_CYAN            RGB(   0, 0x80, 0x80, 0xFF)
-#define RGB_ANSI_WHITE           RGB(0xC0, 0xC0, 0xC0, 0xFF)
-#define RGB_ANSI_BRIGHT_BLACK    RGB_LITEGREY
-#define RGB_ANSI_BRIGHT_RED      RGB_RED
-#define RGB_ANSI_BRIGHT_GREEN    RGB_GREEN
-#define RGB_ANSI_BRIGHT_YELLOW   RGB_YELLOW
-#define RGB_ANSI_BRIGHT_BLUE     RGB_BLUE
-#define RGB_ANSI_BRIGHT_MAGENTA  RGB_MAGENTA
-#define RGB_ANSI_BRIGHT_CYAN     RGB_CYAN
-#define RGB_ANSI_BRIGHT_WHITE    RGB_WHITE
 
 #define CMM2_BLIT_BASE   63
 #define CMM2_BLIT_COUNT  64
@@ -182,7 +131,6 @@ typedef enum {
 } BmpFormat;
 
 typedef int32_t MmSurfaceId;
-typedef int64_t MmGraphicsColour; // 32-bit colour, -1 for transparent background colour.
 typedef void* MmWindowPtr;
 typedef void* MmRendererPtr;
 typedef void* MmTexturePtr;
