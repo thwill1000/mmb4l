@@ -113,6 +113,7 @@ typedef struct s_PmEditor {
 } PmEditor;
 
 MmResult pmeditor_cmd_backspace(PmEditor *self);
+MmResult pmeditor_cmd_char(PmEditor *self);
 MmResult pmeditor_cmd_delete(PmEditor *self);
 char *pmeditor_find_line(PmEditor *self, int line); // , int *comment_level);
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);

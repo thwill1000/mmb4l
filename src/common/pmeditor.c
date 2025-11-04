@@ -535,6 +535,7 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state) {
     // Finally insert the character
     p = self->txtp + 1;
     *self->txtp++ = ch;
+    self->text_changed = true;
 
     return kOk;
 }
@@ -1478,7 +1479,6 @@ static MmResult pmeditor_cmd_newline(PmEditor *self /*char *multi*/) {
     ON_FAILURE_RETURN(pmeditor_insert_char(self, '\n', &insert_state));
     if (insert_state == kInsertBufferFull) return kOk;
 
-    self->text_changed = true;
     self->num_lines++;
     if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
         self->py++;                     // otherwise scroll
@@ -2169,9 +2169,8 @@ static MmResult pmeditor_cmd_paste(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_char(PmEditor *self/*char *multi*/) {
+MmResult pmeditor_cmd_char(PmEditor *self/*char *multi*/) {
     char c = self->keys[0];
-    LOG_DEBUG("entered: c=%c", c);
 
     // Ignore non-printable characters
     if (c < ' ' || c > '~') return kOk;
@@ -2181,7 +2180,6 @@ static MmResult pmeditor_cmd_char(PmEditor *self/*char *multi*/) {
         return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
 
-    self->text_changed = true;
     bool redraw_screen = false;
     if (self->insert || *self->txtp == '\n' || *self->txtp == 0) {
         // Insert character
@@ -2193,6 +2191,7 @@ static MmResult pmeditor_cmd_char(PmEditor *self/*char *multi*/) {
         // Overwrite character
         // TODO: this might change comment
         *self->txtp++ = c;
+        self->text_changed = true;
     }
 
     if (redraw_screen && mmb_options.syntax_highlight) {

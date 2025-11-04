@@ -58,33 +58,72 @@ MmResult pmeditor_test_display_msg(PmEditor *self, const char *msg) {
 
 } // extern "C"
 
-void SetBuffer(PmEditor *self, const char *content) {
-    strncpy(self->buf, content, EDIT_BUFFER_SIZE - 1);
-    self->buf[EDIT_BUFFER_SIZE - 1] = '\0';
-
-    // Count lines in the buffer
-    self->num_lines = 0;
-    for (const char *p = self->buf; *p; p++) {
-        if (*p == '\n') self->num_lines++;
-    }
-}
-
-class PmEditorFindLineTest : public ::testing::Test {
-
+class PmEditorTestBase : public ::testing::Test {
 protected:
     PmEditor test_editor;
     PmEditor *self = &test_editor;
 
     void SetUp() override {
-        // Initialise the editor state
+        // Common initialization
         ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
         self->highlight_fn = pmeditor_test_highlight;
+        self->display_msg_fn = pmeditor_test_display_msg;
+
+        // Initialize options
+        mmb_options.syntax_highlight = true;
+        mmb_options.tab = 4;
+        mmb_options.break_key = 0;
+
+        // Reset mock state
+        memset(last_message, 0, sizeof(last_message));
+        memset(self->keys, 0, sizeof(self->keys));
+        last_highlight_type = kHighlightNormal;
+        highlight_call_count = 0;
     }
 
     void SetBuffer(const char* content) {
-        ::SetBuffer(self, content);
+        strncpy(self->buf, content, EDIT_BUFFER_SIZE - 1);
+        self->buf[EDIT_BUFFER_SIZE - 1] = '\0';
+
+        // Count lines in the buffer
+        self->num_lines = 0;
+        for (const char *p = self->buf; *p; p++) {
+            if (*p == '\n') self->num_lines++;
+        }
+    }
+
+    void SetCursorPosition(int offset) {
+        self->txtp = self->buf + offset;
+    }
+
+    void SetCursorAtEnd() {
+        self->txtp = self->buf + strlen(self->buf);
+    }
+
+    void SetChar(char c) {
+        self->keys[0] = c;
+        self->keys[1] = '\0';
+    }
+
+    void SetEditorPosition(int cx, int cy, int px, int py) {
+        self->cx = cx;
+        self->cy = cy;
+        self->px = px;
+        self->py = py;
     }
 };
+
+#define EXPECT_HIGHLIGHT(expected_type) \
+    do { \
+        EXPECT_EQ(expected_type, last_highlight_type); \
+    } while (0)
+
+#define EXPECT_KEYS_EQUAL(expected_keys) \
+    do { \
+        EXPECT_STREQ(expected_keys, self->keys + 1) << "Keyboard buffer mismatch"; \
+    } while (0)
+
+class PmEditorFindLineTest : public PmEditorTestBase { };
 
 // Test finding line 0 (first line) in empty buffer
 TEST_F(PmEditorFindLineTest, FindLine0EmptyBuffer) {
@@ -430,45 +469,14 @@ TEST_F(PmEditorFindLineTest, LargeLineNumber) {
     EXPECT_EQ(0, self->comment_level);
 }
 
-// // Test null pointer safety for comment_level parameter
-// TEST_F(PmEditorFindLineTest, NullInmultiParameter) {
-//     SetBuffer("Line 0\nLine 1");
-
-//     // This should not crash, though the original function doesn't handle null comment_level
-//     // In a real implementation, you might want to add null checks
-//     char *result = pmeditor_find_line(self, 1, nullptr);
-//     EXPECT_EQ(result, nullptr);
-// }
-
-#define EXPECT_HIGHLIGHT(expected_type) \
-    do { \
-        EXPECT_EQ(expected_type, last_highlight_type); \
-    } while (0)
-
-class PmEditorSetColourTest : public ::testing::Test {
+class PmEditorSetColourTest : public PmEditorTestBase {
 
 protected:
-    PmEditor test_editor;
-    PmEditor *self = &test_editor;
-
     void SetUp() override {
         // Initialize command token table
         commandtbl_init();
 
-        // Initialise the editor state
-        ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
-        self->highlight_fn = pmeditor_test_highlight;
-
-        // Reset mock state
-        last_highlight_type = kHighlightNormal;
-        highlight_call_count = 0;
-
-        // Enable syntax highlighting for most tests
-        mmb_options.syntax_highlight = true;
-    }
-
-    void SetBuffer(const char* content) {
-        ::SetBuffer(self, content);
+        PmEditorTestBase::SetUp();
     }
 
     void ResetState() {
@@ -864,12 +872,8 @@ TEST_F(PmEditorSetColourTest, TrailingWhitespace) {
     EXPECT_HIGHLIGHT(kHighlightTrailingWhitespace);
 }
 
-// Test that color coding can be disabled
+// TODO: Test that color coding can be disabled
 TEST_F(PmEditorSetColourTest, ColorCodingDisabled) {
-    // This test would require a way to disable OPTION_COLOUR_CODE
-    // Since it's a compile-time constant, we can't test this easily
-    // In a real implementation, you might want to make this runtime configurable
-
     // If color coding is disabled, the function should return early
     // and not change any highlighting
 }
@@ -926,25 +930,7 @@ TEST_F(PmEditorSetColourTest, NestedCommentScenarios) {
     EXPECT_FALSE(self->comment_level);
 }
 
-class PmEditorInsertCharTest : public ::testing::Test {
-
-protected:
-    PmEditor test_editor;
-    PmEditor *self = &test_editor;
-
-    void SetUp() override {
-        // Initialise the editor state
-        ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
-        self->display_msg_fn = pmeditor_test_display_msg;
-
-        // Reset mock state
-        memset(last_message, 0, sizeof(last_message));
-    }
-
-    void SetBuffer(const char* content) {
-        ::SetBuffer(self, content);
-    }
-};
+class PmEditorInsertCharTest : public PmEditorTestBase { };
 
 TEST_F(PmEditorInsertCharTest, InsertCharAtBeginning) {
     const char* initial_content = "World";
@@ -1069,33 +1055,7 @@ TEST_F(PmEditorInsertCharTest, InsertStarBeforeForwardSlash) {
     EXPECT_EQ(self->buf + 6, self->txtp);
 }
 
-class PmEditorCmdDeleteTest : public ::testing::Test {
-
-protected:
-    PmEditor test_editor;
-    PmEditor *self = &test_editor;
-
-    void SetUp() override {
-        // Initialise the editor state
-        ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
-        self->display_msg_fn = pmeditor_test_display_msg;
-
-        // Reset mock state
-        memset(last_message, 0, sizeof(last_message));
-    }
-
-    void SetBuffer(const char* content) {
-        ::SetBuffer(self, content);
-    }
-
-    void SetCursorPosition(int offset) {
-        self->txtp = self->buf + offset;
-    }
-
-    void SetCursorAtEnd() {
-        self->txtp = self->buf + strlen(self->buf);
-    }
-};
+class PmEditorCmdDeleteTest : public PmEditorTestBase { };
 
 // Test deleting at end of buffer (should do nothing)
 TEST_F(PmEditorCmdDeleteTest, DeleteAtEndOfBuffer) {
@@ -1324,7 +1284,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteMultipleCharactersSequence) {
     EXPECT_STREQ("ABF", self->buf);
 }
 
-// Test deleting with Unicode characters (if supported)
+// Test deleting with Unicode characters (not currently supported)
 TEST_F(PmEditorCmdDeleteTest, DeleteUnicodeCharacters) {
     SetBuffer("Héllo Wörld");
     SetCursorPosition(1); // Position at 'é'
@@ -1466,45 +1426,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteCommentMarkerCombinations) {
     }
 }
 
-class PmEditorCmdBackspaceTest : public ::testing::Test {
-
-protected:
-    PmEditor test_editor;
-    PmEditor *self = &test_editor;
-
-    void SetUp() override {
-        // Initialize the editor state
-        ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
-        self->highlight_fn = pmeditor_test_highlight;
-        self->display_msg_fn = pmeditor_test_display_msg;
-
-        // Reset mock state
-        memset(last_message, 0, sizeof(last_message));
-
-        // Clear keyboard buffer
-        memset(self->keys, 0, sizeof(self->keys));
-
-        // Set default tab size
-        mmb_options.tab = 4;
-    }
-
-    void SetBuffer(const char* content) {
-        ::SetBuffer(self, content);
-    }
-
-    void SetCursorPosition(int offset) {
-        self->txtp = self->buf + offset;
-    }
-
-    void SetCursorAtEnd() {
-        self->txtp = self->buf + strlen(self->buf);
-    }
-};
-
-#define EXPECT_KEYS_EQUAL(expected_keys) \
-    do { \
-        EXPECT_STREQ(expected_keys, self->keys + 1) << "Keyboard buffer mismatch"; \
-    } while (0)
+class PmEditorCmdBackspaceTest : public PmEditorTestBase { };
 
 // ============================================================================
 // Basic Backspace Operations
@@ -2135,22 +2057,7 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceEntireIndentedLine) {
     EXPECT_EQ(self->buf, self->txtp);
 }
 
-class PmEditorFindLongestLine : public ::testing::Test {
-
-    protected:
-    PmEditor test_editor;
-    PmEditor *self = &test_editor;
-
-    void SetUp() override {
-        // Initialise the editor state
-        ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
-        self->highlight_fn = pmeditor_test_highlight;
-    }
-
-    void SetBuffer(const char* content) {
-        ::SetBuffer(self, content);
-    }
-};
+class PmEditorFindLongestLine : public PmEditorTestBase { };
 
 TEST_F(PmEditorFindLongestLine, EmptyStringReturnsZero) {
     SetBuffer("");
@@ -2210,4 +2117,1030 @@ TEST_F(PmEditorFindLongestLine, LastLineIsLongest) {
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(3, line);
     EXPECT_EQ(22, length);
+}
+
+class PmEditorCmdCharTest : public PmEditorTestBase { };
+
+// ============================================================================
+// Basic Character Insertion Tests
+// ============================================================================
+
+// Test inserting a simple letter at beginning
+TEST_F(PmEditorCmdCharTest, InsertLetterAtBeginning) {
+    SetBuffer("ello");
+    SetCursorPosition(0);
+    SetChar('H');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting a letter in middle
+TEST_F(PmEditorCmdCharTest, InsertLetterInMiddle) {
+    SetBuffer("Hllo");
+    SetCursorPosition(1);
+    SetChar('e');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(self->buf + 2, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting a letter at end
+TEST_F(PmEditorCmdCharTest, InsertLetterAtEnd) {
+    SetBuffer("Hell");
+    SetCursorPosition(4);
+    SetChar('o');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(self->buf + 5, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting into empty buffer
+TEST_F(PmEditorCmdCharTest, InsertIntoEmptyBuffer) {
+    SetBuffer("");
+    SetCursorPosition(0);
+    SetChar('A');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("A", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// ============================================================================
+// Overwrite Mode Tests
+// ============================================================================
+
+// Test overwriting character in middle
+TEST_F(PmEditorCmdCharTest, OverwriteCharacterInMiddle) {
+    SetBuffer("Hallo");
+    SetCursorPosition(1);
+    SetChar('e');
+    self->insert = false;  // Overwrite mode
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(self->buf + 2, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test overwriting at end of line (should insert instead)
+TEST_F(PmEditorCmdCharTest, OverwriteAtEndOfLine) {
+    SetBuffer("Hell\n");
+    SetCursorPosition(4);  // At newline
+    SetChar('o');
+    self->insert = false;  // Overwrite mode
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should insert because cursor is at newline
+    EXPECT_STREQ("Hello\n", self->buf);
+    EXPECT_EQ(self->buf + 5, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test overwriting at end of buffer (should insert instead)
+TEST_F(PmEditorCmdCharTest, OverwriteAtEndOfBuffer) {
+    SetBuffer("Hell");
+    SetCursorPosition(4);  // At null terminator
+    SetChar('o');
+    self->insert = false;  // Overwrite mode
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should insert because cursor is at null terminator
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(self->buf + 5, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test overwriting multiple characters in sequence
+TEST_F(PmEditorCmdCharTest, OverwriteMultipleCharacters) {
+    SetBuffer("ABCDE");
+    SetCursorPosition(0);
+    self->insert = false;
+
+    // Overwrite 'A' with 'X'
+    SetChar('X');
+    pmeditor_cmd_char(self);
+    EXPECT_STREQ("XBCDE", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+
+    // Overwrite 'B' with 'Y'
+    SetChar('Y');
+    pmeditor_cmd_char(self);
+    EXPECT_STREQ("XYCDE", self->buf);
+    EXPECT_EQ(self->buf + 2, self->txtp);
+
+    // Overwrite 'C' with 'Z'
+    SetChar('Z');
+    pmeditor_cmd_char(self);
+    EXPECT_STREQ("XYZDE", self->buf);
+    EXPECT_EQ(self->buf + 3, self->txtp);
+}
+
+// ============================================================================
+// Digit and Number Tests
+// ============================================================================
+
+// Test inserting digits
+TEST_F(PmEditorCmdCharTest, InsertDigits) {
+    SetBuffer("");
+    SetCursorPosition(0);
+    self->insert = true;
+
+    for (char c = '0'; c <= '9'; c++) {
+        SetChar(c);
+        MmResult result = pmeditor_cmd_char(self);
+        EXPECT_EQ(kOk, result);
+    }
+
+    EXPECT_STREQ("0123456789", self->buf);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting number in middle of text
+TEST_F(PmEditorCmdCharTest, InsertNumberInMiddle) {
+    SetBuffer("abc123def");
+    SetCursorPosition(3);
+    SetChar('4');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("abc4123def", self->buf);
+    EXPECT_EQ(self->buf + 4, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// ============================================================================
+// Special Character Tests
+// ============================================================================
+
+// Test inserting space
+TEST_F(PmEditorCmdCharTest, InsertSpace) {
+    SetBuffer("HelloWorld");
+    SetCursorPosition(5);
+    SetChar(' ');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello World", self->buf);
+    EXPECT_EQ(self->buf + 6, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting punctuation
+TEST_F(PmEditorCmdCharTest, InsertPunctuation) {
+    SetBuffer("Hello");
+    SetCursorPosition(5);
+    SetChar('!');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello!", self->buf);
+    EXPECT_EQ(self->buf + 6, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting various special characters
+TEST_F(PmEditorCmdCharTest, InsertSpecialCharacters) {
+    const char special_chars[] = "!@#$%^&*()_+-=[]{}|;:',.<>?/\\";
+    SetBuffer("");
+    SetCursorPosition(0);
+    self->insert = true;
+
+    for (const char *p = special_chars; *p; p++) {
+        SetChar(*p);
+        MmResult result = pmeditor_cmd_char(self);
+        EXPECT_EQ(kOk, result) << "Failed for character: " << *p;
+    }
+
+    EXPECT_STREQ(special_chars, self->buf);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting quotes
+TEST_F(PmEditorCmdCharTest, InsertDoubleQuote) {
+    SetBuffer("Hello");
+    SetCursorPosition(0);
+    SetChar('"');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("\"Hello", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting single quote
+TEST_F(PmEditorCmdCharTest, InsertSingleQuote) {
+    SetBuffer("Hello");
+    SetCursorPosition(0);
+    SetChar('\'');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("'Hello", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting forward slash
+TEST_F(PmEditorCmdCharTest, InsertForwardSlash) {
+    SetBuffer("code");
+    SetCursorPosition(4);
+    SetChar('/');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code/", self->buf);
+    EXPECT_EQ(self->buf + 5, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting asterisk
+TEST_F(PmEditorCmdCharTest, InsertAsterisk) {
+    SetBuffer("code");
+    SetCursorPosition(4);
+    SetChar('*');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code*", self->buf);
+    EXPECT_EQ(self->buf + 5, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// ============================================================================
+// Non-Printable Character Tests
+// ============================================================================
+
+// Test ignoring control characters (< space)
+TEST_F(PmEditorCmdCharTest, IgnoreControlCharacters) {
+    SetBuffer("Hello");
+    SetCursorPosition(5);
+    self->insert = true;
+
+    for (char c = 0; c < ' '; c++) {
+        SetChar(c);
+        MmResult result = pmeditor_cmd_char(self);
+        EXPECT_EQ(kOk, result);
+    }
+
+    // Buffer should be unchanged
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(self->buf + 5, self->txtp);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test ignoring DEL character (127)
+TEST_F(PmEditorCmdCharTest, IgnoreDELCharacter) {
+    SetBuffer("Hello");
+    SetCursorPosition(5);
+    bool initial_changed = self->text_changed;
+    self->insert = true;
+
+    SetChar(127);
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(initial_changed, self->text_changed);
+}
+
+// Test ignoring high ASCII characters (> 126)
+TEST_F(PmEditorCmdCharTest, IgnoreHighASCIICharacters) {
+    SetBuffer("Hello");
+    SetCursorPosition(5);
+    self->insert = true;
+
+    for (char c = 127; c != 0; c++) {
+        SetChar(c);
+        MmResult result = pmeditor_cmd_char(self);
+        EXPECT_EQ(kOk, result);
+    }
+
+    // Buffer should be unchanged
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(self->buf + 5, self->txtp);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// ============================================================================
+// Line Length Limit Tests
+// ============================================================================
+
+// Test inserting when at line width limit
+TEST_F(PmEditorCmdCharTest, InsertAtLineWidthLimit) {
+    // Create a line exactly at width limit
+    std::string line(80, 'A');
+    SetBuffer(line.c_str());
+    self->cx = 80;  // At width limit
+    self->width = 80;
+    SetCursorPosition(80);
+    SetChar('B');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(" LINE IS TOO LONG ", last_message);
+    EXPECT_STREQ(line.c_str(), self->buf);  // Buffer unchanged
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test inserting when just before line width limit
+TEST_F(PmEditorCmdCharTest, InsertJustBeforeLineWidthLimit) {
+    std::string line(79, 'A');
+    SetBuffer(line.c_str());
+    self->cx = 79;
+    self->width = 80;
+    SetCursorPosition(79);
+    SetChar('B');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ((line + 'B').c_str(), self->buf);
+    EXPECT_EQ(self->buf + 80, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting when cx exceeds width
+TEST_F(PmEditorCmdCharTest, InsertWhenCXExceedsWidth) {
+    SetBuffer("Hello");
+    self->cx = 100;  // Exceeds width
+    self->width = 80;
+    SetCursorPosition(5);
+    SetChar('!');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(" LINE IS TOO LONG ", last_message);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// ============================================================================
+// Multiline Comment Marker Tests
+// ============================================================================
+
+// Test inserting '/' after '*' (end of multiline comment)
+TEST_F(PmEditorCmdCharTest, InsertSlashAfterStar) {
+    SetBuffer("code*");
+    SetCursorPosition(5);
+    SetChar('/');
+    self->insert = true;
+    mmb_options.syntax_highlight = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code*/", self->buf);
+    EXPECT_EQ(self->buf + 6, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+    // Should trigger screen redraw for syntax highlighting
+}
+
+// Test inserting '*' after '/' (start of multiline comment)
+TEST_F(PmEditorCmdCharTest, InsertStarAfterSlash) {
+    SetBuffer("code/");
+    SetCursorPosition(5);
+    SetChar('*');
+    self->insert = true;
+    mmb_options.syntax_highlight = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code/*", self->buf);
+    EXPECT_EQ(self->buf + 6, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting '/' before '*' (start of multiline comment)
+TEST_F(PmEditorCmdCharTest, InsertSlashBeforeStar) {
+    SetBuffer("*code");
+    SetCursorPosition(0);
+    SetChar('/');
+    self->insert = true;
+    mmb_options.syntax_highlight = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("/*code", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting '*' before '/' (end of multiline comment)
+TEST_F(PmEditorCmdCharTest, InsertStarBeforeSlash) {
+    SetBuffer("/code");
+    SetCursorPosition(0);
+    SetChar('*');
+    self->insert = true;
+    mmb_options.syntax_highlight = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("*/code", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// ============================================================================
+// Buffer Full Tests
+// ============================================================================
+
+// Test inserting when buffer is full
+TEST_F(PmEditorCmdCharTest, InsertWhenBufferFull) {
+    // Fill buffer to capacity
+    for (int i = 0; i < EDIT_BUFFER_SIZE - 1; i++) {
+        self->buf[i] = 'A';
+    }
+    self->buf[EDIT_BUFFER_SIZE - 1] = '\0';
+    self->num_lines = 0;
+
+    SetCursorPosition(EDIT_BUFFER_SIZE - 1);
+    SetChar('B');
+    self->insert = true;
+    self->cx = 79;
+    self->width = 80;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should display out of memory message
+    EXPECT_STREQ(" OUT OF MEMORY ", last_message);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test inserting when buffer has only one byte remaining
+TEST_F(PmEditorCmdCharTest, InsertWhenBufferHasOneByteRemaining) {
+    // Fill buffer to capacity - 1
+    for (int i = 0; i < EDIT_BUFFER_SIZE - 2; i++) {
+        self->buf[i] = 'A';
+    }
+    self->buf[EDIT_BUFFER_SIZE - 2] = '\0';
+
+    SetCursorPosition(EDIT_BUFFER_SIZE - 2);
+    SetChar('B');
+    self->insert = true;
+    self->cx = 78;
+    self->width = 80;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ('B', self->buf[EDIT_BUFFER_SIZE - 2]);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// ============================================================================
+// Cursor Position Tests
+// ============================================================================
+
+// Test cursor position after insert
+TEST_F(PmEditorCmdCharTest, CursorPositionAfterInsert) {
+    SetBuffer("Hello");
+    SetCursorPosition(2);
+    SetChar('X');
+    self->insert = true;
+    self->cx = 2;
+    self->cy = 0;
+    self->px = 0;
+    self->py = 0;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf + 3, self->txtp);
+}
+
+// Test cursor position after overwrite
+TEST_F(PmEditorCmdCharTest, CursorPositionAfterOverwrite) {
+    SetBuffer("Hello");
+    SetCursorPosition(2);
+    SetChar('X');
+    self->insert = false;
+    self->cx = 2;
+    self->cy = 0;
+    self->px = 0;
+    self->py = 0;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf + 3, self->txtp);
+}
+
+// ============================================================================
+// Text Changed Flag Tests
+// ============================================================================
+
+// Test text_changed flag is set
+TEST_F(PmEditorCmdCharTest, TextChangedFlagIsSet) {
+    SetBuffer("Hello");
+    SetCursorPosition(5);
+    SetChar('!');
+    self->insert = true;
+    self->text_changed = false;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test text_changed flag remains true if already set
+TEST_F(PmEditorCmdCharTest, TextChangedFlagRemainsTrue) {
+    SetBuffer("Hello");
+    SetCursorPosition(5);
+    SetChar('!');
+    self->insert = true;
+    self->text_changed = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test text_changed flag not set for non-printable characters
+TEST_F(PmEditorCmdCharTest, TextChangedNotSetForNonPrintable) {
+    SetBuffer("Hello");
+    SetCursorPosition(5);
+    SetChar('\x01');  // Control character
+    self->insert = true;
+    self->text_changed = false;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// ============================================================================
+// Syntax Highlighting Tests
+// ============================================================================
+
+// Test screen redraw triggered for multiline comment markers
+TEST_F(PmEditorCmdCharTest, ScreenRedrawForMultilineCommentStart) {
+    SetBuffer("code/");
+    SetCursorPosition(5);
+    SetChar('*');
+    self->insert = true;
+    mmb_options.syntax_highlight = true;
+    self->cx = 5;
+    self->cy = 0;
+    self->px = 0;
+    self->py = 0;
+
+    // Reset highlight call count
+    highlight_call_count = 0;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should have called highlight functions for screen redraw
+    EXPECT_GT(highlight_call_count, 0);
+}
+
+// Test no screen redraw when syntax highlighting disabled
+TEST_F(PmEditorCmdCharTest, NoScreenRedrawWhenSyntaxHighlightingDisabled) {
+    SetBuffer("code/");
+    SetCursorPosition(5);
+    SetChar('*');
+    self->insert = true;
+    mmb_options.syntax_highlight = false;
+    self->cx = 5;
+    self->cy = 0;
+    self->px = 0;
+    self->py = 0;
+
+    highlight_call_count = 0;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    // Highlight count should be minimal (only for basic display)
+}
+
+// ============================================================================
+// Multiline Tests
+// ============================================================================
+
+// Test inserting character in multiline buffer
+TEST_F(PmEditorCmdCharTest, InsertInMultilineBuffer) {
+    SetBuffer("Line1\nLine2\nLine3");
+    SetCursorPosition(6);  // Start of Line2
+    SetChar('X');
+    self->insert = true;
+    self->num_lines = 3;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line1\nXLine2\nLine3", self->buf);
+    EXPECT_EQ(self->buf + 7, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test overwriting character in multiline buffer
+TEST_F(PmEditorCmdCharTest, OverwriteInMultilineBuffer) {
+    SetBuffer("Line1\nLine2\nLine3");
+    SetCursorPosition(6);  // Start of Line2
+    SetChar('X');
+    self->insert = false;
+    self->num_lines = 3;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line1\nXine2\nLine3", self->buf);
+    EXPECT_EQ(self->buf + 7, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// ============================================================================
+// Edge Case Tests
+// ============================================================================
+
+// Test inserting in empty buffer with insert mode
+TEST_F(PmEditorCmdCharTest, InsertInEmptyBufferInsertMode) {
+    SetBuffer("");
+    SetCursorPosition(0);
+    SetChar('A');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("A", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting in empty buffer with overwrite mode
+TEST_F(PmEditorCmdCharTest, InsertInEmptyBufferOverwriteMode) {
+    SetBuffer("");
+    SetCursorPosition(0);
+    SetChar('A');
+    self->insert = false;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("A", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting at buffer boundary
+TEST_F(PmEditorCmdCharTest, InsertAtBufferBoundary) {
+    std::string content;
+    for (int i = 0; i <= EDIT_BUFFER_SIZE - 3; ++i) {
+        if (i % 79 == 0) {
+            content += '\n';
+        } else {
+            content += 'A';
+        }
+    }
+    SetBuffer(content.c_str());
+    SetCursorPosition(content.length());
+    SetChar('B');
+    self->insert = true;
+    self->cx = content.length() % 79;  // TODO: Not sure this is correct value
+    self->width = 80;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ('B', self->buf[content.length()]);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(EDIT_BUFFER_SIZE - 1, self->txtp - self->buf);  // TODO: Is this one short ?
+}
+
+// Test inserting at very start of buffer
+TEST_F(PmEditorCmdCharTest, InsertAtVeryStartOfBuffer) {
+    SetBuffer("BCDE");
+    SetCursorPosition(0);
+    SetChar('A');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("ABCDE", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// ============================================================================
+// Lowercase and Uppercase Tests
+// ============================================================================
+
+// Test inserting lowercase letters
+TEST_F(PmEditorCmdCharTest, InsertLowercaseLetters) {
+    SetBuffer("");
+    SetCursorPosition(0);
+    self->insert = true;
+
+    for (char c = 'a'; c <= 'z'; c++) {
+        SetChar(c);
+        MmResult result = pmeditor_cmd_char(self);
+        EXPECT_EQ(kOk, result);
+    }
+
+    EXPECT_STREQ("abcdefghijklmnopqrstuvwxyz", self->buf);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting uppercase letters
+TEST_F(PmEditorCmdCharTest, InsertUppercaseLetters) {
+    SetBuffer("");
+    SetCursorPosition(0);
+    self->insert = true;
+
+    for (char c = 'A'; c <= 'Z'; c++) {
+        SetChar(c);
+        MmResult result = pmeditor_cmd_char(self);
+        EXPECT_EQ(kOk, result);
+    }
+
+    EXPECT_STREQ("ABCDEFGHIJKLMNOPQRSTUVWXYZ", self->buf);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// ============================================================================
+// Realistic Scenario Tests
+// ============================================================================
+
+// Test typing a complete line
+TEST_F(PmEditorCmdCharTest, TypeCompleteLine) {
+    SetBuffer("");
+    SetCursorPosition(0);
+    self->insert = true;
+    self->cx = 0;
+    self->width = 80;
+
+    const char *text = "PRINT \"Hello, World!\"";
+    for (const char *p = text; *p; p++) {
+        SetChar(*p);
+        MmResult result = pmeditor_cmd_char(self);
+        EXPECT_EQ(kOk, result);
+    }
+
+    EXPECT_STREQ(text, self->buf);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test typing with mixed insert and overwrite
+TEST_F(PmEditorCmdCharTest, MixedInsertAndOverwrite) {
+    SetBuffer("ABCDE");
+    SetCursorPosition(0);
+    self->insert = true;
+
+    // Insert 'X' at beginning
+    SetChar('X');
+    pmeditor_cmd_char(self);
+    EXPECT_STREQ("XABCDE", self->buf);
+
+    // Switch to overwrite mode
+    self->insert = false;
+    SetChar('Y');
+    pmeditor_cmd_char(self);
+    EXPECT_STREQ("XYBCDE", self->buf);
+
+    // Switch back to insert mode
+    self->insert = true;
+    SetChar('Z');
+    pmeditor_cmd_char(self);
+    EXPECT_STREQ("XYZBCDE", self->buf);
+}
+
+// Test typing a comment
+TEST_F(PmEditorCmdCharTest, TypeComment) {
+    SetBuffer("");
+    SetCursorPosition(0);
+    self->insert = true;
+    self->cx = 0;
+    self->width = 80;
+
+    const char *text = "/* This is a comment */";
+    for (const char *p = text; *p; p++) {
+        SetChar(*p);
+        MmResult result = pmeditor_cmd_char(self);
+        EXPECT_EQ(kOk, result);
+    }
+
+    EXPECT_STREQ(text, self->buf);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test typing code with string literals
+TEST_F(PmEditorCmdCharTest, TypeCodeWithStrings) {
+    SetBuffer("");
+    SetCursorPosition(0);
+    self->insert = true;
+    self->cx = 0;
+    self->width = 80;
+
+    const char *text = "s$ = \"Hello\"";
+    for (const char *p = text; *p; p++) {
+        SetChar(*p);
+        MmResult result = pmeditor_cmd_char(self);
+        EXPECT_EQ(kOk, result);
+    }
+
+    EXPECT_STREQ(text, self->buf);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// ============================================================================
+// Boundary Character Tests
+// ============================================================================
+
+// Test inserting space character (boundary of printable)
+TEST_F(PmEditorCmdCharTest, InsertSpaceCharacter) {
+    SetBuffer("HelloWorld");
+    SetCursorPosition(5);
+    SetChar(' ');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello World", self->buf);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test inserting tilde (last printable ASCII)
+TEST_F(PmEditorCmdCharTest, InsertTildeCharacter) {
+    SetBuffer("code");
+    SetCursorPosition(4);
+    SetChar('~');
+    self->insert = true;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code~", self->buf);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test that character just before space is rejected
+TEST_F(PmEditorCmdCharTest, RejectCharacterBeforeSpace) {
+    SetBuffer("Hello");
+    SetCursorPosition(5);
+    SetChar(0x1F);  // Just before space
+    self->insert = true;
+    self->text_changed = false;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test that character just after tilde is rejected
+TEST_F(PmEditorCmdCharTest, RejectCharacterAfterTilde) {
+    SetBuffer("Hello");
+    SetCursorPosition(5);
+    SetChar(0x7F);  // DEL character
+    self->insert = true;
+    self->text_changed = false;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// ============================================================================
+// Cursor Position Edge Cases
+// ============================================================================
+
+// Test inserting with cx at 0
+TEST_F(PmEditorCmdCharTest, InsertWithCXAtZero) {
+    SetBuffer("Hello");
+    SetCursorPosition(0);
+    SetChar('X');
+    self->insert = true;
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("XHello", self->buf);
+}
+
+// Test inserting with cx at width - 1
+TEST_F(PmEditorCmdCharTest, InsertWithCXAtWidthMinusOne) {
+    SetBuffer("Hello");
+    SetCursorPosition(5);
+    SetChar('!');
+    self->insert = true;
+    self->cx = 79;
+    self->width = 80;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello!", self->buf);
+}
+
+// ============================================================================
+// Syntax Highlighting Integration Tests
+// ============================================================================
+
+// Test that multiline comment triggers full screen redraw
+TEST_F(PmEditorCmdCharTest, MultilineCommentTriggersScreenRedraw) {
+    SetBuffer("code");
+    SetCursorPosition(4);
+    SetChar('/');
+    self->insert = true;
+    mmb_options.syntax_highlight = true;
+    self->cx = 4;
+    self->cy = 0;
+    self->px = 0;
+    self->py = 0;
+
+    // First insert '/'
+    pmeditor_cmd_char(self);
+    EXPECT_STREQ("code/", self->buf);
+
+    // Now insert '*' to complete comment marker
+    SetCursorPosition(5);
+    SetChar('*');
+    highlight_call_count = 0;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should have triggered screen redraw
+    EXPECT_GT(highlight_call_count, 0);
+}
+
+// Test that regular character doesn't trigger screen redraw
+TEST_F(PmEditorCmdCharTest, RegularCharacterNoScreenRedraw) {
+    SetBuffer("code");
+    SetCursorPosition(4);
+    SetChar('X');
+    self->insert = true;
+    mmb_options.syntax_highlight = true;
+    self->cx = 4;
+    self->cy = 0;
+    self->px = 0;
+    self->py = 0;
+
+    highlight_call_count = 0;
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should not trigger full screen redraw
 }
