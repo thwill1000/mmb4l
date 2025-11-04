@@ -105,6 +105,18 @@ MmResult display_cls() {
     return kOk;
 }
 
+MmResult display_colour(MmGraphicsColour fg, MmGraphicsColour bg) {
+    if (mmb_options.console & kSerial) {
+        ON_FAILURE_RETURN(console_colour(fg, bg));
+    }
+
+    if (graphics_current && (mmb_options.console & kScreen)) {
+        ON_FAILURE_RETURN(termgfx_colour(fg, bg));
+    }
+
+    return kOk;
+}
+
 MmResult display_colour_bg(MmGraphicsColour argb) {
     if (mmb_options.console & kSerial) {
         ON_FAILURE_RETURN(console_colour_bg(argb));
