@@ -492,6 +492,64 @@ static inline MmResult pmeditor_display_msg(PmEditor *self, const char *msg) {
 }
 
 /**
+ * Checks if the current line contains a substring.
+ *
+ * Searches for the given needle string within the line where the cursor
+ * (txtp) is currently positioned. The search is performed only on the
+ * current line, bounded by newline characters or the buffer boundaries.
+ *
+ * @param  self   Pointer to the PmEditor structure. Must not be NULL.
+ *                The txtp field must point to a valid position within buf.
+ * @param  needle The substring to search for. NULL or empty string returns false.
+ *
+ * @return        true if the needle is found anywhere on the current line,
+ *                false otherwise or if needle is NULL/empty.
+ *
+ * @note The search is case-insensitive.
+ * @note This function does not modify the buffer.
+ * @note The current line is defined as text between newline characters,
+ *       or from the buffer start/end if no newlines are present.
+ */
+bool pmeditor_line_contains(PmEditor *self, const char *needle) {
+    if (needle == NULL) {
+        LOG_ERROR("Invalid null parameter: needle");
+        return false;
+    }
+    
+    if (*needle == '\0') {
+        LOG_ERROR("Invalid empty parameter: needle");
+        return false;
+    }
+
+    // Find start of line
+    const char *start = self->txtp;
+    while (start != self->buf && *(start - 1) != '\n') start--;
+
+    // Find end of line
+    const char *end = self->txtp;
+    while (*end != '\0' && *end != '\n') end++;
+
+    size_t needle_len = strlen(needle);
+    size_t line_len = end - start;
+    
+    if (needle_len > line_len) return false;
+
+    // Manual case-insensitive substring search
+    for (const char *p = start; p <= end - needle_len; p++) {
+        bool match = true;
+        for (size_t i = 0; i < needle_len; i++) {
+            if (tolower((unsigned char) p[i]) != tolower((unsigned char) needle[i])) {
+                match = false;
+                break;
+            }
+        }
+        if (match) return true;
+    }
+
+    return false;
+}
+
+/**
  * Inserts a character into the text buffer at the current position.
  *
  * Shifts all text after the current position down by one character to make
@@ -524,6 +582,8 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state) {
         *state = kInsertMultiline;
     } else if (ch == '*' && (previous == '/' || *self->txtp == '/')) {
         // Inserting '*' before or after '/'
+        *state = kInsertMultiline;
+    } else if (ch == '\'' && pmeditor_line_contains(self, "/*")) {
         *state = kInsertMultiline;
     }
 

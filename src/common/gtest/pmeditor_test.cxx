@@ -1048,6 +1048,34 @@ TEST_F(PmEditorInsertCharTest, InsertStarBeforeForwardSlash) {
     EXPECT_EQ(self->buf + 6, self->txtp);
 }
 
+TEST_F(PmEditorInsertCharTest, InsertApostropheInLineWithMultilineCommentStart) {
+    const char* initial_content = "Print /*Hello";
+    SetBuffer(initial_content);
+
+    self->txtp = self->buf + 1; // Position before 'r'
+    InsertState insert_state = kInsertUnspecified;
+    EXPECT_EQ(kOk, pmeditor_insert_char(self, '\'', &insert_state));
+
+    // Should signal (possible) change in multiline comment state
+    EXPECT_EQ(kInsertMultiline, insert_state);
+    EXPECT_STREQ("P'rint /*Hello", self->buf);
+    EXPECT_EQ(self->buf + 2, self->txtp);
+}
+
+TEST_F(PmEditorInsertCharTest, InsertApostropheInLineWithoutMultilineCommentStart) {
+    const char* initial_content = "Print ABHello";
+    SetBuffer(initial_content);
+
+    self->txtp = self->buf + 1; // Position before 'r'
+    InsertState insert_state = kInsertUnspecified;
+    EXPECT_EQ(kOk, pmeditor_insert_char(self, '\'', &insert_state));
+
+    // Should signal (possible) change in multiline comment state
+    EXPECT_EQ(kInsertNormal, insert_state);
+    EXPECT_STREQ("P'rint ABHello", self->buf);
+    EXPECT_EQ(self->buf + 2, self->txtp);
+}
+
 class PmEditorCmdDeleteTest : public PmEditorTestBase { };
 
 // Test deleting at end of buffer (should do nothing)
@@ -3136,4 +3164,310 @@ TEST_F(PmEditorCmdCharTest, RegularCharacterNoScreenRedraw) {
 
     EXPECT_EQ(kOk, result);
     // Should not trigger full screen redraw
+}
+
+class PmEditorLineContainsTest : public PmEditorTestBase { };
+
+// Basic functionality tests
+TEST_F(PmEditorLineContainsTest, SimpleMatch) {
+    SetBuffer("hello world");
+    self->txtp = self->buf + 6;  // cursor at 'w'
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "hello"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "world"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "foo"));
+}
+
+TEST_F(PmEditorLineContainsTest, MatchAtEnd) {
+    SetBuffer("hello world");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "world"));
+}
+
+TEST_F(PmEditorLineContainsTest, MatchAtBeginning) {
+    SetBuffer("hello world");
+    self->txtp = self->buf + 10;  // cursor at 'd'
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "hello"));
+}
+
+// Case-insensitive tests
+TEST_F(PmEditorLineContainsTest, CaseInsensitiveMatch) {
+    SetBuffer("Hello World");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "hello"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "HELLO"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "HeLLo"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "world"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "WORLD"));
+}
+
+TEST_F(PmEditorLineContainsTest, CaseInsensitiveMixedCase) {
+    SetBuffer("ThE qUiCk BrOwN FoX");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "the quick"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "BROWN FOX"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "QuIcK"));
+}
+
+// Edge cases
+TEST_F(PmEditorLineContainsTest, NullNeedle) {
+    SetBuffer("hello world");
+    self->txtp = self->buf;
+
+    EXPECT_FALSE(pmeditor_line_contains(self, NULL));
+}
+
+TEST_F(PmEditorLineContainsTest, EmptyNeedle) {
+    SetBuffer("hello world");
+    self->txtp = self->buf;
+
+    EXPECT_FALSE(pmeditor_line_contains(self, ""));
+}
+
+TEST_F(PmEditorLineContainsTest, SingleCharacterMatch) {
+    SetBuffer("a");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "a"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "A"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "b"));
+}
+
+TEST_F(PmEditorLineContainsTest, NeedleLongerThanHaystack) {
+    SetBuffer("hi");
+    self->txtp = self->buf;
+
+    EXPECT_FALSE(pmeditor_line_contains(self, "hello"));
+}
+
+TEST_F(PmEditorLineContainsTest, EmptyBuffer) {
+    SetBuffer("");
+    self->txtp = self->buf;
+
+    EXPECT_FALSE(pmeditor_line_contains(self, "test"));
+}
+
+// Multiline tests
+TEST_F(PmEditorLineContainsTest, MultilineFirstLine) {
+    SetBuffer("first line\nsecond line\nthird line");
+    self->txtp = self->buf + 5;  // cursor at 't' in "first"
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "first"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "second"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "third"));
+}
+
+TEST_F(PmEditorLineContainsTest, MultilineSecondLine) {
+    SetBuffer("first line\nsecond line\nthird line");
+    self->txtp = self->buf + 15;  // cursor at 'c' in "second"
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "second"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "first"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "third"));
+}
+
+TEST_F(PmEditorLineContainsTest, MultilineThirdLine) {
+    SetBuffer("first line\nsecond line\nthird line");
+    self->txtp = self->buf + 27;  // cursor at 'i' in "third"
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "third"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "first"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "second"));
+}
+
+TEST_F(PmEditorLineContainsTest, MultilineCaseInsensitive) {
+    SetBuffer("First LINE\nSecond LINE\nThird LINE");
+    self->txtp = self->buf + 15;  // cursor on second line
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "second line"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "SECOND LINE"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "first"));
+}
+
+TEST_F(PmEditorLineContainsTest, CursorAtLineStart) {
+    SetBuffer("line1\nline2");
+    self->txtp = self->buf + 6;  // right after '\n', at 'l' in "line2"
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "line2"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "line1"));
+}
+
+TEST_F(PmEditorLineContainsTest, CursorAtVeryFirstChar) {
+    SetBuffer("first\nsecond");
+    self->txtp = self->buf;  // at 'f'
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "first"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "second"));
+}
+
+// Overlapping pattern tests
+TEST_F(PmEditorLineContainsTest, OverlappingAAAinAAAA) {
+    SetBuffer("aaaa");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "aaa"));
+}
+
+TEST_F(PmEditorLineContainsTest, OverlappingABAinAABABA) {
+    SetBuffer("aababa");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "aba"));
+}
+
+TEST_F(PmEditorLineContainsTest, OverlappingABABAinABABABA) {
+    SetBuffer("abababa");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "ababa"));
+}
+
+TEST_F(PmEditorLineContainsTest, OverlappingXYZXYZinXYZXYZXYZ) {
+    SetBuffer("xyzxyzxyz");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "xyzxyz"));
+}
+
+TEST_F(PmEditorLineContainsTest, OverlappingCaseInsensitive) {
+    SetBuffer("AaAaAa");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "aaaa"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "AAAA"));
+}
+
+// Partial match tests (now should work with proper substring search)
+TEST_F(PmEditorLineContainsTest, MultiplePartialMatches) {
+    SetBuffer("mississippi");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "issip"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "ippi"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "ssis"));
+}
+
+TEST_F(PmEditorLineContainsTest, PartialMatchThenSuccess) {
+    SetBuffer("abcabd");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "abca"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "cabd"));
+    EXPECT_FALSE(pmeditor_line_contains(self, "abcabe"));
+}
+
+// Cursor position tests
+TEST_F(PmEditorLineContainsTest, CursorAtStartOfLine) {
+    SetBuffer("the quick brown fox");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "quick"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "fox"));
+}
+
+TEST_F(PmEditorLineContainsTest, CursorInMiddleOfLine) {
+    SetBuffer("the quick brown fox");
+    self->txtp = self->buf + 10;  // at 'b' in "brown"
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "quick"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "fox"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "the"));
+}
+
+TEST_F(PmEditorLineContainsTest, CursorAtEndOfLine) {
+    SetBuffer("the quick brown fox");
+    self->txtp = self->buf + strlen(self->buf);
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "fox"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "the"));
+}
+
+// Special character tests
+TEST_F(PmEditorLineContainsTest, TabCharacter) {
+    SetBuffer("tab\there");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "tab\there"));
+}
+
+TEST_F(PmEditorLineContainsTest, MultipleSpaces) {
+    SetBuffer("spaces  here");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "spaces  here"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "  "));
+}
+
+TEST_F(PmEditorLineContainsTest, SpecialCharacters) {
+    SetBuffer("!@#$%^&*()");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "!@#$"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "&*()"));
+}
+
+// Substring tests
+TEST_F(PmEditorLineContainsTest, SubstringAtStart) {
+    SetBuffer("hello world");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "hel"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "HEL"));
+}
+
+TEST_F(PmEditorLineContainsTest, SubstringInMiddle) {
+    SetBuffer("hello world");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "lo wo"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "LO WO"));
+}
+
+TEST_F(PmEditorLineContainsTest, SubstringAtEnd) {
+    SetBuffer("hello world");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "rld"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "RLD"));
+}
+
+// Complete line match
+TEST_F(PmEditorLineContainsTest, CompleteLineMatch) {
+    SetBuffer("exact match");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "exact match"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "EXACT MATCH"));
+}
+
+// Repeated characters
+TEST_F(PmEditorLineContainsTest, RepeatedCharacters) {
+    SetBuffer("aaaaabbbbb");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "aaaaa"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "AAAAA"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "bbbbb"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "aabbb"));
+}
+
+// High ASCII characters (test unsigned char cast)
+TEST_F(PmEditorLineContainsTest, HighASCIICharacters) {
+    SetBuffer("café");
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "café"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "CAF"));
+}
+
+TEST_F(PmEditorLineContainsTest, ExtendedASCII) {
+    SetBuffer("test\xFFvalue");  // \xFF is 255, a high ASCII value
+    self->txtp = self->buf;
+
+    EXPECT_TRUE(pmeditor_line_contains(self, "test"));
+    EXPECT_TRUE(pmeditor_line_contains(self, "value"));
 }
