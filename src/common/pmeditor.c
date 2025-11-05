@@ -589,17 +589,12 @@ static bool pmeditor_edit_comp_str(char *p, const char *tkn) {
 /**
  * Sets the syntax highlighting color for the current character being displayed.
  *
- * Maintains state using static variables to track whether currently inside
- * quotes, comments, keywords, or numbers. Must be fed all characters from
- * the start of the line sequentially to maintain correct state.
- *
- * Pass NULL to reset the color state to normal at the start of a new line.
- *
  * @param  self  Pointer to the PmEditor instance.
- * @param  p     Pointer to the current character, or NULL to reset state.
+ * @param  p     Pointer to the current character.
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_set_colour(PmEditor *self, char *p) {
+    if (!p) return mmresult_ex(kInternalFault, "Invalid null parameter: p");
     if (!mmb_options.syntax_highlight) return kOk;
 
     // this is a list of keywords that can come after the OPTION and GUI commands
@@ -619,15 +614,6 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
         "SELECT", "INTEGER", "FLOAT", "STRING", "DISPLAY", "SDCARD", "OUTPUT", "APPEND", "WRITE",
         "SLAVE", "TARGET", "PROGRAM",
         NULL};
-
-    // cmdfile everything back to normal
-    if (p == NULL) {
-        ON_FAILURE_RETURN(pmeditor_init_syntax_state(self));
-        if (self->comment_level == 0) {
-            ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
-        }
-        return kOk;
-    }
 
     // Check for the start of a multiline comment
     if (*p == '/' && p[1] == '*' && !self->syntax.inquote) {
@@ -906,8 +892,11 @@ static MmResult pmeditor_print_line(PmEditor *self, int line) {
         i--;
     }
 
-    ON_FAILURE_RETURN(pmeditor_set_colour(self, NULL));
+    // Reset syntax highlighting and clear display to end of line
+    ON_FAILURE_RETURN(pmeditor_init_syntax_state(self));
+    ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
+
     self->cx = self->width - 1;
 
     return kOk;

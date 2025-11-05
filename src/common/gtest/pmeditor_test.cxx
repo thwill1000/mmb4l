@@ -480,8 +480,7 @@ protected:
     }
 
     void ResetState() {
-        // Call pmeditor_set_colour(self, NULL) to reset internal state
-        pmeditor_set_colour(self, NULL);
+        ASSERT_EQ(kOk, pmeditor_init_syntax_state(self));
         last_highlight_type = kHighlightNormal;
         highlight_call_count = 0;
     }
@@ -493,17 +492,11 @@ protected:
     }
 };
 
-// Test resetting state with NULL pointer
-TEST_F(PmEditorSetColourTest, ResetStateWithNull) {
-    // Set some initial state by processing characters
-    SetBuffer("PRINT");
-    pmeditor_set_colour(self, self->buf);
+// Test calling with NULL pointer
+TEST_F(PmEditorSetColourTest, InternalFaultGivenNullCharacter) {
+    MmResult result = pmeditor_set_colour(self, NULL);
 
-    // Reset state
-    pmeditor_set_colour(self, NULL);
-
-    // The function should reset to normal highlighting
-    EXPECT_HIGHLIGHT(kHighlightNormal);
+    EXPECT_EQ(kInternalFault, result);
 }
 
 // Test single quote comment detection
