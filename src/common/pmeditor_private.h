@@ -115,12 +115,13 @@ typedef struct s_PmEditor {
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);
 MmResult pmeditor_cmd_delete(PmEditor *self);
+char *pmeditor_back_in_line(PmEditor *self, char *start, size_t num_chars);
+char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, size_t max_len);
 char *pmeditor_find_line(PmEditor *self, int line); // , int *comment_level);
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
 MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state);
-bool pmeditor_line_contains(PmEditor *self, const char *needle);
 MmResult pmeditor_set_colour(PmEditor *self, char *p);
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)

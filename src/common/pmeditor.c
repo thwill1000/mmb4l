@@ -68,6 +68,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/MMBasic.h"
 #include "../core/tokentbl.h"
 
+#define MAX_LINE_LENGTH  MAXSTRLEN
+
 typedef enum {
     kEditMode,
     kMarkMode,
@@ -492,61 +494,145 @@ static inline MmResult pmeditor_display_msg(PmEditor *self, const char *msg) {
 }
 
 /**
- * Checks if the current line contains a substring.
+ * Moves a pointer back by a specified number of characters within the current line.
+ *
+ * @param  self       Pointer to the PmEditor instance.
+ * @param  start      The starting position pointer within the text buffer.
+ * @param  num_chars  The number of characters to move back.
+ * @return            Pointer moved back by num_chars, or to the start of the line if
+ *                    num_chars exceeds the distance to line start. Returns NULL on error.
+ */
+char *pmeditor_back_in_line(PmEditor *self, char *start, size_t num_chars) {
+    if (self == NULL) {
+        LOG_ERROR("Invalid null parameter: self");
+        return NULL;
+    }
+
+    if (start == NULL) {
+        LOG_ERROR("Invalid null parameter: start");
+        return NULL;
+    }
+
+    // Validate that start is within buffer bounds
+    if (start < self->buf || start >= self->buf + EDIT_BUFFER_SIZE) {
+        LOG_ERROR("Start position outside buffer bounds");
+        return NULL;
+    }
+
+    // Early return for zero movement
+    if (num_chars == 0) {
+        return start;
+    }
+
+    // Find the start of the current line
+    char *line_start = start;
+    while (line_start > self->buf && *(line_start - 1) != '\n') {
+        line_start--;
+    }
+
+    // Calculate how far we can actually move back
+    size_t max_move = start - line_start;
+    size_t actual_move = (num_chars > max_move) ? max_move : num_chars;
+
+    return start - actual_move;
+}
+
+/**
+ * Finds a case-insensitive substring within the current line of the text buffer.
  *
  * Searches for the given needle string within the line where the cursor
- * (txtp) is currently positioned. The search is performed only on the
- * current line, bounded by newline characters or the buffer boundaries.
+ * (start) is positioned. The search is performed only on the current line,
+ * bounded by newline characters or the buffer boundaries.
  *
- * @param  self   Pointer to the PmEditor structure. Must not be NULL.
- *                The txtp field must point to a valid position within buf.
- * @param  needle The substring to search for. NULL or empty string returns false.
- *
- * @return        true if the needle is found anywhere on the current line,
- *                false otherwise or if needle is NULL/empty.
+ * @param  self     Pointer to the PmEditor instance.
+ * @param  needle   The case-insensitive substring to search for.
+ * @param  start    The starting position pointer within the text buffer.
+ * @param  max_len  The maximum length to search within the line.
+ * @return          Pointer to the start of the found substring, or NULL if not found.
  *
  * @note The search is case-insensitive.
  * @note This function does not modify the buffer.
  * @note The current line is defined as text between newline characters,
  *       or from the buffer start/end if no newlines are present.
  */
-bool pmeditor_line_contains(PmEditor *self, const char *needle) {
+char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, size_t max_len) {
+    if (self == NULL) {
+        LOG_ERROR("Invalid null parameter: self");
+        return NULL;
+    }
+
     if (needle == NULL) {
         LOG_ERROR("Invalid null parameter: needle");
-        return false;
+        return NULL;
     }
-    
+
     if (*needle == '\0') {
         LOG_ERROR("Invalid empty parameter: needle");
-        return false;
+        return NULL;
     }
 
-    // Find start of line
-    const char *start = self->txtp;
-    while (start != self->buf && *(start - 1) != '\n') start--;
+    if (start == NULL) {
+        LOG_ERROR("Invalid null parameter: start");
+        return NULL;
+    }
 
-    // Find end of line
-    const char *end = self->txtp;
-    while (*end != '\0' && *end != '\n') end++;
+    // Ensure start is within the buffer bounds
+    if (start < self->buf || start >= self->buf + EDIT_BUFFER_SIZE) {
+        LOG_ERROR("Start position outside buffer bounds");
+        return NULL;
+    }
+
+    // Early return for zero max_len
+    if (max_len == 0) {
+        return NULL;
+    }
 
     size_t needle_len = strlen(needle);
-    size_t line_len = end - start;
-    
-    if (needle_len > line_len) return false;
+    if (needle_len > max_len) {
+        return NULL;
+    }
+
+    // Find end of line from start position
+    const char *buffer_end = self->buf + EDIT_BUFFER_SIZE;
+    const char *line_end = start;
+
+    while (line_end < buffer_end && *line_end != '\0' && *line_end != '\n') {
+        line_end++;
+    }
+
+    // Calculate actual search area considering max_len and buffer bounds
+    size_t line_len = line_end - start;
+    size_t search_len = (max_len < line_len) ? max_len : line_len;
+
+    // Ensure we don't search beyond buffer bounds
+    const char *search_end = start + search_len;
+    if (search_end > buffer_end) {
+        search_end = buffer_end;
+        search_len = search_end - start;
+    }
+
+    // Check if needle can fit in search area
+    if (needle_len > search_len) {
+        return NULL;
+    }
 
     // Manual case-insensitive substring search
-    for (const char *p = start; p <= end - needle_len; p++) {
+    // Safe loop bounds: ensure we don't go past search_end - needle_len
+    const char *max_start_pos = search_end - needle_len;
+    for (char *p = start; p <= max_start_pos; p++) {
         bool match = true;
         for (size_t i = 0; i < needle_len; i++) {
-            if (tolower((unsigned char) p[i]) != tolower((unsigned char) needle[i])) {
+            if (tolower((unsigned char)p[i]) != tolower((unsigned char)needle[i])) {
                 match = false;
                 break;
             }
         }
-        if (match) return true;
+        if (match) {
+            return p;
+        }
     }
 
-    return false;
+    return NULL;
 }
 
 /**
@@ -575,16 +661,35 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state) {
         return kOk;  // This is still considered a successful function call
     }
 
-    // Check for interactions that might make or break multiline comments
+    // Check for interactions that make or break multiline comments
     char previous = (self->txtp > self->buf) ? *(self->txtp - 1) : '\0';
-    if (ch == '/' && (previous == '*' || *self->txtp == '*')) {
-        // Inserting '/' before or after '*'
-        *state = kInsertMultiline;
-    } else if (ch == '*' && (previous == '/' || *self->txtp == '/')) {
-        // Inserting '*' before or after '/'
-        *state = kInsertMultiline;
-    } else if (ch == '\'' && pmeditor_line_contains(self, "/*")) {
-        *state = kInsertMultiline;
+    switch (ch) {
+        case '/':
+            if (previous == '*' || *self->txtp == '*') {
+                // Inserting / before or after *
+                *state = kInsertMultiline;
+            }
+            break;
+        case '*':
+            if (previous == '/' || *self->txtp == '/') {
+                // Inserting * before or after /
+                *state = kInsertMultiline;
+            }
+            break;
+        case '\'':
+            if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
+                // Inserting \ before /*
+                *state = kInsertMultiline;
+            }
+            break;
+        case '"':
+            if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
+                // Inserting " before /*
+                *state = kInsertMultiline;
+            }
+            break;
+        default:
+            break;
     }
 
     // Shift everything up one place to make room
@@ -596,6 +701,16 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state) {
     p = self->txtp + 1;
     *self->txtp++ = ch;
     self->text_changed = true;
+
+    // TODO: Check for a completed REM command before /*
+    if (pmeditor_find_in_line(
+            self,
+            "REM",
+            pmeditor_back_in_line(self, self->txtp, 3),
+            6
+        ) && (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL)) {
+        *state = kInsertMultiline;
+    }
 
     return kOk;
 }
@@ -967,7 +1082,7 @@ static MmResult pmeditor_print_line(PmEditor *self, int line) {
  *
  * Prints all visible lines starting from the top-left corner specified by
  * self->px and self->py.
- * 
+ *
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
@@ -1386,7 +1501,7 @@ static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd, MarkState *stat
  *
  * Enters a sub-loop handling mark mode commands, displaying selected text
  * with inverse video, and processing cut/copy/delete operations.
- * 
+ *
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
@@ -2015,8 +2130,8 @@ static MmResult pmeditor_cmd_tab(PmEditor *self) {
 /**
  * Handles the F1 key command (save and exit).
  *
- * Validates that no lines exceed MAXSTRLEN characters, saves the file if modified,
- * and exits the editor. Clears and resets the display.
+ * Validates that no lines exceed MAX_LINE_LENGTH characters,
+ * saves the file if modified, and exits the editor. Clears and resets the display.
  *
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
@@ -2025,7 +2140,7 @@ static MmResult pmeditor_cmd_save_and_exit(PmEditor *self) {
     int line = -1;
     int length = -1;
     ON_FAILURE_RETURN(pmeditor_find_longest_line(self, &line, &length));
-    if (length > MAXSTRLEN) {
+    if (length > MAX_LINE_LENGTH) {
         char msg[32] = {};
         sprintf(msg, " LINE %d TOO LONG ", line);
         return pmeditor_display_msg(self, msg);

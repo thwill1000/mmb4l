@@ -123,6 +123,10 @@ protected:
         EXPECT_STREQ(expected_keys, self->keys + 1) << "Keyboard buffer mismatch"; \
     } while (0)
 
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_find_line()
+////////////////////////////////////////////////////////////////////////////////
+
 class PmEditorFindLineTest : public PmEditorTestBase { };
 
 // Test finding line 0 (first line) in empty buffer
@@ -468,6 +472,10 @@ TEST_F(PmEditorFindLineTest, LargeLineNumber) {
     EXPECT_EQ(result, self->buf + expected_pos);
     EXPECT_EQ(0, self->comment_level);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_set_colour()
+////////////////////////////////////////////////////////////////////////////////
 
 class PmEditorSetColourTest : public PmEditorTestBase {
 
@@ -923,6 +931,10 @@ TEST_F(PmEditorSetColourTest, NestedCommentScenarios) {
     EXPECT_FALSE(self->comment_level);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_insert_char()
+////////////////////////////////////////////////////////////////////////////////
+
 class PmEditorInsertCharTest : public PmEditorTestBase { };
 
 TEST_F(PmEditorInsertCharTest, InsertCharAtBeginning) {
@@ -996,85 +1008,129 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferHasOnlyOneByteRemaining) {
     EXPECT_EQ('B', *(self->buf + EDIT_BUFFER_SIZE - 2));
 }
 
-TEST_F(PmEditorInsertCharTest, InsertForwardSlashAfterStar) {
-    const char* initial_content = "Hello*";
-    SetBuffer(initial_content);
+struct InsertCharTestCase {
+    const char* name;
+    const char* initial_content;
+    size_t cursor_offset;
+    char char_to_insert;
+    InsertState expected_insert_state;
+    const char* expected_content;
+    size_t expected_cursor_offset;
+};
 
-    self->txtp = self->buf + 6; // Position after '*'
+class PmEditorInsertCharParameterizedTest :
+    public PmEditorInsertCharTest,
+    public ::testing::WithParamInterface<InsertCharTestCase> {};
+
+TEST_P(PmEditorInsertCharParameterizedTest,) {
+    const auto& test_case = GetParam();
+
+    SetBuffer(test_case.initial_content);
+    self->txtp = self->buf + test_case.cursor_offset;
+
     InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, '/', &insert_state));
+    EXPECT_EQ(kOk, pmeditor_insert_char(self, test_case.char_to_insert, &insert_state));
 
-    EXPECT_EQ(kInsertMultiline, insert_state);
-    EXPECT_STREQ("Hello*/", self->buf);
-    EXPECT_EQ(self->buf + 7, self->txtp);
+    EXPECT_EQ(test_case.expected_insert_state, insert_state);
+    EXPECT_STREQ(test_case.expected_content, self->buf);
+    EXPECT_EQ(self->buf + test_case.expected_cursor_offset, self->txtp);
 }
 
-TEST_F(PmEditorInsertCharTest, InsertForwardSlashBeforeStar) {
-    const char* initial_content = "*Hello";
-    SetBuffer(initial_content);
+INSTANTIATE_TEST_SUITE_P(
+    /* deliberately left empty */,
+    PmEditorInsertCharParameterizedTest,
+    ::testing::Values(
+        InsertCharTestCase{
+            "InsertForwardSlashAfterStar",
+            "Hello*",
+            6,  // Position after '*'
+            '/',
+            kInsertMultiline,
+            "Hello*/",
+            7   // Expected after '/'
+        },
+        InsertCharTestCase{
+            "InsertForwardSlashBeforeStar",
+            "*Hello",
+            0,  // Position before '*'
+            '/',
+            kInsertMultiline,
+            "/*Hello",
+            1   // Expected after '/'
+        },
+        InsertCharTestCase{
+            "InsertStarAfterForwardSlash",
+            "/Hello",
+            1,  // Position after '/'
+            '*',
+            kInsertMultiline,
+            "/*Hello",
+            2   // Expected after '*'
+        },
+        InsertCharTestCase{
+            "InsertStarBeforeForwardSlash",
+            "Hello/",
+            5,  // Position before '/'
+            '*',
+            kInsertMultiline,
+            "Hello*/",
+            6   // Expected after '*'
+        },
+        InsertCharTestCase{
+            "InsertApostropheBeforeMultilineCommentStart",
+            "Print /*Hello",
+            1,  // Position before 'r'
+            '\'',
+            kInsertMultiline,
+            "P'rint /*Hello",
+            2   // Expected after '\''
+        },
+        InsertCharTestCase{
+            "InsertApostropheWithoutMultilineCommentStart",
+            "Print ABHello",
+            1,  // Position before 'r'
+            '\'',
+            kInsertNormal,
+            "P'rint ABHello",
+            2   // Expected after '\''
+        },
+        InsertCharTestCase{
+            "InsertQuoteBeforeMultilineCommentStart",
+            "Print /*Hello",
+            1,  // Position before 'r'
+            '"',
+            kInsertMultiline,
+            "P\"rint /*Hello",
+            2   // Expected after '"'
+        },
+        InsertCharTestCase{
+            "InsertQuoteWithoutMultilineCommentStart",
+            "Print ABHello",
+            1,  // Position before 'r'
+            '"',
+            kInsertNormal,
+            "P\"rint ABHello",
+            2   // Expected after '"'
+        },
+        InsertCharTestCase{
+            "CompleteREMBeforeMultilineCommentStart",
+            "Em /*Hello",
+            0,  // Position before 'E'
+            'r',
+            kInsertMultiline,
+            "rEm /*Hello",
+            1   // Expected after 'r'
+        }
 
-    self->txtp = self->buf; // Position before '*'
-    InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, '/', &insert_state));
+    ),
+    [](const ::testing::TestParamInfo<InsertCharTestCase>& info) {
+        return info.param.name;
+    }
+);
 
-    EXPECT_EQ(kInsertMultiline, insert_state);
-    EXPECT_STREQ("/*Hello", self->buf);
-    EXPECT_EQ(self->buf + 1, self->txtp);
-}
-
-TEST_F(PmEditorInsertCharTest, InsertStarAfterForwardSlash) {
-    const char* initial_content = "/Hello";
-    SetBuffer(initial_content);
-
-    self->txtp = self->buf + 1; // Position after '/'
-    InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, '*', &insert_state));
-
-    EXPECT_EQ(kInsertMultiline, insert_state);
-    EXPECT_STREQ("/*Hello", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp);
-}
-
-TEST_F(PmEditorInsertCharTest, InsertStarBeforeForwardSlash) {
-    const char* initial_content = "Hello/";
-    SetBuffer(initial_content);
-
-    self->txtp = self->buf + 5; // Position before '/'
-    InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, '*', &insert_state));
-
-    EXPECT_EQ(kInsertMultiline, insert_state);
-    EXPECT_STREQ("Hello*/", self->buf);
-    EXPECT_EQ(self->buf + 6, self->txtp);
-}
-
-TEST_F(PmEditorInsertCharTest, InsertApostropheInLineWithMultilineCommentStart) {
-    const char* initial_content = "Print /*Hello";
-    SetBuffer(initial_content);
-
-    self->txtp = self->buf + 1; // Position before 'r'
-    InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, '\'', &insert_state));
-
-    // Should signal (possible) change in multiline comment state
-    EXPECT_EQ(kInsertMultiline, insert_state);
-    EXPECT_STREQ("P'rint /*Hello", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp);
-}
-
-TEST_F(PmEditorInsertCharTest, InsertApostropheInLineWithoutMultilineCommentStart) {
-    const char* initial_content = "Print ABHello";
-    SetBuffer(initial_content);
-
-    self->txtp = self->buf + 1; // Position before 'r'
-    InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, '\'', &insert_state));
-
-    // Should signal (possible) change in multiline comment state
-    EXPECT_EQ(kInsertNormal, insert_state);
-    EXPECT_STREQ("P'rint ABHello", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp);
-}
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_delete()
+////////////////////////////////////////////////////////////////////////////////
 
 class PmEditorCmdDeleteTest : public PmEditorTestBase { };
 
@@ -1446,6 +1502,10 @@ TEST_F(PmEditorCmdDeleteTest, DeleteCommentMarkerCombinations) {
         EXPECT_TRUE(self->text_changed) << "Failed for: " << test_case.description;
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_backspace()
+////////////////////////////////////////////////////////////////////////////////
 
 class PmEditorCmdBackspaceTest : public PmEditorTestBase { };
 
@@ -2005,17 +2065,6 @@ TEST_F(PmEditorCmdBackspaceTest, KeyboardBufferWrapCommand) {
 }
 
 // ============================================================================
-// Parameterized Tests for Tab Stops
-// ============================================================================
-
-struct TabStopTestCase {
-    int num_spaces;
-    int tab_size;
-    int expected_deletes;
-    const char* description;
-};
-
-// ============================================================================
 // Error Condition Tests
 // ============================================================================
 
@@ -2078,6 +2127,10 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceEntireIndentedLine) {
     EXPECT_EQ(self->buf, self->txtp);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_find_longest_line()
+////////////////////////////////////////////////////////////////////////////////
+
 class PmEditorFindLongestLine : public PmEditorTestBase { };
 
 TEST_F(PmEditorFindLongestLine, EmptyStringReturnsZero) {
@@ -2139,6 +2192,10 @@ TEST_F(PmEditorFindLongestLine, LastLineIsLongest) {
     EXPECT_EQ(3, line);
     EXPECT_EQ(22, length);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_char()
+////////////////////////////////////////////////////////////////////////////////
 
 class PmEditorCmdCharTest : public PmEditorTestBase { };
 
@@ -3166,308 +3223,675 @@ TEST_F(PmEditorCmdCharTest, RegularCharacterNoScreenRedraw) {
     // Should not trigger full screen redraw
 }
 
-class PmEditorLineContainsTest : public PmEditorTestBase { };
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_back_in_line()
+////////////////////////////////////////////////////////////////////////////////
 
-// Basic functionality tests
-TEST_F(PmEditorLineContainsTest, SimpleMatch) {
-    SetBuffer("hello world");
-    self->txtp = self->buf + 6;  // cursor at 'w'
+class PmEditorBackInLineTest : public PmEditorTestBase { };
 
-    EXPECT_TRUE(pmeditor_line_contains(self, "hello"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "world"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "foo"));
+struct BackInLineTestCase {
+    const char* name;
+    const char* buffer_content;
+    size_t start_offset;           // Offset from buffer start
+    size_t num_chars;              // Number of characters to move back
+    bool should_succeed;           // Whether the operation should succeed
+    size_t expected_offset;        // Expected offset from buffer start (if successful)
+    const char* description;
+};
+
+class PmEditorBackInLineParameterizedTest :
+    public PmEditorTestBase,
+    public ::testing::WithParamInterface<BackInLineTestCase> {};
+
+TEST_P(PmEditorBackInLineParameterizedTest,) {
+    const auto& test_case = GetParam();
+
+    SetBuffer(test_case.buffer_content);
+    char* start_pos = self->buf + test_case.start_offset;
+
+    char* result = pmeditor_back_in_line(self,  start_pos, test_case.num_chars);
+
+    if (test_case.should_succeed) {
+        ASSERT_NE(nullptr, result) << "Expected valid result but got NULL. "
+                                   << test_case.description;
+
+        size_t actual_offset = result - self->buf;
+        EXPECT_EQ(test_case.expected_offset, actual_offset)
+            << "Moved to wrong position. Expected offset " << test_case.expected_offset
+            << " but got " << actual_offset << ". " << test_case.description;
+    } else {
+        EXPECT_EQ(nullptr, result) << "Expected NULL but got valid pointer at offset "
+                                   << (result ? result - self->buf : 0)
+                                   << ". " << test_case.description;
+    }
 }
 
-TEST_F(PmEditorLineContainsTest, MatchAtEnd) {
-    SetBuffer("hello world");
-    self->txtp = self->buf;
+INSTANTIATE_TEST_SUITE_P(
+    BasicMovement,
+    PmEditorBackInLineParameterizedTest,
+    ::testing::Values(
+        BackInLineTestCase{
+            "MoveBackInMiddleOfLine",
+            "Hello World",
+            10,  // Start at 'd' (end of "World")
+            3,   // Move back 3 characters
+            true,
+            7,   // Should be at 'r' in "World"
+            "Move back 3 characters from end of word"
+        },
+        BackInLineTestCase{
+            "MoveBackToStartOfLine",
+            "Hello World",
+            5,   // Start at space
+            5,   // Move back 5 characters
+            true,
+            0,   // Should be at start of line
+            "Move back to beginning of line"
+        },
+        BackInLineTestCase{
+            "MoveBackOneCharacter",
+            "Hello World",
+            5,   // Start at space
+            1,   // Move back 1 character
+            true,
+            4,   // Should be at 'o' in "Hello"
+            "Move back one character"
+        },
+        BackInLineTestCase{
+            "NoMovementZeroChars",
+            "Hello World",
+            5,   // Start at space
+            0,   // Move back 0 characters
+            true,
+            5,   // Should stay at same position
+            "No movement when num_chars is 0"
+        },
+        BackInLineTestCase{
+            "MoveFromStartOfLine",
+            "Hello World",
+            0,   // Start at beginning
+            3,   // Try to move back 3 characters
+            true,
+            0,   // Should stay at beginning
+            "Cannot move back from start of line"
+        }
+    ),
+    [](const ::testing::TestParamInfo<BackInLineTestCase>& info) {
+        return info.param.name;
+    }
+);
 
-    EXPECT_TRUE(pmeditor_line_contains(self, "world"));
-}
+INSTANTIATE_TEST_SUITE_P(
+    MultiLineScenarios,
+    PmEditorBackInLineParameterizedTest,
+    ::testing::Values(
+        BackInLineTestCase{
+            "MoveBackInSecondLine",
+            "First line\nSecond line\nThird line",
+            20,  // Start at 'n' in "Second line"
+            6,   // Move back 6 characters
+            true,
+            14,  // Should be at 'c' in "Second"
+            "Move back within second line"
+        },
+        BackInLineTestCase{
+            "MoveBackToStartOfSecondLine",
+            "First line\nSecond line\nThird line",
+            20,  // Start at 'n' in "Second line"
+            10,  // Move back more than line length
+            true,
+            11,  // Should stop at start of second line (after \n)
+            "Move back to start of second line"
+        },
+        BackInLineTestCase{
+            "MoveBackInThirdLine",
+            "First line\nSecond line\nThird line",
+            30,  // Start somewhere in "Third line"
+            3,   // Move back 3 characters
+            true,
+            27,  // Move back 3 positions
+            "Move back within third line"
+        },
+        BackInLineTestCase{
+            "StartAtNewlineCharacter",
+            "First line\nSecond line",
+            10,  // Start at '\n'
+            5,   // Move back 5 characters
+            true,
+            5,   // Should be at 'l' in "First line"
+            "Start at newline and move back in previous line"
+        },
+        BackInLineTestCase{
+            "StartJustAfterNewline",
+            "First line\nSecond line",
+            11,  // Start at 'S' in "Second"
+            1,   // Move back 1 character
+            true,
+            11,  // Should stay at start of line (can't go to previous line)
+            "Cannot move back past start of current line"
+        }
+    ),
+    [](const ::testing::TestParamInfo<BackInLineTestCase>& info) {
+        return info.param.name;
+    }
+);
 
-TEST_F(PmEditorLineContainsTest, MatchAtBeginning) {
-    SetBuffer("hello world");
-    self->txtp = self->buf + 10;  // cursor at 'd'
+INSTANTIATE_TEST_SUITE_P(
+    BoundaryConditions,
+    PmEditorBackInLineParameterizedTest,
+    ::testing::Values(
+        BackInLineTestCase{
+            "MoveBackMoreThanAvailable",
+            "Hello",
+            4,   // Start at 'o'
+            10,  // Try to move back 10 characters (more than available)
+            true,
+            0,   // Should stop at start of line
+            "Move back more characters than available in line"
+        },
+        BackInLineTestCase{
+            "SingleCharacterLine",
+            "A",
+            0,   // Start at 'A'
+            1,   // Try to move back 1
+            true,
+            0,   // Should stay at 'A'
+            "Single character line, cannot move back"
+        },
+        BackInLineTestCase{
+            "EmptyLineAfterNewline",
+            "Hello\n\nWorld",
+            6,   // Start at second newline
+            1,   // Move back 1
+            true,
+            6,   // Should stay at start of empty line
+            "Empty line, cannot move back"
+        },
+        BackInLineTestCase{
+            "VeryLargeNumChars",
+            "Hello World",
+            10,  // Start at end
+            SIZE_MAX,  // Very large number
+            true,
+            0,   // Should stop at start of line
+            "Very large num_chars should stop at line start"
+        },
+        BackInLineTestCase{
+            "StartAtVeryEndOfBuffer",
+            "Hello World",
+            10,  // Start at 'd' (last character)
+            5,   // Move back 5
+            true,
+            5,   // Should be at space
+            "Move back from very end of buffer content"
+        }
+    ),
+    [](const ::testing::TestParamInfo<BackInLineTestCase>& info) {
+        return info.param.name;
+    }
+);
 
-    EXPECT_TRUE(pmeditor_line_contains(self, "hello"));
-}
+INSTANTIATE_TEST_SUITE_P(
+    SpecialCharacters,
+    PmEditorBackInLineParameterizedTest,
+    ::testing::Values(
+        BackInLineTestCase{
+            "LineWithTabs",
+            "Hello\tWorld\tTest",
+            15,  // Start at 't' in "Test"
+            7,   // Move back 7 characters
+            true,
+            8,   // Should be at 'r' in "World"
+            "Handle tabs as regular characters"
+        },
+        BackInLineTestCase{
+            "LineWithSpaces",
+            "Hello   World",
+            12,  // Start at 'd'
+            8,   // Move back 8 characters
+            true,
+            4,   // Should be at 'o' in "Hello"
+            "Handle multiple spaces"
+        },
+        BackInLineTestCase{
+            "SpecialSymbols",
+            "/*comment*/code",
+            14,  // Start at 'e' in "code"
+            6,   // Move back 6 characters
+            true,
+            8,   // Should be at 't' in "comment"
+            "Handle special symbols like /* */"
+        },
+        BackInLineTestCase{
+            "UnicodeCharacters",
+            "Héllo Wörld",
+            10,  // Start at 'd'
+            5,   // Move back 5 characters
+            true,
+            5,   // Should be at space (note: this assumes single-byte chars)
+            "Handle accented characters"
+        }
+    ),
+    [](const ::testing::TestParamInfo<BackInLineTestCase>& info) {
+        return info.param.name;
+    }
+);
 
-// Case-insensitive tests
-TEST_F(PmEditorLineContainsTest, CaseInsensitiveMatch) {
+// Separate test class for error conditions
+class PmEditorBackInLineErrorTest : public PmEditorTestBase {};
+
+TEST_F(PmEditorBackInLineErrorTest, NullParameters) {
     SetBuffer("Hello World");
-    self->txtp = self->buf;
 
-    EXPECT_TRUE(pmeditor_line_contains(self, "hello"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "HELLO"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "HeLLo"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "world"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "WORLD"));
+    // Test null editor
+    EXPECT_EQ(nullptr, pmeditor_back_in_line(nullptr, self->buf + 5, 3));
+
+    // Test null start
+    EXPECT_EQ(nullptr, pmeditor_back_in_line(self,  nullptr, 3));
 }
 
-TEST_F(PmEditorLineContainsTest, CaseInsensitiveMixedCase) {
-    SetBuffer("ThE qUiCk BrOwN FoX");
-    self->txtp = self->buf;
+#if 0 // TODO
+TEST_F(PmEditorBackInLineErrorTest, OutOfBoundsStart) {
+    SetBuffer("Hello World");
 
-    EXPECT_TRUE(pmeditor_line_contains(self, "the quick"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "BROWN FOX"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "QuIcK"));
+    // Test start before buffer
+    char* before_buffer = self->buf - 1;
+    EXPECT_EQ(nullptr, pmeditor_back_in_line(self,  before_buffer, 3));
+
+    // Test start after buffer
+    char* after_buffer = self->buf + EDIT_BUFFER_SIZE;
+    EXPECT_EQ(nullptr, pmeditor_back_in_line(self,  after_buffer, 3));
+
+    // Test start exactly at buffer end
+    char* at_buffer_end = self->buf + EDIT_BUFFER_SIZE - 1;
+    // This should be valid if there's content there
+    char* result = pmeditor_back_in_line(self,  at_buffer_end, 3);
+    // Result depends on whether position is valid - could be NULL or valid pointer
+}
+#endif
+
+// Edge case tests
+class PmEditorBackInLineEdgeTest : public PmEditorTestBase {};
+
+TEST_F(PmEditorBackInLineEdgeTest, ConsecutiveNewlines) {
+    SetBuffer("Line1\n\n\nLine4");
+
+    // Start in the middle of consecutive newlines
+    char* start = self->buf + 7;  // Second newline
+    char* result = pmeditor_back_in_line(self,  start, 1);
+
+    EXPECT_NE(nullptr, result);
+    EXPECT_EQ(self->buf + 7, result);  // Should stay at start of empty line
 }
 
-// Edge cases
-TEST_F(PmEditorLineContainsTest, NullNeedle) {
-    SetBuffer("hello world");
-    self->txtp = self->buf;
+TEST_F(PmEditorBackInLineEdgeTest, OnlyNewlines) {
+    SetBuffer("\n\n\n");
 
-    EXPECT_FALSE(pmeditor_line_contains(self, NULL));
+    // Start at second newline
+    char* start = self->buf + 1;
+    char* result = pmeditor_back_in_line(self,  start, 1);
+
+    EXPECT_NE(nullptr, result);
+    EXPECT_EQ(start, result);  // Should stay at start of empty line
 }
 
-TEST_F(PmEditorLineContainsTest, EmptyNeedle) {
-    SetBuffer("hello world");
-    self->txtp = self->buf;
+TEST_F(PmEditorBackInLineEdgeTest, LongLine) {
+    // Create a long line without newlines
+    std::string long_content(1000, 'A');
+    SetBuffer(long_content.c_str());
 
-    EXPECT_FALSE(pmeditor_line_contains(self, ""));
+    // Start near the end and move back significantly
+    char* start = self->buf + 900;
+    char* result = pmeditor_back_in_line(self,  start, 500);
+
+    EXPECT_NE(nullptr, result);
+    EXPECT_EQ(self->buf + 400, result);
 }
 
-TEST_F(PmEditorLineContainsTest, SingleCharacterMatch) {
-    SetBuffer("a");
-    self->txtp = self->buf;
+TEST_F(PmEditorBackInLineEdgeTest, BufferBoundaryConditions) {
+    SetBuffer("Test content");
 
-    EXPECT_TRUE(pmeditor_line_contains(self, "a"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "A"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "b"));
+    // Test at exact buffer start
+    char* result1 = pmeditor_back_in_line(self,  self->buf, 5);
+    EXPECT_EQ(self->buf, result1);
+
+    // Test at buffer start + 1
+    char* result2 = pmeditor_back_in_line(self,  self->buf + 1, 1);
+    EXPECT_EQ(self->buf, result2);
 }
 
-TEST_F(PmEditorLineContainsTest, NeedleLongerThanHaystack) {
-    SetBuffer("hi");
-    self->txtp = self->buf;
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_find_in_line()
+////////////////////////////////////////////////////////////////////////////////
 
-    EXPECT_FALSE(pmeditor_line_contains(self, "hello"));
+struct FindInLineTestCase {
+    const char* name;
+    const char* buffer_content;
+    size_t start_offset;           // Offset from buffer start
+    const char* needle;
+    size_t max_len;
+    bool should_find;
+    size_t expected_offset;        // Expected offset from buffer start (if found)
+    const char* description;
+};
+
+class PmEditorFindInLineParameterizedTest :
+    public PmEditorTestBase,
+    public ::testing::WithParamInterface<FindInLineTestCase> {};
+
+TEST_P(PmEditorFindInLineParameterizedTest,) {
+    const auto& test_case = GetParam();
+
+    SetBuffer(test_case.buffer_content);
+    char* start_pos = self->buf + test_case.start_offset;
+
+    char* result = pmeditor_find_in_line(self, test_case.needle, start_pos, test_case.max_len);
+
+    if (test_case.should_find) {
+        ASSERT_NE(nullptr, result) << "Expected to find '" << test_case.needle
+                                   << "' but got NULL. " << test_case.description;
+
+        size_t actual_offset = result - self->buf;
+        EXPECT_EQ(test_case.expected_offset, actual_offset)
+            << "Found at wrong position. " << test_case.description;
+    } else {
+        EXPECT_EQ(nullptr, result) << "Expected NULL but found match at offset "
+                                   << (result ? result - self->buf : 0)
+                                   << ". " << test_case.description;
+    }
 }
 
-TEST_F(PmEditorLineContainsTest, EmptyBuffer) {
-    SetBuffer("");
-    self->txtp = self->buf;
+INSTANTIATE_TEST_SUITE_P(
+    BasicSearches,
+    PmEditorFindInLineParameterizedTest,
+    ::testing::Values(
+        FindInLineTestCase{
+            "FindSimpleMatch",
+            "Hello World",
+            0,
+            "World",
+            20,
+            true,
+            6,
+            "Basic substring search"
+        },
+        FindInLineTestCase{
+            "FindCaseInsensitive",
+            "Hello WORLD",
+            0,
+            "world",
+            20,
+            true,
+            6,
+            "Case insensitive matching"
+        },
+        FindInLineTestCase{
+            "FindMixedCase",
+            "Hello WoRlD",
+            0,
+            "WOrLD",
+            20,
+            true,
+            6,
+            "Mixed case matching"
+        },
+        FindInLineTestCase{
+            "NotFound",
+            "Hello World",
+            0,
+            "xyz",
+            20,
+            false,
+            0,
+            "Substring not present"
+        },
+        FindInLineTestCase{
+            "FindAtStart",
+            "Hello World",
+            0,
+            "Hello",
+            20,
+            true,
+            0,
+            "Match at beginning of line"
+        },
+        FindInLineTestCase{
+            "FindAtEnd",
+            "Hello World",
+            0,
+            "World",
+            20,
+            true,
+            6,
+            "Match at end of line"
+        }
+    ),
+    [](const ::testing::TestParamInfo<FindInLineTestCase>& info) {
+        return info.param.name;
+    }
+);
 
-    EXPECT_FALSE(pmeditor_line_contains(self, "test"));
+INSTANTIATE_TEST_SUITE_P(
+    LineAndBufferBoundaries,
+    PmEditorFindInLineParameterizedTest,
+    ::testing::Values(
+        FindInLineTestCase{
+            "SearchWithinLine",
+            "First line\nSecond line\nThird line",
+            11,  // Start of "Second line"
+            "Second",
+            20,
+            true,
+            11,
+            "Search within specific line"
+        },
+        FindInLineTestCase{
+            "DoesNotCrossLines",
+            "First line\nSecond line",
+            6,   // Start at "line\n"
+            "line Second",
+            20,
+            false,
+            0,
+            "Should not find across line boundaries"
+        },
+        FindInLineTestCase{
+            "SearchFromMiddleOfLine",
+            "Hello Beautiful World",
+            6,   // Start at "Beautiful"
+            "World",
+            20,
+            true,
+            16,
+            "Search from middle of line"
+        },
+        FindInLineTestCase{
+            "SearchFromMiddleNotFound",
+            "Hello Beautiful World",
+            6,   // Start at "Beautiful"
+            "Hello",
+            20,
+            false,
+            0,
+            "Should not find text before start position"
+        }
+    ),
+    [](const ::testing::TestParamInfo<FindInLineTestCase>& info) {
+        return info.param.name;
+    }
+);
+
+INSTANTIATE_TEST_SUITE_P(
+    MaxLengthLimits,
+    PmEditorFindInLineParameterizedTest,
+    ::testing::Values(
+        FindInLineTestCase{
+            "MaxLenLimitsSearch",
+            "Hello World",
+            0,
+            "World",
+            8,   // Only search first 8 characters
+            false,
+            0,
+            "Max length should limit search area"
+        },
+        FindInLineTestCase{
+            "MaxLenAllowsSearch",
+            "Hello World",
+            0,
+            "World",
+            11,  // Search all 11 characters
+            true,
+            6,
+            "Max length allows finding match"
+        },
+        FindInLineTestCase{
+            "MaxLenZero",
+            "Hello World",
+            0,
+            "Hello",
+            0,   // Zero max length
+            false,
+            0,
+            "Zero max length should find nothing"
+        },
+        FindInLineTestCase{
+            "MaxLenSmallerThanNeedle",
+            "Hello World",
+            0,
+            "Hello",
+            3,   // Max length smaller than needle
+            false,
+            0,
+            "Max length smaller than needle should find nothing"
+        },
+        FindInLineTestCase{
+            "MaxLenExactNeedleSize",
+            "Hello World",
+            0,
+            "Hello",
+            5,   // Max length exactly needle size
+            true,
+            0,
+            "Max length exactly needle size should work"
+        }
+    ),
+    [](const ::testing::TestParamInfo<FindInLineTestCase>& info) {
+        return info.param.name;
+    }
+);
+
+INSTANTIATE_TEST_SUITE_P(
+    EdgeCases,
+    PmEditorFindInLineParameterizedTest,
+    ::testing::Values(
+        FindInLineTestCase{
+            "SingleCharacterMatch",
+            "Hello World",
+            0,
+            "o",
+            20,
+            true,
+            4,  // First 'o' in "Hello"
+            "Single character search"
+        },
+        FindInLineTestCase{
+            "EmptyLine",
+            "\n",
+            0,
+            "test",
+            20,
+            false,
+            0,
+            "Search in empty line"
+        },
+        FindInLineTestCase{
+            "OnlyNewlines",
+            "\n\n\n",
+            1,  // Start at second newline
+            "test",
+            20,
+            false,
+            0,
+            "Search in line with only newlines"
+        },
+        FindInLineTestCase{
+            "SpecialCharacters",
+            "Hello/*World*/",
+            0,
+            "/*",
+            20,
+            true,
+            5,
+            "Search for special characters"
+        },
+        FindInLineTestCase{
+            "RepeatedPattern",
+            "ababab",
+            0,
+            "ab",
+            20,
+            true,
+            0,  // Should find first occurrence
+            "Repeated pattern should find first match"
+        },
+        FindInLineTestCase{
+            "OverlappingPattern",
+            "aaaaaa",
+            0,
+            "aa",
+            20,
+            true,
+            0,  // Should find first occurrence
+            "Overlapping pattern should find first match"
+        }
+    ),
+    [](const ::testing::TestParamInfo<FindInLineTestCase>& info) {
+        return info.param.name;
+    }
+);
+
+// Separate test class for error conditions
+class PmEditorFindInLineErrorTest : public PmEditorTestBase {};
+
+TEST_F(PmEditorFindInLineErrorTest, NullParameters) {
+    SetBuffer("Hello World");
+
+    // Test null editor
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(nullptr, "test", self->buf, 10));
+
+    // Test null needle
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, nullptr, self->buf, 10));
+
+    // Test null start
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "test", nullptr, 10));
+
+    // Test empty needle
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "", self->buf, 10));
 }
 
-// Multiline tests
-TEST_F(PmEditorLineContainsTest, MultilineFirstLine) {
-    SetBuffer("first line\nsecond line\nthird line");
-    self->txtp = self->buf + 5;  // cursor at 't' in "first"
+TEST_F(PmEditorFindInLineErrorTest, OutOfBoundsStart) {
+    SetBuffer("Hello World");
 
-    EXPECT_TRUE(pmeditor_line_contains(self, "first"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "second"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "third"));
+    // Test start before buffer
+    char* before_buffer = self->buf - 1;
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "test", before_buffer, 10));
+
+    // Test start after buffer
+    char* after_buffer = self->buf + EDIT_BUFFER_SIZE;
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "test", after_buffer, 10));
 }
 
-TEST_F(PmEditorLineContainsTest, MultilineSecondLine) {
-    SetBuffer("first line\nsecond line\nthird line");
-    self->txtp = self->buf + 15;  // cursor at 'c' in "second"
+// Performance test for large buffers
+TEST_F(PmEditorFindInLineErrorTest, LargeBuffer) {
+    // Fill buffer with pattern
+    for (int i = 0; i < EDIT_BUFFER_SIZE - 10; i += 10) {
+        memcpy(self->buf + i, "0123456789", 10);
+    }
+    self->buf[EDIT_BUFFER_SIZE - 1] = '\0';
 
-    EXPECT_TRUE(pmeditor_line_contains(self, "second"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "first"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "third"));
-}
-
-TEST_F(PmEditorLineContainsTest, MultilineThirdLine) {
-    SetBuffer("first line\nsecond line\nthird line");
-    self->txtp = self->buf + 27;  // cursor at 'i' in "third"
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "third"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "first"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "second"));
-}
-
-TEST_F(PmEditorLineContainsTest, MultilineCaseInsensitive) {
-    SetBuffer("First LINE\nSecond LINE\nThird LINE");
-    self->txtp = self->buf + 15;  // cursor on second line
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "second line"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "SECOND LINE"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "first"));
-}
-
-TEST_F(PmEditorLineContainsTest, CursorAtLineStart) {
-    SetBuffer("line1\nline2");
-    self->txtp = self->buf + 6;  // right after '\n', at 'l' in "line2"
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "line2"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "line1"));
-}
-
-TEST_F(PmEditorLineContainsTest, CursorAtVeryFirstChar) {
-    SetBuffer("first\nsecond");
-    self->txtp = self->buf;  // at 'f'
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "first"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "second"));
-}
-
-// Overlapping pattern tests
-TEST_F(PmEditorLineContainsTest, OverlappingAAAinAAAA) {
-    SetBuffer("aaaa");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "aaa"));
-}
-
-TEST_F(PmEditorLineContainsTest, OverlappingABAinAABABA) {
-    SetBuffer("aababa");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "aba"));
-}
-
-TEST_F(PmEditorLineContainsTest, OverlappingABABAinABABABA) {
-    SetBuffer("abababa");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "ababa"));
-}
-
-TEST_F(PmEditorLineContainsTest, OverlappingXYZXYZinXYZXYZXYZ) {
-    SetBuffer("xyzxyzxyz");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "xyzxyz"));
-}
-
-TEST_F(PmEditorLineContainsTest, OverlappingCaseInsensitive) {
-    SetBuffer("AaAaAa");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "aaaa"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "AAAA"));
-}
-
-// Partial match tests (now should work with proper substring search)
-TEST_F(PmEditorLineContainsTest, MultiplePartialMatches) {
-    SetBuffer("mississippi");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "issip"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "ippi"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "ssis"));
-}
-
-TEST_F(PmEditorLineContainsTest, PartialMatchThenSuccess) {
-    SetBuffer("abcabd");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "abca"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "cabd"));
-    EXPECT_FALSE(pmeditor_line_contains(self, "abcabe"));
-}
-
-// Cursor position tests
-TEST_F(PmEditorLineContainsTest, CursorAtStartOfLine) {
-    SetBuffer("the quick brown fox");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "quick"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "fox"));
-}
-
-TEST_F(PmEditorLineContainsTest, CursorInMiddleOfLine) {
-    SetBuffer("the quick brown fox");
-    self->txtp = self->buf + 10;  // at 'b' in "brown"
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "quick"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "fox"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "the"));
-}
-
-TEST_F(PmEditorLineContainsTest, CursorAtEndOfLine) {
-    SetBuffer("the quick brown fox");
-    self->txtp = self->buf + strlen(self->buf);
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "fox"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "the"));
-}
-
-// Special character tests
-TEST_F(PmEditorLineContainsTest, TabCharacter) {
-    SetBuffer("tab\there");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "tab\there"));
-}
-
-TEST_F(PmEditorLineContainsTest, MultipleSpaces) {
-    SetBuffer("spaces  here");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "spaces  here"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "  "));
-}
-
-TEST_F(PmEditorLineContainsTest, SpecialCharacters) {
-    SetBuffer("!@#$%^&*()");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "!@#$"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "&*()"));
-}
-
-// Substring tests
-TEST_F(PmEditorLineContainsTest, SubstringAtStart) {
-    SetBuffer("hello world");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "hel"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "HEL"));
-}
-
-TEST_F(PmEditorLineContainsTest, SubstringInMiddle) {
-    SetBuffer("hello world");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "lo wo"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "LO WO"));
-}
-
-TEST_F(PmEditorLineContainsTest, SubstringAtEnd) {
-    SetBuffer("hello world");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "rld"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "RLD"));
-}
-
-// Complete line match
-TEST_F(PmEditorLineContainsTest, CompleteLineMatch) {
-    SetBuffer("exact match");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "exact match"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "EXACT MATCH"));
-}
-
-// Repeated characters
-TEST_F(PmEditorLineContainsTest, RepeatedCharacters) {
-    SetBuffer("aaaaabbbbb");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "aaaaa"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "AAAAA"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "bbbbb"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "aabbb"));
-}
-
-// High ASCII characters (test unsigned char cast)
-TEST_F(PmEditorLineContainsTest, HighASCIICharacters) {
-    SetBuffer("café");
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "café"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "CAF"));
-}
-
-TEST_F(PmEditorLineContainsTest, ExtendedASCII) {
-    SetBuffer("test\xFFvalue");  // \xFF is 255, a high ASCII value
-    self->txtp = self->buf;
-
-    EXPECT_TRUE(pmeditor_line_contains(self, "test"));
-    EXPECT_TRUE(pmeditor_line_contains(self, "value"));
+    // Search for pattern near the end
+    char* result = pmeditor_find_in_line(self, "789", self->buf, EDIT_BUFFER_SIZE);
+    EXPECT_NE(nullptr, result);
+    EXPECT_EQ('7', *result);
 }
