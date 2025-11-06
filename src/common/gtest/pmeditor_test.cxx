@@ -127,351 +127,187 @@ protected:
 // Tests for pmeditor_find_line()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorFindLineTest : public PmEditorTestBase { };
+// Test fixture for basic tests
+class PmEditorFindLineTest : public PmEditorTestBase {};
 
-// Test finding line 0 (first line) in empty buffer
-TEST_F(PmEditorFindLineTest, FindLine0EmptyBuffer) {
-    SetBuffer("");
+// Parameterized test structure
+struct FindLineTestCase {
+    const char *name;
+    const char *buffer_content;
+    int line_number;
+    int expected_offset;  // Expected offset from start of buffer (-1 for NULL)
+    int expected_comment_level;
+    const char *description;  // Optional description for complex cases
+
+    friend std::ostream& operator<<(std::ostream& os, const FindLineTestCase& tc) {
+        return os << tc.name;
+    }
+};
+
+// Parameterized test fixture
+class PmEditorFindLineParamTest :
+    public PmEditorTestBase,
+    public ::testing::WithParamInterface<FindLineTestCase> {};
+
+std::vector<FindLineTestCase> PmEditorFindLineTestCases() {
+    return {
+        // Basic line finding
+        {"SingleLine", "hello world", 0, 0, 0, "Basic single line"},
+        {"FirstOfTwo", "line1\nline2", 0, 0, 0, "First line of two"},
+        {"SecondOfTwo", "line1\nline2", 1, 6, 0, "Second line of two"},
+        {"EmptyFirstLine", "\nline2", 1, 1, 0, "Empty first line"},
+        {"MultipleLines", "one\ntwo\nthree\nfour", 2, 8, 0, "Multiple lines"},
+
+        // Edge cases - basic
+        {"NegativeLine", "text", -1, -1, -1, "Negative line number"},
+        {"LineZero", "first line", 0, 0, 0, "Line zero"},
+        {"LineBeyondEnd", "one\ntwo", 5, 7, 0, "Line beyond end returns end of buffer"},
+        {"EmptyString", "", 0, 0, 0, "Empty string"},
+        {"OnlyNewlines", "\n\n\n", 2, 2, 0, "Only newlines"},
+        {"SingleLineNoBeyond", "Hello World", 1, 11, 0, "Single line, request line 1"},
+        {"MultiLineBeyondEnd", "Line 0\nLine 1", 5, 13, 0, "Multi-line beyond end"},
+
+        // Empty buffer variations
+        {"EmptyBufferLine0", "", 0, 0, 0, "Empty buffer line 0"},
+        {"NewlinesLine0", "\n\n\n", 0, 0, 0, "Newlines line 0"},
+        {"NewlinesLine1", "\n\n\n", 1, 1, 0, "Newlines line 1"},
+        {"NewlinesLine3", "\n\n\n", 3, 3, 0, "Newlines line 3"},
+
+        // Multi-line comment tracking
+        {"SimpleMultilineComment", "code\n/* comment */\nmore", 1, 5, 0, "Simple multiline comment"},
+        {"UnclosedComment", "code\n/* comment\nstill commenting", 2, 16, 1, "Unclosed comment"},
+        {"CommentAcrossLines", "start\n/* begin\nmiddle\nend */", 2, 15, 1, "Comment across lines"},
+        {"NestedComments", "x\n/* /* nested */ */\ny", 1, 2, 0, "Nested comments"},
+        {"MultipleComments", "a\n/* c1 */\n/* c2 */\nb", 2, 11, 0, "Multiple comments"},
+
+        // Comment at start variations
+        {"CommentAtStart", "/* comment */\nLine 1\nLine 2", 0, 0, 0, "Comment at start of file"},
+        {"CommentWithSpaces", "   /* comment */\nLine 1\nLine 2", 0, 0, 0, "Comment with leading spaces"},
+        {"CommentWithTabs", "\t\t/* comment */\nLine 1\nLine 2", 0, 0, 0, "Comment with leading tabs"},
+
+        // Comment progression through lines
+        {"CommentOnSecondLine", "Line 0\n/* comment\nLine 2", 1, 7, 0, "Comment starts on second line"},
+        {"CommentOnSecondLineContinues", "Line 0\n/* comment\nLine 2", 2, 18, 1, "Comment continues to third line"},
+        {"CommentEnd", "Line 0\n*/\nLine 2", 1, 7, 0, "Comment end line"},
+        {"CommentEndContinues", "Line 0\n*/\nLine 2", 2, 10, 0, "After comment end"},
+        {"CommentEndWithSpaces", "Line 0\n  */\nLine 2", 1, 7, 0, "Comment end with spaces"},
+
+        // String literals
+        {"StringWithSlash", "code\n\"/*not comment*/\"\nmore", 1, 5, 0, "String with slash"},
+        {"StringWithQuote", "code\n\"She said \\\"hi\\\"\"\nmore", 1, 5, 0, "String with escaped quote"},
+        {"MultilineString", "start\n\"line1\nline2\"\nend", 2, 13, 0, "Multiline string"},
+        {"StringThenComment", "x\n\"text\" /* comment */\ny", 1, 2, 0, "String then comment"},
+        {"CommentThenString", "x\n/* comment */ \"text\"\ny", 1, 2, 0, "Comment then string"},
+        {"QuoteInComment", "x\n/* \" quote \" */\ny", 1, 2, 0, "Quote in comment"},
+
+        // String and comment interactions
+        {"MultilineCommentStartsInString", "x\n\"/* not comment\"\ny", 2, 19, 0, "Multiline comment starts in string"},
+        {"MultilineCommentEndsInString", "x\n/*\"comment*/\"\ny", 2, 16, 1, "Multiline comment ends in string"},
+        {"MultilineCommentWithinString", "Line 0\n\"This is not a /* comment\"\nLine 2", 2, 34, 0, "Multiline comment within string"},
+        {"CommentedOutStringWithComment", "/*Line 0\n\"/*Line 1\"\nLine 2", 2, 20, 1, "Commented out string with comment"},
+        {"CommentedOutStringWithCommentEnd", "/*Line 0\n\"*/Line 1\"\nLine 2", 2, 20, 1, "Commented out string with comment end"},
+        {"StringWithCommentInMultiline", "Line 0\n\"'/*Line 1\nLine 2", 2, 18, 0, "String with comment in multiline"},
+
+        // Single-line comments (CMM2 style with ')
+        {"SingleQuoteComment", "code\n' this is a comment\nmore", 1, 5, 0, "Single quote comment"},
+        {"CommentWithSlash", "code\n' /* not multiline\nmore", 1, 5, 0, "Comment with slash"},
+        {"REMComment", "code\nREM this is a comment\nmore", 1, 5, 0, "REM comment"},
+        {"RemLowercase", "code\nrem comment\nmore", 1, 5, 0, "REM lowercase"},
+
+        // Single-line and multiline comment interactions
+        {"MultilineCommentStartsInSingleQuoteComment", "x\n'/*Line 1\nLine 2", 2, 12, 0, "Multiline starts in single quote"},
+        {"MultilineCommentEndsInSingleQuoteComment", "x\n/*'comment*/\ny", 2, 15, 1, "Multiline ends in single quote"},
+        {"MultilineCommentStartsInRemComment", "x\nREM /* not comment\ny", 2, 21, 0, "Multiline starts in REM"},
+        {"MultilineCommentEndsInRemComment", "x\n/*rem comment*/\ny", 2, 18, 1, "Multiline ends in REM"},
+        {"BadRemComment1", "Line 0\nxREM /* comment\nLine 2", 2, 23, 1, "Bad REM should not disable multiline start 1"},
+        {"BadRemComment2", "Line 0\nREMx /* comment\nLine 2", 2, 23, 1, "Bad REM should not disable multiline start 2"},
+        {"BadRemComment3", "Line 0/*\nxREM */ not comment\nLine 2", 2, 29, 0, "Bad REM should not disable multiline end 1"},
+        {"BadRemComment4", "Line 0/*\nREMx */ not comment\nLine 2", 2, 29, 0, "Bad REM should not disable multiline end 2"},
+
+        // Edge cases with symbols
+        {"SlashNotComment", "code\n/ division\nmore", 1, 5, 0, "Slash not comment"},
+        {"StarNotComment", "code\n* pointer\nmore", 1, 5, 0, "Star not comment"},
+        {"AlmostComment", "code\n/ * separate\nmore", 1, 5, 0, "Almost comment"},
+        {"IncompleteCommentMarkers", "/\n*\nLine 2", 0, 0, 0, "Incomplete comment markers"},
+        {"CommentMarkersNotAtStart", "code /* comment\nLine 1", 0, 0, 0, "Comment markers not at start"},
+
+        // Complex edge cases
+        {"SlashStarSlashSequence", "Line 0\n/*/\nLine 2", 0, 0, 0, "/*/ sequence line 0"},
+        {"SlashStarSlashSequenceLine1", "Line 0\n/*/\nLine 2", 1, 7, 0, "/*/ sequence line 1"},
+        {"SlashStarSlashSequenceLine2", "Line 0\n/*/\nLine 2", 2, 11, 1, "/*/ sequence line 2"},
+        {"UnterminatedStringWithComment", "\"Line 0\n/*Line 1\nLine 2", 2, 17, 1, "Unterminated string with comment"},
+
+        // Complex multiline comment scenarios
+        {"ComplexMultilineCommentLine0", "/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5", 0, 0, 0, "Complex multiline line 0"},
+        {"ComplexMultilineCommentLine1", "/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5", 1, 17, 1, "Complex multiline line 1"},
+        {"ComplexMultilineCommentLine2", "/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5", 2, 34, 1, "Complex multiline line 2"},
+        {"ComplexMultilineCommentLine3", "/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5", 3, 37, 0, "Complex multiline line 3"},
+        {"ComplexMultilineCommentLine4", "/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5", 4, 44, 0, "Complex multiline line 4"},
+        {"ComplexMultilineCommentLine5", "/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5", 5, 59, 1, "Complex multiline line 5"},
+
+        // Windows line endings
+        {"WindowsLineEnding", "line1\r\nline2", 1, 7, 0, "Windows line ending"},
+
+        // Real code examples
+        {"FunctionDefinition",
+            "FUNCTION func%()\n"
+            "  /* comment */\n"
+            "  func% = 42\n"
+            "END FUNCTION",
+            2, 33, 0, "Function definition"},
+
+        {"CodeWithStrings",
+            "PRINT \"Hello\"\n"
+            "/* Comment */\n"
+            "PRINT \"World\"\n",
+            2, 28, 0, "Code with strings"},
+
+        // Performance test case
+        {"LargeLineNumber", 
+            "Line 0\nLine 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\n"
+            "Line 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\n",
+            10, 70, 0, "Large line number"},
+    };
+}
+
+TEST_P(PmEditorFindLineParamTest, FindLineTests) {
+    const auto& test_case = GetParam();
+
+    SetBuffer(test_case.buffer_content);
     self->comment_level = -1;  // Initialize to invalid value to ensure it's set
 
-    char *result = pmeditor_find_line(self, 0);
-
-    EXPECT_EQ(result, self->buf);
-    EXPECT_EQ(0, self->comment_level);
-}
-
-// Test finding line 0 in single line buffer
-TEST_F(PmEditorFindLineTest, FindLine0SingleLine) {
-    SetBuffer("Hello World");
-    self->comment_level = -1;
-
-    char *result = pmeditor_find_line(self, 0);
-
-    EXPECT_EQ(result, self->buf);
-    EXPECT_EQ(0, self->comment_level);
-}
-
-// Test finding line 1 in single line buffer (should return end)
-TEST_F(PmEditorFindLineTest, FindLine1SingleLine) {
-    SetBuffer("Hello World");
-    self->comment_level = -1;
-
-    char *result = pmeditor_find_line(self, 1);
-
-    EXPECT_EQ(result, self->buf + strlen("Hello World"));
-    EXPECT_EQ(0, self->comment_level);
-}
-
-// Test finding various lines in multi-line buffer
-TEST_F(PmEditorFindLineTest, FindLinesMultiLine) {
-    SetBuffer("Line 0\nLine 1\nLine 2\nLine 3");
-    // int comment_level;
-
-    // Test line 0
-    char *result0 = pmeditor_find_line(self, 0);
-    EXPECT_EQ(result0, self->buf);
-    EXPECT_EQ(0, self->comment_level);
-
-    // Test line 1
-    char *result1 = pmeditor_find_line(self, 1);
-    EXPECT_EQ(result1, self->buf + strlen("Line 0\n"));
-    EXPECT_EQ(0, self->comment_level);
-
-    // Test line 2
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("Line 0\nLine 1\n"));
-    EXPECT_EQ(0, self->comment_level);
-
-    // Test line 3
-    char *result3 = pmeditor_find_line(self, 3);
-    EXPECT_EQ(result3, self->buf + strlen("Line 0\nLine 1\nLine 2\n"));
-    EXPECT_EQ(0, self->comment_level);
-}
-
-// Test finding line beyond end of buffer
-TEST_F(PmEditorFindLineTest, FindLineBeyondEnd) {
-    SetBuffer("Line 0\nLine 1");
-    self->comment_level = -1;
-
-    char *result = pmeditor_find_line(self, 5);
-
-    // Should return end of buffer
-    EXPECT_EQ(result, self->buf + strlen("Line 0\nLine 1"));
-    EXPECT_EQ(0, self->comment_level);
-}
-
-// Test multiline comment detection at start of file
-TEST_F(PmEditorFindLineTest, MultilineCommentAtStart) {
-    SetBuffer("/* comment */\nLine 1\nLine 2");
-    self->comment_level = -1;
-
-    char *result = pmeditor_find_line(self, 0);
-
-    EXPECT_EQ(result, self->buf);
-    EXPECT_EQ(0, self->comment_level);  // Start of the line is not inside the comment.
-}
-
-// Test multiline comment detection with leading spaces
-TEST_F(PmEditorFindLineTest, MultilineCommentWithSpaces) {
-    SetBuffer("   /* comment */\nLine 1\nLine 2");
-    self->comment_level = -1;
-
-    char *result = pmeditor_find_line(self, 0);
-
-    EXPECT_EQ(result, self->buf);
-    EXPECT_EQ(0, self->comment_level);  // Start of the line is not inside the comment.
-}
-
-// Test multiline comment detection with tabs
-TEST_F(PmEditorFindLineTest, MultilineCommentWithTabs) {
-    SetBuffer("\t\t/* comment */\nLine 1\nLine 2");
-    self->comment_level = -1;
-
-    char *result = pmeditor_find_line(self, 0);
-
-    EXPECT_EQ(result, self->buf);
-    EXPECT_EQ(0, self->comment_level);  // Start of the line is not inside the comment.
-}
-
-// Test multiline comment starting on second line
-TEST_F(PmEditorFindLineTest, MultilineCommentOnSecondLine) {
-    SetBuffer("Line 0\n/* comment\nLine 2");
-    self->comment_level = -1;
-
-    // Line 0 should not be in multiline comment
-    char *result0 = pmeditor_find_line(self, 0);
-    EXPECT_EQ(result0, self->buf);
-    EXPECT_EQ(0, self->comment_level);
-
-    // Line 1 should be in multiline comment TODO
-    char *result1 = pmeditor_find_line(self, 1);
-    EXPECT_EQ(result1, self->buf + strlen("Line 0\n"));
-    EXPECT_EQ(0, self->comment_level);  // Line 1 starts the comment TODO
-
-    // Line 2 should be in multiline comment
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("Line 0\n/* comment\n"));
-    EXPECT_EQ(1, self->comment_level);  // Start of line 2 is inside the comment
-}
-
-// Test multiline comment end detection
-TEST_F(PmEditorFindLineTest, MultilineCommentEnd) {
-    SetBuffer("Line 0\n*/\nLine 2");
-    self->comment_level = -1;
-
-    // Line 1 should have comment_level = 0
-    char *result1 = pmeditor_find_line(self, 1);
-    EXPECT_EQ(result1, self->buf + strlen("Line 0\n"));
-    EXPECT_EQ(0, self->comment_level);
-
-    // Line 2 should not be in comment (comment_level should be false after line with */)
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("Line 0\n*/\n"));
-    EXPECT_EQ(0, self->comment_level);
-}
-
-// Test multiline comment end with spaces
-TEST_F(PmEditorFindLineTest, MultilineCommentEndWithSpaces) {
-    SetBuffer("Line 0\n  */\nLine 2");
-    self->comment_level = -1;
-
-    char *result1 = pmeditor_find_line(self, 1);
-    EXPECT_EQ(result1, self->buf + strlen("Line 0\n"));
-    EXPECT_EQ(0, self->comment_level);
-}
-
-TEST_F(PmEditorFindLineTest, MultilineCommentStartWithinString) {
-    SetBuffer("Line 0\n\"This is not a /* comment\"\nLine 2");
-    self->comment_level = -1;
-
-    // Line 2 should not be in multiline comment
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("Line 0\n\"This is not a /* comment\"\n"));
-    EXPECT_EQ(0, self->comment_level);
-}
-
-// Test the case where a commented out string contains the start of a multiline comment
-TEST_F(PmEditorFindLineTest, MultilineCommentStartsWithinCommentedOutString) {
-    SetBuffer("/*Line 0\n\"/*Line 1\"\nLine 2");
-    self->comment_level = -1;
-
-    // Line 2 multiline commend depth should only be 1
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("/*Line 0\n\"/*Line 1\"\n"));
-    EXPECT_EQ(1, self->comment_level);
-}
-
-// Test the case where a commented out string contains the end of a multiline comment
-TEST_F(PmEditorFindLineTest, MultilineCommentEndsWithinCommentedOutString) {
-    SetBuffer("/*Line 0\n\"*/Line 1\"\nLine 2");
-    self->comment_level = -1;
-
-    // Line 2 multiline commend depth should only be 1
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("/*Line 0\n\"*/Line 1\"\n"));
-    EXPECT_EQ(1, self->comment_level);
-}
-
-// Test the case where a commented out single-line comment contains the start of a multiline comment
-TEST_F(PmEditorFindLineTest, MultilineCommentStartsWithinCommentedOutSingleLineComment) {
-    SetBuffer("/*Line 0\n'/*Line 1\nLine 2");
-    self->comment_level = -1;
-
-    // Line 2 multiline commend depth should only be 1
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("/*Line 0\n'/*Line 1\n"));
-    EXPECT_EQ(1, self->comment_level);
-}
-
-// Test the case where a commented out single-line comment contains the end of a multiline comment
-TEST_F(PmEditorFindLineTest, MultilineCommentEndsWithinCommentedOutSingleLineComment) {
-    SetBuffer("/*Line 0\n'*/Line 1\nLine 2");
-    self->comment_level = -1;
-
-    // Line 2 multiline commend depth should only be 1
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("/*Line 0\n'*/Line 1\n"));
-    EXPECT_EQ(1, self->comment_level);
-}
-
-TEST_F(PmEditorFindLineTest, MultilineCommentWithinSingleLineComment) {
-    SetBuffer("Line 0\n\"'/*Line 1\nLine 2");
-    self->comment_level = -1;
-
-    // Line 2 should not be in multiline comment
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("Line 0\n\"'/*Line 1\n"));
-    EXPECT_EQ(0, self->comment_level);
-}
-
-// Test complex multiline comment scenario
-TEST_F(PmEditorFindLineTest, ComplexMultilineComment) {
-    SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
-    self->comment_level = -1;
-
-    // Line 0: starts with comment
-    pmeditor_find_line(self, 0);
-    EXPECT_EQ(0, self->comment_level);
-
-    // Line 1: still in comment
-    pmeditor_find_line(self, 1);
-    EXPECT_EQ(1, self->comment_level);
-
-    // Line 2: ends comment
-    pmeditor_find_line(self, 2);
-    EXPECT_EQ(1, self->comment_level);
-
-    // Line 3: not in comment
-    pmeditor_find_line(self, 3);
-    EXPECT_EQ(0, self->comment_level);
-
-    // Line 4: starts new comment
-    pmeditor_find_line(self, 4);
-    EXPECT_EQ(0, self->comment_level);
-
-    // Line 5: still in comment
-    pmeditor_find_line(self, 5);
-    EXPECT_EQ(1, self->comment_level);
-}
-
-// Test edge case: /*/ sequence
-TEST_F(PmEditorFindLineTest, MultilineCommentEdgeCase1) {
-    SetBuffer("Line 0\n/*/\nLine 2");
-    self->comment_level = -1;
-
-    // Line 0 should have comment_level = 0
-    char *result0 = pmeditor_find_line(self, 0);
-    EXPECT_EQ(result0, self->buf);
-    EXPECT_EQ(0, self->comment_level);
-
-    // Line 1 should have comment_level = 0
-    char *result1 = pmeditor_find_line(self, 1);
-    EXPECT_EQ(result1, self->buf + strlen("Line 0\n"));
-    EXPECT_EQ(0, self->comment_level);
-
-    // Line 2 should have comment_level = 1
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("Line 0\n/*/\n"));
-    EXPECT_EQ(1, self->comment_level);
-}
-
-// Test edge case where previous line contains unterminated string
-TEST_F(PmEditorFindLineTest, MultilineCommentEdgeCase2) {
-    SetBuffer("\"Line 0\n/*Line 1\nLine 2");
-    self->comment_level = -1;
-
-    // Line 2 should be in multiline comment
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + strlen("\"Line 0\n/*Line 1\n"));
-    EXPECT_EQ(1, self->comment_level);
-}
-
-// Test edge case: buffer with only newlines
-TEST_F(PmEditorFindLineTest, OnlyNewlines) {
-    SetBuffer("\n\n\n");
-    // int comment_level;
-
-    char *result0 = pmeditor_find_line(self, 0);
-    EXPECT_EQ(result0, self->buf);
-    EXPECT_EQ(0, self->comment_level);
-
-    char *result1 = pmeditor_find_line(self, 1);
-    EXPECT_EQ(result1, self->buf + 1);
-    EXPECT_EQ(0, self->comment_level);
-
-    char *result2 = pmeditor_find_line(self, 2);
-    EXPECT_EQ(result2, self->buf + 2);
-    EXPECT_EQ(0, self->comment_level);
-
-    char *result3 = pmeditor_find_line(self, 3);
-    EXPECT_EQ(result3, self->buf + 3);
-    EXPECT_EQ(0, self->comment_level);
-}
-
-// Test edge case: incomplete multiline comment markers
-TEST_F(PmEditorFindLineTest, IncompleteCommentMarkers) {
-    SetBuffer("/\n*\nLine 2");
-    self->comment_level = -1;
-
-    // Should not detect as multiline comment
-    char *result = pmeditor_find_line(self, 0);
-    EXPECT_EQ(result, self->buf);
-    EXPECT_EQ(0, self->comment_level);
-}
-
-// Test edge case: comment markers not at start of content
-TEST_F(PmEditorFindLineTest, CommentMarkersNotAtStart) {
-    SetBuffer("code /* comment\nLine 1");
-    self->comment_level = -1;
-
-    // Should not detect as multiline comment since /* is not at start of line content
-    char *result = pmeditor_find_line(self, 0);
-    EXPECT_EQ(result, self->buf);
-    EXPECT_EQ(0, self->comment_level);
-}
-
-// Test performance with large line numbers
-TEST_F(PmEditorFindLineTest, LargeLineNumber) {
-    // Create a buffer with many lines
-    std::string content;
-    for (int i = 0; i < 100; ++i) {
-        content += "Line " + std::to_string(i) + "\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->comment_level = -1;
-    char *result = pmeditor_find_line(self, 50);
-
-    // Calculate expected position
-    size_t expected_pos = 0;
-    for (int i = 0; i < 50; ++i) {
-        std::string line = "Line " + std::to_string(i) + "\n";
-        expected_pos += line.length();
+    char* result = pmeditor_find_line(self, test_case.line_number);
+
+    if (test_case.expected_offset == -1) {
+        EXPECT_EQ(result, nullptr)
+            << "Expected NULL for line " << test_case.line_number
+            << " (" << test_case.description << ")";
+    } else {
+        ASSERT_NE(self, nullptr);
+        ASSERT_NE(self->buf, nullptr);
+
+        int actual_offset = result - self->buf;
+        EXPECT_EQ(actual_offset, test_case.expected_offset)
+            << "Expected offset " << test_case.expected_offset
+            << " but got " << actual_offset
+            << " for line " << test_case.line_number
+            << " (" << test_case.description << ")";
     }
 
-    EXPECT_EQ(result, self->buf + expected_pos);
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(self->comment_level, test_case.expected_comment_level)
+        << "Expected comment_level " << test_case.expected_comment_level
+        << " but got " << self->comment_level
+        << " (" << test_case.description << ")";
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    PmEditorTests,
+    PmEditorFindLineParamTest,
+    ::testing::ValuesIn(PmEditorFindLineTestCases()),
+    [](const ::testing::TestParamInfo<FindLineTestCase>& info) {
+        return info.param.name;
+    }
+);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Tests for pmeditor_set_colour()
@@ -1113,15 +949,32 @@ INSTANTIATE_TEST_SUITE_P(
             2   // Expected after '"'
         },
         InsertCharTestCase{
-            "CompleteREMBeforeMultilineCommentStart",
-            "Em /*Hello",
-            0,  // Position before 'E'
+            "CompleteREMBeforeMultilineCommentStart_1",
+            "PRINT Em /*Hello",
+            6,  // Position before 'E'
             'r',
             kInsertMultiline,
-            "rEm /*Hello",
-            1   // Expected after 'r'
+            "PRINT rEm /*Hello",
+            7   // Expected after 'r'
+        },
+        InsertCharTestCase{
+            "CompleteREMBeforeMultilineCommentStart_2",
+            "PRINT Rm /*Hello",
+            7,  // Position before 'm'
+            'E',
+            kInsertMultiline,
+            "PRINT REm /*Hello",
+            8   // Expected after 'E'
+        },
+        InsertCharTestCase{
+            "CompleteREMBeforeMultilineCommentStart_3",
+            "PRINT re /*Hello",
+            8,  // Position after 'e'
+            'M',
+            kInsertMultiline,
+            "PRINT reM /*Hello",
+            9   // Expected after 'M'
         }
-
     ),
     [](const ::testing::TestParamInfo<InsertCharTestCase>& info) {
         return info.param.name;

@@ -702,12 +702,12 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state) {
     *self->txtp++ = ch;
     self->text_changed = true;
 
-    // TODO: Check for a completed REM command before /*
+    // Check for a completed REM command before /*
     if (pmeditor_find_in_line(
             self,
             "REM",
             pmeditor_back_in_line(self, self->txtp, 3),
-            6
+            5
         ) && (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL)) {
         *state = kInsertMultiline;
     }
@@ -827,11 +827,12 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
         return kOk;
     }
 
-    // check for a comment char
+    // check for a single-line comment char
     if (*p == '\'' && !self->syntax.inquote) {
         self->syntax.incomment = true;
         return pmeditor_highlight(self, kHighlightComment);
     }
+
     if (*p == '/' && p[1] == '*' && !self->syntax.inquote) {
         char *q = p;
         if (*(--q) == '\n') {
@@ -971,18 +972,18 @@ MmResult pmeditor_set_colour(PmEditor *self, char *p) {
  * @param  line  The line number to find (0-based).
  * @return       Pointer to the start of the line, or NULL if line < 0 or self is NULL.
  */
-char *pmeditor_find_line(PmEditor *self, int line/*, int *comment_level*/) {
+char *pmeditor_find_line(PmEditor *self, int line) {
     if (!self || line < 0) return NULL;
 
     const int NORMAL = 0;
     const int IN_QUOTE = 1;
     const int IN_SL_COMMENT = 2;
+
     int state = NORMAL;
     self->comment_level = 0;
     char *p = self->buf;
 
     // TODO: Handle CMM2 #COMMENT {START|END} construct
-    // TODO: Handle REM statement
 
     while (line && *p) {
         switch (*p) {
@@ -992,28 +993,37 @@ char *pmeditor_find_line(PmEditor *self, int line/*, int *comment_level*/) {
                 break;
             case '/':
                 if (state == NORMAL && p[1] == '*') {
-                    // Entered a multiline comment
                     self->comment_level++;
                     p++;
                 }
                 break;
             case '*':
-                if (state == NORMAL && p[1] == '/') {
-                    // Exited a multiline comment
-                    if (self->comment_level > 0) self->comment_level--;
+                if (state == NORMAL && self->comment_level > 0 && p[1] == '/') {
+                    self->comment_level--;
                     p++;
                 }
                 break;
             case '\"':
                 if (state == NORMAL) {
                     state = IN_QUOTE;
-                } else if (state == IN_QUOTE) {
+                } else if (state == IN_QUOTE && (p == self->buf || p[-1] != '\\')) {
                     state = NORMAL;
                 }
                 break;
             case '\'':
                 if (state == NORMAL) {
                     state = IN_SL_COMMENT;
+                }
+                break;
+            case 'R':
+            case 'r':
+                if (state == NORMAL && (pmeditor_find_in_line(self, "EM", p + 1, 2) != NULL)) {
+                    // I suspect this may ignore some valid REM comments
+                    char previous = p == self->buf ? '\0' : *(p - 1);
+                    char next = *(p + 3);
+                    if (!isalnum(previous) && !isalnum(next)) {
+                        state = IN_SL_COMMENT;
+                    }
                 }
                 break;
             default:
@@ -1087,6 +1097,7 @@ static MmResult pmeditor_print_line(PmEditor *self, int line) {
  * @return       kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_print_screen(PmEditor *self) {
+    LOG_DEBUG("entered");
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, 0));
     for (int i = 0; i < self->height; i++) {
         ON_FAILURE_RETURN(pmeditor_print_line(self, i + self->py));
@@ -1848,7 +1859,6 @@ MmResult pmeditor_cmd_delete(PmEditor *self) {
     }
 
     self->text_changed = true;
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
     if (mmb_options.syntax_highlight) {
         if ((currdel == '/' && nextdel == '*') ||
             (currdel == '*' && nextdel == '/') ||
@@ -1858,7 +1868,7 @@ MmResult pmeditor_cmd_delete(PmEditor *self) {
         }
     }
 
-    return kOk;
+    return pmeditor_position_cursor(self, self->txtp);
 }
 
 /**
@@ -2367,6 +2377,12 @@ MmResult pmeditor_cmd_char(PmEditor *self/*char *multi*/) {
     return pmeditor_position_cursor(self, self->txtp);
 }
 
+/** TODO */
+MmResult pmeditor_cmd_redraw(PmEditor *self) {
+    ON_FAILURE_RETURN(pmeditor_print_screen(self));
+    return pmeditor_position_cursor(self, self->txtp);
+}
+
 /**
  * Dispatches editor commands to their handler functions.
  *
@@ -2403,7 +2419,7 @@ static MmResult pmeditor_cmd_dispatch(PmEditor *self, char cmd/*, char *multi*/)
         case F6:       return kOk;
         case F7:       return kOk;
         case F8:       return kOk;
-        case F9:       return kOk;
+        case F9:       return pmeditor_cmd_redraw(self);
         case F10:      return kOk;
         case F11:      return kOk;
         case F12:      return kOk;
