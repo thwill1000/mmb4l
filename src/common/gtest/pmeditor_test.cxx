@@ -1004,374 +1004,399 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 ////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_delete()
+// Tests for pmeditor_delete_char()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorCmdDeleteTest : public PmEditorTestBase { };
+class PmEditorDeleteChar : public PmEditorTestBase { };
 
 // Test deleting at end of buffer (should do nothing)
-TEST_F(PmEditorCmdDeleteTest, DeleteAtEndOfBuffer) {
+TEST_F(PmEditorDeleteChar, DeleteAtEndOfBuffer) {
     SetBuffer("Hello");
     SetCursorAtEnd();
     bool initial_text_changed = self->text_changed;
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_EQ(initial_text_changed, self->text_changed); // Should not change
     EXPECT_EQ(self->buf + 5, self->txtp); // Cursor should not move
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(REDRAW_NOTHING, redraw);
 }
 
 // Test deleting at end of empty buffer
-TEST_F(PmEditorCmdDeleteTest, DeleteAtEndOfEmptyBuffer) {
+TEST_F(PmEditorDeleteChar, DeleteAtEndOfEmptyBuffer) {
     SetBuffer("");
     SetCursorAtEnd();
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
     EXPECT_FALSE(self->text_changed);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(REDRAW_NOTHING, redraw);
 }
 
 // Test deleting a regular character
-TEST_F(PmEditorCmdDeleteTest, DeleteRegularCharacter) {
+TEST_F(PmEditorDeleteChar, DeleteRegularCharacter) {
     SetBuffer("Hello World");
     SetCursorPosition(5); // Position at space
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("HelloWorld", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf + 5, self->txtp); // Cursor should not move
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting first character
-TEST_F(PmEditorCmdDeleteTest, DeleteFirstCharacter) {
+TEST_F(PmEditorDeleteChar, DeleteFirstCharacter) {
     SetBuffer("Hello");
     SetCursorPosition(0);
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ello", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf, self->txtp);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting last character (not at end of buffer)
-TEST_F(PmEditorCmdDeleteTest, DeleteLastCharacterBeforeEnd) {
+TEST_F(PmEditorDeleteChar, DeleteLastCharacterBeforeEnd) {
     SetBuffer("Hello");
     SetCursorPosition(4); // Position at 'o'
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hell", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf + 4, self->txtp);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting a newline character
-TEST_F(PmEditorCmdDeleteTest, DeleteNewlineCharacter) {
+TEST_F(PmEditorDeleteChar, DeleteNewlineCharacter) {
     SetBuffer("Line1\nLine2");
     SetCursorPosition(5); // Position at newline
     self->num_lines = 2;
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1Line2", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(1, self->num_lines); // Should decrement line count
     EXPECT_EQ(self->buf + 5, self->txtp);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
 // Test deleting newline in multi-line buffer
-TEST_F(PmEditorCmdDeleteTest, DeleteNewlineMultiLine) {
+TEST_F(PmEditorDeleteChar, DeleteNewlineMultiLine) {
     SetBuffer("Line1\nLine2\nLine3");
     SetCursorPosition(5); // Position at first newline
     self->num_lines = 3;
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1Line2\nLine3", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(2, self->num_lines);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
 // Test deleting '/' after '*' (multiline comment end)
-TEST_F(PmEditorCmdDeleteTest, DeleteSlashAfterStar) {
+TEST_F(PmEditorDeleteChar, DeleteSlashAfterStar) {
     SetBuffer("code*/more");
     SetCursorPosition(5); // Position at '/'
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
 // Test deleting '*' before '/' (multiline comment end)
-TEST_F(PmEditorCmdDeleteTest, DeleteStarBeforeSlash) {
+TEST_F(PmEditorDeleteChar, DeleteStarBeforeSlash) {
     SetBuffer("code*/more");
     SetCursorPosition(4); // Position at '*'
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
 // Test deleting '/' before '*' (multiline comment start)
-TEST_F(PmEditorCmdDeleteTest, DeleteSlashBeforeStar) {
+TEST_F(PmEditorDeleteChar, DeleteSlashBeforeStar) {
     SetBuffer("code/*comment");
     SetCursorPosition(4); // Position at '/'
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*comment", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
 // Test deleting '*' after '/' (multiline comment start)
-TEST_F(PmEditorCmdDeleteTest, DeleteStarAfterSlash) {
+TEST_F(PmEditorDeleteChar, DeleteStarAfterSlash) {
     SetBuffer("code/*comment");
     SetCursorPosition(5); // Position at '*'
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/comment", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
 // Test deleting in middle of word
-TEST_F(PmEditorCmdDeleteTest, DeleteMiddleOfWord) {
+TEST_F(PmEditorDeleteChar, DeleteMiddleOfWord) {
     SetBuffer("Hello");
     SetCursorPosition(2); // Position at 'l'
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Helo", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf + 2, self->txtp);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting with cursor at various positions in a sentence
-TEST_F(PmEditorCmdDeleteTest, DeleteInSentence) {
+TEST_F(PmEditorDeleteChar, DeleteInSentence) {
     SetBuffer("The quick brown fox");
     SetCursorPosition(4); // Position at 'q'
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("The uick brown fox", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting special characters
-TEST_F(PmEditorCmdDeleteTest, DeleteSpecialCharacters) {
+TEST_F(PmEditorDeleteChar, DeleteSpecialCharacters) {
     SetBuffer("Hello!@#$%World");
     SetCursorPosition(5); // Position at '!'
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello@#$%World", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting with buffer containing only one character
-TEST_F(PmEditorCmdDeleteTest, DeleteSingleCharacterBuffer) {
+TEST_F(PmEditorDeleteChar, DeleteSingleCharacterBuffer) {
     SetBuffer("A");
     SetCursorPosition(0);
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf, self->txtp);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting with buffer containing only newline
-TEST_F(PmEditorCmdDeleteTest, DeleteSingleNewlineBuffer) {
+TEST_F(PmEditorDeleteChar, DeleteSingleNewlineBuffer) {
     SetBuffer("\n");
     SetCursorPosition(0);
     self->num_lines = 1;
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(0, self->num_lines);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
 // Test deleting multiple characters in sequence
-TEST_F(PmEditorCmdDeleteTest, DeleteMultipleCharactersSequence) {
+TEST_F(PmEditorDeleteChar, DeleteMultipleCharactersSequence) {
     SetBuffer("ABCDEF");
     SetCursorPosition(2); // Position at 'C'
 
     // Delete 'C'
-    MmResult result1 = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result1 = pmeditor_delete_char(self, &redraw);
     EXPECT_EQ(kOk, result1);
     EXPECT_STREQ("ABDEF", self->buf);
 
     // Delete 'D' (cursor should still be at position 2)
-    MmResult result2 = pmeditor_cmd_delete(self);
+    MmResult result2 = pmeditor_delete_char(self, &redraw);
     EXPECT_EQ(kOk, result2);
     EXPECT_STREQ("ABEF", self->buf);
 
     // Delete 'E'
-    MmResult result3 = pmeditor_cmd_delete(self);
+    MmResult result3 = pmeditor_delete_char(self, &redraw);
     EXPECT_EQ(kOk, result3);
     EXPECT_STREQ("ABF", self->buf);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting with Unicode characters (not currently supported)
-TEST_F(PmEditorCmdDeleteTest, DeleteUnicodeCharacters) {
+TEST_F(PmEditorDeleteChar, DeleteUnicodeCharacters) {
     SetBuffer("Héllo Wörld");
     SetCursorPosition(1); // Position at 'é'
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     // Note: This test depends on how Unicode is handled in the editor
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting with very long line
-TEST_F(PmEditorCmdDeleteTest, DeleteInLongLine) {
+TEST_F(PmEditorDeleteChar, DeleteInLongLine) {
     std::string long_line(100, 'A');
     SetBuffer(long_line.c_str());
     SetCursorPosition(50);
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(99, strlen(self->buf)); // Should be one character shorter
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting at buffer boundaries
-TEST_F(PmEditorCmdDeleteTest, DeleteAtBufferBoundaries) {
+TEST_F(PmEditorDeleteChar, DeleteAtBufferBoundaries) {
     // Fill buffer almost to capacity
     std::string content(EDIT_BUFFER_SIZE - 10, 'X');
     SetBuffer(content.c_str());
     SetCursorPosition(content.length() - 1); // Near end
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(content.length() - 1, strlen(self->buf));
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting with cursor positioning edge cases
-TEST_F(PmEditorCmdDeleteTest, DeleteCursorPositioning) {
-    SetBuffer("Line1\nLine2\nLine3");
+TEST_F(PmEditorDeleteChar, DeleteCursorPositioning) {
+    SetBuffer("Line0\nLine1\nLine2");
 
     // Set cursor and editor position state
     self->cx = 2;
     self->cy = 1;
     self->px = 0;
     self->py = 0;
-    SetCursorPosition(8); // Position in "Line2"
+    SetCursorPosition(8); // Position in "Line1"
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1\nLie2\nLine3", self->buf);
+    EXPECT_STREQ("Line0\nLie1\nLine2", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(1, redraw);
 }
 
 // Test deleting with comment level tracking
-TEST_F(PmEditorCmdDeleteTest, DeleteWithCommentLevelTracking) {
+TEST_F(PmEditorDeleteChar, DeleteWithCommentLevelTracking) {
     SetBuffer("/* comment */ code");
     SetCursorPosition(2); // Position at space in comment
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/*comment */ code", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting newline at end of file
-TEST_F(PmEditorCmdDeleteTest, DeleteNewlineAtEndOfFile) {
+TEST_F(PmEditorDeleteChar, DeleteNewlineAtEndOfFile) {
     SetBuffer("Line1\nLine2\n");
     SetCursorPosition(strlen("Line1\nLine2")); // Position at final newline
     self->num_lines = 2;
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1\nLine2", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(1, self->num_lines);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
 // Test deleting with text_changed flag initially true
-TEST_F(PmEditorCmdDeleteTest, DeleteWithTextAlreadyChanged) {
+TEST_F(PmEditorDeleteChar, DeleteWithTextAlreadyChanged) {
     SetBuffer("Hello");
     SetCursorPosition(0);
     self->text_changed = true; // Already marked as changed
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ello", self->buf);
     EXPECT_TRUE(self->text_changed); // Should remain true
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test deleting with color coding enabled (multiline comment scenarios)
-TEST_F(PmEditorCmdDeleteTest, DeleteMultilineCommentMarkers) {
+TEST_F(PmEditorDeleteChar, DeleteMultilineCommentMarkers) {
     // Test deleting '/' in '*/' sequence
     SetBuffer("code */ more");
     SetCursorPosition(6); // Position at '/'
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code * more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
 // Test deleting with various comment marker combinations
-TEST_F(PmEditorCmdDeleteTest, DeleteCommentMarkerCombinations) {
+TEST_F(PmEditorDeleteChar, DeleteCommentMarkerCombinations) {
     struct TestCase {
         const char* input;
         int cursor_pos;
@@ -1395,79 +1420,84 @@ TEST_F(PmEditorCmdDeleteTest, DeleteCommentMarkerCombinations) {
         SetBuffer(test_case.input);
         SetCursorPosition(test_case.cursor_pos);
 
-        MmResult result = pmeditor_cmd_delete(self);
+        int redraw = REDRAW_NOTHING;
+        MmResult result = pmeditor_delete_char(self, &redraw);
 
         EXPECT_EQ(kOk, result) << "Failed for: " << test_case.description;
         EXPECT_STREQ(test_case.expected, self->buf) << "Failed for: " << test_case.description;
         EXPECT_TRUE(self->text_changed) << "Failed for: " << test_case.description;
-        EXPECT_EQ(1, print_screen_call_count);
+        EXPECT_EQ(REDRAW_SCREEN, redraw);
     }
 }
 
 // Deleting single-line comment character ' before /* should redraw screen.
-TEST_F(PmEditorCmdDeleteTest, DeleteSingleQuoteBeforeMultilineStartRedrawsScreen) {
+TEST_F(PmEditorDeleteChar, DeleteSingleQuoteBeforeMultilineStartRedrawsScreen) {
     SetBuffer("code ' /* more");
     SetCursorPosition(5); // Position before '
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code  /* more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
 // Deleting single-line comment character ' before */ should redraw screen.
-TEST_F(PmEditorCmdDeleteTest, DeleteSingleQuoteBeforeMultilineEndRedrawsScreen) {
+TEST_F(PmEditorDeleteChar, DeleteSingleQuoteBeforeMultilineEndRedrawsScreen) {
     SetBuffer("code ' */ more");
     SetCursorPosition(5); // Position before '
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code  */ more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
 // Deleting character in REM keyword before /* should redraw screen.
-TEST_F(PmEditorCmdDeleteTest, DeleteRemBeforeMultilineStartRedrawsScreen) {
+TEST_F(PmEditorDeleteChar, DeleteRemBeforeMultilineStartRedrawsScreen) {
     SetBuffer("code REM /* more");
     SetCursorPosition(5); // Position before R
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code EM /* more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 
     print_screen_call_count = 0;
-    result = pmeditor_cmd_delete(self);
+    result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code M /* more", self->buf);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 // Deleting character in REM keyword before */ should redraw screen.
-TEST_F(PmEditorCmdDeleteTest, DeleteRemBeforeMultilineEndRedrawsScreen) {
+TEST_F(PmEditorDeleteChar, DeleteRemBeforeMultilineEndRedrawsScreen) {
     SetBuffer("code rem */ more");
     SetCursorPosition(6); // Position before e
 
-    MmResult result = pmeditor_cmd_delete(self);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code rm */ more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 
     print_screen_call_count = 0;
-    result = pmeditor_cmd_delete(self);
+    result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code r */ more", self->buf);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_EQ(0, redraw);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

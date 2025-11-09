@@ -111,7 +111,7 @@ extern MmResult (*pmeditor_print_screen)(PmEditor *);
 
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);
-MmResult pmeditor_cmd_delete(PmEditor *self);
+MmResult pmeditor_delete_char(PmEditor *self, int *redraw);
 char *pmeditor_back_in_line(PmEditor *self, char *start, size_t num_chars);
 char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, size_t max_len);
 char *pmeditor_find_line(PmEditor *self, int line); // , int *comment_level);
