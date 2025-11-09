@@ -2476,11 +2476,16 @@ static MmResult pmeditor_cmd_paste(PmEditor *self) {
  */
 MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw) {
     *redraw = REDRAW_NOTHING;
+    if (!pmeditor_is_printable(ch)) return kOk;
     ON_FAILURE_RETURN(pmeditor_delete_char(self, redraw));
     int insert_redraw = REDRAW_NOTHING;
     ON_FAILURE_RETURN(pmeditor_insert_char(self, ch, &insert_redraw));
-    if (insert_redraw == REDRAW_SCREEN) {
+    if (*redraw == REDRAW_SCREEN || insert_redraw == REDRAW_NOTHING) {
+        // Do nothing
+    } else if (insert_redraw == REDRAW_SCREEN) {
         *redraw = REDRAW_SCREEN;
+    } else if (*redraw == REDRAW_NOTHING) {
+        *redraw = insert_redraw;
     } else if (insert_redraw != *redraw) {
         return mmresult_ex(kInternalFault, "Inconsistent line redraw");
     }

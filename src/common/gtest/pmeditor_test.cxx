@@ -3882,3 +3882,478 @@ TEST_F(PmEditorFindInLineErrorTest, LargeBuffer) {
     EXPECT_NE(nullptr, result);
     EXPECT_EQ('7', *result);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_overwrite_char()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorOverwriteChar : public PmEditorTestBase { };
+
+// Test overwriting a regular character
+TEST_F(PmEditorOverwriteChar, OverwriteRegularCharacter) {
+    SetBuffer("Hello World");
+    SetCursorPosition(0); // Position at 'H'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'J', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Jello World", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(self->buf + 1, self->txtp); // Cursor should advance
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting at end of buffer (should insert)
+TEST_F(PmEditorOverwriteChar, OverwriteAtEndOfBuffer) {
+    SetBuffer("Hello");
+    SetCursorAtEnd();
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '!', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello!", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(self->buf + 6, self->txtp);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting at newline (should insert)
+TEST_F(PmEditorOverwriteChar, OverwriteAtNewline) {
+    SetBuffer("Hello\nWorld");
+    SetCursorPosition(5); // Position at newline
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '!', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello!World", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(self->buf + 6, self->txtp);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+// Test overwriting first character
+TEST_F(PmEditorOverwriteChar, OverwriteFirstCharacter) {
+    SetBuffer("Hello");
+    SetCursorPosition(0);
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'Y', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Yello", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting last character before end
+TEST_F(PmEditorOverwriteChar, OverwriteLastCharacterBeforeEnd) {
+    SetBuffer("Hello");
+    SetCursorPosition(4); // Position at 'o'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'a', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hella", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(self->buf + 5, self->txtp);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting middle character
+TEST_F(PmEditorOverwriteChar, OverwriteMiddleCharacter) {
+    SetBuffer("Hello");
+    SetCursorPosition(2); // Position at 'l'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'x', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hexlo", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(self->buf + 3, self->txtp);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting with space
+TEST_F(PmEditorOverwriteChar, OverwriteWithSpace) {
+    SetBuffer("Hello");
+    SetCursorPosition(2);
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, ' ', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("He lo", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting with special characters
+TEST_F(PmEditorOverwriteChar, OverwriteWithSpecialCharacters) {
+    SetBuffer("Hello");
+    SetCursorPosition(0);
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '@', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("@ello", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting with digit
+TEST_F(PmEditorOverwriteChar, OverwriteWithDigit) {
+    SetBuffer("Hello");
+    SetCursorPosition(0);
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '5', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("5ello", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting non-printable character (should be ignored)
+TEST_F(PmEditorOverwriteChar, OverwriteNonPrintableCharacter) {
+    SetBuffer("Hello");
+    SetCursorPosition(0);
+    bool initial_text_changed = self->text_changed;
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '\x01', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(initial_text_changed, self->text_changed);
+    EXPECT_EQ(REDRAW_NOTHING, redraw);
+}
+
+// Test overwriting in empty buffer (should insert)
+TEST_F(PmEditorOverwriteChar, OverwriteInEmptyBuffer) {
+    SetBuffer("");
+    SetCursorPosition(0);
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'A', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("A", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting single character buffer
+TEST_F(PmEditorOverwriteChar, OverwriteSingleCharacterBuffer) {
+    SetBuffer("A");
+    SetCursorPosition(0);
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'B', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("B", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting multiple characters in sequence
+TEST_F(PmEditorOverwriteChar, OverwriteMultipleCharactersSequence) {
+    SetBuffer("ABCDEF");
+    SetCursorPosition(0);
+
+    // Overwrite 'A' with 'X'
+    int redraw = REDRAW_NOTHING;
+    MmResult result1 = pmeditor_overwrite_char(self, 'X', &redraw);
+    EXPECT_EQ(kOk, result1);
+    EXPECT_STREQ("XBCDEF", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+
+    // Overwrite 'B' with 'Y'
+    MmResult result2 = pmeditor_overwrite_char(self, 'Y', &redraw);
+    EXPECT_EQ(kOk, result2);
+    EXPECT_STREQ("XYCDEF", self->buf);
+    EXPECT_EQ(self->buf + 2, self->txtp);
+
+    // Overwrite 'C' with 'Z'
+    MmResult result3 = pmeditor_overwrite_char(self, 'Z', &redraw);
+    EXPECT_EQ(kOk, result3);
+    EXPECT_STREQ("XYZDEF", self->buf);
+    EXPECT_EQ(self->buf + 3, self->txtp);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting '/' creating multiline comment start
+TEST_F(PmEditorOverwriteChar, OverwriteCreatingCommentStart) {
+    SetBuffer("code * more");
+    SetCursorPosition(4); // Position at space before '*'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '/', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code/* more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+// Test overwriting '*' creating multiline comment start
+TEST_F(PmEditorOverwriteChar, OverwriteStarCreatingCommentStart) {
+    SetBuffer("code/ more");
+    SetCursorPosition(5); // Position at space after '/'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '*', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code/*more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+// Test overwriting '*' creating multiline comment end
+TEST_F(PmEditorOverwriteChar, OverwriteStarCreatingCommentEnd) {
+    SetBuffer("code / more");
+    SetCursorPosition(4); // Position at space before '/'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '*', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code*/ more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+// Test overwriting '/' creating multiline comment end
+TEST_F(PmEditorOverwriteChar, OverwriteSlashCreatingCommentEnd) {
+    SetBuffer("code* more");
+    SetCursorPosition(5); // Position at space after '*'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '/', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code*/more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+// Test overwriting breaking multiline comment start
+TEST_F(PmEditorOverwriteChar, OverwriteBreakingCommentStart) {
+    SetBuffer("code/*more");
+    SetCursorPosition(4); // Position at '/'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("codeX*more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+// Test overwriting breaking multiline comment end
+TEST_F(PmEditorOverwriteChar, OverwriteBreakingCommentEnd) {
+    SetBuffer("code*/more");
+    SetCursorPosition(4); // Position at '*'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("codeX/more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+// Test overwriting with single-quote before /* (creates comment-out)
+TEST_F(PmEditorOverwriteChar, OverwriteCreatingSingleQuoteBeforeCommentStart) {
+    SetBuffer("code /*more");
+    SetCursorPosition(4); // Position at space before '/'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '\'', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code'/*more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+// Test overwriting with double-quote before /* (creates comment-out)
+TEST_F(PmEditorOverwriteChar, OverwriteCreatingDoubleQuoteBeforeCommentStart) {
+    SetBuffer("code /*more");
+    SetCursorPosition(4); // Position at space before '/'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '"', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code\"/*more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+// Test overwriting completing REM before /*
+TEST_F(PmEditorOverwriteChar, OverwriteCompletingRemBeforeCommentStart) {
+    SetBuffer("code RE /*more");
+    SetCursorPosition(7); // Position at space after 'RE'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'M', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code REM/*more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+// Test overwriting in multiline buffer
+TEST_F(PmEditorOverwriteChar, OverwriteInMultilineBuffer) {
+    SetBuffer("Line1\nLine2\nLine3");
+    SetCursorPosition(7); // Position at 'i' in "Line2"
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line1\nLXne2\nLine3", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting with cursor state tracking
+TEST_F(PmEditorOverwriteChar, OverwriteWithCursorStateTracking) {
+    SetBuffer("Hello World");
+    self->cx = 6;
+    self->cy = 0;
+    self->px = 0;
+    self->py = 0;
+    SetCursorPosition(6); // Position at 'W'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'w', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello world", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(self->buf + 7, self->txtp);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting with text_changed flag initially true
+TEST_F(PmEditorOverwriteChar, OverwriteWithTextAlreadyChanged) {
+    SetBuffer("Hello");
+    SetCursorPosition(0);
+    self->text_changed = true;
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'J', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Jello", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting near buffer capacity
+TEST_F(PmEditorOverwriteChar, OverwriteNearBufferCapacity) {
+    std::string content(EDIT_BUFFER_SIZE - 10, 'X');
+    SetBuffer(content.c_str());
+    SetCursorPosition(content.length() - 1);
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'Y', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(content.length(), strlen(self->buf));
+    EXPECT_EQ('Y', self->buf[content.length() - 1]);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, redraw);
+}
+
+// Test overwriting various comment marker scenarios
+TEST_F(PmEditorOverwriteChar, OverwriteCommentMarkerScenarios) {
+    struct TestCase {
+        const char* input;
+        int cursor_pos;
+        char new_char;
+        const char* expected;
+        int expected_redraw;
+        const char* description;
+    };
+
+    TestCase test_cases[] = {
+        {"a b", 1, '/', "a/b", 0, "Normal overwrite with /"},
+        {"a//b", 1, '*', "a*/b", REDRAW_SCREEN, "Create */ by overwriting *"},
+        {"a//b", 2, '*', "a/*b", REDRAW_SCREEN, "Create /* by overwriting /"},
+        {"/*b", 0, 'X', "X*b", REDRAW_SCREEN, "Break /* by overwriting /"},
+        {"a*/", 1, 'X', "aX/", REDRAW_SCREEN, "Break */ by overwriting *"},
+        {"a b", 1, '*', "a*b", 0, "Normal overwrite with *"},
+    };
+
+    for (const auto& test_case : test_cases) {
+        SetUp(); // Reset state
+        SetBuffer(test_case.input);
+        SetCursorPosition(test_case.cursor_pos);
+
+        int redraw = REDRAW_NOTHING;
+        MmResult result = pmeditor_overwrite_char(self, test_case.new_char, &redraw);
+
+        EXPECT_EQ(kOk, result) << "Failed for: " << test_case.description;
+        EXPECT_STREQ(test_case.expected, self->buf) << "Failed for: " << test_case.description;
+        EXPECT_TRUE(self->text_changed) << "Failed for: " << test_case.description;
+        EXPECT_EQ(test_case.expected_redraw, redraw) << "Failed for: " << test_case.description;
+    }
+}
+
+// Test that overwrite and delete return consistent redraw values
+TEST_F(PmEditorOverwriteChar, OverwriteDeleteConsistency) {
+    // This tests the internal consistency check in pmeditor_overwrite_char
+    SetBuffer("Hello");
+    SetCursorPosition(2);
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("HeXlo", self->buf);
+    // If this doesn't crash with kInternalFault, the consistency check passed
+}
+
+// Test overwriting at line boundaries
+TEST_F(PmEditorOverwriteChar, OverwriteAtLineBoundaries) {
+    SetBuffer("Line1\n\nLine3");
+    SetCursorPosition(6); // Position at second newline
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line1\nXLine3", self->buf);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test overwriting preserves buffer integrity
+TEST_F(PmEditorOverwriteChar, OverwritePreservesBufferIntegrity) {
+    SetBuffer("ABCDEFGHIJ");
+    SetCursorPosition(5); // Middle of buffer
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(10, strlen(self->buf)); // Length should remain the same
+    EXPECT_STREQ("ABCDEXGHIJ", self->buf);
+    EXPECT_TRUE(self->text_changed);
+}
