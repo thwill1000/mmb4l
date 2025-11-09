@@ -44,6 +44,7 @@ MmResult ClearRuntime(void) { return kOk; }
 static HighlightType last_highlight_type = kHighlightNormal;
 static int highlight_call_count = 0;
 static char last_message[STRINGSIZE];
+static int print_screen_call_count = 0;
 
 MmResult pmeditor_test_highlight(PmEditor *self, HighlightType highlight) {
     last_highlight_type = highlight;
@@ -56,6 +57,11 @@ MmResult pmeditor_test_display_msg(PmEditor *self, const char *msg) {
     return kOk;
 }
 
+MmResult pmeditor_test_print_screen(PmEditor *self) {
+    print_screen_call_count++;
+    return kOk;
+}
+
 } // extern "C"
 
 class PmEditorTestBase : public ::testing::Test {
@@ -65,9 +71,13 @@ protected:
 
     void SetUp() override {
         // Common initialization
+        pmeditor_restore_fn_pointers();
         ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
         self->highlight_fn = pmeditor_test_highlight;
         self->display_msg_fn = pmeditor_test_display_msg;
+
+        // Mock pmeditor functions
+        pmeditor_print_screen = pmeditor_test_print_screen;
 
         // Initialize options
         mmb_options.syntax_highlight = true;
@@ -79,6 +89,7 @@ protected:
         memset(self->keys, 0, sizeof(self->keys));
         last_highlight_type = kHighlightNormal;
         highlight_call_count = 0;
+        print_screen_call_count = 0;
     }
 
     void SetBuffer(const char* content) {
@@ -999,6 +1010,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteAtEndOfBuffer) {
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_EQ(initial_text_changed, self->text_changed); // Should not change
     EXPECT_EQ(self->buf + 5, self->txtp); // Cursor should not move
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting at end of empty buffer
@@ -1011,6 +1023,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteAtEndOfEmptyBuffer) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
     EXPECT_FALSE(self->text_changed);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting a regular character
@@ -1024,6 +1037,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteRegularCharacter) {
     EXPECT_STREQ("HelloWorld", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf + 5, self->txtp); // Cursor should not move
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting first character
@@ -1037,6 +1051,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteFirstCharacter) {
     EXPECT_STREQ("ello", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf, self->txtp);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting last character (not at end of buffer)
@@ -1050,6 +1065,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteLastCharacterBeforeEnd) {
     EXPECT_STREQ("Hell", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf + 4, self->txtp);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting a newline character
@@ -1065,6 +1081,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteNewlineCharacter) {
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(1, self->num_lines); // Should decrement line count
     EXPECT_EQ(self->buf + 5, self->txtp);
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test deleting newline in multi-line buffer
@@ -1079,6 +1096,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteNewlineMultiLine) {
     EXPECT_STREQ("Line1Line2\nLine3", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(2, self->num_lines);
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test deleting '/' after '*' (multiline comment end)
@@ -1091,6 +1109,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteSlashAfterStar) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*more", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test deleting '*' before '/' (multiline comment end)
@@ -1103,6 +1122,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteStarBeforeSlash) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/more", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test deleting '/' before '*' (multiline comment start)
@@ -1115,6 +1135,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteSlashBeforeStar) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*comment", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test deleting '*' after '/' (multiline comment start)
@@ -1127,6 +1148,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteStarAfterSlash) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/comment", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test deleting in middle of word
@@ -1140,6 +1162,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteMiddleOfWord) {
     EXPECT_STREQ("Helo", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf + 2, self->txtp);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting with cursor at various positions in a sentence
@@ -1152,6 +1175,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteInSentence) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("The uick brown fox", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting special characters
@@ -1164,6 +1188,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteSpecialCharacters) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello@#$%World", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting with buffer containing only one character
@@ -1177,6 +1202,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteSingleCharacterBuffer) {
     EXPECT_STREQ("", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf, self->txtp);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting with buffer containing only newline
@@ -1191,6 +1217,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteSingleNewlineBuffer) {
     EXPECT_STREQ("", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(0, self->num_lines);
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test deleting multiple characters in sequence
@@ -1212,6 +1239,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteMultipleCharactersSequence) {
     MmResult result3 = pmeditor_cmd_delete(self);
     EXPECT_EQ(kOk, result3);
     EXPECT_STREQ("ABF", self->buf);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting with Unicode characters (not currently supported)
@@ -1224,6 +1252,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteUnicodeCharacters) {
     EXPECT_EQ(kOk, result);
     // Note: This test depends on how Unicode is handled in the editor
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting with very long line
@@ -1237,6 +1266,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteInLongLine) {
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(99, strlen(self->buf)); // Should be one character shorter
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting at buffer boundaries
@@ -1251,6 +1281,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteAtBufferBoundaries) {
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(content.length() - 1, strlen(self->buf));
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting with cursor positioning edge cases
@@ -1269,6 +1300,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteCursorPositioning) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1\nLie2\nLine3", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting with comment level tracking
@@ -1281,6 +1313,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteWithCommentLevelTracking) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/*comment */ code", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting newline at end of file
@@ -1295,6 +1328,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteNewlineAtEndOfFile) {
     EXPECT_STREQ("Line1\nLine2", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(1, self->num_lines);
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test deleting with text_changed flag initially true
@@ -1308,6 +1342,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteWithTextAlreadyChanged) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ello", self->buf);
     EXPECT_TRUE(self->text_changed); // Should remain true
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // Test deleting with color coding enabled (multiline comment scenarios)
@@ -1321,6 +1356,7 @@ TEST_F(PmEditorCmdDeleteTest, DeleteMultilineCommentMarkers) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code * more", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test deleting with various comment marker combinations
@@ -1353,7 +1389,74 @@ TEST_F(PmEditorCmdDeleteTest, DeleteCommentMarkerCombinations) {
         EXPECT_EQ(kOk, result) << "Failed for: " << test_case.description;
         EXPECT_STREQ(test_case.expected, self->buf) << "Failed for: " << test_case.description;
         EXPECT_TRUE(self->text_changed) << "Failed for: " << test_case.description;
+        EXPECT_EQ(1, print_screen_call_count);
     }
+}
+
+// Deleting single-line comment character ' before /* should redraw screen.
+TEST_F(PmEditorCmdDeleteTest, DeleteSingleQuoteBeforeMultilineStartRedrawsScreen) {
+    SetBuffer("code ' /* more");
+    SetCursorPosition(5); // Position before '
+
+    MmResult result = pmeditor_cmd_delete(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code  /* more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Deleting single-line comment character ' before */ should redraw screen.
+TEST_F(PmEditorCmdDeleteTest, DeleteSingleQuoteBeforeMultilineEndRedrawsScreen) {
+    SetBuffer("code ' */ more");
+    SetCursorPosition(5); // Position before '
+
+    MmResult result = pmeditor_cmd_delete(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code  */ more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Deleting character in REM keyword before /* should redraw screen.
+TEST_F(PmEditorCmdDeleteTest, DeleteRemBeforeMultilineStartRedrawsScreen) {
+    SetBuffer("code REM /* more");
+    SetCursorPosition(5); // Position before R
+
+    MmResult result = pmeditor_cmd_delete(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code EM /* more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(1, print_screen_call_count);
+
+    print_screen_call_count = 0;
+    result = pmeditor_cmd_delete(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code M /* more", self->buf);
+    EXPECT_EQ(0, print_screen_call_count);
+}
+
+// Deleting character in REM keyword before */ should redraw screen.
+TEST_F(PmEditorCmdDeleteTest, DeleteRemBeforeMultilineEndRedrawsScreen) {
+    SetBuffer("code rem */ more");
+    SetCursorPosition(6); // Position before e
+
+    MmResult result = pmeditor_cmd_delete(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code rm */ more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(1, print_screen_call_count);
+
+    print_screen_call_count = 0;
+    result = pmeditor_cmd_delete(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code r */ more", self->buf);
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2469,7 +2572,7 @@ TEST_F(PmEditorCmdCharTest, InsertSlashAfterStar) {
     EXPECT_STREQ("code*/", self->buf);
     EXPECT_EQ(self->buf + 6, self->txtp);
     EXPECT_TRUE(self->text_changed);
-    // Should trigger screen redraw for syntax highlighting
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test inserting '*' after '/' (start of multiline comment)
@@ -2668,14 +2771,10 @@ TEST_F(PmEditorCmdCharTest, ScreenRedrawForMultilineCommentStart) {
     self->px = 0;
     self->py = 0;
 
-    // Reset highlight call count
-    highlight_call_count = 0;
-
     MmResult result = pmeditor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    // Should have called highlight functions for screen redraw
-    EXPECT_GT(highlight_call_count, 0);
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test no screen redraw when syntax highlighting disabled
@@ -2690,12 +2789,10 @@ TEST_F(PmEditorCmdCharTest, NoScreenRedrawWhenSyntaxHighlightingDisabled) {
     self->px = 0;
     self->py = 0;
 
-    highlight_call_count = 0;
-
     MmResult result = pmeditor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    // Highlight count should be minimal (only for basic display)
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 // ============================================================================
@@ -3047,13 +3144,11 @@ TEST_F(PmEditorCmdCharTest, MultilineCommentTriggersScreenRedraw) {
     // Now insert '*' to complete comment marker
     SetCursorPosition(5);
     SetChar('*');
-    highlight_call_count = 0;
 
     MmResult result = pmeditor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    // Should have triggered screen redraw
-    EXPECT_GT(highlight_call_count, 0);
+    EXPECT_EQ(1, print_screen_call_count);
 }
 
 // Test that regular character doesn't trigger screen redraw
@@ -3068,12 +3163,10 @@ TEST_F(PmEditorCmdCharTest, RegularCharacterNoScreenRedraw) {
     self->px = 0;
     self->py = 0;
 
-    highlight_call_count = 0;
-
     MmResult result = pmeditor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    // Should not trigger full screen redraw
+    EXPECT_EQ(0, print_screen_call_count);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

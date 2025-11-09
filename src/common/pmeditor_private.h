@@ -112,6 +112,8 @@ typedef struct s_PmEditor {
     MmResult (*highlight_fn)(struct s_PmEditor *, HighlightType);
 } PmEditor;
 
+extern MmResult (*pmeditor_print_screen)(struct s_PmEditor *);
+
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);
 MmResult pmeditor_cmd_delete(PmEditor *self);
@@ -122,6 +124,7 @@ MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
 MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state);
+void pmeditor_restore_fn_pointers();
 MmResult pmeditor_set_colour(PmEditor *self, char *p);
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)

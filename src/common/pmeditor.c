@@ -81,6 +81,13 @@ typedef enum {
     kMarkEnd,       ///< End marking
 } MarkState;
 
+MmResult pmeditor_print_screen_impl(PmEditor *);
+MmResult (*pmeditor_print_screen)(PmEditor *) = pmeditor_print_screen_impl;
+
+void pmeditor_restore_fn_pointers() {
+    pmeditor_print_screen = pmeditor_print_screen_impl;
+}
+
 /**
  * Initializes the syntax highlighting state of the editor.
  *
@@ -1096,7 +1103,7 @@ static MmResult pmeditor_print_line(PmEditor *self, int line) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_print_screen(PmEditor *self) {
+MmResult pmeditor_print_screen_impl(PmEditor *self) {
     LOG_DEBUG("entered");
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, 0));
     for (int i = 0; i < self->height; i++) {
@@ -1814,6 +1821,24 @@ static MmResult pmeditor_cmd_right(PmEditor* self) {
     return pmeditor_position_cursor(self, self->txtp);
 }
 
+// TODO
+static inline char pmeditor_next(PmEditor *self, char *p) {
+    if (p == self->buf + sizeof(self->buf) - 1) {
+        return '\0';
+    } else {
+        return *(p + 1);
+    }
+}
+
+// TODO
+static inline char pmeditor_previous(PmEditor *self, char *p) {
+    if (p == self->buf) {
+        return  '\0';
+    } else {
+        return *(p - 1);
+    }
+}
+
 /**
  * Handles the DELETE key command.
  *
@@ -1825,47 +1850,77 @@ static MmResult pmeditor_cmd_right(PmEditor* self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_cmd_delete(PmEditor *self) {
-    if (*self->txtp == 0) return kOk;
+    if (*self->txtp == '\0') return kOk;
 
+    const char currdel = *(self->txtp);
+    const char nextdel = pmeditor_next(self, self->txtp);
+    const char lastdel = pmeditor_previous(self, self->txtp);
+
+    // Delete the character from the buffer
     char *p = self->txtp;
-    char c = *p;
-    char currdel = *p;
-    char nextdel = 0;
-    char lastdel = 0;
-
-    if (p != self->buf + sizeof(self->buf) - 1) {
-        nextdel = p[1];
-    } else {
-        nextdel = 0;
-    }
-
-    if (p != self->buf) {
-        lastdel = *(--p);
-        p++;
-    } else {
-        lastdel = 0;
-    }
-
     while (*p) {
         p[0] = p[1];
         p++;
     }
+    self->text_changed = true;
 
-    if (c == '\n') {
-        ON_FAILURE_RETURN(pmeditor_print_screen(self));
+    bool redraw_screen = false;
+    int redraw_line = -1;
+
+    // Deleting a newline character requires a screen redraw,
+    // otherwise we just redraw the current line ...
+    if (currdel == '\n') {
         self->num_lines--;
+        redraw_screen = true;
     } else {
-        ON_FAILURE_RETURN(pmeditor_print_line(self, self->py + self->cy));
+        redraw_line = self->py + self->cy;
     }
 
-    self->text_changed = true;
+    // ... unless we are syntax highlighting in which case we also need to
+    // check for multiline comments being invalidated.
     if (mmb_options.syntax_highlight) {
-        if ((currdel == '/' && nextdel == '*') ||
-            (currdel == '*' && nextdel == '/') ||
-            (currdel == '/' && lastdel == '*') ||
-            (currdel == '*' && lastdel == '/')) {
-            ON_FAILURE_RETURN(pmeditor_print_screen(self));
+        bool potential_multiline_change = false;
+        switch (currdel) {
+            case '/':
+                redraw_screen = (nextdel == '*') || (lastdel == '*');
+                break;
+            case '*':
+                redraw_screen = (nextdel == '/') || (lastdel == '/');
+                break;
+            case '\'':
+                potential_multiline_change = true;
+                break;
+            case 'R':
+            case 'r':
+                potential_multiline_change =
+                    pmeditor_find_in_line(self, "em", self->txtp, 2) != NULL;
+                break;
+            case 'E':
+            case 'e':
+                potential_multiline_change = (tolower(lastdel) == 'r') && (tolower(nextdel) == 'm');
+                break;
+            case 'M':
+            case 'm':
+                potential_multiline_change =
+                    pmeditor_find_in_line(self, "re", self->txtp - 2, 2) != NULL;
+                break;
+            default:
+                break;
         }
+
+        if (potential_multiline_change) {
+            if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
+                redraw_screen = true;
+            } else if (pmeditor_find_in_line(self, "*/", self->txtp, MAX_LINE_LENGTH) != NULL) {
+                redraw_screen = true;
+            }
+        }
+    }
+
+    if (redraw_screen) {
+        ON_FAILURE_RETURN(pmeditor_print_screen(self));
+    } else if (redraw_line != -1) {
+        ON_FAILURE_RETURN(pmeditor_print_line(self, redraw_line));
     }
 
     return pmeditor_position_cursor(self, self->txtp);
