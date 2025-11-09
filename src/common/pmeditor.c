@@ -84,11 +84,13 @@ typedef enum {
 // Forward declaration of real function implementations
 MmResult pmeditor_display_msg_impl(PmEditor *, const char *);
 MmResult pmeditor_highlight_impl(PmEditor *, HighlightType);
+MmResult pmeditor_print_line_impl(PmEditor *, int);
 MmResult pmeditor_print_screen_impl(PmEditor *);
 
 // Pointers to functions we want to override in unit-tests
 MmResult (*pmeditor_display_msg)(PmEditor *, const char *) = pmeditor_display_msg_impl;
 MmResult (*pmeditor_highlight)(PmEditor *, HighlightType) = pmeditor_highlight_impl;
+MmResult (*pmeditor_print_line)(PmEditor *, int) = pmeditor_print_line_impl;
 MmResult (*pmeditor_print_screen)(PmEditor *) = pmeditor_print_screen_impl;
 
 /**
@@ -97,6 +99,7 @@ MmResult (*pmeditor_print_screen)(PmEditor *) = pmeditor_print_screen_impl;
 void pmeditor_restore_fn_pointers() {
     pmeditor_display_msg = pmeditor_display_msg_impl;
     pmeditor_highlight = pmeditor_highlight_impl;
+    pmeditor_print_line = pmeditor_print_line_impl;
     pmeditor_print_screen = pmeditor_print_screen_impl;
 }
 
@@ -675,7 +678,7 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
 
     // Check that the buffer is not full
     if (p >= self->buf + sizeof(self->buf) - 1) {
-        return pmeditor_display_msg(self, " OUT OF MEMORY ");
+        return pmeditor_display_msg(self, " EDIT BUFFER FULL ");
     }
 
     // Check for interactions that make or break multiline comments
@@ -1065,7 +1068,7 @@ char *pmeditor_find_line(PmEditor *self, int line) {
  * @param  line  The line number to print (0-based, relative to start of buffer).
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_print_line(PmEditor *self, int line) {
+MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
     LOG_DEBUG("entered: line=%d", line);
     int i;
     // int comment_level = -1;

@@ -107,6 +107,7 @@ typedef struct s_PmEditor {
 // behaviour.
 extern MmResult (*pmeditor_display_msg)(PmEditor *, const char *);
 extern MmResult (*pmeditor_highlight)(PmEditor *, HighlightType);
+extern MmResult (*pmeditor_print_line)(PmEditor *, int);
 extern MmResult (*pmeditor_print_screen)(PmEditor *);
 
 MmResult pmeditor_cmd_backspace(PmEditor *self);
