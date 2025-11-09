@@ -484,7 +484,7 @@ MmResult pmeditor_display_msg_impl(PmEditor *self, const char *msg) {
     ON_FAILURE_RETURN(display_reset());
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
-    self->draw_status_line = true;
+    self->redraw_status_line = true;
     return kOk;
 }
 
@@ -631,19 +631,43 @@ char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, siz
 }
 
 /**
+ * Is the given character printable?
+ */
+static inline bool pmeditor_is_printable(char ch) {
+    return ch >= ' ' && ch <= '~';
+}
+
+/**
  * Inserts a character into the text buffer at the current position.
  *
  * Shifts all text after the current position down by one character to make
- * room for the new character. Checks for available buffer space before
- * inserting.
+ * room for the new character. Non-printable characters are ignored. Checks for
+ * available buffer space and enforces line length limits before inserting.
  *
- * @param       self   Pointer to the PmEditor instance.
- * @param       ch     The character to insert.
- * @param[out]  state  Pointer to store the resulting InsertState.
- * @return             kOk on success, or an error code on failure.
+ * When syntax highlighting is enabled, detects interactions that affect
+ * multiline comment markers. These cases trigger a full screen redraw since
+ * they can change syntax highlighting for many subsequent lines.
+ *
+ * @param       self    Pointer to the PmEditor instance.
+ * @param       ch      The character to insert.
+ * @param[out]  redraw  Pointer to store the redraw strategy:
+ *                      - REDRAW_NOTHING: No redraw needed,
+ *                        i.e. non-printable char or error
+ *                      - REDRAW_SCREEN: Full screen redraw required
+ *                      - Line number (self->py + self->cy): Single line redraw
+ * @return              kOk on success, or an error code on failure,
+ *                      i.e. buffer full, line too long.
  */
-MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state) {
-    *state = kInsertNormal;
+MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
+    *redraw = REDRAW_NOTHING;
+
+    // Ignore non-printable characters
+    if (!pmeditor_is_printable(ch)) return kOk;
+
+    // Limit line length
+    if (self->cx >= self->width) {
+        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
+    }
 
     // Find the end of the text
     char *p;
@@ -651,40 +675,40 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state) {
 
     // Check that the buffer is not full
     if (p >= self->buf + sizeof(self->buf) - 1) {
-        ON_FAILURE_RETURN(pmeditor_display_msg(self, " OUT OF MEMORY "));
-        *state = kInsertBufferFull;
-        return kOk;  // This is still considered a successful function call
+        return pmeditor_display_msg(self, " OUT OF MEMORY ");
     }
 
     // Check for interactions that make or break multiline comments
-    char previous = (self->txtp > self->buf) ? *(self->txtp - 1) : '\0';
-    switch (ch) {
-        case '/':
-            if (previous == '*' || *self->txtp == '*') {
-                // Inserting / before or after *
-                *state = kInsertMultiline;
-            }
-            break;
-        case '*':
-            if (previous == '/' || *self->txtp == '/') {
-                // Inserting * before or after /
-                *state = kInsertMultiline;
-            }
-            break;
-        case '\'':
-            if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
-                // Inserting \ before /*
-                *state = kInsertMultiline;
-            }
-            break;
-        case '"':
-            if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
-                // Inserting " before /*
-                *state = kInsertMultiline;
-            }
-            break;
-        default:
-            break;
+    if (mmb_options.syntax_highlight) {
+        char previous = (self->txtp > self->buf) ? *(self->txtp - 1) : '\0';
+        switch (ch) {
+            case '/':
+                if (previous == '*' || *self->txtp == '*') {
+                    // Inserting / before or after *
+                    *redraw = REDRAW_SCREEN;
+                }
+                break;
+            case '*':
+                if (previous == '/' || *self->txtp == '/') {
+                    // Inserting * before or after /
+                    *redraw = REDRAW_SCREEN;
+                }
+                break;
+            case '\'':
+                if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
+                    // Inserting \ before /*
+                    *redraw = REDRAW_SCREEN;
+                }
+                break;
+            case '"':
+                if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
+                    // Inserting " before /*
+                    *redraw = REDRAW_SCREEN;
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     // Shift everything up one place to make room
@@ -696,15 +720,16 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state) {
     p = self->txtp + 1;
     *self->txtp++ = ch;
     self->text_changed = true;
+    if (*redraw == REDRAW_NOTHING) *redraw = self->py + self->cy;
 
     // Check for a completed REM command before /*
-    if (pmeditor_find_in_line(
+    if (mmb_options.syntax_highlight && pmeditor_find_in_line(
             self,
             "REM",
             pmeditor_back_in_line(self, self->txtp, 3),
             5
         ) && (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL)) {
-        *state = kInsertMultiline;
+        *redraw = REDRAW_SCREEN;
     }
 
     return kOk;
@@ -1532,10 +1557,10 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
         self->keys[0] = pmeditor_canonical_key(self, c);
         self->keys[1] = '\0';
 
-        if (self->draw_status_line) {
+        if (self->redraw_status_line) {
             ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kMarkMode));
             ON_FAILURE_RETURN(pmeditor_print_status(self));
-            self->draw_status_line = false;
+            self->redraw_status_line = false;
         }
 
         ON_FAILURE_RETURN(pmeditor_mark_dispatch(self, self->keys[0], &mark_state));
@@ -1645,9 +1670,9 @@ static MmResult pmeditor_cmd_newline(PmEditor *self /*char *multi*/) {
     }
 
     // Insert the newline character
-    InsertState insert_state = kInsertNormal;
-    ON_FAILURE_RETURN(pmeditor_insert_char(self, '\n', &insert_state));
-    if (insert_state == kInsertBufferFull) return kOk;
+    int redraw = REDRAW_NOTHING;
+    ON_FAILURE_RETURN(pmeditor_insert_char(self, '\n', &redraw));
+    if (redraw == REDRAW_NOTHING) return kOk; // Nothing inserted
 
     self->num_lines++;
     if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
@@ -1809,7 +1834,15 @@ static MmResult pmeditor_cmd_right(PmEditor* self) {
     return pmeditor_position_cursor(self, self->txtp);
 }
 
-// TODO
+/**
+ * Returns the character after the given position in the buffer.
+ *
+ * Provides safe access to the next character without moving past the buffer end.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @param  p     Pointer to current position in the text buffer.
+ * @return       The character following the position, or '\0' if at buffer end.
+ */
 static inline char pmeditor_next(PmEditor *self, char *p) {
     if (p == self->buf + sizeof(self->buf) - 1) {
         return '\0';
@@ -1818,7 +1851,15 @@ static inline char pmeditor_next(PmEditor *self, char *p) {
     }
 }
 
-// TODO
+/**
+ * Returns the character before the given position in the buffer.
+ *
+ * Provides safe access to the previous character without moving before the buffer start.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @param  p     Pointer to current position in the text buffer.
+ * @return       The character preceding the position, or '\0' if at buffer start.
+ */
 static inline char pmeditor_previous(PmEditor *self, char *p) {
     if (p == self->buf) {
         return  '\0';
@@ -1828,16 +1869,27 @@ static inline char pmeditor_previous(PmEditor *self, char *p) {
 }
 
 /**
- * Handles the DELETE key command.
+ * Deletes the character at the current cursor position from the buffer.
  *
- * Deletes the character at the current cursor position. If deleting a
- * newline, redraws the entire screen. Handles multi-line comment markers
- * specially to trigger screen refresh for syntax highlighting.
+ * Removes the character at self->txtp and shifts all subsequent text left by
+ * one position.
+ * Determines the appropriate redraw strategy based on what was deleted:
+ * - REDRAW_SCREEN: If deleting a newline or affecting multiline comment markers
+ * - Line number: If only the current line needs redrawing
+ * - REDRAW_NOTHING: If nothing was deleted (at end of buffer)
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kOk on success, or an error code on failure.
+ * When syntax highlighting is enabled, checks if deleting the character breaks
+ * or creates multiline comment markers which would require a full screen redraw.
+ *
+ * @param       self    Pointer to the PmEditor instance.
+ * @param[out]  redraw  Pointer to store the redraw strategy:
+ *                      - REDRAW_NOTHING: No redraw needed
+ *                      - REDRAW_SCREEN: Full screen redraw required
+ *                      - Line number (self->py + self->cy): Single line redraw
+ * @return              kOk on success, or an error code on failure.
  */
-MmResult pmeditor_cmd_delete(PmEditor *self) {
+MmResult pmeditor_delete_char(PmEditor *self, int *redraw) {
+    *redraw = REDRAW_NOTHING;
     if (*self->txtp == '\0') return kOk;
 
     const char currdel = *(self->txtp);
@@ -1852,16 +1904,13 @@ MmResult pmeditor_cmd_delete(PmEditor *self) {
     }
     self->text_changed = true;
 
-    bool redraw_screen = false;
-    int redraw_line = -1;
-
     // Deleting a newline character requires a screen redraw,
     // otherwise we just redraw the current line ...
     if (currdel == '\n') {
         self->num_lines--;
-        redraw_screen = true;
+        *redraw = REDRAW_SCREEN;
     } else {
-        redraw_line = self->py + self->cy;
+        *redraw = self->py + self->cy;
     }
 
     // ... unless we are syntax highlighting in which case we also need to
@@ -1870,10 +1919,14 @@ MmResult pmeditor_cmd_delete(PmEditor *self) {
         bool potential_multiline_change = false;
         switch (currdel) {
             case '/':
-                redraw_screen = (nextdel == '*') || (lastdel == '*');
+                if ((nextdel == '*') || (lastdel == '*')) {
+                    *redraw = REDRAW_SCREEN;
+                }
                 break;
             case '*':
-                redraw_screen = (nextdel == '/') || (lastdel == '/');
+                if ((nextdel == '/') || (lastdel == '/')) {
+                    *redraw = REDRAW_SCREEN;
+                }
                 break;
             case '\'':
                 potential_multiline_change = true;
@@ -1898,19 +1951,42 @@ MmResult pmeditor_cmd_delete(PmEditor *self) {
 
         if (potential_multiline_change) {
             if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
-                redraw_screen = true;
+                *redraw = REDRAW_SCREEN;
             } else if (pmeditor_find_in_line(self, "*/", self->txtp, MAX_LINE_LENGTH) != NULL) {
-                redraw_screen = true;
+                *redraw = REDRAW_SCREEN;
             }
         }
     }
 
-    if (redraw_screen) {
-        ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    } else if (redraw_line != -1) {
-        ON_FAILURE_RETURN(pmeditor_print_line(self, redraw_line));
-    }
+    return kOk;
+}
 
+/**
+ * Handles the DELETE key command.
+ *
+ * Deletes the character at the current cursor position using
+ * pmeditor_delete_char().
+ * The redraw strategy is determined by what was deleted:
+ * - If a newline or multiline comment marker was affected,
+ *   redraws the entire screen
+ * - If only regular text was deleted, redraws just the current line
+ * - If nothing was deleted (at end of buffer), no redraw occurs
+ *
+ * Syntax highlighting considerations are handled automatically by
+ * pmeditor_delete_char(), which detects when multiline comment markers are
+ * are affected and triggers a full screen redraw when necessary.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @return       kOk on success, or an error code on failure.
+ */
+MmResult pmeditor_cmd_delete(PmEditor *self) {
+    int redraw = REDRAW_NOTHING;
+    ON_FAILURE_RETURN(pmeditor_delete_char(self, &redraw));
+    if (redraw == REDRAW_SCREEN) {
+        ON_FAILURE_RETURN(pmeditor_print_screen(self));
+    } else if (redraw != REDRAW_NOTHING) {
+        ON_FAILURE_RETURN(pmeditor_print_line(self, redraw));
+    }
     return pmeditor_position_cursor(self, self->txtp);
 }
 
@@ -1973,7 +2049,7 @@ MmResult pmeditor_cmd_backspace(PmEditor *self) {
  */
 static MmResult pmeditor_cmd_insert(PmEditor *self) {
     self->insert = !self->insert;
-    return kOk;
+    return pmeditor_print_status(self);
 }
 
 /**
@@ -2377,50 +2453,89 @@ static MmResult pmeditor_cmd_paste(PmEditor *self) {
 }
 
 /**
+ * Overwrites the character at the current cursor position with a new character.
+ *
+ * Implements overwrite mode by deleting the character at the cursor and then
+ * inserting the new character in its place. This two-step process ensures that
+ * multiline comment detection logic is properly applied for both the deletion
+ * and insertion.
+ *
+ * The function verifies that both operations agree on the redraw strategy. If
+ * the delete and insert operations produce inconsistent redraw requirements,
+ * an internal fault is returned as this indicates a logic error.
+ *
+ * @param       self    Pointer to the PmEditor instance.
+ * @param       ch      The character to write at the current position.
+ * @param[out]  redraw  Pointer to store the redraw strategy:
+ *                      - REDRAW_NOTHING: No redraw needed
+ *                      - REDRAW_SCREEN: Full screen redraw required
+ *                      - Line number: Single line redraw
+ * @return              kOk on success, kInternalFault if delete and insert
+ *                      redraw strategies are inconsistent, or other error codes
+ *                      on failure.
+ */
+MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw) {
+    *redraw = REDRAW_NOTHING;
+    ON_FAILURE_RETURN(pmeditor_delete_char(self, redraw));
+    int insert_redraw = REDRAW_NOTHING;
+    ON_FAILURE_RETURN(pmeditor_insert_char(self, ch, &insert_redraw));
+    if (insert_redraw == REDRAW_SCREEN) {
+        *redraw = REDRAW_SCREEN;
+    } else if (insert_redraw != *redraw) {
+        return mmresult_ex(kInternalFault, "Inconsistent line redraw");
+    }
+    return kOk;
+}
+
+/**
  * Handles regular printable character input.
  *
- * Inserts or overwrites the character depending on insert mode. Ignores
- * non-printable characters. Enforces line length limit. Redraws the current
- * line after insertion.
+ * Inserts or overwrites the character depending on the current editing mode and
+ * cursor position. The behavior varies based on context:
+ * - In insert mode: Always inserts the character
+ * - In overwrite mode: Overwrites the character unless at a newline or end of
+ *   buffer
+ * - At newline or end of buffer: Always inserts regardless of mode
+ *
+ * After modifying the buffer, determines the appropriate redraw strategy:
+ * - REDRAW_SCREEN: Full screen redraw if multiline comments were affected
+ * - Line number: Single line redraw for normal edits
+ * - REDRAW_NOTHING: No redraw needed (e.g., non-printable character ignored)
+ *
+ * Non-printable characters and line length limits are handled by the underlying
+ * insert/overwrite functions, which will display appropriate error messages.
  *
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-MmResult pmeditor_cmd_char(PmEditor *self/*char *multi*/) {
-    char c = self->keys[0];
-
-    // Ignore non-printable characters
-    if (c < ' ' || c > '~') return kOk;
-
-    // Limit line length
-    if (self->cx >= self->width) {
-        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
-    }
-
-    bool redraw_screen = false;
-    if (self->insert || *self->txtp == '\n' || *self->txtp == 0) {
-        // Insert character
-        InsertState insert_state = kInsertNormal;
-        ON_FAILURE_RETURN(pmeditor_insert_char(self, c, &insert_state));
-        if (insert_state == kInsertBufferFull) return kOk;
-        redraw_screen = (insert_state == kInsertMultiline);
+MmResult pmeditor_cmd_char(PmEditor *self) {
+    const char ch = self->keys[0];
+    int redraw = REDRAW_NOTHING;
+    if (self->insert || *self->txtp == '\n' || *self->txtp == '\0') {
+        ON_FAILURE_RETURN(pmeditor_insert_char(self, ch, &redraw));
     } else {
-        // Overwrite character
-        // TODO: this might change comment
-        *self->txtp++ = c;
-        self->text_changed = true;
+        ON_FAILURE_RETURN(pmeditor_overwrite_char(self, ch, &redraw));
     }
 
-    if (redraw_screen && mmb_options.syntax_highlight) {
+    if (redraw == REDRAW_SCREEN) {
         ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    } else {
-        ON_FAILURE_RETURN(pmeditor_print_line(self, self->py + self->cy));
+    } else if (redraw != REDRAW_NOTHING) {
+        ON_FAILURE_RETURN(pmeditor_print_line(self, redraw));
     }
 
     return pmeditor_position_cursor(self, self->txtp);
 }
 
-/** TODO */
+/**
+ * Handles the F9 key command (redraw screen).
+ *
+ * Forces a complete redraw of the editor screen and repositions the cursor.
+ * Useful for refreshing the display if it becomes corrupted or after terminal
+ * resize events.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @return       kOk on success, or an error code on failure.
+ */
 MmResult pmeditor_cmd_redraw(PmEditor *self) {
     ON_FAILURE_RETURN(pmeditor_print_screen(self));
     return pmeditor_position_cursor(self, self->txtp);
@@ -2551,8 +2666,6 @@ MmResult pmeditor_resize_console(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_edit_loop(PmEditor *self) {
-    //char multi = false;
-
     while (true) {
         int c;
         do {
@@ -2564,17 +2677,17 @@ MmResult pmeditor_edit_loop(PmEditor *self) {
         self->keys[0] = c;
         self->keys[1] = '\0';
 
-        if (self->draw_status_line) {
+        if (self->redraw_status_line) {
             ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
             ON_FAILURE_RETURN(pmeditor_print_status(self));
-            self->draw_status_line = false;
+            self->redraw_status_line = false;
         }
 
         do {
             char *old_txtp = self->txtp;
 
             self->keys[0] = pmeditor_canonical_key(self, self->keys[0]);
-            ON_FAILURE_RETURN(pmeditor_cmd_dispatch(self, self->keys[0]/*, &multi*/));
+            ON_FAILURE_RETURN(pmeditor_cmd_dispatch(self, self->keys[0]));
 
             if (self->exit_flag) return kOk;
 

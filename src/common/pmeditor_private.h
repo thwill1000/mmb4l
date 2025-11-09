@@ -46,11 +46,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMB4L_PMEDITOR_PRIVATE
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "mmresult.h"
 #include "program.h" // for EDIT_BUFFER_SIZE
 
 #define MAXCLIP 1024
+#define REDRAW_NOTHING  -1
+#define REDRAW_SCREEN   INT32_MAX
 
 typedef enum {
     kHighlightNormal,
@@ -63,13 +66,6 @@ typedef enum {
     kHighlightError,
     kHighlightTrailingWhitespace,
 } HighlightType;
-
-typedef enum {
-    kInsertUnspecified,
-    kInsertNormal,
-    kInsertMultiline,   ///< Inserted character may affect multiline comment state
-    kInsertBufferFull,  ///< Insert failed due to full buffer
-} InsertState;
 
 typedef struct SyntaxState {
     bool incomment;
@@ -92,7 +88,7 @@ typedef struct s_PmEditor {
     int cx;                 // Current cursor column (from 0)
     int cy;                 // Current cursor row (from 0)
     char *txtp;             // Position of the cursor in the text being edited
-    bool draw_status_line;  // True if the status line needs redrawing on next keystroke
+    bool redraw_status_line;  // True if the status line needs redrawing on next keystroke
     bool insert;            // True if the editor is in INSERT mode
     int preferred_x;        // User to track preferred x-position when up/down arrowing
     bool text_changed;      // True if the etxt has been editor and thus may need saving
@@ -122,7 +118,7 @@ char *pmeditor_find_line(PmEditor *self, int line); // , int *comment_level);
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
-MmResult pmeditor_insert_char(PmEditor *self, char ch, InsertState *state);
+MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw);
 void pmeditor_restore_fn_pointers();
 MmResult pmeditor_set_colour(PmEditor *self, char *p);
 

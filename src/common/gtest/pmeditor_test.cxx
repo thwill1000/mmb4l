@@ -789,10 +789,12 @@ TEST_F(PmEditorInsertCharTest, InsertCharAtBeginning) {
     SetBuffer(initial_content);
 
     self->txtp = self->buf;
-    InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, 'H', &insert_state));
 
-    EXPECT_EQ(kInsertNormal, insert_state);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_insert_char(self, 'H', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, redraw);
     EXPECT_STREQ("HWorld", self->buf);
     EXPECT_EQ(self->buf + 1, self->txtp);
 }
@@ -802,10 +804,12 @@ TEST_F(PmEditorInsertCharTest, InsertCharAtEnd) {
     SetBuffer(initial_content);
 
     self->txtp = self->buf + strlen(initial_content);
-    InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, '!', &insert_state));
 
-    EXPECT_EQ(kInsertNormal, insert_state);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_insert_char(self, '!', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, redraw);
     EXPECT_STREQ("Hello!", self->buf);
     EXPECT_EQ(self->buf + strlen(initial_content) + 1, self->txtp);
 }
@@ -815,10 +819,12 @@ TEST_F(PmEditorInsertCharTest, InsertCharInMiddle) {
     SetBuffer(initial_content);
 
     self->txtp = self->buf + 2; // Position after 'He'
-    InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, 'l', &insert_state));
 
-    EXPECT_EQ(kInsertNormal, insert_state);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_insert_char(self, 'l', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, redraw);
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_EQ(self->buf + 3, self->txtp);
 }
@@ -831,10 +837,12 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferFull) {
     self->buf[EDIT_BUFFER_SIZE - 1] = '\0';
 
     self->txtp = self->buf + EDIT_BUFFER_SIZE - 1; // Point to the null terminator
-    InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, 'B', &insert_state));
 
-    EXPECT_EQ(kInsertBufferFull, insert_state);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_insert_char(self, 'B', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(REDRAW_NOTHING, redraw);
     EXPECT_STREQ(" OUT OF MEMORY ", last_message);
 }
 
@@ -846,10 +854,12 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferHasOnlyOneByteRemaining) {
     self->buf[EDIT_BUFFER_SIZE - 2] = '\0';
 
     self->txtp = self->buf + EDIT_BUFFER_SIZE - 2; // Point to the null terminator
-    InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, 'B', &insert_state));
 
-    EXPECT_EQ(kInsertNormal, insert_state);
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_insert_char(self, 'B', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, redraw);
     EXPECT_STREQ("", last_message);
     EXPECT_EQ(self->buf + EDIT_BUFFER_SIZE - 1, self->txtp);
     EXPECT_EQ('B', *(self->buf + EDIT_BUFFER_SIZE - 2));
@@ -860,7 +870,7 @@ struct InsertCharTestCase {
     const char* initial_content;
     size_t cursor_offset;
     char char_to_insert;
-    InsertState expected_insert_state;
+    int expected_redraw;
     const char* expected_content;
     size_t expected_cursor_offset;
 };
@@ -875,10 +885,11 @@ TEST_P(PmEditorInsertCharParameterizedTest,) {
     SetBuffer(test_case.initial_content);
     self->txtp = self->buf + test_case.cursor_offset;
 
-    InsertState insert_state = kInsertUnspecified;
-    EXPECT_EQ(kOk, pmeditor_insert_char(self, test_case.char_to_insert, &insert_state));
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_insert_char(self, test_case.char_to_insert, &redraw);
 
-    EXPECT_EQ(test_case.expected_insert_state, insert_state);
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(test_case.expected_redraw, redraw);
     EXPECT_STREQ(test_case.expected_content, self->buf);
     EXPECT_EQ(self->buf + test_case.expected_cursor_offset, self->txtp);
 }
@@ -892,7 +903,7 @@ INSTANTIATE_TEST_SUITE_P(
             "Hello*",
             6,  // Position after '*'
             '/',
-            kInsertMultiline,
+            REDRAW_SCREEN,
             "Hello*/",
             7   // Expected after '/'
         },
@@ -901,7 +912,7 @@ INSTANTIATE_TEST_SUITE_P(
             "*Hello",
             0,  // Position before '*'
             '/',
-            kInsertMultiline,
+            REDRAW_SCREEN,
             "/*Hello",
             1   // Expected after '/'
         },
@@ -910,7 +921,7 @@ INSTANTIATE_TEST_SUITE_P(
             "/Hello",
             1,  // Position after '/'
             '*',
-            kInsertMultiline,
+            REDRAW_SCREEN,
             "/*Hello",
             2   // Expected after '*'
         },
@@ -919,7 +930,7 @@ INSTANTIATE_TEST_SUITE_P(
             "Hello/",
             5,  // Position before '/'
             '*',
-            kInsertMultiline,
+            REDRAW_SCREEN,
             "Hello*/",
             6   // Expected after '*'
         },
@@ -928,7 +939,7 @@ INSTANTIATE_TEST_SUITE_P(
             "Print /*Hello",
             1,  // Position before 'r'
             '\'',
-            kInsertMultiline,
+            REDRAW_SCREEN,
             "P'rint /*Hello",
             2   // Expected after '\''
         },
@@ -937,7 +948,7 @@ INSTANTIATE_TEST_SUITE_P(
             "Print ABHello",
             1,  // Position before 'r'
             '\'',
-            kInsertNormal,
+            0,
             "P'rint ABHello",
             2   // Expected after '\''
         },
@@ -946,7 +957,7 @@ INSTANTIATE_TEST_SUITE_P(
             "Print /*Hello",
             1,  // Position before 'r'
             '"',
-            kInsertMultiline,
+            REDRAW_SCREEN,
             "P\"rint /*Hello",
             2   // Expected after '"'
         },
@@ -955,7 +966,7 @@ INSTANTIATE_TEST_SUITE_P(
             "Print ABHello",
             1,  // Position before 'r'
             '"',
-            kInsertNormal,
+            0,
             "P\"rint ABHello",
             2   // Expected after '"'
         },
@@ -964,7 +975,7 @@ INSTANTIATE_TEST_SUITE_P(
             "PRINT Em /*Hello",
             6,  // Position before 'E'
             'r',
-            kInsertMultiline,
+            REDRAW_SCREEN,
             "PRINT rEm /*Hello",
             7   // Expected after 'r'
         },
@@ -973,7 +984,7 @@ INSTANTIATE_TEST_SUITE_P(
             "PRINT Rm /*Hello",
             7,  // Position before 'm'
             'E',
-            kInsertMultiline,
+            REDRAW_SCREEN,
             "PRINT REm /*Hello",
             8   // Expected after 'E'
         },
@@ -982,7 +993,7 @@ INSTANTIATE_TEST_SUITE_P(
             "PRINT re /*Hello",
             8,  // Position after 'e'
             'M',
-            kInsertMultiline,
+            REDRAW_SCREEN,
             "PRINT reM /*Hello",
             9   // Expected after 'M'
         }
