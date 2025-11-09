@@ -75,12 +75,6 @@ typedef enum {
     kMarkMode,
 } EditorMode;
 
-typedef enum {
-    kMarkUpdate,    ///< Update selection and continue marking
-    kMarkContinue,  ///< Continue marking
-    kMarkEnd,       ///< End marking
-} MarkState;
-
 // Forward declaration of real function implementations
 MmResult pmeditor_display_msg_impl(PmEditor *, const char *);
 MmResult pmeditor_highlight_impl(PmEditor *, HighlightType);
@@ -312,7 +306,7 @@ static MmResult pmeditor_save_file(PmEditor *self, const char *filename) {
  * @param  curp  Pointer to a position in the text buffer.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_position_cursor(PmEditor *self, char *curp) {
+MmResult pmeditor_position_cursor(PmEditor *self, char *curp) {
     int line = 0;
     int column = 0;
 
@@ -758,7 +752,7 @@ static MmResult pmeditor_print_status(PmEditor *self) {
     char s[64];
     snprintf(s, 64, "Ln: %d  Col: %d       ",
              self->py + self->cy + 1,
-             self->px + self->cx + 1);
+             self->cx + 1);
     strcpy(s + 19, self->insert ? "INS" : "OVR");
 
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, self->width - 25, self->height + 1));
@@ -1121,7 +1115,7 @@ MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
  * Redraws the entire editor screen.
  *
  * Prints all visible lines starting from the top-left corner specified by
- * self->px and self->py.
+ * self->py.
  *
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
@@ -1204,7 +1198,7 @@ static MmResult pmeditor_scroll_down(PmEditor *self) {
  * @param[out]  state  Pointer to store the resulting MarkState.
  * @return             kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_mark_delete(PmEditor *self, MarkState *state) {
+MmResult pmeditor_mark_delete(PmEditor *self, MarkState *state) {
     char *p;
     if (self->mark < self->txtp) {
         p = self->txtp;
@@ -1293,22 +1287,31 @@ static MmResult pmeditor_mark_cut(PmEditor *self, MarkState *state) {
  * @param[out]  state  Pointer to store the resulting MarkState.
  * @return             kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_mark_down(PmEditor *self, MarkState *state) {
+MmResult pmeditor_mark_down(PmEditor *self, MarkState *state) {
     *state = kMarkContinue;
     if (self->cy == self->height - 1) return kOk;
     char *p;
     int i;
-    for (p = self->mark, i = self->cx; *p != 0 && *p != '\n';
-         p++, i++);  // move to the end of this line
-    if (*p == 0)
-        return kOk;  // skip if it is at the end of the file
-                   // if(i >= self->width) {
+
+    // Move to the end of the current line
+    for (p = self->mark, i = self->cx; *p != '\0' && *p != '\n'; p++, i++);
+
+    // Nothing to do if already at end of file
+    if (*p == '\0') return kOk;
+
+    // Can't move down from a line that is too long
     if (i > self->width) {
         return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
-    self->mark = p + 1;  // step over the line terminator to the start of the next line
-    for (i = 0; i < self->px + self->cx && *self->mark != '\0' && *self->mark != '\n';
-         i++, self->mark++);  // move the cursor to the column
+
+    // Step over the line terminator to the start of the next line
+    self->mark = p + 1;
+
+    // Move cursor to the same column on the new line, or the end of the line
+    for (i = 0;
+         i < self->cx && *self->mark != '\0' && *self->mark != '\n';
+         i++, self->mark++);
+
     self->cx = i;
     self->cy++;
     *state = kMarkUpdate;
@@ -1322,7 +1325,7 @@ static MmResult pmeditor_mark_down(PmEditor *self, MarkState *state) {
  * @param[out]  state  Pointer to store the resulting MarkState.
  * @return             kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_mark_end(PmEditor *self, MarkState *state) {
+MmResult pmeditor_mark_end(PmEditor *self, MarkState *state) {
     *state = kMarkContinue;
     if (*self->mark == '\0') return kOk;
     char *p;
@@ -1334,8 +1337,8 @@ static MmResult pmeditor_mark_end(PmEditor *self, MarkState *state) {
         return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
 
+    *state = (self->mark == p) ? kMarkContinue : kMarkUpdate;
     self->mark = p;
-    *state = kMarkUpdate;
     return kOk;
 }
 
@@ -1374,28 +1377,50 @@ static MmResult pmeditor_mark_escape(PmEditor *self, MarkState *state) {
  * @param[out]  state  Pointer to store the resulting MarkState.
  * @return             kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_mark_home(PmEditor *self, MarkState *state) {
+MmResult pmeditor_mark_home(PmEditor *self, MarkState *state) {
     *state = kMarkContinue;
     if (self->mark == self->buf) return kOk;
 
     // Step back over the terminator if we are right at the end of the line
-    if (*self->mark == '\n') {
-        self->mark--;
+    char *p = self->mark;
+    if (*p == '\n') {
+        p--;
     }
 
     // Move to the beginning of the line
-    while (self->mark != self->buf && *self->mark != '\n') {
-        self->mark--;
+    while (p != self->buf && *p != '\n') {
+        p--;
     }
 
     // Skip if no more lines above this one
     // TODO: understand this
-    if (*self->mark == '\n') {
-        self->mark++;
+    if (*p == '\n') {
+        p++;
     }
 
-    *state = kMarkUpdate;
+    if (p != self->mark) {
+        *state = kMarkUpdate;
+        self->mark = p;
+    }
+
     return kOk;
+}
+
+/**
+ * Returns the character before the given position in the buffer.
+ *
+ * Provides safe access to the previous character without moving before the buffer start.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @param  p     Pointer to current position in the text buffer.
+ * @return       The character preceding the position, or '\0' if at buffer start.
+ */
+static inline char pmeditor_previous(PmEditor *self, char *p) {
+    if (p == self->buf) {
+        return  '\0';
+    } else {
+        return *(p - 1);
+    }
 }
 
 /**
@@ -1405,12 +1430,26 @@ static MmResult pmeditor_mark_home(PmEditor *self, MarkState *state) {
  * @param[out]  state  Pointer to store the resulting MarkState.
  * @return             kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_mark_left(PmEditor *self, MarkState *state) {
+MmResult pmeditor_mark_left(PmEditor *self, MarkState *state) {
     *state = kMarkContinue;
-    if (self->cx >= self->width || *self->mark == '\0' || *self->mark == '\n') return kOk;
+    if (self->cx < 0) {
+        return mmresult_ex(kInternalFault, "Invalid cx < 0: %d", self->cx);
+    }
+    if (self->cx > self->width) {
+        return mmresult_ex(kInternalFault, "Invalid cx > width: %d", self->cx);
+    }
+    if (self->mark < self->buf) {
+        return mmresult_ex(kInternalFault, "Invalid mark < buf: %d", self->mark);
+    }
+
+    char previous = pmeditor_previous(self, self->mark);
+    if (self->cx <= 0 || previous == '\0' || previous == '\n') return kOk;
+
     self->mark--;
     self->cx--;
+    assert(self->cx >= 0);
     *state = kMarkUpdate;
+
     return kOk;
 }
 
@@ -1421,7 +1460,7 @@ static MmResult pmeditor_mark_left(PmEditor *self, MarkState *state) {
  * @param[out]  state  Pointer to store the resulting MarkState.
  * @return             kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_mark_right(PmEditor *self, MarkState *state) {
+MmResult pmeditor_mark_right(PmEditor *self, MarkState *state) {
     *state = kMarkContinue;
     if (self->cx >= self->width || *self->mark == '\0' || *self->mark == '\n') return kOk;
     self->mark++;
@@ -1440,7 +1479,7 @@ static MmResult pmeditor_mark_right(PmEditor *self, MarkState *state) {
  * @param[out]  state  Pointer to store the resulting MarkState.
  * @return             kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_mark_up(PmEditor *self, MarkState *state) {
+MmResult pmeditor_mark_up(PmEditor *self, MarkState *state) {
     *state = kMarkContinue;
     if (self->cy <= 0) return kOk;
     char *p = self->mark;
@@ -1457,7 +1496,7 @@ static MmResult pmeditor_mark_up(PmEditor *self, MarkState *state) {
         }
     }
     self->mark = p;
-    for (i = 0; i < self->px + self->cx && *self->mark != '\0' && *self->mark != '\n';
+    for (i = 0; i < self->cx && *self->mark != '\0' && *self->mark != '\n';
          i++, self->mark++);  // move the cursor to the column
     self->cx = i;
     self->cy--;
@@ -1555,7 +1594,7 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
     txtpx = oldx = self->cx;
     txtpy = oldy = self->cy;
 
-    MarkState mark_state = kMarkContinue;
+    MarkState mark_state = kMarkUnspecified;
     while (true) {
         int c;
         do {
@@ -1725,7 +1764,7 @@ static MmResult pmeditor_cmd_up(PmEditor *self) {
     // Move to the same column as we were previously (self->preferred_x),
     // or the end of the line
     int i;
-    for (i = 0; i < self->px + self->preferred_x && *self->txtp != 0 && *self->txtp != '\n';
+    for (i = 0; i < self->preferred_x && *self->txtp != 0 && *self->txtp != '\n';
          i++, self->txtp++);
 
     if (self->cy > 2 || self->py == 0) {
@@ -1765,7 +1804,7 @@ static MmResult pmeditor_cmd_down(PmEditor *self) {
     // Move to the same column as we were previously (self->preferred_x),
     // or the end of the line
     int i;
-    for (i = 0; i < self->px + self->preferred_x && *p != 0 && *p != '\n'; i++, p++);
+    for (i = 0; i < self->preferred_x && *p != 0 && *p != '\n'; i++, p++);
     self->txtp = p;
 
     if (self->cy < self->height - 3 || self->py + self->height == self->num_lines) {
@@ -1858,23 +1897,6 @@ static inline char pmeditor_next(PmEditor *self, char *p) {
         return '\0';
     } else {
         return *(p + 1);
-    }
-}
-
-/**
- * Returns the character before the given position in the buffer.
- *
- * Provides safe access to the previous character without moving before the buffer start.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @param  p     Pointer to current position in the text buffer.
- * @return       The character preceding the position, or '\0' if at buffer start.
- */
-static inline char pmeditor_previous(PmEditor *self, char *p) {
-    if (p == self->buf) {
-        return  '\0';
-    } else {
-        return *(p - 1);
     }
 }
 
@@ -2185,7 +2207,7 @@ static MmResult pmeditor_cmd_page_up(PmEditor *self) {
     if (self->txtp != self->buf) self->txtp++;
 
     // Move to the same column as we were previously, or the end of the line
-    for (int i = 0; i < self->px + self->cx && *self->txtp != 0 && *self->txtp != '\n';
+    for (int i = 0; i < self->cx && *self->txtp != 0 && *self->txtp != '\n';
          i++, self->txtp++);
 
     ON_FAILURE_RETURN(pmeditor_print_screen(self));
@@ -2237,7 +2259,7 @@ static MmResult pmeditor_cmd_page_down(PmEditor *self) {
     if (self->txtp != self->buf) self->txtp++;
 
     // Move to the same column as we were previously, or the end of the line
-    for (int i = 0; i < self->px + self->cx && *self->txtp != 0 && *self->txtp != '\n';
+    for (int i = 0; i < self->cx && *self->txtp != 0 && *self->txtp != '\n';
          i++, self->txtp++);
 
     ON_FAILURE_RETURN(pmeditor_print_screen(self));
@@ -2256,7 +2278,7 @@ static MmResult pmeditor_cmd_page_down(PmEditor *self) {
  */
 static MmResult pmeditor_cmd_tab(PmEditor *self) {
     strcpy(self->keys, "        ");
-    self->keys[mmb_options.tab - ((self->px + self->cx) % mmb_options.tab)] = '\0';
+    self->keys[mmb_options.tab - (self->cx % mmb_options.tab)] = '\0';
     return kOk;
 }
 

@@ -67,6 +67,13 @@ typedef enum {
     kHighlightTrailingWhitespace,
 } HighlightType;
 
+typedef enum {
+    kMarkUnspecified = 0,
+    kMarkUpdate,    ///< Update selection and continue marking
+    kMarkContinue,  ///< Continue marking
+    kMarkEnd,       ///< End marking
+} MarkState;
+
 typedef struct SyntaxState {
     bool incomment;
     bool inquote;
@@ -83,7 +90,6 @@ typedef struct s_PmEditor {
     int num_lines;          // Number of lines of text held in the buffer
     int width;              // Width of the editor screen in characters
     int height;             // Height of the editor screen in characters
-    int px;                 // Column at top left hand corner of editor
     int py;                 // Row at top left hand corner of editor
     int cx;                 // Current cursor column (from 0)
     int cy;                 // Current cursor row (from 0)
@@ -120,7 +126,15 @@ MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
 MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw);
+MmResult pmeditor_mark_delete(PmEditor *self, MarkState *state);
+MmResult pmeditor_mark_down(PmEditor *self, MarkState *state);
+MmResult pmeditor_mark_end(PmEditor *self, MarkState *state);
+MmResult pmeditor_mark_home(PmEditor *self, MarkState *state);
+MmResult pmeditor_mark_left(PmEditor *self, MarkState *state);
+MmResult pmeditor_mark_up(PmEditor *self, MarkState *state);
+MmResult pmeditor_mark_right(PmEditor *self, MarkState *state);
 MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw);
+MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
 void pmeditor_restore_fn_pointers();
 MmResult pmeditor_set_colour(PmEditor *self, char *p);
 
