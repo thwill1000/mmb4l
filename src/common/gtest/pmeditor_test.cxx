@@ -837,6 +837,21 @@ TEST_F(PmEditorInsertCharTest, InsertCharInMiddle) {
     EXPECT_EQ(self->buf + 3, self->txtp);
 }
 
+TEST_F(PmEditorInsertCharTest, InsertNewline) {
+    const char* initial_content = "Hello";
+    SetBuffer(initial_content);
+
+    self->txtp = self->buf + 2; // Position after 'He'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_insert_char(self, '\n', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_STREQ("He\nllo", self->buf);
+    EXPECT_EQ(self->buf + 3, self->txtp);
+}
+
 TEST_F(PmEditorInsertCharTest, InsertCharBufferFull) {
     // Fill the buffer to its maximum size
     for (int i = 0; i < EDIT_BUFFER_SIZE - 1; i++) {

@@ -637,7 +637,8 @@ char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, siz
  * Is the given character printable?
  */
 static inline bool pmeditor_is_printable(char ch) {
-    return ch >= ' ' && ch <= '~';
+    return ch == '\n' || (ch >= ' ' && ch <= '~');
+//    return ch >= ' ' && ch <= '~';
 }
 
 /**
@@ -681,8 +682,11 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
         return pmeditor_display_msg(self, " EDIT BUFFER FULL ");
     }
 
+    // Inserting a newline always requires a redraw
+    if (ch == '\n') *redraw = REDRAW_SCREEN;
+
     // Check for interactions that make or break multiline comments
-    if (mmb_options.syntax_highlight) {
+    if (*redraw != REDRAW_SCREEN && mmb_options.syntax_highlight) {
         char previous = (self->txtp > self->buf) ? *(self->txtp - 1) : '\0';
         switch (ch) {
             case '/':
@@ -723,17 +727,20 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
     p = self->txtp + 1;
     *self->txtp++ = ch;
     self->text_changed = true;
-    if (*redraw == REDRAW_NOTHING) *redraw = self->py + self->cy;
 
     // Check for a completed REM command before /*
-    if (mmb_options.syntax_highlight && pmeditor_find_in_line(
-            self,
-            "REM",
-            pmeditor_back_in_line(self, self->txtp, 3),
-            5
-        ) && (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL)) {
+    if (*redraw != REDRAW_SCREEN
+            && mmb_options.syntax_highlight
+            && pmeditor_find_in_line(
+                self,
+                "REM",
+                pmeditor_back_in_line(self, self->txtp, 3),
+                5)
+            && (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL)) {
         *redraw = REDRAW_SCREEN;
     }
+
+    if (*redraw == REDRAW_NOTHING) *redraw = self->py + self->cy;
 
     return kOk;
 }
@@ -2016,9 +2023,8 @@ MmResult pmeditor_cmd_backspace(PmEditor *self) {
         return kOk;
     }
 
-    char *p;
-
     // Determine number of spaces between the cursor and the start of the line
+    char *p;
     int num_spaces = 0;
     for (p = self->txtp - 1; *p == ' ' && p != self->buf; p--, num_spaces++);
     if (p == self->buf && *p == ' ') num_spaces++;
@@ -2032,12 +2038,11 @@ MmResult pmeditor_cmd_backspace(PmEditor *self) {
             self->txtp--;
         }
         // and let the delete case take care of deleting the characters
-        return pmeditor_position_cursor(self, self->txtp);
+        return kOk;
     }
 
     // This is just a normal backspace (not a tabbed backspace)
     self->txtp--;
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
 
     return pmeditor_cmd_delete(self);
 }
@@ -2071,10 +2076,6 @@ static MmResult pmeditor_cmd_home(PmEditor *self) {
     // If this is the second time HOME has been pressed in succession then jump
     // to the start of the file
     if (self->last_key == HOME) {
-        self->cy = 0;
-        self->cy = 0;
-        self->px = 0;
-        self->py = 0;
         self->txtp = self->buf;
         ON_FAILURE_RETURN(pmeditor_print_screen(self));
         ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
@@ -2643,7 +2644,6 @@ static MmResult pmeditor_load_file(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_resize_console(PmEditor *self) {
-    // if (!graphics_current) return kOk;
     int cw = 0;
     int ch = 0;
     bool resize = false;
@@ -2740,7 +2740,7 @@ MmResult pmeditor_show(const char *filename, int line) {
     ON_FAILURE_RETURN(pmeditor_load_file(self));
     ON_FAILURE_RETURN(pmeditor_resize_console(self));
 
-    self->txtp = pmeditor_find_line(self, line - 1/*, &self->comment_level*/);
+    self->txtp = pmeditor_find_line(self, line - 1);
 
     ON_FAILURE_RETURN(pmeditor_print_screen(self));
     ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
