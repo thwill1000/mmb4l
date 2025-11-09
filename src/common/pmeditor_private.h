@@ -105,14 +105,13 @@ typedef struct s_PmEditor {
     char saved_break_key;   // Original value of mmb_options.break_key when editor entered
     char *mark;             // Current position of the mark in mark mode
     SyntaxState syntax;     // Current syntax highlighting state
-
-    // Some functions should only be called via function pointers
-    // to allow them to be overridden in unit-tests.
-    MmResult (*display_msg_fn)(struct s_PmEditor *, const char *);
-    MmResult (*highlight_fn)(struct s_PmEditor *, HighlightType);
 } PmEditor;
 
-extern MmResult (*pmeditor_print_screen)(struct s_PmEditor *);
+// By changing these function pointers unit-tests can override "display"
+// behaviour.
+extern MmResult (*pmeditor_display_msg)(PmEditor *, const char *);
+extern MmResult (*pmeditor_highlight)(PmEditor *, HighlightType);
+extern MmResult (*pmeditor_print_screen)(PmEditor *);
 
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);

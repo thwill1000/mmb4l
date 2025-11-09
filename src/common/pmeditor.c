@@ -81,10 +81,22 @@ typedef enum {
     kMarkEnd,       ///< End marking
 } MarkState;
 
+// Forward declaration of real function implementations
+MmResult pmeditor_display_msg_impl(PmEditor *, const char *);
+MmResult pmeditor_highlight_impl(PmEditor *, HighlightType);
 MmResult pmeditor_print_screen_impl(PmEditor *);
+
+// Pointers to functions we want to override in unit-tests
+MmResult (*pmeditor_display_msg)(PmEditor *, const char *) = pmeditor_display_msg_impl;
+MmResult (*pmeditor_highlight)(PmEditor *, HighlightType) = pmeditor_highlight_impl;
 MmResult (*pmeditor_print_screen)(PmEditor *) = pmeditor_print_screen_impl;
 
+/**
+ * Restores all overridable functions to their real implementations.
+ */
 void pmeditor_restore_fn_pointers() {
+    pmeditor_display_msg = pmeditor_display_msg_impl;
+    pmeditor_highlight = pmeditor_highlight_impl;
     pmeditor_print_screen = pmeditor_print_screen_impl;
 }
 
@@ -104,10 +116,6 @@ MmResult pmeditor_init_syntax_state(PmEditor *self) {
     self->syntax.twokeyword = NULL;
     return kOk;
 }
-
-// Forward declarations required by pmeditor_init()
-static MmResult pmeditor_display_msg_impl(PmEditor *self, const char *msg);
-static MmResult pmeditor_highlight_impl(PmEditor *self, HighlightType highlight);
 
 /**
  * Initializes a PmEditor instance with the specified parameters.
@@ -132,8 +140,6 @@ MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int heig
     self->text_changed = false;
     self->saved_break_key = mmb_options.break_key;
     self->comment_level = 0;
-    self->display_msg_fn = pmeditor_display_msg_impl;
-    self->highlight_fn = pmeditor_highlight_impl;
     return pmeditor_init_syntax_state(self);
 }
 
@@ -167,7 +173,7 @@ static MmResult pmeditor_set_cursor_pos(PmEditor *self, int x, int y) {
  * @param  highlight  The type of highlighting to apply.
  * @return            kOk on success, or kInternalFault for invalid highlight type.
  */
-static MmResult pmeditor_highlight_impl(PmEditor *self, HighlightType highlight) {
+MmResult pmeditor_highlight_impl(PmEditor *self, HighlightType highlight) {
     MmGraphicsColour fg = RGB_ANSI_WHITE;
     MmGraphicsColour bg = RGB_ANSI_BLACK;
 
@@ -204,15 +210,6 @@ static MmResult pmeditor_highlight_impl(PmEditor *self, HighlightType highlight)
     }
 
     return display_colour(fg, bg);
-}
-
-/**
- * Wrapper for the syntax highlighting function.
- *
- * Calls the assigned highlight function for the editor instance.
- */
-static inline MmResult pmeditor_highlight(PmEditor *self, HighlightType highlight) {
-    return self->highlight_fn(self, highlight);
 }
 
 /**
@@ -478,7 +475,7 @@ static MmResult pmeditor_get_input(PmEditor *self, const char *prompt) {
  * @param  msg   The message string to display.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_display_msg_impl(PmEditor *self, const char *msg) {
+MmResult pmeditor_display_msg_impl(PmEditor *self, const char *msg) {
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height + 1));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightError));
     ON_FAILURE_RETURN(display_inverse(true));
@@ -489,15 +486,6 @@ static MmResult pmeditor_display_msg_impl(PmEditor *self, const char *msg) {
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
     self->draw_status_line = true;
     return kOk;
-}
-
-/**
- * Wrapper for the display message function.
- *
- * Calls the assigned display message function for the editor instance.
- */
-static inline MmResult pmeditor_display_msg(PmEditor *self, const char *msg) {
-    return self->display_msg_fn(self, msg);
 }
 
 /**

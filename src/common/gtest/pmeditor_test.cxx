@@ -73,10 +73,10 @@ protected:
         // Common initialization
         pmeditor_restore_fn_pointers();
         ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
-        self->highlight_fn = pmeditor_test_highlight;
-        self->display_msg_fn = pmeditor_test_display_msg;
 
         // Mock pmeditor functions
+        pmeditor_display_msg = pmeditor_test_display_msg;
+        pmeditor_highlight = pmeditor_test_highlight;
         pmeditor_print_screen = pmeditor_test_print_screen;
 
         // Initialize options
