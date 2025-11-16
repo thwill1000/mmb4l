@@ -76,11 +76,12 @@ typedef enum {
 } MarkState;
 
 typedef struct SyntaxState {
-    bool incomment;
-    bool inquote;
-    bool inkeyword;
-    bool innumber;
-    bool intext;
+    int multiline_comment;  ///< Tracks multiline comment level
+    bool incomment;         ///< In single line comment
+    bool inquote;           ///< In double quotes
+    bool inkeyword;         ///< In keyword
+    bool innumber;          ///< In number
+    bool intext;            ///< In text
     char *twokeyword;
 } SyntaxState;
 
@@ -98,8 +99,7 @@ typedef struct s_PmEditor {
     bool redraw_status_line;  // True if the status line needs redrawing on next keystroke
     bool insert;            // True if the editor is in INSERT mode
     int preferred_x;        // User to track preferred x-position when up/down arrowing
-    bool text_changed;      // True if the etxt has been editor and thus may need saving
-    int comment_level;      // Tracks current multiline comment depth in pmeditor_print_line()
+    bool text_changed;      // True if the text has been editor and thus may need saving
     bool mark_mode;         // True if we are in mark mode
     char last_key;          // Last key pressed
     char clipboard[MAXCLIP + 2];  // Clipboard contents
@@ -107,7 +107,6 @@ typedef struct s_PmEditor {
     bool exit_flag;         // True if the editor should exit
     char saved_break_key;   // Original value of mmb_options.break_key when editor entered
     char *mark;             // Current position of the mark in mark mode
-//    SyntaxState syntax;     // Current syntax highlighting state
     HighlightType highlight; // Current highlight
 } PmEditor;
 
@@ -123,7 +122,7 @@ MmResult pmeditor_cmd_char(PmEditor *self);
 MmResult pmeditor_delete_char(PmEditor *self, int *redraw);
 char *pmeditor_back_in_line(PmEditor *self, char *start, size_t num_chars);
 char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, size_t max_len);
-char *pmeditor_find_line(PmEditor *self, int line);
+char *pmeditor_find_line(PmEditor *self, int line, int *comment_level);
 MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, HighlightType *highlight);
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);

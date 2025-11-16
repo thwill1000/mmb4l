@@ -141,841 +141,841 @@ class PmEditorFindLineTest : public PmEditorTestBase {};
 // Basic line finding tests
 TEST_F(PmEditorFindLineTest, SingleLine) {
     SetBuffer("hello world");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "Basic single line";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, FirstOfTwo) {
     SetBuffer("line1\nline2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "First line of two";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, SecondOfTwo) {
     SetBuffer("line1\nline2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(6, actual_offset) << "Second line of two";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, EmptyFirstLine) {
     SetBuffer("\nline2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(1, actual_offset) << "Empty first line";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, MultipleLines) {
     SetBuffer("one\ntwo\nthree\nfour");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(8, actual_offset) << "Multiple lines";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // Edge cases - basic
 TEST_F(PmEditorFindLineTest, NegativeLine) {
     SetBuffer("text");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, -1);
+    char* result = pmeditor_find_line(self, -1, &comment_level);
 
     EXPECT_EQ(nullptr, result) << "Negative line number";
-    EXPECT_EQ(-1, self->comment_level);
+    EXPECT_EQ(-1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, LineZero) {
     SetBuffer("first line");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "Line zero";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, LineBeyondEnd) {
     SetBuffer("one\ntwo");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 5);
+    char* result = pmeditor_find_line(self, 5, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(7, actual_offset) << "Line beyond end returns end of buffer";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, EmptyString) {
     SetBuffer("");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "Empty string";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, OnlyNewlines) {
     SetBuffer("\n\n\n");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(2, actual_offset) << "Only newlines";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, SingleLineNoBeyond) {
     SetBuffer("Hello World");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(11, actual_offset) << "Single line, request line 1";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, MultiLineBeyondEnd) {
     SetBuffer("Line 0\nLine 1");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 5);
+    char* result = pmeditor_find_line(self, 5, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(13, actual_offset) << "Multi-line beyond end";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // Empty buffer variations
 TEST_F(PmEditorFindLineTest, EmptyBufferLine0) {
     SetBuffer("");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "Empty buffer line 0";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, NewlinesLine0) {
     SetBuffer("\n\n\n");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "Newlines line 0";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, NewlinesLine1) {
     SetBuffer("\n\n\n");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(1, actual_offset) << "Newlines line 1";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, NewlinesLine3) {
     SetBuffer("\n\n\n");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 3);
+    char* result = pmeditor_find_line(self, 3, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(3, actual_offset) << "Newlines line 3";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // Multi-line comment tracking
 TEST_F(PmEditorFindLineTest, SimpleMultilineComment) {
     SetBuffer("code\n/* comment */\nmore");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(5, actual_offset) << "Simple multiline comment";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, UnclosedComment) {
     SetBuffer("code\n/* comment\nstill commenting");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(16, actual_offset) << "Unclosed comment";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentAcrossLines) {
     SetBuffer("start\n/* begin\nmiddle\nend */");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(15, actual_offset) << "Comment across lines";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, NestedComments) {
     SetBuffer("x\n/* /* nested */ */\ny");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(2, actual_offset) << "Nested comments";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, MultipleComments) {
     SetBuffer("a\n/* c1 */\n/* c2 */\nb");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(11, actual_offset) << "Multiple comments";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // Comment at start variations
 TEST_F(PmEditorFindLineTest, CommentAtStart) {
     SetBuffer("/* comment */\nLine 1\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "Comment at start of file";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentWithSpaces) {
     SetBuffer("   /* comment */\nLine 1\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "Comment with leading spaces";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentWithTabs) {
     SetBuffer("\t\t/* comment */\nLine 1\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "Comment with leading tabs";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // Comment progression through lines
 TEST_F(PmEditorFindLineTest, CommentOnSecondLine) {
     SetBuffer("Line 0\n/* comment\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(7, actual_offset) << "Comment starts on second line";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentOnSecondLineContinues) {
     SetBuffer("Line 0\n/* comment\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(18, actual_offset) << "Comment continues to third line";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentEnd) {
     SetBuffer("Line 0\n*/\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(7, actual_offset) << "Comment end line";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentEndContinues) {
     SetBuffer("Line 0\n*/\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(10, actual_offset) << "After comment end";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentEndWithSpaces) {
     SetBuffer("Line 0\n  */\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(7, actual_offset) << "Comment end with spaces";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // String literals
 TEST_F(PmEditorFindLineTest, StringWithSlash) {
     SetBuffer("code\n\"/*not comment*/\"\nmore");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(5, actual_offset) << "String with slash";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, StringWithQuote) {
     SetBuffer("code\n\"She said \\\"hi\\\"\"\nmore");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(5, actual_offset) << "String with escaped quote";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, MultilineString) {
     SetBuffer("start\n\"line1\nline2\"\nend");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(13, actual_offset) << "Multiline string";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, StringThenComment) {
     SetBuffer("x\n\"text\" /* comment */\ny");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(2, actual_offset) << "String then comment";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentThenString) {
     SetBuffer("x\n/* comment */ \"text\"\ny");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(2, actual_offset) << "Comment then string";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, QuoteInComment) {
     SetBuffer("x\n/* \" quote \" */\ny");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(2, actual_offset) << "Quote in comment";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // String and comment interactions
 TEST_F(PmEditorFindLineTest, MultilineCommentStartsInString) {
     SetBuffer("x\n\"/* not comment\"\ny");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(19, actual_offset) << "Multiline comment starts in string";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, MultilineCommentEndsInString) {
     SetBuffer("x\n/*\"comment*/\"\ny");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(16, actual_offset) << "Multiline comment ends in string";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, MultilineCommentWithinString) {
     SetBuffer("Line 0\n\"This is not a /* comment\"\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(34, actual_offset) << "Multiline comment within string";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentedOutStringWithComment) {
     SetBuffer("/*Line 0\n\"/*Line 1\"\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(20, actual_offset) << "Commented out string with comment";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentedOutStringWithCommentEnd) {
     SetBuffer("/*Line 0\n\"*/Line 1\"\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(20, actual_offset) << "Commented out string with comment end";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, StringWithCommentInMultiline) {
     SetBuffer("Line 0\n\"'/*Line 1\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(18, actual_offset) << "String with comment in multiline";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // Single-line comments (CMM2 style with ')
 TEST_F(PmEditorFindLineTest, SingleQuoteComment) {
     SetBuffer("code\n' this is a comment\nmore");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(5, actual_offset) << "Single quote comment";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentWithSlash) {
     SetBuffer("code\n' /* not multiline\nmore");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(5, actual_offset) << "Comment with slash";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, REMComment) {
     SetBuffer("code\nREM this is a comment\nmore");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(5, actual_offset) << "REM comment";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, RemLowercase) {
     SetBuffer("code\nrem comment\nmore");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(5, actual_offset) << "REM lowercase";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // Single-line and multiline comment interactions
 TEST_F(PmEditorFindLineTest, MultilineCommentStartsInSingleQuoteComment) {
     SetBuffer("x\n'/*Line 1\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(12, actual_offset) << "Multiline starts in single quote";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, MultilineCommentEndsInSingleQuoteComment) {
     SetBuffer("x\n/*'comment*/\ny");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(15, actual_offset) << "Multiline ends in single quote";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, MultilineCommentStartsInRemComment) {
     SetBuffer("x\nREM /* not comment\ny");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(21, actual_offset) << "Multiline starts in REM";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, MultilineCommentEndsInRemComment) {
     SetBuffer("x\n/*rem comment*/\ny");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(18, actual_offset) << "Multiline ends in REM";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, BadRemComment1) {
     SetBuffer("Line 0\nxREM /* comment\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(23, actual_offset) << "Bad REM should not disable multiline start 1";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, BadRemComment2) {
     SetBuffer("Line 0\nREMx /* comment\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(23, actual_offset) << "Bad REM should not disable multiline start 2";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, BadRemComment3) {
     SetBuffer("Line 0/*\nxREM */ not comment\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(29, actual_offset) << "Bad REM should not disable multiline end 1";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, BadRemComment4) {
     SetBuffer("Line 0/*\nREMx */ not comment\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(29, actual_offset) << "Bad REM should not disable multiline end 2";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // Edge cases with symbols
 TEST_F(PmEditorFindLineTest, SlashNotComment) {
     SetBuffer("code\n/ division\nmore");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(5, actual_offset) << "Slash not comment";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, StarNotComment) {
     SetBuffer("code\n* pointer\nmore");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(5, actual_offset) << "Star not comment";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, AlmostComment) {
     SetBuffer("code\n/ * separate\nmore");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(5, actual_offset) << "Almost comment";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, IncompleteCommentMarkers) {
     SetBuffer("/\n*\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "Incomplete comment markers";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CommentMarkersNotAtStart) {
     SetBuffer("code /* comment\nLine 1");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "Comment markers not at start";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // Complex edge cases
 TEST_F(PmEditorFindLineTest, SlashStarSlashSequenceLine0) {
     SetBuffer("Line 0\n/*/\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "/*/ sequence line 0";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, SlashStarSlashSequenceLine1) {
     SetBuffer("Line 0\n/*/\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(7, actual_offset) << "/*/ sequence line 1";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, SlashStarSlashSequenceLine2) {
     SetBuffer("Line 0\n/*/\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(11, actual_offset) << "/*/ sequence line 2";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, UnterminatedStringWithComment) {
     SetBuffer("\"Line 0\n/*Line 1\nLine 2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(17, actual_offset) << "Unterminated string with comment";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 // Complex multiline comment scenarios
 TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine0) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0);
+    char* result = pmeditor_find_line(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(0, actual_offset) << "Complex multiline line 0";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine1) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(17, actual_offset) << "Complex multiline line 1";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine2) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(34, actual_offset) << "Complex multiline line 2";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine3) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 3);
+    char* result = pmeditor_find_line(self, 3, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(37, actual_offset) << "Complex multiline line 3";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine4) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 4);
+    char* result = pmeditor_find_line(self, 4, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(44, actual_offset) << "Complex multiline line 4";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine5) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 5);
+    char* result = pmeditor_find_line(self, 5, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(59, actual_offset) << "Complex multiline line 5";
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, comment_level);
 }
 
 // Windows line endings
 TEST_F(PmEditorFindLineTest, WindowsLineEnding) {
     SetBuffer("line1\r\nline2");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1);
+    char* result = pmeditor_find_line(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(7, actual_offset) << "Windows line ending";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // Real code examples
@@ -984,42 +984,42 @@ TEST_F(PmEditorFindLineTest, FunctionDefinition) {
               "  /* comment */\n"
               "  func% = 42\n"
               "END FUNCTION");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(33, actual_offset) << "Function definition";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 TEST_F(PmEditorFindLineTest, CodeWithStrings) {
     SetBuffer("PRINT \"Hello\"\n"
               "/* Comment */\n"
               "PRINT \"World\"\n");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2);
+    char* result = pmeditor_find_line(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(28, actual_offset) << "Code with strings";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 // Performance test case
 TEST_F(PmEditorFindLineTest, LargeLineNumber) {
     SetBuffer("Line 0\nLine 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\n"
               "Line 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\n");
-    self->comment_level = -1;
+    int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 10);
+    char* result = pmeditor_find_line(self, 10, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
     EXPECT_EQ(70, actual_offset) << "Large line number";
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, comment_level);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1055,17 +1055,17 @@ TEST_F(PmEditorGetHighlightTest, MultilineCommentStart) {
     HighlightType highlight = kHighlightUnspecified;
     pmeditor_get_highlight(self, &syntax, self->buf, &highlight);
     EXPECT_EQ(kHighlightComment, highlight);  // Should detect multiline comment start
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, syntax.multiline_comment);
 
     // Process the '*'
     pmeditor_get_highlight(self, &syntax, self->buf + 1, &highlight);
     EXPECT_EQ(kHighlightComment, highlight);  // Should still be in multiline comment
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, syntax.multiline_comment);
 
     // Process the 'c'
     pmeditor_get_highlight(self, &syntax, self->buf + 2, &highlight);
     EXPECT_EQ(kHighlightComment, highlight);  // Should still be in multiline comment
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, syntax.multiline_comment);
 }
 
 // Test multiline comment end
@@ -1073,23 +1073,23 @@ TEST_F(PmEditorGetHighlightTest, MultilineCommentEnd) {
     SetBuffer("*/foo");
 
     // Start in multiline comment state
-    self->comment_level = 1;
+    syntax.multiline_comment = 1;
     self->highlight = kHighlightComment;
 
     // Should not detect comment end when processing '*'
     HighlightType highlight = kHighlightUnspecified;
     pmeditor_get_highlight(self, &syntax, self->buf, &highlight);
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, syntax.multiline_comment);
     EXPECT_EQ(kHighlightComment, highlight);
 
     // Should detect comment end when processing '/'
     pmeditor_get_highlight(self, &syntax, self->buf + 1, &highlight);
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, syntax.multiline_comment);
     EXPECT_EQ(kHighlightComment, highlight);
 
     // Should now be back to normal highlighting
     pmeditor_get_highlight(self, &syntax, self->buf + 2, &highlight);
-    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(0, syntax.multiline_comment);
     EXPECT_EQ(kHighlightNormal, highlight);
 }
 
@@ -1100,23 +1100,23 @@ TEST_F(PmEditorGetHighlightTest, MultilineCommentEdgeCase) {
     // Should detect multiline comment start when processing first '/'
     HighlightType highlight = kHighlightUnspecified;
     pmeditor_get_highlight(self, &syntax, self->buf, &highlight);
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, syntax.multiline_comment);
     EXPECT_EQ(kHighlightComment, highlight);
 
     // Should continue multiline comment when processing '*'
     pmeditor_get_highlight(self, &syntax, self->buf + 1, &highlight);
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, syntax.multiline_comment);
     EXPECT_EQ(kHighlightComment, highlight);
 
     // Should continue multiline comment when processing second '/',
     // it SHOULD NOT match with the previous '*' and end the comment
     pmeditor_get_highlight(self, &syntax, self->buf + 2, &highlight);
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, syntax.multiline_comment);
     EXPECT_EQ(kHighlightComment, highlight);
 
     // Should continue multiline comment when processing 'f'
     pmeditor_get_highlight(self, &syntax, self->buf + 3, &highlight);
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, syntax.multiline_comment);
     EXPECT_EQ(kHighlightComment, highlight);
 }
 
@@ -1125,17 +1125,17 @@ TEST_F(PmEditorGetHighlightTest, NestedMultilineCommentStart) {
     SetBuffer("/*comment2*/");
 
     // Start in multiline comment state
-    self->comment_level = 1;
+    syntax.multiline_comment = 1;
 
     HighlightType highlight = kHighlightUnspecified;
     pmeditor_get_highlight(self, &syntax, self->buf, &highlight); // Process '/'
     EXPECT_EQ(kHighlightComment, highlight);
-    EXPECT_EQ(2, self->comment_level);
+    EXPECT_EQ(2, syntax.multiline_comment);
 
     // Process the '*'
     pmeditor_get_highlight(self, &syntax, self->buf + 1, &highlight);
     EXPECT_EQ(kHighlightComment, highlight);
-    EXPECT_EQ(2, self->comment_level);
+    EXPECT_EQ(2, syntax.multiline_comment);
 }
 
 // Test quoted string detection
@@ -1291,13 +1291,13 @@ TEST_F(PmEditorGetHighlightTest, MultilineCommentPersistence) {
     SetBuffer("still in comment");
 
     // Start multiline comment
-    self->comment_level = 1;
+    syntax.multiline_comment = 1;
 
     HighlightType highlight = kHighlightUnspecified;
     pmeditor_get_highlight(self, &syntax, self->buf, &highlight); // Process 's'
 
     EXPECT_EQ(kHighlightComment, highlight);
-    EXPECT_EQ(1, self->comment_level);
+    EXPECT_EQ(1, syntax.multiline_comment);
 }
 
 // Test keyword followed by non-name character
@@ -1436,7 +1436,7 @@ TEST_F(PmEditorGetHighlightTest, NestedCommentScenarios) {
     pmeditor_get_highlight(self, &syntax, self->buf + 7, &highlight); // '*'
     EXPECT_EQ(kHighlightQuote, highlight);
 
-    EXPECT_FALSE(self->comment_level);
+    EXPECT_EQ(0, syntax.multiline_comment);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

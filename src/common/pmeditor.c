@@ -120,7 +120,6 @@ MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int heig
     self->insert = true;
     self->text_changed = false;
     self->saved_break_key = mmb_options.break_key;
-    self->comment_level = 0;
     self->highlight = kHighlightNormal;
     return kOk;
 }
@@ -824,7 +823,7 @@ MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, Hi
     const char next = pmeditor_safe_char(self, p + 1);
     if (*p == '/' && next == '*' && !syntax->inquote) {
         *highlight = kHighlightComment;
-        self->comment_level++;
+        syntax->multiline_comment++;
         return kOk;
     }
 
@@ -833,8 +832,8 @@ MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, Hi
     const char previous = pmeditor_safe_char(self, p - 1);
     const char previous2 = pmeditor_safe_char(self, p - 2);
     if (*p == '/' && previous == '*' && previous2 != '/' && !syntax->inquote) {
-        if (self->comment_level > 0) {
-            self->comment_level--;
+        if (syntax->multiline_comment > 0) {
+            syntax->multiline_comment--;
         }
         *highlight = kHighlightComment; // Still highlighted as comment.
         return kOk;
@@ -851,76 +850,68 @@ MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, Hi
     }
 
     // Within a multiline comment all chars are comments
-    if (self->comment_level > 0) {
+    if (syntax->multiline_comment > 0) {
         *highlight = kHighlightComment;
         return kOk;
     }
 
-    // check for a single-line comment char
+    // Check for a single-line comment char
     if (*p == '\'' && !syntax->inquote) {
         syntax->incomment = true;
         *highlight = kHighlightComment;
         return kOk;
     }
 
-    if (*p == '/' && p[1] == '*' && !syntax->inquote) {
-        char *q = p;
-        if (*(--q) == '\n') {
-            *highlight = kHighlightComment;
-            self->comment_level = true;
-        }
-        return kOk;
-    }
-
-    // once in a comment all following chars must be comments also
-    if (syntax->incomment || self->comment_level) {
+    // Once in a comment all the following chars must be comments
+    if (syntax->incomment || syntax->multiline_comment) {
         *highlight = kHighlightComment;
         return kOk;
     }
 
-    // check for a quoted string
+    // Check for a quoted string
     if (*p == '\"') {
         syntax->inquote = !syntax->inquote;
         *highlight = kHighlightQuote;
         return kOk;
     }
 
+    // Once in a string all the following chars must be part of that string
     if (syntax->inquote) {
         *highlight = kHighlightQuote;
         return kOk;
     }
 
-    // if we are displaying a keyword check that it is still actually in the keyword and cmdfile if
-    // not
+    // Check that we are still in a keyword
     if (syntax->inkeyword) {
         if (isnamechar(*p) || *p == '$') {
             *highlight = kHighlightKeyword;
-            return kOk;
+        } else {
+            syntax->inkeyword = false;
+            *highlight = kHighlightNormal;
         }
-        syntax->inkeyword = false;
-        *highlight = kHighlightNormal;
         return kOk;
     }
 
-    // if we are displaying a number check that we are still actually in it and cmdfile if not
-    // this is complicated because numbers can be in hex or scientific notation
+    // Check that we are still in a number
     if (syntax->innumber) {
-        if (!isdigit(*p) && !(toupper(*p) >= 'A' && toupper(*p) <= 'F') && toupper(*p) != 'O' &&
-            toupper(*p) != 'H' && *p != '.') {
+        const char upper = toupper(*p);
+        if (!isdigit(*p) && !(upper >= 'A' && upper <= 'F') && upper != 'O' && upper != 'H' && *p != '.') {
             syntax->innumber = false;
             *highlight = kHighlightNormal;
         } else {
             *highlight = kHighlightNumber;
         }
         return kOk;
-        // check if we are starting a number
-    } else if (!syntax->intext) {
+    }
+
+    // Check if we are staring a number
+    if (!syntax->intext) {
         if (isdigit(*p) || *p == '&' || ((*p == '-' || *p == '+' || *p == '.') && isdigit(p[1]))) {
             syntax->innumber = true;
             *highlight = kHighlightNumber;
             return kOk;
         }
-        // check if this is an 8 digit hex number as used in CFunctions
+        // Check if this is an 8 digit hex number as used in CFunctions
         int i = 0;
         for (i = 0; i < 8; i++) {
             if (!isxdigit(p[i])) break;
@@ -932,9 +923,10 @@ MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, Hi
         }
     }
 
-    // check if this is the start of a keyword
+    // Check if we are starting a keyword
     if (isnamechar(*p) && !syntax->intext) {
-        for (int i = 0; i < commandtbl_size - 1; i++) {  // check the command table for a match
+        // Check the command table for a match
+        for (int i = 0; i < commandtbl_size - 1; i++) {
             if (pmeditor_strcmp(p, commandtbl[i].name) != 0 ||
                 ((pmeditor_strcmp(&p[1], &commandtbl[i].name[1]) != 0) && *p == '.' &&
                  *commandtbl[i].name == '_')) {
@@ -954,7 +946,9 @@ MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, Hi
                 }
             }
         }
-        for (int i = 0; i < tokentbl_size - 1; i++) {  // check the token table for a match
+
+        // Check the function/token table for a match
+        for (int i = 0; i < tokentbl_size - 1; i++) {
             if (pmeditor_strcmp(p, tokentbl[i].name) != 0) {
                 syntax->inkeyword = true;
                 *highlight = kHighlightKeyword;
@@ -1002,13 +996,15 @@ MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, Hi
  * Finds the start of a specific line in the text buffer.
  *
  * Scans through the buffer counting newlines until reaching the specified
- * line number. Also tracks multi-line comment state for syntax highlighting.
+ * line number. Also tracks multiline comment state for syntax highlighting.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @param  line  The line number to find (0-based).
- * @return       Pointer to the start of the line, or NULL if line < 0 or self is NULL.
+ * @param       self           Pointer to the PmEditor instance.
+ * @param       line           The line number to find (0-based).
+ * @param[out]  comment_level  On exit, the level of multiline commenting.
+ * @return                     Pointer to the start of the line,
+ *                             or NULL if line < 0 or self is NULL.
  */
-char *pmeditor_find_line(PmEditor *self, int line) {
+char *pmeditor_find_line(PmEditor *self, int line, int *comment_level) {
     if (!self || line < 0) return NULL;
 
     const int NORMAL = 0;
@@ -1016,7 +1012,7 @@ char *pmeditor_find_line(PmEditor *self, int line) {
     const int IN_SL_COMMENT = 2;
 
     int state = NORMAL;
-    self->comment_level = 0;
+    *comment_level = 0;
     char *p = self->buf;
 
     // TODO: Handle CMM2 #COMMENT {START|END} construct
@@ -1029,13 +1025,13 @@ char *pmeditor_find_line(PmEditor *self, int line) {
                 break;
             case '/':
                 if (state == NORMAL && p[1] == '*') {
-                    self->comment_level++;
+                    (*comment_level)++;
                     p++;
                 }
                 break;
             case '*':
-                if (state == NORMAL && self->comment_level > 0 && p[1] == '/') {
-                    self->comment_level--;
+                if (state == NORMAL && *comment_level > 0 && p[1] == '/') {
+                    (*comment_level)--;
                     p++;
                 }
                 break;
@@ -1082,47 +1078,45 @@ char *pmeditor_find_line(PmEditor *self, int line) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
-    LOG_DEBUG("entered: line=%d", line);
-    int i;
-    // int comment_level = -1;
+    // LOG_DEBUG("entered: line=%d", line);
 
-    char *p = pmeditor_find_line(self, line/*, &self->comment_level*/);
-    LOG_DEBUG("comment_level=%d", self->comment_level);
+    // Get a pointer to the first character in the line,
+    // and the level of multiline commenting if any.
+    int comment_level = -1;
+    char *p = pmeditor_find_line(self, line, &comment_level);
+    // LOG_DEBUG("comment_level=%d", comment_level);
+
     if (mmb_options.syntax_highlight) {
-        // if we are colour coding we need to redraw the whole line
-        ON_FAILURE_RETURN(display_putc_noflush('\r'));  // display the chars after the editing point
-        // i = self->width - 1;         // I think this is wrong. Does not show last character in line
-        // G.A.
-        i = self->width;
-        if (self->comment_level > 0) {
-            ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightComment));
-        }
-    } else {
-        // if we are NOT colour coding we can start drawing at the current cursor position
-        i = self->cx;
-        while (i-- && *p && *p != '\n') p++;  // find the editing point in the buffer
-        i = self->width - self->cx;
-    }
+        // Initialise structure used to maintain syntax highlighting state
+        SyntaxState syntax = {
+            .incomment = false,
+            .inquote = false,
+            .inkeyword = false,
+            .innumber = false,
+            .intext = false,
+            .twokeyword = NULL,
+            .multiline_comment = comment_level
+        };
 
-    // Display the line from here to the end of the line or the screen width
-    while (i && *p && *p != '\n') {
-        if (mmb_options.syntax_highlight) {
-            SyntaxState syntax = {
-                .incomment = false,
-                .inquote = false,
-                .inkeyword = false,
-                .innumber = false,
-                .intext = false,
-                .twokeyword = NULL
-            };
+        // We redraw the whole line, so move to the LHS of the display
+        ON_FAILURE_RETURN(display_putc_noflush('\r'));
+
+        // Display the line from here to the end of the line or the screen width
+        for (int i = self->width; i && *p && *p != '\n'; i--) {
             HighlightType new_highlight = kHighlightUnspecified;
             ON_FAILURE_RETURN(pmeditor_get_highlight(self, &syntax, p, &new_highlight));
             if (new_highlight != self->highlight) {
                 ON_FAILURE_RETURN(pmeditor_highlight(self, new_highlight));
             }
+            ON_FAILURE_RETURN(display_putc_noflush(*p++));
         }
-        ON_FAILURE_RETURN(display_putc_noflush(*p++));
-        i--;
+    } else {
+        int cx = self->cx;
+        while (cx-- && *p && *p != '\n') p++;  // Find the editing point in the buffer
+
+        for (int i = self->width - self->cx; i && *p && *p != '\n'; i--) {
+            ON_FAILURE_RETURN(display_putc_noflush(*p++));
+        }
     }
 
     // Reset syntax highlighting and clear display to end of line
@@ -2751,7 +2745,8 @@ MmResult pmeditor_show(const char *filename, int line) {
     ON_FAILURE_RETURN(pmeditor_load_file(self));
     ON_FAILURE_RETURN(pmeditor_resize_console(self));
 
-    self->txtp = pmeditor_find_line(self, line - 1);
+    int ignored = -1;
+    self->txtp = pmeditor_find_line(self, line - 1, &ignored);
 
     ON_FAILURE_RETURN(pmeditor_print_screen(self));
     ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
