@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define REDRAW_SCREEN   INT32_MAX
 
 typedef enum {
+    kHighlightUnspecified = 0,
     kHighlightNormal,
     kHighlightComment,
     kHighlightKeyword,
@@ -80,13 +81,13 @@ typedef struct SyntaxState {
     bool inkeyword;
     bool innumber;
     bool intext;
-    bool just_exited_comment;
     char *twokeyword;
 } SyntaxState;
 
 typedef struct s_PmEditor {
     const char *fname;      // Name/path of file being edited
     char buf[EDIT_BUFFER_SIZE];  // Buffer used for editing the text
+    int buf_len;            // Length of the buffer, currently always EDIT_BUFFER_SIZE
     int num_lines;          // Number of lines of text held in the buffer
     int width;              // Width of the editor screen in characters
     int height;             // Height of the editor screen in characters
@@ -107,6 +108,7 @@ typedef struct s_PmEditor {
     char saved_break_key;   // Original value of mmb_options.break_key when editor entered
     char *mark;             // Current position of the mark in mark mode
     SyntaxState syntax;     // Current syntax highlighting state
+    HighlightType highlight; // Current highlight
 } PmEditor;
 
 // By changing these function pointers unit-tests can override "display"
@@ -121,7 +123,8 @@ MmResult pmeditor_cmd_char(PmEditor *self);
 MmResult pmeditor_delete_char(PmEditor *self, int *redraw);
 char *pmeditor_back_in_line(PmEditor *self, char *start, size_t num_chars);
 char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, size_t max_len);
-char *pmeditor_find_line(PmEditor *self, int line); // , int *comment_level);
+char *pmeditor_find_line(PmEditor *self, int line);
+MmResult pmeditor_get_highlight(PmEditor *self, char *p, HighlightType *highlight);
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
@@ -136,6 +139,5 @@ MmResult pmeditor_mark_right(PmEditor *self, MarkState *state);
 MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw);
 MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
 void pmeditor_restore_fn_pointers();
-MmResult pmeditor_set_colour(PmEditor *self, char *p);
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)

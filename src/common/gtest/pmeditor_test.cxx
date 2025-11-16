@@ -16,6 +16,7 @@ extern "C" {
 #include "../pmeditor.h"
 #include "../pmeditor_private.h"
 #include "../../core/commandtbl.h"
+#include "../../core/tokentbl.h"
 #include "../../core/gtest/command_stubs.h"
 #include "../../core/gtest/function_stubs.h"
 #include "../../core/gtest/operation_stubs.h"
@@ -41,18 +42,10 @@ MMINTEGER getinteger(const char *p) { return 0; }
 MmResult PrepareProgram(bool abort_on_error) { return kOk; }
 MmResult ClearRuntime(void) { return kOk; }
 
-static HighlightType last_highlight_type = kHighlightNormal;
-static int highlight_call_count = 0;
 static char last_message[STRINGSIZE];
 static int print_line_call_count = 0;
 static int print_line_arg = -1;
 static int print_screen_call_count = 0;
-
-MmResult pmeditor_test_highlight(PmEditor *self, HighlightType highlight) {
-    last_highlight_type = highlight;
-    highlight_call_count++;
-    return kOk;
-}
 
 MmResult pmeditor_test_display_msg(PmEditor *self, const char *msg) {
     strcpy(last_message, msg);
@@ -84,7 +77,6 @@ protected:
 
         // Mock pmeditor functions
         pmeditor_display_msg = pmeditor_test_display_msg;
-        pmeditor_highlight = pmeditor_test_highlight;
         pmeditor_print_line = pmeditor_test_print_line;
         pmeditor_print_screen = pmeditor_test_print_screen;
 
@@ -96,11 +88,13 @@ protected:
         // Reset mock state
         memset(last_message, 0, sizeof(last_message));
         memset(self->keys, 0, sizeof(self->keys));
-        last_highlight_type = kHighlightNormal;
-        highlight_call_count = 0;
         print_line_call_count = 0;
         print_line_arg = -1;
         print_screen_call_count = 0;
+
+        // Initialize command and function token tables (for syntax highlighting)
+        commandtbl_init();
+        tokentbl_init();
     }
 
     void SetBuffer(const char* content) {
@@ -128,11 +122,6 @@ protected:
         ASSERT_EQ(kOk, pmeditor_position_cursor(self, self->mark));
     }
 };
-
-#define EXPECT_HIGHLIGHT(expected_type) \
-    do { \
-        EXPECT_EQ(expected_type, last_highlight_type); \
-    } while (0)
 
 #define EXPECT_KEYS_EQUAL(expected_keys) \
     do { \
@@ -1030,459 +1019,418 @@ TEST_F(PmEditorFindLineTest, LargeLineNumber) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_set_colour()
+// Tests for pmeditor_get_highlight()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorSetColourTest : public PmEditorTestBase {
-
-protected:
-    void SetUp() override {
-        // Initialize command token table
-        commandtbl_init();
-
-        PmEditorTestBase::SetUp();
-    }
-
-    void ResetState() {
-        ASSERT_EQ(kOk, pmeditor_init_syntax_state(self));
-        last_highlight_type = kHighlightNormal;
-        highlight_call_count = 0;
-    }
-
-    void ExpectNoHighlightChange() {
-        int previous_count = highlight_call_count;
-        // This would need to be called after the function under test
-        EXPECT_EQ(previous_count, highlight_call_count);
-    }
-};
+class PmEditorGetHighlightTest : public PmEditorTestBase { };
 
 // Test calling with NULL pointer
-TEST_F(PmEditorSetColourTest, InternalFaultGivenNullCharacter) {
-    MmResult result = pmeditor_set_colour(self, NULL);
+TEST_F(PmEditorGetHighlightTest, InternalFaultGivenNullCharacter) {
+    HighlightType highlight = kHighlightUnspecified;
+    MmResult result = pmeditor_get_highlight(self, NULL, &highlight);
 
     EXPECT_EQ(kInternalFault, result);
+    EXPECT_EQ(kHighlightUnspecified, highlight);
 }
 
 // Test single quote comment detection
-TEST_F(PmEditorSetColourTest, SingleQuoteComment) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, SingleQuoteComment) {
     SetBuffer("'This is a comment");
-    pmeditor_set_colour(self, self->buf); // Process the single quote
 
-    EXPECT_HIGHLIGHT(kHighlightComment);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process the single quote
+
+    EXPECT_EQ(kHighlightComment, highlight);
 }
 
-// Test multiline comment start detection
-TEST_F(PmEditorSetColourTest, MultilineCommentStart) {
-    ResetState();
-
+// Test multiline comment start
+TEST_F(PmEditorGetHighlightTest, MultilineCommentStart) {
     SetBuffer("/*comment*/");
 
     // Process the '/'
-    pmeditor_set_colour(self, self->buf);
-    EXPECT_HIGHLIGHT(kHighlightComment);  // Should detect multiline comment start
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight);
+    EXPECT_EQ(kHighlightComment, highlight);  // Should detect multiline comment start
     EXPECT_EQ(1, self->comment_level);
 
     // Process the '*'
-    pmeditor_set_colour(self, self->buf + 1);
-    EXPECT_HIGHLIGHT(kHighlightComment);  // Should still be in multiline comment
+    pmeditor_get_highlight(self, self->buf + 1, &highlight);
+    EXPECT_EQ(kHighlightComment, highlight);  // Should still be in multiline comment
     EXPECT_EQ(1, self->comment_level);
 
     // Process the 'c'
-    pmeditor_set_colour(self, self->buf + 2);
-    EXPECT_HIGHLIGHT(kHighlightComment);  // Should still be in multiline comment
+    pmeditor_get_highlight(self, self->buf + 2, &highlight);
+    EXPECT_EQ(kHighlightComment, highlight);  // Should still be in multiline comment
     EXPECT_EQ(1, self->comment_level);
 }
 
-// Test multiline comment start detection
-TEST_F(PmEditorSetColourTest, MultilineCommentContinuation) {
-    ResetState();
-
-    SetBuffer("/*comment*/");
-    pmeditor_set_colour(self, self->buf); // Process '/'
-    // The function checks text[1] for '*', but doesn't change color yet
-
-    // Should detect multiline comment start
-    EXPECT_HIGHLIGHT(kHighlightComment);
-    EXPECT_EQ(1, self->comment_level);
-
-    // Process the '*'
-    pmeditor_set_colour(self, self->buf + 1);
-    EXPECT_HIGHLIGHT(kHighlightComment);  // Should still be in multiline comment
-    EXPECT_EQ(1, self->comment_level);
-
-    // Process the 'c'
-    pmeditor_set_colour(self, self->buf + 2);
-    EXPECT_HIGHLIGHT(kHighlightComment);  // Should still be in multiline comment
-    EXPECT_EQ(1, self->comment_level);
-}
-
-// Test multiline comment end detection
-TEST_F(PmEditorSetColourTest, MultilineCommentEnd) {
-    ResetState();
+// Test multiline comment end
+TEST_F(PmEditorGetHighlightTest, MultilineCommentEnd) {
+    SetBuffer("*/foo");
 
     // Start in multiline comment state
     self->comment_level = 1;
-    last_highlight_type = kHighlightComment;
-
-    SetBuffer("*/foo");
+    self->highlight = kHighlightComment;
 
     // Should not detect comment end when processing '*'
-    pmeditor_set_colour(self, self->buf);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight);
     EXPECT_EQ(1, self->comment_level);
-    EXPECT_EQ(kHighlightComment, last_highlight_type);
+    EXPECT_EQ(kHighlightComment, highlight);
 
     // Should detect comment end when processing '/'
-    pmeditor_set_colour(self, self->buf + 1);
+    pmeditor_get_highlight(self, self->buf + 1, &highlight);
     EXPECT_EQ(0, self->comment_level);
-    // EXPECT_EQ(kHighlightComment, last_highlight_type);
+    EXPECT_EQ(kHighlightComment, highlight);
 
-    // // Should now be back to normal highlighting
-    // pmeditor_set_colour(self, self->buf + 2);
-    // EXPECT_EQ(0, self->comment_level);
-    // EXPECT_EQ(kHighlightNormal, last_highlight_type);
+    // Should now be back to normal highlighting
+    pmeditor_get_highlight(self, self->buf + 2, &highlight);
+    EXPECT_EQ(0, self->comment_level);
+    EXPECT_EQ(kHighlightNormal, highlight);
 }
 
 // Test edge case: /*/ sequence
-TEST_F(PmEditorSetColourTest, MultilineCommentEdgeCase) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, MultilineCommentEdgeCase) {
     SetBuffer("/*/foo");
 
     // Should detect multiline comment start when processing first '/'
-    pmeditor_set_colour(self, self->buf);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight);
     EXPECT_EQ(1, self->comment_level);
-    EXPECT_EQ(kHighlightComment, last_highlight_type);
+    EXPECT_EQ(kHighlightComment, highlight);
 
     // Should continue multiline comment when processing '*'
-    pmeditor_set_colour(self, self->buf + 1);
+    pmeditor_get_highlight(self, self->buf + 1, &highlight);
     EXPECT_EQ(1, self->comment_level);
-    EXPECT_EQ(kHighlightComment, last_highlight_type);
+    EXPECT_EQ(kHighlightComment, highlight);
 
     // Should continue multiline comment when processing second '/',
     // it SHOULD NOT match with the previous '*' and end the comment
-    pmeditor_set_colour(self, self->buf + 2);
+    pmeditor_get_highlight(self, self->buf + 2, &highlight);
     EXPECT_EQ(1, self->comment_level);
-    EXPECT_EQ(kHighlightComment, last_highlight_type);
+    EXPECT_EQ(kHighlightComment, highlight);
 
     // Should continue multiline comment when processing 'f'
-    pmeditor_set_colour(self, self->buf + 3);
+    pmeditor_get_highlight(self, self->buf + 3, &highlight);
     EXPECT_EQ(1, self->comment_level);
-    EXPECT_EQ(kHighlightComment, last_highlight_type);
-
-    // Expect only one call when first enter the multiline comment
-    EXPECT_EQ(1, highlight_call_count);
+    EXPECT_EQ(kHighlightComment, highlight);
 }
 
 // Test nested multiline comment start detection
-TEST_F(PmEditorSetColourTest, NestedMultilineCommentStart) {
-    ResetState();
+TEST_F(PmEditorGetHighlightTest, NestedMultilineCommentStart) {
+    SetBuffer("/*comment2*/");
 
     // Start in multiline comment state
     self->comment_level = 1;
 
-    SetBuffer("/*comment2*/");
-    pmeditor_set_colour(self, self->buf); // Process '/'
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process '/'
+    EXPECT_EQ(kHighlightComment, highlight);
+    EXPECT_EQ(2, self->comment_level);
 
     // Process the '*'
-    pmeditor_set_colour(self, self->buf + 1);
-
-    // Should detect multiline comment start
-    EXPECT_HIGHLIGHT(kHighlightNormal); // Still in comment, so no change
+    pmeditor_get_highlight(self, self->buf + 1, &highlight);
+    EXPECT_EQ(kHighlightComment, highlight);
     EXPECT_EQ(2, self->comment_level);
 }
 
 // Test quoted string detection
-TEST_F(PmEditorSetColourTest, QuotedString) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, QuotedString) {
     SetBuffer("\"Hello World\"");
 
     // Process opening quote
-    pmeditor_set_colour(self, self->buf);
-    EXPECT_HIGHLIGHT(kHighlightQuote);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight);
+    EXPECT_EQ(kHighlightQuote, highlight);
+    EXPECT_TRUE(self->syntax.inquote);
 
     // Process characters inside string - should remain in quote mode
-    pmeditor_set_colour(self, self->buf + 1); // 'H'
-    EXPECT_HIGHLIGHT(kHighlightQuote);
+    pmeditor_get_highlight(self, self->buf + 1, &highlight); // 'H'
+    EXPECT_EQ(kHighlightQuote, highlight);
 
     // Process closing quote
-    pmeditor_set_colour(self, self->buf + 12); // Closing quote
-    // Should exit quote mode but color might not change immediately
+    pmeditor_get_highlight(self, self->buf + 12, &highlight); // Closing quote
+    EXPECT_EQ(kHighlightQuote, highlight);
+    EXPECT_FALSE(self->syntax.inquote);
 }
 
 // Test number detection - simple integer
-TEST_F(PmEditorSetColourTest, SimpleNumber) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, SimpleNumber) {
     SetBuffer("123");
-    pmeditor_set_colour(self, self->buf); // Process '1'
 
-    EXPECT_HIGHLIGHT(kHighlightNumber);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process '1'
+
+    EXPECT_EQ(kHighlightNumber, highlight);
 }
 
 // Test number detection - decimal
-TEST_F(PmEditorSetColourTest, DecimalNumber) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, DecimalNumber) {
     SetBuffer("123.456");
-    pmeditor_set_colour(self, self->buf); // Process '1'
 
-    EXPECT_HIGHLIGHT(kHighlightNumber);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process '1'
+
+    EXPECT_EQ(kHighlightNumber, highlight);
 
     // Continue processing digits and decimal point
-    pmeditor_set_colour(self, self->buf + 3); // Process '.'
-    EXPECT_HIGHLIGHT(kHighlightNumber);
+    pmeditor_get_highlight(self, self->buf + 3, &highlight); // Process '.'
+    EXPECT_EQ(kHighlightNumber, highlight);
 }
 
 // Test number detection - hex prefix
-TEST_F(PmEditorSetColourTest, HexNumber) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, HexNumber) {
     SetBuffer("&HFF");
-    pmeditor_set_colour(self, self->buf); // Process '&'
 
-    EXPECT_HIGHLIGHT(kHighlightNumber);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process '&'
+
+    EXPECT_EQ(kHighlightNumber, highlight);
 }
 
 // Test number detection - negative number
-TEST_F(PmEditorSetColourTest, NegativeNumber) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, NegativeNumber) {
     SetBuffer("-123");
-    pmeditor_set_colour(self, self->buf); // Process '-'
 
-    EXPECT_HIGHLIGHT(kHighlightNumber);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process '-'
+
+    EXPECT_EQ(kHighlightNumber, highlight);
 }
 
 // Test keyword detection - PRINT
-TEST_F(PmEditorSetColourTest, KeywordPrint) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, KeywordPrint) {
     SetBuffer("PRINT");
-    pmeditor_set_colour(self, self->buf); // Process 'P'
 
-    EXPECT_HIGHLIGHT(kHighlightKeyword);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process 'P'
+
+    EXPECT_EQ(kHighlightKeyword, highlight);
 }
 
 // Test keyword detection - FOR
-TEST_F(PmEditorSetColourTest, KeywordFor) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, KeywordFor) {
     SetBuffer("FOR I = 1 TO 10");
-    pmeditor_set_colour(self, self->buf); // Process 'F'
 
-    EXPECT_HIGHLIGHT(kHighlightKeyword);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process 'F'
+
+    EXPECT_EQ(kHighlightKeyword, highlight);
 }
 
 // Test REM comment (special keyword case)
-TEST_F(PmEditorSetColourTest, RemComment) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, RemComment) {
     SetBuffer("REM This is a comment");
-    pmeditor_set_colour(self, self->buf); // Process 'R'
 
-    EXPECT_HIGHLIGHT(kHighlightComment);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process 'R'
+
+    EXPECT_EQ(kHighlightComment, highlight);
 }
 
 // Test two-keyword commands - OPTION BASE
-TEST_F(PmEditorSetColourTest, TwoKeywordOption) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, TwoKeywordOption) {
     SetBuffer("OPTION BASE 1");
 
     // Process "OPTION"
+    HighlightType highlight = kHighlightUnspecified;
     for (int i = 0; i < 6; i++) {
-        pmeditor_set_colour(self, self->buf + i);
+        pmeditor_get_highlight(self, self->buf + i, &highlight);
     }
-    EXPECT_HIGHLIGHT(kHighlightKeyword);
+    EXPECT_EQ(kHighlightKeyword, highlight);
 
     // Process space
-    pmeditor_set_colour(self, self->buf + 6);
+    pmeditor_get_highlight(self, self->buf + 6, &highlight);
 
     // Process "BASE" - should also be highlighted as keyword
-    pmeditor_set_colour(self, self->buf + 7); // 'B'
-    EXPECT_HIGHLIGHT(kHighlightKeyword);
+    pmeditor_get_highlight(self, self->buf + 7, &highlight); // 'B'
+    EXPECT_EQ(kHighlightKeyword, highlight);
 }
 
 // Test special keywords - INTEGER
-TEST_F(PmEditorSetColourTest, SpecialKeywordInteger) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, SpecialKeywordInteger) {
     SetBuffer("INTEGER");
-    pmeditor_set_colour(self, self->buf); // Process 'I'
 
-    EXPECT_HIGHLIGHT(kHighlightKeyword);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process 'I'
+
+    EXPECT_EQ(kHighlightKeyword, highlight);
 }
 
 // Test that variables are not highlighted as keywords
-TEST_F(PmEditorSetColourTest, VariableNotKeyword) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, VariableNotKeyword) {
     SetBuffer("myVariable = 5");
-    pmeditor_set_colour(self, self->buf); // Process 'm'
+
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process 'm'
 
     // Should not be highlighted as keyword
-    EXPECT_HIGHLIGHT(kHighlightNormal);
+    EXPECT_EQ(kHighlightNormal, highlight);
 }
 
 // Test comment inside quoted string is ignored
-TEST_F(PmEditorSetColourTest, CommentInQuotedString) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, CommentInQuotedString) {
     SetBuffer("\"Don't highlight this\"");
 
     // Process opening quote
-    pmeditor_set_colour(self, self->buf);
-    EXPECT_HIGHLIGHT(kHighlightQuote);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight);
+    EXPECT_EQ(kHighlightQuote, highlight);
 
     // Process the single quote inside - should remain in quote mode
-    pmeditor_set_colour(self, self->buf + 3); // Single quote
-    EXPECT_HIGHLIGHT(kHighlightQuote);
+    pmeditor_get_highlight(self, self->buf + 3, &highlight); // Single quote
+    EXPECT_EQ(kHighlightQuote, highlight);
 }
 
 // Test multiline comment state persistence
-TEST_F(PmEditorSetColourTest, MultilineCommentPersistence) {
-    ResetState();
+TEST_F(PmEditorGetHighlightTest, MultilineCommentPersistence) {
+    SetBuffer("still in comment");
 
     // Start multiline comment
-    self->comment_level = true;
+    self->comment_level = 1;
 
-    SetBuffer("still in comment");
-    pmeditor_set_colour(self, self->buf); // Process 's'
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process 's'
 
-    // Should remain in comment mode without changing highlight
-    // (since we're already in multiline comment)
+    EXPECT_EQ(kHighlightComment, highlight);
+    EXPECT_EQ(1, self->comment_level);
 }
 
 // Test keyword followed by non-name character
-TEST_F(PmEditorSetColourTest, KeywordBoundary) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, KeywordBoundary) {
     SetBuffer("PRINT(");
 
     // Process "PRINT"
+    HighlightType highlight = kHighlightUnspecified;
     for (int i = 0; i < 5; i++) {
-        pmeditor_set_colour(self, self->buf + i);
+        pmeditor_get_highlight(self, self->buf + i, &highlight);
     }
-    EXPECT_HIGHLIGHT(kHighlightKeyword);
+    EXPECT_EQ(kHighlightKeyword, highlight);
 
     // Process '(' - should exit keyword mode
-    pmeditor_set_colour(self, self->buf + 5);
-    EXPECT_HIGHLIGHT(kHighlightNormal);
+    pmeditor_get_highlight(self, self->buf + 5, &highlight);
+    EXPECT_EQ(kHighlightNormal, highlight);
 }
 
 // Test number followed by non-digit character
-TEST_F(PmEditorSetColourTest, NumberBoundary) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, NumberBoundary) {
     SetBuffer("123/");
 
     // Process digits
+    HighlightType highlight = kHighlightUnspecified;
     for (int i = 0; i < 3; i++) {
-        pmeditor_set_colour(self, self->buf + i);
+        pmeditor_get_highlight(self, self->buf + i, &highlight);
     }
-    EXPECT_HIGHLIGHT(kHighlightNumber);
+    EXPECT_EQ(kHighlightNumber, highlight);
 
-    // Process space - should exit number mode
-    pmeditor_set_colour(self, self->buf + 3);
-    EXPECT_HIGHLIGHT(kHighlightNormal);
+    // Process '/' should exit number mode
+    pmeditor_get_highlight(self, self->buf + 3, &highlight);
+    EXPECT_EQ(kHighlightNormal, highlight);
 }
 
 // Test 8-digit hex number detection
-TEST_F(PmEditorSetColourTest, EightDigitHex) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, EightDigitHex) {
     SetBuffer("12345678 ");
-    pmeditor_set_colour(self, self->buf); // Process first digit
 
-    EXPECT_HIGHLIGHT(kHighlightNumber);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process first digit
+
+    EXPECT_EQ(kHighlightNumber, highlight);
 }
 
 // Test scientific notation
-TEST_F(PmEditorSetColourTest, ScientificNotation) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, ScientificNotation) {
     SetBuffer("1.23E10");
-    pmeditor_set_colour(self, self->buf); // Process '1'
 
-    EXPECT_HIGHLIGHT(kHighlightNumber);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight); // Process '1'
+
+    EXPECT_EQ(kHighlightNumber, highlight);
 
     // Process 'E' - should remain in number mode
-    pmeditor_set_colour(self, self->buf + 4);
-    EXPECT_HIGHLIGHT(kHighlightNumber);
+    pmeditor_get_highlight(self, self->buf + 4, &highlight);
+    EXPECT_EQ(kHighlightNumber, highlight);
 }
 
 // Test highlighting of trailing whitespace
-TEST_F(PmEditorSetColourTest, TrailingWhitespace) {
-    ResetState();
+TEST_F(PmEditorGetHighlightTest, TrailingWhitespace) {
     SetBuffer("PRINT    ");
-    for (int i = 0; i < 5; i++) {
-        EXPECT_EQ(kOk, pmeditor_set_colour(self, self->buf + i)); // Process "PRINT"
-    }
-    EXPECT_HIGHLIGHT(kHighlightKeyword);
 
-    MmResult result = pmeditor_set_colour(self, self->buf + 5); // Process first space
+    HighlightType highlight = kHighlightUnspecified;
+    for (int i = 0; i < 5; i++) {
+        EXPECT_EQ(kOk, pmeditor_get_highlight(self, self->buf + i, &highlight)); // Process "PRINT"
+    }
+    EXPECT_EQ(kHighlightKeyword, highlight);
+
+    MmResult result = pmeditor_get_highlight(self, self->buf + 5, &highlight); // Process first space
 
     EXPECT_EQ(kOk, result);
-    EXPECT_HIGHLIGHT(kHighlightTrailingWhitespace);
+    EXPECT_EQ(kHighlightTrailingWhitespace, highlight);
 }
 
 // TODO: Test that color coding can be disabled
-TEST_F(PmEditorSetColourTest, ColorCodingDisabled) {
+TEST_F(PmEditorGetHighlightTest, ColorCodingDisabled) {
     // If color coding is disabled, the function should return early
     // and not change any highlighting
 }
 
 // Test edge case: empty string processing
-TEST_F(PmEditorSetColourTest, EmptyStringChar) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, EmptyStringChar) {
     SetBuffer("");
-    pmeditor_set_colour(self, self->buf); // Process null terminator
 
-    // Should handle gracefully without crashing
+    HighlightType highlight = kHighlightUnspecified;
+    MmResult result = pmeditor_get_highlight(self, self->buf, &highlight); // Process null terminator
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(kHighlightNormal, highlight);
 }
 
 // Test complex mixed content
-TEST_F(PmEditorSetColourTest, ComplexMixedContent) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, ComplexMixedContent) {
     SetBuffer("FOR I = 1 TO 10 'Loop comment");
 
-    // Process "FOR" keyword
-    pmeditor_set_colour(self, self->buf);
-    EXPECT_HIGHLIGHT(kHighlightKeyword);
+    // Helper lambda to check a sequence of characters with expected highlight
+    auto check_highlight = [this](char *&pos, const char *text, HighlightType expected) {
+        for (size_t i = 0; i < strlen(text); ++i) {
+            HighlightType highlight = kHighlightUnspecified;
+            EXPECT_EQ(kOk, pmeditor_get_highlight(this->self, pos++, &highlight));
+            EXPECT_EQ(expected, highlight) << "Failed at character '" << text[i] << "'";
+        }
+    };
 
-    // Skip to the number
-    ResetState();
-    pmeditor_set_colour(self, self->buf + 8); // '1'
-    EXPECT_HIGHLIGHT(kHighlightNumber);
+    char *pos = self->buf;
 
-    // Skip to the comment
-    ResetState();
-    pmeditor_set_colour(self, self->buf + 16); // Single quote
-    EXPECT_HIGHLIGHT(kHighlightComment);
+    check_highlight(pos, "FOR", kHighlightKeyword);
+    check_highlight(pos, " ", kHighlightNormal);
+    check_highlight(pos, "I", kHighlightNormal);
+    check_highlight(pos, " ", kHighlightNormal);
+    check_highlight(pos, "=", kHighlightNormal);
+    check_highlight(pos, " ", kHighlightNormal);
+    check_highlight(pos, "1", kHighlightNumber);
+    check_highlight(pos, " ", kHighlightNormal);
+    check_highlight(pos, "TO", kHighlightKeyword);
+    check_highlight(pos, " ", kHighlightNormal);
+    check_highlight(pos, "10", kHighlightNumber);
+    check_highlight(pos, " ", kHighlightNormal);
+    check_highlight(pos, "'Loop comment", kHighlightComment);
 }
 
 // Test nested scenarios
-TEST_F(PmEditorSetColourTest, NestedCommentScenarios) {
-    ResetState();
-
+TEST_F(PmEditorGetHighlightTest, NestedCommentScenarios) {
     // Test /* inside a quoted string - should not start multiline comment
     SetBuffer("\"This /* is not a comment\"");
 
     // Enter quote mode
-    pmeditor_set_colour(self, self->buf);
-    EXPECT_HIGHLIGHT(kHighlightQuote);
+    HighlightType highlight = kHighlightUnspecified;
+    pmeditor_get_highlight(self, self->buf, &highlight);
+    EXPECT_EQ(kHighlightQuote, highlight);
 
     // Process the /* inside quotes - should remain in quote mode
-    pmeditor_set_colour(self, self->buf + 6); // '/'
-    EXPECT_HIGHLIGHT(kHighlightQuote);
+    pmeditor_get_highlight(self, self->buf + 6, &highlight); // '/'
+    EXPECT_EQ(kHighlightQuote, highlight);
 
-    pmeditor_set_colour(self, self->buf + 7); // '*'
-    EXPECT_HIGHLIGHT(kHighlightQuote);
+    pmeditor_get_highlight(self, self->buf + 7, &highlight); // '*'
+    EXPECT_EQ(kHighlightQuote, highlight);
 
     EXPECT_FALSE(self->comment_level);
 }
