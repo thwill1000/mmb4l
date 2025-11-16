@@ -107,7 +107,7 @@ typedef struct s_PmEditor {
     bool exit_flag;         // True if the editor should exit
     char saved_break_key;   // Original value of mmb_options.break_key when editor entered
     char *mark;             // Current position of the mark in mark mode
-    SyntaxState syntax;     // Current syntax highlighting state
+//    SyntaxState syntax;     // Current syntax highlighting state
     HighlightType highlight; // Current highlight
 } PmEditor;
 
@@ -124,7 +124,7 @@ MmResult pmeditor_delete_char(PmEditor *self, int *redraw);
 char *pmeditor_back_in_line(PmEditor *self, char *start, size_t num_chars);
 char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, size_t max_len);
 char *pmeditor_find_line(PmEditor *self, int line);
-MmResult pmeditor_get_highlight(PmEditor *self, char *p, HighlightType *highlight);
+MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, HighlightType *highlight);
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 MmResult pmeditor_init_syntax_state(PmEditor *self);

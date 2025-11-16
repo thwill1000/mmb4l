@@ -98,22 +98,6 @@ void pmeditor_restore_fn_pointers() {
 }
 
 /**
- * Initializes the syntax highlighting state of the editor.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kOk (always succeeds).
- */
-MmResult pmeditor_init_syntax_state(PmEditor *self) {
-    self->syntax.incomment = false;
-    self->syntax.inquote = false;
-    self->syntax.inkeyword = false;
-    self->syntax.innumber = false;
-    self->syntax.intext = false;
-    self->syntax.twokeyword = NULL;
-    return kOk;
-}
-
-/**
  * Initializes a PmEditor instance with the specified parameters.
  *
  * Zeros out the editor structure and sets initial values for all fields.
@@ -138,7 +122,7 @@ MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int heig
     self->saved_break_key = mmb_options.break_key;
     self->comment_level = 0;
     self->highlight = kHighlightNormal;
-    return pmeditor_init_syntax_state(self);
+    return kOk;
 }
 
 /**
@@ -832,13 +816,13 @@ const char *SPECIAL_KEYWORDS[] = {
  * @param[out]  highlight  On exit, the syntax highlighting to use.
  * @return                 kOk on success, or an error code on failure.
  */
-MmResult pmeditor_get_highlight(PmEditor *self, char *p, HighlightType *highlight) {
+MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, HighlightType *highlight) {
     if (!p) return mmresult_ex(kInternalFault, "Invalid null parameter: p");
     if (!mmb_options.syntax_highlight) return kOk;
 
     // Check for the start of a multiline comment
     const char next = pmeditor_safe_char(self, p + 1);
-    if (*p == '/' && next == '*' && !self->syntax.inquote) {
+    if (*p == '/' && next == '*' && !syntax->inquote) {
         *highlight = kHighlightComment;
         self->comment_level++;
         return kOk;
@@ -848,7 +832,7 @@ MmResult pmeditor_get_highlight(PmEditor *self, char *p, HighlightType *highligh
     // Watch for the edge case /*/ sequence which does not end a comment
     const char previous = pmeditor_safe_char(self, p - 1);
     const char previous2 = pmeditor_safe_char(self, p - 2);
-    if (*p == '/' && previous == '*' && previous2 != '/' && !self->syntax.inquote) {
+    if (*p == '/' && previous == '*' && previous2 != '/' && !syntax->inquote) {
         if (self->comment_level > 0) {
             self->comment_level--;
         }
@@ -873,13 +857,13 @@ MmResult pmeditor_get_highlight(PmEditor *self, char *p, HighlightType *highligh
     }
 
     // check for a single-line comment char
-    if (*p == '\'' && !self->syntax.inquote) {
-        self->syntax.incomment = true;
+    if (*p == '\'' && !syntax->inquote) {
+        syntax->incomment = true;
         *highlight = kHighlightComment;
         return kOk;
     }
 
-    if (*p == '/' && p[1] == '*' && !self->syntax.inquote) {
+    if (*p == '/' && p[1] == '*' && !syntax->inquote) {
         char *q = p;
         if (*(--q) == '\n') {
             *highlight = kHighlightComment;
@@ -889,50 +873,50 @@ MmResult pmeditor_get_highlight(PmEditor *self, char *p, HighlightType *highligh
     }
 
     // once in a comment all following chars must be comments also
-    if (self->syntax.incomment || self->comment_level) {
+    if (syntax->incomment || self->comment_level) {
         *highlight = kHighlightComment;
         return kOk;
     }
 
     // check for a quoted string
     if (*p == '\"') {
-        self->syntax.inquote = !self->syntax.inquote;
+        syntax->inquote = !syntax->inquote;
         *highlight = kHighlightQuote;
         return kOk;
     }
 
-    if (self->syntax.inquote) {
+    if (syntax->inquote) {
         *highlight = kHighlightQuote;
         return kOk;
     }
 
     // if we are displaying a keyword check that it is still actually in the keyword and cmdfile if
     // not
-    if (self->syntax.inkeyword) {
+    if (syntax->inkeyword) {
         if (isnamechar(*p) || *p == '$') {
             *highlight = kHighlightKeyword;
             return kOk;
         }
-        self->syntax.inkeyword = false;
+        syntax->inkeyword = false;
         *highlight = kHighlightNormal;
         return kOk;
     }
 
     // if we are displaying a number check that we are still actually in it and cmdfile if not
     // this is complicated because numbers can be in hex or scientific notation
-    if (self->syntax.innumber) {
+    if (syntax->innumber) {
         if (!isdigit(*p) && !(toupper(*p) >= 'A' && toupper(*p) <= 'F') && toupper(*p) != 'O' &&
             toupper(*p) != 'H' && *p != '.') {
-            self->syntax.innumber = false;
+            syntax->innumber = false;
             *highlight = kHighlightNormal;
         } else {
             *highlight = kHighlightNumber;
         }
         return kOk;
         // check if we are starting a number
-    } else if (!self->syntax.intext) {
+    } else if (!syntax->intext) {
         if (isdigit(*p) || *p == '&' || ((*p == '-' || *p == '+' || *p == '.') && isdigit(p[1]))) {
-            self->syntax.innumber = true;
+            syntax->innumber = true;
             *highlight = kHighlightNumber;
             return kOk;
         }
@@ -942,29 +926,29 @@ MmResult pmeditor_get_highlight(PmEditor *self, char *p, HighlightType *highligh
             if (!isxdigit(p[i])) break;
         }
         if (i == 8 && (p[8] == ' ' || p[8] == '\'' || p[8] == 0)) {
-            self->syntax.innumber = true;
+            syntax->innumber = true;
             *highlight = kHighlightNumber;
             return kOk;
         }
     }
 
     // check if this is the start of a keyword
-    if (isnamechar(*p) && !self->syntax.intext) {
+    if (isnamechar(*p) && !syntax->intext) {
         for (int i = 0; i < commandtbl_size - 1; i++) {  // check the command table for a match
             if (pmeditor_strcmp(p, commandtbl[i].name) != 0 ||
                 ((pmeditor_strcmp(&p[1], &commandtbl[i].name[1]) != 0) && *p == '.' &&
                  *commandtbl[i].name == '_')) {
                 if (pmeditor_strcmp(p, "REM") != 0) {  // special case, REM is a comment
-                    self->syntax.incomment = true;
+                    syntax->incomment = true;
                     *highlight = kHighlightComment;
                     return kOk;
                 } else {
                     *highlight = kHighlightKeyword;
-                    self->syntax.inkeyword = true;
+                    syntax->inkeyword = true;
                     if (pmeditor_strcmp(p, "GUI") || pmeditor_strcmp(p, "OPTION")) {
-                        self->syntax.twokeyword = p;
-                        while (isalnum(*self->syntax.twokeyword)) self->syntax.twokeyword++;
-                        while (*self->syntax.twokeyword == ' ') self->syntax.twokeyword++;
+                        syntax->twokeyword = p;
+                        while (isalnum(*syntax->twokeyword)) syntax->twokeyword++;
+                        while (*syntax->twokeyword == ' ') syntax->twokeyword++;
                     }
                     return kOk;
                 }
@@ -972,25 +956,25 @@ MmResult pmeditor_get_highlight(PmEditor *self, char *p, HighlightType *highligh
         }
         for (int i = 0; i < tokentbl_size - 1; i++) {  // check the token table for a match
             if (pmeditor_strcmp(p, tokentbl[i].name) != 0) {
-                self->syntax.inkeyword = true;
+                syntax->inkeyword = true;
                 *highlight = kHighlightKeyword;
                 return kOk;
             }
         }
 
         // Check for the second keyword in two keyword commands
-        if (p == self->syntax.twokeyword) {
+        if (p == syntax->twokeyword) {
             char **pp;
             for (pp = (char **) TWO_KEYWORD_TBL; *pp; pp++) {
                 if (pmeditor_strcmp(p, *pp)) break;
             }
             if (*pp) {
-                self->syntax.inkeyword = true;
+                syntax->inkeyword = true;
                 *highlight = kHighlightKeyword;
                 return kOk;
             }
         }
-        if (p >= self->syntax.twokeyword) self->syntax.twokeyword = NULL;
+        if (p >= syntax->twokeyword) syntax->twokeyword = NULL;
 
         // Check for a range of common keywords
         {
@@ -999,7 +983,7 @@ MmResult pmeditor_get_highlight(PmEditor *self, char *p, HighlightType *highligh
                 if (pmeditor_strcmp(p, *pp)) break;
             }
             if (*pp) {
-                self->syntax.inkeyword = true;
+                syntax->inkeyword = true;
                 *highlight = kHighlightKeyword;
                 return kOk;
             }
@@ -1008,7 +992,7 @@ MmResult pmeditor_get_highlight(PmEditor *self, char *p, HighlightType *highligh
 
     // Keep track of if we are in general text or not;
     // this is to avoid recognising keywords or numbers inside variables
-    self->syntax.intext = isnamechar(*p);
+    syntax->intext = isnamechar(*p);
 
     *highlight = kHighlightNormal;
     return kOk;
@@ -1123,8 +1107,16 @@ MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
     // Display the line from here to the end of the line or the screen width
     while (i && *p && *p != '\n') {
         if (mmb_options.syntax_highlight) {
+            SyntaxState syntax = {
+                .incomment = false,
+                .inquote = false,
+                .inkeyword = false,
+                .innumber = false,
+                .intext = false,
+                .twokeyword = NULL
+            };
             HighlightType new_highlight = kHighlightUnspecified;
-            ON_FAILURE_RETURN(pmeditor_get_highlight(self, p, &new_highlight));
+            ON_FAILURE_RETURN(pmeditor_get_highlight(self, &syntax, p, &new_highlight));
             if (new_highlight != self->highlight) {
                 ON_FAILURE_RETURN(pmeditor_highlight(self, new_highlight));
             }
@@ -1134,7 +1126,6 @@ MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
     }
 
     // Reset syntax highlighting and clear display to end of line
-    ON_FAILURE_RETURN(pmeditor_init_syntax_state(self));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
 
