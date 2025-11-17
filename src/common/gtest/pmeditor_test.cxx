@@ -6463,3 +6463,188 @@ TEST_F(PmEditorMarkRight, MoveRightNearEndOfLongLine) {
     EXPECT_EQ(99, self->cx);
     EXPECT_EQ(kMarkUpdate, state);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_print_selection()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorPrintSelectionTest : public PmEditorTestBase {};
+
+// Basic selection: mark after cursor
+TEST_F(PmEditorPrintSelectionTest, MarkAfterCursor) {
+    SetBuffer("Hello World");
+    SetTxtp(0);  // Cursor at 'H'
+    SetMark(5);  // Mark at ' ' (space)
+
+    MmResult result = pmeditor_print_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf - 1, self->mark_lb);
+    EXPECT_EQ(self->buf + 5, self->mark_ub);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Basic selection: mark before cursor
+TEST_F(PmEditorPrintSelectionTest, MarkBeforeCursor) {
+    SetBuffer("Hello World");
+    SetTxtp(5);  // Cursor at ' ' (space)
+    SetMark(0);  // Mark at 'H'
+
+    MmResult result = pmeditor_print_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf + 0, self->mark_lb);
+    EXPECT_EQ(self->buf + 6, self->mark_ub);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// No selection: mark equals cursor
+TEST_F(PmEditorPrintSelectionTest, NoSelection) {
+    SetBuffer("Hello World");
+    SetTxtp(5);  // Cursor at ' ' (space)
+    SetMark(5);  // Mark at same position
+
+    MmResult result = pmeditor_print_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf + 5, self->mark_lb);
+    EXPECT_EQ(self->buf + 5, self->mark_ub);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Single character selection
+TEST_F(PmEditorPrintSelectionTest, SingleCharSelection) {
+    SetBuffer("ABC");
+    SetTxtp(0);  // Cursor at 'A'
+    SetMark(1);  // Mark at 'B'
+
+    MmResult result = pmeditor_print_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf - 1, self->mark_lb);
+    EXPECT_EQ(self->buf + 1, self->mark_ub);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Multiline selection: mark after cursor
+TEST_F(PmEditorPrintSelectionTest, MultilineSelectionMarkAfter) {
+    SetBuffer("Line 1\nLine 2\nLine 3");
+    SetTxtp(0);   // Cursor at start of line 1
+    SetMark(13);  // Mark at start of line 3
+
+    MmResult result = pmeditor_print_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf - 1, self->mark_lb);
+    EXPECT_EQ(self->buf + 13, self->mark_ub);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Multiline selection: mark before cursor
+TEST_F(PmEditorPrintSelectionTest, MultilineSelectionMarkBefore) {
+    SetBuffer("Line 1\nLine 2\nLine 3");
+    SetTxtp(13);  // Cursor at start of line 3
+    SetMark(0);   // Mark at start of line 1
+
+    MmResult result = pmeditor_print_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf + 0, self->mark_lb);
+    EXPECT_EQ(self->buf + 14, self->mark_ub);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Selection at buffer start
+TEST_F(PmEditorPrintSelectionTest, SelectionAtBufferStart) {
+    SetBuffer("Hello");
+    SetTxtp(0);  // Cursor at buffer start
+    SetMark(3);  // Mark at 'l'
+
+    MmResult result = pmeditor_print_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf - 1, self->mark_lb);
+    EXPECT_EQ(self->buf + 3, self->mark_ub);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Selection at buffer end
+TEST_F(PmEditorPrintSelectionTest, SelectionAtBufferEnd) {
+    SetBuffer("Hello");
+    SetTxtp(5);  // Cursor at buffer end (null terminator)
+    SetMark(2);  // Mark at 'l'
+
+    MmResult result = pmeditor_print_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf + 2, self->mark_lb);
+    EXPECT_EQ(self->buf + 6, self->mark_ub);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Cursor positioned at end of selection
+TEST_F(PmEditorPrintSelectionTest, CursorAtEndOfSelection) {
+    SetBuffer("ABCDEF");
+    SetTxtp(6);  // Cursor at end
+    SetMark(2);  // Mark in middle
+
+    MmResult result = pmeditor_print_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf + 2, self->mark_lb);
+    EXPECT_EQ(self->buf + 7, self->mark_ub);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Large selection
+TEST_F(PmEditorPrintSelectionTest, LargeSelection) {
+    SetBuffer("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    SetTxtp(0);   // Cursor at start
+    SetMark(36);  // Mark at end
+
+    MmResult result = pmeditor_print_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf - 1, self->mark_lb);
+    EXPECT_EQ(self->buf + 36, self->mark_ub);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Empty buffer selection
+TEST_F(PmEditorPrintSelectionTest, EmptyBufferSelection) {
+    SetBuffer("");
+    SetTxtp(0);
+    SetMark(0);
+
+    MmResult result = pmeditor_print_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->buf, self->mark_lb);
+    EXPECT_EQ(self->buf, self->mark_ub);
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Multiple consecutive calls update bounds correctly
+TEST_F(PmEditorPrintSelectionTest, ConsecutiveCallsUpdateBounds) {
+    SetBuffer("ABCDEFGHIJ");
+
+    // First selection
+    SetTxtp(0);
+    SetMark(3);
+    print_screen_call_count = 0;
+
+    MmResult result1 = pmeditor_print_selection(self);
+    EXPECT_EQ(kOk, result1);
+    EXPECT_EQ(self->buf - 1, self->mark_lb);
+    EXPECT_EQ(self->buf + 3, self->mark_ub);
+
+    // Second selection (different bounds)
+    SetTxtp(7);
+    SetMark(2);
+
+    MmResult result2 = pmeditor_print_selection(self);
+    EXPECT_EQ(kOk, result2);
+    EXPECT_EQ(self->buf + 2, self->mark_lb);
+    EXPECT_EQ(self->buf + 8, self->mark_ub);
+    EXPECT_EQ(2, print_screen_call_count);
+}

@@ -66,6 +66,7 @@ typedef enum {
     kHighlightStatus,
     kHighlightError,
     kHighlightTrailingWhitespace,
+    kHighlightMark,
 } HighlightType;
 
 typedef enum {
@@ -108,6 +109,8 @@ typedef struct s_PmEditor {
     char saved_break_key;   // Original value of mmb_options.break_key when editor entered
     char *mark;             // Current position of the mark in mark mode
     HighlightType highlight; // Current highlight
+    char *mark_lb;          // Lower bound of the selection in mark mode
+    char *mark_ub;          // Upper bound of the selection in mark mode
 } PmEditor;
 
 // By changing these function pointers unit-tests can override "display"
@@ -137,6 +140,7 @@ MmResult pmeditor_mark_up(PmEditor *self, MarkState *state);
 MmResult pmeditor_mark_right(PmEditor *self, MarkState *state);
 MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw);
 MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
+MmResult pmeditor_print_selection(PmEditor *self);
 void pmeditor_restore_fn_pointers();
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)

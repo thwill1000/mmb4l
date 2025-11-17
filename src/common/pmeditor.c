@@ -188,6 +188,10 @@ MmResult pmeditor_highlight_impl(PmEditor *self, HighlightType highlight) {
         case kHighlightTrailingWhitespace:
             bg = RGB_ANSI_RED;
             break;
+        case kHighlightMark:
+            fg = RGB_ANSI_BLACK;
+            bg = RGB_ANSI_WHITE;
+            break;
         default:
             return kInternalFault;
     }
@@ -1105,9 +1109,17 @@ MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
         for (int i = self->width; i && *p && *p != '\n'; i--) {
             HighlightType new_highlight = kHighlightUnspecified;
             ON_FAILURE_RETURN(pmeditor_get_highlight(self, &syntax, p, &new_highlight));
+
+            // If the text is selected, override the highlight type.
+            // Note we still need to have run pmeditor_get_highlight() to maintain syntax state.
+            if (p > self->mark_lb && p < self->mark_ub) {
+                new_highlight = kHighlightMark;
+            }
+
             if (new_highlight != self->highlight) {
                 ON_FAILURE_RETURN(pmeditor_highlight(self, new_highlight));
             }
+
             ON_FAILURE_RETURN(display_putc_noflush(*p++));
         }
     } else {
@@ -1577,6 +1589,36 @@ static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd, MarkState *stat
 }
 
 /**
+ * Updates selection bounds and redraws the screen with highlighted text.
+ *
+ * Calculates the lower and upper bounds of the selection between self->mark
+ * and self->txtp, then redraws the screen to display the selected text with
+ * inverse video highlighting.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @return       kOk on success, or an error code on failure.
+ */
+MmResult pmeditor_print_selection(PmEditor *self) {
+    if (self->mark > self->txtp) {
+        self->mark_lb = self->txtp - 1;
+        self->mark_ub = self->mark;
+    } else if (self->mark < self->txtp) {
+        self->mark_lb = self->mark;
+        self->mark_ub = self->txtp + 1;
+    } else {
+        self->mark_lb = self->mark_ub = self->txtp;
+    }
+    // LOG_DEBUG("mark_lb=%p, mark_ub=%p", self->mark_lb, self->mark_ub);
+    ON_FAILURE_RETURN(pmeditor_print_screen(self));
+    return pmeditor_position_cursor(self, self->mark);
+}
+
+typedef struct {
+    int cx;
+    int cy;
+} CursorPosition;
+
+/**
  * Implements mark mode for text selection.
  *
  * Enters a sub-loop handling mark mode commands, displaying selected text
@@ -1586,16 +1628,23 @@ static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd, MarkState *stat
  * @return       kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_mark_loop(PmEditor *self) {
-    char *p, *oldmark;
-    int x, y, oldx, oldy, txtpx, txtpy;
+    // char *p, *oldmark;
+    // int x, y, oldx, oldy, txtpx, txtpy;
     ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kMarkMode));
     self->mark = self->txtp;
-    oldmark = self->mark;
-    txtpx = oldx = self->cx;
-    txtpy = oldy = self->cy;
+    // oldmark = self->mark;
+    // txtpx = oldx = self->cx;
+    // txtpy = oldy = self->cy;
+
+    char *old_mark;
+    CursorPosition original_cursor = { .cx = self->cx, .cy = self->cy };
+
+    self->mark_mode = true;
 
     MarkState mark_state = kMarkUnspecified;
     while (true) {
+        old_mark = self->mark;
+
         int c;
         do {
             ON_FAILURE_RETURN(display_show_cursor(true));
@@ -1618,70 +1667,76 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
             case kMarkContinue:
                 continue;
             case kMarkEnd:
-                self->cx = txtpx;
-                self->cy = txtpy;
+                self->cx = original_cursor.cx;
+                self->cy = original_cursor.cy;
+                self->mark_mode = false;
+                self->mark_ub = self->mark_lb = 0;
                 return kOk;
             default:
                 break;
         }
 
-        x = self->cx;
-        y = self->cy;
-        self->mark_mode = true;
-        // first unmark the area not marked as a result of the keystroke
-        if (oldmark < self->mark) {
-            ON_FAILURE_RETURN(pmeditor_position_cursor(self, oldmark));
-            p = oldmark;
-            while (p < self->mark) {
-                if (*p == '\n') {
-                    ON_FAILURE_RETURN(display_putc_noflush('\r'));
-                }
-                ON_FAILURE_RETURN(display_putc_noflush(*p++));
-            }
-        } else if (oldmark > self->mark) {
-            ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->mark));
-            p = self->mark;
-            while (oldmark > p) {
-                if (*p == '\n') {
-                    ON_FAILURE_RETURN(display_putc_noflush('\r'));
-                }
-                ON_FAILURE_RETURN(display_putc_noflush(*p++));
-            }
+        if (self->mark != old_mark) {
+            ON_FAILURE_RETURN(pmeditor_print_selection(self));
         }
-        ON_FAILURE_RETURN(display_flush());
-        oldmark = self->mark;
-        oldx = x;
-        oldy = y;
 
-        // now draw the marked area
-        if (self->mark < self->txtp) {
-            ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->mark));
-            ON_FAILURE_RETURN(display_inverse(true));
-            p = self->mark;
-            while (p < self->txtp) {
-                if (*p == '\n') {
-                    ON_FAILURE_RETURN(display_putc_noflush('\r'));
-                }
-                ON_FAILURE_RETURN(display_putc_noflush(*p++));
-            }
-        } else if (self->mark > self->txtp) {
-            ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
-            ON_FAILURE_RETURN(display_inverse(true));
-            p = self->txtp;
-            while (p < self->mark) {
-                if (*p == '\n') {
-                    ON_FAILURE_RETURN(display_putc_noflush('\r'));
-                }
-                ON_FAILURE_RETURN(display_putc_noflush(*p++));
-            }
-        }
-        self->mark_mode = false;
-        ON_FAILURE_RETURN(display_reset());
+        // x = self->cx;
+        // y = self->cy;
+        // self->mark_mode = true;
+        // // first unmark the area not marked as a result of the keystroke
+        // if (oldmark < self->mark) {
+        //     ON_FAILURE_RETURN(pmeditor_position_cursor(self, oldmark));
+        //     p = oldmark;
+        //     while (p < self->mark) {
+        //         if (*p == '\n') {
+        //             ON_FAILURE_RETURN(display_putc_noflush('\r'));
+        //         }
+        //         ON_FAILURE_RETURN(display_putc_noflush(*p++));
+        //     }
+        // } else if (oldmark > self->mark) {
+        //     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->mark));
+        //     p = self->mark;
+        //     while (oldmark > p) {
+        //         if (*p == '\n') {
+        //             ON_FAILURE_RETURN(display_putc_noflush('\r'));
+        //         }
+        //         ON_FAILURE_RETURN(display_putc_noflush(*p++));
+        //     }
+        // }
+        // ON_FAILURE_RETURN(display_flush());
+        // oldmark = self->mark;
+        // oldx = x;
+        // oldy = y;
 
-        oldx = x;
-        oldy = y;
-        oldmark = self->mark;
-        ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->mark));
+        // // now draw the marked area
+        // if (self->mark < self->txtp) {
+        //     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->mark));
+        //     ON_FAILURE_RETURN(display_inverse(true));
+        //     p = self->mark;
+        //     while (p < self->txtp) {
+        //         if (*p == '\n') {
+        //             ON_FAILURE_RETURN(display_putc_noflush('\r'));
+        //         }
+        //         ON_FAILURE_RETURN(display_putc_noflush(*p++));
+        //     }
+        // } else if (self->mark > self->txtp) {
+        //     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
+        //     ON_FAILURE_RETURN(display_inverse(true));
+        //     p = self->txtp;
+        //     while (p < self->mark) {
+        //         if (*p == '\n') {
+        //             ON_FAILURE_RETURN(display_putc_noflush('\r'));
+        //         }
+        //         ON_FAILURE_RETURN(display_putc_noflush(*p++));
+        //     }
+        // }
+        // self->mark_mode = false;
+        // ON_FAILURE_RETURN(display_reset());
+
+        // oldx = x;
+        // oldy = y;
+        // oldmark = self->mark;
+        // ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->mark));
     }
 }
 
