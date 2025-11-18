@@ -86,7 +86,15 @@ typedef struct SyntaxState {
     char *twokeyword;
 } SyntaxState;
 
-typedef struct s_PmEditor {
+typedef struct {
+    int py;      ///< Row at top left hand corner of editor
+    int cx;      ///< Cursor column (from 0)
+    int cy;      ///< Cursor row (from 0)
+    char *txtp;  ///< Character position of the standard cursor
+    char *mark;  ///< Character position of the mark cursor
+} PmEditorPos;
+
+typedef struct {
     const char *fname;      // Name/path of file being edited
     char buf[EDIT_BUFFER_SIZE];  // Buffer used for editing the text
     int buf_len;            // Length of the buffer, currently always EDIT_BUFFER_SIZE
@@ -113,11 +121,30 @@ typedef struct s_PmEditor {
     char *mark_ub;          // Upper bound of the selection in mark mode
 } PmEditor;
 
+// Copies position fields between PmEditorPos and PmEditor structures
+// Works in both directions: COPY_POS(dst, src)
+#define COPY_POS(dst, src) { \
+    (dst).py = (src).py; \
+    (dst).cy = (src).cy; \
+    (dst).txtp = (src).txtp; \
+    (dst).mark = (src).mark; \
+}
+
+// Extracts position fields into a PmEditorPos initializer
+#define POS_FROM(src) { \
+    .py = (src).py, \
+    .cx = (src).cx, \
+    .cy = (src).cy, \
+    .txtp = (src).txtp, \
+    .mark = (src).mark \
+}
+
 // By changing these function pointers unit-tests can override "display"
 // behaviour.
 extern MmResult (*pmeditor_display_msg)(PmEditor *, const char *);
 extern MmResult (*pmeditor_highlight)(PmEditor *, HighlightType);
 extern MmResult (*pmeditor_print_line)(PmEditor *, int);
+extern MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned);
 extern MmResult (*pmeditor_print_screen)(PmEditor *);
 
 MmResult pmeditor_cmd_backspace(PmEditor *self);
@@ -140,7 +167,7 @@ MmResult pmeditor_mark_up(PmEditor *self, MarkState *state);
 MmResult pmeditor_mark_right(PmEditor *self, MarkState *state);
 MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw);
 MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
-MmResult pmeditor_print_selection(PmEditor *self);
+MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos);
 void pmeditor_restore_fn_pointers();
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)

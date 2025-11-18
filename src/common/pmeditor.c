@@ -79,12 +79,14 @@ typedef enum {
 MmResult pmeditor_display_msg_impl(PmEditor *, const char *);
 MmResult pmeditor_highlight_impl(PmEditor *, HighlightType);
 MmResult pmeditor_print_line_impl(PmEditor *, int);
+MmResult pmeditor_print_lines_impl(PmEditor *, unsigned, unsigned);
 MmResult pmeditor_print_screen_impl(PmEditor *);
 
 // Pointers to functions we want to override in unit-tests
 MmResult (*pmeditor_display_msg)(PmEditor *, const char *) = pmeditor_display_msg_impl;
 MmResult (*pmeditor_highlight)(PmEditor *, HighlightType) = pmeditor_highlight_impl;
 MmResult (*pmeditor_print_line)(PmEditor *, int) = pmeditor_print_line_impl;
+MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned) = pmeditor_print_lines_impl;
 MmResult (*pmeditor_print_screen)(PmEditor *) = pmeditor_print_screen_impl;
 
 /**
@@ -94,6 +96,7 @@ void pmeditor_restore_fn_pointers() {
     pmeditor_display_msg = pmeditor_display_msg_impl;
     pmeditor_highlight = pmeditor_highlight_impl;
     pmeditor_print_line = pmeditor_print_line_impl;
+    pmeditor_print_lines = pmeditor_print_lines_impl;
     pmeditor_print_screen = pmeditor_print_screen_impl;
 }
 
@@ -1588,6 +1591,24 @@ static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd, MarkState *stat
 // clang-format on
 }
 
+/** TODO */
+MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned num_lines) {
+    LOG_DEBUG("entered: start_line=%d, num_lines=%d", start_line, num_lines);
+    // TODO: Adjust start_line and num_lines to fit within display
+
+    for (unsigned i = 0; i < num_lines; i++) {
+        ON_FAILURE_RETURN(pmeditor_print_line(self, i + start_line));
+        if (i != num_lines - 1) ON_FAILURE_RETURN(display_puts("\r\n"));
+        self->cx = 0;
+        self->cy++;
+    }
+
+    // Consume any keystrokes accumulated while redrawing the screen
+    while (console_getc() != -1) {}
+
+    return kOk;
+}
+
 /**
  * Updates selection bounds and redraws the screen with highlighted text.
  *
@@ -1595,10 +1616,12 @@ static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd, MarkState *stat
  * and self->txtp, then redraws the screen to display the selected text with
  * inverse video highlighting.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kOk on success, or an error code on failure.
+ * @param  self     Pointer to the PmEditor instance.
+ * @param  old_pos  Previous cursor and mark positions for reference.
+ * @return          kOk on success, or an error code on failure.
  */
-MmResult pmeditor_print_selection(PmEditor *self) {
+MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos) {
+    // Determine bounds of selection to highlight
     if (self->mark > self->txtp) {
         self->mark_lb = self->txtp - 1;
         self->mark_ub = self->mark;
@@ -1608,15 +1631,22 @@ MmResult pmeditor_print_selection(PmEditor *self) {
     } else {
         self->mark_lb = self->mark_ub = self->txtp;
     }
-    // LOG_DEBUG("mark_lb=%p, mark_ub=%p", self->mark_lb, self->mark_ub);
-    ON_FAILURE_RETURN(pmeditor_print_screen(self));
+
+    // Determine lines to update
+    const unsigned start_line = min(self->py + self->cy, old_pos->py + old_pos->cy);
+    const unsigned end_line = max(self->py + self->cy, old_pos->py + old_pos->cy);
+    const unsigned num_lines = end_line - start_line + 1;
+
+    // Move display cursor to position to print first line
+    const int cy = min(self->cy, old_pos->cy) - self->py;
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, cy));
+
+    // Actually print the lines
+    ON_FAILURE_RETURN(pmeditor_print_lines(self, start_line, num_lines));
+
+    // Restore the position of the cursor
     return pmeditor_position_cursor(self, self->mark);
 }
-
-typedef struct {
-    int cx;
-    int cy;
-} CursorPosition;
 
 /**
  * Implements mark mode for text selection.
@@ -1636,14 +1666,12 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
     // txtpx = oldx = self->cx;
     // txtpy = oldy = self->cy;
 
-    char *old_mark;
-    CursorPosition original_cursor = { .cx = self->cx, .cy = self->cy };
-
+    PmEditorPos original_pos = POS_FROM(*self);
     self->mark_mode = true;
 
     MarkState mark_state = kMarkUnspecified;
     while (true) {
-        old_mark = self->mark;
+        PmEditorPos old_pos = POS_FROM(*self);
 
         int c;
         do {
@@ -1667,8 +1695,8 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
             case kMarkContinue:
                 continue;
             case kMarkEnd:
-                self->cx = original_cursor.cx;
-                self->cy = original_cursor.cy;
+                self->cx = original_pos.cx;
+                self->cy = original_pos.cy;
                 self->mark_mode = false;
                 self->mark_ub = self->mark_lb = 0;
                 return kOk;
@@ -1676,8 +1704,8 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
                 break;
         }
 
-        if (self->mark != old_mark) {
-            ON_FAILURE_RETURN(pmeditor_print_selection(self));
+        if (self->mark != old_pos.mark) {
+            ON_FAILURE_RETURN(pmeditor_print_selection(self, &old_pos));
         }
 
         // x = self->cx;
