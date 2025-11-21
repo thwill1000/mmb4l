@@ -165,9 +165,9 @@ protected:
         EXPECT_EQ(expected.cy, print_lines_capture.cy) << "pmeditor_print_lines cursor y-position mismatch"; \
     } while (0)
 
-#define EXPECT_TXTP_EQ(expected) \
+#define EXPECT_TXTP_EQ(expected_offset) \
     do { \
-        EXPECT_EQ(self->buf + expected, self->txtp) << "text cursor position mismatch"; \
+        EXPECT_EQ(self->buf + expected_offset, self->txtp) << "text cursor position mismatch"; \
     } while (0)
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -6370,6 +6370,355 @@ TEST_F(PmEditorPrintSelectionTest, SelectionSpansViewportBoundary) {
     EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {
         .calls = 1, .start = 1, .num = 5, .cy = 1
     }));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_down()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdDown : public PmEditorTestBase { };
+
+// Test moving down from first line to second line
+TEST_F(PmEditorCmdDown, MoveDownFromFirstToSecondLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(2); // At 'n' in "Line0"
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(8); // At 'n' in "Line1"
+    EXPECT_CURSOR_EQ(2, 1);
+}
+
+// Test moving down from second line to third line
+TEST_F(PmEditorCmdDown, MoveDownFromSecondToThirdLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(8); // At 'n' in "Line1"
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(14); // At 'n' in "Line2"
+    EXPECT_CURSOR_EQ(2, 2);
+}
+
+// Test moving down at last line does nothing
+TEST_F(PmEditorCmdDown, NoMoveAtLastLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(14); // At 'n' in "Line2" (last line)
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(14); // Unchanged
+    EXPECT_CURSOR_EQ(2, 2);
+}
+
+// Test moving down from single line buffer does nothing
+TEST_F(PmEditorCmdDown, NoMoveInSingleLineBuffer) {
+    SetBuffer("OnlyLine");
+    SetTxtp(4);
+    self->preferred_x = 4;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // Unchanged
+    EXPECT_CURSOR_EQ(4, 0);
+}
+
+// Test moving down from empty buffer does nothing
+TEST_F(PmEditorCmdDown, NoMoveInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving down maintains column (preferred_x)
+TEST_F(PmEditorCmdDown, MaintainsPreferredColumn) {
+    SetBuffer("ABCDE\nFGHIJ\nKLMNO");
+    SetTxtp(3); // At 'D' in first line
+    self->preferred_x = 3;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(9); // At 'I' in second line (same column)
+    EXPECT_CURSOR_EQ(3, 1);
+}
+
+// Test moving down to shorter line stops at end of line
+TEST_F(PmEditorCmdDown, StopsAtEndOfShorterLine) {
+    SetBuffer("ABCDEF\nXY\nPQRSTU");
+    SetTxtp(4); // At 'E' in first line (column 4)
+    self->preferred_x = 4;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(9); // At '\n' after "XY" (shorter line)
+    EXPECT_CURSOR_EQ(2, 1);
+}
+
+// Test moving down from shorter line to longer line uses preferred_x
+TEST_F(PmEditorCmdDown, UsesPreferredXWhenMovingToLongerLine) {
+    SetBuffer("AB\nPQRSTU\nXYZ");
+    SetTxtp(1); // At 'B' in first line (column 1)
+    self->preferred_x = 4; // But preferred_x is 4
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(7); // At 'S' in second line (column 4)
+    EXPECT_CURSOR_EQ(4, 1);
+}
+
+// Test moving down from start of line (column 0)
+TEST_F(PmEditorCmdDown, MoveDownFromStartOfLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(0); // At 'L' in "Line0"
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // At 'L' in "Line1"
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test moving down from end of line (at newline)
+TEST_F(PmEditorCmdDown, MoveDownFromEndOfLine) {
+    SetBuffer("ABC\nDEF\nGHI");
+    SetTxtp(3); // At '\n' after "ABC"
+    self->preferred_x = 3;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(7); // At '\n' after "DEF"
+    EXPECT_CURSOR_EQ(3, 1);
+}
+
+// Test moving down to empty line
+TEST_F(PmEditorCmdDown, MoveDownToEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(2); // At 'C' in "ABC"
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // At '\n' (empty line)
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test moving down from empty line
+TEST_F(PmEditorCmdDown, MoveDownFromEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(4); // At '\n' (empty line)
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(5); // At 'D' in "DEF"
+    EXPECT_CURSOR_EQ(0, 2);
+}
+
+// Test moving down scrolls when near bottom of screen
+TEST_F(PmEditorCmdDown, ScrollsWhenNearBottomOfScreen) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line" + std::to_string(i) + "\n";
+    }
+    SetBuffer(content.c_str());
+    
+    // Position where scrolling should occur (cy >= height - 3)
+    self->py = 0;
+    self->cy = self->height - 2; // Near bottom, should scroll
+    self->txtp = self->buf;
+    for (int i = 0; i < self->cy; i++) {
+        self->txtp = pmeditor_next_line(self->txtp);
+    }
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->height - 2, self->cy); // cy unchanged (screen scrolled)
+    EXPECT_EQ(1, self->py); // py incremented (scrolled up)
+}
+
+// Test moving down at bottom of screen when at last page
+TEST_F(PmEditorCmdDown, NoScrollWhenAtLastPage) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    self->py = 0;
+    self->cy = 2; // Not at very bottom of screen
+    SetTxtp(12); // At start of "Line2"
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(18); // Moved to "Line3"
+    EXPECT_EQ(3, self->cy); // cy incremented (no scroll because at last page)
+    EXPECT_EQ(0, self->py); // py unchanged
+}
+
+// Test moving down does not modify buffer
+TEST_F(PmEditorCmdDown, DoesNotModifyBuffer) {
+    const std::string original = "Line0\nLine1\nLine2";
+    SetBuffer(original.c_str());
+    SetTxtp(2);
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(original.c_str(), self->buf);
+}
+
+// Test moving down multiple times in sequence
+TEST_F(PmEditorCmdDown, MoveDownMultipleTimes) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    SetTxtp(1); // At 'i' in "Line0"
+    self->preferred_x = 1;
+
+    // Move to Line1
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(7); // At 'i' in "Line1"
+        EXPECT_CURSOR_EQ(1, 1);
+    }
+
+    // Move to Line2
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(13); // At 'i' in "Line2"
+        EXPECT_CURSOR_EQ(1, 2);
+    }
+
+    // Move to Line3
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(19); // At 'i' in "Line3"
+        EXPECT_CURSOR_EQ(1, 3);
+    }
+
+    // Try to move beyond last line
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(19); // Unchanged
+        EXPECT_CURSOR_EQ(1, 3);
+    }
+}
+
+// Test moving down from line ending at buffer end (no trailing newline)
+TEST_F(PmEditorCmdDown, NoMoveWhenLineEndsAtBufferEnd) {
+    SetBuffer("Line0\nLine1"); // No trailing newline
+    SetTxtp(8); // At 'n' in "Line1"
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(8); // Unchanged
+    EXPECT_CURSOR_EQ(2, 1);
+}
+
+// Test moving down with very long preferred_x
+TEST_F(PmEditorCmdDown, VeryLargePreferredX) {
+    SetBuffer("ABCDEFGHIJ\nXY\nPQRSTU");
+    SetTxtp(9); // At 'J' in first line
+    self->preferred_x = 100; // Very large preferred_x
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(13); // At '\n' after "XY" (end of shorter line)
+    EXPECT_CURSOR_EQ(2, 1);
+}
+
+// Test moving down preserves preferred_x across multiple moves
+TEST_F(PmEditorCmdDown, PreservesPreferredXAcrossMoves) {
+    SetBuffer("ABCDEFGH\nXY\nPQRSTUVW");
+    SetTxtp(5); // At 'F' (column 5)
+    self->preferred_x = 5;
+
+    // Move to shorter line
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(11); // At '\n' after "XY"
+        EXPECT_CURSOR_EQ(2, 1);
+    }
+
+    // Move to longer line - should restore column 5
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(17); // At 'U' (column 5)
+        EXPECT_CURSOR_EQ(5, 2);
+    }
+}
+
+// Test moving down when cy is near height-3 boundary
+TEST_F(PmEditorCmdDown, MovesNormallyAtHeightMinus3) {
+    // Create enough lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = self->height - 3;
+    self->txtp = self->buf;
+    for (int i = 0; i < self->cy; i++) {
+        self->txtp = pmeditor_next_line(self->txtp);
+    }
+
+    const int old_cy = self->cy;
+    const int old_py = self->py;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should scroll
+    EXPECT_EQ(old_cy, self->cy); // cy unchanged
+    EXPECT_EQ(old_py + 1, self->py); // scrolled
+}
+
+// Test moving down calls scroll_up when scrolling
+TEST_F(PmEditorCmdDown, CallsScrollUpWhenScrolling) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = self->height - 3;
+    self->txtp = self->buf;
+    for (int i = 0; i < self->cy; i++) {
+        self->txtp = pmeditor_next_line(self->txtp);
+    }    
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // Verify that scrolling occurred by checking py changed
+    EXPECT_EQ(1, self->py);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

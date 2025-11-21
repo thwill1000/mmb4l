@@ -1796,7 +1796,7 @@ static MmResult pmeditor_cmd_up(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_down(PmEditor *self) {
+MmResult pmeditor_cmd_down(PmEditor *self) {
     // Find the end of the current line, or document
     char *p = self->txtp;
     while (*p != 0 && *p != '\n') p++;

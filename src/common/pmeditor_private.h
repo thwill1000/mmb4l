@@ -142,6 +142,7 @@ extern MmResult (*pmeditor_print_screen)(PmEditor *);
 
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);
+MmResult pmeditor_cmd_down(PmEditor *self);
 MmResult pmeditor_cmd_left(PmEditor *self);
 MmResult pmeditor_cmd_right(PmEditor *self);
 MmResult pmeditor_delete_char(PmEditor *self, int *redraw);
@@ -164,5 +165,27 @@ MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw);
 MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
 MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos);
 void pmeditor_restore_fn_pointers();
+
+/**
+ * Finds the start of the next line in the buffer.
+ *
+ * Advances the pointer through the current line until reaching a newline
+ * or end of buffer. If a newline is found, returns a pointer to the first
+ * character of the next line. If the end of buffer is reached, returns NULL.
+ *
+ * @param  p  Pointer to any position within the current line.
+ * @return    Pointer to the first character of the next line, or NULL if
+ *            the current line is the last line in the buffer (no newline found).
+ *
+ * @note This function does not validate that p is within buffer bounds.
+ * @note An empty line (two consecutive newlines) will return a pointer to
+ *       the second newline character.
+ */
+static inline char *pmeditor_next_line(char *p) {
+    while (*p != '\n' && *p != '\0') p++;
+    if (*p == '\0') return NULL;
+    p++; // Skip newline
+    return p;
+}
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)
