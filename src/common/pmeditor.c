@@ -1836,7 +1836,7 @@ static MmResult pmeditor_cmd_down(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_left(PmEditor *self) {
+MmResult pmeditor_cmd_left(PmEditor *self) {
     // If at the beginning of the document then do nothing
     if (self->txtp == self->buf) {
         return kOk;
@@ -1865,7 +1865,7 @@ static MmResult pmeditor_cmd_left(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_right(PmEditor* self) {
+MmResult pmeditor_cmd_right(PmEditor* self) {
     // If we are at the end of the document then do nothing
     if (*self->txtp == '\0') {
         return kOk;
