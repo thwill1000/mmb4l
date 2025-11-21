@@ -173,19 +173,61 @@ void pmeditor_restore_fn_pointers();
  * or end of buffer. If a newline is found, returns a pointer to the first
  * character of the next line. If the end of buffer is reached, returns NULL.
  *
- * @param  p  Pointer to any position within the current line.
- * @return    Pointer to the first character of the next line, or NULL if
- *            the current line is the last line in the buffer (no newline found).
+ * @param  self  Pointer to the PmEditor instance.
+ * @param  p     Pointer to any position within the current line.
+ * @return       Pointer to the first character of the next line, or NULL if
+ *               the current line is the last line in the buffer (no newline found).
  *
  * @note This function does not validate that p is within buffer bounds.
  * @note An empty line (two consecutive newlines) will return a pointer to
  *       the second newline character.
  */
-static inline char *pmeditor_next_line(char *p) {
+static inline char *pmeditor_next_line(PmEditor *self, char *p) {
     while (*p != '\n' && *p != '\0') p++;
     if (*p == '\0') return NULL;
     p++; // Skip newline
     return p;
+}
+
+/**
+ * Finds the start of the line containing the given position.
+ *
+ * Moves backward from the given position to find the beginning of the
+ * current line. The start of a line is defined as either:
+ * - The first character in the buffer, or
+ * - The character immediately following a newline
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @param  p     Pointer to any position within a line in the buffer.
+ * @return       Pointer to the first character of the line.
+ */
+static inline char *pmeditor_start_of_line(PmEditor *self, char *p) {
+    while (p != self->buf && *(p - 1) != '\n') p--;
+    return p;
+}
+
+/**
+ * Calculates the length of the line starting at the given position.
+ *
+ * Counts the number of characters from the given position up to (but not
+ * including) the next newline or end of buffer.
+ *
+ * @param  self  Pointer to the PmEditor instance (unused, for consistency).
+ * @param  p     Pointer to the start of a line, or any position within it.
+ * @return       The number of characters from p to the end of the line.
+ *               Does not include the newline character itself.
+ *
+ * @note If called from the middle of a line, returns the length from that
+ *       position to the end of the line, not the full line length.
+ * @note Returns 0 for empty lines (when p points to '\n' or '\0').
+ */
+static inline int pmeditor_line_length(PmEditor *self, char *p) {
+    int len = 0;
+    while (*p != '\n' && *p != '\0') {
+        len++;
+        p++;
+    }
+    return len;
 }
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)

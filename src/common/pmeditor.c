@@ -1456,17 +1456,6 @@ MmResult pmeditor_mark_right(PmEditor *self) {
     return kOk;
 }
 
-/** TODO */
-static char *pmeditor_start_of_line(PmEditor *self, char *p) {
-    // Step back over terminator if we are right at the end of the line
-    if (*p == '\n') p--;
-
-    // Move to the start of the line (or buffer)
-    while (p != self->buf && *p != '\n') p--;
-
-    return p;
-}
-
 /**
  * Moves the mark up one line in mark mode.
  *
@@ -1491,24 +1480,19 @@ MmResult pmeditor_mark_up(PmEditor *self) {
         return kOk;
     }
 
-    p--;  // step over the terminator to the end of the previous line
-    int i = 0;
-    for (i = 0; p != self->buf && *p != '\n'; p--, i++);  // move to the beginning of that line
-    if (*p == '\n') p++;                                  // and position at the start
-    // if (i >= self->width) {
-    if (i > self->width) {
+    // Move to start of previous line
+    p = pmeditor_start_of_line(self, p - 1);
+
+    const int len = pmeditor_line_length(self, p);
+
+    // Can't move to a line that is too long
+    if (len > self->width) {
         return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
 
-    self->mark = p;
-
-    // Move mark and cursor to column
-    int new_cx = 0;
-    for (new_cx = 0;
-         new_cx < self->cx && *self->mark != '\0' && *self->mark != '\n';
-         new_cx++, self->mark++);
-    self->cx = new_cx;
+    self->cx = min(self->cx, len);
     self->cy--;
+    self->mark = p + self->cx;
 
     return kOk;
 }

@@ -6539,13 +6539,13 @@ TEST_F(PmEditorCmdDown, ScrollsWhenNearBottomOfScreen) {
         content += "Line" + std::to_string(i) + "\n";
     }
     SetBuffer(content.c_str());
-    
+
     // Position where scrolling should occur (cy >= height - 3)
     self->py = 0;
     self->cy = self->height - 2; // Near bottom, should scroll
     self->txtp = self->buf;
     for (int i = 0; i < self->cy; i++) {
-        self->txtp = pmeditor_next_line(self->txtp);
+        self->txtp = pmeditor_next_line(self, self->txtp);
     }
 
     MmResult result = pmeditor_cmd_down(self);
@@ -6684,7 +6684,7 @@ TEST_F(PmEditorCmdDown, MovesNormallyAtHeightMinus3) {
     self->cy = self->height - 3;
     self->txtp = self->buf;
     for (int i = 0; i < self->cy; i++) {
-        self->txtp = pmeditor_next_line(self->txtp);
+        self->txtp = pmeditor_next_line(self, self->txtp);
     }
 
     const int old_cy = self->cy;
@@ -6711,8 +6711,8 @@ TEST_F(PmEditorCmdDown, CallsScrollUpWhenScrolling) {
     self->cy = self->height - 3;
     self->txtp = self->buf;
     for (int i = 0; i < self->cy; i++) {
-        self->txtp = pmeditor_next_line(self->txtp);
-    }    
+        self->txtp = pmeditor_next_line(self, self->txtp);
+    }
 
     MmResult result = pmeditor_cmd_down(self);
 
