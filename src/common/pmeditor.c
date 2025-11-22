@@ -70,6 +70,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MAX_LINE_LENGTH  MAXSTRLEN
 
+#define CHECK_CURSOR_VALID() \
+    do { \
+        if (self->cx < 0 || self->cy < 0) { \
+            LOG_DEBUG("invalid cursor position: cx = %d, cy = %d", self->cx, self->cy); \
+        } \
+    } while (0)
+
 typedef enum {
     kEditMode,
     kMarkMode,
@@ -1318,31 +1325,35 @@ static MmResult pmeditor_mark_cut(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_mark_down(PmEditor *self) {
-    if (self->cy == self->height - 1) return kOk;
-    char *p;
-    int i;
+    CHECK_CURSOR_VALID();
 
-    // Move to the end of the current line
-    for (p = self->mark, i = self->cx; *p != '\0' && *p != '\n'; p++, i++);
+    // Start of this line
+    char *p = pmeditor_start_of_line(self, self->mark);
 
-    // Nothing to do if already at end of file
-    if (*p == '\0') return kOk;
+    // Length of this line
+    int len = pmeditor_line_length(self, p);
 
-    // Can't move down from a line that is too long
-    if (i > self->width) {
+    // Can't move down from a line that is too long.
+    if (len > self->width) {
         return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
 
-    // Step over the line terminator to the start of the next line
-    self->mark = p + 1;
+    // Start of next line
+    p = pmeditor_next_line(self, p);
 
-    // Move cursor to the same column on the new line, or the end of the line
-    for (i = 0;
-         i < self->cx && *self->mark != '\0' && *self->mark != '\n';
-         i++, self->mark++);
+    // Can't move down from last line
+    if (p == NULL) {
+        return kOk;
+    }
 
-    self->cx = i;
+    // Length of next line
+    len = pmeditor_line_length(self, p);
+
+    // Move cursor to the same column on the next line, or the end of the line
+    self->cx = min(self->cx, len);
     self->cy++;
+    self->mark = p + self->cx;
+
     return kOk;
 }
 
@@ -1353,17 +1364,13 @@ MmResult pmeditor_mark_down(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_mark_end(PmEditor *self) {
-    if (*self->mark == '\0') return kOk;
-    char *p;
-    int i;
-    // Move to the end of the line
-    for (p = self->mark, i = self->cx; *p != '\0' && *p != '\n'; p++, i++);
-
-    if (i > self->width) {
+    CHECK_CURSOR_VALID();
+    char *p = pmeditor_start_of_line(self, self->mark);
+    int len = pmeditor_line_length(self, p);
+    if (len > self->width) {
         return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
-
-    self->mark = p;
+    self->mark = p + len;
     return kOk;
 }
 
@@ -1401,29 +1408,8 @@ static MmResult pmeditor_mark_escape(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_mark_home(PmEditor *self) {
-    if (self->mark == self->buf) return kOk;
-
-    // Step back over the terminator if we are right at the end of the line
-    char *p = self->mark;
-    if (*p == '\n') {
-        p--;
-    }
-
-    // Move to the beginning of the line
-    while (p != self->buf && *p != '\n') {
-        p--;
-    }
-
-    // Skip if no more lines above this one
-    // TODO: understand this
-    if (*p == '\n') {
-        p++;
-    }
-
-    if (p != self->mark) {
-        self->mark = p;
-    }
-
+    CHECK_CURSOR_VALID();
+    self->mark = pmeditor_start_of_line(self, self->mark);
     return kOk;
 }
 
@@ -1434,6 +1420,7 @@ MmResult pmeditor_mark_home(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_mark_left(PmEditor *self) {
+    CHECK_CURSOR_VALID();
     const char previous = pmeditor_safe_char(self, self->mark - 1);
     if (self->cx > 0 && previous != '\0' && previous != '\n') {
         self->mark--;
@@ -1449,6 +1436,7 @@ MmResult pmeditor_mark_left(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_mark_right(PmEditor *self) {
+    CHECK_CURSOR_VALID();
     if (self->cx < self->width && *self->mark != '\0' && *self->mark != '\n') {
         self->mark++;
         self->cx++;
@@ -1466,26 +1454,23 @@ MmResult pmeditor_mark_right(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_mark_up(PmEditor *self) {
-    if (self->cx < 0 || self->cy < 0) {
-        LOG_DEBUG("invalid cursor position: cx = %d, cy = %d", self->cx, self->cy);
-    }
+    CHECK_CURSOR_VALID();
 
-    char *p = pmeditor_start_of_line(self, self->mark);
+    // Start of previous line
+    char *p = pmeditor_previous_line(self, self->mark);
 
     // Moving up from the first line moves to start of buffer
-    if (p == self->buf) {
+    if (!p) {
         self->mark = self->buf;
         self->cx = 0;
         self->cy = 0;
         return kOk;
     }
 
-    // Move to start of previous line
-    p = pmeditor_start_of_line(self, p - 1);
-
+    // Length of previous line
     const int len = pmeditor_line_length(self, p);
 
-    // Can't move to a line that is too long
+    // Can't move up to a line that is too long
     if (len > self->width) {
         return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
@@ -1732,7 +1717,7 @@ static MmResult pmeditor_cmd_newline(PmEditor *self /*char *multi*/) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_up(PmEditor *self) {
+MmResult pmeditor_cmd_up(PmEditor *self) {
     // If in the top row of the first page then do nothing
     if (self->cy == 0 && self->py == 0) return kOk;
 
