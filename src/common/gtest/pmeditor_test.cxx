@@ -4480,29 +4480,31 @@ TEST_F(PmEditorMarkDown, MoveDownToLongerLine) {
     EXPECT_CURSOR_EQ(3, 1);
 }
 
-// Test cannot move down when cy at height - 1
-TEST_F(PmEditorMarkDown, CannotMoveDownAtBottomOfScreen) {
-    SetBuffer("Line0\nLine1\nLine2");
+// Test moving down when cy at height - 1
+TEST_F(PmEditorMarkDown, MovingDownFromBottomOfDisplayMovesToEnd) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetMark(12); // Before the 'L' of "Line2"
     self->height = 3;
+    const int old_cy = self->cy;
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 12, self->mark); // Should not move
-    EXPECT_CURSOR_EQ(0, self->height - 1); // cy unchanged
+    EXPECT_MARK_EQ(17); // Moves to end of line
+    EXPECT_CURSOR_EQ(5, old_cy); // cy unchanged
 }
 
-// Test cannot move down from last line of file
-TEST_F(PmEditorMarkDown, CannotMoveDownFromLastLine) {
+// Test moving down from last line of file
+TEST_F(PmEditorMarkDown, MovingDownFromLastLineMovesToEnd) {
     SetBuffer("Line0\nLine1\nLine2");
     SetMark(12); // Before the 'L' of "Line2"
+    const int old_cy = self->cy;
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 12, self->mark); // Should not move (no newline after Line2)
-    EXPECT_CURSOR_EQ(0, 2);
+    EXPECT_MARK_EQ(17); // Moves to end of line
+    EXPECT_CURSOR_EQ(5, old_cy); // cy unchanged
 }
 
 // Test moving down from end of line
@@ -4525,8 +4527,8 @@ TEST_F(PmEditorMarkDown, MoveDownInSingleLineBuffer) {
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // Should not move (no next line)
-    EXPECT_CURSOR_EQ(5, 0);
+    EXPECT_MARK_EQ(11); // Should move to end of line
+    EXPECT_CURSOR_EQ(11, 0);
 }
 
 // Test moving down in empty buffer
@@ -4621,18 +4623,6 @@ TEST_F(PmEditorMarkDown, MoveDownDoesNotModifyBuffer) {
     EXPECT_STREQ(original.c_str(), self->buf); // Buffer unchanged
 }
 
-// Test moving down from line ending without newline
-TEST_F(PmEditorMarkDown, MoveDownFromLineEndingWithoutNewline) {
-    SetBuffer("Line0\nLine1");
-    SetMark(9); // At 'e' in "Line1"
-
-    MmResult result = pmeditor_mark_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 9, self->mark); // Should not move
-    EXPECT_CURSOR_EQ(3, 1);
-}
-
 // Test moving down when mark exactly at end of buffer
 TEST_F(PmEditorMarkDown, MoveDownWhenMarkAtEndOfBuffer) {
     SetBuffer("Line0\nLine1");
@@ -4676,16 +4666,16 @@ TEST_F(PmEditorMarkDown, MoveDownNearHeightLimit) {
     {
         MmResult result = pmeditor_mark_down(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 18, self->mark);
-        EXPECT_CURSOR_EQ(0, 3); // Move to bottom
+        EXPECT_MARK_EQ(18);
+        EXPECT_CURSOR_EQ(0, 3); // Should move to bottom
     }
 
-    // Try to move down again (should not move)
+    // Try to move down again (should move to end of line)
     {
         MmResult result = pmeditor_mark_down(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 18, self->mark);
-        EXPECT_CURSOR_EQ(0, 3);
+        EXPECT_MARK_EQ(23);
+        EXPECT_CURSOR_EQ(5, 3); // Should move to end of line
     }
 }
 

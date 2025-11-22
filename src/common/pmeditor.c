@@ -1338,8 +1338,10 @@ MmResult pmeditor_mark_down(PmEditor *self) {
     // Start of next line
     char *p = pmeditor_next_line(self, self->mark);
 
-    // Can't move down from last line
-    if (p == NULL) {
+    // Moving down from the last line of text or display moves to end of line
+    if (!p || self->cy == self->height - 1) {
+        self->cx = min(self->width, pmeditor_line_length(self, self->mark));
+        self->mark = pmeditor_start_of_line(self, self->mark) + self->cx;
         return kOk;
     }
 
@@ -1458,11 +1460,10 @@ MmResult pmeditor_mark_up(PmEditor *self) {
     // Start of previous line
     char *p = pmeditor_previous_line(self, self->mark);
 
-    // Moving up from the first line moves to start of buffer
-    if (!p) {
-        self->mark = self->buf;
+    // Moving up from the first line of text or display moves to start of line
+    if (!p || self->cy == 0) {
+        self->mark = pmeditor_start_of_line(self, self->mark);
         self->cx = 0;
-        self->cy = 0;
         return kOk;
     }
 
@@ -2056,6 +2057,9 @@ static MmResult pmeditor_cmd_home(PmEditor *self) {
     // to the start of the file
     if (self->last_key == HOME) {
         self->txtp = self->buf;
+        self->cx = 0;
+        self->cy = 0;
+        self->py = 0;
         ON_FAILURE_RETURN(pmeditor_print_screen(self));
         ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
         return pmeditor_position_cursor(self, self->txtp);
