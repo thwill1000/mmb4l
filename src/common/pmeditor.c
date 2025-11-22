@@ -1718,42 +1718,28 @@ static MmResult pmeditor_cmd_newline(PmEditor *self /*char *multi*/) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_cmd_up(PmEditor *self) {
+    CHECK_CURSOR_VALID();
+
+    // Start of previous line
+    char *p = pmeditor_previous_line(self, self->txtp);
+
     // If in the top row of the first page then do nothing
-    if (self->cy == 0 && self->py == 0) return kOk;
+    if (!p || (self->cy == 0 && self->py == 0)) return kOk;
 
-    // If at the end of the line then step back one character
-    if (*self->txtp == '\n') self->txtp--;
-
-    // Step back until reach last character of the previous line,
-    // or the first character of the document
-    while (self->txtp != self->buf && *self->txtp != '\n') self->txtp--;
-
-    // Step back to the first character of the previous line,
-    // or the first character of the document
-    if (self->txtp != self->buf) {
-        self->txtp--;
-        while (self->txtp != self->buf && *self->txtp != '\n') self->txtp--;
-        if (*self->txtp == '\n') self->txtp++;
-    }
-
-    // Move to the same column as we were previously (self->preferred_x),
+    // Adjust to the same column as we were previously (self->preferred_x),
     // or the end of the line
-    int i;
-    for (i = 0; i < self->preferred_x && *self->txtp != 0 && *self->txtp != '\n';
-         i++, self->txtp++);
+    int len = pmeditor_line_length(self, p);
+    self->cx = min(len, self->preferred_x);
+    self->txtp = p + self->cx;
 
     if (self->cy > 2 || self->py == 0) {
         // If we are more than two lines from the top then move the cursor up
-        if (self->cy > 0) {
-            ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, i, self->cy - 1));
-        }
-    } else if (self->py > 0) {
+        self->cy--;
+        return pmeditor_set_cursor_pos(self, self->cx, self->cy);
+    } else {
         // Otherwise scroll the document down
-        self->cx = i;
-        ON_FAILURE_RETURN(pmeditor_scroll_down(self));
+        return pmeditor_scroll_down(self);
     }
-
-    return pmeditor_position_cursor(self, self->txtp);
 }
 
 /**
@@ -1766,34 +1752,28 @@ MmResult pmeditor_cmd_up(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_cmd_down(PmEditor *self) {
-    // Find the end of the current line, or document
-    char *p = self->txtp;
-    while (*p != 0 && *p != '\n') p++;
+    CHECK_CURSOR_VALID();
+
+    // Start of next line
+    char *p = pmeditor_next_line(self, self->txtp);
 
     // If the current line is the last line of the document then do nothing
-    if (*p == 0) return kOk;
+    if (!p) return kOk;
 
-    // Find the start of the next line
-    p++;
-
-    // Move to the same column as we were previously (self->preferred_x),
+    // Adjust to the same column as we were previously (self->preferred_x),
     // or the end of the line
-    int i;
-    for (i = 0; i < self->preferred_x && *p != 0 && *p != '\n'; i++, p++);
-    self->txtp = p;
+    int len = pmeditor_line_length(self, p);
+    self->cx = min(len, self->preferred_x);
+    self->txtp = p + self->cx;
 
     if (self->cy < self->height - 3 || self->py + self->height == self->num_lines) {
         // If we are less than two lines from the bottom then move the cursor down
-        if (self->cy < self->height - 1) {
-            ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, i, self->cy + 1));
-        }
-    } else if (self->py + self->height < self->num_lines) {
+        self->cy++;
+        return pmeditor_set_cursor_pos(self, self->cx, self->cy);
+    } else {
         // Otherwise scroll the document up
-        self->cx = i;
-        ON_FAILURE_RETURN(pmeditor_scroll_up(self));
+        return pmeditor_scroll_up(self);
     }
-
-    return pmeditor_position_cursor(self, self->txtp);
 }
 
 /**
@@ -2049,12 +2029,12 @@ static MmResult pmeditor_cmd_insert(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_home(PmEditor *self) {
+MmResult pmeditor_cmd_home(PmEditor *self) {
     // If we are at the start of the document then do nothing
     if (self->txtp == self->buf) return kOk;
 
-    // If this is the second time HOME has been pressed in succession then jump
-    // to the start of the file
+    // If this is the second time HOME has been pressed in succession
+    // then jump to the start of the file
     if (self->last_key == HOME) {
         self->txtp = self->buf;
         self->cx = 0;
@@ -2065,14 +2045,10 @@ static MmResult pmeditor_cmd_home(PmEditor *self) {
         return pmeditor_position_cursor(self, self->txtp);
     }
 
-    // If this is the end of the line then step back one character
-    if (*self->txtp == '\n') self->txtp--;
+    self->txtp = pmeditor_start_of_line(self, self->txtp);
+    self->cx = 0;
 
-    // Move to the beginning of the line
-    while (self->txtp != self->buf && *self->txtp != '\n') self->txtp--;
-    if (*self->txtp == '\n') self->txtp++;
-
-    return pmeditor_position_cursor(self, self->txtp);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**

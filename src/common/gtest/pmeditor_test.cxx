@@ -6531,6 +6531,303 @@ TEST_F(PmEditorCmdDown, CallsScrollUpWhenScrolling) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_home()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdHome : public PmEditorTestBase { };
+
+// Test moving to start of line from middle of line
+TEST_F(PmEditorCmdHome, MoveToStartFromMiddleOfLine) {
+    SetBuffer("Hello World");
+    SetTxtp(6); // At 'W'
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At 'H'
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving to start of line from end of line (at newline)
+TEST_F(PmEditorCmdHome, MoveToStartFromEndOfLine) {
+    SetBuffer("Hello\nWorld");
+    SetTxtp(5); // At '\n'
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At 'H'
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving to start of line from near end
+TEST_F(PmEditorCmdHome, MoveToStartFromNearEnd) {
+    SetBuffer("ABCDEF");
+    SetTxtp(5); // At 'F'
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At 'A'
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test no move when already at start of buffer
+TEST_F(PmEditorCmdHome, NoMoveAtStartOfBuffer) {
+    SetBuffer("Hello World");
+    SetTxtp(0); // At 'H'
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test no move when at start of empty buffer
+TEST_F(PmEditorCmdHome, NoMoveInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0); // At '\0'
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving to start of second line
+TEST_F(PmEditorCmdHome, MoveToStartOfSecondLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(9); // At 'n' in "Line1"
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // At 'L' in "Line1"
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test moving to start of third line
+TEST_F(PmEditorCmdHome, MoveToStartOfThirdLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(15); // At 'n' in "Line2"
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(12); // At 'L' in "Line2"
+    EXPECT_CURSOR_EQ(0, 2);
+}
+
+// Test double HOME press jumps to start of file
+TEST_F(PmEditorCmdHome, DoubleHomeJumpsToStartOfFile) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(9); // At 'n' in "Line1"
+    self->last_key = HOME; // Previous key was HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At start of buffer
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_EQ(0, self->py); // Reset to first page
+    EXPECT_EQ(1, print_screen_call_count); // Screen redrawn
+}
+
+// Test double HOME press from first line
+TEST_F(PmEditorCmdHome, DoubleHomeFromFirstLine) {
+    SetBuffer("Hello World");
+    SetTxtp(6); // At 'W'
+    self->last_key = HOME; // Previous key was HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At start of buffer
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_EQ(0, self->py);
+}
+
+// Test double HOME press when far down in buffer
+TEST_F(PmEditorCmdHome, DoubleHomeFromFarDownInBuffer) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line" + std::to_string(i) + "\n";
+    }
+    SetBuffer(content.c_str());
+
+    // Position far down in buffer
+    self->py = 10;
+    self->cy = 5;
+    self->txtp = self->buf + 100; // Some position far from start
+    self->last_key = HOME;
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At start of buffer
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_EQ(0, self->py); // Reset to first page
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Test HOME does not modify buffer
+TEST_F(PmEditorCmdHome, DoesNotModifyBuffer) {
+    const std::string original = "Hello World";
+    SetBuffer(original.c_str());
+    SetTxtp(6);
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(original.c_str(), self->buf);
+}
+
+// Test moving to start of line preserves cy
+TEST_F(PmEditorCmdHome, PreservesCyWhenMovingToStartOfLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(8); // At 'n' in "Line1"
+    self->cy = 7; // Some arbitrary cy
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(0, 7); // cy preserved, cx changed to 0
+}
+
+// Test single HOME from start of line (not buffer start) does nothing
+TEST_F(PmEditorCmdHome, NoMoveWhenAlreadyAtStartOfLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6); // At 'L' in "Line1" (start of line but not buffer)
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // Unchanged
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test HOME from position 1 (second character of buffer)
+TEST_F(PmEditorCmdHome, MoveFromPositionOne) {
+    SetBuffer("ABCDEF");
+    SetTxtp(1); // At 'B'
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At 'A'
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test HOME from immediately after newline
+TEST_F(PmEditorCmdHome, MoveFromImmediatelyAfterNewline) {
+    SetBuffer("ABC\nDEF");
+    SetTxtp(4); // At 'D' (first char after newline)
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // Already at start of line
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test HOME sequence: middle -> start of line -> start of file
+TEST_F(PmEditorCmdHome, SequenceMiddleToStartToFile) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(9); // At 'n' in "Line1"
+    self->last_key = 'x';
+
+    // First HOME: move to start of line
+    {
+        MmResult result = pmeditor_cmd_home(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(6); // At 'L' in "Line1"
+        EXPECT_CURSOR_EQ(0, 1);
+        self->last_key = HOME; // Simulate key tracking
+    }
+
+    // Second HOME: jump to start of file
+    {
+        MmResult result = pmeditor_cmd_home(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(0); // At start of buffer
+        EXPECT_CURSOR_EQ(0, 0);
+        EXPECT_EQ(0, self->py);
+    }
+}
+
+// Test double HOME when already at start does nothing
+TEST_F(PmEditorCmdHome, DoubleHomeAtStartDoesNothing) {
+    SetBuffer("Hello World");
+    SetTxtp(0); // Already at start
+    self->last_key = HOME;
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Still at start
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_EQ(0, print_screen_call_count); // No redraw (early return)
+}
+
+// Test HOME from empty line (between two newlines)
+TEST_F(PmEditorCmdHome, MoveFromEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(4); // At second '\n' (empty line)
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // Already at start of empty line
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test HOME from very long line
+TEST_F(PmEditorCmdHome, MoveFromLongLine) {
+    std::string longline(100, 'X');
+    SetBuffer(longline.c_str());
+    SetTxtp(75); // Far from start
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test that double HOME resets both py and cy
+TEST_F(PmEditorCmdHome, DoubleHomeResetsPyAndCy) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 1; // Not at first page
+    self->cy = 2; // Not at top of screen
+    SetTxtp(15);
+    self->last_key = HOME;
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // Reset
+    EXPECT_EQ(0, self->cy); // Reset
+    EXPECT_EQ(0, self->cx); // Reset
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Tests for pmeditor_cmd_left()
 ////////////////////////////////////////////////////////////////////////////////
 

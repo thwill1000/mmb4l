@@ -143,6 +143,7 @@ extern MmResult (*pmeditor_print_screen)(PmEditor *);
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);
 MmResult pmeditor_cmd_down(PmEditor *self);
+MmResult pmeditor_cmd_home(PmEditor *self);
 MmResult pmeditor_cmd_left(PmEditor *self);
 MmResult pmeditor_cmd_right(PmEditor *self);
 MmResult pmeditor_cmd_up(PmEditor *self);
