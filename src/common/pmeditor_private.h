@@ -181,23 +181,6 @@ static inline char *pmeditor_end_of_line(PmEditor *self, char *p) {
 }
 
 /**
- * Calculates the length of the line from the given position.
- *
- * @param  self  Pointer to the PmEditor instance (unused).
- * @param  p     Pointer to any position within the line.
- * @return       Number of characters from p to the end of the line,
- *               excluding the newline character.
- */
-static inline int pmeditor_line_length(PmEditor *self, char *p) {
-    int len = 0;
-    while (*p != '\n' && *p != '\0') {
-        len++;
-        p++;
-    }
-    return len;
-}
-
-/**
  * Finds the start of the next line in the buffer.
  *
  * @param  self  Pointer to the PmEditor instance (unused).
@@ -213,30 +196,6 @@ static inline char *pmeditor_next_line(PmEditor *self, char *p) {
 }
 
 /**
- * Finds the start of the previous line in the buffer.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @param  p     Pointer to any position within the current line.
- * @return       Pointer to the first character of the previous line, or NULL
- *               if at the first line.
- */
-static inline char *pmeditor_previous_line(PmEditor *self, char *p) {
-    // Move to the start of this line
-    while (p != self->buf && *(p - 1) != '\n') p--;
-
-    // Return NULL if we were already on the first line
-    if (p == self->buf) return NULL;
-
-    // Skip over the '\n' character to move to the end of the previous line
-    p--;
-
-    // Move to start of the previous line
-    while (p != self->buf && *(p - 1) != '\n') p--;
-
-    return p;
-}
-
-/**
  * Finds the start of the line containing the given position.
  *
  * @param  self  Pointer to the PmEditor instance.
@@ -246,6 +205,46 @@ static inline char *pmeditor_previous_line(PmEditor *self, char *p) {
 static inline char *pmeditor_start_of_line(PmEditor *self, char *p) {
     while (p != self->buf && *(p - 1) != '\n') p--;
     return p;
+}
+
+/**
+ * Calculates the length of the line containing the given position.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @param  p     Pointer to any position within the line.
+ * @return       Total number of characters in the line, excluding the
+ *               newline character.
+ */
+static inline int pmeditor_line_length(PmEditor *self, char *p) {
+    char *start = pmeditor_start_of_line(self, p);
+    int len = 0;
+    while (*start != '\n' && *start != '\0') {
+        len++;
+        start++;
+    }
+    return len;
+}
+
+/**
+ * Finds the start of the previous line in the buffer.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @param  p     Pointer to any position within the current line.
+ * @return       Pointer to the first character of the previous line, or NULL
+ *               if at the first line.
+ */
+static inline char *pmeditor_previous_line(PmEditor *self, char *p) {
+    // Move to the start of this line
+    p = pmeditor_start_of_line(self, p);
+
+    // Return NULL if we were already on the first line
+    if (p == self->buf) return NULL;
+
+    // Skip over the '\n' character to move to the end of the previous line
+    p--;
+
+    // Move to start of the previous line
+    return pmeditor_start_of_line(self, p);
 }
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)

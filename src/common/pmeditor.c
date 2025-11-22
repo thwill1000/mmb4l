@@ -1327,11 +1327,8 @@ static MmResult pmeditor_mark_cut(PmEditor *self) {
 MmResult pmeditor_mark_down(PmEditor *self) {
     CHECK_CURSOR_VALID();
 
-    // Start of this line
-    char *p = pmeditor_start_of_line(self, self->mark);
-
     // Length of this line
-    int len = pmeditor_line_length(self, p);
+    int len = pmeditor_line_length(self, self->mark);
 
     // Can't move down from a line that is too long.
     if (len > self->width) {
@@ -1339,7 +1336,7 @@ MmResult pmeditor_mark_down(PmEditor *self) {
     }
 
     // Start of next line
-    p = pmeditor_next_line(self, p);
+    char *p = pmeditor_next_line(self, self->mark);
 
     // Can't move down from last line
     if (p == NULL) {
@@ -1371,6 +1368,7 @@ MmResult pmeditor_mark_end(PmEditor *self) {
         return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
     self->mark = p + len;
+    self->cx = len;
     return kOk;
 }
 
@@ -1410,6 +1408,7 @@ static MmResult pmeditor_mark_escape(PmEditor *self) {
 MmResult pmeditor_mark_home(PmEditor *self) {
     CHECK_CURSOR_VALID();
     self->mark = pmeditor_start_of_line(self, self->mark);
+    self->cx = 0;
     return kOk;
 }
 

@@ -167,7 +167,12 @@ protected:
 
 #define EXPECT_TXTP_EQ(expected_offset) \
     do { \
-        EXPECT_EQ(self->buf + expected_offset, self->txtp) << "text cursor position mismatch"; \
+        EXPECT_EQ(self->buf + expected_offset, self->txtp) << "insert cursor position mismatch"; \
+    } while (0)
+
+#define EXPECT_MARK_EQ(expected_offset) \
+    do { \
+        EXPECT_EQ(self->buf + expected_offset, self->mark) << "mark cursor position mismatch"; \
     } while (0)
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -4734,7 +4739,8 @@ TEST_F(PmEditorMarkEnd, MoveToEndFromStartOfLine) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 11, self->mark); // At end of line
+    EXPECT_MARK_EQ(11); // At end of line
+    EXPECT_CURSOR_EQ(11, 0);
 }
 
 // Test moving mark to end from middle of line
@@ -4745,7 +4751,8 @@ TEST_F(PmEditorMarkEnd, MoveToEndFromMiddleOfLine) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 11, self->mark); // At end of line
+    EXPECT_MARK_EQ(11); // At end of line
+    EXPECT_CURSOR_EQ(11, 0);
 }
 
 // Test no movement when already at end of line (before newline)
@@ -4756,7 +4763,8 @@ TEST_F(PmEditorMarkEnd, NoMovementWhenAtEndOfLine) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // Should not move
+    EXPECT_MARK_EQ(5); // Should not move
+    EXPECT_CURSOR_EQ(5, 0);
 }
 
 // Test no movement when at end of buffer
@@ -4767,7 +4775,8 @@ TEST_F(PmEditorMarkEnd, NoMovementWhenAtEndOfBuffer) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // Should not move
+    EXPECT_MARK_EQ(5); // Should not move
+    EXPECT_CURSOR_EQ(5, 0);
 }
 
 // Test moving to end in empty buffer
@@ -4778,7 +4787,8 @@ TEST_F(PmEditorMarkEnd, MoveToEndInEmptyBuffer) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Should not move (already at end)
+    EXPECT_MARK_EQ(0); // Should not move (already at end)
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving to end in single character buffer
@@ -4789,7 +4799,8 @@ TEST_F(PmEditorMarkEnd, MoveToEndInSingleCharBuffer) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 1, self->mark); // At '\0'
+    EXPECT_MARK_EQ(1); // At '\0'
+    EXPECT_CURSOR_EQ(1, 0);
 }
 
 // Test moving to end in multiline buffer (first line)
@@ -4800,7 +4811,8 @@ TEST_F(PmEditorMarkEnd, MoveToEndInMultilineBufferFirstLine) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // At newline after "Line0"
+    EXPECT_MARK_EQ(5); // At newline after "Line0"
+    EXPECT_CURSOR_EQ(5, 0);
 }
 
 // Test moving to end in multiline buffer (middle line)
@@ -4811,7 +4823,8 @@ TEST_F(PmEditorMarkEnd, MoveToEndInMultilineBufferMiddleLine) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 11, self->mark); // At newline after "Line1"
+    EXPECT_MARK_EQ(11); // At newline after "Line1"
+    EXPECT_CURSOR_EQ(5, 1);
 }
 
 // Test moving to end in multiline buffer (last line)
@@ -4822,7 +4835,8 @@ TEST_F(PmEditorMarkEnd, MoveToEndInMultilineBufferLastLine) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 17, self->mark); // At end of "Line2"
+    EXPECT_MARK_EQ(17); // At end of "Line2"
+    EXPECT_CURSOR_EQ(5, 2);
 }
 
 // Test line too long error
@@ -4833,48 +4847,50 @@ TEST_F(PmEditorMarkEnd, LineTooLongError) {
 
     MmResult result = pmeditor_mark_end(self);
 
-    // Should call pmeditor_display_msg and return kOk
     EXPECT_EQ(kOk, result);
-    // Mark should not change on error
-    EXPECT_EQ(self->buf, self->mark);
+    EXPECT_MARK_EQ(0); // Mark should not change on error
     EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_STREQ(" LINE IS TOO LONG ", display_msg_capture);
 }
 
 // Test moving to end with long line just at width limit
 TEST_F(PmEditorMarkEnd, MoveToEndWithLineAtWidthLimit) {
     const std::string line(self->width, 'A');
     SetBuffer(line.c_str());
-    SetMark(0);
+    SetMark(0); // At start
 
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + self->width, self->mark);
+    EXPECT_MARK_EQ(self->width);
+    EXPECT_CURSOR_EQ(self->width, 0);
 }
 
 // Test moving to end with line one character over width limit
 TEST_F(PmEditorMarkEnd, MoveToEndWithLineOneOverWidth) {
     const std::string line(self->width + 1, 'A');
     SetBuffer(line.c_str());
-    SetMark(0);
+    SetMark(0); // At start
 
     MmResult result = pmeditor_mark_end(self);
 
-    // Should trigger line too long error
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Should not move
+    EXPECT_MARK_EQ(0); // Should not move
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_STREQ(" LINE IS TOO LONG ", display_msg_capture);
 }
 
 // Test moving to end preserves cy
 TEST_F(PmEditorMarkEnd, MoveToEndPreservesCy) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(8); // In "Line1"
-    self->cy = 5; // Some arbitrary cy value
+    SetMark(8); // At 'n' in "Line1"
+    self->cy = 7; // Some arbitrary cy value
 
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(5, self->cy); // cy should not change
+    EXPECT_MARK_EQ(11);
+    EXPECT_CURSOR_EQ(5, 7); // cy should not change
 }
 
 // Test moving to end doesn't modify buffer
@@ -4886,29 +4902,9 @@ TEST_F(PmEditorMarkEnd, MoveToEndDoesNotModifyBuffer) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
+    EXPECT_MARK_EQ(11);
+    EXPECT_CURSOR_EQ(11, 0);
     EXPECT_STREQ(original.c_str(), self->buf); // Buffer unchanged
-}
-
-// Test moving to end with spaces
-TEST_F(PmEditorMarkEnd, MoveToEndWithSpaces) {
-    SetBuffer("Hello     ");
-    SetMark(0);
-
-    MmResult result = pmeditor_mark_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 10, self->mark); // At end including spaces
-}
-
-// Test moving to end from one character before end
-TEST_F(PmEditorMarkEnd, MoveToEndFromOneCharBeforeEnd) {
-    SetBuffer("Hello");
-    SetMark(4); // At 'o'
-
-    MmResult result = pmeditor_mark_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // At '\0'
 }
 
 // Test moving to end from empty line
@@ -4919,18 +4915,8 @@ TEST_F(PmEditorMarkEnd, MoveToEndFromEmptyLine) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Should not move (already at line end)
-}
-
-// Test moving to end in line with only spaces
-TEST_F(PmEditorMarkEnd, MoveToEndInLineWithOnlySpaces) {
-    SetBuffer("     ");
-    SetMark(0); // At first space
-
-    MmResult result = pmeditor_mark_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // At end of spaces
+    EXPECT_MARK_EQ(0); // Should not move (already at line end)
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving to end multiple times (should only move once)
@@ -4939,47 +4925,20 @@ TEST_F(PmEditorMarkEnd, MoveToEndMultipleTimes) {
     SetMark(0);
 
     // First move to end
-    MmResult result1 = pmeditor_mark_end(self);
-    EXPECT_EQ(kOk, result1);
-    EXPECT_EQ(self->buf + 11, self->mark);
+    {
+        MmResult result = pmeditor_mark_end(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_MARK_EQ(11);
+        EXPECT_CURSOR_EQ(11, 0);
+    }
 
     // Second attempt (should not move)
-    MmResult result2 = pmeditor_mark_end(self);
-    EXPECT_EQ(kOk, result2);
-    EXPECT_EQ(self->buf + 11, self->mark); // Still at end
-}
-
-// Test moving to end with mixed content
-TEST_F(PmEditorMarkEnd, MoveToEndWithMixedContent) {
-    SetBuffer("Hello 123 !@#");
-    SetMark(6); // At '1'
-
-    MmResult result = pmeditor_mark_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 13, self->mark); // At end
-}
-
-// Test moving to end doesn't cross newline
-TEST_F(PmEditorMarkEnd, MoveToEndDoesNotCrossNewline) {
-    SetBuffer("Line0\nLine1");
-    SetMark(2); // In "Line0"
-
-    MmResult result = pmeditor_mark_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // At newline, not past it
-}
-
-// Test moving to end from second line
-TEST_F(PmEditorMarkEnd, MoveToEndFromSecondLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetMark(6); // At start of "Line1"
-
-    MmResult result = pmeditor_mark_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 11, self->mark); // At end of "Line1"
+    {
+        MmResult result = pmeditor_mark_end(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_MARK_EQ(11); // Still at end
+        EXPECT_CURSOR_EQ(11, 0);
+    }
 }
 
 // Test moving to end preserves py
@@ -4991,46 +4950,9 @@ TEST_F(PmEditorMarkEnd, MoveToEndPreservesPy) {
     MmResult result = pmeditor_mark_end(self);
 
     EXPECT_EQ(kOk, result);
+    EXPECT_MARK_EQ(11);
+    EXPECT_CURSOR_EQ(11, 0);
     EXPECT_EQ(5, self->py); // py should not change
-}
-
-// Test line length calculation counts all characters to newline or null
-TEST_F(PmEditorMarkEnd, LineLengthCountsAllCharactersToNewlineOrNull) {
-    SetBuffer("ABCDEFGHIJ\nNext");
-    SetMark(0);
-
-    MmResult result = pmeditor_mark_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 10, self->mark); // Stops at newline
-}
-
-// Test error when line length equals width exactly
-TEST_F(PmEditorMarkEnd, NoErrorWhenLineLengthEqualsWidth) {
-    const std::string line(self->width, 'X');
-    SetBuffer(line.c_str());
-    SetMark(0);
-
-    MmResult result = pmeditor_mark_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + self->width, self->mark);
-    // Should succeed at exact width
-}
-
-// Test moving to end in very long buffer
-TEST_F(PmEditorMarkEnd, MoveToEndInVeryLongBuffer) {
-    std::string content = "Short\n";
-    for (int i = 0; i < 100; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-    SetMark(2); // In "Short"
-
-    MmResult result = pmeditor_mark_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // At newline after "Short"
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -5047,7 +4969,8 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromEndOfLine) {
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // At start of line
+    EXPECT_MARK_EQ(0); // At start of line
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving mark to home from middle of line
@@ -5058,7 +4981,8 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromMiddleOfLine) {
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // At start of line
+    EXPECT_MARK_EQ(0); // At start of line
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test no movement when already at start of buffer
@@ -5069,7 +4993,8 @@ TEST_F(PmEditorMarkHome, NoMovementWhenAtStartOfBuffer) {
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Should not move
+    EXPECT_MARK_EQ(0); // Should not move
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving to home in empty buffer
@@ -5080,7 +5005,8 @@ TEST_F(PmEditorMarkHome, MoveToHomeInEmptyBuffer) {
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Should not move (already at start)
+    EXPECT_MARK_EQ(0); // // Should not move (already at start)
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving to home in single character buffer
@@ -5091,19 +5017,20 @@ TEST_F(PmEditorMarkHome, MoveToHomeInSingleCharBuffer) {
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // At 'A'
+    EXPECT_MARK_EQ(0); // At start of line
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving to home from newline at end of line
 TEST_F(PmEditorMarkHome, MoveToHomeFromNewlineAtEndOfLine) {
     SetBuffer("Hello\nWorld");
-    SetMark(5); // At newline
+    SetMark(5); // At '\n'
 
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    // Should step back over terminator first, then move to beginning
-    EXPECT_EQ(self->buf, self->mark); // At start of "Hello"
+    EXPECT_MARK_EQ(0); // At start of line
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving to home from second line
@@ -5114,7 +5041,8 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromSecondLine) {
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 6, self->mark); // At start of "Line1"
+    EXPECT_MARK_EQ(6); // At start of "Line1"
+    EXPECT_CURSOR_EQ(0, 1);
 }
 
 // Test moving to home from last line
@@ -5125,19 +5053,8 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromLastLine) {
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 12, self->mark); // At start of "Line2"
-}
-
-// Test moving to home from newline between lines
-TEST_F(PmEditorMarkHome, MoveToHomeFromNewlineBetweenLines) {
-    SetBuffer("Line0\nLine1");
-    SetMark(5); // At newline after "Line0"
-
-    MmResult result = pmeditor_mark_home(self);
-
-    EXPECT_EQ(kOk, result);
-    // Should step back, then find beginning of line
-    EXPECT_EQ(self->buf, self->mark); // At start of "Line0"
+    EXPECT_MARK_EQ(12); // At start of "Line2"
+    EXPECT_CURSOR_EQ(0, 2);
 }
 
 // Test moving to home when already at start of line (not buffer)
@@ -5148,19 +5065,21 @@ TEST_F(PmEditorMarkHome, NoMovementWhenAtStartOfLine) {
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 6, self->mark); // Should not move
+    EXPECT_MARK_EQ(6); // // Should not move
+    EXPECT_CURSOR_EQ(0, 1);
 }
 
 // Test moving to home preserves cy
 TEST_F(PmEditorMarkHome, MoveToHomePreservesCy) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(9); // In "Line1"
+    SetMark(9); // At 'e' in "Line1"
     self->cy = 7; // Some arbitrary cy value
 
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(7, self->cy); // cy should not change
+    EXPECT_MARK_EQ(6);
+    EXPECT_CURSOR_EQ(0, 7); // cy should not change
 }
 
 // Test moving to home doesn't modify buffer
@@ -5173,28 +5092,8 @@ TEST_F(PmEditorMarkHome, MoveToHomeDoesNotModifyBuffer) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ(original.c_str(), self->buf); // Buffer unchanged
-}
-
-// Test moving to home with leading spaces
-TEST_F(PmEditorMarkHome, MoveToHomeWithLeadingSpaces) {
-    SetBuffer("     Hello");
-    SetMark(8); // In "Hello"
-
-    MmResult result = pmeditor_mark_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // At first space
-}
-
-// Test moving to home from one character into line
-TEST_F(PmEditorMarkHome, MoveToHomeFromOneCharIntoLine) {
-    SetBuffer("Hello");
-    SetMark(1); // At 'e'
-
-    MmResult result = pmeditor_mark_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // At 'H'
+    EXPECT_MARK_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving to home from empty line (line with only newline)
@@ -5205,19 +5104,8 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromEmptyLine) {
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    // Should step back over newline, then position at start (which is the previous newline)
-    EXPECT_EQ(self->buf + 6, self->mark); // Stays at newline (start of empty line)
-}
-
-// Test moving to home in line with only spaces
-TEST_F(PmEditorMarkHome, MoveToHomeInLineWithOnlySpaces) {
-    SetBuffer("     ");
-    SetMark(3); // In middle of spaces
-
-    MmResult result = pmeditor_mark_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // At first space
+    EXPECT_MARK_EQ(6); // Stays at newline (start of empty line)
+    EXPECT_CURSOR_EQ(0, 1);
 }
 
 // Test moving to home multiple times (should only move once)
@@ -5226,48 +5114,20 @@ TEST_F(PmEditorMarkHome, MoveToHomeMultipleTimes) {
     SetMark(11);
 
     // First move to home
-    MmResult result1 = pmeditor_mark_home(self);
-    EXPECT_EQ(kOk, result1);
-    EXPECT_EQ(self->buf, self->mark);
+    {
+        MmResult result = pmeditor_mark_home(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_MARK_EQ(0);
+        EXPECT_CURSOR_EQ(0, 0);
+    }
 
     // Second attempt (should not move)
-    MmResult result2 = pmeditor_mark_home(self);
-    EXPECT_EQ(kOk, result2);
-    EXPECT_EQ(self->buf, self->mark); // Still at home
-}
-
-// Test moving to home with mixed content
-TEST_F(PmEditorMarkHome, MoveToHomeWithMixedContent) {
-    SetBuffer("Hello 123 !@#");
-    SetMark(10); // At '!'
-
-    MmResult result = pmeditor_mark_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // At start
-}
-
-// Test moving to home doesn't cross previous newline
-TEST_F(PmEditorMarkHome, MoveToHomeDoesNotCrossPreviousNewline) {
-    SetBuffer("Line0\nLine1");
-    SetMark(9); // In "Line1"
-
-    MmResult result = pmeditor_mark_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 6, self->mark); // At start of "Line1", not past newline
-}
-
-// Test moving to home from very end of long line
-TEST_F(PmEditorMarkHome, MoveToHomeFromVeryEndOfLongLine) {
-    std::string long_line(100, 'A');
-    SetBuffer(long_line.c_str());
-    SetMark(100); // At end
-
-    MmResult result = pmeditor_mark_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // At start
+    {
+        MmResult result = pmeditor_mark_home(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_MARK_EQ(0); // Still at home
+        EXPECT_CURSOR_EQ(0, 0);
+    }
 }
 
 // Test moving to home preserves py
@@ -5279,75 +5139,33 @@ TEST_F(PmEditorMarkHome, MoveToHomePreservesPy) {
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
+    EXPECT_MARK_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
     EXPECT_EQ(5, self->py); // py should not change
-}
-
-// Test moving to home from just after newline (start of next line)
-TEST_F(PmEditorMarkHome, NoMovementWhenJustAfterNewline) {
-    SetBuffer("Line0\nLine1");
-    SetMark(6); // At 'L' in "Line1"
-
-    MmResult result = pmeditor_mark_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 6, self->mark); // Should not move (already at line start)
-}
-
-// Test stepping back logic when mark is exactly at newline
-TEST_F(PmEditorMarkHome, StepBackWhenMarkExactlyAtNewline) {
-    SetBuffer("ABCD\nEFGH");
-    SetMark(4); // At newline after "ABCD"
-
-    MmResult result = pmeditor_mark_home(self);
-
-    EXPECT_EQ(kOk, result);
-    // Should step back over newline, then find beginning
-    EXPECT_EQ(self->buf, self->mark); // At start of "ABCD"
 }
 
 // Test with consecutive newlines
 TEST_F(PmEditorMarkHome, MoveToHomeWithConsecutiveNewlines) {
     SetBuffer("Line0\n\n\nLine3");
-    SetMark(8); // At third newline or start of Line3
+    SetMark(8); // At 'L' of "Line3"
 
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 8, self->mark); // Should be at start of line already
+    EXPECT_MARK_EQ(8); // Should be at start of line already
+    EXPECT_CURSOR_EQ(0, 3);
 }
 
 // Test moving to home in multiline buffer from middle line
 TEST_F(PmEditorMarkHome, MoveToHomeFromMiddleLineInMultilineBuffer) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
-    SetMark(8); // At 'n' in Line1
+    SetMark(8); // At 'n' in "Line1"
 
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 6, self->mark); // At start of Line1
-}
-
-// Test that home only affects current line, not file start
-TEST_F(PmEditorMarkHome, HomeMovesToLineStartNotFileStart) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetMark(9); // In "Line1"
-
-    MmResult result = pmeditor_mark_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 6, self->mark); // At start of "Line1", not file start
-    EXPECT_NE(self->buf, self->mark); // Should NOT be at file start
-}
-
-// Test edge case: mark at buf when buf is not start of file
-TEST_F(PmEditorMarkHome, EdgeCaseMarkAtBuf) {
-    SetBuffer("Hello");
-    SetMark(0); // At start
-
-    MmResult result = pmeditor_mark_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Should not move
+    EXPECT_MARK_EQ(6); // At start of "Line1"
+    EXPECT_CURSOR_EQ(0, 1);
 }
 
 // Test correct behavior with trailing newline
@@ -5358,7 +5176,8 @@ TEST_F(PmEditorMarkHome, MoveToHomeWithTrailingNewline) {
     MmResult result = pmeditor_mark_home(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Should step back then move to start
+    EXPECT_MARK_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
