@@ -7670,35 +7670,6 @@ TEST_F(PmEditorCmdPageDown, HandlesEndWithoutTrailingNewline) {
     EXPECT_EQ(8, self->py);
 }
 
-// Test page down compensates when at end of line
-TEST_F(PmEditorCmdPageDown, CompensatesWhenAtEndOfLine) {
-    std::string content;
-    for (int i = 0; i < 50; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 0;
-    self->cy = 5;
-    self->cx = 4; // At '\n'
-    // TODO
-    self->txtp = self->buf;
-    for (int i = 0; i < 5; i++) {
-        while (*self->txtp != '\n') self->txtp++;
-        self->txtp++;
-    }
-    // Move back to newline
-    self->txtp--;
-    while (*(self->txtp - 1) != '\n' && self->txtp > self->buf) self->txtp--;
-    while (*self->txtp != '\n') self->txtp++;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    // Should have compensated: num_lines decreased by 1 in loop
-    EXPECT_EQ(self->height, self->py);
-}
-
 // Test page down when remaining lines less than full screen
 TEST_F(PmEditorCmdPageDown, WhenRemainingLinesLessThanScreen) {
     std::string content;
@@ -7743,21 +7714,16 @@ TEST_F(PmEditorCmdPageDown, MovesTxtpToStartThenColumn) {
     SetBuffer(content.c_str());
 
     self->py = 0;
-    self->cy = 2;
     self->cx = 5;
+    self->cy = 2;
     self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
     EXPECT_EQ(kOk, result);
-    // TODO
-    // Should be at line (2 + height), column 5
-    char *expected_line_start = self->buf;
-    for (int i = 0; i < 2 + self->height; i++) {
-        while (*expected_line_start != '\n') expected_line_start++;
-        expected_line_start++;
-    }
-    EXPECT_EQ(expected_line_start + 5, self->txtp);
+    EXPECT_EQ(self->height, self->py);
+    EXPECT_CURSOR_EQ(5, 2);
+    EXPECT_TXTP_CONSISTENT();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

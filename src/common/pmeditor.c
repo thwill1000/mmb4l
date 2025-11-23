@@ -1095,7 +1095,29 @@ char *pmeditor_find_line(PmEditor *self, int line, int *comment_level) {
     return p;
 }
 
-// TODO
+/**
+ * Prints a line of text starting from the given position.
+ *
+ * Displays text from the specified buffer position up to the end of the line
+ * or screen width, whichever comes first. Applies syntax highlighting if enabled,
+ * including handling of multiline comments and text selection highlighting.
+ *
+ * When syntax highlighting is disabled, prints from the cursor position (cx)
+ * to accommodate horizontal scrolling of the display.
+ *
+ * @param  self            Pointer to the PmEditor instance.
+ * @param  p               Pointer to the start position in the buffer to print from.
+ * @param  comment_level   Initial multiline comment nesting level for syntax
+ *                         highlighting. Use 0 if not inside a multiline comment.
+ * @return                 kOk on success, or an error code on failure.
+ *
+ * @note When syntax highlighting is enabled, the entire line is printed from
+ *       the given position regardless of cursor column.
+ * @note When syntax highlighting is disabled, printing starts from the cursor
+ *       column position (cx) to support horizontal scrolling.
+ * @note Text within the selection bounds (mark_lb to mark_ub) is highlighted
+ *       with inverse video, overriding syntax highlighting.
+ */
 MmResult pmeditor_print_line_p(PmEditor *self, char *p, int comment_level) {
     if (mmb_options.syntax_highlight) {
         // Initialise structure used to maintain syntax highlighting state
@@ -1142,8 +1164,6 @@ MmResult pmeditor_print_line_p(PmEditor *self, char *p, int comment_level) {
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
 
-    self->cx = self->width - 1;
-
     return kOk;
 }
 
@@ -1157,7 +1177,7 @@ MmResult pmeditor_print_line_p(PmEditor *self, char *p, int comment_level) {
  * @param  line  The line number to print (0-based, relative to start of buffer).
  * @return       kOk on success, or an error code on failure.
  */
-static inline MmResult pmeditor_print_line(PmEditor *self, int line) {
+static inline MmResult pmeditor_print_line_n(PmEditor *self, int line) {
     return pmeditor_print_lines(self, line, 1);
 }
 
@@ -1193,7 +1213,7 @@ static MmResult pmeditor_scroll_up(PmEditor *self) {
     ON_FAILURE_RETURN(display_scroll_up());
     self->py++;
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height - 1));
-    ON_FAILURE_RETURN(pmeditor_print_line(self, self->height - 1 + self->py));
+    ON_FAILURE_RETURN(pmeditor_print_line_n(self, self->height - 1 + self->py));
     ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
 
@@ -1219,7 +1239,7 @@ static MmResult pmeditor_scroll_down(PmEditor *self) {
     ON_FAILURE_RETURN(display_scroll_down());
     self->py--;
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, 0));
-    ON_FAILURE_RETURN(pmeditor_print_line(self, self->py));
+    ON_FAILURE_RETURN(pmeditor_print_line_n(self, self->py));
     ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
 
@@ -1966,7 +1986,7 @@ MmResult pmeditor_cmd_delete(PmEditor *self) {
     if (redraw == REDRAW_SCREEN) {
         ON_FAILURE_RETURN(pmeditor_print_screen(self));
     } else if (redraw != REDRAW_NOTHING) {
-        ON_FAILURE_RETURN(pmeditor_print_line(self, redraw));
+        ON_FAILURE_RETURN(pmeditor_print_line_n(self, redraw));
     }
     return pmeditor_position_cursor(self, self->txtp);
 }
@@ -2183,18 +2203,21 @@ MmResult pmeditor_cmd_page_up(PmEditor *self) {
     }
 
     // Determine number of lines we need to move up
-    int num_lines = min(self->py, self->height);
-    self->py -= num_lines;
+    int lines_up = min(self->py, self->height);
+    self->py -= lines_up;
 
     // Move txtp back that number of lines
-    while (num_lines--) {
+    while (lines_up--) {
         char *p = pmeditor_previous_line(self, self->txtp);
-        if (!p) return mmresult_ex(kInternalFault, "Number of lines inconsistent");
-        self->txtp = pmeditor_previous_line(self, self->txtp);
+        if (!p) {
+            return mmresult_ex(kInternalFault,
+                               "pmeditor_cmd_page_down: number of lines inconsistent");
+        }
+        self->txtp = p;
     }
 
     // Adjust cx and txtp to the same column as previously, or the end of the line
-    int len = pmeditor_line_length(self, self->txtp);
+    const int len = pmeditor_line_length(self, self->txtp);
     self->cx = min(self->cx, len);
     self->txtp += self->cx;
 
@@ -2221,38 +2244,28 @@ MmResult pmeditor_cmd_page_down(PmEditor *self) {
         return kOk;
     }
 
-    int num_lines = 0;
-    if (self->num_lines - self->py - self->height >= self->height) {
-        // Move down a full screenfull
-        self->py += self->height;
-        num_lines = self->height;
-    } else {
-        // Move down less than a screenfull
-        num_lines = self->num_lines - self->height - self->py;
-        self->py = self->num_lines - self->height;
+    // Determine number of lines we need to move down
+    int lines_down = min(self->num_lines - self->height - self->py, self->height);
+    self->py += lines_down;
+
+    // Move txtp forward that number of lines
+    while (lines_down--) {
+        char *p = pmeditor_next_line(self, self->txtp);
+        if (!p) {
+            return mmresult_ex(kInternalFault,
+                               "pmeditor_cmd_page_up: number of lines inconsistent");
+        }
+        self->txtp = p;
     }
 
-    // Compensate if we are right at the end of the line
-    if (*self->txtp == '\n') num_lines--;
-
-    while (num_lines--) {
-        // Step over the terminator if we are at the end of the line
-        if (*self->txtp == '\n') self->txtp++;
-        // Move to the end of the line
-        while (*self->txtp != 0 && *self->txtp != '\n') self->txtp++;
-        if (*self->txtp == '\0') break;  // No more lines after this one
-    }
-
-    // Move to start of the line
-    if (self->txtp != self->buf) self->txtp++;
-
-    // Move to the same column as we were previously, or the end of the line
-    for (int i = 0; i < self->cx && *self->txtp != 0 && *self->txtp != '\n';
-         i++, self->txtp++);
+    // Adjust cx and txtp to the same column as previously, or the end of the line
+    const int len = pmeditor_line_length(self, self->txtp);
+    self->cx = min(self->cx, len);
+    self->txtp += self->cx;
 
     ON_FAILURE_RETURN(pmeditor_print_screen(self));
 
-    return pmeditor_position_cursor(self, self->txtp);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2539,7 +2552,7 @@ MmResult pmeditor_cmd_char(PmEditor *self) {
     if (redraw == REDRAW_SCREEN) {
         ON_FAILURE_RETURN(pmeditor_print_screen(self));
     } else if (redraw != REDRAW_NOTHING) {
-        ON_FAILURE_RETURN(pmeditor_print_line(self, redraw));
+        ON_FAILURE_RETURN(pmeditor_print_line_n(self, redraw));
     }
 
     return pmeditor_position_cursor(self, self->txtp);
