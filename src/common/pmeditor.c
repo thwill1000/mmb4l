@@ -399,17 +399,16 @@ static MmResult pmeditor_print_func_keys(PmEditor *self) {
             return mmresult_ex(kInternalFault, "Unknown editor mode: %d", self->mode);            
     }
 
-    const int old_x = self->cx;
-    const int old_y = self->cy;
+    PmEditorPos old_pos = POS_FROM(*self);
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height));
     ON_FAILURE_RETURN(pmeditor_draw_line(self));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightStatus));
     ON_FAILURE_RETURN(display_puts(p));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
-    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, old_x, old_y));
 
-    return kOk;
+    // Restore cursor position
+    return pmeditor_set_cursor_pos(self, old_pos.cx, old_pos.cy);
 }
 
 /**
@@ -758,6 +757,8 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
  * @return       kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_print_status(PmEditor *self) {
+    PmEditorPos old_pos = POS_FROM(*self);
+
     char s[64];
     snprintf(s, 64, "Ln: %d  Col: %d       ",
              self->py + self->cy + 1,
@@ -769,7 +770,8 @@ static MmResult pmeditor_print_status(PmEditor *self) {
     ON_FAILURE_RETURN(display_puts(s));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
 
-    return pmeditor_position_cursor(self, self->txtp);
+    // Restore cursor position
+    return pmeditor_set_cursor_pos(self, old_pos.cx, old_pos.cy);
 }
 
 /**
@@ -1167,7 +1169,8 @@ MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_print_screen_impl(PmEditor *self) {
-    LOG_DEBUG("entered");
+    PmEditorPos old_pos = POS_FROM(*self);
+
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, 0));
     for (int i = 0; i < self->height; i++) {
         ON_FAILURE_RETURN(pmeditor_print_line(self, i + self->py));
@@ -1179,7 +1182,8 @@ MmResult pmeditor_print_screen_impl(PmEditor *self) {
     // Consume any keystrokes accumulated while redrawing the screen
     while (console_getc() != -1) {}
 
-    return kOk;
+    // Restore cursor position
+    return pmeditor_set_cursor_pos(self, old_pos.cx, old_pos.cy);
 }
 
 /**
@@ -1582,6 +1586,7 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned
  * @return          kOk on success, or an error code on failure.
  */
 MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos) {
+    LOG_DEBUG("entered");
     // Determine bounds of selection to highlight
     if (self->mark > self->txtp) {
         self->mark_lb = self->txtp - 1;
@@ -1598,6 +1603,11 @@ MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos) {
     const unsigned end_line = max(self->py + self->cy, old_pos->py + old_pos->cy);
     const unsigned num_lines = end_line - start_line + 1;
 
+    LOG_DEBUG("start_line=%d, end_line=%d, num_lines=%d", start_line, end_line, num_lines);
+
+    int old_cx = self->cx;
+    int old_cy = self->cy;
+
     // Move display cursor to position to print first line
     const int cy = start_line - self->py;
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, cy));
@@ -1605,8 +1615,8 @@ MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos) {
     // Actually print the lines
     ON_FAILURE_RETURN(pmeditor_print_lines(self, start_line, num_lines));
 
-    // Restore the position of the cursor
-    return pmeditor_position_cursor(self, self->mark);
+    // Restore cursor position
+    return pmeditor_set_cursor_pos(self, old_cx, old_cy);
 }
 
 /**
@@ -2120,12 +2130,7 @@ MmResult pmeditor_move_to_end(PmEditor *self) {
 
     if (py != self->py) {
         self->py = py;
-        // TODO: pmeditor_print_screen() should not have side-effect of changing cx, cy.
-        const int old_cx = cx;
-        const int old_cy = cy;
         ON_FAILURE_RETURN(pmeditor_print_screen(self));
-        cx = old_cx;
-        cy = old_cy;
     }
 
     self->txtp = p;
