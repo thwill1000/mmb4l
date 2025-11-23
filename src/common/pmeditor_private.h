@@ -143,7 +143,6 @@ typedef struct {
 extern MmResult (*pmeditor_display_msg)(PmEditor *, const char *);
 extern MmResult (*pmeditor_highlight)(PmEditor *, HighlightType);
 extern MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned);
-extern MmResult (*pmeditor_print_screen)(PmEditor *);
 
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);

@@ -81,13 +81,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 MmResult pmeditor_display_msg_impl(PmEditor *, const char *);
 MmResult pmeditor_highlight_impl(PmEditor *, HighlightType);
 MmResult pmeditor_print_lines_impl(PmEditor *, unsigned, unsigned);
-MmResult pmeditor_print_screen_impl(PmEditor *);
 
 // Pointers to functions we want to override in unit-tests
 MmResult (*pmeditor_display_msg)(PmEditor *, const char *) = pmeditor_display_msg_impl;
 MmResult (*pmeditor_highlight)(PmEditor *, HighlightType) = pmeditor_highlight_impl;
 MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned) = pmeditor_print_lines_impl;
-MmResult (*pmeditor_print_screen)(PmEditor *) = pmeditor_print_screen_impl;
 
 /**
  * Restores all overridable functions to their real implementations.
@@ -96,7 +94,6 @@ void pmeditor_restore_fn_pointers() {
     pmeditor_display_msg = pmeditor_display_msg_impl;
     pmeditor_highlight = pmeditor_highlight_impl;
     pmeditor_print_lines = pmeditor_print_lines_impl;
-    pmeditor_print_screen = pmeditor_print_screen_impl;
 }
 
 /**
@@ -1173,7 +1170,7 @@ static inline MmResult pmeditor_print_line(PmEditor *self, int line) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-MmResult pmeditor_print_screen_impl(PmEditor *self) {
+MmResult pmeditor_print_screen(PmEditor *self) {
     PmEditorPos old_pos = POS_FROM(*self);
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, 0));
     ON_FAILURE_RETURN(pmeditor_print_lines(self, self->py, self->height));

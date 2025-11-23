@@ -50,7 +50,6 @@ typedef struct {
 } PrintLinesCapture;
 
 static char display_msg_capture[STRINGSIZE];
-static int print_screen_call_count = 0;
 static PrintLinesCapture print_lines_capture;
 
 MmResult pmeditor_test_display_msg(PmEditor *self, const char *msg) {
@@ -66,10 +65,6 @@ MmResult pmeditor_test_print_lines(PmEditor *self, unsigned start_line, unsigned
     return kOk;
 }
 
-MmResult pmeditor_test_print_screen(PmEditor *self) {
-    print_screen_call_count++;
-    return kOk;
-}
 
 } // extern "C"
 
@@ -88,7 +83,6 @@ protected:
         pmeditor_display_msg = pmeditor_test_display_msg;
         // pmeditor_print_line = pmeditor_test_print_line;
         pmeditor_print_lines = pmeditor_test_print_lines;
-        pmeditor_print_screen = pmeditor_test_print_screen;
 
         // Initialize options
         mmb_options.syntax_highlight = true;
@@ -101,7 +95,6 @@ protected:
         // Reset mock state
         memset(display_msg_capture, 0, sizeof(display_msg_capture));
         memset(self->keys, 0, sizeof(self->keys));
-        print_screen_call_count = 0;
         print_lines_capture = { .calls = 0, .start = -1, .num = -1, .cy = -1 };
 
         // Initialize command and function token tables (for syntax highlighting)
@@ -154,6 +147,9 @@ protected:
         EXPECT_EQ(expected.num, print_lines_capture.num) << "pmeditor_print_lines num lines argument mismatch"; \
         EXPECT_EQ(expected.cy, print_lines_capture.cy) << "pmeditor_print_lines cursor y-position mismatch"; \
     } while (0)
+
+#define EXPECT_PRINT_LINES_NOT_CALLED() \
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 0, .start = -1, .num = -1, .cy = -1}))
 
 #define EXPECT_TXTP_EQ(expected_offset) \
     do { \
@@ -2188,7 +2184,6 @@ TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineStartRedrawsScreen) {
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(REDRAW_SCREEN, redraw);
 
-    print_screen_call_count = 0;
     result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
@@ -2209,7 +2204,6 @@ TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineEndRedrawsScreen) {
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(REDRAW_SCREEN, redraw);
 
-    print_screen_call_count = 0;
     result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
@@ -2972,7 +2966,7 @@ TEST_F(PmEditorCmdCharTest, ScreenRedrawAfterMultilineCommentChange) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code /* more", self->buf);
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
 }
 
 // Test no redraw when insert returns REDRAW_NOTHING
@@ -2985,7 +2979,7 @@ TEST_F(PmEditorCmdCharTest, NoRedrawWhenInsertReturnsNothing) {
     MmResult result = pmeditor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 0, .start = -1, .num = -1, .cy = -1}));
+    EXPECT_PRINT_LINES_NOT_CALLED();
 }
 
 // Test cursor positioning after insert
@@ -6118,7 +6112,6 @@ TEST_F(PmEditorPrintSelectionTest, ConsecutiveCallsUpdateBounds) {
         SetTxtp(0);
         PmEditorPos old_pos = POS_FROM(*self);
         SetMark(3);
-        print_screen_call_count = 0;
 
         MmResult result = pmeditor_print_selection(self, &old_pos);
         EXPECT_EQ(kOk, result);
@@ -6624,7 +6617,7 @@ TEST_F(PmEditorCmdEnd, DoubleEndJumpsToEndOfFile) {
     EXPECT_TXTP_EQ(17); // At '\0' after "Line2"
     EXPECT_CURSOR_EQ(5, 2); // cx = 5 (length of "Line2"), cy = 2
     EXPECT_EQ(0, self->py); // Short buffer, py stays 0
-    EXPECT_EQ(0, print_screen_call_count); // No redraw - buffer fits on screen
+    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw - buffer fits on screen
 }
 
 // Test double END press from first line
@@ -6659,7 +6652,7 @@ TEST_F(PmEditorCmdEnd, DoubleEndWithManyLinesCalculatesPy) {
     // py = 30 - 23 + 1 = 8
     EXPECT_EQ(8, self->py);
     EXPECT_EQ(self->height - 1, self->cy); // cy = 22
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 8, .num = 23, .cy = 0}));
 }
 
 // Test double END with buffer shorter than screen height
@@ -6763,7 +6756,7 @@ TEST_F(PmEditorCmdEnd, DoubleEndAtEndDoesNothing) {
     EXPECT_EQ(kOk, result);
     EXPECT_TXTP_EQ(11); // Still at end
     EXPECT_CURSOR_EQ(11, 0);
-    EXPECT_EQ(0, print_screen_call_count); // No redraw (early return)
+    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw (early return)
 }
 
 // Test END from empty line (between two newlines)
@@ -6940,7 +6933,7 @@ TEST_F(PmEditorCmdHome, DoubleHomeJumpsToStartOfFile) {
     EXPECT_TXTP_EQ(0); // At start of buffer
     EXPECT_CURSOR_EQ(0, 0);
     EXPECT_EQ(0, self->py); // Viewport has not changed
-    EXPECT_EQ(0, print_screen_call_count); // No redraw required
+    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw required
 }
 
 // Test double HOME press from first line
@@ -6978,7 +6971,7 @@ TEST_F(PmEditorCmdHome, DoubleHomeFromFarDownInBuffer) {
     EXPECT_TXTP_EQ(0); // At start of buffer
     EXPECT_CURSOR_EQ(0, 0);
     EXPECT_EQ(0, self->py); // Reset to first page
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
 }
 
 // Test HOME does not modify buffer
@@ -7083,7 +7076,7 @@ TEST_F(PmEditorCmdHome, DoubleHomeAtStartDoesNothing) {
     EXPECT_EQ(kOk, result);
     EXPECT_TXTP_EQ(0); // Still at start
     EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_EQ(0, print_screen_call_count); // No redraw (early return)
+    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw (early return)
 }
 
 // Test HOME from empty line (between two newlines)
@@ -7410,6 +7403,364 @@ TEST_F(PmEditorCmdLeft, NoWrapInMiddleOfLine) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_page_down()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdPageDown : public PmEditorTestBase { };
+
+// Test page down moves forward one full screen
+TEST_F(PmEditorCmdPageDown, MoveForwardOneFullScreen) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "Line" + std::to_string(i) + "\n";
+    }
+    SetBuffer(content.c_str());
+
+    // Position at line 5, column 2
+    self->py = 0;
+    self->cy = 5;
+    self->cx = 2;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->height, self->py); // Moved forward by height
+    EXPECT_EQ(2, self->cx); // Column preserved
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 23, .num = 23, .cy = 0}));
+}
+
+// Test page down when already showing bottom of file queues END END
+TEST_F(PmEditorCmdPageDown, QueuesEndEndWhenAtBottom) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    self->py = 0;
+    self->cy = 1;
+    SetTxtp(6); // At start of "Line1"
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(END, END, '\0');
+}
+
+// Test page down near bottom positions to show last page
+TEST_F(PmEditorCmdPageDown, NearBottomPositionsToShowLastPage) {
+    // Create buffer with 35 lines
+    std::string content;
+    for (int i = 0; i < 35; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    // num_lines = 36, height = 23
+    // Position at py = 5
+    // Check: 36 <= 5 + 23 + 1 → 36 <= 29 → false (will scroll)
+    self->py = 5;
+    self->cy = 3;
+    self->cx = 2;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should move to py = 36 - 23 = 13 (final position showing last page)
+    EXPECT_EQ(13, self->py);
+    EXPECT_EQ(2, self->cx);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 13, .num = 23, .cy = 0}));
+}
+
+// Test page down maintains column position
+TEST_F(PmEditorCmdPageDown, MaintainsColumnPosition) {
+    // Create buffer
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "ABCDEFGHIJ\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 5;
+    self->cy = 3;
+    self->cx = 7;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(7, self->cx); // Column preserved
+}
+
+// Test page down to shorter line stops at end of line
+TEST_F(PmEditorCmdPageDown, StopsAtEndOfShorterLine) {
+    // Create buffer with varying line lengths
+    std::string content;
+    for (int i = 0; i < 60; i++) {
+        if (i < 30) {
+            content += "ABCDEFGHIJ\n"; // Long lines
+        } else {
+            content += "XX\n"; // Short lines
+        }
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 5;
+    self->cy = 3;
+    self->cx = 8; // Column 8 (beyond short line length)
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, self->cx); // Stopped at end of "XX"
+}
+
+// Test page down does not modify buffer
+TEST_F(PmEditorCmdPageDown, DoesNotModifyBuffer) {
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    const std::string original = content;
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = 5;
+    SetTxtp(25);
+    self->cx = 2;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(original.c_str(), self->buf);
+}
+
+// Test page down from first page to second page
+TEST_F(PmEditorCmdPageDown, FromFirstPageToSecondPage) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    // On first page
+    self->py = 0;
+    self->cy = 10;
+    self->cx = 1;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->height, self->py); // Moved to second page
+    EXPECT_EQ(1, self->cx);
+}
+
+// Test page down updates txtp correctly
+TEST_F(PmEditorCmdPageDown, UpdatesTxtpCorrectly) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "ABCD\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 5;
+    self->cy = 3;
+    self->cx = 2;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // After page down, should be at line (8 + height) = 31, column 2
+    char *expected = self->buf;
+    for (int i = 0; i < 8 + self->height; i++) {
+        while (*expected != '\n') expected++;
+        expected++;
+    }
+    expected += 2;
+    EXPECT_EQ(expected, self->txtp);
+}
+
+// Test page down at bottom with last line visible queues END END
+// Test page down at bottom with last line visible queues END END
+TEST_F(PmEditorCmdPageDown, AtBottomQueuesEndEnd) {
+    // Create buffer that fits on screen with no room to scroll
+    std::string content;
+    for (int i = 0; i < self->height; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    // num_lines = height + 1 (e.g., 24 with height=23)
+    // py + height + 1 = 0 + 23 + 1 = 24
+    // Condition: num_lines <= py + height + 1 → 24 <= 24 → true
+
+    self->py = 0;
+    self->cy = 5;
+    SetTxtp(25);
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(END, END, '\0');
+}
+
+// Test page down preserves cy
+TEST_F(PmEditorCmdPageDown, PreservesCy) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = 10;
+    self->cx = 2;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(10, self->cy); // cy unchanged
+}
+
+// Test page down with empty lines
+TEST_F(PmEditorCmdPageDown, WithEmptyLines) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        if (i % 5 == 0) {
+            content += "\n"; // Empty line
+        } else {
+            content += "Line\n";
+        }
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = 5;
+    self->cx = 2;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->height, self->py);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 23, .num = 23, .cy = 0}));
+}
+
+// Test page down handles end of buffer without trailing newline
+TEST_F(PmEditorCmdPageDown, HandlesEndWithoutTrailingNewline) {
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    content += "LastLine"; // No trailing newline
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = 5;
+    self->cx = 2;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(8, self->py);
+}
+
+// Test page down compensates when at end of line
+TEST_F(PmEditorCmdPageDown, CompensatesWhenAtEndOfLine) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = 5;
+    self->cx = 4; // At '\n'
+    // TODO
+    self->txtp = self->buf;
+    for (int i = 0; i < 5; i++) {
+        while (*self->txtp != '\n') self->txtp++;
+        self->txtp++;
+    }
+    // Move back to newline
+    self->txtp--;
+    while (*(self->txtp - 1) != '\n' && self->txtp > self->buf) self->txtp--;
+    while (*self->txtp != '\n') self->txtp++;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should have compensated: num_lines decreased by 1 in loop
+    EXPECT_EQ(self->height, self->py);
+}
+
+// Test page down when remaining lines less than full screen
+TEST_F(PmEditorCmdPageDown, WhenRemainingLinesLessThanScreen) {
+    std::string content;
+    for (int i = 0; i < 35; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 10;
+    self->cy = 5;
+    self->cx = 0;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // num_lines = 36, height = 23
+    // num_lines - height = 13, so py should be 13
+    EXPECT_EQ(36 - self->height, self->py);
+}
+
+// Test page down in single page buffer queues END END
+TEST_F(PmEditorCmdPageDown, SinglePageBufferQueuesEndEnd) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 0;
+    self->cy = 1;
+    SetTxtp(6);
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(END, END, '\0');
+}
+
+// Test page down moves txtp to start of line then to column
+TEST_F(PmEditorCmdPageDown, MovesTxtpToStartThenColumn) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "ABCDEFGH\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = 2;
+    self->cx = 5;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // TODO
+    // Should be at line (2 + height), column 5
+    char *expected_line_start = self->buf;
+    for (int i = 0; i < 2 + self->height; i++) {
+        while (*expected_line_start != '\n') expected_line_start++;
+        expected_line_start++;
+    }
+    EXPECT_EQ(expected_line_start + 5, self->txtp);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Tests for pmeditor_cmd_page_up()
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -7436,7 +7787,7 @@ TEST_F(PmEditorCmdPageUp, MoveBackOneFullScreen) {
     EXPECT_EQ(0, self->py); // Moved back by height (10 - 20 = 0, clamped)
     EXPECT_CURSOR_EQ(2, 10); // cx and cy preserved
     EXPECT_TXTP_CONSISTENT();
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
 }
 
 // Test page up when already showing top of file queues HOME HOME
@@ -7460,7 +7811,6 @@ TEST_F(PmEditorCmdPageUp, MovesLessThanFullScreenNearTop) {
     }
     SetBuffer(content.c_str());
 
-    // Position at py=5 (less than height from top)
     self->py = 5;
     self->cx = 2;
     self->cy = 3;
@@ -7472,7 +7822,7 @@ TEST_F(PmEditorCmdPageUp, MovesLessThanFullScreenNearTop) {
     EXPECT_EQ(0, self->py); // Moved to top (can't go negative)
     EXPECT_CURSOR_EQ(2, 3); // Column and row preserved
     EXPECT_TXTP_CONSISTENT();
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
 }
 
 // Test page up to shorter line stops at end of line
@@ -7626,10 +7976,10 @@ TEST_F(PmEditorCmdPageUp, WithEmptyLines) {
     MmResult result = pmeditor_cmd_page_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(30 - self->height, self->py);
+    EXPECT_EQ(7, self->py);
     EXPECT_CURSOR_EQ(2, 6);
     EXPECT_TXTP_CONSISTENT();
-    EXPECT_EQ(1, print_screen_call_count);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 7, .num = 23, .cy = 0}));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
