@@ -4422,99 +4422,99 @@ class PmEditorMarkDown : public PmEditorTestBase { };
 // Test moving mark down from first line
 TEST_F(PmEditorMarkDown, MoveDownFromFirstLine) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(0); // Start of "Line0"
+    SetTxtp(0); // Start of "Line0"
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 6, self->mark); // Start of "Line1"
+    EXPECT_TXTP_EQ(6); // Start of "Line1"
     EXPECT_CURSOR_EQ(0, 1);
 }
 
 // Test moving mark down from middle of first line
 TEST_F(PmEditorMarkDown, MoveDownFromMiddleOfFirstLine) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(2); // At 'n' in "Line0"
+    SetTxtp(2); // At 'n' in "Line0"
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 8, self->mark); // At 'n' in "Line1"
+    EXPECT_TXTP_EQ(8); // At 'n' in "Line1"
     EXPECT_CURSOR_EQ(2, 1);
 }
 
 // Test moving mark down to shorter line
 TEST_F(PmEditorMarkDown, MoveDownToShorterLine) {
     SetBuffer("LongLine\nShort\nLine2");
-    SetMark(7); // At 'e' in "LongLine"
+    SetTxtp(7); // At 'e' in "LongLine"
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 14, self->mark); // At end of "Short" (position 5)
+    EXPECT_TXTP_EQ(14); // At end of "Short" (position 5)
     EXPECT_CURSOR_EQ(5, 1); // cx adjusted to end of shorter line
 }
 
 // Test moving mark down to longer line
 TEST_F(PmEditorMarkDown, MoveDownToLongerLine) {
     SetBuffer("Short\nLongLine\nLine2");
-    SetMark(3); // At 'r' in "Short"
+    SetTxtp(3); // At 'r' in "Short"
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 9, self->mark); // At 'g' in "LongLine"
+    EXPECT_TXTP_EQ(9); // At 'g' in "LongLine"
     EXPECT_CURSOR_EQ(3, 1);
 }
 
 // Test moving down when cy at height - 1
 TEST_F(PmEditorMarkDown, MovingDownFromBottomOfDisplayMovesToEnd) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
-    SetMark(12); // Before the 'L' of "Line2"
+    SetTxtp(12); // Before the 'L' of "Line2"
     self->height = 3;
     const int old_cy = self->cy;
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_MARK_EQ(17); // Moves to end of line
+    EXPECT_TXTP_EQ(17); // Moves to end of line
     EXPECT_CURSOR_EQ(5, old_cy); // cy unchanged
 }
 
 // Test moving down from last line of file
 TEST_F(PmEditorMarkDown, MovingDownFromLastLineMovesToEnd) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(12); // Before the 'L' of "Line2"
+    SetTxtp(12); // Before the 'L' of "Line2"
     const int old_cy = self->cy;
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_MARK_EQ(17); // Moves to end of line
+    EXPECT_TXTP_EQ(17); // Moves to end of line
     EXPECT_CURSOR_EQ(5, old_cy); // cy unchanged
 }
 
 // Test moving down from end of line
 TEST_F(PmEditorMarkDown, MoveDownFromEndOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(5); // At newline after "Line0"
+    SetTxtp(5); // At newline after "Line0"
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 11, self->mark); // At newline after "Line1"
+    EXPECT_TXTP_EQ(11); // At newline after "Line1"
     EXPECT_CURSOR_EQ(5, 1);
 }
 
 // Test moving down in single line buffer
 TEST_F(PmEditorMarkDown, MoveDownInSingleLineBuffer) {
     SetBuffer("OnlyOneLine");
-    SetMark(5);
+    SetTxtp(5);
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_MARK_EQ(11); // Should move to end of line
+    EXPECT_TXTP_EQ(11); // Should move to end of line
     EXPECT_CURSOR_EQ(11, 0);
 }
 
@@ -4522,12 +4522,11 @@ TEST_F(PmEditorMarkDown, MoveDownInSingleLineBuffer) {
 TEST_F(PmEditorMarkDown, MoveDownInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0);
-    SetMark(0);
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Should not move
+    EXPECT_TXTP_EQ(0); // Should not move
     EXPECT_CURSOR_EQ(0, 0);
 }
 
@@ -4535,50 +4534,47 @@ TEST_F(PmEditorMarkDown, MoveDownInEmptyBuffer) {
 TEST_F(PmEditorMarkDown, MoveDownMultipleTimes) {
     SetBuffer("Line0\nLine0\nLine1\nLine2");
     SetTxtp(0);
-    SetMark(0);
 
     // Move to Line1
     MmResult result1 = pmeditor_mark_down(self);
     EXPECT_EQ(kOk, result1);
-    EXPECT_EQ(self->buf + 6, self->mark);
+    EXPECT_TXTP_EQ(6);
     EXPECT_EQ(1, self->cy);
 
     // Move to Line2
     MmResult result2 = pmeditor_mark_down(self);
     EXPECT_EQ(kOk, result2);
-    EXPECT_EQ(self->buf + 12, self->mark);
+    EXPECT_TXTP_EQ(12);
     EXPECT_EQ(2, self->cy);
 
     // Move to Line3
     MmResult result3 = pmeditor_mark_down(self);
     EXPECT_EQ(kOk, result3);
-    EXPECT_EQ(self->buf + 18, self->mark);
+    EXPECT_TXTP_EQ(18);
     EXPECT_EQ(3, self->cy);
 }
 
 // Test moving down to empty line
 TEST_F(PmEditorMarkDown, MoveDownToEmptyLine) {
     SetBuffer("Line0\n\nLine2");
-    SetTxtp(0);
-    SetMark(2);
+    SetTxtp(2);
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 6, self->mark); // At newline of empty line
+    EXPECT_TXTP_EQ(6); // At newline of empty line
     EXPECT_CURSOR_EQ(0, 1); // cx adjusted to 0 for empty line
 }
 
 // Test moving down from empty line
 TEST_F(PmEditorMarkDown, MoveDownFromEmptyLine) {
     SetBuffer("Line0\n\nLine2");
-    SetTxtp(0);
-    SetMark(6); // At second newline (empty line)
+    SetTxtp(6); // At second newline (empty line)
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 7, self->mark); // At 'L' in "Line2"
+    EXPECT_TXTP_EQ(7); // At 'L' in "Line2"
     EXPECT_CURSOR_EQ(0, 2);
 }
 
@@ -4587,14 +4583,14 @@ TEST_F(PmEditorMarkDown, LineTooLongError) {
     std::string long_line(self->width + 10, 'X');
     std::string content = "Short\n" + long_line + "\nLine2";
     SetBuffer(content.c_str());
-    SetMark(9); // 3 characters into the long line
+    SetTxtp(9); // 3 characters into the long line
 
     MmResult result = pmeditor_mark_down(self);
 
     // Should call pmeditor_display_msg and return kOk
     EXPECT_EQ(kOk, result);
     // Mark and cursor should not change on error
-    EXPECT_EQ(self->buf + 9, self->mark);
+    EXPECT_TXTP_EQ(9);
     EXPECT_CURSOR_EQ(3, 1);
 }
 
@@ -4602,7 +4598,7 @@ TEST_F(PmEditorMarkDown, LineTooLongError) {
 TEST_F(PmEditorMarkDown, MoveDownDoesNotModifyBuffer) {
     const std::string original = "Line0\nLine1\nLine2";
     SetBuffer(original.c_str());
-    SetMark(0);
+    SetTxtp(0);
 
     MmResult result = pmeditor_mark_down(self);
 
@@ -4613,47 +4609,47 @@ TEST_F(PmEditorMarkDown, MoveDownDoesNotModifyBuffer) {
 // Test moving down when mark exactly at end of buffer
 TEST_F(PmEditorMarkDown, MoveDownWhenMarkAtEndOfBuffer) {
     SetBuffer("Line0\nLine1");
-    SetMark(11); // After '1' in "Line1"
+    SetTxtp(11); // After '1' in "Line1"
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 11, self->mark); // Should not move
+    EXPECT_TXTP_EQ(11); // Should not move
 }
 
 // Test moving down maintains column position across equal length lines
 TEST_F(PmEditorMarkDown, MoveDownMaintainsColumnAcrossEqualLines) {
     SetBuffer("ABCDE\nFGHIJ\nKLMNO");
-    SetMark(3); // At 'D' in "ABCDE"
+    SetTxtp(3); // At 'D' in "ABCDE"
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 9, self->mark); // At 'I'
+    EXPECT_TXTP_EQ(9); // At 'I'
     EXPECT_CURSOR_EQ(3, 1);
 }
 
 // Test moving down to line with only newline
 TEST_F(PmEditorMarkDown, MoveDownToLineWithOnlyNewline) {
     SetBuffer("Line0\n\n");
-    SetMark(2);
+    SetTxtp(2);
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 6, self->mark); // At second newline
+    EXPECT_TXTP_EQ(6); // At second newline
     EXPECT_CURSOR_EQ(0, 1); // cx adjusted to 0
 }
 
 // Test moving down when cy near height limit
 TEST_F(PmEditorMarkDown, MoveDownNearHeightLimit) {
     SetBuffer("Line0\nLine1\nLine2\nLine2");
-    SetMark(12); // At 'L' in "Line2"
+    SetTxtp(12); // At 'L' in "Line2"
 
     {
         MmResult result = pmeditor_mark_down(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_MARK_EQ(18);
+        EXPECT_TXTP_EQ(18);
         EXPECT_CURSOR_EQ(0, 3); // Should move to bottom
     }
 
@@ -4661,7 +4657,7 @@ TEST_F(PmEditorMarkDown, MoveDownNearHeightLimit) {
     {
         MmResult result = pmeditor_mark_down(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_MARK_EQ(23);
+        EXPECT_TXTP_EQ(23);
         EXPECT_CURSOR_EQ(5, 3); // Should move to end of line
     }
 }
@@ -4669,36 +4665,36 @@ TEST_F(PmEditorMarkDown, MoveDownNearHeightLimit) {
 // Test moving down from column beyond next line length
 TEST_F(PmEditorMarkDown, MoveDownFromColumnBeyondNextLineLength) {
     SetBuffer("VeryLongLine\nABC\nLine2");
-    SetMark(10); // Near end of "VeryLongLine"
+    SetTxtp(10); // Near end of "VeryLongLine"
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 16, self->mark); // At 'C' (end of "ABC")
+    EXPECT_TXTP_EQ(16); // At 'C' (end of "ABC")
     EXPECT_CURSOR_EQ(3, 1); // cx adjusted to end of line
 }
 
 // Test moving down in buffer with only newlines
 TEST_F(PmEditorMarkDown, MoveDownInBufferWithOnlyNewlines) {
     SetBuffer("\n\n\n");
-    SetMark(0);
+    SetTxtp(0);
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 1, self->mark); // Move to second newline
+    EXPECT_TXTP_EQ(1); // Move to second newline
     EXPECT_CURSOR_EQ(0, 1);
 }
 
 // Test moving down when at newline character itself
 TEST_F(PmEditorMarkDown, MoveDownWhenAtNewlineCharacter) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(5); // At first newline
+    SetTxtp(5); // At first newline
 
     MmResult result = pmeditor_mark_down(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 11, self->mark); // At second newline
+    EXPECT_TXTP_EQ(11); // At second newline
     EXPECT_CURSOR_EQ(5, 1);
 }
 
@@ -5166,61 +5162,61 @@ class PmEditorMarkLeft : public PmEditorTestBase { };
 // Test moving mark left from end of buffer
 TEST_F(PmEditorMarkLeft, MoveLeftFromEndOfBuffer) {
     SetBuffer("Hello World");
-    SetMark(11); // At '\0'
+    SetTxtp(11); // At '\0'
 
     MmResult result = pmeditor_mark_left(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 10, self->mark);
+    EXPECT_TXTP_EQ(10);
     EXPECT_CURSOR_EQ(10, 0);
 }
 
 // Test moving mark left in middle of line
 TEST_F(PmEditorMarkLeft, MoveLeftInMiddleOfLine) {
     SetBuffer("Hello World");
-    SetMark(6); // At 'W'
+    SetTxtp(6); // At 'W'
 
     MmResult result = pmeditor_mark_left(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark);
+    EXPECT_TXTP_EQ(5);
     EXPECT_CURSOR_EQ(5, 0);
 }
 
 // Test moving mark left near start of line
 TEST_F(PmEditorMarkLeft, MoveLeftNearStartOfLine) {
     SetBuffer("Hello World");
-    SetMark(1); // At 'e'
+    SetTxtp(1); // At 'e'
 
     MmResult result = pmeditor_mark_left(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark);
+    EXPECT_TXTP_EQ(0);
     EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test can move left just before newline
 TEST_F(PmEditorMarkLeft, CanMoveLeftAtNewline) {
     SetBuffer("Hello\nWorld");
-    SetMark(5); // At '\n'
+    SetTxtp(5); // At '\n'
 
     MmResult result = pmeditor_mark_left(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 4, self->mark);
+    EXPECT_TXTP_EQ(4);
     EXPECT_CURSOR_EQ(4, 0);
 }
 
 // Test moving left multiple times in sequence
 TEST_F(PmEditorMarkLeft, MoveLeftMultipleTimes) {
     SetBuffer("ABCDEF");
-    SetMark(5); // At 'F'
+    SetTxtp(5); // At 'F'
 
     // Move to 'E'
     {
         MmResult result = pmeditor_mark_left(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 4, self->mark);
+        EXPECT_TXTP_EQ(4);
         EXPECT_CURSOR_EQ(4, 0);
     }
 
@@ -5228,7 +5224,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftMultipleTimes) {
     {
         MmResult result = pmeditor_mark_left(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 3, self->mark);
+        EXPECT_TXTP_EQ(3);
         EXPECT_CURSOR_EQ(3, 0);
     }
 
@@ -5236,7 +5232,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftMultipleTimes) {
     {
         MmResult result = pmeditor_mark_left(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 2, self->mark);
+        EXPECT_TXTP_EQ(2);
         EXPECT_CURSOR_EQ(2, 0);
     }
 }
@@ -5244,43 +5240,43 @@ TEST_F(PmEditorMarkLeft, MoveLeftMultipleTimes) {
 // Test moving left in empty buffer
 TEST_F(PmEditorMarkLeft, MoveLeftInEmptyBuffer) {
     SetBuffer("");
-    SetMark(0); // At '\0'
+    SetTxtp(0); // At '\0'
 
     MmResult result = pmeditor_mark_left(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark);
+    EXPECT_TXTP_EQ(0);
     EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving left in single character buffer
 TEST_F(PmEditorMarkLeft, MoveLeftInSingleCharBuffer) {
     SetBuffer("A");
-    SetMark(1); // At '\0'
+    SetTxtp(1); // At '\0'
 
     MmResult result = pmeditor_mark_left(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Move to 'A'
+    EXPECT_TXTP_EQ(0); // Move to 'A'
     EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving left with multiline buffer
 TEST_F(PmEditorMarkLeft, MoveLeftInMultilineBuffer) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(9); // At 'e' in Line2
+    SetTxtp(9); // At 'e' in Line2
 
     MmResult result = pmeditor_mark_left(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 8, self->mark);
+    EXPECT_TXTP_EQ(8);
     EXPECT_CURSOR_EQ(2, 1);
 }
 
 // Test moving left preserves cy (vertical position)
 TEST_F(PmEditorMarkLeft, MoveLeftPreservesCy) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(9); // At 'e' in "Line1"
+    SetTxtp(9); // At 'e' in "Line1"
     self->cy = 7; // Some arbitrary cy value
 
     MmResult result = pmeditor_mark_left(self);
@@ -5293,7 +5289,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftPreservesCy) {
 TEST_F(PmEditorMarkLeft, MoveLeftDoesNotModifyBuffer) {
     const std::string original = "Hello World";
     SetBuffer(original.c_str());
-    SetMark(7);
+    SetTxtp(7);
 
     MmResult result = pmeditor_mark_left(self);
 
@@ -5304,25 +5300,25 @@ TEST_F(PmEditorMarkLeft, MoveLeftDoesNotModifyBuffer) {
 // Test moving left with cy > 0
 TEST_F(PmEditorMarkLeft, MoveLeftWithNonZeroCy) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(9); // At 'e' in "Line1"
+    SetTxtp(9); // At 'e' in "Line1"
 
     MmResult result = pmeditor_mark_left(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 8, self->mark);
+    EXPECT_TXTP_EQ(8);
     EXPECT_CURSOR_EQ(2, 1); // cy unchanged
 }
 
 // Test moving left all the way to start
 TEST_F(PmEditorMarkLeft, MoveLeftToStart) {
     SetBuffer("ABC");
-    SetMark(2); // At 'C'
+    SetTxtp(2); // At 'C'
 
     // Move to 'B'
     {
         MmResult result = pmeditor_mark_left(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 1, self->mark);
+        EXPECT_TXTP_EQ(1);
         EXPECT_CURSOR_EQ(1, 0);
     }
 
@@ -5330,7 +5326,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftToStart) {
     {
         MmResult result = pmeditor_mark_left(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf, self->mark);
+        EXPECT_TXTP_EQ(0);
         EXPECT_CURSOR_EQ(0, 0);
     }
 
@@ -5338,7 +5334,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftToStart) {
     {
         MmResult result = pmeditor_mark_left(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf, self->mark); // Should not move
+        EXPECT_TXTP_EQ(0); // Should not move
         EXPECT_CURSOR_EQ(0, 0);
     }
 }
@@ -5346,13 +5342,13 @@ TEST_F(PmEditorMarkLeft, MoveLeftToStart) {
 // Test moving left stops at newline
 TEST_F(PmEditorMarkLeft, StopsAtNewline) {
     SetBuffer("ABC\nDEF");
-    SetMark(5); // At 'E'
+    SetTxtp(5); // At 'E'
 
     // Move to 'D'
     {
         MmResult result = pmeditor_mark_left(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 4, self->mark);
+        EXPECT_TXTP_EQ(4);
         EXPECT_CURSOR_EQ(0, 1);
     }
 
@@ -5360,7 +5356,7 @@ TEST_F(PmEditorMarkLeft, StopsAtNewline) {
     {
         MmResult result = pmeditor_mark_left(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 4, self->mark); // Should not move
+        EXPECT_TXTP_EQ(4); // Should not move
         EXPECT_CURSOR_EQ(0, 1);
     }
 }
@@ -5374,109 +5370,109 @@ class PmEditorMarkUp : public PmEditorTestBase { };
 // Test moving mark up from second line
 TEST_F(PmEditorMarkUp, MoveUpFromSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(6); // At 'L' in "Line1"
+    SetTxtp(6); // At 'L' in "Line1"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // At 'L' in "Line0"
+    EXPECT_TXTP_EQ(0); // At 'L' in "Line0"
     EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving mark up from middle of second line
 TEST_F(PmEditorMarkUp, MoveUpFromMiddleOfSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(8); // At 'n' in "Line1"
+    SetTxtp(8); // At 'n' in "Line1"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 2, self->mark); // At 'n' in "Line0"
+    EXPECT_TXTP_EQ(2); // At 'n' in "Line0"
     EXPECT_CURSOR_EQ(2, 0);
 }
 
 // Test moving mark up to shorter line
 TEST_F(PmEditorMarkUp, MoveUpToShorterLine) {
     SetBuffer("Short\nLongLine\nLine2");
-    SetMark(13); // At 'e' in LongLine
+    SetTxtp(13); // At 'e' in LongLine
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // At end of "Short"
+    EXPECT_TXTP_EQ(5); // At end of "Short"
     EXPECT_CURSOR_EQ(5, 0); // cx adjusted to end of shorter line
 }
 
 // Test moving mark up to longer line
 TEST_F(PmEditorMarkUp, MoveUpToLongerLine) {
     SetBuffer("LongLine\nShort\nLine2");
-    SetMark(12); // At 'r' in "Short"
+    SetTxtp(12); // At 'r' in "Short"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 3, self->mark); // At 'g' in "LongLine"
+    EXPECT_TXTP_EQ(3); // At 'g' in "LongLine"
     EXPECT_CURSOR_EQ(3, 0);
 }
 
 // Test that moving up from the first line moves to start
 TEST_F(PmEditorMarkUp, MovingUpFromFirstLineMovesToStart) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(2); // At 'n' in "Line 0"
+    SetTxtp(2); // At 'n' in "Line 0"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark);
+    EXPECT_TXTP_EQ(0);
     EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving up from end of line
 TEST_F(PmEditorMarkUp, MoveUpFromEndOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(11); // At newline after "Line1"
+    SetTxtp(11); // At newline after "Line1"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // At newline after "Line0"
+    EXPECT_TXTP_EQ(5); // At newline after "Line0"
     EXPECT_CURSOR_EQ(5, 0);
 }
 
 // Test moving up in two line buffer
 TEST_F(PmEditorMarkUp, MoveUpInTwoLineBuffer) {
     SetBuffer("Line0\nLine1");
-    SetMark(7); // At 'i' in "Line1"
+    SetTxtp(7); // At 'i' in "Line1"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 1, self->mark); // At 'i' in "Line0"
+    EXPECT_TXTP_EQ(1); // At 'i' in "Line0"
     EXPECT_CURSOR_EQ(1, 0);
 }
 
 // Test moving up in empty buffer
 TEST_F(PmEditorMarkUp, MoveUpInEmptyBuffer) {
     SetBuffer("");
-    SetMark(0);
+    SetTxtp(0);
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Should not move
+    EXPECT_TXTP_EQ(0); // Should not move
     EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving up multiple times in sequence
 TEST_F(PmEditorMarkUp, MoveUpMultipleTimes) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
-    SetMark(18); // At 'L' in "Line3"
+    SetTxtp(18); // At 'L' in "Line3"
 
     // Move to "Line2"
     {
         MmResult result = pmeditor_mark_up(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 12, self->mark);
+        EXPECT_TXTP_EQ(12);
         EXPECT_CURSOR_EQ(0, 2);
     }
 
@@ -5484,7 +5480,7 @@ TEST_F(PmEditorMarkUp, MoveUpMultipleTimes) {
     {
         MmResult result = pmeditor_mark_up(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 6, self->mark);
+        EXPECT_TXTP_EQ(6);
         EXPECT_CURSOR_EQ(0, 1);
     }
 
@@ -5492,7 +5488,7 @@ TEST_F(PmEditorMarkUp, MoveUpMultipleTimes) {
     {
         MmResult result = pmeditor_mark_up(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf, self->mark);
+        EXPECT_TXTP_EQ(0);
         EXPECT_CURSOR_EQ(0, 0);
     }
 }
@@ -5500,24 +5496,24 @@ TEST_F(PmEditorMarkUp, MoveUpMultipleTimes) {
 // Test moving up to empty line
 TEST_F(PmEditorMarkUp, MoveUpToEmptyLine) {
     SetBuffer("Line0\n\nLine2");
-    SetMark(9); // At 'n' in "Line2"
+    SetTxtp(9); // At 'n' in "Line2"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 6, self->mark); // At newline of empty line
+    EXPECT_TXTP_EQ(6); // At newline of empty line
     EXPECT_CURSOR_EQ(0, 1); // cx adjusted to 0 for empty line
 }
 
 // Test moving up from empty line
 TEST_F(PmEditorMarkUp, MoveUpFromEmptyLine) {
     SetBuffer("Line0\n\nLine2");
-    SetMark(6); // At second newline (empty line)
+    SetTxtp(6); // At second newline (empty line)
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // At start of "Line0"
+    EXPECT_TXTP_EQ(0); // At start of "Line0"
     EXPECT_CURSOR_EQ(0, 0);
 }
 
@@ -5526,14 +5522,14 @@ TEST_F(PmEditorMarkUp, LineTooLongError) {
     std::string long_line(self->width + 10, 'X');
     std::string content = long_line + "\nShort\nLine2";
     SetBuffer(content.c_str());
-    SetMark(long_line.length() + 4); // In "Short"
+    SetTxtp(long_line.length() + 4); // In "Short"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ(" LINE IS TOO LONG ", display_msg_capture);
     // Mark and cursor should not change on error
-    EXPECT_EQ(self->buf + long_line.length() + 4, self->mark);
+    EXPECT_TXTP_EQ(long_line.length() + 4);
     EXPECT_CURSOR_EQ(3, 1);
 }
 
@@ -5541,7 +5537,7 @@ TEST_F(PmEditorMarkUp, LineTooLongError) {
 TEST_F(PmEditorMarkUp, MoveUpDoesNotModifyBuffer) {
     const std::string original = "Line0\nLine1\nLine2";
     SetBuffer(original.c_str());
-    SetMark(6);
+    SetTxtp(6);
 
     MmResult result = pmeditor_mark_up(self);
 
@@ -5552,92 +5548,92 @@ TEST_F(PmEditorMarkUp, MoveUpDoesNotModifyBuffer) {
 // Test moving up maintains column position across equal length lines
 TEST_F(PmEditorMarkUp, MoveUpMaintainsColumnAcrossEqualLines) {
     SetBuffer("ABCDE\nFGHIJ\nKLMNO");
-    SetMark(9); // At 'I' in second line
+    SetTxtp(9); // At 'I' in second line
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 3, self->mark); // At 'D' in first line
+    EXPECT_TXTP_EQ(3); // At 'D' in first line
     EXPECT_CURSOR_EQ(3, 0);
 }
 
 // Test moving up when mark at newline at end of current line
 TEST_F(PmEditorMarkUp, MoveUpWhenMarkAtNewlineEndOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(11); // At newline after "Line1"
+    SetTxtp(11); // At newline after "Line1"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
     // Should step back over terminator first, then move up
-    EXPECT_EQ(self->buf + 5, self->mark); // At newline after "Line0"
+    EXPECT_TXTP_EQ(5); // At newline after "Line0"
     EXPECT_CURSOR_EQ(5, 0);
 }
 
 // Test moving up from column beyond previous line length
 TEST_F(PmEditorMarkUp, MoveUpFromColumnBeyondPreviousLineLength) {
     SetBuffer("ABC\nVeryLongLine\nLine2");
-    SetMark(15); // At 'e' in "VeryLongLine"
+    SetTxtp(15); // At 'e' in "VeryLongLine"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 3, self->mark); // At end of "ABC" (position 3 - newline)
+    EXPECT_TXTP_EQ(3); // At end of "ABC" (position 3 - newline)
     EXPECT_CURSOR_EQ(3, 0); // Adjusted to end of line
 }
 
 // Test moving up in buffer with only newlines
 TEST_F(PmEditorMarkUp, MoveUpInBufferWithOnlyNewlines) {
     SetBuffer("\n\n\n");
-    SetMark(2); // At third newline
+    SetTxtp(2); // At third newline
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 1, self->mark); // Move to second newline
+    EXPECT_TXTP_EQ(1); // Move to second newline
     EXPECT_CURSOR_EQ(0, 1);
 }
 
 // Test moving up when at start of buffer
 TEST_F(PmEditorMarkUp, MoveUpWhenAtStartOfBuffer) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(0); // At start
+    SetTxtp(0); // At start
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Should not move
+    EXPECT_TXTP_EQ(0); // Should not move
     EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving up to line with only newline
 TEST_F(PmEditorMarkUp, MoveUpToLineWithOnlyNewline) {
     SetBuffer("\nLine1");
-    SetMark(3); // At 'n' in "Line1"
+    SetTxtp(3); // At 'n' in "Line1"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // At first newline
+    EXPECT_TXTP_EQ(0); // At first newline
     EXPECT_CURSOR_EQ(0, 0); // cx adjusted to 0
 }
 
 // Test moving up finds correct line start
 TEST_F(PmEditorMarkUp, MoveUpFindsCorrectLineStart) {
     SetBuffer("First\nSecond\nThird");
-    SetMark(9); // At 'o' in "Second"
+    SetTxtp(9); // At 'o' in "Second"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 3, self->mark); // At 's' in "First"
+    EXPECT_TXTP_EQ(3); // At 's' in "First"
     EXPECT_CURSOR_EQ(3, 0);
 }
 
 // Test moving up preserves py
 TEST_F(PmEditorMarkUp, MoveUpPreservesPy) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(6);
+    SetTxtp(6);
     self->py = 10; // Some vertical scroll
 
     MmResult result = pmeditor_mark_up(self);
@@ -5649,25 +5645,25 @@ TEST_F(PmEditorMarkUp, MoveUpPreservesPy) {
 // Test moving up handles stepping back from line end correctly
 TEST_F(PmEditorMarkUp, MoveUpHandlesSteppingBackFromLineEnd) {
     SetBuffer("ABCD\nEFGH\nIJKL");
-    SetMark(9);
+    SetTxtp(9);
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
     // Should step back from newline, then move up to previous line
-    EXPECT_EQ(self->buf + 4, self->mark); // At newline after "ABCD"
+    EXPECT_TXTP_EQ(4); // At newline after "ABCD"
     EXPECT_CURSOR_EQ(4, 0);
 }
 
 // Test moving up when previous line has trailing spaces
 TEST_F(PmEditorMarkUp, MoveUpToPreviousLineWithTrailingSpaces) {
     SetBuffer("ABC  \nDEF\nGHI");
-    SetMark(8); // At 'F' in "DEF"
+    SetTxtp(8); // At 'F' in "DEF"
 
     MmResult result = pmeditor_mark_up(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 2, self->mark); // At 'C' in "ABC  "
+    EXPECT_TXTP_EQ(2); // At 'C' in "ABC  "
     EXPECT_CURSOR_EQ(2, 0);
 }
 
@@ -5680,99 +5676,99 @@ class PmEditorMarkRight : public PmEditorTestBase { };
 // Test moving mark right from start of buffer
 TEST_F(PmEditorMarkRight, MoveRightFromStartOfBuffer) {
     SetBuffer("Hello World");
-    SetMark(0);
+    SetTxtp(0);
 
     MmResult result = pmeditor_mark_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 1, self->mark);
+    EXPECT_TXTP_EQ(1);
     EXPECT_CURSOR_EQ(1, 0);
 }
 
 // Test moving mark right in middle of line
 TEST_F(PmEditorMarkRight, MoveRightInMiddleOfLine) {
     SetBuffer("Hello World");
-    SetMark(5); // At space
+    SetTxtp(5); // At space
 
     MmResult result = pmeditor_mark_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 6, self->mark);
+    EXPECT_TXTP_EQ(6);
     EXPECT_CURSOR_EQ(6, 0);
 }
 
 // Test moving mark right at end of line (before newline)
 TEST_F(PmEditorMarkRight, MoveRightAtEndOfLine) {
     SetBuffer("Hello\nWorld");
-    SetMark(4); // At 'o' before newline
+    SetTxtp(4); // At 'o' before newline
 
     MmResult result = pmeditor_mark_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark);
+    EXPECT_TXTP_EQ(5);
     EXPECT_CURSOR_EQ(5, 0);
 }
 
 // Test cannot move right at newline character
 TEST_F(PmEditorMarkRight, CannotMoveRightAtNewline) {
     SetBuffer("Hello\nWorld");
-    SetMark(5); // At newline
+    SetTxtp(5); // At newline
 
     MmResult result = pmeditor_mark_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // Should not move
+    EXPECT_TXTP_EQ(5); // Should not move
     EXPECT_CURSOR_EQ(5, 0); // cx unchanged
 }
 
 // Test cannot move right at end of buffer
 TEST_F(PmEditorMarkRight, CannotMoveRightAtEndOfBuffer) {
     SetBuffer("Hello");
-    SetMark(5); // At '\0'
+    SetTxtp(5); // At '\0'
 
     MmResult result = pmeditor_mark_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // Should not move
+    EXPECT_TXTP_EQ(5); // Should not move
     EXPECT_CURSOR_EQ(5, 0); // cx unchanged
 }
 
 // Test cannot move right when cx at screen width
 TEST_F(PmEditorMarkRight, CannotMoveRightWhenAtScreenWidth) {
     SetBuffer("Hello World");
-    SetMark(5);
+    SetTxtp(5);
     self->cx = self->width; // At or beyond screen width
 
     MmResult result = pmeditor_mark_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // Should not move
+    EXPECT_TXTP_EQ(5); // Should not move
     EXPECT_CURSOR_EQ(self->width, 0); // cx unchanged
 }
 
 // Test cannot move right when cx exceeds screen width
 TEST_F(PmEditorMarkRight, CannotMoveRightWhenBeyondScreenWidth) {
     SetBuffer("Hello World");
-    SetMark(5);
+    SetTxtp(5);
     self->cx = self->width + 10;
 
     MmResult result = pmeditor_mark_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 5, self->mark); // Should not move
+    EXPECT_TXTP_EQ(5); // Should not move
     EXPECT_CURSOR_EQ(self->width + 10, 0); // cx unchanged
 }
 
 // Test moving right multiple times in sequence
 TEST_F(PmEditorMarkRight, MoveRightMultipleTimes) {
     SetBuffer("ABCDEF");
-    SetMark(0);
+    SetTxtp(0);
 
     // Move to 'B'
     {
         MmResult result = pmeditor_mark_right(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 1, self->mark);
+        EXPECT_TXTP_EQ(1);
         EXPECT_CURSOR_EQ(1, 0);
     }
 
@@ -5780,7 +5776,7 @@ TEST_F(PmEditorMarkRight, MoveRightMultipleTimes) {
     {
         MmResult result = pmeditor_mark_right(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 2, self->mark);
+        EXPECT_TXTP_EQ(2);
         EXPECT_CURSOR_EQ(2, 0);
     }
 
@@ -5788,7 +5784,7 @@ TEST_F(PmEditorMarkRight, MoveRightMultipleTimes) {
     {
         MmResult result = pmeditor_mark_right(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 3, self->mark);
+        EXPECT_TXTP_EQ(3);
         EXPECT_CURSOR_EQ(3, 0);
     }
 }
@@ -5796,24 +5792,24 @@ TEST_F(PmEditorMarkRight, MoveRightMultipleTimes) {
 // Test moving right in empty buffer
 TEST_F(PmEditorMarkRight, MoveRightInEmptyBuffer) {
     SetBuffer("");
-    SetMark(0);
+    SetTxtp(0);
 
     MmResult result = pmeditor_mark_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf, self->mark); // Should not move
+    EXPECT_TXTP_EQ(0); // Should not move
     EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test moving right in single character buffer
 TEST_F(PmEditorMarkRight, MoveRightInSingleCharBuffer) {
     SetBuffer("A");
-    SetMark(0);
+    SetTxtp(0);
 
     {
         MmResult result = pmeditor_mark_right(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 1, self->mark); // Move to end
+        EXPECT_TXTP_EQ(1); // Move to end
         EXPECT_CURSOR_EQ(1, 0);
     }
 
@@ -5821,7 +5817,7 @@ TEST_F(PmEditorMarkRight, MoveRightInSingleCharBuffer) {
     {
         MmResult result = pmeditor_mark_right(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 1, self->mark);
+        EXPECT_TXTP_EQ(1);
         EXPECT_CURSOR_EQ(1, 0);
     }
 }
@@ -5829,25 +5825,25 @@ TEST_F(PmEditorMarkRight, MoveRightInSingleCharBuffer) {
 // Test moving right with multiline buffer
 TEST_F(PmEditorMarkRight, MoveRightInMultilineBuffer) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(8); // At 'n' in "Line2"
+    SetTxtp(8); // At 'n' in "Line2"
 
     MmResult result = pmeditor_mark_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 9, self->mark);
+    EXPECT_TXTP_EQ(9);
     EXPECT_CURSOR_EQ(3, 1);
 }
 
 // Test moving right stops before newline at end of line
 TEST_F(PmEditorMarkRight, MoveRightStopsBeforeNewline) {
     SetBuffer("ABC\nDEF");
-    SetMark(2); // At 'C'
+    SetTxtp(2); // At 'C'
 
     // Move to newline position
     {
         MmResult result = pmeditor_mark_right(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 3, self->mark); // At newline
+        EXPECT_TXTP_EQ(3); // At newline
         EXPECT_CURSOR_EQ(3, 0);
     }
 
@@ -5855,7 +5851,7 @@ TEST_F(PmEditorMarkRight, MoveRightStopsBeforeNewline) {
     {
         MmResult result = pmeditor_mark_right(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 3, self->mark);
+        EXPECT_TXTP_EQ(3);
         EXPECT_CURSOR_EQ(3, 0);
     }
 }
@@ -5863,7 +5859,7 @@ TEST_F(PmEditorMarkRight, MoveRightStopsBeforeNewline) {
 // Test moving right preserves cy (vertical position)
 TEST_F(PmEditorMarkRight, MoveRightPreservesCy) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(8); // At 'n' in "Line1"
+    SetTxtp(8); // At 'n' in "Line1"
     self->cy = 5; // Some arbitrary cy value
 
     MmResult result = pmeditor_mark_right(self);
@@ -5875,13 +5871,13 @@ TEST_F(PmEditorMarkRight, MoveRightPreservesCy) {
 // Test moving right at exact screen width boundary
 TEST_F(PmEditorMarkRight, MoveRightAtExactWidthBoundary) {
     SetBuffer("Hello World and more text");
-    SetMark(10);
+    SetTxtp(10);
     self->width = 11; // One more than cursor
 
     {
         MmResult result = pmeditor_mark_right(self);
         EXPECT_EQ(kOk, result);
-        EXPECT_EQ(self->buf + 11, self->mark); // Should move
+        EXPECT_TXTP_EQ(11); // Should move
         EXPECT_CURSOR_EQ(self->width, 0); // cx now at width
     }
 
@@ -5889,7 +5885,7 @@ TEST_F(PmEditorMarkRight, MoveRightAtExactWidthBoundary) {
     {
         MmResult result2 = pmeditor_mark_right(self);
         EXPECT_EQ(kOk, result2);
-        EXPECT_EQ(self->buf + 11, self->mark);
+        EXPECT_TXTP_EQ(11);
         EXPECT_CURSOR_EQ(self->width, 0);
     }
 }
@@ -5898,7 +5894,7 @@ TEST_F(PmEditorMarkRight, MoveRightAtExactWidthBoundary) {
 TEST_F(PmEditorMarkRight, MoveRightDoesNotModifyBuffer) {
     const std::string original = "Hello World";
     SetBuffer(original.c_str());
-    SetMark(2);
+    SetTxtp(2);
 
     MmResult result = pmeditor_mark_right(self);
 
@@ -5909,12 +5905,12 @@ TEST_F(PmEditorMarkRight, MoveRightDoesNotModifyBuffer) {
 // Test moving right with cy > 0
 TEST_F(PmEditorMarkRight, MoveRightWithNonZeroCy) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetMark(6); // Start of "Line1"
+    SetTxtp(6); // Start of "Line1"
 
     MmResult result = pmeditor_mark_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 7, self->mark);
+    EXPECT_TXTP_EQ(7);
     EXPECT_CURSOR_EQ(1, 1); // cy unchanged
 }
 
@@ -5923,12 +5919,12 @@ TEST_F(PmEditorMarkRight, MoveRightNearEndOfLongLine) {
     std::string long_line(100, 'A');
     SetBuffer(long_line.c_str());
     self->width = 100;
-    SetMark(98);
+    SetTxtp(98);
 
     MmResult result = pmeditor_mark_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->buf + 99, self->mark);
+    EXPECT_TXTP_EQ(99);
     EXPECT_CURSOR_EQ(99, 0);
 }
 

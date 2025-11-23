@@ -1345,7 +1345,7 @@ MmResult pmeditor_mark_down(PmEditor *self) {
     CHECK_CURSOR_VALID();
 
     // Length of this line
-    int len = pmeditor_line_length(self, self->mark);
+    int len = pmeditor_line_length(self, self->txtp);
 
     // Can't move down from a line that is too long.
     if (len > self->width) {
@@ -1353,12 +1353,12 @@ MmResult pmeditor_mark_down(PmEditor *self) {
     }
 
     // Start of next line
-    char *p = pmeditor_next_line(self, self->mark);
+    char *p = pmeditor_next_line(self, self->txtp);
 
     // Moving down from the last line of text or display moves to end of line
     if (!p || self->cy == self->height - 1) {
-        self->cx = min(self->width, pmeditor_line_length(self, self->mark));
-        self->mark = pmeditor_start_of_line(self, self->mark) + self->cx;
+        self->cx = min(self->width, pmeditor_line_length(self, self->txtp));
+        self->txtp = pmeditor_start_of_line(self, self->txtp) + self->cx;
         return kOk;
     }
 
@@ -1368,7 +1368,7 @@ MmResult pmeditor_mark_down(PmEditor *self) {
     // Move cursor to the same column on the next line, or the end of the line
     self->cx = min(self->cx, len);
     self->cy++;
-    self->mark = p + self->cx;
+    self->txtp = p + self->cx;
 
     return kOk;
 }
@@ -1439,9 +1439,9 @@ MmResult pmeditor_mark_home(PmEditor *self) {
  */
 MmResult pmeditor_mark_left(PmEditor *self) {
     CHECK_CURSOR_VALID();
-    const char previous = pmeditor_safe_char(self, self->mark - 1);
+    const char previous = pmeditor_safe_char(self, self->txtp - 1);
     if (self->cx > 0 && previous != '\0' && previous != '\n') {
-        self->mark--;
+        self->txtp--;
         self->cx--;
     }
     return kOk;
@@ -1455,8 +1455,8 @@ MmResult pmeditor_mark_left(PmEditor *self) {
  */
 MmResult pmeditor_mark_right(PmEditor *self) {
     CHECK_CURSOR_VALID();
-    if (self->cx < self->width && *self->mark != '\0' && *self->mark != '\n') {
-        self->mark++;
+    if (self->cx < self->width && *self->txtp != '\0' && *self->txtp != '\n') {
+        self->txtp++;
         self->cx++;
     }
     return kOk;
@@ -1475,11 +1475,11 @@ MmResult pmeditor_mark_up(PmEditor *self) {
     CHECK_CURSOR_VALID();
 
     // Start of previous line
-    char *p = pmeditor_previous_line(self, self->mark);
+    char *p = pmeditor_previous_line(self, self->txtp);
 
     // Moving up from the first line of text or display moves to start of line
     if (!p || self->cy == 0) {
-        self->mark = pmeditor_start_of_line(self, self->mark);
+        self->txtp = pmeditor_start_of_line(self, self->txtp);
         self->cx = 0;
         return kOk;
     }
@@ -1494,7 +1494,7 @@ MmResult pmeditor_mark_up(PmEditor *self) {
 
     self->cx = min(self->cx, len);
     self->cy--;
-    self->mark = p + self->cx;
+    self->txtp = p + self->cx;
 
     return kOk;
 }
@@ -1553,10 +1553,30 @@ static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd) {
 // clang-format off
     switch (cmd) {
         case ESC:   return pmeditor_mark_escape(self);
-        case UP:    return pmeditor_mark_up(self);
-        case DOWN:  return pmeditor_mark_down(self);
-        case LEFT:  return pmeditor_mark_left(self);
-        case RIGHT: return pmeditor_mark_right(self);
+        case UP:    {
+            SWAP(char *, self->txtp, self->mark);
+            ON_FAILURE_RETURN(pmeditor_mark_up(self));
+            SWAP(char *, self->txtp, self->mark);
+            return kOk;
+        }
+        case DOWN:    {
+            SWAP(char *, self->txtp, self->mark);
+            ON_FAILURE_RETURN(pmeditor_mark_down(self));
+            SWAP(char *, self->txtp, self->mark);
+            return kOk;
+        }
+        case LEFT:  {
+            SWAP(char *, self->txtp, self->mark);
+            ON_FAILURE_RETURN(pmeditor_mark_left(self));
+            SWAP(char *, self->txtp, self->mark);
+            return kOk;
+        }
+        case RIGHT: {
+            SWAP(char *, self->txtp, self->mark);
+            ON_FAILURE_RETURN(pmeditor_mark_right(self));
+            SWAP(char *, self->txtp, self->mark);
+            return kOk;
+        }
         case HOME:  return pmeditor_mark_home(self);
         case END:   return pmeditor_mark_end(self);
         case F4:    return pmeditor_mark_cut(self);
