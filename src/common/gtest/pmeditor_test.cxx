@@ -6531,6 +6531,323 @@ TEST_F(PmEditorCmdDown, CallsScrollUpWhenScrolling) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_end()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdEnd : public PmEditorTestBase { };
+
+// Test moving to end of line from middle of line
+TEST_F(PmEditorCmdEnd, MoveToEndFromMiddleOfLine) {
+    SetBuffer("Hello World");
+    SetTxtp(6); // At 'W'
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // At '\0' after "World"
+    EXPECT_CURSOR_EQ(11, 0);
+}
+
+// Test moving to end of line from start of line
+TEST_F(PmEditorCmdEnd, MoveToEndFromStartOfLine) {
+    SetBuffer("Hello World");
+    SetTxtp(0); // At 'H'
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // At '\0'
+    EXPECT_CURSOR_EQ(11, 0);
+}
+
+// Test moving to end of line from near start
+TEST_F(PmEditorCmdEnd, MoveToEndFromNearStart) {
+    SetBuffer("ABCDEF");
+    SetTxtp(1); // At 'B'
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // At '\0'
+    EXPECT_CURSOR_EQ(6, 0);
+}
+
+// Test no move when already at end of buffer
+TEST_F(PmEditorCmdEnd, NoMoveAtEndOfBuffer) {
+    SetBuffer("Hello World");
+    SetCursorAtEnd(); // At '\0'
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // Unchanged
+    EXPECT_CURSOR_EQ(11, 0);
+}
+
+// Test no move in empty buffer
+TEST_F(PmEditorCmdEnd, NoMoveInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0); // At '\0'
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving to end of second line (newline)
+TEST_F(PmEditorCmdEnd, MoveToEndOfSecondLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(7); // At 'i' in "Line1"
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // At '\n' after "Line1"
+    EXPECT_CURSOR_EQ(5, 1);
+}
+
+// Test moving to end of last line (no newline)
+TEST_F(PmEditorCmdEnd, MoveToEndOfLastLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(13); // At 'i' in "Line2"
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(17); // At '\0' after "Line2"
+    EXPECT_CURSOR_EQ(5, 2);
+}
+
+// Test double END press jumps to end of file
+TEST_F(PmEditorCmdEnd, DoubleEndJumpsToEndOfFile) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(2); // At 'n' in "Line0"
+    self->last_key = END; // Previous key was END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    printf("%s\n", mmresult_to_string(result));
+    EXPECT_TXTP_EQ(17); // At '\0' after "Line2"
+    EXPECT_CURSOR_EQ(5, 2); // cx = 5 (length of "Line2"), cy = 2
+    EXPECT_EQ(0, self->py); // Short buffer, py stays 0
+    EXPECT_EQ(0, print_screen_call_count); // No redraw - buffer fits on screen
+}
+
+// Test double END press from first line
+TEST_F(PmEditorCmdEnd, DoubleEndFromFirstLine) {
+    SetBuffer("Hello\nWorld\nTest");
+    SetTxtp(2); // At 'l' in "Hello"
+    self->last_key = END; // Previous key was END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(16); // At '\0' after "Test"
+    EXPECT_CURSOR_EQ(4, 2);
+}
+
+// Test double END with many lines calculates correct py
+TEST_F(PmEditorCmdEnd, DoubleEndWithManyLinesCalculatesPy) {
+    // Create buffer with 30 lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    SetTxtp(10); // Near start
+    self->last_key = END;
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    // i = 30 (number of newlines), height = 23
+    // py = 30 - 23 + 1 = 8
+    EXPECT_EQ(8, self->py);
+    EXPECT_EQ(self->height - 1, self->cy); // cy = 22
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Test double END with buffer shorter than screen height
+TEST_F(PmEditorCmdEnd, DoubleEndWithShortBuffer) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(2);
+    self->last_key = END;
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // py stays 0 (fits on one screen)
+    EXPECT_EQ(2, self->cy); // cy is just the line number
+}
+
+// Test END does not modify buffer
+TEST_F(PmEditorCmdEnd, DoesNotModifyBuffer) {
+    const std::string original = "Hello World";
+    SetBuffer(original.c_str());
+    SetTxtp(3);
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(original.c_str(), self->buf);
+}
+
+// Test moving to end of line preserves cy
+TEST_F(PmEditorCmdEnd, PreservesCyWhenMovingToEndOfLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(7); // At 'i' in "Line1"
+    self->cy = 7; // Some arbitrary cy
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // At '\n'
+    EXPECT_CURSOR_EQ(5, 7); // cy preserved
+}
+
+// Test single END when already at end of line does nothing
+TEST_F(PmEditorCmdEnd, NoMoveWhenAlreadyAtEndOfLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(11); // At '\n' after "Line1"
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // Unchanged
+    EXPECT_CURSOR_EQ(5, 1);
+}
+
+// Test END from position near end
+TEST_F(PmEditorCmdEnd, MoveFromNearEnd) {
+    SetBuffer("ABCDEF");
+    SetTxtp(4); // At 'E'
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // At '\0'
+    EXPECT_CURSOR_EQ(6, 0);
+}
+
+// Test END sequence: middle -> end of line -> end of file
+TEST_F(PmEditorCmdEnd, SequenceMiddleToEndToFile) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(2); // At 'n' in "Line0"
+    self->last_key = 'x';
+
+    // First END: move to end of line
+    {
+        MmResult result = pmeditor_cmd_end(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(5); // At '\n' after "Line0"
+        EXPECT_CURSOR_EQ(5, 0);
+        self->last_key = END; // Simulate key tracking
+    }
+
+    // Second END: jump to end of file
+    {
+        MmResult result = pmeditor_cmd_end(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(17); // At '\0' after "Line2"
+        EXPECT_CURSOR_EQ(5, 2);
+    }
+}
+
+// Test double END when already at end does nothing
+TEST_F(PmEditorCmdEnd, DoubleEndAtEndDoesNothing) {
+    SetBuffer("Hello World");
+    SetCursorAtEnd(); // At '\0'
+    self->last_key = END;
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // Still at end
+    EXPECT_CURSOR_EQ(11, 0);
+    EXPECT_EQ(0, print_screen_call_count); // No redraw (early return)
+}
+
+// Test END from empty line (between two newlines)
+TEST_F(PmEditorCmdEnd, MoveFromEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(4); // At second '\n' (empty line)
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // Already at end of empty line
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test END with line longer than width
+TEST_F(PmEditorCmdEnd, ShowsErrorWhenLineLongerThanWidth) {
+    SetBuffer(std::string(85, 'X').c_str()); // Longer than width (80)
+    SetTxtp(10);
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(" LINE IS TOO LONG ", display_msg_capture);
+}
+
+// Test double END positions at end of last line
+TEST_F(PmEditorCmdEnd, DoubleEndPositionsAtEndOfLastLine) {
+    SetBuffer("Line0\nLine1\nLastLine");
+    SetTxtp(2);
+    self->last_key = END;
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(20); // At '\0' after "LastLine"
+    EXPECT_CURSOR_EQ(8, 2); // cx = 8 (length of "LastLine"), cy = 2
+}
+
+// Test double END with trailing newline
+TEST_F(PmEditorCmdEnd, DoubleEndWithTrailingNewline) {
+    SetBuffer("Line0\nLine1\n"); // Trailing newline
+    SetTxtp(2);
+    self->last_key = END;
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(12); // At trailing '\n'
+    EXPECT_EQ(0, self->cx); // cx is 0 on empty line
+}
+
+// Test END from very long line does not move
+TEST_F(PmEditorCmdEnd, MoveFromVeryLongLine) {
+    std::string longline(100, 'X');
+    SetBuffer(longline.c_str());
+    SetTxtp(20);
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_CURSOR_EQ(20, 0); // Should not move
+    EXPECT_STREQ(" LINE IS TOO LONG ", display_msg_capture);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Tests for pmeditor_cmd_home()
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -6638,8 +6955,8 @@ TEST_F(PmEditorCmdHome, DoubleHomeJumpsToStartOfFile) {
     EXPECT_EQ(kOk, result);
     EXPECT_TXTP_EQ(0); // At start of buffer
     EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_EQ(0, self->py); // Reset to first page
-    EXPECT_EQ(1, print_screen_call_count); // Screen redrawn
+    EXPECT_EQ(0, self->py); // Viewport has not changed
+    EXPECT_EQ(0, print_screen_call_count); // No redraw required
 }
 
 // Test double HOME press from first line

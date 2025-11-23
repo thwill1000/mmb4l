@@ -77,11 +77,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         } \
     } while (0)
 
-typedef enum {
-    kEditMode,
-    kMarkMode,
-} EditorMode;
-
 // Forward declaration of real function implementations
 MmResult pmeditor_display_msg_impl(PmEditor *, const char *);
 MmResult pmeditor_highlight_impl(PmEditor *, HighlightType);
@@ -128,6 +123,7 @@ MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int heig
     self->width = width;
     self->fname = filename;
     self->insert = true;
+    self->mode = kEditMode;
     self->text_changed = false;
     self->saved_break_key = mmb_options.break_key;
     self->highlight = kHighlightNormal;
@@ -375,26 +371,32 @@ static MmResult pmeditor_draw_line(PmEditor *self) {
  * 'edit' mode or 'mark' mode. Adapts the displayed text to terminal width.
  *
  * @param  self  Pointer to the PmEditor instance.
- * @param  mode  The current editor mode.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_print_func_keys(PmEditor *self, EditorMode mode) {
+static MmResult pmeditor_print_func_keys(PmEditor *self) {
     const char *p;
 
-    if (mode == kEditMode) {
-        if (self->width >= 78) {
-            p = "ESC:Exit  F1:Save  F2:Run  F3:Find  F4:Mark  F5:Paste";
-        } else if (self->width >= 62) {
-            p = "F1:Save F2:Run F3:Find F4:Mark F5:Paste";
-        } else {
-            p = "EDIT MODE";
-        }
-    } else {
-        if (self->width >= 49) {
-            p = "MARK MODE   ESC=Exit  DEL:Delete  F4:Cut  F5:Copy";
-        } else {
-            p = "MARK MODE";
-        }
+    switch (self->mode) {
+        case kEditMode:
+            if (self->width >= 78) {
+                p = "ESC:Exit  F1:Save  F2:Run  F3:Find  F4:Mark  F5:Paste";
+            } else if (self->width >= 62) {
+                p = "F1:Save F2:Run F3:Find F4:Mark F5:Paste";
+            } else {
+                p = "EDIT MODE";
+            }
+            break;
+
+        case kMarkMode:
+            if (self->width >= 49) {
+                p = "MARK MODE   ESC=Exit  DEL:Delete  F4:Cut  F5:Copy";
+            } else {
+                p = "MARK MODE";
+            }
+            break;
+
+        default:
+            return mmresult_ex(kInternalFault, "Unknown editor mode: %d", self->mode);            
     }
 
     const int old_x = self->cx;
@@ -459,7 +461,7 @@ static MmResult pmeditor_get_input(PmEditor *self, const char *prompt) {
     }
     *p = 0;  // terminate the input string
 
-    ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
 
     return kOk;
@@ -488,7 +490,7 @@ MmResult pmeditor_display_msg_impl(PmEditor *self, const char *msg) {
     ON_FAILURE_RETURN(display_reset());
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
-    self->redraw_status_line = true;
+    self->message_shown = true;
     return kOk;
 }
 
@@ -1197,7 +1199,7 @@ static MmResult pmeditor_scroll_up(PmEditor *self) {
     self->py++;
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height - 1));
     ON_FAILURE_RETURN(pmeditor_print_line(self, self->height - 1 + self->py));
-    ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
 
     // Consume any keystrokes accumulated while redrawing the screen
@@ -1223,7 +1225,7 @@ static MmResult pmeditor_scroll_down(PmEditor *self) {
     self->py--;
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, 0));
     ON_FAILURE_RETURN(pmeditor_print_line(self, self->py));
-    ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
 
     // Consume any keystrokes accumulated while redrawing the screen
@@ -1617,10 +1619,11 @@ MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos) {
  * @return       kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_mark_loop(PmEditor *self) {
-    ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kMarkMode));
+    self->mode = kMarkMode;
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
+    ON_FAILURE_RETURN(pmeditor_print_status(self));
 
     PmEditorPos original_pos = POS_FROM(*self);
-    self->mark_mode = true;
     self->mark = self->txtp;
 
     while (true) {
@@ -1636,10 +1639,10 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
         self->keys[0] = pmeditor_canonical_key(self, c);
         self->keys[1] = '\0';
 
-        if (self->redraw_status_line) {
-            ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kMarkMode));
+        if (self->message_shown) {
+            ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
             ON_FAILURE_RETURN(pmeditor_print_status(self));
-            self->redraw_status_line = false;
+            self->message_shown = false;
         }
 
         ON_FAILURE_RETURN(pmeditor_mark_dispatch(self, self->keys[0]));
@@ -1648,7 +1651,7 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
             self->exit_flag = false;
             self->cx = original_pos.cx;
             self->cy = original_pos.cy;
-            self->mark_mode = false;
+            self->mode = kEditMode;
             self->mark_ub = 0;
             self->mark_lb = 0;
             return kOk;
@@ -1656,6 +1659,7 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
 
         if (self->mark != old_pos.mark) {
             ON_FAILURE_RETURN(pmeditor_print_selection(self, &old_pos));
+            ON_FAILURE_RETURN(pmeditor_print_status(self));
         }
     }
 }
@@ -1700,7 +1704,7 @@ static MmResult pmeditor_cmd_newline(PmEditor *self /*char *multi*/) {
 
     self->num_lines++;
     if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
-        self->py++;                     // otherwise scroll
+        self->py++;                      // otherwise scroll
 
     // Always redraw everything
     ON_FAILURE_RETURN(pmeditor_print_screen(self));
@@ -2021,6 +2025,28 @@ static MmResult pmeditor_cmd_insert(PmEditor *self) {
 }
 
 /**
+ * Moves the cursor to the start of the buffer.
+ *
+ * Positions the cursor at the first character of the buffer, resets the
+ * viewport to show the first page, and redraws the screen if the viewport
+ * has moved.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @return       kOk on success, or an error code on failure.
+ */
+MmResult pmeditor_move_to_start(PmEditor *self) {
+    const int old_py = self->py;
+    self->txtp = self->buf;
+    self->cx = 0;
+    self->cy = 0;
+    self->py = 0;
+    if (self->py != old_py) {
+        ON_FAILURE_RETURN(pmeditor_print_screen(self));
+    }
+    return pmeditor_set_cursor_pos(self, 0, 0);
+}
+
+/**
  * Handles the HOME key command.
  *
  * First press: moves to the start of the current line.
@@ -2036,19 +2062,74 @@ MmResult pmeditor_cmd_home(PmEditor *self) {
     // If this is the second time HOME has been pressed in succession
     // then jump to the start of the file
     if (self->last_key == HOME) {
-        self->txtp = self->buf;
-        self->cx = 0;
-        self->cy = 0;
-        self->py = 0;
-        ON_FAILURE_RETURN(pmeditor_print_screen(self));
-        ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
-        return pmeditor_position_cursor(self, self->txtp);
+        return pmeditor_move_to_start(self);
     }
 
     self->txtp = pmeditor_start_of_line(self, self->txtp);
     self->cx = 0;
 
     return pmeditor_set_cursor_pos(self, self->cx, self->cy);
+}
+
+/**
+ * Moves the cursor to the end of the last line in the buffer.
+ *
+ * Navigates to the last line of the buffer, positions the cursor at the end
+ * of that line, and adjusts the viewport (py) to display the last page of text.
+ * If the buffer has more lines than can fit on the screen, positions the last
+ * line at the bottom of the screen and redraws the screen if the viewport
+ * has moved.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @return       kOk on success, kInternalFault if line count is inconsistent
+ *               with num_lines, or other error codes on failure.
+ *
+ * @note This function validates that the calculated line count matches
+ *       self->num_lines as a consistency check.
+ * @note If the last line exceeds the screen width, displays an error message.
+ */
+MmResult pmeditor_move_to_end(PmEditor *self) {
+    // Navigate to the last line
+    int cy = 0;
+    char *p = self->buf;
+    while (true) {
+        char *next_line = pmeditor_next_line(self, p);
+        if (!next_line) break;
+        cy++;
+        p = next_line;
+    }
+
+    if (cy + 1 != self->num_lines) {
+        return mmresult_ex(kInternalFault, "Inconsistent line number count: %d vs. %d",
+                           cy + 1, self->num_lines);
+    }
+
+    // Move to end of last line
+    int cx = pmeditor_line_length(self, p);
+    if (cx > self->width) {
+        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
+    }
+    p += cx;
+
+    // Adjust py to show the last page of text
+    int py = 0;
+    if (cy >= self->height) {
+        py = cy - (self->height - 1);
+        cy = self->height - 1;
+    }
+
+    if (py != self->py) {
+        self->py = py;
+        // TODO: pmeditor_print_screen() should not have side-effect of changing cx, cy.
+        const int old_cx = cx;
+        const int old_cy = cy;
+        ON_FAILURE_RETURN(pmeditor_print_screen(self));
+        cx = old_cx;
+        cy = old_cy;
+    }
+
+    self->txtp = p;
+    return pmeditor_set_cursor_pos(self, cx, cy);
 }
 
 /**
@@ -2060,48 +2141,25 @@ MmResult pmeditor_cmd_home(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_end(PmEditor *self) {
+MmResult pmeditor_cmd_end(PmEditor *self) {
     // If we are at the end of the document then do nothing
-    if (*self->txtp == 0) return kOk;
+    if (*self->txtp == '\0') return kOk;
 
-    // If this is the second time HOME has been pressed in succession then jump
+    // If this is the second time END has been pressed in succession then jump
     // to the end of the file
     if (self->last_key == END) {
-        // Count lines (i) and find the start of the last line (p)
-        int i = 0;
-        char *p = self->txtp = self->buf;
-        while (*self->txtp != 0) {
-            if (*self->txtp == '\n') {
-                p = self->txtp + 1;
-                i++;
-            }
-            self->txtp++;
-        }
-
-        // Set the editor to show the last page of text,
-        // and move the cursor to the last line
-        if (i >= self->height) {
-            self->py = i - self->height + 1;
-            ON_FAILURE_RETURN(pmeditor_print_screen(self));
-            self->cy = self->height - 1;
-        } else {
-            self->cy = i;
-        }
-        self->txtp = p;
-        self->cx = 0;
+        return pmeditor_move_to_end(self);
     }
 
-    // Move cursor to the end of the line
-    while (self->cx < self->width && *self->txtp != 0 && *self->txtp != '\n') {
-        self->txtp++;
-        ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
-    }
-
-    if (self->cx > self->width) {
+    int len = pmeditor_line_length(self, self->txtp);
+    if (len > self->width) {
         return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
 
-    return kOk;
+    self->txtp = pmeditor_end_of_line(self, self->txtp);
+    self->cx = len;
+
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2392,7 +2450,7 @@ static MmResult pmeditor_cmd_search(PmEditor *self) {
 static MmResult pmeditor_cmd_mark(PmEditor *self) {
     ON_FAILURE_RETURN(pmeditor_mark_loop(self));
     ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
     return pmeditor_position_cursor(self, self->txtp);
 }
 
@@ -2590,6 +2648,7 @@ static MmResult pmeditor_load_file(PmEditor *self) {
             *p++ = ch;
         }
     }
+    self->num_lines++; // Ending the file ends the current line
     return streamio_close(fnbr);
 }
 
@@ -2644,15 +2703,15 @@ MmResult pmeditor_edit_loop(PmEditor *self) {
         self->keys[0] = c;
         self->keys[1] = '\0';
 
-        if (self->redraw_status_line) {
-            ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
+        if (self->message_shown) {
+            ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
             ON_FAILURE_RETURN(pmeditor_print_status(self));
-            self->redraw_status_line = false;
+            self->message_shown = false;
         }
 
-        do {
-            char *old_txtp = self->txtp;
+        PmEditorPos old_pos = POS_FROM(*self);
 
+        do {
             self->keys[0] = pmeditor_canonical_key(self, self->keys[0]);
             ON_FAILURE_RETURN(pmeditor_cmd_dispatch(self, self->keys[0]));
 
@@ -2670,11 +2729,11 @@ MmResult pmeditor_edit_loop(PmEditor *self) {
             for (int i = 0; i < MAXCLIP + 1; i++) {
                 self->keys[i] = self->keys[i + 1];
             }
-
-            if (self->txtp != old_txtp) {
-                ON_FAILURE_RETURN(pmeditor_print_status(self));
-            }
         } while (*self->keys);
+
+        if (self->txtp != old_pos.txtp) {
+            ON_FAILURE_RETURN(pmeditor_print_status(self));
+        }
     }
 }
 
@@ -2703,9 +2762,9 @@ MmResult pmeditor_show(const char *filename, int line) {
     self->txtp = pmeditor_find_line(self, line - 1, &ignored);
 
     ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    ON_FAILURE_RETURN(pmeditor_print_func_keys(self, kEditMode));
-    ON_FAILURE_RETURN(pmeditor_print_status(self));
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
+    ON_FAILURE_RETURN(pmeditor_print_status(self));
 
     // Disable default break key handling, within the editor the break key
     // will be considered synonymous with ESC.

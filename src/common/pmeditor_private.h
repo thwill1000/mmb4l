@@ -87,6 +87,12 @@ typedef struct {
     char *mark;  ///< Character position of the mark cursor
 } PmEditorPos;
 
+typedef enum {
+    kModeUnspecified = 0,
+    kEditMode,
+    kMarkMode,
+} PmEditorMode;
+
 typedef struct {
     const char *fname;      // Name/path of file being edited
     char buf[EDIT_BUFFER_SIZE];  // Buffer used for editing the text
@@ -98,11 +104,11 @@ typedef struct {
     int cx;                 // Current cursor column (from 0)
     int cy;                 // Current cursor row (from 0)
     char *txtp;             // Position of the cursor in the text being edited
-    bool redraw_status_line;  // True if the status line needs redrawing on next keystroke
+    bool message_shown;     // True if a message is currently being shown
     bool insert;            // True if the editor is in INSERT mode
     int preferred_x;        // User to track preferred x-position when up/down arrowing
     bool text_changed;      // True if the text has been editor and thus may need saving
-    bool mark_mode;         // True if we are in mark mode
+    PmEditorMode mode;      // Edit mode or Mark mode ?
     char last_key;          // Last key pressed
     char clipboard[MAXCLIP + 2];  // Clipboard contents
     char keys[MAXCLIP + 2]; // Buffer of incoming keystrokes
@@ -143,6 +149,7 @@ extern MmResult (*pmeditor_print_screen)(PmEditor *);
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);
 MmResult pmeditor_cmd_down(PmEditor *self);
+MmResult pmeditor_cmd_end(PmEditor *self);
 MmResult pmeditor_cmd_home(PmEditor *self);
 MmResult pmeditor_cmd_left(PmEditor *self);
 MmResult pmeditor_cmd_right(PmEditor *self);
