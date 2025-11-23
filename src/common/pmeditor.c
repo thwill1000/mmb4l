@@ -1170,19 +1170,8 @@ MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
  */
 MmResult pmeditor_print_screen_impl(PmEditor *self) {
     PmEditorPos old_pos = POS_FROM(*self);
-
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, 0));
-    for (int i = 0; i < self->height; i++) {
-        ON_FAILURE_RETURN(pmeditor_print_line(self, i + self->py));
-        ON_FAILURE_RETURN(display_puts("\r\n"));
-        self->cx = 0;
-        self->cy = i + 1;
-    }
-
-    // Consume any keystrokes accumulated while redrawing the screen
-    while (console_getc() != -1) {}
-
-    // Restore cursor position
+    ON_FAILURE_RETURN(pmeditor_print_lines(self, self->py, self->height));
     return pmeditor_set_cursor_pos(self, old_pos.cx, old_pos.cy);
 }
 
@@ -1561,6 +1550,8 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned
     // LOG_DEBUG("entered: start_line=%d, num_lines=%d", start_line, num_lines);
     // TODO: Adjust start_line and num_lines to fit within display
 
+    PmEditorPos old_pos = POS_FROM(*self);
+
     for (unsigned i = 0; i < num_lines; i++) {
         ON_FAILURE_RETURN(pmeditor_print_line(self, i + start_line));
         if (i != num_lines - 1) ON_FAILURE_RETURN(display_puts("\r\n"));
@@ -1568,10 +1559,11 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned
         self->cy++;
     }
 
-    // Consume any keystrokes accumulated while redrawing the screen
+    // Consume any keystrokes accumulated while drawing
     while (console_getc() != -1) {}
 
-    return kOk;
+    // Restore cursor position
+    return pmeditor_set_cursor_pos(self, old_pos.cx, old_pos.cy);
 }
 
 /**
