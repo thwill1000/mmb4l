@@ -80,14 +80,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Forward declaration of real function implementations
 MmResult pmeditor_display_msg_impl(PmEditor *, const char *);
 MmResult pmeditor_highlight_impl(PmEditor *, HighlightType);
-MmResult pmeditor_print_line_impl(PmEditor *, int);
 MmResult pmeditor_print_lines_impl(PmEditor *, unsigned, unsigned);
 MmResult pmeditor_print_screen_impl(PmEditor *);
 
 // Pointers to functions we want to override in unit-tests
 MmResult (*pmeditor_display_msg)(PmEditor *, const char *) = pmeditor_display_msg_impl;
 MmResult (*pmeditor_highlight)(PmEditor *, HighlightType) = pmeditor_highlight_impl;
-MmResult (*pmeditor_print_line)(PmEditor *, int) = pmeditor_print_line_impl;
 MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned) = pmeditor_print_lines_impl;
 MmResult (*pmeditor_print_screen)(PmEditor *) = pmeditor_print_screen_impl;
 
@@ -97,7 +95,6 @@ MmResult (*pmeditor_print_screen)(PmEditor *) = pmeditor_print_screen_impl;
 void pmeditor_restore_fn_pointers() {
     pmeditor_display_msg = pmeditor_display_msg_impl;
     pmeditor_highlight = pmeditor_highlight_impl;
-    pmeditor_print_line = pmeditor_print_line_impl;
     pmeditor_print_lines = pmeditor_print_lines_impl;
     pmeditor_print_screen = pmeditor_print_screen_impl;
 }
@@ -1163,14 +1160,8 @@ MmResult pmeditor_print_line_p(PmEditor *self, char *p, int comment_level) {
  * @param  line  The line number to print (0-based, relative to start of buffer).
  * @return       kOk on success, or an error code on failure.
  */
-MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
-    // LOG_DEBUG("entered: line=%d", line);
-
-    // Get a pointer to the first character in the line,
-    // and the level of multiline commenting if any.
-    int comment_level = -1;
-    char *p = pmeditor_find_line(self, line, &comment_level);
-    return pmeditor_print_line_p(self, p, comment_level);
+static inline MmResult pmeditor_print_line(PmEditor *self, int line) {
+    return pmeditor_print_lines(self, line, 1);
 }
 
 /**

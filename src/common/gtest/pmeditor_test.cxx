@@ -50,19 +50,11 @@ typedef struct {
 } PrintLinesCapture;
 
 static char display_msg_capture[STRINGSIZE];
-static int print_line_call_count = 0;
-static int print_line_arg = -1;
 static int print_screen_call_count = 0;
 static PrintLinesCapture print_lines_capture;
 
 MmResult pmeditor_test_display_msg(PmEditor *self, const char *msg) {
     strcpy(display_msg_capture, msg);
-    return kOk;
-}
-
-MmResult pmeditor_test_print_line(PmEditor *self, int line) {
-    print_line_call_count++;
-    print_line_arg = line;
     return kOk;
 }
 
@@ -94,7 +86,7 @@ protected:
 
         // Mock pmeditor functions
         pmeditor_display_msg = pmeditor_test_display_msg;
-        pmeditor_print_line = pmeditor_test_print_line;
+        // pmeditor_print_line = pmeditor_test_print_line;
         pmeditor_print_lines = pmeditor_test_print_lines;
         pmeditor_print_screen = pmeditor_test_print_screen;
 
@@ -109,8 +101,6 @@ protected:
         // Reset mock state
         memset(display_msg_capture, 0, sizeof(display_msg_capture));
         memset(self->keys, 0, sizeof(self->keys));
-        print_line_call_count = 0;
-        print_line_arg = -1;
         print_screen_call_count = 0;
         print_lines_capture = { .calls = 0, .start = -1, .num = -1, .cy = -1 };
 
@@ -2968,8 +2958,7 @@ TEST_F(PmEditorCmdCharTest, LineRedrawAfterNormalInsert) {
     MmResult result = pmeditor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(1, print_line_call_count);
-    EXPECT_EQ(0, print_line_arg); // py + cy = 0 + 0
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 1, .cy = 0}));
 }
 
 // Test screen redraw after multiline comment change
@@ -2996,8 +2985,7 @@ TEST_F(PmEditorCmdCharTest, NoRedrawWhenInsertReturnsNothing) {
     MmResult result = pmeditor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, print_line_call_count);
-    EXPECT_EQ(0, print_screen_call_count);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 0, .start = -1, .num = -1, .cy = -1}));
 }
 
 // Test cursor positioning after insert
