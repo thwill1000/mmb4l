@@ -1015,36 +1015,24 @@ MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, Hi
     return kOk;
 }
 
-/**
- * Finds the start of a specific line in the text buffer.
- *
- * Scans through the buffer counting newlines until reaching the specified
- * line number. Also tracks multiline comment state for syntax highlighting.
- *
- * @param       self           Pointer to the PmEditor instance.
- * @param       line           The line number to find (0-based).
- * @param[out]  comment_level  On exit, the level of multiline commenting.
- * @return                     Pointer to the start of the line,
- *                             or NULL if line < 0 or self is NULL.
- */
-char *pmeditor_find_line(PmEditor *self, int line, int *comment_level) {
-    if (!self || line < 0) return NULL;
+// TODO
+char *pmeditor_find_next(PmEditor *self, char *p, int *comment_level) {
+    if (!self || !p || !comment_level) return NULL;
+    if (*p == '\0') return p;
 
     const int NORMAL = 0;
     const int IN_QUOTE = 1;
     const int IN_SL_COMMENT = 2;
+    const int STATE_EOL = 3;
 
     int state = NORMAL;
-    *comment_level = 0;
-    char *p = self->buf;
 
     // TODO: Handle CMM2 #COMMENT {START|END} construct
 
-    while (line && *p) {
+    while (*p != '\0' && state != STATE_EOL) {
         switch (*p) {
             case '\n':
-                line--;
-                state = NORMAL;
+                state = STATE_EOL;
                 break;
             case '/':
                 if (state == NORMAL && p[1] == '*') {
@@ -1087,28 +1075,34 @@ char *pmeditor_find_line(PmEditor *self, int line, int *comment_level) {
         p++;
     }
 
+    // Return pointer to start of next line
     return p;
 }
 
 /**
- * Prints a single line from the text buffer to the display.
+ * Finds the start of a specific line in the text buffer.
  *
- * Renders the specified line with appropriate syntax highlighting if enabled.
- * If the line is beyond the end of the text, just clears to end of line.
+ * Scans through the buffer counting newlines until reaching the specified
+ * line number. Also tracks multiline comment state for syntax highlighting.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @param  line  The line number to print (0-based, relative to start of buffer).
- * @return       kOk on success, or an error code on failure.
+ * @param       self           Pointer to the PmEditor instance.
+ * @param       line           The line number to find (0-based).
+ * @param[out]  comment_level  On exit, the level of multiline commenting.
+ * @return                     Pointer to the start of the line,
+ *                             or NULL if line < 0 or self is NULL.
  */
-MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
-    // LOG_DEBUG("entered: line=%d", line);
+char *pmeditor_find_line(PmEditor *self, int line, int *comment_level) {
+    if (line < 0) return NULL;
+    *comment_level = 0;
+    char *p = self->buf;
+    for (; line > 0; line--) {
+        p = pmeditor_find_next(self, p, comment_level);
+    }
+    return p;
+}
 
-    // Get a pointer to the first character in the line,
-    // and the level of multiline commenting if any.
-    int comment_level = -1;
-    char *p = pmeditor_find_line(self, line, &comment_level);
-    // LOG_DEBUG("comment_level=%d", comment_level);
-
+// TODO
+MmResult pmeditor_print_line_p(PmEditor *self, char *p, int comment_level) {
     if (mmb_options.syntax_highlight) {
         // Initialise structure used to maintain syntax highlighting state
         SyntaxState syntax = {
@@ -1157,6 +1151,26 @@ MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
     self->cx = self->width - 1;
 
     return kOk;
+}
+
+/**
+ * Prints a single line from the text buffer to the display.
+ *
+ * Renders the specified line with appropriate syntax highlighting if enabled.
+ * If the line is beyond the end of the text, just clears to end of line.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @param  line  The line number to print (0-based, relative to start of buffer).
+ * @return       kOk on success, or an error code on failure.
+ */
+MmResult pmeditor_print_line_impl(PmEditor *self, int line) {
+    // LOG_DEBUG("entered: line=%d", line);
+
+    // Get a pointer to the first character in the line,
+    // and the level of multiline commenting if any.
+    int comment_level = -1;
+    char *p = pmeditor_find_line(self, line, &comment_level);
+    return pmeditor_print_line_p(self, p, comment_level);
 }
 
 /**
@@ -1545,18 +1559,21 @@ static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd) {
 // clang-format on
 }
 
-/** TODO */
+// TODO
 MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned num_lines) {
     // LOG_DEBUG("entered: start_line=%d, num_lines=%d", start_line, num_lines);
     // TODO: Adjust start_line and num_lines to fit within display
 
     PmEditorPos old_pos = POS_FROM(*self);
 
-    for (unsigned i = 0; i < num_lines; i++) {
-        ON_FAILURE_RETURN(pmeditor_print_line(self, i + start_line));
-        if (i != num_lines - 1) ON_FAILURE_RETURN(display_puts("\r\n"));
+    int comment_level = -1;
+    char *p = pmeditor_find_line(self, start_line, &comment_level);
+    for (; num_lines > 0; num_lines--) {
+        ON_FAILURE_RETURN(pmeditor_print_line_p(self, p, comment_level));
+        if (num_lines != 0) ON_FAILURE_RETURN(display_puts("\r\n"));
         self->cx = 0;
         self->cy++;
+        if (num_lines != 0) p = pmeditor_find_next(self, p, &comment_level);
     }
 
     // Consume any keystrokes accumulated while drawing
@@ -2755,10 +2772,11 @@ MmResult pmeditor_show(const char *filename, int line) {
     ON_FAILURE_RETURN(pmeditor_init(self, filename, width, height));
     ON_FAILURE_RETURN(pmeditor_load_file(self));
     ON_FAILURE_RETURN(pmeditor_resize_console(self));
-
-    int ignored = -1;
-    self->txtp = pmeditor_find_line(self, line - 1, &ignored);
-
+    self->txtp = pmeditor_start_of_line_n(self, line - 1);
+    if (!self->txtp) {
+        LOG_ERROR("cannot find line: %d", line - 1);
+        self->txtp = self->buf;
+    }
     ON_FAILURE_RETURN(pmeditor_print_screen(self));
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
     ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
