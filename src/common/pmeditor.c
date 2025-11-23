@@ -396,7 +396,7 @@ static MmResult pmeditor_print_func_keys(PmEditor *self) {
             break;
 
         default:
-            return mmresult_ex(kInternalFault, "Unknown editor mode: %d", self->mode);            
+            return mmresult_ex(kInternalFault, "Unknown editor mode: %d", self->mode);
     }
 
     PmEditorPos old_pos = POS_FROM(*self);
@@ -2176,7 +2176,7 @@ MmResult pmeditor_cmd_end(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_page_up(PmEditor *self) {
+MmResult pmeditor_cmd_page_up(PmEditor *self) {
     // If already showing the top of the text then move to start of text
     if (self->py == 0) {
         self->keys[1] = HOME;
@@ -2185,34 +2185,25 @@ static MmResult pmeditor_cmd_page_up(PmEditor *self) {
         return kOk;
     }
 
-    int num_lines = 0;
-    if (self->py >= self->height - 1) {
-        // Move up a full screenfull
-        num_lines = self->height + 1;
-        self->py -= self->height;
-    } else {
-        // Move up less than a full screenfull
-        num_lines = self->py + 1;
-        self->py = 0;
-    }
+    // Determine number of lines we need to move up
+    int num_lines = min(self->py, self->height);
+    self->py -= num_lines;
 
-    // Move up 'num_lines'
+    // Move txtp back that number of lines
     while (num_lines--) {
-        if (*self->txtp == '\n') self->txtp--;
-        while (self->txtp != self->buf && *self->txtp != '\n') self->txtp--;
-        if (self->txtp == self->buf) break;
+        char *p = pmeditor_previous_line(self, self->txtp);
+        if (!p) return mmresult_ex(kInternalFault, "Number of lines inconsistent");
+        self->txtp = pmeditor_previous_line(self, self->txtp);
     }
 
-    // Move to start of the line
-    if (self->txtp != self->buf) self->txtp++;
-
-    // Move to the same column as we were previously, or the end of the line
-    for (int i = 0; i < self->cx && *self->txtp != 0 && *self->txtp != '\n';
-         i++, self->txtp++);
+    // Adjust cx and txtp to the same column as previously, or the end of the line
+    int len = pmeditor_line_length(self, self->txtp);
+    self->cx = min(self->cx, len);
+    self->txtp += self->cx;
 
     ON_FAILURE_RETURN(pmeditor_print_screen(self));
 
-    return pmeditor_position_cursor(self, self->txtp);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2224,7 +2215,7 @@ static MmResult pmeditor_cmd_page_up(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_page_down(PmEditor *self) {
+MmResult pmeditor_cmd_page_down(PmEditor *self) {
     // If already showing the bottom of the text then move to end of text
     if (self->num_lines <= self->py + self->height + 1) {
         self->keys[1] = END;
@@ -2740,6 +2731,16 @@ MmResult pmeditor_edit_loop(PmEditor *self) {
             ON_FAILURE_RETURN(pmeditor_print_status(self));
         }
     }
+}
+
+// TODO
+char *pmeditor_start_of_line_n(PmEditor *self, int line) {
+    char *p = self->buf;
+    for (int count = 0; count < line; ++count) {
+        p = pmeditor_next_line(self, p);
+        if (!p) break;
+    }
+    return p;
 }
 
 /**

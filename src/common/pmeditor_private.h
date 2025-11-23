@@ -152,6 +152,8 @@ MmResult pmeditor_cmd_down(PmEditor *self);
 MmResult pmeditor_cmd_end(PmEditor *self);
 MmResult pmeditor_cmd_home(PmEditor *self);
 MmResult pmeditor_cmd_left(PmEditor *self);
+MmResult pmeditor_cmd_page_up(PmEditor *self);
+MmResult pmeditor_cmd_page_down(PmEditor *self);
 MmResult pmeditor_cmd_right(PmEditor *self);
 MmResult pmeditor_cmd_up(PmEditor *self);
 MmResult pmeditor_delete_char(PmEditor *self, int *redraw);
@@ -173,6 +175,7 @@ MmResult pmeditor_mark_right(PmEditor *self);
 MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw);
 MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
 MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos);
+char *pmeditor_start_of_line_n(PmEditor *self, int line);
 void pmeditor_restore_fn_pointers();
 
 /**

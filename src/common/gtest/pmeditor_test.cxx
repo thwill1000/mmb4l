@@ -170,6 +170,11 @@ protected:
         EXPECT_EQ(self->buf + expected_offset, self->txtp) << "insert cursor position mismatch"; \
     } while (0)
 
+#define EXPECT_TXTP_CONSISTENT() \
+    do { \
+        EXPECT_EQ(self->txtp, pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx) << "insert cursor position inconsistent"; \
+    } while (0)
+
 #define EXPECT_MARK_EQ(expected_offset) \
     do { \
         EXPECT_EQ(self->buf + expected_offset, self->mark) << "mark cursor position mismatch"; \
@@ -6352,10 +6357,7 @@ TEST_F(PmEditorCmdDown, ScrollsWhenNearBottomOfScreen) {
     // Position where scrolling should occur (cy >= height - 3)
     self->py = 0;
     self->cy = self->height - 2; // Near bottom, should scroll
-    self->txtp = self->buf;
-    for (int i = 0; i < self->cy; i++) {
-        self->txtp = pmeditor_next_line(self, self->txtp);
-    }
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_down(self);
 
@@ -6491,10 +6493,7 @@ TEST_F(PmEditorCmdDown, MovesNormallyAtHeightMinus3) {
 
     self->py = 0;
     self->cy = self->height - 3;
-    self->txtp = self->buf;
-    for (int i = 0; i < self->cy; i++) {
-        self->txtp = pmeditor_next_line(self, self->txtp);
-    }
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
 
     const int old_cy = self->cy;
     const int old_py = self->py;
@@ -6518,10 +6517,7 @@ TEST_F(PmEditorCmdDown, CallsScrollUpWhenScrolling) {
 
     self->py = 0;
     self->cy = self->height - 3;
-    self->txtp = self->buf;
-    for (int i = 0; i < self->cy; i++) {
-        self->txtp = pmeditor_next_line(self, self->txtp);
-    }
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_down(self);
 
@@ -7426,6 +7422,229 @@ TEST_F(PmEditorCmdLeft, NoWrapInMiddleOfLine) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_page_up()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdPageUp : public PmEditorTestBase { };
+
+// Test page up moves back one full screen
+TEST_F(PmEditorCmdPageUp, MoveBackOneFullScreen) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "Line" + std::to_string(i) + "\n";
+    }
+    SetBuffer(content.c_str());
+
+    // Position at line 20, column 2
+    self->py = 10;
+    self->cx = 2;
+    self->cy = 10;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // Moved back by height (10 - 20 = 0, clamped)
+    EXPECT_CURSOR_EQ(2, 10); // cx and cy preserved
+    EXPECT_TXTP_CONSISTENT();
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Test page up when already showing top of file queues HOME HOME
+TEST_F(PmEditorCmdPageUp, QueuesHomeHomeWhenAtTop) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    SetTxtp(12); // At start of "Line2"
+    self->py = 0;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, HOME, '\0');
+}
+
+// Test page up moves less than full screen when near top
+TEST_F(PmEditorCmdPageUp, MovesLessThanFullScreenNearTop) {
+    // Create buffer with lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    // Position at py=5 (less than height from top)
+    self->py = 5;
+    self->cx = 2;
+    self->cy = 3;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // Moved to top (can't go negative)
+    EXPECT_CURSOR_EQ(2, 3); // Column and row preserved
+    EXPECT_TXTP_CONSISTENT();
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+// Test page up to shorter line stops at end of line
+TEST_F(PmEditorCmdPageUp, StopsAtEndOfShorterLine) {
+    // Create buffer with varying line lengths
+    std::string content;
+    for (int i = 0; i < 40; i++) {
+        if (i < 10) {
+            content += "XX\n"; // Short lines
+        } else {
+            content += "ABCDEFGHIJ\n"; // Long lines
+        }
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 15;
+    self->cx = 8; // Column 8 (beyond short line length)
+    self->cy = 5;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_CURSOR_EQ(2, 5); // Stopped at end of "XX"
+    EXPECT_TXTP_CONSISTENT();
+}
+
+// Test page up from second page to first page
+TEST_F(PmEditorCmdPageUp, FromSecondPageToFirstPage) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    // On second page
+    self->py = self->height;
+    self->cx = 1;
+    self->cy = 10;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // Back to first page
+    EXPECT_CURSOR_EQ(1, 10);
+    EXPECT_TXTP_CONSISTENT();
+}
+
+// Test page up when py >= height - 1 moves full screen
+TEST_F(PmEditorCmdPageUp, MovesFullScreenWhenPyLargeEnough) {
+    std::string content;
+    for (int i = 0; i < 70; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 40;
+    self->cx = 0;
+    self->cy = 5;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(40 - self->height, self->py); // Moved back by height
+    EXPECT_CURSOR_EQ(0, 5);
+    EXPECT_TXTP_CONSISTENT();
+}
+
+// Test page up at top of file with cy > 0 queues HOME HOME
+TEST_F(PmEditorCmdPageUp, AtTopWithCyGreaterThanZeroQueuesHomeHome) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 0;
+    self->cy = 1;
+    SetTxtp(6); // At start of "Line1"
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, HOME, '\0');
+}
+
+// Test page up at very top (py=0, cy=0) queues HOME HOME
+TEST_F(PmEditorCmdPageUp, AtVeryTopQueuesHomeHome) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 0;
+    self->cy = 0;
+    SetTxtp(0);
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, HOME, '\0');
+}
+
+// Test page up moves to start of buffer when near top
+TEST_F(PmEditorCmdPageUp, MovesToStartWhenVeryNearTop) {
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 2; // Very near top
+    self->cx = 1;
+    self->cy = 3;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // Clamped to zero
+    EXPECT_CURSOR_EQ(1, 3);
+    EXPECT_TXTP_CONSISTENT();
+}
+
+// Test page up in single page buffer queues HOME HOME
+TEST_F(PmEditorCmdPageUp, SinglePageBufferQueuesHomeHome) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 0;
+    self->cy = 2;
+    SetTxtp(12);
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, HOME, '\0');
+}
+
+// Test page up with empty lines
+TEST_F(PmEditorCmdPageUp, WithEmptyLines) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        if (i % 5 == 0) {
+            content += "\n"; // Empty line
+        } else {
+            content += "Line\n";
+        }
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 30;
+    self->cx = 2;
+    self->cy = 6;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(30 - self->height, self->py);
+    EXPECT_CURSOR_EQ(2, 6);
+    EXPECT_TXTP_CONSISTENT();
+    EXPECT_EQ(1, print_screen_call_count);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Tests for pmeditor_cmd_right()
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -7925,11 +8144,7 @@ TEST_F(PmEditorCmdUp, ScrollsWhenNearTopOfScreen) {
     // Position near top of screen with py > 0
     self->py = 10;
     self->cy = 2; // Near top, should scroll
-    self->txtp = self->buf;
-    for (int i = 0; i < 12; i++) { // py + cy = 12
-        self->txtp = pmeditor_next_line(self, self->txtp);
-    }
-    self->preferred_x = 0;
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_up(self);
 
@@ -8069,10 +8284,7 @@ TEST_F(PmEditorCmdUp, ScrollsWhenCyLessThanOrEqualToTwoAndPyPositive) {
 
     self->py = 5;
     self->cy = 2; // At boundary where scrolling happens
-    self->txtp = self->buf;
-    for (int i = 0; i < 7; i++) { // py + cy = 7
-        self->txtp = pmeditor_next_line(self, self->txtp);
-    }
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
     self->preferred_x = 0;
 
     MmResult result = pmeditor_cmd_up(self);
@@ -8110,11 +8322,7 @@ TEST_F(PmEditorCmdUp, PreservesCursorPositionWhenScrolling) {
     self->py = 10;
     self->cy = 1;
     self->txtp = self->buf;
-    // Move txtp to line 11, column 2
-    for (int i = 0; i < 11; i++) {
-        self->txtp = pmeditor_next_line(self, self->txtp);
-    }
-    self->txtp += 2; // Column 2
+    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
     self->preferred_x = 2;
 
     MmResult result = pmeditor_cmd_up(self);
