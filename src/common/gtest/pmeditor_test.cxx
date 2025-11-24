@@ -54,6 +54,7 @@ static PrintLinesCapture print_lines_capture;
 
 MmResult pmeditor_test_display_msg(PmEditor *self, const char *msg) {
     strcpy(display_msg_capture, msg);
+    self->message_shown = true;
     return kOk;
 }
 

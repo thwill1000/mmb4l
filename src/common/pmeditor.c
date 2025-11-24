@@ -1318,38 +1318,29 @@ MmResult pmeditor_mark_delete(PmEditor *self) {
 }
 
 /**
- * Copies or cuts the marked text to the clipboard.
+ * Gets the bounds and length of the current text selection.
  *
- * Copies the text between self->mark and self->txtp to the clipboard buffer.
- * If cut is true, also deletes the marked text after copying.
+ * Determines the lower and upper bounds of the selection between mark and txtp,
+ * regardless of which is greater. This normalizes the selection so that start
+ * is always at or before end in the buffer, making it easier to iterate or copy
+ * the selected region.
  *
- * @param  self  Pointer to the PmEditor instance.
- * @param  cut   If true, delete the marked text after copying (cut operation).
- *               If false, leave the text in place (copy operation).
- * @return       kOk on success, or an error code on failure.
+ * @param       self   Pointer to the PmEditor instance.
+ * @param[out]  start  Set to the lower address (earlier in buffer).
+ *                     Points to self->mark if mark <= txtp, otherwise to txtp.
+ * @param[out]  end    Set to the higher address (later in buffer).
+ *                     Points to self->txtp if mark <= txtp, otherwise to mark.
+ * @return             The length of the selection in bytes (end - start).
+ *                     Returns 0 if mark == txtp (zero-length selection).
+ *
+ * @note The returned pointers point into self->buf and should not be freed.
+ * @note For a zero-length selection (mark == txtp), start and end will be equal.
+ * @note The length is always non-negative since end >= start by construction.
  */
-static MmResult pmeditor_mark_copy_or_cut(PmEditor *self, bool cut) {
-    if (self->txtp - self->mark > MAXCLIP || self->mark - self->txtp > MAXCLIP) {
-        return pmeditor_display_msg(self, " MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE");
-    }
-
-    char *p;
-    int cb_index = 0;
-    if (self->mark <= self->txtp) {
-        p = self->mark;
-        while (p < self->txtp) self->clipboard[cb_index++] = *p++;
-    } else {
-        p = self->txtp;
-        while (p <= self->mark - 1) self->clipboard[cb_index++] = *p++;
-    }
-    self->clipboard[cb_index] = '\0';
-
-    if (cut) {
-        return pmeditor_mark_delete(self);
-    } else {
-        self->exit_flag = true;
-        return pmeditor_position_cursor(self, self->txtp);
-    }
+static size_t pmeditor_get_selection(PmEditor *self, char **start, char **end) {
+    *start = (self->mark <= self->txtp) ? self->mark : self->txtp;
+    *end = (self->mark <= self->txtp) ? self->txtp : self->mark;
+    return *end - *start;
 }
 
 /**
@@ -1359,7 +1350,22 @@ static MmResult pmeditor_mark_copy_or_cut(PmEditor *self, bool cut) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_mark_copy(PmEditor *self) {
-    return pmeditor_mark_copy_or_cut(self, false);
+    char *start = NULL;
+    char *end = NULL;
+    const size_t selection_length = pmeditor_get_selection(self, &start, &end);
+
+    // Check clipboard size limit
+    if (selection_length > MAXCLIP) {
+        return pmeditor_display_msg(self, " MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE");
+    }
+
+    // Copy the selection to clipboard
+    memcpy(self->clipboard, start, selection_length);
+    self->clipboard[selection_length] = '\0';
+
+    // Exit mark mode
+    self->exit_flag = true;
+    return pmeditor_position_cursor(self, self->txtp);
 }
 
 /**
@@ -1369,7 +1375,13 @@ MmResult pmeditor_mark_copy(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_mark_cut(PmEditor *self) {
-    return pmeditor_mark_copy_or_cut(self, true);
+    self->message_shown = false;
+    ON_FAILURE_RETURN(pmeditor_mark_copy(self));
+    if (self->message_shown) {
+        // Copy failed, do not delete
+        return kOk;
+    }
+    return pmeditor_mark_delete(self);
 }
 
 /**
