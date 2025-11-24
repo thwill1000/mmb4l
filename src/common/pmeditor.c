@@ -1290,22 +1290,31 @@ static MmResult pmeditor_scroll_down(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_mark_delete(PmEditor *self) {
-    char *p;
+    // If necessary swap txtp and mark so that mark points to the higher address
     if (self->mark < self->txtp) {
-        p = self->txtp;
-        self->txtp = self->mark;
-        self->mark = p;  // swap txtp and mark
+        SWAP(char *, self->mark, self->txtp);
     }
+
+    // Adjust the line count for deleted lines
+    char *p;
     for (p = self->txtp; p < self->mark; p++) {
         if (*p == '\n') self->num_lines--;
     }
-    for (p = self->txtp; *self->mark;) *p++ = *self->mark++;
+
+    // Shuffle the text down copying from the mark pointer to the txtp pointer
+    for (p = self->txtp; *self->mark;) {
+        *p++ = *self->mark++;
+    }
+
+    // Terminate the text buffer
     *p++ = '\0';
     *p++ = '\0';
+
+    // TODO: mark_delete tests should check cursor position
     self->text_changed = true;
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
     self->exit_flag = true;
-    return kOk;
+
+    return pmeditor_position_cursor(self, self->txtp);
 }
 
 /**

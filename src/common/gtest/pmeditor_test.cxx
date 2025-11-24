@@ -4140,7 +4140,8 @@ TEST_F(PmEditorMarkDelete, DeleteWhenMarkBeforeTxtp) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Heorld", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp); // txtp should be at mark position
+    EXPECT_TXTP_EQ(2); // txtp should be at mark position
+    EXPECT_CURSOR_EQ(2, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4154,7 +4155,8 @@ TEST_F(PmEditorMarkDelete, DeleteWhenMarkAfterTxtp) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Heorld", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp); // txtp stays where it was
+    EXPECT_TXTP_EQ(2); // txtp stays where it was
+    EXPECT_CURSOR_EQ(2, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4168,7 +4170,8 @@ TEST_F(PmEditorMarkDelete, DeleteWhenMarkEqualsTxtp) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello World", self->buf); // Nothing deleted
-    EXPECT_EQ(self->buf + 5, self->txtp);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
     EXPECT_TRUE(self->text_changed); // Still marked as changed
 }
 
@@ -4182,7 +4185,8 @@ TEST_F(PmEditorMarkDelete, DeleteSingleCharacter) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ABDEF", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4196,7 +4200,8 @@ TEST_F(PmEditorMarkDelete, DeleteEntireBuffer) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
-    EXPECT_EQ(self->buf, self->txtp);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4210,7 +4215,8 @@ TEST_F(PmEditorMarkDelete, DeleteFromStartOfBuffer) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("World", self->buf);
-    EXPECT_EQ(self->buf, self->txtp);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4224,7 +4230,8 @@ TEST_F(PmEditorMarkDelete, DeleteToEndOfBuffer) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello ", self->buf);
-    EXPECT_EQ(self->buf + 6, self->txtp);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(6, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4238,7 +4245,8 @@ TEST_F(PmEditorMarkDelete, DeleteWithNewlines) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1\nLine2", self->buf);
-    EXPECT_EQ(self->buf + 3, self->txtp);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
     EXPECT_EQ(2, self->num_lines); // One newline deleted
     EXPECT_TRUE(self->text_changed);
 }
@@ -4253,6 +4261,8 @@ TEST_F(PmEditorMarkDelete, DeleteMultipleNewlines) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line2\nLine3", self->buf);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
     EXPECT_EQ(2, self->num_lines); // Two newlines deleted
     EXPECT_TRUE(self->text_changed);
 }
@@ -4267,7 +4277,8 @@ TEST_F(PmEditorMarkDelete, DeleteOnlyNewline) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1Line2", self->buf);
-    EXPECT_EQ(self->buf + 5, self->txtp);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
     EXPECT_EQ(1, self->num_lines); // One newline deleted
     EXPECT_TRUE(self->text_changed);
 }
@@ -4282,7 +4293,8 @@ TEST_F(PmEditorMarkDelete, SwapMarkAndTxtpWhenMarkGreater) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ABGH", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp); // txtp at lower position
+    EXPECT_TXTP_EQ(2); // txtp at lower position
+    EXPECT_CURSOR_EQ(2, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4311,7 +4323,8 @@ TEST_F(PmEditorMarkDelete, DeleteInEmptyBuffer) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
-    EXPECT_EQ(self->buf, self->txtp);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4325,7 +4338,8 @@ TEST_F(PmEditorMarkDelete, PreservesContentAfterDeletedRegion) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("AAACCC", self->buf);
-    EXPECT_EQ(self->buf + 3, self->txtp);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4340,7 +4354,8 @@ TEST_F(PmEditorMarkDelete, DeleteLargeRegion) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(20, strlen(self->buf)); // 10 + 10 remaining
-    EXPECT_EQ(self->buf + 10, self->txtp);
+    EXPECT_TXTP_EQ(10);
+    EXPECT_CURSOR_EQ(10, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4354,7 +4369,8 @@ TEST_F(PmEditorMarkDelete, DeleteBackwardSelection) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("012789", self->buf);
-    EXPECT_EQ(self->buf + 3, self->txtp);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4368,6 +4384,8 @@ TEST_F(PmEditorMarkDelete, DeleteWithNumLinesCounting) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("A\nE", self->buf);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(0, 1);
     EXPECT_EQ(2, self->num_lines); // Started with 5, deleted 3 newlines
     EXPECT_TRUE(self->text_changed);
 }
@@ -4382,6 +4400,8 @@ TEST_F(PmEditorMarkDelete, DeleteMixedNewlinesAndContent) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Linne2", self->buf);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
     EXPECT_EQ(1, self->num_lines); // Two newlines deleted
     EXPECT_TRUE(self->text_changed);
 }
@@ -4397,7 +4417,8 @@ TEST_F(PmEditorMarkDelete, DeleteEntireContent) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
-    EXPECT_EQ(self->buf, self->txtp);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
     EXPECT_TRUE(self->text_changed);
 }
 
@@ -4411,6 +4432,8 @@ TEST_F(PmEditorMarkDelete, DeleteZeroLengthSelection) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf); // Nothing deleted
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
     EXPECT_TRUE(self->text_changed); // Still marked as changed
 }
 
