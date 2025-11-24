@@ -1412,12 +1412,12 @@ MmResult pmeditor_mark_down(PmEditor *self) {
  */
 MmResult pmeditor_mark_end(PmEditor *self) {
     CHECK_CURSOR_VALID();
-    char *p = pmeditor_start_of_line(self, self->mark);
+    char *p = pmeditor_start_of_line(self, self->txtp);
     int len = pmeditor_line_length(self, p);
     if (len > self->width) {
         return pmeditor_display_msg(self, " LINE IS TOO LONG ");
     }
-    self->mark = p + len;
+    self->txtp = p + len;
     self->cx = len;
     return kOk;
 }
@@ -1457,7 +1457,7 @@ static MmResult pmeditor_mark_escape(PmEditor *self) {
  */
 MmResult pmeditor_mark_home(PmEditor *self) {
     CHECK_CURSOR_VALID();
-    self->mark = pmeditor_start_of_line(self, self->mark);
+    self->txtp = pmeditor_start_of_line(self, self->txtp);
     self->cx = 0;
     return kOk;
 }
@@ -1608,8 +1608,18 @@ static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd) {
             SWAP(char *, self->txtp, self->mark);
             return kOk;
         }
-        case HOME:  return pmeditor_mark_home(self);
-        case END:   return pmeditor_mark_end(self);
+        case HOME: {
+            SWAP(char *, self->txtp, self->mark);
+            ON_FAILURE_RETURN(pmeditor_mark_home(self));
+            SWAP(char *, self->txtp, self->mark);
+            return kOk;
+        }
+        case END: {
+            SWAP(char *, self->txtp, self->mark);
+            ON_FAILURE_RETURN(pmeditor_mark_end(self));
+            SWAP(char *, self->txtp, self->mark);
+            return kOk;
+        }
         case F4:    return pmeditor_mark_cut(self);
         case F5:    return pmeditor_mark_copy(self);
         case DEL:   return pmeditor_mark_delete(self);
