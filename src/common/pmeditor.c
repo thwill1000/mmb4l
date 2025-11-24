@@ -1358,7 +1358,7 @@ static MmResult pmeditor_mark_copy_or_cut(PmEditor *self, bool cut) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_mark_copy(PmEditor *self) {
+MmResult pmeditor_mark_copy(PmEditor *self) {
     return pmeditor_mark_copy_or_cut(self, false);
 }
 
@@ -1368,7 +1368,7 @@ static MmResult pmeditor_mark_copy(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_mark_cut(PmEditor *self) {
+MmResult pmeditor_mark_cut(PmEditor *self) {
     return pmeditor_mark_copy_or_cut(self, true);
 }
 

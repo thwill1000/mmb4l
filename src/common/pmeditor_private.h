@@ -163,6 +163,8 @@ MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
 MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw);
+MmResult pmeditor_mark_copy(PmEditor *self);
+MmResult pmeditor_mark_cut(PmEditor *self);
 MmResult pmeditor_mark_delete(PmEditor *self);
 MmResult pmeditor_mark_down(PmEditor *self);
 MmResult pmeditor_mark_end(PmEditor *self);
