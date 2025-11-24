@@ -157,7 +157,7 @@ MmResult pmeditor_cmd_up(PmEditor *self);
 MmResult pmeditor_delete_char(PmEditor *self, int *redraw);
 char *pmeditor_back_in_line(PmEditor *self, char *start, size_t num_chars);
 char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, size_t max_len);
-char *pmeditor_find_line(PmEditor *self, int line, int *comment_level);
+char *pmeditor_find_line_ex(PmEditor *self, int line, int *comment_level);
 MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, HighlightType *highlight);
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
@@ -173,7 +173,7 @@ MmResult pmeditor_mark_right(PmEditor *self);
 MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw);
 MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
 MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos);
-char *pmeditor_start_of_line_n(PmEditor *self, int line);
+char *pmeditor_find_line_n(PmEditor *self, int line);
 void pmeditor_restore_fn_pointers();
 
 /**

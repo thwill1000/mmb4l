@@ -158,7 +158,8 @@ protected:
 
 #define EXPECT_TXTP_CONSISTENT() \
     do { \
-        EXPECT_EQ(self->txtp, pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx) << "insert cursor position inconsistent"; \
+        EXPECT_EQ(self->txtp, pmeditor_find_line_n(self, self->py + self->cy) + self->cx) \
+            << "insert cursor position inconsistent"; \
     } while (0)
 
 #define EXPECT_MARK_EQ(expected_offset) \
@@ -167,17 +168,17 @@ protected:
     } while (0)
 
 ////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_find_line()
+// Tests for pmeditor_find_line_ex()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorFindLineTest : public PmEditorTestBase {};
+class PmEditorFindLineExTest : public PmEditorTestBase {};
 
 // Basic line finding tests
-TEST_F(PmEditorFindLineTest, SingleLine) {
+TEST_F(PmEditorFindLineExTest, SingleLine) {
     SetBuffer("hello world");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -185,11 +186,11 @@ TEST_F(PmEditorFindLineTest, SingleLine) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, FirstOfTwo) {
+TEST_F(PmEditorFindLineExTest, FirstOfTwo) {
     SetBuffer("line1\nline2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -197,11 +198,11 @@ TEST_F(PmEditorFindLineTest, FirstOfTwo) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, SecondOfTwo) {
+TEST_F(PmEditorFindLineExTest, SecondOfTwo) {
     SetBuffer("line1\nline2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -209,11 +210,11 @@ TEST_F(PmEditorFindLineTest, SecondOfTwo) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, EmptyFirstLine) {
+TEST_F(PmEditorFindLineExTest, EmptyFirstLine) {
     SetBuffer("\nline2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -221,11 +222,11 @@ TEST_F(PmEditorFindLineTest, EmptyFirstLine) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, MultipleLines) {
+TEST_F(PmEditorFindLineExTest, MultipleLines) {
     SetBuffer("one\ntwo\nthree\nfour");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -234,21 +235,21 @@ TEST_F(PmEditorFindLineTest, MultipleLines) {
 }
 
 // Edge cases - basic
-TEST_F(PmEditorFindLineTest, NegativeLine) {
+TEST_F(PmEditorFindLineExTest, NegativeLine) {
     SetBuffer("text");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, -1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, -1, &comment_level);
 
     EXPECT_EQ(nullptr, result) << "Negative line number";
     EXPECT_EQ(-1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, LineZero) {
+TEST_F(PmEditorFindLineExTest, LineZero) {
     SetBuffer("first line");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -256,11 +257,11 @@ TEST_F(PmEditorFindLineTest, LineZero) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, LineBeyondEnd) {
+TEST_F(PmEditorFindLineExTest, LineBeyondEnd) {
     SetBuffer("one\ntwo");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 5, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 5, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -268,11 +269,11 @@ TEST_F(PmEditorFindLineTest, LineBeyondEnd) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, EmptyString) {
+TEST_F(PmEditorFindLineExTest, EmptyString) {
     SetBuffer("");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -280,11 +281,11 @@ TEST_F(PmEditorFindLineTest, EmptyString) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, OnlyNewlines) {
+TEST_F(PmEditorFindLineExTest, OnlyNewlines) {
     SetBuffer("\n\n\n");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -292,11 +293,11 @@ TEST_F(PmEditorFindLineTest, OnlyNewlines) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, SingleLineNoBeyond) {
+TEST_F(PmEditorFindLineExTest, SingleLineNoBeyond) {
     SetBuffer("Hello World");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -304,11 +305,11 @@ TEST_F(PmEditorFindLineTest, SingleLineNoBeyond) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, MultiLineBeyondEnd) {
+TEST_F(PmEditorFindLineExTest, MultiLineBeyondEnd) {
     SetBuffer("Line 0\nLine 1");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 5, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 5, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -317,11 +318,11 @@ TEST_F(PmEditorFindLineTest, MultiLineBeyondEnd) {
 }
 
 // Empty buffer variations
-TEST_F(PmEditorFindLineTest, EmptyBufferLine0) {
+TEST_F(PmEditorFindLineExTest, EmptyBufferLine0) {
     SetBuffer("");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -329,11 +330,11 @@ TEST_F(PmEditorFindLineTest, EmptyBufferLine0) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, NewlinesLine0) {
+TEST_F(PmEditorFindLineExTest, NewlinesLine0) {
     SetBuffer("\n\n\n");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -341,11 +342,11 @@ TEST_F(PmEditorFindLineTest, NewlinesLine0) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, NewlinesLine1) {
+TEST_F(PmEditorFindLineExTest, NewlinesLine1) {
     SetBuffer("\n\n\n");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -353,11 +354,11 @@ TEST_F(PmEditorFindLineTest, NewlinesLine1) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, NewlinesLine3) {
+TEST_F(PmEditorFindLineExTest, NewlinesLine3) {
     SetBuffer("\n\n\n");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 3, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 3, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -366,11 +367,11 @@ TEST_F(PmEditorFindLineTest, NewlinesLine3) {
 }
 
 // Multi-line comment tracking
-TEST_F(PmEditorFindLineTest, SimpleMultilineComment) {
+TEST_F(PmEditorFindLineExTest, SimpleMultilineComment) {
     SetBuffer("code\n/* comment */\nmore");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -378,11 +379,11 @@ TEST_F(PmEditorFindLineTest, SimpleMultilineComment) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, UnclosedComment) {
+TEST_F(PmEditorFindLineExTest, UnclosedComment) {
     SetBuffer("code\n/* comment\nstill commenting");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -390,11 +391,11 @@ TEST_F(PmEditorFindLineTest, UnclosedComment) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentAcrossLines) {
+TEST_F(PmEditorFindLineExTest, CommentAcrossLines) {
     SetBuffer("start\n/* begin\nmiddle\nend */");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -402,11 +403,11 @@ TEST_F(PmEditorFindLineTest, CommentAcrossLines) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, NestedComments) {
+TEST_F(PmEditorFindLineExTest, NestedComments) {
     SetBuffer("x\n/* /* nested */ */\ny");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -414,11 +415,11 @@ TEST_F(PmEditorFindLineTest, NestedComments) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, MultipleComments) {
+TEST_F(PmEditorFindLineExTest, MultipleComments) {
     SetBuffer("a\n/* c1 */\n/* c2 */\nb");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -427,11 +428,11 @@ TEST_F(PmEditorFindLineTest, MultipleComments) {
 }
 
 // Comment at start variations
-TEST_F(PmEditorFindLineTest, CommentAtStart) {
+TEST_F(PmEditorFindLineExTest, CommentAtStart) {
     SetBuffer("/* comment */\nLine 1\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -439,11 +440,11 @@ TEST_F(PmEditorFindLineTest, CommentAtStart) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentWithSpaces) {
+TEST_F(PmEditorFindLineExTest, CommentWithSpaces) {
     SetBuffer("   /* comment */\nLine 1\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -451,11 +452,11 @@ TEST_F(PmEditorFindLineTest, CommentWithSpaces) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentWithTabs) {
+TEST_F(PmEditorFindLineExTest, CommentWithTabs) {
     SetBuffer("\t\t/* comment */\nLine 1\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -464,11 +465,11 @@ TEST_F(PmEditorFindLineTest, CommentWithTabs) {
 }
 
 // Comment progression through lines
-TEST_F(PmEditorFindLineTest, CommentOnSecondLine) {
+TEST_F(PmEditorFindLineExTest, CommentOnSecondLine) {
     SetBuffer("Line 0\n/* comment\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -476,11 +477,11 @@ TEST_F(PmEditorFindLineTest, CommentOnSecondLine) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentOnSecondLineContinues) {
+TEST_F(PmEditorFindLineExTest, CommentOnSecondLineContinues) {
     SetBuffer("Line 0\n/* comment\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -488,11 +489,11 @@ TEST_F(PmEditorFindLineTest, CommentOnSecondLineContinues) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentEnd) {
+TEST_F(PmEditorFindLineExTest, CommentEnd) {
     SetBuffer("Line 0\n*/\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -500,11 +501,11 @@ TEST_F(PmEditorFindLineTest, CommentEnd) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentEndContinues) {
+TEST_F(PmEditorFindLineExTest, CommentEndContinues) {
     SetBuffer("Line 0\n*/\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -512,11 +513,11 @@ TEST_F(PmEditorFindLineTest, CommentEndContinues) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentEndWithSpaces) {
+TEST_F(PmEditorFindLineExTest, CommentEndWithSpaces) {
     SetBuffer("Line 0\n  */\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -525,11 +526,11 @@ TEST_F(PmEditorFindLineTest, CommentEndWithSpaces) {
 }
 
 // String literals
-TEST_F(PmEditorFindLineTest, StringWithSlash) {
+TEST_F(PmEditorFindLineExTest, StringWithSlash) {
     SetBuffer("code\n\"/*not comment*/\"\nmore");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -537,11 +538,11 @@ TEST_F(PmEditorFindLineTest, StringWithSlash) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, StringWithQuote) {
+TEST_F(PmEditorFindLineExTest, StringWithQuote) {
     SetBuffer("code\n\"She said \\\"hi\\\"\"\nmore");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -549,11 +550,11 @@ TEST_F(PmEditorFindLineTest, StringWithQuote) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, MultilineString) {
+TEST_F(PmEditorFindLineExTest, MultilineString) {
     SetBuffer("start\n\"line1\nline2\"\nend");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -561,11 +562,11 @@ TEST_F(PmEditorFindLineTest, MultilineString) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, StringThenComment) {
+TEST_F(PmEditorFindLineExTest, StringThenComment) {
     SetBuffer("x\n\"text\" /* comment */\ny");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -573,11 +574,11 @@ TEST_F(PmEditorFindLineTest, StringThenComment) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentThenString) {
+TEST_F(PmEditorFindLineExTest, CommentThenString) {
     SetBuffer("x\n/* comment */ \"text\"\ny");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -585,11 +586,11 @@ TEST_F(PmEditorFindLineTest, CommentThenString) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, QuoteInComment) {
+TEST_F(PmEditorFindLineExTest, QuoteInComment) {
     SetBuffer("x\n/* \" quote \" */\ny");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -598,11 +599,11 @@ TEST_F(PmEditorFindLineTest, QuoteInComment) {
 }
 
 // String and comment interactions
-TEST_F(PmEditorFindLineTest, MultilineCommentStartsInString) {
+TEST_F(PmEditorFindLineExTest, MultilineCommentStartsInString) {
     SetBuffer("x\n\"/* not comment\"\ny");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -610,11 +611,11 @@ TEST_F(PmEditorFindLineTest, MultilineCommentStartsInString) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, MultilineCommentEndsInString) {
+TEST_F(PmEditorFindLineExTest, MultilineCommentEndsInString) {
     SetBuffer("x\n/*\"comment*/\"\ny");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -622,11 +623,11 @@ TEST_F(PmEditorFindLineTest, MultilineCommentEndsInString) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, MultilineCommentWithinString) {
+TEST_F(PmEditorFindLineExTest, MultilineCommentWithinString) {
     SetBuffer("Line 0\n\"This is not a /* comment\"\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -634,11 +635,11 @@ TEST_F(PmEditorFindLineTest, MultilineCommentWithinString) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentedOutStringWithComment) {
+TEST_F(PmEditorFindLineExTest, CommentedOutStringWithComment) {
     SetBuffer("/*Line 0\n\"/*Line 1\"\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -646,11 +647,11 @@ TEST_F(PmEditorFindLineTest, CommentedOutStringWithComment) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentedOutStringWithCommentEnd) {
+TEST_F(PmEditorFindLineExTest, CommentedOutStringWithCommentEnd) {
     SetBuffer("/*Line 0\n\"*/Line 1\"\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -658,11 +659,11 @@ TEST_F(PmEditorFindLineTest, CommentedOutStringWithCommentEnd) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, StringWithCommentInMultiline) {
+TEST_F(PmEditorFindLineExTest, StringWithCommentInMultiline) {
     SetBuffer("Line 0\n\"'/*Line 1\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -671,11 +672,11 @@ TEST_F(PmEditorFindLineTest, StringWithCommentInMultiline) {
 }
 
 // Single-line comments (CMM2 style with ')
-TEST_F(PmEditorFindLineTest, SingleQuoteComment) {
+TEST_F(PmEditorFindLineExTest, SingleQuoteComment) {
     SetBuffer("code\n' this is a comment\nmore");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -683,11 +684,11 @@ TEST_F(PmEditorFindLineTest, SingleQuoteComment) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentWithSlash) {
+TEST_F(PmEditorFindLineExTest, CommentWithSlash) {
     SetBuffer("code\n' /* not multiline\nmore");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -695,11 +696,11 @@ TEST_F(PmEditorFindLineTest, CommentWithSlash) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, REMComment) {
+TEST_F(PmEditorFindLineExTest, REMComment) {
     SetBuffer("code\nREM this is a comment\nmore");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -707,11 +708,11 @@ TEST_F(PmEditorFindLineTest, REMComment) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, RemLowercase) {
+TEST_F(PmEditorFindLineExTest, RemLowercase) {
     SetBuffer("code\nrem comment\nmore");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -720,11 +721,11 @@ TEST_F(PmEditorFindLineTest, RemLowercase) {
 }
 
 // Single-line and multiline comment interactions
-TEST_F(PmEditorFindLineTest, MultilineCommentStartsInSingleQuoteComment) {
+TEST_F(PmEditorFindLineExTest, MultilineCommentStartsInSingleQuoteComment) {
     SetBuffer("x\n'/*Line 1\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -732,11 +733,11 @@ TEST_F(PmEditorFindLineTest, MultilineCommentStartsInSingleQuoteComment) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, MultilineCommentEndsInSingleQuoteComment) {
+TEST_F(PmEditorFindLineExTest, MultilineCommentEndsInSingleQuoteComment) {
     SetBuffer("x\n/*'comment*/\ny");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -744,11 +745,11 @@ TEST_F(PmEditorFindLineTest, MultilineCommentEndsInSingleQuoteComment) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, MultilineCommentStartsInRemComment) {
+TEST_F(PmEditorFindLineExTest, MultilineCommentStartsInRemComment) {
     SetBuffer("x\nREM /* not comment\ny");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -756,11 +757,11 @@ TEST_F(PmEditorFindLineTest, MultilineCommentStartsInRemComment) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, MultilineCommentEndsInRemComment) {
+TEST_F(PmEditorFindLineExTest, MultilineCommentEndsInRemComment) {
     SetBuffer("x\n/*rem comment*/\ny");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -768,11 +769,11 @@ TEST_F(PmEditorFindLineTest, MultilineCommentEndsInRemComment) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, BadRemComment1) {
+TEST_F(PmEditorFindLineExTest, BadRemComment1) {
     SetBuffer("Line 0\nxREM /* comment\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -780,11 +781,11 @@ TEST_F(PmEditorFindLineTest, BadRemComment1) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, BadRemComment2) {
+TEST_F(PmEditorFindLineExTest, BadRemComment2) {
     SetBuffer("Line 0\nREMx /* comment\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -792,11 +793,11 @@ TEST_F(PmEditorFindLineTest, BadRemComment2) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, BadRemComment3) {
+TEST_F(PmEditorFindLineExTest, BadRemComment3) {
     SetBuffer("Line 0/*\nxREM */ not comment\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -804,11 +805,11 @@ TEST_F(PmEditorFindLineTest, BadRemComment3) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, BadRemComment4) {
+TEST_F(PmEditorFindLineExTest, BadRemComment4) {
     SetBuffer("Line 0/*\nREMx */ not comment\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -817,11 +818,11 @@ TEST_F(PmEditorFindLineTest, BadRemComment4) {
 }
 
 // Edge cases with symbols
-TEST_F(PmEditorFindLineTest, SlashNotComment) {
+TEST_F(PmEditorFindLineExTest, SlashNotComment) {
     SetBuffer("code\n/ division\nmore");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -829,11 +830,11 @@ TEST_F(PmEditorFindLineTest, SlashNotComment) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, StarNotComment) {
+TEST_F(PmEditorFindLineExTest, StarNotComment) {
     SetBuffer("code\n* pointer\nmore");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -841,11 +842,11 @@ TEST_F(PmEditorFindLineTest, StarNotComment) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, AlmostComment) {
+TEST_F(PmEditorFindLineExTest, AlmostComment) {
     SetBuffer("code\n/ * separate\nmore");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -853,11 +854,11 @@ TEST_F(PmEditorFindLineTest, AlmostComment) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, IncompleteCommentMarkers) {
+TEST_F(PmEditorFindLineExTest, IncompleteCommentMarkers) {
     SetBuffer("/\n*\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -865,11 +866,11 @@ TEST_F(PmEditorFindLineTest, IncompleteCommentMarkers) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CommentMarkersNotAtStart) {
+TEST_F(PmEditorFindLineExTest, CommentMarkersNotAtStart) {
     SetBuffer("code /* comment\nLine 1");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -878,11 +879,11 @@ TEST_F(PmEditorFindLineTest, CommentMarkersNotAtStart) {
 }
 
 // Complex edge cases
-TEST_F(PmEditorFindLineTest, SlashStarSlashSequenceLine0) {
+TEST_F(PmEditorFindLineExTest, SlashStarSlashSequenceLine0) {
     SetBuffer("Line 0\n/*/\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -890,11 +891,11 @@ TEST_F(PmEditorFindLineTest, SlashStarSlashSequenceLine0) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, SlashStarSlashSequenceLine1) {
+TEST_F(PmEditorFindLineExTest, SlashStarSlashSequenceLine1) {
     SetBuffer("Line 0\n/*/\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -902,11 +903,11 @@ TEST_F(PmEditorFindLineTest, SlashStarSlashSequenceLine1) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, SlashStarSlashSequenceLine2) {
+TEST_F(PmEditorFindLineExTest, SlashStarSlashSequenceLine2) {
     SetBuffer("Line 0\n/*/\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -914,11 +915,11 @@ TEST_F(PmEditorFindLineTest, SlashStarSlashSequenceLine2) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, UnterminatedStringWithComment) {
+TEST_F(PmEditorFindLineExTest, UnterminatedStringWithComment) {
     SetBuffer("\"Line 0\n/*Line 1\nLine 2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -927,11 +928,11 @@ TEST_F(PmEditorFindLineTest, UnterminatedStringWithComment) {
 }
 
 // Complex multiline comment scenarios
-TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine0) {
+TEST_F(PmEditorFindLineExTest, ComplexMultilineCommentLine0) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 0, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 0, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -939,11 +940,11 @@ TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine0) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine1) {
+TEST_F(PmEditorFindLineExTest, ComplexMultilineCommentLine1) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -951,11 +952,11 @@ TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine1) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine2) {
+TEST_F(PmEditorFindLineExTest, ComplexMultilineCommentLine2) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -963,11 +964,11 @@ TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine2) {
     EXPECT_EQ(1, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine3) {
+TEST_F(PmEditorFindLineExTest, ComplexMultilineCommentLine3) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 3, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 3, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -975,11 +976,11 @@ TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine3) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine4) {
+TEST_F(PmEditorFindLineExTest, ComplexMultilineCommentLine4) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 4, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 4, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -987,11 +988,11 @@ TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine4) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine5) {
+TEST_F(PmEditorFindLineExTest, ComplexMultilineCommentLine5) {
     SetBuffer("/* start comment\nstill in comment\n*/\nLine 3\n/* new comment\nLine 5");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 5, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 5, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -1000,11 +1001,11 @@ TEST_F(PmEditorFindLineTest, ComplexMultilineCommentLine5) {
 }
 
 // Windows line endings
-TEST_F(PmEditorFindLineTest, WindowsLineEnding) {
+TEST_F(PmEditorFindLineExTest, WindowsLineEnding) {
     SetBuffer("line1\r\nline2");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 1, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 1, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -1013,14 +1014,14 @@ TEST_F(PmEditorFindLineTest, WindowsLineEnding) {
 }
 
 // Real code examples
-TEST_F(PmEditorFindLineTest, FunctionDefinition) {
+TEST_F(PmEditorFindLineExTest, FunctionDefinition) {
     SetBuffer("FUNCTION func%()\n"
               "  /* comment */\n"
               "  func% = 42\n"
               "END FUNCTION");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -1028,13 +1029,13 @@ TEST_F(PmEditorFindLineTest, FunctionDefinition) {
     EXPECT_EQ(0, comment_level);
 }
 
-TEST_F(PmEditorFindLineTest, CodeWithStrings) {
+TEST_F(PmEditorFindLineExTest, CodeWithStrings) {
     SetBuffer("PRINT \"Hello\"\n"
               "/* Comment */\n"
               "PRINT \"World\"\n");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 2, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 2, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -1043,12 +1044,12 @@ TEST_F(PmEditorFindLineTest, CodeWithStrings) {
 }
 
 // Performance test case
-TEST_F(PmEditorFindLineTest, LargeLineNumber) {
+TEST_F(PmEditorFindLineExTest, LargeLineNumber) {
     SetBuffer("Line 0\nLine 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\n"
               "Line 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\n");
     int comment_level = -1;
 
-    char* result = pmeditor_find_line(self, 10, &comment_level);
+    char* result = pmeditor_find_line_ex(self, 10, &comment_level);
 
     ASSERT_NE(nullptr, result);
     int actual_offset = result - self->buf;
@@ -6334,7 +6335,7 @@ TEST_F(PmEditorCmdDown, ScrollsWhenNearBottomOfScreen) {
     // Position where scrolling should occur (cy >= height - 3)
     self->py = 0;
     self->cy = self->height - 2; // Near bottom, should scroll
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_down(self);
 
@@ -6470,7 +6471,7 @@ TEST_F(PmEditorCmdDown, MovesNormallyAtHeightMinus3) {
 
     self->py = 0;
     self->cy = self->height - 3;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     const int old_cy = self->cy;
     const int old_py = self->py;
@@ -6494,7 +6495,7 @@ TEST_F(PmEditorCmdDown, CallsScrollUpWhenScrolling) {
 
     self->py = 0;
     self->cy = self->height - 3;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_down(self);
 
@@ -7417,7 +7418,7 @@ TEST_F(PmEditorCmdPageDown, MoveForwardOneFullScreen) {
     self->py = 0;
     self->cy = 5;
     self->cx = 2;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
@@ -7456,7 +7457,7 @@ TEST_F(PmEditorCmdPageDown, NearBottomPositionsToShowLastPage) {
     self->py = 5;
     self->cy = 3;
     self->cx = 2;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
@@ -7479,7 +7480,7 @@ TEST_F(PmEditorCmdPageDown, MaintainsColumnPosition) {
     self->py = 5;
     self->cy = 3;
     self->cx = 7;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
@@ -7503,7 +7504,7 @@ TEST_F(PmEditorCmdPageDown, StopsAtEndOfShorterLine) {
     self->py = 5;
     self->cy = 3;
     self->cx = 8; // Column 8 (beyond short line length)
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
@@ -7543,7 +7544,7 @@ TEST_F(PmEditorCmdPageDown, FromFirstPageToSecondPage) {
     self->py = 0;
     self->cy = 10;
     self->cx = 1;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
@@ -7563,7 +7564,7 @@ TEST_F(PmEditorCmdPageDown, UpdatesTxtpCorrectly) {
     self->py = 5;
     self->cy = 3;
     self->cx = 2;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
@@ -7614,7 +7615,7 @@ TEST_F(PmEditorCmdPageDown, PreservesCy) {
     self->py = 0;
     self->cy = 10;
     self->cx = 2;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
@@ -7637,7 +7638,7 @@ TEST_F(PmEditorCmdPageDown, WithEmptyLines) {
     self->py = 0;
     self->cy = 5;
     self->cx = 2;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
@@ -7658,7 +7659,7 @@ TEST_F(PmEditorCmdPageDown, HandlesEndWithoutTrailingNewline) {
     self->py = 0;
     self->cy = 5;
     self->cx = 2;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
@@ -7677,7 +7678,7 @@ TEST_F(PmEditorCmdPageDown, WhenRemainingLinesLessThanScreen) {
     self->py = 10;
     self->cy = 5;
     self->cx = 0;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
@@ -7712,7 +7713,7 @@ TEST_F(PmEditorCmdPageDown, MovesTxtpToStartThenColumn) {
     self->py = 0;
     self->cx = 5;
     self->cy = 2;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_down(self);
 
@@ -7741,7 +7742,7 @@ TEST_F(PmEditorCmdPageUp, MoveBackOneFullScreen) {
     self->py = 10;
     self->cx = 2;
     self->cy = 10;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_up(self);
 
@@ -7776,7 +7777,7 @@ TEST_F(PmEditorCmdPageUp, MovesLessThanFullScreenNearTop) {
     self->py = 5;
     self->cx = 2;
     self->cy = 3;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_up(self);
 
@@ -7803,7 +7804,7 @@ TEST_F(PmEditorCmdPageUp, StopsAtEndOfShorterLine) {
     self->py = 15;
     self->cx = 8; // Column 8 (beyond short line length)
     self->cy = 5;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_up(self);
 
@@ -7824,7 +7825,7 @@ TEST_F(PmEditorCmdPageUp, FromSecondPageToFirstPage) {
     self->py = self->height;
     self->cx = 1;
     self->cy = 10;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_up(self);
 
@@ -7845,7 +7846,7 @@ TEST_F(PmEditorCmdPageUp, MovesFullScreenWhenPyLargeEnough) {
     self->py = 40;
     self->cx = 0;
     self->cy = 5;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_up(self);
 
@@ -7894,7 +7895,7 @@ TEST_F(PmEditorCmdPageUp, MovesToStartWhenVeryNearTop) {
     self->py = 2; // Very near top
     self->cx = 1;
     self->cy = 3;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_up(self);
 
@@ -7933,7 +7934,7 @@ TEST_F(PmEditorCmdPageUp, WithEmptyLines) {
     self->py = 30;
     self->cx = 2;
     self->cy = 6;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_page_up(self);
 
@@ -8444,7 +8445,7 @@ TEST_F(PmEditorCmdUp, ScrollsWhenNearTopOfScreen) {
     // Position near top of screen with py > 0
     self->py = 10;
     self->cy = 2; // Near top, should scroll
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
 
     MmResult result = pmeditor_cmd_up(self);
 
@@ -8584,7 +8585,7 @@ TEST_F(PmEditorCmdUp, ScrollsWhenCyLessThanOrEqualToTwoAndPyPositive) {
 
     self->py = 5;
     self->cy = 2; // At boundary where scrolling happens
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
     self->preferred_x = 0;
 
     MmResult result = pmeditor_cmd_up(self);
@@ -8622,7 +8623,7 @@ TEST_F(PmEditorCmdUp, PreservesCursorPositionWhenScrolling) {
     self->py = 10;
     self->cy = 1;
     self->txtp = self->buf;
-    self->txtp = pmeditor_start_of_line_n(self, self->py + self->cy) + self->cx;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
     self->preferred_x = 2;
 
     MmResult result = pmeditor_cmd_up(self);

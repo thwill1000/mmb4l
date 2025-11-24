@@ -1009,15 +1009,44 @@ MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, Hi
     return kOk;
 }
 
-// TODO
+/**
+ * Advances to the start of the next line while tracking comment state.
+ *
+ * Scans through the current line character by character, maintaining awareness
+ * of:
+ * - Multiline comments (/ * ... * /) and their nesting level
+ * - Single-line comments (starting with ' or REM)
+ * - Quoted strings (to avoid treating comment markers inside strings as actual
+ *   comments)
+ *
+ * This function is essential for syntax highlighting as it propagates the
+ * multiline comment state from one line to the next. The comment_level is
+ * updated as the function encounters / * (increment) and * / (decrement)
+ * tokens outside of strings and single-line comments.
+ *
+ * Special Cases Handled:
+ * - Escaped quotes inside strings (preceded by \)
+ * - REM keyword (case-insensitive, requires word boundaries)
+ * - Comment markers inside quoted strings (ignored)
+ * - Single-line comments prevent multiline comment detection for rest of line
+ *
+ * @param          self        Pointer to the PmEditor instance.
+ * @param          p           Pointer to current position in the text buffer.
+ * @param[in,out]  comment_level  Pointer to integer tracking multiline comment
+ *                                nesting depth.
+ * @return                     Pointer to the first character of the next line
+ *                             (character after '\n'), or pointer to '\0' if at
+ *                             end of buffer. Returns NULL if any parameter is
+ *                             NULL or if buffer end is reached unexpectedly.
+ */
 char *pmeditor_find_next(PmEditor *self, char *p, int *comment_level) {
     if (!self || !p || !comment_level) return NULL;
     if (*p == '\0') return p;
 
-    const int NORMAL = 0;
-    const int IN_QUOTE = 1;
-    const int IN_SL_COMMENT = 2;
-    const int STATE_EOL = 3;
+    const int NORMAL = 0;        ///< Processing regular code
+    const int IN_QUOTE = 1;      ///< Inside a quoted string
+    const int IN_SL_COMMENT = 2; ///< Inside a single-line comment
+    const int STATE_EOL = 3;     ///< Reached end of line
 
     int state = NORMAL;
 
@@ -1074,18 +1103,20 @@ char *pmeditor_find_next(PmEditor *self, char *p, int *comment_level) {
 }
 
 /**
- * Finds the start of a specific line in the text buffer.
+ * Finds the start of line N with multiline comment tracking (for rendering).
  *
- * Scans through the buffer counting newlines until reaching the specified
- * line number. Also tracks multiline comment state for syntax highlighting.
+ * Scans from buffer start while maintaining multiline comment nesting state.
+ * Use this before rendering lines to ensure correct syntax highlighting.
+ * This is slower than pmeditor_find_line_n() due to the state tracking.
  *
  * @param       self           Pointer to the PmEditor instance.
- * @param       line           The line number to find (0-based).
- * @param[out]  comment_level  On exit, the level of multiline commenting.
- * @return                     Pointer to the start of the line,
+ * @param       line           Line number (0-based).
+ * @param[out]  comment_level  On exit, the multiline comment nesting depth
+ *                             at the start of the requested line.
+ * @return                     Pointer to first character of line N,
  *                             or NULL if line < 0 or self is NULL.
  */
-char *pmeditor_find_line(PmEditor *self, int line, int *comment_level) {
+char *pmeditor_find_line_ex(PmEditor *self, int line, int *comment_level) {
     if (line < 0) return NULL;
     *comment_level = 0;
     char *p = self->buf;
@@ -1168,7 +1199,7 @@ MmResult pmeditor_print_line_p(PmEditor *self, char *p, int comment_level) {
 }
 
 /**
- * Prints a single line from the text buffer to the display.
+ * Prints line N to the display.
  *
  * Renders the specified line with appropriate syntax highlighting if enabled.
  * If the line is beyond the end of the text, just clears to end of line.
@@ -1587,7 +1618,39 @@ static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd) {
 // clang-format on
 }
 
-// TODO
+/**
+ * Renders one or more consecutive lines to the display with syntax highlighting.
+ *
+ * This is the primary screen drawing function for the editor. It handles:
+ * - Locating the starting line in the buffer
+ * - Tracking multiline comment state across lines
+ * - Rendering each line with appropriate syntax highlighting
+ * - Consuming accumulated keystrokes to prevent input buffer overflow during
+ *   slow rendering
+ * - Preserving and restoring the cursor position
+ *
+ * The function uses pmeditor_print_line_p() for the actual line rendering,
+ * which applies syntax highlighting based on the comment_level state carried
+ * forward from previous lines.
+ *
+ * IMPORTANT: Only call this function via the pmeditor_print_lines() wrapper so
+ *            that unit-tests can override it.
+ *
+ * @param  self        Pointer to the PmEditor instance.
+ * @param  start_line  The first line to render (0-based, absolute line number
+ *                     from start of buffer). Should be >= 0 and < num_lines.
+ * @param  num_lines   Number of consecutive lines to render. Should be > 0.
+ *                     The function will render exactly this many lines unless
+ *                     it reaches the end of the buffer first.
+ * @return             kOk on success, or an error code on failure.
+ *
+ * @note The function does not validate that start_line and num_lines fit
+ *       within the display boundaries (see TODO comment).
+ * @note If rendering would extend beyond the end of the buffer, the function
+ *       continues normally but may render fewer visible lines.
+ * @note The cursor position (cx, cy) is temporarily modified during rendering
+ *       but is restored before the function returns.
+ */
 MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned num_lines) {
     // LOG_DEBUG("entered: start_line=%d, num_lines=%d", start_line, num_lines);
     // TODO: Adjust start_line and num_lines to fit within display
@@ -1595,7 +1658,7 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned
     PmEditorPos old_pos = POS_FROM(*self);
 
     int comment_level = -1;
-    char *p = pmeditor_find_line(self, start_line, &comment_level);
+    char *p = pmeditor_find_line_ex(self, start_line, &comment_level);
     for (; num_lines > 0; num_lines--) {
         ON_FAILURE_RETURN(pmeditor_print_line_p(self, p, comment_level));
         if (num_lines != 0) ON_FAILURE_RETURN(display_puts("\r\n"));
@@ -2119,7 +2182,7 @@ MmResult pmeditor_cmd_home(PmEditor *self) {
 }
 
 /**
- * Moves the cursor to the end of the last line in the buffer.
+ * Moves the cursor to the end of the last line in the text buffer.
  *
  * Navigates to the last line of the buffer, positions the cursor at the end
  * of that line, and adjusts the viewport (py) to display the last page of text.
@@ -2763,8 +2826,18 @@ MmResult pmeditor_edit_loop(PmEditor *self) {
     }
 }
 
-// TODO
-char *pmeditor_start_of_line_n(PmEditor *self, int line) {
+/**
+ * Finds the start of line N in the buffer (fast, navigation only).
+ *
+ * Simple sequential search from buffer start. Use this for cursor
+ * positioning, page navigation, and other operations that don't need
+ * syntax highlighting state.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @param  line  Line number (0-based).
+ * @return       Pointer to first character of line N, or NULL if not found.
+ */
+char *pmeditor_find_line_n(PmEditor *self, int line) {
     char *p = self->buf;
     for (int count = 0; count < line; ++count) {
         p = pmeditor_next_line(self, p);
@@ -2793,7 +2866,7 @@ MmResult pmeditor_show(const char *filename, int line) {
     ON_FAILURE_RETURN(pmeditor_init(self, filename, width, height));
     ON_FAILURE_RETURN(pmeditor_load_file(self));
     ON_FAILURE_RETURN(pmeditor_resize_console(self));
-    self->txtp = pmeditor_start_of_line_n(self, line - 1);
+    self->txtp = pmeditor_find_line_n(self, line - 1);
     if (!self->txtp) {
         LOG_ERROR("cannot find line: %d", line - 1);
         self->txtp = self->buf;
