@@ -79,24 +79,28 @@ typedef struct SyntaxState {
     char *twokeyword;
 } SyntaxState;
 
-typedef struct {
-    int py;      ///< Row at top left hand corner of editor
-    int cx;      ///< Cursor column (from 0)
-    int cy;      ///< Cursor row (from 0)
-    char *txtp;  ///< Character position of the standard cursor
-    char *mark;  ///< Character position of the mark cursor
-} PmEditorPos;
-
 typedef enum {
     kModeUnspecified = 0,
     kEditMode,
     kMarkMode,
+    kExitMode,
 } PmEditorMode;
+
+typedef struct {
+    int py;         ///< Row at top left hand corner of editor
+    int cx;         ///< Cursor column (from 0)
+    int cy;         ///< Cursor row (from 0)
+    char *txtp;     ///< Character position of the standard cursor
+    char *mark;     ///< Character position of the mark cursor
+    int num_lines;  ///< Number of lines of text held in the buffer
+    bool insert;    ///< True if the editor is in INSERT mode
+    PmEditorMode mode;  ///< Edit mode or Mark mode ?
+} PmEditorPos;
 
 typedef struct {
     const char *fname;      // Name/path of file being edited
     char buf[EDIT_BUFFER_SIZE];  // Buffer used for editing the text
-    int buf_len;            // Length of the buffer, currently always EDIT_BUFFER_SIZE
+    int buf_sz;             // Size of the buffer, currently always EDIT_BUFFER_SIZE
     int num_lines;          // Number of lines of text held in the buffer
     int width;              // Width of the editor screen in characters
     int height;             // Height of the editor screen in characters
@@ -112,12 +116,9 @@ typedef struct {
     char last_key;          // Last key pressed
     char clipboard[MAXCLIP + 2];  // Clipboard contents
     char keys[MAXCLIP + 2]; // Buffer of incoming keystrokes
-    bool exit_flag;         // True if the editor should exit
     char saved_break_key;   // Original value of mmb_options.break_key when editor entered
     char *mark;             // Current position of the mark in mark mode
     HighlightType highlight; // Current highlight
-    char *mark_lb;          // Lower bound of the selection in mark mode
-    char *mark_ub;          // Upper bound of the selection in mark mode
 } PmEditor;
 
 // Copies position fields between PmEditorPos and PmEditor structures
@@ -127,6 +128,8 @@ typedef struct {
     (dst).cy = (src).cy; \
     (dst).txtp = (src).txtp; \
     (dst).mark = (src).mark; \
+    (dst).num_lines = (src).num_lines; \
+    (dst).mode = (src).mode; \
 }
 
 // Extracts position fields into a PmEditorPos initializer
@@ -135,7 +138,9 @@ typedef struct {
     .cx = (src).cx, \
     .cy = (src).cy, \
     .txtp = (src).txtp, \
-    .mark = (src).mark \
+    .mark = (src).mark, \
+    .num_lines = (src).num_lines, \
+    .mode = (src).mode, \
 }
 
 // By changing these function pointers unit-tests can override "display"
