@@ -86,28 +86,51 @@ typedef enum {
     kExitMode,
 } PmEditorMode;
 
+/**
+ * Main editor state structure.
+ *
+ * Manages text buffer, cursor position (cx, cy, txtp), viewport (py),
+ * and editing mode. Uses single contiguous allocation for buf,
+ * clipboard_buf, and key_buf.
+ *
+ * Coordinates: (cx, cy) are viewport-relative, py is scroll offset,
+ * txtp is absolute buffer position. Actual line = py + cy.
+ */
 typedef struct {
+    // File and buffer
     const char *fname;       ///< Name/path of file being edited
-    char *buf;               ///< Pointer to buffer containing the text being edited
-    int buf_sz;              ///< Size of the buffer, currently always EDIT_BUFFER_SIZE
-    int num_lines;           ///< Number of lines of text held in the buffer
-    int width;               ///< Width of the editor screen in characters
-    int height;              ///< Height of the editor screen in characters
-    int py;                  ///< Row at top left hand corner of editor
-    int cx;                  ///< Current cursor column (from 0)
-    int cy;                  ///< Current cursor row (from 0)
-    char *txtp;              ///< Position of the cursor in the text being edited
-    bool message_shown;      ///< True if a message is currently being shown
-    bool insert;             ///< True if the editor is in INSERT mode
-    int preferred_x;         ///< User to track preferred x-position when up/down arrowing
-    bool text_changed;       ///< True if the text has been editor and thus may need saving
-    PmEditorMode mode;       ///< Edit mode or Mark mode ?
-    char last_key;           ///< Last key pressed
-    char* clipboard_buf;     ///< Pointer to buffer of clipboard contents
-    char* key_buf;           ///< Pointer to buffer of incoming keystrokes
-    char saved_break_key;    ///< Original value of mmb_options.break_key when editor entered
-    char *mark;              ///< Current position of the mark in mark mode
-    HighlightType highlight; ///< Current highlight
+    char *buf;               ///< Buffer containing text (base of single allocation)
+    int buf_sz;              ///< Edit buffer size (EDIT_BUFFER_SIZE)
+    int num_lines;           ///< Line count in buffer
+
+    // Display
+    int width;               ///< Editor width in characters
+    int height;              ///< Editor height in characters (excludes status line)
+
+    // Cursor and viewport
+    int py;                  ///< Top line displayed (scroll position)
+    int cx;                  ///< Cursor column (viewport-relative, 0-based)
+    int cy;                  ///< Cursor row (viewport-relative, 0-based)
+    char *txtp;              ///< Cursor position in buffer
+    int preferred_x;         ///< Preferred column for vertical navigation
+
+    // Editing state
+    bool insert;             ///< True for INSERT mode, false for OVERWRITE
+    bool text_changed;       ///< True if buffer modified
+    PmEditorMode mode;       ///< Edit, Mark, or Exit mode
+    char *mark;              ///< Mark position for text selection
+
+    // Display state
+    bool message_shown;      ///< True if status message displayed
+    HighlightType highlight; ///< Current syntax highlighting
+
+    // Input
+    char last_key;           ///< Last key pressed (for double-press detection)
+    char *key_buf;           ///< Keystroke buffer (MAXCLIP+2 bytes)
+    char saved_break_key;    ///< Original break key (restored on exit)
+
+    // Clipboard
+    char *clipboard_buf;     ///< Clipboard storage (MAXCLIP+2 bytes)
 } PmEditor;
 
 // By changing these function pointers unit-tests can override "display"
