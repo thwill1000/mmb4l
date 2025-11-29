@@ -80,12 +80,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Forward declaration of real function implementations
 MmResult pmeditor_display_msg_impl(PmEditor *, const char *);
 MmResult pmeditor_highlight_impl(PmEditor *, HighlightType);
+MmResult pmeditor_print_func_keys_impl(PmEditor *);
 MmResult pmeditor_print_lines_impl(PmEditor *, unsigned, unsigned);
+MmResult pmeditor_print_status_impl(PmEditor *);
 
 // Pointers to functions we want to override in unit-tests
 MmResult (*pmeditor_display_msg)(PmEditor *, const char *) = pmeditor_display_msg_impl;
 MmResult (*pmeditor_highlight)(PmEditor *, HighlightType) = pmeditor_highlight_impl;
+MmResult (*pmeditor_print_func_keys)(PmEditor *) = pmeditor_print_func_keys_impl;
 MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned) = pmeditor_print_lines_impl;
+MmResult (*pmeditor_print_status)(PmEditor *) = pmeditor_print_status_impl;
 
 /**
  * Restores all overridable functions to their real implementations.
@@ -152,8 +156,8 @@ static MmResult pmeditor_set_cursor_pos(PmEditor *self, int x, int y) {
  * Must be called sequentially from the start of each line to maintain
  * correct state tracking.
  *
- * IMPORTANT: Only call this function via the pmeditor_highlight() wrapper so
- *            that unit-tests can override it.
+ * IMPORTANT: Only call this function via the pmeditor_highlight() wrapper
+ *            so that unit-tests can override it.
  *
  * @param  self       Pointer to the PmEditor instance.
  * @param  highlight  The type of highlighting to apply.
@@ -300,21 +304,13 @@ static MmResult pmeditor_save_file(PmEditor *self, const char *filename) {
  * on screen.
  *
  * @param  self  Pointer to the PmEditor instance.
- * @param  curp  Pointer to a position in the text buffer.
+ * @param  pbuf  Pointer to a position in the text buffer.
  * @return       kOk on success, or an error code on failure.
  */
-MmResult pmeditor_position_cursor(PmEditor *self, char *curp) {
+MmResult pmeditor_position_cursor(PmEditor *self, char *pbuf) {
     int line = 0;
     int column = 0;
-
-    for (char *p = self->buf; p < curp; p++) {
-        if (*p == '\n') {
-            line++;
-            column = 0;
-        } else {
-            column++;
-        }
-    }
+    ON_FAILURE_RETURN(pmeditor_get_line_and_column(self, pbuf, &line, &column));
 
     // Is the line on the page being displayed ?
     // if (line < self->py || line >= self->py + self->height) return kOk;
@@ -364,10 +360,13 @@ static MmResult pmeditor_draw_line(PmEditor *self) {
  * Displays different key bindings depending on whether the editor is in
  * 'edit' mode or 'mark' mode. Adapts the displayed text to terminal width.
  *
+ * IMPORTANT: Only call this function via the pmeditor_print_func_keys() wrapper
+ *            so that unit-tests can override it.
+ *
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_print_func_keys(PmEditor *self) {
+MmResult pmeditor_print_func_keys_impl(PmEditor *self) {
     const char *p;
 
     switch (self->mode) {
@@ -468,8 +467,8 @@ static MmResult pmeditor_get_input(PmEditor *self, const char *prompt) {
  * typically used for error messages or warnings. Sets a flag to redraw the
  * status line after the next user input.
  *
- * IMPORTANT: Only call this function via the pmeditor_display_msg() wrapper so
- *            that unit-tests can override it.
+ * IMPORTANT: Only call this function via the pmeditor_display_msg() wrapper
+ *            so that unit-tests can override it.
  *
  * @param  self  Pointer to the PmEditor instance.
  * @param  msg   The message string to display.
@@ -748,10 +747,13 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
  * Displays the current cursor position (1-based line and column numbers)
  * and the current insert/overwrite mode (INS/OVR).
  *
+ * IMPORTANT: Only call this function via the pmeditor_print_status() wrapper
+ *            so that unit-tests can override it.
+ *
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_print_status(PmEditor *self) {
+MmResult pmeditor_print_status_impl(PmEditor *self) {
     PmEditorPos old_pos = POS_FROM(*self);
 
     char s[64];
@@ -1662,8 +1664,8 @@ static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd) {
  * which applies syntax highlighting based on the comment_level state carried
  * forward from previous lines.
  *
- * IMPORTANT: Only call this function via the pmeditor_print_lines() wrapper so
- *            that unit-tests can override it.
+ * IMPORTANT: Only call this function via the pmeditor_print_lines() wrapper
+ *            so that unit-tests can override it.
  *
  * @param  self        Pointer to the PmEditor instance.
  * @param  start_line  The first line to render (0-based, absolute line number

@@ -129,6 +129,7 @@ typedef struct {
     (dst).txtp = (src).txtp; \
     (dst).mark = (src).mark; \
     (dst).num_lines = (src).num_lines; \
+    (dst).insert = (src).insert; \
     (dst).mode = (src).mode; \
 }
 
@@ -140,6 +141,7 @@ typedef struct {
     .txtp = (src).txtp, \
     .mark = (src).mark, \
     .num_lines = (src).num_lines, \
+    .insert = (src).insert, \
     .mode = (src).mode, \
 }
 
@@ -147,7 +149,9 @@ typedef struct {
 // behaviour.
 extern MmResult (*pmeditor_display_msg)(PmEditor *, const char *);
 extern MmResult (*pmeditor_highlight)(PmEditor *, HighlightType);
+extern MmResult (*pmeditor_print_func_keys)(PmEditor *);
 extern MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned);
+extern MmResult (*pmeditor_print_status)(PmEditor *);
 
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);
@@ -182,6 +186,7 @@ MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
 MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos);
 char *pmeditor_find_line_n(PmEditor *self, int line);
 void pmeditor_restore_fn_pointers();
+MmResult pmeditor_update_display(PmEditor *self, PmEditorPos *old_pos);
 
 /**
  * Finds the end of the line containing the given position.
@@ -261,6 +266,52 @@ static inline char *pmeditor_previous_line(PmEditor *self, char *p) {
 
     // Move to start of the previous line
     return pmeditor_start_of_line(self, p);
+}
+
+/**
+ * Calculates the 0-based line and column number for a buffer position.
+ *
+ * Scans from buffer start, counting newlines for line number and characters
+ * since last newline for column number.
+ *
+ * @param       self    Pointer to the PmEditor instance.
+ * @param       pbuf    Buffer position to query.
+ * @param[out]  line    Resulting 0-based line number.
+ * @param[out]  column  Resulting 0-based column number.
+ * @return              kOk on success, or an error code on failure.
+ *
+ * @note Performance is O(n) where n is the distance from buffer start to pbuf.
+ */
+static inline MmResult pmeditor_get_line_and_column(PmEditor *self, char *pbuf, int *line,
+                                                    int *column) {
+    if (!self || !pbuf || !line || !column) {
+        return mmresult_ex(kInternalFault,
+                           "invalid parameter: self=%p, pbuf=%p, line=%p, column=%p",
+                           self, pbuf, line, column);
+    }
+
+    if (pbuf < self->buf || pbuf >= self->buf + self->buf_sz) {
+        return mmresult_ex(kInternalFault,
+                           "pbuf out of bounds: pbuf=%p, buf=%p, buf_sz=%d",
+                           pbuf, self->buf, self->buf_sz);
+    }
+
+    *column = 0;
+    *line = 0;
+    for (char *p = self->buf; p != pbuf && p < self->buf + self->buf_sz; p++) {
+        switch (*p) {
+            case '\0':
+                return mmresult_ex(kInternalFault, "pbuf beyond text: pbuf=%p", pbuf);
+            case '\n':
+                (*line)++;
+                *column = 0;
+                break;
+            default:
+                (*column)++;
+                break;
+        }
+    }
+    return kOk;
 }
 
 #endif // #if !defined(MMB4L_PMEDITOR_PRIVATE)

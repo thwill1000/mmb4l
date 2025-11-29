@@ -44,17 +44,32 @@ MmResult ClearRuntime(void) { return kOk; }
 
 typedef struct {
     int calls;
+} PrintFuncKeysCapture;
+
+typedef struct {
+    int calls;
     int start;
     int num;
     int cy;
 } PrintLinesCapture;
 
+typedef struct {
+    int calls;
+} PrintStatusCapture;
+
 static char display_msg_capture[STRINGSIZE];
+static PrintFuncKeysCapture print_func_keys_capture;
 static PrintLinesCapture print_lines_capture;
+static PrintStatusCapture print_status_capture;
 
 MmResult pmeditor_test_display_msg(PmEditor *self, const char *msg) {
     strcpy(display_msg_capture, msg);
     self->message_shown = true;
+    return kOk;
+}
+
+MmResult pmeditor_test_print_func_keys(PmEditor *self) {
+    print_func_keys_capture.calls++;
     return kOk;
 }
 
@@ -66,6 +81,10 @@ MmResult pmeditor_test_print_lines(PmEditor *self, unsigned start_line, unsigned
     return kOk;
 }
 
+MmResult pmeditor_test_print_status(PmEditor *self) {
+    print_status_capture.calls++;
+    return kOk;
+}
 
 } // extern "C"
 
@@ -82,8 +101,9 @@ protected:
 
         // Mock pmeditor functions
         pmeditor_display_msg = pmeditor_test_display_msg;
-        // pmeditor_print_line = pmeditor_test_print_line;
+        pmeditor_print_func_keys = pmeditor_test_print_func_keys;
         pmeditor_print_lines = pmeditor_test_print_lines;
+        pmeditor_print_status = pmeditor_test_print_status;
 
         // Initialize options
         mmb_options.syntax_highlight = true;
@@ -96,7 +116,9 @@ protected:
         // Reset mock state
         memset(display_msg_capture, 0, sizeof(display_msg_capture));
         memset(self->keys, 0, sizeof(self->keys));
+        print_func_keys_capture = { .calls = 0 };
         print_lines_capture = { .calls = 0, .start = -1, .num = -1, .cy = -1 };
+        print_status_capture = { .calls = 0 };
 
         // Initialize command and function token tables (for syntax highlighting)
         commandtbl_init();
@@ -141,6 +163,14 @@ protected:
         EXPECT_STREQ(expected_keys, self->keys + 1) << "Keyboard buffer mismatch"; \
     } while (0)
 
+#define EXPECT_PRINT_FUNC_KEYS_CALLED(expected) \
+    do { \
+        EXPECT_EQ(expected.calls, print_func_keys_capture.calls) << "pmeditor_print_func_keys call count mismatch"; \
+    } while (0)
+
+#define EXPECT_PRINT_FUNC_KEYS_NOT_CALLED() \
+    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 0}))
+
 #define EXPECT_PRINT_LINES_CALLED(expected) \
     do { \
         EXPECT_EQ(expected.calls, print_lines_capture.calls) << "pmeditor_print_lines call count mismatch"; \
@@ -156,6 +186,14 @@ protected:
     do { \
         EXPECT_EQ(self->buf + expected_offset, self->txtp) << "insert cursor position mismatch"; \
     } while (0)
+
+#define EXPECT_PRINT_STATUS_CALLED(expected) \
+    do { \
+        EXPECT_EQ(expected.calls, print_status_capture.calls) << "pmeditor_print_status call count mismatch"; \
+    } while (0)
+
+#define EXPECT_PRINT_STATUS_NOT_CALLED() \
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 0}))
 
 #define EXPECT_TXTP_CONSISTENT() \
     do { \
@@ -2755,9 +2793,7 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceWithInvalidCursorPosition) {
 
     MmResult result = pmeditor_cmd_backspace(self);
 
-    // Should either fail or do nothing
-    // Actual behavior depends on implementation's defensive checks
-    EXPECT_EQ(kOk, result); // Current impl doesn't check, returns OK
+    EXPECT_EQ(kInternalFault, result);
 }
 
 // ============================================================================
@@ -4137,10 +4173,10 @@ class PmEditorMarkTestBase : public PmEditorTestBase {
     }
 };
 
-class PmEditorMarkCopy : public PmEditorMarkTestBase { };
+class PmEditorMarkCopyTest : public PmEditorMarkTestBase { };
 
 // Test basic copy with mark before txtp
-TEST_F(PmEditorMarkCopy, CopyWhenMarkBeforeTxtp) {
+TEST_F(PmEditorMarkCopyTest, CopyWhenMarkBeforeTxtp) {
     SetBuffer("Hello World");
     SetMark(2);  // At 'l' in "Hello"
     SetTxtp(7);  // At 'o' in "World"
@@ -4156,7 +4192,7 @@ TEST_F(PmEditorMarkCopy, CopyWhenMarkBeforeTxtp) {
 }
 
 // Test basic copy with mark after txtp
-TEST_F(PmEditorMarkCopy, CopyWhenMarkAfterTxtp) {
+TEST_F(PmEditorMarkCopyTest, CopyWhenMarkAfterTxtp) {
     SetBuffer("Hello World");
     SetMark(7);  // At 'o' in "World"
     SetTxtp(2);  // At 'l' in "Hello"
@@ -4172,7 +4208,7 @@ TEST_F(PmEditorMarkCopy, CopyWhenMarkAfterTxtp) {
 }
 
 // Test copying zero-length selection
-TEST_F(PmEditorMarkCopy, CopyZeroLengthSelection) {
+TEST_F(PmEditorMarkCopyTest, CopyZeroLengthSelection) {
     SetBuffer("Hello");
     SetMark(3);
     SetTxtp(3);
@@ -4188,7 +4224,7 @@ TEST_F(PmEditorMarkCopy, CopyZeroLengthSelection) {
 }
 
 // Test copying single character
-TEST_F(PmEditorMarkCopy, CopySingleCharacter) {
+TEST_F(PmEditorMarkCopyTest, CopySingleCharacter) {
     SetBuffer("ABCDEF");
     SetMark(2);  // At 'C'
     SetTxtp(3);  // At 'D'
@@ -4202,7 +4238,7 @@ TEST_F(PmEditorMarkCopy, CopySingleCharacter) {
 }
 
 // Test copying entire buffer
-TEST_F(PmEditorMarkCopy, CopyEntireBuffer) {
+TEST_F(PmEditorMarkCopyTest, CopyEntireBuffer) {
     SetBuffer("Hello");
     SetMark(0);
     SetTxtp(5);
@@ -4216,7 +4252,7 @@ TEST_F(PmEditorMarkCopy, CopyEntireBuffer) {
 }
 
 // Test copying with newlines
-TEST_F(PmEditorMarkCopy, CopyWithNewlines) {
+TEST_F(PmEditorMarkCopyTest, CopyWithNewlines) {
     SetBuffer("Line0\nLine1\nLine2");
     SetMark(6);   // After "Line0\n"
     SetTxtp(12);  // After "Line1\n"
@@ -4231,7 +4267,7 @@ TEST_F(PmEditorMarkCopy, CopyWithNewlines) {
 }
 
 // Test copying multiple newlines
-TEST_F(PmEditorMarkCopy, CopyMultipleNewlines) {
+TEST_F(PmEditorMarkCopyTest, CopyMultipleNewlines) {
     SetBuffer("A\nB\nC\nD");
     SetMark(0);
     SetTxtp(6);  // After "A\nB\nC\n"
@@ -4245,7 +4281,7 @@ TEST_F(PmEditorMarkCopy, CopyMultipleNewlines) {
 }
 
 // Test clipboard size limit - exactly at limit
-TEST_F(PmEditorMarkCopy, CopyAtClipboardLimit) {
+TEST_F(PmEditorMarkCopyTest, CopyAtClipboardLimit) {
     std::string content(MAXCLIP, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
@@ -4259,7 +4295,7 @@ TEST_F(PmEditorMarkCopy, CopyAtClipboardLimit) {
 }
 
 // Test clipboard size limit - exceeds limit (mark before txtp)
-TEST_F(PmEditorMarkCopy, CopyExceedsClipboardLimitMarkBefore) {
+TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardLimitMarkBefore) {
     std::string content(MAXCLIP + 10, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
@@ -4274,7 +4310,7 @@ TEST_F(PmEditorMarkCopy, CopyExceedsClipboardLimitMarkBefore) {
 }
 
 // Test clipboard size limit - exceeds limit (mark after txtp)
-TEST_F(PmEditorMarkCopy, CopyExceedsClipboardLimitMarkAfter) {
+TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardLimitMarkAfter) {
     std::string content(MAXCLIP + 10, 'X');
     SetBuffer(content.c_str());
     SetMark(MAXCLIP + 5);
@@ -4288,7 +4324,7 @@ TEST_F(PmEditorMarkCopy, CopyExceedsClipboardLimitMarkAfter) {
 }
 
 // Test clipboard size limit - exactly MAXCLIP + 1 (boundary)
-TEST_F(PmEditorMarkCopy, CopyExceedsClipboardByOne) {
+TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardByOne) {
     std::string content(MAXCLIP + 1, 'Y');
     SetBuffer(content.c_str());
     SetMark(0);
@@ -4301,7 +4337,7 @@ TEST_F(PmEditorMarkCopy, CopyExceedsClipboardByOne) {
 }
 
 // Test copying overwrites previous clipboard content
-TEST_F(PmEditorMarkCopy, CopyOverwritesPreviousClipboard) {
+TEST_F(PmEditorMarkCopyTest, CopyOverwritesPreviousClipboard) {
     strcpy(self->clipboard, "OLD CONTENT");
 
     SetBuffer("NEW");
@@ -4316,7 +4352,7 @@ TEST_F(PmEditorMarkCopy, CopyOverwritesPreviousClipboard) {
 }
 
 // Test copying from middle of buffer
-TEST_F(PmEditorMarkCopy, CopyFromMiddleOfBuffer) {
+TEST_F(PmEditorMarkCopyTest, CopyFromMiddleOfBuffer) {
     SetBuffer("AAABBBCCC");
     SetMark(3);  // Start of "BBB"
     SetTxtp(6);  // End of "BBB"
@@ -4329,7 +4365,7 @@ TEST_F(PmEditorMarkCopy, CopyFromMiddleOfBuffer) {
 }
 
 // Test copying preserves cursor position exactly
-TEST_F(PmEditorMarkCopy, PreservesCursorPosition) {
+TEST_F(PmEditorMarkCopyTest, PreservesCursorPosition) {
     SetBuffer("Line0\nLine1\nLine2");
     self->py = 0;
     SetMark(6);  // At 'L' in "Line1"
@@ -4343,7 +4379,7 @@ TEST_F(PmEditorMarkCopy, PreservesCursorPosition) {
 }
 
 // Test copying with special characters (tabs, etc.)
-TEST_F(PmEditorMarkCopy, CopyWithSpecialCharacters) {
+TEST_F(PmEditorMarkCopyTest, CopyWithSpecialCharacters) {
     SetBuffer("Tab\there\tSpaces  End");
     SetMark(0);
     SetTxtp(9);  // After second tab
@@ -4356,7 +4392,7 @@ TEST_F(PmEditorMarkCopy, CopyWithSpecialCharacters) {
 }
 
 // Test clipboard null termination
-TEST_F(PmEditorMarkCopy, ClipboardNullTermination) {
+TEST_F(PmEditorMarkCopyTest, ClipboardNullTermination) {
     SetBuffer("TEST");
     SetMark(0);
     SetTxtp(4);
@@ -4373,7 +4409,7 @@ TEST_F(PmEditorMarkCopy, ClipboardNullTermination) {
 }
 
 // Test copying empty buffer
-TEST_F(PmEditorMarkCopy, CopyFromEmptyBuffer) {
+TEST_F(PmEditorMarkCopyTest, CopyFromEmptyBuffer) {
     SetBuffer("");
     SetMark(0);
     SetTxtp(0);
@@ -4387,7 +4423,7 @@ TEST_F(PmEditorMarkCopy, CopyFromEmptyBuffer) {
 }
 
 // Test that mark position is preserved
-TEST_F(PmEditorMarkCopy, PreservesMarkPosition) {
+TEST_F(PmEditorMarkCopyTest, PreservesMarkPosition) {
     SetBuffer("Hello World");
     SetMark(2);
     SetTxtp(7);
@@ -4400,7 +4436,7 @@ TEST_F(PmEditorMarkCopy, PreservesMarkPosition) {
 }
 
 // Test backward selection (txtp < mark)
-TEST_F(PmEditorMarkCopy, CopyBackwardSelection) {
+TEST_F(PmEditorMarkCopyTest, CopyBackwardSelection) {
     SetBuffer("0123456789");
     SetMark(7);
     SetTxtp(3);
@@ -4414,7 +4450,7 @@ TEST_F(PmEditorMarkCopy, CopyBackwardSelection) {
 }
 
 // Test forward selection (txtp > mark)
-TEST_F(PmEditorMarkCopy, CopyForwardSelection) {
+TEST_F(PmEditorMarkCopyTest, CopyForwardSelection) {
     SetBuffer("0123456789");
     SetMark(3);
     SetTxtp(7);
@@ -4428,7 +4464,7 @@ TEST_F(PmEditorMarkCopy, CopyForwardSelection) {
 }
 
 // Test off-by-one: mark at txtp-1 (inclusive vs exclusive)
-TEST_F(PmEditorMarkCopy, CopyMarkAtTxtpMinusOne) {
+TEST_F(PmEditorMarkCopyTest, CopyMarkAtTxtpMinusOne) {
     SetBuffer("ABCDEFGH");
     SetMark(4);   // At 'E'
     SetTxtp(5);   // At 'F'
@@ -4440,7 +4476,7 @@ TEST_F(PmEditorMarkCopy, CopyMarkAtTxtpMinusOne) {
 }
 
 // Test copying respects MAXCLIP exactly (not MAXCLIP+1 or MAXCLIP+2)
-TEST_F(PmEditorMarkCopy, ClipboardSizeBoundaryCheck) {
+TEST_F(PmEditorMarkCopyTest, ClipboardSizeBoundaryCheck) {
     // Test that MAXCLIP characters can be copied
     std::string content1(MAXCLIP, 'A');
     SetBuffer(content1.c_str());
@@ -4464,10 +4500,10 @@ TEST_F(PmEditorMarkCopy, ClipboardSizeBoundaryCheck) {
 // Tests for pmeditor_mark_cut()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorMarkCut : public PmEditorMarkTestBase { };
+class PmEditorMarkCutTest : public PmEditorMarkTestBase { };
 
 // Test basic cut with mark before txtp
-TEST_F(PmEditorMarkCut, CutWhenMarkBeforeTxtp) {
+TEST_F(PmEditorMarkCutTest, CutWhenMarkBeforeTxtp) {
     SetBuffer("Hello World");
     SetMark(2);  // At 'l' in "Hello"
     SetTxtp(7);  // At 'o' in "World"
@@ -4484,7 +4520,7 @@ TEST_F(PmEditorMarkCut, CutWhenMarkBeforeTxtp) {
 }
 
 // Test basic cut with mark after txtp
-TEST_F(PmEditorMarkCut, CutWhenMarkAfterTxtp) {
+TEST_F(PmEditorMarkCutTest, CutWhenMarkAfterTxtp) {
     SetBuffer("Hello World");
     SetMark(7);  // At 'o' in "World"
     SetTxtp(2);  // At 'l' in "Hello"
@@ -4501,7 +4537,7 @@ TEST_F(PmEditorMarkCut, CutWhenMarkAfterTxtp) {
 }
 
 // Test cutting zero-length selection
-TEST_F(PmEditorMarkCut, CutZeroLengthSelection) {
+TEST_F(PmEditorMarkCutTest, CutZeroLengthSelection) {
     SetBuffer("Hello");
     SetMark(3);
     SetTxtp(3);
@@ -4517,7 +4553,7 @@ TEST_F(PmEditorMarkCut, CutZeroLengthSelection) {
 }
 
 // Test cutting single character
-TEST_F(PmEditorMarkCut, CutSingleCharacter) {
+TEST_F(PmEditorMarkCutTest, CutSingleCharacter) {
     SetBuffer("ABCDEF");
     SetMark(2);  // At 'C'
     SetTxtp(3);  // At 'D'
@@ -4533,7 +4569,7 @@ TEST_F(PmEditorMarkCut, CutSingleCharacter) {
 }
 
 // Test cutting entire buffer
-TEST_F(PmEditorMarkCut, CutEntireBuffer) {
+TEST_F(PmEditorMarkCutTest, CutEntireBuffer) {
     SetBuffer("Hello");
     SetMark(0);
     SetTxtp(5);
@@ -4550,7 +4586,7 @@ TEST_F(PmEditorMarkCut, CutEntireBuffer) {
 }
 
 // Test cutting with newlines updates num_lines
-TEST_F(PmEditorMarkCut, CutWithNewlines) {
+TEST_F(PmEditorMarkCutTest, CutWithNewlines) {
     SetBuffer("Line0\nLine1\nLine2");
     SetMark(6);   // After "Line0\n"
     SetTxtp(12);  // After "Line1\n"
@@ -4566,7 +4602,7 @@ TEST_F(PmEditorMarkCut, CutWithNewlines) {
 }
 
 // Test cutting multiple newlines
-TEST_F(PmEditorMarkCut, CutMultipleNewlines) {
+TEST_F(PmEditorMarkCutTest, CutMultipleNewlines) {
     SetBuffer("A\nB\nC\nD");
     SetMark(0);
     SetTxtp(6);  // After "C\n"
@@ -4582,7 +4618,7 @@ TEST_F(PmEditorMarkCut, CutMultipleNewlines) {
 }
 
 // Test clipboard size limit - exactly at limit
-TEST_F(PmEditorMarkCut, CutAtClipboardLimit) {
+TEST_F(PmEditorMarkCutTest, CutAtClipboardLimit) {
     std::string content(MAXCLIP, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
@@ -4598,7 +4634,7 @@ TEST_F(PmEditorMarkCut, CutAtClipboardLimit) {
 }
 
 // Test clipboard size limit - exceeds limit
-TEST_F(PmEditorMarkCut, CutExceedsClipboardLimit) {
+TEST_F(PmEditorMarkCutTest, CutExceedsClipboardLimit) {
     std::string content(MAXCLIP + 10, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
@@ -4614,7 +4650,7 @@ TEST_F(PmEditorMarkCut, CutExceedsClipboardLimit) {
 }
 
 // Test cutting from middle of buffer
-TEST_F(PmEditorMarkCut, CutFromMiddleOfBuffer) {
+TEST_F(PmEditorMarkCutTest, CutFromMiddleOfBuffer) {
     SetBuffer("AAABBBCCC");
     SetMark(3);  // Start of "BBB"
     SetTxtp(6);  // End of "BBB"
@@ -4626,11 +4662,11 @@ TEST_F(PmEditorMarkCut, CutFromMiddleOfBuffer) {
     EXPECT_STREQ("AAACCC", self->buf);
     EXPECT_TXTP_EQ(3);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode    
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
 }
 
 // Test cutting preserves content after cut region
-TEST_F(PmEditorMarkCut, PreservesContentAfterCutRegion) {
+TEST_F(PmEditorMarkCutTest, PreservesContentAfterCutRegion) {
     SetBuffer("StartMIDDLEEnd");
     SetMark(5);   // Before "MIDDLE"
     SetTxtp(11);  // After "MIDDLE"
@@ -4645,7 +4681,7 @@ TEST_F(PmEditorMarkCut, PreservesContentAfterCutRegion) {
 }
 
 // Test cutting updates cursor position to lower of mark/txtp
-TEST_F(PmEditorMarkCut, CursorMovesToLowerPosition) {
+TEST_F(PmEditorMarkCutTest, CursorMovesToLowerPosition) {
     SetBuffer("0123456789");
     SetMark(2);  // Low position
     SetTxtp(8);  // High position
@@ -4659,7 +4695,7 @@ TEST_F(PmEditorMarkCut, CursorMovesToLowerPosition) {
 }
 
 // Test cutting with mark > txtp also moves to lower position
-TEST_F(PmEditorMarkCut, CursorMovesToLowerPositionReversed) {
+TEST_F(PmEditorMarkCutTest, CursorMovesToLowerPositionReversed) {
     SetBuffer("0123456789");
     SetMark(8);  // High position
     SetTxtp(2);  // Low position
@@ -4673,7 +4709,7 @@ TEST_F(PmEditorMarkCut, CursorMovesToLowerPositionReversed) {
 }
 
 // Test buffer termination after cut
-TEST_F(PmEditorMarkCut, BufferTerminationAfterCut) {
+TEST_F(PmEditorMarkCutTest, BufferTerminationAfterCut) {
     SetBuffer("ABCDEFGH");
     SetMark(2);
     SetTxtp(5);
@@ -4690,7 +4726,7 @@ TEST_F(PmEditorMarkCut, BufferTerminationAfterCut) {
 }
 
 // Test cutting from start of buffer
-TEST_F(PmEditorMarkCut, CutFromStartOfBuffer) {
+TEST_F(PmEditorMarkCutTest, CutFromStartOfBuffer) {
     SetBuffer("Hello World");
     SetMark(0);  // At 'H'
     SetTxtp(6);  // At 'W'
@@ -4706,7 +4742,7 @@ TEST_F(PmEditorMarkCut, CutFromStartOfBuffer) {
 }
 
 // Test cutting to end of buffer
-TEST_F(PmEditorMarkCut, CutToEndOfBuffer) {
+TEST_F(PmEditorMarkCutTest, CutToEndOfBuffer) {
     SetBuffer("Hello World");
     SetMark(6);   // At 'W'
     SetTxtp(11);  // After 'd'
@@ -4721,7 +4757,7 @@ TEST_F(PmEditorMarkCut, CutToEndOfBuffer) {
 }
 
 // Test cutting empty buffer
-TEST_F(PmEditorMarkCut, CutFromEmptyBuffer) {
+TEST_F(PmEditorMarkCutTest, CutFromEmptyBuffer) {
     SetBuffer("");
     SetMark(0);
     SetTxtp(0);
@@ -4737,7 +4773,7 @@ TEST_F(PmEditorMarkCut, CutFromEmptyBuffer) {
 }
 
 // Test cutting overwrites previous clipboard content
-TEST_F(PmEditorMarkCut, CutOverwritesPreviousClipboard) {
+TEST_F(PmEditorMarkCutTest, CutOverwritesPreviousClipboard) {
     strcpy(self->clipboard, "OLD CONTENT");
 
     SetBuffer("NEW");
@@ -4754,7 +4790,7 @@ TEST_F(PmEditorMarkCut, CutOverwritesPreviousClipboard) {
 }
 
 // Test cutting with special characters
-TEST_F(PmEditorMarkCut, CutWithSpecialCharacters) {
+TEST_F(PmEditorMarkCutTest, CutWithSpecialCharacters) {
     SetBuffer("Tab\there\tEnd");
     SetMark(0);
     SetTxtp(9);  // After second tab
@@ -4769,7 +4805,7 @@ TEST_F(PmEditorMarkCut, CutWithSpecialCharacters) {
 }
 
 // Test cutting only a newline character
-TEST_F(PmEditorMarkCut, CutOnlyNewline) {
+TEST_F(PmEditorMarkCutTest, CutOnlyNewline) {
     SetBuffer("Line1\nLine2");
     SetMark(5);  // At newline
     SetTxtp(6);  // Just after newline
@@ -4785,7 +4821,7 @@ TEST_F(PmEditorMarkCut, CutOnlyNewline) {
 }
 
 // Test cutting large region
-TEST_F(PmEditorMarkCut, CutLargeRegion) {
+TEST_F(PmEditorMarkCutTest, CutLargeRegion) {
     std::string content(100, 'X');
     SetBuffer(content.c_str());
     SetMark(10);
@@ -4802,7 +4838,7 @@ TEST_F(PmEditorMarkCut, CutLargeRegion) {
 }
 
 // Test cutting across multiple lines with cursor positioning
-TEST_F(PmEditorMarkCut, CutAcrossMultipleLinesUpdatesCursor) {
+TEST_F(PmEditorMarkCutTest, CutAcrossMultipleLinesUpdatesCursor) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetMark(6);   // Start of Line1
     SetTxtp(18);  // In Line2
@@ -4819,7 +4855,7 @@ TEST_F(PmEditorMarkCut, CutAcrossMultipleLinesUpdatesCursor) {
 }
 
 // Test cutting maintains proper buffer state after large deletion
-TEST_F(PmEditorMarkCut, MaintainsBufferStateAfterLargeDeletion) {
+TEST_F(PmEditorMarkCutTest, MaintainsBufferStateAfterLargeDeletion) {
     SetBuffer("AAAAAAAAAA\nBBBBBBBBBB\nCCCCCCCCCC");
     SetMark(0);
     SetTxtp(13);  // In BBB section
@@ -4835,7 +4871,7 @@ TEST_F(PmEditorMarkCut, MaintainsBufferStateAfterLargeDeletion) {
 }
 
 // Test clipboard boundary: MAXCLIP vs MAXCLIP+1
-TEST_F(PmEditorMarkCut, ClipboardBoundaryValidation) {
+TEST_F(PmEditorMarkCutTest, ClipboardBoundaryValidation) {
     // Test that MAXCLIP characters can be cut
     std::string content1(MAXCLIP, 'A');
     SetBuffer(content1.c_str());
@@ -4862,10 +4898,10 @@ TEST_F(PmEditorMarkCut, ClipboardBoundaryValidation) {
 // Tests for pmeditor_mark_delete()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorMarkDelete : public PmEditorMarkTestBase { };
+class PmEditorMarkDeleteTest : public PmEditorMarkTestBase { };
 
 // Test deleting when mark before txtp
-TEST_F(PmEditorMarkDelete, DeleteWhenMarkBeforeTxtp) {
+TEST_F(PmEditorMarkDeleteTest, DeleteWhenMarkBeforeTxtp) {
     SetBuffer("Hello World");
     SetMark(2); // At 'l'
     SetTxtp(7); // At 'o' in "World"
@@ -4880,7 +4916,7 @@ TEST_F(PmEditorMarkDelete, DeleteWhenMarkBeforeTxtp) {
 }
 
 // Test deleting when mark after txtp
-TEST_F(PmEditorMarkDelete, DeleteWhenMarkAfterTxtp) {
+TEST_F(PmEditorMarkDeleteTest, DeleteWhenMarkAfterTxtp) {
     SetBuffer("Hello World");
     SetMark(7); // At 'o' in "World"
     SetTxtp(2); // At 'l'
@@ -4895,7 +4931,7 @@ TEST_F(PmEditorMarkDelete, DeleteWhenMarkAfterTxtp) {
 }
 
 // Test deleting when mark equals txtp (nothing to delete)
-TEST_F(PmEditorMarkDelete, DeleteWhenMarkEqualsTxtp) {
+TEST_F(PmEditorMarkDeleteTest, DeleteWhenMarkEqualsTxtp) {
     SetBuffer("Hello World");
     SetMark(5);
     SetTxtp(5);
@@ -4910,7 +4946,7 @@ TEST_F(PmEditorMarkDelete, DeleteWhenMarkEqualsTxtp) {
 }
 
 // Test deleting single character
-TEST_F(PmEditorMarkDelete, DeleteSingleCharacter) {
+TEST_F(PmEditorMarkDeleteTest, DeleteSingleCharacter) {
     SetBuffer("ABCDEF");
     SetMark(2); // At 'C'
     SetTxtp(3); // At 'D'
@@ -4925,7 +4961,7 @@ TEST_F(PmEditorMarkDelete, DeleteSingleCharacter) {
 }
 
 // Test deleting entire buffer
-TEST_F(PmEditorMarkDelete, DeleteEntireBuffer) {
+TEST_F(PmEditorMarkDeleteTest, DeleteEntireBuffer) {
     SetBuffer("Hello");
     SetMark(0); // At 'H'
     SetTxtp(5); // At 'o'
@@ -4940,7 +4976,7 @@ TEST_F(PmEditorMarkDelete, DeleteEntireBuffer) {
 }
 
 // Test deleting from start of buffer
-TEST_F(PmEditorMarkDelete, DeleteFromStartOfBuffer) {
+TEST_F(PmEditorMarkDeleteTest, DeleteFromStartOfBuffer) {
     SetBuffer("Hello World");
     SetMark(0); // At 'H'
     SetTxtp(6); // At 'W'
@@ -4955,7 +4991,7 @@ TEST_F(PmEditorMarkDelete, DeleteFromStartOfBuffer) {
 }
 
 // Test deleting to end of buffer
-TEST_F(PmEditorMarkDelete, DeleteToEndOfBuffer) {
+TEST_F(PmEditorMarkDeleteTest, DeleteToEndOfBuffer) {
     SetBuffer("Hello World");
     SetMark(6); // At 'W'
     SetTxtp(11); // After 'd'
@@ -4970,7 +5006,7 @@ TEST_F(PmEditorMarkDelete, DeleteToEndOfBuffer) {
 }
 
 // Test deleting with newlines (decrements num_lines)
-TEST_F(PmEditorMarkDelete, DeleteWithNewlines) {
+TEST_F(PmEditorMarkDeleteTest, DeleteWithNewlines) {
     SetBuffer("Line0\nLine1\nLine2");
     SetMark(3); // In "Line0";
     SetTxtp(9); // In "Line1"
@@ -4986,7 +5022,7 @@ TEST_F(PmEditorMarkDelete, DeleteWithNewlines) {
 }
 
 // Test deleting multiple newlines
-TEST_F(PmEditorMarkDelete, DeleteMultipleNewlines) {
+TEST_F(PmEditorMarkDeleteTest, DeleteMultipleNewlines) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetMark(3);
     SetTxtp(15); // At 'e' in "Line2"
@@ -5002,7 +5038,7 @@ TEST_F(PmEditorMarkDelete, DeleteMultipleNewlines) {
 }
 
 // Test deleting only newline character
-TEST_F(PmEditorMarkDelete, DeleteOnlyNewline) {
+TEST_F(PmEditorMarkDeleteTest, DeleteOnlyNewline) {
     SetBuffer("Line1\nLine2");
     SetMark(5); // At newline
     SetTxtp(6); // Just after newline
@@ -5018,7 +5054,7 @@ TEST_F(PmEditorMarkDelete, DeleteOnlyNewline) {
 }
 
 // Test swapping mark and txtp when mark > txtp
-TEST_F(PmEditorMarkDelete, SwapMarkAndTxtpWhenMarkGreater) {
+TEST_F(PmEditorMarkDeleteTest, SwapMarkAndTxtpWhenMarkGreater) {
     SetBuffer("ABCDEFGH");
     SetMark(6); // At 'G'
     SetTxtp(2); // At 'C'
@@ -5033,7 +5069,7 @@ TEST_F(PmEditorMarkDelete, SwapMarkAndTxtpWhenMarkGreater) {
 }
 
 // Test buffer termination after delete
-TEST_F(PmEditorMarkDelete, BufferTerminationAfterDelete) {
+TEST_F(PmEditorMarkDeleteTest, BufferTerminationAfterDelete) {
     SetBuffer("ABCDEFGH");
     SetMark(2);
     SetTxtp(5);
@@ -5048,7 +5084,7 @@ TEST_F(PmEditorMarkDelete, BufferTerminationAfterDelete) {
 }
 
 // Test deleting in empty buffer
-TEST_F(PmEditorMarkDelete, DeleteInEmptyBuffer) {
+TEST_F(PmEditorMarkDeleteTest, DeleteInEmptyBuffer) {
     SetBuffer("");
     SetMark(0);
     SetTxtp(0);
@@ -5063,7 +5099,7 @@ TEST_F(PmEditorMarkDelete, DeleteInEmptyBuffer) {
 }
 
 // Test deleting preserves content after deleted region
-TEST_F(PmEditorMarkDelete, PreservesContentAfterDeletedRegion) {
+TEST_F(PmEditorMarkDeleteTest, PreservesContentAfterDeletedRegion) {
     SetBuffer("AAABBBCCC");
     SetMark(3);
     SetTxtp(6);
@@ -5078,7 +5114,7 @@ TEST_F(PmEditorMarkDelete, PreservesContentAfterDeletedRegion) {
 }
 
 // Test deleting large region
-TEST_F(PmEditorMarkDelete, DeleteLargeRegion) {
+TEST_F(PmEditorMarkDeleteTest, DeleteLargeRegion) {
     std::string content(100, 'X');
     SetBuffer(content.c_str());
     SetMark(10);
@@ -5094,7 +5130,7 @@ TEST_F(PmEditorMarkDelete, DeleteLargeRegion) {
 }
 
 // Test deleting backward selection (mark > txtp after swap)
-TEST_F(PmEditorMarkDelete, DeleteBackwardSelection) {
+TEST_F(PmEditorMarkDeleteTest, DeleteBackwardSelection) {
     SetBuffer("0123456789");
     SetMark(7);
     SetTxtp(3);
@@ -5109,7 +5145,7 @@ TEST_F(PmEditorMarkDelete, DeleteBackwardSelection) {
 }
 
 // Test deleting with num_lines counting
-TEST_F(PmEditorMarkDelete, DeleteWithNumLinesCounting) {
+TEST_F(PmEditorMarkDeleteTest, DeleteWithNumLinesCounting) {
     SetBuffer("A\nB\nC\nD\nE");
     SetMark(2); // After first newline
     SetTxtp(8); // After fourth newline
@@ -5125,7 +5161,7 @@ TEST_F(PmEditorMarkDelete, DeleteWithNumLinesCounting) {
 }
 
 // Test deleting mixed newlines and content
-TEST_F(PmEditorMarkDelete, DeleteMixedNewlinesAndContent) {
+TEST_F(PmEditorMarkDeleteTest, DeleteMixedNewlinesAndContent) {
     SetBuffer("Line0\nLine1\nLine2");
     SetMark(3); // In "Line0"
     SetTxtp(14); // In "Line2"
@@ -5141,7 +5177,7 @@ TEST_F(PmEditorMarkDelete, DeleteMixedNewlinesAndContent) {
 }
 
 // Test deleting with mark at buffer start and txtp at end
-TEST_F(PmEditorMarkDelete, DeleteEntireContent) {
+TEST_F(PmEditorMarkDeleteTest, DeleteEntireContent) {
     std::string content = "Complete content to delete";
     SetBuffer(content.c_str());
     SetMark(0);
@@ -5157,7 +5193,7 @@ TEST_F(PmEditorMarkDelete, DeleteEntireContent) {
 }
 
 // Test deleting adjacent positions (zero-length selection)
-TEST_F(PmEditorMarkDelete, DeleteZeroLengthSelection) {
+TEST_F(PmEditorMarkDeleteTest, DeleteZeroLengthSelection) {
     SetBuffer("Hello");
     SetMark(3);
     SetTxtp(3);
@@ -5171,7 +5207,7 @@ TEST_F(PmEditorMarkDelete, DeleteZeroLengthSelection) {
     EXPECT_FALSE(self->text_changed);
 }
 
-TEST_F(PmEditorMarkDelete, DeleteAcrossMultipleVisibleLines) {
+TEST_F(PmEditorMarkDeleteTest, DeleteAcrossMultipleVisibleLines) {
     SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4");
     self->py = 0;
     SetMark(6);  // At 'L' in "Line1"
@@ -5185,7 +5221,7 @@ TEST_F(PmEditorMarkDelete, DeleteAcrossMultipleVisibleLines) {
     EXPECT_CURSOR_EQ(0, 1); // Should be on line 1
 }
 
-TEST_F(PmEditorMarkDelete, SetsExitFlag) {
+TEST_F(PmEditorMarkDeleteTest, SetsExitFlag) {
     self->mode = kMarkMode;
     SetBuffer("Hello World");
     SetMark(2);
@@ -5201,10 +5237,10 @@ TEST_F(PmEditorMarkDelete, SetsExitFlag) {
 // Tests for pmeditor_mark_down()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorMarkDown : public PmEditorMarkTestBase { };
+class PmEditorMarkDownTest : public PmEditorMarkTestBase { };
 
 // Test moving mark down from first line
-TEST_F(PmEditorMarkDown, MoveDownFromFirstLine) {
+TEST_F(PmEditorMarkDownTest, MoveDownFromFirstLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(0); // Start of "Line0"
 
@@ -5216,7 +5252,7 @@ TEST_F(PmEditorMarkDown, MoveDownFromFirstLine) {
 }
 
 // Test moving mark down from middle of first line
-TEST_F(PmEditorMarkDown, MoveDownFromMiddleOfFirstLine) {
+TEST_F(PmEditorMarkDownTest, MoveDownFromMiddleOfFirstLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(2); // At 'n' in "Line0"
 
@@ -5228,7 +5264,7 @@ TEST_F(PmEditorMarkDown, MoveDownFromMiddleOfFirstLine) {
 }
 
 // Test moving mark down to shorter line
-TEST_F(PmEditorMarkDown, MoveDownToShorterLine) {
+TEST_F(PmEditorMarkDownTest, MoveDownToShorterLine) {
     SetBuffer("LongLine\nShort\nLine2");
     SetTxtp(7); // At 'e' in "LongLine"
 
@@ -5240,7 +5276,7 @@ TEST_F(PmEditorMarkDown, MoveDownToShorterLine) {
 }
 
 // Test moving mark down to longer line
-TEST_F(PmEditorMarkDown, MoveDownToLongerLine) {
+TEST_F(PmEditorMarkDownTest, MoveDownToLongerLine) {
     SetBuffer("Short\nLongLine\nLine2");
     SetTxtp(3); // At 'r' in "Short"
 
@@ -5252,7 +5288,7 @@ TEST_F(PmEditorMarkDown, MoveDownToLongerLine) {
 }
 
 // Test moving down when cy at height - 1
-TEST_F(PmEditorMarkDown, MovingDownFromBottomOfDisplayMovesToEnd) {
+TEST_F(PmEditorMarkDownTest, MovingDownFromBottomOfDisplayMovesToEnd) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetTxtp(12); // Before the 'L' of "Line2"
     self->height = 3;
@@ -5266,7 +5302,7 @@ TEST_F(PmEditorMarkDown, MovingDownFromBottomOfDisplayMovesToEnd) {
 }
 
 // Test moving down from last line of file
-TEST_F(PmEditorMarkDown, MovingDownFromLastLineMovesToEnd) {
+TEST_F(PmEditorMarkDownTest, MovingDownFromLastLineMovesToEnd) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(12); // Before the 'L' of "Line2"
     const int old_cy = self->cy;
@@ -5279,7 +5315,7 @@ TEST_F(PmEditorMarkDown, MovingDownFromLastLineMovesToEnd) {
 }
 
 // Test moving down from end of line
-TEST_F(PmEditorMarkDown, MoveDownFromEndOfLine) {
+TEST_F(PmEditorMarkDownTest, MoveDownFromEndOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(5); // At newline after "Line0"
 
@@ -5291,7 +5327,7 @@ TEST_F(PmEditorMarkDown, MoveDownFromEndOfLine) {
 }
 
 // Test moving down in single line buffer
-TEST_F(PmEditorMarkDown, MoveDownInSingleLineBuffer) {
+TEST_F(PmEditorMarkDownTest, MoveDownInSingleLineBuffer) {
     SetBuffer("OnlyOneLine");
     SetTxtp(5);
 
@@ -5303,7 +5339,7 @@ TEST_F(PmEditorMarkDown, MoveDownInSingleLineBuffer) {
 }
 
 // Test moving down in empty buffer
-TEST_F(PmEditorMarkDown, MoveDownInEmptyBuffer) {
+TEST_F(PmEditorMarkDownTest, MoveDownInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0);
 
@@ -5315,7 +5351,7 @@ TEST_F(PmEditorMarkDown, MoveDownInEmptyBuffer) {
 }
 
 // Test moving down multiple times in sequence
-TEST_F(PmEditorMarkDown, MoveDownMultipleTimes) {
+TEST_F(PmEditorMarkDownTest, MoveDownMultipleTimes) {
     SetBuffer("Line0\nLine0\nLine1\nLine2");
     SetTxtp(0);
 
@@ -5339,7 +5375,7 @@ TEST_F(PmEditorMarkDown, MoveDownMultipleTimes) {
 }
 
 // Test moving down to empty line
-TEST_F(PmEditorMarkDown, MoveDownToEmptyLine) {
+TEST_F(PmEditorMarkDownTest, MoveDownToEmptyLine) {
     SetBuffer("Line0\n\nLine2");
     SetTxtp(2);
 
@@ -5351,7 +5387,7 @@ TEST_F(PmEditorMarkDown, MoveDownToEmptyLine) {
 }
 
 // Test moving down from empty line
-TEST_F(PmEditorMarkDown, MoveDownFromEmptyLine) {
+TEST_F(PmEditorMarkDownTest, MoveDownFromEmptyLine) {
     SetBuffer("Line0\n\nLine2");
     SetTxtp(6); // At second newline (empty line)
 
@@ -5363,7 +5399,7 @@ TEST_F(PmEditorMarkDown, MoveDownFromEmptyLine) {
 }
 
 // Test line too long error
-TEST_F(PmEditorMarkDown, LineTooLongError) {
+TEST_F(PmEditorMarkDownTest, LineTooLongError) {
     std::string long_line(self->width + 10, 'X');
     std::string content = "Short\n" + long_line + "\nLine2";
     SetBuffer(content.c_str());
@@ -5379,7 +5415,7 @@ TEST_F(PmEditorMarkDown, LineTooLongError) {
 }
 
 // Test moving down doesn't modify buffer
-TEST_F(PmEditorMarkDown, MoveDownDoesNotModifyBuffer) {
+TEST_F(PmEditorMarkDownTest, MoveDownDoesNotModifyBuffer) {
     const std::string original = "Line0\nLine1\nLine2";
     SetBuffer(original.c_str());
     SetTxtp(0);
@@ -5391,7 +5427,7 @@ TEST_F(PmEditorMarkDown, MoveDownDoesNotModifyBuffer) {
 }
 
 // Test moving down when mark exactly at end of buffer
-TEST_F(PmEditorMarkDown, MoveDownWhenMarkAtEndOfBuffer) {
+TEST_F(PmEditorMarkDownTest, MoveDownWhenMarkAtEndOfBuffer) {
     SetBuffer("Line0\nLine1");
     SetTxtp(11); // After '1' in "Line1"
 
@@ -5402,7 +5438,7 @@ TEST_F(PmEditorMarkDown, MoveDownWhenMarkAtEndOfBuffer) {
 }
 
 // Test moving down maintains column position across equal length lines
-TEST_F(PmEditorMarkDown, MoveDownMaintainsColumnAcrossEqualLines) {
+TEST_F(PmEditorMarkDownTest, MoveDownMaintainsColumnAcrossEqualLines) {
     SetBuffer("ABCDE\nFGHIJ\nKLMNO");
     SetTxtp(3); // At 'D' in "ABCDE"
 
@@ -5414,7 +5450,7 @@ TEST_F(PmEditorMarkDown, MoveDownMaintainsColumnAcrossEqualLines) {
 }
 
 // Test moving down to line with only newline
-TEST_F(PmEditorMarkDown, MoveDownToLineWithOnlyNewline) {
+TEST_F(PmEditorMarkDownTest, MoveDownToLineWithOnlyNewline) {
     SetBuffer("Line0\n\n");
     SetTxtp(2);
 
@@ -5426,7 +5462,7 @@ TEST_F(PmEditorMarkDown, MoveDownToLineWithOnlyNewline) {
 }
 
 // Test moving down when cy near height limit
-TEST_F(PmEditorMarkDown, MoveDownNearHeightLimit) {
+TEST_F(PmEditorMarkDownTest, MoveDownNearHeightLimit) {
     SetBuffer("Line0\nLine1\nLine2\nLine2");
     SetTxtp(12); // At 'L' in "Line2"
 
@@ -5447,7 +5483,7 @@ TEST_F(PmEditorMarkDown, MoveDownNearHeightLimit) {
 }
 
 // Test moving down from column beyond next line length
-TEST_F(PmEditorMarkDown, MoveDownFromColumnBeyondNextLineLength) {
+TEST_F(PmEditorMarkDownTest, MoveDownFromColumnBeyondNextLineLength) {
     SetBuffer("VeryLongLine\nABC\nLine2");
     SetTxtp(10); // Near end of "VeryLongLine"
 
@@ -5459,7 +5495,7 @@ TEST_F(PmEditorMarkDown, MoveDownFromColumnBeyondNextLineLength) {
 }
 
 // Test moving down in buffer with only newlines
-TEST_F(PmEditorMarkDown, MoveDownInBufferWithOnlyNewlines) {
+TEST_F(PmEditorMarkDownTest, MoveDownInBufferWithOnlyNewlines) {
     SetBuffer("\n\n\n");
     SetTxtp(0);
 
@@ -5471,7 +5507,7 @@ TEST_F(PmEditorMarkDown, MoveDownInBufferWithOnlyNewlines) {
 }
 
 // Test moving down when at newline character itself
-TEST_F(PmEditorMarkDown, MoveDownWhenAtNewlineCharacter) {
+TEST_F(PmEditorMarkDownTest, MoveDownWhenAtNewlineCharacter) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(5); // At first newline
 
@@ -5486,10 +5522,10 @@ TEST_F(PmEditorMarkDown, MoveDownWhenAtNewlineCharacter) {
 // Tests for pmeditor_mark_end()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorMarkEnd : public PmEditorMarkTestBase { };
+class PmEditorMarkEndTest : public PmEditorMarkTestBase { };
 
 // Test moving mark to end from start of line
-TEST_F(PmEditorMarkEnd, MoveToEndFromStartOfLine) {
+TEST_F(PmEditorMarkEndTest, MoveToEndFromStartOfLine) {
     SetBuffer("Hello World");
     SetTxtp(0); // At 'H'
 
@@ -5501,7 +5537,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndFromStartOfLine) {
 }
 
 // Test moving mark to end from middle of line
-TEST_F(PmEditorMarkEnd, MoveToEndFromMiddleOfLine) {
+TEST_F(PmEditorMarkEndTest, MoveToEndFromMiddleOfLine) {
     SetBuffer("Hello World");
     SetTxtp(5); // At space
 
@@ -5513,7 +5549,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndFromMiddleOfLine) {
 }
 
 // Test no movement when already at end of line (before newline)
-TEST_F(PmEditorMarkEnd, NoMovementWhenAtEndOfLine) {
+TEST_F(PmEditorMarkEndTest, NoMovementWhenAtEndOfLine) {
     SetBuffer("Hello\nWorld");
     SetTxtp(5); // At newline
 
@@ -5525,7 +5561,7 @@ TEST_F(PmEditorMarkEnd, NoMovementWhenAtEndOfLine) {
 }
 
 // Test no movement when at end of buffer
-TEST_F(PmEditorMarkEnd, NoMovementWhenAtEndOfBuffer) {
+TEST_F(PmEditorMarkEndTest, NoMovementWhenAtEndOfBuffer) {
     SetBuffer("Hello");
     SetTxtp(5); // At '\0'
 
@@ -5537,7 +5573,7 @@ TEST_F(PmEditorMarkEnd, NoMovementWhenAtEndOfBuffer) {
 }
 
 // Test moving to end in empty buffer
-TEST_F(PmEditorMarkEnd, MoveToEndInEmptyBuffer) {
+TEST_F(PmEditorMarkEndTest, MoveToEndInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0); // At '\0'
 
@@ -5549,7 +5585,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndInEmptyBuffer) {
 }
 
 // Test moving to end in single character buffer
-TEST_F(PmEditorMarkEnd, MoveToEndInSingleCharBuffer) {
+TEST_F(PmEditorMarkEndTest, MoveToEndInSingleCharBuffer) {
     SetBuffer("A");
     SetTxtp(0); // At 'A'
 
@@ -5561,7 +5597,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndInSingleCharBuffer) {
 }
 
 // Test moving to end in multiline buffer (first line)
-TEST_F(PmEditorMarkEnd, MoveToEndInMultilineBufferFirstLine) {
+TEST_F(PmEditorMarkEndTest, MoveToEndInMultilineBufferFirstLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(2); // At 'n' in "Line0"
 
@@ -5573,7 +5609,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndInMultilineBufferFirstLine) {
 }
 
 // Test moving to end in multiline buffer (middle line)
-TEST_F(PmEditorMarkEnd, MoveToEndInMultilineBufferMiddleLine) {
+TEST_F(PmEditorMarkEndTest, MoveToEndInMultilineBufferMiddleLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(8); // At 'n' in "Line1"
 
@@ -5585,7 +5621,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndInMultilineBufferMiddleLine) {
 }
 
 // Test moving to end in multiline buffer (last line)
-TEST_F(PmEditorMarkEnd, MoveToEndInMultilineBufferLastLine) {
+TEST_F(PmEditorMarkEndTest, MoveToEndInMultilineBufferLastLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(14); // At 'n' in "Line2"
 
@@ -5597,7 +5633,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndInMultilineBufferLastLine) {
 }
 
 // Test line too long error
-TEST_F(PmEditorMarkEnd, LineTooLongError) {
+TEST_F(PmEditorMarkEndTest, LineTooLongError) {
     const std::string long_line(self->width + 10, 'X');
     SetBuffer(long_line.c_str());
     SetTxtp(0); // At start
@@ -5611,7 +5647,7 @@ TEST_F(PmEditorMarkEnd, LineTooLongError) {
 }
 
 // Test moving to end with long line just at width limit
-TEST_F(PmEditorMarkEnd, MoveToEndWithLineAtWidthLimit) {
+TEST_F(PmEditorMarkEndTest, MoveToEndWithLineAtWidthLimit) {
     const std::string line(self->width, 'A');
     SetBuffer(line.c_str());
     SetTxtp(0); // At start
@@ -5624,7 +5660,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndWithLineAtWidthLimit) {
 }
 
 // Test moving to end with line one character over width limit
-TEST_F(PmEditorMarkEnd, MoveToEndWithLineOneOverWidth) {
+TEST_F(PmEditorMarkEndTest, MoveToEndWithLineOneOverWidth) {
     const std::string line(self->width + 1, 'A');
     SetBuffer(line.c_str());
     SetTxtp(0); // At start
@@ -5638,7 +5674,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndWithLineOneOverWidth) {
 }
 
 // Test moving to end preserves cy
-TEST_F(PmEditorMarkEnd, MoveToEndPreservesCy) {
+TEST_F(PmEditorMarkEndTest, MoveToEndPreservesCy) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(8); // At 'n' in "Line1"
     self->cy = 7; // Some arbitrary cy value
@@ -5651,7 +5687,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndPreservesCy) {
 }
 
 // Test moving to end doesn't modify buffer
-TEST_F(PmEditorMarkEnd, MoveToEndDoesNotModifyBuffer) {
+TEST_F(PmEditorMarkEndTest, MoveToEndDoesNotModifyBuffer) {
     const std::string original = "Hello World";
     SetBuffer(original.c_str());
     SetTxtp(5);
@@ -5665,7 +5701,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndDoesNotModifyBuffer) {
 }
 
 // Test moving to end from empty line
-TEST_F(PmEditorMarkEnd, MoveToEndFromEmptyLine) {
+TEST_F(PmEditorMarkEndTest, MoveToEndFromEmptyLine) {
     SetBuffer("\n");
     SetTxtp(0); // At newline
 
@@ -5677,7 +5713,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndFromEmptyLine) {
 }
 
 // Test moving to end multiple times (should only move once)
-TEST_F(PmEditorMarkEnd, MoveToEndMultipleTimes) {
+TEST_F(PmEditorMarkEndTest, MoveToEndMultipleTimes) {
     SetBuffer("Hello World");
     SetTxtp(0);
 
@@ -5699,7 +5735,7 @@ TEST_F(PmEditorMarkEnd, MoveToEndMultipleTimes) {
 }
 
 // Test moving to end preserves py
-TEST_F(PmEditorMarkEnd, MoveToEndPreservesPy) {
+TEST_F(PmEditorMarkEndTest, MoveToEndPreservesPy) {
     SetBuffer("Hello World");
     SetTxtp(0);
     self->py = 5;
@@ -5716,10 +5752,10 @@ TEST_F(PmEditorMarkEnd, MoveToEndPreservesPy) {
 // Tests for pmeditor_mark_home()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorMarkHome : public PmEditorMarkTestBase { };
+class PmEditorMarkHomeTest : public PmEditorMarkTestBase { };
 
 // Test moving mark to home from end of line
-TEST_F(PmEditorMarkHome, MoveToHomeFromEndOfLine) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeFromEndOfLine) {
     SetBuffer("Hello World");
     SetTxtp(11); // At end
 
@@ -5731,7 +5767,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromEndOfLine) {
 }
 
 // Test moving mark to home from middle of line
-TEST_F(PmEditorMarkHome, MoveToHomeFromMiddleOfLine) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeFromMiddleOfLine) {
     SetBuffer("Hello World");
     SetTxtp(5); // At space
 
@@ -5743,7 +5779,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromMiddleOfLine) {
 }
 
 // Test no movement when already at start of buffer
-TEST_F(PmEditorMarkHome, NoMovementWhenAtStartOfBuffer) {
+TEST_F(PmEditorMarkHomeTest, NoMovementWhenAtStartOfBuffer) {
     SetBuffer("Hello World");
     SetTxtp(0);
 
@@ -5755,7 +5791,7 @@ TEST_F(PmEditorMarkHome, NoMovementWhenAtStartOfBuffer) {
 }
 
 // Test moving to home in empty buffer
-TEST_F(PmEditorMarkHome, MoveToHomeInEmptyBuffer) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0); // At '\0'
 
@@ -5767,7 +5803,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeInEmptyBuffer) {
 }
 
 // Test moving to home in single character buffer
-TEST_F(PmEditorMarkHome, MoveToHomeInSingleCharBuffer) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeInSingleCharBuffer) {
     SetBuffer("A");
     SetTxtp(1); // At '\0'
 
@@ -5779,7 +5815,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeInSingleCharBuffer) {
 }
 
 // Test moving to home from newline at end of line
-TEST_F(PmEditorMarkHome, MoveToHomeFromNewlineAtEndOfLine) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeFromNewlineAtEndOfLine) {
     SetBuffer("Hello\nWorld");
     SetTxtp(5); // At '\n'
 
@@ -5791,7 +5827,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromNewlineAtEndOfLine) {
 }
 
 // Test moving to home from second line
-TEST_F(PmEditorMarkHome, MoveToHomeFromSecondLine) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeFromSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(8); // At 'n' in "Line1"
 
@@ -5803,7 +5839,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromSecondLine) {
 }
 
 // Test moving to home from last line
-TEST_F(PmEditorMarkHome, MoveToHomeFromLastLine) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeFromLastLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(15); // At 'n' in "Line2"
 
@@ -5815,7 +5851,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromLastLine) {
 }
 
 // Test moving to home when already at start of line (not buffer)
-TEST_F(PmEditorMarkHome, NoMovementWhenAtStartOfLine) {
+TEST_F(PmEditorMarkHomeTest, NoMovementWhenAtStartOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6); // At start of "Line1"
 
@@ -5827,7 +5863,7 @@ TEST_F(PmEditorMarkHome, NoMovementWhenAtStartOfLine) {
 }
 
 // Test moving to home preserves cy
-TEST_F(PmEditorMarkHome, MoveToHomePreservesCy) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomePreservesCy) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(9); // At 'e' in "Line1"
     self->cy = 7; // Some arbitrary cy value
@@ -5840,7 +5876,7 @@ TEST_F(PmEditorMarkHome, MoveToHomePreservesCy) {
 }
 
 // Test moving to home doesn't modify buffer
-TEST_F(PmEditorMarkHome, MoveToHomeDoesNotModifyBuffer) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeDoesNotModifyBuffer) {
     const std::string original = "Hello World";
     SetBuffer(original.c_str());
     SetTxtp(5);
@@ -5854,7 +5890,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeDoesNotModifyBuffer) {
 }
 
 // Test moving to home from empty line (line with only newline)
-TEST_F(PmEditorMarkHome, MoveToHomeFromEmptyLine) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeFromEmptyLine) {
     SetBuffer("Line0\n\nLine2");
     SetTxtp(6); // At second newline
 
@@ -5866,7 +5902,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromEmptyLine) {
 }
 
 // Test moving to home multiple times (should only move once)
-TEST_F(PmEditorMarkHome, MoveToHomeMultipleTimes) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeMultipleTimes) {
     SetBuffer("Hello World");
     SetTxtp(11);
 
@@ -5888,7 +5924,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeMultipleTimes) {
 }
 
 // Test moving to home preserves py
-TEST_F(PmEditorMarkHome, MoveToHomePreservesPy) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomePreservesPy) {
     SetBuffer("Hello World");
     SetTxtp(8);
     self->py = 5;
@@ -5902,7 +5938,7 @@ TEST_F(PmEditorMarkHome, MoveToHomePreservesPy) {
 }
 
 // Test with consecutive newlines
-TEST_F(PmEditorMarkHome, MoveToHomeWithConsecutiveNewlines) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeWithConsecutiveNewlines) {
     SetBuffer("Line0\n\n\nLine3");
     SetTxtp(8); // At 'L' of "Line3"
 
@@ -5914,7 +5950,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeWithConsecutiveNewlines) {
 }
 
 // Test moving to home in multiline buffer from middle line
-TEST_F(PmEditorMarkHome, MoveToHomeFromMiddleLineInMultilineBuffer) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeFromMiddleLineInMultilineBuffer) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetTxtp(8); // At 'n' in "Line1"
 
@@ -5926,7 +5962,7 @@ TEST_F(PmEditorMarkHome, MoveToHomeFromMiddleLineInMultilineBuffer) {
 }
 
 // Test correct behavior with trailing newline
-TEST_F(PmEditorMarkHome, MoveToHomeWithTrailingNewline) {
+TEST_F(PmEditorMarkHomeTest, MoveToHomeWithTrailingNewline) {
     SetBuffer("Hello\n");
     SetTxtp(5); // At newline
 
@@ -5941,10 +5977,10 @@ TEST_F(PmEditorMarkHome, MoveToHomeWithTrailingNewline) {
 // Tests for pmeditor_mark_left()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorMarkLeft : public PmEditorMarkTestBase { };
+class PmEditorMarkLeftTest : public PmEditorMarkTestBase { };
 
 // Test moving mark left from end of buffer
-TEST_F(PmEditorMarkLeft, MoveLeftFromEndOfBuffer) {
+TEST_F(PmEditorMarkLeftTest, MoveLeftFromEndOfBuffer) {
     SetBuffer("Hello World");
     SetTxtp(11); // At '\0'
 
@@ -5956,7 +5992,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftFromEndOfBuffer) {
 }
 
 // Test moving mark left in middle of line
-TEST_F(PmEditorMarkLeft, MoveLeftInMiddleOfLine) {
+TEST_F(PmEditorMarkLeftTest, MoveLeftInMiddleOfLine) {
     SetBuffer("Hello World");
     SetTxtp(6); // At 'W'
 
@@ -5968,7 +6004,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftInMiddleOfLine) {
 }
 
 // Test moving mark left near start of line
-TEST_F(PmEditorMarkLeft, MoveLeftNearStartOfLine) {
+TEST_F(PmEditorMarkLeftTest, MoveLeftNearStartOfLine) {
     SetBuffer("Hello World");
     SetTxtp(1); // At 'e'
 
@@ -5980,7 +6016,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftNearStartOfLine) {
 }
 
 // Test can move left just before newline
-TEST_F(PmEditorMarkLeft, CanMoveLeftAtNewline) {
+TEST_F(PmEditorMarkLeftTest, CanMoveLeftAtNewline) {
     SetBuffer("Hello\nWorld");
     SetTxtp(5); // At '\n'
 
@@ -5992,7 +6028,7 @@ TEST_F(PmEditorMarkLeft, CanMoveLeftAtNewline) {
 }
 
 // Test moving left multiple times in sequence
-TEST_F(PmEditorMarkLeft, MoveLeftMultipleTimes) {
+TEST_F(PmEditorMarkLeftTest, MoveLeftMultipleTimes) {
     SetBuffer("ABCDEF");
     SetTxtp(5); // At 'F'
 
@@ -6022,7 +6058,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftMultipleTimes) {
 }
 
 // Test moving left in empty buffer
-TEST_F(PmEditorMarkLeft, MoveLeftInEmptyBuffer) {
+TEST_F(PmEditorMarkLeftTest, MoveLeftInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0); // At '\0'
 
@@ -6034,7 +6070,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftInEmptyBuffer) {
 }
 
 // Test moving left in single character buffer
-TEST_F(PmEditorMarkLeft, MoveLeftInSingleCharBuffer) {
+TEST_F(PmEditorMarkLeftTest, MoveLeftInSingleCharBuffer) {
     SetBuffer("A");
     SetTxtp(1); // At '\0'
 
@@ -6046,7 +6082,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftInSingleCharBuffer) {
 }
 
 // Test moving left with multiline buffer
-TEST_F(PmEditorMarkLeft, MoveLeftInMultilineBuffer) {
+TEST_F(PmEditorMarkLeftTest, MoveLeftInMultilineBuffer) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(9); // At 'e' in Line2
 
@@ -6058,7 +6094,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftInMultilineBuffer) {
 }
 
 // Test moving left preserves cy (vertical position)
-TEST_F(PmEditorMarkLeft, MoveLeftPreservesCy) {
+TEST_F(PmEditorMarkLeftTest, MoveLeftPreservesCy) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(9); // At 'e' in "Line1"
     self->cy = 7; // Some arbitrary cy value
@@ -6070,7 +6106,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftPreservesCy) {
 }
 
 // Test moving left doesn't modify buffer
-TEST_F(PmEditorMarkLeft, MoveLeftDoesNotModifyBuffer) {
+TEST_F(PmEditorMarkLeftTest, MoveLeftDoesNotModifyBuffer) {
     const std::string original = "Hello World";
     SetBuffer(original.c_str());
     SetTxtp(7);
@@ -6082,7 +6118,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftDoesNotModifyBuffer) {
 }
 
 // Test moving left with cy > 0
-TEST_F(PmEditorMarkLeft, MoveLeftWithNonZeroCy) {
+TEST_F(PmEditorMarkLeftTest, MoveLeftWithNonZeroCy) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(9); // At 'e' in "Line1"
 
@@ -6094,7 +6130,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftWithNonZeroCy) {
 }
 
 // Test moving left all the way to start
-TEST_F(PmEditorMarkLeft, MoveLeftToStart) {
+TEST_F(PmEditorMarkLeftTest, MoveLeftToStart) {
     SetBuffer("ABC");
     SetTxtp(2); // At 'C'
 
@@ -6124,7 +6160,7 @@ TEST_F(PmEditorMarkLeft, MoveLeftToStart) {
 }
 
 // Test moving left stops at newline
-TEST_F(PmEditorMarkLeft, StopsAtNewline) {
+TEST_F(PmEditorMarkLeftTest, StopsAtNewline) {
     SetBuffer("ABC\nDEF");
     SetTxtp(5); // At 'E'
 
@@ -6149,10 +6185,10 @@ TEST_F(PmEditorMarkLeft, StopsAtNewline) {
 // Tests for pmeditor_mark_up()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorMarkUp : public PmEditorMarkTestBase { };
+class PmEditorMarkUpTest : public PmEditorMarkTestBase { };
 
 // Test moving mark up from second line
-TEST_F(PmEditorMarkUp, MoveUpFromSecondLine) {
+TEST_F(PmEditorMarkUpTest, MoveUpFromSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6); // At 'L' in "Line1"
 
@@ -6164,7 +6200,7 @@ TEST_F(PmEditorMarkUp, MoveUpFromSecondLine) {
 }
 
 // Test moving mark up from middle of second line
-TEST_F(PmEditorMarkUp, MoveUpFromMiddleOfSecondLine) {
+TEST_F(PmEditorMarkUpTest, MoveUpFromMiddleOfSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(8); // At 'n' in "Line1"
 
@@ -6176,7 +6212,7 @@ TEST_F(PmEditorMarkUp, MoveUpFromMiddleOfSecondLine) {
 }
 
 // Test moving mark up to shorter line
-TEST_F(PmEditorMarkUp, MoveUpToShorterLine) {
+TEST_F(PmEditorMarkUpTest, MoveUpToShorterLine) {
     SetBuffer("Short\nLongLine\nLine2");
     SetTxtp(13); // At 'e' in LongLine
 
@@ -6188,7 +6224,7 @@ TEST_F(PmEditorMarkUp, MoveUpToShorterLine) {
 }
 
 // Test moving mark up to longer line
-TEST_F(PmEditorMarkUp, MoveUpToLongerLine) {
+TEST_F(PmEditorMarkUpTest, MoveUpToLongerLine) {
     SetBuffer("LongLine\nShort\nLine2");
     SetTxtp(12); // At 'r' in "Short"
 
@@ -6200,7 +6236,7 @@ TEST_F(PmEditorMarkUp, MoveUpToLongerLine) {
 }
 
 // Test that moving up from the first line moves to start
-TEST_F(PmEditorMarkUp, MovingUpFromFirstLineMovesToStart) {
+TEST_F(PmEditorMarkUpTest, MovingUpFromFirstLineMovesToStart) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(2); // At 'n' in "Line 0"
 
@@ -6212,7 +6248,7 @@ TEST_F(PmEditorMarkUp, MovingUpFromFirstLineMovesToStart) {
 }
 
 // Test moving up from end of line
-TEST_F(PmEditorMarkUp, MoveUpFromEndOfLine) {
+TEST_F(PmEditorMarkUpTest, MoveUpFromEndOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(11); // At newline after "Line1"
 
@@ -6224,7 +6260,7 @@ TEST_F(PmEditorMarkUp, MoveUpFromEndOfLine) {
 }
 
 // Test moving up in two line buffer
-TEST_F(PmEditorMarkUp, MoveUpInTwoLineBuffer) {
+TEST_F(PmEditorMarkUpTest, MoveUpInTwoLineBuffer) {
     SetBuffer("Line0\nLine1");
     SetTxtp(7); // At 'i' in "Line1"
 
@@ -6236,7 +6272,7 @@ TEST_F(PmEditorMarkUp, MoveUpInTwoLineBuffer) {
 }
 
 // Test moving up in empty buffer
-TEST_F(PmEditorMarkUp, MoveUpInEmptyBuffer) {
+TEST_F(PmEditorMarkUpTest, MoveUpInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0);
 
@@ -6248,7 +6284,7 @@ TEST_F(PmEditorMarkUp, MoveUpInEmptyBuffer) {
 }
 
 // Test moving up multiple times in sequence
-TEST_F(PmEditorMarkUp, MoveUpMultipleTimes) {
+TEST_F(PmEditorMarkUpTest, MoveUpMultipleTimes) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetTxtp(18); // At 'L' in "Line3"
 
@@ -6278,7 +6314,7 @@ TEST_F(PmEditorMarkUp, MoveUpMultipleTimes) {
 }
 
 // Test moving up to empty line
-TEST_F(PmEditorMarkUp, MoveUpToEmptyLine) {
+TEST_F(PmEditorMarkUpTest, MoveUpToEmptyLine) {
     SetBuffer("Line0\n\nLine2");
     SetTxtp(9); // At 'n' in "Line2"
 
@@ -6290,7 +6326,7 @@ TEST_F(PmEditorMarkUp, MoveUpToEmptyLine) {
 }
 
 // Test moving up from empty line
-TEST_F(PmEditorMarkUp, MoveUpFromEmptyLine) {
+TEST_F(PmEditorMarkUpTest, MoveUpFromEmptyLine) {
     SetBuffer("Line0\n\nLine2");
     SetTxtp(6); // At second newline (empty line)
 
@@ -6302,7 +6338,7 @@ TEST_F(PmEditorMarkUp, MoveUpFromEmptyLine) {
 }
 
 // Test line too long error
-TEST_F(PmEditorMarkUp, LineTooLongError) {
+TEST_F(PmEditorMarkUpTest, LineTooLongError) {
     std::string long_line(self->width + 10, 'X');
     std::string content = long_line + "\nShort\nLine2";
     SetBuffer(content.c_str());
@@ -6318,7 +6354,7 @@ TEST_F(PmEditorMarkUp, LineTooLongError) {
 }
 
 // Test moving up doesn't modify buffer
-TEST_F(PmEditorMarkUp, MoveUpDoesNotModifyBuffer) {
+TEST_F(PmEditorMarkUpTest, MoveUpDoesNotModifyBuffer) {
     const std::string original = "Line0\nLine1\nLine2";
     SetBuffer(original.c_str());
     SetTxtp(6);
@@ -6330,7 +6366,7 @@ TEST_F(PmEditorMarkUp, MoveUpDoesNotModifyBuffer) {
 }
 
 // Test moving up maintains column position across equal length lines
-TEST_F(PmEditorMarkUp, MoveUpMaintainsColumnAcrossEqualLines) {
+TEST_F(PmEditorMarkUpTest, MoveUpMaintainsColumnAcrossEqualLines) {
     SetBuffer("ABCDE\nFGHIJ\nKLMNO");
     SetTxtp(9); // At 'I' in second line
 
@@ -6342,7 +6378,7 @@ TEST_F(PmEditorMarkUp, MoveUpMaintainsColumnAcrossEqualLines) {
 }
 
 // Test moving up when mark at newline at end of current line
-TEST_F(PmEditorMarkUp, MoveUpWhenMarkAtNewlineEndOfLine) {
+TEST_F(PmEditorMarkUpTest, MoveUpWhenMarkAtNewlineEndOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(11); // At newline after "Line1"
 
@@ -6355,7 +6391,7 @@ TEST_F(PmEditorMarkUp, MoveUpWhenMarkAtNewlineEndOfLine) {
 }
 
 // Test moving up from column beyond previous line length
-TEST_F(PmEditorMarkUp, MoveUpFromColumnBeyondPreviousLineLength) {
+TEST_F(PmEditorMarkUpTest, MoveUpFromColumnBeyondPreviousLineLength) {
     SetBuffer("ABC\nVeryLongLine\nLine2");
     SetTxtp(15); // At 'e' in "VeryLongLine"
 
@@ -6367,7 +6403,7 @@ TEST_F(PmEditorMarkUp, MoveUpFromColumnBeyondPreviousLineLength) {
 }
 
 // Test moving up in buffer with only newlines
-TEST_F(PmEditorMarkUp, MoveUpInBufferWithOnlyNewlines) {
+TEST_F(PmEditorMarkUpTest, MoveUpInBufferWithOnlyNewlines) {
     SetBuffer("\n\n\n");
     SetTxtp(2); // At third newline
 
@@ -6379,7 +6415,7 @@ TEST_F(PmEditorMarkUp, MoveUpInBufferWithOnlyNewlines) {
 }
 
 // Test moving up when at start of buffer
-TEST_F(PmEditorMarkUp, MoveUpWhenAtStartOfBuffer) {
+TEST_F(PmEditorMarkUpTest, MoveUpWhenAtStartOfBuffer) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(0); // At start
 
@@ -6391,7 +6427,7 @@ TEST_F(PmEditorMarkUp, MoveUpWhenAtStartOfBuffer) {
 }
 
 // Test moving up to line with only newline
-TEST_F(PmEditorMarkUp, MoveUpToLineWithOnlyNewline) {
+TEST_F(PmEditorMarkUpTest, MoveUpToLineWithOnlyNewline) {
     SetBuffer("\nLine1");
     SetTxtp(3); // At 'n' in "Line1"
 
@@ -6403,7 +6439,7 @@ TEST_F(PmEditorMarkUp, MoveUpToLineWithOnlyNewline) {
 }
 
 // Test moving up finds correct line start
-TEST_F(PmEditorMarkUp, MoveUpFindsCorrectLineStart) {
+TEST_F(PmEditorMarkUpTest, MoveUpFindsCorrectLineStart) {
     SetBuffer("First\nSecond\nThird");
     SetTxtp(9); // At 'o' in "Second"
 
@@ -6415,7 +6451,7 @@ TEST_F(PmEditorMarkUp, MoveUpFindsCorrectLineStart) {
 }
 
 // Test moving up preserves py
-TEST_F(PmEditorMarkUp, MoveUpPreservesPy) {
+TEST_F(PmEditorMarkUpTest, MoveUpPreservesPy) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6);
     self->py = 10; // Some vertical scroll
@@ -6427,7 +6463,7 @@ TEST_F(PmEditorMarkUp, MoveUpPreservesPy) {
 }
 
 // Test moving up handles stepping back from line end correctly
-TEST_F(PmEditorMarkUp, MoveUpHandlesSteppingBackFromLineEnd) {
+TEST_F(PmEditorMarkUpTest, MoveUpHandlesSteppingBackFromLineEnd) {
     SetBuffer("ABCD\nEFGH\nIJKL");
     SetTxtp(9);
 
@@ -6440,7 +6476,7 @@ TEST_F(PmEditorMarkUp, MoveUpHandlesSteppingBackFromLineEnd) {
 }
 
 // Test moving up when previous line has trailing spaces
-TEST_F(PmEditorMarkUp, MoveUpToPreviousLineWithTrailingSpaces) {
+TEST_F(PmEditorMarkUpTest, MoveUpToPreviousLineWithTrailingSpaces) {
     SetBuffer("ABC  \nDEF\nGHI");
     SetTxtp(8); // At 'F' in "DEF"
 
@@ -6455,10 +6491,10 @@ TEST_F(PmEditorMarkUp, MoveUpToPreviousLineWithTrailingSpaces) {
 // Tests for pmeditor_mark_right()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorMarkRight : public PmEditorMarkTestBase { };
+class PmEditorMarkRightTest : public PmEditorMarkTestBase { };
 
 // Test moving mark right from start of buffer
-TEST_F(PmEditorMarkRight, MoveRightFromStartOfBuffer) {
+TEST_F(PmEditorMarkRightTest, MoveRightFromStartOfBuffer) {
     SetBuffer("Hello World");
     SetTxtp(0);
 
@@ -6470,7 +6506,7 @@ TEST_F(PmEditorMarkRight, MoveRightFromStartOfBuffer) {
 }
 
 // Test moving mark right in middle of line
-TEST_F(PmEditorMarkRight, MoveRightInMiddleOfLine) {
+TEST_F(PmEditorMarkRightTest, MoveRightInMiddleOfLine) {
     SetBuffer("Hello World");
     SetTxtp(5); // At space
 
@@ -6482,7 +6518,7 @@ TEST_F(PmEditorMarkRight, MoveRightInMiddleOfLine) {
 }
 
 // Test moving mark right at end of line (before newline)
-TEST_F(PmEditorMarkRight, MoveRightAtEndOfLine) {
+TEST_F(PmEditorMarkRightTest, MoveRightAtEndOfLine) {
     SetBuffer("Hello\nWorld");
     SetTxtp(4); // At 'o' before newline
 
@@ -6494,7 +6530,7 @@ TEST_F(PmEditorMarkRight, MoveRightAtEndOfLine) {
 }
 
 // Test cannot move right at newline character
-TEST_F(PmEditorMarkRight, CannotMoveRightAtNewline) {
+TEST_F(PmEditorMarkRightTest, CannotMoveRightAtNewline) {
     SetBuffer("Hello\nWorld");
     SetTxtp(5); // At newline
 
@@ -6506,7 +6542,7 @@ TEST_F(PmEditorMarkRight, CannotMoveRightAtNewline) {
 }
 
 // Test cannot move right at end of buffer
-TEST_F(PmEditorMarkRight, CannotMoveRightAtEndOfBuffer) {
+TEST_F(PmEditorMarkRightTest, CannotMoveRightAtEndOfBuffer) {
     SetBuffer("Hello");
     SetTxtp(5); // At '\0'
 
@@ -6518,7 +6554,7 @@ TEST_F(PmEditorMarkRight, CannotMoveRightAtEndOfBuffer) {
 }
 
 // Test cannot move right when cx at screen width
-TEST_F(PmEditorMarkRight, CannotMoveRightWhenAtScreenWidth) {
+TEST_F(PmEditorMarkRightTest, CannotMoveRightWhenAtScreenWidth) {
     SetBuffer("Hello World");
     SetTxtp(5);
     self->cx = self->width; // At or beyond screen width
@@ -6531,7 +6567,7 @@ TEST_F(PmEditorMarkRight, CannotMoveRightWhenAtScreenWidth) {
 }
 
 // Test cannot move right when cx exceeds screen width
-TEST_F(PmEditorMarkRight, CannotMoveRightWhenBeyondScreenWidth) {
+TEST_F(PmEditorMarkRightTest, CannotMoveRightWhenBeyondScreenWidth) {
     SetBuffer("Hello World");
     SetTxtp(5);
     self->cx = self->width + 10;
@@ -6544,7 +6580,7 @@ TEST_F(PmEditorMarkRight, CannotMoveRightWhenBeyondScreenWidth) {
 }
 
 // Test moving right multiple times in sequence
-TEST_F(PmEditorMarkRight, MoveRightMultipleTimes) {
+TEST_F(PmEditorMarkRightTest, MoveRightMultipleTimes) {
     SetBuffer("ABCDEF");
     SetTxtp(0);
 
@@ -6574,7 +6610,7 @@ TEST_F(PmEditorMarkRight, MoveRightMultipleTimes) {
 }
 
 // Test moving right in empty buffer
-TEST_F(PmEditorMarkRight, MoveRightInEmptyBuffer) {
+TEST_F(PmEditorMarkRightTest, MoveRightInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0);
 
@@ -6586,7 +6622,7 @@ TEST_F(PmEditorMarkRight, MoveRightInEmptyBuffer) {
 }
 
 // Test moving right in single character buffer
-TEST_F(PmEditorMarkRight, MoveRightInSingleCharBuffer) {
+TEST_F(PmEditorMarkRightTest, MoveRightInSingleCharBuffer) {
     SetBuffer("A");
     SetTxtp(0);
 
@@ -6607,7 +6643,7 @@ TEST_F(PmEditorMarkRight, MoveRightInSingleCharBuffer) {
 }
 
 // Test moving right with multiline buffer
-TEST_F(PmEditorMarkRight, MoveRightInMultilineBuffer) {
+TEST_F(PmEditorMarkRightTest, MoveRightInMultilineBuffer) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(8); // At 'n' in "Line2"
 
@@ -6619,7 +6655,7 @@ TEST_F(PmEditorMarkRight, MoveRightInMultilineBuffer) {
 }
 
 // Test moving right stops before newline at end of line
-TEST_F(PmEditorMarkRight, MoveRightStopsBeforeNewline) {
+TEST_F(PmEditorMarkRightTest, MoveRightStopsBeforeNewline) {
     SetBuffer("ABC\nDEF");
     SetTxtp(2); // At 'C'
 
@@ -6641,7 +6677,7 @@ TEST_F(PmEditorMarkRight, MoveRightStopsBeforeNewline) {
 }
 
 // Test moving right preserves cy (vertical position)
-TEST_F(PmEditorMarkRight, MoveRightPreservesCy) {
+TEST_F(PmEditorMarkRightTest, MoveRightPreservesCy) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(8); // At 'n' in "Line1"
     self->cy = 5; // Some arbitrary cy value
@@ -6653,7 +6689,7 @@ TEST_F(PmEditorMarkRight, MoveRightPreservesCy) {
 }
 
 // Test moving right at exact screen width boundary
-TEST_F(PmEditorMarkRight, MoveRightAtExactWidthBoundary) {
+TEST_F(PmEditorMarkRightTest, MoveRightAtExactWidthBoundary) {
     SetBuffer("Hello World and more text");
     SetTxtp(10);
     self->width = 11; // One more than cursor
@@ -6675,7 +6711,7 @@ TEST_F(PmEditorMarkRight, MoveRightAtExactWidthBoundary) {
 }
 
 // Test moving right doesn't modify buffer
-TEST_F(PmEditorMarkRight, MoveRightDoesNotModifyBuffer) {
+TEST_F(PmEditorMarkRightTest, MoveRightDoesNotModifyBuffer) {
     const std::string original = "Hello World";
     SetBuffer(original.c_str());
     SetTxtp(2);
@@ -6687,7 +6723,7 @@ TEST_F(PmEditorMarkRight, MoveRightDoesNotModifyBuffer) {
 }
 
 // Test moving right with cy > 0
-TEST_F(PmEditorMarkRight, MoveRightWithNonZeroCy) {
+TEST_F(PmEditorMarkRightTest, MoveRightWithNonZeroCy) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6); // Start of "Line1"
 
@@ -6699,7 +6735,7 @@ TEST_F(PmEditorMarkRight, MoveRightWithNonZeroCy) {
 }
 
 // Test moving right near end of long line
-TEST_F(PmEditorMarkRight, MoveRightNearEndOfLongLine) {
+TEST_F(PmEditorMarkRightTest, MoveRightNearEndOfLongLine) {
     std::string long_line(100, 'A');
     SetBuffer(long_line.c_str());
     self->width = 100;
@@ -6936,10 +6972,10 @@ TEST_F(PmEditorPrintSelectionTest, SelectionSpansViewportBoundary) {
 // Tests for pmeditor_cmd_down()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorCmdDown : public PmEditorTestBase { };
+class PmEditorCmdDownTest : public PmEditorTestBase { };
 
 // Test moving down from first line to second line
-TEST_F(PmEditorCmdDown, MoveDownFromFirstToSecondLine) {
+TEST_F(PmEditorCmdDownTest, MoveDownFromFirstToSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(2); // At 'n' in "Line0"
     self->preferred_x = 2;
@@ -6952,7 +6988,7 @@ TEST_F(PmEditorCmdDown, MoveDownFromFirstToSecondLine) {
 }
 
 // Test moving down from second line to third line
-TEST_F(PmEditorCmdDown, MoveDownFromSecondToThirdLine) {
+TEST_F(PmEditorCmdDownTest, MoveDownFromSecondToThirdLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(8); // At 'n' in "Line1"
     self->preferred_x = 2;
@@ -6965,7 +7001,7 @@ TEST_F(PmEditorCmdDown, MoveDownFromSecondToThirdLine) {
 }
 
 // Test moving down at last line does nothing
-TEST_F(PmEditorCmdDown, NoMoveAtLastLine) {
+TEST_F(PmEditorCmdDownTest, NoMoveAtLastLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(14); // At 'n' in "Line2" (last line)
     self->preferred_x = 2;
@@ -6978,7 +7014,7 @@ TEST_F(PmEditorCmdDown, NoMoveAtLastLine) {
 }
 
 // Test moving down from single line buffer does nothing
-TEST_F(PmEditorCmdDown, NoMoveInSingleLineBuffer) {
+TEST_F(PmEditorCmdDownTest, NoMoveInSingleLineBuffer) {
     SetBuffer("OnlyLine");
     SetTxtp(4);
     self->preferred_x = 4;
@@ -6991,7 +7027,7 @@ TEST_F(PmEditorCmdDown, NoMoveInSingleLineBuffer) {
 }
 
 // Test moving down from empty buffer does nothing
-TEST_F(PmEditorCmdDown, NoMoveInEmptyBuffer) {
+TEST_F(PmEditorCmdDownTest, NoMoveInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0);
 
@@ -7003,7 +7039,7 @@ TEST_F(PmEditorCmdDown, NoMoveInEmptyBuffer) {
 }
 
 // Test moving down maintains column (preferred_x)
-TEST_F(PmEditorCmdDown, MaintainsPreferredColumn) {
+TEST_F(PmEditorCmdDownTest, MaintainsPreferredColumn) {
     SetBuffer("ABCDE\nFGHIJ\nKLMNO");
     SetTxtp(3); // At 'D' in first line
     self->preferred_x = 3;
@@ -7016,7 +7052,7 @@ TEST_F(PmEditorCmdDown, MaintainsPreferredColumn) {
 }
 
 // Test moving down to shorter line stops at end of line
-TEST_F(PmEditorCmdDown, StopsAtEndOfShorterLine) {
+TEST_F(PmEditorCmdDownTest, StopsAtEndOfShorterLine) {
     SetBuffer("ABCDEF\nXY\nPQRSTU");
     SetTxtp(4); // At 'E' in first line (column 4)
     self->preferred_x = 4;
@@ -7029,7 +7065,7 @@ TEST_F(PmEditorCmdDown, StopsAtEndOfShorterLine) {
 }
 
 // Test moving down from shorter line to longer line uses preferred_x
-TEST_F(PmEditorCmdDown, UsesPreferredXWhenMovingToLongerLine) {
+TEST_F(PmEditorCmdDownTest, UsesPreferredXWhenMovingToLongerLine) {
     SetBuffer("AB\nPQRSTU\nXYZ");
     SetTxtp(1); // At 'B' in first line (column 1)
     self->preferred_x = 4; // But preferred_x is 4
@@ -7042,7 +7078,7 @@ TEST_F(PmEditorCmdDown, UsesPreferredXWhenMovingToLongerLine) {
 }
 
 // Test moving down from start of line (column 0)
-TEST_F(PmEditorCmdDown, MoveDownFromStartOfLine) {
+TEST_F(PmEditorCmdDownTest, MoveDownFromStartOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(0); // At 'L' in "Line0"
 
@@ -7054,7 +7090,7 @@ TEST_F(PmEditorCmdDown, MoveDownFromStartOfLine) {
 }
 
 // Test moving down from end of line (at newline)
-TEST_F(PmEditorCmdDown, MoveDownFromEndOfLine) {
+TEST_F(PmEditorCmdDownTest, MoveDownFromEndOfLine) {
     SetBuffer("ABC\nDEF\nGHI");
     SetTxtp(3); // At '\n' after "ABC"
     self->preferred_x = 3;
@@ -7067,7 +7103,7 @@ TEST_F(PmEditorCmdDown, MoveDownFromEndOfLine) {
 }
 
 // Test moving down to empty line
-TEST_F(PmEditorCmdDown, MoveDownToEmptyLine) {
+TEST_F(PmEditorCmdDownTest, MoveDownToEmptyLine) {
     SetBuffer("ABC\n\nDEF");
     SetTxtp(2); // At 'C' in "ABC"
     self->preferred_x = 2;
@@ -7080,7 +7116,7 @@ TEST_F(PmEditorCmdDown, MoveDownToEmptyLine) {
 }
 
 // Test moving down from empty line
-TEST_F(PmEditorCmdDown, MoveDownFromEmptyLine) {
+TEST_F(PmEditorCmdDownTest, MoveDownFromEmptyLine) {
     SetBuffer("ABC\n\nDEF");
     SetTxtp(4); // At '\n' (empty line)
 
@@ -7092,7 +7128,7 @@ TEST_F(PmEditorCmdDown, MoveDownFromEmptyLine) {
 }
 
 // Test moving down scrolls when near bottom of screen
-TEST_F(PmEditorCmdDown, ScrollsWhenNearBottomOfScreen) {
+TEST_F(PmEditorCmdDownTest, ScrollsWhenNearBottomOfScreen) {
     // Create buffer with many lines
     std::string content;
     for (int i = 0; i < 30; i++) {
@@ -7113,7 +7149,7 @@ TEST_F(PmEditorCmdDown, ScrollsWhenNearBottomOfScreen) {
 }
 
 // Test moving down at bottom of screen when at last page
-TEST_F(PmEditorCmdDown, NoScrollWhenAtLastPage) {
+TEST_F(PmEditorCmdDownTest, NoScrollWhenAtLastPage) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     self->py = 0;
     self->cy = 2; // Not at very bottom of screen
@@ -7128,7 +7164,7 @@ TEST_F(PmEditorCmdDown, NoScrollWhenAtLastPage) {
 }
 
 // Test moving down does not modify buffer
-TEST_F(PmEditorCmdDown, DoesNotModifyBuffer) {
+TEST_F(PmEditorCmdDownTest, DoesNotModifyBuffer) {
     const std::string original = "Line0\nLine1\nLine2";
     SetBuffer(original.c_str());
     SetTxtp(2);
@@ -7141,7 +7177,7 @@ TEST_F(PmEditorCmdDown, DoesNotModifyBuffer) {
 }
 
 // Test moving down multiple times in sequence
-TEST_F(PmEditorCmdDown, MoveDownMultipleTimes) {
+TEST_F(PmEditorCmdDownTest, MoveDownMultipleTimes) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetTxtp(1); // At 'i' in "Line0"
     self->preferred_x = 1;
@@ -7180,7 +7216,7 @@ TEST_F(PmEditorCmdDown, MoveDownMultipleTimes) {
 }
 
 // Test moving down from line ending at buffer end (no trailing newline)
-TEST_F(PmEditorCmdDown, NoMoveWhenLineEndsAtBufferEnd) {
+TEST_F(PmEditorCmdDownTest, NoMoveWhenLineEndsAtBufferEnd) {
     SetBuffer("Line0\nLine1"); // No trailing newline
     SetTxtp(8); // At 'n' in "Line1"
     self->preferred_x = 2;
@@ -7193,7 +7229,7 @@ TEST_F(PmEditorCmdDown, NoMoveWhenLineEndsAtBufferEnd) {
 }
 
 // Test moving down with very long preferred_x
-TEST_F(PmEditorCmdDown, VeryLargePreferredX) {
+TEST_F(PmEditorCmdDownTest, VeryLargePreferredX) {
     SetBuffer("ABCDEFGHIJ\nXY\nPQRSTU");
     SetTxtp(9); // At 'J' in first line
     self->preferred_x = 100; // Very large preferred_x
@@ -7206,7 +7242,7 @@ TEST_F(PmEditorCmdDown, VeryLargePreferredX) {
 }
 
 // Test moving down preserves preferred_x across multiple moves
-TEST_F(PmEditorCmdDown, PreservesPreferredXAcrossMoves) {
+TEST_F(PmEditorCmdDownTest, PreservesPreferredXAcrossMoves) {
     SetBuffer("ABCDEFGH\nXY\nPQRSTUVW");
     SetTxtp(5); // At 'F' (column 5)
     self->preferred_x = 5;
@@ -7229,7 +7265,7 @@ TEST_F(PmEditorCmdDown, PreservesPreferredXAcrossMoves) {
 }
 
 // Test moving down when cy is near height-3 boundary
-TEST_F(PmEditorCmdDown, MovesNormallyAtHeightMinus3) {
+TEST_F(PmEditorCmdDownTest, MovesNormallyAtHeightMinus3) {
     // Create enough lines
     std::string content;
     for (int i = 0; i < 30; i++) {
@@ -7253,7 +7289,7 @@ TEST_F(PmEditorCmdDown, MovesNormallyAtHeightMinus3) {
 }
 
 // Test moving down calls scroll_up when scrolling
-TEST_F(PmEditorCmdDown, CallsScrollUpWhenScrolling) {
+TEST_F(PmEditorCmdDownTest, CallsScrollUpWhenScrolling) {
     // Create buffer with many lines
     std::string content;
     for (int i = 0; i < 30; i++) {
@@ -7276,10 +7312,10 @@ TEST_F(PmEditorCmdDown, CallsScrollUpWhenScrolling) {
 // Tests for pmeditor_cmd_end()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorCmdEnd : public PmEditorTestBase { };
+class PmEditorCmdEndTest : public PmEditorTestBase { };
 
 // Test moving to end of line from middle of line
-TEST_F(PmEditorCmdEnd, MoveToEndFromMiddleOfLine) {
+TEST_F(PmEditorCmdEndTest, MoveToEndFromMiddleOfLine) {
     SetBuffer("Hello World");
     SetTxtp(6); // At 'W'
     self->last_key = 'x'; // Not END
@@ -7292,7 +7328,7 @@ TEST_F(PmEditorCmdEnd, MoveToEndFromMiddleOfLine) {
 }
 
 // Test moving to end of line from start of line
-TEST_F(PmEditorCmdEnd, MoveToEndFromStartOfLine) {
+TEST_F(PmEditorCmdEndTest, MoveToEndFromStartOfLine) {
     SetBuffer("Hello World");
     SetTxtp(0); // At 'H'
     self->last_key = 'x'; // Not END
@@ -7305,7 +7341,7 @@ TEST_F(PmEditorCmdEnd, MoveToEndFromStartOfLine) {
 }
 
 // Test moving to end of line from near start
-TEST_F(PmEditorCmdEnd, MoveToEndFromNearStart) {
+TEST_F(PmEditorCmdEndTest, MoveToEndFromNearStart) {
     SetBuffer("ABCDEF");
     SetTxtp(1); // At 'B'
     self->last_key = 'x'; // Not END
@@ -7318,7 +7354,7 @@ TEST_F(PmEditorCmdEnd, MoveToEndFromNearStart) {
 }
 
 // Test no move when already at end of buffer
-TEST_F(PmEditorCmdEnd, NoMoveAtEndOfBuffer) {
+TEST_F(PmEditorCmdEndTest, NoMoveAtEndOfBuffer) {
     SetBuffer("Hello World");
     SetCursorAtEnd(); // At '\0'
     self->last_key = 'x'; // Not END
@@ -7331,7 +7367,7 @@ TEST_F(PmEditorCmdEnd, NoMoveAtEndOfBuffer) {
 }
 
 // Test no move in empty buffer
-TEST_F(PmEditorCmdEnd, NoMoveInEmptyBuffer) {
+TEST_F(PmEditorCmdEndTest, NoMoveInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0); // At '\0'
     self->last_key = 'x'; // Not END
@@ -7344,7 +7380,7 @@ TEST_F(PmEditorCmdEnd, NoMoveInEmptyBuffer) {
 }
 
 // Test moving to end of second line (newline)
-TEST_F(PmEditorCmdEnd, MoveToEndOfSecondLine) {
+TEST_F(PmEditorCmdEndTest, MoveToEndOfSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(7); // At 'i' in "Line1"
     self->last_key = 'x'; // Not END
@@ -7357,7 +7393,7 @@ TEST_F(PmEditorCmdEnd, MoveToEndOfSecondLine) {
 }
 
 // Test moving to end of last line (no newline)
-TEST_F(PmEditorCmdEnd, MoveToEndOfLastLine) {
+TEST_F(PmEditorCmdEndTest, MoveToEndOfLastLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(13); // At 'i' in "Line2"
     self->last_key = 'x'; // Not END
@@ -7370,7 +7406,7 @@ TEST_F(PmEditorCmdEnd, MoveToEndOfLastLine) {
 }
 
 // Test double END press jumps to end of file
-TEST_F(PmEditorCmdEnd, DoubleEndJumpsToEndOfFile) {
+TEST_F(PmEditorCmdEndTest, DoubleEndJumpsToEndOfFile) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(2); // At 'n' in "Line0"
     self->last_key = END; // Previous key was END
@@ -7386,7 +7422,7 @@ TEST_F(PmEditorCmdEnd, DoubleEndJumpsToEndOfFile) {
 }
 
 // Test double END press from first line
-TEST_F(PmEditorCmdEnd, DoubleEndFromFirstLine) {
+TEST_F(PmEditorCmdEndTest, DoubleEndFromFirstLine) {
     SetBuffer("Hello\nWorld\nTest");
     SetTxtp(2); // At 'l' in "Hello"
     self->last_key = END; // Previous key was END
@@ -7399,7 +7435,7 @@ TEST_F(PmEditorCmdEnd, DoubleEndFromFirstLine) {
 }
 
 // Test double END with many lines calculates correct py
-TEST_F(PmEditorCmdEnd, DoubleEndWithManyLinesCalculatesPy) {
+TEST_F(PmEditorCmdEndTest, DoubleEndWithManyLinesCalculatesPy) {
     // Create buffer with 30 lines
     std::string content;
     for (int i = 0; i < 30; i++) {
@@ -7421,7 +7457,7 @@ TEST_F(PmEditorCmdEnd, DoubleEndWithManyLinesCalculatesPy) {
 }
 
 // Test double END with buffer shorter than screen height
-TEST_F(PmEditorCmdEnd, DoubleEndWithShortBuffer) {
+TEST_F(PmEditorCmdEndTest, DoubleEndWithShortBuffer) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(2);
     self->last_key = END;
@@ -7434,7 +7470,7 @@ TEST_F(PmEditorCmdEnd, DoubleEndWithShortBuffer) {
 }
 
 // Test END does not modify buffer
-TEST_F(PmEditorCmdEnd, DoesNotModifyBuffer) {
+TEST_F(PmEditorCmdEndTest, DoesNotModifyBuffer) {
     const std::string original = "Hello World";
     SetBuffer(original.c_str());
     SetTxtp(3);
@@ -7447,7 +7483,7 @@ TEST_F(PmEditorCmdEnd, DoesNotModifyBuffer) {
 }
 
 // Test moving to end of line preserves cy
-TEST_F(PmEditorCmdEnd, PreservesCyWhenMovingToEndOfLine) {
+TEST_F(PmEditorCmdEndTest, PreservesCyWhenMovingToEndOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(7); // At 'i' in "Line1"
     self->cy = 7; // Some arbitrary cy
@@ -7461,7 +7497,7 @@ TEST_F(PmEditorCmdEnd, PreservesCyWhenMovingToEndOfLine) {
 }
 
 // Test single END when already at end of line does nothing
-TEST_F(PmEditorCmdEnd, NoMoveWhenAlreadyAtEndOfLine) {
+TEST_F(PmEditorCmdEndTest, NoMoveWhenAlreadyAtEndOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(11); // At '\n' after "Line1"
     self->last_key = 'x';
@@ -7474,7 +7510,7 @@ TEST_F(PmEditorCmdEnd, NoMoveWhenAlreadyAtEndOfLine) {
 }
 
 // Test END from position near end
-TEST_F(PmEditorCmdEnd, MoveFromNearEnd) {
+TEST_F(PmEditorCmdEndTest, MoveFromNearEnd) {
     SetBuffer("ABCDEF");
     SetTxtp(4); // At 'E'
     self->last_key = 'x';
@@ -7487,7 +7523,7 @@ TEST_F(PmEditorCmdEnd, MoveFromNearEnd) {
 }
 
 // Test END sequence: middle -> end of line -> end of file
-TEST_F(PmEditorCmdEnd, SequenceMiddleToEndToFile) {
+TEST_F(PmEditorCmdEndTest, SequenceMiddleToEndToFile) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(2); // At 'n' in "Line0"
     self->last_key = 'x';
@@ -7511,7 +7547,7 @@ TEST_F(PmEditorCmdEnd, SequenceMiddleToEndToFile) {
 }
 
 // Test double END when already at end does nothing
-TEST_F(PmEditorCmdEnd, DoubleEndAtEndDoesNothing) {
+TEST_F(PmEditorCmdEndTest, DoubleEndAtEndDoesNothing) {
     SetBuffer("Hello World");
     SetCursorAtEnd(); // At '\0'
     self->last_key = END;
@@ -7525,7 +7561,7 @@ TEST_F(PmEditorCmdEnd, DoubleEndAtEndDoesNothing) {
 }
 
 // Test END from empty line (between two newlines)
-TEST_F(PmEditorCmdEnd, MoveFromEmptyLine) {
+TEST_F(PmEditorCmdEndTest, MoveFromEmptyLine) {
     SetBuffer("ABC\n\nDEF");
     SetTxtp(4); // At second '\n' (empty line)
     self->last_key = 'x';
@@ -7538,7 +7574,7 @@ TEST_F(PmEditorCmdEnd, MoveFromEmptyLine) {
 }
 
 // Test END with line longer than width
-TEST_F(PmEditorCmdEnd, ShowsErrorWhenLineLongerThanWidth) {
+TEST_F(PmEditorCmdEndTest, ShowsErrorWhenLineLongerThanWidth) {
     SetBuffer(std::string(85, 'X').c_str()); // Longer than width (80)
     SetTxtp(10);
     self->last_key = 'x';
@@ -7550,7 +7586,7 @@ TEST_F(PmEditorCmdEnd, ShowsErrorWhenLineLongerThanWidth) {
 }
 
 // Test double END positions at end of last line
-TEST_F(PmEditorCmdEnd, DoubleEndPositionsAtEndOfLastLine) {
+TEST_F(PmEditorCmdEndTest, DoubleEndPositionsAtEndOfLastLine) {
     SetBuffer("Line0\nLine1\nLastLine");
     SetTxtp(2);
     self->last_key = END;
@@ -7563,7 +7599,7 @@ TEST_F(PmEditorCmdEnd, DoubleEndPositionsAtEndOfLastLine) {
 }
 
 // Test double END with trailing newline
-TEST_F(PmEditorCmdEnd, DoubleEndWithTrailingNewline) {
+TEST_F(PmEditorCmdEndTest, DoubleEndWithTrailingNewline) {
     SetBuffer("Line0\nLine1\n"); // Trailing newline
     SetTxtp(2);
     self->last_key = END;
@@ -7576,7 +7612,7 @@ TEST_F(PmEditorCmdEnd, DoubleEndWithTrailingNewline) {
 }
 
 // Test END from very long line does not move
-TEST_F(PmEditorCmdEnd, MoveFromVeryLongLine) {
+TEST_F(PmEditorCmdEndTest, MoveFromVeryLongLine) {
     std::string longline(100, 'X');
     SetBuffer(longline.c_str());
     SetTxtp(20);
@@ -7593,10 +7629,10 @@ TEST_F(PmEditorCmdEnd, MoveFromVeryLongLine) {
 // Tests for pmeditor_cmd_home()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorCmdHome : public PmEditorTestBase { };
+class PmEditorCmdHomeTest : public PmEditorTestBase { };
 
 // Test moving to start of line from middle of line
-TEST_F(PmEditorCmdHome, MoveToStartFromMiddleOfLine) {
+TEST_F(PmEditorCmdHomeTest, MoveToStartFromMiddleOfLine) {
     SetBuffer("Hello World");
     SetTxtp(6); // At 'W'
     self->last_key = 'x'; // Not HOME
@@ -7609,7 +7645,7 @@ TEST_F(PmEditorCmdHome, MoveToStartFromMiddleOfLine) {
 }
 
 // Test moving to start of line from end of line (at newline)
-TEST_F(PmEditorCmdHome, MoveToStartFromEndOfLine) {
+TEST_F(PmEditorCmdHomeTest, MoveToStartFromEndOfLine) {
     SetBuffer("Hello\nWorld");
     SetTxtp(5); // At '\n'
     self->last_key = 'x'; // Not HOME
@@ -7622,7 +7658,7 @@ TEST_F(PmEditorCmdHome, MoveToStartFromEndOfLine) {
 }
 
 // Test moving to start of line from near end
-TEST_F(PmEditorCmdHome, MoveToStartFromNearEnd) {
+TEST_F(PmEditorCmdHomeTest, MoveToStartFromNearEnd) {
     SetBuffer("ABCDEF");
     SetTxtp(5); // At 'F'
     self->last_key = 'x'; // Not HOME
@@ -7635,7 +7671,7 @@ TEST_F(PmEditorCmdHome, MoveToStartFromNearEnd) {
 }
 
 // Test no move when already at start of buffer
-TEST_F(PmEditorCmdHome, NoMoveAtStartOfBuffer) {
+TEST_F(PmEditorCmdHomeTest, NoMoveAtStartOfBuffer) {
     SetBuffer("Hello World");
     SetTxtp(0); // At 'H'
     self->last_key = 'x'; // Not HOME
@@ -7648,7 +7684,7 @@ TEST_F(PmEditorCmdHome, NoMoveAtStartOfBuffer) {
 }
 
 // Test no move when at start of empty buffer
-TEST_F(PmEditorCmdHome, NoMoveInEmptyBuffer) {
+TEST_F(PmEditorCmdHomeTest, NoMoveInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0); // At '\0'
     self->last_key = 'x'; // Not HOME
@@ -7661,7 +7697,7 @@ TEST_F(PmEditorCmdHome, NoMoveInEmptyBuffer) {
 }
 
 // Test moving to start of second line
-TEST_F(PmEditorCmdHome, MoveToStartOfSecondLine) {
+TEST_F(PmEditorCmdHomeTest, MoveToStartOfSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(9); // At 'n' in "Line1"
     self->last_key = 'x'; // Not HOME
@@ -7674,7 +7710,7 @@ TEST_F(PmEditorCmdHome, MoveToStartOfSecondLine) {
 }
 
 // Test moving to start of third line
-TEST_F(PmEditorCmdHome, MoveToStartOfThirdLine) {
+TEST_F(PmEditorCmdHomeTest, MoveToStartOfThirdLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(15); // At 'n' in "Line2"
     self->last_key = 'x'; // Not HOME
@@ -7687,7 +7723,7 @@ TEST_F(PmEditorCmdHome, MoveToStartOfThirdLine) {
 }
 
 // Test double HOME press jumps to start of file
-TEST_F(PmEditorCmdHome, DoubleHomeJumpsToStartOfFile) {
+TEST_F(PmEditorCmdHomeTest, DoubleHomeJumpsToStartOfFile) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(9); // At 'n' in "Line1"
     self->last_key = HOME; // Previous key was HOME
@@ -7702,7 +7738,7 @@ TEST_F(PmEditorCmdHome, DoubleHomeJumpsToStartOfFile) {
 }
 
 // Test double HOME press from first line
-TEST_F(PmEditorCmdHome, DoubleHomeFromFirstLine) {
+TEST_F(PmEditorCmdHomeTest, DoubleHomeFromFirstLine) {
     SetBuffer("Hello World");
     SetTxtp(6); // At 'W'
     self->last_key = HOME; // Previous key was HOME
@@ -7716,7 +7752,7 @@ TEST_F(PmEditorCmdHome, DoubleHomeFromFirstLine) {
 }
 
 // Test double HOME press when far down in buffer
-TEST_F(PmEditorCmdHome, DoubleHomeFromFarDownInBuffer) {
+TEST_F(PmEditorCmdHomeTest, DoubleHomeFromFarDownInBuffer) {
     // Create buffer with many lines
     std::string content;
     for (int i = 0; i < 30; i++) {
@@ -7740,7 +7776,7 @@ TEST_F(PmEditorCmdHome, DoubleHomeFromFarDownInBuffer) {
 }
 
 // Test HOME does not modify buffer
-TEST_F(PmEditorCmdHome, DoesNotModifyBuffer) {
+TEST_F(PmEditorCmdHomeTest, DoesNotModifyBuffer) {
     const std::string original = "Hello World";
     SetBuffer(original.c_str());
     SetTxtp(6);
@@ -7753,7 +7789,7 @@ TEST_F(PmEditorCmdHome, DoesNotModifyBuffer) {
 }
 
 // Test moving to start of line preserves cy
-TEST_F(PmEditorCmdHome, PreservesCyWhenMovingToStartOfLine) {
+TEST_F(PmEditorCmdHomeTest, PreservesCyWhenMovingToStartOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(8); // At 'n' in "Line1"
     self->cy = 7; // Some arbitrary cy
@@ -7767,7 +7803,7 @@ TEST_F(PmEditorCmdHome, PreservesCyWhenMovingToStartOfLine) {
 }
 
 // Test single HOME from start of line (not buffer start) does nothing
-TEST_F(PmEditorCmdHome, NoMoveWhenAlreadyAtStartOfLine) {
+TEST_F(PmEditorCmdHomeTest, NoMoveWhenAlreadyAtStartOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6); // At 'L' in "Line1" (start of line but not buffer)
     self->last_key = 'x';
@@ -7780,7 +7816,7 @@ TEST_F(PmEditorCmdHome, NoMoveWhenAlreadyAtStartOfLine) {
 }
 
 // Test HOME from position 1 (second character of buffer)
-TEST_F(PmEditorCmdHome, MoveFromPositionOne) {
+TEST_F(PmEditorCmdHomeTest, MoveFromPositionOne) {
     SetBuffer("ABCDEF");
     SetTxtp(1); // At 'B'
     self->last_key = 'x';
@@ -7793,7 +7829,7 @@ TEST_F(PmEditorCmdHome, MoveFromPositionOne) {
 }
 
 // Test HOME from immediately after newline
-TEST_F(PmEditorCmdHome, MoveFromImmediatelyAfterNewline) {
+TEST_F(PmEditorCmdHomeTest, MoveFromImmediatelyAfterNewline) {
     SetBuffer("ABC\nDEF");
     SetTxtp(4); // At 'D' (first char after newline)
     self->last_key = 'x';
@@ -7806,7 +7842,7 @@ TEST_F(PmEditorCmdHome, MoveFromImmediatelyAfterNewline) {
 }
 
 // Test HOME sequence: middle -> start of line -> start of file
-TEST_F(PmEditorCmdHome, SequenceMiddleToStartToFile) {
+TEST_F(PmEditorCmdHomeTest, SequenceMiddleToStartToFile) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(9); // At 'n' in "Line1"
     self->last_key = 'x';
@@ -7831,7 +7867,7 @@ TEST_F(PmEditorCmdHome, SequenceMiddleToStartToFile) {
 }
 
 // Test double HOME when already at start does nothing
-TEST_F(PmEditorCmdHome, DoubleHomeAtStartDoesNothing) {
+TEST_F(PmEditorCmdHomeTest, DoubleHomeAtStartDoesNothing) {
     SetBuffer("Hello World");
     SetTxtp(0); // Already at start
     self->last_key = HOME;
@@ -7845,7 +7881,7 @@ TEST_F(PmEditorCmdHome, DoubleHomeAtStartDoesNothing) {
 }
 
 // Test HOME from empty line (between two newlines)
-TEST_F(PmEditorCmdHome, MoveFromEmptyLine) {
+TEST_F(PmEditorCmdHomeTest, MoveFromEmptyLine) {
     SetBuffer("ABC\n\nDEF");
     SetTxtp(4); // At second '\n' (empty line)
     self->last_key = 'x';
@@ -7858,7 +7894,7 @@ TEST_F(PmEditorCmdHome, MoveFromEmptyLine) {
 }
 
 // Test HOME from very long line
-TEST_F(PmEditorCmdHome, MoveFromLongLine) {
+TEST_F(PmEditorCmdHomeTest, MoveFromLongLine) {
     std::string longline(100, 'X');
     SetBuffer(longline.c_str());
     SetTxtp(75); // Far from start
@@ -7871,7 +7907,7 @@ TEST_F(PmEditorCmdHome, MoveFromLongLine) {
 }
 
 // Test that double HOME resets both py and cy
-TEST_F(PmEditorCmdHome, DoubleHomeResetsPyAndCy) {
+TEST_F(PmEditorCmdHomeTest, DoubleHomeResetsPyAndCy) {
     SetBuffer("Line0\nLine1\nLine2");
     self->py = 1; // Not at first page
     self->cy = 2; // Not at top of screen
@@ -7890,10 +7926,10 @@ TEST_F(PmEditorCmdHome, DoubleHomeResetsPyAndCy) {
 // Tests for pmeditor_cmd_left()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorCmdLeft : public PmEditorTestBase { };
+class PmEditorCmdLeftTest : public PmEditorTestBase { };
 
 // Test moving left from end of single-line buffer
-TEST_F(PmEditorCmdLeft, MoveLeftFromEnd) {
+TEST_F(PmEditorCmdLeftTest, MoveLeftFromEnd) {
     SetBuffer("Hello World");
     SetCursorAtEnd(); // At '\0'
 
@@ -7905,7 +7941,7 @@ TEST_F(PmEditorCmdLeft, MoveLeftFromEnd) {
 }
 
 // Test moving left in middle of line
-TEST_F(PmEditorCmdLeft, MoveLeftInMiddleOfLine) {
+TEST_F(PmEditorCmdLeftTest, MoveLeftInMiddleOfLine) {
     SetBuffer("Hello World");
     SetTxtp(6); // At 'W'
 
@@ -7917,7 +7953,7 @@ TEST_F(PmEditorCmdLeft, MoveLeftInMiddleOfLine) {
 }
 
 // Test moving left at start of buffer does nothing
-TEST_F(PmEditorCmdLeft, NoMoveAtStartOfBuffer) {
+TEST_F(PmEditorCmdLeftTest, NoMoveAtStartOfBuffer) {
     SetBuffer("Hello");
     SetTxtp(0); // At 'H'
 
@@ -7929,7 +7965,7 @@ TEST_F(PmEditorCmdLeft, NoMoveAtStartOfBuffer) {
 }
 
 // Test moving left in empty buffer does nothing
-TEST_F(PmEditorCmdLeft, NoMoveInEmptyBuffer) {
+TEST_F(PmEditorCmdLeftTest, NoMoveInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0); // At '\0'
 
@@ -7941,7 +7977,7 @@ TEST_F(PmEditorCmdLeft, NoMoveInEmptyBuffer) {
 }
 
 // Test moving left from start of second line wraps to end of first line
-TEST_F(PmEditorCmdLeft, WrapsFromStartOfSecondLineToEndOfFirst) {
+TEST_F(PmEditorCmdLeftTest, WrapsFromStartOfSecondLineToEndOfFirst) {
     SetBuffer("Line0\nLine1");
     SetTxtp(6); // At 'L' in "Line1"
 
@@ -7954,7 +7990,7 @@ TEST_F(PmEditorCmdLeft, WrapsFromStartOfSecondLineToEndOfFirst) {
 }
 
 // Test moving left from start of third line wraps
-TEST_F(PmEditorCmdLeft, WrapsFromStartOfThirdLineToEndOfSecond) {
+TEST_F(PmEditorCmdLeftTest, WrapsFromStartOfThirdLineToEndOfSecond) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(12); // At 'L' in "Line2"
 
@@ -7967,7 +8003,7 @@ TEST_F(PmEditorCmdLeft, WrapsFromStartOfThirdLineToEndOfSecond) {
 }
 
 // Test moving left from character after newline wraps
-TEST_F(PmEditorCmdLeft, WrapsFromJustAfterNewline) {
+TEST_F(PmEditorCmdLeftTest, WrapsFromJustAfterNewline) {
     SetBuffer("A\nB");
     SetTxtp(2); // At 'B'
 
@@ -7980,7 +8016,7 @@ TEST_F(PmEditorCmdLeft, WrapsFromJustAfterNewline) {
 }
 
 // Test moving left at newline itself (not crossing line boundary)
-TEST_F(PmEditorCmdLeft, MoveLeftAtNewlineCharacter) {
+TEST_F(PmEditorCmdLeftTest, MoveLeftAtNewlineCharacter) {
     SetBuffer("Hello\nWorld");
     SetTxtp(5); // At '\n'
 
@@ -7994,7 +8030,7 @@ TEST_F(PmEditorCmdLeft, MoveLeftAtNewlineCharacter) {
 }
 
 // Test moving left multiple times in sequence
-TEST_F(PmEditorCmdLeft, MoveLeftMultipleTimes) {
+TEST_F(PmEditorCmdLeftTest, MoveLeftMultipleTimes) {
     SetBuffer("ABCDE");
     SetTxtp(4); // At 'E'
 
@@ -8024,7 +8060,7 @@ TEST_F(PmEditorCmdLeft, MoveLeftMultipleTimes) {
 }
 
 // Test moving left all the way to start
-TEST_F(PmEditorCmdLeft, MoveLeftToStart) {
+TEST_F(PmEditorCmdLeftTest, MoveLeftToStart) {
     SetBuffer("ABC");
     SetTxtp(2); // At 'C'
 
@@ -8054,7 +8090,7 @@ TEST_F(PmEditorCmdLeft, MoveLeftToStart) {
 }
 
 // Test moving left does not modify buffer
-TEST_F(PmEditorCmdLeft, DoesNotModifyBuffer) {
+TEST_F(PmEditorCmdLeftTest, DoesNotModifyBuffer) {
     const std::string original = "Hello World";
     SetBuffer(original.c_str());
     SetTxtp(7);
@@ -8068,7 +8104,7 @@ TEST_F(PmEditorCmdLeft, DoesNotModifyBuffer) {
 }
 
 // Test moving left with multiline buffer (middle of second line)
-TEST_F(PmEditorCmdLeft, MoveLeftInSecondLine) {
+TEST_F(PmEditorCmdLeftTest, MoveLeftInSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(9); // At 'n' in "Line1"
 
@@ -8080,7 +8116,7 @@ TEST_F(PmEditorCmdLeft, MoveLeftInSecondLine) {
 }
 
 // Test moving left from single character line to previous line
-TEST_F(PmEditorCmdLeft, WrapsFromSingleCharLine) {
+TEST_F(PmEditorCmdLeftTest, WrapsFromSingleCharLine) {
     SetBuffer("ABC\nX");
     SetTxtp(4); // At 'X'
 
@@ -8093,7 +8129,7 @@ TEST_F(PmEditorCmdLeft, WrapsFromSingleCharLine) {
 }
 
 // Test moving left from empty line (just newlines)
-TEST_F(PmEditorCmdLeft, WrapsFromEmptyLine) {
+TEST_F(PmEditorCmdLeftTest, WrapsFromEmptyLine) {
     SetBuffer("ABC\n\nDEF");
     SetTxtp(5); // At second newline (empty line)
 
@@ -8106,7 +8142,7 @@ TEST_F(PmEditorCmdLeft, WrapsFromEmptyLine) {
 }
 
 // Test moving left preserves cy when not wrapping
-TEST_F(PmEditorCmdLeft, PreservesCyWhenNotWrapping) {
+TEST_F(PmEditorCmdLeftTest, PreservesCyWhenNotWrapping) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(9); // At 'n' in "Line1"
 
@@ -8118,7 +8154,7 @@ TEST_F(PmEditorCmdLeft, PreservesCyWhenNotWrapping) {
 }
 
 // Test moving left at buffer position 1 (second character)
-TEST_F(PmEditorCmdLeft, MoveLeftFromPositionOne) {
+TEST_F(PmEditorCmdLeftTest, MoveLeftFromPositionOne) {
     SetBuffer("ABCDEF");
     SetTxtp(1); // At 'B'
 
@@ -8130,7 +8166,7 @@ TEST_F(PmEditorCmdLeft, MoveLeftFromPositionOne) {
 }
 
 // Test that wrapping behavior queues correct commands for execution
-TEST_F(PmEditorCmdLeft, WrappingQueuesCorrectCommands) {
+TEST_F(PmEditorCmdLeftTest, WrappingQueuesCorrectCommands) {
     SetBuffer("First\nSecond\nThird");
     SetTxtp(6); // At 'S' in "Second"
 
@@ -8143,7 +8179,7 @@ TEST_F(PmEditorCmdLeft, WrappingQueuesCorrectCommands) {
 }
 
 // Test moving left from very long line
-TEST_F(PmEditorCmdLeft, MoveLeftInLongLine) {
+TEST_F(PmEditorCmdLeftTest, MoveLeftInLongLine) {
     std::string longline(100, 'X');
     SetBuffer(longline.c_str());
     SetTxtp(50); // Middle of line
@@ -8156,7 +8192,7 @@ TEST_F(PmEditorCmdLeft, MoveLeftInLongLine) {
 }
 
 // Test wrap behavior doesn't occur mid-line even after newline elsewhere
-TEST_F(PmEditorCmdLeft, NoWrapInMiddleOfLine) {
+TEST_F(PmEditorCmdLeftTest, NoWrapInMiddleOfLine) {
     SetBuffer("A\nBCDEF");
     SetTxtp(5); // At 'D'
 
@@ -8171,10 +8207,10 @@ TEST_F(PmEditorCmdLeft, NoWrapInMiddleOfLine) {
 // Tests for pmeditor_cmd_page_down()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorCmdPageDown : public PmEditorTestBase { };
+class PmEditorCmdPageDownTest : public PmEditorTestBase { };
 
 // Test page down moves forward one full screen
-TEST_F(PmEditorCmdPageDown, MoveForwardOneFullScreen) {
+TEST_F(PmEditorCmdPageDownTest, MoveForwardOneFullScreen) {
     // Create buffer with many lines
     std::string content;
     for (int i = 0; i < 50; i++) {
@@ -8197,7 +8233,7 @@ TEST_F(PmEditorCmdPageDown, MoveForwardOneFullScreen) {
 }
 
 // Test page down when already showing bottom of file queues END END
-TEST_F(PmEditorCmdPageDown, QueuesEndEndWhenAtBottom) {
+TEST_F(PmEditorCmdPageDownTest, QueuesEndEndWhenAtBottom) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     self->py = 0;
     self->cy = 1;
@@ -8211,7 +8247,7 @@ TEST_F(PmEditorCmdPageDown, QueuesEndEndWhenAtBottom) {
 }
 
 // Test page down near bottom positions to show last page
-TEST_F(PmEditorCmdPageDown, NearBottomPositionsToShowLastPage) {
+TEST_F(PmEditorCmdPageDownTest, NearBottomPositionsToShowLastPage) {
     // Create buffer with 35 lines
     std::string content;
     for (int i = 0; i < 35; i++) {
@@ -8237,7 +8273,7 @@ TEST_F(PmEditorCmdPageDown, NearBottomPositionsToShowLastPage) {
 }
 
 // Test page down maintains column position
-TEST_F(PmEditorCmdPageDown, MaintainsColumnPosition) {
+TEST_F(PmEditorCmdPageDownTest, MaintainsColumnPosition) {
     // Create buffer
     std::string content;
     for (int i = 0; i < 50; i++) {
@@ -8257,7 +8293,7 @@ TEST_F(PmEditorCmdPageDown, MaintainsColumnPosition) {
 }
 
 // Test page down to shorter line stops at end of line
-TEST_F(PmEditorCmdPageDown, StopsAtEndOfShorterLine) {
+TEST_F(PmEditorCmdPageDownTest, StopsAtEndOfShorterLine) {
     // Create buffer with varying line lengths
     std::string content;
     for (int i = 0; i < 60; i++) {
@@ -8281,7 +8317,7 @@ TEST_F(PmEditorCmdPageDown, StopsAtEndOfShorterLine) {
 }
 
 // Test page down does not modify buffer
-TEST_F(PmEditorCmdPageDown, DoesNotModifyBuffer) {
+TEST_F(PmEditorCmdPageDownTest, DoesNotModifyBuffer) {
     std::string content;
     for (int i = 0; i < 30; i++) {
         content += "Line\n";
@@ -8301,7 +8337,7 @@ TEST_F(PmEditorCmdPageDown, DoesNotModifyBuffer) {
 }
 
 // Test page down from first page to second page
-TEST_F(PmEditorCmdPageDown, FromFirstPageToSecondPage) {
+TEST_F(PmEditorCmdPageDownTest, FromFirstPageToSecondPage) {
     std::string content;
     for (int i = 0; i < 50; i++) {
         content += "Line\n";
@@ -8322,7 +8358,7 @@ TEST_F(PmEditorCmdPageDown, FromFirstPageToSecondPage) {
 }
 
 // Test page down updates txtp correctly
-TEST_F(PmEditorCmdPageDown, UpdatesTxtpCorrectly) {
+TEST_F(PmEditorCmdPageDownTest, UpdatesTxtpCorrectly) {
     std::string content;
     for (int i = 0; i < 50; i++) {
         content += "ABCD\n";
@@ -8349,7 +8385,7 @@ TEST_F(PmEditorCmdPageDown, UpdatesTxtpCorrectly) {
 
 // Test page down at bottom with last line visible queues END END
 // Test page down at bottom with last line visible queues END END
-TEST_F(PmEditorCmdPageDown, AtBottomQueuesEndEnd) {
+TEST_F(PmEditorCmdPageDownTest, AtBottomQueuesEndEnd) {
     // Create buffer that fits on screen with no room to scroll
     std::string content;
     for (int i = 0; i < self->height; i++) {
@@ -8373,7 +8409,7 @@ TEST_F(PmEditorCmdPageDown, AtBottomQueuesEndEnd) {
 }
 
 // Test page down preserves cy
-TEST_F(PmEditorCmdPageDown, PreservesCy) {
+TEST_F(PmEditorCmdPageDownTest, PreservesCy) {
     std::string content;
     for (int i = 0; i < 50; i++) {
         content += "Line\n";
@@ -8392,7 +8428,7 @@ TEST_F(PmEditorCmdPageDown, PreservesCy) {
 }
 
 // Test page down with empty lines
-TEST_F(PmEditorCmdPageDown, WithEmptyLines) {
+TEST_F(PmEditorCmdPageDownTest, WithEmptyLines) {
     std::string content;
     for (int i = 0; i < 50; i++) {
         if (i % 5 == 0) {
@@ -8416,7 +8452,7 @@ TEST_F(PmEditorCmdPageDown, WithEmptyLines) {
 }
 
 // Test page down handles end of buffer without trailing newline
-TEST_F(PmEditorCmdPageDown, HandlesEndWithoutTrailingNewline) {
+TEST_F(PmEditorCmdPageDownTest, HandlesEndWithoutTrailingNewline) {
     std::string content;
     for (int i = 0; i < 30; i++) {
         content += "Line\n";
@@ -8436,7 +8472,7 @@ TEST_F(PmEditorCmdPageDown, HandlesEndWithoutTrailingNewline) {
 }
 
 // Test page down when remaining lines less than full screen
-TEST_F(PmEditorCmdPageDown, WhenRemainingLinesLessThanScreen) {
+TEST_F(PmEditorCmdPageDownTest, WhenRemainingLinesLessThanScreen) {
     std::string content;
     for (int i = 0; i < 35; i++) {
         content += "Line\n";
@@ -8457,7 +8493,7 @@ TEST_F(PmEditorCmdPageDown, WhenRemainingLinesLessThanScreen) {
 }
 
 // Test page down in single page buffer queues END END
-TEST_F(PmEditorCmdPageDown, SinglePageBufferQueuesEndEnd) {
+TEST_F(PmEditorCmdPageDownTest, SinglePageBufferQueuesEndEnd) {
     SetBuffer("Line0\nLine1\nLine2");
     self->py = 0;
     self->cy = 1;
@@ -8471,7 +8507,7 @@ TEST_F(PmEditorCmdPageDown, SinglePageBufferQueuesEndEnd) {
 }
 
 // Test page down moves txtp to start of line then to column
-TEST_F(PmEditorCmdPageDown, MovesTxtpToStartThenColumn) {
+TEST_F(PmEditorCmdPageDownTest, MovesTxtpToStartThenColumn) {
     std::string content;
     for (int i = 0; i < 50; i++) {
         content += "ABCDEFGH\n";
@@ -8495,10 +8531,10 @@ TEST_F(PmEditorCmdPageDown, MovesTxtpToStartThenColumn) {
 // Tests for pmeditor_cmd_page_up()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorCmdPageUp : public PmEditorTestBase { };
+class PmEditorCmdPageUpTest : public PmEditorTestBase { };
 
 // Test page up moves back one full screen
-TEST_F(PmEditorCmdPageUp, MoveBackOneFullScreen) {
+TEST_F(PmEditorCmdPageUpTest, MoveBackOneFullScreen) {
     // Create buffer with many lines
     std::string content;
     for (int i = 0; i < 50; i++) {
@@ -8522,7 +8558,7 @@ TEST_F(PmEditorCmdPageUp, MoveBackOneFullScreen) {
 }
 
 // Test page up when already showing top of file queues HOME HOME
-TEST_F(PmEditorCmdPageUp, QueuesHomeHomeWhenAtTop) {
+TEST_F(PmEditorCmdPageUpTest, QueuesHomeHomeWhenAtTop) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetTxtp(12); // At start of "Line2"
     self->py = 0;
@@ -8534,7 +8570,7 @@ TEST_F(PmEditorCmdPageUp, QueuesHomeHomeWhenAtTop) {
 }
 
 // Test page up moves less than full screen when near top
-TEST_F(PmEditorCmdPageUp, MovesLessThanFullScreenNearTop) {
+TEST_F(PmEditorCmdPageUpTest, MovesLessThanFullScreenNearTop) {
     // Create buffer with lines
     std::string content;
     for (int i = 0; i < 30; i++) {
@@ -8557,7 +8593,7 @@ TEST_F(PmEditorCmdPageUp, MovesLessThanFullScreenNearTop) {
 }
 
 // Test page up to shorter line stops at end of line
-TEST_F(PmEditorCmdPageUp, StopsAtEndOfShorterLine) {
+TEST_F(PmEditorCmdPageUpTest, StopsAtEndOfShorterLine) {
     // Create buffer with varying line lengths
     std::string content;
     for (int i = 0; i < 40; i++) {
@@ -8582,7 +8618,7 @@ TEST_F(PmEditorCmdPageUp, StopsAtEndOfShorterLine) {
 }
 
 // Test page up from second page to first page
-TEST_F(PmEditorCmdPageUp, FromSecondPageToFirstPage) {
+TEST_F(PmEditorCmdPageUpTest, FromSecondPageToFirstPage) {
     std::string content;
     for (int i = 0; i < 50; i++) {
         content += "Line\n";
@@ -8604,7 +8640,7 @@ TEST_F(PmEditorCmdPageUp, FromSecondPageToFirstPage) {
 }
 
 // Test page up when py >= height - 1 moves full screen
-TEST_F(PmEditorCmdPageUp, MovesFullScreenWhenPyLargeEnough) {
+TEST_F(PmEditorCmdPageUpTest, MovesFullScreenWhenPyLargeEnough) {
     std::string content;
     for (int i = 0; i < 70; i++) {
         content += "Line\n";
@@ -8625,7 +8661,7 @@ TEST_F(PmEditorCmdPageUp, MovesFullScreenWhenPyLargeEnough) {
 }
 
 // Test page up at top of file with cy > 0 queues HOME HOME
-TEST_F(PmEditorCmdPageUp, AtTopWithCyGreaterThanZeroQueuesHomeHome) {
+TEST_F(PmEditorCmdPageUpTest, AtTopWithCyGreaterThanZeroQueuesHomeHome) {
     SetBuffer("Line0\nLine1\nLine2");
     self->py = 0;
     self->cy = 1;
@@ -8639,7 +8675,7 @@ TEST_F(PmEditorCmdPageUp, AtTopWithCyGreaterThanZeroQueuesHomeHome) {
 }
 
 // Test page up at very top (py=0, cy=0) queues HOME HOME
-TEST_F(PmEditorCmdPageUp, AtVeryTopQueuesHomeHome) {
+TEST_F(PmEditorCmdPageUpTest, AtVeryTopQueuesHomeHome) {
     SetBuffer("Line0\nLine1\nLine2");
     self->py = 0;
     self->cy = 0;
@@ -8653,7 +8689,7 @@ TEST_F(PmEditorCmdPageUp, AtVeryTopQueuesHomeHome) {
 }
 
 // Test page up moves to start of buffer when near top
-TEST_F(PmEditorCmdPageUp, MovesToStartWhenVeryNearTop) {
+TEST_F(PmEditorCmdPageUpTest, MovesToStartWhenVeryNearTop) {
     std::string content;
     for (int i = 0; i < 30; i++) {
         content += "Line\n";
@@ -8674,7 +8710,7 @@ TEST_F(PmEditorCmdPageUp, MovesToStartWhenVeryNearTop) {
 }
 
 // Test page up in single page buffer queues HOME HOME
-TEST_F(PmEditorCmdPageUp, SinglePageBufferQueuesHomeHome) {
+TEST_F(PmEditorCmdPageUpTest, SinglePageBufferQueuesHomeHome) {
     SetBuffer("Line0\nLine1\nLine2");
     self->py = 0;
     self->cy = 2;
@@ -8688,7 +8724,7 @@ TEST_F(PmEditorCmdPageUp, SinglePageBufferQueuesHomeHome) {
 }
 
 // Test page up with empty lines
-TEST_F(PmEditorCmdPageUp, WithEmptyLines) {
+TEST_F(PmEditorCmdPageUpTest, WithEmptyLines) {
     std::string content;
     for (int i = 0; i < 50; i++) {
         if (i % 5 == 0) {
@@ -8717,10 +8753,10 @@ TEST_F(PmEditorCmdPageUp, WithEmptyLines) {
 // Tests for pmeditor_cmd_right()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorCmdRight : public PmEditorTestBase { };
+class PmEditorCmdRightTest : public PmEditorTestBase { };
 
 // Test moving right at start of buffer
-TEST_F(PmEditorCmdRight, MoveRightFromStart) {
+TEST_F(PmEditorCmdRightTest, MoveRightFromStart) {
     SetBuffer("Hello World");
     SetTxtp(0); // At 'H'
 
@@ -8732,7 +8768,7 @@ TEST_F(PmEditorCmdRight, MoveRightFromStart) {
 }
 
 // Test moving right in middle of line
-TEST_F(PmEditorCmdRight, MoveRightInMiddleOfLine) {
+TEST_F(PmEditorCmdRightTest, MoveRightInMiddleOfLine) {
     SetBuffer("Hello World");
     SetTxtp(5); // At ' '
 
@@ -8744,7 +8780,7 @@ TEST_F(PmEditorCmdRight, MoveRightInMiddleOfLine) {
 }
 
 // Test moving right at end of buffer does nothing
-TEST_F(PmEditorCmdRight, NoMoveAtEndOfBuffer) {
+TEST_F(PmEditorCmdRightTest, NoMoveAtEndOfBuffer) {
     SetBuffer("Hello");
     SetCursorAtEnd(); // At '\0'
 
@@ -8756,7 +8792,7 @@ TEST_F(PmEditorCmdRight, NoMoveAtEndOfBuffer) {
 }
 
 // Test moving right in empty buffer does nothing
-TEST_F(PmEditorCmdRight, NoMoveInEmptyBuffer) {
+TEST_F(PmEditorCmdRightTest, NoMoveInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0); // At '\0'
 
@@ -8768,7 +8804,7 @@ TEST_F(PmEditorCmdRight, NoMoveInEmptyBuffer) {
 }
 
 // Test moving right from end of first line wraps to start of second line
-TEST_F(PmEditorCmdRight, WrapsFromEndOfFirstLineToStartOfSecond) {
+TEST_F(PmEditorCmdRightTest, WrapsFromEndOfFirstLineToStartOfSecond) {
     SetBuffer("Line0\nLine1");
     SetTxtp(5); // At '\n' after "Line0"
 
@@ -8781,7 +8817,7 @@ TEST_F(PmEditorCmdRight, WrapsFromEndOfFirstLineToStartOfSecond) {
 }
 
 // Test moving right from end of second line wraps
-TEST_F(PmEditorCmdRight, WrapsFromEndOfSecondLineToStartOfThird) {
+TEST_F(PmEditorCmdRightTest, WrapsFromEndOfSecondLineToStartOfThird) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(11); // At '\n' after "Line1"
 
@@ -8794,7 +8830,7 @@ TEST_F(PmEditorCmdRight, WrapsFromEndOfSecondLineToStartOfThird) {
 }
 
 // Test moving right just before newline (not crossing)
-TEST_F(PmEditorCmdRight, MoveRightJustBeforeNewline) {
+TEST_F(PmEditorCmdRightTest, MoveRightJustBeforeNewline) {
     SetBuffer("Hello\nWorld");
     SetTxtp(4); // At 'o' (last char before '\n')
 
@@ -8808,7 +8844,7 @@ TEST_F(PmEditorCmdRight, MoveRightJustBeforeNewline) {
 }
 
 // Test moving right past newline wraps to next line
-TEST_F(PmEditorCmdRight, WrapsFromNewlineToNextLine) {
+TEST_F(PmEditorCmdRightTest, WrapsFromNewlineToNextLine) {
     SetBuffer("A\nB");
     SetTxtp(1); // At '\n'
 
@@ -8821,7 +8857,7 @@ TEST_F(PmEditorCmdRight, WrapsFromNewlineToNextLine) {
 }
 
 // Test moving right multiple times in sequence
-TEST_F(PmEditorCmdRight, MoveRightMultipleTimes) {
+TEST_F(PmEditorCmdRightTest, MoveRightMultipleTimes) {
     SetBuffer("ABCDE");
     SetTxtp(0); // At 'A'
 
@@ -8851,7 +8887,7 @@ TEST_F(PmEditorCmdRight, MoveRightMultipleTimes) {
 }
 
 // Test moving right all the way to end
-TEST_F(PmEditorCmdRight, MoveRightToEnd) {
+TEST_F(PmEditorCmdRightTest, MoveRightToEnd) {
     SetBuffer("ABC");
     SetTxtp(0); // At 'A'
 
@@ -8889,7 +8925,7 @@ TEST_F(PmEditorCmdRight, MoveRightToEnd) {
 }
 
 // Test moving right does not modify buffer
-TEST_F(PmEditorCmdRight, DoesNotModifyBuffer) {
+TEST_F(PmEditorCmdRightTest, DoesNotModifyBuffer) {
     const std::string original = "Hello World";
     SetBuffer(original.c_str());
     SetTxtp(3);
@@ -8903,7 +8939,7 @@ TEST_F(PmEditorCmdRight, DoesNotModifyBuffer) {
 }
 
 // Test moving right with multiline buffer (middle of second line)
-TEST_F(PmEditorCmdRight, MoveRightInSecondLine) {
+TEST_F(PmEditorCmdRightTest, MoveRightInSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(7); // At 'i' in "Line1"
 
@@ -8915,7 +8951,7 @@ TEST_F(PmEditorCmdRight, MoveRightInSecondLine) {
 }
 
 // Test moving right to single character line
-TEST_F(PmEditorCmdRight, WrapsToSingleCharLine) {
+TEST_F(PmEditorCmdRightTest, WrapsToSingleCharLine) {
     SetBuffer("ABC\nX");
     SetTxtp(3); // At '\n'
 
@@ -8928,7 +8964,7 @@ TEST_F(PmEditorCmdRight, WrapsToSingleCharLine) {
 }
 
 // Test moving right to empty line (consecutive newlines)
-TEST_F(PmEditorCmdRight, WrapsToEmptyLine) {
+TEST_F(PmEditorCmdRightTest, WrapsToEmptyLine) {
     SetBuffer("ABC\n\nDEF");
     SetTxtp(3); // At first '\n'
 
@@ -8941,7 +8977,7 @@ TEST_F(PmEditorCmdRight, WrapsToEmptyLine) {
 }
 
 // Test moving right preserves cy when not wrapping
-TEST_F(PmEditorCmdRight, PreservesCyWhenNotWrapping) {
+TEST_F(PmEditorCmdRightTest, PreservesCyWhenNotWrapping) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(7); // At 'i' in "Line1"
 
@@ -8953,7 +8989,7 @@ TEST_F(PmEditorCmdRight, PreservesCyWhenNotWrapping) {
 }
 
 // Test moving right at width boundary shows error
-TEST_F(PmEditorCmdRight, ShowsErrorAtWidthBoundary) {
+TEST_F(PmEditorCmdRightTest, ShowsErrorAtWidthBoundary) {
     SetBuffer(std::string(85, 'X').c_str()); // Longer than width (80)
     SetTxtp(80); // At width boundary
 
@@ -8966,7 +9002,7 @@ TEST_F(PmEditorCmdRight, ShowsErrorAtWidthBoundary) {
 }
 
 // Test moving right near width boundary (but not at it)
-TEST_F(PmEditorCmdRight, MoveRightNearWidthBoundary) {
+TEST_F(PmEditorCmdRightTest, MoveRightNearWidthBoundary) {
     SetBuffer(std::string(85, 'X').c_str());
     SetTxtp(79); // One before width boundary
 
@@ -8978,7 +9014,7 @@ TEST_F(PmEditorCmdRight, MoveRightNearWidthBoundary) {
 }
 
 // Test that wrapping behavior queues correct commands for execution
-TEST_F(PmEditorCmdRight, WrappingQueuesCorrectCommands) {
+TEST_F(PmEditorCmdRightTest, WrappingQueuesCorrectCommands) {
     SetBuffer("First\nSecond\nThird");
     SetTxtp(5); // At '\n' after "First"
 
@@ -8991,7 +9027,7 @@ TEST_F(PmEditorCmdRight, WrappingQueuesCorrectCommands) {
 }
 
 // Test moving right in very long line
-TEST_F(PmEditorCmdRight, MoveRightInLongLineUnderWidthLimit) {
+TEST_F(PmEditorCmdRightTest, MoveRightInLongLineUnderWidthLimit) {
     std::string longline(70, 'X'); // Under width limit
     SetBuffer(longline.c_str());
     SetTxtp(30); // Middle of line
@@ -9004,7 +9040,7 @@ TEST_F(PmEditorCmdRight, MoveRightInLongLineUnderWidthLimit) {
 }
 
 // Test no wrap occurs mid-line even with newlines elsewhere
-TEST_F(PmEditorCmdRight, NoWrapInMiddleOfLine) {
+TEST_F(PmEditorCmdRightTest, NoWrapInMiddleOfLine) {
     SetBuffer("ABCDE\nF");
     SetTxtp(2); // At 'C'
 
@@ -9016,7 +9052,7 @@ TEST_F(PmEditorCmdRight, NoWrapInMiddleOfLine) {
 }
 
 // Test moving right from second-to-last character
-TEST_F(PmEditorCmdRight, MoveRightFromSecondToLast) {
+TEST_F(PmEditorCmdRightTest, MoveRightFromSecondToLast) {
     SetBuffer("ABCDEF");
     SetTxtp(4); // At 'E'
 
@@ -9028,7 +9064,7 @@ TEST_F(PmEditorCmdRight, MoveRightFromSecondToLast) {
 }
 
 // Test moving right doesn't wrap at last character before end of buffer
-TEST_F(PmEditorCmdRight, NoWrapAtLastCharacter) {
+TEST_F(PmEditorCmdRightTest, NoWrapAtLastCharacter) {
     SetBuffer("ABC");
     SetTxtp(2); // At 'C' (last character)
 
@@ -9043,10 +9079,10 @@ TEST_F(PmEditorCmdRight, NoWrapAtLastCharacter) {
 // Tests for pmeditor_cmd_up()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorCmdUp : public PmEditorTestBase { };
+class PmEditorCmdUpTest : public PmEditorTestBase { };
 
 // Test moving up from second line to first line
-TEST_F(PmEditorCmdUp, MoveUpFromSecondToFirstLine) {
+TEST_F(PmEditorCmdUpTest, MoveUpFromSecondToFirstLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(8); // At 'n' in "Line1"
     self->preferred_x = 2;
@@ -9059,7 +9095,7 @@ TEST_F(PmEditorCmdUp, MoveUpFromSecondToFirstLine) {
 }
 
 // Test moving up from third line to second line
-TEST_F(PmEditorCmdUp, MoveUpFromThirdToSecondLine) {
+TEST_F(PmEditorCmdUpTest, MoveUpFromThirdToSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(14); // At 'n' in "Line2"
     self->preferred_x = 2;
@@ -9072,7 +9108,7 @@ TEST_F(PmEditorCmdUp, MoveUpFromThirdToSecondLine) {
 }
 
 // Test moving up from first line does nothing
-TEST_F(PmEditorCmdUp, NoMoveAtFirstLine) {
+TEST_F(PmEditorCmdUpTest, NoMoveAtFirstLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(2); // At 'n' in "Line0"
     self->preferred_x = 2;
@@ -9085,7 +9121,7 @@ TEST_F(PmEditorCmdUp, NoMoveAtFirstLine) {
 }
 
 // Test moving up from single line buffer does nothing
-TEST_F(PmEditorCmdUp, NoMoveInSingleLineBuffer) {
+TEST_F(PmEditorCmdUpTest, NoMoveInSingleLineBuffer) {
     SetBuffer("OnlyLine");
     SetTxtp(4);
     self->preferred_x = 4;
@@ -9098,7 +9134,7 @@ TEST_F(PmEditorCmdUp, NoMoveInSingleLineBuffer) {
 }
 
 // Test moving up from empty buffer does nothing
-TEST_F(PmEditorCmdUp, NoMoveInEmptyBuffer) {
+TEST_F(PmEditorCmdUpTest, NoMoveInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0);
     self->preferred_x = 0;
@@ -9111,7 +9147,7 @@ TEST_F(PmEditorCmdUp, NoMoveInEmptyBuffer) {
 }
 
 // Test moving up maintains column (preferred_x)
-TEST_F(PmEditorCmdUp, MaintainsPreferredColumn) {
+TEST_F(PmEditorCmdUpTest, MaintainsPreferredColumn) {
     SetBuffer("ABCDE\nFGHIJ\nKLMNO");
     SetTxtp(9); // At 'I' in second line
     self->preferred_x = 3;
@@ -9124,7 +9160,7 @@ TEST_F(PmEditorCmdUp, MaintainsPreferredColumn) {
 }
 
 // Test moving up to shorter line stops at end of line
-TEST_F(PmEditorCmdUp, StopsAtEndOfShorterLine) {
+TEST_F(PmEditorCmdUpTest, StopsAtEndOfShorterLine) {
     SetBuffer("XY\nPQRSTU\nABCDEF");
     SetTxtp(6); // At 'S' in second line (column 4)
     self->preferred_x = 4;
@@ -9137,7 +9173,7 @@ TEST_F(PmEditorCmdUp, StopsAtEndOfShorterLine) {
 }
 
 // Test moving up from shorter line to longer line uses preferred_x
-TEST_F(PmEditorCmdUp, UsesPreferredXWhenMovingToLongerLine) {
+TEST_F(PmEditorCmdUpTest, UsesPreferredXWhenMovingToLongerLine) {
     SetBuffer("PQRSTU\nAB\nXYZ");
     SetTxtp(8); // At 'B' in second line (column 1)
     self->preferred_x = 4; // But preferred_x is 4
@@ -9150,7 +9186,7 @@ TEST_F(PmEditorCmdUp, UsesPreferredXWhenMovingToLongerLine) {
 }
 
 // Test moving up from start of line (column 0)
-TEST_F(PmEditorCmdUp, MoveUpFromStartOfLine) {
+TEST_F(PmEditorCmdUpTest, MoveUpFromStartOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6); // At 'L' in "Line1"
     self->preferred_x = 0;
@@ -9163,7 +9199,7 @@ TEST_F(PmEditorCmdUp, MoveUpFromStartOfLine) {
 }
 
 // Test moving up from end of line (at newline)
-TEST_F(PmEditorCmdUp, MoveUpFromEndOfLine) {
+TEST_F(PmEditorCmdUpTest, MoveUpFromEndOfLine) {
     SetBuffer("ABC\nDEF\nGHI");
     SetTxtp(7); // At '\n' after "DEF"
     self->preferred_x = 3;
@@ -9176,7 +9212,7 @@ TEST_F(PmEditorCmdUp, MoveUpFromEndOfLine) {
 }
 
 // Test moving up to empty line
-TEST_F(PmEditorCmdUp, MoveUpToEmptyLine) {
+TEST_F(PmEditorCmdUpTest, MoveUpToEmptyLine) {
     SetBuffer("ABC\n\nDEF");
     SetTxtp(7); // At 'E' in "DEF"
     self->preferred_x = 1;
@@ -9189,7 +9225,7 @@ TEST_F(PmEditorCmdUp, MoveUpToEmptyLine) {
 }
 
 // Test moving up from empty line
-TEST_F(PmEditorCmdUp, MoveUpFromEmptyLine) {
+TEST_F(PmEditorCmdUpTest, MoveUpFromEmptyLine) {
     SetBuffer("ABC\n\nDEF");
     SetTxtp(4); // At '\n' (empty line)
     self->preferred_x = 0;
@@ -9202,7 +9238,7 @@ TEST_F(PmEditorCmdUp, MoveUpFromEmptyLine) {
 }
 
 // Test moving up scrolls when near top of screen
-TEST_F(PmEditorCmdUp, ScrollsWhenNearTopOfScreen) {
+TEST_F(PmEditorCmdUpTest, ScrollsWhenNearTopOfScreen) {
     // Create buffer with many lines
     std::string content;
     for (int i = 0; i < 30; i++) {
@@ -9223,7 +9259,7 @@ TEST_F(PmEditorCmdUp, ScrollsWhenNearTopOfScreen) {
 }
 
 // Test moving up at top of screen when py == 0
-TEST_F(PmEditorCmdUp, NoScrollWhenAtFirstPage) {
+TEST_F(PmEditorCmdUpTest, NoScrollWhenAtFirstPage) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     self->py = 0;
     self->cy = 1; // Second line
@@ -9239,7 +9275,7 @@ TEST_F(PmEditorCmdUp, NoScrollWhenAtFirstPage) {
 }
 
 // Test moving up does not modify buffer
-TEST_F(PmEditorCmdUp, DoesNotModifyBuffer) {
+TEST_F(PmEditorCmdUpTest, DoesNotModifyBuffer) {
     const std::string original = "Line0\nLine1\nLine2";
     SetBuffer(original.c_str());
     SetTxtp(8);
@@ -9252,7 +9288,7 @@ TEST_F(PmEditorCmdUp, DoesNotModifyBuffer) {
 }
 
 // Test moving up multiple times in sequence
-TEST_F(PmEditorCmdUp, MoveUpMultipleTimes) {
+TEST_F(PmEditorCmdUpTest, MoveUpMultipleTimes) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetTxtp(19); // At 'i' in "Line3"
     self->preferred_x = 1;
@@ -9291,7 +9327,7 @@ TEST_F(PmEditorCmdUp, MoveUpMultipleTimes) {
 }
 
 // Test moving up with very long preferred_x
-TEST_F(PmEditorCmdUp, VeryLargePreferredX) {
+TEST_F(PmEditorCmdUpTest, VeryLargePreferredX) {
     SetBuffer("XY\nABCDEFGHIJ");
     SetTxtp(13); // At 'J' in second line
     self->preferred_x = 100; // Very large preferred_x
@@ -9304,7 +9340,7 @@ TEST_F(PmEditorCmdUp, VeryLargePreferredX) {
 }
 
 // Test moving up preserves preferred_x across multiple moves
-TEST_F(PmEditorCmdUp, PreservesPreferredXAcrossMoves) {
+TEST_F(PmEditorCmdUpTest, PreservesPreferredXAcrossMoves) {
     SetBuffer("ABCDEFGH\nXY\nPQRSTUVW");
     SetTxtp(17); // At 'U' (column 5) in "PQRSTUVw"
     self->preferred_x = 5;
@@ -9327,7 +9363,7 @@ TEST_F(PmEditorCmdUp, PreservesPreferredXAcrossMoves) {
 }
 
 // Test moving up when cy > 2 moves cursor normally
-TEST_F(PmEditorCmdUp, MovesCursorWhenCyGreaterThanTwo) {
+TEST_F(PmEditorCmdUpTest, MovesCursorWhenCyGreaterThanTwo) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     self->py = 0;
     self->cy = 3;
@@ -9343,7 +9379,7 @@ TEST_F(PmEditorCmdUp, MovesCursorWhenCyGreaterThanTwo) {
 }
 
 // Test moving up when cy <= 2 and py > 0 scrolls
-TEST_F(PmEditorCmdUp, ScrollsWhenCyLessThanOrEqualToTwoAndPyPositive) {
+TEST_F(PmEditorCmdUpTest, ScrollsWhenCyLessThanOrEqualToTwoAndPyPositive) {
     // Create buffer with many lines
     std::string content;
     for (int i = 0; i < 30; i++) {
@@ -9364,7 +9400,7 @@ TEST_F(PmEditorCmdUp, ScrollsWhenCyLessThanOrEqualToTwoAndPyPositive) {
 }
 
 // Test moving up from second line when cy == 0
-TEST_F(PmEditorCmdUp, NoMoveWhenAtTopOfScreenAndFirstLine) {
+TEST_F(PmEditorCmdUpTest, NoMoveWhenAtTopOfScreenAndFirstLine) {
     SetBuffer("Line0\nLine1\nLine2");
     self->py = 0;
     self->cy = 0;
@@ -9380,7 +9416,7 @@ TEST_F(PmEditorCmdUp, NoMoveWhenAtTopOfScreenAndFirstLine) {
 }
 
 // Test moving up preserves cursor when scrolling
-TEST_F(PmEditorCmdUp, PreservesCursorPositionWhenScrolling) {
+TEST_F(PmEditorCmdUpTest, PreservesCursorPositionWhenScrolling) {
     // Create buffer with many lines
     std::string content;
     for (int i = 0; i < 30; i++) {
@@ -9400,4 +9436,104 @@ TEST_F(PmEditorCmdUp, PreservesCursorPositionWhenScrolling) {
     EXPECT_EQ(1, self->cy); // cy preserved
     EXPECT_EQ(9, self->py); // Scrolled
     EXPECT_CURSOR_EQ(2, 1); // Cursor column maintained
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_update_display()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorUpdateDisplayTest : public PmEditorTestBase { };
+
+TEST_F(PmEditorUpdateDisplayTest, NoUpdateWhenNothingChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    PmEditorPos old_pos = POS_FROM(*self);
+
+    MmResult result = pmeditor_update_display(self, &old_pos);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_LINES_NOT_CALLED();
+    EXPECT_PRINT_FUNC_KEYS_NOT_CALLED();
+    EXPECT_PRINT_STATUS_NOT_CALLED();
+}
+
+TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenNumLinesChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    PmEditorPos old_pos = POS_FROM(*self);
+    old_pos.num_lines = 2; // Different from current (3)
+
+    MmResult result = pmeditor_update_display(self, &old_pos);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
+}
+
+TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenModeChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    self->mode = kMarkMode;
+    PmEditorPos old_pos = POS_FROM(*self);
+    old_pos.mode = kEditMode;
+
+    MmResult result = pmeditor_update_display(self, &old_pos);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+}
+
+TEST_F(PmEditorUpdateDisplayTest, RedrawsSelectionWhenInMarkModeAndTxtpChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->mode = kMarkMode;
+    SetMark(0);  // At 'L' in "Line0"
+    SetTxtp(6);  // At 'L' in "Line1"
+    PmEditorPos old_pos = POS_FROM(*self);
+    old_pos.txtp = self->buf + 3; // Move to at 'e' in "Line0"
+    ASSERT_EQ(kOk, pmeditor_get_line_and_column(self, old_pos.txtp, &old_pos.cy, &old_pos.cx));
+
+    MmResult result = pmeditor_update_display(self, &old_pos);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 2, .cy = 0}));
+}
+
+TEST_F(PmEditorUpdateDisplayTest, RedrawsStatusWhenInsertModeChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    self->insert = true;
+    PmEditorPos old_pos = POS_FROM(*self);
+    old_pos.insert = false;
+
+    MmResult result = pmeditor_update_display(self, &old_pos);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+}
+
+TEST_F(PmEditorUpdateDisplayTest, RedrawsStatusWhenCursorPositionChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(8);
+    PmEditorPos old_pos = POS_FROM(*self);
+    old_pos.cx = 0;
+    old_pos.cy = 0;
+
+    MmResult result = pmeditor_update_display(self, &old_pos);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+}
+
+TEST_F(PmEditorUpdateDisplayTest, RedrawsFuncKeysWhenModeChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    self->mode = kMarkMode;
+    PmEditorPos old_pos = POS_FROM(*self);
+    old_pos.mode = kEditMode;
+    old_pos.num_lines = self->num_lines; // Same to avoid screen redraw
+
+    MmResult result = pmeditor_update_display(self, &old_pos);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
 }
