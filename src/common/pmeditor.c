@@ -103,18 +103,21 @@ void pmeditor_restore_fn_pointers() {
 /**
  * Initializes a PmEditor instance with the specified parameters.
  *
- * Zeros out the editor structure and sets initial values for all fields.
+ * Zeros out the editor structure, sets initial values, and allocates a single
+ * contiguous memory block for the edit buffer, clipboard, and key buffer.
  * The editor height is reduced by 2 rows to accommodate the status line
- * and function key display area. Sets insert mode as the default editing
- * mode and saves the current break key setting for later restoration.
+ * and function key display area.
  *
  * @param  self      Pointer to the PmEditor structure to initialize.
  * @param  filename  Path to the file being edited (not copied, pointer stored).
  * @param  width     Width of the editor display area in characters.
  * @param  height    Total height available in characters (status area included).
- * @return           kOk (always succeeds).
+ * @return           kOk on success, kOutOfMemory if allocation fails.
+ *
+ * @note Use pmeditor_destruct() to free allocated memory.
+ * @note Sets insert mode as default and saves the current break key setting.
  */
-MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height) {
+MmResult pmeditor_construct(PmEditor *self, const char *filename, int width, int height) {
     memset(self, 0, sizeof(PmEditor));
     self->buf_sz = EDIT_BUFFER_SIZE;
     self->height = height - 2; // 2 rows for the status line
@@ -125,6 +128,28 @@ MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int heig
     self->text_changed = false;
     self->saved_break_key = mmb_options.break_key;
     self->highlight = kHighlightNormal;
+
+    // Allocate dynamic memory, including space for clipboard and key buffers.
+    // We use a single allocation to reduce fragmentation.
+    self->buf = GetTempMemory(self->buf_sz + 2 * MAXCLIP + 4);
+    if (!self->buf) return kOutOfMemory;
+    self->clipboard_buf = self->buf + self->buf_sz;
+    self->key_buf = self->clipboard_buf + MAXCLIP + 2;
+
+    return kOk;
+}
+
+/**
+ * Frees memory allocated by pmeditor_construct().
+ *
+ * Releases the contiguous memory block containing the edit buffer,
+ * clipboard, and key buffer.
+ *
+ * @param  self  Pointer to the PmEditor instance to clean up.
+ * @return       kOk on success.
+ */
+MmResult pmeditor_destruct(PmEditor *self) {
+    ClearSpecificTempMemory(self->buf);
     return kOk;
 }
 
@@ -393,7 +418,7 @@ MmResult pmeditor_print_func_keys_impl(PmEditor *self) {
             return mmresult_ex(kInternalFault, "Unknown editor mode: %d", self->mode);
     }
 
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height));
     ON_FAILURE_RETURN(pmeditor_draw_line(self));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightStatus));
@@ -402,7 +427,7 @@ MmResult pmeditor_print_func_keys_impl(PmEditor *self) {
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
 
     // Restore cursor position
-    return pmeditor_set_cursor_pos(self, old_pos.cx, old_pos.cy);
+    return pmeditor_set_cursor_pos(self, old.cx, old.cy);
 }
 
 /**
@@ -674,7 +699,7 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
     for (p = self->buf; *p; p++);
 
     // Check that the buffer is not full
-    if (p >= self->buf + sizeof(self->buf) - 1) {
+    if (p >= self->buf + self->buf_sz - 1) {
         return pmeditor_display_msg(self, " EDIT BUFFER FULL ");
     }
 
@@ -754,7 +779,7 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_print_status_impl(PmEditor *self) {
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
 
     char s[64];
     snprintf(s, 64, "Ln: %d  Col: %d       ",
@@ -768,7 +793,7 @@ MmResult pmeditor_print_status_impl(PmEditor *self) {
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
 
     // Restore cursor position
-    return pmeditor_set_cursor_pos(self, old_pos.cx, old_pos.cy);
+    return pmeditor_set_cursor_pos(self, old.cx, old.cy);
 }
 
 /**
@@ -1268,10 +1293,10 @@ static inline MmResult pmeditor_print_line_n(PmEditor *self, int line) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_print_screen(PmEditor *self) {
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, 0));
     ON_FAILURE_RETURN(pmeditor_print_lines(self, self->py, self->height));
-    return pmeditor_set_cursor_pos(self, old_pos.cx, old_pos.cy);
+    return pmeditor_set_cursor_pos(self, old.cx, old.cy);
 }
 
 /**
@@ -1389,8 +1414,8 @@ MmResult pmeditor_mark_copy(PmEditor *self) {
         }
 
         // Copy the selection to clipboard
-        memcpy(self->clipboard, start, selection_length);
-        self->clipboard[selection_length] = '\0';
+        memcpy(self->clipboard_buf, start, selection_length);
+        self->clipboard_buf[selection_length] = '\0';
     }
 
     // Exit mark mode
@@ -1686,7 +1711,7 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned
     // LOG_DEBUG("entered: start_line=%d, num_lines=%d", start_line, num_lines);
     // TODO: Adjust start_line and num_lines to fit within display
 
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
 
     int comment_level = -1;
     char *p = pmeditor_find_line_ex(self, start_line, &comment_level);
@@ -1702,7 +1727,7 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned
     while (console_getc() != -1) {}
 
     // Restore cursor position
-    return pmeditor_set_cursor_pos(self, old_pos.cx, old_pos.cy);
+    return pmeditor_set_cursor_pos(self, old.cx, old.cy);
 }
 
 /**
@@ -1713,18 +1738,18 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned
  * inverse video highlighting.
  *
  * @param  self     Pointer to the PmEditor instance.
- * @param  old_pos  Previous cursor and mark positions for reference.
+ * @param  old  Previous cursor and mark positions for reference.
  * @return          kOk on success, or an error code on failure.
  */
-MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos) {
+MmResult pmeditor_print_selection(PmEditor *self, PmEditor *old) {
     // LOG_DEBUG("self->mark=%p, self->txtp=%p", self->mark, self->txtp);
 
     // Determine bounds of selection to highlight
     // (void) pmeditor_get_selection(self, &self->mark_lb, &self->mark_ub);
 
     // Determine lines to update
-    const unsigned start_line = min(self->py + self->cy, old_pos->py + old_pos->cy);
-    const unsigned end_line = max(self->py + self->cy, old_pos->py + old_pos->cy);
+    const unsigned start_line = min(self->py + self->cy, old->py + old->cy);
+    const unsigned end_line = max(self->py + self->cy, old->py + old->cy);
     const unsigned num_lines = end_line - start_line + 1;
 
     // LOG_DEBUG("start_line=%d, end_line=%d, num_lines=%d", start_line, end_line, num_lines);
@@ -1747,21 +1772,21 @@ MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos) {
  * Reads a keystroke and places it in the keyboard buffer.
  *
  * Blocks until a key is pressed, showing the cursor while waiting. The raw
- * keystroke is converted to canonical form and stored in self->keys[0], with
- * self->keys[1] set to '\0'.
+ * keystroke is converted to canonical form and stored in self->key_buf[0], with
+ * self->key_buf[1] set to '\0'.
  *
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  *
- * @note Any previous contents of self->keys are overwritten.
+ * @note Any previous contents of self->key_buf are overwritten.
  */
 static MmResult pmeditor_read_keys(PmEditor *self) {
     // TODO: Improve comment
     // Shuffle down the keyboard buffer to get the next character
-    if (self->keys[1] != '\0') {
-        self->keys[MAXCLIP + 1] = '\0';
+    if (self->key_buf[1] != '\0') {
+        self->key_buf[MAXCLIP + 1] = '\0';
         for (int i = 0; i < MAXCLIP + 1; i++) {
-            self->keys[i] = self->keys[i + 1];
+            self->key_buf[i] = self->key_buf[i + 1];
         }
         return kOk;
     }
@@ -1773,8 +1798,8 @@ static MmResult pmeditor_read_keys(PmEditor *self) {
         c = console_getc();
     } while (c == -1);
     ON_FAILURE_RETURN(display_show_cursor(false));
-    self->keys[0] = pmeditor_canonical_key(self, (char) c);
-    self->keys[1] = '\0';
+    self->key_buf[0] = pmeditor_canonical_key(self, (char) c);
+    self->key_buf[1] = '\0';
     return kOk;
 }
 
@@ -1786,24 +1811,24 @@ static MmResult pmeditor_read_keys(PmEditor *self) {
  * status line) to reflect any changes.
  *
  * @param  self     Pointer to the PmEditor instance.
- * @param  old_pos  Previous cursor and mode state for comparison.
+ * @param  old  Previous cursor and mode state for comparison.
  * @return          kOk on success, or an error code on failure.
  */
-MmResult pmeditor_update_display(PmEditor *self, PmEditorPos *old_pos) {
-    if (self->num_lines != old_pos->num_lines || self->mode != old_pos->mode) {
+MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
+    if (self->num_lines != old->num_lines || self->mode != old->mode) {
         ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    } else if (self->mode == kMarkMode && self->txtp != old_pos->txtp) {
-        ON_FAILURE_RETURN(pmeditor_print_selection(self, old_pos));
+    } else if (self->mode == kMarkMode && self->txtp != old->txtp) {
+        ON_FAILURE_RETURN(pmeditor_print_selection(self, old));
     }
 
-    if (self->mode != old_pos->mode) {
+    if (self->mode != old->mode) {
         ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
     }
 
-    if (self->mode != old_pos->mode
-            || self->insert != old_pos->insert
-            || self->cx != old_pos->cx
-            || self->cy != old_pos->cy) {
+    if (self->mode != old->mode
+            || self->insert != old->insert
+            || self->cx != old->cx
+            || self->cy != old->cy) {
         ON_FAILURE_RETURN(pmeditor_print_status(self));
     }
 
@@ -1827,7 +1852,7 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
     self->mark = self->txtp; // self->mark records where cursor was when entered mark mode
 
     while (self->mode == kMarkMode) {
-        PmEditorPos old_pos = POS_FROM(*self);
+        PmEditor old = pmeditor_shallow_copy(self);
 
         ON_FAILURE_RETURN(pmeditor_read_keys(self));
 
@@ -1837,8 +1862,8 @@ static MmResult pmeditor_mark_loop(PmEditor *self) {
             self->message_shown = false;
         }
 
-        ON_FAILURE_RETURN(pmeditor_mark_dispatch(self, self->keys[0]));
-        ON_FAILURE_RETURN(pmeditor_update_display(self, &old_pos));
+        ON_FAILURE_RETURN(pmeditor_mark_dispatch(self, self->key_buf[0]));
+        ON_FAILURE_RETURN(pmeditor_update_display(self, &old));
     }
 
     return kOk;
@@ -1871,12 +1896,12 @@ static MmResult pmeditor_cmd_newline(PmEditor *self) {
                 i++;  // potential space at the start
         if (tp == self->buf && *tp == ' ')
             i++;  // correct for a counting error at the start of the buffer
-        if (self->keys[1] != 0)
+        if (self->key_buf[1] != 0)
             i = 0;  // do not insert spaces if buffer too small or has something in
                     // it
         else
-            self->keys[i + 1] = 0;        // make sure that the end of the buffer is zeroed
-        while (i) self->keys[i--] = ' ';  // now, place our spaces in the typeahead buffer
+            self->key_buf[i + 1] = 0;        // make sure that the end of the buffer is zeroed
+        while (i) self->key_buf[i--] = ' ';  // now, place our spaces in the typeahead buffer
     }
 
     // Insert the newline character
@@ -1979,9 +2004,9 @@ MmResult pmeditor_cmd_left(PmEditor *self) {
 
     // If at the beginning of a line then move to the end of the previous line
     if (*(self->txtp - 1) == '\n') {
-        self->keys[1] = UP;
-        self->keys[2] = END;
-        self->keys[3] = '\0';
+        self->key_buf[1] = UP;
+        self->key_buf[2] = END;
+        self->key_buf[3] = '\0';
         return kOk;
     }
 
@@ -2008,9 +2033,9 @@ MmResult pmeditor_cmd_right(PmEditor* self) {
 
     // If at the end of a line then move to the beginning of the next line
     if (*self->txtp == '\n') {
-        self->keys[1] = HOME;
-        self->keys[2] = DOWN;
-        self->keys[3] = '\0';
+        self->key_buf[1] = HOME;
+        self->key_buf[2] = DOWN;
+        self->key_buf[3] = '\0';
         return kOk;
     }
 
@@ -2168,10 +2193,10 @@ MmResult pmeditor_cmd_backspace(PmEditor *self) {
     if (self->txtp == self->buf) return kOk;
 
     if (*(self->txtp - 1) == '\n') {  // if at the beginning of the line wrap around
-        self->keys[1] = UP;
-        self->keys[2] = END;
-        self->keys[3] = DEL;
-        self->keys[4] = '\0';
+        self->key_buf[1] = UP;
+        self->key_buf[2] = END;
+        self->key_buf[3] = DEL;
+        self->key_buf[4] = '\0';
         return kOk;
     }
 
@@ -2184,9 +2209,9 @@ MmResult pmeditor_cmd_backspace(PmEditor *self) {
         num_spaces = num_spaces % mmb_options.tab;
         if (num_spaces == 0) num_spaces = mmb_options.tab;
         // load the corresponding number of deletes in the type ahead buffer
-        self->keys[num_spaces + 1] = '\0';
+        self->key_buf[num_spaces + 1] = '\0';
         while (num_spaces--) {
-            self->keys[num_spaces + 1] = DEL;
+            self->key_buf[num_spaces + 1] = DEL;
             self->txtp--;
         }
         // and let the delete case take care of deleting the characters
@@ -2358,9 +2383,9 @@ MmResult pmeditor_cmd_end(PmEditor *self) {
 MmResult pmeditor_cmd_page_up(PmEditor *self) {
     // If already showing the top of the text then move to start of text
     if (self->py == 0) {
-        self->keys[1] = HOME;
-        self->keys[2] = HOME;
-        self->keys[3] = '\0';
+        self->key_buf[1] = HOME;
+        self->key_buf[2] = HOME;
+        self->key_buf[3] = '\0';
         return kOk;
     }
 
@@ -2400,9 +2425,9 @@ MmResult pmeditor_cmd_page_up(PmEditor *self) {
 MmResult pmeditor_cmd_page_down(PmEditor *self) {
     // If already showing the bottom of the text then move to end of text
     if (self->num_lines <= self->py + self->height + 1) {
-        self->keys[1] = END;
-        self->keys[2] = END;
-        self->keys[3] = '\0';
+        self->key_buf[1] = END;
+        self->key_buf[2] = END;
+        self->key_buf[3] = '\0';
         return kOk;
     }
 
@@ -2441,8 +2466,8 @@ MmResult pmeditor_cmd_page_down(PmEditor *self) {
  */
 static MmResult pmeditor_cmd_tab(PmEditor *self) {
     if (self->mode != kEditMode) return display_bell();
-    strcpy(self->keys, "        ");
-    self->keys[mmb_options.tab - (self->cx % mmb_options.tab)] = '\0';
+    strcpy(self->key_buf, "        ");
+    self->key_buf[mmb_options.tab - (self->cx % mmb_options.tab)] = '\0';
     return kOk;
 }
 
@@ -2529,11 +2554,11 @@ static MmResult pmeditor_cmd_exit(PmEditor *self) {
         x = console_getc() - '!';
         y = console_getc() - '!';
         if (c == 'e' || c == 'a') {  // Tera Term - SHIFT + mouse-wheel-rotate-down
-            self->keys[1] = UP;
-            self->keys[2] = '\0';
+            self->key_buf[1] = UP;
+            self->key_buf[2] = '\0';
         } else if (c == 'd' || c == '`') {  // Tera Term - SHIFT + mouse-wheel-rotate-up
-            self->keys[1] = DOWN;
-            self->keys[2] = '\0';
+            self->key_buf[1] = DOWN;
+            self->key_buf[2] = '\0';
         } else if (c == ' ' && x >= 0 && x < self->width && y >= 0 &&
                    y < self->height) {  // c == ' ' means mouse down and no shift, ctrl,
                                        // etc
@@ -2653,12 +2678,12 @@ static MmResult pmeditor_cmd_paste(PmEditor *self) {
                            "pmeditor_cmd_paste() should not be called in mark mode");
     }
 
-    if (*self->clipboard == '\0') {
+    if (*self->clipboard_buf == '\0') {
         return pmeditor_display_msg(self, " CLIPBOARD IS EMPTY ");
     }
     int i;
-    for (i = 0; self->clipboard[i]; i++) self->keys[i + 1] = self->clipboard[i];
-    self->keys[i + 1] = 0;
+    for (i = 0; self->clipboard_buf[i]; i++) self->key_buf[i + 1] = self->clipboard_buf[i];
+    self->key_buf[i + 1] = '\0';
     return kOk;
 }
 
@@ -2726,7 +2751,7 @@ MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw) {
  MmResult pmeditor_cmd_char(PmEditor *self) {
     if (self->mode != kEditMode) return display_bell();
 
-    const char ch = self->keys[0];
+    const char ch = self->key_buf[0];
     int redraw = REDRAW_NOTHING;
     if (self->insert || *self->txtp == '\n' || *self->txtp == '\0') {
         ON_FAILURE_RETURN(pmeditor_insert_char(self, ch, &redraw));
@@ -2831,7 +2856,7 @@ static MmResult pmeditor_load_file(PmEditor *self) {
             }
 
             // Handle overrun
-            if (p >= self->buf + sizeof(self->buf) - 1) {
+            if (p >= self->buf + self->buf_sz - 1) {
                 ON_FAILURE_LOG(streamio_close(fnbr));
                 return kProgramTooLong;
             }
@@ -2884,7 +2909,7 @@ MmResult pmeditor_resize_console(PmEditor *self) {
  */
 MmResult pmeditor_edit_loop(PmEditor *self) {
     while (self->mode != kExitMode) {
-        PmEditorPos old_pos = POS_FROM(*self);
+        PmEditor old = pmeditor_shallow_copy(self);
 
         ON_FAILURE_RETURN(pmeditor_read_keys(self));
 
@@ -2894,15 +2919,15 @@ MmResult pmeditor_edit_loop(PmEditor *self) {
             self->message_shown = false;
         }
 
-        ON_FAILURE_RETURN(pmeditor_cmd_dispatch(self, self->keys[0]));
-        self->last_key = self->keys[0];
+        ON_FAILURE_RETURN(pmeditor_cmd_dispatch(self, self->key_buf[0]));
+        self->last_key = self->key_buf[0];
 
         // Unless moving up or down, update the preferred x-position
-        if (self->keys[0] != UP && self->keys[0] != DOWN) {
+        if (self->key_buf[0] != UP && self->key_buf[0] != DOWN) {
             self->preferred_x = self->cx;
         }
 
-        ON_FAILURE_RETURN(pmeditor_update_display(self, &old_pos));
+        ON_FAILURE_RETURN(pmeditor_update_display(self, &old));
     }
 
     return kOk;
@@ -2940,12 +2965,17 @@ char *pmeditor_find_line_n(PmEditor *self, int line) {
  * @return           kOk on success, or an error code on failure.
  */
 MmResult pmeditor_show(const char *filename, int line) {
-    PmEditor *self = GetTempMemory(sizeof(PmEditor));
-
     int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
 
-    ON_FAILURE_RETURN(pmeditor_init(self, filename, width, height));
+    // In theory we should be carefully destroying the PmEditor instance
+    // if a failure occurs - by calling pmeditor_destruct().
+    // But in reality it is not critical because the allocated buffers will be
+    // freed when ClearTempMemory() is called.
+    PmEditor editor;
+    PmEditor *self = &editor;
+    ON_FAILURE_RETURN(pmeditor_construct(self, filename, width, height));
+
     ON_FAILURE_RETURN(pmeditor_load_file(self));
     ON_FAILURE_RETURN(pmeditor_resize_console(self));
     self->txtp = pmeditor_find_line_n(self, line - 1);
@@ -2966,6 +2996,7 @@ MmResult pmeditor_show(const char *filename, int line) {
 
     // Tidy up.
     mmb_options.break_key = self->saved_break_key;
+    ON_FAILURE_RETURN(pmeditor_destruct(self));
     if (SUCCEEDED(result)) {
         ON_FAILURE_RETURN(display_reset());
         ON_FAILURE_RETURN(display_cls());

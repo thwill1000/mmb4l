@@ -87,63 +87,28 @@ typedef enum {
 } PmEditorMode;
 
 typedef struct {
-    int py;         ///< Row at top left hand corner of editor
-    int cx;         ///< Cursor column (from 0)
-    int cy;         ///< Cursor row (from 0)
-    char *txtp;     ///< Character position of the standard cursor
-    char *mark;     ///< Character position of the mark cursor
-    int num_lines;  ///< Number of lines of text held in the buffer
-    bool insert;    ///< True if the editor is in INSERT mode
-    PmEditorMode mode;  ///< Edit mode or Mark mode ?
-} PmEditorPos;
-
-typedef struct {
-    const char *fname;      // Name/path of file being edited
-    char buf[EDIT_BUFFER_SIZE];  // Buffer used for editing the text
-    int buf_sz;             // Size of the buffer, currently always EDIT_BUFFER_SIZE
-    int num_lines;          // Number of lines of text held in the buffer
-    int width;              // Width of the editor screen in characters
-    int height;             // Height of the editor screen in characters
-    int py;                 // Row at top left hand corner of editor
-    int cx;                 // Current cursor column (from 0)
-    int cy;                 // Current cursor row (from 0)
-    char *txtp;             // Position of the cursor in the text being edited
-    bool message_shown;     // True if a message is currently being shown
-    bool insert;            // True if the editor is in INSERT mode
-    int preferred_x;        // User to track preferred x-position when up/down arrowing
-    bool text_changed;      // True if the text has been editor and thus may need saving
-    PmEditorMode mode;      // Edit mode or Mark mode ?
-    char last_key;          // Last key pressed
-    char clipboard[MAXCLIP + 2];  // Clipboard contents
-    char keys[MAXCLIP + 2]; // Buffer of incoming keystrokes
-    char saved_break_key;   // Original value of mmb_options.break_key when editor entered
-    char *mark;             // Current position of the mark in mark mode
-    HighlightType highlight; // Current highlight
+    const char *fname;       ///< Name/path of file being edited
+    char *buf;               ///< Pointer to buffer containing the text being edited
+    int buf_sz;              ///< Size of the buffer, currently always EDIT_BUFFER_SIZE
+    int num_lines;           ///< Number of lines of text held in the buffer
+    int width;               ///< Width of the editor screen in characters
+    int height;              ///< Height of the editor screen in characters
+    int py;                  ///< Row at top left hand corner of editor
+    int cx;                  ///< Current cursor column (from 0)
+    int cy;                  ///< Current cursor row (from 0)
+    char *txtp;              ///< Position of the cursor in the text being edited
+    bool message_shown;      ///< True if a message is currently being shown
+    bool insert;             ///< True if the editor is in INSERT mode
+    int preferred_x;         ///< User to track preferred x-position when up/down arrowing
+    bool text_changed;       ///< True if the text has been editor and thus may need saving
+    PmEditorMode mode;       ///< Edit mode or Mark mode ?
+    char last_key;           ///< Last key pressed
+    char* clipboard_buf;     ///< Pointer to buffer of clipboard contents
+    char* key_buf;           ///< Pointer to buffer of incoming keystrokes
+    char saved_break_key;    ///< Original value of mmb_options.break_key when editor entered
+    char *mark;              ///< Current position of the mark in mark mode
+    HighlightType highlight; ///< Current highlight
 } PmEditor;
-
-// Copies position fields between PmEditorPos and PmEditor structures
-// Works in both directions: COPY_POS(dst, src)
-#define COPY_POS(dst, src) { \
-    (dst).py = (src).py; \
-    (dst).cy = (src).cy; \
-    (dst).txtp = (src).txtp; \
-    (dst).mark = (src).mark; \
-    (dst).num_lines = (src).num_lines; \
-    (dst).insert = (src).insert; \
-    (dst).mode = (src).mode; \
-}
-
-// Extracts position fields into a PmEditorPos initializer
-#define POS_FROM(src) { \
-    .py = (src).py, \
-    .cx = (src).cx, \
-    .cy = (src).cy, \
-    .txtp = (src).txtp, \
-    .mark = (src).mark, \
-    .num_lines = (src).num_lines, \
-    .insert = (src).insert, \
-    .mode = (src).mode, \
-}
 
 // By changing these function pointers unit-tests can override "display"
 // behaviour.
@@ -153,6 +118,8 @@ extern MmResult (*pmeditor_print_func_keys)(PmEditor *);
 extern MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned);
 extern MmResult (*pmeditor_print_status)(PmEditor *);
 
+MmResult pmeditor_construct(PmEditor *self, const char *filename, int width, int height);
+MmResult pmeditor_destruct(PmEditor *self);
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);
 MmResult pmeditor_cmd_down(PmEditor *self);
@@ -169,7 +136,6 @@ char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, siz
 char *pmeditor_find_line_ex(PmEditor *self, int line, int *comment_level);
 MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, HighlightType *highlight);
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
-MmResult pmeditor_init(PmEditor *self, const char *filename, int width, int height);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
 MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw);
 MmResult pmeditor_mark_copy(PmEditor *self);
@@ -183,10 +149,25 @@ MmResult pmeditor_mark_up(PmEditor *self);
 MmResult pmeditor_mark_right(PmEditor *self);
 MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw);
 MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
-MmResult pmeditor_print_selection(PmEditor *self, PmEditorPos *old_pos);
+MmResult pmeditor_print_selection(PmEditor *self, PmEditor *old);
 char *pmeditor_find_line_n(PmEditor *self, int line);
 void pmeditor_restore_fn_pointers();
-MmResult pmeditor_update_display(PmEditor *self, PmEditorPos *old_pos);
+MmResult pmeditor_update_display(PmEditor *self, PmEditor *old);
+
+/**
+ * Creates a shallow copy of the editor state.
+ *
+ * Copies all editor fields including pointers (buf, txtp, mark, fname).
+ * The copy shares the same buffer memory as the source - modifications
+ * to the buffer through either instance will affect both.
+ *
+ * @param  src  Source editor to copy.
+ * @return      Shallow copy of the editor.
+ */
+static inline PmEditor pmeditor_shallow_copy(PmEditor *src) {
+    PmEditor dst = *src;
+    return dst;
+}
 
 /**
  * Finds the end of the line containing the given position.

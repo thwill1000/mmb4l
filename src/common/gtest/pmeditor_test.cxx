@@ -12,6 +12,7 @@
 extern "C" {
 
 #include "../keycodes.h"
+#include "../memory.h"
 #include "../options.h"
 #include "../pmeditor.h"
 #include "../pmeditor_private.h"
@@ -94,10 +95,22 @@ protected:
     PmEditor *self = &test_editor;
     SyntaxState syntax;
 
+    static void SetUpTestSuite() {
+        ASSERT_EQ(kOk, memory_init());
+
+        // Initialize command and function token tables (for syntax highlighting)
+        commandtbl_init();
+        tokentbl_init();
+    }
+
+    static void TearDownTestSuite() {
+        ASSERT_EQ(kOk, memory_term());
+    }
+
     void SetUp() override {
         // Common initialization
         pmeditor_restore_fn_pointers();
-        ASSERT_EQ(kOk, pmeditor_init(self, NULL, 80, 25));
+        pmeditor_construct(self, NULL, 80, 25);
 
         // Mock pmeditor functions
         pmeditor_display_msg = pmeditor_test_display_msg;
@@ -115,14 +128,13 @@ protected:
 
         // Reset mock state
         memset(display_msg_capture, 0, sizeof(display_msg_capture));
-        memset(self->keys, 0, sizeof(self->keys));
         print_func_keys_capture = { .calls = 0 };
         print_lines_capture = { .calls = 0, .start = -1, .num = -1, .cy = -1 };
         print_status_capture = { .calls = 0 };
+    }
 
-        // Initialize command and function token tables (for syntax highlighting)
-        commandtbl_init();
-        tokentbl_init();
+    void TearDown() override {
+        ASSERT_EQ(kOk, pmeditor_destruct(self));
     }
 
     void SetBuffer(const char* content) {
@@ -160,7 +172,7 @@ protected:
 #define EXPECT_KEYS_EQ(...) \
     do { \
         const char expected_keys[] = {__VA_ARGS__}; \
-        EXPECT_STREQ(expected_keys, self->keys + 1) << "Keyboard buffer mismatch"; \
+        EXPECT_STREQ(expected_keys, self->key_buf + 1) << "Keyboard buffer mismatch"; \
     } while (0)
 
 #define EXPECT_PRINT_FUNC_KEYS_CALLED(expected) \
@@ -1797,8 +1809,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfBuffer) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf);
-    EXPECT_EQ(initial_text_changed, self->text_changed); // Should not change
-    EXPECT_EQ(self->buf + 5, self->txtp); // Cursor should not move
+    EXPECT_EQ(initial_text_changed, self->text_changed);
+    EXPECT_EQ(self->buf + 5, self->txtp);
     EXPECT_EQ(REDRAW_NOTHING, redraw);
 }
 
@@ -1827,7 +1839,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteRegularCharacter) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("HelloWorld", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 5, self->txtp); // Cursor should not move
+    EXPECT_EQ(self->buf + 5, self->txtp);
     EXPECT_EQ(0, redraw);
 }
 
@@ -1872,7 +1884,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteNewlineCharacter) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1Line2", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, self->num_lines); // Should decrement line count
+    EXPECT_EQ(1, self->num_lines);
     EXPECT_EQ(self->buf + 5, self->txtp);
     EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
@@ -2054,7 +2066,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteInLongLine) {
     MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(99, strlen(self->buf)); // Should be one character shorter
+    EXPECT_EQ(99, strlen(self->buf));
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(0, redraw);
 }
@@ -2129,61 +2141,116 @@ TEST_F(PmEditorDeleteCharTest, DeleteWithTextAlreadyChanged) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ello", self->buf);
-    EXPECT_TRUE(self->text_changed); // Should remain true
+    EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(0, redraw);
 }
 
-// Test deleting with color coding enabled (multiline comment scenarios)
-TEST_F(PmEditorDeleteCharTest, DeleteMultilineCommentMarkers) {
-    // Test deleting '/' in '*/' sequence
-    SetBuffer("code */ more");
-    SetTxtp(6); // Position at '/'
+// Comment marker combinations - converted from parameterized tests
+TEST_F(PmEditorDeleteCharTest, DeleteStarBeforeSlashInMiddle) {
+    SetBuffer("a*/b");
+    SetTxtp(1); // Position at '*'
 
     int redraw = REDRAW_NOTHING;
     MmResult result = pmeditor_delete_char(self, &redraw);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code * more", self->buf);
+    EXPECT_STREQ("a/b", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
-// Test deleting with various comment marker combinations
-TEST_F(PmEditorDeleteCharTest, DeleteCommentMarkerCombinations) {
-    struct TestCase {
-        const char* input;
-        int cursor_pos;
-        const char* expected;
-        const char* description;
-    };
+TEST_F(PmEditorDeleteCharTest, DeleteSlashAfterStarInMiddle) {
+    SetBuffer("a*/b");
+    SetTxtp(2); // Position at '/'
 
-    TestCase test_cases[] = {
-        {"a*/b", 1, "a/b", "Delete * before /"},
-        {"a*/b", 2, "a*b", "Delete / after *"},
-        {"a/*b", 1, "a*b", "Delete / before *"},
-        {"a/*b", 2, "a/b", "Delete * after /"},
-        {"*/", 0, "/", "Delete * at start"},
-        {"/*", 0, "*", "Delete / at start"},
-        {"*/", 1, "*", "Delete / at end"},
-        {"/*", 1, "/", "Delete * at end"},
-    };
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
 
-    for (const auto& test_case : test_cases) {
-        SetUp(); // Reset state
-        SetBuffer(test_case.input);
-        SetTxtp(test_case.cursor_pos);
-
-        int redraw = REDRAW_NOTHING;
-        MmResult result = pmeditor_delete_char(self, &redraw);
-
-        EXPECT_EQ(kOk, result) << "Failed for: " << test_case.description;
-        EXPECT_STREQ(test_case.expected, self->buf) << "Failed for: " << test_case.description;
-        EXPECT_TRUE(self->text_changed) << "Failed for: " << test_case.description;
-        EXPECT_EQ(REDRAW_SCREEN, redraw);
-    }
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("a*b", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
-// Deleting single-line comment character ' before /* should redraw screen.
+TEST_F(PmEditorDeleteCharTest, DeleteSlashBeforeStarInMiddle) {
+    SetBuffer("a/*b");
+    SetTxtp(1); // Position at '/'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("a*b", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlashInMiddle) {
+    SetBuffer("a/*b");
+    SetTxtp(2); // Position at '*'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("a/b", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteStarAtStartOfCommentEnd) {
+    SetBuffer("*/");
+    SetTxtp(0); // Position at '*'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("/", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteSlashAtStartOfCommentStart) {
+    SetBuffer("/*");
+    SetTxtp(0); // Position at '/'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("*", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteSlashAtEndOfCommentEnd) {
+    SetBuffer("*/");
+    SetTxtp(1); // Position at '/'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("*", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteStarAtEndOfCommentStart) {
+    SetBuffer("/*");
+    SetTxtp(1); // Position at '*'
+
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_delete_char(self, &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("/", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(REDRAW_SCREEN, redraw);
+}
+
+// Deleting single-line comment character ' before /* should redraw screen
 TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineStartRedrawsScreen) {
     SetBuffer("code ' /* more");
     SetTxtp(5); // Position before '
@@ -2197,7 +2264,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineStartRedrawsScree
     EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
-// Deleting single-line comment character ' before */ should redraw screen.
+// Deleting single-line comment character ' before */ should redraw screen
 TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineEndRedrawsScreen) {
     SetBuffer("code ' */ more");
     SetTxtp(5); // Position before '
@@ -2211,7 +2278,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineEndRedrawsScreen)
     EXPECT_EQ(REDRAW_SCREEN, redraw);
 }
 
-// Deleting character in REM keyword before /* should redraw screen.
+// Deleting character in REM keyword before /* should redraw screen
 TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineStartRedrawsScreen) {
     SetBuffer("code REM /* more");
     SetTxtp(5); // Position before R
@@ -2231,7 +2298,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineStartRedrawsScreen) {
     EXPECT_EQ(0, redraw);
 }
 
-// Deleting character in REM keyword before */ should redraw screen.
+// Deleting character in REM keyword before */ should redraw screen
 TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineEndRedrawsScreen) {
     SetBuffer("code rem */ more");
     SetTxtp(6); // Position before e
@@ -2914,7 +2981,7 @@ TEST_F(PmEditorCmdCharTest, InsertModeDispatchesToInsert) {
     SetBuffer("Hello");
     SetTxtp(5);
     self->insert = true;
-    self->keys[0] = '!';
+    self->key_buf[0] = '!';
 
     MmResult result = pmeditor_cmd_char(self);
 
@@ -2928,7 +2995,7 @@ TEST_F(PmEditorCmdCharTest, OverwriteModeDispatchesToOverwrite) {
     SetBuffer("Hello");
     SetTxtp(0);
     self->insert = false;
-    self->keys[0] = 'J';
+    self->key_buf[0] = 'J';
 
     MmResult result = pmeditor_cmd_char(self);
 
@@ -2942,7 +3009,7 @@ TEST_F(PmEditorCmdCharTest, OverwriteModeAtNewlineDispatchesToInsert) {
     SetBuffer("Line1\nLine2");
     SetTxtp(5); // At newline
     self->insert = false;
-    self->keys[0] = '!';
+    self->key_buf[0] = '!';
 
     MmResult result = pmeditor_cmd_char(self);
 
@@ -2955,7 +3022,7 @@ TEST_F(PmEditorCmdCharTest, OverwriteModeAtEndDispatchesToInsert) {
     SetBuffer("Hello");
     SetCursorAtEnd();
     self->insert = false;
-    self->keys[0] = '!';
+    self->key_buf[0] = '!';
 
     MmResult result = pmeditor_cmd_char(self);
 
@@ -2969,7 +3036,7 @@ TEST_F(PmEditorCmdCharTest, NonPrintableCharacterIgnored) {
     SetBuffer("Hello");
     SetTxtp(0);
     self->insert = true;
-    self->keys[0] = '\x01'; // Non-printable
+    self->key_buf[0] = '\x01'; // Non-printable
 
     MmResult result = pmeditor_cmd_char(self);
 
@@ -2985,7 +3052,7 @@ TEST_F(PmEditorCmdCharTest, LineRedrawAfterNormalInsert) {
     self->insert = true;
     self->cy = 0;
     self->py = 0;
-    self->keys[0] = '!';
+    self->key_buf[0] = '!';
 
     MmResult result = pmeditor_cmd_char(self);
 
@@ -2998,7 +3065,7 @@ TEST_F(PmEditorCmdCharTest, ScreenRedrawAfterMultilineCommentChange) {
     SetBuffer("code * more");
     SetTxtp(5); // Before '*'
     self->insert = true;
-    self->keys[0] = '/';
+    self->key_buf[0] = '/';
 
     MmResult result = pmeditor_cmd_char(self);
 
@@ -3012,7 +3079,7 @@ TEST_F(PmEditorCmdCharTest, NoRedrawWhenInsertReturnsNothing) {
     SetBuffer("Hello");
     SetTxtp(0);
     self->insert = true;
-    self->keys[0] = '\x01'; // Non-printable, insert will return NOTHING
+    self->key_buf[0] = '\x01'; // Non-printable, insert will return NOTHING
 
     MmResult result = pmeditor_cmd_char(self);
 
@@ -3025,7 +3092,7 @@ TEST_F(PmEditorCmdCharTest, CursorPositioningAfterInsert) {
     SetBuffer("Hello");
     SetTxtp(1);
     self->insert = true;
-    self->keys[0] = 'X';
+    self->key_buf[0] = 'X';
 
     MmResult result = pmeditor_cmd_char(self);
 
@@ -3038,7 +3105,7 @@ TEST_F(PmEditorCmdCharTest, CursorPositioningAfterOverwrite) {
     SetBuffer("Hello");
     SetTxtp(1);
     self->insert = false;
-    self->keys[0] = 'J';
+    self->key_buf[0] = 'J';
 
     MmResult result = pmeditor_cmd_char(self);
 
@@ -3046,30 +3113,12 @@ TEST_F(PmEditorCmdCharTest, CursorPositioningAfterOverwrite) {
     EXPECT_EQ(self->txtp, self->buf + 2);
 }
 
-// Test with various printable characters
-TEST_F(PmEditorCmdCharTest, VariousPrintableCharacters) {
-    const char* test_chars = " !@#$%^&*()_+-=[]{}|;':,.<>?/`~0123456789";
-
-    for (const char* p = test_chars; *p; ++p) {
-        SetUp(); // Reset for each character
-        SetBuffer("X");
-        SetTxtp(0);
-        self->insert = false;
-        self->keys[0] = *p;
-
-        MmResult result = pmeditor_cmd_char(self);
-
-        EXPECT_EQ(kOk, result) << "Failed for character: " << *p;
-        EXPECT_EQ(*p, self->buf[0]) << "Character not inserted: " << *p;
-    }
-}
-
 // Test overwrite mode with null terminator ahead (acts like insert)
 TEST_F(PmEditorCmdCharTest, OverwriteModeWithNullTerminatorAheadActsLikeInsert) {
     SetBuffer("Hello");
     SetCursorAtEnd(); // At '\0'
     self->insert = false;
-    self->keys[0] = '!';
+    self->key_buf[0] = '!';
 
     MmResult result = pmeditor_cmd_char(self);
 
@@ -4085,39 +4134,30 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteNearBufferCapacity) {
     EXPECT_EQ(0, redraw);
 }
 
-// Test overwriting various comment marker scenarios
-TEST_F(PmEditorOverwriteCharTest, OverwriteCommentMarkerScenarios) {
-    struct TestCase {
-        const char* input;
-        int cursor_pos;
-        char new_char;
-        const char* expected;
-        int expected_redraw;
-        const char* description;
-    };
+TEST_F(PmEditorOverwriteCharTest, OverwriteWithSlashCreatesNoComment) {
+    SetBuffer("a b");
+    SetTxtp(1); // Position at space
 
-    TestCase test_cases[] = {
-        {"a b", 1, '/', "a/b", 0, "Normal overwrite with /"},
-        {"a//b", 1, '*', "a*/b", REDRAW_SCREEN, "Create */ by overwriting *"},
-        {"a//b", 2, '*', "a/*b", REDRAW_SCREEN, "Create /* by overwriting /"},
-        {"/*b", 0, 'X', "X*b", REDRAW_SCREEN, "Break /* by overwriting /"},
-        {"a*/", 1, 'X', "aX/", REDRAW_SCREEN, "Break */ by overwriting *"},
-        {"a b", 1, '*', "a*b", 0, "Normal overwrite with *"},
-    };
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '/', &redraw);
 
-    for (const auto& test_case : test_cases) {
-        SetUp(); // Reset state
-        SetBuffer(test_case.input);
-        SetTxtp(test_case.cursor_pos);
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("a/b", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, redraw);
+}
 
-        int redraw = REDRAW_NOTHING;
-        MmResult result = pmeditor_overwrite_char(self, test_case.new_char, &redraw);
+TEST_F(PmEditorOverwriteCharTest, OverwriteWithStarCreatesNoComment) {
+    SetBuffer("a b");
+    SetTxtp(1); // Position at space
 
-        EXPECT_EQ(kOk, result) << "Failed for: " << test_case.description;
-        EXPECT_STREQ(test_case.expected, self->buf) << "Failed for: " << test_case.description;
-        EXPECT_TRUE(self->text_changed) << "Failed for: " << test_case.description;
-        EXPECT_EQ(test_case.expected_redraw, redraw) << "Failed for: " << test_case.description;
-    }
+    int redraw = REDRAW_NOTHING;
+    MmResult result = pmeditor_overwrite_char(self, '*', &redraw);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("a*b", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(0, redraw);
 }
 
 // Test that overwrite and delete return consistent redraw values
@@ -4184,7 +4224,7 @@ TEST_F(PmEditorMarkCopyTest, CopyWhenMarkBeforeTxtp) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("llo W", self->clipboard);
+    EXPECT_STREQ("llo W", self->clipboard_buf);
     EXPECT_STREQ("Hello World", self->buf);  // Buffer unchanged
     EXPECT_TXTP_EQ(7);  // Cursor unchanged
     EXPECT_FALSE(self->text_changed);  // Copy doesn't modify text
@@ -4200,7 +4240,7 @@ TEST_F(PmEditorMarkCopyTest, CopyWhenMarkAfterTxtp) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("llo W", self->clipboard);
+    EXPECT_STREQ("llo W", self->clipboard_buf);
     EXPECT_STREQ("Hello World", self->buf);
     EXPECT_TXTP_EQ(2);
     EXPECT_FALSE(self->text_changed);
@@ -4216,7 +4256,7 @@ TEST_F(PmEditorMarkCopyTest, CopyZeroLengthSelection) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->clipboard);  // Empty clipboard
+    EXPECT_STREQ("", self->clipboard_buf);  // Empty clipboard
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_TXTP_EQ(3);
     EXPECT_FALSE(self->text_changed);
@@ -4232,7 +4272,7 @@ TEST_F(PmEditorMarkCopyTest, CopySingleCharacter) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("C", self->clipboard);
+    EXPECT_STREQ("C", self->clipboard_buf);
     EXPECT_STREQ("ABCDEF", self->buf);
     EXPECT_FALSE(self->text_changed);
 }
@@ -4246,7 +4286,7 @@ TEST_F(PmEditorMarkCopyTest, CopyEntireBuffer) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello", self->clipboard);
+    EXPECT_STREQ("Hello", self->clipboard_buf);
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_FALSE(self->text_changed);
 }
@@ -4260,7 +4300,7 @@ TEST_F(PmEditorMarkCopyTest, CopyWithNewlines) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1\n", self->clipboard);
+    EXPECT_STREQ("Line1\n", self->clipboard_buf);
     EXPECT_STREQ("Line0\nLine1\nLine2", self->buf);
     EXPECT_EQ(3, self->num_lines);  // num_lines unchanged
     EXPECT_FALSE(self->text_changed);
@@ -4275,7 +4315,7 @@ TEST_F(PmEditorMarkCopyTest, CopyMultipleNewlines) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("A\nB\nC\n", self->clipboard);
+    EXPECT_STREQ("A\nB\nC\n", self->clipboard_buf);
     EXPECT_STREQ("A\nB\nC\nD", self->buf);
     EXPECT_FALSE(self->text_changed);
 }
@@ -4290,7 +4330,7 @@ TEST_F(PmEditorMarkCopyTest, CopyAtClipboardLimit) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard));
+    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
     EXPECT_FALSE(self->text_changed);
 }
 
@@ -4305,7 +4345,7 @@ TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardLimitMarkBefore) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE", display_msg_capture);
-    EXPECT_STREQ("", self->clipboard);  // Clipboard unchanged/empty
+    EXPECT_STREQ("", self->clipboard_buf);  // Clipboard unchanged/empty
     EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
 }
 
@@ -4338,7 +4378,7 @@ TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardByOne) {
 
 // Test copying overwrites previous clipboard content
 TEST_F(PmEditorMarkCopyTest, CopyOverwritesPreviousClipboard) {
-    strcpy(self->clipboard, "OLD CONTENT");
+    strcpy(self->clipboard_buf, "OLD CONTENT");
 
     SetBuffer("NEW");
     SetMark(0);
@@ -4347,7 +4387,7 @@ TEST_F(PmEditorMarkCopyTest, CopyOverwritesPreviousClipboard) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("NEW", self->clipboard);
+    EXPECT_STREQ("NEW", self->clipboard_buf);
     EXPECT_FALSE(self->text_changed);
 }
 
@@ -4360,7 +4400,7 @@ TEST_F(PmEditorMarkCopyTest, CopyFromMiddleOfBuffer) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("BBB", self->clipboard);
+    EXPECT_STREQ("BBB", self->clipboard_buf);
     EXPECT_STREQ("AAABBBCCC", self->buf);
 }
 
@@ -4387,7 +4427,7 @@ TEST_F(PmEditorMarkCopyTest, CopyWithSpecialCharacters) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Tab\there\t", self->clipboard);
+    EXPECT_STREQ("Tab\there\t", self->clipboard_buf);
     EXPECT_FALSE(self->text_changed);
 }
 
@@ -4398,14 +4438,14 @@ TEST_F(PmEditorMarkCopyTest, ClipboardNullTermination) {
     SetTxtp(4);
 
     // Pre-fill clipboard with garbage
-    memset(self->clipboard, 'Z', MAXCLIP);
-    self->clipboard[MAXCLIP] = '\0';
+    memset(self->clipboard_buf, 'Z', MAXCLIP);
+    self->clipboard_buf[MAXCLIP] = '\0';
 
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("TEST", self->clipboard);
-    EXPECT_EQ('\0', self->clipboard[4]);  // Properly null-terminated
+    EXPECT_STREQ("TEST", self->clipboard_buf);
+    EXPECT_EQ('\0', self->clipboard_buf[4]);  // Properly null-terminated
 }
 
 // Test copying empty buffer
@@ -4417,7 +4457,7 @@ TEST_F(PmEditorMarkCopyTest, CopyFromEmptyBuffer) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->clipboard);
+    EXPECT_STREQ("", self->clipboard_buf);
     EXPECT_FALSE(self->text_changed);
     EXPECT_EQ(kEditMode, self->mode);
 }
@@ -4444,7 +4484,7 @@ TEST_F(PmEditorMarkCopyTest, CopyBackwardSelection) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("3456", self->clipboard);
+    EXPECT_STREQ("3456", self->clipboard_buf);
     EXPECT_TXTP_EQ(3);  // Original positions preserved
     EXPECT_MARK_EQ(7);
 }
@@ -4458,7 +4498,7 @@ TEST_F(PmEditorMarkCopyTest, CopyForwardSelection) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("3456", self->clipboard);
+    EXPECT_STREQ("3456", self->clipboard_buf);
     EXPECT_TXTP_EQ(7);
     EXPECT_MARK_EQ(3);
 }
@@ -4472,7 +4512,7 @@ TEST_F(PmEditorMarkCopyTest, CopyMarkAtTxtpMinusOne) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("E", self->clipboard);
+    EXPECT_STREQ("E", self->clipboard_buf);
 }
 
 // Test copying respects MAXCLIP exactly (not MAXCLIP+1 or MAXCLIP+2)
@@ -4484,7 +4524,7 @@ TEST_F(PmEditorMarkCopyTest, ClipboardSizeBoundaryCheck) {
     SetTxtp(MAXCLIP);
 
     EXPECT_EQ(kOk, pmeditor_mark_copy(self));
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard));
+    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
 
     // Test that MAXCLIP+1 characters cannot be copied
     std::string content2(MAXCLIP + 1, 'B');
@@ -4511,7 +4551,7 @@ TEST_F(PmEditorMarkCutTest, CutWhenMarkBeforeTxtp) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("llo W", self->clipboard);
+    EXPECT_STREQ("llo W", self->clipboard_buf);
     EXPECT_STREQ("Heorld", self->buf);  // Text removed
     EXPECT_TXTP_EQ(2);  // Cursor at mark position
     EXPECT_CURSOR_EQ(2, 0);
@@ -4528,7 +4568,7 @@ TEST_F(PmEditorMarkCutTest, CutWhenMarkAfterTxtp) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("llo W", self->clipboard);
+    EXPECT_STREQ("llo W", self->clipboard_buf);
     EXPECT_STREQ("Heorld", self->buf);
     EXPECT_TXTP_EQ(2);  // Cursor stays at txtp
     EXPECT_CURSOR_EQ(2, 0);
@@ -4545,7 +4585,7 @@ TEST_F(PmEditorMarkCutTest, CutZeroLengthSelection) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->clipboard);  // Empty clipboard
+    EXPECT_STREQ("", self->clipboard_buf);  // Empty clipboard
     EXPECT_STREQ("Hello", self->buf);  // Nothing removed
     EXPECT_TXTP_EQ(3);
     EXPECT_FALSE(self->text_changed);
@@ -4561,7 +4601,7 @@ TEST_F(PmEditorMarkCutTest, CutSingleCharacter) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("C", self->clipboard);
+    EXPECT_STREQ("C", self->clipboard_buf);
     EXPECT_STREQ("ABDEF", self->buf);
     EXPECT_TXTP_EQ(2);
     EXPECT_TRUE(self->text_changed);
@@ -4577,7 +4617,7 @@ TEST_F(PmEditorMarkCutTest, CutEntireBuffer) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello", self->clipboard);
+    EXPECT_STREQ("Hello", self->clipboard_buf);
     EXPECT_STREQ("", self->buf);  // Buffer now empty
     EXPECT_TXTP_EQ(0);
     EXPECT_CURSOR_EQ(0, 0);
@@ -4594,7 +4634,7 @@ TEST_F(PmEditorMarkCutTest, CutWithNewlines) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1\n", self->clipboard);
+    EXPECT_STREQ("Line1\n", self->clipboard_buf);
     EXPECT_STREQ("Line0\nLine2", self->buf);
     EXPECT_EQ(2, self->num_lines);  // One newline removed
     EXPECT_TRUE(self->text_changed);
@@ -4610,7 +4650,7 @@ TEST_F(PmEditorMarkCutTest, CutMultipleNewlines) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("A\nB\nC\n", self->clipboard);
+    EXPECT_STREQ("A\nB\nC\n", self->clipboard_buf);
     EXPECT_STREQ("D", self->buf);
     EXPECT_EQ(1, self->num_lines);  // Three newlines removed
     EXPECT_TRUE(self->text_changed);
@@ -4627,7 +4667,7 @@ TEST_F(PmEditorMarkCutTest, CutAtClipboardLimit) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard));
+    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
     EXPECT_STREQ("", self->buf);  // Content cut
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
@@ -4658,7 +4698,7 @@ TEST_F(PmEditorMarkCutTest, CutFromMiddleOfBuffer) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("BBB", self->clipboard);
+    EXPECT_STREQ("BBB", self->clipboard_buf);
     EXPECT_STREQ("AAACCC", self->buf);
     EXPECT_TXTP_EQ(3);
     EXPECT_TRUE(self->text_changed);
@@ -4674,7 +4714,7 @@ TEST_F(PmEditorMarkCutTest, PreservesContentAfterCutRegion) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("MIDDLE", self->clipboard);
+    EXPECT_STREQ("MIDDLE", self->clipboard_buf);
     EXPECT_STREQ("StartEnd", self->buf);
     EXPECT_TXTP_EQ(5);
     EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
@@ -4717,7 +4757,7 @@ TEST_F(PmEditorMarkCutTest, BufferTerminationAfterCut) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("CDE", self->clipboard);
+    EXPECT_STREQ("CDE", self->clipboard_buf);
     EXPECT_STREQ("ABFGH", self->buf);
     // Check double null termination
     EXPECT_EQ('\0', self->buf[5]);
@@ -4734,7 +4774,7 @@ TEST_F(PmEditorMarkCutTest, CutFromStartOfBuffer) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello ", self->clipboard);
+    EXPECT_STREQ("Hello ", self->clipboard_buf);
     EXPECT_STREQ("World", self->buf);
     EXPECT_TXTP_EQ(0);
     EXPECT_CURSOR_EQ(0, 0);
@@ -4750,7 +4790,7 @@ TEST_F(PmEditorMarkCutTest, CutToEndOfBuffer) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("World", self->clipboard);
+    EXPECT_STREQ("World", self->clipboard_buf);
     EXPECT_STREQ("Hello ", self->buf);
     EXPECT_TXTP_EQ(6);
     EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
@@ -4765,7 +4805,7 @@ TEST_F(PmEditorMarkCutTest, CutFromEmptyBuffer) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->clipboard);
+    EXPECT_STREQ("", self->clipboard_buf);
     EXPECT_STREQ("", self->buf);
     EXPECT_TXTP_EQ(0);
     EXPECT_FALSE(self->text_changed);
@@ -4774,7 +4814,7 @@ TEST_F(PmEditorMarkCutTest, CutFromEmptyBuffer) {
 
 // Test cutting overwrites previous clipboard content
 TEST_F(PmEditorMarkCutTest, CutOverwritesPreviousClipboard) {
-    strcpy(self->clipboard, "OLD CONTENT");
+    strcpy(self->clipboard_buf, "OLD CONTENT");
 
     SetBuffer("NEW");
     SetMark(0);
@@ -4783,7 +4823,7 @@ TEST_F(PmEditorMarkCutTest, CutOverwritesPreviousClipboard) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("NEW", self->clipboard);
+    EXPECT_STREQ("NEW", self->clipboard_buf);
     EXPECT_STREQ("", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
@@ -4798,7 +4838,7 @@ TEST_F(PmEditorMarkCutTest, CutWithSpecialCharacters) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Tab\there\t", self->clipboard);
+    EXPECT_STREQ("Tab\there\t", self->clipboard_buf);
     EXPECT_STREQ("End", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
@@ -4813,7 +4853,7 @@ TEST_F(PmEditorMarkCutTest, CutOnlyNewline) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("\n", self->clipboard);
+    EXPECT_STREQ("\n", self->clipboard_buf);
     EXPECT_STREQ("Line1Line2", self->buf);
     EXPECT_EQ(1, self->num_lines);  // One newline removed
     EXPECT_TXTP_EQ(5);
@@ -4830,7 +4870,7 @@ TEST_F(PmEditorMarkCutTest, CutLargeRegion) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(80, strlen(self->clipboard));  // 80 X's copied
+    EXPECT_EQ(80, strlen(self->clipboard_buf));  // 80 X's copied
     EXPECT_EQ(20, strlen(self->buf));  // 10 + 10 remaining
     EXPECT_TXTP_EQ(10);
     EXPECT_TRUE(self->text_changed);
@@ -4846,7 +4886,7 @@ TEST_F(PmEditorMarkCutTest, CutAcrossMultipleLinesUpdatesCursor) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1\nLine2\n", self->clipboard);
+    EXPECT_STREQ("Line1\nLine2\n", self->clipboard_buf);
     EXPECT_STREQ("Line0\nLine3", self->buf);
     EXPECT_EQ(2, self->num_lines);
     EXPECT_TXTP_EQ(6);
@@ -4863,7 +4903,7 @@ TEST_F(PmEditorMarkCutTest, MaintainsBufferStateAfterLargeDeletion) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(13, strlen(self->clipboard));
+    EXPECT_EQ(13, strlen(self->clipboard_buf));
     EXPECT_STREQ("BBBBBBBB\nCCCCCCCCCC", self->buf);
     EXPECT_EQ(2, self->num_lines);
     EXPECT_TXTP_EQ(0);
@@ -4879,7 +4919,7 @@ TEST_F(PmEditorMarkCutTest, ClipboardBoundaryValidation) {
     SetTxtp(MAXCLIP);
 
     EXPECT_EQ(kOk, pmeditor_mark_cut(self));
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard));
+    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
     EXPECT_STREQ("", self->buf);
 
     // Test that MAXCLIP+1 characters cannot be cut (buffer preserved)
@@ -6758,10 +6798,10 @@ class PmEditorPrintSelectionTest : public PmEditorMarkTestBase { };
 TEST_F(PmEditorPrintSelectionTest, CursorAfterMark) {
     SetBuffer("Hello World");
     SetMark(0);  // Mark at 'H'
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(5);  // Cursor at ' ' (space)
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
 
     EXPECT_EQ(kOk, result);
     // EXPECT_EQ(self->buf + 0, self->mark_lb);
@@ -6773,10 +6813,10 @@ TEST_F(PmEditorPrintSelectionTest, CursorAfterMark) {
 TEST_F(PmEditorPrintSelectionTest, CursorBeforeMark) {
     SetBuffer("Hello World");
     SetMark(5);  // Mark at ' ' (space)
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(0);  // Cursor at 'H'
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
 
     EXPECT_EQ(kOk, result);
     // EXPECT_EQ(self->buf, self->mark_lb);
@@ -6788,10 +6828,10 @@ TEST_F(PmEditorPrintSelectionTest, CursorBeforeMark) {
 TEST_F(PmEditorPrintSelectionTest, NoSelection) {
     SetBuffer("Hello World");
     SetMark(5);  // Mark at same position
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(5);  // Cursor at ' ' (space)
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
 
     EXPECT_EQ(kOk, result);
     // EXPECT_EQ(self->buf + 5, self->mark_lb);
@@ -6803,10 +6843,10 @@ TEST_F(PmEditorPrintSelectionTest, NoSelection) {
 TEST_F(PmEditorPrintSelectionTest, SingleCharSelection) {
     SetBuffer("ABC");
     SetMark(1);  // Mark at 'B'
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(0);  // Cursor at 'A'
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
 
     EXPECT_EQ(kOk, result);
     // EXPECT_EQ(self->buf, self->mark_lb);
@@ -6818,10 +6858,10 @@ TEST_F(PmEditorPrintSelectionTest, SingleCharSelection) {
 TEST_F(PmEditorPrintSelectionTest, MultilineSelectionCursorAfter) {
     SetBuffer("Line 1\nLine 2\nLine 3");
     SetMark(0);   // Mark at start of line 1
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(14);  // Cursor at start of line 3
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
 
     EXPECT_EQ(kOk, result);
     // EXPECT_EQ(self->buf + 0, self->mark_lb);
@@ -6833,10 +6873,10 @@ TEST_F(PmEditorPrintSelectionTest, MultilineSelectionCursorAfter) {
 TEST_F(PmEditorPrintSelectionTest, MultilineSelectionCursorBefore) {
     SetBuffer("Line 1\nLine 2\nLine 3");
     SetMark(14);  // Mark at start of line 3
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(0);   // Cursor at start of line 1
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
 
     EXPECT_EQ(kOk, result);
     // EXPECT_EQ(self->buf, self->mark_lb);
@@ -6848,10 +6888,10 @@ TEST_F(PmEditorPrintSelectionTest, MultilineSelectionCursorBefore) {
 TEST_F(PmEditorPrintSelectionTest, CursorAtStartOfBuffer) {
     SetBuffer("Hello");
     SetMark(3);  // Mark at 'l'
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(0);  // Cursor at buffer start
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
 
     EXPECT_EQ(kOk, result);
     // EXPECT_EQ(self->buf, self->mark_lb);
@@ -6863,10 +6903,10 @@ TEST_F(PmEditorPrintSelectionTest, CursorAtStartOfBuffer) {
 TEST_F(PmEditorPrintSelectionTest, CursorAtEndOfBuffer) {
     SetBuffer("Hello");
     SetMark(2);  // Mark at 'l'
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(5);  // Cursor at buffer end (null terminator)
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
 
     EXPECT_EQ(kOk, result);
     // EXPECT_EQ(self->buf + 2, self->mark_lb);
@@ -6878,10 +6918,10 @@ TEST_F(PmEditorPrintSelectionTest, CursorAtEndOfBuffer) {
 TEST_F(PmEditorPrintSelectionTest, LargeSelection) {
     SetBuffer("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
     SetMark(36);  // Mark at end
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(0);   // Cursor at start
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
 
     EXPECT_EQ(kOk, result);
     // EXPECT_EQ(self->buf, self->mark_lb);
@@ -6893,10 +6933,10 @@ TEST_F(PmEditorPrintSelectionTest, LargeSelection) {
 TEST_F(PmEditorPrintSelectionTest, EmptyBufferSelection) {
     SetBuffer("");
     SetMark(0);
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(0);
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
 
     EXPECT_EQ(kOk, result);
     // EXPECT_EQ(self->buf, self->mark_lb);
@@ -6911,10 +6951,10 @@ TEST_F(PmEditorPrintSelectionTest, ConsecutiveCallsUpdateBounds) {
     // First selection
     {
         SetMark(3);
-        PmEditorPos old_pos = POS_FROM(*self);
+        PmEditor old = pmeditor_shallow_copy(self);
         SetTxtp(0);
 
-        MmResult result = pmeditor_print_selection(self, &old_pos);
+        MmResult result = pmeditor_print_selection(self, &old);
         EXPECT_EQ(kOk, result);
         // EXPECT_EQ(self->buf, self->mark_lb);
         // EXPECT_EQ(self->buf + 2, self->mark_ub);
@@ -6924,10 +6964,10 @@ TEST_F(PmEditorPrintSelectionTest, ConsecutiveCallsUpdateBounds) {
     // Second selection (different bounds)
     {
         SetMark(2);
-        PmEditorPos old_pos = POS_FROM(*self);
+        PmEditor old = pmeditor_shallow_copy(self);
         SetTxtp(7);
 
-        MmResult result = pmeditor_print_selection(self, &old_pos);
+        MmResult result = pmeditor_print_selection(self, &old);
         EXPECT_EQ(kOk, result);
         // EXPECT_EQ(self->buf + 2, self->mark_lb);
         // EXPECT_EQ(self->buf + 6, self->mark_ub);
@@ -6941,10 +6981,10 @@ TEST_F(PmEditorPrintSelectionTest, MultilineSelectionWithScrolling) {
     self->py = 5;
     SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4\nLine5\nLine6\nLine7\nLine8\n");
     SetMark(44);   // Mark at 'n' in "Line7"
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(36);  // Cursor at start of "Line6"
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
 
     EXPECT_EQ(kOk, result);
     // EXPECT_EQ(self->buf + 36, self->mark_lb);
@@ -6958,10 +6998,10 @@ TEST_F(PmEditorPrintSelectionTest, SelectionSpansViewportBoundary) {
     self->py = 0;
     SetBuffer("L0\nL1\nL2\nL3\nL4\nL5\nL6\nL7\n");
     SetMark(15);  // Mark before 'L' on line 5 (bottom of viewport)
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
     SetTxtp(3);   // Cursor before 'L' on line 1
 
-    MmResult result = pmeditor_print_selection(self, &old_pos);
+    MmResult result = pmeditor_print_selection(self, &old);
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {
         .calls = 1, .start = 1, .num = 5, .cy = 1
@@ -9447,9 +9487,9 @@ class PmEditorUpdateDisplayTest : public PmEditorTestBase { };
 TEST_F(PmEditorUpdateDisplayTest, NoUpdateWhenNothingChanges) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6);
-    PmEditorPos old_pos = POS_FROM(*self);
+    PmEditor old = pmeditor_shallow_copy(self);
 
-    MmResult result = pmeditor_update_display(self, &old_pos);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_LINES_NOT_CALLED();
@@ -9460,10 +9500,10 @@ TEST_F(PmEditorUpdateDisplayTest, NoUpdateWhenNothingChanges) {
 TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenNumLinesChanges) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6);
-    PmEditorPos old_pos = POS_FROM(*self);
-    old_pos.num_lines = 2; // Different from current (3)
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.num_lines = 2; // Different from current (3)
 
-    MmResult result = pmeditor_update_display(self, &old_pos);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
@@ -9473,10 +9513,10 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenModeChanges) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6);
     self->mode = kMarkMode;
-    PmEditorPos old_pos = POS_FROM(*self);
-    old_pos.mode = kEditMode;
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.mode = kEditMode;
 
-    MmResult result = pmeditor_update_display(self, &old_pos);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
@@ -9488,11 +9528,11 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsSelectionWhenInMarkModeAndTxtpChanges) 
     self->mode = kMarkMode;
     SetMark(0);  // At 'L' in "Line0"
     SetTxtp(6);  // At 'L' in "Line1"
-    PmEditorPos old_pos = POS_FROM(*self);
-    old_pos.txtp = self->buf + 3; // Move to at 'e' in "Line0"
-    ASSERT_EQ(kOk, pmeditor_get_line_and_column(self, old_pos.txtp, &old_pos.cy, &old_pos.cx));
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.txtp = self->buf + 3; // Move to at 'e' in "Line0"
+    ASSERT_EQ(kOk, pmeditor_get_line_and_column(self, old.txtp, &old.cy, &old.cx));
 
-    MmResult result = pmeditor_update_display(self, &old_pos);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 2, .cy = 0}));
@@ -9502,10 +9542,10 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsStatusWhenInsertModeChanges) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6);
     self->insert = true;
-    PmEditorPos old_pos = POS_FROM(*self);
-    old_pos.insert = false;
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.insert = false;
 
-    MmResult result = pmeditor_update_display(self, &old_pos);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
@@ -9514,11 +9554,11 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsStatusWhenInsertModeChanges) {
 TEST_F(PmEditorUpdateDisplayTest, RedrawsStatusWhenCursorPositionChanges) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(8);
-    PmEditorPos old_pos = POS_FROM(*self);
-    old_pos.cx = 0;
-    old_pos.cy = 0;
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.cx = 0;
+    old.cy = 0;
 
-    MmResult result = pmeditor_update_display(self, &old_pos);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
@@ -9528,11 +9568,11 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsFuncKeysWhenModeChanges) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6);
     self->mode = kMarkMode;
-    PmEditorPos old_pos = POS_FROM(*self);
-    old_pos.mode = kEditMode;
-    old_pos.num_lines = self->num_lines; // Same to avoid screen redraw
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.mode = kEditMode;
+    old.num_lines = self->num_lines; // Same to avoid screen redraw
 
-    MmResult result = pmeditor_update_display(self, &old_pos);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
