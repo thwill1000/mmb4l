@@ -1823,7 +1823,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfEmptyBuffer) {
 // Test deleting a regular character
 TEST_F(PmEditorDeleteCharTest, DeleteRegularCharacter) {
     SetBuffer("Hello World");
-    SetTxtp(5); // Position at space
+    SetTxtp(5); // At ' '
 
     MmResult result = pmeditor_delete_char(self);
 
@@ -1853,7 +1853,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteFirstCharacter) {
 // Test deleting last character (not at end of buffer)
 TEST_F(PmEditorDeleteCharTest, DeleteLastCharacterBeforeEnd) {
     SetBuffer("Hello");
-    SetTxtp(4); // Position at 'o'
+    SetTxtp(4); // At 'o'
 
     MmResult result = pmeditor_delete_char(self);
 
@@ -1956,7 +1956,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlash) {
 // Test deleting in middle of word
 TEST_F(PmEditorDeleteCharTest, DeleteMiddleOfWord) {
     SetBuffer("Hello");
-    SetTxtp(2); // Position at 'l'
+    SetTxtp(2); // At 'l'
 
     MmResult result = pmeditor_delete_char(self);
 
@@ -1971,7 +1971,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteMiddleOfWord) {
 // Test deleting with cursor at various positions in a sentence
 TEST_F(PmEditorDeleteCharTest, DeleteInSentence) {
     SetBuffer("The quick brown fox");
-    SetTxtp(4); // Position at 'q'
+    SetTxtp(4); // At 'q'
 
     MmResult result = pmeditor_delete_char(self);
 
@@ -1985,7 +1985,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteInSentence) {
 // Test deleting special characters
 TEST_F(PmEditorDeleteCharTest, DeleteSpecialCharacters) {
     SetBuffer("Hello!@#$%World");
-    SetTxtp(5); // Position at '!'
+    SetTxtp(5); // At '!'
 
     MmResult result = pmeditor_delete_char(self);
 
@@ -2029,7 +2029,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSingleNewlineBuffer) {
 // Test deleting multiple characters in sequence
 TEST_F(PmEditorDeleteCharTest, DeleteMultipleCharactersSequence) {
     SetBuffer("ABCDEF");
-    SetTxtp(2); // Position at 'C'
+    SetTxtp(2); // At 'C'
 
     // Delete 'C'
     MmResult result1 = pmeditor_delete_char(self);
@@ -2100,7 +2100,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteCursorPositioning) {
 // Test deleting with comment level tracking
 TEST_F(PmEditorDeleteCharTest, DeleteWithCommentLevelTracking) {
     SetBuffer("/* comment */ code");
-    SetTxtp(2); // Position at space in comment
+    SetTxtp(2); // At space in comment
 
     MmResult result = pmeditor_delete_char(self);
 
@@ -2114,7 +2114,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteWithCommentLevelTracking) {
 // Test deleting newline at end of file
 TEST_F(PmEditorDeleteCharTest, DeleteNewlineAtEndOfFile) {
     SetBuffer("Line0\nLine1\n");
-    SetTxtp(strlen("Line0\nLine1")); // Position at final newline
+    SetTxtp(strlen("Line0\nLine1")); // At final newline
 
     MmResult result = pmeditor_delete_char(self);
 
@@ -3780,7 +3780,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteAtEndOfBuffer) {
 // Test overwriting at newline (should insert)
 TEST_F(PmEditorOverwriteCharTest, OverwriteAtNewline) {
     SetBuffer("Hello\nWorld");
-    SetTxtp(5); // Position at newline
+    SetTxtp(5); // At newline
 
     MmResult result = pmeditor_overwrite_char(self, '!');
 
@@ -3810,7 +3810,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteFirstCharacter) {
 // Test overwriting last character before end
 TEST_F(PmEditorOverwriteCharTest, OverwriteLastCharacterBeforeEnd) {
     SetBuffer("Hello");
-    SetTxtp(4); // Position at 'o'
+    SetTxtp(4); // At 'o'
 
     MmResult result = pmeditor_overwrite_char(self, 'a');
 
@@ -3825,7 +3825,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteLastCharacterBeforeEnd) {
 // Test overwriting middle character
 TEST_F(PmEditorOverwriteCharTest, OverwriteMiddleCharacter) {
     SetBuffer("Hello");
-    SetTxtp(2); // Position at 'l'
+    SetTxtp(2); // At 'l'
 
     MmResult result = pmeditor_overwrite_char(self, 'x');
 
@@ -3953,7 +3953,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteMultipleCharactersSequence) {
 // Test overwriting '/' creating multiline comment start
 TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingCommentStart) {
     SetBuffer("code * more");
-    SetTxtp(4); // Position at space before '*'
+    SetTxtp(4); // At space before '*'
 
     MmResult result = pmeditor_overwrite_char(self, '/');
 
@@ -3967,7 +3967,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingCommentStart) {
 // Test overwriting '*' creating multiline comment start
 TEST_F(PmEditorOverwriteCharTest, OverwriteStarCreatingCommentStart) {
     SetBuffer("code/ more");
-    SetTxtp(5); // Position at space after '/'
+    SetTxtp(5); // At space after '/'
 
     MmResult result = pmeditor_overwrite_char(self, '*');
 
@@ -3981,7 +3981,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteStarCreatingCommentStart) {
 // Test overwriting '*' creating multiline comment end
 TEST_F(PmEditorOverwriteCharTest, OverwriteStarCreatingCommentEnd) {
     SetBuffer("code / more");
-    SetTxtp(4); // Position at space before '/'
+    SetTxtp(4); // At space before '/'
 
     MmResult result = pmeditor_overwrite_char(self, '*');
 
@@ -3995,7 +3995,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteStarCreatingCommentEnd) {
 // Test overwriting '/' creating multiline comment end
 TEST_F(PmEditorOverwriteCharTest, OverwriteSlashCreatingCommentEnd) {
     SetBuffer("code* more");
-    SetTxtp(5); // Position at space after '*'
+    SetTxtp(5); // At space after '*'
 
     MmResult result = pmeditor_overwrite_char(self, '/');
 
@@ -4009,7 +4009,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteSlashCreatingCommentEnd) {
 // Test overwriting breaking multiline comment start
 TEST_F(PmEditorOverwriteCharTest, OverwriteBreakingCommentStart) {
     SetBuffer("code/*more");
-    SetTxtp(4); // Position at '/'
+    SetTxtp(4); // At '/'
 
     MmResult result = pmeditor_overwrite_char(self, 'X');
 
@@ -4023,7 +4023,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteBreakingCommentStart) {
 // Test overwriting breaking multiline comment end
 TEST_F(PmEditorOverwriteCharTest, OverwriteBreakingCommentEnd) {
     SetBuffer("code*/more");
-    SetTxtp(4); // Position at '*'
+    SetTxtp(4); // At '*'
 
     MmResult result = pmeditor_overwrite_char(self, 'X');
 
@@ -4037,7 +4037,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteBreakingCommentEnd) {
 // Test overwriting with single-quote before /* (creates comment-out)
 TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingSingleQuoteBeforeCommentStart) {
     SetBuffer("code /*more");
-    SetTxtp(4); // Position at space before '/'
+    SetTxtp(4); // At space before '/'
 
     MmResult result = pmeditor_overwrite_char(self, '\'');
 
@@ -4051,7 +4051,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingSingleQuoteBeforeCommentStart
 // Test overwriting with double-quote before /* (creates comment-out)
 TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingDoubleQuoteBeforeCommentStart) {
     SetBuffer("code /*more");
-    SetTxtp(4); // Position at space before '/'
+    SetTxtp(4); // At space before '/'
 
     MmResult result = pmeditor_overwrite_char(self, '"');
 
@@ -4065,7 +4065,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingDoubleQuoteBeforeCommentStart
 // Test overwriting completing REM before /*
 TEST_F(PmEditorOverwriteCharTest, OverwriteCompletingRemBeforeCommentStart) {
     SetBuffer("code RE /*more");
-    SetTxtp(7); // Position at space after 'RE'
+    SetTxtp(7); // At space after 'RE'
 
     MmResult result = pmeditor_overwrite_char(self, 'M');
 
@@ -4079,7 +4079,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCompletingRemBeforeCommentStart) {
 // Test overwriting in multiline buffer
 TEST_F(PmEditorOverwriteCharTest, OverwriteInMultilineBuffer) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(7); // Position at 'i' in "Line1"
+    SetTxtp(7); // At 'i' in "Line1"
 
     MmResult result = pmeditor_overwrite_char(self, 'X');
 
@@ -4139,7 +4139,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteNearBufferCapacity) {
 
 TEST_F(PmEditorOverwriteCharTest, OverwriteWithSlashCreatesNoComment) {
     SetBuffer("a b");
-    SetTxtp(1); // Position at space
+    SetTxtp(1); // At space
 
     MmResult result = pmeditor_overwrite_char(self, '/');
 
@@ -4152,7 +4152,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithSlashCreatesNoComment) {
 
 TEST_F(PmEditorOverwriteCharTest, OverwriteWithStarCreatesNoComment) {
     SetBuffer("a b");
-    SetTxtp(1); // Position at space
+    SetTxtp(1); // At space
 
     MmResult result = pmeditor_overwrite_char(self, '*');
 
@@ -4179,7 +4179,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteDeleteConsistency) {
 // Test overwriting at line boundaries
 TEST_F(PmEditorOverwriteCharTest, OverwriteAtLineBoundaries) {
     SetBuffer("Line1\n\nLine3");
-    SetTxtp(6); // Position at second newline
+    SetTxtp(6); // At second newline
 
     MmResult result = pmeditor_overwrite_char(self, 'X');
 
@@ -6521,7 +6521,6 @@ TEST_F(PmEditorCmdPageDownTest, MoveForwardOneFullScreen) {
     }
     SetBuffer(content.c_str());
 
-    // Position at line 5, column 2
     self->py = 0;
     self->cy = 5;
     self->cx = 2;
