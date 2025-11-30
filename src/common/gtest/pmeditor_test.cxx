@@ -56,16 +56,21 @@ typedef struct {
 
 typedef struct {
     int calls;
+    char msg[STRINGSIZE];
+} PrintMsgCapture;
+
+typedef struct {
+    int calls;
 } PrintStatusCapture;
 
-static char display_msg_capture[STRINGSIZE];
 static PrintFuncKeysCapture print_func_keys_capture;
 static PrintLinesCapture print_lines_capture;
+static PrintMsgCapture print_msg_capture;
 static PrintStatusCapture print_status_capture;
 
-MmResult pmeditor_test_display_msg(PmEditor *self, const char *msg) {
-    strcpy(display_msg_capture, msg);
-    self->message_shown = true;
+MmResult pmeditor_test_print_msg(PmEditor *self, const char *msg) {
+    print_msg_capture.calls++;
+    strcpy(print_msg_capture.msg, msg);
     return kOk;
 }
 
@@ -113,9 +118,9 @@ protected:
         pmeditor_construct(self, NULL, 80, 25);
 
         // Mock pmeditor functions
-        pmeditor_display_msg = pmeditor_test_display_msg;
         pmeditor_print_func_keys = pmeditor_test_print_func_keys;
         pmeditor_print_lines = pmeditor_test_print_lines;
+        pmeditor_print_msg = pmeditor_test_print_msg;
         pmeditor_print_status = pmeditor_test_print_status;
 
         // Initialize options
@@ -126,8 +131,9 @@ protected:
         // Reset syntax state
         memset(&syntax, 0, sizeof(syntax));
 
-        // Reset mock state
-        memset(display_msg_capture, 0, sizeof(display_msg_capture));
+        // Reset capture state
+        print_msg_capture = { .calls = 0 };
+        strcpy(print_msg_capture.msg, "");
         print_func_keys_capture = { .calls = 0 };
         print_lines_capture = { .calls = 0, .start = -1, .num = -1, .cy = -1 };
         print_status_capture = { .calls = 0 };
@@ -193,6 +199,15 @@ protected:
 
 #define EXPECT_PRINT_LINES_NOT_CALLED() \
     EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 0, .start = -1, .num = -1, .cy = -1}))
+
+#define EXPECT_PRINT_MSG_CALLED(expected) \
+    do { \
+        EXPECT_EQ(expected.calls, print_msg_capture.calls) << "pmeditor_print_msg call count mismatch"; \
+        EXPECT_STREQ(expected.msg, print_msg_capture.msg) << "pmeditor_print_msg message argument mismatch"; \
+    } while (0)
+
+#define EXPECT_PRINT_MSG_NOT_CALLED() \
+    EXPECT_PRINT_MSG_CALLED(((PrintMsgCapture) {.calls = 0}))
 
 #define EXPECT_TXTP_EQ(expected_offset) \
     do { \
@@ -1605,7 +1620,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferFull) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(REDRAW_NOTHING, redraw);
-    EXPECT_STREQ(" EDIT BUFFER FULL ", display_msg_capture);
+    EXPECT_STREQ(" EDIT BUFFER FULL ", self->message);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertCharBufferHasOnlyOneByteRemaining) {
@@ -1622,7 +1637,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferHasOnlyOneByteRemaining) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(0, redraw);
-    EXPECT_STREQ("", display_msg_capture);
+    EXPECT_STREQ("", self->message);
     EXPECT_EQ(self->buf + EDIT_BUFFER_SIZE - 1, self->txtp);
     EXPECT_EQ('B', *(self->buf + EDIT_BUFFER_SIZE - 2));
 }
@@ -4344,7 +4359,7 @@ TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardLimitMarkBefore) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE", display_msg_capture);
+    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
     EXPECT_STREQ("", self->clipboard_buf);  // Clipboard unchanged/empty
     EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
 }
@@ -4359,7 +4374,7 @@ TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardLimitMarkAfter) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE", display_msg_capture);
+    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
     EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
 }
 
@@ -4373,7 +4388,7 @@ TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardByOne) {
     MmResult result = pmeditor_mark_copy(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE", display_msg_capture);
+    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
 }
 
 // Test copying overwrites previous clipboard content
@@ -4533,7 +4548,7 @@ TEST_F(PmEditorMarkCopyTest, ClipboardSizeBoundaryCheck) {
     SetTxtp(MAXCLIP + 1);
 
     EXPECT_EQ(kOk, pmeditor_mark_copy(self));
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE", display_msg_capture);
+    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -4683,7 +4698,7 @@ TEST_F(PmEditorMarkCutTest, CutExceedsClipboardLimit) {
     MmResult result = pmeditor_mark_cut(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE", display_msg_capture);
+    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
     // Buffer should be UNCHANGED when clipboard overflow occurs
     EXPECT_EQ(MAXCLIP + 10, strlen(self->buf));
     EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
@@ -4929,7 +4944,7 @@ TEST_F(PmEditorMarkCutTest, ClipboardBoundaryValidation) {
     SetTxtp(MAXCLIP + 1);
 
     EXPECT_EQ(kOk, pmeditor_mark_cut(self));
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE", display_msg_capture);
+    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
     EXPECT_EQ(MAXCLIP + 1, strlen(self->buf));  // Buffer UNCHANGED
     EXPECT_EQ(kMarkMode, self->mode);  // Should not exit mark mode
 }
@@ -6107,7 +6122,7 @@ TEST_F(PmEditorCmdEndTest, ShowsErrorWhenLineLongerThanWidth) {
     MmResult result = pmeditor_cmd_end(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" LINE IS TOO LONG ", display_msg_capture);
+    EXPECT_STREQ(" LINE IS TOO LONG ", self->message);
 }
 
 // Test double END positions at end of last line
@@ -6147,7 +6162,7 @@ TEST_F(PmEditorCmdEndTest, MoveFromVeryLongLine) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_CURSOR_EQ(20, 0); // Should not move
-    EXPECT_STREQ(" LINE IS TOO LONG ", display_msg_capture);
+    EXPECT_STREQ(" LINE IS TOO LONG ", self->message);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -7521,7 +7536,7 @@ TEST_F(PmEditorCmdRightTest, ShowsErrorAtWidthBoundary) {
     MmResult result = pmeditor_cmd_right(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" LINE IS TOO LONG ", display_msg_capture);
+    EXPECT_STREQ(" LINE IS TOO LONG ", self->message);
     EXPECT_TXTP_EQ(80); // Position unchanged
     EXPECT_CURSOR_EQ(80, 0);
 }
@@ -7979,6 +7994,7 @@ TEST_F(PmEditorUpdateDisplayTest, NoUpdateWhenNothingChanges) {
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_LINES_NOT_CALLED();
     EXPECT_PRINT_FUNC_KEYS_NOT_CALLED();
+    EXPECT_PRINT_MSG_NOT_CALLED();
     EXPECT_PRINT_STATUS_NOT_CALLED();
 }
 
@@ -8061,4 +8077,31 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsFuncKeysWhenModeChanges) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+}
+
+TEST_F(PmEditorUpdateDisplayTest, PrintsMessageWhenSet) {
+    self->mode = kEditMode;
+    PmEditor old = pmeditor_shallow_copy(self);
+    self->mode = kMarkMode; // Would normally cause func keys and status to update
+    strcpy(self->message, "My message");
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_MSG_CALLED(((PrintMsgCapture) {.calls = 1, .msg = "My message"}));
+    EXPECT_PRINT_FUNC_KEYS_NOT_CALLED();
+    EXPECT_PRINT_STATUS_NOT_CALLED();
+}
+
+TEST_F(PmEditorUpdateDisplayTest, RedrawsFuncKeysAndStatusWhenMessageCleared) {
+    strcpy(self->message, "My message");
+    PmEditor old = pmeditor_shallow_copy(self);
+    strcpy(self->message, "");
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_MSG_NOT_CALLED();
+    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
 }

@@ -78,24 +78,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     } while (0)
 
 // Forward declaration of real function implementations
-MmResult pmeditor_display_msg_impl(PmEditor *, const char *);
 MmResult pmeditor_highlight_impl(PmEditor *, HighlightType);
 MmResult pmeditor_print_func_keys_impl(PmEditor *);
 MmResult pmeditor_print_lines_impl(PmEditor *, unsigned, unsigned);
+MmResult pmeditor_print_msg_impl(PmEditor *, const char *);
 MmResult pmeditor_print_status_impl(PmEditor *);
 
 // Pointers to functions we want to override in unit-tests
-MmResult (*pmeditor_display_msg)(PmEditor *, const char *) = pmeditor_display_msg_impl;
 MmResult (*pmeditor_highlight)(PmEditor *, HighlightType) = pmeditor_highlight_impl;
 MmResult (*pmeditor_print_func_keys)(PmEditor *) = pmeditor_print_func_keys_impl;
 MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned) = pmeditor_print_lines_impl;
+MmResult (*pmeditor_print_msg)(PmEditor *, const char *) = pmeditor_print_msg_impl;
 MmResult (*pmeditor_print_status)(PmEditor *) = pmeditor_print_status_impl;
 
 /**
  * Restores all overridable functions to their real implementations.
  */
 void pmeditor_restore_fn_pointers() {
-    pmeditor_display_msg = pmeditor_display_msg_impl;
+    pmeditor_print_msg = pmeditor_print_msg_impl;
     pmeditor_highlight = pmeditor_highlight_impl;
     pmeditor_print_lines = pmeditor_print_lines_impl;
 }
@@ -128,6 +128,7 @@ MmResult pmeditor_construct(PmEditor *self, const char *filename, int width, int
     self->text_changed = false;
     self->saved_break_key = mmb_options.break_key;
     self->highlight = kHighlightNormal;
+    self->message[0] = '\0';
 
     // Allocate dynamic memory, including space for clipboard and key buffers.
     // We use a single allocation to reduce fragmentation.
@@ -492,14 +493,14 @@ static MmResult pmeditor_get_input(PmEditor *self, const char *prompt) {
  * typically used for error messages or warnings. Sets a flag to redraw the
  * status line after the next user input.
  *
- * IMPORTANT: Only call this function via the pmeditor_display_msg() wrapper
+ * IMPORTANT: Only call this function via the pmeditor_print_msg() wrapper
  *            so that unit-tests can override it.
  *
  * @param  self  Pointer to the PmEditor instance.
  * @param  msg   The message string to display.
  * @return       kOk on success, or an error code on failure.
  */
-MmResult pmeditor_display_msg_impl(PmEditor *self, const char *msg) {
+MmResult pmeditor_print_msg_impl(PmEditor *self, const char *msg) {
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height + 1));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightError));
     ON_FAILURE_RETURN(display_inverse(true));
@@ -508,7 +509,6 @@ MmResult pmeditor_display_msg_impl(PmEditor *self, const char *msg) {
     ON_FAILURE_RETURN(display_reset());
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
-    self->message_shown = true;
     return kOk;
 }
 
@@ -691,7 +691,8 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
 
     // Limit line length
     if (self->cx >= self->width) {
-        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
+        strcpy(self->message, " LINE IS TOO LONG ");
+        return kOk;
     }
 
     // Find the end of the text
@@ -700,7 +701,8 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
 
     // Check that the buffer is not full
     if (p >= self->buf + self->buf_sz - 1) {
-        return pmeditor_display_msg(self, " EDIT BUFFER FULL ");
+        strcpy(self->message, " EDIT BUFFER FULL ");
+        return kOk;
     }
 
     // Inserting a newline always requires a redraw
@@ -1410,7 +1412,8 @@ MmResult pmeditor_mark_copy(PmEditor *self) {
     if (selection_length > 0) {
         // Check clipboard size limit
         if (selection_length > MAXCLIP) {
-            return pmeditor_display_msg(self, " MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE");
+            strcpy(self->message, " MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ");
+            return kOk;
         }
 
         // Copy the selection to clipboard
@@ -1430,9 +1433,8 @@ MmResult pmeditor_mark_copy(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_mark_cut(PmEditor *self) {
-    self->message_shown = false;
     ON_FAILURE_RETURN(pmeditor_mark_copy(self));
-    if (self->message_shown) {
+    if (*self->message) {
         // Copy failed, do not delete and remain in mark mode
         self->mode = kMarkMode;
         return kOk;
@@ -1653,15 +1655,20 @@ MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
         ON_FAILURE_RETURN(pmeditor_print_selection(self, old));
     }
 
-    if (self->mode != old->mode) {
-        ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
-    }
+    if (self->message[0] != '\0') {
+        ON_FAILURE_RETURN(pmeditor_print_msg(self, self->message));
+    } else {
+        if (self->mode != old->mode || old->message[0] != '\0') {
+            ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
+        }
 
-    if (self->mode != old->mode
-            || self->insert != old->insert
-            || self->cx != old->cx
-            || self->cy != old->cy) {
-        ON_FAILURE_RETURN(pmeditor_print_status(self));
+        if (self->mode != old->mode
+                || old->message[0] != '\0'
+                || self->insert != old->insert
+                || self->cx != old->cx
+                || self->cy != old->cy) {
+            ON_FAILURE_RETURN(pmeditor_print_status(self));
+        }
     }
 
     return kOk;
@@ -1839,7 +1846,8 @@ MmResult pmeditor_cmd_right(PmEditor* self) {
     }
 
     if (self->cx >= self->width) {
-        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
+        strcpy(self->message, " LINE IS TOO LONG ");
+        return kOk;
     }
 
     // Move cursor forward one character
@@ -2121,7 +2129,8 @@ MmResult pmeditor_move_to_end(PmEditor *self) {
     // Move to end of last line
     int cx = pmeditor_line_length(self, p);
     if (cx > self->width) {
-        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
+        strcpy(self->message, " LINE IS TOO LONG ");
+        return kOk;
     }
     p += cx;
 
@@ -2162,7 +2171,8 @@ MmResult pmeditor_cmd_end(PmEditor *self) {
 
     int len = pmeditor_line_length(self, self->txtp);
     if (len > self->width) {
-        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
+        strcpy(self->message, " LINE IS TOO LONG ");
+        return kOk;
     }
 
     self->txtp = pmeditor_end_of_line(self, self->txtp);
@@ -2287,9 +2297,8 @@ static MmResult pmeditor_cmd_save_and_exit(PmEditor *self) {
     int length = -1;
     ON_FAILURE_RETURN(pmeditor_find_longest_line(self, &line, &length));
     if (length > MAX_LINE_LENGTH) {
-        char msg[32] = {};
-        sprintf(msg, " LINE %d TOO LONG ", line);
-        return pmeditor_display_msg(self, msg);
+        sprintf(self->message, " LINE %d TOO LONG ", line);
+        return kOk;
     }
 
     // Clear and reset display
@@ -2410,7 +2419,8 @@ static MmResult pmeditor_cmd_search_again(PmEditor *self) {
         if (memcmp(p, tknbuf, i) == 0) break;
     }
     if (p == self->txtp) {
-        return pmeditor_display_msg(self, " NOT FOUND ");
+        strcpy(self->message, " NOT FOUND ");
+        return kOk;
     }
     int y;
     for (y = 0, self->txtp = self->buf; self->txtp != p;
@@ -2479,7 +2489,8 @@ static MmResult pmeditor_cmd_paste(PmEditor *self) {
     }
 
     if (*self->clipboard_buf == '\0') {
-        return pmeditor_display_msg(self, " CLIPBOARD IS EMPTY ");
+        strcpy(self->message, " CLIPBOARD IS EMPTY ");
+        return kOk;
     }
     int i;
     for (i = 0; self->clipboard_buf[i]; i++) self->key_buf[i + 1] = self->clipboard_buf[i];
@@ -2710,15 +2721,9 @@ MmResult pmeditor_resize_console(PmEditor *self) {
 MmResult pmeditor_edit_loop(PmEditor *self) {
     while (self->mode != kExitMode) {
         PmEditor old = pmeditor_shallow_copy(self);
+        self->message[0] = '\0';
 
         ON_FAILURE_RETURN(pmeditor_read_keys(self));
-
-        if (self->message_shown) {
-            ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
-            ON_FAILURE_RETURN(pmeditor_print_status(self));
-            self->message_shown = false;
-        }
-
         ON_FAILURE_RETURN(pmeditor_cmd_dispatch(self, self->key_buf[0]));
         self->last_key = self->key_buf[0];
 

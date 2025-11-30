@@ -121,7 +121,7 @@ typedef struct {
     char *mark;              ///< Mark position for text selection
 
     // Display state
-    bool message_shown;      ///< True if status message displayed
+    char message[64];        ///< Message being shown
     HighlightType highlight; ///< Current syntax highlighting
 
     // Input
@@ -135,7 +135,7 @@ typedef struct {
 
 // By changing these function pointers unit-tests can override "display"
 // behaviour.
-extern MmResult (*pmeditor_display_msg)(PmEditor *, const char *);
+extern MmResult (*pmeditor_print_msg)(PmEditor *, const char *);
 extern MmResult (*pmeditor_highlight)(PmEditor *, HighlightType);
 extern MmResult (*pmeditor_print_func_keys)(PmEditor *);
 extern MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned);
