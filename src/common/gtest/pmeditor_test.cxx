@@ -8017,16 +8017,68 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenModeChanges) {
     EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
 }
 
-TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenViewportChanges) {
+// Test screen redrawn when viewport moves down by two or more (py increases)
+TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenPyIncreasesByTwo) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(6);
     PmEditor old = pmeditor_shallow_copy(self);
-    self->py = 1;
+    self->py += 2;
 
     MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 1, .num = 23, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 2, .num = 23, .cy = 0}));
+}
+
+// Test screen redrawn when viewport moves down by two or more (py decreases)
+TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenPyDecreasesByTwo) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    self->py = 2;
+    PmEditor old = pmeditor_shallow_copy(self);
+    self->py -= 2;
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
+}
+
+// Test screen redrawn when viewport moves down by one
+TEST_F(PmEditorUpdateDisplayTest, ScrollsScreenDownWhenPyIncreasesByOne) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    PmEditor old = pmeditor_shallow_copy(self);
+    self->py += 1;
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+
+    // Can't easily test that the screen has been scrolled
+    // but can test that the last line of viewport and the status line have been redrawn
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 23, .num = 1, .cy = 22}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+}
+
+// Test screen redrawn when viewport moves up by one
+TEST_F(PmEditorUpdateDisplayTest, ScrollsScreenUpWhenPyDecreasesByOne) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    self->py = 1;
+    PmEditor old = pmeditor_shallow_copy(self);
+    self->py -= 1;
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+
+    // Can't easily test that the screen has been scrolled
+    // but can test that the first line of viewport and the status line have been redrawn
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 1, .cy = 0}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
 }
 
 TEST_F(PmEditorUpdateDisplayTest, RedrawsSelectionWhenInMarkModeAndTxtpChanges) {

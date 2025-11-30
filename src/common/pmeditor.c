@@ -1311,17 +1311,30 @@ MmResult pmeditor_print_screen(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_scroll_up(PmEditor *self) {
+    PmEditor old = pmeditor_shallow_copy(self);
+
     // Move to end of the editing area
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height));
+
+    // Clear status line
     ON_FAILURE_RETURN(display_clear_to_end_of_screen());
+
+    // Scroll display up
     ON_FAILURE_RETURN(display_scroll_up());
-    self->py++;
+
+    // Draw new line at bottom of editing area
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height - 1));
     ON_FAILURE_RETURN(pmeditor_print_line_n(self, self->height - 1 + self->py));
-    ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
 
-    // Consume any keystrokes accumulated while redrawing the screen
+    // Restore cursor position
+    self->cx = old.cx;
+    self->cy = old.cy;
+
+    // Restore status line
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
+    ON_FAILURE_RETURN(pmeditor_print_status(self));
+
+    // Consume any keystrokes accumulated while scrolling the screen
     while (console_getc() != -1) {}
 
     return kOk;
@@ -1337,15 +1350,28 @@ static MmResult pmeditor_scroll_up(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_scroll_down(PmEditor *self) {
+    PmEditor old = pmeditor_shallow_copy(self);
+
     // Move to end of the editing area
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height));
+
+    // Clear status lines
     ON_FAILURE_RETURN(display_clear_to_end_of_screen());
+
+    // Scroll display down
     ON_FAILURE_RETURN(display_scroll_down());
-    self->py--;
+
+    // Draw new line at top of editing area
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, 0));
     ON_FAILURE_RETURN(pmeditor_print_line_n(self, self->py));
+
+    // Restore cursor position
+    self->cx = old.cx;
+    self->cy = old.cy;
+
+    // Restore status line
     ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
+    ON_FAILURE_RETURN(pmeditor_print_status(self));
 
     // Consume any keystrokes accumulated while redrawing the screen
     while (console_getc() != -1) {}
@@ -1649,9 +1675,13 @@ static MmResult pmeditor_read_keys(PmEditor *self) {
  * @return          kOk on success, or an error code on failure.
  */
 MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
-    if (self->num_lines != old->num_lines
-            || self->mode != old->mode
-            || self->py != old->py) {
+    if (self->num_lines != old->num_lines || self->mode != old->mode) {
+        ON_FAILURE_RETURN(pmeditor_print_screen(self));
+    } else if (self->py == old->py + 1) {
+        ON_FAILURE_RETURN(pmeditor_scroll_up(self));
+    } else if (self->py == old->py - 1) {
+        ON_FAILURE_RETURN(pmeditor_scroll_down(self));
+    } else if (self->py != old->py) {
         ON_FAILURE_RETURN(pmeditor_print_screen(self));
     } else if (self->mode == kMarkMode && self->txtp != old->txtp) {
         ON_FAILURE_RETURN(pmeditor_print_selection(self, old));
@@ -1750,11 +1780,11 @@ MmResult pmeditor_cmd_up(PmEditor *self) {
     if (self->cy > 2 || self->py == 0) {
         // If we are more than two lines from the top then move the cursor up
         self->cy--;
-        return pmeditor_set_cursor_pos(self, self->cx, self->cy);
     } else {
         // Otherwise scroll the document down
-        return pmeditor_scroll_down(self);
+        self->py--;
     }
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -1784,11 +1814,11 @@ MmResult pmeditor_cmd_down(PmEditor *self) {
     if (self->cy < self->height - 3 || self->py + self->height == self->num_lines) {
         // If we are less than two lines from the bottom then move the cursor down
         self->cy++;
-        return pmeditor_set_cursor_pos(self, self->cx, self->cy);
     } else {
         // Otherwise scroll the document up
-        return pmeditor_scroll_up(self);
+        self->py++;
     }
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2042,7 +2072,7 @@ MmResult pmeditor_cmd_backspace(PmEditor *self) {
 static MmResult pmeditor_cmd_insert(PmEditor *self) {
     if (self->mode != kEditMode) return display_bell();
     self->insert = !self->insert;
-    return pmeditor_print_status(self);
+    return kOk;
 }
 
 /**
