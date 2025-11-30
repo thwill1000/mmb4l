@@ -1649,7 +1649,9 @@ static MmResult pmeditor_read_keys(PmEditor *self) {
  * @return          kOk on success, or an error code on failure.
  */
 MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
-    if (self->num_lines != old->num_lines || self->mode != old->mode) {
+    if (self->num_lines != old->num_lines
+            || self->mode != old->mode
+            || self->py != old->py) {
         ON_FAILURE_RETURN(pmeditor_print_screen(self));
     } else if (self->mode == kMarkMode && self->txtp != old->txtp) {
         ON_FAILURE_RETURN(pmeditor_print_selection(self, old));
@@ -1717,9 +1719,6 @@ static MmResult pmeditor_cmd_newline(PmEditor *self) {
     self->num_lines++;
     if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
         self->py++;                      // otherwise scroll
-
-    // Always redraw everything
-    ON_FAILURE_RETURN(pmeditor_print_screen(self));
 
     return pmeditor_position_cursor(self, self->txtp);
 }
@@ -2057,15 +2056,11 @@ static MmResult pmeditor_cmd_insert(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_move_to_start(PmEditor *self) {
-    const int old_py = self->py;
     self->txtp = self->buf;
     self->cx = 0;
     self->cy = 0;
     self->py = 0;
-    if (self->py != old_py) {
-        ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    }
-    return pmeditor_set_cursor_pos(self, 0, 0);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2141,11 +2136,7 @@ MmResult pmeditor_move_to_end(PmEditor *self) {
         cy = self->height - 1;
     }
 
-    if (py != self->py) {
-        self->py = py;
-        ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    }
-
+    self->py = py;
     self->txtp = p;
     return pmeditor_set_cursor_pos(self, cx, cy);
 }
@@ -2218,8 +2209,6 @@ MmResult pmeditor_cmd_page_up(PmEditor *self) {
     self->cx = min(self->cx, len);
     self->txtp += self->cx;
 
-    ON_FAILURE_RETURN(pmeditor_print_screen(self));
-
     return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
@@ -2259,8 +2248,6 @@ MmResult pmeditor_cmd_page_down(PmEditor *self) {
     const int len = pmeditor_line_length(self, self->txtp);
     self->cx = min(self->cx, len);
     self->txtp += self->cx;
-
-    ON_FAILURE_RETURN(pmeditor_print_screen(self));
 
     return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
@@ -2431,7 +2418,6 @@ static MmResult pmeditor_cmd_search_again(PmEditor *self) {
     }
     self->py = y - self->height / 2;  // self->py is the line displayed at the top
     if (self->py < 0) self->py = 0;   // compensate if we are near the start
-    ON_FAILURE_RETURN(pmeditor_print_screen(self));
 
     return pmeditor_position_cursor(self, self->txtp);
 }

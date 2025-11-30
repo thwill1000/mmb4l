@@ -5992,8 +5992,7 @@ TEST_F(PmEditorCmdEndTest, DoubleEndWithManyLinesCalculatesPy) {
     // i = 30 (number of newlines), height = 23
     // py = 30 - 23 + 1 = 8
     EXPECT_EQ(8, self->py);
-    EXPECT_EQ(self->height - 1, self->cy); // cy = 22
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 8, .num = 23, .cy = 0}));
+    EXPECT_CURSOR_EQ(0, self->height - 1); // cy = 22
 }
 
 // Test double END with buffer shorter than screen height
@@ -6312,7 +6311,6 @@ TEST_F(PmEditorCmdHomeTest, DoubleHomeFromFarDownInBuffer) {
     EXPECT_TXTP_EQ(0); // At start of buffer
     EXPECT_CURSOR_EQ(0, 0);
     EXPECT_EQ(0, self->py); // Reset to first page
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
 }
 
 // Test HOME does not modify buffer
@@ -6768,8 +6766,7 @@ TEST_F(PmEditorCmdPageDownTest, MoveForwardOneFullScreen) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(self->height, self->py); // Moved forward by height
-    EXPECT_EQ(2, self->cx); // Column preserved
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 23, .num = 23, .cy = 0}));
+    EXPECT_CURSOR_EQ(2, 5); // Column preserved
 }
 
 // Test page down when already showing bottom of file queues END END
@@ -6808,8 +6805,7 @@ TEST_F(PmEditorCmdPageDownTest, NearBottomPositionsToShowLastPage) {
     EXPECT_EQ(kOk, result);
     // Should move to py = 36 - 23 = 13 (final position showing last page)
     EXPECT_EQ(13, self->py);
-    EXPECT_EQ(2, self->cx);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 13, .num = 23, .cy = 0}));
+    EXPECT_CURSOR_EQ(2, 3);
 }
 
 // Test page down maintains column position
@@ -6988,7 +6984,7 @@ TEST_F(PmEditorCmdPageDownTest, WithEmptyLines) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(self->height, self->py);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 23, .num = 23, .cy = 0}));
+    EXPECT_CURSOR_EQ(2, 5);
 }
 
 // Test page down handles end of buffer without trailing newline
@@ -7094,7 +7090,6 @@ TEST_F(PmEditorCmdPageUpTest, MoveBackOneFullScreen) {
     EXPECT_EQ(0, self->py); // Moved back by height (10 - 20 = 0, clamped)
     EXPECT_CURSOR_EQ(2, 10); // cx and cy preserved
     EXPECT_TXTP_CONSISTENT();
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
 }
 
 // Test page up when already showing top of file queues HOME HOME
@@ -7129,7 +7124,6 @@ TEST_F(PmEditorCmdPageUpTest, MovesLessThanFullScreenNearTop) {
     EXPECT_EQ(0, self->py); // Moved to top (can't go negative)
     EXPECT_CURSOR_EQ(2, 3); // Column and row preserved
     EXPECT_TXTP_CONSISTENT();
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
 }
 
 // Test page up to shorter line stops at end of line
@@ -7286,7 +7280,6 @@ TEST_F(PmEditorCmdPageUpTest, WithEmptyLines) {
     EXPECT_EQ(7, self->py);
     EXPECT_CURSOR_EQ(2, 6);
     EXPECT_TXTP_CONSISTENT();
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 7, .num = 23, .cy = 0}));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -8022,6 +8015,18 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenModeChanges) {
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
     EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+}
+
+TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenViewportChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    PmEditor old = pmeditor_shallow_copy(self);
+    self->py = 1;
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 1, .num = 23, .cy = 0}));
 }
 
 TEST_F(PmEditorUpdateDisplayTest, RedrawsSelectionWhenInMarkModeAndTxtpChanges) {
