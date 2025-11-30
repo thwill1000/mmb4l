@@ -1810,8 +1810,9 @@ MmResult pmeditor_cmd_left(PmEditor *self) {
 
     // Move cursor back one character
     self->txtp--;
+    self->cx--;
 
-    return pmeditor_position_cursor(self, self->txtp);
+    return kOk;
 }
 
 /**
@@ -1843,8 +1844,9 @@ MmResult pmeditor_cmd_right(PmEditor* self) {
 
     // Move cursor forward one character
     self->txtp++;
+    self->cx++;
 
-    return pmeditor_position_cursor(self, self->txtp);
+    return kOk;
 }
 
 /**
