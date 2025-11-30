@@ -1378,7 +1378,7 @@ static MmResult pmeditor_scroll_down(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-MmResult pmeditor_mark_delete(PmEditor *self) {
+MmResult pmeditor_cmd_delete_selection(PmEditor *self) {
     char *start = NULL;
     char *end = NULL;
     if (pmeditor_get_selection(self, &start, &end) == 0) {
@@ -1419,7 +1419,7 @@ MmResult pmeditor_mark_delete(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-MmResult pmeditor_mark_copy(PmEditor *self) {
+MmResult pmeditor_cmd_copy(PmEditor *self) {
     char *start = NULL;
     char *end = NULL;
     const size_t selection_length = pmeditor_get_selection(self, &start, &end);
@@ -1448,14 +1448,14 @@ MmResult pmeditor_mark_copy(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-MmResult pmeditor_mark_cut(PmEditor *self) {
-    ON_FAILURE_RETURN(pmeditor_mark_copy(self));
+MmResult pmeditor_cmd_cut(PmEditor *self) {
+    ON_FAILURE_RETURN(pmeditor_cmd_copy(self));
     if (*self->message) {
         // Copy failed, do not delete and remain in mark mode
         self->mode = kMarkMode;
         return kOk;
     }
-    return pmeditor_mark_delete(self);
+    return pmeditor_cmd_delete_selection(self);
 }
 
 /**
@@ -1467,7 +1467,7 @@ MmResult pmeditor_mark_cut(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_mark_escape(PmEditor *self) {
+static MmResult pmeditor_cmd_exit_mark(PmEditor *self) {
     // Wait 50ms to see if anything more is coming.
     mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
     if (console_getc() == '[' && console_getc() == 'M') {
@@ -2583,20 +2583,36 @@ static MmResult pmeditor_cmd_dispatch(PmEditor *self, char cmd/*, char *multi*/)
         case LEFT:     return pmeditor_cmd_left(self);
         case RIGHT:    return pmeditor_cmd_right(self);
         case BKSP:     return pmeditor_cmd_backspace(self);
-        case DEL:      return self->mode == kMarkMode ? pmeditor_mark_delete(self) : pmeditor_cmd_delete(self);
+        case DEL: {
+            return self->mode == kMarkMode
+                    ? pmeditor_cmd_delete_selection(self)
+                    : pmeditor_cmd_delete(self);
+        }
         case INSERT:   return pmeditor_cmd_insert(self);
         case HOME:     return pmeditor_cmd_home(self);
         case END:      return pmeditor_cmd_end(self);
         case PUP:      return pmeditor_cmd_page_up(self);
         case PDOWN:    return pmeditor_cmd_page_down(self);
         case TAB:      return pmeditor_cmd_tab(self);
-        case ESC:      return self->mode == kMarkMode ? pmeditor_mark_escape(self) : pmeditor_cmd_exit(self);
+        case ESC: {
+            return self->mode == kMarkMode
+                    ? pmeditor_cmd_exit_mark(self)
+                    : pmeditor_cmd_exit(self);
+        }
         case F1:       return pmeditor_cmd_save_and_exit(self);
         case F2:       return pmeditor_cmd_save_and_run(self);
         case F3:       return pmeditor_cmd_search(self);
         case SHIFT_FN(F3): return pmeditor_cmd_search_again(self);
-        case F4:       return self->mode == kMarkMode ? pmeditor_mark_cut(self) : pmeditor_cmd_mark(self);
-        case F5:       return self->mode == kMarkMode ? pmeditor_mark_copy(self) : pmeditor_cmd_paste(self);
+        case F4: {
+            return self->mode == kMarkMode
+                    ? pmeditor_cmd_cut(self)
+                    : pmeditor_cmd_mark(self);
+        }
+        case F5: {
+            return self->mode == kMarkMode
+                    ? pmeditor_cmd_copy(self)
+                    : pmeditor_cmd_paste(self);
+        }
         case F6:       return kOk;
         case F7:       return kOk;
         case F8:       return kOk;

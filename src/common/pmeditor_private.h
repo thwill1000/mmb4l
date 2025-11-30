@@ -145,6 +145,9 @@ MmResult pmeditor_construct(PmEditor *self, const char *filename, int width, int
 MmResult pmeditor_destruct(PmEditor *self);
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);
+MmResult pmeditor_cmd_copy(PmEditor *self);
+MmResult pmeditor_cmd_cut(PmEditor *self);
+MmResult pmeditor_cmd_delete_selection(PmEditor *self);
 MmResult pmeditor_cmd_down(PmEditor *self);
 MmResult pmeditor_cmd_end(PmEditor *self);
 MmResult pmeditor_cmd_home(PmEditor *self);
@@ -161,9 +164,6 @@ MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, Hi
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
 MmResult pmeditor_insert_char(PmEditor *self, char ch);
-MmResult pmeditor_mark_copy(PmEditor *self);
-MmResult pmeditor_mark_cut(PmEditor *self);
-MmResult pmeditor_mark_delete(PmEditor *self);
 MmResult pmeditor_overwrite_char(PmEditor *self, char ch);
 MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
 MmResult pmeditor_print_selection(PmEditor *self, PmEditor *old);

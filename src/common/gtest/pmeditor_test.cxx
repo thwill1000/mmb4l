@@ -4202,7 +4202,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwritePreservesBufferIntegrity) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_mark_copy()
+// Tests for pmeditor_cmd_copy()
 ////////////////////////////////////////////////////////////////////////////////
 
 class PmEditorMarkTestBase : public PmEditorTestBase {
@@ -4213,15 +4213,15 @@ class PmEditorMarkTestBase : public PmEditorTestBase {
     }
 };
 
-class PmEditorMarkCopyTest : public PmEditorMarkTestBase { };
+class PmEditorCmdCopyTest : public PmEditorMarkTestBase { };
 
 // Test basic copy with mark before txtp
-TEST_F(PmEditorMarkCopyTest, CopyWhenMarkBeforeTxtp) {
+TEST_F(PmEditorCmdCopyTest, CopyWhenMarkBeforeTxtp) {
     SetBuffer("Hello World");
     SetMark(2);  // At 'l' in "Hello"
     SetTxtp(7);  // At 'o' in "World"
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("llo W", self->clipboard_buf);
@@ -4232,12 +4232,12 @@ TEST_F(PmEditorMarkCopyTest, CopyWhenMarkBeforeTxtp) {
 }
 
 // Test basic copy with mark after txtp
-TEST_F(PmEditorMarkCopyTest, CopyWhenMarkAfterTxtp) {
+TEST_F(PmEditorCmdCopyTest, CopyWhenMarkAfterTxtp) {
     SetBuffer("Hello World");
     SetMark(7);  // At 'o' in "World"
     SetTxtp(2);  // At 'l' in "Hello"
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("llo W", self->clipboard_buf);
@@ -4248,12 +4248,12 @@ TEST_F(PmEditorMarkCopyTest, CopyWhenMarkAfterTxtp) {
 }
 
 // Test copying zero-length selection
-TEST_F(PmEditorMarkCopyTest, CopyZeroLengthSelection) {
+TEST_F(PmEditorCmdCopyTest, CopyZeroLengthSelection) {
     SetBuffer("Hello");
     SetMark(3);
     SetTxtp(3);
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->clipboard_buf);  // Empty clipboard
@@ -4264,12 +4264,12 @@ TEST_F(PmEditorMarkCopyTest, CopyZeroLengthSelection) {
 }
 
 // Test copying single character
-TEST_F(PmEditorMarkCopyTest, CopySingleCharacter) {
+TEST_F(PmEditorCmdCopyTest, CopySingleCharacter) {
     SetBuffer("ABCDEF");
     SetMark(2);  // At 'C'
     SetTxtp(3);  // At 'D'
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("C", self->clipboard_buf);
@@ -4278,12 +4278,12 @@ TEST_F(PmEditorMarkCopyTest, CopySingleCharacter) {
 }
 
 // Test copying entire buffer
-TEST_F(PmEditorMarkCopyTest, CopyEntireBuffer) {
+TEST_F(PmEditorCmdCopyTest, CopyEntireBuffer) {
     SetBuffer("Hello");
     SetMark(0);
     SetTxtp(5);
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->clipboard_buf);
@@ -4292,12 +4292,12 @@ TEST_F(PmEditorMarkCopyTest, CopyEntireBuffer) {
 }
 
 // Test copying with newlines
-TEST_F(PmEditorMarkCopyTest, CopyWithNewlines) {
+TEST_F(PmEditorCmdCopyTest, CopyWithNewlines) {
     SetBuffer("Line0\nLine1\nLine2");
     SetMark(6);   // After "Line0\n"
     SetTxtp(12);  // After "Line1\n"
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1\n", self->clipboard_buf);
@@ -4307,12 +4307,12 @@ TEST_F(PmEditorMarkCopyTest, CopyWithNewlines) {
 }
 
 // Test copying multiple newlines
-TEST_F(PmEditorMarkCopyTest, CopyMultipleNewlines) {
+TEST_F(PmEditorCmdCopyTest, CopyMultipleNewlines) {
     SetBuffer("A\nB\nC\nD");
     SetMark(0);
     SetTxtp(6);  // After "A\nB\nC\n"
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("A\nB\nC\n", self->clipboard_buf);
@@ -4321,13 +4321,13 @@ TEST_F(PmEditorMarkCopyTest, CopyMultipleNewlines) {
 }
 
 // Test clipboard size limit - exactly at limit
-TEST_F(PmEditorMarkCopyTest, CopyAtClipboardLimit) {
+TEST_F(PmEditorCmdCopyTest, CopyAtClipboardLimit) {
     std::string content(MAXCLIP, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
     SetTxtp(MAXCLIP);
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
@@ -4335,13 +4335,13 @@ TEST_F(PmEditorMarkCopyTest, CopyAtClipboardLimit) {
 }
 
 // Test clipboard size limit - exceeds limit (mark before txtp)
-TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardLimitMarkBefore) {
+TEST_F(PmEditorCmdCopyTest, CopyExceedsClipboardLimitMarkBefore) {
     std::string content(MAXCLIP + 10, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
     SetTxtp(MAXCLIP + 5);
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
@@ -4350,13 +4350,13 @@ TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardLimitMarkBefore) {
 }
 
 // Test clipboard size limit - exceeds limit (mark after txtp)
-TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardLimitMarkAfter) {
+TEST_F(PmEditorCmdCopyTest, CopyExceedsClipboardLimitMarkAfter) {
     std::string content(MAXCLIP + 10, 'X');
     SetBuffer(content.c_str());
     SetMark(MAXCLIP + 5);
     SetTxtp(0);
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
@@ -4364,27 +4364,27 @@ TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardLimitMarkAfter) {
 }
 
 // Test clipboard size limit - exactly MAXCLIP + 1 (boundary)
-TEST_F(PmEditorMarkCopyTest, CopyExceedsClipboardByOne) {
+TEST_F(PmEditorCmdCopyTest, CopyExceedsClipboardByOne) {
     std::string content(MAXCLIP + 1, 'Y');
     SetBuffer(content.c_str());
     SetMark(0);
     SetTxtp(MAXCLIP + 1);
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
 }
 
 // Test copying overwrites previous clipboard content
-TEST_F(PmEditorMarkCopyTest, CopyOverwritesPreviousClipboard) {
+TEST_F(PmEditorCmdCopyTest, CopyOverwritesPreviousClipboard) {
     strcpy(self->clipboard_buf, "OLD CONTENT");
 
     SetBuffer("NEW");
     SetMark(0);
     SetTxtp(3);
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("NEW", self->clipboard_buf);
@@ -4392,12 +4392,12 @@ TEST_F(PmEditorMarkCopyTest, CopyOverwritesPreviousClipboard) {
 }
 
 // Test copying from middle of buffer
-TEST_F(PmEditorMarkCopyTest, CopyFromMiddleOfBuffer) {
+TEST_F(PmEditorCmdCopyTest, CopyFromMiddleOfBuffer) {
     SetBuffer("AAABBBCCC");
     SetMark(3);  // Start of "BBB"
     SetTxtp(6);  // End of "BBB"
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("BBB", self->clipboard_buf);
@@ -4405,13 +4405,13 @@ TEST_F(PmEditorMarkCopyTest, CopyFromMiddleOfBuffer) {
 }
 
 // Test copying preserves cursor position exactly
-TEST_F(PmEditorMarkCopyTest, PreservesCursorPosition) {
+TEST_F(PmEditorCmdCopyTest, PreservesCursorPosition) {
     SetBuffer("Line0\nLine1\nLine2");
     self->py = 0;
     SetMark(6);  // At 'L' in "Line1"
     SetTxtp(9);  // At 'e' om "Line1"
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_TXTP_EQ(9);
@@ -4419,12 +4419,12 @@ TEST_F(PmEditorMarkCopyTest, PreservesCursorPosition) {
 }
 
 // Test copying with special characters (tabs, etc.)
-TEST_F(PmEditorMarkCopyTest, CopyWithSpecialCharacters) {
+TEST_F(PmEditorCmdCopyTest, CopyWithSpecialCharacters) {
     SetBuffer("Tab\there\tSpaces  End");
     SetMark(0);
     SetTxtp(9);  // After second tab
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Tab\there\t", self->clipboard_buf);
@@ -4432,7 +4432,7 @@ TEST_F(PmEditorMarkCopyTest, CopyWithSpecialCharacters) {
 }
 
 // Test clipboard null termination
-TEST_F(PmEditorMarkCopyTest, ClipboardNullTermination) {
+TEST_F(PmEditorCmdCopyTest, ClipboardNullTermination) {
     SetBuffer("TEST");
     SetMark(0);
     SetTxtp(4);
@@ -4441,7 +4441,7 @@ TEST_F(PmEditorMarkCopyTest, ClipboardNullTermination) {
     memset(self->clipboard_buf, 'Z', MAXCLIP);
     self->clipboard_buf[MAXCLIP] = '\0';
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("TEST", self->clipboard_buf);
@@ -4449,12 +4449,12 @@ TEST_F(PmEditorMarkCopyTest, ClipboardNullTermination) {
 }
 
 // Test copying empty buffer
-TEST_F(PmEditorMarkCopyTest, CopyFromEmptyBuffer) {
+TEST_F(PmEditorCmdCopyTest, CopyFromEmptyBuffer) {
     SetBuffer("");
     SetMark(0);
     SetTxtp(0);
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->clipboard_buf);
@@ -4463,12 +4463,12 @@ TEST_F(PmEditorMarkCopyTest, CopyFromEmptyBuffer) {
 }
 
 // Test that mark position is preserved
-TEST_F(PmEditorMarkCopyTest, PreservesMarkPosition) {
+TEST_F(PmEditorCmdCopyTest, PreservesMarkPosition) {
     SetBuffer("Hello World");
     SetMark(2);
     SetTxtp(7);
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_MARK_EQ(2);  // Mark unchanged
@@ -4476,12 +4476,12 @@ TEST_F(PmEditorMarkCopyTest, PreservesMarkPosition) {
 }
 
 // Test backward selection (txtp < mark)
-TEST_F(PmEditorMarkCopyTest, CopyBackwardSelection) {
+TEST_F(PmEditorCmdCopyTest, CopyBackwardSelection) {
     SetBuffer("0123456789");
     SetMark(7);
     SetTxtp(3);
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("3456", self->clipboard_buf);
@@ -4490,12 +4490,12 @@ TEST_F(PmEditorMarkCopyTest, CopyBackwardSelection) {
 }
 
 // Test forward selection (txtp > mark)
-TEST_F(PmEditorMarkCopyTest, CopyForwardSelection) {
+TEST_F(PmEditorCmdCopyTest, CopyForwardSelection) {
     SetBuffer("0123456789");
     SetMark(3);
     SetTxtp(7);
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("3456", self->clipboard_buf);
@@ -4504,26 +4504,26 @@ TEST_F(PmEditorMarkCopyTest, CopyForwardSelection) {
 }
 
 // Test off-by-one: mark at txtp-1 (inclusive vs exclusive)
-TEST_F(PmEditorMarkCopyTest, CopyMarkAtTxtpMinusOne) {
+TEST_F(PmEditorCmdCopyTest, CopyMarkAtTxtpMinusOne) {
     SetBuffer("ABCDEFGH");
     SetMark(4);   // At 'E'
     SetTxtp(5);   // At 'F'
 
-    MmResult result = pmeditor_mark_copy(self);
+    MmResult result = pmeditor_cmd_copy(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("E", self->clipboard_buf);
 }
 
 // Test copying respects MAXCLIP exactly (not MAXCLIP+1 or MAXCLIP+2)
-TEST_F(PmEditorMarkCopyTest, ClipboardSizeBoundaryCheck) {
+TEST_F(PmEditorCmdCopyTest, ClipboardSizeBoundaryCheck) {
     // Test that MAXCLIP characters can be copied
     std::string content1(MAXCLIP, 'A');
     SetBuffer(content1.c_str());
     SetMark(0);
     SetTxtp(MAXCLIP);
 
-    EXPECT_EQ(kOk, pmeditor_mark_copy(self));
+    EXPECT_EQ(kOk, pmeditor_cmd_copy(self));
     EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
 
     // Test that MAXCLIP+1 characters cannot be copied
@@ -4532,23 +4532,23 @@ TEST_F(PmEditorMarkCopyTest, ClipboardSizeBoundaryCheck) {
     SetMark(0);
     SetTxtp(MAXCLIP + 1);
 
-    EXPECT_EQ(kOk, pmeditor_mark_copy(self));
+    EXPECT_EQ(kOk, pmeditor_cmd_copy(self));
     EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_mark_cut()
+// Tests for pmeditor_cmd_cut()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorMarkCutTest : public PmEditorMarkTestBase { };
+class PmEditorCmdCutTest : public PmEditorMarkTestBase { };
 
 // Test basic cut with mark before txtp
-TEST_F(PmEditorMarkCutTest, CutWhenMarkBeforeTxtp) {
+TEST_F(PmEditorCmdCutTest, CutWhenMarkBeforeTxtp) {
     SetBuffer("Hello World");
     SetMark(2);  // At 'l' in "Hello"
     SetTxtp(7);  // At 'o' in "World"
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("llo W", self->clipboard_buf);
@@ -4560,12 +4560,12 @@ TEST_F(PmEditorMarkCutTest, CutWhenMarkBeforeTxtp) {
 }
 
 // Test basic cut with mark after txtp
-TEST_F(PmEditorMarkCutTest, CutWhenMarkAfterTxtp) {
+TEST_F(PmEditorCmdCutTest, CutWhenMarkAfterTxtp) {
     SetBuffer("Hello World");
     SetMark(7);  // At 'o' in "World"
     SetTxtp(2);  // At 'l' in "Hello"
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("llo W", self->clipboard_buf);
@@ -4577,12 +4577,12 @@ TEST_F(PmEditorMarkCutTest, CutWhenMarkAfterTxtp) {
 }
 
 // Test cutting zero-length selection
-TEST_F(PmEditorMarkCutTest, CutZeroLengthSelection) {
+TEST_F(PmEditorCmdCutTest, CutZeroLengthSelection) {
     SetBuffer("Hello");
     SetMark(3);
     SetTxtp(3);
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->clipboard_buf);  // Empty clipboard
@@ -4593,12 +4593,12 @@ TEST_F(PmEditorMarkCutTest, CutZeroLengthSelection) {
 }
 
 // Test cutting single character
-TEST_F(PmEditorMarkCutTest, CutSingleCharacter) {
+TEST_F(PmEditorCmdCutTest, CutSingleCharacter) {
     SetBuffer("ABCDEF");
     SetMark(2);  // At 'C'
     SetTxtp(3);  // At 'D'
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("C", self->clipboard_buf);
@@ -4609,12 +4609,12 @@ TEST_F(PmEditorMarkCutTest, CutSingleCharacter) {
 }
 
 // Test cutting entire buffer
-TEST_F(PmEditorMarkCutTest, CutEntireBuffer) {
+TEST_F(PmEditorCmdCutTest, CutEntireBuffer) {
     SetBuffer("Hello");
     SetMark(0);
     SetTxtp(5);
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->clipboard_buf);
@@ -4626,12 +4626,12 @@ TEST_F(PmEditorMarkCutTest, CutEntireBuffer) {
 }
 
 // Test cutting with newlines updates num_lines
-TEST_F(PmEditorMarkCutTest, CutWithNewlines) {
+TEST_F(PmEditorCmdCutTest, CutWithNewlines) {
     SetBuffer("Line0\nLine1\nLine2");
     SetMark(6);   // After "Line0\n"
     SetTxtp(12);  // After "Line1\n"
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1\n", self->clipboard_buf);
@@ -4642,12 +4642,12 @@ TEST_F(PmEditorMarkCutTest, CutWithNewlines) {
 }
 
 // Test cutting multiple newlines
-TEST_F(PmEditorMarkCutTest, CutMultipleNewlines) {
+TEST_F(PmEditorCmdCutTest, CutMultipleNewlines) {
     SetBuffer("A\nB\nC\nD");
     SetMark(0);
     SetTxtp(6);  // After "C\n"
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("A\nB\nC\n", self->clipboard_buf);
@@ -4658,13 +4658,13 @@ TEST_F(PmEditorMarkCutTest, CutMultipleNewlines) {
 }
 
 // Test clipboard size limit - exactly at limit
-TEST_F(PmEditorMarkCutTest, CutAtClipboardLimit) {
+TEST_F(PmEditorCmdCutTest, CutAtClipboardLimit) {
     std::string content(MAXCLIP, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
     SetTxtp(MAXCLIP);
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
@@ -4674,13 +4674,13 @@ TEST_F(PmEditorMarkCutTest, CutAtClipboardLimit) {
 }
 
 // Test clipboard size limit - exceeds limit
-TEST_F(PmEditorMarkCutTest, CutExceedsClipboardLimit) {
+TEST_F(PmEditorCmdCutTest, CutExceedsClipboardLimit) {
     std::string content(MAXCLIP + 10, 'X');
     SetBuffer(content.c_str());
     SetMark(0);
     SetTxtp(MAXCLIP + 5);
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
@@ -4690,12 +4690,12 @@ TEST_F(PmEditorMarkCutTest, CutExceedsClipboardLimit) {
 }
 
 // Test cutting from middle of buffer
-TEST_F(PmEditorMarkCutTest, CutFromMiddleOfBuffer) {
+TEST_F(PmEditorCmdCutTest, CutFromMiddleOfBuffer) {
     SetBuffer("AAABBBCCC");
     SetMark(3);  // Start of "BBB"
     SetTxtp(6);  // End of "BBB"
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("BBB", self->clipboard_buf);
@@ -4706,12 +4706,12 @@ TEST_F(PmEditorMarkCutTest, CutFromMiddleOfBuffer) {
 }
 
 // Test cutting preserves content after cut region
-TEST_F(PmEditorMarkCutTest, PreservesContentAfterCutRegion) {
+TEST_F(PmEditorCmdCutTest, PreservesContentAfterCutRegion) {
     SetBuffer("StartMIDDLEEnd");
     SetMark(5);   // Before "MIDDLE"
     SetTxtp(11);  // After "MIDDLE"
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("MIDDLE", self->clipboard_buf);
@@ -4721,12 +4721,12 @@ TEST_F(PmEditorMarkCutTest, PreservesContentAfterCutRegion) {
 }
 
 // Test cutting updates cursor position to lower of mark/txtp
-TEST_F(PmEditorMarkCutTest, CursorMovesToLowerPosition) {
+TEST_F(PmEditorCmdCutTest, CursorMovesToLowerPosition) {
     SetBuffer("0123456789");
     SetMark(2);  // Low position
     SetTxtp(8);  // High position
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_TXTP_EQ(2);  // Cursor at lower position
@@ -4735,12 +4735,12 @@ TEST_F(PmEditorMarkCutTest, CursorMovesToLowerPosition) {
 }
 
 // Test cutting with mark > txtp also moves to lower position
-TEST_F(PmEditorMarkCutTest, CursorMovesToLowerPositionReversed) {
+TEST_F(PmEditorCmdCutTest, CursorMovesToLowerPositionReversed) {
     SetBuffer("0123456789");
     SetMark(8);  // High position
     SetTxtp(2);  // Low position
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_TXTP_EQ(2);  // Cursor at lower position
@@ -4749,12 +4749,12 @@ TEST_F(PmEditorMarkCutTest, CursorMovesToLowerPositionReversed) {
 }
 
 // Test buffer termination after cut
-TEST_F(PmEditorMarkCutTest, BufferTerminationAfterCut) {
+TEST_F(PmEditorCmdCutTest, BufferTerminationAfterCut) {
     SetBuffer("ABCDEFGH");
     SetMark(2);
     SetTxtp(5);
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("CDE", self->clipboard_buf);
@@ -4766,12 +4766,12 @@ TEST_F(PmEditorMarkCutTest, BufferTerminationAfterCut) {
 }
 
 // Test cutting from start of buffer
-TEST_F(PmEditorMarkCutTest, CutFromStartOfBuffer) {
+TEST_F(PmEditorCmdCutTest, CutFromStartOfBuffer) {
     SetBuffer("Hello World");
     SetMark(0);  // At 'H'
     SetTxtp(6);  // At 'W'
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello ", self->clipboard_buf);
@@ -4782,12 +4782,12 @@ TEST_F(PmEditorMarkCutTest, CutFromStartOfBuffer) {
 }
 
 // Test cutting to end of buffer
-TEST_F(PmEditorMarkCutTest, CutToEndOfBuffer) {
+TEST_F(PmEditorCmdCutTest, CutToEndOfBuffer) {
     SetBuffer("Hello World");
     SetMark(6);   // At 'W'
     SetTxtp(11);  // After 'd'
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("World", self->clipboard_buf);
@@ -4797,12 +4797,12 @@ TEST_F(PmEditorMarkCutTest, CutToEndOfBuffer) {
 }
 
 // Test cutting empty buffer
-TEST_F(PmEditorMarkCutTest, CutFromEmptyBuffer) {
+TEST_F(PmEditorCmdCutTest, CutFromEmptyBuffer) {
     SetBuffer("");
     SetMark(0);
     SetTxtp(0);
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->clipboard_buf);
@@ -4813,14 +4813,14 @@ TEST_F(PmEditorMarkCutTest, CutFromEmptyBuffer) {
 }
 
 // Test cutting overwrites previous clipboard content
-TEST_F(PmEditorMarkCutTest, CutOverwritesPreviousClipboard) {
+TEST_F(PmEditorCmdCutTest, CutOverwritesPreviousClipboard) {
     strcpy(self->clipboard_buf, "OLD CONTENT");
 
     SetBuffer("NEW");
     SetMark(0);
     SetTxtp(3);
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("NEW", self->clipboard_buf);
@@ -4830,12 +4830,12 @@ TEST_F(PmEditorMarkCutTest, CutOverwritesPreviousClipboard) {
 }
 
 // Test cutting with special characters
-TEST_F(PmEditorMarkCutTest, CutWithSpecialCharacters) {
+TEST_F(PmEditorCmdCutTest, CutWithSpecialCharacters) {
     SetBuffer("Tab\there\tEnd");
     SetMark(0);
     SetTxtp(9);  // After second tab
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Tab\there\t", self->clipboard_buf);
@@ -4845,12 +4845,12 @@ TEST_F(PmEditorMarkCutTest, CutWithSpecialCharacters) {
 }
 
 // Test cutting only a newline character
-TEST_F(PmEditorMarkCutTest, CutOnlyNewline) {
+TEST_F(PmEditorCmdCutTest, CutOnlyNewline) {
     SetBuffer("Line1\nLine2");
     SetMark(5);  // At newline
     SetTxtp(6);  // Just after newline
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("\n", self->clipboard_buf);
@@ -4861,13 +4861,13 @@ TEST_F(PmEditorMarkCutTest, CutOnlyNewline) {
 }
 
 // Test cutting large region
-TEST_F(PmEditorMarkCutTest, CutLargeRegion) {
+TEST_F(PmEditorCmdCutTest, CutLargeRegion) {
     std::string content(100, 'X');
     SetBuffer(content.c_str());
     SetMark(10);
     SetTxtp(90);
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(80, strlen(self->clipboard_buf));  // 80 X's copied
@@ -4878,12 +4878,12 @@ TEST_F(PmEditorMarkCutTest, CutLargeRegion) {
 }
 
 // Test cutting across multiple lines with cursor positioning
-TEST_F(PmEditorMarkCutTest, CutAcrossMultipleLinesUpdatesCursor) {
+TEST_F(PmEditorCmdCutTest, CutAcrossMultipleLinesUpdatesCursor) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetMark(6);   // Start of Line1
     SetTxtp(18);  // In Line2
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1\nLine2\n", self->clipboard_buf);
@@ -4895,12 +4895,12 @@ TEST_F(PmEditorMarkCutTest, CutAcrossMultipleLinesUpdatesCursor) {
 }
 
 // Test cutting maintains proper buffer state after large deletion
-TEST_F(PmEditorMarkCutTest, MaintainsBufferStateAfterLargeDeletion) {
+TEST_F(PmEditorCmdCutTest, MaintainsBufferStateAfterLargeDeletion) {
     SetBuffer("AAAAAAAAAA\nBBBBBBBBBB\nCCCCCCCCCC");
     SetMark(0);
     SetTxtp(13);  // In BBB section
 
-    MmResult result = pmeditor_mark_cut(self);
+    MmResult result = pmeditor_cmd_cut(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(13, strlen(self->clipboard_buf));
@@ -4911,14 +4911,14 @@ TEST_F(PmEditorMarkCutTest, MaintainsBufferStateAfterLargeDeletion) {
 }
 
 // Test clipboard boundary: MAXCLIP vs MAXCLIP+1
-TEST_F(PmEditorMarkCutTest, ClipboardBoundaryValidation) {
+TEST_F(PmEditorCmdCutTest, ClipboardBoundaryValidation) {
     // Test that MAXCLIP characters can be cut
     std::string content1(MAXCLIP, 'A');
     SetBuffer(content1.c_str());
     SetMark(0);
     SetTxtp(MAXCLIP);
 
-    EXPECT_EQ(kOk, pmeditor_mark_cut(self));
+    EXPECT_EQ(kOk, pmeditor_cmd_cut(self));
     EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
     EXPECT_STREQ("", self->buf);
 
@@ -4928,25 +4928,25 @@ TEST_F(PmEditorMarkCutTest, ClipboardBoundaryValidation) {
     SetMark(0);
     SetTxtp(MAXCLIP + 1);
 
-    EXPECT_EQ(kOk, pmeditor_mark_cut(self));
+    EXPECT_EQ(kOk, pmeditor_cmd_cut(self));
     EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
     EXPECT_EQ(MAXCLIP + 1, strlen(self->buf));  // Buffer UNCHANGED
     EXPECT_EQ(kMarkMode, self->mode);  // Should not exit mark mode
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_mark_delete()
+// Tests for pmeditor_cmd_delete_selection()
 ////////////////////////////////////////////////////////////////////////////////
 
-class PmEditorMarkDeleteTest : public PmEditorMarkTestBase { };
+class PmEditorCmdDeleteSelectionTest : public PmEditorMarkTestBase { };
 
 // Test deleting when mark before txtp
-TEST_F(PmEditorMarkDeleteTest, DeleteWhenMarkBeforeTxtp) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWhenMarkBeforeTxtp) {
     SetBuffer("Hello World");
     SetMark(2); // At 'l'
     SetTxtp(7); // At 'o' in "World"
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Heorld", self->buf);
@@ -4956,12 +4956,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteWhenMarkBeforeTxtp) {
 }
 
 // Test deleting when mark after txtp
-TEST_F(PmEditorMarkDeleteTest, DeleteWhenMarkAfterTxtp) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWhenMarkAfterTxtp) {
     SetBuffer("Hello World");
     SetMark(7); // At 'o' in "World"
     SetTxtp(2); // At 'l'
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Heorld", self->buf);
@@ -4971,12 +4971,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteWhenMarkAfterTxtp) {
 }
 
 // Test deleting when mark equals txtp (nothing to delete)
-TEST_F(PmEditorMarkDeleteTest, DeleteWhenMarkEqualsTxtp) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWhenMarkEqualsTxtp) {
     SetBuffer("Hello World");
     SetMark(5);
     SetTxtp(5);
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello World", self->buf); // Nothing deleted
@@ -4986,12 +4986,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteWhenMarkEqualsTxtp) {
 }
 
 // Test deleting single character
-TEST_F(PmEditorMarkDeleteTest, DeleteSingleCharacter) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteSingleCharacter) {
     SetBuffer("ABCDEF");
     SetMark(2); // At 'C'
     SetTxtp(3); // At 'D'
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ABDEF", self->buf);
@@ -5001,12 +5001,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteSingleCharacter) {
 }
 
 // Test deleting entire buffer
-TEST_F(PmEditorMarkDeleteTest, DeleteEntireBuffer) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteEntireBuffer) {
     SetBuffer("Hello");
     SetMark(0); // At 'H'
     SetTxtp(5); // At 'o'
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
@@ -5016,12 +5016,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteEntireBuffer) {
 }
 
 // Test deleting from start of buffer
-TEST_F(PmEditorMarkDeleteTest, DeleteFromStartOfBuffer) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteFromStartOfBuffer) {
     SetBuffer("Hello World");
     SetMark(0); // At 'H'
     SetTxtp(6); // At 'W'
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("World", self->buf);
@@ -5031,12 +5031,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteFromStartOfBuffer) {
 }
 
 // Test deleting to end of buffer
-TEST_F(PmEditorMarkDeleteTest, DeleteToEndOfBuffer) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteToEndOfBuffer) {
     SetBuffer("Hello World");
     SetMark(6); // At 'W'
     SetTxtp(11); // After 'd'
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello ", self->buf);
@@ -5046,12 +5046,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteToEndOfBuffer) {
 }
 
 // Test deleting with newlines (decrements num_lines)
-TEST_F(PmEditorMarkDeleteTest, DeleteWithNewlines) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWithNewlines) {
     SetBuffer("Line0\nLine1\nLine2");
     SetMark(3); // In "Line0";
     SetTxtp(9); // In "Line1"
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1\nLine2", self->buf);
@@ -5062,12 +5062,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteWithNewlines) {
 }
 
 // Test deleting multiple newlines
-TEST_F(PmEditorMarkDeleteTest, DeleteMultipleNewlines) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteMultipleNewlines) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetMark(3);
     SetTxtp(15); // At 'e' in "Line2"
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line2\nLine3", self->buf);
@@ -5078,12 +5078,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteMultipleNewlines) {
 }
 
 // Test deleting only newline character
-TEST_F(PmEditorMarkDeleteTest, DeleteOnlyNewline) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteOnlyNewline) {
     SetBuffer("Line1\nLine2");
     SetMark(5); // At newline
     SetTxtp(6); // Just after newline
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1Line2", self->buf);
@@ -5094,12 +5094,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteOnlyNewline) {
 }
 
 // Test swapping mark and txtp when mark > txtp
-TEST_F(PmEditorMarkDeleteTest, SwapMarkAndTxtpWhenMarkGreater) {
+TEST_F(PmEditorCmdDeleteSelectionTest, SwapMarkAndTxtpWhenMarkGreater) {
     SetBuffer("ABCDEFGH");
     SetMark(6); // At 'G'
     SetTxtp(2); // At 'C'
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ABGH", self->buf);
@@ -5109,12 +5109,12 @@ TEST_F(PmEditorMarkDeleteTest, SwapMarkAndTxtpWhenMarkGreater) {
 }
 
 // Test buffer termination after delete
-TEST_F(PmEditorMarkDeleteTest, BufferTerminationAfterDelete) {
+TEST_F(PmEditorCmdDeleteSelectionTest, BufferTerminationAfterDelete) {
     SetBuffer("ABCDEFGH");
     SetMark(2);
     SetTxtp(5);
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ABFGH", self->buf);
@@ -5124,12 +5124,12 @@ TEST_F(PmEditorMarkDeleteTest, BufferTerminationAfterDelete) {
 }
 
 // Test deleting in empty buffer
-TEST_F(PmEditorMarkDeleteTest, DeleteInEmptyBuffer) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteInEmptyBuffer) {
     SetBuffer("");
     SetMark(0);
     SetTxtp(0);
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
@@ -5139,12 +5139,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteInEmptyBuffer) {
 }
 
 // Test deleting preserves content after deleted region
-TEST_F(PmEditorMarkDeleteTest, PreservesContentAfterDeletedRegion) {
+TEST_F(PmEditorCmdDeleteSelectionTest, PreservesContentAfterDeletedRegion) {
     SetBuffer("AAABBBCCC");
     SetMark(3);
     SetTxtp(6);
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("AAACCC", self->buf);
@@ -5154,13 +5154,13 @@ TEST_F(PmEditorMarkDeleteTest, PreservesContentAfterDeletedRegion) {
 }
 
 // Test deleting large region
-TEST_F(PmEditorMarkDeleteTest, DeleteLargeRegion) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteLargeRegion) {
     std::string content(100, 'X');
     SetBuffer(content.c_str());
     SetMark(10);
     SetTxtp(90);
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(20, strlen(self->buf)); // 10 + 10 remaining
@@ -5170,12 +5170,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteLargeRegion) {
 }
 
 // Test deleting backward selection (mark > txtp after swap)
-TEST_F(PmEditorMarkDeleteTest, DeleteBackwardSelection) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteBackwardSelection) {
     SetBuffer("0123456789");
     SetMark(7);
     SetTxtp(3);
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("012789", self->buf);
@@ -5185,12 +5185,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteBackwardSelection) {
 }
 
 // Test deleting with num_lines counting
-TEST_F(PmEditorMarkDeleteTest, DeleteWithNumLinesCounting) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWithNumLinesCounting) {
     SetBuffer("A\nB\nC\nD\nE");
     SetMark(2); // After first newline
     SetTxtp(8); // After fourth newline
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("A\nE", self->buf);
@@ -5201,12 +5201,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteWithNumLinesCounting) {
 }
 
 // Test deleting mixed newlines and content
-TEST_F(PmEditorMarkDeleteTest, DeleteMixedNewlinesAndContent) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteMixedNewlinesAndContent) {
     SetBuffer("Line0\nLine1\nLine2");
     SetMark(3); // In "Line0"
     SetTxtp(14); // In "Line2"
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Linne2", self->buf);
@@ -5217,13 +5217,13 @@ TEST_F(PmEditorMarkDeleteTest, DeleteMixedNewlinesAndContent) {
 }
 
 // Test deleting with mark at buffer start and txtp at end
-TEST_F(PmEditorMarkDeleteTest, DeleteEntireContent) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteEntireContent) {
     std::string content = "Complete content to delete";
     SetBuffer(content.c_str());
     SetMark(0);
     SetTxtp(content.length());
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
@@ -5233,12 +5233,12 @@ TEST_F(PmEditorMarkDeleteTest, DeleteEntireContent) {
 }
 
 // Test deleting adjacent positions (zero-length selection)
-TEST_F(PmEditorMarkDeleteTest, DeleteZeroLengthSelection) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteZeroLengthSelection) {
     SetBuffer("Hello");
     SetMark(3);
     SetTxtp(3);
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf); // Nothing deleted
@@ -5247,13 +5247,13 @@ TEST_F(PmEditorMarkDeleteTest, DeleteZeroLengthSelection) {
     EXPECT_FALSE(self->text_changed);
 }
 
-TEST_F(PmEditorMarkDeleteTest, DeleteAcrossMultipleVisibleLines) {
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteAcrossMultipleVisibleLines) {
     SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4");
     self->py = 0;
     SetMark(6);  // At 'L' in "Line1"
     SetTxtp(15); // At 'e' in "Line2"
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line0\ne2\nLine3\nLine4", self->buf);
@@ -5261,18 +5261,17 @@ TEST_F(PmEditorMarkDeleteTest, DeleteAcrossMultipleVisibleLines) {
     EXPECT_CURSOR_EQ(0, 1); // Should be on line 1
 }
 
-TEST_F(PmEditorMarkDeleteTest, SetsExitFlag) {
+TEST_F(PmEditorCmdDeleteSelectionTest, SetsExitFlag) {
     self->mode = kMarkMode;
     SetBuffer("Hello World");
     SetMark(2);
     SetTxtp(7);
 
-    MmResult result = pmeditor_mark_delete(self);
+    MmResult result = pmeditor_cmd_delete_selection(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(kEditMode, self->mode); // Should exit mark mode
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Tests for pmeditor_cmd_down()
