@@ -1549,63 +1549,56 @@ TEST_F(PmEditorGetHighlightTest, NestedCommentScenarios) {
 class PmEditorInsertCharTest : public PmEditorTestBase { };
 
 TEST_F(PmEditorInsertCharTest, InsertCharAtBeginning) {
-    const char* initial_content = "World";
-    SetBuffer(initial_content);
+    SetBuffer("World");
+    SetTxtp(0);
 
-    self->txtp = self->buf;
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, 'H', &redraw);
+    MmResult result = pmeditor_insert_char(self, 'H');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, redraw);
     EXPECT_STREQ("HWorld", self->buf);
-    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_TXTP_EQ(1);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertCharAtEnd) {
     const char* initial_content = "Hello";
     SetBuffer(initial_content);
+    SetTxtp(strlen(initial_content));
 
-    self->txtp = self->buf + strlen(initial_content);
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, '!', &redraw);
+    MmResult result = pmeditor_insert_char(self, '!');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, redraw);
     EXPECT_STREQ("Hello!", self->buf);
-    EXPECT_EQ(self->buf + strlen(initial_content) + 1, self->txtp);
+    EXPECT_TXTP_EQ(strlen(initial_content) + 1);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertCharInMiddle) {
-    const char* initial_content = "Helo";
-    SetBuffer(initial_content);
+    SetBuffer("Helo");
+    SetTxtp(2); // At 'l'
 
-    self->txtp = self->buf + 2; // Position after 'He'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, 'l', &redraw);
+    MmResult result = pmeditor_insert_char(self, 'l');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, redraw);
     EXPECT_STREQ("Hello", self->buf);
-    EXPECT_EQ(self->buf + 3, self->txtp);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertNewline) {
-    const char* initial_content = "Hello";
-    SetBuffer(initial_content);
+    SetBuffer("Hello");
+    SetTxtp(2); // At 'l'
 
-    self->txtp = self->buf + 2; // Position after 'He'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, '\n', &redraw);
+    MmResult result = pmeditor_insert_char(self, '\n');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
     EXPECT_STREQ("He\nllo", self->buf);
-    EXPECT_EQ(self->buf + 3, self->txtp);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertCharBufferFull) {
@@ -1614,15 +1607,15 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferFull) {
         self->buf[i] = 'A';
     }
     self->buf[EDIT_BUFFER_SIZE - 1] = '\0';
+    SetTxtp(EDIT_BUFFER_SIZE - 1); // Point to the null terminator
+    self->width = EDIT_BUFFER_SIZE; // So we don't hit LINE IS TOO LONG error
 
-    self->txtp = self->buf + EDIT_BUFFER_SIZE - 1; // Point to the null terminator
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, 'B', &redraw);
+    MmResult result = pmeditor_insert_char(self, 'B');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(REDRAW_NOTHING, redraw);
     EXPECT_STREQ(" EDIT BUFFER FULL ", self->message);
+    EXPECT_EQ(-1, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertCharBufferHasOnlyOneByteRemaining) {
@@ -1631,32 +1624,30 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferHasOnlyOneByteRemaining) {
         self->buf[i] = 'A';
     }
     self->buf[EDIT_BUFFER_SIZE - 2] = '\0';
+    SetTxtp(EDIT_BUFFER_SIZE - 2); // Point to the null terminator
+    self->width = EDIT_BUFFER_SIZE; // So we don't hit LINE IS TOO LONG error
 
-    self->txtp = self->buf + EDIT_BUFFER_SIZE - 2; // Point to the null terminator
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, 'B', &redraw);
+    MmResult result = pmeditor_insert_char(self, 'B');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, redraw);
     EXPECT_STREQ("", self->message);
-    EXPECT_EQ(self->buf + EDIT_BUFFER_SIZE - 1, self->txtp);
+    EXPECT_TXTP_EQ(EDIT_BUFFER_SIZE - 1);
     EXPECT_EQ('B', *(self->buf + EDIT_BUFFER_SIZE - 2));
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertForwardSlashAfterStar) {
-    const char* initial_content = "Hello*";
-    SetBuffer(initial_content);
+    SetBuffer("Hello*");
+    SetTxtp(6); // After '*'
 
-    self->txtp = self->buf + 6; // Position after '*'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, '/', &redraw);
+    MmResult result = pmeditor_insert_char(self, '/');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
     EXPECT_STREQ("Hello*/", self->buf);
-    EXPECT_EQ(self->buf + 7, self->txtp);
+    EXPECT_TXTP_EQ(7);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertForwardSlashBeforeStar) {
@@ -1665,148 +1656,132 @@ TEST_F(PmEditorInsertCharTest, InsertForwardSlashBeforeStar) {
 
     self->txtp = self->buf; // Position before '*'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, '/', &redraw);
+    MmResult result = pmeditor_insert_char(self, '/');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
     EXPECT_STREQ("/*Hello", self->buf);
     EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertStarAfterForwardSlash) {
-    const char* initial_content = "/Hello";
-    SetBuffer(initial_content);
+    SetBuffer("/Hello");
+    SetTxtp(1); // At 'H'
 
-    self->txtp = self->buf + 1; // Position after '/'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, '*', &redraw);
+    MmResult result = pmeditor_insert_char(self, '*');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
     EXPECT_STREQ("/*Hello", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertStarBeforeForwardSlash) {
-    const char* initial_content = "Hello/";
-    SetBuffer(initial_content);
+    SetBuffer("Hello/");
+    SetTxtp(5); // At '/'
 
-    self->txtp = self->buf + 5; // Position before '/'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, '*', &redraw);
+    MmResult result = pmeditor_insert_char(self, '*');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
     EXPECT_STREQ("Hello*/", self->buf);
-    EXPECT_EQ(self->buf + 6, self->txtp);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertApostropheBeforeMultilineCommentStart) {
     const char* initial_content = "Print /*Hello";
     SetBuffer(initial_content);
+    SetTxtp(1); // At 'r'
 
-    self->txtp = self->buf + 1; // Position before 'r'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, '\'', &redraw);
+    MmResult result = pmeditor_insert_char(self, '\'');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
     EXPECT_STREQ("P'rint /*Hello", self->buf);
     EXPECT_EQ(self->buf + 2, self->txtp);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertApostropheWithoutMultilineCommentStart) {
     const char* initial_content = "Print ABHello";
     SetBuffer(initial_content);
+    SetTxtp(1); // At 'r'
 
-    self->txtp = self->buf + 1; // Position before 'r'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, '\'', &redraw);
+    MmResult result = pmeditor_insert_char(self, '\'');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, redraw);
     EXPECT_STREQ("P'rint ABHello", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertQuoteBeforeMultilineCommentStart) {
-    const char* initial_content = "Print /*Hello";
-    SetBuffer(initial_content);
+    SetBuffer("Print /*Hello");
+    SetTxtp(1); // At 'r'
 
-    self->txtp = self->buf + 1; // Position before 'r'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, '"', &redraw);
+    MmResult result = pmeditor_insert_char(self, '"');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
     EXPECT_STREQ("P\"rint /*Hello", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertQuoteWithoutMultilineCommentStart) {
-    const char* initial_content = "Print ABHello";
-    SetBuffer(initial_content);
+    SetBuffer("Print ABHello");
+    SetTxtp(1); // At 'r'
 
-    self->txtp = self->buf + 1; // Position before 'r'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, '"', &redraw);
+    MmResult result = pmeditor_insert_char(self, '"');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, redraw);
     EXPECT_STREQ("P\"rint ABHello", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertR) {
-    const char* initial_content = "PRINT Em /*Hello";
-    SetBuffer(initial_content);
+    SetBuffer("PRINT Em /*Hello");
+    SetTxtp(6); // At 'E'
 
-    self->txtp = self->buf + 6; // Position before 'E'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, 'r', &redraw);
+    MmResult result = pmeditor_insert_char(self, 'r');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
     EXPECT_STREQ("PRINT rEm /*Hello", self->buf);
-    EXPECT_EQ(self->buf + 7, self->txtp);
+    EXPECT_TXTP_EQ(7);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertE) {
-    const char* initial_content = "PRINT Rm /*Hello";
-    SetBuffer(initial_content);
+    SetBuffer("PRINT Rm /*Hello");
+    SetTxtp(7); // At 'm'
 
-    self->txtp = self->buf + 7; // Position before 'm'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, 'E', &redraw);
+    MmResult result = pmeditor_insert_char(self, 'E');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
     EXPECT_STREQ("PRINT REm /*Hello", self->buf);
-    EXPECT_EQ(self->buf + 8, self->txtp);
+    EXPECT_TXTP_EQ(8);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertM) {
-    const char* initial_content = "PRINT re /*Hello";
-    SetBuffer(initial_content);
+    SetBuffer("PRINT re /*Hello");
+    SetTxtp(8); // At 'e'
 
-    self->txtp = self->buf + 8; // Position after 'e'
-
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_insert_char(self, 'M', &redraw);
+    MmResult result = pmeditor_insert_char(self, 'M');
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
     EXPECT_STREQ("PRINT reM /*Hello", self->buf);
-    EXPECT_EQ(self->buf + 9, self->txtp);
+    EXPECT_TXTP_EQ(9);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1821,14 +1796,14 @@ TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfBuffer) {
     SetCursorAtEnd();
     bool initial_text_changed = self->text_changed;
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_EQ(initial_text_changed, self->text_changed);
     EXPECT_EQ(self->buf + 5, self->txtp);
-    EXPECT_EQ(REDRAW_NOTHING, redraw);
+    EXPECT_EQ(-1, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test deleting at end of empty buffer
@@ -1836,13 +1811,13 @@ TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfEmptyBuffer) {
     SetBuffer("");
     SetCursorAtEnd();
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
     EXPECT_FALSE(self->text_changed);
-    EXPECT_EQ(REDRAW_NOTHING, redraw);
+    EXPECT_EQ(-1, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test deleting a regular character
@@ -1850,14 +1825,14 @@ TEST_F(PmEditorDeleteCharTest, DeleteRegularCharacter) {
     SetBuffer("Hello World");
     SetTxtp(5); // Position at space
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("HelloWorld", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf + 5, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test deleting first character
@@ -1865,14 +1840,14 @@ TEST_F(PmEditorDeleteCharTest, DeleteFirstCharacter) {
     SetBuffer("Hello");
     SetTxtp(0);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ello", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test deleting last character (not at end of buffer)
@@ -1880,101 +1855,102 @@ TEST_F(PmEditorDeleteCharTest, DeleteLastCharacterBeforeEnd) {
     SetBuffer("Hello");
     SetTxtp(4); // Position at 'o'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hell", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf + 4, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test deleting a newline character
 TEST_F(PmEditorDeleteCharTest, DeleteNewlineCharacter) {
     SetBuffer("Line1\nLine2");
-    SetTxtp(5); // Position at newline
+    SetTxtp(5); // At '\n'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1Line2", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(1, self->num_lines);
-    EXPECT_EQ(self->buf + 5, self->txtp);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test deleting newline in multi-line buffer
 TEST_F(PmEditorDeleteCharTest, DeleteNewlineMultiLine) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(5); // Position at first newline
+    SetTxtp(5); // At '\n' on "Line0"
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line0Line1\nLine2", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(2, self->num_lines);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
+
 }
 
 // Test deleting '/' after '*' (multiline comment end)
 TEST_F(PmEditorDeleteCharTest, DeleteSlashAfterStar) {
     SetBuffer("code*/more");
-    SetTxtp(5); // Position at '/'
+    SetTxtp(5); // At '/'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test deleting '*' before '/' (multiline comment end)
 TEST_F(PmEditorDeleteCharTest, DeleteStarBeforeSlash) {
     SetBuffer("code*/more");
-    SetTxtp(4); // Position at '*'
+    SetTxtp(4); // At '*'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test deleting '/' before '*' (multiline comment start)
 TEST_F(PmEditorDeleteCharTest, DeleteSlashBeforeStar) {
     SetBuffer("code/*comment");
-    SetTxtp(4); // Position at '/'
+    SetTxtp(4); // At '/'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*comment", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test deleting '*' after '/' (multiline comment start)
 TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlash) {
     SetBuffer("code/*comment");
-    SetTxtp(5); // Position at '*'
+    SetTxtp(5); // At '*'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/comment", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test deleting in middle of word
@@ -1982,14 +1958,14 @@ TEST_F(PmEditorDeleteCharTest, DeleteMiddleOfWord) {
     SetBuffer("Hello");
     SetTxtp(2); // Position at 'l'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Helo", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf + 2, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test deleting with cursor at various positions in a sentence
@@ -1997,13 +1973,13 @@ TEST_F(PmEditorDeleteCharTest, DeleteInSentence) {
     SetBuffer("The quick brown fox");
     SetTxtp(4); // Position at 'q'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("The uick brown fox", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test deleting special characters
@@ -2011,13 +1987,13 @@ TEST_F(PmEditorDeleteCharTest, DeleteSpecialCharacters) {
     SetBuffer("Hello!@#$%World");
     SetTxtp(5); // Position at '!'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello@#$%World", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test deleting with buffer containing only one character
@@ -2025,14 +2001,14 @@ TEST_F(PmEditorDeleteCharTest, DeleteSingleCharacterBuffer) {
     SetBuffer("A");
     SetTxtp(0);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(self->buf, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test deleting with buffer containing only newline
@@ -2040,14 +2016,14 @@ TEST_F(PmEditorDeleteCharTest, DeleteSingleNewlineBuffer) {
     SetBuffer("\n");
     SetTxtp(0);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(1, self->num_lines);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test deleting multiple characters in sequence
@@ -2056,21 +2032,22 @@ TEST_F(PmEditorDeleteCharTest, DeleteMultipleCharactersSequence) {
     SetTxtp(2); // Position at 'C'
 
     // Delete 'C'
-    int redraw = REDRAW_NOTHING;
-    MmResult result1 = pmeditor_delete_char(self, &redraw);
+    MmResult result1 = pmeditor_delete_char(self);
     EXPECT_EQ(kOk, result1);
     EXPECT_STREQ("ABDEF", self->buf);
 
     // Delete 'D' (cursor should still be at position 2)
-    MmResult result2 = pmeditor_delete_char(self, &redraw);
+    MmResult result2 = pmeditor_delete_char(self);
     EXPECT_EQ(kOk, result2);
     EXPECT_STREQ("ABEF", self->buf);
 
     // Delete 'E'
-    MmResult result3 = pmeditor_delete_char(self, &redraw);
+    MmResult result3 = pmeditor_delete_char(self);
     EXPECT_EQ(kOk, result3);
     EXPECT_STREQ("ABF", self->buf);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
+
 }
 
 // Test deleting with very long line
@@ -2079,13 +2056,14 @@ TEST_F(PmEditorDeleteCharTest, DeleteInLongLine) {
     SetBuffer(long_line.c_str());
     SetTxtp(50);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(99, strlen(self->buf));
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
+
 }
 
 // Test deleting at buffer boundaries
@@ -2095,13 +2073,14 @@ TEST_F(PmEditorDeleteCharTest, DeleteAtBufferBoundaries) {
     SetBuffer(content.c_str());
     SetTxtp(content.length() - 1); // Near end
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(content.length() - 1, strlen(self->buf));
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
+
 }
 
 // Test deleting with cursor positioning edge cases
@@ -2109,13 +2088,13 @@ TEST_F(PmEditorDeleteCharTest, DeleteCursorPositioning) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(8); // At 'n' in "Line1"
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line0\nLie1\nLine2", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, redraw);
+    EXPECT_EQ(1, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test deleting with comment level tracking
@@ -2123,28 +2102,28 @@ TEST_F(PmEditorDeleteCharTest, DeleteWithCommentLevelTracking) {
     SetBuffer("/* comment */ code");
     SetTxtp(2); // Position at space in comment
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/*comment */ code", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test deleting newline at end of file
 TEST_F(PmEditorDeleteCharTest, DeleteNewlineAtEndOfFile) {
-    SetBuffer("Line1\nLine2\n");
-    SetTxtp(strlen("Line1\nLine2")); // Position at final newline
+    SetBuffer("Line0\nLine1\n");
+    SetTxtp(strlen("Line0\nLine1")); // Position at final newline
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1\nLine2", self->buf);
+    EXPECT_STREQ("Line0\nLine1", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(2, self->num_lines);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(1, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test deleting with text_changed flag initially true
@@ -2153,186 +2132,192 @@ TEST_F(PmEditorDeleteCharTest, DeleteWithTextAlreadyChanged) {
     SetTxtp(0);
     self->text_changed = true; // Already marked as changed
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ello", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Comment marker combinations - converted from parameterized tests
 TEST_F(PmEditorDeleteCharTest, DeleteStarBeforeSlashInMiddle) {
     SetBuffer("a*/b");
-    SetTxtp(1); // Position at '*'
+    SetTxtp(1); // At '*'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a/b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteSlashAfterStarInMiddle) {
     SetBuffer("a*/b");
-    SetTxtp(2); // Position at '/'
+    SetTxtp(2); // At '/'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a*b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteSlashBeforeStarInMiddle) {
     SetBuffer("a/*b");
-    SetTxtp(1); // Position at '/'
+    SetTxtp(1); // At '/'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a*b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlashInMiddle) {
     SetBuffer("a/*b");
-    SetTxtp(2); // Position at '*'
+    SetTxtp(2); // At '*'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a/b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteStarAtStartOfCommentEnd) {
     SetBuffer("*/");
-    SetTxtp(0); // Position at '*'
+    SetTxtp(0); // At '*'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteSlashAtStartOfCommentStart) {
     SetBuffer("/*");
-    SetTxtp(0); // Position at '/'
+    SetTxtp(0); // At '/'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("*", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteSlashAtEndOfCommentEnd) {
     SetBuffer("*/");
-    SetTxtp(1); // Position at '/'
+    SetTxtp(1); // At '/'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("*", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteStarAtEndOfCommentStart) {
     SetBuffer("/*");
-    SetTxtp(1); // Position at '*'
+    SetTxtp(1); // At '*'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Deleting single-line comment character ' before /* should redraw screen
 TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineStartRedrawsScreen) {
     SetBuffer("code ' /* more");
-    SetTxtp(5); // Position before '
+    SetTxtp(5); // At '
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code  /* more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Deleting single-line comment character ' before */ should redraw screen
 TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineEndRedrawsScreen) {
     SetBuffer("code ' */ more");
-    SetTxtp(5); // Position before '
+    SetTxtp(5); // At '
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code  */ more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Deleting character in REM keyword before /* should redraw screen
 TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineStartRedrawsScreen) {
     SetBuffer("code REM /* more");
-    SetTxtp(5); // Position before R
+    SetTxtp(5); // At 'R'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code EM /* more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 
-    result = pmeditor_delete_char(self, &redraw);
+    self->line_changed = -1;
+    self->all_lines_changed = false;
+    result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code M /* more", self->buf);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Deleting character in REM keyword before */ should redraw screen
 TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineEndRedrawsScreen) {
     SetBuffer("code rem */ more");
-    SetTxtp(6); // Position before e
+    SetTxtp(6); // At 'e' in "rem"
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_delete_char(self, &redraw);
+    MmResult result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code rm */ more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 
-    result = pmeditor_delete_char(self, &redraw);
+    self->line_changed = -1;
+    self->all_lines_changed = false;
+    result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code r */ more", self->buf);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -3065,22 +3050,21 @@ TEST_F(PmEditorCmdCharTest, NonPrintableCharacterIgnored) {
 // Test line redraw after normal insert
 TEST_F(PmEditorCmdCharTest, LineRedrawAfterNormalInsert) {
     SetBuffer("Hello");
-    SetTxtp(5);
+    SetTxtp(5); // At end
     self->insert = true;
-    self->cy = 0;
-    self->py = 0;
     self->key_buf[0] = '!';
 
     MmResult result = pmeditor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 1, .cy = 0}));
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test screen redraw after multiline comment change
 TEST_F(PmEditorCmdCharTest, ScreenRedrawAfterMultilineCommentChange) {
     SetBuffer("code * more");
-    SetTxtp(5); // Before '*'
+    SetTxtp(5); // At '*'
     self->insert = true;
     self->key_buf[0] = '/';
 
@@ -3088,7 +3072,8 @@ TEST_F(PmEditorCmdCharTest, ScreenRedrawAfterMultilineCommentChange) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code /* more", self->buf);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test no redraw when insert returns REDRAW_NOTHING
@@ -3101,7 +3086,8 @@ TEST_F(PmEditorCmdCharTest, NoRedrawWhenInsertReturnsNothing) {
     MmResult result = pmeditor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_NOT_CALLED();
+    EXPECT_EQ(-1, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test cursor positioning after insert
@@ -3764,16 +3750,16 @@ class PmEditorOverwriteCharTest : public PmEditorTestBase { };
 // Test overwriting a regular character
 TEST_F(PmEditorOverwriteCharTest, OverwriteRegularCharacter) {
     SetBuffer("Hello World");
-    SetTxtp(0); // Position at 'H'
+    SetTxtp(0); // At 'H'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'J', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'J');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Jello World", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 1, self->txtp); // Cursor should advance
-    EXPECT_EQ(0, redraw);
+    EXPECT_TXTP_EQ(1); // Cursor should advance
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting at end of buffer (should insert)
@@ -3781,14 +3767,14 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteAtEndOfBuffer) {
     SetBuffer("Hello");
     SetCursorAtEnd();
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '!', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '!');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello!", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 6, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting at newline (should insert)
@@ -3796,14 +3782,14 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteAtNewline) {
     SetBuffer("Hello\nWorld");
     SetTxtp(5); // Position at newline
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '!', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '!');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello!World", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 6, self->txtp);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test overwriting first character
@@ -3811,14 +3797,14 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteFirstCharacter) {
     SetBuffer("Hello");
     SetTxtp(0);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'Y', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'Y');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Yello", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 1, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_TXTP_EQ(1);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting last character before end
@@ -3826,14 +3812,14 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteLastCharacterBeforeEnd) {
     SetBuffer("Hello");
     SetTxtp(4); // Position at 'o'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'a', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'a');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hella", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 5, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting middle character
@@ -3841,14 +3827,14 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteMiddleCharacter) {
     SetBuffer("Hello");
     SetTxtp(2); // Position at 'l'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'x', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'x');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hexlo", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 3, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting with space
@@ -3856,13 +3842,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithSpace) {
     SetBuffer("Hello");
     SetTxtp(2);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, ' ', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, ' ');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("He lo", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting with special characters
@@ -3870,13 +3856,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithSpecialCharacters) {
     SetBuffer("Hello");
     SetTxtp(0);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '@', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '@');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("@ello", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting with digit
@@ -3884,13 +3870,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithDigit) {
     SetBuffer("Hello");
     SetTxtp(0);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '5', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '5');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("5ello", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting non-printable character (should be ignored)
@@ -3899,13 +3885,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteNonPrintableCharacter) {
     SetTxtp(0);
     bool initial_text_changed = self->text_changed;
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '\x01', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '\x01');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_EQ(initial_text_changed, self->text_changed);
-    EXPECT_EQ(REDRAW_NOTHING, redraw);
+    EXPECT_EQ(-1, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting in empty buffer (should insert)
@@ -3913,14 +3899,14 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteInEmptyBuffer) {
     SetBuffer("");
     SetTxtp(0);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'A', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'A');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("A", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 1, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_TXTP_EQ(1);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting single character buffer
@@ -3928,14 +3914,14 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteSingleCharacterBuffer) {
     SetBuffer("A");
     SetTxtp(0);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'B', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'B');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("B", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 1, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_TXTP_EQ(1);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting multiple characters in sequence
@@ -3944,24 +3930,24 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteMultipleCharactersSequence) {
     SetTxtp(0);
 
     // Overwrite 'A' with 'X'
-    int redraw = REDRAW_NOTHING;
-    MmResult result1 = pmeditor_overwrite_char(self, 'X', &redraw);
+    MmResult result1 = pmeditor_overwrite_char(self, 'X');
     EXPECT_EQ(kOk, result1);
     EXPECT_STREQ("XBCDEF", self->buf);
-    EXPECT_EQ(self->buf + 1, self->txtp);
+    EXPECT_TXTP_EQ(1);
 
     // Overwrite 'B' with 'Y'
-    MmResult result2 = pmeditor_overwrite_char(self, 'Y', &redraw);
+    MmResult result2 = pmeditor_overwrite_char(self, 'Y');
     EXPECT_EQ(kOk, result2);
     EXPECT_STREQ("XYCDEF", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp);
+    EXPECT_TXTP_EQ(2);
 
     // Overwrite 'C' with 'Z'
-    MmResult result3 = pmeditor_overwrite_char(self, 'Z', &redraw);
+    MmResult result3 = pmeditor_overwrite_char(self, 'Z');
     EXPECT_EQ(kOk, result3);
     EXPECT_STREQ("XYZDEF", self->buf);
-    EXPECT_EQ(self->buf + 3, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting '/' creating multiline comment start
@@ -3969,13 +3955,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingCommentStart) {
     SetBuffer("code * more");
     SetTxtp(4); // Position at space before '*'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '/', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '/');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/* more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test overwriting '*' creating multiline comment start
@@ -3983,13 +3969,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteStarCreatingCommentStart) {
     SetBuffer("code/ more");
     SetTxtp(5); // Position at space after '/'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '*', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '*');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test overwriting '*' creating multiline comment end
@@ -3997,13 +3983,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteStarCreatingCommentEnd) {
     SetBuffer("code / more");
     SetTxtp(4); // Position at space before '/'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '*', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '*');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*/ more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test overwriting '/' creating multiline comment end
@@ -4011,13 +3997,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteSlashCreatingCommentEnd) {
     SetBuffer("code* more");
     SetTxtp(5); // Position at space after '*'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '/', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '/');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*/more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test overwriting breaking multiline comment start
@@ -4025,13 +4011,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteBreakingCommentStart) {
     SetBuffer("code/*more");
     SetTxtp(4); // Position at '/'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'X');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("codeX*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test overwriting breaking multiline comment end
@@ -4039,13 +4025,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteBreakingCommentEnd) {
     SetBuffer("code*/more");
     SetTxtp(4); // Position at '*'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'X');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("codeX/more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test overwriting with single-quote before /* (creates comment-out)
@@ -4053,13 +4039,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingSingleQuoteBeforeCommentStart
     SetBuffer("code /*more");
     SetTxtp(4); // Position at space before '/'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '\'', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '\'');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code'/*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test overwriting with double-quote before /* (creates comment-out)
@@ -4067,13 +4053,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingDoubleQuoteBeforeCommentStart
     SetBuffer("code /*more");
     SetTxtp(4); // Position at space before '/'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '"', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '"');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code\"/*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test overwriting completing REM before /*
@@ -4081,13 +4067,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCompletingRemBeforeCommentStart) {
     SetBuffer("code RE /*more");
     SetTxtp(7); // Position at space after 'RE'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'M', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'M');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code REM/*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(REDRAW_SCREEN, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(true, self->all_lines_changed);
 }
 
 // Test overwriting in multiline buffer
@@ -4095,13 +4081,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteInMultilineBuffer) {
     SetBuffer("Line0\nLine1\nLine2");
     SetTxtp(7); // Position at 'i' in "Line1"
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'X');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line0\nLXne1\nLine2", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, redraw);
+    EXPECT_EQ(1, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting with cursor state tracking
@@ -4109,14 +4095,14 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithCursorStateTracking) {
     SetBuffer("Hello World");
     SetTxtp(6); // At 'W'
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'w', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'w');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello world", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 7, self->txtp);
-    EXPECT_EQ(0, redraw);
+    EXPECT_TXTP_EQ(7);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting with text_changed flag initially true
@@ -4125,13 +4111,13 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithTextAlreadyChanged) {
     SetTxtp(0);
     self->text_changed = true;
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'J', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'J');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Jello", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test overwriting near buffer capacity
@@ -4141,40 +4127,40 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteNearBufferCapacity) {
     SetBuffer(content.c_str());
     SetTxtp(content.length() - 1);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'Y', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'Y');
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(content.length(), strlen(self->buf));
     EXPECT_EQ('Y', self->buf[content.length() - 1]);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 TEST_F(PmEditorOverwriteCharTest, OverwriteWithSlashCreatesNoComment) {
     SetBuffer("a b");
     SetTxtp(1); // Position at space
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '/', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '/');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a/b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 TEST_F(PmEditorOverwriteCharTest, OverwriteWithStarCreatesNoComment) {
     SetBuffer("a b");
     SetTxtp(1); // Position at space
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, '*', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, '*');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a*b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, redraw);
+    EXPECT_EQ(0, self->line_changed);
+    EXPECT_EQ(false, self->all_lines_changed);
 }
 
 // Test that overwrite and delete return consistent redraw values
@@ -4183,8 +4169,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteDeleteConsistency) {
     SetBuffer("Hello");
     SetTxtp(2);
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'X');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("HeXlo", self->buf);
@@ -4196,8 +4181,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteAtLineBoundaries) {
     SetBuffer("Line1\n\nLine3");
     SetTxtp(6); // Position at second newline
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'X');
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line1\nXLine3", self->buf);
@@ -4209,8 +4193,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwritePreservesBufferIntegrity) {
     SetBuffer("ABCDEFGHIJ");
     SetTxtp(5); // Middle of buffer
 
-    int redraw = REDRAW_NOTHING;
-    MmResult result = pmeditor_overwrite_char(self, 'X', &redraw);
+    MmResult result = pmeditor_overwrite_char(self, 'X');
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(10, strlen(self->buf)); // Length should remain the same
@@ -6304,7 +6287,7 @@ TEST_F(PmEditorCmdHomeTest, DoubleHomeFromFarDownInBuffer) {
     // Position far down in buffer
     self->py = 10;
     self->cy = 5;
-    self->txtp = self->buf + 100; // Some position far from start
+    SetTxtp(100); // Some position far from start
     self->last_key = HOME;
 
     MmResult result = pmeditor_cmd_home(self);

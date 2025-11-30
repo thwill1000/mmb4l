@@ -69,7 +69,7 @@ void ListNewLine(int *ListCnt, int all) {
     display_puts("\r\n");
     (*ListCnt)++;
     int width = -1, height = -1;
-    ON_FAILURE_ERROR(display_get_size(false, &width, &height))
+    ON_FAILURE_ERROR(display_get_size(false, &width, &height));
     if(!all && *ListCnt >= width) {
         display_puts("PRESS ANY KEY ...");
         int ch = -1;

@@ -52,8 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "program.h" // for EDIT_BUFFER_SIZE
 
 #define MAXCLIP 1024
-#define REDRAW_NOTHING  -1
-#define REDRAW_SCREEN   INT32_MAX
 
 typedef enum {
     kHighlightUnspecified = 0,
@@ -119,6 +117,8 @@ typedef struct {
     bool text_changed;       ///< True if buffer modified
     PmEditorMode mode;       ///< Edit, Mark, or Exit mode
     char *mark;              ///< Mark position for text selection
+    int line_changed;        ///< TODO
+    bool all_lines_changed;  ///< TODO
 
     // Display state
     char message[64];        ///< Message being shown
@@ -153,18 +153,18 @@ MmResult pmeditor_cmd_page_up(PmEditor *self);
 MmResult pmeditor_cmd_page_down(PmEditor *self);
 MmResult pmeditor_cmd_right(PmEditor *self);
 MmResult pmeditor_cmd_up(PmEditor *self);
-MmResult pmeditor_delete_char(PmEditor *self, int *redraw);
+MmResult pmeditor_delete_char(PmEditor *self);
 char *pmeditor_back_in_line(PmEditor *self, char *start, size_t num_chars);
 char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, size_t max_len);
 char *pmeditor_find_line_ex(PmEditor *self, int line, int *comment_level);
 MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, HighlightType *highlight);
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
-MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw);
+MmResult pmeditor_insert_char(PmEditor *self, char ch);
 MmResult pmeditor_mark_copy(PmEditor *self);
 MmResult pmeditor_mark_cut(PmEditor *self);
 MmResult pmeditor_mark_delete(PmEditor *self);
-MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw);
+MmResult pmeditor_overwrite_char(PmEditor *self, char ch);
 MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
 MmResult pmeditor_print_selection(PmEditor *self, PmEditor *old);
 char *pmeditor_find_line_n(PmEditor *self, int line);

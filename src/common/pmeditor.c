@@ -129,6 +129,8 @@ MmResult pmeditor_construct(PmEditor *self, const char *filename, int width, int
     self->saved_break_key = mmb_options.break_key;
     self->highlight = kHighlightNormal;
     self->message[0] = '\0';
+    self->line_changed = -1;
+    self->all_lines_changed = false;
 
     // Allocate dynamic memory, including space for clipboard and key buffers.
     // We use a single allocation to reduce fragmentation.
@@ -490,8 +492,7 @@ static MmResult pmeditor_get_input(PmEditor *self, const char *prompt) {
  * Displays a message in the status line area.
  *
  * Shows a message with inverse video (error highlighting) in the status area,
- * typically used for error messages or warnings. Sets a flag to redraw the
- * status line after the next user input.
+ * typically used for error messages or warnings.
  *
  * IMPORTANT: Only call this function via the pmeditor_print_msg() wrapper
  *            so that unit-tests can override it.
@@ -675,17 +676,10 @@ static inline bool pmeditor_is_printable(char ch) {
  *
  * @param       self    Pointer to the PmEditor instance.
  * @param       ch      The character to insert.
- * @param[out]  redraw  Pointer to store the redraw strategy:
- *                      - REDRAW_NOTHING: No redraw needed,
- *                        i.e. non-printable char or error
- *                      - REDRAW_SCREEN: Full screen redraw required
- *                      - Line number (self->py + self->cy): Single line redraw
  * @return              kOk on success, or an error code on failure,
  *                      i.e. buffer full, line too long.
  */
-MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
-    *redraw = REDRAW_NOTHING;
-
+MmResult pmeditor_insert_char(PmEditor *self, char ch) {
     // Ignore non-printable characters
     if (!pmeditor_is_printable(ch)) return kOk;
 
@@ -706,34 +700,34 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
     }
 
     // Inserting a newline always requires a redraw
-    if (ch == '\n') *redraw = REDRAW_SCREEN;
+    if (ch == '\n') self->all_lines_changed = true;
 
     // Check for interactions that make or break multiline comments
-    if (*redraw != REDRAW_SCREEN && mmb_options.syntax_highlight) {
+    if (!self->all_lines_changed && mmb_options.syntax_highlight) {
         char previous = (self->txtp > self->buf) ? *(self->txtp - 1) : '\0';
         switch (ch) {
             case '/':
                 if (previous == '*' || *self->txtp == '*') {
                     // Inserting / before or after *
-                    *redraw = REDRAW_SCREEN;
+                    self->all_lines_changed = true;
                 }
                 break;
             case '*':
                 if (previous == '/' || *self->txtp == '/') {
                     // Inserting * before or after /
-                    *redraw = REDRAW_SCREEN;
+                    self->all_lines_changed = true;
                 }
                 break;
             case '\'':
                 if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
                     // Inserting \ before /*
-                    *redraw = REDRAW_SCREEN;
+                    self->all_lines_changed = true;
                 }
                 break;
             case '"':
                 if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
                     // Inserting " before /*
-                    *redraw = REDRAW_SCREEN;
+                    self->all_lines_changed = true;
                 }
                 break;
             default:
@@ -752,7 +746,7 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
     self->text_changed = true;
 
     // Check for a completed REM command before /*
-    if (*redraw != REDRAW_SCREEN
+    if (!self->all_lines_changed
             && mmb_options.syntax_highlight
             && pmeditor_find_in_line(
                 self,
@@ -760,10 +754,10 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch, int *redraw) {
                 pmeditor_back_in_line(self, self->txtp, 3),
                 5)
             && (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL)) {
-        *redraw = REDRAW_SCREEN;
+        self->all_lines_changed = true;
     }
 
-    if (*redraw == REDRAW_NOTHING) *redraw = self->py + self->cy;
+    self->line_changed = self->py + self->cy;
 
     return kOk;
 }
@@ -1677,7 +1671,7 @@ MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
     int redraw_start = -1; // First line to redraw, or -1 if no line redrawing
     int redraw_end = 0;    // Last line to redraw
 
-    if (self->num_lines != old->num_lines || self->mode != old->mode) {
+    if (self->num_lines != old->num_lines || self->mode != old->mode || self->all_lines_changed) {
         // Redraw whole viewport
         redraw_start = self->py;
         redraw_end = self->py + self->height - 1;
@@ -1710,6 +1704,16 @@ MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
         }
     }
 
+    if (self->line_changed != -1) {
+        if (redraw_start == -1) {
+            redraw_start = self->line_changed;
+            redraw_end = self->line_changed;
+        } else {
+            redraw_start = min(redraw_start, self->line_changed);
+            redraw_end = max(redraw_end, self->line_changed);
+        }
+    }
+
     if (redraw_start != -1) {
         if (redraw_start < self->py) redraw_start = self->py;
         if (redraw_end >= self->py + self->height) redraw_end = self->py + self->height - 1;
@@ -1731,6 +1735,9 @@ MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
             ON_FAILURE_RETURN(pmeditor_print_status(self));
         }
     }
+
+    self->line_changed = -1;
+    self->all_lines_changed = false;
 
     return kOk;
 }
@@ -1771,9 +1778,9 @@ static MmResult pmeditor_cmd_newline(PmEditor *self) {
     }
 
     // Insert the newline character
-    int redraw = REDRAW_NOTHING;
-    ON_FAILURE_RETURN(pmeditor_insert_char(self, '\n', &redraw));
-    if (redraw == REDRAW_NOTHING) return kOk; // Nothing inserted
+    ON_FAILURE_RETURN(pmeditor_insert_char(self, '\n'));
+    // TODO handle no insertion
+    // if (redraw == REDRAW_NOTHING) return kOk; // Nothing inserted
 
     self->num_lines++;
     if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
@@ -1920,23 +1927,14 @@ MmResult pmeditor_cmd_right(PmEditor* self) {
  *
  * Removes the character at self->txtp and shifts all subsequent text left by
  * one position.
- * Determines the appropriate redraw strategy based on what was deleted:
- * - REDRAW_SCREEN: If deleting a newline or affecting multiline comment markers
- * - Line number: If only the current line needs redrawing
- * - REDRAW_NOTHING: If nothing was deleted (at end of buffer)
  *
  * When syntax highlighting is enabled, checks if deleting the character breaks
  * or creates multiline comment markers which would require a full screen redraw.
  *
  * @param       self    Pointer to the PmEditor instance.
- * @param[out]  redraw  Pointer to store the redraw strategy:
- *                      - REDRAW_NOTHING: No redraw needed
- *                      - REDRAW_SCREEN: Full screen redraw required
- *                      - Line number (self->py + self->cy): Single line redraw
  * @return              kOk on success, or an error code on failure.
  */
-MmResult pmeditor_delete_char(PmEditor *self, int *redraw) {
-    *redraw = REDRAW_NOTHING;
+MmResult pmeditor_delete_char(PmEditor *self) {
     if (*self->txtp == '\0') return kOk;
 
     const char currdel = *(self->txtp);
@@ -1953,26 +1951,25 @@ MmResult pmeditor_delete_char(PmEditor *self, int *redraw) {
 
     // Deleting a newline character requires a screen redraw,
     // otherwise we just redraw the current line ...
+    self->line_changed = self->py + self->cy;
     if (currdel == '\n') {
         self->num_lines--;
-        *redraw = REDRAW_SCREEN;
-    } else {
-        *redraw = self->py + self->cy;
+        self->all_lines_changed = true;
     }
 
     // ... unless we are syntax highlighting in which case we also need to
     // check for multiline comments being invalidated.
-    if (mmb_options.syntax_highlight) {
+    if (mmb_options.syntax_highlight && !self->all_lines_changed) {
         bool potential_multiline_change = false;
         switch (currdel) {
             case '/':
                 if ((nextdel == '*') || (lastdel == '*')) {
-                    *redraw = REDRAW_SCREEN;
+                    self->all_lines_changed = true;
                 }
                 break;
             case '*':
                 if ((nextdel == '/') || (lastdel == '/')) {
-                    *redraw = REDRAW_SCREEN;
+                    self->all_lines_changed = true;
                 }
                 break;
             case '\'':
@@ -1998,9 +1995,9 @@ MmResult pmeditor_delete_char(PmEditor *self, int *redraw) {
 
         if (potential_multiline_change) {
             if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
-                *redraw = REDRAW_SCREEN;
+                self->all_lines_changed = true;
             } else if (pmeditor_find_in_line(self, "*/", self->txtp, MAX_LINE_LENGTH) != NULL) {
-                *redraw = REDRAW_SCREEN;
+                self->all_lines_changed = true;
             }
         }
     }
@@ -2032,13 +2029,9 @@ MmResult pmeditor_cmd_delete(PmEditor *self) {
                            "pmeditor_cmd_delete() should not be called in mark mode");
     }
 
-    int redraw = REDRAW_NOTHING;
-    ON_FAILURE_RETURN(pmeditor_delete_char(self, &redraw));
-    if (redraw == REDRAW_SCREEN) {
-        ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    } else if (redraw != REDRAW_NOTHING) {
-        ON_FAILURE_RETURN(pmeditor_print_line_n(self, redraw));
-    }
+    ON_FAILURE_RETURN(pmeditor_delete_char(self));
+
+    // TODO: Should be handled by delete_char()
     return pmeditor_position_cursor(self, self->txtp);
 }
 
@@ -2557,30 +2550,12 @@ static MmResult pmeditor_cmd_paste(PmEditor *self) {
  *
  * @param       self    Pointer to the PmEditor instance.
  * @param       ch      The character to write at the current position.
- * @param[out]  redraw  Pointer to store the redraw strategy:
- *                      - REDRAW_NOTHING: No redraw needed
- *                      - REDRAW_SCREEN: Full screen redraw required
- *                      - Line number: Single line redraw
- * @return              kOk on success, kInternalFault if delete and insert
- *                      redraw strategies are inconsistent, or other error codes
- *                      on failure.
+ * @return              kOk on success, or an error code on failure.
  */
-MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw) {
-    *redraw = REDRAW_NOTHING;
+MmResult pmeditor_overwrite_char(PmEditor *self, char ch) {
     if (!pmeditor_is_printable(ch)) return kOk;
-    ON_FAILURE_RETURN(pmeditor_delete_char(self, redraw));
-    int insert_redraw = REDRAW_NOTHING;
-    ON_FAILURE_RETURN(pmeditor_insert_char(self, ch, &insert_redraw));
-    if (*redraw == REDRAW_SCREEN || insert_redraw == REDRAW_NOTHING) {
-        // Do nothing
-    } else if (insert_redraw == REDRAW_SCREEN) {
-        *redraw = REDRAW_SCREEN;
-    } else if (*redraw == REDRAW_NOTHING) {
-        *redraw = insert_redraw;
-    } else if (insert_redraw != *redraw) {
-        return mmresult_ex(kInternalFault, "Inconsistent line redraw");
-    }
-    return kOk;
+    ON_FAILURE_RETURN(pmeditor_delete_char(self));
+    return pmeditor_insert_char(self, ch);
 }
 
 /**
@@ -2593,11 +2568,6 @@ MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw) {
  *   buffer
  * - At newline or end of buffer: Always inserts regardless of mode
  *
- * After modifying the buffer, determines the appropriate redraw strategy:
- * - REDRAW_SCREEN: Full screen redraw if multiline comments were affected
- * - Line number: Single line redraw for normal edits
- * - REDRAW_NOTHING: No redraw needed (e.g., non-printable character ignored)
- *
  * Non-printable characters and line length limits are handled by the underlying
  * insert/overwrite functions, which will display appropriate error messages.
  *
@@ -2608,17 +2578,10 @@ MmResult pmeditor_overwrite_char(PmEditor *self, char ch, int *redraw) {
     if (self->mode != kEditMode) return display_bell();
 
     const char ch = self->key_buf[0];
-    int redraw = REDRAW_NOTHING;
     if (self->insert || *self->txtp == '\n' || *self->txtp == '\0') {
-        ON_FAILURE_RETURN(pmeditor_insert_char(self, ch, &redraw));
+        ON_FAILURE_RETURN(pmeditor_insert_char(self, ch));
     } else {
-        ON_FAILURE_RETURN(pmeditor_overwrite_char(self, ch, &redraw));
-    }
-
-    if (redraw == REDRAW_SCREEN) {
-        ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    } else if (redraw != REDRAW_NOTHING) {
-        ON_FAILURE_RETURN(pmeditor_print_line_n(self, redraw));
+        ON_FAILURE_RETURN(pmeditor_overwrite_char(self, ch));
     }
 
     return pmeditor_position_cursor(self, self->txtp);
@@ -2765,6 +2728,8 @@ MmResult pmeditor_resize_console(PmEditor *self) {
  */
 MmResult pmeditor_edit_loop(PmEditor *self) {
     // Copy of the state when the display was last updated
+    self->line_changed = -1;
+    self->all_lines_changed = false;
     PmEditor old = pmeditor_shallow_copy(self);
 
     while (self->mode != kExitMode) {

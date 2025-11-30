@@ -59,7 +59,7 @@ static bool sprite_all_hidden = false;
 
 MmResult sprite_init() {
     if (sprite_initialised) return kOk;
-    ON_FAILURE_RETURN(stack_init(&sprite_z_stack, MmSurfaceId, GRAPHICS_MAX_SURFACES, NULL);)
+    ON_FAILURE_RETURN(stack_init(&sprite_z_stack, MmSurfaceId, GRAPHICS_MAX_SURFACES, NULL));
     sprite_all_hidden = false;
     sprite_initialised = true;
     sprite_last_collision = SPRITE_NO_COLLISION;

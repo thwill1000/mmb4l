@@ -82,29 +82,34 @@ void error_set_callback(void (*fn)(void *), void *data);
 /** Clears callback function. */
 void error_clear_callback();
 
-#define ON_FAILURE_ERROR(x)  { \
-  const MmResult rezult = x; \
-  if (FAILED(rezult)) { error_throw(rezult); return; } \
-}
+#define ON_FAILURE_ERROR(x)  do { \
+  const MmResult result__ = (x); \
+  if (FAILED(result__)) { error_throw(result__); return; } \
+} while (0)
 
-#define ON_FAILURE_ERROR_EX(x, y)  { \
-  const MmResult rezult = x; \
-  if (FAILED(rezult)) { error_throw(rezult); return y; } \
-}
+#define ON_FAILURE_ERROR_EX(x, y)  do { \
+  const MmResult result__ = (x); \
+  if (FAILED(result__)) { error_throw(result__); return y; } \
+} while (0)
 
-#define ON_FAILURE_RETURN(x)  { \
-  const MmResult rezult = x; \
-  if (FAILED(rezult)) { return rezult; } \
-}
+#define ON_FAILURE_EXIT(x) do { \
+  const MmResult result__ = (x); \
+  if (FAILED(result__)) { fprintf(stderr, "%s\n", mmresult_to_string(result__)); exit(EX_FAIL); } \
+} while (0)
 
-#define ON_FAILURE_EXIT(x)  { \
-  const MmResult rezult = x; \
-  if (FAILED(rezult)) { fprintf(stderr, "%s\n", mmresult_to_string(rezult)); exit(EX_FAIL); } \
-}
+#define ON_FAILURE_GOTO(x, label)  do { \
+  const MmResult result__ = (x);         \
+  if (FAILED(result__)) { goto label; } \
+} while (0)
 
 #define ON_FAILURE_LOG(x)  do { \
-  const MmResult rezult = x; \
-  if (FAILED(rezult)) { LOG_ERROR("%s", mmresult_to_string(rezult)); } \
+  const MmResult result__ = (x); \
+  if (FAILED(result__)) { LOG_ERROR("%s", mmresult_to_string(result__)); } \
+} while (0)
+
+#define ON_FAILURE_RETURN(x)  do { \
+  const MmResult result__ = (x); \
+  if (FAILED(result__)) { return result__; } \
 } while (0)
 
 #define ERROR_ARGUMENT_COUNT              error_throw(kArgumentCount)
