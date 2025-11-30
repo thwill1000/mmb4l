@@ -1322,9 +1322,7 @@ static MmResult pmeditor_scroll_up(PmEditor *self) {
     // Scroll display up
     ON_FAILURE_RETURN(display_scroll_up());
 
-    // Draw new line at bottom of editing area
-    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height - 1));
-    ON_FAILURE_RETURN(pmeditor_print_line_n(self, self->height - 1 + self->py));
+    // Drawing new line at bottom of editing area is handled by caller
 
     // Restore cursor position
     self->cx = old.cx;
@@ -1361,9 +1359,7 @@ static MmResult pmeditor_scroll_down(PmEditor *self) {
     // Scroll display down
     ON_FAILURE_RETURN(display_scroll_down());
 
-    // Draw new line at top of editing area
-    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, 0));
-    ON_FAILURE_RETURN(pmeditor_print_line_n(self, self->py));
+    // Drawing new line at top of editing area is handled by caller
 
     // Restore cursor position
     self->cx = old.cx;
@@ -1553,28 +1549,31 @@ static char pmeditor_canonical_key(PmEditor *self, char key) {
  *            so that unit-tests can override it.
  *
  * @param  self        Pointer to the PmEditor instance.
- * @param  start_line  The first line to render (0-based, absolute line number
+ * @param  redraw_start  The first line to render (0-based, absolute line number
  *                     from start of buffer). Should be >= 0 and < num_lines.
  * @param  num_lines   Number of consecutive lines to render. Should be > 0.
  *                     The function will render exactly this many lines unless
  *                     it reaches the end of the buffer first.
  * @return             kOk on success, or an error code on failure.
  *
- * @note The function does not validate that start_line and num_lines fit
+ * @note The function does not validate that redraw_start and num_lines fit
  *       within the display boundaries (see TODO comment).
  * @note If rendering would extend beyond the end of the buffer, the function
  *       continues normally but may render fewer visible lines.
  * @note The cursor position (cx, cy) is temporarily modified during rendering
  *       but is restored before the function returns.
  */
-MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned num_lines) {
-    // LOG_DEBUG("entered: start_line=%d, num_lines=%d", start_line, num_lines);
-    // TODO: Adjust start_line and num_lines to fit within display
+MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned redraw_start, unsigned num_lines) {
+    LOG_DEBUG("entered: redraw_start=%d, num_lines=%d", redraw_start, num_lines);
+    // TODO: Adjust redraw_start and num_lines to fit within display
 
     PmEditor old = pmeditor_shallow_copy(self);
 
+    // Move to start of line in viewport
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, redraw_start - self->py));
+
     int comment_level = -1;
-    char *p = pmeditor_find_line_ex(self, start_line, &comment_level);
+    char *p = pmeditor_find_line_ex(self, redraw_start, &comment_level);
     for (; num_lines > 0; num_lines--) {
         ON_FAILURE_RETURN(pmeditor_print_line_p(self, p, comment_level));
         if (num_lines != 0) ON_FAILURE_RETURN(display_puts("\r\n"));
@@ -1601,32 +1600,32 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned start_line, unsigned
  * @param  old  Previous cursor and mark positions for reference.
  * @return          kOk on success, or an error code on failure.
  */
-MmResult pmeditor_print_selection(PmEditor *self, PmEditor *old) {
-    // LOG_DEBUG("self->mark=%p, self->txtp=%p", self->mark, self->txtp);
+// MmResult pmeditor_print_selection(PmEditor *self, PmEditor *old) {
+//     // LOG_DEBUG("self->mark=%p, self->txtp=%p", self->mark, self->txtp);
 
-    // Determine bounds of selection to highlight
-    // (void) pmeditor_get_selection(self, &self->mark_lb, &self->mark_ub);
+//     // Determine bounds of selection to highlight
+//     // (void) pmeditor_get_selection(self, &self->mark_lb, &self->mark_ub);
 
-    // Determine lines to update
-    const unsigned start_line = min(self->py + self->cy, old->py + old->cy);
-    const unsigned end_line = max(self->py + self->cy, old->py + old->cy);
-    const unsigned num_lines = end_line - start_line + 1;
+//     // Determine lines to update
+//     const unsigned redraw_start = min(self->py + self->cy, old->py + old->cy);
+//     const unsigned redraw_end = max(self->py + self->cy, old->py + old->cy);
+//     const unsigned num_lines = redraw_end - redraw_start + 1;
 
-    // LOG_DEBUG("start_line=%d, end_line=%d, num_lines=%d", start_line, end_line, num_lines);
+//     LOG_DEBUG("redraw_start=%d, redraw_end=%d, num_lines=%d", redraw_start, redraw_end, num_lines);
 
-    int old_cx = self->cx;
-    int old_cy = self->cy;
+//     int old_cx = self->cx;
+//     int old_cy = self->cy;
 
-    // Move display cursor to position to print first line
-    const int cy = start_line - self->py;
-    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, cy));
+//     // Move display cursor to position to print first line
+//     const int cy = redraw_start - self->py;
+//     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, cy));
 
-    // Actually print the lines
-    ON_FAILURE_RETURN(pmeditor_print_lines(self, start_line, num_lines));
+//     // Actually print the lines
+//     ON_FAILURE_RETURN(pmeditor_print_lines(self, redraw_start, num_lines));
 
-    // Restore cursor position
-    return pmeditor_set_cursor_pos(self, old_cx, old_cy);
-}
+//     // Restore cursor position
+//     return pmeditor_set_cursor_pos(self, old_cx, old_cy);
+// }
 
 /**
  * Reads a keystroke and places it in the keyboard buffer.
@@ -1675,16 +1674,46 @@ static MmResult pmeditor_read_keys(PmEditor *self) {
  * @return          kOk on success, or an error code on failure.
  */
 MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
+    int redraw_start = -1; // First line to redraw, or -1 if no line redrawing
+    int redraw_end = 0;    // Last line to redraw
+
     if (self->num_lines != old->num_lines || self->mode != old->mode) {
-        ON_FAILURE_RETURN(pmeditor_print_screen(self));
+        // Redraw whole viewport
+        redraw_start = self->py;
+        redraw_end = self->py + self->height - 1;
     } else if (self->py == old->py + 1) {
+        // Scroll up and redraw bottom line of viewport
         ON_FAILURE_RETURN(pmeditor_scroll_up(self));
+        redraw_start = self->py + self->height - 1;
+        redraw_end = redraw_start;
     } else if (self->py == old->py - 1) {
+        // Scroll down and redraw top line of viewport
         ON_FAILURE_RETURN(pmeditor_scroll_down(self));
+        redraw_start = self->py;
+        redraw_end = redraw_start;
     } else if (self->py != old->py) {
-        ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    } else if (self->mode == kMarkMode && self->txtp != old->txtp) {
-        ON_FAILURE_RETURN(pmeditor_print_selection(self, old));
+        // Redraw whole viewport
+        redraw_start = self->py;
+        redraw_end = self->py + self->height - 1;
+    }
+
+    // If in mark mode then extend the range to include all selected lines
+    if (self->mode == kMarkMode && self->txtp != old->txtp) {
+        const int sel_start = min(self->py + self->cy, old->py + old->cy);
+        const int sel_end = max(self->py + self->cy, old->py + old->cy);
+        if (redraw_start == -1)         {
+            redraw_start = sel_start;
+            redraw_end = sel_end;
+        } else {
+            redraw_start = min(sel_start, redraw_start);
+            redraw_end = max(sel_end, redraw_end);
+        }
+    }
+
+    if (redraw_start != -1) {
+        if (redraw_start < self->py) redraw_start = self->py;
+        if (redraw_end >= self->py + self->height) redraw_end = self->py + self->height - 1;
+        ON_FAILURE_RETURN(pmeditor_print_lines(self, redraw_start, redraw_end - redraw_start + 1));
     }
 
     if (self->message[0] != '\0') {
@@ -2735,8 +2764,10 @@ MmResult pmeditor_resize_console(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_edit_loop(PmEditor *self) {
+    // Copy of the state when the display was last updated
+    PmEditor old = pmeditor_shallow_copy(self);
+
     while (self->mode != kExitMode) {
-        PmEditor old = pmeditor_shallow_copy(self);
         self->message[0] = '\0';
 
         ON_FAILURE_RETURN(pmeditor_read_keys(self));
@@ -2748,7 +2779,12 @@ MmResult pmeditor_edit_loop(PmEditor *self) {
             self->preferred_x = self->cx;
         }
 
-        ON_FAILURE_RETURN(pmeditor_update_display(self, &old));
+        // We only update the display once we have processed
+        // the last key in the buffer
+        if (self->key_buf[1] == '\0') {
+            ON_FAILURE_RETURN(pmeditor_update_display(self, &old));
+            old = pmeditor_shallow_copy(self);
+        }
     }
 
     return kOk;
