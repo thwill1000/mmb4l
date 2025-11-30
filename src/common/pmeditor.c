@@ -1441,65 +1441,6 @@ MmResult pmeditor_mark_cut(PmEditor *self) {
 }
 
 /**
- * Moves the mark down one line in mark mode.
- *
- * Attempts to maintain the same column position on the new line, or moves
- * to the end of the line if it's shorter.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kOk on success, or an error code on failure.
- */
-MmResult pmeditor_mark_down(PmEditor *self) {
-    CHECK_CURSOR_VALID();
-
-    // Length of this line
-    int len = pmeditor_line_length(self, self->txtp);
-
-    // Can't move down from a line that is too long.
-    if (len > self->width) {
-        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
-    }
-
-    // Start of next line
-    char *p = pmeditor_next_line(self, self->txtp);
-
-    // Moving down from the last line of text or display moves to end of line
-    if (!p || self->cy == self->height - 1) {
-        self->cx = min(self->width, pmeditor_line_length(self, self->txtp));
-        self->txtp = pmeditor_start_of_line(self, self->txtp) + self->cx;
-        return kOk;
-    }
-
-    // Length of next line
-    len = pmeditor_line_length(self, p);
-
-    // Move cursor to the same column on the next line, or the end of the line
-    self->cx = min(self->cx, len);
-    self->cy++;
-    self->txtp = p + self->cx;
-
-    return kOk;
-}
-
-/**
- * Moves the mark to the end of the current line.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kOk on success, or an error code on failure.
- */
-MmResult pmeditor_mark_end(PmEditor *self) {
-    CHECK_CURSOR_VALID();
-    char *p = pmeditor_start_of_line(self, self->txtp);
-    int len = pmeditor_line_length(self, p);
-    if (len > self->width) {
-        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
-    }
-    self->txtp = p + len;
-    self->cx = len;
-    return kOk;
-}
-
-/**
  * Handles ESC key in mark mode.
  *
  * Waits briefly to distinguish between a plain ESC and escape sequences
@@ -1522,87 +1463,6 @@ static MmResult pmeditor_mark_escape(PmEditor *self) {
     }
 
     self->mode = kEditMode;
-    return kOk;
-}
-
-/**
- * Moves the mark to the start of the current line in mark mode.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kOk on success, or an error code on failure.
- */
-MmResult pmeditor_mark_home(PmEditor *self) {
-    CHECK_CURSOR_VALID();
-    self->txtp = pmeditor_start_of_line(self, self->txtp);
-    self->cx = 0;
-    return kOk;
-}
-
-/**
- * Moves the mark left by one character in mark mode.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kOk on success, or an error code on failure.
- */
-MmResult pmeditor_mark_left(PmEditor *self) {
-    CHECK_CURSOR_VALID();
-    const char previous = pmeditor_safe_char(self, self->txtp - 1);
-    if (self->cx > 0 && previous != '\0' && previous != '\n') {
-        self->txtp--;
-        self->cx--;
-    }
-    return kOk;
-}
-
-/**
- * Moves the mark right by one character in mark mode.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kOk on success, or an error code on failure.
- */
-MmResult pmeditor_mark_right(PmEditor *self) {
-    CHECK_CURSOR_VALID();
-    if (self->cx < self->width && *self->txtp != '\0' && *self->txtp != '\n') {
-        self->txtp++;
-        self->cx++;
-    }
-    return kOk;
-}
-
-/**
- * Moves the mark up one line in mark mode.
- *
- * Attempts to maintain the same column position on the new line, or moves
- * to the end of the line if it's shorter.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kOk on success, or an error code on failure.
- */
-MmResult pmeditor_mark_up(PmEditor *self) {
-    CHECK_CURSOR_VALID();
-
-    // Start of previous line
-    char *p = pmeditor_previous_line(self, self->txtp);
-
-    // Moving up from the first line of text or display moves to start of line
-    if (!p || self->cy == 0) {
-        self->txtp = pmeditor_start_of_line(self, self->txtp);
-        self->cx = 0;
-        return kOk;
-    }
-
-    // Length of previous line
-    const int len = pmeditor_line_length(self, p);
-
-    // Can't move up to a line that is too long
-    if (len > self->width) {
-        return pmeditor_display_msg(self, " LINE IS TOO LONG ");
-    }
-
-    self->cx = min(self->cx, len);
-    self->cy--;
-    self->txtp = p + self->cx;
-
     return kOk;
 }
 
@@ -1642,34 +1502,6 @@ static char pmeditor_canonical_key(PmEditor *self, char key) {
         case CTRLKEY('Y'): return F5;
         case CTRLKEY(']'): return DEL;
         default:           return key;
-    }
-// clang-format on
-}
-
-/**
- * Dispatches mark mode commands to their handler functions.
- *
- * Routes mark mode keystrokes to the appropriate handler based on the
- * command key pressed.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @param  cmd   The command key to process.
- * @return       kOk on success, or an error code on failure.
- */
-static MmResult pmeditor_mark_dispatch(PmEditor *self, char cmd) {
-// clang-format off
-    switch (cmd) {
-        case ESC:   return pmeditor_mark_escape(self);
-        case UP:    return pmeditor_mark_up(self);
-        case DOWN:  return pmeditor_mark_down(self);
-        case LEFT:  return pmeditor_mark_left(self);
-        case RIGHT: return pmeditor_mark_right(self);
-        case HOME:  return pmeditor_mark_home(self);
-        case END:   return pmeditor_mark_end(self);
-        case F4:    return pmeditor_mark_cut(self);
-        case F5:    return pmeditor_mark_copy(self);
-        case DEL:   return pmeditor_mark_delete(self);
-        default:    return kOk;
     }
 // clang-format on
 }
@@ -1830,40 +1662,6 @@ MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
             || self->cx != old->cx
             || self->cy != old->cy) {
         ON_FAILURE_RETURN(pmeditor_print_status(self));
-    }
-
-    return kOk;
-}
-
-/**
- * Implements mark mode for text selection.
- *
- * Enters a sub-loop handling mark mode commands, displaying selected text
- * with inverse video, and processing cut/copy/delete operations.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kOk on success, or an error code on failure.
- */
-static MmResult pmeditor_mark_loop(PmEditor *self) {
-    self->mode = kMarkMode;
-    ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
-    ON_FAILURE_RETURN(pmeditor_print_status(self));
-
-    self->mark = self->txtp; // self->mark records where cursor was when entered mark mode
-
-    while (self->mode == kMarkMode) {
-        PmEditor old = pmeditor_shallow_copy(self);
-
-        ON_FAILURE_RETURN(pmeditor_read_keys(self));
-
-        if (self->message_shown) {
-            ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
-            ON_FAILURE_RETURN(pmeditor_print_status(self));
-            self->message_shown = false;
-        }
-
-        ON_FAILURE_RETURN(pmeditor_mark_dispatch(self, self->key_buf[0]));
-        ON_FAILURE_RETURN(pmeditor_update_display(self, &old));
     }
 
     return kOk;
