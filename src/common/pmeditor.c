@@ -1584,44 +1584,6 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned redraw_start, unsign
 }
 
 /**
- * Updates selection bounds and redraws the screen with highlighted text.
- *
- * Calculates the lower and upper bounds of the selection between self->mark
- * and self->txtp, then redraws the screen to display the selected text with
- * inverse video highlighting.
- *
- * @param  self     Pointer to the PmEditor instance.
- * @param  old  Previous cursor and mark positions for reference.
- * @return          kOk on success, or an error code on failure.
- */
-// MmResult pmeditor_print_selection(PmEditor *self, PmEditor *old) {
-//     // LOG_DEBUG("self->mark=%p, self->txtp=%p", self->mark, self->txtp);
-
-//     // Determine bounds of selection to highlight
-//     // (void) pmeditor_get_selection(self, &self->mark_lb, &self->mark_ub);
-
-//     // Determine lines to update
-//     const unsigned redraw_start = min(self->py + self->cy, old->py + old->cy);
-//     const unsigned redraw_end = max(self->py + self->cy, old->py + old->cy);
-//     const unsigned num_lines = redraw_end - redraw_start + 1;
-
-//     LOG_DEBUG("redraw_start=%d, redraw_end=%d, num_lines=%d", redraw_start, redraw_end, num_lines);
-
-//     int old_cx = self->cx;
-//     int old_cy = self->cy;
-
-//     // Move display cursor to position to print first line
-//     const int cy = redraw_start - self->py;
-//     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, cy));
-
-//     // Actually print the lines
-//     ON_FAILURE_RETURN(pmeditor_print_lines(self, redraw_start, num_lines));
-
-//     // Restore cursor position
-//     return pmeditor_set_cursor_pos(self, old_cx, old_cy);
-// }
-
-/**
  * Reads a keystroke and places it in the keyboard buffer.
  *
  * Blocks until a key is pressed, showing the cursor while waiting. The raw
