@@ -1501,22 +1501,19 @@ static char pmeditor_canonical_key(PmEditor *self, char key) {
  * - Locating the starting line in the buffer
  * - Tracking multiline comment state across lines
  * - Rendering each line with appropriate syntax highlighting
+ * - Rendering empty lines when beyond end of buffer (handled by pmeditor_print_line_p)
  * - Consuming accumulated keystrokes to prevent input buffer overflow during
  *   slow rendering
  * - Preserving and restoring the cursor position
- *
- * The function uses pmeditor_print_line_p() for the actual line rendering,
- * which applies syntax highlighting based on the comment_level state carried
- * forward from previous lines.
  *
  * IMPORTANT: Only call this function via the pmeditor_print_lines() wrapper
  *            so that unit-tests can override it.
  *
  * @param  self   Pointer to the PmEditor instance.
- * @param  start  The first line to render (inclusive, 0-based).
- *                Should be >= 0 and < num_lines.
- * @param  end    The last line to render (inclusive, 0-based).
- *                Should be >= start and < num_lines.
+ * @param  start  The first line to render (0-based, absolute line number).
+ *                Must be >= 0 and < num_lines.
+ * @param  end    The last line to render (0-based, absolute line number).
+ *                May be >= num_lines for rendering empty lines.
  * @return        kOk on success, or an error code on failure.
  *
  * @note The cursor position (cx, cy) is temporarily modified during rendering
@@ -1524,16 +1521,22 @@ static char pmeditor_canonical_key(PmEditor *self, char key) {
  */
 MmResult pmeditor_print_lines_impl(PmEditor *self, int start, int end) {
     LOG_DEBUG("entered: start=%d, end=%d", start, end);
-    if (!self || start < 0 || end < start || start >= self->num_lines || end >= self->num_lines) {
-        return mmresult_ex(kInternalFault, "Invalid parameters: self=%p, start=%d, end=%d",
+
+    // Basic parameter validation
+    if (!self || start < 0 || start >= self->num_lines || end < start) {
+        return mmresult_ex(kInternalFault,
+                           "Invalid parameters: self=%p, start=%d, end=%d",
                            self, start, end);
     }
+
+    // Early exit if completely beyond viewport
     if (start >= self->py + self->height) {
-        LOG_WARNING("start line is beyond viewport: start=%d, self->py=%d", start, self->py);
+        LOG_WARNING("start line is beyond viewport: start=%d, py=%d, height=%d",
+                    start, self->py, self->height);
         return kOk;
     }
 
-    // Adjust start/end to fit within viewport
+    // Clip to viewport boundaries
     start = max(start, self->py);
     end = min(end, self->py + self->height - 1);
 
@@ -1542,15 +1545,28 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, int start, int end) {
     // Move to start of line in viewport
     ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, start - self->py));
 
-    int comment_level = -1;
+    // Find the starting position in buffer
+    int comment_level = 0;
     char *p = pmeditor_find_line_ex(self, start, &comment_level);
+
+    // Render each line
     int num_lines = end - start + 1;
     for (; num_lines > 0; num_lines--) {
+        // pmeditor_print_line_p() handles empty lines when p points to end of buffer
         ON_FAILURE_RETURN(pmeditor_print_line_p(self, p, comment_level));
-        if (num_lines != 0) ON_FAILURE_RETURN(display_puts("\r\n"));
+
+        if (num_lines > 1) {
+            ON_FAILURE_RETURN(display_puts("\r\n"));
+        }
+
         self->cx = 0;
         self->cy++;
-        if (num_lines != 0) p = pmeditor_find_next(self, p, &comment_level);
+
+        // Advance to next line,
+        // p will point to end of buffer if there are no more lines
+        if (num_lines > 1) {
+            p = pmeditor_find_next(self, p, &comment_level);
+        }
     }
 
     // Consume any keystrokes accumulated while drawing
@@ -1602,39 +1618,47 @@ static MmResult pmeditor_read_keys(PmEditor *self) {
  * only the necessary parts of the display (screen, selection, function keys,
  * status line) to reflect any changes.
  *
- * @param  self     Pointer to the PmEditor instance.
- * @param  old  Previous cursor and mode state for comparison.
- * @return          kOk on success, or an error code on failure.
+ * All line numbers (start, end) are absolute line numbers (0-based from
+ * start of buffer), not viewport-relative.
+ *
+ * @param  self  Pointer to the PmEditor instance.
+ * @param  old   Previous cursor and mode state for comparison.
+ * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
-    int redraw_start = -1; // First line to redraw, or -1 if no line redrawing
-    int redraw_end = 0;    // Last line to redraw
+    // Track the range of lines to redraw (absolute line numbers, -1 means no redraw)
+    int redraw_start = -1;
+    int redraw_end = -1;
 
-    if (self->num_lines != old->num_lines || self->mode != old->mode || self->all_lines_changed) {
-        // Redraw whole viewport
+    // Determine if we need to redraw lines based on structural changes
+    if (self->num_lines != old->num_lines
+            || self->mode != old->mode
+            || self->all_lines_changed) {
+        // Major change: redraw entire viewport (including empty lines below content)
         redraw_start = self->py;
         redraw_end = self->py + self->height - 1;
     } else if (self->py == old->py + 1) {
-        // Scroll up and redraw bottom line of viewport
+        // Scrolled up by one line: hardware scroll + redraw new bottom line
         ON_FAILURE_RETURN(pmeditor_scroll_up(self));
         redraw_start = self->py + self->height - 1;
         redraw_end = redraw_start;
     } else if (self->py == old->py - 1) {
-        // Scroll down and redraw top line of viewport
+        // Scrolled down by one line: hardware scroll + redraw new top line
         ON_FAILURE_RETURN(pmeditor_scroll_down(self));
         redraw_start = self->py;
         redraw_end = redraw_start;
     } else if (self->py != old->py) {
-        // Redraw whole viewport
+        // Jumped multiple lines: redraw entire viewport
         redraw_start = self->py;
         redraw_end = self->py + self->height - 1;
     }
 
-    // If in mark mode then extend the range to include all selected lines
+    // In mark mode, extend redraw range to cover selection changes
     if (self->mode == kMarkMode && self->txtp != old->txtp) {
         const int sel_start = min(self->py + self->cy, old->py + old->cy);
         const int sel_end = max(self->py + self->cy, old->py + old->cy);
-        if (redraw_start == -1)         {
+
+        if (redraw_start == -1) {
             redraw_start = sel_start;
             redraw_end = sel_end;
         } else {
@@ -1643,6 +1667,7 @@ MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
         }
     }
 
+    // Extend redraw range for single line changes (e.g., editing)
     if (self->line_changed != -1) {
         if (redraw_start == -1) {
             redraw_start = self->line_changed;
@@ -1653,10 +1678,12 @@ MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
         }
     }
 
+    // Perform line redraws if needed
     if (redraw_start != -1) {
         ON_FAILURE_RETURN(pmeditor_print_lines(self, redraw_start, redraw_end));
     }
 
+    // Update status area (message or function keys + status line)
     if (self->message[0] != '\0') {
         ON_FAILURE_RETURN(pmeditor_print_msg(self, self->message));
     } else {
@@ -1673,6 +1700,7 @@ MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
         }
     }
 
+    // Clear one-time change flags
     self->line_changed = -1;
     self->all_lines_changed = false;
 
