@@ -1266,36 +1266,6 @@ MmResult pmeditor_print_line_p(PmEditor *self, char *p, int comment_level) {
 }
 
 /**
- * Prints line N to the display.
- *
- * Renders the specified line with appropriate syntax highlighting if enabled.
- * If the line is beyond the end of the text, just clears to end of line.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @param  line  The line number to print (0-based, relative to start of buffer).
- * @return       kOk on success, or an error code on failure.
- */
-static inline MmResult pmeditor_print_line_n(PmEditor *self, int line) {
-    return pmeditor_print_lines(self, line, 1);
-}
-
-/**
- * Redraws the entire editor screen.
- *
- * Prints all visible lines starting from the top-left corner specified by
- * self->py.
- *
- * @param  self  Pointer to the PmEditor instance.
- * @return       kOk on success, or an error code on failure.
- */
-MmResult pmeditor_print_screen(PmEditor *self) {
-    PmEditor old = pmeditor_shallow_copy(self);
-    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, 0));
-    ON_FAILURE_RETURN(pmeditor_print_lines(self, self->py, self->height));
-    return pmeditor_set_cursor_pos(self, old.cx, old.cy);
-}
-
-/**
  * Scrolls the editor display up by one line.
  *
  * Moves the viewport up (showing newer content at bottom), increments the
@@ -2552,16 +2522,19 @@ MmResult pmeditor_overwrite_char(PmEditor *self, char ch) {
 /**
  * Handles the F9 key command (redraw screen).
  *
- * Forces a complete redraw of the editor screen and repositions the cursor.
- * Useful for refreshing the display if it becomes corrupted or after terminal
- * resize events.
+ * Repositions the display cursor to match the text cursor and forces a complete
+ * redraw of the editor screen. Use to refresh the display if it becomes
+ * corrupted or after terminal resize events.
  *
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_cmd_redraw(PmEditor *self) {
-    ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    return pmeditor_position_cursor(self, self->txtp);
+    ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
+    ON_FAILURE_RETURN(pmeditor_print_lines(self, self->py, self->height));
+    ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
+    ON_FAILURE_RETURN(pmeditor_print_status(self));
+    return kOk;
 }
 
 /**
@@ -2783,10 +2756,16 @@ MmResult pmeditor_show(const char *filename, int line) {
         LOG_ERROR("cannot find line: %d", line - 1);
         self->txtp = self->buf;
     }
-    ON_FAILURE_RETURN(pmeditor_print_screen(self));
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
-    ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
-    ON_FAILURE_RETURN(pmeditor_print_status(self));
+
+    // Determine initial y-viewport (py) and y-cursor (cy) positions
+    self->cy = line - 1;
+    while (self->cy > self->height) {
+        self->py += self->height;
+        self->cy -= self->height;
+    }
+
+    // Print the initial display
+    ON_FAILURE_RETURN(pmeditor_cmd_redraw(self));
 
     // Disable default break key handling, within the editor the break key
     // will be considered synonymous with ESC.
