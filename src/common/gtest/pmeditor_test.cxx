@@ -50,7 +50,7 @@ typedef struct {
 typedef struct {
     int calls;
     int start;
-    int num;
+    int end;
     int cy;
 } PrintLinesCapture;
 
@@ -79,10 +79,10 @@ MmResult pmeditor_test_print_func_keys(PmEditor *self) {
     return kOk;
 }
 
-MmResult pmeditor_test_print_lines(PmEditor *self, unsigned start_line, unsigned num_lines) {
+MmResult pmeditor_test_print_lines(PmEditor *self, int start, int end) {
     print_lines_capture.calls++;
-    print_lines_capture.start = (int) start_line;
-    print_lines_capture.num = (int) num_lines;
+    print_lines_capture.start = start;
+    print_lines_capture.end = end;
     print_lines_capture.cy = self->cy;
     return kOk;
 }
@@ -135,7 +135,7 @@ protected:
         print_msg_capture = { .calls = 0 };
         strcpy(print_msg_capture.msg, "");
         print_func_keys_capture = { .calls = 0 };
-        print_lines_capture = { .calls = 0, .start = -1, .num = -1, .cy = -1 };
+        print_lines_capture = { .calls = 0, .start = -1, .end = -1, .cy = -1 };
         print_status_capture = { .calls = 0 };
     }
 
@@ -193,14 +193,14 @@ protected:
     do { \
         EXPECT_EQ(expected.calls, print_lines_capture.calls) << "pmeditor_print_lines call count mismatch"; \
         EXPECT_EQ(expected.start, print_lines_capture.start) << "pmeditor_print_lines start line argument mismatch"; \
-        EXPECT_EQ(expected.num, print_lines_capture.num) << "pmeditor_print_lines num lines argument mismatch"; \
+        EXPECT_EQ(expected.end, print_lines_capture.end) << "pmeditor_print_lines end line argument mismatch"; \
     } while (0)
 
 // TODO
 //        EXPECT_EQ(expected.cy, print_lines_capture.cy) << "pmeditor_print_lines cursor y-position mismatch";
 
 #define EXPECT_PRINT_LINES_NOT_CALLED() \
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 0, .start = -1, .num = -1, .cy = -1}))
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 0, .start = -1, .end = -1, .cy = -1}))
 
 #define EXPECT_PRINT_MSG_CALLED(expected) \
     do { \
@@ -7764,7 +7764,7 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenNumLinesChanges) {
     MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 22, .cy = 0}));
 }
 
 TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenModeChanges) {
@@ -7777,7 +7777,7 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenModeChanges) {
     MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 22, .cy = 0}));
     EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
 }
 
@@ -7791,7 +7791,7 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenPyIncreasesByTwo) {
     MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 2, .num = 23, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 2, .end = 24, .cy = 0}));
 }
 
 // Test screen redrawn when viewport moves down by two or more (py decreases)
@@ -7805,7 +7805,7 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenPyDecreasesByTwo) {
     MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 23, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 22, .cy = 0}));
 }
 
 // Test screen redrawn when viewport moves down by one
@@ -7821,7 +7821,7 @@ TEST_F(PmEditorUpdateDisplayTest, ScrollsScreenDownWhenPyIncreasesByOne) {
 
     // Can't easily test that the screen has been scrolled
     // but can test that the last line of viewport and the status line have been redrawn
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 23, .num = 1, .cy = 22}));
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 23, .end = 23, .cy = 22}));
     EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
     EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
 }
@@ -7840,7 +7840,7 @@ TEST_F(PmEditorUpdateDisplayTest, ScrollsScreenUpWhenPyDecreasesByOne) {
 
     // Can't easily test that the screen has been scrolled
     // but can test that the first line of viewport and the status line have been redrawn
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 1, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 0, .cy = 0}));
     EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
     EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
 }
@@ -7857,7 +7857,7 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsSelectionWhenInMarkModeAndTxtpChanges) 
     MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .num = 2, .cy = 0}));
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 1, .cy = 0}));
 }
 
 TEST_F(PmEditorUpdateDisplayTest, RedrawsStatusWhenInsertModeChanges) {

@@ -80,14 +80,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Forward declaration of real function implementations
 MmResult pmeditor_highlight_impl(PmEditor *, HighlightType);
 MmResult pmeditor_print_func_keys_impl(PmEditor *);
-MmResult pmeditor_print_lines_impl(PmEditor *, unsigned, unsigned);
+MmResult pmeditor_print_lines_impl(PmEditor *, int, int);
 MmResult pmeditor_print_msg_impl(PmEditor *, const char *);
 MmResult pmeditor_print_status_impl(PmEditor *);
 
 // Pointers to functions we want to override in unit-tests
 MmResult (*pmeditor_highlight)(PmEditor *, HighlightType) = pmeditor_highlight_impl;
 MmResult (*pmeditor_print_func_keys)(PmEditor *) = pmeditor_print_func_keys_impl;
-MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned) = pmeditor_print_lines_impl;
+MmResult (*pmeditor_print_lines)(PmEditor *, int, int) = pmeditor_print_lines_impl;
 MmResult (*pmeditor_print_msg)(PmEditor *, const char *) = pmeditor_print_msg_impl;
 MmResult (*pmeditor_print_status)(PmEditor *) = pmeditor_print_status_impl;
 
@@ -1512,32 +1512,39 @@ static char pmeditor_canonical_key(PmEditor *self, char key) {
  * IMPORTANT: Only call this function via the pmeditor_print_lines() wrapper
  *            so that unit-tests can override it.
  *
- * @param  self        Pointer to the PmEditor instance.
- * @param  redraw_start  The first line to render (0-based, absolute line number
- *                     from start of buffer). Should be >= 0 and < num_lines.
- * @param  num_lines   Number of consecutive lines to render. Should be > 0.
- *                     The function will render exactly this many lines unless
- *                     it reaches the end of the buffer first.
- * @return             kOk on success, or an error code on failure.
+ * @param  self   Pointer to the PmEditor instance.
+ * @param  start  The first line to render (inclusive, 0-based).
+ *                Should be >= 0 and < num_lines.
+ * @param  end    The last line to render (inclusive, 0-based).
+ *                Should be >= start and < num_lines.
+ * @return        kOk on success, or an error code on failure.
  *
- * @note The function does not validate that redraw_start and num_lines fit
- *       within the display boundaries (see TODO comment).
- * @note If rendering would extend beyond the end of the buffer, the function
- *       continues normally but may render fewer visible lines.
  * @note The cursor position (cx, cy) is temporarily modified during rendering
  *       but is restored before the function returns.
  */
-MmResult pmeditor_print_lines_impl(PmEditor *self, unsigned redraw_start, unsigned num_lines) {
-    LOG_DEBUG("entered: redraw_start=%d, num_lines=%d", redraw_start, num_lines);
-    // TODO: Adjust redraw_start and num_lines to fit within display
+MmResult pmeditor_print_lines_impl(PmEditor *self, int start, int end) {
+    LOG_DEBUG("entered: start=%d, end=%d", start, end);
+    if (!self || start < 0 || end < start || start >= self->num_lines || end >= self->num_lines) {
+        return mmresult_ex(kInternalFault, "Invalid parameters: self=%p, start=%d, end=%d",
+                           self, start, end);
+    }
+    if (start >= self->py + self->height) {
+        LOG_WARNING("start line is beyond viewport: start=%d, self->py=%d", start, self->py);
+        return kOk;
+    }
+
+    // Adjust start/end to fit within viewport
+    start = max(start, self->py);
+    end = min(end, self->py + self->height - 1);
 
     PmEditor old = pmeditor_shallow_copy(self);
 
     // Move to start of line in viewport
-    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, redraw_start - self->py));
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, start - self->py));
 
     int comment_level = -1;
-    char *p = pmeditor_find_line_ex(self, redraw_start, &comment_level);
+    char *p = pmeditor_find_line_ex(self, start, &comment_level);
+    int num_lines = end - start + 1;
     for (; num_lines > 0; num_lines--) {
         ON_FAILURE_RETURN(pmeditor_print_line_p(self, p, comment_level));
         if (num_lines != 0) ON_FAILURE_RETURN(display_puts("\r\n"));
@@ -1647,9 +1654,7 @@ MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
     }
 
     if (redraw_start != -1) {
-        if (redraw_start < self->py) redraw_start = self->py;
-        if (redraw_end >= self->py + self->height) redraw_end = self->py + self->height - 1;
-        ON_FAILURE_RETURN(pmeditor_print_lines(self, redraw_start, redraw_end - redraw_start + 1));
+        ON_FAILURE_RETURN(pmeditor_print_lines(self, redraw_start, redraw_end));
     }
 
     if (self->message[0] != '\0') {
@@ -2531,7 +2536,7 @@ MmResult pmeditor_overwrite_char(PmEditor *self, char ch) {
  */
 MmResult pmeditor_cmd_redraw(PmEditor *self) {
     ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
-    ON_FAILURE_RETURN(pmeditor_print_lines(self, self->py, self->height));
+    ON_FAILURE_RETURN(pmeditor_print_lines(self, self->py, self->py + self->height - 1));
     ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
     ON_FAILURE_RETURN(pmeditor_print_status(self));
     return kOk;

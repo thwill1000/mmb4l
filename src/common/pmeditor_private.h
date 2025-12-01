@@ -138,7 +138,7 @@ typedef struct {
 extern MmResult (*pmeditor_print_msg)(PmEditor *, const char *);
 extern MmResult (*pmeditor_highlight)(PmEditor *, HighlightType);
 extern MmResult (*pmeditor_print_func_keys)(PmEditor *);
-extern MmResult (*pmeditor_print_lines)(PmEditor *, unsigned, unsigned);
+extern MmResult (*pmeditor_print_lines)(PmEditor *, int, int);
 extern MmResult (*pmeditor_print_status)(PmEditor *);
 
 MmResult pmeditor_construct(PmEditor *self, const char *filename, int width, int height);
