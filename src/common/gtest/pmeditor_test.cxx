@@ -196,8 +196,13 @@ protected:
         EXPECT_EQ(expected.end, print_lines_capture.end) << "pmeditor_print_lines end line argument mismatch"; \
     } while (0)
 
-// TODO
-//        EXPECT_EQ(expected.cy, print_lines_capture.cy) << "pmeditor_print_lines cursor y-position mismatch";
+#define EXPECT_LINES_CHANGED(start, end) \
+    do { \
+        EXPECT_EQ(start, self->change_start) << "change start mismatch"; \
+        EXPECT_EQ(end, self->change_end) << "change end mismatch"; \
+    } while (0)
+
+#define EXPECT_NO_LINES_CHANGED()  EXPECT_LINES_CHANGED(NO_CHANGE, NO_CHANGE)
 
 #define EXPECT_PRINT_LINES_NOT_CALLED() \
     EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 0, .start = -1, .end = -1, .cy = -1}))
@@ -1557,8 +1562,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharAtBeginning) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("HWorld", self->buf);
     EXPECT_TXTP_EQ(1);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertCharAtEnd) {
@@ -1571,8 +1575,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharAtEnd) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello!", self->buf);
     EXPECT_TXTP_EQ(strlen(initial_content) + 1);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertCharInMiddle) {
@@ -1584,8 +1587,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharInMiddle) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_TXTP_EQ(3);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertNewline) {
@@ -1597,8 +1599,7 @@ TEST_F(PmEditorInsertCharTest, InsertNewline) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("He\nllo", self->buf);
     EXPECT_TXTP_EQ(3);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertCharBufferFull) {
@@ -1614,8 +1615,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferFull) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ(" EDIT BUFFER FULL ", self->message);
-    EXPECT_EQ(-1, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_NO_LINES_CHANGED();
 }
 
 TEST_F(PmEditorInsertCharTest, InsertCharBufferHasOnlyOneByteRemaining) {
@@ -1633,8 +1633,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferHasOnlyOneByteRemaining) {
     EXPECT_STREQ("", self->message);
     EXPECT_TXTP_EQ(EDIT_BUFFER_SIZE - 1);
     EXPECT_EQ('B', *(self->buf + EDIT_BUFFER_SIZE - 2));
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertForwardSlashAfterStar) {
@@ -1646,8 +1645,7 @@ TEST_F(PmEditorInsertCharTest, InsertForwardSlashAfterStar) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello*/", self->buf);
     EXPECT_TXTP_EQ(7);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertForwardSlashBeforeStar) {
@@ -1660,9 +1658,8 @@ TEST_F(PmEditorInsertCharTest, InsertForwardSlashBeforeStar) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/*Hello", self->buf);
-    EXPECT_EQ(self->buf + 1, self->txtp);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_TXTP_EQ(1);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertStarAfterForwardSlash) {
@@ -1674,8 +1671,7 @@ TEST_F(PmEditorInsertCharTest, InsertStarAfterForwardSlash) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/*Hello", self->buf);
     EXPECT_TXTP_EQ(2);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertStarBeforeForwardSlash) {
@@ -1687,8 +1683,7 @@ TEST_F(PmEditorInsertCharTest, InsertStarBeforeForwardSlash) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello*/", self->buf);
     EXPECT_TXTP_EQ(6);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertApostropheBeforeMultilineCommentStart) {
@@ -1700,9 +1695,8 @@ TEST_F(PmEditorInsertCharTest, InsertApostropheBeforeMultilineCommentStart) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("P'rint /*Hello", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertApostropheWithoutMultilineCommentStart) {
@@ -1715,8 +1709,7 @@ TEST_F(PmEditorInsertCharTest, InsertApostropheWithoutMultilineCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("P'rint ABHello", self->buf);
     EXPECT_TXTP_EQ(2);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertQuoteBeforeMultilineCommentStart) {
@@ -1728,8 +1721,7 @@ TEST_F(PmEditorInsertCharTest, InsertQuoteBeforeMultilineCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("P\"rint /*Hello", self->buf);
     EXPECT_TXTP_EQ(2);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorInsertCharTest, InsertQuoteWithoutMultilineCommentStart) {
@@ -1741,8 +1733,7 @@ TEST_F(PmEditorInsertCharTest, InsertQuoteWithoutMultilineCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("P\"rint ABHello", self->buf);
     EXPECT_TXTP_EQ(2);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertR) {
@@ -1754,8 +1745,7 @@ TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertR) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("PRINT rEm /*Hello", self->buf);
     EXPECT_TXTP_EQ(7);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertE) {
@@ -1767,8 +1757,7 @@ TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertE) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("PRINT REm /*Hello", self->buf);
     EXPECT_TXTP_EQ(8);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertM) {
@@ -1780,8 +1769,7 @@ TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertM) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("PRINT reM /*Hello", self->buf);
     EXPECT_TXTP_EQ(9);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1801,9 +1789,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfBuffer) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_EQ(initial_text_changed, self->text_changed);
-    EXPECT_EQ(self->buf + 5, self->txtp);
-    EXPECT_EQ(-1, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_NO_LINES_CHANGED();
 }
 
 // Test deleting at end of empty buffer
@@ -1816,8 +1803,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfEmptyBuffer) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
     EXPECT_FALSE(self->text_changed);
-    EXPECT_EQ(-1, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_NO_LINES_CHANGED();
 }
 
 // Test deleting a regular character
@@ -1830,9 +1816,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteRegularCharacter) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("HelloWorld", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 5, self->txtp);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test deleting first character
@@ -1845,9 +1830,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteFirstCharacter) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ello", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf, self->txtp);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test deleting last character (not at end of buffer)
@@ -1860,9 +1844,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteLastCharacterBeforeEnd) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hell", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 4, self->txtp);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test deleting a newline character
@@ -1877,8 +1860,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteNewlineCharacter) {
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(1, self->num_lines);
     EXPECT_TXTP_EQ(5);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test deleting newline in multi-line buffer
@@ -1891,10 +1873,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteNewlineMultiLine) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line0Line1\nLine2", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(2, self->num_lines);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
-
+    EXPECT_TXTP_EQ(5);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test deleting '/' after '*' (multiline comment end)
@@ -1907,8 +1887,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSlashAfterStar) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test deleting '*' before '/' (multiline comment end)
@@ -1921,8 +1900,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteStarBeforeSlash) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test deleting '/' before '*' (multiline comment start)
@@ -1935,8 +1913,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSlashBeforeStar) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*comment", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test deleting '*' after '/' (multiline comment start)
@@ -1949,8 +1926,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlash) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/comment", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test deleting in middle of word
@@ -1963,9 +1939,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteMiddleOfWord) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Helo", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf + 2, self->txtp);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test deleting with cursor at various positions in a sentence
@@ -1978,8 +1953,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteInSentence) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("The uick brown fox", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test deleting special characters
@@ -1992,8 +1966,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSpecialCharacters) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello@#$%World", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test deleting with buffer containing only one character
@@ -2006,9 +1979,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteSingleCharacterBuffer) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(self->buf, self->txtp);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test deleting with buffer containing only newline
@@ -2022,8 +1994,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSingleNewlineBuffer) {
     EXPECT_STREQ("", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(1, self->num_lines);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test deleting multiple characters in sequence
@@ -2045,9 +2016,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteMultipleCharactersSequence) {
     MmResult result3 = pmeditor_delete_char(self);
     EXPECT_EQ(kOk, result3);
     EXPECT_STREQ("ABF", self->buf);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
-
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test deleting with very long line
@@ -2061,9 +2030,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteInLongLine) {
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(99, strlen(self->buf));
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
-
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test deleting at buffer boundaries
@@ -2078,9 +2045,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteAtBufferBoundaries) {
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(content.length() - 1, strlen(self->buf));
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
-
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test deleting with cursor positioning edge cases
@@ -2093,8 +2058,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteCursorPositioning) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line0\nLie1\nLine2", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(1, 1);
 }
 
 // Test deleting with comment level tracking
@@ -2107,8 +2071,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteWithCommentLevelTracking) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/*comment */ code", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test deleting newline at end of file
@@ -2122,8 +2085,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteNewlineAtEndOfFile) {
     EXPECT_STREQ("Line0\nLine1", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(2, self->num_lines);
-    EXPECT_EQ(1, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(1, LAST_LINE);
 }
 
 // Test deleting with text_changed flag initially true
@@ -2137,8 +2099,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteWithTextAlreadyChanged) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("ello", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Comment marker combinations - converted from parameterized tests
@@ -2151,8 +2112,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteStarBeforeSlashInMiddle) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a/b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteSlashAfterStarInMiddle) {
@@ -2164,8 +2124,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSlashAfterStarInMiddle) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a*b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteSlashBeforeStarInMiddle) {
@@ -2177,8 +2136,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSlashBeforeStarInMiddle) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a*b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlashInMiddle) {
@@ -2190,8 +2148,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlashInMiddle) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a/b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteStarAtStartOfCommentEnd) {
@@ -2203,8 +2160,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteStarAtStartOfCommentEnd) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteSlashAtStartOfCommentStart) {
@@ -2216,8 +2172,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSlashAtStartOfCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("*", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteSlashAtEndOfCommentEnd) {
@@ -2229,8 +2184,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSlashAtEndOfCommentEnd) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("*", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 TEST_F(PmEditorDeleteCharTest, DeleteStarAtEndOfCommentStart) {
@@ -2242,8 +2196,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteStarAtEndOfCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Deleting single-line comment character ' before /* should redraw screen
@@ -2256,8 +2209,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineStartRedrawsScree
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code  /* more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Deleting single-line comment character ' before */ should redraw screen
@@ -2270,8 +2222,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineEndRedrawsScreen)
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code  */ more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Deleting character in REM keyword before /* should redraw screen
@@ -2284,17 +2235,15 @@ TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineStartRedrawsScreen) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code EM /* more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 
-    self->line_changed = -1;
-    self->all_lines_changed = false;
+    self->change_start = NO_CHANGE;
+    self->change_end = NO_CHANGE;
     result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code M /* more", self->buf);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Deleting character in REM keyword before */ should redraw screen
@@ -2307,17 +2256,15 @@ TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineEndRedrawsScreen) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code rm */ more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 
-    self->line_changed = -1;
-    self->all_lines_changed = false;
+    self->change_start = NO_CHANGE;
+    self->change_end = NO_CHANGE;
     result = pmeditor_delete_char(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code r */ more", self->buf);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -3057,8 +3004,7 @@ TEST_F(PmEditorCmdCharTest, LineRedrawAfterNormalInsert) {
     MmResult result = pmeditor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test screen redraw after multiline comment change
@@ -3072,8 +3018,7 @@ TEST_F(PmEditorCmdCharTest, ScreenRedrawAfterMultilineCommentChange) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code /* more", self->buf);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test no redraw when insert returns REDRAW_NOTHING
@@ -3086,8 +3031,7 @@ TEST_F(PmEditorCmdCharTest, NoRedrawWhenInsertReturnsNothing) {
     MmResult result = pmeditor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_EQ(-1, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_NO_LINES_CHANGED();
 }
 
 // Test cursor positioning after insert
@@ -3758,8 +3702,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteRegularCharacter) {
     EXPECT_STREQ("Jello World", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(1); // Cursor should advance
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting at end of buffer (should insert)
@@ -3773,8 +3716,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteAtEndOfBuffer) {
     EXPECT_STREQ("Hello!", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(6);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting at newline (should insert)
@@ -3788,8 +3730,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteAtNewline) {
     EXPECT_STREQ("Hello!World", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(6);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test overwriting first character
@@ -3803,8 +3744,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteFirstCharacter) {
     EXPECT_STREQ("Yello", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(1);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting last character before end
@@ -3818,8 +3758,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteLastCharacterBeforeEnd) {
     EXPECT_STREQ("Hella", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(5);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting middle character
@@ -3833,8 +3772,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteMiddleCharacter) {
     EXPECT_STREQ("Hexlo", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(3);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting with space
@@ -3847,8 +3785,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithSpace) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("He lo", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting with special characters
@@ -3861,8 +3798,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithSpecialCharacters) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("@ello", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting with digit
@@ -3875,8 +3811,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithDigit) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("5ello", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting non-printable character (should be ignored)
@@ -3890,8 +3825,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteNonPrintableCharacter) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_EQ(initial_text_changed, self->text_changed);
-    EXPECT_EQ(-1, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_NO_LINES_CHANGED();
 }
 
 // Test overwriting in empty buffer (should insert)
@@ -3905,8 +3839,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteInEmptyBuffer) {
     EXPECT_STREQ("A", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(1);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting single character buffer
@@ -3920,8 +3853,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteSingleCharacterBuffer) {
     EXPECT_STREQ("B", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(1);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting multiple characters in sequence
@@ -3946,8 +3878,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteMultipleCharactersSequence) {
     EXPECT_EQ(kOk, result3);
     EXPECT_STREQ("XYZDEF", self->buf);
     EXPECT_TXTP_EQ(3);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting '/' creating multiline comment start
@@ -3960,8 +3891,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/* more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test overwriting '*' creating multiline comment start
@@ -3974,8 +3904,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteStarCreatingCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test overwriting '*' creating multiline comment end
@@ -3988,8 +3917,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteStarCreatingCommentEnd) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*/ more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test overwriting '/' creating multiline comment end
@@ -4002,8 +3930,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteSlashCreatingCommentEnd) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*/more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test overwriting breaking multiline comment start
@@ -4016,8 +3943,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteBreakingCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("codeX*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test overwriting breaking multiline comment end
@@ -4030,8 +3956,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteBreakingCommentEnd) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("codeX/more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test overwriting with single-quote before /* (creates comment-out)
@@ -4044,8 +3969,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingSingleQuoteBeforeCommentStart
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code'/*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test overwriting with double-quote before /* (creates comment-out)
@@ -4058,8 +3982,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCreatingDoubleQuoteBeforeCommentStart
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code\"/*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test overwriting completing REM before /*
@@ -4072,8 +3995,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteCompletingRemBeforeCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code REM/*more", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(true, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
 // Test overwriting in multiline buffer
@@ -4086,8 +4008,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteInMultilineBuffer) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line0\nLXne1\nLine2", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(1, 1);
 }
 
 // Test overwriting with cursor state tracking
@@ -4101,8 +4022,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithCursorStateTracking) {
     EXPECT_STREQ("Hello world", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(7);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting with text_changed flag initially true
@@ -4116,8 +4036,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithTextAlreadyChanged) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Jello", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test overwriting near buffer capacity
@@ -4133,8 +4052,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteNearBufferCapacity) {
     EXPECT_EQ(content.length(), strlen(self->buf));
     EXPECT_EQ('Y', self->buf[content.length() - 1]);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 TEST_F(PmEditorOverwriteCharTest, OverwriteWithSlashCreatesNoComment) {
@@ -4146,8 +4064,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithSlashCreatesNoComment) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a/b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 TEST_F(PmEditorOverwriteCharTest, OverwriteWithStarCreatesNoComment) {
@@ -4159,8 +4076,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithStarCreatesNoComment) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("a*b", self->buf);
     EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(0, self->line_changed);
-    EXPECT_EQ(false, self->all_lines_changed);
+    EXPECT_LINES_CHANGED(0, 0);
 }
 
 // Test that overwrite and delete return consistent redraw values

@@ -52,6 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "program.h" // for EDIT_BUFFER_SIZE
 
 #define MAXCLIP 1024
+#define LAST_LINE  INT32_MAX
+#define NO_CHANGE  -1
 
 typedef enum {
     kHighlightUnspecified = 0,
@@ -117,8 +119,10 @@ typedef struct {
     bool text_changed;       ///< True if buffer modified
     PmEditorMode mode;       ///< Edit, Mark, or Exit mode
     char *mark;              ///< Mark position for text selection
-    int line_changed;        ///< TODO
-    bool all_lines_changed;  ///< TODO
+
+    // Change tracking (for efficient redrawing)
+    int change_start;        ///< First changed line (NO_CHANGE if none)
+    int change_end;          ///< Last changed line (NO_CHANGE if none)
 
     // Display state
     char message[64];        ///< Message being shown

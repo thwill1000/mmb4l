@@ -129,8 +129,8 @@ MmResult pmeditor_construct(PmEditor *self, const char *filename, int width, int
     self->saved_break_key = mmb_options.break_key;
     self->highlight = kHighlightNormal;
     self->message[0] = '\0';
-    self->line_changed = -1;
-    self->all_lines_changed = false;
+    self->change_start = NO_CHANGE;
+    self->change_end = NO_CHANGE;
 
     // Allocate dynamic memory, including space for clipboard and key buffers.
     // We use a single allocation to reduce fragmentation.
@@ -139,6 +139,39 @@ MmResult pmeditor_construct(PmEditor *self, const char *filename, int width, int
     self->clipboard_buf = self->buf + self->buf_sz;
     self->key_buf = self->clipboard_buf + MAXCLIP + 2;
 
+    return kOk;
+}
+
+/**
+ * Marks a range of lines as needing redraw.
+ *
+ * Extends the current change range to include the specified lines.
+ * Multiple calls accumulate into a single range for efficient redrawing.
+ *
+ * @param  self   Pointer to the PmEditor instance.
+ * @param  start  First line to mark as changed (0-based, absolute).
+ * @param  end    Last line to mark as changed (0-based, absolute).
+ *                Use LAST_LINE to mark to end of document.
+ * @return        kOk on success, or an error code on failure.
+ *
+ * @note end >= num_lines is valid (for marking to the end of the document).
+ * @note Change tracking is reset by pmeditor_update_display().
+ */
+static MmResult pmeditor_set_changed_lines(PmEditor *self, int start, int end) {
+    if (start < 0 || end < start) {
+        return mmresult_ex(kInternalFault,
+                           "%s invalid parameters: self=%p, start=%d, end=%d",
+                           __func__, self, start, end);
+    }
+
+    // Initialize or extend the change range
+    if (self->change_start == NO_CHANGE) {
+        self->change_start = start;
+        self->change_end = end;
+    } else {
+        self->change_start = min(self->change_start, start);
+        self->change_end = max(self->change_end, end);
+    }
     return kOk;
 }
 
@@ -418,7 +451,7 @@ MmResult pmeditor_print_func_keys_impl(PmEditor *self) {
             break;
 
         default:
-            return mmresult_ex(kInternalFault, "Unknown editor mode: %d", self->mode);
+            return mmresult_ex(kInternalFault, "%s unknown editor mode: %d", __func__, self->mode);
     }
 
     PmEditor old = pmeditor_shallow_copy(self);
@@ -700,34 +733,36 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch) {
     }
 
     // Inserting a newline always requires a redraw
-    if (ch == '\n') self->all_lines_changed = true;
+    const int current_line = self->py + self->cy;
+    bool multiple_line_change = false;
+    if (ch == '\n') multiple_line_change = true;
 
     // Check for interactions that make or break multiline comments
-    if (!self->all_lines_changed && mmb_options.syntax_highlight) {
+    if (!multiple_line_change && mmb_options.syntax_highlight) {
         char previous = (self->txtp > self->buf) ? *(self->txtp - 1) : '\0';
         switch (ch) {
             case '/':
                 if (previous == '*' || *self->txtp == '*') {
                     // Inserting / before or after *
-                    self->all_lines_changed = true;
+                    multiple_line_change = true;
                 }
                 break;
             case '*':
                 if (previous == '/' || *self->txtp == '/') {
                     // Inserting * before or after /
-                    self->all_lines_changed = true;
+                    multiple_line_change = true;
                 }
                 break;
             case '\'':
                 if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
                     // Inserting \ before /*
-                    self->all_lines_changed = true;
+                    multiple_line_change = true;
                 }
                 break;
             case '"':
                 if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
                     // Inserting " before /*
-                    self->all_lines_changed = true;
+                    multiple_line_change = true;
                 }
                 break;
             default:
@@ -746,7 +781,7 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch) {
     self->text_changed = true;
 
     // Check for a completed REM command before /*
-    if (!self->all_lines_changed
+    if (!multiple_line_change
             && mmb_options.syntax_highlight
             && pmeditor_find_in_line(
                 self,
@@ -754,10 +789,14 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch) {
                 pmeditor_back_in_line(self, self->txtp, 3),
                 5)
             && (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL)) {
-        self->all_lines_changed = true;
+        multiple_line_change = true;
     }
 
-    self->line_changed = self->py + self->cy;
+    if (multiple_line_change) {
+        ON_FAILURE_RETURN(pmeditor_set_changed_lines(self, current_line, LAST_LINE));
+    } else {
+        ON_FAILURE_RETURN(pmeditor_set_changed_lines(self, current_line, current_line));
+    }
 
     return kOk;
 }
@@ -857,7 +896,7 @@ const char *SPECIAL_KEYWORDS[] = {
  * @return                 kOk on success, or an error code on failure.
  */
 MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, HighlightType *highlight) {
-    if (!p) return mmresult_ex(kInternalFault, "Invalid null parameter: p");
+    if (!p) return mmresult_ex(kInternalFault, "%s invalid null parameter: p", __func__);
     if (!mmb_options.syntax_highlight) return kOk;
 
     // Check for the start of a multiline comment
@@ -1525,8 +1564,8 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, int start, int end) {
     // Basic parameter validation
     if (!self || start < 0 || start >= self->num_lines || end < start) {
         return mmresult_ex(kInternalFault,
-                           "Invalid parameters: self=%p, start=%d, end=%d",
-                           self, start, end);
+                           "%s invalid parameters: self=%p, start=%d, end=%d",
+                           __func__, self, start, end);
     }
 
     // Early exit if completely beyond viewport
@@ -1626,61 +1665,35 @@ static MmResult pmeditor_read_keys(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
-    // Track the range of lines to redraw (absolute line numbers, -1 means no redraw)
-    int redraw_start = -1;
-    int redraw_end = -1;
-
     // Determine if we need to redraw lines based on structural changes
-    if (self->num_lines != old->num_lines
-            || self->mode != old->mode
-            || self->all_lines_changed) {
-        // Major change: redraw entire viewport (including empty lines below content)
-        redraw_start = self->py;
-        redraw_end = self->py + self->height - 1;
+    if (self->num_lines != old->num_lines || self->mode != old->mode) {
+        // Major change: redraw entire viewport
+        ON_FAILURE_RETURN(pmeditor_set_changed_lines(self, self->py, LAST_LINE));
     } else if (self->py == old->py + 1) {
         // Scrolled up by one line: hardware scroll + redraw new bottom line
         ON_FAILURE_RETURN(pmeditor_scroll_up(self));
-        redraw_start = self->py + self->height - 1;
-        redraw_end = redraw_start;
+        const int bottom_line = self->py + self->height - 1;
+        ON_FAILURE_RETURN(pmeditor_set_changed_lines(self, bottom_line, bottom_line));
     } else if (self->py == old->py - 1) {
         // Scrolled down by one line: hardware scroll + redraw new top line
         ON_FAILURE_RETURN(pmeditor_scroll_down(self));
-        redraw_start = self->py;
-        redraw_end = redraw_start;
+        ON_FAILURE_RETURN(pmeditor_set_changed_lines(self, self->py, self->py));
     } else if (self->py != old->py) {
         // Jumped multiple lines: redraw entire viewport
-        redraw_start = self->py;
-        redraw_end = self->py + self->height - 1;
+        ON_FAILURE_RETURN(pmeditor_set_changed_lines(self, self->py, LAST_LINE));
     }
 
     // In mark mode, extend redraw range to cover selection changes
     if (self->mode == kMarkMode && self->txtp != old->txtp) {
         const int sel_start = min(self->py + self->cy, old->py + old->cy);
         const int sel_end = max(self->py + self->cy, old->py + old->cy);
-
-        if (redraw_start == -1) {
-            redraw_start = sel_start;
-            redraw_end = sel_end;
-        } else {
-            redraw_start = min(sel_start, redraw_start);
-            redraw_end = max(sel_end, redraw_end);
-        }
-    }
-
-    // Extend redraw range for single line changes (e.g., editing)
-    if (self->line_changed != -1) {
-        if (redraw_start == -1) {
-            redraw_start = self->line_changed;
-            redraw_end = self->line_changed;
-        } else {
-            redraw_start = min(redraw_start, self->line_changed);
-            redraw_end = max(redraw_end, self->line_changed);
-        }
+        ON_FAILURE_RETURN(pmeditor_set_changed_lines(self, sel_start, sel_end));
     }
 
     // Perform line redraws if needed
-    if (redraw_start != -1) {
-        ON_FAILURE_RETURN(pmeditor_print_lines(self, redraw_start, redraw_end));
+    if (self->change_start != NO_CHANGE) {
+        self->change_end = min(self->change_end, self->py + self->height - 1);
+        ON_FAILURE_RETURN(pmeditor_print_lines(self, self->change_start, self->change_end));
     }
 
     // Update status area (message or function keys + status line)
@@ -1701,8 +1714,8 @@ MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
     }
 
     // Clear one-time change flags
-    self->line_changed = -1;
-    self->all_lines_changed = false;
+    self->change_start = NO_CHANGE;
+    self->change_end = NO_CHANGE;
 
     return kOk;
 }
@@ -1916,25 +1929,26 @@ MmResult pmeditor_delete_char(PmEditor *self) {
 
     // Deleting a newline character requires a screen redraw,
     // otherwise we just redraw the current line ...
-    self->line_changed = self->py + self->cy;
+    const int current_line = self->py + self->cy;
+    bool multiple_line_change = false;
     if (currdel == '\n') {
         self->num_lines--;
-        self->all_lines_changed = true;
+        multiple_line_change = true;
     }
 
     // ... unless we are syntax highlighting in which case we also need to
     // check for multiline comments being invalidated.
-    if (mmb_options.syntax_highlight && !self->all_lines_changed) {
+    if (!multiple_line_change && mmb_options.syntax_highlight) {
         bool potential_multiline_change = false;
         switch (currdel) {
             case '/':
                 if ((nextdel == '*') || (lastdel == '*')) {
-                    self->all_lines_changed = true;
+                    multiple_line_change = true;
                 }
                 break;
             case '*':
                 if ((nextdel == '/') || (lastdel == '/')) {
-                    self->all_lines_changed = true;
+                    multiple_line_change = true;
                 }
                 break;
             case '\'':
@@ -1960,11 +1974,17 @@ MmResult pmeditor_delete_char(PmEditor *self) {
 
         if (potential_multiline_change) {
             if (pmeditor_find_in_line(self, "/*", self->txtp, MAX_LINE_LENGTH) != NULL) {
-                self->all_lines_changed = true;
+                multiple_line_change = true;
             } else if (pmeditor_find_in_line(self, "*/", self->txtp, MAX_LINE_LENGTH) != NULL) {
-                self->all_lines_changed = true;
+                multiple_line_change = true;
             }
         }
+    }
+
+    if (multiple_line_change) {
+        ON_FAILURE_RETURN(pmeditor_set_changed_lines(self, current_line, LAST_LINE));
+    } else {
+        ON_FAILURE_RETURN(pmeditor_set_changed_lines(self, current_line, current_line));
     }
 
     return kOk;
@@ -1991,7 +2011,7 @@ MmResult pmeditor_delete_char(PmEditor *self) {
 MmResult pmeditor_cmd_delete(PmEditor *self) {
     if (self->mode != kEditMode) {
         return mmresult_ex(kInternalFault,
-                           "pmeditor_cmd_delete() should not be called in mark mode");
+                           "%s should not be called in mark mode", __func__);
     }
 
     ON_FAILURE_RETURN(pmeditor_delete_char(self));
@@ -2134,8 +2154,8 @@ MmResult pmeditor_move_to_end(PmEditor *self) {
     }
 
     if (cy + 1 != self->num_lines) {
-        return mmresult_ex(kInternalFault, "Inconsistent line number count: %d vs. %d",
-                           cy + 1, self->num_lines);
+        return mmresult_ex(kInternalFault, "%s inconsistent line number count: %d vs. %d",
+                           __func__, cy + 1, self->num_lines);
     }
 
     // Move to end of last line
@@ -2215,8 +2235,7 @@ MmResult pmeditor_cmd_page_up(PmEditor *self) {
     while (lines_up--) {
         char *p = pmeditor_previous_line(self, self->txtp);
         if (!p) {
-            return mmresult_ex(kInternalFault,
-                               "pmeditor_cmd_page_down: number of lines inconsistent");
+            return mmresult_ex(kInternalFault, "%s number of lines inconsistent", __func__);
         }
         self->txtp = p;
     }
@@ -2255,8 +2274,7 @@ MmResult pmeditor_cmd_page_down(PmEditor *self) {
     while (lines_down--) {
         char *p = pmeditor_next_line(self, self->txtp);
         if (!p) {
-            return mmresult_ex(kInternalFault,
-                               "pmeditor_cmd_page_up: number of lines inconsistent");
+            return mmresult_ex(kInternalFault, "%s number of lines inconsistent", __func__);
         }
         self->txtp = p;
     }
@@ -2352,8 +2370,7 @@ static MmResult pmeditor_cmd_save_and_run(PmEditor *self) {
  */
 static MmResult pmeditor_cmd_exit(PmEditor *self) {
     if (self->mode != kEditMode) {
-        return mmresult_ex(kInternalFault,
-                           "pmeditor_cmd_exit() should not be called in mark mode");
+        return mmresult_ex(kInternalFault, "%s should not be called in mark mode", __func__);
     }
 #if 0
     // Wait 50ms to see if anything more is coming.
@@ -2468,8 +2485,7 @@ static MmResult pmeditor_cmd_search(PmEditor *self) {
  */
 static MmResult pmeditor_cmd_mark(PmEditor *self) {
     if (self->mode != kEditMode) {
-        return mmresult_ex(kInternalFault,
-                           "pmeditor_cmd_mark() should not be called in mark mode");
+        return mmresult_ex(kInternalFault, "%s should not be called in mark mode", __func__);
     }
     self->mode = kMarkMode;
     self->mark = self->txtp;
@@ -2487,8 +2503,7 @@ static MmResult pmeditor_cmd_mark(PmEditor *self) {
  */
 static MmResult pmeditor_cmd_paste(PmEditor *self) {
     if (self->mode != kEditMode) {
-        return mmresult_ex(kInternalFault,
-                           "pmeditor_cmd_paste() should not be called in mark mode");
+        return mmresult_ex(kInternalFault, "%s should not be called in mark mode", __func__);
     }
 
     if (*self->clipboard_buf == '\0') {
@@ -2712,8 +2727,6 @@ MmResult pmeditor_resize_console(PmEditor *self) {
  */
 MmResult pmeditor_edit_loop(PmEditor *self) {
     // Copy of the state when the display was last updated
-    self->line_changed = -1;
-    self->all_lines_changed = false;
     PmEditor old = pmeditor_shallow_copy(self);
 
     while (self->mode != kExitMode) {
