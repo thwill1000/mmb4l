@@ -66,7 +66,7 @@ typedef enum {
     kHighlightStatus,
     kHighlightError,
     kHighlightTrailingWhitespace,
-    kHighlightMark,
+    kHighlightMark = 0xFF,  // bit 7 set for inverse
 } HighlightType;
 
 typedef struct SyntaxState {

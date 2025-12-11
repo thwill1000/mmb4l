@@ -522,7 +522,8 @@ MmResult console_clear_to_end_of_screen() {
 
 static int argb_to_ansi(MmGraphicsColour argb) {
     switch (argb) {
-        case RGB_ANSI_BLACK:          return 30; // 30 == Black, 39 == Default
+        case RGB_ANSI_DEFAULT:        return 39;
+        case RGB_ANSI_BLACK:          return 30;
         case RGB_ANSI_RED:            return 31;
         case RGB_ANSI_GREEN:          return 32;
         case RGB_ANSI_YELLOW:         return 33;

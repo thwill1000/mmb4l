@@ -82,6 +82,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RGB_LILAC         RGB(0xFF, 0x80, 0xFF, 0xFF)
 
 // Additional ANSI colours (Windows Console).
+#define RGB_ANSI_DEFAULT         -2
 #define RGB_ANSI_BLACK           RGB_BLACK
 #define RGB_ANSI_RED             RGB(0x80,    0,    0, 0xFF)
 #define RGB_ANSI_GREEN           RGB(   0, 0x80,    0, 0xFF)
@@ -99,6 +100,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RGB_ANSI_BRIGHT_CYAN     RGB_CYAN
 #define RGB_ANSI_BRIGHT_WHITE    RGB_WHITE
 
-typedef int64_t MmGraphicsColour; // 32-bit colour, -1 for transparent background colour.
+// 32-bit colour
+// -1 for transparent background colour.
+// -2 for default terminal colour (background or foreground depending on context).
+typedef int64_t MmGraphicsColour;
 
 #endif // #if !defined(MMCOLOUR_H)
