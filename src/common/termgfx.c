@@ -103,20 +103,20 @@ MmResult termgfx_cls() {
 
 MmResult termgfx_colour(MmGraphicsColour fg, MmGraphicsColour bg) {
     ASSERT_GFX();
-    graphics_fcolour = fg;
-    graphics_bcolour = bg;
+    graphics_fcolour = (fg == RGB_ANSI_DEFAULT) ? RGB_ANSI_WHITE : fg;
+    graphics_bcolour = (bg == RGB_ANSI_DEFAULT) ? RGB_ANSI_BLACK : bg;
     return kOk;
 }
 
 MmResult termgfx_colour_bg(MmGraphicsColour argb) {
     ASSERT_GFX();
-    graphics_bcolour = argb;
+    graphics_bcolour = (argb == RGB_ANSI_DEFAULT) ? RGB_ANSI_BLACK : argb;
     return kOk;
 }
 
 MmResult termgfx_colour_fg(MmGraphicsColour argb) {
     ASSERT_GFX();
-    graphics_fcolour = argb;
+    graphics_fcolour = (argb == RGB_ANSI_DEFAULT) ? RGB_ANSI_WHITE : argb;
     return kOk;
 }
 

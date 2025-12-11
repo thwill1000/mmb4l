@@ -156,7 +156,7 @@ protected:
 
     void SetTxtp(int offset) {
         self->txtp = self->buf + offset;
-        ASSERT_EQ(kOk, pmeditor_position_cursor(self, self->txtp));
+        ASSERT_EQ(kOk, pmeditor_sync_cursor_to_buffer(self, self->txtp));
     }
 
     void SetCursorAtEnd() {
@@ -165,7 +165,7 @@ protected:
 
     void SetMark(int offset) {
         self->mark = self->buf + offset;
-        ASSERT_EQ(kOk, pmeditor_position_cursor(self, self->mark));
+        ASSERT_EQ(kOk, pmeditor_sync_cursor_to_buffer(self, self->mark));
     }
 };
 

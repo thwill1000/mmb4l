@@ -169,10 +169,10 @@ MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
 MmResult pmeditor_insert_char(PmEditor *self, char ch);
 MmResult pmeditor_overwrite_char(PmEditor *self, char ch);
-MmResult pmeditor_position_cursor(PmEditor *self, char *curp);
 MmResult pmeditor_print_selection(PmEditor *self, PmEditor *old);
 char *pmeditor_find_line_n(PmEditor *self, int line);
 void pmeditor_restore_fn_pointers();
+MmResult pmeditor_sync_cursor_to_buffer(PmEditor *self, char *curp);
 MmResult pmeditor_update_display(PmEditor *self, PmEditor *old);
 
 /**

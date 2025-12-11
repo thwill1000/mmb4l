@@ -199,7 +199,7 @@ static MmResult pmeditor_set_changed_lines(PmEditor *self, int start, int end) {
  *
  * @note Does not change self->cx or self->cy.
  */
-static MmResult pmeditor_display_set_cursor_pos(PmEditor *self, int x, int y) {
+static MmResult pmeditor_set_cursor_pos(PmEditor *self, int x, int y) {
     if (x < 0 || x >= self->width || y < 0 || y >= self->height + 2) {
         LOG_WARNING(
             "out of bounds: x=%d, y=%d, width=%d, height=%d",
@@ -357,7 +357,8 @@ static MmResult pmeditor_save_file(PmEditor *self, const char *filename) {
 }
 
 /**
- * Positions the display cursor to match a position in the text buffer.
+ * Synchronizes the position of the display cursor with a position in the
+ * text buffer.
  *
  * Calculates the line and column for the given text pointer and moves
  * the cursor accordingly. Does nothing if the line is not currently visible
@@ -367,7 +368,7 @@ static MmResult pmeditor_save_file(PmEditor *self, const char *filename) {
  * @param  pbuf  Pointer to a position in the text buffer.
  * @return       kOk on success, or an error code on failure.
  */
-MmResult pmeditor_position_cursor(PmEditor *self, char *pbuf) {
+MmResult pmeditor_sync_cursor_to_buffer(PmEditor *self, char *pbuf) {
     int line = 0;
     int column = 0;
     ON_FAILURE_RETURN(pmeditor_get_line_and_column(self, pbuf, &line, &column));
@@ -377,7 +378,7 @@ MmResult pmeditor_position_cursor(PmEditor *self, char *pbuf) {
 
     self->cx = column,
     self->cy = line - self->py;
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -455,7 +456,7 @@ MmResult pmeditor_print_func_keys_impl(PmEditor *self) {
             return mmresult_ex(kInternalFault, "%s unknown editor mode: %d", __func__, self->mode);
     }
 
-    ON_FAILURE_RETURN(pmeditor_display_set_cursor_pos(self, 0, self->height));
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height));
     ON_FAILURE_RETURN(pmeditor_draw_line(self));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightStatus));
     ON_FAILURE_RETURN(display_puts(p));
@@ -463,7 +464,7 @@ MmResult pmeditor_print_func_keys_impl(PmEditor *self) {
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
 
     // Restore cursor position
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -478,10 +479,10 @@ MmResult pmeditor_print_func_keys_impl(PmEditor *self) {
  * @return         kOk on success, or an error code on failure.
  */
 static MmResult pmeditor_get_input(PmEditor *self, const char *prompt) {
-    ON_FAILURE_RETURN(pmeditor_display_set_cursor_pos(self, 0, self->height + 1));
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height + 1));
     ON_FAILURE_RETURN(display_puts(prompt));
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
-    ON_FAILURE_RETURN(pmeditor_display_set_cursor_pos(self, strlen(prompt), self->height + 1));
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, strlen(prompt), self->height + 1));
 
     // TODO: Ctrl-C should exit from this.
     // TODO: Prevent buffer overrun, deal with input too long for display.
@@ -534,14 +535,14 @@ static MmResult pmeditor_get_input(PmEditor *self, const char *prompt) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_print_msg_impl(PmEditor *self, const char *msg) {
-    ON_FAILURE_RETURN(pmeditor_display_set_cursor_pos(self, 0, self->height + 1));
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height + 1));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightError));
     ON_FAILURE_RETURN(display_inverse(true));
     ON_FAILURE_RETURN(display_puts(msg));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
     ON_FAILURE_RETURN(display_reset());
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
-    ON_FAILURE_RETURN(pmeditor_display_set_cursor_pos(self, self->cx, self->cy));
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, self->cx, self->cy));
     return kOk;
 }
 
@@ -819,13 +820,13 @@ MmResult pmeditor_print_status_impl(PmEditor *self) {
              self->cx + 1);
     strcpy(s + 19, self->insert ? "INS" : "OVR");
 
-    ON_FAILURE_RETURN(pmeditor_display_set_cursor_pos(self, self->width - 25, self->height + 1));
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, self->width - 25, self->height + 1));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightStatus));
     ON_FAILURE_RETURN(display_puts(s));
     ON_FAILURE_RETURN(pmeditor_highlight(self, kHighlightNormal));
 
     // Restore cursor position
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -1330,7 +1331,7 @@ static MmResult pmeditor_print_line_fast(PmEditor *self, char *p) {
         ON_FAILURE_RETURN(display_putc_noflush(*p));
     }
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -1344,7 +1345,7 @@ static MmResult pmeditor_print_line_fast(PmEditor *self, char *p) {
  */
 static MmResult pmeditor_scroll_up(PmEditor *self) {
     // Move to end of the editing area
-    ON_FAILURE_RETURN(pmeditor_display_set_cursor_pos(self, 0, self->height));
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height));
 
     // Clear status line
     ON_FAILURE_RETURN(display_clear_to_end_of_screen());
@@ -1375,7 +1376,7 @@ static MmResult pmeditor_scroll_up(PmEditor *self) {
  */
 static MmResult pmeditor_scroll_down(PmEditor *self) {
     // Move to end of the editing area
-    ON_FAILURE_RETURN(pmeditor_display_set_cursor_pos(self, 0, self->height));
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, self->height));
 
     // Clear status lines
     ON_FAILURE_RETURN(display_clear_to_end_of_screen());
@@ -1431,7 +1432,7 @@ MmResult pmeditor_cmd_delete_selection(PmEditor *self) {
 
     if (self->txtp != start) {
         self->txtp = start;
-        ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
+        ON_FAILURE_RETURN(pmeditor_sync_cursor_to_buffer(self, self->txtp));
     }
     self->text_changed = true;
     self->mode = kEditMode;
@@ -1594,7 +1595,7 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, int start, int end) {
     end = min(end, self->py + self->height - 1);
 
     // Move to start of line in viewport
-    ON_FAILURE_RETURN(pmeditor_display_set_cursor_pos(self, 0, start - self->py));
+    ON_FAILURE_RETURN(pmeditor_set_cursor_pos(self, 0, start - self->py));
 
     // Find the starting position in buffer
     int comment_level = 0;
@@ -1621,7 +1622,7 @@ MmResult pmeditor_print_lines_impl(PmEditor *self, int start, int end) {
     while (console_getc() != -1) {}
 
     // Restore cursor position
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -1779,7 +1780,7 @@ static MmResult pmeditor_cmd_newline(PmEditor *self) {
     if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
         self->py++;                      // otherwise scroll
 
-    return pmeditor_position_cursor(self, self->txtp);
+    return pmeditor_sync_cursor_to_buffer(self, self->txtp);
 }
 
 /**
@@ -1813,7 +1814,7 @@ MmResult pmeditor_cmd_up(PmEditor *self) {
         // Otherwise scroll the document down
         self->py--;
     }
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -1847,7 +1848,7 @@ MmResult pmeditor_cmd_down(PmEditor *self) {
         // Otherwise scroll the document up
         self->py++;
     }
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2032,7 +2033,7 @@ MmResult pmeditor_cmd_delete(PmEditor *self) {
     ON_FAILURE_RETURN(pmeditor_delete_char(self));
 
     // TODO: Should be handled by delete_char()
-    return pmeditor_position_cursor(self, self->txtp);
+    return pmeditor_sync_cursor_to_buffer(self, self->txtp);
 }
 
 /**
@@ -2112,7 +2113,7 @@ MmResult pmeditor_move_to_start(PmEditor *self) {
     self->cx = 0;
     self->cy = 0;
     self->py = 0;
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2137,7 +2138,7 @@ MmResult pmeditor_cmd_home(PmEditor *self) {
     self->txtp = pmeditor_start_of_line(self, self->txtp);
     self->cx = 0;
 
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2192,7 +2193,7 @@ MmResult pmeditor_move_to_end(PmEditor *self) {
     self->cy = cy;
     self->py = py;
     self->txtp = p;
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2223,7 +2224,7 @@ MmResult pmeditor_cmd_end(PmEditor *self) {
     self->cx = len;
     self->txtp = pmeditor_end_of_line(self, self->txtp);
 
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2262,7 +2263,7 @@ MmResult pmeditor_cmd_page_up(PmEditor *self) {
     self->cx = min(self->cx, len);
     self->txtp += self->cx;
 
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2301,7 +2302,7 @@ MmResult pmeditor_cmd_page_down(PmEditor *self) {
     self->cx = min(self->cx, len);
     self->txtp += self->cx;
 
-    return pmeditor_display_set_cursor_pos(self, self->cx, self->cy);
+    return pmeditor_set_cursor_pos(self, self->cx, self->cy);
 }
 
 /**
@@ -2418,7 +2419,7 @@ static MmResult pmeditor_cmd_exit(PmEditor *self) {
                 self->txtp--;  // move to the beginning of the line
             for (self->cx = 0; self->cx < x && *self->txtp && *self->txtp != '\n'; self->cx++)
                 self->txtp++;  // now position on the x axis
-            pmeditor_position_cursor(self->txtp);
+            pmeditor_sync_cursor_to_buffer(self->txtp);
         }
         return kOk;
     }
@@ -2470,7 +2471,7 @@ static MmResult pmeditor_cmd_search_again(PmEditor *self) {
     self->py = y - self->height / 2;  // self->py is the line displayed at the top
     if (self->py < 0) self->py = 0;   // compensate if we are near the start
 
-    return pmeditor_position_cursor(self, self->txtp);
+    return pmeditor_sync_cursor_to_buffer(self, self->txtp);
 }
 
 /**
@@ -2581,7 +2582,7 @@ MmResult pmeditor_overwrite_char(PmEditor *self, char ch) {
         ON_FAILURE_RETURN(pmeditor_overwrite_char(self, ch));
     }
 
-    return pmeditor_position_cursor(self, self->txtp);
+    return pmeditor_sync_cursor_to_buffer(self, self->txtp);
 }
 
 /**
@@ -2595,7 +2596,7 @@ MmResult pmeditor_overwrite_char(PmEditor *self, char ch) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_cmd_redraw(PmEditor *self) {
-    ON_FAILURE_RETURN(pmeditor_position_cursor(self, self->txtp));
+    ON_FAILURE_RETURN(pmeditor_sync_cursor_to_buffer(self, self->txtp));
     ON_FAILURE_RETURN(pmeditor_print_lines(self, self->py, self->py + self->height - 1));
     ON_FAILURE_RETURN(pmeditor_print_func_keys(self));
     ON_FAILURE_RETURN(pmeditor_print_status(self));
@@ -2832,7 +2833,7 @@ MmResult pmeditor_show_internal(PmEditor *self, int line) {
 }
 
 MmResult pmeditor_show(const char *filename, int line) {
-    mmb_options.syntax_highlight = false;
+    // mmb_options.syntax_highlight = false;
 
     int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
