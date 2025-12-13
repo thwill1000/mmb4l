@@ -713,6 +713,11 @@ static inline bool pmeditor_is_printable(char ch) {
  *                      i.e. buffer full, line too long.
  */
 MmResult pmeditor_insert_char(PmEditor *self, char ch) {
+    if (self->txtp < self->buf || self->txtp >= self->buf + self->buf_sz) {
+        return mmresult_ex(
+            kInternalFault, "%s txtp outside buffer: self->txtp=%p", __func__, self->txtp);
+    }
+
     // Ignore non-printable characters
     if (!pmeditor_is_printable(ch)) return kOk;
 
@@ -775,10 +780,23 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch) {
         *(p + 1) = *p;
     }
 
-    // Finally insert the character
-    p = self->txtp + 1;
+    // Insert the character into the buffer
     *self->txtp++ = ch;
     self->text_changed = true;
+
+    // Update the cursor position
+    if (ch == '\n') {
+        self->cx = 0;
+        self->cy++;
+        self->num_lines++;
+        if (self->cy >= self->height - 1) {
+            // Scroll viewport
+            self->py++;
+            self->cy--;
+        }
+    } else {
+        self->cx++;
+    }
 
     // Check for a completed REM command before /*
     if (!multiple_line_change
@@ -1746,41 +1764,25 @@ MmResult pmeditor_update_display(PmEditor *self, PmEditor *old) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_newline(PmEditor *self) {
+MmResult pmeditor_cmd_newline(PmEditor *self) {
     if (self->mode != kEditMode) return display_bell();
 
-    int i;
-    char *tp;
-
-    // first count the spaces at the beginning of the line
-    if (self->txtp != self->buf &&
-        (*self->txtp == '\n' ||
-         *self->txtp == 0)) {  // we only do this if we are at the end of the line
-        for (tp = self->txtp - 1, i = 0; *tp != '\n' && tp >= self->buf; tp--)
-            if (*tp != ' ')
-                i = 0;  // not a space
-            else
-                i++;  // potential space at the start
-        if (tp == self->buf && *tp == ' ')
-            i++;  // correct for a counting error at the start of the buffer
-        if (self->key_buf[1] != 0)
-            i = 0;  // do not insert spaces if buffer too small or has something in
-                    // it
-        else
-            self->key_buf[i + 1] = 0;        // make sure that the end of the buffer is zeroed
-        while (i) self->key_buf[i--] = ' ';  // now, place our spaces in the typeahead buffer
+    // If the typeahead buffer is empty and we are at the end of a line then
+    // count the spaces at the beginning of the line so that we can match the
+    // indentation.
+    if (self->key_buf[1] == '\0'
+            && self->txtp != self->buf
+            && (*self->txtp == '\n' || *self->txtp == '\0')) {
+        char *p = pmeditor_start_of_line(self, self->txtp);
+        int num_spaces = 0;
+        while (*p++ == ' ') {
+            self->key_buf[++num_spaces] = ' '; // Insert spaces into typeahead buffer
+        }
+        self->key_buf[num_spaces + 1] = '\0'; // Terminate the typeahead buffer
     }
 
-    // Insert the newline character
-    ON_FAILURE_RETURN(pmeditor_insert_char(self, '\n'));
-    // TODO handle no insertion
-    // if (redraw == REDRAW_NOTHING) return kOk; // Nothing inserted
-
-    self->num_lines++;
-    if (!(self->cy < self->height - 1))  // if we are NOT at the bottom
-        self->py++;                      // otherwise scroll
-
-    return pmeditor_sync_cursor_to_buffer(self, self->txtp);
+    // Actually insert the newline character
+    return pmeditor_insert_char(self, '\n');
 }
 
 /**
@@ -1929,6 +1931,11 @@ MmResult pmeditor_cmd_right(PmEditor* self) {
  * @return              kOk on success, or an error code on failure.
  */
 MmResult pmeditor_delete_char(PmEditor *self) {
+    if (self->txtp < self->buf || self->txtp >= self->buf + self->buf_sz) {
+        return mmresult_ex(
+            kInternalFault, "%s txtp outside buffer: self->txtp=%p", __func__, self->txtp);
+    }
+
     if (*self->txtp == '\0') return kOk;
 
     const char currdel = *(self->txtp);
@@ -2030,10 +2037,7 @@ MmResult pmeditor_cmd_delete(PmEditor *self) {
                            "%s should not be called in mark mode", __func__);
     }
 
-    ON_FAILURE_RETURN(pmeditor_delete_char(self));
-
-    // TODO: Should be handled by delete_char()
-    return pmeditor_sync_cursor_to_buffer(self, self->txtp);
+    return pmeditor_delete_char(self);
 }
 
 /**
@@ -2060,26 +2064,25 @@ MmResult pmeditor_cmd_backspace(PmEditor *self) {
         return kOk;
     }
 
-    // Determine number of spaces between the cursor and the start of the line
-    char *p;
+    // If deleting spaces at the start of a line then adjust cursor and add
+    // DEL keys to the typeahead buffer to delete to the previous tabstop.
+    char *p = pmeditor_start_of_line(self, self->txtp);
     int num_spaces = 0;
-    for (p = self->txtp - 1; *p == ' ' && p != self->buf; p--, num_spaces++);
-    if (p == self->buf && *p == ' ') num_spaces++;
-    if (num_spaces > 0 && ((p == self->buf && *p == ' ') || *p == '\n')) {
-        num_spaces = num_spaces % mmb_options.tab;
+    while (*p++ == ' ') num_spaces++;
+    if (p == self->txtp + 1 && num_spaces > 0) {
+        num_spaces %= mmb_options.tab;
         if (num_spaces == 0) num_spaces = mmb_options.tab;
-        // load the corresponding number of deletes in the type ahead buffer
         self->key_buf[num_spaces + 1] = '\0';
         while (num_spaces--) {
             self->key_buf[num_spaces + 1] = DEL;
             self->txtp--;
+            self->cx--;
         }
-        // and let the delete case take care of deleting the characters
         return kOk;
     }
 
-    // This is just a normal backspace (not a tabbed backspace)
     self->txtp--;
+    self->cx--;
 
     return pmeditor_cmd_delete(self);
 }
@@ -2577,12 +2580,10 @@ MmResult pmeditor_overwrite_char(PmEditor *self, char ch) {
 
     const char ch = self->key_buf[0];
     if (self->insert || *self->txtp == '\n' || *self->txtp == '\0') {
-        ON_FAILURE_RETURN(pmeditor_insert_char(self, ch));
+        return pmeditor_insert_char(self, ch);
     } else {
-        ON_FAILURE_RETURN(pmeditor_overwrite_char(self, ch));
+        return pmeditor_overwrite_char(self, ch);
     }
-
-    return pmeditor_sync_cursor_to_buffer(self, self->txtp);
 }
 
 /**
@@ -2613,10 +2614,10 @@ MmResult pmeditor_cmd_redraw(PmEditor *self) {
  * @param  cmd   The command key to process.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_dispatch(PmEditor *self, char cmd/*, char *multi*/) {
+static MmResult pmeditor_cmd_dispatch(PmEditor *self, char cmd) {
 // clang-format off
     switch (cmd) {
-        case '\n':     return pmeditor_cmd_newline(self/*multi*/);
+        case '\n':     return pmeditor_cmd_newline(self);
         case UP:       return pmeditor_cmd_up(self);
         case DOWN:     return pmeditor_cmd_down(self);
         case LEFT:     return pmeditor_cmd_left(self);
@@ -2659,7 +2660,7 @@ static MmResult pmeditor_cmd_dispatch(PmEditor *self, char cmd/*, char *multi*/)
         case F10:      return kOk;
         case F11:      return kOk;
         case F12:      return kOk;
-        default:       return pmeditor_cmd_char(self/*multi*/);
+        default:       return pmeditor_cmd_char(self);
     }
 // clang-format on
 }

@@ -1562,6 +1562,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharAtBeginning) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("HWorld", self->buf);
     EXPECT_TXTP_EQ(1);
+    EXPECT_CURSOR_EQ(1, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1575,6 +1576,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharAtEnd) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello!", self->buf);
     EXPECT_TXTP_EQ(strlen(initial_content) + 1);
+    EXPECT_CURSOR_EQ(6, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1587,6 +1589,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharInMiddle) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1599,6 +1602,7 @@ TEST_F(PmEditorInsertCharTest, InsertNewline) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("He\nllo", self->buf);
     EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(0, 1);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1633,6 +1637,7 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferHasOnlyOneByteRemaining) {
     EXPECT_STREQ("", self->message);
     EXPECT_TXTP_EQ(EDIT_BUFFER_SIZE - 1);
     EXPECT_EQ('B', *(self->buf + EDIT_BUFFER_SIZE - 2));
+    EXPECT_CURSOR_EQ(EDIT_BUFFER_SIZE - 1, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1645,6 +1650,7 @@ TEST_F(PmEditorInsertCharTest, InsertForwardSlashAfterStar) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello*/", self->buf);
     EXPECT_TXTP_EQ(7);
+    EXPECT_CURSOR_EQ(7, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1659,6 +1665,7 @@ TEST_F(PmEditorInsertCharTest, InsertForwardSlashBeforeStar) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/*Hello", self->buf);
     EXPECT_TXTP_EQ(1);
+    EXPECT_CURSOR_EQ(1, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1671,6 +1678,7 @@ TEST_F(PmEditorInsertCharTest, InsertStarAfterForwardSlash) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/*Hello", self->buf);
     EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1683,6 +1691,7 @@ TEST_F(PmEditorInsertCharTest, InsertStarBeforeForwardSlash) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello*/", self->buf);
     EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(6, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1696,6 +1705,7 @@ TEST_F(PmEditorInsertCharTest, InsertApostropheBeforeMultilineCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("P'rint /*Hello", self->buf);
     EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1709,6 +1719,7 @@ TEST_F(PmEditorInsertCharTest, InsertApostropheWithoutMultilineCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("P'rint ABHello", self->buf);
     EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1721,6 +1732,7 @@ TEST_F(PmEditorInsertCharTest, InsertQuoteBeforeMultilineCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("P\"rint /*Hello", self->buf);
     EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1733,6 +1745,7 @@ TEST_F(PmEditorInsertCharTest, InsertQuoteWithoutMultilineCommentStart) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("P\"rint ABHello", self->buf);
     EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1745,6 +1758,7 @@ TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertR) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("PRINT rEm /*Hello", self->buf);
     EXPECT_TXTP_EQ(7);
+    EXPECT_CURSOR_EQ(7, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1757,6 +1771,7 @@ TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertE) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("PRINT REm /*Hello", self->buf);
     EXPECT_TXTP_EQ(8);
+    EXPECT_CURSOR_EQ(8, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1769,6 +1784,7 @@ TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertM) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("PRINT reM /*Hello", self->buf);
     EXPECT_TXTP_EQ(9);
+    EXPECT_CURSOR_EQ(9, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1790,6 +1806,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfBuffer) {
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_EQ(initial_text_changed, self->text_changed);
     EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
     EXPECT_NO_LINES_CHANGED();
 }
 
@@ -1803,6 +1820,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfEmptyBuffer) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
     EXPECT_FALSE(self->text_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
     EXPECT_NO_LINES_CHANGED();
 }
 
@@ -1817,6 +1836,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteRegularCharacter) {
     EXPECT_STREQ("HelloWorld", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1831,6 +1851,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteFirstCharacter) {
     EXPECT_STREQ("ello", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1845,6 +1866,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteLastCharacterBeforeEnd) {
     EXPECT_STREQ("Hell", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1860,6 +1882,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteNewlineCharacter) {
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(1, self->num_lines);
     EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1873,7 +1896,9 @@ TEST_F(PmEditorDeleteCharTest, DeleteNewlineMultiLine) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Line0Line1\nLine2", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(2, self->num_lines);
     EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1887,6 +1912,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteSlashAfterStar) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*more", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1900,6 +1927,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteStarBeforeSlash) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/more", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1913,6 +1942,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteSlashBeforeStar) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code*comment", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1926,6 +1957,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlash) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("code/comment", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -1940,6 +1973,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteMiddleOfWord) {
     EXPECT_STREQ("Helo", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1953,6 +1987,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteInSentence) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("The uick brown fox", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1966,6 +2002,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteSpecialCharacters) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello@#$%World", self->buf);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1980,6 +2018,7 @@ TEST_F(PmEditorDeleteCharTest, DeleteSingleCharacterBuffer) {
     EXPECT_STREQ("", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -1994,6 +2033,8 @@ TEST_F(PmEditorDeleteCharTest, DeleteSingleNewlineBuffer) {
     EXPECT_STREQ("", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_EQ(1, self->num_lines);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -2281,14 +2322,14 @@ class PmEditorCmdBackspaceTest : public PmEditorTestBase { };
 TEST_F(PmEditorCmdBackspaceTest, BackspaceAtStartOfBuffer) {
     SetBuffer("Hello");
     SetTxtp(0);
-    char* initial_txtp = self->txtp;
 
     MmResult result = pmeditor_cmd_backspace(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf);
-    EXPECT_EQ(initial_txtp, self->txtp); // Cursor should not move
     EXPECT_FALSE(self->text_changed);
+    EXPECT_TXTP_EQ(0); // Cursor should not move
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test backspace in empty buffer
@@ -2300,8 +2341,9 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceInEmptyBuffer) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
-    EXPECT_EQ(self->buf, self->txtp);
     EXPECT_FALSE(self->text_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test backspace deleting a regular character
@@ -2313,9 +2355,9 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceRegularCharacter) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hell", self->buf);
-    EXPECT_EQ(self->buf + 4, self->txtp);
-    // The function positions cursor then delegates to delete
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
 }
 
 // Test backspace deleting character in middle
@@ -2327,8 +2369,9 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceMiddleCharacter) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Helo", self->buf);
-    EXPECT_EQ(self->buf + 2, self->txtp);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
 }
 
 // Test backspace on single character buffer
@@ -2340,47 +2383,22 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceSingleCharacter) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("", self->buf);
-    EXPECT_EQ(self->buf, self->txtp);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
 }
-
-// ============================================================================
-// Newline Handling
-// ============================================================================
 
 // Test backspace at beginning of line (should wrap to previous line)
 TEST_F(PmEditorCmdBackspaceTest, BackspaceAtLineStart) {
-    SetBuffer("Line1\nLine2");
-    SetTxtp(6); // Start of Line2
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(UP, END, DEL, '\0');
-}
-
-// Test backspace at beginning of second line in multi-line buffer
-TEST_F(PmEditorCmdBackspaceTest, BackspaceAtSecondLineStart) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(6); // Start of Line2
+    SetTxtp(6); // Start of Line1
 
     MmResult result = pmeditor_cmd_backspace(self);
 
     EXPECT_EQ(kOk, result);
     EXPECT_KEYS_EQ(UP, END, DEL, '\0');
-    // Cursor should still be at Line2 start
-    EXPECT_EQ(self->buf + 6, self->txtp);
-}
-
-// Test backspace when previous character is newline
-TEST_F(PmEditorCmdBackspaceTest, BackspaceAfterNewline) {
-    SetBuffer("Line1\nLine2");
-    SetTxtp(6); // Right after the newline
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(UP, END, DEL, '\0');
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(0, 1);
 }
 
 // ============================================================================
@@ -2396,8 +2414,9 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceSingleSpace) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("HelloWorld", self->buf);
-    EXPECT_EQ(self->buf + 5, self->txtp);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
 }
 
 // Test backspace at tab stop (4 spaces at start of line)
@@ -2410,7 +2429,8 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceTabAtLineStart) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, '\0');
-    EXPECT_EQ(self->buf, self->txtp); // Moved back to start
+    EXPECT_TXTP_EQ(0); // Moved back to start
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test backspace with 8 spaces at line start (2 tab stops)
@@ -2423,7 +2443,8 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceTwoTabStops) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, '\0');
-    EXPECT_EQ(self->buf + 4, self->txtp);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
 }
 
 // Test backspace with 2 spaces at line start
@@ -2436,7 +2457,8 @@ TEST_F(PmEditorCmdBackspaceTest, BackspacePartialTab) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_KEYS_EQ(DEL, DEL, '\0');
-    EXPECT_EQ(self->buf, self->txtp);
+    EXPECT_TXTP_EQ(0); // Moved back to start
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test backspace with 3 spaces (not on tab boundary)
@@ -2449,7 +2471,8 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceThreeSpaces) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_KEYS_EQ(DEL, DEL, DEL, '\0');
-    EXPECT_EQ(self->buf, self->txtp);
+    EXPECT_TXTP_EQ(0); // Moved back to start
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test backspace with 5 spaces (past one tab stop)
@@ -2462,7 +2485,8 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceFiveSpaces) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_KEYS_EQ(DEL, '\0');
-    EXPECT_EQ(self->buf + 4, self->txtp);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
 }
 
 // Test backspace with tab size of 8
@@ -2475,12 +2499,13 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceWithTabSize8) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, DEL, DEL, DEL, DEL, '\0');
-    EXPECT_EQ(self->buf, self->txtp);
+    EXPECT_TXTP_EQ(0); // Moved back to start
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test backspace with spaces after newline
 TEST_F(PmEditorCmdBackspaceTest, BackspaceSpacesAfterNewline) {
-    SetBuffer("Line1\n    Hello");
+    SetBuffer("Line0\n    Hello");
     SetTxtp(10); // After 4 spaces on second line
     mmb_options.tab = 4;
 
@@ -2488,7 +2513,8 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceSpacesAfterNewline) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, '\0');
-    EXPECT_EQ(self->buf + 6, self->txtp); // At start of second line
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(0, 1);
 }
 
 // Test backspace with mixed spaces and text
@@ -2502,8 +2528,9 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceMixedSpacesText) {
     EXPECT_EQ(kOk, result);
     // Should just delete one character (normal backspace)
     EXPECT_STREQ("    HelloWorld", self->buf);
-    EXPECT_EQ(self->buf + 9, self->txtp);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(9);
+    EXPECT_CURSOR_EQ(9, 0);
 }
 
 // Test backspace with single space at line start
@@ -2516,7 +2543,8 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceSingleSpaceAtLineStart) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_KEYS_EQ(DEL, '\0');
-    EXPECT_EQ(self->buf, self->txtp);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test backspace when not at line start with spaces
@@ -2530,8 +2558,9 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceSpacesNotAtLineStart) {
     EXPECT_EQ(kOk, result);
     // Should do normal backspace (non-tab spaces in middle of line)
     EXPECT_STREQ("Hello   World", self->buf);
-    EXPECT_EQ(self->buf + 8, self->txtp);
     EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(8);
+    EXPECT_CURSOR_EQ(8, 0);
 }
 
 // ============================================================================
@@ -2547,8 +2576,9 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceAtFileStart) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello\nWorld", self->buf); // No change
-    EXPECT_EQ(self->buf, self->txtp);
     EXPECT_FALSE(self->text_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
 }
 
 // Test backspace with very long line
@@ -2561,50 +2591,8 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceInLongLine) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_EQ(99, strlen(self->buf));
-    EXPECT_EQ(self->buf + 49, self->txtp);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test backspace with special characters
-TEST_F(PmEditorCmdBackspaceTest, BackspaceSpecialCharacters) {
-    SetBuffer("Hello!@#$%");
-    SetTxtp(6); // After '!'
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello@#$%", self->buf);
-    EXPECT_EQ(self->buf + 5, self->txtp);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test backspace deletes tab character itself (not spaces)
-TEST_F(PmEditorCmdBackspaceTest, BackspaceActualTabChar) {
-    SetBuffer("Hello\tWorld");
-    SetTxtp(6); // After tab character
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("HelloWorld", self->buf);
-    EXPECT_EQ(self->buf + 5, self->txtp);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test backspace with multiple consecutive spaces not on tab boundary
-TEST_F(PmEditorCmdBackspaceTest, BackspaceSpacesOffTabBoundary) {
-    SetBuffer("A    Hello"); // 4 spaces after 'A'
-    SetTxtp(5); // After the 4 spaces
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    // Not at line start, so normal backspace
-    EXPECT_STREQ("A   Hello", self->buf);
-    EXPECT_EQ(self->buf + 4, self->txtp);
-    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(49);
+    EXPECT_CURSOR_EQ(49, 0);
 }
 
 // Test backspace multiple times in sequence
@@ -2613,183 +2601,30 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceMultipleTimes) {
     SetTxtp(6); // At end
 
     // First backspace
-    MmResult result1 = pmeditor_cmd_backspace(self);
-    EXPECT_EQ(kOk, result1);
-    EXPECT_STREQ("ABCDE", self->buf);
-    EXPECT_EQ(self->buf + 5, self->txtp);
+    {
+        MmResult result = pmeditor_cmd_backspace(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_STREQ("ABCDE", self->buf);
+        EXPECT_TXTP_EQ(5);
+    }
 
     // Second backspace
-    MmResult result2 = pmeditor_cmd_backspace(self);
-    EXPECT_EQ(kOk, result2);
-    EXPECT_STREQ("ABCD", self->buf);
-    EXPECT_EQ(self->buf + 4, self->txtp);
+    {
+        MmResult result = pmeditor_cmd_backspace(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_STREQ("ABCD", self->buf);
+        EXPECT_TXTP_EQ(4);
+    }
 
     // Third backspace
-    MmResult result3 = pmeditor_cmd_backspace(self);
-    EXPECT_EQ(kOk, result3);
-    EXPECT_STREQ("ABC", self->buf);
-    EXPECT_EQ(self->buf + 3, self->txtp);
+    {
+        MmResult result = pmeditor_cmd_backspace(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_STREQ("ABC", self->buf);
+        EXPECT_TXTP_EQ(3);
+    }
 
     EXPECT_TRUE(self->text_changed);
-}
-
-// ============================================================================
-// Tab Stop Boundary Tests
-// ============================================================================
-
-// Test backspace exactly at tab boundaries with different tab sizes
-TEST_F(PmEditorCmdBackspaceTest, BackspaceTabBoundaryTabSize2) {
-    SetBuffer("  Hello");
-    SetTxtp(2);
-    mmb_options.tab = 2;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(DEL, DEL, '\0');
-    EXPECT_EQ(self->buf, self->txtp);
-}
-
-// Test backspace at tab boundary with tab size 3
-TEST_F(PmEditorCmdBackspaceTest, BackspaceTabBoundaryTabSize3) {
-    SetBuffer("   Hello");
-    SetTxtp(3);
-    mmb_options.tab = 3;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(DEL, DEL, DEL, '\0');
-    EXPECT_EQ(self->buf, self->txtp);
-}
-
-// Test backspace with 7 spaces and tab size 4
-TEST_F(PmEditorCmdBackspaceTest, BackspaceSevenSpacesTabSize4) {
-    SetBuffer("       Hello");
-    SetTxtp(7);
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    // Should delete 3 spaces to reach tab stop at 4
-    EXPECT_KEYS_EQ(DEL, DEL, DEL, '\0');
-    EXPECT_EQ(self->buf + 4, self->txtp);
-}
-
-// Test backspace with 9 spaces and tab size 4
-TEST_F(PmEditorCmdBackspaceTest, BackspaceNineSpacesTabSize4) {
-    SetBuffer("         Hello");
-    SetTxtp(9);
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    // Should delete 1 space to reach tab stop at 8
-    EXPECT_KEYS_EQ(DEL, '\0');
-    EXPECT_EQ(self->buf + 8, self->txtp);
-}
-
-// ============================================================================
-// Buffer State Tests
-// ============================================================================
-
-// Test backspace with text_changed already true
-TEST_F(PmEditorCmdBackspaceTest, BackspaceWithTextAlreadyChanged) {
-    SetBuffer("Hello");
-    SetTxtp(3);
-    self->text_changed = true;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Helo", self->buf);
-    EXPECT_TRUE(self->text_changed); // Should remain true
-}
-
-// Test backspace near buffer boundaries
-TEST_F(PmEditorCmdBackspaceTest, BackspaceNearBufferEnd) {
-    std::string content(EDIT_BUFFER_SIZE - 10, 'X');
-    SetBuffer(content.c_str());
-    SetTxtp(content.length());
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(content.length() - 1, strlen(self->buf));
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test backspace with cursor positioning
-TEST_F(PmEditorCmdBackspaceTest, BackspaceUpdatesPosition) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(8); // At 'n' in "Line1"
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line0\nLne1\nLine2", self->buf);
-    EXPECT_EQ(self->buf + 7, self->txtp); // Moved back one
-    EXPECT_TRUE(self->text_changed);
-}
-
-// ============================================================================
-// Combined Tab and Newline Tests
-// ============================================================================
-
-// Test backspace on indented line after newline
-TEST_F(PmEditorCmdBackspaceTest, BackspaceIndentedLineAfterNewline) {
-    SetBuffer("Line1\n    Line2");
-    SetTxtp(10); // After indent on Line2
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    // Should delete tab stop worth of spaces
-    EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, '\0');
-    EXPECT_EQ(self->buf + 6, self->txtp);
-}
-
-// Test backspace at newline with spaces before cursor
-TEST_F(PmEditorCmdBackspaceTest, BackspaceNewlineWithPrecedingSpaces) {
-    SetBuffer("    \nLine2");
-    SetTxtp(5); // Start of Line2
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    // Should wrap to previous line (not do tab backspace)
-    EXPECT_KEYS_EQ(UP, END, DEL, '\0');
-}
-
-// ============================================================================
-// Keyboard Buffer Tests
-// ============================================================================
-
-// Test that keyboard buffer is properly populated
-TEST_F(PmEditorCmdBackspaceTest, KeyboardBufferPopulation) {
-    SetBuffer("    Hello");
-    SetTxtp(4);
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, '\0');
-}
-
-// Test keyboard buffer with wrap command
-TEST_F(PmEditorCmdBackspaceTest, KeyboardBufferWrapCommand) {
-    SetBuffer("Line1\nLine2");
-    SetTxtp(6);
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(UP, END, DEL, '\0');
 }
 
 // ============================================================================
@@ -2810,47 +2645,6 @@ TEST_F(PmEditorCmdBackspaceTest, BackspaceWithInvalidCursorPosition) {
     MmResult result = pmeditor_cmd_backspace(self);
 
     EXPECT_EQ(kInternalFault, result);
-}
-
-// ============================================================================
-// Integration-style Tests
-// ============================================================================
-
-// Test realistic editing scenario: backspacing through indented code
-TEST_F(PmEditorCmdBackspaceTest, RealisticIndentedCodeEditing) {
-    SetBuffer(
-        "function test() {\n"
-        "    return 42;\n"
-        "}");
-    SetTxtp(28); // After "return"
-    mmb_options.tab = 4;
-
-    // Backspace "return"
-    for (int i = 0; i < 6; i++) {
-        pmeditor_cmd_backspace(self);
-    }
-
-    EXPECT_STREQ("function test() {\n     42;\n}", self->buf);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test backspacing entire line with indent
-TEST_F(PmEditorCmdBackspaceTest, BackspaceEntireIndentedLine) {
-    SetBuffer("    Test");
-    SetTxtp(8); // At end
-    mmb_options.tab = 4;
-
-    // Backspace "Test"
-    for (int i = 0; i < 4; i++) {
-        pmeditor_cmd_backspace(self);
-    }
-
-    // Now should be at position 4 (after indent)
-    EXPECT_STREQ("    ", self->buf);
-
-    // One more backspace should remove tab
-    pmeditor_cmd_backspace(self);
-    EXPECT_EQ(self->buf, self->txtp);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -3702,6 +3496,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteRegularCharacter) {
     EXPECT_STREQ("Jello World", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(1); // Cursor should advance
+    EXPECT_CURSOR_EQ(1, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -3716,6 +3511,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteAtEndOfBuffer) {
     EXPECT_STREQ("Hello!", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(6, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -3730,6 +3526,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteAtNewline) {
     EXPECT_STREQ("Hello!World", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(6, 0);
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
@@ -3744,6 +3541,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteFirstCharacter) {
     EXPECT_STREQ("Yello", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(1);
+    EXPECT_CURSOR_EQ(1, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -3758,6 +3556,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteLastCharacterBeforeEnd) {
     EXPECT_STREQ("Hella", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -3772,45 +3571,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteMiddleCharacter) {
     EXPECT_STREQ("Hexlo", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(3);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test overwriting with space
-TEST_F(PmEditorOverwriteCharTest, OverwriteWithSpace) {
-    SetBuffer("Hello");
-    SetTxtp(2);
-
-    MmResult result = pmeditor_overwrite_char(self, ' ');
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("He lo", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test overwriting with special characters
-TEST_F(PmEditorOverwriteCharTest, OverwriteWithSpecialCharacters) {
-    SetBuffer("Hello");
-    SetTxtp(0);
-
-    MmResult result = pmeditor_overwrite_char(self, '@');
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("@ello", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test overwriting with digit
-TEST_F(PmEditorOverwriteCharTest, OverwriteWithDigit) {
-    SetBuffer("Hello");
-    SetTxtp(0);
-
-    MmResult result = pmeditor_overwrite_char(self, '5');
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("5ello", self->buf);
-    EXPECT_TRUE(self->text_changed);
+    EXPECT_CURSOR_EQ(3, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -3825,6 +3586,8 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteNonPrintableCharacter) {
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("Hello", self->buf);
     EXPECT_EQ(initial_text_changed, self->text_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
     EXPECT_NO_LINES_CHANGED();
 }
 
@@ -3839,6 +3602,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteInEmptyBuffer) {
     EXPECT_STREQ("A", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(1);
+    EXPECT_CURSOR_EQ(1, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -3853,6 +3617,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteSingleCharacterBuffer) {
     EXPECT_STREQ("B", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_TXTP_EQ(1);
+    EXPECT_CURSOR_EQ(1, 0);
     EXPECT_LINES_CHANGED(0, 0);
 }
 
@@ -3866,12 +3631,14 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteMultipleCharactersSequence) {
     EXPECT_EQ(kOk, result1);
     EXPECT_STREQ("XBCDEF", self->buf);
     EXPECT_TXTP_EQ(1);
+    EXPECT_CURSOR_EQ(1, 0);
 
     // Overwrite 'B' with 'Y'
     MmResult result2 = pmeditor_overwrite_char(self, 'Y');
     EXPECT_EQ(kOk, result2);
     EXPECT_STREQ("XYCDEF", self->buf);
     EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
 
     // Overwrite 'C' with 'Z'
     MmResult result3 = pmeditor_overwrite_char(self, 'Z');
@@ -3879,6 +3646,7 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteMultipleCharactersSequence) {
     EXPECT_STREQ("XYZDEF", self->buf);
     EXPECT_TXTP_EQ(3);
     EXPECT_LINES_CHANGED(0, 0);
+    EXPECT_CURSOR_EQ(3, 0);
 }
 
 // Test overwriting '/' creating multiline comment start
@@ -4077,19 +3845,6 @@ TEST_F(PmEditorOverwriteCharTest, OverwriteWithStarCreatesNoComment) {
     EXPECT_STREQ("a*b", self->buf);
     EXPECT_TRUE(self->text_changed);
     EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test that overwrite and delete return consistent redraw values
-TEST_F(PmEditorOverwriteCharTest, OverwriteDeleteConsistency) {
-    // This tests the internal consistency check in pmeditor_overwrite_char
-    SetBuffer("Hello");
-    SetTxtp(2);
-
-    MmResult result = pmeditor_overwrite_char(self, 'X');
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("HeXlo", self->buf);
-    // If this doesn't crash with kInternalFault, the consistency check passed
 }
 
 // Test overwriting at line boundaries
@@ -7841,4 +7596,230 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsFuncKeysAndStatusWhenMessageCleared) {
     EXPECT_PRINT_MSG_NOT_CALLED();
     EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
     EXPECT_PRINT_STATUS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_newline()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdNewlineTest : public PmEditorTestBase { };
+
+// Test newline insertion at end of line
+TEST_F(PmEditorCmdNewlineTest, NewlineAtEndOfLine) {
+    SetBuffer("Hello");
+    SetCursorAtEnd();
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello\n", self->buf);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(0, 1);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Test newline insertion in middle of line
+TEST_F(PmEditorCmdNewlineTest, NewlineInMiddleOfLine) {
+    SetBuffer("Hello");
+    SetTxtp(2); // Ar first 'l'
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("He\nllo", self->buf);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test newline at start of buffer
+TEST_F(PmEditorCmdNewlineTest, NewlineAtStartOfBuffer) {
+    SetBuffer("Hello");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("\nHello", self->buf);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_TXTP_EQ(1);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test newline in empty buffer
+TEST_F(PmEditorCmdNewlineTest, NewlineInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("\n", self->buf);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_TXTP_EQ(1);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test auto-indent with leading spaces
+TEST_F(PmEditorCmdNewlineTest, AutoIndentWithLeadingSpaces) {
+    SetBuffer("    Hello");
+    SetCursorAtEnd();
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("    Hello\n", self->buf);
+    EXPECT_KEYS_EQ(' ', ' ', ' ', ' ', '\0');
+    EXPECT_TXTP_EQ(10);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test auto-indent only at end of line
+TEST_F(PmEditorCmdNewlineTest, AutoIndentOnlyAtEndOfLine) {
+    SetBuffer("    Hello");
+    SetTxtp(4); // After spaces, before 'H'
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("    \nHello", self->buf);
+    EXPECT_KEYS_EQ('\0'); // No spaces should be in key buffer since not at end of line
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test auto-indent from line with only spaces
+TEST_F(PmEditorCmdNewlineTest, AutoIndentFromLineWithOnlySpaces) {
+    SetBuffer("    ");
+    SetCursorAtEnd();
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("    \n", self->buf);
+    EXPECT_KEYS_EQ(' ', ' ', ' ', ' ', '\0');
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test auto-indent at start of buffer with leading space
+TEST_F(PmEditorCmdNewlineTest, AutoIndentAtStartOfBufferWithLeadingSpace) {
+    SetBuffer(" Hello");
+    SetCursorAtEnd();
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(" Hello\n", self->buf);
+    EXPECT_KEYS_EQ(' ', '\0');
+    EXPECT_TXTP_EQ(7);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test cursor moves down when not at bottom
+TEST_F(PmEditorCmdNewlineTest, CursorMovesDownWhenNotAtBottom) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4");
+    SetTxtp(5); // End of first line (after "Line0")
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_CURSOR_EQ(0, 1); // Cursor moved down
+    EXPECT_EQ(0, self->py); // No viewport scroll
+    EXPECT_EQ(6, self->num_lines);
+}
+
+// Test viewport scrolls when at bottom
+TEST_F(PmEditorCmdNewlineTest, ViewportScrollsWhenAtBottom) {
+    // Create enough lines to require scrolling
+    SetBuffer("L0\nL1\nL2\nL3\nL4\nL5\nL6\nL7\nL8\nL9\nL10\n"
+              "L11\nL12\nL13\nL14\nL15\nL16\nL17\nL18\nL19\nL20\n"
+              "L21\nL22");
+
+    // Position at end of line 22 (last visible line, cy = 22)
+    char *last_line = pmeditor_find_line_n(self, 22);
+    SetTxtp(last_line - self->buf + strlen("L22"));
+    ASSERT_EQ(22, self->cy);
+    ASSERT_EQ(0, self->py);
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_CURSOR_EQ(0, 22); // cy stays at bottom
+    EXPECT_EQ(1, self->py); // Viewport scrolled
+    EXPECT_EQ(24, self->num_lines);
+}
+
+// Test text_changed flag set
+TEST_F(PmEditorCmdNewlineTest, TextChangedFlagSet) {
+    SetBuffer("Hello");
+    SetCursorAtEnd();
+    self->text_changed = false;
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test newline triggers screen redraw
+TEST_F(PmEditorCmdNewlineTest, NewlineTrigersScreenRedraw) {
+    SetBuffer("Hello");
+    SetCursorAtEnd();
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+extern bool display_bell_sounded;
+
+// Test mark mode sounds bell
+TEST_F(PmEditorCmdNewlineTest, MarkModeSoundsBell) {
+    SetBuffer("Hello");
+    SetCursorAtEnd();
+    self->mode = kMarkMode;
+    display_bell_sounded = false;
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(true, display_bell_sounded);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(1, self->num_lines);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+// Test newline at position just after newline character
+TEST_F(PmEditorCmdNewlineTest, NewlineJustAfterNewlineCharacter) {
+    SetBuffer("Line0\nLine1");
+    SetTxtp(6); // Just after first \n
+    self->key_buf[1] = '\0';
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line0\n\nLine1", self->buf);
+    EXPECT_EQ(3, self->num_lines);
+    EXPECT_TXTP_EQ(7);
+}
+
+// Test buffer full condition (if applicable)
+TEST_F(PmEditorCmdNewlineTest, NewlineNearBufferEnd) {
+    // Fill buffer almost to capacity
+    memset(self->buf, 'X', self->buf_sz - 10);
+    self->buf[self->buf_sz - 10] = '\0';
+    self->num_lines = 1;
+    self->width = self->buf_sz; // So we don't hit LINE TOO LONG error
+    SetCursorAtEnd();
+    self->key_buf[1] = '\0';
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("X\n", self->txtp - 2);
+    EXPECT_STREQ("", self->message);
 }

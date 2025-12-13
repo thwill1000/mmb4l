@@ -156,6 +156,7 @@ MmResult pmeditor_cmd_down(PmEditor *self);
 MmResult pmeditor_cmd_end(PmEditor *self);
 MmResult pmeditor_cmd_home(PmEditor *self);
 MmResult pmeditor_cmd_left(PmEditor *self);
+MmResult pmeditor_cmd_newline(PmEditor *self);
 MmResult pmeditor_cmd_page_up(PmEditor *self);
 MmResult pmeditor_cmd_page_down(PmEditor *self);
 MmResult pmeditor_cmd_right(PmEditor *self);
