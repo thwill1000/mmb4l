@@ -60,6 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EMSG_EDIT_BUFFER_FULL    "EDIT BUFFER FULL"
 #define EMSG_LINE_TOO_LONG       "LINE IS TOO LONG"
 #define EMSG_NOT_FOUND           "NOT FOUND"
+#define SOFT_MARGIN              5
 
 typedef enum {
     kHighlightUnspecified = 0,
@@ -72,7 +73,8 @@ typedef enum {
     kHighlightStatus,
     kHighlightError,
     kHighlightTrailingWhitespace,
-    kHighlightMark = 0xFF,  // bit 7 set for inverse
+    kHighlightMark = 0xFE,  // bit 7 set for inverse
+    kHighlightRight = 0xFF, // bit 7 set for inverse
 } HighlightType;
 
 typedef struct SyntaxState {
@@ -106,7 +108,7 @@ typedef struct {
     // File and buffer
     const char *fname;       ///< Name/path of file being edited
     char *buf;               ///< Buffer containing text (base of single allocation)
-    int buf_sz;              ///< Edit buffer size (EDIT_BUFFER_SIZE)
+    size_t buf_sz;           ///< Edit buffer size (EDIT_BUFFER_SIZE)
     int num_lines;           ///< Line count in buffer
 
     // Display
@@ -114,6 +116,7 @@ typedef struct {
     int height;              ///< Editor height in characters (excludes status line)
 
     // Cursor and viewport
+    int px;                  ///< TODO
     int py;                  ///< Top line displayed (scroll position)
     int cx;                  ///< Cursor column (viewport-relative, 0-based)
     int cy;                  ///< Cursor row (viewport-relative, 0-based)
@@ -148,15 +151,18 @@ typedef struct {
 extern MmResult (*pmeditor_print_msg)(PmEditor *, const char *);
 extern MmResult (*pmeditor_highlight)(PmEditor *, HighlightType);
 extern MmResult (*pmeditor_print_func_keys)(PmEditor *);
+extern MmResult (*pmeditor_print_line_fast)(PmEditor *, char *);
 extern MmResult (*pmeditor_print_lines)(PmEditor *, int, int);
 extern MmResult (*pmeditor_print_status)(PmEditor *);
 
 MmResult pmeditor_construct(PmEditor *self, const char *filename, int width, int height);
 MmResult pmeditor_destruct(PmEditor *self);
+MmResult pmeditor_adjust_viewport(PmEditor *self);
 MmResult pmeditor_cmd_backspace(PmEditor *self);
 MmResult pmeditor_cmd_char(PmEditor *self);
 MmResult pmeditor_cmd_copy(PmEditor *self);
 MmResult pmeditor_cmd_cut(PmEditor *self);
+MmResult pmeditor_cmd_delete(PmEditor *self);
 MmResult pmeditor_cmd_delete_selection(PmEditor *self);
 MmResult pmeditor_cmd_down(PmEditor *self);
 MmResult pmeditor_cmd_end(PmEditor *self);
@@ -169,18 +175,20 @@ MmResult pmeditor_cmd_paste(PmEditor *self);
 MmResult pmeditor_cmd_right(PmEditor *self);
 MmResult pmeditor_cmd_search_again(PmEditor *self);
 MmResult pmeditor_cmd_up(PmEditor *self);
-MmResult pmeditor_delete_char(PmEditor *self);
 char *pmeditor_back_in_line(PmEditor *self, char *start, size_t num_chars);
+char *pmeditor_end_of_line_n(PmEditor *self, int line);
 char *pmeditor_find_in_line(PmEditor *self, const char *needle, char *start, size_t max_len);
 char *pmeditor_find_line_ex(PmEditor *self, int line, int *comment_level);
 MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, HighlightType *highlight);
+size_t pmeditor_get_selection(PmEditor *self, char **start, char **end);
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
 MmResult pmeditor_insert_char(PmEditor *self, char ch);
 MmResult pmeditor_overwrite_char(PmEditor *self, char ch);
 MmResult pmeditor_print_selection(PmEditor *self, PmEditor *old);
-char *pmeditor_find_line_n(PmEditor *self, int line);
 void pmeditor_restore_fn_pointers();
+MmResult pmeditor_set_changed_lines(PmEditor *self, int start, int end);
+char *pmeditor_start_of_line_n(PmEditor *self, int line);
 MmResult pmeditor_sync_cursor_to_buffer(PmEditor *self, char *curp);
 MmResult pmeditor_update_display(PmEditor *self, PmEditor *old);
 
@@ -208,6 +216,7 @@ static inline PmEditor pmeditor_shallow_copy(PmEditor *src) {
  *               or to '\0' if at the last line.
  */
 static inline char *pmeditor_end_of_line(PmEditor *self, char *p) {
+    if (!p) return NULL;
     while (*p != '\0' && *p != '\n') p++;
     return p;
 }
@@ -221,6 +230,7 @@ static inline char *pmeditor_end_of_line(PmEditor *self, char *p) {
  *               if at the last line.
  */
 static inline char *pmeditor_next_line(PmEditor *self, char *p) {
+    if (!p) return NULL;
     while (*p != '\n' && *p != '\0') p++;
     if (*p == '\0') return NULL;
     p++; // Skip newline
@@ -235,6 +245,7 @@ static inline char *pmeditor_next_line(PmEditor *self, char *p) {
  * @return       Pointer to the first character of the line.
  */
 static inline char *pmeditor_start_of_line(PmEditor *self, char *p) {
+    if (!p) return NULL;
     while (p != self->buf && *(p - 1) != '\n') p--;
     return p;
 }
@@ -248,6 +259,7 @@ static inline char *pmeditor_start_of_line(PmEditor *self, char *p) {
  *               newline character.
  */
 static inline int pmeditor_line_length(PmEditor *self, char *p) {
+    if (!p) return -1;
     char *start = pmeditor_start_of_line(self, p);
     int len = 0;
     while (*start != '\n' && *start != '\0') {
