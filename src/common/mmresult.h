@@ -171,6 +171,7 @@ typedef enum {
     kAudioNothingToResume,
     kAudioSampleRateMismatch,
     kAudioWavInitialisationFailed,
+    kEditorError,
     kGpioInvalidPin,
     kGpioInvalidPulseWidth,
     kGpioPinIsNotAnOutput,

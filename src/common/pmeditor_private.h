@@ -51,9 +51,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmresult.h"
 #include "program.h" // for EDIT_BUFFER_SIZE
 
-#define MAXCLIP 1024
-#define LAST_LINE  INT32_MAX
-#define NO_CHANGE  -1
+#define MAXCLIP                  1024
+#define LAST_LINE                INT32_MAX
+#define NO_CHANGE                -1
+#define MAX_LINE_LENGTH          MAXSTRLEN
+#define EMSG_CLIPBOARD_EMPTY     "CLIPBOARD IS EMPTY"
+#define EMSG_CLIPBOARD_OVERFLOW  "MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE"
+#define EMSG_EDIT_BUFFER_FULL    "EDIT BUFFER FULL"
+#define EMSG_LINE_TOO_LONG       "LINE IS TOO LONG"
+#define EMSG_NOT_FOUND           "NOT FOUND"
 
 typedef enum {
     kHighlightUnspecified = 0,
@@ -159,7 +165,9 @@ MmResult pmeditor_cmd_left(PmEditor *self);
 MmResult pmeditor_cmd_newline(PmEditor *self);
 MmResult pmeditor_cmd_page_up(PmEditor *self);
 MmResult pmeditor_cmd_page_down(PmEditor *self);
+MmResult pmeditor_cmd_paste(PmEditor *self);
 MmResult pmeditor_cmd_right(PmEditor *self);
+MmResult pmeditor_cmd_search_again(PmEditor *self);
 MmResult pmeditor_cmd_up(PmEditor *self);
 MmResult pmeditor_delete_char(PmEditor *self);
 char *pmeditor_back_in_line(PmEditor *self, char *start, size_t num_chars);

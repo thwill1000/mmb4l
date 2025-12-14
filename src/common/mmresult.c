@@ -189,6 +189,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kAudioNothingToResume:       return "Nothing to resume";
         case kAudioSampleRateMismatch:    return "WAV file has different sample rate to MOD file";
         case kAudioWavInitialisationFailed: return "WAV file initialisation failed";
+        case kEditorError:                return "None fatal editor error";
         case kGpioInvalidPin:             return "Invalid pin";
         case kGpioInvalidPulseWidth:      return "Invalid pulse width";
         case kGpioPinIsNotAnOutput:       return "Pin is not an output";

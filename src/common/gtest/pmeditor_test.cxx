@@ -241,6 +241,5916 @@ protected:
     } while (0)
 
 ////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_back_in_line()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorBackInLineTest : public PmEditorTestBase {};
+
+TEST_F(PmEditorBackInLineTest, MoveBackInMiddleOfLine) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf + 10;  // Start at 'd' (end of "World")
+
+    char* result = pmeditor_back_in_line(self, start_pos, 3);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(7, actual_offset) << "Should be at 'r' in 'World'";
+}
+
+TEST_F(PmEditorBackInLineTest, MoveBackToStartOfLine) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf + 5;  // Start at space
+
+    char* result = pmeditor_back_in_line(self, start_pos, 5);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(0, actual_offset) << "Should be at start of line";
+}
+
+TEST_F(PmEditorBackInLineTest, MoveBackOneCharacter) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf + 5;  // Start at space
+
+    char* result = pmeditor_back_in_line(self, start_pos, 1);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(4, actual_offset) << "Should be at 'o' in 'Hello'";
+}
+
+TEST_F(PmEditorBackInLineTest, NoMovementZeroChars) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf + 5;  // Start at space
+
+    char* result = pmeditor_back_in_line(self, start_pos, 0);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(5, actual_offset) << "Should stay at same position";
+}
+
+TEST_F(PmEditorBackInLineTest, MoveFromStartOfLine) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf;  // Start at beginning
+
+    char* result = pmeditor_back_in_line(self, start_pos, 3);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(0, actual_offset) << "Should stay at beginning";
+}
+
+TEST_F(PmEditorBackInLineTest, MoveBackInSecondLine) {
+    SetBuffer("First line\nSecond line\nThird line");
+    char* start_pos = self->buf + 20;  // Start at 'n' in "Second line"
+
+    char* result = pmeditor_back_in_line(self, start_pos, 6);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(14, actual_offset) << "Should be at 'c' in 'Second'";
+}
+
+TEST_F(PmEditorBackInLineTest, MoveBackToStartOfSecondLine) {
+    SetBuffer("First line\nSecond line\nThird line");
+    char* start_pos = self->buf + 20;  // Start at 'n' in "Second line"
+
+    char* result = pmeditor_back_in_line(self, start_pos, 10);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(11, actual_offset) << "Should stop at start of second line (after \\n)";
+}
+
+TEST_F(PmEditorBackInLineTest, MoveBackInThirdLine) {
+    SetBuffer("First line\nSecond line\nThird line");
+    char* start_pos = self->buf + 30;  // Start somewhere in "Third line"
+
+    char* result = pmeditor_back_in_line(self, start_pos, 3);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(27, actual_offset) << "Should move back 3 positions";
+}
+
+TEST_F(PmEditorBackInLineTest, StartAtNewlineCharacter) {
+    SetBuffer("First line\nSecond line");
+    char* start_pos = self->buf + 10;  // Start at '\n'
+
+    char* result = pmeditor_back_in_line(self, start_pos, 5);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(5, actual_offset) << "Should be at 'l' in 'First line'";
+}
+
+TEST_F(PmEditorBackInLineTest, StartJustAfterNewline) {
+    SetBuffer("First line\nSecond line");
+    char* start_pos = self->buf + 11;  // Start at 'S' in "Second"
+
+    char* result = pmeditor_back_in_line(self, start_pos, 1);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(11, actual_offset) << "Should stay at start of line (can't go to previous line)";
+}
+
+TEST_F(PmEditorBackInLineTest, MoveBackMoreThanAvailable) {
+    SetBuffer("Hello");
+    char* start_pos = self->buf + 4;  // Start at 'o'
+
+    char* result = pmeditor_back_in_line(self, start_pos, 10);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(0, actual_offset) << "Should stop at start of line";
+}
+
+TEST_F(PmEditorBackInLineTest, SingleCharacterLine) {
+    SetBuffer("A");
+    char* start_pos = self->buf;  // Start at 'A'
+
+    char* result = pmeditor_back_in_line(self, start_pos, 1);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(0, actual_offset) << "Should stay at 'A'";
+}
+
+TEST_F(PmEditorBackInLineTest, EmptyLineAfterNewline) {
+    SetBuffer("Hello\n\nWorld");
+    char* start_pos = self->buf + 6;  // Start at second newline
+
+    char* result = pmeditor_back_in_line(self, start_pos, 1);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(6, actual_offset) << "Should stay at start of empty line";
+}
+
+TEST_F(PmEditorBackInLineTest, VeryLargeNumChars) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf + 10;  // Start at end
+
+    char* result = pmeditor_back_in_line(self, start_pos, SIZE_MAX);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(0, actual_offset) << "Should stop at start of line";
+}
+
+TEST_F(PmEditorBackInLineTest, StartAtVeryEndOfBuffer) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf + 10;  // Start at 'd' (last character)
+
+    char* result = pmeditor_back_in_line(self, start_pos, 5);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(5, actual_offset) << "Should be at space";
+}
+
+TEST_F(PmEditorBackInLineTest, LineWithTabs) {
+    SetBuffer("Hello\tWorld\tTest");
+    char* start_pos = self->buf + 15;  // Start at 't' in "Test"
+
+    char* result = pmeditor_back_in_line(self, start_pos, 7);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(8, actual_offset) << "Should be at 'r' in 'World'";
+}
+
+TEST_F(PmEditorBackInLineTest, LineWithSpaces) {
+    SetBuffer("Hello   World");
+    char* start_pos = self->buf + 12;  // Start at 'd'
+
+    char* result = pmeditor_back_in_line(self, start_pos, 8);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(4, actual_offset) << "Should be at 'o' in 'Hello'";
+}
+
+TEST_F(PmEditorBackInLineTest, SpecialSymbols) {
+    SetBuffer("/*comment*/code");
+    char* start_pos = self->buf + 14;  // Start at 'e' in "code"
+
+    char* result = pmeditor_back_in_line(self, start_pos, 6);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(8, actual_offset) << "Should be at 't' in 'comment'";
+}
+
+TEST_F(PmEditorBackInLineTest, UnicodeCharacters) {
+    SetBuffer("Héllo Wörld");
+    char* start_pos = self->buf + 10;  // Start at 'd'
+
+    char* result = pmeditor_back_in_line(self, start_pos, 5);
+
+    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(5, actual_offset) << "Should be at space (assumes single-byte chars)";
+}
+
+TEST_F(PmEditorBackInLineTest, NullParameters) {
+    SetBuffer("Hello World");
+
+    // Test null editor
+    EXPECT_EQ(nullptr, pmeditor_back_in_line(nullptr, self->buf + 5, 3));
+
+    // Test null start
+    EXPECT_EQ(nullptr, pmeditor_back_in_line(self, nullptr, 3));
+}
+
+TEST_F(PmEditorBackInLineTest, ConsecutiveNewlines) {
+    SetBuffer("Line1\n\n\nLine4");
+
+    // Start in the middle of consecutive newlines
+    char* start = self->buf + 7;  // Second newline
+    char* result = pmeditor_back_in_line(self, start, 1);
+
+    EXPECT_NE(nullptr, result);
+    EXPECT_EQ(self->buf + 7, result) << "Should stay at start of empty line";
+}
+
+TEST_F(PmEditorBackInLineTest, OnlyNewlines) {
+    SetBuffer("\n\n\n");
+
+    // Start at second newline
+    char* start = self->buf + 1;
+    char* result = pmeditor_back_in_line(self, start, 1);
+
+    EXPECT_NE(nullptr, result);
+    EXPECT_EQ(start, result) << "Should stay at start of empty line";
+}
+
+TEST_F(PmEditorBackInLineTest, LongLine) {
+    // Create a long line without newlines
+    std::string long_content(1000, 'A');
+    SetBuffer(long_content.c_str());
+
+    // Start near the end and move back significantly
+    char* start = self->buf + 900;
+    char* result = pmeditor_back_in_line(self, start, 500);
+
+    EXPECT_NE(nullptr, result);
+    EXPECT_EQ(self->buf + 400, result);
+}
+
+TEST_F(PmEditorBackInLineTest, BufferBoundaryConditions) {
+    SetBuffer("Test content");
+
+    // Test at exact buffer start
+    char* result1 = pmeditor_back_in_line(self, self->buf, 5);
+    EXPECT_EQ(self->buf, result1);
+
+    // Test at buffer start + 1
+    char* result2 = pmeditor_back_in_line(self, self->buf + 1, 1);
+    EXPECT_EQ(self->buf, result2);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_backspace()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdBackspaceTest : public PmEditorTestBase { };
+
+// ============================================================================
+// Basic Backspace Operations
+// ============================================================================
+
+// Test backspace at start of buffer (should do nothing)
+TEST_F(PmEditorCmdBackspaceTest, BackspaceAtStartOfBuffer) {
+    SetBuffer("Hello");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_FALSE(self->text_changed);
+    EXPECT_TXTP_EQ(0); // Cursor should not move
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test backspace in empty buffer
+TEST_F(PmEditorCmdBackspaceTest, BackspaceInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->buf);
+    EXPECT_FALSE(self->text_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test backspace deleting a regular character
+TEST_F(PmEditorCmdBackspaceTest, BackspaceRegularCharacter) {
+    SetBuffer("Hello");
+    SetTxtp(5); // After 'o'
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hell", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
+}
+
+// Test backspace deleting character in middle
+TEST_F(PmEditorCmdBackspaceTest, BackspaceMiddleCharacter) {
+    SetBuffer("Hello");
+    SetTxtp(3); // After second 'l'
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Helo", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
+}
+
+// Test backspace on single character buffer
+TEST_F(PmEditorCmdBackspaceTest, BackspaceSingleCharacter) {
+    SetBuffer("A");
+    SetTxtp(1);
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test backspace at beginning of line (should wrap to previous line)
+TEST_F(PmEditorCmdBackspaceTest, BackspaceAtLineStart) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6); // Start of Line1
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(UP, END, DEL, '\0');
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// ============================================================================
+// Tab/Space Handling
+// ============================================================================
+
+// Test backspace with single space
+TEST_F(PmEditorCmdBackspaceTest, BackspaceSingleSpace) {
+    SetBuffer("Hello World");
+    SetTxtp(6); // After the space
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("HelloWorld", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+// Test backspace at tab stop (4 spaces at start of line)
+TEST_F(PmEditorCmdBackspaceTest, BackspaceTabAtLineStart) {
+    SetBuffer("    Hello");
+    SetTxtp(4); // After 4 spaces
+    mmb_options.tab = 4;
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, '\0');
+    EXPECT_TXTP_EQ(0); // Moved back to start
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test backspace with 8 spaces at line start (2 tab stops)
+TEST_F(PmEditorCmdBackspaceTest, BackspaceTwoTabStops) {
+    SetBuffer("        Hello");
+    SetTxtp(8); // After 8 spaces
+    mmb_options.tab = 4;
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, '\0');
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
+}
+
+// Test backspace with 2 spaces at line start
+TEST_F(PmEditorCmdBackspaceTest, BackspacePartialTab) {
+    SetBuffer("  Hello");
+    SetTxtp(2); // After 2 spaces
+    mmb_options.tab = 4;
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(DEL, DEL, '\0');
+    EXPECT_TXTP_EQ(0); // Moved back to start
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test backspace with 3 spaces (not on tab boundary)
+TEST_F(PmEditorCmdBackspaceTest, BackspaceThreeSpaces) {
+    SetBuffer("   Hello");
+    SetTxtp(3); // After 3 spaces
+    mmb_options.tab = 4;
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(DEL, DEL, DEL, '\0');
+    EXPECT_TXTP_EQ(0); // Moved back to start
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test backspace with 5 spaces (past one tab stop)
+TEST_F(PmEditorCmdBackspaceTest, BackspaceFiveSpaces) {
+    SetBuffer("     Hello");
+    SetTxtp(5); // After 5 spaces
+    mmb_options.tab = 4;
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(DEL, '\0');
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
+}
+
+// Test backspace with tab size of 8
+TEST_F(PmEditorCmdBackspaceTest, BackspaceWithTabSize8) {
+    SetBuffer("        Hello");
+    SetTxtp(8); // After 8 spaces
+    mmb_options.tab = 8;
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, DEL, DEL, DEL, DEL, '\0');
+    EXPECT_TXTP_EQ(0); // Moved back to start
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test backspace with spaces after newline
+TEST_F(PmEditorCmdBackspaceTest, BackspaceSpacesAfterNewline) {
+    SetBuffer("Line0\n    Hello");
+    SetTxtp(10); // After 4 spaces on second line
+    mmb_options.tab = 4;
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, '\0');
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test backspace with mixed spaces and text
+TEST_F(PmEditorCmdBackspaceTest, BackspaceMixedSpacesText) {
+    SetBuffer("    Hello World");
+    SetTxtp(10); // In middle of "Hello*World"
+    mmb_options.tab = 4;
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should just delete one character (normal backspace)
+    EXPECT_STREQ("    HelloWorld", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(9);
+    EXPECT_CURSOR_EQ(9, 0);
+}
+
+// Test backspace with single space at line start
+TEST_F(PmEditorCmdBackspaceTest, BackspaceSingleSpaceAtLineStart) {
+    SetBuffer(" Hello");
+    SetTxtp(1); // After single space
+    mmb_options.tab = 4;
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(DEL, '\0');
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test backspace when not at line start with spaces
+TEST_F(PmEditorCmdBackspaceTest, BackspaceSpacesNotAtLineStart) {
+    SetBuffer("Hello    World");
+    SetTxtp(9); // After 4 spaces (but not at line start)
+    mmb_options.tab = 4;
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should do normal backspace (non-tab spaces in middle of line)
+    EXPECT_STREQ("Hello   World", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(8);
+    EXPECT_CURSOR_EQ(8, 0);
+}
+
+// ============================================================================
+// Edge Cases and Special Scenarios
+// ============================================================================
+
+// Test backspace at start of file (edge case)
+TEST_F(PmEditorCmdBackspaceTest, BackspaceAtFileStart) {
+    SetBuffer("Hello\nWorld");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello\nWorld", self->buf); // No change
+    EXPECT_FALSE(self->text_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test backspace with very long line
+TEST_F(PmEditorCmdBackspaceTest, BackspaceInLongLine) {
+    std::string long_line(100, 'A');
+    SetBuffer(long_line.c_str());
+    SetTxtp(50);
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(99, strlen(self->buf));
+    EXPECT_TXTP_EQ(49);
+    EXPECT_CURSOR_EQ(49, 0);
+}
+
+// Test backspace multiple times in sequence
+TEST_F(PmEditorCmdBackspaceTest, BackspaceMultipleTimes) {
+    SetBuffer("ABCDEF");
+    SetTxtp(6); // At end
+
+    // First backspace
+    {
+        MmResult result = pmeditor_cmd_backspace(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_STREQ("ABCDE", self->buf);
+        EXPECT_TXTP_EQ(5);
+    }
+
+    // Second backspace
+    {
+        MmResult result = pmeditor_cmd_backspace(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_STREQ("ABCD", self->buf);
+        EXPECT_TXTP_EQ(4);
+    }
+
+    // Third backspace
+    {
+        MmResult result = pmeditor_cmd_backspace(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_STREQ("ABC", self->buf);
+        EXPECT_TXTP_EQ(3);
+    }
+
+    EXPECT_TRUE(self->text_changed);
+}
+
+// ============================================================================
+// Error Condition Tests
+// ============================================================================
+
+// Test with null pointer (defensive programming)
+TEST_F(PmEditorCmdBackspaceTest, BackspaceWithNullEditor) {
+    MmResult result = pmeditor_cmd_backspace(nullptr);
+    EXPECT_EQ(kInternalFault, result);
+}
+
+// Test with corrupted buffer pointer
+TEST_F(PmEditorCmdBackspaceTest, BackspaceWithInvalidCursorPosition) {
+    SetBuffer("Hello");
+    self->txtp = self->buf - 1; // Before buffer start
+
+    MmResult result = pmeditor_cmd_backspace(self);
+
+    EXPECT_EQ(kInternalFault, result);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_char()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdCharTest : public PmEditorTestBase { };
+
+// Test insert mode dispatches to insert
+TEST_F(PmEditorCmdCharTest, InsertModeDispatchesToInsert) {
+    SetBuffer("Hello");
+    SetTxtp(5);
+    self->insert = true;
+    self->key_buf[0] = '!';
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello!", self->buf);
+    EXPECT_EQ(self->buf + 6, self->txtp);
+}
+
+// Test overwrite mode dispatches to overwrite
+TEST_F(PmEditorCmdCharTest, OverwriteModeDispatchesToOverwrite) {
+    SetBuffer("Hello");
+    SetTxtp(0);
+    self->insert = false;
+    self->key_buf[0] = 'J';
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Jello", self->buf);
+    EXPECT_EQ(self->buf + 1, self->txtp);
+}
+
+// Test overwrite mode at newline dispatches to insert
+TEST_F(PmEditorCmdCharTest, OverwriteModeAtNewlineDispatchesToInsert) {
+    SetBuffer("Line1\nLine2");
+    SetTxtp(5); // At newline
+    self->insert = false;
+    self->key_buf[0] = '!';
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line1!\nLine2", self->buf);
+}
+
+// Test overwrite mode at end of buffer dispatches to insert
+TEST_F(PmEditorCmdCharTest, OverwriteModeAtEndDispatchesToInsert) {
+    SetBuffer("Hello");
+    SetCursorAtEnd();
+    self->insert = false;
+    self->key_buf[0] = '!';
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello!", self->buf);
+    EXPECT_EQ(self->buf + 6, self->txtp);
+}
+
+// Test non-printable character ignored
+TEST_F(PmEditorCmdCharTest, NonPrintableCharacterIgnored) {
+    SetBuffer("Hello");
+    SetTxtp(0);
+    self->insert = true;
+    self->key_buf[0] = '\x01'; // Non-printable
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf); // Unchanged
+    EXPECT_EQ(self->buf, self->txtp); // Cursor unchanged
+}
+
+// Test line redraw after normal insert
+TEST_F(PmEditorCmdCharTest, LineRedrawAfterNormalInsert) {
+    SetBuffer("Hello");
+    SetTxtp(5); // At end
+    self->insert = true;
+    self->key_buf[0] = '!';
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test screen redraw after multiline comment change
+TEST_F(PmEditorCmdCharTest, ScreenRedrawAfterMultilineCommentChange) {
+    SetBuffer("code * more");
+    SetTxtp(5); // At '*'
+    self->insert = true;
+    self->key_buf[0] = '/';
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code /* more", self->buf);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Test no redraw when insert returns REDRAW_NOTHING
+TEST_F(PmEditorCmdCharTest, NoRedrawWhenInsertReturnsNothing) {
+    SetBuffer("Hello");
+    SetTxtp(0);
+    self->insert = true;
+    self->key_buf[0] = '\x01'; // Non-printable, insert will return NOTHING
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_NO_LINES_CHANGED();
+}
+
+// Test cursor positioning after insert
+TEST_F(PmEditorCmdCharTest, CursorPositioningAfterInsert) {
+    SetBuffer("Hello");
+    SetTxtp(1);
+    self->insert = true;
+    self->key_buf[0] = 'X';
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->txtp, self->buf + 2);
+}
+
+// Test cursor positioning after overwrite
+TEST_F(PmEditorCmdCharTest, CursorPositioningAfterOverwrite) {
+    SetBuffer("Hello");
+    SetTxtp(1);
+    self->insert = false;
+    self->key_buf[0] = 'J';
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->txtp, self->buf + 2);
+}
+
+// Test overwrite mode with null terminator ahead (acts like insert)
+TEST_F(PmEditorCmdCharTest, OverwriteModeWithNullTerminatorAheadActsLikeInsert) {
+    SetBuffer("Hello");
+    SetCursorAtEnd(); // At '\0'
+    self->insert = false;
+    self->key_buf[0] = '!';
+
+    MmResult result = pmeditor_cmd_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello!", self->buf);
+    EXPECT_EQ(6, strlen(self->buf));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_copy()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorMarkTestBase : public PmEditorTestBase {
+   protected:
+    void SetUp() override {
+        PmEditorTestBase::SetUp();
+        self->mode = kMarkMode;
+    }
+};
+
+class PmEditorCmdCopyTest : public PmEditorMarkTestBase { };
+
+// Test basic copy with mark before txtp
+TEST_F(PmEditorCmdCopyTest, CopyWhenMarkBeforeTxtp) {
+    SetBuffer("Hello World");
+    SetMark(2);  // At 'l' in "Hello"
+    SetTxtp(7);  // At 'o' in "World"
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("llo W", self->clipboard_buf);
+    EXPECT_STREQ("Hello World", self->buf);  // Buffer unchanged
+    EXPECT_TXTP_EQ(7);  // Cursor unchanged
+    EXPECT_FALSE(self->text_changed);  // Copy doesn't modify text
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test basic copy with mark after txtp
+TEST_F(PmEditorCmdCopyTest, CopyWhenMarkAfterTxtp) {
+    SetBuffer("Hello World");
+    SetMark(7);  // At 'o' in "World"
+    SetTxtp(2);  // At 'l' in "Hello"
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("llo W", self->clipboard_buf);
+    EXPECT_STREQ("Hello World", self->buf);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_FALSE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test copying zero-length selection
+TEST_F(PmEditorCmdCopyTest, CopyZeroLengthSelection) {
+    SetBuffer("Hello");
+    SetMark(3);
+    SetTxtp(3);
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->clipboard_buf);  // Empty clipboard
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_FALSE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test copying single character
+TEST_F(PmEditorCmdCopyTest, CopySingleCharacter) {
+    SetBuffer("ABCDEF");
+    SetMark(2);  // At 'C'
+    SetTxtp(3);  // At 'D'
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("C", self->clipboard_buf);
+    EXPECT_STREQ("ABCDEF", self->buf);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test copying entire buffer
+TEST_F(PmEditorCmdCopyTest, CopyEntireBuffer) {
+    SetBuffer("Hello");
+    SetMark(0);
+    SetTxtp(5);
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->clipboard_buf);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test copying with newlines
+TEST_F(PmEditorCmdCopyTest, CopyWithNewlines) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetMark(6);   // After "Line0\n"
+    SetTxtp(12);  // After "Line1\n"
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line1\n", self->clipboard_buf);
+    EXPECT_STREQ("Line0\nLine1\nLine2", self->buf);
+    EXPECT_EQ(3, self->num_lines);  // num_lines unchanged
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test copying multiple newlines
+TEST_F(PmEditorCmdCopyTest, CopyMultipleNewlines) {
+    SetBuffer("A\nB\nC\nD");
+    SetMark(0);
+    SetTxtp(6);  // After "A\nB\nC\n"
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("A\nB\nC\n", self->clipboard_buf);
+    EXPECT_STREQ("A\nB\nC\nD", self->buf);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test clipboard size limit - exactly at limit
+TEST_F(PmEditorCmdCopyTest, CopyAtClipboardLimit) {
+    std::string content(MAXCLIP, 'X');
+    SetBuffer(content.c_str());
+    SetMark(0);
+    SetTxtp(MAXCLIP);
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test clipboard size limit - exceeds limit (mark before txtp)
+TEST_F(PmEditorCmdCopyTest, CopyExceedsClipboardLimitMarkBefore) {
+    std::string content(MAXCLIP + 10, 'X');
+    SetBuffer(content.c_str());
+    SetMark(0);
+    SetTxtp(MAXCLIP + 5);
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_CLIPBOARD_OVERFLOW, mmresult_to_string(result));
+    EXPECT_STREQ("", self->clipboard_buf);  // Clipboard unchanged/empty
+    EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
+}
+
+// Test clipboard size limit - exceeds limit (mark after txtp)
+TEST_F(PmEditorCmdCopyTest, CopyExceedsClipboardLimitMarkAfter) {
+    std::string content(MAXCLIP + 10, 'X');
+    SetBuffer(content.c_str());
+    SetMark(MAXCLIP + 5);
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_CLIPBOARD_OVERFLOW, mmresult_to_string(result));
+    EXPECT_STREQ("", self->clipboard_buf);  // Clipboard unchanged/empty
+    EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
+}
+
+// Test clipboard size limit - exactly MAXCLIP + 1 (boundary)
+TEST_F(PmEditorCmdCopyTest, CopyExceedsClipboardByOne) {
+    std::string content(MAXCLIP + 1, 'Y');
+    SetBuffer(content.c_str());
+    SetMark(0);
+    SetTxtp(MAXCLIP + 1);
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_CLIPBOARD_OVERFLOW, mmresult_to_string(result));
+    EXPECT_STREQ("", self->clipboard_buf);  // Clipboard unchanged/empty
+    EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
+}
+
+// Test copying overwrites previous clipboard content
+TEST_F(PmEditorCmdCopyTest, CopyOverwritesPreviousClipboard) {
+    strcpy(self->clipboard_buf, "OLD CONTENT");
+
+    SetBuffer("NEW");
+    SetMark(0);
+    SetTxtp(3);
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("NEW", self->clipboard_buf);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test copying from middle of buffer
+TEST_F(PmEditorCmdCopyTest, CopyFromMiddleOfBuffer) {
+    SetBuffer("AAABBBCCC");
+    SetMark(3);  // Start of "BBB"
+    SetTxtp(6);  // End of "BBB"
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("BBB", self->clipboard_buf);
+    EXPECT_STREQ("AAABBBCCC", self->buf);
+}
+
+// Test copying preserves cursor position exactly
+TEST_F(PmEditorCmdCopyTest, PreservesCursorPosition) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 0;
+    SetMark(6);  // At 'L' in "Line1"
+    SetTxtp(9);  // At 'e' om "Line1"
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(9);
+    EXPECT_CURSOR_EQ(3, 1);  // Cursor position unchanged
+}
+
+// Test copying with special characters (tabs, etc.)
+TEST_F(PmEditorCmdCopyTest, CopyWithSpecialCharacters) {
+    SetBuffer("Tab\there\tSpaces  End");
+    SetMark(0);
+    SetTxtp(9);  // After second tab
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Tab\there\t", self->clipboard_buf);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test clipboard null termination
+TEST_F(PmEditorCmdCopyTest, ClipboardNullTermination) {
+    SetBuffer("TEST");
+    SetMark(0);
+    SetTxtp(4);
+
+    // Pre-fill clipboard with garbage
+    memset(self->clipboard_buf, 'Z', MAXCLIP);
+    self->clipboard_buf[MAXCLIP] = '\0';
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("TEST", self->clipboard_buf);
+    EXPECT_EQ('\0', self->clipboard_buf[4]);  // Properly null-terminated
+}
+
+// Test copying empty buffer
+TEST_F(PmEditorCmdCopyTest, CopyFromEmptyBuffer) {
+    SetBuffer("");
+    SetMark(0);
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->clipboard_buf);
+    EXPECT_FALSE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);
+}
+
+// Test that mark position is preserved
+TEST_F(PmEditorCmdCopyTest, PreservesMarkPosition) {
+    SetBuffer("Hello World");
+    SetMark(2);
+    SetTxtp(7);
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_MARK_EQ(2);  // Mark unchanged
+    EXPECT_TXTP_EQ(7);  // Txtp unchanged
+}
+
+// Test backward selection (txtp < mark)
+TEST_F(PmEditorCmdCopyTest, CopyBackwardSelection) {
+    SetBuffer("0123456789");
+    SetMark(7);
+    SetTxtp(3);
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("3456", self->clipboard_buf);
+    EXPECT_TXTP_EQ(3);  // Original positions preserved
+    EXPECT_MARK_EQ(7);
+}
+
+// Test forward selection (txtp > mark)
+TEST_F(PmEditorCmdCopyTest, CopyForwardSelection) {
+    SetBuffer("0123456789");
+    SetMark(3);
+    SetTxtp(7);
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("3456", self->clipboard_buf);
+    EXPECT_TXTP_EQ(7);
+    EXPECT_MARK_EQ(3);
+}
+
+// Test off-by-one: mark at txtp-1 (inclusive vs exclusive)
+TEST_F(PmEditorCmdCopyTest, CopyMarkAtTxtpMinusOne) {
+    SetBuffer("ABCDEFGH");
+    SetMark(4);   // At 'E'
+    SetTxtp(5);   // At 'F'
+
+    MmResult result = pmeditor_cmd_copy(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("E", self->clipboard_buf);
+}
+
+// Test copying respects MAXCLIP exactly (not MAXCLIP+1 or MAXCLIP+2)
+TEST_F(PmEditorCmdCopyTest, ClipboardSizeBoundaryCheck) {
+    // Test that MAXCLIP characters can be copied
+    std::string content1(MAXCLIP, 'A');
+    SetBuffer(content1.c_str());
+    SetMark(0);
+    SetTxtp(MAXCLIP);
+
+    EXPECT_EQ(kOk, pmeditor_cmd_copy(self));
+    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
+
+    // Test that MAXCLIP+1 characters cannot be copied
+    std::string content2(MAXCLIP + 1, 'B');
+    SetBuffer(content2.c_str());
+    SetMark(0);
+    SetTxtp(MAXCLIP + 1);
+
+    MmResult result = pmeditor_cmd_copy(self);
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_CLIPBOARD_OVERFLOW, mmresult_to_string(result));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_cut()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdCutTest : public PmEditorMarkTestBase { };
+
+// Test basic cut with mark before txtp
+TEST_F(PmEditorCmdCutTest, CutWhenMarkBeforeTxtp) {
+    SetBuffer("Hello World");
+    SetMark(2);  // At 'l' in "Hello"
+    SetTxtp(7);  // At 'o' in "World"
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("llo W", self->clipboard_buf);
+    EXPECT_STREQ("Heorld", self->buf);  // Text removed
+    EXPECT_TXTP_EQ(2);  // Cursor at mark position
+    EXPECT_CURSOR_EQ(2, 0);
+    EXPECT_TRUE(self->text_changed);  // Cut modifies text
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test basic cut with mark after txtp
+TEST_F(PmEditorCmdCutTest, CutWhenMarkAfterTxtp) {
+    SetBuffer("Hello World");
+    SetMark(7);  // At 'o' in "World"
+    SetTxtp(2);  // At 'l' in "Hello"
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("llo W", self->clipboard_buf);
+    EXPECT_STREQ("Heorld", self->buf);
+    EXPECT_TXTP_EQ(2);  // Cursor stays at txtp
+    EXPECT_CURSOR_EQ(2, 0);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting zero-length selection
+TEST_F(PmEditorCmdCutTest, CutZeroLengthSelection) {
+    SetBuffer("Hello");
+    SetMark(3);
+    SetTxtp(3);
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->clipboard_buf);  // Empty clipboard
+    EXPECT_STREQ("Hello", self->buf);  // Nothing removed
+    EXPECT_TXTP_EQ(3);
+    EXPECT_FALSE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting single character
+TEST_F(PmEditorCmdCutTest, CutSingleCharacter) {
+    SetBuffer("ABCDEF");
+    SetMark(2);  // At 'C'
+    SetTxtp(3);  // At 'D'
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("C", self->clipboard_buf);
+    EXPECT_STREQ("ABDEF", self->buf);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting entire buffer
+TEST_F(PmEditorCmdCutTest, CutEntireBuffer) {
+    SetBuffer("Hello");
+    SetMark(0);
+    SetTxtp(5);
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->clipboard_buf);
+    EXPECT_STREQ("", self->buf);  // Buffer now empty
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting with newlines updates num_lines
+TEST_F(PmEditorCmdCutTest, CutWithNewlines) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetMark(6);   // After "Line0\n"
+    SetTxtp(12);  // After "Line1\n"
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line1\n", self->clipboard_buf);
+    EXPECT_STREQ("Line0\nLine2", self->buf);
+    EXPECT_EQ(2, self->num_lines);  // One newline removed
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting multiple newlines
+TEST_F(PmEditorCmdCutTest, CutMultipleNewlines) {
+    SetBuffer("A\nB\nC\nD");
+    SetMark(0);
+    SetTxtp(6);  // After "C\n"
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("A\nB\nC\n", self->clipboard_buf);
+    EXPECT_STREQ("D", self->buf);
+    EXPECT_EQ(1, self->num_lines);  // Three newlines removed
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test clipboard size limit - exactly at limit
+TEST_F(PmEditorCmdCutTest, CutAtClipboardLimit) {
+    std::string content(MAXCLIP, 'X');
+    SetBuffer(content.c_str());
+    SetMark(0);
+    SetTxtp(MAXCLIP);
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
+    EXPECT_STREQ("", self->buf);  // Content cut
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test clipboard size limit - exceeds limit
+TEST_F(PmEditorCmdCutTest, CutExceedsClipboardLimit) {
+    std::string content(MAXCLIP + 10, 'X');
+    SetBuffer(content.c_str());
+    SetMark(0);
+    SetTxtp(MAXCLIP + 5);
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_CLIPBOARD_OVERFLOW, mmresult_to_string(result));
+    // Buffer should be UNCHANGED when clipboard overflow occurs
+    EXPECT_EQ(MAXCLIP + 10, strlen(self->buf));
+    EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
+}
+
+// Test cutting from middle of buffer
+TEST_F(PmEditorCmdCutTest, CutFromMiddleOfBuffer) {
+    SetBuffer("AAABBBCCC");
+    SetMark(3);  // Start of "BBB"
+    SetTxtp(6);  // End of "BBB"
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("BBB", self->clipboard_buf);
+    EXPECT_STREQ("AAACCC", self->buf);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting preserves content after cut region
+TEST_F(PmEditorCmdCutTest, PreservesContentAfterCutRegion) {
+    SetBuffer("StartMIDDLEEnd");
+    SetMark(5);   // Before "MIDDLE"
+    SetTxtp(11);  // After "MIDDLE"
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("MIDDLE", self->clipboard_buf);
+    EXPECT_STREQ("StartEnd", self->buf);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting updates cursor position to lower of mark/txtp
+TEST_F(PmEditorCmdCutTest, CursorMovesToLowerPosition) {
+    SetBuffer("0123456789");
+    SetMark(2);  // Low position
+    SetTxtp(8);  // High position
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(2);  // Cursor at lower position
+    EXPECT_CURSOR_EQ(2, 0);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting with mark > txtp also moves to lower position
+TEST_F(PmEditorCmdCutTest, CursorMovesToLowerPositionReversed) {
+    SetBuffer("0123456789");
+    SetMark(8);  // High position
+    SetTxtp(2);  // Low position
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(2);  // Cursor at lower position
+    EXPECT_CURSOR_EQ(2, 0);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test buffer termination after cut
+TEST_F(PmEditorCmdCutTest, BufferTerminationAfterCut) {
+    SetBuffer("ABCDEFGH");
+    SetMark(2);
+    SetTxtp(5);
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("CDE", self->clipboard_buf);
+    EXPECT_STREQ("ABFGH", self->buf);
+    // Check double null termination
+    EXPECT_EQ('\0', self->buf[5]);
+    EXPECT_EQ('\0', self->buf[6]);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting from start of buffer
+TEST_F(PmEditorCmdCutTest, CutFromStartOfBuffer) {
+    SetBuffer("Hello World");
+    SetMark(0);  // At 'H'
+    SetTxtp(6);  // At 'W'
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello ", self->clipboard_buf);
+    EXPECT_STREQ("World", self->buf);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting to end of buffer
+TEST_F(PmEditorCmdCutTest, CutToEndOfBuffer) {
+    SetBuffer("Hello World");
+    SetMark(6);   // At 'W'
+    SetTxtp(11);  // After 'd'
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("World", self->clipboard_buf);
+    EXPECT_STREQ("Hello ", self->buf);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting empty buffer
+TEST_F(PmEditorCmdCutTest, CutFromEmptyBuffer) {
+    SetBuffer("");
+    SetMark(0);
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->clipboard_buf);
+    EXPECT_STREQ("", self->buf);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_FALSE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting overwrites previous clipboard content
+TEST_F(PmEditorCmdCutTest, CutOverwritesPreviousClipboard) {
+    strcpy(self->clipboard_buf, "OLD CONTENT");
+
+    SetBuffer("NEW");
+    SetMark(0);
+    SetTxtp(3);
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("NEW", self->clipboard_buf);
+    EXPECT_STREQ("", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting with special characters
+TEST_F(PmEditorCmdCutTest, CutWithSpecialCharacters) {
+    SetBuffer("Tab\there\tEnd");
+    SetMark(0);
+    SetTxtp(9);  // After second tab
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Tab\there\t", self->clipboard_buf);
+    EXPECT_STREQ("End", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting only a newline character
+TEST_F(PmEditorCmdCutTest, CutOnlyNewline) {
+    SetBuffer("Line1\nLine2");
+    SetMark(5);  // At newline
+    SetTxtp(6);  // Just after newline
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("\n", self->clipboard_buf);
+    EXPECT_STREQ("Line1Line2", self->buf);
+    EXPECT_EQ(1, self->num_lines);  // One newline removed
+    EXPECT_TXTP_EQ(5);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting large region
+TEST_F(PmEditorCmdCutTest, CutLargeRegion) {
+    std::string content(100, 'X');
+    SetBuffer(content.c_str());
+    SetMark(10);
+    SetTxtp(90);
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(80, strlen(self->clipboard_buf));  // 80 X's copied
+    EXPECT_EQ(20, strlen(self->buf));  // 10 + 10 remaining
+    EXPECT_TXTP_EQ(10);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting across multiple lines with cursor positioning
+TEST_F(PmEditorCmdCutTest, CutAcrossMultipleLinesUpdatesCursor) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    SetMark(6);   // Start of Line1
+    SetTxtp(18);  // In Line2
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line1\nLine2\n", self->clipboard_buf);
+    EXPECT_STREQ("Line0\nLine3", self->buf);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(0, 1);  // Start of second line
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test cutting maintains proper buffer state after large deletion
+TEST_F(PmEditorCmdCutTest, MaintainsBufferStateAfterLargeDeletion) {
+    SetBuffer("AAAAAAAAAA\nBBBBBBBBBB\nCCCCCCCCCC");
+    SetMark(0);
+    SetTxtp(13);  // In BBB section
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(13, strlen(self->clipboard_buf));
+    EXPECT_STREQ("BBBBBBBB\nCCCCCCCCCC", self->buf);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
+}
+
+// Test clipboard boundary: MAXCLIP vs MAXCLIP+1
+TEST_F(PmEditorCmdCutTest, ClipboardBoundaryValidation) {
+    // Test that MAXCLIP characters can be cut
+    std::string content1(MAXCLIP, 'A');
+    SetBuffer(content1.c_str());
+    SetMark(0);
+    SetTxtp(MAXCLIP);
+
+    EXPECT_EQ(kOk, pmeditor_cmd_cut(self));
+    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
+    EXPECT_STREQ("", self->buf);
+
+    // Test that MAXCLIP+1 characters cannot be cut (buffer preserved)
+    std::string content2(MAXCLIP + 1, 'B');
+    SetBuffer(content2.c_str());
+    SetMark(0);
+    SetTxtp(MAXCLIP + 1);
+
+    MmResult result = pmeditor_cmd_cut(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_CLIPBOARD_OVERFLOW, mmresult_to_string(result));
+    EXPECT_EQ(MAXCLIP + 1, strlen(self->buf));  // Buffer UNCHANGED
+    EXPECT_EQ(kMarkMode, self->mode);  // Should not exit mark mode
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_delete_selection()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdDeleteSelectionTest : public PmEditorMarkTestBase { };
+
+// Test deleting when mark before txtp
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWhenMarkBeforeTxtp) {
+    SetBuffer("Hello World");
+    SetMark(2); // At 'l'
+    SetTxtp(7); // At 'o' in "World"
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Heorld", self->buf);
+    EXPECT_TXTP_EQ(2); // txtp should be at mark position
+    EXPECT_CURSOR_EQ(2, 0);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting when mark after txtp
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWhenMarkAfterTxtp) {
+    SetBuffer("Hello World");
+    SetMark(7); // At 'o' in "World"
+    SetTxtp(2); // At 'l'
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Heorld", self->buf);
+    EXPECT_TXTP_EQ(2); // txtp stays where it was
+    EXPECT_CURSOR_EQ(2, 0);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting when mark equals txtp (nothing to delete)
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWhenMarkEqualsTxtp) {
+    SetBuffer("Hello World");
+    SetMark(5);
+    SetTxtp(5);
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello World", self->buf); // Nothing deleted
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test deleting single character
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteSingleCharacter) {
+    SetBuffer("ABCDEF");
+    SetMark(2); // At 'C'
+    SetTxtp(3); // At 'D'
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("ABDEF", self->buf);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting entire buffer
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteEntireBuffer) {
+    SetBuffer("Hello");
+    SetMark(0); // At 'H'
+    SetTxtp(5); // At 'o'
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->buf);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting from start of buffer
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteFromStartOfBuffer) {
+    SetBuffer("Hello World");
+    SetMark(0); // At 'H'
+    SetTxtp(6); // At 'W'
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("World", self->buf);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting to end of buffer
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteToEndOfBuffer) {
+    SetBuffer("Hello World");
+    SetMark(6); // At 'W'
+    SetTxtp(11); // After 'd'
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello ", self->buf);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(6, 0);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting with newlines (decrements num_lines)
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWithNewlines) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetMark(3); // In "Line0";
+    SetTxtp(9); // In "Line1"
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line1\nLine2", self->buf);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
+    EXPECT_EQ(2, self->num_lines); // One newline deleted
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting multiple newlines
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteMultipleNewlines) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    SetMark(3);
+    SetTxtp(15); // At 'e' in "Line2"
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line2\nLine3", self->buf);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
+    EXPECT_EQ(2, self->num_lines); // Two newlines deleted
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting only newline character
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteOnlyNewline) {
+    SetBuffer("Line1\nLine2");
+    SetMark(5); // At newline
+    SetTxtp(6); // Just after newline
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line1Line2", self->buf);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+    EXPECT_EQ(1, self->num_lines); // One newline deleted
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test swapping mark and txtp when mark > txtp
+TEST_F(PmEditorCmdDeleteSelectionTest, SwapMarkAndTxtpWhenMarkGreater) {
+    SetBuffer("ABCDEFGH");
+    SetMark(6); // At 'G'
+    SetTxtp(2); // At 'C'
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("ABGH", self->buf);
+    EXPECT_TXTP_EQ(2); // txtp at lower position
+    EXPECT_CURSOR_EQ(2, 0);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test buffer termination after delete
+TEST_F(PmEditorCmdDeleteSelectionTest, BufferTerminationAfterDelete) {
+    SetBuffer("ABCDEFGH");
+    SetMark(2);
+    SetTxtp(5);
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("ABFGH", self->buf);
+    // Check double null termination
+    EXPECT_EQ('\0', self->buf[5]);
+    EXPECT_EQ('\0', self->buf[6]);
+}
+
+// Test deleting in empty buffer
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteInEmptyBuffer) {
+    SetBuffer("");
+    SetMark(0);
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->buf);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_FALSE(self->text_changed);
+}
+
+// Test deleting preserves content after deleted region
+TEST_F(PmEditorCmdDeleteSelectionTest, PreservesContentAfterDeletedRegion) {
+    SetBuffer("AAABBBCCC");
+    SetMark(3);
+    SetTxtp(6);
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("AAACCC", self->buf);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting large region
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteLargeRegion) {
+    std::string content(100, 'X');
+    SetBuffer(content.c_str());
+    SetMark(10);
+    SetTxtp(90);
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(20, strlen(self->buf)); // 10 + 10 remaining
+    EXPECT_TXTP_EQ(10);
+    EXPECT_CURSOR_EQ(10, 0);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting backward selection (mark > txtp after swap)
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteBackwardSelection) {
+    SetBuffer("0123456789");
+    SetMark(7);
+    SetTxtp(3);
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("012789", self->buf);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting with num_lines counting
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWithNumLinesCounting) {
+    SetBuffer("A\nB\nC\nD\nE");
+    SetMark(2); // After first newline
+    SetTxtp(8); // After fourth newline
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("A\nE", self->buf);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(0, 1);
+    EXPECT_EQ(2, self->num_lines); // Started with 5, deleted 3 newlines
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting mixed newlines and content
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteMixedNewlinesAndContent) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetMark(3); // In "Line0"
+    SetTxtp(14); // In "Line2"
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Linne2", self->buf);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
+    EXPECT_EQ(1, self->num_lines); // Two newlines deleted
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting with mark at buffer start and txtp at end
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteEntireContent) {
+    std::string content = "Complete content to delete";
+    SetBuffer(content.c_str());
+    SetMark(0);
+    SetTxtp(content.length());
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->buf);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test deleting adjacent positions (zero-length selection)
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteZeroLengthSelection) {
+    SetBuffer("Hello");
+    SetMark(3);
+    SetTxtp(3);
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf); // Nothing deleted
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(3, 0);
+    EXPECT_FALSE(self->text_changed);
+}
+
+TEST_F(PmEditorCmdDeleteSelectionTest, DeleteAcrossMultipleVisibleLines) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4");
+    self->py = 0;
+    SetMark(6);  // At 'L' in "Line1"
+    SetTxtp(15); // At 'e' in "Line2"
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line0\ne2\nLine3\nLine4", self->buf);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(0, 1); // Should be on line 1
+}
+
+TEST_F(PmEditorCmdDeleteSelectionTest, SetsExitFlag) {
+    self->mode = kMarkMode;
+    SetBuffer("Hello World");
+    SetMark(2);
+    SetTxtp(7);
+
+    MmResult result = pmeditor_cmd_delete_selection(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(kEditMode, self->mode); // Should exit mark mode
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_down()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdDownTest : public PmEditorTestBase { };
+
+// Test moving down from first line to second line
+TEST_F(PmEditorCmdDownTest, MoveDownFromFirstToSecondLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(2); // At 'n' in "Line0"
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(8); // At 'n' in "Line1"
+    EXPECT_CURSOR_EQ(2, 1);
+}
+
+// Test moving down from second line to third line
+TEST_F(PmEditorCmdDownTest, MoveDownFromSecondToThirdLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(8); // At 'n' in "Line1"
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(14); // At 'n' in "Line2"
+    EXPECT_CURSOR_EQ(2, 2);
+}
+
+// Test moving down at last line does nothing
+TEST_F(PmEditorCmdDownTest, NoMoveAtLastLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(14); // At 'n' in "Line2" (last line)
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(14); // Unchanged
+    EXPECT_CURSOR_EQ(2, 2);
+}
+
+// Test moving down from single line buffer does nothing
+TEST_F(PmEditorCmdDownTest, NoMoveInSingleLineBuffer) {
+    SetBuffer("OnlyLine");
+    SetTxtp(4);
+    self->preferred_x = 4;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // Unchanged
+    EXPECT_CURSOR_EQ(4, 0);
+}
+
+// Test moving down from empty buffer does nothing
+TEST_F(PmEditorCmdDownTest, NoMoveInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving down maintains column (preferred_x)
+TEST_F(PmEditorCmdDownTest, MaintainsPreferredColumn) {
+    SetBuffer("ABCDE\nFGHIJ\nKLMNO");
+    SetTxtp(3); // At 'D' in first line
+    self->preferred_x = 3;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(9); // At 'I' in second line (same column)
+    EXPECT_CURSOR_EQ(3, 1);
+}
+
+// Test moving down to shorter line stops at end of line
+TEST_F(PmEditorCmdDownTest, StopsAtEndOfShorterLine) {
+    SetBuffer("ABCDEF\nXY\nPQRSTU");
+    SetTxtp(4); // At 'E' in first line (column 4)
+    self->preferred_x = 4;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(9); // At '\n' after "XY" (shorter line)
+    EXPECT_CURSOR_EQ(2, 1);
+}
+
+// Test moving down from shorter line to longer line uses preferred_x
+TEST_F(PmEditorCmdDownTest, UsesPreferredXWhenMovingToLongerLine) {
+    SetBuffer("AB\nPQRSTU\nXYZ");
+    SetTxtp(1); // At 'B' in first line (column 1)
+    self->preferred_x = 4; // But preferred_x is 4
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(7); // At 'S' in second line (column 4)
+    EXPECT_CURSOR_EQ(4, 1);
+}
+
+// Test moving down from start of line (column 0)
+TEST_F(PmEditorCmdDownTest, MoveDownFromStartOfLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(0); // At 'L' in "Line0"
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // At 'L' in "Line1"
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test moving down from end of line (at newline)
+TEST_F(PmEditorCmdDownTest, MoveDownFromEndOfLine) {
+    SetBuffer("ABC\nDEF\nGHI");
+    SetTxtp(3); // At '\n' after "ABC"
+    self->preferred_x = 3;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(7); // At '\n' after "DEF"
+    EXPECT_CURSOR_EQ(3, 1);
+}
+
+// Test moving down to empty line
+TEST_F(PmEditorCmdDownTest, MoveDownToEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(2); // At 'C' in "ABC"
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // At '\n' (empty line)
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test moving down from empty line
+TEST_F(PmEditorCmdDownTest, MoveDownFromEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(4); // At '\n' (empty line)
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(5); // At 'D' in "DEF"
+    EXPECT_CURSOR_EQ(0, 2);
+}
+
+// Test moving down scrolls when near bottom of screen
+TEST_F(PmEditorCmdDownTest, ScrollsWhenNearBottomOfScreen) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line" + std::to_string(i) + "\n";
+    }
+    SetBuffer(content.c_str());
+
+    // Position where scrolling should occur (cy >= height - 3)
+    self->py = 0;
+    self->cy = self->height - 2; // Near bottom, should scroll
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->height - 2, self->cy); // cy unchanged (screen scrolled)
+    EXPECT_EQ(1, self->py); // py incremented (scrolled up)
+}
+
+// Test moving down at bottom of screen when at last page
+TEST_F(PmEditorCmdDownTest, NoScrollWhenAtLastPage) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    self->py = 0;
+    self->cy = 2; // Not at very bottom of screen
+    SetTxtp(12); // At start of "Line2"
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(18); // Moved to "Line3"
+    EXPECT_EQ(3, self->cy); // cy incremented (no scroll because at last page)
+    EXPECT_EQ(0, self->py); // py unchanged
+}
+
+// Test moving down does not modify buffer
+TEST_F(PmEditorCmdDownTest, DoesNotModifyBuffer) {
+    const std::string original = "Line0\nLine1\nLine2";
+    SetBuffer(original.c_str());
+    SetTxtp(2);
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(original.c_str(), self->buf);
+}
+
+// Test moving down multiple times in sequence
+TEST_F(PmEditorCmdDownTest, MoveDownMultipleTimes) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    SetTxtp(1); // At 'i' in "Line0"
+    self->preferred_x = 1;
+
+    // Move to Line1
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(7); // At 'i' in "Line1"
+        EXPECT_CURSOR_EQ(1, 1);
+    }
+
+    // Move to Line2
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(13); // At 'i' in "Line2"
+        EXPECT_CURSOR_EQ(1, 2);
+    }
+
+    // Move to Line3
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(19); // At 'i' in "Line3"
+        EXPECT_CURSOR_EQ(1, 3);
+    }
+
+    // Try to move beyond last line
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(19); // Unchanged
+        EXPECT_CURSOR_EQ(1, 3);
+    }
+}
+
+// Test moving down from line ending at buffer end (no trailing newline)
+TEST_F(PmEditorCmdDownTest, NoMoveWhenLineEndsAtBufferEnd) {
+    SetBuffer("Line0\nLine1"); // No trailing newline
+    SetTxtp(8); // At 'n' in "Line1"
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(8); // Unchanged
+    EXPECT_CURSOR_EQ(2, 1);
+}
+
+// Test moving down with very long preferred_x
+TEST_F(PmEditorCmdDownTest, VeryLargePreferredX) {
+    SetBuffer("ABCDEFGHIJ\nXY\nPQRSTU");
+    SetTxtp(9); // At 'J' in first line
+    self->preferred_x = 100; // Very large preferred_x
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(13); // At '\n' after "XY" (end of shorter line)
+    EXPECT_CURSOR_EQ(2, 1);
+}
+
+// Test moving down preserves preferred_x across multiple moves
+TEST_F(PmEditorCmdDownTest, PreservesPreferredXAcrossMoves) {
+    SetBuffer("ABCDEFGH\nXY\nPQRSTUVW");
+    SetTxtp(5); // At 'F' (column 5)
+    self->preferred_x = 5;
+
+    // Move to shorter line
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(11); // At '\n' after "XY"
+        EXPECT_CURSOR_EQ(2, 1);
+    }
+
+    // Move to longer line - should restore column 5
+    {
+        MmResult result = pmeditor_cmd_down(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(17); // At 'U' (column 5)
+        EXPECT_CURSOR_EQ(5, 2);
+    }
+}
+
+// Test moving down when cy is near height-3 boundary
+TEST_F(PmEditorCmdDownTest, MovesNormallyAtHeightMinus3) {
+    // Create enough lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = self->height - 3;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    const int old_cy = self->cy;
+    const int old_py = self->py;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should scroll
+    EXPECT_EQ(old_cy, self->cy); // cy unchanged
+    EXPECT_EQ(old_py + 1, self->py); // scrolled
+}
+
+// Test moving down calls scroll_up when scrolling
+TEST_F(PmEditorCmdDownTest, CallsScrollUpWhenScrolling) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = self->height - 3;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // Verify that scrolling occurred by checking py changed
+    EXPECT_EQ(1, self->py);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_end()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdEndTest : public PmEditorTestBase { };
+
+// Test moving to end of line from middle of line
+TEST_F(PmEditorCmdEndTest, MoveToEndFromMiddleOfLine) {
+    SetBuffer("Hello World");
+    SetTxtp(6); // At 'W'
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // At '\0' after "World"
+    EXPECT_CURSOR_EQ(11, 0);
+}
+
+// Test moving to end of line from start of line
+TEST_F(PmEditorCmdEndTest, MoveToEndFromStartOfLine) {
+    SetBuffer("Hello World");
+    SetTxtp(0); // At 'H'
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // At '\0'
+    EXPECT_CURSOR_EQ(11, 0);
+}
+
+// Test moving to end of line from near start
+TEST_F(PmEditorCmdEndTest, MoveToEndFromNearStart) {
+    SetBuffer("ABCDEF");
+    SetTxtp(1); // At 'B'
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // At '\0'
+    EXPECT_CURSOR_EQ(6, 0);
+}
+
+// Test no move when already at end of buffer
+TEST_F(PmEditorCmdEndTest, NoMoveAtEndOfBuffer) {
+    SetBuffer("Hello World");
+    SetCursorAtEnd(); // At '\0'
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // Unchanged
+    EXPECT_CURSOR_EQ(11, 0);
+}
+
+// Test no move in empty buffer
+TEST_F(PmEditorCmdEndTest, NoMoveInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0); // At '\0'
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving to end of second line (newline)
+TEST_F(PmEditorCmdEndTest, MoveToEndOfSecondLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(7); // At 'i' in "Line1"
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // At '\n' after "Line1"
+    EXPECT_CURSOR_EQ(5, 1);
+}
+
+// Test moving to end of last line (no newline)
+TEST_F(PmEditorCmdEndTest, MoveToEndOfLastLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(13); // At 'i' in "Line2"
+    self->last_key = 'x'; // Not END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(17); // At '\0' after "Line2"
+    EXPECT_CURSOR_EQ(5, 2);
+}
+
+// Test double END press jumps to end of file
+TEST_F(PmEditorCmdEndTest, DoubleEndJumpsToEndOfFile) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(2); // At 'n' in "Line0"
+    self->last_key = END; // Previous key was END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    printf("%s\n", mmresult_to_string(result));
+    EXPECT_TXTP_EQ(17); // At '\0' after "Line2"
+    EXPECT_CURSOR_EQ(5, 2); // cx = 5 (length of "Line2"), cy = 2
+    EXPECT_EQ(0, self->py); // Short buffer, py stays 0
+    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw - buffer fits on screen
+}
+
+// Test double END press from first line
+TEST_F(PmEditorCmdEndTest, DoubleEndFromFirstLine) {
+    SetBuffer("Hello\nWorld\nTest");
+    SetTxtp(2); // At 'l' in "Hello"
+    self->last_key = END; // Previous key was END
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(16); // At '\0' after "Test"
+    EXPECT_CURSOR_EQ(4, 2);
+}
+
+// Test double END with many lines calculates correct py
+TEST_F(PmEditorCmdEndTest, DoubleEndWithManyLinesCalculatesPy) {
+    // Create buffer with 30 lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    SetTxtp(10); // Near start
+    self->last_key = END;
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    // i = 30 (number of newlines), height = 23
+    // py = 30 - 23 + 1 = 8
+    EXPECT_EQ(8, self->py);
+    EXPECT_CURSOR_EQ(0, self->height - 1); // cy = 22
+}
+
+// Test double END with buffer shorter than screen height
+TEST_F(PmEditorCmdEndTest, DoubleEndWithShortBuffer) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(2);
+    self->last_key = END;
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // py stays 0 (fits on one screen)
+    EXPECT_EQ(2, self->cy); // cy is just the line number
+}
+
+// Test END does not modify buffer
+TEST_F(PmEditorCmdEndTest, DoesNotModifyBuffer) {
+    const std::string original = "Hello World";
+    SetBuffer(original.c_str());
+    SetTxtp(3);
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(original.c_str(), self->buf);
+}
+
+// Test moving to end of line preserves cy
+TEST_F(PmEditorCmdEndTest, PreservesCyWhenMovingToEndOfLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(7); // At 'i' in "Line1"
+    self->cy = 7; // Some arbitrary cy
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // At '\n'
+    EXPECT_CURSOR_EQ(5, 7); // cy preserved
+}
+
+// Test single END when already at end of line does nothing
+TEST_F(PmEditorCmdEndTest, NoMoveWhenAlreadyAtEndOfLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(11); // At '\n' after "Line1"
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // Unchanged
+    EXPECT_CURSOR_EQ(5, 1);
+}
+
+// Test END from position near end
+TEST_F(PmEditorCmdEndTest, MoveFromNearEnd) {
+    SetBuffer("ABCDEF");
+    SetTxtp(4); // At 'E'
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // At '\0'
+    EXPECT_CURSOR_EQ(6, 0);
+}
+
+// Test END sequence: middle -> end of line -> end of file
+TEST_F(PmEditorCmdEndTest, SequenceMiddleToEndToFile) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(2); // At 'n' in "Line0"
+    self->last_key = 'x';
+
+    // First END: move to end of line
+    {
+        MmResult result = pmeditor_cmd_end(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(5); // At '\n' after "Line0"
+        EXPECT_CURSOR_EQ(5, 0);
+        self->last_key = END; // Simulate key tracking
+    }
+
+    // Second END: jump to end of file
+    {
+        MmResult result = pmeditor_cmd_end(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(17); // At '\0' after "Line2"
+        EXPECT_CURSOR_EQ(5, 2);
+    }
+}
+
+// Test double END when already at end does nothing
+TEST_F(PmEditorCmdEndTest, DoubleEndAtEndDoesNothing) {
+    SetBuffer("Hello World");
+    SetCursorAtEnd(); // At '\0'
+    self->last_key = END;
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(11); // Still at end
+    EXPECT_CURSOR_EQ(11, 0);
+    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw (early return)
+}
+
+// Test END from empty line (between two newlines)
+TEST_F(PmEditorCmdEndTest, MoveFromEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(4); // At second '\n' (empty line)
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // Already at end of empty line
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test END with line longer than width
+TEST_F(PmEditorCmdEndTest, LineLongerThanWidthReturnsError) {
+    SetBuffer(std::string(85, 'X').c_str()); // Longer than width (80)
+    SetTxtp(10);
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_LINE_TOO_LONG, mmresult_to_string(result));
+    EXPECT_TXTP_EQ(10); // Not changed
+    EXPECT_CURSOR_EQ(10, 0);
+}
+
+// Test double END positions at end of last line
+TEST_F(PmEditorCmdEndTest, DoubleEndPositionsAtEndOfLastLine) {
+    SetBuffer("Line0\nLine1\nLastLine");
+    SetTxtp(2);
+    self->last_key = END;
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(20); // At '\0' after "LastLine"
+    EXPECT_CURSOR_EQ(8, 2); // cx = 8 (length of "LastLine"), cy = 2
+}
+
+// Test double END with trailing newline
+TEST_F(PmEditorCmdEndTest, DoubleEndWithTrailingNewline) {
+    SetBuffer("Line0\nLine1\n"); // Trailing newline
+    SetTxtp(2);
+    self->last_key = END;
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(12); // At trailing '\n'
+    EXPECT_EQ(0, self->cx); // cx is 0 on empty line
+}
+
+// Test END END returns error if last line is too long
+TEST_F(PmEditorCmdEndTest, DoubleEndWhenLastLineTooLongReturnsError) {
+    std::string too_long_line = "Line0\nLine1\nLine2\n" + std::string(MAX_LINE_LENGTH, 'X');
+    SetBuffer(too_long_line.c_str());
+    SetTxtp(2);
+    self->last_key = END;
+
+    MmResult result = pmeditor_cmd_end(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_LINE_TOO_LONG, mmresult_to_string(result));
+    EXPECT_TXTP_EQ(2); // Not changed
+    EXPECT_CURSOR_EQ(2, 0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_home()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdHomeTest : public PmEditorTestBase { };
+
+// Test moving to start of line from middle of line
+TEST_F(PmEditorCmdHomeTest, MoveToStartFromMiddleOfLine) {
+    SetBuffer("Hello World");
+    SetTxtp(6); // At 'W'
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At 'H'
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving to start of line from end of line (at newline)
+TEST_F(PmEditorCmdHomeTest, MoveToStartFromEndOfLine) {
+    SetBuffer("Hello\nWorld");
+    SetTxtp(5); // At '\n'
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At 'H'
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving to start of line from near end
+TEST_F(PmEditorCmdHomeTest, MoveToStartFromNearEnd) {
+    SetBuffer("ABCDEF");
+    SetTxtp(5); // At 'F'
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At 'A'
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test no move when already at start of buffer
+TEST_F(PmEditorCmdHomeTest, NoMoveAtStartOfBuffer) {
+    SetBuffer("Hello World");
+    SetTxtp(0); // At 'H'
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test no move when at start of empty buffer
+TEST_F(PmEditorCmdHomeTest, NoMoveInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0); // At '\0'
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving to start of second line
+TEST_F(PmEditorCmdHomeTest, MoveToStartOfSecondLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(9); // At 'n' in "Line1"
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // At 'L' in "Line1"
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test moving to start of third line
+TEST_F(PmEditorCmdHomeTest, MoveToStartOfThirdLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(15); // At 'n' in "Line2"
+    self->last_key = 'x'; // Not HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(12); // At 'L' in "Line2"
+    EXPECT_CURSOR_EQ(0, 2);
+}
+
+// Test double HOME press jumps to start of file
+TEST_F(PmEditorCmdHomeTest, DoubleHomeJumpsToStartOfFile) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(9); // At 'n' in "Line1"
+    self->last_key = HOME; // Previous key was HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At start of buffer
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_EQ(0, self->py); // Viewport has not changed
+    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw required
+}
+
+// Test double HOME press from first line
+TEST_F(PmEditorCmdHomeTest, DoubleHomeFromFirstLine) {
+    SetBuffer("Hello World");
+    SetTxtp(6); // At 'W'
+    self->last_key = HOME; // Previous key was HOME
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At start of buffer
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_EQ(0, self->py);
+}
+
+// Test double HOME press when far down in buffer
+TEST_F(PmEditorCmdHomeTest, DoubleHomeFromFarDownInBuffer) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line" + std::to_string(i) + "\n";
+    }
+    SetBuffer(content.c_str());
+
+    // Position far down in buffer
+    self->py = 10;
+    self->cy = 5;
+    SetTxtp(100); // Some position far from start
+    self->last_key = HOME;
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At start of buffer
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_EQ(0, self->py); // Reset to first page
+}
+
+// Test HOME does not modify buffer
+TEST_F(PmEditorCmdHomeTest, DoesNotModifyBuffer) {
+    const std::string original = "Hello World";
+    SetBuffer(original.c_str());
+    SetTxtp(6);
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(original.c_str(), self->buf);
+}
+
+// Test moving to start of line preserves cy
+TEST_F(PmEditorCmdHomeTest, PreservesCyWhenMovingToStartOfLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(8); // At 'n' in "Line1"
+    self->cy = 7; // Some arbitrary cy
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(0, 7); // cy preserved, cx changed to 0
+}
+
+// Test single HOME from start of line (not buffer start) does nothing
+TEST_F(PmEditorCmdHomeTest, NoMoveWhenAlreadyAtStartOfLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6); // At 'L' in "Line1" (start of line but not buffer)
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // Unchanged
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test HOME from position 1 (second character of buffer)
+TEST_F(PmEditorCmdHomeTest, MoveFromPositionOne) {
+    SetBuffer("ABCDEF");
+    SetTxtp(1); // At 'B'
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At 'A'
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test HOME from immediately after newline
+TEST_F(PmEditorCmdHomeTest, MoveFromImmediatelyAfterNewline) {
+    SetBuffer("ABC\nDEF");
+    SetTxtp(4); // At 'D' (first char after newline)
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // Already at start of line
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test HOME sequence: middle -> start of line -> start of file
+TEST_F(PmEditorCmdHomeTest, SequenceMiddleToStartToFile) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(9); // At 'n' in "Line1"
+    self->last_key = 'x';
+
+    // First HOME: move to start of line
+    {
+        MmResult result = pmeditor_cmd_home(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(6); // At 'L' in "Line1"
+        EXPECT_CURSOR_EQ(0, 1);
+        self->last_key = HOME; // Simulate key tracking
+    }
+
+    // Second HOME: jump to start of file
+    {
+        MmResult result = pmeditor_cmd_home(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(0); // At start of buffer
+        EXPECT_CURSOR_EQ(0, 0);
+        EXPECT_EQ(0, self->py);
+    }
+}
+
+// Test double HOME when already at start does nothing
+TEST_F(PmEditorCmdHomeTest, DoubleHomeAtStartDoesNothing) {
+    SetBuffer("Hello World");
+    SetTxtp(0); // Already at start
+    self->last_key = HOME;
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Still at start
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw (early return)
+}
+
+// Test HOME from empty line (between two newlines)
+TEST_F(PmEditorCmdHomeTest, MoveFromEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(4); // At second '\n' (empty line)
+    self->last_key = 'x';
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // Already at start of empty line
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test HOME from very long line
+TEST_F(PmEditorCmdHomeTest, MoveFromLongLine) {
+    std::string longline(100, 'X');
+    SetBuffer(longline.c_str());
+    SetTxtp(75); // Far from start
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test that double HOME resets both py and cy
+TEST_F(PmEditorCmdHomeTest, DoubleHomeResetsPyAndCy) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 1; // Not at first page
+    self->cy = 2; // Not at top of screen
+    SetTxtp(15);
+    self->last_key = HOME;
+
+    MmResult result = pmeditor_cmd_home(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // Reset
+    EXPECT_EQ(0, self->cy); // Reset
+    EXPECT_EQ(0, self->cx); // Reset
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_left()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdLeftTest : public PmEditorTestBase { };
+
+// Test moving left from end of single-line buffer
+TEST_F(PmEditorCmdLeftTest, MoveLeftFromEnd) {
+    SetBuffer("Hello World");
+    SetCursorAtEnd(); // At '\0'
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(10); // At 'd'
+    EXPECT_CURSOR_EQ(10, 0);
+}
+
+// Test moving left in middle of line
+TEST_F(PmEditorCmdLeftTest, MoveLeftInMiddleOfLine) {
+    SetBuffer("Hello World");
+    SetTxtp(6); // At 'W'
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(5); // At ' '
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+// Test moving left at start of buffer does nothing
+TEST_F(PmEditorCmdLeftTest, NoMoveAtStartOfBuffer) {
+    SetBuffer("Hello");
+    SetTxtp(0); // At 'H'
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving left in empty buffer does nothing
+TEST_F(PmEditorCmdLeftTest, NoMoveInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0); // At '\0'
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving left from start of second line wraps to end of first line
+TEST_F(PmEditorCmdLeftTest, WrapsFromStartOfSecondLineToEndOfFirst) {
+    SetBuffer("Line0\nLine1");
+    SetTxtp(6); // At 'L' in "Line1"
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(UP, END, '\0');
+    EXPECT_TXTP_EQ(6); // Still at newline (commands not executed yet)
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test moving left from start of third line wraps
+TEST_F(PmEditorCmdLeftTest, WrapsFromStartOfThirdLineToEndOfSecond) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(12); // At 'L' in "Line2"
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(UP, END, '\0');
+    EXPECT_TXTP_EQ(12); // Still at newline (commands not executed yet)
+    EXPECT_CURSOR_EQ(0, 2);
+}
+
+// Test moving left from character after newline wraps
+TEST_F(PmEditorCmdLeftTest, WrapsFromJustAfterNewline) {
+    SetBuffer("A\nB");
+    SetTxtp(2); // At 'B'
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(UP, END, '\0');
+    EXPECT_TXTP_EQ(2); // Still at newline (commands not executed yet)
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test moving left at newline itself (not crossing line boundary)
+TEST_F(PmEditorCmdLeftTest, MoveLeftAtNewlineCharacter) {
+    SetBuffer("Hello\nWorld");
+    SetTxtp(5); // At '\n'
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // At 'o'
+    EXPECT_CURSOR_EQ(4, 0);
+    // No wrap - we moved within the line
+    EXPECT_KEYS_EQ('\0'); // No queued commands
+}
+
+// Test moving left multiple times in sequence
+TEST_F(PmEditorCmdLeftTest, MoveLeftMultipleTimes) {
+    SetBuffer("ABCDE");
+    SetTxtp(4); // At 'E'
+
+    // Move to 'D'
+    {
+        MmResult result = pmeditor_cmd_left(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(3);
+        EXPECT_CURSOR_EQ(3, 0);
+    }
+
+    // Move to 'C'
+    {
+        MmResult result = pmeditor_cmd_left(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(2);
+        EXPECT_CURSOR_EQ(2, 0);
+    }
+
+    // Move to 'B'
+    {
+        MmResult result = pmeditor_cmd_left(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(1);
+        EXPECT_CURSOR_EQ(1, 0);
+    }
+}
+
+// Test moving left all the way to start
+TEST_F(PmEditorCmdLeftTest, MoveLeftToStart) {
+    SetBuffer("ABC");
+    SetTxtp(2); // At 'C'
+
+    // Move to 'B'
+    {
+        MmResult result = pmeditor_cmd_left(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(1);
+        EXPECT_CURSOR_EQ(1, 0);
+    }
+
+    // Move to 'A'
+    {
+        MmResult result = pmeditor_cmd_left(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(0);
+        EXPECT_CURSOR_EQ(0, 0);
+    }
+
+    // Try to move beyond start
+    {
+        MmResult result = pmeditor_cmd_left(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(0); // Should not move
+        EXPECT_CURSOR_EQ(0, 0);
+    }
+}
+
+// Test moving left does not modify buffer
+TEST_F(PmEditorCmdLeftTest, DoesNotModifyBuffer) {
+    const std::string original = "Hello World";
+    SetBuffer(original.c_str());
+    SetTxtp(7);
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(original.c_str(), self->buf); // Buffer unchanged
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(6, 0);
+}
+
+// Test moving left with multiline buffer (middle of second line)
+TEST_F(PmEditorCmdLeftTest, MoveLeftInSecondLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(9); // At 'n' in "Line1"
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(8); // At 'i' in "Line1"
+    EXPECT_CURSOR_EQ(2, 1);
+}
+
+// Test moving left from single character line to previous line
+TEST_F(PmEditorCmdLeftTest, WrapsFromSingleCharLine) {
+    SetBuffer("ABC\nX");
+    SetTxtp(4); // At 'X'
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(UP, END, '\0');
+    EXPECT_TXTP_EQ(4); // Commands not processed yet
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test moving left from empty line (just newlines)
+TEST_F(PmEditorCmdLeftTest, WrapsFromEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(5); // At second newline (empty line)
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(UP, END, '\0');
+    EXPECT_TXTP_EQ(5); // Commands not processed yet
+    EXPECT_CURSOR_EQ(0, 2);
+}
+
+// Test moving left preserves cy when not wrapping
+TEST_F(PmEditorCmdLeftTest, PreservesCyWhenNotWrapping) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(9); // At 'n' in "Line1"
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(8);
+    EXPECT_CURSOR_EQ(2, 1); // cy preserved
+}
+
+// Test moving left at buffer position 1 (second character)
+TEST_F(PmEditorCmdLeftTest, MoveLeftFromPositionOne) {
+    SetBuffer("ABCDEF");
+    SetTxtp(1); // At 'B'
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At 'A'
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test that wrapping behavior queues correct commands for execution
+TEST_F(PmEditorCmdLeftTest, WrappingQueuesCorrectCommands) {
+    SetBuffer("First\nSecond\nThird");
+    SetTxtp(6); // At 'S' in "Second"
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(UP, END, '\0');
+    EXPECT_TXTP_EQ(6); // Commands not processed yet
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test moving left from very long line
+TEST_F(PmEditorCmdLeftTest, MoveLeftInLongLine) {
+    std::string longline(100, 'X');
+    SetBuffer(longline.c_str());
+    SetTxtp(50); // Middle of line
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(49);
+    EXPECT_CURSOR_EQ(49, 0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_newline()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdNewlineTest : public PmEditorTestBase { };
+
+// Test newline insertion at end of line
+TEST_F(PmEditorCmdNewlineTest, NewlineAtEndOfLine) {
+    SetBuffer("Hello");
+    SetCursorAtEnd();
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello\n", self->buf);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(0, 1);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Test newline insertion in middle of line
+TEST_F(PmEditorCmdNewlineTest, NewlineInMiddleOfLine) {
+    SetBuffer("Hello");
+    SetTxtp(2); // Ar first 'l'
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("He\nllo", self->buf);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_TXTP_EQ(3);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test newline at start of buffer
+TEST_F(PmEditorCmdNewlineTest, NewlineAtStartOfBuffer) {
+    SetBuffer("Hello");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("\nHello", self->buf);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_TXTP_EQ(1);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test newline in empty buffer
+TEST_F(PmEditorCmdNewlineTest, NewlineInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("\n", self->buf);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_TXTP_EQ(1);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test auto-indent with leading spaces
+TEST_F(PmEditorCmdNewlineTest, AutoIndentWithLeadingSpaces) {
+    SetBuffer("    Hello");
+    SetCursorAtEnd();
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("    Hello\n", self->buf);
+    EXPECT_KEYS_EQ(' ', ' ', ' ', ' ', '\0');
+    EXPECT_TXTP_EQ(10);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test auto-indent only at end of line
+TEST_F(PmEditorCmdNewlineTest, AutoIndentOnlyAtEndOfLine) {
+    SetBuffer("    Hello");
+    SetTxtp(4); // After spaces, before 'H'
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("    \nHello", self->buf);
+    EXPECT_KEYS_EQ('\0'); // No spaces should be in key buffer since not at end of line
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test auto-indent from line with only spaces
+TEST_F(PmEditorCmdNewlineTest, AutoIndentFromLineWithOnlySpaces) {
+    SetBuffer("    ");
+    SetCursorAtEnd();
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("    \n", self->buf);
+    EXPECT_KEYS_EQ(' ', ' ', ' ', ' ', '\0');
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test auto-indent at start of buffer with leading space
+TEST_F(PmEditorCmdNewlineTest, AutoIndentAtStartOfBufferWithLeadingSpace) {
+    SetBuffer(" Hello");
+    SetCursorAtEnd();
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(" Hello\n", self->buf);
+    EXPECT_KEYS_EQ(' ', '\0');
+    EXPECT_TXTP_EQ(7);
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test cursor moves down when not at bottom
+TEST_F(PmEditorCmdNewlineTest, CursorMovesDownWhenNotAtBottom) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4");
+    SetTxtp(5); // End of first line (after "Line0")
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_CURSOR_EQ(0, 1); // Cursor moved down
+    EXPECT_EQ(0, self->py); // No viewport scroll
+    EXPECT_EQ(6, self->num_lines);
+}
+
+// Test viewport scrolls when at bottom
+TEST_F(PmEditorCmdNewlineTest, ViewportScrollsWhenAtBottom) {
+    // Create enough lines to require scrolling
+    SetBuffer("L0\nL1\nL2\nL3\nL4\nL5\nL6\nL7\nL8\nL9\nL10\n"
+              "L11\nL12\nL13\nL14\nL15\nL16\nL17\nL18\nL19\nL20\n"
+              "L21\nL22");
+
+    // Position at end of line 22 (last visible line, cy = 22)
+    char *last_line = pmeditor_find_line_n(self, 22);
+    SetTxtp(last_line - self->buf + strlen("L22"));
+    ASSERT_EQ(22, self->cy);
+    ASSERT_EQ(0, self->py);
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_CURSOR_EQ(0, 22); // cy stays at bottom
+    EXPECT_EQ(1, self->py); // Viewport scrolled
+    EXPECT_EQ(24, self->num_lines);
+}
+
+// Test text_changed flag set
+TEST_F(PmEditorCmdNewlineTest, TextChangedFlagSet) {
+    SetBuffer("Hello");
+    SetCursorAtEnd();
+    self->text_changed = false;
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TRUE(self->text_changed);
+}
+
+// Test newline triggers screen redraw
+TEST_F(PmEditorCmdNewlineTest, NewlineTrigersScreenRedraw) {
+    SetBuffer("Hello");
+    SetCursorAtEnd();
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+extern bool display_bell_sounded;
+
+// Test mark mode sounds bell
+TEST_F(PmEditorCmdNewlineTest, MarkModeSoundsBell) {
+    SetBuffer("Hello");
+    SetCursorAtEnd();
+    self->mode = kMarkMode;
+    display_bell_sounded = false;
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(true, display_bell_sounded);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(1, self->num_lines);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+// Test newline at position just after newline character
+TEST_F(PmEditorCmdNewlineTest, NewlineJustAfterNewlineCharacter) {
+    SetBuffer("Line0\nLine1");
+    SetTxtp(6); // Just after first \n
+    self->key_buf[1] = '\0';
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line0\n\nLine1", self->buf);
+    EXPECT_EQ(3, self->num_lines);
+    EXPECT_TXTP_EQ(7);
+}
+
+// Test buffer full condition (if applicable)
+TEST_F(PmEditorCmdNewlineTest, NewlineNearBufferEnd) {
+    // Fill buffer almost to capacity
+    memset(self->buf, 'X', self->buf_sz - 10);
+    self->buf[self->buf_sz - 10] = '\0';
+    self->num_lines = 1;
+    self->width = self->buf_sz; // So we don't hit LINE TOO LONG error
+    SetCursorAtEnd();
+    self->key_buf[1] = '\0';
+
+    MmResult result = pmeditor_cmd_newline(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("X\n", self->txtp - 2);
+    EXPECT_STREQ("", self->message);
+}
+
+// Test wrap behavior doesn't occur mid-line even after newline elsewhere
+TEST_F(PmEditorCmdLeftTest, NoWrapInMiddleOfLine) {
+    SetBuffer("A\nBCDEF");
+    SetTxtp(5); // At 'D'
+
+    MmResult result = pmeditor_cmd_left(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // At 'C'
+    EXPECT_KEYS_EQ('\0'); // No wrap commands
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_page_down()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdPageDownTest : public PmEditorTestBase { };
+
+// Test page down moves forward one full screen
+TEST_F(PmEditorCmdPageDownTest, MoveForwardOneFullScreen) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "Line" + std::to_string(i) + "\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = 5;
+    self->cx = 2;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->height, self->py); // Moved forward by height
+    EXPECT_CURSOR_EQ(2, 5); // Column preserved
+}
+
+// Test page down when already showing bottom of file queues END END
+TEST_F(PmEditorCmdPageDownTest, QueuesEndEndWhenAtBottom) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    self->py = 0;
+    self->cy = 1;
+    SetTxtp(6); // At start of "Line1"
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(END, END, '\0');
+}
+
+// Test page down near bottom positions to show last page
+TEST_F(PmEditorCmdPageDownTest, NearBottomPositionsToShowLastPage) {
+    // Create buffer with 35 lines
+    std::string content;
+    for (int i = 0; i < 35; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    // num_lines = 36, height = 23
+    // Position at py = 5
+    // Check: 36 <= 5 + 23 + 1 → 36 <= 29 → false (will scroll)
+    self->py = 5;
+    self->cy = 3;
+    self->cx = 2;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // Should move to py = 36 - 23 = 13 (final position showing last page)
+    EXPECT_EQ(13, self->py);
+    EXPECT_CURSOR_EQ(2, 3);
+}
+
+// Test page down maintains column position
+TEST_F(PmEditorCmdPageDownTest, MaintainsColumnPosition) {
+    // Create buffer
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "ABCDEFGHIJ\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 5;
+    self->cy = 3;
+    self->cx = 7;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(7, self->cx); // Column preserved
+}
+
+// Test page down to shorter line stops at end of line
+TEST_F(PmEditorCmdPageDownTest, StopsAtEndOfShorterLine) {
+    // Create buffer with varying line lengths
+    std::string content;
+    for (int i = 0; i < 60; i++) {
+        if (i < 30) {
+            content += "ABCDEFGHIJ\n"; // Long lines
+        } else {
+            content += "XX\n"; // Short lines
+        }
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 5;
+    self->cy = 3;
+    self->cx = 8; // Column 8 (beyond short line length)
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, self->cx); // Stopped at end of "XX"
+}
+
+// Test page down does not modify buffer
+TEST_F(PmEditorCmdPageDownTest, DoesNotModifyBuffer) {
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    const std::string original = content;
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = 5;
+    SetTxtp(25);
+    self->cx = 2;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(original.c_str(), self->buf);
+}
+
+// Test page down from first page to second page
+TEST_F(PmEditorCmdPageDownTest, FromFirstPageToSecondPage) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    // On first page
+    self->py = 0;
+    self->cy = 10;
+    self->cx = 1;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->height, self->py); // Moved to second page
+    EXPECT_EQ(1, self->cx);
+}
+
+// Test page down updates txtp correctly
+TEST_F(PmEditorCmdPageDownTest, UpdatesTxtpCorrectly) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "ABCD\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 5;
+    self->cy = 3;
+    self->cx = 2;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // After page down, should be at line (8 + height) = 31, column 2
+    char *expected = self->buf;
+    for (int i = 0; i < 8 + self->height; i++) {
+        while (*expected != '\n') expected++;
+        expected++;
+    }
+    expected += 2;
+    EXPECT_EQ(expected, self->txtp);
+}
+
+// Test page down at bottom with last line visible queues END END
+// Test page down at bottom with last line visible queues END END
+TEST_F(PmEditorCmdPageDownTest, AtBottomQueuesEndEnd) {
+    // Create buffer that fits on screen with no room to scroll
+    std::string content;
+    for (int i = 0; i < self->height; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    // num_lines = height + 1 (e.g., 24 with height=23)
+    // py + height + 1 = 0 + 23 + 1 = 24
+    // Condition: num_lines <= py + height + 1 → 24 <= 24 → true
+
+    self->py = 0;
+    self->cy = 5;
+    SetTxtp(25);
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(END, END, '\0');
+}
+
+// Test page down preserves cy
+TEST_F(PmEditorCmdPageDownTest, PreservesCy) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = 10;
+    self->cx = 2;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(10, self->cy); // cy unchanged
+}
+
+// Test page down with empty lines
+TEST_F(PmEditorCmdPageDownTest, WithEmptyLines) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        if (i % 5 == 0) {
+            content += "\n"; // Empty line
+        } else {
+            content += "Line\n";
+        }
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = 5;
+    self->cx = 2;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->height, self->py);
+    EXPECT_CURSOR_EQ(2, 5);
+}
+
+// Test page down handles end of buffer without trailing newline
+TEST_F(PmEditorCmdPageDownTest, HandlesEndWithoutTrailingNewline) {
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    content += "LastLine"; // No trailing newline
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cy = 5;
+    self->cx = 2;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(8, self->py);
+}
+
+// Test page down when remaining lines less than full screen
+TEST_F(PmEditorCmdPageDownTest, WhenRemainingLinesLessThanScreen) {
+    std::string content;
+    for (int i = 0; i < 35; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 10;
+    self->cy = 5;
+    self->cx = 0;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    // num_lines = 36, height = 23
+    // num_lines - height = 13, so py should be 13
+    EXPECT_EQ(36 - self->height, self->py);
+}
+
+// Test page down in single page buffer queues END END
+TEST_F(PmEditorCmdPageDownTest, SinglePageBufferQueuesEndEnd) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 0;
+    self->cy = 1;
+    SetTxtp(6);
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(END, END, '\0');
+}
+
+// Test page down moves txtp to start of line then to column
+TEST_F(PmEditorCmdPageDownTest, MovesTxtpToStartThenColumn) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "ABCDEFGH\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 0;
+    self->cx = 5;
+    self->cy = 2;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_down(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(self->height, self->py);
+    EXPECT_CURSOR_EQ(5, 2);
+    EXPECT_TXTP_CONSISTENT();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_page_up()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdPageUpTest : public PmEditorTestBase { };
+
+// Test page up moves back one full screen
+TEST_F(PmEditorCmdPageUpTest, MoveBackOneFullScreen) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "Line" + std::to_string(i) + "\n";
+    }
+    SetBuffer(content.c_str());
+
+    // Position at line 20, column 2
+    self->py = 10;
+    self->cx = 2;
+    self->cy = 10;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // Moved back by height (10 - 20 = 0, clamped)
+    EXPECT_CURSOR_EQ(2, 10); // cx and cy preserved
+    EXPECT_TXTP_CONSISTENT();
+}
+
+// Test page up when already showing top of file queues HOME HOME
+TEST_F(PmEditorCmdPageUpTest, QueuesHomeHomeWhenAtTop) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    SetTxtp(12); // At start of "Line2"
+    self->py = 0;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, HOME, '\0');
+}
+
+// Test page up moves less than full screen when near top
+TEST_F(PmEditorCmdPageUpTest, MovesLessThanFullScreenNearTop) {
+    // Create buffer with lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 5;
+    self->cx = 2;
+    self->cy = 3;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // Moved to top (can't go negative)
+    EXPECT_CURSOR_EQ(2, 3); // Column and row preserved
+    EXPECT_TXTP_CONSISTENT();
+}
+
+// Test page up to shorter line stops at end of line
+TEST_F(PmEditorCmdPageUpTest, StopsAtEndOfShorterLine) {
+    // Create buffer with varying line lengths
+    std::string content;
+    for (int i = 0; i < 40; i++) {
+        if (i < 10) {
+            content += "XX\n"; // Short lines
+        } else {
+            content += "ABCDEFGHIJ\n"; // Long lines
+        }
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 15;
+    self->cx = 8; // Column 8 (beyond short line length)
+    self->cy = 5;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_CURSOR_EQ(2, 5); // Stopped at end of "XX"
+    EXPECT_TXTP_CONSISTENT();
+}
+
+// Test page up from second page to first page
+TEST_F(PmEditorCmdPageUpTest, FromSecondPageToFirstPage) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    // On second page
+    self->py = self->height;
+    self->cx = 1;
+    self->cy = 10;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // Back to first page
+    EXPECT_CURSOR_EQ(1, 10);
+    EXPECT_TXTP_CONSISTENT();
+}
+
+// Test page up when py >= height - 1 moves full screen
+TEST_F(PmEditorCmdPageUpTest, MovesFullScreenWhenPyLargeEnough) {
+    std::string content;
+    for (int i = 0; i < 70; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 40;
+    self->cx = 0;
+    self->cy = 5;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(40 - self->height, self->py); // Moved back by height
+    EXPECT_CURSOR_EQ(0, 5);
+    EXPECT_TXTP_CONSISTENT();
+}
+
+// Test page up at top of file with cy > 0 queues HOME HOME
+TEST_F(PmEditorCmdPageUpTest, AtTopWithCyGreaterThanZeroQueuesHomeHome) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 0;
+    self->cy = 1;
+    SetTxtp(6); // At start of "Line1"
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, HOME, '\0');
+}
+
+// Test page up at very top (py=0, cy=0) queues HOME HOME
+TEST_F(PmEditorCmdPageUpTest, AtVeryTopQueuesHomeHome) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 0;
+    self->cy = 0;
+    SetTxtp(0);
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, HOME, '\0');
+}
+
+// Test page up moves to start of buffer when near top
+TEST_F(PmEditorCmdPageUpTest, MovesToStartWhenVeryNearTop) {
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 2; // Very near top
+    self->cx = 1;
+    self->cy = 3;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // Clamped to zero
+    EXPECT_CURSOR_EQ(1, 3);
+    EXPECT_TXTP_CONSISTENT();
+}
+
+// Test page up in single page buffer queues HOME HOME
+TEST_F(PmEditorCmdPageUpTest, SinglePageBufferQueuesHomeHome) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 0;
+    self->cy = 2;
+    SetTxtp(12);
+    self->cx = 0;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, HOME, '\0');
+}
+
+// Test page up with empty lines
+TEST_F(PmEditorCmdPageUpTest, WithEmptyLines) {
+    std::string content;
+    for (int i = 0; i < 50; i++) {
+        if (i % 5 == 0) {
+            content += "\n"; // Empty line
+        } else {
+            content += "Line\n";
+        }
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 30;
+    self->cx = 2;
+    self->cy = 6;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_page_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(7, self->py);
+    EXPECT_CURSOR_EQ(2, 6);
+    EXPECT_TXTP_CONSISTENT();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_paste()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdPasteTest : public PmEditorTestBase { };
+
+// Test basic paste with clipboard content
+TEST_F(PmEditorCmdPasteTest, BasicPasteWithClipboardContent) {
+    strcpy(self->clipboard_buf, " World");
+
+    MmResult result = pmeditor_cmd_paste(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(' ', 'W', 'o', 'r', 'l', 'd', '\0');
+}
+
+// Test paste with empty clipboard returns error
+TEST_F(PmEditorCmdPasteTest, EmptyClipboardReturnsError) {
+    SetBuffer("Hello");
+    SetTxtp(5);
+
+    MmResult result = pmeditor_cmd_paste(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_CLIPBOARD_EMPTY, mmresult_to_string(result));
+    EXPECT_KEYS_EQ('\0'); // Key buffer unchanged
+}
+
+// Test paste with multiline clipboard content
+TEST_F(PmEditorCmdPasteTest, PasteMultilineContent) {
+    strcpy(self->clipboard_buf, "\nLine2\nLine3");
+
+    MmResult result = pmeditor_cmd_paste(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ('\n', 'L', 'i', 'n', 'e', '2', '\n', 'L', 'i', 'n', 'e', '3', '\0');
+}
+
+// Test paste in mark mode returns error
+TEST_F(PmEditorCmdPasteTest, MarkModeReturnsError) {
+    strcpy(self->clipboard_buf, "World");
+    self->mode = kMarkMode;
+
+    MmResult result = pmeditor_cmd_paste(self);
+
+    EXPECT_EQ(kInternalFault, result);
+    EXPECT_KEYS_EQ('\0'); // Key buffer should remain empty
+}
+
+// Test paste doesn't modify mode
+TEST_F(PmEditorCmdPasteTest, PasteDoesNotModifyMode) {
+    strcpy(self->clipboard_buf, "World");
+    self->mode = kEditMode;
+
+    MmResult result = pmeditor_cmd_paste(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(kEditMode, self->mode);
+}
+
+// Test paste with maximum length clipboard content
+TEST_F(PmEditorCmdPasteTest, PasteWithMaximumLengthContent) {
+    // Fill clipboard to near capacity (MAXCLIP is the limit)
+    memset(self->clipboard_buf, 'X', MAXCLIP - 1);
+    self->clipboard_buf[MAXCLIP - 1] = '\0';
+    self->key_buf[1] = '\0';
+
+    MmResult result = pmeditor_cmd_paste(self);
+
+    EXPECT_EQ(kOk, result);
+    // First character should be 'X'
+    EXPECT_EQ('X', self->key_buf[1]);
+    // Last should be null terminator
+    EXPECT_EQ('\0', self->key_buf[MAXCLIP]);
+}
+
+// Test paste doesn't modify txtp
+TEST_F(PmEditorCmdPasteTest, PasteDoesNotModifyTxtp) {
+    SetBuffer("Hello");
+    SetTxtp(3);
+    strcpy(self->clipboard_buf, "World");
+
+    MmResult result = pmeditor_cmd_paste(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(3);
+}
+
+// Test paste doesn't modify cursor position
+TEST_F(PmEditorCmdPasteTest, PasteDoesNotModifyCursorPosition) {
+    SetBuffer("Hello");
+    SetTxtp(3);
+    strcpy(self->clipboard_buf, "World");
+
+    MmResult result = pmeditor_cmd_paste(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_CURSOR_EQ(3, 0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_right()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdRightTest : public PmEditorTestBase { };
+
+// Test moving right at start of buffer
+TEST_F(PmEditorCmdRightTest, MoveRightFromStart) {
+    SetBuffer("Hello World");
+    SetTxtp(0); // At 'H'
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(1); // At 'e'
+    EXPECT_CURSOR_EQ(1, 0);
+}
+
+// Test moving right in middle of line
+TEST_F(PmEditorCmdRightTest, MoveRightInMiddleOfLine) {
+    SetBuffer("Hello World");
+    SetTxtp(5); // At ' '
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // At 'W'
+    EXPECT_CURSOR_EQ(6, 0);
+}
+
+// Test moving right at end of buffer does nothing
+TEST_F(PmEditorCmdRightTest, NoMoveAtEndOfBuffer) {
+    SetBuffer("Hello");
+    SetCursorAtEnd(); // At '\0'
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(5); // Unchanged
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+// Test moving right in empty buffer does nothing
+TEST_F(PmEditorCmdRightTest, NoMoveInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0); // At '\0'
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving right from end of first line wraps to start of second line
+TEST_F(PmEditorCmdRightTest, WrapsFromEndOfFirstLineToStartOfSecond) {
+    SetBuffer("Line0\nLine1");
+    SetTxtp(5); // At '\n' after "Line0"
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
+    EXPECT_TXTP_EQ(5); // Still at newline (commands not executed yet)
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+// Test moving right from end of second line wraps
+TEST_F(PmEditorCmdRightTest, WrapsFromEndOfSecondLineToStartOfThird) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(11); // At '\n' after "Line1"
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
+    EXPECT_TXTP_EQ(11); // At newline after "Line1"
+    EXPECT_CURSOR_EQ(5, 1);
+}
+
+// Test moving right just before newline (not crossing)
+TEST_F(PmEditorCmdRightTest, MoveRightJustBeforeNewline) {
+    SetBuffer("Hello\nWorld");
+    SetTxtp(4); // At 'o' (last char before '\n')
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(5); // At '\n'
+    EXPECT_CURSOR_EQ(5, 0);
+    // No wrap - we moved to the newline, not past it
+    EXPECT_KEYS_EQ('\0');
+}
+
+// Test moving right past newline wraps to next line
+TEST_F(PmEditorCmdRightTest, WrapsFromNewlineToNextLine) {
+    SetBuffer("A\nB");
+    SetTxtp(1); // At '\n'
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
+    EXPECT_TXTP_EQ(1); // Commands not processed yet
+    EXPECT_CURSOR_EQ(1, 0);
+}
+
+// Test moving right multiple times in sequence
+TEST_F(PmEditorCmdRightTest, MoveRightMultipleTimes) {
+    SetBuffer("ABCDE");
+    SetTxtp(0); // At 'A'
+
+    // Move to 'B'
+    {
+        MmResult result = pmeditor_cmd_right(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(1);
+        EXPECT_CURSOR_EQ(1, 0);
+    }
+
+    // Move to 'C'
+    {
+        MmResult result = pmeditor_cmd_right(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(2);
+        EXPECT_CURSOR_EQ(2, 0);
+    }
+
+    // Move to 'D'
+    {
+        MmResult result = pmeditor_cmd_right(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(3);
+        EXPECT_CURSOR_EQ(3, 0);
+    }
+}
+
+// Test moving right all the way to end
+TEST_F(PmEditorCmdRightTest, MoveRightToEnd) {
+    SetBuffer("ABC");
+    SetTxtp(0); // At 'A'
+
+    // Move to 'B'
+    {
+        MmResult result = pmeditor_cmd_right(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(1);
+        EXPECT_CURSOR_EQ(1, 0);
+    }
+
+    // Move to 'C'
+    {
+        MmResult result = pmeditor_cmd_right(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(2);
+        EXPECT_CURSOR_EQ(2, 0);
+    }
+
+    // Move to '\0'
+    {
+        MmResult result = pmeditor_cmd_right(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(3);
+        EXPECT_CURSOR_EQ(3, 0);
+    }
+
+    // Try to move beyond end
+    {
+        MmResult result = pmeditor_cmd_right(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(3); // Should not move
+        EXPECT_CURSOR_EQ(3, 0);
+    }
+}
+
+// Test moving right does not modify buffer
+TEST_F(PmEditorCmdRightTest, DoesNotModifyBuffer) {
+    const std::string original = "Hello World";
+    SetBuffer(original.c_str());
+    SetTxtp(3);
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(original.c_str(), self->buf); // Buffer unchanged
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
+}
+
+// Test moving right with multiline buffer (middle of second line)
+TEST_F(PmEditorCmdRightTest, MoveRightInSecondLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(7); // At 'i' in "Line1"
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(8); // At 'n' in "Line1"
+    EXPECT_CURSOR_EQ(2, 1);
+}
+
+// Test moving right to single character line
+TEST_F(PmEditorCmdRightTest, WrapsToSingleCharLine) {
+    SetBuffer("ABC\nX");
+    SetTxtp(3); // At '\n'
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
+    EXPECT_TXTP_EQ(3); // Commands not processed yet
+    EXPECT_CURSOR_EQ(3, 0);
+}
+
+// Test moving right to empty line (consecutive newlines)
+TEST_F(PmEditorCmdRightTest, WrapsToEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(3); // At first '\n'
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
+    EXPECT_TXTP_EQ(3); // Commands not processed yet
+    EXPECT_CURSOR_EQ(3, 0);
+}
+
+// Test moving right preserves cy when not wrapping
+TEST_F(PmEditorCmdRightTest, PreservesCyWhenNotWrapping) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(7); // At 'i' in "Line1"
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(8);
+    EXPECT_CURSOR_EQ(2, 1); // cy preserved
+}
+
+// Test moving right at width boundary shows error
+TEST_F(PmEditorCmdRightTest, ShowsErrorAtWidthBoundary) {
+    SetBuffer(std::string(85, 'X').c_str()); // Longer than width (80)
+    SetTxtp(80); // At width boundary
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_LINE_TOO_LONG, mmresult_to_string(result));
+    EXPECT_TXTP_EQ(80); // Position unchanged
+    EXPECT_CURSOR_EQ(80, 0);
+}
+
+// Test moving right near width boundary (but not at it)
+TEST_F(PmEditorCmdRightTest, MoveRightNearWidthBoundary) {
+    SetBuffer(std::string(85, 'X').c_str());
+    SetTxtp(79); // One before width boundary
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(80); // Moves successfully
+    EXPECT_CURSOR_EQ(80, 0);
+}
+
+// Test that wrapping behavior queues correct commands for execution
+TEST_F(PmEditorCmdRightTest, WrappingQueuesCorrectCommands) {
+    SetBuffer("First\nSecond\nThird");
+    SetTxtp(5); // At '\n' after "First"
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
+    EXPECT_TXTP_EQ(5); // Commands not processed yet
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+// Test moving right in very long line
+TEST_F(PmEditorCmdRightTest, MoveRightInLongLineUnderWidthLimit) {
+    std::string longline(70, 'X'); // Under width limit
+    SetBuffer(longline.c_str());
+    SetTxtp(30); // Middle of line
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(31);
+    EXPECT_CURSOR_EQ(31, 0);
+}
+
+// Test no wrap occurs mid-line even with newlines elsewhere
+TEST_F(PmEditorCmdRightTest, NoWrapInMiddleOfLine) {
+    SetBuffer("ABCDE\nF");
+    SetTxtp(2); // At 'C'
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(3); // At 'D'
+    EXPECT_KEYS_EQ('\0'); // No wrap commands
+}
+
+// Test moving right from second-to-last character
+TEST_F(PmEditorCmdRightTest, MoveRightFromSecondToLast) {
+    SetBuffer("ABCDEF");
+    SetTxtp(4); // At 'E'
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(5); // At 'F'
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+// Test moving right doesn't wrap at last character before end of buffer
+TEST_F(PmEditorCmdRightTest, NoWrapAtLastCharacter) {
+    SetBuffer("ABC");
+    SetTxtp(2); // At 'C' (last character)
+
+    MmResult result = pmeditor_cmd_right(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(3); // At '\0'
+    EXPECT_KEYS_EQ('\0'); // No wrap commands
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_search_again()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdSearchAgainTest : public PmEditorTestBase { };
+
+// Test basic search finds text
+TEST_F(PmEditorCmdSearchAgainTest, BasicSearchFindsText) {
+    SetBuffer("Hello World");
+    SetTxtp(0);
+    strcpy(tknbuf, "World");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // Position at 'W' in "World"
+    EXPECT_CURSOR_EQ(6, 0);
+}
+
+// Test search finds text in middle of buffer
+TEST_F(PmEditorCmdSearchAgainTest, SearchFindsTextInMiddle) {
+    SetBuffer("The quick brown fox jumps");
+    SetTxtp(0);
+    strcpy(tknbuf, "brown");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(10); // Position at 'b' in "brown"
+    EXPECT_CURSOR_EQ(10, 0);
+}
+
+// Test search finds text at start of buffer
+TEST_F(PmEditorCmdSearchAgainTest, SearchFindsTextAtStart) {
+    SetBuffer("Hello World");
+    SetTxtp(5);
+    strcpy(tknbuf, "Hello");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Position at 'H' in "Hello"
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test search wraps around to beginning
+TEST_F(PmEditorCmdSearchAgainTest, SearchWrapsAroundToBeginning) {
+    SetBuffer("Hello World Hello");
+    SetTxtp(10); // Start after first "Hello"
+    strcpy(tknbuf, "Hello");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(12); // Position at second "Hello"
+    EXPECT_CURSOR_EQ(12, 0);
+}
+
+// Test search wraps around from end of buffer
+TEST_F(PmEditorCmdSearchAgainTest, SearchWrapsFromEndOfBuffer) {
+    SetBuffer("Start Middle End");
+    SetTxtp(16); // At end
+    strcpy(tknbuf, "Start");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Wrapped to beginning
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test search not found shows message
+TEST_F(PmEditorCmdSearchAgainTest, SearchNotFoundReturnsError) {
+    SetBuffer("Hello World");
+    SetTxtp(0);
+    strcpy(tknbuf, "NotFound");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_NOT_FOUND, mmresult_to_string(result));
+    EXPECT_TXTP_EQ(0); // Position unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test search in mark mode returns bell
+TEST_F(PmEditorCmdSearchAgainTest, SearchInMarkModeSoundsBell) {
+    SetBuffer("Hello World");
+    SetTxtp(0);
+    self->mode = kMarkMode;
+    strcpy(tknbuf, "World");
+    display_bell_sounded = false;
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(true, display_bell_sounded);
+    EXPECT_TXTP_EQ(0); // Position unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test search is case-sensitive (based on memcmp usage)
+TEST_F(PmEditorCmdSearchAgainTest, SearchIsCaseSensitive) {
+    SetBuffer("Hello World");
+    SetTxtp(0);
+    strcpy(tknbuf, "world"); // lowercase
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_NOT_FOUND, mmresult_to_string(result));
+    EXPECT_TXTP_EQ(0); // Position unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test search with single character
+TEST_F(PmEditorCmdSearchAgainTest, SearchWithSingleCharacter) {
+    SetBuffer("Hello World");
+    SetTxtp(0);
+    strcpy(tknbuf, "W");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // Position at 'W'
+    EXPECT_CURSOR_EQ(6, 0);
+}
+
+// Test search finds first occurrence after current position
+TEST_F(PmEditorCmdSearchAgainTest, SearchFindsFirstOccurrenceAfterCurrent) {
+    SetBuffer("Hello Hello Hello");
+    SetTxtp(0);
+    strcpy(tknbuf, "Hello");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    // Starts at position 0, increments p++
+    EXPECT_TXTP_EQ(6);
+    EXPECT_CURSOR_EQ(6, 0);
+}
+
+// Test search from middle finds next occurrence
+TEST_F(PmEditorCmdSearchAgainTest, SearchFromMiddleFindsNextOccurrence) {
+    SetBuffer("Hello Hello Hello");
+    SetTxtp(1); // Start after first 'H'
+    strcpy(tknbuf, "Hello");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // Finds second "Hello"
+    EXPECT_CURSOR_EQ(6, 0);
+}
+
+// Test search with multiline text
+TEST_F(PmEditorCmdSearchAgainTest, SearchWithMultilineText) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(0);
+    strcpy(tknbuf, "Line1");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(6); // Position at 'L' in "Line1"
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test search can find newline in search string
+TEST_F(PmEditorCmdSearchAgainTest, SearchCanFindNewline) {
+    SetBuffer("Line0\nLine1");
+    SetTxtp(0);
+    strcpy(tknbuf, "\n");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(5); // Position at newline
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+// Test search adjusts viewport when match is off-screen below
+TEST_F(PmEditorCmdSearchAgainTest, SearchAdjustsViewportWhenMatchBelowScreen) {
+    // Create enough lines to go beyond viewport
+    SetBuffer("L1\nL2\nL3\nL4\nL5\nL6\nL7\nL8\nL9\nL10\n"
+              "L11\nL12\nL13\nL14\nL15\nL16\nL17\nL18\nL19\nL20\n"
+              "L21\nL22\nL23\nL24\nL25\nTarget");
+    SetTxtp(0);
+    self->py = 0;
+    self->height = 23;
+    strcpy(tknbuf, "Target");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    // Viewport should be centered on match (approximately)
+    EXPECT_GT(self->py, 0); // Should have scrolled down
+}
+
+// Test search adjusts viewport when match is off-screen above
+TEST_F(PmEditorCmdSearchAgainTest, SearchAdjustsViewportWhenMatchAboveScreen) {
+    const std::string content = "Target\nL2\nL3\nL4\nL5\nL6\nL7\nL8\nL9\nL10\n"
+              "L11\nL12\nL13\nL14\nL15\nL16\nL17\nL18\nL19\nL20\n"
+              "L21\nL22\nL23\nL24\nL25";
+    SetBuffer(content.c_str());
+    SetTxtp(content.length() - 10); // Near end
+    self->py = 10;
+    self->height = 23;
+    strcpy(tknbuf, "Target");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, self->py); // Should scroll to show first line
+}
+
+// Test search centers viewport on match
+TEST_F(PmEditorCmdSearchAgainTest, SearchCentersViewportOnMatch) {
+    // Create buffer with target in middle
+    std::string content;
+    for (int i = 1; i <= 50; i++) {
+        if (i > 1) content += "\n";
+        if (i == 25) {
+            content += "Target";
+        } else {
+            content += "Line" + std::to_string(i);
+        }
+    }
+    SetBuffer(content.c_str());
+    SetTxtp(0);
+    self->py = 0;
+    self->height = 23;
+    strcpy(tknbuf, "Target");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    // py should be set to center the match
+    // Line 24 (0-based) centered in height 23 = py around 13
+    EXPECT_GT(self->py, 10);
+    EXPECT_LT(self->py, 20);
+}
+
+// Test search with partial match at end of buffer
+TEST_F(PmEditorCmdSearchAgainTest, SearchWithPartialMatchAtEnd) {
+    SetBuffer("Hello Wor");
+    SetTxtp(0);
+    strcpy(tknbuf, "World");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_NOT_FOUND, mmresult_to_string(result));
+    EXPECT_TXTP_EQ(0); // Position unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test search finds match at very end of buffer
+TEST_F(PmEditorCmdSearchAgainTest, SearchFindsMatchAtEndOfBuffer) {
+    SetBuffer("Hello World");
+    SetTxtp(0);
+    strcpy(tknbuf, "ld");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(9); // Position at "ld"
+    EXPECT_CURSOR_EQ(9, 0);
+}
+
+// Test search with spaces
+TEST_F(PmEditorCmdSearchAgainTest, SearchWithSpaces) {
+    SetBuffer("Hello World Test");
+    SetTxtp(0);
+    strcpy(tknbuf, " World ");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(5); // Position at space before "World"
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+// Test search matches substrings
+TEST_F(PmEditorCmdSearchAgainTest, SearchMatchesSubstrings) {
+    SetBuffer("HelloWorld");
+    SetTxtp(0);
+    strcpy(tknbuf, "World");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(5); // Finds "World" within "HelloWorld"
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+// Test search in empty buffer
+TEST_F(PmEditorCmdSearchAgainTest, SearchInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0);
+    strcpy(tknbuf, "test");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_NOT_FOUND, mmresult_to_string(result));
+    EXPECT_TXTP_EQ(0); // Position unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test search when starting at end of buffer (txtp at null terminator)
+TEST_F(PmEditorCmdSearchAgainTest, SearchWhenStartingAtEndOfBuffer) {
+    SetBuffer("Hello World");
+    SetCursorAtEnd();
+    strcpy(tknbuf, "Hello");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Wrapped to find "Hello"
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test search stops at current position after full wrap
+TEST_F(PmEditorCmdSearchAgainTest, SearchStopsAtCurrentPositionAfterWrap) {
+    SetBuffer("Hello");
+    SetTxtp(2); // At 'l'
+    strcpy(tknbuf, "xyz");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_NOT_FOUND, mmresult_to_string(result));
+    EXPECT_TXTP_EQ(2); // Position unchanged
+    EXPECT_CURSOR_EQ(2, 0);
+}
+
+// Test search skips current position and finds next match
+TEST_F(PmEditorCmdSearchAgainTest, SearchSkipsCurrentPositionFindsNext) {
+    SetBuffer("test test test");
+    SetTxtp(0); // At first "test"
+    strcpy(tknbuf, "test");
+
+    MmResult result = pmeditor_cmd_search_again(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(5); // Finds second "test"
+    EXPECT_CURSOR_EQ(5, 0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_cmd_up()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorCmdUpTest : public PmEditorTestBase { };
+
+// Test moving up from second line to first line
+TEST_F(PmEditorCmdUpTest, MoveUpFromSecondToFirstLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(8); // At 'n' in "Line1"
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(2); // At 'n' in "Line0"
+    EXPECT_CURSOR_EQ(2, 0);
+}
+
+// Test moving up from third line to second line
+TEST_F(PmEditorCmdUpTest, MoveUpFromThirdToSecondLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(14); // At 'n' in "Line2"
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(8); // At 'n' in "Line1"
+    EXPECT_CURSOR_EQ(2, 1);
+}
+
+// Test moving up from first line does nothing
+TEST_F(PmEditorCmdUpTest, NoMoveAtFirstLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(2); // At 'n' in "Line0"
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(2); // Unchanged
+    EXPECT_CURSOR_EQ(2, 0);
+}
+
+// Test moving up from single line buffer does nothing
+TEST_F(PmEditorCmdUpTest, NoMoveInSingleLineBuffer) {
+    SetBuffer("OnlyLine");
+    SetTxtp(4);
+    self->preferred_x = 4;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // Unchanged
+    EXPECT_CURSOR_EQ(4, 0);
+}
+
+// Test moving up from empty buffer does nothing
+TEST_F(PmEditorCmdUpTest, NoMoveInEmptyBuffer) {
+    SetBuffer("");
+    SetTxtp(0);
+    self->preferred_x = 0;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving up maintains column (preferred_x)
+TEST_F(PmEditorCmdUpTest, MaintainsPreferredColumn) {
+    SetBuffer("ABCDE\nFGHIJ\nKLMNO");
+    SetTxtp(9); // At 'I' in second line
+    self->preferred_x = 3;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(3); // At 'D' in first line (same column)
+    EXPECT_CURSOR_EQ(3, 0);
+}
+
+// Test moving up to shorter line stops at end of line
+TEST_F(PmEditorCmdUpTest, StopsAtEndOfShorterLine) {
+    SetBuffer("XY\nPQRSTU\nABCDEF");
+    SetTxtp(6); // At 'S' in second line (column 4)
+    self->preferred_x = 4;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(2); // At end of "XY" (shorter line)
+    EXPECT_CURSOR_EQ(2, 0);
+}
+
+// Test moving up from shorter line to longer line uses preferred_x
+TEST_F(PmEditorCmdUpTest, UsesPreferredXWhenMovingToLongerLine) {
+    SetBuffer("PQRSTU\nAB\nXYZ");
+    SetTxtp(8); // At 'B' in second line (column 1)
+    self->preferred_x = 4; // But preferred_x is 4
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // At 'S' in first line (column 4)
+    EXPECT_CURSOR_EQ(4, 0);
+}
+
+// Test moving up from start of line (column 0)
+TEST_F(PmEditorCmdUpTest, MoveUpFromStartOfLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6); // At 'L' in "Line1"
+    self->preferred_x = 0;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At 'L' in "Line0"
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving up from end of line (at newline)
+TEST_F(PmEditorCmdUpTest, MoveUpFromEndOfLine) {
+    SetBuffer("ABC\nDEF\nGHI");
+    SetTxtp(7); // At '\n' after "DEF"
+    self->preferred_x = 3;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(3); // At '\n' after "ABC"
+    EXPECT_CURSOR_EQ(3, 0);
+}
+
+// Test moving up to empty line
+TEST_F(PmEditorCmdUpTest, MoveUpToEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(7); // At 'E' in "DEF"
+    self->preferred_x = 1;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(4); // At '\n' (empty line)
+    EXPECT_CURSOR_EQ(0, 1);
+}
+
+// Test moving up from empty line
+TEST_F(PmEditorCmdUpTest, MoveUpFromEmptyLine) {
+    SetBuffer("ABC\n\nDEF");
+    SetTxtp(4); // At '\n' (empty line)
+    self->preferred_x = 0;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // At 'A' in "ABC"
+    EXPECT_CURSOR_EQ(0, 0);
+}
+
+// Test moving up scrolls when near top of screen
+TEST_F(PmEditorCmdUpTest, ScrollsWhenNearTopOfScreen) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line" + std::to_string(i) + "\n";
+    }
+    SetBuffer(content.c_str());
+
+    // Position near top of screen with py > 0
+    self->py = 10;
+    self->cy = 2; // Near top, should scroll
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, self->cy); // cy unchanged (screen scrolled)
+    EXPECT_EQ(9, self->py); // py decremented (scrolled down)
+}
+
+// Test moving up at top of screen when py == 0
+TEST_F(PmEditorCmdUpTest, NoScrollWhenAtFirstPage) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    self->py = 0;
+    self->cy = 1; // Second line
+    SetTxtp(6); // At start of "Line1"
+    self->preferred_x = 0;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Moved to "Line0"
+    EXPECT_EQ(0, self->cy); // cy decremented (no scroll)
+    EXPECT_EQ(0, self->py); // py unchanged
+}
+
+// Test moving up does not modify buffer
+TEST_F(PmEditorCmdUpTest, DoesNotModifyBuffer) {
+    const std::string original = "Line0\nLine1\nLine2";
+    SetBuffer(original.c_str());
+    SetTxtp(8);
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(original.c_str(), self->buf);
+}
+
+// Test moving up multiple times in sequence
+TEST_F(PmEditorCmdUpTest, MoveUpMultipleTimes) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    SetTxtp(19); // At 'i' in "Line3"
+    self->preferred_x = 1;
+
+    // Move to Line2
+    {
+        MmResult result = pmeditor_cmd_up(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(13); // At 'i' in "Line2"
+        EXPECT_CURSOR_EQ(1, 2);
+    }
+
+    // Move to Line1
+    {
+        MmResult result = pmeditor_cmd_up(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(7); // At 'i' in "Line1"
+        EXPECT_CURSOR_EQ(1, 1);
+    }
+
+    // Move to Line0
+    {
+        MmResult result = pmeditor_cmd_up(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(1); // At 'i' in "Line0"
+        EXPECT_CURSOR_EQ(1, 0);
+    }
+
+    // Try to move beyond first line
+    {
+        MmResult result = pmeditor_cmd_up(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(1); // Unchanged
+        EXPECT_CURSOR_EQ(1, 0);
+    }
+}
+
+// Test moving up with very long preferred_x
+TEST_F(PmEditorCmdUpTest, VeryLargePreferredX) {
+    SetBuffer("XY\nABCDEFGHIJ");
+    SetTxtp(13); // At 'J' in second line
+    self->preferred_x = 100; // Very large preferred_x
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(2); // At '\n' after "XY" (end of shorter line)
+    EXPECT_CURSOR_EQ(2, 0);
+}
+
+// Test moving up preserves preferred_x across multiple moves
+TEST_F(PmEditorCmdUpTest, PreservesPreferredXAcrossMoves) {
+    SetBuffer("ABCDEFGH\nXY\nPQRSTUVW");
+    SetTxtp(17); // At 'U' (column 5) in "PQRSTUVw"
+    self->preferred_x = 5;
+
+    // Move to shorter line
+    {
+        MmResult result = pmeditor_cmd_up(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(11); // At '\n' after "XY"
+        EXPECT_CURSOR_EQ(2, 1);
+    }
+
+    // Move to longer line - should restore column 5
+    {
+        MmResult result = pmeditor_cmd_up(self);
+        EXPECT_EQ(kOk, result);
+        EXPECT_TXTP_EQ(5); // At 'F' (column 5)
+        EXPECT_CURSOR_EQ(5, 0);
+    }
+}
+
+// Test moving up when cy > 2 moves cursor normally
+TEST_F(PmEditorCmdUpTest, MovesCursorWhenCyGreaterThanTwo) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3");
+    self->py = 0;
+    self->cy = 3;
+    SetTxtp(18); // At start of "Line3"
+    self->preferred_x = 0;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(12); // Moved to "Line2"
+    EXPECT_EQ(2, self->cy); // cy decremented
+    EXPECT_EQ(0, self->py); // py unchanged
+}
+
+// Test moving up when cy <= 2 and py > 0 scrolls
+TEST_F(PmEditorCmdUpTest, ScrollsWhenCyLessThanOrEqualToTwoAndPyPositive) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "Line\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 5;
+    self->cy = 2; // At boundary where scrolling happens
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+    self->preferred_x = 0;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, self->cy); // cy unchanged (screen scrolled)
+    EXPECT_EQ(4, self->py); // py decremented (scrolled down)
+}
+
+// Test moving up from second line when cy == 0
+TEST_F(PmEditorCmdUpTest, NoMoveWhenAtTopOfScreenAndFirstLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->py = 0;
+    self->cy = 0;
+    SetTxtp(0); // At start of "Line0"
+    self->preferred_x = 0;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(0); // Unchanged
+    EXPECT_EQ(0, self->cy);
+    EXPECT_EQ(0, self->py);
+}
+
+// Test moving up preserves cursor when scrolling
+TEST_F(PmEditorCmdUpTest, PreservesCursorPositionWhenScrolling) {
+    // Create buffer with many lines
+    std::string content;
+    for (int i = 0; i < 30; i++) {
+        content += "ABCD\n";
+    }
+    SetBuffer(content.c_str());
+
+    self->py = 10;
+    self->cy = 1;
+    self->txtp = self->buf;
+    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
+    self->preferred_x = 2;
+
+    MmResult result = pmeditor_cmd_up(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(1, self->cy); // cy preserved
+    EXPECT_EQ(9, self->py); // Scrolled
+    EXPECT_CURSOR_EQ(2, 1); // Cursor column maintained
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_delete_char()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorDeleteCharTest : public PmEditorTestBase { };
+
+// Test deleting at end of buffer (should do nothing)
+TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfBuffer) {
+    SetBuffer("Hello");
+    SetCursorAtEnd();
+    bool initial_text_changed = self->text_changed;
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello", self->buf);
+    EXPECT_EQ(initial_text_changed, self->text_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+    EXPECT_NO_LINES_CHANGED();
+}
+
+// Test deleting at end of empty buffer
+TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfEmptyBuffer) {
+    SetBuffer("");
+    SetCursorAtEnd();
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->buf);
+    EXPECT_FALSE(self->text_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_NO_LINES_CHANGED();
+}
+
+// Test deleting a regular character
+TEST_F(PmEditorDeleteCharTest, DeleteRegularCharacter) {
+    SetBuffer("Hello World");
+    SetTxtp(5); // At ' '
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("HelloWorld", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test deleting first character
+TEST_F(PmEditorDeleteCharTest, DeleteFirstCharacter) {
+    SetBuffer("Hello");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("ello", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test deleting last character (not at end of buffer)
+TEST_F(PmEditorDeleteCharTest, DeleteLastCharacterBeforeEnd) {
+    SetBuffer("Hello");
+    SetTxtp(4); // At 'o'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hell", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test deleting a newline character
+TEST_F(PmEditorDeleteCharTest, DeleteNewlineCharacter) {
+    SetBuffer("Line1\nLine2");
+    SetTxtp(5); // At '\n'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line1Line2", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(1, self->num_lines);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Test deleting newline in multi-line buffer
+TEST_F(PmEditorDeleteCharTest, DeleteNewlineMultiLine) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(5); // At '\n' on "Line0"
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line0Line1\nLine2", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Test deleting '/' after '*' (multiline comment end)
+TEST_F(PmEditorDeleteCharTest, DeleteSlashAfterStar) {
+    SetBuffer("code*/more");
+    SetTxtp(5); // At '/'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code*more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Test deleting '*' before '/' (multiline comment end)
+TEST_F(PmEditorDeleteCharTest, DeleteStarBeforeSlash) {
+    SetBuffer("code*/more");
+    SetTxtp(4); // At '*'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code/more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Test deleting '/' before '*' (multiline comment start)
+TEST_F(PmEditorDeleteCharTest, DeleteSlashBeforeStar) {
+    SetBuffer("code/*comment");
+    SetTxtp(4); // At '/'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code*comment", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Test deleting '*' after '/' (multiline comment start)
+TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlash) {
+    SetBuffer("code/*comment");
+    SetTxtp(5); // At '*'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code/comment", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Test deleting in middle of word
+TEST_F(PmEditorDeleteCharTest, DeleteMiddleOfWord) {
+    SetBuffer("Hello");
+    SetTxtp(2); // At 'l'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Helo", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(2);
+    EXPECT_CURSOR_EQ(2, 0);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test deleting with cursor at various positions in a sentence
+TEST_F(PmEditorDeleteCharTest, DeleteInSentence) {
+    SetBuffer("The quick brown fox");
+    SetTxtp(4); // At 'q'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("The uick brown fox", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(4);
+    EXPECT_CURSOR_EQ(4, 0);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test deleting special characters
+TEST_F(PmEditorDeleteCharTest, DeleteSpecialCharacters) {
+    SetBuffer("Hello!@#$%World");
+    SetTxtp(5); // At '!'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Hello@#$%World", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(5);
+    EXPECT_CURSOR_EQ(5, 0);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test deleting with buffer containing only one character
+TEST_F(PmEditorDeleteCharTest, DeleteSingleCharacterBuffer) {
+    SetBuffer("A");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test deleting with buffer containing only newline
+TEST_F(PmEditorDeleteCharTest, DeleteSingleNewlineBuffer) {
+    SetBuffer("\n");
+    SetTxtp(0);
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(1, self->num_lines);
+    EXPECT_TXTP_EQ(0);
+    EXPECT_CURSOR_EQ(0, 0);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Test deleting multiple characters in sequence
+TEST_F(PmEditorDeleteCharTest, DeleteMultipleCharactersSequence) {
+    SetBuffer("ABCDEF");
+    SetTxtp(2); // At 'C'
+
+    // Delete 'C'
+    MmResult result1 = pmeditor_delete_char(self);
+    EXPECT_EQ(kOk, result1);
+    EXPECT_STREQ("ABDEF", self->buf);
+
+    // Delete 'D' (cursor should still be at position 2)
+    MmResult result2 = pmeditor_delete_char(self);
+    EXPECT_EQ(kOk, result2);
+    EXPECT_STREQ("ABEF", self->buf);
+
+    // Delete 'E'
+    MmResult result3 = pmeditor_delete_char(self);
+    EXPECT_EQ(kOk, result3);
+    EXPECT_STREQ("ABF", self->buf);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test deleting with very long line
+TEST_F(PmEditorDeleteCharTest, DeleteInLongLine) {
+    std::string long_line(100, 'A');
+    SetBuffer(long_line.c_str());
+    SetTxtp(50);
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(99, strlen(self->buf));
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test deleting at buffer boundaries
+TEST_F(PmEditorDeleteCharTest, DeleteAtBufferBoundaries) {
+    // Fill buffer almost to capacity
+    std::string content(EDIT_BUFFER_SIZE - 10, 'X');
+    SetBuffer(content.c_str());
+    SetTxtp(content.length() - 1); // Near end
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(content.length() - 1, strlen(self->buf));
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test deleting with cursor positioning edge cases
+TEST_F(PmEditorDeleteCharTest, DeleteCursorPositioning) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(8); // At 'n' in "Line1"
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line0\nLie1\nLine2", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(1, 1);
+}
+
+// Test deleting with comment level tracking
+TEST_F(PmEditorDeleteCharTest, DeleteWithCommentLevelTracking) {
+    SetBuffer("/* comment */ code");
+    SetTxtp(2); // At space in comment
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("/*comment */ code", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Test deleting newline at end of file
+TEST_F(PmEditorDeleteCharTest, DeleteNewlineAtEndOfFile) {
+    SetBuffer("Line0\nLine1\n");
+    SetTxtp(strlen("Line0\nLine1")); // At final newline
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("Line0\nLine1", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_EQ(2, self->num_lines);
+    EXPECT_LINES_CHANGED(1, LAST_LINE);
+}
+
+// Test deleting with text_changed flag initially true
+TEST_F(PmEditorDeleteCharTest, DeleteWithTextAlreadyChanged) {
+    SetBuffer("Hello");
+    SetTxtp(0);
+    self->text_changed = true; // Already marked as changed
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("ello", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Comment marker combinations - converted from parameterized tests
+TEST_F(PmEditorDeleteCharTest, DeleteStarBeforeSlashInMiddle) {
+    SetBuffer("a*/b");
+    SetTxtp(1); // At '*'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("a/b", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteSlashAfterStarInMiddle) {
+    SetBuffer("a*/b");
+    SetTxtp(2); // At '/'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("a*b", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteSlashBeforeStarInMiddle) {
+    SetBuffer("a/*b");
+    SetTxtp(1); // At '/'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("a*b", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlashInMiddle) {
+    SetBuffer("a/*b");
+    SetTxtp(2); // At '*'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("a/b", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteStarAtStartOfCommentEnd) {
+    SetBuffer("*/");
+    SetTxtp(0); // At '*'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("/", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteSlashAtStartOfCommentStart) {
+    SetBuffer("/*");
+    SetTxtp(0); // At '/'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("*", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteSlashAtEndOfCommentEnd) {
+    SetBuffer("*/");
+    SetTxtp(1); // At '/'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("*", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+TEST_F(PmEditorDeleteCharTest, DeleteStarAtEndOfCommentStart) {
+    SetBuffer("/*");
+    SetTxtp(1); // At '*'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("/", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Deleting single-line comment character ' before /* should redraw screen
+TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineStartRedrawsScreen) {
+    SetBuffer("code ' /* more");
+    SetTxtp(5); // At '
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code  /* more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Deleting single-line comment character ' before */ should redraw screen
+TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineEndRedrawsScreen) {
+    SetBuffer("code ' */ more");
+    SetTxtp(5); // At '
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code  */ more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+}
+
+// Deleting character in REM keyword before /* should redraw screen
+TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineStartRedrawsScreen) {
+    SetBuffer("code REM /* more");
+    SetTxtp(5); // At 'R'
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code EM /* more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+
+    self->change_start = NO_CHANGE;
+    self->change_end = NO_CHANGE;
+    result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code M /* more", self->buf);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+// Deleting character in REM keyword before */ should redraw screen
+TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineEndRedrawsScreen) {
+    SetBuffer("code rem */ more");
+    SetTxtp(6); // At 'e' in "rem"
+
+    MmResult result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code rm */ more", self->buf);
+    EXPECT_TRUE(self->text_changed);
+    EXPECT_LINES_CHANGED(0, LAST_LINE);
+
+    self->change_start = NO_CHANGE;
+    self->change_end = NO_CHANGE;
+    result = pmeditor_delete_char(self);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("code r */ more", self->buf);
+    EXPECT_LINES_CHANGED(0, 0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_find_longest_line()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorFindLongestLineTest : public PmEditorTestBase { };
+
+TEST_F(PmEditorFindLongestLineTest, EmptyStringReturnsZero) {
+    SetBuffer("");
+
+    int line = -1;
+    int length = -1;
+    MmResult result = pmeditor_find_longest_line(self, &line, &length);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, line);
+    EXPECT_EQ(0, length);
+}
+
+TEST_F(PmEditorFindLongestLineTest, SingleLineReturnsCorrectLength) {
+    SetBuffer("hello");
+
+    int line = -1;
+    int length = -1;
+    MmResult result = pmeditor_find_longest_line(self, &line, &length);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(0, line);
+    EXPECT_EQ(5, length);
+}
+
+TEST_F(PmEditorFindLongestLineTest, MultipleLinesFindsLongest) {
+    SetBuffer("short\nmedium length\nloooooongest line here\nmid");
+
+    int line = -1;
+    int length = -1;
+    MmResult result = pmeditor_find_longest_line(self, &line, &length);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(2, line);
+    EXPECT_EQ(22, length);
+}
+
+TEST_F(PmEditorFindLongestLineTest, HandlesTrailingNewline) {
+    SetBuffer("abc\n1234\n");
+
+    int line = -1;
+    int length = -1;
+    MmResult result = pmeditor_find_longest_line(self, &line, &length);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(1, line);
+    EXPECT_EQ(4, length);
+}
+
+TEST_F(PmEditorFindLongestLineTest, LastLineIsLongest) {
+    SetBuffer("short\nmedium length\nmid\nloooooongest line here");
+
+    int line = -1;
+    int length = -1;
+    MmResult result = pmeditor_find_longest_line(self, &line, &length);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_EQ(3, line);
+    EXPECT_EQ(22, length);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for pmeditor_find_in_line()
+////////////////////////////////////////////////////////////////////////////////
+
+class PmEditorFindInLineTest : public PmEditorTestBase {};
+
+TEST_F(PmEditorFindInLineTest, FindSimpleMatch) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "World", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'World' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(6, actual_offset) << "Basic substring search";
+}
+
+TEST_F(PmEditorFindInLineTest, FindCaseInsensitive) {
+    SetBuffer("Hello WORLD");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "world", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'world' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(6, actual_offset) << "Case insensitive matching";
+}
+
+TEST_F(PmEditorFindInLineTest, FindMixedCase) {
+    SetBuffer("Hello WoRlD");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "WOrLD", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'WOrLD' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(6, actual_offset) << "Mixed case matching";
+}
+
+TEST_F(PmEditorFindInLineTest, NotFound) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "xyz", start_pos, 20);
+
+    EXPECT_EQ(nullptr, result) << "Expected NULL but found match - substring not present";
+}
+
+TEST_F(PmEditorFindInLineTest, FindAtStart) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'Hello' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(0, actual_offset) << "Match at beginning of line";
+}
+
+TEST_F(PmEditorFindInLineTest, FindAtEnd) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "World", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'World' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(6, actual_offset) << "Match at end of line";
+}
+
+TEST_F(PmEditorFindInLineTest, SearchWithinLine) {
+    SetBuffer("First line\nSecond line\nThird line");
+    char* start_pos = self->buf + 11;  // Start of "Second line"
+
+    char* result = pmeditor_find_in_line(self, "Second", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'Second' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(11, actual_offset) << "Search within specific line";
+}
+
+TEST_F(PmEditorFindInLineTest, DoesNotCrossLines) {
+    SetBuffer("First line\nSecond line");
+    char* start_pos = self->buf + 6;  // Start at "line\n"
+
+    char* result = pmeditor_find_in_line(self, "line Second", start_pos, 20);
+
+    EXPECT_EQ(nullptr, result) << "Should not find across line boundaries";
+}
+
+TEST_F(PmEditorFindInLineTest, SearchFromMiddleOfLine) {
+    SetBuffer("Hello Beautiful World");
+    char* start_pos = self->buf + 6;  // Start at "Beautiful"
+
+    char* result = pmeditor_find_in_line(self, "World", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'World' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(16, actual_offset) << "Search from middle of line";
+}
+
+TEST_F(PmEditorFindInLineTest, SearchFromMiddleNotFound) {
+    SetBuffer("Hello Beautiful World");
+    char* start_pos = self->buf + 6;  // Start at "Beautiful"
+
+    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 20);
+
+    EXPECT_EQ(nullptr, result) << "Should not find text before start position";
+}
+
+TEST_F(PmEditorFindInLineTest, MaxLenLimitsSearch) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "World", start_pos, 8);  // Only search first 8 characters
+
+    EXPECT_EQ(nullptr, result) << "Max length should limit search area";
+}
+
+TEST_F(PmEditorFindInLineTest, MaxLenAllowsSearch) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "World", start_pos, 11);  // Search all 11 characters
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'World' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(6, actual_offset) << "Max length allows finding match";
+}
+
+TEST_F(PmEditorFindInLineTest, MaxLenZero) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 0);  // Zero max length
+
+    EXPECT_EQ(nullptr, result) << "Zero max length should find nothing";
+}
+
+TEST_F(PmEditorFindInLineTest, MaxLenSmallerThanNeedle) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 3);  // Max length smaller than needle
+
+    EXPECT_EQ(nullptr, result) << "Max length smaller than needle should find nothing";
+}
+
+TEST_F(PmEditorFindInLineTest, MaxLenExactNeedleSize) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 5);  // Max length exactly needle size
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'Hello' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(0, actual_offset) << "Max length exactly needle size should work";
+}
+
+// Edge Cases
+TEST_F(PmEditorFindInLineTest, SingleCharacterMatch) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "o", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'o' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(4, actual_offset) << "Single character search - first 'o' in 'Hello'";
+}
+
+TEST_F(PmEditorFindInLineTest, EmptyLine) {
+    SetBuffer("\n");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "test", start_pos, 20);
+
+    EXPECT_EQ(nullptr, result) << "Search in empty line";
+}
+
+TEST_F(PmEditorFindInLineTest, OnlyNewlines) {
+    SetBuffer("\n\n\n");
+    char* start_pos = self->buf + 1;  // Start at second newline
+
+    char* result = pmeditor_find_in_line(self, "test", start_pos, 20);
+
+    EXPECT_EQ(nullptr, result) << "Search in line with only newlines";
+}
+
+TEST_F(PmEditorFindInLineTest, SpecialCharacters) {
+    SetBuffer("Hello/*World*/");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "/*", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find '/*' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(5, actual_offset) << "Search for special characters";
+}
+
+TEST_F(PmEditorFindInLineTest, RepeatedPattern) {
+    SetBuffer("ababab");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "ab", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'ab' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(0, actual_offset) << "Repeated pattern should find first match";
+}
+
+TEST_F(PmEditorFindInLineTest, OverlappingPattern) {
+    SetBuffer("aaaaaa");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "aa", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'aa' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(0, actual_offset) << "Overlapping pattern should find first match";
+}
+
+TEST_F(PmEditorFindInLineTest, NullParameters) {
+    SetBuffer("Hello World");
+
+    // Test null editor
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(nullptr, "test", self->buf, 10));
+
+    // Test null needle
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, nullptr, self->buf, 10));
+
+    // Test null start
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "test", nullptr, 10));
+
+    // Test empty needle
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "", self->buf, 10));
+}
+
+TEST_F(PmEditorFindInLineTest, OutOfBoundsStart) {
+    SetBuffer("Hello World");
+
+    // Test start before buffer
+    char* before_buffer = self->buf - 1;
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "test", before_buffer, 10));
+
+    // Test start after buffer
+    char* after_buffer = self->buf + EDIT_BUFFER_SIZE;
+    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "test", after_buffer, 10));
+}
+
+// Performance test for large buffers
+TEST_F(PmEditorFindInLineTest, LargeBuffer) {
+    // Fill buffer with pattern
+    for (int i = 0; i < EDIT_BUFFER_SIZE - 10; i += 10) {
+        memcpy(self->buf + i, "0123456789", 10);
+    }
+    self->buf[EDIT_BUFFER_SIZE - 1] = '\0';
+
+    // Search for pattern near the end
+    char* result = pmeditor_find_in_line(self, "789", self->buf, EDIT_BUFFER_SIZE);
+    EXPECT_NE(nullptr, result);
+    EXPECT_EQ('7', *result);
+}
+
+TEST_F(PmEditorFindInLineTest, SearchAtExactLineEnd) {
+    SetBuffer("Hello\nWorld");
+    char* start_pos = self->buf + 4;  // Start at 'o' before newline
+
+    char* result = pmeditor_find_in_line(self, "o", start_pos, 5);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'o' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(4, actual_offset) << "Should find character at line end";
+}
+
+TEST_F(PmEditorFindInLineTest, SearchStopsAtNewline) {
+    SetBuffer("Hello\nHello");
+    char* start_pos = self->buf + 6;  // Start after newline
+
+    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'Hello' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(6, actual_offset) << "Should find in current line only";
+}
+
+TEST_F(PmEditorFindInLineTest, PartialMatchAtLineEnd) {
+    SetBuffer("Hello Wor\nld");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "World", start_pos, 20);
+
+    EXPECT_EQ(nullptr, result) << "Should not match partial string across newline";
+}
+
+TEST_F(PmEditorFindInLineTest, CaseInsensitiveWithNumbers) {
+    SetBuffer("Test123ABC");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "123abc", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find '123abc' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(4, actual_offset) << "Case insensitive with numbers";
+}
+
+TEST_F(PmEditorFindInLineTest, WhitespaceHandling) {
+    SetBuffer("Hello   World");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "   ", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find '   ' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(5, actual_offset) << "Should find whitespace sequences";
+}
+
+TEST_F(PmEditorFindInLineTest, TabCharacterSearch) {
+    SetBuffer("Hello\tWorld");
+    char* start_pos = self->buf;
+
+    char* result = pmeditor_find_in_line(self, "\t", start_pos, 20);
+
+    ASSERT_NE(nullptr, result) << "Expected to find tab character but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(5, actual_offset) << "Should find tab character";
+}
+
+TEST_F(PmEditorFindInLineTest, SearchNearBufferEnd) {
+    SetBuffer("Hello World");
+    char* start_pos = self->buf + 8;  // Start near end
+
+    char* result = pmeditor_find_in_line(self, "rld", start_pos, 5);
+
+    ASSERT_NE(nullptr, result) << "Expected to find 'rld' but got NULL";
+    size_t actual_offset = result - self->buf;
+    EXPECT_EQ(8, actual_offset) << "Should find match near buffer end";
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Tests for pmeditor_find_line_ex()
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1606,7 +7516,7 @@ TEST_F(PmEditorInsertCharTest, InsertNewline) {
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
-TEST_F(PmEditorInsertCharTest, InsertCharBufferFull) {
+TEST_F(PmEditorInsertCharTest, ReturnsErrorIfBufferFull) {
     // Fill the buffer to its maximum size
     for (int i = 0; i < EDIT_BUFFER_SIZE - 1; i++) {
         self->buf[i] = 'A';
@@ -1617,8 +7527,9 @@ TEST_F(PmEditorInsertCharTest, InsertCharBufferFull) {
 
     MmResult result = pmeditor_insert_char(self, 'B');
 
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" EDIT BUFFER FULL ", self->message);
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_EDIT_BUFFER_FULL, mmresult_to_string(result));
+    EXPECT_TXTP_EQ(EDIT_BUFFER_SIZE - 1);
     EXPECT_NO_LINES_CHANGED();
 }
 
@@ -1788,1695 +7699,18 @@ TEST_F(PmEditorInsertCharTest, CompleteREMBeforeMultilineCommentStart_InsertM) {
     EXPECT_LINES_CHANGED(0, LAST_LINE);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_delete_char()
-////////////////////////////////////////////////////////////////////////////////
+TEST_F(PmEditorInsertCharTest, ReturnsErrorIfLineTooLong) {
+    SetBuffer("abcdefg");
+    SetTxtp(7);
+    self->width = 7;
 
-class PmEditorDeleteCharTest : public PmEditorTestBase { };
+    MmResult result = pmeditor_insert_char(self, 'h');
 
-// Test deleting at end of buffer (should do nothing)
-TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfBuffer) {
-    SetBuffer("Hello");
-    SetCursorAtEnd();
-    bool initial_text_changed = self->text_changed;
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello", self->buf);
-    EXPECT_EQ(initial_text_changed, self->text_changed);
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(5, 0);
+    EXPECT_EQ(kEditorError, result);
+    EXPECT_STREQ(EMSG_LINE_TOO_LONG, mmresult_to_string(result));
+    EXPECT_TXTP_EQ(7);
+    EXPECT_CURSOR_EQ(7, 0);
     EXPECT_NO_LINES_CHANGED();
-}
-
-// Test deleting at end of empty buffer
-TEST_F(PmEditorDeleteCharTest, DeleteAtEndOfEmptyBuffer) {
-    SetBuffer("");
-    SetCursorAtEnd();
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->buf);
-    EXPECT_FALSE(self->text_changed);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_NO_LINES_CHANGED();
-}
-
-// Test deleting a regular character
-TEST_F(PmEditorDeleteCharTest, DeleteRegularCharacter) {
-    SetBuffer("Hello World");
-    SetTxtp(5); // At ' '
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("HelloWorld", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(5, 0);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test deleting first character
-TEST_F(PmEditorDeleteCharTest, DeleteFirstCharacter) {
-    SetBuffer("Hello");
-    SetTxtp(0);
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("ello", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test deleting last character (not at end of buffer)
-TEST_F(PmEditorDeleteCharTest, DeleteLastCharacterBeforeEnd) {
-    SetBuffer("Hello");
-    SetTxtp(4); // At 'o'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hell", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(4);
-    EXPECT_CURSOR_EQ(4, 0);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test deleting a newline character
-TEST_F(PmEditorDeleteCharTest, DeleteNewlineCharacter) {
-    SetBuffer("Line1\nLine2");
-    SetTxtp(5); // At '\n'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1Line2", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, self->num_lines);
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(5, 0);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-// Test deleting newline in multi-line buffer
-TEST_F(PmEditorDeleteCharTest, DeleteNewlineMultiLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(5); // At '\n' on "Line0"
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line0Line1\nLine2", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(2, self->num_lines);
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(5, 0);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-// Test deleting '/' after '*' (multiline comment end)
-TEST_F(PmEditorDeleteCharTest, DeleteSlashAfterStar) {
-    SetBuffer("code*/more");
-    SetTxtp(5); // At '/'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code*more", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(5, 0);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-// Test deleting '*' before '/' (multiline comment end)
-TEST_F(PmEditorDeleteCharTest, DeleteStarBeforeSlash) {
-    SetBuffer("code*/more");
-    SetTxtp(4); // At '*'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code/more", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(4);
-    EXPECT_CURSOR_EQ(4, 0);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-// Test deleting '/' before '*' (multiline comment start)
-TEST_F(PmEditorDeleteCharTest, DeleteSlashBeforeStar) {
-    SetBuffer("code/*comment");
-    SetTxtp(4); // At '/'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code*comment", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(4);
-    EXPECT_CURSOR_EQ(4, 0);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-// Test deleting '*' after '/' (multiline comment start)
-TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlash) {
-    SetBuffer("code/*comment");
-    SetTxtp(5); // At '*'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code/comment", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(5, 0);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-// Test deleting in middle of word
-TEST_F(PmEditorDeleteCharTest, DeleteMiddleOfWord) {
-    SetBuffer("Hello");
-    SetTxtp(2); // At 'l'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Helo", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(2);
-    EXPECT_CURSOR_EQ(2, 0);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test deleting with cursor at various positions in a sentence
-TEST_F(PmEditorDeleteCharTest, DeleteInSentence) {
-    SetBuffer("The quick brown fox");
-    SetTxtp(4); // At 'q'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("The uick brown fox", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(4);
-    EXPECT_CURSOR_EQ(4, 0);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test deleting special characters
-TEST_F(PmEditorDeleteCharTest, DeleteSpecialCharacters) {
-    SetBuffer("Hello!@#$%World");
-    SetTxtp(5); // At '!'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello@#$%World", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(5, 0);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test deleting with buffer containing only one character
-TEST_F(PmEditorDeleteCharTest, DeleteSingleCharacterBuffer) {
-    SetBuffer("A");
-    SetTxtp(0);
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test deleting with buffer containing only newline
-TEST_F(PmEditorDeleteCharTest, DeleteSingleNewlineBuffer) {
-    SetBuffer("\n");
-    SetTxtp(0);
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(1, self->num_lines);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-// Test deleting multiple characters in sequence
-TEST_F(PmEditorDeleteCharTest, DeleteMultipleCharactersSequence) {
-    SetBuffer("ABCDEF");
-    SetTxtp(2); // At 'C'
-
-    // Delete 'C'
-    MmResult result1 = pmeditor_delete_char(self);
-    EXPECT_EQ(kOk, result1);
-    EXPECT_STREQ("ABDEF", self->buf);
-
-    // Delete 'D' (cursor should still be at position 2)
-    MmResult result2 = pmeditor_delete_char(self);
-    EXPECT_EQ(kOk, result2);
-    EXPECT_STREQ("ABEF", self->buf);
-
-    // Delete 'E'
-    MmResult result3 = pmeditor_delete_char(self);
-    EXPECT_EQ(kOk, result3);
-    EXPECT_STREQ("ABF", self->buf);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test deleting with very long line
-TEST_F(PmEditorDeleteCharTest, DeleteInLongLine) {
-    std::string long_line(100, 'A');
-    SetBuffer(long_line.c_str());
-    SetTxtp(50);
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(99, strlen(self->buf));
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test deleting at buffer boundaries
-TEST_F(PmEditorDeleteCharTest, DeleteAtBufferBoundaries) {
-    // Fill buffer almost to capacity
-    std::string content(EDIT_BUFFER_SIZE - 10, 'X');
-    SetBuffer(content.c_str());
-    SetTxtp(content.length() - 1); // Near end
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(content.length() - 1, strlen(self->buf));
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test deleting with cursor positioning edge cases
-TEST_F(PmEditorDeleteCharTest, DeleteCursorPositioning) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(8); // At 'n' in "Line1"
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line0\nLie1\nLine2", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(1, 1);
-}
-
-// Test deleting with comment level tracking
-TEST_F(PmEditorDeleteCharTest, DeleteWithCommentLevelTracking) {
-    SetBuffer("/* comment */ code");
-    SetTxtp(2); // At space in comment
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("/*comment */ code", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test deleting newline at end of file
-TEST_F(PmEditorDeleteCharTest, DeleteNewlineAtEndOfFile) {
-    SetBuffer("Line0\nLine1\n");
-    SetTxtp(strlen("Line0\nLine1")); // At final newline
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line0\nLine1", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(2, self->num_lines);
-    EXPECT_LINES_CHANGED(1, LAST_LINE);
-}
-
-// Test deleting with text_changed flag initially true
-TEST_F(PmEditorDeleteCharTest, DeleteWithTextAlreadyChanged) {
-    SetBuffer("Hello");
-    SetTxtp(0);
-    self->text_changed = true; // Already marked as changed
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("ello", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Comment marker combinations - converted from parameterized tests
-TEST_F(PmEditorDeleteCharTest, DeleteStarBeforeSlashInMiddle) {
-    SetBuffer("a*/b");
-    SetTxtp(1); // At '*'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("a/b", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-TEST_F(PmEditorDeleteCharTest, DeleteSlashAfterStarInMiddle) {
-    SetBuffer("a*/b");
-    SetTxtp(2); // At '/'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("a*b", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-TEST_F(PmEditorDeleteCharTest, DeleteSlashBeforeStarInMiddle) {
-    SetBuffer("a/*b");
-    SetTxtp(1); // At '/'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("a*b", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-TEST_F(PmEditorDeleteCharTest, DeleteStarAfterSlashInMiddle) {
-    SetBuffer("a/*b");
-    SetTxtp(2); // At '*'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("a/b", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-TEST_F(PmEditorDeleteCharTest, DeleteStarAtStartOfCommentEnd) {
-    SetBuffer("*/");
-    SetTxtp(0); // At '*'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("/", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-TEST_F(PmEditorDeleteCharTest, DeleteSlashAtStartOfCommentStart) {
-    SetBuffer("/*");
-    SetTxtp(0); // At '/'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("*", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-TEST_F(PmEditorDeleteCharTest, DeleteSlashAtEndOfCommentEnd) {
-    SetBuffer("*/");
-    SetTxtp(1); // At '/'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("*", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-TEST_F(PmEditorDeleteCharTest, DeleteStarAtEndOfCommentStart) {
-    SetBuffer("/*");
-    SetTxtp(1); // At '*'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("/", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-// Deleting single-line comment character ' before /* should redraw screen
-TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineStartRedrawsScreen) {
-    SetBuffer("code ' /* more");
-    SetTxtp(5); // At '
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code  /* more", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-// Deleting single-line comment character ' before */ should redraw screen
-TEST_F(PmEditorDeleteCharTest, DeleteSingleQuoteBeforeMultilineEndRedrawsScreen) {
-    SetBuffer("code ' */ more");
-    SetTxtp(5); // At '
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code  */ more", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-// Deleting character in REM keyword before /* should redraw screen
-TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineStartRedrawsScreen) {
-    SetBuffer("code REM /* more");
-    SetTxtp(5); // At 'R'
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code EM /* more", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-
-    self->change_start = NO_CHANGE;
-    self->change_end = NO_CHANGE;
-    result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code M /* more", self->buf);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Deleting character in REM keyword before */ should redraw screen
-TEST_F(PmEditorDeleteCharTest, DeleteRemBeforeMultilineEndRedrawsScreen) {
-    SetBuffer("code rem */ more");
-    SetTxtp(6); // At 'e' in "rem"
-
-    MmResult result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code rm */ more", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-
-    self->change_start = NO_CHANGE;
-    self->change_end = NO_CHANGE;
-    result = pmeditor_delete_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code r */ more", self->buf);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_backspace()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdBackspaceTest : public PmEditorTestBase { };
-
-// ============================================================================
-// Basic Backspace Operations
-// ============================================================================
-
-// Test backspace at start of buffer (should do nothing)
-TEST_F(PmEditorCmdBackspaceTest, BackspaceAtStartOfBuffer) {
-    SetBuffer("Hello");
-    SetTxtp(0);
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello", self->buf);
-    EXPECT_FALSE(self->text_changed);
-    EXPECT_TXTP_EQ(0); // Cursor should not move
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test backspace in empty buffer
-TEST_F(PmEditorCmdBackspaceTest, BackspaceInEmptyBuffer) {
-    SetBuffer("");
-    SetTxtp(0);
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->buf);
-    EXPECT_FALSE(self->text_changed);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test backspace deleting a regular character
-TEST_F(PmEditorCmdBackspaceTest, BackspaceRegularCharacter) {
-    SetBuffer("Hello");
-    SetTxtp(5); // After 'o'
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hell", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(4);
-    EXPECT_CURSOR_EQ(4, 0);
-}
-
-// Test backspace deleting character in middle
-TEST_F(PmEditorCmdBackspaceTest, BackspaceMiddleCharacter) {
-    SetBuffer("Hello");
-    SetTxtp(3); // After second 'l'
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Helo", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(2);
-    EXPECT_CURSOR_EQ(2, 0);
-}
-
-// Test backspace on single character buffer
-TEST_F(PmEditorCmdBackspaceTest, BackspaceSingleCharacter) {
-    SetBuffer("A");
-    SetTxtp(1);
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test backspace at beginning of line (should wrap to previous line)
-TEST_F(PmEditorCmdBackspaceTest, BackspaceAtLineStart) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(6); // Start of Line1
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(UP, END, DEL, '\0');
-    EXPECT_TXTP_EQ(6);
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// ============================================================================
-// Tab/Space Handling
-// ============================================================================
-
-// Test backspace with single space
-TEST_F(PmEditorCmdBackspaceTest, BackspaceSingleSpace) {
-    SetBuffer("Hello World");
-    SetTxtp(6); // After the space
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("HelloWorld", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(5, 0);
-}
-
-// Test backspace at tab stop (4 spaces at start of line)
-TEST_F(PmEditorCmdBackspaceTest, BackspaceTabAtLineStart) {
-    SetBuffer("    Hello");
-    SetTxtp(4); // After 4 spaces
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, '\0');
-    EXPECT_TXTP_EQ(0); // Moved back to start
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test backspace with 8 spaces at line start (2 tab stops)
-TEST_F(PmEditorCmdBackspaceTest, BackspaceTwoTabStops) {
-    SetBuffer("        Hello");
-    SetTxtp(8); // After 8 spaces
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, '\0');
-    EXPECT_TXTP_EQ(4);
-    EXPECT_CURSOR_EQ(4, 0);
-}
-
-// Test backspace with 2 spaces at line start
-TEST_F(PmEditorCmdBackspaceTest, BackspacePartialTab) {
-    SetBuffer("  Hello");
-    SetTxtp(2); // After 2 spaces
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(DEL, DEL, '\0');
-    EXPECT_TXTP_EQ(0); // Moved back to start
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test backspace with 3 spaces (not on tab boundary)
-TEST_F(PmEditorCmdBackspaceTest, BackspaceThreeSpaces) {
-    SetBuffer("   Hello");
-    SetTxtp(3); // After 3 spaces
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(DEL, DEL, DEL, '\0');
-    EXPECT_TXTP_EQ(0); // Moved back to start
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test backspace with 5 spaces (past one tab stop)
-TEST_F(PmEditorCmdBackspaceTest, BackspaceFiveSpaces) {
-    SetBuffer("     Hello");
-    SetTxtp(5); // After 5 spaces
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(DEL, '\0');
-    EXPECT_TXTP_EQ(4);
-    EXPECT_CURSOR_EQ(4, 0);
-}
-
-// Test backspace with tab size of 8
-TEST_F(PmEditorCmdBackspaceTest, BackspaceWithTabSize8) {
-    SetBuffer("        Hello");
-    SetTxtp(8); // After 8 spaces
-    mmb_options.tab = 8;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, DEL, DEL, DEL, DEL, '\0');
-    EXPECT_TXTP_EQ(0); // Moved back to start
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test backspace with spaces after newline
-TEST_F(PmEditorCmdBackspaceTest, BackspaceSpacesAfterNewline) {
-    SetBuffer("Line0\n    Hello");
-    SetTxtp(10); // After 4 spaces on second line
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(DEL, DEL, DEL, DEL, '\0');
-    EXPECT_TXTP_EQ(6);
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test backspace with mixed spaces and text
-TEST_F(PmEditorCmdBackspaceTest, BackspaceMixedSpacesText) {
-    SetBuffer("    Hello World");
-    SetTxtp(10); // In middle of "Hello*World"
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    // Should just delete one character (normal backspace)
-    EXPECT_STREQ("    HelloWorld", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(9);
-    EXPECT_CURSOR_EQ(9, 0);
-}
-
-// Test backspace with single space at line start
-TEST_F(PmEditorCmdBackspaceTest, BackspaceSingleSpaceAtLineStart) {
-    SetBuffer(" Hello");
-    SetTxtp(1); // After single space
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(DEL, '\0');
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test backspace when not at line start with spaces
-TEST_F(PmEditorCmdBackspaceTest, BackspaceSpacesNotAtLineStart) {
-    SetBuffer("Hello    World");
-    SetTxtp(9); // After 4 spaces (but not at line start)
-    mmb_options.tab = 4;
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    // Should do normal backspace (non-tab spaces in middle of line)
-    EXPECT_STREQ("Hello   World", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_TXTP_EQ(8);
-    EXPECT_CURSOR_EQ(8, 0);
-}
-
-// ============================================================================
-// Edge Cases and Special Scenarios
-// ============================================================================
-
-// Test backspace at start of file (edge case)
-TEST_F(PmEditorCmdBackspaceTest, BackspaceAtFileStart) {
-    SetBuffer("Hello\nWorld");
-    SetTxtp(0);
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello\nWorld", self->buf); // No change
-    EXPECT_FALSE(self->text_changed);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test backspace with very long line
-TEST_F(PmEditorCmdBackspaceTest, BackspaceInLongLine) {
-    std::string long_line(100, 'A');
-    SetBuffer(long_line.c_str());
-    SetTxtp(50);
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(99, strlen(self->buf));
-    EXPECT_TXTP_EQ(49);
-    EXPECT_CURSOR_EQ(49, 0);
-}
-
-// Test backspace multiple times in sequence
-TEST_F(PmEditorCmdBackspaceTest, BackspaceMultipleTimes) {
-    SetBuffer("ABCDEF");
-    SetTxtp(6); // At end
-
-    // First backspace
-    {
-        MmResult result = pmeditor_cmd_backspace(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_STREQ("ABCDE", self->buf);
-        EXPECT_TXTP_EQ(5);
-    }
-
-    // Second backspace
-    {
-        MmResult result = pmeditor_cmd_backspace(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_STREQ("ABCD", self->buf);
-        EXPECT_TXTP_EQ(4);
-    }
-
-    // Third backspace
-    {
-        MmResult result = pmeditor_cmd_backspace(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_STREQ("ABC", self->buf);
-        EXPECT_TXTP_EQ(3);
-    }
-
-    EXPECT_TRUE(self->text_changed);
-}
-
-// ============================================================================
-// Error Condition Tests
-// ============================================================================
-
-// Test with null pointer (defensive programming)
-TEST_F(PmEditorCmdBackspaceTest, BackspaceWithNullEditor) {
-    MmResult result = pmeditor_cmd_backspace(nullptr);
-    EXPECT_EQ(kInternalFault, result);
-}
-
-// Test with corrupted buffer pointer
-TEST_F(PmEditorCmdBackspaceTest, BackspaceWithInvalidCursorPosition) {
-    SetBuffer("Hello");
-    self->txtp = self->buf - 1; // Before buffer start
-
-    MmResult result = pmeditor_cmd_backspace(self);
-
-    EXPECT_EQ(kInternalFault, result);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_find_longest_line()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorFindLongestLineTest : public PmEditorTestBase { };
-
-TEST_F(PmEditorFindLongestLineTest, EmptyStringReturnsZero) {
-    SetBuffer("");
-
-    int line = -1;
-    int length = -1;
-    MmResult result = pmeditor_find_longest_line(self, &line, &length);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, line);
-    EXPECT_EQ(0, length);
-}
-
-TEST_F(PmEditorFindLongestLineTest, SingleLineReturnsCorrectLength) {
-    SetBuffer("hello");
-
-    int line = -1;
-    int length = -1;
-    MmResult result = pmeditor_find_longest_line(self, &line, &length);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, line);
-    EXPECT_EQ(5, length);
-}
-
-TEST_F(PmEditorFindLongestLineTest, MultipleLinesFindsLongest) {
-    SetBuffer("short\nmedium length\nloooooongest line here\nmid");
-
-    int line = -1;
-    int length = -1;
-    MmResult result = pmeditor_find_longest_line(self, &line, &length);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(2, line);
-    EXPECT_EQ(22, length);
-}
-
-TEST_F(PmEditorFindLongestLineTest, HandlesTrailingNewline) {
-    SetBuffer("abc\n1234\n");
-
-    int line = -1;
-    int length = -1;
-    MmResult result = pmeditor_find_longest_line(self, &line, &length);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(1, line);
-    EXPECT_EQ(4, length);
-}
-
-TEST_F(PmEditorFindLongestLineTest, LastLineIsLongest) {
-    SetBuffer("short\nmedium length\nmid\nloooooongest line here");
-
-    int line = -1;
-    int length = -1;
-    MmResult result = pmeditor_find_longest_line(self, &line, &length);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(3, line);
-    EXPECT_EQ(22, length);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_char()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdCharTest : public PmEditorTestBase { };
-
-// Test insert mode dispatches to insert
-TEST_F(PmEditorCmdCharTest, InsertModeDispatchesToInsert) {
-    SetBuffer("Hello");
-    SetTxtp(5);
-    self->insert = true;
-    self->key_buf[0] = '!';
-
-    MmResult result = pmeditor_cmd_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello!", self->buf);
-    EXPECT_EQ(self->buf + 6, self->txtp);
-}
-
-// Test overwrite mode dispatches to overwrite
-TEST_F(PmEditorCmdCharTest, OverwriteModeDispatchesToOverwrite) {
-    SetBuffer("Hello");
-    SetTxtp(0);
-    self->insert = false;
-    self->key_buf[0] = 'J';
-
-    MmResult result = pmeditor_cmd_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Jello", self->buf);
-    EXPECT_EQ(self->buf + 1, self->txtp);
-}
-
-// Test overwrite mode at newline dispatches to insert
-TEST_F(PmEditorCmdCharTest, OverwriteModeAtNewlineDispatchesToInsert) {
-    SetBuffer("Line1\nLine2");
-    SetTxtp(5); // At newline
-    self->insert = false;
-    self->key_buf[0] = '!';
-
-    MmResult result = pmeditor_cmd_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1!\nLine2", self->buf);
-}
-
-// Test overwrite mode at end of buffer dispatches to insert
-TEST_F(PmEditorCmdCharTest, OverwriteModeAtEndDispatchesToInsert) {
-    SetBuffer("Hello");
-    SetCursorAtEnd();
-    self->insert = false;
-    self->key_buf[0] = '!';
-
-    MmResult result = pmeditor_cmd_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello!", self->buf);
-    EXPECT_EQ(self->buf + 6, self->txtp);
-}
-
-// Test non-printable character ignored
-TEST_F(PmEditorCmdCharTest, NonPrintableCharacterIgnored) {
-    SetBuffer("Hello");
-    SetTxtp(0);
-    self->insert = true;
-    self->key_buf[0] = '\x01'; // Non-printable
-
-    MmResult result = pmeditor_cmd_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello", self->buf); // Unchanged
-    EXPECT_EQ(self->buf, self->txtp); // Cursor unchanged
-}
-
-// Test line redraw after normal insert
-TEST_F(PmEditorCmdCharTest, LineRedrawAfterNormalInsert) {
-    SetBuffer("Hello");
-    SetTxtp(5); // At end
-    self->insert = true;
-    self->key_buf[0] = '!';
-
-    MmResult result = pmeditor_cmd_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_LINES_CHANGED(0, 0);
-}
-
-// Test screen redraw after multiline comment change
-TEST_F(PmEditorCmdCharTest, ScreenRedrawAfterMultilineCommentChange) {
-    SetBuffer("code * more");
-    SetTxtp(5); // At '*'
-    self->insert = true;
-    self->key_buf[0] = '/';
-
-    MmResult result = pmeditor_cmd_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("code /* more", self->buf);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
-}
-
-// Test no redraw when insert returns REDRAW_NOTHING
-TEST_F(PmEditorCmdCharTest, NoRedrawWhenInsertReturnsNothing) {
-    SetBuffer("Hello");
-    SetTxtp(0);
-    self->insert = true;
-    self->key_buf[0] = '\x01'; // Non-printable, insert will return NOTHING
-
-    MmResult result = pmeditor_cmd_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_NO_LINES_CHANGED();
-}
-
-// Test cursor positioning after insert
-TEST_F(PmEditorCmdCharTest, CursorPositioningAfterInsert) {
-    SetBuffer("Hello");
-    SetTxtp(1);
-    self->insert = true;
-    self->key_buf[0] = 'X';
-
-    MmResult result = pmeditor_cmd_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->txtp, self->buf + 2);
-}
-
-// Test cursor positioning after overwrite
-TEST_F(PmEditorCmdCharTest, CursorPositioningAfterOverwrite) {
-    SetBuffer("Hello");
-    SetTxtp(1);
-    self->insert = false;
-    self->key_buf[0] = 'J';
-
-    MmResult result = pmeditor_cmd_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->txtp, self->buf + 2);
-}
-
-// Test overwrite mode with null terminator ahead (acts like insert)
-TEST_F(PmEditorCmdCharTest, OverwriteModeWithNullTerminatorAheadActsLikeInsert) {
-    SetBuffer("Hello");
-    SetCursorAtEnd(); // At '\0'
-    self->insert = false;
-    self->key_buf[0] = '!';
-
-    MmResult result = pmeditor_cmd_char(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello!", self->buf);
-    EXPECT_EQ(6, strlen(self->buf));
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_back_in_line()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorBackInLineTest : public PmEditorTestBase {};
-
-TEST_F(PmEditorBackInLineTest, MoveBackInMiddleOfLine) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf + 10;  // Start at 'd' (end of "World")
-
-    char* result = pmeditor_back_in_line(self, start_pos, 3);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(7, actual_offset) << "Should be at 'r' in 'World'";
-}
-
-TEST_F(PmEditorBackInLineTest, MoveBackToStartOfLine) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf + 5;  // Start at space
-
-    char* result = pmeditor_back_in_line(self, start_pos, 5);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(0, actual_offset) << "Should be at start of line";
-}
-
-TEST_F(PmEditorBackInLineTest, MoveBackOneCharacter) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf + 5;  // Start at space
-
-    char* result = pmeditor_back_in_line(self, start_pos, 1);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(4, actual_offset) << "Should be at 'o' in 'Hello'";
-}
-
-TEST_F(PmEditorBackInLineTest, NoMovementZeroChars) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf + 5;  // Start at space
-
-    char* result = pmeditor_back_in_line(self, start_pos, 0);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(5, actual_offset) << "Should stay at same position";
-}
-
-TEST_F(PmEditorBackInLineTest, MoveFromStartOfLine) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf;  // Start at beginning
-
-    char* result = pmeditor_back_in_line(self, start_pos, 3);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(0, actual_offset) << "Should stay at beginning";
-}
-
-TEST_F(PmEditorBackInLineTest, MoveBackInSecondLine) {
-    SetBuffer("First line\nSecond line\nThird line");
-    char* start_pos = self->buf + 20;  // Start at 'n' in "Second line"
-
-    char* result = pmeditor_back_in_line(self, start_pos, 6);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(14, actual_offset) << "Should be at 'c' in 'Second'";
-}
-
-TEST_F(PmEditorBackInLineTest, MoveBackToStartOfSecondLine) {
-    SetBuffer("First line\nSecond line\nThird line");
-    char* start_pos = self->buf + 20;  // Start at 'n' in "Second line"
-
-    char* result = pmeditor_back_in_line(self, start_pos, 10);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(11, actual_offset) << "Should stop at start of second line (after \\n)";
-}
-
-TEST_F(PmEditorBackInLineTest, MoveBackInThirdLine) {
-    SetBuffer("First line\nSecond line\nThird line");
-    char* start_pos = self->buf + 30;  // Start somewhere in "Third line"
-
-    char* result = pmeditor_back_in_line(self, start_pos, 3);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(27, actual_offset) << "Should move back 3 positions";
-}
-
-TEST_F(PmEditorBackInLineTest, StartAtNewlineCharacter) {
-    SetBuffer("First line\nSecond line");
-    char* start_pos = self->buf + 10;  // Start at '\n'
-
-    char* result = pmeditor_back_in_line(self, start_pos, 5);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(5, actual_offset) << "Should be at 'l' in 'First line'";
-}
-
-TEST_F(PmEditorBackInLineTest, StartJustAfterNewline) {
-    SetBuffer("First line\nSecond line");
-    char* start_pos = self->buf + 11;  // Start at 'S' in "Second"
-
-    char* result = pmeditor_back_in_line(self, start_pos, 1);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(11, actual_offset) << "Should stay at start of line (can't go to previous line)";
-}
-
-TEST_F(PmEditorBackInLineTest, MoveBackMoreThanAvailable) {
-    SetBuffer("Hello");
-    char* start_pos = self->buf + 4;  // Start at 'o'
-
-    char* result = pmeditor_back_in_line(self, start_pos, 10);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(0, actual_offset) << "Should stop at start of line";
-}
-
-TEST_F(PmEditorBackInLineTest, SingleCharacterLine) {
-    SetBuffer("A");
-    char* start_pos = self->buf;  // Start at 'A'
-
-    char* result = pmeditor_back_in_line(self, start_pos, 1);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(0, actual_offset) << "Should stay at 'A'";
-}
-
-TEST_F(PmEditorBackInLineTest, EmptyLineAfterNewline) {
-    SetBuffer("Hello\n\nWorld");
-    char* start_pos = self->buf + 6;  // Start at second newline
-
-    char* result = pmeditor_back_in_line(self, start_pos, 1);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(6, actual_offset) << "Should stay at start of empty line";
-}
-
-TEST_F(PmEditorBackInLineTest, VeryLargeNumChars) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf + 10;  // Start at end
-
-    char* result = pmeditor_back_in_line(self, start_pos, SIZE_MAX);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(0, actual_offset) << "Should stop at start of line";
-}
-
-TEST_F(PmEditorBackInLineTest, StartAtVeryEndOfBuffer) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf + 10;  // Start at 'd' (last character)
-
-    char* result = pmeditor_back_in_line(self, start_pos, 5);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(5, actual_offset) << "Should be at space";
-}
-
-TEST_F(PmEditorBackInLineTest, LineWithTabs) {
-    SetBuffer("Hello\tWorld\tTest");
-    char* start_pos = self->buf + 15;  // Start at 't' in "Test"
-
-    char* result = pmeditor_back_in_line(self, start_pos, 7);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(8, actual_offset) << "Should be at 'r' in 'World'";
-}
-
-TEST_F(PmEditorBackInLineTest, LineWithSpaces) {
-    SetBuffer("Hello   World");
-    char* start_pos = self->buf + 12;  // Start at 'd'
-
-    char* result = pmeditor_back_in_line(self, start_pos, 8);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(4, actual_offset) << "Should be at 'o' in 'Hello'";
-}
-
-TEST_F(PmEditorBackInLineTest, SpecialSymbols) {
-    SetBuffer("/*comment*/code");
-    char* start_pos = self->buf + 14;  // Start at 'e' in "code"
-
-    char* result = pmeditor_back_in_line(self, start_pos, 6);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(8, actual_offset) << "Should be at 't' in 'comment'";
-}
-
-TEST_F(PmEditorBackInLineTest, UnicodeCharacters) {
-    SetBuffer("Héllo Wörld");
-    char* start_pos = self->buf + 10;  // Start at 'd'
-
-    char* result = pmeditor_back_in_line(self, start_pos, 5);
-
-    ASSERT_NE(nullptr, result) << "Expected valid result but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(5, actual_offset) << "Should be at space (assumes single-byte chars)";
-}
-
-TEST_F(PmEditorBackInLineTest, NullParameters) {
-    SetBuffer("Hello World");
-
-    // Test null editor
-    EXPECT_EQ(nullptr, pmeditor_back_in_line(nullptr, self->buf + 5, 3));
-
-    // Test null start
-    EXPECT_EQ(nullptr, pmeditor_back_in_line(self, nullptr, 3));
-}
-
-TEST_F(PmEditorBackInLineTest, ConsecutiveNewlines) {
-    SetBuffer("Line1\n\n\nLine4");
-
-    // Start in the middle of consecutive newlines
-    char* start = self->buf + 7;  // Second newline
-    char* result = pmeditor_back_in_line(self, start, 1);
-
-    EXPECT_NE(nullptr, result);
-    EXPECT_EQ(self->buf + 7, result) << "Should stay at start of empty line";
-}
-
-TEST_F(PmEditorBackInLineTest, OnlyNewlines) {
-    SetBuffer("\n\n\n");
-
-    // Start at second newline
-    char* start = self->buf + 1;
-    char* result = pmeditor_back_in_line(self, start, 1);
-
-    EXPECT_NE(nullptr, result);
-    EXPECT_EQ(start, result) << "Should stay at start of empty line";
-}
-
-TEST_F(PmEditorBackInLineTest, LongLine) {
-    // Create a long line without newlines
-    std::string long_content(1000, 'A');
-    SetBuffer(long_content.c_str());
-
-    // Start near the end and move back significantly
-    char* start = self->buf + 900;
-    char* result = pmeditor_back_in_line(self, start, 500);
-
-    EXPECT_NE(nullptr, result);
-    EXPECT_EQ(self->buf + 400, result);
-}
-
-TEST_F(PmEditorBackInLineTest, BufferBoundaryConditions) {
-    SetBuffer("Test content");
-
-    // Test at exact buffer start
-    char* result1 = pmeditor_back_in_line(self, self->buf, 5);
-    EXPECT_EQ(self->buf, result1);
-
-    // Test at buffer start + 1
-    char* result2 = pmeditor_back_in_line(self, self->buf + 1, 1);
-    EXPECT_EQ(self->buf, result2);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_find_in_line()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorFindInLineTest : public PmEditorTestBase {};
-
-TEST_F(PmEditorFindInLineTest, FindSimpleMatch) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "World", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'World' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(6, actual_offset) << "Basic substring search";
-}
-
-TEST_F(PmEditorFindInLineTest, FindCaseInsensitive) {
-    SetBuffer("Hello WORLD");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "world", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'world' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(6, actual_offset) << "Case insensitive matching";
-}
-
-TEST_F(PmEditorFindInLineTest, FindMixedCase) {
-    SetBuffer("Hello WoRlD");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "WOrLD", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'WOrLD' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(6, actual_offset) << "Mixed case matching";
-}
-
-TEST_F(PmEditorFindInLineTest, NotFound) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "xyz", start_pos, 20);
-
-    EXPECT_EQ(nullptr, result) << "Expected NULL but found match - substring not present";
-}
-
-TEST_F(PmEditorFindInLineTest, FindAtStart) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'Hello' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(0, actual_offset) << "Match at beginning of line";
-}
-
-TEST_F(PmEditorFindInLineTest, FindAtEnd) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "World", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'World' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(6, actual_offset) << "Match at end of line";
-}
-
-TEST_F(PmEditorFindInLineTest, SearchWithinLine) {
-    SetBuffer("First line\nSecond line\nThird line");
-    char* start_pos = self->buf + 11;  // Start of "Second line"
-
-    char* result = pmeditor_find_in_line(self, "Second", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'Second' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(11, actual_offset) << "Search within specific line";
-}
-
-TEST_F(PmEditorFindInLineTest, DoesNotCrossLines) {
-    SetBuffer("First line\nSecond line");
-    char* start_pos = self->buf + 6;  // Start at "line\n"
-
-    char* result = pmeditor_find_in_line(self, "line Second", start_pos, 20);
-
-    EXPECT_EQ(nullptr, result) << "Should not find across line boundaries";
-}
-
-TEST_F(PmEditorFindInLineTest, SearchFromMiddleOfLine) {
-    SetBuffer("Hello Beautiful World");
-    char* start_pos = self->buf + 6;  // Start at "Beautiful"
-
-    char* result = pmeditor_find_in_line(self, "World", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'World' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(16, actual_offset) << "Search from middle of line";
-}
-
-TEST_F(PmEditorFindInLineTest, SearchFromMiddleNotFound) {
-    SetBuffer("Hello Beautiful World");
-    char* start_pos = self->buf + 6;  // Start at "Beautiful"
-
-    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 20);
-
-    EXPECT_EQ(nullptr, result) << "Should not find text before start position";
-}
-
-TEST_F(PmEditorFindInLineTest, MaxLenLimitsSearch) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "World", start_pos, 8);  // Only search first 8 characters
-
-    EXPECT_EQ(nullptr, result) << "Max length should limit search area";
-}
-
-TEST_F(PmEditorFindInLineTest, MaxLenAllowsSearch) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "World", start_pos, 11);  // Search all 11 characters
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'World' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(6, actual_offset) << "Max length allows finding match";
-}
-
-TEST_F(PmEditorFindInLineTest, MaxLenZero) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 0);  // Zero max length
-
-    EXPECT_EQ(nullptr, result) << "Zero max length should find nothing";
-}
-
-TEST_F(PmEditorFindInLineTest, MaxLenSmallerThanNeedle) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 3);  // Max length smaller than needle
-
-    EXPECT_EQ(nullptr, result) << "Max length smaller than needle should find nothing";
-}
-
-TEST_F(PmEditorFindInLineTest, MaxLenExactNeedleSize) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 5);  // Max length exactly needle size
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'Hello' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(0, actual_offset) << "Max length exactly needle size should work";
-}
-
-// Edge Cases
-TEST_F(PmEditorFindInLineTest, SingleCharacterMatch) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "o", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'o' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(4, actual_offset) << "Single character search - first 'o' in 'Hello'";
-}
-
-TEST_F(PmEditorFindInLineTest, EmptyLine) {
-    SetBuffer("\n");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "test", start_pos, 20);
-
-    EXPECT_EQ(nullptr, result) << "Search in empty line";
-}
-
-TEST_F(PmEditorFindInLineTest, OnlyNewlines) {
-    SetBuffer("\n\n\n");
-    char* start_pos = self->buf + 1;  // Start at second newline
-
-    char* result = pmeditor_find_in_line(self, "test", start_pos, 20);
-
-    EXPECT_EQ(nullptr, result) << "Search in line with only newlines";
-}
-
-TEST_F(PmEditorFindInLineTest, SpecialCharacters) {
-    SetBuffer("Hello/*World*/");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "/*", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find '/*' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(5, actual_offset) << "Search for special characters";
-}
-
-TEST_F(PmEditorFindInLineTest, RepeatedPattern) {
-    SetBuffer("ababab");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "ab", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'ab' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(0, actual_offset) << "Repeated pattern should find first match";
-}
-
-TEST_F(PmEditorFindInLineTest, OverlappingPattern) {
-    SetBuffer("aaaaaa");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "aa", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'aa' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(0, actual_offset) << "Overlapping pattern should find first match";
-}
-
-TEST_F(PmEditorFindInLineTest, NullParameters) {
-    SetBuffer("Hello World");
-
-    // Test null editor
-    EXPECT_EQ(nullptr, pmeditor_find_in_line(nullptr, "test", self->buf, 10));
-
-    // Test null needle
-    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, nullptr, self->buf, 10));
-
-    // Test null start
-    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "test", nullptr, 10));
-
-    // Test empty needle
-    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "", self->buf, 10));
-}
-
-TEST_F(PmEditorFindInLineTest, OutOfBoundsStart) {
-    SetBuffer("Hello World");
-
-    // Test start before buffer
-    char* before_buffer = self->buf - 1;
-    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "test", before_buffer, 10));
-
-    // Test start after buffer
-    char* after_buffer = self->buf + EDIT_BUFFER_SIZE;
-    EXPECT_EQ(nullptr, pmeditor_find_in_line(self, "test", after_buffer, 10));
-}
-
-// Performance test for large buffers
-TEST_F(PmEditorFindInLineTest, LargeBuffer) {
-    // Fill buffer with pattern
-    for (int i = 0; i < EDIT_BUFFER_SIZE - 10; i += 10) {
-        memcpy(self->buf + i, "0123456789", 10);
-    }
-    self->buf[EDIT_BUFFER_SIZE - 1] = '\0';
-
-    // Search for pattern near the end
-    char* result = pmeditor_find_in_line(self, "789", self->buf, EDIT_BUFFER_SIZE);
-    EXPECT_NE(nullptr, result);
-    EXPECT_EQ('7', *result);
-}
-
-TEST_F(PmEditorFindInLineTest, SearchAtExactLineEnd) {
-    SetBuffer("Hello\nWorld");
-    char* start_pos = self->buf + 4;  // Start at 'o' before newline
-
-    char* result = pmeditor_find_in_line(self, "o", start_pos, 5);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'o' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(4, actual_offset) << "Should find character at line end";
-}
-
-TEST_F(PmEditorFindInLineTest, SearchStopsAtNewline) {
-    SetBuffer("Hello\nHello");
-    char* start_pos = self->buf + 6;  // Start after newline
-
-    char* result = pmeditor_find_in_line(self, "Hello", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'Hello' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(6, actual_offset) << "Should find in current line only";
-}
-
-TEST_F(PmEditorFindInLineTest, PartialMatchAtLineEnd) {
-    SetBuffer("Hello Wor\nld");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "World", start_pos, 20);
-
-    EXPECT_EQ(nullptr, result) << "Should not match partial string across newline";
-}
-
-TEST_F(PmEditorFindInLineTest, CaseInsensitiveWithNumbers) {
-    SetBuffer("Test123ABC");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "123abc", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find '123abc' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(4, actual_offset) << "Case insensitive with numbers";
-}
-
-TEST_F(PmEditorFindInLineTest, WhitespaceHandling) {
-    SetBuffer("Hello   World");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "   ", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find '   ' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(5, actual_offset) << "Should find whitespace sequences";
-}
-
-TEST_F(PmEditorFindInLineTest, TabCharacterSearch) {
-    SetBuffer("Hello\tWorld");
-    char* start_pos = self->buf;
-
-    char* result = pmeditor_find_in_line(self, "\t", start_pos, 20);
-
-    ASSERT_NE(nullptr, result) << "Expected to find tab character but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(5, actual_offset) << "Should find tab character";
-}
-
-TEST_F(PmEditorFindInLineTest, SearchNearBufferEnd) {
-    SetBuffer("Hello World");
-    char* start_pos = self->buf + 8;  // Start near end
-
-    char* result = pmeditor_find_in_line(self, "rld", start_pos, 5);
-
-    ASSERT_NE(nullptr, result) << "Expected to find 'rld' but got NULL";
-    size_t actual_offset = result - self->buf;
-    EXPECT_EQ(8, actual_offset) << "Should find match near buffer end";
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -3873,3540 +8107,6 @@ TEST_F(PmEditorOverwriteCharTest, OverwritePreservesBufferIntegrity) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_copy()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorMarkTestBase : public PmEditorTestBase {
-   protected:
-    void SetUp() override {
-        PmEditorTestBase::SetUp();
-        self->mode = kMarkMode;
-    }
-};
-
-class PmEditorCmdCopyTest : public PmEditorMarkTestBase { };
-
-// Test basic copy with mark before txtp
-TEST_F(PmEditorCmdCopyTest, CopyWhenMarkBeforeTxtp) {
-    SetBuffer("Hello World");
-    SetMark(2);  // At 'l' in "Hello"
-    SetTxtp(7);  // At 'o' in "World"
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("llo W", self->clipboard_buf);
-    EXPECT_STREQ("Hello World", self->buf);  // Buffer unchanged
-    EXPECT_TXTP_EQ(7);  // Cursor unchanged
-    EXPECT_FALSE(self->text_changed);  // Copy doesn't modify text
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test basic copy with mark after txtp
-TEST_F(PmEditorCmdCopyTest, CopyWhenMarkAfterTxtp) {
-    SetBuffer("Hello World");
-    SetMark(7);  // At 'o' in "World"
-    SetTxtp(2);  // At 'l' in "Hello"
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("llo W", self->clipboard_buf);
-    EXPECT_STREQ("Hello World", self->buf);
-    EXPECT_TXTP_EQ(2);
-    EXPECT_FALSE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test copying zero-length selection
-TEST_F(PmEditorCmdCopyTest, CopyZeroLengthSelection) {
-    SetBuffer("Hello");
-    SetMark(3);
-    SetTxtp(3);
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->clipboard_buf);  // Empty clipboard
-    EXPECT_STREQ("Hello", self->buf);
-    EXPECT_TXTP_EQ(3);
-    EXPECT_FALSE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test copying single character
-TEST_F(PmEditorCmdCopyTest, CopySingleCharacter) {
-    SetBuffer("ABCDEF");
-    SetMark(2);  // At 'C'
-    SetTxtp(3);  // At 'D'
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("C", self->clipboard_buf);
-    EXPECT_STREQ("ABCDEF", self->buf);
-    EXPECT_FALSE(self->text_changed);
-}
-
-// Test copying entire buffer
-TEST_F(PmEditorCmdCopyTest, CopyEntireBuffer) {
-    SetBuffer("Hello");
-    SetMark(0);
-    SetTxtp(5);
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello", self->clipboard_buf);
-    EXPECT_STREQ("Hello", self->buf);
-    EXPECT_FALSE(self->text_changed);
-}
-
-// Test copying with newlines
-TEST_F(PmEditorCmdCopyTest, CopyWithNewlines) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetMark(6);   // After "Line0\n"
-    SetTxtp(12);  // After "Line1\n"
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1\n", self->clipboard_buf);
-    EXPECT_STREQ("Line0\nLine1\nLine2", self->buf);
-    EXPECT_EQ(3, self->num_lines);  // num_lines unchanged
-    EXPECT_FALSE(self->text_changed);
-}
-
-// Test copying multiple newlines
-TEST_F(PmEditorCmdCopyTest, CopyMultipleNewlines) {
-    SetBuffer("A\nB\nC\nD");
-    SetMark(0);
-    SetTxtp(6);  // After "A\nB\nC\n"
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("A\nB\nC\n", self->clipboard_buf);
-    EXPECT_STREQ("A\nB\nC\nD", self->buf);
-    EXPECT_FALSE(self->text_changed);
-}
-
-// Test clipboard size limit - exactly at limit
-TEST_F(PmEditorCmdCopyTest, CopyAtClipboardLimit) {
-    std::string content(MAXCLIP, 'X');
-    SetBuffer(content.c_str());
-    SetMark(0);
-    SetTxtp(MAXCLIP);
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
-    EXPECT_FALSE(self->text_changed);
-}
-
-// Test clipboard size limit - exceeds limit (mark before txtp)
-TEST_F(PmEditorCmdCopyTest, CopyExceedsClipboardLimitMarkBefore) {
-    std::string content(MAXCLIP + 10, 'X');
-    SetBuffer(content.c_str());
-    SetMark(0);
-    SetTxtp(MAXCLIP + 5);
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
-    EXPECT_STREQ("", self->clipboard_buf);  // Clipboard unchanged/empty
-    EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
-}
-
-// Test clipboard size limit - exceeds limit (mark after txtp)
-TEST_F(PmEditorCmdCopyTest, CopyExceedsClipboardLimitMarkAfter) {
-    std::string content(MAXCLIP + 10, 'X');
-    SetBuffer(content.c_str());
-    SetMark(MAXCLIP + 5);
-    SetTxtp(0);
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
-    EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
-}
-
-// Test clipboard size limit - exactly MAXCLIP + 1 (boundary)
-TEST_F(PmEditorCmdCopyTest, CopyExceedsClipboardByOne) {
-    std::string content(MAXCLIP + 1, 'Y');
-    SetBuffer(content.c_str());
-    SetMark(0);
-    SetTxtp(MAXCLIP + 1);
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
-}
-
-// Test copying overwrites previous clipboard content
-TEST_F(PmEditorCmdCopyTest, CopyOverwritesPreviousClipboard) {
-    strcpy(self->clipboard_buf, "OLD CONTENT");
-
-    SetBuffer("NEW");
-    SetMark(0);
-    SetTxtp(3);
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("NEW", self->clipboard_buf);
-    EXPECT_FALSE(self->text_changed);
-}
-
-// Test copying from middle of buffer
-TEST_F(PmEditorCmdCopyTest, CopyFromMiddleOfBuffer) {
-    SetBuffer("AAABBBCCC");
-    SetMark(3);  // Start of "BBB"
-    SetTxtp(6);  // End of "BBB"
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("BBB", self->clipboard_buf);
-    EXPECT_STREQ("AAABBBCCC", self->buf);
-}
-
-// Test copying preserves cursor position exactly
-TEST_F(PmEditorCmdCopyTest, PreservesCursorPosition) {
-    SetBuffer("Line0\nLine1\nLine2");
-    self->py = 0;
-    SetMark(6);  // At 'L' in "Line1"
-    SetTxtp(9);  // At 'e' om "Line1"
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(9);
-    EXPECT_CURSOR_EQ(3, 1);  // Cursor position unchanged
-}
-
-// Test copying with special characters (tabs, etc.)
-TEST_F(PmEditorCmdCopyTest, CopyWithSpecialCharacters) {
-    SetBuffer("Tab\there\tSpaces  End");
-    SetMark(0);
-    SetTxtp(9);  // After second tab
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Tab\there\t", self->clipboard_buf);
-    EXPECT_FALSE(self->text_changed);
-}
-
-// Test clipboard null termination
-TEST_F(PmEditorCmdCopyTest, ClipboardNullTermination) {
-    SetBuffer("TEST");
-    SetMark(0);
-    SetTxtp(4);
-
-    // Pre-fill clipboard with garbage
-    memset(self->clipboard_buf, 'Z', MAXCLIP);
-    self->clipboard_buf[MAXCLIP] = '\0';
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("TEST", self->clipboard_buf);
-    EXPECT_EQ('\0', self->clipboard_buf[4]);  // Properly null-terminated
-}
-
-// Test copying empty buffer
-TEST_F(PmEditorCmdCopyTest, CopyFromEmptyBuffer) {
-    SetBuffer("");
-    SetMark(0);
-    SetTxtp(0);
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->clipboard_buf);
-    EXPECT_FALSE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);
-}
-
-// Test that mark position is preserved
-TEST_F(PmEditorCmdCopyTest, PreservesMarkPosition) {
-    SetBuffer("Hello World");
-    SetMark(2);
-    SetTxtp(7);
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_MARK_EQ(2);  // Mark unchanged
-    EXPECT_TXTP_EQ(7);  // Txtp unchanged
-}
-
-// Test backward selection (txtp < mark)
-TEST_F(PmEditorCmdCopyTest, CopyBackwardSelection) {
-    SetBuffer("0123456789");
-    SetMark(7);
-    SetTxtp(3);
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("3456", self->clipboard_buf);
-    EXPECT_TXTP_EQ(3);  // Original positions preserved
-    EXPECT_MARK_EQ(7);
-}
-
-// Test forward selection (txtp > mark)
-TEST_F(PmEditorCmdCopyTest, CopyForwardSelection) {
-    SetBuffer("0123456789");
-    SetMark(3);
-    SetTxtp(7);
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("3456", self->clipboard_buf);
-    EXPECT_TXTP_EQ(7);
-    EXPECT_MARK_EQ(3);
-}
-
-// Test off-by-one: mark at txtp-1 (inclusive vs exclusive)
-TEST_F(PmEditorCmdCopyTest, CopyMarkAtTxtpMinusOne) {
-    SetBuffer("ABCDEFGH");
-    SetMark(4);   // At 'E'
-    SetTxtp(5);   // At 'F'
-
-    MmResult result = pmeditor_cmd_copy(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("E", self->clipboard_buf);
-}
-
-// Test copying respects MAXCLIP exactly (not MAXCLIP+1 or MAXCLIP+2)
-TEST_F(PmEditorCmdCopyTest, ClipboardSizeBoundaryCheck) {
-    // Test that MAXCLIP characters can be copied
-    std::string content1(MAXCLIP, 'A');
-    SetBuffer(content1.c_str());
-    SetMark(0);
-    SetTxtp(MAXCLIP);
-
-    EXPECT_EQ(kOk, pmeditor_cmd_copy(self));
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
-
-    // Test that MAXCLIP+1 characters cannot be copied
-    std::string content2(MAXCLIP + 1, 'B');
-    SetBuffer(content2.c_str());
-    SetMark(0);
-    SetTxtp(MAXCLIP + 1);
-
-    EXPECT_EQ(kOk, pmeditor_cmd_copy(self));
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_cut()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdCutTest : public PmEditorMarkTestBase { };
-
-// Test basic cut with mark before txtp
-TEST_F(PmEditorCmdCutTest, CutWhenMarkBeforeTxtp) {
-    SetBuffer("Hello World");
-    SetMark(2);  // At 'l' in "Hello"
-    SetTxtp(7);  // At 'o' in "World"
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("llo W", self->clipboard_buf);
-    EXPECT_STREQ("Heorld", self->buf);  // Text removed
-    EXPECT_TXTP_EQ(2);  // Cursor at mark position
-    EXPECT_CURSOR_EQ(2, 0);
-    EXPECT_TRUE(self->text_changed);  // Cut modifies text
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test basic cut with mark after txtp
-TEST_F(PmEditorCmdCutTest, CutWhenMarkAfterTxtp) {
-    SetBuffer("Hello World");
-    SetMark(7);  // At 'o' in "World"
-    SetTxtp(2);  // At 'l' in "Hello"
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("llo W", self->clipboard_buf);
-    EXPECT_STREQ("Heorld", self->buf);
-    EXPECT_TXTP_EQ(2);  // Cursor stays at txtp
-    EXPECT_CURSOR_EQ(2, 0);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting zero-length selection
-TEST_F(PmEditorCmdCutTest, CutZeroLengthSelection) {
-    SetBuffer("Hello");
-    SetMark(3);
-    SetTxtp(3);
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->clipboard_buf);  // Empty clipboard
-    EXPECT_STREQ("Hello", self->buf);  // Nothing removed
-    EXPECT_TXTP_EQ(3);
-    EXPECT_FALSE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting single character
-TEST_F(PmEditorCmdCutTest, CutSingleCharacter) {
-    SetBuffer("ABCDEF");
-    SetMark(2);  // At 'C'
-    SetTxtp(3);  // At 'D'
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("C", self->clipboard_buf);
-    EXPECT_STREQ("ABDEF", self->buf);
-    EXPECT_TXTP_EQ(2);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting entire buffer
-TEST_F(PmEditorCmdCutTest, CutEntireBuffer) {
-    SetBuffer("Hello");
-    SetMark(0);
-    SetTxtp(5);
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello", self->clipboard_buf);
-    EXPECT_STREQ("", self->buf);  // Buffer now empty
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting with newlines updates num_lines
-TEST_F(PmEditorCmdCutTest, CutWithNewlines) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetMark(6);   // After "Line0\n"
-    SetTxtp(12);  // After "Line1\n"
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1\n", self->clipboard_buf);
-    EXPECT_STREQ("Line0\nLine2", self->buf);
-    EXPECT_EQ(2, self->num_lines);  // One newline removed
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting multiple newlines
-TEST_F(PmEditorCmdCutTest, CutMultipleNewlines) {
-    SetBuffer("A\nB\nC\nD");
-    SetMark(0);
-    SetTxtp(6);  // After "C\n"
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("A\nB\nC\n", self->clipboard_buf);
-    EXPECT_STREQ("D", self->buf);
-    EXPECT_EQ(1, self->num_lines);  // Three newlines removed
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test clipboard size limit - exactly at limit
-TEST_F(PmEditorCmdCutTest, CutAtClipboardLimit) {
-    std::string content(MAXCLIP, 'X');
-    SetBuffer(content.c_str());
-    SetMark(0);
-    SetTxtp(MAXCLIP);
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
-    EXPECT_STREQ("", self->buf);  // Content cut
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test clipboard size limit - exceeds limit
-TEST_F(PmEditorCmdCutTest, CutExceedsClipboardLimit) {
-    std::string content(MAXCLIP + 10, 'X');
-    SetBuffer(content.c_str());
-    SetMark(0);
-    SetTxtp(MAXCLIP + 5);
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
-    // Buffer should be UNCHANGED when clipboard overflow occurs
-    EXPECT_EQ(MAXCLIP + 10, strlen(self->buf));
-    EXPECT_EQ(kMarkMode, self->mode);  // Should NOT exit mark mode on error
-}
-
-// Test cutting from middle of buffer
-TEST_F(PmEditorCmdCutTest, CutFromMiddleOfBuffer) {
-    SetBuffer("AAABBBCCC");
-    SetMark(3);  // Start of "BBB"
-    SetTxtp(6);  // End of "BBB"
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("BBB", self->clipboard_buf);
-    EXPECT_STREQ("AAACCC", self->buf);
-    EXPECT_TXTP_EQ(3);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting preserves content after cut region
-TEST_F(PmEditorCmdCutTest, PreservesContentAfterCutRegion) {
-    SetBuffer("StartMIDDLEEnd");
-    SetMark(5);   // Before "MIDDLE"
-    SetTxtp(11);  // After "MIDDLE"
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("MIDDLE", self->clipboard_buf);
-    EXPECT_STREQ("StartEnd", self->buf);
-    EXPECT_TXTP_EQ(5);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting updates cursor position to lower of mark/txtp
-TEST_F(PmEditorCmdCutTest, CursorMovesToLowerPosition) {
-    SetBuffer("0123456789");
-    SetMark(2);  // Low position
-    SetTxtp(8);  // High position
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(2);  // Cursor at lower position
-    EXPECT_CURSOR_EQ(2, 0);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting with mark > txtp also moves to lower position
-TEST_F(PmEditorCmdCutTest, CursorMovesToLowerPositionReversed) {
-    SetBuffer("0123456789");
-    SetMark(8);  // High position
-    SetTxtp(2);  // Low position
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(2);  // Cursor at lower position
-    EXPECT_CURSOR_EQ(2, 0);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test buffer termination after cut
-TEST_F(PmEditorCmdCutTest, BufferTerminationAfterCut) {
-    SetBuffer("ABCDEFGH");
-    SetMark(2);
-    SetTxtp(5);
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("CDE", self->clipboard_buf);
-    EXPECT_STREQ("ABFGH", self->buf);
-    // Check double null termination
-    EXPECT_EQ('\0', self->buf[5]);
-    EXPECT_EQ('\0', self->buf[6]);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting from start of buffer
-TEST_F(PmEditorCmdCutTest, CutFromStartOfBuffer) {
-    SetBuffer("Hello World");
-    SetMark(0);  // At 'H'
-    SetTxtp(6);  // At 'W'
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello ", self->clipboard_buf);
-    EXPECT_STREQ("World", self->buf);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting to end of buffer
-TEST_F(PmEditorCmdCutTest, CutToEndOfBuffer) {
-    SetBuffer("Hello World");
-    SetMark(6);   // At 'W'
-    SetTxtp(11);  // After 'd'
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("World", self->clipboard_buf);
-    EXPECT_STREQ("Hello ", self->buf);
-    EXPECT_TXTP_EQ(6);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting empty buffer
-TEST_F(PmEditorCmdCutTest, CutFromEmptyBuffer) {
-    SetBuffer("");
-    SetMark(0);
-    SetTxtp(0);
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->clipboard_buf);
-    EXPECT_STREQ("", self->buf);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_FALSE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting overwrites previous clipboard content
-TEST_F(PmEditorCmdCutTest, CutOverwritesPreviousClipboard) {
-    strcpy(self->clipboard_buf, "OLD CONTENT");
-
-    SetBuffer("NEW");
-    SetMark(0);
-    SetTxtp(3);
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("NEW", self->clipboard_buf);
-    EXPECT_STREQ("", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting with special characters
-TEST_F(PmEditorCmdCutTest, CutWithSpecialCharacters) {
-    SetBuffer("Tab\there\tEnd");
-    SetMark(0);
-    SetTxtp(9);  // After second tab
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Tab\there\t", self->clipboard_buf);
-    EXPECT_STREQ("End", self->buf);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting only a newline character
-TEST_F(PmEditorCmdCutTest, CutOnlyNewline) {
-    SetBuffer("Line1\nLine2");
-    SetMark(5);  // At newline
-    SetTxtp(6);  // Just after newline
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("\n", self->clipboard_buf);
-    EXPECT_STREQ("Line1Line2", self->buf);
-    EXPECT_EQ(1, self->num_lines);  // One newline removed
-    EXPECT_TXTP_EQ(5);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting large region
-TEST_F(PmEditorCmdCutTest, CutLargeRegion) {
-    std::string content(100, 'X');
-    SetBuffer(content.c_str());
-    SetMark(10);
-    SetTxtp(90);
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(80, strlen(self->clipboard_buf));  // 80 X's copied
-    EXPECT_EQ(20, strlen(self->buf));  // 10 + 10 remaining
-    EXPECT_TXTP_EQ(10);
-    EXPECT_TRUE(self->text_changed);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting across multiple lines with cursor positioning
-TEST_F(PmEditorCmdCutTest, CutAcrossMultipleLinesUpdatesCursor) {
-    SetBuffer("Line0\nLine1\nLine2\nLine3");
-    SetMark(6);   // Start of Line1
-    SetTxtp(18);  // In Line2
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1\nLine2\n", self->clipboard_buf);
-    EXPECT_STREQ("Line0\nLine3", self->buf);
-    EXPECT_EQ(2, self->num_lines);
-    EXPECT_TXTP_EQ(6);
-    EXPECT_CURSOR_EQ(0, 1);  // Start of second line
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test cutting maintains proper buffer state after large deletion
-TEST_F(PmEditorCmdCutTest, MaintainsBufferStateAfterLargeDeletion) {
-    SetBuffer("AAAAAAAAAA\nBBBBBBBBBB\nCCCCCCCCCC");
-    SetMark(0);
-    SetTxtp(13);  // In BBB section
-
-    MmResult result = pmeditor_cmd_cut(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(13, strlen(self->clipboard_buf));
-    EXPECT_STREQ("BBBBBBBB\nCCCCCCCCCC", self->buf);
-    EXPECT_EQ(2, self->num_lines);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_EQ(kEditMode, self->mode);  // Should exit mark mode
-}
-
-// Test clipboard boundary: MAXCLIP vs MAXCLIP+1
-TEST_F(PmEditorCmdCutTest, ClipboardBoundaryValidation) {
-    // Test that MAXCLIP characters can be cut
-    std::string content1(MAXCLIP, 'A');
-    SetBuffer(content1.c_str());
-    SetMark(0);
-    SetTxtp(MAXCLIP);
-
-    EXPECT_EQ(kOk, pmeditor_cmd_cut(self));
-    EXPECT_EQ(MAXCLIP, strlen(self->clipboard_buf));
-    EXPECT_STREQ("", self->buf);
-
-    // Test that MAXCLIP+1 characters cannot be cut (buffer preserved)
-    std::string content2(MAXCLIP + 1, 'B');
-    SetBuffer(content2.c_str());
-    SetMark(0);
-    SetTxtp(MAXCLIP + 1);
-
-    EXPECT_EQ(kOk, pmeditor_cmd_cut(self));
-    EXPECT_STREQ(" MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ", self->message);
-    EXPECT_EQ(MAXCLIP + 1, strlen(self->buf));  // Buffer UNCHANGED
-    EXPECT_EQ(kMarkMode, self->mode);  // Should not exit mark mode
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_delete_selection()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdDeleteSelectionTest : public PmEditorMarkTestBase { };
-
-// Test deleting when mark before txtp
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWhenMarkBeforeTxtp) {
-    SetBuffer("Hello World");
-    SetMark(2); // At 'l'
-    SetTxtp(7); // At 'o' in "World"
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Heorld", self->buf);
-    EXPECT_TXTP_EQ(2); // txtp should be at mark position
-    EXPECT_CURSOR_EQ(2, 0);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting when mark after txtp
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWhenMarkAfterTxtp) {
-    SetBuffer("Hello World");
-    SetMark(7); // At 'o' in "World"
-    SetTxtp(2); // At 'l'
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Heorld", self->buf);
-    EXPECT_TXTP_EQ(2); // txtp stays where it was
-    EXPECT_CURSOR_EQ(2, 0);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting when mark equals txtp (nothing to delete)
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWhenMarkEqualsTxtp) {
-    SetBuffer("Hello World");
-    SetMark(5);
-    SetTxtp(5);
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello World", self->buf); // Nothing deleted
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(5, 0);
-    EXPECT_FALSE(self->text_changed);
-}
-
-// Test deleting single character
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteSingleCharacter) {
-    SetBuffer("ABCDEF");
-    SetMark(2); // At 'C'
-    SetTxtp(3); // At 'D'
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("ABDEF", self->buf);
-    EXPECT_TXTP_EQ(2);
-    EXPECT_CURSOR_EQ(2, 0);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting entire buffer
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteEntireBuffer) {
-    SetBuffer("Hello");
-    SetMark(0); // At 'H'
-    SetTxtp(5); // At 'o'
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->buf);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting from start of buffer
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteFromStartOfBuffer) {
-    SetBuffer("Hello World");
-    SetMark(0); // At 'H'
-    SetTxtp(6); // At 'W'
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("World", self->buf);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting to end of buffer
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteToEndOfBuffer) {
-    SetBuffer("Hello World");
-    SetMark(6); // At 'W'
-    SetTxtp(11); // After 'd'
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello ", self->buf);
-    EXPECT_TXTP_EQ(6);
-    EXPECT_CURSOR_EQ(6, 0);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting with newlines (decrements num_lines)
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWithNewlines) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetMark(3); // In "Line0";
-    SetTxtp(9); // In "Line1"
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1\nLine2", self->buf);
-    EXPECT_TXTP_EQ(3);
-    EXPECT_CURSOR_EQ(3, 0);
-    EXPECT_EQ(2, self->num_lines); // One newline deleted
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting multiple newlines
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteMultipleNewlines) {
-    SetBuffer("Line0\nLine1\nLine2\nLine3");
-    SetMark(3);
-    SetTxtp(15); // At 'e' in "Line2"
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line2\nLine3", self->buf);
-    EXPECT_TXTP_EQ(3);
-    EXPECT_CURSOR_EQ(3, 0);
-    EXPECT_EQ(2, self->num_lines); // Two newlines deleted
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting only newline character
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteOnlyNewline) {
-    SetBuffer("Line1\nLine2");
-    SetMark(5); // At newline
-    SetTxtp(6); // Just after newline
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line1Line2", self->buf);
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(5, 0);
-    EXPECT_EQ(1, self->num_lines); // One newline deleted
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test swapping mark and txtp when mark > txtp
-TEST_F(PmEditorCmdDeleteSelectionTest, SwapMarkAndTxtpWhenMarkGreater) {
-    SetBuffer("ABCDEFGH");
-    SetMark(6); // At 'G'
-    SetTxtp(2); // At 'C'
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("ABGH", self->buf);
-    EXPECT_TXTP_EQ(2); // txtp at lower position
-    EXPECT_CURSOR_EQ(2, 0);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test buffer termination after delete
-TEST_F(PmEditorCmdDeleteSelectionTest, BufferTerminationAfterDelete) {
-    SetBuffer("ABCDEFGH");
-    SetMark(2);
-    SetTxtp(5);
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("ABFGH", self->buf);
-    // Check double null termination
-    EXPECT_EQ('\0', self->buf[5]);
-    EXPECT_EQ('\0', self->buf[6]);
-}
-
-// Test deleting in empty buffer
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteInEmptyBuffer) {
-    SetBuffer("");
-    SetMark(0);
-    SetTxtp(0);
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->buf);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_FALSE(self->text_changed);
-}
-
-// Test deleting preserves content after deleted region
-TEST_F(PmEditorCmdDeleteSelectionTest, PreservesContentAfterDeletedRegion) {
-    SetBuffer("AAABBBCCC");
-    SetMark(3);
-    SetTxtp(6);
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("AAACCC", self->buf);
-    EXPECT_TXTP_EQ(3);
-    EXPECT_CURSOR_EQ(3, 0);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting large region
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteLargeRegion) {
-    std::string content(100, 'X');
-    SetBuffer(content.c_str());
-    SetMark(10);
-    SetTxtp(90);
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(20, strlen(self->buf)); // 10 + 10 remaining
-    EXPECT_TXTP_EQ(10);
-    EXPECT_CURSOR_EQ(10, 0);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting backward selection (mark > txtp after swap)
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteBackwardSelection) {
-    SetBuffer("0123456789");
-    SetMark(7);
-    SetTxtp(3);
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("012789", self->buf);
-    EXPECT_TXTP_EQ(3);
-    EXPECT_CURSOR_EQ(3, 0);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting with num_lines counting
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteWithNumLinesCounting) {
-    SetBuffer("A\nB\nC\nD\nE");
-    SetMark(2); // After first newline
-    SetTxtp(8); // After fourth newline
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("A\nE", self->buf);
-    EXPECT_TXTP_EQ(2);
-    EXPECT_CURSOR_EQ(0, 1);
-    EXPECT_EQ(2, self->num_lines); // Started with 5, deleted 3 newlines
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting mixed newlines and content
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteMixedNewlinesAndContent) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetMark(3); // In "Line0"
-    SetTxtp(14); // In "Line2"
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Linne2", self->buf);
-    EXPECT_TXTP_EQ(3);
-    EXPECT_CURSOR_EQ(3, 0);
-    EXPECT_EQ(1, self->num_lines); // Two newlines deleted
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting with mark at buffer start and txtp at end
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteEntireContent) {
-    std::string content = "Complete content to delete";
-    SetBuffer(content.c_str());
-    SetMark(0);
-    SetTxtp(content.length());
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("", self->buf);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_TRUE(self->text_changed);
-}
-
-// Test deleting adjacent positions (zero-length selection)
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteZeroLengthSelection) {
-    SetBuffer("Hello");
-    SetMark(3);
-    SetTxtp(3);
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello", self->buf); // Nothing deleted
-    EXPECT_TXTP_EQ(3);
-    EXPECT_CURSOR_EQ(3, 0);
-    EXPECT_FALSE(self->text_changed);
-}
-
-TEST_F(PmEditorCmdDeleteSelectionTest, DeleteAcrossMultipleVisibleLines) {
-    SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4");
-    self->py = 0;
-    SetMark(6);  // At 'L' in "Line1"
-    SetTxtp(15); // At 'e' in "Line2"
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line0\ne2\nLine3\nLine4", self->buf);
-    EXPECT_TXTP_EQ(6);
-    EXPECT_CURSOR_EQ(0, 1); // Should be on line 1
-}
-
-TEST_F(PmEditorCmdDeleteSelectionTest, SetsExitFlag) {
-    self->mode = kMarkMode;
-    SetBuffer("Hello World");
-    SetMark(2);
-    SetTxtp(7);
-
-    MmResult result = pmeditor_cmd_delete_selection(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(kEditMode, self->mode); // Should exit mark mode
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_down()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdDownTest : public PmEditorTestBase { };
-
-// Test moving down from first line to second line
-TEST_F(PmEditorCmdDownTest, MoveDownFromFirstToSecondLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(2); // At 'n' in "Line0"
-    self->preferred_x = 2;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(8); // At 'n' in "Line1"
-    EXPECT_CURSOR_EQ(2, 1);
-}
-
-// Test moving down from second line to third line
-TEST_F(PmEditorCmdDownTest, MoveDownFromSecondToThirdLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(8); // At 'n' in "Line1"
-    self->preferred_x = 2;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(14); // At 'n' in "Line2"
-    EXPECT_CURSOR_EQ(2, 2);
-}
-
-// Test moving down at last line does nothing
-TEST_F(PmEditorCmdDownTest, NoMoveAtLastLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(14); // At 'n' in "Line2" (last line)
-    self->preferred_x = 2;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(14); // Unchanged
-    EXPECT_CURSOR_EQ(2, 2);
-}
-
-// Test moving down from single line buffer does nothing
-TEST_F(PmEditorCmdDownTest, NoMoveInSingleLineBuffer) {
-    SetBuffer("OnlyLine");
-    SetTxtp(4);
-    self->preferred_x = 4;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(4); // Unchanged
-    EXPECT_CURSOR_EQ(4, 0);
-}
-
-// Test moving down from empty buffer does nothing
-TEST_F(PmEditorCmdDownTest, NoMoveInEmptyBuffer) {
-    SetBuffer("");
-    SetTxtp(0);
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // Unchanged
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test moving down maintains column (preferred_x)
-TEST_F(PmEditorCmdDownTest, MaintainsPreferredColumn) {
-    SetBuffer("ABCDE\nFGHIJ\nKLMNO");
-    SetTxtp(3); // At 'D' in first line
-    self->preferred_x = 3;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(9); // At 'I' in second line (same column)
-    EXPECT_CURSOR_EQ(3, 1);
-}
-
-// Test moving down to shorter line stops at end of line
-TEST_F(PmEditorCmdDownTest, StopsAtEndOfShorterLine) {
-    SetBuffer("ABCDEF\nXY\nPQRSTU");
-    SetTxtp(4); // At 'E' in first line (column 4)
-    self->preferred_x = 4;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(9); // At '\n' after "XY" (shorter line)
-    EXPECT_CURSOR_EQ(2, 1);
-}
-
-// Test moving down from shorter line to longer line uses preferred_x
-TEST_F(PmEditorCmdDownTest, UsesPreferredXWhenMovingToLongerLine) {
-    SetBuffer("AB\nPQRSTU\nXYZ");
-    SetTxtp(1); // At 'B' in first line (column 1)
-    self->preferred_x = 4; // But preferred_x is 4
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(7); // At 'S' in second line (column 4)
-    EXPECT_CURSOR_EQ(4, 1);
-}
-
-// Test moving down from start of line (column 0)
-TEST_F(PmEditorCmdDownTest, MoveDownFromStartOfLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(0); // At 'L' in "Line0"
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(6); // At 'L' in "Line1"
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test moving down from end of line (at newline)
-TEST_F(PmEditorCmdDownTest, MoveDownFromEndOfLine) {
-    SetBuffer("ABC\nDEF\nGHI");
-    SetTxtp(3); // At '\n' after "ABC"
-    self->preferred_x = 3;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(7); // At '\n' after "DEF"
-    EXPECT_CURSOR_EQ(3, 1);
-}
-
-// Test moving down to empty line
-TEST_F(PmEditorCmdDownTest, MoveDownToEmptyLine) {
-    SetBuffer("ABC\n\nDEF");
-    SetTxtp(2); // At 'C' in "ABC"
-    self->preferred_x = 2;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(4); // At '\n' (empty line)
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test moving down from empty line
-TEST_F(PmEditorCmdDownTest, MoveDownFromEmptyLine) {
-    SetBuffer("ABC\n\nDEF");
-    SetTxtp(4); // At '\n' (empty line)
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(5); // At 'D' in "DEF"
-    EXPECT_CURSOR_EQ(0, 2);
-}
-
-// Test moving down scrolls when near bottom of screen
-TEST_F(PmEditorCmdDownTest, ScrollsWhenNearBottomOfScreen) {
-    // Create buffer with many lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line" + std::to_string(i) + "\n";
-    }
-    SetBuffer(content.c_str());
-
-    // Position where scrolling should occur (cy >= height - 3)
-    self->py = 0;
-    self->cy = self->height - 2; // Near bottom, should scroll
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->height - 2, self->cy); // cy unchanged (screen scrolled)
-    EXPECT_EQ(1, self->py); // py incremented (scrolled up)
-}
-
-// Test moving down at bottom of screen when at last page
-TEST_F(PmEditorCmdDownTest, NoScrollWhenAtLastPage) {
-    SetBuffer("Line0\nLine1\nLine2\nLine3");
-    self->py = 0;
-    self->cy = 2; // Not at very bottom of screen
-    SetTxtp(12); // At start of "Line2"
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(18); // Moved to "Line3"
-    EXPECT_EQ(3, self->cy); // cy incremented (no scroll because at last page)
-    EXPECT_EQ(0, self->py); // py unchanged
-}
-
-// Test moving down does not modify buffer
-TEST_F(PmEditorCmdDownTest, DoesNotModifyBuffer) {
-    const std::string original = "Line0\nLine1\nLine2";
-    SetBuffer(original.c_str());
-    SetTxtp(2);
-    self->preferred_x = 2;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(original.c_str(), self->buf);
-}
-
-// Test moving down multiple times in sequence
-TEST_F(PmEditorCmdDownTest, MoveDownMultipleTimes) {
-    SetBuffer("Line0\nLine1\nLine2\nLine3");
-    SetTxtp(1); // At 'i' in "Line0"
-    self->preferred_x = 1;
-
-    // Move to Line1
-    {
-        MmResult result = pmeditor_cmd_down(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(7); // At 'i' in "Line1"
-        EXPECT_CURSOR_EQ(1, 1);
-    }
-
-    // Move to Line2
-    {
-        MmResult result = pmeditor_cmd_down(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(13); // At 'i' in "Line2"
-        EXPECT_CURSOR_EQ(1, 2);
-    }
-
-    // Move to Line3
-    {
-        MmResult result = pmeditor_cmd_down(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(19); // At 'i' in "Line3"
-        EXPECT_CURSOR_EQ(1, 3);
-    }
-
-    // Try to move beyond last line
-    {
-        MmResult result = pmeditor_cmd_down(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(19); // Unchanged
-        EXPECT_CURSOR_EQ(1, 3);
-    }
-}
-
-// Test moving down from line ending at buffer end (no trailing newline)
-TEST_F(PmEditorCmdDownTest, NoMoveWhenLineEndsAtBufferEnd) {
-    SetBuffer("Line0\nLine1"); // No trailing newline
-    SetTxtp(8); // At 'n' in "Line1"
-    self->preferred_x = 2;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(8); // Unchanged
-    EXPECT_CURSOR_EQ(2, 1);
-}
-
-// Test moving down with very long preferred_x
-TEST_F(PmEditorCmdDownTest, VeryLargePreferredX) {
-    SetBuffer("ABCDEFGHIJ\nXY\nPQRSTU");
-    SetTxtp(9); // At 'J' in first line
-    self->preferred_x = 100; // Very large preferred_x
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(13); // At '\n' after "XY" (end of shorter line)
-    EXPECT_CURSOR_EQ(2, 1);
-}
-
-// Test moving down preserves preferred_x across multiple moves
-TEST_F(PmEditorCmdDownTest, PreservesPreferredXAcrossMoves) {
-    SetBuffer("ABCDEFGH\nXY\nPQRSTUVW");
-    SetTxtp(5); // At 'F' (column 5)
-    self->preferred_x = 5;
-
-    // Move to shorter line
-    {
-        MmResult result = pmeditor_cmd_down(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(11); // At '\n' after "XY"
-        EXPECT_CURSOR_EQ(2, 1);
-    }
-
-    // Move to longer line - should restore column 5
-    {
-        MmResult result = pmeditor_cmd_down(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(17); // At 'U' (column 5)
-        EXPECT_CURSOR_EQ(5, 2);
-    }
-}
-
-// Test moving down when cy is near height-3 boundary
-TEST_F(PmEditorCmdDownTest, MovesNormallyAtHeightMinus3) {
-    // Create enough lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 0;
-    self->cy = self->height - 3;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    const int old_cy = self->cy;
-    const int old_py = self->py;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    // Should scroll
-    EXPECT_EQ(old_cy, self->cy); // cy unchanged
-    EXPECT_EQ(old_py + 1, self->py); // scrolled
-}
-
-// Test moving down calls scroll_up when scrolling
-TEST_F(PmEditorCmdDownTest, CallsScrollUpWhenScrolling) {
-    // Create buffer with many lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 0;
-    self->cy = self->height - 3;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    // Verify that scrolling occurred by checking py changed
-    EXPECT_EQ(1, self->py);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_end()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdEndTest : public PmEditorTestBase { };
-
-// Test moving to end of line from middle of line
-TEST_F(PmEditorCmdEndTest, MoveToEndFromMiddleOfLine) {
-    SetBuffer("Hello World");
-    SetTxtp(6); // At 'W'
-    self->last_key = 'x'; // Not END
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(11); // At '\0' after "World"
-    EXPECT_CURSOR_EQ(11, 0);
-}
-
-// Test moving to end of line from start of line
-TEST_F(PmEditorCmdEndTest, MoveToEndFromStartOfLine) {
-    SetBuffer("Hello World");
-    SetTxtp(0); // At 'H'
-    self->last_key = 'x'; // Not END
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(11); // At '\0'
-    EXPECT_CURSOR_EQ(11, 0);
-}
-
-// Test moving to end of line from near start
-TEST_F(PmEditorCmdEndTest, MoveToEndFromNearStart) {
-    SetBuffer("ABCDEF");
-    SetTxtp(1); // At 'B'
-    self->last_key = 'x'; // Not END
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(6); // At '\0'
-    EXPECT_CURSOR_EQ(6, 0);
-}
-
-// Test no move when already at end of buffer
-TEST_F(PmEditorCmdEndTest, NoMoveAtEndOfBuffer) {
-    SetBuffer("Hello World");
-    SetCursorAtEnd(); // At '\0'
-    self->last_key = 'x'; // Not END
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(11); // Unchanged
-    EXPECT_CURSOR_EQ(11, 0);
-}
-
-// Test no move in empty buffer
-TEST_F(PmEditorCmdEndTest, NoMoveInEmptyBuffer) {
-    SetBuffer("");
-    SetTxtp(0); // At '\0'
-    self->last_key = 'x'; // Not END
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // Unchanged
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test moving to end of second line (newline)
-TEST_F(PmEditorCmdEndTest, MoveToEndOfSecondLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(7); // At 'i' in "Line1"
-    self->last_key = 'x'; // Not END
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(11); // At '\n' after "Line1"
-    EXPECT_CURSOR_EQ(5, 1);
-}
-
-// Test moving to end of last line (no newline)
-TEST_F(PmEditorCmdEndTest, MoveToEndOfLastLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(13); // At 'i' in "Line2"
-    self->last_key = 'x'; // Not END
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(17); // At '\0' after "Line2"
-    EXPECT_CURSOR_EQ(5, 2);
-}
-
-// Test double END press jumps to end of file
-TEST_F(PmEditorCmdEndTest, DoubleEndJumpsToEndOfFile) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(2); // At 'n' in "Line0"
-    self->last_key = END; // Previous key was END
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    printf("%s\n", mmresult_to_string(result));
-    EXPECT_TXTP_EQ(17); // At '\0' after "Line2"
-    EXPECT_CURSOR_EQ(5, 2); // cx = 5 (length of "Line2"), cy = 2
-    EXPECT_EQ(0, self->py); // Short buffer, py stays 0
-    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw - buffer fits on screen
-}
-
-// Test double END press from first line
-TEST_F(PmEditorCmdEndTest, DoubleEndFromFirstLine) {
-    SetBuffer("Hello\nWorld\nTest");
-    SetTxtp(2); // At 'l' in "Hello"
-    self->last_key = END; // Previous key was END
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(16); // At '\0' after "Test"
-    EXPECT_CURSOR_EQ(4, 2);
-}
-
-// Test double END with many lines calculates correct py
-TEST_F(PmEditorCmdEndTest, DoubleEndWithManyLinesCalculatesPy) {
-    // Create buffer with 30 lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    SetTxtp(10); // Near start
-    self->last_key = END;
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    // i = 30 (number of newlines), height = 23
-    // py = 30 - 23 + 1 = 8
-    EXPECT_EQ(8, self->py);
-    EXPECT_CURSOR_EQ(0, self->height - 1); // cy = 22
-}
-
-// Test double END with buffer shorter than screen height
-TEST_F(PmEditorCmdEndTest, DoubleEndWithShortBuffer) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(2);
-    self->last_key = END;
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, self->py); // py stays 0 (fits on one screen)
-    EXPECT_EQ(2, self->cy); // cy is just the line number
-}
-
-// Test END does not modify buffer
-TEST_F(PmEditorCmdEndTest, DoesNotModifyBuffer) {
-    const std::string original = "Hello World";
-    SetBuffer(original.c_str());
-    SetTxtp(3);
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(original.c_str(), self->buf);
-}
-
-// Test moving to end of line preserves cy
-TEST_F(PmEditorCmdEndTest, PreservesCyWhenMovingToEndOfLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(7); // At 'i' in "Line1"
-    self->cy = 7; // Some arbitrary cy
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(11); // At '\n'
-    EXPECT_CURSOR_EQ(5, 7); // cy preserved
-}
-
-// Test single END when already at end of line does nothing
-TEST_F(PmEditorCmdEndTest, NoMoveWhenAlreadyAtEndOfLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(11); // At '\n' after "Line1"
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(11); // Unchanged
-    EXPECT_CURSOR_EQ(5, 1);
-}
-
-// Test END from position near end
-TEST_F(PmEditorCmdEndTest, MoveFromNearEnd) {
-    SetBuffer("ABCDEF");
-    SetTxtp(4); // At 'E'
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(6); // At '\0'
-    EXPECT_CURSOR_EQ(6, 0);
-}
-
-// Test END sequence: middle -> end of line -> end of file
-TEST_F(PmEditorCmdEndTest, SequenceMiddleToEndToFile) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(2); // At 'n' in "Line0"
-    self->last_key = 'x';
-
-    // First END: move to end of line
-    {
-        MmResult result = pmeditor_cmd_end(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(5); // At '\n' after "Line0"
-        EXPECT_CURSOR_EQ(5, 0);
-        self->last_key = END; // Simulate key tracking
-    }
-
-    // Second END: jump to end of file
-    {
-        MmResult result = pmeditor_cmd_end(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(17); // At '\0' after "Line2"
-        EXPECT_CURSOR_EQ(5, 2);
-    }
-}
-
-// Test double END when already at end does nothing
-TEST_F(PmEditorCmdEndTest, DoubleEndAtEndDoesNothing) {
-    SetBuffer("Hello World");
-    SetCursorAtEnd(); // At '\0'
-    self->last_key = END;
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(11); // Still at end
-    EXPECT_CURSOR_EQ(11, 0);
-    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw (early return)
-}
-
-// Test END from empty line (between two newlines)
-TEST_F(PmEditorCmdEndTest, MoveFromEmptyLine) {
-    SetBuffer("ABC\n\nDEF");
-    SetTxtp(4); // At second '\n' (empty line)
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(4); // Already at end of empty line
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test END with line longer than width
-TEST_F(PmEditorCmdEndTest, ShowsErrorWhenLineLongerThanWidth) {
-    SetBuffer(std::string(85, 'X').c_str()); // Longer than width (80)
-    SetTxtp(10);
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" LINE IS TOO LONG ", self->message);
-}
-
-// Test double END positions at end of last line
-TEST_F(PmEditorCmdEndTest, DoubleEndPositionsAtEndOfLastLine) {
-    SetBuffer("Line0\nLine1\nLastLine");
-    SetTxtp(2);
-    self->last_key = END;
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(20); // At '\0' after "LastLine"
-    EXPECT_CURSOR_EQ(8, 2); // cx = 8 (length of "LastLine"), cy = 2
-}
-
-// Test double END with trailing newline
-TEST_F(PmEditorCmdEndTest, DoubleEndWithTrailingNewline) {
-    SetBuffer("Line0\nLine1\n"); // Trailing newline
-    SetTxtp(2);
-    self->last_key = END;
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(12); // At trailing '\n'
-    EXPECT_EQ(0, self->cx); // cx is 0 on empty line
-}
-
-// Test END from very long line does not move
-TEST_F(PmEditorCmdEndTest, MoveFromVeryLongLine) {
-    std::string longline(100, 'X');
-    SetBuffer(longline.c_str());
-    SetTxtp(20);
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_end(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(20, 0); // Should not move
-    EXPECT_STREQ(" LINE IS TOO LONG ", self->message);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_home()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdHomeTest : public PmEditorTestBase { };
-
-// Test moving to start of line from middle of line
-TEST_F(PmEditorCmdHomeTest, MoveToStartFromMiddleOfLine) {
-    SetBuffer("Hello World");
-    SetTxtp(6); // At 'W'
-    self->last_key = 'x'; // Not HOME
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // At 'H'
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test moving to start of line from end of line (at newline)
-TEST_F(PmEditorCmdHomeTest, MoveToStartFromEndOfLine) {
-    SetBuffer("Hello\nWorld");
-    SetTxtp(5); // At '\n'
-    self->last_key = 'x'; // Not HOME
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // At 'H'
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test moving to start of line from near end
-TEST_F(PmEditorCmdHomeTest, MoveToStartFromNearEnd) {
-    SetBuffer("ABCDEF");
-    SetTxtp(5); // At 'F'
-    self->last_key = 'x'; // Not HOME
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // At 'A'
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test no move when already at start of buffer
-TEST_F(PmEditorCmdHomeTest, NoMoveAtStartOfBuffer) {
-    SetBuffer("Hello World");
-    SetTxtp(0); // At 'H'
-    self->last_key = 'x'; // Not HOME
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // Unchanged
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test no move when at start of empty buffer
-TEST_F(PmEditorCmdHomeTest, NoMoveInEmptyBuffer) {
-    SetBuffer("");
-    SetTxtp(0); // At '\0'
-    self->last_key = 'x'; // Not HOME
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // Unchanged
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test moving to start of second line
-TEST_F(PmEditorCmdHomeTest, MoveToStartOfSecondLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(9); // At 'n' in "Line1"
-    self->last_key = 'x'; // Not HOME
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(6); // At 'L' in "Line1"
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test moving to start of third line
-TEST_F(PmEditorCmdHomeTest, MoveToStartOfThirdLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(15); // At 'n' in "Line2"
-    self->last_key = 'x'; // Not HOME
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(12); // At 'L' in "Line2"
-    EXPECT_CURSOR_EQ(0, 2);
-}
-
-// Test double HOME press jumps to start of file
-TEST_F(PmEditorCmdHomeTest, DoubleHomeJumpsToStartOfFile) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(9); // At 'n' in "Line1"
-    self->last_key = HOME; // Previous key was HOME
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // At start of buffer
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_EQ(0, self->py); // Viewport has not changed
-    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw required
-}
-
-// Test double HOME press from first line
-TEST_F(PmEditorCmdHomeTest, DoubleHomeFromFirstLine) {
-    SetBuffer("Hello World");
-    SetTxtp(6); // At 'W'
-    self->last_key = HOME; // Previous key was HOME
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // At start of buffer
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_EQ(0, self->py);
-}
-
-// Test double HOME press when far down in buffer
-TEST_F(PmEditorCmdHomeTest, DoubleHomeFromFarDownInBuffer) {
-    // Create buffer with many lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line" + std::to_string(i) + "\n";
-    }
-    SetBuffer(content.c_str());
-
-    // Position far down in buffer
-    self->py = 10;
-    self->cy = 5;
-    SetTxtp(100); // Some position far from start
-    self->last_key = HOME;
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // At start of buffer
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_EQ(0, self->py); // Reset to first page
-}
-
-// Test HOME does not modify buffer
-TEST_F(PmEditorCmdHomeTest, DoesNotModifyBuffer) {
-    const std::string original = "Hello World";
-    SetBuffer(original.c_str());
-    SetTxtp(6);
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(original.c_str(), self->buf);
-}
-
-// Test moving to start of line preserves cy
-TEST_F(PmEditorCmdHomeTest, PreservesCyWhenMovingToStartOfLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(8); // At 'n' in "Line1"
-    self->cy = 7; // Some arbitrary cy
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(6);
-    EXPECT_CURSOR_EQ(0, 7); // cy preserved, cx changed to 0
-}
-
-// Test single HOME from start of line (not buffer start) does nothing
-TEST_F(PmEditorCmdHomeTest, NoMoveWhenAlreadyAtStartOfLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(6); // At 'L' in "Line1" (start of line but not buffer)
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(6); // Unchanged
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test HOME from position 1 (second character of buffer)
-TEST_F(PmEditorCmdHomeTest, MoveFromPositionOne) {
-    SetBuffer("ABCDEF");
-    SetTxtp(1); // At 'B'
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // At 'A'
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test HOME from immediately after newline
-TEST_F(PmEditorCmdHomeTest, MoveFromImmediatelyAfterNewline) {
-    SetBuffer("ABC\nDEF");
-    SetTxtp(4); // At 'D' (first char after newline)
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(4); // Already at start of line
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test HOME sequence: middle -> start of line -> start of file
-TEST_F(PmEditorCmdHomeTest, SequenceMiddleToStartToFile) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(9); // At 'n' in "Line1"
-    self->last_key = 'x';
-
-    // First HOME: move to start of line
-    {
-        MmResult result = pmeditor_cmd_home(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(6); // At 'L' in "Line1"
-        EXPECT_CURSOR_EQ(0, 1);
-        self->last_key = HOME; // Simulate key tracking
-    }
-
-    // Second HOME: jump to start of file
-    {
-        MmResult result = pmeditor_cmd_home(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(0); // At start of buffer
-        EXPECT_CURSOR_EQ(0, 0);
-        EXPECT_EQ(0, self->py);
-    }
-}
-
-// Test double HOME when already at start does nothing
-TEST_F(PmEditorCmdHomeTest, DoubleHomeAtStartDoesNothing) {
-    SetBuffer("Hello World");
-    SetTxtp(0); // Already at start
-    self->last_key = HOME;
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // Still at start
-    EXPECT_CURSOR_EQ(0, 0);
-    EXPECT_PRINT_LINES_NOT_CALLED(); // No redraw (early return)
-}
-
-// Test HOME from empty line (between two newlines)
-TEST_F(PmEditorCmdHomeTest, MoveFromEmptyLine) {
-    SetBuffer("ABC\n\nDEF");
-    SetTxtp(4); // At second '\n' (empty line)
-    self->last_key = 'x';
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(4); // Already at start of empty line
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test HOME from very long line
-TEST_F(PmEditorCmdHomeTest, MoveFromLongLine) {
-    std::string longline(100, 'X');
-    SetBuffer(longline.c_str());
-    SetTxtp(75); // Far from start
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0);
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test that double HOME resets both py and cy
-TEST_F(PmEditorCmdHomeTest, DoubleHomeResetsPyAndCy) {
-    SetBuffer("Line0\nLine1\nLine2");
-    self->py = 1; // Not at first page
-    self->cy = 2; // Not at top of screen
-    SetTxtp(15);
-    self->last_key = HOME;
-
-    MmResult result = pmeditor_cmd_home(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, self->py); // Reset
-    EXPECT_EQ(0, self->cy); // Reset
-    EXPECT_EQ(0, self->cx); // Reset
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_left()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdLeftTest : public PmEditorTestBase { };
-
-// Test moving left from end of single-line buffer
-TEST_F(PmEditorCmdLeftTest, MoveLeftFromEnd) {
-    SetBuffer("Hello World");
-    SetCursorAtEnd(); // At '\0'
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(10); // At 'd'
-    EXPECT_CURSOR_EQ(10, 0);
-}
-
-// Test moving left in middle of line
-TEST_F(PmEditorCmdLeftTest, MoveLeftInMiddleOfLine) {
-    SetBuffer("Hello World");
-    SetTxtp(6); // At 'W'
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(5); // At ' '
-    EXPECT_CURSOR_EQ(5, 0);
-}
-
-// Test moving left at start of buffer does nothing
-TEST_F(PmEditorCmdLeftTest, NoMoveAtStartOfBuffer) {
-    SetBuffer("Hello");
-    SetTxtp(0); // At 'H'
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // Unchanged
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test moving left in empty buffer does nothing
-TEST_F(PmEditorCmdLeftTest, NoMoveInEmptyBuffer) {
-    SetBuffer("");
-    SetTxtp(0); // At '\0'
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // Unchanged
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test moving left from start of second line wraps to end of first line
-TEST_F(PmEditorCmdLeftTest, WrapsFromStartOfSecondLineToEndOfFirst) {
-    SetBuffer("Line0\nLine1");
-    SetTxtp(6); // At 'L' in "Line1"
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(UP, END, '\0');
-    EXPECT_TXTP_EQ(6); // Still at newline (commands not executed yet)
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test moving left from start of third line wraps
-TEST_F(PmEditorCmdLeftTest, WrapsFromStartOfThirdLineToEndOfSecond) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(12); // At 'L' in "Line2"
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(UP, END, '\0');
-    EXPECT_TXTP_EQ(12); // Still at newline (commands not executed yet)
-    EXPECT_CURSOR_EQ(0, 2);
-}
-
-// Test moving left from character after newline wraps
-TEST_F(PmEditorCmdLeftTest, WrapsFromJustAfterNewline) {
-    SetBuffer("A\nB");
-    SetTxtp(2); // At 'B'
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(UP, END, '\0');
-    EXPECT_TXTP_EQ(2); // Still at newline (commands not executed yet)
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test moving left at newline itself (not crossing line boundary)
-TEST_F(PmEditorCmdLeftTest, MoveLeftAtNewlineCharacter) {
-    SetBuffer("Hello\nWorld");
-    SetTxtp(5); // At '\n'
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(4); // At 'o'
-    EXPECT_CURSOR_EQ(4, 0);
-    // No wrap - we moved within the line
-    EXPECT_KEYS_EQ('\0'); // No queued commands
-}
-
-// Test moving left multiple times in sequence
-TEST_F(PmEditorCmdLeftTest, MoveLeftMultipleTimes) {
-    SetBuffer("ABCDE");
-    SetTxtp(4); // At 'E'
-
-    // Move to 'D'
-    {
-        MmResult result = pmeditor_cmd_left(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(3);
-        EXPECT_CURSOR_EQ(3, 0);
-    }
-
-    // Move to 'C'
-    {
-        MmResult result = pmeditor_cmd_left(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(2);
-        EXPECT_CURSOR_EQ(2, 0);
-    }
-
-    // Move to 'B'
-    {
-        MmResult result = pmeditor_cmd_left(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(1);
-        EXPECT_CURSOR_EQ(1, 0);
-    }
-}
-
-// Test moving left all the way to start
-TEST_F(PmEditorCmdLeftTest, MoveLeftToStart) {
-    SetBuffer("ABC");
-    SetTxtp(2); // At 'C'
-
-    // Move to 'B'
-    {
-        MmResult result = pmeditor_cmd_left(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(1);
-        EXPECT_CURSOR_EQ(1, 0);
-    }
-
-    // Move to 'A'
-    {
-        MmResult result = pmeditor_cmd_left(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(0);
-        EXPECT_CURSOR_EQ(0, 0);
-    }
-
-    // Try to move beyond start
-    {
-        MmResult result = pmeditor_cmd_left(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(0); // Should not move
-        EXPECT_CURSOR_EQ(0, 0);
-    }
-}
-
-// Test moving left does not modify buffer
-TEST_F(PmEditorCmdLeftTest, DoesNotModifyBuffer) {
-    const std::string original = "Hello World";
-    SetBuffer(original.c_str());
-    SetTxtp(7);
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(original.c_str(), self->buf); // Buffer unchanged
-    EXPECT_TXTP_EQ(6);
-    EXPECT_CURSOR_EQ(6, 0);
-}
-
-// Test moving left with multiline buffer (middle of second line)
-TEST_F(PmEditorCmdLeftTest, MoveLeftInSecondLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(9); // At 'n' in "Line1"
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(8); // At 'i' in "Line1"
-    EXPECT_CURSOR_EQ(2, 1);
-}
-
-// Test moving left from single character line to previous line
-TEST_F(PmEditorCmdLeftTest, WrapsFromSingleCharLine) {
-    SetBuffer("ABC\nX");
-    SetTxtp(4); // At 'X'
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(UP, END, '\0');
-    EXPECT_TXTP_EQ(4); // Commands not processed yet
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test moving left from empty line (just newlines)
-TEST_F(PmEditorCmdLeftTest, WrapsFromEmptyLine) {
-    SetBuffer("ABC\n\nDEF");
-    SetTxtp(5); // At second newline (empty line)
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(UP, END, '\0');
-    EXPECT_TXTP_EQ(5); // Commands not processed yet
-    EXPECT_CURSOR_EQ(0, 2);
-}
-
-// Test moving left preserves cy when not wrapping
-TEST_F(PmEditorCmdLeftTest, PreservesCyWhenNotWrapping) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(9); // At 'n' in "Line1"
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(8);
-    EXPECT_CURSOR_EQ(2, 1); // cy preserved
-}
-
-// Test moving left at buffer position 1 (second character)
-TEST_F(PmEditorCmdLeftTest, MoveLeftFromPositionOne) {
-    SetBuffer("ABCDEF");
-    SetTxtp(1); // At 'B'
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // At 'A'
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test that wrapping behavior queues correct commands for execution
-TEST_F(PmEditorCmdLeftTest, WrappingQueuesCorrectCommands) {
-    SetBuffer("First\nSecond\nThird");
-    SetTxtp(6); // At 'S' in "Second"
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(UP, END, '\0');
-    EXPECT_TXTP_EQ(6); // Commands not processed yet
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test moving left from very long line
-TEST_F(PmEditorCmdLeftTest, MoveLeftInLongLine) {
-    std::string longline(100, 'X');
-    SetBuffer(longline.c_str());
-    SetTxtp(50); // Middle of line
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(49);
-    EXPECT_CURSOR_EQ(49, 0);
-}
-
-// Test wrap behavior doesn't occur mid-line even after newline elsewhere
-TEST_F(PmEditorCmdLeftTest, NoWrapInMiddleOfLine) {
-    SetBuffer("A\nBCDEF");
-    SetTxtp(5); // At 'D'
-
-    MmResult result = pmeditor_cmd_left(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(4); // At 'C'
-    EXPECT_KEYS_EQ('\0'); // No wrap commands
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_page_down()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdPageDownTest : public PmEditorTestBase { };
-
-// Test page down moves forward one full screen
-TEST_F(PmEditorCmdPageDownTest, MoveForwardOneFullScreen) {
-    // Create buffer with many lines
-    std::string content;
-    for (int i = 0; i < 50; i++) {
-        content += "Line" + std::to_string(i) + "\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 0;
-    self->cy = 5;
-    self->cx = 2;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->height, self->py); // Moved forward by height
-    EXPECT_CURSOR_EQ(2, 5); // Column preserved
-}
-
-// Test page down when already showing bottom of file queues END END
-TEST_F(PmEditorCmdPageDownTest, QueuesEndEndWhenAtBottom) {
-    SetBuffer("Line0\nLine1\nLine2\nLine3");
-    self->py = 0;
-    self->cy = 1;
-    SetTxtp(6); // At start of "Line1"
-    self->cx = 0;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(END, END, '\0');
-}
-
-// Test page down near bottom positions to show last page
-TEST_F(PmEditorCmdPageDownTest, NearBottomPositionsToShowLastPage) {
-    // Create buffer with 35 lines
-    std::string content;
-    for (int i = 0; i < 35; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    // num_lines = 36, height = 23
-    // Position at py = 5
-    // Check: 36 <= 5 + 23 + 1 → 36 <= 29 → false (will scroll)
-    self->py = 5;
-    self->cy = 3;
-    self->cx = 2;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    // Should move to py = 36 - 23 = 13 (final position showing last page)
-    EXPECT_EQ(13, self->py);
-    EXPECT_CURSOR_EQ(2, 3);
-}
-
-// Test page down maintains column position
-TEST_F(PmEditorCmdPageDownTest, MaintainsColumnPosition) {
-    // Create buffer
-    std::string content;
-    for (int i = 0; i < 50; i++) {
-        content += "ABCDEFGHIJ\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 5;
-    self->cy = 3;
-    self->cx = 7;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(7, self->cx); // Column preserved
-}
-
-// Test page down to shorter line stops at end of line
-TEST_F(PmEditorCmdPageDownTest, StopsAtEndOfShorterLine) {
-    // Create buffer with varying line lengths
-    std::string content;
-    for (int i = 0; i < 60; i++) {
-        if (i < 30) {
-            content += "ABCDEFGHIJ\n"; // Long lines
-        } else {
-            content += "XX\n"; // Short lines
-        }
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 5;
-    self->cy = 3;
-    self->cx = 8; // Column 8 (beyond short line length)
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(2, self->cx); // Stopped at end of "XX"
-}
-
-// Test page down does not modify buffer
-TEST_F(PmEditorCmdPageDownTest, DoesNotModifyBuffer) {
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line\n";
-    }
-    const std::string original = content;
-    SetBuffer(content.c_str());
-
-    self->py = 0;
-    self->cy = 5;
-    SetTxtp(25);
-    self->cx = 2;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(original.c_str(), self->buf);
-}
-
-// Test page down from first page to second page
-TEST_F(PmEditorCmdPageDownTest, FromFirstPageToSecondPage) {
-    std::string content;
-    for (int i = 0; i < 50; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    // On first page
-    self->py = 0;
-    self->cy = 10;
-    self->cx = 1;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->height, self->py); // Moved to second page
-    EXPECT_EQ(1, self->cx);
-}
-
-// Test page down updates txtp correctly
-TEST_F(PmEditorCmdPageDownTest, UpdatesTxtpCorrectly) {
-    std::string content;
-    for (int i = 0; i < 50; i++) {
-        content += "ABCD\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 5;
-    self->cy = 3;
-    self->cx = 2;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    // After page down, should be at line (8 + height) = 31, column 2
-    char *expected = self->buf;
-    for (int i = 0; i < 8 + self->height; i++) {
-        while (*expected != '\n') expected++;
-        expected++;
-    }
-    expected += 2;
-    EXPECT_EQ(expected, self->txtp);
-}
-
-// Test page down at bottom with last line visible queues END END
-// Test page down at bottom with last line visible queues END END
-TEST_F(PmEditorCmdPageDownTest, AtBottomQueuesEndEnd) {
-    // Create buffer that fits on screen with no room to scroll
-    std::string content;
-    for (int i = 0; i < self->height; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    // num_lines = height + 1 (e.g., 24 with height=23)
-    // py + height + 1 = 0 + 23 + 1 = 24
-    // Condition: num_lines <= py + height + 1 → 24 <= 24 → true
-
-    self->py = 0;
-    self->cy = 5;
-    SetTxtp(25);
-    self->cx = 0;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(END, END, '\0');
-}
-
-// Test page down preserves cy
-TEST_F(PmEditorCmdPageDownTest, PreservesCy) {
-    std::string content;
-    for (int i = 0; i < 50; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 0;
-    self->cy = 10;
-    self->cx = 2;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(10, self->cy); // cy unchanged
-}
-
-// Test page down with empty lines
-TEST_F(PmEditorCmdPageDownTest, WithEmptyLines) {
-    std::string content;
-    for (int i = 0; i < 50; i++) {
-        if (i % 5 == 0) {
-            content += "\n"; // Empty line
-        } else {
-            content += "Line\n";
-        }
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 0;
-    self->cy = 5;
-    self->cx = 2;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->height, self->py);
-    EXPECT_CURSOR_EQ(2, 5);
-}
-
-// Test page down handles end of buffer without trailing newline
-TEST_F(PmEditorCmdPageDownTest, HandlesEndWithoutTrailingNewline) {
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line\n";
-    }
-    content += "LastLine"; // No trailing newline
-    SetBuffer(content.c_str());
-
-    self->py = 0;
-    self->cy = 5;
-    self->cx = 2;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(8, self->py);
-}
-
-// Test page down when remaining lines less than full screen
-TEST_F(PmEditorCmdPageDownTest, WhenRemainingLinesLessThanScreen) {
-    std::string content;
-    for (int i = 0; i < 35; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 10;
-    self->cy = 5;
-    self->cx = 0;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    // num_lines = 36, height = 23
-    // num_lines - height = 13, so py should be 13
-    EXPECT_EQ(36 - self->height, self->py);
-}
-
-// Test page down in single page buffer queues END END
-TEST_F(PmEditorCmdPageDownTest, SinglePageBufferQueuesEndEnd) {
-    SetBuffer("Line0\nLine1\nLine2");
-    self->py = 0;
-    self->cy = 1;
-    SetTxtp(6);
-    self->cx = 0;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(END, END, '\0');
-}
-
-// Test page down moves txtp to start of line then to column
-TEST_F(PmEditorCmdPageDownTest, MovesTxtpToStartThenColumn) {
-    std::string content;
-    for (int i = 0; i < 50; i++) {
-        content += "ABCDEFGH\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 0;
-    self->cx = 5;
-    self->cy = 2;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(self->height, self->py);
-    EXPECT_CURSOR_EQ(5, 2);
-    EXPECT_TXTP_CONSISTENT();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_page_up()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdPageUpTest : public PmEditorTestBase { };
-
-// Test page up moves back one full screen
-TEST_F(PmEditorCmdPageUpTest, MoveBackOneFullScreen) {
-    // Create buffer with many lines
-    std::string content;
-    for (int i = 0; i < 50; i++) {
-        content += "Line" + std::to_string(i) + "\n";
-    }
-    SetBuffer(content.c_str());
-
-    // Position at line 20, column 2
-    self->py = 10;
-    self->cx = 2;
-    self->cy = 10;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, self->py); // Moved back by height (10 - 20 = 0, clamped)
-    EXPECT_CURSOR_EQ(2, 10); // cx and cy preserved
-    EXPECT_TXTP_CONSISTENT();
-}
-
-// Test page up when already showing top of file queues HOME HOME
-TEST_F(PmEditorCmdPageUpTest, QueuesHomeHomeWhenAtTop) {
-    SetBuffer("Line0\nLine1\nLine2\nLine3");
-    SetTxtp(12); // At start of "Line2"
-    self->py = 0;
-
-    MmResult result = pmeditor_cmd_page_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(HOME, HOME, '\0');
-}
-
-// Test page up moves less than full screen when near top
-TEST_F(PmEditorCmdPageUpTest, MovesLessThanFullScreenNearTop) {
-    // Create buffer with lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 5;
-    self->cx = 2;
-    self->cy = 3;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, self->py); // Moved to top (can't go negative)
-    EXPECT_CURSOR_EQ(2, 3); // Column and row preserved
-    EXPECT_TXTP_CONSISTENT();
-}
-
-// Test page up to shorter line stops at end of line
-TEST_F(PmEditorCmdPageUpTest, StopsAtEndOfShorterLine) {
-    // Create buffer with varying line lengths
-    std::string content;
-    for (int i = 0; i < 40; i++) {
-        if (i < 10) {
-            content += "XX\n"; // Short lines
-        } else {
-            content += "ABCDEFGHIJ\n"; // Long lines
-        }
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 15;
-    self->cx = 8; // Column 8 (beyond short line length)
-    self->cy = 5;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(2, 5); // Stopped at end of "XX"
-    EXPECT_TXTP_CONSISTENT();
-}
-
-// Test page up from second page to first page
-TEST_F(PmEditorCmdPageUpTest, FromSecondPageToFirstPage) {
-    std::string content;
-    for (int i = 0; i < 50; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    // On second page
-    self->py = self->height;
-    self->cx = 1;
-    self->cy = 10;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, self->py); // Back to first page
-    EXPECT_CURSOR_EQ(1, 10);
-    EXPECT_TXTP_CONSISTENT();
-}
-
-// Test page up when py >= height - 1 moves full screen
-TEST_F(PmEditorCmdPageUpTest, MovesFullScreenWhenPyLargeEnough) {
-    std::string content;
-    for (int i = 0; i < 70; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 40;
-    self->cx = 0;
-    self->cy = 5;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(40 - self->height, self->py); // Moved back by height
-    EXPECT_CURSOR_EQ(0, 5);
-    EXPECT_TXTP_CONSISTENT();
-}
-
-// Test page up at top of file with cy > 0 queues HOME HOME
-TEST_F(PmEditorCmdPageUpTest, AtTopWithCyGreaterThanZeroQueuesHomeHome) {
-    SetBuffer("Line0\nLine1\nLine2");
-    self->py = 0;
-    self->cy = 1;
-    SetTxtp(6); // At start of "Line1"
-    self->cx = 0;
-
-    MmResult result = pmeditor_cmd_page_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(HOME, HOME, '\0');
-}
-
-// Test page up at very top (py=0, cy=0) queues HOME HOME
-TEST_F(PmEditorCmdPageUpTest, AtVeryTopQueuesHomeHome) {
-    SetBuffer("Line0\nLine1\nLine2");
-    self->py = 0;
-    self->cy = 0;
-    SetTxtp(0);
-    self->cx = 0;
-
-    MmResult result = pmeditor_cmd_page_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(HOME, HOME, '\0');
-}
-
-// Test page up moves to start of buffer when near top
-TEST_F(PmEditorCmdPageUpTest, MovesToStartWhenVeryNearTop) {
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 2; // Very near top
-    self->cx = 1;
-    self->cy = 3;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(0, self->py); // Clamped to zero
-    EXPECT_CURSOR_EQ(1, 3);
-    EXPECT_TXTP_CONSISTENT();
-}
-
-// Test page up in single page buffer queues HOME HOME
-TEST_F(PmEditorCmdPageUpTest, SinglePageBufferQueuesHomeHome) {
-    SetBuffer("Line0\nLine1\nLine2");
-    self->py = 0;
-    self->cy = 2;
-    SetTxtp(12);
-    self->cx = 0;
-
-    MmResult result = pmeditor_cmd_page_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(HOME, HOME, '\0');
-}
-
-// Test page up with empty lines
-TEST_F(PmEditorCmdPageUpTest, WithEmptyLines) {
-    std::string content;
-    for (int i = 0; i < 50; i++) {
-        if (i % 5 == 0) {
-            content += "\n"; // Empty line
-        } else {
-            content += "Line\n";
-        }
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 30;
-    self->cx = 2;
-    self->cy = 6;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_page_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(7, self->py);
-    EXPECT_CURSOR_EQ(2, 6);
-    EXPECT_TXTP_CONSISTENT();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_right()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdRightTest : public PmEditorTestBase { };
-
-// Test moving right at start of buffer
-TEST_F(PmEditorCmdRightTest, MoveRightFromStart) {
-    SetBuffer("Hello World");
-    SetTxtp(0); // At 'H'
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(1); // At 'e'
-    EXPECT_CURSOR_EQ(1, 0);
-}
-
-// Test moving right in middle of line
-TEST_F(PmEditorCmdRightTest, MoveRightInMiddleOfLine) {
-    SetBuffer("Hello World");
-    SetTxtp(5); // At ' '
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(6); // At 'W'
-    EXPECT_CURSOR_EQ(6, 0);
-}
-
-// Test moving right at end of buffer does nothing
-TEST_F(PmEditorCmdRightTest, NoMoveAtEndOfBuffer) {
-    SetBuffer("Hello");
-    SetCursorAtEnd(); // At '\0'
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(5); // Unchanged
-    EXPECT_CURSOR_EQ(5, 0);
-}
-
-// Test moving right in empty buffer does nothing
-TEST_F(PmEditorCmdRightTest, NoMoveInEmptyBuffer) {
-    SetBuffer("");
-    SetTxtp(0); // At '\0'
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // Unchanged
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test moving right from end of first line wraps to start of second line
-TEST_F(PmEditorCmdRightTest, WrapsFromEndOfFirstLineToStartOfSecond) {
-    SetBuffer("Line0\nLine1");
-    SetTxtp(5); // At '\n' after "Line0"
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
-    EXPECT_TXTP_EQ(5); // Still at newline (commands not executed yet)
-    EXPECT_CURSOR_EQ(5, 0);
-}
-
-// Test moving right from end of second line wraps
-TEST_F(PmEditorCmdRightTest, WrapsFromEndOfSecondLineToStartOfThird) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(11); // At '\n' after "Line1"
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
-    EXPECT_TXTP_EQ(11); // At newline after "Line1"
-    EXPECT_CURSOR_EQ(5, 1);
-}
-
-// Test moving right just before newline (not crossing)
-TEST_F(PmEditorCmdRightTest, MoveRightJustBeforeNewline) {
-    SetBuffer("Hello\nWorld");
-    SetTxtp(4); // At 'o' (last char before '\n')
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(5); // At '\n'
-    EXPECT_CURSOR_EQ(5, 0);
-    // No wrap - we moved to the newline, not past it
-    EXPECT_KEYS_EQ('\0');
-}
-
-// Test moving right past newline wraps to next line
-TEST_F(PmEditorCmdRightTest, WrapsFromNewlineToNextLine) {
-    SetBuffer("A\nB");
-    SetTxtp(1); // At '\n'
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
-    EXPECT_TXTP_EQ(1); // Commands not processed yet
-    EXPECT_CURSOR_EQ(1, 0);
-}
-
-// Test moving right multiple times in sequence
-TEST_F(PmEditorCmdRightTest, MoveRightMultipleTimes) {
-    SetBuffer("ABCDE");
-    SetTxtp(0); // At 'A'
-
-    // Move to 'B'
-    {
-        MmResult result = pmeditor_cmd_right(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(1);
-        EXPECT_CURSOR_EQ(1, 0);
-    }
-
-    // Move to 'C'
-    {
-        MmResult result = pmeditor_cmd_right(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(2);
-        EXPECT_CURSOR_EQ(2, 0);
-    }
-
-    // Move to 'D'
-    {
-        MmResult result = pmeditor_cmd_right(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(3);
-        EXPECT_CURSOR_EQ(3, 0);
-    }
-}
-
-// Test moving right all the way to end
-TEST_F(PmEditorCmdRightTest, MoveRightToEnd) {
-    SetBuffer("ABC");
-    SetTxtp(0); // At 'A'
-
-    // Move to 'B'
-    {
-        MmResult result = pmeditor_cmd_right(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(1);
-        EXPECT_CURSOR_EQ(1, 0);
-    }
-
-    // Move to 'C'
-    {
-        MmResult result = pmeditor_cmd_right(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(2);
-        EXPECT_CURSOR_EQ(2, 0);
-    }
-
-    // Move to '\0'
-    {
-        MmResult result = pmeditor_cmd_right(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(3);
-        EXPECT_CURSOR_EQ(3, 0);
-    }
-
-    // Try to move beyond end
-    {
-        MmResult result = pmeditor_cmd_right(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(3); // Should not move
-        EXPECT_CURSOR_EQ(3, 0);
-    }
-}
-
-// Test moving right does not modify buffer
-TEST_F(PmEditorCmdRightTest, DoesNotModifyBuffer) {
-    const std::string original = "Hello World";
-    SetBuffer(original.c_str());
-    SetTxtp(3);
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(original.c_str(), self->buf); // Buffer unchanged
-    EXPECT_TXTP_EQ(4);
-    EXPECT_CURSOR_EQ(4, 0);
-}
-
-// Test moving right with multiline buffer (middle of second line)
-TEST_F(PmEditorCmdRightTest, MoveRightInSecondLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(7); // At 'i' in "Line1"
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(8); // At 'n' in "Line1"
-    EXPECT_CURSOR_EQ(2, 1);
-}
-
-// Test moving right to single character line
-TEST_F(PmEditorCmdRightTest, WrapsToSingleCharLine) {
-    SetBuffer("ABC\nX");
-    SetTxtp(3); // At '\n'
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
-    EXPECT_TXTP_EQ(3); // Commands not processed yet
-    EXPECT_CURSOR_EQ(3, 0);
-}
-
-// Test moving right to empty line (consecutive newlines)
-TEST_F(PmEditorCmdRightTest, WrapsToEmptyLine) {
-    SetBuffer("ABC\n\nDEF");
-    SetTxtp(3); // At first '\n'
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
-    EXPECT_TXTP_EQ(3); // Commands not processed yet
-    EXPECT_CURSOR_EQ(3, 0);
-}
-
-// Test moving right preserves cy when not wrapping
-TEST_F(PmEditorCmdRightTest, PreservesCyWhenNotWrapping) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(7); // At 'i' in "Line1"
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(8);
-    EXPECT_CURSOR_EQ(2, 1); // cy preserved
-}
-
-// Test moving right at width boundary shows error
-TEST_F(PmEditorCmdRightTest, ShowsErrorAtWidthBoundary) {
-    SetBuffer(std::string(85, 'X').c_str()); // Longer than width (80)
-    SetTxtp(80); // At width boundary
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" LINE IS TOO LONG ", self->message);
-    EXPECT_TXTP_EQ(80); // Position unchanged
-    EXPECT_CURSOR_EQ(80, 0);
-}
-
-// Test moving right near width boundary (but not at it)
-TEST_F(PmEditorCmdRightTest, MoveRightNearWidthBoundary) {
-    SetBuffer(std::string(85, 'X').c_str());
-    SetTxtp(79); // One before width boundary
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(80); // Moves successfully
-    EXPECT_CURSOR_EQ(80, 0);
-}
-
-// Test that wrapping behavior queues correct commands for execution
-TEST_F(PmEditorCmdRightTest, WrappingQueuesCorrectCommands) {
-    SetBuffer("First\nSecond\nThird");
-    SetTxtp(5); // At '\n' after "First"
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_KEYS_EQ(HOME, DOWN, '\0');
-    EXPECT_TXTP_EQ(5); // Commands not processed yet
-    EXPECT_CURSOR_EQ(5, 0);
-}
-
-// Test moving right in very long line
-TEST_F(PmEditorCmdRightTest, MoveRightInLongLineUnderWidthLimit) {
-    std::string longline(70, 'X'); // Under width limit
-    SetBuffer(longline.c_str());
-    SetTxtp(30); // Middle of line
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(31);
-    EXPECT_CURSOR_EQ(31, 0);
-}
-
-// Test no wrap occurs mid-line even with newlines elsewhere
-TEST_F(PmEditorCmdRightTest, NoWrapInMiddleOfLine) {
-    SetBuffer("ABCDE\nF");
-    SetTxtp(2); // At 'C'
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(3); // At 'D'
-    EXPECT_KEYS_EQ('\0'); // No wrap commands
-}
-
-// Test moving right from second-to-last character
-TEST_F(PmEditorCmdRightTest, MoveRightFromSecondToLast) {
-    SetBuffer("ABCDEF");
-    SetTxtp(4); // At 'E'
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(5); // At 'F'
-    EXPECT_CURSOR_EQ(5, 0);
-}
-
-// Test moving right doesn't wrap at last character before end of buffer
-TEST_F(PmEditorCmdRightTest, NoWrapAtLastCharacter) {
-    SetBuffer("ABC");
-    SetTxtp(2); // At 'C' (last character)
-
-    MmResult result = pmeditor_cmd_right(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(3); // At '\0'
-    EXPECT_KEYS_EQ('\0'); // No wrap commands
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_up()
-////////////////////////////////////////////////////////////////////////////////
-
-class PmEditorCmdUpTest : public PmEditorTestBase { };
-
-// Test moving up from second line to first line
-TEST_F(PmEditorCmdUpTest, MoveUpFromSecondToFirstLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(8); // At 'n' in "Line1"
-    self->preferred_x = 2;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(2); // At 'n' in "Line0"
-    EXPECT_CURSOR_EQ(2, 0);
-}
-
-// Test moving up from third line to second line
-TEST_F(PmEditorCmdUpTest, MoveUpFromThirdToSecondLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(14); // At 'n' in "Line2"
-    self->preferred_x = 2;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(8); // At 'n' in "Line1"
-    EXPECT_CURSOR_EQ(2, 1);
-}
-
-// Test moving up from first line does nothing
-TEST_F(PmEditorCmdUpTest, NoMoveAtFirstLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(2); // At 'n' in "Line0"
-    self->preferred_x = 2;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(2); // Unchanged
-    EXPECT_CURSOR_EQ(2, 0);
-}
-
-// Test moving up from single line buffer does nothing
-TEST_F(PmEditorCmdUpTest, NoMoveInSingleLineBuffer) {
-    SetBuffer("OnlyLine");
-    SetTxtp(4);
-    self->preferred_x = 4;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(4); // Unchanged
-    EXPECT_CURSOR_EQ(4, 0);
-}
-
-// Test moving up from empty buffer does nothing
-TEST_F(PmEditorCmdUpTest, NoMoveInEmptyBuffer) {
-    SetBuffer("");
-    SetTxtp(0);
-    self->preferred_x = 0;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // Unchanged
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test moving up maintains column (preferred_x)
-TEST_F(PmEditorCmdUpTest, MaintainsPreferredColumn) {
-    SetBuffer("ABCDE\nFGHIJ\nKLMNO");
-    SetTxtp(9); // At 'I' in second line
-    self->preferred_x = 3;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(3); // At 'D' in first line (same column)
-    EXPECT_CURSOR_EQ(3, 0);
-}
-
-// Test moving up to shorter line stops at end of line
-TEST_F(PmEditorCmdUpTest, StopsAtEndOfShorterLine) {
-    SetBuffer("XY\nPQRSTU\nABCDEF");
-    SetTxtp(6); // At 'S' in second line (column 4)
-    self->preferred_x = 4;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(2); // At end of "XY" (shorter line)
-    EXPECT_CURSOR_EQ(2, 0);
-}
-
-// Test moving up from shorter line to longer line uses preferred_x
-TEST_F(PmEditorCmdUpTest, UsesPreferredXWhenMovingToLongerLine) {
-    SetBuffer("PQRSTU\nAB\nXYZ");
-    SetTxtp(8); // At 'B' in second line (column 1)
-    self->preferred_x = 4; // But preferred_x is 4
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(4); // At 'S' in first line (column 4)
-    EXPECT_CURSOR_EQ(4, 0);
-}
-
-// Test moving up from start of line (column 0)
-TEST_F(PmEditorCmdUpTest, MoveUpFromStartOfLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    SetTxtp(6); // At 'L' in "Line1"
-    self->preferred_x = 0;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // At 'L' in "Line0"
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test moving up from end of line (at newline)
-TEST_F(PmEditorCmdUpTest, MoveUpFromEndOfLine) {
-    SetBuffer("ABC\nDEF\nGHI");
-    SetTxtp(7); // At '\n' after "DEF"
-    self->preferred_x = 3;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(3); // At '\n' after "ABC"
-    EXPECT_CURSOR_EQ(3, 0);
-}
-
-// Test moving up to empty line
-TEST_F(PmEditorCmdUpTest, MoveUpToEmptyLine) {
-    SetBuffer("ABC\n\nDEF");
-    SetTxtp(7); // At 'E' in "DEF"
-    self->preferred_x = 1;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(4); // At '\n' (empty line)
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test moving up from empty line
-TEST_F(PmEditorCmdUpTest, MoveUpFromEmptyLine) {
-    SetBuffer("ABC\n\nDEF");
-    SetTxtp(4); // At '\n' (empty line)
-    self->preferred_x = 0;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // At 'A' in "ABC"
-    EXPECT_CURSOR_EQ(0, 0);
-}
-
-// Test moving up scrolls when near top of screen
-TEST_F(PmEditorCmdUpTest, ScrollsWhenNearTopOfScreen) {
-    // Create buffer with many lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line" + std::to_string(i) + "\n";
-    }
-    SetBuffer(content.c_str());
-
-    // Position near top of screen with py > 0
-    self->py = 10;
-    self->cy = 2; // Near top, should scroll
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(2, self->cy); // cy unchanged (screen scrolled)
-    EXPECT_EQ(9, self->py); // py decremented (scrolled down)
-}
-
-// Test moving up at top of screen when py == 0
-TEST_F(PmEditorCmdUpTest, NoScrollWhenAtFirstPage) {
-    SetBuffer("Line0\nLine1\nLine2\nLine3");
-    self->py = 0;
-    self->cy = 1; // Second line
-    SetTxtp(6); // At start of "Line1"
-    self->preferred_x = 0;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // Moved to "Line0"
-    EXPECT_EQ(0, self->cy); // cy decremented (no scroll)
-    EXPECT_EQ(0, self->py); // py unchanged
-}
-
-// Test moving up does not modify buffer
-TEST_F(PmEditorCmdUpTest, DoesNotModifyBuffer) {
-    const std::string original = "Line0\nLine1\nLine2";
-    SetBuffer(original.c_str());
-    SetTxtp(8);
-    self->preferred_x = 2;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(original.c_str(), self->buf);
-}
-
-// Test moving up multiple times in sequence
-TEST_F(PmEditorCmdUpTest, MoveUpMultipleTimes) {
-    SetBuffer("Line0\nLine1\nLine2\nLine3");
-    SetTxtp(19); // At 'i' in "Line3"
-    self->preferred_x = 1;
-
-    // Move to Line2
-    {
-        MmResult result = pmeditor_cmd_up(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(13); // At 'i' in "Line2"
-        EXPECT_CURSOR_EQ(1, 2);
-    }
-
-    // Move to Line1
-    {
-        MmResult result = pmeditor_cmd_up(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(7); // At 'i' in "Line1"
-        EXPECT_CURSOR_EQ(1, 1);
-    }
-
-    // Move to Line0
-    {
-        MmResult result = pmeditor_cmd_up(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(1); // At 'i' in "Line0"
-        EXPECT_CURSOR_EQ(1, 0);
-    }
-
-    // Try to move beyond first line
-    {
-        MmResult result = pmeditor_cmd_up(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(1); // Unchanged
-        EXPECT_CURSOR_EQ(1, 0);
-    }
-}
-
-// Test moving up with very long preferred_x
-TEST_F(PmEditorCmdUpTest, VeryLargePreferredX) {
-    SetBuffer("XY\nABCDEFGHIJ");
-    SetTxtp(13); // At 'J' in second line
-    self->preferred_x = 100; // Very large preferred_x
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(2); // At '\n' after "XY" (end of shorter line)
-    EXPECT_CURSOR_EQ(2, 0);
-}
-
-// Test moving up preserves preferred_x across multiple moves
-TEST_F(PmEditorCmdUpTest, PreservesPreferredXAcrossMoves) {
-    SetBuffer("ABCDEFGH\nXY\nPQRSTUVW");
-    SetTxtp(17); // At 'U' (column 5) in "PQRSTUVw"
-    self->preferred_x = 5;
-
-    // Move to shorter line
-    {
-        MmResult result = pmeditor_cmd_up(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(11); // At '\n' after "XY"
-        EXPECT_CURSOR_EQ(2, 1);
-    }
-
-    // Move to longer line - should restore column 5
-    {
-        MmResult result = pmeditor_cmd_up(self);
-        EXPECT_EQ(kOk, result);
-        EXPECT_TXTP_EQ(5); // At 'F' (column 5)
-        EXPECT_CURSOR_EQ(5, 0);
-    }
-}
-
-// Test moving up when cy > 2 moves cursor normally
-TEST_F(PmEditorCmdUpTest, MovesCursorWhenCyGreaterThanTwo) {
-    SetBuffer("Line0\nLine1\nLine2\nLine3");
-    self->py = 0;
-    self->cy = 3;
-    SetTxtp(18); // At start of "Line3"
-    self->preferred_x = 0;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(12); // Moved to "Line2"
-    EXPECT_EQ(2, self->cy); // cy decremented
-    EXPECT_EQ(0, self->py); // py unchanged
-}
-
-// Test moving up when cy <= 2 and py > 0 scrolls
-TEST_F(PmEditorCmdUpTest, ScrollsWhenCyLessThanOrEqualToTwoAndPyPositive) {
-    // Create buffer with many lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "Line\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 5;
-    self->cy = 2; // At boundary where scrolling happens
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-    self->preferred_x = 0;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(2, self->cy); // cy unchanged (screen scrolled)
-    EXPECT_EQ(4, self->py); // py decremented (scrolled down)
-}
-
-// Test moving up from second line when cy == 0
-TEST_F(PmEditorCmdUpTest, NoMoveWhenAtTopOfScreenAndFirstLine) {
-    SetBuffer("Line0\nLine1\nLine2");
-    self->py = 0;
-    self->cy = 0;
-    SetTxtp(0); // At start of "Line0"
-    self->preferred_x = 0;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_TXTP_EQ(0); // Unchanged
-    EXPECT_EQ(0, self->cy);
-    EXPECT_EQ(0, self->py);
-}
-
-// Test moving up preserves cursor when scrolling
-TEST_F(PmEditorCmdUpTest, PreservesCursorPositionWhenScrolling) {
-    // Create buffer with many lines
-    std::string content;
-    for (int i = 0; i < 30; i++) {
-        content += "ABCD\n";
-    }
-    SetBuffer(content.c_str());
-
-    self->py = 10;
-    self->cy = 1;
-    self->txtp = self->buf;
-    self->txtp = pmeditor_find_line_n(self, self->py + self->cy) + self->cx;
-    self->preferred_x = 2;
-
-    MmResult result = pmeditor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(1, self->cy); // cy preserved
-    EXPECT_EQ(9, self->py); // Scrolled
-    EXPECT_CURSOR_EQ(2, 1); // Cursor column maintained
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // Tests for pmeditor_update_display()
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -7595,231 +8295,196 @@ TEST_F(PmEditorUpdateDisplayTest, RedrawsFuncKeysAndStatusWhenMessageCleared) {
     EXPECT_EQ(kOk, result);
     EXPECT_PRINT_MSG_NOT_CALLED();
     EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
-    EXPECT_PRINT_STATUS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Tests for pmeditor_cmd_newline()
-////////////////////////////////////////////////////////////////////////////////
+// Test that change_start and change_end are reset after update
+TEST_F(PmEditorUpdateDisplayTest, ResetsChangeTrackingAfterUpdate) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    self->change_start = 0;
+    self->change_end = 2;
+    PmEditor old = pmeditor_shallow_copy(self);
 
-class PmEditorCmdNewlineTest : public PmEditorTestBase { };
-
-// Test newline insertion at end of line
-TEST_F(PmEditorCmdNewlineTest, NewlineAtEndOfLine) {
-    SetBuffer("Hello");
-    SetCursorAtEnd();
-
-    MmResult result = pmeditor_cmd_newline(self);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Hello\n", self->buf);
-    EXPECT_EQ(2, self->num_lines);
-    EXPECT_TXTP_EQ(6);
-    EXPECT_CURSOR_EQ(0, 1);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
+    EXPECT_EQ(NO_CHANGE, self->change_start);
+    EXPECT_EQ(NO_CHANGE, self->change_end);
 }
 
-// Test newline insertion in middle of line
-TEST_F(PmEditorCmdNewlineTest, NewlineInMiddleOfLine) {
-    SetBuffer("Hello");
-    SetTxtp(2); // Ar first 'l'
-
-    MmResult result = pmeditor_cmd_newline(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("He\nllo", self->buf);
-    EXPECT_EQ(2, self->num_lines);
-    EXPECT_TXTP_EQ(3);
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test newline at start of buffer
-TEST_F(PmEditorCmdNewlineTest, NewlineAtStartOfBuffer) {
-    SetBuffer("Hello");
-    SetTxtp(0);
-
-    MmResult result = pmeditor_cmd_newline(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("\nHello", self->buf);
-    EXPECT_EQ(2, self->num_lines);
-    EXPECT_TXTP_EQ(1);
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test newline in empty buffer
-TEST_F(PmEditorCmdNewlineTest, NewlineInEmptyBuffer) {
-    SetBuffer("");
-    SetTxtp(0);
-
-    MmResult result = pmeditor_cmd_newline(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("\n", self->buf);
-    EXPECT_EQ(2, self->num_lines);
-    EXPECT_TXTP_EQ(1);
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test auto-indent with leading spaces
-TEST_F(PmEditorCmdNewlineTest, AutoIndentWithLeadingSpaces) {
-    SetBuffer("    Hello");
-    SetCursorAtEnd();
-
-    MmResult result = pmeditor_cmd_newline(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("    Hello\n", self->buf);
-    EXPECT_KEYS_EQ(' ', ' ', ' ', ' ', '\0');
-    EXPECT_TXTP_EQ(10);
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test auto-indent only at end of line
-TEST_F(PmEditorCmdNewlineTest, AutoIndentOnlyAtEndOfLine) {
-    SetBuffer("    Hello");
-    SetTxtp(4); // After spaces, before 'H'
-
-    MmResult result = pmeditor_cmd_newline(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("    \nHello", self->buf);
-    EXPECT_KEYS_EQ('\0'); // No spaces should be in key buffer since not at end of line
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test auto-indent from line with only spaces
-TEST_F(PmEditorCmdNewlineTest, AutoIndentFromLineWithOnlySpaces) {
-    SetBuffer("    ");
-    SetCursorAtEnd();
-
-    MmResult result = pmeditor_cmd_newline(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("    \n", self->buf);
-    EXPECT_KEYS_EQ(' ', ' ', ' ', ' ', '\0');
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test auto-indent at start of buffer with leading space
-TEST_F(PmEditorCmdNewlineTest, AutoIndentAtStartOfBufferWithLeadingSpace) {
-    SetBuffer(" Hello");
-    SetCursorAtEnd();
-
-    MmResult result = pmeditor_cmd_newline(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_STREQ(" Hello\n", self->buf);
-    EXPECT_KEYS_EQ(' ', '\0');
-    EXPECT_TXTP_EQ(7);
-    EXPECT_CURSOR_EQ(0, 1);
-}
-
-// Test cursor moves down when not at bottom
-TEST_F(PmEditorCmdNewlineTest, CursorMovesDownWhenNotAtBottom) {
+// Test that lines are redrawn when change_start/change_end are set
+TEST_F(PmEditorUpdateDisplayTest, RedrawsLinesWhenChangeTrackingSet) {
     SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4");
-    SetTxtp(5); // End of first line (after "Line0")
+    SetTxtp(6);
+    self->change_start = 1;
+    self->change_end = 3;
+    PmEditor old = pmeditor_shallow_copy(self);
 
-    MmResult result = pmeditor_cmd_newline(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(0, 1); // Cursor moved down
-    EXPECT_EQ(0, self->py); // No viewport scroll
-    EXPECT_EQ(6, self->num_lines);
-}
-
-// Test viewport scrolls when at bottom
-TEST_F(PmEditorCmdNewlineTest, ViewportScrollsWhenAtBottom) {
-    // Create enough lines to require scrolling
-    SetBuffer("L0\nL1\nL2\nL3\nL4\nL5\nL6\nL7\nL8\nL9\nL10\n"
-              "L11\nL12\nL13\nL14\nL15\nL16\nL17\nL18\nL19\nL20\n"
-              "L21\nL22");
-
-    // Position at end of line 22 (last visible line, cy = 22)
-    char *last_line = pmeditor_find_line_n(self, 22);
-    SetTxtp(last_line - self->buf + strlen("L22"));
-    ASSERT_EQ(22, self->cy);
-    ASSERT_EQ(0, self->py);
-
-    MmResult result = pmeditor_cmd_newline(self);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(0, 22); // cy stays at bottom
-    EXPECT_EQ(1, self->py); // Viewport scrolled
-    EXPECT_EQ(24, self->num_lines);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 1, .end = 3, .cy = 0}));
 }
 
-// Test text_changed flag set
-TEST_F(PmEditorCmdNewlineTest, TextChangedFlagSet) {
-    SetBuffer("Hello");
-    SetCursorAtEnd();
-    self->text_changed = false;
+// Test that change_end is clipped to viewport bottom
+TEST_F(PmEditorUpdateDisplayTest, ClipsChangeEndToViewportBottom) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    self->change_start = 0;
+    self->change_end = 100; // Way beyond viewport
+    self->height = 23;
+    PmEditor old = pmeditor_shallow_copy(self);
 
-    MmResult result = pmeditor_cmd_newline(self);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_TRUE(self->text_changed);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 22, .cy = 0}));
 }
 
-// Test newline triggers screen redraw
-TEST_F(PmEditorCmdNewlineTest, NewlineTrigersScreenRedraw) {
-    SetBuffer("Hello");
-    SetCursorAtEnd();
+// Test fast path when syntax highlighting disabled and not in mark mode
+TEST_F(PmEditorUpdateDisplayTest, UsesFastPathWhenSyntaxHighlightingDisabled) {
+    mmb_options.syntax_highlight = false;
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    self->mode = kEditMode;
+    self->change_start = 0;
+    self->change_end = 0;
+    PmEditor old = pmeditor_shallow_copy(self);
 
-    MmResult result = pmeditor_cmd_newline(self);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_LINES_CHANGED(0, LAST_LINE);
+    // Fast path should be used - hard to verify directly without more instrumentation
+    // but at minimum it should complete successfully
 }
 
-extern bool display_bell_sounded;
-
-// Test mark mode sounds bell
-TEST_F(PmEditorCmdNewlineTest, MarkModeSoundsBell) {
-    SetBuffer("Hello");
-    SetCursorAtEnd();
+// Test that message takes precedence over func keys and status
+TEST_F(PmEditorUpdateDisplayTest, MessageTakesPrecedenceOverFuncKeysAndStatus) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    strcpy(self->message, "Error message");
+    self->insert = true;
     self->mode = kMarkMode;
-    display_bell_sounded = false;
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.insert = false;
+    old.mode = kEditMode;
 
-    MmResult result = pmeditor_cmd_newline(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_EQ(true, display_bell_sounded);
-    EXPECT_STREQ("Hello", self->buf);
-    EXPECT_EQ(1, self->num_lines);
-    EXPECT_TXTP_EQ(5);
-    EXPECT_CURSOR_EQ(5, 0);
-}
-
-// Test newline at position just after newline character
-TEST_F(PmEditorCmdNewlineTest, NewlineJustAfterNewlineCharacter) {
-    SetBuffer("Line0\nLine1");
-    SetTxtp(6); // Just after first \n
-    self->key_buf[1] = '\0';
-
-    MmResult result = pmeditor_cmd_newline(self);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("Line0\n\nLine1", self->buf);
-    EXPECT_EQ(3, self->num_lines);
-    EXPECT_TXTP_EQ(7);
+    EXPECT_PRINT_MSG_CALLED(((PrintMsgCapture) {.calls = 1, .msg = "Error message"}));
+    EXPECT_PRINT_FUNC_KEYS_NOT_CALLED();
+    EXPECT_PRINT_STATUS_NOT_CALLED();
 }
 
-// Test buffer full condition (if applicable)
-TEST_F(PmEditorCmdNewlineTest, NewlineNearBufferEnd) {
-    // Fill buffer almost to capacity
-    memset(self->buf, 'X', self->buf_sz - 10);
-    self->buf[self->buf_sz - 10] = '\0';
-    self->num_lines = 1;
-    self->width = self->buf_sz; // So we don't hit LINE TOO LONG error
-    SetCursorAtEnd();
-    self->key_buf[1] = '\0';
+// Test status updates when only cx changes (cy unchanged)
+TEST_F(PmEditorUpdateDisplayTest, RedrawsStatusWhenOnlyCxChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(3);
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.cx = 0;
 
-    MmResult result = pmeditor_cmd_newline(self);
+    MmResult result = pmeditor_update_display(self, &old);
 
     EXPECT_EQ(kOk, result);
-    EXPECT_STREQ("X\n", self->txtp - 2);
-    EXPECT_STREQ("", self->message);
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
 }
+
+// Test status updates when only cy changes (cx unchanged)
+TEST_F(PmEditorUpdateDisplayTest, RedrawsStatusWhenOnlyCyChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.cy = 0;
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+}
+
+// Test selection redraw when mark mode and txtp moves backward
+TEST_F(PmEditorUpdateDisplayTest, RedrawsSelectionWhenTxtpMovesBackward) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->mode = kMarkMode;
+    SetMark(12); // At 'L' in "Line2"
+    SetTxtp(6);  // At 'L' in "Line1"
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.txtp = self->buf + 9; // Was at 'n' in "Line1"
+    ASSERT_EQ(kOk, pmeditor_get_line_and_column(self, old.txtp, &old.cy, &old.cx));
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    // Should redraw lines containing the old and new selection bounds
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 1, .end = 1, .cy = 0}));
+}
+
+// Test no selection redraw when mark mode but txtp unchanged
+TEST_F(PmEditorUpdateDisplayTest, NoSelectionRedrawWhenTxtpUnchangedInMarkMode) {
+    SetBuffer("Line0\nLine1\nLine2");
+    self->mode = kMarkMode;
+    SetMark(0);
+    SetTxtp(6);
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.mode = kMarkMode; // Same mode
+    old.num_lines = self->num_lines; // Same line count
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_LINES_NOT_CALLED();
+}
+
+// Test viewport scrolling with change tracking
+TEST_F(PmEditorUpdateDisplayTest, ScrollDownWithPendingChanges) {
+    SetBuffer("Line0\nLine1\nLine2\nLine3\nLine4");
+    SetTxtp(6);
+    self->change_start = 2;
+    self->change_end = 4;
+    PmEditor old = pmeditor_shallow_copy(self);
+    self->py += 1;
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    // Should handle both scroll and pending changes
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 2, .end = 23, .cy = 0}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+}
+
+// Test that both num_lines and mode changes trigger full redraw
+TEST_F(PmEditorUpdateDisplayTest, RedrawsScreenWhenBothNumLinesAndModeChange) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    self->mode = kMarkMode;
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.mode = kEditMode;
+    old.num_lines = 2;
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_LINES_CALLED(((PrintLinesCapture) {.calls = 1, .start = 0, .end = 22, .cy = 0}));
+    EXPECT_PRINT_FUNC_KEYS_CALLED(((PrintFuncKeysCapture) {.calls = 1}));
+}
+
+// Test edge case: change_start equals NO_CHANGE (no lines to redraw)
+TEST_F(PmEditorUpdateDisplayTest, NoRedrawWhenChangeStartIsNoChange) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetTxtp(6);
+    self->change_start = NO_CHANGE;
+    self->change_end = NO_CHANGE;
+    self->insert = true;
+    PmEditor old = pmeditor_shallow_copy(self);
+    old.insert = false; // Different, so status should update
+
+    MmResult result = pmeditor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_LINES_NOT_CALLED();
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+}
+

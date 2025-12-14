@@ -68,8 +68,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/MMBasic.h"
 #include "../core/tokentbl.h"
 
-#define MAX_LINE_LENGTH  MAXSTRLEN
-
 #define CHECK_CURSOR_VALID() \
     do { \
         if (self->cx < 0 || self->cy < 0) { \
@@ -722,20 +720,14 @@ MmResult pmeditor_insert_char(PmEditor *self, char ch) {
     if (!pmeditor_is_printable(ch)) return kOk;
 
     // Limit line length
-    if (self->cx >= self->width) {
-        strcpy(self->message, " LINE IS TOO LONG ");
-        return kOk;
-    }
+    if (self->cx >= self->width) return mmresult_ex(kEditorError, EMSG_LINE_TOO_LONG);
 
     // Find the end of the text
     char *p;
     for (p = self->buf; *p; p++);
 
     // Check that the buffer is not full
-    if (p >= self->buf + self->buf_sz - 1) {
-        strcpy(self->message, " EDIT BUFFER FULL ");
-        return kOk;
-    }
+    if (p >= self->buf + self->buf_sz - 1) return mmresult_ex(kEditorError, EMSG_EDIT_BUFFER_FULL);
 
     // Inserting a newline always requires a redraw
     const int current_line = self->py + self->cy;
@@ -1473,8 +1465,7 @@ MmResult pmeditor_cmd_copy(PmEditor *self) {
     if (selection_length > 0) {
         // Check clipboard size limit
         if (selection_length > MAXCLIP) {
-            strcpy(self->message, " MARKED TEXT EXCEEDS CLIPBOARD BUFFER SIZE ");
-            return kOk;
+            return mmresult_ex(kEditorError, EMSG_CLIPBOARD_OVERFLOW);
         }
 
         // Copy the selection to clipboard
@@ -1494,11 +1485,11 @@ MmResult pmeditor_cmd_copy(PmEditor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult pmeditor_cmd_cut(PmEditor *self) {
-    ON_FAILURE_RETURN(pmeditor_cmd_copy(self));
-    if (*self->message) {
+    MmResult result = pmeditor_cmd_copy(self);
+    if (result != kOk) {
         // Copy failed, do not delete and remain in mark mode
         self->mode = kMarkMode;
-        return kOk;
+        return result;
     }
     return pmeditor_cmd_delete_selection(self);
 }
@@ -1906,10 +1897,7 @@ MmResult pmeditor_cmd_right(PmEditor* self) {
         return kOk;
     }
 
-    if (self->cx >= self->width) {
-        strcpy(self->message, " LINE IS TOO LONG ");
-        return kOk;
-    }
+    if (self->cx >= self->width) return mmresult_ex(kEditorError, EMSG_LINE_TOO_LONG);
 
     // Move cursor forward one character
     self->txtp++;
@@ -2178,11 +2166,8 @@ MmResult pmeditor_move_to_end(PmEditor *self) {
     }
 
     // Move to end of last line
-    int cx = pmeditor_line_length(self, p);
-    if (cx > self->width) {
-        strcpy(self->message, " LINE IS TOO LONG ");
-        return kOk;
-    }
+    const int cx = pmeditor_line_length(self, p);
+    if (cx > self->width) return mmresult_ex(kEditorError, EMSG_LINE_TOO_LONG);
     p += cx;
 
     // Adjust py to show the last page of text
@@ -2218,11 +2203,8 @@ MmResult pmeditor_cmd_end(PmEditor *self) {
         return pmeditor_move_to_end(self);
     }
 
-    int len = pmeditor_line_length(self, self->txtp);
-    if (len > self->width) {
-        strcpy(self->message, " LINE IS TOO LONG ");
-        return kOk;
-    }
+    const int len = pmeditor_line_length(self, self->txtp);
+    if (len > self->width) return mmresult_ex(kEditorError, EMSG_LINE_TOO_LONG);
 
     self->cx = len;
     self->txtp = pmeditor_end_of_line(self, self->txtp);
@@ -2339,10 +2321,7 @@ static MmResult pmeditor_cmd_save_and_exit(PmEditor *self) {
     int line = -1;
     int length = -1;
     ON_FAILURE_RETURN(pmeditor_find_longest_line(self, &line, &length));
-    if (length > MAX_LINE_LENGTH) {
-        sprintf(self->message, " LINE %d TOO LONG ", line);
-        return kOk;
-    }
+    if (length > MAX_LINE_LENGTH) return mmresult_ex(kEditorError, "LINE %d TOO LONG", line);
 
     // Clear and reset display
     ON_FAILURE_RETURN(display_cls());
@@ -2447,7 +2426,7 @@ static MmResult pmeditor_cmd_exit(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_search_again(PmEditor *self) {
+MmResult pmeditor_cmd_search_again(PmEditor *self) {
     if (self->mode != kEditMode) return display_bell();
 
     char *p = self->txtp;
@@ -2460,10 +2439,7 @@ static MmResult pmeditor_cmd_search_again(PmEditor *self) {
         if (p == self->txtp) break;
         if (memcmp(p, tknbuf, i) == 0) break;
     }
-    if (p == self->txtp) {
-        strcpy(self->message, " NOT FOUND ");
-        return kOk;
-    }
+    if (p == self->txtp) return mmresult_ex(kEditorError, EMSG_NOT_FOUND);
     int y;
     for (y = 0, self->txtp = self->buf; self->txtp != p;
          self->txtp++) {  // find the line and column of the string
@@ -2522,18 +2498,20 @@ static MmResult pmeditor_cmd_mark(PmEditor *self) {
  * @param  self  Pointer to the PmEditor instance.
  * @return       kOk on success, or an error code on failure.
  */
-static MmResult pmeditor_cmd_paste(PmEditor *self) {
+MmResult pmeditor_cmd_paste(PmEditor *self) {
     if (self->mode != kEditMode) {
         return mmresult_ex(kInternalFault, "%s should not be called in mark mode", __func__);
     }
 
-    if (*self->clipboard_buf == '\0') {
-        strcpy(self->message, " CLIPBOARD IS EMPTY ");
-        return kOk;
-    }
+    if (*self->clipboard_buf == '\0') return mmresult_ex(kEditorError, EMSG_CLIPBOARD_EMPTY);
+
+    // Copy clipboard buffer into typeahead buffer
     int i;
-    for (i = 0; self->clipboard_buf[i]; i++) self->key_buf[i + 1] = self->clipboard_buf[i];
+    for (i = 0; self->clipboard_buf[i]; i++) {
+        self->key_buf[i + 1] = self->clipboard_buf[i];
+    }
     self->key_buf[i + 1] = '\0';
+
     return kOk;
 }
 
@@ -2749,10 +2727,19 @@ MmResult pmeditor_edit_loop(PmEditor *self) {
     PmEditor old = pmeditor_shallow_copy(self);
 
     while (self->mode != kExitMode) {
-        self->message[0] = '\0';
-
         ON_FAILURE_RETURN(pmeditor_read_keys(self));
-        ON_FAILURE_RETURN(pmeditor_cmd_dispatch(self, self->key_buf[0]));
+        MmResult result = pmeditor_cmd_dispatch(self, self->key_buf[0]);
+        switch (result) {
+            case kOk:
+                self->message[0] = '\0';
+                break;
+            case kEditorError:
+                sprintf(self->message, " %s ", mmresult_to_string(result));
+                self->key_buf[1] = '\0'; // Ignore any more contents in typeahead buffer
+                break;
+            default:
+                return result;
+        }
         self->last_key = self->key_buf[0];
 
         // Unless moving up or down, update the preferred x-position
@@ -2840,12 +2827,11 @@ MmResult pmeditor_show(const char *filename, int line) {
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
 
     PmEditor editor;
-    PmEditor *self = &editor;
-    ON_FAILURE_RETURN(pmeditor_construct(self, filename, width, height));
+    ON_FAILURE_RETURN(pmeditor_construct(&editor, filename, width, height));
 
-    MmResult result = pmeditor_show_internal(self, line);
+    MmResult result = pmeditor_show_internal(&editor, line);
 
-    ON_FAILURE_LOG(pmeditor_destruct(self));
+    ON_FAILURE_LOG(pmeditor_destruct(&editor));
     ON_FAILURE_LOG(display_reset());
     ON_FAILURE_LOG(display_cls());
 
