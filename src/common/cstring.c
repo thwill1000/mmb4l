@@ -53,15 +53,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "utility.h"
 
+#include <string.h>
+#include <stddef.h>
+
 int cstring_cat(char *dst, const char *src, size_t dst_sz) {
+    if (dst == NULL || src == NULL || dst_sz == 0) {
+        return -1;
+    }
+
     size_t dst_len = strlen(dst);
     size_t src_len = strlen(src);
-    size_t n = min(dst_sz - dst_len - 1, src_len);
+
+    // Check if the destination is already full or invalid
+    if (dst_len >= dst_sz - 1) {
+        return -1;
+    }
+
+    size_t remaining_space = dst_sz - dst_len - 1;
+
+    // Manual min calculation to avoid macro side-effects
+    size_t n = (src_len < remaining_space) ? src_len : remaining_space;
+
     if (n > 0) {
+        // use memmove or memcpy; since we calculated n based on src_len
+        // and remaining space, this is safe.
         memmove(dst + dst_len, src, n);
         dst[dst_len + n] = '\0';
     }
-    return dst_len + src_len < dst_sz ? 0 : -1;
+
+    // Return 0 only if the entire src was appended
+    return (src_len <= remaining_space) ? 0 : -1;
 }
 
 int cstring_cat_int64(char *dst, int64_t src, size_t dst_sz) {
