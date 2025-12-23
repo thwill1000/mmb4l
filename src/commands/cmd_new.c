@@ -62,7 +62,7 @@ void cmd_new(void) {
     ON_FAILURE_ERROR(ClearRuntime());
     ON_FAILURE_ERROR(SwitchPlatform(kSimulateUnspecified));
     mmb_options.autorun = false;
-    MmResult result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+    MmResult result = options_save(&mmb_options, options_filename);
     if (FAILED(result)) {
         char buf[STRINGSIZE];
         snprintf(buf, STRINGSIZE, "Warning: failed to save options: %s",

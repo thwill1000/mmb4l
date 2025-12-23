@@ -107,7 +107,7 @@ static MmResult cmd_option_reset_all(const char *p) {
         if (FAILED(result)) break;
     }
 
-    if (SUCCEEDED(result)) result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+    if (SUCCEEDED(result)) result = options_save(&mmb_options, options_filename);
 
     return result;
 }
@@ -131,7 +131,7 @@ static MmResult cmd_option_reset_one(const char *p) {
         }
     }
 
-    if (SUCCEEDED(result)) result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+    if (SUCCEEDED(result)) result = options_save(&mmb_options, options_filename);
 
     return result;
 }
@@ -234,7 +234,7 @@ static void cmd_option_set(const char *p) {
     if (FAILED(result)) error_throw(result);
 
     if (def->saved) {
-        result = options_save(&mmb_options, OPTIONS_FILE_NAME);
+        result = options_save(&mmb_options, options_filename);
         if (FAILED(result)) {
             display_puts("Warning: failed to save options: ");
             display_puts(mmresult_to_string(result));
