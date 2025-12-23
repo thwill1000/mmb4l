@@ -45,12 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_OPTIONS_H)
 #define MMB4L_OPTIONS_H
 
+#include <linux/limits.h>
 #include <stdbool.h>
 
 #include "../Configuration.h"
 #include "mmresult.h"
-
-#define OPTIONS_FILE_NAME       "~/.mmbasic/mmbasic.options"
 
 /** Number of programmable function keys. */
 #define OPTIONS_NUM_FN_KEYS     12
@@ -179,8 +178,9 @@ typedef void (*OPTIONS_WARNING_CB) (const char *);
 extern Options mmb_options;
 extern OptionsDefinition options_definitions[];
 extern OptionsEditor options_editors[];
+extern char options_filename[PATH_MAX];
 
-/** @brief Initialises the options. */
+/**@brief Initialises the options. */
 void options_init(Options *options);
 
 /** @brief Decodes a C-string that has been encoded using options_encode_string(). */
