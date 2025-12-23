@@ -109,7 +109,8 @@ typedef enum {
     kBlitNormal = 0x0,
     kBlitHorizontalFlip = 0x1,
     kBlitVerticalFlip = 0x2,
-    kBlitWithTransparency = 0x4
+    kBlitWithTransparency = 0x4,
+    kBlitInvert = 0x8,
 } GraphicsBlitType;
 
 typedef enum {

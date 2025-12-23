@@ -14,6 +14,12 @@ MmGraphicsColour graphics_bcolour;
 MmGraphicsColour graphics_fcolour;
 uint32_t graphics_font = (1 << 4) + 1; // Font 1, Scale 1.
 
+MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
+                       MmSurface *src_surface, MmSurface *dst_surface, unsigned flags,
+                       MmGraphicsColour transparent) {
+    return kOk;
+}
+
 MmResult graphics_cls(MmSurface *surface, MmGraphicsColour colour) {
     return kOk;
 }

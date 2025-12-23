@@ -307,20 +307,6 @@ MmResult termgfx_set_cursor_pos(bool pixel, int x, int y) {
     return kOk;
 }
 
-static MmResult termgfx_draw_cursor(MmGraphicsColour colour) {
-    const int fh = (int) font_height(graphics_font);
-    const int fw = (int) font_width(graphics_font);
-    MmSurface *s = graphics_current;
-    return graphics_draw_line(
-            s,
-            s->cursor_x,
-            s->cursor_y + fh - (fh <= 12 ? 1 : 2),
-            s->cursor_x + fw - 1,
-            s->cursor_y + fh - (fh <= 12 ? 1 : 2),
-            1,
-            colour);
-}
-
 MmResult termgfx_show_cursor(bool show) {
     ASSERT_GFX();
     self.show_cursor = show;
@@ -331,9 +317,9 @@ MmResult termgfx_update_cursor() {
     ASSERT_GFX();
     static int64_t t = 0;
 
-    if (self.cursor_visible && !self.show_cursor) {
-        self.cursor_visible = false;
-        return termgfx_draw_cursor(graphics_bcolour);
+    if (!self.show_cursor) {
+        if (self.cursor_visible) goto draw_cursor; // Which will actually clear the cursor
+        return kOk;
     }
 
     const int64_t now = mmtime_now_ns();
@@ -344,13 +330,15 @@ MmResult termgfx_update_cursor() {
 
     t = now;
 
-    if (self.cursor_visible) {
-        self.cursor_visible = false;
-        return termgfx_draw_cursor(graphics_bcolour);
-    } else {
-        self.cursor_visible = true;
-        return termgfx_draw_cursor(graphics_fcolour);
-    }
+draw_cursor:
+
+    self.cursor_visible = !self.cursor_visible;
+
+    const int fh = (int) font_height(graphics_font);
+    const int fw = (int) font_width(graphics_font);
+    MmSurface *s = graphics_current;
+    return graphics_blit(s->cursor_x, s->cursor_y, s->cursor_x, s->cursor_y, fw, fh, s, s,
+                         kBlitInvert, -1);
 }
 
 MmResult termgfx_underline(bool underline) {
