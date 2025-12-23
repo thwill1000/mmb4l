@@ -797,7 +797,7 @@ static inline bool pmeditor_is_printable(char ch) {
  * @param       ch      The character to insert.
  * @return              kOk on success, or an error code on failure.
  */
-MmResult pmeditor_insert_char(PmEditor *self, char ch) {
+static MmResult pmeditor_insert_char(PmEditor *self, char ch) {
     ON_INVALID_TXTP_RETURN();
 
     // Ignore non-printable characters
@@ -2605,28 +2605,6 @@ MmResult pmeditor_cmd_paste(PmEditor *self) {
 }
 
 /**
- * Overwrites the character at the current cursor position with a new character.
- *
- * Implements overwrite mode by deleting the character at the cursor and then
- * inserting the new character in its place. This two-step process ensures that
- * multiline comment detection logic is properly applied for both the deletion
- * and insertion.
- *
- * The function verifies that both operations agree on the redraw strategy. If
- * the delete and insert operations produce inconsistent redraw requirements,
- * an internal fault is returned as this indicates a logic error.
- *
- * @param       self    Pointer to the PmEditor instance.
- * @param       ch      The character to write at the current position.
- * @return              kOk on success, or an error code on failure.
- */
-MmResult pmeditor_overwrite_char(PmEditor *self, char ch) {
-    if (!pmeditor_is_printable(ch)) return kOk;
-    ON_FAILURE_RETURN(pmeditor_delete_char(self));
-    return pmeditor_insert_char(self, ch);
-}
-
-/**
  * Handles regular printable character input.
  *
  * Inserts or overwrites the character depending on the current editing mode and
@@ -2646,11 +2624,10 @@ MmResult pmeditor_overwrite_char(PmEditor *self, char ch) {
     if (self->mode != kEditMode) return display_bell();
 
     const char ch = self->key_buf[0];
-    if (self->insert || *self->txtp == '\n' || *self->txtp == '\0') {
-        return pmeditor_insert_char(self, ch);
-    } else {
-        return pmeditor_overwrite_char(self, ch);
-    }
+    if (!pmeditor_is_printable(ch)) return kOk;
+    const bool overwrite = !self->insert && *self->txtp != '\n' && *self->txtp != '\0';
+    if (overwrite) ON_FAILURE_RETURN(pmeditor_delete_char(self));
+    return pmeditor_insert_char(self, ch);
 }
 
 /**

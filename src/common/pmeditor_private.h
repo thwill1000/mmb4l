@@ -183,8 +183,6 @@ MmResult pmeditor_get_highlight(PmEditor *self, SyntaxState *syntax, char *p, Hi
 size_t pmeditor_get_selection(PmEditor *self, char **start, char **end);
 MmResult pmeditor_find_longest_line(PmEditor *self, int *line, int *length);
 MmResult pmeditor_init_syntax_state(PmEditor *self);
-MmResult pmeditor_insert_char(PmEditor *self, char ch);
-MmResult pmeditor_overwrite_char(PmEditor *self, char ch);
 MmResult pmeditor_print_selection(PmEditor *self, PmEditor *old);
 void pmeditor_restore_fn_pointers();
 MmResult pmeditor_set_changed_lines(PmEditor *self, int start, int end);
