@@ -1659,7 +1659,7 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
         if ((src_x > 0) && (src_x + w > src_surface->width)) {
             dst_x += src_x;
         } else if ((dst_x > 0) && (dst_x + w > dst_surface->width)) {
-            src_x += dst_x + w - dst_surface->width;;
+            src_x += dst_x + w - dst_surface->width;
         }
     } else {
         if (src_x < 0) dst_x -= src_x;
@@ -1670,7 +1670,7 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
         if ((src_y > 0) && (src_y + h > src_surface->height)) {
             dst_y += src_y;
         } else if ((dst_y > 0) && (dst_y + h > dst_surface->height)) {
-            src_y += dst_y + h - dst_surface->height;;
+            src_y += dst_y + h - dst_surface->height;
         }
     } else {
         if (src_y < 0) dst_y -= src_y;
