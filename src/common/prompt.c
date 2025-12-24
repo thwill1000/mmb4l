@@ -364,7 +364,7 @@ static MmResult handle_other(PromptState *pstate) {
         inpbuf[strlen(inpbuf) + 1] = '\0';  // incase we are adding to the end
                                             // of the string
         inpbuf[pstate->char_index++] = pstate->buf[0];    // overwrite the char
-        ON_FAILURE_RETURN(display_putc(pstate->buf[0]);)  // display it
+        ON_FAILURE_RETURN(display_putc(pstate->buf[0]));  // display it
     }
 
     return kOk;
