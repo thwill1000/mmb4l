@@ -889,9 +889,15 @@ gtest_discover_tests(test_program)
 
 add_executable(test_prompt
     ${MMB4L_COMMON_TEST_FILES}
+    src/common/file.c
+    src/common/file_linux.c
+    src/common/logger.c
+    src/common/path.c
     src/common/prompt.c
+    src/common/streamio.c
     src/common/gtest/prompt_test.cxx
     src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
 )
 
 target_link_libraries(test_prompt

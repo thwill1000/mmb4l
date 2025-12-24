@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -55,17 +56,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmtime.h"
 #include "path.h"
 #include "prompt.h"
+#include "prompt_private.h"
+#include "streamio.h"
 #include "utility.h"
 
-#define HISTORY_SIZE  4 * STRINGSIZE
 #define LINE_TOO_LONG_TO_EDIT  "Line is too long to edit"
 #define TAB_CHAR_IN_FN_DEF     "Tab character in function key definition"
 #define PROMPT_MAX_LEN  MAXSTRLEN
 
-static char history[HISTORY_SIZE];
+char prompt_history[sizeof(prompt_history)];
 static const char NO_ITEM[] = "";
-
-#include <stdio.h>
 
 MmResult prompt_getc(int *ch) {
     static char prevchar = 0;
@@ -103,13 +103,13 @@ MmResult prompt_getc(int *ch) {
     return kOk;
 }
 
-/** Displays the contents of the 'history' buffer. */
+/** Displays the contents of the 'prompt_history' buffer. */
 static MmResult dump_history() {
     char s[STRINGSIZE];
-    char *p = history;
+    char *p = prompt_history;
     char *start = p;
     ON_FAILURE_RETURN(display_puts("[BEGIN]\r\n"));
-    for (; p < history + HISTORY_SIZE; ++p) {
+    for (; p < prompt_history + sizeof(prompt_history); ++p) {
         if (*p == '\0') {
             int len = p - start;
             if (len == 0) break;
@@ -128,13 +128,13 @@ static MmResult dump_history() {
 }
 
 /** Gets an item from the 'history' buffer. */
-static char *get_history_item(int idx) {
+char *prompt_get_history_item(int idx) {
     if (idx < 0) {
         return (char *) NO_ITEM;
     }
 
     int current = 0;
-    char *p = history;
+    char *p = prompt_history;
     char *item;
 
     for (;;) {
@@ -142,7 +142,7 @@ static char *get_history_item(int idx) {
         if (current == idx) break;
         p += strlen(p);
         p++;
-        if (p >= history + HISTORY_SIZE || *p == '\0') break;
+        if (p >= prompt_history + sizeof(prompt_history) || *p == '\0') break;
         current++;
     }
 
@@ -150,12 +150,12 @@ static char *get_history_item(int idx) {
 }
 
 /** Gets the number of items in the 'history' buffer. */
-static int get_history_count() {
+int prompt_get_history_count(void) {
     int count = 0;
-    char *p = history;
+    char *p = prompt_history;
 
     for (;;) {
-        if (p >= history + HISTORY_SIZE || *p == '\0') break;
+        if (p >= prompt_history + sizeof(prompt_history) || *p == '\0') break;
         p += strlen(p);
         p++;
         count++;
@@ -167,26 +167,107 @@ static int get_history_count() {
 /**
  * Inserts a string into the start of the 'history' buffer.
  * The buffer is a sequence of strings separated by a zero byte.
- * using the up arrow usere can call up the last few commands executed.
+ * using the up arrow users can call up the last few commands executed.
  */
-void put_history_item(char *s) {
-    if (strcmp(history, s) == 0) return;  // Don't store duplicates.
-    int slen = strlen(s);
-    if (slen < 1 || slen > HISTORY_SIZE - 1) return;
+void prompt_put_history_item(const char *item) {
+    if (strcmp(prompt_history, item) == 0) return;  // Don't store duplicates.
+    size_t slen = strlen(item);
+    if (slen < 1 || slen > sizeof(prompt_history) - 1) return;
     slen++;
 
     // Shift the contents of the buffer to the right.
-    for (int i = HISTORY_SIZE - 1; i >= slen; i--) {
-        history[i] = history[i - slen];
+    for (size_t i = sizeof(prompt_history) - 1; i >= slen; i--) {
+        prompt_history[i] = prompt_history[i - slen];
     }
 
     // Insert new string at the beginning.
-    strcpy(history, s);
+    strcpy(prompt_history, item);
 
     // Zero the end of the buffer.
-    for (int i = HISTORY_SIZE - 1; history[i]; i--) {
-        history[i] = '\0';
+    for (size_t i = sizeof(prompt_history) - 1; prompt_history[i]; i--) {
+        prompt_history[i] = '\0';
     }
+}
+
+/**
+ * Resolves and canonicalizes the history file path.
+ *
+ * If no filepath is provided (NULL or empty string), uses the default history
+ * file location: ~/.mmbasic/mmbasic.history. Otherwise, canonicalizes the
+ * provided path by resolving relative paths, symlinks, and removing redundant
+ * separators.
+ *
+ * @param filepath  Path to history file, or NULL/empty for default location.
+ * @param buf       Buffer to store the canonical path.
+ * @param sz        Size of buffer in bytes.
+ * @return          kOk on success, error code on failure.
+ *
+ * @note The resulting path in buf is always an absolute, canonical path.
+ */
+static MmResult prompt_normalize_history_file_path(const char *filepath, char *buf, size_t sz) {
+    if (!filepath || filepath[0] == '\0') {
+        char tmp[PATH_MAX];
+        ON_FAILURE_RETURN(path_append(mmbasic_dot_dir, "mmbasic.history", tmp, sizeof(tmp)));
+        ON_FAILURE_RETURN(path_get_canonical(tmp, buf, sz));
+    } else {
+        ON_FAILURE_RETURN(path_get_canonical(filepath, buf, sz));
+    }
+    return kOk;
+}
+
+MmResult prompt_restore_history(const char *filepath) {
+    char canonical_path[PATH_MAX];
+    ON_FAILURE_RETURN(
+        prompt_normalize_history_file_path(filepath, canonical_path, sizeof(canonical_path)));
+    LOG_DEBUG("Restoring history from %s", canonical_path);
+
+    int fnbr = streamio_find_free();
+    ON_FAILURE_RETURN(streamio_open(canonical_path, "r", fnbr));
+
+    // Read items, one per line
+    int count = 0;
+    char item[STRINGSIZE];
+    while (!streamio_eof(fnbr)) {
+        MmResult result = streamio_readln(fnbr, item, sizeof(item));
+        if (FAILED(result)) {
+            ON_FAILURE_LOG(streamio_close(fnbr));
+            return result;
+        }
+        prompt_put_history_item(item);
+        count++;
+    }
+
+    ON_FAILURE_LOG(streamio_close(fnbr));
+
+    LOG_DEBUG("Restored %d history items", count);
+    return kOk;
+}
+
+MmResult prompt_save_history(const char *filepath) {
+    char canonical_path[PATH_MAX];
+    ON_FAILURE_RETURN(
+        prompt_normalize_history_file_path(filepath, canonical_path, sizeof(canonical_path)));
+    LOG_DEBUG("Saving history to %s", canonical_path);
+
+    int fnbr = streamio_find_free();
+    ON_FAILURE_RETURN(streamio_open(canonical_path, "w", fnbr));
+
+    // Write each item on its own line, most recent item last
+    int count = prompt_get_history_count();
+    for (int i = count - 1; i >= 0; --i) {
+        const char *item = prompt_get_history_item(i);
+        size_t len = strlen(item);
+        // Write the item with a newline
+        if (streamio_write(fnbr, item, len) < len || streamio_write(fnbr, "\n", 1) < 1) {
+            ON_FAILURE_LOG(streamio_close(fnbr));
+            return mmresult_ex(kInternalFault, "%s streamio_write() failed", __func__);
+        }
+    }
+
+    ON_FAILURE_LOG(streamio_close(fnbr));
+
+    LOG_DEBUG("Saved %d history items", count);
+    return kOk;
 }
 
 static MmResult handle_backspace(PromptState *pstate) {
@@ -261,7 +342,7 @@ static MmResult handle_down(PromptState *pstate) {
         if (pstate->history_idx == -1) {
             ON_FAILURE_RETURN(prompt_update_inpbuf(pstate, pstate->backup));
         } else {
-            ON_FAILURE_RETURN(prompt_update_inpbuf(pstate, get_history_item(pstate->history_idx)));
+            ON_FAILURE_RETURN(prompt_update_inpbuf(pstate, prompt_get_history_item(pstate->history_idx)));
         }
     }
 
@@ -410,10 +491,10 @@ MmResult prompt_handle_tab(PromptState *pstate) {
 static MmResult handle_up(PromptState *pstate) {
     assert(pstate->history_idx >= -1);
 
-    if (pstate->history_idx + 1 < get_history_count()) {
+    if (pstate->history_idx + 1 < prompt_get_history_count()) {
         if (pstate->history_idx == -1) strcpy(pstate->backup, inpbuf);
         pstate->history_idx++;
-        ON_FAILURE_RETURN(prompt_update_inpbuf(pstate, get_history_item(pstate->history_idx)));
+        ON_FAILURE_RETURN(prompt_update_inpbuf(pstate, prompt_get_history_item(pstate->history_idx)));
     }
 
     return kOk;
@@ -528,7 +609,7 @@ MmResult prompt_get_input(void) {
 
     ON_FAILURE_RETURN(display_puts("\r\n"));
 
-    put_history_item(inpbuf);
+    prompt_put_history_item(inpbuf);
 
     return kOk;
 }

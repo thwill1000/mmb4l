@@ -59,6 +59,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "safe_buffer.h"
 #include "utility.h"
 
+// Forward declaration of real function implementations
+static MmResult path_complete_impl(const char *path, char *out, size_t sz);
+
+// Pointers to functions we want to override in unit-tests
+MmResult (*path_complete)(const char *, char *, size_t) = path_complete_impl;
+
 bool path_exists(const char *path) {
     FileInfo info;
     ON_FAILURE_ERROR_EX(file_info(path, &info), false);
@@ -460,7 +466,7 @@ MmResult path_mkdir(const char *path) {
     return result == kNotADirectory ? kFileExists : result;
 }
 
-MmResult path_complete(const char *path, char *out, size_t sz) {
+static MmResult path_complete_impl(const char *path, char *out, size_t sz) {
     // printf("path_complete: #%s#\n", path);
     char dir_path[PATH_MAX];
     MmResult result = path_munge(path, dir_path, PATH_MAX);

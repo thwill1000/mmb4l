@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-prompt.h
+prompt_private.h
 
 Copyright 2022-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,61 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_PROMPT_H)
-#define MMB4L_PROMPT_H
 
-#include "mmresult.h"
-#include "options.h"
+#if !defined(MMB4L_PROMPT_PRIVATE)
+#define MMB4L_PROMPT_PRIVATE
 
-typedef struct {
-    char backup[STRINGSIZE];
-    char buf[STRINGSIZE];
-    size_t char_index;  // Insertion point
-    int history_idx;
-    bool insert;
-    bool finished;
-} PromptState;
+#define PROMPT_HISTORY_SIZE  4 * STRINGSIZE
 
-/**
- * Gets a character from the prompt input.
- *
- * Will wait forever for input. If the char is a LF then replace it with a CR
- * unless it was preceded by a CR in which case throw away the char so end of
- * line is always a CR.
- *
- * @param[in]   ch  pointer to store the character.
- * @return          kOk on success, error code on failure.
- */
-MmResult prompt_getc(int *ch);
+extern char prompt_history[PROMPT_HISTORY_SIZE];
 
-/**
- * @brief Implements the MMBasic prompt.
- *
- * On exit the global 'inpbuf' will contain what was typed at the prompt.
- */
-MmResult prompt_get_input(void);
+int prompt_get_history_count(void);
+char *prompt_get_history_item(int idx);
+void prompt_put_history_item(const char *item);
 
-/**
- * @brief Performs path completion on the contents of the global 'inpbuf'.
- */
-MmResult prompt_handle_tab(PromptState *pstate);
-
-/**
- * Restores the command history from a file.
- *
- * @param[in]   filepath  path to the history file.
- *                        If NULL/empty restores from the default location
- * @return                kOk on success, error code on failure
- */
-MmResult prompt_restore_history(const char *filepath);
-
-/**
- * Saves the command history to a file.
- *
- * @param[in]   filepath  path to the history file.
- *                        If NULL/empty saves to the default location
- * @return                kOk on success, error code on failure
- */
-MmResult prompt_save_history(const char *filepath);
-
-#endif // #if !defined(MMB4L_PROMPT_H)
+#endif // #if !defined(MMB4L_PROMPT_PRIVATE)

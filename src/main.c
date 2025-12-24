@@ -260,6 +260,7 @@ void longjmp_handler(int jmp_state) {
     }
 
     if (do_exit) {
+        ON_FAILURE_LOG(prompt_save_history(""));
         exit(mmb_state.exit_code);
     }
 
@@ -279,6 +280,7 @@ static MmResult init_prompt() {
     ON_FAILURE_RETURN(get_banner(banner, sizeof(banner)));
     ON_FAILURE_RETURN(display_puts(banner));
     ON_FAILURE_RETURN(display_puts("\r\n"));
+    ON_FAILURE_LOG(prompt_restore_history(""));
     return kOk;
 }
 
