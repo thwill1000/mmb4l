@@ -195,6 +195,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kNotParsed:                  return "Not parsed";
         case kFileInvalidExtension:       return "Invalid file extension; must begin with '.'";
         case kFileInvalidFileNumber:      return "Invalid file number";
+        case kFileInvalidOperation:       return "Invalid file operation";
         case kFileAlreadyOpen:            return "File or device already open";
         case kFileNotOpen:                return "File or device not open";
         case kFileInvalidSeekPosition:    return "Invalid seek position";
