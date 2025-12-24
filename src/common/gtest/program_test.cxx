@@ -59,6 +59,9 @@ MmResult prompt_getc(int *ch) {
     *ch = -1;
     return kOk;
 }
+MmResult prompt_save_history(const char *filepath) {
+    return kOk;
+}
 
 // Defined in "core/Commands.c"
 char DimUsed;
