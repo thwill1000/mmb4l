@@ -1026,6 +1026,31 @@ target_link_libraries(test_stack
 gtest_discover_tests(test_stack)
 
 ################################################################################
+# test_streamio
+################################################################################
+
+add_executable(test_streamio
+    ${MMB4L_COMMON_TEST_FILES}
+    src/common/file.c
+    src/common/file_linux.c
+    src/common/path.c
+    src/common/streamio.c
+    src/common/gtest/streamio_test.cxx
+    src/common/gtest/stubs/serial_stubs.c
+)
+
+target_compile_definitions(test_streamio PUBLIC ENABLE_GTEST_EXTRAS)
+
+target_link_libraries(test_streamio
+    gtest_main
+    gmock
+    gmock_main
+    ${GCOV_LINK_LIBRARY}
+)
+
+gtest_discover_tests(test_streamio)
+
+################################################################################
 # test_mmbasic_core
 ################################################################################
 
