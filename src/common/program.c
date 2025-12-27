@@ -745,13 +745,15 @@ MmResult program_get_bas_file(const char *filename, char *out) {
     }
 
     // Try looking for the file with each extension resolved relative to SEARCH PATH.
-    pend = search_path + strlen(search_path);
-    for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
-        *pend = '\0';
-        if (FAILED(cstring_cat(search_path, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
-            return kFilenameTooLong;
-        if (path_exists(search_path))
-            return path_get_canonical(search_path, out, STRINGSIZE);
+    if (*search_path) {
+        pend = search_path + strlen(search_path);
+        for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+            *pend = '\0';
+            if (FAILED(cstring_cat(search_path, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
+                return kFilenameTooLong;
+            if (path_exists(search_path))
+                return path_get_canonical(search_path, out, STRINGSIZE);
+        }
     }
 
     // If all else fails return the path resolved relative to CWD with the
