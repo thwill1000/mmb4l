@@ -79,7 +79,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 volatile bool MMAbort = false;
 
-MmBasicState mmb_state = { .exit_code = EX_OK };
+MmBasicState mmb_state = { .exiting = false, .exit_code = EX_OK };
 
 int VarIndex;                                                       // Global set by findvar after a variable has been created or found
 int LocalIndex;                                                     // used to track the level of local variables
