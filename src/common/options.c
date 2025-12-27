@@ -42,16 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "mmb4l.h"
-#include "codepage.h"
-#include "cstring.h"
-#include "path.h"
-#include "utility.h"
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "codepage.h"
+#include "cstring.h"
+#include "mmb4l.h"
+#include "path.h"
+#include "utility.h"
 
 #define INVALID_VALUE  "???"
 
