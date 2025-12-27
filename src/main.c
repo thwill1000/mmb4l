@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
+#include <SDL.h>
+
 #include "common/audio.h"
 #include "common/cmdline.h"
 #include "common/console.h"
@@ -188,8 +190,8 @@ void set_start_directory() {
     if (mmb_args.directory[0] == '\0') {
         char *MMDIR = getenv("MMDIR");
         if (MMDIR) {
-            snprintf(mmb_args.directory, 256, "%s", MMDIR);
-            mmb_args.directory[255] = '\0';
+            snprintf(mmb_args.directory, STRINGSIZE, "%s", MMDIR);
+            mmb_args.directory[MAXSTRLEN] = '\0';
         }
     }
     char *p = mmb_args.directory;
@@ -226,42 +228,36 @@ void longjmp_handler(int jmp_state) {
 
     audio_term();
 
-    int do_exit = false;
     switch (jmp_state) {
         case JMP_BREAK:
             mmb_state.exit_code = EX_BREAK;
-            do_exit = !mmb_args.show_prompt;
+            mmb_state.exiting = !mmb_args.show_prompt;
             break;
 
         case JMP_END:
-            do_exit = !mmb_args.show_prompt;
+            mmb_state.exiting = !mmb_args.show_prompt;
             break;
 
         case JMP_ERROR:
             display_puts(mmb_error_state_ptr->message);
             display_puts("\r\n");
             mmb_state.exit_code = error_to_exit_code(mmb_error_state_ptr->code);
-            do_exit = !mmb_args.show_prompt;
+            mmb_state.exiting = !mmb_args.show_prompt;
             break;
 
         case JMP_NEW:
             mmb_state.exit_code = EX_OK; // Probably not necessary.
-            do_exit = false;
             break;
 
         case JMP_QUIT:
-            do_exit = true;
+            mmb_state.exiting = true;
             break;
 
         default:
             fprintf(stderr, "Unexpected return value from setjmp()");
-            exit(EX_FAIL);
+            mmb_state.exit_code = EX_FAIL;
+            mmb_state.exiting = true;
             break;
-    }
-
-    if (do_exit) {
-        ON_FAILURE_LOG(prompt_save_history(""));
-        exit(mmb_state.exit_code);
     }
 
     ContinuePoint = nextstmt;  // In case the user wants to use the continue command
@@ -357,7 +353,7 @@ int main(int argc, char *argv[]) {
         default:        longjmp_handler(JMP_UNEXPECTED); break;
     }
 
-    while (1) {
+    while (!mmb_state.exiting) {
         MMAbort = false;
         LocalIndex = 0;     // this should not be needed but it ensures that all
                             // space will be cleared
@@ -407,6 +403,12 @@ int main(int argc, char *argv[]) {
 
         ExecuteProgram(tknbuf);  // execute the line straight away
     }
+
+    ON_FAILURE_LOG(prompt_save_history(""));
+
+    SDL_Quit();  // Properly cleanup SDL
+
+    return mmb_state.exit_code;
 }
 
 void IntHandler(int signo) {
