@@ -176,6 +176,7 @@ extern const char *TraceBuff[TRACE_BUFF_SIZE];  // TRACE_BUFF_SIZE defined in 'C
 extern int TraceBuffIndex;
 
 typedef struct {
+    bool exiting;
     uint8_t exit_code;
     OptionsSimulate default_simulate;
 } MmBasicState;
