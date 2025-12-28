@@ -167,6 +167,8 @@ OptionsDefinition options_definitions[] = {
     { NULL, -1, -1, false, "", NULL }
 };
 
+char options_filename[PATH_MAX];
+
 void options_init(Options *options) {
     memset(options, 0, sizeof(Options));
 

@@ -85,7 +85,7 @@ char *CFunctionFlash, *CFunctionLibrary;
 
 CmdLineArgs mmb_args = { 0 };
 
-static const char mmbasic_dir[] = "~/.mmbasic";
+const char mmbasic_dot_dir[] = "~/.mmbasic";
 
 void IntHandler(int signo);
 void dump_token_table(const struct s_tokentbl* tbl);
@@ -125,12 +125,12 @@ static MmResult get_banner(char *buf, size_t buf_sz) {
 }
 
 static void init_mmbasic_config_dir() {
-    MmResult result = path_mkdir(mmbasic_dir);
+    MmResult result = path_mkdir(mmbasic_dot_dir);
     if (FAILED(result)) {
         fprintf(
             stderr,
             "\nFailed to create directory '%s': %s\n",
-            mmbasic_dir,
+            mmbasic_dot_dir,
             mmresult_to_string(result));
         exit(EX_FAIL);
     }
@@ -146,7 +146,7 @@ static void init_options_cb(const char *msg) {
 
     if (count == 0) {
         display_puts("Warnings in '");
-        display_puts(OPTIONS_FILE_NAME);
+        display_puts(options_filename);
         display_puts("':\r\n");
     }
 
@@ -157,9 +157,15 @@ static void init_options_cb(const char *msg) {
 }
 
 static void init_options() {
+    char filename[PATH_MAX] = { 0 };
+    ON_FAILURE_GOTO(path_append(mmbasic_dot_dir, "mmbasic.options", filename, sizeof(filename)),
+                    error);
+    ON_FAILURE_GOTO(path_get_canonical(filename, options_filename, sizeof(options_filename)),
+                    error);
+
     options_init(&mmb_options);
 
-    MmResult result = options_load(&mmb_options, OPTIONS_FILE_NAME, init_options_cb);
+    MmResult result = options_load(&mmb_options, options_filename, init_options_cb);
     switch (result) {
         case kOk:
             // Options loaded, but may still have output warnings.
@@ -168,11 +174,14 @@ static void init_options() {
             // Ignore and use default options.
             break;
         default:
-            fprintf(stderr, "\nFailed to load options: %s\n", mmresult_to_string(result));
-            exit(EX_FAIL);
-            break;
+            goto error;
     }
     init_options_cb("END");
+    return;
+
+error:
+    fprintf(stderr, "\nFailed to load options: %s\n", mmresult_to_string(result));
+    exit(EX_FAIL);
 }
 
 void set_start_directory() {
