@@ -1253,3 +1253,163 @@ TEST_F(GraphicsBlitTest, GivenSmallSource_BeyondSouthEdge_AndVerticalFlip) {
     // clang-format on
     EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
 }
+
+// Define inverted color constants
+// Inversion formula: inverted = color ^ 0xFFFFFF (inverts RGB only, preserves alpha)
+#define RGB_INVERTED_0  0x00FFFFFF  // 0 inverted (RGB only)
+#define RGB_INVERTED_1  0x00FFFFFE  // 1 inverted (RGB only)
+#define RGB_INVERTED_2  0x00FFFFFD  // 2 inverted (RGB only)
+#define RGB_INVERTED_3  0x00FFFFFC  // 3 inverted (RGB only)
+#define RGB_INVERTED_4  0x00FFFFFB  // 4 inverted (RGB only)
+#define RGB_INVERTED_5  0x00FFFFFA  // 5 inverted (RGB only)
+#define RGB_INVERTED_9  0x00FFFFF6  // 9 inverted (RGB only)
+
+// Test the standard XOR inversion behavior
+TEST_F(GraphicsBlitTest, GivenInvert_AndSameSurface) {
+    // Save current colours
+    const MmGraphicsColour saved_bcolour = graphics_bcolour;
+    const MmGraphicsColour saved_fcolour = graphics_fcolour;
+
+    // Set foreground/background to values NOT in our test data to avoid swap behavior
+    // This tests pure XOR inversion
+    graphics_fcolour = 99;
+    graphics_bcolour = 88;
+
+    // Copy source to destination first
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 0, 0, 7, 9, src, dst, kBlitNormal, 0));
+
+    // Now invert in place
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 0, 0, 7, 9, dst, dst, kBlitInvert, 0));
+
+    // clang-format off
+    // Expected result assumes graphics_fcolour and graphics_bcolour are NOT
+    // equal to any of the pixel values (0, 1, 2, 3, 4, 5) in our test data.
+    // If they are, these values would need to be adjusted for the swap behavior.
+    const uint32_t expected[] = {
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_1, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_1, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_1, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_1, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_4, RGB_INVERTED_4, RGB_INVERTED_4, RGB_INVERTED_5, RGB_INVERTED_2, RGB_INVERTED_2, RGB_INVERTED_2,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_3, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_3, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_3, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_3, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0 };
+    // clang-format on
+
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+
+    // Restore original colours
+    graphics_bcolour = saved_bcolour;
+    graphics_fcolour = saved_fcolour;
+}
+
+// Test the special swap behavior when pixels match graphics_fcolour or graphics_bcolour
+TEST_F(GraphicsBlitTest, GivenInvert_WithForegroundBackgroundSwap) {
+    // Save current colours
+    MmGraphicsColour saved_fcolour = graphics_fcolour;
+    MmGraphicsColour saved_bcolour = graphics_bcolour;
+
+    // Set foreground/background to values that exist in our test data
+    // DEFAULT_SRC_PIXELS contains: 0, 1, 2, 3, 4, 5
+    graphics_fcolour = 1;  // Foreground color
+    graphics_bcolour = 3;  // Background color
+
+    // Perform the invert blit
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 0, 0, 7, 9, src, dst, kBlitInvert, 0));
+
+    // clang-format off
+    // Expected behavior:
+    // - All pixels with value 1 (fcolour) become 3 (bcolour)
+    // - All pixels with value 3 (bcolour) become 1 (fcolour)
+    // - All other pixels (0, 2, 4, 5) get XOR inverted
+    const uint32_t expected[] = {
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, 3, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, 3, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, 3, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, 3, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_4, RGB_INVERTED_4, RGB_INVERTED_4, RGB_INVERTED_5, RGB_INVERTED_2, RGB_INVERTED_2, RGB_INVERTED_2,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, 1, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, 1, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, 1, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0,
+        RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, 1, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0 };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+
+    // Restore original colours
+    graphics_bcolour = saved_bcolour;
+    graphics_fcolour = saved_fcolour;
+}
+
+// Test inversion with both flips and translation (1 pixel right, 2 pixels down)
+// This ensures the invert logic works correctly with all the transformation flags
+TEST_F(GraphicsBlitTest, GivenInvert_AndHorizontalFlip_AndVerticalFlip_AndTranslation) {
+    // Save current colours
+    MmGraphicsColour saved_fcolour = graphics_fcolour;
+    MmGraphicsColour saved_bcolour = graphics_bcolour;
+
+    // Set foreground/background to values NOT in our test data to avoid swap behavior
+    // This tests pure XOR inversion
+    graphics_fcolour = 99;
+    graphics_bcolour = 88;
+
+    // Blit with translation (1 right, 2 down), both flips, and inversion
+    EXPECT_EQ(kOk, graphics_blit(0, 0, 1, 2, 7, 9, src, dst,
+                                 kBlitInvert | kBlitHorizontalFlip | kBlitVerticalFlip, 0));
+
+    // clang-format off
+    // Expected: source is flipped horizontally and vertically, translated to (1, 2),
+    // and all pixels are XOR inverted
+    //
+    // Original source (column 3 emphasized):
+    //   0 0 0 | 1 | 0 0 0    row 0
+    //   0 0 0 | 1 | 0 0 0    row 1
+    //   0 0 0 | 1 | 0 0 0    row 2
+    //   0 0 0 | 1 | 0 0 0    row 3
+    //   4 4 4 | 5 | 2 2 2    row 4 (middle)
+    //   0 0 0 | 3 | 0 0 0    row 5
+    //   0 0 0 | 3 | 0 0 0    row 6
+    //   0 0 0 | 3 | 0 0 0    row 7
+    //   0 0 0 | 3 | 0 0 0    row 8
+    //
+    // After horizontal flip (mirror left-right):
+    //   0 0 0 | 1 | 0 0 0
+    //   0 0 0 | 1 | 0 0 0
+    //   0 0 0 | 1 | 0 0 0
+    //   0 0 0 | 1 | 0 0 0
+    //   2 2 2 | 5 | 4 4 4
+    //   0 0 0 | 3 | 0 0 0
+    //   0 0 0 | 3 | 0 0 0
+    //   0 0 0 | 3 | 0 0 0
+    //   0 0 0 | 3 | 0 0 0
+    //
+    // After vertical flip (mirror top-bottom):
+    //   0 0 0 | 3 | 0 0 0
+    //   0 0 0 | 3 | 0 0 0
+    //   0 0 0 | 3 | 0 0 0
+    //   0 0 0 | 3 | 0 0 0
+    //   2 2 2 | 5 | 4 4 4
+    //   0 0 0 | 1 | 0 0 0
+    //   0 0 0 | 1 | 0 0 0
+    //   0 0 0 | 1 | 0 0 0
+    //   0 0 0 | 1 | 0 0 0
+    //
+    // After translation by (1, 2) and XOR inversion:
+    const uint32_t expected[] = {
+        9, 9, 9, 9, 9, 9, 9,  // row 0: untouched (above translation)
+        9, 9, 9, 9, 9, 9, 9,  // row 1: untouched (above translation)
+        9, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_3, RGB_INVERTED_0, RGB_INVERTED_0,  // row 2: first row of flipped data
+        9, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_3, RGB_INVERTED_0, RGB_INVERTED_0,  // row 3
+        9, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_3, RGB_INVERTED_0, RGB_INVERTED_0,  // row 4
+        9, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_3, RGB_INVERTED_0, RGB_INVERTED_0,  // row 5
+        9, RGB_INVERTED_2, RGB_INVERTED_2, RGB_INVERTED_2, RGB_INVERTED_5, RGB_INVERTED_4, RGB_INVERTED_4,  // row 6: middle row
+        9, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_1, RGB_INVERTED_0, RGB_INVERTED_0,  // row 7
+        9, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_0, RGB_INVERTED_1, RGB_INVERTED_0, RGB_INVERTED_0   // row 8
+    };
+    // clang-format on
+    EXPECT_PIXELS_EQ(expected, dst->pixels, dst->width, dst->height);
+
+    // Restore original colours
+    graphics_fcolour = saved_fcolour;
+    graphics_bcolour = saved_bcolour;
+}

@@ -1743,7 +1743,7 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
     switch (flags & 0x3) {
         case kBlitNormal: {
             dst += (dst_y * dst_surface->width) + dst_x;
-            if (flags & kBlitWithTransparency) {
+            if (flags & kBlitWithTransparency || flags & kBlitInvert) {
                 pdelta = 1;
                 ldelta = dst_surface->width - w;
             } else {
@@ -1801,7 +1801,20 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
             if ((flags & kBlitWithTransparency) && *src == transparent) {
                 src++;
             } else {
-                *dst = *src++;
+                if (flags & kBlitInvert) {
+                    // Currently this implements behaviour specific to flashing the cursor that
+                    // might better be handled with a distinct flag from more general inversion.
+                    if (*src == graphics_fcolour) {
+                        *dst = graphics_bcolour;
+                    } else if (*src == graphics_bcolour) {
+                        *dst = graphics_fcolour;
+                    } else {
+                        *dst = *src ^ 0xFFFFFF;
+                    }
+                    src++;
+                } else {
+                    *dst = *src++;
+                }
             }
             dst += pdelta;
         }
