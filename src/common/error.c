@@ -149,7 +149,7 @@ void error_get_line_and_file(int *line, char *file_path) {
 // the optional data to be inserted is the second argument to this function
 // this uses longjump to skip back to the command input and cleanup the stack
 static void verror(MmResult error, const char *msg, va_list argp) {
-    options_load(&mmb_options, OPTIONS_FILE_NAME, NULL);  // make sure that the option struct is in a clean state
+    options_load(&mmb_options, options_filename, NULL);  // make sure that the option struct is in a clean state
 
     mmb_error_state_ptr->code = error;
     if (!mmb_error_state_ptr->override_line) {
