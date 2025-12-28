@@ -179,6 +179,7 @@ typedef enum {
     kFileAlreadyOpen,
     kFileNotOpen,
     kFileInvalidExtension,
+    kFileInvalidOperation,
     kFileInvalidSeekPosition,
     kPreprocessorReplaceFailed,
     kNotEnoughData,
