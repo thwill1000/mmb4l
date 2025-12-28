@@ -45,6 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_STREAMIO_H)
 #define MMB4L_STREAMIO_H
 
+#include <stdbool.h>
+#include <stddef.h>
+
 #include "mmresult.h"
 
 /**
@@ -150,7 +153,7 @@ MmResult streamio_open(const char *path, const char *mode, int fnbr);
 int streamio_putc(int fnbr, int ch);
 
 /**
- * Reads data from an I/O stream into a buffer.
+ * Reads data from an input stream into a buffer.
  *
  * @param[in]  fnbr  File number to read from
  * @param[out] buf   Buffer to store the data
@@ -160,6 +163,29 @@ int streamio_putc(int fnbr, int ch);
 size_t streamio_read(int fnbr, char *buf, size_t sz);
 
 /**
+ * Reads a line from an input stream.
+ *
+ * Reads characters from the specified stream until a line terminator is
+ * encountered, the buffer is full, or EOF/error occurs. Line terminators
+ * (\r, \n, or \r\n) are consumed but not included in the returned string.
+ * The string is always null-terminated.
+ *
+ * @param fnbr  File number to read from.
+ * @param buf   Buffer to store the line. Must not be NULL.
+ * @param sz    Size of buffer in bytes, including space for null terminator.
+ * @return      kOk on success, or an error code on failure.
+ *
+ * @note Recognizes three line ending styles: \n (Unix), \r (old Mac), and
+ *       \r\n (Windows/DOS). The \r\n sequence is treated as a single line
+ *       terminator.
+ * @note If the line exceeds sz-1 characters, reading stops and the string is
+ *       truncated. The next call will continue reading from where it left off.
+ * @note At EOF with no data read, returns an empty string (buf[0] = '\0').
+ * @note Line terminators are consumed from the stream but not included in buf.
+ */
+MmResult streamio_readln(int fnbr, char *buf, size_t sz);
+
+/**
  * Seeks to a specific position in an I/O stream.
  * Position is 1-based (MMBasic convention).
  *
@@ -167,6 +193,25 @@ size_t streamio_read(int fnbr, char *buf, size_t sz);
  * @param[in]  idx   Position to seek to (1-based)
  */
 void streamio_seek(int fnbr, int idx);
+
+/**
+ * Pushes a character back onto an input stream.
+ *
+ * Allows one character to be pushed back to be read again by the next call to
+ * streamio_getc(). This is primarily useful for lookahead operations.
+ *
+ * @param fnbr  File number to read from.
+ * @param ch    Character to push back onto the stream.
+ * @return      kOk on success, or an error code on failure.
+ *
+ * @note Only one character of pushback is guaranteed. Multiple calls without
+ *       an intervening read may fail.
+ * @note Not supported for serial ports or console input (fnbr 0).
+ * @note The character pushed back doesn't need to be the same as the one
+ *       previously read, but for portability it's recommended to only push
+ *       back the last character read.
+ */
+MmResult streamio_ungetc(int fnbr, int ch);
 
 /**
  * Writes data from a buffer to an I/O stream.
