@@ -112,6 +112,8 @@ void error_clear_callback();
     if (FAILED(result__)) { return result__; } \
 } while (0)
 
+#define INTERNAL_FAULT  mmresult_ex(kInternalFault, "Internal fault %s:%d", __FILE__, __LINE__)
+
 #define ERROR_ARGUMENT_COUNT              error_throw(kArgumentCount)
 #define ERROR_ARRAY_NOT_SQUARE            error_throw_ex(kError, "Array must be square")
 #define ERROR_ARRAY_SIZE_MISMATCH         error_throw_ex(kError, "Array size mismatch")
