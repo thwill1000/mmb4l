@@ -370,13 +370,12 @@ static MmResult audio_fill_track_list(const char *filename, const char *extensio
         size_t counter = 0;
         while (counter != MAX_TRACKS && (ent = readdir(dir)) != NULL) {
             if (path_has_extension(ent->d_name, extension, true)) {
-                if (FAILED(cstring_cpy(tmp, dirname, STRINGSIZE))) {
+                if (FAILED(cstring_cpy(audio_track_list[counter], dirname, STRINGSIZE))) {
                     return kFilenameTooLong;
                 }
-                if (FAILED(path_append(tmp, ent->d_name, audio_track_list[counter++],
-                                       STRINGSIZE))) {
-                    return kFilenameTooLong;
-                }
+                ON_FAILURE_RETURN(
+                    file_append_path(audio_track_list[counter], ent->d_name, sizeof(tmp)));
+                counter++;
             }
         }
         closedir(dir);

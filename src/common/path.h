@@ -101,17 +101,6 @@ bool path_is_absolute(const char *path);
 MmResult path_get_parent(const char *path, char *parent_path, size_t sz);
 
 /**
- * Appends one path to another.
- *
- * @param  head    path being appended to.
- * @param  tail    path being appended.
- * @param  result  result is returned in this buffer.
- * @param  sz      size of the 'result' buffer.
- * @return         kOk on success.
- */
-MmResult path_append(const char *head, const char *tail, char *result, size_t sz);
-
-/**
  * Transforms path by:
  *  - removing any DOS style drive specified, e.g. A:
  *  - replacing leading ~ by user's HOME directory
