@@ -1020,21 +1020,32 @@ void cmd_math(void){
 			if(!a2int)a2int=(int64_t *)afloat;
 			if(dim[target]!=toarray)error_throw_legacy("Size mismatch between slice and target array");
 			i=dimcount-1;
-			while(i>=0){
-				off[i]=1;
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
+
+			while(i>=0){
+				off[i]=1;
 				for(j=0; j<i; j++)off[i]*=(dim[j]+1);
-#pragma GCC diagnostic pop
 				i--;
 			}
+
+#pragma GCC diagnostic pop
+
 			start=1;
-			for(i=0;i<dimcount;i++){
+
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+			for(i=0;i<dimcount;i++){
 				start+= (pos[i]*off[i]);
-#pragma GCC diagnostic pop
 			}
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 			start--;
 			increment=off[target];
 			start-=increment;
@@ -1778,21 +1789,33 @@ void cmd_math(void){
 			if(target==-1)return;
 			if(dim[target]+mmb_options.base!=dims[0])error_throw_legacy("Size mismatch between insert and target array");
 			i=dimcount-1;
-			while(i>=0){
-				off[i]=1;
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
+
+			while(i>=0){
+				off[i]=1;
 				for(j=0; j<i; j++)off[i]*=(dim[j]+1);
-#pragma GCC diagnostic pop
 				i--;
 			}
+
+#pragma GCC diagnostic pop
+
 			start=1;
-			for(i=0;i<dimcount;i++){
+
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
+			for(i=0;i<dimcount;i++){
 				start+= (pos[i]*off[i]);
-#pragma GCC diagnostic pop
 			}
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 			start--;
 			increment=off[target];
 			start-=increment;

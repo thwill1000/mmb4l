@@ -22,7 +22,7 @@ Options mmb_options;
 MmResult gpio_translate_from_pin_gp(uint8_t pin_gp, uint8_t *pin_num) { return kOk; }
 
 // Defined in "common/graphics.c"
-MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = {};
 
 // Defined in "common/mmgetchar.c"
 int MMgetchar(void) { return -1; }
