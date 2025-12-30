@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "console.h"
 #include "display.h"
+#include "file.h"
 #include "keycodes.h"
 #include "logger.h"
 #include "mmb4l.h"
@@ -206,8 +207,9 @@ void prompt_put_history_item(const char *item) {
  */
 static MmResult prompt_normalize_history_file_path(const char *filepath, char *buf, size_t sz) {
     if (!filepath || filepath[0] == '\0') {
-        char tmp[PATH_MAX];
-        ON_FAILURE_RETURN(path_append(mmbasic_dot_dir, "mmbasic.history", tmp, sizeof(tmp)));
+        char tmp[PATH_MAX] = { '\0' };
+        ON_FAILURE_RETURN(file_get_config_dir(tmp, sizeof(tmp)));
+        ON_FAILURE_RETURN(file_append_path(tmp, "mmbasic.history", sizeof(tmp)));
         ON_FAILURE_RETURN(path_get_canonical(tmp, buf, sz));
     } else {
         ON_FAILURE_RETURN(path_get_canonical(filepath, buf, sz));
