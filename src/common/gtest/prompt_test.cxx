@@ -12,6 +12,8 @@
 
 extern "C" {
 
+#include "../cstring.h"
+#include "../file.h"
 #include "../path.h"
 #include "../prompt.h"
 #include "../prompt_private.h"
@@ -23,9 +25,16 @@ Options mmb_options;
 PromptState prompt_state;
 MmResult path_complete_canned_result;
 char path_complete_captured_path[STRINGSIZE];
+char config_dir[PATH_MAX] = { '\0' };
 
 int console_getc(void) { return -1; }
-/*const*/ char mmbasic_dot_dir[] = "~/.mmbasic";
+
+MmResult file_test_get_config_dir(char *buf, size_t size) {
+    if (FAILED(cstring_cpy(buf, config_dir, size))) {
+        return kFilenameTooLong;
+    }
+    return kOk;
+}
 
 MmResult path_test_complete(const char *path, char *out, size_t sz) {
     strcpy(path_complete_captured_path, path);
@@ -44,11 +53,17 @@ protected:
     std::string test_dir;
 
     void SetUp() override {
+        file_get_config_dir = file_test_get_config_dir;
         path_complete = path_test_complete;
 
         test_dir = ::testing::TempDir() + "PromptTest";
 
         std::filesystem::create_directories(test_dir);
+
+        // Create config dir
+        ASSERT_EQ(0, cstring_cpy(config_dir, test_dir.c_str(), sizeof(config_dir)));
+        ASSERT_EQ(kOk, file_append_path(config_dir, ".mmbasic", sizeof(config_dir)));
+        std::filesystem::create_directories(config_dir);
     }
 
     void TearDown() override {
@@ -110,9 +125,7 @@ class PromptRestoreHistoryTest : public PromptTestBase {};
 // Test restoring history from default location
 TEST_F(PromptRestoreHistoryTest, RestoreFromDefaultLocation) {
     // Create default history file
-    std::string history_dir = test_dir + "/.mmbasic";
-    std::filesystem::create_directories(history_dir);
-    std::string history_file = history_dir + "/mmbasic.history";
+    std::string history_file = std::string(config_dir) + "/mmbasic.history";
 
     FILE* f = fopen(history_file.c_str(), "w");
     ASSERT_NE(nullptr, f);
@@ -121,17 +134,8 @@ TEST_F(PromptRestoreHistoryTest, RestoreFromDefaultLocation) {
     fprintf(f, "RUN\n");
     fclose(f);
 
-    // Temporarily override mmbasic_dot_dir
-    const char* old_dir = mmbasic_dot_dir;
-    const_cast<char*>(mmbasic_dot_dir)[0] = '\0';
-    strcat(const_cast<char*>(mmbasic_dot_dir), history_dir.c_str());
-
     memset(prompt_history, 0, sizeof(prompt_history));
     MmResult result = prompt_restore_history(NULL);
-
-    // Restore original
-    const_cast<char*>(mmbasic_dot_dir)[0] = '\0';
-    strcat(const_cast<char*>(mmbasic_dot_dir), old_dir);
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("RUN", prompt_get_history_item(0));
@@ -358,14 +362,6 @@ class PromptSaveHistoryTest : public PromptTestBase {};
 
 // Test saving history to default location
 TEST_F(PromptSaveHistoryTest, SaveToDefaultLocation) {
-    std::string history_dir = test_dir + "/.mmbasic";
-    std::filesystem::create_directories(history_dir);
-
-    // Temporarily override mmbasic_dot_dir
-    const char* old_dir = mmbasic_dot_dir;
-    const_cast<char*>(mmbasic_dot_dir)[0] = '\0';
-    strcat(const_cast<char*>(mmbasic_dot_dir), history_dir.c_str());
-
     memset(prompt_history, 0, sizeof(prompt_history));
     prompt_put_history_item("Line1");
     prompt_put_history_item("Line2");
@@ -373,14 +369,10 @@ TEST_F(PromptSaveHistoryTest, SaveToDefaultLocation) {
 
     MmResult result = prompt_save_history(NULL);
 
-    // Restore original
-    const_cast<char*>(mmbasic_dot_dir)[0] = '\0';
-    strcat(const_cast<char*>(mmbasic_dot_dir), old_dir);
-
     EXPECT_EQ(kOk, result);
 
     // Verify file contents
-    std::string history_file = history_dir + "/mmbasic.history";
+    std::string history_file = std::string(config_dir) + "/mmbasic.history";
     FILE* f = fopen(history_file.c_str(), "r");
     ASSERT_NE(nullptr, f);
 

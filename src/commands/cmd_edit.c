@@ -60,11 +60,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ERROR_FILE_COULD_NOT_BE_CREATED  error_throw_ex(kError, "File could not be created")
 #define ERROR_NOTHING_TO_EDIT            error_throw_ex(kError, "Nothing to edit")
 
-static MmResult get_mmbasic_nanorc(char *path) {
-    ON_FAILURE_RETURN(path_append(mmbasic_dot_dir, "mmbasic.nanorc", path, STRINGSIZE));
+static MmResult get_mmbasic_nanorc(char *path, size_t size) {
+    ON_FAILURE_RETURN(file_get_config_dir(path, size));
+    ON_FAILURE_RETURN(file_append_path(path, "mmbasic.nanorc", size));
     char canonical_path[STRINGSIZE];
-    ON_FAILURE_RETURN(path_get_canonical(path, canonical_path, STRINGSIZE));
-    strcpy(path, canonical_path);
+    ON_FAILURE_RETURN(path_get_canonical(path, canonical_path, sizeof(canonical_path)));
+    if (FAILED(cstring_cpy(path, canonical_path, size))) return kFilenameTooLong;
     if (!path_exists(path)) {
         *path = '\0';
     }
@@ -87,7 +88,7 @@ static MmResult get_editor_command(const char *editor, const char *file_path, in
     // do not support the --rcfile flag.
     if (strcasecmp(editor, "nano") == 0) {
         char nanorc[STRINGSIZE];
-        ON_FAILURE_RETURN(get_mmbasic_nanorc(nanorc));
+        ON_FAILURE_RETURN(get_mmbasic_nanorc(nanorc, sizeof(nanorc)));
         if (*nanorc) sprintf(command, "nano --rcfile=%s +${line} ${file}", nanorc);
     }
 

@@ -1194,3 +1194,115 @@ TEST_F(FileListTest, FileTypeConsistencyWithReaddir) {
         }
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for file_append_path()
+////////////////////////////////////////////////////////////////////////////////
+
+
+// Unit tests for file_append_path() function
+class FileAppendPathTest : public ::testing::Test {
+protected:
+    static constexpr size_t BUFFER_SIZE = 256;
+    char buffer[BUFFER_SIZE];
+
+    void SetUp() override {
+        memset(buffer, 0, BUFFER_SIZE);
+    }
+
+    char get_expected_separator() {
+#ifdef _WIN32
+        return '\\';
+#else
+        return '/';
+#endif
+    }
+};
+
+// Test basic path appending
+TEST_F(FileAppendPathTest, BasicAppend) {
+    strcpy(buffer, "/home/user");
+
+    MmResult result = file_append_path(buffer, "documents", BUFFER_SIZE);
+
+    EXPECT_EQ(kOk, result);
+    char expected[BUFFER_SIZE];
+    snprintf(expected, BUFFER_SIZE, "/home/user%cdocuments", get_expected_separator());
+    EXPECT_STREQ(expected, buffer);
+}
+
+// Test null parameters
+TEST_F(FileAppendPathTest, NullParameters) {
+    strcpy(buffer, "/home/user");
+
+    EXPECT_EQ(kInternalFault, file_append_path(nullptr, "documents", BUFFER_SIZE));
+    EXPECT_EQ(kInternalFault, file_append_path(buffer, nullptr, BUFFER_SIZE));
+}
+
+// Test empty element
+TEST_F(FileAppendPathTest, EmptyElement) {
+    strcpy(buffer, "/home/user");
+
+    MmResult result = file_append_path(buffer, "", BUFFER_SIZE);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ("/home/user", buffer);
+}
+
+// Test separator handling - parent has trailing separator
+TEST_F(FileAppendPathTest, ParentWithTrailingSeparator) {
+    strcpy(buffer, "/home/user/");
+
+    MmResult result = file_append_path(buffer, "documents", BUFFER_SIZE);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TRUE(strstr(buffer, "/documents") != nullptr);
+    // Should not have double separator
+    EXPECT_EQ(nullptr, strstr(buffer, "//"));
+}
+
+// Test separator handling - element has leading separator
+TEST_F(FileAppendPathTest, ElementWithLeadingSeparator) {
+    strcpy(buffer, "/home/user");
+
+    MmResult result = file_append_path(buffer, "/documents", BUFFER_SIZE);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_TRUE(strstr(buffer, "documents") != nullptr);
+}
+
+// Test separator handling - both have separators
+TEST_F(FileAppendPathTest, BothHaveSeparators) {
+    strcpy(buffer, "/home/user/");
+
+    MmResult result = file_append_path(buffer, "/documents", BUFFER_SIZE);
+
+    EXPECT_EQ(kOk, result);
+    // Should not have double separator
+    EXPECT_EQ(nullptr, strstr(buffer, "//"));
+    EXPECT_TRUE(strstr(buffer, "documents") != nullptr);
+}
+
+// Test buffer overflow
+TEST_F(FileAppendPathTest, BufferOverflow) {
+    strcpy(buffer, "/home/user");
+    std::string long_element(BUFFER_SIZE, 'x');
+
+    MmResult result = file_append_path(buffer, long_element.c_str(), BUFFER_SIZE);
+
+    EXPECT_EQ(kFilenameTooLong, result);
+}
+
+// Test multiple sequential appends
+TEST_F(FileAppendPathTest, MultipleAppends) {
+    strcpy(buffer, "/home");
+
+    EXPECT_EQ(file_append_path(buffer, "user", BUFFER_SIZE), kOk);
+    EXPECT_EQ(file_append_path(buffer, "documents", BUFFER_SIZE), kOk);
+    EXPECT_EQ(file_append_path(buffer, "file.txt", BUFFER_SIZE), kOk);
+
+    char sep = get_expected_separator();
+    char expected[BUFFER_SIZE];
+    snprintf(expected, BUFFER_SIZE, "/home%cuser%cdocuments%cfile.txt", sep, sep, sep);
+    EXPECT_STREQ(expected, buffer);
+}
