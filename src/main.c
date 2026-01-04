@@ -87,8 +87,6 @@ char *CFunctionFlash, *CFunctionLibrary;
 
 CmdLineArgs mmb_args = { 0 };
 
-const char mmbasic_dot_dir[] = "~/.mmbasic";
-
 void IntHandler(int signo);
 void dump_token_table(const struct s_tokentbl* tbl);
 
@@ -127,15 +125,20 @@ static MmResult get_banner(char *buf, size_t buf_sz) {
 }
 
 static void init_mmbasic_config_dir() {
-    MmResult result = path_mkdir(mmbasic_dot_dir);
-    if (FAILED(result)) {
-        fprintf(
-            stderr,
-            "\nFailed to create directory '%s': %s\n",
-            mmbasic_dot_dir,
-            mmresult_to_string(result));
-        exit(EX_FAIL);
-    }
+    char config_dir[PATH_MAX] = { '\0' };
+    MmResult result = file_get_config_dir(config_dir, PATH_MAX);
+    ON_FAILURE_GOTO(result, error);
+    result = path_mkdir(config_dir);
+    ON_FAILURE_GOTO(result, error);
+    return;
+
+error:
+    fprintf(
+        stderr,
+        "\nFailed to create directory '%s': %s\n",
+        config_dir,
+        mmresult_to_string(result));
+    exit(EX_FAIL);
 }
 
 static void init_options_cb(const char *msg) {
@@ -159,8 +162,10 @@ static void init_options_cb(const char *msg) {
 }
 
 static void init_options() {
-    char filename[PATH_MAX] = { 0 };
-    MmResult result = path_append(mmbasic_dot_dir, "mmbasic.options", filename, sizeof(filename));
+    char filename[PATH_MAX] = { '\0' };
+    MmResult result = file_get_config_dir(filename, sizeof(filename));
+    ON_FAILURE_GOTO(result, error);
+    result = file_append_path(filename, "mmbasic.options", sizeof(filename));
     ON_FAILURE_GOTO(result, error);
     result = path_get_canonical(filename, options_filename, sizeof(options_filename));
     ON_FAILURE_GOTO(result, error);

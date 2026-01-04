@@ -82,7 +82,6 @@ void op_equal(void);
 extern Options mmb_options;
 extern Features mmb_features;
 
-extern const char mmbasic_dot_dir[];
 extern char *CFunctionFlash;
 extern char DimUsed;
 extern const char *errorstack[MAXGOSUB];

@@ -52,6 +52,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmresult.h"
 
+// Define the path separator based on the platform
+#ifdef _WIN32
+    #define PATH_SEPARATOR '\\'
+    #define PATH_SEPARATOR_STR "\\"
+#else
+    #define PATH_SEPARATOR '/'
+    #define PATH_SEPARATOR_STR "/"
+#endif
+
 // Maximum number of files returned by file_list()
 #define FILE_LIST_MAX  512
 
@@ -122,7 +131,17 @@ typedef struct {
 } FileList;
 
 /**
- * Checks if a named regulat file exists in the filesystem.
+ * Appends a path element to a parent path with proper separator handling.
+ *
+ * @param parent    The base path to append to (modified in place)
+ * @param element   The path element to append
+ * @param size      Size of the parent buffer
+ * @return          kOk on success, error code on failure
+ */
+MmResult file_append_path(char *parent, const char *element, size_t size);
+
+/**
+ * Checks if a named regular file exists in the filesystem.
  *
  * @param[in]  filename  Path to the file to check
  * @return               true if file exists and is a regular file, false otherwise
@@ -136,6 +155,17 @@ bool file_exists_regular(const char *filename);
  * @return              true if file exists and is a directory, false otherwise
  */
 bool file_exists_dir(const char *dirname);
+
+/**
+ * Gets the directory to store use-specific application configuration.
+ *
+ * @param[out] buf   Buffer to store the directory path
+ * @param[in]  size  Size of the buffer
+ * @return           kOk on success, error code on failure
+ *
+ * @note Exposed as a function pointer so it can be mocked in unit-tests.
+ */
+extern MmResult (*file_get_config_dir)(char *buf, size_t size);
 
 /**
  * Gets the current user's home directory.

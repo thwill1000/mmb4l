@@ -63,6 +63,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // indexes file numbers from 1.
 FileEntry file_table[MAXOPENFILES + 1] = { 0 };
 
+// Forward declaration of real function implementations
+static MmResult file_get_config_dir_impl(char *buf, size_t size);
+
+// Pointers to functions we want to override in unit-tests
+MmResult (*file_get_config_dir)(char *, size_t) = file_get_config_dir_impl;
+
 char *file_basename(char *path) {
     return basename(path);
 }
@@ -151,6 +157,40 @@ static MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern
 
     // Omit pattern from directory
     *last_slash = '\0';
+
+    return kOk;
+}
+
+MmResult file_append_path(char *parent, const char *element, size_t size) {
+    if (parent == NULL || element == NULL) return INTERNAL_FAULT;
+
+    size_t parent_len = strlen(parent);
+    size_t element_len = strlen(element);
+
+    // Check if element is empty
+    if (element_len == 0) {
+        return kOk;
+    }
+
+    // Append a separator if necessary
+    const char last_char = parent_len > 0 ? parent[parent_len - 1] : '\0';
+    if (last_char != PATH_SEPARATOR && last_char != '/' && last_char != '\\') {
+        if (FAILED(cstring_cat(parent, PATH_SEPARATOR_STR, size))) {
+            return kFilenameTooLong;
+        }
+    }
+
+    // Skip leading separator in element if present
+    const char first_char = element[0];
+    if (first_char == PATH_SEPARATOR || first_char == '/' || first_char == '\\') {
+        element++;
+        element_len--;
+    }
+
+    // Append element
+    if (FAILED(cstring_cat(parent, element, size))) {
+        return kFilenameTooLong;
+    }
 
     return kOk;
 }
@@ -287,6 +327,12 @@ bool file_exists_dir(const char *dirname) {
     } else {
         return false;
     }
+}
+
+static MmResult file_get_config_dir_impl(char *buf, size_t size) {
+    if (buf == NULL) return INTERNAL_FAULT;
+    ON_FAILURE_RETURN(file_get_home(buf, size));
+    return file_append_path(buf, ".mmbasic", size);
 }
 
 MmResult file_size(const char *path, off_t *size) {
