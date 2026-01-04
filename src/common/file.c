@@ -213,10 +213,7 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
 
         // Get file statistics
         char full_path[PATH_MAX];
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
-        snprintf(full_path, sizeof(full_path), "%s/%s", list->directory, entry->name);
-#pragma GCC diagnostic pop
+        snprintf_nowarn(full_path, sizeof(full_path), "%s/%s", list->directory, entry->name);
 
         FileInfo info;
         result = file_info(full_path, &info);

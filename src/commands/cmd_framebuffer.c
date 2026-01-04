@@ -96,10 +96,9 @@ static MmResult cmd_framebuffer_copy(const char *p) {
     MmSurface* dst_surface = &graphics_surfaces[dst_id];
 
     // MMB4L ignores the background flag B for the moment.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
     bool background = false;
-#pragma GCC diagnostic pop
+    (void) background;  // Suppress unused variable warning
+
     if (argc == 5) {
         const char *tp;
         if ((tp = checkstring(argv[4], "B"))) {

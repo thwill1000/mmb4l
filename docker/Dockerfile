@@ -9,6 +9,7 @@ RUN apt-get -y install libsdl2-dev
 RUN apt-get -y install libsdl2-image-dev
 RUN apt-get -y install x11-apps
 RUN apt-get -y install build-essential
+RUN apt-get -y install clang
 RUN apt-get -y install cmake
 RUN apt-get -y install git
 # RUN apt-get -y install gcc-arm-none-eabi

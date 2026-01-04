@@ -160,14 +160,14 @@ static void init_options_cb(const char *msg) {
 
 static void init_options() {
     char filename[PATH_MAX] = { 0 };
-    ON_FAILURE_GOTO(path_append(mmbasic_dot_dir, "mmbasic.options", filename, sizeof(filename)),
-                    error);
-    ON_FAILURE_GOTO(path_get_canonical(filename, options_filename, sizeof(options_filename)),
-                    error);
+    MmResult result = path_append(mmbasic_dot_dir, "mmbasic.options", filename, sizeof(filename));
+    ON_FAILURE_GOTO(result, error);
+    result = path_get_canonical(filename, options_filename, sizeof(options_filename));
+    ON_FAILURE_GOTO(result, error);
 
     options_init(&mmb_options);
 
-    MmResult result = options_load(&mmb_options, options_filename, init_options_cb);
+    result = options_load(&mmb_options, options_filename, init_options_cb);
     switch (result) {
         case kOk:
             // Options loaded, but may still have output warnings.
