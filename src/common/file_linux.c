@@ -127,6 +127,16 @@ MmResult file_get_free_space(const char *path, uint64_t *free_space) {
     }
 }
 
+MmResult file_get_home(char *buf, size_t size) {
+    errno = 0;
+    const char *home = getenv("HOME");
+    if (!home) return errno; // Probably never happens.
+    if (FAILED(cstring_cpy(buf, home, size))) {
+        return kFilenameTooLong;
+    }
+    return kOk;
+}
+
 MmResult file_info(const char *filename, FileInfo *info) {
     if (!filename) return mmresult_ex(kInternalFault, "filename == NULL");
     if (!info) return mmresult_ex(kInternalFault, "info == NULL");
