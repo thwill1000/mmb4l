@@ -2301,20 +2301,17 @@ MmResult graphics_scroll(MmSurface *surface, int x, int y, MmGraphicsColour fill
 }
 
 MmResult graphics_get_default_window_title(MmSurfaceId id, char *title, size_t title_sz) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
     if (mmb_features.graphics_type == kGraphicsTypeMmb4l) {
-        snprintf(title, title_sz, "MMBasic - Window %d", id);
+        snprintf_nowarn(title, title_sz, "MMBasic - Window %d", id);
     } else {
         char device[256];
         ON_FAILURE_RETURN(options_get_string_value(&mmb_options, kOptionSimulate, device));
         if (mmb_features.has_cmd_mode) {
-            (void) snprintf(title, title_sz, "%s - Mode %d", device, graphics_mode);
+            (void) snprintf_nowarn(title, title_sz, "%s - Mode %d", device, graphics_mode);
         } else {
-            (void) snprintf(title, title_sz, "%s", device);
+            (void) snprintf_nowarn(title, title_sz, "%s", device);
         }
     }
-#pragma GCC diagnostic pop
     if (*CurrentFile) {
         (void) cstring_cat(title, ": ", title_sz);
         (void) cstring_cat(title, CurrentFile, title_sz);

@@ -280,8 +280,11 @@ static unsigned huffman_decode_symbol(upng_t *upng, const unsigned char *in, uns
 
         bit = read_bit(bp, in);
 
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
         ct = codetree->tree2d[(treepos << 1) | bit];
         if (ct < codetree->numcodes) {
             return ct;
@@ -292,7 +295,11 @@ static unsigned huffman_decode_symbol(upng_t *upng, const unsigned char *in, uns
             SET_ERROR(upng, UPNG_EMALFORMED);
             return 0;
         }
+
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
+
     }
 }
 

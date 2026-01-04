@@ -18,7 +18,7 @@ extern "C" {
 #include "../interrupt.h"
 
 // Defined in "common/graphics.c"
-MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = { 0 };
+MmSurface graphics_surfaces[GRAPHICS_MAX_SURFACES] = {};
 
 MmSurfaceId graphics_find_window(uint32_t window_id) { return 0; }
 MmResult graphics_surface_destroy(MmSurface *surface) { return kOk; }

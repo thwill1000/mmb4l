@@ -180,10 +180,7 @@ protected:
             errno = 0; // Strange that readdir() both returns a value and sets errno.
             if (strcmp(next_file->d_name, ".") != 0
                     && strcmp(next_file->d_name, "..") != 0) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
-                snprintf(file_path, PATH_MAX, "%s/%s", dir_path, next_file->d_name);
-#pragma GCC diagnostic pop
+                snprintf_nowarn(file_path, PATH_MAX, "%s/%s", dir_path, next_file->d_name);
                 if (next_file->d_type == DT_DIR) RemoveRecursively(file_path);
                 if (FAILED(remove(file_path))) {
                     utility_perror_ext("remove(\"%s\") failed", file_path);

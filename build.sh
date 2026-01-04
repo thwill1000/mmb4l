@@ -90,6 +90,7 @@ BUILD_TYPE="release"
 DOCKER_PLATFORM=""
 CLEAN=false
 ACTION="make"
+COMPILER="gcc"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -103,6 +104,11 @@ while [[ $# -gt 0 ]]; do
         docker_parse_image_type $1
         shift # past value
       fi
+      ;;
+    --compiler)
+      COMPILER="$2"
+      shift # past argument
+      shift # past value
       ;;
     -i|--create-image)
       ACTION="create-image"
@@ -153,6 +159,17 @@ case "$BUILD_TYPE" in
     ;;
 esac
 
+# Validate compiler.
+case "$COMPILER" in
+  gcc|clang)
+    # Valid compiler
+    ;;
+  *)
+    echo "Unknown compiler: $COMPILER (must be gcc or clang)"
+    exit 1
+    ;;
+esac
+
 BASE_DIR=`realpath $(dirname "$0")`
 
 if [ "$DOCKER_PLATFORM" != "" ]; then
@@ -162,11 +179,11 @@ if [ "$DOCKER_PLATFORM" != "" ]; then
       exit 0
       ;;
     make)
-      docker_run_command "$BASE_DIR/build.sh --type $BUILD_TYPE --make"
+      docker_run_command "$BASE_DIR/build.sh --type $BUILD_TYPE --compiler $COMPILER --make"
       exit 0
       ;;
     run)
-      docker_run_command "$BASE_DIR/build.sh --type $BUILD_TYPE --run"
+      docker_run_command "$BASE_DIR/build.sh --type $BUILD_TYPE --compiler $COMPILER --run"
       exit 0
       ;;
     start-bash)
@@ -182,9 +199,19 @@ if [ "$DOCKER_PLATFORM" != "" ]; then
 fi
 
 ARCH=`uname -m`
-GCC_VERSION_FULL=`gcc --version | head -n 1`
-GCC_VERSION=`echo ${GCC_VERSION_FULL##* }`
-BUILD_DIR="${BASE_DIR}/build/build-${BUILD_TYPE}-${ARCH}-${ID}-${VERSION_ID}-gcc-${GCC_VERSION}"
+if [ "$COMPILER" == "clang" ]; then
+  COMPILER_VERSION_FULL=`clang --version | head -n 1`
+  COMPILER_VERSION=`echo $COMPILER_VERSION_FULL | grep -oP '\d+\.\d+\.\d+' | head -n 1`
+else
+  COMPILER_VERSION_FULL=`gcc --version | head -n 1`
+  COMPILER_VERSION=`echo ${COMPILER_VERSION_FULL##* }`
+fi
+BUILD_DIR="${BASE_DIR}/build/build-${BUILD_TYPE}-${ARCH}-${ID}-${VERSION_ID}-${COMPILER}-${COMPILER_VERSION}"
+
+# ARCH=`uname -m`
+# GCC_VERSION_FULL=`gcc --version | head -n 1`
+# GCC_VERSION=`echo ${GCC_VERSION_FULL##* }`
+# BUILD_DIR="${BASE_DIR}/build/build-${BUILD_TYPE}-${ARCH}-${ID}-${VERSION_ID}-gcc-${GCC_VERSION}"
 
 # Run 'mmbasic' executable.
 if [ "$ACTION" == "run" ]; then
@@ -210,13 +237,25 @@ cd $BUILD_DIR
 # Configure build.
 case "$BUILD_TYPE" in
   release)
-    cmake -DCMAKE_BUILD_TYPE=Release $BASE_DIR
+    if [ "$COMPILER" == "clang" ]; then
+      cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release $BASE_DIR
+    else
+      cmake -DCMAKE_BUILD_TYPE=Release $BASE_DIR
+    fi
     ;;
   debug)
-    cmake -DCMAKE_BUILD_TYPE=Debug $BASE_DIR
+    if [ "$COMPILER" == "clang" ]; then
+      cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Debug $BASE_DIR
+    else
+      cmake -DCMAKE_BUILD_TYPE=Debug $BASE_DIR
+    fi
     ;;
   coverage)
-    cmake -DMMB4L_COVERAGE=1 $BASE_DIR
+    if [ "$COMPILER" == "clang" ]; then
+      cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DMMB4L_COVERAGE=1 $BASE_DIR
+    else
+      cmake -DMMB4L_COVERAGE=1 $BASE_DIR
+    fi
     ;;
   *)
     echo "Unknown build type: $BUILD_TYPE"
