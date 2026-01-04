@@ -238,11 +238,10 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                 if (state == kPathStateStart) {
                     psrc++;
                     if (*psrc == '\0' || *psrc == '\\' || *psrc == '/' ) {
-                        errno = 0;
-                        const char *home = getenv("HOME");
-                        if (!home) return errno; // Probably never happens.
-                        safe_buffer_write_string(&safe_dst, home);
-                        safe_buffer_inc_pos(&safe_dst, -1);  // Back off trailing '\0'.
+                        if (safe_dst.pos != safe_dst.base) return INTERNAL_FAULT;
+                        ON_FAILURE_RETURN(file_get_home(safe_dst.base, safe_dst.limit - safe_dst.base));
+                        safe_dst.end = safe_dst.base + strlen(safe_dst.base);  // Don't include trailing '\0'.
+                        safe_dst.pos = safe_dst.end;
                     } else {
                         safe_buffer_write_char(&safe_dst, '~');
                     }
@@ -354,39 +353,29 @@ try_again:
 }
 
 MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
-    bool absolute = (path[0] == '\\' || path[0] == '/');
+    char tmp_path[PATH_MAX] = { 0 };
 
-    const char *prefix = "";
     if ((path[0] == '~') && (path[1] == '\0' || path[1] == '\\' || path[1] == '/')) {
 
         // Replace '~' prefix with the user's HOME directory.
-        errno = 0;
-        prefix = getenv("HOME");
-        if (!prefix) return errno; // Probably never happens.
-        absolute = (prefix[0] == '\\' || prefix[0] == '/');
+        ON_FAILURE_RETURN(file_get_home(tmp_path, PATH_MAX));
+        if (tmp_path[0] != '\\' && tmp_path[0] != '/') return INTERNAL_FAULT;
         path++; // Skip the '~'.
 
     } else if (isalpha(path[0]) && path[1] == ':') {
 
         // Replace DOS drive prefix with root dir;
         // Any repeated '/' will be dealt with by the later call to path_munge().
-        prefix = "/";
-        absolute = true;
+        if (FAILED(cstring_cat(tmp_path, "/", PATH_MAX))) return kFilenameTooLong;
         path += 2; // Skip the drive prefix.
 
-    }
+    } else if (!path_is_absolute(path)) {
 
-    char tmp_path[PATH_MAX] = { 0 };
-
-    // If the 'path' is not absolute then copy the current working directory
-    // into 'tmp_path'.
-    if (!absolute) {
+        // If the 'path' is not absolute then copy the current working directory
+        // into 'tmp_path'.
         ON_FAILURE_RETURN(file_getcwd(tmp_path, PATH_MAX));
         if (FAILED(cstring_cat(tmp_path, "/", PATH_MAX))) return kFilenameTooLong;
     }
-
-    // Append 'prefix', which may be empty.
-    if (FAILED(cstring_cat(tmp_path, prefix, PATH_MAX))) return kFilenameTooLong;
 
     // Append 'path'.
     if (FAILED(cstring_cat(tmp_path, path, PATH_MAX))) return kFilenameTooLong;
