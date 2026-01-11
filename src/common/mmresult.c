@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 mmresult.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -144,6 +144,7 @@ const char *mmresult_to_default_string(MmResult result) {
         case kGraphicsInvalidWriteSurface: return "Invalid graphics write surface";
         case kGraphicsLoadBitmapFailed:   return "Bitmap could not be loaded";
         case kGraphicsReadAndWriteSurfaceSame: return "Graphics read and write surfaces are the same";
+        case kGraphicsSaveBitmapFailed:   return "Bitmap could not be saved";
         case kGraphicsSurfaceAlreadyExists: return "Graphics surface already exists";
         case kGraphicsSurfaceSizeMismatch: return "Graphics surface size mismatch";
         case kGraphicsSurfaceTooLarge:    return "Graphics surface too large";

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 graphics.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -1485,7 +1485,18 @@ static size_t spbmp_file_read_cb(void *file, void *buffer, size_t size, size_t c
     return fread(buffer, size, count, (FILE *) file);
 }
 
-static void spbmp_set_pixel_cb(int x, int y, SpColourRgba colour, void *userdata) {
+static size_t spbmp_file_write_cb(void *file, const void *buffer, size_t size, size_t count,
+                                  void *userdata) {
+    return fwrite(buffer, size, count, (FILE *) file);
+}
+
+static SpColourArgb spbmp_get_pixel_cb(int x, int y, void *userdata) {
+    MmGraphicsColour colour = RGB_BLACK;
+    assert(graphics_get_pixel((MmSurface *) userdata, x, y, &colour) == kOk);
+    return colour >= 0 ? (SpColourArgb) colour : (SpColourArgb) RGB_BLACK;
+}
+
+static void spbmp_set_pixel_cb(int x, int y, SpColourArgb colour, void *userdata) {
     graphics_set_pixel_safe((MmSurface *) userdata, x, y, (MmGraphicsColour) colour);
 }
 
@@ -1499,17 +1510,13 @@ MmResult graphics_load_bmp(MmSurface *surface, char *filename, int x, int y) {
     char _filename[STRINGSIZE];
     ON_FAILURE_RETURN(path_try_extension(filename, ".bmp", _filename, STRINGSIZE));
 
-    int fnbr = streamio_find_free();
+    const int fnbr = streamio_find_free();
     ON_FAILURE_RETURN(streamio_open(_filename, "rb", fnbr));
-    spbmp_init(spbmp_file_read_cb, spbmp_set_pixel_cb, spbmp_abort_check_cb);
-    SpBmpResult bmp_result = spbmp_load(file_table[fnbr].file_ptr, x, y, surface);
+    spbmp_init(spbmp_file_read_cb, NULL, NULL, spbmp_set_pixel_cb, spbmp_abort_check_cb);
+    SpBmpResult bmp_result = spbmp_read(file_table[fnbr].file_ptr, x, y, surface);
     surface->dirty = true;
-    if (FAILED(bmp_result)) {
-        (void) streamio_close(fnbr);
-        ON_FAILURE_RETURN(kGraphicsLoadBitmapFailed);
-    }
-
-    return streamio_close(fnbr);
+    ON_FAILURE_LOG(streamio_close(fnbr));
+    return SUCCEEDED(bmp_result) ? kOk : kGraphicsLoadBitmapFailed;
 }
 
 MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int transparent,
@@ -1620,6 +1627,70 @@ MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
     }
 
     return streamio_close(fnbr);
+}
+
+MmResult graphics_save_bmp(MmSurface *surface, char *filename, BmpFormat format, int x, int y,
+                           int width, int height) {
+    if (!surface || surface->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
+    char _filename[STRINGSIZE];
+    if (FAILED(cstring_cpy(_filename, filename, sizeof(_filename)))) return kFilenameTooLong;
+
+    // If the filename does not have a ".bmp" extension then add one.
+    if (strcasecmp(path_get_extension(_filename), ".bmp") != 0) {
+        if (FAILED(cstring_cat(_filename, ".bmp", STRINGSIZE))) return kFilenameTooLong;
+    }
+
+    SpBmpFormat spFormat;
+    switch (format) {
+        case kBmpFormat1bpp:
+            spFormat = kSpBmp1bpp;
+            break;
+        case kBmpFormat4bppRgb121:
+            spFormat = kSpBmp4bppRgb121;
+            break;
+        case kBmpFormat4bppRgb121Rle4:
+            spFormat = kSpBmp4bppRgb121Rle4;
+            break;
+        case kBmpFormat8bppRgb222:
+            spFormat = kSpBmp8bppRgb222;
+            break;
+        case kBmpFormat8bppRgb222Rle8:
+            spFormat = kSpBmp8bppRgb222Rle8;
+            break;
+        case kBmpFormat8bppRgb332:
+            spFormat = kSpBmp8bppRgb332;
+            break;
+        case kBmpFormat8bppRgb332Rle8:
+            spFormat = kSpBmp8bppRgb332Rle8;
+            break;
+        case kBmpFormat16bppRgb555:
+            spFormat = kSpBmp16bppRgb555;
+            break;
+        case kBmpFormat16bppRgb565:
+            spFormat = kSpBmp16bppRgb565;
+            break;
+        case kBmpFormat24bpp:
+            spFormat = kSpBmp24bpp;
+            break;
+        case kBmpFormat32bpp:
+            spFormat = kSpBmp32bpp;
+            break;
+        default:
+            return kImageInvalidFormat;
+    }
+
+    // Open the file for writing.
+    const int fnbr = streamio_find_free();
+    ON_FAILURE_RETURN(streamio_open(_filename, "wb", fnbr));
+
+    // Write the bitmap to the file.
+    spbmp_init(NULL, spbmp_file_write_cb, spbmp_get_pixel_cb, NULL, spbmp_abort_check_cb);
+    SpBmpResult bmp_result = spbmp_write(file_table[fnbr].file_ptr, spFormat, surface, x, y,
+                                         width, height);
+
+    ON_FAILURE_LOG(streamio_close(fnbr));
+
+    return SUCCEEDED(bmp_result) ? kOk : kGraphicsSaveBitmapFailed;
 }
 
 static const char *graphics_blit_flags_to_string(unsigned flags) {
