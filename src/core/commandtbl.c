@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -165,6 +165,7 @@ const struct s_tokentbl commandtbl[] = {
     { "Return",      T_CMD,              0, cmd_return,  },
     { "Rmdir",       T_CMD,              0, cmd_rmdir    },
     { "Run",         T_CMD,              0, cmd_run      },
+    { "Save",        T_CMD,              0, cmd_save     },
     { "Seek",        T_CMD,              0, cmd_seek     },
     { "Select Case", T_CMD,              0, cmd_select   },
     { "SetEnv",      T_CMD,              0, cmd_setenv   },
