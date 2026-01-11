@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 graphics.h
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -121,13 +121,27 @@ typedef enum {
     kOrientClockwise
 } TextOrientation;
 
+typedef enum {
+    kBmpFormat1bpp,
+    kBmpFormat4bppRgb121,
+    kBmpFormat4bppRgb121Rle4,
+    kBmpFormat8bppRgb222,
+    kBmpFormat8bppRgb222Rle8,
+    kBmpFormat8bppRgb332,
+    kBmpFormat8bppRgb332Rle8,
+    kBmpFormat16bppRgb555,
+    kBmpFormat16bppRgb565,
+    kBmpFormat24bpp,
+    kBmpFormat32bpp,
+} BmpFormat;
+
 typedef int32_t MmSurfaceId;
 typedef void* MmWindowPtr;
 typedef void* MmRendererPtr;
 typedef void* MmTexturePtr;
 
 typedef struct MmSurfaceStruct {
-    MmSurfaceId id; 
+    MmSurfaceId id;
     GraphicsSurfaceType type;
     bool dirty;
     MmWindowPtr window;
@@ -151,7 +165,7 @@ typedef struct MmSurfaceStruct {
     int x;
     int y;
     int next_x;
-    int next_y; 
+    int next_y;
     uint8_t layer;
 
     /** Bitwise OR of GraphicsBlitType flags. */
@@ -516,6 +530,20 @@ MmResult graphics_load_png(MmSurface *surface, char *filename, int x, int y, int
  */
 MmResult graphics_load_sprite(const char *filename, MmSurfaceId start_sprite_id,
                               uint8_t colour_mode);
+
+/**
+ * Saves a .bmp image to a file.
+ *
+ * @param  surface   Surface to read the image from.
+ * @param  filename  Name of file to save the image to.
+ * @param  format    BMP format to use of the saved image.
+ * @param  x         X-coordinate for top left corner of image to save.
+ * @param  y         Y-coordinate for top left corner of image to save.
+ * @param  width     Width or image to save.
+ * @param  height    Height of image to save.
+ */
+MmResult graphics_save_bmp(MmSurface *surface, char *filename, BmpFormat format, int x, int y,
+                           int width, int height);
 
 /**
  * Scrolls surface.

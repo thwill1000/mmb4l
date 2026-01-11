@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -156,6 +156,7 @@ void cmd_restore(void);
 void cmd_return(void);
 void cmd_rmdir(void);
 void cmd_run(void);
+void cmd_save(void);
 void cmd_seek(void);
 void cmd_select(void);
 void cmd_setenv(void);
