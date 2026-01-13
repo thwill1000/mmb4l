@@ -296,6 +296,8 @@ protected:
         if (result != kOk) {
             ASSERT_EQ(kOk, result) << mmresult_to_string(result);
         }
+        self->stored_cx = self->cx;
+        self->stored_px = self->px;
     }
 
     void SetCursorAtEnd() {
@@ -2609,21 +2611,21 @@ TEST_F(EditorCmdCharTest, NewlineMarksMultipleLinesChanged) {
 }
 
 /**
- * Test that preferred_x is NOT updated in editor_cmd_char.
- * The function should not modify preferred_x (caller's responsibility).
+ * Test that stored_cx is NOT updated in editor_cmd_char.
+ * The function should not modify stored_cx (caller's responsibility).
  */
 TEST_F(EditorCmdCharTest, PreferredXNotModifiedByFunction) {
     SetBuffer("Hello\n");
     SetPos(0);
-    self->preferred_x = 10;
+    self->stored_cx = 10;
     SetInsertMode();
     InsertChar('X');
 
     MmResult result = editor_cmd_char(self);
 
     EXPECT_EQ(kOk, result);
-    // preferred_x should be unchanged by this function
-    EXPECT_EQ(10, self->preferred_x);
+    // stored_cx should be unchanged by this function
+    EXPECT_EQ(10, self->stored_cx);
 }
 
 /**
@@ -5135,7 +5137,7 @@ class EditorCmdDownTest : public EditorTestBase { };
 TEST_F(EditorCmdDownTest, MoveDownFromFirstToSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(2); // At 'n' in "Line0"
-    self->preferred_x = 2;
+    self->stored_cx = 2;
 
     MmResult result = editor_cmd_down(self);
 
@@ -5151,7 +5153,7 @@ TEST_F(EditorCmdDownTest, MoveDownFromFirstToSecondLine) {
 TEST_F(EditorCmdDownTest, MoveDownFromSecondToThirdLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(8); // At 'n' in "Line1"
-    self->preferred_x = 2;
+    self->stored_cx = 2;
 
     MmResult result = editor_cmd_down(self);
 
@@ -5167,7 +5169,7 @@ TEST_F(EditorCmdDownTest, MoveDownFromSecondToThirdLine) {
 TEST_F(EditorCmdDownTest, NoMoveAtLastLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(14); // At 'n' in "Line2" (last line)
-    self->preferred_x = 2;
+    self->stored_cx = 2;
 
     MmResult result = editor_cmd_down(self);
 
@@ -5183,7 +5185,7 @@ TEST_F(EditorCmdDownTest, NoMoveAtLastLine) {
 TEST_F(EditorCmdDownTest, NoMoveInSingleLineBuffer) {
     SetBuffer("OnlyLine");
     SetPos(4);
-    self->preferred_x = 4;
+    self->stored_cx = 4;
 
     MmResult result = editor_cmd_down(self);
 
@@ -5208,13 +5210,13 @@ TEST_F(EditorCmdDownTest, NoMoveInEmptyBuffer) {
 }
 
 /**
- * Test moving down maintains column (preferred_x).
+ * Test moving down maintains column (stored_cx).
  * Should preserve horizontal position when possible.
  */
 TEST_F(EditorCmdDownTest, MaintainsPreferredColumn) {
     SetBuffer("ABCDE\nFGHIJ\nKLMNO");
     SetPos(3); // At 'D' in first line
-    self->preferred_x = 3;
+    self->stored_cx = 3;
 
     MmResult result = editor_cmd_down(self);
 
@@ -5230,7 +5232,7 @@ TEST_F(EditorCmdDownTest, MaintainsPreferredColumn) {
 TEST_F(EditorCmdDownTest, StopsAtEndOfShorterLine) {
     SetBuffer("ABCDEF\nXY\nPQRSTU");
     SetPos(4); // At 'E' in first line (column 4)
-    self->preferred_x = 4;
+    self->stored_cx = 4;
 
     MmResult result = editor_cmd_down(self);
 
@@ -5240,13 +5242,13 @@ TEST_F(EditorCmdDownTest, StopsAtEndOfShorterLine) {
 }
 
 /**
- * Test moving down from shorter line to longer line uses preferred_x.
+ * Test moving down from shorter line to longer line uses stored_cx.
  * Should restore original column position when moving to longer line.
  */
 TEST_F(EditorCmdDownTest, UsesPreferredXWhenMovingToLongerLine) {
     SetBuffer("AB\nPQRSTU\nXYZ");
     SetPos(1); // At 'B' in first line (column 1)
-    self->preferred_x = 4; // But preferred_x is 4
+    self->stored_cx = 4; // But stored_cx is 4
 
     MmResult result = editor_cmd_down(self);
 
@@ -5277,7 +5279,7 @@ TEST_F(EditorCmdDownTest, MoveDownFromStartOfLine) {
 TEST_F(EditorCmdDownTest, MoveDownFromEndOfLine) {
     SetBuffer("ABC\nDEF\nGHI");
     SetPos(3); // At '\n' after "ABC"
-    self->preferred_x = 3;
+    self->stored_cx = 3;
 
     MmResult result = editor_cmd_down(self);
 
@@ -5293,7 +5295,7 @@ TEST_F(EditorCmdDownTest, MoveDownFromEndOfLine) {
 TEST_F(EditorCmdDownTest, MoveDownToEmptyLine) {
     SetBuffer("ABC\n\nDEF");
     SetPos(2); // At 'C' in "ABC"
-    self->preferred_x = 2;
+    self->stored_cx = 2;
 
     MmResult result = editor_cmd_down(self);
 
@@ -5367,7 +5369,7 @@ TEST_F(EditorCmdDownTest, DoesNotModifyBuffer) {
     const std::string original = "Line0\nLine1\nLine2";
     SetBuffer(original.c_str());
     SetPos(2);
-    self->preferred_x = 2;
+    self->stored_cx = 2;
 
     MmResult result = editor_cmd_down(self);
 
@@ -5382,7 +5384,7 @@ TEST_F(EditorCmdDownTest, DoesNotModifyBuffer) {
 TEST_F(EditorCmdDownTest, MoveDownMultipleTimes) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetPos(1); // At 'i' in "Line0"
-    self->preferred_x = 1;
+    self->stored_cx = 1;
 
     // Move to Line1
     {
@@ -5424,7 +5426,7 @@ TEST_F(EditorCmdDownTest, MoveDownMultipleTimes) {
 TEST_F(EditorCmdDownTest, NoMoveWhenLineEndsAtBufferEnd) {
     SetBuffer("Line0\nLine1"); // No trailing newline
     SetPos(8); // At 'n' in "Line1"
-    self->preferred_x = 2;
+    self->stored_cx = 2;
 
     MmResult result = editor_cmd_down(self);
 
@@ -5434,13 +5436,13 @@ TEST_F(EditorCmdDownTest, NoMoveWhenLineEndsAtBufferEnd) {
 }
 
 /**
- * Test moving down with very long preferred_x.
- * Should handle large preferred_x values correctly.
+ * Test moving down with very long stored_cx.
+ * Should handle large stored_cx values correctly.
  */
 TEST_F(EditorCmdDownTest, VeryLargePreferredX) {
     SetBuffer("ABCDEFGHIJ\nXY\nPQRSTU");
     SetPos(9); // At 'J' in first line
-    self->preferred_x = 100; // Very large preferred_x
+    self->stored_cx = 100; // Very large stored_cx
 
     MmResult result = editor_cmd_down(self);
 
@@ -5450,13 +5452,13 @@ TEST_F(EditorCmdDownTest, VeryLargePreferredX) {
 }
 
 /**
- * Test moving down preserves preferred_x across multiple moves.
+ * Test moving down preserves stored_cx across multiple moves.
  * Should maintain preferred column across lines of varying lengths.
  */
 TEST_F(EditorCmdDownTest, PreservesPreferredXAcrossMoves) {
     SetBuffer("ABCDEFGH\nXY\nPQRSTUVW");
     SetPos(5); // At 'F' (column 5)
-    self->preferred_x = 5;
+    self->stored_cx = 5;
 
     // Move to shorter line
     {
@@ -5473,6 +5475,21 @@ TEST_F(EditorCmdDownTest, PreservesPreferredXAcrossMoves) {
         EXPECT_TXTP_EQ(17); // At 'U' (column 5)
         EXPECT_CURSOR_EQ(5, 2);
     }
+}
+
+TEST_F(EditorCmdDownTest, PreservesPreferredXWhenMovingFromScrolledLongLine) {
+    self->width = 20;
+    SetBuffer("This is a really long line\nThis is also a really long line");
+    SetPos(22); // At start of "line" in line 0
+    EXPECT_CURSOR_EQ(14, 0);
+    EXPECT_VIEWPORT_EQ(8, 0);
+
+    // Move DOWN to line 1
+    MmResult result = editor_cmd_down(self);
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(49); // At start of "long" in line 1
+    EXPECT_CURSOR_EQ(14, 1);
+    EXPECT_VIEWPORT_EQ(8, 0);
 }
 
 /**
@@ -5523,24 +5540,6 @@ TEST_F(EditorCmdDownTest, CallsScrollUpWhenScrolling) {
     EXPECT_EQ(kOk, result);
     // Verify that scrolling occurred by checking py changed
     EXPECT_EQ(1, self->py);
-}
-
-/**
- * Test DOWN on scrolled long line resets horizontal viewport.
- * Should reset horizontal scrolling when moving between lines.
- */
-TEST_F(EditorCmdDownTest, ResetsHorizontalViewport) {
-    FillBufferWithLines(3, 100);  // 3 lines, 100 characters long
-    SetPosP(editor_start_of_line_n(self, 1) + 90);  // 90th character on "Line1"
-    self->preferred_x = self->cx;
-    EXPECT_CURSOR_EQ(74, 1);
-    EXPECT_VIEWPORT_EQ(16, 0);
-
-    MmResult result = editor_cmd_down(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(74, 2);   // cx unchanged
-    EXPECT_VIEWPORT_EQ(0, 0);  // px reset
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -8454,7 +8453,7 @@ class EditorCmdUpTest : public EditorTestBase { };
 TEST_F(EditorCmdUpTest, MoveUpFromSecondToFirstLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(8); // At 'n' in "Line1"
-    self->preferred_x = 2;
+    self->stored_cx = 2;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8467,7 +8466,7 @@ TEST_F(EditorCmdUpTest, MoveUpFromSecondToFirstLine) {
 TEST_F(EditorCmdUpTest, MoveUpFromThirdToSecondLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(14); // At 'n' in "Line2"
-    self->preferred_x = 2;
+    self->stored_cx = 2;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8480,7 +8479,7 @@ TEST_F(EditorCmdUpTest, MoveUpFromThirdToSecondLine) {
 TEST_F(EditorCmdUpTest, NoMoveAtFirstLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(2); // At 'n' in "Line0"
-    self->preferred_x = 2;
+    self->stored_cx = 2;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8493,7 +8492,7 @@ TEST_F(EditorCmdUpTest, NoMoveAtFirstLine) {
 TEST_F(EditorCmdUpTest, NoMoveInSingleLineBuffer) {
     SetBuffer("OnlyLine");
     SetPos(4);
-    self->preferred_x = 4;
+    self->stored_cx = 4;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8506,7 +8505,7 @@ TEST_F(EditorCmdUpTest, NoMoveInSingleLineBuffer) {
 TEST_F(EditorCmdUpTest, NoMoveInEmptyBuffer) {
     SetBuffer("");
     SetPos(0);
-    self->preferred_x = 0;
+    self->stored_cx = 0;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8515,11 +8514,11 @@ TEST_F(EditorCmdUpTest, NoMoveInEmptyBuffer) {
     EXPECT_CURSOR_EQ(0, 0);
 }
 
-// Test moving up maintains column (preferred_x)
+// Test moving up maintains column (stored_cx)
 TEST_F(EditorCmdUpTest, MaintainsPreferredColumn) {
     SetBuffer("ABCDE\nFGHIJ\nKLMNO");
     SetPos(9); // At 'I' in second line
-    self->preferred_x = 3;
+    self->stored_cx = 3;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8532,7 +8531,7 @@ TEST_F(EditorCmdUpTest, MaintainsPreferredColumn) {
 TEST_F(EditorCmdUpTest, StopsAtEndOfShorterLine) {
     SetBuffer("XY\nPQRSTU\nABCDEF");
     SetPos(6); // At 'S' in second line (column 4)
-    self->preferred_x = 4;
+    self->stored_cx = 4;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8541,11 +8540,11 @@ TEST_F(EditorCmdUpTest, StopsAtEndOfShorterLine) {
     EXPECT_CURSOR_EQ(2, 0);
 }
 
-// Test moving up from shorter line to longer line uses preferred_x
+// Test moving up from shorter line to longer line uses stored_cx
 TEST_F(EditorCmdUpTest, UsesPreferredXWhenMovingToLongerLine) {
     SetBuffer("PQRSTU\nAB\nXYZ");
     SetPos(8); // At 'B' in second line (column 1)
-    self->preferred_x = 4; // But preferred_x is 4
+    self->stored_cx = 4; // But stored_cx is 4
 
     MmResult result = editor_cmd_up(self);
 
@@ -8558,7 +8557,7 @@ TEST_F(EditorCmdUpTest, UsesPreferredXWhenMovingToLongerLine) {
 TEST_F(EditorCmdUpTest, MoveUpFromStartOfLine) {
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(6); // At 'L' in "Line1"
-    self->preferred_x = 0;
+    self->stored_cx = 0;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8571,7 +8570,7 @@ TEST_F(EditorCmdUpTest, MoveUpFromStartOfLine) {
 TEST_F(EditorCmdUpTest, MoveUpFromEndOfLine) {
     SetBuffer("ABC\nDEF\nGHI");
     SetPos(7); // At '\n' after "DEF"
-    self->preferred_x = 3;
+    self->stored_cx = 3;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8584,7 +8583,7 @@ TEST_F(EditorCmdUpTest, MoveUpFromEndOfLine) {
 TEST_F(EditorCmdUpTest, MoveUpToEmptyLine) {
     SetBuffer("ABC\n\nDEF");
     SetPos(7); // At 'E' in "DEF"
-    self->preferred_x = 1;
+    self->stored_cx = 1;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8597,7 +8596,7 @@ TEST_F(EditorCmdUpTest, MoveUpToEmptyLine) {
 TEST_F(EditorCmdUpTest, MoveUpFromEmptyLine) {
     SetBuffer("ABC\n\nDEF");
     SetPos(4); // At '\n' (empty line)
-    self->preferred_x = 0;
+    self->stored_cx = 0;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8633,7 +8632,7 @@ TEST_F(EditorCmdUpTest, NoScrollWhenAtFirstPage) {
     self->py = 0;
     self->cy = 1; // Second line
     SetPos(6); // At start of "Line1"
-    self->preferred_x = 0;
+    self->stored_cx = 0;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8648,7 +8647,7 @@ TEST_F(EditorCmdUpTest, DoesNotModifyBuffer) {
     const std::string original = "Line0\nLine1\nLine2";
     SetBuffer(original.c_str());
     SetPos(8);
-    self->preferred_x = 2;
+    self->stored_cx = 2;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8660,7 +8659,7 @@ TEST_F(EditorCmdUpTest, DoesNotModifyBuffer) {
 TEST_F(EditorCmdUpTest, MoveUpMultipleTimes) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     SetPos(19); // At 'i' in "Line3"
-    self->preferred_x = 1;
+    self->stored_cx = 1;
 
     // Move to Line2
     {
@@ -8695,11 +8694,11 @@ TEST_F(EditorCmdUpTest, MoveUpMultipleTimes) {
     }
 }
 
-// Test moving up with very long preferred_x
+// Test moving up with very long stored_cx
 TEST_F(EditorCmdUpTest, VeryLargePreferredX) {
     SetBuffer("XY\nABCDEFGHIJ");
     SetPos(13); // At 'J' in second line
-    self->preferred_x = 100; // Very large preferred_x
+    self->stored_cx = 100; // Very large stored_cx
 
     MmResult result = editor_cmd_up(self);
 
@@ -8708,11 +8707,11 @@ TEST_F(EditorCmdUpTest, VeryLargePreferredX) {
     EXPECT_CURSOR_EQ(2, 0);
 }
 
-// Test moving up preserves preferred_x across multiple moves
+// Test moving up preserves stored_cx across multiple moves
 TEST_F(EditorCmdUpTest, PreservesPreferredXAcrossMoves) {
     SetBuffer("ABCDEFGH\nXY\nPQRSTUVW");
     SetPos(17); // At 'U' (column 5) in "PQRSTUVw"
-    self->preferred_x = 5;
+    self->stored_cx = 5;
 
     // Move to shorter line
     {
@@ -8731,13 +8730,28 @@ TEST_F(EditorCmdUpTest, PreservesPreferredXAcrossMoves) {
     }
 }
 
+TEST_F(EditorCmdUpTest, PreservesPreferredXWhenMovingFromScrolledLongLine) {
+    self->width = 20;
+    SetBuffer("This is a really long line\nThis is also a really long line");
+    SetPos(49); // At start of "long" in line 1
+    EXPECT_CURSOR_EQ(14, 1);
+    EXPECT_VIEWPORT_EQ(8, 0);
+
+    // Move UP to line 0
+    MmResult result = editor_cmd_up(self);
+    EXPECT_EQ(kOk, result);
+    EXPECT_TXTP_EQ(22); // At start of "line" in line 0
+    EXPECT_CURSOR_EQ(14, 0);
+    EXPECT_VIEWPORT_EQ(8, 0);
+}
+
 // Test moving up when cy > 2 moves cursor normally
 TEST_F(EditorCmdUpTest, MovesCursorWhenCyGreaterThanTwo) {
     SetBuffer("Line0\nLine1\nLine2\nLine3");
     self->py = 0;
     self->cy = 3;
     SetPos(18); // At start of "Line3"
-    self->preferred_x = 0;
+    self->stored_cx = 0;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8759,7 +8773,7 @@ TEST_F(EditorCmdUpTest, ScrollsWhenCyLessThanOrEqualToTwoAndPyPositive) {
     self->py = 5;
     self->cy = 2; // At boundary where scrolling happens
     self->txtp = editor_start_of_line_n(self, self->py + self->cy) + self->cx;
-    self->preferred_x = 0;
+    self->stored_cx = 0;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8774,7 +8788,7 @@ TEST_F(EditorCmdUpTest, NoMoveWhenAtTopOfScreenAndFirstLine) {
     self->py = 0;
     self->cy = 0;
     SetPos(0); // At start of "Line0"
-    self->preferred_x = 0;
+    self->stored_cx = 0;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8797,7 +8811,7 @@ TEST_F(EditorCmdUpTest, PreservesCursorPositionWhenScrolling) {
     self->cy = 1;
     self->txtp = self->buf;
     self->txtp = editor_start_of_line_n(self, self->py + self->cy) + self->cx;
-    self->preferred_x = 2;
+    self->stored_cx = 2;
 
     MmResult result = editor_cmd_up(self);
 
@@ -8805,21 +8819,6 @@ TEST_F(EditorCmdUpTest, PreservesCursorPositionWhenScrolling) {
     EXPECT_EQ(1, self->cy); // cy preserved
     EXPECT_EQ(9, self->py); // Scrolled
     EXPECT_CURSOR_EQ(2, 1); // Cursor column maintained
-}
-
-// Test UP on scrolled long line resets horizontal viewport.
-TEST_F(EditorCmdUpTest, ResetsHorizontalViewport) {
-    FillBufferWithLines(3, 100);  // 3 lines, 100 characters long
-    SetPosP(editor_start_of_line_n(self, 1) + 90);  // 90th character on "Line1"
-    self->preferred_x = self->cx;
-    EXPECT_CURSOR_EQ(74, 1);
-    EXPECT_VIEWPORT_EQ(16, 0);
-
-    MmResult result = editor_cmd_up(self);
-
-    EXPECT_EQ(kOk, result);
-    EXPECT_CURSOR_EQ(74, 0);   // cx unchanged
-    EXPECT_VIEWPORT_EQ(0, 0);  // px reset
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -11823,12 +11822,12 @@ TEST_F(EditorUpdateDisplayTest, MessageTakesPrecedenceOverFuncKeysAndStatus) {
     EXPECT_PRINT_STATUS_NOT_CALLED();
 }
 
-// Test status updates when only cx changes (cy unchanged)
-TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenOnlyCxChanges) {
+// Test status updates when cx changes
+TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenCxChanges) {
     SetBuffer("Line0\nLine1\nLine2");
-    SetPos(3);
+    SetPos(6);
     Editor old = editor_shallow_copy(self);
-    old.cx = 0;
+    self->cx += 1;
 
     MmResult result = editor_update_display(self, &old);
 
@@ -11836,12 +11835,38 @@ TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenOnlyCxChanges) {
     EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
 }
 
-// Test status updates when only cy changes (cx unchanged)
-TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenOnlyCyChanges) {
+// Test status updates when cy changes
+TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenCyChanges) {
     SetBuffer("Line0\nLine1\nLine2");
     SetPos(6);
     Editor old = editor_shallow_copy(self);
-    old.cy = 0;
+    self->cy += 1;
+
+    MmResult result = editor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+}
+
+// Test status updates when px changes
+TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenPxChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetPos(6);
+    Editor old = editor_shallow_copy(self);
+    self->px += 1;
+
+    MmResult result = editor_update_display(self, &old);
+
+    EXPECT_EQ(kOk, result);
+    EXPECT_PRINT_STATUS_CALLED(((PrintStatusCapture) {.calls = 1}));
+}
+
+// Test status updates when py changes
+TEST_F(EditorUpdateDisplayTest, RedrawsStatusWhenPyChanges) {
+    SetBuffer("Line0\nLine1\nLine2");
+    SetPos(6);
+    Editor old = editor_shallow_copy(self);
+    self->py += 1;
 
     MmResult result = editor_update_display(self, &old);
 

@@ -121,7 +121,8 @@ typedef struct {
     int cx;                  ///< Cursor column (viewport-relative, 0-based)
     int cy;                  ///< Cursor row (viewport-relative, 0-based)
     char *txtp;              ///< Cursor position in buffer
-    int preferred_x;         ///< Preferred column for vertical navigation
+    int stored_cx;           ///< Stored column for vertical navigation
+    int stored_px;           ///< Stored viewport offset for vertical navigation
 
     // Editing state
     bool insert;             ///< True for INSERT mode, false for OVERWRITE
