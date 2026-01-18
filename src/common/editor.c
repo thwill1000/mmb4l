@@ -908,7 +908,7 @@ MmResult editor_print_status_impl(Editor *self) {
     char s[64];
     snprintf(s, 64, "Ln: %d  Col: %d       ",
              self->py + self->cy + 1,
-             self->cx + 1);
+             self->cx + self->px + 1);
     strcpy(s + 19, self->insert ? "INS" : "OVR");
 
     ON_FAILURE_RETURN(editor_set_cursor_pos(self, self->width - 25, self->height + 1));
@@ -1465,7 +1465,7 @@ static MmResult editor_scroll_up(Editor *self) {
 
     // Restore status line
     ON_FAILURE_RETURN(editor_print_func_keys(self));
-    ON_FAILURE_RETURN(editor_print_status(self));
+    // TODO ON_FAILURE_RETURN(editor_print_status(self));
 
     // Consume any keystrokes accumulated while scrolling the screen
     while (console_getc() != -1) {}
@@ -1496,7 +1496,7 @@ static MmResult editor_scroll_down(Editor *self) {
 
     // Restore status line
     ON_FAILURE_RETURN(editor_print_func_keys(self));
-    ON_FAILURE_RETURN(editor_print_status(self));
+    // TODO ON_FAILURE_RETURN(editor_print_status(self));
 
     // Consume any keystrokes accumulated while redrawing the screen
     while (console_getc() != -1) {}
@@ -1808,7 +1808,8 @@ MmResult editor_update_display(Editor *self, Editor *old) {
         ON_FAILURE_RETURN(editor_set_changed_lines(self, self->py, LAST_LINE));
     }
 
-    if (self->px != old->px) { // || ((self->px > 0) && (self->py != old->py))) {
+    if ((self->px != old->px)
+            || ((old->px > 0) && (self->py + self->cy != old->py + old->cy))) {
         ON_FAILURE_RETURN(
             editor_set_changed_lines(self, self->py + self->cy, old->py + old->cy));
     }
@@ -1848,7 +1849,9 @@ MmResult editor_update_display(Editor *self, Editor *old) {
                 || old->message[0] != '\0'
                 || self->insert != old->insert
                 || self->cx != old->cx
-                || self->cy != old->cy) {
+                || self->cy != old->cy
+                || self->px != old->px
+                || self->py != old->py) {
             ON_FAILURE_RETURN(editor_print_status(self));
         }
     }
@@ -1892,40 +1895,28 @@ MmResult editor_cmd_newline(Editor *self) {
 }
 
 /**
- * Handles the UP arrow key command.
+ * Attempts to restore the cursor column on a new line.
  *
- * Moves the cursor up one line, attempting to maintain the same column
- * position. Scrolls the viewport if necessary.
+ * If the stored cursor column (self->stored_cx + self->stored_px) exceeds
+ * the length of the new line, moves the cursor to the end of the line.
+ * Otherwise, restores the cursor to the stored column position.
  *
- * @param  self  Pointer to the Editor instance.
- * @return       kOk on success, or an error code on failure.
+ * @param  self         Pointer to the Editor instance.
+ * @param  line_start   Pointer to the start of the new line in the buffer.
+ * @return              kOk on success, or an error code on failure.
  */
-MmResult editor_cmd_up(Editor *self) {
-    ON_INVALID_CURSOR_RETURN();
-
-    // Start of previous line
-    char *p = editor_previous_line(self, self->txtp);
-
-    // If in the top row of the first page then do nothing
-    if (!p || (self->cy == 0 && self->py == 0)) return kOk;
-
-    // Adjust to the same column as we were previously (self->preferred_x),
-    // or the end of the line
-    int len = editor_line_length(self, p);
-    self->cx = min(len, self->preferred_x);
-    self->txtp = p + self->cx;
-
-    if (self->cy > 2 || self->py == 0) {
-        // If we are more than two lines from the top then move the cursor up
-        self->cy--;
+MmResult editor_try_to_restore_column(Editor *self, char *line_start) {
+    const int len = editor_line_length(self, line_start);
+    if (self->stored_cx + self->stored_px > len) {
+        self->cx = len;
+        self->px = 0;
+        ON_FAILURE_RETURN(editor_adjust_viewport(self));
     } else {
-        // Otherwise scroll the document down
-        self->py--;
+        self->cx = self->stored_cx;
+        self->px = self->stored_px;
     }
-
-    self->px = 0;
-
-    return editor_set_cursor_pos(self, self->cx, self->cy);
+    self->txtp = line_start + self->cx + self->px;
+    return kOk;
 }
 
 /**
@@ -1946,11 +1937,9 @@ MmResult editor_cmd_down(Editor *self) {
     // If the current line is the last line of the document then do nothing
     if (!p) return kOk;
 
-    // Adjust to the same column as we were previously (self->preferred_x),
+    // Adjust to the same column as we were previously (self->stored_cx),
     // or the end of the line
-    int len = editor_line_length(self, p);
-    self->cx = min(len, self->preferred_x);
-    self->txtp = p + self->cx;
+    ON_FAILURE_RETURN(editor_try_to_restore_column(self, p));
 
     if (self->cy < self->height - 3 || self->py + self->height == self->num_lines) {
         // If we are less than two lines from the bottom then move the cursor down
@@ -1960,7 +1949,38 @@ MmResult editor_cmd_down(Editor *self) {
         self->py++;
     }
 
-    self->px = 0;
+    return editor_set_cursor_pos(self, self->cx, self->cy);
+}
+
+/**
+ * Handles the UP arrow key command.
+ *
+ * Moves the cursor up one line, attempting to maintain the same column
+ * position. Scrolls the viewport if necessary.
+ *
+ * @param  self  Pointer to the Editor instance.
+ * @return       kOk on success, or an error code on failure.
+ */
+MmResult editor_cmd_up(Editor *self) {
+    ON_INVALID_CURSOR_RETURN();
+
+    // Start of previous line
+    char *p = editor_previous_line(self, self->txtp);
+
+    // If in the top row of the first page then do nothing
+    if (!p || (self->cy == 0 && self->py == 0)) return kOk;
+
+    // Adjust to the same column as we were previously (self->stored_cx),
+    // or the end of the line
+    ON_FAILURE_RETURN(editor_try_to_restore_column(self, p));
+
+    if (self->cy > 2 || self->py == 0) {
+        // If we are more than two lines from the top then move the cursor up
+        self->cy--;
+    } else {
+        // Otherwise scroll the document down
+        self->py--;
+    }
 
     return editor_set_cursor_pos(self, self->cx, self->cy);
 }
@@ -2810,7 +2830,8 @@ MmResult editor_edit_loop(Editor *self) {
 
         // Unless moving up or down, update the preferred x-position
         if (self->key_buf[0] != UP && self->key_buf[0] != DOWN) {
-            self->preferred_x = self->cx;
+            self->stored_cx = self->cx;
+            self->stored_px = self->px;
         }
 
         // We only update the display once we have processed
