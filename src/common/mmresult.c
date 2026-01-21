@@ -119,7 +119,6 @@ const char *mmresult_to_default_string(MmResult result) {
         case kInvalidCommandLine: return "Invalid command line arguments";
         case kStringLength:         return "String length";
         case kTooManyDefines:             return "Too many #DEFINE directives";
-        case kOutOfMemory:                return "Not enough memory";
         case kLineTooLong:                return "Line too long";
         case kProgramTooLong:             return "Program too long";
         case kUnterminatedComment:        return "Unterminated multiline comment";
@@ -200,6 +199,8 @@ const char *mmresult_to_default_string(MmResult result) {
         case kFileAlreadyOpen:            return "File or device already open";
         case kFileNotOpen:                return "File or device not open";
         case kFileInvalidSeekPosition:    return "Invalid seek position";
+        case kOutOfMemory:                return "Out of memory";
+        case kOutOfTemporaryBuffers:      return "Out of temporary memory buffers";
         case kNotEnoughData:              return "Not enough data";
         case kPreprocessorReplaceFailed:  return "Preprocessor string replacement failed";
         case kSpriteInactive:             return "Sprite not showing";
