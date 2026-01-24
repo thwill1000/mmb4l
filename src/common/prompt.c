@@ -241,6 +241,10 @@ MmResult prompt_restore_history(const char *filepath) {
 
     ON_FAILURE_LOG(streamio_close(fnbr));
 
+#if defined(NDEBUG)
+    (void) count;
+#endif
+
     LOG_DEBUG("Restored %d history items", count);
     return kOk;
 }
