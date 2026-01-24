@@ -411,8 +411,15 @@ int main(int argc, char *argv[]) {
 
     ON_FAILURE_LOG(prompt_save_history(""));
 
+#if defined(__ANDROID__)
+    // 24-Jan-2026: The call to SDL_Quit() was segfaulting when built and run
+    //              with Userland/Ubuntu but I have found previously it was
+    //              necessary for the Android NDK build.
+    LOG_INFO("SDL quit ...");
     SDL_Quit();  // Properly cleanup SDL
+#endif
 
+    LOG_INFO("exiting with code: %d", mmb_state.exit_code);
     return mmb_state.exit_code;
 }
 
