@@ -13,6 +13,7 @@
 extern "C" {
 
 #include "../file.h"
+#include "../path.h"
 #include "../mmresult.h"
 
 // Defined in "common/prompt.c"
@@ -48,6 +49,8 @@ protected:
         } catch (const std::exception&) {
             // Symlinks might not be supported on all systems
         }
+
+        ASSERT_EQ(kOk, path_get_canonical(test_dir.c_str(), canonical_test_dir, PATH_MAX));
     }
 
     void TearDown() override {
@@ -58,6 +61,7 @@ protected:
     }
 
     std::filesystem::path test_dir;
+    char canonical_test_dir[PATH_MAX];
 };
 
 // Unit tests for file_opendir(), file_readdir(), file_closedir()
@@ -997,8 +1001,8 @@ TEST_F(FileListTest, DirectoryPathPopulated) {
 
     MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
 
-    EXPECT_EQ(result, kOk);
-    EXPECT_STREQ(list.directory, test_dir.c_str());
+    EXPECT_EQ(kOk, result);
+    EXPECT_STREQ(canonical_test_dir, list.directory);
 }
 
 // Test that free space is populated and reasonable
@@ -1026,9 +1030,9 @@ TEST_F(FileListTest, CurrentDirectoryWithNewFields) {
     FileList list;
     MmResult result = file_list("*", kFileSortByName, &list);
 
-    EXPECT_EQ(result, kOk);
+    EXPECT_EQ(kOk, result);
     EXPECT_GT(list.count, 0);
-    EXPECT_STREQ(list.directory, test_dir.c_str());
+    EXPECT_STREQ(canonical_test_dir, list.directory);
     EXPECT_GT(list.free_space, 0);
 
     // Also test that we can get the same free space using the helper function
@@ -1044,8 +1048,11 @@ TEST_F(FileListTest, SubdirectoryPathHandling) {
 
     MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
 
-    EXPECT_EQ(result, kOk);
-    EXPECT_STREQ(list.directory, (test_dir / "subdir").c_str());
+    EXPECT_EQ(kOk, result);
+    char expected[PATH_MAX] = { '\0'};
+    EXPECT_EQ(kOk, file_append_path(expected, canonical_test_dir, PATH_MAX));
+    EXPECT_EQ(kOk, file_append_path(expected, "subdir", PATH_MAX));
+    EXPECT_STREQ(expected, list.directory);
     EXPECT_GT(list.free_space, 0); // Should still have free space info
 }
 
