@@ -1058,22 +1058,7 @@ _Note that the command string is passed verbatim as the first argument to the `S
 
 ## 11. How do I build MMB4L from source ?
 
- 1. Clone the repository
-    ```
-    git clone --recursive https://github.com/thwill1000/mmb4l.git
-    ```
- 2. Run the build script
-    ```
-    ./build.sh
-    ```
- 3. Run MMBasic integration-tests:
-    ```
-    ( cd tests; ../build/build-release-<arch>/mmbasic ../sptools/sptest )
-    ```
- 4. Run "sptools" tests:
-    ```
-    ( cd sptools; ../build/build-release-<arch>/mmbasic sptest )
-    ```
+See [BUILDING.md](BUILDING.md).
 
 ## 12. Credits
 
