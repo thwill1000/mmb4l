@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 memory.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -140,14 +140,15 @@ void *GetMemory(size_t msize) {
 void *GetTempMemory(int NbrBytes) {
     assert(memory_initialised);
     int i;
-    for(i = 0; i < MAXTEMPSTRINGS; i++)
+    for(i = 0; i < MAXTEMPSTRINGS; i++) {
         if(StrTmp[i] == NULL) {
             StrTmpLocalIndex[i] = LocalIndex;
             StrTmp[i] = GetMemory(NbrBytes);
             TempMemoryIsChanged = true;
             return StrTmp[i];
         }
-    ERROR_OUT_OF_MEMORY;
+    }
+    ON_FAILURE_ERROR_EX(kOutOfTemporaryBuffers, NULL);
     return NULL;
 }
 

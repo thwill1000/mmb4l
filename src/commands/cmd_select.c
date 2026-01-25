@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_select.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -59,9 +59,18 @@ void cmd_select(void) {
     int type = T_NOTYPE;
     void *v = DoExpression(cmdline, &type);                         // evaluate the select case value
     type = TypeMask(type);
-    if(type & T_NBR) f = *(MMFLOAT *)v;
-    if(type & T_INT) i64 = *(MMINTEGER *)v;
-    if(type & T_STR) Mstrcpy(s, (char *)v);
+    if (type & T_NBR) f = *(MMFLOAT *)v;
+    if (type & T_INT) i64 = *(MMINTEGER *)v;
+    if (type & T_STR) {
+        Mstrcpy(s, (char *)v);
+        ClearSpecificTempMemory(v);  // Free temp memory now that value is copied
+        v = NULL;
+    }
+
+    int t;
+    MMFLOAT ft, ftt;
+    MMINTEGER i64t, i64tt;
+    char *st = NULL, *stt = NULL;
 
     // Now search through the program looking for a matching END SELECT statement
     // i tracks the nesting level of any nested SELECT CASE commands
@@ -76,16 +85,21 @@ void cmd_select(void) {
 
         // is this a CASE stmt at the same level as this SELECT CASE.
         if (cmd == cmdCASE && i == 1) {
-            int t;
-            MMFLOAT ft, ftt;
-            MMINTEGER i64t, i64tt;
-            char *st, *stt;
-
             CurrentLinePtr = rp;                                    // and report errors at the line we are on
             p += sizeof(CommandToken) - 1;                          // step over the CASE command
 
             // loop through the comparison elements on the CASE line.  Each element is separated by a comma
             do {
+                // Release temporary memory buffers from previous iteration
+                if (st) {
+                    ClearSpecificTempMemory(st);
+                    st = NULL;
+                }
+                if (stt) {
+                    ClearSpecificTempMemory(stt);
+                    stt = NULL;
+                }
+
                 p++;                                                // step over the comma, or the last byte of the CASE command token.
                 skipspace(p);
                 t = type;
