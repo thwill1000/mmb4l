@@ -67,7 +67,7 @@ struct s_vartbl {                                     // structure of the variab
     char type;                                        // its type (T_NBR, T_INT or T_STR)
     char level;                                       // its subroutine or function level (used to track local variables)
     DIMTYPE dims[MAXDIM];                             // the dimensions. it is an array if the first dimension is NOT zero
-    unsigned char size;                               // the number of chars to allocate for each element in a string array
+    uint8_t size;                                     // the number of chars to allocate for each element in a string array
     VarHashValue hash;                                // index into the hash table for the variable
     union u_val {
         MMFLOAT f;                                    // the value if it is a float

@@ -72,7 +72,10 @@ MmResult vartbl_add(
         uint8_t slen,
         int *var_idx) {
 
-    //printf("vartbl_add(%s, %d, %d, ...)\n", name, type, level);
+    // if (strcmp(name, "A") == 0) {
+    //     printf("vartbl_add(name='%s', type=%d, level=%d, slen=%d, ...)\n", name, type, level, slen);
+    // }
+
     *var_idx = -1;
 
     assert(vartbl_init_called);

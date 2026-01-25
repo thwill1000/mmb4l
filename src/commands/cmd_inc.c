@@ -66,8 +66,9 @@ void cmd_inc(void) {
         }
     } else {
         if (vtype & T_STR) {
-            char *q = getstring(argv[2]);
-            if (*p + *q > MAXSTRLEN) ON_FAILURE_ERROR(kStringTooLong);
+            const uint8_t max_size = vartbl[VarIndex].size;
+            char *q = getstring(argv[2]);  // Will change VarIndex
+            if (*p + *q > max_size) ON_FAILURE_ERROR(kStringTooLong);
             Mstrcat(p, q);
         } else if (vtype & T_NBR) {
             *(MMFLOAT *)p = *(MMFLOAT *)p + getnumber(argv[2]);
