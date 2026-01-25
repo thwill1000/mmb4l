@@ -24,6 +24,7 @@ add_test("test_inc_2d_int_array")
 add_test("test_inc_2d_float_array")
 add_test("test_inc_2d_string_array")
 add_test("test_inc_given_string_too_long")
+add_test("test_inc_given_string_array")
 
 If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 
@@ -187,5 +188,18 @@ Sub test_inc_given_string_too_long()
   a$ = String$(128, "a")
   On Error Skip
   Inc a$, b$
+  assert_raw_error("String too long")
+End Sub
+
+Sub test_inc_given_string_array()
+  Local a$(2) Length 10
+  a$(1) = "12345"
+
+  Inc a$(1), "67890"
+
+  assert_string_equals("1234567890", a$(1))
+
+  On Error Skip
+  Inc a$(1), "X"
   assert_raw_error("String too long")
 End Sub
