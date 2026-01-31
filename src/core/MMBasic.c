@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -69,6 +69,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
 #include "../common/interrupt.h"
+#include "../common/logger.h"
 #include "../common/mmtime.h"
 #include "../common/parse.h"
 #include "../common/serial.h"
@@ -185,6 +186,8 @@ MmResult InitBasic(void) {
 #pragma GCC diagnostic ignored "-Wclobbered"
 #endif
 void ExecuteProgram(const char *p) {
+    LOG_FN_ENTRY("p=%s", p);
+
     int i;
     int SaveLocalIndex = 0;
     jmp_buf SaveErrNext;                                            // we call ExecuteProgram() recursively so we need
@@ -192,6 +195,7 @@ void ExecuteProgram(const char *p) {
     skipspace(p);                                                   // just in case, skip any whitespace
     while(1) {
         if(*p == 0) p++;                                            // step over the zero byte marking the beginning of a new element
+        // LOG_DEBUG("Executing %s", p);
         if(*p == T_NEWLINE) {
             CurrentLinePtr = p;                                     // and pointer to the line for error reporting
 #if !defined(MX170)
@@ -287,6 +291,8 @@ void ExecuteProgram(const char *p) {
     }
 
     memcpy(ErrNext, SaveErrNext, sizeof(jmp_buf));                  // restore jump buffer
+
+    LOG_FN_EXIT();
 }
 #pragma GCC diagnostic pop
 
@@ -428,8 +434,10 @@ static MmResult PrepareFontTable() {
 }
 
 MmResult PrepareProgram(bool abort_on_error) {
+    LOG_FN_ENTRY("abort_on_error=%d", abort_on_error);
     ON_FAILURE_RETURN(PrepareFunctionTable(abort_on_error));
     ON_FAILURE_RETURN(PrepareFontTable());
+    LOG_FN_EXIT();
     return kOk;
 }
 
@@ -2419,6 +2427,8 @@ void ClearStack(void) {
 // clear the runtime (eg, variables, external I/O, etc) includes ClearStack() and ClearVars()
 // this is done before running a program
 MmResult ClearRuntime(void) {
+    LOG_FN_ENTRY();
+
     // Facilitate unit-tests that have not initialised the state.
     if (mmb_state.default_simulate == kSimulateUnspecified) {
         mmb_state.default_simulate = kSimulateMmb4l;
@@ -2432,7 +2442,14 @@ MmResult ClearRuntime(void) {
     mmb_options.default_type = T_NBR;
     mmb_options.codepage = NULL;
     mmb_options.simulate = mmb_state.default_simulate;
+#if defined(__ANDROID__)
+    mmb_options.simulate = kSimulatePicocalc;
+#endif
     ON_FAILURE_RETURN(features_init(&mmb_features, mmb_options.simulate));
+    LOG_DEBUG("mmb_options.console=%d", mmb_options.console);
+#if defined(__ANDROID__)
+    (void) graphics_set_mode(1, 32, RGB_BLACK);
+#endif
     ON_FAILURE_RETURN(graphics_reset());
     ON_FAILURE_RETURN(streamio_close_all());
     mmb_error_state_ptr = &mmb_normal_error_state;
@@ -2443,6 +2460,10 @@ MmResult ClearRuntime(void) {
     ContinuePoint = NULL;
     ON_FAILURE_RETURN(funtbl_clear());
     TraceOn = false;
+
+    LOG_DEBUG("mmb_options.console=%d", mmb_options.console);
+    LOG_FN_EXIT();
+
     return kOk;
 }
 

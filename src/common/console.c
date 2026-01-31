@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 self.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -419,12 +419,14 @@ char console_putc_noflush(char c) {
 }
 
 char console_putc(char c) {
+    // LOG_DEBUG("STDOUT: %c", c);
     char rval = console_putc_noflush(c);
     fflush(stdout);
     return rval;
 }
 
 void console_puts(const char *s) {
+    // LOG_DEBUG("STDOUT: %s", s);
     while (*s) (void) console_putc_noflush(*s++);
     fflush(stdout);
 }

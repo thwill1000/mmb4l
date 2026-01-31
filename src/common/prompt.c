@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 prompt.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -513,6 +513,8 @@ MmResult prompt_get_input(void) {
 
     // Display the contents of the input buffer (if any)
     ON_FAILURE_RETURN(display_puts(inpbuf));
+    // LOG_DEBUG("[%s]", inpbuf);
+    // LOG_DEBUG("max chars = %d", state.max_chars);
 
     if (strlen(inpbuf) > PROMPT_MAX_LEN) {
         return mmresult_ex(kStringTooLong, LINE_TOO_LONG_TO_EDIT);

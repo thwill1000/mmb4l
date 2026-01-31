@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 file.h
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -147,15 +147,15 @@ MmResult file_append_path(char *parent, const char *element, size_t size);
  * @param[in]  filename  Path to the file to check
  * @return               true if file exists and is a regular file, false otherwise
  */
-bool file_exists_regular(const char *filename);
+bool file_exists_regular(const char *path);
 
 /**
  * Checks if a named directory exists in the filesystem.
  *
- * @param[in]  dirname  Path to the directory to check
- * @return              true if file exists and is a directory, false otherwise
+ * @param[in]  path  Path to the directory to check
+ * @return           true if file exists and is a directory, false otherwise
  */
-bool file_exists_dir(const char *dirname);
+bool file_exists_dir(const char *path);
 
 /**
  * Gets the directory to store use-specific application configuration.

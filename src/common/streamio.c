@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "file.h"
 #include "file_private.h"
+#include "logger.h"
 #include "prompt.h"
 #include "streamio.h"
 #include "serial.h"
@@ -244,6 +245,8 @@ int streamio_lof(int fnbr) {
 }
 
 MmResult streamio_open(const char *path, const char *mode, int fnbr) {
+    LOG_FN_ENTRY("path=%s, mode=%s, fnbr=%d", path, mode, fnbr);
+
     if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
     if (file_table[fnbr].type != fet_closed) return kFileAlreadyOpen;
 
@@ -423,6 +426,8 @@ MmResult streamio_ungetc(int fnbr, int ch) {
 }
 
 size_t streamio_write(int fnbr, const char *buf, size_t sz) {
+    LOG_FN_ENTRY("fnbr=%d, buf=%s, sz=%d", fnbr, buf, sz);
+
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
         error_throw(kFileInvalidFileNumber);
         return 0;

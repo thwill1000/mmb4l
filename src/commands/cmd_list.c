@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_list.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/display.h"
 #include "../common/error.h"
 #include "../common/keycodes.h"
+#include "../common/logger.h"
 #include "../common/mmb4l.h"
 #include "../common/mmgetline.h"
 #include "../common/parse.h"
@@ -306,6 +307,8 @@ static MmResult cmd_list_variables(const char *p) {
 
 /** LIST [ALL] file$ */
 static MmResult cmd_list_default(const char *p) {
+    LOG_FN_ENTRY("p=%s", p);
+
     int width = -1, height = -1;
     ON_FAILURE_RETURN(display_get_size(false, &width, &height));
 

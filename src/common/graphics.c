@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
+#if defined(__ANDROID__)
+#include "android.h"
+#endif
 #include "bitset.h"
 #include "cstring.h"
 #include "error.h"
@@ -343,6 +346,8 @@ static inline MmResult graphics_copy_internal(MmSurface *src, MmSurface *dst) {
  * Copies frame buffer N (surface 1) to the display (surface 0).
  */
 static MmResult graphics_refresh_picomite_lcd_window() {
+    // LOG_FN_ENTRY();
+
     MmSurface *buffer_N = &graphics_surfaces[GRAPHICS_SURFACE_N];
     if (!buffer_N->dirty) return kOk;
     MmResult result = kOk;
@@ -351,6 +356,8 @@ static MmResult graphics_refresh_picomite_lcd_window() {
         result = graphics_copy_internal(buffer_N, window);
     }
     if (SUCCEEDED(result)) buffer_N->dirty = false;
+
+    // LOG_FN_EXIT("result=%d", kOk);
     return kOk;
 }
 
@@ -395,6 +402,8 @@ void graphics_refresh_windows() {
 
     // if (SDL_GetTicks64() > frameEnd) {
     if (SDL_GetTicks() > frameEnd) {
+
+        // LOG_DEBUG("Refresh windows");
 
         // TODO: Optimise by using linked-list of windows.
         for (uint32_t id = 0;
@@ -2489,6 +2498,7 @@ static MmResult graphics_set_mode_picomite_vga(unsigned mode) {
         graphics_cmm2_background = RGB_BLACK;
         result = graphics_set_font(mode_def->font, 1);
     }
+
     return result;
 }
 
@@ -2511,21 +2521,36 @@ MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColou
             return kGraphicsInvalidColourDepth;
     }
 
+    MmResult result = kOk;
     switch (mmb_features.graphics_type) {
         case kGraphicsTypeCmm2:
-            return graphics_set_mode_cmm2(mode, colour_depth, background);
+            result = graphics_set_mode_cmm2(mode, colour_depth, background);
+            break;
         case kGraphicsTypeMmb4l:
-            return graphics_set_mode_mmb4l(mode);
+            result = graphics_set_mode_mmb4l(mode);
+            break;
         case kGraphicsTypePicomiteHdmi:
-            return graphics_set_mode_picomite_hdmi(mode);
+            result = graphics_set_mode_picomite_hdmi(mode);
+            break;
         case kGraphicsTypePicomiteLcd:
-            return graphics_set_mode_picomite_lcd(mode);
+            result = graphics_set_mode_picomite_lcd(mode);
+            break;
         case kGraphicsTypePicomiteVga:
-            return graphics_set_mode_picomite_vga(mode);
+            result = graphics_set_mode_picomite_vga(mode);
+            break;
         default:
-            return mmresult_ex(kInternalFault, "Unknown GraphicsType: %d",
-                               mmb_features.graphics_type);
+            result = mmresult_ex(kInternalFault, "Unknown GraphicsType: %d",
+                                 mmb_features.graphics_type);
+            break;
     }
+
+#if defined(__ANDROID__)
+    if (SUCCEEDED(result)) {
+        android_show_soft_keyboard();
+    }
+#endif
+
+    return result;
 }
 
 static MmResult graphics_draw_filled_polygon_internal(MmSurface *surface, int n, float *px,

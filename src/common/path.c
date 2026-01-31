@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 path.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "error.h"
 #include "file.h"
+#include "logger.h"
 #include "path.h"
 #include "safe_buffer.h"
 #include "utility.h"
@@ -66,24 +67,33 @@ static MmResult path_complete_impl(const char *path, char *out, size_t sz);
 MmResult (*path_complete)(const char *, char *, size_t) = path_complete_impl;
 
 bool path_exists(const char *path) {
+    LOG_FN_ENTRY("path=%s", path);
     FileInfo info;
     ON_FAILURE_ERROR_EX(file_info(path, &info), false);
+
+    LOG_FN_EXIT("result=%s", info.exists ? "true" : "false");
     return info.exists;
 }
 
 bool path_is_directory(const char *path) {
+    LOG_FN_ENTRY("path=%s", path);
+
     FileInfo info;
     ON_FAILURE_ERROR_EX(file_info(path, &info), false);
     return info.exists && (info.type == kFileTypeDirectory);
 }
 
 bool path_is_empty(const char *path) {
+    LOG_FN_ENTRY("path=%s", path);
+
     FileInfo info;
     ON_FAILURE_ERROR_EX(file_info(path, &info), false);
     return info.exists && (info.size == 0);
 }
 
 bool path_is_regular(const char *path) {
+    LOG_FN_ENTRY("path=%s", path);
+
     FileInfo info;
     ON_FAILURE_ERROR_EX(file_info(path, &info), false);
     return info.exists && (info.type == kFileTypeRegularFile);
@@ -140,6 +150,8 @@ typedef enum {
 }
 
 MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
+    LOG_FN_ENTRY("original_path=%s, new_path=%s, sz=%d", original_path, new_path, sz);
+
     const char *psrc = original_path;
     bool absolute = original_path[0] == '\\' || original_path[0] == '/';
 
@@ -247,6 +259,11 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
                     }
                     psrc--;
                     state = kPathStateDefault;
+                    // if (*(safe_dst.pos - 1) == '/') {
+                    //     // TODO: comment
+                    //     safe_buffer_inc_pos(&safe_dst, -1);
+                    //     state = kPathStateSlash;
+                    // }
                     break;
                 } else {
                     CASE_FALLTHROUGH;
@@ -286,7 +303,9 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
         new_path[1] = '\0';
     }
 
-    return (new_path[sz - 1] != '\0' || safe_dst.overrun) ? kFilenameTooLong : kOk;
+    MmResult result = (new_path[sz - 1] != '\0' || safe_dst.overrun) ? kFilenameTooLong : kOk;
+    LOG_FN_EXIT("result=%d, new_path=%s", result, new_path);
+    return result;
 }
 
 /**
@@ -418,37 +437,44 @@ const char *path_get_extension(const char *path) {
 }
 
 static MmResult path_mkdir_internal(const char *path) {
-    if (path[0] == '\0') return kOk;
+    LOG_FN_ENTRY("path=%s", path);
 
-    if (path_exists(path)) {
-        return path_is_directory(path) ? kOk : kNotADirectory;
+    MmResult result = kError;
+    if (path[0] == '\0') {
+        result = kOk;
+    } else if (path_exists(path)) {
+        result = path_is_directory(path) ? kOk : kNotADirectory;
+    } else {
+        result = file_mkdir(path);
     }
 
-    return file_mkdir(path);
+    LOG_FN_EXIT("result=%d", result);
+    return result;
 }
 
 MmResult path_mkdir(const char *path) {
+    LOG_FN_ENTRY("path=%s", path);
+
     char tmp_path[PATH_MAX];
-    MmResult result = path_munge(path, tmp_path, PATH_MAX);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_munge(path, tmp_path, PATH_MAX));
 
     // Make intermediate elements of the path.
     char *end = strchr(tmp_path, '/');
     while (end) {
         *end = '\0';
-        result = path_mkdir_internal(tmp_path);
-        if (FAILED(result)) return result;
+        ON_FAILURE_RETURN(path_mkdir_internal(tmp_path));
         *end = '/';
         end = strchr(end + 1, '/');
     }
 
     // Make final element of the path.
-    result = path_mkdir_internal(tmp_path);
+    MmResult result = path_mkdir_internal(tmp_path);
     return result == kNotADirectory ? kFileExists : result;
 }
 
 static MmResult path_complete_impl(const char *path, char *out, size_t sz) {
-    // printf("path_complete: #%s#\n", path);
+    LOG_FN_ENTRY("path=%s, out=%p, sz=%d", path, out, sz);
+
     char dir_path[PATH_MAX];
     MmResult result = path_munge(path, dir_path, PATH_MAX);
     if (FAILED(result)) return result;

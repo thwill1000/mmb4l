@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "codepage.h"
 #include "cstring.h"
+#include "logger.h"
 #include "mmb4l.h"
 #include "path.h"
 #include "utility.h"
@@ -307,6 +308,8 @@ MmResult options_get_definition(const char *name, OptionsDefinition **definition
 }
 
 MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb) {
+    LOG_FN_ENTRY("options=%p, filename=%s, warning_cb=%p", options, filename, warning_cb);
+
     char path[STRINGSIZE];
     MmResult result = path_munge(filename, path, STRINGSIZE);
     if (FAILED(result)) return result;
@@ -889,6 +892,8 @@ static MmResult options_set_list_case(Options *options, const char *svalue) {
 }
 
 static MmResult options_set_search_path(Options *options, const char *svalue) {
+    LOG_FN_ENTRY("options=%p, svalue=%s", options, svalue);
+
     if (svalue[0] == '\0') {
         strcpy(options->search_path, "");
         return kOk;

@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "fonttbl.h"
 #include "keycodes.h"
+#include "logger.h"
 #include "mmb4l.h"
 #include "mmgetline.h"
 #include "parse.h"
@@ -482,12 +483,18 @@ static MmResult program_process_line(char *line) {
 }
 
 static MmResult program_open_file(const char *filename) {
+    LOG_FN_ENTRY("filename=%s", filename);
+
     char full_path[STRINGSIZE];
     MmResult result = program_file_stack->size == 0
             ? program_get_bas_file(filename, full_path)
             : program_get_inc_file(program_file_stack->files[0].filename, filename, full_path);
-    if (FAILED(result)) return result;
+    if (FAILED(result)) {
+        LOG_FN_EXIT("result=%d", result);
+        return result;
+    }
     if (!path_exists(full_path)) {
+        LOG_FN_EXIT("result=%d", kFileNotFound);
         return mmresult_ex(kFileNotFound, "File not found: %s", full_path);
     }
 
@@ -511,6 +518,7 @@ static MmResult program_open_file(const char *filename) {
     mmb_error_state_ptr->line = 0;
     strcpy(mmb_error_state_ptr->file, program_file_stack->head->filename);
 
+    LOG_FN_EXIT("result=%d", kOk);
     return kOk;
 }
 
@@ -676,6 +684,7 @@ static bool program_path_exists(const char *root, const char *stem, const char *
 }
 
 MmResult program_get_bas_file(const char *filename, char *out) {
+    LOG_FN_ENTRY("filename=%s, out=%p", filename, out);
 
     char path[STRINGSIZE];
     MmResult result = path_munge(filename, path, STRINGSIZE);
@@ -711,8 +720,10 @@ MmResult program_get_bas_file(const char *filename, char *out) {
     char cwd[STRINGSIZE] = { '\0'};
     ON_FAILURE_RETURN(file_getcwd(cwd, STRINGSIZE));
     if (FAILED(cstring_cat(cwd, "/", STRINGSIZE))
-            || FAILED(cstring_cat(cwd, path, STRINGSIZE)))
+            || FAILED(cstring_cat(cwd, path, STRINGSIZE))) {
         return kFilenameTooLong;
+    }
+    LOG_DEBUG("Path resolved relative to CWD: %s", cwd);
 
     // Get the path resolved relative to the SEARCH PATH.
     char search_path[STRINGSIZE] = { '\0' };
@@ -720,8 +731,10 @@ MmResult program_get_bas_file(const char *filename, char *out) {
         return kFilenameTooLong;
     if (*search_path) {
         if (FAILED(cstring_cat(search_path, "/", STRINGSIZE))
-                || FAILED(cstring_cat(search_path, path, STRINGSIZE)))
+                || FAILED(cstring_cat(search_path, path, STRINGSIZE))) {
             return kFilenameTooLong;
+        }
+        LOG_DEBUG("Path resolved relative to SEARCH PATH: %s", search_path);
     }
 
     // Note we don't have to check here if the file exists in the CWD;
@@ -738,6 +751,7 @@ MmResult program_get_bas_file(const char *filename, char *out) {
     // Try looking for the file with each extension resolved relative to CWD.
     char *pend = cwd + strlen(cwd);
     for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+        LOG_DEBUG("Looking for file relative to CWD with file extension: %s", BAS_FILE_EXTENSIONS[i]);
         *pend = '\0';
         if (FAILED(cstring_cat(cwd, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
             return kFilenameTooLong;
@@ -749,11 +763,14 @@ MmResult program_get_bas_file(const char *filename, char *out) {
     if (*search_path) {
         pend = search_path + strlen(search_path);
         for (size_t i = 0; i < sizeof(BAS_FILE_EXTENSIONS) / sizeof(const char *); i++) {
+            LOG_DEBUG("Looking for file relative to SEARCH PATH with file extension: %s", BAS_FILE_EXTENSIONS[i]);
             *pend = '\0';
-            if (FAILED(cstring_cat(search_path, BAS_FILE_EXTENSIONS[i], STRINGSIZE)))
+            if (FAILED(cstring_cat(search_path, BAS_FILE_EXTENSIONS[i], STRINGSIZE))) {
                 return kFilenameTooLong;
-            if (path_exists(search_path))
+            }
+            if (path_exists(search_path)) {
                 return path_get_canonical(search_path, out, STRINGSIZE);
+            }
         }
     }
 
@@ -960,6 +977,8 @@ void program_list_csubs(int all) {
 }
 
 MmResult program_load_file(const char *filename) {
+    LOG_FN_ENTRY("filename=%s", filename);
+
     // Store the current token buffer incase we are at the command prompt.
     char tmp[TKNBUF_SIZE];
     memcpy(tmp, tknbuf, TKNBUF_SIZE);
