@@ -307,7 +307,7 @@ MmResult keyboard_key_down(const SDL_Keysym* keysym) {
             keybuf_put(ch);
         }
     }
-    return keyboard_update_last_ps2_scancode(keysym, false);
+    RETURN_RESULT(keyboard_update_last_ps2_scancode(keysym, false));
 }
 
 MmResult keyboard_key_up(const SDL_Keysym* keysym) {

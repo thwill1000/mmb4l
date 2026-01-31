@@ -126,7 +126,7 @@ void error_clear_callback();
 
 #define ON_FAILURE_LOG(x)  do { \
     const MmResult result__ = (x); \
-    if (FAILED(result__)) { LOG_ERROR("%s", mmresult_to_string(result__)); } \
+    if (FAILED(result__)) { LOG_ERROR("error: %s (%d)", mmresult_to_string(result__), result__); } \
 } while (0)
 
 #define ON_FAILURE_RETURN(x)  do { \

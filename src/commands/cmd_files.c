@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_files.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,11 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
-#include "../common/cstring.h"
 #include "../common/display.h"
 #include "../common/error.h"
 #include "../common/file.h"
@@ -157,16 +157,16 @@ void cmd_files_internal(const char *p) {
     ON_FAILURE_ERROR(file_get_free_space(flist->directory, &mb_free));
     mb_free /= (1024 * 1024);
     if (dir_count == 1 && file_count == 1) {
-        (void) snprintf(buf, STRINGSIZE, "%ld directory, %ld file, %ld MB free",
+        (void) snprintf(buf, STRINGSIZE, "%zu directory, %zu file, %" PRId64 " MB free",
                         dir_count, file_count, mb_free);
     } else if (dir_count == 1) {
-        (void) snprintf(buf, STRINGSIZE, "%ld directory, %ld files, %ld MB free",
+        (void) snprintf(buf, STRINGSIZE, "%zu directory, %zu files, %" PRId64 " MB free",
                         dir_count, file_count, mb_free);
     } else if (file_count == 1) {
-        (void) snprintf(buf, STRINGSIZE, "%ld directories, %ld file, %ld MB free",
+        (void) snprintf(buf, STRINGSIZE, "%zu directories, %zu file, %" PRId64 " MB free",
                         dir_count, file_count, mb_free);
     } else {
-        (void) snprintf(buf, STRINGSIZE, "%ld directories, %ld files, %ld MB free",
+        (void) snprintf(buf, STRINGSIZE, "%zu directories, %zu files, %" PRId64 " MB free",
                         dir_count, file_count, mb_free);
     }
     display_puts(buf);
