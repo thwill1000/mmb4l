@@ -51,7 +51,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "keybuf.h"
 
 bool keybuf_isatty(void) {
+#if defined(__ANDROID__)
+    return true;
+#else
     return isatty(STDIN_FILENO);
+#endif
 }
 
 void keybuf_pump_tty(void) {

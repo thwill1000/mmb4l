@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_run.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../common/cstring.h"
 #include "../common/error.h"
+#include "../common/logger.h"
 #include "../common/memory.h"
 #include "../common/program.h"
 #include "../common/utility.h"
@@ -217,7 +218,14 @@ MmResult cmd_run_parse_args(const char *p, OptionsSimulate *simulate, char *file
 }
 
 void cmd_run(void) {
+    LOG_FN_ENTRY("cmdline=\"%s\"", cmdline);
+
+#if defined(__ANDROID__)
+    OptionsSimulate simulate = kSimulatePicocalc;
+#else
     OptionsSimulate simulate = kSimulateMmb4l;
+#endif
+
     char filename[STRINGSIZE];  // Filename to RUN.
 
     ON_FAILURE_ERROR(cmd_run_parse_args(cmdline, &simulate, filename, cmd_run_args));
@@ -233,9 +241,14 @@ void cmd_run(void) {
     bool trace_on_bak = TraceOn;
     ON_FAILURE_ERROR(program_load_file(filename));
     ON_FAILURE_ERROR(ClearRuntime());
-    TraceOn = trace_on_bak;    
+    TraceOn = trace_on_bak;
+#if defined(__ANDROID__)
+    simulate = kSimulatePicocalc;
+#endif
     ON_FAILURE_ERROR(SwitchPlatform(simulate));
     ON_FAILURE_ERROR(PrepareProgram(true));
     if (*ProgMemory != T_NEWLINE) return;  // no program to run
     nextstmt = ProgMemory;
+
+    RETURN_VOID();
 }

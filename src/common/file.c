@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "file.h"
 #include "file_private.h"
+#include "logger.h"
 #include "mmb4l.h"
 #include "path.h"
 #include "utility.h"
@@ -275,7 +276,7 @@ static int compare_by_extension(const void *a, const void *b) {
 /**
  * Helper function to extract directory and pattern from file specification
  */
-static MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern) {
+MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern) {
     LOG_FN_ENTRY("fspec=%s", fspec);
 
     CHECK_PARAM(fspec != NULL);
@@ -285,6 +286,7 @@ static MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern
     ON_FAILURE_RETURN(path_get_canonical(fspec, dirname, PATH_MAX));
 
     // If the fspec is just a directory name then return all files
+    LOG_DEBUG("dirname = %s", dirname);
     if (file_exists_dir(dirname)) {
         strcpy(pattern, "*");
         RETURN_RESULT(kOk);
@@ -339,6 +341,7 @@ MmResult file_append_path(char *parent, const char *element, size_t size) {
 }
 
 MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
+    LOG_FN_ENTRY("fspec=%s, sort=%d, list=%p", fspec, sort, list);
     CHECK_PARAM(fspec != NULL);
     CHECK_PARAM(list != NULL);
 
@@ -351,6 +354,7 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
 
     // Parse the file specification
     ON_FAILURE_RETURN(file_parse_fspec(fspec, list->directory, pattern));
+    LOG_DEBUG("Pattern: [%s]", pattern);
 
     // Store the remaining free space in the list
     MmResult result = file_get_free_space(list->directory, &(list->free_space));
@@ -373,6 +377,7 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
         }
 
         if (!entry) break; // End of directory
+        LOG_DEBUG("name: [%s]", entry->name);
 
         // Skip if the filename does not match the pattern
         bool match = false;
@@ -449,22 +454,27 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
     return kOk;
 }
 
-bool file_exists_regular(const char *filename) {
-    if (!filename) return false;
+bool file_exists_regular(const char *path) {
+    if (!path) return false;
 
     FileInfo info;
-    if (SUCCEEDED(file_info(filename, &info))) {
+    if (SUCCEEDED(file_info(path, &info))) {
         return info.exists && (info.type == kFileTypeRegularFile);
     } else {
         return false;
     }
 }
 
-bool file_exists_dir(const char *dirname) {
-    if (!dirname) return false;
+bool file_exists_dir(const char *path) {
+    LOG_FN_ENTRY("path=%s", path);
+
+    if (!path) return false;
 
     FileInfo info;
-    if (SUCCEEDED(file_info(dirname, &info))) {
+    if (SUCCEEDED(file_info(path, &info))) {
+        LOG_DEBUG("info.exists = %d", info.exists);
+        LOG_DEBUG("info.type == kFileTypeDirectory = %d", info.type == kFileTypeDirectory);
+        LOG_DEBUG("exists_dir = %d", info.exists && (info.type == kFileTypeDirectory));
         return info.exists && (info.type == kFileTypeDirectory);
     } else {
         return false;
@@ -478,6 +488,8 @@ static MmResult file_get_config_dir_impl(char *buf, size_t size) {
 }
 
 MmResult file_size(const char *path, off_t *size) {
+    LOG_FN_ENTRY("path=%s, size=%p", path, size);
+
     FileInfo info;
     ON_FAILURE_RETURN(file_info(path, &info));
     if (!info.exists) return kFileNotFound;

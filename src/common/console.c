@@ -63,10 +63,12 @@ static ConsoleState self;
 int ListCnt = 0;
 
 MmResult console_init(bool no_title) {
+    LOG_FN_ENTRY();
+
     self.no_title = no_title;
     self.requires_sync = true;
 
-    return console_private_init(&self);
+    RETURN_RESULT(console_private_init(&self));
 }
 
 void console_bell(void) {
@@ -170,12 +172,14 @@ char console_putc_noflush(char c) {
 }
 
 char console_putc(char c) {
+    // LOG_DEBUG("STDOUT: %c", c);
     char rval = console_putc_noflush(c);
     fflush(stdout);
     return rval;
 }
 
 void console_puts(const char *s) {
+    // LOG_DEBUG("STDOUT: %s", s);
     while (*s) (void) console_putc_noflush(*s++);
     fflush(stdout);
 }
