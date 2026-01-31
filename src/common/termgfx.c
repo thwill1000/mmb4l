@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 termgfx.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "fonttbl.h"
 #include "graphics.h"
+#include "logger.h"
 #include "mmtime.h"
 #include "termgfx.h"
 
@@ -355,6 +356,7 @@ MmResult termgfx_wrapline() {
 }
 
 MmResult termgfx_write(const char *buf, size_t *sz) {
+    LOG_DEBUG("graphics_current=%p, mmb_options.console=%d", graphics_current, mmb_options.console);
     ASSERT_GFX();
     for (size_t idx = 0; idx < *sz; ++idx) {
         ON_FAILURE_RETURN(termgfx_putc(buf[idx]));

@@ -47,6 +47,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
+#if defined(__ANDROID__)
+#include "android.h"
+#endif
+
 #include "bitset.h"
 #include "cstring.h"
 #include "error.h"
@@ -343,6 +347,8 @@ static inline MmResult graphics_copy_internal(MmSurface *src, MmSurface *dst) {
  * Copies frame buffer N (surface 1) to the display (surface 0).
  */
 static MmResult graphics_refresh_picomite_lcd_window() {
+    // LOG_FN_ENTRY();
+
     MmSurface *buffer_N = &graphics_surfaces[GRAPHICS_SURFACE_N];
     if (!buffer_N->dirty) return kOk;
     MmResult result = kOk;
@@ -351,7 +357,8 @@ static MmResult graphics_refresh_picomite_lcd_window() {
         result = graphics_copy_internal(buffer_N, window);
     }
     if (SUCCEEDED(result)) buffer_N->dirty = false;
-    return kOk;
+
+    RETURN_RESULT(kOk);
 }
 
 /**
@@ -395,6 +402,8 @@ void graphics_refresh_windows() {
 
     // if (SDL_GetTicks64() > frameEnd) {
     if (SDL_GetTicks() > frameEnd) {
+
+        // LOG_DEBUG("Refresh windows");
 
         // TODO: Optimise by using linked-list of windows.
         for (uint32_t id = 0;
@@ -1707,20 +1716,24 @@ static const char *graphics_blit_flags_to_string(unsigned flags) {
 MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
                        MmSurface *src_surface, MmSurface *dst_surface, unsigned flags,
                        MmGraphicsColour transparent) {
-    LOG_DEBUG("graphics_blit(src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, "
-             "src_id = %d, dst_id = %d, flags = %s)",
-             src_x, src_y, dst_x, dst_y, w, h,
-             src_surface ? src_surface->id : -1, dst_surface ? dst_surface->id : -1,
-             graphics_blit_flags_to_string(flags));
+    // LOG_FN_ENTRY(
+    //     "src_x=%d, src_y=%d, dst_x=%d, dst_y=%d, w=%d, h=%d, src_id=%d, dst_id=%d, "
+    //     "flags=%s, transparent=%d",
+    //     src_x, src_y, dst_x, dst_y, w, h, src_surface ? src_surface->id : -1,
+    //     dst_surface ? dst_surface->id : -1, graphics_blit_flags_to_string(flags), transparent);
 
-    if (!src_surface || src_surface->type == kGraphicsNone) return kGraphicsInvalidReadSurface;
-    if (!dst_surface || dst_surface->type == kGraphicsNone) return kGraphicsInvalidWriteSurface;
+    if (!src_surface || src_surface->type == kGraphicsNone) {
+        RETURN_RESULT(kGraphicsInvalidReadSurface);
+    }
+    if (!dst_surface || dst_surface->type == kGraphicsNone) {
+        RETURN_RESULT(kGraphicsInvalidWriteSurface);
+    }
 
     if (flags == 0x0
             && src_x == 0 && src_y == 0 && dst_x == 0 && dst_y == 0
             && src_surface->width == w && dst_surface->width == w
             && src_surface->height == h && dst_surface->height == h) {
-        return graphics_copy_internal(src_surface, dst_surface);
+        RETURN_RESULT(graphics_copy_internal(src_surface, dst_surface));
     }
 
     // I'm not entirely convinced by this jiggery-pokery as it was arrived at
@@ -1778,19 +1791,19 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
     }
     if (dst_y + h >= dst_surface->height) h = max(0, dst_surface->height - dst_y);
 
-    LOG_DEBUG("graphics_blit(src_x = %d, src_y = %d, dst_x = %d, dst_y = %d, w = %d, h = %d, "
-             "src_id = %d, dst_id = %d, flags = %s)",
-             src_x, src_y, dst_x, dst_y, w, h,
-             src_surface ? src_surface->id : -1, dst_surface ? dst_surface->id : -1,
-             graphics_blit_flags_to_string(flags));
+    // LOG_DEBUG(
+    //     "src_x=%d, src_y=%d, dst_x=%d, dst_y=%d, w=%d, h=%d, src_id=%d, dst_id=%d, "
+    //     "flags=%s, transparent=%d",
+    //     src_x, src_y, dst_x, dst_y, w, h, src_surface ? src_surface->id : -1,
+    //     dst_surface ? dst_surface->id : -1, graphics_blit_flags_to_string(flags), transparent);
 
-    if (w == 0 || h == 0) return kOk;
+    if (w == 0 || h == 0) RETURN_RESULT(kOk);
 
     // If source and destination surfaces overlap then copy source surface to temporary surface.
     MmSurface tmp_surface = { .width = w, .height = h, .pixels = NULL };
     if (src_surface == dst_surface) {
         tmp_surface.pixels = GetTempMemory(w * h * sizeof(uint32_t));
-        if (!tmp_surface.pixels) return kOutOfMemory;
+        if (!tmp_surface.pixels) RETURN_RESULT(kOutOfMemory);
         uint32_t *src = src_surface->pixels + (src_y * src_surface->width) + src_x;
         uint32_t *dst = tmp_surface.pixels;
         for (int i = 0; i < h; ++i) {
@@ -1893,7 +1906,7 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
     }
 
     if (tmp_surface.pixels) ClearSpecificTempMemory(tmp_surface.pixels);
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int x, int y, int w, int h,
@@ -2488,6 +2501,7 @@ static MmResult graphics_set_mode_picomite_vga(unsigned mode) {
         graphics_cmm2_background = RGB_BLACK;
         result = graphics_set_font(mode_def->font, 1);
     }
+
     return result;
 }
 
@@ -2510,20 +2524,34 @@ MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColou
             return kGraphicsInvalidColourDepth;
     }
 
+    MmResult result = kOk;
     switch (mmb_features.graphics_type) {
         case kGraphicsTypeCmm2:
-            return graphics_set_mode_cmm2(mode, colour_depth, background);
+            result = graphics_set_mode_cmm2(mode, colour_depth, background);
+            break;
         case kGraphicsTypeMmb4l:
-            return graphics_set_mode_mmb4l(mode);
+            result = graphics_set_mode_mmb4l(mode);
+            break;
         case kGraphicsTypePicomiteHdmi:
-            return graphics_set_mode_picomite_hdmi(mode);
+            result = graphics_set_mode_picomite_hdmi(mode);
+            break;
         case kGraphicsTypePicomiteLcd:
-            return graphics_set_mode_picomite_lcd(mode);
+            result = graphics_set_mode_picomite_lcd(mode);
+            break;
         case kGraphicsTypePicomiteVga:
-            return graphics_set_mode_picomite_vga(mode);
+            result = graphics_set_mode_picomite_vga(mode);
+            break;
         default:
             return INTERNAL_FAULT_EX("invalid GraphicsType: %d", mmb_features.graphics_type);
     }
+
+#if defined(__ANDROID__)
+    if (SUCCEEDED(result)) {
+        android_show_keyboard();
+    }
+#endif
+
+    return result;
 }
 
 static MmResult graphics_draw_filled_polygon_internal(MmSurface *surface, int n, float *px,

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -70,6 +70,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
 #include "../common/interrupt.h"
+#include "../common/logger.h"
 #include "../common/mmtime.h"
 #include "../common/parse.h"
 #include "../common/serial.h"
@@ -160,6 +161,8 @@ const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Funct
 
 // Initialise MMBasic
 MmResult InitBasic(void) {
+    LOG_FN_ENTRY();
+
     srand(0);  // seed the random generator with zero
     ProgMemory[0] = '\0';
     ProgMemory[1] = '\0';
@@ -172,7 +175,8 @@ MmResult InitBasic(void) {
     ON_FAILURE_RETURN(interrupt_init());
     ON_FAILURE_RETURN(mmtime_init());
     ON_FAILURE_RETURN(SwitchPlatform(mmb_state.default_simulate));
-    return kOk;
+
+    RETURN_RESULT(kOk);
 }
 
 
@@ -183,6 +187,8 @@ MmResult InitBasic(void) {
 // We need to suppress a spurious(?) warning about 'p' being clobbered by setjmp().
 DIAGNOSTIC_IGNORE_CLOBBERED
 void ExecuteProgram(const char *p) {
+    LOG_FN_ENTRY("p=%p", p);
+
     int i;
     int SaveLocalIndex = 0;
     jmp_buf SaveErrNext;                                            // we call ExecuteProgram() recursively so we need
@@ -190,6 +196,7 @@ void ExecuteProgram(const char *p) {
     skipspace(p);                                                   // just in case, skip any whitespace
     while(1) {
         if(*p == 0) p++;                                            // step over the zero byte marking the beginning of a new element
+        // LOG_DEBUG("Executing %s", p);
         if(*p == T_NEWLINE) {
             CurrentLinePtr = p;                                     // and pointer to the line for error reporting
 #if !defined(MX170)
@@ -285,6 +292,8 @@ void ExecuteProgram(const char *p) {
     }
 
     memcpy(ErrNext, SaveErrNext, sizeof(jmp_buf));                  // restore jump buffer
+
+    RETURN_VOID();
 }
 DIAGNOSTIC_RESTORE
 
@@ -426,9 +435,10 @@ static MmResult PrepareFontTable() {
 }
 
 MmResult PrepareProgram(bool abort_on_error) {
+    LOG_FN_ENTRY("abort_on_error=%d", abort_on_error);
     ON_FAILURE_RETURN(PrepareFunctionTable(abort_on_error));
     ON_FAILURE_RETURN(PrepareFontTable());
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 /**
@@ -2417,6 +2427,8 @@ void ClearStack(void) {
 // clear the runtime (eg, variables, external I/O, etc) includes ClearStack() and ClearVars()
 // this is done before running a program
 MmResult ClearRuntime(void) {
+    LOG_FN_ENTRY();
+
     // Facilitate unit-tests that have not initialised the state.
     if (mmb_state.default_simulate == kSimulateUnspecified) {
         mmb_state.default_simulate = kSimulateMmb4l;
@@ -2430,7 +2442,14 @@ MmResult ClearRuntime(void) {
     mmb_options.default_type = T_NBR;
     mmb_options.codepage = NULL;
     mmb_options.simulate = mmb_state.default_simulate;
+#if defined(__ANDROID__)
+    mmb_options.simulate = kSimulatePicocalc;
+#endif
     ON_FAILURE_RETURN(features_init(&mmb_features, mmb_options.simulate));
+    LOG_DEBUG("mmb_options.console=%d", mmb_options.console);
+#if defined(__ANDROID__)
+    (void) graphics_set_mode(1, 32, RGB_BLACK);
+#endif
     ON_FAILURE_RETURN(graphics_reset());
     ON_FAILURE_RETURN(streamio_close_all());
     mmb_error_state_ptr = &mmb_normal_error_state;
@@ -2441,7 +2460,9 @@ MmResult ClearRuntime(void) {
     ContinuePoint = NULL;
     ON_FAILURE_RETURN(funtbl_clear());
     TraceOn = false;
-    return kOk;
+
+    LOG_DEBUG("mmb_options.console=%d", mmb_options.console);
+    RETURN_RESULT(kOk);
 }
 
 
