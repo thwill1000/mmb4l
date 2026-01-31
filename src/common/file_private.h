@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 file_private.h
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "../Configuration.h"
+#include "mmresult.h"
 #include "rx_buf.h"
 
 enum FileEntryType { fet_closed, fet_file, fet_serial };
@@ -62,5 +63,7 @@ typedef struct {
 } FileEntry;
 
 extern FileEntry file_table[MAXOPENFILES + 1];
+
+MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern);
 
 #endif // #if !defined(MMB4L_FILE_PRIVATE)

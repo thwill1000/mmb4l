@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 prompt.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -75,6 +75,7 @@ MmResult prompt_getc(int *ch) {
         ON_FAILURE_RETURN(display_update_cursor());
         *ch = console_getc();
         if (*ch == -1) {
+#if !defined(__ANDROID__)
             if (!isatty(STDIN_FILENO)) {
                 // For non-TTY input (pipes, files), check if it's actually EOF
                 if (feof(stdin)) {
@@ -91,6 +92,7 @@ MmResult prompt_getc(int *ch) {
                 (void) display_show_cursor(false);
                 return kStdinExhausted;
             }
+#endif
             nanosleep(&ONE_MILLISECOND, NULL);
         } else if (*ch == '\n' && prevchar == '\r') {
             prevchar = 0;
@@ -246,7 +248,7 @@ MmResult prompt_restore_history(const char *filepath) {
 #endif
 
     LOG_INFO("restored %d history items", count);
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 MmResult prompt_save_history(const char *filepath) {
@@ -273,7 +275,7 @@ MmResult prompt_save_history(const char *filepath) {
     ON_FAILURE_LOG(streamio_close(fnbr));
 
     LOG_INFO("saved %d history items", count);
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 static MmResult handle_backspace(PromptState *pstate) {
@@ -513,6 +515,8 @@ MmResult prompt_get_input(void) {
 
     // Display the contents of the input buffer (if any)
     ON_FAILURE_RETURN(display_puts(inpbuf));
+    // LOG_DEBUG("[%s]", inpbuf);
+    // LOG_DEBUG("max chars = %d", state.max_chars);
 
     if (strlen(inpbuf) > PROMPT_MAX_LEN) {
         return mmresult_ex(kStringTooLong, LINE_TOO_LONG_TO_EDIT);

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_print.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,12 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/mmb4l.h"
 #include "../common/error.h"
+#include "../common/logger.h"
+#include "../common/mmb4l.h"
 #include "../common/parse.h"
 #include "../common/streamio.h"
 
 void cmd_print(void) {
+    LOG_FN_ENTRY("cmdline=\"%s\"", cmdline);
 
     char *s;
     const char *p;
@@ -109,4 +111,6 @@ void cmd_print(void) {
     }
 
     if (docrlf) streamio_write(fnbr, "\r\n", 2);                    // print the terminating cr/lf unless it has been suppressed
+
+    RETURN_VOID();
 }

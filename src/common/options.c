@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "codepage.h"
 #include "cstring.h"
+#include "logger.h"
 #include "mmb4l.h"
 #include "path.h"
 #include "utility.h"
@@ -307,19 +308,21 @@ MmResult options_get_definition(const char *name, OptionsDefinition **definition
 }
 
 MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB warning_cb) {
+    LOG_FN_ENTRY("options=%p, filename=\"%s\", warning_cb=%p", options, filename, warning_cb);
+
     char path[STRINGSIZE];
-    MmResult result = path_munge(filename, path, STRINGSIZE);
-    if (FAILED(result)) return result;
-    if (path_is_directory(path)) return kIsADirectory;
+    ON_FAILURE_RETURN(path_munge(filename, path, STRINGSIZE));
+    if (path_is_directory(path)) RETURN_RESULT(kIsADirectory);
 
     errno = 0;
     FILE *f = fopen(path, "r");
-    if (!f) return errno;
+    if (!f) RETURN_RESULT(errno);
 
     char line[STRINGSIZE * 2];
     char name[STRINGSIZE];
     char value[STRINGSIZE];
     int line_num = 0;
+    MmResult result = kOk;
     while (!feof(f) && fgets(line, STRINGSIZE * 2, f)) {
         line_num++;
         result = options_parse(line, name, value);
@@ -338,7 +341,7 @@ MmResult options_load(Options *options, const char *filename, OPTIONS_WARNING_CB
 
     fclose(f);
 
-    return result;
+    RETURN_RESULT(result);
 }
 
 static void options_get_save_name(const OptionsDefinition *def, char *svalue) {
@@ -889,19 +892,20 @@ static MmResult options_set_list_case(Options *options, const char *svalue) {
 }
 
 static MmResult options_set_search_path(Options *options, const char *svalue) {
+    LOG_FN_ENTRY("options=%p, svalue=\"%s\"", options, svalue);
+
     if (svalue[0] == '\0') {
         strcpy(options->search_path, "");
-        return kOk;
+        RETURN_RESULT(kOk);
     }
 
     char canonical_path[STRINGSIZE];
-    MmResult result = path_get_canonical(svalue, canonical_path, STRINGSIZE);
-    if (FAILED(result)) return result;
-    if (!path_exists(canonical_path)) return kFileNotFound;
-    if (!path_is_directory(canonical_path)) return kNotADirectory;
+    ON_FAILURE_RETURN(path_get_canonical(svalue, canonical_path, STRINGSIZE));
+    if (!path_exists(canonical_path)) RETURN_RESULT(kFileNotFound);
+    if (!path_is_directory(canonical_path)) RETURN_RESULT(kNotADirectory);
 
     strcpy(options->search_path, canonical_path);
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 static MmResult options_set_simulate(Options *options, const char *svalue) {

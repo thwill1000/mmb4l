@@ -47,7 +47,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include <SDL.h>
+#if defined(__ANDROID__)
+#include <SDL_opengles2.h>
+#endif
 
+#if defined(__ANDROID__)
+// #include "main_android.h"
+#include "common/android.h"
+#endif
 #include "common/audio.h"
 #include "common/cmdline.h"
 #include "common/console.h"
@@ -129,12 +136,15 @@ static MmResult get_banner(char *buf, size_t buf_sz) {
 }
 
 static void init_mmbasic_config_dir() {
+    LOG_FN_ENTRY();
+
     char config_dir[PATH_MAX] = { '\0' };
     MmResult result = file_get_config_dir(config_dir, PATH_MAX);
     ON_FAILURE_GOTO(result, error);
     result = path_mkdir(config_dir);
     ON_FAILURE_GOTO(result, error);
-    return;
+
+    RETURN_VOID();
 
 error:
     fprintf(
@@ -166,6 +176,8 @@ static void init_options_cb(const char *msg) {
 }
 
 static void init_options() {
+    LOG_FN_ENTRY();
+
     char filename[PATH_MAX] = { '\0' };
     MmResult result = file_get_config_dir(filename, sizeof(filename));
     ON_FAILURE_GOTO(result, error);
@@ -188,7 +200,8 @@ static void init_options() {
             goto error;
     }
     init_options_cb("END");
-    return;
+
+    RETURN_VOID();
 
 error:
     fprintf(stderr, "\nFailed to load options: %s\n", mmresult_to_string(result));
@@ -196,6 +209,10 @@ error:
 }
 
 void set_start_directory() {
+    // if (is_android()) {
+    //     snprintf(mmb_args.directory, STRINGSIZE, "%s", android_path());
+    // }
+
     if (mmb_args.directory[0] == '\0') {
         char *MMDIR = getenv("MMDIR");
         if (MMDIR) {
@@ -269,6 +286,8 @@ void longjmp_handler(int jmp_state) {
             break;
     }
 
+    // if (mmb_state.exiting) return;
+
     ContinuePoint = nextstmt;  // In case the user wants to use the continue command
     *tknbuf = 0;               // we do not want to run whatever is in the token buffer
     memset(inpbuf, 0, INPBUF_SIZE);
@@ -289,11 +308,63 @@ static MmResult init_prompt() {
     return kOk;
 }
 
+int android_main(int argc, char* argv[]) {
+    LOG_INFO("Wooga Wooga Wooga");
+#if defined(__ANDROID__)
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        LOG_INFO("SDL_Init failed: %s", SDL_GetError());
+        return 1;
+    }
+
+    SDL_Window* window = SDL_CreateWindow("SDL2 Android App",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+
+    if (!window) {
+        LOG_INFO("SDL_CreateWindow failed: %s", SDL_GetError());
+        SDL_Quit();
+        return 1;
+    }
+
+    SDL_GLContext context = SDL_GL_CreateContext(window);
+    if (!context) {
+        LOG_INFO("SDL_GL_CreateContext failed: %s", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+
+    bool running = true;
+    SDL_Event event;
+
+    while (running) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = false;
+            }
+        }
+
+        // Clear screen with blue color
+        glClearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        SDL_GL_SwapWindow(window);
+        SDL_Delay(16); // ~60 FPS
+    }
+
+    SDL_GL_DeleteContext(context);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+#endif
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
-#if !defined(NDEBUG)
+#if !defined(__ANDROID__) && !defined(NDEBUG)
     ON_FAILURE_EXIT(logger_init("mmb4l.log"));
 #endif
 
+    LOG_FN_ENTRY("argc=%d, argv=%p", argc, argv);
     {
         char banner[1024];
         ON_FAILURE_EXIT(get_name_and_version(banner, sizeof(banner)));
@@ -301,6 +372,10 @@ int main(int argc, char *argv[]) {
     }
 
     ON_FAILURE_EXIT(memory_init());
+
+#if defined(__ANDROID__)
+    android_init();
+#endif
 
     MmResult result = cmdline_parse(argc, (const char **) argv, &mmb_args);
     if (FAILED(result)) {
@@ -318,11 +393,13 @@ int main(int argc, char *argv[]) {
         exit(EX_OK);
     }
 
+#if !defined(__ANDROID__)
     // Initialise the tty console.
     ON_FAILURE_EXIT(console_init(!mmb_args.show_prompt));
     console_enable_raw_mode();
     atexit(console_disable_raw_mode);
     ON_FAILURE_EXIT(console_sync());
+#endif
 
     if (mmb_args.version) {
         char banner[1024];
@@ -333,8 +410,14 @@ int main(int argc, char *argv[]) {
 
     init_mmbasic_config_dir();
     init_options();
+
+#if defined(__ANDROID__)
+    mmb_state.default_simulate = kSimulatePicocalc;
+#else
     mmb_state.default_simulate =
         (mmb_args.simulate == kSimulateUnspecified) ? kSimulateMmb4l : mmb_args.simulate;
+#endif
+
     ON_FAILURE_EXIT(InitBasic());
     ON_FAILURE_EXIT(keyboard_init());
 
@@ -367,6 +450,10 @@ int main(int argc, char *argv[]) {
         case JMP_QUIT:  longjmp_handler(JMP_QUIT); break;
         default:        longjmp_handler(JMP_UNEXPECTED); break;
     }
+
+// #if defined(__ANDROID__)
+//     return android_main(argc, argv);
+// #endif
 
     while (!mmb_state.exiting) {
         MMAbort = false;
@@ -422,6 +509,7 @@ int main(int argc, char *argv[]) {
     ON_FAILURE_LOG(prompt_save_history(""));
 
 #if defined(__ANDROID__)
+    android_term();
     // 24-Jan-2026: The call to SDL_Quit() was segfaulting when built and run
     //              with Userland/Ubuntu but I have found previously it was
     //              necessary for the Android NDK build.
