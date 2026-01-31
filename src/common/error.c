@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 error.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstring.h"
 #include "error.h"
 #include "exit_codes.h"
+#include "logger.h"
 #include "mmb4l.h"
 #include "path.h"
 #include "program.h"
@@ -187,6 +188,8 @@ static void verror(MmResult error, const char *msg, va_list argp) {
         }
         msg++;
     }
+
+    LOG_DEBUG("%s (%d)", buf, error);
 
     cstring_cpy(mmb_error_state_ptr->message, buf, MAXERRMSG);
 

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 features.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "error.h"
 #include "features.h"
+#include "logger.h"
 
 static Features features_cmm2 = {
     .name = "Colour Maximite 2",
@@ -197,6 +198,8 @@ static Features features_picomite_vga_usb = {
 };
 
 MmResult features_init(Features *features, OptionsSimulate simulate) {
+    LOG_FN_ENTRY("features=%p, simulate=%d", features, simulate);
+
     Features *new_features = NULL;
 
     switch (simulate) {
@@ -229,7 +232,11 @@ MmResult features_init(Features *features, OptionsSimulate simulate) {
     }
 
     memcpy(features, new_features, sizeof(Features));
-    mmb_options.console = features->console;
+    mmb_options.console = features->console; // TODO: Huh?
 
-    return kOk;
+#if defined(__ANDROID__)
+    mmb_options.console = kScreen;
+#endif
+
+    RETURN_RESULT(kOk);
 }
