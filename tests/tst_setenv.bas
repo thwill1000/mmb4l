@@ -19,18 +19,6 @@ If sys.is_platform%("cmm2*", "pm*") Then Goto skip_tests
 Const BASE% = Mm.Info(Option Base)
 Const DEVICE$ = Choice(Mm.Device$ = "MMB4L", Mm.Device$ + " - " + Mm.Info$(Arch), Mm.Device$)
 
-Select Case DEVICE$
-  Case "MMB4L - Android aarch64"
-    Const IS_ANDROID% = 1
-    Const EXPECTED_HOME$ = "/data/data/com.termux/files/home"
-  Case "MMB4L - Linux armv6l"
-    Const IS_ANDROID% = 0
-    Const EXPECTED_HOME$ = "/home/pi"
-  Case Else
-    Const IS_ANDROID% = 0
-    Const EXPECTED_HOME$ = "/home/thwill"
-End Select
-
 add_test("test_setenv")
 add_test("test_setenv_given_equals")
 add_test("test_setenv_given_space_in_name")
