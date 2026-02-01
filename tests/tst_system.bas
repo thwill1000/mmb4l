@@ -22,13 +22,10 @@ Const DEVICE$ = Choice(Mm.Device$ = "MMB4L", Mm.Device$ + " - " + Mm.Info$(Arch)
 Select Case DEVICE$
   Case "MMB4L - Android aarch64"
     Const IS_ANDROID% = 1
-    Const EXPECTED_HOME$ = "/data/data/com.termux/files/home"
   Case "MMB4L - Linux armv6l"
     Const IS_ANDROID% = 0
-    Const EXPECTED_HOME$ = "/home/pi"
   Case Else
     Const IS_ANDROID% = 0
-    Const EXPECTED_HOME$ = "/home/thwill"
 End Select
 
 add_test("test_system_no_capture")
@@ -154,12 +151,15 @@ End Sub
 Sub test_system_getenv()
   If Mm.Device$ <> "MMB4L" Then Exit Sub
 
-  Local expected$, i%, name$ = "HOME", value$, value_ls%(32)
+  ' use SYSTEM command to get current username.
+  Local whoami$
+  System "whoami", whoami$
+
+  Local expected$ = "/home/" + whoami$, i%, name$ = "HOME", value$, value_ls%(32)
 
   ' Given name is STRING literal and value is STRING variable.
   value$ = ""
   System GetEnv "HOME", value$
-  If value$ <> expected$ And Mm.Device$ = "MMB4L" Then expected$ = "/home/thwill"
   assert_string_equals(expected$, value$)
 
   ' Given name is STRING literal and value is is LONGSTRING variable.
