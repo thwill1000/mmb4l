@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 streamio.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 
 #include "error.h"
+#include "file.h"
 #include "file_private.h"
 #include "prompt.h"
 #include "streamio.h"
@@ -246,26 +247,8 @@ MmResult streamio_open(const char *path, const char *mode, int fnbr) {
     if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
     if (file_table[fnbr].type != fet_closed) return kFileAlreadyOpen;
 
-    // random writing is not allowed when a file is opened for append so open it
-    // first for read+update and if that does not work open it for
-    // writing+update.  This has the same effect as opening for append+update
-    // but will allow writing
     FILE *f = NULL;
-    if (*mode == 'x') {
-        errno = 0;
-        f = fopen(path, "rb+");
-        if (!f) {
-            errno = 0;
-            f = fopen(path, "wb+");
-            if (!f) return errno;
-        }
-        errno = 0;
-        if (FAILED(fseek(f, 0, SEEK_END))) return errno;
-    } else {
-        errno = 0;
-        f = fopen(path, mode);
-        if (!f) return errno;
-    }
+    ON_FAILURE_RETURN(file_open(path, mode, &f));
 
     file_table[fnbr].type = fet_file;
     file_table[fnbr].file_ptr = f;

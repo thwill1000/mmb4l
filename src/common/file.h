@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <linux/limits.h> // For PATH_MAX
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <sys/types.h>
 
 #include "mmresult.h"
@@ -306,6 +307,16 @@ MmResult file_mkdir(const char *dirname);
  * @return               kOk on success, error code on failure
  */
 MmResult file_mkfile(const char *filename);
+
+/**
+ * Opens a file for reading or writing.
+ *
+ * @param[in]  path   Path to the file to open
+ * @param[in]  mode   File open mode (e.g., "r", "w", "a", etc.)
+ * @param[out] file   Pointer to store the opened FILE handle
+ * @return            kOk on success, error code on failure
+ */
+MmResult file_open(const char *path, const char *mode, FILE **file);
 
 /**
  * Opens a directory for reading.
