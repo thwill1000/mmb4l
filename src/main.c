@@ -441,8 +441,13 @@ void IntHandler(int signo) {
     MMAbort = true;
 }
 
-// dump a memory area to the console
-// for debugging
+/**
+ * Dump a memory area to the console in hexadecimal and ASCII format.
+ * Displays 16 bytes per line with address, hex values, and printable characters.
+ * 
+ * @param p Pointer to the start of the memory area to dump
+ * @param nbr Number of bytes to dump
+ */
 void dump(char *p, int nbr) {
     char buf1[80], buf2[80], *b1, *b2, *pt;
     b1 = buf1;
@@ -450,11 +455,7 @@ void dump(char *p, int nbr) {
     display_puts(
         "   addr    0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F    "
         "0123456789ABCDEF\r\n");
-#if defined(ENV64BIT)
-    b1 += sprintf(b1, "%8lx: ", (uintptr_t) p);
-#else
-    b1 += sprintf(b1, "%8ix: ", (uintptr_t) p);
-#endif
+    b1 += sprintf(b1, "%8" PRIxPTR ": ", (uintptr_t) p);
     for (pt = p; (uintptr_t)pt % 16 != 0; pt--) {
         b1 += sprintf(b1, "   ");
         b2 += sprintf(b2, " ");
@@ -470,11 +471,7 @@ void dump(char *p, int nbr) {
             display_puts(buf2);
             b1 = buf1;
             b2 = buf2;
-#if defined(ENV64BIT)
-            b1 += sprintf(b1, "\r\n%8lx: ", (uintptr_t) p);
-#else
-            b1 += sprintf(b1, "\r\n%8ix: ", (uintptr_t) p);
-#endif
+            b1 += sprintf(b1, "\r\n%8" PRIxPTR ": ", (uintptr_t) p);
         }
     }
     if (b2 != buf2) {

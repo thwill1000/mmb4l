@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 program.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -927,13 +928,7 @@ void program_list_csubs(int all) {
         sprintf(buf, "CSUB %s()", name);
         print_line(buf, &line_count, all);
 
-        sprintf(buf,
-#if defined(ENV64BIT)
-                "0x%016lX  name   = %s",
-#else
-                "0x%016llX  name   = %s",
-#endif
-                (uint64_t) addr, name);
+        sprintf(buf, "0x%016" PRIX64 "  name   = %s", (uint64_t)addr, name);
         print_line(buf, &line_count, all);
         int size = *p++;
         sprintf(buf, "0x%08X          size   = %d bytes = %d x 32-bit words", size, size, size / 4);
@@ -959,13 +954,7 @@ void program_list_csubs(int all) {
 
     print_line("", &line_count, all);
     uint64_t end = *((uint64_t *) p);
-    sprintf(buf,
-#if defined(ENV64BIT)
-            "0x%016lX [%s]",
-#else
-            "0x%016llX [%s]",
-#endif
-            end, end == 0xFFFFFFFFFFFFFFFF ? "OK" : "ERROR");
+    sprintf(buf, "0x%016" PRIX64 " [%s]", end, end == UINT64_MAX ? "OK" : "ERROR");
     print_line(buf, &line_count, all);
     print_line("", &line_count, all);
 }

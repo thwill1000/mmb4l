@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 options.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -650,11 +651,7 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
         case kOptionTypeInteger: {
             MMINTEGER ivalue;
             result = options_get_integer_value(options, id, &ivalue);
-#if defined(ENV64BIT)
-            if (SUCCEEDED(result)) sprintf(svalue, "%ld", ivalue);
-#else
-            if (SUCCEEDED(result)) sprintf(svalue, "%lld", ivalue);
-#endif
+            if (SUCCEEDED(result)) sprintf(svalue, "%" PRId64, ivalue);
             return result;
         }
 
