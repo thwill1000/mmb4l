@@ -321,7 +321,7 @@ int main(int argc, char *argv[]) {
     if (mmb_args.version) {
         char banner[1024];
         ON_FAILURE_EXIT(get_banner(banner, sizeof(banner)));
-        ON_FAILURE_EXIT(display_puts(banner));
+        fprintf(stdout, "%s\r\n", banner);
         exit(EX_OK);
     }
 
