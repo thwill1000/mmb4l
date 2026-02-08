@@ -290,6 +290,16 @@ static MmResult init_prompt() {
 }
 
 int main(int argc, char *argv[]) {
+#if !defined(NDEBUG)
+    ON_FAILURE_EXIT(logger_init("mmb4l.log"));
+#endif
+
+    {
+        char banner[1024];
+        ON_FAILURE_EXIT(get_name_and_version(banner, sizeof(banner)));
+        LOG_INFO("starting %s", banner);
+    }
+
     ON_FAILURE_EXIT(memory_init());
 
     MmResult result = cmdline_parse(argc, (const char **) argv, &mmb_args);
@@ -307,10 +317,6 @@ int main(int argc, char *argv[]) {
         cmdline_print_usage();
         exit(EX_OK);
     }
-
-#if !defined(NDEBUG)
-    ON_FAILURE_EXIT(logger_init("mmb4l.log"));
-#endif
 
     // Initialise the tty console.
     ON_FAILURE_EXIT(console_init(!mmb_args.show_prompt));
