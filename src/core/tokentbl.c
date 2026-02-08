@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tokentbl.h"
 #include "../common/cstring.h"
 #include "../common/error.h"
+#include "../common/logger.h"
 
 int tokentbl_size;
 
@@ -202,6 +203,8 @@ static char ENCODED_FUNCTIONS[TOKENTBL_SIZE][4] = { 0 };
 #endif
 
 void tokentbl_init() {
+    LOG_FN_ENTRY();
+
     tokentbl_size = TOKENTBL_SIZE;
 
     tokenADD   = tokentbl_get("+");
@@ -224,6 +227,8 @@ void tokentbl_init() {
         tokentbl_write(&buf, i + C_BASETOKEN);
     }
 #endif
+
+    LOG_FN_EXIT();
 }
 
 FunctionToken tokentbl_get(const char *s) {

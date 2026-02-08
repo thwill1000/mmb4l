@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 vartbl.c
 
-Copyright 2021-2022 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,12 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "vartbl.h"
-#include "../common/hash.h"
-#include "../common/mmb4l.h"
-
 #include <assert.h>
 #include <string.h>
+
+#include "vartbl.h"
+#include "../common/hash.h"
+#include "../common/logger.h"
+#include "../common/mmb4l.h"
 
 bool vartbl_init_called = false;
 struct s_vartbl vartbl[MAXVARS];
@@ -56,12 +57,16 @@ int vartbl_free_idx = 0;
 int varcnt = 0;
 
 void vartbl_init() {
+    LOG_FN_ENTRY();
+
     assert(!vartbl_init_called);
     varcnt = 0;
     vartbl_free_idx = 0;
     memset(vartbl, 0, MAXVARS * sizeof(struct s_vartbl));
     memset(vartbl_hashmap, 0xFF, sizeof(vartbl_hashmap));
     vartbl_init_called = true;
+
+    LOG_FN_EXIT();
 }
 
 MmResult vartbl_add(

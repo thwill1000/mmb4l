@@ -33,7 +33,7 @@ extern "C" {
 static JavaVM* g_jvm = nullptr;
 static jclass g_mainActivityClass = nullptr;
 static jobject g_activityInstance = nullptr;
-static bool g_directoryReady = false;
+static bool g_directoryAccessGranted = false;
 
 // Structure to track open file handles for streaming I/O
 struct SAFFileHandle {
@@ -47,14 +47,24 @@ struct SAFFileHandle {
 static std::vector<SAFFileHandle*> g_openFiles;
 static int g_nextHandle = 1;
 
+static SDL_sem* completionSemaphore;
+
 /*
  * JNI callback functions - called from Java MainActivity
  */
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnDirectoryReady(JNIEnv* env, jclass clazz) {
-    g_directoryReady = true;
-    LOG_DEBUG("Directory access ready");
+Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnDirectoryAccessGranted(JNIEnv* env, jclass clazz) {
+    g_directoryAccessGranted = true;
+    LOG_DEBUG("Directory access granted");
+    SDL_SemPost(completionSemaphore);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnDirectoryAccessDenied(JNIEnv* env, jclass clazz) {
+    g_directoryAccessGranted = false;
+    LOG_DEBUG("Directory access denied");
+    SDL_SemPost(completionSemaphore);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -79,30 +89,32 @@ Java_com_sockpuppetstudios_mmb4a_MainActivity_nativeOnActivityDestroy(JNIEnv* en
 
 // Initialize the SAF bridge with proper Activity context
 bool saf_init() {
+    LOG_FN_ENTRY();
+
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
-        LOG_ERROR("Failed to get JNI environment");
+        LOG_ERROR("failed to get JNI environment");
         return false;
     }
 
     // Get the Activity instance from SDL
     jobject activity = (jobject)SDL_AndroidGetActivity();
     if (!activity) {
-        LOG_ERROR("Failed to get SDL Activity");
+        LOG_ERROR("failed to get SDL Activity");
         return false;
     }
 
     // Create global reference to the activity
     g_activityInstance = env->NewGlobalRef(activity);
     if (!g_activityInstance) {
-        LOG_ERROR("Failed to create global reference to Activity");
+        LOG_ERROR("failed to create global reference to Activity");
         return false;
     }
 
     // Get the Activity's class
     jclass localClass = env->GetObjectClass(activity);
     if (!localClass) {
-        LOG_ERROR("Failed to get Activity class");
+        LOG_ERROR("failed to get Activity class");
         return false;
     }
 
@@ -110,7 +122,7 @@ bool saf_init() {
     env->DeleteLocalRef(localClass);
 
     if (!g_mainActivityClass) {
-        LOG_ERROR("Failed to create global reference to Activity class");
+        LOG_ERROR("failed to create global reference to Activity class");
         return false;
     }
 
@@ -120,9 +132,11 @@ bool saf_init() {
 
 // Request directory access from user
 void saf_request_directory_access() {
+    LOG_FN_ENTRY();
+
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
-    if (!env || !g_activityInstance) {
-        LOG_ERROR("Environment or Activity not available");
+    if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return;
     }
 
@@ -131,7 +145,7 @@ void saf_request_directory_access() {
     if (method) {
         env->CallStaticVoidMethod(g_mainActivityClass, method);
     } else {
-        LOG_ERROR("Could not find requestDirectoryAccess method");
+        LOG_ERROR("failed to get requestDirectoryAccess() method");
     }
 
     if (env->ExceptionCheck()) {
@@ -142,16 +156,21 @@ void saf_request_directory_access() {
 
 // Check if directory access is available
 bool saf_has_directory_access() {
+    LOG_FN_ENTRY();
+
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return false;
     }
 
     jmethodID method = env->GetStaticMethodID(g_mainActivityClass, "hasDirectoryAccess", "()Z");
     if (method) {
         return env->CallStaticBooleanMethod(g_mainActivityClass, method);
+    } else {
+        LOG_ERROR("failed to get hasDirectoryAccess() method");
+        return false;
     }
-    return false;
 }
 
 // Utility function to check if Activity is available
@@ -169,6 +188,7 @@ std::vector<std::string> saf_list_files(std::string dirname) {
 
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return files;
     }
 
@@ -206,6 +226,7 @@ std::vector<uint8_t> saf_read_file(const std::string& filename) {
 
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return data;
     }
 
@@ -230,6 +251,7 @@ std::vector<uint8_t> saf_read_file(const std::string& filename) {
 bool saf_write_file(const std::string& filename, const std::vector<uint8_t>& data) {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return false;
     }
 
@@ -251,6 +273,7 @@ bool saf_write_file(const std::string& filename, const std::vector<uint8_t>& dat
 bool saf_delete_file(const std::string& filename) {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return false;
     }
 
@@ -268,6 +291,7 @@ bool saf_delete_file(const std::string& filename) {
 bool saf_file_exists(const std::string& filename) {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return false;
     }
 
@@ -285,6 +309,7 @@ bool saf_file_exists(const std::string& filename) {
 long saf_get_file_size(const std::string& filename) {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return -1;
     }
 
@@ -306,6 +331,7 @@ long saf_get_file_size(const std::string& filename) {
 bool saf_create_directory(const std::string& dirname) {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return false;
     }
 
@@ -323,6 +349,7 @@ bool saf_create_directory(const std::string& dirname) {
 bool saf_delete_directory(const std::string& dirname) {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return false;
     }
 
@@ -340,6 +367,7 @@ bool saf_delete_directory(const std::string& dirname) {
 bool saf_directory_exists(const std::string& dirname) {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return false;
     }
 
@@ -359,6 +387,7 @@ std::vector<std::string> saf_list_directories() {
 
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return dirs;
     }
 
@@ -389,6 +418,7 @@ std::vector<std::string> saf_list_directories() {
 int saf_fopen(const std::string& filename, const std::string& mode) {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return -1;
     }
 
@@ -418,6 +448,8 @@ int saf_fopen(const std::string& filename, const std::string& mode) {
         method = env->GetStaticMethodID(g_mainActivityClass, "closeFileDescriptor", "(I)Z");
         if (method) {
             env->CallStaticBooleanMethod(g_mainActivityClass, method, fdId);
+        } else {
+            LOG_ERROR("failed to get closeFileDescriptor() method");
         }
         return -1;
     }
@@ -428,6 +460,8 @@ int saf_fopen(const std::string& filename, const std::string& mode) {
         method = env->GetStaticMethodID(g_mainActivityClass, "closeFileDescriptor", "(I)Z");
         if (method) {
             env->CallStaticBooleanMethod(g_mainActivityClass, method, fdId);
+        } else {
+            LOG_ERROR("failed to get closeFileDescriptor() method");
         }
         return -1;
     }
@@ -439,6 +473,8 @@ int saf_fopen(const std::string& filename, const std::string& mode) {
         method = env->GetStaticMethodID(g_mainActivityClass, "closeFileDescriptor", "(I)Z");
         if (method) {
             env->CallStaticBooleanMethod(g_mainActivityClass, method, fdId);
+        } else {
+            LOG_ERROR("failed to get closeFileDescriptor() method");
         }
         return -1;
     }
@@ -489,7 +525,11 @@ bool saf_fclose(int handleId) {
         jmethodID method = env->GetStaticMethodID(g_mainActivityClass, "closeFileDescriptor", "(I)Z");
         if (method) {
             env->CallStaticBooleanMethod(g_mainActivityClass, method, handle->fdId);
+        } else {
+            LOG_ERROR("failed to get closeFileDescriptor() method");
         }
+    } else {
+        LOG_ERROR("failed to get JNI environment");
     }
 
     delete handle;
@@ -544,6 +584,7 @@ int saf_ferror(int handleId) {
 bool saf_rename_file(const std::string& old_path, const std::string& new_path) {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
+        LOG_ERROR("failed to get JNI environment");
         return false;
     }
 
@@ -594,8 +635,10 @@ void saf_cleanup() {
             env->DeleteGlobalRef(g_mainActivityClass);
             g_mainActivityClass = nullptr;
         }
+    } else {
+        LOG_ERROR("failed to get JNI environment");
     }
-    g_directoryReady = false;
+    g_directoryAccessGranted = false;
     LOG_DEBUG("SAF bridge cleaned up");
 }
 
@@ -612,13 +655,23 @@ void initialize_saf_system() {
     }
 
     // Check if we already have directory access
+    completionSemaphore = SDL_CreateSemaphore(0);
     if (!saf_has_directory_access()) {
         LOG_DEBUG("No directory access - will need to request from user");
         // You can request immediately or wait for user action
         saf_request_directory_access();
+        SDL_SemWait(completionSemaphore);
+        SDL_DestroySemaphore(completionSemaphore);
+        // if (!has_mmbasic_folder()) {
+        //     LOG_INFO("Create new semaphore");
+        //     completionSemaphore = SDL_CreateSemaphore(0);
+        //     LOG_INFO("Show MMBasic folder missing dialog");
+        //     show_mmbasic_folder_missing();
+        //     SDL_SemWait(completionSemaphore);
+        // }
     } else {
         LOG_DEBUG("Directory access already granted");
-        g_directoryReady = true;
+        g_directoryAccessGranted = true;
     }
 }
 
@@ -662,7 +715,7 @@ SAFFileInfo saf_get_file_info(const std::string& filename) {
 
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
-        LOG_FN_EXIT("No JNI environment");
+        LOG_FN_EXIT("failed to get JNI environment");
         return info;
     }
 
@@ -754,7 +807,7 @@ bool saf_is_file(const std::string& path) {
 long saf_free_space() {
     JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
     if (!env) {
-        LOG_ERROR("Failed to get JNI environment");
+        LOG_ERROR("failed to get JNI environment");
         return -1;
     }
 

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 MMBasic.c
 
-Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commandtbl.h"
 #include "../common/cstring.h"
 #include "../common/error.h"
+#include "../common/logger.h"
 
 int commandtbl_size;
 
@@ -204,6 +205,8 @@ static char ENCODED_COMMANDS[COMMANDTBL_SIZE][4] = { 0 };
 #endif
 
 void commandtbl_init() {
+    LOG_FN_ENTRY();
+
     commandtbl_size = COMMANDTBL_SIZE;
 
     cmdCASE = commandtbl_get("Case");
@@ -247,6 +250,8 @@ void commandtbl_init() {
         commandtbl_encode(&buf, i);
     }
 #endif
+
+    LOG_FN_EXIT();
 }
 
 CommandToken commandtbl_get(const char *s) {

@@ -100,7 +100,13 @@ public class MainActivity extends SDLActivity {
         nativeOnActivityDestroy();
         instance = null;
         super.onDestroy();
+
+        // On Android, the death of an Activity is not the death of the Process.
+        // To kill the Process and ensure all MMBasic globals are wiped for the
+        // next time we call System.exit(0).
+        System.exit(0);
     }
+
 
     /*
      * Directory Access Management
@@ -200,6 +206,7 @@ public class MainActivity extends SDLActivity {
     private void handleDirectoryAccessGranted(Uri treeUri) {
         Log.d(TAG, "Directory access granted: " + treeUri.toString());
 
+        boolean granted = false;
         try {
             // Take persistent permission
             getContentResolver().takePersistableUriPermission(
@@ -226,24 +233,32 @@ public class MainActivity extends SDLActivity {
                     prefs.edit().putString(KEY_DIRECTORY_URI, treeUri.toString()).apply();
 
                     Log.d(TAG, "MMBasic directory ready");
-
-                    // Notify native code
-                    nativeOnDirectoryReady();
+                    granted = true;
                 } else {
                     Log.e(TAG, "Failed to create or access mmbasic subdirectory");
                     clearDirectoryAccess();
+                    nativeOnDirectoryAccessDenied();
                 }
             } else {
                 Log.e(TAG, "Failed to create DocumentFile from tree URI");
                 clearDirectoryAccess();
+                    nativeOnDirectoryAccessDenied();
             }
 
         } catch (SecurityException e) {
             Log.e(TAG, "Failed to take persistent permission", e);
             clearDirectoryAccess();
+                    nativeOnDirectoryAccessDenied();
         } catch (Exception e) {
             Log.e(TAG, "Error handling directory access", e);
             clearDirectoryAccess();
+                    nativeOnDirectoryAccessDenied();
+        }
+
+        if (granted) {
+            nativeOnDirectoryAccessGranted();
+        } else {
+            nativeOnDirectoryAccessDenied();
         }
     }
 
@@ -251,7 +266,8 @@ public class MainActivity extends SDLActivity {
      * Native Method Declarations
      */
 
-    public static native void nativeOnDirectoryReady();
+    public static native void nativeOnDirectoryAccessDenied();
+    public static native void nativeOnDirectoryAccessGranted();
     public static native void nativeOnActivityPause();
     public static native void nativeOnActivityResume();
     public static native void nativeOnActivityDestroy();
@@ -966,12 +982,12 @@ public class MainActivity extends SDLActivity {
         if (activity == null) {
             return false;
         }
-        
+
         InputMethodManager imm = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm == null) {
             return false;
         }
-        
+
         View view = activity.getCurrentFocus();
         if (view == null) {
             // If no view has focus, create a dummy view to show the keyboard
@@ -979,7 +995,7 @@ public class MainActivity extends SDLActivity {
             view.setFocusableInTouchMode(true);
             view.requestFocus();
         }
-        
+
         return imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
     }
 }

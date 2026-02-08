@@ -153,6 +153,8 @@ const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Funct
 
 // Initialise MMBasic
 void InitBasic(void) {
+    LOG_FN_ENTRY();
+
     DefaultType = T_NBR;
     (void) features_init(&mmb_features, mmb_options.simulate);
     commandtbl_init();
