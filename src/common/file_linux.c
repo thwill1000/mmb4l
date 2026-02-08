@@ -174,6 +174,32 @@ MmResult file_info(const char *filename, FileInfo *info) {
     return kOk;
 }
 
+MmResult file_open(const char *path, const char *mode, FILE **file) {
+    // Random writing is not allowed when a file is opened for append so open it
+    // first for read & update and if that does not work open it for
+    // write & update. This has the same effect as opening for append & update
+    // but will allow writing.
+    FILE *f = NULL;
+    if (*mode == 'x') {
+        errno = 0;
+        f = fopen(path, "rb+");
+        if (!f) {
+            errno = 0;
+            f = fopen(path, "wb+");
+            if (!f) return errno;
+        }
+        errno = 0;
+        if (FAILED(fseek(f, 0, SEEK_END))) return errno;
+    } else {
+        errno = 0;
+        f = fopen(path, mode);
+        if (!f) return errno;
+    }
+
+    *file = f;
+    return kOk;
+}
+
 MmResult file_opendir(const char *dirname, DirStream **stream) {
     if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
     errno = 0;
