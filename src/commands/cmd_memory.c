@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_memory.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -58,11 +59,7 @@ static int64_t getint64(const char *p, int64_t min, int64_t max) {
     int64_t i = getinteger(p);
     if (i < min || i > max) {
         char buf[STRINGSIZE];
-#if defined(ENV64BIT)
-        sprintf(buf, "%ld is invalid (valid is %ld to %ld)", i, min, max);
-#else
-        sprintf(buf, "%lld is invalid (valid is %lld to %lld)", i, min, max);
-#endif
+        sprintf(buf, "%" PRId64 " is invalid (valid is %" PRId64 " to %" PRId64 ")", i, min, max);
         error_throw_ex(kError, buf);
     }
     return i;

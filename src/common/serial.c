@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 serial.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -159,13 +160,8 @@ static void serial_dump_spec(ComSpec *comspec) {
     printf("Device:             %s\n", comspec->device);
     printf("Speed:              %d\n", serial_speed_to_int(comspec->speed));
     printf("Bufsize:            %d\n", comspec->bufsize);
-#if defined(ENV64BIT)
-    printf("RX interrupt:       0x%8lx\n", (uintptr_t) comspec->rx_interrupt_addr);
-    printf("RX interrupt count: %ld\n", comspec->rx_interrupt_count);
-#else
-    printf("RX interrupt:       0x%8ix\n", (uintptr_t) comspec->rx_interrupt_addr);
-    printf("RX interrupt count: %lld\n", comspec->rx_interrupt_count);
-#endif
+    printf("RX interrupt:       0x%8" PRIxPTR "\n", (uintptr_t) comspec->rx_interrupt_addr);
+    printf("RX interrupt count: %" PRId64 "\n", comspec->rx_interrupt_count);
     printf("B7:                 %s\n", comspec->b7 ? "true" : "false");
     printf("Parity:             %d\n", comspec->parity);
     printf("RTS/CTS:            %s\n", comspec->rtscts ? "true" : "false");

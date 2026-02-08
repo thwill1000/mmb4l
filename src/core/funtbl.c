@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 funtbl.c
 
-Copyright 2011-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2011-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -108,11 +109,7 @@ MmResult funtbl_clear() {
 void funtbl_dump() {
     for (int ii = 0; ii < MAXSUBFUN; ++ii) {
         if (funtbl[ii].name[0]) printf(
-#if defined(ENV64BIT)
-                "[%d] %s, type = %d, hash = %d, addr = %8lx\n",
-#else
-                "[%d] %s, type = %d, hash = %d, addr = %8ix\n",
-#endif
+                "[%d] %s, type = %d, hash = %d, addr = %8" PRIxPTR "\n",
                 ii,
                 funtbl[ii].name,
                 funtbl[ii].type,
