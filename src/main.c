@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 main.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -98,11 +98,11 @@ void dump_token_table(const struct s_tokentbl* tbl);
  */
 static bool run_flag;
 
-static MmResult get_banner(char *buf, size_t buf_sz) {
+static MmResult get_name_and_version(char *buf, size_t buf_sz) {
     (void) snprintf(
         buf,
         buf_sz,
-        "MMBasic for %s v%d.%d%s%d\r\n",
+        "MMBasic for %s v%d.%d%s%d",
         MM_ARCH,
         MM_MAJOR,
         MM_MINOR,
@@ -120,8 +120,12 @@ static MmResult get_banner(char *buf, size_t buf_sz) {
                 : MM_MICRO < 300
                     ? MM_MICRO - 200
                     : MM_MICRO - 300);
-    if (FAILED(cstring_cat(buf, COPYRIGHT, buf_sz))) return kStringTooLong;
     return kOk;
+}
+
+static MmResult get_banner(char *buf, size_t buf_sz) {
+    ON_FAILURE_RETURN(get_name_and_version(buf, buf_sz));
+    return SUCCEEDED(cstring_cat(buf, "\r\n" COPYRIGHT, buf_sz)) ? kOk : kStringTooLong;
 }
 
 static void init_mmbasic_config_dir() {
@@ -280,7 +284,7 @@ static MmResult init_prompt() {
     char banner[1024];
     ON_FAILURE_RETURN(get_banner(banner, sizeof(banner)));
     ON_FAILURE_RETURN(display_puts(banner));
-    ON_FAILURE_RETURN(display_puts("\r\n"));
+    ON_FAILURE_RETURN(display_puts("\r\n\r\n"));
     ON_FAILURE_LOG(prompt_restore_history(""));
     return kOk;
 }

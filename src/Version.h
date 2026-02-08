@@ -82,7 +82,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #define MM_VERSION    (MM_MAJOR * 1000000000) + (MM_MINOR * 10000000) + (MM_MICRO) * 10000 + BUILD_NUMBER
     #define COPYRIGHT     "Copyright 2011-2025 Geoff Graham\r\n" \
                           "Copyright 2016-2025 Peter Mather\r\n" \
-                          "Copyright 2021-2025 Thomas Hugo Williams\r\n"
+                          "Copyright 2021-2025 Thomas Hugo Williams"
 #else
     #error __mmb4l__ is not defined
 #endif
