@@ -214,6 +214,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     ${MMB4L_SRC_DIR}/common/console.c
     ${MMB4L_SRC_DIR}/common/cstring.c
     ${MMB4L_SRC_DIR}/common/display.c
+    ${MMB4L_SRC_DIR}/common/editor.c
     ${MMB4L_SRC_DIR}/common/error.c
     ${MMB4L_SRC_DIR}/common/events.c
     ${MMB4L_SRC_DIR}/common/features.c
@@ -228,13 +229,12 @@ set(MMB4L_COMMON_SOURCE_FILES
     ${MMB4L_SRC_DIR}/common/keyboard.c
     ${MMB4L_SRC_DIR}/common/logger.c
     ${MMB4L_SRC_DIR}/common/memory.c
-    ${MMB4L_SRC_DIR}/common/mmgetchar.c
+    ${MMB4L_SRC_DIR}/common/mmgetline.c
     ${MMB4L_SRC_DIR}/common/mmresult.c
     ${MMB4L_SRC_DIR}/common/mmtime.c
     ${MMB4L_SRC_DIR}/common/options.c
     ${MMB4L_SRC_DIR}/common/parse.c
     ${MMB4L_SRC_DIR}/common/path.c
-    ${MMB4L_SRC_DIR}/common/pmeditor.c
     ${MMB4L_SRC_DIR}/common/process.c
     ${MMB4L_SRC_DIR}/common/program.c
     ${MMB4L_SRC_DIR}/common/prompt.c
@@ -242,6 +242,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     ${MMB4L_SRC_DIR}/common/serial.c
     ${MMB4L_SRC_DIR}/common/sprite.c
     ${MMB4L_SRC_DIR}/common/streamio.c
+    ${MMB4L_SRC_DIR}/common/termgfx.c
     ${MMB4L_SRC_DIR}/common/utility.c
     ${MMB4L_SRC_DIR}/common/xmodem.c
 )

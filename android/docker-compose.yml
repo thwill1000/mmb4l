@@ -8,7 +8,7 @@ services:
       # Mount your project directory
       - ./projects:/workspace/projects
       # Mount the MMB4L directory
-      - ..:/workspace/mmb4l
+      - ./mmb4l:/workspace/mmb4l
       # Persist Gradle cache
       - gradle-cache:/root/.gradle
       # Persist Android SDK updates

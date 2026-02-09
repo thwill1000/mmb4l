@@ -58,14 +58,14 @@ bool saf_init();
  * Calls saf_init() and checks for existing directory permissions.
  * Call this in your main initialization code.
  */
-void initialize_saf_system();
+void saf_bridge_init();
 
 /**
  * Clean up SAF system resources.
  * Closes all open files and releases Activity references.
  * Call this during app shutdown.
  */
-void cleanup_saf_system();
+void saf_bridge_term();
 
 /**
  * Check if the SAF system is ready for file operations.
