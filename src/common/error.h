@@ -109,7 +109,33 @@ void error_clear_callback();
 
 #define ON_FAILURE_RETURN(x)  do { \
     const MmResult result__ = (x); \
-    if (FAILED(result__)) { return result__; } \
+    if (FAILED(result__)) { \
+        LOG_FN_EXIT("result=%d", result__); \
+        return result__; \
+    } \
+} while (0)
+
+#define RETURN_VOID()  do { \
+    LOG_FN_EXIT("void"); \
+    return; \
+} while (0)
+
+#define RETURN_BOOL(x)  do { \
+    const bool result__ = (x); \
+    LOG_FN_EXIT("result=%s", result__ ? "true" : "false"); \
+    return result__; \
+} while (0)
+
+#define RETURN_RESULT(x)  do { \
+    const MmResult result__ = (x); \
+    LOG_FN_EXIT("result=%d", result__); \
+    return result__; \
+} while (0)
+
+#define RETURN_RESULT_EX(x, fmt, ...)  do { \
+    const MmResult result__ = (x); \
+    LOG_FN_EXIT("result=%d, " fmt, result__, ##__VA_ARGS__); \
+    return result__; \
 } while (0)
 
 #define INTERNAL_FAULT  mmresult_ex(kInternalFault, "Internal fault %s:%d", __FILE__, __LINE__)

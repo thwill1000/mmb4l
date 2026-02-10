@@ -113,7 +113,7 @@ void console_clear(void) {
 }
 
 MmResult console_cursor_left(int count, bool wrap) {
-    // LOG_DEBUG("ENTER: count=%d, wrap=%d, x=%d, y=%d", count, wrap, self.x, self.y);
+    // LOG_FN_ENTRY("count=%d, wrap=%d, self.x=%d, self.y=%d", count, wrap, self.x, self.y);
     assert(count > 0);
 
     if (self.requires_sync) console_sync();
@@ -133,12 +133,11 @@ MmResult console_cursor_left(int count, bool wrap) {
     printf("\033[%d;%dH", self.y + 1, self.x + 1); // VT100 origin is (1,1) not (0,0).
     fflush(stdout);
 
-    // LOG_DEBUG("EXIT:  x=%d, y=%d", self.x, self.y);
-
-    return kOk;
+    RETURN_RESULT_EX(kOk, "self.x=%d, self.y=%d", self.x, self.y);
 }
 
 MmResult console_cursor_up(int count) {
+    // LOG_FN_ENTRY("count=%d", count);
     assert(count > 0);
 
     if (self.requires_sync) console_sync();
@@ -148,9 +147,7 @@ MmResult console_cursor_up(int count) {
     printf("\033[%d;%dH", self.y + 1, self.x + 1); // VT100 origin is (1,1) not (0,0).
     fflush(stdout);
 
-    // LOG_DEBUG("EXIT:  x=%d y=%d", self.x, self.y);
-
-    return kOk;
+    RETURN_RESULT_EX(kOk, "self.x=%d, self.y=%d", self.x, self.y);
 }
 
 void console_disable_raw_mode(void) {
@@ -368,6 +365,7 @@ int console_getc(void) {
 }
 
 char console_putc_noflush(char c) {
+    // LOG_FN_ENTRY("c='%c'", c);
     bool printable = false; // Is 'c' a printable character?
 
     if (mmb_options.codepage && c > 127) {
@@ -413,7 +411,7 @@ char console_putc_noflush(char c) {
         self.y = self.height - 1;
     }
 
-    // LOG_DEBUG("EXIT:  c='%c'(0x%2x), x=%d, y=%d", printable ? c : '?', c, self.x, self.y);
+    // LOG_FN_EXIT("c='%c'(0x%2x), self.x=%d, self.y=%d", printable ? c : '?', c, self.x, self.y);
 
     return c;
 }
@@ -700,11 +698,12 @@ MmResult console_sync_cursor_pos(int timeout_ms) {
 }
 
 MmResult console_sync() {
+    // LOG_FN_ENTRY();
     ON_FAILURE_RETURN(console_sync_size(100));
     ON_FAILURE_RETURN(console_sync_cursor_pos(10000));
     self.requires_sync = false;
-    // LOG_DEBUG("EXIT:  width=%d, height=%d, x=%d, y=%d", self.width, self.height, self.x, self.y);
-    return kOk;
+    RETURN_RESULT_EX(kOk, "self.width=%d, self.height=%d, self.x=%d, self.y=%d", self.width,
+                     self.height, self.x, self.y);
 }
 
 MmResult console_underline(bool underline) {
@@ -718,14 +717,14 @@ MmResult console_underline(bool underline) {
 }
 
 MmResult console_wrapline() {
+    // LOG_FN_ENTRY();
     if (self.requires_sync) {
         ON_FAILURE_RETURN(console_sync());
     }
     if (self.x >= self.width) {
         console_puts("\r\n");
     }
-    // LOG_DEBUG("EXIT:  x=%d, y=%d", self.x, self.y);
-    return kOk;
+    RETURN_RESULT_EX(kOk, "self.x=%d, self.y=%d", self.x, self.y);
 }
 
 size_t console_write(const char *buf, size_t sz) {

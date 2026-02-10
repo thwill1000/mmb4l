@@ -284,6 +284,7 @@ set(MMB4L_THIRD_PARTY_SOURCE_FILES
 set(MMB4L_COMMON_TEST_FILES
     src/common/codepage.c
     src/common/cstring.c
+    src/common/logger.c
     src/common/mmresult.c
     src/common/mmtime.c
     src/common/utility.c
@@ -323,7 +324,6 @@ add_executable(test_console_getc
     src/common/console.c
     src/common/file.c
     src/common/file_linux.c
-    src/common/logger.c
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c
@@ -542,7 +542,6 @@ add_executable(test_editor
     ${MMB4L_COMMON_TEST_FILES}
     src/common/gtest/editor_test.cxx
     src/common/editor.c
-    src/common/logger.c
     src/common/memory.c
     src/common/gtest/stubs/console_stubs.c
     src/common/gtest/stubs/display_stubs.c
@@ -592,7 +591,6 @@ add_executable(test_fun_sprite
     src/common/file_linux.c
     src/common/fonttbl.c
     src/common/graphics.c
-    src/common/logger.c
     src/common/memory.c
     src/common/mmresult.c
     src/common/options.c
@@ -694,7 +692,6 @@ add_executable(test_graphics
     src/common/file_linux.c
     src/common/fonttbl.c
     src/common/graphics.c
-    src/common/logger.c
     src/common/memory.c
     src/common/mmresult.c
     src/common/options.c
@@ -932,7 +929,6 @@ add_executable(test_prompt
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
     src/common/file_linux.c
-    src/common/logger.c
     src/common/path.c
     src/common/prompt.c
     src/common/streamio.c
@@ -999,7 +995,6 @@ add_executable(test_sprite
     src/common/fonttbl.c
     src/common/streamio.c
     src/common/graphics.c
-    src/common/logger.c
     src/common/memory.c
     src/common/options.c
     src/common/path.c

@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_LOGGER_H)
 #define MMB4L_LOGGER_H
 
+#include <stdbool.h>
+
 #include "mmresult.h"
 
 typedef enum {
@@ -54,6 +56,8 @@ typedef enum {
     kLoggerLevelError,
     kLoggerLevelFatal
 } LoggerLevel;
+
+static const bool logger_in_function = false;
 
 /**
  * Initialises the logger.
@@ -82,9 +86,14 @@ void logger_write(LoggerLevel level, const char *file, unsigned line, const char
 #endif // NDEBUG
 
 #define LOG_FN_ENTRY(fmt, ...) \
-    LOG_DEBUG("Entering %s() at %s:%d - " fmt, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
+    const bool logger_in_function = true; \
+    (void) logger_in_function; \
+    LOG_DEBUG("called (" fmt ")", ##__VA_ARGS__)
 
-#define LOG_FN_EXIT(fmt, ...) \
-    LOG_DEBUG("Exiting %s() at %s:%d - " fmt, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
+#define LOG_FN_EXIT(fmt, ...) do { \
+    if (logger_in_function) { \
+        LOG_DEBUG("return (" fmt ")", ##__VA_ARGS__); \
+    } \
+} while (0)
 
 #endif // MMB4L_LOGGER_H
