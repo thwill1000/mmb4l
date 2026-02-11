@@ -52,9 +52,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if defined(__ANDROID__)
-// #include "main_android.h"
-#include "common/android.h"
+#include "android.h"
 #endif
+
 #include "common/audio.h"
 #include "common/cmdline.h"
 #include "common/console.h"

@@ -48,9 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SDL.h>
 
 #if defined(__ANDROID__)
-// #include "main_android.h"
-#include "common/android.h"
+#include "android.h"
 #endif
+
 #include "bitset.h"
 #include "cstring.h"
 #include "error.h"
