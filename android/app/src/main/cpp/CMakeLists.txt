@@ -20,7 +20,7 @@ find_library(ANDROID_LIBRARY android)
 set(SDL2_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../jni/SDL)
 add_subdirectory(${SDL2_DIR} SDL2)
 
-set(MMB4L_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../mmb4l/src)
+set(MMB4L_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../mmb4l/src)
 
 set(MMB4L_CORE_SOURCE_FILES
     ${MMB4L_SRC_DIR}/core/commandtbl.c

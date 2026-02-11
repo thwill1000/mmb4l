@@ -6,7 +6,7 @@ services:
     container_name: mmb4a-dev
     volumes:
       # Mount your project directory
-      - ./projects:/workspace/projects
+      - .:/workspace
       # Mount the MMB4L directory
       - ./mmb4l:/workspace/mmb4l
       # Persist Gradle cache

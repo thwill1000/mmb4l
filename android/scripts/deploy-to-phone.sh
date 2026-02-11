@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-cd "projects"
-
 PROJECT_NAME=${1:-MmBasicForAndroid}
 PACKAGE_NAME=${2:-com.sockpuppetstudios.mmb4a}
 
