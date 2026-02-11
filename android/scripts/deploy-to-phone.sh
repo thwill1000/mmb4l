@@ -24,7 +24,7 @@ echo "✅ Device detected:"
 adb devices | grep device
 
 # Check if APK exists
-APK_PATH="$PROJECT_NAME/app/build/outputs/apk/debug/app-debug.apk"
+APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
 if [ ! -f "$APK_PATH" ]; then
     echo "❌ APK not found at: $APK_PATH"
     echo ""
