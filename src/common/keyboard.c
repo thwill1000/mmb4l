@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SDL.h>
 
 #include "console.h"
+#include "error.h"
 #include "interrupt.h"
 #include "keyboard.h"
 #include "keyboard_ps2.h"
@@ -290,6 +291,7 @@ static MmResult keyboard_update_last_ps2_scancode(const SDL_Keysym* keysym, bool
 }
 
 MmResult keyboard_key_down(const SDL_Keysym* keysym) {
+    LOG_FN_ENTRY();
     assert(keyboard_initialised);
     char ch = keyboard_convert(keysym);
     if (ch) {
@@ -304,7 +306,7 @@ MmResult keyboard_key_down(const SDL_Keysym* keysym) {
             console_put_keypress(ch);
         }
     }
-    return keyboard_update_last_ps2_scancode(keysym, false);
+    RETURN_RESULT(keyboard_update_last_ps2_scancode(keysym, false));
 }
 
 MmResult keyboard_key_up(const SDL_Keysym* keysym) {

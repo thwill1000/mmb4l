@@ -190,6 +190,8 @@ void console_pump_input(void) {
 }
 
 void console_put_keypress(char ch) {
+    LOG_FN_ENTRY("ch='%c'", ch);
+
     // Support for ON KEY ascii_code%, handler_sub().
     // Note that 'ch' does not get added to the buffer.
     if (interrupt_check_key_press(ch)) return;
@@ -203,6 +205,8 @@ void console_put_keypress(char ch) {
         // If the buffer is full then this will throw away ch.
         rx_buf_put(&console_rx_buf, ch);
     }
+
+    RETURN_VOID();
 }
 
 int console_kbhit(void) {
@@ -330,6 +334,7 @@ static char ESCAPE_MAP[] = {
          0xFF };
 
 int console_getc(void) {
+    // LOG_FN_ENTRY();
 
     perform_background_tasks(); // Which calls console_pump_input();
     int ch = rx_buf_get(&console_rx_buf);
@@ -363,7 +368,7 @@ int console_getc(void) {
             break;
     }
 
-    return ch;
+    RETURN_INT(ch);
 }
 
 char console_putc_noflush(char c) {

@@ -69,6 +69,8 @@ char prompt_history[sizeof(prompt_history)];
 static const char NO_ITEM[] = "";
 
 MmResult prompt_getc(int *ch) {
+    LOG_FN_ENTRY("ch=%p", ch);
+
     static char prevchar = 0;
     ON_FAILURE_RETURN(display_show_cursor(true));
     for (;;) {
@@ -90,7 +92,7 @@ MmResult prompt_getc(int *ch) {
                 }
                 // Some other error occurred
                 (void) display_show_cursor(false);
-                return kStdinExhausted;
+                RETURN_RESULT(kStdinExhausted);
             }
 #endif
             nanosleep(&ONE_MILLISECOND, NULL);
@@ -103,7 +105,8 @@ MmResult prompt_getc(int *ch) {
     prevchar = *ch;
     ON_FAILURE_RETURN(display_show_cursor(false));
     if (*ch == '\n') *ch = '\r';
-    return kOk;
+
+    RETURN_RESULT(kOk);
 }
 
 /** Displays the contents of the 'prompt_history' buffer. */
@@ -509,6 +512,8 @@ static MmResult handle_up(PromptState *pstate) {
 }
 
 MmResult prompt_get_input(void) {
+    LOG_FN_ENTRY();
+
     PromptState state = { 0 };
     state.char_index = strlen(inpbuf);
     state.history_idx = -1;
@@ -519,13 +524,14 @@ MmResult prompt_get_input(void) {
     // LOG_DEBUG("max chars = %d", state.max_chars);
 
     if (strlen(inpbuf) > PROMPT_MAX_LEN) {
-        return mmresult_ex(kStringTooLong, LINE_TOO_LONG_TO_EDIT);
+        RETURN_RESULT(mmresult_ex(kStringTooLong, LINE_TOO_LONG_TO_EDIT));
     }
 
     while (1) {
         int ch = -1;
         ON_FAILURE_RETURN(prompt_getc(&ch));
         assert(ch != -1);
+        LOG_DEBUG("ch='%c'", ch);
         state.buf[0] = (char) ch;
         state.buf[1] = '\0';
 
@@ -621,5 +627,5 @@ MmResult prompt_get_input(void) {
 
     prompt_put_history_item(inpbuf);
 
-    return kOk;
+    RETURN_RESULT(kOk);
 }

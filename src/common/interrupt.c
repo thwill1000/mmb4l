@@ -395,11 +395,13 @@ MmResult interrupt_resume_tick(int irq) {
 }
 
 bool interrupt_check_key_press(char ch) {
+    LOG_FN_ENTRY();
+
     if (ch == interrupt_specific_key && interrupt_specific_key_addr) {
         interrupt_specific_key_pressed = true;
-        return true;
+        RETURN_BOOL(true);
     } else {
-        return false;
+        RETURN_BOOL(false);
     }
 }
 

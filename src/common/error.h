@@ -126,6 +126,12 @@ void error_clear_callback();
     return result__; \
 } while (0)
 
+#define RETURN_INT(x)  do { \
+    const int result__ = (x); \
+    LOG_FN_EXIT("result=%d", result__); \
+    return result__; \
+} while (0)
+
 #define RETURN_RESULT(x)  do { \
     const MmResult result__ = (x); \
     LOG_FN_EXIT("result=%d", result__); \

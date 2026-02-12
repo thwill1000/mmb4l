@@ -106,20 +106,20 @@ void events_pump() {
                 break;
 
             case SDL_FINGERDOWN:
-                // LOG_DEBUG("Touch down at: %.3f, %.3f", event.tfinger.x, event.tfinger.y);
+                LOG_DEBUG("event: FINGERDOWN: %.3f, %.3f", event.tfinger.x, event.tfinger.y);
                 break;
 
             case SDL_FINGERUP:
-                // LOG_DEBUG("Touch up at: %.3f, %.3f", event.tfinger.x, event.tfinger.y);
+                LOG_DEBUG("event: FINGERUP: %.3f, %.3f", event.tfinger.x, event.tfinger.y);
                 break;
 
             case SDL_KEYDOWN:
-                // LOG_DEBUG("KeyDown");
+                LOG_DEBUG("event: KEYDOWN");
                 ON_FAILURE_ERROR(keyboard_key_down(&event.key.keysym));
                 break;
 
             case SDL_KEYUP:
-                // LOG_DEBUG("KeyUp");
+                LOG_DEBUG("event: KEYUP");
                 ON_FAILURE_ERROR(keyboard_key_up(&event.key.keysym));
                 break;
 
