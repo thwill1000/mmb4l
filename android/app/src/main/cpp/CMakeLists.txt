@@ -225,6 +225,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     ${MMB4L_SRC_DIR}/common/graphics.c
     ${MMB4L_SRC_DIR}/common/interrupt.c
     ${MMB4L_SRC_DIR}/common/keyboard.c
+    ${MMB4L_SRC_DIR}/common/keybuf.c
     ${MMB4L_SRC_DIR}/common/logger.c
     ${MMB4L_SRC_DIR}/common/memory.c
     ${MMB4L_SRC_DIR}/common/mmgetline.c
