@@ -1,4 +1,0 @@
-[submodule "sptools"]
-	path = sptools
-	url = ../mmbasic-sptools.git
-	branch = master

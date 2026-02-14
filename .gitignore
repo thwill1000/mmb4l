@@ -1,0 +1,10 @@
+# VS Code
+.vscode/
+
+# Android/Gradle
+android/.gradle/
+android/app/.cxx/
+android/app/build/
+
+# MMB4L symbolic-link
+android/mmb4l
