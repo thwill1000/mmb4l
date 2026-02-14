@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 keyboard.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -47,10 +47,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
-#include "console.h"
+#include "error.h"
 #include "interrupt.h"
 #include "keyboard.h"
 #include "keyboard_ps2.h"
+#include "keybuf.h"
 #include "keycodes.h"
 
 #define MAX_KEYS  10
@@ -203,31 +204,32 @@ static void print_key_info(SDL_KeyboardEvent *key){
  * codes and should in theory respect the current keyboard layout.
  */
 static char keyboard_convert(const SDL_Keysym* keysym) {
+    // LOG_FN_ENTRY("keysym->sym=%d", keysym->sym);
     switch (keysym->sym) {
         case SDLK_CAPSLOCK:
         case SDLK_NUMLOCKCLEAR:
-            return 0x0;
+            RETURN_CHAR(0x0);
         case SDLK_LALT:
         case SDLK_RALT:
-            return ALT;
+            RETURN_CHAR(ALT);
         default: {
             int i = keysym->sym > 128 ? keysym->sym - (1 << 30) + 128 : keysym->sym;
             if (i > 255) {
-                return 0x0;
+                RETURN_CHAR(0x0);
             } else if (i >= 'a' && i <= 'z' && keysym->mod & KMOD_CTRL) {
-                return i + 1 - 'a';
+                RETURN_CHAR(i + 1 - 'a');
             } else if (keysym->mod & KMOD_SHIFT) {
                 if (!(keysym->mod & KMOD_CAPS)) i += 256;
             } else if (keysym->mod & KMOD_CAPS) {
                 if (!(keysym->mod & KMOD_SHIFT)) i += 256;
             } else if (keysym->mod & KMOD_NUM && i >= 217 && i <= 227) {
                 switch (i) {
-                    case 226: return '0';
-                    case 227: return '.';
-                    default:  return '1' + (i - 217);
+                    case 226: RETURN_CHAR('0');
+                    case 227: RETURN_CHAR('.');
+                    default:  RETURN_CHAR('1' + (i - 217));
                 }
             }
-            return uk_key_map[i];
+            RETURN_CHAR(uk_key_map[i]);
         }
     }
 }
@@ -290,18 +292,19 @@ static MmResult keyboard_update_last_ps2_scancode(const SDL_Keysym* keysym, bool
 }
 
 MmResult keyboard_key_down(const SDL_Keysym* keysym) {
+    LOG_FN_ENTRY("keysym->sym=0x%x", keysym->sym);
     assert(keyboard_initialised);
     char ch = keyboard_convert(keysym);
     if (ch) {
         keyboard_keys_add(ch);
         if (ch == DEL) {
-            // Escape sequence expected by console_getc() for [Delete].
-            console_put_keypress('\x1b');
-            console_put_keypress('[');
-            console_put_keypress('3');
-            console_put_keypress('~');
+            // Escape sequence expected by keybuf_get() for [Delete].
+            keybuf_put('\x1b');
+            keybuf_put('[');
+            keybuf_put('3');
+            keybuf_put('~');
         } else {
-            console_put_keypress(ch);
+            keybuf_put(ch);
         }
     }
     return keyboard_update_last_ps2_scancode(keysym, false);

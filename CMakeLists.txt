@@ -251,6 +251,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/graphics.c
     src/common/interrupt.c
     src/common/keyboard.c
+    src/common/keybuf.c
     src/common/logger.c
     src/common/memory.c
     src/common/mmgetline.c
@@ -314,16 +315,17 @@ target_link_libraries(
 )
 
 ################################################################################
-# test_console_getc
+# test_keybuf_get
 ################################################################################
 
 add_executable(test_console_getc
     ${MMB4L_COMMON_TEST_FILES}
-    src/console_getc_test.c
+    src/keybuf_get_test.c
     src/common/rx_buf.c
     src/common/console.c
     src/common/file.c
     src/common/file_linux.c
+    src/common/keybuf.c
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c
@@ -545,6 +547,7 @@ add_executable(test_editor
     src/common/memory.c
     src/common/gtest/stubs/console_stubs.c
     src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/keybuf_stubs.c
     src/common/gtest/stubs/streamio_stubs.c
     src/core/commandtbl.c
     src/core/tokentbl.c
@@ -584,7 +587,7 @@ target_link_libraries(
 
 add_executable(test_fun_sprite
     ${MMB4L_COMMON_TEST_FILES}
-    src/functions/gtest/test_fun_sprite.cxx
+    src/functions/gtest/fun_sprite_test.cxx
     src/common/events.c
     src/common/features.c
     src/common/file.c
@@ -761,7 +764,7 @@ add_executable(test_keyboard
     ${MMB4L_COMMON_TEST_FILES}
     src/common/keyboard.c
     src/common/gtest/keyboard_test.cxx
-    src/common/gtest/stubs/console_stubs.c
+    src/common/gtest/stubs/keybuf_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
 )
 
@@ -832,6 +835,7 @@ add_executable(test_parse
     src/common/gtest/stubs/gamepad_stubs.c
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
+    src/common/gtest/stubs/keybuf_stubs.c
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
@@ -903,6 +907,7 @@ add_executable(test_program
     src/common/gtest/stubs/gamepad_stubs.c
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
+    src/common/gtest/stubs/keybuf_stubs.c
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
@@ -934,6 +939,7 @@ add_executable(test_prompt
     src/common/streamio.c
     src/common/gtest/prompt_test.cxx
     src/common/gtest/stubs/display_stubs.c
+    src/common/gtest/stubs/keybuf_stubs.c
     src/common/gtest/stubs/serial_stubs.c
 )
 
@@ -1089,6 +1095,7 @@ add_executable(test_mmbasic_core
     src/common/gtest/stubs/gamepad_stubs.c
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
+    src/common/gtest/stubs/keybuf_stubs.c
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c

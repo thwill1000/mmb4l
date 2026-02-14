@@ -58,6 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/file.h"
 #include "common/interrupt.h"
 #include "common/keyboard.h"
+#include "common/keybuf.h"
 #include "common/logger.h"
 #include "common/mmb4l.h"
 #include "common/mmtime.h"
@@ -317,6 +318,8 @@ int main(int argc, char *argv[]) {
         cmdline_print_usage();
         exit(EX_OK);
     }
+
+    ON_FAILURE_EXIT(keybuf_init());
 
     // Initialise the tty console.
     ON_FAILURE_EXIT(console_init(!mmb_args.show_prompt));

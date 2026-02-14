@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -48,9 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "console.h"
 #include "display.h"
 #include "file.h"
+#include "keybuf.h"
 #include "keycodes.h"
 #include "logger.h"
 #include "mmb4l.h"
@@ -73,7 +73,7 @@ MmResult prompt_getc(int *ch) {
     ON_FAILURE_RETURN(display_show_cursor(true));
     for (;;) {
         ON_FAILURE_RETURN(display_update_cursor());
-        *ch = console_getc();
+        *ch = keybuf_get();
         if (*ch == -1) {
             if (!isatty(STDIN_FILENO)) {
                 // For non-TTY input (pipes, files), check if it's actually EOF
@@ -320,7 +320,7 @@ static MmResult prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
     // Update characters in input buffer.
     strcpy(inpbuf, new_inpbuf);
 
-    // Erase existing input from the console.
+    // Erase existing input from the display.
     if (pstate->char_index != 0) {
         ON_FAILURE_RETURN(display_cursor_left(pstate->char_index, true));
         for (size_t i = 0; i < len; ++i) ON_FAILURE_RETURN(display_putc(' '));

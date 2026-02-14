@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2025 Thomas Hugo Williams
+ * Copyright (c) 2022-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -26,8 +26,6 @@ PromptState prompt_state;
 MmResult path_complete_canned_result;
 char path_complete_captured_path[STRINGSIZE];
 char config_dir[PATH_MAX] = { '\0' };
-
-int console_getc(void) { return -1; }
 
 MmResult file_test_get_config_dir(char *buf, size_t size) {
     if (FAILED(cstring_cpy(buf, config_dir, size))) {
