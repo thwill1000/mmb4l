@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-fun_keydown.c
+keybuf.h
 
 Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,31 +42,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include "../common/keyboard.h"
-#include "../common/keybuf.h"
-#include "../common/mmb4l.h"
+#if !defined(MMB4L_KEYBUF_H)
+#define MMB4L_KEYBUF_H
 
-/** KEYDOWN(n) */
-void fun_keydown(void) {
-    if (!mmb_features.has_fun_keydown) ON_FAILURE_ERROR(kUnsupportedOnCurrentDevice);
+#include "mmresult.h"
 
-    int n = getint(ep, 0, 8);
+/** Initialises the keyboard buffer. */
+MmResult keybuf_init(void);
 
-    keybuf_clear();
+/** Clears the content of the keyboard buffer. */
+void keybuf_clear(void);
 
-    switch (n) {
-        case 0:
-          iret = keyboard_num_keys();
-          break;
-        case 7:
-          iret = keyboard_get_modifiers();
-          break;
-        case 8:
-          iret = keyboard_get_locks();
-          break;
-        default:
-          iret = keyboard_get_key(n - 1);
-          break;
-    }
-    targ = T_INT;
-}
+/** Gets the number of characters waiting in the keyboard buffer. */
+int keybuf_count(void);
+
+/**
+ * Gets a character from the keyboard buffer without blocking.
+ *
+ * @return  -1 if no character.
+ */
+int keybuf_get(void);
+
+void keybuf_pump_tty(void);
+
+/** Adds a character to the keyboard buffer. */
+void keybuf_put(char ch);
+
+#endif // MMB4L_KEYBUF_H

@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "error.h"
 #include "file.h"
 #include "fonttbl.h"
+#include "keybuf.h"
 #include "keycodes.h"
 #include "memory.h"
 #include "mmb4l.h"
@@ -1468,7 +1469,7 @@ static MmResult editor_scroll_up(Editor *self) {
     // TODO ON_FAILURE_RETURN(editor_print_status(self));
 
     // Consume any keystrokes accumulated while scrolling the screen
-    while (console_getc() != -1) {}
+    keybuf_clear();
 
     return kOk;
 }
@@ -1499,7 +1500,7 @@ static MmResult editor_scroll_down(Editor *self) {
     // TODO ON_FAILURE_RETURN(editor_print_status(self));
 
     // Consume any keystrokes accumulated while redrawing the screen
-    while (console_getc() != -1) {}
+    keybuf_clear();
 
     return kOk;
 }
@@ -1604,10 +1605,10 @@ MmResult editor_cmd_cut(Editor *self) {
 static MmResult editor_cmd_exit_mark(Editor *self) {
     // Wait 50ms to see if anything more is coming.
     mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
-    if (console_getc() == '[') {
+    if (keybuf_get() == '[') {
         // TODO: This is where we would act on input escape sequences,
         //       for the moment we ignore them / empty the input buffer.
-        while (console_getc() != -1) {}
+        keybuf_clear();
         return kOk;
     }
 
@@ -1723,7 +1724,7 @@ MmResult editor_print_lines_impl(Editor *self, int start, int end) {
     }
 
     // Consume any keystrokes accumulated while drawing
-    while (console_getc() != -1) {}
+    keybuf_clear();
 
     // Restore cursor position
     return editor_set_cursor_pos(self, self->cx, self->cy);
@@ -1738,7 +1739,7 @@ MmResult editor_print_lines_impl(Editor *self, int start, int end) {
  *
  * If the keyboard buffer already contains queued keystrokes (from auto-indent
  * or multi-key commands), this function shifts the buffer down to consume the
- * next keystroke instead of reading from the console.
+ * next keystroke instead of reading from the keyboard buffer.
  *
  * @param  self  Pointer to the Editor instance.
  * @return       kOk on success, or an error code on failure.
@@ -1753,23 +1754,23 @@ static MmResult editor_read_keys(Editor *self) {
         return kOk;
     }
 
-    // No queued keystrokes - read a fresh keystroke from the console.
+    // No queued keystrokes - read a fresh keystroke from the keyboard buffer.
     // Show the cursor while waiting for user input.
-    int c = -1;
+    int ch = -1;
     ON_FAILURE_RETURN(display_show_cursor(true));
 
     // Poll until we receive a keystroke.
-    // console_getc() returns -1 if no key is available.
+    // keybuf_get() returns -1 if no key is available.
     // display_update_cursor() ensures cursor blinks/updates while waiting.
     do {
         ON_FAILURE_RETURN(display_update_cursor());
-        c = console_getc();
-    } while (c == -1);
+        ch = keybuf_get();
+    } while (ch == -1);
 
     // Convert the raw keystroke to canonical form (e.g., Ctrl-E => UP)
     // and store it as a single-character string in the buffer.
     ON_FAILURE_RETURN(display_show_cursor(false));
-    self->key_buf[0] = editor_canonical_key(self, (char) c);
+    self->key_buf[0] = editor_canonical_key(self, (char) ch);
     self->key_buf[1] = '\0';
 
     return kOk;
@@ -2499,10 +2500,10 @@ static MmResult editor_cmd_exit(Editor *self) {
 
     // Wait 50ms to see if anything more is coming.
     mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
-    if (console_getc() == '[') {
+    if (keybuf_get() == '[') {
         // TODO: This is where we would act on input escape sequences,
         //       for the moment we ignore them / empty the input buffer.
-        while (console_getc() != -1) {}
+        keybuf_clear();
         return kOk;
     }
 

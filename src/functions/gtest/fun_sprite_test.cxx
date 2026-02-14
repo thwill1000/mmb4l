@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Thomas Hugo Williams
+ * Copyright (c) 2024-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -45,8 +45,8 @@ void MMgetline(int fnbr, char *p) {}
 // Defined in "commands/cmd_read.c"
 void cmd_read_clear_cache()  { }
 
-// Defined in "common/console.c"
-void console_pump_input(void) { }
+// Defined in "common/keybuf.c"
+void keybuf_pump_tty(void) { }
 
 // Defined in "common/gpio.c"
 MmResult gpio_term() { return kOk; }
