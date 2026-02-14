@@ -115,7 +115,6 @@ MmResult console_cursor_left(int count, bool wrap);
  */
 MmResult console_cursor_up(int count);
 
-void console_pump_input(void);
 void console_clear(void);
 void console_disable_raw_mode(void);
 void console_enable_raw_mode(void);
@@ -154,13 +153,6 @@ MmResult console_colour_fg(MmGraphicsColour argb);
 MmResult console_flush();
 
 /**
- * Gets a character from the console without blocking.
- *
- * @return  -1 if no character.
- */
-int console_getc(void);
-
-/**
  * Gets the cursor position.
  *
  * @param   x           on return holds the x-position.
@@ -186,9 +178,6 @@ void console_home_cursor(void);
  * @return              kOK on success.
  */
 MmResult console_inverse(bool inverse);
-
-/** Gets the number of characters waiting in the console input queue. */
-int console_kbhit(void);
 
 /**
  * Writes a character to the ANSI/tty terminal.
@@ -288,8 +277,5 @@ static inline MmResult console_update_cursor() { return kOk; }
 MmResult console_wrapline();
 
 size_t console_write(const char *buf, size_t sz);
-
-/** Adds a character to the console input buffer. */
-void console_put_keypress(char ch);
 
 #endif // #if !defined(CONSOLE_H)

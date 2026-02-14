@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Thomas Hugo Williams
+ * Copyright (c) 2025-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -18,7 +18,6 @@ MmResult console_clear_to_end_of_line() { return kOk; }
 MmResult console_clear_to_end_of_screen() { return kOk; }
 MmResult console_cursor_left(int count, bool wrap) { return kOk; }
 MmResult console_cursor_up(int count) { return kOk; }
-void console_pump_input(void) { }
 void console_clear(void) { }
 MmResult console_colour(MmGraphicsColour fg, MmGraphicsColour bg) { return kOk; }
 MmResult console_colour_bg(MmGraphicsColour argb) { return kOk; }
@@ -27,7 +26,6 @@ void console_disable_raw_mode(void) { }
 void console_enable_raw_mode(void) { }
 void console_foreground(int colour) { }
 MmResult console_flush() { return kOk; }
-int console_getc(void) { return -1; }
 
 MmResult console_get_cursor_pos(int *x, int *y) {
     if (mock_console_get_cursor_pos) {
@@ -47,8 +45,6 @@ MmResult console_get_size(int *width, int *height) {
 
 void console_home_cursor(void) { }
 MmResult console_inverse(bool inverse) { return kOk; }
-int console_kbhit(void) { return -1; }
-void console_put_keypress(char ch) { }
 char console_putc(char c) { return -1; }
 char console_putc_noflush(char c) { return -1; }
 void console_puts(const char *s) { }

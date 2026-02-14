@@ -44,9 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string.h>
 
-#include "../common/console.h"
 #include "../common/display.h"
 #include "../common/cstring.h"
+#include "../common/keybuf.h"
 #include "../common/keycodes.h"
 #include "../common/mmb4l.h"
 #include "../common/parse.h"
@@ -55,7 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/streamio.h"
 #include "../common/utility.h"
 
-/** Reads input from the console into the buffer. */
+/** Reads input from the keyboard buffer into a buffer. */
 static int cmd_autosave_read(char *buf) {
     int ch;
     int count = 0;
@@ -63,7 +63,7 @@ static int cmd_autosave_read(char *buf) {
     char previous = '\0';
 
     for (;;) {
-        ch = console_getc();
+        ch = keybuf_get();
 
         switch (ch) {
             case -1:
