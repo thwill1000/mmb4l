@@ -65,6 +65,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/file.h"
 #include "common/interrupt.h"
 #include "common/keyboard.h"
+#include "common/keybuf.h"
 #include "common/logger.h"
 #include "common/mmb4l.h"
 #include "common/mmtime.h"
@@ -393,7 +394,9 @@ int main(int argc, char *argv[]) {
         exit(EX_OK);
     }
 
-#if !defined(__ANDROID__)
+    ON_FAILURE_EXIT(keybuf_init());
+
+    #if !defined(__ANDROID__)
     // Initialise the tty console.
     ON_FAILURE_EXIT(console_init(!mmb_args.show_prompt));
     console_enable_raw_mode();

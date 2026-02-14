@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 interrupt.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -47,10 +47,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
-#include "console.h"
 #include "error.h"
 #include "exit_codes.h"
 #include "interrupt.h"
+#include "keybuf.h"
 #include "mmb4l.h"
 #include "mmtime.h"
 #include "queue.h"
@@ -261,7 +261,7 @@ bool interrupt_check(void) {
     if (interrupt_return_stmt != NULL || CurrentLinePtr == NULL) return false;
 
     // Check for an ON KEY loc interrupt.
-    if (interrupt_any_key_addr && console_kbhit()) {
+    if (interrupt_any_key_addr && keybuf_count()) {
         return handle_interrupt(interrupt_any_key_addr);
     }
 

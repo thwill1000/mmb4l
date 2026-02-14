@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -66,6 +66,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/exit_codes.h"
 #include "../common/flash.h"
 #include "../common/fonttbl.h"
+#include "../common/keybuf.h"
 #include "../common/gamepad.h"
 #include "../common/gpio.h"
 #include "../common/interrupt.h"
@@ -2946,8 +2947,7 @@ void perform_background_tasks() {
         longjmp(mark, JMP_BREAK);  // jump back to the input prompt
     }
 
-    // TODO: consolidate with pumping the serial port connections ?
-    console_pump_input();
+    keybuf_pump_tty();
 
     // Pump all the serial port connections for input.
     for (int fnbr = 1; fnbr <= MAXOPENFILES; ++fnbr) {

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 keyboard.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -47,11 +47,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL.h>
 
-#include "console.h"
 #include "error.h"
 #include "interrupt.h"
 #include "keyboard.h"
 #include "keyboard_ps2.h"
+#include "keybuf.h"
 #include "keycodes.h"
 
 #define MAX_KEYS  10
@@ -297,13 +297,13 @@ MmResult keyboard_key_down(const SDL_Keysym* keysym) {
     if (ch) {
         keyboard_keys_add(ch);
         if (ch == DEL) {
-            // Escape sequence expected by console_getc() for [Delete].
-            console_put_keypress('\x1b');
-            console_put_keypress('[');
-            console_put_keypress('3');
-            console_put_keypress('~');
+            // Escape sequence expected by keybuf_get() for [Delete].
+            keybuf_put('\x1b');
+            keybuf_put('[');
+            keybuf_put('3');
+            keybuf_put('~');
         } else {
-            console_put_keypress(ch);
+            keybuf_put(ch);
         }
     }
     RETURN_RESULT(keyboard_update_last_ps2_scancode(keysym, false));
