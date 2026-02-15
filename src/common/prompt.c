@@ -221,7 +221,7 @@ MmResult prompt_restore_history(const char *filepath) {
     char canonical_path[PATH_MAX];
     ON_FAILURE_RETURN(
         prompt_normalize_history_file_path(filepath, canonical_path, sizeof(canonical_path)));
-    LOG_DEBUG("Restoring history from %s", canonical_path);
+    LOG_INFO("restoring history from %s", canonical_path);
 
     int fnbr = streamio_find_free();
     ON_FAILURE_RETURN(streamio_open(canonical_path, "r", fnbr));
@@ -245,7 +245,7 @@ MmResult prompt_restore_history(const char *filepath) {
     (void) count;
 #endif
 
-    LOG_DEBUG("Restored %d history items", count);
+    LOG_INFO("restored %d history items", count);
     return kOk;
 }
 
@@ -253,7 +253,7 @@ MmResult prompt_save_history(const char *filepath) {
     char canonical_path[PATH_MAX];
     ON_FAILURE_RETURN(
         prompt_normalize_history_file_path(filepath, canonical_path, sizeof(canonical_path)));
-    LOG_DEBUG("Saving history to %s", canonical_path);
+    LOG_INFO("saving history to %s", canonical_path);
 
     int fnbr = streamio_find_free();
     ON_FAILURE_RETURN(streamio_open(canonical_path, "w", fnbr));
@@ -272,7 +272,7 @@ MmResult prompt_save_history(const char *filepath) {
 
     ON_FAILURE_LOG(streamio_close(fnbr));
 
-    LOG_DEBUG("Saved %d history items", count);
+    LOG_INFO("saved %d history items", count);
     return kOk;
 }
 

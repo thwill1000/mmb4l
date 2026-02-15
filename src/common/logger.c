@@ -93,22 +93,26 @@ void logger_write(LoggerLevel level, const char *file, unsigned line, const char
         filename++;  // Skip the '/' character.
     }
 
-    fprintf(logger, "[%s:%u:%s] ", filename, line, function);
+    // Prefix the message with file, line, and function
+    char prefix_buffer[256];
+    snprintf(prefix_buffer, sizeof(prefix_buffer), "%s:%u:%s  ", filename, line, function);
+    fprintf(logger, "%-40s", prefix_buffer);
+
     switch (level) {
         case kLoggerLevelDebug:
-            fprintf(logger, "DEBUG: ");
+            fprintf(logger, "DEBUG:   ");
             break;
         case kLoggerLevelInfo:
-            fprintf(logger, "INFO: ");
+            fprintf(logger, "INFO:    ");
             break;
         case kLoggerLevelWarning:
             fprintf(logger, "WARNING: ");
             break;
         case kLoggerLevelError:
-            fprintf(logger, "ERROR: ");
+            fprintf(logger, "ERROR:   ");
             break;
         case kLoggerLevelFatal:
-            fprintf(logger, "FATAL: ");
+            fprintf(logger, "FATAL:   ");
             break;
     }
     va_list args;
