@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 editor.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -221,7 +221,7 @@ MmResult editor_set_changed_lines(Editor *self, int start, int end) {
 static MmResult editor_set_cursor_pos(Editor *self, int x, int y) {
     if (x < 0 || x >= self->width || y < 0 || y >= self->height + 2) {
         LOG_WARN("cursor out of bounds: x=%d, y=%d, width=%d, height=%d", x, y, self->width,
-                    self->height);
+                 self->height);
         x = min(max(0, x), self->width - 1);
         y = min(max(0, y), self->height + 1);
     }
@@ -643,18 +643,18 @@ MmResult editor_print_msg_impl(Editor *self, const char *msg) {
  */
 char *editor_back_in_line(Editor *self, char *start, size_t num_chars) {
     if (self == NULL) {
-        LOG_ERROR("Invalid null parameter: self");
+        LOG_ERROR("invalid null parameter: self");
         return NULL;
     }
 
     if (start == NULL) {
-        LOG_ERROR("Invalid null parameter: start");
+        LOG_ERROR("invalid null parameter: start");
         return NULL;
     }
 
     // Validate that start is within buffer bounds
     if (start < self->buf || start >= self->buf + self->buf_sz) {
-        LOG_ERROR("Start position outside buffer bounds");
+        LOG_ERROR("start position outside buffer bounds");
         return NULL;
     }
 
@@ -696,28 +696,28 @@ char *editor_back_in_line(Editor *self, char *start, size_t num_chars) {
  */
 char *editor_find_in_line(Editor *self, const char *needle, char *start, size_t max_len) {
     if (self == NULL) {
-        LOG_ERROR("Invalid null parameter: self");
+        LOG_ERROR("invalid null parameter: self");
         return NULL;
     }
 
     if (needle == NULL) {
-        LOG_ERROR("Invalid null parameter: needle");
+        LOG_ERROR("invalid null parameter: needle");
         return NULL;
     }
 
     if (*needle == '\0') {
-        LOG_ERROR("Invalid empty parameter: needle");
+        LOG_ERROR("invalid empty parameter: needle");
         return NULL;
     }
 
     if (start == NULL) {
-        LOG_ERROR("Invalid null parameter: start");
+        LOG_ERROR("invalid null parameter: start");
         return NULL;
     }
 
     // Ensure start is within the buffer bounds
     if (start < self->buf || start >= self->buf + self->buf_sz) {
-        LOG_ERROR("Start position outside buffer bounds");
+        LOG_ERROR("start position outside buffer bounds");
         return NULL;
     }
 
@@ -1690,7 +1690,7 @@ MmResult editor_print_lines_impl(Editor *self, int start, int end) {
     // Early exit if completely beyond viewport
     if (start >= self->py + self->height) {
         LOG_WARN("start line is beyond viewport: start=%d, py=%d, height=%d",
-                    start, self->py, self->height);
+                 start, self->py, self->height);
         return kOk;
     }
 
