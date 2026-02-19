@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -181,50 +181,50 @@ void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
     strcpy(comspec->device, argv[0]);
 
     for (int i = 0; i < 6; i++) {
-        if (strcasecmp(argv[argc - 1], "OC") == 0) { // Open collector option.
+        if (cstring_casecmp(argv[argc - 1], "OC") == 0) { // Open collector option.
             ERROR_UNSUPPORTED_FLAG("OC");
         }
 
-        else if (strcasecmp(argv[argc - 1], "DEP") == 0) { // Data enable option.
+        else if (cstring_casecmp(argv[argc - 1], "DEP") == 0) { // Data enable option.
             ERROR_UNSUPPORTED_FLAG("DEP");
         }
 
-        else if (strcasecmp(argv[argc - 1], "DEN") == 0) { // Data enable option.
+        else if (cstring_casecmp(argv[argc - 1], "DEN") == 0) { // Data enable option.
             ERROR_UNSUPPORTED_FLAG("DEN");
         }
 
-        else if (strcasecmp(argv[argc - 1], "EVEN") == 0) { // Even parity.
+        else if (cstring_casecmp(argv[argc - 1], "EVEN") == 0) { // Even parity.
             if (comspec->parity != PARITY_NONE) ERROR_SYNTAX;
             comspec->parity = PARITY_EVEN;
             argc -= 2;
         }
 
-        else if (strcasecmp(argv[argc - 1], "ODD") == 0) { // Odd parity.
+        else if (cstring_casecmp(argv[argc - 1], "ODD") == 0) { // Odd parity.
             if (comspec->parity != PARITY_NONE) ERROR_SYNTAX;
             comspec->parity = PARITY_EVEN;
             argc -= 2;
         }
 
-        else if (strcasecmp(argv[argc - 1], "S2") == 0) { // Two stop bit option.
+        else if (cstring_casecmp(argv[argc - 1], "S2") == 0) { // Two stop bit option.
             comspec->s2 = true;
             argc -= 2;
         }
 
-        else if (strcasecmp(argv[argc - 1], "7BIT") == 0) { // 7 bit byte option.
+        else if (cstring_casecmp(argv[argc - 1], "7BIT") == 0) { // 7 bit byte option.
             comspec->b7 = true;
             argc -= 2;
         }
 
-        else if (strcasecmp(argv[argc - 1], "INV") == 0) { // Invert option.
+        else if (cstring_casecmp(argv[argc - 1], "INV") == 0) { // Invert option.
             ERROR_UNSUPPORTED_FLAG("INV");
         }
 
-        else if (strcasecmp(argv[argc - 1], "RTSCTS") == 0) { // Hardware flow control RTS/CTS option.
+        else if (cstring_casecmp(argv[argc - 1], "RTSCTS") == 0) { // Hardware flow control RTS/CTS option.
             comspec->rtscts = true;
             argc -= 2;
         }
 
-        else if (strcasecmp(argv[argc - 1], "XONXOFF") == 0) { // Software flow control option.
+        else if (cstring_casecmp(argv[argc - 1], "XONXOFF") == 0) { // Software flow control option.
             comspec->xonxoff = true;
             argc -= 2;
         }
