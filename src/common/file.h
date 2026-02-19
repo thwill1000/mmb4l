@@ -278,15 +278,21 @@ MmResult file_delete(const char *filename);
 MmResult file_dirname(const char *path, char *buf, size_t buf_sz);
 
 /**
- * Matches a filename against a pattern using shell-style wildcards.
+ * Tests whether a string matches a wildcard pattern, equivalent to POSIX fnmatch().
  *
- * @param[in]  pattern  The pattern to match against (e.g., "*.txt", "foo?")
- * @param[in]  string   The filename to test
- * @param[in]  flags    Flags to control matching behaviour (see fnmatch(3))
- * @return              0 if the string matches, FNM_NOMATCH if it doesn't,
- *                      or a non-zero error code on failure
+ * Supports the following pattern elements:
+ *   - '*'  matches any sequence of characters including empty
+ *   - '?'  matches any single character
+ *   - '['  introduces a character class, e.g. [abc] or [a-z]
+ *
+ * @param[in]  pattern  Null-terminated wildcard pattern string.
+ * @param[in]  str      Null-terminated string to test.
+ * @param[out] match    Set to true if str matches pattern, false otherwise.
+ *
+ * @return  kOk            on success.
+ *          kInternalFault if pattern, str, or match is NULL.
  */
-int file_fnmatch(const char *pattern, const char *string, int flags);
+MmResult file_fnmatch(const char *pattern, const char *str, bool *match);
 
 /**
  * Gets the current working directory.

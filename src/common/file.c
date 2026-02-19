@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 file.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -45,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <fnmatch.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -148,6 +147,73 @@ MmResult file_dirname(const char *path, char *buf, size_t buf_sz) {
 
     memcpy(buf, path, len);
     buf[len] = '\0';
+    return kOk;
+}
+
+MmResult file_fnmatch(const char *pattern, const char *str, bool *match) {
+    CHECK_PARAM(pattern != NULL);
+    CHECK_PARAM(str != NULL);
+    CHECK_PARAM(match != NULL);
+
+    const char *p = pattern;
+    const char *s = str;
+    const char *star_p = NULL;  // Position in pattern after last '*'
+    const char *star_s = NULL;  // Position in str where last '*' was tried
+
+    while (*s) {
+        if (*p == '*') {
+            // Record position and advance pattern only, not str
+            star_p = ++p;
+            star_s = s;
+        } else if (*p == '?') {
+            p++;
+            s++;
+        } else if (*p == '[') {
+            p++; // Skip '['
+
+            bool negate = false;
+            if (*p == '!') {
+                negate = true;
+                p++;
+            }
+
+            bool found = false;
+            const char *class_start = p;
+            while (*p && (*p != ']' || p == class_start)) {
+                if (*(p + 1) == '-' && *(p + 2) && *(p + 2) != ']') {
+                    if (*s >= *p && *s <= *(p + 2)) found = true;
+                    p += 3;
+                } else {
+                    if (*s == *p) found = true;
+                    p++;
+                }
+            }
+            if (*p == ']') p++;
+
+            if (found == negate) goto backtrack;
+            s++;
+        } else if (*p == *s) {
+            p++;
+            s++;
+        } else {
+            goto backtrack;
+        }
+        continue;
+
+backtrack:
+        if (!star_p) {
+            *match = false;
+            return kOk;
+        }
+        // Retry the star match starting one character further in str
+        p = star_p;
+        s = ++star_s;
+    }
+
+    // Skip any trailing stars in pattern
+    while (*p == '*') p++;
+
+    *match = (*p == '\0');
     return kOk;
 }
 
@@ -269,14 +335,9 @@ MmResult file_append_path(char *parent, const char *element, size_t size) {
     return kOk;
 }
 
-int file_fnmatch(const char *pattern, const char *string, int flags) {
-    return fnmatch(pattern, string, flags);
-}
-
 MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
-    if (!fspec || !list) {
-        return mmresult_ex(kInternalFault, "Invalid parameter");
-    }
+    CHECK_PARAM(fspec != NULL);
+    CHECK_PARAM(list != NULL);
 
     // Initialize the list
     memset(list, 0, sizeof(FileList));
@@ -311,9 +372,9 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
         if (!entry) break; // End of directory
 
         // Skip if the filename does not match the pattern
-        if (file_fnmatch(pattern, entry->name, 0x0) != 0) {
-            continue;
-        }
+        bool match = false;
+        ON_FAILURE_RETURN(file_fnmatch(pattern, entry->name, &match));
+        if (!match) continue;
 
         // Skip if we've reached the maximum number of files
         if (files_added >= FILE_LIST_MAX) {
