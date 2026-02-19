@@ -82,6 +82,20 @@ void error_set_callback(void (*fn)(void *), void *data);
 /** Clears callback function. */
 void error_clear_callback();
 
+/**
+ * Checks that parameter x is non-null/true. If the check fails, logs an error
+ * message with the function name, file, and line number, and returns
+ * kInvalidParameter to the caller.
+ *
+ * Must only be used in functions that return MmResult.
+ */
+#define CHECK_PARAM(x)  do { \
+    if (!(x)) { \
+        return mmresult_ex(kInternalFault, "%s() parameter check failed: %s", \
+                           __func__, #x); \
+    } \
+} while (0)
+
 #define ON_FAILURE_ERROR(x)  do { \
     const MmResult result__ = (x); \
     if (FAILED(result__)) { error_throw(result__); return; } \

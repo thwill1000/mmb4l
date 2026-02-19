@@ -46,7 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ctype.h>
 #include <errno.h>
 #include <fnmatch.h>
-#include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -68,12 +67,88 @@ static MmResult file_get_config_dir_impl(char *buf, size_t size);
 // Pointers to functions we want to override in unit-tests
 MmResult (*file_get_config_dir)(char *, size_t) = file_get_config_dir_impl;
 
-char *file_basename(char *path) {
-    return basename(path);
+static bool file_is_separator(char c) {
+    return c == '/' || c == '\\';
 }
 
-char *file_dirname(char *path) {
-    return dirname(path);
+MmResult file_basename(const char *path, char *buf, size_t buf_sz) {
+    CHECK_PARAM(path != NULL);
+    CHECK_PARAM(buf != NULL);
+
+    // Empty string -> "."
+    if (*path == '\0') {
+        if (buf_sz < 2) return kFilenameTooLong;
+        strcpy(buf, ".");
+        return kOk;
+    }
+
+    // Find end of string, then strip trailing separators
+    const char *end = path + strlen(path) - 1;
+    while (end > path && file_is_separator(*end)) end--;
+
+    // Root-only path e.g. "/" or "\\"
+    if (end == path && file_is_separator(*end)) {
+        if (buf_sz < 2) return kFilenameTooLong;
+        buf[0] = *end;
+        buf[1] = '\0';
+        return kOk;
+    }
+
+    // Find the start of the last component
+    const char *start = end;
+    while (start > path && !file_is_separator(*(start - 1))) start--;
+
+    size_t len = end - start + 1;
+    if (len >= buf_sz) return kFilenameTooLong;
+
+    memcpy(buf, start, len);
+    buf[len] = '\0';
+    return kOk;
+}
+
+// TODO: Reconcile with path_get_parent()
+MmResult file_dirname(const char *path, char *buf, size_t buf_sz) {
+    CHECK_PARAM(path != NULL);
+    CHECK_PARAM(buf != NULL);
+
+    // Empty string -> "."
+    if (*path == '\0') {
+        if (buf_sz < 2) return kFilenameTooLong;
+        strcpy(buf, ".");
+        return kOk;
+    }
+
+    // Find end of string, then strip trailing separators
+    const char *end = path + strlen(path) - 1;
+    while (end > path && file_is_separator(*end)) end--;
+
+    // Strip the last component
+    while (end > path && !file_is_separator(*end)) end--;
+
+    // Strip any separators before the last component
+    while (end > path && file_is_separator(*end)) end--;
+
+    // Nothing left - either no directory component, or root
+    if (end == path) {
+        if (file_is_separator(*path)) {
+            // Root path e.g. "/file.txt" -> "/"
+            if (buf_sz < 2) return kFilenameTooLong;
+            buf[0] = *path;
+            buf[1] = '\0';
+        } else {
+            // No directory component e.g. "file.txt" -> "."
+            if (buf_sz < 2) return kFilenameTooLong;
+            strcpy(buf, ".");
+        }
+        return kOk;
+    }
+
+    size_t len = end - path + 1;
+    if (len >= buf_sz) return kFilenameTooLong;
+
+    memcpy(buf, path, len);
+    buf[len] = '\0';
+    return kOk;
 }
 
 /**
@@ -194,6 +269,10 @@ MmResult file_append_path(char *parent, const char *element, size_t size) {
     return kOk;
 }
 
+int file_fnmatch(const char *pattern, const char *string, int flags) {
+    return fnmatch(pattern, string, flags);
+}
+
 MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
     if (!fspec || !list) {
         return mmresult_ex(kInternalFault, "Invalid parameter");
@@ -232,7 +311,7 @@ MmResult file_list(const char *fspec, FileSort sort, FileList *list) {
         if (!entry) break; // End of directory
 
         // Skip if the filename does not match the pattern
-        if (fnmatch(pattern, entry->name, 0x0) != 0) {
+        if (file_fnmatch(pattern, entry->name, 0x0) != 0) {
             continue;
         }
 

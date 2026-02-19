@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 file.h
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -217,12 +217,22 @@ MmResult file_get_free_space(const char *path, uint64_t *free_space);
 MmResult file_size(const char *path, off_t *size);
 
 /**
- * Extracts the basename (filename without directory) from a path.
+ * Extracts the final component of a path, equivalent to POSIX basename().
  *
- * @param[in]  path  File path (may be modified by the function)
- * @return           Pointer to the basename portion of the path
+ * Special cases match POSIX behaviour:
+ *   - Empty string or NULL path produces "."
+ *   - A path of "/" produces "/"
+ *   - Trailing slashes are ignored
+ *
+ * @param[in]  path    Null-terminated path string.
+ * @param[out] buf     Buffer to receive the null-terminated basename.
+ * @param[in]  buf_sz  Size of buf in bytes.
+ *
+ * @return  kOk             on success.
+ *          kInternalFault  if path or buf is NULL.
+ *          kFilenameTooLong if the basename exceeds buf_sz - 1 characters.
  */
-char *file_basename(char *path);
+MmResult file_basename(const char *path, char *buf, size_t buf_sz);
 
 /**
  * Changes the current working directory.
@@ -249,12 +259,34 @@ MmResult file_closedir(DirStream *stream);
 MmResult file_delete(const char *filename);
 
 /**
- * Extracts the directory name (path without filename) from a path.
+ * Extracts the directory component of a path, equivalent to POSIX dirname().
  *
- * @param[in]  path  File path (may be modified by the function)
- * @return           Pointer to the directory portion of the path
+ * Special cases match POSIX behaviour:
+ *   - Empty string or NULL path produces "."
+ *   - A path of "/" produces "/"
+ *   - Trailing slashes are ignored
+ *   - A path with no directory component produces "."
+ *
+ * @param[in]  path    Null-terminated path string.
+ * @param[out] buf     Buffer to receive the null-terminated dirname.
+ * @param[in]  buf_sz  Size of buf in bytes.
+ *
+ * @return  kOk              on success.
+ *          kInternalFault   if path or buf is NULL.
+ *          kFilenameTooLong if the dirname exceeds buf_sz - 1 characters.
  */
-char *file_dirname(char *path);
+MmResult file_dirname(const char *path, char *buf, size_t buf_sz);
+
+/**
+ * Matches a filename against a pattern using shell-style wildcards.
+ *
+ * @param[in]  pattern  The pattern to match against (e.g., "*.txt", "foo?")
+ * @param[in]  string   The filename to test
+ * @param[in]  flags    Flags to control matching behaviour (see fnmatch(3))
+ * @return              0 if the string matches, FNM_NOMATCH if it doesn't,
+ *                      or a non-zero error code on failure
+ */
+int file_fnmatch(const char *pattern, const char *string, int flags);
 
 /**
  * Gets the current working directory.
@@ -278,7 +310,15 @@ MmResult file_info(const char *filename, FileInfo *info);
  */
 bool file_exists_symlink(const char *path);
 
-// TODO: Get Claude to document this wrapper around POSIX fsync.
+/**
+ * Flushes a file's in-memory state to the underlying storage device.
+ *
+ * Wraps the POSIX fsync() call, which ensures that all modified data and
+ * metadata for the file descriptor have been written to the device.
+ *
+ * @param[in]  fd  File descriptor to sync
+ * @return         0 on success, -1 on failure (errno set appropriately)
+ */
 int file_fsync(int fd);
 
 /**
