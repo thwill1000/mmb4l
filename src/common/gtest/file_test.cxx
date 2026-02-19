@@ -1313,3 +1313,194 @@ TEST_F(FileAppendPathTest, MultipleAppends) {
     snprintf(expected, BUFFER_SIZE, "/home%cuser%cdocuments%cfile.txt", sep, sep, sep);
     EXPECT_STREQ(expected, buffer);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for file_basename()
+////////////////////////////////////////////////////////////////////////////////
+
+class FileBasenameTest : public ::testing::Test {
+protected:
+    static constexpr size_t BUFFER_SIZE = 256;
+    char buffer[BUFFER_SIZE];
+
+    void SetUp() override {
+        memset(buffer, 0, BUFFER_SIZE);
+    }
+};
+
+// Core behaviour - standard path
+TEST_F(FileBasenameTest, StandardPath) {
+    EXPECT_EQ(kOk, file_basename("/home/user/file.txt", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("file.txt", buffer);
+}
+
+// Filename with no directory component
+TEST_F(FileBasenameTest, NoDirectory) {
+    EXPECT_EQ(kOk, file_basename("file.txt", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("file.txt", buffer);
+}
+
+// Trailing slash - POSIX basename() strips it and returns last component
+TEST_F(FileBasenameTest, TrailingSlash) {
+    EXPECT_EQ(kOk, file_basename("/home/user/", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("user", buffer);
+}
+
+// Root path - POSIX basename() returns "/"
+TEST_F(FileBasenameTest, RootPath) {
+    EXPECT_EQ(kOk, file_basename("/", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("/", buffer);
+}
+
+// Empty string - POSIX basename() returns "."
+TEST_F(FileBasenameTest, EmptyString) {
+    EXPECT_EQ(kOk, file_basename("", buffer, BUFFER_SIZE));
+    EXPECT_STREQ(".", buffer);
+}
+
+// Null input path
+TEST_F(FileBasenameTest, NullPath) {
+    EXPECT_EQ(kInternalFault, file_basename(nullptr, buffer, BUFFER_SIZE));
+}
+
+// Null output buffer
+TEST_F(FileBasenameTest, NullBuffer) {
+    EXPECT_EQ(kInternalFault, file_basename("/home/user/file.txt", nullptr, BUFFER_SIZE));
+}
+
+// File with no extension
+TEST_F(FileBasenameTest, NoExtension) {
+    EXPECT_EQ(kOk, file_basename("/home/user/README", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("README", buffer);
+}
+
+// Deeply nested path
+TEST_F(FileBasenameTest, DeeplyNested) {
+    EXPECT_EQ(kOk, file_basename("/a/b/c/d/e.txt", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("e.txt", buffer);
+}
+
+// Output buffer too small
+TEST_F(FileBasenameTest, BufferTooSmall) {
+    EXPECT_EQ(kFilenameTooLong, file_basename("/home/user/file.txt", buffer, 4));
+}
+
+// Dot and double-dot components
+TEST_F(FileBasenameTest, SingleDot) {
+    EXPECT_EQ(kOk, file_basename("/home/user/.", buffer, BUFFER_SIZE));
+    EXPECT_STREQ(".", buffer);
+}
+
+TEST_F(FileBasenameTest, DoubleDot) {
+    EXPECT_EQ(kOk, file_basename("/home/user/..", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("..", buffer);
+}
+
+// Hidden file (leading dot)
+TEST_F(FileBasenameTest, HiddenFile) {
+    EXPECT_EQ(kOk, file_basename("/home/user/.bashrc", buffer, BUFFER_SIZE));
+    EXPECT_STREQ(".bashrc", buffer);
+}
+
+TEST_F(FileBasenameTest, BackslashSeparator) {
+    EXPECT_EQ(kOk, file_basename("C:\\Users\\user\\file.txt", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("file.txt", buffer);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for file_dirname()
+////////////////////////////////////////////////////////////////////////////////
+
+class FileDirnameTest : public ::testing::Test {
+protected:
+    static constexpr size_t BUFFER_SIZE = 256;
+    char buffer[BUFFER_SIZE];
+
+    void SetUp() override {
+        memset(buffer, 0, BUFFER_SIZE);
+    }
+};
+
+// Core behaviour - standard path
+TEST_F(FileDirnameTest, StandardPath) {
+    EXPECT_EQ(kOk, file_dirname("/home/user/file.txt", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("/home/user", buffer);
+}
+
+// Filename with no directory component - POSIX dirname() returns "."
+TEST_F(FileDirnameTest, NoDirectory) {
+    EXPECT_EQ(kOk, file_dirname("file.txt", buffer, BUFFER_SIZE));
+    EXPECT_STREQ(".", buffer);
+}
+
+// Trailing slash - slash is ignored, returns parent
+TEST_F(FileDirnameTest, TrailingSlash) {
+    EXPECT_EQ(kOk, file_dirname("/home/user/", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("/home", buffer);
+}
+
+// Root path - POSIX dirname() returns "/"
+TEST_F(FileDirnameTest, RootPath) {
+    EXPECT_EQ(kOk, file_dirname("/", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("/", buffer);
+}
+
+// Empty string - POSIX dirname() returns "."
+TEST_F(FileDirnameTest, EmptyString) {
+    EXPECT_EQ(kOk, file_dirname("", buffer, BUFFER_SIZE));
+    EXPECT_STREQ(".", buffer);
+}
+
+// Null input path
+TEST_F(FileDirnameTest, NullPath) {
+    EXPECT_EQ(kInternalFault, file_dirname(nullptr, buffer, BUFFER_SIZE));
+}
+
+// Null output buffer
+TEST_F(FileDirnameTest, NullBuffer) {
+    EXPECT_EQ(kInternalFault, file_dirname("/home/user/file.txt", nullptr, BUFFER_SIZE));
+}
+
+// Single level path
+TEST_F(FileDirnameTest, SingleLevel) {
+    EXPECT_EQ(kOk, file_dirname("/file.txt", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("/", buffer);
+}
+
+// Deeply nested path
+TEST_F(FileDirnameTest, DeeplyNested) {
+    EXPECT_EQ(kOk, file_dirname("/a/b/c/d/e.txt", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("/a/b/c/d", buffer);
+}
+
+// Output buffer too small
+TEST_F(FileDirnameTest, BufferTooSmall) {
+    EXPECT_EQ(kFilenameTooLong, file_dirname("/home/user/file.txt", buffer, 4));
+}
+
+// Dot and double-dot components
+TEST_F(FileDirnameTest, SingleDot) {
+    EXPECT_EQ(kOk, file_dirname("/home/user/.", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("/home/user", buffer);
+}
+
+TEST_F(FileDirnameTest, DoubleDot) {
+    EXPECT_EQ(kOk, file_dirname("/home/user/..", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("/home/user", buffer);
+}
+
+// Hidden file (leading dot) - directory component should be returned normally
+TEST_F(FileDirnameTest, HiddenFile) {
+    EXPECT_EQ(kOk, file_dirname("/home/user/.bashrc", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("/home/user", buffer);
+}
+
+TEST_F(FileDirnameTest, BackslashSeparator) {
+    EXPECT_EQ(kOk, file_dirname("C:\\Users\\user\\file.txt", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("C:\\Users\\user", buffer);
+}
+
+TEST_F(FileDirnameTest, MixedSeparators) {
+    EXPECT_EQ(kOk, file_dirname("/home/user\\file.txt", buffer, BUFFER_SIZE));
+    EXPECT_STREQ("/home/user", buffer);
+}
