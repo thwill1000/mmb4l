@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_system.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -45,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 
 #include "../common/mmb4l.h"
 #include "../common/cstring.h"
@@ -192,8 +191,8 @@ MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_statu
     if (!f) return errno;
 
     if (buf) {
-        ssize_t i;
-        for (i = 0; i < (ssize_t) *sz; ++i) {
+        int64_t i;
+        for (i = 0; i < (int64_t) *sz; ++i) {
             int ch = fgetc(f);
             if (ch == EOF) break;
             buf[i] = (char) ch;

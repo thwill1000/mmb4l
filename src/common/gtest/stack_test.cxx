@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Thomas Hugo Williams
+ * Copyright (c) 2024-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -15,7 +15,7 @@ extern "C" {
     { \
         element_type element_out; \
         EXPECT_EQ(expected_num, stack_size(&stack)); \
-        for (ssize_t ii = 0; ii < expected_num; ++ii) { \
+        for (int64_t ii = 0; ii < expected_num; ++ii) { \
             EXPECT_EQ(kOk, stack_get(&stack, ii, &element_out)); \
             EXPECT_EQ(expected_elements[ii], element_out); \
         } \
@@ -938,7 +938,7 @@ TEST_F(StructStackTest, FillAndThenEmpty_Succeeds) {
     { \
         MyStruct element_out; \
         EXPECT_EQ(expected_num, stack_size(&stack)); \
-        for (ssize_t ii = 0; ii < expected_num; ++ii) { \
+        for (int64_t ii = 0; ii < expected_num; ++ii) { \
             EXPECT_EQ(kOk, stack_get(&stack, ii, &element_out)); \
             EXPECT_MY_STRUCT_EQ(expected_elements[ii], element_out); \
         } \
