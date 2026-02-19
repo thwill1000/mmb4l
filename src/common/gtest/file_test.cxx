@@ -1504,3 +1504,136 @@ TEST_F(FileDirnameTest, MixedSeparators) {
     EXPECT_EQ(kOk, file_dirname("/home/user\\file.txt", buffer, BUFFER_SIZE));
     EXPECT_STREQ("/home/user", buffer);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for file_fnmatch()
+////////////////////////////////////////////////////////////////////////////////
+
+class FileFnmatchTest : public ::testing::Test {
+protected:
+    bool match;
+
+    void SetUp() override {
+        match = false;
+    }
+};
+
+// Null parameters
+TEST_F(FileFnmatchTest, NullPattern) {
+    EXPECT_EQ(kInternalFault, file_fnmatch(nullptr, "file.txt", &match));
+}
+
+TEST_F(FileFnmatchTest, NullString) {
+    EXPECT_EQ(kInternalFault, file_fnmatch("*.txt", nullptr, &match));
+}
+
+TEST_F(FileFnmatchTest, NullMatch) {
+    EXPECT_EQ(kInternalFault, file_fnmatch("*.txt", "file.txt", nullptr));
+}
+
+// Exact match
+TEST_F(FileFnmatchTest, ExactMatch) {
+    EXPECT_EQ(kOk, file_fnmatch("file.txt", "file.txt", &match));
+    EXPECT_TRUE(match);
+}
+
+TEST_F(FileFnmatchTest, ExactNoMatch) {
+    EXPECT_EQ(kOk, file_fnmatch("file.txt", "other.txt", &match));
+    EXPECT_FALSE(match);
+}
+
+// Star wildcard
+TEST_F(FileFnmatchTest, StarMatchesAnything) {
+    EXPECT_EQ(kOk, file_fnmatch("*", "file.txt", &match));
+    EXPECT_TRUE(match);
+}
+
+TEST_F(FileFnmatchTest, StarMatchesEmpty) {
+    EXPECT_EQ(kOk, file_fnmatch("*", "", &match));
+    EXPECT_TRUE(match);
+}
+
+TEST_F(FileFnmatchTest, StarPrefix) {
+    EXPECT_EQ(kOk, file_fnmatch("*.txt", "file.txt", &match));
+    EXPECT_TRUE(match);
+}
+
+TEST_F(FileFnmatchTest, StarPrefixNoMatch) {
+    EXPECT_EQ(kOk, file_fnmatch("*.txt", "file.csv", &match));
+    EXPECT_FALSE(match);
+}
+
+TEST_F(FileFnmatchTest, StarSuffix) {
+    EXPECT_EQ(kOk, file_fnmatch("file*", "file.txt", &match));
+    EXPECT_TRUE(match);
+}
+
+TEST_F(FileFnmatchTest, StarMiddle) {
+    EXPECT_EQ(kOk, file_fnmatch("file*.txt", "file_long_name.txt", &match));
+    EXPECT_TRUE(match);
+}
+
+TEST_F(FileFnmatchTest, MultipleStars) {
+    EXPECT_EQ(kOk, file_fnmatch("*.*.txt", "file_long_name.txt", &match));  // NO match - no dot before name
+    EXPECT_FALSE(match);
+    EXPECT_EQ(kOk, file_fnmatch("*.*.txt", "archive.file.txt", &match));
+    EXPECT_TRUE(match);
+}
+
+// Question mark wildcard
+TEST_F(FileFnmatchTest, QuestionMarkMatchesSingle) {
+    EXPECT_EQ(kOk, file_fnmatch("file?.txt", "file1.txt", &match));
+    EXPECT_TRUE(match);
+}
+
+TEST_F(FileFnmatchTest, QuestionMarkNoMatchEmpty) {
+    EXPECT_EQ(kOk, file_fnmatch("file?.txt", "file.txt", &match));
+    EXPECT_FALSE(match);
+}
+
+TEST_F(FileFnmatchTest, QuestionMarkNoMatchTwo) {
+    EXPECT_EQ(kOk, file_fnmatch("file?.txt", "file12.txt", &match));
+    EXPECT_FALSE(match);
+}
+
+TEST_F(FileFnmatchTest, MultipleQuestionMarks) {
+    EXPECT_EQ(kOk, file_fnmatch("file??.txt", "file12.txt", &match));
+    EXPECT_TRUE(match);
+}
+
+// Character classes
+TEST_F(FileFnmatchTest, CharacterClass) {
+    EXPECT_EQ(kOk, file_fnmatch("file[123].txt", "file1.txt", &match));
+    EXPECT_TRUE(match);
+}
+
+TEST_F(FileFnmatchTest, CharacterClassNoMatch) {
+    EXPECT_EQ(kOk, file_fnmatch("file[123].txt", "file4.txt", &match));
+    EXPECT_FALSE(match);
+}
+
+TEST_F(FileFnmatchTest, CharacterClassRange) {
+    EXPECT_EQ(kOk, file_fnmatch("file[a-z].txt", "fileb.txt", &match));
+    EXPECT_TRUE(match);
+}
+
+TEST_F(FileFnmatchTest, CharacterClassRangeNoMatch) {
+    EXPECT_EQ(kOk, file_fnmatch("file[a-z].txt", "file1.txt", &match));
+    EXPECT_FALSE(match);
+}
+
+// Empty pattern and string
+TEST_F(FileFnmatchTest, BothEmpty) {
+    EXPECT_EQ(kOk, file_fnmatch("", "", &match));
+    EXPECT_TRUE(match);
+}
+
+TEST_F(FileFnmatchTest, EmptyPattern) {
+    EXPECT_EQ(kOk, file_fnmatch("", "file.txt", &match));
+    EXPECT_FALSE(match);
+}
+
+TEST_F(FileFnmatchTest, EmptyString) {
+    EXPECT_EQ(kOk, file_fnmatch("*.txt", "", &match));
+    EXPECT_FALSE(match);
+}
