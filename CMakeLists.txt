@@ -28,6 +28,12 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+if(WIN32)
+    set(PLATFORM "windows")
+else()
+    set(PLATFORM "linux")
+endif()
+
 if (MMB4L_COVERAGE)
     message("** Configuring with code-coverage")
     set(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
@@ -237,13 +243,14 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/cmdline.c
     src/common/codepage.c
     src/common/console.c
+    src/common/console_${PLATFORM}.c
     src/common/cstring.c
     src/common/display.c
     src/common/error.c
     src/common/events.c
     src/common/features.c
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/flash.c
     src/common/fonttbl.c
     src/common/gamepad.c
@@ -252,6 +259,7 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/interrupt.c
     src/common/keyboard.c
     src/common/keybuf.c
+    src/common/keybuf_${PLATFORM}.c
     src/common/logger.c
     src/common/memory.c
     src/common/mmgetline.c
@@ -261,11 +269,11 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/parse.c
     src/common/path.c
     src/common/editor.c
-    src/common/process.c
+    src/common/process_${PLATFORM}.c
     src/common/program.c
     src/common/prompt.c
     src/common/rx_buf.c
-    src/common/serial.c
+    src/common/serial_${PLATFORM}.c
     src/common/sprite.c
     src/common/stack.c
     src/common/streamio.c
@@ -323,9 +331,11 @@ add_executable(test_console_getc
     src/keybuf_get_test.c
     src/common/rx_buf.c
     src/common/console.c
+    src/common/console_${PLATFORM}.c
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/keybuf.c
+    src/common/keybuf_${PLATFORM}.c
     src/common/mmtime.c
     src/common/options.c
     src/common/path.c
@@ -347,7 +357,7 @@ add_executable(test_cmdline
     ${MMB4L_COMMON_TEST_FILES}
     src/common/cmdline.c
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/features.c
     src/common/memory.c
     src/common/mmresult.c
@@ -378,7 +388,7 @@ add_executable(test_cmd_do
     src/commands/gtest/cmd_do_test.cxx
     src/common/features.c
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/fonttbl.c
     src/common/options.c
     src/common/memory.c
@@ -418,7 +428,7 @@ add_executable(test_cmd_run
     src/commands/gtest/cmd_run_test.cxx
     src/common/features.c
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/fonttbl.c
     src/common/memory.c
     src/common/mmresult.c
@@ -493,7 +503,7 @@ gtest_discover_tests(test_cstring)
 add_executable(test_file
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/path.c
     src/common/streamio.c
     src/common/gtest/file_test.cxx
@@ -591,7 +601,7 @@ add_executable(test_fun_sprite
     src/common/events.c
     src/common/features.c
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/fonttbl.c
     src/common/graphics.c
     src/common/memory.c
@@ -692,7 +702,7 @@ add_executable(test_graphics
     src/common/events.c
     src/common/features.c
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/fonttbl.c
     src/common/graphics.c
     src/common/memory.c
@@ -787,7 +797,7 @@ gtest_discover_tests(test_keyboard)
 add_executable(test_options
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/options.c
     src/common/path.c
     src/common/streamio.c
@@ -814,7 +824,7 @@ add_executable(test_parse
     ${MMB4L_COMMON_TEST_FILES}
     src/common/features.c
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/memory.c
     src/common/mmgetline.c
     src/common/mmresult.c
@@ -824,7 +834,6 @@ add_executable(test_parse
     src/common/path.c
     src/common/program.c
     src/common/rx_buf.c
-    src/common/serial.c
     src/common/streamio.c
     src/common/gtest/parse_test.cxx
     src/common/gtest/test_helper.c
@@ -836,6 +845,7 @@ add_executable(test_parse
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
     src/common/gtest/stubs/keybuf_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
@@ -859,15 +869,15 @@ gtest_discover_tests(test_parse)
 add_executable(test_path
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/memory.c
     src/common/path.c
     src/common/rx_buf.c
-    src/common/serial.c
     src/common/streamio.c
     src/common/gtest/path_test.cxx
     src/common/gtest/stubs/console_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
 )
 
 target_link_libraries(test_path
@@ -887,7 +897,7 @@ add_executable(test_program
     ${MMB4L_COMMON_TEST_FILES}
     src/common/features.c
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/streamio.c
     src/common/memory.c
     src/common/mmgetline.c
@@ -897,7 +907,6 @@ add_executable(test_program
     src/common/parse.c
     src/common/program.c
     src/common/rx_buf.c
-    src/common/serial.c
     src/common/gtest/program_test.cxx
     src/common/gtest/test_helper.c
     src/common/gtest/stubs/audio_stubs.c
@@ -908,6 +917,7 @@ add_executable(test_program
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
     src/common/gtest/stubs/keybuf_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c
@@ -933,7 +943,7 @@ gtest_discover_tests(test_program)
 add_executable(test_prompt
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/path.c
     src/common/prompt.c
     src/common/streamio.c
@@ -997,7 +1007,7 @@ add_executable(test_sprite
     src/common/events.c
     src/common/features.c
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/fonttbl.c
     src/common/streamio.c
     src/common/graphics.c
@@ -1050,7 +1060,7 @@ gtest_discover_tests(test_stack)
 add_executable(test_streamio
     ${MMB4L_COMMON_TEST_FILES}
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/path.c
     src/common/streamio.c
     src/common/gtest/streamio_test.cxx
@@ -1076,7 +1086,7 @@ add_executable(test_mmbasic_core
     ${MMB4L_COMMON_TEST_FILES}
     src/common/features.c
     src/common/file.c
-    src/common/file_linux.c
+    src/common/file_${PLATFORM}.c
     src/common/fonttbl.c
     src/common/streamio.c
     src/common/memory.c
@@ -1086,7 +1096,6 @@ add_executable(test_mmbasic_core
     src/common/path.c
     src/common/program.c
     src/common/rx_buf.c
-    src/common/serial.c
     src/common/gtest/test_helper.c
     src/common/gtest/stubs/audio_stubs.c
     src/common/gtest/stubs/console_stubs.c
@@ -1096,6 +1105,7 @@ add_executable(test_mmbasic_core
     src/common/gtest/stubs/graphics_stubs.c
     src/common/gtest/stubs/interrupt_stubs.c
     src/common/gtest/stubs/keybuf_stubs.c
+    src/common/gtest/stubs/serial_stubs.c
     src/core/commandtbl.c
     src/core/funtbl.c
     src/core/MMBasic.c

@@ -278,6 +278,9 @@ MmResult file_info(const char *filename, FileInfo *info);
  */
 bool file_exists_symlink(const char *path);
 
+// TODO: Get Claude to document this wrapper around POSIX fsync.
+int file_fsync(int fd);
+
 /**
  * Gets sorted list of files matching a specification.
  *

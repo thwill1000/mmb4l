@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_KEYBUF_H)
 #define MMB4L_KEYBUF_H
 
+#include <stdbool.h>
+
 #include "mmresult.h"
 
 /** Initialises the keyboard buffer. */
@@ -62,6 +64,13 @@ int keybuf_count(void);
  * @return  -1 if no character.
  */
 int keybuf_get(void);
+
+/**
+ * Is the keyboard buffer connected to a terminal (tty) ?
+ *
+ * @return  true if it is, or false if it isn't (e.g. connected to a piped file)
+ */
+bool keybuf_isatty(void);
 
 void keybuf_pump_tty(void);
 

@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-file_private.h
+serial_private.h
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,33 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_FILE_PRIVATE)
-#define MMB4L_FILE_PRIVATE
-
-#include <stdio.h>
-
-#include "../Configuration.h"
 #include "error.h"
-#include "rx_buf.h"
+#include "file_private.h"
 
-enum FileEntryType { fet_closed, fet_file, fet_serial };
-
-typedef struct {
-    enum FileEntryType type;
-    union {
-        FILE *file_ptr;
-        int serial_fd;
-    };
-    RxBuf rx_buf;
-} FileEntry;
-
-extern FileEntry file_table[MAXOPENFILES + 1];
-
-static inline MmResult file_validate_fnbr(int fnbr) {
-   if (fnbr < 1 || fnbr > MAXOPENFILES) {
-      RETURN_RESULT(kFileInvalidFileNumber);
-   }
-   RETURN_RESULT(kOk);
+static inline MmResult serial_validate_fnbr(int fnbr) {
+    ON_FAILURE_RETURN(file_validate_fnbr(fnbr));
+    if (file_table[fnbr].type != fet_serial) {
+        RETURN_RESULT(kInternalFault);
+    }
+    RETURN_RESULT(kOk);
 }
-
-#endif // #if !defined(MMB4L_FILE_PRIVATE)
