@@ -70,12 +70,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/utility.h"
 #include "core/tokentbl.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
+DIAGNOSTIC_IGNORE_UNUSED_VARIABLE
 #define MM_VERSION_STR  xstringify(MM_MAJOR) "." xstringify(MM_MINOR) "." xstringify(MM_MICRO)
 static const char version[] __attribute__ ((used))
         = "@(#) MMB4L v" MM_VERSION_STR " " __DATE__ " " __TIME__;
-#pragma GCC diagnostic pop
+DIAGNOSTIC_RESTORE
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
