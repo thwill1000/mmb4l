@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 audio.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,14 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <SDL.h>
 #include <assert.h>
-#include <dirent.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <SDL.h>
 
 #include "audio.h"
 #include "audio_tables.h"
@@ -350,38 +350,36 @@ static MmResult audio_fill_track_list(const char *filename, const char *extensio
     char tmp[STRINGSIZE];
 
     // Check for a single file.
-    {
-        MmResult result = path_try_extension(canonical, extension, tmp, STRINGSIZE);
-        if (SUCCEEDED(result)) {
-            cstring_cpy(audio_track_list[0], tmp, STRINGSIZE);
-            return kOk;
-        } else if (result != kFileNotFound) {
-            return result;
-        }
+    MmResult result = path_try_extension(canonical, extension, tmp, STRINGSIZE);
+    if (SUCCEEDED(result)) {
+        cstring_cpy(audio_track_list[0], tmp, STRINGSIZE);
+        RETURN_RESULT(kOk);
+    } else if (result != kFileNotFound) {
+        RETURN_RESULT(result);
     }
 
     // Treat 'canonical' as a directory to search.
-    {
-        errno = 0;
-        const char *dirname = canonical;
-        DIR *dir = opendir(dirname);
-        if (!dir) return errno;
-        struct dirent *ent;
-        size_t counter = 0;
-        while (counter != MAX_TRACKS && (ent = readdir(dir)) != NULL) {
-            if (path_has_extension(ent->d_name, extension, true)) {
-                if (FAILED(cstring_cpy(audio_track_list[counter], dirname, STRINGSIZE))) {
-                    return kFilenameTooLong;
-                }
-                ON_FAILURE_RETURN(
-                    file_append_path(audio_track_list[counter], ent->d_name, sizeof(tmp)));
-                counter++;
-            }
+    DirStream *dir = NULL;
+    const char *dirname = canonical;
+    ON_FAILURE_RETURN(file_opendir(dirname, &dir));
+
+    size_t counter = 0;
+    while (counter != MAX_TRACKS) {
+        DirEntry *entry = NULL;
+        result = file_readdir(dir, &entry);
+        if (FAILED(result) || !entry) break;
+        if (!path_has_extension(entry->name, extension, true)) continue;
+        if (FAILED(cstring_cpy(audio_track_list[counter], dirname, STRINGSIZE))) {
+            result = kFilenameTooLong;
+            break;
         }
-        closedir(dir);
+        result = file_append_path(audio_track_list[counter], entry->name, sizeof(tmp));
+        if (FAILED(result)) break;
+        counter++;
     }
 
-    return (MmResult) errno;
+    ON_FAILURE_LOG(file_closedir(dir));
+    RETURN_RESULT(result);
 }
 
 MmResult audio_stop() {
