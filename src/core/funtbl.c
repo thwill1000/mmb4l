@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <string.h>
 
+#include "../common/error.h"
 #include "../common/memory.h"
 #include "../common/utility.h"
 #include "MMBasic.h"
@@ -55,11 +56,14 @@ struct s_funtbl funtbl[MAXSUBFUN];
 FunHashValue funtbl_hashmap[FUN_HASHMAP_SIZE];
 size_t funtbl_count = 0;
 
-MmResult funtbl_add(
-        const char *name, FunType type, const char *addr, int *fun_idx) {
+MmResult funtbl_add(const char *name, FunType type, const char *addr, int *fun_idx) {
+    CHECK_PARAM(name != NULL);
+    CHECK_PARAM(addr != NULL);
+    CHECK_PARAM(addr >= ProgMemory && addr < ProgMemory + PROG_FLASH_SIZE);
+    CHECK_PARAM(fun_idx != NULL);
+
     *fun_idx = -1;
     if (funtbl_count == MAXSUBFUN) return kTooManyFunctions;
-    if (addr < ProgMemory || addr >= ProgMemory + PROG_FLASH_SIZE) return kInternalFault;
 
     // Record function in the hashmap.
     FunHashValue hash = hash_cstring(name, MAXVARLEN) % FUN_HASHMAP_SIZE;
@@ -78,7 +82,7 @@ MmResult funtbl_add(
                     break;
                 default:
                     *fun_idx = -1;
-                    return kInternalFault;
+                    return INTERNAL_FAULT_EX("Invalid type: %d", type);
             }
         }
         hash = (hash + 1) % FUN_HASHMAP_SIZE;
@@ -149,7 +153,7 @@ MmResult funtbl_find(const char *name, uint8_t type_mask, int *fun_idx) {
                     break;
                 default:
                     *fun_idx = -1;
-                    return kInternalFault;
+                    return INTERNAL_FAULT;
             }
         }
 

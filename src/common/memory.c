@@ -91,7 +91,7 @@ static void *getheap(int size);
 
 MmResult memory_clear_heap(void) {
     if (!memory_initialised) {
-        return mmresult_ex(kInternalFault, "Internal fault: memory module not initialised");
+        return INTERNAL_FAULT_EX("memory module not initialised");
     }
     for (size_t i = 0; i < MMAP_SIZE; i++) mmap[i] = 0;
     for (size_t i = 0; i < MAXTEMPSTRINGS; i++) StrTmp[i] = NULL;
@@ -101,7 +101,7 @@ MmResult memory_clear_heap(void) {
 
 MmResult memory_init(void) {
     if (memory_initialised) {
-        return mmresult_ex(kInternalFault, "Internal fault: memory module already initialised");
+        return INTERNAL_FAULT_EX("memory module already initialised");
     }
 #if 0
     printf("MMHeap = %lX\n", MMHeap);
@@ -120,7 +120,7 @@ MmResult memory_init(void) {
 
 MmResult memory_term(void) {
     if (!memory_initialised) {
-        return mmresult_ex(kInternalFault, "Internal fault: memory module not initialised");
+        return INTERNAL_FAULT_EX("memory module not initialised");
     }
     ON_FAILURE_RETURN(memory_clear_heap());
     memory_initialised = false;

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_mminfo.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -372,29 +372,29 @@ static void mminfo_option(const char *p) {
 
     if (!def->name) ERROR_UNKNOWN_OPTION;
 
-    MmResult result = kInternalFault;
-
     switch (def->type) {
         case kOptionTypeFloat:
             g_rtn_type = T_NBR;
-            result = options_get_float_value(&mmb_options, def->id, &g_float_rtn);
+            ON_FAILURE_ERROR(options_get_float_value(&mmb_options, def->id, &g_float_rtn));
             break;
 
         case kOptionTypeInteger:
         case kOptionTypeBoolean:
             g_rtn_type = T_INT;
-            result = options_get_integer_value(&mmb_options, def->id, &g_integer_rtn);
+            ON_FAILURE_ERROR(options_get_integer_value(&mmb_options, def->id, &g_integer_rtn));
             break;
 
         case kOptionTypeString:
             g_rtn_type = T_STR;
             g_string_rtn = GetTempStrMemory();
-            result = options_get_string_value(&mmb_options, def->id, g_string_rtn);
-            if (SUCCEEDED(result)) CtoM(g_string_rtn);
+            ON_FAILURE_ERROR(options_get_string_value(&mmb_options, def->id, g_string_rtn));
+            CtoM(g_string_rtn);
+            break;
+
+        default:
+            ON_FAILURE_ERROR(INTERNAL_FAULT_EX("invalid OptionType: %d", def->type));
             break;
     }
-
-    if (FAILED(result)) error_throw(result);
 }
 
 static void mminfo_path(const char *p) {
@@ -512,7 +512,7 @@ static void mminfo_usb(const char *p) {
             break;
         }
         default:
-            ON_FAILURE_ERROR(kInternalFault);
+            ON_FAILURE_ERROR(INTERNAL_FAULT_EX("Invalid USB channel: %d", channel));
     }
 }
 

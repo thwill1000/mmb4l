@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 sprite.c
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -526,7 +526,7 @@ MmResult sprite_get_collision_bitset(MmSurface *sprite, uint8_t start, uint64_t 
     if (sprite->type != kGraphicsSprite && sprite->type != kGraphicsInactiveSprite) {
         return mmresult_ex(kGraphicsInvalidSprite, "Invalid sprite: %d", sprite->id);
     }
-    if (start % 64 != 0) return kInternalFault;
+    CHECK_PARAM(start % 64 == 0);
     *bitset = ((uint64_t *) sprite->sprite_collisions)[start / 64];
     return kOk;
 }
@@ -660,7 +660,7 @@ MmResult sprite_show_safe(MmSurface *sprite, MmSurface *dst_surface, int x, int 
 }
 
 MmResult sprite_set_transparent_colour(MmGraphicsColour colour) {
-    if (colour < 0) return kInternalFault;
+    CHECK_PARAM(colour >= 0);
     sprite_transparent_colour = colour;
     return kOk;
 }

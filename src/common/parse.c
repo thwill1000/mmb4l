@@ -182,7 +182,7 @@ static MmResult parse_transform_star_command(char *input) {
     // Skip past any leading whitespace and verify it really is a '*' command.
     char *start = input;
     while (isspace(*start)) start++;
-    if (*start != '*') return kInternalFault;
+    if (*start != '*') return INTERNAL_FAULT;
     start++;
 
     // Trim any trailing whitespace from the input.
@@ -332,7 +332,7 @@ static MmResult parse_transform_bang_cd_command(char *input, char *src) {
 static MmResult parse_transform_bang_command(char *input) {
     char *src = input;
     while (isspace(*src)) src++; // Skip whitespace.
-    if (*src != '!') return kInternalFault;
+    if (*src != '!') return INTERNAL_FAULT;
     src++;
 
     // Trim any whitespace after the bang.
@@ -471,7 +471,7 @@ MmResult parse_fn_sig(const char **p, FunctionSignature *signature) {
     skipspace((*p)); // Double bracket is necessary for correct macro expansion.
     signature->addr = *p;
     signature->token = commandtbl_decode(*p);
-    if (signature->token != cmdSUB && signature->token != cmdFUN) return kInternalFault;
+    if (signature->token != cmdSUB && signature->token != cmdFUN) return INTERNAL_FAULT;
     *p += sizeof(CommandToken); // Jump over the command token.
 
     // Parse FUNCTION/SUB name.

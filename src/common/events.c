@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -124,7 +124,7 @@ void events_pump() {
                             interrupt_fire_window_event(&event.window);
                         } else if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
                             MmSurfaceId window_id = graphics_find_window(event.window.windowID);
-                            if (window_id == -1) ON_FAILURE_ERROR(kInternalFault);
+                            if (window_id == -1) ON_FAILURE_ERROR(INTERNAL_FAULT);
                             ON_FAILURE_ERROR(
                                 graphics_surface_destroy(&graphics_surfaces[window_id]));
                         }
@@ -134,7 +134,7 @@ void events_pump() {
                     case SDL_WINDOWEVENT_EXPOSED:
                     case SDL_WINDOWEVENT_SHOWN: {
                         MmSurfaceId window_id = graphics_find_window(event.window.windowID);
-                        if (window_id == -1) ON_FAILURE_ERROR(kInternalFault);
+                        if (window_id == -1) ON_FAILURE_ERROR(INTERNAL_FAULT);
                         graphics_surfaces[window_id].dirty = true;
                     }
 

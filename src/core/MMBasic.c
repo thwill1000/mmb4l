@@ -417,7 +417,7 @@ static MmResult PrepareFontTable() {
         p += length / 4;  // Skip the data.
         while ((uintptr_t) p % 8 != 0) {
             // Expect zeroes until the next 64-bit boundary.
-            if (*p != 0x00) return kInternalFault;
+            if (*p != 0x00) return INTERNAL_FAULT;
             p++;
         }
     }
@@ -1166,7 +1166,7 @@ void *DoExpression(const char *p, int *t) {
     if(*t & T_NBR) return &f;
     if(*t & T_STR) return s;
 
-    error_throw(kInternalFault);
+    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, NULL);
     return NULL;                                                    // to keep the compiler happy
 }
 
@@ -1440,7 +1440,7 @@ const char *getvalue(const char* p, MMFLOAT* fa, MMINTEGER* ia, char** sa, Funct
             targ = TypeMask(tokentype(funtok));                         // set the type of the function (which might need to know this)
             tmp = targ;
             tokenfunction(funtok)();                                    // execute the function
-            if ((tmp & targ) == 0) error_throw(kInternalFault);         // as a safety check the function must return a type the same as set in the header
+            if ((tmp & targ) == 0) ON_FAILURE_ERROR_EX(INTERNAL_FAULT, NULL); // as a safety check the function must return a type the same as set in the header
             t = targ;                                                   // save the type of the function
             f = fret; i64 = iret; s = sret;                             // save the result
         }

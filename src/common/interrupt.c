@@ -95,7 +95,7 @@ MmResult interrupt_init() {
     // Only expected to be called once on application startup.
     static bool called = false;
     if (called) {
-        return mmresult_ex(kInternalFault, "Internal fault: interrupt module already initialised");
+        return INTERNAL_FAULT_EX("interrupt module already initialised");
     }
     called = true;
 
@@ -152,7 +152,7 @@ static bool handle_interrupt(const char *interrupt_address) {
         skipelement(interrupt_address);            // Point to the body of the SUB.
         interrupt_legacy = false;
     } else if (token == cmdFUN) {
-        return kInternalFault;
+        return INTERNAL_FAULT;
     } else {
         // Label or line number.
         interrupt_legacy = true;
@@ -186,7 +186,7 @@ static bool handle_window_interrupt() {
             // We can receive this event after the window has been destroyed.
             return true;
         }
-        ON_FAILURE_ERROR_EX(kInternalFault, false);
+        ON_FAILURE_ERROR_EX(INTERNAL_FAULT, false);
     }
     MmSurface *window = &graphics_surfaces[window_id];
 
