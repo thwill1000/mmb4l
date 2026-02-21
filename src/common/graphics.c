@@ -1856,7 +1856,7 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
         }
 
         default:
-            return kInternalFault;
+            RETURN_RESULT(INTERNAL_FAULT);
     }
 
     // printf("src_surface->pixels: %p\n", src_surface->pixels);
@@ -1935,7 +1935,7 @@ MmResult graphics_blit_memory_uncompressed(MmSurface *surface, char *data, int x
                     data++;
                     break;
                 default:
-                    return kInternalFault;
+                    return INTERNAL_FAULT;
             }
             if (colour != transparent) {
                 graphics_set_pixel_safe(surface, xx, yy, GRAPHICS_RGB121_COLOURS[colour]);
@@ -1997,7 +1997,7 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
             bcolour = -1;
             break;
         default:
-            return kInternalFault;
+            return INTERNAL_FAULT;
     }
 
     // To get the +, - and = chars for font 6 we fudge them by scaling up font 1.
@@ -2157,7 +2157,7 @@ MmResult graphics_draw_char(MmSurface *surface,  int *x, int *y, uint32_t font,
             *y += width * scale;
             break;
         default:
-            return kInternalFault;
+            return INTERNAL_FAULT_EX("invalid TextOrientation: %d", orientation);
     }
 
     return result;
@@ -2198,7 +2198,7 @@ MmResult graphics_draw_string(MmSurface *surface, int x, int y, uint32_t font, T
             if (jv == kAlignBottom) y -= (strlen(s) * font_width(font));
             break;
         default:
-            return kInternalFault;
+            return INTERNAL_FAULT_EX("invalid TextOrientation: %d", jo);
     }
 
     MmResult result = kOk;
@@ -2522,8 +2522,7 @@ MmResult graphics_set_mode(unsigned mode, unsigned colour_depth, MmGraphicsColou
         case kGraphicsTypePicomiteVga:
             return graphics_set_mode_picomite_vga(mode);
         default:
-            return mmresult_ex(kInternalFault, "Unknown GraphicsType: %d",
-                               mmb_features.graphics_type);
+            return INTERNAL_FAULT_EX("invalid GraphicsType: %d", mmb_features.graphics_type);
     }
 }
 
@@ -2608,7 +2607,7 @@ MmResult graphics_draw_filled_polygon(MmSurface *surface, int n, float *px, floa
         result = graphics_draw_triangle(graphics_current, px[0], py[0], px[1], py[1], px[2], py[2],
                                         c, f);
     } else {
-        result = kInternalFault;
+        result = INTERNAL_FAULT;
     }
 
     return result;
@@ -2679,7 +2678,7 @@ MmResult graphics_type_as_string(MmSurface *surface, char *out, size_t out_sz) {
             }
             break;
         default:
-            result = kInternalFault;
+            result = INTERNAL_FAULT_EX("invalid GraphicsSurfaceType: %d", surface->type);
             break;
     }
     return result;

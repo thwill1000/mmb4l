@@ -69,21 +69,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../core/MMBasic.h"
 #include "../core/tokentbl.h"
 
-#define ON_INVALID_CURSOR_RETURN() \
-    do { \
-        if (self->cx < 0 || self->cy < 0) { \
-            return mmresult_ex(kInternalFault, \
-                "%s invalid cursor position: cx = %d, cy = %d", __func__, self->cx, self->cy); \
-        } \
+#define ON_INVALID_CURSOR_RETURN()                                                          \
+    do {                                                                                    \
+        if (self->cx < 0 || self->cy < 0) {                                                 \
+            return INTERNAL_FAULT_EX("invalid cursor position: cx=%d, cy=%d", self->cx,     \
+                                     self->cy);                                             \
+        }                                                                                   \
     } while (0)
 
-#define ON_INVALID_TXTP_RETURN()                                            \
-    do { \
-        if (self->txtp < self->buf || self->txtp >= self->buf + self->buf_sz) { \
-            return mmresult_ex(kInternalFault, \
-                "%s txtp outside buffer: self->txtp=%p", __func__, self->txtp); \
-        } \
-    } while(0)
+#define ON_INVALID_TXTP_RETURN()                                                                \
+    do {                                                                                        \
+        if (self->txtp < self->buf || self->txtp >= self->buf + self->buf_sz) {                 \
+            return INTERNAL_FAULT_EX("invalid txtp outside buffer: self->txtp=%p", self->txtp); \
+        }                                                                                       \
+    } while (0)
 
 // Forward declaration of real function implementations
 MmResult editor_highlight_impl(Editor *, HighlightType);
@@ -131,11 +130,7 @@ void editor_restore_fn_pointers() {
  * @note Sets insert mode as default and saves the current break key setting.
  */
 MmResult editor_construct(Editor *self, const char *filename, int width, int height) {
-    if (width < 2 * SOFT_MARGIN) {
-        return mmresult_ex(kInternalFault,
-                           "%s invalid parameters: width=%d, must be at least %d",
-                           __func__, width, SOFT_MARGIN * 2);
-    }
+    CHECK_PARAM(width >= 2 * SOFT_MARGIN);
 
     memset(self, 0, sizeof(Editor));
     self->buf_sz = EDIT_BUFFER_SIZE;
@@ -192,11 +187,8 @@ MmResult editor_destruct(Editor *self) {
  */
 MmResult editor_set_changed_lines(Editor *self, int start, int end) {
     if (end < start) SWAP(int, end, start);
-    if (!self || start < 0) {
-        return mmresult_ex(kInternalFault,
-                           "%s invalid parameters: self=%p, start=%d, end=%d",
-                           __func__, self, start, end);
-    }
+    CHECK_PARAM(self);
+    CHECK_PARAM(start >= 0);
 
     // Initialize or extend the change range
     if (self->change_start == NO_CHANGE) {
@@ -242,7 +234,7 @@ static MmResult editor_set_cursor_pos(Editor *self, int x, int y) {
  *
  * @param  self       Pointer to the Editor instance.
  * @param  highlight  The type of highlighting to apply.
- * @return            kOk on success, or kInternalFault for invalid highlight type.
+ * @return            kOk on success, or an error code on failure.
  */
 MmResult editor_highlight_impl(Editor *self, HighlightType highlight) {
     if (highlight == self->highlight) return kOk;
@@ -281,7 +273,7 @@ MmResult editor_highlight_impl(Editor *self, HighlightType highlight) {
             inverse = true;
             break;
         default:
-            return mmresult_ex(kInternalFault, "%s invalid highlight: %d", __func__, highlight);
+            return INTERNAL_FAULT_EX("invalid HighlightType: %d", highlight);
     }
 
     MmResult result = display_colour(fg, bg);
@@ -515,7 +507,7 @@ MmResult editor_print_func_keys_impl(Editor *self) {
             break;
 
         default:
-            return mmresult_ex(kInternalFault, "%s unknown editor mode: %d", __func__, self->mode);
+            return INTERNAL_FAULT_EX("invalid EditorMode: %d", self->mode);
     }
 
     ON_FAILURE_RETURN(editor_set_cursor_pos(self, 0, self->height));
@@ -986,8 +978,9 @@ const char *SPECIAL_KEYWORDS[] = {
  * @return                 kOk on success, or an error code on failure.
  */
 MmResult editor_get_highlight(Editor *self, SyntaxState *syntax, char *p,
-                                HighlightType *highlight) {
-    if (!p) return mmresult_ex(kInternalFault, "%s invalid parameters: p=%p", __func__, p);
+                              HighlightType *highlight) {
+    CHECK_PARAM(p != NULL);
+
     if (!mmb_options.syntax_highlight) {
         *highlight = kHighlightNormal;
         return kOk;
@@ -1679,14 +1672,10 @@ static char editor_canonical_key(Editor *self, char key) {
  * @return        kOk on success, or an error code on failure.
  */
 MmResult editor_print_lines_impl(Editor *self, int start, int end) {
-    // LOG_DEBUG("entered: start=%d, end=%d", start, end);
-
-    // Basic parameter validation
-    if (!self || start < 0 || start >= self->num_lines || end < start) {
-        return mmresult_ex(kInternalFault,
-                           "%s invalid parameters: self=%p, start=%d, end=%d",
-                           __func__, self, start, end);
-    }
+    CHECK_PARAM(self != NULL);
+    CHECK_PARAM(start >= 0);
+    CHECK_PARAM(start < self->num_lines);
+    CHECK_PARAM(end >= start);
 
     // Early exit if completely beyond viewport
     if (start >= self->py + self->height) {
@@ -2065,10 +2054,8 @@ MmResult editor_cmd_right(Editor* self) {
  * @return              kOk on success, or an error code on failure.
  */
 static MmResult editor_delete_char(Editor *self) {
-    if (self->txtp < self->buf || self->txtp >= self->buf + self->buf_sz) {
-        return mmresult_ex(
-            kInternalFault, "%s txtp outside buffer: self->txtp=%p", __func__, self->txtp);
-    }
+    CHECK_PARAM(self->txtp >= self->buf);
+    CHECK_PARAM(self->txtp < self->buf + self->buf_sz);
 
     if (*self->txtp == '\0') return kOk;
 
@@ -2166,11 +2153,7 @@ static MmResult editor_delete_char(Editor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult editor_cmd_delete(Editor *self) {
-    if (self->mode != kEditMode) {
-        return mmresult_ex(kInternalFault,
-                           "%s should not be called in mark mode", __func__);
-    }
-
+    CHECK_PARAM(self->mode == kEditMode);
     return editor_delete_char(self);
 }
 
@@ -2186,7 +2169,8 @@ MmResult editor_cmd_delete(Editor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult editor_cmd_backspace(Editor *self) {
-    if (!self) return mmresult_ex(kInternalFault, "%s invalid parameters: self=%p", __func__, self);
+    CHECK_PARAM(self != NULL);
+
     if (self->mode != kEditMode) return display_bell();
     if (self->txtp == self->buf) return kOk;
 
@@ -2361,7 +2345,7 @@ MmResult editor_cmd_page_up(Editor *self) {
     while (lines_up--) {
         char *p = editor_previous_line(self, self->txtp);
         if (!p) {
-            return mmresult_ex(kInternalFault, "%s number of lines inconsistent", __func__);
+            return INTERNAL_FAULT_EX("number of lines inconsistent");
         }
         self->txtp = p;
     }
@@ -2401,7 +2385,7 @@ MmResult editor_cmd_page_down(Editor *self) {
     while (lines_down--) {
         char *p = editor_next_line(self, self->txtp);
         if (!p) {
-            return mmresult_ex(kInternalFault, "%s number of lines inconsistent", __func__);
+            return INTERNAL_FAULT_EX("number of lines inconsistent");
         }
         self->txtp = p;
     }
@@ -2494,9 +2478,7 @@ static MmResult editor_cmd_save_and_run(Editor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 static MmResult editor_cmd_exit(Editor *self) {
-    if (self->mode != kEditMode) {
-        return mmresult_ex(kInternalFault, "%s should not be called in mark mode", __func__);
-    }
+    CHECK_PARAM(self->mode == kEditMode);
 
     // Wait 50ms to see if anything more is coming.
     mmtime_sleep_ns(MILLISECONDS_TO_NANOSECONDS(50));
@@ -2591,9 +2573,7 @@ static MmResult editor_cmd_search(Editor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 static MmResult editor_cmd_mark(Editor *self) {
-    if (self->mode != kEditMode) {
-        return mmresult_ex(kInternalFault, "%s should not be called in mark mode", __func__);
-    }
+    CHECK_PARAM(self->mode == kEditMode);
     self->mode = kMarkMode;
     self->mark = self->txtp;
     return kOk;
@@ -2609,9 +2589,7 @@ static MmResult editor_cmd_mark(Editor *self) {
  * @return       kOk on success, or an error code on failure.
  */
 MmResult editor_cmd_paste(Editor *self) {
-    if (self->mode != kEditMode) {
-        return mmresult_ex(kInternalFault, "%s should not be called in mark mode", __func__);
-    }
+    CHECK_PARAM(self->mode == kEditMode);
 
     if (*self->clipboard_buf == '\0') return mmresult_ex(kEditorError, EMSG_CLIPBOARD_EMPTY);
 

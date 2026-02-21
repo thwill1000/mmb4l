@@ -424,7 +424,7 @@ TEST_F(EditorConstructTest, TooNarrowViewportReturnsError) {
     MmResult result = editor_construct(self, NULL, SOFT_MARGIN * 2 - 1, 25);
 
     EXPECT_EQ(kInternalFault, result);
-    EXPECT_STREQ("editor_construct invalid parameters: width=9, must be at least 10",
+    EXPECT_STREQ("editor_construct() parameter check failed: width >= 2 * SOFT_MARGIN",
                  mmresult_to_string(result));
 }
 
@@ -4713,7 +4713,7 @@ TEST_F(EditorCmdDeleteTest, MarkModeReturnsError) {
     MmResult result = editor_cmd_delete(self);
 
     EXPECT_EQ(kInternalFault, result);
-    EXPECT_STREQ("editor_cmd_delete should not be called in mark mode",
+    EXPECT_STREQ("editor_cmd_delete() parameter check failed: self->mode == kEditMode",
                  mmresult_to_string(result));
 }
 

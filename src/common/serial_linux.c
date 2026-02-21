@@ -304,8 +304,7 @@ MmResult serial_open(const char *comspec_str, int fnbr) {
             options.c_cflag |= PARODD;
             break;
         default:
-            ERROR_INTERNAL_FAULT;
-            break;
+            RETURN_RESULT(INTERNAL_FAULT_EX("invalid parity: %d", comspec.parity));
     }
 
     // No parity checking of input (for the moment).
@@ -426,7 +425,7 @@ int serial_putc(int fnbr, int ch) {
             break;
     }
 
-    ON_FAILURE_ERROR_EX(kInternalFault, -1);
+    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, -1);
     return -1;
 }
 
@@ -448,6 +447,6 @@ int serial_write(int fnbr, const char *buf, size_t sz) {
         error_throw(EBADF);
     }
 
-    ON_FAILURE_ERROR_EX(kInternalFault, -1);
+    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, -1);
     return -1;
 }

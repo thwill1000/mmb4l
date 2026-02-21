@@ -60,7 +60,7 @@ struct s_DirStream {
 };
 
 MmResult file_chdir(const char *dirname) {
-    if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
+    CHECK_PARAM(dirname != NULL);
 
     errno = 0;
     if (SUCCEEDED(chdir(dirname))) {
@@ -71,7 +71,7 @@ MmResult file_chdir(const char *dirname) {
 }
 
 MmResult file_delete(const char *filename) {
-    if (!filename) return mmresult_ex(kInternalFault, "filename == NULL");
+    CHECK_PARAM(filename != NULL);
 
     errno = 0;
     if (SUCCEEDED(remove(filename))) {
@@ -82,7 +82,7 @@ MmResult file_delete(const char *filename) {
 }
 
 MmResult file_closedir(DirStream *stream) {
-    if (!stream) return mmresult_ex(kInternalFault, "stream == NULL");
+    CHECK_PARAM(stream != NULL);
 
     errno = 0;
     if (SUCCEEDED(closedir(stream->dir))) {
@@ -104,11 +104,11 @@ int file_fsync(int fd) {
     return fsync(fd);
 }
 
-MmResult file_getcwd(char *buf, size_t size) {
-    if (!buf) return mmresult_ex(kInternalFault, "buf == NULL");
+MmResult file_getcwd(char *buf, size_t buf_sz) {
+    CHECK_PARAM(buf != NULL);
 
     errno = 0;
-    if (getcwd(buf, size)) {
+    if (getcwd(buf, buf_sz)) {
         return kOk;
     } else {
         return errno;
@@ -116,8 +116,8 @@ MmResult file_getcwd(char *buf, size_t size) {
 }
 
 MmResult file_get_free_space(const char *path, uint64_t *free_space) {
-    if (!path) return mmresult_ex(kInternalFault, "path == NULL");
-    if (!free_space) return mmresult_ex(kInternalFault, "free_space == NULL");
+    CHECK_PARAM(path != NULL);
+    CHECK_PARAM(free_space != NULL);
 
     struct statvfs fs_stat;
     errno = 0;
@@ -131,19 +131,21 @@ MmResult file_get_free_space(const char *path, uint64_t *free_space) {
     }
 }
 
-MmResult file_get_home(char *buf, size_t size) {
+MmResult file_get_home(char *buf, size_t buf_sz) {
+    CHECK_PARAM(buf != NULL);
+
     errno = 0;
     const char *home = getenv("HOME");
     if (!home) return errno; // Probably never happens.
-    if (FAILED(cstring_cpy(buf, home, size))) {
+    if (FAILED(cstring_cpy(buf, home, buf_sz))) {
         return kFilenameTooLong;
     }
     return kOk;
 }
 
 MmResult file_info(const char *filename, FileInfo *info) {
-    if (!filename) return mmresult_ex(kInternalFault, "filename == NULL");
-    if (!info) return mmresult_ex(kInternalFault, "info == NULL");
+    CHECK_PARAM(filename != NULL);
+    CHECK_PARAM(info != NULL);
 
     struct stat st;
     if (SUCCEEDED(stat(filename, &st))) {
@@ -179,6 +181,10 @@ MmResult file_info(const char *filename, FileInfo *info) {
 }
 
 MmResult file_open(const char *path, const char *mode, FILE **file) {
+    CHECK_PARAM(path != NULL);
+    CHECK_PARAM(mode != NULL);
+    CHECK_PARAM(file != NULL);
+
     // Random writing is not allowed when a file is opened for append so open it
     // first for read & update and if that does not work open it for
     // write & update. This has the same effect as opening for append & update
@@ -205,7 +211,9 @@ MmResult file_open(const char *path, const char *mode, FILE **file) {
 }
 
 MmResult file_opendir(const char *dirname, DirStream **stream) {
-    if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
+    CHECK_PARAM(dirname != NULL);
+    CHECK_PARAM(stream != NULL);
+
     errno = 0;
     DIR *dir = opendir(dirname);
     if (dir) {
@@ -224,7 +232,7 @@ MmResult file_opendir(const char *dirname, DirStream **stream) {
 }
 
 MmResult file_mkdir(const char *dirname) {
-    if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
+    CHECK_PARAM(dirname != NULL);
 
     errno = 0;
     if (SUCCEEDED(mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))) {
@@ -235,7 +243,8 @@ MmResult file_mkdir(const char *dirname) {
 }
 
 MmResult file_mkfile(const char *filename) {
-    if (!filename) return mmresult_ex(kInternalFault, "filename == NULL");
+    CHECK_PARAM(filename != NULL);
+
     FileInfo info;
     ON_FAILURE_RETURN(file_info(filename, &info));
     if (info.exists) return kFileExists;
@@ -251,7 +260,9 @@ MmResult file_mkfile(const char *filename) {
 }
 
 MmResult file_readdir(DirStream *stream, DirEntry **entry) {
-    if (!stream) return mmresult_ex(kInternalFault, "stream == NULL");
+    CHECK_PARAM(stream != NULL);
+    CHECK_PARAM(entry != NULL);
+
     errno = 0;
     struct dirent *e = readdir(stream->dir);
     if (!e) {
@@ -301,20 +312,23 @@ MmResult file_readdir(DirStream *stream, DirEntry **entry) {
     return kOk;
 }
 
-MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) {
+MmResult file_readlink(const char *path, char *buf, size_t *buf_sz) {
+    CHECK_PARAM(path != NULL);
+    CHECK_PARAM(buf != NULL);
+
     errno = 0;
-    ssize_t result = readlink(path, buf, *bufsiz);
+    ssize_t result = readlink(path, buf, *buf_sz);
     if (result == -1) {
         return errno;
     } else {
-        *bufsiz = (size_t) result;
+        *buf_sz = (size_t) result;
         return kOk;
     }
 }
 
 MmResult file_rename(const char *old_filename, const char *new_filename) {
-    if (!old_filename) return mmresult_ex(kInternalFault, "old_filename == NULL");
-    if (!new_filename) return mmresult_ex(kInternalFault, "new_filename == NULL");
+    CHECK_PARAM(old_filename != NULL);
+    CHECK_PARAM(new_filename != NULL);
 
     errno = 0;
     if SUCCEEDED(rename(old_filename, new_filename)) {
@@ -325,7 +339,7 @@ MmResult file_rename(const char *old_filename, const char *new_filename) {
 }
 
 MmResult file_rmdir(const char *dirname) {
-    if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
+    CHECK_PARAM(dirname != NULL);
 
     errno = 0;
     if (SUCCEEDED(rmdir(dirname))) {
