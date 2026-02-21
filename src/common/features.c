@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string.h>
 
+#include "error.h"
 #include "features.h"
 
 static Features features_cmm2 = {
@@ -224,8 +225,7 @@ MmResult features_init(Features *features, OptionsSimulate simulate) {
             new_features = &features_picomite_vga_usb;
             break;
         default:
-            return mmresult_ex(kInternalFault, "Internal fault: unknown OptionSimulate value %d",
-                               simulate);
+            RETURN_RESULT(INTERNAL_FAULT_EX("invalid OptionSimulate value %d", simulate));
     }
 
     memcpy(features, new_features, sizeof(Features));

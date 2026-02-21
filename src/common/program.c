@@ -333,7 +333,7 @@ static int program_get_num_defines() {
  * @return            kOk on success.
  */
 static MmResult program_get_define(size_t idx, const char **from, const char **to) {
-    if (idx >= program_replace_map->size) return kInternalFault;
+    CHECK_PARAM(idx < program_replace_map->size);
     *from = program_replace_map->items[program_replace_map->size - 1].from;
     *to = program_replace_map->items[program_replace_map->size - 1].to;
     return kOk;
@@ -515,7 +515,7 @@ static MmResult program_open_file(const char *filename) {
 }
 
 static MmResult program_close_file() {
-    if (program_file_stack->size == 0) return kInternalFault;
+    CHECK_STATE(program_file_stack->size > 0);
     ON_FAILURE_RETURN(streamio_close(program_file_stack->head->fnbr));
     program_file_stack->head->filename[0] = '\0';
     program_file_stack->head->fnbr = -1;
@@ -538,7 +538,7 @@ static MmResult program_handle_comment_directive(const char *p) {
         program_comment_level++;
     } else if ((q = checkstring(p, "END"))) {
         // Should never get here, instead handled in program_process_line().
-        return kInternalFault;
+        return INTERNAL_FAULT;
     } else {
         return kSyntax;
     }

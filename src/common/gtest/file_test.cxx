@@ -104,7 +104,8 @@ TEST_F(DirectoryApiTest, OpenDirNullPath) {
     MmResult result = file_opendir(nullptr, &stream);
 
     EXPECT_EQ(kInternalFault, result);
-    EXPECT_STREQ("dirname == NULL", mmresult_to_string(result));
+    EXPECT_STREQ("file_opendir() parameter check failed: dirname != NULL",
+                 mmresult_to_string(result));
     EXPECT_EQ(stream, nullptr);
 }
 
@@ -147,7 +148,8 @@ TEST_F(DirectoryApiTest, ReadDirNullStream) {
     MmResult result = file_readdir(nullptr, &entry);
 
     EXPECT_EQ(kInternalFault, result);
-    EXPECT_STREQ("stream == NULL", mmresult_to_string(result));
+    EXPECT_STREQ("file_readdir() parameter check failed: stream != NULL",
+                 mmresult_to_string(result));
     EXPECT_EQ(entry, nullptr);
 }
 
@@ -319,7 +321,8 @@ TEST_F(DirectoryApiTest, CloseNullStream) {
     MmResult result = file_closedir(nullptr);
 
     EXPECT_EQ(kInternalFault, result);
-    EXPECT_STREQ("stream == NULL", mmresult_to_string(result));
+    EXPECT_STREQ("file_closedir() parameter check failed: stream != NULL",
+                 mmresult_to_string(result));
 }
 
 // Unit tests for file_exists_dir() function

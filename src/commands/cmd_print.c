@@ -99,7 +99,7 @@ void cmd_print(void) {
                 } else if (t & T_STR) {
                     // Do nothing, 's' is already the MMBasic string we wish to output.
                 } else {
-                    ERROR_INTERNAL_FAULT;
+                    ON_FAILURE_ERROR(INTERNAL_FAULT_EX("invalid type: %d", t));
                 }
 
                 streamio_write(fnbr, s + 1, (size_t) s[0]);

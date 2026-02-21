@@ -914,7 +914,7 @@ static MmResult audio_play_next_track() {
     } else if (path_has_extension(next_track, ".WAV", true)) {
         result = audio_play_wav_internal(next_track);
     } else {
-        result = kInternalFault;
+        result = INTERNAL_FAULT_EX("invalid audio track type: %s", next_track);
     }
     return result;
 }
@@ -1030,7 +1030,8 @@ MmResult audio_play_sound(uint8_t sound_no, Channel channel, SoundType type, flo
                 // Already set to null_table.
                 break;
             default:
-                result = kInternalFault;
+                result = INTERNAL_FAULT_EX("invalid SoundType: %d", type);
+                break;
         }
     }
 

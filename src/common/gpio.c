@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 gpio.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -376,7 +376,7 @@ MmResult gpio_set_pin_value(uint8_t pin_num, uint8_t value) {
             if (value == 0) result = gpio_on_pin_high_to_low(pin_num);
             break;
         default:
-            result = kInternalFault;
+            result = INTERNAL_FAULT;
             break;
     }
     if (SUCCEEDED(result)) gpio_pins[pin_num].value = value;

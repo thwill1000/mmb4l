@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 gamepad.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -228,7 +228,7 @@ MmResult gamepad_close_all() {
 
 static inline MmResult gamepad_on_analog_internal(GamepadDevice *gamepad,
                                                   SDL_GameControllerAxis sdlAxis, int16_t value) {
-    if (!gamepad) return kInternalFault;
+    CHECK_PARAM(gamepad != NULL);
 
     switch (sdlAxis) {
         case SDL_CONTROLLER_AXIS_LEFTX:
@@ -260,7 +260,7 @@ static inline MmResult gamepad_on_analog_internal(GamepadDevice *gamepad,
             }
             break;
         default:
-            return kInternalFault;
+            return INTERNAL_FAULT_EX("invalid SDL controller axis: %d", sdlAxis);
     }
 
     return kOk;
@@ -303,7 +303,7 @@ static inline GamepadButton gamepad_map_button(SDL_GameControllerButton sdlButto
 
 static inline MmResult gamepad_on_button_down_internal(GamepadDevice *gamepad,
                                                        SDL_GameControllerButton sdlButton) {
-    if (!gamepad) return kInternalFault;
+    CHECK_PARAM(gamepad != NULL);
 
     const GamepadButton btn = gamepad_map_button(sdlButton);
     gamepad->buttons |= btn;
@@ -319,7 +319,7 @@ MmResult gamepad_on_button_down(int32_t sdlId, uint8_t sdlButton) {
             return gamepad_on_button_down_internal(&gamepad_devices[id], sdlButton);
         }
     }
-    return kInternalFault;
+    return INTERNAL_FAULT;
 }
 
 MmResult gamepad_on_button_up(int32_t sdlId, uint8_t sdlButton) {
@@ -329,7 +329,7 @@ MmResult gamepad_on_button_up(int32_t sdlId, uint8_t sdlButton) {
             return kOk;
         }
     }
-    return kInternalFault;
+    return INTERNAL_FAULT;
 }
 
 MmResult gamepad_read_buttons(MmGamepadId id, int64_t *out) {

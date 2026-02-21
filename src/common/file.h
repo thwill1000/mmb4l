@@ -227,10 +227,7 @@ MmResult file_size(const char *path, off_t *size);
  * @param[in]  path    Null-terminated path string.
  * @param[out] buf     Buffer to receive the null-terminated basename.
  * @param[in]  buf_sz  Size of buf in bytes.
- *
- * @return  kOk             on success.
- *          kInternalFault  if path or buf is NULL.
- *          kFilenameTooLong if the basename exceeds buf_sz - 1 characters.
+ * @return             kOk on success, error code on failure
  */
 MmResult file_basename(const char *path, char *buf, size_t buf_sz);
 

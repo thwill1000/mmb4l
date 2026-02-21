@@ -276,33 +276,36 @@ static int compare_by_extension(const void *a, const void *b) {
  * Helper function to extract directory and pattern from file specification
  */
 static MmResult file_parse_fspec(const char *fspec, char *dirname, char *pattern) {
-    if (!fspec || !dirname || !pattern) {
-        return mmresult_ex(kInternalFault, "Invalid parameter");
-    }
+    LOG_FN_ENTRY("fspec=%s", fspec);
+
+    CHECK_PARAM(fspec != NULL);
+    CHECK_PARAM(dirname != NULL);
+    CHECK_PARAM(pattern != NULL);
 
     ON_FAILURE_RETURN(path_get_canonical(fspec, dirname, PATH_MAX));
 
     // If the fspec is just a directory name then return all files
     if (file_exists_dir(dirname)) {
         strcpy(pattern, "*");
-        return kOk;
+        RETURN_RESULT(kOk);
     }
 
     // Find the last slash to separate directory from pattern
     char *last_slash = strrchr(dirname, '/');
-    if (!last_slash) ON_FAILURE_RETURN(kInternalFault);
+    if (!last_slash) RETURN_RESULT(INTERNAL_FAULT);
     if (FAILED(cstring_cpy(pattern, last_slash + 1, STRINGSIZE))) {
-        return kStringTooLong;
+        RETURN_RESULT(kStringTooLong);
     }
 
     // Omit pattern from directory
     *last_slash = '\0';
 
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 MmResult file_append_path(char *parent, const char *element, size_t size) {
-    if (parent == NULL || element == NULL) return INTERNAL_FAULT;
+    CHECK_PARAM(parent != NULL);
+    CHECK_PARAM(element != NULL);
 
     size_t parent_len = strlen(parent);
     size_t element_len = strlen(element);
@@ -469,7 +472,7 @@ bool file_exists_dir(const char *dirname) {
 }
 
 static MmResult file_get_config_dir_impl(char *buf, size_t size) {
-    if (buf == NULL) return INTERNAL_FAULT;
+    CHECK_PARAM(buf != NULL);
     ON_FAILURE_RETURN(file_get_home(buf, size));
     return file_append_path(buf, ".mmbasic", size);
 }

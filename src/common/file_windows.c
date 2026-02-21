@@ -70,27 +70,24 @@ int file_fsync(int fd) {
     RETURN_INT(0);
 }
 
-MmResult file_getcwd(char *buf, size_t size) {
-    if (!buf) return mmresult_ex(kInternalFault, "buf == NULL");
-
+MmResult file_getcwd(char *buf, size_t buf_sz) {
+    CHECK_PARAM(buf != NULL);
     RETURN_RESULT(kUnimplemented);
 }
 
 MmResult file_get_free_space(const char *path, uint64_t *free_space) {
-    if (!path) return mmresult_ex(kInternalFault, "path == NULL");
-    if (!free_space) return mmresult_ex(kInternalFault, "free_space == NULL");
-
+    CHECK_PARAM(path != NULL);
+    CHECK_PARAM(free_space != NULL);
     RETURN_RESULT(kUnimplemented);
 }
 
-MmResult file_get_home(char *buf, size_t size) {
+MmResult file_get_home(char *buf, size_t buf_sz) {
     RETURN_RESULT(kUnimplemented);
 }
 
 MmResult file_info(const char *filename, FileInfo *info) {
-    if (!filename) return mmresult_ex(kInternalFault, "filename == NULL");
-    if (!info) return mmresult_ex(kInternalFault, "info == NULL");
-
+    CHECK_PARAM(filename != NULL);
+    CHECK_PARAM(info != NULL);
     RETURN_RESULT(kUnimplemented);
 }
 
@@ -99,26 +96,24 @@ MmResult file_open(const char *path, const char *mode, FILE **file) {
 }
 
 MmResult file_opendir(const char *dirname, DirStream **stream) {
-    if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
-
+    CHECK_PARAM(dirname != NULL);
+    CHECK_PARAM(stream != NULL);
     RETURN_RESULT(kUnimplemented);
 }
 
 MmResult file_mkdir(const char *dirname) {
-    if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
-
+    CHECK_PARAM(dirname != NULL);
     RETURN_RESULT(kUnimplemented);
 }
 
 MmResult file_mkfile(const char *filename) {
-    if (!filename) return mmresult_ex(kInternalFault, "filename == NULL");
-
+    CHECK_PARAM(filename != NULL);
     RETURN_RESULT(kUnimplemented);
 }
 
 MmResult file_readdir(DirStream *stream, DirEntry **entry) {
-    if (!stream) return mmresult_ex(kInternalFault, "stream == NULL");
-
+    CHECK_PARAM(stream != NULL);
+    CHECK_PARAM(entry != NULL);
     RETURN_RESULT(kUnimplemented);
 }
 
@@ -127,14 +122,12 @@ MmResult file_readlink(const char *path, char *buf, size_t *bufsiz) {
 }
 
 MmResult file_rename(const char *old_filename, const char *new_filename) {
-    if (!old_filename) return mmresult_ex(kInternalFault, "old_filename == NULL");
-    if (!new_filename) return mmresult_ex(kInternalFault, "new_filename == NULL");
-
+    CHECK_PARAM(old_filename != NULL);
+    CHECK_PARAM(new_filename != NULL);
     RETURN_RESULT(kUnimplemented);
 }
 
 MmResult file_rmdir(const char *dirname) {
-    if (!dirname) return mmresult_ex(kInternalFault, "dirname == NULL");
-
+    CHECK_PARAM(dirname != NULL);
     RETURN_RESULT(kUnimplemented);
 }

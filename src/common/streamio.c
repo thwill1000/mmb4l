@@ -119,7 +119,7 @@ int streamio_eof(int fnbr) {
             return serial_eof(fnbr);
     }
 
-    ON_FAILURE_ERROR_EX(kInternalFault, 1);
+    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, 1);
     return 1;
 }
 
@@ -164,7 +164,7 @@ int streamio_getc(int fnbr) {
             return serial_getc(fnbr);
     }
 
-    ON_FAILURE_ERROR_EX(kInternalFault, -1);
+    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, -1);
     return -1;
 }
 
@@ -286,7 +286,7 @@ int streamio_putc(int fnbr, int ch) {
             return serial_putc(fnbr, ch);
     }
 
-    error_throw(kInternalFault);
+    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, -1);
     return -1;
 }
 
@@ -313,26 +313,24 @@ size_t streamio_read(int fnbr, char *buf, size_t sz) {
             break;
     }
 
-    ON_FAILURE_ERROR_EX(kInternalFault, 0);
-
+    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, 0);
     return 0;
 }
 
-MmResult streamio_readln(int fnbr, char *buf, size_t sz) {
+MmResult streamio_readln(int fnbr, char *buf, size_t buf_sz) {
+    CHECK_PARAM(buf != NULL);
+    CHECK_PARAM(buf_sz > 0);
+
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
         return kFileInvalidFileNumber;
-    }
-    if (!buf || sz == 0) {
-        return mmresult_ex(kInternalFault, "%s invalid parameter: buf=%p, sz=%d", __func__, buf,
-                           sz);
     }
     if (file_table[fnbr].type == fet_closed) return kFileNotOpen;
 
     size_t pos = 0;
     int ch;
-    sz--;  // Reserve space for null terminator
+    buf_sz--;  // Reserve space for null terminator
 
-    while (pos <= sz) {
+    while (pos <= buf_sz) {
         ch = streamio_getc(fnbr);
 
         if (ch < 0) {
@@ -341,7 +339,7 @@ MmResult streamio_readln(int fnbr, char *buf, size_t sz) {
                 buf[0] = '\0';
                 return kOk;
             }
-            return mmresult_ex(kInternalFault, "%s streamio_getc() failed: %d", __func__, ch);
+            return INTERNAL_FAULT_EX("streamio_getc() failed: %d", ch);
         }
 
         if (ch == '\n') {
@@ -355,7 +353,7 @@ MmResult streamio_readln(int fnbr, char *buf, size_t sz) {
         }
 
         // Only store character if there's room
-        if (pos < sz) {
+        if (pos < buf_sz) {
             buf[pos++] = (char)ch;
         } else {
             // Buffer full and this isn't a terminator
@@ -407,7 +405,7 @@ MmResult streamio_ungetc(int fnbr, int ch) {
             errno = 0;
             if (ungetc(ch, file_table[fnbr].file_ptr) == EOF) {
                 if (errno) return errno;
-                return mmresult_ex(kInternalFault, "%s ungetc() failed", __func__);
+                return INTERNAL_FAULT_EX("ungetc() failed");
             }
             return kOk;
 
@@ -416,8 +414,7 @@ MmResult streamio_ungetc(int fnbr, int ch) {
             return kFileInvalidOperation;
 
         default:
-            return mmresult_ex(kInternalFault, "%s unknown file type: %d", __func__,
-                               file_table[fnbr].type);
+            return INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type);
     }
 }
 
@@ -435,8 +432,8 @@ size_t streamio_write(int fnbr, const char *buf, size_t sz) {
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, 0);
-            break;
+            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
+            return -1;
 
         case fet_file: {
             errno = 0;
@@ -451,9 +448,10 @@ size_t streamio_write(int fnbr, const char *buf, size_t sz) {
 
         case fet_serial:
             return serial_write(fnbr, buf, sz);
-            break;
-    }
 
-    ON_FAILURE_ERROR_EX(kInternalFault, -1);
-    return -1;
+        default:
+            ON_FAILURE_ERROR_EX(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type),
+                                -1);
+            return -1;
+    }
 }
