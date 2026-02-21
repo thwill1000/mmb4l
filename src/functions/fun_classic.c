@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_classic.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -60,7 +60,7 @@ void fun_classic(void) {
     const int wii_i2c = (argc == 3) ? getint(argv[2], 1, 3) : 3;
     const MmGamepadId gamepad_id = gamepad_transform_wii_i2c(wii_i2c);
     if (gamepad_id == -1) {
-        ERROR_INTERNAL_FAULT;
+        ON_FAILURE_ERROR(INTERNAL_FAULT);
         return;
     }
 

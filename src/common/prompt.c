@@ -270,7 +270,7 @@ MmResult prompt_save_history(const char *filepath) {
         // Write the item with a newline
         if (streamio_write(fnbr, item, len) < len || streamio_write(fnbr, "\n", 1) < 1) {
             ON_FAILURE_LOG(streamio_close(fnbr));
-            return mmresult_ex(kInternalFault, "%s streamio_write() failed", __func__);
+            return INTERNAL_FAULT_EX("streamio_write() failed");
         }
     }
 

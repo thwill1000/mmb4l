@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_device.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -54,7 +54,7 @@ static MmResult cmd_device_classic_close(const char *p) {
     if (argc > 1) return kArgumentCount;
     int wii_i2c = (argc > 0) ? getint(argv[0], 1, 3) : 3;
     MmGamepadId gamepad_id = gamepad_transform_wii_i2c(wii_i2c);
-    if (gamepad_id == -1) return kInternalFault;
+    if (gamepad_id == -1) return INTERNAL_FAULT;
     return gamepad_close(gamepad_id);
 }
 
@@ -64,7 +64,7 @@ static MmResult cmd_device_classic_open(const char *p) {
     if (argc != 0 && argc != 1 && argc != 3 && argc != 5) return kArgumentCount;
     int wii_i2c = (argc > 0) ? getint(argv[0], 1, 3) : 3;
     MmGamepadId gamepad_id = gamepad_transform_wii_i2c(wii_i2c);
-    if (gamepad_id == -1) return kInternalFault;
+    if (gamepad_id == -1) return INTERNAL_FAULT;
     const char *interrupt = (argc > 1) ? GetIntAddress(argv[2]) : NULL;
     uint16_t bitmask = (argc > 3) ? getint(argv[4], 0, UINT16_MAX) : GAMEPAD_BITMASK_ALL;
     ON_FAILURE_RETURN(gamepad_open(gamepad_id));

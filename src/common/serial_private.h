@@ -47,8 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static inline MmResult serial_validate_fnbr(int fnbr) {
     ON_FAILURE_RETURN(file_validate_fnbr(fnbr));
-    if (file_table[fnbr].type != fet_serial) {
-        RETURN_RESULT(kInternalFault);
-    }
+    CHECK_PARAM(file_table[fnbr].type == fet_serial);
     RETURN_RESULT(kOk);
 }

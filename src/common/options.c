@@ -557,7 +557,7 @@ MmResult options_get_float_value(const Options *options, OptionsId id, MMFLOAT *
             break;
 #endif
         default:
-            result = kInternalFault;
+            result = INTERNAL_FAULT;
             break;
     }
     return result;
@@ -593,7 +593,7 @@ MmResult options_get_integer_value(const Options *options, OptionsId id, MMINTEG
             break;
 #endif
         default:
-            result = kInternalFault;
+            result = INTERNAL_FAULT;
             break;
     }
     return result;
@@ -630,7 +630,7 @@ static MmResult options_get_codepage(const Options *options, char *page_name) {
         }
     }
 
-    return kInternalFault;
+    return INTERNAL_FAULT;
 }
 
 MmResult options_get_string_value(const Options *options, OptionsId id, char *svalue) {
@@ -642,21 +642,21 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
 
     switch (options_definitions[id].type) {
         case kOptionTypeBoolean: {
-            MMINTEGER ivalue;
+            MMINTEGER ivalue = 0;
             result = options_get_integer_value(options, id, &ivalue);
             if (SUCCEEDED(result)) sprintf(svalue, "%s", ivalue ? "On" : "Off");
             return result;
         }
 
         case kOptionTypeInteger: {
-            MMINTEGER ivalue;
+            MMINTEGER ivalue = 0;
             result = options_get_integer_value(options, id, &ivalue);
             if (SUCCEEDED(result)) sprintf(svalue, "%" PRId64, ivalue);
             return result;
         }
 
         case kOptionTypeFloat: {
-            MMFLOAT fvalue;
+            MMFLOAT fvalue = 0.0;
             result = options_get_float_value(options, id, &fvalue);
             if (SUCCEEDED(result)) sprintf(svalue, "%g", fvalue);
             return result;
@@ -761,7 +761,7 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
 #endif
 
         default:
-            result = kInternalFault;
+            result = INTERNAL_FAULT;
     }
     return result;
 }
@@ -872,7 +872,7 @@ static MmResult options_set_explicit_type(Options *options, const char *svalue) 
 }
 
 static MmResult options_set_fn_key(Options *options, OptionsId id, const char *svalue) {
-    if (id < kOptionF1 || id > kOptionF12) return kInternalFault;
+    CHECK_PARAM(id >= kOptionF1 && id <= kOptionF12);
     if (strlen(svalue) >= STRINGSIZE) return kStringTooLong;
     strcpy(options->fn_keys[id - kOptionF1], svalue);
     return kOk;
@@ -938,7 +938,8 @@ MmResult options_set_float_value(Options *options, OptionsId id, MMFLOAT fvalue)
             return kOk;
 #endif
 
-        default: return kInternalFault;
+        default:
+            return INTERNAL_FAULT;
     }
 }
 
@@ -964,7 +965,8 @@ MmResult options_set_integer_value(Options *options, OptionsId id, MMINTEGER iva
             return kOk;
 #endif
 
-        default: return kInternalFault;
+        default:
+            return INTERNAL_FAULT;
     }
 }
 
@@ -997,7 +999,7 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
             break;
 
         default:
-            return kInternalFault;
+            return INTERNAL_FAULT_EX("invalid OptionType: %d", options_definitions[id].type);
     }
 
     switch (id) {

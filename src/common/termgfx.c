@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -248,11 +248,8 @@ MmResult termgfx_putc_noflush(char c) {
 }
 
 MmResult termgfx_puts(const char *s) {
+    CHECK_PARAM(s != NULL);
     ASSERT_GFX();
-
-    if (!s) {
-        return mmresult_ex(kInternalFault, "Invalid null parameter: s");
-    }
 
     // TODO: This special non-breaking space handling is to workaround an issue documented in
     //       editor.c#editor_draw_line() where Alacritty does not render underlines for normal

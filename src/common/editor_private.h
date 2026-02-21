@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "error.h"
 #include "mmresult.h"
 #include "program.h" // for EDIT_BUFFER_SIZE
 
@@ -306,24 +307,19 @@ static inline char *editor_previous_line(Editor *self, char *p) {
  */
 static inline MmResult editor_get_line_and_column(Editor *self, char *pbuf, int *line,
                                                     int *column) {
-    if (!self || !pbuf || !line || !column) {
-        return mmresult_ex(kInternalFault,
-                           "invalid parameter: self=%p, pbuf=%p, line=%p, column=%p",
-                           self, pbuf, line, column);
-    }
-
-    if (pbuf < self->buf || pbuf >= self->buf + self->buf_sz) {
-        return mmresult_ex(kInternalFault,
-                           "pbuf out of bounds: pbuf=%p, buf=%p, buf_sz=%d",
-                           pbuf, self->buf, self->buf_sz);
-    }
+    CHECK_PARAM(self != NULL);
+    CHECK_PARAM(pbuf != NULL);
+    CHECK_PARAM(line != NULL);
+    CHECK_PARAM(column != NULL);
+    CHECK_PARAM(pbuf >= self->buf);
+    CHECK_PARAM(pbuf < self->buf + self->buf_sz);
 
     *column = 0;
     *line = 0;
     for (char *p = self->buf; p != pbuf && p < self->buf + self->buf_sz; p++) {
         switch (*p) {
             case '\0':
-                return mmresult_ex(kInternalFault, "pbuf beyond text: pbuf=%p", pbuf);
+                return INTERNAL_FAULT_EX("pbuf beyond text: pbuf=%p", pbuf);
             case '\n':
                 (*line)++;
                 *column = 0;

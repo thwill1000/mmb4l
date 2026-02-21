@@ -85,16 +85,24 @@ void error_clear_callback();
 /**
  * Checks that parameter x is non-null/true. If the check fails, logs an error
  * message with the function name, file, and line number, and returns
- * kInvalidParameter to the caller.
+ * kInternalFault to the caller.
  *
  * Must only be used in functions that return MmResult.
  */
-#define CHECK_PARAM(x)  do { \
-    if (!(x)) { \
-        return mmresult_ex(kInternalFault, "%s() parameter check failed: %s", \
-                           __func__, #x); \
-    } \
-} while (0)
+#define CHECK_PARAM(x)                                                                           \
+    do {                                                                                         \
+        if (!(x)) {                                                                              \
+            return mmresult_ex(kInternalFault, "%s() parameter check failed: %s", __func__, #x); \
+        }                                                                                        \
+    } while (0)
+
+#define CHECK_STATE(x)                                                                             \
+    do {                                                                                           \
+        if (!(x)) {                                                                                \
+            return mmresult_ex(kInternalFault, "%s:%d: state check failed: %s", __FILE__, __LINE__, \
+                               #x);                                                                \
+        }                                                                                          \
+    } while (0)
 
 #define ON_FAILURE_ERROR(x)  do { \
     const MmResult result__ = (x); \
@@ -164,7 +172,9 @@ void error_clear_callback();
     return result__; \
 } while (0)
 
-#define INTERNAL_FAULT  mmresult_ex(kInternalFault, "Internal fault %s:%d", __FILE__, __LINE__)
+#define INTERNAL_FAULT mmresult_ex(kInternalFault, "%s:%d internal fault", __FILE__, __LINE__)
+#define INTERNAL_FAULT_EX(fmt, ...) \
+    mmresult_ex(kInternalFault, "%s:%d internal fault: " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 
 #define ERROR_ARGUMENT_COUNT              error_throw(kArgumentCount)
 #define ERROR_ARRAY_NOT_SQUARE            error_throw_ex(kError, "Array must be square")
@@ -182,7 +192,6 @@ void error_clear_callback();
 #define ERROR_DST_ARRAY_TOO_SMALL         error_throw_ex(kError, "Destination array too small")
 #define ERROR_ENV_VAR_TOO_LONG            error_throw_ex(kStringTooLong, "Environment variable value too long")
 #define ERROR_INTEGER_ARRAY_TOO_SMALL     error_throw_ex(kError, "Integer array too small")
-#define ERROR_INTERNAL_FAULT              error_throw(kInternalFault)
 #define ERROR_INVALID(s)                  error_throw_ex(kError, "Invalid $", s)
 #define ERROR_INVALID_ADDRESS             ERROR_INVALID("address")
 #define ERROR_INVALID_ARGUMENT            ERROR_INVALID("argument")
