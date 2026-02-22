@@ -5,7 +5,6 @@
 
 #include <gtest/gtest.h>
 #include <climits>
-#include <dirent.h>
 #include <filesystem>
 
 #include "test_config.h"

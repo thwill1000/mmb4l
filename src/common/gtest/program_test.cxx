@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2021-2025 Thomas Hugo Williams
+ * Copyright (c) 2021-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h> // Needed for EXPECT_THAT.
 #include <climits>
-#include <dirent.h>
 
 #if !defined(ENABLE_GTEST_EXTRAS)
 #define ENABLE_GTEST_EXTRAS
@@ -164,35 +163,69 @@ protected:
 
     void RemoveRecursively(const char *dir_path) {
         struct stat st = { 0 };
-        if (stat(dir_path, &st) == -1) return; // Does not exist.
+        if (stat(dir_path, &st) == -1) return; // Does not exist
 
-        errno = 0;
-        DIR *dir = opendir(dir_path);
-        if (!dir) {
-            utility_perror_ext("opendir(\"%s\") failed", dir_path);
+        // Open the directory stream
+        DirStream *dir = NULL;
+        MmResult result = file_opendir(dir_path, &dir);
+        if (FAILED(result)) {
+            fprintf(stderr, "file_opendir(\"%s\") failed: %s\n", dir_path, mmresult_to_string(result));
             return;
         }
 
-        struct dirent *next_file;
-        char file_path[PATH_MAX];
+        for (;;) {
+            // Read next entry in directory
+            DirEntry* next_file = NULL;
+            result = file_readdir(dir, &next_file);
+            if (FAILED(result)) {
+                fprintf(stderr, "file_readdir(\"%s\") failed: %s\n", dir_path,
+                        mmresult_to_string(result));
+                break;
+            }
+            if (!next_file) break; // No more files
 
-        while ((next_file = readdir(dir)) != NULL) {
-            errno = 0; // Strange that readdir() both returns a value and sets errno.
-            if (strcmp(next_file->d_name, ".") != 0
-                    && strcmp(next_file->d_name, "..") != 0) {
-                snprintf_nowarn(file_path, PATH_MAX, "%s/%s", dir_path, next_file->d_name);
-                if (next_file->d_type == DT_DIR) RemoveRecursively(file_path);
-                if (FAILED(remove(file_path))) {
-                    utility_perror_ext("remove(\"%s\") failed", file_path);
-                    errno = 0;
+            // Skip . and ..
+            if (strcmp(next_file->name, ".") == 0 || strcmp(next_file->name, "..") == 0) continue;
+
+            char file_path[PATH_MAX] = {'\0'};
+            result = file_append_path(file_path, dir_path, sizeof(file_path));
+            if (FAILED(result)) {
+                fprintf(stderr, "file_append_path(\"%s\", \"%s\") failed: %s\n", file_path,
+                        dir_path, mmresult_to_string(result));
+                break;
+            }
+            result = file_append_path(file_path, next_file->name, sizeof(file_path));
+            if (FAILED(result)) {
+                fprintf(stderr, "file_append_path(\"%s\", \"%s\") failed: %s\n", file_path,
+                        next_file->name, mmresult_to_string(result));
+                break;
+            }
+
+            if (next_file->type == kFileTypeDirectory) {
+                // Recursively delete subdirectory
+                RemoveRecursively(file_path);
+            } else {
+                // Delete file
+                result = file_delete(file_path);
+                if (FAILED(result)) {
+                    fprintf(stderr, "file_delete(\"%s\") failed: %s\n", file_path,
+                            mmresult_to_string(result));
                     break;
                 }
             }
         }
 
-        if (errno) utility_perror_ext("readdir(\"%s\") failed", dir_path);
+        // Close the directory stream
+        result = file_closedir(dir);
+        if (FAILED(result)) {
+            fprintf(stderr, "file_closedir(\"%s\") failed: %s\n", dir_path, mmresult_to_string(result));
+        }
 
-        if (FAILED(closedir(dir))) utility_perror_ext("closedir(\"%s\") failed", dir_path);
+        // Delete the directory itself
+        result = file_delete(dir_path);
+        if (FAILED(result)) {
+            fprintf(stderr, "file_delete(\"%s\") failed: %s\n", dir_path, mmresult_to_string(result));
+        }
     }
 
     void RemoveDir(const char *path) {
