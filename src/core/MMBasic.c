@@ -181,10 +181,7 @@ MmResult InitBasic(void) {
 // this will continuously execute a program until the end (marked by TWO zero chars)
 // the argument p must point to the first line to be executed
 // We need to suppress a spurious(?) warning about 'p' being clobbered by setjmp().
-#pragma GCC diagnostic push
-#if !defined(__clang__)
-#pragma GCC diagnostic ignored "-Wclobbered"
-#endif
+DIAGNOSTIC_IGNORE_CLOBBERED
 void ExecuteProgram(const char *p) {
     int i;
     int SaveLocalIndex = 0;
@@ -289,7 +286,7 @@ void ExecuteProgram(const char *p) {
 
     memcpy(ErrNext, SaveErrNext, sizeof(jmp_buf));                  // restore jump buffer
 }
-#pragma GCC diagnostic pop
+DIAGNOSTIC_RESTORE
 
 
 /********************************************************************************************************************************************

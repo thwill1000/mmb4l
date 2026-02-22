@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 utility.h
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -52,6 +52,49 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define stringify(a) #a
 #define xstringify(a) stringify(a)
 #define VAR_NAME_VALUE(var) #var "=" xstringify(var)
+
+#if defined(_WIN32)
+
+#define DIAGNOSTIC_IGNORE_ARRAY_BOUNDS
+#define DIAGNOSTIC_IGNORE_CLOBBERED
+#define DIAGNOSTIC_IGNORE_MAYBE_UNINITIALIZED
+#define DIAGNOSTIC_IGNORE_UNUSED_VARIABLE
+#define DIAGNOSTIC_RESTORE
+
+#else
+
+#define DIAGNOSTIC_IGNORE_ARRAY_BOUNDS \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Warray-bounds\"")
+
+#define DIAGNOSTIC_IGNORE_UNUSED_VARIABLE \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wunused-variable\"")
+
+#define DIAGNOSTIC_RESTORE \
+    _Pragma("GCC diagnostic pop")
+
+#if defined(__clang__)
+
+#define DIAGNOSTIC_IGNORE_CLOBBERED \
+    _Pragma("GCC diagnostic push")
+
+#define DIAGNOSTIC_IGNORE_MAYBE_UNINITIALIZED  \
+    _Pragma("GCC diagnostic push")
+
+#else
+
+#define DIAGNOSTIC_IGNORE_CLOBBERED \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wclobbered\"")
+
+#define DIAGNOSTIC_IGNORE_MAYBE_UNINITIALIZED \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
+
+#endif // #if defined(__clang__)
+
+#endif // #if defined(_WIN32)
 
 #if __GNUC__ >= 11
 #define CASE_FALLTHROUGH  [[fallthrough]]

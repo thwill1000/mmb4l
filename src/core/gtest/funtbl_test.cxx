@@ -10,6 +10,7 @@ extern "C" {
 
 #include "../funtbl.h"
 #include "../../common/memory.h"
+#include "../../common/utility.h"
 
 const struct s_funtbl EMPTY_FUN = {};
 
@@ -179,12 +180,11 @@ TEST_F(FuntblTest, Add_ReturnsInternalFault_GivenInvalidAddress) {
     EXPECT_EQ(-1, fun_idx);
 
     // < ProgMemory is invalid.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
+    DIAGNOSTIC_IGNORE_ARRAY_BOUNDS
     result = funtbl_add("foo", kSub, ProgMemory - 1, &fun_idx);
     EXPECT_EQ(kInternalFault, result);
     EXPECT_EQ(-1, fun_idx);
-#pragma GCC diagnostic pop
+    DIAGNOSTIC_RESTORE
 
     // >= ProgMemory + PROG_FLASH_SIZE is invalid.
     result = funtbl_add("foo", kSub, ProgMemory + PROG_FLASH_SIZE, &fun_idx);

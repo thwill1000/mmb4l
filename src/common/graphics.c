@@ -522,10 +522,9 @@ MmResult graphics_sprite_create(MmSurfaceId id, int width, int height) {
     if (id == 0) return kGraphicsInvalidSpriteIdZero;
 
     MmResult result = graphics_surface_create(id, kGraphicsInactiveSprite, width, height);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
+    DIAGNOSTIC_IGNORE_ARRAY_BOUNDS
     MmSurface *s = &graphics_surfaces[id];
-#pragma GCC diagnostic pop
+    DIAGNOSTIC_RESTORE
     s->blit_flags = kBlitWithTransparency;
 
     if (SUCCEEDED(result)) {
