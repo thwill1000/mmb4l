@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 maths.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -1021,30 +1021,21 @@ void cmd_math(void){
 			if(dim[target]!=toarray)error_throw_legacy("Size mismatch between slice and target array");
 			i=dimcount-1;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-
+			DIAGNOSTIC_IGNORE_ARRAY_BOUNDS
 			while(i>=0){
 				off[i]=1;
 				for(j=0; j<i; j++)off[i]*=(dim[j]+1);
 				i--;
 			}
-
-#pragma GCC diagnostic pop
+			DIAGNOSTIC_RESTORE
 
 			start=1;
 
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif
+			DIAGNOSTIC_IGNORE_MAYBE_UNINITIALIZED
 			for(i=0;i<dimcount;i++){
 				start+= (pos[i]*off[i]);
 			}
-
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
+			DIAGNOSTIC_RESTORE
 
 			start--;
 			increment=off[target];
@@ -1790,31 +1781,21 @@ void cmd_math(void){
 			if(dim[target]+mmb_options.base!=dims[0])error_throw_legacy("Size mismatch between insert and target array");
 			i=dimcount-1;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-
+			DIAGNOSTIC_IGNORE_ARRAY_BOUNDS
 			while(i>=0){
 				off[i]=1;
 				for(j=0; j<i; j++)off[i]*=(dim[j]+1);
 				i--;
 			}
-
-#pragma GCC diagnostic pop
+			DIAGNOSTIC_RESTORE
 
 			start=1;
 
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif
-
+			DIAGNOSTIC_IGNORE_MAYBE_UNINITIALIZED
 			for(i=0;i<dimcount;i++){
 				start+= (pos[i]*off[i]);
 			}
-
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
+			DIAGNOSTIC_RESTORE
 
 			start--;
 			increment=off[target];
