@@ -1007,7 +1007,7 @@ void tokenise(int console) {
         if(firstnonwhite) {                                         // first entry on the line must be a command
             // these variables are only used in the search for a command code
             char *tp2, *match_p = NULL;
-            ssize_t match_i = -1, match_l = 0;
+            int64_t match_i = -1, match_l = 0;
             // first test if it is a print shortcut char (?) - this needs special treatment
             if(*p == '?') {
                 match_i = cmdPRINT;
@@ -1034,7 +1034,7 @@ void tokenise(int console) {
                     if(*tp == 0 && (!isnamechar(*tp2) || (commandtbl[i].type & T_FUN))) {
                         if(*(tp - 1) != '(' && isnamechar(*tp2)) continue;   // skip if not the function
                         // save the details if it is the longest command found so far
-                        if((ssize_t) strlen(commandtbl[i].name) > match_l) {
+                        if((int64_t) strlen(commandtbl[i].name) > match_l) {
                             match_p = tp2;
                             match_l = strlen(commandtbl[i].name);
                             match_i = i;
