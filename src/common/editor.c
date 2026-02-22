@@ -451,16 +451,22 @@ static MmResult editor_draw_line(Editor *self) {
 
     char buf[STRINGSIZE];
 
-    // Use Unicode non-breaking spaces (U+00A0) for better terminal compatibility
-    // with underline rendering, e.g. Alacritty does not render underlines for normal spaces.
-    const char *nbsp = "\u00A0";  // Non-breaking space in UTF-8
-    const int nbsp_len = 2;       // UTF-8 encoding of U+00A0 is 2 bytes
+#if defined(_WIN32)
+    const char *space = " ";
+    const int space_len = 1;
+#else
+    // On Linux use Unicode non-breaking spaces (U+00A0) for better terminal
+    // compatibility with underline rendering, e.g. Alacritty does not render
+    // underlines for normal spaces.
+    const char *space = "\u00A0";  // Non-breaking space in UTF-8
+    const int space_len = 2;       // UTF-8 encoding of U+00A0 is 2 bytes
+#endif
 
     // Fill buffer with non-breaking spaces
     int pos = 0;
-    for (int i = 0; i < self->width && pos < STRINGSIZE - nbsp_len; i++) {
-        memcpy(buf + pos, nbsp, nbsp_len);
-        pos += nbsp_len;
+    for (int i = 0; i < self->width && pos < STRINGSIZE - space_len; i++) {
+        memcpy(buf + pos, space, space_len);
+        pos += space_len;
     }
     buf[pos] = '\0';
 
@@ -1294,7 +1300,7 @@ char *editor_find_line_ex(Editor *self, int line, int *comment_level) {
  * @note For a zero-length selection (mark == txtp), start and end will be equal.
  * @note The length is always non-negative since end >= start by construction.
  */
-inline size_t editor_get_selection(Editor *self, char **start, char **end) {
+size_t editor_get_selection(Editor *self, char **start, char **end) {
     if (self->txtp > self->mark) {
         // If txtp > mark then selection includes mark but not txtp
         *start = self->mark;

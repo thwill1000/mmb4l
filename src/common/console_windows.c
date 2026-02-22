@@ -42,25 +42,103 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <windows.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <io.h>
+
+// Undefine HRESULT macros that conflict with MMB4L definitions
+#undef FAILED
+#undef SUCCEEDED
+
 #include "console_private.h"
 #include "error.h"
 
 static ConsoleState *self;
+static DWORD original_stdout_mode = 0;
+static DWORD original_stdin_mode = 0;
 
-MmResult console_private_init(ConsoleState *_self) {
+MmResult console_init_platform(ConsoleState *_self) {
     self = _self;
+
+    // Save original modes
+    HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    GetConsoleMode(hStdout, &original_stdout_mode);
+
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    GetConsoleMode(hStdin, &original_stdin_mode);
+
+    // Enable VT100 output processing
+    SetConsoleMode(hStdout, original_stdout_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
+    // Enable VT100 input processing
+    SetConsoleMode(hStdin, original_stdin_mode | ENABLE_VIRTUAL_TERMINAL_INPUT);
+
+    // Binary mode to prevent \n -> \r\n translation
+    _setmode(_fileno(stdout), _O_BINARY);
+
+    return kOk;
+}
+
+MmResult console_term_platform(void) {
+    // Restore original console modes
+    HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleMode(hStdout, original_stdout_mode);
+
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    SetConsoleMode(hStdin, original_stdin_mode);
+
+    // Restore text mode translation
+    _setmode(_fileno(stdout), _O_TEXT);
+
     return kOk;
 }
 
 void console_disable_raw_mode(void) {
-    LOG_WARN("UNIMPLEMENTED");
+    // Do nothing, we are handling it in console_term_platform()
 }
 
 void console_enable_raw_mode(void) {
-    LOG_WARN("UNIMPLEMENTED");
+    // Do nothing, we are handling it in console_init_platform()
+}
+
+MmResult console_sync_cursor_pos(int timeout_ms) {
+    (void) timeout_ms;  // Unused by Windows implementation
+
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hConsole == INVALID_HANDLE_VALUE) {
+        return mmresult_ex(kError, "Failed to get console handle");
+    }
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (!GetConsoleScreenBufferInfo(hConsole, &csbi)) {
+        return mmresult_ex(kError, "Failed to read console cursor position");
+    }
+
+    self->x = csbi.dwCursorPosition.X;
+    self->y = csbi.dwCursorPosition.Y;
+    return kOk;
 }
 
 MmResult console_sync_size(int timeout_ms) {
-    LOG_WARN("UNIMPLEMENTED");
-    RETURN_RESULT(kOk);
+    static int safe_width = 80;
+    static int safe_height = 40;
+
+    HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hStdout != INVALID_HANDLE_VALUE) {
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        if (GetConsoleScreenBufferInfo(hStdout, &csbi)) {
+            int width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+            int height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+            if (width > 0 && height > 0) {
+                safe_width = width;
+                safe_height = height;
+            }
+        }
+    }
+
+    self->width = safe_width;
+    self->height = safe_height;
+
+    return kOk;
 }

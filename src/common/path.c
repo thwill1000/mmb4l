@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -143,17 +144,19 @@ typedef enum {
 }
 
 MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
-    LOG_FN_ENTRY("original_path=\"%s\", new_path=\"%s\", sz=%d", original_path, new_path, sz);
+    LOG_FN_ENTRY("original_path=\"%s\", new_path=0x%" PRIxPTR ", sz=%d", original_path, (uintptr_t) new_path, sz);
 
     const char *psrc = original_path;
     bool absolute = original_path[0] == '\\' || original_path[0] == '/';
 
-    // HACK! ignore any leading drive letter and colon in the 'original_path', e.g. "A:".
     size_t len = strlen(psrc);
     if (len >= 2 && isalpha(psrc[0]) && psrc[1] == ':') {
+        absolute = true;
+#if !defined(_WIN32)
+        // On Linux ignore any leading drive letter and colon
         psrc += 2;
         len -= 2;
-        absolute = true;
+#endif
     }
 
     memset(new_path, 0, sz);
@@ -297,6 +300,7 @@ MmResult path_munge(const char *original_path, char *new_path, size_t sz) {
     }
 
     MmResult result = (new_path[sz - 1] != '\0' || safe_dst.overrun) ? kFilenameTooLong : kOk;
+    new_path[sz - 1] = '\0'; // Ensure null termination.
     RETURN_RESULT_EX(result, "new_path=\"%s\"", new_path);
 }
 
@@ -370,17 +374,17 @@ MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
 
         // Replace '~' prefix with the user's HOME directory.
         ON_FAILURE_RETURN(file_get_home(tmp_path, PATH_MAX));
-        if (tmp_path[0] != '\\' && tmp_path[0] != '/') return INTERNAL_FAULT;
+        if (!file_is_absolute(tmp_path)) return INTERNAL_FAULT;
         path++; // Skip the '~'.
 
     } else if (isalpha(path[0]) && path[1] == ':') {
-
+#if !defined(_WIN32)
         // Replace DOS drive prefix with root dir;
         // Any repeated '/' will be dealt with by the later call to path_munge().
         if (FAILED(cstring_cat(tmp_path, "/", PATH_MAX))) return kFilenameTooLong;
         path += 2; // Skip the drive prefix.
-
-    } else if (!path_is_absolute(path)) {
+#endif
+    } else if (!file_is_absolute(path)) {
 
         // If the 'path' is not absolute then copy the current working directory
         // into 'tmp_path'.
@@ -393,24 +397,18 @@ MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz) {
 
     // Munge 'tmp_path' into 'canonical_path' to deal with any
     // repeated slashes, slash-dots, slash-dot-dots, or back-slashes.
-    MmResult result = path_munge(tmp_path, canonical_path, sz);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_munge(tmp_path, canonical_path, sz));
 
     // Resolve symbolic links into 'tmp_path'.
-    result = path_resolve_symlinks(canonical_path, tmp_path, PATH_MAX);
-    if (FAILED(result)) return result;
+    ON_FAILURE_RETURN(path_resolve_symlinks(canonical_path, tmp_path, PATH_MAX));
     if (strlen(tmp_path) >= sz) return kFilenameTooLong;
     strcpy(canonical_path, tmp_path);
 
     return kOk;
 }
 
-bool path_is_absolute(const char *path) {
-    return path[0] == '\\' || path[0] == '/';
-}
-
 MmResult path_get_parent(const char *path, char *parent_path, size_t sz) {
-    bool absolute = path_is_absolute(path);
+    bool absolute = file_is_absolute(path);
     MmResult result = path_munge(path, parent_path, sz);
     if (FAILED(result)) return result;
     char *p = strrchr(parent_path, '/');

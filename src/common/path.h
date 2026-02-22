@@ -83,14 +83,6 @@ bool path_has_extension(const char *path, const char *extension, bool case_insen
 MmResult path_get_canonical(const char *path, char *canonical_path, size_t sz);
 
 /**
- * Is the path absolute?
- *
- * @param  path  path to check.
- * @return       true if the path is absolute, otherwise false.
- */
-bool path_is_absolute(const char *path);
-
-/**
  * Gets the parent of the given path.
  *
  * @param  path         original path to get the parent of.

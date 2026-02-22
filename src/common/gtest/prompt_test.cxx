@@ -7,8 +7,6 @@
 #include <climits>
 #include <filesystem>
 
-#include "test_config.h"
-
 extern "C" {
 
 #include "../cstring.h"

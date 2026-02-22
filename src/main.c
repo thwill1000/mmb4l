@@ -358,13 +358,19 @@ int android_main(int argc, char* argv[]) {
 }
 
 int main(int argc, char *argv[]) {
+// #ifdef _WIN32
+//     // Attach debugger then set pause=false in the debugger to continue
+//     volatile bool pause = true;
+//     while (pause) mmtime_sleep_ns(SECONDS_TO_NANOSECONDS(100));
+// #endif
+
     (void) version; // To force the linker to retain it.
 
 #if !defined(__ANDROID__) && !defined(NDEBUG)
     ON_FAILURE_EXIT(logger_init("mmb4l.log"));
 #endif
 
-    LOG_FN_ENTRY("argc=%d, argv=%p", argc, argv);
+    LOG_FN_ENTRY("argc=%d, argv=0x%" PRIxPTR, argc, (uintptr_t) argv);
     {
         char banner[1024];
         ON_FAILURE_EXIT(get_name_and_version(banner, sizeof(banner)));
@@ -509,6 +515,8 @@ int main(int argc, char *argv[]) {
     }
 
     ON_FAILURE_LOG(prompt_save_history(""));
+
+    console_term(); // Restore original terminal settings before exiting.
 
 #if defined(__ANDROID__)
     android_term();

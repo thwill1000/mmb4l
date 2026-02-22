@@ -238,7 +238,7 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
     MmResult result = path_munge(filename, path, STRINGSIZE);
     if (FAILED(result)) return result;
 
-    if (!path_is_absolute(path)) {
+    if (!file_is_absolute(path)) {
         char parent_dir[STRINGSIZE];
         result = path_get_parent(parent_file, parent_dir, STRINGSIZE);
         if (FAILED(result)) return result;
@@ -250,7 +250,7 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
         strcpy(path, parent_dir);
     }
 
-    assert(path_is_absolute(path));
+    assert(file_is_absolute(path));
 
     // If the file exists, or has a .inc file extension then return it.
     bool has_extension = cstring_casecmp(path_get_extension(path), INC_FILE_EXTENSIONS[0]) == 0;
@@ -665,6 +665,11 @@ MmResult program_process_file() {
         mmb_error_state_ptr->override_line = false;
     }
 
+    // Close any open files
+    while (program_file_stack->size > 0) {
+        ON_FAILURE_LOG(program_close_file());
+    }
+
     return result;
 }
 
@@ -685,7 +690,7 @@ MmResult program_get_bas_file(const char *filename, char *out) {
     MmResult result = path_munge(filename, path, STRINGSIZE);
     if (FAILED(result)) return result;
 
-    bool is_absolute = path_is_absolute(path);
+    bool is_absolute = file_is_absolute(path);
     bool has_extension = cstring_casecmp(path_get_extension(path), BAS_FILE_EXTENSIONS[0]) == 0;
 
     // If the specified file exists, or is absolute and has a .bas file

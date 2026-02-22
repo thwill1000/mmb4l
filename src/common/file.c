@@ -106,6 +106,39 @@ MmResult file_basename(const char *path, char *buf, size_t buf_sz) {
     return kOk;
 }
 
+bool file_compare_path(const char *path1, const char *path2) {
+    // If the pointers are identical then the paths are the same
+    if (path1 == path2) return true;
+
+    // If the paths are different lengths then the paths are not the same
+    const size_t len1 = strlen(path1);
+    const size_t len2 = strlen(path2);
+    if (len1 != len2) return false;
+
+    // Iterate through the paths comparing character by character,
+    // treat backslashes and forward slashes as equivalent,
+    // and on Windows compare case-insensitively.
+    for (size_t i = 0; i < len1; i++) {
+        const char c1 = path1[i];
+        const char c2 = path2[i];
+
+        if (file_is_separator(c1) && file_is_separator(c2)) {
+            continue; // Treat separators as equivalent
+        }
+#if defined(_WIN32)
+        if (tolower(c1) != tolower(c2)) {
+            return false; // Case-insensitive comparison on Windows
+        }
+#else
+        if (c1 != c2) {
+            return false; // Case-sensitive comparison on non-Windows
+        }
+#endif
+    }
+
+    return true;
+}
+
 // TODO: Reconcile with path_get_parent()
 MmResult file_dirname(const char *path, char *buf, size_t buf_sz) {
     CHECK_PARAM(path != NULL);
@@ -318,16 +351,17 @@ MmResult file_append_path(char *parent, const char *element, size_t size) {
     }
 
     // Append a separator if necessary
-    const char last_char = parent_len > 0 ? parent[parent_len - 1] : '\0';
-    if (last_char != PATH_SEPARATOR && last_char != '/' && last_char != '\\') {
-        if (FAILED(cstring_cat(parent, PATH_SEPARATOR_STR, size))) {
-            return kFilenameTooLong;
+    if (parent_len > 0) {
+        const char last_char = parent[parent_len - 1];
+        if (!file_is_separator(last_char)) {
+            if (FAILED(cstring_cat(parent, PATH_SEPARATOR_STR, size))) {
+                return kFilenameTooLong;
+            }
         }
     }
 
-    // Skip leading separator in element if present
-    const char first_char = element[0];
-    if (first_char == PATH_SEPARATOR || first_char == '/' || first_char == '\\') {
+    // Skip leading separator in element if parent ends with a separator
+    if (parent_len > 0 && file_is_separator(parent[parent_len - 1]) && file_is_separator(element[0])) {
         element++;
         element_len--;
     }
@@ -485,6 +519,21 @@ static MmResult file_get_config_dir_impl(char *buf, size_t size) {
     CHECK_PARAM(buf != NULL);
     ON_FAILURE_RETURN(file_get_home(buf, size));
     return file_append_path(buf, ".mmbasic", size);
+}
+
+MmResult file_normalize_separators(const char *path, char *buf, size_t buf_sz) {
+    CHECK_PARAM(path != NULL);
+    CHECK_PARAM(buf != NULL);
+
+    if (FAILED(cstring_cpy(buf, path, buf_sz))) {
+        return kFilenameTooLong;
+    }
+
+    for (char *p = buf; *p; p++) {
+        if (*p == '\\') *p = '/';
+    }
+
+    return kOk;
 }
 
 MmResult file_size(const char *path, off_t *size) {

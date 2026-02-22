@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <windows.h>
 #include <stdlib.h>
 
-// Undefine HRESULT macros to avoid conflicts with MMB4L definitions
+// Undefine HRESULT macros that conflict with MMB4L definitions
 #undef FAILED
 #undef SUCCEEDED
 
