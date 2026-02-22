@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_settick.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -43,8 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <limits.h>
-#include <string.h>
 
+#include "../common/cstring.h"
 #include "../common/mmb4l.h"
 #include "../common/error.h"
 #include "../common/interrupt.h"
@@ -60,9 +60,9 @@ void cmd_settick(void) {
 
     const int irq = has_arg(4) ? getint(argv[4], 1, NBRSETTICKS) - 1 : 0;
 
-    if (strcasecmp(argv[0], "PAUSE") == 0) {
+    if (cstring_casecmp(argv[0], "PAUSE") == 0) {
         ON_FAILURE_ERROR(interrupt_pause_tick(irq));
-    } else if (strcasecmp(argv[0], "RESUME") == 0){
+    } else if (cstring_casecmp(argv[0], "RESUME") == 0){
         ON_FAILURE_ERROR(interrupt_resume_tick(irq));
     } else {
         int64_t period_ns = MILLISECONDS_TO_NANOSECONDS(getint(argv[0], 0, INT_MAX));

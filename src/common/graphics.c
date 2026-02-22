@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -1636,7 +1636,7 @@ MmResult graphics_save_bmp(MmSurface *surface, char *filename, BmpFormat format,
     if (FAILED(cstring_cpy(_filename, filename, sizeof(_filename)))) return kFilenameTooLong;
 
     // If the filename does not have a ".bmp" extension then add one.
-    if (strcasecmp(path_get_extension(_filename), ".bmp") != 0) {
+    if (cstring_casecmp(path_get_extension(_filename), ".bmp") != 0) {
         if (FAILED(cstring_cat(_filename, ".bmp", STRINGSIZE))) return kFilenameTooLong;
     }
 

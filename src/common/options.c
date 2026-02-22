@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -243,14 +243,14 @@ static MmResult options_parse(const char *line, char *name, char *value) {
 }
 
 static MmResult options_parse_boolean(const char *value, bool *out) {
-    if (strcasecmp(value, "0") == 0
-            || strcasecmp(value, "false") == 0
-            || strcasecmp(value, "off") == 0) {
+    if (cstring_casecmp(value, "0") == 0
+            || cstring_casecmp(value, "false") == 0
+            || cstring_casecmp(value, "off") == 0) {
         *out = false;
         return kOk;
-    } else if (strcasecmp(value, "1") == 0
-            || strcasecmp(value, "true") == 0
-            || strcasecmp(value, "on") == 0) {
+    } else if (cstring_casecmp(value, "1") == 0
+            || cstring_casecmp(value, "true") == 0
+            || cstring_casecmp(value, "on") == 0) {
         *out = true;
         return kOk;
     } else {
@@ -297,7 +297,7 @@ static void options_report_warning(int line_num, char *name, MmResult result, OP
 
 MmResult options_get_definition(const char *name, OptionsDefinition **definition) {
     for (OptionsDefinition *def = options_definitions; def->name; def++) {
-        if (strcasecmp(def->name, name) == 0) {
+        if (cstring_casecmp(def->name, name) == 0) {
             *definition = def;
             return kOk;
         }
@@ -768,7 +768,7 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
 
 static MmResult options_set_angle(Options *options, const char *svalue) {
     for (const NameOrdinalPair *entry = options_angle_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
+        if (cstring_casecmp(svalue, entry->name) == 0) {
             options->angle = entry->ordinal;
             return kOk;
         }
@@ -814,7 +814,7 @@ static MmResult options_set_break_key(Options *options, int ivalue) {
 
 static MmResult options_set_codepage(Options *options, const char *page_name) {
     for (const NameOrdinalPair *entry = codepage_name_to_ordinal_map; entry->name; ++entry) {
-        if (strcasecmp(page_name, entry->name) == 0) {
+        if (cstring_casecmp(page_name, entry->name) == 0) {
             options->codepage = codepage_data_to_ordinal_map[entry->ordinal].name;
             return kOk;
         }
@@ -824,7 +824,7 @@ static MmResult options_set_codepage(Options *options, const char *page_name) {
 
 static MmResult options_set_console(Options *options, const char *svalue) {
     for (const NameOrdinalPair *entry = options_console_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
+        if (cstring_casecmp(svalue, entry->name) == 0) {
             options->console = entry->ordinal;
             return kOk;
         }
@@ -834,7 +834,7 @@ static MmResult options_set_console(Options *options, const char *svalue) {
 
 static MmResult options_set_default_type(Options *options, const char *svalue) {
     for (const NameOrdinalPair *entry = options_default_type_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
+        if (cstring_casecmp(svalue, entry->name) == 0) {
             options->default_type = entry->ordinal;
             return kOk;
         }
@@ -846,15 +846,15 @@ static MmResult options_set_editor(Options *options, const char *svalue) {
     if (svalue[0] == '\0') return kInvalidValue;
     if (strlen(svalue) >= STRINGSIZE) return kStringTooLong;
 
-    if (strcasecmp(svalue, "code") == 0) {
+    if (cstring_casecmp(svalue, "code") == 0) {
         strcpy(options->editor, "VSCode");
-    } else if (strcasecmp(svalue, "default") == 0) {
+    } else if (cstring_casecmp(svalue, "default") == 0) {
         strcpy(options->editor, "Nano");
     } else {
         // Convert to standard capitalisation for standard editor names.
         options->editor[0] = '\0';
         for (const OptionsEditor *editor = options_editors; editor->name; ++editor) {
-            if (strcasecmp(svalue, editor->name) == 0) {
+            if (cstring_casecmp(svalue, editor->name) == 0) {
                 strcpy(options->editor, editor->name);
             }
         }
@@ -880,7 +880,7 @@ static MmResult options_set_fn_key(Options *options, OptionsId id, const char *s
 
 static MmResult options_set_list_case(Options *options, const char *svalue) {
     for (const NameOrdinalPair *entry = options_list_case_map; entry->name; ++entry) {
-        if (strcasecmp(svalue, entry->name) == 0) {
+        if (cstring_casecmp(svalue, entry->name) == 0) {
             options->list_case = entry->ordinal;
             return kOk;
         }
@@ -1036,7 +1036,7 @@ MmResult options_set_string_value(Options *options, OptionsId id, const char *sv
 
 int options_simulate_from_string(const char *s) {
     for (const NameOrdinalPair *entry = options_simulate_map; entry->name; ++entry) {
-        if (strcasecmp(s, entry->name) == 0) {
+        if (cstring_casecmp(s, entry->name) == 0) {
             return entry->ordinal;
         }
     }

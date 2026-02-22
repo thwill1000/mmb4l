@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_edit.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -78,7 +78,7 @@ static MmResult get_editor_command(const char *editor, const char *file_path, in
     *command = '\0';
     *blocking = false;
     for (const OptionsEditor *e = options_editors; e->name; ++e) {
-        if (strcasecmp(editor, e->name) == 0) {
+        if (cstring_casecmp(editor, e->name) == 0) {
             strcpy(command, e->command);
             *blocking = e->blocking;
         }
@@ -87,7 +87,7 @@ static MmResult get_editor_command(const char *editor, const char *file_path, in
     // Special magic for Nano when we the 'mmbasic.nano.rc' file is installed.
     // Note early values or nano, such as the default version for Raspbian
     // do not support the --rcfile flag.
-    if (strcasecmp(editor, "nano") == 0) {
+    if (cstring_casecmp(editor, "nano") == 0) {
         char nanorc[STRINGSIZE];
         ON_FAILURE_RETURN(get_mmbasic_nanorc(nanorc, sizeof(nanorc)));
         if (*nanorc) sprintf(command, "nano --rcfile=%s +${line} ${file}", nanorc);
@@ -187,7 +187,7 @@ void cmd_edit(void) {
 
     // Edit the file.
     bool blocking = false;
-    if (strcasecmp(editor, "picomite") == 0) {
+    if (cstring_casecmp(editor, "picomite") == 0) {
         // Use the internal "PicoMite" editor.
         blocking = true;
         ON_FAILURE_ERROR(editor_show(file_path, line > 1 ? line : 1));
