@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-file_private.h
+serial_windows.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,33 +42,51 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_FILE_PRIVATE)
-#define MMB4L_FILE_PRIVATE
+#include "serial.h"
+#include "serial_private.h"
 
-#include <stdio.h>
-
-#include "../Configuration.h"
-#include "error.h"
-#include "rx_buf.h"
-
-enum FileEntryType { fet_closed, fet_file, fet_serial };
-
-typedef struct {
-    enum FileEntryType type;
-    union {
-        FILE *file_ptr;
-        int serial_fd;
-    };
-    RxBuf rx_buf;
-} FileEntry;
-
-extern FileEntry file_table[MAXOPENFILES + 1];
-
-static inline MmResult file_validate_fnbr(int fnbr) {
-   if (fnbr < 1 || fnbr > MAXOPENFILES) {
-      RETURN_RESULT(kFileInvalidFileNumber);
-   }
-   RETURN_RESULT(kOk);
+MmResult serial_open(const char *comspec_str, int fnbr) {
+    ON_FAILURE_RETURN(file_validate_fnbr(fnbr));
+    RETURN_RESULT(kUnimplemented);
 }
 
-#endif // #if !defined(MMB4L_FILE_PRIVATE)
+MmResult serial_close(int fnbr) {
+    ON_FAILURE_RETURN(serial_validate_fnbr(fnbr));
+    RETURN_RESULT(kUnimplemented);
+}
+
+void serial_pump_input(int fnbr) {
+    ON_FAILURE_LOG(serial_validate_fnbr(fnbr));
+    LOG_WARN("UNIMPLEMENTED");
+    RETURN_VOID();
+}
+
+int serial_eof(int fnbr) {
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), 0);
+    LOG_WARN("UNIMPLEMENTED");
+    RETURN_INT(0);
+}
+
+int serial_getc(int fnbr) {
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), -1);
+    LOG_WARN("UNIMPLEMENTED");
+    RETURN_INT(-1);
+}
+
+int serial_putc(int fnbr, int ch) {
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), -1);
+    LOG_WARN("UNIMPLEMENTED");
+    RETURN_INT(-1);
+}
+
+int serial_rx_queue_size(int fnbr) {
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), 0);
+    LOG_WARN("UNIMPLEMENTED");
+    RETURN_INT(0);
+}
+
+int serial_write(int fnbr, const char *buf, size_t sz) {
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), -1);
+    LOG_WARN("UNIMPLEMENTED");
+    RETURN_INT(-1);
+}

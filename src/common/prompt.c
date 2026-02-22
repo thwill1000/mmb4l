@@ -45,8 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #include "display.h"
 #include "file.h"
@@ -71,15 +69,18 @@ static const char NO_ITEM[] = "";
 MmResult prompt_getc(int *ch) {
     static char prevchar = 0;
     ON_FAILURE_RETURN(display_show_cursor(true));
+
+    MmResult result = kOk;
     for (;;) {
-        ON_FAILURE_RETURN(display_update_cursor());
+        result = display_update_cursor();
+        ON_FAILURE_GOTO(result, cleanup);
         *ch = keybuf_get();
         if (*ch == -1) {
-            if (!isatty(STDIN_FILENO)) {
+            if (!keybuf_isatty()) {
                 // For non-TTY input (pipes, files), check if it's actually EOF
                 if (feof(stdin)) {
-                    (void) display_show_cursor(false);
-                    return kStdinExhausted;
+                    result = kStdinExhausted;
+                    goto cleanup;
                 }
                 // If not EOF, it might just be a blocking read that returned -1
                 // Check errno to see if it's a real error
@@ -88,8 +89,8 @@ MmResult prompt_getc(int *ch) {
                     continue;
                 }
                 // Some other error occurred
-                (void) display_show_cursor(false);
-                return kStdinExhausted;
+                result = kStdinExhausted;
+                goto cleanup;
             }
             nanosleep(&ONE_MILLISECOND, NULL);
         } else if (*ch == '\n' && prevchar == '\r') {
@@ -99,9 +100,12 @@ MmResult prompt_getc(int *ch) {
         }
     }
     prevchar = *ch;
-    ON_FAILURE_RETURN(display_show_cursor(false));
     if (*ch == '\n') *ch = '\r';
-    return kOk;
+
+cleanup:
+
+    ON_FAILURE_LOG(display_show_cursor(false));
+    return result;
 }
 
 /** Displays the contents of the 'prompt_history' buffer. */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-2025 Thomas Hugo Williams
+ * Copyright (c) 2025-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -7,7 +7,6 @@
 #include <cstring>
 #include <cstdio>
 #include <string>
-#include <unistd.h>
 
 extern "C" {
 

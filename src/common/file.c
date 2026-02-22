@@ -49,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "cstring.h"
 #include "error.h"

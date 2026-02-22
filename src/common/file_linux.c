@@ -100,6 +100,10 @@ bool file_exists_symlink(const char *path) {
     return SUCCEEDED(lstat(path, &st)) && S_ISLNK(st.st_mode);
 }
 
+int file_fsync(int fd) {
+    return fsync(fd);
+}
+
 MmResult file_getcwd(char *buf, size_t size) {
     if (!buf) return mmresult_ex(kInternalFault, "buf == NULL");
 

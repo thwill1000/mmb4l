@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-self.c
+console.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -45,14 +45,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <stdio.h>
-#include <termios.h>
-#include <signal.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
 
 #include "console.h"
+#include "console_private.h"
 #include "error.h"
 #include "interrupt.h"
 #include "keybuf.h"
@@ -62,36 +58,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmtime.h"
 #include "utility.h"
 
-typedef struct {
-   int width;
-   int height;
-   int x;
-   int y;
-   bool requires_sync;
-   bool no_title;
-} ConsoleState;
-
 static ConsoleState self;
-static struct termios orig_termios;
 
 int ListCnt = 0;
 
-static void handle_winch(int sig) {
-    self.requires_sync = true;
-}
-
 MmResult console_init(bool no_title) {
-    // Install signal handler for window size changes.
-    struct sigaction sa;
-    sa.sa_handler = handle_winch;
-    ON_FAILURE_RETURN(sigemptyset(&sa.sa_mask));
-    sa.sa_flags = 0;
-    ON_FAILURE_RETURN(sigaction(SIGWINCH, &sa, NULL));
-
     self.no_title = no_title;
     self.requires_sync = true;
 
-    return kOk;
+    return console_private_init(&self);
 }
 
 void console_bell(void) {
@@ -140,22 +115,6 @@ MmResult console_cursor_up(int count) {
     fflush(stdout);
 
     RETURN_RESULT_EX(kOk, "self.x=%d, self.y=%d", self.x, self.y);
-}
-
-void console_disable_raw_mode(void) {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
-}
-
-void console_enable_raw_mode(void) {
-    tcgetattr(STDIN_FILENO, &orig_termios);
-    // atexit(console_disable_raw_mode); - done in main.c
-    struct termios raw = orig_termios;
-    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
-    raw.c_cc[VMIN] = 0;
-    raw.c_cc[VTIME] = 0; // 1;
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-
-    //fcntl(STDIN_FILENO, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
 }
 
 char console_putc_noflush(char c) {
@@ -392,37 +351,6 @@ MmResult console_scroll_up() {
 MmResult console_show_cursor(bool show) {
     printf(show ? "\033[?25h" : "\033[?25l");
     fflush(stdout);
-    return kOk;
-}
-
-static MmResult console_sync_size(int timeout_ms) {
-    static int safe_width = 80;
-    static int safe_height = 40;
-    struct winsize ws= { 0 };
-    int fd = open("/dev/tty", O_RDWR);
-    if (fd >= 0) {
-        int64_t timeout_ns = mmtime_now_ns() + MILLISECONDS_TO_NANOSECONDS(timeout_ms);
-        do {
-            // Alternatively consider: ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws)
-            if (SUCCEEDED(ioctl(fd, TIOCGWINSZ, &ws)) && ws.ws_col > 0) break;
-            nanosleep(&ONE_MICROSECOND, NULL);
-        } while (mmtime_now_ns() < timeout_ns);
-        close(fd);
-    }
-
-    if (ws.ws_col > 0) {
-        // Success.
-        safe_width = ws.ws_col;
-        safe_height = ws.ws_row;
-    }
-
-    // NOTE: Previously when the console size could not be determined this
-    //       function would return a failure and "all hell would break loose" with
-    //       endless "Cannot determine terminal size" errors being reported.
-    //       Now we return the last successful values determined, or 80x40.
-    self.width = safe_width;
-    self.height = safe_height;
-
     return kOk;
 }
 
