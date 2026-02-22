@@ -252,7 +252,7 @@ MmResult program_get_inc_file(const char *parent_file, const char *filename, cha
     assert(path_is_absolute(path));
 
     // If the file exists, or has a .inc file extension then return it.
-    bool has_extension = strcasecmp(path_get_extension(path), INC_FILE_EXTENSIONS[0]) == 0;
+    bool has_extension = cstring_casecmp(path_get_extension(path), INC_FILE_EXTENSIONS[0]) == 0;
     if (path_exists(path) || has_extension)
         return path_get_canonical(path, out, STRINGSIZE);
 
@@ -682,7 +682,7 @@ MmResult program_get_bas_file(const char *filename, char *out) {
     if (FAILED(result)) return result;
 
     bool is_absolute = path_is_absolute(path);
-    bool has_extension = strcasecmp(path_get_extension(path), BAS_FILE_EXTENSIONS[0]) == 0;
+    bool has_extension = cstring_casecmp(path_get_extension(path), BAS_FILE_EXTENSIONS[0]) == 0;
 
     // If the specified file exists, or is absolute and has a .bas file
     // extension then return it.
