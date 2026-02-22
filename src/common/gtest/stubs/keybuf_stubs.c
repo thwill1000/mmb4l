@@ -8,5 +8,6 @@
 int keybuf_count(void) { return 0; }
 void keybuf_clear(void) { }
 int keybuf_get(void) { return -1; }
+bool keybuf_isatty(void) { return true; }
 void keybuf_pump_tty(void) { }
 void keybuf_put(char ch) { }

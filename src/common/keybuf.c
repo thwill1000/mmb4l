@@ -52,7 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "options.h"
 #include "mmb4l.h"
 #include "rx_buf.h"
-#include <unistd.h>
 
 #define KEYBUF_SIZE 256
 
@@ -191,27 +190,6 @@ void keybuf_put(char ch) {
     }
 
     RETURN_VOID();
-}
-
-void keybuf_pump_tty(void) {
-    char ch;
-    errno = 0;
-    ssize_t result = read(STDIN_FILENO, &ch, 1);
-    switch (result) {
-        case -1:
-            error_throw(errno);
-        case 0:
-            return;
-        case 1:
-            // Read one character, drop out of the switch.
-            // printf("<%d>", (int) ch);
-            break;
-        default:
-            assert(false);
-            break;
-    }
-
-    keybuf_put(ch);
 }
 
 void keybuf_key_to_string(int ch, char *buf) {

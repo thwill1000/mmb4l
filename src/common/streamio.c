@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
 #include <assert.h>
-#include <unistd.h>
 
 #include "error.h"
 #include "file.h"
@@ -386,7 +385,7 @@ void streamio_seek(int fnbr, int idx) {
 
     errno = 0;
     if (FAILED(fflush(f))) error_throw(errno);
-    if (FAILED(fsync(fileno(f)))) error_throw(errno);
+    if (FAILED(file_fsync(fileno(f)))) error_throw(errno);
     if (FAILED(fseek(f, idx - 1, SEEK_SET))) error_throw(errno); // MMBasic indexes from 1, not 0.
 }
 

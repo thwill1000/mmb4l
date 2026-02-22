@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-file_private.h
+keybuf_linux.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the keybuf at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -42,33 +42,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_FILE_PRIVATE)
-#define MMB4L_FILE_PRIVATE
+#include <assert.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <unistd.h>
 
-#include <stdio.h>
-
-#include "../Configuration.h"
 #include "error.h"
-#include "rx_buf.h"
+#include "keybuf.h"
 
-enum FileEntryType { fet_closed, fet_file, fet_serial };
-
-typedef struct {
-    enum FileEntryType type;
-    union {
-        FILE *file_ptr;
-        int serial_fd;
-    };
-    RxBuf rx_buf;
-} FileEntry;
-
-extern FileEntry file_table[MAXOPENFILES + 1];
-
-static inline MmResult file_validate_fnbr(int fnbr) {
-   if (fnbr < 1 || fnbr > MAXOPENFILES) {
-      RETURN_RESULT(kFileInvalidFileNumber);
-   }
-   RETURN_RESULT(kOk);
+bool keybuf_isatty(void) {
+    return isatty(STDIN_FILENO);
 }
 
-#endif // #if !defined(MMB4L_FILE_PRIVATE)
+void keybuf_pump_tty(void) {
+    char ch;
+    errno = 0;
+    ssize_t result = read(STDIN_FILENO, &ch, 1);
+    switch (result) {
+        case -1:
+            error_throw(errno);
+        case 0:
+            return;
+        case 1:
+            // Read one character, drop out of the switch.
+            // printf("<%d>", (int) ch);
+            break;
+        default:
+            assert(false);
+            break;
+    }
+
+    keybuf_put(ch);
+}

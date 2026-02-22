@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-serial.c
+serial_linux.c
 
 Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,7 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -58,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file_private.h"
 #include "interrupt.h"
 #include "serial.h"
+#include "serial_private.h"
 #include "utility.h"
 
 #define	COM_DEFAULT_SPEED            B9600
@@ -169,7 +169,7 @@ static void serial_dump_spec(ComSpec *comspec) {
     printf("XON/XOFF:           %s\n", comspec->xonxoff ? "true" : "false");
 }
 
-void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
+static void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
     const DelimType delim[] = { ':', ',', 0 };
     getargs(&comspec_str, 21, delim);
     if (argc != 2 && (argc & 0x01) == 0) ERROR_COM_SPECIFICATION;
@@ -262,7 +262,8 @@ void serial_parse_comspec(const char* comspec_str, ComSpec *comspec) {
 }
 
 MmResult serial_open(const char *comspec_str, int fnbr) {
-    if (fnbr < 1 || fnbr > MAXOPENFILES) return kFileInvalidFileNumber;
+    ON_FAILURE_RETURN(file_validate_fnbr(fnbr));
+
     FileEntry *entry = &(file_table[fnbr]);
     if (entry->type != fet_closed) return kFileAlreadyOpen;
 
@@ -357,8 +358,9 @@ MmResult serial_open(const char *comspec_str, int fnbr) {
 }
 
 MmResult serial_close(int fnbr) {
+    ON_FAILURE_RETURN(serial_validate_fnbr(fnbr));
+
     FileEntry *entry = &(file_table[fnbr]);
-    assert(entry->type == fet_serial);
     close(entry->serial_fd);
     entry->type = fet_closed;
     entry->serial_fd = 0;
@@ -368,7 +370,7 @@ MmResult serial_close(int fnbr) {
 }
 
 void serial_pump_input(int fnbr) {
-    assert(file_table[fnbr].type == fet_serial);
+    ON_FAILURE_ERROR(serial_validate_fnbr(fnbr));
 
     char tmp[256];
     errno = 0;
@@ -383,6 +385,8 @@ void serial_pump_input(int fnbr) {
 }
 
 int serial_eof(int fnbr) {
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), 0);
+
     if (rx_buf_size(&file_table[fnbr].rx_buf) > 0) return 0;
     serial_pump_input(fnbr);
     return (rx_buf_size(&file_table[fnbr].rx_buf) > 0) ? 0 : 1;
@@ -395,6 +399,8 @@ int serial_eof(int fnbr) {
 }
 
 int serial_getc(int fnbr) {
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), -1);
+
     int ch = rx_buf_get(&file_table[fnbr].rx_buf);
     if (ch == -1) {
         serial_pump_input(fnbr);
@@ -404,7 +410,8 @@ int serial_getc(int fnbr) {
 }
 
 int serial_putc(int fnbr, int ch) {
-    assert(file_table[fnbr].type == fet_serial);
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), -1);
+
     errno = 0;
     ssize_t count = write(file_table[fnbr].serial_fd, &ch, 1);
     switch (count) {
@@ -419,17 +426,18 @@ int serial_putc(int fnbr, int ch) {
             break;
     }
 
-    assert(false);
+    ON_FAILURE_ERROR_EX(kInternalFault, -1);
     return -1;
 }
 
 int serial_rx_queue_size(int fnbr) {
-    assert(file_table[fnbr].type == fet_serial);
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), 0);
     return rx_buf_size(&file_table[fnbr].rx_buf);
 }
 
 int serial_write(int fnbr, const char *buf, size_t sz) {
-    assert(file_table[fnbr].type == fet_serial);
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), -1);
+
     errno = 0;
     ssize_t count = write(file_table[fnbr].serial_fd, buf, sz);
     if (count == (ssize_t) sz) {
@@ -440,6 +448,6 @@ int serial_write(int fnbr, const char *buf, size_t sz) {
         error_throw(EBADF);
     }
 
-    assert(false);
+    ON_FAILURE_ERROR_EX(kInternalFault, -1);
     return -1;
 }
