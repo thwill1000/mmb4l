@@ -42,6 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <windows.h>
+
+// Undefine HRESULT macros that conflict with MMB4L definitions
+#undef FAILED
+#undef SUCCEEDED
+
 #include "error.h"
 #include "keybuf.h"
 
@@ -50,5 +56,29 @@ bool keybuf_isatty(void) {
 }
 
 void keybuf_pump_tty(void) {
-    LOG_WARN("UNIMPLEMENTED");
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    if (hStdin == INVALID_HANDLE_VALUE) {
+        error_throw(kError);
+        return;
+    }
+
+    // Check if there is input available before attempting to read
+    DWORD available = 0;
+    if (!GetNumberOfConsoleInputEvents(hStdin, &available) || available == 0) {
+        return;
+    }
+
+    INPUT_RECORD record;
+    DWORD read_count = 0;
+    if (!ReadConsoleInput(hStdin, &record, 1, &read_count) || read_count == 0) {
+        return;
+    }
+
+    // Only process key down events that produce a character
+    if (record.EventType != KEY_EVENT) return;
+    if (!record.Event.KeyEvent.bKeyDown) return;
+    char ch = record.Event.KeyEvent.uChar.AsciiChar;
+    if (ch == 0) return;  // Non-character key (e.g. shift, ctrl)
+
+    keybuf_put(ch);
 }

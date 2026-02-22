@@ -257,6 +257,16 @@ MmResult file_chdir(const char *dirname);
 MmResult file_closedir(DirStream *stream);
 
 /**
+ * Compares two file paths for equality, accounting for platform-specific
+ * case sensitivity and path normalization.
+ *
+ * @param[in]  path1  First file path to compare
+ * @param[in]  path2  Second file path to compare
+ * @return            true if the paths refer to the same location, false otherwise
+ */
+bool file_compare_path(const char *path1, const char *path2);
+
+/**
  * Deletes a file from the filesystem.
  *
  * @param[in]  filename  Path to the file to delete
@@ -334,6 +344,14 @@ bool file_exists_symlink(const char *path);
 int file_fsync(int fd);
 
 /**
+ * Checks if a path is absolute.
+ *
+ * @param[in]  path  Path to check
+ * @return           true if the path is absolute, false otherwise
+ */
+bool file_is_absolute(const char *path);
+
+/**
  * Gets sorted list of files matching a specification.
  *
  * @param[in]  fspec  File/path specification, e.g.
@@ -359,9 +377,32 @@ MmResult file_mkdir(const char *dirname);
  * Creates a new empty file
  *
  * @param[in]  filename  Path to the file to create
+ * @param[in]  contents  Initial contents of the file (can be NULL for empty file)
  * @return               kOk on success, error code on failure
  */
-MmResult file_mkfile(const char *filename);
+MmResult file_mkfile(const char *filename, const char *contents);
+
+/**
+ * Creates a new symbolic link
+ *
+ * @param[in]  target  Path to the target of the symbolic link
+ * @param[in]  link    Path to the symbolic link to create
+ * @return             kOk on success, error code on failure
+ */
+MmResult file_mksymlink(const char *target, const char *link);
+
+/**
+ * Normalizes path separators in a path string to the UNIX path separator.
+ *
+ * This function takes an input path string and replaces all occurrences of
+ * both '/' and '\' with the UNIX path separator.
+ *
+ * @param[in]  path      Input path string to normalize
+ * @param[out] buf       Buffer to store the normalized path
+ * @param[in]  buf_sz    Size of the output buffer in bytes
+ * @return               kOk on success, error code on failure
+ */
+MmResult file_normalize_separators(const char *path, char *buf, size_t buf_sz);
 
 /**
  * Opens a file for reading or writing.

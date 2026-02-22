@@ -50,7 +50,7 @@ protected:
             // Symlinks might not be supported on all systems
         }
 
-        ASSERT_EQ(kOk, path_get_canonical((const char *) test_dir.c_str(), canonical_test_dir, PATH_MAX));
+        ASSERT_EQ(kOk, path_get_canonical(test_dir.string().c_str(), canonical_test_dir, PATH_MAX));
     }
 
     void TearDown() override {
@@ -76,7 +76,7 @@ protected:
 TEST_F(DirectoryApiTest, OpenDirSuccess) {
     DirStream *stream = nullptr;
 
-    MmResult result = file_opendir((const char *) test_dir.c_str(), &stream);
+    MmResult result = file_opendir(test_dir.string().c_str(), &stream);
 
     EXPECT_EQ(result, kOk);
     EXPECT_NE(stream, nullptr);
@@ -91,7 +91,7 @@ TEST_F(DirectoryApiTest, OpenDirNotFound) {
     DirStream *stream = nullptr;
     std::filesystem::path nonexistent = test_dir / "nonexistent";
 
-    MmResult result = file_opendir((const char *) nonexistent.c_str(), &stream);
+    MmResult result = file_opendir(nonexistent.string().c_str(), &stream);
 
     EXPECT_EQ(result, kFileNotFound);
     EXPECT_EQ(stream, nullptr);
@@ -112,7 +112,7 @@ TEST_F(DirectoryApiTest, OpenDirNullPath) {
 // Test reading directory entries
 TEST_F(DirectoryApiTest, ReadDirEntries) {
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir(test_dir.string().c_str(), &stream), kOk);
     ASSERT_NE(stream, nullptr);
 
     std::vector<std::string> found_entries;
@@ -164,8 +164,8 @@ TEST_F(DirectoryApiTest, MultipleConcurrentStreams) {
     DirStream *stream2 = nullptr;
 
     // Open both directories
-    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream1), kOk);
-    ASSERT_EQ(file_opendir((const char *) test_dir2.c_str(), &stream2), kOk);
+    ASSERT_EQ(file_opendir(test_dir.string().c_str(), &stream1), kOk);
+    ASSERT_EQ(file_opendir(test_dir2.string().c_str(), &stream2), kOk);
     ASSERT_NE(stream1, nullptr);
     ASSERT_NE(stream2, nullptr);
     ASSERT_NE(stream1, stream2); // Should be different objects
@@ -195,7 +195,7 @@ TEST_F(DirectoryApiTest, MultipleConcurrentStreams) {
 // Test entry type detection
 TEST_F(DirectoryApiTest, EntryTypeDetection) {
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir(test_dir.string().c_str(), &stream), kOk);
 
     std::unordered_map<std::string, FileType> entry_types;
 
@@ -224,10 +224,15 @@ TEST_F(DirectoryApiTest, LongFilenames) {
     std::string long_name(STRINGSIZE - 10, 'x'); // Leave some margin
     long_name += ".txt";
 
-    std::ofstream(test_dir / long_name) << "content";
+    std::ofstream file_out(test_dir / long_name);
+    if (!file_out.is_open()) {
+        GTEST_SKIP() << "Cannot create long filename on this platform";
+    }
+    file_out << "content";
+    file_out.close();
 
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir(test_dir.string().c_str(), &stream), kOk);
 
     bool found_long_name = false;
     DirEntry *entry;
@@ -260,7 +265,7 @@ TEST_F(DirectoryApiTest, StressTestManyFiles) {
     }
 
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir((const char *) stress_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir(stress_dir.string().c_str(), &stream), kOk);
 
     int count = 0;
     DirEntry *entry;
@@ -284,7 +289,7 @@ TEST_F(DirectoryApiTest, EmptyDirectory) {
     std::filesystem::create_directories(empty_dir);
 
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir((const char *) empty_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir(empty_dir.string().c_str(), &stream), kOk);
 
     std::vector<std::string> entries;
     DirEntry *entry;
@@ -304,7 +309,7 @@ TEST_F(DirectoryApiTest, EmptyDirectory) {
 // Test proper resource cleanup
 TEST_F(DirectoryApiTest, ResourceCleanup) {
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir(test_dir.string().c_str(), &stream), kOk);
     ASSERT_NE(stream, nullptr);
 
     // Close the directory
@@ -507,7 +512,11 @@ TEST_F(FileExistsDirTest, CaseSensitivity) {
     // On case-insensitive filesystems, it might return true
     // We just ensure the function doesn't crash and behaves consistently
     // The actual result depends on the filesystem
+#if defined(_WIN32)
+    EXPECT_TRUE(different_case_result);
+#else
     EXPECT_FALSE(different_case_result);
+#endif
 }
 
 // Test trailing slash handling
@@ -899,6 +908,9 @@ TEST_F(FileListTest, NullParameters) {
 
 // Test current directory pattern
 TEST_F(FileListTest, CurrentDirectoryPattern) {
+    // Store current directory
+    std::filesystem::path original_dir = std::filesystem::current_path();
+
     // Change to test directory
     std::filesystem::current_path(test_dir);
 
@@ -909,6 +921,7 @@ TEST_F(FileListTest, CurrentDirectoryPattern) {
     EXPECT_GT(list.count, 0);
 
     // Restore original directory (cleanup is handled by TearDown)
+    std::filesystem::current_path(original_dir);
 }
 
 // Test file information accuracy
@@ -1027,6 +1040,9 @@ TEST_F(FileListTest, FreeSpacePopulated) {
 
 // Test current directory pattern with new fields
 TEST_F(FileListTest, CurrentDirectoryWithNewFields) {
+    // Store current directory
+    std::filesystem::path original_dir = std::filesystem::current_path();
+
     // Change to test directory
     std::filesystem::current_path(test_dir);
 
@@ -1042,6 +1058,9 @@ TEST_F(FileListTest, CurrentDirectoryWithNewFields) {
     uint64_t helper_free_space;
     EXPECT_EQ(file_get_free_space(".", &helper_free_space), kOk);
     EXPECT_EQ(list.free_space, helper_free_space);
+
+    // Restore original directory (cleanup is handled by TearDown)
+    std::filesystem::current_path(original_dir);
 }
 
 // Test subdirectory path handling
@@ -1052,9 +1071,13 @@ TEST_F(FileListTest, SubdirectoryPathHandling) {
     MmResult result = file_list(pattern.c_str(), kFileSortByName, &list);
 
     EXPECT_EQ(kOk, result);
-    char expected[PATH_MAX] = { '\0'};
+    char expected[PATH_MAX] = { '\0' };
     EXPECT_EQ(kOk, file_append_path(expected, canonical_test_dir, PATH_MAX));
     EXPECT_EQ(kOk, file_append_path(expected, "subdir", PATH_MAX));
+    const size_t expected_len = strlen(expected);
+    for (size_t i = 0; i < expected_len; i++) {
+        if (expected[i] == '\\') expected[i] = '/'; // Normalize on forward-slash
+    }
     EXPECT_STREQ(expected, list.directory);
     EXPECT_GT(list.free_space, 0); // Should still have free space info
 }
@@ -1064,7 +1087,7 @@ TEST_F(FileListTest, GetFreeSpaceFunction) {
     uint64_t free_space;
 
     // Test with valid directory
-    MmResult result = file_get_free_space((const char *) test_dir.c_str(), &free_space);
+    MmResult result = file_get_free_space(test_dir.string().c_str(), &free_space);
     EXPECT_EQ(result, kOk);
     EXPECT_GT(free_space, 0);
 
@@ -1083,7 +1106,7 @@ TEST_F(FileListTest, GetFreeSpaceFunction) {
     result = file_get_free_space(nullptr, &free_space);
     EXPECT_EQ(result, kInternalFault);
 
-    result = file_get_free_space((const char *) test_dir.c_str(), nullptr);
+    result = file_get_free_space(test_dir.string().c_str(), nullptr);
     EXPECT_EQ(result, kInternalFault);
 }
 
@@ -1176,7 +1199,7 @@ TEST_F(FileListTest, FileTypeConsistencyWithReaddir) {
 
     // Get file types from directory reading
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir(test_dir.string().c_str(), &stream), kOk);
 
     std::unordered_map<std::string, FileType> readdir_types;
     DirEntry *entry;
@@ -1257,6 +1280,25 @@ TEST_F(FileAppendPathTest, EmptyElement) {
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("/home/user", buffer);
+}
+
+// Test empty parent
+TEST_F(FileAppendPathTest, EmptyParent) {
+    {
+        strcpy(buffer, "");
+        MmResult result = file_append_path(buffer, "/documents", BUFFER_SIZE);
+
+        EXPECT_EQ(kOk, result);
+        EXPECT_STREQ("/documents", buffer); // Does not strip leading separator from element
+    }
+
+    {
+        strcpy(buffer, "");
+        MmResult result = file_append_path(buffer, "documents", BUFFER_SIZE);
+
+        EXPECT_EQ(kOk, result);
+        EXPECT_STREQ("documents", buffer);
+    }
 }
 
 // Test separator handling - parent has trailing separator

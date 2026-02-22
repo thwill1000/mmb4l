@@ -427,11 +427,13 @@ static MmResult handle_newline(PromptState *pstate) {
 }
 
 static MmResult handle_other(PromptState *pstate) {
-    if (pstate->buf[0] < ' ' || pstate->buf[0] >= 0x7f) return kOk;
+    LOG_FN_ENTRY("char='%c'", pstate->buf[0]);
+
+    if (pstate->buf[0] < ' ' || pstate->buf[0] >= 0x7f) RETURN_RESULT(kOk);
 
     if (pstate->insert) {
         if (strlen(inpbuf) >= PROMPT_MAX_LEN) {
-            return display_bell();
+            RETURN_RESULT(display_bell());
         }
 
         // Shuffle all characters past the insertion point in the inpbuf up one
@@ -451,7 +453,7 @@ static MmResult handle_other(PromptState *pstate) {
         ON_FAILURE_RETURN(display_cursor_left(strlen(inpbuf) - pstate->char_index, true));
     } else {
         if (pstate->char_index == PROMPT_MAX_LEN) {
-            return display_bell();
+            RETURN_RESULT(display_bell());
         }
 
         inpbuf[strlen(inpbuf) + 1] = '\0';  // incase we are adding to the end
@@ -460,7 +462,7 @@ static MmResult handle_other(PromptState *pstate) {
         ON_FAILURE_RETURN(display_putc(pstate->buf[0]));  // display it
     }
 
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 static MmResult handle_right(PromptState *pstate) {

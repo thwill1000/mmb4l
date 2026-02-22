@@ -143,6 +143,8 @@ MmResult display_colour_fg(MmGraphicsColour argb) {
 }
 
 MmResult display_cursor_left(int count, bool wrap) {
+    LOG_FN_ENTRY("count=%d, wrap=%d", count, wrap);
+
     if (TTY_TERMINAL_ENABLED()) {
         ON_FAILURE_RETURN(console_cursor_left(count, wrap));
     }
@@ -151,7 +153,7 @@ MmResult display_cursor_left(int count, bool wrap) {
         ON_FAILURE_RETURN(termgfx_cursor_left(count, wrap));
     }
 
-    return kOk;
+    RETURN_RESULT(kOk);
 }
 
 MmResult display_cursor_up(int count) {

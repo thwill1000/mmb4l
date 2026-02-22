@@ -1,11 +1,9 @@
 /*
- * Copyright (c) 2022 Thomas Hugo Williams
+ * Copyright (c) 2022-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
 #include <gtest/gtest.h>
-
-#include "../../common/gtest/test_config.h"
 
 extern "C" {
 

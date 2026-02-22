@@ -208,6 +208,12 @@ static void verror(MmResult error, const char *msg, va_list argp) {
     }
 }
 
+#if defined(_MSC_VER)
+// To avoid unreachable code warnings because of the longjmp() calls in verror().
+#pragma warning(push)
+#pragma warning(disable: 4702)
+#endif
+
 MmResult error_throw_legacy(const char *msg, ...) {
     va_list argp;
     va_start(argp, msg);
@@ -225,6 +231,10 @@ MmResult error_throw_ex(MmResult result, const char *msg, ...) {
     va_end(argp);
     return result;
 }
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 MmResult error_throw(MmResult result) {
     return error_throw_ex(result, mmresult_to_string(result));

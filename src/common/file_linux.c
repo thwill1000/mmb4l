@@ -136,19 +136,34 @@ MmResult file_get_home(char *buf, size_t buf_sz) {
 
     errno = 0;
     const char *home = getenv("HOME");
-    if (!home) return errno; // Probably never happens.
+    if (!home) {
+        if (errno) {
+            return errno;
+        } else {
+            return mmresult_ex(kError, "Failed to get home directory");
+        }
+    }
     if (FAILED(cstring_cpy(buf, home, buf_sz))) {
         return kFilenameTooLong;
     }
     return kOk;
 }
 
+bool file_is_absolute(const char *path) {
+    return path != NULL && (path[0] == '/' || path[0] == '\\');
+}
+
 MmResult file_info(const char *filename, FileInfo *info) {
     CHECK_PARAM(filename != NULL);
     CHECK_PARAM(info != NULL);
 
+    // TODO: All path normalization/canonicalization should be done in the
+    //       callers to avoid it occurring multiple times for the same filename.
+    char normalized_filename[PATH_MAX];
+    ON_FAILURE_RETURN(file_normalize_separators(filename, normalized_filename, sizeof(normalized_filename)));
+
     struct stat st;
-    if (SUCCEEDED(stat(filename, &st))) {
+    if (SUCCEEDED(stat(normalized_filename, &st))) {
         info->exists = true;
         info->size = st.st_size;
         info->mtime = st.st_mtime;
@@ -242,7 +257,7 @@ MmResult file_mkdir(const char *dirname) {
     }
 }
 
-MmResult file_mkfile(const char *filename) {
+MmResult file_mkfile(const char *filename, const char *contents) {
     CHECK_PARAM(filename != NULL);
 
     FileInfo info;
@@ -252,7 +267,22 @@ MmResult file_mkfile(const char *filename) {
     errno = 0;
     FILE* file = fopen(filename, "w");
     if (file) {
+        if (contents) {
+            fputs(contents, file);
+        }
         fclose(file);
+        return kOk;
+    } else {
+        return errno;
+    }
+}
+
+MmResult file_mksymlink(const char *target, const char *link) {
+    CHECK_PARAM(target != NULL);
+    CHECK_PARAM(link != NULL);
+
+    errno = 0;
+    if (SUCCEEDED(symlink(target, link))) {
         return kOk;
     } else {
         return errno;
