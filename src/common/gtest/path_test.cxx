@@ -610,6 +610,24 @@ TEST_F(PathTest, Complete_GivenRootPath) {
     TEST_COMPLETE("/tmp/../me", "dia");
 }
 
+TEST_F(PathTest, Complete_GivenMultipleMatchesWithNoCommonSuffix) {
+    char out[256];
+
+    MAKE_FILE(PATH_TEST_DIR "/cat");
+    MAKE_FILE(PATH_TEST_DIR "/cow");
+    MAKE_FILE(PATH_TEST_DIR "/car");
+    CHDIR(PATH_TEST_DIR);
+
+    // All three match "c", suffixes are "at", "ow", "ar" - no common prefix.
+    // Expected: "" (nothing safe to complete).
+    // Bug: returns the suffix of whichever match comes last in directory order.
+    TEST_COMPLETE("c", "");
+
+    // Two match "ca": "cat" and "car", suffixes "t" and "r" - no common prefix.
+    // Expected: "".
+    // Bug: returns "t" or "r" depending on readdir order.
+    TEST_COMPLETE("ca", "");
+}
 
 TEST_F(PathTest, TryExtension) {
     #define FILE_ONE    PATH_TEST_DIR "/ResolveWithExtension/one.bas"

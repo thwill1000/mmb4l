@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -447,66 +446,57 @@ MmResult path_mkdir(const char *path) {
 }
 
 static MmResult path_complete_impl(const char *path, char *out, size_t sz) {
-    // printf("path_complete: #%s#\n", path);
-    char dir_path[PATH_MAX];
-    MmResult result = path_munge(path, dir_path, PATH_MAX);
-    if (FAILED(result)) return result;
+    // LOG_FN_ENTRY("path=%s, out=%p, sz=%zu", path, out, sz);
 
     out[0] = '\0';
-    if (dir_path[0] == '\0' || path_exists(dir_path)) return kOk;
 
-    // Rewind to path-separator '/' or beginning of path,
-    // that gives us the 'dir_path' to search
-    // and the 'filename' prefix to match.
-    char filename[NAME_MAX + 1];
-    char *p = dir_path + strlen(dir_path);
-    while (*p != '/' && p > dir_path) p--;
-    if (*p == '/') {
-        strcpy(filename, p + 1);
-        if (p == dir_path) {
-            strcpy(dir_path, "/");
-        } else {
-            *p = '\0';
-        }
-    } else {
-        strcpy(filename, p);
-        strcpy(dir_path, "./");
+    char basename[NAME_MAX + 1];
+    char dirname[PATH_MAX];
+    {
+        char tmp[PATH_MAX];
+        ON_FAILURE_RETURN(path_munge(path, tmp, PATH_MAX));
+
+        if (tmp[0] == '\0' || path_exists(tmp)) RETURN_RESULT(kOk);
+
+        ON_FAILURE_RETURN(file_basename(tmp, basename, sizeof(basename)));
+        ON_FAILURE_RETURN(file_dirname(tmp, dirname, sizeof(dirname)));
     }
 
-    // printf("#%s#%s#\n", dir_path, filename);
-    // printf("%d\n", path_exists(dir_path));
-    // printf("%d\n", path_is_directory(dir_path));
+    // If 'dirname' doesn not exist or is not a directory then exit.
+    if (!path_exists(dirname)) RETURN_RESULT(kFileNotFound);
+    if (!path_is_directory(dirname)) RETURN_RESULT(kNotADirectory);
 
-    // If 'dir_path' doesn not exist or is not a directory then exit.
-    if (!path_exists(dir_path)) return kFileNotFound;
-    if (!path_is_directory(dir_path)) return kNotADirectory;
+    // Open 'dirname'.
+    DirStream *fd = NULL;
+    ON_FAILURE_RETURN(file_opendir(dirname, &fd));
 
-    // Open 'dir_path'.
-    errno = 0;
-    DIR *fd = opendir(dir_path);
-    if (!fd) return errno;
+    // LOG_DEBUG("dirname = %s, basename = %s", dirname, basename);
 
-    // Loop through files in 'dir_path' to identify a common completion 'out'.
-    struct dirent* entry;
-    size_t filename_len = strlen(filename);
-    while ((entry = readdir(fd))) {
-        if (strcmp(entry->d_name, ".") == 0
-                 || strcmp(entry->d_name, "..") == 0) continue;
-        p = strstr(entry->d_name, filename);
-        if (p != entry->d_name) continue;
-        // printf(" - %s\n", entry->d_name);
-        if (out[0] == '\0') {
-            cstring_cat(out, entry->d_name + filename_len, sz);
+    // Loop through files in 'dirname' to identify a common completion 'out'.
+    const size_t basename_len = strlen(basename);
+    MmResult result = kOk;
+    bool matched = false;
+    for (;;) {
+        DirEntry *entry = NULL;
+        result = file_readdir(fd, &entry);
+        if (FAILED(result) || !entry) break;
+        // LOG_DEBUG("entry->name = %s", entry->name);
+        if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) continue;
+        char *p = strstr(entry->name, basename);
+        if (p != entry->name) continue;
+        if (!matched) {
+            cstring_cat(out, entry->name + basename_len, sz);
+            matched = true;
         } else {
             p = out;
-            char *p2 = entry->d_name + filename_len;
-            while (*p++ == *p2++);
-            *--p = '\0';
+            char *p2 = entry->name + basename_len;
+            while (*p == *p2 && *p != '\0') { p++; p2++; }
+            *p = '\0';
         }
     }
 
-    // readdir() will have set errno if it fails.
-    return (MmResult) errno;
+    ON_FAILURE_LOG(file_closedir(fd));
+    RETURN_RESULT_EX(result, "out=\"%s\"", out);
 }
 
 MmResult path_try_extension(const char *path, const char *extension, char *out, size_t out_sz) {
