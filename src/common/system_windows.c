@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-fun_day.c
+system_windows.c
 
 Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,42 +42,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <windows.h>
 #include <stdlib.h>
 
-#include "../common/mmb4l.h"
-#include "../common/error.h"
-#include "../common/mmtime.h"
+// Undefine HRESULT macros to avoid conflicts with MMB4L definitions
+#undef FAILED
+#undef SUCCEEDED
 
-void fun_day(void) {
-    const bool now = checkstring(ep, "NOW");
-    int64_t time;
+#include "error.h"
+#include "system.h"
 
-    if (now) {
-        time = mmtime_now_ns();
-    } else {
-        const char *arg = getCstring(ep);
-        const DelimType delim[] = { '-', '/', 0 };
-        getargs(&arg, 5, delim);
-        if (argc != 5) ERROR_SYNTAX;
-        int d = atoi(argv[0]);
-        int m = atoi(argv[2]);
-        int y = atoi(argv[4]);
-        if (d > 1000) {
-            int tmp = d;
-            d = y;
-            y = tmp;
-        }
-        if (y >= 0 && y < 100) y += 2000;
-        if (d < 1 || d > 31 || m < 1 || m > 12 || y < 1902 || y > 2999) ERROR_INVALID("date");
-        struct tm tmbuf = { 0 };
-        tmbuf.tm_year = y - 1900;
-        tmbuf.tm_mon = m - 1;
-        tmbuf.tm_mday = d;
-        time = SECONDS_TO_NANOSECONDS(mmtime_timegm(&tmbuf));
+int system_getpid() {
+    return (int) GetCurrentProcessId();
+}
+
+int system_setenv(const char *name, const char *value, int overwrite) {
+    if (!overwrite) {
+        char buf[256];
+        size_t len;
+        if (getenv_s(&len, buf, sizeof(buf), name) == 0 && len > 0) return 0;
     }
-
-    targ = T_STR;
-    sret = GetTempStrMemory();
-    mmtime_day_of_week(time, now, sret);
-    CtoM(sret);
+    return _putenv_s(name, value);
 }

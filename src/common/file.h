@@ -45,7 +45,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_FILE)
 #define MMB4L_FILE
 
-#include <linux/limits.h> // For PATH_MAX
+#ifdef _WIN32
+#include <limits.h>
+#ifndef PATH_MAX
+#define PATH_MAX 260
+#define NAME_MAX 255
+#endif
+#else
+#include <linux/limits.h>
+#endif
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>

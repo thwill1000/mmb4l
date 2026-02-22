@@ -24,11 +24,4 @@ static void SYSTEM_CALL(const char *cmd) {
     if (exit_status != 0) FAIL() << "system(\"" << cmd << "\" failed: " << exit_status;
 }
 
-#define MAKE_FILE(path)  SYSTEM_CALL("touch " path)
-#define MKDIR(path)      SYSTEM_CALL("mkdir " path)
-
-#define CHDIR(path) \
-    errno = 0; \
-    ASSERT_TRUE(SUCCEEDED(chdir(path))) << "chdir(" << path << ") failed: " << errno
-
 #endif // MMB4L_TEST_CONFIG_H

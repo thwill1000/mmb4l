@@ -50,7 +50,7 @@ protected:
             // Symlinks might not be supported on all systems
         }
 
-        ASSERT_EQ(kOk, path_get_canonical(test_dir.c_str(), canonical_test_dir, PATH_MAX));
+        ASSERT_EQ(kOk, path_get_canonical((const char *) test_dir.c_str(), canonical_test_dir, PATH_MAX));
     }
 
     void TearDown() override {
@@ -76,7 +76,7 @@ protected:
 TEST_F(DirectoryApiTest, OpenDirSuccess) {
     DirStream *stream = nullptr;
 
-    MmResult result = file_opendir(test_dir.c_str(), &stream);
+    MmResult result = file_opendir((const char *) test_dir.c_str(), &stream);
 
     EXPECT_EQ(result, kOk);
     EXPECT_NE(stream, nullptr);
@@ -89,9 +89,9 @@ TEST_F(DirectoryApiTest, OpenDirSuccess) {
 // Test opening non-existent directory
 TEST_F(DirectoryApiTest, OpenDirNotFound) {
     DirStream *stream = nullptr;
-    std::string nonexistent = test_dir / "nonexistent";
+    std::filesystem::path nonexistent = test_dir / "nonexistent";
 
-    MmResult result = file_opendir(nonexistent.c_str(), &stream);
+    MmResult result = file_opendir((const char *) nonexistent.c_str(), &stream);
 
     EXPECT_EQ(result, kFileNotFound);
     EXPECT_EQ(stream, nullptr);
@@ -112,7 +112,7 @@ TEST_F(DirectoryApiTest, OpenDirNullPath) {
 // Test reading directory entries
 TEST_F(DirectoryApiTest, ReadDirEntries) {
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir(test_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream), kOk);
     ASSERT_NE(stream, nullptr);
 
     std::vector<std::string> found_entries;
@@ -164,8 +164,8 @@ TEST_F(DirectoryApiTest, MultipleConcurrentStreams) {
     DirStream *stream2 = nullptr;
 
     // Open both directories
-    ASSERT_EQ(file_opendir(test_dir.c_str(), &stream1), kOk);
-    ASSERT_EQ(file_opendir(test_dir2.c_str(), &stream2), kOk);
+    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream1), kOk);
+    ASSERT_EQ(file_opendir((const char *) test_dir2.c_str(), &stream2), kOk);
     ASSERT_NE(stream1, nullptr);
     ASSERT_NE(stream2, nullptr);
     ASSERT_NE(stream1, stream2); // Should be different objects
@@ -195,7 +195,7 @@ TEST_F(DirectoryApiTest, MultipleConcurrentStreams) {
 // Test entry type detection
 TEST_F(DirectoryApiTest, EntryTypeDetection) {
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir(test_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream), kOk);
 
     std::unordered_map<std::string, FileType> entry_types;
 
@@ -227,7 +227,7 @@ TEST_F(DirectoryApiTest, LongFilenames) {
     std::ofstream(test_dir / long_name) << "content";
 
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir(test_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream), kOk);
 
     bool found_long_name = false;
     DirEntry *entry;
@@ -260,7 +260,7 @@ TEST_F(DirectoryApiTest, StressTestManyFiles) {
     }
 
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir(stress_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir((const char *) stress_dir.c_str(), &stream), kOk);
 
     int count = 0;
     DirEntry *entry;
@@ -284,7 +284,7 @@ TEST_F(DirectoryApiTest, EmptyDirectory) {
     std::filesystem::create_directories(empty_dir);
 
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir(empty_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir((const char *) empty_dir.c_str(), &stream), kOk);
 
     std::vector<std::string> entries;
     DirEntry *entry;
@@ -304,7 +304,7 @@ TEST_F(DirectoryApiTest, EmptyDirectory) {
 // Test proper resource cleanup
 TEST_F(DirectoryApiTest, ResourceCleanup) {
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir(test_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream), kOk);
     ASSERT_NE(stream, nullptr);
 
     // Close the directory
@@ -1064,7 +1064,7 @@ TEST_F(FileListTest, GetFreeSpaceFunction) {
     uint64_t free_space;
 
     // Test with valid directory
-    MmResult result = file_get_free_space(test_dir.c_str(), &free_space);
+    MmResult result = file_get_free_space((const char *) test_dir.c_str(), &free_space);
     EXPECT_EQ(result, kOk);
     EXPECT_GT(free_space, 0);
 
@@ -1083,7 +1083,7 @@ TEST_F(FileListTest, GetFreeSpaceFunction) {
     result = file_get_free_space(nullptr, &free_space);
     EXPECT_EQ(result, kInternalFault);
 
-    result = file_get_free_space(test_dir.c_str(), nullptr);
+    result = file_get_free_space((const char *) test_dir.c_str(), nullptr);
     EXPECT_EQ(result, kInternalFault);
 }
 
@@ -1176,7 +1176,7 @@ TEST_F(FileListTest, FileTypeConsistencyWithReaddir) {
 
     // Get file types from directory reading
     DirStream *stream = nullptr;
-    ASSERT_EQ(file_opendir(test_dir.c_str(), &stream), kOk);
+    ASSERT_EQ(file_opendir((const char *) test_dir.c_str(), &stream), kOk);
 
     std::unordered_map<std::string, FileType> readdir_types;
     DirEntry *entry;

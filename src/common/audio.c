@@ -329,7 +329,7 @@ static void audio_clear_track_list() {
     for (int counter = 0; counter < 100; ++counter) {
         audio_track_list[counter][0] = '\0';
     }
-    audio_track_current = -1;
+    audio_track_current = 0;
 }
 
 static void audio_dump_track_list() {

@@ -53,7 +53,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define xstringify(a) stringify(a)
 #define VAR_NAME_VALUE(var) #var "=" xstringify(var)
 
-#if defined(_WIN32)
+// =============================================================================
+// SUPPRESS WARNINGS
+// =============================================================================
+
+/**
+ * Macros to suppress specific warnings
+ */
+#if defined(_MSC_VER)
 
 #define DIAGNOSTIC_IGNORE_ARRAY_BOUNDS
 #define DIAGNOSTIC_IGNORE_CLOBBERED
@@ -94,13 +101,56 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endif // #if defined(__clang__)
 
-#endif // #if defined(_WIN32)
+#endif // #if defined(_MSC_VER)
+
+// =============================================================================
+// ALIGNMENT ATTRIBUTES
+// =============================================================================
+
+/**
+ * ALIGNED_PREFIX(n) - Specify alignment for a type or variable (prefix)
+ * ALIGNED_SUFFIX(n) - Specify alignment as suffix (for compatibility)
+ *
+ * Usage:
+ *   ALIGNED_PREFIX(8) struct foo { ... };    // Align struct to 8 bytes
+ *   ALIGNED_PREFIX(16) int x;                // Align variable to 16 bytes
+ *
+ *   union bar {
+ *       int x;
+ *   } ALIGNED_SUFFIX(8) my_union;            // Suffix form for union members
+ */
+#ifdef _MSC_VER
+    #define ALIGNED_PREFIX(n) __declspec(align(n))
+    #define ALIGNED_SUFFIX(n)
+    #define ALIGNED_VAR(n, type) __declspec(align(n)) type
+#elif defined(__GNUC__) || defined(__clang__)
+    #define ALIGNED_PREFIX(n)
+    #define ALIGNED_SUFFIX(n) __attribute__((aligned(n)))
+    #define ALIGNED_VAR(n, type) type __attribute__((aligned(n)))
+#else
+    #define ALIGNED_PREFIX(n)
+    #define ALIGNED_SUFFIX(n)
+#endif // #if defined(_MSC_VER)
 
 #if __GNUC__ >= 11
 #define CASE_FALLTHROUGH  [[fallthrough]]
+#elif defined(_MSC_VER)
+#define CASE_FALLTHROUGH
 #else
 #define CASE_FALLTHROUGH  __attribute__ ((fallthrough))
+#endif // #if __GNUC__ >= 11
+
+#ifdef _MSC_VER
+
+#ifndef max
+#define max(a,b) (((a) > (b)) ? (a) : (b))
 #endif
+
+#ifndef min
+#define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
+
+#else
 
 #define max(a,b) \
     ({ __typeof__ (a) _a = (a); \
@@ -111,6 +161,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     ({ __typeof__ (a) _a = (a); \
         __typeof__ (b) _b = (b); \
         _a < _b ? _a : _b; })
+
+#endif // #ifdef _MSC_VER
 
 #define snprintf_nowarn(...) (snprintf(__VA_ARGS__) < 0 ? abort() : (void)0)
 

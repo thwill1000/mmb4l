@@ -2,7 +2,7 @@
 
 MMBasic for Linux (MMB4L)
 
-fun_day.c
+complex_compat.h
 
 Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
@@ -42,42 +42,66 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <stdlib.h>
+#ifndef COMPLEX_COMPAT_H
+#define COMPLEX_COMPAT_H
 
-#include "../common/mmb4l.h"
-#include "../common/error.h"
-#include "../common/mmtime.h"
+#if defined(_MSC_VER)
 
-void fun_day(void) {
-    const bool now = checkstring(ep, "NOW");
-    int64_t time;
+#define _CRT_USE_C_COMPLEX_H
+#include <complex.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
-    if (now) {
-        time = mmtime_now_ns();
-    } else {
-        const char *arg = getCstring(ep);
-        const DelimType delim[] = { '-', '/', 0 };
-        getargs(&arg, 5, delim);
-        if (argc != 5) ERROR_SYNTAX;
-        int d = atoi(argv[0]);
-        int m = atoi(argv[2]);
-        int y = atoi(argv[4]);
-        if (d > 1000) {
-            int tmp = d;
-            d = y;
-            y = tmp;
-        }
-        if (y >= 0 && y < 100) y += 2000;
-        if (d < 1 || d > 31 || m < 1 || m > 12 || y < 1902 || y > 2999) ERROR_INVALID("date");
-        struct tm tmbuf = { 0 };
-        tmbuf.tm_year = y - 1900;
-        tmbuf.tm_mon = m - 1;
-        tmbuf.tm_mday = d;
-        time = SECONDS_TO_NANOSECONDS(mmtime_timegm(&tmbuf));
-    }
+typedef _Dcomplex cplx;  // double_complex
+typedef _Fcomplex fcplx; // float_complex
 
-    targ = T_STR;
-    sret = GetTempStrMemory();
-    mmtime_day_of_week(time, now, sret);
-    CtoM(sret);
-}
+/* MSVC does not support C99 complex arithmetic operators.
+ * These macros provide equivalents for +, -, *, / on complex types. */
+
+/* Double precision */
+#define cadd(a, b)    _Cbuild(creal(a) + creal(b), cimag(a) + cimag(b))
+#define csub(a, b)    _Cbuild(creal(a) - creal(b), cimag(a) - cimag(b))
+#define cmul(a, b)    _Cmulcc(a, b)
+#define cdiv(a, b)    _Cdivcc(a, b)
+#define cdivr(a, r)   _Cbuild(creal(a) / (r), cimag(a) / (r))  /* divide by real scalar */
+
+/* Single precision */
+#define caddf(a, b)   _FCbuild(crealf(a) + crealf(b), cimagf(a) + cimagf(b))
+#define csubf(a, b)   _FCbuild(crealf(a) - crealf(b), cimagf(a) - cimagf(b))
+#define cmulf(a, b)   _FCmulcc(a, b)
+#define cdivf(a, b)   _FCbuild( \
+    (crealf(a) * crealf(b) + cimagf(a) * cimagf(b)) / (crealf(b) * crealf(b) + cimagf(b) * cimagf(b)), \
+    (cimagf(a) * crealf(b) - crealf(a) * cimagf(b)) / (crealf(b) * crealf(b) + cimagf(b) * cimagf(b)))
+#define cdivrf(a, r)  _FCbuild(crealf(a) / (r), cimagf(a) / (r))  /* divide by real scalar */
+
+#define FCOMPLEX(r, i)  _FCbuild((float)(r), (float)(i))
+#define DCOMPLEX(r, i)  _Cbuild((double)(r), (double)(i))
+
+#else
+
+#include <complex.h>
+#include <math.h>
+
+#include "../Configuration.h"  // for MMFLOAT definition
+
+typedef MMFLOAT complex cplx;
+typedef float complex fcplx;
+
+/* On GCC/Clang, operators work natively so these macros just use them directly. */
+#define cadd(a, b)    ((a) + (b))
+#define csub(a, b)    ((a) - (b))
+#define cmul(a, b)    ((a) * (b))
+#define cdiv(a, b)    ((a) / (b))
+#define cdivr(a, r)   ((a) / (r))
+
+#define caddf(a, b)   ((a) + (b))
+#define csubf(a, b)   ((a) - (b))
+#define cmulf(a, b)   ((a) * (b))
+#define cdivf(a, b)   ((a) / (b))
+#define cdivrf(a, r)  ((a) / (r))
+
+#define FCOMPLEX(r, i)  ((float)(r) + (float)(i) * I)
+#define DCOMPLEX(r, i)  ((double)(r) + (double)(i) * I)
+
+#endif /* _MSC_VER */
+#endif /* COMPLEX_COMPAT_H */

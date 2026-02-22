@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_image.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -102,8 +102,8 @@ static MmResult cmd_image_resize_fast(const char *p) {
         const float y_ratio = ((float) height / (float) new_height);
         for (int yy = 0; yy < new_height; ++yy) {
             int py = (yy * y_ratio) + y;
-            return graphics_blit(x, py, new_x, new_y + yy, width, 1, src_surface, write_surface,
-                                 transparent_black ? 4 : 0, RGB_BLACK);
+            ON_FAILURE_RETURN(graphics_blit(x, py, new_x, new_y + yy, width, 1, src_surface, write_surface,
+                                            transparent_black ? 4 : 0, RGB_BLACK));
         }
     } else {
         const int x_ratio = (int)((float) width / (float) new_width * (float)65536.0);

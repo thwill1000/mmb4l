@@ -2,9 +2,9 @@
 
 MMBasic for Linux (MMB4L)
 
-process.h
+mmtime_linux.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -42,9 +42,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#if !defined(MMB4L_PROCESS)
-#define MMB4L_PROCESS
+#include <assert.h>
+#include <stdint.h>
 
-int process_getpid();
+#include "mmtime.h"
 
-#endif // #if !defined(MMB4L_PROCESS)
+int64_t mmtime_now_ns() {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    return SECONDS_TO_NANOSECONDS(now.tv_sec) + (int64_t) now.tv_nsec;
+}
+
+void mmtime_sleep_ns(int64_t duration_ns) {
+    assert(duration_ns >= 0);
+    struct timespec t = { duration_ns / 1000000000, duration_ns % 1000000000 };
+    nanosleep(&t, NULL);
+}
+
+int64_t mmtime_get_cputime_ns(void) {
+    struct timespec now;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &now);
+    return SECONDS_TO_NANOSECONDS(now.tv_sec) + (int64_t) now.tv_nsec;
+}
+
+time_t mmtime_timegm(struct tm *t) {
+    return timegm(t);
+}

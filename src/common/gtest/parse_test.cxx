@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2025 Thomas Hugo Williams
+ * Copyright (c) 2021-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -1304,7 +1304,7 @@ TEST_F(ParseTest, ParsePinNum_GivenUnknownVariable_Fails) {
     EXPECT_EQ(0, pin_num);
     EXPECT_EQ(false, is_gp);
     EXPECT_EQ(ProgMemory + 6, p);
-    EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+    EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
 
     // Note failure MmResult is not currently reported because error is picked up in a legacy
     // routine that uses longjmp().
@@ -1546,7 +1546,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
 
         MmSurfaceId actual_sprite_id = -1;
         EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, 0x0, &actual_sprite_id));
-        EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+        EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
     }
 
     // 0 is not a valid sprite id.
@@ -1559,7 +1559,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
         MmSurfaceId actual_sprite_id = -1;
         EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
         // Currently reports error through legacy error reporting.
-        EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+        EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
     }
 
     // Minimum sprite id = 1.
@@ -1597,7 +1597,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenNotSimulatingClassicMmBasic_RespectsLimits)
 
         MmSurfaceId actual_sprite_id = -1;
         EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, 0x0, &actual_sprite_id));
-        EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+        EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
     }
 }
 
@@ -1623,7 +1623,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
 
             MmSurfaceId actual_sprite_id = -1;
             EXPECT_EQ(kOk, parse_sprite_id(p, 0x0, &actual_sprite_id));
-            EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+            EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
         }
 
         // Minimum sprite id = 1.
@@ -1661,7 +1661,7 @@ TEST_F(ParseTest, ParseSpriteId_GivenSimulatingClassicMmBasic_RespectsLimits_And
 
             MmSurfaceId actual_sprite_id = -1;
             EXPECT_EQ(kGraphicsInvalidSprite, parse_sprite_id(p, 0x0, &actual_sprite_id));
-            EXPECT_STREQ("\% is invalid (valid is \% to \%)", error_msg);
+            EXPECT_STREQ("% is invalid (valid is % to %)", error_msg);
         }
     }
 }

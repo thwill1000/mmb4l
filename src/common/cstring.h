@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cstring.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -48,10 +48,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <strings.h>
 
-#define cstring_casecmp(s1, s2)  strcasecmp(s1, s2)
+#if defined(_WIN32)
+
+#include <string.h>
+#define cstring_casecmp(s1, s2)      _stricmp(s1, s2)
+#define cstring_ncasecmp(s1, s2, n)  _strnicmp(s1, s2, n)
+
+#else
+
+#include <strings.h>
+#define cstring_casecmp(s1, s2)      strcasecmp(s1, s2)
 #define cstring_ncasecmp(s1, s2, n)  strncasecmp(s1, s2, n)
+
+#endif
 
 /**
  * @brief  Safely concatenates strings.

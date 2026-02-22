@@ -45,12 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(MMB4L_VARTBL_H)
 #define MMB4L_VARTBL_H
 
-#include "../Configuration.h"
-#include "../common/mmresult.h"
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#include "../Configuration.h"
+#include "../common/mmresult.h"
+#include "../common/utility.h"
 
 #define GLOBAL_VAR     0
 #define UNUSED_HASH   -1
@@ -69,13 +70,13 @@ struct s_vartbl {                                     // structure of the variab
     DIMTYPE dims[MAXDIM];                             // the dimensions. it is an array if the first dimension is NOT zero
     uint8_t size;                                     // the number of chars to allocate for each element in a string array
     VarHashValue hash;                                // index into the hash table for the variable
-    union u_val {
+    ALIGNED_PREFIX(8) union u_val {
         MMFLOAT f;                                    // the value if it is a float
         MMINTEGER i;                                  // the value if it is an integer
         MMFLOAT *fa;                                  // pointer to the allocated memory if it is an array of floats
         MMINTEGER *ia;                                // pointer to the allocated memory if it is an array of integers
         char *s;                                      // pointer to the allocated memory if it is a string
-    } __attribute__ ((aligned (8))) val;
+    } ALIGNED_SUFFIX(8) val;
 };
 
 /** Table of variables. */

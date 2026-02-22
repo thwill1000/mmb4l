@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_triangle.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -62,8 +62,10 @@ static void cmd_triangle_restore(const char *p) {
  */
 static void cmd_triangle_default(const char *p) {
     int x1, y1, x2, y2, x3, y3, n = 0;
-    MMINTEGER *x3ptr, *y3ptr, *x1ptr, *y1ptr, *x2ptr, *y2ptr, *fptr, *cptr;
-    MMFLOAT *x3fptr, *y3fptr, *x1fptr, *y1fptr, *x2fptr, *y2fptr, *ffptr, *cfptr;
+    MMINTEGER *x3ptr = NULL, *y3ptr = NULL, *x1ptr = NULL, *y1ptr = NULL, *x2ptr = NULL,
+              *y2ptr = NULL, *fptr = NULL, *cptr = NULL;
+    MMFLOAT *x3fptr = NULL, *y3fptr = NULL, *x1fptr = NULL, *y1fptr = NULL, *x2fptr = NULL,
+            *y2fptr = NULL, *ffptr = NULL, *cfptr = NULL;
     getargs(&cmdline, 15, DELIM_COMMA);
     if (!(argc & 1) || argc < 11) ERROR_ARGUMENT_COUNT;
     getargaddress(argv[0], &x1ptr, &x1fptr, &n);

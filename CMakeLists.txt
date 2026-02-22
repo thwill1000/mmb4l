@@ -6,6 +6,38 @@ cmake_minimum_required(VERSION 3.14)
 # set the project name
 project(MMB4L)
 
+# =============================================================================
+# SDL2 Configuration Function
+# =============================================================================
+
+function(configure_sdl2 target_name link_sdl2main)
+    if(WIN32)
+        set(SDL2_ROOT "D:/github/thwill1000/SDL2-2.32.10")
+
+        if(NOT EXISTS "${SDL2_ROOT}/include/SDL.h")
+            message(FATAL_ERROR "SDL2 not found at ${SDL2_ROOT}")
+        endif()
+
+        target_include_directories(${target_name} PUBLIC "${SDL2_ROOT}/include")
+        target_link_directories(${target_name} PUBLIC "${SDL2_ROOT}/lib/x64")
+
+        if(link_sdl2main)
+            target_link_libraries(${target_name} SDL2main SDL2)
+        else()
+            target_link_libraries(${target_name} SDL2)
+        endif()
+
+        add_custom_command(TARGET ${target_name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${SDL2_ROOT}/lib/x64/SDL2.dll"
+                $<TARGET_FILE_DIR:${target_name}>
+        )
+    else()
+        target_include_directories(${target_name} PUBLIC /usr/include/SDL2)
+        target_link_libraries(${target_name} SDL2)
+    endif()
+endfunction()
+
 # Unit tests require at least C++20
 #  - GoogleTest framework requires at least C++17
 #  - Some C++ tests use C style designated initializers (C++20)
@@ -39,13 +71,43 @@ if (MMB4L_COVERAGE)
     set(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
     set(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
     set(GCOV_LINK_LIBRARY          gcov)
+else()
+    set(GCOV_LINK_LIBRARY          "")  # Empty on Windows/when coverage disabled
 endif()
 
-add_compile_options(
-    "-Wwrite-strings;-Wall;-Wextra;-Wno-unused-parameter;-Wno-missing-field-initializers;-Wno-unused-function;-Wno-unused-result;-Werror"
-    ${GCC_COVERAGE_COMPILE_FLAGS}
-    -funsigned-char
-)
+# Platform-specific compiler flags
+if (MSVC)
+    # Visual Studio compiler flags
+    add_compile_options(
+        /W4          # Warning level 4
+        /WX          # Treat warnings as errors
+        /wd4100      # Unreferenced formal parameter
+        /wd4127      # Conditional expression is constant
+        /wd4201      # Nonstandard extension used
+        /wd4244      # Conversion warnings
+        /wd4267      # Size_t conversion warnings
+        /wd4456      # Declaration of '...' hides previous local declaration
+        /wd4457      # Declaration of '...' hides function parameter
+        /wd4459      # Declaration of '...' hides global declaration
+        /wd4505      # Unreferenced local function has been removed
+        /utf-8       # Set source and execution character sets to UTF-8
+        /J           # Make char type unsigned (equivalent to -funsigned-char)
+    )
+
+    # Add Windows-specific definitions
+    add_compile_definitions(
+        _CRT_SECURE_NO_WARNINGS  # Disable warnings about "unsafe" C functions
+        NOMINMAX                 # Prevent Windows.h from defining min/max macros
+        WIN32_LEAN_AND_MEAN      # Exclude rarely-used stuff from Windows headers
+    )
+else()
+    # GCC/Clang compiler flags (Linux/macOS)
+    add_compile_options(
+        "-Wwrite-strings;-Wall;-Wextra;-Wno-unused-parameter;-Wno-missing-field-initializers;-Wno-unused-function;-Wno-unused-result;-Werror"
+        ${GCC_COVERAGE_COMPILE_FLAGS}
+        -funsigned-char
+    )
+endif()
 
 add_compile_definitions(
     _FILE_OFFSET_BITS=64
@@ -265,11 +327,12 @@ set(MMB4L_COMMON_SOURCE_FILES
     src/common/mmgetline.c
     src/common/mmresult.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/options.c
     src/common/parse.c
     src/common/path.c
     src/common/editor.c
-    src/common/process_${PLATFORM}.c
+    src/common/system_${PLATFORM}.c
     src/common/program.c
     src/common/prompt.c
     src/common/rx_buf.c
@@ -296,6 +359,7 @@ set(MMB4L_COMMON_TEST_FILES
     src/common/logger.c
     src/common/mmresult.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/utility.c
     src/common/gtest/stubs/error_stubs.c
 )
@@ -311,16 +375,16 @@ set(MMB4L_SOURCE_FILES
 # add the executable
 add_executable(mmbasic ${MMB4L_CORE_SOURCE_FILES} ${MMB4L_SOURCE_FILES})
 
-target_include_directories(mmbasic PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(mmbasic TRUE)
 
-target_link_libraries(
-    mmbasic
-    m
-    ${GCOV_LINK_LIBRARY}
-    SDL2
-)
+if(NOT WIN32)
+    target_link_libraries(
+        mmbasic
+        m
+        ${GCOV_LINK_LIBRARY}
+        SDL2
+    )
+endif()
 
 ################################################################################
 # test_keybuf_get
@@ -337,6 +401,7 @@ add_executable(test_console_getc
     src/common/keybuf.c
     src/common/keybuf_${PLATFORM}.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/options.c
     src/common/path.c
     src/common/gtest/stubs/display_stubs.c
@@ -533,9 +598,7 @@ add_executable(test_display
     src/common/gtest/stubs/sdl2_stubs.c
 )
 
-target_include_directories(test_display PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_display FALSE)
 
 target_link_libraries(
     test_display
@@ -631,9 +694,7 @@ add_executable(test_fun_sprite
 
 target_compile_definitions(test_fun_sprite PUBLIC ENABLE_GTEST_EXTRAS)
 
-target_include_directories(test_fun_sprite PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_fun_sprite FALSE)
 
 target_link_libraries(test_fun_sprite
     gtest_main
@@ -653,12 +714,11 @@ add_executable(test_gpio
     src/common/features.c
     src/common/gpio.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/gtest/gpio_test.cxx
 )
 
-target_include_directories(test_gpio PUBLIC
-  /usr/include/SDL2
-)
+configure_sdl2(test_gpio FALSE)
 
 target_link_libraries(test_gpio
     gtest_main
@@ -681,9 +741,7 @@ add_executable(test_gamepad
     src/common/gtest/stubs/sdl2_stubs.c
 )
 
-target_include_directories(test_gamepad PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_gamepad FALSE)
 
 target_link_libraries(test_gamepad
     gtest_main
@@ -720,9 +778,7 @@ add_executable(test_graphics
     src/third_party/upng.c
 )
 
-target_include_directories(test_graphics PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_graphics FALSE)
 
 target_link_libraries(test_graphics
     gtest_main
@@ -778,9 +834,7 @@ add_executable(test_keyboard
     src/common/gtest/stubs/interrupt_stubs.c
 )
 
-target_include_directories(test_keyboard PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_keyboard FALSE)
 
 target_link_libraries(test_keyboard
     gtest_main
@@ -829,6 +883,7 @@ add_executable(test_parse
     src/common/mmgetline.c
     src/common/mmresult.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/options.c
     src/common/parse.c
     src/common/path.c
@@ -902,6 +957,7 @@ add_executable(test_program
     src/common/memory.c
     src/common/mmgetline.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/options.c
     src/common/path.c
     src/common/parse.c
@@ -1024,9 +1080,7 @@ add_executable(test_sprite
     src/third_party/upng.c
 )
 
-target_include_directories(test_sprite PUBLIC
-    /usr/include/SDL2
-)
+configure_sdl2(test_sprite FALSE)
 
 target_link_libraries(test_sprite
     gtest_main
@@ -1091,6 +1145,7 @@ add_executable(test_mmbasic_core
     src/common/streamio.c
     src/common/memory.c
     src/common/mmtime.c
+    src/common/mmtime_${PLATFORM}.c
     src/common/options.c
     src/common/parse.c
     src/common/path.c

@@ -56,8 +56,8 @@ void cmd_box(void) {
     if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
     int x1, y1, wi, h, w = 0, n = 0, i, nc = 0, nw = 0, nf = 0, hmod, wmod;
-    MMINTEGER *x1ptr, *y1ptr, *wiptr, *hptr, *wptr, *cptr, *fptr;
-    MMFLOAT *x1fptr, *y1fptr, *wifptr, *hfptr, *wfptr, *cfptr, *ffptr;
+    MMINTEGER *x1ptr = NULL, *y1ptr = NULL, *wiptr = NULL, *hptr = NULL, *wptr = NULL, *cptr = NULL, *fptr = NULL;
+    MMFLOAT *x1fptr = NULL, *y1fptr = NULL, *wifptr = NULL, *hfptr = NULL, *wfptr = NULL, *cfptr = NULL, *ffptr = NULL;
     getargs(&cmdline, 13, DELIM_COMMA);
     if (!(argc & 1) || argc < 7) ERROR_ARGUMENT_COUNT;
     getargaddress(argv[0], &x1ptr, &x1fptr, &n);

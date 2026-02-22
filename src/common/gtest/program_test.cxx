@@ -138,7 +138,7 @@ protected:
     void MakeDir(const char* path) {
         struct stat st = { 0 };
         if (stat(path, &st) == -1) {
-            mkdir(path, 0775);
+            ASSERT_EQ(kOk, file_mkdir(path));
         }
     }
 
@@ -152,12 +152,13 @@ protected:
         fclose(f);
     }
 
+    void GetCwd(char* cwd, size_t size) {
+        ASSERT_EQ(kOk, file_getcwd(cwd, size));
+    }
+
     std::string PathToFileInCwd(const char* path) {
         char cwd[PATH_MAX];
-        if (!getcwd(cwd, sizeof(cwd))) {
-            perror("getcwd() failed");
-            return "";
-        }
+        GetCwd(cwd, sizeof(cwd));
         return std::string(cwd) + "/" + path;
     }
 

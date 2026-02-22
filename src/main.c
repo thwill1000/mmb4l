@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -77,11 +78,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/utility.h"
 #include "core/tokentbl.h"
 
-DIAGNOSTIC_IGNORE_UNUSED_VARIABLE
 #define MM_VERSION_STR  xstringify(MM_MAJOR) "." xstringify(MM_MINOR) "." xstringify(MM_MICRO)
-static const char version[] __attribute__ ((used))
-        = "@(#) MMB4L v" MM_VERSION_STR " " __DATE__ " " __TIME__;
-DIAGNOSTIC_RESTORE
+static const char version[] = "@(#) MMB4L v" MM_VERSION_STR " " __DATE__ " " __TIME__;
 
 // global variables used in MMBasic but must be maintained outside of the
 // interpreter
@@ -360,6 +358,8 @@ int android_main(int argc, char* argv[]) {
 }
 
 int main(int argc, char *argv[]) {
+    (void) version; // To force the linker to retain it.
+
 #if !defined(__ANDROID__) && !defined(NDEBUG)
     ON_FAILURE_EXIT(logger_init("mmb4l.log"));
 #endif
@@ -576,10 +576,8 @@ void dump(char *p, int nbr) {
 }
 
 void dump_token_table(const struct s_tokentbl* tbl) {
-    int i = 0;
-    for (;;) {
-        printf("%3d:  %-15s, %5d, %5d, 0x%8lX\n", i, tbl[i].name, tbl[i].type, tbl[i].precedence, (unsigned long int) tbl[i].fptr);
+    for (int i = 0;; i++) {
+        printf("%3d:  %-15s, %5d, %5d, 0x%8" PRIxPTR "\n", i, tbl[i].name, tbl[i].type, tbl[i].precedence, (uintptr_t) tbl[i].fptr);
         if (*(tbl[i].name) == 0) break;
-        i++;
     }
 }

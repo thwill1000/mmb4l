@@ -386,7 +386,11 @@ void streamio_seek(int fnbr, int idx) {
 
     errno = 0;
     if (FAILED(fflush(f))) error_throw(errno);
+#if defined(_MSC_VER)
+    if (FAILED(file_fsync(_fileno(f)))) error_throw(errno);
+#else
     if (FAILED(file_fsync(fileno(f)))) error_throw(errno);
+#endif
     if (FAILED(fseek(f, idx - 1, SEEK_SET))) error_throw(errno); // MMBasic indexes from 1, not 0.
 }
 
@@ -437,8 +441,8 @@ size_t streamio_write(int fnbr, const char *buf, size_t sz) {
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
-            return -1;
+            ON_FAILURE_ERROR_EX(kFileNotOpen, 0);
+            return 0;
 
         case fet_file: {
             errno = 0;
@@ -456,7 +460,7 @@ size_t streamio_write(int fnbr, const char *buf, size_t sz) {
 
         default:
             ON_FAILURE_ERROR_EX(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type),
-                                -1);
-            return -1;
+                                0);
+            return 0;
     }
 }

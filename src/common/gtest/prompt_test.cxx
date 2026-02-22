@@ -275,13 +275,13 @@ TEST_F(PromptRestoreHistoryTest, RestoreWithRelativePath) {
 
     // Change to test directory and use relative path
     char old_cwd[PATH_MAX];
-    getcwd(old_cwd, sizeof(old_cwd));
-    chdir(test_dir.c_str());
+    ASSERT_EQ(kOk, file_getcwd(old_cwd, sizeof(old_cwd)));
+    ASSERT_EQ(kOk, file_chdir(test_dir.c_str()));
 
     memset(prompt_history, 0, sizeof(prompt_history));
     MmResult result = prompt_restore_history("./relative_history.txt");
 
-    chdir(old_cwd);
+    ASSERT_EQ(kOk, file_chdir(old_cwd));
 
     EXPECT_EQ(kOk, result);
     EXPECT_STREQ("RELATIVE PATH TEST", prompt_get_history_item(0));
@@ -559,15 +559,15 @@ TEST_F(PromptSaveHistoryTest, SaveOverwritesExistingFile) {
 TEST_F(PromptSaveHistoryTest, SaveWithRelativePath) {
     // Change to test directory and use relative path
     char old_cwd[PATH_MAX];
-    getcwd(old_cwd, sizeof(old_cwd));
-    chdir(test_dir.c_str());
+    ASSERT_EQ(kOk, file_getcwd(old_cwd, sizeof(old_cwd)));
+    ASSERT_EQ(kOk, file_chdir(test_dir.c_str()));
 
     memset(prompt_history, 0, sizeof(prompt_history));
     prompt_put_history_item("RELATIVE TEST");
 
     MmResult result = prompt_save_history("./relative_save.txt");
 
-    chdir(old_cwd);
+    ASSERT_EQ(kOk, file_chdir(old_cwd));
 
     EXPECT_EQ(kOk, result);
 

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_circle.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -110,8 +110,8 @@ static void cmd_circle_cmm1(void) {
 static void cmd_circle_default(void) {
     int x, y, r, n = 0, nc = 0, nw = 0, nf = 0, na = 0;
     MMFLOAT a;
-    MMINTEGER *xptr, *yptr, *rptr, *fptr, *wptr, *cptr, *aptr;
-    MMFLOAT *xfptr, *yfptr, *rfptr, *ffptr, *wfptr, *cfptr, *afptr;
+    MMINTEGER *xptr = NULL, *yptr = NULL, *rptr = NULL, *fptr = NULL, *wptr = NULL, *cptr = NULL, *aptr = NULL;
+    MMFLOAT *xfptr = NULL, *yfptr = NULL, *rfptr = NULL, *ffptr = NULL, *wfptr = NULL, *cfptr = NULL, *afptr = NULL;
     getargs(&cmdline, 13, DELIM_COMMA);
     if (!(argc & 1) || argc < 5) ERROR_ARGUMENT_COUNT;
     getargaddress(argv[0], &xptr, &xfptr, &n);

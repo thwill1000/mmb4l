@@ -59,7 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/mmtime.h"
 #include "../common/parse.h"
 #include "../common/path.h"
-#include "../common/process.h"
+#include "../common/system.h"
 #include "../common/program.h"
 #include "../common/utility.h"
 
@@ -417,7 +417,7 @@ static void mminfo_path(const char *p) {
 static void mminfo_pid(const char *p) {
     if (!parse_is_end(p)) ERROR_SYNTAX;
     g_rtn_type = T_INT;
-    g_integer_rtn = process_getpid();
+    g_integer_rtn = system_getpid();
 }
 
 static void mminfo_pin_no(const char *p) {

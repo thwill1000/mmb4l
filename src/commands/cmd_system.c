@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/display.h"
 #include "../common/parse.h"
 #include "../common/utility.h"
+#include "../common/system.h"
 #include "../core/tokentbl.h"
 
 /**
@@ -164,14 +165,14 @@ void cmd_system_setenv(const char *p) {
             char *value = GetTempMemory(sz + 1);
             memcpy(value, var_ptr + 8, sz);
             value[sz] = 0;
-            if (FAILED(setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
+            if (FAILED(system_setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
             return;
         }
     }
 
     // Otherwise it should be a STRING.
     char *value = getCstring(argv[2]);
-    if (FAILED(setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
+    if (FAILED(system_setenv(name, value, 1))) ON_FAILURE_ERROR(errno);
 }
 
 /**
@@ -186,7 +187,10 @@ void cmd_system_setenv(const char *p) {
  * @param[out]      exit_status  On exit the exit status of the executed system command.
  */
 MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_status) {
-
+#ifdef _WIN32
+    LOG_WARN("UNIMPLEMENTED");
+    return kUnimplemented;
+#else
     FILE *f = popen(cmd, "r");
     if (!f) return errno;
 
@@ -220,6 +224,7 @@ MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_statu
         *exit_status = WEXITSTATUS(*exit_status);
         return kOk;
     }
+#endif
 }
 
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2025 Thomas Hugo Williams
+ * Copyright (c) 2021-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -33,7 +33,7 @@ protected:
     void SetUp() override {
         struct stat st = { 0 };
         if (stat(OPTIONS_TEST_DIR, &st) == -1) {
-            mkdir(OPTIONS_TEST_DIR, 0775);
+            (void)file_mkdir(OPTIONS_TEST_DIR);
         }
 
         char *home = getenv("HOME");

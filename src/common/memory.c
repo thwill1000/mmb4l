@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -68,7 +68,7 @@ uint32_t mmap[MMAP_SIZE];
 // MMBasic heap memory:
 //   - aligned on 64-bit boundary so that elements of MMBasic arrays of
 //     FLOAT and INTEGER will be likewise aligned.
-char __attribute__ ((aligned (8))) MMHeap[HEAP_SIZE];
+ALIGNED_VAR(8, char) MMHeap[HEAP_SIZE];
 
 // arrays used to track temporary strings
 char *StrTmp[MAXTEMPSTRINGS];           // used to track temporary string space on the heap
@@ -197,7 +197,7 @@ void FreeMemory(void *addr) {
         if (addr < (void *) MMHeap || addr >= (void *) RAMEND) return;
         bits = MBitsGet(addr);
         MBitsSet(addr, 0);
-        addr += PAGESIZE;
+        addr = (char *)addr + PAGESIZE;
     } while (bits != (PUSED | PLAST));
 }
 

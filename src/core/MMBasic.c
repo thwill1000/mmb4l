@@ -348,7 +348,7 @@ static MmResult AddFunction(const char **p, FunType type, const char *addr) {
     char name[MAXVARLEN + 1];
     MmResult result = parse_name(p, name);
     if (SUCCEEDED(result)) {
-        int fun_idx;
+        int fun_idx = -1;
         result = funtbl_add(name, type, addr, &fun_idx);
     }
     return result;
@@ -457,7 +457,7 @@ int FindSubFun(const char *p, uint8_t type_mask) {
     char name[MAXVARLEN + 1];
     MmResult result = parse_name(&p, name);
 
-    int fun_idx;
+    int fun_idx = -1;
     if (SUCCEEDED(result)) result = funtbl_find(name, type_mask, &fun_idx);
 
     const char *msg = NULL;
@@ -1638,7 +1638,7 @@ const char *findlabel(const char *labelptr) {
     char name[MAXVARLEN + 1];
     MmResult result = parse_name(&labelptr, name);
 
-    int fun_idx;
+    int fun_idx = -1;
     if (SUCCEEDED(result)) result = funtbl_find(name, kLabel, &fun_idx);
 
     switch (result) {
@@ -2403,6 +2403,7 @@ void ClearVars(int level) {
     DimUsed = false;
 }
 
+extern void cmd_read_clear_cache(void);
 
 // clear all stack pointers (eg, FOR/NEXT stack, DO/LOOP stack, GOSUB stack, etc)
 // this is done at the command prompt or at any break
@@ -2414,13 +2415,8 @@ void ClearStack(void) {
     gosubindex = 0;
     LocalIndex = 0;
     TempMemoryIsChanged = true;                                     // signal that temporary memory should be checked
-#if defined(__mmb4l__)
-    extern void cmd_read_clear_cache(void);
     cmd_read_clear_cache();
     interrupt_clear();
-#else
-    InterruptReturn = NULL;
-#endif
 }
 
 
@@ -2844,7 +2840,7 @@ const char *GetIntAddress(const char *p) {
         char name[MAXVARLEN + 1];
         MmResult result = parse_name(&p, name);
 
-        int fun_idx;
+        int fun_idx = -1;
         if (SUCCEEDED(result)) result = funtbl_find(name, kLabel | kSub, &fun_idx);
         switch (result) {
             case kOk:

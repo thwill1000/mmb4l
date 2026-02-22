@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2025 Thomas Hugo Williams
+ * Copyright (c) 2021-2026 Thomas Hugo Williams
  * License MIT <https://opensource.org/licenses/MIT>
  */
 
@@ -11,6 +11,7 @@
 extern "C" {
 
 #include "stubs/error_stubs.h"
+#include "../file.h"
 #include "../path.h"
 #include "../utility.h"
 
@@ -50,13 +51,13 @@ protected:
     void SetUp() override {
         struct stat st = { 0 };
         if (stat(PATH_TEST_DIR, &st) == -1) {
-            mkdir(PATH_TEST_DIR, 0775);
+            ASSERT_EQ(kOk, file_mkdir(PATH_TEST_DIR));
         }
 
         // Cache current working directory.
-        char *cwd = getcwd(NULL, 0);
+        char cwd[PATH_MAX];
+        ASSERT_EQ(kOk, file_getcwd(cwd, sizeof(cwd)));
         m_cwd = cwd;
-        free(cwd);
 
         char *home = getenv("HOME");
         if (home) {
@@ -70,10 +71,7 @@ protected:
         SYSTEM_CALL("rm -rf " PATH_TEST_DIR);
 
         // Restore current working directory.
-        errno = 0;
-        if (FAILED(chdir(m_cwd.c_str()))) {
-            FAIL() << "chdir() failed: " << errno;
-        }
+        ASSERT_EQ(kOk, file_chdir(m_cwd.c_str()));
     }
 
 };
@@ -293,7 +291,7 @@ TEST_F(PathTest, GetCanonical_GivenRelativePath) {
     char expected[PATH_MAX + 256];
 
     char cwd[PATH_MAX];
-    ASSERT_TRUE(getcwd(cwd, sizeof(cwd))) << "getcwd() returned NULL";
+    ASSERT_EQ(kOk, file_getcwd(cwd, sizeof(cwd)));
 
     // Empty path.
     sprintf(expected, "%s", cwd);
@@ -338,7 +336,7 @@ TEST_F(PathTest, GetCanonical_GivenTilde) {
     char expected[PATH_MAX + 256];
 
     char cwd[PATH_MAX];
-    ASSERT_TRUE(getcwd(cwd, sizeof(cwd))) << "getcwd() returned NULL";
+    ASSERT_EQ(kOk, file_getcwd(cwd, sizeof(cwd)));
 
     const char *home = getenv("HOME");
     ASSERT_TRUE(home) << "getenv(\"HOME\") returned NULL";
@@ -422,7 +420,7 @@ TEST_F(PathTest, GetCanonical_ResolvesSymbolicLinks) {
 
     // Relative paths.
     SYSTEM_CALL("mkdir " PATH_TEST_DIR "/wombat");
-    ASSERT_TRUE(SUCCEEDED(chdir(PATH_TEST_DIR "/wombat"))) << "chdir() failed";
+    ASSERT_EQ(kOk, file_chdir(PATH_TEST_DIR "/wombat"));
     TEST_GET_CANONICAL("../bar/foolink.bas",             PATH_TEST_DIR "/bar/foo.bas");
     TEST_GET_CANONICAL("../bar/missing.bas",             PATH_TEST_DIR "/bar/missing.bas");
     TEST_GET_CANONICAL("../bar/missinglink.bas",         PATH_TEST_DIR "/bar/missing.bas");
@@ -476,11 +474,10 @@ TEST_F(PathTest, IsDirectory) {
 }
 
 TEST_F(PathTest, IsEmpty) {
-    EXPECT_EQ(path_is_empty(FILE_THAT_EXISTS), 0);
+    EXPECT_EQ(path_is_empty(FILE_THAT_EXISTS), false);
 
-    char filename[] = TMP_DIR "/is_empty_XXXXXX";
-    int fd = mkstemp(filename);
-    close(fd);
+    char filename[] = PATH_TEST_DIR "/is_empty_XXXXXX";
+    ASSERT_EQ(kOk, file_mkfile(filename));
     EXPECT_EQ(path_exists(filename), true);
     EXPECT_EQ(path_is_empty(filename), true);
 }
@@ -538,11 +535,11 @@ TEST_F(PathTest, MkDir_GivenExistingFile) {
 TEST_F(PathTest, Complete_GivenRelativePath) {
     char out[256];
 
-    MAKE_FILE(PATH_TEST_DIR "/foo");
-    MAKE_FILE(PATH_TEST_DIR "/bar");
-    MAKE_FILE(PATH_TEST_DIR "/foobar");
-    MAKE_FILE("\"" PATH_TEST_DIR "/sna fu\"");
-    CHDIR(PATH_TEST_DIR);
+    ASSERT_EQ(kOk, file_mkfile(PATH_TEST_DIR "/foo"));
+    ASSERT_EQ(kOk, file_mkfile(PATH_TEST_DIR "/bar"));
+    ASSERT_EQ(kOk, file_mkfile(PATH_TEST_DIR "/foobar"));
+    ASSERT_EQ(kOk, file_mkfile(PATH_TEST_DIR "/sna fu"));
+    ASSERT_EQ(kOk, file_chdir(PATH_TEST_DIR));
 
     TEST_COMPLETE("b",        "ar");
     TEST_COMPLETE("ba",       "r");
@@ -568,10 +565,10 @@ TEST_F(PathTest, Complete_GivenRelativePath) {
 TEST_F(PathTest, Complete_GivenAbsolutePath) {
     char out[256];
 
-    MAKE_FILE(PATH_TEST_DIR "/foo");
-    MAKE_FILE(PATH_TEST_DIR "/bar");
-    MAKE_FILE(PATH_TEST_DIR "/foobar");
-    MAKE_FILE("\"" PATH_TEST_DIR "/sna fu\"");
+    ASSERT_EQ(kOk, file_mkfile(PATH_TEST_DIR "/foo"));
+    ASSERT_EQ(kOk, file_mkfile(PATH_TEST_DIR "/bar"));
+    ASSERT_EQ(kOk, file_mkfile(PATH_TEST_DIR "/foobar"));
+    ASSERT_EQ(kOk, file_mkfile(PATH_TEST_DIR "/sna fu"));
 
     TEST_COMPLETE(PATH_TEST_DIR "/b",        "ar");
     TEST_COMPLETE(PATH_TEST_DIR "/ba",       "r");
@@ -613,10 +610,10 @@ TEST_F(PathTest, Complete_GivenRootPath) {
 TEST_F(PathTest, Complete_GivenMultipleMatchesWithNoCommonSuffix) {
     char out[256];
 
-    MAKE_FILE(PATH_TEST_DIR "/cat");
-    MAKE_FILE(PATH_TEST_DIR "/cow");
-    MAKE_FILE(PATH_TEST_DIR "/car");
-    CHDIR(PATH_TEST_DIR);
+    ASSERT_EQ(kOk, file_mkfile(PATH_TEST_DIR "/cat"));
+    ASSERT_EQ(kOk, file_mkfile(PATH_TEST_DIR "/cow"));
+    ASSERT_EQ(kOk, file_mkfile(PATH_TEST_DIR "/car"));
+    ASSERT_EQ(kOk, file_chdir(PATH_TEST_DIR));
 
     // All three match "c", suffixes are "at", "ow", "ar" - no common prefix.
     // Expected: "" (nothing safe to complete).

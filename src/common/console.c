@@ -383,7 +383,7 @@ MmResult console_sync_cursor_pos(int timeout_ms) {
         if (state == EXPECTING_ESCAPE) p = buf;
         int ch = keybuf_get(); // TODO: should probably be reading directly from STDIN
         if (ch == -1) {
-            nanosleep(&ONE_MICROSECOND, NULL);
+            mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1));
             continue;
         }
         *(p++) = (char) ch;
