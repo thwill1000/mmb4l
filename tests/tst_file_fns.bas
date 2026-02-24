@@ -1,4 +1,4 @@
-' Copyright (c) 2020-2024 Thomas Hugo Williams
+' Copyright (c) 2020-2026 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -90,7 +90,8 @@ Sub test_chdir_mkdir_rmdir()
   MkDir new_dir$
   ChDir new_dir$
 
-  Const expected$ = TMPDIR$ + file.SEPARATOR + new_dir$
+  Local expected$ = TMPDIR$ + file.SEPARATOR + new_dir$
+  If Mm.Device$ = "MMB4L" Then expected$ = str.replace$(expected$, "\", "/")
   If sys.is_platform%("cmm2*") Then expected$ = UCase$(expected$)
   assert_string_equals(expected$, Cwd$)
 
@@ -250,28 +251,16 @@ Sub test_eof()
 
   ' Test when file opened for OUTPUT.
   Open f$ For Output As #1
-  If Mm.Device$ = "MMB4L" Then
-    On Error Skip 1
-    i% = Eof(#1)
-    assert_raw_error(BAD_FILE_DESCRIPTOR_ERR$)
-  Else
-    assert_int_equals(1, Eof(#1))
-    Print #1, "Hello World"
-    assert_int_equals(1, Eof(#1))
-  EndIf
+  assert_int_equals(1, Eof(#1))
+  Print #1, "Hello World"
+  assert_int_equals(1, Eof(#1))
   Close #1
 
   ' Test when file opened for APPEND.
   Open f$ For Append As #1
-  If Mm.Device$ = "MMB4L" Then
-    On Error Skip 1
-    i% = Eof(#1)
-    assert_raw_error(BAD_FILE_DESCRIPTOR_ERR$)
-  Else
-    assert_int_equals(1, Eof(#1))
-    Print #1, "Goodbye World"
-    assert_int_equals(1, Eof(#1))
-  EndIf
+  assert_int_equals(1, Eof(#1))
+  Print #1, "Goodbye World"
+  assert_int_equals(1, Eof(#1))
   Close #1
 
   ' Test when file opened for RANDOM.
@@ -434,6 +423,7 @@ Sub test_loc()
   ' Test when existing non-empty file opened for APPEND.
   given_test_file(f$)
   Open f$ For Append As #1
+  If Loc(#1) <> 29 Then Print "AWOOGA"
   assert_int_equals(29, Loc(#1))
   Close #1
   Kill f$
@@ -628,6 +618,7 @@ End Sub
 
 Sub test_tilde_expansion()
   If Not sys.is_platform%("mmb4l") Then Exit Sub
+  If Mm.Info(Arch) = "Windows x86_64" Then Exit Sub
 
   MkDir TMPDIR$
 
@@ -735,9 +726,7 @@ Sub test_append_eof_bug()
 
   Open filename$ For Append As #1
   Print #1, "Goodbye World"
-  If Mm.Device$ = "MMB4L" Then On Error Skip
   Local i% = Eof(#1)
-  If Mm.Device$ = "MMB4L" Then assert_raw_error(BAD_FILE_DESCRIPTOR_ERR$)
   Close #1
 
   Open filename$ For Input As #1

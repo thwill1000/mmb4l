@@ -67,10 +67,6 @@ static MmResult file_get_config_dir_impl(char *buf, size_t size);
 // Pointers to functions we want to override in unit-tests
 MmResult (*file_get_config_dir)(char *, size_t) = file_get_config_dir_impl;
 
-static bool file_is_separator(char c) {
-    return c == '/' || c == '\\';
-}
-
 MmResult file_basename(const char *path, char *buf, size_t buf_sz) {
     CHECK_PARAM(path != NULL);
     CHECK_PARAM(buf != NULL);
@@ -104,6 +100,14 @@ MmResult file_basename(const char *path, char *buf, size_t buf_sz) {
     memcpy(buf, start, len);
     buf[len] = '\0';
     return kOk;
+}
+
+MmResult file_close(int fnbr) {
+    errno = 0;
+    int result = fclose(file_table[fnbr].file_ptr);
+    file_table[fnbr].type = fet_closed;
+    file_table[fnbr].file_ptr = NULL;
+    RETURN_RESULT(SUCCEEDED(result) ? kOk : errno);
 }
 
 bool file_compare_path(const char *path1, const char *path2) {
@@ -520,6 +524,35 @@ static MmResult file_get_config_dir_impl(char *buf, size_t size) {
     ON_FAILURE_RETURN(file_get_home(buf, size));
     return file_append_path(buf, ".mmbasic", size);
 }
+static inline bool file_is_write_only(int fnbr) {
+    const char *mode = file_table[fnbr].mode;
+    return (strchr(mode, 'w') && !strchr(mode, '+')) ||
+           (strchr(mode, 'a') && !strchr(mode, '+'));
+}
+
+int file_eof(int fnbr) {
+    static const int error_result = 1; // To match other MMBasic platforms
+    ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), error_result);
+
+    if (file_is_write_only(fnbr)) {
+        RETURN_RESULT(error_result);
+    }
+
+    FILE* f = file_table[fnbr].file_ptr;
+    clearerr(f);
+    errno = 0;
+    int ch = fgetc(f);  // Try to read beyond the end of the file.
+    if (ch == EOF) {
+        if (ferror(f) && !feof(f)) {
+            THROW_ERROR(errno ? errno : kError, error_result);
+        }
+    } else {
+        if (ungetc(ch, f) == EOF) {
+            THROW_ERROR(errno ? errno : kError, error_result);
+        }
+    }
+    return ch == EOF;
+}
 
 MmResult file_normalize_separators(const char *path, char *buf, size_t buf_sz) {
     CHECK_PARAM(path != NULL);
@@ -544,4 +577,63 @@ MmResult file_size(const char *path, off_t *size) {
     if (!info.exists) return kFileNotFound;
     *size = info.size;
     return kOk;
+}
+
+static inline bool file_is_read_write(int fnbr) {
+    const char *mode = file_table[fnbr].mode;
+    return strchr(mode, '+') != NULL || strchr(mode, 'x') != NULL;
+}
+
+int file_getc(int fnbr) {
+    errno = 0;
+    char ch;
+    if (fread(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
+        if (ferror(file_table[fnbr].file_ptr) == 0) {
+            RETURN_RESULT(-1);
+        } else {
+            THROW_ERROR(errno, -1);
+        }
+    }
+
+    if (file_is_read_write(fnbr)) {
+        // No-op seek to satisfy the CRT requirement for read/write files
+        fseek(file_table[fnbr].file_ptr, 0, SEEK_CUR);
+    }
+
+    RETURN_INT((int)ch);
+}
+
+int file_putc(int fnbr, char ch) {
+    errno = 0;
+    if (fwrite(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
+        if (ferror(file_table[fnbr].file_ptr)) THROW_ERROR(errno, -1);
+        assert(false);  // Always expect ferror to have been set.
+    }
+    // TODO: Do I really want to be flushing every character ?
+    if (FAILED(fflush(file_table[fnbr].file_ptr))) THROW_ERROR(errno, -1);
+    RETURN_INT((int)ch);
+}
+
+size_t file_read(int fnbr, char *buf, size_t buf_sz) {
+    errno = 0;
+    size_t result = fread(buf, 1, buf_sz, file_table[fnbr].file_ptr);
+    if (result < buf_sz && ferror(file_table[fnbr].file_ptr)) THROW_ERROR(errno, 0);
+
+    if (file_is_read_write(fnbr)) {
+        // No-op seek to satisfy the CRT requirement for read/write files
+        fseek(file_table[fnbr].file_ptr, 0, SEEK_CUR);
+    }
+
+    RETURN_INT(result);
+}
+
+size_t file_write(int fnbr, const char *buf, size_t buf_sz) {
+    errno = 0;
+    size_t result = fwrite(buf, 1, buf_sz, file_table[fnbr].file_ptr);
+    if (result != buf_sz) {
+        if (ferror(file_table[fnbr].file_ptr)) THROW_ERROR(errno, 0);
+        assert(false);  // Always expect ferror to have been set.
+    }
+    if (FAILED(fflush(file_table[fnbr].file_ptr))) THROW_ERROR(errno, 0);
+    RETURN_INT(result);
 }

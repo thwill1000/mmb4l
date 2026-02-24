@@ -56,29 +56,23 @@ bool keybuf_isatty(void) {
 }
 
 void keybuf_pump_tty(void) {
-    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
-    if (hStdin == INVALID_HANDLE_VALUE) {
-        error_throw(kError);
-        return;
-    }
+    // static HANDLE hStdin = INVALID_HANDLE_VALUE;
+    // if (hStdin == INVALID_HANDLE_VALUE) {
+    //     hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    //     if (hStdin == INVALID_HANDLE_VALUE) return;
+    // }
 
-    // Check if there is input available before attempting to read
-    DWORD available = 0;
-    if (!GetNumberOfConsoleInputEvents(hStdin, &available) || available == 0) {
-        return;
-    }
+    // DWORD available = 0;
+    // if (!GetNumberOfConsoleInputEvents(hStdin, &available) || available == 0) return;
 
-    INPUT_RECORD record;
-    DWORD read_count = 0;
-    if (!ReadConsoleInput(hStdin, &record, 1, &read_count) || read_count == 0) {
-        return;
-    }
-
-    // Only process key down events that produce a character
-    if (record.EventType != KEY_EVENT) return;
-    if (!record.Event.KeyEvent.bKeyDown) return;
-    char ch = record.Event.KeyEvent.uChar.AsciiChar;
-    if (ch == 0) return;  // Non-character key (e.g. shift, ctrl)
-
-    keybuf_put(ch);
+    // // Drain all available events in one call
+    // while (available-- > 0) {
+    //     INPUT_RECORD record;
+    //     DWORD read_count = 0;
+    //     if (!ReadConsoleInput(hStdin, &record, 1, &read_count) || read_count == 0) break;
+    //     if (record.EventType != KEY_EVENT) continue;
+    //     if (!record.Event.KeyEvent.bKeyDown) continue;
+    //     char ch = record.Event.KeyEvent.uChar.AsciiChar;
+    //     if (ch != 0) keybuf_put(ch);
+    // }
 }

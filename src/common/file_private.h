@@ -46,9 +46,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MMB4L_FILE_PRIVATE
 
 #include <stdio.h>
+#include <string.h>
 
 #include "../Configuration.h"
 #include "error.h"
+#include "file.h"
 #include "rx_buf.h"
 
 enum FileEntryType { fet_closed, fet_file, fet_serial };
@@ -59,10 +61,18 @@ typedef struct {
         FILE *file_ptr;
         int serial_fd;
     };
+    char mode[8];
     RxBuf rx_buf;
 } FileEntry;
 
 extern FileEntry file_table[MAXOPENFILES + 1];
+
+static inline void file_strip_trailing_separator(char *path) {
+    size_t len = strlen(path);
+    if (len > 1 && file_is_separator(path[len - 1])) {
+        path[len - 1] = '\0';
+    }
+}
 
 static inline MmResult file_validate_fnbr(int fnbr) {
    if (fnbr < 1 || fnbr > MAXOPENFILES) {

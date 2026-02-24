@@ -108,11 +108,12 @@ MmResult file_getcwd(char *buf, size_t buf_sz) {
     CHECK_PARAM(buf != NULL);
 
     errno = 0;
-    if (getcwd(buf, buf_sz)) {
-        return kOk;
-    } else {
-        return errno;
+    if (!getcwd(buf, buf_sz)) {
+        return errno ? errno : mmresult_ex(kError, "Failed to get current working directory");
     }
+
+    file_strip_trailing_separator(buf);
+    return kOk;
 }
 
 MmResult file_get_free_space(const char *path, uint64_t *free_space) {
@@ -137,15 +138,11 @@ MmResult file_get_home(char *buf, size_t buf_sz) {
     errno = 0;
     const char *home = getenv("HOME");
     if (!home) {
-        if (errno) {
-            return errno;
-        } else {
-            return mmresult_ex(kError, "Failed to get home directory");
-        }
+        return errno ? errno : mmresult_ex(kError, "Failed to get home directory");
     }
-    if (FAILED(cstring_cpy(buf, home, buf_sz))) {
-        return kFilenameTooLong;
-    }
+
+    if (FAILED(cstring_cpy(buf, home, buf_sz))) return kFilenameTooLong;
+    file_strip_trailing_separator(buf);
     return kOk;
 }
 
@@ -361,7 +358,7 @@ MmResult file_rename(const char *old_filename, const char *new_filename) {
     CHECK_PARAM(new_filename != NULL);
 
     errno = 0;
-    if SUCCEEDED(rename(old_filename, new_filename)) {
+    if (SUCCEEDED(rename(old_filename, new_filename))) {
         return kOk;
     } else {
         return errno;

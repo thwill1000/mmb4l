@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 fun_eof.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -49,10 +49,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void fun_eof(void) {
     getargs(&ep, 1, DELIM_COMMA);
-    if (argc == 0) ON_FAILURE_ERROR(kArgumentCount);
+    if (argc == 0) THROW_ERROR_VOID(kArgumentCount);
 
     int fnbr = parse_file_number(argv[0], true);
-    if (fnbr == -1) ON_FAILURE_ERROR(kFileInvalidFileNumber);
+    if (fnbr == -1) THROW_ERROR_VOID(kFileInvalidFileNumber);
 
     targ = T_INT;
     iret = streamio_eof(fnbr);

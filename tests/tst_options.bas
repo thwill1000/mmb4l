@@ -20,6 +20,7 @@ Const BASE% = Mm.Info(Option Base)
 Const CRLF$ = Chr$(13) + Chr$(10)
 Const HOME$ = sys.HOME$()
 Const IS_ANDROID% = Mm.Info$(Arch) = "Android aarch64"
+Const IS_MMB4W% = Mm.Info$(Arch) = "Windows x86_64"
 
 add_test("test_option_load")
 add_test("test_option_load_given_directory")
@@ -70,7 +71,14 @@ Sub test_option_load()
 End Sub
 
 Sub test_option_load_given_directory()
-  Local dir$ = Choice(IS_ANDROID%, "/data/data/com.termux/files/usr/bin", "/usr/bin")
+  Local dir$
+  If IS_ANDROID% Then
+    dir$ = "/data/data/com.termux/files/usr/bin"
+  ElseIf IS_MMB4W% Then
+    dir$ = "C:/Windows/System32"
+  Else
+    dir$ = "/usr/bin"
+  EndIf
 
   On Error Skip
   Option Load dir$

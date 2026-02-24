@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <windows.h>
 #include <direct.h>
+#include <io.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 
@@ -107,15 +108,12 @@ MmResult file_closedir(DirStream *stream) {
 }
 
 bool file_exists_symlink(const char *path) {
-    printf("file_exists_symlink: UNIMPLEMENTED (path='%s')\n", path);
-    LOG_WARN("UNIMPLEMENTED");
+    // Symbolic links are not currently support on Windows
     RETURN_BOOL(false);
 }
 
 int file_fsync(int fd) {
-    printf("file_fsync: UNIMPLEMENTED (fd=%d)\n", fd);
-    LOG_WARN("UNIMPLEMENTED");
-    RETURN_INT(0);
+    return _commit(fd);
 }
 
 MmResult file_getcwd(char *buf, size_t buf_sz) {
@@ -123,11 +121,13 @@ MmResult file_getcwd(char *buf, size_t buf_sz) {
 
     errno = 0;
     char cwd[PATH_MAX];
-    if (_getcwd(cwd, (int) sizeof(cwd))) {
-        return file_normalize_separators(cwd, buf, buf_sz);
-    } else {
-        return errno;
+    if (!_getcwd(cwd, (int) sizeof(cwd))) {
+        return errno ? errno : mmresult_ex(kError, "Failed to get current working directory");
     }
+
+    ON_FAILURE_RETURN(file_normalize_separators(cwd, buf, buf_sz));
+    file_strip_trailing_separator(buf);
+    return kOk;
 }
 
 MmResult file_get_free_space(const char *path, uint64_t *free_space) {
@@ -157,14 +157,12 @@ MmResult file_get_home(char *buf, size_t buf_sz) {
     errno = 0;
     const char *home = getenv("USERPROFILE");
     if (!home) {
-        if (errno) {
-            return errno;
-        } else {
-            return mmresult_ex(kError, "Failed to get home directory");
-        }
+        return errno ? errno : mmresult_ex(kError, "Failed to get home directory");
     }
 
-    return file_normalize_separators(home, buf, buf_sz);
+    ON_FAILURE_RETURN(file_normalize_separators(home, buf, buf_sz));
+    file_strip_trailing_separator(buf);
+    return kOk;
 }
 
 MmResult file_info(const char *filename, FileInfo *info) {
@@ -219,10 +217,11 @@ bool file_is_absolute(const char *path) {
     return false;
 }
 
-MmResult file_open(const char *path, const char *mode, FILE **file) {
+MmResult file_open(const char *path, const char *mode, int fnbr) {
     CHECK_PARAM(path != NULL);
     CHECK_PARAM(mode != NULL);
-    CHECK_PARAM(file != NULL);
+    ON_FAILURE_RETURN(file_validate_fnbr(fnbr));
+    if (file_table[fnbr].type != fet_closed) RETURN_RESULT(kFileAlreadyOpen);
 
     // Random writing is not allowed when a file is opened for append so open it
     // first for read & update and if that does not work open it for
@@ -235,18 +234,29 @@ MmResult file_open(const char *path, const char *mode, FILE **file) {
         if (!f) {
             errno = 0;
             f = fopen(path, "wb+");
-            if (!f) return errno;
+            if (!f) RETURN_RESULT(errno);
         }
-        errno = 0;
-        if (FAILED(fseek(f, 0, SEEK_END))) return errno;
     } else {
         errno = 0;
         f = fopen(path, mode);
-        if (!f) return errno;
+        if (!f) RETURN_RESULT(errno);
     }
 
-    *file = f;
-    return kOk;
+    // Seek to end to ensure correct position returned by first call to ftell()
+    if (*mode == 'x' || *mode == 'a') {
+        errno = 0;
+        if (FAILED(fseek(f, 0, SEEK_END))) {
+            MmResult result = errno ? errno : mmresult_ex(kError, "Failed to seek to end of file");
+            fclose(f);
+            RETURN_RESULT(result);
+        }
+    }
+
+    file_table[fnbr].type = fet_file;
+    file_table[fnbr].file_ptr = f;
+    strcpy(file_table[fnbr].mode, mode);
+
+    RETURN_RESULT(kOk);
 }
 
 MmResult file_opendir(const char *dirname, DirStream **stream) {
@@ -388,14 +398,24 @@ MmResult file_readlink(const char *path, char *buf, size_t *buf_sz) {
 }
 
 MmResult file_rename(const char *old_filename, const char *new_filename) {
-    printf("file_rename: UNIMPLEMENTED (old_filename='%s', new_filename='%s')\n", old_filename, new_filename);
     CHECK_PARAM(old_filename != NULL);
     CHECK_PARAM(new_filename != NULL);
-    RETURN_RESULT(kUnimplemented);
+
+    errno = 0;
+    if (SUCCEEDED(rename(old_filename, new_filename))) {
+        return kOk;
+    } else {
+        return errno;
+    }
 }
 
 MmResult file_rmdir(const char *dirname) {
-    printf("file_rmdir: UNIMPLEMENTED (dirname='%s')\n", dirname);
     CHECK_PARAM(dirname != NULL);
-    RETURN_RESULT(kUnimplemented);
+
+    errno = 0;
+    if (SUCCEEDED(_rmdir(dirname))) {
+        return kOk;
+    } else {
+        return errno;
+    }
 }

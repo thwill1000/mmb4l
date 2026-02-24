@@ -384,7 +384,8 @@ void serial_pump_input(int fnbr) {
 }
 
 int serial_eof(int fnbr) {
-    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), 0);
+    const static int error_result = 0;
+    ON_FAILURE_ERROR_EX(serial_validate_fnbr(fnbr), error_result);
 
     if (rx_buf_size(&file_table[fnbr].rx_buf) > 0) return 0;
     serial_pump_input(fnbr);

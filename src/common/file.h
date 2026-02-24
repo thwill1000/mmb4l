@@ -151,6 +151,14 @@ typedef struct {
 MmResult file_append_path(char *parent, const char *element, size_t size);
 
 /**
+ * Closes an open file handle.
+ *
+ * @param fnbr  The file number/handle to close
+ * @return      kOk on success, error code on failure
+ */
+MmResult file_close(int fnbr);
+
+/**
  * Checks if a named regular file exists in the filesystem.
  *
  * @param[in]  filename  Path to the file to check
@@ -325,6 +333,14 @@ MmResult file_getcwd(char *buf, size_t size);
 MmResult file_info(const char *filename, FileInfo *info);
 
 /**
+ * Checks if the end of a file has been reached.
+ *
+ * @param[in]  fnbr  File number to check
+ * @return           true if end of file has been reached, false otherwise
+ */
+int file_eof(int fnbr);
+
+/**
  * Does the path exist and correspond to a symbolic link?
  *
  * @param[in]  path  Path to check
@@ -350,6 +366,16 @@ int file_fsync(int fd);
  * @return           true if the path is absolute, false otherwise
  */
 bool file_is_absolute(const char *path);
+
+/**
+ * Checks if a character is a path separator either '/' or '\'.
+ *
+ * @param[in]  c   Character to check
+ * @return         true if the character is a path separator, false otherwise
+ */
+static inline bool file_is_separator(char c) {
+    return c == '/' || c == '\\';
+}
 
 /**
  * Gets sorted list of files matching a specification.
@@ -409,10 +435,10 @@ MmResult file_normalize_separators(const char *path, char *buf, size_t buf_sz);
  *
  * @param[in]  path   Path to the file to open
  * @param[in]  mode   File open mode (e.g., "r", "w", "a", etc.)
- * @param[out] file   Pointer to store the opened FILE handle
+ * @param[in]  fnbr   File number to associate with the opened file
  * @return            kOk on success, error code on failure
  */
-MmResult file_open(const char *path, const char *mode, FILE **file);
+MmResult file_open(const char *path, const char *mode, int fnbr);
 
 /**
  * Opens a directory for reading.
@@ -458,5 +484,44 @@ MmResult file_rename(const char *old_filename, const char *new_filename);
  * @return              kOk on success, error code on failure
  */
 MmResult file_rmdir(const char *dirname);
+
+/**
+ * Gets a character from a file.
+ *
+ * @param[in]  fnbr  File number to read from
+ * @return           The character read as an unsigned char cast to an int,
+ *                   -1 on end of file, or longjmp()s on error
+ */
+int file_getc(int fnbr);
+
+/**
+ * Writes a character to a file.
+ *
+ * @param[in]  fnbr  File number to write to
+ * @param[in]  ch    Character to write
+ * @return           The character written as an unsigned char cast to an int,
+ *                   or longjmp()s on error
+ */
+int file_putc(int fnbr, char ch);
+
+/**
+ * Reads data from a file into a buffer.
+ *
+ * @param[in]  fnbr    File number to read from
+ * @param[out] buf     Buffer to store the read data
+ * @param[in]  buf_sz  Number of bytes to read
+ * @return             Number of bytes actually read, or longjmp()s on error
+ */
+size_t file_read(int fnbr, char *buf, size_t buf_sz);
+
+/**
+ * Writes data from a buffer to a file.
+ *
+ * @param[in]  fnbr    File number to write to
+ * @param[in]  buf     Buffer containing the data to write
+ * @param[in]  buf_sz  Number of bytes to write
+ * @return             Number of bytes actually written, or longjmp()s on error
+ */
+size_t file_write(int fnbr, const char *buf, size_t buf_sz);
 
 #endif // #if !defined(MMB4L_FILE)

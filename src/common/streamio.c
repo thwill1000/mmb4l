@@ -69,14 +69,8 @@ MmResult streamio_close(int fnbr) {
         case fet_closed:
             return kFileNotOpen;
 
-        case fet_file: {
-            errno = 0;
-            int result = fclose(file_table[fnbr].file_ptr);
-            file_table[fnbr].type = fet_closed;
-            file_table[fnbr].file_ptr = NULL;
-            if (FAILED(result)) return errno;
-            break;
-        }
+        case fet_file:
+            return file_close(fnbr);
 
         case fet_serial:
             return serial_close(fnbr);
@@ -93,35 +87,23 @@ MmResult streamio_close_all(void) {
 }
 
 int streamio_eof(int fnbr) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, 0);
-    }
+    static const int error_result = 0;
 
-    if (fnbr == 0) return 0;
+    if (fnbr == 0) RETURN_INT(0);
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, 0);
-            break;
+            THROW_ERROR(kFileNotOpen, error_result);
 
-        case fet_file: {
-            FILE *f = file_table[fnbr].file_ptr;
-            errno = 0;
-            int ch = fgetc(f); // Try to read beyond the end of the file.
-            if (ch == EOF) {
-                if (ferror(f)) error_throw(errno);
-            } else {
-                if (ungetc(ch, f) == EOF) error_throw(errno);
-            }
-            return ch == EOF;
-        }
+        case fet_file:
+            RETURN_INT(file_eof(fnbr));
 
         case fet_serial:
-            return serial_eof(fnbr);
-    }
+            RETURN_INT(serial_eof(fnbr));
 
-    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, 1);
-    return 1;
+        default:
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), error_result);
+    }
 }
 
 int streamio_find_free(void) {
@@ -133,40 +115,27 @@ int streamio_find_free(void) {
 }
 
 int streamio_getc(int fnbr) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);
-    }
-
     if (fnbr == 0) {
         int ch = -1;
         ON_FAILURE_ERROR_EX(prompt_getc(&ch), -1);
-        return ch;
+        RETURN_INT(ch);
+    } else {
+        ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), -1);
     }
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
-            break;
+            THROW_ERROR(kFileNotOpen, -1);
 
-        case fet_file: {
-            errno = 0;
-            char ch;
-            if (fread(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
-                if (ferror(file_table[fnbr].file_ptr) == 0) {
-                    return -1;
-                } else {
-                    error_throw(errno);
-                }
-            }
-            return (int) ch;
-        }
+        case fet_file:
+            RETURN_INT(file_getc(fnbr));
 
         case fet_serial:
-            return serial_getc(fnbr);
-    }
+            RETURN_INT(serial_getc(fnbr));
 
-    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, -1);
-    return -1;
+        default:
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), -1);
+    }
 }
 
 bool streamio_is_file(int fnbr) {
@@ -245,79 +214,52 @@ int streamio_lof(int fnbr) {
 
 MmResult streamio_open(const char *path, const char *mode, int fnbr) {
     LOG_FN_ENTRY("path=\"%s\", mode=\"%s\", fnbr=%d", path, mode, fnbr);
-
-    if (fnbr < 1 || fnbr > MAXOPENFILES) RETURN_RESULT(kFileInvalidFileNumber);
-    if (file_table[fnbr].type != fet_closed) RETURN_RESULT(kFileAlreadyOpen);
-
-    FILE *f = NULL;
-    ON_FAILURE_RETURN(file_open(path, mode, &f));
-
-    file_table[fnbr].type = fet_file;
-    file_table[fnbr].file_ptr = f;
-
-    RETURN_RESULT(kOk);
+    return file_open(path, mode, fnbr);
 }
 
 int streamio_putc(int fnbr, int ch) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);
-    }
-
     if (fnbr == 0) {
         assert(streamio_0_putc_fn);
         ON_FAILURE_ERROR_EX(streamio_0_putc_fn(ch), -1);
-        return ch;
+        RETURN_INT(ch);
+    } else {
+        ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), -1);
     }
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
-            break;
+            THROW_ERROR(kFileNotOpen, -1);
 
-        case fet_file: {
-            errno = 0;
-            if (fwrite(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
-                if (ferror(file_table[fnbr].file_ptr)) error_throw(errno);
-                assert(false); // Always expect ferror to have been set.
-            }
-            // TODO: Do I really want to be flushing every character ?
-            if (FAILED(fflush(file_table[fnbr].file_ptr))) error_throw(errno);
-            return (int) ch;
-        }
+        case fet_file:
+            RETURN_INT(file_putc(fnbr, (char)ch));
 
         case fet_serial:
-            return serial_putc(fnbr, ch);
-    }
+            RETURN_INT(serial_putc(fnbr, ch));
 
-    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, -1);
-    return -1;
+        default:
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), -1);
+    }
 }
 
-size_t streamio_read(int fnbr, char *buf, size_t sz) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, 0);
-    }
-    assert(fnbr != 0); // if (fnbr == 0) return console_write(buf, sz);
+size_t streamio_read(int fnbr, char *buf, size_t buf_sz) {
+    CHECK_PARAM(fnbr != 0); // if (fnbr == 0) return console_write(buf, sz);
+    ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), 0);
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, 0);
+            THROW_ERROR(kFileNotOpen, 0);
             break;
 
-        case fet_file: {
-            errno = 0;
-            size_t result = fread(buf, 1, sz, file_table[fnbr].file_ptr);
-            if (result < sz && ferror(file_table[fnbr].file_ptr)) error_throw(errno);
-            return result;
-        }
+        case fet_file:
+            RETURN_INT(file_read(fnbr, buf, buf_sz));
 
         case fet_serial:
-            assert(false); // return serial_write(fnbr, buf, sz);
-            break;
-    }
+            THROW_ERROR(INTERNAL_FAULT_EX("streamio_read() not implemented for serial ports"), 0);
+            // return serial_read(fnbr, buf, sz);
 
-    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, 0);
-    return 0;
+        default:
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), 0);
+    }
 }
 
 MmResult streamio_readln(int fnbr, char *buf, size_t buf_sz) {
@@ -425,42 +367,28 @@ MmResult streamio_ungetc(int fnbr, int ch) {
     }
 }
 
-size_t streamio_write(int fnbr, const char *buf, size_t sz) {
-    LOG_FN_ENTRY("fnbr=%d, buf=\"%s\", sz=%d", fnbr, buf, sz);
-
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        error_throw(kFileInvalidFileNumber);
-        return 0;
-    }
+size_t streamio_write(int fnbr, const char *buf, size_t buf_sz) {
+    LOG_FN_ENTRY("fnbr=%d, buf=\"%s\", buf_sz=%d", fnbr, buf, buf_sz);
 
     if (fnbr == 0) {
         assert(streamio_0_write_fn);
-        ON_FAILURE_ERROR_EX(streamio_0_write_fn(buf, &sz), 0);
-        return sz;
+        ON_FAILURE_ERROR_EX(streamio_0_write_fn(buf, &buf_sz), 0);
+        return buf_sz;
+    } else {
+        ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), 0);
     }
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, 0);
-            return 0;
+            THROW_ERROR(kFileNotOpen, 0);
 
-        case fet_file: {
-            errno = 0;
-            size_t result = fwrite(buf, 1, sz, file_table[fnbr].file_ptr);
-            if (result != sz) {
-                if (ferror(file_table[fnbr].file_ptr)) error_throw(errno);
-                assert(false); // Always expect ferror to have been set.
-            }
-            if (FAILED(fflush(file_table[fnbr].file_ptr))) error_throw(errno);
-            return result;
-        }
+        case fet_file:
+            RETURN_INT(file_write(fnbr, buf, buf_sz));
 
         case fet_serial:
-            return serial_write(fnbr, buf, sz);
+            RETURN_INT(serial_write(fnbr, buf, buf_sz));
 
         default:
-            ON_FAILURE_ERROR_EX(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type),
-                                0);
-            return 0;
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), 0);
     }
 }

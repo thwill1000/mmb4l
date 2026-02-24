@@ -147,6 +147,14 @@ TEST_F(PathTest, Unwind) {
     strcpy(path, "../foo");
     p = path_unwind(path, path + strlen(path));
     EXPECT_STREQ("/foo", p);
+
+    strcpy(path, "/");
+    p = path_unwind(path, path + strlen(path));
+    EXPECT_STREQ("/", p);
+
+    strcpy(path, "C:/");
+    p = path_unwind(path, path + strlen(path));
+    EXPECT_STREQ("/", p);
 }
 
 #define TEST_MUNGE(path, expected)  memset(out, '\0', 256); \
@@ -166,10 +174,11 @@ TEST_F(PathTest, Munge_Succeeds) {
     TEST_MUNGE("A:",              "A:");
     TEST_MUNGE("c:",              "c:");
     TEST_MUNGE("C:",              "C:");
-    TEST_MUNGE("a:/",             "a:"); // TODO: Shouldn't these have trailing slash?
-    TEST_MUNGE("A:/",             "A:");
-    TEST_MUNGE("c:/",             "c:");
-    TEST_MUNGE("C:/",             "C:");
+    TEST_MUNGE("a:/",             "a:/");
+    TEST_MUNGE("A:/",             "A:/");
+    TEST_MUNGE("c:/",             "c:/");
+    TEST_MUNGE("C:/",             "C:/");
+    TEST_MUNGE("C:/foo/..",       "C:/");
 #else
     TEST_MUNGE("a:",              "/");
     TEST_MUNGE("A:",              "/");
@@ -179,6 +188,7 @@ TEST_F(PathTest, Munge_Succeeds) {
     TEST_MUNGE("A:/",             "/");
     TEST_MUNGE("c:/",             "/");
     TEST_MUNGE("C:/",             "/");
+    TEST_MUNGE("C:/foo/..",       "/");
 #endif
     TEST_MUNGE("/",               "/");
     TEST_MUNGE("//",              "/");
@@ -237,7 +247,7 @@ TEST_F(PathTest, Munge_Succeeds) {
 
     // Test with backslashes.
 #if defined(_WIN32)
-    TEST_MUNGE("a:\\",            "a:"); // TODO: Shouldn't this have trailing slash?
+    TEST_MUNGE("a:\\",            "a:/");
 #else
     TEST_MUNGE("a:\\",            "/");
 #endif
@@ -376,13 +386,13 @@ TEST_F(PathTest, GetCanonical_GivenDosDrivePrefix) {
 
 #if defined(_WIN32)
     TEST_GET_CANONICAL(std::string("A:"), std::string("A:"));
-    TEST_GET_CANONICAL(std::string("A:/"), std::string("A:")); // TODO: Shouldn't this have trailing slash?
-    TEST_GET_CANONICAL(std::string("A:\\"), std::string("A:"));  // TODO: Shouldn't this have trailing slash?
+    TEST_GET_CANONICAL(std::string("A:/"), std::string("A:/"));
+    TEST_GET_CANONICAL(std::string("A:\\"), std::string("A:/"));
     TEST_GET_CANONICAL(std::string("A:/foo"), std::string("A:/foo"));
     TEST_GET_CANONICAL(std::string("A:\\foo"), std::string("A:/foo"));
-    TEST_GET_CANONICAL(std::string("C:"), std::string("C:")); // TODO: Shouldn't this have trailing slash?
-    TEST_GET_CANONICAL(std::string("C:/"), std::string("C:")); // TODO: Shouldn't this have trailing slash?
-    TEST_GET_CANONICAL(std::string("C:\\"), std::string("C:")); // TODO: Shouldn't this have trailing slash?
+    TEST_GET_CANONICAL(std::string("C:"), std::string("C:"));
+    TEST_GET_CANONICAL(std::string("C:/"), std::string("C:/"));
+    TEST_GET_CANONICAL(std::string("C:\\"), std::string("C:/"));
     TEST_GET_CANONICAL(std::string("C:/foo"), std::string("C:/foo"));
     TEST_GET_CANONICAL(std::string("C:\\foo"), std::string("C:/foo"));
 #else

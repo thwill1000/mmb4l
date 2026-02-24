@@ -13,6 +13,7 @@
 extern "C" {
 
 #include "../file.h"
+#include "../file_private.h"
 #include "../path.h"
 #include "../mmresult.h"
 
@@ -667,7 +668,7 @@ protected:
     // Helper to convert FileList to vector of names for easier testing
     std::vector<std::string> get_file_names(const FileList& list, size_t max_count = SIZE_MAX) {
         std::vector<std::string> names;
-        size_t count = std::min(list.count, std::min(max_count, (size_t)FILE_LIST_MAX));
+        size_t count = min(list.count, min(max_count, (size_t)FILE_LIST_MAX));
         for (size_t i = 0; i < count; i++) {
             names.push_back(std::string(list.files[i].name));
         }
@@ -694,7 +695,7 @@ protected:
 
     // Helper to check if files are sorted by size
     bool is_sorted_by_size(const FileList& list) {
-        for (size_t i = 1; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+        for (size_t i = 1; i < min(list.count, (size_t)FILE_LIST_MAX); i++) {
             if (list.files[i-1].info.size > list.files[i].info.size) {
                 return false;
             }
@@ -704,7 +705,7 @@ protected:
 
     // Helper to check if files are sorted by time
     bool is_sorted_by_time(const FileList& list) {
-        for (size_t i = 1; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+        for (size_t i = 1; i < min(list.count, (size_t)FILE_LIST_MAX); i++) {
             if (list.files[i-1].info.mtime > list.files[i].info.mtime) {
                 return false;
             }
@@ -783,7 +784,7 @@ TEST_F(FileListTest, SortBySize) {
 
     // Verify we have files of different sizes
     bool found_small = false, found_large = false;
-    for (size_t i = 0; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+    for (size_t i = 0; i < min(list.count, (size_t)FILE_LIST_MAX); i++) {
         if (list.files[i].info.size < 100) found_small = true;
         if (list.files[i].info.size > 1000) found_large = true;
     }
@@ -1142,7 +1143,7 @@ TEST_F(FileListTest, FileTypesPopulated) {
     EXPECT_GT(list.count, 0);
 
     // Verify that all files have valid file types
-    for (size_t i = 0; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+    for (size_t i = 0; i < min(list.count, (size_t)FILE_LIST_MAX); i++) {
         EXPECT_NE(list.files[i].info.type, kFileTypeUnknown)
             << "File " << list.files[i].name << " has unknown type";
 
@@ -1176,7 +1177,7 @@ TEST_F(FileListTest, FileTypeDetection) {
         {"subdir", kFileTypeDirectory}
     };
 
-    for (size_t i = 0; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+    for (size_t i = 0; i < min(list.count, (size_t)FILE_LIST_MAX); i++) {
         std::string name(list.files[i].name);
 
         if (expected_types.find(name) != expected_types.end()) {
@@ -1211,7 +1212,7 @@ TEST_F(FileListTest, FileTypeConsistencyWithReaddir) {
     file_closedir(stream);
 
     // Compare types (note: they might differ for symlinks due to stat vs readdir)
-    for (size_t i = 0; i < std::min(list.count, (size_t)FILE_LIST_MAX); i++) {
+    for (size_t i = 0; i < min(list.count, (size_t)FILE_LIST_MAX); i++) {
         std::string name(list.files[i].name);
 
         if (readdir_types.find(name) != readdir_types.end()) {
@@ -1681,4 +1682,46 @@ TEST_F(FileFnmatchTest, EmptyPattern) {
 TEST_F(FileFnmatchTest, EmptyString) {
     EXPECT_EQ(kOk, file_fnmatch("*.txt", "", &match));
     EXPECT_FALSE(match);
+}
+
+class FileEofTest : public FileTest {
+protected:
+    const int test_fnbr = 1;
+    std::string test_file_path;
+
+    void SetUp() override {
+        FileTest::SetUp();
+
+        std::ofstream(test_dir / "eof_test.txt") << "hi";
+        test_file_path = (test_dir / "eof_test.txt").string();
+    }
+
+    void TearDown() override {
+        if (file_table[test_fnbr].file_ptr) {
+            ASSERT_EQ(kOk, file_close(test_fnbr));
+        }
+        FileTest::TearDown();
+    }
+
+    void open_test_file() {
+        ASSERT_EQ(kOk, file_open(test_file_path.c_str(), "rb", test_fnbr));
+        ASSERT_NE(file_table[test_fnbr].file_ptr, nullptr);
+    }
+};
+
+TEST_F(FileEofTest, NotAtEof_ReturnsFalse) {
+    open_test_file();
+
+    int result = file_eof(test_fnbr);
+
+    EXPECT_EQ(0, result);
+}
+
+TEST_F(FileEofTest, AtEof_ReturnsTrue) {
+    open_test_file();
+    while (fgetc(file_table[test_fnbr].file_ptr) != EOF) {}
+
+    int result = file_eof(test_fnbr);
+
+    EXPECT_EQ(1, result);
 }
