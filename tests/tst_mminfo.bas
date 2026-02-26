@@ -1,5 +1,6 @@
-' Copyright (c) 2021-2025 Thomas Hugo Williams
+' Copyright (c) 2021-2026 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
+' For MMBasic 6
 
 Option Explicit On
 Option Default None
@@ -16,6 +17,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 Const BASE% = Mm.Info(Option Base)
 Const EXPECTED_FONT_HEIGHT% = 12
 Const EXPECTED_FONT_WIDTH% = 8
+Const IS_WINDOWS% = sys.is_windows%()
 If sys.is_platform%("mmb4l") Then
   Const EXPECTED_VERSION$ = "80010000"
 ElseIf sys.is_platform%("mmb4w") Then
@@ -102,6 +104,7 @@ Sub test_arch()
     Case "x86_64 GNU/Linux"  : expected_arch$ = "Linux x86_64"
     Case "armv6l GNU/Linux"  : expected_arch$ = "Linux armv6l"
     Case "armv7l GNU/Linux"  : expected_arch$ = "Linux armv6l"
+    Case Else                : expected_arch$ = "Windows x86_64"
   End Select
 
   assert_string_equals(expected_arch$, Mm.Info$(Arch))
@@ -124,6 +127,8 @@ Function expected_path$()
     System "echo $HOME", out$
     If Mm.Info(Exists Dir out$ + "/github/thwill1000") Then
       expected_path$ = out$ + "/github/thwill1000/mmb4l/tests/"
+    ElseIf Mm.Info(Arch) = "Windows x86_64" Then
+      expected_path$ = "D:/github/thwill1000/mmb4l/tests/"
     Else
       expected_path$ = out$ + "/github/mmb4l/tests/"
     EndIf
@@ -153,11 +158,14 @@ Sub test_directory()
   If sys.is_platform%("pm*") Then Exit Sub
 
   Local expected_dir$
-  Select Case Mm.Device$
-    Case "MMB4L"               : System "pwd", expected_dir$
-    Case "MMBasic for Windows" : System "cd", expected_dir$
-    Case Else                  : expected_dir$ = Cwd$
-  End Select
+  If IS_WINDOWS% Then
+    System "cd", expected_dir$
+    expected_dir$ = str.replace$(expected_dir$, "\", "/")
+  ElseIf Mm.Device$ = "MMB4L" Then
+    System "pwd", expected_dir$
+  Else
+    expected_dir$ = Cwd$
+  EndIf Select
 
   Local actual$ = Mm.Info$(Directory)
 
@@ -173,10 +181,15 @@ End Sub
 Sub test_envvar()
   If Not sys.is_platform%("mmb4l") Then Exit Sub
 
+  Const varname$ = Choice(IS_WINDOWS%, "USERPROFILE", "HOME")
   Local expected_home$
-  System "echo $HOME", expected_home$
+  If IS_WINDOWS% Then
+    System "echo %" + varname$ + "%", expected_home$
+  Else
+    System "echo $" + varname$, expected_home$
+  EndIf
 
-  assert_string_equals(expected_home$, Mm.Info$(EnvVar "HOME"))
+  assert_string_equals(expected_home$, Mm.Info$(EnvVar varname$))
 End Sub
 
 Sub test_errmsg()
@@ -210,8 +223,8 @@ Sub test_exists()
   If Not sys.is_platform%("mmb4l", "mmb4w") Then Exit Sub
 
   ' Drives/root.
-  Const A_EXISTS = Not sys.is_platform%("mmb4w")
-  Const B_EXISTS = Not sys.is_platform%("mmb4w")
+  Const A_EXISTS = Not IS_WINDOWS%
+  Const B_EXISTS = Not IS_WINDOWS%
   assert_int_equals(A_EXISTS, Mm.Info(Exists "A:"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists "A:/"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists "A:\"))
@@ -241,7 +254,7 @@ Sub test_exists()
   assert_int_equals(Not sys.is_platform%("mmb4w"), Mm.Info(Exists ""))
 
   ' Symbolic links.
-  If sys.is_platform%("mmb4l") Then
+  If sys.is_platform%("mmb4l") And Mm.Info(Arch) <> "Windows x86_64" Then
     MkDir TMPDIR$
 
     System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
@@ -256,8 +269,8 @@ Sub test_exists_dir()
   MkDir TMPDIR$
 
   ' Drives/root.
-  Const A_EXISTS = Not sys.is_platform%("mmb4w")
-  Const B_EXISTS = Not sys.is_platform%("mmb4w")
+  Const A_EXISTS = Not IS_WINDOWS%
+  Const B_EXISTS = Not IS_WINDOWS%
   assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:/"))
   assert_int_equals(A_EXISTS, Mm.Info(Exists Dir "A:\"))
@@ -300,7 +313,7 @@ Sub test_exists_dir()
   assert_int_equals(Not sys.is_platform%("mmb4w"), Mm.Info(Exists Dir ""))
 
   ' Symbolic links.
-  If sys.is_platform%("mmb4l") Then
+  If sys.is_platform%("mmb4l") And Mm.Info(Arch) <> "Windows x86_64" Then
     System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
     System "ln -s " + PATH + " " + TMPDIR$ + "/dir_link"
 
@@ -367,7 +380,7 @@ Sub test_exists_file()
   assert_int_equals(0, Mm.Info(Exists File ""))
 
   ' Symbolic links.
-  If sys.is_platform%("mmb4l") Then
+  If sys.is_platform%("mmb4l") And Mm.Info(Arch) <> "Windows x86_64" Then
     MkDir TMPDIR$
 
     System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
@@ -411,12 +424,14 @@ Sub test_exists_symlink()
   assert_int_equals(0, Mm.Info(Exists SymLink ""))
 
   ' Symbolic links.
-  MkDir TMPDIR$
-  System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
-  System "ln -s " + PATH + " " + TMPDIR$ + "/dir_link"
+  If Not IS_WINDOWS% Then
+    MkDir TMPDIR$
+    System "ln -s " + EXISTING_FILE + " " + TMPDIR$ + "/file_link"
+    System "ln -s " + PATH + " " + TMPDIR$ + "/dir_link"
 
-  assert_int_equals(1, Mm.Info(Exists SymLink TMPDIR$ + "/file_link"))
-  assert_int_equals(1, Mm.Info(Exists SymLink TMPDIR$ + "/dir_link"))
+    assert_int_equals(1, Mm.Info(Exists SymLink TMPDIR$ + "/file_link"))
+    assert_int_equals(1, Mm.Info(Exists SymLink TMPDIR$ + "/dir_link"))
+  EndIf
 End Sub
 
 Sub test_filesize_given_empty()
@@ -444,26 +459,20 @@ End Sub
 Sub test_filesize_given_directory()
   MkDir TMPDIR$
 
+  Const A_EXISTS = Not IS_WINDOWS%
+  Const B_EXISTS = Not IS_WINDOWS%
+
   If sys.is_platform%("mmb4l", "pm*") Then
     expect_filesize_is_dir(Cwd$)
     expect_filesize_is_dir(Mm.Info$(Path))
     expect_filesize_is_dir("/")
     expect_filesize_is_dir("\")
-    If Mm.Info(Arch) = "Windows x86_64" Then
-      expect_filesize_not_found("A:")
-      expect_filesize_not_found("A:/")
-      expect_filesize_not_found("A:\")
-      expect_filesize_not_found("B:")
-      expect_filesize_not_found("B:/")
-      expect_filesize_not_found("B:\")
-    Else
-      expect_filesize_is_dir("A:")
-      expect_filesize_is_dir("A:/")
-      expect_filesize_is_dir("A:\")
-      expect_filesize_is_dir("B:")
-      expect_filesize_is_dir("B:/")
-      expect_filesize_is_dir("B:\")
-    EndIf
+    If A_EXISTS Then expect_filesize_is_dir("A:") Else expect_filesize_not_found("A:")
+    If A_EXISTS Then expect_filesize_is_dir("A:/") Else expect_filesize_not_found("A:/")
+    If A_EXISTS Then expect_filesize_is_dir("A:\") Else expect_filesize_not_found("A:\")
+    If B_EXISTS Then expect_filesize_is_dir("B:") Else expect_filesize_not_found("B:")
+    If B_EXISTS Then expect_filesize_is_dir("B:/") Else expect_filesize_not_found("B:/")
+    If B_EXISTS Then expect_filesize_is_dir("B:\") Else expect_filesize_not_found("B:\")
     If sys.is_platform%("mmb4l") Then
       expect_filesize_is_dir("C:")
       expect_filesize_is_dir("C:/")
@@ -523,12 +532,12 @@ Sub test_filesize_given_directory()
     expect_filesize_is_dir(Mm.Info$(Path))
     expect_filesize_is_dir("/")
     expect_filesize_is_dir("\")
-    expect_filesize_is_dir("A:")
-    expect_filesize_is_dir("A:/")
-    expect_filesize_is_dir("A:\")
-    expect_filesize_is_dir("B:")
-    expect_filesize_is_dir("B:/")
-    expect_filesize_is_dir("B:\")
+    If A_EXISTS Then expect_filesize_is_dir("A:") Else expect_filesize_not_found("A:")
+    If A_EXISTS Then expect_filesize_is_dir("A:/") Else expect_filesize_not_found("A:/")
+    If A_EXISTS Then expect_filesize_is_dir("A:\") Else expect_filesize_not_found("A:\")
+    If B_EXISTS Then expect_filesize_is_dir("B:") Else expect_filesize_not_found("B:")
+    If B_EXISTS Then expect_filesize_is_dir("B:/") Else expect_filesize_not_found("B:/")
+    If B_EXISTS Then expect_filesize_is_dir("B:\") Else expect_filesize_not_found("B:\")
     expect_filesize_is_dir(str.replace$(TMPDIR$, "/", "\"))
     expect_filesize_is_dir(str.replace$(TMPDIR$, "\", "/"))
     expect_filesize_is_dir(".")
@@ -632,7 +641,11 @@ Sub test_hres()
   ' Test resolution in characters.
   Const actual% = Mm.Info(HRes C)
   Local out$
-  System "tput cols", out$
+  If IS_WINDOWS% Then
+    System "powershell -Command " + str.quote$("$Host.UI.RawUI.WindowSize.Width"), out$
+  Else
+    System "tput cols", out$
+  EndIf
   Local expected_hres% = Val(out$)
   assert_int_equals(expected_hres%, actual%)
 
@@ -644,7 +657,7 @@ End Sub
 Sub test_line()
   Const line$ = Mm.Info$(Line)
   If sys.is_platform%("mmb4l") Then
-    assert_int_equals(636, Val(Field$(line$, 1, ",")))
+    assert_int_equals(660, Val(Field$(line$, 1, ",")))
     assert_string_equals(Mm.Info$(Current), Field$(line$, 2, ","))
   Else
     ' Line number refers to the transpiled file.
@@ -933,6 +946,10 @@ End Sub
 Sub test_pid()
   If Not sys.is_platform%("mmb4l") Then Exit Sub
 
+  ' It does not seem to be possible to get the parent process ID via the System
+  ' command on Windows.
+  If IS_WINDOWS% Then Exit Sub
+
   Local out$
   System "echo $PPID", out$
   assert_int_equals(Val(out$), Mm.Info(PID))
@@ -1074,7 +1091,11 @@ Sub test_vres()
   ' Test resolution in characters.
   Local actual% = Mm.Info(VRes C)
   Local out$
-  System "tput lines", out$
+  If IS_WINDOWS% Then
+    System "powershell -Command " + str.quote$("$Host.UI.RawUI.WindowSize.Height"), out$
+  Else
+    System "tput lines", out$
+  EndIf
   Local expected_vres% = Val(out$)
   assert_int_equals(expected_vres%, actual%)
 

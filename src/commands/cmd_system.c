@@ -196,18 +196,28 @@ MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_statu
     FILE *f = popen(cmd, "r");
     if (!f) return errno;
 
+    bool start = true;
     if (buf) {
         int64_t i;
-        for (i = 0; i < (int64_t) *sz; ++i) {
+        for (i = 0; i < (int64_t) *sz;) {
             int ch = fgetc(f);
             if (ch == EOF) break;
-            buf[i] = (char) ch;
+            if (start) {
+                // Do not include leading whitespace in the captured output.
+                if (isspace(ch)) {
+                    continue;
+                } else {
+                    start = false;
+                }
+            }
+            buf[i++] = (char) ch;
         }
-
-        // Trim any trailing CRLF.
         i--;
-        if (i > -1 && buf[i] == '\n') i--;
-        if (i > -1 && buf[i] == '\r') i--;
+
+        // Trim trailing whitespace from the captured output.
+        for (; i > -1; i--) {
+            if (!isspace(buf[i])) break;
+        }
         *sz = i + 1;
     } else {
         for (;;) {
@@ -289,7 +299,12 @@ static void cmd_system_execute(const char *p) {
             // Set size of LONGSTRING variable.
             *((int64_t *) output_var_ptr) = buf_sz;
         }
+#if !defined(_WIN32)
+        // On Unix-like platforms, if the command is not found then the shell
+        // typically returns an exit status of 127. On Windows there is no
+        // reliable equivalent exit code so we skip this check entirely.
         if (*exit_status_ptr == 127) error_throw(kUnknownSystemCommand);
+#endif
     } else {
         error_throw(result);
     }

@@ -1,6 +1,6 @@
-' Copyright (c) 2021-2024 Thomas Hugo Williams
+' Copyright (c) 2021-2026 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
-' For MMBasic 5.07
+' For MMBasic 6
 
 Option Explicit On
 Option Default None
@@ -15,6 +15,7 @@ Option Base InStr(Mm.CmdLine$, "--base=1") > 0
 #Include "../sptools/src/sptest/unittest.inc"
 
 Const BASE% = Mm.Info(Option Base)
+Const IS_WINDOWS% = sys.is_windows%()
 
 Dim t1%, t2%, t3%, t4%
 
@@ -33,10 +34,11 @@ If InStr(Mm.CmdLine$, "--base") Then run_tests() Else run_tests("--base=1")
 End
 
 Sub test_date()
-  If Mm.Device$ = "MMBasic for Windows" Then
-    ' TODO
+  Local expected$
+  If IS_WINDOWS% Then
+    System "powershell -Command " + str.quote$("Get-Date -Format 'dd-MM-yyyy'"), expected$
+    assert_string_equals(expected$, Date$)
   ElseIf Mm.Device$ = "MMB4L" Then
-    Local expected$
     System "date '+%d-%m-%Y'", expected$
     assert_string_equals(expected$, Date$)
   Else
@@ -59,10 +61,16 @@ Sub test_date()
 End Sub
 
 Sub test_datetime()
-  If Mm.Device$ = "MMB4L" Then
+  Local expected$, i%
+  If IS_WINDOWS% Then
+    For i% = 1 To 3 ' Best of 3 attempts because the seconds might tick over between the calls.
+      System "powershell -Command " + str.quote$("Get-Date -Format 'dd-MM-yyyy HH:mm:ss'"), expected$
+      If expected$ = DateTime$(Now) Then Exit For
+    Next
+    assert_string_equals(expected$, DateTime$(Now))
+  ElseIf Mm.Device$ = "MMB4L" Then
     ' DateTime$(Now) is different in that it always returns the
     ' value based on the local timezone rather than UTC.
-    Local expected$
     System "date '+%d-%m-%Y %H:%M:%S'", expected$
     assert_string_equals(expected$, DateTime$(Now))
   Else
@@ -88,7 +96,8 @@ Sub test_day()
   assert_string_equals("Sunday", Day$("01-02-1970"))
   assert_string_equals("Thursday", Day$("03-01-1974"))
   assert_string_equals("Saturday", Day$("01-01-2000"))
-  assert_string_equals("Wednesday", Day$("31-12-1969"))
+  ' Windows gets this wrong.
+  assert_string_equals(Choice(IS_WINDOWS%, "Thursday", "Windows"), Day$("31-12-1969"))
 
   ' Test different ordering in the date.
   assert_string_equals("Tuesday", Day$("25-08-2015"))
@@ -99,8 +108,14 @@ Sub test_day()
 End Sub
 
 Sub test_epoch()
-  If Mm.Device$ = "MMB4L" Then
-    Local expected$
+  Local expected$, i%
+  If IS_WINDOWS% Then
+    For i% = 1 To 3 ' Best of 3 attempts because the seconds might tick over between the calls.
+      System "powershell -Command " + str.quote$("([DateTimeOffset](Get-Date)).ToUnixTimeSeconds()"), expected$
+      If Val(expected$) = Epoch(Now) Then Exit For
+    Next
+    assert_int_equals(Val(expected$), Epoch(Now))
+  ElseIf Mm.Device$ = "MMB4L" Then
     System "date +%s", expected$
     assert_int_equals(Val(expected$), Epoch(Now))
   Else
@@ -119,8 +134,11 @@ Sub test_epoch()
 End Sub
 
 Sub test_time()
-  If Mm.Device$ = "MMB4L" Then
-    Local expected$
+  Local expected$
+  If IS_WINDOWS% Then
+    System "powershell -Command " + str.quote$("Get-Date -Format 'HH:mm:ss'"), expected$
+    assert_string_equals(expected$, Time$)
+  ElseIf Mm.Device$ = "MMB4L" Then
     System "date '+%H:%M:%S'", expected$
     assert_string_equals(expected$, Time$)
   ElseIf Mm.Device$ = "MMBasic for Windows" Then

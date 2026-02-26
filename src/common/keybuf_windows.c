@@ -56,23 +56,23 @@ bool keybuf_isatty(void) {
 }
 
 void keybuf_pump_tty(void) {
-    // static HANDLE hStdin = INVALID_HANDLE_VALUE;
-    // if (hStdin == INVALID_HANDLE_VALUE) {
-    //     hStdin = GetStdHandle(STD_INPUT_HANDLE);
-    //     if (hStdin == INVALID_HANDLE_VALUE) return;
-    // }
+    static HANDLE hStdin = INVALID_HANDLE_VALUE;
+    if (hStdin == INVALID_HANDLE_VALUE) {
+        hStdin = GetStdHandle(STD_INPUT_HANDLE);
+        if (hStdin == INVALID_HANDLE_VALUE) return;
+    }
 
-    // DWORD available = 0;
-    // if (!GetNumberOfConsoleInputEvents(hStdin, &available) || available == 0) return;
+    DWORD available = 0;
+    if (!GetNumberOfConsoleInputEvents(hStdin, &available) || available == 0) return;
 
-    // // Drain all available events in one call
-    // while (available-- > 0) {
-    //     INPUT_RECORD record;
-    //     DWORD read_count = 0;
-    //     if (!ReadConsoleInput(hStdin, &record, 1, &read_count) || read_count == 0) break;
-    //     if (record.EventType != KEY_EVENT) continue;
-    //     if (!record.Event.KeyEvent.bKeyDown) continue;
-    //     char ch = record.Event.KeyEvent.uChar.AsciiChar;
-    //     if (ch != 0) keybuf_put(ch);
-    // }
+    // Drain all available events in one call
+    while (available-- > 0) {
+        INPUT_RECORD record;
+        DWORD read_count = 0;
+        if (!ReadConsoleInput(hStdin, &record, 1, &read_count) || read_count == 0) break;
+        if (record.EventType != KEY_EVENT) continue;
+        if (!record.Event.KeyEvent.bKeyDown) continue;
+        char ch = record.Event.KeyEvent.uChar.AsciiChar;
+        if (ch != 0) keybuf_put(ch);
+    }
 }

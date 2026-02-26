@@ -57,6 +57,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static ConsoleState *self;
 static DWORD original_stdout_mode = 0;
 static DWORD original_stdin_mode = 0;
+static UINT original_output_cp = 0;
+static UINT original_input_cp = 0;
 
 MmResult console_init_platform(ConsoleState *_self) {
     self = _self;
@@ -77,19 +79,29 @@ MmResult console_init_platform(ConsoleState *_self) {
     // Binary mode to prevent \n -> \r\n translation
     _setmode(_fileno(stdout), _O_BINARY);
 
+    // Set console input page to UTF-8
+    original_output_cp = GetConsoleOutputCP();
+    original_input_cp = GetConsoleCP();
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+
     return kOk;
 }
 
 MmResult console_term_platform(void) {
+    // Restore console input page
+    SetConsoleOutputCP(original_output_cp);
+    SetConsoleCP(original_input_cp);
+
+    // Restore text mode translation
+    _setmode(_fileno(stdout), _O_TEXT);
+
     // Restore original console modes
     HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleMode(hStdout, original_stdout_mode);
 
     HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
     SetConsoleMode(hStdin, original_stdin_mode);
-
-    // Restore text mode translation
-    _setmode(_fileno(stdout), _O_TEXT);
 
     return kOk;
 }
