@@ -408,6 +408,8 @@ add_executable(test_console_getc
     src/common/gtest/stubs/serial_stubs.c
 )
 
+configure_sdl2(test_console_getc FALSE)
+
 # GoogleTest
 
 enable_testing()

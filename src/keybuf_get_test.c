@@ -31,7 +31,6 @@ bool interrupt_check_key_press(char ch) { return false; }
 
 // Defined in "core/MMBasic.c"
 volatile bool MMAbort;
-void perform_background_tasks() { keybuf_pump_tty(); }
 
 int main(int argc, char **argv) {
     printf("Press Keys\n");

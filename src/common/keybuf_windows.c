@@ -42,37 +42,47 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
+#include <stdbool.h>
 #include <windows.h>
 
 // Undefine HRESULT macros that conflict with MMB4L definitions
 #undef FAILED
 #undef SUCCEEDED
 
-#include "error.h"
 #include "keybuf.h"
 
 bool keybuf_isatty(void) {
     return true;
 }
 
-void keybuf_pump_tty(void) {
+/**
+ * Blocks until a character is available on STDIN then returns it.
+ * Since we have enabled ENABLE_VIRTUAL_TERMINAL_INPUT, cursor keys and
+ * function keys arrive as VT100 escape sequences just like on Linux,
+ * so we only need to handle regular character input here.
+ * Returns -1 on error.
+ */
+int keybuf_read_char(void) {
     static HANDLE hStdin = INVALID_HANDLE_VALUE;
     if (hStdin == INVALID_HANDLE_VALUE) {
         hStdin = GetStdHandle(STD_INPUT_HANDLE);
-        if (hStdin == INVALID_HANDLE_VALUE) return;
+        if (hStdin == INVALID_HANDLE_VALUE) return -1;
     }
 
-    DWORD available = 0;
-    if (!GetNumberOfConsoleInputEvents(hStdin, &available) || available == 0) return;
-
-    // Drain all available events in one call
-    while (available-- > 0) {
+    for (;;) {
+        // ReadConsoleInput blocks until at least one event is available.
         INPUT_RECORD record;
         DWORD read_count = 0;
-        if (!ReadConsoleInput(hStdin, &record, 1, &read_count) || read_count == 0) break;
+        if (!ReadConsoleInput(hStdin, &record, 1, &read_count) || read_count == 0) {
+            return -1;
+        }
+
+        // Only process key down events that produce a character.
         if (record.EventType != KEY_EVENT) continue;
         if (!record.Event.KeyEvent.bKeyDown) continue;
         char ch = record.Event.KeyEvent.uChar.AsciiChar;
-        if (ch != 0) keybuf_put(ch);
+        if (ch == 0) continue;  // Non-character key (e.g. shift, ctrl alone)
+
+        return (unsigned char) ch;
     }
 }

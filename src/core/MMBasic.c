@@ -2940,7 +2940,7 @@ void perform_background_tasks() {
         longjmp(mark, JMP_BREAK);  // jump back to the input prompt
     }
 
-    keybuf_pump_tty();
+    // keybuf_pump_tty();
 
     // Pump all the serial port connections for input.
     for (int fnbr = 1; fnbr <= MAXOPENFILES; ++fnbr) {

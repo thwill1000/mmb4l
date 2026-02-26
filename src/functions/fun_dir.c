@@ -177,11 +177,10 @@ void fun_dir(void) {
     if (entry) {
         strcpy(g_string_rtn, entry->name);
     } else {
-        file_closedir(dp);
+        ON_FAILURE_LOG(file_closedir(dp));
         dp = NULL;
         g_string_rtn[0] = 0;
     }
 
     CtoM(g_string_rtn);
-    ON_FAILURE_ERROR(errno);
 }
