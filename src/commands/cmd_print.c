@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common/streamio.h"
 
 void cmd_print(void) {
-    LOG_FN_ENTRY("cmdline=\"%s\"", cmdline);
+    // LOG_FN_ENTRY("cmdline=\"%s\"", cmdline);
 
     char *s;
     const char *p;

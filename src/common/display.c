@@ -229,7 +229,7 @@ MmResult display_inverse(bool inverse) {
 }
 
 MmResult display_putc(char c) {
-    LOG_FN_ENTRY("c='%c'", c);
+    // LOG_FN_ENTRY("c='%c'", c);
 
     if (TTY_TERMINAL_ENABLED()) {
         (void) console_putc(c);
@@ -243,7 +243,7 @@ MmResult display_putc(char c) {
 }
 
 MmResult display_putc_noflush(char c) {
-    LOG_FN_ENTRY("c=%c", c);
+    // LOG_FN_ENTRY("c=%c", c);
 
     if (TTY_TERMINAL_ENABLED()) {
         (void) console_putc_noflush(c);
@@ -257,7 +257,7 @@ MmResult display_putc_noflush(char c) {
 }
 
 MmResult display_puts(const char *s) {
-    LOG_FN_ENTRY("s=\"%s\"", s);
+    // LOG_FN_ENTRY("s=\"%s\"", s);
 
     if (TTY_TERMINAL_ENABLED()) {
         console_puts(s);
@@ -379,7 +379,7 @@ MmResult display_wrapline() {
 }
 
 MmResult display_write(const char *buf, size_t *sz) {
-    LOG_FN_ENTRY("buf=%s, sz=%d", buf, *sz);
+    // LOG_FN_ENTRY("buf=%s, sz=%d", buf, *sz);
 
     if (TTY_TERMINAL_ENABLED()) {
         *sz = console_write(buf, *sz);

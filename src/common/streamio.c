@@ -368,7 +368,7 @@ MmResult streamio_ungetc(int fnbr, int ch) {
 }
 
 size_t streamio_write(int fnbr, const char *buf, size_t buf_sz) {
-    LOG_FN_ENTRY("fnbr=%d, buf=\"%s\", buf_sz=%d", fnbr, buf, buf_sz);
+    // LOG_FN_ENTRY("fnbr=%d, buf=\"%s\", buf_sz=%d", fnbr, buf, buf_sz);
 
     if (fnbr == 0) {
         assert(streamio_0_write_fn);

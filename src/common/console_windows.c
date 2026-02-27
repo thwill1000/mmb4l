@@ -60,8 +60,14 @@ static DWORD original_stdin_mode = 0;
 static UINT original_output_cp = 0;
 static UINT original_input_cp = 0;
 
+static bool is_console_handle(HANDLE h) {
+    DWORD mode;
+    return GetConsoleMode(h, &mode) != 0;
+}
+
 MmResult console_init_platform(ConsoleState *_self) {
     self = _self;
+    self->is_tty = is_console_handle(GetStdHandle(STD_OUTPUT_HANDLE));
 
     // Save original modes
     HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -104,6 +110,34 @@ MmResult console_term_platform(void) {
     SetConsoleMode(hStdin, original_stdin_mode);
 
     return kOk;
+}
+
+void console_putc_raw(char c) {
+    if (self->is_tty) {
+        static HANDLE hStdout = INVALID_HANDLE_VALUE;
+        if (hStdout == INVALID_HANDLE_VALUE) {
+            hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+        }
+        DWORD written = 0;
+        WriteConsoleA(hStdout, &c, 1, &written, NULL);
+    } else {
+        putc(c, stdout);
+    }
+}
+
+void console_putc_raw_n(const char *p, int count) {
+    if (self->is_tty) {
+        static HANDLE hStdout = INVALID_HANDLE_VALUE;
+        if (hStdout == INVALID_HANDLE_VALUE) {
+            hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+        }
+        DWORD written = 0;
+        WriteConsoleA(hStdout, p, count, &written, NULL);
+    } else {
+        for (int i = 0; i < count; ++i) {
+            putc(p[i], stdout);
+        }
+    }
 }
 
 void console_disable_raw_mode(void) {

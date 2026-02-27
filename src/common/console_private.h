@@ -56,10 +56,13 @@ typedef struct {
    int y;
    bool requires_sync;
    bool no_title;
+   bool is_tty;
 } ConsoleState;
 
 MmResult console_init_platform(ConsoleState *_self);
 MmResult console_term_platform(void);
+void console_putc_raw(char c);
+void console_putc_raw_n(const char *p, int count);
 MmResult console_sync_size(int timeout_ms);
 
 #endif // #if !defined(MMB4L_CONSOLE_PRIVATE)

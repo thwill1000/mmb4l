@@ -187,7 +187,7 @@ MmResult InitBasic(void) {
 // We need to suppress a spurious(?) warning about 'p' being clobbered by setjmp().
 DIAGNOSTIC_IGNORE_CLOBBERED
 void ExecuteProgram(const char *p) {
-    LOG_FN_ENTRY("p=%p", p);
+    // LOG_FN_ENTRY("p=%p", p);
 
     int i;
     int SaveLocalIndex = 0;

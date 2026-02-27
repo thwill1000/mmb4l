@@ -125,18 +125,18 @@ MmResult console_cursor_up(int count) {
 }
 
 char console_putc_noflush(char c) {
-    LOG_FN_ENTRY("c='%c'", c);
+    // LOG_FN_ENTRY("c='%c'", c);
     bool printable = false; // Is 'c' a printable character?
 
     if (mmb_options.codepage && c > 127) {
         const char *ptr = mmb_options.codepage + 4 * (c - 128);
-        putc(*ptr++, stdout);            // 1st byte.
-        if (*ptr) putc(*ptr++, stdout);  // Optional 2nd byte.
-        if (*ptr) putc(*ptr++, stdout);  // Optional 3rd byte.
-        if (*ptr) putc(*ptr++, stdout);  // Optional 4th byte.
+        // Count how many bytes to write (up to 4, stopping at '\0')
+        int count = 0;
+        while (count < 4 && ptr[count]) count++;
+        if (count > 0) console_putc_raw_n(ptr, count);
         printable = true;
     } else {
-        putc(c, stdout);
+        console_putc_raw(c);
         if (isprint(c)) {
             printable = true;
         } else {
@@ -184,7 +184,7 @@ char console_putc(char c) {
 }
 
 void console_puts(const char *s) {
-    LOG_FN_ENTRY("s=\"%s\"", s);
+    // LOG_FN_ENTRY("s=\"%s\"", s);
     while (*s) (void) console_putc_noflush(*s++);
     fflush(stdout);
 }
