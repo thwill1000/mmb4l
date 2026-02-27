@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_input.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -69,13 +69,14 @@ void cmd_input(void) {
         if(argc >= 3 && *argv[0] == '"' && (*argv[1] == ',' || *argv[1] == ';')) {
             *(argv[0] + strlen(argv[0]) - 1) = 0;
             argv[0]++;
-            display_puts(argv[0]);
-            if(*argv[1] == ';') display_puts("? ");
+            ON_FAILURE_ERROR(display_puts(argv[0]));
+            if(*argv[1] == ';') ON_FAILURE_ERROR(display_puts("? "));
             i = 2;
         } else {
-            display_puts("? ");                                     // no prompt?  then just print the question mark
+            ON_FAILURE_ERROR(display_puts("? "));                   // no prompt?  then just print the question mark
             i = 0;
         }
+        ON_FAILURE_ERROR(display_flush());
     }
 
     if(argc - i < 1) ERROR_SYNTAX;                                  // no variable to input to

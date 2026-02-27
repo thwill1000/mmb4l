@@ -84,6 +84,7 @@ static void ListProgram(const char *p, int all) {
                 if (x >= width) ListNewLine(&ListCnt, all);
                 (void) display_putc(*pp++);
             }
+            (void) display_flush();
             ListNewLine(&ListCnt, all);
             if(p[0] == 0 && p[1] == 0) break;                       // end of the listing ?
         }
@@ -143,17 +144,17 @@ static MmResult cmd_list_tokens(const char *title, const struct s_tokentbl *prim
     for (int i = 0; i < total; i += step) {
         for (int k = 0; k < step; k++) {
             if (i + k < total) {
-                display_puts(tbl[i + k]);
+                ON_FAILURE_RETURN(display_puts(tbl[i + k]));
                 if (k != (step - 1))
-                    for (int j = strlen(tbl[i + k]); j < 19; j++) display_puts(" ");
+                    for (int j = strlen(tbl[i + k]); j < 19; j++) ON_FAILURE_RETURN(display_puts(" "));
             }
         }
-        display_puts("\r\n");
+        ON_FAILURE_RETURN(display_puts("\r\n"));
     }
     sprintf(buf, "Total of %d %s using %d slots\r\n\r\n", total, title, num_primary);
-    display_puts(buf);
+    ON_FAILURE_RETURN(display_puts(buf));
 
-    return kOk;
+    return display_flush(buf);
 }
 
 /** LIST COMMANDS */
@@ -194,9 +195,9 @@ static MmResult cmd_list_flash(const char *p) {
     ON_FAILURE_RETURN(program_load_file(CurrentFile));
 
     ListProgram(ProgMemory, all);
-    display_puts("\r\n");
+    ON_FAILURE_RETURN(display_puts("\r\n"));
 
-    return kOk;
+    return display_flush();
 }
 
 /** LIST FUNCTIONS */
@@ -232,9 +233,12 @@ static MmResult cmd_list_variables(const char *p) {
     int idx = -1;
     int count = 0;
 
-    display_puts("+------------------------------------------------------------------------------+\r\n");
-    display_puts("| Name                              | Type          | Level | Dimensions       |\r\n");
-    display_puts("| --------------------------------- | ------------- | ----- | ---------------- |\r\n");
+    ON_FAILURE_RETURN(display_puts(
+        "+------------------------------------------------------------------------------+\r\n"));
+    ON_FAILURE_RETURN(display_puts(
+        "| Name                              | Type          | Level | Dimensions       |\r\n"));
+    ON_FAILURE_RETURN(display_puts(
+        "| --------------------------------- | ------------- | ----- | ---------------- |\r\n"));
     for (;;) {
         // Determine next variable in alphabetical order.
         memset(name, 255, MAXVARLEN + 2);
@@ -293,16 +297,17 @@ static MmResult cmd_list_variables(const char *p) {
 
         sprintf(inpbuf, "| %-33s | %-13s | %-5d | %-16s | \r\n", name, type, var->level,
                 dimensions);
-        display_puts(inpbuf);
+        ON_FAILURE_RETURN(display_puts(inpbuf));
         count++;
     }
     if (count == 0) {
         sprintf(inpbuf, "| %-33s | %-13s | %-5d | %-16s | \r\n", "No variables declared", "", 0, "");
-        display_puts(inpbuf);
+        ON_FAILURE_RETURN(display_puts(inpbuf));
     }
-    display_puts("+------------------------------------------------------------------------------+\r\n");
+    ON_FAILURE_RETURN(display_puts(
+        "+------------------------------------------------------------------------------+\r\n"));
 
-    return kOk;
+    return display_flush();
 }
 
 /** LIST [ALL] file$ */
@@ -336,14 +341,15 @@ static MmResult cmd_list_default(const char *p) {
         for (size_t i = 0; i < strlen(line_buffer); i++) {
             if (line_buffer[i] == TAB) line_buffer[i] = ' ';
         }
-        display_puts(line_buffer);
+        ON_FAILURE_RETURN(display_puts(line_buffer));
         list_count += strlen(line_buffer) / width;
         ListNewLine(&list_count, all);
     }
 
     // Ensure listing is followed by an empty line.
-    if (strcmp(line_buffer, "") != 0) display_puts("\r\n");
+    if (strcmp(line_buffer, "") != 0) ON_FAILURE_RETURN(display_puts("\r\n"));
 
+    ON_FAILURE_RETURN(display_flush());
     return streamio_close(fnbr);
 }
 

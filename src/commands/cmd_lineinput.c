@@ -44,11 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string.h>
 
+#include "../common/display.h"
 #include "../common/mmb4l.h"
 #include "../common/mmgetline.h"
-#include "../common/streamio.h"
-
-#define MMfputs(mmbstr, fnbr)  streamio_write(fnbr, mmbstr + 1, mmbstr[0])
 
 void cmd_lineinput(void) {
     char *vp;
@@ -68,7 +66,10 @@ void cmd_lineinput(void) {
         else {
             // is the first argument a prompt?  if so, print it otherwise there are too many arguments
             if(*argv[1] != ',' && *argv[1] != ';') ERROR_SYNTAX;
-            MMfputs(getstring(argv[0]), 0);
+            const char *mmbstr = getstring(argv[0]);
+            size_t sz = mmbstr[0];
+            (void) display_write(mmbstr + 1, &sz);
+            ON_FAILURE_ERROR(display_flush());
         }
         i = 2;
     }

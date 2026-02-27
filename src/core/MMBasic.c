@@ -171,7 +171,7 @@ MmResult InitBasic(void) {
     tokentbl_init();
     vartbl_init();
     ON_FAILURE_RETURN(ClearRuntime());
-    ON_FAILURE_RETURN(streamio_init(&display_putc, &display_write));
+    ON_FAILURE_RETURN(streamio_init(&display_flush, &display_putc, &display_write));
     ON_FAILURE_RETURN(interrupt_init());
     ON_FAILURE_RETURN(mmtime_init());
     ON_FAILURE_RETURN(SwitchPlatform(mmb_state.default_simulate));
@@ -209,7 +209,7 @@ void ExecuteProgram(const char *p) {
                 // Copied from the CMM2,
                 // looks like it has duplication with cmd_trace.c#TraceLines()
                 char buf[STRINGSIZE], buff[10];
-                display_puts("[");
+                ON_FAILURE_ERROR(display_puts("["));
                 memcpy(buf, p, STRINGSIZE);
                 char *ename, *cpos = NULL;
                 i = 0;
@@ -224,22 +224,23 @@ void ExecuteProgram(const char *p) {
                         cpos++;
                         ename++;
                         if (*cpos == '\'') cpos++;
-                        display_puts(cpos);
-                        display_puts(":");
-                        display_puts(ename);
+                        ON_FAILURE_ERROR(display_puts(cpos));
+                        ON_FAILURE_ERROR(display_puts(":"));
+                        ON_FAILURE_ERROR(display_puts(ename));
                     } else {
                         cpos++;
                         IntToStr(buff, atoi(cpos), 10);
-                        display_puts(buff);
+                        ON_FAILURE_ERROR(display_puts(buff));
                     }
                 }
-                display_puts("]");
+                ON_FAILURE_ERROR(display_puts("]"));
 #else
                 inpbuf[0] = '[';
                 IntToStr(inpbuf + 1, CountLines(p), 10);
                 strcat(inpbuf, "]");
-                display_puts(inpbuf);
+                ON_FAILURE_ERROR(display_puts(inpbuf));
 #endif
+                ON_FAILURE_ERROR(display_flush());
                 mmtime_sleep_ns(MICROSECONDS_TO_NANOSECONDS(1000));  // TODO: Why?
             }
             p++;                                                    // and step over the token

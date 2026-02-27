@@ -66,25 +66,26 @@ void cmd_option_list(const char *p) {
     }
     if (!parse_is_end(p)) ERROR_SYNTAX;
 
-    MmResult result;
     char buf[STRINGSIZE];
     size_t count = 0;
 
     for (OptionsDefinition *def = options_definitions; def->name; def++) {
         if (!all && options_has_default_value(&mmb_options, def->id)) continue;
-        result = options_get_display_value(&mmb_options, def->id, buf);
-        if (FAILED(result)) error_throw(result);
-        display_puts("Option ");
-        display_puts(def->name);
-        display_puts(" ");
-        display_puts(buf);
-        display_puts("\r\n");
+        ON_FAILURE_ERROR(options_get_display_value(&mmb_options, def->id, buf));
+        ON_FAILURE_ERROR(display_puts("Option "));
+        ON_FAILURE_ERROR(display_puts(def->name));
+        ON_FAILURE_ERROR(display_puts(" "));
+        ON_FAILURE_ERROR(display_puts(buf));
+        ON_FAILURE_ERROR(display_puts("\r\n"));
         count++;
     }
 
-    if (count == 0) display_puts("All options at default values; try OPTION LIST ALL\r\n");
+    if (count == 0) {
+        ON_FAILURE_ERROR(display_puts("All options at default values; try OPTION LIST ALL\r\n"));
+    }
 
-    display_puts("\r\n");
+    ON_FAILURE_ERROR(display_puts("\r\n"));
+    ON_FAILURE_ERROR(display_flush());
 }
 
 void cmd_option_load(const char *p) {
@@ -237,9 +238,10 @@ static void cmd_option_set(const char *p) {
     if (def->saved) {
         result = options_save(&mmb_options, options_filename);
         if (FAILED(result)) {
-            display_puts("Warning: failed to save options: ");
-            display_puts(mmresult_to_string(result));
-            display_puts("\r\n");
+            ON_FAILURE_ERROR(display_puts("Warning: failed to save options: "));
+            ON_FAILURE_ERROR(display_puts(mmresult_to_string(result)));
+            ON_FAILURE_ERROR(display_puts("\r\n"));
+            ON_FAILURE_ERROR(display_flush());
         }
     }
 

@@ -349,6 +349,14 @@ int file_eof(int fnbr);
 bool file_exists_symlink(const char *path);
 
 /**
+ * Flushes a file's output buffer.
+ *
+ * @param[in]  fnbr  File number to flush
+ * @return           kOk on success, error code on failure
+ */
+MmResult file_flush(int fnbr);
+
+/**
  * Flushes a file's in-memory state to the underlying storage device.
  *
  * Wraps the POSIX fsync() call, which ensures that all modified data and

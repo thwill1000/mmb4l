@@ -474,7 +474,7 @@ static MmResult editor_draw_line(Editor *self) {
     ON_FAILURE_RETURN(display_reset());
     ON_FAILURE_RETURN(display_puts("\r\n"));
 
-    return kOk;
+    return display_flush();
 }
 
 /**
@@ -581,6 +581,7 @@ static MmResult editor_get_input(Editor *self, const char *prompt) {
                     *p = '\0';  // Always keep inpbuf '\0' terminated
                     self->cx--;
                     ON_FAILURE_RETURN(display_puts("\b \b"));  // Erase on screen
+                    ON_FAILURE_RETURN(display_flush());
                 } else {
                     ON_FAILURE_RETURN(display_bell());
                 }
@@ -598,7 +599,8 @@ static MmResult editor_get_input(Editor *self, const char *prompt) {
                 *p++ = (char) ch;
                 *p = '\0';  // Keep inpbuf '\0' terminated
                 self->cx++;
-                ON_FAILURE_RETURN(display_putc(ch));
+                (void) display_putc(ch);
+                (void) display_flush();
                 break;
         }
     }
@@ -1361,7 +1363,7 @@ static MmResult editor_print_line_p(Editor *self, char *p, int comment_level, in
     };
 
     // We redraw the whole line, so move to the LHS of the display
-    ON_FAILURE_RETURN(display_putc_noflush('\r'));
+    (void) display_putc('\r');
 
     // Display the line from here to the end of the line or the screen width
     for (int x = 0; x < self->width + offset && *p && *p != '\n'; x++) {
@@ -1396,7 +1398,7 @@ static MmResult editor_print_line_p(Editor *self, char *p, int comment_level, in
             ch = '>';
         }
 
-        ON_FAILURE_RETURN(display_putc_noflush(ch));
+        (void) display_putc(ch);
     }
 
     // Reset syntax highlighting and clear display to end of line
@@ -1436,7 +1438,7 @@ static MmResult editor_print_line_p(Editor *self, char *p, int comment_level, in
 MmResult editor_print_line_fast_impl(Editor *self, char *p) {
     char *start = editor_start_of_line(self, p);
     for (int x = p - start; x < self->width && *p && *p != '\n'; x++, p++) {
-        ON_FAILURE_RETURN(display_putc_noflush(*p));
+        (void) display_putc(*p);
     }
     ON_FAILURE_RETURN(display_clear_to_end_of_line());
     return editor_set_cursor_pos(self, self->cx, self->cy);
@@ -1709,6 +1711,7 @@ MmResult editor_print_lines_impl(Editor *self, int start, int end) {
 
         if (line != end) {
             ON_FAILURE_RETURN(display_puts("\r\n"));
+            ON_FAILURE_RETURN(display_flush());
         }
 
         // Advance to next line,

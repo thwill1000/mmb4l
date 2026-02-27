@@ -587,7 +587,8 @@ MmResult audio_play_next() {
         case P_MP3:
         case P_WAV:
             if (audio_is_last_track()) {
-                display_puts("Last track is playing\r\n");
+                ON_FAILURE_LOG(display_puts("Last track is playing\r\n"));
+                ON_FAILURE_LOG(display_flush());
             } else {
                 result = audio_play_next_track();
             }
@@ -658,7 +659,8 @@ MmResult audio_play_previous() {
         case P_MP3:
         case P_WAV:
             if (audio_is_first_track()) {
-                display_puts("First track is playing\r\n");
+                ON_FAILURE_LOG(display_puts("First track is playing\r\n"));
+                ON_FAILURE_LOG(display_flush());
             } else {
                 audio_track_current -= 2;
                 result = audio_play_next_track();
@@ -900,9 +902,10 @@ static MmResult audio_play_next_track() {
     const char *next_track = audio_track_list[audio_track_current];
     if (!*next_track) return kAudioNoMoreTracks;
     if (!CurrentLinePtr) {
-        display_puts("Now playing: ");
-        display_puts(next_track);
-        display_puts("\r\n");
+        ON_FAILURE_RETURN(display_puts("Now playing: "));
+        ON_FAILURE_RETURN(display_puts(next_track));
+        ON_FAILURE_RETURN(display_puts("\r\n"));
+        ON_FAILURE_RETURN(display_flush());
     }
     MmResult result = kOk;
     if (path_has_extension(next_track, ".FLAC", true)) {

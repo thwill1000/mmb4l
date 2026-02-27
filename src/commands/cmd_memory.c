@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -243,7 +243,7 @@ static void memory_report(const char *unused) {
             (PROG_FLASH_SIZE - num_bytes + 512) / 1024,
             num_lines,
             num_lines == 1 ? "" : "s");
-    display_puts(inpbuf);
+    ON_FAILURE_ERROR(display_puts(inpbuf));
 
     const int fcnt = funtbl_count;
     const int fsize = sizeof(struct s_funtbl);
@@ -255,7 +255,7 @@ static void memory_report(const char *unused) {
             (int) (((MAXSUBFUN * fsize + 512) / 1024) - ((fcnt * fsize + 512) / 1024)),
             (int) fcnt,
             MAXSUBFUN);
-    display_puts(inpbuf);
+    ON_FAILURE_ERROR(display_puts(inpbuf));
 
     const int vcnt = count_variables();
     const int vsize = sizeof(struct s_vartbl);
@@ -267,7 +267,7 @@ static void memory_report(const char *unused) {
             (int) (((MAXVARS * vsize + 512) / 1024) - ((vcnt * vsize + 512) / 1024)),
             vcnt,
             MAXVARS);
-    display_puts(inpbuf);
+    ON_FAILURE_ERROR(display_puts(inpbuf));
 
     const int ram_used = (UsedHeap() + 512) / 1024;
     const int percent_used = ((UsedHeap() + 512) * 100) / HEAP_SIZE;
@@ -280,7 +280,9 @@ static void memory_report(const char *unused) {
             (HEAP_SIZE / 1024) - ram_used,
             pages_used,
             HEAP_SIZE / PAGESIZE);
-    display_puts(inpbuf);
+    ON_FAILURE_ERROR(display_puts(inpbuf));
+
+    ON_FAILURE_ERROR(display_flush());
 }
 
 void cmd_memory(void) {

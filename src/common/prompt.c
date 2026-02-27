@@ -335,6 +335,7 @@ static MmResult prompt_update_inpbuf(PromptState *pstate, char *new_inpbuf) {
 
     // Display the new contents of the input buffer.
     ON_FAILURE_RETURN(display_puts(inpbuf));
+    ON_FAILURE_RETURN(display_flush());
 
     // Handle the new input buffer being too long.
     if (strlen(inpbuf) > PROMPT_MAX_LEN) {
@@ -365,6 +366,7 @@ static MmResult handle_end(PromptState *pstate) {
     while (pstate->char_index < strlen(inpbuf)) {
         ON_FAILURE_RETURN(display_putc(inpbuf[pstate->char_index++]));
     }
+    ON_FAILURE_RETURN(display_flush());
 
     return kOk;
 }
@@ -460,6 +462,7 @@ static MmResult handle_other(PromptState *pstate) {
                                             // of the string
         inpbuf[pstate->char_index++] = pstate->buf[0];    // overwrite the char
         ON_FAILURE_RETURN(display_putc(pstate->buf[0]));  // display it
+        ON_FAILURE_RETURN(display_flush());
     }
 
     RETURN_RESULT(kOk);
@@ -469,6 +472,7 @@ static MmResult handle_right(PromptState *pstate) {
     if (pstate->char_index >= strlen(inpbuf)) return kOk;
 
     ON_FAILURE_RETURN(display_putc(inpbuf[pstate->char_index]));
+    ON_FAILURE_RETURN(display_flush());
     pstate->char_index++;
 
     return kOk;
@@ -523,6 +527,7 @@ MmResult prompt_get_input(void) {
 
     // Display the contents of the input buffer (if any)
     ON_FAILURE_RETURN(display_puts(inpbuf));
+    ON_FAILURE_RETURN(display_flush());
     // LOG_DEBUG("[%s]", inpbuf);
     // LOG_DEBUG("max chars = %d", state.max_chars);
 

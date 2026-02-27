@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_graphics.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -216,14 +216,13 @@ MmResult cmd_graphics_list(const char *p) {
     char buf[STRINGSIZE];
 
     if (mmb_features.graphics_type != kGraphicsTypeMmb4l) {
-        result = options_get_string_value(&mmb_options, kOptionSimulate, buf);
-        if (FAILED(result)) return result;
-        display_puts(buf);
+        ON_FAILURE_RETURN(options_get_string_value(&mmb_options, kOptionSimulate, buf));
+        ON_FAILURE_RETURN(display_puts(buf));
         if (mmb_features.has_cmd_mode) {
             (void) snprintf(buf, STRINGSIZE, " - Mode %d", graphics_mode);
-            display_puts(buf);
+            ON_FAILURE_RETURN(display_puts(buf));
         }
-        display_puts("\r\n");
+        ON_FAILURE_RETURN(display_puts("\r\n"));
     }
 
     const MmSurfaceId current_id = graphics_current ? graphics_current->id : -1;
@@ -236,12 +235,14 @@ MmResult cmd_graphics_list(const char *p) {
         if (FAILED(result)) break;
         snprintf(buf, STRINGSIZE, "%c %3d) %s: %d x %d\r\n", id == current_id ? '*' : ' ',
                  id, type, s->width, s->height);
-        display_puts(buf);
+        ON_FAILURE_RETURN(display_puts(buf));
         count++;
     }
     if (SUCCEEDED(result) && count == 0) {
-        display_puts("No graphics surfaces");
+        ON_FAILURE_RETURN(display_puts("No graphics surfaces"));
     }
+
+    ON_FAILURE_RETURN(display_flush());
 
     return result;
 }

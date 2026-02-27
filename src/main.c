@@ -482,6 +482,7 @@ int main(int argc, char *argv[]) {
         // } else {
         if (mmb_args.show_prompt) {
             display_puts("> ");  // print the prompt
+            display_flush();
         }
         // }
         // ErrorInPrompt = false;

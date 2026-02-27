@@ -66,15 +66,18 @@ int gosubindex;
 char DimUsed = false;  // used to catch OPTION BASE after DIM has been used
 
 void ListNewLine(int *ListCnt, int all) {
-    display_puts("\r\n");
+    ON_FAILURE_ERROR(display_puts("\r\n"));
+    ON_FAILURE_ERROR(display_flush());
     (*ListCnt)++;
     int width = -1, height = -1;
     ON_FAILURE_ERROR(display_get_size(false, &width, &height));
     if (!all && *ListCnt >= width) {
-        display_puts("PRESS ANY KEY ...");
+        ON_FAILURE_ERROR(display_puts("PRESS ANY KEY ..."));
+        ON_FAILURE_ERROR(display_flush());
         int ch = -1;
         ON_FAILURE_ERROR(prompt_getc(&ch));
-        display_puts("\r                 \r");
+        ON_FAILURE_ERROR(display_puts("\r                 \r"));
+        ON_FAILURE_ERROR(display_flush());
         *ListCnt = 1;
     }
 }

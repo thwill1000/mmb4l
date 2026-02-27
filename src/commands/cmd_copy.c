@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_copy.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void cmd_copy(void) {
     const DelimType delim[] = { tokenTO, 0 };
     getargs(&cmdline, 3, delim);
-    if (argc != 3) ON_FAILURE_ERROR(kArgumentCount);
+    if (argc != 3) THROW_ERROR_VOID(kArgumentCount);
 
     char *src_filename = GetTempStrMemory();
     ON_FAILURE_ERROR(parse_filename(argv[0], src_filename, STRINGSIZE));
@@ -65,21 +65,17 @@ void cmd_copy(void) {
     const int dst_fnbr = streamio_find_free();
     MmResult result = streamio_open(dst_filename, "w", dst_fnbr);  // We'll just overwrite any existing file
     if (FAILED(result)) {
-        (void) streamio_close(src_fnbr);
-        ON_FAILURE_ERROR(result);
+        ON_FAILURE_LOG(streamio_close(src_fnbr));
+        THROW_ERROR_VOID(result);
     }
 
     char c;
     while (1) {
         if (streamio_eof(src_fnbr)) break;
         c = streamio_getc(src_fnbr);
-        streamio_putc(dst_fnbr, c);
+        (void) streamio_putc(dst_fnbr, c);
     }
 
-    result = streamio_close(src_fnbr);
-    if (FAILED(result)) {
-        (void) streamio_close(dst_fnbr);
-        ON_FAILURE_ERROR(result);
-    }
-    ON_FAILURE_ERROR(streamio_close(dst_fnbr));
+    ON_FAILURE_LOG(streamio_close(src_fnbr));
+    ON_FAILURE_LOG(streamio_close(dst_fnbr));
 }

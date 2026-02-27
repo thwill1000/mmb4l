@@ -53,10 +53,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "serial.h"
 #include "utility.h"
 
+MmResult (*streamio_0_flush_fn)() = NULL;
 MmResult (*streamio_0_putc_fn)(char c) = NULL;
 MmResult (*streamio_0_write_fn)(const char *buf, size_t *sz) = NULL;
 
-MmResult streamio_init(MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *, size_t *)) {
+MmResult streamio_init(MmResult (*flush_fn)(), MmResult (*putc_fn)(char), MmResult (*write_fn)(const char *, size_t *)) {
+    streamio_0_flush_fn = flush_fn;
     streamio_0_putc_fn = putc_fn;
     streamio_0_write_fn = write_fn;
     return kOk;
@@ -112,6 +114,27 @@ int streamio_find_free(void) {
     }
     ON_FAILURE_ERROR_EX(kTooManyOpenFiles, -1);
     return -1;
+}
+
+MmResult streamio_flush(int fnbr) {
+    if (fnbr == 0) {
+        assert(streamio_0_flush_fn);
+        return streamio_0_flush_fn();
+    }
+
+    switch (file_table[fnbr].type) {
+        case fet_closed:
+            THROW_ERROR(kFileNotOpen, -1);
+
+        case fet_file:
+            return file_flush(fnbr);
+
+        case fet_serial:
+            return serial_flush(fnbr);
+
+        default:
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), -1);
+    }
 }
 
 int streamio_getc(int fnbr) {
@@ -222,9 +245,9 @@ int streamio_putc(int fnbr, int ch) {
         assert(streamio_0_putc_fn);
         ON_FAILURE_ERROR_EX(streamio_0_putc_fn(ch), -1);
         RETURN_INT(ch);
-    } else {
-        ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), -1);
     }
+
+    ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), -1);
 
     switch (file_table[fnbr].type) {
         case fet_closed:

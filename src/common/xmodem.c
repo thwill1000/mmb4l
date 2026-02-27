@@ -148,7 +148,7 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
             if (verbose) {
                 if (total > 0) display_cursor_up(1);
                 sprintf(sbuf, "Sent %d bytes\n", total);
-                display_puts(sbuf);
+                ON_FAILURE_ERROR(display_puts(sbuf));
             }
 
             // Copy data from the file into the packet.
@@ -225,7 +225,7 @@ void xmodem_receive(int file_fnbr, int serial_fnbr, bool verbose) {
         if (verbose) {
             if (total > 0) display_cursor_up(1);
             sprintf(sbuf, "Received %d bytes\n", total);
-            display_puts(sbuf);
+            ON_FAILURE_ERROR(display_puts(sbuf));
         }
 
         for (retry = 0; retry < 32; ++retry) {
@@ -267,8 +267,9 @@ void xmodem_receive(int file_fnbr, int serial_fnbr, bool verbose) {
             xmodem_check(&xbuff[3], X_BLOCK_SIZE)) {
             if (xbuff[1] == packetno) {
                 for (i = 0; i < X_BLOCK_SIZE; i++) {
-                    streamio_putc(file_fnbr, xbuff[i + 3]);
+                    (void) streamio_putc(file_fnbr, xbuff[i + 3]);
                 }
+                ON_FAILURE_ERROR(streamio_flush(file_fnbr));
                 ++packetno;
                 retrans = MAXRETRANS + 1;
                 total += X_BLOCK_SIZE;

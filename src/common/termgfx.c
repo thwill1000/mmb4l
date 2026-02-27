@@ -243,11 +243,6 @@ MmResult termgfx_putc(char c) {
     return kOk;
 }
 
-MmResult termgfx_putc_noflush(char c) {
-    // Currently all graphical terminal output is "flushed".
-    return termgfx_putc(c);
-}
-
 MmResult termgfx_puts(const char *s) {
     CHECK_PARAM(s != NULL);
     ASSERT_GFX();

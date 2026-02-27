@@ -519,6 +519,13 @@ bool file_exists_dir(const char *path) {
     }
 }
 
+MmResult file_flush(int fnbr) {
+    ON_FAILURE_RETURN(file_validate_fnbr(fnbr));
+    errno = 0;
+    int result = fflush(file_table[fnbr].file_ptr);
+    RETURN_RESULT(SUCCEEDED(result) ? kOk : errno);
+}
+
 static MmResult file_get_config_dir_impl(char *buf, size_t size) {
     CHECK_PARAM(buf != NULL);
     ON_FAILURE_RETURN(file_get_home(buf, size));
@@ -609,8 +616,6 @@ int file_putc(int fnbr, char ch) {
         if (ferror(file_table[fnbr].file_ptr)) THROW_ERROR(errno, -1);
         assert(false);  // Always expect ferror to have been set.
     }
-    // TODO: Do I really want to be flushing every character ?
-    if (FAILED(fflush(file_table[fnbr].file_ptr))) THROW_ERROR(errno, -1);
     RETURN_INT((int)ch);
 }
 
@@ -634,6 +639,5 @@ size_t file_write(int fnbr, const char *buf, size_t buf_sz) {
         if (ferror(file_table[fnbr].file_ptr)) THROW_ERROR(errno, 0);
         assert(false);  // Always expect ferror to have been set.
     }
-    if (FAILED(fflush(file_table[fnbr].file_ptr))) THROW_ERROR(errno, 0);
     RETURN_INT(result);
 }

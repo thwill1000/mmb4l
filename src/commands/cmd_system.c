@@ -226,6 +226,7 @@ MmResult cmd_system_to_buf(char *cmd, char *buf, size_t *sz, int64_t *exit_statu
             if (ch == '\n') (void) display_putc('\r');
             (void) display_putc(ch);
         }
+        (void) display_flush();
     }
 
     *exit_status = pclose(f);

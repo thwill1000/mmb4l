@@ -160,14 +160,6 @@ MmResult display_inverse(bool inverse);
 MmResult display_putc(char c);
 
 /**
- * Writes a character to the display without flushing.
- *
- * @param[in]  c  the character to write.
- * @return        kOk on success.
- */
-MmResult display_putc_noflush(char c);
-
-/**
  * Writes a C-string to the display.
  *
  * @param[in]  s  the C-string to write.
