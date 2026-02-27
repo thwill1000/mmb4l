@@ -125,10 +125,10 @@ char console_putc_noflush(char c) {
 
     if (mmb_options.codepage && c > 127) {
         const char *ptr = mmb_options.codepage + 4 * (c - 128);
-        putc(*ptr++, stdout);           // 1st byte.
-        if (ptr) putc(*ptr++, stdout);  // Optional 2nd byte.
-        if (ptr) putc(*ptr++, stdout);  // Optional 3rd byte.
-        if (ptr) putc(*ptr++, stdout);  // Optional 4th byte.
+        putc(*ptr++, stdout);            // 1st byte.
+        if (*ptr) putc(*ptr++, stdout);  // Optional 2nd byte.
+        if (*ptr) putc(*ptr++, stdout);  // Optional 3rd byte.
+        if (*ptr) putc(*ptr++, stdout);  // Optional 4th byte.
         printable = true;
     } else {
         putc(c, stdout);
