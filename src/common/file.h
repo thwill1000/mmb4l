@@ -142,6 +142,14 @@ typedef struct {
 MmResult file_append_path(char *parent, const char *element, size_t size);
 
 /**
+ * Closes an open file handle.
+ *
+ * @param fnbr  The file number/handle to close
+ * @return      kOk on success, error code on failure
+ */
+MmResult file_close(int fnbr);
+
+/**
  * Checks if a named regular file exists in the filesystem.
  *
  * @param[in]  filename  Path to the file to check
