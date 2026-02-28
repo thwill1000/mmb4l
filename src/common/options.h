@@ -51,6 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "file.h"
 #include "mmresult.h"
 
+#include <SDL_atomic.h>
+
 /** Number of programmable function keys. */
 #define OPTIONS_NUM_FN_KEYS     12
 
@@ -154,8 +156,8 @@ typedef struct {
     bool audio;
     bool auto_scale;
     int base;
-    char break_key;
-    const char *codepage; // Pointer to one of the arrays/maps declared in 'codepage.h'
+    SDL_atomic_t break_key;  // Accessed by main + keybuf threads
+    const char *codepage;    // Pointer to one of the arrays/maps declared in 'codepage.h'
     OptionsConsole console;
     char default_type;
     char editor[STRINGSIZE];  // TODO: should probably be shorter

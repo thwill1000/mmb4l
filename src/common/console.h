@@ -80,6 +80,9 @@ extern int ListCnt;
 /** @param  no_title  Set true to make console_set_title() a NOP. */
 MmResult console_init(bool no_title);
 
+/** Terminates the console module and restores original terminal settings. */
+MmResult console_term(void);
+
 void console_background(int colour);
 void console_bell();
 

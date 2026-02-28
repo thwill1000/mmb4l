@@ -54,14 +54,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mmtime.h"
 
 static struct termios orig_termios;
-
 static ConsoleState *self;
 
 static MmResult console_install_winch_signal_handler(void);
 
-MmResult console_private_init(ConsoleState *_self) {
+MmResult console_init_platform(ConsoleState *_self) {
     self = _self;
     return console_install_winch_signal_handler();
+}
+
+MmResult console_term_platform(void) {
+    return kOk;
 }
 
 void console_disable_raw_mode(void) {
@@ -73,8 +76,8 @@ void console_enable_raw_mode(void) {
     // atexit(console_disable_raw_mode); - done in main.c
     struct termios raw = orig_termios;
     raw.c_lflag &= ~(ECHO | ICANON | ISIG);
-    raw.c_cc[VMIN] = 0;
-    raw.c_cc[VTIME] = 0; // 1;
+    raw.c_cc[VMIN] = 1;   // Block until at least 1 character is available
+    raw.c_cc[VTIME] = 0;  // No timeout
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 
     //fcntl(STDIN_FILENO, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
