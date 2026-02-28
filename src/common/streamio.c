@@ -129,39 +129,28 @@ int streamio_find_free(void) {
 
 int streamio_getc(int fnbr) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);
+        THROW_ERROR(kFileInvalidFileNumber, -1);
     }
 
     if (fnbr == 0) {
         int ch = -1;
         ON_FAILURE_ERROR_EX(prompt_getc(&ch), -1);
-        return ch;
+        RETURN_INT(ch);
     }
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
-            break;
+            THROW_ERROR(kFileNotOpen, -1);
 
-        case fet_file: {
-            errno = 0;
-            char ch;
-            if (fread(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
-                if (ferror(file_table[fnbr].file_ptr) == 0) {
-                    return -1;
-                } else {
-                    error_throw(errno);
-                }
-            }
-            return (int) ch;
-        }
+        case fet_file:
+            RETURN_INT(file_getc(fnbr));
 
         case fet_serial:
-            return serial_getc(fnbr);
-    }
+            RETURN_INT(serial_getc(fnbr));
 
-    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, -1);
-    return -1;
+        default:
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), -1);
+    }
 }
 
 bool streamio_is_file(int fnbr) {

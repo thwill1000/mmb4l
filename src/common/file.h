@@ -417,4 +417,13 @@ MmResult file_rename(const char *old_filename, const char *new_filename);
  */
 MmResult file_rmdir(const char *dirname);
 
+/**
+ * Gets a character from a file.
+ *
+ * @param[in]  fnbr  File number to read from
+ * @return           The character read as an unsigned char cast to an int,
+ *                   -1 on end of file, or longjmp()s on error
+ */
+int file_getc(int fnbr);
+
 #endif // #if !defined(MMB4L_FILE)
