@@ -91,7 +91,7 @@ MmResult file_info(const char *filename, FileInfo *info) {
     RETURN_RESULT(kUnimplemented);
 }
 
-MmResult file_open(const char *path, const char *mode, FILE **file) {
+MmResult file_open(const char *path, const char *mode, int fnbr) {
     RETURN_RESULT(kUnimplemented);
 }
 

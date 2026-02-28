@@ -245,17 +245,7 @@ int streamio_lof(int fnbr) {
 
 MmResult streamio_open(const char *path, const char *mode, int fnbr) {
     LOG_FN_ENTRY("path=\"%s\", mode=\"%s\", fnbr=%d", path, mode, fnbr);
-
-    if (fnbr < 1 || fnbr > MAXOPENFILES) RETURN_RESULT(kFileInvalidFileNumber);
-    if (file_table[fnbr].type != fet_closed) RETURN_RESULT(kFileAlreadyOpen);
-
-    FILE *f = NULL;
-    ON_FAILURE_RETURN(file_open(path, mode, &f));
-
-    file_table[fnbr].type = fet_file;
-    file_table[fnbr].file_ptr = f;
-
-    RETURN_RESULT(kOk);
+    RETURN_RESULT(file_open(path, mode, fnbr));
 }
 
 int streamio_putc(int fnbr, int ch) {

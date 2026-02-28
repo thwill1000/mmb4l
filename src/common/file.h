@@ -359,10 +359,10 @@ MmResult file_mkfile(const char *filename);
  *
  * @param[in]  path   Path to the file to open
  * @param[in]  mode   File open mode (e.g., "r", "w", "a", etc.)
- * @param[out] file   Pointer to store the opened FILE handle
+ * @param[in]  fnbr   File number to associate with the opened file
  * @return            kOk on success, error code on failure
  */
-MmResult file_open(const char *path, const char *mode, FILE **file);
+MmResult file_open(const char *path, const char *mode, int fnbr);
 
 /**
  * Opens a directory for reading.

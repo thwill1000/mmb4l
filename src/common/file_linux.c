@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <dirent.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
 #include <unistd.h>
@@ -180,10 +181,11 @@ MmResult file_info(const char *filename, FileInfo *info) {
     return kOk;
 }
 
-MmResult file_open(const char *path, const char *mode, FILE **file) {
+MmResult file_open(const char *path, const char *mode, int fnbr) {
     CHECK_PARAM(path != NULL);
     CHECK_PARAM(mode != NULL);
-    CHECK_PARAM(file != NULL);
+    ON_FAILURE_RETURN(file_validate_fnbr(fnbr));
+    if (file_table[fnbr].type != fet_closed) RETURN_RESULT(kFileAlreadyOpen);
 
     // Random writing is not allowed when a file is opened for append so open it
     // first for read & update and if that does not work open it for
@@ -196,18 +198,28 @@ MmResult file_open(const char *path, const char *mode, FILE **file) {
         if (!f) {
             errno = 0;
             f = fopen(path, "wb+");
-            if (!f) return errno;
+            if (!f) RETURN_RESULT(errno);
         }
-        errno = 0;
-        if (FAILED(fseek(f, 0, SEEK_END))) return errno;
     } else {
         errno = 0;
         f = fopen(path, mode);
-        if (!f) return errno;
+        if (!f) RETURN_RESULT(errno);
     }
 
-    *file = f;
-    return kOk;
+    // Seek to end to ensure correct position returned by first call to ftell()
+    if (*mode == 'x' || *mode == 'a') {
+        errno = 0;
+        if (FAILED(fseek(f, 0, SEEK_END))) {
+            MmResult result = errno ? errno : mmresult_ex(kError, "Failed to seek to end of file");
+            fclose(f);
+            RETURN_RESULT(result);
+        }
+    }
+
+    file_table[fnbr].type = fet_file;
+    file_table[fnbr].file_ptr = f;
+
+    RETURN_RESULT(kOk);
 }
 
 MmResult file_opendir(const char *dirname, DirStream **stream) {
