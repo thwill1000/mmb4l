@@ -446,4 +446,14 @@ int file_putc(int fnbr, char ch);
  */
 size_t file_read(int fnbr, char *buf, size_t buf_sz);
 
+/**
+ * Writes data from a buffer to a file.
+ *
+ * @param[in]  fnbr    File number to write to
+ * @param[in]  buf     Buffer containing the data to write
+ * @param[in]  buf_sz  Number of bytes to write
+ * @return             Number of bytes actually written, or longjmp()s on error
+ */
+size_t file_write(int fnbr, const char *buf, size_t buf_sz);
+
 #endif // #if !defined(MMB4L_FILE)

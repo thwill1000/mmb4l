@@ -534,3 +534,13 @@ size_t file_read(int fnbr, char *buf, size_t buf_sz) {
     if (result < buf_sz && ferror(file_table[fnbr].file_ptr)) THROW_ERROR(errno, 0);
     RETURN_INT(result);
 }
+
+size_t file_write(int fnbr, const char *buf, size_t buf_sz) {
+    errno = 0;
+    size_t result = fwrite(buf, 1, buf_sz, file_table[fnbr].file_ptr);
+    if (result != buf_sz) {
+        if (ferror(file_table[fnbr].file_ptr)) THROW_ERROR(errno, 0);
+        assert(false);  // Always expect ferror to have been set.
+    }
+    RETURN_INT(result);
+}
