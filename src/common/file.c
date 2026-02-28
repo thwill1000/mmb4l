@@ -106,6 +106,14 @@ MmResult file_basename(const char *path, char *buf, size_t buf_sz) {
     return kOk;
 }
 
+MmResult file_close(int fnbr) {
+    errno = 0;
+    int result = fclose(file_table[fnbr].file_ptr);
+    file_table[fnbr].type = fet_closed;
+    file_table[fnbr].file_ptr = NULL;
+    RETURN_RESULT(SUCCEEDED(result) ? kOk : errno);
+}
+
 // TODO: Reconcile with path_get_parent()
 MmResult file_dirname(const char *path, char *buf, size_t buf_sz) {
     CHECK_PARAM(path != NULL);

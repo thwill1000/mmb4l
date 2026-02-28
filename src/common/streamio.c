@@ -67,22 +67,17 @@ MmResult streamio_close(int fnbr) {
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            return kFileNotOpen;
+            RETURN_RESULT(kFileNotOpen);
 
-        case fet_file: {
-            errno = 0;
-            int result = fclose(file_table[fnbr].file_ptr);
-            file_table[fnbr].type = fet_closed;
-            file_table[fnbr].file_ptr = NULL;
-            if (FAILED(result)) return errno;
-            break;
-        }
+        case fet_file:
+            RETURN_RESULT(file_close(fnbr));
 
         case fet_serial:
-            return serial_close(fnbr);
-    }
+            RETURN_RESULT(serial_close(fnbr));
 
-    return kOk;
+        default:
+            RETURN_RESULT(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type));
+    }
 }
 
 MmResult streamio_close_all(void) {
