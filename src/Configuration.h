@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 Configuration.h
 
-Copyright 2021-2024 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -89,18 +89,3 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_ARG_COUNT       50
 
 #define BREAK_KEY            3
-
-
-// Redefine the standard float routines used in MMBasic to their double versions
-// TODO: Just use the double versions directly
-#define powf pow
-#define log10f log10
-#define floorf floor
-#define fabsf fabs
-#define atanf atan
-#define cosf cos
-#define expf exp
-#define logf log
-#define sinf sin
-#define sqrtf sqrt
-#define tanf tan
