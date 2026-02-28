@@ -49,8 +49,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mmresult.h"
 
-/** Initialises the keyboard buffer. */
+/** Initialises the keyboard buffer and starts the background input thread. */
 MmResult keybuf_init(void);
+
+/**
+ * Terminates the background input thread and cleans up the keyboard buffer.
+ * Note: this does not wait for the thread to stop - it sets a flag and
+ * returns immediately, relying on the OS to clean up on process exit.
+ */
+void keybuf_term(void);
 
 /** Clears the content of the keyboard buffer. */
 void keybuf_clear(void);
@@ -71,8 +78,6 @@ int keybuf_get(void);
  * @return  true if it is, or false if it isn't (e.g. connected to a piped file)
  */
 bool keybuf_isatty(void);
-
-void keybuf_pump_tty(void);
 
 /** Adds a character to the keyboard buffer. */
 void keybuf_put(char ch);

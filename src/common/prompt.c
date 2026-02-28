@@ -74,6 +74,7 @@ MmResult prompt_getc(int *ch) {
 
     MmResult result = kOk;
     for (;;) {
+        perform_background_tasks();
         result = display_update_cursor();
         ON_FAILURE_GOTO(result, cleanup);
         *ch = keybuf_get();

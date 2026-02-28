@@ -45,6 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <stdio.h>
 
+#include <SDL.h>
+
 #include "interrupt.h"
 #include "keybuf.h"
 #include "keycodes.h"
@@ -57,34 +59,93 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static char keybuf_data[KEYBUF_SIZE];
 static RxBuf keybuf_buf;
+static SDL_mutex *keybuf_mutex = NULL;
+static SDL_Thread *keybuf_thread = NULL;
+static SDL_atomic_t keybuf_stop;
+
+/**
+ * Platform-specific function to read a single character from the terminal.
+ * Implemented in keybuf_linux.c and keybuf_windows.c.
+ * Should block until a character is available or keybuf_stop is set.
+ * Returns the character read, or -1 on error or if keybuf_stop is set.
+ */
+int keybuf_read_char(void);
+
+static int keybuf_thread_fn(void *data) {
+    (void) data;
+    while (!SDL_AtomicGet(&keybuf_stop)) {
+        int ch = keybuf_read_char();
+        if (ch == -1) {
+            if (!SDL_AtomicGet(&keybuf_stop)) {
+                fprintf(stderr, "keybuf: error reading from terminal\n");
+            }
+            break;
+        }
+        keybuf_put((char) ch);
+    }
+    return 0;
+}
 
 MmResult keybuf_init(void) {
     LOG_FN_ENTRY();
+
     rx_buf_init(&keybuf_buf, keybuf_data, sizeof(keybuf_data));
+
+    keybuf_mutex = SDL_CreateMutex();
+    if (!keybuf_mutex) {
+        fprintf(stderr, "keybuf: failed to create mutex: %s\n", SDL_GetError());
+        return kError;
+    }
+
+    SDL_AtomicSet(&keybuf_stop, false);
+    keybuf_thread = SDL_CreateThread(keybuf_thread_fn, "keybuf", NULL);
+    if (!keybuf_thread) {
+        fprintf(stderr, "keybuf: failed to create thread: %s\n", SDL_GetError());
+        SDL_DestroyMutex(keybuf_mutex);
+        keybuf_mutex = NULL;
+        return kError;
+    }
+
     RETURN_RESULT(kOk);
 }
 
+void keybuf_term(void) {
+    // Signal the thread to stop. We don't wait for it to exit - the OS will
+    // clean up when the process exits. The thread may be blocked in
+    // keybuf_read_char() but that's acceptable since we're exiting anyway.
+    SDL_AtomicSet(&keybuf_stop, true);
+}
+
 void keybuf_clear(void) {
-    // while (keybuf_get() != -1);
+    SDL_LockMutex(keybuf_mutex);
     rx_buf_clear(&keybuf_buf);
+    SDL_UnlockMutex(keybuf_mutex);
 }
 
 int keybuf_count(void) {
-    return rx_buf_size(&keybuf_buf);
+    SDL_LockMutex(keybuf_mutex);
+    int count = rx_buf_size(&keybuf_buf);
+    SDL_UnlockMutex(keybuf_mutex);
+    return count;
 }
 
 void keybuf_unget(char ch) {
+    SDL_LockMutex(keybuf_mutex);
     rx_buf_unget(&keybuf_buf, ch);
+    SDL_UnlockMutex(keybuf_mutex);
 }
 
 int keybuf_match_chars(char *pattern) {
     if (*pattern == '\0') return 1;
 
-    if (rx_buf_size(&keybuf_buf) == 0) {
-        perform_background_tasks(); // Which calls keybuf_pump_tty();
-    }
+    // if (rx_buf_size(&keybuf_buf) == 0) {
+    //     perform_background_tasks(); // Which calls other background processing.
+    // }
 
+    SDL_LockMutex(keybuf_mutex);
     int ch = rx_buf_get(&keybuf_buf);
+    SDL_UnlockMutex(keybuf_mutex);
+
     if (ch == -1) {
         return 0;
     } else if (ch == *pattern && keybuf_match_chars(++pattern)) {
@@ -137,8 +198,11 @@ int keybuf_get(void) {
         '[', '2', '4',  ';',  '2',  '~',  '\0', SHIFT_FN(F12),
         0xFF};
 
-    perform_background_tasks(); // Which calls console_pump_input();
+    // perform_background_tasks(); // Which calls console_pump_input();
+
+    SDL_LockMutex(keybuf_mutex);
     int ch = rx_buf_get(&keybuf_buf);
+    SDL_UnlockMutex(keybuf_mutex);
 
     switch (ch) {
         // case 0x0A:
@@ -146,6 +210,10 @@ int keybuf_get(void) {
         //     break;
 
         case ESC: {
+            // Wait briefly for the rest of the escape sequence to arrive
+            // in case it is being delivered character by character.
+            SDL_Delay(20);  // 20ms is enough for a local terminal sequence
+
             char *p = ESCAPE_MAP;
             while (*p != 0xFF) {
                 if (keybuf_match_chars(p)) {
@@ -179,15 +247,19 @@ void keybuf_put(char ch) {
     // Note that 'ch' does not get added to the buffer.
     if (interrupt_check_key_press(ch)) RETURN_VOID();
 
-    if (ch == mmb_options.break_key) {
+    SDL_LockMutex(keybuf_mutex);
+
+    if (ch == (char) SDL_AtomicGet(&mmb_options.break_key)) {
         // User wishes to stop the program.
         // Set the abort flag so the interpreter will halt and empty the keyboard buffer.
-        MMAbort = true;
+        SDL_AtomicSet(&MMAbort, true);
         rx_buf_clear(&keybuf_buf);
     } else {
         // If the buffer is full then this will throw away ch.
         rx_buf_put(&keybuf_buf, ch);
     }
+
+    SDL_UnlockMutex(keybuf_mutex);
 
     RETURN_VOID();
 }
@@ -237,7 +309,7 @@ void keybuf_key_to_string(int ch, char *buf) {
         SHIFT_FN(F10), 'S', 'H',  'I',  'F',  'T',  '+',  'F',  '1',  '0', '\0',
         SHIFT_FN(F11), 'S', 'H',  'I',  'F',  'T',  '+',  'F',  '1',  '1', '\0',
         SHIFT_FN(F12), 'S', 'H',  'I',  'F',  'T',  '+',  'F',  '1',  '2', '\0',
-        0xF
+        0xFF
     };
 
     char *p = KEY_TO_STRING_MAP;
