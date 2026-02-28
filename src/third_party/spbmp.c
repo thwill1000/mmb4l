@@ -271,7 +271,7 @@ static SpBmpResult spbmp_read_1bpp(void *file, BmpHeader *header, int x_origin, 
     if (header->colour_table_size == 0) return kSpBmpError;
 
     const int row_length = header->width / 8 + (header->width % 8 == 0 ? 0 : 1);
-    uint8_t buf;
+    uint8_t buf = 0x0;
 
     const int y_start = (header->height >= 0) ? header->height - 1 : 0;
     const int y_end = (header->height >= 0) ? -1 : -header->height;
@@ -305,7 +305,7 @@ static SpBmpResult spbmp_read_4bpp(void *file, BmpHeader *header, int x_origin, 
     if (header->colour_table_size == 0) return kSpBmpError;
 
     const int row_length = header->width / 2 + (header->width % 2 == 0 ? 0 : 1);
-    uint8_t buf;
+    uint8_t buf = 0x0;
 
     const int y_start = (header->height >= 0) ? header->height - 1 : 0;
     const int y_end = (header->height >= 0) ? -1 : -header->height;

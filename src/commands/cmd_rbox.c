@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 cmd_rbox.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -58,8 +58,8 @@ void cmd_rbox(void) {
     if (!graphics_current) error_throw(kGraphicsInvalidWriteSurface);
 
     int x1, y1, wi, h, w = 0, r = 0, n = 0, i, nc = 0, nw = 0, nf = 0, hmod, wmod;
-    MMINTEGER *x1ptr, *y1ptr, *wiptr, *hptr, *wptr, *cptr, *fptr;
-    MMFLOAT *x1fptr, *y1fptr, *wifptr, *hfptr, *wfptr, *cfptr, *ffptr;
+    MMINTEGER *x1ptr = NULL, *y1ptr = NULL, *wiptr = NULL, *hptr = NULL, *wptr = NULL, *cptr = NULL, *fptr = NULL;
+    MMFLOAT *x1fptr = NULL, *y1fptr = NULL, *wifptr = NULL, *hfptr = NULL, *wfptr = NULL, *cfptr = NULL, *ffptr = NULL;
     getargs(&cmdline, 13, DELIM_COMMA);
     if (!(argc & 1) || argc < 7) ERROR_ARGUMENT_COUNT;
     getargaddress(argv[0], &x1ptr, &x1fptr, &n);

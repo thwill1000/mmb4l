@@ -349,7 +349,7 @@ static MmResult AddFunction(const char **p, FunType type, const char *addr) {
     char name[MAXVARLEN + 1];
     MmResult result = parse_name(p, name);
     if (SUCCEEDED(result)) {
-        int fun_idx;
+        int fun_idx = -1;
         result = funtbl_add(name, type, addr, &fun_idx);
     }
     return result;
@@ -458,7 +458,7 @@ int FindSubFun(const char *p, uint8_t type_mask) {
     char name[MAXVARLEN + 1];
     MmResult result = parse_name(&p, name);
 
-    int fun_idx;
+    int fun_idx = -1;
     if (SUCCEEDED(result)) result = funtbl_find(name, type_mask, &fun_idx);
 
     const char *msg = NULL;
@@ -1639,7 +1639,7 @@ const char *findlabel(const char *labelptr) {
     char name[MAXVARLEN + 1];
     MmResult result = parse_name(&labelptr, name);
 
-    int fun_idx;
+    int fun_idx = -1;
     if (SUCCEEDED(result)) result = funtbl_find(name, kLabel, &fun_idx);
 
     switch (result) {
@@ -2845,7 +2845,7 @@ const char *GetIntAddress(const char *p) {
         char name[MAXVARLEN + 1];
         MmResult result = parse_name(&p, name);
 
-        int fun_idx;
+        int fun_idx = -1;
         if (SUCCEEDED(result)) result = funtbl_find(name, kLabel | kSub, &fun_idx);
         switch (result) {
             case kOk:
