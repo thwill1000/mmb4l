@@ -504,3 +504,17 @@ MmResult file_size(const char *path, off_t *size) {
     *size = info.size;
     return kOk;
 }
+
+int file_getc(int fnbr) {
+    errno = 0;
+    char ch;
+    if (fread(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
+        if (ferror(file_table[fnbr].file_ptr) == 0) {
+            RETURN_RESULT(-1);
+        } else {
+            THROW_ERROR(errno, -1);
+        }
+    }
+
+    RETURN_INT((int)ch);
+}
