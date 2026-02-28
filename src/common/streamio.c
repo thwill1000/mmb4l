@@ -234,37 +234,28 @@ MmResult streamio_open(const char *path, const char *mode, int fnbr) {
 
 int streamio_putc(int fnbr, int ch) {
     if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, -1);
+        THROW_ERROR(kFileInvalidFileNumber, -1);
     }
 
     if (fnbr == 0) {
         assert(streamio_0_putc_fn);
         ON_FAILURE_ERROR_EX(streamio_0_putc_fn(ch), -1);
-        return ch;
+        RETURN_INT(ch);
     }
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, -1);
-            break;
+            THROW_ERROR(kFileNotOpen, -1);
 
-        case fet_file: {
-            errno = 0;
-            if (fwrite(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
-                if (ferror(file_table[fnbr].file_ptr)) error_throw(errno);
-                assert(false); // Always expect ferror to have been set.
-            }
-            // TODO: Do I really want to be flushing every character ?
-            if (FAILED(fflush(file_table[fnbr].file_ptr))) error_throw(errno);
-            return (int) ch;
-        }
+        case fet_file:
+            RETURN_INT(file_putc(fnbr, (char)ch));
 
         case fet_serial:
-            return serial_putc(fnbr, ch);
-    }
+            RETURN_INT(serial_putc(fnbr, ch));
 
-    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, -1);
-    return -1;
+        default:
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), -1);
+    }
 }
 
 size_t streamio_read(int fnbr, char *buf, size_t sz) {

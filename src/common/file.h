@@ -426,4 +426,14 @@ MmResult file_rmdir(const char *dirname);
  */
 int file_getc(int fnbr);
 
+/**
+ * Writes a character to a file.
+ *
+ * @param[in]  fnbr  File number to write to
+ * @param[in]  ch    Character to write
+ * @return           The character written as an unsigned char cast to an int,
+ *                   or longjmp()s on error
+ */
+int file_putc(int fnbr, char ch);
+
 #endif // #if !defined(MMB4L_FILE)
