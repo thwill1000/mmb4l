@@ -1,4 +1,4 @@
-' Copyright (c) 2020-2024 Thomas Hugo Williams
+' Copyright (c) 2020-2026 Thomas Hugo Williams
 ' License MIT <https://opensource.org/licenses/MIT>
 ' For MMBasic 5.07
 
@@ -243,35 +243,20 @@ Sub test_eof()
   Close #1
 
   ' Test on file file number #0.
-  Select Case Mm.Device$
-    Case "MMB4L" : assert_int_equals(0, Eof(#0)) ' TODO
-    Case Else    : assert_int_equals(1, Eof(#0))
-  End Select
+  assert_int_equals(1, Eof(#0))
 
   ' Test when file opened for OUTPUT.
   Open f$ For Output As #1
-  If Mm.Device$ = "MMB4L" Then
-    On Error Skip 1
-    i% = Eof(#1)
-    assert_raw_error(BAD_FILE_DESCRIPTOR_ERR$)
-  Else
-    assert_int_equals(1, Eof(#1))
-    Print #1, "Hello World"
-    assert_int_equals(1, Eof(#1))
-  EndIf
+  assert_int_equals(1, Eof(#1))
+  Print #1, "Hello World"
+  assert_int_equals(1, Eof(#1))
   Close #1
 
   ' Test when file opened for APPEND.
   Open f$ For Append As #1
-  If Mm.Device$ = "MMB4L" Then
-    On Error Skip 1
-    i% = Eof(#1)
-    assert_raw_error(BAD_FILE_DESCRIPTOR_ERR$)
-  Else
-    assert_int_equals(1, Eof(#1))
-    Print #1, "Goodbye World"
-    assert_int_equals(1, Eof(#1))
-  EndIf
+  assert_int_equals(1, Eof(#1))
+  Print #1, "Goodbye World"
+  assert_int_equals(1, Eof(#1))
   Close #1
 
   ' Test when file opened for RANDOM.
@@ -735,9 +720,7 @@ Sub test_append_eof_bug()
 
   Open filename$ For Append As #1
   Print #1, "Goodbye World"
-  If Mm.Device$ = "MMB4L" Then On Error Skip
   Local i% = Eof(#1)
-  If Mm.Device$ = "MMB4L" Then assert_raw_error(BAD_FILE_DESCRIPTOR_ERR$)
   Close #1
 
   Open filename$ For Input As #1

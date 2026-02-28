@@ -88,35 +88,26 @@ MmResult streamio_close_all(void) {
 }
 
 int streamio_eof(int fnbr) {
-    if (fnbr < 0 || fnbr > MAXOPENFILES) {
-        ON_FAILURE_ERROR_EX(kFileInvalidFileNumber, 0);
+    static const int error_result = 1; // To match other MMBasic platforms
+    if (fnbr == 0) {
+        return error_result;
+    } else {
+        ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), error_result);
     }
-
-    if (fnbr == 0) return 0;
 
     switch (file_table[fnbr].type) {
         case fet_closed:
-            ON_FAILURE_ERROR_EX(kFileNotOpen, 0);
-            break;
+            THROW_ERROR(kFileNotOpen, error_result);
 
-        case fet_file: {
-            FILE *f = file_table[fnbr].file_ptr;
-            errno = 0;
-            int ch = fgetc(f); // Try to read beyond the end of the file.
-            if (ch == EOF) {
-                if (ferror(f)) error_throw(errno);
-            } else {
-                if (ungetc(ch, f) == EOF) error_throw(errno);
-            }
-            return ch == EOF;
-        }
+        case fet_file:
+            RETURN_INT(file_eof(fnbr));
 
         case fet_serial:
-            return serial_eof(fnbr);
-    }
+            RETURN_INT(serial_eof(fnbr));
 
-    ON_FAILURE_ERROR_EX(INTERNAL_FAULT, 1);
-    return 1;
+        default:
+            THROW_ERROR(INTERNAL_FAULT_EX("invalid file type: %d", file_table[fnbr].type), error_result);
+    }
 }
 
 int streamio_find_free(void) {
