@@ -518,3 +518,12 @@ int file_getc(int fnbr) {
 
     RETURN_INT((int)ch);
 }
+
+int file_putc(int fnbr, char ch) {
+    errno = 0;
+    if (fwrite(&ch, 1, 1, file_table[fnbr].file_ptr) == 0) {
+        if (ferror(file_table[fnbr].file_ptr)) THROW_ERROR(errno, -1);
+        assert(false);  // Always expect ferror to have been set.
+    }
+    RETURN_INT((int)ch);
+}
