@@ -646,21 +646,21 @@ MmResult options_get_string_value(const Options *options, OptionsId id, char *sv
 
     switch (options_definitions[id].type) {
         case kOptionTypeBoolean: {
-            MMINTEGER ivalue;
+            MMINTEGER ivalue = 0;
             result = options_get_integer_value(options, id, &ivalue);
             if (SUCCEEDED(result)) sprintf(svalue, "%s", ivalue ? "On" : "Off");
             return result;
         }
 
         case kOptionTypeInteger: {
-            MMINTEGER ivalue;
+            MMINTEGER ivalue = 0;
             result = options_get_integer_value(options, id, &ivalue);
             if (SUCCEEDED(result)) sprintf(svalue, "%" PRId64, ivalue);
             return result;
         }
 
         case kOptionTypeFloat: {
-            MMFLOAT fvalue;
+            MMFLOAT fvalue = 0.0;
             result = options_get_float_value(options, id, &fvalue);
             if (SUCCEEDED(result)) sprintf(svalue, "%g", fvalue);
             return result;

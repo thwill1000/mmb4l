@@ -1125,7 +1125,7 @@ MmResult graphics_draw_circle(MmSurface *surface, int x, int y, int radius, int 
             aspect2 = ((aspect * (MMFLOAT)radius) - (MMFLOAT)w) / ((MMFLOAT)(radius - w));
             graphics_draw_circle(surface, x, y, radius - w, 0, fill, fill, aspect2);
         } else {  // thick border with empty centre
-            int r1 = radius - w, r2 = radius, xs = -1, xi = 0, i, j, k, m, ll = radius;
+            int r1 = radius - w, r2 = radius, xs = -1, xi = 0, i, j, k, m = 0, ll = radius;
             if (aspect > 1.0) ll = (int)((MMFLOAT)radius * aspect);
             int ints_per_line = RoundUptoInt((ll * 2) + 1) / 32;
             uint32_t* br = (uint32_t*)GetTempMemory(((ints_per_line + 1) * ((r2 * 2) + 1)) * 4);
@@ -1912,7 +1912,7 @@ MmResult graphics_blit(int src_x, int src_y, int dst_x, int dst_y, int w, int h,
 MmResult graphics_blit_memory_compressed(MmSurface *surface, char *data, int x, int y, int w, int h,
                                          int transparent) {
     unsigned count = 0;
-    int colour;
+    int colour = -1;
     for (int yy = y; yy < y + h; ++yy) {
         for (int xx = x; xx < x + w; ++xx) {
             if (count == 0) {
