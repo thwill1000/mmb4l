@@ -314,6 +314,14 @@ MmResult file_getcwd(char *buf, size_t size);
 MmResult file_info(const char *filename, FileInfo *info);
 
 /**
+ * Checks if the end of a file has been reached.
+ *
+ * @param[in]  fnbr  File number to check
+ * @return           true if end of file has been reached, false otherwise
+ */
+int file_eof(int fnbr);
+
+/**
  * Does the path exist and correspond to a symbolic link?
  *
  * @param[in]  path  Path to check
