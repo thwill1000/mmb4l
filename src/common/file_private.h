@@ -59,6 +59,7 @@ typedef struct {
         FILE *file_ptr;
         int serial_fd;
     };
+    char mode[8];
     RxBuf rx_buf;
 } FileEntry;
 

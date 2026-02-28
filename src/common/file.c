@@ -495,6 +495,36 @@ static MmResult file_get_config_dir_impl(char *buf, size_t size) {
     return file_append_path(buf, ".mmbasic", size);
 }
 
+static inline bool file_is_write_only(int fnbr) {
+    const char *mode = file_table[fnbr].mode;
+    return (strchr(mode, 'w') && !strchr(mode, '+')) ||
+           (strchr(mode, 'a') && !strchr(mode, '+'));
+}
+
+int file_eof(int fnbr) {
+    static const int error_result = 1; // To match other MMBasic platforms
+    ON_FAILURE_ERROR_EX(file_validate_fnbr(fnbr), error_result);
+
+    if (file_is_write_only(fnbr)) {
+        RETURN_RESULT(error_result);
+    }
+
+    FILE* f = file_table[fnbr].file_ptr;
+    clearerr(f);
+    errno = 0;
+    int ch = fgetc(f);  // Try to read beyond the end of the file.
+    if (ch == EOF) {
+        if (ferror(f) && !feof(f)) {
+            THROW_ERROR(errno ? errno : kError, error_result);
+        }
+    } else {
+        if (ungetc(ch, f) == EOF) {
+            THROW_ERROR(errno ? errno : kError, error_result);
+        }
+    }
+    return ch == EOF;
+}
+
 MmResult file_size(const char *path, off_t *size) {
     LOG_FN_ENTRY("path=%s, size=%p", path, size);
 
