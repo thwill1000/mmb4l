@@ -2293,10 +2293,10 @@ void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch) {
     if(f == 0)
         exp = 0;
     else
-        exp = floorf(log10f(fabsf(f)));                             // get the exponent part
-    if(((fabsf(f) < 0.0001 || fabsf(f) >= 1000000) && f != 0 && n == STR_AUTO_PRECISION) || n < 0) {
+        exp = floor(log10(fabs(f)));                                // get the exponent part
+    if(((fabs(f) < 0.0001 || fabs(f) >= 1000000) && f != 0 && n == STR_AUTO_PRECISION) || n < 0) {
         // we must use scientific notation
-        f /= powf(10, exp);                                         // scale the number to 1.2345
+        f /= pow(10, exp);                                          // scale the number to 1.2345
         if(f >= 10) { f /= 10; exp++; }
         if(n < 0) n = -n;                                           // negative indicates always use exponantial format
         FloatToStr(p, f, m, n, ch);                                 // recursively call ourself to convert that to a string
@@ -2322,7 +2322,7 @@ void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch) {
 
         // calculate rounding to hide the vagaries of floating point
         if(n > 0)
-            rounding = 0.5/powf(10, n);
+            rounding = 0.5/pow(10, n);
         else
             rounding = 0.5;
         if(f > 0) f += rounding;                                    // add rounding for positive numbers
@@ -2340,10 +2340,10 @@ void FloatToStr(char *p, MMFLOAT f, int m, int n, unsigned char ch) {
         if(f < 0) f = -f;                                           // make the number positive
         if(n > 0) {                                                 // if we need to have a decimal point and following digits
             *pp++ = '.';                                            // add the decimal point
-            f -= floorf(f);                                         // get just the fractional part
+            f -= floor(f);                                          // get just the fractional part
             while(n--) {
                 f *= 10;
-                digit = floorf(f);                                  // get the next digit for the string
+                digit = floor(f);                                   // get the next digit for the string
                 f -= digit;
                 *pp++ = digit + '0';
             }
