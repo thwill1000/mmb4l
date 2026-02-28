@@ -42,12 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *******************************************************************************/
 
-#include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <unistd.h>
 
-#include "error.h"
 #include "keybuf.h"
 
 bool keybuf_isatty(void) {
@@ -58,23 +56,22 @@ bool keybuf_isatty(void) {
 #endif
 }
 
-void keybuf_pump_tty(void) {
+/**
+ * Blocks until a character is available on STDIN then returns it.
+ * Returns -1 on error.
+ */
+int keybuf_read_char(void) {
     char ch;
-    errno = 0;
     ssize_t result = read(STDIN_FILENO, &ch, 1);
     switch (result) {
         case -1:
-            error_throw(errno);
+            return -1;
         case 0:
-            return;
+            // EOF on stdin - return -1 to signal the thread to stop.
+            return -1;
         case 1:
-            // Read one character, drop out of the switch.
-            // printf("<%d>", (int) ch);
-            break;
+            return (unsigned char) ch;
         default:
-            assert(false);
-            break;
+            return -1;
     }
-
-    keybuf_put(ch);
 }

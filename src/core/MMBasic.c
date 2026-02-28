@@ -79,7 +79,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define error error_throw_legacy
 
-volatile bool MMAbort = false;
+SDL_atomic_t MMAbort;  // Accessed by main + keybuf threads
 
 MmBasicState mmb_state = { .exiting = false, .exit_code = EX_OK };
 
@@ -163,6 +163,7 @@ const char *getvalue(const char *p, MMFLOAT *fa, MMINTEGER *ia, char **sa, Funct
 MmResult InitBasic(void) {
     LOG_FN_ENTRY();
 
+    SDL_AtomicSet(&MMAbort, false);
     srand(0);  // seed the random generator with zero
     ProgMemory[0] = '\0';
     ProgMemory[1] = '\0';
@@ -2939,12 +2940,9 @@ void getargaddress(char *p, MMINTEGER **ip, MMFLOAT **fp, int *n) {
 }
 
 void perform_background_tasks() {
-    if (MMAbort) {
-        // g_key_select = 0;
+    if (SDL_AtomicGet(&MMAbort)) {
         longjmp(mark, JMP_BREAK);  // jump back to the input prompt
     }
-
-    keybuf_pump_tty();
 
     // Pump all the serial port connections for input.
     for (int fnbr = 1; fnbr <= MAXOPENFILES; ++fnbr) {

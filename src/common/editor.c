@@ -140,7 +140,7 @@ MmResult editor_construct(Editor *self, const char *filename, int width, int hei
     self->insert = true;
     self->mode = kEditMode;
     self->text_changed = false;
-    self->saved_break_key = mmb_options.break_key;
+    self->saved_break_key = (char) SDL_AtomicGet(&mmb_options.break_key);
     self->highlight = kHighlightNormal;
     self->message[0] = '\0';
     self->change_start = NO_CHANGE;
@@ -1752,6 +1752,7 @@ static MmResult editor_read_keys(Editor *self) {
     // keybuf_get() returns -1 if no key is available.
     // display_update_cursor() ensures cursor blinks/updates while waiting.
     do {
+        perform_background_tasks();
         ON_FAILURE_RETURN(display_update_cursor());
         ch = keybuf_get();
     } while (ch == -1);
@@ -2877,12 +2878,12 @@ MmResult editor_show_internal(Editor *self, int line) {
 
     // Disable default break key handling, within the editor the break key
     // will be considered synonymous with ESC.
-    mmb_options.break_key = 0;
+    SDL_AtomicSet(&mmb_options.break_key, 0);
 
     MmResult result = editor_edit_loop(self);
 
     // Tidy up.
-    mmb_options.break_key = self->saved_break_key;
+    SDL_AtomicSet(&mmb_options.break_key, self->saved_break_key);
 
     return result;
 }

@@ -4,7 +4,7 @@ MMBasic for Linux (MMB4L)
 
 xmodem.c
 
-Copyright 2021-2025 Geoff Graham, Peter Mather and Thomas Hugo Williams.
+Copyright 2021-2026 Geoff Graham, Peter Mather and Thomas Hugo Williams.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@ modification, are permitted provided that the following conditions are met:
 
 4. The name MMBasic be used when referring to the interpreter in any
    documentation and promotional material and the original copyright message
-   be displayed  on the console at startup (additional copyright messages may
+   be displayed on the console at startup (additional copyright messages may
    be added).
 
 5. All advertising materials mentioning features or use of this software must
@@ -165,7 +165,7 @@ void xmodem_transmit(int file_fnbr, int serial_fnbr, bool verbose) {
                 xbuff[X_BLOCK_SIZE + 3] = ccks;
 
                 // now send the block
-                for (retry = 0; retry < MAXRETRANS && !MMAbort; ++retry) {
+                for (retry = 0; retry < MAXRETRANS && !SDL_AtomicGet(&MMAbort); ++retry) {
                     // send the block
                     serial_write(serial_fnbr, xbuff, X_BLOCK_SIZE + 4);
                     //for (i = 0; i < X_BLOCK_SIZE + 4 && !MMAbort; ++i) {

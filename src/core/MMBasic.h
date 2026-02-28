@@ -50,6 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include <stddef.h>
 
+#include <SDL_atomic.h>
+
 #include "../Configuration.h"
 #include "../common/mmresult.h"
 #include "../common/options.h"
@@ -132,11 +134,8 @@ extern int LocalIndex;                                // used to track the level
 
 #define has_arg(x)  ((argc >= (x) + 1) && *argv[(x)])
 
-extern volatile bool MMAbort;
+extern SDL_atomic_t MMAbort;                    // Accessed by main + keybuf threads
 extern jmp_buf mark;                            // longjump to recover from an error
-#if !defined(__mmb4l__)
-extern char BreakKey;                           // console break key (defaults to CTRL-C)
-#endif
 
 extern int ProgMemSize;
 

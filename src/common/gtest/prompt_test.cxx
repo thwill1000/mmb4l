@@ -26,6 +26,9 @@ MmResult path_complete_canned_result;
 char path_complete_captured_path[STRINGSIZE];
 char config_dir[PATH_MAX] = { '\0' };
 
+// Defined in "core/MMBasic.c"
+void perform_background_tasks() {}
+
 MmResult file_test_get_config_dir(char *buf, size_t size) {
     if (FAILED(cstring_cpy(buf, config_dir, size))) {
         return kFilenameTooLong;

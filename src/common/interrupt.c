@@ -76,14 +76,14 @@ typedef struct {
     const char *interrupt_addr;
 } SerialRxStruct;
 
-static char DUMMY_IRETURN[3]; // Dummy IRETURN call.
+static char DUMMY_IRETURN[3];  // Dummy IRETURN call.
 static int interrupt_count = 0;
-static bool interrupt_legacy = false; // Is the current interrupt using a label/line number ?
+static bool interrupt_legacy = false;  // Is the current interrupt using a label/line number ?
 static const char *interrupt_any_key_addr = NULL;
 static bool interrupt_pause_flag = false;
 static const char *interrupt_return_stmt = NULL;
-static int interrupt_specific_key = 0;
-static int interrupt_specific_key_pressed = false;
+static SDL_atomic_t interrupt_specific_key;          // Accessed by main + keybuf threads
+static SDL_atomic_t interrupt_specific_key_pressed;  // Accessed by main + keybuf threads
 static const char *interrupt_specific_key_addr = NULL;
 static TickStruct interrupt_ticks[NBRSETTICKS + 1];
 static SerialRxStruct interrupt_serial_rx[MAXOPENFILES + 1];
@@ -116,8 +116,8 @@ void interrupt_clear(void) {
     interrupt_return_stmt = NULL;
     interrupt_any_key_addr = NULL;
     interrupt_pause_flag = false;
-    interrupt_specific_key = 0;
-    interrupt_specific_key_pressed = false;
+    SDL_AtomicSet(&interrupt_specific_key, 0);
+    SDL_AtomicSet(&interrupt_specific_key_pressed, false);
     interrupt_specific_key_addr = NULL;
     for (int i = 0; i <= NBRSETTICKS; ++i) {
         interrupt_ticks[i].due_ns = 0;
@@ -266,8 +266,8 @@ bool interrupt_check(void) {
     }
 
     // Check for an ON KEY ascii_code%, handler_sub() interrupt.
-    if (interrupt_specific_key_addr && interrupt_specific_key_pressed) {
-        interrupt_specific_key_pressed = false;
+    if (interrupt_specific_key_addr && SDL_AtomicGet(&interrupt_specific_key_pressed)) {
+        SDL_AtomicSet(&interrupt_specific_key_pressed, false);
         return handle_interrupt(interrupt_specific_key_addr);
     }
 
@@ -349,7 +349,7 @@ void interrupt_disable_specific_key() {
 
 void interrupt_enable_specific_key(int key, const char *interrupt_addr) {
     if (!interrupt_specific_key_addr) interrupt_count++;
-    interrupt_specific_key = key;
+    SDL_AtomicSet(&interrupt_specific_key, key);
     interrupt_specific_key_addr = interrupt_addr;
 }
 
@@ -397,8 +397,8 @@ MmResult interrupt_resume_tick(int irq) {
 bool interrupt_check_key_press(char ch) {
     LOG_FN_ENTRY();
 
-    if (ch == interrupt_specific_key && interrupt_specific_key_addr) {
-        interrupt_specific_key_pressed = true;
+    if (ch == SDL_AtomicGet(&interrupt_specific_key) && interrupt_specific_key_addr) {
+        SDL_AtomicSet(&interrupt_specific_key_pressed, true);
         RETURN_BOOL(true);
     } else {
         RETURN_BOOL(false);

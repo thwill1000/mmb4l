@@ -68,7 +68,13 @@ MmResult console_init(bool no_title) {
     self.no_title = no_title;
     self.requires_sync = true;
 
-    RETURN_RESULT(console_private_init(&self));
+    RETURN_RESULT(console_init_platform(&self));
+}
+
+MmResult console_term(void) {
+    LOG_FN_ENTRY();
+
+    RETURN_RESULT(console_term_platform());
 }
 
 void console_bell(void) {
