@@ -436,4 +436,14 @@ int file_getc(int fnbr);
  */
 int file_putc(int fnbr, char ch);
 
+/**
+ * Reads data from a file into a buffer.
+ *
+ * @param[in]  fnbr    File number to read from
+ * @param[out] buf     Buffer to store the read data
+ * @param[in]  buf_sz  Number of bytes to read
+ * @return             Number of bytes actually read, or longjmp()s on error
+ */
+size_t file_read(int fnbr, char *buf, size_t buf_sz);
+
 #endif // #if !defined(MMB4L_FILE)

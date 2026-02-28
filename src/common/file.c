@@ -527,3 +527,10 @@ int file_putc(int fnbr, char ch) {
     }
     RETURN_INT((int)ch);
 }
+
+size_t file_read(int fnbr, char *buf, size_t buf_sz) {
+    errno = 0;
+    size_t result = fread(buf, 1, buf_sz, file_table[fnbr].file_ptr);
+    if (result < buf_sz && ferror(file_table[fnbr].file_ptr)) THROW_ERROR(errno, 0);
+    RETURN_INT(result);
+}
