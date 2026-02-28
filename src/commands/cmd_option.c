@@ -206,7 +206,7 @@ static MmResult cmd_option_set_string(const char *p, const OptionsDefinition *de
 
 static void cmd_option_set(const char *p) {
     const OptionsDefinition *def = NULL;
-    const char *p2;
+    const char *p2 = NULL;
     for (def = options_definitions; def->name; ++def) {
         if ((p2 = checkstring(p, (char *) def->name))) break;
     }
